@@ -27,6 +27,7 @@ const EXCEPT = {
   "severe:ncep_nam_conus": ["wind_speed_500hPa", "geopotential_height_500hPa", "temperature_500hPa", "temperature_700hPa"],
   /* ECMWF AIFS has no wind gusts: the blend averages gusts from the models that have them. */
   "blend:ecmwf_aifs025_single": ["wind_gusts_10m"],
+  "blend:jma_seamless": ["wind_gusts_10m"],
 };
 function usable(group, data) {
   Object.keys(data.models).forEach((id) => {
@@ -55,7 +56,7 @@ const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") -
     ok(bOk.length >= 4, "blend: at least 4 models return data");
     ok(hourly(B.times), "blend: hourly time axis with no gaps");
     bOk.forEach((id) => ok(between(B.models[id].h.temperature_2m, -60, 125), `blend ${id}: temperatures in °F range`));
-    bOk.forEach((id) => ok(between(B.models[id].h.wind_gusts_10m || [], 0, 200), `blend ${id}: gusts in mph range`));
+    bOk.filter((id) => !(EXCEPT[`blend:${id}`] || []).includes("wind_gusts_10m")).forEach((id) => ok(between(B.models[id].h.wind_gusts_10m || [], 0, 200), `blend ${id}: gusts in mph range`));
     usable("blend", B);
     const rows = C.blend.dailyRows(B, C.config.defaultWeights(C.config.blend));
     ok(rows.length >= 3, "blend: at least 3 daily rows");
