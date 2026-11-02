@@ -153,7 +153,9 @@ const providerDown = (what, cond, why) => { if (!cond) return false; skips++; co
     /* ---------- winter profiles on real data ---------- */
     const WD = await D.loadModels(C.config.winterDet, { ...where, days: 2 });
     if (!providerDown(`Open-Meteo winter fields at ${P.name}`, WD.empty)) {
-      const prof = { gfs_seamless: 8, ecmwf_ifs025: 4, icon_seamless: 8 };
+      /* levels below ground are excluded, so high terrain (Denver ~835 hPa at the surface) has fewer points */
+      const high = (WD.models.gfs_seamless || Object.values(WD.models)[0]).elev > 1000;
+      const prof = high ? { gfs_seamless: 4, ecmwf_ifs025: 3, icon_seamless: 4 } : { gfs_seamless: 8, ecmwf_ifs025: 4, icon_seamless: 8 };
       Object.keys(prof).filter((id) => WD.models[id]).forEach((id) => {
         const md = WD.models[id], rows = C.winter.series(md.h, WD.times.length, md.elev);
         const npts = WD.times.map((_, i) => C.winter.profile(md.h, i, md.elev).length);
