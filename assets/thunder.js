@@ -21,6 +21,8 @@
   const picker = O.modelPicker($("models"), "ops_thunder_models", MODELS, render);
   const showLines = O.linesToggle($("linesBtn"), "ops_thunder_lines", () => renderChart());
   O.locationCard($("locCard"), () => run());
+  O.eventCard($("evCard"));
+  O.onEvent(() => render());
   $("runBtn").addEventListener("click", () => run());
   $("days").value = String(O.store.get("ops_thunder_days", 3));
   $("days").addEventListener("change", () => { O.store.set("ops_thunder_days", +$("days").value); run(); });
@@ -69,6 +71,15 @@
       return;
     }
     const Cx = compute(); data.C = Cx;
+    const ctx = O.eventContext(data); data.ctx = ctx;
+    const inP = (w) => w.L.idx;
+    O.eventTable($("eventCard"), ctx, [
+      { label: "Signal", cell: (w) => { const a = inP(w).map((i) => Cx.tiers[i]), lim = a.filter((x) => x.limited && x.tier !== "nodata"); return O.badge({ tier: O.maxTier(a.map((x) => x.tier)), limited: lim.length > 0, missing: [...new Set(lim.flatMap((x) => x.missing))] }); } },
+      { label: "First marginal+", cell: (w) => { const i = inP(w).find((k) => O.TIER[Cx.tiers[k].tier].rank >= 1); return i == null ? "—" : O.fmtLocal(O.Core.time.toLocal(ctx.inst.ms[i], ctx.ev.tz), false); } },
+      { label: "Thunder share max", cell: (w) => { const v = inP(w).map((i) => Cx.frac[i]).filter((x) => x != null); return v.length ? Math.round(Math.max(...v) * 100) + "%" : "—"; } },
+      { label: "CAPE max (any model)", cell: (w) => { const v = inP(w).map((i) => Cx.cape.max[i]).filter((x) => x != null); return v.length ? Math.round(Math.max(...v)).toLocaleString() : "—"; } },
+      { label: "Precip chance max", cell: (w) => { const v = inP(w).map((i) => Cx.pop.mean[i]).filter((x) => x != null); return v.length ? Math.round(Math.max(...v)) + "%" : "—"; } },
+    ], { note: "Model thunder signal during each phase. Detected lightning and clearance decisions stay in Heads-Up." });
     const now = Math.max(0, O.nowIndex(data.times, data.tz)), end = Math.min(data.times.length, now + 24);
     const next = Cx.tiers.slice(now, end).map((a) => a.tier), worst = O.maxTier(next), firstIdx = next.findIndex((t) => t === worst);
     const ltd = Cx.tiers.slice(now, end).filter((a) => a.limited && a.tier !== "nodata").length;
@@ -120,7 +131,7 @@
   function drawStrip(Cx) {
     const rows = [{ name: "BLEND", color: O.css("--text"), tiers: Cx.tiers, bold: true }]
       .concat(Cx.perModel.map((p) => ({ name: p.m.name, color: O.modelColor(MODELS.indexOf(p.m)), tiers: p.tiers })));
-    O.tierStrip($("strip"), data.times, rows, { nowIdx: O.nowIndex(data.times, data.tz), sel, onPick: (i) => { sel = i; drawStrip(data.C); renderChart(); $("strip").querySelector(".strip-scroll").focus(); } });
+    O.tierStrip($("strip"), data.times, rows, { nowIdx: O.nowIndex(data.times, data.tz), sel, bands: O.eventBands(data.ctx), onPick: (i) => { sel = i; drawStrip(data.C); renderChart(); $("strip").querySelector(".strip-scroll").focus(); } });
     drawDetail(Cx);
   }
 
@@ -154,7 +165,7 @@
     }
     if (showLines() || ms.length === 1) ms.forEach((m) => ds.push(O.modelLine(m.name, data.models[m.id].h[t.v], O.modelColor(MODELS.indexOf(m)))));
     if (ms.length > 1) ds.push({ label: "BLEND", data: B.mean, borderColor: fg, borderWidth: 3.25, pointRadius: 0, tension: 0.25, spanGaps: true, order: 1 });
-    const base = O.chartBase({ labels, hours, nowIdx: O.nowIndex(data.times, data.tz), selIdx: sel, unit: t.unit, dec: t.dec || 0, yTitle: t.unit, beginAtZero: t.zero, yMin: t.min, yMax: t.max });
+    const base = O.chartBase({ labels, hours, nowIdx: O.nowIndex(data.times, data.tz), selIdx: sel, bands: O.eventBands(data.ctx), unit: t.unit, dec: t.dec || 0, yTitle: t.unit, beginAtZero: t.zero, yMin: t.min, yMax: t.max });
     if (chart) chart.destroy();
     chart = new Chart($("chart"), { type: "line", data: { labels, datasets: ds }, options: base.options, plugins: base.plugins });
     $("legend").innerHTML = (showLines() ? ms.map((m) => `<span><i class="sw" style="background:${O.modelColor(MODELS.indexOf(m))}"></i>${O.esc(m.name)}</span>`).join("") : "") +

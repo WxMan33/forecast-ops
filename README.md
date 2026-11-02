@@ -26,6 +26,17 @@ GitHub Pages serves this repo straight from the `main` branch, so every push to 
 
 Buy a name from a registrar (Cloudflare, Porkbun, Namecheap: about $10–15 a year). In **Settings → Pages → Custom domain**, enter it, then add the DNS records GitHub shows you at the registrar. The site files don't change.
 
+## Events
+
+Save an event in the **Event** card under Location. Each event has a name, a location and up to five local times: setup starts, gates open, event starts, event ends and teardown ends. Start and end are required.
+
+- Every page shows the same phases (Setup, Gates, Event, Teardown and the whole event) in an **Event windows** table, and shades them on the charts and hourly strips.
+- **Coverage** says whether each phase is fully inside the forecast (FULL), only partly (PARTIAL x/y h), already over (PAST) or not reached yet (NOT IN RANGE YET). Values only show for fully covered phases.
+- The **Overview** has an event briefing: blend temperatures, precip and gusts, ensemble snow odds and the thunder signal for each phase. It tracks changes per phase by event ID and exact window.
+- The event record is plain data with a stable ID, kept in the browser for now: `{id, name, loc, tz, times: {setup, gates, start, end, teardown}}`. A calendar connection or server could create the same record.
+
+**Time zones and time changes.** Event times are local to the event's location and stored with its IANA time zone. Everything is converted to real UTC instants, so events crossing midnight or a daylight-saving change get exactly the right hours. Open-Meteo labels a whole response with one fixed UTC offset (the one in effect when it's requested), not true local time, so the code converts its labels the same way. Near a time change, chart labels can be an hour off; the event tables are exact and say so. The live test checks this behavior daily.
+
 ## Customizing
 
 - Name, owner and contact: the `BRAND` block at the top of `assets/ops.js`.
@@ -42,7 +53,7 @@ Buy a name from a registrar (Cloudflare, Porkbun, Namecheap: about $10–15 a ye
 | `assets/ops.js` | Page shell: header, nav, location, NWS alerts, data status, change display and chart helpers. |
 | `assets/*.js` | One script per page. They only draw; the numbers come from the two files above. |
 | `tests/core.test.js` | Hand-worked math, missing-data rules, winter gaps, partial model days and snapshot comparability. Run with `node tests/core.test.js`. |
-| `tests/live.test.js` | Pulls real Open-Meteo responses for two places through the same loader and math, then checks units, ranges, member counts, time axes, and that the daily highs match Open-Meteo's own. Run with `node tests/live.test.js`. |
+| `tests/live.test.js` | Pulls real Open-Meteo responses for two places through the same loader and math. Checks that every expected field has real values (with an explicit exceptions list), units, ranges, member counts, time axes, daily highs against Open-Meteo's own, and the fixed-offset labeling across a recent daylight-saving change. Run with `node tests/live.test.js`. |
 
 GitHub Actions (`.github/workflows/tests.yml`) runs both tests on every push and the live test every morning. Results are under the repo's **Actions** tab.
 
@@ -51,7 +62,7 @@ GitHub Actions (`.github/workflows/tests.yml`) runs both tests on every push and
 - **Signal and completeness are separate.** Every hour gets a signal level (LOW to HIGH) and, independently, a limited-data flag listing what's missing. Limited hours are hatched on the timelines and tagged LTD in tables. A HIGH hour can also be limited.
 - **A model counts for a day only if it has every hour of that day.** A model that ends mid-day (HRRR at 48 h, for example) is left out of that day rather than understating its totals.
 - **Ensemble odds use only members that cover every hour of the window.** A member with gaps gives a lower bound ("at least") and is reported separately. It never decides a threshold. Plume lines stop at a gap.
-- **"Since your last check" compares like with like.** Rows are compared only when they cover the same valid window. Each snapshot records the contributing models and your weights, and the page notes when either changed.
+- **"Since your last check" compares like with like.** Rows are compared only when they cover the same valid window. Each snapshot records the contributing models and your weights. If either changed, those differences go in a separate **recipe changed** group (`affected` in `changes.diff`). They are never treated as forecast changes, so they can't trigger a "forecast worsened" alert later.
 - **The overview matches the tools.** It uses the same config, the weights you've set on each tool page, and the same aggregation, over full calendar days.
 - The header chip says **PARTIAL DATA** whenever a model failed, had no coverage, or lacked fields. Hover it for the list.
 

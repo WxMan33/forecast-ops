@@ -16,9 +16,13 @@
   let data = null, chart = null, fresh = false, tab = O.store.get("ops_winter_tab", "plume");
   const picker = O.modelPicker($("models"), "ops_winter_models", ENS, render, { title: "Ensembles & weights" });
   O.locationCard($("locCard"), () => run());
+  O.eventCard($("evCard"));
+  O.onEvent(() => render());
   $("runBtn").addEventListener("click", () => run());
+  $("win").insertAdjacentHTML("beforeend", '<option value="event">Active event</option>');
   $("win").value = String(O.store.get("ops_winter_win", 72));
-  $("win").addEventListener("change", () => { O.store.set("ops_winter_win", +$("win").value); render(); });
+  if (!$("win").value) $("win").value = "72";
+  $("win").addEventListener("change", () => { O.store.set("ops_winter_win", $("win").value); render(); });
   TABS.forEach((t) => {
     const b = document.createElement("button");
     b.className = "tab"; b.type = "button"; b.setAttribute("role", "tab"); b.textContent = t.label; b.setAttribute("aria-selected", t.id === tab);
@@ -55,18 +59,36 @@
     });
     return out;
   }
-  const windowIdx = () => { const s = Math.max(0, O.nowIndex(data.times, data.tz) + 1), e = Math.min(data.times.length, s + +$("win").value); return { s, e }; };
+  /* The window: N hours from now, or the active event's exact accumulation hours. */
+  const windowIdx = () => {
+    if ($("win").value === "event") {
+      const w = data.ctx && data.ctx.wins && data.ctx.wins.find((x) => x.key === "all");
+      if (w && w.L.acc.length) return { s: w.L.acc[0], e: w.L.acc[w.L.acc.length - 1] + 1, event: true };
+    }
+    const s = Math.max(0, O.nowIndex(data.times, data.tz) + 1), e = Math.min(data.times.length, s + (+$("win").value || 72)); return { s, e };
+  };
   const pct = (p) => (p == null ? "—" : Math.round(p * 100) + "%");
   const inch = (x) => (x == null ? "—" : (x < 10 ? x.toFixed(1) : x.toFixed(0)) + '"');
-  const winText = () => $("win").selectedOptions[0].text;
+  const winText = () => ($("win").value === "event" ? "event" : $("win").selectedOptions[0].text);
 
   function render() {
     if (!data) {
       $("odds").innerHTML = '<tbody><tr><td class="msg">No ensemble loaded yet.</td></tr></tbody>';
       $("daily").innerHTML = ""; if (chart) { chart.destroy(); chart = null; } $("legend").innerHTML = ""; return;
     }
+    data.ctx = O.eventContext(data);
     const mem = pool("snow"), { s, e } = windowIdx();
-    const short = e - s < +$("win").value;
+    const short = $("win").value !== "event" && e - s < +$("win").value;
+    /* event phases: odds over each phase's exact hours, from complete members only */
+    const ph = (w) => (w._st = w._st || W.windowStats(mem, w.L.acc[0], w.L.acc[w.L.acc.length - 1] + 1));
+    O.eventTable($("eventCard"), data.ctx, [
+      { label: "Any snow", cell: (w) => pct(ph(w).P[0.1]) },
+      { label: '1"+', cell: (w) => pct(ph(w).P[1]) },
+      { label: '2"+', cell: (w) => pct(ph(w).P[2]) },
+      { label: "Median", cell: (w) => inch(ph(w).p50) },
+      { label: "10–90%", cell: (w) => `${inch(ph(w).p10)}–${inch(ph(w).p90)}` },
+      { label: "Members", cell: (w) => `${ph(w).used}/${ph(w).total}` },
+    ], { note: "Snow that falls during each phase, from members covering every hour of it." });
     if (!mem.length) { $("odds").innerHTML = '<tbody><tr><td class="msg">Check at least one ensemble.</td></tr></tbody>'; O.headline({ tier: "nodata" }); renderChart(); return; }
     const st = W.windowStats(mem, s, e);
     const tier = W.tier(st);
@@ -148,12 +170,12 @@
         ds.push({ label: "90th pct", data: p90, borderColor: fg, borderWidth: 2, borderDash: [6, 4], pointRadius: 0, order: 1, dec: 1 });
         ds.push({ label: "Median", data: p50, borderColor: fg, borderWidth: 3.5, pointRadius: 0, order: 1, dec: 1 });
         ds.push({ label: "10th pct", data: p10, borderColor: fg, borderWidth: 2, borderDash: [2, 3], pointRadius: 0, order: 1, dec: 1 });
-        base = O.chartBase({ labels, hours, nowIdx: -1, unit: "in", dec: 1, yTitle: "Snow since window start (in)", beginAtZero: true });
+        base = O.chartBase({ labels, hours, nowIdx: -1, unit: "in", dec: 1, yTitle: "Snow since window start (in)", beginAtZero: true, bands: O.eventBands(data.ctx, s) });
       } else {
         const [p50, p90] = quantileSeries(mem, raw, n, [0.5, 0.9]);
         ds.push({ type: "bar", label: "90th pct", data: p90, backgroundColor: O.css("--snow") + "88", order: 2, barPercentage: 1, categoryPercentage: 1, dec: 2, grouped: false });
         ds.push({ type: "bar", label: "Median", data: p50, backgroundColor: O.css("--snow-stick"), order: 1, barPercentage: 1, categoryPercentage: 1, dec: 2, grouped: false });
-        base = O.chartBase({ labels, hours, nowIdx: -1, unit: "in", dec: 2, yTitle: "Snow per hour (in)", beginAtZero: true });
+        base = O.chartBase({ labels, hours, nowIdx: -1, unit: "in", dec: 2, yTitle: "Snow per hour (in)", beginAtZero: true, bands: O.eventBands(data.ctx, s) });
       }
       $("legend").innerHTML = ens.map((x) => `<span><i class="sw" style="background:${O.modelColor(ENS.indexOf(x))}"></i>${O.esc(x.name)} members</span>`).join("") +
         (t.id === "plume" ? `<span><i class="sw" style="background:${fg};height:4px"></i>Median</span><span>Dashed: 10th / 90th pct</span>` : `<span><i class="sw" style="background:var(--snow-stick);height:10px"></i>Median</span><span><i class="sw" style="background:var(--snow);height:10px"></i>90th pct</span>`);
@@ -164,7 +186,7 @@
       ds.push({ label: "90th pct", data: p90, borderWidth: 0, pointRadius: 0, fill: "-1", backgroundColor: O.css("--band"), order: 3 });
       ds.push({ label: "Median", data: p50, borderColor: fg, borderWidth: 3, pointRadius: 0, tension: 0.25, order: 1 });
       ds.push({ label: "32°F", data: times.map(() => 32), borderColor: O.css("--cold"), borderWidth: 1.5, borderDash: [5, 4], pointRadius: 0, hideTip: true, order: 2 });
-      base = O.chartBase({ labels, hours, nowIdx: -1, unit: "°F", yTitle: "°F" });
+      base = O.chartBase({ labels, hours, nowIdx: -1, unit: "°F", yTitle: "°F", bands: O.eventBands(data.ctx, s) });
       $("legend").innerHTML = `<span><i class="sw" style="background:${fg};height:4px"></i>Median</span><span><i class="sw" style="background:var(--band);height:10px"></i>10–90% range</span><span><i class="sw" style="background:var(--cold)"></i>Freezing</span>`;
     }
     if (chart) chart.destroy();

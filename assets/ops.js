@@ -119,6 +119,10 @@
     showLocation();
     loadAlerts();
     locListeners.push(() => loadAlerts());
+    /* event slots on every page: editor under Location, results at the top of the main column */
+    const side = document.querySelector(".side"), main = document.querySelector(".main");
+    if (side) { const c = document.createElement("section"); c.className = "card tight"; c.id = "evCard"; const lc = $("locCard"); lc && lc.nextSibling ? side.insertBefore(c, lc.nextSibling) : side.appendChild(c); }
+    if (main) { const c = document.createElement("section"); c.className = "card"; c.id = "eventCard"; c.hidden = true; main.prepend(c); }
   }
 
   /* Data chip: what loaded, and whether anything is missing. */
@@ -398,7 +402,7 @@
   }
 
   /* ---------- Chart.js helpers ---------- */
-  function chartBase({ labels, hours, nowIdx, unit, dec = 0, yTitle, y2Title, beginAtZero, yMin, yMax, selIdx }) {
+  function chartBase({ labels, hours, nowIdx, unit, dec = 0, yTitle, y2Title, beginAtZero, yMin, yMax, selIdx, bands = [] }) {
     const muted = css("--muted"), line = css("--line"), mono = css("--font-mono");
     const marks = {
       id: "marks",
@@ -412,6 +416,14 @@
           if (text) { g.fillStyle = color; g.font = "800 10px " + mono; g.fillText(text, x + 4, top + 11); }
           g.restore();
         };
+        /* event phases: shaded spans with their names along the top */
+        bands.forEach((b, k) => {
+          const x0 = c.scales.x.getPixelForValue(Math.max(0, b.i0)) - 2, x1 = c.scales.x.getPixelForValue(Math.min(labels.length - 1, b.i1)) + 2;
+          if (x1 < c.chartArea.left || x0 > c.chartArea.right) return;
+          g.save(); g.fillStyle = k % 2 ? "rgba(253,230,138,.10)" : "rgba(253,230,138,.17)"; g.fillRect(x0, top, x1 - x0, bottom - top);
+          g.font = "800 9.5px " + mono; const lab = b.label.toUpperCase();
+          if (g.measureText(lab).width + 6 <= x1 - x0) { g.fillStyle = css("--muted"); g.fillText(lab, x0 + 3, bottom - 4); } g.restore();
+        });
         vline(nowIdx, css("--accent"), [4, 4], "NOW");
         if (selIdx != null && selIdx !== nowIdx) vline(selIdx, css("--text"), [2, 3], "");
       },
@@ -456,7 +468,7 @@
   const modelLine = (label, data, color, extra = {}) => ({ label, data, borderColor: color + "B3", borderWidth: 1.25, pointRadius: 0, tension: 0.25, spanGaps: true, order: 3, ...extra });
 
   /* ---------- hourly tier strip: labelled, with NOW and a selectable hour ---------- */
-  function tierStrip(el, times, rows, { nowIdx = -1, sel = null, onPick } = {}) {
+  function tierStrip(el, times, rows, { nowIdx = -1, sel = null, onPick, bands = [] } = {}) {
     const n = times.length;
     const tpl = `grid-template-columns:140px repeat(${n},minmax(5px,1fr))`;
     const dayRow = `<div class="strip-row" style="${tpl}"><div></div>${times.map((t, i) => `<div class="strip-lab day">${hourOf(t) === 0 || i === 0 ? fmtDay(dayOf(t)).slice(0, 3) : ""}</div>`).join("")}</div>`;
@@ -466,7 +478,9 @@
         const base = tr === "nodata" ? "var(--raised)" : tr === "normal" ? "color-mix(in srgb, var(--normal) 30%, transparent)" : TIER[tr].color;
         const bg = lim ? `repeating-linear-gradient(45deg, var(--bg) 0 1.5px, transparent 1.5px 5px), ${base}` : base;
         return `<div class="strip-cell${hourOf(t) === 0 ? " d0" : ""}${i === nowIdx ? " now" : ""}${i === sel ? " sel" : ""}" data-i="${i}" style="background:${bg}" title="${esc(r.name)} · ${fmtWhen(t)} · ${TIER[tr].word}${lim ? ` · limited data (missing ${esc(a.missing.join(", "))})` : ""}"></div>`; }).join("") + `</div>`).join("");
-    el.innerHTML = `<div class="tablewrap strip-scroll" tabindex="0" aria-label="Hourly signal. Click an hour, or use the arrow keys, for details."><div class="strip">${dayRow}${hrRow}${body}</div></div>`;
+    const ph = times.map((_, i) => { const b = bands.find((x) => i >= x.i0 && i <= x.i1); return b ? b.label : ""; });
+    const evRow = bands.length ? `<div class="strip-row" style="${tpl}"><div class="strip-name bold" style="color:var(--ev)">EVENT</div>${times.map((_, i) => `<div class="strip-ev${ph[i] ? " on" : ""}" title="${esc(ph[i])}">${ph[i] && ph[i] !== ph[i - 1] ? esc(ph[i].toUpperCase()) : ""}</div>`).join("")}</div>` : "";
+    el.innerHTML = `<div class="tablewrap strip-scroll" tabindex="0" aria-label="Hourly signal. Click an hour, or use the arrow keys, for details."><div class="strip">${dayRow}${hrRow}${evRow}${body}</div></div>`;
     const sc = el.firstChild;
     if (onPick) {
       sc.addEventListener("click", (e) => { const c = e.target.closest("[data-i]"); if (c) onPick(+c.dataset.i); });
@@ -501,11 +515,126 @@
     if (res.cfgChanged) notes.push("Your model selection or weights changed since then, so some differences come from that.");
     res.contribChanged.forEach((c) => notes.push(`${c.label}: ${[c.added.length ? "now includes " + c.added.map(nm).join(", ") : "", c.removed.length ? "no longer includes " + c.removed.map(nm).join(", ") : ""].filter(Boolean).join("; ")}.`));
     if (res.skipped.length) notes.push(`Not compared because the valid window differs: ${res.skipped.join(", ")}.`);
+    const line = (it) => `<span class="change ${it.up ? "up" : "down"}">${it.up ? "▲" : "▼"} ${esc(`${it.label} · ${it.field} ${it.from} → ${it.to}`)}</span>`;
     el.hidden = false;
     el.innerHTML = `<div class="section-title">Since your last check <span class="msg" style="text-transform:none;letter-spacing:0">(${esc(when)} · same valid windows only)</span></div>` +
-      (res.items.length ? `<div class="changes">${res.items.slice(0, 16).map((it) => `<span class="change ${it.up ? "up" : "down"}">${it.up ? "▲" : "▼"} ${esc(`${it.label} · ${it.field} ${it.from} → ${it.to}`)}</span>`).join("")}</div>`
-        : '<p class="msg">No meaningful changes.</p>') +
+      (res.items.length ? `<div class="changes">${res.items.slice(0, 16).map(line).join("")}</div>` : `<p class="msg">${res.affected.length ? "No forecast changes on rows with the same settings and models." : "No meaningful changes."}</p>`) +
+      (res.affected.length ? `<div class="affected"><div class="kicker" style="margin:10px 0 6px">Recipe changed: settings or contributing models differ, so these are not forecast changes</div><div class="changes">${res.affected.slice(0, 12).map(line).join("")}</div></div>` : "") +
       (notes.length ? `<ul class="change-notes">${notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : "");
+  }
+
+  /* ======================= events ======================= */
+  const EV = Core.event;
+  const evListeners = [];
+  const events = () => store.get("ops_events", []);
+  const activeEvent = () => { const id = store.get("ops_event_active", null); return events().find((e) => e.id === id) || null; };
+  function setActiveEvent(id, moveLocation = true) {
+    store.set("ops_event_active", id);
+    const ev = activeEvent();
+    if (ev && moveLocation && (Math.abs(ev.loc.lat - loc.lat) > 0.005 || Math.abs(ev.loc.lon - loc.lon) > 0.005)) setLocation(ev.loc); // reloads the page's data
+    evListeners.forEach((f) => f(ev));
+  }
+  const onEvent = (f) => evListeners.push(f);
+  /* "SAT NOV 7 6:30p" from a local wall-clock string */
+  const fmtLocal = (l, withDay = true) => { const h = +l.slice(11, 13), m = l.slice(14, 16); const t = `${h % 12 === 0 ? 12 : h % 12}${m !== "00" ? ":" + m : ""}${h < 12 ? "a" : "p"}`; return withDay ? `${fmtDay(l.slice(0, 10))} ${t}` : t; };
+  const fmtSpan = (w) => `${fmtLocal(w.startLocal)} – ${fmtLocal(w.endLocal, w.endLocal.slice(0, 10) !== w.startLocal.slice(0, 10))}`;
+  const zoneAbbr = (ms, tz) => { try { return new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" }).formatToParts(new Date(ms)).find((p) => p.type === "timeZoneName").value; } catch (e) { return tz; } };
+
+  /* The location's IANA time zone, from Open-Meteo (cached for a day). */
+  async function zoneFor(lat, lon) {
+    const j = await getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m&forecast_days=1&timezone=auto`, 1440);
+    if (j.error || !j.timezone) throw new Error("Couldn't look up the time zone.");
+    return j.timezone;
+  }
+
+  /* Event card: pick, create, edit, delete. Saved events keep their ID across edits. */
+  function eventCard(container) {
+    if (!container) return;
+    let editing = null;
+    const draw = () => {
+      const list = events(), ev = activeEvent();
+      if (editing) { drawEditor(); return; }
+      container.innerHTML = `<div class="section-title">Event</div>
+        <div class="stack">
+          <select class="input" id="evSel"><option value="">No event (general forecast)</option>${list.map((e) => `<option value="${e.id}"${ev && ev.id === e.id ? " selected" : ""}>${esc(e.name)}</option>`).join("")}</select>
+          ${ev ? `<div class="msg">${esc(ev.loc.name)} · times in ${esc(zoneAbbr(EV.windows(ev)[0] ? EV.windows(ev)[0].startMs : Date.now(), ev.tz))}<br>${EV.windows(ev).filter((w) => w.key !== "all").map((w) => `<b style="color:var(--text)">${esc(w.label)}</b> ${esc(fmtSpan(w))}`).join("<br>")}</div>` : '<p class="msg">Save an event to see setup, gates, the event itself and teardown on every page.</p>'}
+          <div class="row">
+            <button class="btn ghost sm" id="evNew" type="button">+ NEW</button>
+            ${ev ? '<button class="btn ghost sm" id="evEdit" type="button">EDIT</button><button class="btn ghost sm" id="evDel" type="button">DELETE</button>' : ""}
+          </div>
+        </div>`;
+      $("evSel").addEventListener("change", (e) => setActiveEvent(e.target.value || null));
+      $("evNew").addEventListener("click", () => {
+        const d = new Date(Date.now() + 86400e3), day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        editing = { id: null, name: "", loc: { ...loc }, times: { setup: `${day}T15:00`, gates: `${day}T17:30`, start: `${day}T19:00`, end: `${day}T21:30`, teardown: `${day}T23:00` } };
+        draw();
+      });
+      if (ev) {
+        $("evEdit").addEventListener("click", () => { editing = JSON.parse(JSON.stringify(ev)); draw(); });
+        $("evDel").addEventListener("click", () => { if (!confirm(`Delete "${ev.name}"?`)) return; store.set("ops_events", events().filter((e) => e.id !== ev.id)); setActiveEvent(null, false); draw(); });
+      }
+    };
+    const drawEditor = () => {
+      const e = editing, f = (k, label, req) => `<div><label class="field-label" for="ev_${k}">${label}${req ? "" : ' <span style="font-weight:400;text-transform:none">(optional)</span>'}</label><input class="input mono" type="datetime-local" id="ev_${k}" value="${esc(e.times[k] || "")}"></div>`;
+      container.innerHTML = `<div class="section-title">${e.id ? "Edit event" : "New event"}</div>
+        <div class="stack">
+          <div><label class="field-label" for="ev_name">Name</label><input class="input" id="ev_name" value="${esc(e.name)}" placeholder="e.g. FC Cincinnati vs. Columbus"></div>
+          <div class="msg">Location: <b style="color:var(--text)">${esc(e.loc.name)}</b>. Times are local to the location.${e.id ? "" : " To use another place, pick it above first."}</div>
+          ${f("setup", "Setup starts")}${f("gates", "Gates open")}${f("start", "Event starts", true)}${f("end", "Event ends", true)}${f("teardown", "Teardown ends")}
+          <p class="msg err" id="evErr"></p>
+          <div class="row"><button class="btn sm" id="evSave" type="button">SAVE EVENT</button><button class="btn ghost sm" id="evCancel" type="button">CANCEL</button></div>
+        </div>`;
+      $("evCancel").addEventListener("click", () => { editing = null; draw(); });
+      $("evSave").addEventListener("click", async () => {
+        const times = {}; ["setup", "gates", "start", "end", "teardown"].forEach((k) => { const v = $("ev_" + k).value; if (v) times[k] = v.slice(0, 16); });
+        const next = { ...e, name: $("ev_name").value.trim() || "Untitled event", times };
+        $("evErr").textContent = "Looking up the location's time zone…";
+        try { next.tz = await zoneFor(next.loc.lat, next.loc.lon); } catch (err) { $("evErr").textContent = err.message; return; }
+        const errs = EV.validate(next);
+        if (errs.length) { $("evErr").textContent = errs.join(" "); return; }
+        if (!next.id) next.id = EV.newId();
+        store.set("ops_events", [next, ...events().filter((x) => x.id !== next.id)].slice(0, 50));
+        editing = null;
+        setActiveEvent(next.id);
+        draw();
+      });
+    };
+    onEvent(() => draw());
+    draw();
+  }
+
+  /* Phase windows of the active event on a page's data axis. null without an event. */
+  function eventContext(data) {
+    const ev = activeEvent();
+    if (!ev) return null;
+    if (Math.abs(ev.loc.lat - loc.lat) > 0.02 || Math.abs(ev.loc.lon - loc.lon) > 0.02) return { ev, mismatch: true };
+    if (!data || !data.times || !data.times.length) return { ev, wins: [], inst: { ms: [] } };
+    const inst = Core.time.instants(data.times, ev.tz, data.offset), now = Date.now();
+    const wins = EV.windows(ev).map((w) => ({ ...w, L: EV.locate(w, inst), cov: EV.coverage(w, inst, now) }));
+    return { ev, inst, wins };
+  }
+  /* Shaded phase spans for charts/strips, in index space starting at s. */
+  const eventBands = (ctx, s = 0) => (!ctx || !ctx.wins ? [] : ctx.wins.filter((w) => w.key !== "all" && w.L.idx.length).map((w) => ({ i0: w.L.idx[0] - s, i1: w.L.idx[w.L.idx.length - 1] - s, label: w.label })));
+  const covBadge = (c) => c.status === "full" ? '<span class="cov full">FULL</span>' : c.status === "partial" ? `<span class="cov part" title="Data covers ${c.have} of ${c.need} hours">PARTIAL ${c.have}/${c.need} h</span>` : c.status === "past" ? '<span class="cov past">PAST</span>' : '<span class="cov none">NOT IN RANGE YET</span>';
+
+  /* Standard event table: Phase, local time, coverage, then the page's own columns.
+     cols: [{label, cell(win) -> html}]. A cell only renders for fully covered windows. */
+  function eventTable(el, ctx, cols, { title = "Event windows", note = "" } = {}) {
+    if (!el) return;
+    if (!ctx) { el.hidden = true; return; }
+    el.hidden = false;
+    if (ctx.mismatch) {
+      el.innerHTML = `<div class="section-title">${esc(title)}</div><p class="msg">The active event, <b>${esc(ctx.ev.name)}</b>, is at ${esc(ctx.ev.loc.name)}. <button class="btn ghost sm" id="evGo" type="button">GO TO EVENT LOCATION</button></p>`;
+      $("evGo").addEventListener("click", () => setLocation(ctx.ev.loc));
+      return;
+    }
+    const first = ctx.wins[0], zone = first ? zoneAbbr(first.startMs, ctx.ev.tz) : "";
+    el.innerHTML = `<div class="row" style="justify-content:space-between;align-items:baseline;margin-bottom:6px"><div class="section-title" style="margin:0">${esc(title)} · ${esc(ctx.ev.name)}</div><span class="msg">times ${esc(zone)} · hourly model resolution</span></div>` +
+      (note ? `<p class="section-sub">${note}</p>` : "") +
+      (ctx.inst && ctx.inst.ms.length && !ctx.inst.consistent ? '<p class="msg" style="color:var(--monitor);margin-bottom:8px">A daylight-saving change falls inside the forecast period. The chart hour labels near it are an hour off, but event windows here use exact times.</p>' : "") +
+      `<div class="tablewrap"><table class="evtable"><thead><tr><th>Phase</th><th>Local time</th><th>Coverage</th>${cols.map((c) => `<th>${esc(c.label)}</th>`).join("")}</tr></thead><tbody>` +
+      ctx.wins.map((w) => `<tr class="${w.key === "all" ? "evall" : ""}"><td class="display" style="font-size:12px">${esc(w.label)}</td><td class="num">${esc(fmtSpan(w))}</td><td>${covBadge(w.cov)}</td>` +
+        cols.map((c) => `<td class="num">${w.cov.status === "full" ? c.cell(w) : '<span class="msg">—</span>'}</td>`).join("") + "</tr>").join("") + "</tbody></table></div>";
   }
 
   window.Ops = {
@@ -515,5 +644,6 @@
     nowIndex, hourOf, dayOf, fmtDay, fmtHour, fmtWhen, tzShort, hourLabels, dayGroups,
     blendSeries: Core.stats.blendSeries, weightedQuantile: Core.stats.weightedQuantile,
     modelColor, modelPicker, linesToggle, chartBase, modelLine, tierStrip, trackChanges, renderChanges,
+    events, activeEvent, setActiveEvent, onEvent, eventCard, eventContext, eventBands, eventTable, fmtLocal, fmtSpan,
   };
 })();

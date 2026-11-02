@@ -7,6 +7,8 @@
   document.title = O.BRAND.name;
 
   O.locationCard($("locCard"), () => run());
+  O.eventCard($("evCard"));
+  O.onEvent(() => run());
   const name = (spec) => Object.fromEntries(spec.models.map((m) => [m.id, m.name]));
   const NAMES = { ...name(CFG.blend), ...name(CFG.thunder), ...name(CFG.winter) };
 
@@ -71,6 +73,8 @@
     O.dataStatus([...B.problems.map((p) => `Blend · ${p}`), ...T.problems.map((p) => `Thunder · ${p}`), ...W.problems.map((p) => `Winter · ${p}`)]);
     $("sumMsg").textContent = `${Object.keys(B.models).length} blend models · ${TH ? TH.ids.length : 0} thunder models · ${mem.length} ensemble members · ${O.tzShort(B.tz)}`;
 
+    renderEventBriefing(B, T, W, TH, mem, wsB, wsT, wsW);
+
     const snap = { cfg: `${CFG.fingerprint(wsB)}|${CFG.fingerprint(wsT)}|${CFG.fingerprint(wsW)}`, rows: {} };
     cards.forEach(({ r, t, w }) => (snap.rows[r.k] = {
       label: O.fmtDay(r.k), win: r.win, contrib: [...r.contrib, ...(TH ? TH.ids.map((id) => "thunder:" + id) : []), ...(W.ens ? Object.keys(wsW).filter((id) => W.ens[id]).map((id) => "ens:" + id) : [])],
@@ -87,5 +91,48 @@
       { k: "t", label: "thunder", tier: true },
     ], names);
   }
+  /* Event briefing: every phase of the active event, each source on its own time axis. */
+  function renderEventBriefing(B, T, W, TH, mem, wsB, wsT, wsW) {
+    const cB = O.eventContext(B), cT = T.empty ? null : O.eventContext(T), cW = W.empty ? null : O.eventContext(W);
+    const el = $("eventCard");
+    if (!cB) { el.hidden = true; return; }
+    const by = (ctx, key) => ctx && ctx.wins && ctx.wins.find((w) => w.key === key);
+    const f = (x, d = 0, u = "") => (x == null ? "—" : x.toFixed(d) + u);
+    const pctTxt = (p) => (p == null ? "—" : p > 0 && p < 0.05 ? "<5%" : Math.round(p * 100) + "%");
+    const rows = {};
+    const rowB = (w) => (rows["b" + w.key] = rows["b" + w.key] || C.blend.windowRow(B, wsB, w.L.idx, w.L.acc));
+    const stW = (w) => { const x = by(cW, w.key); if (!x || x.cov.status !== "full" || !mem.length) return null; return (rows["w" + w.key] = rows["w" + w.key] || C.winter.windowStats(mem, x.L.acc[0], x.L.acc[x.L.acc.length - 1] + 1)); };
+    const thW = (w) => { const x = by(cT, w.key); if (!x || x.cov.status !== "full" || !TH) return null; const a = x.L.idx.map((i) => TH.assess[i]); const lim = a.filter((y) => y.limited && y.tier !== "nodata"); return { tier: O.maxTier(a.map((y) => y.tier)), limited: lim.length > 0, missing: [...new Set(lim.flatMap((y) => y.missing))] }; };
+    O.eventTable(el, cB, [
+      { label: "Temp", cell: (w) => { const r = rowB(w); return r.lo == null ? "—" : `<span class="lo">${r.lo.toFixed(0)}°</span>–<span class="hi">${r.hi.toFixed(0)}°</span>`; } },
+      { label: "Feels like", cell: (w) => f(rowB(w).feel, 0, "°") },
+      { label: "Precip · chance", cell: (w) => `${f(rowB(w).qpf, 2, '"')} · ${f(rowB(w).pop, 0, "%")}` },
+      { label: "Peak gust", cell: (w) => f(rowB(w).gust, 0, " mph") },
+      { label: "Snow (ens.)", cell: (w) => { const st = stW(w); return !st || !st.used ? "—" : `any ${pctTxt(st.P[0.1])} · 1"+ ${pctTxt(st.P[1])}`; } },
+      { label: "Thunder", cell: (w) => { const a = thW(w); return a ? O.badge(a) : "—"; } },
+      { label: "Models · members", cell: (w) => { const st = stW(w); return `${rowB(w).contrib.length} · ${st ? `${st.used}/${st.total}` : "—"}`; } },
+    ], { title: "Event briefing", note: "Same models, weights and rules as the tool pages, over each phase's exact hours. A cell shows only when the phase is fully inside the forecast." });
+
+    if (cB.mismatch) return;
+    /* track the same event windows across updates, keyed by event ID and exact window */
+    const ev = cB.ev, snap = { cfg: `${CFG.fingerprint(wsB)}|${CFG.fingerprint(wsT)}|${CFG.fingerprint(wsW)}`, rows: {} };
+    cB.wins.filter((w) => w.cov.status === "full").forEach((w) => {
+      const r = rowB(w), st = stW(w), th = thW(w);
+      snap.rows[w.key] = { label: w.label, win: C.event.windowKey(ev, w), contrib: [...r.contrib, ...(TH ? TH.ids.map((id) => "thunder:" + id) : [])],
+        lo: r.lo, hi: r.hi, qpf: r.qpf, pop: r.pop, gust: r.gust, p1: st && st.used ? st.P[1] * 100 : null, t: th ? th.tier : null };
+    });
+    let box = $("evChanges");
+    if (!box) { box = document.createElement("div"); box.id = "evChanges"; box.style.marginTop = "14px"; el.appendChild(box); }
+    O.renderChanges(box, O.trackChanges("event_" + ev.id, snap), [
+      { k: "lo", label: "low", min: 3, fmt: (v) => `${Math.round(v)}°` },
+      { k: "hi", label: "high", min: 3, fmt: (v) => `${Math.round(v)}°` },
+      { k: "qpf", label: "precip", min: 0.05, fmt: (v) => `${v.toFixed(2)}"` },
+      { k: "pop", label: "max chance", min: 15, fmt: (v) => `${Math.round(v)}%` },
+      { k: "gust", label: "peak gust", min: 8, fmt: (v) => `${Math.round(v)} mph` },
+      { k: "p1", label: '1"+ snow chance', min: 10, fmt: (v) => `${Math.round(v)}%` },
+      { k: "t", label: "thunder", tier: true },
+    ], NAMES);
+  }
+
   run();
 })();

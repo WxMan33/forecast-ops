@@ -60,6 +60,44 @@
     },
     /* The valid window an aggregate covers. Two summaries are only comparable if this matches. */
     windowKey: (times, idx) => (idx.length ? `${times[idx[0]]}/${times[idx[idx.length - 1]]}` : ""),
+
+    /* ---- real instants: everything event-related is done in UTC milliseconds ---- */
+    /* Minutes the zone is ahead of UTC at instant ms (e.g. -300 for EST). */
+    offsetMin(ms, tz) {
+      const o = {};
+      new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })
+        .formatToParts(new Date(ms)).forEach((x) => (o[x.type] = x.value));
+      return (Date.UTC(+o.year, +o.month - 1, +o.day, +o.hour % 24, +o.minute, +o.second) - Math.floor(ms / 1000) * 1000) / 60000;
+    },
+    /* Local wall-clock "YYYY-MM-DDTHH:MM" in tz -> UTC ms. A time skipped by a spring-forward change
+       moves forward to the first real minute; a repeated fall-back time resolves to its first occurrence. */
+    toUtc(local, tz) {
+      const g = Date.UTC(+local.slice(0, 4), +local.slice(5, 7) - 1, +local.slice(8, 10), +local.slice(11, 13), +local.slice(14, 16));
+      const a = g - time.offsetMin(g - 12 * 3600e3, tz) * 60e3, b = g - time.offsetMin(g + 12 * 3600e3, tz) * 60e3;
+      const okA = time.toLocal(a, tz) === local.slice(0, 16), okB = time.toLocal(b, tz) === local.slice(0, 16);
+      if (okA && okB) return Math.min(a, b);
+      if (okA) return a;
+      if (okB) return b;
+      return Math.max(a, b); // skipped (spring forward): first real instant after the gap
+    },
+    /* UTC ms -> local wall-clock "YYYY-MM-DDTHH:MM" in tz. */
+    toLocal(ms, tz) {
+      const o = {};
+      new Intl.DateTimeFormat("en-CA", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+        .formatToParts(new Date(ms)).forEach((x) => (o[x.type] = x.value));
+      return `${o.year}-${o.month}-${o.day}T${String(+o.hour % 24).padStart(2, "0")}:${o.minute}`;
+    },
+    /* UTC instants for an Open-Meteo hourly axis. Open-Meteo labels a whole response with ONE fixed
+       offset (utc_offset_seconds, the one in effect at request time), not real local time; across a
+       daylight-saving change its labels drift an hour from the clock on the wall. So instants come
+       from label − offset. "consistent" says whether every label also equals true local time in tz;
+       when it doesn't, labels near a time change are off by an hour and pages say so. */
+    instants(times, tz, offsetSec) {
+      if (!times.length) return { ms: [], consistent: false };
+      const lab = (t) => Date.UTC(+t.slice(0, 4), +t.slice(5, 7) - 1, +t.slice(8, 10), +t.slice(11, 13), +t.slice(14, 16));
+      const ms = offsetSec == null ? (() => { const t0 = time.toUtc(times[0], tz); return times.map((_, i) => t0 + i * 3600e3); })() : times.map((t) => lab(t) - offsetSec * 1000);
+      return { ms, consistent: !tz || ms.every((m, i) => time.toLocal(m, tz) === times[i]) };
+    },
   };
 
   /* ======================= signal tiers ======================= */
@@ -165,6 +203,19 @@
       if (own != null) return own;
       const v = d.idx.map((i) => a[i]);
       return how === "max" ? Math.max(...v) : how === "min" ? Math.min(...v) : v.reduce((s, x) => s + x, 0);
+    },
+    /* Aggregate any window. idx: hours for instantaneous fields; acc: hours whose preceding-hour
+       accumulation falls inside the window (defaults to idx). A model counts only if it has every hour. */
+    windowRow(data, ws, idx, acc) {
+      const ids = Object.keys(ws).filter((id) => data.models[id] && ws[id] > 0);
+      const A = acc || idx, wmean = (list) => { let s = 0, w = 0; list.forEach(({ id, v }) => { if (v != null) { s += ws[id] * v; w += ws[id]; } }); return w ? s / w : null; };
+      const per = (hv, how, use = idx) => ids.map((id) => { const a = data.models[id].h[hv]; if (!use.length || !stats.complete(a, use)) return { id, v: null }; const v = use.map((i) => a[i]); return { id, v: how === "max" ? Math.max(...v) : how === "min" ? Math.min(...v) : v.reduce((s, x) => s + x, 0) }; });
+      const highs = per("temperature_2m", "max");
+      return {
+        hi: wmean(highs), lo: wmean(per("temperature_2m", "min")), qpf: wmean(per("precipitation", "sum", A)), sn: wmean(per("snowfall", "sum", A)),
+        pop: wmean(per("precipitation_probability", "max")), gust: wmean(per("wind_gusts_10m", "max")), feel: wmean(per("apparent_temperature", "min")),
+        ag: blend.agreement(highs.map((x) => x.v)), contrib: highs.filter((x) => x.v != null).map((x) => x.id),
+      };
     },
     /* Daily rows for the full calendar days in data. ws: {modelId: weight} of models in use. */
     dailyRows(data, ws) {
@@ -404,27 +455,93 @@
      settings changes are reported so a "change" is never just a different recipe. */
   const changes = {
     diff(prev, cur, spec) {
-      const out = { items: [], skipped: [], contribChanged: [], cfgChanged: !!(prev && cur && prev.cfg !== cur.cfg) };
+      /* items: forecast changes made with the same recipe. affected: differences on rows where the
+         settings or contributing models changed; they are shown apart and must never be treated as
+         a forecast change (e.g. by an alert). */
+      const out = { items: [], affected: [], skipped: [], contribChanged: [], cfgChanged: !!(prev && cur && prev.cfg !== cur.cfg) };
       if (!prev || !cur) return out;
       Object.keys(cur.rows).forEach((k) => {
         const a = prev.rows[k], b = cur.rows[k];
         if (!a) return;
         if (a.win !== b.win) { out.skipped.push(b.label); return; }
         const ac = (a.contrib || []).slice().sort().join(","), bc = (b.contrib || []).slice().sort().join(",");
+        const bucket = out.cfgChanged || ac !== bc ? out.affected : out.items;
         if (ac !== bc) out.contribChanged.push({ label: b.label, added: (b.contrib || []).filter((x) => !(a.contrib || []).includes(x)), removed: (a.contrib || []).filter((x) => !(b.contrib || []).includes(x)) });
         spec.forEach((f) => {
           const x = a[f.k], y = b[f.k];
           if (x == null || y == null) return;
-          if (f.tier) { if (x !== y && TIERS[x] && TIERS[y]) out.items.push({ label: b.label, field: f.label, from: TIERS[x].word, to: TIERS[y].word, up: TIERS[y].rank > TIERS[x].rank }); return; }
+          if (f.tier) { if (x !== y && TIERS[x] && TIERS[y]) bucket.push({ label: b.label, field: f.label, from: TIERS[x].word, to: TIERS[y].word, up: TIERS[y].rank > TIERS[x].rank }); return; }
           const d = y - x; if (Math.abs(d) < f.min) return;
-          out.items.push({ label: b.label, field: f.label, from: f.fmt ? f.fmt(x) : x, to: f.fmt ? f.fmt(y) : y, up: d > 0 });
+          bucket.push({ label: b.label, field: f.label, from: f.fmt ? f.fmt(x) : x, to: f.fmt ? f.fmt(y) : y, up: d > 0 });
         });
       });
       return out;
     },
   };
 
-  const OpsCore = { stats, time, TIERS, maxTier, config, blend, thunder, severe, winter, changes, MS };
+  /* ======================= events ======================= */
+  /* Event record: {id, name, loc: {name, lat, lon}, tz, times: {setup, gates, start, end, teardown}}
+     Times are local wall-clock "YYYY-MM-DDTHH:MM" in the event's own time zone. start and end are
+     required; setup, gates and teardown are optional and their phases are omitted when blank. */
+  const event = {
+    PHASES: [
+      { key: "setup", label: "Setup", from: "setup", to: ["gates", "start"] },
+      { key: "gates", label: "Gates", from: "gates", to: ["start"] },
+      { key: "event", label: "Event", from: "start", to: ["end"] },
+      { key: "teardown", label: "Teardown", from: "end", to: ["teardown"] },
+    ],
+    newId: () => "ev_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+    /* Problems that make the event unusable; [] when valid. */
+    validate(ev) {
+      const e = [], t = (ev && ev.times) || {}, okFmt = (x) => !x || /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(x);
+      if (!ev || !ev.loc || !isFinite(ev.loc.lat) || !isFinite(ev.loc.lon)) e.push("Pick a location.");
+      if (!ev || !ev.tz) e.push("The location's time zone is unknown.");
+      if (!t.start || !t.end) e.push("Event start and end are required.");
+      Object.keys(t).forEach((k) => { if (!okFmt(t[k])) e.push(`${k} time is not valid.`); });
+      if (e.length) return e;
+      const ms = {}; ["setup", "gates", "start", "end", "teardown"].forEach((k) => { if (t[k]) ms[k] = time.toUtc(t[k], ev.tz); });
+      const order = ["setup", "gates", "start", "end", "teardown"].filter((k) => ms[k] != null);
+      for (let i = 1; i < order.length; i++) if (ms[order[i]] < ms[order[i - 1]]) e.push(`${order[i]} is before ${order[i - 1]}.`);
+      if (ms.end <= ms.start) e.push("Event end must be after start.");
+      if (ms.teardown != null && ms.teardown - ms.setup > 0 && (ms.teardown || ms.end) - (ms.setup || ms.start) > 7 * 86400e3) e.push("Events longer than 7 days aren't supported.");
+      return e;
+    },
+    /* Phase windows as real instants [startMs, endMs). */
+    windows(ev) {
+      const t = ev.times, out = [];
+      event.PHASES.forEach((p) => {
+        if (!t[p.from]) return;
+        const toKey = p.to.find((k) => t[k]); if (!toKey) return;
+        const s = time.toUtc(t[p.from], ev.tz), e = time.toUtc(t[toKey], ev.tz);
+        if (e > s) out.push({ key: p.key, label: p.label, startMs: s, endMs: e, startLocal: time.toLocal(s, ev.tz), endLocal: time.toLocal(e, ev.tz), hours: (e - s) / 3600e3 });
+      });
+      const all = out.length ? { key: "all", label: "Whole event", startMs: out[0].startMs, endMs: out[out.length - 1].endMs } : null;
+      if (all) { all.startLocal = time.toLocal(all.startMs, ev.tz); all.endLocal = time.toLocal(all.endMs, ev.tz); all.hours = (all.endMs - all.startMs) / 3600e3; out.push(all); }
+      return out;
+    },
+    /* Hours of a data axis inside a window. idx: valid times in [start, end] (instantaneous fields);
+       acc: hours whose preceding-hour accumulation lies in the window, i.e. (start, end]. need: hours
+       the window requires at hourly resolution. */
+    locate(win, inst) {
+      const idx = [], acc = [];
+      inst.ms.forEach((m, i) => { if (m >= win.startMs && m <= win.endMs) idx.push(i); if (m > win.startMs && m <= win.endMs + 3599e3 && m - 3600e3 < win.endMs) acc.push(i); });
+      const need = Math.ceil((win.endMs - win.startMs) / 3600e3);
+      return { idx, acc, need };
+    },
+    /* Coverage of a window by a data axis: past, beyond (no data yet), partial or full. */
+    coverage(win, inst, nowMs) {
+      if (win.endMs <= nowMs) return { status: "past", have: 0, need: 0 };
+      if (!inst.ms.length || win.startMs > inst.ms[inst.ms.length - 1]) return { status: "beyond", have: 0, need: Math.ceil((win.endMs - win.startMs) / 3600e3) };
+      /* full: the hourly periods (each hour covers the hour before its label) span the window edge to edge */
+      const L = event.locate(win, inst), A = L.acc;
+      const full = A.length > 0 && inst.ms[A[0]] - 3600e3 <= win.startMs && inst.ms[A[A.length - 1]] >= win.endMs && A[A.length - 1] - A[0] + 1 === A.length;
+      return { status: full ? "full" : "partial", have: L.acc.length, need: L.need };
+    },
+    /* Stable key for comparing the same event window across updates. */
+    windowKey: (ev, win) => `${ev.id}:${win.key}:${win.startMs}-${win.endMs}`,
+  };
+
+  const OpsCore = { stats, time, TIERS, maxTier, config, blend, thunder, severe, winter, changes, event, MS };
   if (typeof module !== "undefined" && module.exports) module.exports = OpsCore;
   root.OpsCore = OpsCore;
 })(typeof self !== "undefined" ? self : globalThis);

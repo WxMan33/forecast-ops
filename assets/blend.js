@@ -27,7 +27,7 @@
     { k: "sn", label: "snow", min: 0.5, fmt: (v) => `${v.toFixed(1)}"` },
     { k: "gust", label: "peak gust", min: 8, fmt: (v) => `${Math.round(v)} mph` },
   ];
-  const RANGES = [["48", "48 H"], ["72", "72 H"], ["168", "7 D"], ["all", "ALL"]];
+  const RANGES = [["event", "EVENT"], ["48", "48 H"], ["72", "72 H"], ["168", "7 D"], ["all", "ALL"]];
 
   let data = null, chart = null, viewDay = null, fresh = false;
   let tab = O.store.get("ops_blend_tab", "temp"), range = O.store.get("ops_blend_range", "168");
@@ -35,6 +35,8 @@
   const picker = O.modelPicker($("models"), "ops_blend_models", MODELS, render);
   const showLines = O.linesToggle($("linesBtn"), "ops_blend_lines", () => renderChart());
   O.locationCard($("locCard"), () => run());
+  O.eventCard($("evCard"));
+  O.onEvent(() => render());
   $("runBtn").addEventListener("click", () => run());
   $("days").value = String(O.store.get("ops_blend_days", 7));
   $("days").addEventListener("change", () => { O.store.set("ops_blend_days", +$("days").value); run(); });
@@ -92,7 +94,24 @@
     }
     renderDaily();
     renderNow();
+    renderEvent();
     renderChart();
+  }
+
+  /* Event windows: the same aggregation as the daily table, over each phase's exact hours. */
+  function renderEvent() {
+    const ctx = O.eventContext(data); data.ctx = ctx;
+    const ws = picker.weights(), row = (w) => (w._r = w._r || C.blend.windowRow(data, ws, w.L.idx, w.L.acc));
+    O.eventTable($("eventCard"), ctx, [
+      { label: "Temp", cell: (w) => { const r = row(w); return r.lo == null ? "—" : `<span class="lo">${r.lo.toFixed(0)}°</span>–<span class="hi">${r.hi.toFixed(0)}°</span>`; } },
+      { label: "Feels like (min)", cell: (w) => f(row(w).feel, 0, "°") },
+      { label: "Precip", cell: (w) => f(row(w).qpf, 2, '"') },
+      { label: "Max chance", cell: (w) => f(row(w).pop, 0, "%") },
+      { label: "Snow", cell: (w) => { const v = row(w).sn; return v != null && v >= 0.05 ? f(v, 1, '"') : "—"; } },
+      { label: "Peak gust", cell: (w) => f(row(w).gust, 0, " mph") },
+      { label: "Temp agreement", cell: (w) => { const a = row(w).ag; return `${meter(a.level)}${a.word}`; } },
+      { label: "Models", cell: (w) => `<span title="${O.esc(row(w).contrib.map((id) => NAMES[id]).join(", "))}">${row(w).contrib.length}</span>` },
+    ], { note: "A model counts for a phase only if it has every hour of it. Precip and snow are the hourly totals that fall inside the phase." });
   }
 
   function renderDaily() {
@@ -154,9 +173,13 @@
 
   /* Hour range shown on the chart: a clicked day, or from now forward. */
   function viewRange() {
+    if (range === "event" && !viewDay) {
+      const w = data.ctx && data.ctx.wins && data.ctx.wins.find((x) => x.key === "all");
+      if (w && w.L.idx.length) return [Math.max(0, w.L.idx[0] - 3), Math.min(data.times.length, w.L.idx[w.L.idx.length - 1] + 4)];
+    }
     if (viewDay) { const d = O.dayGroups(data.times).find((x) => x.k === viewDay); if (d) return [d.idx[0], d.idx[d.idx.length - 1] + 1]; }
     const s = Math.max(0, O.nowIndex(data.times, data.tz));
-    return [s, range === "all" ? data.times.length : Math.min(data.times.length, s + +range)];
+    return [s, range === "all" ? data.times.length : Math.min(data.times.length, s + (range === "event" ? 48 : +range))];
   }
 
   function renderChart() {
@@ -180,7 +203,7 @@
     if (t.accum) ds.push({ type: "bar", label: "Blend per hour", data: B.mean, backgroundColor: O.css("--band"), yAxisID: "y2", order: 6, barPercentage: 1, categoryPercentage: 1, dec: 2 });
     const nowIdx = O.nowIndex(data.times, data.tz) - s;
     const base = O.chartBase({ labels, hours, nowIdx, unit: t.unit, dec: t.dec || 0, yTitle: t.accum ? `Accumulated (${t.unit})` : t.unit,
-      y2Title: t.accum ? "Per hour (in)" : null, beginAtZero: t.accum || t.zero, yMin: t.min, yMax: t.max });
+      y2Title: t.accum ? "Per hour (in)" : null, beginAtZero: t.accum || t.zero, yMin: t.min, yMax: t.max, bands: O.eventBands(data.ctx, s) });
     base.options.plugins.tooltip.callbacks.footer = (items) => items.length ? `${B.count[items[0].dataIndex]} model${B.count[items[0].dataIndex] === 1 ? "" : "s"} at this hour` : "";
     if (chart) chart.destroy();
     chart = new Chart($("chart"), { type: "line", data: { labels, datasets: ds }, options: base.options, plugins: base.plugins });

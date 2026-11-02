@@ -13,7 +13,28 @@ const PLACES = [
 let fails = 0, checks = 0;
 const ok = (cond, msg) => { checks++; if (!cond) { fails++; console.log("  FAIL " + msg); } };
 const finite = (a) => a.filter((x) => x != null && isFinite(x));
-const between = (a, lo, hi) => finite(a).every((x) => x >= lo && x <= hi);
+/* range checks require real values: an empty or all-null series fails instead of passing vacuously */
+const between = (a, lo, hi) => finite(a).length > 0 && finite(a).every((x) => x >= lo && x <= hi);
+/* Fields each model is expected to deliver, with explicit, documented exceptions. */
+const EXPECT = {
+  blend: ["temperature_2m", "dew_point_2m", "precipitation", "wind_speed_10m", "wind_gusts_10m", "cloud_cover"],
+  thunder: ["cape", "weather_code", "wind_speed_10m"],
+  severe: ["temperature_2m", "dew_point_2m", "cape", "wind_speed_10m", "geopotential_height_500hPa", "temperature_500hPa", "temperature_700hPa", "wind_speed_500hPa"],
+};
+const EXCEPT = {
+  /* NAM on Open-Meteo has no pressure-level winds; the site reports it as limited data. */
+  "severe:ncep_nam_conus": ["wind_speed_500hPa"],
+};
+function usable(group, data) {
+  Object.keys(data.models).forEach((id) => {
+    const skip = EXCEPT[`${group}:${id}`] || [];
+    EXPECT[group].forEach((v) => {
+      if (skip.includes(v)) return;
+      const n = finite(data.models[id].h[v] || []).length;
+      ok(n >= 24, `${group} ${id}: ${v} has usable values (${n} of ${data.times.length} hours)`);
+    });
+  });
+}
 const range = (a) => { const v = finite(a); return v.length ? `${Math.min(...v).toFixed(2)}..${Math.max(...v).toFixed(2)} (${v.length} values)` : "no values"; };
 const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") - Date.parse(times[i - 1] + "Z") === 3600e3);
 
@@ -32,6 +53,7 @@ const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") -
     ok(hourly(B.times), "blend: hourly time axis with no gaps");
     bOk.forEach((id) => ok(between(B.models[id].h.temperature_2m, -60, 125), `blend ${id}: temperatures in °F range`));
     bOk.forEach((id) => ok(between(B.models[id].h.wind_gusts_10m || [], 0, 200), `blend ${id}: gusts in mph range`));
+    usable("blend", B);
     const rows = C.blend.dailyRows(B, C.config.defaultWeights(C.config.blend));
     ok(rows.length >= 3, "blend: at least 3 daily rows");
     ok(rows.every((r) => r.hi == null || r.lo == null || r.hi >= r.lo), "blend: daily high >= low");
@@ -52,6 +74,7 @@ const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") -
     const tws = C.config.defaultWeights(C.config.thunder);
     console.log(`  thunder: ${Object.keys(T.models).length} models ok · problems: ${T.problems.join(" | ") || "none"}`);
     ok(Object.keys(T.models).length >= 3, "thunder: at least 3 models");
+    usable("thunder", T);
     const TH = C.thunder.hourly(T, tws);
     ok(TH.assess.length === T.times.length, "thunder: one assessment per hour");
     ok(between(TH.cape.mean, -50, 8000), `thunder: CAPE in J/kg range (blend ${range(TH.cape.mean)}; ${TH.ids.map((id) => `${id} ${range(T.models[id].h.cape)}`).join("; ")})`);
@@ -63,13 +86,17 @@ const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") -
     const sIds = Object.keys(Sv.models);
     console.log(`  severe: ${sIds.length} models ok · problems: ${Sv.problems.join(" | ") || "none"}`);
     rec.severe = {};
+    usable("severe", Sv);
     sIds.forEach((id) => {
       const md = Sv.models[id], ser = C.severe.series(md.h, Sv.times.length, md.elev);
       const bs6 = finite(ser.bs6), srh1 = finite(ser.srh1);
       console.log(`    ${id}: elev ${md.elev} m · bs6 ${bs6.length}/${Sv.times.length} h (max ${bs6.length ? Math.max(...bs6).toFixed(0) : "—"} kt) · srh1 max ${srh1.length ? Math.max(...srh1).toFixed(0) : "—"}`);
-      ok(between(md.h.wind_speed_500hPa || [], 0, 250), `severe ${id}: 500 hPa wind in knots range`);
-      ok(between(ser.bs6, 0, 200), `severe ${id}: 0–6 km shear plausible`);
-      ok(between(ser.srh1, -800, 1500) && between(ser.srh3, -1000, 2000), `severe ${id}: SRH plausible`);
+      const noWinds = (EXCEPT[`severe:${id}`] || []).includes("wind_speed_500hPa");
+      if (!noWinds) {
+        ok(between(md.h.wind_speed_500hPa || [], 0, 250), `severe ${id}: 500 hPa wind in knots range`);
+        ok(between(ser.bs6, 0, 200), `severe ${id}: 0–6 km shear plausible`);
+        ok(between(ser.srh1, -800, 1500) && between(ser.srh3, -1000, 2000), `severe ${id}: SRH plausible`);
+      } else ok(!finite(ser.bs6).length, `severe ${id}: listed as windless, and indeed produces no shear (else update EXCEPT)`);
       ok(between(ser.lcl, 0, 6000), `severe ${id}: LCL plausible`);
       const i7 = md.h.temperature_700hPa ? md.h.temperature_700hPa.findIndex((x) => x != null) : -1;
       ok(between(md.h.geopotential_height_500hPa || [], 4500, 6300), `severe ${id}: 500 hPa height in meters (${range(md.h.geopotential_height_500hPa || [])})`);
@@ -94,6 +121,33 @@ const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") -
 
     out.places.push(rec);
   }
+  /* Time changes: Open-Meteo labels a response with ONE fixed offset. The event code relies on this
+     (instants = label - utc_offset_seconds), so check it across the most recent DST change any of
+     these zones had within the API's ~90-day history. */
+  {
+    const zones = [["America/New_York", 39.11, -84.52], ["Europe/Berlin", 52.52, 13.4], ["Australia/Sydney", -33.87, 151.21], ["America/Santiago", -33.45, -70.67]];
+    let found = null;
+    for (const [tz, lat, lon] of zones) {
+      for (let d = 2; d <= 85 && !found; d++) {
+        const a = Date.now() - d * 86400e3, b = a + 86400e3;
+        if (C.time.offsetMin(a, tz) !== C.time.offsetMin(b, tz)) found = { tz, lat, lon, day: new Date(a).toISOString().slice(0, 10), day2: new Date(b + 86400e3).toISOString().slice(0, 10) };
+      }
+      if (found) break;
+    }
+    if (!found) console.log("\nDST check skipped: no time change in the last 85 days in the probe zones");
+    else {
+      const j = await D.getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${found.lat}&longitude=${found.lon}&hourly=temperature_2m&models=gfs_seamless&timezone=${encodeURIComponent(found.tz)}&start_date=${found.day}&end_date=${found.day2}`, 0);
+      if (j.error) ok(false, `DST check request: ${j.reason}`);
+      else {
+        const t = j.hourly.time, inst = C.time.instants(t, found.tz, j.utc_offset_seconds);
+        const steps = inst.ms.every((m, i) => i === 0 || m - inst.ms[i - 1] === 3600e3);
+        console.log(`\nDST check ${found.tz} ${found.day}..${found.day2}: ${t.length} labels, offset ${j.utc_offset_seconds}s, duplicates ${t.length - new Set(t).size}, labels match true local time: ${inst.consistent}`);
+        ok(t.length === new Set(t).size && steps && t.length % 24 === 0, "DST: labels are a single fixed offset (no repeated or skipped hours), as the event code assumes");
+        ok(!inst.consistent, "DST: across a time change the labels differ from true local time, and instants() detects it");
+      }
+    }
+  }
+
   fs.mkdirSync(path.join(__dirname, "out"), { recursive: true });
   fs.writeFileSync(path.join(__dirname, "out", "live-summary.json"), JSON.stringify(out, null, 2));
   console.log(`\n${checks - fails}/${checks} live checks passed`);

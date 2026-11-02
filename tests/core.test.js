@@ -72,6 +72,12 @@ cur = { cfg: "a:2", rows: { d1: { label: "TUE", win: "T00/T23", contrib: ["a"], 
 d = C.changes.diff(prev, cur, spec);
 eq([d.cfgChanged, d.contribChanged[0].removed], [true, ["b"]], "changes: settings and contributor changes are reported");
 eq(d.items, [], "changes: no false change when values match");
+cur = { cfg: "a:2", rows: { d1: { label: "TUE", win: "T00/T23", contrib: ["a", "b"], qpf: 0.9, t: "action" } } };
+d = C.changes.diff(prev, cur, spec);
+eq([d.items.length, d.affected.map((x) => x.field)], [0, ["precip", "signal"]], "changes: with changed settings, differences are 'affected', never forecast changes");
+cur = { cfg: "a:1", rows: { d1: { label: "TUE", win: "T00/T23", contrib: ["a"], qpf: 0.9, t: "normal" } } };
+d = C.changes.diff(prev, cur, spec);
+eq([d.items.length, d.affected.length], [0, 1], "changes: a dropped contributor also marks that row affected");
 
 /* ---------- shared config ---------- */
 eq(Object.keys(C.config.defaultWeights(C.config.blend)).includes("jma_seamless"), false, "config: off-by-default models excluded");
@@ -82,5 +88,37 @@ const D = require("../assets/ops-data.js");
 eq(D.toMeters("geopotential_height_700hPa", [9796.588, null], "ft").map((x) => (x == null ? null : Math.round(x))), [2986, null], "data: geopotential height ft -> m");
 eq(D.toMeters("geopotential_height_700hPa", [2986], "m"), [2986], "data: meters untouched");
 eq(D.toMeters("temperature_700hPa", [7], "ft"), [7], "data: only length fields are converted");
+
+/* ---------- time zones: Open-Meteo's fixed-offset labels -> real instants ---------- */
+const T = C.time, NY = "America/New_York";
+const om = ["2026-10-31T23:00", "2026-11-01T00:00", "2026-11-01T01:00", "2026-11-01T02:00"]; // labelled at a fixed -05:00
+const inst = T.instants(om, NY, -18000);
+eq(inst.ms.map((m) => new Date(m).toISOString().slice(11, 16)), ["04:00", "05:00", "06:00", "07:00"], "time: instants = label - fixed offset");
+eq([inst.consistent, T.toLocal(inst.ms[0], NY)], [false, "2026-11-01T00:00"], "time: before the change the labels are an hour off true local time, and that is flagged");
+eq(T.toUtc("2026-11-01T01:30", NY), Date.UTC(2026, 10, 1, 5, 30), "time: repeated fall-back time resolves to its first occurrence");
+eq(T.toLocal(T.toUtc("2027-03-14T02:30", NY), NY), "2027-03-14T03:30", "time: skipped spring-forward time moves to the first real time");
+
+/* ---------- events ---------- */
+const EV = C.event;
+const ev = { id: "ev_x", name: "Night match", loc: { name: "TQL", lat: 39.1, lon: -84.5 }, tz: NY,
+  times: { setup: "2026-10-31T21:00", gates: "2026-10-31T23:00", start: "2026-11-01T00:30", end: "2026-11-01T02:30", teardown: "2026-11-01T04:00" } };
+eq(EV.validate(ev), [], "event: valid record");
+const W2 = EV.windows(ev);
+eq(W2.map((w) => w.key), ["setup", "gates", "event", "teardown", "all"], "event: phases in order plus whole event");
+eq(W2.find((w) => w.key === "event").hours, 3, "event: 00:30-02:30 across the fall-back hour is 3 real hours");
+eq(W2.find((w) => w.key === "gates").startLocal, "2026-10-31T23:00", "event: windows keep true local times");
+eq(EV.validate({ ...ev, times: { ...ev.times, end: "2026-11-01T00:00" } }).length > 0, true, "event: end before start is rejected");
+eq(EV.validate({ ...ev, times: { start: "2026-11-01T00:30", end: "2026-11-01T02:30" } }), [], "event: setup, gates and teardown are optional");
+eq(EV.windows({ ...ev, times: { start: "2026-11-01T00:30", end: "2026-11-01T02:30" } }).map((w) => w.key), ["event", "all"], "event: optional phases are omitted");
+// an hourly axis in fixed-offset labels covering the night
+const axis = Array.from({ length: 12 }, (_, i) => { const m = Date.UTC(2026, 10, 1, 0) + i * 3600e3 - 0; const d2 = new Date(m); return `2026-${String(d2.getUTCMonth() + 1).padStart(2, "0")}-${String(d2.getUTCDate()).padStart(2, "0")}T${String(d2.getUTCHours()).padStart(2, "0")}:00`; }); // labels at -05:00: 2026-11-01T00..11 -> 05Z..16Z
+const ax = T.instants(axis, NY, -18000);
+const gw = W2.find((w) => w.key === "event"); // 04:30Z-07:30Z
+const L = EV.locate(gw, ax);
+eq(L.idx.map((i) => axis[i]), ["2026-11-01T00:00", "2026-11-01T01:00", "2026-11-01T02:00"], "event: instantaneous hours inside the window (05Z,06Z,07Z)");
+eq(L.acc.map((i) => axis[i]), ["2026-11-01T00:00", "2026-11-01T01:00", "2026-11-01T02:00", "2026-11-01T03:00"], "event: accumulation hours covering the window's edges");
+eq(EV.coverage(gw, ax, Date.UTC(2026, 10, 1, 0)).status, "full", "event: covered window");
+eq(EV.coverage(W2.find((w) => w.key === "setup"), ax, Date.UTC(2026, 10, 1, 0)).status, "partial", "event: setup starts before the data does");
+eq(EV.coverage(gw, ax, Date.UTC(2026, 10, 2, 0)).status, "past", "event: finished window");
 
 console.log(`ok - ${n} checks passed`);

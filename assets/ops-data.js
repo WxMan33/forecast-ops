@@ -95,7 +95,7 @@
       (spec.daily || []).forEach((v) => (dd[v] = j.daily ? S.align(dtimes, j.daily.time, d[v]) : dtimes.map(() => null)));
       models[m.id] = { h: hh, d: dd, elev: j.elevation || 0 };
     });
-    return { times, dtimes, tz: master.timezone, models, status, problems };
+    return { times, dtimes, tz: master.timezone, offset: master.utc_offset_seconds, models, status, problems };
   }
 
   /* Ensembles for a config spec. Returns {times, tz, ens: {id: {var: [member arrays]}}, status, problems} */
@@ -117,7 +117,7 @@
     const master = ok.reduce((a, b) => (b.j.hourly.time.length > a.j.hourly.time.length ? b : a)).j;
     const times = master.hourly.time, ens = {};
     ok.forEach(({ m, j, byVar }) => { ens[m.id] = {}; Object.keys(byVar).forEach((v) => (ens[m.id][v] = byVar[v].map((a) => S.align(times, j.hourly.time, a)))); });
-    return { times, tz: master.timezone, ens, status, problems };
+    return { times, tz: master.timezone, offset: master.utc_offset_seconds, ens, status, problems };
   }
 
   const OpsData = { getJSON, fetchModel, pick, loadModels, loadEnsemble, toMeters };

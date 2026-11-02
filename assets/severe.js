@@ -28,6 +28,8 @@
   const picker = O.modelPicker($("models"), "ops_severe_models", MODELS, render);
   const showLines = O.linesToggle($("linesBtn"), "ops_severe_lines", () => renderChart());
   O.locationCard($("locCard"), () => run());
+  O.eventCard($("evCard"));
+  O.onEvent(() => render());
   $("runBtn").addEventListener("click", () => run());
   $("days").value = String(O.store.get("ops_severe_days", 3));
   $("days").addEventListener("change", () => { O.store.set("ops_severe_days", +$("days").value); run(); });
@@ -99,6 +101,16 @@
     }
     const bl = blended(), tiers = bl.map(S.assess);
     data.bl = bl; data.tiers = tiers;
+    const ctx = O.eventContext(data); data.ctx = ctx;
+    const mxP = (w, k, src) => { const v = w.L.idx.map((i) => (src ? bl[i].max[k] : bl[i][k])).filter((x) => x != null); return v.length ? Math.max(...v) : null; };
+    O.eventTable($("eventCard"), ctx, [
+      { label: "Environment", cell: (w) => { const a = w.L.idx.map((i) => tiers[i]), lim = a.filter((x) => x.limited && x.tier !== "nodata"); return O.badge({ tier: O.maxTier(a.map((x) => x.tier)), limited: lim.length > 0, missing: [...new Set(lim.flatMap((x) => x.missing))] }); } },
+      { label: "SCP ≈ blend (max)", cell: (w) => pair(mxP(w, "scp"), mxP(w, "scp", 1), 1) },
+      { label: "STP ≈ blend (max)", cell: (w) => pair(mxP(w, "stp"), mxP(w, "stp", 1), 1) },
+      { label: "0–6 km shear", cell: (w) => pair(mxP(w, "bs6"), mxP(w, "bs6", 1), 0, " kt") },
+      { label: "CAPE", cell: (w) => pair(mxP(w, "cape"), mxP(w, "cape", 1)) },
+      { label: "Flags", cell: (w) => { const fl = new Set(); w.L.idx.forEach((i) => S.flags(bl[i]).forEach((x) => fl.add(x))); return fl.size ? [...fl].map((x) => `<span class="flag">${x}</span>`).join("") : "—"; } },
+    ], { note: "Severe environment during each phase, not whether storms form. Blend first, highest single model in brackets." });
     drawStrip();
 
     /* headline */
@@ -160,7 +172,7 @@
     if (!data || !data.tiers) return;
     const rows = [{ name: "BLEND", color: O.css("--text"), tiers: data.tiers, bold: true }]
       .concat(activeModels().map((m) => ({ name: m.name, color: O.modelColor(MODELS.indexOf(m)), tiers: data.times.map((_, i) => S.assess(modelAt(m.id, i))) })));
-    O.tierStrip($("strip"), data.times, rows, { nowIdx: O.nowIndex(data.times, data.tz), sel: +$("hHour").value,
+    O.tierStrip($("strip"), data.times, rows, { nowIdx: O.nowIndex(data.times, data.tz), sel: +$("hHour").value, bands: O.eventBands(data.ctx),
       onPick: (i) => { $("hHour").value = i; drawStrip(); drawHodo(); renderChart(); $("strip").querySelector(".strip-scroll").focus(); } });
   }
 
@@ -237,7 +249,7 @@
     if (showLines() || ms.length === 1) ms.forEach((m) => ds.push(O.modelLine(m.name, data.models[m.id].series[t.k], O.modelColor(MODELS.indexOf(m)), { tension: 0.2 })));
     if (ms.length > 1) ds.push({ label: "BLEND", data: B.mean, borderColor: fg, borderWidth: 3.25, pointRadius: 0, tension: 0.2, spanGaps: true, order: 1 });
     (t.thr || []).forEach((v) => ds.push({ label: `${v}`, data: data.times.map(() => v), borderColor: O.css("--prepare"), borderWidth: 1.25, borderDash: [5, 4], pointRadius: 0, hideTip: true, order: 2 }));
-    const base = O.chartBase({ labels, hours, nowIdx: O.nowIndex(data.times, data.tz), selIdx: +$("hHour").value, unit: t.unit, dec: t.dec || 0, yTitle: t.unit || t.label, beginAtZero: t.zero });
+    const base = O.chartBase({ labels, hours, nowIdx: O.nowIndex(data.times, data.tz), selIdx: +$("hHour").value, bands: O.eventBands(data.ctx), unit: t.unit, dec: t.dec || 0, yTitle: t.unit || t.label, beginAtZero: t.zero });
     if (chart) chart.destroy();
     chart = new Chart($("chart"), { type: "line", data: { labels, datasets: ds }, options: base.options, plugins: base.plugins });
     $("legend").innerHTML = (showLines() ? ms.map((m) => `<span><i class="sw" style="background:${O.modelColor(MODELS.indexOf(m))}"></i>${O.esc(m.name)}</span>`).join("") : "") +
