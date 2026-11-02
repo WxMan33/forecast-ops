@@ -22,8 +22,11 @@ const EXPECT = {
   severe: ["temperature_2m", "dew_point_2m", "cape", "wind_speed_10m", "geopotential_height_500hPa", "temperature_500hPa", "temperature_700hPa", "wind_speed_500hPa"],
 };
 const EXCEPT = {
-  /* NAM on Open-Meteo has no pressure-level winds; the site reports it as limited data. */
-  "severe:ncep_nam_conus": ["wind_speed_500hPa"],
+  /* Found in real responses (Nov 2026). Each one is handled on the site, not hidden. */
+  /* NAM on Open-Meteo has no pressure-level data at all: Severe shows it as limited data. */
+  "severe:ncep_nam_conus": ["wind_speed_500hPa", "geopotential_height_500hPa", "temperature_500hPa", "temperature_700hPa"],
+  /* ECMWF AIFS has no wind gusts: the blend averages gusts from the models that have them. */
+  "blend:ecmwf_aifs025_single": ["wind_gusts_10m"],
 };
 function usable(group, data) {
   Object.keys(data.models).forEach((id) => {
@@ -91,7 +94,7 @@ const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") -
       const md = Sv.models[id], ser = C.severe.series(md.h, Sv.times.length, md.elev);
       const bs6 = finite(ser.bs6), srh1 = finite(ser.srh1);
       console.log(`    ${id}: elev ${md.elev} m · bs6 ${bs6.length}/${Sv.times.length} h (max ${bs6.length ? Math.max(...bs6).toFixed(0) : "—"} kt) · srh1 max ${srh1.length ? Math.max(...srh1).toFixed(0) : "—"}`);
-      const noWinds = (EXCEPT[`severe:${id}`] || []).includes("wind_speed_500hPa");
+      const noWinds = (EXCEPT[`severe:${id}`] || []).includes("wind_speed_500hPa"), noUpper = (EXCEPT[`severe:${id}`] || []).includes("temperature_500hPa");
       if (!noWinds) {
         ok(between(md.h.wind_speed_500hPa || [], 0, 250), `severe ${id}: 500 hPa wind in knots range`);
         ok(between(ser.bs6, 0, 200), `severe ${id}: 0–6 km shear plausible`);
@@ -99,8 +102,8 @@ const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") -
       } else ok(!finite(ser.bs6).length, `severe ${id}: listed as windless, and indeed produces no shear (else update EXCEPT)`);
       ok(between(ser.lcl, 0, 6000), `severe ${id}: LCL plausible`);
       const i7 = md.h.temperature_700hPa ? md.h.temperature_700hPa.findIndex((x) => x != null) : -1;
-      ok(between(md.h.geopotential_height_500hPa || [], 4500, 6300), `severe ${id}: 500 hPa height in meters (${range(md.h.geopotential_height_500hPa || [])})`);
-      ok(between(ser.lr75, 2, 11), `severe ${id}: 700–500 lapse rate plausible (lr75 ${range(ser.lr75)}; sample hour ${i7}: T700 ${md.h.temperature_700hPa && md.h.temperature_700hPa[i7]}, T500 ${md.h.temperature_500hPa && md.h.temperature_500hPa[i7]}, z700 ${md.h.geopotential_height_700hPa && md.h.geopotential_height_700hPa[i7]}, z500 ${md.h.geopotential_height_500hPa && md.h.geopotential_height_500hPa[i7]}, T2m ${md.h.temperature_2m[i7]})`);
+      if (!noUpper) ok(between(md.h.geopotential_height_500hPa || [], 4500, 6300), `severe ${id}: 500 hPa height in meters (${range(md.h.geopotential_height_500hPa || [])})`);
+      if (!noUpper) ok(between(ser.lr75, 2, 11), `severe ${id}: 700–500 lapse rate plausible (lr75 ${range(ser.lr75)}; sample hour ${i7}: T700 ${md.h.temperature_700hPa && md.h.temperature_700hPa[i7]}, T500 ${md.h.temperature_500hPa && md.h.temperature_500hPa[i7]}, z700 ${md.h.geopotential_height_700hPa && md.h.geopotential_height_700hPa[i7]}, z500 ${md.h.geopotential_height_500hPa && md.h.geopotential_height_500hPa[i7]}, T2m ${md.h.temperature_2m[i7]})`);
       rec.severe[id] = { elev: md.elev, bs6Hours: bs6.length, srh1Max: srh1.length ? Math.max(...srh1) : null };
     });
     ok(sIds.some((id) => finite(Sv.models[id].h.wind_speed_500hPa || []).length), "severe: at least one model has upper-air winds");
