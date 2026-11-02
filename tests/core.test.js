@@ -77,4 +77,10 @@ eq(d.items, [], "changes: no false change when values match");
 eq(Object.keys(C.config.defaultWeights(C.config.blend)).includes("jma_seamless"), false, "config: off-by-default models excluded");
 eq(C.config.fingerprint({ b: 1, a: 2 }), "a:2,b:1", "config: fingerprint is order-independent");
 
+/* ---------- units: heights in feet are converted to meters ---------- */
+const D = require("../assets/ops-data.js");
+eq(D.toMeters("geopotential_height_700hPa", [9796.588, null], "ft").map((x) => (x == null ? null : Math.round(x))), [2986, null], "data: geopotential height ft -> m");
+eq(D.toMeters("geopotential_height_700hPa", [2986], "m"), [2986], "data: meters untouched");
+eq(D.toMeters("temperature_700hPa", [7], "ft"), [7], "data: only length fields are converted");
+
 console.log(`ok - ${n} checks passed`);

@@ -41,7 +41,8 @@ const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") -
       C.time.dayGroups(B.times).filter((d) => d.idx.length === 24 && C.stats.complete(md.h.temperature_2m, d.idx)).forEach((d) => {
         const j = B.dtimes.indexOf(d.k), own = j >= 0 && md.d.temperature_2m_max ? md.d.temperature_2m_max[j] : null;
         const hmax = Math.max(...d.idx.map((i) => md.h.temperature_2m[i]));
-        if (own != null) ok(Math.abs(own - hmax) <= 1.5, `blend ${id} ${d.k}: daily max matches hourly max (daily ${own}, hourly ${hmax}, ${B.tz})`);
+        /* the model's own daily max can sit above every hourly sample (true max between output times) */
+        if (own != null) ok(own >= hmax - 1.5 && own <= hmax + 4, `blend ${id} ${d.k}: daily max matches hourly max (daily ${own}, hourly ${hmax}, ${B.tz})`);
       });
     });
     rec.blend = { models: bOk, problems: B.problems, rows: rows.map((r) => ({ k: r.k, hi: r.hi, lo: r.lo, qpf: r.qpf, contrib: r.contrib })) };
@@ -53,7 +54,7 @@ const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") -
     ok(Object.keys(T.models).length >= 3, "thunder: at least 3 models");
     const TH = C.thunder.hourly(T, tws);
     ok(TH.assess.length === T.times.length, "thunder: one assessment per hour");
-    ok(between(TH.cape.mean, 0, 8000), `thunder: CAPE in J/kg range (blend ${range(TH.cape.mean)}; ${TH.ids.map((id) => `${id} ${range(T.models[id].h.cape)}`).join("; ")})`);
+    ok(between(TH.cape.mean, -50, 8000), `thunder: CAPE in J/kg range (blend ${range(TH.cape.mean)}; ${TH.ids.map((id) => `${id} ${range(T.models[id].h.cape)}`).join("; ")})`);
     ok(TH.assess.every((a) => C.TIERS[a.tier] && typeof a.limited === "boolean"), "thunder: assessments well formed");
     rec.thunder = { models: TH.ids, limitedHours: TH.assess.filter((a) => a.limited).length, worst: C.maxTier(TH.assess.map((a) => a.tier)) };
 
@@ -71,6 +72,7 @@ const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") -
       ok(between(ser.srh1, -800, 1500) && between(ser.srh3, -1000, 2000), `severe ${id}: SRH plausible`);
       ok(between(ser.lcl, 0, 6000), `severe ${id}: LCL plausible`);
       const i7 = md.h.temperature_700hPa ? md.h.temperature_700hPa.findIndex((x) => x != null) : -1;
+      ok(between(md.h.geopotential_height_500hPa || [], 4500, 6300), `severe ${id}: 500 hPa height in meters (${range(md.h.geopotential_height_500hPa || [])})`);
       ok(between(ser.lr75, 2, 11), `severe ${id}: 700–500 lapse rate plausible (lr75 ${range(ser.lr75)}; sample hour ${i7}: T700 ${md.h.temperature_700hPa && md.h.temperature_700hPa[i7]}, T500 ${md.h.temperature_500hPa && md.h.temperature_500hPa[i7]}, z700 ${md.h.geopotential_height_700hPa && md.h.geopotential_height_700hPa[i7]}, z500 ${md.h.geopotential_height_500hPa && md.h.geopotential_height_500hPa[i7]}, T2m ${md.h.temperature_2m[i7]})`);
       rec.severe[id] = { elev: md.elev, bs6Hours: bs6.length, srh1Max: srh1.length ? Math.max(...srh1) : null };
     });

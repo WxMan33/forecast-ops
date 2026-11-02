@@ -116,7 +116,8 @@
       extraHourly: { icon_seamless: ["lightning_potential"] },
     },
     severe: {
-      id: "severe", base: FORECAST, params: { temperature_unit: "celsius", wind_speed_unit: "kn", precipitation_unit: "inch" }, days: 3,
+      /* Metric precipitation keeps heights in meters; ops-data.js also converts feet if they ever appear. */
+      id: "severe", base: FORECAST, params: { temperature_unit: "celsius", wind_speed_unit: "kn", precipitation_unit: "mm" }, days: 3,
       require: ["cape", "wind_speed_500hPa"],
       models: [
         { id: "gfs_hrrr", name: "HRRR (48 h)", w: 1.25 },

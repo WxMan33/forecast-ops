@@ -57,6 +57,16 @@
     return out;
   }
 
+  /* Heights always in meters. Open-Meteo returns geopotential height and freezing level in FEET
+     whenever imperial units are requested (e.g. precipitation_unit=inch), so normalize here. */
+  const LENGTH = /^(geopotential_height_|freezing_level_height)/;
+  const unitOf = (j, v) => { const u = j.hourly_units || {}; const k = Object.keys(u).find((k) => k === v || k.startsWith(v + "_")); return k ? String(u[k]).toLowerCase() : ""; };
+  function toMeters(v, arr, unit) {
+    if (!arr || !LENGTH.test(v)) return arr;
+    if (unit === "ft" || unit === "feet") return arr.map((x) => (x == null ? null : x * 0.3048));
+    return arr;
+  }
+
   /* Deterministic models for a config spec. ids: which models to request (default: all in the spec).
      Returns {times, dtimes, tz, models: {id: {h, d, elev}}, status: {id: "ok"|"failed"|"empty"}, problems[]} */
   async function loadModels(spec, { lat, lon, days, ids } = {}) {
@@ -81,7 +91,7 @@
     const models = {};
     ok.forEach(({ m, j, h, d, names }) => {
       const hh = {}, dd = {};
-      names.forEach((v) => (hh[v] = S.align(times, j.hourly.time, h[v])));
+      names.forEach((v) => (hh[v] = S.align(times, j.hourly.time, toMeters(v, h[v], unitOf(j, v)))));
       (spec.daily || []).forEach((v) => (dd[v] = j.daily ? S.align(dtimes, j.daily.time, d[v]) : dtimes.map(() => null)));
       models[m.id] = { h: hh, d: dd, elev: j.elevation || 0 };
     });
@@ -110,7 +120,7 @@
     return { times, tz: master.timezone, ens, status, problems };
   }
 
-  const OpsData = { getJSON, fetchModel, pick, loadModels, loadEnsemble };
+  const OpsData = { getJSON, fetchModel, pick, loadModels, loadEnsemble, toMeters };
   if (typeof module !== "undefined" && module.exports) module.exports = OpsData;
   root.OpsData = OpsData;
 })(typeof self !== "undefined" ? self : globalThis);
