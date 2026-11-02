@@ -36,3 +36,39 @@ jobs:
         with:
           name: live-summary
           path: tests/out/live-summary.json
+
+  upp:
+    # Runs the ORIGINAL NCEP UPP Fortran (pinned in tests/upp/SOURCE.md) on the same layer inputs as
+    # this site's code and compares energies and categories (tests/upp/compare.js).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify the pinned UPP source is unmodified
+        run: echo "db74db92c6617a31d6fb65015a5841d0235e8637d851cc6283e3c64afd19d4ad  tests/upp/CALWXT_BOURG.f" | sha256sum -c -
+      - name: Find or install gfortran
+        run: |
+          FC=$(command -v gfortran || ls /usr/bin/gfortran-* 2>/dev/null | head -1 || true)
+          if [ -z "$FC" ]; then sudo apt-get update -qq && sudo apt-get install -y -qq gfortran && FC=$(command -v gfortran); fi
+          echo "FC=$FC" >> "$GITHUB_ENV"; $FC --version | head -1
+      - name: Build the energy copy (subroutine renamed + one write line; original untouched)
+        working-directory: tests/upp
+        run: |
+          sed -e 's/subroutine calwxt_bourg_post/subroutine calwxt_bourg_energy/' \
+              -e '/^!     decision tree time/i\           write(*,"(a,4es18.9)") " E ", areape, areane, surfw, tlmhk' \
+              CALWXT_BOURG.f > CALWXT_BOURG_energy.f
+          diff CALWXT_BOURG.f CALWXT_BOURG_energy.f || true
+      - name: Compile
+        working-directory: tests/upp
+        run: $FC -ffree-form -ffree-line-length-none -O0 -o upp driver.f90 CALWXT_BOURG.f CALWXT_BOURG_energy.f
+      - name: Run original UPP and compare
+        working-directory: tests/upp
+        run: node cases.js && ./upp < cases.txt > fortran.out && head -4 fortran.out && node compare.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: upp-comparison
+          path: tests/out/upp-summary.json
+

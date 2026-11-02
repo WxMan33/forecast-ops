@@ -54,18 +54,27 @@ The Winter page shows:
 - **Precipitation type**, side by side from three sources:
   - each model's own WMO weather code, which has no sleet category
   - NWS wording
-  - an **experimental** profile reading using the *original* Bourgouin energy method as implemented in NCEP UPP (`CALWXT_BOURG`), not the revised method (Birk et al. 2021). It is checked against a line-by-line port of UPP in `tests/reference/`, and shown only for profiles that are complete through 500 hPa
+  - an **experimental** profile reading using the *original* Bourgouin energy method as implemented in NCEP UPP (`CALWXT_BOURG`), not the revised method (Birk et al. 2021). It is shown only for profiles that pass its provisional coverage checks (surface, first level within 1500 m, data through 3000 m, sub-freezing top). Passing does not mean every warm or cold layer was resolved; these are sparse pressure levels. The energy sums and decision tree (`winter.bourgouinLayers`) are compared in CI with the **original UPP Fortran** on identical layer inputs (see below). Turning sparse levels into layers (`winter.pointsToLayers`: linear in height, 25 m layers) is this tool's own representation choice, and its effect is reported separately
   It also shows each model's transition times and the spread of transition timing across models.
 - **Profiles:** for any clicked hour, every model's profile, with surface temperature, wet-bulb, dew point, warm nose, warm-layer depth, cold-layer depth and Kuchera ratio. Charts for surface T/Td/wet-bulb, 925/850 hPa temperatures and the warm-nose peak.
 - **Snow amounts, kept distinct:**
   - model snow as reported (Open-Meteo's fixed 7:1 conversion)
   - snow water
   - 10:1
-  - Kuchera (experimental; needs a complete profile through 500 hPa, otherwise shown as incomplete; COARSE when levels in the lowest 3 km are over 1200 m apart)
+  - Kuchera (experimental; shown only when the profile passes its own coverage checks: through 500 hPa, no gap over 1800 m)
   - NWS snow and ice from its interval totals
   - hours where warm ground likely limits accumulation
   None of these claim ground or road accumulation.
 - **Ensemble odds** use only members that cover the whole window.
+- **COARSE** marks the largest gap between levels in any interval overlapping the lowest 3 km, shown in metres, when it exceeds 1000 m. The rule and threshold are the same for every model, and provisional.
+- **Precip-type comparisons are logged.** For every hour with precipitation, each model's code type, the NWS wording type and the experimental profile type are saved to the verification log, so agreement and divergence across real setups can be reviewed later.
+
+### How the Bourgouin implementation is checked
+
+- **Original code:** `tests/upp/` holds the unmodified UPP `CALWXT_BOURG.f`, pinned to a commit with its SHA-256 (`tests/upp/SOURCE.md`).
+- **CI:** the `upp` job compiles it with gfortran and runs it on about 840 layer profiles: named cases, sweeps across every threshold, and random profiles. It runs 8 random seeds per case for UPP's transition-zone draws, plus a build-time copy with one added `write` line to expose the energies.
+- **Comparison:** melting, refreezing and surface energies must agree to float precision. Categories must agree, threshold cases included.
+- **Offline cross-check:** `tests/reference/upp-bourgouin.js` is a separately written JavaScript port with its own points-to-layers conversion, used for quick offline checks. It is not the original code.
 
 ## Blend presets and weighting
 

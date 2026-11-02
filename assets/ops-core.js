@@ -766,23 +766,34 @@
       const kuch = pts.filter((q) => q.p == null || q.p >= 500).reduce((m, q) => Math.max(m, q.t), -999);
       return { sfcT: pts[0].t, maxAloftT: maxA ? maxA.t : null, maxAloftZ: maxA ? maxA.z : null, warmBase, warmTop, warmDepth: warmBase != null && warmTop != null ? warmTop - warmBase : null, coldDepth, kucheraTmax: kuch > -999 ? kuch : null };
     },
-    /* Is a profile complete enough to integrate? Needs the surface point, a first level within
-       1500 m of the ground, the 500 hPa level, no vertical gap over 1800 m, and a sub-freezing top
-       (otherwise a warm layer could continue above the data). Gaps over 1200 m in the lowest 3 km are flagged coarse (ECMWF 850->700 hPa is ~1500 m; GFS 800->700 ~1050 m). */
-    coverage(pts) {
-      const why = [];
-      if (!pts || pts.length < 3) return { ok: false, coarse: true, maxGap: null, why: ["fewer than 3 points"] };
+    /* PROVISIONAL coverage checks for sparse pressure-level profiles. Passing them does NOT mean
+       every warm or cold layer was resolved; it only rules out the clearly unusable cases.
+       purpose "ptype": surface point, first level within 1500 m, data through at least 3000 m AGL,
+         and a sub-freezing top (otherwise a warm layer may continue above the data).
+       purpose "kuchera": surface point, first level within 1500 m, reaches 500 hPa, and no gap over
+         1800 m anywhere below it (the warmest temperature could sit inside a gap).
+       Both report the largest gap in any interval overlapping the lowest 3000 m (lowGap, with where it
+       is) and flag it coarse above 1000 m. Thresholds are provisional and model-independent. */
+    COVERAGE: { firstLevelMax: 1500, ptypeTop: 3000, gapFail: 1800, layerTop: 3000, coarseGap: 1000 },
+    coverage(pts, purpose = "ptype") {
+      const K = winter.COVERAGE, why = [];
+      if (!pts || pts.length < 3) return { pass: false, coarse: true, lowGap: null, lowGapSpan: null, maxGap: null, why: ["fewer than 3 points"] };
       if (pts[0].z > 50) why.push("no surface point");
-      if (pts[1].z > 1500) why.push(`first level ${Math.round(pts[1].z)} m above ground`);
-      if (!pts.some((q) => q.p === 500)) why.push("does not reach 500 hPa");
-      let maxGap = 0; for (let k = 1; k < pts.length; k++) maxGap = Math.max(maxGap, pts[k].z - pts[k - 1].z);
-      if (maxGap > 1800) why.push(`${Math.round(maxGap)} m gap between levels`);
-      if (pts[pts.length - 1].t >= 0) why.push("top of profile is above freezing (truncated)");
-      if (pts.some((q) => q.p == null)) why.push("missing pressure");
-      /* coarse: a gap over 1200 m in the lowest 3 km, where warm noses and refreezing layers live
-         (above ~700 hPa every model's levels are 1–1.5 km apart, which is not what matters here) */
-      let lowGap = 0; for (let k = 1; k < pts.length; k++) if (pts[k].z <= 3200) lowGap = Math.max(lowGap, pts[k].z - pts[k - 1].z);
-      return { ok: why.length === 0, coarse: lowGap > 1200, maxGap, lowGap, why };
+      if (pts[1].z > K.firstLevelMax) why.push(`first level ${Math.round(pts[1].z)} m above ground`);
+      let lowGap = 0, lowGapSpan = null, maxGap = 0;
+      for (let k = 1; k < pts.length; k++) {
+        const g = pts[k].z - pts[k - 1].z;
+        maxGap = Math.max(maxGap, g);
+        if (pts[k - 1].z < K.layerTop && g > lowGap) { lowGap = g; lowGapSpan = [pts[k - 1].z, pts[k].z]; } // any interval overlapping the layer
+      }
+      if (purpose === "kuchera") {
+        if (!pts.some((q) => q.p === 500)) why.push("does not reach 500 hPa");
+        if (maxGap > K.gapFail) why.push(`${Math.round(maxGap)} m gap between levels below 500 hPa`);
+      } else {
+        if (pts[pts.length - 1].z < K.ptypeTop) why.push(`data stop at ${Math.round(pts[pts.length - 1].z)} m`);
+        if (pts[pts.length - 1].t >= 0) why.push("top of the data is above freezing (warm layer may continue)");
+      }
+      return { pass: why.length === 0, coarse: lowGap > K.coarseGap, lowGap, lowGapSpan, maxGap, why, purpose };
     },
     /* Original Bourgouin energy method, following NCEP UPP CALWXT_BOURG (Baldwin; the operational
        implementation of Bourgouin 1992/2000), NOT the revised Bourgouin method (Birk et al. 2021).
@@ -796,29 +807,44 @@
              otherwise -> freezing rain / ice pellet mix.
        UPP resolves transition zones with a random draw; here they are reported as named mixes.
        EXPERIMENTAL in this tool: model levels are coarse and there is no moisture information. */
-    bourgouin(pts) {
-      const cov = winter.coverage(pts);
-      if (!cov.ok) return { type: null, unavailable: cov.why };
-      const G = 9.80665, T0 = 273.15, top = pts[pts.length - 1].z, step = 25;
-      const hp = pts.map((q) => ({ h: q.z, t: q.t })), tAt = (z) => at(hp, "t", z);
-      const sfcT = pts[0].t;
-      /* top of the surface-based warm layer (0 if the surface is sub-freezing) */
-      let iwrml = 0;
-      if (sfcT >= 0) { iwrml = top; for (let z = pts[0].z; z < top; z += step) { if (tAt(z + step) < 0) { iwrml = z + step; break; } } }
-      /* highest above-freezing height */
-      let hiwrm = null; for (let z = pts[0].z; z < top; z += step) { const m = tAt(z + step / 2); if (m >= 0) hiwrm = z + step; }
+    /* UPP's energy sums and decision tree on given layers, exactly as CALWXT_BOURG does them.
+       layers: bottom -> top, each {zb, zt (m AGL), t (°C, one value per layer), p (hPa at mid)}.
+       This is the part compared against the original Fortran on identical inputs (tests/upp/). */
+    bourgouinLayers(layers) {
+      const G = 9.80665, T0 = 273.15, n = layers.length;
+      if (!n) return null;
+      const K = (L) => L.t + T0, warm = (L) => K(L) >= T0 && (L.p == null || L.p > 250);
+      /* top layer of the surface-based warm layer (UPP iwrml); n = none */
+      let iwrml = n;
+      if (K(layers[0]) >= T0) for (let k = 0; k < n - 1; k++) if (K(layers[k]) >= T0 && K(layers[k + 1]) < T0) { iwrml = k; break; }
+      /* highest warm layer (UPP lhiwrm); -1 = none */
+      let hi = -1; for (let k = 0; k < n; k++) if (warm(layers[k])) hi = k;
       let areape = 0, areane = 0, surfw = 0;
-      for (let z = pts[0].z; z < top; z += step) {
-        const dz = Math.min(step, top - z), tm = tAt(z + dz / 2) + T0, a = G * dz * Math.log(tm / T0);
-        if (tm >= T0) { if (z >= iwrml) areape += a; else surfw += a; }
-        else if (hiwrm != null && z + dz <= hiwrm) areane += Math.abs(a);
+      for (let k = 0; k < n; k++) {
+        const L = layers[k], a = Math.log(K(L) / T0) * G * (L.zt - L.zb);
+        if (warm(L)) { if (k > iwrml || iwrml === n) areape += a; else surfw += a; }
+        else if (k < hi) areane += Math.abs(a);
       }
+      const sfcT = layers[0].t;
       let type, detail;
       if (areape < 2) { type = surfw < 5.6 ? "snow" : surfw > 13.2 ? "rain" : "mix"; detail = type === "mix" ? "rain/snow" : null; }
       else if (areane > 66 + 0.66 * areape) { type = surfw < 5.6 ? "sleet" : surfw > 13.2 ? "rain" : "mix"; detail = type === "mix" ? "sleet/rain" : null; }
       else if (areane < 46 + 0.66 * areape) type = sfcT < 0 ? "freezing" : "rain";
       else { type = "mix"; detail = "freezing rain/sleet"; }
-      return { type, detail, PA: areape, NA: areane, sfcWarm: surfw, coarse: cov.coarse, method: "bourgouin-original-upp" };
+      return { type, detail, PA: areape, NA: areane, sfcWarm: surfw };
+    },
+    /* Sparse pressure-level points -> layers. A representation CHOICE of this tool, separate from UPP:
+       temperature is interpolated linearly in height between levels and split into 25 m layers. */
+    pointsToLayers(pts, step = 25) {
+      const hp = pts.map((q) => ({ h: q.z, t: q.t })), top = pts[pts.length - 1].z, layers = [];
+      for (let z = pts[0].z; z < top - 1e-6; z += step) { const zt = Math.min(z + step, top); layers.push({ zb: z, zt, t: at(hp, "t", (z + zt) / 2), p: null }); }
+      return layers;
+    },
+    bourgouin(pts) {
+      const cov = winter.coverage(pts, "ptype");
+      if (!cov.pass) return { type: null, unavailable: cov.why, cov };
+      const r = winter.bourgouinLayers(winter.pointsToLayers(pts));
+      return { ...r, coarse: cov.coarse, cov, method: "bourgouin-original-upp" };
     },
     /* Kuchera snow ratio from the warmest temperature (K) between the surface and 500 hPa. */
     kuchera(tmaxC) {
@@ -833,19 +859,19 @@
         /* rain = large-scale rain + convective showers; unknown (null) unless every part is reported */
         const pr = h.precipitation ? h.precipitation[i] : null, sn = h.snowfall ? h.snowfall[i] : null;
         const rn = h.rain && h.rain[i] != null && h.showers && h.showers[i] != null ? h.rain[i] + h.showers[i] : null;
-        const pts = winter.profile(h, i, elev), st = winter.structure(pts), cov = winter.coverage(pts);
+        const pts = winter.profile(h, i, elev), st = winter.structure(pts), covP = winter.coverage(pts, "ptype"), covK = winter.coverage(pts, "kuchera");
         const wet = pr != null && pr >= minPrecipMm;
         const code = h.weather_code ? winter.codeType(h.weather_code[i]) : null;
         const split = sn != null && rn != null && wet ? (sn > 0.05 && rn > 0.05 ? "mix" : sn > 0.05 ? "snow" : "rain") : null;
         const bour = wet ? winter.bourgouin(pts) : null;
-        /* Kuchera needs the column through 500 hPa; with gaps or truncation it is unavailable */
+        /* Kuchera has its own coverage checks (through 500 hPa, no large gaps) */
         const swe = sn == null ? null : sn / 7 / 2.54; // Open-Meteo: snowfall cm = 7 × water cm  -> SWE inches
-        const kr = st && cov.ok ? winter.kuchera(st.kucheraTmax) : null;
+        const kr = st && covK.pass ? winter.kuchera(st.kucheraTmax) : null;
         out.push({ wet, precipIn: pr == null ? null : pr / 25.4, snowIn: sn == null ? null : sn / 2.54, swe, codeType: wet ? code : code === "none" ? "none" : code, split, bour, st,
           t2F: h.temperature_2m && h.temperature_2m[i] != null ? h.temperature_2m[i] * 9 / 5 + 32 : null,
           tdF: h.dew_point_2m && h.dew_point_2m[i] != null ? h.dew_point_2m[i] * 9 / 5 + 32 : null,
           twF: h.wet_bulb_temperature_2m && h.wet_bulb_temperature_2m[i] != null ? h.wet_bulb_temperature_2m[i] * 9 / 5 + 32 : null,
-          soilC: h.soil_temperature_0cm ? h.soil_temperature_0cm[i] : null, kuchera: kr, profileOk: cov.ok, profileCoarse: cov.coarse, profileWhy: cov.why });
+          soilC: h.soil_temperature_0cm ? h.soil_temperature_0cm[i] : null, kuchera: kr, covP, covK });
       }
       return out;
     },

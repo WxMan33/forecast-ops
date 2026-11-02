@@ -155,8 +155,9 @@ eq([N.ptype([{ weather: "snow" }]), N.ptype([{ weather: "sleet" }, { weather: "f
 
 /* ---------- winter diagnostics (synthetic profiles) ---------- */
 const Wn = C.winter;
-/* Bourgouin is checked against a line-by-line port of NCEP UPP CALWXT_BOURG (tests/reference/upp-bourgouin.js),
-   on continuous profiles sampled finely enough for UPP's layer sums to converge. */
+/* Offline cross-check against a separately written JavaScript port of UPP CALWXT_BOURG
+   (tests/reference/upp-bourgouin.js, including its own points-to-layers conversion). This is not the
+   original Fortran; that comparison runs in CI (tests/upp/). */
 const UPP = require("./reference/upp-bourgouin.js");
 const pStd = (z) => 1013.25 * Math.pow(1 - z / 44330.8, 5.255);
 const mk = (Tf, top = 5600, dz = 50) => { const pts = []; for (let z = 0; z <= top; z += dz) pts.push({ z: z || 2, p: z >= top ? 500 : pStd(z), t: Tf(z) }); return pts; };
@@ -197,14 +198,23 @@ for (let k = 0; k < 300; k++) {
 }
 eq(agree, compared, `bourgouin: random profiles agree with UPP away from thresholds (${agree}/${compared})`);
 /* completeness: truncated, gappy or shallow profiles are unavailable, not guessed */
-eq(Wn.bourgouin(mk(CASES["classic warm nose over a shallow cold layer"][0], 1800)).type, null, "bourgouin: profile stopping below 500 hPa is unavailable");
-eq(Wn.bourgouin(mk((z) => 3, 5600)).unavailable.some((x) => /truncated/.test(x)), true, "bourgouin: warm at the top of the data is truncated, unavailable");
+eq(Wn.bourgouin(mk(CASES["classic warm nose over a shallow cold layer"][0], 2500)).type, null, "bourgouin: data stopping at 2500 m fail the precip-type checks");
+eq(Wn.bourgouin(mk(CASES["classic warm nose over a shallow cold layer"][0], 3400)).type, "freezing", "bourgouin: data through 3400 m (not 500 hPa) pass the precip-type checks");
+eq(Wn.bourgouin(mk((z) => 3, 5600)).unavailable.some((x) => /above freezing/.test(x)), true, "bourgouin: warm at the top of the data fails the checks (layer may continue)");
 const gappy = [{ z: 2, p: 1000, t: -2 }, { z: 2200, p: 780, t: 3 }, { z: 5600, p: 500, t: -25 }];
-eq(Wn.coverage(gappy).ok, false, "coverage: first level 2200 m up / 3400 m gap is not usable");
+eq([Wn.coverage(gappy, "ptype").pass, Wn.coverage(gappy, "kuchera").pass], [false, false], "coverage: first level 2200 m up fails both policies");
 eq(Wn.coverage(mk(lapse(-2), 5600, 1400)).coarse, true, "coverage: 1400 m spacing low down is flagged coarse");
+const cross = [{ z: 2, p: 1000, t: -2 }, { z: 500, p: 950, t: -3 }, { z: 1500, p: 850, t: -5 }, { z: 2500, p: 750, t: -8 }, { z: 3500, p: 660, t: -12 }, { z: 5500, p: 500, t: -24 }];
+const cv = Wn.coverage(cross, "ptype");
+eq([cv.lowGap, cv.lowGapSpan, cv.coarse], [1000, [500, 1500], false], "coverage: reports the actual largest gap and where it is");
+const cross2 = cross.map((q) => ({ ...q })); cross2.splice(3, 1); // 1500 -> 3500 m: crosses the 3 km layer top
+eq([Wn.coverage(cross2, "ptype").lowGap, Wn.coverage(cross2, "ptype").coarse], [2000, true], "coverage: a gap crossing the top of the layer (1500->3500 m) is counted");
+const noTop = cross.slice(0, 5);
+eq([Wn.coverage(noTop, "ptype").pass, Wn.coverage(noTop, "kuchera").pass], [true, false], "coverage: precip type and Kuchera have separate requirements (500 hPa only needed for Kuchera)");
+/* model-independent: the same rule applies to every model's level spacing */
 const ecLike = [{ z: 2, p: 1000, t: -2 }, { z: 650, p: 925, t: -3 }, { z: 1400, p: 850, t: 2 }, { z: 2950, p: 700, t: -6 }, { z: 4150, p: 600, t: -14 }, { z: 5500, p: 500, t: -24 }];
 const gfsLike = [{ z: 2, p: 1000, t: -2 }, { z: 200, p: 975, t: -2 }, { z: 420, p: 950, t: -3 }, { z: 650, p: 925, t: -3 }, { z: 880, p: 900, t: 0 }, { z: 1400, p: 850, t: 2 }, { z: 1900, p: 800, t: 0 }, { z: 2950, p: 700, t: -6 }, { z: 4150, p: 600, t: -14 }, { z: 5500, p: 500, t: -24 }];
-eq([Wn.coverage(ecLike).coarse, Wn.coverage(gfsLike).coarse], [true, false], "coverage: ECMWF-like 850->700 gap is coarse; GFS-like levels are not (upper gaps don't count)");
+eq([Math.round(Wn.coverage(ecLike).lowGap), Math.round(Wn.coverage(gfsLike).lowGap)], [1550, 1200], "coverage: actual gaps reported for ECMWF-like (850->700) and GFS-like (700->600 overlaps 3 km) levels");
 near(Wn.kuchera(-5), 12 + (271.16 - 268.15), 1e-9, "kuchera: cold profile ratio");
 near(Wn.kuchera(1), 12 + 2 * (271.16 - 274.15), 1e-9, "kuchera: warm profile ratio");
 const prof = (sfc, levels) => [{ z: 2, p: 1000, t: sfc }, ...levels.map(([p, z, t]) => ({ p, z, t }))];

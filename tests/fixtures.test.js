@@ -75,9 +75,10 @@ const profs = gfs.hourly.time.map((_, i) => C.winter.profile(h, i, gfs.elevation
 ok(profs.every((p) => p.length >= 8 && p.every((q, k) => k === 0 || q.z > p[k - 1].z)), "winter: GFS profiles have 8+ levels, ordered upward");
 ok(ws.every((r) => r.twF == null || (r.tdF - 0.6 <= r.twF && r.twF <= r.t2F + 0.6)), "winter: wet-bulb lies between dew point and temperature");
 ok(ws.every((r) => r.kuchera == null || (r.kuchera >= 0 && r.kuchera <= 30)), "winter: Kuchera ratios within bounds");
-ok(profs.every((p) => C.winter.coverage(p).ok), "winter: real GFS profiles pass the completeness rule (surface to 500 hPa, no big gaps)");
+ok(profs.every((p) => C.winter.coverage(p, "ptype").pass && C.winter.coverage(p, "kuchera").pass), "winter: real GFS profiles pass both sets of coverage checks");
 ok(ws.every((r) => r.kuchera != null), "winter: so Kuchera is available every hour for GFS");
-ok(ws.every((r) => !r.profileCoarse), "winter: real GFS profiles are not flagged coarse");
+const gaps = profs.map((p) => C.winter.coverage(p).lowGap);
+ok(Math.max(...gaps) > 1000 && Math.max(...gaps) < 1400, `winter: real GFS largest low-level gap is reported as it is (${Math.round(Math.max(...gaps))} m, 700->600 hPa overlaps the lowest 3 km)`);
 ok(ws.every((r) => !r.bour || ["snow", "rain", "mix", "freezing", "sleet"].includes(r.bour.type)), "winter: Bourgouin types only when wet, from the known set");
 const inv = F("om-inventory.json");
 ok(inv.ncep_nbm_conus.temperature_850hPa === "rejected" || inv.ncep_nbm_conus.temperature_850hPa.startsWith("0/"), "inventory: NBM has no profile (documented limitation)");
