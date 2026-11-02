@@ -23,52 +23,27 @@
       </div>
       <p class="msg" id="runMsg" style="margin-top:8px"></p>
     </section>
-    <section class="card tight">
-      <div class="section-title">Models &amp; weights</div>
-      <div class="models" id="models"></div>
-      <div class="row" style="margin-top:10px"><button class="btn ghost sm" id="resetW" type="button">RESET WEIGHTS</button></div>
-    </section>
-    <section class="card tight">
-      <div class="section-title">How tiers are set</div>
-      <div class="stack" style="font-size:12px;color:var(--muted)">
-        <div><span class="badge" style="--b:var(--action)">ACT</span> STP ≥ 1 or SCP ≥ 4.</div>
-        <div><span class="badge" style="--b:var(--prepare)">PREPARE</span> SCP ≥ 1, or CAPE ≥ 1000 J/kg with 0–6 km shear ≥ 40 kt.</div>
-        <div><span class="badge" style="--b:var(--monitor)">MONITOR</span> CAPE ≥ 500 J/kg with 0–6 km shear ≥ 25 kt.</div>
-        <div><span class="badge" style="--b:var(--normal)">NORMAL</span> None of the above, or CAPE under 100 J/kg.</div>
-        <div>Tiers rate the <b>environment</b> only. They don't say storms will form. Check "Storms in models" in the daily table for that.</div>
-      </div>
-    </section>
-    <section class="card tight">
-      <div class="section-title">Ingredient flags</div>
-      <div class="stack" style="font-size:12px;color:var(--muted)">
-        <div><span class="badge" style="--b:var(--accent)">HAIL</span> CAPE ≥ 1000, 700–500 hPa lapse rate ≥ 7 °C/km, 0–6 km shear ≥ 30 kt.</div>
-        <div><span class="badge" style="--b:var(--accent)">WIND</span> CAPE ≥ 500, with a 0–3 km lapse rate ≥ 8 °C/km or a 0–6 km mean wind ≥ 35 kt.</div>
-        <div><span class="badge" style="--b:var(--accent)">TOR</span> CAPE ≥ 250, 0–1 km SRH ≥ 100, LCL ≤ 1250 m, 0–6 km shear ≥ 30 kt.</div>
-      </div>
-    </section>
   </aside>
 
   <div class="main">
+    <section class="card" id="changes" hidden></section>
+
     <section class="card">
       <div class="section-title">Severe environment, hour by hour</div>
-      <p class="section-sub">Top row uses blended indices. Each model row uses that model's own sounding. Hover a cell for the time.</p>
+      <p class="section-sub">Rates the <b>environment</b> only: whether storms that form could be severe, not whether storms will form. Top row uses blended indices; each model row uses that model's own sounding. <b>Click an hour</b> (or use ← →) to load its hodograph below.</p>
       <div id="strip"><p class="msg">Fetch models to load the signal.</p></div>
       <div class="legend">
-        <span><i class="sw" style="background:var(--normal);height:10px;opacity:.4"></i>Normal</span>
-        <span><i class="sw" style="background:var(--monitor);height:10px"></i>Monitor</span>
-        <span><i class="sw" style="background:var(--prepare);height:10px"></i>Prepare</span>
-        <span><i class="sw" style="background:var(--action);height:10px"></i>Act</span>
+        <span><i class="sw" style="background:var(--normal);height:10px;opacity:.45"></i>Low</span>
+        <span><i class="sw" style="background:var(--monitor);height:10px"></i>Marginal</span>
+        <span><i class="sw" style="background:var(--prepare);height:10px"></i>Elevated</span>
+        <span><i class="sw" style="background:var(--action);height:10px"></i>High</span>
+        <span><i class="sw" style="background:repeating-linear-gradient(45deg,var(--nodata) 0 2px,transparent 2px 5px);height:10px"></i>Limited data</span>
         <span><i class="sw" style="background:var(--raised);height:10px;border:1px solid var(--line)"></i>No data</span>
       </div>
     </section>
 
     <section class="card">
-      <div class="section-title">Day by day</div>
-      <div class="tablewrap"><table id="daily"></table></div>
-    </section>
-
-    <section class="card">
-      <div class="section-title">Hodograph</div>
+      <div class="section-title">Hodograph &amp; sounding summary</div>
       <div class="row" style="margin-bottom:12px">
         <div style="flex:0 1 220px"><label class="field-label" for="hModel">Profile</label><select class="input" id="hModel"></select></div>
         <div style="flex:2 1 260px"><label class="field-label" for="hHour">Valid <span id="hWhen" class="mono" style="color:var(--text)"></span></label>
@@ -89,18 +64,54 @@
     </section>
 
     <section class="card">
+      <div class="section-title">Day by day</div>
+      <p class="section-sub">Blend value first, with the highest single model in brackets, so one model's worst case stays visible. STP and SCP are ≈ fixed-layer estimates.</p>
+      <div class="tablewrap"><table id="daily"></table></div>
+    </section>
+
+    <section class="card">
       <div class="section-title" id="chartTitle">SCP</div>
       <div class="tabs" role="tablist" id="tabs"></div>
       <p class="section-sub" id="chartSub"></p>
       <div class="chartbox"><canvas id="chart" aria-label="Severe parameter chart" role="img"></canvas></div>
-      <div class="legend" id="legend"></div>
+      <div class="row" style="justify-content:space-between;align-items:center;margin-top:8px">
+        <div class="legend" id="legend" style="margin:0;flex:1 1 auto"></div>
+        <div id="linesBtn" style="flex:0 0 auto"></div>
+      </div>
     </section>
-
-    <div class="note"><b>How these are computed.</b> Open-Meteo gives each model's CAPE, CIN and lifted index, plus winds, temperatures and heights on pressure levels. Shear, helicity, Bunkers motion, lapse rates and LCL are calculated here from those levels, about 50–150 hPa apart, and the 10 m wind. STP and SCP are the fixed-layer versions: STP uses 0–1 km SRH and 0–6 km shear, and SCP uses 0–3 km SRH and 0–6 km shear in place of the effective-layer values. Expect a rougher picture than SPC mesoanalysis or a full-resolution sounding. Which kind of CAPE each model reports varies.</div>
   </div>
+
+  <aside class="side-extra">
+    <section class="card tight" id="models"></section>
+    <details class="card tight fold">
+      <summary><span class="section-title" style="margin:0">How signals are set</span></summary>
+      <div class="stack" style="font-size:12.5px;color:var(--muted);margin-top:10px">
+        <div><span class="badge" style="--b:var(--action)">HIGH</span> STP ≥ 1 or SCP ≥ 4.</div>
+        <div><span class="badge" style="--b:var(--prepare)">ELEVATED</span> SCP ≥ 1, or CAPE ≥ 1000 J/kg with 0–6 km shear ≥ 40 kt.</div>
+        <div><span class="badge" style="--b:var(--monitor)">MARGINAL</span> CAPE ≥ 500 J/kg with 0–6 km shear ≥ 25 kt.</div>
+        <div><span class="badge dashed" style="--b:var(--nodata)">LIMITED DATA</span> CAPE ≥ 500 J/kg but no upper-air winds to judge shear or helicity.</div>
+        <div><span class="badge" style="--b:var(--normal)">LOW</span> None of the above, or CAPE under 100 J/kg.</div>
+        <div>These are Heads-Up status colors used for <b>signal strength in model guidance</b>, not an instruction to act or an official outlook.</div>
+      </div>
+    </details>
+    <details class="card tight fold">
+      <summary><span class="section-title" style="margin:0">Ingredient flags</span></summary>
+      <div class="stack" style="font-size:12.5px;color:var(--muted);margin-top:10px">
+        <div><span class="flag">HAIL</span> CAPE ≥ 1000, 700–500 hPa lapse rate ≥ 7 °C/km, 0–6 km shear ≥ 30 kt.</div>
+        <div><span class="flag">WIND</span> CAPE ≥ 500, with a 0–3 km lapse rate ≥ 8 °C/km or a 0–6 km mean wind ≥ 35 kt.</div>
+        <div><span class="flag">TOR</span> CAPE ≥ 250, 0–1 km SRH ≥ 100, LCL ≤ 1250 m, 0–6 km shear ≥ 30 kt.</div>
+        <div>A flag needs every one of its inputs. Missing data never raises or clears a flag.</div>
+      </div>
+    </details>
+    <details class="card tight fold">
+      <summary><span class="section-title" style="margin:0">How these are computed</span></summary>
+      <div style="font-size:12.5px;color:var(--muted);margin-top:10px">Open-Meteo gives each model's CAPE, CIN and lifted index, plus winds, temperatures and heights on pressure levels. Shear, helicity, Bunkers motion, lapse rates and LCL are calculated here from those levels, about 50–150 hPa apart, and the 10 m wind. STP and SCP are the fixed-layer versions: STP uses 0–1 km SRH and 0–6 km shear, and SCP uses 0–3 km SRH and 0–6 km shear in place of the effective-layer values. Expect a rougher picture than SPC mesoanalysis or a full-resolution sounding. Which kind of CAPE each model reports varies.</div>
+    </details>
+  </aside>
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="assets/ops-core.js"></script>
 <script src="assets/ops.js"></script>
 <script src="assets/severe.js"></script>
 </body>

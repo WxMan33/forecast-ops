@@ -1,7 +1,7 @@
-/* Thunder: hour-by-hour model thunder signal using the app's fixed status tiers. */
+/* Thunder: hour-by-hour model thunder signal on the Heads-Up color scale. */
 (function () {
   "use strict";
-  const O = window.Ops, $ = O.$;
+  const O = window.Ops, $ = O.$, C = O.Core;
   O.shell("thunder", "Thunder");
 
   const MODELS = [
@@ -18,14 +18,15 @@
     { id: "cape", label: "CAPE", v: "cape", unit: "J/kg", zero: true, sub: "Convective available potential energy. Above about 1000 J/kg is enough for robust storms if something sets them off." },
     { id: "li", label: "Lifted index", v: "lifted_index", unit: "°C", dec: 0, sub: "Negative means unstable. −3 to −6 is moderately unstable, below −6 strongly unstable." },
     { id: "cin", label: "CIN", v: "convective_inhibition", unit: "J/kg", zero: true, sub: "The cap. Larger values hold storms back until it erodes or is broken." },
-    { id: "shear", label: "Deep-layer shear", v: "shear", unit: "kt", zero: true, sub: "Vector wind difference, 10 m to 500 hPa, as a stand-in for 0–6 km shear. About 30 kt or more favors organized storms." },
+    { id: "shear", label: "Deep-layer shear", v: "shear", unit: "kt", zero: true, sub: "Vector wind difference, 10 m to 500 hPa, as a stand-in for 0–6 km shear. About 30 kt or more favors organized storms. SEVERE has the full profile." },
     { id: "pop", label: "Precip chance", v: "precipitation_probability", unit: "%", min: 0, max: 100, sub: "Model precipitation probability, where the model provides it." },
     { id: "ltg", label: "Lightning potential", v: "lightning_potential", unit: "J/kg", zero: true, sub: "ICON's lightning potential index. Only ICON carries it, so other models show nothing here." },
   ];
+  const CODE = (c) => (c == null ? "—" : c >= 95 ? "THUNDER" : c >= 71 && c <= 86 && !(c >= 80 && c <= 82) ? "SNOW" : c >= 51 ? "RAIN" : c === 45 || c === 48 ? "FOG" : "DRY");
 
-  let data = null, chart = null, tab = O.store.get("ops_thunder_tab", "cape");
+  let data = null, chart = null, sel = null, fresh = false, prevSnap = null, tab = O.store.get("ops_thunder_tab", "cape");
   const picker = O.modelPicker($("models"), "ops_thunder_models", MODELS, render);
-  $("resetW").addEventListener("click", () => picker.reset());
+  const showLines = O.linesToggle($("linesBtn"), "ops_thunder_lines", () => renderChart());
   O.locationCard($("locCard"), () => run());
   $("runBtn").addEventListener("click", () => run());
   $("days").value = String(O.store.get("ops_thunder_days", 3));
@@ -33,7 +34,7 @@
   TABS.forEach((t) => {
     const b = document.createElement("button");
     b.className = "tab"; b.type = "button"; b.setAttribute("role", "tab"); b.textContent = t.label; b.setAttribute("aria-selected", t.id === tab);
-    b.addEventListener("click", () => { tab = t.id; O.store.set("ops_thunder_tab", tab); document.querySelectorAll(".tab").forEach((x) => x.setAttribute("aria-selected", x === b)); renderChart(); });
+    b.addEventListener("click", () => { tab = t.id; O.store.set("ops_thunder_tab", tab); document.querySelectorAll("#tabs .tab").forEach((x) => x.setAttribute("aria-selected", x === b)); renderChart(); });
     $("tabs").appendChild(b);
   });
   window.addEventListener("ops:theme", () => { picker.redraw(); render(); });
@@ -41,19 +42,8 @@
   /* 10 m to 500 hPa vector difference, mph in, knots out. Directions are "from". */
   function shear(s1, d1, s2, d2) {
     if ([s1, d1, s2, d2].some((x) => x == null)) return null;
-    const r = Math.PI / 180, u = (s, d) => -s * Math.sin(d * r), v = (s, d) => -s * Math.cos(d * r);
-    return Math.hypot(u(s2, d2) - u(s1, d1), v(s2, d2) - v(s1, d1)) * 0.868976;
-  }
-  const isThunder = (c) => c != null && c >= 95 && c <= 99;
-
-  /* The tier rule. frac = share of model weight showing a thunder weather code (null if no codes). */
-  function tierOf(frac, cape, pop) {
-    if (frac == null && cape == null) return "nodata";
-    const f = frac || 0, c = cape == null ? 0 : cape, p = pop == null ? 0 : pop;
-    if (f >= 0.5 && (cape == null || c >= 250)) return "action";
-    if (f >= 0.25 || (c >= 1000 && p >= 40)) return "prepare";
-    if (f > 0 || (c >= 250 && p >= 20)) return "monitor";
-    return "normal";
+    const a = C.severe.uv(s1, d1), b = C.severe.uv(s2, d2);
+    return Math.hypot(b.u - a.u, b.v - a.v) * 0.868976;
   }
 
   async function run() {
@@ -63,12 +53,13 @@
     const res = await Promise.allSettled(MODELS.map((m) => O.fetchModel("https://api.open-meteo.com/v1/forecast", params, m.id,
       m.id === "icon_seamless" ? HOURLY : HOURLY.filter((v) => v !== "lightning_potential"))));
     $("runBtn").disabled = false;
-    let master = null; const ok = [], empty = [], failed = [];
+    let master = null; const ok = [], empty = [], failed = [], partial = [];
     res.forEach((r, i) => {
       const m = MODELS[i];
       if (r.status !== "fulfilled") { failed.push(m.name); picker.setStatus(m.id, "none"); return; }
       const h = O.pick(r.value.hourly, HOURLY);
       if (!O.hasData(h.cape) && !O.hasData(h.weather_code)) { empty.push(m.name); picker.setStatus(m.id, "none"); return; }
+      if (!O.hasData(h.weather_code) || !O.hasData(h.cape)) partial.push(`${m.name}: no ${O.hasData(h.cape) ? "weather codes" : "CAPE"}`);
       picker.setStatus(m.id, "ok");
       if (!master || r.value.hourly.time.length > master.hourly.time.length) master = r.value;
       ok.push({ m, j: r.value, h });
@@ -86,9 +77,10 @@
       a.shear = times.map((_, i) => shear(a.wind_speed_10m[i], a.wind_direction_10m[i], a.wind_speed_500hPa[i], a.wind_direction_500hPa[i]));
       data.models[m.id] = a;
     });
-    O.setChip("LIVE · OPEN-METEO", "live");
-    $("runMsg").textContent = `Updated ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · ${ok.length} models` +
-      (empty.length ? ` · no coverage here: ${empty.join(", ")}` : "") + (failed.length ? ` · failed: ${failed.join(", ")}` : "") + ` · times in ${O.tzShort(data.tz)}`;
+    O.dataStatus([...failed.map((n) => `${n}: request failed`), ...empty.map((n) => `${n}: no coverage here`), ...partial]);
+    $("runMsg").textContent = `${ok.length} models loaded` + (empty.length ? ` · no coverage here: ${empty.join(", ")}` : "") +
+      (failed.length ? ` · failed: ${failed.join(", ")}` : "") + (partial.length ? ` · ${partial.join(", ")}` : "") + ` · times in ${O.tzShort(data.tz)}`;
+    sel = null; fresh = true;
     render();
   }
 
@@ -99,65 +91,91 @@
     const n = data.times.length, wm = active("weather_code");
     const cape = blend("cape"), pop = blend("precipitation_probability"), li = blend("lifted_index"), sh = blend("shear");
     const frac = [];
-    for (let i = 0; i < n; i++) {
-      let w = 0, t = 0;
-      wm.forEach((m) => { const c = data.models[m.id].weather_code[i]; if (c == null) return; w += picker.w(m.id); if (isThunder(c)) t += picker.w(m.id); });
-      frac.push(w ? t / w : null);
-    }
-    const tiers = frac.map((f, i) => tierOf(f, cape.mean[i], pop.mean[i]));
+    for (let i = 0; i < n; i++) frac.push(C.stats.weightedShare(wm.map((m) => data.models[m.id].weather_code[i]), wm.map((m) => picker.w(m.id)), C.thunder.isThunderCode));
+    const tiers = frac.map((f, i) => C.thunder.tier(f, cape.mean[i], pop.mean[i]));
     const perModel = MODELS.filter((m) => data.models[m.id] && picker.on(m.id)).map((m) => {
       const a = data.models[m.id];
-      return { m, tiers: a.cape.map((c, i) => tierOf(a.weather_code[i] == null ? null : isThunder(a.weather_code[i]) ? 1 : 0, c, a.precipitation_probability[i])) };
+      return { m, tiers: a.cape.map((c, i) => C.thunder.tier(a.weather_code[i] == null ? null : C.thunder.isThunderCode(a.weather_code[i]) ? 1 : 0, c, a.precipitation_probability[i])) };
     });
     return { frac, tiers, perModel, cape, pop, li, sh };
   }
+  const f = (x, d = 0, u = "") => (x == null ? "—" : x.toFixed(d) + u);
 
   function render() {
     if (!data) {
       $("strip").innerHTML = '<p class="msg">No forecast loaded yet.</p>';
-      $("daily").innerHTML = "";
+      $("daily").innerHTML = ""; $("detail").innerHTML = "";
       if (chart) { chart.destroy(); chart = null; }
       return;
     }
-    const C = compute(); data.C = C;
-    const rows = [{ name: "BLEND", color: O.css("--text"), tiers: C.tiers, bold: true }]
-      .concat(C.perModel.map((p) => ({ name: p.m.name, color: O.modelColor(MODELS.indexOf(p.m)), tiers: p.tiers })));
-    $("strip").innerHTML = O.tierStrip(data.times, rows, 1);
-
-    /* headline: worst tier over the next 24 hours */
+    const Cx = compute(); data.C = Cx;
     const now = Math.max(0, O.nowIndex(data.times, data.tz)), end = Math.min(data.times.length, now + 24);
-    const next = C.tiers.slice(now, end), worst = O.maxTier(next);
-    const firstIdx = next.findIndex((t) => t === worst);
-    const capeWin = C.cape.max.slice(now, end).filter((x) => x != null);
-    const peak = capeWin.length ? Math.max(...capeWin) : null;
-    const shWin = C.sh.mean.slice(now, end).filter((x) => x != null);
+    const next = Cx.tiers.slice(now, end), worst = O.maxTier(next), firstIdx = next.findIndex((t) => t === worst);
+    if (sel == null) sel = O.TIER[worst].rank >= 1 ? now + firstIdx : now;
+    drawStrip(Cx);
+
+    const capeWin = Cx.cape.max.slice(now, end).filter((x) => x != null), peak = capeWin.length ? Math.max(...capeWin) : null;
+    const frWin = Cx.frac.slice(now, end).filter((x) => x != null), frMax = frWin.length ? Math.max(...frWin) : null;
     O.headline({
-      tier: worst,
-      word: worst === "nodata" ? "NO DATA" : O.TIER[worst].word,
+      tier: worst, note: "Model thunder signal · next 24 h",
       stats: [
-        { num: worst === "nodata" || worst === "normal" ? "—" : O.fmtWhen(data.times[now + firstIdx]), unit: worst === "normal" ? "no signal next 24 h" : "first, next 24 h" },
+        { num: O.TIER[worst].rank >= 1 ? O.fmtWhen(data.times[now + firstIdx]) : "—", unit: O.TIER[worst].rank >= 1 ? "first" : "no signal" },
+        { num: frMax == null ? "—" : Math.round(frMax * 100) + "%", unit: "max model thunder share" },
         { num: peak == null ? "—" : Math.round(peak).toLocaleString(), unit: "J/kg peak CAPE (any model)" },
-        { num: shWin.length ? Math.round(Math.max(...shWin)) + " kt" : "—", unit: "max deep-layer shear" },
       ],
     });
 
     /* daily table */
-    const dayIdx = [];
-    data.times.forEach((t, i) => { const k = O.dayOf(t); if (!dayIdx.length || dayIdx[dayIdx.length - 1].k !== k) dayIdx.push({ k, idx: [] }); dayIdx[dayIdx.length - 1].idx.push(i); });
     const mx = (arr, idx) => { const v = idx.map((i) => arr[i]).filter((x) => x != null); return v.length ? Math.max(...v) : null; };
     const mn = (arr, idx) => { const v = idx.map((i) => arr[i]).filter((x) => x != null); return v.length ? Math.min(...v) : null; };
-    const f = (x, d = 0, u = "") => (x == null ? "—" : x.toFixed(d) + u);
-    $("daily").innerHTML = `<thead><tr><th>Day</th><th>Signal</th><th>Prepare+ hours</th><th>Window</th><th>Blend CAPE max</th><th>Any-model CAPE max</th><th>Min LI</th><th>Max shear</th><th>Thunder share max</th></tr></thead><tbody>` +
-      dayIdx.filter((d) => d.idx.length >= 6).map((d) => {
-        const t = O.maxTier(d.idx.map((i) => C.tiers[i]));
-        const hot = d.idx.filter((i) => O.TIER[C.tiers[i]].rank >= 2);
-        const win = hot.length ? `${O.fmtHour(O.hourOf(data.times[hot[0]]))}–${O.fmtHour((O.hourOf(data.times[hot[hot.length - 1]]) + 1) % 24)}` : "—";
-        const fr = mx(C.frac, d.idx);
-        return `<tr><td class="display" style="font-size:12px">${O.fmtDay(d.k)}</td><td><span class="badge" style="--b:${O.TIER[t].color}">${O.TIER[t].word}</span></td>` +
-          `<td class="num">${hot.length}</td><td class="num">${win}</td><td class="num">${f(mx(C.cape.mean, d.idx), 0)}</td><td class="num">${f(mx(C.cape.max, d.idx), 0)}</td>` +
-          `<td class="num">${f(mn(C.li.mean, d.idx), 1)}</td><td class="num">${f(mx(C.sh.mean, d.idx), 0, " kt")}</td><td class="num">${fr == null ? "—" : Math.round(fr * 100) + "%"}</td></tr>`;
+    const dayRows = O.dayGroups(data.times).filter((d) => d.idx.length >= 6).map((d) => {
+      const t = O.maxTier(d.idx.map((i) => Cx.tiers[i]));
+      const hot = d.idx.filter((i) => O.TIER[Cx.tiers[i]].rank >= 2);
+      return { d, t, hot, fr: mx(Cx.frac, d.idx), capeB: mx(Cx.cape.mean, d.idx), capeX: mx(Cx.cape.max, d.idx), li: mn(Cx.li.mean, d.idx), sh: mx(Cx.sh.mean, d.idx) };
+    });
+    $("daily").innerHTML = `<thead><tr><th>Day</th><th>Signal</th><th>Elevated+ hours</th><th>Window</th><th>Blend CAPE max</th><th>Any-model CAPE max</th><th>Min LI</th><th>Max shear</th><th>Thunder share max</th></tr></thead><tbody>` +
+      dayRows.map((r) => {
+        const win = r.hot.length ? `${O.fmtHour(O.hourOf(data.times[r.hot[0]]))}–${O.fmtHour((O.hourOf(data.times[r.hot[r.hot.length - 1]]) + 1) % 24)}` : "—";
+        return `<tr><td class="display" style="font-size:12px">${O.fmtDay(r.d.k)}</td><td>${O.badge(r.t)}</td>` +
+          `<td class="num">${r.hot.length}</td><td class="num">${win}</td><td class="num">${f(r.capeB, 0)}</td><td class="num">${f(r.capeX, 0)}</td>` +
+          `<td class="num">${f(r.li, 1)}</td><td class="num">${f(r.sh, 0, " kt")}</td><td class="num">${r.fr == null ? "—" : Math.round(r.fr * 100) + "%"}</td></tr>`;
       }).join("") + "</tbody>";
+
+    if (fresh) {
+      const snap = {}; dayRows.forEach((r) => (snap[r.d.k] = { label: O.fmtDay(r.d.k), t: r.t, fr: r.fr == null ? null : r.fr * 100, cape: r.capeX }));
+      prevSnap = O.trackChanges("thunder", snap); data.snap = snap; fresh = false;
+    }
+    if (data.snap) O.renderChanges($("changes"), prevSnap, data.snap, [
+      { k: "t", label: "signal", tier: true },
+      { k: "fr", label: "thunder share", min: 20, fmt: (v) => `${Math.round(v)}%` },
+      { k: "cape", label: "peak CAPE", min: 500, fmt: (v) => `${Math.round(v)}` },
+    ]);
     renderChart();
+  }
+
+  function drawStrip(Cx) {
+    const rows = [{ name: "BLEND", color: O.css("--text"), tiers: Cx.tiers, bold: true }]
+      .concat(Cx.perModel.map((p) => ({ name: p.m.name, color: O.modelColor(MODELS.indexOf(p.m)), tiers: p.tiers })));
+    O.tierStrip($("strip"), data.times, rows, { nowIdx: O.nowIndex(data.times, data.tz), sel, onPick: (i) => { sel = i; drawStrip(data.C); renderChart(); $("strip").querySelector(".strip-scroll").focus(); } });
+    drawDetail(Cx);
+  }
+
+  function drawDetail(Cx) {
+    const i = sel, t = Cx.tiers[i];
+    const ms = MODELS.filter((m) => data.models[m.id] && picker.on(m.id));
+    $("detail").innerHTML = `<div class="detail">
+      <div class="detail-head"><span class="when">${O.fmtDay(O.dayOf(data.times[i]))} · ${O.fmtHour(O.hourOf(data.times[i]))} ${O.tzShort(data.tz)}</span>${O.badge(t)}</div>
+      <div class="tiles">
+        <div class="tile"><span class="k">Thunder share</span><span class="v">${Cx.frac[i] == null ? "—" : Math.round(Cx.frac[i] * 100) + "%"}</span><span class="s">of model weight</span></div>
+        <div class="tile"><span class="k">CAPE blend</span><span class="v">${f(Cx.cape.mean[i], 0)}</span><span class="s">range ${f(Cx.cape.min[i], 0)}–${f(Cx.cape.max[i], 0)} J/kg</span></div>
+        <div class="tile"><span class="k">Precip chance</span><span class="v">${f(Cx.pop.mean[i], 0, "%")}</span><span class="s">blend</span></div>
+        <div class="tile"><span class="k">Lifted index</span><span class="v">${f(Cx.li.mean[i], 1)}</span><span class="s">°C, blend</span></div>
+        <div class="tile"><span class="k">Deep shear</span><span class="v">${f(Cx.sh.mean[i], 0, " kt")}</span><span class="s">10 m–500 hPa</span></div>
+      </div>
+      <div class="tablewrap"><table><thead><tr><th>Model</th><th>Weather</th><th>CAPE</th><th>Precip chance</th><th>Signal</th></tr></thead><tbody>${ms.map((m) => {
+        const a = data.models[m.id], c = a.weather_code[i], p = Cx.perModel.find((x) => x.m === m);
+        return `<tr><td><span class="sw" style="background:${O.modelColor(MODELS.indexOf(m))};margin-right:6px"></span>${O.esc(m.name)}</td><td class="num"${c >= 95 ? ' style="color:var(--prepare);font-weight:800"' : ""}>${CODE(c)}</td><td class="num">${f(a.cape[i], 0)}</td><td class="num">${f(a.precipitation_probability[i], 0, "%")}</td><td>${O.badge(p.tiers[i])}</td></tr>`;
+      }).join("")}</tbody></table></div></div>`;
   }
 
   function renderChart() {
@@ -170,14 +188,14 @@
       ds.push({ label: "min", data: B.min, borderWidth: 0, pointRadius: 0, fill: false, spanGaps: true, hideTip: true, order: 5 });
       ds.push({ label: "spread", data: B.max, borderWidth: 0, pointRadius: 0, fill: "-1", backgroundColor: O.css("--band"), spanGaps: true, hideTip: true, order: 5 });
     }
-    ms.forEach((m) => ds.push({ label: m.name, data: data.models[m.id][t.v], borderColor: O.modelColor(MODELS.indexOf(m)), borderWidth: 1.25, pointRadius: 0, tension: 0.25, spanGaps: true, order: 3 }));
+    if (showLines() || ms.length === 1) ms.forEach((m) => ds.push(O.modelLine(m.name, data.models[m.id][t.v], O.modelColor(MODELS.indexOf(m)))));
     if (ms.length > 1) ds.push({ label: "BLEND", data: B.mean, borderColor: fg, borderWidth: 3.25, pointRadius: 0, tension: 0.25, spanGaps: true, order: 1 });
-    const base = O.chartBase({ labels, hours, nowIdx: O.nowIndex(data.times, data.tz), unit: t.unit, dec: t.dec || 0, yTitle: t.unit, beginAtZero: t.zero, yMin: t.min, yMax: t.max });
+    const base = O.chartBase({ labels, hours, nowIdx: O.nowIndex(data.times, data.tz), selIdx: sel, unit: t.unit, dec: t.dec || 0, yTitle: t.unit, beginAtZero: t.zero, yMin: t.min, yMax: t.max });
     if (chart) chart.destroy();
     chart = new Chart($("chart"), { type: "line", data: { labels, datasets: ds }, options: base.options, plugins: base.plugins });
-    $("legend").innerHTML = ms.map((m) => `<span><i class="sw" style="background:${O.modelColor(MODELS.indexOf(m))}"></i>${O.esc(m.name)}</span>`).join("") +
-      (ms.length > 1 ? `<span><i class="sw" style="background:${fg};height:4px"></i>Weighted blend</span><span><i class="sw" style="background:var(--band);height:10px"></i>Model spread</span>` : "") +
-      (!ms.length ? "<span>None of the checked models carry this field here.</span>" : "");
+    $("legend").innerHTML = (showLines() ? ms.map((m) => `<span><i class="sw" style="background:${O.modelColor(MODELS.indexOf(m))}"></i>${O.esc(m.name)}</span>`).join("") : "") +
+      (ms.length > 1 ? `<span><i class="sw" style="background:${fg};height:4px"></i>Weighted blend</span><span><i class="sw" style="background:var(--band);height:10px"></i>Model range</span>` : "") +
+      (!ms.length ? "<span>None of the checked models carry this field here.</span>" : "") + `<span>Dotted line: selected hour</span>`;
   }
 
   render();

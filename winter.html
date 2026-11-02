@@ -23,24 +23,11 @@
       </div>
       <p class="msg" id="runMsg" style="margin-top:8px"></p>
     </section>
-    <section class="card tight">
-      <div class="section-title">Ensembles &amp; weights</div>
-      <p class="msg" style="margin:-4px 0 8px">Each ensemble's members share its weight equally.</p>
-      <div class="models" id="models"></div>
-      <div class="row" style="margin-top:10px"><button class="btn ghost sm" id="resetW" type="button">RESET WEIGHTS</button></div>
-    </section>
-    <section class="card tight">
-      <div class="section-title">How tiers are set</div>
-      <div class="stack" style="font-size:12px;color:var(--muted)">
-        <div><span class="badge" style="--b:var(--action)">ACT</span> 50%+ chance of 4" or more.</div>
-        <div><span class="badge" style="--b:var(--prepare)">PREPARE</span> 40%+ chance of 1", or 20%+ chance of 4".</div>
-        <div><span class="badge" style="--b:var(--monitor)">MONITOR</span> 10%+ chance of 1", or 30%+ chance of any measurable snow.</div>
-        <div><span class="badge" style="--b:var(--normal)">NORMAL</span> None of the above.</div>
-      </div>
-    </section>
   </aside>
 
   <div class="main">
+    <section class="card" id="changes" hidden></section>
+
     <section class="card">
       <div class="section-title">Snow odds for the window</div>
       <p class="section-sub" id="oddsSub">Share of ensemble members reaching each total.</p>
@@ -56,15 +43,35 @@
     </section>
 
     <section class="card">
-      <div class="section-title">Day by day</div>
+      <div class="section-title" id="dailyTitle">Day by day, within the window</div>
       <div class="tablewrap"><table id="daily"></table></div>
     </section>
-
-    <div class="note"><b>About these numbers.</b> Snowfall is each member's own model snow, which Open-Meteo converts from water at about 7:1. Cold, fluffy events can run higher and warm, wet ones lower, and it doesn't account for melting on warm ground. Treat it as guidance for your own call.</div>
   </div>
+
+  <aside class="side-extra">
+    <section class="card tight" id="models"></section>
+    <details class="card tight fold">
+      <summary><span class="section-title" style="margin:0">How signals are set</span></summary>
+      <div class="stack" style="font-size:12.5px;color:var(--muted);margin-top:10px">
+        <div><span class="badge" style="--b:var(--action)">HIGH</span> 50%+ chance of 4" or more.</div>
+        <div><span class="badge" style="--b:var(--prepare)">ELEVATED</span> 40%+ chance of 1", or 20%+ chance of 4".</div>
+        <div><span class="badge" style="--b:var(--monitor)">MARGINAL</span> 10%+ chance of 1", or 30%+ chance of any measurable snow.</div>
+        <div><span class="badge" style="--b:var(--normal)">LOW</span> None of the above.</div>
+        <div>Chances are shares of ensemble members, weighted by ensemble. They describe the model guidance, not a calibrated probability.</div>
+      </div>
+    </details>
+    <details class="card tight fold">
+      <summary><span class="section-title" style="margin:0">About these numbers</span></summary>
+      <div class="stack" style="font-size:12.5px;color:var(--muted);margin-top:10px">
+        <div>Snowfall is each member's own model snow, which Open-Meteo converts from water at about 7:1. Cold, fluffy events can run higher and warm, wet ones lower, and it doesn't account for melting on warm ground.</div>
+        <div>A member only counts toward a total if it has at least 90% of the hours in that window. Members with gaps are left out rather than counted as zero, and the plume line stops where a member's data stops.</div>
+      </div>
+    </details>
+  </aside>
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="assets/ops-core.js"></script>
 <script src="assets/ops.js"></script>
 <script src="assets/winter.js"></script>
 </body>

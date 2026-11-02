@@ -1,7 +1,8 @@
-/* Forecast Ops — shared shell, location, data and math helpers.
-   Plain browser JavaScript, no build step. Every page loads this file first. */
+/* Forecast Ops — shared page shell: header, nav, location, alerts, fetching and UI helpers.
+   Forecast math lives in ops-core.js (window.OpsCore), which every page loads first. */
 (function () {
   "use strict";
+  const Core = window.OpsCore;
 
   /* ======================= EDIT ME ======================= */
   const BRAND = {
@@ -9,7 +10,7 @@
     owner: "WxMan33",              // shown in the footer
     contact: "",                   // optional, e.g. "mailto:you@example.com"
   };
-  /* Quick-pick locations. Add or remove freely: [name, lat, lon]. */
+  /* Built-in quick picks: [name, lat, lon]. Locations you save with ★ are added on top of these. */
   const PRESETS = [
     ["TQL Stadium, Cincinnati, OH", 39.11113, -84.52229],
     ["Dayton, OH", 39.7589, -84.1916],
@@ -38,8 +39,11 @@
     snow: '<path d="M12 2v20M4.9 4.9l14.2 14.2M2 12h20M4.9 19.1 19.1 4.9"/><path d="m9 4 3 2 3-2M9 20l3-2 3 2M4 9l2 3-2 3M20 9l-2 3 2 3"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
-    refresh: '<path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5M3 21v-5h5"/>',
     crosshair: '<circle cx="12" cy="12" r="9"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',
+    star: '<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.2-6.2 3.2 1.2-6.8-5-4.9 6.9-1Z"/>',
+    link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
+    print: '<path d="M6 9V2h12v7"/><rect x="6" y="14" width="12" height="8"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>',
+    alert: '<path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4M12 17h.01"/>',
   };
   const icon = (name, size = 15) =>
     `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[name]}</svg>`;
@@ -54,15 +58,12 @@
   const theme = () => document.documentElement.getAttribute("data-theme") || "dark";
   document.documentElement.setAttribute("data-theme", store.get("ops_theme", "dark"));
 
-  /* ---------- status tiers (fixed colors, same as the app) ---------- */
-  const TIER = {
-    nodata: { rank: -1, word: "NO DATA", color: "var(--nodata)" },
-    normal: { rank: 0, word: "NORMAL", color: "var(--normal)" },
-    monitor: { rank: 1, word: "MONITOR", color: "var(--monitor)" },
-    prepare: { rank: 2, word: "PREPARE", color: "var(--prepare)" },
-    action: { rank: 3, word: "ACT", color: "var(--action)" },
-  };
-  const maxTier = (list) => list.reduce((a, b) => (TIER[b].rank > TIER[a].rank ? b : a), "nodata");
+  /* ---------- signal tiers: fixed Heads-Up colors, guidance wording ---------- */
+  const COLOR = { nodata: "var(--nodata)", limited: "var(--nodata)", normal: "var(--normal)", monitor: "var(--monitor)", prepare: "var(--prepare)", action: "var(--action)" };
+  const TIER = {};
+  Object.keys(Core.TIERS).forEach((k) => (TIER[k] = { ...Core.TIERS[k], color: COLOR[k] }));
+  const maxTier = Core.maxTier;
+  const badge = (t, text) => `<span class="badge${t === "limited" ? " dashed" : ""}" style="--b:${TIER[t].color}">${esc(text || TIER[t].word)}</span>`;
 
   /* ---------- shell ---------- */
   const PAGES = [
@@ -79,63 +80,98 @@
     header.className = "statusbar";
     header.innerHTML = `
       <div class="site-id">${icon("pin", 18)}
-        <div style="min-width:0"><div class="kicker">Forecast point</div><div class="site-name" id="siteName">—</div></div>
+        <div style="min-width:0"><div class="kicker">Forecast point</div><div class="site-name" id="siteName">—</div><div class="site-sub" id="siteSub"></div></div>
       </div>
       <div class="vsep"></div>
       <div class="headline" id="headline"><span class="hl-word" style="color:var(--muted)">${esc(title.toUpperCase())}</span></div>
       <div class="utility">
         <span class="chip" id="dataChip">IDLE</span>
-        <button class="chip" id="themeBtn" type="button" style="cursor:pointer" aria-label="Toggle dark/light mode"></button>
+        <button class="chip noprint" id="printBtn" type="button" style="cursor:pointer" aria-label="Print or save as PDF">${icon("print", 13)}</button>
+        <button class="chip noprint" id="themeBtn" type="button" style="cursor:pointer" aria-label="Toggle dark/light mode"></button>
       </div>`;
     const nav = document.createElement("nav");
     nav.className = "navbar";
     nav.setAttribute("aria-label", "Tools");
     nav.innerHTML = PAGES.map((p) =>
       `<a href="${p.href}"${p.id === pageId ? ' aria-current="page"' : ""}>${icon(p.icon)}${p.label}</a>`).join("");
-    document.body.prepend(header, nav);
+    const alerts = document.createElement("div");
+    alerts.id = "alerts";
+    alerts.className = "alerts";
+    alerts.hidden = true;
+    document.body.prepend(header, nav, alerts);
 
     const foot = document.createElement("footer");
     foot.className = "foot";
     foot.innerHTML = `${esc(BRAND.name)} · built by ${BRAND.contact ? `<a href="${esc(BRAND.contact)}">${esc(BRAND.owner)}</a>` : esc(BRAND.owner)} ·
       <a href="https://open-meteo.com/" target="_blank" rel="noopener">Weather data by Open-Meteo.com</a> (CC BY 4.0) ·
+      alerts from <a href="https://www.weather.gov/" target="_blank" rel="noopener">NWS</a> ·
       Model guidance only. Not an official forecast or warning.`;
     document.body.append(foot);
 
     $("themeBtn").addEventListener("click", () => { const t = theme() === "dark" ? "light" : "dark"; store.set("ops_theme", t); applyTheme(t); });
+    $("printBtn").addEventListener("click", () => window.print());
     applyTheme(theme());
     showLocation();
+    loadAlerts();
+    locListeners.push(() => loadAlerts());
   }
 
-  function setChip(text, kind) {
+  /* Data chip: what loaded, and whether anything is missing. */
+  function setChip(text, kind, title) {
     const c = $("dataChip"); if (!c) return;
     c.className = "chip" + (kind ? " " + kind : "");
     c.textContent = text;
+    if (title) c.title = title; else c.removeAttribute("title");
+  }
+  /* Standard chip after a fetch: "GUIDANCE · 2:15P" or "PARTIAL · 2:15P" with the reasons on hover. */
+  function dataStatus(problems) {
+    const t = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).replace(" ", "").toUpperCase();
+    if (problems.length) setChip(`PARTIAL DATA · ${t}`, "warn", problems.join("\n"));
+    else setChip(`GUIDANCE LOADED · ${t}`, "live", "All requested models returned data.");
   }
 
-  /* Headline in the status bar: a tier word with its color, plus up to two big stats. */
-  function headline({ tier, word, stats = [] }) {
+  /* Headline in the status bar: a tier word with its color, an optional note, plus big stats. */
+  function headline({ tier, word, note, stats = [] }) {
     const h = $("headline"); if (!h) return;
     const t = TIER[tier] || null;
-    h.className = "headline" + (t ? " tier" : "");
+    h.className = "headline" + (t ? " tier" : "") + (tier === "limited" ? " dashed" : "");
     h.style.setProperty("--tier", t ? t.color : "");
     h.innerHTML =
-      `<div class="hl-label">${t ? '<span class="dot"></span>' : ""}<span class="hl-word">${esc(word || (t ? t.word : ""))}</span></div>` +
+      `<div class="hl-label">${t ? '<span class="dot"></span>' : ""}<div><span class="hl-word">${esc(word || (t ? t.word : ""))}</span>${note ? `<div class="hl-note">${esc(note)}</div>` : ""}</div></div>` +
       stats.map((s) => `<div class="vsep" style="height:30px"></div><div class="hl-stat"${s.title ? ` title="${esc(s.title)}"` : ""}><span class="hl-num"${s.color ? ` style="color:${s.color}"` : ""}>${esc(s.num)}</span><span class="hl-unit">${esc(s.unit || "")}</span></div>`).join("");
   }
 
-  /* ---------- location ---------- */
+  /* ---------- location (URL first, so a shared link opens the same point) ---------- */
   const DEFAULT_LOC = { name: PRESETS[0][0], lat: PRESETS[0][1], lon: PRESETS[0][2] };
-  let loc = store.get("ops_loc", DEFAULT_LOC);
+  function fromUrl() {
+    try {
+      const q = new URLSearchParams(location.search), lat = parseFloat(q.get("lat")), lon = parseFloat(q.get("lon"));
+      if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) return { name: q.get("name") || `${lat.toFixed(3)}, ${lon.toFixed(3)}`, lat, lon };
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+  let loc = fromUrl() || store.get("ops_loc", DEFAULT_LOC);
+  store.set("ops_loc", loc);
   const locListeners = [];
-  function showLocation() { const n = $("siteName"); if (n) { n.textContent = loc.name.toUpperCase(); n.title = `${loc.name} (${loc.lat.toFixed(3)}, ${loc.lon.toFixed(3)})`; } }
+  const shareUrl = (page) => { const u = new URL(page || location.href, location.href); u.search = new URLSearchParams({ lat: loc.lat, lon: loc.lon, name: loc.name }).toString(); return u.toString(); };
+  function showLocation() {
+    const n = $("siteName"); if (!n) return;
+    const parts = loc.name.split(", "), head = parts[0], rest = parts.slice(1).join(", ");
+    n.textContent = head.toUpperCase();
+    $("siteSub").textContent = rest || `${loc.lat.toFixed(3)}, ${loc.lon.toFixed(3)}`;
+    n.parentElement.title = `${loc.name} (${loc.lat.toFixed(4)}, ${loc.lon.toFixed(4)})`;
+    try { history.replaceState(null, "", shareUrl()); } catch (e) { /* file:// may refuse */ }
+  }
   function setLocation(next) {
     loc = { name: next.name, lat: +(+next.lat).toFixed(4), lon: +(+next.lon).toFixed(4) };
     store.set("ops_loc", loc);
     showLocation();
     locListeners.forEach((f) => f(loc));
   }
+  const saved = () => store.get("ops_saved", []);
+  const isSaved = () => saved().some((s) => s.lat === loc.lat && s.lon === loc.lon);
 
-  /* Location card for the left column. onChange fires whenever the point changes. */
+  /* Location card. onChange fires whenever the point changes. */
   function locationCard(container, onChange) {
     if (onChange) locListeners.push(onChange);
     container.innerHTML = `
@@ -148,24 +184,58 @@
         </div>
         <div>
           <label class="field-label" for="locPreset">Quick pick</label>
-          <select class="input" id="locPreset"><option value="">Choose…</option>${PRESETS.map((p, i) => `<option value="${i}">${esc(p[0])}</option>`).join("")}</select>
+          <select class="input" id="locPreset"></select>
         </div>
         <div class="row">
-          <div><label class="field-label" for="locLat">Lat</label><input class="input mono" id="locLat" type="number" step="0.0001"></div>
-          <div><label class="field-label" for="locLon">Lon</label><input class="input mono" id="locLon" type="number" step="0.0001"></div>
+          <button class="btn ghost sm icon" id="locSave" type="button"></button>
+          <button class="btn ghost sm icon" id="locShare" type="button">${icon("link", 13)} COPY LINK</button>
         </div>
-        <div class="row">
-          <button class="btn ghost sm icon" id="locGo" type="button">${icon("crosshair", 13)} USE LAT/LON</button>
-          <button class="btn ghost sm icon" id="locMe" type="button">${icon("pin", 13)} MY LOCATION</button>
-        </div>
+        <details class="fold-inline">
+          <summary>Coordinates &amp; GPS</summary>
+          <div class="stack" style="margin-top:8px">
+            <div class="row">
+              <div><label class="field-label" for="locLat">Lat</label><input class="input mono" id="locLat" type="number" step="0.0001"></div>
+              <div><label class="field-label" for="locLon">Lon</label><input class="input mono" id="locLon" type="number" step="0.0001"></div>
+            </div>
+            <div class="row">
+              <button class="btn ghost sm icon" id="locGo" type="button">${icon("crosshair", 13)} USE LAT/LON</button>
+              <button class="btn ghost sm icon" id="locMe" type="button">${icon("pin", 13)} MY LOCATION</button>
+            </div>
+          </div>
+        </details>
         <p class="msg" id="locMsg"></p>
       </div>`;
-    const fill = () => { $("locLat").value = loc.lat; $("locLon").value = loc.lon; };
+    const fill = () => {
+      $("locLat").value = loc.lat; $("locLon").value = loc.lon;
+      const sv = saved();
+      $("locPreset").innerHTML = `<option value="">Choose…</option>` +
+        (sv.length ? `<optgroup label="Saved">${sv.map((p, i) => `<option value="s${i}">${esc(p.name)}</option>`).join("")}</optgroup>` : "") +
+        `<optgroup label="Built in">${PRESETS.map((p, i) => `<option value="p${i}">${esc(p[0])}</option>`).join("")}</optgroup>`;
+      $("locSave").innerHTML = isSaved() ? `${icon("star", 13)} SAVED · REMOVE` : `${icon("star", 13)} SAVE`;
+    };
     fill();
     locListeners.push(fill);
     $("locPreset").addEventListener("change", (e) => {
-      const p = PRESETS[e.target.value]; if (!p) return;
-      setLocation({ name: p[0], lat: p[1], lon: p[2] }); e.target.value = "";
+      const v = e.target.value; if (!v) return;
+      const p = v[0] === "s" ? saved()[+v.slice(1)] : (() => { const x = PRESETS[+v.slice(1)]; return { name: x[0], lat: x[1], lon: x[2] }; })();
+      if (p) setLocation(p);
+    });
+    $("locSave").addEventListener("click", () => {
+      const sv = saved();
+      if (isSaved()) store.set("ops_saved", sv.filter((s) => !(s.lat === loc.lat && s.lon === loc.lon)));
+      else {
+        const name = prompt("Name this location", loc.name);
+        if (name === null) return;
+        sv.unshift({ name: name.trim() || loc.name, lat: loc.lat, lon: loc.lon });
+        store.set("ops_saved", sv.slice(0, 30));
+        if (name.trim() && name.trim() !== loc.name) { setLocation({ ...loc, name: name.trim() }); return; }
+      }
+      fill();
+    });
+    $("locShare").addEventListener("click", async () => {
+      const url = shareUrl();
+      try { await navigator.clipboard.writeText(url); $("locMsg").textContent = "Link copied. It opens this page at this location."; }
+      catch (e) { $("locMsg").innerHTML = `Copy this link: <span class="mono" style="word-break:break-all">${esc(url)}</span>`; }
     });
     $("locGo").addEventListener("click", () => {
       const lat = +$("locLat").value, lon = +$("locLon").value;
@@ -204,6 +274,29 @@
   const STATES = { Alabama: "AL", Alaska: "AK", Arizona: "AZ", Arkansas: "AR", California: "CA", Colorado: "CO", Connecticut: "CT", Delaware: "DE", Florida: "FL", Georgia: "GA", Hawaii: "HI", Idaho: "ID", Illinois: "IL", Indiana: "IN", Iowa: "IA", Kansas: "KS", Kentucky: "KY", Louisiana: "LA", Maine: "ME", Maryland: "MD", Massachusetts: "MA", Michigan: "MI", Minnesota: "MN", Mississippi: "MS", Missouri: "MO", Montana: "MT", Nebraska: "NE", Nevada: "NV", "New Hampshire": "NH", "New Jersey": "NJ", "New Mexico": "NM", "New York": "NY", "North Carolina": "NC", "North Dakota": "ND", Ohio: "OH", Oklahoma: "OK", Oregon: "OR", Pennsylvania: "PA", "Rhode Island": "RI", "South Carolina": "SC", "South Dakota": "SD", Tennessee: "TN", Texas: "TX", Utah: "UT", Vermont: "VT", Virginia: "VA", Washington: "WA", "West Virginia": "WV", Wisconsin: "WI", Wyoming: "WY", "District of Columbia": "DC" };
   const stateAbbr = (s) => STATES[s] || s;
 
+  /* ---------- NWS alerts for the point (US only; quietly absent elsewhere) ---------- */
+  async function loadAlerts() {
+    const box = $("alerts"); if (!box) return;
+    try {
+      const j = await getJSON(`https://api.weather.gov/alerts/active?point=${loc.lat},${loc.lon}`, 5);
+      const f = (j.features || []).map((x) => x.properties).filter(Boolean);
+      if (!f.length) { box.hidden = true; box.innerHTML = ""; return; }
+      const rank = (p) => (/Warning/.test(p.event) ? 3 : /Watch/.test(p.event) ? 2 : /Advisory/.test(p.event) ? 1 : 0);
+      f.sort((a, b) => rank(b) - rank(a));
+      const col = (p) => ["var(--muted)", "var(--monitor)", "var(--prepare)", "var(--action)"][rank(p)];
+      const until = (p) => { const e = p.ends || p.expires; if (!e) return ""; const d = new Date(e); return ` until ${d.toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}`; };
+      box.innerHTML = `<div class="alerts-inner">${icon("alert", 15)}<span class="kicker" style="color:var(--text)">NWS ACTIVE</span>` +
+        f.map((p, i) => `<button type="button" class="alert-pill" data-i="${i}" style="--a:${col(p)}">${esc(p.event)}<span class="msg">${esc(until(p))}</span></button>`).join("") +
+        `</div><div class="alert-detail" id="alertDetail" hidden></div>`;
+      box.hidden = false;
+      box.querySelectorAll(".alert-pill").forEach((b) => b.addEventListener("click", () => {
+        const p = f[b.dataset.i], d = $("alertDetail"), same = d.dataset.i === b.dataset.i && !d.hidden;
+        d.hidden = same; d.dataset.i = b.dataset.i;
+        d.innerHTML = `<b>${esc(p.headline || p.event)}</b><p>${esc((p.description || "").slice(0, 1200))}</p>${p.instruction ? `<p><b>Instructions:</b> ${esc(p.instruction.slice(0, 600))}</p>` : ""}<p class="msg">${esc(p.senderName || "")} · <a href="https://alerts.weather.gov/" target="_blank" rel="noopener">alerts.weather.gov</a></p>`;
+      }));
+    } catch (e) { box.hidden = true; }
+  }
+
   /* ---------- fetching (with a short session cache so tab-hopping is instant) ---------- */
   async function getJSON(url, cacheMin = 15) {
     const key = "ops_c:" + url;
@@ -220,8 +313,8 @@
     return json;
   }
 
-  /* One model, one request. If Open-Meteo rejects a variable for this model, drop it and retry,
-     so one unsupported field never sinks the whole model. */
+  /* One model, one request. If Open-Meteo rejects a variable (or a whole pressure level) for this
+     model, drop it and retry, so one unsupported field never sinks the whole model. */
   async function fetchModel(base, params, model, hourly, daily) {
     let hv = hourly.slice(), dv = (daily || []).slice();
     for (let attempt = 0; attempt < 8; attempt++) {
@@ -231,7 +324,6 @@
       const json = await getJSON(`${base}?${p.toString().replace(/%2C/g, ",")}`);
       if (!json.error) return json;
       const why = String(json.reason || "");
-      /* A missing pressure level ("... 975hPa ...") takes out every variable on that level at once. */
       const levels = [...why.matchAll(/(\d{3,4})\s*hPa/gi)].map((m) => `_${m[1]}hPa`);
       const bad = [...hv, ...dv].filter((v) => why.includes(v) || levels.some((l) => v.endsWith(l)));
       if (!bad.length) throw new Error(why || "Request failed");
@@ -254,7 +346,6 @@
   const hasData = (a) => Array.isArray(a) && a.some((x) => x != null);
 
   /* ---------- time ---------- */
-  /* Times from Open-Meteo with timezone=auto are local wall-clock strings: "2026-11-02T14:00". */
   function nowLocalString(tz) {
     try {
       const o = {};
@@ -273,31 +364,12 @@
   const fmtHour = (h) => (h === 0 ? "12a" : h < 12 ? h + "a" : h === 12 ? "12p" : h - 12 + "p");
   const fmtWhen = (t) => `${WD[dayDate(dayOf(t)).getDay()]} ${fmtHour(hourOf(t))}`;
   const tzShort = (tz) => { try { return new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName").value; } catch (e) { return tz || ""; } };
-
-  /* ---------- math ---------- */
-  /* Weighted mean/min/max across series at each index. series: [{w, data[]}] */
-  function blendSeries(series, n) {
-    const mean = [], min = [], max = [];
-    for (let i = 0; i < n; i++) {
-      let s = 0, w = 0, lo = Infinity, hi = -Infinity;
-      for (const x of series) { const v = x.data[i]; if (v == null) continue; s += x.w * v; w += x.w; lo = Math.min(lo, v); hi = Math.max(hi, v); }
-      mean.push(w ? s / w : null); min.push(w ? lo : null); max.push(w ? hi : null);
-    }
-    return { mean, min, max };
-  }
-  const cumulative = (a) => { let t = 0; return a.map((x) => (t += x == null ? 0 : x)); };
-  function weightedQuantile(vals, ws, q) {
-    const idx = vals.map((v, i) => i).filter((i) => vals[i] != null).sort((a, b) => vals[a] - vals[b]);
-    const tot = idx.reduce((s, i) => s + ws[i], 0); if (!tot) return null;
-    let acc = 0;
-    for (const i of idx) { acc += ws[i]; if (acc / tot >= q) return vals[i]; }
-    return vals[idx[idx.length - 1]];
-  }
-  /* Align a model's series onto the master time axis by timestamp. */
-  function align(masterTimes, times, arr) {
-    if (!arr) return masterTimes.map(() => null);
-    const at = new Map(times.map((t, i) => [t, i]));
-    return masterTimes.map((t) => { const i = at.get(t); return i == null ? null : arr[i]; });
+  const hourLabels = (times) => times.map((t) => `${WD[dayDate(dayOf(t)).getDay()]} ${fmtHour(hourOf(t))}`);
+  /* Group hour indices by calendar day, optionally only within [s, e). */
+  function dayGroups(times, s = 0, e = times.length) {
+    const out = [];
+    for (let i = s; i < e; i++) { const k = dayOf(times[i]); if (!out.length || out[out.length - 1].k !== k) out.push({ k, idx: [] }); out[out.length - 1].idx.push(i); }
+    return out;
   }
 
   /* ---------- model colors: distinct from the status palette ---------- */
@@ -305,14 +377,25 @@
   const MODEL_COLORS_LIGHT = ["#2563EB", "#DB2777", "#059669", "#7C3AED", "#B45309", "#0891B2", "#E11D48", "#4D7C0F", "#C2410C", "#4F46E5", "#0F766E", "#A21CAF"];
   const modelColor = (i) => (theme() === "light" ? MODEL_COLORS_LIGHT : MODEL_COLORS)[i % MODEL_COLORS.length];
 
-  /* Model checklist with weight sliders. models: [{id, name, w, on}] -> state persisted under key. */
+  /* Model checklist with weight sliders, folded away by default. */
   function modelPicker(container, key, models, onChange, opts = {}) {
-    const saved = store.get(key, {});
+    const savedW = store.get(key, {});
     const st = {};
-    models.forEach((m) => (st[m.id] = { on: saved[m.id] ? saved[m.id].on : m.on !== false, w: saved[m.id] ? saved[m.id].w : m.w }));
+    models.forEach((m) => (st[m.id] = { on: savedW[m.id] ? savedW[m.id].on : m.on !== false, w: savedW[m.id] ? savedW[m.id].w : m.w }));
     const status = {};
+    container.innerHTML = `<details class="fold" id="fold_${key}"${store.get("ops_fold_" + key, false) ? " open" : ""}>
+      <summary><span class="section-title" style="margin:0">${esc(opts.title || "Models & weights")}</span><span class="msg" id="sum_${key}"></span></summary>
+      <div class="models" id="list_${key}" style="margin-top:10px"></div>
+      <div class="row" style="margin-top:10px"><button class="btn ghost sm" type="button" id="reset_${key}">RESET WEIGHTS</button></div></details>`;
+    $(`fold_${key}`).addEventListener("toggle", (e) => store.set("ops_fold_" + key, e.target.open));
+    const list = $(`list_${key}`);
+    function summary() {
+      const on = models.filter((m) => st[m.id].on && st[m.id].w > 0 && status[m.id] !== "none").length;
+      const nod = models.filter((m) => status[m.id] === "none").length;
+      $(`sum_${key}`).textContent = `${on} in use${nod ? ` · ${nod} no data` : ""}`;
+    }
     function draw() {
-      container.innerHTML = models.map((m, i) => {
+      list.innerHTML = models.map((m, i) => {
         const s = st[m.id], nod = status[m.id] === "none";
         return `<div class="model${s.on ? "" : " off"}${nod ? " nodata" : ""}" title="${nod ? "No data for this point" : esc(m.note || "")}">
           <input type="checkbox" id="mp_${key}_${m.id}" ${s.on ? "checked" : ""} ${nod ? "disabled" : ""}>
@@ -321,34 +404,49 @@
           <input type="range" min="0" max="${opts.max || 3}" step="0.25" value="${s.w}" aria-label="${esc(m.name)} weight" ${nod ? "disabled" : ""}>
         </div>`;
       }).join("");
-      container.querySelectorAll(".model").forEach((el, i) => {
+      list.querySelectorAll(".model").forEach((el, i) => {
         const id = models[i].id;
         el.querySelector("input[type=checkbox]").addEventListener("change", (e) => { st[id].on = e.target.checked; el.classList.toggle("off", !e.target.checked); save(); });
         el.querySelector("input[type=range]").addEventListener("input", (e) => { st[id].w = +e.target.value; el.querySelector(".w").textContent = "×" + st[id].w.toFixed(2); save(); });
       });
+      summary();
     }
-    function save() { store.set(key, st); onChange && onChange(); }
+    function save() { store.set(key, st); summary(); onChange && onChange(); }
     draw();
+    $(`reset_${key}`).addEventListener("click", () => { models.forEach((m) => (st[m.id] = { on: m.on !== false, w: m.w })); store.set(key, st); draw(); onChange && onChange(); });
     return {
       on: (id) => st[id] && st[id].on && st[id].w > 0 && status[id] !== "none",
       w: (id) => (st[id] ? st[id].w : 0),
       setStatus(id, s) { status[id] = s; },
       redraw: draw,
-      reset() { models.forEach((m) => (st[m.id] = { on: m.on !== false, w: m.w })); store.set(key, st); draw(); onChange && onChange(); },
     };
   }
 
+  /* Show/hide individual model lines on charts (the blend and spread always show). */
+  function linesToggle(el, key, onChange) {
+    let on = store.get(key, true);
+    const draw = () => { el.innerHTML = `<button type="button" class="tab" aria-pressed="${on}">${on ? "MODEL LINES: ON" : "MODEL LINES: OFF"}</button>`; el.firstChild.addEventListener("click", () => { on = !on; store.set(key, on); draw(); onChange(); }); };
+    draw();
+    return () => on;
+  }
+
   /* ---------- Chart.js helpers ---------- */
-  function chartBase({ labels, hours, nowIdx, unit, dec = 0, yTitle, y2Title, beginAtZero, yMin, yMax }) {
+  function chartBase({ labels, hours, nowIdx, unit, dec = 0, yTitle, y2Title, beginAtZero, yMin, yMax, selIdx }) {
     const muted = css("--muted"), line = css("--line"), mono = css("--font-mono");
-    const nowLine = {
-      id: "nowLine",
+    const marks = {
+      id: "marks",
       afterDatasetsDraw(c) {
-        if (nowIdx < 0 || nowIdx >= labels.length - 1) return;
-        const x = c.scales.x.getPixelForValue(nowIdx), { top, bottom } = c.chartArea, g = c.ctx;
-        g.save(); g.strokeStyle = css("--accent"); g.setLineDash([4, 4]); g.lineWidth = 1.5;
-        g.beginPath(); g.moveTo(x, top); g.lineTo(x, bottom); g.stroke(); g.setLineDash([]);
-        g.fillStyle = css("--accent"); g.font = "800 10px " + mono; g.fillText("NOW", x + 4, top + 11); g.restore();
+        const { top, bottom } = c.chartArea, g = c.ctx;
+        const vline = (i, color, dash, text) => {
+          if (i == null || i < 0 || i > labels.length - 1) return;
+          const x = c.scales.x.getPixelForValue(i);
+          g.save(); g.strokeStyle = color; g.setLineDash(dash); g.lineWidth = 1.5;
+          g.beginPath(); g.moveTo(x, top); g.lineTo(x, bottom); g.stroke(); g.setLineDash([]);
+          if (text) { g.fillStyle = color; g.font = "800 10px " + mono; g.fillText(text, x + 4, top + 11); }
+          g.restore();
+        };
+        vline(nowIdx, css("--accent"), [4, 4], "NOW");
+        if (selIdx != null && selIdx !== nowIdx) vline(selIdx, css("--text"), [2, 3], "");
       },
     };
     const sfx = unit === "°F" ? "°" : unit === "in" ? '"' : unit === "%" ? "%" : unit ? " " + unit : "";
@@ -359,7 +457,7 @@
         legend: { display: false },
         tooltip: {
           backgroundColor: css("--raised"), titleColor: css("--text"), bodyColor: css("--text"), borderColor: line, borderWidth: 1,
-          titleFont: { family: mono }, bodyFont: { family: mono, size: 11 },
+          titleFont: { family: mono }, bodyFont: { family: mono, size: 11.5 },
           filter: (it) => !it.dataset.hideTip,
           itemSort: (a, b) => (b.parsed.y ?? -1e9) - (a.parsed.y ?? -1e9),
           callbacks: { label: (it) => `${it.dataset.label}: ${it.parsed.y == null ? "—" : it.parsed.y.toFixed(it.dataset.dec ?? dec)}${it.dataset.sfx ?? sfx}` },
@@ -368,7 +466,7 @@
       scales: {
         x: {
           ticks: {
-            color: muted, autoSkip: false, maxRotation: 0, font: { family: mono, size: 10 },
+            color: muted, autoSkip: false, maxRotation: 0, font: { family: mono, size: 11 },
             callback(v, i) {
               const days = Math.max(1, Math.round(hours.length / 24)), every = Math.max(1, Math.ceil((days * 48) / (this.chart.width || 800)));
               if (hours[i] === 0) { const di = hours.slice(0, i).filter((h) => h === 0).length; return di % every === 0 ? labels[i].split(" ")[0] : ""; }
@@ -378,33 +476,80 @@
           grid: { color: (ctx) => (hours[ctx.index] === 0 ? line : "transparent"), drawTicks: false },
         },
         y: {
-          ticks: { color: muted, font: { family: mono, size: 10.5 }, callback: (v) => (+v).toFixed(dec && Math.abs(v) < 10 ? dec : 0) + sfx },
+          ticks: { color: muted, font: { family: mono, size: 11 }, callback: (v) => (+v).toFixed(dec && Math.abs(v) < 10 ? dec : 0) + sfx },
           grid: { color: line }, beginAtZero: !!beginAtZero, min: yMin, max: yMax,
-          title: { display: !!yTitle, text: yTitle, color: muted, font: { size: 11 } },
+          title: { display: !!yTitle, text: yTitle, color: muted, font: { size: 11.5 } },
         },
       },
     };
-    if (y2Title) options.scales.y2 = { position: "right", beginAtZero: true, grid: { display: false }, ticks: { color: muted, font: { family: mono, size: 10 } }, title: { display: true, text: y2Title, color: muted, font: { size: 11 } } };
-    return { options, plugins: [nowLine] };
+    if (y2Title) options.scales.y2 = { position: "right", beginAtZero: true, grid: { display: false }, ticks: { color: muted, font: { family: mono, size: 10.5 } }, title: { display: true, text: y2Title, color: muted, font: { size: 11.5 } } };
+    return { options, plugins: [marks] };
   }
-  const hourLabels = (times) => times.map((t) => `${WD[dayDate(dayOf(t)).getDay()]} ${fmtHour(hourOf(t))}`);
+  /* Individual model line: faded so the blend stays dominant. */
+  const modelLine = (label, data, color, extra = {}) => ({ label, data, borderColor: color + "B3", borderWidth: 1.25, pointRadius: 0, tension: 0.25, spanGaps: true, order: 3, ...extra });
 
-  /* Day-grouped hourly status strip: one row per series of tiers. rows: [{name, color, tiers[]}] */
-  function tierStrip(times, rows, step = 1) {
-    const cols = []; for (let i = 0; i < times.length; i += step) cols.push(i);
-    const tpl = `grid-template-columns:150px repeat(${cols.length},minmax(4px,1fr))`;
-    const head = `<div class="strip-row" style="${tpl}"><div></div>${cols.map((i) => `<div class="strip-lab">${hourOf(times[i]) < step ? fmtDay(dayOf(times[i])).slice(0, 3) : ""}</div>`).join("")}</div>`;
-    const body = rows.map((r) => `<div class="strip-row" style="${tpl}"><div class="field-label" style="margin:0;display:flex;gap:6px;align-items:center;${r.bold ? "color:var(--text)" : ""}"><span class="sw" style="background:${r.color}"></span>${esc(r.name)}</div>` +
-      cols.map((i) => { let t = "nodata"; for (let k = i; k < Math.min(i + step, times.length); k++) if (r.tiers[k] && TIER[r.tiers[k]].rank > TIER[t].rank) t = r.tiers[k];
-        return `<div class="strip-cell" style="background:${t === "nodata" ? "var(--raised)" : t === "normal" ? "color-mix(in srgb, var(--normal) 30%, transparent)" : TIER[t].color};${hourOf(times[i]) < step ? "box-shadow:inset 2px 0 0 var(--bg)" : ""}" title="${esc(r.name)} · ${fmtWhen(times[i])} · ${TIER[t].word}"></div>`; }).join("") + `</div>`).join("");
-    return `<div class="tablewrap"><div class="strip">${head}${body}</div></div>`;
+  /* ---------- hourly tier strip: labelled, with NOW and a selectable hour ---------- */
+  function tierStrip(el, times, rows, { nowIdx = -1, sel = null, onPick } = {}) {
+    const n = times.length;
+    const tpl = `grid-template-columns:140px repeat(${n},minmax(5px,1fr))`;
+    const dayRow = `<div class="strip-row" style="${tpl}"><div></div>${times.map((t, i) => `<div class="strip-lab day">${hourOf(t) === 0 || i === 0 ? fmtDay(dayOf(t)).slice(0, 3) : ""}</div>`).join("")}</div>`;
+    const hrRow = `<div class="strip-row" style="${tpl}"><div></div>${times.map((t, i) => `<div class="strip-lab${i === nowIdx ? " now" : ""}">${i === nowIdx ? "NOW" : hourOf(t) % 6 === 0 && hourOf(t) !== 0 ? fmtHour(hourOf(t)) : ""}</div>`).join("")}</div>`;
+    const body = rows.map((r) => `<div class="strip-row" style="${tpl}"><div class="strip-name${r.bold ? " bold" : ""}"><span class="sw" style="background:${r.color}"></span>${esc(r.name)}</div>` +
+      times.map((t, i) => { const tr = r.tiers[i] || "nodata";
+        const bg = tr === "nodata" ? "var(--raised)" : tr === "limited" ? "repeating-linear-gradient(45deg,var(--nodata) 0 2px,transparent 2px 5px)" : tr === "normal" ? "color-mix(in srgb, var(--normal) 30%, transparent)" : TIER[tr].color;
+        return `<div class="strip-cell${hourOf(t) === 0 ? " d0" : ""}${i === nowIdx ? " now" : ""}${i === sel ? " sel" : ""}" data-i="${i}" style="background:${bg}" title="${esc(r.name)} · ${fmtWhen(t)} · ${TIER[tr].word}"></div>`; }).join("") + `</div>`).join("");
+    el.innerHTML = `<div class="tablewrap strip-scroll" tabindex="0" aria-label="Hourly signal. Click an hour, or use the arrow keys, for details."><div class="strip">${dayRow}${hrRow}${body}</div></div>`;
+    const sc = el.firstChild;
+    if (onPick) {
+      sc.addEventListener("click", (e) => { const c = e.target.closest("[data-i]"); if (c) onPick(+c.dataset.i); });
+      sc.addEventListener("keydown", (e) => {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        e.preventDefault(); onPick(Math.min(n - 1, Math.max(0, (sel == null ? Math.max(0, nowIdx) : sel) + (e.key === "ArrowRight" ? 1 : -1))));
+      });
+    }
+    /* keep the selected (or current) hour in view */
+    const target = sc.querySelector(".strip-cell.sel") || sc.querySelector(".strip-cell.now");
+    if (target && sc.scrollWidth > sc.clientWidth) sc.scrollLeft = Math.max(0, target.offsetLeft - sc.clientWidth / 3);
+  }
+
+  /* ---------- "since your last check" ----------
+     Keeps two snapshots per page+location: the latest and the one before it. A new load
+     only pushes the old one back once it's at least 30 minutes old, so refreshing doesn't
+     wipe out the comparison. */
+  function trackChanges(page, summary) {
+    const k = `ops_snap_${page}_${loc.lat},${loc.lon}`, s = store.get(k, {}), now = Date.now();
+    if (s.cur && now - s.cur.at >= 30 * 60e3) s.prev = s.cur;
+    s.cur = { at: now, summary };
+    store.set(k, s);
+    return s.prev || null;
+  }
+  /* spec: [{k, label, fmt(v), min (numeric threshold), tier: true}] */
+  function renderChanges(el, prev, cur, spec, unitLabel = "") {
+    if (!el) return;
+    if (!prev) { el.hidden = true; return; }
+    const when = new Date(prev.at).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+    const items = [];
+    Object.keys(cur).forEach((rk) => {
+      const a = prev.summary[rk], b = cur[rk]; if (!a) return;
+      spec.forEach((f) => {
+        const x = a[f.k], y = b[f.k]; if (x == null || y == null) return;
+        if (f.tier) { if (x !== y && TIER[x] && TIER[y]) items.push({ up: TIER[y].rank > TIER[x].rank, text: `${b.label} · ${f.label} ${TIER[x].word} → ${TIER[y].word}` }); return; }
+        const d = y - x; if (Math.abs(d) < f.min) return;
+        items.push({ up: d > 0, text: `${b.label} · ${f.label} ${f.fmt(x)} → ${f.fmt(y)}` });
+      });
+    });
+    el.hidden = false;
+    el.innerHTML = `<div class="section-title">Since your last check <span class="msg" style="text-transform:none;letter-spacing:0">(${esc(when)}${unitLabel ? " · " + esc(unitLabel) : ""})</span></div>` +
+      (items.length ? `<div class="changes">${items.slice(0, 14).map((it) => `<span class="change ${it.up ? "up" : "down"}">${it.up ? "▲" : "▼"} ${esc(it.text)}</span>`).join("")}</div>`
+        : '<p class="msg">No meaningful changes.</p>');
   }
 
   window.Ops = {
-    BRAND, PRESETS, TIER, maxTier, $, esc, store, css, icon,
-    shell, setChip, headline, locationCard, get location() { return loc; }, setLocation,
-    getJSON, fetchModel, pick, hasData, align,
-    nowIndex, hourOf, dayOf, fmtDay, fmtHour, fmtWhen, tzShort, hourLabels,
-    blendSeries, cumulative, weightedQuantile, modelColor, modelPicker, chartBase, tierStrip,
+    Core, BRAND, PRESETS, TIER, maxTier, badge, $, esc, store, css, icon,
+    shell, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
+    getJSON, fetchModel, pick, hasData, align: Core.stats.align,
+    nowIndex, hourOf, dayOf, fmtDay, fmtHour, fmtWhen, tzShort, hourLabels, dayGroups,
+    blendSeries: Core.stats.blendSeries, weightedQuantile: Core.stats.weightedQuantile,
+    modelColor, modelPicker, linesToggle, chartBase, modelLine, tierStrip, trackChanges, renderChanges,
   };
 })();

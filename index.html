@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Forecast Ops</title>
-<meta name="description" content="Point-forecast tools: multi-model blend, thunder signal, severe environment and ensemble snow odds.">
+<meta name="description" content="Point-forecast summary and tools: multi-model blend, thunder signal, severe environment and ensemble snow odds.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap">
@@ -14,58 +14,70 @@
 <main class="workspace">
   <aside class="side">
     <section class="card tight" id="locCard"></section>
-    <section class="card tight">
-      <div class="section-title">About</div>
-      <p class="msg">Each tool pulls free model data from Open-Meteo straight into your browser. Nothing is stored on a server. Your location, weights and theme are remembered on this device only.</p>
-    </section>
   </aside>
+
   <div class="main">
+    <section class="card" id="changes" hidden></section>
+
+    <section class="card">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="section-title" style="margin:0">Next 3 days</div>
+        <span class="msg" id="sumMsg">Loading guidance…</span>
+      </div>
+      <div class="daycards" id="days"></div>
+      <p class="msg" style="margin-top:10px">Temperatures, precip and gusts are a quick blend of 6 models. Snow chances come from the GEFS and ECMWF ensembles. The thunder signal uses the same rule as the THUNDER page. Open a tool for the full picture.</p>
+    </section>
+
     <div class="hub">
-      <a class="hubcard" href="blend.html" style="--c:var(--accent)">
+      <a class="hubcard" href="blend.html">
         <span class="kicker">Tool 01</span>
         <h2>MODEL BLEND</h2>
-        <p>Up to 11 global and regional models side by side, blended with weights you set. Shows spread bands, accumulated precip and snow, and a daily table with a confidence rating for each day.</p>
+        <p>Up to 11 models side by side, blended with weights you set: spread bands, accumulated precip and snow, and a daily table with temperature agreement.</p>
         <span class="go">OPEN →</span>
       </a>
-      <a class="hubcard" href="thunder.html" style="--c:var(--prepare)">
+      <a class="hubcard" href="thunder.html">
         <span class="kicker">Tool 02</span>
         <h2>THUNDER</h2>
-        <p>An hour-by-hour thunder signal on the same NORMAL / MONITOR / PREPARE / ACT scale as Heads-Up. It comes from model thunder codes and CAPE, with lifted index, CIN and deep-layer shear for context.</p>
+        <p>Hour-by-hour thunder signal from model thunder codes, CAPE and precip chance, with a click-for-detail timeline and instability charts.</p>
         <span class="go">OPEN →</span>
       </a>
-      <a class="hubcard" href="severe.html" style="--c:var(--action)">
+      <a class="hubcard" href="severe.html">
         <span class="kicker">Tool 03</span>
         <h2>SEVERE</h2>
-        <p>The severe environment from each model's sounding: 0–1 and 0–6 km shear, 0–1 and 0–3 km SRH, Bunkers motion, lapse rates, LCL, freezing level, and fixed-layer STP and SCP. Includes an hour-by-hour tier strip, hail, wind and tornado ingredient flags, and a hodograph.</p>
+        <p>Severe environment from each model's sounding: shear, SRH, Bunkers motion, lapse rates, LCL and ≈ STP / SCP, with hail, wind and tornado ingredient flags and a hodograph.</p>
         <span class="go">OPEN →</span>
       </a>
-      <a class="hubcard" href="winter.html" style="--c:var(--snow-stick)">
+      <a class="hubcard" href="winter.html">
         <span class="kicker">Tool 04</span>
         <h2>WINTER</h2>
-        <p>Snow odds from about 140 ensemble members (GEFS, ECMWF, ICON, GEM). Shows the chance of reaching each total, an accumulation plume, the temperature spread, and a day-by-day breakdown.</p>
+        <p>Snow odds from about 140 ensemble members: chance of each total, accumulation plume, temperature spread and a day-by-day table for the window you pick.</p>
         <span class="go">OPEN →</span>
       </a>
     </div>
-    <section class="card">
-      <div class="section-title">Status colors</div>
-      <p class="section-sub">These are the same fixed colors Heads-Up uses. They mean the same thing on every page and never change with the theme.</p>
-      <div class="row" style="gap:8px">
-        <span class="badge" style="--b:var(--normal);flex:none">Normal</span>
-        <span class="badge" style="--b:var(--monitor);flex:none">Monitor</span>
-        <span class="badge" style="--b:var(--prepare);flex:none">Prepare</span>
-        <span class="badge" style="--b:var(--action);flex:none">Act</span>
-        <span class="badge" style="--b:var(--nodata);flex:none">No data</span>
-      </div>
-    </section>
   </div>
+
+  <aside class="side-extra">
+    <details class="card tight fold">
+      <summary><span class="section-title" style="margin:0">What the colors mean</span></summary>
+      <div class="stack" style="font-size:12.5px;color:var(--muted);margin-top:10px">
+        <div>These are the fixed Heads-Up status colors. In these forecast tools they show <b>signal strength in model guidance</b>, from LOW to HIGH. They don't tell anyone to act. Detected lightning and clearance decisions stay in Heads-Up.</div>
+        <div class="row" style="gap:6px;flex-wrap:wrap">
+          <span class="badge" style="--b:var(--normal);flex:none">Low</span>
+          <span class="badge" style="--b:var(--monitor);flex:none">Marginal</span>
+          <span class="badge" style="--b:var(--prepare);flex:none">Elevated</span>
+          <span class="badge" style="--b:var(--action);flex:none">High</span>
+          <span class="badge dashed" style="--b:var(--nodata);flex:none">Limited data</span>
+        </div>
+      </div>
+    </details>
+    <details class="card tight fold">
+      <summary><span class="section-title" style="margin:0">About</span></summary>
+      <p class="msg" style="margin-top:10px">Each page pulls free model data from Open-Meteo straight into your browser. Nothing is stored on a server. Your location, saved places, weights and "last check" snapshots stay on this device. Use the printer button for a clean one-page briefing.</p>
+    </details>
+  </aside>
 </main>
+<script src="assets/ops-core.js"></script>
 <script src="assets/ops.js"></script>
-<script>
-  Ops.shell("home", "Overview");
-  Ops.headline({ word: Ops.BRAND.name, stats: [{ num: "4", unit: "tools" }] });
-  Ops.setChip("OPEN-METEO", "");
-  Ops.locationCard(document.getElementById("locCard"));
-  document.title = Ops.BRAND.name;
-</script>
+<script src="assets/overview.js"></script>
 </body>
 </html>

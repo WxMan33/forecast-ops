@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Model Blend</title>
-<meta name="description" content="Weighted multi-model point forecast with spread and confidence.">
+<meta name="description" content="Weighted multi-model point forecast with spread and model agreement.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap">
@@ -19,18 +19,15 @@
       <div class="row">
         <div><label class="field-label" for="days">Days</label>
           <select class="input" id="days"><option>3</option><option>5</option><option selected>7</option><option>10</option><option>14</option></select></div>
-        <button class="btn icon" id="runBtn" type="button">FETCH MODELS</button>
+        <button class="btn" id="runBtn" type="button">FETCH MODELS</button>
       </div>
       <p class="msg" id="runMsg" style="margin-top:8px"></p>
-    </section>
-    <section class="card tight">
-      <div class="section-title">Models &amp; weights</div>
-      <div class="models" id="models"></div>
-      <div class="row" style="margin-top:10px"><button class="btn ghost sm" id="resetW" type="button">RESET WEIGHTS</button></div>
     </section>
   </aside>
 
   <div class="main">
+    <section class="card" id="changes" hidden></section>
+
     <section class="card">
       <div class="section-title">Next 24 hours</div>
       <div class="tiles" id="tiles"><div class="tile"><span class="k">Status</span><span class="s">Fetch models to load the blend.</span></div></div>
@@ -38,20 +35,32 @@
 
     <section class="card">
       <div class="section-title">Daily blend</div>
-      <p class="section-sub">Weighted mean of the checked models. Confidence comes from the spread of model highs: tight agreement is HIGH, a wide spread is LOW.</p>
-      <div class="tablewrap"><table id="daily"></table></div>
+      <p class="section-sub">Weighted mean of the checked models. <b>Temp agreement</b> is how close the models' daily highs are, with their actual range. It says nothing about rain or timing. Click a day to zoom the chart to it.</p>
+      <div class="tablewrap"><table id="daily" class="clickable"></table></div>
     </section>
 
     <section class="card">
-      <div class="section-title" id="chartTitle">Temperature</div>
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div class="section-title" id="chartTitle" style="margin:0;flex:1 1 auto">Temperature</div>
+        <div class="tabs" id="range" style="margin:0;flex:0 0 auto"></div>
+      </div>
       <div class="tabs" role="tablist" id="tabs"></div>
+      <p class="section-sub" id="chartSub"></p>
       <div class="chartbox"><canvas id="chart" aria-label="Model comparison chart" role="img"></canvas></div>
-      <div class="legend" id="legend"></div>
+      <div class="row" style="justify-content:space-between;align-items:center;margin-top:8px">
+        <div class="legend" id="legend" style="margin:0;flex:1 1 auto"></div>
+        <div id="linesBtn" style="flex:0 0 auto"></div>
+      </div>
     </section>
   </div>
+
+  <aside class="side-extra">
+    <section class="card tight" id="models"></section>
+  </aside>
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="assets/ops-core.js"></script>
 <script src="assets/ops.js"></script>
 <script src="assets/blend.js"></script>
 </body>

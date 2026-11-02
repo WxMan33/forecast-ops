@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Thunder</title>
-<meta name="description" content="Hour-by-hour model thunder signal from instability, model thunder codes and deep-layer shear.">
+<meta name="description" content="Hour-by-hour model thunder signal from model thunder codes, CAPE and precipitation chance.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap">
@@ -23,36 +23,24 @@
       </div>
       <p class="msg" id="runMsg" style="margin-top:8px"></p>
     </section>
-    <section class="card tight">
-      <div class="section-title">Models &amp; weights</div>
-      <div class="models" id="models"></div>
-      <div class="row" style="margin-top:10px"><button class="btn ghost sm" id="resetW" type="button">RESET WEIGHTS</button></div>
-    </section>
-    <section class="card tight">
-      <div class="section-title">How tiers are set</div>
-      <div class="stack" style="font-size:12px;color:var(--muted)">
-        <div><span class="badge" style="--b:var(--action)">ACT</span> Half or more of the model weight shows thunder, with CAPE ≥ 250 J/kg.</div>
-        <div><span class="badge" style="--b:var(--prepare)">PREPARE</span> A quarter or more of the weight shows thunder, or CAPE ≥ 1000 J/kg with precip chance ≥ 40%.</div>
-        <div><span class="badge" style="--b:var(--monitor)">MONITOR</span> Any model shows thunder, or CAPE ≥ 250 J/kg with precip chance ≥ 20%.</div>
-        <div><span class="badge" style="--b:var(--normal)">NORMAL</span> None of the above.</div>
-        <div>A simple, transparent rule on model output, meant for planning. It is not a lightning forecast, an SPC outlook or a warning.</div>
-        <div>For helicity, STP, SCP and a hodograph, see <a href="severe.html">SEVERE</a>.</div>
-      </div>
-    </section>
   </aside>
 
   <div class="main">
+    <section class="card" id="changes" hidden></section>
+
     <section class="card">
       <div class="section-title">Thunder signal, hour by hour</div>
-      <p class="section-sub">Top row is the weighted blend. Each model row uses the same rule on that model alone. Hover a cell for the time.</p>
+      <p class="section-sub">Top row is the weighted blend; each model row applies the same rule to that model alone. <b>Click any hour</b> (or focus the strip and use ← →) for the details.</p>
       <div id="strip"><p class="msg">Fetch models to load the signal.</p></div>
       <div class="legend">
-        <span><i class="sw" style="background:var(--normal);height:10px"></i>Normal</span>
-        <span><i class="sw" style="background:var(--monitor);height:10px"></i>Monitor</span>
-        <span><i class="sw" style="background:var(--prepare);height:10px"></i>Prepare</span>
-        <span><i class="sw" style="background:var(--action);height:10px"></i>Act</span>
+        <span><i class="sw" style="background:var(--normal);height:10px;opacity:.45"></i>Low</span>
+        <span><i class="sw" style="background:var(--monitor);height:10px"></i>Marginal</span>
+        <span><i class="sw" style="background:var(--prepare);height:10px"></i>Elevated</span>
+        <span><i class="sw" style="background:var(--action);height:10px"></i>High</span>
+        <span><i class="sw" style="background:repeating-linear-gradient(45deg,var(--nodata) 0 2px,transparent 2px 5px);height:10px"></i>Limited data</span>
         <span><i class="sw" style="background:var(--raised);height:10px;border:1px solid var(--line)"></i>No data</span>
       </div>
+      <div id="detail"></div>
     </section>
 
     <section class="card">
@@ -65,12 +53,32 @@
       <div class="tabs" role="tablist" id="tabs"></div>
       <p class="section-sub" id="chartSub"></p>
       <div class="chartbox"><canvas id="chart" aria-label="Instability chart" role="img"></canvas></div>
-      <div class="legend" id="legend"></div>
+      <div class="row" style="justify-content:space-between;align-items:center;margin-top:8px">
+        <div class="legend" id="legend" style="margin:0;flex:1 1 auto"></div>
+        <div id="linesBtn" style="flex:0 0 auto"></div>
+      </div>
     </section>
   </div>
+
+  <aside class="side-extra">
+    <section class="card tight" id="models"></section>
+    <details class="card tight fold">
+      <summary><span class="section-title" style="margin:0">How signals are set</span></summary>
+      <div class="stack" style="font-size:12.5px;color:var(--muted);margin-top:10px">
+        <div><span class="badge" style="--b:var(--action)">HIGH</span> Half or more of the model weight shows thunder, with CAPE ≥ 250 J/kg.</div>
+        <div><span class="badge" style="--b:var(--prepare)">ELEVATED</span> A quarter or more of the weight shows thunder, or CAPE ≥ 1000 J/kg with precip chance ≥ 40%.</div>
+        <div><span class="badge" style="--b:var(--monitor)">MARGINAL</span> Any model shows thunder, or CAPE ≥ 250 J/kg with precip chance ≥ 20%.</div>
+        <div><span class="badge dashed" style="--b:var(--nodata)">LIMITED DATA</span> CAPE ≥ 250 J/kg, but thunder codes or precip chance are missing, so the real signal could be higher.</div>
+        <div><span class="badge" style="--b:var(--normal)">LOW</span> None of the above.</div>
+        <div>These are the Heads-Up status colors, used here for <b>signal strength in model guidance</b>. They are not an instruction to act, a lightning forecast, an SPC outlook or a warning. Detected lightning and clearance decisions belong to Heads-Up.</div>
+        <div>For helicity, STP, SCP and a hodograph, see <a href="severe.html">SEVERE</a>.</div>
+      </div>
+    </details>
+  </aside>
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="assets/ops-core.js"></script>
 <script src="assets/ops.js"></script>
 <script src="assets/thunder.js"></script>
 </body>
