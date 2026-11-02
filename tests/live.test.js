@@ -14,6 +14,7 @@ let fails = 0, checks = 0;
 const ok = (cond, msg) => { checks++; if (!cond) { fails++; console.log("  FAIL " + msg); } };
 const finite = (a) => a.filter((x) => x != null && isFinite(x));
 const between = (a, lo, hi) => finite(a).every((x) => x >= lo && x <= hi);
+const range = (a) => { const v = finite(a); return v.length ? `${Math.min(...v).toFixed(2)}..${Math.max(...v).toFixed(2)} (${v.length} values)` : "no values"; };
 const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") - Date.parse(times[i - 1] + "Z") === 3600e3);
 
 (async () => {
@@ -39,7 +40,8 @@ const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") -
       const md = B.models[id];
       C.time.dayGroups(B.times).filter((d) => d.idx.length === 24 && C.stats.complete(md.h.temperature_2m, d.idx)).forEach((d) => {
         const j = B.dtimes.indexOf(d.k), own = j >= 0 && md.d.temperature_2m_max ? md.d.temperature_2m_max[j] : null;
-        if (own != null) ok(Math.abs(own - Math.max(...d.idx.map((i) => md.h.temperature_2m[i]))) <= 1.5, `blend ${id} ${d.k}: daily max matches hourly max`);
+        const hmax = Math.max(...d.idx.map((i) => md.h.temperature_2m[i]));
+        if (own != null) ok(Math.abs(own - hmax) <= 1.5, `blend ${id} ${d.k}: daily max matches hourly max (daily ${own}, hourly ${hmax}, ${B.tz})`);
       });
     });
     rec.blend = { models: bOk, problems: B.problems, rows: rows.map((r) => ({ k: r.k, hi: r.hi, lo: r.lo, qpf: r.qpf, contrib: r.contrib })) };
@@ -51,7 +53,7 @@ const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") -
     ok(Object.keys(T.models).length >= 3, "thunder: at least 3 models");
     const TH = C.thunder.hourly(T, tws);
     ok(TH.assess.length === T.times.length, "thunder: one assessment per hour");
-    ok(between(TH.cape.mean, 0, 8000), "thunder: CAPE in J/kg range");
+    ok(between(TH.cape.mean, 0, 8000), `thunder: CAPE in J/kg range (blend ${range(TH.cape.mean)}; ${TH.ids.map((id) => `${id} ${range(T.models[id].h.cape)}`).join("; ")})`);
     ok(TH.assess.every((a) => C.TIERS[a.tier] && typeof a.limited === "boolean"), "thunder: assessments well formed");
     rec.thunder = { models: TH.ids, limitedHours: TH.assess.filter((a) => a.limited).length, worst: C.maxTier(TH.assess.map((a) => a.tier)) };
 
@@ -68,7 +70,8 @@ const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") -
       ok(between(ser.bs6, 0, 200), `severe ${id}: 0–6 km shear plausible`);
       ok(between(ser.srh1, -800, 1500) && between(ser.srh3, -1000, 2000), `severe ${id}: SRH plausible`);
       ok(between(ser.lcl, 0, 6000), `severe ${id}: LCL plausible`);
-      ok(between(ser.lr75, 2, 11), `severe ${id}: 700–500 lapse rate plausible`);
+      const i7 = md.h.temperature_700hPa ? md.h.temperature_700hPa.findIndex((x) => x != null) : -1;
+      ok(between(ser.lr75, 2, 11), `severe ${id}: 700–500 lapse rate plausible (lr75 ${range(ser.lr75)}; sample hour ${i7}: T700 ${md.h.temperature_700hPa && md.h.temperature_700hPa[i7]}, T500 ${md.h.temperature_500hPa && md.h.temperature_500hPa[i7]}, z700 ${md.h.geopotential_height_700hPa && md.h.geopotential_height_700hPa[i7]}, z500 ${md.h.geopotential_height_500hPa && md.h.geopotential_height_500hPa[i7]}, T2m ${md.h.temperature_2m[i7]})`);
       rec.severe[id] = { elev: md.elev, bs6Hours: bs6.length, srh1Max: srh1.length ? Math.max(...srh1) : null };
     });
     ok(sIds.some((id) => finite(Sv.models[id].h.wind_speed_500hPa || []).length), "severe: at least one model has upper-air winds");
