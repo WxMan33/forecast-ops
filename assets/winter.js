@@ -4,26 +4,21 @@
   const O = window.Ops, $ = O.$, C = O.Core, W = C.winter;
   O.shell("winter", "Winter");
 
-  /* Ensemble API model ids. */
-  const ENS = [
-    { id: "gfs025", name: "GEFS (GFS ens.)", w: 1 },
-    { id: "ecmwf_ifs025", name: "ECMWF ENS", w: 1.25 },
-    { id: "icon_seamless", name: "ICON EPS", w: 0.75 },
-    { id: "gem_global", name: "GEM ENS", w: 0.75 },
-  ];
-  const HOURLY = ["snowfall", "temperature_2m", "precipitation"];
+  /* Ensembles and request settings are shared with the overview: OpsCore.config.winter */
+  const SPEC = C.config.winter, ENS = SPEC.models;
+  const NAMES = Object.fromEntries(ENS.map((m) => [m.id, m.name]));
   const TABS = [
     { id: "plume", label: "Accumulation plume", sub: "Every member's running snowfall total from the start of the window; a line stops where that member's data stops. Thick lines are the weighted 10th, 50th and 90th percentiles of members with data at that hour." },
     { id: "rate", label: "Snow per hour", sub: "Weighted median and 90th percentile of hourly snowfall across members." },
     { id: "temp", label: "Temperature", sub: "Weighted 10th, 50th and 90th percentile 2 m temperature across members. The dashed line is 32°F." },
   ];
 
-  let data = null, chart = null, fresh = false, prevSnap = null, tab = O.store.get("ops_winter_tab", "plume");
+  let data = null, chart = null, fresh = false, tab = O.store.get("ops_winter_tab", "plume");
   const picker = O.modelPicker($("models"), "ops_winter_models", ENS, render, { title: "Ensembles & weights" });
   O.locationCard($("locCard"), () => run());
   $("runBtn").addEventListener("click", () => run());
   $("win").value = String(O.store.get("ops_winter_win", 72));
-  $("win").addEventListener("change", () => { O.store.set("ops_winter_win", +$("win").value); fresh = true; render(); });
+  $("win").addEventListener("change", () => { O.store.set("ops_winter_win", +$("win").value); render(); });
   TABS.forEach((t) => {
     const b = document.createElement("button");
     b.className = "tab"; b.type = "button"; b.setAttribute("role", "tab"); b.textContent = t.label; b.setAttribute("aria-selected", t.id === tab);
@@ -32,42 +27,20 @@
   });
   window.addEventListener("ops:theme", () => { picker.redraw(); render(); });
 
-  /* Control + member arrays for one variable, whatever the key suffix style. */
-  function members(block, v) {
-    const out = [];
-    for (const k of Object.keys(block || {})) if ((k === v || k.startsWith(v + "_")) && Array.isArray(block[k])) out.push({ key: k, arr: block[k] });
-    return out.filter((x) => O.hasData(x.arr));
-  }
-
   async function run() {
     $("runBtn").disabled = true; O.setChip("FETCHING…");
     $("runMsg").className = "msg"; $("runMsg").textContent = `Requesting ${ENS.length} ensembles…`;
-    const params = { forecast_days: 7, temperature_unit: "fahrenheit", wind_speed_unit: "mph", precipitation_unit: "inch" };
-    const res = await Promise.allSettled(ENS.map((e) => O.fetchModel("https://ensemble-api.open-meteo.com/v1/ensemble", params, e.id, HOURLY)));
+    const res = await O.Data.loadEnsemble(SPEC, { lat: O.location.lat, lon: O.location.lon });
     $("runBtn").disabled = false;
-    let master = null; const ok = [], failed = [];
-    res.forEach((r, i) => {
-      const e = ENS[i];
-      if (r.status !== "fulfilled") { failed.push(e.name); picker.setStatus(e.id, "none"); return; }
-      const sn = members(r.value.hourly, "snowfall");
-      if (!sn.length) { failed.push(e.name); picker.setStatus(e.id, "none"); return; }
-      picker.setStatus(e.id, "ok");
-      if (!master || r.value.hourly.time.length > master.hourly.time.length) master = r.value;
-      ok.push({ e, j: r.value, sn, tm: members(r.value.hourly, "temperature_2m") });
-    });
+    ENS.forEach((e) => picker.setStatus(e.id, res.status[e.id] === "ok" ? "ok" : "none"));
     picker.redraw();
-    if (!ok.length) {
+    if (res.empty) {
       data = null; O.setChip("NO DATA", "err"); O.headline({ tier: "nodata" });
       $("runMsg").className = "msg err"; $("runMsg").textContent = "Couldn't reach the Open-Meteo ensemble API. Check your connection and try again.";
       render(); return;
     }
-    const times = master.hourly.time;
-    data = { times, tz: master.timezone, ens: {} };
-    ok.forEach(({ e, j, sn, tm }) => {
-      data.ens[e.id] = { snow: sn.map((x) => O.align(times, j.hourly.time, x.arr)), temp: tm.map((x) => O.align(times, j.hourly.time, x.arr)) };
-    });
-    data.failed = failed;
-    $("runMsg").textContent = ok.map((o) => `${o.e.name} ${o.sn.length}`).join(", ") + " members" + (failed.length ? ` · unavailable: ${failed.join(", ")}` : "") + ` · times in ${O.tzShort(data.tz)}`;
+    data = res;
+    $("runMsg").textContent = Object.keys(res.ens).map((id) => `${NAMES[id]} ${res.ens[id].snowfall.length}`).join(", ") + " members" + (res.problems.length ? ` · ${res.problems.join(" · ")}` : "") + ` · times in ${O.tzShort(data.tz)}`;
     fresh = true;
     render();
   }
@@ -77,7 +50,7 @@
     const out = [];
     ENS.forEach((e, ei) => {
       const d = data.ens[e.id]; if (!d || !picker.on(e.id)) return;
-      const arrs = d[kind]; if (!arrs.length) return;
+      const arrs = d[kind === "snow" ? "snowfall" : "temperature_2m"] || []; if (!arrs.length) return;
       arrs.forEach((a) => out.push({ e, ei, w: picker.w(e.id) / arrs.length, a }));
     });
     return out;
@@ -96,12 +69,13 @@
     const short = e - s < +$("win").value;
     if (!mem.length) { $("odds").innerHTML = '<tbody><tr><td class="msg">Check at least one ensemble.</td></tr></tbody>'; O.headline({ tier: "nodata" }); renderChart(); return; }
     const st = W.windowStats(mem, s, e);
-    const tier = W.tier(st.P, st.used);
-    const problems = [...(data.failed || []).map((n) => `${n}: unavailable`)];
-    if (st.used < st.total) problems.push(`${st.total - st.used} of ${st.total} members lack 90% coverage of the window and were left out`);
+    const tier = W.tier(st);
+    const problems = [...data.problems];
+    if (st.used < st.total) problems.push(`${st.total - st.used} of ${st.total} members don't cover every hour of the window and were left out of the odds`);
     if (short) problems.push(`Ensemble data ends before the full ${winText()} window`);
     O.dataStatus(problems);
-    $("oddsSub").innerHTML = `${O.fmtWhen(data.times[s])} to ${O.fmtWhen(data.times[e - 1])} ${O.tzShort(data.tz)} · <b>${st.used} of ${st.total} members</b> with full coverage. Median ${inch(st.p50)}, 10–90% range ${inch(st.p10)} to ${inch(st.p90)}.` +
+    $("oddsSub").innerHTML = `${O.fmtWhen(data.times[s])} to ${O.fmtWhen(data.times[e - 1])} ${O.tzShort(data.tz)} · <b>${st.used} of ${st.total} members</b> cover every hour and decide the odds. Median ${inch(st.p50)}, 10–90% range ${inch(st.p10)} to ${inch(st.p90)}.` +
+      (st.partial ? ` <span style="color:var(--monitor)">${st.partial} more ${st.partial === 1 ? "member has" : "members have"} gaps; ${st.partialAtLeast[1]} of them already reach at least 1" (lower bounds, not counted).</span>` : "") +
       (short ? ` <span style="color:var(--monitor)">Data ends before the end of the ${O.esc(winText())} window.</span>` : "");
     O.headline({
       tier, note: `Ensemble snow signal · next ${winText()}`,
@@ -129,22 +103,26 @@
         const highs = tm.map((m) => { const v = d.idx.map((i) => m.a[i]).filter((x) => x != null); return v.length ? Math.max(...v) : null; });
         const lo = O.weightedQuantile(lows, tw, 0.5), hi = O.weightedQuantile(highs, tw, 0.5), part = d.idx.length < 24;
         return `<tr><td class="display" style="font-size:12px">${O.fmtDay(d.k)}</td><td class="num">${part ? `${O.fmtHour(O.hourOf(data.times[d.idx[0]]))}–${O.fmtHour((O.hourOf(data.times[d.idx[d.idx.length - 1]]) + 1) % 24)}` : "all day"}</td>` +
-          `<td class="num">${inch(ds.p50)}</td><td class="num">${inch(ds.p90)}</td><td class="num">${pct(ds.P[0.1])}</td><td class="num">${pct(ds.P[1])}</td><td class="num">${ds.used}/${ds.total}</td>` +
+          `<td class="num">${inch(ds.p50)}</td><td class="num">${inch(ds.p90)}</td><td class="num">${pct(ds.P[0.1])}</td><td class="num">${pct(ds.P[1])}</td><td class="num" title="${ds.partial ? `${ds.partial} members with gaps left out` : "all members complete"}">${ds.used}/${ds.total}</td>` +
           `<td class="num"><span class="lo">${lo == null ? "—" : Math.round(lo) + "°"}</span></td><td class="num"><span class="hi">${hi == null ? "—" : Math.round(hi) + "°"}</span></td></tr>`;
       }).join("") + "</tbody>";
 
+    /* Compare full calendar days only: a sliding "next 72 hours" covers a different window every hour. */
     if (fresh) {
-      const snap = { win: { label: `Next ${winText()}`, t: tier, p01: st.P[0.1] * 100, p1: st.P[1] * 100, p4: st.P[4] * 100, p50: st.p50, p90: st.p90 } };
-      prevSnap = O.trackChanges(`winter${$("win").value}`, snap); data.snap = snap; fresh = false;
+      const ws = picker.weights(), snap = { cfg: C.config.fingerprint(ws), rows: {} };
+      W.dayRows(data.times, mem).filter((r) => r.hours === 24 && r.st.used).forEach((r) => (snap.rows[r.k] = {
+        label: O.fmtDay(r.k), win: r.win, contrib: Object.keys(ws).filter((id) => data.ens[id]),
+        t: W.tier(r.st), p01: r.st.P[0.1] * 100, p1: r.st.P[1] * 100, p4: r.st.P[4] * 100, p50: r.st.p50, p90: r.st.p90 }));
+      data.snapPair = O.trackChanges("winter", snap); fresh = false;
     }
-    if (data.snap) O.renderChanges($("changes"), prevSnap, data.snap, [
+    O.renderChanges($("changes"), data.snapPair, [
       { k: "t", label: "signal", tier: true },
       { k: "p01", label: "any snow", min: 10, fmt: (v) => `${Math.round(v)}%` },
       { k: "p1", label: '1"+', min: 10, fmt: (v) => `${Math.round(v)}%` },
       { k: "p4", label: '4"+', min: 10, fmt: (v) => `${Math.round(v)}%` },
       { k: "p50", label: "median", min: 0.5, fmt: (v) => `${v.toFixed(1)}"` },
       { k: "p90", label: "90th pct", min: 1, fmt: (v) => `${v.toFixed(1)}"` },
-    ]);
+    ], NAMES);
     renderChart();
   }
 

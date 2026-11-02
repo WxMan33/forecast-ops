@@ -4,16 +4,9 @@
   const O = window.Ops, $ = O.$, C = O.Core;
   O.shell("thunder", "Thunder");
 
-  const MODELS = [
-    { id: "gfs_hrrr", name: "HRRR (48 h)", w: 1.25 },
-    { id: "ncep_nam_conus", name: "NAM 3 km", w: 1 },
-    { id: "gfs_seamless", name: "GFS", w: 1 },
-    { id: "ecmwf_ifs025", name: "ECMWF IFS", w: 1.25 },
-    { id: "icon_seamless", name: "ICON", w: 1 },
-    { id: "gem_seamless", name: "GEM", w: 0.75 },
-  ];
-  const HOURLY = ["cape", "lifted_index", "convective_inhibition", "precipitation_probability", "precipitation", "weather_code",
-    "wind_speed_10m", "wind_direction_10m", "wind_speed_500hPa", "wind_direction_500hPa", "lightning_potential"];
+  /* Models, variables and request settings are shared with the overview: OpsCore.config.thunder */
+  const SPEC = C.config.thunder, MODELS = SPEC.models;
+  const NAMES = Object.fromEntries(MODELS.map((m) => [m.id, m.name]));
   const TABS = [
     { id: "cape", label: "CAPE", v: "cape", unit: "J/kg", zero: true, sub: "Convective available potential energy. Above about 1000 J/kg is enough for robust storms if something sets them off." },
     { id: "li", label: "Lifted index", v: "lifted_index", unit: "°C", dec: 0, sub: "Negative means unstable. −3 to −6 is moderately unstable, below −6 strongly unstable." },
@@ -24,7 +17,7 @@
   ];
   const CODE = (c) => (c == null ? "—" : c >= 95 ? "THUNDER" : c >= 71 && c <= 86 && !(c >= 80 && c <= 82) ? "SNOW" : c >= 51 ? "RAIN" : c === 45 || c === 48 ? "FOG" : "DRY");
 
-  let data = null, chart = null, sel = null, fresh = false, prevSnap = null, tab = O.store.get("ops_thunder_tab", "cape");
+  let data = null, chart = null, sel = null, fresh = false, tab = O.store.get("ops_thunder_tab", "cape");
   const picker = O.modelPicker($("models"), "ops_thunder_models", MODELS, render);
   const showLines = O.linesToggle($("linesBtn"), "ops_thunder_lines", () => renderChart());
   O.locationCard($("locCard"), () => run());
@@ -39,65 +32,32 @@
   });
   window.addEventListener("ops:theme", () => { picker.redraw(); render(); });
 
-  /* 10 m to 500 hPa vector difference, mph in, knots out. Directions are "from". */
-  function shear(s1, d1, s2, d2) {
-    if ([s1, d1, s2, d2].some((x) => x == null)) return null;
-    const a = C.severe.uv(s1, d1), b = C.severe.uv(s2, d2);
-    return Math.hypot(b.u - a.u, b.v - a.v) * 0.868976;
-  }
-
   async function run() {
     $("runBtn").disabled = true; O.setChip("FETCHING…");
     $("runMsg").className = "msg"; $("runMsg").textContent = `Requesting ${MODELS.length} models…`;
-    const params = { forecast_days: $("days").value, temperature_unit: "fahrenheit", wind_speed_unit: "mph", precipitation_unit: "inch" };
-    const res = await Promise.allSettled(MODELS.map((m) => O.fetchModel("https://api.open-meteo.com/v1/forecast", params, m.id,
-      m.id === "icon_seamless" ? HOURLY : HOURLY.filter((v) => v !== "lightning_potential"))));
+    const res = await O.Data.loadModels(SPEC, { lat: O.location.lat, lon: O.location.lon, days: +$("days").value });
     $("runBtn").disabled = false;
-    let master = null; const ok = [], empty = [], failed = [], partial = [];
-    res.forEach((r, i) => {
-      const m = MODELS[i];
-      if (r.status !== "fulfilled") { failed.push(m.name); picker.setStatus(m.id, "none"); return; }
-      const h = O.pick(r.value.hourly, HOURLY);
-      if (!O.hasData(h.cape) && !O.hasData(h.weather_code)) { empty.push(m.name); picker.setStatus(m.id, "none"); return; }
-      if (!O.hasData(h.weather_code) || !O.hasData(h.cape)) partial.push(`${m.name}: no ${O.hasData(h.cape) ? "weather codes" : "CAPE"}`);
-      picker.setStatus(m.id, "ok");
-      if (!master || r.value.hourly.time.length > master.hourly.time.length) master = r.value;
-      ok.push({ m, j: r.value, h });
-    });
+    MODELS.forEach((m) => picker.setStatus(m.id, res.status[m.id] === "ok" ? "ok" : "none"));
     picker.redraw();
-    if (!ok.length) {
+    if (res.empty) {
       data = null; O.setChip("NO DATA", "err"); O.headline({ tier: "nodata" });
       $("runMsg").className = "msg err"; $("runMsg").textContent = "Couldn't reach Open-Meteo. Check your connection and try again.";
       render(); return;
     }
-    const times = master.hourly.time;
-    data = { times, tz: master.timezone, models: {} };
-    ok.forEach(({ m, j, h }) => {
-      const a = {}; HOURLY.forEach((v) => (a[v] = O.align(times, j.hourly.time, h[v])));
-      a.shear = times.map((_, i) => shear(a.wind_speed_10m[i], a.wind_direction_10m[i], a.wind_speed_500hPa[i], a.wind_direction_500hPa[i]));
-      data.models[m.id] = a;
-    });
-    O.dataStatus([...failed.map((n) => `${n}: request failed`), ...empty.map((n) => `${n}: no coverage here`), ...partial]);
-    $("runMsg").textContent = `${ok.length} models loaded` + (empty.length ? ` · no coverage here: ${empty.join(", ")}` : "") +
-      (failed.length ? ` · failed: ${failed.join(", ")}` : "") + (partial.length ? ` · ${partial.join(", ")}` : "") + ` · times in ${O.tzShort(data.tz)}`;
+    data = res;
+    O.dataStatus(res.problems);
+    $("runMsg").textContent = `${Object.keys(res.models).length} models loaded` + (res.problems.length ? ` · ${res.problems.join(" · ")}` : "") + ` · times in ${O.tzShort(data.tz)}`;
     sel = null; fresh = true;
     render();
   }
 
-  const active = (v) => (data ? MODELS.filter((m) => data.models[m.id] && picker.on(m.id) && O.hasData(data.models[m.id][v])) : []);
-  const blend = (v) => { const ms = active(v); return O.blendSeries(ms.map((m) => ({ w: picker.w(m.id), data: data.models[m.id][v] })), data.times.length); };
+  const active = (v) => (data ? MODELS.filter((m) => data.models[m.id] && picker.on(m.id) && O.hasData(data.models[m.id].h[v])) : []);
+  const blend = (v) => { const ms = active(v); return O.blendSeries(ms.map((m) => ({ w: picker.w(m.id), data: data.models[m.id].h[v] })), data.times.length); };
 
+  /* Same hourly aggregation the overview uses. */
   function compute() {
-    const n = data.times.length, wm = active("weather_code");
-    const cape = blend("cape"), pop = blend("precipitation_probability"), li = blend("lifted_index"), sh = blend("shear");
-    const frac = [];
-    for (let i = 0; i < n; i++) frac.push(C.stats.weightedShare(wm.map((m) => data.models[m.id].weather_code[i]), wm.map((m) => picker.w(m.id)), C.thunder.isThunderCode));
-    const tiers = frac.map((f, i) => C.thunder.tier(f, cape.mean[i], pop.mean[i]));
-    const perModel = MODELS.filter((m) => data.models[m.id] && picker.on(m.id)).map((m) => {
-      const a = data.models[m.id];
-      return { m, tiers: a.cape.map((c, i) => C.thunder.tier(a.weather_code[i] == null ? null : C.thunder.isThunderCode(a.weather_code[i]) ? 1 : 0, c, a.precipitation_probability[i])) };
-    });
-    return { frac, tiers, perModel, cape, pop, li, sh };
+    const H = C.thunder.hourly(data, picker.weights());
+    return { ...H, tiers: H.assess, perModel: H.ids.map((id) => ({ m: MODELS.find((x) => x.id === id), tiers: H.perModel[id] })) };
   }
   const f = (x, d = 0, u = "") => (x == null ? "—" : x.toFixed(d) + u);
 
@@ -110,14 +70,15 @@
     }
     const Cx = compute(); data.C = Cx;
     const now = Math.max(0, O.nowIndex(data.times, data.tz)), end = Math.min(data.times.length, now + 24);
-    const next = Cx.tiers.slice(now, end), worst = O.maxTier(next), firstIdx = next.findIndex((t) => t === worst);
+    const next = Cx.tiers.slice(now, end).map((a) => a.tier), worst = O.maxTier(next), firstIdx = next.findIndex((t) => t === worst);
+    const ltd = Cx.tiers.slice(now, end).filter((a) => a.limited && a.tier !== "nodata").length;
     if (sel == null) sel = O.TIER[worst].rank >= 1 ? now + firstIdx : now;
     drawStrip(Cx);
 
     const capeWin = Cx.cape.max.slice(now, end).filter((x) => x != null), peak = capeWin.length ? Math.max(...capeWin) : null;
     const frWin = Cx.frac.slice(now, end).filter((x) => x != null), frMax = frWin.length ? Math.max(...frWin) : null;
     O.headline({
-      tier: worst, note: "Model thunder signal · next 24 h",
+      tier: worst, note: `Model thunder signal · next 24 h${ltd ? ` · limited data ${ltd} h` : ""}`,
       stats: [
         { num: O.TIER[worst].rank >= 1 ? O.fmtWhen(data.times[now + firstIdx]) : "—", unit: O.TIER[worst].rank >= 1 ? "first" : "no signal" },
         { num: frMax == null ? "—" : Math.round(frMax * 100) + "%", unit: "max model thunder share" },
@@ -129,27 +90,30 @@
     const mx = (arr, idx) => { const v = idx.map((i) => arr[i]).filter((x) => x != null); return v.length ? Math.max(...v) : null; };
     const mn = (arr, idx) => { const v = idx.map((i) => arr[i]).filter((x) => x != null); return v.length ? Math.min(...v) : null; };
     const dayRows = O.dayGroups(data.times).filter((d) => d.idx.length >= 6).map((d) => {
-      const t = O.maxTier(d.idx.map((i) => Cx.tiers[i]));
-      const hot = d.idx.filter((i) => O.TIER[Cx.tiers[i]].rank >= 2);
-      return { d, t, hot, fr: mx(Cx.frac, d.idx), capeB: mx(Cx.cape.mean, d.idx), capeX: mx(Cx.cape.max, d.idx), li: mn(Cx.li.mean, d.idx), sh: mx(Cx.sh.mean, d.idx) };
+      const t = O.maxTier(d.idx.map((i) => Cx.tiers[i].tier));
+      const hot = d.idx.filter((i) => O.TIER[Cx.tiers[i].tier].rank >= 2);
+      const lim = d.idx.filter((i) => Cx.tiers[i].limited && Cx.tiers[i].tier !== "nodata");
+      const miss = [...new Set(lim.flatMap((i) => Cx.tiers[i].missing))];
+      return { d, t, hot, lim, miss, win: C.time.windowKey(data.times, d.idx), fr: mx(Cx.frac, d.idx), capeB: mx(Cx.cape.mean, d.idx), capeX: mx(Cx.cape.max, d.idx), li: mn(Cx.li.mean, d.idx), sh: mx(Cx.sh.mean, d.idx) };
     });
     $("daily").innerHTML = `<thead><tr><th>Day</th><th>Signal</th><th>Elevated+ hours</th><th>Window</th><th>Blend CAPE max</th><th>Any-model CAPE max</th><th>Min LI</th><th>Max shear</th><th>Thunder share max</th></tr></thead><tbody>` +
       dayRows.map((r) => {
         const win = r.hot.length ? `${O.fmtHour(O.hourOf(data.times[r.hot[0]]))}–${O.fmtHour((O.hourOf(data.times[r.hot[r.hot.length - 1]]) + 1) % 24)}` : "—";
-        return `<tr><td class="display" style="font-size:12px">${O.fmtDay(r.d.k)}</td><td>${O.badge(r.t)}</td>` +
+        return `<tr><td class="display" style="font-size:12px">${O.fmtDay(r.d.k)}</td><td>${O.badge({ tier: r.t, limited: r.lim.length > 0, missing: r.miss })}</td>` +
           `<td class="num">${r.hot.length}</td><td class="num">${win}</td><td class="num">${f(r.capeB, 0)}</td><td class="num">${f(r.capeX, 0)}</td>` +
           `<td class="num">${f(r.li, 1)}</td><td class="num">${f(r.sh, 0, " kt")}</td><td class="num">${r.fr == null ? "—" : Math.round(r.fr * 100) + "%"}</td></tr>`;
       }).join("") + "</tbody>";
 
     if (fresh) {
-      const snap = {}; dayRows.forEach((r) => (snap[r.d.k] = { label: O.fmtDay(r.d.k), t: r.t, fr: r.fr == null ? null : r.fr * 100, cape: r.capeX }));
-      prevSnap = O.trackChanges("thunder", snap); data.snap = snap; fresh = false;
+      const snap = { cfg: C.config.fingerprint(picker.weights()), rows: {} };
+      dayRows.forEach((r) => (snap.rows[r.d.k] = { label: O.fmtDay(r.d.k), win: r.win, contrib: Cx.ids, t: r.t, fr: r.fr == null ? null : r.fr * 100, cape: r.capeX }));
+      data.snapPair = O.trackChanges("thunder", snap); fresh = false;
     }
-    if (data.snap) O.renderChanges($("changes"), prevSnap, data.snap, [
+    O.renderChanges($("changes"), data.snapPair, [
       { k: "t", label: "signal", tier: true },
       { k: "fr", label: "thunder share", min: 20, fmt: (v) => `${Math.round(v)}%` },
       { k: "cape", label: "peak CAPE", min: 500, fmt: (v) => `${Math.round(v)}` },
-    ]);
+    ], NAMES);
     renderChart();
   }
 
@@ -162,7 +126,7 @@
 
   function drawDetail(Cx) {
     const i = sel, t = Cx.tiers[i];
-    const ms = MODELS.filter((m) => data.models[m.id] && picker.on(m.id));
+    const ms = Cx.perModel.map((p) => p.m);
     $("detail").innerHTML = `<div class="detail">
       <div class="detail-head"><span class="when">${O.fmtDay(O.dayOf(data.times[i]))} · ${O.fmtHour(O.hourOf(data.times[i]))} ${O.tzShort(data.tz)}</span>${O.badge(t)}</div>
       <div class="tiles">
@@ -173,8 +137,8 @@
         <div class="tile"><span class="k">Deep shear</span><span class="v">${f(Cx.sh.mean[i], 0, " kt")}</span><span class="s">10 m–500 hPa</span></div>
       </div>
       <div class="tablewrap"><table><thead><tr><th>Model</th><th>Weather</th><th>CAPE</th><th>Precip chance</th><th>Signal</th></tr></thead><tbody>${ms.map((m) => {
-        const a = data.models[m.id], c = a.weather_code[i], p = Cx.perModel.find((x) => x.m === m);
-        return `<tr><td><span class="sw" style="background:${O.modelColor(MODELS.indexOf(m))};margin-right:6px"></span>${O.esc(m.name)}</td><td class="num"${c >= 95 ? ' style="color:var(--prepare);font-weight:800"' : ""}>${CODE(c)}</td><td class="num">${f(a.cape[i], 0)}</td><td class="num">${f(a.precipitation_probability[i], 0, "%")}</td><td>${O.badge(p.tiers[i])}</td></tr>`;
+        const a = data.models[m.id].h, c = a.weather_code ? a.weather_code[i] : null, p = Cx.perModel.find((x) => x.m === m);
+        return `<tr><td><span class="sw" style="background:${O.modelColor(MODELS.indexOf(m))};margin-right:6px"></span>${O.esc(m.name)}</td><td class="num"${c >= 95 ? ' style="color:var(--prepare);font-weight:800"' : ""}>${CODE(c)}</td><td class="num">${f(a.cape ? a.cape[i] : null, 0)}</td><td class="num">${f(a.precipitation_probability ? a.precipitation_probability[i] : null, 0, "%")}</td><td>${O.badge(p.tiers[i])}</td></tr>`;
       }).join("")}</tbody></table></div></div>`;
   }
 
@@ -188,7 +152,7 @@
       ds.push({ label: "min", data: B.min, borderWidth: 0, pointRadius: 0, fill: false, spanGaps: true, hideTip: true, order: 5 });
       ds.push({ label: "spread", data: B.max, borderWidth: 0, pointRadius: 0, fill: "-1", backgroundColor: O.css("--band"), spanGaps: true, hideTip: true, order: 5 });
     }
-    if (showLines() || ms.length === 1) ms.forEach((m) => ds.push(O.modelLine(m.name, data.models[m.id][t.v], O.modelColor(MODELS.indexOf(m)))));
+    if (showLines() || ms.length === 1) ms.forEach((m) => ds.push(O.modelLine(m.name, data.models[m.id].h[t.v], O.modelColor(MODELS.indexOf(m)))));
     if (ms.length > 1) ds.push({ label: "BLEND", data: B.mean, borderColor: fg, borderWidth: 3.25, pointRadius: 0, tension: 0.25, spanGaps: true, order: 1 });
     const base = O.chartBase({ labels, hours, nowIdx: O.nowIndex(data.times, data.tz), selIdx: sel, unit: t.unit, dec: t.dec || 0, yTitle: t.unit, beginAtZero: t.zero, yMin: t.min, yMax: t.max });
     if (chart) chart.destroy();

@@ -1,0 +1,37 @@
+# Runs the math tests on every push, and the live Open-Meteo check on push, daily and on demand.
+# This only tests; the website itself is published by GitHub Pages from the main branch.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 11 * * *"   # daily, about 6-7 AM Eastern
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tests/core.test.js
+
+  live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tests/live.test.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: live-summary
+          path: tests/out/live-summary.json

@@ -64,7 +64,7 @@
       <summary><span class="section-title" style="margin:0">About these numbers</span></summary>
       <div class="stack" style="font-size:12.5px;color:var(--muted);margin-top:10px">
         <div>Snowfall is each member's own model snow, which Open-Meteo converts from water at about 7:1. Cold, fluffy events can run higher and warm, wet ones lower, and it doesn't account for melting on warm ground.</div>
-        <div>A member only counts toward a total if it has at least 90% of the hours in that window. Members with gaps are left out rather than counted as zero, and the plume line stops where a member's data stops.</div>
+        <div>A member only counts toward the odds and percentiles if it has <b>every</b> hour of the window. A member with gaps can only give a lower bound ("at least"), so it is listed separately and never decides a threshold. Its plume line stops where its data stops.</div>
       </div>
     </details>
   </aside>
@@ -72,6 +72,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="assets/ops-core.js"></script>
+<script src="assets/ops-data.js"></script>
 <script src="assets/ops.js"></script>
 <script src="assets/winter.js"></script>
 </body>

@@ -5,20 +5,9 @@
   const O = window.Ops, $ = O.$, C = O.Core, S = C.severe;
   O.shell("severe", "Severe");
 
-  const MODELS = [
-    { id: "gfs_hrrr", name: "HRRR (48 h)", w: 1.25 },
-    { id: "ncep_nam_conus", name: "NAM 3 km", w: 1 },
-    { id: "gfs_seamless", name: "GFS", w: 1 },
-    { id: "ecmwf_ifs025", name: "ECMWF IFS", w: 1.25 },
-    { id: "icon_seamless", name: "ICON", w: 1 },
-    { id: "gem_seamless", name: "GEM", w: 0.75 },
-  ];
-  const SURF = ["temperature_2m", "dew_point_2m", "wind_speed_10m", "wind_direction_10m", "cape", "convective_inhibition",
-    "lifted_index", "freezing_level_height", "precipitation_probability", "weather_code"];
-  const PL = [];
-  S.LEVELS.forEach((p) => ["temperature", "wind_speed", "wind_direction", "geopotential_height"].forEach((v) => PL.push(`${v}_${p}hPa`)));
-  const HOURLY = [...SURF, ...PL];
-
+  /* Models, variables and request settings: OpsCore.config.severe */
+  const SPEC = C.config.severe, MODELS = SPEC.models;
+  const NAMES = Object.fromEntries(MODELS.map((m) => [m.id, m.name]));
   const TABS = [
     { id: "scp", label: "SCP ≈", k: "scp", unit: "", dec: 1, zero: true, thr: [1, 4], sub: "Supercell composite, fixed-layer estimate: (CAPE/1000) × (0–3 km SRH/50) × (0–6 km shear term). Around 1 means supercells are possible. 4 or more strongly favors them." },
     { id: "stp", label: "STP ≈", k: "stp", unit: "", dec: 1, zero: true, thr: [1], sub: "Significant tornado parameter, fixed-layer estimate: (CAPE/1500) × LCL term × (0–1 km SRH/150) × 0–6 km shear term. 1 or more is where most significant-tornado environments sit." },
@@ -33,9 +22,9 @@
     { id: "cape", label: "CAPE", k: "cape", unit: "J/kg", zero: true, thr: [1000], sub: "Model CAPE as Open-Meteo reports it." },
     { id: "cin", label: "CIN", k: "cin", unit: "J/kg", zero: true, sub: "Convective inhibition (the cap). The sign convention depends on the model; larger values mean a stronger cap." },
   ];
-  const KEYS = ["cape", "cin", "bs1", "bs6", "srh1", "srh3", "lr75", "lr03", "lcl", "frz", "stp", "scp", "mw6", "thunder"];
+  const KEYS = S.KEYS;
 
-  let data = null, chart = null, fresh = false, prevSnap = null, tab = O.store.get("ops_severe_tab", "scp");
+  let data = null, chart = null, fresh = false, tab = O.store.get("ops_severe_tab", "scp");
   const picker = O.modelPicker($("models"), "ops_severe_models", MODELS, render);
   const showLines = O.linesToggle($("linesBtn"), "ops_severe_lines", () => renderChart());
   O.locationCard($("locCard"), () => run());
@@ -57,41 +46,27 @@
   async function run() {
     $("runBtn").disabled = true; O.setChip("FETCHING…");
     $("runMsg").className = "msg"; $("runMsg").textContent = `Requesting ${MODELS.length} model soundings…`;
-    const params = { forecast_days: $("days").value, temperature_unit: "celsius", wind_speed_unit: "kn", precipitation_unit: "inch" };
-    const res = await Promise.allSettled(MODELS.map((m) => O.fetchModel("https://api.open-meteo.com/v1/forecast", params, m.id, HOURLY)));
+    const res = await O.Data.loadModels(SPEC, { lat: O.location.lat, lon: O.location.lon, days: +$("days").value });
     $("runBtn").disabled = false;
-    let master = null; const ok = [], empty = [], failed = [];
-    res.forEach((r, i) => {
-      const m = MODELS[i];
-      if (r.status !== "fulfilled") { failed.push(m.name); picker.setStatus(m.id, "none"); return; }
-      const h = O.pick(r.value.hourly, HOURLY);
-      if (!O.hasData(h.cape) && !O.hasData(h.wind_speed_500hPa)) { empty.push(m.name); picker.setStatus(m.id, "none"); return; }
-      picker.setStatus(m.id, "ok");
-      if (!master || r.value.hourly.time.length > master.hourly.time.length) master = r.value;
-      ok.push({ m, j: r.value, h });
-    });
+    MODELS.forEach((m) => picker.setStatus(m.id, res.status[m.id] === "ok" ? "ok" : "none"));
     picker.redraw();
-    if (!ok.length) {
+    if (res.empty) {
       data = null; O.setChip("NO DATA", "err"); O.headline({ tier: "nodata" });
       $("runMsg").className = "msg err"; $("runMsg").textContent = "Couldn't reach Open-Meteo. Check your connection and try again.";
       render(); return;
     }
-    const times = master.hourly.time;
-    data = { times, tz: master.timezone, models: {} };
+    data = res;
     const thin = [];
-    ok.forEach(({ m, j, h }) => {
-      const a = {}; HOURLY.forEach((v) => (a[v] = O.align(times, j.hourly.time, h[v])));
-      const elev = j.elevation || 0;
-      const idx = times.map((_, i) => S.indices(a, i, elev));
-      const series = {}; KEYS.forEach((k) => (series[k] = idx.map((x) => (x[k] == null || !isFinite(x[k]) ? null : x[k]))));
-      if (!O.hasData(series.srh1)) thin.push(m.name);
-      data.models[m.id] = { a, elev, series };
+    Object.keys(data.models).forEach((id) => {
+      const md = data.models[id];
+      md.a = md.h;
+      md.series = S.series(md.h, data.times.length, md.elev);
+      if (!O.hasData(md.series.srh1)) thin.push(NAMES[id]);
     });
-    O.dataStatus([...failed.map((n) => `${n}: request failed`), ...empty.map((n) => `${n}: no coverage here`),
-      ...thin.map((n) => `${n}: no upper-air winds, so no shear, SRH, STP or SCP from it`)]);
-    $("runMsg").textContent = `${ok.length} models loaded` + (thin.length ? ` · no upper-air winds: ${thin.join(", ")}` : "") +
-      (empty.length ? ` · no coverage here: ${empty.join(", ")}` : "") + (failed.length ? ` · failed: ${failed.join(", ")}` : "") + ` · times in ${O.tzShort(data.tz)}`;
-    $("hHour").max = times.length - 1;
+    O.dataStatus([...res.problems, ...thin.map((n) => `${n}: no upper-air winds, so no shear, SRH, STP or SCP from it`)]);
+    $("runMsg").textContent = `${Object.keys(data.models).length} models loaded` + (thin.length ? ` · no upper-air winds: ${thin.join(", ")}` : "") +
+      (res.problems.length ? ` · ${res.problems.join(" · ")}` : "") + ` · times in ${O.tzShort(data.tz)}`;
+    $("hHour").max = data.times.length - 1;
     $("hHour").value = peakIndex();
     fresh = true;
     render();
@@ -122,16 +97,17 @@
       if (chart) { chart.destroy(); chart = null; }
       return;
     }
-    const bl = blended(), tiers = bl.map(S.tier);
+    const bl = blended(), tiers = bl.map(S.assess);
     data.bl = bl; data.tiers = tiers;
     drawStrip();
 
     /* headline */
     const now = Math.max(0, O.nowIndex(data.times, data.tz)), end = Math.min(data.times.length, now + 24);
-    const win = tiers.slice(now, end), worst = O.maxTier(win), first = win.findIndex((t) => t === worst);
+    const win = tiers.slice(now, end).map((a) => a.tier), worst = O.maxTier(win), first = win.findIndex((t) => t === worst);
+    const ltd = tiers.slice(now, end).filter((a) => a.limited && a.tier !== "nodata").length;
     const mx = (k, s, e, src = "mean") => { const v = bl.slice(s, e).map((x) => (src === "max" ? x.max[k] : x[k])).filter((x) => x != null); return v.length ? Math.max(...v) : null; };
     O.headline({
-      tier: worst, note: "Severe environment only · next 24 h",
+      tier: worst, note: `Severe environment only · next 24 h${ltd ? ` · limited data ${ltd} h` : ""}`,
       stats: [
         { num: O.TIER[worst].rank >= 1 ? O.fmtWhen(data.times[now + first]) : "—", unit: O.TIER[worst].rank >= 1 ? "first" : "no signal" },
         { num: `${fmt(mx("scp", now, end), 1)} / ${fmt(mx("scp", now, end, "max"), 1)}`, unit: "SCP ≈ blend / max model" },
@@ -147,28 +123,30 @@
       /* also flag when any single model meets a flag on its own */
       const mfl = new Set(); activeModels().forEach((m) => d.idx.forEach((i) => S.flags(modelAt(m.id, i)).forEach((f) => { if (!fl.has(f)) mfl.add(f); })));
       const unstable = d.idx.filter((i) => (bl[i].cape || 0) >= 250);
-      return { d, t: O.maxTier(d.idx.map((i) => tiers[i])), fl, mfl, th: dmax("thunder", d.idx), cape: [dmax("cape", d.idx), dmax("cape", d.idx, 1)], bs6: [dmax("bs6", d.idx), dmax("bs6", d.idx, 1)],
+      const lim = d.idx.filter((i) => tiers[i].limited && tiers[i].tier !== "nodata");
+      return { d, t: O.maxTier(d.idx.map((i) => tiers[i].tier)), lim, miss: [...new Set(lim.flatMap((i) => tiers[i].missing))], win: C.time.windowKey(data.times, d.idx), fl, mfl, th: dmax("thunder", d.idx), cape: [dmax("cape", d.idx), dmax("cape", d.idx, 1)], bs6: [dmax("bs6", d.idx), dmax("bs6", d.idx, 1)],
         srh1: [dmax("srh1", d.idx), dmax("srh1", d.idx, 1)], srh3: [dmax("srh3", d.idx), dmax("srh3", d.idx, 1)], scp: [dmax("scp", d.idx), dmax("scp", d.idx, 1)], stp: [dmax("stp", d.idx), dmax("stp", d.idx, 1)],
         lr75: dmax("lr75", d.idx), lcl: dmin("lcl", unstable.length ? unstable : d.idx) };
     });
     $("daily").innerHTML = `<thead><tr><th>Day</th><th>Signal</th><th>Storms in models</th><th>CAPE</th><th>0–6 km shear</th><th>0–1 km SRH</th><th>0–3 km SRH</th><th>SCP ≈</th><th>STP ≈</th><th>700–500 LR</th><th>Min LCL</th><th>Flags</th></tr></thead><tbody>` +
-      rows.map((r) => `<tr><td class="display" style="font-size:12px">${O.fmtDay(r.d.k)}</td><td>${O.badge(r.t)}</td>` +
+      rows.map((r) => `<tr><td class="display" style="font-size:12px">${O.fmtDay(r.d.k)}</td><td>${O.badge({ tier: r.t, limited: r.lim.length > 0, missing: r.miss })}</td>` +
         `<td class="num">${r.th == null ? "—" : Math.round(r.th * 100) + "%"}</td><td class="num">${pair(...r.cape)}</td><td class="num">${pair(...r.bs6, 0, " kt")}</td>` +
         `<td class="num">${pair(...r.srh1)}</td><td class="num">${pair(...r.srh3)}</td><td class="num">${pair(...r.scp, 1)}</td><td class="num">${pair(...r.stp, 1)}</td>` +
         `<td class="num">${fmt(r.lr75, 1)}</td><td class="num">${fmt(r.lcl, 0, " m")}</td>` +
         `<td style="white-space:normal;min-width:120px;text-align:left">${r.fl.size || r.mfl.size ? [...r.fl].map((f) => `<span class="flag">${f}</span>`).join("") + [...r.mfl].map((f) => `<span class="flag dim" title="Met by at least one model, not by the blend">${f}?</span>`).join("") : '<span class="msg">—</span>'}</td></tr>`).join("") + "</tbody>";
 
     if (fresh) {
-      const snap = {}; rows.forEach((r) => (snap[r.d.k] = { label: O.fmtDay(r.d.k), t: r.t, scp: r.scp[0], stp: r.stp[0], bs6: r.bs6[0], cape: r.cape[0] }));
-      prevSnap = O.trackChanges("severe", snap); data.snap = snap; fresh = false;
+      const snap = { cfg: C.config.fingerprint(picker.weights()), rows: {} };
+      rows.forEach((r) => (snap.rows[r.d.k] = { label: O.fmtDay(r.d.k), win: r.win, contrib: activeModels().map((m) => m.id), t: r.t, scp: r.scp[0], stp: r.stp[0], bs6: r.bs6[0], cape: r.cape[0] }));
+      data.snapPair = O.trackChanges("severe", snap); fresh = false;
     }
-    if (data.snap) O.renderChanges($("changes"), prevSnap, data.snap, [
+    O.renderChanges($("changes"), data.snapPair, [
       { k: "t", label: "signal", tier: true },
       { k: "scp", label: "SCP", min: 1, fmt: (v) => v.toFixed(1) },
       { k: "stp", label: "STP", min: 0.5, fmt: (v) => v.toFixed(1) },
       { k: "bs6", label: "0–6 km shear", min: 10, fmt: (v) => `${Math.round(v)} kt` },
       { k: "cape", label: "CAPE", min: 500, fmt: (v) => `${Math.round(v)}` },
-    ]);
+    ], NAMES);
 
     /* hodograph model list */
     const sel = $("hModel"), cur = sel.value || "blend";
@@ -181,7 +159,7 @@
   function drawStrip() {
     if (!data || !data.tiers) return;
     const rows = [{ name: "BLEND", color: O.css("--text"), tiers: data.tiers, bold: true }]
-      .concat(activeModels().map((m) => ({ name: m.name, color: O.modelColor(MODELS.indexOf(m)), tiers: data.times.map((_, i) => S.tier(modelAt(m.id, i))) })));
+      .concat(activeModels().map((m) => ({ name: m.name, color: O.modelColor(MODELS.indexOf(m)), tiers: data.times.map((_, i) => S.assess(modelAt(m.id, i))) })));
     O.tierStrip($("strip"), data.times, rows, { nowIdx: O.nowIndex(data.times, data.tz), sel: +$("hHour").value,
       onPick: (i) => { $("hHour").value = i; drawStrip(); drawHodo(); renderChart(); $("strip").querySelector(".strip-scroll").focus(); } });
   }
@@ -230,7 +208,7 @@
     svg += `<text x="12" y="20" font-size="11" fill="${col.muted}">kt</text></svg>`;
     $("hodo").innerHTML = svg;
 
-    const x = id === "blend" ? data.bl[i] : modelAt(id, i), t = S.tier(x);
+    const x = id === "blend" ? data.bl[i] : modelAt(id, i), t = S.assess(x);
     const rmTxt = bk ? `${String(Math.round(S.fromDir(bk.rm) / 5) * 5).padStart(3, "0")}°/${Math.round(S.mag(bk.rm))} kt` : "—";
     const fl = S.flags(x);
     $("hTiles").innerHTML = [

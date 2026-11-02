@@ -37,7 +37,7 @@
         <span><i class="sw" style="background:var(--monitor);height:10px"></i>Marginal</span>
         <span><i class="sw" style="background:var(--prepare);height:10px"></i>Elevated</span>
         <span><i class="sw" style="background:var(--action);height:10px"></i>High</span>
-        <span><i class="sw" style="background:repeating-linear-gradient(45deg,var(--nodata) 0 2px,transparent 2px 5px);height:10px"></i>Limited data</span>
+        <span><i class="sw" style="background:repeating-linear-gradient(45deg,var(--bg) 0 1.5px,transparent 1.5px 5px),var(--monitor);height:10px"></i>Hatched: limited data</span>
         <span><i class="sw" style="background:var(--raised);height:10px;border:1px solid var(--line)"></i>No data</span>
       </div>
     </section>
@@ -89,7 +89,7 @@
         <div><span class="badge" style="--b:var(--action)">HIGH</span> STP ≥ 1 or SCP ≥ 4.</div>
         <div><span class="badge" style="--b:var(--prepare)">ELEVATED</span> SCP ≥ 1, or CAPE ≥ 1000 J/kg with 0–6 km shear ≥ 40 kt.</div>
         <div><span class="badge" style="--b:var(--monitor)">MARGINAL</span> CAPE ≥ 500 J/kg with 0–6 km shear ≥ 25 kt.</div>
-        <div><span class="badge dashed" style="--b:var(--nodata)">LIMITED DATA</span> CAPE ≥ 500 J/kg but no upper-air winds to judge shear or helicity.</div>
+        <div><span class="ltd">LTD</span> Limited data. Shown on top of any signal level when shear, SRH or LCL can't be computed for that hour, so the signal could be understated. Hover for what's missing.</div>
         <div><span class="badge" style="--b:var(--normal)">LOW</span> None of the above, or CAPE under 100 J/kg.</div>
         <div>These are Heads-Up status colors used for <b>signal strength in model guidance</b>, not an instruction to act or an official outlook.</div>
       </div>
@@ -112,6 +112,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="assets/ops-core.js"></script>
+<script src="assets/ops-data.js"></script>
 <script src="assets/ops.js"></script>
 <script src="assets/severe.js"></script>
 </body>

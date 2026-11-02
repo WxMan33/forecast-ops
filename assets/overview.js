@@ -1,117 +1,91 @@
-/* Overview: a 3-day summary for the forecast point, built from a light version of each tool. */
+/* Overview: a 3-day summary built from the same configuration, weights and aggregation as each
+   tool page, so the numbers here match MODEL BLEND, THUNDER and WINTER for the same days. */
 (function () {
   "use strict";
-  const O = window.Ops, $ = O.$, C = O.Core;
+  const O = window.Ops, $ = O.$, C = O.Core, CFG = C.config;
   O.shell("home", "Overview");
   document.title = O.BRAND.name;
 
-  const MODELS = [
-    { id: "ecmwf_ifs025", name: "ECMWF IFS", w: 1.25 },
-    { id: "gfs_seamless", name: "GFS", w: 1 },
-    { id: "ncep_nbm_conus", name: "NBM", w: 1.25 },
-    { id: "gfs_hrrr", name: "HRRR", w: 1 },
-    { id: "icon_seamless", name: "ICON", w: 1 },
-    { id: "gem_seamless", name: "GEM", w: 1 },
-  ];
-  const HOURLY = ["temperature_2m", "precipitation", "precipitation_probability", "snowfall", "wind_gusts_10m", "cape", "weather_code"];
-  const ENS = [{ id: "gfs025", name: "GEFS", w: 1 }, { id: "ecmwf_ifs025", name: "ECMWF ENS", w: 1.25 }];
-
-  let fresh = false, prevSnap = null;
   O.locationCard($("locCard"), () => run());
+  const name = (spec) => Object.fromEntries(spec.models.map((m) => [m.id, m.name]));
+  const NAMES = { ...name(CFG.blend), ...name(CFG.thunder), ...name(CFG.winter) };
 
   async function run() {
-    fresh = true;
     O.setChip("FETCHING…");
     $("sumMsg").textContent = "Loading guidance…";
-    const det = Promise.allSettled(MODELS.map((m) => O.fetchModel("https://api.open-meteo.com/v1/forecast",
-      { forecast_days: 4, temperature_unit: "fahrenheit", wind_speed_unit: "mph", precipitation_unit: "inch" }, m.id, HOURLY)));
-    const ens = Promise.allSettled(ENS.map((e) => O.fetchModel("https://ensemble-api.open-meteo.com/v1/ensemble",
-      { forecast_days: 4, precipitation_unit: "inch" }, e.id, ["snowfall"])));
-    const [dr, er] = await Promise.all([det, ens]);
-    const problems = [];
-    const ok = [];
-    dr.forEach((r, i) => {
-      const m = MODELS[i];
-      if (r.status !== "fulfilled") { problems.push(`${m.name}: request failed`); return; }
-      const h = O.pick(r.value.hourly, HOURLY);
-      if (!O.hasData(h.temperature_2m)) { problems.push(`${m.name}: no coverage here`); return; }
-      ok.push({ m, j: r.value, h });
-    });
-    if (!ok.length) {
+    const where = { lat: O.location.lat, lon: O.location.lon };
+    const wsB = O.savedWeights(CFG.blend), wsT = O.savedWeights(CFG.thunder), wsW = O.savedWeights(CFG.winter);
+    /* Request exactly what the tool pages request (same models, variables and days), so the
+       browser cache is shared and nothing is computed differently. */
+    const [B, T, W] = await Promise.all([
+      O.Data.loadModels(CFG.blend, { ...where, days: Math.max(3, O.savedDays(CFG.blend)) }),
+      O.Data.loadModels(CFG.thunder, { ...where, days: Math.max(3, O.savedDays(CFG.thunder)) }),
+      O.Data.loadEnsemble(CFG.winter, where),
+    ]);
+    if (B.empty) {
       O.setChip("NO DATA", "err"); O.headline({ tier: "nodata", word: "NO DATA" });
-      $("sumMsg").textContent = "Couldn't reach Open-Meteo.";
-      $("days").innerHTML = ""; return;
+      $("sumMsg").textContent = "Couldn't reach Open-Meteo."; $("days").innerHTML = ""; return;
     }
-    const master = ok.reduce((a, b) => (b.j.hourly.time.length > a.j.hourly.time.length ? b : a)).j;
-    const times = master.hourly.time, tz = master.timezone;
-    const A = (v) => ok.map(({ m, j, h }) => ({ m, w: m.w, data: O.align(times, j.hourly.time, h[v]) })).filter((x) => O.hasData(x.data));
-    const B = (v) => O.blendSeries(A(v), times.length);
+    const rows = C.blend.dailyRows(B, wsB).slice(0, 3);
+    const TH = T.empty ? null : C.thunder.hourly(T, wsT);
+    const mem = W.empty ? [] : C.winter.members(W, wsW, "snowfall");
+    const wDays = mem.length ? Object.fromEntries(C.winter.dayRows(W.times, mem).map((r) => [r.k, r])) : {};
+    const tDays = TH ? Object.fromEntries(C.time.dayGroups(T.times).map((d) => [d.k, d.idx])) : {};
 
-    /* ensemble snow members on the same time axis */
-    const mem = [];
-    er.forEach((r, i) => {
-      const e = ENS[i];
-      if (r.status !== "fulfilled") { problems.push(`${e.name}: unavailable`); return; }
-      const keys = Object.keys(r.value.hourly || {}).filter((k) => k === "snowfall" || k.startsWith("snowfall_"));
-      const arrs = keys.map((k) => O.align(times, r.value.hourly.time, r.value.hourly[k])).filter(O.hasData);
-      arrs.forEach((a) => mem.push({ w: e.w / arrs.length, a }));
-    });
-
-    const T = B("temperature_2m"), P = B("precipitation"), POP = B("precipitation_probability"), SN = B("snowfall"), G = B("wind_gusts_10m"), CAPE = B("cape");
-    const wc = A("weather_code");
-    const tiers = times.map((_, i) => C.thunder.tier(C.stats.weightedShare(wc.map((x) => x.data[i]), wc.map((x) => x.w), C.thunder.isThunderCode), CAPE.mean[i], POP.mean[i]));
-
-    const now = Math.max(0, O.nowIndex(times, tz));
-    const days = O.dayGroups(times, now).filter((d) => d.idx.length >= 3).slice(0, 3);
-    const sum = (a, idx) => { const v = idx.map((i) => a[i]).filter((x) => x != null); return v.length ? v.reduce((s, x) => s + x, 0) : null; };
-    const mx = (a, idx) => { const v = idx.map((i) => a[i]).filter((x) => x != null); return v.length ? Math.max(...v) : null; };
-    const mn = (a, idx) => { const v = idx.map((i) => a[i]).filter((x) => x != null); return v.length ? Math.min(...v) : null; };
     const f = (x, d = 0, u = "") => (x == null ? "—" : x.toFixed(d) + u);
-    const rows = days.map((d) => {
-      const s = d.idx[0], e = d.idx[d.idx.length - 1] + 1;
-      const ws = mem.length ? C.winter.windowStats(mem, s, e) : null;
-      const hot = d.idx.filter((i) => C.TIERS[tiers[i]].rank >= 1);
-      return { d, part: d.idx.length < 24, hi: mx(T.mean, d.idx), lo: mn(T.mean, d.idx), qpf: sum(P.mean, d.idx), pop: mx(POP.mean, d.idx), sn: sum(SN.mean, d.idx),
-        gust: mx(G.mean, d.idx), t: O.maxTier(d.idx.map((i) => tiers[i])), hot, p1: ws ? ws.P[1] : null, p01: ws ? ws.P[0.1] : null };
+    const pctTxt = (p) => (p == null ? "—" : p > 0 && p < 0.05 ? "<5%" : Math.round(p * 100) + "%");
+    const cards = rows.map((r, n) => {
+      const ti = tDays[r.k] || [], ta = ti.map((i) => TH.assess[i]);
+      const t = ta.length ? O.maxTier(ta.map((a) => a.tier)) : "nodata";
+      const lim = ta.filter((a) => a.limited && a.tier !== "nodata");
+      const hot = ti.filter((i) => O.TIER[TH.assess[i].tier].rank >= 1);
+      return { r, n, t, lim, miss: [...new Set(lim.flatMap((a) => a.missing))], hot, w: wDays[r.k] };
     });
-    const pctTxt = (p) => (p == null ? "—" : Math.round(p * 100) + "%");
-    $("days").innerHTML = rows.map((r) => `<div class="daycard">
-        <div class="r" style="align-items:center"><span class="d">${O.fmtDay(r.d.k)}${r.part ? ' <span class="msg">· rest of day</span>' : ""}</span></div>
+    $("days").innerHTML = cards.map(({ r, n, t, lim, miss, hot, w }) => `<div class="daycard">
+        <div class="r" style="align-items:center"><span class="d">${O.fmtDay(r.k)}${n === 0 ? ' <span class="msg">· today</span>' : ""}</span></div>
         <div class="t"><span class="hi">${f(r.hi, 0, "°")}</span> / <span class="lo">${f(r.lo, 0, "°")}</span></div>
         <div class="r"><span>Precip</span><b>${f(r.qpf, 2, '"')} · ${f(r.pop, 0, "%")}</b></div>
         <div class="r"><span>Peak gust</span><b>${f(r.gust, 0, " mph")}</b></div>
-        <div class="r"><span>Snow (ens.)</span><b>${r.p01 == null ? "—" : r.p01 < 0.05 ? "none" : `any ${pctTxt(r.p01)} · 1"+ ${pctTxt(r.p1)}`}</b></div>
-        <div class="r" style="align-items:center"><span>Thunder</span><a href="thunder.html" style="text-decoration:none">${O.badge(r.t)}</a></div>
-        ${r.hot.length ? `<div class="msg">thunder signal ${O.fmtHour(O.hourOf(times[r.hot[0]]))}–${O.fmtHour((O.hourOf(times[r.hot[r.hot.length - 1]]) + 1) % 24)}</div>` : ""}
+        <div class="r"><span>Snow (ens.)</span><b>${!w || !w.st.used ? "—" : `any ${pctTxt(w.st.P[0.1])} · 1"+ ${pctTxt(w.st.P[1])}`}</b></div>
+        <div class="r" style="align-items:center"><span>Thunder</span><a href="thunder.html" style="text-decoration:none">${O.badge({ tier: t, limited: lim.length > 0, missing: miss })}</a></div>
+        ${hot.length ? `<div class="msg">thunder signal ${O.fmtHour(O.hourOf(T.times[hot[0]]))}–${O.fmtHour((O.hourOf(T.times[hot[hot.length - 1]]) + 1) % 24)}</div>` : ""}
+        <div class="msg">${r.contrib.length} models · ${w ? `${w.st.used}/${w.st.total} members` : "no ensemble"}</div>
       </div>`).join("");
 
-    const all = days.flatMap((d) => d.idx);
-    const worst = O.maxTier(all.map((i) => tiers[i]));
-    const p1All = mem.length && all.length ? C.winter.windowStats(mem, all[0], all[all.length - 1] + 1).P[1] : null;
+    /* headline over the same three calendar days */
+    const worst = O.maxTier(cards.map((c) => c.t));
+    const qpf = rows.length && rows.every((r) => r.qpf != null) ? rows.reduce((s, r) => s + r.qpf, 0) : null;
+    let p1 = null;
+    if (mem.length && rows.length) {
+      const idx = C.time.dayGroups(W.times).filter((d) => rows.some((r) => r.k === d.k)).flatMap((d) => d.idx);
+      if (idx.length) p1 = C.winter.windowStats(mem, idx[0], idx[idx.length - 1] + 1).P[1];
+    }
     O.headline({
-      word: "NEXT 3 DAYS", note: "Quick model summary",
+      word: "NEXT 3 DAYS", note: "Calendar days · same models & weights as each tool",
       stats: [
-        { num: f(sum(P.mean, all), 2, '"'), unit: "total precip" },
-        { num: pctTxt(p1All), unit: 'chance of 1"+ snow' },
+        { num: f(qpf, 2, '"'), unit: "total precip" },
+        { num: pctTxt(p1), unit: 'chance of 1"+ snow' },
         { num: O.TIER[worst].word, unit: "thunder signal", color: O.TIER[worst].rank >= 1 ? O.TIER[worst].color : undefined },
       ],
     });
-    O.dataStatus(problems);
-    $("sumMsg").textContent = `${ok.length} models · ${mem.length} ensemble members · ${O.tzShort(tz)}`;
+    O.dataStatus([...B.problems.map((p) => `Blend · ${p}`), ...T.problems.map((p) => `Thunder · ${p}`), ...W.problems.map((p) => `Winter · ${p}`)]);
+    $("sumMsg").textContent = `${Object.keys(B.models).length} blend models · ${TH ? TH.ids.length : 0} thunder models · ${mem.length} ensemble members · ${O.tzShort(B.tz)}`;
 
-    if (fresh) {
-      const snap = {}; rows.forEach((r) => (snap[r.d.k] = { label: O.fmtDay(r.d.k), hi: r.hi, lo: r.lo, qpf: r.qpf, pop: r.pop, gust: r.gust, p1: r.p1 == null ? null : r.p1 * 100, t: r.t }));
-      prevSnap = O.trackChanges("overview", snap); fresh = false;
-      O.renderChanges($("changes"), prevSnap, snap, [
-        { k: "hi", label: "high", min: 3, fmt: (v) => `${Math.round(v)}°` },
-        { k: "lo", label: "low", min: 3, fmt: (v) => `${Math.round(v)}°` },
-        { k: "qpf", label: "precip", min: 0.1, fmt: (v) => `${v.toFixed(2)}"` },
-        { k: "pop", label: "max chance", min: 15, fmt: (v) => `${Math.round(v)}%` },
-        { k: "gust", label: "peak gust", min: 8, fmt: (v) => `${Math.round(v)} mph` },
-        { k: "p1", label: '1"+ snow chance', min: 10, fmt: (v) => `${Math.round(v)}%` },
-        { k: "t", label: "thunder", tier: true },
-      ]);
-    }
+    const snap = { cfg: `${CFG.fingerprint(wsB)}|${CFG.fingerprint(wsT)}|${CFG.fingerprint(wsW)}`, rows: {} };
+    cards.forEach(({ r, t, w }) => (snap.rows[r.k] = {
+      label: O.fmtDay(r.k), win: r.win, contrib: [...r.contrib, ...(TH ? TH.ids.map((id) => "thunder:" + id) : []), ...(W.ens ? Object.keys(wsW).filter((id) => W.ens[id]).map((id) => "ens:" + id) : [])],
+      hi: r.hi, lo: r.lo, qpf: r.qpf, pop: r.pop, gust: r.gust, p1: w && w.st.used ? w.st.P[1] * 100 : null, t }));
+    const names = { ...NAMES };
+    Object.keys(NAMES).forEach((id) => { names["thunder:" + id] = `${NAMES[id]} (thunder)`; names["ens:" + id] = NAMES[id]; });
+    O.renderChanges($("changes"), O.trackChanges("overview", snap), [
+      { k: "hi", label: "high", min: 3, fmt: (v) => `${Math.round(v)}°` },
+      { k: "lo", label: "low", min: 3, fmt: (v) => `${Math.round(v)}°` },
+      { k: "qpf", label: "precip", min: 0.1, fmt: (v) => `${v.toFixed(2)}"` },
+      { k: "pop", label: "max chance", min: 15, fmt: (v) => `${Math.round(v)}%` },
+      { k: "gust", label: "peak gust", min: 8, fmt: (v) => `${Math.round(v)} mph` },
+      { k: "p1", label: '1"+ snow chance', min: 10, fmt: (v) => `${Math.round(v)}%` },
+      { k: "t", label: "thunder", tier: true },
+    ], names);
   }
   run();
 })();

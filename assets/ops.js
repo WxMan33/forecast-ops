@@ -2,7 +2,7 @@
    Forecast math lives in ops-core.js (window.OpsCore), which every page loads first. */
 (function () {
   "use strict";
-  const Core = window.OpsCore;
+  const Core = window.OpsCore, Data = window.OpsData;
 
   /* ======================= EDIT ME ======================= */
   const BRAND = {
@@ -59,11 +59,16 @@
   document.documentElement.setAttribute("data-theme", store.get("ops_theme", "dark"));
 
   /* ---------- signal tiers: fixed Heads-Up colors, guidance wording ---------- */
-  const COLOR = { nodata: "var(--nodata)", limited: "var(--nodata)", normal: "var(--normal)", monitor: "var(--monitor)", prepare: "var(--prepare)", action: "var(--action)" };
+  const COLOR = { nodata: "var(--nodata)", normal: "var(--normal)", monitor: "var(--monitor)", prepare: "var(--prepare)", action: "var(--action)" };
   const TIER = {};
   Object.keys(Core.TIERS).forEach((k) => (TIER[k] = { ...Core.TIERS[k], color: COLOR[k] }));
   const maxTier = Core.maxTier;
-  const badge = (t, text) => `<span class="badge${t === "limited" ? " dashed" : ""}" style="--b:${TIER[t].color}">${esc(text || TIER[t].word)}</span>`;
+  /* Signal badge. a: tier key or an assessment {tier, limited, missing}. Limited data adds a hatched tag. */
+  const badge = (a, text) => {
+    const t = typeof a === "string" ? a : a.tier, lim = typeof a === "object" && a.limited && t !== "nodata";
+    return `<span class="badge" style="--b:${TIER[t].color}">${esc(text || TIER[t].word)}</span>` +
+      (lim ? ` <span class="ltd" title="Limited data${a.missing && a.missing.length ? ": missing " + esc(a.missing.join(", ")) : ""}">LTD</span>` : "");
+  };
 
   /* ---------- shell ---------- */
   const PAGES = [
@@ -134,7 +139,7 @@
   function headline({ tier, word, note, stats = [] }) {
     const h = $("headline"); if (!h) return;
     const t = TIER[tier] || null;
-    h.className = "headline" + (t ? " tier" : "") + (tier === "limited" ? " dashed" : "");
+    h.className = "headline" + (t ? " tier" : "");
     h.style.setProperty("--tier", t ? t.color : "");
     h.innerHTML =
       `<div class="hl-label">${t ? '<span class="dot"></span>' : ""}<div><span class="hl-word">${esc(word || (t ? t.word : ""))}</span>${note ? `<div class="hl-note">${esc(note)}</div>` : ""}</div></div>` +
@@ -297,53 +302,18 @@
     } catch (e) { box.hidden = true; }
   }
 
-  /* ---------- fetching (with a short session cache so tab-hopping is instant) ---------- */
-  async function getJSON(url, cacheMin = 15) {
-    const key = "ops_c:" + url;
-    if (cacheMin) {
-      try { const c = JSON.parse(sessionStorage.getItem(key) || "null"); if (c && Date.now() - c.at < cacheMin * 60e3) return c.json; } catch (e) { /* no cache */ }
-    }
-    const ctl = new AbortController();
-    const to = setTimeout(() => ctl.abort(), 20000);
-    let res;
-    try { res = await fetch(url, { signal: ctl.signal }); } finally { clearTimeout(to); }
-    const json = await res.json().catch(() => ({ error: true, reason: `HTTP ${res.status}` }));
-    if (!res.ok && !json.error) { json.error = true; json.reason = `HTTP ${res.status}`; }
-    if (cacheMin && !json.error) { try { sessionStorage.setItem(key, JSON.stringify({ at: Date.now(), json })); } catch (e) { /* full */ } }
-    return json;
-  }
+  /* ---------- fetching: shared loader in ops-data.js ---------- */
+  const getJSON = Data.getJSON;
+  const hasData = Core.stats.hasData;
 
-  /* One model, one request. If Open-Meteo rejects a variable (or a whole pressure level) for this
-     model, drop it and retry, so one unsupported field never sinks the whole model. */
-  async function fetchModel(base, params, model, hourly, daily) {
-    let hv = hourly.slice(), dv = (daily || []).slice();
-    for (let attempt = 0; attempt < 8; attempt++) {
-      const p = new URLSearchParams({ ...params, latitude: loc.lat, longitude: loc.lon, timezone: "auto", models: model });
-      if (hv.length) p.set("hourly", hv.join(","));
-      if (dv.length) p.set("daily", dv.join(","));
-      const json = await getJSON(`${base}?${p.toString().replace(/%2C/g, ",")}`);
-      if (!json.error) return json;
-      const why = String(json.reason || "");
-      const levels = [...why.matchAll(/(\d{3,4})\s*hPa/gi)].map((m) => `_${m[1]}hPa`);
-      const bad = [...hv, ...dv].filter((v) => why.includes(v) || levels.some((l) => v.endsWith(l)));
-      if (!bad.length) throw new Error(why || "Request failed");
-      hv = hv.filter((v) => !bad.includes(v)); dv = dv.filter((v) => !bad.includes(v));
-    }
-    throw new Error("Too many unsupported variables");
+  /* The weights a tool page is using, read from its saved picker state (or the defaults).
+     The overview uses this so its numbers match each tool exactly. */
+  function savedWeights(spec) {
+    const st = store.get(`ops_${spec.id}_models`, {}), w = {};
+    spec.models.forEach((m) => { const x = st[m.id]; const on = x ? x.on : m.on !== false, wt = x ? x.w : m.w; if (on && wt > 0) w[m.id] = wt; });
+    return w;
   }
-
-  /* Pull named arrays out of a response, tolerating model-suffixed keys. */
-  function pick(block, names) {
-    const out = {};
-    if (!block) return out;
-    const keys = Object.keys(block);
-    for (const n of names) {
-      const k = keys.find((k) => k === n) || keys.find((k) => k.startsWith(n + "_") && !/_member\d+/.test(k));
-      if (k) out[n] = block[k];
-    }
-    return out;
-  }
-  const hasData = (a) => Array.isArray(a) && a.some((x) => x != null);
+  const savedDays = (spec) => store.get(`ops_${spec.id}_days`, spec.days);
 
   /* ---------- time ---------- */
   function nowLocalString(tz) {
@@ -365,12 +335,7 @@
   const fmtWhen = (t) => `${WD[dayDate(dayOf(t)).getDay()]} ${fmtHour(hourOf(t))}`;
   const tzShort = (tz) => { try { return new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName").value; } catch (e) { return tz || ""; } };
   const hourLabels = (times) => times.map((t) => `${WD[dayDate(dayOf(t)).getDay()]} ${fmtHour(hourOf(t))}`);
-  /* Group hour indices by calendar day, optionally only within [s, e). */
-  function dayGroups(times, s = 0, e = times.length) {
-    const out = [];
-    for (let i = s; i < e; i++) { const k = dayOf(times[i]); if (!out.length || out[out.length - 1].k !== k) out.push({ k, idx: [] }); out[out.length - 1].idx.push(i); }
-    return out;
-  }
+  const dayGroups = Core.time.dayGroups;
 
   /* ---------- model colors: distinct from the status palette ---------- */
   const MODEL_COLORS = ["#60A5FA", "#F472B6", "#34D399", "#C084FC", "#FBBF24", "#22D3EE", "#FB7185", "#A3E635", "#F59E0B", "#818CF8", "#2DD4BF", "#E879F9"];
@@ -415,6 +380,8 @@
     draw();
     $(`reset_${key}`).addEventListener("click", () => { models.forEach((m) => (st[m.id] = { on: m.on !== false, w: m.w })); store.set(key, st); draw(); onChange && onChange(); });
     return {
+      /* {id: weight} for models in use that returned data */
+      weights() { const w = {}; models.forEach((m) => { if (st[m.id].on && st[m.id].w > 0 && status[m.id] !== "none") w[m.id] = st[m.id].w; }); return w; },
       on: (id) => st[id] && st[id].on && st[id].w > 0 && status[id] !== "none",
       w: (id) => (st[id] ? st[id].w : 0),
       setStatus(id, s) { status[id] = s; },
@@ -495,9 +462,10 @@
     const dayRow = `<div class="strip-row" style="${tpl}"><div></div>${times.map((t, i) => `<div class="strip-lab day">${hourOf(t) === 0 || i === 0 ? fmtDay(dayOf(t)).slice(0, 3) : ""}</div>`).join("")}</div>`;
     const hrRow = `<div class="strip-row" style="${tpl}"><div></div>${times.map((t, i) => `<div class="strip-lab${i === nowIdx ? " now" : ""}">${i === nowIdx ? "NOW" : hourOf(t) % 6 === 0 && hourOf(t) !== 0 ? fmtHour(hourOf(t)) : ""}</div>`).join("")}</div>`;
     const body = rows.map((r) => `<div class="strip-row" style="${tpl}"><div class="strip-name${r.bold ? " bold" : ""}"><span class="sw" style="background:${r.color}"></span>${esc(r.name)}</div>` +
-      times.map((t, i) => { const tr = r.tiers[i] || "nodata";
-        const bg = tr === "nodata" ? "var(--raised)" : tr === "limited" ? "repeating-linear-gradient(45deg,var(--nodata) 0 2px,transparent 2px 5px)" : tr === "normal" ? "color-mix(in srgb, var(--normal) 30%, transparent)" : TIER[tr].color;
-        return `<div class="strip-cell${hourOf(t) === 0 ? " d0" : ""}${i === nowIdx ? " now" : ""}${i === sel ? " sel" : ""}" data-i="${i}" style="background:${bg}" title="${esc(r.name)} · ${fmtWhen(t)} · ${TIER[tr].word}"></div>`; }).join("") + `</div>`).join("");
+      times.map((t, i) => { const a = r.tiers[i] || { tier: "nodata" }, tr = typeof a === "string" ? a : a.tier, lim = typeof a === "object" && a.limited && tr !== "nodata";
+        const base = tr === "nodata" ? "var(--raised)" : tr === "normal" ? "color-mix(in srgb, var(--normal) 30%, transparent)" : TIER[tr].color;
+        const bg = lim ? `repeating-linear-gradient(45deg, var(--bg) 0 1.5px, transparent 1.5px 5px), ${base}` : base;
+        return `<div class="strip-cell${hourOf(t) === 0 ? " d0" : ""}${i === nowIdx ? " now" : ""}${i === sel ? " sel" : ""}" data-i="${i}" style="background:${bg}" title="${esc(r.name)} · ${fmtWhen(t)} · ${TIER[tr].word}${lim ? ` · limited data (missing ${esc(a.missing.join(", "))})` : ""}"></div>`; }).join("") + `</div>`).join("");
     el.innerHTML = `<div class="tablewrap strip-scroll" tabindex="0" aria-label="Hourly signal. Click an hour, or use the arrow keys, for details."><div class="strip">${dayRow}${hrRow}${body}</div></div>`;
     const sc = el.firstChild;
     if (onPick) {
@@ -513,41 +481,37 @@
   }
 
   /* ---------- "since your last check" ----------
-     Keeps two snapshots per page+location: the latest and the one before it. A new load
-     only pushes the old one back once it's at least 30 minutes old, so refreshing doesn't
-     wipe out the comparison. */
-  function trackChanges(page, summary) {
-    const k = `ops_snap_${page}_${loc.lat},${loc.lon}`, s = store.get(k, {}), now = Date.now();
+     Keeps two snapshots per page+location: the latest and the one before it. A new load only
+     pushes the old one back once it's at least 30 minutes old, so refreshing doesn't wipe out
+     the comparison. snap: {cfg, rows: {key: {label, win, contrib[], ...fields}}} */
+  function trackChanges(page, snap) {
+    const k = `ops_snap2_${page}_${loc.lat},${loc.lon}`, s = store.get(k, {}), now = Date.now();
     if (s.cur && now - s.cur.at >= 30 * 60e3) s.prev = s.cur;
-    s.cur = { at: now, summary };
+    s.cur = { at: now, ...snap };
     store.set(k, s);
-    return s.prev || null;
+    return { prev: s.prev || null, cur: s.cur };
   }
   /* spec: [{k, label, fmt(v), min (numeric threshold), tier: true}] */
-  function renderChanges(el, prev, cur, spec, unitLabel = "") {
+  function renderChanges(el, pair, spec, names = {}) {
     if (!el) return;
-    if (!prev) { el.hidden = true; return; }
-    const when = new Date(prev.at).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
-    const items = [];
-    Object.keys(cur).forEach((rk) => {
-      const a = prev.summary[rk], b = cur[rk]; if (!a) return;
-      spec.forEach((f) => {
-        const x = a[f.k], y = b[f.k]; if (x == null || y == null) return;
-        if (f.tier) { if (x !== y && TIER[x] && TIER[y]) items.push({ up: TIER[y].rank > TIER[x].rank, text: `${b.label} · ${f.label} ${TIER[x].word} → ${TIER[y].word}` }); return; }
-        const d = y - x; if (Math.abs(d) < f.min) return;
-        items.push({ up: d > 0, text: `${b.label} · ${f.label} ${f.fmt(x)} → ${f.fmt(y)}` });
-      });
-    });
+    if (!pair || !pair.prev) { el.hidden = true; return; }
+    const res = Core.changes.diff(pair.prev, pair.cur, spec), nm = (id) => names[id] || id;
+    const when = new Date(pair.prev.at).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+    const notes = [];
+    if (res.cfgChanged) notes.push("Your model selection or weights changed since then, so some differences come from that.");
+    res.contribChanged.forEach((c) => notes.push(`${c.label}: ${[c.added.length ? "now includes " + c.added.map(nm).join(", ") : "", c.removed.length ? "no longer includes " + c.removed.map(nm).join(", ") : ""].filter(Boolean).join("; ")}.`));
+    if (res.skipped.length) notes.push(`Not compared because the valid window differs: ${res.skipped.join(", ")}.`);
     el.hidden = false;
-    el.innerHTML = `<div class="section-title">Since your last check <span class="msg" style="text-transform:none;letter-spacing:0">(${esc(when)}${unitLabel ? " · " + esc(unitLabel) : ""})</span></div>` +
-      (items.length ? `<div class="changes">${items.slice(0, 14).map((it) => `<span class="change ${it.up ? "up" : "down"}">${it.up ? "▲" : "▼"} ${esc(it.text)}</span>`).join("")}</div>`
-        : '<p class="msg">No meaningful changes.</p>');
+    el.innerHTML = `<div class="section-title">Since your last check <span class="msg" style="text-transform:none;letter-spacing:0">(${esc(when)} · same valid windows only)</span></div>` +
+      (res.items.length ? `<div class="changes">${res.items.slice(0, 16).map((it) => `<span class="change ${it.up ? "up" : "down"}">${it.up ? "▲" : "▼"} ${esc(`${it.label} · ${it.field} ${it.from} → ${it.to}`)}</span>`).join("")}</div>`
+        : '<p class="msg">No meaningful changes.</p>') +
+      (notes.length ? `<ul class="change-notes">${notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>` : "");
   }
 
   window.Ops = {
     Core, BRAND, PRESETS, TIER, maxTier, badge, $, esc, store, css, icon,
     shell, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
-    getJSON, fetchModel, pick, hasData, align: Core.stats.align,
+    Data, getJSON, hasData, savedWeights, savedDays, align: Core.stats.align,
     nowIndex, hourOf, dayOf, fmtDay, fmtHour, fmtWhen, tzShort, hourLabels, dayGroups,
     blendSeries: Core.stats.blendSeries, weightedQuantile: Core.stats.weightedQuantile,
     modelColor, modelPicker, linesToggle, chartBase, modelLine, tierStrip, trackChanges, renderChanges,

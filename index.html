@@ -25,7 +25,7 @@
         <span class="msg" id="sumMsg">Loading guidance…</span>
       </div>
       <div class="daycards" id="days"></div>
-      <p class="msg" style="margin-top:10px">Temperatures, precip and gusts are a quick blend of 6 models. Snow chances come from the GEFS and ECMWF ensembles. The thunder signal uses the same rule as the THUNDER page. Open a tool for the full picture.</p>
+      <p class="msg" style="margin-top:10px">Each value uses the same models, weights and calculation as its tool page: temperatures, precip and gusts from MODEL BLEND, snow chances from WINTER, the thunder signal from THUNDER. Change a model's weight on a tool page and this summary follows it. Days are full calendar days, so today includes hours already past.</p>
     </section>
 
     <div class="hub">
@@ -66,7 +66,7 @@
           <span class="badge" style="--b:var(--monitor);flex:none">Marginal</span>
           <span class="badge" style="--b:var(--prepare);flex:none">Elevated</span>
           <span class="badge" style="--b:var(--action);flex:none">High</span>
-          <span class="badge dashed" style="--b:var(--nodata);flex:none">Limited data</span>
+          <span class="ltd" style="flex:none">LTD = limited data</span>
         </div>
       </div>
     </details>
@@ -77,6 +77,7 @@
   </aside>
 </main>
 <script src="assets/ops-core.js"></script>
+<script src="assets/ops-data.js"></script>
 <script src="assets/ops.js"></script>
 <script src="assets/overview.js"></script>
 </body>

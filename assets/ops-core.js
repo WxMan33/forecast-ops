@@ -1,9 +1,9 @@
-/* Forecast Ops core: pure forecast math, with no page or DOM code.
-   Loads in a browser (window.OpsCore) or Node (require), so the same
-   calculations can move into Heads-Up / OPE later and can be tested on their own.
+/* Forecast Ops core: model configuration, aggregation and forecast math. No page or DOM code.
+   Loads in a browser (window.OpsCore) or Node (require), so the website, tests and any future
+   server-side briefing all compute the same numbers from the same configuration.
 
-   Conventions: winds in knots unless noted, heights in m above ground,
-   temperatures in °C for soundings. Missing values are null, never 0. */
+   Conventions: missing values are null, never 0. Sounding winds in knots, heights in m above
+   ground, sounding temperatures in °C. Signal keys: nodata, normal, monitor, prepare, action. */
 (function (root) {
   "use strict";
 
@@ -31,12 +31,6 @@
       let t = 0, broken = false;
       return a.map((x) => { if (broken || x == null) { broken = true; return null; } return (t += x); });
     },
-    /* Sum over [s, e) only if at least minCov of the hours are present; else null. */
-    windowTotal(a, s, e, minCov = 0.9) {
-      let t = 0, n = 0;
-      for (let i = s; i < e; i++) if (a[i] != null) { t += a[i]; n++; }
-      return e > s && n / (e - s) >= minCov ? t : null;
-    },
     /* Align a series onto a master time axis by timestamp string. */
     align(masterTimes, times, arr) {
       if (!arr) return masterTimes.map(() => null);
@@ -49,55 +43,191 @@
       vals.forEach((v, i) => { if (v == null) return; w += ws[i]; if (test(v)) hit += ws[i]; });
       return w ? hit / w : null;
     },
+    hasData: (a) => Array.isArray(a) && a.some((x) => x != null),
+    complete: (a, idx) => Array.isArray(a) && idx.length > 0 && idx.every((i) => a[i] != null),
   };
 
-  /* ======================= tiers ======================= */
-  /* Same fixed colors as Heads-Up. In guidance tools the words describe signal strength, not an action. */
+  /* ======================= time & windows ======================= */
+  /* Open-Meteo with timezone=auto returns local wall-clock strings: "2026-11-02T14:00". */
+  const time = {
+    dayOf: (t) => t.slice(0, 10),
+    hourOf: (t) => +t.slice(11, 13),
+    /* Hour indices grouped by calendar day, optionally only within [s, e). */
+    dayGroups(times, s = 0, e = times.length) {
+      const out = [];
+      for (let i = s; i < e; i++) { const k = time.dayOf(times[i]); if (!out.length || out[out.length - 1].k !== k) out.push({ k, idx: [] }); out[out.length - 1].idx.push(i); }
+      return out;
+    },
+    /* The valid window an aggregate covers. Two summaries are only comparable if this matches. */
+    windowKey: (times, idx) => (idx.length ? `${times[idx[0]]}/${times[idx[idx.length - 1]]}` : ""),
+  };
+
+  /* ======================= signal tiers ======================= */
+  /* Same fixed colors as Heads-Up; in guidance tools the words describe signal strength, not an action.
+     Data completeness is a separate flag on each assessment, never a tier. */
   const TIERS = {
     nodata: { rank: -1, word: "NO DATA" },
     normal: { rank: 0, word: "LOW" },
-    limited: { rank: 0.5, word: "LIMITED DATA" },
     monitor: { rank: 1, word: "MARGINAL" },
     prepare: { rank: 2, word: "ELEVATED" },
     action: { rank: 3, word: "HIGH" },
   };
   const maxTier = (list) => list.reduce((a, b) => (TIERS[b] && TIERS[b].rank > TIERS[a].rank ? b : a), "nodata");
 
+  /* ======================= model configuration ======================= */
+  const FORECAST = "https://api.open-meteo.com/v1/forecast";
+  const ENSEMBLE = "https://ensemble-api.open-meteo.com/v1/ensemble";
+  const US = { temperature_unit: "fahrenheit", wind_speed_unit: "mph", precipitation_unit: "inch" };
+  const LEVELS = [1000, 975, 950, 925, 900, 850, 800, 700, 600, 500, 400, 300, 250];
+  const PL = [];
+  LEVELS.forEach((p) => ["temperature", "wind_speed", "wind_direction", "geopotential_height"].forEach((v) => PL.push(`${v}_${p}hPa`)));
+  /* Each spec says what to request and how. Model w = default weight; on:false = off by default. */
+  const config = {
+    blend: {
+      id: "blend", base: FORECAST, params: US, days: 7, require: ["temperature_2m"],
+      models: [
+        { id: "ecmwf_ifs025", name: "ECMWF IFS", w: 1.25 },
+        { id: "ecmwf_aifs025_single", name: "ECMWF AIFS", w: 1 },
+        { id: "gfs_seamless", name: "GFS", w: 1 },
+        { id: "ncep_nbm_conus", name: "NBM", w: 1.25 },
+        { id: "gfs_hrrr", name: "HRRR (48 h)", w: 1 },
+        { id: "ncep_nam_conus", name: "NAM 3 km", w: 0.75 },
+        { id: "icon_seamless", name: "ICON", w: 1 },
+        { id: "gem_seamless", name: "GEM", w: 1 },
+        { id: "ukmo_seamless", name: "UKMO", w: 1 },
+        { id: "meteofrance_seamless", name: "Météo-France", w: 0.75, on: false },
+        { id: "jma_seamless", name: "JMA", w: 0.75, on: false },
+      ],
+      hourly: ["temperature_2m", "dew_point_2m", "apparent_temperature", "precipitation_probability", "precipitation", "snowfall", "wind_speed_10m", "wind_gusts_10m", "cloud_cover"],
+      daily: ["temperature_2m_max", "temperature_2m_min", "precipitation_sum", "snowfall_sum", "precipitation_probability_max", "wind_gusts_10m_max"],
+    },
+    thunder: {
+      id: "thunder", base: FORECAST, params: US, days: 3, require: ["cape", "weather_code"],
+      models: [
+        { id: "gfs_hrrr", name: "HRRR (48 h)", w: 1.25 },
+        { id: "ncep_nam_conus", name: "NAM 3 km", w: 1 },
+        { id: "gfs_seamless", name: "GFS", w: 1 },
+        { id: "ecmwf_ifs025", name: "ECMWF IFS", w: 1.25 },
+        { id: "icon_seamless", name: "ICON", w: 1 },
+        { id: "gem_seamless", name: "GEM", w: 0.75 },
+      ],
+      hourly: ["cape", "lifted_index", "convective_inhibition", "precipitation_probability", "precipitation", "weather_code",
+        "wind_speed_10m", "wind_direction_10m", "wind_speed_500hPa", "wind_direction_500hPa"],
+      extraHourly: { icon_seamless: ["lightning_potential"] },
+    },
+    severe: {
+      id: "severe", base: FORECAST, params: { temperature_unit: "celsius", wind_speed_unit: "kn", precipitation_unit: "inch" }, days: 3,
+      require: ["cape", "wind_speed_500hPa"],
+      models: [
+        { id: "gfs_hrrr", name: "HRRR (48 h)", w: 1.25 },
+        { id: "ncep_nam_conus", name: "NAM 3 km", w: 1 },
+        { id: "gfs_seamless", name: "GFS", w: 1 },
+        { id: "ecmwf_ifs025", name: "ECMWF IFS", w: 1.25 },
+        { id: "icon_seamless", name: "ICON", w: 1 },
+        { id: "gem_seamless", name: "GEM", w: 0.75 },
+      ],
+      hourly: ["temperature_2m", "dew_point_2m", "wind_speed_10m", "wind_direction_10m", "cape", "convective_inhibition",
+        "lifted_index", "freezing_level_height", "precipitation_probability", "weather_code", ...PL],
+    },
+    winter: {
+      id: "winter", base: ENSEMBLE, params: US, days: 7, ensemble: true, require: ["snowfall"],
+      models: [
+        { id: "gfs025", name: "GEFS (GFS ens.)", w: 1 },
+        { id: "ecmwf_ifs025", name: "ECMWF ENS", w: 1.25 },
+        { id: "icon_seamless", name: "ICON EPS", w: 0.75 },
+        { id: "gem_global", name: "GEM ENS", w: 0.75 },
+      ],
+      hourly: ["snowfall", "temperature_2m", "precipitation"],
+    },
+    /* {id: weight} for models that are on by default. */
+    defaultWeights(spec) { const w = {}; spec.models.forEach((m) => { if (m.on !== false && m.w > 0) w[m.id] = m.w; }); return w; },
+    /* Stable text form of a weight set, stored with snapshots so changed settings are visible. */
+    fingerprint(ws) { return Object.keys(ws).sort().map((k) => `${k}:${ws[k]}`).join(","); },
+  };
+
   /* ======================= blend ======================= */
   const blend = {
     /* Agreement of model daily highs: a data-quality note about temperature only. */
     agreement(highs) {
       const v = highs.filter((x) => x != null);
-      if (v.length < 2) return { level: 0, word: "1 MODEL", lo: v[0] ?? null, hi: v[0] ?? null };
+      if (v.length < 2) return { level: 0, word: v.length ? "1 MODEL" : "—", lo: v[0] ?? null, hi: v[0] ?? null, n: v.length };
       const lo = Math.min(...v), hi = Math.max(...v), r = hi - lo;
       return { level: r <= 3 ? 3 : r <= 6 ? 2 : 1, word: r <= 3 ? "TIGHT" : r <= 6 ? "FAIR" : "WIDE", lo, hi, range: r, n: v.length };
+    },
+    /* One model's value for a calendar day. A model only counts for a day if it has every hour
+       of that day for the variable; otherwise sums and extremes would be understated. */
+    modelDay(md, d, hv, dv, how, dtimes) {
+      const a = md.h[hv];
+      if (!stats.complete(a, d.idx)) return null;
+      const j = dtimes ? dtimes.indexOf(d.k) : -1;
+      const own = j >= 0 && md.d && md.d[dv] ? md.d[dv][j] : null;
+      if (own != null) return own;
+      const v = d.idx.map((i) => a[i]);
+      return how === "max" ? Math.max(...v) : how === "min" ? Math.min(...v) : v.reduce((s, x) => s + x, 0);
+    },
+    /* Daily rows for the full calendar days in data. ws: {modelId: weight} of models in use. */
+    dailyRows(data, ws) {
+      const ids = Object.keys(ws).filter((id) => data.models[id] && ws[id] > 0);
+      return time.dayGroups(data.times).filter((d) => d.idx.length >= 12).map((d) => {
+        const per = (hv, dv, how) => ids.map((id) => ({ id, v: blend.modelDay(data.models[id], d, hv, dv, how, data.dtimes) }));
+        const wmean = (list) => { let s = 0, w = 0; list.forEach(({ id, v }) => { if (v != null) { s += ws[id] * v; w += ws[id]; } }); return w ? s / w : null; };
+        const highs = per("temperature_2m", "temperature_2m_max", "max");
+        return {
+          k: d.k, win: time.windowKey(data.times, d.idx), hours: d.idx.length,
+          hi: wmean(highs), lo: wmean(per("temperature_2m", "temperature_2m_min", "min")),
+          qpf: wmean(per("precipitation", "precipitation_sum", "sum")), sn: wmean(per("snowfall", "snowfall_sum", "sum")),
+          pop: wmean(per("precipitation_probability", "precipitation_probability_max", "max")),
+          gust: wmean(per("wind_gusts_10m", "wind_gusts_10m_max", "max")),
+          ag: blend.agreement(highs.map((x) => x.v)),
+          contrib: highs.filter((x) => x.v != null).map((x) => x.id),
+        };
+      });
     },
   };
 
   /* ======================= thunder ======================= */
   const thunder = {
     isThunderCode: (c) => c != null && c >= 95 && c <= 99,
-    /* frac: weighted share of models with a thunder code (null if none report codes). */
-    tier(frac, cape, pop) {
-      if (frac == null && cape == null) return "nodata";
+    /* Signal and data completeness, kept separate. frac: weighted share of models with a thunder code. */
+    assess(frac, cape, pop) {
+      const missing = [];
+      if (frac == null) missing.push("thunder codes");
+      if (cape == null) missing.push("CAPE");
+      if (pop == null) missing.push("precip chance");
+      if (frac == null && cape == null) return { tier: "nodata", limited: true, missing };
       const f = frac || 0, c = cape == null ? 0 : cape, p = pop == null ? 0 : pop;
-      if (f >= 0.5 && (cape == null || c >= 250)) return "action";
-      if (f >= 0.25 || (c >= 1000 && p >= 40)) return "prepare";
-      if (f > 0 || (c >= 250 && p >= 20)) return "monitor";
-      /* Instability is there but a missing input could have raised the tier. */
-      if (c >= 250 && (frac == null || pop == null)) return "limited";
-      return "normal";
+      const tier = f >= 0.5 && (cape == null || c >= 250) ? "action"
+        : f >= 0.25 || (c >= 1000 && p >= 40) ? "prepare"
+        : f > 0 || (c >= 250 && p >= 20) ? "monitor" : "normal";
+      return { tier, limited: missing.length > 0, missing };
+    },
+    /* 10 m to 500 hPa vector wind difference, mph in, knots out. */
+    shear500(s1, d1, s2, d2) {
+      if ([s1, d1, s2, d2].some((x) => x == null)) return null;
+      const a = severe.uv(s1, d1), b = severe.uv(s2, d2);
+      return Math.hypot(b.u - a.u, b.v - a.v) * 0.868976;
+    },
+    /* Hourly blend for data loaded with config.thunder. ws: {modelId: weight}. */
+    hourly(data, ws) {
+      const ids = Object.keys(ws).filter((id) => data.models[id] && ws[id] > 0), n = data.times.length;
+      ids.forEach((id) => { const h = data.models[id].h; if (!h.shear) h.shear = data.times.map((_, i) => thunder.shear500(h.wind_speed_10m && h.wind_speed_10m[i], h.wind_direction_10m && h.wind_direction_10m[i], h.wind_speed_500hPa && h.wind_speed_500hPa[i], h.wind_direction_500hPa && h.wind_direction_500hPa[i])); });
+      const B = (v) => stats.blendSeries(ids.filter((id) => stats.hasData(data.models[id].h[v])).map((id) => ({ w: ws[id], data: data.models[id].h[v] })), n);
+      const cape = B("cape"), pop = B("precipitation_probability"), li = B("lifted_index"), sh = B("shear");
+      const wc = ids.filter((id) => stats.hasData(data.models[id].h.weather_code));
+      const frac = data.times.map((_, i) => stats.weightedShare(wc.map((id) => data.models[id].h.weather_code[i]), wc.map((id) => ws[id]), thunder.isThunderCode));
+      const assess = frac.map((f, i) => thunder.assess(f, cape.mean[i], pop.mean[i]));
+      const perModel = {};
+      ids.forEach((id) => { const h = data.models[id].h; perModel[id] = data.times.map((_, i) => {
+        const c = h.weather_code ? h.weather_code[i] : null;
+        return thunder.assess(c == null ? null : thunder.isThunderCode(c) ? 1 : 0, h.cape ? h.cape[i] : null, h.precipitation_probability ? h.precipitation_probability[i] : null);
+      }); });
+      return { ids, frac, cape, pop, li, sh, assess, perModel };
     },
   };
 
   /* ======================= severe ======================= */
   const MS = 0.514444;          // knots -> m/s
   const BUNKERS_KT = 7.5 / MS;  // 7.5 m/s deviation, in knots
-  const uv = (s, d) => ({ u: -s * Math.sin((d * Math.PI) / 180), v: -s * Math.cos((d * Math.PI) / 180) });
-  const mag = (a) => Math.hypot(a.u, a.v);
-  const fromDir = (a) => ((Math.atan2(-a.u, -a.v) * 180) / Math.PI + 360) % 360;
-
-  /* Linear interpolation of a field to height h. Null above the highest point that has it. */
   function at(pts, key, h) {
     const ok = pts.filter((p) => p[key] != null);
     if (!ok.length || h > ok[ok.length - 1].h + 1) return null;
@@ -114,36 +244,38 @@
     for (let h = h0; h <= h1 + 1e-6; h += step) { const w = windAt(pts, h); if (!w) return null; u += w.u; v += w.v; n++; }
     return { u: u / n, v: v / n };
   }
+  const SEVERE_NEEDS = { bs6: "0–6 km shear", srh1: "0–1 km SRH", srh3: "0–3 km SRH", lcl: "LCL" };
   const severe = {
-    LEVELS: [1000, 975, 950, 925, 900, 850, 800, 700, 600, 500, 400, 300, 250],
-    uv, mag, fromDir, at, windAt,
-    /* Build a sounding from flat hourly arrays (Open-Meteo naming) at index i. */
+    LEVELS,
+    KEYS: ["cape", "cin", "bs1", "bs6", "srh1", "srh3", "lr75", "lr03", "lcl", "frz", "stp", "scp", "mw6", "thunder"],
+    uv: (s, d) => ({ u: -s * Math.sin((d * Math.PI) / 180), v: -s * Math.cos((d * Math.PI) / 180) }),
+    mag: (a) => Math.hypot(a.u, a.v),
+    fromDir: (a) => ((Math.atan2(-a.u, -a.v) * 180) / Math.PI + 360) % 360,
+    at, windAt,
     sounding(a, i, elev) {
       const s10 = a.wind_speed_10m && a.wind_speed_10m[i], d10 = a.wind_direction_10m && a.wind_direction_10m[i];
       if (s10 == null || d10 == null) return null;
-      const pts = [{ h: 10, ...uv(s10, d10), t: a.temperature_2m ? a.temperature_2m[i] : null, p: null }];
-      for (const p of severe.LEVELS) {
+      const pts = [{ h: 10, ...severe.uv(s10, d10), t: a.temperature_2m ? a.temperature_2m[i] : null, p: null }];
+      for (const p of LEVELS) {
         const zA = a[`geopotential_height_${p}hPa`], z = zA && zA[i];
         if (z == null) continue;
         const h = z - elev;
         if (h <= 30) continue; // below ground here
         const s = a[`wind_speed_${p}hPa`] && a[`wind_speed_${p}hPa`][i], d = a[`wind_direction_${p}hPa`] && a[`wind_direction_${p}hPa`][i];
-        const w = s != null && d != null ? uv(s, d) : { u: null, v: null };
+        const w = s != null && d != null ? severe.uv(s, d) : { u: null, v: null };
         pts.push({ h, u: w.u, v: w.v, t: a[`temperature_${p}hPa`] ? a[`temperature_${p}hPa`][i] : null, p });
       }
       pts.sort((x, y) => x.h - y.h);
       return pts;
     },
-    /* Bunkers internal-dynamics method, non-pressure-weighted 0–6 km mean wind. */
     bunkers(pts) {
       const mean = layerMean(pts, 0, 6000), lo = layerMean(pts, 0, 500), hi = layerMean(pts, 5500, 6000);
       if (!mean || !lo || !hi) return null;
-      const s = { u: hi.u - lo.u, v: hi.v - lo.v }, m = mag(s);
+      const s = { u: hi.u - lo.u, v: hi.v - lo.v }, m = severe.mag(s);
       if (m < 1e-6) return { rm: mean, lm: mean, mean };
       const k = BUNKERS_KT / m;
       return { rm: { u: mean.u + k * s.v, v: mean.v - k * s.u }, lm: { u: mean.u - k * s.v, v: mean.v + k * s.u }, mean };
     },
-    /* Storm-relative helicity 0–top m, in m²/s². */
     srh(pts, top, sm) {
       let tot = 0, prev = windAt(pts, 0);
       if (!prev) return null;
@@ -166,7 +298,6 @@
       const b = bs6kt * MS, shT = b < 10 ? 0 : b > 20 ? 1 : b / 20;
       return Math.max(0, (cape / 1000) * (srh3 / 50) * shT);
     },
-    /* Every index for one model at one hour. a: hourly arrays (°C, kt), elev: m. */
     indices(a, i, elev) {
       const pts = severe.sounding(a, i, elev);
       const cape = a.cape ? a.cape[i] : null, cin = a.convective_inhibition ? a.convective_inhibition[i] : null;
@@ -177,7 +308,7 @@
       if (pts) {
         const bk = severe.bunkers(pts);
         out.bs1 = severe.bulk(pts, 1000); out.bs6 = severe.bulk(pts, 6000);
-        out.mw6 = bk ? mag(bk.mean) : null;
+        out.mw6 = bk ? severe.mag(bk.mean) : null;
         out.srh1 = bk ? severe.srh(pts, 1000, bk.rm) : null;
         out.srh3 = bk ? severe.srh(pts, 3000, bk.rm) : null;
         const p7 = pts.find((p) => p.p === 700), p5 = pts.find((p) => p.p === 500);
@@ -195,16 +326,23 @@
       out.scp = severe.scp(cape, out.srh3, out.bs6);
       return out;
     },
-    /* Environment tier. Missing kinematics with real instability -> "limited", never a quiet LOW. */
-    tier(x) {
-      if (!x || x.cape == null) return "nodata";
+    /* Index arrays for one model's hourly data. */
+    series(h, n, elev) {
+      const rows = Array.from({ length: n }, (_, i) => severe.indices(h, i, elev));
+      const out = {};
+      severe.KEYS.forEach((k) => (out[k] = rows.map((x) => (x[k] == null || !isFinite(x[k]) ? null : x[k]))));
+      return out;
+    },
+    /* Signal from what's available, plus a separate completeness flag listing what's missing. */
+    assess(x) {
+      if (!x || x.cape == null) return { tier: "nodata", limited: true, missing: ["CAPE"] };
+      const missing = Object.keys(SEVERE_NEEDS).filter((k) => x[k] == null).map((k) => SEVERE_NEEDS[k]);
       const c = x.cape;
-      if (c < 100) return "normal";
-      if ((x.stp != null && x.stp >= 1) || (x.scp != null && x.scp >= 4)) return "action";
-      if ((x.scp != null && x.scp >= 1) || (c >= 1000 && x.bs6 != null && x.bs6 >= 40)) return "prepare";
-      if (c >= 500 && x.bs6 != null && x.bs6 >= 25) return "monitor";
-      if (c >= 500 && (x.bs6 == null || x.srh3 == null)) return "limited";
-      return "normal";
+      const tier = c < 100 ? "normal"
+        : (x.stp != null && x.stp >= 1) || (x.scp != null && x.scp >= 4) ? "action"
+        : (x.scp != null && x.scp >= 1) || (c >= 1000 && x.bs6 != null && x.bs6 >= 40) ? "prepare"
+        : c >= 500 && x.bs6 != null && x.bs6 >= 25 ? "monitor" : "normal";
+      return { tier, limited: missing.length > 0, missing };
     },
     /* Ingredient flags; a flag needs every one of its inputs present. */
     flags(x) {
@@ -219,26 +357,73 @@
   /* ======================= winter ======================= */
   const winter = {
     THRESH: [0.1, 1, 2, 4, 6, 8, 12],
-    /* members: [{w, a[]}] hourly snowfall (in). Returns totals, odds and percentiles for [s, e). */
-    windowStats(members, s, e, minCov = 0.9) {
-      const tot = members.map((m) => stats.windowTotal(m.a, s, e, minCov));
-      const ws = members.map((m) => m.w);
-      const used = tot.filter((x) => x != null).length;
-      const P = {}; winter.THRESH.forEach((t) => (P[t] = stats.weightedShare(tot, ws, (v) => v >= t)));
-      return { tot, P, used, total: members.length,
-        p10: stats.weightedQuantile(tot, ws, 0.1), p50: stats.weightedQuantile(tot, ws, 0.5), p90: stats.weightedQuantile(tot, ws, 0.9) };
+    /* Weighted members from loaded ensemble data. ws: {ensembleId: weight}. kind: "snowfall" | "temperature_2m" */
+    members(data, ws, kind = "snowfall") {
+      const out = [];
+      Object.keys(ws).forEach((id) => {
+        const e = data.ens[id]; if (!e || !(ws[id] > 0)) return;
+        const arrs = e[kind] || []; if (!arrs.length) return;
+        arrs.forEach((a) => out.push({ id, w: ws[id] / arrs.length, a }));
+      });
+      return out;
     },
-    tier(P, used) {
-      if (!used) return "nodata";
-      const p01 = P[0.1] || 0, p1 = P[1] || 0, p4 = P[4] || 0;
+    /* Stats for [s, e). Only members with EVERY hour count toward odds and percentiles. Members
+       with gaps report a lower bound ("at least") and never decide a threshold either way. */
+    windowStats(members, s, e) {
+      const len = e - s;
+      const sums = members.map((m) => { let t = 0, n = 0; for (let i = s; i < e; i++) if (m.a[i] != null) { t += m.a[i]; n++; } return { t, n }; });
+      const tot = sums.map((x) => (len > 0 && x.n === len ? x.t : null));
+      const lower = sums.map((x) => (x.n > 0 && x.n < len ? x.t : null));
+      const ws = members.map((m) => m.w);
+      const P = {}, partialAtLeast = {};
+      winter.THRESH.forEach((t) => { P[t] = stats.weightedShare(tot, ws, (v) => v >= t); partialAtLeast[t] = lower.filter((v) => v != null && v >= t).length; });
+      return {
+        tot, lower, P, partialAtLeast, total: members.length,
+        used: tot.filter((x) => x != null).length, partial: lower.filter((x) => x != null).length,
+        p10: stats.weightedQuantile(tot, ws, 0.1), p50: stats.weightedQuantile(tot, ws, 0.5), p90: stats.weightedQuantile(tot, ws, 0.9),
+      };
+    },
+    tier(st) {
+      if (!st || !st.used) return "nodata";
+      const p01 = st.P[0.1] || 0, p1 = st.P[1] || 0, p4 = st.P[4] || 0;
       if (p4 >= 0.5) return "action";
       if (p1 >= 0.4 || p4 >= 0.2) return "prepare";
       if (p1 >= 0.1 || p01 >= 0.3) return "monitor";
       return "normal";
     },
+    /* Per calendar day stats (full days in the data, or clipped to [s, e) when given). */
+    dayRows(times, members, s = 0, e = times.length) {
+      return time.dayGroups(times, s, e).map((d) => ({ k: d.k, idx: d.idx, win: time.windowKey(times, d.idx), hours: d.idx.length, st: winter.windowStats(members, d.idx[0], d.idx[d.idx.length - 1] + 1) }));
+    },
   };
 
-  const OpsCore = { stats, TIERS, maxTier, blend, thunder, severe, winter, MS };
+  /* ======================= change tracking ======================= */
+  /* Snapshots: {at, cfg, rows: {key: {label, win, contrib[], ...fields}}}.
+     Rows are only compared when they cover the same valid window; contributor and
+     settings changes are reported so a "change" is never just a different recipe. */
+  const changes = {
+    diff(prev, cur, spec) {
+      const out = { items: [], skipped: [], contribChanged: [], cfgChanged: !!(prev && cur && prev.cfg !== cur.cfg) };
+      if (!prev || !cur) return out;
+      Object.keys(cur.rows).forEach((k) => {
+        const a = prev.rows[k], b = cur.rows[k];
+        if (!a) return;
+        if (a.win !== b.win) { out.skipped.push(b.label); return; }
+        const ac = (a.contrib || []).slice().sort().join(","), bc = (b.contrib || []).slice().sort().join(",");
+        if (ac !== bc) out.contribChanged.push({ label: b.label, added: (b.contrib || []).filter((x) => !(a.contrib || []).includes(x)), removed: (a.contrib || []).filter((x) => !(b.contrib || []).includes(x)) });
+        spec.forEach((f) => {
+          const x = a[f.k], y = b[f.k];
+          if (x == null || y == null) return;
+          if (f.tier) { if (x !== y && TIERS[x] && TIERS[y]) out.items.push({ label: b.label, field: f.label, from: TIERS[x].word, to: TIERS[y].word, up: TIERS[y].rank > TIERS[x].rank }); return; }
+          const d = y - x; if (Math.abs(d) < f.min) return;
+          out.items.push({ label: b.label, field: f.label, from: f.fmt ? f.fmt(x) : x, to: f.fmt ? f.fmt(y) : y, up: d > 0 });
+        });
+      });
+      return out;
+    },
+  };
+
+  const OpsCore = { stats, time, TIERS, maxTier, config, blend, thunder, severe, winter, changes, MS };
   if (typeof module !== "undefined" && module.exports) module.exports = OpsCore;
   root.OpsCore = OpsCore;
 })(typeof self !== "undefined" ? self : globalThis);

@@ -37,7 +37,7 @@
         <span><i class="sw" style="background:var(--monitor);height:10px"></i>Marginal</span>
         <span><i class="sw" style="background:var(--prepare);height:10px"></i>Elevated</span>
         <span><i class="sw" style="background:var(--action);height:10px"></i>High</span>
-        <span><i class="sw" style="background:repeating-linear-gradient(45deg,var(--nodata) 0 2px,transparent 2px 5px);height:10px"></i>Limited data</span>
+        <span><i class="sw" style="background:repeating-linear-gradient(45deg,var(--bg) 0 1.5px,transparent 1.5px 5px),var(--monitor);height:10px"></i>Hatched: limited data</span>
         <span><i class="sw" style="background:var(--raised);height:10px;border:1px solid var(--line)"></i>No data</span>
       </div>
       <div id="detail"></div>
@@ -68,7 +68,7 @@
         <div><span class="badge" style="--b:var(--action)">HIGH</span> Half or more of the model weight shows thunder, with CAPE ≥ 250 J/kg.</div>
         <div><span class="badge" style="--b:var(--prepare)">ELEVATED</span> A quarter or more of the weight shows thunder, or CAPE ≥ 1000 J/kg with precip chance ≥ 40%.</div>
         <div><span class="badge" style="--b:var(--monitor)">MARGINAL</span> Any model shows thunder, or CAPE ≥ 250 J/kg with precip chance ≥ 20%.</div>
-        <div><span class="badge dashed" style="--b:var(--nodata)">LIMITED DATA</span> CAPE ≥ 250 J/kg, but thunder codes or precip chance are missing, so the real signal could be higher.</div>
+        <div><span class="ltd">LTD</span> Limited data. Shown on top of any signal level when thunder codes, CAPE or precip chance are missing for that hour, so the signal could be understated. Hover for what's missing.</div>
         <div><span class="badge" style="--b:var(--normal)">LOW</span> None of the above.</div>
         <div>These are the Heads-Up status colors, used here for <b>signal strength in model guidance</b>. They are not an instruction to act, a lightning forecast, an SPC outlook or a warning. Detected lightning and clearance decisions belong to Heads-Up.</div>
         <div>For helicity, STP, SCP and a hodograph, see <a href="severe.html">SEVERE</a>.</div>
@@ -79,6 +79,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="assets/ops-core.js"></script>
+<script src="assets/ops-data.js"></script>
 <script src="assets/ops.js"></script>
 <script src="assets/thunder.js"></script>
 </body>

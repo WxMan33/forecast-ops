@@ -4,23 +4,8 @@
   const O = window.Ops, $ = O.$, C = O.Core;
   O.shell("blend", "Model Blend");
 
-  /* Forecast API model ids. w = default weight, on:false = starts unchecked.
-     Regional models (HRRR, NAM, NBM) drop out on their own outside their domain. */
-  const MODELS = [
-    { id: "ecmwf_ifs025", name: "ECMWF IFS", w: 1.25 },
-    { id: "ecmwf_aifs025_single", name: "ECMWF AIFS", w: 1 },
-    { id: "gfs_seamless", name: "GFS", w: 1 },
-    { id: "ncep_nbm_conus", name: "NBM", w: 1.25 },
-    { id: "gfs_hrrr", name: "HRRR (48 h)", w: 1 },
-    { id: "ncep_nam_conus", name: "NAM 3 km", w: 0.75 },
-    { id: "icon_seamless", name: "ICON", w: 1 },
-    { id: "gem_seamless", name: "GEM", w: 1 },
-    { id: "ukmo_seamless", name: "UKMO", w: 1 },
-    { id: "meteofrance_seamless", name: "Météo-France", w: 0.75, on: false },
-    { id: "jma_seamless", name: "JMA", w: 0.75, on: false },
-  ];
-  const HOURLY = ["temperature_2m", "dew_point_2m", "apparent_temperature", "precipitation_probability", "precipitation", "snowfall", "wind_speed_10m", "wind_gusts_10m", "cloud_cover"];
-  const DAILY = ["temperature_2m_max", "temperature_2m_min", "precipitation_sum", "snowfall_sum", "precipitation_probability_max", "wind_gusts_10m_max"];
+  /* Models, variables and request settings are shared with the overview: OpsCore.config.blend */
+  const SPEC = C.config.blend, MODELS = SPEC.models;
   const TABS = [
     { id: "temp", label: "Temperature", v: "temperature_2m", unit: "°F" },
     { id: "dew", label: "Dew point", v: "dew_point_2m", unit: "°F" },
@@ -32,9 +17,19 @@
     { id: "gust", label: "Gusts", v: "wind_gusts_10m", unit: "mph", zero: true },
     { id: "cloud", label: "Cloud cover", v: "cloud_cover", unit: "%", min: 0, max: 100 },
   ];
+  const NAMES = Object.fromEntries(MODELS.map((m) => [m.id, m.name]));
+  /* Fields compared in "since your last check" (also used by the overview). */
+  const BLEND_CHANGES = [
+    { k: "hi", label: "high", min: 3, fmt: (v) => `${Math.round(v)}°` },
+    { k: "lo", label: "low", min: 3, fmt: (v) => `${Math.round(v)}°` },
+    { k: "qpf", label: "precip", min: 0.1, fmt: (v) => `${v.toFixed(2)}"` },
+    { k: "pop", label: "max chance", min: 15, fmt: (v) => `${Math.round(v)}%` },
+    { k: "sn", label: "snow", min: 0.5, fmt: (v) => `${v.toFixed(1)}"` },
+    { k: "gust", label: "peak gust", min: 8, fmt: (v) => `${Math.round(v)} mph` },
+  ];
   const RANGES = [["48", "48 H"], ["72", "72 H"], ["168", "7 D"], ["all", "ALL"]];
 
-  let data = null, chart = null, viewDay = null, fresh = false, prevSnap = null;
+  let data = null, chart = null, viewDay = null, fresh = false;
   let tab = O.store.get("ops_blend_tab", "temp"), range = O.store.get("ops_blend_range", "168");
 
   const picker = O.modelPicker($("models"), "ops_blend_models", MODELS, render);
@@ -61,22 +56,11 @@
     $("runBtn").disabled = true;
     O.setChip("FETCHING…");
     $("runMsg").className = "msg"; $("runMsg").textContent = `Requesting ${MODELS.length} models…`;
-    const params = { forecast_days: $("days").value, temperature_unit: "fahrenheit", wind_speed_unit: "mph", precipitation_unit: "inch" };
-    const results = await Promise.allSettled(MODELS.map((m) => O.fetchModel("https://api.open-meteo.com/v1/forecast", params, m.id, HOURLY, DAILY)));
+    const res = await O.Data.loadModels(SPEC, { lat: O.location.lat, lon: O.location.lon, days: +$("days").value });
     $("runBtn").disabled = false;
-    const ok = [], failed = [], empty = [];
-    let master = null;
-    results.forEach((r, i) => {
-      const m = MODELS[i];
-      if (r.status !== "fulfilled") { failed.push(m.name); picker.setStatus(m.id, "none"); return; }
-      const j = r.value, h = O.pick(j.hourly, HOURLY), d = O.pick(j.daily, DAILY);
-      if (!O.hasData(h.temperature_2m)) { empty.push(m.name); picker.setStatus(m.id, "none"); return; }
-      picker.setStatus(m.id, "ok");
-      if (!master || j.hourly.time.length > master.hourly.time.length) master = j;
-      ok.push({ m, j, h, d });
-    });
+    MODELS.forEach((m) => picker.setStatus(m.id, res.status[m.id] === "ok" ? "ok" : "none"));
     picker.redraw();
-    if (!ok.length) {
+    if (res.empty) {
       data = null;
       O.setChip("NO DATA", "err");
       $("runMsg").className = "msg err";
@@ -85,36 +69,17 @@
       render();
       return;
     }
-    const times = master.hourly.time, dtimes = (master.daily && master.daily.time) || [];
-    data = { times, dtimes, tz: master.timezone, models: {} };
-    ok.forEach(({ m, j, h, d }) => {
-      const hh = {}, dd = {};
-      HOURLY.forEach((v) => (hh[v] = O.align(times, j.hourly.time, h[v])));
-      DAILY.forEach((v) => (dd[v] = j.daily ? O.align(dtimes, j.daily.time, d[v]) : dtimes.map(() => null)));
-      data.models[m.id] = { h: hh, d: dd };
-    });
-    const problems = [...failed.map((n) => `${n}: request failed`), ...empty.map((n) => `${n}: no coverage at this point`)];
-    O.dataStatus(problems);
-    $("runMsg").textContent = `${ok.length} models loaded` + (empty.length ? ` · no coverage here: ${empty.join(", ")}` : "") +
-      (failed.length ? ` · failed: ${failed.join(", ")}` : "") + ` · times in ${O.tzShort(data.tz)}`;
+    data = res;
+    O.dataStatus(res.problems);
+    const n = Object.keys(res.models).length;
+    $("runMsg").textContent = `${n} models loaded` + (res.problems.length ? ` · ${res.problems.join(" · ")}` : "") + ` · times in ${O.tzShort(data.tz)}`;
     fresh = true;
     render();
   }
 
   const active = (v) => (data ? MODELS.filter((m) => data.models[m.id] && picker.on(m.id) && O.hasData(data.models[m.id].h[v])) : []);
   const series = (v, ms) => ms.map((m) => ({ w: picker.w(m.id), data: data.models[m.id].h[v] }));
-  const days = () => O.dayGroups(data.times).filter((d) => d.idx.length >= 12);
 
-  /* A model's daily value: its own daily field when present, else derived from its hourly data. */
-  function dailyVal(m, day, dv, hv, how) {
-    const j = data.dtimes.indexOf(day.k), md = data.models[m.id];
-    const x = j >= 0 && md.d[dv] ? md.d[dv][j] : null;
-    if (x != null) return x;
-    const a = day.idx.map((i) => md.h[hv][i]).filter((y) => y != null);
-    if (a.length < 12) return null;
-    return how === "max" ? Math.max(...a) : how === "min" ? Math.min(...a) : a.reduce((s, y) => s + y, 0);
-  }
-  const wmean = (ms, f) => { let s = 0, w = 0; ms.forEach((m) => { const x = f(m); if (x != null) { s += picker.w(m.id) * x; w += picker.w(m.id); } }); return w ? s / w : null; };
   const f = (x, d = 0, u = "") => (x == null ? "—" : x.toFixed(d) + u);
   const meter = (lvl) => `<span class="meter" aria-hidden="true">${[1, 2, 3].map((k) => `<i class="${k <= lvl ? "on" : ""}"></i>`).join("")}</span>`;
 
@@ -132,26 +97,14 @@
 
   function renderDaily() {
     if (!data) return;
-    const tm = active("temperature_2m"), pm = active("precipitation");
-    const rows = days().map((d) => {
-      const highs = tm.map((m) => dailyVal(m, d, "temperature_2m_max", "temperature_2m", "max"));
-      return {
-        k: d.k,
-        hi: wmean(tm, (m) => dailyVal(m, d, "temperature_2m_max", "temperature_2m", "max")),
-        lo: wmean(tm, (m) => dailyVal(m, d, "temperature_2m_min", "temperature_2m", "min")),
-        qpf: wmean(pm, (m) => dailyVal(m, d, "precipitation_sum", "precipitation", "sum")),
-        sn: wmean(active("snowfall"), (m) => dailyVal(m, d, "snowfall_sum", "snowfall", "sum")),
-        pop: wmean(active("precipitation_probability"), (m) => dailyVal(m, d, "precipitation_probability_max", "precipitation_probability", "max")),
-        gust: wmean(active("wind_gusts_10m"), (m) => dailyVal(m, d, "wind_gusts_10m_max", "wind_gusts_10m", "max")),
-        ag: C.blend.agreement(highs),
-      };
-    });
+    /* Same aggregation the overview uses: a model counts for a day only with every hour of it. */
+    const rows = C.blend.dailyRows(data, picker.weights());
     data.rows = rows;
     $("daily").innerHTML = `<thead><tr><th>Day</th><th>High</th><th>Low</th><th>Precip</th><th>Snow</th><th>Max chance</th><th>Peak gust</th><th>Model highs</th><th>Temp agreement</th></tr></thead><tbody>` +
       rows.map((r) => `<tr data-k="${r.k}" class="${viewDay === r.k ? "sel" : ""}" tabindex="0"><td class="display" style="font-size:12px">${O.fmtDay(r.k)}</td><td class="num"><span class="hi">${f(r.hi, 0, "°")}</span></td><td class="num"><span class="lo">${f(r.lo, 0, "°")}</span></td>` +
           `<td class="num">${f(r.qpf, 2, '"')}</td><td class="num">${r.sn != null && r.sn >= 0.05 ? f(r.sn, 1, '"') : "—"}</td><td class="num">${f(r.pop, 0, "%")}</td>` +
           `<td class="num">${f(r.gust, 0, " mph")}</td><td class="num">${r.ag.lo == null ? "—" : r.ag.n > 1 ? `${r.ag.lo.toFixed(0)}–${r.ag.hi.toFixed(0)}°` : `${r.ag.lo.toFixed(0)}°`}</td>` +
-          `<td title="${r.ag.n || 1} models">${meter(r.ag.level)}<span class="msg" style="color:var(--text);font-weight:700">${r.ag.word}</span></td></tr>`).join("") + "</tbody>";
+          `<td title="${r.contrib.length} models with a complete day: ${r.contrib.map((id) => (MODELS.find((m) => m.id === id) || { name: id }).name).join(", ")}">${meter(r.ag.level)}<span class="msg" style="color:var(--text);font-weight:700">${r.ag.word}</span></td></tr>`).join("") + "</tbody>";
     $("daily").querySelectorAll("tr[data-k]").forEach((tr) => {
       const pickDay = () => { viewDay = viewDay === tr.dataset.k ? null : tr.dataset.k; renderDaily(); renderChart(); };
       tr.addEventListener("click", pickDay);
@@ -159,20 +112,12 @@
     });
 
     if (fresh) {
-      const snap = {}; rows.forEach((r) => (snap[r.k] = { label: O.fmtDay(r.k), hi: r.hi, lo: r.lo, qpf: r.qpf, pop: r.pop, sn: r.sn, gust: r.gust }));
-      prevSnap = O.trackChanges("blend", snap); fresh = false;
-      data.snap = snap;
+      const snap = { cfg: C.config.fingerprint(picker.weights()), rows: {} };
+      rows.forEach((r) => (snap.rows[r.k] = { label: O.fmtDay(r.k), win: r.win, contrib: r.contrib, hi: r.hi, lo: r.lo, qpf: r.qpf, pop: r.pop, sn: r.sn, gust: r.gust }));
+      data.snapPair = O.trackChanges("blend", snap); fresh = false;
     }
-    if (data.snap) O.renderChanges($("changes"), prevSnap, data.snap, [
-      { k: "hi", label: "high", min: 3, fmt: (v) => `${Math.round(v)}°` },
-      { k: "lo", label: "low", min: 3, fmt: (v) => `${Math.round(v)}°` },
-      { k: "qpf", label: "precip", min: 0.1, fmt: (v) => `${v.toFixed(2)}"` },
-      { k: "pop", label: "max chance", min: 15, fmt: (v) => `${Math.round(v)}%` },
-      { k: "sn", label: "snow", min: 0.5, fmt: (v) => `${v.toFixed(1)}"` },
-      { k: "gust", label: "peak gust", min: 8, fmt: (v) => `${Math.round(v)} mph` },
-    ]);
+    O.renderChanges($("changes"), data.snapPair, BLEND_CHANGES, NAMES);
   }
-
   function renderNow() {
     const now = Math.max(0, O.nowIndex(data.times, data.tz)), end = Math.min(data.times.length, now + 24);
     const win = (v, how) => {
