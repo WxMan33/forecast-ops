@@ -34,6 +34,18 @@
       <div class="tablewrap"><table id="odds"></table></div>
     </section>
 
+    <section class="card" id="ptCard"><div class="section-title">Precipitation type &amp; transitions</div><p class="msg">Loading deterministic models…</p></section>
+
+    <section class="card" id="amtCard"></section>
+
+    <section class="card">
+      <div class="section-title" id="tTitle">Surface temperatures</div>
+      <div class="tabs" role="tablist" id="tTabs"></div>
+      <p class="section-sub" id="tSub"></p>
+      <div class="chartbox short"><canvas id="tChart" aria-label="Winter temperature chart" role="img"></canvas></div>
+      <div class="legend" id="tLegend"></div>
+    </section>
+
     <section class="card">
       <div class="section-title" id="chartTitle">Accumulation plume</div>
       <div class="tabs" role="tablist" id="tabs"></div>
@@ -61,9 +73,17 @@
       </div>
     </details>
     <details class="card tight fold">
+      <summary><span class="section-title" style="margin:0">Precip type methods</span></summary>
+      <div class="stack" style="font-size:12.5px;color:var(--muted);margin-top:10px">
+        <div><b>Model type</b> is each model's own WMO weather code (rain, snow, freezing rain/drizzle). The WMO code set models use has no sleet / ice-pellet category, so models cannot say "sleet" here. <b>NWS</b> wording can, and is shown in its own row.</div>
+        <div><b>Profile type (experimental)</b> applies the Bourgouin (2000) energy-area method to each model's temperature profile: the area between the profile and 0 °C, A = c<sub>p</sub>·mean(T)·ln(θ<sub>top</sub>/θ<sub>bottom</sub>). Surface warm area under 5.6 J/kg → snow, 5.6–13.2 → mix, over 13.2 → rain. A melting layer aloft (≥ 2 J/kg) over a cold surface: refreezing area NA &gt; 66 + 0.66·PA → sleet, NA &lt; 46 + 0.66·PA → freezing rain, otherwise a mix. It uses only temperature on the model's 6–10 levels, assumes precipitation is falling (shown only when the model has ≥ 0.1 mm/h), and does not see moisture, so treat it as a profile reading, not a forecast of type. Model counts are not probabilities.</div>
+        <div>Profiles: GFS, HRRR, ICON, GEM and UKMO have 8–10 levels below 500 hPa; ECMWF has 4 (1000, 925, 850, 700); NBM and NAM have none, so they show model type only.</div>
+      </div>
+    </details>
+    <details class="card tight fold">
       <summary><span class="section-title" style="margin:0">About these numbers</span></summary>
       <div class="stack" style="font-size:12.5px;color:var(--muted);margin-top:10px">
-        <div>Snowfall is each member's own model snow, which Open-Meteo converts from water at about 7:1. Cold, fluffy events can run higher and warm, wet ones lower, and it doesn't account for melting on warm ground.</div>
+        <div>Snowfall is each member's own model snow, which Open-Meteo reports at a fixed 7:1 depth-to-water ratio (its documented conversion). Cold, fluffy events can run higher and warm, wet ones lower, and it doesn't account for melting on warm ground.</div>
         <div>A member only counts toward the odds and percentiles if it has <b>every</b> hour of the window. A member with gaps can only give a lower bound ("at least"), so it is listed separately and never decides a threshold. Its plume line stops where its data stops.</div>
       </div>
     </details>

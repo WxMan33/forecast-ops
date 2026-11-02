@@ -7,7 +7,8 @@
   const S = Core.stats;
 
   /* GET JSON with a short session cache (browser only) and a 20 s timeout. */
-  async function getJSON(url, cacheMin = 15) {
+  const IN_NODE = typeof window === "undefined";
+  async function getJSON(url, cacheMin = 15, headers) {
     const key = "ops_c:" + url;
     let cache = null;
     try { cache = root.sessionStorage || null; } catch (e) { cache = null; }
@@ -17,7 +18,7 @@
     const ctl = new AbortController();
     const to = setTimeout(() => ctl.abort(), 20000);
     let res;
-    try { res = await fetch(url, { signal: ctl.signal }); } finally { clearTimeout(to); }
+    try { res = await fetch(url, headers ? { signal: ctl.signal, headers } : { signal: ctl.signal }); } finally { clearTimeout(to); }
     const json = await res.json().catch(() => ({ error: true, reason: `HTTP ${res.status}` }));
     if (!res.ok && !json.error) { json.error = true; json.reason = `HTTP ${res.status}`; }
     if (cacheMin && cache && !json.error) { try { cache.setItem(key, JSON.stringify({ at: Date.now(), json })); } catch (e) { /* full */ } }
@@ -67,6 +68,49 @@
     return arr;
   }
 
+  /* Real instants for the provider's labels (labelling detected per response), then true local
+     labels in the location's time zone for everything shown. labels = what the provider sent. */
+  function withAxis(d) {
+    const inst = Core.time.instants(d.times, d.tz, d.offset);
+    d.labels = d.times;
+    d.ms = inst.ms;
+    d.mode = inst.mode;
+    d.consistent = inst.consistent;
+    d.times = inst.ms.map((m) => Core.time.toLocal(m, d.tz));
+    return d;
+  }
+
+  /* ---------- NWS point forecasts ---------- */
+  const NWS_HEADERS = IN_NODE ? { "User-Agent": "(forecast-ops, github.com/WxMan33/forecast-ops)", Accept: "application/geo+json" } : { Accept: "application/geo+json" };
+  /* Point -> office/grid mapping, cached for a week in the browser and refreshed after that. */
+  async function nwsPoint(lat, lon) {
+    const key = `ops_nwspt:${(+lat).toFixed(4)},${(+lon).toFixed(4)}`;
+    let store = null; try { store = root.localStorage || null; } catch (e) { store = null; }
+    if (store) { try { const c = JSON.parse(store.getItem(key) || "null"); if (c && Date.now() - c.at < 7 * 86400e3) return c.json; } catch (e) { /* none */ } }
+    const j = await getJSON(`https://api.weather.gov/points/${(+lat).toFixed(4)},${(+lon).toFixed(4)}`, 0, NWS_HEADERS);
+    if (j && j.properties && j.properties.forecastGridData && store) { try { store.setItem(key, JSON.stringify({ at: Date.now(), json: j })); } catch (e) { /* full */ } }
+    return j;
+  }
+  /* Everything NWS for a point. Never throws: failures come back as {ok:false, reason} so model tools keep working. */
+  async function loadNWS({ lat, lon }) {
+    try {
+      const pt = await nwsPoint(lat, lon), pp = pt && pt.properties;
+      if (!pp || !pp.forecastGridData) return { ok: false, reason: pt && pt.status === 404 ? "Outside NWS coverage" : `NWS points lookup failed${pt && pt.detail ? `: ${pt.detail}` : ""}` };
+      const [fc, fh, gr] = await Promise.allSettled([getJSON(pp.forecast + "?units=us", 15, NWS_HEADERS), getJSON(pp.forecastHourly + "?units=us", 15, NWS_HEADERS), getJSON(pp.forecastGridData, 15, NWS_HEADERS)]);
+      const val = (r) => (r.status === "fulfilled" && r.value && r.value.properties && !r.value.error ? r.value : null);
+      const parts = { forecast: val(fc), hourly: val(fh), grid: val(gr) };
+      const status = Core.nws.status(parts, Date.now());
+      const errors = Object.keys(parts).filter((k) => !parts[k]).map((k) => `${k} request failed`)
+        .concat(Object.keys(parts).filter((k) => parts[k] && status.stale[k]).map((k) => `${k} is stale (updated ${status.ageH[k].toFixed(0)} h ago)`));
+      /* stale parts are dropped, never shown as current */
+      Object.keys(parts).forEach((k) => { if (parts[k] && status.stale[k]) parts[k] = null; });
+      const ok = Object.values(parts).some(Boolean);
+      return { ok, reason: ok ? "" : errors.join("; ") || "NWS unavailable", office: pp.gridId, gridX: pp.gridX, gridY: pp.gridY, tz: pp.timeZone,
+        place: pp.relativeLocation && pp.relativeLocation.properties ? `${pp.relativeLocation.properties.city}, ${pp.relativeLocation.properties.state}` : "",
+        parts, status, errors, periods: Core.nws.periods(parts.forecast), hourly: Core.nws.hourly(parts.hourly) };
+    } catch (e) { return { ok: false, reason: `NWS unavailable (${e.message || e})` }; }
+  }
+
   /* Deterministic models for a config spec. ids: which models to request (default: all in the spec).
      Returns {times, dtimes, tz, models: {id: {h, d, elev}}, status: {id: "ok"|"failed"|"empty"}, problems[]} */
   async function loadModels(spec, { lat, lon, days, ids } = {}) {
@@ -95,7 +139,7 @@
       (spec.daily || []).forEach((v) => (dd[v] = j.daily ? S.align(dtimes, j.daily.time, d[v]) : dtimes.map(() => null)));
       models[m.id] = { h: hh, d: dd, elev: j.elevation || 0 };
     });
-    return { times, dtimes, tz: master.timezone, offset: master.utc_offset_seconds, models, status, problems };
+    return withAxis({ times, dtimes, tz: master.timezone, offset: master.utc_offset_seconds, models, status, problems });
   }
 
   /* Ensembles for a config spec. Returns {times, tz, ens: {id: {var: [member arrays]}}, status, problems} */
@@ -117,10 +161,10 @@
     const master = ok.reduce((a, b) => (b.j.hourly.time.length > a.j.hourly.time.length ? b : a)).j;
     const times = master.hourly.time, ens = {};
     ok.forEach(({ m, j, byVar }) => { ens[m.id] = {}; Object.keys(byVar).forEach((v) => (ens[m.id][v] = byVar[v].map((a) => S.align(times, j.hourly.time, a)))); });
-    return { times, tz: master.timezone, offset: master.utc_offset_seconds, ens, status, problems };
+    return withAxis({ times, tz: master.timezone, offset: master.utc_offset_seconds, ens, status, problems });
   }
 
-  const OpsData = { getJSON, fetchModel, pick, loadModels, loadEnsemble, toMeters };
+  const OpsData = { getJSON, fetchModel, pick, loadModels, loadEnsemble, toMeters, loadNWS, withAxis };
   if (typeof module !== "undefined" && module.exports) module.exports = OpsData;
   root.OpsData = OpsData;
 })(typeof self !== "undefined" ? self : globalThis);

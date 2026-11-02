@@ -13,6 +13,7 @@
     { id: "cin", label: "CIN", v: "convective_inhibition", unit: "J/kg", zero: true, sub: "The cap. Larger values hold storms back until it erodes or is broken." },
     { id: "shear", label: "Deep-layer shear", v: "shear", unit: "kt", zero: true, sub: "Vector wind difference, 10 m to 500 hPa, as a stand-in for 0–6 km shear. About 30 kt or more favors organized storms. SEVERE has the full profile." },
     { id: "pop", label: "Precip chance", v: "precipitation_probability", unit: "%", min: 0, max: 100, sub: "Model precipitation probability, where the model provides it." },
+    { id: "nwst", label: "NWS thunder chance", v: "thunder", unit: "%", min: 0, max: 100, nwsOnly: true, sub: "NWS gridded probability of thunder for each hour, from the forecast office. Shown separately; it is not part of the model signal above." },
     { id: "ltg", label: "Lightning potential", v: "lightning_potential", unit: "J/kg", zero: true, sub: "ICON's lightning potential index. Only ICON carries it, so other models show nothing here." },
   ];
   const CODE = (c) => (c == null ? "—" : c >= 95 ? "THUNDER" : c >= 71 && c <= 86 && !(c >= 80 && c <= 82) ? "SNOW" : c >= 51 ? "RAIN" : c === 45 || c === 48 ? "FOG" : "DRY");
@@ -37,7 +38,7 @@
   async function run() {
     $("runBtn").disabled = true; O.setChip("FETCHING…");
     $("runMsg").className = "msg"; $("runMsg").textContent = `Requesting ${MODELS.length} models…`;
-    const res = await O.Data.loadModels(SPEC, { lat: O.location.lat, lon: O.location.lon, days: +$("days").value });
+    const [res, nw] = await Promise.all([O.Data.loadModels(SPEC, { lat: O.location.lat, lon: O.location.lon, days: +$("days").value }), O.Data.loadNWS({ lat: O.location.lat, lon: O.location.lon })]);
     $("runBtn").disabled = false;
     MODELS.forEach((m) => picker.setStatus(m.id, res.status[m.id] === "ok" ? "ok" : "none"));
     picker.redraw();
@@ -47,7 +48,8 @@
       render(); return;
     }
     data = res;
-    O.dataStatus(res.problems);
+    data.nws = nw; data.nwsAxis = nw && nw.ok ? C.nws.onAxis(nw, data.ms) : null;
+    O.dataStatus([...res.problems, ...(nw && nw.ok ? [] : [`NWS: ${nw ? nw.reason : "unavailable"}`])]);
     $("runMsg").textContent = `${Object.keys(res.models).length} models loaded` + (res.problems.length ? ` · ${res.problems.join(" · ")}` : "") + ` · times in ${O.tzShort(data.tz)}`;
     sel = null; fresh = true;
     render();
@@ -79,8 +81,9 @@
       { label: "Thunder share max", cell: (w) => { const v = inP(w).map((i) => Cx.frac[i]).filter((x) => x != null); return v.length ? Math.round(Math.max(...v) * 100) + "%" : "—"; } },
       { label: "CAPE max (any model)", cell: (w) => { const v = inP(w).map((i) => Cx.cape.max[i]).filter((x) => x != null); return v.length ? Math.round(Math.max(...v)).toLocaleString() : "—"; } },
       { label: "Precip chance max", cell: (w) => { const v = inP(w).map((i) => Cx.pop.mean[i]).filter((x) => x != null); return v.length ? Math.round(Math.max(...v)) + "%" : "—"; } },
+      ...(data.nwsAxis ? [{ label: "NWS thunder chance (hourly)", cell: (w) => { const v = inP(w).map((i) => data.nwsAxis.thunder[i]); return v.some((x) => x == null) ? "—" : `<span title="Range of NWS hourly thunder probabilities in this phase; not a probability for the whole phase.">${Math.min(...v)}–${Math.max(...v)}%</span>`; } }] : []),
     ], { note: "Model thunder signal during each phase. Detected lightning and clearance decisions stay in Heads-Up." });
-    const now = Math.max(0, O.nowIndex(data.times, data.tz)), end = Math.min(data.times.length, now + 24);
+    const now = Math.max(0, O.nowIdx(data)), end = Math.min(data.times.length, now + 24);
     const next = Cx.tiers.slice(now, end).map((a) => a.tier), worst = O.maxTier(next), firstIdx = next.findIndex((t) => t === worst);
     const ltd = Cx.tiers.slice(now, end).filter((a) => a.limited && a.tier !== "nodata").length;
     if (sel == null) sel = O.TIER[worst].rank >= 1 ? now + firstIdx : now;
@@ -131,7 +134,7 @@
   function drawStrip(Cx) {
     const rows = [{ name: "BLEND", color: O.css("--text"), tiers: Cx.tiers, bold: true }]
       .concat(Cx.perModel.map((p) => ({ name: p.m.name, color: O.modelColor(MODELS.indexOf(p.m)), tiers: p.tiers })));
-    O.tierStrip($("strip"), data.times, rows, { nowIdx: O.nowIndex(data.times, data.tz), sel, bands: O.eventBands(data.ctx), onPick: (i) => { sel = i; drawStrip(data.C); renderChart(); $("strip").querySelector(".strip-scroll").focus(); } });
+    O.tierStrip($("strip"), data.times, rows, { nowIdx: O.nowIdx(data), sel, bands: O.eventBands(data.ctx), onPick: (i) => { sel = i; drawStrip(data.C); renderChart(); $("strip").querySelector(".strip-scroll").focus(); } });
     drawDetail(Cx);
   }
 
@@ -146,6 +149,7 @@
         <div class="tile"><span class="k">Precip chance</span><span class="v">${f(Cx.pop.mean[i], 0, "%")}</span><span class="s">blend</span></div>
         <div class="tile"><span class="k">Lifted index</span><span class="v">${f(Cx.li.mean[i], 1)}</span><span class="s">°C, blend</span></div>
         <div class="tile"><span class="k">Deep shear</span><span class="v">${f(Cx.sh.mean[i], 0, " kt")}</span><span class="s">10 m–500 hPa</span></div>
+        <div class="tile nwscol"><span class="k"><span class="src-nws">NWS</span> thunder chance</span><span class="v">${data.nwsAxis && data.nwsAxis.thunder[i] != null ? data.nwsAxis.thunder[i] + "%" : "—"}</span><span class="s">this hour, NWS grid</span></div>
       </div>
       <div class="tablewrap"><table><thead><tr><th>Model</th><th>Weather</th><th>CAPE</th><th>Precip chance</th><th>Signal</th></tr></thead><tbody>${ms.map((m) => {
         const a = data.models[m.id].h, c = a.weather_code ? a.weather_code[i] : null, p = Cx.perModel.find((x) => x.m === m);
@@ -157,7 +161,7 @@
     if (!data) return;
     const t = TABS.find((x) => x.id === tab) || TABS[0];
     $("chartTitle").textContent = t.label; $("chartSub").textContent = t.sub;
-    const ms = active(t.v), B = blend(t.v), labels = O.hourLabels(data.times), hours = data.times.map(O.hourOf), fg = O.css("--text");
+    const ms = t.nwsOnly ? [] : active(t.v), B = blend(t.nwsOnly ? "__none" : t.v), labels = O.hourLabels(data.times, data.ms, data.tz), hours = data.times.map(O.hourOf), fg = O.css("--text");
     const ds = [];
     if (ms.length > 1) {
       ds.push({ label: "min", data: B.min, borderWidth: 0, pointRadius: 0, fill: false, spanGaps: true, hideTip: true, order: 5 });
@@ -165,12 +169,16 @@
     }
     if (showLines() || ms.length === 1) ms.forEach((m) => ds.push(O.modelLine(m.name, data.models[m.id].h[t.v], O.modelColor(MODELS.indexOf(m)))));
     if (ms.length > 1) ds.push({ label: "BLEND", data: B.mean, borderColor: fg, borderWidth: 3.25, pointRadius: 0, tension: 0.25, spanGaps: true, order: 1 });
-    const base = O.chartBase({ labels, hours, nowIdx: O.nowIndex(data.times, data.tz), selIdx: sel, bands: O.eventBands(data.ctx), unit: t.unit, dec: t.dec || 0, yTitle: t.unit, beginAtZero: t.zero, yMin: t.min, yMax: t.max });
+    if (t.nwsOnly) {
+      const v = data.nwsAxis ? data.nwsAxis[t.v] : null;
+      if (v && v.some((x) => x != null)) ds.push({ label: "NWS thunder chance", data: v, borderColor: O.css("--ev"), backgroundColor: "rgba(253,230,138,.18)", fill: true, borderWidth: 2.5, borderDash: [7, 4], pointRadius: 0, stepped: "before", spanGaps: false, order: 0 });
+    }
+    const base = O.chartBase({ labels, hours, nowIdx: O.nowIdx(data), selIdx: sel, bands: O.eventBands(data.ctx), unit: t.unit, dec: t.dec || 0, yTitle: t.unit, beginAtZero: t.zero, yMin: t.min, yMax: t.max });
     if (chart) chart.destroy();
     chart = new Chart($("chart"), { type: "line", data: { labels, datasets: ds }, options: base.options, plugins: base.plugins });
     $("legend").innerHTML = (showLines() ? ms.map((m) => `<span><i class="sw" style="background:${O.modelColor(MODELS.indexOf(m))}"></i>${O.esc(m.name)}</span>`).join("") : "") +
       (ms.length > 1 ? `<span><i class="sw" style="background:${fg};height:4px"></i>Weighted blend</span><span><i class="sw" style="background:var(--band);height:10px"></i>Model range</span>` : "") +
-      (!ms.length ? "<span>None of the checked models carry this field here.</span>" : "") + `<span>Dotted line: selected hour</span>`;
+      (t.nwsOnly ? (data.nwsAxis ? `<span><span class="src-nws">NWS</span> hourly thunder probability (separate source)</span>` : "<span>NWS unavailable for this point.</span>") : !ms.length ? "<span>None of the checked models carry this field here.</span>" : "") + `<span>Dotted line: selected hour</span>`;
   }
 
   render();

@@ -110,11 +110,13 @@
     foot.innerHTML = `${esc(BRAND.name)} · built by ${BRAND.contact ? `<a href="${esc(BRAND.contact)}">${esc(BRAND.owner)}</a>` : esc(BRAND.owner)} ·
       <a href="https://open-meteo.com/" target="_blank" rel="noopener">Weather data by Open-Meteo.com</a> (CC BY 4.0) ·
       alerts from <a href="https://www.weather.gov/" target="_blank" rel="noopener">NWS</a> ·
-      Model guidance only. Not an official forecast or warning.`;
+      Model guidance only. Not an official forecast or warning. NWS values are labelled NWS and never blended in. ·
+      <a href="#" id="verifyExport">export verification log</a>`;
     document.body.append(foot);
 
     $("themeBtn").addEventListener("click", () => { const t = theme() === "dark" ? "light" : "dark"; store.set("ops_theme", t); applyTheme(t); });
     $("printBtn").addEventListener("click", () => window.print());
+    $("verifyExport").addEventListener("click", (e) => { e.preventDefault(); exportVerify(); });
     applyTheme(theme());
     showLocation();
     loadAlerts();
@@ -338,7 +340,13 @@
   const fmtHour = (h) => (h === 0 ? "12a" : h < 12 ? h + "a" : h === 12 ? "12p" : h - 12 + "p");
   const fmtWhen = (t) => `${WD[dayDate(dayOf(t)).getDay()]} ${fmtHour(hourOf(t))}`;
   const tzShort = (tz) => { try { return new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" }).formatToParts(new Date()).find((p) => p.type === "timeZoneName").value; } catch (e) { return tz || ""; } };
-  const hourLabels = (times) => times.map((t) => `${WD[dayDate(dayOf(t)).getDay()]} ${fmtHour(hourOf(t))}`);
+  /* Labels from true local times. A repeated fall-back hour gets its zone abbreviation ("1a EDT", "1a EST"). */
+  const hourLabels = (times, ms, tz) => {
+    const seen = {}; times.forEach((t) => (seen[t] = (seen[t] || 0) + 1));
+    return times.map((t, i) => `${WD[dayDate(dayOf(t)).getDay()]} ${fmtHour(hourOf(t))}${seen[t] > 1 && ms && tz ? " " + Core.time.abbr(ms[i], tz) : ""}`);
+  };
+  /* Index of the current hour on a loaded axis, from real instants. */
+  const nowIdx = (d) => { const now = Date.now(), m = (d && d.ms) || []; let idx = -1; m.forEach((x, i) => { if (x <= now) idx = i; }); return idx; };
   const dayGroups = Core.time.dayGroups;
 
   /* ---------- model colors: distinct from the status palette ---------- */
@@ -587,9 +595,18 @@
       $("evCancel").addEventListener("click", () => { editing = null; draw(); });
       $("evSave").addEventListener("click", async () => {
         const times = {}; ["setup", "gates", "start", "end", "teardown"].forEach((k) => { const v = $("ev_" + k).value; if (v) times[k] = v.slice(0, 16); });
-        const next = { ...e, name: $("ev_name").value.trim() || "Untitled event", times };
+        const next = { ...e, name: $("ev_name").value.trim() || "Untitled event", times, fold: {} };
+        document.querySelectorAll("[data-fold]").forEach((el) => { if (el.value !== "") next.fold[el.dataset.fold] = +el.value; });
         $("evErr").textContent = "Looking up the location's time zone…";
         try { next.tz = await zoneFor(next.loc.lat, next.loc.lon); } catch (err) { $("evErr").textContent = err.message; return; }
+        /* a repeated fall-back time needs an explicit choice: offer both occurrences with their zone */
+        Object.keys(times).forEach((k) => {
+          const c = Core.time.classify(times[k], next.tz);
+          const box = $("ev_" + k).parentElement; let sel = box.querySelector("[data-fold]");
+          if (c.kind === "ambiguous" && !sel) {
+            box.insertAdjacentHTML("beforeend", `<select class="input" data-fold="${k}" style="margin-top:4px"><option value="">This time happens twice. Which one?</option>${c.options.map((m, i) => `<option value="${i}">${esc(times[k].slice(11))} ${esc(Core.time.abbr(m, next.tz))} (${i ? "second" : "first"})</option>`).join("")}</select>`);
+          } else if (c.kind !== "ambiguous" && sel) { sel.remove(); delete next.fold[k]; }
+        });
         const errs = EV.validate(next);
         if (errs.length) { $("evErr").textContent = errs.join(" "); return; }
         if (!next.id) next.id = EV.newId();
@@ -609,7 +626,7 @@
     if (!ev) return null;
     if (Math.abs(ev.loc.lat - loc.lat) > 0.02 || Math.abs(ev.loc.lon - loc.lon) > 0.02) return { ev, mismatch: true };
     if (!data || !data.times || !data.times.length) return { ev, wins: [], inst: { ms: [] } };
-    const inst = Core.time.instants(data.times, ev.tz, data.offset), now = Date.now();
+    const inst = { ms: data.ms || [], consistent: data.consistent }, now = Date.now();
     const wins = EV.windows(ev).map((w) => ({ ...w, L: EV.locate(w, inst), cov: EV.coverage(w, inst, now) }));
     return { ev, inst, wins };
   }
@@ -631,10 +648,26 @@
     const first = ctx.wins[0], zone = first ? zoneAbbr(first.startMs, ctx.ev.tz) : "";
     el.innerHTML = `<div class="row" style="justify-content:space-between;align-items:baseline;margin-bottom:6px"><div class="section-title" style="margin:0">${esc(title)} · ${esc(ctx.ev.name)}</div><span class="msg">times ${esc(zone)} · hourly model resolution</span></div>` +
       (note ? `<p class="section-sub">${note}</p>` : "") +
-      (ctx.inst && ctx.inst.ms.length && !ctx.inst.consistent ? '<p class="msg" style="color:var(--monitor);margin-bottom:8px">A daylight-saving change falls inside the forecast period. The chart hour labels near it are an hour off, but event windows here use exact times.</p>' : "") +
+      (ctx.inst && ctx.inst.ms.length && !ctx.inst.consistent ? '<p class="msg" style="margin-bottom:8px">A daylight-saving change falls inside this forecast. All times shown are true local time; the provider labelled its data with a single offset, which is converted here.</p>' : "") +
       `<div class="tablewrap"><table class="evtable"><thead><tr><th>Phase</th><th>Local time</th><th>Coverage</th>${cols.map((c) => `<th>${esc(c.label)}</th>`).join("")}</tr></thead><tbody>` +
-      ctx.wins.map((w) => `<tr class="${w.key === "all" ? "evall" : ""}"><td class="display" style="font-size:12px">${esc(w.label)}</td><td class="num">${esc(fmtSpan(w))}</td><td>${covBadge(w.cov)}</td>` +
-        cols.map((c) => `<td class="num">${w.cov.status === "full" ? c.cell(w) : '<span class="msg">—</span>'}</td>`).join("") + "</tr>").join("") + "</tbody></table></div>";
+      ctx.wins.map((w) => { const a1 = zoneAbbr(w.startMs, ctx.ev.tz), a2 = zoneAbbr(w.endMs, ctx.ev.tz); return `<tr class="${w.key === "all" ? "evall" : ""}"><td class="display" style="font-size:12px">${esc(w.label)}</td><td class="num">${esc(fmtSpan(w))}${a1 !== a2 ? ` <span class="msg">(${esc(a1)} → ${esc(a2)})</span>` : ""}</td><td>${covBadge(w.cov)}</td>` +
+        cols.map((c) => `<td class="num">${w.cov.status === "full" ? c.cell(w) : '<span class="msg">—</span>'}</td>`).join("") + "</tr>"; }).join("") + "</tbody></table></div>";
+  }
+
+  /* ======================= verification log ======================= */
+  /* Forecast records kept in this browser (newest 1500) so sources and blends can later be scored
+     against observations. Export from the footer. */
+  function logVerify(records) {
+    if (!records || !records.length) return;
+    const all = store.get("ops_verify", []);
+    const key = (r) => `${r.source}|${r.kind}|${r.window && r.window.key}|${r.retrievedAt && r.retrievedAt.slice(0, 13)}`;
+    const have = new Set(all.map(key));
+    records.forEach((r) => { if (!have.has(key(r))) all.push(r); });
+    store.set("ops_verify", all.slice(-1500));
+  }
+  function exportVerify() {
+    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), records: store.get("ops_verify", []) }, null, 1)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `forecast-ops-verification-${new Date().toISOString().slice(0, 10)}.json`; a.click();
   }
 
   window.Ops = {
@@ -645,5 +678,6 @@
     blendSeries: Core.stats.blendSeries, weightedQuantile: Core.stats.weightedQuantile,
     modelColor, modelPicker, linesToggle, chartBase, modelLine, tierStrip, trackChanges, renderChanges,
     events, activeEvent, setActiveEvent, onEvent, eventCard, eventContext, eventBands, eventTable, fmtLocal, fmtSpan,
+    nowIdx, logVerify, exportVerify,
   };
 })();

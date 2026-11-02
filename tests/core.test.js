@@ -121,4 +121,69 @@ eq(EV.coverage(gw, ax, Date.UTC(2026, 10, 1, 0)).status, "full", "event: covered
 eq(EV.coverage(W2.find((w) => w.key === "setup"), ax, Date.UTC(2026, 10, 1, 0)).status, "partial", "event: setup starts before the data does");
 eq(EV.coverage(gw, ax, Date.UTC(2026, 10, 2, 0)).status, "past", "event: finished window");
 
+/* ---------- time: classify, folds, provider-mode detection ---------- */
+eq(T.classify("2026-11-01T01:30", NY).kind, "ambiguous", "time: fall-back 1:30 is ambiguous");
+eq(T.classify("2027-03-14T02:30", NY).kind, "nonexistent", "time: spring-forward 2:30 doesn't exist");
+eq(T.toUtc("2026-11-01T01:30", NY, 1) - T.toUtc("2026-11-01T01:30", NY, 0), 3600e3, "time: fold 1 is the second 1:30");
+const localLabels = ["2026-11-01T00:00", "2026-11-01T01:00", "2026-11-01T01:00", "2026-11-01T02:00"]; // a provider using true local time
+const lm = T.instants(localLabels, NY, -18000);
+eq([lm.mode, lm.consistent, lm.ms.map((m, i) => (i ? (m - lm.ms[i - 1]) / 3600e3 : 0))], ["local", true, [0, 1, 1, 1]], "time: true-local labels with a repeated hour are detected and stay consecutive");
+eq(T.instants(om, NY, -18000).mode, "fixed", "time: evenly stepped labels with an offset are fixed-offset");
+eq(EV.validate({ ...ev, times: { start: "2026-11-01T01:30", end: "2026-11-01T03:00" } }).some((x) => /twice/.test(x)), true, "event: ambiguous time needs a choice");
+eq(EV.validate({ ...ev, fold: { start: 1 }, times: { start: "2026-11-01T01:30", end: "2026-11-01T03:00" } }), [], "event: ambiguous time with an explicit choice is valid");
+eq([1, 0].map((f) => EV.windows({ ...ev, fold: { start: f }, times: { start: "2026-11-01T01:30", end: "2026-11-01T03:00" } }).find((w) => w.key === "event").hours), [1.5, 2.5], "event: from the second 1:30 (EST) is 1.5 h; from the first (EDT) is 2.5 h");
+eq(EV.validate({ ...ev, times: { start: "2027-03-14T02:15", end: "2027-03-14T05:00" } }).some((x) => /doesn't exist/.test(x)), true, "event: nonexistent time rejected");
+
+/* ---------- NWS parsing (synthetic) ---------- */
+const N = C.nws;
+eq([N.durationMs("PT6H"), N.durationMs("P1DT4H"), N.durationMs("PT30M")], [6 * 3600e3, 28 * 3600e3, 30 * 60e3], "nws: ISO durations");
+near(N.convert("wmoUnit:degC", 0), 32, 1e-9, "nws: degC -> F");
+near(N.convert("wmoUnit:km_h-1", 100), 62.1371, 1e-6, "nws: km/h -> mph");
+near(N.convert("wmoUnit:mm", 25.4), 1, 1e-9, "nws: mm -> in");
+eq(N.convert("wmoUnit:degC", null), null, "nws: null stays null, never 0");
+const H0 = Date.UTC(2026, 10, 3, 0);
+const qpf = { uom: "wmoUnit:mm", values: [0, 1, 2].map((k) => ({ validTime: new Date(H0 + k * 6 * 3600e3).toISOString().replace(".000Z", "+00:00") + "/PT6H", value: 25.4 * (k + 1) })) };
+const ivs = N.intervals(qpf);
+let tot = N.totalOver(ivs, H0, H0 + 12 * 3600e3);
+eq([tot.exact, tot.lower, tot.upper], [true, 3, 3], "nws: window aligned to intervals sums exactly");
+tot = N.totalOver(ivs, H0 + 3 * 3600e3, H0 + 9 * 3600e3);
+eq([tot.exact, tot.lower, tot.upper], [false, 0, 3], "nws: window straddling intervals gives a range, no allocation");
+eq(N.totalOver(ivs, H0 + 12 * 3600e3, H0 + 24 * 3600e3).covers, false, "nws: window past the data is not covered (not zero)");
+const temp = { uom: "wmoUnit:degC", values: [{ validTime: new Date(H0).toISOString().replace(".000Z", "+00:00") + "/PT3H", value: 10 }] };
+eq(N.stateAt(temp, [H0, H0 + 2 * 3600e3, H0 + 3 * 3600e3]), [50, 50, null], "nws: state field holds through its interval only");
+eq([N.ptype([{ weather: "snow" }]), N.ptype([{ weather: "sleet" }, { weather: "freezing_rain" }]), N.ptype([{ weather: "rain" }, { weather: "snow" }]), N.ptype([])], ["snow", "freezing", "mix", null], "nws: weather wording -> type");
+
+/* ---------- winter diagnostics (synthetic profiles) ---------- */
+const Wn = C.winter;
+const prof = (sfc, levels) => [{ z: 2, p: 1000, t: sfc }, ...levels.map(([p, z, t]) => ({ p, z, t }))];
+eq(Wn.bourgouin(prof(-5, [[925, 700, -6], [850, 1400, -8], [700, 3000, -15]])).type, "snow", "bourgouin: all below freezing is snow");
+eq(Wn.bourgouin(prof(-3, [[925, 700, -1], [850, 1400, 5], [800, 1900, 4], [700, 3000, -5]])).type, "freezing", "bourgouin: strong warm nose over a shallow cold layer is freezing rain");
+eq(Wn.bourgouin(prof(-12, [[950, 400, -10], [925, 700, -6], [850, 1400, 1.5], [700, 3000, -8]])).type, "sleet", "bourgouin: weak warm nose over a deep cold layer is ice pellets");
+eq(Wn.bourgouin(prof(8, [[925, 700, 5], [850, 1400, 2], [700, 3000, -8]])).type, "rain", "bourgouin: warm surface layer is rain");
+eq(Wn.bourgouin([{ z: 2, p: null, t: 0 }, { z: 700, p: 925, t: 0 }, { z: 1400, p: 850, t: 0 }]), null, "bourgouin: needs pressure at every point");
+near(Wn.kuchera(-5), 12 + (271.16 - 268.15), 1e-9, "kuchera: cold profile ratio");
+near(Wn.kuchera(1), 12 + 2 * (271.16 - 274.15), 1e-9, "kuchera: warm profile ratio");
+const st0 = Wn.structure(prof(-3, [[925, 700, -1], [850, 1400, 5], [800, 1900, 4], [700, 3000, -5]]));
+eq([Math.round(st0.warmBase), Math.round(st0.warmTop), st0.maxAloftT], [817, 2389, 5], "winter: warm layer base/top (linear 0 °C crossings) and peak");
+eq([Wn.codeType(66), Wn.codeType(73), Wn.codeType(61), Wn.codeType(3), Wn.codeType(null)], ["freezing", "snow", "rain", "none", null], "winter: WMO codes -> types");
+eq(Wn.transitions([null, "rain", "rain", "none", "freezing", "snow"], 0, 6).map((x) => `${x.from}>${x.to}@${x.i}`), ["rain>freezing@4", "freezing>snow@5"], "winter: transitions skip dry hours");
+eq(Wn.scenarioTotals([{ swe: 0.1, snowIn: 0.7, kuchera: 15, t2F: 30 }, { swe: null, snowIn: null }], 0, 2), null, "winter: incomplete window gives no scenario totals");
+const sc = Wn.scenarioTotals([{ swe: 0.1, snowIn: 0.7, kuchera: 15, t2F: 34 }, { swe: 0.2, snowIn: 1.4, kuchera: 12, t2F: 30 }], 0, 2);
+eq([+sc.reported.toFixed(2), +sc.ten.toFixed(2), +sc.kuchera.toFixed(2), sc.warmHours], [2.1, 3, 3.9, 1], "winter: 7:1 as reported, 10:1 and Kuchera kept separate");
+
+/* ---------- blend presets, weights and timing scenarios ---------- */
+const BL = C.blend, spec2 = C.config.blend;
+eq(Object.keys(BL.presetWeights("equal", spec2, {})).includes("ncep_nbm_conus"), false, "presets: raw consensus excludes NBM");
+eq(BL.presetWeights("nbm", spec2, { a: 1 }), { ncep_nbm_conus: 1 }, "presets: NBM only");
+eq(BL.presetWeights("custom", spec2, { a: 2 }), { a: 2 }, "presets: custom keeps the user's weights");
+eq(BL.weightFor({ gfs_hrrr: 1 }, BL.HYPOTHESES[0].rules, "gfs_hrrr", "precipitation", 10), 1.5, "weights: lead-time rule applies");
+eq(BL.weightFor({ gfs_hrrr: 1 }, null, "gfs_hrrr", "precipitation", 10), 1, "weights: no rules, base weight");
+near(C.stats.blendSeries([{ w: (i) => (i ? 0 : 1), data: [1, 1] }, { w: 1, data: [3, 3] }], 2).mean[1], 3, 1e-9, "weights: per-index weight functions");
+const pz = (on, off) => Array.from({ length: 24 }, (_, i) => (i >= on && i <= off ? 0.05 : 0));
+const scenData = { times: Array(24).fill(""), ms: Array.from({ length: 24 }, (_, i) => i * 3600e3), models: { a: { h: { precipitation: pz(2, 5) } }, b: { h: { precipitation: pz(3, 6) } }, c: { h: { precipitation: pz(12, 15) } }, d: { h: { precipitation: pz(30, 31) } } } };
+const ps2 = BL.precipScenarios(scenData, { a: 1, b: 1, c: 1, d: 1 }, 0, 24);
+eq(ps2.scenarios.map((x) => x.ids.join("+")), ["a+b", "c"], "scenarios: early and late timings stay separate");
+eq(ps2.dry, ["d"], "scenarios: models with no precip in the window are listed as dry");
+eq(C.verify.record({ kind: "daily", source: "nws", values: { hi: 60 } }).schema, 1, "verify: record schema");
+
 console.log(`ok - ${n} checks passed`);

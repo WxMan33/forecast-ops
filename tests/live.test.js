@@ -40,7 +40,11 @@ function usable(group, data) {
   });
 }
 const range = (a) => { const v = finite(a); return v.length ? `${Math.min(...v).toFixed(2)}..${Math.max(...v).toFixed(2)} (${v.length} values)` : "no values"; };
-const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") - Date.parse(times[i - 1] + "Z") === 3600e3);
+/* hourly axis check on real instants (labels are true local time, which can repeat at a time change) */
+const hourly = (d) => d.ms && d.ms.length > 0 && d.ms.every((m, i) => i === 0 || m - d.ms[i - 1] === 3600e3);
+/* A provider being down is not a calculation failure: report it separately and skip that block. */
+let skips = 0;
+const providerDown = (what, cond, why) => { if (!cond) return false; skips++; console.log(`  SKIP provider unavailable: ${what}${why ? ` (${why})` : ""}`); console.log(`::warning::Provider unavailable during live test: ${what}`); return true; };
 
 (async () => {
   const out = { at: new Date().toISOString(), places: [] };
@@ -51,10 +55,12 @@ const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") -
 
     /* blend */
     const B = await D.loadModels(C.config.blend, { ...where, days: 3 });
+    if (providerDown(`Open-Meteo forecast at ${P.name}`, B.empty)) continue;
     const bOk = Object.keys(B.models);
     console.log(`  blend: ${bOk.length} models ok · problems: ${B.problems.join(" | ") || "none"}`);
     ok(bOk.length >= 4, "blend: at least 4 models return data");
-    ok(hourly(B.times), "blend: hourly time axis with no gaps");
+    ok(hourly(B), "blend: hourly time axis with no gaps");
+    ok(B.times.every((t, i) => t === C.time.toLocal(B.ms[i], B.tz)), "blend: shown labels are true local time from real instants");
     bOk.forEach((id) => ok(between(B.models[id].h.temperature_2m, -60, 125), `blend ${id}: temperatures in °F range`));
     bOk.filter((id) => !(EXCEPT[`blend:${id}`] || []).includes("wind_gusts_10m")).forEach((id) => ok(between(B.models[id].h.wind_gusts_10m || [], 0, 200), `blend ${id}: gusts in mph range`));
     usable("blend", B);
@@ -115,13 +121,48 @@ const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") -
     console.log(`  winter: members ${JSON.stringify(counts)} · problems: ${W.problems.join(" | ") || "none"}`);
     ok((counts.gfs025 || 0) >= 20, "winter: GEFS returns 20+ members");
     ok((counts.ecmwf_ifs025 || 0) >= 40, "winter: ECMWF ENS returns 40+ members");
-    ok(hourly(W.times), "winter: hourly time axis with no gaps");
+    ok(hourly(W), "winter: hourly time axis with no gaps");
     const mem = C.winter.members(W, C.config.defaultWeights(C.config.winter));
     ok(mem.every((m) => between(m.a, 0, 10)), "winter: hourly snowfall in inches range");
     const st = C.winter.windowStats(mem, 0, Math.min(72, W.times.length));
     console.log(`  winter 72 h: ${st.used}/${st.total} complete members · ${st.partial} partial · P(1"+) ${st.P[1] == null ? "—" : Math.round(st.P[1] * 100) + "%"}`);
     ok(st.used > 0, "winter: some members cover the first 72 h completely");
     rec.winter = { counts, used: st.used, partial: st.partial, total: st.total, P1: st.P[1], p50: st.p50 };
+
+    /* ---------- NWS point forecast through the site's loader ---------- */
+    const NW = await D.loadNWS(where);
+    if (!providerDown(`NWS at ${P.name}`, !NW.ok, NW.reason)) {
+      const Pd = NW.periods, A = C.nws.onAxis(NW, B.ms);
+      console.log(`  nws: ${NW.office} ${NW.gridX},${NW.gridY} · ${Pd.length} periods · ${NW.hourly.length} hourly · grid ${NW.status.ageH.grid == null ? "—" : NW.status.ageH.grid.toFixed(1) + " h old"} · errors: ${NW.errors.join("; ") || "none"}`);
+      ok(Pd.length >= 12 && Pd.every((p, i) => i === 0 || p.isDaytime !== Pd[i - 1].isDaytime), "nws: day/night periods alternate");
+      ok(Pd.every((p, i) => i === 0 || p.s === Pd[i - 1].e), "nws: periods are contiguous");
+      ok(Pd.every((p) => p.temp > -60 && p.temp < 130) && Pd.every((p) => p.pop == null || (p.pop >= 0 && p.pop <= 100)), "nws: period temps in °F, PoP a percent or null");
+      if (A) {
+        const gT = C.nws.stateAt(NW.parts.grid.properties.temperature, NW.hourly.map((h) => h.s));
+        const d = NW.hourly.map((h, i) => (h.temp != null && gT[i] != null ? Math.abs(h.temp - gT[i]) : null)).filter((x) => x != null);
+        ok(d.length > 48 && Math.max(...d) <= 1, `nws: grid temperature matches the official hourly forecast (max diff ${d.length ? Math.max(...d).toFixed(2) : "—"} °F)`);
+        ok(finite(A.temperature_2m).length >= 48, `nws: grid covers at least 48 h of the model axis (${finite(A.temperature_2m).length} h)`);
+        ok(A.qpf.length > 0 && A.qpf.every((x) => x.e > x.s && (x.v == null || (x.v >= 0 && x.v < 10))), "nws: QPF intervals in inches, positive durations");
+        const all = C.nws.totalOver(A.qpf, A.qpf[0].s, A.qpf[A.qpf.length - 1].e);
+        ok(!all.covers || Math.abs(all.lower - A.qpf.reduce((t, x) => t + (x.v || 0), 0)) < 1e-9, "nws: interval totals are not duplicated");
+        ok(finite(A.wind_gusts_10m).every((x) => x < 150), "nws: gusts converted to mph");
+      } else ok(false, "nws: grid data present when the point forecast loads");
+      rec.nws = { office: NW.office, periods: Pd.length, errors: NW.errors };
+    }
+
+    /* ---------- winter profiles on real data ---------- */
+    const WD = await D.loadModels(C.config.winterDet, { ...where, days: 2 });
+    if (!providerDown(`Open-Meteo winter fields at ${P.name}`, WD.empty)) {
+      const prof = { gfs_seamless: 8, ecmwf_ifs025: 4, icon_seamless: 8 };
+      Object.keys(prof).filter((id) => WD.models[id]).forEach((id) => {
+        const md = WD.models[id], rows = C.winter.series(md.h, WD.times.length, md.elev);
+        const npts = WD.times.map((_, i) => C.winter.profile(md.h, i, md.elev).length);
+        ok(Math.min(...npts) >= prof[id], `winter ${id}: profile has ${prof[id]}+ points every hour (min ${Math.min(...npts)})`);
+        ok(rows.every((r) => r.twF == null || (r.tdF - 0.6 <= r.twF && r.twF <= r.t2F + 0.6)) && rows.some((r) => r.twF != null), `winter ${id}: wet-bulb present and between dew point and temperature`);
+        ok(rows.every((r) => !r.bour || ["snow", "rain", "mix", "freezing", "sleet"].includes(r.bour.type)), `winter ${id}: profile type only from the known set`);
+      });
+      ["ncep_nbm_conus"].filter((id) => WD.models[id]).forEach((id) => ok(WD.times.every((_, i) => C.winter.profile(WD.models[id].h, i, WD.models[id].elev).length <= 1), `winter ${id}: no profile, as documented`));
+    }
 
     out.places.push(rec);
   }
@@ -154,6 +195,6 @@ const hourly = (times) => times.every((t, i) => i === 0 || Date.parse(t + "Z") -
 
   fs.mkdirSync(path.join(__dirname, "out"), { recursive: true });
   fs.writeFileSync(path.join(__dirname, "out", "live-summary.json"), JSON.stringify(out, null, 2));
-  console.log(`\n${checks - fails}/${checks} live checks passed`);
+  console.log(`\n${checks - fails}/${checks} live checks passed${skips ? ` · ${skips} block(s) skipped because a provider was unavailable` : ""}`);
   process.exit(fails ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

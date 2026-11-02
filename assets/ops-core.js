@@ -14,7 +14,7 @@
       const mean = [], min = [], max = [], count = [];
       for (let i = 0; i < n; i++) {
         let s = 0, w = 0, lo = Infinity, hi = -Infinity, c = 0;
-        for (const x of series) { const v = x.data[i]; if (v == null || !isFinite(v)) continue; s += x.w * v; w += x.w; c++; lo = Math.min(lo, v); hi = Math.max(hi, v); }
+        for (const x of series) { const v = x.data[i]; if (v == null || !isFinite(v)) continue; const wi = typeof x.w === "function" ? x.w(i) : x.w; if (!(wi > 0)) continue; s += wi * v; w += wi; c++; lo = Math.min(lo, v); hi = Math.max(hi, v); }
         mean.push(w ? s / w : null); min.push(w ? lo : null); max.push(w ? hi : null); count.push(c);
       }
       return { mean, min, max, count };
@@ -71,14 +71,21 @@
     },
     /* Local wall-clock "YYYY-MM-DDTHH:MM" in tz -> UTC ms. A time skipped by a spring-forward change
        moves forward to the first real minute; a repeated fall-back time resolves to its first occurrence. */
-    toUtc(local, tz) {
+    /* What a local wall-clock time means in tz: "ok" (one instant), "ambiguous" (a repeated
+       fall-back time: two instants) or "nonexistent" (skipped by spring-forward). */
+    classify(local, tz) {
       const g = Date.UTC(+local.slice(0, 4), +local.slice(5, 7) - 1, +local.slice(8, 10), +local.slice(11, 13), +local.slice(14, 16));
-      const a = g - time.offsetMin(g - 12 * 3600e3, tz) * 60e3, b = g - time.offsetMin(g + 12 * 3600e3, tz) * 60e3;
-      const okA = time.toLocal(a, tz) === local.slice(0, 16), okB = time.toLocal(b, tz) === local.slice(0, 16);
-      if (okA && okB) return Math.min(a, b);
-      if (okA) return a;
-      if (okB) return b;
-      return Math.max(a, b); // skipped (spring forward): first real instant after the gap
+      const cands = [...new Set([g - time.offsetMin(g - 12 * 3600e3, tz) * 60e3, g - time.offsetMin(g + 12 * 3600e3, tz) * 60e3])].sort((a, b) => a - b);
+      const ok = cands.filter((m) => time.toLocal(m, tz) === local.slice(0, 16));
+      return { kind: ok.length > 1 ? "ambiguous" : ok.length ? "ok" : "nonexistent", options: ok, after: Math.max(...cands) };
+    },
+    /* Local wall-clock -> UTC ms. fold picks the occurrence of a repeated fall-back time (0 = first,
+       1 = second). A skipped spring-forward time resolves to the first real instant after the gap;
+       event validation rejects those instead of resolving them silently. */
+    toUtc(local, tz, fold = 0) {
+      const c = time.classify(local, tz);
+      if (c.kind === "nonexistent") return c.after;
+      return c.options[Math.min(fold, c.options.length - 1)];
     },
     /* UTC ms -> local wall-clock "YYYY-MM-DDTHH:MM" in tz. */
     toLocal(ms, tz) {
@@ -87,17 +94,26 @@
         .formatToParts(new Date(ms)).forEach((x) => (o[x.type] = x.value));
       return `${o.year}-${o.month}-${o.day}T${String(+o.hour % 24).padStart(2, "0")}:${o.minute}`;
     },
-    /* UTC instants for an Open-Meteo hourly axis. Open-Meteo labels a whole response with ONE fixed
-       offset (utc_offset_seconds, the one in effect at request time), not real local time; across a
-       daylight-saving change its labels drift an hour from the clock on the wall. So instants come
-       from label − offset. "consistent" says whether every label also equals true local time in tz;
-       when it doesn't, labels near a time change are off by an hour and pages say so. */
+    /* UTC instants for a provider's hourly label axis. The labelling is detected per response,
+       not assumed: "fixed" = one UTC offset for the whole response (labels step evenly with no
+       repeats; observed from Open-Meteo, Nov 2026), "local" = true local time with DST (repeated
+       or skipped labels). consistent = every label equals true local time in tz. */
     instants(times, tz, offsetSec) {
-      if (!times.length) return { ms: [], consistent: false };
+      if (!times.length) return { ms: [], consistent: false, mode: "none" };
       const lab = (t) => Date.UTC(+t.slice(0, 4), +t.slice(5, 7) - 1, +t.slice(8, 10), +t.slice(11, 13), +t.slice(14, 16));
-      const ms = offsetSec == null ? (() => { const t0 = time.toUtc(times[0], tz); return times.map((_, i) => t0 + i * 3600e3); })() : times.map((t) => lab(t) - offsetSec * 1000);
-      return { ms, consistent: !tz || ms.every((m, i) => time.toLocal(m, tz) === times[i]) };
+      const naive = times.map(lab);
+      const even = naive.every((m, i) => i === 0 || m - naive[i - 1] === 3600e3);
+      let ms, mode;
+      if (even && offsetSec != null) { mode = "fixed"; ms = naive.map((m) => m - offsetSec * 1000); }
+      else {
+        mode = "local";
+        const seen = {};
+        ms = times.map((t) => { const k = t.slice(0, 16); const f = seen[k] || 0; seen[k] = f + 1; return time.toUtc(t, tz, f); });
+      }
+      return { ms, mode, consistent: !tz || ms.every((m, i) => time.toLocal(m, tz) === times[i].slice(0, 16)) };
     },
+    /* Short zone name at an instant, e.g. "EDT". */
+    abbr(ms, tz) { try { return new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "short" }).formatToParts(new Date(ms)).find((p) => p.type === "timeZoneName").value; } catch (e) { return ""; } },
   };
 
   /* ======================= signal tiers ======================= */
@@ -199,7 +215,9 @@
       const a = md.h[hv];
       if (!stats.complete(a, d.idx)) return null;
       const j = dtimes ? dtimes.indexOf(d.k) : -1;
-      const own = j >= 0 && md.d && md.d[dv] ? md.d[dv][j] : null;
+      /* the model's own daily value is for the provider's day; only use it when that day's labels are true local time */
+      const sameDay = !dtimes || !dtimes.labels || d.idx.every((i) => dtimes.labels[i] === dtimes.local[i]);
+      const own = j >= 0 && sameDay && md.d && md.d[dv] ? md.d[dv][j] : null;
       if (own != null) return own;
       const v = d.idx.map((i) => a[i]);
       return how === "max" ? Math.max(...v) : how === "min" ? Math.min(...v) : v.reduce((s, x) => s + x, 0);
@@ -217,11 +235,62 @@
         ag: blend.agreement(highs.map((x) => x.v)), contrib: highs.filter((x) => x.v != null).map((x) => x.id),
       };
     },
+    /* Comparison presets. "custom" is the user's own weights. "equal" is a raw-model consensus:
+       every raw model at weight 1, NBM excluded because NBM is itself a calibrated blend of many
+       of these models. "nbm" is NBM alone. NWS is never part of any blend; it is shown separately. */
+    PRESETS: {
+      custom: { label: "Custom weights", note: "Your saved models and weights." },
+      equal: { label: "Equal raw consensus", note: "Every available raw model at weight 1. NBM excluded (it already blends and calibrates these models)." },
+      nbm: { label: "NBM only", note: "The National Blend of Models by itself." },
+    },
+    presetWeights(preset, spec, custom) {
+      if (preset === "nbm") return { ncep_nbm_conus: 1 };
+      if (preset === "equal") { const w = {}; spec.models.forEach((m) => { if (m.on !== false && m.id !== "ncep_nbm_conus") w[m.id] = 1; }); return w; }
+      return { ...custom };
+    },
+    /* Weight of model id for variable v at lead hour L. base: {id: w}; rules (optional):
+       {byVar: {v: {id: factor}}, byLead: [{maxH, factor: {id: factor}}]}. Shared by every page and
+       future briefings. No rules are enabled by default: see HYPOTHESES. */
+    weightFor(base, rules, id, v, leadH) {
+      let w = base[id] || 0;
+      if (!rules || !(w > 0)) return w;
+      if (rules.byVar && rules.byVar[v] && rules.byVar[v][id] != null) w *= rules.byVar[v][id];
+      if (rules.byLead && leadH != null) { const r = rules.byLead.find((x) => leadH <= x.maxH); if (r && r.factor[id] != null) w *= r.factor[id]; }
+      return w;
+    },
+    /* Untested ideas for variable/lead weighting, recorded so they can be verified before use. */
+    HYPOTHESES: [
+      { id: "hrrr-short", text: "HRRR more weight in the first 18 h for precipitation timing and gusts; fade to zero by 48 h.", rules: { byLead: [{ maxH: 18, factor: { gfs_hrrr: 1.5 } }, { maxH: 48, factor: { gfs_hrrr: 0.75 } }] } },
+      { id: "nbm-temps", text: "NBM more weight for 2 m temperature beyond day 2, where its bias correction helps most.", rules: { byVar: { temperature_2m: { ncep_nbm_conus: 1.5 } } } },
+      { id: "ecmwf-mid", text: "ECMWF more weight days 3–7 for synoptic timing.", rules: { byLead: [{ maxH: 72, factor: {} }, { maxH: 168, factor: { ecmwf_ifs025: 1.3 } }] } },
+    ],
+    /* Precipitation timing per model and grouped scenarios, so different storm timings stay
+       separate instead of averaging into long light precipitation. minAmt in the data's units. */
+    precipScenarios(data, ws, s, e, { minAmt = 0.01, gapH = 3, ms } = {}) {
+      const ids = Object.keys(ws).filter((id) => data.models[id] && ws[id] > 0);
+      const at = ms || data.ms || data.times.map((_, i) => i * 3600e3);
+      const models = ids.map((id) => {
+        const a = data.models[id].h.precipitation; if (!a) return null;
+        let on = null, off = null, tot = 0, n = 0;
+        for (let i = s; i < e; i++) { if (a[i] == null) continue; n++; tot += a[i]; if (a[i] >= minAmt) { if (on == null) on = i; off = i; } }
+        if (n < e - s) return { id, complete: false };
+        return { id, complete: true, onset: on, end: off, total: tot };
+      }).filter(Boolean);
+      const wet = models.filter((m) => m.complete && m.onset != null).sort((a, b) => a.onset - b.onset);
+      const groups = [];
+      wet.forEach((m) => { const g = groups[groups.length - 1]; if (g && (at[m.onset] - at[g.last]) / 3600e3 < gapH) { g.items.push(m); g.last = m.onset; } else groups.push({ items: [m], last: m.onset }); });
+      const scen = groups.map((g) => {
+        const it = g.items, r = (k) => [Math.min(...it.map((x) => x[k])), Math.max(...it.map((x) => x[k]))];
+        return { ids: it.map((x) => x.id), weight: it.reduce((t, x) => t + ws[x.id], 0), onset: r("onset").map((i) => at[i]), end: r("end").map((i) => at[i]), total: r("total") };
+      });
+      return { models, scenarios: scen, dry: models.filter((m) => m.complete && m.onset == null).map((m) => m.id), incomplete: models.filter((m) => !m.complete).map((m) => m.id) };
+    },
     /* Daily rows for the full calendar days in data. ws: {modelId: weight} of models in use. */
     dailyRows(data, ws) {
       const ids = Object.keys(ws).filter((id) => data.models[id] && ws[id] > 0);
       return time.dayGroups(data.times).filter((d) => d.idx.length >= 12).map((d) => {
-        const per = (hv, dv, how) => ids.map((id) => ({ id, v: blend.modelDay(data.models[id], d, hv, dv, how, data.dtimes) }));
+        const dt = data.dtimes ? Object.assign(data.dtimes.slice(), { labels: data.labels, local: data.times }) : null;
+        const per = (hv, dv, how) => ids.map((id) => ({ id, v: blend.modelDay(data.models[id], d, hv, dv, how, dt) }));
         const wmean = (list) => { let s = 0, w = 0; list.forEach(({ id, v }) => { if (v != null) { s += ws[id] * v; w += ws[id]; } }); return w ? s / w : null; };
         const highs = per("temperature_2m", "temperature_2m_max", "max");
         return {
@@ -499,7 +568,15 @@
       if (!t.start || !t.end) e.push("Event start and end are required.");
       Object.keys(t).forEach((k) => { if (!okFmt(t[k])) e.push(`${k} time is not valid.`); });
       if (e.length) return e;
-      const ms = {}; ["setup", "gates", "start", "end", "teardown"].forEach((k) => { if (t[k]) ms[k] = time.toUtc(t[k], ev.tz); });
+      const ms = {}, fold = ev.fold || {};
+      for (const k of ["setup", "gates", "start", "end", "teardown"]) {
+        if (!t[k]) continue;
+        const c = time.classify(t[k], ev.tz);
+        if (c.kind === "nonexistent") { e.push(`${k} ${t[k].slice(11)} doesn't exist that day (clocks jump forward). Pick a time outside the skipped hour.`); continue; }
+        if (c.kind === "ambiguous" && fold[k] !== 0 && fold[k] !== 1) { e.push(`${k} ${t[k].slice(11)} happens twice that night (clocks fall back). Choose which one.`); continue; }
+        ms[k] = time.toUtc(t[k], ev.tz, fold[k] || 0);
+      }
+      if (e.length) return e;
       const order = ["setup", "gates", "start", "end", "teardown"].filter((k) => ms[k] != null);
       for (let i = 1; i < order.length; i++) if (ms[order[i]] < ms[order[i - 1]]) e.push(`${order[i]} is before ${order[i - 1]}.`);
       if (ms.end <= ms.start) e.push("Event end must be after start.");
@@ -512,7 +589,7 @@
       event.PHASES.forEach((p) => {
         if (!t[p.from]) return;
         const toKey = p.to.find((k) => t[k]); if (!toKey) return;
-        const s = time.toUtc(t[p.from], ev.tz), e = time.toUtc(t[toKey], ev.tz);
+        const fold = ev.fold || {}, s = time.toUtc(t[p.from], ev.tz, fold[p.from] || 0), e = time.toUtc(t[toKey], ev.tz, fold[toKey] || 0);
         if (e > s) out.push({ key: p.key, label: p.label, startMs: s, endMs: e, startLocal: time.toLocal(s, ev.tz), endLocal: time.toLocal(e, ev.tz), hours: (e - s) / 3600e3 });
       });
       const all = out.length ? { key: "all", label: "Whole event", startMs: out[0].startMs, endMs: out[out.length - 1].endMs } : null;
@@ -541,7 +618,243 @@
     windowKey: (ev, win) => `${ev.id}:${win.key}:${win.startMs}-${win.endMs}`,
   };
 
-  const OpsCore = { stats, time, TIERS, maxTier, config, blend, thunder, severe, winter, changes, event, MS };
+  /* ======================= NWS ======================= */
+  /* Parsing for api.weather.gov point forecasts. Everything stays an NWS product: periods keep their
+     own start/end and day/night flag, grid fields keep their valid intervals and units, and
+     interval accumulations are never spread into hours. Missing values stay null. */
+  const nws = {
+    STALE_H: 12, // grid/forecast older than this is treated as unavailable
+    durationMs(d) {
+      const m = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?)?$/.exec(d || "");
+      return m ? ((+m[1] || 0) * 24 + (+m[2] || 0)) * 3600e3 + (+m[3] || 0) * 60e3 : null;
+    },
+    /* "2026-11-02T12:00:00+00:00/PT6H" -> {s, e} in UTC ms */
+    interval(vt) {
+      const [a, d] = String(vt).split("/"), s = Date.parse(a), dur = nws.durationMs(d);
+      return isNaN(s) || dur == null ? null : { s, e: s + dur };
+    },
+    /* Convert a value with a WMO unit code to the site's US units. */
+    convert(uom, v) {
+      if (v == null || !isFinite(v)) return null;
+      switch (String(uom || "").replace(/^(wmoUnit|unit):/, "")) {
+        case "degC": return v * 9 / 5 + 32;
+        case "km_h-1": return v * 0.621371;
+        case "m_s-1": return v * 2.23694;
+        case "mm": return v / 25.4;
+        case "m": return v * 3.28084;
+        case "km": return v * 0.621371;
+        default: return v; // degF, percent, degree_(angle) or unitless
+      }
+    },
+    /* A grid "state" field (valid through its interval, e.g. temperature) at each instant. */
+    stateAt(prop, msArr) {
+      const iv = ((prop && prop.values) || []).map((x) => { const r = nws.interval(x.validTime); return r && { ...r, v: nws.convert(prop.uom, x.value) }; }).filter(Boolean);
+      return msArr.map((m) => { const x = iv.find((y) => m >= y.s && m < y.e); return x ? x.v : null; });
+    },
+    /* A grid accumulation field (QPF, snowfall, ice) as its own intervals, in inches. */
+    intervals(prop) {
+      return ((prop && prop.values) || []).map((x) => { const r = nws.interval(x.validTime); return r && { ...r, v: nws.convert(prop.uom, x.value) }; }).filter(Boolean);
+    },
+    /* Accumulation over [s, e] from interval totals without allocating within intervals:
+       lower = intervals entirely inside; upper = every interval that overlaps. exact when no interval
+       straddles an edge and the intervals cover the whole window; otherwise report the range. */
+    totalOver(ivs, s, e) {
+      const over = ivs.filter((x) => x.e > s && x.s < e), known = over.filter((x) => x.v != null);
+      const inside = known.filter((x) => x.s >= s && x.e <= e);
+      const sorted = over.slice().sort((a, b) => a.s - b.s);
+      let reach = s, covers = sorted.length > 0 && sorted[0].s <= s;
+      sorted.forEach((x) => { if (x.s > reach) covers = false; reach = Math.max(reach, x.e); });
+      covers = covers && reach >= e && known.length === over.length;
+      if (!covers) return { lower: null, upper: null, exact: false, covers: false, n: over.length };
+      const lower = inside.reduce((t, x) => t + x.v, 0), upper = known.reduce((t, x) => t + x.v, 0);
+      return { lower, upper, exact: inside.length === known.length, covers: true, n: over.length };
+    },
+    /* Official 12-hour day/night periods (forecast endpoint). */
+    periods(fc) {
+      return (((fc || {}).properties || {}).periods || []).map((p) => ({
+        name: p.name, s: Date.parse(p.startTime), e: Date.parse(p.endTime), startTime: p.startTime, endTime: p.endTime, isDaytime: !!p.isDaytime,
+        temp: p.temperature == null ? null : p.temperatureUnit === "C" ? p.temperature * 9 / 5 + 32 : p.temperature,
+        pop: p.probabilityOfPrecipitation ? p.probabilityOfPrecipitation.value : null,
+        wind: p.windSpeed || "", dir: p.windDirection || "", short: p.shortForecast || "", detailed: p.detailedForecast || "",
+      }));
+    },
+    /* Hourly forecast periods (wording and official hourly values). */
+    hourly(fh) {
+      return (((fh || {}).properties || {}).periods || []).map((p) => ({
+        s: Date.parse(p.startTime), e: Date.parse(p.endTime), short: p.shortForecast || "",
+        temp: p.temperature == null ? null : p.temperatureUnit === "C" ? p.temperature * 9 / 5 + 32 : p.temperature,
+        pop: p.probabilityOfPrecipitation ? p.probabilityOfPrecipitation.value : null,
+      }));
+    },
+    /* Weather conditions (coverage/type/intensity) valid at each instant. */
+    weatherAt(grid, msArr) {
+      const w = (((grid || {}).properties || {}).weather || {}).values || [];
+      const iv = w.map((x) => { const r = nws.interval(x.validTime); return r && { ...r, v: (x.value || []).filter((c) => c && c.weather) }; }).filter(Boolean);
+      return msArr.map((m) => { const x = iv.find((y) => m >= y.s && m < y.e); return x ? x.v : null; });
+    },
+    /* Precipitation type named in NWS weather wording, or null. Sleet is NWS-only: models don't report it. */
+    ptype(conds) {
+      if (!conds || !conds.length) return null;
+      const t = new Set(conds.map((c) => c.weather));
+      const has = (...k) => k.some((x) => t.has(x));
+      const kinds = [has("freezing_rain", "freezing_drizzle") && "freezing", has("sleet") && "sleet", has("snow", "snow_showers", "blowing_snow", "snow_grains") && "snow", has("rain", "rain_showers", "drizzle", "thunderstorms") && "rain"].filter(Boolean);
+      return kinds.length > 1 ? (kinds.includes("freezing") ? "freezing" : "mix") : kinds[0] || null;
+    },
+    /* NWS grid values on an hourly axis of instants (US units). Accumulations are NOT here: use
+       intervals/totalOver. pop is the hourly grid PoP: a probability for that hour, never a daily one. */
+    onAxis(N, ms) {
+      const g = N && N.parts && N.parts.grid ? N.parts.grid.properties : null;
+      if (!g) return null;
+      const f = (k) => (g[k] ? nws.stateAt(g[k], ms) : ms.map(() => null));
+      const wx = nws.weatherAt(N.parts.grid, ms);
+      return { temperature_2m: f("temperature"), dew_point_2m: f("dewpoint"), apparent_temperature: f("apparentTemperature"), precipitation_probability: f("probabilityOfPrecipitation"),
+        wind_speed_10m: f("windSpeed"), wind_gusts_10m: f("windGust"), cloud_cover: f("skyCover"), thunder: f("probabilityOfThunder"), weather: wx, ptype: wx.map(nws.ptype),
+        qpf: nws.intervals(g.quantitativePrecipitation), snow: nws.intervals(g.snowfallAmount), ice: nws.intervals(g.iceAccumulation),
+        covered: ms.map((m) => g.validTimes ? (() => { const v = nws.interval(g.validTimes); return v && m >= v.s && m < v.e; })() : false) };
+    },
+    /* Freshness and coverage of a point forecast. */
+    status(parts, nowMs) {
+      const t = (x) => (x && x.properties && x.properties.updateTime ? Date.parse(x.properties.updateTime) : null);
+      const upd = { forecast: t(parts.forecast), hourly: t(parts.hourly), grid: t(parts.grid) };
+      const age = (k) => (upd[k] == null ? null : (nowMs - upd[k]) / 3600e3);
+      const vt = parts.grid && parts.grid.properties && parts.grid.properties.validTimes ? nws.interval(parts.grid.properties.validTimes) : null;
+      const stale = {}; ["forecast", "hourly", "grid"].forEach((k) => (stale[k] = parts[k] == null || age(k) == null || age(k) > nws.STALE_H));
+      return { updated: upd, ageH: { forecast: age("forecast"), hourly: age("hourly"), grid: age("grid") }, stale, valid: vt };
+    },
+  };
+
+  /* ======================= winter diagnostics ======================= */
+  const CP = 1004; // J/(kg K)
+  Object.assign(winter, {
+    /* WMO weather code -> precipitation type. The WMO set models use has no sleet / ice pellets. */
+    codeType(c) {
+      if (c == null) return null;
+      if (c === 56 || c === 57 || c === 66 || c === 67) return "freezing";
+      if ((c >= 71 && c <= 77) || c === 85 || c === 86) return "snow";
+      if ((c >= 51 && c <= 55) || (c >= 61 && c <= 65) || (c >= 80 && c <= 82) || c >= 95) return "rain";
+      return "none";
+    },
+    /* Profile points for one hour: surface (2 m, surface pressure) plus every pressure level above
+       ground. Metric inputs: °C, hPa, m. */
+    profile(h, i, elev) {
+      const pts = [];
+      const ps = h.surface_pressure ? h.surface_pressure[i] : null, t2 = h.temperature_2m ? h.temperature_2m[i] : null;
+      if (t2 != null) pts.push({ z: 2, p: ps, t: t2 });
+      severe.LEVELS.forEach((p) => {
+        const z = h[`geopotential_height_${p}hPa`] && h[`geopotential_height_${p}hPa`][i], t = h[`temperature_${p}hPa`] && h[`temperature_${p}hPa`][i];
+        if (z == null || t == null || p < 500) return;
+        if (ps != null && p >= ps) return;      // below ground
+        if (z - elev <= 10) return;
+        pts.push({ z: z - elev, p, t, rh: h[`relative_humidity_${p}hPa`] ? h[`relative_humidity_${p}hPa`][i] : null });
+      });
+      return pts.sort((a, b) => a.z - b.z);
+    },
+    /* Warm layers aloft and the cold layer beneath, from the profile. */
+    structure(pts) {
+      if (!pts || pts.length < 3) return null;
+      const aloft = pts.filter((q) => q.z > 300);
+      const maxA = aloft.reduce((m, q) => (m == null || q.t > m.t ? q : m), null);
+      let warmBase = null, warmTop = null, coldDepth = null;
+      for (let k = 1; k < pts.length; k++) {
+        const a = pts[k - 1], b = pts[k];
+        const zc = a.t !== b.t ? a.z + ((0 - a.t) * (b.z - a.z)) / (b.t - a.t) : null;
+        if (a.t <= 0 && b.t > 0 && warmBase == null) { warmBase = zc; if (pts[0].t <= 0) coldDepth = zc; }
+        if (a.t > 0 && b.t <= 0 && warmBase != null && warmTop == null) warmTop = zc;
+      }
+      const kuch = pts.filter((q) => q.p == null || q.p >= 500).reduce((m, q) => Math.max(m, q.t), -999);
+      return { sfcT: pts[0].t, maxAloftT: maxA ? maxA.t : null, maxAloftZ: maxA ? maxA.z : null, warmBase, warmTop, warmDepth: warmBase != null && warmTop != null ? warmTop - warmBase : null, coldDepth, kucheraTmax: kuch > -999 ? kuch : null };
+    },
+    /* Bourgouin (2000) energy-area method, EXPERIMENTAL here: areas between the temperature profile
+       and 0 °C, A = Cp · mean(T − 0 °C) · ln(θtop/θbottom) per layer, J/kg. Needs pressure at every
+       point. Thresholds as published: surface warm area < 5.6 snow, 5.6–13.2 rain/snow mix, > 13.2 rain;
+       melting aloft (positive area ≥ 2) over a cold surface: NA > 66 + 0.66·PA ice pellets,
+       NA < 46 + 0.66·PA freezing rain, otherwise a mix. Coarse model levels limit precision. */
+    bourgouin(pts) {
+      if (!pts || pts.length < 3 || pts.some((q) => q.p == null)) return null;
+      const th = (q) => (q.t + 273.15) * Math.pow(1000 / q.p, 0.2857);
+      const segs = []; // consecutive layers with signed area
+      for (let k = 1; k < pts.length; k++) {
+        let a = pts[k - 1], b = pts[k];
+        const parts = [];
+        if (a.t * b.t < 0) { const f = a.t / (a.t - b.t), mid = { t: 0, p: Math.exp(Math.log(a.p) + f * (Math.log(b.p) - Math.log(a.p))), z: a.z + f * (b.z - a.z) }; parts.push([a, mid], [mid, b]); } else parts.push([a, b]);
+        parts.forEach(([x, y]) => segs.push({ sign: Math.sign((x.t + y.t) / 2) || 0, area: CP * ((x.t + y.t) / 2) * Math.log(th(y) / th(x)), zb: x.z, zt: y.z }));
+      }
+      const layers = []; // merge same-sign runs from the surface up
+      segs.forEach((g) => { const L = layers[layers.length - 1]; if (L && L.sign === g.sign) { L.area += g.area; L.zt = g.zt; } else if (g.sign !== 0) layers.push({ ...g }); });
+      const sfcWarm = layers[0] && layers[0].sign > 0 ? Math.abs(layers[0].area) : 0;
+      const firstAloftWarm = layers.find((L, k) => k > 0 && L.sign > 0 && layers.slice(0, k).some((x) => x.sign < 0));
+      const PA = firstAloftWarm ? Math.abs(firstAloftWarm.area) : 0;
+      const NA = layers[0] && layers[0].sign < 0 && firstAloftWarm ? Math.abs(layers[0].area) : 0;
+      let type;
+      if (!layers.some((L) => L.sign > 0)) type = "snow";
+      else if (sfcWarm === 0) type = PA < 2 ? "snow" : NA > 66 + 0.66 * PA ? "sleet" : NA < 46 + 0.66 * PA ? "freezing" : "mix";
+      else { const tot = sfcWarm + (PA >= 2 ? PA : 0); type = tot < 5.6 ? "snow" : tot <= 13.2 ? "mix" : "rain"; }
+      return { type, PA, NA, sfcWarm };
+    },
+    /* Kuchera snow ratio from the warmest temperature (K) between the surface and 500 hPa. */
+    kuchera(tmaxC) {
+      if (tmaxC == null) return null;
+      const T = tmaxC + 273.15, r = T > 271.16 ? 12 + 2 * (271.16 - T) : 12 + (271.16 - T);
+      return Math.max(0, Math.min(r, 30));
+    },
+    /* Hourly diagnostics for one deterministic model (metric hourly arrays). */
+    series(h, n, elev, { minPrecipMm = 0.1 } = {}) {
+      const out = [];
+      for (let i = 0; i < n; i++) {
+        const pr = h.precipitation ? h.precipitation[i] : null, sn = h.snowfall ? h.snowfall[i] : null, rn = h.rain ? (h.rain[i] ?? 0) + (h.showers ? h.showers[i] ?? 0 : 0) : null;
+        const pts = winter.profile(h, i, elev), st = winter.structure(pts);
+        const wet = pr != null && pr >= minPrecipMm;
+        const code = h.weather_code ? winter.codeType(h.weather_code[i]) : null;
+        const split = sn != null && rn != null && wet ? (sn > 0.05 && rn > 0.05 ? "mix" : sn > 0.05 ? "snow" : "rain") : null;
+        const bour = wet ? winter.bourgouin(pts) : null;
+        const swe = sn == null ? null : sn / 7 / 2.54; // Open-Meteo: snowfall cm = 7 × water cm  -> SWE inches
+        const kr = st ? winter.kuchera(st.kucheraTmax) : null;
+        out.push({ wet, precipIn: pr == null ? null : pr / 25.4, snowIn: sn == null ? null : sn / 2.54, swe, codeType: wet ? code : code === "none" ? "none" : code, split, bour, st,
+          t2F: h.temperature_2m && h.temperature_2m[i] != null ? h.temperature_2m[i] * 9 / 5 + 32 : null,
+          tdF: h.dew_point_2m && h.dew_point_2m[i] != null ? h.dew_point_2m[i] * 9 / 5 + 32 : null,
+          twF: h.wet_bulb_temperature_2m && h.wet_bulb_temperature_2m[i] != null ? h.wet_bulb_temperature_2m[i] * 9 / 5 + 32 : null,
+          soilC: h.soil_temperature_0cm ? h.soil_temperature_0cm[i] : null, kuchera: kr });
+      }
+      return out;
+    },
+    /* Precipitation-type changes over [s, e) for one model: [{i, from, to}]. Dry hours are skipped. */
+    transitions(types, s, e) {
+      const out = []; let prev = null;
+      for (let i = s; i < e; i++) { const t = types[i]; if (!t || t === "none") continue; if (prev && t !== prev) out.push({ i, from: prev, to: t }); prev = t; }
+      return out;
+    },
+    /* Snow totals over [s, e) from one model: as reported (7:1), 10:1 and Kuchera, all from the model's
+       own snow water. Only when every hour is present. */
+    scenarioTotals(rows, s, e) {
+      const r = rows.slice(s, e);
+      if (!r.length || r.some((x) => x.swe == null)) return null;
+      const swe = r.reduce((t, x) => t + x.swe, 0);
+      const kOk = r.every((x) => x.swe === 0 || x.kuchera != null);
+      return { reported: r.reduce((t, x) => t + x.snowIn, 0), swe, ten: swe * 10, kuchera: kOk ? r.reduce((t, x) => t + x.swe * (x.kuchera || 0), 0) : null,
+        warmHours: r.filter((x) => x.snowIn > 0 && ((x.t2F != null && x.t2F > 33) || (x.soilC != null && x.soilC > 0))).length };
+    },
+  });
+  config.winterDet = {
+    id: "winterDet", base: FORECAST, params: { temperature_unit: "celsius", wind_speed_unit: "kn", precipitation_unit: "mm" }, days: 5, require: ["temperature_2m", "precipitation"],
+    models: [
+      { id: "gfs_hrrr", name: "HRRR (48 h)", w: 1 }, { id: "ncep_nam_conus", name: "NAM 3 km", w: 1 }, { id: "gfs_seamless", name: "GFS", w: 1 },
+      { id: "ecmwf_ifs025", name: "ECMWF IFS", w: 1 }, { id: "icon_seamless", name: "ICON", w: 1 }, { id: "gem_seamless", name: "GEM", w: 1 },
+      { id: "ukmo_seamless", name: "UKMO", w: 1 }, { id: "ncep_nbm_conus", name: "NBM", w: 1 },
+    ],
+    hourly: ["temperature_2m", "dew_point_2m", "wet_bulb_temperature_2m", "precipitation", "rain", "showers", "snowfall", "weather_code", "surface_pressure", "soil_temperature_0cm",
+      ...LEVELS.filter((p) => p >= 500).flatMap((p) => [`temperature_${p}hPa`, `geopotential_height_${p}hPa`, `relative_humidity_${p}hPa`])],
+  };
+
+  /* ======================= verification records ======================= */
+  /* One record per source per valid window, so alternatives can later be scored against observations. */
+  const verify = {
+    SCHEMA: 1,
+    record({ kind, source, location, retrievedAt, cycle = null, window, contributors = [], weights = null, values }) {
+      return { schema: verify.SCHEMA, kind, source, location, retrievedAt, cycle, window, contributors, weights, values };
+    },
+  };
+
+  const OpsCore = { stats, time, TIERS, maxTier, config, blend, thunder, severe, winter, changes, event, nws, verify, MS };
   if (typeof module !== "undefined" && module.exports) module.exports = OpsCore;
   root.OpsCore = OpsCore;
 })(typeof self !== "undefined" ? self : globalThis);

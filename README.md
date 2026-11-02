@@ -26,6 +26,67 @@ GitHub Pages serves this repo straight from the `main` branch, so every push to 
 
 Buy a name from a registrar (Cloudflare, Porkbun, Namecheap: about $10–15 a year). In **Settings → Pages → Custom domain**, enter it, then add the DNS records GitHub shows you at the registrar. The site files don't change.
 
+## NWS comparison
+
+NWS point forecasts come from api.weather.gov and are always shown as a **separate, labelled source**. They are never averaged into any blend.
+
+- **Lookup:** each location is resolved through `/points/{lat},{lon}`, then its forecast, hourly and grid-data URLs are followed. The point mapping is cached for a week; forecasts refresh every 15 minutes.
+- **Units and times:** grid values carry their WMO units (°C, km/h, mm) and are converted to °F, mph and inches. They keep their own valid intervals; official forecast periods keep their day/night start and end times.
+- **Accumulations stay in intervals.** NWS precip, snow and ice are interval totals (usually 6 h), never spread into hours. A window total is exact when intervals line up with the window, and is shown as a lower–upper range when an interval straddles an edge. Uncovered windows say "not covered", never 0.
+- **Probabilities stay what they are.** Official period PoP is shown as-is. Hourly grid PoP is shown only as hourly values, or a range of them; it is never summed, and never treated as a daily or phase probability.
+- **Freshness:** data older than 12 hours counts as stale and is dropped, not shown. NWS failures are isolated: the model tools keep working and the header chip says what's missing.
+- **Where it appears:**
+  - Blend: an NWS line on compatible charts, NWS day-high and night-low columns, an NWS-vs-blend table over each official period's own hours, and NWS columns in event tables.
+  - Overview: NWS day/night values on the day cards and in the event briefing.
+  - Thunder: NWS gridded thunder chance.
+  - Winter: NWS weather wording (the only source that can say sleet), plus NWS snow and ice totals.
+
+## Winter diagnostics
+
+Field availability comes from a real inventory, `tests/fixtures/om-inventory.json`:
+
+- **Wet-bulb temperature** is provided by every deterministic model.
+- **Temperature profiles:** GFS, HRRR, ICON, GEM and UKMO have 8–10 levels below 500 hPa; ECMWF and AIFS have 6; NBM and NAM have none.
+- **Ensembles** carry surface fields only.
+
+The Winter page shows:
+
+- **Precipitation type**, side by side from three sources:
+  - each model's own WMO weather code, which has no sleet category
+  - NWS wording
+  - an **experimental** profile reading using the Bourgouin (2000) energy-area method, with its thresholds documented on the page
+  It also shows each model's transition times and the spread of transition timing across models.
+- **Profiles:** for any clicked hour, every model's profile, with surface temperature, wet-bulb, dew point, warm nose, warm-layer depth, cold-layer depth and Kuchera ratio. Charts for surface T/Td/wet-bulb, 925/850 hPa temperatures and the warm-nose peak.
+- **Snow amounts, kept distinct:**
+  - model snow as reported (Open-Meteo's fixed 7:1 conversion)
+  - snow water
+  - 10:1
+  - Kuchera (experimental; needs a profile)
+  - NWS snow and ice from its interval totals
+  - hours where warm ground likely limits accumulation
+  None of these claim ground or road accumulation.
+- **Ensemble odds** use only members that cover the whole window.
+
+## Blend presets and weighting
+
+- **Custom weights** (your saved models and weights, migrated unchanged), **Equal raw consensus** (every raw model at weight 1, NBM excluded because NBM already blends and calibrates these models) and **NBM only**. NWS is separate.
+- **Variable- and lead-time weighting:** `blend.weightFor` supports both in shared code. None is enabled. Ideas are recorded in `blend.HYPOTHESES` as untested hypotheses, to be verified before use.
+- **Precip timing scenarios** group models by onset, so different storm timings aren't averaged into a long light event.
+- Severe keeps each model's extremes beside the consensus.
+- Model agreement is never presented as a calibrated probability.
+- **Verification records** (source, retrieval time, NWS update time where available, valid window, contributors, weights, values) are saved in the browser on each load and exported from the footer. They make it possible to score these alternatives against observations later. The Open-Meteo forecast API doesn't report model cycles, so cycle is null for model records.
+
+## Time zones
+
+Everything is computed on real UTC instants. Each provider response's labelling is detected, not assumed:
+
+- **Fixed offset:** Open-Meteo, observed November 2026 and checked daily by the live test.
+- **True local:** repeated or skipped hours.
+
+Every label, tooltip, shaded event phase and table is shown in the venue's real IANA time zone. A repeated fall-back hour shows its zone ("1a EDT", "1a EST").
+
+Event times that don't exist (spring-forward) are rejected. Event times that occur twice (fall-back) require you to choose which occurrence.
+
 ## Events
 
 Save an event in the **Event** card under Location. Each event has a name, a location and up to five local times: setup starts, gates open, event starts, event ends and teardown ends. Start and end are required.
@@ -52,10 +113,12 @@ Save an event in the **Event** card under Location. Each event has a name, a loc
 | `assets/ops-data.js` | Requests and aligns Open-Meteo data for a config spec. Used by every page, the overview and the live test. |
 | `assets/ops.js` | Page shell: header, nav, location, NWS alerts, data status, change display and chart helpers. |
 | `assets/*.js` | One script per page. They only draw; the numbers come from the two files above. |
-| `tests/core.test.js` | Hand-worked math, missing-data rules, winter gaps, partial model days and snapshot comparability. Run with `node tests/core.test.js`. |
+| `tests/core.test.js` | Hand-worked math, missing-data rules, winter gaps, partial model days, snapshot comparability, time zones (midnight, spring-forward, fall-back), NWS units/intervals/allocation, Bourgouin and Kuchera cases, presets, weighting and timing scenarios. Run with `node tests/core.test.js`. |
+| `tests/fixtures.test.js` | Repeatable regression checks on real captured responses in `tests/fixtures/` (NWS points, forecast, hourly, grid for two places; Open-Meteo winter fields, inventory and a time-change response). Run with `node tests/fixtures.test.js`. |
+| `tests/capture.js` | Refreshes those fixtures from the live APIs (Actions → "Capture fixtures"). |
 | `tests/live.test.js` | Pulls real Open-Meteo responses for two places through the same loader and math. Checks that every expected field has real values (with an explicit exceptions list), units, ranges, member counts, time axes, daily highs against Open-Meteo's own, and the fixed-offset labeling across a recent daylight-saving change. Run with `node tests/live.test.js`. |
 
-GitHub Actions (`.github/workflows/tests.yml`) runs both tests on every push and the live test every morning. Results are under the repo's **Actions** tab.
+GitHub Actions (`.github/workflows/tests.yml`) runs the unit and fixture tests on every push, and the live test on every push and every morning. A provider outage is reported as a skipped block with a warning, separately from calculation failures. Passing tests establish correctness, compatibility and plausibility, not forecast accuracy. Results are under the repo's **Actions** tab.
 
 ## Data rules
 

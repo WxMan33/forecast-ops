@@ -84,7 +84,7 @@
   }
   const modelAt = (id, i) => { const s = data.models[id].series, x = {}; KEYS.forEach((k) => (x[k] = s[k][i])); return x; };
   function peakIndex() {
-    const B = blendKey("scp").mean, now = Math.max(0, O.nowIndex(data.times, data.tz));
+    const B = blendKey("scp").mean, now = Math.max(0, O.nowIdx(data));
     let best = now, bv = -1;
     B.forEach((v, i) => { if (i >= now && v != null && v > bv) { bv = v; best = i; } });
     return best;
@@ -114,7 +114,7 @@
     drawStrip();
 
     /* headline */
-    const now = Math.max(0, O.nowIndex(data.times, data.tz)), end = Math.min(data.times.length, now + 24);
+    const now = Math.max(0, O.nowIdx(data)), end = Math.min(data.times.length, now + 24);
     const win = tiers.slice(now, end).map((a) => a.tier), worst = O.maxTier(win), first = win.findIndex((t) => t === worst);
     const ltd = tiers.slice(now, end).filter((a) => a.limited && a.tier !== "nodata").length;
     const mx = (k, s, e, src = "mean") => { const v = bl.slice(s, e).map((x) => (src === "max" ? x.max[k] : x[k])).filter((x) => x != null); return v.length ? Math.max(...v) : null; };
@@ -172,7 +172,7 @@
     if (!data || !data.tiers) return;
     const rows = [{ name: "BLEND", color: O.css("--text"), tiers: data.tiers, bold: true }]
       .concat(activeModels().map((m) => ({ name: m.name, color: O.modelColor(MODELS.indexOf(m)), tiers: data.times.map((_, i) => S.assess(modelAt(m.id, i))) })));
-    O.tierStrip($("strip"), data.times, rows, { nowIdx: O.nowIndex(data.times, data.tz), sel: +$("hHour").value, bands: O.eventBands(data.ctx),
+    O.tierStrip($("strip"), data.times, rows, { nowIdx: O.nowIdx(data), sel: +$("hHour").value, bands: O.eventBands(data.ctx),
       onPick: (i) => { $("hHour").value = i; drawStrip(); drawHodo(); renderChart(); $("strip").querySelector(".strip-scroll").focus(); } });
   }
 
@@ -240,7 +240,7 @@
     if (!data) return;
     const t = TABS.find((x) => x.id === tab) || TABS[0];
     $("chartTitle").textContent = t.label; $("chartSub").textContent = t.sub;
-    const ms = activeFor(t.k), B = blendKey(t.k), labels = O.hourLabels(data.times), hours = data.times.map(O.hourOf), fg = O.css("--text");
+    const ms = activeFor(t.k), B = blendKey(t.k), labels = O.hourLabels(data.times, data.ms, data.tz), hours = data.times.map(O.hourOf), fg = O.css("--text");
     const ds = [];
     if (ms.length > 1) {
       ds.push({ label: "min", data: B.min, borderWidth: 0, pointRadius: 0, fill: false, spanGaps: true, hideTip: true, order: 5 });
@@ -249,7 +249,7 @@
     if (showLines() || ms.length === 1) ms.forEach((m) => ds.push(O.modelLine(m.name, data.models[m.id].series[t.k], O.modelColor(MODELS.indexOf(m)), { tension: 0.2 })));
     if (ms.length > 1) ds.push({ label: "BLEND", data: B.mean, borderColor: fg, borderWidth: 3.25, pointRadius: 0, tension: 0.2, spanGaps: true, order: 1 });
     (t.thr || []).forEach((v) => ds.push({ label: `${v}`, data: data.times.map(() => v), borderColor: O.css("--prepare"), borderWidth: 1.25, borderDash: [5, 4], pointRadius: 0, hideTip: true, order: 2 }));
-    const base = O.chartBase({ labels, hours, nowIdx: O.nowIndex(data.times, data.tz), selIdx: +$("hHour").value, bands: O.eventBands(data.ctx), unit: t.unit, dec: t.dec || 0, yTitle: t.unit || t.label, beginAtZero: t.zero });
+    const base = O.chartBase({ labels, hours, nowIdx: O.nowIdx(data), selIdx: +$("hHour").value, bands: O.eventBands(data.ctx), unit: t.unit, dec: t.dec || 0, yTitle: t.unit || t.label, beginAtZero: t.zero });
     if (chart) chart.destroy();
     chart = new Chart($("chart"), { type: "line", data: { labels, datasets: ds }, options: base.options, plugins: base.plugins });
     $("legend").innerHTML = (showLines() ? ms.map((m) => `<span><i class="sw" style="background:${O.modelColor(MODELS.indexOf(m))}"></i>${O.esc(m.name)}</span>`).join("") : "") +

@@ -19,11 +19,13 @@
     const wsB = O.savedWeights(CFG.blend), wsT = O.savedWeights(CFG.thunder), wsW = O.savedWeights(CFG.winter);
     /* Request exactly what the tool pages request (same models, variables and days), so the
        browser cache is shared and nothing is computed differently. */
-    const [B, T, W] = await Promise.all([
+    const [B, T, W, NW] = await Promise.all([
       O.Data.loadModels(CFG.blend, { ...where, days: Math.max(3, O.savedDays(CFG.blend)) }),
       O.Data.loadModels(CFG.thunder, { ...where, days: Math.max(3, O.savedDays(CFG.thunder)) }),
       O.Data.loadEnsemble(CFG.winter, where),
+      O.Data.loadNWS(where),
     ]);
+    const nwsOk = NW && NW.ok;
     if (B.empty) {
       O.setChip("NO DATA", "err"); O.headline({ tier: "nodata", word: "NO DATA" });
       $("sumMsg").textContent = "Couldn't reach Open-Meteo."; $("days").innerHTML = ""; return;
@@ -51,6 +53,10 @@
         <div class="r"><span>Snow (ens.)</span><b>${!w || !w.st.used ? "—" : `any ${pctTxt(w.st.P[0.1])} · 1"+ ${pctTxt(w.st.P[1])}`}</b></div>
         <div class="r" style="align-items:center"><span>Thunder</span><a href="thunder.html" style="text-decoration:none">${O.badge({ tier: t, limited: lim.length > 0, missing: miss })}</a></div>
         ${hot.length ? `<div class="msg">thunder signal ${O.fmtHour(O.hourOf(T.times[hot[0]]))}–${O.fmtHour((O.hourOf(T.times[hot[hot.length - 1]]) + 1) % 24)}</div>` : ""}
+        ${nwsOk ? (() => { const on = (p) => C.time.toLocal(p.s, B.tz).slice(0, 10) === r.k, d = NW.periods.find((p) => p.isDaytime && on(p)), nt = NW.periods.find((p) => !p.isDaytime && on(p));
+          return `<div class="r nwsrow"><span><span class="src-nws">NWS</span> day / night</span><b>${d ? `<span class="hi">${d.temp}°</span>` : "—"} / ${nt ? `<span class="lo">${nt.temp}°</span>` : "—"}</b></div>` +
+            `<div class="r nwsrow"><span><span class="src-nws">NWS</span> chance</span><b>${d && d.pop != null ? d.pop + "%" : "—"} / ${nt && nt.pop != null ? nt.pop + "%" : "—"}</b></div>` +
+            (d ? `<div class="msg" title="${O.esc(d.detailed)}">${O.esc(d.short)}</div>` : ""); })() : ""}
         <div class="msg">${r.contrib.length} models · ${w ? `${w.st.used}/${w.st.total} members` : "no ensemble"}</div>
       </div>`).join("");
 
@@ -70,10 +76,10 @@
         { num: O.TIER[worst].word, unit: "thunder signal", color: O.TIER[worst].rank >= 1 ? O.TIER[worst].color : undefined },
       ],
     });
-    O.dataStatus([...B.problems.map((p) => `Blend · ${p}`), ...T.problems.map((p) => `Thunder · ${p}`), ...W.problems.map((p) => `Winter · ${p}`)]);
+    O.dataStatus([...(nwsOk ? (NW.errors || []).map((x) => `NWS ${x}`) : [`NWS: ${NW ? NW.reason : "unavailable"}`]), ...B.problems.map((p) => `Blend · ${p}`), ...T.problems.map((p) => `Thunder · ${p}`), ...W.problems.map((p) => `Winter · ${p}`)]);
     $("sumMsg").textContent = `${Object.keys(B.models).length} blend models · ${TH ? TH.ids.length : 0} thunder models · ${mem.length} ensemble members · ${O.tzShort(B.tz)}`;
 
-    renderEventBriefing(B, T, W, TH, mem, wsB, wsT, wsW);
+    renderEventBriefing(B, T, W, TH, mem, wsB, wsT, wsW, nwsOk ? NW : null);
 
     const snap = { cfg: `${CFG.fingerprint(wsB)}|${CFG.fingerprint(wsT)}|${CFG.fingerprint(wsW)}`, rows: {} };
     cards.forEach(({ r, t, w }) => (snap.rows[r.k] = {
@@ -92,10 +98,11 @@
     ], names);
   }
   /* Event briefing: every phase of the active event, each source on its own time axis. */
-  function renderEventBriefing(B, T, W, TH, mem, wsB, wsT, wsW) {
+  function renderEventBriefing(B, T, W, TH, mem, wsB, wsT, wsW, NW) {
     const cB = O.eventContext(B), cT = T.empty ? null : O.eventContext(T), cW = W.empty ? null : O.eventContext(W);
     const el = $("eventCard");
     if (!cB) { el.hidden = true; return; }
+    const NA = NW && !cB.mismatch ? C.nws.onAxis(NW, B.ms) : null;
     const by = (ctx, key) => ctx && ctx.wins && ctx.wins.find((w) => w.key === key);
     const f = (x, d = 0, u = "") => (x == null ? "—" : x.toFixed(d) + u);
     const pctTxt = (p) => (p == null ? "—" : p > 0 && p < 0.05 ? "<5%" : Math.round(p * 100) + "%");
@@ -111,7 +118,12 @@
       { label: "Snow (ens.)", cell: (w) => { const st = stW(w); return !st || !st.used ? "—" : `any ${pctTxt(st.P[0.1])} · 1"+ ${pctTxt(st.P[1])}`; } },
       { label: "Thunder", cell: (w) => { const a = thW(w); return a ? O.badge(a) : "—"; } },
       { label: "Models · members", cell: (w) => { const st = stW(w); return `${rowB(w).contrib.length} · ${st ? `${st.used}/${st.total}` : "—"}`; } },
-    ], { title: "Event briefing", note: "Same models, weights and rules as the tool pages, over each phase's exact hours. A cell shows only when the phase is fully inside the forecast." });
+      ...(NA ? [
+        { label: "NWS temp", cell: (w) => { const v = w.L.idx.map((i) => NA.temperature_2m[i]); return v.some((x) => x == null) ? "—" : `<span class="lo">${Math.min(...v).toFixed(0)}°</span>–<span class="hi">${Math.max(...v).toFixed(0)}°</span>`; } },
+        { label: "NWS hourly PoP", cell: (w) => { const v = w.L.idx.map((i) => NA.precipitation_probability[i]); return v.some((x) => x == null) ? "—" : `${Math.min(...v)}–${Math.max(...v)}% <span class="msg">hourly</span>`; } },
+        { label: "NWS precip", cell: (w) => { const t = C.nws.totalOver(NA.qpf, w.startMs, w.endMs); return !t.covers ? '<span class="msg">not covered</span>' : t.exact ? `${t.lower.toFixed(2)}"` : `${t.lower.toFixed(2)}–${t.upper.toFixed(2)}"`; } },
+      ] : []),
+    ], { title: "Event briefing", note: "Same models, weights and rules as the tool pages, over each phase's exact hours. A cell shows only when the phase is fully inside the forecast. NWS columns are NWS's own values for the same hours (precip from its interval totals: a range when an interval straddles the phase edge; hourly PoP is a range of hourly values, not a phase probability)." });
 
     if (cB.mismatch) return;
     /* track the same event windows across updates, keyed by event ID and exact window */

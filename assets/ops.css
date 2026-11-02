@@ -358,3 +358,11 @@ table.clickable tbody tr.sel td { background: var(--accent-dim); }
 table.evtable tr.evall td { border-top: 2px solid var(--line); font-weight: 700; }
 #eventCard { border-top: 3px solid var(--ev); }
 .affected .change { opacity: .7; border-style: dashed; }
+
+/* NWS: always visibly a separate source */
+.src-nws { display: inline-block; font-size: 9.5px; font-weight: 800; letter-spacing: .5px; padding: 1px 5px; border-radius: 4px; color: var(--bg); background: var(--ev); vertical-align: middle; }
+th.nwscol, td.nwscol { background: color-mix(in srgb, var(--ev) 7%, transparent); }
+td.diff { color: var(--monitor); font-weight: 800; }
+.change.diffchip { border-color: color-mix(in srgb, var(--ev) 55%, transparent); }
+
+.pt { display: inline-block; font-size: 9.5px; font-weight: 800; letter-spacing: .5px; padding: 2px 6px; border-radius: 4px; color: #0A0D12; background: var(--c); }

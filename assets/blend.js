@@ -1,24 +1,23 @@
-/* Model Blend: weighted multi-model point forecast. */
+/* Model Blend: weighted multi-model point forecast, with NWS shown separately for comparison. */
 (function () {
   "use strict";
-  const O = window.Ops, $ = O.$, C = O.Core;
+  const O = window.Ops, $ = O.$, C = O.Core, N = C.nws;
   O.shell("blend", "Model Blend");
 
   /* Models, variables and request settings are shared with the overview: OpsCore.config.blend */
   const SPEC = C.config.blend, MODELS = SPEC.models;
   const TABS = [
-    { id: "temp", label: "Temperature", v: "temperature_2m", unit: "°F" },
-    { id: "dew", label: "Dew point", v: "dew_point_2m", unit: "°F" },
-    { id: "feel", label: "Feels like", v: "apparent_temperature", unit: "°F" },
-    { id: "pop", label: "Precip chance", v: "precipitation_probability", unit: "%", min: 0, max: 100 },
-    { id: "qpf", label: "Precip (accum.)", v: "precipitation", unit: "in", accum: true, dec: 2 },
-    { id: "snow", label: "Snow (accum.)", v: "snowfall", unit: "in", accum: true, dec: 1 },
-    { id: "wind", label: "Wind", v: "wind_speed_10m", unit: "mph", zero: true },
-    { id: "gust", label: "Gusts", v: "wind_gusts_10m", unit: "mph", zero: true },
-    { id: "cloud", label: "Cloud cover", v: "cloud_cover", unit: "%", min: 0, max: 100 },
+    { id: "temp", label: "Temperature", v: "temperature_2m", unit: "°F", nws: true },
+    { id: "dew", label: "Dew point", v: "dew_point_2m", unit: "°F", nws: true },
+    { id: "feel", label: "Feels like", v: "apparent_temperature", unit: "°F", nws: true },
+    { id: "pop", label: "Precip chance", v: "precipitation_probability", unit: "%", min: 0, max: 100, nws: true },
+    { id: "qpf", label: "Precip (accum.)", v: "precipitation", unit: "in", accum: true, dec: 2, nwsAcc: "qpf" },
+    { id: "snow", label: "Snow (accum.)", v: "snowfall", unit: "in", accum: true, dec: 1, nwsAcc: "snow" },
+    { id: "wind", label: "Wind", v: "wind_speed_10m", unit: "mph", zero: true, nws: true },
+    { id: "gust", label: "Gusts", v: "wind_gusts_10m", unit: "mph", zero: true, nws: true },
+    { id: "cloud", label: "Cloud cover", v: "cloud_cover", unit: "%", min: 0, max: 100, nws: true },
   ];
   const NAMES = Object.fromEntries(MODELS.map((m) => [m.id, m.name]));
-  /* Fields compared in "since your last check" (also used by the overview). */
   const BLEND_CHANGES = [
     { k: "hi", label: "high", min: 3, fmt: (v) => `${Math.round(v)}°` },
     { k: "lo", label: "low", min: 3, fmt: (v) => `${Math.round(v)}°` },
@@ -28,11 +27,20 @@
     { k: "gust", label: "peak gust", min: 8, fmt: (v) => `${Math.round(v)} mph` },
   ];
   const RANGES = [["event", "EVENT"], ["48", "48 H"], ["72", "72 H"], ["168", "7 D"], ["all", "ALL"]];
+  const NWS_COLOR = () => (O.css("--ev") || "#FDE68A");
 
-  let data = null, chart = null, viewDay = null, fresh = false;
+  /* Settings migration: existing saved weights become the "Custom weights" preset, untouched. */
+  if (O.store.get("ops_blend_cfg_v", 1) < 2) {
+    const had = O.store.get("ops_blend_models", null);
+    O.store.set("ops_blend_cfg_v", 2);
+    if (had) O.store.set("ops_blend_migrated", new Date().toISOString());
+  }
+  let preset = O.store.get("ops_blend_preset", "custom");
+
+  let data = null, nws = null, chart = null, viewDay = null, fresh = false;
   let tab = O.store.get("ops_blend_tab", "temp"), range = O.store.get("ops_blend_range", "168");
 
-  const picker = O.modelPicker($("models"), "ops_blend_models", MODELS, render);
+  const picker = O.modelPicker($("models"), "ops_blend_models", MODELS, render, { title: "Custom weights" });
   const showLines = O.linesToggle($("linesBtn"), "ops_blend_lines", () => renderChart());
   O.locationCard($("locCard"), () => run());
   O.eventCard($("evCard"));
@@ -52,16 +60,19 @@
   };
   mkTabs($("tabs"), TABS.map((t) => [t.id, t.label]), tab, (id) => { tab = id; O.store.set("ops_blend_tab", tab); renderChart(); });
   mkTabs($("range"), RANGES, range, (id) => { range = id; viewDay = null; O.store.set("ops_blend_range", range); renderDaily(); renderChart(); });
+  mkTabs($("presetTabs"), Object.entries(C.blend.PRESETS).map(([k, p]) => [k, p.label.toUpperCase()]), preset, (id) => { preset = id; O.store.set("ops_blend_preset", id); fresh = true; render(); });
   window.addEventListener("ops:theme", () => { picker.redraw(); render(); });
 
   async function run() {
     $("runBtn").disabled = true;
     O.setChip("FETCHING…");
-    $("runMsg").className = "msg"; $("runMsg").textContent = `Requesting ${MODELS.length} models…`;
-    const res = await O.Data.loadModels(SPEC, { lat: O.location.lat, lon: O.location.lon, days: +$("days").value });
+    $("runMsg").className = "msg"; $("runMsg").textContent = `Requesting ${MODELS.length} models and the NWS point forecast…`;
+    const where = { lat: O.location.lat, lon: O.location.lon };
+    const [res, nw] = await Promise.all([O.Data.loadModels(SPEC, { ...where, days: +$("days").value }), O.Data.loadNWS(where)]);
     $("runBtn").disabled = false;
     MODELS.forEach((m) => picker.setStatus(m.id, res.status[m.id] === "ok" ? "ok" : "none"));
     picker.redraw();
+    nws = nw;
     if (res.empty) {
       data = null;
       O.setChip("NO DATA", "err");
@@ -72,20 +83,31 @@
       return;
     }
     data = res;
-    O.dataStatus(res.problems);
-    const n = Object.keys(res.models).length;
-    $("runMsg").textContent = `${n} models loaded` + (res.problems.length ? ` · ${res.problems.join(" · ")}` : "") + ` · times in ${O.tzShort(data.tz)}`;
+    data.nwsAxis = nws && nws.ok ? N.onAxis(nws, data.ms) : null;
+    O.dataStatus([...res.problems, ...(nws && !nws.ok ? [`NWS: ${nws.reason}`] : nws && nws.errors && nws.errors.length ? nws.errors.map((x) => `NWS ${x}`) : [])]);
+    $("runMsg").textContent = `${Object.keys(res.models).length} models loaded` + (res.problems.length ? ` · ${res.problems.join(" · ")}` : "") +
+      ` · NWS ${nws && nws.ok ? `${nws.office} grid ${nws.gridX},${nws.gridY}` : "unavailable"} · times in ${O.tzShort(data.tz)}`;
     fresh = true;
     render();
   }
 
-  const active = (v) => (data ? MODELS.filter((m) => data.models[m.id] && picker.on(m.id) && O.hasData(data.models[m.id].h[v])) : []);
-  const series = (v, ms) => ms.map((m) => ({ w: picker.w(m.id), data: data.models[m.id].h[v] }));
+  /* Current weights: the chosen preset applied to models that returned data. */
+  const W = () => {
+    const base = C.blend.presetWeights(preset, SPEC, picker.weights()), w = {};
+    Object.keys(base).forEach((id) => { if (data && data.models[id] && base[id] > 0) w[id] = base[id]; });
+    return w;
+  };
+  const active = (v) => { const w = W(); return data ? MODELS.filter((m) => w[m.id] && O.hasData(data.models[m.id].h[v])) : []; };
+  const series = (v, ms) => { const w = W(); return ms.map((m) => ({ w: w[m.id], data: data.models[m.id].h[v] })); };
 
   const f = (x, d = 0, u = "") => (x == null ? "—" : x.toFixed(d) + u);
   const meter = (lvl) => `<span class="meter" aria-hidden="true">${[1, 2, 3].map((k) => `<i class="${k <= lvl ? "on" : ""}"></i>`).join("")}</span>`;
+  const tz = () => data.tz;
+  const local = (ms) => O.fmtLocal(C.time.toLocal(ms, tz()));
+  const nwsTag = '<span class="src-nws">NWS</span>';
 
   function render() {
+    renderRecipe();
     if (!data) {
       $("daily").innerHTML = '<tbody><tr><td class="msg">No forecast loaded yet.</td></tr></tbody>';
       if (chart) { chart.destroy(); chart = null; }
@@ -94,51 +116,126 @@
     }
     renderDaily();
     renderNow();
+    renderNWS();
+    renderScenarios();
     renderEvent();
     renderChart();
+    if (fresh) { logRecords(); fresh = false; }
   }
 
-  /* Event windows: the same aggregation as the daily table, over each phase's exact hours. */
+  function renderRecipe() {
+    const p = C.blend.PRESETS[preset], w = data ? W() : null;
+    const mig = O.store.get("ops_blend_migrated", null);
+    $("recipeNote").innerHTML = `${O.esc(p.note)}${w ? ` In use: ${Object.keys(w).map((id) => `${O.esc(NAMES[id])}${preset === "custom" ? ` ×${w[id]}` : ""}`).join(", ") || "none"}.` : ""}` +
+      (preset !== "custom" ? ' <span class="msg">The Custom weights list below still edits your own preset.</span>' : "") +
+      (mig ? ` <span class="msg">Your weights saved before presets existed were kept as Custom weights.</span>` : "") +
+      ` <span class="msg">NWS is never blended in; it's shown separately below and on the charts.</span>`;
+  }
+
+  /* Event windows: the same aggregation as the daily table, over each phase's exact hours, plus NWS. */
   function renderEvent() {
     const ctx = O.eventContext(data); data.ctx = ctx;
-    const ws = picker.weights(), row = (w) => (w._r = w._r || C.blend.windowRow(data, ws, w.L.idx, w.L.acc));
+    const ws = W(), row = (w) => (w._r = w._r || C.blend.windowRow(data, ws, w.L.idx, w.L.acc));
+    const A = data.nwsAxis;
+    const nwsCols = A ? [
+      { label: "NWS temp", cell: (w) => { const v = w.L.idx.map((i) => A.temperature_2m[i]); return v.some((x) => x == null) ? "—" : `<span class="lo">${Math.min(...v).toFixed(0)}°</span>–<span class="hi">${Math.max(...v).toFixed(0)}°</span>`; } },
+      { label: "NWS hourly PoP", cell: (w) => { const v = w.L.idx.map((i) => A.precipitation_probability[i]); return v.some((x) => x == null) ? "—" : `<span title="Range of NWS hourly probabilities in this phase. Not a probability for the whole phase.">${Math.min(...v)}–${Math.max(...v)}% <span class="msg">hourly</span></span>`; } },
+      { label: "NWS precip", cell: (w) => qpfText(N.totalOver(A.qpf, w.startMs, w.endMs)) },
+      { label: "NWS wording", cell: (w) => O.esc(wording(w.startMs, w.endMs)) },
+    ] : [];
     O.eventTable($("eventCard"), ctx, [
       { label: "Temp", cell: (w) => { const r = row(w); return r.lo == null ? "—" : `<span class="lo">${r.lo.toFixed(0)}°</span>–<span class="hi">${r.hi.toFixed(0)}°</span>`; } },
       { label: "Feels like (min)", cell: (w) => f(row(w).feel, 0, "°") },
       { label: "Precip", cell: (w) => f(row(w).qpf, 2, '"') },
-      { label: "Max chance", cell: (w) => f(row(w).pop, 0, "%") },
+      { label: "Max hourly chance", cell: (w) => f(row(w).pop, 0, "%") },
       { label: "Snow", cell: (w) => { const v = row(w).sn; return v != null && v >= 0.05 ? f(v, 1, '"') : "—"; } },
       { label: "Peak gust", cell: (w) => f(row(w).gust, 0, " mph") },
       { label: "Temp agreement", cell: (w) => { const a = row(w).ag; return `${meter(a.level)}${a.word}`; } },
       { label: "Models", cell: (w) => `<span title="${O.esc(row(w).contrib.map((id) => NAMES[id]).join(", "))}">${row(w).contrib.length}</span>` },
-    ], { note: "A model counts for a phase only if it has every hour of it. Precip and snow are the hourly totals that fall inside the phase." });
+      ...nwsCols,
+    ], { note: `Blend: ${O.esc(C.blend.PRESETS[preset].label)}. A model counts for a phase only if it has every hour of it. NWS columns are NWS values for the same hours; NWS precip is from its interval totals (a range when an interval straddles the phase edge).` });
   }
+  /* NWS interval total text: exact, a range when intervals straddle the window, or unavailable */
+  const qpfText = (t, dec = 2) => (!t || !t.covers ? '<span class="msg">not covered</span>' : t.exact ? `${t.lower.toFixed(dec)}"` : `<span title="NWS reports precip in multi-hour intervals that cross this window's edge. The window total lies between these.">${t.lower.toFixed(dec)}–${t.upper.toFixed(dec)}"</span>`);
+  /* distinct NWS hourly wording during [s, e) */
+  const wording = (s, e) => { if (!nws || !nws.hourly || !nws.hourly.length) return "—"; const w = [...new Set(nws.hourly.filter((h) => h.s < e && h.e > s).map((h) => h.short).filter(Boolean))]; return w.length ? w.slice(0, 3).join(" → ") : "—"; };
+
+  /* NWS day/night periods on a calendar day: daytime period starting that day, night period starting that evening. */
+  const nwsDayNight = (k) => {
+    if (!nws || !nws.periods || !nws.periods.length) return {};
+    const on = (p) => C.time.toLocal(p.s, tz()).slice(0, 10) === k;
+    return { day: nws.periods.find((p) => p.isDaytime && on(p)), night: nws.periods.find((p) => !p.isDaytime && on(p)) };
+  };
 
   function renderDaily() {
     if (!data) return;
-    /* Same aggregation the overview uses: a model counts for a day only with every hour of it. */
-    const rows = C.blend.dailyRows(data, picker.weights());
+    const rows = C.blend.dailyRows(data, W());
     data.rows = rows;
-    $("daily").innerHTML = `<thead><tr><th>Day</th><th>High</th><th>Low</th><th>Precip</th><th>Snow</th><th>Max chance</th><th>Peak gust</th><th>Model highs</th><th>Temp agreement</th></tr></thead><tbody>` +
-      rows.map((r) => `<tr data-k="${r.k}" class="${viewDay === r.k ? "sel" : ""}" tabindex="0"><td class="display" style="font-size:12px">${O.fmtDay(r.k)}</td><td class="num"><span class="hi">${f(r.hi, 0, "°")}</span></td><td class="num"><span class="lo">${f(r.lo, 0, "°")}</span></td>` +
+    const hasN = nws && nws.periods && nws.periods.length;
+    $("daily").innerHTML = `<thead><tr><th>Day</th><th>High</th><th>Low</th><th>Precip</th><th>Snow</th><th>Max hourly chance</th><th>Peak gust</th><th>Model highs</th><th>Temp agreement</th>${hasN ? `<th class="nwscol">${nwsTag} day high</th><th class="nwscol">${nwsTag} night low</th>` : ""}</tr></thead><tbody>` +
+      rows.map((r) => {
+        const dn = nwsDayNight(r.k);
+        return `<tr data-k="${r.k}" class="${viewDay === r.k ? "sel" : ""}" tabindex="0"><td class="display" style="font-size:12px">${O.fmtDay(r.k)}</td><td class="num"><span class="hi">${f(r.hi, 0, "°")}</span></td><td class="num"><span class="lo">${f(r.lo, 0, "°")}</span></td>` +
           `<td class="num">${f(r.qpf, 2, '"')}</td><td class="num">${r.sn != null && r.sn >= 0.05 ? f(r.sn, 1, '"') : "—"}</td><td class="num">${f(r.pop, 0, "%")}</td>` +
           `<td class="num">${f(r.gust, 0, " mph")}</td><td class="num">${r.ag.lo == null ? "—" : r.ag.n > 1 ? `${r.ag.lo.toFixed(0)}–${r.ag.hi.toFixed(0)}°` : `${r.ag.lo.toFixed(0)}°`}</td>` +
-          `<td title="${r.contrib.length} models with a complete day: ${r.contrib.map((id) => (MODELS.find((m) => m.id === id) || { name: id }).name).join(", ")}">${meter(r.ag.level)}<span class="msg" style="color:var(--text);font-weight:700">${r.ag.word}</span></td></tr>`).join("") + "</tbody>";
+          `<td title="${r.contrib.length} models with a complete day: ${r.contrib.map((id) => NAMES[id]).join(", ")}">${meter(r.ag.level)}<span class="msg" style="color:var(--text);font-weight:700">${r.ag.word}</span></td>` +
+          (hasN ? `<td class="num nwscol" title="${dn.day ? O.esc(`${dn.day.name}: ${local(dn.day.s)}–${local(dn.day.e)}`) : "No NWS daytime period starts this day"}">${dn.day ? `<span class="hi">${dn.day.temp}°</span>` : "—"}</td><td class="num nwscol" title="${dn.night ? O.esc(`${dn.night.name}: ${local(dn.night.s)}–${local(dn.night.e)}`) : "No NWS night period starts this day"}">${dn.night ? `<span class="lo">${dn.night.temp}°</span>` : "—"}</td>` : "") + "</tr>";
+      }).join("") + "</tbody>";
+    $("dailyNote").innerHTML = hasN ? `${nwsTag} columns are the official day (usually 6a–6p) and night (6p–6a) periods, not calendar days, so they can differ from the blend's midnight-to-midnight high and low. See <b>NWS vs blend</b> for a same-hours comparison.` : "";
     $("daily").querySelectorAll("tr[data-k]").forEach((tr) => {
       const pickDay = () => { viewDay = viewDay === tr.dataset.k ? null : tr.dataset.k; renderDaily(); renderChart(); };
       tr.addEventListener("click", pickDay);
       tr.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pickDay(); } });
     });
-
     if (fresh) {
-      const snap = { cfg: C.config.fingerprint(picker.weights()), rows: {} };
+      const snap = { cfg: `${preset}|${C.config.fingerprint(W())}`, rows: {} };
       rows.forEach((r) => (snap.rows[r.k] = { label: O.fmtDay(r.k), win: r.win, contrib: r.contrib, hi: r.hi, lo: r.lo, qpf: r.qpf, pop: r.pop, sn: r.sn, gust: r.gust }));
-      data.snapPair = O.trackChanges("blend", snap); fresh = false;
+      data.snapPair = O.trackChanges("blend", snap);
     }
     O.renderChanges($("changes"), data.snapPair, BLEND_CHANGES, NAMES);
   }
+
+  /* NWS vs blend over each official NWS period's own hours. */
+  function renderNWS() {
+    const el = $("nwsCard");
+    if (!nws || !nws.ok) { el.innerHTML = `<div class="section-title">NWS vs blend</div><p class="msg">${O.esc(nws ? nws.reason : "Loading…")}. The model blend above is unaffected.</p>`; return; }
+    const A = data.nwsAxis, ws = W(), meaningful = [];
+    const st = nws.status, upd = st.updated.forecast ? `${local(st.updated.forecast)} ${C.time.abbr(st.updated.forecast, tz())}` : "—";
+    const rows = nws.periods.slice(0, 10).map((p) => {
+      const idx = data.ms.map((m, i) => (m >= p.s && m < p.e ? i : -1)).filter((i) => i >= 0);
+      const acc = data.ms.map((m, i) => (m > p.s && m <= p.e ? i : -1)).filter((i) => i >= 0);
+      const covered = idx.length > 0 && data.ms[idx[0]] <= p.s + 3599e3 && data.ms[idx[idx.length - 1]] >= p.e - 3600e3;
+      const r = covered ? C.blend.windowRow(data, ws, idx, acc) : null;
+      const bT = r ? (p.isDaytime ? r.hi : r.lo) : null, d = bT != null && p.temp != null ? p.temp - bT : null;
+      const nq = A ? N.totalOver(A.qpf, p.s, p.e) : null, bq = r ? r.qpf : null;
+      const qOff = nq && nq.covers && bq != null ? (bq < nq.lower - 0.1 ? bq - nq.lower : bq > nq.upper + 0.1 ? bq - nq.upper : 0) : null;
+      if (d != null && Math.abs(d) >= 4) meaningful.push(`${p.name}: NWS ${p.isDaytime ? "high" : "low"} ${p.temp}° vs blend ${bT.toFixed(0)}° over the same hours (${d > 0 ? "+" : ""}${d.toFixed(0)}°)`);
+      if (qOff) meaningful.push(`${p.name}: blend precip ${bq.toFixed(2)}" vs NWS ${nq.exact ? nq.lower.toFixed(2) : `${nq.lower.toFixed(2)}–${nq.upper.toFixed(2)}`}"`);
+      return `<tr><td class="display" style="font-size:12px">${O.esc(p.name)}</td><td class="num">${local(p.s)}–${O.fmtLocal(C.time.toLocal(p.e, tz()), false)}</td>` +
+        `<td class="num nwscol"><span class="${p.isDaytime ? "hi" : "lo"}">${p.temp}°</span></td><td class="num">${bT == null ? "—" : `${bT.toFixed(0)}°`}</td><td class="num${d != null && Math.abs(d) >= 4 ? " diff" : ""}">${d == null ? "—" : `${d > 0 ? "+" : ""}${d.toFixed(0)}°`}</td>` +
+        `<td class="num nwscol">${p.pop == null ? "—" : p.pop + "%"}</td><td class="num nwscol">${nq ? qpfText(nq) : "—"}</td><td class="num">${f(bq, 2, '"')}</td>` +
+        `<td style="white-space:normal;min-width:180px;text-align:left" title="${O.esc(p.detailed)}">${O.esc(p.short)}</td></tr>`;
+    }).join("");
+    el.innerHTML = `<div class="row" style="justify-content:space-between;align-items:baseline;margin-bottom:6px"><div class="section-title" style="margin:0">${nwsTag} NWS vs blend</div><span class="msg">NWS ${O.esc(nws.office)} · forecast updated ${upd}</span></div>` +
+      `<p class="section-sub">Each row is an official NWS day or night period. The blend column is ${O.esc(C.blend.PRESETS[preset].label.toLowerCase())} over exactly that period's hours (high for day, low for night). NWS chance is the official period probability; the blend has no comparable period probability, so none is shown.</p>` +
+      (meaningful.length ? `<div class="changes" style="margin-bottom:10px">${meaningful.slice(0, 8).map((x) => `<span class="change diffchip">${O.esc(x)}</span>`).join("")}</div>` : '<p class="msg" style="margin-bottom:8px">No meaningful differences (temps within 4°F; precip inside the NWS range ±0.10").</p>') +
+      `<div class="tablewrap"><table><thead><tr><th>Period</th><th>Local time</th><th class="nwscol">NWS temp</th><th>Blend, same hours</th><th>Δ NWS−blend</th><th class="nwscol">NWS chance</th><th class="nwscol">NWS precip</th><th>Blend precip</th><th style="text-align:left">NWS wording</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  /* Precipitation timing scenarios over the chart window: different storm timings kept apart. */
+  function renderScenarios() {
+    const [s, e] = viewRange(), P = C.blend.precipScenarios(data, W(), s, e, { minAmt: 0.01 });
+    const nm = (ids) => ids.map((id) => NAMES[id]).join(", ");
+    const span = (a) => (a[0] === a[1] ? local(a[0]) : `${local(a[0])} – ${local(a[1])}`);
+    $("scenCard").innerHTML = `<div class="section-title">Precip timing scenarios</div>` +
+      `<p class="section-sub">${O.fmtWhen(data.times[s])} to ${O.fmtWhen(data.times[e - 1])}. Models are grouped by when their precipitation starts (0.01"/h or more), so early and late timings stay separate instead of averaging into a long, light event. Totals are each model's own.</p>` +
+      (P.scenarios.length ? `<div class="tablewrap"><table><thead><tr><th>Scenario</th><th>Models</th><th>Starts</th><th>Ends</th><th>Total</th></tr></thead><tbody>${P.scenarios.map((sc, k) => `<tr><td class="display" style="font-size:12px">${String.fromCharCode(65 + k)}</td><td style="text-align:left">${O.esc(nm(sc.ids))}</td><td class="num">${span(sc.onset)}</td><td class="num">${span(sc.end)}</td><td class="num">${sc.total[0].toFixed(2)}–${sc.total[1].toFixed(2)}"</td></tr>`).join("")}</tbody></table></div>` : '<p class="msg">No model has measurable precipitation in this window.</p>') +
+      (P.dry.length ? `<p class="msg" style="margin-top:6px">Dry in this window: ${O.esc(nm(P.dry))}.</p>` : "") +
+      (P.incomplete.length ? `<p class="msg">Left out (data doesn't cover the whole window): ${O.esc(nm(P.incomplete))}.</p>` : "");
+  }
+
   function renderNow() {
-    const now = Math.max(0, O.nowIndex(data.times, data.tz)), end = Math.min(data.times.length, now + 24);
+    const now = Math.max(0, O.nowIdx(data)), end = Math.min(data.times.length, now + 24);
     const win = (v, how) => {
       const ms = active(v); if (!ms.length) return null;
       const b = O.blendSeries(series(v, ms), data.times.length).mean.slice(now, end).filter((x) => x != null);
@@ -149,14 +246,13 @@
     const qpf = win("precipitation", "sum"), pop = win("precipitation_probability", "max"), gust = win("wind_gusts_10m", "max"), sn = win("snowfall", "sum");
     const tm = active("temperature_2m");
     const spreadNow = (() => { const v = tm.map((m) => data.models[m.id].h.temperature_2m[now]).filter((x) => x != null); return v.length > 1 ? [Math.min(...v), Math.max(...v)] : null; })();
-    /* plain-language takeaway for the next 24 hours */
     const word = sn != null && sn >= 0.5 ? "SNOW LIKELY" : sn != null && sn >= 0.1 ? "SOME SNOW" :
       (pop != null && pop >= 60) || (qpf != null && qpf >= 0.25) ? "WET" : (pop != null && pop >= 30) || (qpf != null && qpf >= 0.05) ? "CHANCE OF PRECIP" : "MOSTLY DRY";
     O.headline({
-      word, note: "Model blend · next 24 h",
+      word, note: `${C.blend.PRESETS[preset].label} · next 24 h`,
       stats: [
         { num: `${f(hi, 0, "°")} / ${f(lo, 0, "°")}`, unit: "hi / lo" },
-        { num: f(qpf, 2, '"'), unit: `precip · max ${f(pop, 0, "%")} chance` },
+        { num: f(qpf, 2, '"'), unit: `precip · max hourly ${f(pop, 0, "%")}` },
         { num: f(gust, 0, " mph"), unit: "peak gust" },
       ],
     });
@@ -164,21 +260,20 @@
     $("tiles").innerHTML = [
       ["Model now", f(tNow, 0, "°F"), spreadNow ? `models ${spreadNow[0].toFixed(0)}–${spreadNow[1].toFixed(0)}° · not an observation` : "not an observation"],
       ["24 h high / low", `${f(hi, 0, "°")} / ${f(lo, 0, "°")}`, `${tm.length} models in blend`],
-      ["24 h precip", f(qpf, 2, '"'), `max chance ${f(pop, 0, "%")}`],
+      ["24 h precip", f(qpf, 2, '"'), `max hourly chance ${f(pop, 0, "%")}`],
       ["24 h snow", sn != null && sn >= 0.05 ? f(sn, 1, '"') : "—", "blended model snow"],
       ["Peak gust", f(gust, 0, " mph"), "blended, next 24 h"],
       ["Today's temp agreement", today ? today.ag.word : "—", today && today.ag.n > 1 ? `highs ${today.ag.lo.toFixed(0)}–${today.ag.hi.toFixed(0)}°` : "needs 2+ models"],
     ].map(([k, v, s]) => `<div class="tile"><span class="k">${k}</span><span class="v">${v}</span><span class="s">${s}</span></div>`).join("");
   }
 
-  /* Hour range shown on the chart: a clicked day, or from now forward. */
   function viewRange() {
     if (range === "event" && !viewDay) {
       const w = data.ctx && data.ctx.wins && data.ctx.wins.find((x) => x.key === "all");
       if (w && w.L.idx.length) return [Math.max(0, w.L.idx[0] - 3), Math.min(data.times.length, w.L.idx[w.L.idx.length - 1] + 4)];
     }
     if (viewDay) { const d = O.dayGroups(data.times).find((x) => x.k === viewDay); if (d) return [d.idx[0], d.idx[d.idx.length - 1] + 1]; }
-    const s = Math.max(0, O.nowIndex(data.times, data.tz));
+    const s = Math.max(0, O.nowIdx(data));
     return [s, range === "all" ? data.times.length : Math.min(data.times.length, s + (range === "event" ? 48 : +range))];
   }
 
@@ -187,9 +282,9 @@
     const t = TABS.find((x) => x.id === tab) || TABS[0];
     const [s, e] = viewRange(), times = data.times.slice(s, e), sl = (a) => a.slice(s, e);
     $("chartTitle").textContent = t.label + (viewDay ? ` · ${O.fmtDay(viewDay)}` : "");
-    $("chartSub").textContent = t.accum ? `Running total from ${O.fmtWhen(data.times[s])} ${O.tzShort(data.tz)}. A model's line ends where its data ends.` : viewDay ? "Showing one day. Click the day again in the table to go back." : "";
+    $("chartSub").textContent = t.accum ? `Running total from ${O.fmtWhen(data.times[s])} ${O.tzShort(data.tz)}. A model's line ends where its data ends. NWS reports precip and snow as multi-hour interval totals; its line is drawn only at interval ends.` : viewDay ? "Showing one day. Click the day again in the table to go back." : "";
     const ms = active(t.v), B = O.blendSeries(series(t.v, ms).map((x) => ({ w: x.w, data: sl(x.data) })), times.length);
-    const labels = O.hourLabels(times), hours = times.map(O.hourOf), fg = O.css("--text");
+    const labels = O.hourLabels(times, data.ms.slice(s, e), data.tz), hours = times.map(O.hourOf), fg = O.css("--text");
     const ds = [];
     if (!t.accum && ms.length > 1) {
       ds.push({ label: "min", data: B.min, borderWidth: 0, pointRadius: 0, fill: false, spanGaps: true, hideTip: true, order: 5 });
@@ -199,19 +294,54 @@
       const raw = sl(data.models[m.id].h[t.v]);
       ds.push(O.modelLine(m.name, t.accum ? C.stats.cumulativeStrict(raw) : raw, O.modelColor(MODELS.indexOf(m))));
     });
-    if (ms.length > 1 || t.accum) ds.push({ label: "BLEND", data: t.accum ? C.stats.cumulativeStrict(B.mean) : B.mean, borderColor: fg, borderWidth: 3.25, pointRadius: 0, tension: 0.25, spanGaps: true, order: 1 });
+    if (ms.length > 1 || t.accum) ds.push({ label: preset === "nbm" ? "NBM" : "BLEND", data: t.accum ? C.stats.cumulativeStrict(B.mean) : B.mean, borderColor: fg, borderWidth: 3.25, pointRadius: 0, tension: 0.25, spanGaps: true, order: 1 });
     if (t.accum) ds.push({ type: "bar", label: "Blend per hour", data: B.mean, backgroundColor: O.css("--band"), yAxisID: "y2", order: 6, barPercentage: 1, categoryPercentage: 1, dec: 2 });
-    const nowIdx = O.nowIndex(data.times, data.tz) - s;
+    /* NWS: its own dashed line, never part of the blend */
+    let nwsNote = "", nwsStart = null;
+    const A = data.nwsAxis;
+    if (A && t.nws && A[t.v]) {
+      const v = sl(A[t.v]);
+      if (v.some((x) => x != null)) { ds.push({ label: "NWS (grid)", data: v, borderColor: NWS_COLOR(), borderWidth: 2.5, borderDash: [7, 4], pointRadius: 0, stepped: false, spanGaps: false, order: 0 }); nwsNote = "NWS"; }
+    } else if (A && t.nwsAcc) {
+      /* cumulative interval totals from the window start, plotted only at interval ends */
+      /* starts at the first NWS interval boundary inside the view; stops at the first gap or missing value */
+      const ivs = A[t.nwsAcc].filter((x) => x.s >= data.ms[s]).sort((a, b) => a.s - b.s);
+      const pts = sl(data.ms).map(() => null); let acc = 0, okRun = true, prevEnd = ivs.length ? ivs[0].s : null;
+      const i0 = prevEnd == null ? -1 : data.ms.indexOf(prevEnd) - s;
+      if (i0 >= 0 && i0 < pts.length) pts[i0] = 0;
+      ivs.forEach((x) => { if (!okRun || x.s !== prevEnd || x.v == null) { okRun = false; return; } acc += x.v; prevEnd = x.e; const i = data.ms.indexOf(x.e) - s; if (i >= 0 && i < pts.length) pts[i] = acc; });
+      if (i0 >= 0) nwsStart = data.ms[s + i0];
+      if (pts.filter((x) => x != null).length > 1) { ds.push({ label: "NWS (interval totals)", data: pts, borderColor: NWS_COLOR(), backgroundColor: NWS_COLOR(), borderWidth: 2.5, borderDash: [7, 4], pointRadius: 4, pointStyle: "rectRot", spanGaps: true, order: 0, dec: 2 }); nwsNote = "NWS"; }
+    }
+    if (nwsStart != null && t.accum) $("chartSub").textContent += ` NWS running total starts at its first interval boundary, ${local(nwsStart)}.`;
+    const nowIdx = O.nowIdx(data) - s;
     const base = O.chartBase({ labels, hours, nowIdx, unit: t.unit, dec: t.dec || 0, yTitle: t.accum ? `Accumulated (${t.unit})` : t.unit,
       y2Title: t.accum ? "Per hour (in)" : null, beginAtZero: t.accum || t.zero, yMin: t.min, yMax: t.max, bands: O.eventBands(data.ctx, s) });
-    base.options.plugins.tooltip.callbacks.footer = (items) => items.length ? `${B.count[items[0].dataIndex]} model${B.count[items[0].dataIndex] === 1 ? "" : "s"} at this hour` : "";
+    base.options.plugins.tooltip.callbacks.footer = (items) => items.length ? `${B.count[items[0].dataIndex]} model${B.count[items[0].dataIndex] === 1 ? "" : "s"} in the blend at this hour` : "";
     if (chart) chart.destroy();
     chart = new Chart($("chart"), { type: "line", data: { labels, datasets: ds }, options: base.options, plugins: base.plugins });
     const nMin = Math.min(...B.count.filter((x) => x > 0)), nMax = Math.max(0, ...B.count);
     $("legend").innerHTML = (showLines() ? ms.map((m) => `<span><i class="sw" style="background:${O.modelColor(MODELS.indexOf(m))}"></i>${O.esc(m.name)}</span>`).join("") : "") +
-      (ms.length > 1 || t.accum ? `<span><i class="sw" style="background:${fg};height:4px"></i>Weighted blend</span>` : "") +
+      (ms.length > 1 || t.accum ? `<span><i class="sw" style="background:${fg};height:4px"></i>${O.esc(C.blend.PRESETS[preset].label)}</span>` : "") +
       (!t.accum && ms.length > 1 ? `<span><i class="sw" style="background:var(--band);height:10px"></i>Model range (min–max)</span>` : "") +
+      (nwsNote ? `<span><i class="sw" style="background:repeating-linear-gradient(90deg,${NWS_COLOR()} 0 6px,transparent 6px 9px);height:3px"></i>NWS (separate, not blended)</span>` : (data.nwsAxis ? "" : "<span>NWS unavailable</span>")) +
       (ms.length ? `<span>${nMin === nMax ? `${nMax} models` : `${nMin}–${nMax} models, varies by hour`}</span>` : "<span>None of the checked models carry this field here.</span>");
+  }
+
+  /* Verification records: what each source said for each window, for later scoring. */
+  function logRecords() {
+    const at = new Date().toISOString(), loc = { lat: O.location.lat, lon: O.location.lon, name: O.location.name }, recs = [];
+    const presets = ["custom", "equal", "nbm"];
+    presets.forEach((p) => {
+      const base = C.blend.presetWeights(p, SPEC, picker.weights()), ws = {}; Object.keys(base).forEach((id) => { if (data.models[id]) ws[id] = base[id]; });
+      if (!Object.keys(ws).length) return;
+      C.blend.dailyRows(data, ws).forEach((r) => recs.push(C.verify.record({ kind: "calendar-day", source: `blend:${p}`, location: loc, retrievedAt: at, cycle: null,
+        window: { key: r.win, tz: data.tz }, contributors: r.contrib, weights: ws, values: { hi: r.hi, lo: r.lo, qpf: r.qpf, snow: r.sn, gust: r.gust } })));
+    });
+    if (nws && nws.ok) nws.periods.forEach((p) => recs.push(C.verify.record({ kind: p.isDaytime ? "nws-day" : "nws-night", source: "nws", location: loc, retrievedAt: at,
+      cycle: nws.status.updated.forecast ? new Date(nws.status.updated.forecast).toISOString() : null, window: { key: `${p.startTime}/${p.endTime}` }, contributors: [`NWS ${nws.office}`],
+      values: { temp: p.temp, pop: p.pop, short: p.short } })));
+    O.logVerify(recs);
   }
 
   render();
