@@ -13,7 +13,7 @@
     { id: "cin", label: "CIN", v: "convective_inhibition", unit: "J/kg", zero: true, sub: "The cap. Larger values hold storms back until it erodes or is broken." },
     { id: "shear", label: "Deep-layer shear", v: "shear", unit: "kt", zero: true, sub: "Vector wind difference, 10 m to 500 hPa, as a stand-in for 0–6 km shear. About 30 kt or more favors organized storms. SEVERE has the full profile." },
     { id: "pop", label: "Precip chance", v: "precipitation_probability", unit: "%", min: 0, max: 100, sub: "Model precipitation probability, where the model provides it." },
-    { id: "nwst", label: "NWS thunder chance", v: "thunder", unit: "%", min: 0, max: 100, nwsOnly: true, sub: "NWS gridded probability of thunder for each hour, from the forecast office. Shown separately; it is not part of the model signal above." },
+    { id: "nwst", label: "NWS thunder chance", v: "thunder", unit: "%", min: 0, max: 100, nwsOnly: true, sub: "NWS gridded probability of thunder (probabilityOfThunder). Each value is valid for the interval NWS assigns it (3 h, 6 h and longer in current data). NWS does not document what period the probability refers to, so the chart samples each value across its interval; it is not an hourly probability. Shown separately from the model signal." },
     { id: "ltg", label: "Lightning potential", v: "lightning_potential", unit: "J/kg", zero: true, sub: "ICON's lightning potential index. Only ICON carries it, so other models show nothing here." },
   ];
   const CODE = (c) => (c == null ? "—" : c >= 95 ? "THUNDER" : c >= 71 && c <= 86 && !(c >= 80 && c <= 82) ? "SNOW" : c >= 51 ? "RAIN" : c === 45 || c === 48 ? "FOG" : "DRY");
@@ -64,6 +64,9 @@
     return { ...H, tiers: H.assess, perModel: H.ids.map((id) => ({ m: MODELS.find((x) => x.id === id), tiers: H.perModel[id] })) };
   }
   const f = (x, d = 0, u = "") => (x == null ? "—" : x.toFixed(d) + u);
+  /* the NWS thunder interval containing an instant, and its local span */
+  const nwsIv = (ms) => (data && data.nwsAxis ? data.nwsAxis.thunderIv.find((x) => ms >= x.s && ms < x.e) : null);
+  const ivText = (x) => `${O.fmtLocal(C.time.toLocal(x.s, data.tz))}–${O.fmtLocal(C.time.toLocal(x.e, data.tz), C.time.toLocal(x.e, data.tz).slice(0, 10) !== C.time.toLocal(x.s, data.tz).slice(0, 10))}`;
 
   function render() {
     if (!data) {
@@ -81,7 +84,7 @@
       { label: "Thunder share max", cell: (w) => { const v = inP(w).map((i) => Cx.frac[i]).filter((x) => x != null); return v.length ? Math.round(Math.max(...v) * 100) + "%" : "—"; } },
       { label: "CAPE max (any model)", cell: (w) => { const v = inP(w).map((i) => Cx.cape.max[i]).filter((x) => x != null); return v.length ? Math.round(Math.max(...v)).toLocaleString() : "—"; } },
       { label: "Precip chance max", cell: (w) => { const v = inP(w).map((i) => Cx.pop.mean[i]).filter((x) => x != null); return v.length ? Math.round(Math.max(...v)) + "%" : "—"; } },
-      ...(data.nwsAxis ? [{ label: "NWS thunder chance (hourly)", cell: (w) => { const v = inP(w).map((i) => data.nwsAxis.thunder[i]); return v.some((x) => x == null) ? "—" : `<span title="Range of NWS hourly thunder probabilities in this phase; not a probability for the whole phase.">${Math.min(...v)}–${Math.max(...v)}%</span>`; } }] : []),
+      ...(data.nwsAxis ? [{ label: "NWS thunder chance (grid intervals)", cell: (w) => { const ivs = data.nwsAxis.thunderIv.filter((x) => x.e > w.startMs && x.s < w.endMs); return !ivs.length || ivs.some((x) => x.v == null) ? "—" : `<span title="NWS grid values whose intervals overlap this phase, each with its own interval. Not a probability for the phase.">${ivs.map((x) => `${x.v}% <span class="msg">${ivText(x)}</span>`).join("<br>")}</span>`; } }] : []),
     ], { note: "Model thunder signal during each phase. Detected lightning and clearance decisions stay in Heads-Up." });
     const now = Math.max(0, O.nowIdx(data)), end = Math.min(data.times.length, now + 24);
     const next = Cx.tiers.slice(now, end).map((a) => a.tier), worst = O.maxTier(next), firstIdx = next.findIndex((t) => t === worst);
@@ -149,7 +152,7 @@
         <div class="tile"><span class="k">Precip chance</span><span class="v">${f(Cx.pop.mean[i], 0, "%")}</span><span class="s">blend</span></div>
         <div class="tile"><span class="k">Lifted index</span><span class="v">${f(Cx.li.mean[i], 1)}</span><span class="s">°C, blend</span></div>
         <div class="tile"><span class="k">Deep shear</span><span class="v">${f(Cx.sh.mean[i], 0, " kt")}</span><span class="s">10 m–500 hPa</span></div>
-        <div class="tile nwscol"><span class="k"><span class="src-nws">NWS</span> thunder chance</span><span class="v">${data.nwsAxis && data.nwsAxis.thunder[i] != null ? data.nwsAxis.thunder[i] + "%" : "—"}</span><span class="s">this hour, NWS grid</span></div>
+        <div class="tile nwscol"><span class="k"><span class="src-nws">NWS</span> thunder chance</span><span class="v">${(() => { const iv = nwsIv(data.ms[i]); return iv && iv.v != null ? iv.v + "%" : "—"; })()}</span><span class="s">${(() => { const iv = nwsIv(data.ms[i]); return iv ? `grid value for ${ivText(iv)}` : "NWS grid"; })()}</span></div>
       </div>
       <div class="tablewrap"><table><thead><tr><th>Model</th><th>Weather</th><th>CAPE</th><th>Precip chance</th><th>Signal</th></tr></thead><tbody>${ms.map((m) => {
         const a = data.models[m.id].h, c = a.weather_code ? a.weather_code[i] : null, p = Cx.perModel.find((x) => x.m === m);
@@ -178,7 +181,7 @@
     chart = new Chart($("chart"), { type: "line", data: { labels, datasets: ds }, options: base.options, plugins: base.plugins });
     $("legend").innerHTML = (showLines() ? ms.map((m) => `<span><i class="sw" style="background:${O.modelColor(MODELS.indexOf(m))}"></i>${O.esc(m.name)}</span>`).join("") : "") +
       (ms.length > 1 ? `<span><i class="sw" style="background:${fg};height:4px"></i>Weighted blend</span><span><i class="sw" style="background:var(--band);height:10px"></i>Model range</span>` : "") +
-      (t.nwsOnly ? (data.nwsAxis ? `<span><span class="src-nws">NWS</span> hourly thunder probability (separate source)</span>` : "<span>NWS unavailable for this point.</span>") : !ms.length ? "<span>None of the checked models carry this field here.</span>" : "") + `<span>Dotted line: selected hour</span>`;
+      (t.nwsOnly ? (data.nwsAxis ? `<span><span class="src-nws">NWS</span> thunder probability, each value drawn across its NWS interval (separate source)</span>` : "<span>NWS unavailable for this point.</span>") : !ms.length ? "<span>None of the checked models carry this field here.</span>" : "") + `<span>Dotted line: selected hour</span>`;
   }
 
   render();

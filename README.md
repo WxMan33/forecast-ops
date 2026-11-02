@@ -38,7 +38,7 @@ NWS point forecasts come from api.weather.gov and are always shown as a **separa
 - **Where it appears:**
   - Blend: an NWS line on compatible charts, NWS day-high and night-low columns, an NWS-vs-blend table over each official period's own hours, and NWS columns in event tables.
   - Overview: NWS day/night values on the day cards and in the event briefing.
-  - Thunder: NWS gridded thunder chance.
+  - Thunder: NWS gridded thunder probability, kept with its own multi-hour validity intervals. NWS doesn't document the probability's period, so hourly displays only sample each value across its interval.
   - Winter: NWS weather wording (the only source that can say sleet), plus NWS snow and ice totals.
 
 ## Winter diagnostics
@@ -54,14 +54,14 @@ The Winter page shows:
 - **Precipitation type**, side by side from three sources:
   - each model's own WMO weather code, which has no sleet category
   - NWS wording
-  - an **experimental** profile reading using the Bourgouin (2000) energy-area method, with its thresholds documented on the page
+  - an **experimental** profile reading using the *original* Bourgouin energy method as implemented in NCEP UPP (`CALWXT_BOURG`), not the revised method (Birk et al. 2021). It is checked against a line-by-line port of UPP in `tests/reference/`, and shown only for profiles that are complete through 500 hPa
   It also shows each model's transition times and the spread of transition timing across models.
 - **Profiles:** for any clicked hour, every model's profile, with surface temperature, wet-bulb, dew point, warm nose, warm-layer depth, cold-layer depth and Kuchera ratio. Charts for surface T/Td/wet-bulb, 925/850 hPa temperatures and the warm-nose peak.
 - **Snow amounts, kept distinct:**
   - model snow as reported (Open-Meteo's fixed 7:1 conversion)
   - snow water
   - 10:1
-  - Kuchera (experimental; needs a profile)
+  - Kuchera (experimental; needs a complete profile through 500 hPa, otherwise shown as incomplete; COARSE when levels in the lowest 3 km are over 1200 m apart)
   - NWS snow and ice from its interval totals
   - hours where warm ground likely limits accumulation
   None of these claim ground or road accumulation.
@@ -96,7 +96,7 @@ Save an event in the **Event** card under Location. Each event has a name, a loc
 - The **Overview** has an event briefing: blend temperatures, precip and gusts, ensemble snow odds and the thunder signal for each phase. It tracks changes per phase by event ID and exact window.
 - The event record is plain data with a stable ID, kept in the browser for now: `{id, name, loc, tz, times: {setup, gates, start, end, teardown}}`. A calendar connection or server could create the same record.
 
-**Time zones and time changes.** Event times are local to the event's location and stored with its IANA time zone. Everything is converted to real UTC instants, so events crossing midnight or a daylight-saving change get exactly the right hours. Open-Meteo labels a whole response with one fixed UTC offset (the one in effect when it's requested), not true local time, so the code converts its labels the same way. Near a time change, chart labels can be an hour off; the event tables are exact and say so. The live test checks this behavior daily.
+Event times are local to the event's location and stored with its IANA time zone; see **Time zones** for how they are converted and shown.
 
 ## Customizing
 
@@ -138,6 +138,6 @@ GitHub Actions (`.github/workflows/tests.yml`) runs the unit and fixture tests o
 3. Store each run's summary with its window, contributors and settings, and use `changes.diff` to decide whether anything meaningful moved.
 4. Send a routine daily briefing, plus a notification only for meaningful changes.
 
-The next step toward that is a shared **event window** (setup, gates, start, teardown) that every page and the briefing evaluate identically.
+The shared event window, NWS comparison and verification log are in place. The next step is to use the workspace on real setups and collect verification records; those, scored against observations, are the evidence for any change to blend weights.
 
 Advance thunder guidance stays separate from detected lightning and the all-clear clock, which remain Heads-Up's job.

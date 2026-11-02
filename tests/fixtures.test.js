@@ -48,6 +48,12 @@ for (const place of ["cincinnati", "denver"]) {
   const st = N.status({ forecast: fc, hourly: fh, grid }, capturedAt);
   ok(!st.stale.grid && !st.stale.forecast && st.ageH.grid >= 0, `${place}: fresh at capture time (grid ${st.ageH.grid.toFixed(1)} h old)`);
   ok(N.status({ forecast: fc, hourly: fh, grid }, capturedAt + 3 * 86400e3).stale.grid, `${place}: the same data three days later counts as stale`);
+  /* thunder probability keeps NWS's own intervals; hourly display only samples them */
+  const thIv = N.intervals({ ...gp.probabilityOfThunder, uom: "percent" });
+  const durs = [...new Set(thIv.map((x) => (x.e - x.s) / 3600e3))];
+  ok(thIv.length > 0 && durs.some((d) => d > 1), `${place}: thunder probability intervals are multi-hour (${durs.join(", ")} h)`);
+  const axis = N.onAxis({ parts: { grid } }, ms);
+  ok(ms.every((m, i) => { const iv = axis.thunderIv.find((x) => m >= x.s && m < x.e); return iv ? axis.thunder[i] === iv.v : axis.thunder[i] == null; }), `${place}: sampled thunder values equal their interval's value, nothing invented`);
   const wx = N.weatherAt(grid, ms);
   ok(wx.some((x) => x != null), `${place}: weather conditions present`);
 }
@@ -69,6 +75,9 @@ const profs = gfs.hourly.time.map((_, i) => C.winter.profile(h, i, gfs.elevation
 ok(profs.every((p) => p.length >= 8 && p.every((q, k) => k === 0 || q.z > p[k - 1].z)), "winter: GFS profiles have 8+ levels, ordered upward");
 ok(ws.every((r) => r.twF == null || (r.tdF - 0.6 <= r.twF && r.twF <= r.t2F + 0.6)), "winter: wet-bulb lies between dew point and temperature");
 ok(ws.every((r) => r.kuchera == null || (r.kuchera >= 0 && r.kuchera <= 30)), "winter: Kuchera ratios within bounds");
+ok(profs.every((p) => C.winter.coverage(p).ok), "winter: real GFS profiles pass the completeness rule (surface to 500 hPa, no big gaps)");
+ok(ws.every((r) => r.kuchera != null), "winter: so Kuchera is available every hour for GFS");
+ok(ws.every((r) => !r.profileCoarse), "winter: real GFS profiles are not flagged coarse");
 ok(ws.every((r) => !r.bour || ["snow", "rain", "mix", "freezing", "sleet"].includes(r.bour.type)), "winter: Bourgouin types only when wet, from the known set");
 const inv = F("om-inventory.json");
 ok(inv.ncep_nbm_conus.temperature_850hPa === "rejected" || inv.ncep_nbm_conus.temperature_850hPa.startsWith("0/"), "inventory: NBM has no profile (documented limitation)");

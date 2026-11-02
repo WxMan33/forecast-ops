@@ -155,17 +155,65 @@ eq([N.ptype([{ weather: "snow" }]), N.ptype([{ weather: "sleet" }, { weather: "f
 
 /* ---------- winter diagnostics (synthetic profiles) ---------- */
 const Wn = C.winter;
-const prof = (sfc, levels) => [{ z: 2, p: 1000, t: sfc }, ...levels.map(([p, z, t]) => ({ p, z, t }))];
-eq(Wn.bourgouin(prof(-5, [[925, 700, -6], [850, 1400, -8], [700, 3000, -15]])).type, "snow", "bourgouin: all below freezing is snow");
-eq(Wn.bourgouin(prof(-3, [[925, 700, -1], [850, 1400, 5], [800, 1900, 4], [700, 3000, -5]])).type, "freezing", "bourgouin: strong warm nose over a shallow cold layer is freezing rain");
-eq(Wn.bourgouin(prof(-12, [[950, 400, -10], [925, 700, -6], [850, 1400, 1.5], [700, 3000, -8]])).type, "sleet", "bourgouin: weak warm nose over a deep cold layer is ice pellets");
-eq(Wn.bourgouin(prof(8, [[925, 700, 5], [850, 1400, 2], [700, 3000, -8]])).type, "rain", "bourgouin: warm surface layer is rain");
-eq(Wn.bourgouin([{ z: 2, p: null, t: 0 }, { z: 700, p: 925, t: 0 }, { z: 1400, p: 850, t: 0 }]), null, "bourgouin: needs pressure at every point");
+/* Bourgouin is checked against a line-by-line port of NCEP UPP CALWXT_BOURG (tests/reference/upp-bourgouin.js),
+   on continuous profiles sampled finely enough for UPP's layer sums to converge. */
+const UPP = require("./reference/upp-bourgouin.js");
+const pStd = (z) => 1013.25 * Math.pow(1 - z / 44330.8, 5.255);
+const mk = (Tf, top = 5600, dz = 50) => { const pts = []; for (let z = 0; z <= top; z += dz) pts.push({ z: z || 2, p: z >= top ? 500 : pStd(z), t: Tf(z) }); return pts; };
+/* piecewise-linear soundings: [[height m, °C], ...], continued at 6.5 °C/km above the last point */
+const pw = (P) => (z) => { if (z >= P[P.length - 1][0]) return P[P.length - 1][1] - 6.5 * (z - P[P.length - 1][0]) / 1000; for (let k = 1; k < P.length; k++) if (z <= P[k][0]) { const [z0, t0] = P[k - 1], [z1, t1] = P[k]; return t0 + ((t1 - t0) * (z - z0)) / (z1 - z0); } return P[0][1]; };
+const lapse = (sfc) => (z) => sfc - 6.5 * z / 1000;
+const CASES = {
+  "all cold": [lapse(-4), "snow"],
+  "classic warm nose over a shallow cold layer": [pw([[0, -2], [400, -3], [1200, 4], [2000, 0], [2400, -3]]), "freezing"],
+  "weak warm nose over a deep cold layer": [pw([[0, -10], [1200, -6], [1700, 1.2], [2100, -1], [2500, -4]]), "sleet"],
+  "two warm layers aloft (both counted)": [pw([[0, -3], [500, -2], [800, 2], [1100, -1], [1500, 2.5], [2000, -1], [2400, -4]]), null],
+  "shallow surface warm layer": [pw([[0, 1], [150, 0], [400, -2], [1000, -5]]), "snow"],
+  "deep surface warm layer": [lapse(6), "rain"],
+  "surface warm + warm nose aloft": [pw([[0, 1.5], [250, -1], [700, -2], [1300, 3], [2000, 0], [2400, -3]]), null],
+};
+Object.entries(CASES).forEach(([name, [Tf, want]]) => {
+  const pts = mk(Tf), mine = Wn.bourgouin(pts), ref = UPP.classify(pts);
+  if (want) eq(mine.type, want, `bourgouin: ${name} -> ${want}`);
+  eq(mine.type, ref.type, `bourgouin matches UPP reference: ${name} (${ref.type})`);
+  near(mine.PA, ref.areape, Math.max(0.5, 0.03 * ref.areape), `bourgouin PA matches UPP: ${name}`);
+  near(mine.NA, ref.areane, Math.max(0.5, 0.03 * ref.areane), `bourgouin NA matches UPP: ${name}`);
+  near(mine.sfcWarm, ref.surfw, Math.max(0.5, 0.03 * ref.surfw), `bourgouin surface warm matches UPP: ${name}`);
+});
+/* randomized: 300 profiles with 0-2 warm noses; types must agree away from threshold edges */
+let seed2 = 11; const rnd2 = () => ((seed2 = (seed2 * 16807) % 2147483647) / 2147483647);
+let agree = 0, compared = 0;
+for (let k = 0; k < 300; k++) {
+  const sfc = -10 + rnd2() * 16, noses = Math.floor(rnd2() * 3), spec = [];
+  for (let m = 0; m < noses; m++) { const z0 = 200 + rnd2() * 2500; spec.push([z0, z0 + 300 + rnd2() * 1200, -2 + rnd2() * 8]); }
+  const Tf = (z) => spec.reduce((t, [a, b, pk]) => (z > a && z < b ? Math.max(t, pk - (Math.abs(z - (a + b) / 2) / ((b - a) / 2)) * (pk - t)) : t), lapse(sfc)(z));
+  const pts = mk(Tf), mine = Wn.bourgouin(pts), ref = UPP.classify(pts);
+  /* Edge zones. Known, explained difference: for a warm layer only tens of metres thick that barely
+     exceeds 0 °C, UPP counts whole layers above freezing (≈2.5 J/kg here) while this code integrates only
+     the above-freezing part (<2 J/kg), so they can fall either side of the 2 J/kg melting threshold. */
+  const edge = Math.abs(ref.areape - 2) < 1.2 || [5.6, 13.2].some((x) => Math.abs(ref.surfw - x) < 0.15 * x) || [66 + 0.66 * ref.areape, 46 + 0.66 * ref.areape].some((x) => Math.abs(ref.areane - x) < 0.05 * x);
+  if (edge) continue;
+  compared++; if (mine.type === ref.type) agree++;
+}
+eq(agree, compared, `bourgouin: random profiles agree with UPP away from thresholds (${agree}/${compared})`);
+/* completeness: truncated, gappy or shallow profiles are unavailable, not guessed */
+eq(Wn.bourgouin(mk(CASES["classic warm nose over a shallow cold layer"][0], 1800)).type, null, "bourgouin: profile stopping below 500 hPa is unavailable");
+eq(Wn.bourgouin(mk((z) => 3, 5600)).unavailable.some((x) => /truncated/.test(x)), true, "bourgouin: warm at the top of the data is truncated, unavailable");
+const gappy = [{ z: 2, p: 1000, t: -2 }, { z: 2200, p: 780, t: 3 }, { z: 5600, p: 500, t: -25 }];
+eq(Wn.coverage(gappy).ok, false, "coverage: first level 2200 m up / 3400 m gap is not usable");
+eq(Wn.coverage(mk(lapse(-2), 5600, 1400)).coarse, true, "coverage: 1400 m spacing low down is flagged coarse");
+const ecLike = [{ z: 2, p: 1000, t: -2 }, { z: 650, p: 925, t: -3 }, { z: 1400, p: 850, t: 2 }, { z: 2950, p: 700, t: -6 }, { z: 4150, p: 600, t: -14 }, { z: 5500, p: 500, t: -24 }];
+const gfsLike = [{ z: 2, p: 1000, t: -2 }, { z: 200, p: 975, t: -2 }, { z: 420, p: 950, t: -3 }, { z: 650, p: 925, t: -3 }, { z: 880, p: 900, t: 0 }, { z: 1400, p: 850, t: 2 }, { z: 1900, p: 800, t: 0 }, { z: 2950, p: 700, t: -6 }, { z: 4150, p: 600, t: -14 }, { z: 5500, p: 500, t: -24 }];
+eq([Wn.coverage(ecLike).coarse, Wn.coverage(gfsLike).coarse], [true, false], "coverage: ECMWF-like 850->700 gap is coarse; GFS-like levels are not (upper gaps don't count)");
 near(Wn.kuchera(-5), 12 + (271.16 - 268.15), 1e-9, "kuchera: cold profile ratio");
 near(Wn.kuchera(1), 12 + 2 * (271.16 - 274.15), 1e-9, "kuchera: warm profile ratio");
+const prof = (sfc, levels) => [{ z: 2, p: 1000, t: sfc }, ...levels.map(([p, z, t]) => ({ p, z, t }))];
 const st0 = Wn.structure(prof(-3, [[925, 700, -1], [850, 1400, 5], [800, 1900, 4], [700, 3000, -5]]));
 eq([Math.round(st0.warmBase), Math.round(st0.warmTop), st0.maxAloftT], [817, 2389, 5], "winter: warm layer base/top (linear 0 °C crossings) and peak");
 eq([Wn.codeType(66), Wn.codeType(73), Wn.codeType(61), Wn.codeType(3), Wn.codeType(null)], ["freezing", "snow", "rain", "none", null], "winter: WMO codes -> types");
+const sr = Wn.series({ precipitation: [2, 2], snowfall: [1, 1], rain: [1, null], showers: [0, 0], temperature_2m: [0, 0] }, 2, 0);
+eq([sr[0].split, sr[1].split], ["mix", null], "winter: missing rain stays unknown, never zero");
+eq(Wn.series({ precipitation: [2], snowfall: [1], rain: [1], temperature_2m: [0] }, 1, 0)[0].split, null, "winter: model without a showers field gives no rain/snow split");
 eq(Wn.transitions([null, "rain", "rain", "none", "freezing", "snow"], 0, 6).map((x) => `${x.from}>${x.to}@${x.i}`), ["rain>freezing@4", "freezing>snow@5"], "winter: transitions skip dry hours");
 eq(Wn.scenarioTotals([{ swe: 0.1, snowIn: 0.7, kuchera: 15, t2F: 30 }, { swe: null, snowIn: null }], 0, 2), null, "winter: incomplete window gives no scenario totals");
 const sc = Wn.scenarioTotals([{ swe: 0.1, snowIn: 0.7, kuchera: 15, t2F: 34 }, { swe: 0.2, snowIn: 1.4, kuchera: 12, t2F: 30 }], 0, 2);
