@@ -58,9 +58,11 @@ The first pilot run showed why this matters. A capture retrieved at 02:53Z had b
 
 **Editions.** An *edition* is one location, one local date and one slot, e.g. CVG 2026-11-04 midday. Only scheduled and backup triggers produce editions. Each attempt has its own capture id (the edition id, then `_a2`, `_a3`, …) so evidence never collides. A backup trigger re-attempts only an edition that is still incomplete.
 
+**Collection window, not a cutoff.** An edition is a 15-minute collection window that *starts* at the target T. The collector waits for T, so nothing is retrieved before it. A retrieval is on time if T ≤ retrieval ≤ T + 15 min, so data a provider publishes inside that window can be included. Every pair keeps its actual retrieval time and delay, and matched comparisons report each member's mean and maximum retrieval delay. A retrieval before T is "early" and is not eligible.
+
 **Selection rule.** For each edition and each source/product, exactly one capture is scored:
-- the earliest **source retrieval** within 15 minutes of the target;
-- if none is on time, the earliest retrieval, labelled by its own lateness.
+- the earliest on-time **source retrieval**;
+- if none is on time, the earliest retrieval at or after T, labelled by its own lateness.
 
 A blend uses its capture's last retrieval, because it is only as timely as its latest input. Retries and backups therefore never multiply a forecast's influence.
 
@@ -73,7 +75,7 @@ A blend uses its capture's last retrieval, because it is only as timely as its l
 **What every score shows:**
 - the pair count, next to unique verifying dates (and hours, for hourly temperature);
 - 7-day blocks;
-- weather episodes: maximal runs of consecutive climate days with the same observed wet/dry state, capped at 7 days;
+- descriptive wet/dry groups: runs of consecutive days with the same observed wet/dry state, capped at 7 days. They describe the weather sampled; they are **not** evidence of statistical independence. Uncertainty comes from the 7-day block bootstrap;
 - the **actual lead time** in hours (window start, or valid hour, minus last retrieval), alongside the lead day.
 
 Comparisons are made only within the same lead day and slot.
@@ -82,9 +84,9 @@ Comparisons are made only within the same lead day and slot.
 
 ## Model-cycle provenance
 
-Each source records `cycle: {reported, reportedBy, inferred, status}`:
-- **Open-Meteo models:** `reported` is the `last_run_initialisation_time` from the model's `/data/<model>/static/meta.json` at retrieval. That is the latest run Open-Meteo reported as available; the forecast response itself does not state its run. Seamless products blend several models, and the value is for the global component.
-- **NWS:** the gridpoint response's own `updateTime`. That is a forecast update time, not a model run.
+Each source records a `cycle` object with `kind`, the reported value, `reportedBy`, `responseCycle`, `inferred` and `status`:
+- **Open-Meteo models** (`kind: "latest-run-reported-by-metadata"`): the `last_run_initialisation_time` from the model's `/data/<model>/static/meta.json`, read at retrieval. It is the **latest run reported by the metadata**, not a confirmed cycle behind the forecast response. The response doesn't state its run, so `responseCycle` stays null (unknown). Seamless products blend several models, and the value is for the global component.
+- **NWS** (`kind: "nws-grid-update-time"`): the gridpoint response's own `updateTime`, kept separately as `nwsGridUpdateTime`. It is a forecast update time, not a model run.
 - **Nothing is inferred:** `inferred` is always null.
 - **Missing or implausible values:** a missing value stays `unknown`. An implausible one (more than 72 h old, e.g. GEM reporting May 2026) keeps the reported value but is labelled `provider-reported-implausible`.
 

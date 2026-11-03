@@ -81,9 +81,16 @@ jobs:
         if: steps.job.outputs.job == 'archive'
         run: |
           Y=$(( $(date -u +%Y) - 1 ))
+          # privacy: refuse unless this repository is private (releases inherit repository visibility)
+          [ "$(gh api repos/${{ github.repository }} --jq .private)" = "true" ] || { echo "::error::repository is not private; archive NOT uploaded"; exit 1; }
           node collector/verify/tools/archive.js pack --year $Y --out "$RUNNER_TEMP/arc"
           gh release create "archive-$Y" "$RUNNER_TEMP/arc/forecast-ops-data-$Y.tar" --title "Evidence archive $Y" --notes "Tarball of $Y raw evidence; manifest with every file hash at archives/$Y/manifest.json" || gh release upload "archive-$Y" "$RUNNER_TEMP/arc/forecast-ops-data-$Y.tar" --clobber
-          node -e 'const f="archives/'$Y'/manifest.json",m=JSON.parse(require("fs").readFileSync(f));m.releaseAsset="archive-'$Y'/forecast-ops-data-'$Y'.tar";m.uploadedAt=new Date().toISOString();require("fs").writeFileSync(f,JSON.stringify(m,null,1)+"\n")'
+          # verify the asset is NOT publicly downloadable (an unauthenticated request must fail)
+          URL="https://github.com/${{ github.repository }}/releases/download/archive-$Y/forecast-ops-data-$Y.tar"
+          CODE=$(curl -s -o /dev/null -w "%{http_code}" -L "$URL")
+          if [ "$CODE" = "200" ]; then echo "::error::archive is publicly downloadable; deleting release"; gh release delete "archive-$Y" --yes; exit 1; fi
+          echo "unauthenticated download returned HTTP $CODE (private, as required)"
+          node -e 'const f="archives/'$Y'/manifest.json",m=JSON.parse(require("fs").readFileSync(f));m.releaseAsset="archive-'$Y'/forecast-ops-data-'$Y'.tar";m.uploadedAt=new Date().toISOString();m.privacyCheck={repoPrivate:true,unauthenticatedHttp:'$CODE',at:new Date().toISOString()};require("fs").writeFileSync(f,JSON.stringify(m,null,1)+"\n")'
       - name: Score and reports
         if: always() && steps.job.outputs.job != 'archive'
         run: node collector/verify/run.js score

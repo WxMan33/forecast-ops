@@ -36,11 +36,14 @@ async function fetchMeta(id) {
    where they came from; nothing is inferred (inferred stays null); missing or implausible stays
    "unknown" for analysis while the reported value is still preserved. */
 function cycleOf(kind, rec) {
-  if (kind === "nws") return { reported: rec.issuedAt || null, reportedBy: "NWS gridpoint response field properties.updateTime (forecast update time, not a model run)", inferred: null, status: rec.issuedAt ? "provider-reported" : "unknown" };
+  /* NWS: a forecast UPDATE time from the response itself; never presented as a model cycle */
+  if (kind === "nws") return { kind: "nws-grid-update-time", nwsGridUpdateTime: rec.issuedAt || null, reported: rec.issuedAt || null, reportedBy: "NWS gridpoint response field properties.updateTime (forecast update time, not a model run)", responseCycle: null, inferred: null, status: rec.issuedAt ? "provider-reported" : "unknown" };
+  /* Open-Meteo: the latest run its METADATA reported at retrieval. Not confirmed as the run behind the
+     forecast response (the response does not state its run): responseCycle stays null (unknown). */
   const m = rec.meta || {};
-  if (!m.lastRunInit) return { reported: null, reportedBy: m.metaUrl || "no metadata endpoint", inferred: null, status: "unknown", note: m.error || "provider reported no run time" };
-  return { reported: m.lastRunInit, reportedBy: `${m.metaUrl} last_run_initialisation_time (the latest run Open-Meteo reported as available at retrieval; the forecast response itself does not state its run${m.seamless ? "; seamless product combines several models, value is for its global component" : ""})`,
-    inferred: null, status: m.implausible ? "provider-reported-implausible" : "provider-reported", note: m.implausible || undefined };
+  if (!m.lastRunInit) return { kind: "latest-run-reported-by-metadata", latestRunReportedByMetadata: null, reported: null, reportedBy: m.metaUrl || "no metadata endpoint", responseCycle: null, inferred: null, status: "unknown", note: m.error || "metadata reported no run time" };
+  return { kind: "latest-run-reported-by-metadata", latestRunReportedByMetadata: m.lastRunInit, reported: m.lastRunInit, reportedBy: `${m.metaUrl} last_run_initialisation_time${m.seamless ? " (seamless product: value is for its global component)" : ""}`,
+    responseCycle: null, responseCycleNote: "not stated by the forecast response; not confirmed", inferred: null, status: m.implausible ? "provider-reported-implausible" : "provider-reported", note: m.implausible || undefined };
 }
 
 /* Collect every source's raw response into dataRoot/rel. Returns per-source outcome records. */

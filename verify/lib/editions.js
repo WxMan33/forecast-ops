@@ -2,10 +2,14 @@
    An EDITION is (location, local date, slot), e.g. CVG 2026-11-04 midday. Only scheduled and backup
    triggers produce edition captures; manual captures are pilot evidence and never enter primary
    scorecards.
+   COLLECTION WINDOW: an edition is a collection window, not a pre-target cutoff. Its target T is the
+   window's START (the collector waits for T, so nothing is retrieved before it); a source retrieval is
+   ON TIME if T <= retrieval <= T + onTimeMaxMin (15 min). Data a provider publishes inside that window
+   can therefore be included; every pair keeps its actual retrieval time and delay so this is visible.
+   A retrieval before T (clock skew) is "early" and not eligible.
    SELECTION RULE (per edition and per source/product): among captures of that edition in which the
-   source succeeded, take the one whose SOURCE retrieval time is earliest within the on-time window
-   (<= onTimeMaxMin after the target); if none is on time, take the earliest retrieval and label it by
-   its own lateness. Exactly one capture per source per edition is ever scored, so retries and backup
+   source succeeded, take the earliest on-time retrieval; if none is on time, take the earliest
+   retrieval at/after T and label it by its own lateness. Exactly one capture per source per edition is ever scored, so retries and backup
    triggers cannot multiply a forecast's influence. Blends use the same rule on the capture's last
    retrieval time (a blend is only as timely as its latest input). */
 "use strict";
@@ -16,7 +20,7 @@ const editionId = (cap) => cap.edition || cap.captureId;
 function lateness(retrievedIso, targetIso) {
   if (!retrievedIso || !targetIso) return { status: "unknown", delayMin: null };
   const d = (Date.parse(retrievedIso) - Date.parse(targetIso)) / 60e3;
-  return { status: d < -SCHED.waitBeforeTargetMaxMin ? "early" : d <= SCHED.onTimeMaxMin ? "on_time" : d <= SCHED.lateMaxMin ? "late" : "off_schedule", delayMin: Math.round(d * 10) / 10 };
+  return { status: d < 0 ? "early" : d <= SCHED.onTimeMaxMin ? "on_time" : d <= SCHED.lateMaxMin ? "late" : "off_schedule", delayMin: Math.round(d * 10) / 10 };
 }
 /* items: [{edition, key (source/product id), captureId, retrievedAt, target}] -> Map key "edition|key|captureId" -> {selected, timeliness} */
 function select(items) {

@@ -185,6 +185,9 @@ const T = (s) => Date.parse(s), FX = path.join(__dirname, "fixtures");
   eq([SCH.alreadyCaptured([{ captureId: "e", outcome: "partial" }], "e", "backup"), SCH.alreadyCaptured([{ captureId: "e", outcome: "partial" }], "e", "scheduled")], [false, true], "a backup trigger may retry an incomplete edition");
   const S = require("../lib/sources.js");
   eq(S.cycleOf("det", { meta: { metaUrl: "u", lastRunInit: null } }).status, "unknown", "no reported run: cycle stays unknown (never inferred)");
+  const cy = S.cycleOf("det", { meta: { metaUrl: "u", lastRunInit: "2026-11-03T12:00:00.000Z" } }), cn = S.cycleOf("nws", { issuedAt: "2026-11-03T15:00:00Z" });
+  eq([cy.kind, cy.latestRunReportedByMetadata, cy.responseCycle, cn.kind, cn.nwsGridUpdateTime, cn.responseCycle], ["latest-run-reported-by-metadata", "2026-11-03T12:00:00.000Z", null, "nws-grid-update-time", "2026-11-03T15:00:00Z", null], "metadata run time and NWS update time are labelled for what they are; the response cycle stays unconfirmed");
+  eq([ED.lateness("2026-11-04T16:59:00Z", tg).status, ED.lateness("2026-11-04T17:15:00Z", tg).status, ED.lateness("2026-11-04T17:15:30Z", tg).status], ["early", "on_time", "late"], "collection window is [target, target + 15 min]; earlier is not eligible");
   eq([S.cycleOf("det", { meta: { metaUrl: "u", lastRunInit: "2026-05-26T00:00:00.000Z", implausible: "reported run is 4000 h old" } }).status, S.cycleOf("det", { meta: { metaUrl: "u", lastRunInit: "2026-05-26T00:00:00.000Z", implausible: "x" } }).reported], ["provider-reported-implausible", "2026-05-26T00:00:00.000Z"], "implausible reported cycle is kept as reported and flagged");
   /* scoreAll: manual excluded from primary, duplicate edition captures superseded */
   const os = require("os"), D = fs.mkdtempSync(path.join(os.tmpdir(), "vfe-")), NV = NORM.VERSION;

@@ -112,7 +112,8 @@ function matched(pairs, members, ref, target, lead, slot) {
   if (!rows.length) return { n: 0, members };
   const kind = (TG.TARGETS[target] || {}).kind, loss = (p) => (kind === "prob" ? (p.v - p.o) ** 2 : Math.abs(p.v - p.o));
   const res = { n: rows.length, dates: new Set(rows.map((r) => r[members[0]].date)).size, members: {}, ref, metric: kind === "prob" ? "Brier" : "MAE" };
-  members.forEach((m) => { res.members[m] = { score: mean(rows.map((r) => loss(r[m]))) }; });
+  members.forEach((m) => { const d = rows.map((r) => r[m].sourceTimeliness && r[m].sourceTimeliness.delayMin).filter((x) => x != null);
+    res.members[m] = { score: mean(rows.map((r) => loss(r[m]))), retrievalDelayMin: d.length ? { mean: Math.round(mean(d) * 10) / 10, max: Math.max(...d) } : null }; });
   members.filter((m) => m !== ref && members.includes(ref)).forEach((m) => {
     const byDate = {}; rows.forEach((r) => { (byDate[r[m].date] = byDate[r[m].date] || []).push(loss(r[m]) - loss(r[ref])); });
     const ci = blockBootstrap(byDate);
@@ -166,8 +167,10 @@ function scoreAll(DATA, loc, nowMs = Date.now(), normVersion = require("./normal
       h.n++; h.abs += Math.abs(e); h.sum += e; h.in2 += Math.abs(e) <= 2 ? 1 : 0; h.hours.add(t); h.dates.add(new Date(t + loc.lstOffsetMin * 60e3).toISOString().slice(0, 10)); h.lead.push((t - last) / 3600e3);
     }));
   });
-  /* independence: unique dates, 7-day blocks and weather episodes (maximal runs of consecutive
-     climate days with the same observed wet/dry state, split at 7 days) */
+  /* sample description: unique dates, 7-day blocks, and DESCRIPTIVE wet/dry groups (maximal runs of
+     consecutive climate days with the same observed wet/dry state, split at 7 days). The groups describe
+     the weather sampled; they are not a test or proof of statistical independence. Uncertainty comes
+     from the 7-day block bootstrap. */
   const wet = {}; best.forEach((v, k) => { const [t, d] = k.split("|"); if (t === "precip_clim") wet[d] = v.value >= 0.01; });
   const epi = {}; { let prev = null, id = 0, len = 0; Object.keys(wet).sort().forEach((d) => { const cont = prev && U.dayDiff(prev.d, d) === 1 && prev.w === wet[d] && len < 7; if (!cont) { id++; len = 0; } len++; epi[d] = `${wet[d] ? "wet" : "dry"}-${id}`; prev = { d, w: wet[d] }; }); }
   const block = (d) => Math.floor(Date.parse(d + "T00:00:00Z") / (7 * 86400e3));

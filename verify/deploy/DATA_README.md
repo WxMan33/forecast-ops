@@ -34,7 +34,7 @@ The private archive and scheduled collector for Forecast Ops verification. The c
 
 **Copies of the data:**
 1. **This repository, including its full git history.** Every file ever committed stays recoverable from history, even if later removed from the working tree.
-2. **Yearly archive release assets.** On 20 January, `collector/verify/tools/archive.js pack` builds a tarball of the previous year's raw evidence and writes `archives/<year>/manifest.json`. The manifest lists every file's path, size and SHA-256, plus the tarball's own hash. The tool re-extracts the tarball and verifies every file before the release `archive-<year>` is created; the upload is then recorded in the manifest.
+2. **Yearly archive release assets.** Releases inherit this repository's private visibility. The archive job refuses to upload unless the repository is private. After uploading, it confirms that an unauthenticated download fails; if the download succeeds, it deletes the release and stops. On 20 January, `collector/verify/tools/archive.js pack` builds a tarball of the previous year's raw evidence and writes `archives/<year>/manifest.json`. The manifest lists every file's path, size and SHA-256, plus the tarball's own hash. The tool re-extracts the tarball and verifies every file before the release `archive-<year>` is created; the upload is then recorded in the manifest.
 3. **Your own offline copy (recommended).** About once a month, run:
    ```bash
    git clone --mirror https://github.com/WxMan33/forecast-ops-data.git
