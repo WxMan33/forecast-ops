@@ -50,16 +50,15 @@ const acis = (body) => get("https://data.rcc-acis.org/StnData", { method: "POST"
   const t = await get("https://gml.noaa.gov/grad/solcalc/table.php?lat=39.124556&lon=-84.50386&year=2026");
   save("noaa-solcalc-2026.json", { ...t, text: undefined, html: t.text === undefined ? null : undefined });
   try { const r = await fetch("https://gml.noaa.gov/grad/solcalc/table.php?lat=39.124556&lon=-84.50386&year=2026", { headers: { "User-Agent": UA } }); fs.writeFileSync(path.join(OUT, "noaa-solcalc-2026.html"), await r.text()); } catch (e) { /* recorded above */ }
-  /* timeanddate.com: comparison reference only (no runtime use). Fetched only if robots.txt allows /sun/. */
+  /* timeanddate.com: comparison reference only (no runtime use). robots.txt is checked with the same
+     parser as the TV collector (wildcards included): URLs with "?" are disallowed there, so only the
+     plain city page (current month) is fetched, and only if allowed. */
   try {
+    const U = require("../verify/lib/util.js");
     const rb = await fetch("https://www.timeanddate.com/robots.txt", { headers: { "User-Agent": UA } }); const txt = rb.ok ? await rb.text() : "";
-    const lines = txt.split(/\r?\n/); let inStar = false, blocked = false;
-    lines.forEach((l) => { const m = /^\s*(user-agent|disallow)\s*:\s*(.*)$/i.exec(l); if (!m) return; if (/user-agent/i.test(m[1])) inStar = m[2].trim() === "*"; else if (inStar && m[2].trim() && "/sun/usa/cincinnati".startsWith(m[2].trim())) blocked = true; });
-    fs.writeFileSync(path.join(OUT, "timeanddate-robots.json"), JSON.stringify({ status: rb.status, blocked, disallowStar: lines.filter((l) => /disallow/i.test(l)).slice(0, 40) }));
-    if (!blocked) for (const [m, y] of [[11, 2026], [3, 2026], [6, 2026], [12, 2026]]) {
-      const r = await fetch(`https://www.timeanddate.com/sun/usa/cincinnati?month=${m}&year=${y}`, { headers: { "User-Agent": UA } });
-      fs.writeFileSync(path.join(OUT, `timeanddate-cincinnati-${y}-${String(m).padStart(2, "0")}.html`), await r.text()); console.log("timeanddate", m, r.status);
-    }
+    const ok = rb.ok && U.robotsAllows(txt, "/sun/usa/cincinnati");
+    fs.writeFileSync(path.join(OUT, "timeanddate-robots.json"), JSON.stringify({ status: rb.status, plainPageAllowed: ok, queryPagesAllowed: U.robotsAllows(txt, "/sun/usa/cincinnati?month=11&year=2026") }));
+    if (ok) { const r = await fetch("https://www.timeanddate.com/sun/usa/cincinnati", { headers: { "User-Agent": UA } }); const h = await r.text(); fs.writeFileSync(path.join(OUT, "timeanddate-cincinnati-current.html"), h); console.log("timeanddate", r.status, h.length); }
   } catch (e) { console.log("timeanddate capture failed", e.message); }
   fs.writeFileSync(path.join(OUT, "capture-meta.json"), JSON.stringify({ capturedAt: new Date().toISOString() }));
 })();
