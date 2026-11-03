@@ -23,8 +23,6 @@ const EXPECT = {
 };
 const EXCEPT = {
   /* Found in real responses (Nov 2026). Each one is handled on the site, not hidden. */
-  /* NAM on Open-Meteo has no pressure-level data at all: Severe shows it as limited data. */
-  "severe:ncep_nam_conus": ["wind_speed_500hPa", "geopotential_height_500hPa", "temperature_500hPa", "temperature_700hPa"],
   /* ECMWF AIFS has no wind gusts: the blend averages gusts from the models that have them. */
   "blend:ecmwf_aifs025_single": ["wind_gusts_10m"],
   "blend:jma_seamless": ["wind_gusts_10m"],
@@ -81,7 +79,7 @@ const providerDown = (what, cond, why) => { if (!cond) return false; skips++; co
     const BE = await D.loadEnsemble(C.config.blendEns, { ...where, days: 3 });
     if (!providerDown(`Open-Meteo ensemble (blend) at ${P.name}`, BE.empty)) {
       C.blend.addSources(B, BE, null);
-      C.config.blendEns.models.forEach((m) => { const md = B.models[m.source]; ok(md && md.n >= 20, `blend ${m.source}: ensemble members load (${md ? md.n : 0})`); });
+      C.config.blendEns.models.forEach((m) => { const md = B.models[m.source]; if (!md && m.optional) { console.warn(`OPTIONAL SOURCE UNAVAILABLE: ${m.name} (RRFS feed returned no usable members; not counted as a successful live check)`); return; } ok(md && md.n >= (m.minMembers || 20), `blend ${m.source}: ensemble members load (${md ? md.n : 0})`); });
       const er = C.blend.dailyRows(B, { ecmwf_ens: 1, gefs: 1 });
       ok(er.some((r) => r.hi != null && r.chance), "blend ensembles: daily highs and member chance of precip computed");
       ok(er.every((r) => r.hi == null || r.hiR[0] <= r.hiR[1]), "blend ensembles: 10th percentile high <= 90th");
@@ -209,3 +207,4 @@ const providerDown = (what, cond, why) => { if (!cond) return false; skips++; co
   console.log(`\n${checks - fails}/${checks} live checks passed${skips ? ` · ${skips} block(s) skipped because a provider was unavailable` : ""}`);
   process.exit(fails ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });
+

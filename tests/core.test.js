@@ -310,7 +310,17 @@ eq(C.verify.record({ kind: "daily", source: "nws", values: { hi: 60 } }).schema,
   near(r2.ensR.hi[0], 30, 1e-9, "ensemble-only spread uses members only");
   near(r2.ensR.hi[1], 30, 1e-9, "ensemble-only spread ignores the deterministic model");
   const shp = C.blend.shares(P.weights, P.rules, "temperature_2m");
-  eq([shp[0].id, Math.round(shp[0].share * 100), shp[1].id, Math.round(shp[1].share * 100)], ["ecmwf_ens", 30, "nws", 23], "preferred: effective temperature shares (ECMWF ENS ~30%, NWS ~23%)");
+  eq([shp[0].id, Math.round(shp[0].share * 100), shp[1].id, Math.round(shp[1].share * 100)], ["ecmwf_ens", 31, "nws", 23], "preferred: effective temperature shares (ECMWF ENS ~31%, NWS ~23% after NAM retirement)");
 }
 
+/* RRFS replacement sources: optional until the provider returns usable data. */
+{
+  for (const key of ["blend", "thunder", "severe", "winterDet"]) {
+    eq(C.config[key].models.some(m => m.id === "ncep_nam_conus"), false, `${key}: retired NAM is not an active source`);
+  }
+  const e = C.config.blendEns.models.find(m => m.source === "rrfs_ens");
+  eq([e.id, e.minMembers, e.optional], ["ncep_rrfs_conus_ensemble", 5, true], "RRFS ensemble is the five-member product, not full REFS");
+  eq(C.config.blend.extra.find(m => m.id === "rrfs_ens").on, false, "new ensemble does not silently change saved blend");
+}
 console.log(`ok - ${n} checks passed`);
+

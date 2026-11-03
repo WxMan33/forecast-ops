@@ -145,7 +145,7 @@
         { id: "gfs_seamless", name: "GFS", w: 1 },
         { id: "ncep_nbm_conus", name: "NBM", w: 1.25 },
         { id: "gfs_hrrr", name: "HRRR (48 h)", w: 1 },
-        { id: "ncep_nam_conus", name: "NAM 3 km", w: 0.75 },
+        { id: "ncep_rrfs_conus", name: "RRFS 3 km", w: 1, on: false, note: "Optional new source; current feed may be unavailable. Not included in the saved eight-source recipe." },
         { id: "icon_seamless", name: "ICON", w: 1 },
         { id: "gem_seamless", name: "GEM", w: 1 },
         { id: "ukmo_seamless", name: "UKMO", w: 1 },
@@ -159,6 +159,7 @@
         { id: "nws", name: "NWS point forecast", w: 3, kind: "nws", note: "NWS gridded forecast. Precip and snow come from its multi-hour interval totals." },
         { id: "ecmwf_ens", name: "ECMWF ENS", w: 2, kind: "ens", ens: "ecmwf_ifs025", note: "51 members; the system's weight is shared by its members." },
         { id: "gefs", name: "GEFS", w: 1, kind: "ens", ens: "gfs025", note: "31 members; the system's weight is shared by its members." },
+        { id: "rrfs_ens", name: "RRFS ensemble (5 members)", w: 1, on: false, kind: "ens", ens: "ncep_rrfs_conus_ensemble", note: "Five RRFS perturbed members, not the full time-lagged REFS product. Optional; excluded from the eight-source recipe until explicitly selected." },
       ],
       hourly: ["temperature_2m", "dew_point_2m", "apparent_temperature", "precipitation_probability", "precipitation", "snowfall", "wind_speed_10m", "wind_gusts_10m", "cloud_cover"],
       daily: ["temperature_2m_max", "temperature_2m_min", "precipitation_sum", "snowfall_sum", "precipitation_probability_max", "wind_gusts_10m_max"],
@@ -167,7 +168,7 @@
       id: "thunder", base: FORECAST, params: US, days: 3, require: ["cape", "weather_code"],
       models: [
         { id: "gfs_hrrr", name: "HRRR (48 h)", w: 1.25 },
-        { id: "ncep_nam_conus", name: "NAM 3 km", w: 1 },
+        { id: "ncep_rrfs_conus", name: "RRFS 3 km", w: 1, on: false, note: "Optional new source; current feed may be unavailable. Not included in the saved eight-source recipe." },
         { id: "gfs_seamless", name: "GFS", w: 1 },
         { id: "ecmwf_ifs025", name: "ECMWF IFS", w: 1.25 },
         { id: "icon_seamless", name: "ICON", w: 1 },
@@ -183,7 +184,7 @@
       require: ["cape", "wind_speed_500hPa"],
       models: [
         { id: "gfs_hrrr", name: "HRRR (48 h)", w: 1.25 },
-        { id: "ncep_nam_conus", name: "NAM 3 km", w: 1 },
+        { id: "ncep_rrfs_conus", name: "RRFS 3 km", w: 1, on: false, note: "Optional new source; current feed may be unavailable. Not included in the saved eight-source recipe." },
         { id: "gfs_seamless", name: "GFS", w: 1 },
         { id: "ecmwf_ifs025", name: "ECMWF IFS", w: 1.25 },
         { id: "icon_seamless", name: "ICON", w: 1 },
@@ -198,6 +199,7 @@
       models: [
         { id: "ecmwf_ifs025", name: "ECMWF ENS", source: "ecmwf_ens" },
         { id: "gfs025", name: "GEFS", source: "gefs" },
+        { id: "ncep_rrfs_conus_ensemble", name: "RRFS ensemble (5 members)", source: "rrfs_ens", optional: true, minMembers: 5 },
       ],
       hourly: ["temperature_2m", "precipitation", "snowfall"],
     },
@@ -208,6 +210,7 @@
         { id: "ecmwf_ifs025", name: "ECMWF ENS", w: 1.25 },
         { id: "icon_seamless", name: "ICON EPS", w: 0.75 },
         { id: "gem_global", name: "GEM ENS", w: 0.75 },
+        { id: "ncep_rrfs_conus_ensemble", name: "RRFS ensemble (5 members)", w: 1, on: false },
       ],
       hourly: ["snowfall", "temperature_2m", "precipitation"],
     },
@@ -364,7 +367,7 @@
       nbm: { label: "NBM only", note: "The National Blend of Models by itself." },
     },
     PREFERRED: {
-      weights: { nws: 3, ecmwf_ens: 2, gefs: 1, ecmwf_ifs025: 1, ncep_nbm_conus: 1, gfs_seamless: 0.5, ecmwf_aifs025_single: 0.5, gfs_hrrr: 0.5, ncep_nam_conus: 0.25, icon_seamless: 0.5, gem_seamless: 0.5, ukmo_seamless: 0.5 },
+      weights: { nws: 3, ecmwf_ens: 2, gefs: 1, ecmwf_ifs025: 1, ncep_nbm_conus: 1, gfs_seamless: 0.5, ecmwf_aifs025_single: 0.5, gfs_hrrr: 0.5, icon_seamless: 0.5, gem_seamless: 0.5, ukmo_seamless: 0.5 },
       /* temperatures (hourly, highs and lows): ECMWF ENS doubled, 2 -> 4, the heaviest source */
       rules: { byVar: { temperature_2m: { ecmwf_ens: 2 } } },
     },
@@ -1041,7 +1044,7 @@
   config.winterDet = {
     id: "winterDet", base: FORECAST, params: { temperature_unit: "celsius", wind_speed_unit: "kn", precipitation_unit: "mm" }, days: 5, require: ["temperature_2m", "precipitation"],
     models: [
-      { id: "gfs_hrrr", name: "HRRR (48 h)", w: 1 }, { id: "ncep_nam_conus", name: "NAM 3 km", w: 1 }, { id: "gfs_seamless", name: "GFS", w: 1 },
+      { id: "gfs_hrrr", name: "HRRR (48 h)", w: 1 }, { id: "ncep_rrfs_conus", name: "RRFS 3 km", w: 1, on: false, note: "Optional new source; current feed may be unavailable. Not included in the saved eight-source recipe." }, { id: "gfs_seamless", name: "GFS", w: 1 },
       { id: "ecmwf_ifs025", name: "ECMWF IFS", w: 1 }, { id: "icon_seamless", name: "ICON", w: 1 }, { id: "gem_seamless", name: "GEM", w: 1 },
       { id: "ukmo_seamless", name: "UKMO", w: 1 }, { id: "ncep_nbm_conus", name: "NBM", w: 1 },
     ],
@@ -1062,3 +1065,4 @@
   if (typeof module !== "undefined" && module.exports) module.exports = OpsCore;
   root.OpsCore = OpsCore;
 })(typeof self !== "undefined" ? self : globalThis);
+

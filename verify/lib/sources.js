@@ -12,7 +12,7 @@ const ENS_VARS = ["temperature_2m", "precipitation", "snowfall"];
 /* Open-Meteo model metadata endpoints (latest run initialisation as reported at retrieval).
    Seamless products blend several runs; the listed component is the global one. */
 const META = { ecmwf_ifs025: "ecmwf_ifs025", ecmwf_aifs025_single: "ecmwf_aifs025_single", gfs_seamless: "ncep_gfs013", ncep_nbm_conus: "ncep_nbm_conus", gfs_hrrr: "ncep_hrrr_conus",
-  ncep_nam_conus: "ncep_nam_conus", icon_seamless: "dwd_icon", gem_seamless: "cmc_gem_gdps", ukmo_seamless: "ukmo_global_deterministic_10km", ecmwf_ens: "ecmwf_ifs025_ensemble", gefs: "ncep_gefs025" };
+  ncep_rrfs_conus: "ncep_rrfs_conus", rrfs_ens: "ncep_rrfs_conus_ensemble", icon_seamless: "dwd_icon", gem_seamless: "cmc_gem_gdps", ukmo_seamless: "ukmo_global_deterministic_10km", ecmwf_ens: "ecmwf_ifs025_ensemble", gefs: "ncep_gefs025" };
 const SEAMLESS = new Set(["gfs_seamless", "icon_seamless", "gem_seamless", "ukmo_seamless"]);
 
 /* Source list: the blend page's deterministic models (shared config), both ensembles and NWS. */
@@ -102,3 +102,4 @@ async function collect(loc, dataRoot, rel, { days = 16 } = {}) {
   return out;
 }
 module.exports = { sourceList, collect, cycleOf, DET_VARS, ENS_VARS, META };
+

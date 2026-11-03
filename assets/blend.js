@@ -70,7 +70,7 @@
   async function run() {
     $("runBtn").disabled = true;
     O.setChip("FETCHING…");
-    $("runMsg").className = "msg"; $("runMsg").textContent = `Requesting ${MODELS.length} models, ECMWF ENS, GEFS and the NWS point forecast…`;
+    $("runMsg").className = "msg"; $("runMsg").textContent = `Requesting ${MODELS.length} models, ECMWF ENS, GEFS, RRFS ensemble and the NWS point forecast…`;
     const where = { lat: O.location.lat, lon: O.location.lon }, days = +$("days").value;
     const [res, nw, en] = await Promise.all([O.Data.loadModels(SPEC, { ...where, days }), O.Data.loadNWS(where),
       O.Data.loadEnsemble(C.config.blendEns, { ...where, days }).catch(() => ({ empty: true, problems: ["ensembles unavailable"], status: {} }))]);
@@ -432,3 +432,4 @@
   render();
   run();
 })();
+

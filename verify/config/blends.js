@@ -17,8 +17,27 @@ module.exports = {
     { id: "nws-only", group: "benchmark", label: "NWS alone (through the blend calculation)", weights: { nws: 1 }, rules: null },
   ],
   /* Experimental candidates: none yet. Add with {id, group:"candidate", fitOn:{from,to}, ...}. */
-  candidates: [],
+  candidates: [
+    {
+      "id": "brad-custom-2026-11-03-v1",
+      "group": "ope",
+      "label": "Brad custom v1 (screenshot 2026-11-03)",
+      "weights": {
+        "nws": 2.25,
+        "ecmwf_ens": 2,
+        "gefs": 0.75,
+        "ecmwf_ifs025": 1.5,
+        "ecmwf_aifs025_single": 1.5,
+        "gfs_seamless": 0.75,
+        "ncep_nbm_conus": 2,
+        "gfs_hrrr": 2
+      },
+      "rules": null,
+      "note": "Exact user-selected custom weights. No preset temperature multiplier. Other sources excluded from this recipe; archived separately for comparison."
+    }
+  ],
   BASELINE_V1,
   /* Frozen hashes: changing a recipe in place fails the tests. */
   FROZEN: { "baseline-v1": "968fcc338b9c", "equal-raw-v1": "1862866abde3", "ecmwf-ens-only": "81e5f60cb022", "gefs-only": "8cbe17fdde0a", "nbm-only": "04958566c9fd", "nws-only": "a93c7f217bb9" },
 };
+
