@@ -41,6 +41,11 @@ const acis = (body) => get("https://data.rcc-acis.org/StnData", { method: "POST"
   save("acis-mtd2-CVGthr-11-02.json", await acis({ sid: "CVGthr", sdate: "1871-11-02", edate: "2026-11-02", elems: [{ name: "pcpn", interval: [1, 0, 0], duration: "mtd", reduce: { reduce: "sum", add: "mcnt" } }, { name: "snow", interval: [1, 0, 0], duration: "mtd", reduce: { reduce: "sum", add: "mcnt" } }], meta: ["name"] }));
   save("acis-std2-CVGthr-02-15.json", await acis({ sid: "CVGthr", sdate: "1893-02-15", edate: "2026-02-15", elems: [{ name: "snow", interval: [1, 0, 0], duration: "std", season_start: "07-01", reduce: { reduce: "sum", add: "mcnt" } }], meta: ["name"] }));
   save("acis-obs-CVG-2024-02.json", await acis({ sid: "CVG", sdate: "2024-02-01", edate: "2024-03-02", elems: ["maxt", "mint", "pcpn", "snow", "snwd"], meta: ["name"] }));
+  /* v3: leap-day record forms */
+  const E = ["maxt", "mint", "pcpn", "snow"];
+  save("acis-leap-A-int4.json", await acis({ sid: "CVGthr", sdate: "1872-02-29", edate: "2024-02-29", elems: E.map((name) => ({ name, interval: [4, 0, 0] })) }));
+  save("acis-leap-B-int1.json", await acis({ sid: "CVGthr", sdate: "1872-02-29", edate: "2024-02-29", elems: E.map((name) => ({ name, interval: [1, 0, 0] })) }));
+  save("acis-leap-C-groupby3.json", await acis({ sid: "CVGthr", sdate: "1872-01-01", edate: "2025-12-31", elems: E.map((name) => ({ name, interval: "dly", duration: "dly", groupby: ["year", "02-28", "03-01"] })) }));
   /* NOAA GML solar calculator table at the user's reference point (comparison only) */
   const t = await get("https://gml.noaa.gov/grad/solcalc/table.php?lat=39.124556&lon=-84.50386&year=2026");
   save("noaa-solcalc-2026.json", { ...t, text: undefined, html: t.text === undefined ? null : undefined });
