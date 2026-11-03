@@ -47,6 +47,55 @@
     return list.find((x) => x.ms > afterMs) || null;
   }
 
+  /* ---------- NOAA Solar Calculator algorithm (gml.noaa.gov/grad/solcalc) ----------
+     The same equations the NOAA GML calculator and its yearly tables use (Meeus-based), so rise and
+     set match NOAA's table; the instants also carry seconds for daylight and its day-to-day change.
+     Sunrise/sunset: sun's upper limb at the horizon with standard refraction (zenith 90.833 deg).
+     Civil twilight: zenith 96 deg. Longitude east-positive. Returns UTC instants (ms). */
+  const rad = (d) => (d * Math.PI) / 180, deg = (r) => (r * 180) / Math.PI;
+  function jdOf(y, m, d) { if (m <= 2) { y -= 1; m += 12; } const A = Math.floor(y / 100), B = 2 - A + Math.floor(A / 4); return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + d + B - 1524.5; }
+  const jc = (jd) => (jd - 2451545.0) / 36525.0;
+  const meanLong = (t) => { let L = 280.46646 + t * (36000.76983 + t * 0.0003032); while (L > 360) L -= 360; while (L < 0) L += 360; return L; };
+  const meanAnom = (t) => 357.52911 + t * (35999.05029 - 0.0001537 * t);
+  const ecc = (t) => 0.016708634 - t * (0.000042037 + 0.0000001267 * t);
+  const eqCenter = (t) => { const m = rad(meanAnom(t)); return Math.sin(m) * (1.914602 - t * (0.004817 + 0.000014 * t)) + Math.sin(2 * m) * (0.019993 - 0.000101 * t) + Math.sin(3 * m) * 0.000289; };
+  const appLong = (t) => meanLong(t) + eqCenter(t) - 0.00569 - 0.00478 * Math.sin(rad(125.04 - 1934.136 * t));
+  const obliq = (t) => { const e0 = 23 + (26 + (21.448 - t * (46.815 + t * (0.00059 - t * 0.001813))) / 60) / 60; return e0 + 0.00256 * Math.cos(rad(125.04 - 1934.136 * t)); };
+  const decl = (t) => deg(Math.asin(Math.sin(rad(obliq(t))) * Math.sin(rad(appLong(t)))));
+  function eqTime(t) {
+    const e = obliq(t), l0 = rad(meanLong(t)), ec = ecc(t), m = rad(meanAnom(t)); let y = Math.tan(rad(e) / 2); y *= y;
+    return deg(y * Math.sin(2 * l0) - 2 * ec * Math.sin(m) + 4 * ec * y * Math.sin(m) * Math.cos(2 * l0) - 0.5 * y * y * Math.sin(4 * l0) - 1.25 * ec * ec * Math.sin(2 * m)) * 4; // minutes
+  }
+  function hourAngle(lat, dec, zenith) { const c = Math.cos(rad(zenith)) / (Math.cos(rad(lat)) * Math.cos(rad(dec))) - Math.tan(rad(lat)) * Math.tan(rad(dec)); return Math.abs(c) > 1 ? null : deg(Math.acos(c)); }
+  function eventUTCmin(rise, jd, lat, lon, zenith) { const t = jc(jd), h = hourAngle(lat, decl(t), zenith); if (h == null) return null; return 720 - 4 * (lon + (rise ? h : -h)) - eqTime(t); }
+  /* NOAA's two-pass refinement: re-evaluate at the first estimate's time */
+  function eventMs(rise, ymd, lat, lon, zenith = 90.833, passes = 2) {
+    const [y, m, d] = ymd.split("-").map(Number), jd = jdOf(y, m, d);
+    const t0 = eventUTCmin(rise, jd, lat, lon, zenith); if (t0 == null) return null;
+    if (passes === 1) return Date.UTC(y, m - 1, d) + t0 * 60e3;
+    const t1 = eventUTCmin(rise, jd + t0 / 1440, lat, lon, zenith); if (t1 == null) return null;
+    return Date.UTC(y, m - 1, d) + t1 * 60e3;
+  }
+  function solarNoonMs(ymd, lon) {
+    const [y, m, d] = ymd.split("-").map(Number), jd = jdOf(y, m, d);
+    const off = 720 - lon * 4 - eqTime(jc(jd - lon / 360)), noon = 720 - lon * 4 - eqTime(jc(jd + off / 1440));
+    return Date.UTC(y, m - 1, d) + noon * 60e3;
+  }
+  /* A local date's sun events. Rise/set are computed on the UTC date that holds local noon, then
+     checked to fall on the local date (NOAA's table does the same for western longitudes). */
+  function noaaSun(ymd, lat, lon, tzOffsetMinAtNoon) {
+    const utcDay = new Date(Date.parse(ymd + "T12:00:00Z") - tzOffsetMinAtNoon * 60e3).toISOString().slice(0, 10);
+    const ev = (rise, z) => eventMs(rise, utcDay, lat, lon, z);
+    const r = { method: "NOAA Solar Calculator algorithm", lat, lon, date: ymd, rise: ev(true), set: ev(false), civilBegin: ev(true, 96), civilEnd: ev(false, 96), noon: solarNoonMs(utcDay, lon) };
+    r.daylightSec = r.rise != null && r.set != null ? Math.round((r.set - r.rise) / 1000) : null;
+    return r;
+  }
+  /* NOAA table style (verified on all 365 days of the 2026 Cincinnati table): drop fractional seconds,
+     then round the minute up only when the whole seconds exceed 30. */
+  const roundMin = (ms) => { const s = Math.floor(ms / 1000) % 60; return Math.floor(ms / 60e3) * 60e3 + (s > 30 ? 60e3 : 0); };
+  const fmtHMS = (sec) => (sec == null ? "—" : `${Math.floor(sec / 3600)}:${pad(Math.floor((sec % 3600) / 60))}:${pad(sec % 60)}`);
+  const fmtDelta = (sec) => (sec == null ? "—" : `${sec > 0 ? "+" : sec < 0 ? "−" : "±"}${Math.floor(Math.abs(sec) / 60)}:${pad(Math.abs(sec) % 60)}`);
+
   /* ---------- climate values ---------- */
   function val(s) {
     if (s == null || s === "" || s === "M") return { v: null, missing: true };
@@ -101,13 +150,42 @@
   /* Rank a value among yearly totals (ACIS [date, [value, missingCount]]), wettest/largest = 1, with ties.
      Years with missing days (beyond maxMissing) are excluded and counted. */
   function rank(rows, year, { maxMissing = 0, desc = true } = {}) {
-    const all = rows.map((r) => ({ y: +String(r[0]).slice(0, 4), x: val(r[1][0]), miss: r[1][1] }));
+    const all = (rows || []).filter((r) => Array.isArray(r[1])).map((r) => ({ y: +String(r[0]).slice(0, 4), x: val(r[1][0]), miss: r[1][1] }));
+    if (!all.length) return { available: false, excluded: 0, n: 0, why: "no ranking data returned" };
     const ok = all.filter((a) => !a.x.missing && a.miss <= maxMissing), me = ok.find((a) => a.y === year);
     if (!me) return { available: false, excluded: all.length - ok.length, n: ok.length, why: "selected year's total is incomplete or missing" };
     const better = ok.filter((a) => (desc ? a.x.v > me.x.v : a.x.v < me.x.v)).length, ties = ok.filter((a) => a.x.v === me.x.v && a.y !== year).map((a) => a.y);
     return { available: true, rank: better + 1, of: ok.length, ties, value: me.x.v, excluded: all.length - ok.length, from: ok[0].y, to: ok[ok.length - 1].y };
   }
-  const API = { usnoInstant, parseOneDay, daylightMin, fmtDur, daylightChange, nextPhase, val, show, records, accumulate, dryStreak, countDays, rank, addDays, dayDiff };
+  /* Meteorological season containing a date: DJF (from Dec 1), MAM, JJA, SON. */
+  function metSeason(d) {
+    const y = +d.slice(0, 4), m = +d.slice(5, 7);
+    if (m === 12) return { id: "DJF", name: "Winter (Dec–Feb)", start: `${y}-12-01`, startMD: "12-01" };
+    if (m <= 2) return { id: "DJF", name: "Winter (Dec–Feb)", start: `${y - 1}-12-01`, startMD: "12-01" };
+    if (m <= 5) return { id: "MAM", name: "Spring (Mar–May)", start: `${y}-03-01`, startMD: "03-01" };
+    if (m <= 8) return { id: "JJA", name: "Summer (Jun–Aug)", start: `${y}-06-01`, startMD: "06-01" };
+    return { id: "SON", name: "Fall (Sep–Nov)", start: `${y}-09-01`, startMD: "09-01" };
+  }
+  /* Mean high, low and mean temperature over [from, to] against normals for the same dates.
+     A departure is given only when every day has both an observation and a normal. */
+  function meanTemps(obsRows, normRows, from, to) {
+    const obs = new Map(obsRows.map((r) => [r[0], r])), nor = new Map((normRows || []).map((r) => [r[0], r]));
+    const hi = [], lo = [], nhi = [], nlo = [], missing = [], nMissing = []; let days = 0;
+    for (let d = from; d <= to; d = addDays(d, 1)) {
+      days++; const o = obs.get(d), n = nor.get(d);
+      const oh = o ? val(o[1]) : { missing: true }, ol = o ? val(o[2]) : { missing: true };
+      if (oh.missing || ol.missing) missing.push(d); else { hi.push(oh.v); lo.push(ol.v); }
+      const nh = n ? val(n[1]) : { missing: true }, nl = n ? val(n[2]) : { missing: true };
+      if (nh.missing || nl.missing) nMissing.push(d); else { nhi.push(nh.v); nlo.push(nl.v); }
+    }
+    const avg = (a) => (a.length ? a.reduce((s, x) => s + x, 0) / a.length : null), r1 = (x) => (x == null ? null : Math.round(x * 10) / 10);
+    const complete = !missing.length && !nMissing.length;
+    const mh = avg(hi), ml = avg(lo), nh = avg(nhi), nl = avg(nlo);
+    return { from, to, days, complete, missing, normalMissing: nMissing, meanHigh: r1(mh), meanLow: r1(ml), mean: mh == null ? null : r1((mh + ml) / 2),
+      normalHigh: r1(nh), normalLow: r1(nl), normalMean: nh == null ? null : r1((nh + nl) / 2),
+      departure: complete ? r1((mh + ml) / 2 - (nh + nl) / 2) : null };
+  }
+  const API = { metSeason, meanTemps, noaaSun, eventMs, solarNoonMs, roundMin, fmtHMS, fmtDelta, jdOf, usnoInstant, parseOneDay, daylightMin, fmtDur, daylightChange, nextPhase, val, show, records, accumulate, dryStreak, countDays, rank, addDays, dayDiff };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   root.AlmanacCore = API;
 })(typeof self !== "undefined" ? self : globalThis);

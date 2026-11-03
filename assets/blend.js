@@ -194,8 +194,8 @@
        3 also moves there on phone widths (< 600 px). Breakpoints follow the table's own width. */
     const COLS = [
       { l: ["Day"], def: "Calendar day (midnight to midnight local time). Click a row to zoom the chart and see that day's source breakdown.", tier: 1, cell: (r) => `<td class="display day"><button type="button" class="detbtn" aria-expanded="false" aria-label="Show details for ${O.fmtDay(r.k)}">▸</button>${O.fmtDay(r.k)}</td>` },
-      { l: ["High"], def: "Blended daily high. Small numbers: weighted guidance spread (10th–90th percentile across all sources; not a calibrated probability). Hover a range for the ensembles-only range.", tier: 1, cell: (r) => `<td class="num"><span class="hi">${f(r.hi, 0, "°")}</span>${rng(r.hiR, 0, r.ensR.hi)}</td>`, txt: (r) => f(r.hi, 0, "°") },
-      { l: ["Low"], def: "Blended daily low (calendar day), with the weighted guidance spread beneath.", tier: 1, cell: (r) => `<td class="num"><span class="lo">${f(r.lo, 0, "°")}</span>${rng(r.loR, 0, r.ensR.lo)}</td>`, txt: (r) => f(r.lo, 0, "°") },
+      { l: ["Low"], def: "Blended daily low for the calendar day (midnight to midnight), usually the morning low. Small numbers: weighted guidance spread (10th–90th percentile across all sources; not a calibrated probability).", tier: 1, cell: (r) => `<td class="num"><span class="lo">${f(r.lo, 0, "°")}</span>${rng(r.loR, 0, r.ensR.lo)}</td>`, txt: (r) => f(r.lo, 0, "°") },
+      { l: ["High"], def: "Blended daily high for the calendar day. Small numbers: weighted guidance spread (10th–90th percentile across all sources; not a calibrated probability). Hover a range for the ensembles-only range.", tier: 1, cell: (r) => `<td class="num"><span class="hi">${f(r.hi, 0, "°")}</span>${rng(r.hiR, 0, r.ensR.hi)}</td>`, txt: (r) => f(r.hi, 0, "°") },
       { l: ["Precip"], def: "Blended liquid-equivalent precipitation for the calendar day, with its guidance spread. * = NWS share prorated across its interval edges (hover for the blend at NWS's lower and upper bounds).", tier: 1,
         cell: (r) => `<td class="num">${f(r.qpf, 2, '"')}${r.prorated ? ` <span class="msg" title="NWS precip intervals cross this day's edges; its share was prorated assuming a uniform rate. With NWS at its lower or upper bound the blend would be ${r.qpfBounds ? `${r.qpfBounds[0].toFixed(2)}–${r.qpfBounds[1].toFixed(2)}"` : "unchanged"}.">*</span>` : ""}${rng(r.qpfR, 2, r.ensR.qpf)}</td>`, txt: (r) => f(r.qpf, 2, '"') + (r.prorated ? " *" : "") },
       { l: ["Snow"], def: "Blended snowfall (model snow at Open-Meteo's 7:1 ratio; not ground accumulation). Shown from 0.05\".", tier: 3, cell: (r) => `<td class="num">${r.sn != null && r.sn >= 0.05 ? f(r.sn, 1, '"') : "—"}</td>`, txt: (r) => (r.sn != null && r.sn >= 0.05 ? f(r.sn, 1, '"') : "—") },
@@ -333,7 +333,7 @@
     O.headline({
       word, note: `${C.blend.PRESETS[preset].label} · next 24 h`,
       stats: [
-        { num: `${f(hi, 0, "°")} / ${f(lo, 0, "°")}`, unit: "hi / lo" },
+        { num: `${f(lo, 0, "°")} / ${f(hi, 0, "°")}`, unit: "lo / hi" },
         { num: f(qpf, 2, '"'), unit: `precip · max hourly ${f(pop, 0, "%")}` },
         { num: f(gust, 0, " mph"), unit: "peak gust" },
       ],
@@ -341,7 +341,7 @@
     const today = data.rows && data.rows[0];
     $("tiles").innerHTML = [
       ["Blend now", f(tNow, 0, "°F"), spreadNow ? `sources ${spreadNow[0].toFixed(0)}–${spreadNow[1].toFixed(0)}° · not an observation` : "not an observation"],
-      ["24 h high / low", `${f(hi, 0, "°")} / ${f(lo, 0, "°")}`, `${tm.length} sources in blend`],
+      ["24 h low / high", `${f(lo, 0, "°")} / ${f(hi, 0, "°")}`, `${tm.length} sources in blend`],
       ["24 h precip", f(qpf, 2, '"'), `max hourly chance ${f(pop, 0, "%")}`],
       ["24 h snow", sn != null && sn >= 0.05 ? f(sn, 1, '"') : "—", "blended snow"],
       ["Peak gust", f(gust, 0, " mph"), "blended, next 24 h"],

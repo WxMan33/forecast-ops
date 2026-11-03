@@ -13,6 +13,7 @@
     tz: "America/New_York", recordsSid: "CVGthr", recordsName: "Cincinnati Area threaded record (ACIS CVGthr)",
     obsSid: "CVG", obsName: "Cincinnati/N. Kentucky Intl Airport (CVG, ACIS uid 8337)", normalsName: "CVG, NCEI 1991–2020 daily normals",
     cvg: { name: "CVG climate site", lat: 39.04456, lon: -84.67229 }, firstYear: 1871,
+    noaa: { name: "Cincinnati (NOAA solar table point)", lat: 39.124556, lon: -84.50386 },
   };
 
   /* ---------- small cache (localStorage, per item age) ---------- */
@@ -33,7 +34,7 @@
   const todayIn = (tz) => C.time.toLocal(Date.now(), tz).slice(0, 10);
   let sel = /^\d{4}-\d{2}-\d{2}$/.test(DATE_PARAM || "") ? DATE_PARAM : todayIn(CLIM.tz);
   const keepDate = () => { const u = new URL(location.href); u.searchParams.set("date", sel); history.replaceState(null, "", u); };
-  let astro = O.store.get("alm_astro", "loc"), run = 0;
+  let astro = O.store.get("alm_astro2", "noaa"), run = 0;
   $("astroPoint").value = astro;
   const setDate = (d) => { sel = d; $("almDate").value = d; keepDate(); render(); };
   $("almDate").value = sel;
@@ -41,7 +42,7 @@
   $("todayBtn").addEventListener("click", () => setDate(todayIn(CLIM.tz)));
   $("prevDay").addEventListener("click", () => setDate(A.addDays(sel, -1)));
   $("nextDay").addEventListener("click", () => setDate(A.addDays(sel, 1)));
-  $("astroPoint").addEventListener("change", () => { astro = $("astroPoint").value; O.store.set("alm_astro", astro); render(); });
+  $("astroPoint").addEventListener("change", () => { astro = $("astroPoint").value; O.store.set("alm_astro2", astro); render(); });
   O.locationCard($("locCard"), () => render());
 
   const fmtDate = (d, opt = { weekday: "short", month: "short", day: "numeric", year: "numeric" }) => new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", ...opt });
@@ -57,7 +58,7 @@
 
   async function render() {
     const my = ++run, loc = O.location;
-    const pt = astro === "cvg" ? CLIM.cvg : { name: loc.name, lat: loc.lat, lon: loc.lon };
+    const pt = astro === "cvg" ? CLIM.cvg : astro === "noaa" ? CLIM.noaa : { name: loc.name, lat: +loc.lat, lon: +loc.lon };
     const tzA = await tzOf(pt.lat, pt.lon);
     if (my !== run) return;
     const today = todayIn(CLIM.tz), future = sel > today;
@@ -81,31 +82,33 @@
     const url = `https://aa.usno.navy.mil/api/rstt/oneday?date=${d}&coords=${pt.lat.toFixed(4)},${pt.lon.toFixed(4)}&tz=${std}&dst=${usDst}`;
     return cached(`usno:${d}:${pt.lat.toFixed(4)},${pt.lon.toFixed(4)}:${std}:${usDst}`, 30 * D, () => getJ(url));
   }
+  /* Sun: NOAA Solar Calculator algorithm (matches NOAA's yearly table to the minute; instants carry seconds).
+     Moon: USNO (phase, illumination, moonrise/set). One point for everything. */
+  const sunFor = (d, pt, tz) => A.noaaSun(d, pt.lat, pt.lon, C.time.offsetMin(C.time.toUtc(`${d}T12:00`, tz), tz));
   async function sunCard(my, pt, tz) {
     const el = $("sunCard");
-    const [a, b, ph] = await Promise.all([usnoDay(sel, pt, tz), usnoDay(A.addDays(sel, -1), pt, tz),
-      cached(`usnoph:${sel}`, 30 * D, () => getJ(`https://aa.usno.navy.mil/api/moon/phases/date?date=${A.addDays(sel, -1)}&nump=5`))]);
+    const s = sunFor(sel, pt, tz), p = sunFor(A.addDays(sel, -1), pt, tz);
+    const [a, ph] = await Promise.all([usnoDay(sel, pt, tz), cached(`usnoph:${sel}`, 30 * D, () => getJ(`https://aa.usno.navy.mil/api/moon/phases/date?date=${A.addDays(sel, -1)}&nump=5`))]);
     if (my !== run) return;
-    const t = a.v && !a.v.error ? A.parseOneDay(a.v) : null, p = b.v && !b.v.error ? A.parseOneDay(b.v) : null;
-    if (!t) { el.innerHTML = `<div class="section-title">Sun and moon</div><p class="msg unavail">USNO astronomy is unavailable right now (${esc((a.v && a.v.error) || "no data")}). The rest of the sheet is unaffected.</p>`; return; }
-    const dl = A.daylightMin(t), ch = A.daylightChange(t, p);
+    const m = a.v && !a.v.error ? A.parseOneDay(a.v) : null;
+    const tm = (ms) => (ms == null ? '<span class="unavail">none this date</span>' : clock(A.roundMin(ms), tz));
+    const tmu = (x) => (x ? clock(x.ms, tz) : '<span class="unavail">none this date</span>');
+    const ch = s.daylightSec != null && p.daylightSec != null ? s.daylightSec - p.daylightSec : null;
     const startMs = C.time.toUtc(`${sel}T00:00`, tz), np = ph.v && !ph.v.error ? A.nextPhase(ph.v, startMs) : null;
-    const tm = (x) => (x ? clock(x.ms, tz) : '<span class="unavail">none this date</span>');
-    const chTxt = !ch ? "—" : ch.error ? `<span class="unavail">not comparable (${esc(ch.error)})</span>` : `${ch.min > 0 ? "+" : ch.min < 0 ? "−" : "±"}${Math.abs(ch.min)} min`;
     el.innerHTML = `<div class="section-title">Sun and moon</div>
-      <div class="big2"><div><span class="k">Sunrise</span><span class="v">${t.sun.rise ? clock(t.sun.rise.ms, tz) : "—"}</span></div><div><span class="k">Sunset</span><span class="v">${t.sun.set ? clock(t.sun.set.ms, tz) : "—"}</span></div></div>
+      <div class="big2"><div><span class="k">Sunrise</span><span class="v">${tm(s.rise)}</span></div><div><span class="k">Sunset</span><span class="v">${tm(s.set)}</span></div></div>
       <dl class="kv">
-        <dt>Total daylight</dt><dd>${A.fmtDur(dl)}</dd>
-        <dt>Change since ${esc(fmtDate(A.addDays(sel, -1), { month: "short", day: "numeric" }))}<small>same point and source; USNO times are rounded to the minute, so changes carry ±2 min</small></dt><dd>${chTxt}</dd>
-        <dt>Moon</dt><dd>${esc(t.phase || "—")}${t.illumination != null ? `, ${t.illumination}% lit` : ""}</dd>
+        <dt>Total daylight<small>sunset − sunrise, unrounded instants</small></dt><dd>${A.fmtHMS(s.daylightSec)}</dd>
+        <dt>Change since ${esc(fmtDate(A.addDays(sel, -1), { month: "short", day: "numeric" }))}<small>same point and method (min:sec)</small></dt><dd>${A.fmtDelta(ch)}</dd>
+        <dt>Moon<small>USNO</small></dt><dd>${m ? `${esc(m.phase || "—")}${m.illumination != null ? `, ${m.illumination}% lit` : ""}` : '<span class="unavail">USNO unavailable</span>'}</dd>
         <dt>Next primary phase</dt><dd>${np ? `${esc(np.phase)} · ${esc(fmtDate(C.time.toLocal(np.ms, tz).slice(0, 10), { weekday: "short", month: "short", day: "numeric" }))} ${clock(np.ms, tz)}` : '<span class="unavail">unavailable</span>'}</dd>
       </dl>
       <details class="fold" style="margin-top:8px"><summary><span class="msg">Twilight, solar noon, moonrise and moonset</span></summary>
         <dl class="kv" style="margin-top:6px">
-          <dt>Civil twilight begins</dt><dd>${tm(t.sun.civilBegin)}</dd><dt>Solar noon</dt><dd>${tm(t.sun.transit)}</dd><dt>Civil twilight ends</dt><dd>${tm(t.sun.civilEnd)}</dd>
-          <dt>Moonrise</dt><dd>${tm(t.moon.rise)}</dd><dt>Moon transit</dt><dd>${tm(t.moon.transit)}</dd><dt>Moonset</dt><dd>${tm(t.moon.set)}</dd>
+          <dt>Civil twilight begins</dt><dd>${tm(s.civilBegin)}</dd><dt>Solar noon</dt><dd>${tm(s.noon)}</dd><dt>Civil twilight ends</dt><dd>${tm(s.civilEnd)}</dd>
+          <dt>Moonrise<small>USNO</small></dt><dd>${m ? tmu(m.moon.rise) : "—"}</dd><dt>Moon transit</dt><dd>${m ? tmu(m.moon.transit) : "—"}</dd><dt>Moonset</dt><dd>${m ? tmu(m.moon.set) : "—"}</dd>
         </dl><p class="msg" style="margin-top:4px">Moon events listed for this calendar date only; "none" means it doesn't occur that date.</p></details>
-      <div class="src">USNO Astronomical Applications API ${esc(t.apiversion || "")} · ${pt.lat.toFixed(4)}, ${pt.lon.toFixed(4)} · upper limb with standard refraction · ${stamp(a.at, a.cached)}</div>`;
+      <div class="src">Sun: NOAA Solar Calculator algorithm (gml.noaa.gov/grad/solcalc) at ${pt.lat.toFixed(6)}, ${pt.lon.toFixed(6)}; times shown to the minute exactly as NOAA's table rounds them; daylight from unrounded instants. Moon: USNO API${m ? ` ${esc(m.apiversion || "")}` : ""} · ${stamp(a.at, a.cached)}</div>`;
   }
 
   /* ---------- climate ---------- */
@@ -115,16 +118,20 @@
     const thru = future ? null : A.addDays(sel, -1); // "yesterday" relative to the sheet date
     const anchor = thru || sel, y = +anchor.slice(0, 4);
     const seasonStart = `${+anchor.slice(5, 7) >= 7 ? y : y - 1}-07-01`, yearStart = `${y}-01-01`, monthStart = anchor.slice(0, 8) + "01";
-    const nStart = [seasonStart, yearStart].sort()[0], nEnd = [sel, anchor].sort().pop();
+    const met = A.metSeason(anchor);
+    const nStart = [seasonStart, yearStart, met.start].sort()[0], nEnd = [sel, anchor].sort().pop();
     const md = sel.slice(5), recThru = +sel.slice(0, 4) - 1;
     const recentObs = thru && thru >= A.addDays(today, -45);
     const [nor, obs, rec, rk] = await Promise.all([
       cached(`acisN:${nStart}:${nEnd}`, 30 * D, () => acis({ sid: CLIM.obsSid, sdate: nStart, edate: nEnd, elems: ["maxt", "mint", "pcpn", "snow"].map((name) => ({ name, normal: "1" })), meta: ["name"] })),
-      thru ? cached(`acisO:${A.addDays([seasonStart, yearStart].sort()[0], -150)}:${thru}`, recentObs ? H : 7 * D, () => acis({ sid: CLIM.obsSid, sdate: A.addDays([seasonStart, yearStart].sort()[0], -150), edate: thru, elems: ["maxt", "mint", "pcpn", "snow", "snwd"], meta: ["name", "valid_daterange"] })) : Promise.resolve(null),
+      thru ? cached(`acisO:${A.addDays(nStart, -150)}:${thru}`, recentObs ? H : 7 * D, () => acis({ sid: CLIM.obsSid, sdate: A.addDays(nStart, -150), edate: thru, elems: ["maxt", "mint", "pcpn", "snow", "snwd"], meta: ["name", "valid_daterange"] })) : Promise.resolve(null),
       cached(`acisR:${md}:${recThru}`, 7 * D, () => (md === "02-29"
         ? acis({ sid: CLIM.recordsSid, sdate: `${CLIM.firstYear}-01-01`, edate: `${recThru}-12-31`, elems: ["maxt", "mint", "pcpn", "snow"].map((name) => ({ name, interval: "dly", duration: "dly", groupby: ["year", "02-28", "03-01"] })), meta: ["name", "valid_daterange"] })
         : acis({ sid: CLIM.recordsSid, sdate: `${CLIM.firstYear}-${md}`, edate: `${recThru}-${md}`, elems: ["maxt", "mint", "pcpn", "snow"].map((name) => ({ name, interval: [1, 0, 0] })), meta: ["name", "valid_daterange"] }))),
-      thru ? cached(`acisRank:${thru}`, 6 * H, () => acis({ sid: CLIM.recordsSid, sdate: `${CLIM.firstYear}-${thru.slice(5)}`, edate: thru, elems: [{ name: "pcpn", interval: [1, 0, 0], duration: "mtd", reduce: { reduce: "sum", add: "mcnt" } }], meta: ["name"] })) : Promise.resolve(null),
+      thru ? cached(`acisRank2:${thru}`, 6 * H, () => acis({ sid: CLIM.recordsSid, sdate: `${CLIM.firstYear + 1}-${thru.slice(5)}`, edate: thru, elems: [
+        { name: "pcpn", interval: [1, 0, 0], duration: "mtd", reduce: { reduce: "sum", add: "mcnt" } },
+        { name: "pcpn", interval: [1, 0, 0], duration: "std", season_start: met.startMD, reduce: { reduce: "sum", add: "mcnt" } },
+        { name: "avgt", interval: [1, 0, 0], duration: "std", season_start: met.startMD, reduce: { reduce: "mean", add: "mcnt" } }], meta: ["name"] })) : Promise.resolve(null),
     ]);
     if (my !== run) return;
     /* leap day: the middle value of Feb 28 - Mar 1, in leap years only (ACIS's yearly step would substitute Feb 28 in 1900) */
@@ -133,7 +140,8 @@
     const R = recRows ? A.records(recRows) : null;
     const nRows = nor.v && nor.v.data ? nor.v.data : [], nMap = new Map(nRows.map((r) => [r[0], r]));
     const oRows = obs && obs.v && obs.v.data ? obs.v.data : [];
-    climData = { R, nRows, oRows, thru, sel, rank: rk && rk.v && rk.v.data ? rk.v.data : null };
+    const col = (k) => (rk && rk.v && rk.v.data ? rk.v.data.map((r) => [r[0], r[k]]) : null);
+    climData = { R, nRows, oRows, thru, sel, met, rank: col(1), rankSeasonP: col(2), rankSeasonT: col(3) };
     const nd = nMap.get(sel), yd = thru ? oRows.find((r) => r[0] === thru) : null;
     const v = (s, d, u = "") => { const x = A.val(s); return x.missing ? '<span class="unavail" title="missing: not reported or not yet available">M</span>' : (x.trace ? "T" : d != null ? x.v.toFixed(d) : String(x.v)) + u; };
     const recTxt = (r, u = "°") => (!r ? '<span class="unavail">—</span>' : `${r.trace ? "T" : r.value}${u} <small>${r.years.length > 1 ? `tie: ${r.years.join(", ")}` : r.years[0]}</small>`);
@@ -178,6 +186,16 @@
         <dt>Days with high ≥ <input class="input mono thr" id="hiT" value="${hiT}" aria-label="High threshold °F">°F<small>CVG; month / year to date</small></dt><dd>${(() => { const a = cH(m0), b = cH(y0); return `${a.n} / ${b.n}${a.missing || b.missing ? `<small>${a.missing + b.missing} missing days not counted</small>` : ""}`; })()}</dd>
         <dt>Days with low ≤ <input class="input mono thr" id="loT" value="${loT}" aria-label="Low threshold °F">°F</dt><dd>${(() => { const a = cL(m0), b = cL(y0); return `${a.n} / ${b.n}`; })()}</dd>
         <dt>Month-to-date precip rank<small>${esc(CLIM.recordsName)}; wettest = 1; same dates each year; years with missing days excluded</small></dt><dd>${!rk ? "—" : rk.available ? `${ordinal(rk.rank)} wettest of ${rk.of}${rk.ties.length ? `<small>tied with ${rk.ties.slice(0, 6).join(", ")}${rk.ties.length > 6 ? "…" : ""}</small>` : ""}<small>${rk.from}–${rk.to}${rk.excluded ? `; ${rk.excluded} yrs excluded` : ""}</small>` : `<span class="unavail">${esc(rk.why)}</span>`}</dd>
+        ${(() => {
+          const mt = d.met, ps = A.accumulate(d.oRows, d.nRows, mt.start, d.thru, 3), ts = A.meanTemps(d.oRows, d.nRows, mt.start, d.thru);
+          const rp = d.rankSeasonP ? A.rank(d.rankSeasonP, +d.thru.slice(0, 4)) : null, rt = d.rankSeasonT ? A.rank(d.rankSeasonT, +d.thru.slice(0, 4)) : null;
+          const rkTxt = (r, word) => (!r ? "" : r.available ? `<small>${ordinal(r.rank)} ${word} of ${r.of} (${r.from}–${r.to}${r.ties.length ? `; tied with ${r.ties.slice(0, 4).join(", ")}` : ""}${r.excluded ? `; ${r.excluded} yrs excluded` : ""})</small>` : `<small>rank unavailable: ${esc(r.why)}</small>`);
+          const sgn = (x, dd) => `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(dd)}`;
+          return `<dt>${esc(mt.name)} to date: precip<small>CVG, ${esc(fmtDate(mt.start, { month: "short", day: "numeric" }))}–${esc(fmtDate(d.thru, { month: "short", day: "numeric", year: "numeric" }))}; normal over the same dates; rank from the threaded record</small></dt>
+            <dd>${ps.complete ? (ps.traceOnly ? "T" : ps.total.toFixed(2) + "″") : `<span class="unavail">incomplete (${ps.missing.length} days missing)</span>`}${ps.normalMissing.length ? `<small class="unavail">no normal for ${ps.normalMissing.length} of ${ps.days} days: no departure</small>` : ps.normal != null ? `<small>normal ${ps.normal.toFixed(2)}″${ps.departure != null ? ` · ${sgn(ps.departure, 2)}″` : ""}</small>` : ""}${rkTxt(rp, "wettest")}</dd>
+            <dt>${esc(mt.name)} to date: temperature<small>mean high / mean low, and mean (high+low)/2 vs normal</small></dt>
+            <dd>${ts.meanHigh != null ? `${ts.meanHigh.toFixed(1)}° / ${ts.meanLow.toFixed(1)}°` : "—"}${ts.complete ? `<small>mean ${ts.mean.toFixed(1)}° vs normal ${ts.normalMean.toFixed(1)}° · ${sgn(ts.departure, 1)}°</small>` : `<small class="unavail">${ts.missing.length ? `${ts.missing.length} days missing` : ""}${ts.normalMissing.length ? ` no normal for ${ts.normalMissing.length} days` : ""}: no departure</small>`}${rkTxt(rt, "warmest")}</dd>`;
+        })()}
         <dt>Observed high vs record<small>sheet date; record ${recHigh ? `${recHigh.from}–${recHigh.to}` : ""}</small></dt><dd>${selObs && recHigh && !A.val(selObs[1]).missing ? `${A.val(selObs[1]).v - recHigh.value >= 0 ? "+" : "−"}${Math.abs(A.val(selObs[1]).v - recHigh.value)}°F<small>${A.val(selObs[1]).v}° vs ${recHigh.value}° (${recHigh.years.join(", ")})</small>` : '<span class="unavail">sheet date not yet observed</span>'}</dd>
       </dl>`;
     }
@@ -223,7 +241,7 @@
 
   function renderSources(tz) {
     $("sourcesNote").innerHTML = `
-      <div><b>Sun and moon:</b> USNO Astronomical Applications API (aa.usno.navy.mil/data/api), one point for the whole sheet (astronomy location above), sunrise/sunset at the sun's upper limb with standard refraction. Each USNO time carries its standard/daylight label, so daylight is the difference of two real instants: daylight-saving changes never add or remove an hour. USNO rounds to the minute, so durations show whole minutes and day-to-day changes are ±2 min. The NOAA solar calculator and timeanddate.com are useful cross-checks but are not mixed in.</div>
+      <div><b>Sun:</b> the NOAA Solar Calculator algorithm (the equations behind gml.noaa.gov/grad/solcalc and its yearly tables), computed in the browser for one point: by default NOAA's Cincinnati table point (39.124556, −84.50386). Sunrise and sunset are the sun's upper limb with standard refraction; they are shown to the minute exactly as NOAA's table rounds them (checked against every day of the 2026 table). Daylight and its day-to-day change use the unrounded instants, so they are given to the second, and daylight-saving changes never add or remove an hour. <b>Moon:</b> USNO Astronomical Applications API for the same point. timeanddate.com is a comparison reference only (no data feed is used).</div>
       <div><b>Records:</b> RCC-ACIS "Cincinnati Area" threaded record (CVGthr): the official historical city record joined across sites since 1871 (temperature from 1872, snowfall from 1893). Records on this sheet run through the year before the sheet date; ties list every year.</div>
       <div><b>Normals and observations:</b> CVG airport (Cincinnati/Northern Kentucky International, ACIS uid 8337, data since 1947). Normals are NCEI 1991–2020 daily normals. No precipitation or snowfall normal is published for Feb 29, and the sheet says so instead of using 0. Recent observations are preliminary and change when ACIS applies corrections. Each accumulation shows its start and "through" dates, and observed and normal totals cover exactly the same dates.</div>
       <div><b>Forecast:</b> National Weather Service point forecast for the forecast location (the site's NWS loader). Climate values are never relabelled as the forecast location's own.</div>`;

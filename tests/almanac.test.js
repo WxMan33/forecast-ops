@@ -29,6 +29,32 @@ eq([usno("2026-11-01").sun.rise.zone, usno("2026-10-31").sun.rise.zone, usno("20
   });
 }
 
+/* ---------- NOAA algorithm: every day of NOAA's 2026 table, same point, same rounding ---------- */
+{
+  const C = require("../assets/ops-core.js"), tz = "America/New_York", lat = 39.124556, lon = -84.50386;
+  const html = fs.readFileSync(path.join(F, "noaa-solcalc-2026.html"), "utf8");
+  const tables = html.split(/Sunrise Table|Sunset Table/).slice(1, 3).map((t) => t.split(/<tr/i).map((r) => [...r.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((m) => m[1].replace(/<[^>]+>/g, "").trim())).filter((r) => r.length >= 13 && /^\d+$/.test(r[0])));
+  const hm = (ms) => C.time.toLocal(ms, tz).slice(11, 16); let days = 0; const bad = [];
+  for (let mo = 1; mo <= 12; mo++) for (let d = 1; d <= 31; d++) {
+    const ymd = `2026-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`; if (new Date(ymd + "T00:00:00Z").getUTCMonth() + 1 !== mo) continue;
+    const s = A.noaaSun(ymd, lat, lon, C.time.offsetMin(C.time.toUtc(`${ymd}T12:00`, tz), tz));
+    const R = tables[0].find((x) => +x[0] === d)[mo], S = tables[1].find((x) => +x[0] === d)[mo]; days++;
+    if (hm(A.roundMin(s.rise)) !== R || hm(A.roundMin(s.set)) !== S) bad.push(ymd);
+  }
+  eq([days, bad], [365, []], "sunrise and sunset match NOAA's 2026 table on all 365 days (incl. both DST changes)");
+  const sun = (d) => A.noaaSun(d, lat, lon, C.time.offsetMin(C.time.toUtc(`${d}T12:00`, tz), tz));
+  eq([A.fmtHMS(sun("2026-11-03").daylightSec), A.fmtDelta(sun("2026-11-03").daylightSec - sun("2026-11-02").daylightSec)], ["10:26:49", "−2:13"], "Nov 3 daylight and change, to the second");
+  eq(A.fmtDelta(sun("2026-03-08").daylightSec - sun("2026-03-07").daylightSec), "+2:33", "spring-forward day: +2:33, no artificial hour");
+  eq(A.fmtDelta(sun("2026-11-01").daylightSec - sun("2026-10-31").daylightSec), "−2:15", "fall-back day: −2:15");
+}
+eq(A.rank([["2026-11-02", undefined]], 2026).available, false, "malformed ranking response: unavailable, not a crash");
+/* ---------- meteorological seasons ---------- */
+eq([A.metSeason("2026-11-02").start, A.metSeason("2027-02-28").start, A.metSeason("2026-12-01").id, A.metSeason("2028-02-29").start], ["2026-09-01", "2026-12-01", "DJF", "2027-12-01"], "season-to-date starts: SON Sep 1; DJF crosses the year");
+{
+  const mt = A.meanTemps([["2026-09-01", "80", "60"], ["2026-09-02", "M", "61"]], [["2026-09-01", "82", "62"], ["2026-09-02", "82", "61"]], "2026-09-01", "2026-09-02");
+  eq([mt.complete, mt.missing, mt.departure], [false, ["2026-09-02"], null], "a missing day: season temperature incomplete, no departure");
+}
+
 /* ---------- records (Cincinnati Area threaded), ties, leap day ---------- */
 {
   const r = A.records(J("acis-records2-CVGthr-11-03.json").data);
