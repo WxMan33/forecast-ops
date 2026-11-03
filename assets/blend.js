@@ -190,19 +190,39 @@
     const rows = C.blend.dailyRows(data, W(), OPTS());
     data.rows = rows;
     const hasN = nws && nws.periods && nws.periods.length;
-    $("daily").innerHTML = `<thead><tr><th>Day</th><th>High</th><th>Low</th><th>Precip</th><th>Snow</th><th>Chance ≥0.01″ (ens.)</th><th>Max hourly chance</th><th>Peak gust</th><th>Source highs</th><th>Temp agreement</th>${hasN ? `<th class="nwscol">${nwsTag} day high</th><th class="nwscol">${nwsTag} night low</th>` : ""}</tr></thead><tbody>` +
-      rows.map((r) => {
-        const dn = nwsDayNight(r.k);
-        return `<tr data-k="${r.k}" class="${viewDay === r.k ? "sel" : ""}" tabindex="0"><td class="display" style="font-size:12px">${O.fmtDay(r.k)}</td><td class="num"><span class="hi">${f(r.hi, 0, "°")}</span>${rng(r.hiR, 0, r.ensR.hi)}</td><td class="num"><span class="lo">${f(r.lo, 0, "°")}</span>${rng(r.loR, 0, r.ensR.lo)}</td>` +
-          `<td class="num">${f(r.qpf, 2, '"')}${r.prorated ? ` <span class="msg" title="NWS precip intervals cross this day's edges; its share was prorated assuming a uniform rate. With NWS at its lower or upper bound the blend would be ${r.qpfBounds ? `${r.qpfBounds[0].toFixed(2)}–${r.qpfBounds[1].toFixed(2)}"` : "unchanged"}.">*</span>` : ""}${rng(r.qpfR, 2, r.ensR.qpf)}</td><td class="num">${r.sn != null && r.sn >= 0.05 ? f(r.sn, 1, '"') : "—"}</td>` +
-          `<td class="num">${r.chance ? `<span title="Share of ${r.chance.members} ensemble members with 0.01 in. or more this calendar day, weighted by system">${r.chance.v.toFixed(0)}%</span>` : "—"}</td><td class="num">${f(r.pop, 0, "%")}</td>` +
-          `<td class="num">${f(r.gust, 0, " mph")}</td><td class="num">${r.ag.lo == null ? "—" : r.ag.n > 1 ? `${r.ag.lo.toFixed(0)}–${r.ag.hi.toFixed(0)}°` : `${r.ag.lo.toFixed(0)}°`}</td>` +
-          `<td title="${r.contrib.length} sources with a complete day: ${r.contrib.map((id) => NAMES[id]).join(", ")}">${meter(r.ag.level)}<span class="msg" style="color:var(--text);font-weight:700">${r.ag.word}</span></td>` +
-          (hasN ? `<td class="num nwscol" title="${dn.day ? O.esc(`${dn.day.name}: ${local(dn.day.s)}–${local(dn.day.e)}`) : "No NWS daytime period starts this day"}">${dn.day ? `<span class="hi">${dn.day.temp}°</span>` : "—"}</td><td class="num nwscol" title="${dn.night ? O.esc(`${dn.night.name}: ${local(dn.night.s)}–${local(dn.night.e)}`) : "No NWS night period starts this day"}">${dn.night ? `<span class="lo">${dn.night.temp}°</span>` : "—"}</td>` : "") + "</tr>";
-      }).join("") + "</tbody>";
+    /* Columns. tier: 1 always shown; 2 moves into the day's details when the table is narrow (< 880 px);
+       3 also moves there on phone widths (< 600 px). Breakpoints follow the table's own width. */
+    const COLS = [
+      { l: ["Day"], def: "Calendar day (midnight to midnight local time). Click a row to zoom the chart and see that day's source breakdown.", tier: 1, cell: (r) => `<td class="display day"><button type="button" class="detbtn" aria-expanded="false" aria-label="Show details for ${O.fmtDay(r.k)}">▸</button>${O.fmtDay(r.k)}</td>` },
+      { l: ["High"], def: "Blended daily high. Small numbers: weighted guidance spread (10th–90th percentile across all sources; not a calibrated probability). Hover a range for the ensembles-only range.", tier: 1, cell: (r) => `<td class="num"><span class="hi">${f(r.hi, 0, "°")}</span>${rng(r.hiR, 0, r.ensR.hi)}</td>`, txt: (r) => f(r.hi, 0, "°") },
+      { l: ["Low"], def: "Blended daily low (calendar day), with the weighted guidance spread beneath.", tier: 1, cell: (r) => `<td class="num"><span class="lo">${f(r.lo, 0, "°")}</span>${rng(r.loR, 0, r.ensR.lo)}</td>`, txt: (r) => f(r.lo, 0, "°") },
+      { l: ["Precip"], def: "Blended liquid-equivalent precipitation for the calendar day, with its guidance spread. * = NWS share prorated across its interval edges (hover for the blend at NWS's lower and upper bounds).", tier: 1,
+        cell: (r) => `<td class="num">${f(r.qpf, 2, '"')}${r.prorated ? ` <span class="msg" title="NWS precip intervals cross this day's edges; its share was prorated assuming a uniform rate. With NWS at its lower or upper bound the blend would be ${r.qpfBounds ? `${r.qpfBounds[0].toFixed(2)}–${r.qpfBounds[1].toFixed(2)}"` : "unchanged"}.">*</span>` : ""}${rng(r.qpfR, 2, r.ensR.qpf)}</td>`, txt: (r) => f(r.qpf, 2, '"') + (r.prorated ? " *" : "") },
+      { l: ["Snow"], def: "Blended snowfall (model snow at Open-Meteo's 7:1 ratio; not ground accumulation). Shown from 0.05\".", tier: 3, cell: (r) => `<td class="num">${r.sn != null && r.sn >= 0.05 ? f(r.sn, 1, '"') : "—"}</td>`, txt: (r) => (r.sn != null && r.sn >= 0.05 ? f(r.sn, 1, '"') : "—") },
+      { l: ["Ens. chance", "≥0.01″"], def: "Ensemble threshold chance: the weighted share of ECMWF ENS and GEFS members with at least 0.01 in. over this calendar day. Not the same as the maximum hourly PoP.", tier: 1,
+        cell: (r) => `<td class="num">${r.chance ? `<span title="Share of ${r.chance.members} ensemble members with 0.01 in. or more this calendar day, weighted by system">${r.chance.v.toFixed(0)}%</span>` : "—"}</td>`, txt: (r) => (r.chance ? `${r.chance.v.toFixed(0)}% (${r.chance.members} members)` : "—") },
+      { l: ["Max hourly", "PoP"], def: "Highest hourly precipitation probability from the deterministic models during the day (blended). An hourly figure, not a chance for the whole day, and not comparable to the ensemble threshold chance.", tier: 3, cell: (r) => `<td class="num">${f(r.pop, 0, "%")}</td>`, txt: (r) => f(r.pop, 0, "%") },
+      { l: ["Peak", "gust"], def: "Blended highest hourly wind gust during the day.", tier: 3, cell: (r) => `<td class="num">${f(r.gust, 0, " mph")}</td>`, txt: (r) => f(r.gust, 0, " mph") },
+      { l: ["Source", "highs"], def: "Range of the individual sources' daily highs (ensembles as their members' mean high).", tier: 2, cell: (r) => `<td class="num">${agTxt(r)}</td>`, txt: agTxt },
+      { l: ["Temp", "agreement"], def: "How close the sources' daily highs are: TIGHT ≤ 3°F apart, FAIR ≤ 6°F, WIDE more. Says nothing about rain or timing.", tier: 2,
+        cell: (r) => `<td title="${r.contrib.length} sources with a complete day: ${r.contrib.map((id) => NAMES[id]).join(", ")}">${meter(r.ag.level)}<span class="msg" style="color:var(--text);font-weight:700">${r.ag.word}</span></td>`, txt: (r) => `${r.ag.word} (${r.contrib.length} sources)` },
+      ...(hasN ? [
+        { l: [`${nwsTag} day`, "high"], def: "NWS official daytime period high (usually 6 AM–6 PM), not a calendar-day high; it can differ from the blend's midnight-to-midnight high.", tier: 2, nws: true,
+          cell: (r) => { const dn = nwsDayNight(r.k); return `<td class="num nwscol" title="${dn.day ? O.esc(`${dn.day.name}: ${local(dn.day.s)}–${local(dn.day.e)}`) : "No NWS daytime period starts this day"}">${dn.day ? `<span class="hi">${dn.day.temp}°</span>` : "—"}</td>`; }, txt: (r) => { const dn = nwsDayNight(r.k); return dn.day ? `${dn.day.temp}° (${dn.day.name})` : "—"; } },
+        { l: [`${nwsTag} night`, "low"], def: "NWS official night period low (usually 6 PM–6 AM, starting this evening).", tier: 2, nws: true,
+          cell: (r) => { const dn = nwsDayNight(r.k); return `<td class="num nwscol" title="${dn.night ? O.esc(`${dn.night.name}: ${local(dn.night.s)}–${local(dn.night.e)}`) : "No NWS night period starts this day"}">${dn.night ? `<span class="lo">${dn.night.temp}°</span>` : "—"}</td>`; }, txt: (r) => { const dn = nwsDayNight(r.k); return dn.night ? `${dn.night.temp}° (${dn.night.name})` : "—"; } },
+      ] : []),
+    ];
+    const tcls = (c) => `t${c.tier}${c.nws ? " nwscol" : ""}`;
+    $("daily").innerHTML = `<thead><tr>${COLS.map((c, i) => `<th class="${tcls(c)}" scope="col"><button type="button" class="thd" data-i="${i}" aria-describedby="thd${i}">${c.l.map((x, k) => (k ? "<br>" : "") + (/<span/.test(x) ? x : O.esc(x))).join("")}</button><span class="sr" id="thd${i}">${O.esc(c.def)}</span></th>`).join("")}</tr></thead><tbody>` +
+      rows.map((r) => `<tr data-k="${r.k}" class="${viewDay === r.k ? "sel" : ""}" tabindex="0">${COLS.map((c) => c.cell(r).replace(/^<td( class="([^"]*)")?/, (m, a, cl) => `<td class="${[cl || "", tcls(c)].join(" ").trim()}"`)).join("")}</tr>` +
+        `<tr class="detrow" data-for="${r.k}" hidden><td colspan="${COLS.length}"><dl class="detlist">${COLS.filter((c) => c.tier > 1).map((c) => `<div class="${tcls(c)}d"><dt>${c.l.join(" ").replace(/<[^>]+>/g, "")}</dt><dd>${c.txt(r)}</dd></div>`).join("")}</dl></td></tr>`).join("") + "</tbody>";
+    wireHeaders(COLS);
     $("dailyNote").innerHTML = `Small numbers under each value: <b>weighted guidance spread</b>, the 10th–90th percentile across all sources (ensemble members share their system's weight; NWS, NBM and each model count once). It mixes ensembles with single forecasts, so it is not a calibrated probability; hover for the ensembles-only range. Ensemble highs and lows are each member's own daily extreme, then combined. NWS enters highs and lows through its hourly temperatures over the calendar day, not its official day-high / night-low. * NWS precip prorated across interval edges (hover for the blend at NWS's lower and upper bounds). Click a day for its source breakdown. ` + (hasN ? `${nwsTag} columns are the official day (usually 6a–6p) and night (6p–6a) periods, not calendar days, so they can differ from the blend's midnight-to-midnight high and low. See <b>NWS vs blend</b> for a same-hours comparison.` : "");
     $("daily").querySelectorAll("tr[data-k]").forEach((tr) => {
       const pickDay = () => { viewDay = viewDay === tr.dataset.k ? null : tr.dataset.k; renderDaily(); renderChart(); };
+      const det = tr.querySelector(".detbtn");
+      det.addEventListener("click", (e) => { e.stopPropagation(); const row = $("daily").querySelector(`tr.detrow[data-for="${tr.dataset.k}"]`); row.hidden = !row.hidden; det.setAttribute("aria-expanded", String(!row.hidden)); det.textContent = row.hidden ? "▸" : "▾"; });
       tr.addEventListener("click", pickDay);
       tr.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pickDay(); } });
     });
@@ -213,6 +233,28 @@
     }
     O.renderChanges($("changes"), data.snapPair, BLEND_CHANGES, NAMES);
   }
+
+  const agTxt = (r) => (r.ag.lo == null ? "—" : r.ag.n > 1 ? `${r.ag.lo.toFixed(0)}–${r.ag.hi.toFixed(0)}°` : `${r.ag.lo.toFixed(0)}°`);
+  /* Column definitions on hover, keyboard focus and tap (one shared popover). */
+  function wireHeaders(COLS) {
+    const pop = $("thPop");
+    const show = (b) => { const c = COLS[+b.dataset.i]; pop.textContent = c.def; pop.hidden = false; const r = b.getBoundingClientRect(), host = pop.offsetParent ? pop.offsetParent.getBoundingClientRect() : { left: 0, top: 0 };
+      pop.style.left = `${Math.max(0, Math.min(r.left - host.left, (pop.offsetParent ? pop.offsetParent.clientWidth : innerWidth) - 290))}px`; pop.style.top = `${r.bottom - host.top + 4}px`; b.setAttribute("aria-expanded", "true"); };
+    const hide = (b) => { pop.hidden = true; if (b) b.setAttribute("aria-expanded", "false"); };
+    $("daily").querySelectorAll(".thd").forEach((b) => {
+      b.setAttribute("aria-expanded", "false");
+      b.addEventListener("mouseenter", () => show(b)); b.addEventListener("mouseleave", () => hide(b));
+      let shownAt = 0;
+      b.addEventListener("focus", () => { show(b); shownAt = Date.now(); }); b.addEventListener("blur", () => hide(b));
+      /* a tap fires focus then click: keep it open; a later click on an open definition closes it */
+      b.addEventListener("click", (e) => { e.stopPropagation(); if (pop.hidden) { show(b); shownAt = Date.now(); } else if (Date.now() - shownAt > 400) hide(b); });
+      b.addEventListener("keydown", (e) => { if (e.key === "Escape") hide(b); });
+    });
+  }
+  /* Expand table: give the main column the full width (sidebars hide); remembered per browser. */
+  const applyWide = (on) => { document.body.classList.toggle("wide-main", on); $("wideBtn").setAttribute("aria-pressed", String(on)); $("wideBtn").textContent = on ? "SHOW SIDEBAR" : "EXPAND TABLE"; };
+  applyWide(O.store.get("ops_blend_wide", false));
+  $("wideBtn").addEventListener("click", () => { const on = !document.body.classList.contains("wide-main"); O.store.set("ops_blend_wide", on); applyWide(on); renderChart(); });
 
   const rng = (a, d = 0, ens) => (a && a[0] != null && a[1] != null && a[1] - a[0] >= (d ? 0.005 : 0.5) ? `<div class="msg" style="font-size:10.5px" title="Weighted guidance spread (10th–90th percentile across all sources; ensemble members share their system's weight). Not a calibrated probability.${ens ? ` Ensembles alone: ${ens[0].toFixed(d)}–${ens[1].toFixed(d)}.` : ""}">${a[0].toFixed(d)}–${a[1].toFixed(d)}</div>` : "");
 

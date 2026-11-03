@@ -370,3 +370,29 @@ td.diff { color: var(--monitor); font-weight: 800; }
 
 .chk { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--raised); cursor: pointer; }
 .repsens { display: inline-block; font-size: 9.5px; font-weight: 800; letter-spacing: .4px; padding: 2px 5px; border-radius: 4px; color: var(--monitor); border: 1px dashed var(--monitor); }
+
+/* ---------- Daily blend table: fits its column; secondary columns move into row details when narrow ---------- */
+.dailywrap { container-type: inline-size; position: relative; }
+.card:has(> .dailywrap) { position: relative; }
+table.daily th, table.daily td { padding: 6px 6px; }
+table.daily th { white-space: normal; vertical-align: bottom; line-height: 1.25; }
+table.daily td.day { white-space: nowrap; font-size: 12px; }
+table.daily .thd { all: unset; cursor: help; display: inline-block; border-bottom: 1px dotted var(--faint); font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; }
+table.daily .thd:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.thpop { position: absolute; z-index: 20; max-width: 280px; background: var(--raised); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12px; line-height: 1.4; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+table.daily .detbtn { all: unset; cursor: pointer; display: none; width: 1.3em; color: var(--muted); }
+table.daily .detbtn:focus-visible { outline: 2px solid var(--accent); }
+table.daily tr.detrow td { white-space: normal; text-align: left; background: var(--raised); }
+.detlist { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; font-size: 12.5px; }
+.detlist div { display: none; } .detlist dt { color: var(--muted); font-size: 11px; font-weight: 700; } .detlist dd { margin: 0; font-family: var(--font-mono); }
+@container (max-width: 879px) {
+  table.daily .t2 { display: none; } table.daily .detbtn { display: inline-block; } .detlist .t2d { display: block; }
+}
+@container (max-width: 599px) {
+  table.daily .t3 { display: none; } .detlist .t3d { display: block; }
+  table.daily th, table.daily td { padding: 6px 4px; }
+}
+body.wide-main .workspace { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main" "side" "extra"; }
+details.fold.explain summary { cursor: pointer; }
+@media print { .detbtn, #wideBtn, .thpop { display: none !important; } table.daily .t2, table.daily .t3 { display: table-cell !important; } table.daily tr.detrow { display: none !important; } }

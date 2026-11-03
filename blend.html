@@ -42,10 +42,17 @@
     </section>
 
     <section class="card">
-      <div class="section-title">Daily blend</div>
-      <p class="section-sub">Weighted mean of the blend sources: models, ECMWF ENS, GEFS and NWS. <b>Temp agreement</b> is how close the sources' daily highs are (ensembles as their members' mean high), with their actual range. It says nothing about rain or timing. Click a day to zoom the chart to it.</p>
-      <div class="tablewrap"><table id="daily" class="clickable"></table></div>
-      <p class="msg" id="dailyNote" style="margin-top:8px"></p>
+      <div class="row" style="justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">
+        <div class="section-title" style="margin:0">Daily blend</div>
+        <button class="btn ghost sm" id="wideBtn" type="button" aria-pressed="false">EXPAND TABLE</button>
+      </div>
+      <div class="dailywrap"><table id="daily" class="clickable daily"></table></div>
+      <div id="thPop" class="thpop" role="tooltip" hidden></div>
+      <details class="fold explain" id="dailyExplain">
+        <summary><span class="msg">How to read this table</span></summary>
+        <p class="msg" style="margin-top:6px">Weighted mean of the blend sources: models, ECMWF ENS, GEFS and NWS. Tap, focus or hover a column heading for its definition. Click a day to zoom the chart to it and see its source breakdown. <b>Temp agreement</b> is how close the sources' daily highs are (ensembles as their members' mean high), with their actual range; it says nothing about rain or timing. When the table is narrow, columns that don't fit move into each day's <b>details</b> (the ▸ button), nothing is dropped.</p>
+        <p class="msg" id="dailyNote" style="margin-top:6px"></p>
+      </details>
     </section>
 
     <section class="card" id="driverCard"></section>

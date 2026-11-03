@@ -35,5 +35,15 @@ const acis = (body) => get("https://data.rcc-acis.org/StnData", { method: "POST"
   /* month-to-date and season-to-date totals each year (for rankings), with missing counts */
   save("acis-mtd-CVGthr-2026-11-02.json", await acis({ sid: "CVGthr", sdate: "por", edate: "2026-11-02", elems: [{ name: "pcpn", interval: [1, 0, 0], duration: "mtd", reduce: { reduce: "sum", add: "mcnt" } }, { name: "maxt", interval: [1, 0, 0], duration: "mtd", reduce: { reduce: "mean", add: "mcnt" } }], meta: ["name"] }));
   save("acis-std-CVGthr-2026-02-15.json", await acis({ sid: "CVGthr", sdate: "por", edate: "2026-02-15", elems: [{ name: "snow", interval: [1, 0, 0], duration: "std", season_start: "07-01", reduce: { reduce: "sum", add: "mcnt" } }], meta: ["name"] }));
+  /* v2: records anchored to the calendar day (yearly step from the first year), groupby form, leap day */
+  for (const md of ["11-03", "03-01", "02-28", "07-04"]) save(`acis-records2-CVGthr-${md}.json`, await acis({ sid: "CVGthr", sdate: `1871-${md}`, edate: `2025-${md}`, elems: ["maxt", "mint", "pcpn", "snow"].map((name) => ({ name, interval: [1, 0, 0] })), meta: ["name"] }));
+  for (const md of ["02-29", "11-03"]) save(`acis-groupby-CVGthr-${md}.json`, await acis({ sid: "CVGthr", sdate: "por", edate: "2025-12-31", elems: ["maxt", "mint", "pcpn", "snow"].map((name) => ({ name, interval: "dly", duration: "dly", groupby: ["year", md, md] })), meta: ["name"] }));
+  save("acis-mtd2-CVGthr-11-02.json", await acis({ sid: "CVGthr", sdate: "1871-11-02", edate: "2026-11-02", elems: [{ name: "pcpn", interval: [1, 0, 0], duration: "mtd", reduce: { reduce: "sum", add: "mcnt" } }, { name: "snow", interval: [1, 0, 0], duration: "mtd", reduce: { reduce: "sum", add: "mcnt" } }], meta: ["name"] }));
+  save("acis-std2-CVGthr-02-15.json", await acis({ sid: "CVGthr", sdate: "1893-02-15", edate: "2026-02-15", elems: [{ name: "snow", interval: [1, 0, 0], duration: "std", season_start: "07-01", reduce: { reduce: "sum", add: "mcnt" } }], meta: ["name"] }));
+  save("acis-obs-CVG-2024-02.json", await acis({ sid: "CVG", sdate: "2024-02-01", edate: "2024-03-02", elems: ["maxt", "mint", "pcpn", "snow", "snwd"], meta: ["name"] }));
+  /* NOAA GML solar calculator table at the user's reference point (comparison only) */
+  const t = await get("https://gml.noaa.gov/grad/solcalc/table.php?lat=39.124556&lon=-84.50386&year=2026");
+  save("noaa-solcalc-2026.json", { ...t, text: undefined, html: t.text === undefined ? null : undefined });
+  try { const r = await fetch("https://gml.noaa.gov/grad/solcalc/table.php?lat=39.124556&lon=-84.50386&year=2026", { headers: { "User-Agent": UA } }); fs.writeFileSync(path.join(OUT, "noaa-solcalc-2026.html"), await r.text()); } catch (e) { /* recorded above */ }
   fs.writeFileSync(path.join(OUT, "capture-meta.json"), JSON.stringify({ capturedAt: new Date().toISOString() }));
 })();
