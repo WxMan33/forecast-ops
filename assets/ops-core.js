@@ -184,7 +184,7 @@
       require: ["cape", "wind_speed_500hPa"],
       models: [
         { id: "gfs_hrrr", name: "HRRR (48 h)", w: 1.25 },
-        { id: "ncep_rrfs_conus", name: "RRFS 3 km", w: 1, on: false, note: "Optional new source; current feed may be unavailable. Not included in the saved eight-source recipe." },
+        { id: "ncep_rrfs_conus", name: "RRFS 3 km", w: 1, on: false, minimumFields: ["temperature_2m", "dew_point_2m", "cape", "wind_speed_10m", "wind_speed_500hPa", "temperature_700hPa", "temperature_500hPa", "geopotential_height_500hPa"], note: "Optional new source; current feed may be unavailable. Not included in the saved eight-source recipe." },
         { id: "gfs_seamless", name: "GFS", w: 1 },
         { id: "ecmwf_ifs025", name: "ECMWF IFS", w: 1.25 },
         { id: "icon_seamless", name: "ICON", w: 1 },

@@ -173,6 +173,8 @@
       if (r.status !== "fulfilled") { status[m.id] = "failed"; problems.push(`${m.name}: request failed`); return; }
       const names = [...spec.hourly, ...((spec.extraHourly || {})[m.id] || [])];
       const h = pick(r.value.hourly, names), d = pick(r.value.daily, spec.daily || []);
+      const absentMinimum = (m.minimumFields || []).filter(v => !S.hasData(h[v]));
+      if (absentMinimum.length) { status[m.id] = "empty"; problems.push(`${m.name}: unavailable for ${spec.id}, missing ${absentMinimum.join(", ")}`); return; }
       if (!spec.require.some((v) => S.hasData(h[v]))) { status[m.id] = "empty"; problems.push(`${m.name}: no coverage at this point`); return; }
       const missing = spec.require.filter((v) => !S.hasData(h[v]));
       if (missing.length) problems.push(`${m.name}: no ${missing.join(", ")}`);

@@ -45,6 +45,14 @@ check(()=>assert.throws(()=>D.directRrfsResponse(feed,"ncep_rrfs_north_america",
   C.blend.addSources(a,e,null);
   check(()=>assert.equal(a.models.rrfs_ens.provenance.cycle,current.cycle));
   check(()=>assert.equal(C.blend.windowRow(a,{rrfs_ens:1},[0,1]).qpf,null));
+
+  // A provider can return upper-air fields while every surface/instability field is null.
+  // That is not usable Severe guidance, even though 500 hPa winds exist.
+  global.fetch=async()=>({ok:true,json:async()=>({timezone:"GMT",utc_offset_seconds:0,hourly:{time:["2026-11-03T12:00","2026-11-03T13:00"],wind_speed_500hPa:[30,35],temperature_500hPa:[-10,-11],temperature_700hPa:[3,2],geopotential_height_500hPa:[5600,5600]}})});
+  const severe=await D.loadModels({...C.config.severe,models:[C.config.severe.models.find(m=>m.id==="ncep_rrfs_conus")]},{lat:39.7392,lon:-104.9903});
+  check(()=>assert.equal(severe.empty,true));
+  check(()=>assert.equal(severe.status.ncep_rrfs_conus,"empty"));
+  check(()=>assert(severe.problems.some(p=>p.includes("temperature_2m"))));
  } finally {global.fetch=fetch0;}
  console.log(`ok - ${n} RRFS native-feed checks`);
 })().catch(e=>{console.error(e);process.exitCode=1;});

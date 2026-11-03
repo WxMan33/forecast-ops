@@ -320,7 +320,7 @@ eq(C.verify.record({ kind: "daily", source: "nws", values: { hi: 60 } }).schema,
   }
   const e = C.config.blendEns.models.find(m => m.source === "rrfs_ens");
   eq([e.id, e.minMembers, e.optional], ["ncep_rrfs_conus_ensemble", 5, true], "RRFS ensemble is the five-member product, not full REFS");
-  eq(C.config.blend.extra.find(m => m.id === "rrfs_ens").on, false, "new ensemble does not silently change saved blend");
+  eq(C.config.blend.extra.find(m => m.id === "rrfs_ens").w, 1.25, "RRFS ensemble has the explicitly selected default weight");
 }
 console.log(`ok - ${n} checks passed`);
 
