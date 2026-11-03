@@ -47,6 +47,7 @@ eq([usno("2026-11-01").sun.rise.zone, usno("2026-10-31").sun.rise.zone, usno("20
     /* official CLI for Nov 2, 2026 lists record high 81 (1987) and record low 23 (1934) */
     const r2 = A.records(J("acis-records2-CVGthr-11-02.json").data.filter((x) => +x[0].slice(0, 4) <= 2025));
     eq([r2.highMax.value, r2.highMax.years.includes(1987), r2.lowMin.value, r2.lowMin.years.includes(1934)], [81, true, 23, true], "ACIS threaded records match the NWS CLI for Nov 2");
+    eq(r2.lowMin.years, [1934, 1951, 1996], "real tie: Nov 2 record low 23 F in 1934, 1951 and 1996 (the CLI lists only 1934)");
   }
 }
 
