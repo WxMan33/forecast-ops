@@ -170,7 +170,7 @@ const providerDown = (what, cond, why) => { if (!cond) return false; skips++; co
         const npts = WD.times.map((_, i) => C.winter.profile(md.h, i, md.elev).length);
         ok(Math.min(...npts) >= prof[id], `winter ${id}: profile has ${prof[id]}+ points every hour (min ${Math.min(...npts)})`);
         ok(rows.every((r) => r.twF == null || (r.tdF - 0.6 <= r.twF && r.twF <= r.t2F + 0.6)) && rows.some((r) => r.twF != null), `winter ${id}: wet-bulb present and between dew point and temperature`);
-        ok(rows.every((r) => !r.bour || ["snow", "rain", "mix", "freezing", "sleet"].includes(r.bour.type)), `winter ${id}: profile type only from the known set`);
+        ok(rows.every((r) => !r.bour || ["snow", "rain", "mix", "freezing", "sleet"].includes(r.bour.type) || (r.bour.type === null && Array.isArray(r.bour.unavailable) && r.bour.unavailable.length)), `winter ${id}: profile type from the known set, or explicitly unavailable with a coverage reason`);
       });
       ["ncep_nbm_conus"].filter((id) => WD.models[id]).forEach((id) => ok(WD.times.every((_, i) => C.winter.profile(WD.models[id].h, i, WD.models[id].elev).length <= 1), `winter ${id}: no profile, as documented`));
     }
