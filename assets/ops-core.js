@@ -142,13 +142,13 @@
       models: [
         { id: "ecmwf_ifs025", name: "ECMWF IFS", w: 1.25 },
         { id: "ecmwf_aifs025_single", name: "ECMWF AIFS", w: 1 },
-        { id: "gfs_seamless", name: "GFS", w: 1 },
-        { id: "ncep_nbm_conus", name: "NBM", w: 1.25 },
-        { id: "gfs_hrrr", name: "HRRR (48 h)", w: 1 },
-        { id: "ncep_rrfs_conus", name: "RRFS 3 km", w: 1, on: false, note: "Optional new source; current feed may be unavailable. Not included in the saved eight-source recipe." },
-        { id: "icon_seamless", name: "ICON", w: 1 },
-        { id: "gem_seamless", name: "GEM", w: 1 },
-        { id: "ukmo_seamless", name: "UKMO", w: 1 },
+        { id: "gfs_seamless", name: "GFS", w: 0.75 },
+        { id: "ncep_nbm_conus", name: "NBM", w: 2 },
+        { id: "gfs_hrrr", name: "HRRR (48 h)", w: 1.5 },
+        { id: "ncep_rrfs_conus", name: "RRFS 3 km", w: 1.5, note: "Native CVG point feed, or provider data where available. Only covered variables and windows contribute." },
+        { id: "icon_seamless", name: "ICON", w: 1, on: false },
+        { id: "gem_seamless", name: "GEM", w: 1, on: false },
+        { id: "ukmo_seamless", name: "UKMO", w: 1, on: false },
         { id: "meteofrance_seamless", name: "Météo-France", w: 0.75, on: false },
         { id: "jma_seamless", name: "JMA", w: 0.75, on: false },
       ],
@@ -157,9 +157,9 @@
          its influence. Default weights here are the user's stated preference, not verified skill. */
       extra: [
         { id: "nws", name: "NWS point forecast", w: 3, kind: "nws", note: "NWS gridded forecast. Precip and snow come from its multi-hour interval totals." },
-        { id: "ecmwf_ens", name: "ECMWF ENS", w: 2, kind: "ens", ens: "ecmwf_ifs025", note: "51 members; the system's weight is shared by its members." },
-        { id: "gefs", name: "GEFS", w: 1, kind: "ens", ens: "gfs025", note: "31 members; the system's weight is shared by its members." },
-        { id: "rrfs_ens", name: "RRFS ensemble (5 members)", w: 1, on: false, kind: "ens", ens: "ncep_rrfs_conus_ensemble", note: "Five RRFS perturbed members, not the full time-lagged REFS product. Optional; excluded from the eight-source recipe until explicitly selected." },
+        { id: "ecmwf_ens", name: "ECMWF ENS", w: 4, kind: "ens", ens: "ecmwf_ifs025", note: "51 members; the system's weight is shared by its members." },
+        { id: "gefs", name: "GEFS", w: 0.75, kind: "ens", ens: "gfs025", note: "31 members; the system's weight is shared by its members." },
+        { id: "rrfs_ens", name: "RRFS ensemble (5 members)", w: 1.25, kind: "ens", ens: "ncep_rrfs_conus_ensemble", note: "Five RRFS perturbed members, not the full time-lagged REFS product. One system weight shared across its five members. Only covered variables and windows contribute." },
       ],
       hourly: ["temperature_2m", "dew_point_2m", "apparent_temperature", "precipitation_probability", "precipitation", "snowfall", "wind_speed_10m", "wind_gusts_10m", "cloud_cover"],
       daily: ["temperature_2m_max", "temperature_2m_min", "precipitation_sum", "snowfall_sum", "precipitation_probability_max", "wind_gusts_10m_max"],
@@ -361,21 +361,22 @@
        every raw model at weight 1, NBM excluded because NBM is itself a calibrated blend of many
        of these models. "nbm" is NBM alone. NWS is never part of any blend; it is shown separately. */
     PRESETS: {
-      preferred: { label: "Your preferred weighting", note: "NWS heavy, ECMWF ENS heavy (extra for temperatures), GEFS and deterministic models supporting. Your stated preference, not yet verified." },
+      preferred: { label: "Your preferred weighting", note: "Brad’s ten-source default: ECMWF ENS ×4, NWS ×3, with supporting guidance. No extra temperature multiplier; preference, not verified skill." },
       custom: { label: "Custom weights", note: "Your saved models and weights." },
       equal: { label: "Equal raw consensus", note: "Every available raw model at weight 1. NBM excluded (it already blends and calibrates these models)." },
       nbm: { label: "NBM only", note: "The National Blend of Models by itself." },
     },
     PREFERRED: {
-      weights: { nws: 3, ecmwf_ens: 2, gefs: 1, ecmwf_ifs025: 1, ncep_nbm_conus: 1, gfs_seamless: 0.5, ecmwf_aifs025_single: 0.5, gfs_hrrr: 0.5, icon_seamless: 0.5, gem_seamless: 0.5, ukmo_seamless: 0.5 },
-      /* temperatures (hourly, highs and lows): ECMWF ENS doubled, 2 -> 4, the heaviest source */
-      rules: { byVar: { temperature_2m: { ecmwf_ens: 2 } } },
+      id: "brad-default-2026-11-03-v2",
+      weights: {"nws":3,"ecmwf_ens":4,"gefs":0.75,"rrfs_ens":1.25,"ecmwf_ifs025":1.25,"ecmwf_aifs025_single":1,"gfs_seamless":0.75,"ncep_nbm_conus":2,"gfs_hrrr":1.5,"ncep_rrfs_conus":1.5},
+      /* Exact ten-source screenshot: no hidden variable or temperature multiplier. */
+      rules: null,
     },
     presetRules(preset) { return preset === "preferred" ? blend.PREFERRED.rules : null; },
     presetWeights(preset, spec, custom) {
       if (preset === "preferred") return { ...blend.PREFERRED.weights };
       if (preset === "nbm") return { ncep_nbm_conus: 1 };
-      if (preset === "equal") { const w = {}; spec.models.forEach((m) => { if (m.on !== false && m.id !== "ncep_nbm_conus") w[m.id] = 1; }); return w; }
+      if (preset === "equal") { const w = {}; spec.models.forEach((m) => { if (m.id !== "ncep_nbm_conus") w[m.id] = 1; }); return w; }
       return { ...custom };
     },
     /* Weight of model id for variable v at lead hour L. base: {id: w}; rules (optional):

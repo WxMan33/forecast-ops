@@ -2,22 +2,24 @@
 
 Checked November 3, 2026, before the noon Eastern collection window.
 
-## Selected recipe
+## Default recipe v2
 
-The eight-source screenshot is archived as `brad-custom-2026-11-03-v1` in the verification configurations. It uses the following weights, with **no additional temperature multiplier**:
+The latest ten-source screenshot is now the code default, `brad-default-2026-11-03-v2`, and is archived separately for verification. No temperature multiplier applies.
 
 | Source | Weight |
 | --- | ---: |
-| NWS point forecast | 2.25 |
-| ECMWF ENS | 2.00 |
+| NWS point forecast | 3.00 |
+| ECMWF ENS | 4.00 |
 | GEFS | 0.75 |
-| ECMWF IFS | 1.50 |
-| ECMWF AIFS | 1.50 |
+| RRFS ensemble (5 members) | 1.25 |
+| ECMWF IFS | 1.25 |
+| ECMWF AIFS | 1.00 |
 | GFS | 0.75 |
 | NBM | 2.00 |
-| HRRR | 2.00 |
+| HRRR | 1.50 |
+| RRFS 3 km | 1.50 |
 
-Other sources remain outside this recipe. Existing browser custom weights are preserved. Baseline v1 and other frozen historical recipes remain unchanged; the screenshot recipe is scored alongside them.
+The default preset and Reset weights use this selection. Existing custom choices are preserved. The earlier eight-source screenshot (`brad-custom-2026-11-03-v1`), Baseline v1 and all historical evidence remain unchanged; future scheduled captures score the new default alongside those recipes.
 
 ## NAM removal and RRFS registration
 

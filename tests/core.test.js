@@ -280,9 +280,9 @@ eq(C.verify.record({ kind: "daily", source: "nws", values: { hi: 60 } }).schema,
   const gap = { kind: "ens", n: 2, members: [{ h: { temperature_2m: T.map(() => 30) } }, { h: { temperature_2m: T.map((_, i) => (i === 7 ? null : 99)) } }], h: { temperature_2m: T.map(() => 30) } };
   const r3 = C.blend.dailyRows({ times: T, ms, dtimes: [], models: { g: gap, m: { h: { temperature_2m: T.map(() => 50) }, d: {} } } }, { g: 1, m: 1 })[0];
   near(r3.hi, 40, 1e-9, "ensemble: incomplete members drop out without shrinking the system's weight");
-  /* preferred preset: ECMWF ENS doubled for temperatures only */
+  /* preferred preset: exact ten-source default, with no hidden variable factors */
   const P = C.blend.PREFERRED;
-  eq([C.blend.w(P.weights, P.rules, "ecmwf_ens", "temperature_2m"), C.blend.w(P.weights, P.rules, "ecmwf_ens", "precipitation"), C.blend.w(P.weights, P.rules, "nws", "temperature_2m")], [4, 2, 3], "preferred: ECMWF ENS heavy for temps, NWS heavy");
+  eq([C.blend.w(P.weights, P.rules, "ecmwf_ens", "temperature_2m"), C.blend.w(P.weights, P.rules, "ecmwf_ens", "precipitation"), C.blend.w(P.weights, P.rules, "nws", "temperature_2m")], [4, 4, 3], "preferred: exact ENS and NWS weights, no temperature multiplier");
   eq(C.blend.w(P.weights, P.rules, "nws", "precipitation_probability"), 0, "NWS hourly PoP is never mixed with model probabilities");
   /* NWS accumulations from its own intervals: exact when aligned, prorated (and flagged) when not */
   const iv = [{ s: Date.UTC(2026, 10, 2, 18), e: Date.UTC(2026, 10, 3, 0), v: 0.6 }, { s: Date.UTC(2026, 10, 3, 0), e: Date.UTC(2026, 10, 3, 6), v: 0.3 }, { s: Date.UTC(2026, 10, 3, 6), e: Date.UTC(2026, 10, 3, 12), v: 0.6 },
@@ -310,7 +310,7 @@ eq(C.verify.record({ kind: "daily", source: "nws", values: { hi: 60 } }).schema,
   near(r2.ensR.hi[0], 30, 1e-9, "ensemble-only spread uses members only");
   near(r2.ensR.hi[1], 30, 1e-9, "ensemble-only spread ignores the deterministic model");
   const shp = C.blend.shares(P.weights, P.rules, "temperature_2m");
-  eq([shp[0].id, Math.round(shp[0].share * 100), shp[1].id, Math.round(shp[1].share * 100)], ["ecmwf_ens", 31, "nws", 23], "preferred: effective temperature shares (ECMWF ENS ~31%, NWS ~23% after NAM retirement)");
+  eq([shp[0].id, Math.round(shp[0].share * 100), shp[1].id, Math.round(shp[1].share * 100)], ["ecmwf_ens", 24, "nws", 18], "preferred: effective shares match the ten-source default");
 }
 
 /* RRFS replacement sources: optional until the provider returns usable data. */

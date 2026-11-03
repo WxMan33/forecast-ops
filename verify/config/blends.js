@@ -9,6 +9,7 @@ const BASELINE_V1 = {
 const RAW = ["ecmwf_ifs025", "ecmwf_aifs025_single", "gfs_seamless", "gfs_hrrr", "ncep_nam_conus", "icon_seamless", "gem_seamless", "ukmo_seamless"];
 module.exports = {
   recipes: [
+    {"id":"brad-default-2026-11-03-v2","group":"ope","mode":"brads-preferred","label":"Brad default v2 (10 sources, Nov 3)","weights":{"nws":3,"ecmwf_ens":4,"gefs":0.75,"rrfs_ens":1.25,"ecmwf_ifs025":1.25,"ecmwf_aifs025_single":1,"gfs_seamless":0.75,"ncep_nbm_conus":2,"gfs_hrrr":1.5,"ncep_rrfs_conus":1.5},"rules":null,"frozen":"2026-11-03","effectiveFrom":"2026-11-03T18:44:47.823Z","note":"User-selected default from latest screenshot: no extra temperature multiplier; score alongside preserved earlier recipes."},
     { id: "baseline-v1", group: "ope", mode: "brads-preferred", label: "Baseline v1 (Brad's preferred, frozen 2026-11-03)", ...BASELINE_V1, frozen: "2026-11-03" },
     { id: "equal-raw-v1", group: "benchmark", label: "Equal-weight raw-model consensus", weights: Object.fromEntries(RAW.map((id) => [id, 1])), rules: null, note: "NBM, NWS and ensembles excluded" },
     { id: "ecmwf-ens-only", group: "benchmark", label: "ECMWF ENS alone", weights: { ecmwf_ens: 1 }, rules: null },
@@ -38,6 +39,5 @@ module.exports = {
   ],
   BASELINE_V1,
   /* Frozen hashes: changing a recipe in place fails the tests. */
-  FROZEN: { "baseline-v1": "968fcc338b9c", "equal-raw-v1": "1862866abde3", "ecmwf-ens-only": "81e5f60cb022", "gefs-only": "8cbe17fdde0a", "nbm-only": "04958566c9fd", "nws-only": "a93c7f217bb9" },
+  FROZEN: { "brad-default-2026-11-03-v2": "cc2949c5658d", "baseline-v1": "968fcc338b9c", "equal-raw-v1": "1862866abde3", "ecmwf-ens-only": "81e5f60cb022", "gefs-only": "8cbe17fdde0a", "nbm-only": "04958566c9fd", "nws-only": "a93c7f217bb9" },
 };
-
