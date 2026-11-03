@@ -23,6 +23,7 @@ jobs:
       - run: node tests/core.test.js
       - run: node tests/fixtures.test.js
       - run: node verify/tests/verify.test.js
+      - run: node tests/almanac.test.js
 
   live:
     runs-on: ubuntu-latest

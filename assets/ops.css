@@ -396,3 +396,28 @@ table.daily tr.detrow td { white-space: normal; text-align: left; background: va
 body.wide-main .workspace { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main" "side" "extra"; }
 details.fold.explain summary { cursor: pointer; }
 @media print { .detbtn, #wideBtn, .thpop { display: none !important; } table.daily .t2, table.daily .t3 { display: table-cell !important; } table.daily tr.detrow { display: none !important; } }
+
+/* ---------- Daily Almanac ---------- */
+.almgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 16px; }
+.locline { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.locline b { color: var(--text); font-weight: 700; }
+.kv { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: baseline; font-size: 13px; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; text-align: right; font-family: var(--font-mono); }
+.kv dd small, .kv dt small { display: block; color: var(--faint); font-family: var(--font-body, inherit); font-size: 11px; }
+.big2 { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 8px; }
+.big2 div { display: grid; } .big2 .k { font-size: 10.5px; font-weight: 800; letter-spacing: .6px; color: var(--muted); text-transform: uppercase; }
+.big2 .v { font-family: var(--font-mono); font-size: 22px; font-weight: 800; }
+.src { font-size: 11px; color: var(--faint); margin-top: 8px; }
+.unavail { color: var(--faint); font-style: italic; }
+textarea.notes { width: 100%; resize: vertical; font: 13px/1.45 var(--font-body, inherit); }
+.printnotes { display: none; white-space: pre-wrap; font-size: 13px; }
+.fcrow { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 4px 10px; font-size: 13px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.fcrow b { font-size: 12px; }
+@media print {
+  .almanac .main { display: block; }
+  .almgrid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .almanac .card { break-inside: avoid; border: 1px solid #999; padding: 8px; margin-bottom: 8px; }
+  .almanac details.fold { display: block !important; } .almanac details.fold > *:not(summary) { display: block; }
+  .printnotes { display: block; } .noprint { display: none !important; }
+}
+.thr { width: 3.4em; padding: 1px 4px; display: inline-block; font-size: 12px; }

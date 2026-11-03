@@ -77,6 +77,7 @@
     { href: "thunder.html", id: "thunder", label: "THUNDER", icon: "zap" },
     { href: "severe.html", id: "severe", label: "SEVERE", icon: "tornado" },
     { href: "winter.html", id: "winter", label: "WINTER", icon: "snow" },
+    { href: "almanac.html", id: "almanac", label: "ALMANAC", icon: "sun" },
   ];
 
   function shell(pageId, title) {
