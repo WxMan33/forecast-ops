@@ -301,6 +301,16 @@ eq(C.verify.record({ kind: "daily", source: "nws", values: { hi: 60 } }).schema,
   const base = { times: T, ms, models: {} };
   C.blend.addSources(base, { ms: ms.slice(2), ens: { ecmwf_ifs025: { temperature_2m: [ms.slice(2).map(() => 41), ms.slice(2).map(() => 43)] } } }, { temperature_2m: T.map(() => 44), qpf: iv, snow: [] });
   eq([base.models.ecmwf_ens.n, base.models.ecmwf_ens.h.temperature_2m[0], base.models.ecmwf_ens.h.temperature_2m[2], !!base.models.nws], [2, null, 42, true], "addSources: ensembles aligned by instant, member mean per hour, NWS added");
+  /* prorated NWS bounds carried to the blend; ensemble-only spread kept apart; effective shares */
+  const Dp = { times: T1, ms: msB, dtimes: [], models: { nws: nwsSrc, m: { h: { precipitation: T1.map(() => 0.05) }, d: {} } } };
+  const rp = C.blend.windowRow(Dp, { nws: 1, m: 1 }, T1.map((_, i) => i));
+  near(rp.qpfBounds[0], (pr.range[0] + 1.2) / 2, 1e-9, "NWS bounds: blend at NWS lower bound");
+  near(rp.qpfBounds[1], (pr.range[1] + 1.2) / 2, 1e-9, "NWS bounds: blend at NWS upper bound");
+  eq(rp.ensR.qpf, null, "ensemble-only spread is null without ensembles");
+  near(r2.ensR.hi[0], 30, 1e-9, "ensemble-only spread uses members only");
+  near(r2.ensR.hi[1], 30, 1e-9, "ensemble-only spread ignores the deterministic model");
+  const shp = C.blend.shares(P.weights, P.rules, "temperature_2m");
+  eq([shp[0].id, Math.round(shp[0].share * 100), shp[1].id, Math.round(shp[1].share * 100)], ["ecmwf_ens", 30, "nws", 23], "preferred: effective temperature shares (ECMWF ENS ~30%, NWS ~23%)");
 }
 
 console.log(`ok - ${n} checks passed`);

@@ -144,6 +144,8 @@
       (preset !== "custom" ? ' <span class="msg">The Custom weights list below edits your own preset.</span>' : "") +
       (mig ? ` <span class="msg">Your weights saved before presets existed were kept as Custom weights.</span>` : "") +
       (v3 ? ` <span class="msg">Ensembles and NWS are now blend sources; this page switched once to "Your preferred weighting".</span>` : "") +
+      (w ? (() => { const sh = (v) => { const x = C.blend.shares(w, rules, v), top = x.slice(0, 2); return `${top.map((p) => `${O.esc(NAMES[p.id])} ${Math.round(p.share * 100)}%`).join(", ")}, everything else ${Math.round(100 * (1 - top.reduce((t, p) => t + p.share, 0)))}%`; };
+        return ` <b>Effective shares with every loaded source present</b>: temperatures ${sh("temperature_2m")}; precip ${sh("precipitation")}. Shares rise for the remaining sources when short-range models drop out; see "What's driving the blend" for each day.`; })() : "") +
       ` <span class="msg">Each ensemble's weight is shared by its members. NWS precip uses its interval totals; NWS hourly chance is not mixed with model chances (different threshold and period).</span>`;
   }
 
@@ -161,7 +163,7 @@
     O.eventTable($("eventCard"), ctx, [
       { label: "Temp", cell: (w) => { const r = row(w); return r.lo == null ? "—" : `<span class="lo">${r.lo.toFixed(0)}°</span>–<span class="hi">${r.hi.toFixed(0)}°</span>`; } },
       { label: "Feels like (min)", cell: (w) => f(row(w).feel, 0, "°") },
-      { label: "Precip", cell: (w) => f(row(w).qpf, 2, '"') },
+      { label: "Precip", cell: (w) => { const r = row(w); return `${f(r.qpf, 2, '"')}${r.qpfBounds ? ` <span class="msg" title="NWS intervals cross this phase's edges. Its share was prorated assuming a uniform rate; with NWS at its lower or upper bound the blend is this range.">(${r.qpfBounds[0].toFixed(2)}–${r.qpfBounds[1].toFixed(2)})</span>` : ""}`; } },
       { label: "Max hourly chance", cell: (w) => f(row(w).pop, 0, "%") },
       { label: "Snow", cell: (w) => { const v = row(w).sn; return v != null && v >= 0.05 ? f(v, 1, '"') : "—"; } },
       { label: "Peak gust", cell: (w) => f(row(w).gust, 0, " mph") },
@@ -191,14 +193,14 @@
     $("daily").innerHTML = `<thead><tr><th>Day</th><th>High</th><th>Low</th><th>Precip</th><th>Snow</th><th>Chance ≥0.01″ (ens.)</th><th>Max hourly chance</th><th>Peak gust</th><th>Source highs</th><th>Temp agreement</th>${hasN ? `<th class="nwscol">${nwsTag} day high</th><th class="nwscol">${nwsTag} night low</th>` : ""}</tr></thead><tbody>` +
       rows.map((r) => {
         const dn = nwsDayNight(r.k);
-        return `<tr data-k="${r.k}" class="${viewDay === r.k ? "sel" : ""}" tabindex="0"><td class="display" style="font-size:12px">${O.fmtDay(r.k)}</td><td class="num"><span class="hi">${f(r.hi, 0, "°")}</span>${rng(r.hiR)}</td><td class="num"><span class="lo">${f(r.lo, 0, "°")}</span>${rng(r.loR)}</td>` +
-          `<td class="num">${f(r.qpf, 2, '"')}${r.prorated ? ' <span class="msg" title="NWS precip intervals cross this day\'s edges; its share was prorated by overlap">*</span>' : ""}${rng(r.qpfR, 2)}</td><td class="num">${r.sn != null && r.sn >= 0.05 ? f(r.sn, 1, '"') : "—"}</td>` +
+        return `<tr data-k="${r.k}" class="${viewDay === r.k ? "sel" : ""}" tabindex="0"><td class="display" style="font-size:12px">${O.fmtDay(r.k)}</td><td class="num"><span class="hi">${f(r.hi, 0, "°")}</span>${rng(r.hiR, 0, r.ensR.hi)}</td><td class="num"><span class="lo">${f(r.lo, 0, "°")}</span>${rng(r.loR, 0, r.ensR.lo)}</td>` +
+          `<td class="num">${f(r.qpf, 2, '"')}${r.prorated ? ` <span class="msg" title="NWS precip intervals cross this day's edges; its share was prorated assuming a uniform rate. With NWS at its lower or upper bound the blend would be ${r.qpfBounds ? `${r.qpfBounds[0].toFixed(2)}–${r.qpfBounds[1].toFixed(2)}"` : "unchanged"}.">*</span>` : ""}${rng(r.qpfR, 2, r.ensR.qpf)}</td><td class="num">${r.sn != null && r.sn >= 0.05 ? f(r.sn, 1, '"') : "—"}</td>` +
           `<td class="num">${r.chance ? `<span title="Share of ${r.chance.members} ensemble members with 0.01 in. or more this calendar day, weighted by system">${r.chance.v.toFixed(0)}%</span>` : "—"}</td><td class="num">${f(r.pop, 0, "%")}</td>` +
           `<td class="num">${f(r.gust, 0, " mph")}</td><td class="num">${r.ag.lo == null ? "—" : r.ag.n > 1 ? `${r.ag.lo.toFixed(0)}–${r.ag.hi.toFixed(0)}°` : `${r.ag.lo.toFixed(0)}°`}</td>` +
           `<td title="${r.contrib.length} sources with a complete day: ${r.contrib.map((id) => NAMES[id]).join(", ")}">${meter(r.ag.level)}<span class="msg" style="color:var(--text);font-weight:700">${r.ag.word}</span></td>` +
           (hasN ? `<td class="num nwscol" title="${dn.day ? O.esc(`${dn.day.name}: ${local(dn.day.s)}–${local(dn.day.e)}`) : "No NWS daytime period starts this day"}">${dn.day ? `<span class="hi">${dn.day.temp}°</span>` : "—"}</td><td class="num nwscol" title="${dn.night ? O.esc(`${dn.night.name}: ${local(dn.night.s)}–${local(dn.night.e)}`) : "No NWS night period starts this day"}">${dn.night ? `<span class="lo">${dn.night.temp}°</span>` : "—"}</td>` : "") + "</tr>";
       }).join("") + "</tbody>";
-    $("dailyNote").innerHTML = `Small numbers under each value: weighted 10th–90th percentile across sources, with each ensemble's members sharing its weight. Ensemble highs and lows are each member's own daily extreme, then combined. * NWS precip prorated across interval edges. Click a day for its source breakdown. ` + (hasN ? `${nwsTag} columns are the official day (usually 6a–6p) and night (6p–6a) periods, not calendar days, so they can differ from the blend's midnight-to-midnight high and low. See <b>NWS vs blend</b> for a same-hours comparison.` : "");
+    $("dailyNote").innerHTML = `Small numbers under each value: <b>weighted guidance spread</b>, the 10th–90th percentile across all sources (ensemble members share their system's weight; NWS, NBM and each model count once). It mixes ensembles with single forecasts, so it is not a calibrated probability; hover for the ensembles-only range. Ensemble highs and lows are each member's own daily extreme, then combined. NWS enters highs and lows through its hourly temperatures over the calendar day, not its official day-high / night-low. * NWS precip prorated across interval edges (hover for the blend at NWS's lower and upper bounds). Click a day for its source breakdown. ` + (hasN ? `${nwsTag} columns are the official day (usually 6a–6p) and night (6p–6a) periods, not calendar days, so they can differ from the blend's midnight-to-midnight high and low. See <b>NWS vs blend</b> for a same-hours comparison.` : "");
     $("daily").querySelectorAll("tr[data-k]").forEach((tr) => {
       const pickDay = () => { viewDay = viewDay === tr.dataset.k ? null : tr.dataset.k; renderDaily(); renderChart(); };
       tr.addEventListener("click", pickDay);
@@ -212,8 +214,9 @@
     O.renderChanges($("changes"), data.snapPair, BLEND_CHANGES, NAMES);
   }
 
-  const rng = (a, d = 0) => (a && a[0] != null && a[1] != null && a[1] - a[0] >= (d ? 0.005 : 0.5) ? `<div class="msg" style="font-size:10.5px">${a[0].toFixed(d)}–${a[1].toFixed(d)}</div>` : "");
+  const rng = (a, d = 0, ens) => (a && a[0] != null && a[1] != null && a[1] - a[0] >= (d ? 0.005 : 0.5) ? `<div class="msg" style="font-size:10.5px" title="Weighted guidance spread (10th–90th percentile across all sources; ensemble members share their system's weight). Not a calibrated probability.${ens ? ` Ensembles alone: ${ens[0].toFixed(d)}–${ens[1].toFixed(d)}.` : ""}">${a[0].toFixed(d)}–${a[1].toFixed(d)}</div>` : "");
 
+  const sp = (a, d) => (a && a[0] != null ? `${a[0].toFixed(d)}–${a[1].toFixed(d)}` : "—");
   /* Source comparison for the selected day (or the first day): what is driving the blend. */
   function renderDrivers() {
     const el = $("driverCard"); if (!el) return;
@@ -226,7 +229,10 @@
       <p class="section-sub">Each source's own value for this calendar day and its share of the weight for that variable (${O.esc(C.blend.PRESETS[preset].label)}). Ensembles show the mean of their members' own highs, lows and totals.</p>
       <div class="tablewrap"><table><thead><tr><th style="text-align:left">Source</th><th>High · share</th><th>Low · share</th><th>Precip · share</th><th>Members</th></tr></thead><tbody>
       ${ids.map((id) => { const p = get("hi", id) || get("qpf", id) || get("lo", id); return `<tr><td style="text-align:left">${O.esc(NAMES[id] || id)}</td><td class="num">${cell("hi", id, 0, "°")}</td><td class="num">${cell("lo", id, 0, "°")}</td><td class="num">${cell("qpf", id, 2, '"')}</td><td class="num">${p && p.n > 1 ? p.n : "—"}</td></tr>`; }).join("")}
-      <tr><td style="text-align:left"><b>Blend</b></td><td class="num"><b>${f(r.hi, 0, "°")}</b></td><td class="num"><b>${f(r.lo, 0, "°")}</b></td><td class="num"><b>${f(r.qpf, 2, '"')}</b></td><td></td></tr></tbody></table></div>`;
+      <tr><td style="text-align:left" class="msg">Weighted guidance spread (10–90%)</td><td class="num msg">${sp(r.hiR, 0)}</td><td class="num msg">${sp(r.loR, 0)}</td><td class="num msg">${sp(r.qpfR, 2)}</td><td></td></tr>
+      <tr><td style="text-align:left" class="msg">Ensembles only (10–90%)</td><td class="num msg">${sp(r.ensR.hi, 0)}</td><td class="num msg">${sp(r.ensR.lo, 0)}</td><td class="num msg">${sp(r.ensR.qpf, 2)}</td><td></td></tr>
+      <tr><td style="text-align:left"><b>Blend</b></td><td class="num"><b>${f(r.hi, 0, "°")}</b></td><td class="num"><b>${f(r.lo, 0, "°")}</b></td><td class="num"><b>${f(r.qpf, 2, '"')}</b>${r.qpfBounds ? `<div class="msg" style="font-size:10.5px">${r.qpfBounds[0].toFixed(2)}–${r.qpfBounds[1].toFixed(2)} with NWS at its bounds</div>` : ""}</td><td></td></tr></tbody></table></div>
+      <p class="msg">* NWS total prorated assuming a uniform rate inside intervals that cross the day's edges.</p>`;
   }
 
   /* NWS vs blend over each official NWS period's own hours. */

@@ -250,6 +250,12 @@
       }
       return data;
     },
+    /* Effective share of the total weight per source for variable v, among sources present. */
+    shares(ws, rules, v, present) {
+      const ids = Object.keys(ws).filter((id) => (!present || present.includes(id)) && blend.w(ws, rules, id, v) > 0);
+      const tot = ids.reduce((t, id) => t + blend.w(ws, rules, id, v), 0);
+      return ids.map((id) => ({ id, share: tot ? blend.w(ws, rules, id, v) / tot : 0 })).sort((a, b) => b.share - a.share);
+    },
     /* Hard exclusions: values that are not comparable are never mixed in. NWS hourly PoP uses a
        different threshold and period from Open-Meteo's precipitation_probability. */
     EXCLUDE: { nws: ["precipitation_probability"] },
@@ -288,15 +294,17 @@
     /* Weighted combination of source values: mean, 10th/90th percentiles (ensemble members carry
        their system's weight shared equally) and per-source parts for the driver view. */
     combine(list, wOf) {
-      let s = 0, w = 0; const vals = [], ws = [], parts = [];
+      let s = 0, w = 0, sLo = 0, sHi = 0, bounded = false; const vals = [], ws = [], parts = [];
       list.forEach(({ id, r }) => {
         const wi = wOf(id); if (!r || !(wi > 0)) return;
-        s += wi * r.v; w += wi; parts.push({ id, v: r.v, w: wi, n: r.members ? r.members.length : 1, prorated: !!r.prorated });
+        s += wi * r.v; w += wi; parts.push({ id, v: r.v, w: wi, n: r.members ? r.members.length : 1, prorated: !!r.prorated, range: r.range || null });
+        /* a prorated NWS total could lie anywhere in its lower-upper bounds; carry them to the blend */
+        if (r.range) { bounded = true; sLo += wi * r.range[0]; sHi += wi * r.range[1]; } else { sLo += wi * r.v; sHi += wi * r.v; }
         if (r.members) r.members.forEach((x) => { vals.push(x); ws.push(wi / r.members.length); }); else { vals.push(r.v); ws.push(wi); }
       });
       if (!w) return { v: null, p10: null, p90: null, parts };
       parts.forEach((p) => (p.share = p.w / w));
-      return { v: s / w, p10: stats.weightedQuantile(vals, ws, 0.1), p90: stats.weightedQuantile(vals, ws, 0.9), parts };
+      return { v: s / w, p10: stats.weightedQuantile(vals, ws, 0.1), p90: stats.weightedQuantile(vals, ws, 0.9), parts, bounds: bounded ? [sLo / w, sHi / w] : null };
     },
     /* Chance of at least thr (data units) over the window from ensemble members only: the weighted
        share of members, each system at its own precipitation weight. Other sources' probabilities
@@ -313,7 +321,9 @@
     aggregate(data, ws, idx, acc, opts = {}) {
       const A = acc || idx, rules = opts.rules || null;
       const ids = Object.keys(data.models).filter((id) => (ws[id] || 0) > 0);
-      const one = (hv, how, use, dv) => blend.combine(ids.map((id) => ({ id, r: blend.sourceValue(data.models[id], hv, how, use, data, opts.own ? opts.own(id, dv, hv) : null) })), (id) => blend.w(ws, rules, id, hv));
+      const one = (hv, how, use, dv, only) => blend.combine(ids.filter((id) => !only || (data.models[id] && data.models[id].kind === only)).map((id) => ({ id, r: blend.sourceValue(data.models[id], hv, how, use, data, opts.own ? opts.own(id, dv, hv) : null) })), (id) => blend.w(ws, rules, id, hv));
+      /* ensemble members only (each system at its weight): a spread from ensembles alone, kept apart from the mixed-source spread */
+      const eq = (hv, how, use) => { const c = one(hv, how, use, null, "ens"); return c.v == null ? null : [c.p10, c.p90]; };
       const hi = one("temperature_2m", "max", idx, "temperature_2m_max"), lo = one("temperature_2m", "min", idx, "temperature_2m_min");
       const qpf = one("precipitation", "sum", A, "precipitation_sum"), sn = one("snowfall", "sum", A, "snowfall_sum");
       const pop = one("precipitation_probability", "max", idx, "precipitation_probability_max"), gust = one("wind_gusts_10m", "max", idx, "wind_gusts_10m_max");
@@ -322,6 +332,8 @@
       return {
         hi: hi.v, lo: lo.v, qpf: qpf.v, sn: sn.v, pop: pop.v, gust: gust.v, feel: feel.v,
         hiR: [hi.p10, hi.p90], loR: [lo.p10, lo.p90], qpfR: [qpf.p10, qpf.p90],
+        ensR: { hi: eq("temperature_2m", "max", idx), lo: eq("temperature_2m", "min", idx), qpf: eq("precipitation", "sum", A) },
+        qpfBounds: qpf.bounds, snBounds: sn.bounds,
         chance: blend.ensChance(data, ids, (id) => blend.w(ws, rules, id, "precipitation"), A, 0.01),
         parts: { hi: hi.parts, lo: lo.parts, qpf: qpf.parts, sn: sn.parts },
         prorated: qpf.parts.some((p) => p.prorated) || sn.parts.some((p) => p.prorated),
