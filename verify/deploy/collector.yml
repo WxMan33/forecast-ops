@@ -1,0 +1,91 @@
+# Forecast Ops verification collector. Install as .github/workflows/collector.yml in the PRIVATE data
+# repository (for example WxMan33/forecast-ops-data). It runs on GitHub's servers whether or not any
+# browser is open, checks out the public collector code from WxMan33/forecast-ops, and commits raw
+# evidence, normalized forecasts, observations, run logs and reports into this private repository.
+# No secrets are needed: it reads only public sources and writes with this repository's own token.
+#
+# Schedule (UTC; GitHub has no time zones, so both EST and EDT offsets are listed). Each capture
+# trigger fires ~10 min before the target; the collector waits for the target, records its actual
+# start, and labels itself on_time / late / off_schedule. A backup trigger retries only if the slot
+# has no usable capture. Non-matching triggers exit as "not due" (logged).
+#   midday 12:00 America/New_York  -> 15:50 / 16:50 UTC (+ backups 16:35 / 17:35)
+#   evening 23:30 America/New_York -> 03:20 / 04:20 UTC (+ backups 04:05 / 05:05)
+name: Verification collector
+on:
+  schedule:
+    - cron: "50 15 * * *"
+    - cron: "50 16 * * *"
+    - cron: "35 16 * * *"
+    - cron: "35 17 * * *"
+    - cron: "20 3 * * *"
+    - cron: "20 4 * * *"
+    - cron: "5 4 * * *"
+    - cron: "5 5 * * *"
+    - cron: "41 */3 * * *"   # observations + scoring every 3 hours
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "collect | collect-manual | observe-score"
+        default: "observe-score"
+permissions:
+  contents: write
+concurrency: { group: verification-data, cancel-in-progress: false }
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      VERIFY_DATA: ${{ github.workspace }}/data
+      CODE_REPO: WxMan33/forecast-ops
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: data }
+      - uses: actions/checkout@v4
+        with: { repository: WxMan33/forecast-ops, ref: main, path: code }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Decide job
+        id: job
+        run: |
+          J="${{ github.event.inputs.job }}"
+          if [ -z "$J" ]; then
+            case "${{ github.event.schedule }}" in
+              "41 */3 * * *") J=observe-score ;;
+              "35 16 * * *"|"35 17 * * *"|"5 4 * * *"|"5 5 * * *") J=collect-backup ;;
+              *) J=collect ;;
+            esac
+          fi
+          echo "job=$J" >> "$GITHUB_OUTPUT"
+          echo "CODE_SHA=$(git -C code rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Collector self-test
+        run: node code/verify/tests/verify.test.js
+        continue-on-error: true   # raw evidence is still collected; the failure shows in the run log
+      - name: Install OCR
+        if: startsWith(steps.job.outputs.job, 'collect')
+        run: sudo apt-get install -y -qq tesseract-ocr > /dev/null || echo "::warning::OCR unavailable; graphics saved for review"
+      - name: Collect
+        if: steps.job.outputs.job == 'collect'
+        run: node code/verify/run.js collect --trigger scheduled
+      - name: Collect (backup trigger)
+        if: steps.job.outputs.job == 'collect-backup'
+        run: node code/verify/run.js collect --trigger backup
+      - name: Collect (manual, labelled manual)
+        if: steps.job.outputs.job == 'collect-manual'
+        run: node code/verify/run.js collect --manual --trigger manual
+      - name: Observe
+        if: steps.job.outputs.job == 'observe-score'
+        run: node code/verify/run.js observe
+      - name: Score and reports
+        if: always()
+        run: node code/verify/run.js score
+      - name: Commit
+        if: always()
+        working-directory: data
+        run: |
+          git config user.name "forecast-ops collector"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -q -m "verify: ${{ steps.job.outputs.job }} $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3 4; do git pull --rebase -q && git push -q && exit 0; sleep $((i*5)); done
+          echo "::error::push failed after retries"; exit 1

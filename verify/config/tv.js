@@ -1,0 +1,48 @@
+/* Cincinnati TV pilot: product inventory (2026-11-03, verify/README.md "TV inventory").
+   Each product is ONE specific publication. Authorship is stated per product and, where the data
+   says so, per value. Products that robots.txt disallows or that are rendered from undocumented
+   client-side feeds are listed with collect:false and the reason; they stay missing. */
+module.exports = {
+  market: "cincinnati",
+  verifySite: "CVG",
+  stations: {
+    WCPO: { name: "WCPO 9 (ABC, Scripps)", team: "9 First Warning Weather" },
+    WKRC: { name: "WKRC Local 12 (CBS, Sinclair)", team: "Local 12 Weather Authority" },
+    WLWT: { name: "WLWT News 5 (NBC, Hearst)", team: "WLWT weather team" },
+    WXIX: { name: "WXIX FOX19 (FOX, Gray)", team: "FOX19 First Alert Weather" },
+  },
+  products: [
+    { id: "wcpo-9day-graphic", station: "WCPO", collect: true, adapter: "wcpoGraphic", type: "team-graphic",
+      url: "https://mediaassets.wcpo.com/weatherimages/wsi/A_7DAY.jpg", page: "https://www.wcpo.com/weather",
+      label: "9 Day Forecast graphic (9 First Warning Weather)", authorship: "weather team (branded broadcast graphic)",
+      location: { scope: "Cincinnati (generic market graphic)", class: "generic-market" },
+      lows: "following-night", lowsEvidence: "lows are drawn between day columns; they match the website's per-date 'low', which is tonight's low for the current day",
+      pop: { numeric: false, note: "words only (LIKELY, SLIGHT); no probability is recorded" },
+      issueEvidence: "HTTP Last-Modified of the image (no time printed on the graphic)", horizon: "9 days" },
+    { id: "wcpo-web-4day", station: "WCPO", collect: true, adapter: "wcpoWeb", type: "team-structured-probable",
+      url: "https://www.wcpo.com/weather", label: "WCPO website daily forecast (weathercenter data)",
+      authorship: "probably the weather team: values match the team graphic; authorship not stated on the page",
+      location: { scope: "Cincinnati, OH", class: "generic-market" }, lows: "following-night", lowsEvidence: "the current day's low is tonight's low (matches the graphic)",
+      pop: { numeric: true, period: "unspecified (daily)" }, issueEvidence: "none on page; collection time only", horizon: "4 days incl. today" },
+    { id: "wkrc-7day", station: "WKRC", collect: true, adapter: "wkrc", type: "automated-with-team-edits",
+      url: "https://local12.com/weather", label: "Local 12 7 Day Forecast (provider data with team edits)",
+      authorship: "per value: 'modified' fields are edits by the Local 12 Weather Authority; unmodified values come from the automated provider (TWC location USOH0188)",
+      location: { scope: "ZIP 45226 (Cincinnati, 39.128,-84.519)", class: "explicit-other-point" }, lows: "following-night", lowsEvidence: "provider night phrase ('Low 54F') belongs to the night after the date",
+      pop: { numeric: true, period: "unspecified (daily)" }, issueEvidence: "page 'savedDateTime' of the forecast package", horizon: "7+ days" },
+    { id: "wxix-10day-custom", station: "WXIX", collect: true, adapter: "wxix", type: "automated-provider-custom",
+      url: "https://www.fox19.com/weather/", label: "FOX19 10-day data (TWC 'daily-10day-custom')",
+      authorship: "uncertain: The Weather Company 'custom' daily product; may include station customization. Not attributed to the weather team.",
+      location: { scope: "Cincinnati (39.102,-84.513)", class: "explicit-other-point" }, lows: "following-night", lowsEvidence: "night daypart temperature",
+      pop: { numeric: true, period: "day 7a-7p / night 7p-7a local civil time" }, issueEvidence: "page data timestamps", horizon: "10 days" },
+    { id: "wlwt-indepth-story", station: "WLWT", collect: true, adapter: "wlwtStory", type: "weather-story",
+      url: "https://www.wlwt.com/article/in-depth-weather-forecast/3853592", label: "In-depth weather forecast (meteorologist story)",
+      authorship: "meteorologist byline on the story", location: { scope: "Cincinnati area", class: "generic-market" }, lows: "unknown", pop: { numeric: false, note: "only explicit numbers stated in the text, after review" },
+      issueEvidence: "story 'Updated' time / dateModified", horizon: "varies (text)" },
+    { id: "wxix-extended-graphic", station: "WXIX", collect: false, type: "team-graphic", url: "https://webpubcontent.gray.tv/wxix/Weather/WEB_Extended_Forecast.jpg",
+      reason: "robots.txt on webpubcontent.gray.tv disallows it; not collected" },
+    { id: "wkrc-graphics", station: "WKRC", collect: false, type: "team-graphic", url: "https://local12.com/resources/ftptransfer/wkrc/maps/",
+      reason: "station graphics live under /resources/ftptransfer/, which robots.txt disallows; not collected" },
+    { id: "wlwt-extended-10day", station: "WLWT", collect: false, type: "automated-provider", url: "https://www.wlwt.com/weather",
+      reason: "list is filled in by the browser from an undocumented Hearst weather feed (weather.htvapps.com); provider not identified; not collected" },
+  ],
+};

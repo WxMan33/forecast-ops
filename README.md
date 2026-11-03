@@ -150,6 +150,10 @@ GitHub Actions (`.github/workflows/tests.yml`) runs the unit and fixture tests o
 - **The overview matches the tools.** It uses the same config, the weights you've set on each tool page, and the same aggregation, over full calendar days.
 - The header chip says **PARTIAL DATA** whenever a model failed, had no coverage, or lacked fields. Hover it for the list.
 
+## Forecast verification (private)
+
+`verify/` holds a separate verification service: twice-daily captures of every source, OPE blend recipes (Baseline v1 frozen) and a Cincinnati TV pilot at CVG, with observations, scoring and a review queue. It runs on GitHub Actions in a **private data repository** and never touches these pages; `verify.html` is a private dashboard that reads that repository with your own token. See [verify/README.md](verify/README.md).
+
 ## Moving this into Heads-Up / OPE later
 
 `ops-core.js` and `ops-data.js` are the pieces to carry over. They run unchanged in Node, which is how the live test uses them. A scheduled briefing service would:

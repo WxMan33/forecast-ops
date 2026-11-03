@@ -1,0 +1,62 @@
+
+000
+CXUS51 KILN 020538
+CF6CVG
+PRELIMINARY LOCAL CLIMATOLOGICAL DATA (WS FORM: F-6)
+
+                                          STATION:   CINCINNATI OH
+                                          MONTH:     NOVEMBER
+                                          YEAR:      2026
+                                          LATITUDE:   39  2 N      
+                                          LONGITUDE:  84 40 W    
+
+  TEMPERATURE IN F:       :PCPN:    SNOW:  WIND      :SUNSHINE: SKY     :PK WND 
+================================================================================
+1   2   3   4   5  6A  6B    7    8   9   10  11  12  13   14  15   16   17  18
+                                     12Z  AVG MX 2MIN
+DY MAX MIN AVG DEP HDD CDD  WTR  SNW DPTH SPD SPD DIR MIN PSBL S-S WX    SPD DR
+================================================================================
+
+ 1  68  56  62  12   3   0 0.01  0.0    0  5.8 18 160   M    M  10        22 170
+================================================================================
+SM   68   56         3   0  0.01  0.0      5.8          M       10              
+================================================================================
+AV 68.0 56.0                               5.8 FASTST   M    M  10    MAX(MPH)  
+                                 MISC ---->    18 160                 22 170   
+================================================================================
+NOTES:
+# LAST OF SEVERAL OCCURRENCES
+
+COLUMN 17 PEAK WIND IN M.P.H.
+
+PRELIMINARY LOCAL CLIMATOLOGICAL DATA (WS FORM: F-6) , PAGE 2
+
+                                          STATION:   CINCINNATI OH
+                                          MONTH:     NOVEMBER
+                                          YEAR:      2026
+                                          LATITUDE:   39  2 N      
+                                          LONGITUDE:  84 40 W                   
+
+[TEMPERATURE DATA]      [PRECIPITATION DATA]       SYMBOLS USED IN COLUMN 16    
+
+AVERAGE MONTHLY: 62.0   TOTAL FOR MONTH:   0.01    1 = FOG OR MIST              
+DPTR FM NORMAL:  12.0   DPTR FM NORMAL:   -0.11    2 = FOG REDUCING VISIBILITY  
+HIGHEST:    68 ON  1    GRTST 24HR  0.01 ON  1- 1      TO 1/4 MILE OR LESS      
+LOWEST:     56 ON  1                               3 = THUNDER                  
+                        SNOW, ICE PELLETS, HAIL    4 = ICE PELLETS              
+                        TOTAL MONTH:   0.0 INCH    5 = HAIL                     
+                        GRTST 24HR  0.0            6 = FREEZING RAIN OR DRIZZLE 
+                        GRTST DEPTH:  0            7 = DUSTSTORM OR SANDSTORM:  
+                                                       VSBY 1/2 MILE OR LESS    
+                                                   8 = SMOKE OR HAZE            
+[NO. OF DAYS WITH]      [WEATHER - DAYS WITH]      9 = BLOWING SNOW             
+                                                   X = TORNADO                  
+MAX 32 OR BELOW:   0    0.01 INCH OR MORE:   1                      
+MAX 90 OR ABOVE:   0    0.10 INCH OR MORE:   0                      
+MIN 32 OR BELOW:   0    0.50 INCH OR MORE:   0                      
+MIN  0 OR BELOW:   0    1.00 INCH OR MORE:   0                        
+
+[HDD (BASE 65) ]                                                                
+TOTAL THIS MO.     3    CLEAR  (SCALE 0-3)   0                                  
+DPTR FM NORMAL   -12    PTCLDY (SCALE 4-7)   0                                  
+TOTAL FM JUL 1   151    

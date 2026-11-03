@@ -1,0 +1,73 @@
+
+000
+CDUS41 KILN 022152
+CLICVG
+
+CLIMATE REPORT 
+NATIONAL WEATHER SERVICE WILMINGTON OH
+452 PM EST MON NOV 02 2026
+
+...................................
+
+...THE CINCINNATI OH CLIMATE SUMMARY FOR NOVEMBER 2 2026...
+VALID TODAY AS OF 0400 PM LOCAL TIME.
+
+CLIMATE NORMAL PERIOD: 1991 TO 2020
+CLIMATE RECORD PERIOD: 1869 TO 2026
+
+
+WEATHER ITEM   OBSERVED TIME   RECORD YEAR NORMAL DEPARTURE LAST      
+                VALUE   (LST)  VALUE       VALUE  FROM      YEAR     
+                                                  NORMAL           
+...................................................................
+TEMPERATURE (F)                                                          
+ TODAY                                                               
+  MAXIMUM         59  12:09 AM  81    1987  60     -1       50        
+  MINIMUM         52   8:43 AM  23    1934  39     13       42        
+                                      1951                           
+                                      1996                           
+  AVERAGE         56                        50      6       46     
+
+PRECIPITATION (IN)                                                    
+  TODAY            0.16          1.52 1928   0.11   0.05     0.02     
+  MONTH TO DATE    0.17                      0.23  -0.06     0.03     
+  SINCE SEP 1      2.20                      6.69  -4.49     5.79     
+  SINCE JAN 1     35.93                     38.53  -2.60    43.27     
+
+SNOWFALL (IN)                                                              
+  TODAY            0.0           8.7  1966   0.0    0.0      0.0      
+  MONTH TO DATE    0.0                       0.0    0.0      0.0      
+  SINCE SEP 1      0.0                       0.2   -0.2      0.0      
+  SINCE JUL 1      0.0                       0.2   -0.2      0.0      
+  SNOW DEPTH       0                                                 
+
+DEGREE DAYS                                                           
+ HEATING                                                              
+  TODAY            9                        16     -7       19        
+  MONTH TO DATE   12                        31    -19       36        
+  SINCE SEP 1    160                       380   -220      276        
+  SINCE JUL 1    160                       383   -223      285        
+
+ COOLING                                                              
+  TODAY            0                         0      0        0        
+  MONTH TO DATE    0                         0      0        0        
+  SINCE SEP 1    341                       169    172      223        
+  SINCE JAN 1   1413                      1160    253     1315        
+...................................................................
+
+
+WIND (MPH)                                                            
+  HIGHEST WIND SPEED    17   HIGHEST WIND DIRECTION     S (160)       
+  HIGHEST GUST SPEED    29   HIGHEST GUST DIRECTION     S (170)       
+  AVERAGE WIND SPEED    11.5                                        
+
+
+SKY COVER                                                             
+  POSSIBLE SUNSHINE  MM                                                 
+  AVERAGE SKY COVER 1.0                                                 
+
+
+WEATHER CONDITIONS                                                    
+THE FOLLOWING WEATHER WAS RECORDED TODAY.                             
+  LIGHT RAIN                                                          
+  FOG                                           
