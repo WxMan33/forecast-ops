@@ -7,7 +7,7 @@ const U = require("./util.js");
 const C = U.Core, B = C.blend, S = C.stats;
 const TG = require("./targets.js");
 const SRC = require("./sources.js");
-const VERSION = "normalize-v3"; // v2: prospective windows, full coverage; v3: boundary = last retrieval + minimum lead (lib/timing.js)
+const VERSION = "normalize-v4"; // v4: preserve member slots across missing variables; native NOAA point feeds/provenance supported
 const TM = require("./timing.js");
 
 const r1 = (x, d = 1) => (x == null || !isFinite(x) ? null : Math.round(x * 10 ** d) / 10 ** d);
@@ -29,7 +29,7 @@ function buildData(raw) {
     if (!j || !j.hourly) return;
     const m = C.config.blendEns.models.find((x) => x.source === sid); if (!m) return;
     ens.ens[m.id] = {};
-    SRC.ENS_VARS.forEach((v) => { ens.ens[m.id][v] = Object.keys(j.hourly).filter((k) => k === v || k.startsWith(v + "_")).map((k) => align(j, j.hourly[k])).filter(S.hasData); });
+    SRC.ENS_VARS.forEach((v) => { ens.ens[m.id][v] = Object.keys(j.hourly).filter((k) => (k === v || k.startsWith(v + "_")) && Array.isArray(j.hourly[k])).sort((a,b) => a.localeCompare(b)).map((k) => align(j, j.hourly[k])); });
   });
   const nwsAxis = raw.nws && raw.nws.grid ? C.nws.onAxis({ parts: { grid: raw.nws.grid } }, ms) : null;
   B.addSources(data, ens, nwsAxis);
@@ -136,3 +136,4 @@ function normalize(raw, cap, loc, recipes) {
   return bundle;
 }
 module.exports = { VERSION, buildData, normalize, sourceTarget, nwsOfficial };
+

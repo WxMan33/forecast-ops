@@ -20,8 +20,10 @@ Updated November 3, 2026. This is planned work, not a claim that these features 
 
 ## 3. Additional guidance and context
 
+RRFS deterministic and the five-member RRFS ensemble are registered. A native CVG point feed is the initial implementation; full time-lagged REFS is a separate future integration. See [model status](MODEL-STATUS.md). HREF is legacy guidance under the November 2026 transition, rather than a new integration target.
+
 - [ ] NBM temperature percentiles and precipitation exceedance guidance, shown with source, threshold, valid period and coverage. Keep these separate from the mixed guidance spread.
-- [ ] HREF short-range precipitation and convective guidance: timing differences, heavy-rain potential and ensemble/neighborhood products. Retain neighborhood radius/area definitions; do not label neighborhood probabilities as exact-point probabilities.
+- [ ] RRFS/REFS short-range precipitation and convective guidance: timing differences, heavy-rain potential and ensemble/neighborhood products. Retain neighborhood radius/area definitions; do not label neighborhood probabilities as exact-point probabilities.
 - [ ] WPC WSSI/WSSI-P winter impact context alongside accumulation guidance and official alerts.
 - [ ] NWS Area Forecast Discussion drawer: automatically select the location's forecast office, show issuance time and provide the original discussion.
 - [ ] SPC and WPC outlook context with valid times and location relevance.
@@ -46,7 +48,7 @@ Build an original model-data explorer inspired by the workflow of [WeatherBell's
 ### Initial scope
 
 - [ ] Begin with a bounded Ohio Valley/Tri-State domain and a small field set before scaling nationally.
-- [ ] Assess official/open or licensed gridded data access for GFS, ECMWF deterministic/ENS, GEFS, HRRR and NBM; add HREF where supported. Document actual fields, resolution, cadence, latency and usage/redistribution terms before committing to each source.
+- [ ] Assess official/open or licensed gridded data access for GFS, ECMWF deterministic/ENS, GEFS, HRRR and NBM; add RRFS and full REFS where supported. Document actual fields, resolution, cadence, latency and usage/redistribution terms before committing to each source.
 - [ ] Model, initialization cycle, forecast hour, variable and geographic-domain selectors.
 - [ ] Play/pause, scrubbing, speed controls and keyboard stepping, with initialization time, valid local/UTC time, units and legend always visible.
 - [ ] Initial fields: 2 m temperature/dew point, wind/gusts, pressure, interval/total precipitation, snow and precipitation type where supplied. Clearly distinguish provider fields from derived diagnostics.
@@ -79,3 +81,4 @@ Build an original model-data explorer inspired by the workflow of [WeatherBell's
 5. Integrate into OPE and add calendar briefing/notification delivery.
 
 This roadmap does not authorize changing blend weights, starting paid services or enabling new notification delivery.
+

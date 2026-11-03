@@ -4,6 +4,8 @@
 "use strict";
 const U = require("./util.js");
 const C = U.Core;
+const DATA = require("../../assets/ops-data.js");
+const NATIVE_RRFS = "https://raw.githubusercontent.com/WxMan33/forecast-ops/main/feeds/rrfs-cvg.json";
 
 const OM = "https://api.open-meteo.com/v1/forecast", OME = "https://ensemble-api.open-meteo.com/v1/ensemble";
 const UNITS = { temperature_unit: "fahrenheit", wind_speed_unit: "mph", precipitation_unit: "inch", timezone: "GMT" };
@@ -36,6 +38,7 @@ async function fetchMeta(id) {
    where they came from; nothing is inferred (inferred stays null); missing or implausible stays
    "unknown" for analysis while the reported value is still preserved. */
 function cycleOf(kind, rec) {
+  if (rec.nativeRrfs) return { kind: "noaa-model-initialization", reported: rec.nativeRrfs.cycle, responseCycle: rec.nativeRrfs.cycle, reportedBy: "NOAA native GRIB2 initialization, validated by the point collector", inferred: null, status: "provider-reported", generatedAt: rec.nativeRrfs.generatedAt };
   /* NWS: a forecast UPDATE time from the response itself; never presented as a model cycle */
   if (kind === "nws") return { kind: "nws-grid-update-time", nwsGridUpdateTime: rec.issuedAt || null, reported: rec.issuedAt || null, reportedBy: "NWS gridpoint response field properties.updateTime (forecast update time, not a model run)", responseCycle: null, inferred: null, status: rec.issuedAt ? "provider-reported" : "unknown" };
   /* Open-Meteo: the latest run its METADATA reported at retrieval. Not confirmed as the run behind the
@@ -56,12 +59,36 @@ async function collect(loc, dataRoot, rel, { days = 16 } = {}) {
     try {
       if (s.kind === "det" || s.kind === "ens") {
         const url = s.kind === "det"
-          ? `${OM}?${q({ latitude: loc.lat, longitude: loc.lon, ...UNITS, forecast_days: days, models: s.id, hourly: DET_VARS.join(",") })}`
-          : `${OME}?${q({ latitude: loc.lat, longitude: loc.lon, ...UNITS, forecast_days: Math.min(days, 16), models: s.omId, hourly: ENS_VARS.join(",") })}`;
+          ? `${OM}?${q({ latitude: loc.lat, longitude: loc.lon, ...UNITS, forecast_days: days, models: s.id, ...(/^ncep_rrfs/.test(s.id) ? {cell_selection:"nearest", elevation:"nan"} : {}), hourly: DET_VARS.join(",") })}`
+          : `${OME}?${q({ latitude: loc.lat, longitude: loc.lon, ...UNITS, forecast_days: Math.min(days, 16), models: s.omId, ...(/^ncep_rrfs/.test(s.omId) ? {cell_selection:"nearest", elevation:"nan"} : {}), hourly: ENS_VARS.join(",") })}`;
         const r = await U.fetchRaw(url, { accept: "application/json" });
         rec.request = url; rec.retrievedAt = r.retrievedAt; rec.httpStatus = r.status; rec.attempts = r.attempts;
         if (r.buf.length) rec.files.response = save(`${s.id}.json`, r);
-        const j = r.ok ? U.parseJSON(r.text) : null;
+        let j = r.ok ? U.parseJSON(r.text) : null;
+        if (s.id === "ncep_rrfs_conus" || s.id === "rrfs_ens") {
+          const usable = j && Object.entries(j.hourly || {}).some(([k,a]) => k.startsWith("temperature_2m") && Array.isArray(a) && a.some(x => x != null && Number.isFinite(x)));
+          if (!usable) {
+            const native = await U.fetchRaw(NATIVE_RRFS, {accept:"application/json", tries:2, timeoutMs:20000});
+            if (native.ok) {
+              try {
+                const feed = U.parseJSON(native.text);
+                const converted = DATA.directRrfsResponse(feed, s.kind === "ens" ? s.omId : s.id, UNITS, loc);
+                rec.files.openMeteoResponse = rec.files.response;
+                rec.files.nativeFeed = save(`${s.id}-noaa-point-feed.json`, native);
+                rec.files.response = U.saveRaw(dataRoot, `${rel}/${s.id}-noaa-normalized.json`, Buffer.from(JSON.stringify(converted)));
+                rec.nativeRrfs = converted.__rrfs;
+                rec.request = NATIVE_RRFS; rec.retrievedAt = native.retrievedAt; rec.httpStatus = native.status;
+                const manifest = await U.fetchRaw(NATIVE_RRFS.replace(".json", "-manifest.json"), {accept:"application/json", tries:1, timeoutMs:20000});
+                if (manifest.ok) {
+                  const mj = U.parseJSON(manifest.text);
+                  if (mj && mj.cycle === feed.cycle && mj.generatedAt === feed.generatedAt) rec.files.nativeManifest = save(`${s.id}-noaa-manifest.json`, manifest);
+                  else rec.nativeManifestWarning = "Manifest changed during capture; point-feed response preserved";
+                }
+                j = converted;
+              } catch (e) { rec.nativeFallbackError = String(e.message || e); }
+            } else rec.nativeFallbackError = native.error || `HTTP ${native.status}`;
+          }
+        }
         if (!j || j.error) { rec.error = (j && j.reason) || r.error || `HTTP ${r.status}`; }
         else {
           const tv = j.hourly && j.hourly.temperature_2m !== undefined ? j.hourly.temperature_2m : Object.entries(j.hourly || {}).find(([k]) => k.startsWith("temperature_2m"))?.[1];
@@ -70,7 +97,7 @@ async function collect(loc, dataRoot, rel, { days = 16 } = {}) {
           rec.horizonEnd = last >= 0 ? j.hourly.time[last] + "Z" : null;
           if (s.kind === "ens") rec.members = Object.keys(j.hourly).filter((k) => k.startsWith("temperature_2m")).length;
         }
-        rec.meta = await fetchMeta(s.id);
+        rec.meta = rec.nativeRrfs ? null : await fetchMeta(s.id);
         rec.cycle = cycleOf(s.kind, rec);
       } else {
         /* NWS: the forecast for the observing site's own grid point */

@@ -1,0 +1,46 @@
+name: Refresh CVG native RRFS point feed
+on:
+  schedule:
+    - cron: "25 */2 * * *"
+  push:
+    branches: [main]
+    paths: ["tools/rrfs-point.py", "tools/rrfs-point-test.py", ".github/workflows/rrfs-point.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: rrfs-point-feed
+  cancel-in-progress: false
+jobs:
+  point:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned GRIB decoder
+        run: python -m pip install eccodes==2.50.0
+      - name: Decode native CVG point and all five perturbed members
+        run: python tools/rrfs-point.py --workers 8
+      - name: Validate generated feed
+        run: python tools/rrfs-point-test.py --feed feeds/rrfs-cvg.json
+      - name: Publish successful current point feed
+        run: |
+          git config user.name "forecast-ops RRFS collector"
+          git config user.email "actions@users.noreply.github.com"
+          git add feeds/rrfs-cvg.json feeds/rrfs-cvg-manifest.json
+          git diff --cached --quiet && exit 0
+          git commit -m "data: refresh native NOAA RRFS CVG point feed"
+          git pull --rebase
+          git push
+      - name: Keep run evidence if publishing fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rrfs-point-failure
+          path: feeds/rrfs-cvg*.json
+          retention-days: 14

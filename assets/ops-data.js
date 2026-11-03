@@ -8,6 +8,47 @@
 
   /* GET JSON with a short session cache (browser only) and a 20 s timeout. */
   const IN_NODE = typeof window === "undefined";
+  const RRFS = new Set(["ncep_rrfs_conus", "ncep_rrfs_conus_ensemble"]);
+  // Raw repository endpoint updates when the scheduled data bot commits, without requiring
+  // a second Pages deployment (GITHUB_TOKEN pushes do not trigger ordinary Pages builds).
+  const RRFS_FEED = "https://raw.githubusercontent.com/WxMan33/forecast-ops/main/feeds/rrfs-cvg.json";
+
+  /* NOAA native-grid fallback is deliberately limited to the CVG pilot. Never move a user's
+     location, substitute a coarse grid or silently mix another model into a named RRFS source. */
+  function directRrfsResponse(feed, model, params, loc, now = Date.now()) {
+    if (!RRFS.has(model) || !feed || feed.schema !== 1 || feed.method !== "rrfs-cvg-native-v1") throw new Error("Unsupported RRFS point feed");
+    const p = feed.point || {}, lat = +loc.lat, lon = +loc.lon;
+    const km = Math.hypot((lat - p.lat) * 111.2, (lon - p.lon) * 86.4);
+    if (!Number.isFinite(km) || km > 3) throw new Error("Native RRFS fallback is only available at CVG");
+    const init = Date.parse(feed.cycle), made = Date.parse(feed.generatedAt);
+    if (!Number.isFinite(init) || !Number.isFinite(made) || now - init > 16 * 3600e3 || now - made > 8 * 3600e3 || made > now + 5 * 60e3 || init > now) throw new Error("Native RRFS feed is stale or has invalid timestamps");
+    const keys = model === "ncep_rrfs_conus" ? ["deterministic"] : ["member01", "member02", "member03", "member04", "member05"];
+    const blocks = keys.map(k => feed.members && feed.members[k]);
+    if (blocks.some(b => !b || !b.hourly || !Array.isArray(b.hourly.temperature_2m) || !b.hourly.temperature_2m.some(x => x != null && isFinite(x)))) throw new Error("Native RRFS member missing");
+    const n = blocks[0].hourly.temperature_2m.length;
+    if (n < 2 || blocks.some(b => b.hourly.temperature_2m.length !== n)) throw new Error("Native RRFS member axes differ");
+    const tz = params.timezone === "GMT" || params.timezone === "UTC" ? "GMT" : "America/New_York";
+    const offset = tz === "GMT" ? 0 : Core.time.offsetMin(now, tz) * 60;
+    const times = Array.from({ length: n }, (_, i) => new Date(init + i * 3600e3 + offset * 1000).toISOString().slice(0, 16));
+    const h = { time: times }, units = { time: "iso8601" };
+    blocks.forEach((b, member) => {
+      const g = b.grid || {};
+      if (!(g.distance <= 3) || !Number.isFinite(g.lat) || !Number.isFinite(g.lon)) throw new Error("Native RRFS grid provenance missing");
+      ["temperature_2m", "precipitation", "snowfall"].forEach(v => {
+        const a = b.hourly[v]; if (!Array.isArray(a) || a.length !== n) throw new Error("Native RRFS field axis missing");
+        const k = v + (member ? `_member${String(member).padStart(2, "0")}` : "");
+        h[k] = a.map(x => x == null || !isFinite(x) ? null : v === "temperature_2m" ? params.temperature_unit === "fahrenheit" ? x * 9 / 5 + 32 : x : params.precipitation_unit === "inch" ? x / (v === "snowfall" ? 2.54 : 25.4) : x);
+        units[k] = v === "temperature_2m" ? params.temperature_unit === "fahrenheit" ? "°F" : "°C" : params.precipitation_unit === "inch" ? "inch" : v === "snowfall" ? "cm" : "mm";
+      });
+    });
+    const g = blocks[0].grid;
+    return { latitude: g.lat, longitude: g.lon > 180 ? g.lon - 360 : g.lon, timezone: tz, utc_offset_seconds: offset, hourly: h, hourly_units: units,
+      __dropped: [], __rrfs: { provider: "NOAA native GRIB2", method: feed.method, cycle: feed.cycle, generatedAt: feed.generatedAt, grid: g, elevationAdjusted: false, feedUrl: RRFS_FEED, snowMethod: feed.snowMethod } };
+  }
+  async function loadDirectRrfs(model, params, loc) {
+    const feed = await getJSON(RRFS_FEED, 2);
+    return directRrfsResponse(feed, model, params, loc);
+  }
   async function getJSON(url, cacheMin = 15, headers) {
     const key = "ops_c:" + url;
     let cache = null;
@@ -28,14 +69,23 @@
   /* One model, one request. If Open-Meteo rejects a variable (or a whole pressure level) for
      this model, drop it and retry, so one unsupported field never sinks the whole model. */
   async function fetchModel(base, params, model, hourly, daily, loc) {
+    // The native CVG feed is preferred when current; other locations keep their own API grid.
+    if (RRFS.has(model) && Math.hypot((+loc.lat - 39.04456) * 111.2, (+loc.lon + 84.67229) * 86.4) <= 3) {
+      try { return await loadDirectRrfs(model, params, loc); } catch (e) { /* try provider below */ }
+    }
     let hv = hourly.slice(), dv = (daily || []).slice();
     const dropped = [];
     for (let attempt = 0; attempt < 8; attempt++) {
-      const p = new URLSearchParams({ ...params, latitude: loc.lat, longitude: loc.lon, timezone: "auto", models: model });
+      const p = new URLSearchParams({ ...params, ...(RRFS.has(model) ? { cell_selection: "nearest", elevation: "nan" } : {}), latitude: loc.lat, longitude: loc.lon, timezone: "auto", models: model });
       if (hv.length) p.set("hourly", hv.join(","));
       if (dv.length) p.set("daily", dv.join(","));
       const json = await getJSON(`${base}?${p.toString().replace(/%2C/g, ",")}`);
-      if (!json.error) { json.__dropped = dropped; return json; }
+      if (!json.error) {
+        if (RRFS.has(model) && !S.hasData(json.hourly && json.hourly.temperature_2m)) {
+          try { return await loadDirectRrfs(model, params, loc); } catch (e) { json.__rrfsUnavailable = e.message; }
+        }
+        json.__dropped = dropped; return json;
+      }
       const why = String(json.reason || "");
       const levels = [...why.matchAll(/(\d{3,4})\s*hPa/gi)].map((m) => `_${m[1]}hPa`);
       const bad = [...hv, ...dv].filter((v) => why.includes(v) || levels.some((l) => v.endsWith(l)));
@@ -137,7 +187,7 @@
       const hh = {}, dd = {};
       names.forEach((v) => (hh[v] = S.align(times, j.hourly.time, toMeters(v, h[v], unitOf(j, v)))));
       (spec.daily || []).forEach((v) => (dd[v] = j.daily ? S.align(dtimes, j.daily.time, d[v]) : dtimes.map(() => null)));
-      models[m.id] = { h: hh, d: dd, elev: j.elevation || 0 };
+      models[m.id] = { h: hh, d: dd, elev: j.elevation ?? null, provenance: j.__rrfs || null };
     });
     return withAxis({ times, dtimes, tz: master.timezone, offset: master.utc_offset_seconds, models, status, problems });
   }
@@ -148,12 +198,14 @@
     const params = { ...spec.params, forecast_days: days || spec.days };
     const res = await Promise.allSettled(list.map((m) => fetchModel(spec.base, params, m.id, spec.hourly, null, { lat, lon })));
     const status = {}, problems = [], ok = [];
-    const members = (block, v) => Object.keys(block || {}).filter((k) => (k === v || k.startsWith(v + "_")) && Array.isArray(block[k])).map((k) => block[k]).filter(S.hasData);
+    // Keep empty member arrays in their slots. Filtering each variable independently can shift
+    // member identities and attach one member's snow to another member's temperature.
+    const members = (block, v) => Object.keys(block || {}).filter((k) => (k === v || k.startsWith(v + "_")) && Array.isArray(block[k])).sort((a,b) => a.localeCompare(b)).map((k) => block[k]);
     res.forEach((r, i) => {
       const m = list[i];
       if (r.status !== "fulfilled") { status[m.id] = "failed"; problems.push(`${m.name}: unavailable`); return; }
       const byVar = {}; spec.hourly.forEach((v) => (byVar[v] = members(r.value.hourly, v)));
-      if (!byVar[spec.require[0]].length) { status[m.id] = "empty"; problems.push(`${m.name}: no members here`); return; }
+      if (!byVar[spec.require[0]].some(S.hasData)) { status[m.id] = "empty"; problems.push(`${m.name}: no members here`); return; }
       status[m.id] = "ok";
       ok.push({ m, j: r.value, byVar });
     });
@@ -161,10 +213,11 @@
     const master = ok.reduce((a, b) => (b.j.hourly.time.length > a.j.hourly.time.length ? b : a)).j;
     const times = master.hourly.time, ens = {};
     ok.forEach(({ m, j, byVar }) => { ens[m.id] = {}; Object.keys(byVar).forEach((v) => (ens[m.id][v] = byVar[v].map((a) => S.align(times, j.hourly.time, a)))); });
-    return withAxis({ times, tz: master.timezone, offset: master.utc_offset_seconds, ens, status, problems });
+    return withAxis({ times, tz: master.timezone, offset: master.utc_offset_seconds, ens, status, problems, sourceProvenance: Object.fromEntries(ok.filter(x => x.j.__rrfs).map(x => [x.m.id, x.j.__rrfs])) });
   }
 
-  const OpsData = { getJSON, fetchModel, pick, loadModels, loadEnsemble, toMeters, loadNWS, withAxis };
+  const OpsData = { getJSON, fetchModel, pick, loadModels, loadEnsemble, toMeters, loadNWS, withAxis, directRrfsResponse, loadDirectRrfs };
   if (typeof module !== "undefined" && module.exports) module.exports = OpsData;
   root.OpsData = OpsData;
 })(typeof self !== "undefined" ? self : globalThis);
+

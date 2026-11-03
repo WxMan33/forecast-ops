@@ -243,7 +243,7 @@
           const onAxis = (a) => { const out = data.ms.map(() => null); ens.ms.forEach((ms, k) => { const i = at.get(ms); if (i != null) out[i] = a[k]; }); return out; };
           const members = Array.from({ length: n }, (_, k) => { const h = {}; vars.forEach((v) => { if (E[v][k]) h[v] = onAxis(E[v][k]); }); return { h }; });
           const h = {}; vars.forEach((v) => (h[v] = data.ms.map((_, i) => { let t = 0, c = 0; members.forEach((mb) => { const x = mb.h[v] && mb.h[v][i]; if (x != null) { t += x; c++; } }); return c ? t / c : null; })));
-          data.models[m.source] = { kind: "ens", h, members, n };
+          data.models[m.source] = { kind: "ens", h, members, n, provenance: ens.sourceProvenance && ens.sourceProvenance[m.id] || null };
         });
       }
       if (nwsAxis) {

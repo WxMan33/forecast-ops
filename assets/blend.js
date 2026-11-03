@@ -95,6 +95,8 @@
     const ensTxt = C.config.blendEns.models.filter((m) => data.models[m.source]).map((m) => `${m.name} ${data.models[m.source].n}`).join(", ");
     $("runMsg").textContent = `${MODELS.filter((m) => res.models[m.id]).length} models` + (ensTxt ? ` · ensembles ${ensTxt} members` : " · ensembles unavailable") + (res.problems.length ? ` · ${res.problems.join(" · ")}` : "") +
       ` · NWS ${nws && nws.ok ? `${nws.office} grid ${nws.gridX},${nws.gridY}` : "unavailable"} · times in ${O.tzShort(data.tz)}`;
+    const native = Object.entries(data.models).filter(([,m]) => m.provenance && m.provenance.provider === "NOAA native GRIB2");
+    if (native.length) $("runMsg").textContent += ` · RRFS: NOAA native CVG grid, ${native[0][1].provenance.cycle.slice(0,16).replace("T"," ")} UTC; temperature/precip/snow only; no elevation adjustment`;
     fresh = true;
     render();
   }

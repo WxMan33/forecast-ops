@@ -22,6 +22,8 @@ const EXPECT = {
   severe: ["temperature_2m", "dew_point_2m", "cape", "wind_speed_10m", "geopotential_height_500hPa", "temperature_500hPa", "temperature_700hPa", "wind_speed_500hPa"],
 };
 const EXCEPT = {
+  /* Native CVG RRFS fallback intentionally supplies temperature, precipitation and snow only. */
+  "blend:ncep_rrfs_conus": ["dew_point_2m", "wind_speed_10m", "wind_gusts_10m", "cloud_cover"],
   /* Found in real responses (Nov 2026). Each one is handled on the site, not hidden. */
   /* ECMWF AIFS has no wind gusts: the blend averages gusts from the models that have them. */
   "blend:ecmwf_aifs025_single": ["wind_gusts_10m"],

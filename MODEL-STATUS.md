@@ -27,7 +27,19 @@ HRRR remains operational. RRFS and REFS are the replacement direction for the re
 
 RRFS deterministic (`ncep_rrfs_conus`) and the five-member RRFS ensemble (`ncep_rrfs_conus_ensemble`, internal source `rrfs_ens`) are now registered in the shared loader configuration and collector. The five perturbed RRFS members are **not** the full time-lagged REFS product, which also includes other members/cycles. Do not label the five-member feed as full REFS.
 
-**Current limitation:** live CVG requests to both RRFS endpoints on November 3 returned HTTP 200 but entirely null temperature, precipitation and snowfall series; both metadata endpoints returned 404. These are unavailable sources, not successful data loads. They are optional and off by default in the selection controls. Missing data never count as zero or contribute to a blend. The collector records the empty response/status for audit. Usable RRFS data and any full REFS integration still require further verification.
+## Native CVG fallback
+
+A bounded NOAA point-feed worker now extracts the nearest native 3 km CONUS cell to CVG (about 0.83 km from the airport). It reads GRIB2 byte ranges for 2 m temperature, hourly precipitation and snow-water information from deterministic RRFS and all five perturbed members. It does not move the station or substitute 13 km RRFS, GFS or a seamless product.
+
+The loader prefers this feed within 3 km of the CVG point. Outside that pilot area it uses the location's own provider grid, with explicit nearest-cell selection and elevation adjustment disabled for RRFS. The native feed has no elevation correction. The UI identifies NOAA native-grid use and its limited variable set. Upper-air, wind and thunder diagnostics are unavailable from this feed rather than invented.
+
+The worker selects the newest cycle within its availability delay for which every requested deterministic hour (through f084) and every member hour (through f060) has an index. If the newest cycle is incomplete it checks the preceding six-hour cycle. It validates actual decoded temperature and precipitation values and refuses to replace a successful feed with gaps in those required fields. Invalid frozen fractions make derived snow unknown for the affected hours; they do not erase valid temperature or precipitation. Complete-window snow scoring excludes those member windows. Gaps in the 12Z November 3 listing were detected by this check; the earlier 06Z listing covered all required hours.
+
+Each output records its actual initialization, generation time, native grid coordinates/distance and method version. A companion manifest records NOAA file keys, byte ranges and SHA-256 hashes of input messages. The browser rejects cycles older than 16 hours or feed generations older than eight hours. Analysis-time accumulation is unknown, never zero. Only exact preceding-hour APCP/TSNOWP intervals are used. Snow uses the site's fixed 7:1 display convention; member snow water is estimated from APCP times a valid reported frozen fraction (0–100%). Negative or missing fractions during wet hours stay unknown. This is not modeled ground accumulation or full REFS.
+
+Refresh workflow: `.github/workflows/rrfs-point.yml`, every two hours. It skips re-downloading a cycle already published. Only a feed with complete required temperature and precipitation fields is committed; unknown derived snow hours are listed explicitly. The browser reads the public raw-repository JSON so a data-bot commit does not depend on another Pages deployment. Private verification archives the retrieved native feed and records its confirmed NOAA initialization separately from Open-Meteo metadata timestamps.
+
+The Open-Meteo default 3 km and ensemble requests returned all-null CVG series during diagnosis. The 13 km request and a nearest-cell request without elevation correction returned values, but provider acceptance alone is not considered a successful data load.
 
 ## References
 
