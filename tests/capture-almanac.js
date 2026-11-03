@@ -58,7 +58,11 @@ const acis = (body) => get("https://data.rcc-acis.org/StnData", { method: "POST"
     const rb = await fetch("https://www.timeanddate.com/robots.txt", { headers: { "User-Agent": UA } }); const txt = rb.ok ? await rb.text() : "";
     const ok = rb.ok && U.robotsAllows(txt, "/sun/usa/cincinnati");
     fs.writeFileSync(path.join(OUT, "timeanddate-robots.json"), JSON.stringify({ status: rb.status, plainPageAllowed: ok, queryPagesAllowed: U.robotsAllows(txt, "/sun/usa/cincinnati?month=11&year=2026") }));
-    if (ok) { const r = await fetch("https://www.timeanddate.com/sun/usa/cincinnati", { headers: { "User-Agent": UA } }); const h = await r.text(); fs.writeFileSync(path.join(OUT, "timeanddate-cincinnati-current.html"), h); console.log("timeanddate", r.status, h.length); }
+    /* 2026-11-03: the allowed page answers automated requests with a Cloudflare challenge; challenges are
+       never bypassed, so nothing is saved. Compare by hand in a browser instead. */
+    if (ok) { const r = await fetch("https://www.timeanddate.com/sun/usa/cincinnati", { headers: { "User-Agent": UA } }); const h = await r.text(); const challenged = /Just a moment|cf-chl|challenge-platform/i.test(h);
+      fs.writeFileSync(path.join(OUT, "timeanddate-robots.json"), JSON.stringify({ status: rb.status, plainPageAllowed: ok, queryPagesAllowed: false, plainPageStatus: r.status, botChallenge: challenged }));
+      if (!challenged) fs.writeFileSync(path.join(OUT, "timeanddate-cincinnati-current.html"), h); }
   } catch (e) { console.log("timeanddate capture failed", e.message); }
   fs.writeFileSync(path.join(OUT, "capture-meta.json"), JSON.stringify({ capturedAt: new Date().toISOString() }));
 })();
