@@ -83,6 +83,9 @@ const T = (s) => Date.parse(s), FX = path.join(__dirname, "fixtures");
   eq(r.issues, [], "clean graphic has no issues");
   const bad = TV.parseGraphicTSV(mk(3), {});
   ok(bad.issues.some((x) => /no low after FRI/.test(x)) && bad.confidence <= 0.5, "a missing value lowers confidence and sends the capture to review");
+  /* real failure seen in the first OCR run: "51" read as "1" */
+  const misread = TV.parseGraphicTSV(mk().replace(/\t51°$/m, "\t1°"), {});
+  ok(misread.issues.some((x) => /possible misread/.test(x)), "a dropped digit (51 read as 1) is caught by plausibility, not trusted");
   const days = r.days.map((d) => ({ ...d }));
   eq([TV.assignDates(days, "2026-11-02").ok, days[0].date, days[8].date], [true, "2026-11-03", "2026-11-11"], "issued Monday evening: first column TUE is the next day");
   eq(TV.assignDates(r.days.map((d) => ({ ...d })), "2026-11-03").firstOffset, 0, "issued Tuesday: first column is today");

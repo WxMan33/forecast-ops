@@ -114,6 +114,14 @@ function renormalize() {
 
 async function score() {
   const SC = require("./lib/score.js"), RP = require("./lib/report.js");
+  /* bundles written by an older normalizer are rebuilt from raw evidence first (versions recorded) */
+  let rebuilt = 0;
+  U.readJSONL(capturesFile).forEach((c) => {
+    if (!c.normalized || !c.normalized.path) return;
+    let v = null; try { v = JSON.parse(U.gunzip(fs.readFileSync(path.join(DATA, c.normalized.path))).toString()).version; } catch (e) { v = null; }
+    if (v !== NORM.VERSION) { try { writeBundle(c); rebuilt++; } catch (e) { console.log("rebuild failed", c.captureId, e.message); } }
+  });
+  if (rebuilt) runLog({ job: "renormalize", outcome: "ok", count: rebuilt, reason: `normalizer ${NORM.VERSION}` });
   const res = SC.scoreAll(DATA, loc);
   RP.writeReports(DATA, loc, res);
   runLog({ job: "score", outcome: "ok", pairs: res.pairs.length, pending: res.pending.length });

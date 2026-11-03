@@ -7,7 +7,7 @@ const U = require("./util.js");
 const C = U.Core, B = C.blend, S = C.stats;
 const TG = require("./targets.js");
 const SRC = require("./sources.js");
-const VERSION = "normalize-v1";
+const VERSION = "normalize-v2"; // v2: prospective-only windows; full-window coverage required
 
 const r1 = (x, d = 1) => (x == null || !isFinite(x) ? null : Math.round(x * 10 ** d) / 10 ** d);
 const omMs = (t) => Date.parse(t + "Z"); // Open-Meteo GMT labels

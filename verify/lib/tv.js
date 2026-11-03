@@ -108,7 +108,11 @@ function parseGraphicTSV(tsv, ctx) {
   /* weekday sequence check */
   cols.forEach((c, i) => { if (i && DAYS.indexOf(c.name) !== (DAYS.indexOf(cols[i - 1].name) + 1) % 7) issues.push(`day sequence break at ${c.name}`); });
   out.forEach((d, i) => { if (d.hi == null) issues.push(`no high for ${d.dayName} (${i + 1})`); if (i < out.length - 1 && d.lo == null) issues.push(`no low after ${d.dayName}`);
-    if (d.hi != null && (d.hi < -30 || d.hi > 115)) issues.push(`implausible high ${d.hi}`); if (d.lo != null && d.hi != null && out[i + 1] && out[i + 1].hi != null && d.lo > Math.max(d.hi, out[i + 1].hi) + 2) issues.push(`low ${d.lo} above both neighbouring highs`); });
+    if (d.hi != null && (d.hi < -30 || d.hi > 115)) issues.push(`implausible high ${d.hi}`); if (d.lo != null && d.hi != null && out[i + 1] && out[i + 1].hi != null && d.lo > Math.max(d.hi, out[i + 1].hi) + 2) issues.push(`low ${d.lo} above both neighbouring highs`);
+    /* dropped or extra digits: a value far from its neighbours is suspect, not trusted */
+    if (d.lo != null && d.hi != null && d.lo < d.hi - 35 && (!out[i + 1] || out[i + 1].hi == null || d.lo < out[i + 1].hi - 35)) issues.push(`low ${d.lo} far below the neighbouring highs: possible misread`);
+    const nb = [out[i - 1], out[i + 1]].filter((x) => x && x.hi != null).map((x) => x.hi);
+    if (d.hi != null && nb.length && nb.every((h) => Math.abs(h - d.hi) > 30)) issues.push(`high ${d.hi} far from its neighbours: possible misread`); });
   const minConf = Math.min(...out.flatMap((d) => d.conf)) / 100;
   return { days: out.map((d) => ({ dayName: d.dayName, hi: d.hi, lo: d.lo, pop: null, by: { hi: "product", lo: "product", pop: null }, ocrConf: Math.round(Math.min(...d.conf)) })), confidence: issues.length ? Math.min(0.5, minConf) : minConf, issues };
 }
@@ -123,8 +127,8 @@ function assignDates(days, anchorDate) {
   return { ok: true, firstOffset: off };
 }
 A.wcpoGraphic = (buf, ctx) => {
-  if (!ctx.ocr) return { days: [], confidence: 0, issues: ["OCR unavailable on this runner: graphic saved, extraction pending"] };
-  const r = parseGraphicTSV(ctx.ocr(buf), ctx);
+  if (ctx.tsv == null) return { days: [], confidence: 0, issues: ["OCR unavailable on this runner: graphic saved, extraction pending"] };
+  const r = parseGraphicTSV(ctx.tsv, ctx);
   const anchor = ctx.lastModified ? lstLocalDate(Date.parse(ctx.lastModified), ctx.loc) : ctx.captureLocalDate;
   const a = assignDates(r.days, anchor);
   if (!a.ok) { r.issues.push(a.why); r.confidence = 0; }
@@ -172,8 +176,9 @@ async function collect(cfg, loc, dataRoot, cap, prev = {}) {
     rec.evidence[0].contentSha256 = U.sha256(r.buf);
     const pv = prev[p.id];
     if (pv && pv.evidence && pv.evidence[0] && pv.evidence[0].contentSha256 === rec.evidence[0].contentSha256) rec.unchangedSince = pv.unchangedSince || pv.retrievedAt;
-    let ex;
-    try { ex = A[p.adapter](ext === "html" ? r.text : r.buf, { loc, ocr, lastModified: r.lastModified, captureLocalDate: cap.localDate }); }
+    let ex, tsv = null;
+    if (p.adapter === "wcpoGraphic" && ocr) { try { tsv = ocr(r.buf); rec.evidence.push({ ...saveEvidence(dataRoot, Buffer.from(tsv), "ocr.tsv"), role: "ocr output (tesseract --psm 11 tsv)" }); } catch (e) { tsv = null; } }
+    try { ex = A[p.adapter](ext === "html" ? r.text : r.buf, { loc, tsv, lastModified: r.lastModified, captureLocalDate: cap.localDate }); }
     catch (e) { ex = { days: [], confidence: 0, issues: [`extractor error: ${e.message}`] }; }
     /* a bot-challenge page is recognised by challenge markers AND no extractable content; never bypassed */
     if (r.type.includes("html") && !(ex.days || []).length && !ex.text && /cf-chl|challenge-platform|px-captcha|captcha-delivery|Access Denied/i.test(r.text.slice(0, 50000))) { out.push({ ...rec, status: "blocked", error: "bot challenge page; not bypassed" }); continue; }
