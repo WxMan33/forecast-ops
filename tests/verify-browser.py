@@ -39,7 +39,7 @@ with sync_playwright() as p:
  assert '64.0' in page.locator('#pane').inner_text()
  for width in [360,390,1280,1440]:
   page.set_viewport_size({'width':width,'height':900})
-  assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),str(width)
+  assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),str((width,page.evaluate('[...document.querySelectorAll("body *")].filter(e=>e.getBoundingClientRect().right>innerWidth+1).map(e=>[e.tagName,e.id,e.className,e.getBoundingClientRect().width]).slice(0,12)')))
   Path(root/'tests/out').mkdir(exist_ok=True)
   page.screenshot(path=str(root/f'tests/out/dashboard-{width}.png'),full_page=True)
  page.get_by_role('button',name='TV products & review',exact=True).click()
