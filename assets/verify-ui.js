@@ -41,10 +41,11 @@
 
   let tab = ls.get("vf_tab", "health");
   function render() {
-    const tabs = [["health", "Collector health"], ["tracking", "Temperature tracking"], ["daily", "Daily verification"], ["history", "Forecast history"], ["scores", "Advanced scorecards"], ["tv", "TV products & review"], ["recipes", "Blend recipes"], ["export", "Exports"]];
+    const tabs = [["health", "Collector health"], ["my", "My Forecast"], ["tracking", "Temperature tracking"], ["daily", "Daily verification"], ["history", "Forecast history"], ["scores", "Advanced scorecards"], ["tv", "TV products & review"], ["recipes", "Blend recipes"], ["export", "Exports"]];
     $("out").innerHTML = `<div class="vtabs">${tabs.map(([k, l]) => `<button class="btn ${k === tab ? "" : "ghost"} sm" data-tab="${k}" type="button">${l}${k === "tv" && IDX.reviewQueue ? ` (${IDX.reviewQueue})` : ""}</button>`).join("")}</div><div id="pane" style="margin-top:12px"></div>`;
     $("out").querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => { tab = b.dataset.tab; ls.set("vf_tab", tab); render(); }));
-    if (["tracking", "daily", "history"].includes(tab)) VerifyPanels.open(tab, DASH, getJSON, $("pane"));
+    if (tab === "my") MyForecast.open(DASH, getJSON, gh, $("pane"), cfg());
+    else if (["tracking", "daily", "history"].includes(tab)) VerifyPanels.open(tab, DASH, getJSON, $("pane"));
     else ({ health, scores, tv, recipes, exportsPane })[tab === "export" ? "exportsPane" : tab]?.();
   }
 
@@ -117,7 +118,7 @@
       ${Object.entries(B).map(([k, v]) => `<tr><td style="text-align:left">${esc(v.label)}</td><td class="mono">${esc(v.configHash)}</td><td style="text-align:left">${esc(v.missing.join(", ") || "none")}</td><td style="text-align:left;white-space:normal">${esc(v.shares.temperature_2m.map(([id, s]) => `${id} ${Math.round(s * 100)}%`).join(", "))}</td><td style="text-align:left;white-space:normal">${esc(v.shares.precipitation.map(([id, s]) => `${id} ${Math.round(s * 100)}%`).join(", "))}</td></tr>`).join("")}</tbody></table></div></section>`;
   }
   function exportsPane() {
-    const files = ["reports/dashboard/index.json", "reports/scores.json", "reports/index.json", "reports/review-queue.json", "reports/exports/pairs.csv", "reports/exports/observations.csv", "reports/STATUS.md", "reports/SCORECARD.md"];
+    const files = ["reports/my-forecast.json", "reports/dashboard/index.json", "reports/scores.json", "reports/index.json", "reports/review-queue.json", "reports/exports/pairs.csv", "reports/exports/observations.csv", "reports/STATUS.md", "reports/SCORECARD.md"];
     $("pane").innerHTML = `<section class="card"><div class="section-title">Exports</div><p class="msg">Forecast archives (raw evidence and normalized bundles), observations and the correction audit trail live in the data repository itself; clone it for a complete export.</p>${files.map((x) => `<button class="btn ghost sm" data-f="${x}" type="button" style="margin:4px">${esc(x)}</button>`).join("")}</section>`;
     $("pane").querySelectorAll("[data-f]").forEach((b) => b.addEventListener("click", async () => { try { const bl = await (await gh(b.dataset.f)).blob(); const a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = b.dataset.f.split("/").pop(); a.click(); } catch (e) { alert(e.message); } }));
   }

@@ -24,6 +24,9 @@ on:
     - cron: "5 5 * * *"
     - cron: "41 */3 * * *"   # observations + scoring every 3 hours
     - cron: "23 9 20 1 *"    # 20 January: archive the previous year (see README "Retention")
+  push:
+    branches: [main]
+    paths: ["personal-forecasts/CVG/**"]
   workflow_dispatch:
     inputs:
       job:
@@ -45,12 +48,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main  # resolve after concurrency lock; event SHA may predate a completed edition
+          fetch-depth: 0  # first-addition commit establishes personal forecast issue times
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - name: Decide job
         id: job
         run: |
           J="${{ github.event.inputs.job }}"
+          if [ "${{ github.event_name }}" = "push" ]; then J=score-only; fi
           if [ -z "$J" ]; then
             case "${{ github.event.schedule }}" in
               "41 */3 * * *") J=observe-score ;;
@@ -64,6 +69,9 @@ jobs:
       - name: Collector self-test
         run: node collector/verify/tests/verify.test.js
         continue-on-error: true   # raw evidence is still collected; a failure shows in the Actions log
+      - name: Personal forecast self-test
+        run: node collector/verify/tests/personal.test.js
+        continue-on-error: true
       - name: Install OCR
         if: startsWith(steps.job.outputs.job, 'collect')
         run: sudo apt-get install -y -qq tesseract-ocr > /dev/null || echo "::warning::OCR unavailable; graphics saved for review"
@@ -116,4 +124,3 @@ jobs:
           path: ${{ runner.temp }}/collector-attempt.tar.gz
           retention-days: 30
           if-no-files-found: warn
-

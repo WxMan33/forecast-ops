@@ -140,7 +140,10 @@ function scoreAll(DATA, loc, nowMs = Date.now(), normVersion = require("./normal
     c.sourceTimeliness = s ? s.timeliness : null;
     c.cls = !s || !s.selected ? "superseded" : s.timeliness.status === "on_time" ? "primary" : "late";
   });
-  const pairs = [], pending = [];
+  const PERSONAL = require('./personal.js');
+  const personal = PERSONAL.load(DATA, loc, nowMs);
+  const personalScored = PERSONAL.score(personal, best, loc, nowMs);
+  const pairs = personalScored.pairs.slice(), pending = [];
   const rejected = [];
   all.forEach((c) => {
     if (!TG.TARGETS[c.target]) return;
@@ -196,6 +199,6 @@ function scoreAll(DATA, loc, nowMs = Date.now(), normVersion = require("./normal
     Object.entries(b.hourly.temperature_2m || {}).forEach(([id, arr]) => { const tr = id.startsWith("blend:") ? "blend" : "source", nm = id.replace(/^blend:/, "");
       arr.forEach((v, i) => { if (v != null && TM.obsOk(b.hourly.t0 + i * b.hourly.stepMs - TM.MATCH_TOLERANCE_MIN * 60e3, last)) E(tr, nm).hourlyEligible++; }); }); });
   hourlyPairs.forEach((p) => { E(p.id.startsWith("blend:") ? "blend" : "source", p.id.replace(/^blend:/, "")).hourlyScored++; });
-  return { version: VERSION, timing: TM.VERSION, normVersion, eligibility: Object.values(elig), at: U.iso(nowMs), pairs, hourlyPairs, rejected, pending, obsBest, summary, hourly: Object.values(hourly).map((h) => ({ id: h.id, leadDay: h.leadDay, slot: h.slot, cls: h.cls, n: h.n, uniqueHours: h.hours.size, ...indep([...h.dates]), leadHours: leadStats(h.lead), mae: h.abs / h.n, bias: h.sum / h.n, within2: h.in2 / h.n })), editionsVersion: ED.VERSION, comparisons: comps, bundles: bundles.length, tv, obsCount: obsRows.length, minDates: MIN_DATES };
+  return { personal: { ...personal, ...personalScored }, version: VERSION, timing: TM.VERSION, normVersion, eligibility: Object.values(elig), at: U.iso(nowMs), pairs, hourlyPairs, rejected, pending, obsBest, summary, hourly: Object.values(hourly).map((h) => ({ id: h.id, leadDay: h.leadDay, slot: h.slot, cls: h.cls, n: h.n, uniqueHours: h.hours.size, ...indep([...h.dates]), leadHours: leadStats(h.lead), mae: h.abs / h.n, bias: h.sum / h.n, within2: h.in2 / h.n })), editionsVersion: ED.VERSION, comparisons: comps, bundles: bundles.length, tv, obsCount: obsRows.length, minDates: MIN_DATES };
 }
 module.exports = { VERSION, scoreAll, cases, metrics, ensMetrics, matched, blockBootstrap, reviewedTV, MIN_DATES };

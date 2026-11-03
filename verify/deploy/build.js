@@ -14,6 +14,7 @@ copy(path.join(ROOT, "verify"), path.join(OUT, "collector", "verify"));
 fs.rmSync(path.join(OUT, "collector", "verify", "deploy"), { recursive: true, force: true });
 copy(path.join(ROOT, "assets", "ops-core.js"), path.join(OUT, "collector", "assets", "ops-core.js"));
 copy(path.join(ROOT, "assets", "ops-data.js"), path.join(OUT, "collector", "assets", "ops-data.js"));
+copy(path.join(ROOT, "assets", "my-forecast-core.js"), path.join(OUT, "collector", "assets", "my-forecast-core.js"));
 fs.writeFileSync(path.join(OUT, "collector", "COLLECTOR_VERSION.json"), JSON.stringify({ builtAt: new Date().toISOString(), sourceRepo: "WxMan33/forecast-ops", sourceCommit: arg("source-commit", null), note: "vendored copy; every capture also records this repository's commit (GITHUB_SHA)" }, null, 1) + "\n");
 copy(path.join(__dirname, "collector.yml"), path.join(OUT, ".github", "workflows", "collector.yml"));
 copy(path.join(__dirname, "DATA_README.md"), path.join(OUT, "README.md"));

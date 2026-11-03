@@ -26,6 +26,7 @@ function writeDashboard(DATA, loc, res, nowMs = Date.now()) {
   const recipes = require("../config/blends.js");
   const configured = recipes.recipes.concat(recipes.candidates || []);
   const labels = Object.fromEntries(configured.map(r=>["blend:"+r.id,r.label]));
+  labels["my-forecast"]="Brad / My Forecast";
   const items=[];
   list.forEach(({cap,b})=>{
     const edition=ED.isEdition(cap)?`${loc.id}|${ED.editionId(cap)}`:null;
@@ -59,6 +60,9 @@ function writeDashboard(DATA, loc, res, nowMs = Date.now()) {
     U.writeJSON(path.join(base,`${cap.captureId}.json`),{schema:1,...meta,hourly:b.hourly});
     captures.push(meta);
   });
+  const personal=res.personal || {entries:[],cases:[],pairs:[],pending:[]};
+  U.writeJSON(path.join(DATA,"reports/my-forecast.json"),{version:personal.version||"my-forecast-v1",at:U.iso(nowMs),entries:personal.entries,pairs:personal.pairs,pending:personal.pending});
+  personal.cases.forEach(c=>{history.push({captureId:c.captureId,id:c.id,target:c.target,date:c.date,value:c.v,slot:c.slot,cls:c.cls,retrievedAt:c.issuedAt,leadHours:c.leadHours,window:TG.TARGETS[c.target].window(c.date,loc),hash:null,contributors:null,normVersion:c.normVersion,submissionId:c.submissionId,commit:c.commit});if(c.cls==="primary"){const cap=captures.find(x=>x.captureId===c.captureId);if(cap)cap.sources[c.id]={label:labels[c.id]};}});
   const historyFiles={};
   [...new Set(history.map(x=>x.date))].forEach(date=>{const file=`reports/dashboard/history-${date}.json`;historyFiles[date]=file;U.writeJSON(path.join(DATA,file),history.filter(x=>x.date===date));});
   const defaultId="blend:"+U.Core.blend.PREFERRED.id;
