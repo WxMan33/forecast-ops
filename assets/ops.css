@@ -421,3 +421,8 @@ textarea.notes { width: 100%; resize: vertical; font: 13px/1.45 var(--font-body,
   .printnotes { display: block; } .noprint { display: none !important; }
 }
 .thr { width: 3.4em; padding: 1px 4px; display: inline-block; font-size: 12px; }
+@media (max-width: 600px) {
+  .kv { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .kv dt { margin-top: 7px; } .kv dd { text-align: left; }
+  .big2 .v { font-size: 19px; }
+}
