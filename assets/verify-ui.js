@@ -9,7 +9,7 @@
   const ls = { get: (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }, del: (k) => { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } } };
   $("repo").value = ls.get("vf_repo", "WxMan33/forecast-ops-data"); $("tok").value = ls.get("vf_tok", ""); $("branch").value = ls.get("vf_branch", "main"); $("root").value = ls.get("vf_root", "");
   const f = (x, d = 1) => (x == null || !isFinite(x) ? "—" : (+x).toFixed(d)), pct = (x) => (x == null ? "—" : Math.round(x * 100) + "%");
-  let IDX = null, SC = null, RQ = null;
+  let IDX = null, SC = null, RQ = null, DASH = null;
   const cfg = () => ({ repo: $("repo").value.trim(), tok: $("tok").value.trim(), branch: $("branch").value.trim() || "main", root: $("root").value.trim().replace(/^\/|\/$/g, "") });
   const p = (rel) => (cfg().root ? `${cfg().root}/${rel}` : rel);
   async function gh(rel, { raw = true, method = "GET", body } = {}) {
@@ -34,16 +34,18 @@
     $("msg").className = "msg"; $("msg").textContent = "Loading reports…";
     try { [IDX, SC, RQ] = await Promise.all([getJSON("reports/index.json"), getJSON("reports/scores.json"), getJSON("reports/review-queue.json")]); }
     catch (e) { $("msg").className = "msg err"; $("msg").textContent = `Couldn't load: ${e.message}. Check the repository, branch, folder and token.`; return; }
+    try { DASH = await getJSON("reports/dashboard/index.json"); } catch (e) { DASH = null; }
     $("msg").textContent = `Reports generated ${IDX.at}.`;
     render();
   }
 
   let tab = ls.get("vf_tab", "health");
   function render() {
-    const tabs = [["health", "Collector health"], ["scores", "Scorecards"], ["tv", "TV products & review"], ["recipes", "Blend recipes"], ["export", "Exports"]];
+    const tabs = [["health", "Collector health"], ["tracking", "Temperature tracking"], ["daily", "Daily verification"], ["history", "Forecast history"], ["scores", "Advanced scorecards"], ["tv", "TV products & review"], ["recipes", "Blend recipes"], ["export", "Exports"]];
     $("out").innerHTML = `<div class="vtabs">${tabs.map(([k, l]) => `<button class="btn ${k === tab ? "" : "ghost"} sm" data-tab="${k}" type="button">${l}${k === "tv" && IDX.reviewQueue ? ` (${IDX.reviewQueue})` : ""}</button>`).join("")}</div><div id="pane" style="margin-top:12px"></div>`;
     $("out").querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => { tab = b.dataset.tab; ls.set("vf_tab", tab); render(); }));
-    ({ health, scores, tv, recipes, exportsPane })[tab === "export" ? "exportsPane" : tab]();
+    if (["tracking", "daily", "history"].includes(tab)) VerifyPanels.open(tab, DASH, getJSON, $("pane"));
+    else ({ health, scores, tv, recipes, exportsPane })[tab === "export" ? "exportsPane" : tab]?.();
   }
 
   function health() {
@@ -62,7 +64,7 @@
   }
 
   function scores() {
-    const S = SC.summary.filter((x) => x.timeliness === "on_time" && x.lead >= 1 && x.lead <= 7);
+    const S = SC.summary.filter((x) => x.cls === "primary" && x.lead >= 1 && x.lead <= 7);
     const targets = [...new Set(S.map((x) => x.target))];
     const tbl = (t) => {
       const rows = S.filter((x) => x.target === t), ids = [...new Set(rows.map((x) => `${x.track}|${x.id}|${x.slot}`))];
@@ -74,7 +76,7 @@
     $("pane").innerHTML = `<section class="card"><div class="section-title">Scorecards</div><p class="msg">On-time captures, lead days 1–7, each source's full available sample. Hover a cell for bias, within-2°F and ensemble coverage. Matched comparisons below use only cases every member has. Verdicts need ${SC.minDates}+ distinct valid dates and a 90% block-bootstrap interval excluding zero.</p></section>
       ${targets.map(tbl).join("") || '<section class="card"><p class="msg">Nothing scored yet: forecasts verify as their target windows end and observations arrive.</p></section>'}
       <section class="card" style="margin-top:14px"><div class="section-title">Matched comparisons</div>${comps.length ? comps.map((c) => `<div style="margin-bottom:10px"><b>${esc(c.set)} · ${esc(c.target)} · D${c.lead} · ${esc(c.slot)}</b> <span class="msg">${c.n} cases, ${c.dates} dates, ${esc(c.metric)}</span><div class="msg">${Object.entries(c.members).map(([m, x]) => `${esc(m)} ${f(x.score, 2)}${x.verdict ? ` (${esc(x.verdict)}${x.ci90 ? `, Δ ${f(x.diffVsRef, 2)}, 90% CI ${f(x.ci90[0], 2)}…${f(x.ci90[1], 2)}` : ""})` : ""}`).join(" · ")}</div></div>`).join("") : '<p class="msg">No matched cases yet.</p>'}</section>
-      ${SC.hourly && SC.hourly.length ? `<section class="card" style="margin-top:14px"><div class="section-title">Hourly temperature</div><div class="tablewrap"><table><thead><tr><th style="text-align:left">Source</th><th>Slot</th><th>Lead day</th><th>n</th><th>MAE</th><th>Bias</th><th>Within 2°F</th></tr></thead><tbody>${SC.hourly.sort((a, b) => a.id.localeCompare(b.id) || a.leadDay - b.leadDay).map((h) => `<tr><td style="text-align:left">${esc(h.id)}</td><td>${esc(h.slot)}</td><td>${h.leadDay}</td><td>${h.n}</td><td class="num">${f(h.mae)}</td><td class="num">${f(h.bias)}</td><td class="num">${pct(h.within2)}</td></tr>`).join("")}</tbody></table></div></section>` : ""}`;
+      ${SC.hourly && SC.hourly.length ? `<section class="card" style="margin-top:14px"><div class="section-title">Hourly temperature</div><div class="tablewrap"><table><thead><tr><th style="text-align:left">Source</th><th>Slot</th><th>Lead day</th><th>n</th><th>MAE</th><th>Bias</th><th>Within 2°F</th></tr></thead><tbody>${SC.hourly.filter(h => h.cls === "primary").slice().sort((a, b) => a.id.localeCompare(b.id) || a.leadDay - b.leadDay).map((h) => `<tr><td style="text-align:left">${esc(h.id)}</td><td>${esc(h.slot)}</td><td>${h.leadDay}</td><td>${h.n}</td><td class="num">${f(h.mae)}</td><td class="num">${f(h.bias)}</td><td class="num">${pct(h.within2)}</td></tr>`).join("")}</tbody></table></div></section>` : ""}`;
   }
 
   async function tv() {
@@ -110,12 +112,12 @@
   }
   function recipes() {
     const B = IDX.latestBlendInfo || {};
-    $("pane").innerHTML = `<section class="card"><div class="section-title">Blend recipes in the latest capture</div><p class="msg">Requested weights, the weights actually used (sources present), missing sources and effective shares. Baseline v1 is frozen; candidates run in parallel and never become defaults on their own. Modes: Brad's preferred = Baseline v1 · Local verified = none yet (requires demonstrated improvement on unseen dates and a recorded decision) · Custom.</p>
+    $("pane").innerHTML = `<section class="card"><div class="section-title">Blend recipes in the latest capture</div><p class="msg">Requested weights, the weights actually used (sources present), missing sources and effective shares. Baseline v1 is frozen; candidates run in parallel and never become defaults on their own. Current site preference is Default v2; it is prospective and does not replace historical recipes. Earlier modes: Brad's preferred = Baseline v1 · Local verified = none yet (requires demonstrated improvement on unseen dates and a recorded decision) · Custom.</p>
       <div class="tablewrap"><table><thead><tr><th style="text-align:left">Recipe</th><th>Hash</th><th style="text-align:left">Missing</th><th style="text-align:left">Temperature shares</th><th style="text-align:left">Precip shares</th></tr></thead><tbody>
       ${Object.entries(B).map(([k, v]) => `<tr><td style="text-align:left">${esc(v.label)}</td><td class="mono">${esc(v.configHash)}</td><td style="text-align:left">${esc(v.missing.join(", ") || "none")}</td><td style="text-align:left;white-space:normal">${esc(v.shares.temperature_2m.map(([id, s]) => `${id} ${Math.round(s * 100)}%`).join(", "))}</td><td style="text-align:left;white-space:normal">${esc(v.shares.precipitation.map(([id, s]) => `${id} ${Math.round(s * 100)}%`).join(", "))}</td></tr>`).join("")}</tbody></table></div></section>`;
   }
   function exportsPane() {
-    const files = ["reports/scores.json", "reports/index.json", "reports/review-queue.json", "reports/exports/pairs.csv", "reports/exports/observations.csv", "reports/STATUS.md", "reports/SCORECARD.md"];
+    const files = ["reports/dashboard/index.json", "reports/scores.json", "reports/index.json", "reports/review-queue.json", "reports/exports/pairs.csv", "reports/exports/observations.csv", "reports/STATUS.md", "reports/SCORECARD.md"];
     $("pane").innerHTML = `<section class="card"><div class="section-title">Exports</div><p class="msg">Forecast archives (raw evidence and normalized bundles), observations and the correction audit trail live in the data repository itself; clone it for a complete export.</p>${files.map((x) => `<button class="btn ghost sm" data-f="${x}" type="button" style="margin:4px">${esc(x)}</button>`).join("")}</section>`;
     $("pane").querySelectorAll("[data-f]").forEach((b) => b.addEventListener("click", async () => { try { const bl = await (await gh(b.dataset.f)).blob(); const a = document.createElement("a"); a.href = URL.createObjectURL(bl); a.download = b.dataset.f.split("/").pop(); a.click(); } catch (e) { alert(e.message); } }));
   }

@@ -39,12 +39,13 @@
   td.bad { color: var(--action); } td.warn { color: var(--monitor); }
   .vtabs { display: flex; gap: 6px; flex-wrap: wrap; }
 </style>
+<link rel="stylesheet" href="assets/verify-dashboard.css?v=7a092b3a39">
 </head>
 <body>
 <main class="vwrap">
   <section class="card">
     <div class="row" style="justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
-      <div class="section-title" style="margin:0">Forecast verification · private pilot</div>
+      <div class="section-title" style="margin:0">CVG forecast verification</div>
       <a class="msg" href="index.html">← forecast tools</a>
     </div>
     <p class="msg">This page holds no data. It reads the private data repository with a GitHub token you enter here; the token stays in this browser only. Results are private pilot evidence: no rankings or "most accurate" claims.</p>
@@ -60,7 +61,9 @@
   </section>
   <div id="out"></div>
 </main>
-<script src="assets/verify-ui.js?v=ac398cace1"></script>
+<script src="assets/verify-core.js?v=99a258ec33"></script>
+<script src="assets/verify-panels.js?v=bf9ea88e07"></script>
+<script src="assets/verify-ui.js?v=7065da1cd0"></script>
 </body>
 </html>
 

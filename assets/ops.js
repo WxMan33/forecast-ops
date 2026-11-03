@@ -115,7 +115,7 @@
       <a href="https://open-meteo.com/" target="_blank" rel="noopener">Weather data by Open-Meteo.com</a> (CC BY 4.0) ·
       alerts from <a href="https://www.weather.gov/" target="_blank" rel="noopener">NWS</a> ·
       Model guidance only. Not an official forecast or warning. NWS is one weighted source in MODEL BLEND; elsewhere NWS values are labelled NWS and shown alongside. ·
-      <a href="#" id="verifyExport">export forecast &amp; observation logs</a>`;
+      <a href="verify.html">CVG verification</a> · <a href="#" id="verifyExport">export forecast &amp; observation logs</a>`;
     document.body.append(foot);
 
     $("themeBtn").addEventListener("click", () => { const t = theme() === "dark" ? "light" : "dark"; store.set("ops_theme", t); applyTheme(t); });
