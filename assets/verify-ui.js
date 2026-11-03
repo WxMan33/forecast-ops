@@ -39,7 +39,7 @@
     render();
   }
 
-  let tab = ls.get("vf_tab", "health");
+  let tab = ["my", "health", "daily", "history", "tracking", "scores", "tv", "recipes", "export"].includes(location.hash.slice(1)) ? location.hash.slice(1) : ls.get("vf_tab", "health");
   function render() {
     const tabs = [["health", "Collector health"], ["my", "My Forecast"], ["tracking", "Temperature tracking"], ["daily", "Daily verification"], ["history", "Forecast history"], ["scores", "Advanced scorecards"], ["tv", "TV products & review"], ["recipes", "Blend recipes"], ["export", "Exports"]];
     $("out").innerHTML = `<div class="vtabs">${tabs.map(([k, l]) => `<button class="btn ${k === tab ? "" : "ghost"} sm" data-tab="${k}" type="button">${l}${k === "tv" && IDX.reviewQueue ? ` (${IDX.reviewQueue})` : ""}</button>`).join("")}</div><div id="pane" style="margin-top:12px"></div>`;
