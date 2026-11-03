@@ -28,7 +28,7 @@ Buy a name from a registrar (Cloudflare, Porkbun, Namecheap: about $10–15 a ye
 
 ## NWS comparison
 
-NWS point forecasts come from api.weather.gov and are always shown as a **separate, labelled source**. They are never averaged into any blend.
+NWS point forecasts come from api.weather.gov. In **Model Blend** NWS is one weighted source inside the blend (heavy by default, adjustable like any other). Everywhere else, and in the comparison tables, NWS values are shown as a labelled source of their own.
 
 - **Lookup:** each location is resolved through `/points/{lat},{lon}`, then its forecast, hourly and grid-data URLs are followed. The point mapping is cached for a week; forecasts refresh every 15 minutes.
 - **Units and times:** grid values carry their WMO units (°C, km/h, mm) and are converted to °F, mph and inches. They keep their own valid intervals; official forecast periods keep their day/night start and end times.
@@ -36,7 +36,7 @@ NWS point forecasts come from api.weather.gov and are always shown as a **separa
 - **Probabilities stay what they are.** Official period PoP is shown as-is. Hourly grid PoP is shown only as hourly values, or a range of them; it is never summed, and never treated as a daily or phase probability.
 - **Freshness:** data older than 12 hours counts as stale and is dropped, not shown. NWS failures are isolated: the model tools keep working and the header chip says what's missing.
 - **Where it appears:**
-  - Blend: an NWS line on compatible charts, NWS day-high and night-low columns, an NWS-vs-blend table over each official period's own hours, and NWS columns in event tables.
+  - Blend: inside the blend at its weight (temperatures, dew point, feels-like, wind, gusts, cloud from the grid; precip and snow from its interval totals, exact when aligned with the window and otherwise prorated by overlap and marked \*; its hourly PoP is excluded because its threshold and period differ from Open-Meteo's). Also an NWS line on compatible charts, NWS day-high and night-low columns, an NWS-vs-blend table over each official period's own hours, and NWS columns in event tables.
   - Overview: NWS day/night values on the day cards and in the event briefing.
   - Thunder: NWS gridded thunder probability, kept with its own multi-hour validity intervals. NWS doesn't document the probability's period, so hourly displays only sample each value across its interval.
   - Winter: NWS weather wording (the only source that can say sleet), plus NWS snow and ice totals.
@@ -79,10 +79,16 @@ The Winter page shows:
 - **Comparison:** melting, refreezing and surface energies must agree to float precision. Categories must agree, threshold cases included.
 - **Offline cross-check:** `tests/reference/upp-bourgouin.js` is a separately written JavaScript port with its own points-to-layers conversion, used for quick offline checks. It is not the original code.
 
-## Blend presets and weighting
+## Blend sources, presets and weighting
 
-- **Custom weights** (your saved models and weights, migrated unchanged), **Equal raw consensus** (every raw model at weight 1, NBM excluded because NBM already blends and calibrates these models) and **NBM only**. NWS is separate.
-- **Variable- and lead-time weighting:** `blend.weightFor` supports both in shared code. None is enabled. Ideas are recorded in `blend.HYPOTHESES` as untested hypotheses, to be verified before use.
+- **Sources:** deterministic models, two ensemble systems (ECMWF ENS, 51 members; GEFS, 31 members; temperature, precip and snow) and the NWS point forecast. Each source has one total weight; an ensemble's weight is shared equally by its members, so member count never decides its influence.
+- **Highs and lows from members:** each ensemble member's own daily (or phase) high, low and total is computed first, then the members are averaged. Taking the high of the hourly ensemble mean would flatten the extremes. Members (like models) count only when they cover every hour; dropped members don't shrink the system's weight. ECMWF ENS is 3-hourly at longer leads, so its interpolated hourly peaks can run slightly low.
+- **Spread:** under each daily value, the weighted 10th–90th percentile across all sources, with ensemble members carrying their share of the system weight.
+- **Probabilities kept apart:** "Chance ≥0.01″ (ens.)" is the weighted share of ensemble members with measurable precipitation over the same calendar day or phase. Open-Meteo's hourly precipitation_probability (models) and NWS PoP use other thresholds and periods, so they are never mixed into it, and NWS hourly PoP is excluded from the model chance.
+- **Presets:** **Your preferred weighting** (default): NWS ×3, ECMWF ENS ×2 and ×4 for temperatures (the heaviest temperature source), GEFS ×1, ECMWF IFS and NBM ×1, other models ×0.5, NAM ×0.25. It is your stated preference, labelled as such until verification supports changes. **Custom weights** (your sliders; ensembles and NWS now appear in the list), **Equal raw consensus** (every raw deterministic model at weight 1, NBM excluded because NBM already blends and calibrates these models) and **NBM only**.
+- **What's driving the blend:** for the selected day, every source's own high, low and precip and its share of the weight.
+- The overview uses the same recipe as the Blend page (preset, weights, ensembles, NWS).
+- **Variable- and lead-time weighting:** `blend.weightFor` supports both in shared code. Only the preferred preset's temperature factor for ECMWF ENS is enabled. Ideas are recorded in `blend.HYPOTHESES` as untested hypotheses, to be verified before use.
 - **Precip timing scenarios** group models by onset, so different storm timings aren't averaged into a long light event.
 - Severe keeps each model's extremes beside the consensus.
 - Model agreement is never presented as a calibrated probability.

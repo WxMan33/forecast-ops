@@ -43,10 +43,12 @@
 
     <section class="card">
       <div class="section-title">Daily blend</div>
-      <p class="section-sub">Weighted mean of the checked models. <b>Temp agreement</b> is how close the models' daily highs are, with their actual range. It says nothing about rain or timing. Click a day to zoom the chart to it.</p>
+      <p class="section-sub">Weighted mean of the blend sources: models, ECMWF ENS, GEFS and NWS. <b>Temp agreement</b> is how close the sources' daily highs are (ensembles as their members' mean high), with their actual range. It says nothing about rain or timing. Click a day to zoom the chart to it.</p>
       <div class="tablewrap"><table id="daily" class="clickable"></table></div>
       <p class="msg" id="dailyNote" style="margin-top:8px"></p>
     </section>
+
+    <section class="card" id="driverCard"></section>
 
     <section class="card" id="nwsCard"></section>
 

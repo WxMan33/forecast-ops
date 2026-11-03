@@ -253,4 +253,54 @@ eq(ps2.scenarios.map((x) => x.ids.join("+")), ["a+b", "c"], "scenarios: early an
 eq(ps2.dry, ["d"], "scenarios: models with no precip in the window are listed as dry");
 eq(C.verify.record({ kind: "daily", source: "nws", values: { hi: 60 } }).schema, 1, "verify: record schema");
 
+/* ---------- ensembles and NWS inside the blend ---------- */
+{
+  const T = Array.from({ length: 24 }, (_, i) => `2026-11-03T${String(i).padStart(2, "0")}:00`);
+  const ms = T.map((_, i) => Date.UTC(2026, 10, 3, i));
+  const peak = (h) => T.map((_, i) => (i === h ? 50 : 40));
+  /* two members peak at different hours: the member-first high is 50; the max of the hourly mean is only 45 */
+  const ens = { kind: "ens", n: 2, members: [{ h: { temperature_2m: peak(3), precipitation: T.map(() => 0) } }, { h: { temperature_2m: peak(15), precipitation: T.map((_, i) => (i === 5 ? 0.02 : 0)) } }] };
+  ens.h = { temperature_2m: T.map((_, i) => (ens.members[0].h.temperature_2m[i] + ens.members[1].h.temperature_2m[i]) / 2) };
+  const D = { times: T, ms, dtimes: [], models: { e: ens } };
+  const r1 = C.blend.dailyRows(D, { e: 1 })[0];
+  near(r1.hi, 50, 1e-9, "ensemble: each member's own daily high first (not the max of the hourly mean)");
+  near(Math.max(...ens.h.temperature_2m), 45, 1e-9, "ensemble: ...the hourly mean would have flattened it to 45");
+  near(r1.chance.v, 50, 1e-9, "ensemble: chance of 0.01 in. = weighted share of members");
+  /* 50 members at weight 1 vs one model at weight 1: equal influence, member count doesn't decide */
+  const many = { kind: "ens", n: 50, members: Array.from({ length: 50 }, () => ({ h: { temperature_2m: T.map(() => 30) } })) };
+  many.h = { temperature_2m: T.map(() => 30) };
+  const D2 = { times: T, ms, dtimes: [], models: { e: many, m: { h: { temperature_2m: T.map(() => 50) }, d: {} } } };
+  const r2 = C.blend.dailyRows(D2, { e: 1, m: 1 })[0];
+  near(r2.hi, 40, 1e-9, "ensemble: system weight shared by its members (50 members ≠ 50 votes)");
+  near(r2.hi, 40, 1e-9, "ensemble: blend high");
+  eq(r2.parts.hi.map((p) => [p.id, p.n, p.share]), [["e", 50, 0.5], ["m", 1, 0.5]], "ensemble: driver parts report members and weight share");
+  near(r2.hiR[0], 30, 1e-9, "ensemble: 10th percentile reaches the ensemble side");
+  near(r2.hiR[1], 50, 1e-9, "ensemble: 90th percentile reaches the model side");
+  /* a member missing an hour drops out; the system keeps its full weight over the members that cover the day */
+  const gap = { kind: "ens", n: 2, members: [{ h: { temperature_2m: T.map(() => 30) } }, { h: { temperature_2m: T.map((_, i) => (i === 7 ? null : 99)) } }], h: { temperature_2m: T.map(() => 30) } };
+  const r3 = C.blend.dailyRows({ times: T, ms, dtimes: [], models: { g: gap, m: { h: { temperature_2m: T.map(() => 50) }, d: {} } } }, { g: 1, m: 1 })[0];
+  near(r3.hi, 40, 1e-9, "ensemble: incomplete members drop out without shrinking the system's weight");
+  /* preferred preset: ECMWF ENS doubled for temperatures only */
+  const P = C.blend.PREFERRED;
+  eq([C.blend.w(P.weights, P.rules, "ecmwf_ens", "temperature_2m"), C.blend.w(P.weights, P.rules, "ecmwf_ens", "precipitation"), C.blend.w(P.weights, P.rules, "nws", "temperature_2m")], [4, 2, 3], "preferred: ECMWF ENS heavy for temps, NWS heavy");
+  eq(C.blend.w(P.weights, P.rules, "nws", "precipitation_probability"), 0, "NWS hourly PoP is never mixed with model probabilities");
+  /* NWS accumulations from its own intervals: exact when aligned, prorated (and flagged) when not */
+  const iv = [{ s: Date.UTC(2026, 10, 2, 18), e: Date.UTC(2026, 10, 3, 0), v: 0.6 }, { s: Date.UTC(2026, 10, 3, 0), e: Date.UTC(2026, 10, 3, 6), v: 0.3 }, { s: Date.UTC(2026, 10, 3, 6), e: Date.UTC(2026, 10, 3, 12), v: 0.6 },
+    { s: Date.UTC(2026, 10, 3, 12), e: Date.UTC(2026, 10, 3, 18), v: 0 }, { s: Date.UTC(2026, 10, 3, 18), e: Date.UTC(2026, 10, 4, 0), v: 0.12 }, { s: Date.UTC(2026, 10, 4, 0), e: Date.UTC(2026, 10, 4, 6), v: 0.6 }];
+  const nwsSrc = { kind: "nws", h: { temperature_2m: T.map(() => 45) }, iv: { precipitation: iv, snowfall: [] } };
+  const T1 = Array.from({ length: 24 }, (_, i) => `2026-11-03T${String(i).padStart(2, "0")}:00`);
+  const msA = T1.map((_, i) => Date.UTC(2026, 10, 3, i + 1)); // accumulation hours ending 01Z..00Z next day: aligned
+  const exact = C.blend.sourceValue(nwsSrc, "precipitation", "sum", T1.map((_, i) => i), { ms: msA });
+  near(exact.v, 1.02, 1e-9, "NWS precip: exact when the intervals line up with the window"); eq(!!exact.prorated, false, "NWS precip: aligned is not flagged");
+  const msB = T1.map((_, i) => Date.UTC(2026, 10, 3, i + 5)); // window 04Z..04Z: straddles
+  const pr = C.blend.sourceValue(nwsSrc, "precipitation", "sum", T1.map((_, i) => i), { ms: msB });
+  near(pr.v, 0.3 / 3 + 0.6 + 0 + 0.12 + 0.6 * 4 / 6, 1e-9, "NWS precip: prorated by overlap when intervals straddle the edges");
+  eq(pr.prorated, true, "NWS precip: prorated result is flagged");
+  eq(C.blend.sourceValue(nwsSrc, "precipitation", "sum", [0, 1], { ms: [Date.UTC(2026, 10, 5, 0), Date.UTC(2026, 10, 5, 1)] }), null, "NWS precip: uncovered window is null, never 0");
+  /* addSources puts ensembles and NWS on the model axis */
+  const base = { times: T, ms, models: {} };
+  C.blend.addSources(base, { ms: ms.slice(2), ens: { ecmwf_ifs025: { temperature_2m: [ms.slice(2).map(() => 41), ms.slice(2).map(() => 43)] } } }, { temperature_2m: T.map(() => 44), qpf: iv, snow: [] });
+  eq([base.models.ecmwf_ens.n, base.models.ecmwf_ens.h.temperature_2m[0], base.models.ecmwf_ens.h.temperature_2m[2], !!base.models.nws], [2, null, 42, true], "addSources: ensembles aligned by instant, member mean per hour, NWS added");
+}
+
 console.log(`ok - ${n} checks passed`);

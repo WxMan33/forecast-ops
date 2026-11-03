@@ -152,6 +152,14 @@
         { id: "meteofrance_seamless", name: "Météo-France", w: 0.75, on: false },
         { id: "jma_seamless", name: "JMA", w: 0.75, on: false },
       ],
+      /* Sources inside the blend that are not Open-Meteo deterministic models. Each has ONE total
+         weight; an ensemble's weight is shared equally by its members, so member count never decides
+         its influence. Default weights here are the user's stated preference, not verified skill. */
+      extra: [
+        { id: "nws", name: "NWS point forecast", w: 3, kind: "nws", note: "NWS gridded forecast. Precip and snow come from its multi-hour interval totals." },
+        { id: "ecmwf_ens", name: "ECMWF ENS", w: 2, kind: "ens", ens: "ecmwf_ifs025", note: "51 members; the system's weight is shared by its members." },
+        { id: "gefs", name: "GEFS", w: 1, kind: "ens", ens: "gfs025", note: "31 members; the system's weight is shared by its members." },
+      ],
       hourly: ["temperature_2m", "dew_point_2m", "apparent_temperature", "precipitation_probability", "precipitation", "snowfall", "wind_speed_10m", "wind_gusts_10m", "cloud_cover"],
       daily: ["temperature_2m_max", "temperature_2m_min", "precipitation_sum", "snowfall_sum", "precipitation_probability_max", "wind_gusts_10m_max"],
     },
@@ -184,6 +192,15 @@
       hourly: ["temperature_2m", "dew_point_2m", "wind_speed_10m", "wind_direction_10m", "cape", "convective_inhibition",
         "lifted_index", "freezing_level_height", "precipitation_probability", "weather_code", ...PL],
     },
+    /* Ensembles used inside the blend (temperature and precipitation). */
+    blendEns: {
+      id: "blendEns", base: ENSEMBLE, params: US, days: 7, ensemble: true, require: ["temperature_2m"],
+      models: [
+        { id: "ecmwf_ifs025", name: "ECMWF ENS", source: "ecmwf_ens" },
+        { id: "gfs025", name: "GEFS", source: "gefs" },
+      ],
+      hourly: ["temperature_2m", "precipitation", "snowfall"],
+    },
     winter: {
       id: "winter", base: ENSEMBLE, params: US, days: 7, ensemble: true, require: ["snowfall"],
       models: [
@@ -209,41 +226,139 @@
       const lo = Math.min(...v), hi = Math.max(...v), r = hi - lo;
       return { level: r <= 3 ? 3 : r <= 6 ? 2 : 1, word: r <= 3 ? "TIGHT" : r <= 6 ? "FAIR" : "WIDE", lo, hi, range: r, n: v.length };
     },
-    /* One model's value for a calendar day. A model only counts for a day if it has every hour
-       of that day for the variable; otherwise sums and extremes would be understated. */
-    modelDay(md, d, hv, dv, how, dtimes) {
-      const a = md.h[hv];
-      if (!stats.complete(a, d.idx)) return null;
-      const j = dtimes ? dtimes.indexOf(d.k) : -1;
-      /* the model's own daily value is for the provider's day; only use it when that day's labels are true local time */
-      const sameDay = !dtimes || !dtimes.labels || d.idx.every((i) => dtimes.labels[i] === dtimes.local[i]);
-      const own = j >= 0 && sameDay && md.d && md.d[dv] ? md.d[dv][j] : null;
-      if (own != null) return own;
-      const v = d.idx.map((i) => a[i]);
+    /* ---- sources ----
+       data.models[id] is one blend source. Deterministic: {h, d}. Ensemble: {kind:"ens", h: member
+       mean per hour, members: [{h}]}. NWS: {kind:"nws", h: hourly state fields, iv: {var: intervals}}. */
+
+    /* Add ensemble systems and NWS to deterministic data as blend sources, on the same UTC axis. */
+    addSources(data, ens, nwsAxis) {
+      const at = new Map(data.ms.map((m, i) => [m, i]));
+      if (ens && !ens.empty && ens.ms) {
+        (config.blendEns.models).forEach((m) => {
+          const E = ens.ens[m.id]; if (!E) return;
+          const vars = Object.keys(E), n = Math.max(0, ...vars.map((v) => E[v].length)); if (!n) return;
+          const onAxis = (a) => { const out = data.ms.map(() => null); ens.ms.forEach((ms, k) => { const i = at.get(ms); if (i != null) out[i] = a[k]; }); return out; };
+          const members = Array.from({ length: n }, (_, k) => { const h = {}; vars.forEach((v) => { if (E[v][k]) h[v] = onAxis(E[v][k]); }); return { h }; });
+          const h = {}; vars.forEach((v) => (h[v] = data.ms.map((_, i) => { let t = 0, c = 0; members.forEach((mb) => { const x = mb.h[v] && mb.h[v][i]; if (x != null) { t += x; c++; } }); return c ? t / c : null; })));
+          data.models[m.source] = { kind: "ens", h, members, n };
+        });
+      }
+      if (nwsAxis) {
+        const A = nwsAxis, h = {};
+        ["temperature_2m", "dew_point_2m", "apparent_temperature", "precipitation_probability", "wind_speed_10m", "wind_gusts_10m", "cloud_cover"].forEach((v) => { if (A[v]) h[v] = A[v]; });
+        if (stats.hasData(h.temperature_2m)) data.models.nws = { kind: "nws", h, iv: { precipitation: A.qpf || [], snowfall: A.snow || [] } };
+      }
+      return data;
+    },
+    /* Hard exclusions: values that are not comparable are never mixed in. NWS hourly PoP uses a
+       different threshold and period from Open-Meteo's precipitation_probability. */
+    EXCLUDE: { nws: ["precipitation_probability"] },
+    /* Weight of source id for variable v, after preset rules and exclusions. */
+    w(ws, rules, id, v) { if ((blend.EXCLUDE[id] || []).includes(v)) return 0; return blend.weightFor(ws, rules, id, v); },
+    /* One deterministic series over hours: extreme or sum, only if every hour is present. */
+    reduce(a, use, how) {
+      if (!use.length || !stats.complete(a, use)) return null;
+      const v = use.map((i) => a[i]);
       return how === "max" ? Math.max(...v) : how === "min" ? Math.min(...v) : v.reduce((s, x) => s + x, 0);
     },
-    /* Aggregate any window. idx: hours for instantaneous fields; acc: hours whose preceding-hour
-       accumulation falls inside the window (defaults to idx). A model counts only if it has every hour. */
-    windowRow(data, ws, idx, acc) {
-      const ids = Object.keys(ws).filter((id) => data.models[id] && ws[id] > 0);
-      const A = acc || idx, wmean = (list) => { let s = 0, w = 0; list.forEach(({ id, v }) => { if (v != null) { s += ws[id] * v; w += ws[id]; } }); return w ? s / w : null; };
-      const per = (hv, how, use = idx) => ids.map((id) => { const a = data.models[id].h[hv]; if (!use.length || !stats.complete(a, use)) return { id, v: null }; const v = use.map((i) => a[i]); return { id, v: how === "max" ? Math.max(...v) : how === "min" ? Math.min(...v) : v.reduce((s, x) => s + x, 0) }; });
-      const highs = per("temperature_2m", "max");
+    /* A source's value for a window. Ensembles: each member's own extreme or total first (taking the
+       extreme of the hourly member mean would flatten highs and lows), then the mean of the members
+       that cover the window. NWS accumulations: from its interval totals, exact when the intervals
+       line up with the window, otherwise prorated by overlap and flagged. Returns null or
+       {v, members?: [values], prorated?: bool}. own: provider daily value (deterministic only). */
+    sourceValue(md, hv, how, use, data, own) {
+      if (!md) return null;
+      if (md.kind === "ens") {
+        const mv = md.members.map((mb) => blend.reduce(mb.h[hv], use, how)).filter((x) => x != null);
+        return mv.length ? { v: mv.reduce((s, x) => s + x, 0) / mv.length, members: mv } : null;
+      }
+      if (md.kind === "nws" && how === "sum" && md.iv && md.iv[hv]) {
+        if (!use.length) return null;
+        const s = data.ms[use[0]] - 3600e3, e = data.ms[use[use.length - 1]];
+        const t = nws.totalOver(md.iv[hv], s, e);
+        if (!t.covers) return null;
+        if (t.exact) return { v: t.lower };
+        const p = nws.prorate(md.iv[hv], s, e);
+        return p == null ? null : { v: p, prorated: true, range: [t.lower, t.upper] };
+      }
+      if (own != null) return { v: own };
+      const v = blend.reduce(md.h[hv], use, how);
+      return v == null ? null : { v };
+    },
+    /* Weighted combination of source values: mean, 10th/90th percentiles (ensemble members carry
+       their system's weight shared equally) and per-source parts for the driver view. */
+    combine(list, wOf) {
+      let s = 0, w = 0; const vals = [], ws = [], parts = [];
+      list.forEach(({ id, r }) => {
+        const wi = wOf(id); if (!r || !(wi > 0)) return;
+        s += wi * r.v; w += wi; parts.push({ id, v: r.v, w: wi, n: r.members ? r.members.length : 1, prorated: !!r.prorated });
+        if (r.members) r.members.forEach((x) => { vals.push(x); ws.push(wi / r.members.length); }); else { vals.push(r.v); ws.push(wi); }
+      });
+      if (!w) return { v: null, p10: null, p90: null, parts };
+      parts.forEach((p) => (p.share = p.w / w));
+      return { v: s / w, p10: stats.weightedQuantile(vals, ws, 0.1), p90: stats.weightedQuantile(vals, ws, 0.9), parts };
+    },
+    /* Chance of at least thr (data units) over the window from ensemble members only: the weighted
+       share of members, each system at its own precipitation weight. Other sources' probabilities
+       use different thresholds and periods, so they are not mixed in. */
+    ensChance(data, ids, wOf, use, thr) {
+      let t = 0, w = 0, n = 0;
+      ids.forEach((id) => { const md = data.models[id]; if (!md || md.kind !== "ens") return; const wi = wOf(id); if (!(wi > 0)) return;
+        const mv = md.members.map((mb) => blend.reduce(mb.h.precipitation, use, "sum")).filter((x) => x != null); if (!mv.length) return;
+        t += wi * mv.filter((x) => x >= thr).length / mv.length; w += wi; n += mv.length; });
+      return w ? { v: (100 * t) / w, members: n } : null;
+    },
+    /* Aggregate a window for every source. idx: hours for instantaneous fields; acc: hours whose
+       preceding-hour accumulation falls inside (defaults to idx). opts: {rules, own(id, dv, how)}. */
+    aggregate(data, ws, idx, acc, opts = {}) {
+      const A = acc || idx, rules = opts.rules || null;
+      const ids = Object.keys(data.models).filter((id) => (ws[id] || 0) > 0);
+      const one = (hv, how, use, dv) => blend.combine(ids.map((id) => ({ id, r: blend.sourceValue(data.models[id], hv, how, use, data, opts.own ? opts.own(id, dv, hv) : null) })), (id) => blend.w(ws, rules, id, hv));
+      const hi = one("temperature_2m", "max", idx, "temperature_2m_max"), lo = one("temperature_2m", "min", idx, "temperature_2m_min");
+      const qpf = one("precipitation", "sum", A, "precipitation_sum"), sn = one("snowfall", "sum", A, "snowfall_sum");
+      const pop = one("precipitation_probability", "max", idx, "precipitation_probability_max"), gust = one("wind_gusts_10m", "max", idx, "wind_gusts_10m_max");
+      const feel = one("apparent_temperature", "min", idx, null);
+      const srcHighs = hi.parts.map((p) => p.v);
       return {
-        hi: wmean(highs), lo: wmean(per("temperature_2m", "min")), qpf: wmean(per("precipitation", "sum", A)), sn: wmean(per("snowfall", "sum", A)),
-        pop: wmean(per("precipitation_probability", "max")), gust: wmean(per("wind_gusts_10m", "max")), feel: wmean(per("apparent_temperature", "min")),
-        ag: blend.agreement(highs.map((x) => x.v)), contrib: highs.filter((x) => x.v != null).map((x) => x.id),
+        hi: hi.v, lo: lo.v, qpf: qpf.v, sn: sn.v, pop: pop.v, gust: gust.v, feel: feel.v,
+        hiR: [hi.p10, hi.p90], loR: [lo.p10, lo.p90], qpfR: [qpf.p10, qpf.p90],
+        chance: blend.ensChance(data, ids, (id) => blend.w(ws, rules, id, "precipitation"), A, 0.01),
+        parts: { hi: hi.parts, lo: lo.parts, qpf: qpf.parts, sn: sn.parts },
+        prorated: qpf.parts.some((p) => p.prorated) || sn.parts.some((p) => p.prorated),
+        ag: blend.agreement(srcHighs), contrib: hi.parts.map((p) => p.id),
       };
     },
+    /* One model's value for a calendar day (kept for callers that need a single source). */
+    modelDay(md, d, hv, dv, how, dtimes) {
+      const r = blend.sourceValue(md, hv, how, d.idx, null, blend.ownDaily(md, d, dv, dtimes, hv));
+      return r ? r.v : null;
+    },
+    /* The provider's own daily value, only when its day is the true local calendar day. */
+    ownDaily(md, d, dv, dtimes, hv) {
+      if (!md || md.kind || !dv || !md.d || !md.d[dv] || !dtimes) return null;
+      if (hv && !stats.complete(md.h[hv], d.idx)) return null; // a model counts only with every hour of the day
+      const j = dtimes.indexOf(d.k);
+      const sameDay = !dtimes.labels || d.idx.every((i) => dtimes.labels[i] === dtimes.local[i]);
+      return j >= 0 && sameDay ? md.d[dv][j] : null;
+    },
+    windowRow(data, ws, idx, acc, opts) { return blend.aggregate(data, ws, idx, acc, opts); },
     /* Comparison presets. "custom" is the user's own weights. "equal" is a raw-model consensus:
        every raw model at weight 1, NBM excluded because NBM is itself a calibrated blend of many
        of these models. "nbm" is NBM alone. NWS is never part of any blend; it is shown separately. */
     PRESETS: {
+      preferred: { label: "Your preferred weighting", note: "NWS heavy, ECMWF ENS heavy (extra for temperatures), GEFS and deterministic models supporting. Your stated preference, not yet verified." },
       custom: { label: "Custom weights", note: "Your saved models and weights." },
       equal: { label: "Equal raw consensus", note: "Every available raw model at weight 1. NBM excluded (it already blends and calibrates these models)." },
       nbm: { label: "NBM only", note: "The National Blend of Models by itself." },
     },
+    PREFERRED: {
+      weights: { nws: 3, ecmwf_ens: 2, gefs: 1, ecmwf_ifs025: 1, ncep_nbm_conus: 1, gfs_seamless: 0.5, ecmwf_aifs025_single: 0.5, gfs_hrrr: 0.5, ncep_nam_conus: 0.25, icon_seamless: 0.5, gem_seamless: 0.5, ukmo_seamless: 0.5 },
+      /* temperatures (hourly, highs and lows): ECMWF ENS doubled, 2 -> 4, the heaviest source */
+      rules: { byVar: { temperature_2m: { ecmwf_ens: 2 } } },
+    },
+    presetRules(preset) { return preset === "preferred" ? blend.PREFERRED.rules : null; },
     presetWeights(preset, spec, custom) {
+      if (preset === "preferred") return { ...blend.PREFERRED.weights };
       if (preset === "nbm") return { ncep_nbm_conus: 1 };
       if (preset === "equal") { const w = {}; spec.models.forEach((m) => { if (m.on !== false && m.id !== "ncep_nbm_conus") w[m.id] = 1; }); return w; }
       return { ...custom };
@@ -285,23 +400,13 @@
       });
       return { models, scenarios: scen, dry: models.filter((m) => m.complete && m.onset == null).map((m) => m.id), incomplete: models.filter((m) => !m.complete).map((m) => m.id) };
     },
-    /* Daily rows for the full calendar days in data. ws: {modelId: weight} of models in use. */
-    dailyRows(data, ws) {
-      const ids = Object.keys(ws).filter((id) => data.models[id] && ws[id] > 0);
+    /* Daily rows for the full calendar days in data. ws: {sourceId: weight}; opts.rules: per-variable rules. */
+    dailyRows(data, ws, opts = {}) {
+      const dt = data.dtimes ? Object.assign(data.dtimes.slice(), { labels: data.labels, local: data.times }) : null;
       return time.dayGroups(data.times).filter((d) => d.idx.length >= 12).map((d) => {
-        const dt = data.dtimes ? Object.assign(data.dtimes.slice(), { labels: data.labels, local: data.times }) : null;
-        const per = (hv, dv, how) => ids.map((id) => ({ id, v: blend.modelDay(data.models[id], d, hv, dv, how, dt) }));
-        const wmean = (list) => { let s = 0, w = 0; list.forEach(({ id, v }) => { if (v != null) { s += ws[id] * v; w += ws[id]; } }); return w ? s / w : null; };
-        const highs = per("temperature_2m", "temperature_2m_max", "max");
-        return {
-          k: d.k, win: time.windowKey(data.times, d.idx), hours: d.idx.length,
-          hi: wmean(highs), lo: wmean(per("temperature_2m", "temperature_2m_min", "min")),
-          qpf: wmean(per("precipitation", "precipitation_sum", "sum")), sn: wmean(per("snowfall", "snowfall_sum", "sum")),
-          pop: wmean(per("precipitation_probability", "precipitation_probability_max", "max")),
-          gust: wmean(per("wind_gusts_10m", "wind_gusts_10m_max", "max")),
-          ag: blend.agreement(highs.map((x) => x.v)),
-          contrib: highs.filter((x) => x.v != null).map((x) => x.id),
-        };
+        const own = (id, dv, hv) => blend.ownDaily(data.models[id], d, dv, dt, hv);
+        const r = blend.aggregate(data, ws, d.idx, d.idx, { ...opts, own });
+        return { k: d.k, win: time.windowKey(data.times, d.idx), hours: d.idx.length, ...r };
       });
     },
   };
@@ -668,6 +773,12 @@
       if (!covers) return { lower: null, upper: null, exact: false, covers: false, n: over.length };
       const lower = inside.reduce((t, x) => t + x.v, 0), upper = known.reduce((t, x) => t + x.v, 0);
       return { lower, upper, exact: inside.length === known.length, covers: true, n: over.length };
+    },
+    /* Window total assuming a uniform rate inside each interval that straddles an edge. Used only
+       when intervals don't line up; callers flag the result as prorated. null if not covered. */
+    prorate(ivs, s, e) {
+      const t = nws.totalOver(ivs, s, e); if (!t.covers) return null;
+      return ivs.filter((x) => x.e > s && x.s < e).reduce((a, x) => a + x.v * (Math.min(e, x.e) - Math.max(s, x.s)) / (x.e - x.s), 0);
     },
     /* Official 12-hour day/night periods (forecast endpoint). */
     periods(fc) {

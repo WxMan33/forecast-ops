@@ -77,6 +77,15 @@ const providerDown = (what, cond, why) => { if (!cond) return false; skips++; co
         if (own != null) ok(own >= hmax - 1.5 && own <= hmax + 4, `blend ${id} ${d.k}: daily max matches hourly max (daily ${own}, hourly ${hmax}, ${B.tz})`);
       });
     });
+    /* ensembles inside the blend: members load, align to the model axis and give member-first highs */
+    const BE = await D.loadEnsemble(C.config.blendEns, { ...where, days: 3 });
+    if (!providerDown(`Open-Meteo ensemble (blend) at ${P.name}`, BE.empty)) {
+      C.blend.addSources(B, BE, null);
+      C.config.blendEns.models.forEach((m) => { const md = B.models[m.source]; ok(md && md.n >= 20, `blend ${m.source}: ensemble members load (${md ? md.n : 0})`); });
+      const er = C.blend.dailyRows(B, { ecmwf_ens: 1, gefs: 1 });
+      ok(er.some((r) => r.hi != null && r.chance), "blend ensembles: daily highs and member chance of precip computed");
+      ok(er.every((r) => r.hi == null || r.hiR[0] <= r.hiR[1]), "blend ensembles: 10th percentile high <= 90th");
+    }
     rec.blend = { models: bOk, problems: B.problems, rows: rows.map((r) => ({ k: r.k, hi: r.hi, lo: r.lo, qpf: r.qpf, contrib: r.contrib })) };
 
     /* thunder */

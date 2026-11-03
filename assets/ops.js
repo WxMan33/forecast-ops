@@ -110,7 +110,7 @@
     foot.innerHTML = `${esc(BRAND.name)} · built by ${BRAND.contact ? `<a href="${esc(BRAND.contact)}">${esc(BRAND.owner)}</a>` : esc(BRAND.owner)} ·
       <a href="https://open-meteo.com/" target="_blank" rel="noopener">Weather data by Open-Meteo.com</a> (CC BY 4.0) ·
       alerts from <a href="https://www.weather.gov/" target="_blank" rel="noopener">NWS</a> ·
-      Model guidance only. Not an official forecast or warning. NWS values are labelled NWS and never blended in. ·
+      Model guidance only. Not an official forecast or warning. NWS is one weighted source in MODEL BLEND; elsewhere NWS values are labelled NWS and shown alongside. ·
       <a href="#" id="verifyExport">export forecast &amp; observation logs</a>`;
     document.body.append(foot);
 
@@ -318,6 +318,13 @@
     const st = store.get(`ops_${spec.id}_models`, {}), w = {};
     spec.models.forEach((m) => { const x = st[m.id]; const on = x ? x.on : m.on !== false, wt = x ? x.w : m.w; if (on && wt > 0) w[m.id] = wt; });
     return w;
+  }
+  /* The blend recipe exactly as MODEL BLEND uses it: chosen preset, its weights over every source
+     (models, ensembles, NWS) and its per-variable rules. Shared so the overview matches the tool page. */
+  function blendRecipe() {
+    const spec = Core.config.blend, preset = Core.blend.PRESETS[store.get("ops_blend_preset", "preferred")] ? store.get("ops_blend_preset", "preferred") : "preferred";
+    const custom = savedWeights({ id: spec.id, models: [...spec.extra, ...spec.models] });
+    return { preset, ws: Core.blend.presetWeights(preset, spec, custom), rules: Core.blend.presetRules(preset) };
   }
   const savedDays = (spec) => store.get(`ops_${spec.id}_days`, spec.days);
 
@@ -735,6 +742,6 @@
     blendSeries: Core.stats.blendSeries, weightedQuantile: Core.stats.weightedQuantile,
     modelColor, modelPicker, linesToggle, chartBase, modelLine, tierStrip, trackChanges, renderChanges,
     events, activeEvent, setActiveEvent, onEvent, eventCard, eventContext, eventBands, eventTable, fmtLocal, fmtSpan,
-    nowIdx, logVerify, exportVerify, appendLog, LOG_KEYS, obsCard,
+    nowIdx, logVerify, exportVerify, blendRecipe, appendLog, LOG_KEYS, obsCard,
   };
 })();
