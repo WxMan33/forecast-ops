@@ -165,11 +165,18 @@ async function collect(cfg, loc, dataRoot, cap, prev = {}) {
       station: p.station, product: p.id, type: p.type, label: p.label, url: p.url, authorship: p.authorship, location: p.location, lows: p.lows, popPolicy: p.pop, extractVersion: VERSION };
     if (!p.collect) { out.push({ ...rec, status: "not-collected", reason: p.reason }); continue; }
     const ok = await allowed(p.url);
-    rec.robots = { status: robotsStatus[new URL(p.url).origin], allowed: ok };
-    if (ok === null) { out.push({ ...rec, status: "failed", error: `robots.txt unavailable (HTTP ${rec.robots.status}); not fetched` }); continue; }
+    /* access record: robots.txt result exactly as returned, kept separate from the page's own response */
+    const rs = robotsStatus[new URL(p.url).origin];
+    rec.access = { robotsTxt: { url: new URL(p.url).origin + "/robots.txt", httpStatus: rs,
+      result: rs === 200 ? (ok ? "rules present; this URL is not disallowed for our user agent" : "rules present; this URL is disallowed")
+        : rs >= 400 && rs < 500 && rs !== 429 ? `robots.txt returned HTTP ${rs}; under RFC 9309 an unavailable (4xx) robots.txt does not disallow fetching. This is not a statement that the site has no other restrictions.`
+        : `robots.txt returned ${rs ? "HTTP " + rs : "no response"}; treated as unreachable, so the page was not fetched` },
+      otherConditions: "site terms of use are not evaluated by the collector; products can be disabled in config/tv.js" };
+    if (ok === null) { out.push({ ...rec, status: "failed", error: `robots.txt returned ${rs ? "HTTP " + rs : "no response"}; page not fetched` }); continue; }
     if (!ok) { out.push({ ...rec, status: "not-collected", reason: "robots.txt disallows this URL" }); continue; }
     const r = await U.fetchRaw(p.url, { accept: p.adapter === "wcpoGraphic" ? "image/*" : "text/html", tries: 2 });
     rec.retrievedAt = r.retrievedAt; rec.httpStatus = r.status; rec.lastModified = r.lastModified || null;
+    rec.access.page = { httpStatus: r.status, finalUrl: r.url, contentType: r.type };
     if (!r.ok || !r.buf.length) { out.push({ ...rec, status: "failed", error: r.error || `HTTP ${r.status}` }); continue; }
     const ext = /png/.test(r.type) ? "png" : /jpe?g/.test(r.type) ? "jpg" : "html";
     rec.evidence = [saveEvidence(dataRoot, ext === "html" ? U.gz(r.buf) : r.buf, ext === "html" ? "html.gz" : ext)];
@@ -198,14 +205,22 @@ async function collect(cfg, loc, dataRoot, cap, prev = {}) {
     rec.status = "ok";
     out.push(rec);
   }
-  /* cross-check: the WCPO graphic against the WCPO website data for overlapping dates */
-  const g = out.find((x) => x.product === "wcpo-9day-graphic" && x.days && x.days.length), w = out.find((x) => x.product === "wcpo-web-4day" && x.days && x.days.length);
-  if (g && w) {
-    const diffs = [];
-    g.days.forEach((d) => { const o = w.days.find((x) => x.date === d.date); if (!o) return; if (o.hi != null && d.hi != null && o.hi !== d.hi) diffs.push(`${d.date} high ${d.hi} vs web ${o.hi}`); if (o.lo != null && d.lo != null && o.lo !== d.lo) diffs.push(`${d.date} low ${d.lo} vs web ${o.lo}`); });
-    g.crossCheck = { with: "wcpo-web-4day", diffs, overlap: g.days.filter((d) => w.days.some((x) => x.date === d.date)).length };
-    if (diffs.length && g.review.status === "auto-accepted") g.review = { status: "needs-review", reason: "graphic and website disagree" };
-  }
+  out.forEach((g) => { const p = cfg.products.find((x) => x.id === g.product); if (p && p.crossCheckWith) crossCheck(g, out.find((x) => x.product === p.crossCheckWith), p); });
   return out;
 }
-module.exports = { VERSION, collect, adapters: A, parseGraphicTSV, assignDates, findJSON, sliceJSON, saveEvidence };
+/* Cross-check two products of the SAME station and location scope, fetched in the SAME capture run,
+   on the SAME valid dates. Disagreement only sends the product to review; values are never changed. */
+function crossCheck(g, w, p) {
+  if (!g || !w || !(g.days || []).length || !(w.days || []).length) return;
+  const reasons = [];
+  if (g.station !== w.station) reasons.push("different station");
+  if (!g.location || !w.location || g.location.class !== w.location.class) reasons.push("different location scope");
+  if (g.captureId !== w.captureId) reasons.push("different capture edition");
+  if (reasons.length) { g.crossCheck = { with: w.product, skipped: reasons }; return; }
+  const diffs = [], dates = [];
+  g.days.forEach((d) => { const o = w.days.find((x) => x.date === d.date); if (!o) return; dates.push(d.date);
+    if (o.hi != null && d.hi != null && o.hi !== d.hi) diffs.push(`${d.date} high ${d.hi} vs ${o.hi}`); if (o.lo != null && d.lo != null && o.lo !== d.lo) diffs.push(`${d.date} low ${d.lo} vs ${o.lo}`); });
+  g.crossCheck = { with: w.product, sameCapture: g.captureId, editions: { [g.product]: g.issuedAt || g.lastModified || null, [w.product]: w.issuedAt || `retrieved ${w.retrievedAt}` }, dates, diffs, note: p.crossCheckNote };
+  if (diffs.length && g.review.status === "auto-accepted") g.review = { status: "needs-review", reason: "disagrees with the station's own website data for the same dates" };
+}
+module.exports = { VERSION, collect, crossCheck, adapters: A, parseGraphicTSV, assignDates, findJSON, sliceJSON, saveEvidence };

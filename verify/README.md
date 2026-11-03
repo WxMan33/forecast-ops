@@ -45,7 +45,14 @@ Every forecast is requested **at the station coordinates**. None uses a downtown
 
 Late, off-schedule and manual captures stay in the archive and in full-sample tables. They are excluded from matched comparisons.
 
-**Prospective rule.** A forecast counts only for target windows that **start after the capture started**. TV values count only for windows that start after retrieval. Nothing is reconstructed from later data. Historical forecasts may be added only with documented as-issued provenance.
+**Prospective boundary (`lib/timing.js`, timing-v1).** An observation may verify a forecast only if it was **measured at least 60 minutes after the capture's last source retrieval**.
+- **Daily and period windows:** the whole window must start at least 60 minutes after that retrieval, so every measurement inside it is later still.
+- **Hourly temperature:** the routine report must fall within 15 minutes before the valid hour. The 60-minute lead is checked against the report's own measurement time, not the valid hour.
+- **TV values:** the same rule applies, measured from the product's retrieval time.
+- **Checked twice:** at normalization and again at scoring.
+- **Traceability:** each scored pair records the last retrieval time, the source issue/run times, the observation's measurement and ingest times, the lead in minutes, and the normalizer version.
+
+The first pilot run showed why this matters. A capture retrieved at 02:53Z had been matched to the 02:52Z report for 03:00Z, an observation made *before* the forecast was retrieved. That is now impossible, and a test uses those real timings. Nothing is reconstructed from later data. Historical forecasts may be added only with documented as-issued provenance.
 
 ## Storage (private data repository)
 
@@ -53,7 +60,7 @@ Late, off-schedule and manual captures stay in the archive and in full-sample ta
 |---|---|
 | `raw/<loc>/<YYYY-MM>/<captureId>/*.json.gz` | Every source response as received (gzipped, SHA-256 recorded) |
 | `captures/<loc>.jsonl` | One record per capture: slot, target, trigger, actual start and finish, timeliness, per-source outcome, HTTP status, retrieval time, provider run/cycle metadata, NWS update times, member counts, horizon, code commit and versions |
-| `normalized/<loc>/<YYYY>/<captureId>.json.gz` | Normalized bundle (below); rebuildable from raw with `run.js renormalize` |
+| `normalized/<loc>/<YYYY>/<captureId>.<normalizer-version>.json.gz` | Normalized bundle (below), one file per normalizer version. A new version is built from raw evidence **beside** the old ones, never over them. Scores always state the normalizer version that produced them |
 | `tv/<loc>/<YYYY-MM>.jsonl` | One record per TV product per capture: evidence, extraction, confidence, freshness, review status |
 | `evidence/<sha>` | Original TV graphics and pages, content-addressed (stored once) |
 | `obs/<loc>/<YYYY-MM>.jsonl` | Observation versions, append-only; new rows only when a value, flag or status changes |
@@ -111,6 +118,9 @@ How TV values are scored:
 - **Location comparability:**
   - `generic-market` ("Cincinnati") products verify at CVG, Cincinnati's official climate site, with that benchmark disclosed.
   - `explicit-other-point` products (Local 12 at ZIP 45226; FOX19 at downtown coordinates) are scored but **excluded from matched/definitive comparisons**.
+- **Access.** Each capture records robots.txt exactly as returned (e.g. "robots.txt returned HTTP 403"), apart from the page's own HTTP status. A 4xx robots.txt does not disallow fetching under RFC 9309. That is not a claim that the site has no other restrictions; site terms are not evaluated by the collector, and any product can be switched off in `config/tv.js`.
+- **Cross-checks** compare only the same station and location scope, fetched in the same capture run, on the same valid dates. A disagreement sends the product to review and never changes a value.
+- **Scope of review decisions.** A decision applies to its own capture. It extends to another capture only if station, product, extraction version, evidence hash **and** assigned dates all match. The same image on a different date, or a newer extractor's output, goes back to review. Unresolved extractions never reach scoring.
 - **Review.** Structured values are auto-accepted only when the extraction is clean and the product is fresh. OCR values are auto-accepted only at confidence ≥ 0.85 with no layout issues, and only when they agree with the station's own structured data. Everything else waits in the review queue. Corrections are versioned files applied at scoring time.
 
 ## Scorecards (`lib/score.js`)

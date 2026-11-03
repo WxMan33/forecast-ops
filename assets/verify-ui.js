@@ -93,7 +93,7 @@
     $("rq").querySelectorAll("[data-dec]").forEach((b) => b.addEventListener("click", () => decide(RQ.items[+b.dataset.i], b.dataset.dec, +b.dataset.i)));
   }
   async function decide(q, decision, i) {
-    const rec = { kind: "tv-review", captureId: q.captureId, product: q.product, contentSha256: q.contentSha256 || undefined, appliesTo: "this capture and every capture with identical evidence", decision, at: new Date().toISOString(), by: "dashboard", note: $("cn" + i).value.trim() };
+    const rec = { kind: "tv-review", captureId: q.captureId, product: q.product, scope: q.scope && q.scope.contentSha256 && q.scope.firstDate ? q.scope : undefined, appliesTo: "this capture, plus captures with the same station, product, extraction version, evidence hash and assigned dates", decision, at: new Date().toISOString(), by: "dashboard", note: $("cn" + i).value.trim() };
     if (decision === "correct") { rec.date = $("cd" + i).value.trim(); rec.field = $("cf" + i).value; rec.value = +$("cv" + i).value; if (!/^\d{4}-\d{2}-\d{2}$/.test(rec.date) || !isFinite(rec.value)) { alert("Enter a date (YYYY-MM-DD) and a numeric value."); return; } }
     const name = `corrections/${rec.at.slice(0, 7)}/${rec.at.replace(/[:.]/g, "")}-${q.product}.jsonl`;
     try {

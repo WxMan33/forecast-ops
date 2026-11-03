@@ -93,15 +93,29 @@ const T = (s) => Date.parse(s), FX = path.join(__dirname, "fixtures");
   const wk = TV.adapters.wkrc(`x,"weatherForecasts":[{"dateTime":${T("2026-11-03T05:00:00Z")},"dayOfWeek":"Tuesday","origHiTempF":77,"origLoTempF":60,"origPrecipChance":10,"modifiedHiTempF":null,"modifiedLoTempF":58,"modifiedPrecipChance":20}],"y":1`, { loc: LOC });
   eq([wk.days[0].date, wk.days[0].hi, wk.days[0].lo, wk.days[0].pop, wk.days[0].by], ["2026-11-03", 77, 58, 20, { hi: "automated", lo: "team", pop: "team" }], "Local 12: team edits used where present; automated values labelled as automated");
   /* TV cases: following-night lows map to tmin_night; unreviewed values never score */
-  const tvrec = [{ status: "ok", retrievedAt: "2026-11-03T04:30:00Z", captureId: "2026-11-02_evening", slot: "evening", product: "p", station: "S", lows: "following-night", location: { class: "generic-market" }, review: { status: "auto-accepted" }, days: [{ date: "2026-11-03", hi: 76, lo: 61, pop: 10, by: {} }] },
-    { status: "ok", retrievedAt: "2026-11-03T04:30:00Z", captureId: "2026-11-02_evening", slot: "evening", product: "q", station: "S", lows: "unknown", location: { class: "generic-market" }, review: { status: "needs-review" }, days: [{ date: "2026-11-03", hi: 70, lo: 50 }] }];
+  const tvrec = [{ status: "ok", retrievedAt: "2026-11-03T03:30:00Z", captureId: "2026-11-02_evening", slot: "evening", product: "p", station: "S", lows: "following-night", location: { class: "generic-market" }, review: { status: "auto-accepted" }, days: [{ date: "2026-11-03", hi: 76, lo: 61, pop: 10, by: {} }] },
+    { status: "ok", retrievedAt: "2026-11-03T03:30:00Z", captureId: "2026-11-02_evening", slot: "evening", product: "q", station: "S", lows: "unknown", location: { class: "generic-market" }, review: { status: "needs-review" }, days: [{ date: "2026-11-03", hi: 70, lo: 50 }] }];
   const cs = SC.cases([], SC.reviewedTV(tvrec, []), LOC);
   eq(cs.map((c) => [c.id, c.target, c.v]), [["p", "tmax_clim", 76], ["p", "tmin_night", 61], ["p", "pop01_clim", 0.1]], "TV: following-night low -> tmin_night; needs-review product not scored");
   const late = SC.cases([], SC.reviewedTV([{ ...tvrec[0], retrievedAt: "2026-11-03T06:00:00Z" }], []), LOC);
   eq(late.map((c) => c.target), ["tmin_night"], "TV retrieved after the climate day began: only windows still ahead are scored");
   const fixed = SC.reviewedTV(tvrec, [{ kind: "tv-review", captureId: "2026-11-02_evening", product: "q", decision: "correct", date: "2026-11-03", field: "hi", value: 71, at: "2026-11-04T00:00Z", by: "brad" }]);
-  const same = SC.reviewedTV([{ ...tvrec[1], captureId: "2026-11-03_midday", evidence: [{ contentSha256: "abc" }] }], [{ kind: "tv-review", captureId: "2026-11-02_evening", product: "q", contentSha256: "abc", decision: "approve", at: "2026-11-04T00:00Z" }]);
-  eq(same[0].reviewStatus, "approved", "a decision applies to later captures of byte-identical evidence");
+  const ev = (sha) => [{ contentSha256: sha }], base2 = { ...tvrec[1], station: "S", extractVersion: "tv-extract-v1" };
+  const dec = { kind: "tv-review", captureId: "2026-11-02_evening", product: "q", decision: "approve", at: "2026-11-04T00:00Z", scope: { station: "S", extractVersion: "tv-extract-v1", contentSha256: "abc", firstDate: "2026-11-03", lastDate: "2026-11-03" } };
+  const chk = (r) => SC.reviewedTV([r], [dec])[0].reviewStatus;
+  eq(chk({ ...base2, captureId: "2026-11-03_midday", evidence: ev("abc") }), "approved", "decision follows identical evidence with identical date interpretation");
+  eq(chk({ ...base2, captureId: "2026-11-10_midday", evidence: ev("abc"), days: [{ date: "2026-11-10", hi: 70, lo: 50 }] }), "needs-review", "same image re-published with different assigned dates: back to review");
+  eq(chk({ ...base2, captureId: "2026-11-03_midday", evidence: ev("abc"), extractVersion: "tv-extract-v2" }), "needs-review", "a newer extractor's output is not covered by an old decision");
+  eq(chk({ ...base2, captureId: "2026-11-03_midday", evidence: ev("abc"), product: "other" }), "needs-review", "a decision on one product never affects another");
+  eq(chk({ ...base2, captureId: "2026-11-03_midday", evidence: ev("abc"), station: "T" }), "needs-review", "... or another station");
+  const g = { product: "g", station: "WCPO", captureId: "c1", location: { class: "generic-market" }, review: { status: "auto-accepted" }, days: [{ date: "2026-11-04", hi: 68, lo: 1 }] };
+  const w = { product: "w", station: "WCPO", captureId: "c1", location: { class: "generic-market" }, retrievedAt: "x", days: [{ date: "2026-11-04", hi: 68, lo: 51 }] };
+  TV.crossCheck(g, w, {}); eq([g.crossCheck.diffs, g.review.status, g.days[0].lo], [["2026-11-04 low 1 vs 51"], "needs-review", 1], "cross-check sends a disagreement to review and never changes the value");
+  const g2 = { ...g, review: { status: "auto-accepted" }, crossCheck: undefined }; TV.crossCheck(g2, { ...w, captureId: "c0" }, {});
+  eq(g2.crossCheck.skipped, ["different capture edition"], "no cross-check across capture editions");
+  const g3 = { ...g, review: { status: "auto-accepted" } }; TV.crossCheck(g3, { ...w, station: "WKRC", location: { class: "explicit-other-point" } }, {});
+  eq(g3.crossCheck.skipped, ["different station", "different location scope"], "no cross-check across stations or location scopes");
+  eq(SC.cases([], SC.reviewedTV([{ ...base2, retrievedAt: "2026-11-02T20:00:00Z", evidence: ev("zzz") }], []), LOC).length, 0, "unresolved (needs-review) extractions never reach scoring");
   eq([fixed[1].reviewStatus, fixed[1].days[0].hi, fixed[1].days[0].corrected, tvrec[1].days[0].hi], ["corrected", 71, ["hi"], 70], "versioned correction applied at scoring; original record untouched");
 }
 /* ---------- normalization: outages, incomplete windows, frozen weights ---------- */
@@ -136,6 +150,28 @@ const T = (s) => Date.parse(s), FX = path.join(__dirname, "fixtures");
   eq([m.n, m.members.x.score, m.members.x.verdict], [10, 1, "insufficient evidence"], "matched: only shared on-time cases; 10 dates is insufficient evidence");
   const ci = SC.blockBootstrap({ a: [1], b: [1], c: [1] }), ci2 = SC.blockBootstrap({ a: [1], b: [1], c: [1] });
   eq(ci, ci2, "bootstrap is deterministic");
+}
+/* ---------- observation leakage: the real pilot timings ---------- */
+{
+  const TM = require("../lib/timing.js");
+  const obs = T("2026-11-03T02:52:00Z"); // KCVG routine report used for the 03:00Z valid hour
+  eq(["2026-11-03T02:43:14.854Z", "2026-11-03T02:50:15.393Z", "2026-11-03T02:51:49.537Z", "2026-11-03T02:53:42.585Z"].map((r) => TM.obsOk(obs, T(r))), [false, false, false, false],
+    "pilot captures 02:43-02:53Z cannot be scored against the 02:52Z report (leads 8.8, 1.7, 0.2, -1.7 min)");
+  eq(TM.obsOk(T("2026-11-03T03:52:00Z"), T("2026-11-03T02:43:14.854Z")), true, "the 03:52Z report is 68.8 min after the 02:43Z retrieval: eligible");
+  eq(TM.windowOk(T("2026-11-03T05:00:00Z"), T("2026-11-03T04:30:00Z")), false, "a daily window starting 30 min after retrieval is not eligible");
+  /* end to end through scoreAll with a temporary archive */
+  const os = require("os"), D = fs.mkdtempSync(path.join(os.tmpdir(), "vf-"));
+  const cap = { captureId: "2026-11-02_manual_2143", slot: "manual", localDate: "2026-11-02", timeliness: { status: "manual" }, startedAt: "2026-11-03T02:43:13Z", sources: {} };
+  U.appendJSONL(path.join(D, "captures", "CVG.jsonl"), [cap]);
+  const NV = NORM.VERSION, t0 = T("2026-11-03T03:00:00Z");
+  const bundle = { version: NV, retrieval: { last: "2026-11-03T02:43:14.854Z" }, sources: {}, blends: {}, official: {}, hourly: { t0, stepMs: 3600e3, n: 2, temperature_2m: { x: [57.9, 58.5] } } };
+  U.mkdirp(path.join(D, "normalized", "CVG", "2026"));
+  fs.writeFileSync(path.join(D, "normalized", "CVG", "2026", `${cap.captureId}.${NV}.json.gz`), U.gz(Buffer.from(JSON.stringify(bundle))));
+  U.appendJSONL(path.join(D, "obs", "CVG", "2026-11.jsonl"), [{ target: "temp_hourly", time: t0, value: 59, src: "METAR", status: "preliminary", obsAt: T("2026-11-03T02:52:00Z"), flags: [] },
+    { target: "temp_hourly", time: t0 + 3600e3, value: 59, src: "METAR", status: "preliminary", obsAt: T("2026-11-03T03:52:00Z"), flags: [] }]);
+  const res = SC.scoreAll(D, LOC, T("2026-11-03T05:00:00Z"));
+  eq(res.hourlyPairs.map((p) => [p.valid, p.obsMeasured, p.leadMin]), [["2026-11-03T04:00:00.000Z", "2026-11-03T03:52:00.000Z", 68.8]], "scoreAll drops the 03:00Z pair (8.8 min lead) and keeps the 04:00Z pair with its timing");
+  eq(res.hourlyPairs[0].normVersion, NV, "each scored pair records the normalizer version that produced it");
 }
 /* ---------- learning prep: time splits, constraints, shrinkage, no auto-promotion ---------- */
 {

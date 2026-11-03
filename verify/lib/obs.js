@@ -42,7 +42,7 @@ function parseIEM(csv) {
   return [...byT.values()].sort((a, b) => a.t - b.t);
 }
 /* Routine report at or within 15 minutes before instant t (CVG routine reports are at :52). */
-const routineBefore = (reps, t) => reps.filter((r) => r.t <= t && r.t > t - 15 * 60e3).pop() || null;
+const routineBefore = (reps, t) => reps.filter((r) => r.t <= t && r.t > t - require("./timing.js").MATCH_TOLERANCE_MIN * 60e3).pop() || null;
 /* Derived METAR targets for a list of local-standard dates. */
 function metarTargets(reps, loc, dates) {
   const out = [], H = 3600e3, push = (target, date, value, flags, extra) => out.push({ target, date, value, flags, src: "METAR", status: "preliminary", ...extra });
@@ -70,7 +70,7 @@ function metarHourly(reps, fromMs, toMs) {
   const out = [];
   for (let t = Math.ceil(fromMs / 3600e3) * 3600e3; t <= toMs; t += 3600e3) {
     const r = routineBefore(reps, t); if (!r || r.tempC == null) continue;
-    out.push({ target: "temp_hourly", time: t, value: c2f(r.tempC), flags: r.tempPrecise ? [] : ["whole-degree C"], src: "METAR", status: "preliminary", obsAt: r.t });
+    out.push({ target: "temp_hourly", time: t, value: c2f(r.tempC), flags: r.tempPrecise ? [] : ["whole-degree C"], src: "METAR", status: "preliminary", obsAt: r.t, report: r.raw });
   }
   return out;
 }
@@ -155,7 +155,7 @@ function best(rows) {
   by.forEach((list, k) => {
     const s = list.slice().sort((a, b) => RANK[b.status] - RANK[a.status] || SRC_RANK[b.src] - SRC_RANK[a.src] || String(b.seenAt || b.issuedAt || "").localeCompare(String(a.seenAt || a.issuedAt || "")));
     const top = s[0], vals = [...new Set(list.map((x) => x.value))];
-    out.set(k, { value: top.value, src: top.src, status: top.status, flags: top.flags || [], revised: vals.length > 1, versions: list.length });
+    out.set(k, { value: top.value, src: top.src, status: top.status, flags: top.flags || [], revised: vals.length > 1, versions: list.length, obsAt: top.obsAt, seenAt: top.seenAt, productId: top.productId, sha: top.sha, report: top.report });
   });
   return out;
 }

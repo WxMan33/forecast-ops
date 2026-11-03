@@ -7,7 +7,8 @@ const U = require("./util.js");
 const C = U.Core, B = C.blend, S = C.stats;
 const TG = require("./targets.js");
 const SRC = require("./sources.js");
-const VERSION = "normalize-v2"; // v2: prospective-only windows; full-window coverage required
+const VERSION = "normalize-v3"; // v2: prospective windows, full coverage; v3: boundary = last retrieval + minimum lead (lib/timing.js)
+const TM = require("./timing.js");
 
 const r1 = (x, d = 1) => (x == null || !isFinite(x) ? null : Math.round(x * 10 ** d) / 10 ** d);
 const omMs = (t) => Date.parse(t + "Z"); // Open-Meteo GMT labels
@@ -90,10 +91,13 @@ function normalize(raw, cap, loc, recipes) {
   const dates = Array.from({ length: 17 }, (_, k) => U.addDays(cap.localDate, k));
   const keys = Object.keys(TG.TARGETS);
   const present = Object.keys(data.models);
-  /* prospective only: a window that had already begun when the capture started is not a forecast */
-  const startMs = Date.parse(cap.startedAt);
-  const prospective = (key, d) => TG.TARGETS[key].window(d, loc)[0] > startMs;
-  bundle.prospectiveRule = "only target windows starting after the capture start are kept";
+  /* prospective only: a window must start at least the minimum lead after the LAST source retrieval */
+  const retr = Object.values(cap.sources || {}).map((s) => s.retrievedAt).filter(Boolean).sort();
+  const lastMs = retr.length ? Date.parse(retr[retr.length - 1]) : Date.parse(cap.startedAt);
+  bundle.retrieval = { first: retr[0] || null, last: retr[retr.length - 1] || null };
+  bundle.timing = TM.VERSION;
+  bundle.sourceIssue = Object.fromEntries(Object.values(cap.sources || {}).map((s) => [s.id, { retrievedAt: s.retrievedAt || null, issued: s.kind === "nws" ? s.issuedAt || null : s.meta ? s.meta.lastRunInit || null : null, issuedNote: s.kind === "nws" ? "NWS grid updateTime" : "provider metadata: latest run at retrieval", implausible: s.meta && s.meta.implausible }]));
+  const prospective = (key, d) => TM.windowOk(TG.TARGETS[key].window(d, loc)[0], lastMs);
   /* sources */
   present.forEach((id) => {
     const o = {};

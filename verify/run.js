@@ -33,12 +33,15 @@ function loadRaw(cap) {
   });
   return raw;
 }
+/* Bundles are written per normalizer version and never overwritten: older versions stay beside new ones. */
+const bundleRel = (cap) => `normalized/${loc.id}/${cap.localDate.slice(0, 4)}/${cap.captureId}.${NORM.VERSION}.json.gz`;
 function writeBundle(cap) {
+  const rel = bundleRel(cap), full = path.join(DATA, rel);
+  if (fs.existsSync(full)) return { path: rel, version: NORM.VERSION, existed: true };
   const b = NORM.normalize(loadRaw(cap), cap, loc, BLENDS.recipes.concat(BLENDS.candidates));
-  const rel = `normalized/${loc.id}/${cap.localDate.slice(0, 4)}/${cap.captureId}.json.gz`;
-  U.mkdirp(path.dirname(path.join(DATA, rel)));
-  fs.writeFileSync(path.join(DATA, rel), U.gz(Buffer.from(JSON.stringify(b))));
-  return { path: rel, error: b.error || null, sources: Object.keys(b.sources).length, blends: Object.keys(b.blends).length };
+  U.mkdirp(path.dirname(full));
+  fs.writeFileSync(full, U.gz(Buffer.from(JSON.stringify(b))));
+  return { path: rel, version: NORM.VERSION, error: b.error || null, sources: Object.keys(b.sources).length, blends: Object.keys(b.blends).length };
 }
 
 async function collect() {
@@ -114,12 +117,12 @@ function renormalize() {
 
 async function score() {
   const SC = require("./lib/score.js"), RP = require("./lib/report.js");
-  /* bundles written by an older normalizer are rebuilt from raw evidence first (versions recorded) */
+  /* captures without a bundle of the current normalizer version get one, built from the raw evidence;
+     bundles of older versions are kept untouched beside it */
   let rebuilt = 0;
   U.readJSONL(capturesFile).forEach((c) => {
-    if (!c.normalized || !c.normalized.path) return;
-    let v = null; try { v = JSON.parse(U.gunzip(fs.readFileSync(path.join(DATA, c.normalized.path))).toString()).version; } catch (e) { v = null; }
-    if (v !== NORM.VERSION) { try { writeBundle(c); rebuilt++; } catch (e) { console.log("rebuild failed", c.captureId, e.message); } }
+    if (fs.existsSync(path.join(DATA, bundleRel(c)))) return;
+    try { writeBundle(c); rebuilt++; } catch (e) { console.log("rebuild failed", c.captureId, e.message); }
   });
   if (rebuilt) runLog({ job: "renormalize", outcome: "ok", count: rebuilt, reason: `normalizer ${NORM.VERSION}` });
   const res = SC.scoreAll(DATA, loc);
