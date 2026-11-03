@@ -48,6 +48,15 @@ eq([usno("2026-11-01").sun.rise.zone, usno("2026-10-31").sun.rise.zone, usno("20
   eq(A.fmtDelta(sun("2026-11-01").daylightSec - sun("2026-10-31").daylightSec), "−2:15", "fall-back day: −2:15");
 }
 eq(A.rank([["2026-11-02", undefined]], 2026).available, false, "malformed ranking response: unavailable, not a crash");
+{ /* both ends of a ranking, with a tied group and excluded years */
+  const rows = [["2020-11-02", ["50.0", 0]], ["2021-11-02", ["55.0", 0]], ["2022-11-02", ["55.0", 0]], ["2023-11-02", ["60.0", 0]], ["2024-11-02", ["M", 2]], ["2025-11-02", ["45.0", 1]], ["2026-11-02", ["55.0", 0]]];
+  const r = A.rankBoth(rows, 2026);
+  eq([r.n, r.high.rank, r.low.rank, r.ties, r.excluded], [5, 2, 2, [2021, 2022], [2024, 2025]], "tied group: 2nd warmest AND 2nd coldest of 5 usable years; the opposite rank is counted, not reversed");
+  eq(A.rankBoth([["2026-11-02", ["55.0", 1]], ["2025-11-02", ["50.0", 0]]], 2026).available, false, "a selected year with missing days is not ranked");
+  const real = A.rankBoth(J("acis-mtd2-CVGthr-11-02.json").data, 2026);
+  eq([real.high.rank + real.low.rank - 1 + real.ties.length, real.n], [real.n, real.n], "real series: higher + lower + tied + itself = usable years");
+  eq(A.leadRank({ available: true, n: 150, ties: [], high: { rank: 3 }, low: { rank: 148 } }, 6).side, "high", "leads with the nearer extreme");
+}
 /* ---------- meteorological seasons ---------- */
 eq([A.metSeason("2026-11-02").start, A.metSeason("2027-02-28").start, A.metSeason("2026-12-01").id, A.metSeason("2028-02-29").start], ["2026-09-01", "2026-12-01", "DJF", "2027-12-01"], "season-to-date starts: SON Sep 1; DJF crosses the year");
 {

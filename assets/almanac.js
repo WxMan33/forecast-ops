@@ -128,10 +128,11 @@
       cached(`acisR:${md}:${recThru}`, 7 * D, () => (md === "02-29"
         ? acis({ sid: CLIM.recordsSid, sdate: `${CLIM.firstYear}-01-01`, edate: `${recThru}-12-31`, elems: ["maxt", "mint", "pcpn", "snow"].map((name) => ({ name, interval: "dly", duration: "dly", groupby: ["year", "02-28", "03-01"] })), meta: ["name", "valid_daterange"] })
         : acis({ sid: CLIM.recordsSid, sdate: `${CLIM.firstYear}-${md}`, edate: `${recThru}-${md}`, elems: ["maxt", "mint", "pcpn", "snow"].map((name) => ({ name, interval: [1, 0, 0] })), meta: ["name", "valid_daterange"] }))),
-      thru ? cached(`acisRank2:${thru}`, 6 * H, () => acis({ sid: CLIM.recordsSid, sdate: `${CLIM.firstYear + 1}-${thru.slice(5)}`, edate: thru, elems: [
+      thru ? cached(`acisRank3:${thru}`, 6 * H, () => acis({ sid: CLIM.recordsSid, sdate: `${CLIM.firstYear + 1}-${thru.slice(5)}`, edate: thru, elems: [
         { name: "pcpn", interval: [1, 0, 0], duration: "mtd", reduce: { reduce: "sum", add: "mcnt" } },
         { name: "pcpn", interval: [1, 0, 0], duration: "std", season_start: met.startMD, reduce: { reduce: "sum", add: "mcnt" } },
-        { name: "avgt", interval: [1, 0, 0], duration: "std", season_start: met.startMD, reduce: { reduce: "mean", add: "mcnt" } }], meta: ["name"] })) : Promise.resolve(null),
+        { name: "avgt", interval: [1, 0, 0], duration: "std", season_start: met.startMD, reduce: { reduce: "mean", add: "mcnt" } },
+        { name: "avgt", interval: [1, 0, 0], duration: "mtd", reduce: { reduce: "mean", add: "mcnt" } }], meta: ["name"] })) : Promise.resolve(null),
     ]);
     if (my !== run) return;
     /* leap day: the middle value of Feb 28 - Mar 1, in leap years only (ACIS's yearly step would substitute Feb 28 in 1900) */
@@ -141,7 +142,7 @@
     const nRows = nor.v && nor.v.data ? nor.v.data : [], nMap = new Map(nRows.map((r) => [r[0], r]));
     const oRows = obs && obs.v && obs.v.data ? obs.v.data : [];
     const col = (k) => (rk && rk.v && rk.v.data ? rk.v.data.map((r) => [r[0], r[k]]) : null);
-    climData = { R, nRows, oRows, thru, sel, met, rank: col(1), rankSeasonP: col(2), rankSeasonT: col(3) };
+    climData = { R, nRows, oRows, thru, sel, met, rankMonthP: col(1), rankSeasonP: col(2), rankSeasonT: col(3), rankMonthT: col(4) };
     const nd = nMap.get(sel), yd = thru ? oRows.find((r) => r[0] === thru) : null;
     const v = (s, d, u = "") => { const x = A.val(s); return x.missing ? '<span class="unavail" title="missing: not reported or not yet available">M</span>' : (x.trace ? "T" : d != null ? x.v.toFixed(d) : String(x.v)) + u; };
     const recTxt = (r, u = "°") => (!r ? '<span class="unavail">—</span>' : `${r.trace ? "T" : r.value}${u} <small>${r.years.length > 1 ? `tie: ${r.years.join(", ")}` : r.years[0]}</small>`);
@@ -169,39 +170,92 @@
     facts();
   }
 
-  /* ---------- weather numbers ---------- */
+  /* ---------- weather numbers: four summary cards + operational row ---------- */
+  let fcPeriods = null; // NWS periods for the forecast-vs-record line (set by the forecast card)
   function facts() {
     const el = $("factCard"), d = climData; if (!d) return;
     const hiT = +O.store.get("alm_hiT", 80), loT = +O.store.get("alm_loT", 32);
-    let body = "";
-    if (!d.thru || !d.oRows.length) body = '<p class="msg unavail">Needs observed data before the sheet date.</p>';
-    else {
-      const ds = A.dryStreak(d.oRows, d.thru), m0 = d.thru.slice(0, 8) + "01", y0 = d.thru.slice(0, 4) + "-01-01";
-      const cH = (from) => A.countDays(d.oRows, from, d.thru, 1, (x) => x >= hiT), cL = (from) => A.countDays(d.oRows, from, d.thru, 2, (x) => x <= loT);
-      const rk = d.rank ? A.rank(d.rank, +d.thru.slice(0, 4)) : null;
-      const recHigh = d.R && d.R.highMax, selObs = d.oRows.find((r) => r[0] === d.sel);
-      const ordinal = (n) => n + (["th", "st", "nd", "rd"][(n % 100 - 20) % 10] || ["th", "st", "nd", "rd"][n % 100] || "th");
-      body = `<dl class="kv">
-        <dt>Days without measurable precip<small>CVG, through ${esc(fmtDate(d.thru, { month: "short", day: "numeric" }))}; trace is not measurable</small></dt><dd>${ds.atLeast ? "at least " : ""}${ds.days}<small>${ds.endedBy === "measurable" ? `last ${ds.amount.toFixed(2)}″ on ${esc(fmtDate(ds.at, { month: "short", day: "numeric" }))}` : ds.endedBy === "missing" ? `stops at a missing day (${esc(ds.at)})` : `data window starts ${esc(ds.from)}`}</small></dd>
-        <dt>Days with high ≥ <input class="input mono thr" id="hiT" value="${hiT}" aria-label="High threshold °F">°F<small>CVG; month / year to date</small></dt><dd>${(() => { const a = cH(m0), b = cH(y0); return `${a.n} / ${b.n}${a.missing || b.missing ? `<small>${a.missing + b.missing} missing days not counted</small>` : ""}`; })()}</dd>
-        <dt>Days with low ≤ <input class="input mono thr" id="loT" value="${loT}" aria-label="Low threshold °F">°F</dt><dd>${(() => { const a = cL(m0), b = cL(y0); return `${a.n} / ${b.n}`; })()}</dd>
-        <dt>Month-to-date precip rank<small>${esc(CLIM.recordsName)}; wettest = 1; same dates each year; years with missing days excluded</small></dt><dd>${!rk ? "—" : rk.available ? `${ordinal(rk.rank)} wettest of ${rk.of}${rk.ties.length ? `<small>tied with ${rk.ties.slice(0, 6).join(", ")}${rk.ties.length > 6 ? "…" : ""}</small>` : ""}<small>${rk.from}–${rk.to}${rk.excluded ? `; ${rk.excluded} yrs excluded` : ""}</small>` : `<span class="unavail">${esc(rk.why)}</span>`}</dd>
-        ${(() => {
-          const mt = d.met, ps = A.accumulate(d.oRows, d.nRows, mt.start, d.thru, 3), ts = A.meanTemps(d.oRows, d.nRows, mt.start, d.thru);
-          const rp = d.rankSeasonP ? A.rank(d.rankSeasonP, +d.thru.slice(0, 4)) : null, rt = d.rankSeasonT ? A.rank(d.rankSeasonT, +d.thru.slice(0, 4)) : null;
-          const rkTxt = (r, word) => (!r ? "" : r.available ? `<small>${ordinal(r.rank)} ${word} of ${r.of} (${r.from}–${r.to}${r.ties.length ? `; tied with ${r.ties.slice(0, 4).join(", ")}` : ""}${r.excluded ? `; ${r.excluded} yrs excluded` : ""})</small>` : `<small>rank unavailable: ${esc(r.why)}</small>`);
-          const sgn = (x, dd) => `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(dd)}`;
-          return `<dt>${esc(mt.name)} to date: precip<small>CVG, ${esc(fmtDate(mt.start, { month: "short", day: "numeric" }))}–${esc(fmtDate(d.thru, { month: "short", day: "numeric", year: "numeric" }))}; normal over the same dates; rank from the threaded record</small></dt>
-            <dd>${ps.complete ? (ps.traceOnly ? "T" : ps.total.toFixed(2) + "″") : `<span class="unavail">incomplete (${ps.missing.length} days missing)</span>`}${ps.normalMissing.length ? `<small class="unavail">no normal for ${ps.normalMissing.length} of ${ps.days} days: no departure</small>` : ps.normal != null ? `<small>normal ${ps.normal.toFixed(2)}″${ps.departure != null ? ` · ${sgn(ps.departure, 2)}″` : ""}</small>` : ""}${rkTxt(rp, "wettest")}</dd>
-            <dt>${esc(mt.name)} to date: temperature<small>mean high / mean low, and mean (high+low)/2 vs normal</small></dt>
-            <dd>${ts.meanHigh != null ? `${ts.meanHigh.toFixed(1)}° / ${ts.meanLow.toFixed(1)}°` : "—"}${ts.complete ? `<small>mean ${ts.mean.toFixed(1)}° vs normal ${ts.normalMean.toFixed(1)}° · ${sgn(ts.departure, 1)}°</small>` : `<small class="unavail">${ts.missing.length ? `${ts.missing.length} days missing` : ""}${ts.normalMissing.length ? ` no normal for ${ts.normalMissing.length} days` : ""}: no departure</small>`}${rkTxt(rt, "warmest")}</dd>`;
-        })()}
-        <dt>Observed high vs record<small>sheet date; record ${recHigh ? `${recHigh.from}–${recHigh.to}` : ""}</small></dt><dd>${selObs && recHigh && !A.val(selObs[1]).missing ? `${A.val(selObs[1]).v - recHigh.value >= 0 ? "+" : "−"}${Math.abs(A.val(selObs[1]).v - recHigh.value)}°F<small>${A.val(selObs[1]).v}° vs ${recHigh.value}° (${recHigh.years.join(", ")})</small>` : '<span class="unavail">sheet date not yet observed</span>'}</dd>
-      </dl>`;
-    }
-    el.innerHTML = `<details class="fold" open><summary><span class="section-title" style="margin:0">Weather numbers</span></summary><div style="margin-top:8px">${body}</div>
-      <div class="src">Computed in the browser from the ACIS data shown on this sheet. Every figure names its station, period and dates; missing days are reported, never filled.</div></details>`;
-    ["hiT", "loT"].forEach((k) => { const i = $(k); if (i) i.addEventListener("change", () => { const n = parseFloat(i.value); if (isFinite(n)) { O.store.set("alm_" + k, n); facts(); } }); });
+    if (!d.thru || !d.oRows.length) { el.innerHTML = `<div class="section-title">Weather numbers</div><p class="msg unavail">These need observations before the sheet date.</p>`; return; }
+    const y = +d.thru.slice(0, 4), short = (x) => fmtDate(x, { month: "short", day: "numeric" });
+    const sgn = (x, dd, unit) => `${Math.abs(x).toFixed(dd)}${unit}`;
+    const periods = [
+      { key: "month", label: `${fmtDate(d.thru, { month: "long" })} to date`, from: d.thru.slice(0, 8) + "01", rankT: d.rankMonthT, rankP: d.rankMonthP },
+      { key: "season", label: `${d.met.name.split(" ")[0]} to date`, sub: d.met.name.replace(/^\w+ /, ""), from: d.met.start, rankT: d.rankSeasonT, rankP: d.rankSeasonP },
+    ];
+    const cards = [];
+    periods.forEach((p) => {
+      const days = A.dayDiff(p.from, d.thru) + 1, span = `${short(p.from)}–${short(d.thru)}`;
+      const t = A.meanTemps(d.oRows, d.nRows, p.from, d.thru), pr = A.accumulate(d.oRows, d.nRows, p.from, d.thru, 3);
+      /* temperature */
+      const rt = p.rankT ? A.rankBoth(p.rankT, y) : null, lt = t.complete ? A.leadRank(rt, t.departure) : null;
+      cards.push(card({ id: `${p.key}T`, period: `${p.label} · ${span}`, kind: "Temperature", days, rank: rt, lead: lt, words: { high: "warmest", low: "coldest" },
+        primary: t.mean != null ? `${t.mean.toFixed(1)}°F` : "—", primaryNote: "mean temperature",
+        dep: t.complete ? { v: t.departure, txt: t.departure === 0 ? "at normal" : `${sgn(t.departure, 1, "°F")} ${t.departure > 0 ? "above" : "below"} normal`, cls: t.departure > 0 ? "warm" : t.departure < 0 ? "cold" : "" } : null,
+        support: t.meanHigh != null ? `Mean high ${t.meanHigh.toFixed(1)}° · mean low ${t.meanLow.toFixed(1)}°${t.normalMean != null && !t.normalMissing.length ? ` · normal ${t.normalMean.toFixed(1)}°` : ""}` : "",
+        incomplete: !t.complete ? `${t.missing.length ? `${t.missing.length} of ${days} days missing` : ""}${t.normalMissing.length ? `${t.missing.length ? "; " : ""}no normal for ${t.normalMissing.length} days` : ""}` : null,
+        method: "Mean temperature = average of the daily (high + low) / 2 over the same elapsed dates. Departure uses NCEI 1991–2020 daily normals for exactly those dates." }));
+      /* precipitation */
+      const rp = p.rankP ? A.rankBoth(p.rankP, y) : null, lp = pr.complete ? A.leadRank(rp, pr.departure) : null;
+      const pct = pr.complete && pr.normal ? Math.round((pr.total / pr.normal) * 100) : null;
+      cards.push(card({ id: `${p.key}P`, period: `${p.label} · ${span}`, kind: "Precipitation", days, rank: rp, lead: lp, words: { high: "wettest", low: "driest" },
+        primary: !pr.complete ? "—" : pr.traceOnly ? "Trace" : `${pr.total.toFixed(2)}″`, primaryNote: "total",
+        dep: pr.complete && pr.departure != null ? { v: pr.departure, txt: pr.departure === 0 ? "at normal" : `${sgn(pr.departure, 2, "″")} ${pr.departure > 0 ? "above" : "below"} normal`, cls: pr.departure > 0 ? "wet" : pr.departure < 0 ? "dry" : "" } : null,
+        support: pr.normal != null && !pr.normalMissing.length ? `Normal ${pr.normal.toFixed(2)}″${pct != null ? ` · ${pct}% of normal` : ""}` : "",
+        incomplete: !pr.complete ? `${pr.missing.length} of ${days} days missing` : pr.normalMissing.length ? `no normal for ${pr.normalMissing.length} days` : null,
+        method: "Total of daily precipitation; a trace counts as 0 (not measurable). Normal = sum of NCEI 1991–2020 daily normals over the same dates." }));
+    });
+    /* operational row */
+    const ds = A.dryStreak(d.oRows, d.thru), m0 = d.thru.slice(0, 8) + "01", y0 = d.thru.slice(0, 4) + "-01-01";
+    const cnt = (from, col, test) => A.countDays(d.oRows, from, d.thru, col, test);
+    const hm = cnt(m0, 1, (x) => x >= hiT), hy = cnt(y0, 1, (x) => x >= hiT), lm = cnt(m0, 2, (x) => x <= loT), ly = cnt(y0, 2, (x) => x <= loT);
+    const traceSince = (() => { if (ds.endedBy !== "measurable" && !ds.atLeast) return 0; let n = 0; d.oRows.forEach((r) => { if (r[0] > ds.at && r[0] <= d.thru && A.val(r[3]).trace) n++; }); return n; })();
+    /* record comparison: observed (if the sheet date is observed) or a labelled NWS forecast */
+    const recH = d.R && d.R.highMax, selObs = d.oRows.find((r) => r[0] === d.sel), obsHi = selObs ? A.val(selObs[1]) : null;
+    const fcHi = fcPeriods ? fcPeriods.find((x) => x.isDaytime && x.temp != null && C.time.toLocal(x.s, CLIM.tz).slice(0, 10) === d.sel) : null;
+    const recLine = !recH ? null : obsHi && !obsHi.missing ? { k: "Observed high vs record", v: `${obsHi.v}° vs ${recH.value}°`, s: `${Math.abs(obsHi.v - recH.value)}° ${obsHi.v >= recH.value ? "above" : "below"} the record (${recH.years.join(", ")})` }
+      : fcHi ? { k: "NWS forecast high vs record", v: `${Math.round(fcHi.temp)}° vs ${recH.value}°`, s: `forecast, not an observation · record ${recH.years.join(", ")}` } : null;
+    const tile = (k, v, s2) => `<div class="optile"><span class="k">${k}</span><span class="v">${v}</span>${s2 ? `<span class="s">${s2}</span>` : ""}</div>`;
+    el.innerHTML = `<div class="row" style="justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><div class="section-title" style="margin:0">Weather numbers · Cincinnati</div>
+        <button class="btn ghost sm" type="button" id="wnHow" aria-expanded="false" aria-controls="wnHowPanel">ⓘ HOW THESE ARE CALCULATED</button></div>
+      <div class="infopanel" id="wnHowPanel" hidden>
+        <p><b>Observed values</b> come from the Cincinnati/Northern Kentucky airport (CVG), observed through ${esc(fmtDate(d.thru, { month: "long", day: "numeric", year: "numeric" }))}. Recent days are preliminary and can be corrected. <b>Normals</b> are NCEI 1991–2020 daily normals for CVG. <b>Rankings</b> use the Cincinnati threaded record (the official city record joined across sites since 1871) for exactly the same elapsed dates in every year; meteorological winter runs Dec 1 to Feb 28/29 and crosses the calendar year. A year counts only if it has no missing days in that span. Ranks are competition ranks: tied years share a rank, and the opposite extreme is counted separately from the values, not by reversing the rank.</p>
+        <p>Missing observations or normals are reported, never filled: an incomplete period shows no departure and no rank. Ranks over fewer than 7 days are shown but not highlighted. Trace precipitation is recorded but not measurable.</p></div>
+      <div class="wngrid">${cards.join("")}</div>
+      <div class="oprow">
+        ${tile("Without measurable precip", `${ds.atLeast ? "≥ " : ""}${ds.days} day${ds.days === 1 ? "" : "s"}`, ds.endedBy === "measurable" ? `since ${ds.amount.toFixed(2)}″ on ${short(ds.at)}${traceSince ? ` · ${traceSince} day${traceSince > 1 ? "s" : ""} with a trace` : ""}` : ds.endedBy === "missing" ? `count stops at a missing day (${short(ds.at)})` : `data window starts ${short(ds.from)}`)}
+        ${tile(`Highs ≥ <input class="input mono thr" id="hiT" value="${hiT}" aria-label="High threshold in °F">°F`, `Month ${hm.n} · Year ${hy.n}`, hm.missing + hy.missing ? `${hm.missing + hy.missing} missing days not counted` : "month to date · year to date")}
+        ${tile(`Lows ≤ <input class="input mono thr" id="loT" value="${loT}" aria-label="Low threshold in °F">°F`, `Month ${lm.n} · Year ${ly.n}`, lm.missing + ly.missing ? `${lm.missing + ly.missing} missing days not counted` : "month to date · year to date")}
+        ${recLine ? tile(recLine.k, recLine.v, recLine.s) : ""}
+      </div>
+      <div class="src">CVG observations through ${esc(short(d.thru))}; rankings: Cincinnati threaded record. ${!recLine && recH ? `Record comparison appears once ${esc(short(d.sel))} is observed or has an NWS forecast high.` : ""}</div>`;
+    $("wnHow").addEventListener("click", (e) => { const pn = $("wnHowPanel"); pn.hidden = !pn.hidden; e.currentTarget.setAttribute("aria-expanded", String(!pn.hidden)); });
+    el.querySelectorAll(".wninfo").forEach((b) => b.addEventListener("click", () => { const pn = $(b.getAttribute("aria-controls")); pn.hidden = !pn.hidden; b.setAttribute("aria-expanded", String(!pn.hidden)); }));
+    ["hiT", "loT"].forEach((k) => { const inp = $(k); if (inp) inp.addEventListener("change", () => { const n = parseFloat(inp.value); if (isFinite(n)) { O.store.set("alm_" + k, n); facts(); } }); });
+  }
+  /* one summary card */
+  function card(o) {
+    const r = o.rank, L = o.lead, shortP = o.days < 7;
+    const head = !L ? null : `${A.ordinal(L.rank)}${L.tied ? " (tie)" : ""} ${o.words[L.side]}`;
+    const level = !L || shortP ? "typical" : L.level;
+    const rankLine = !r ? "Ranking unavailable" : !r.available ? `Not ranked: ${r.why}` : o.incomplete ? "Not ranked: incomplete period" : `${head} of ${r.n} usable years (${r.from}–${r.to})`;
+    const det = `${o.id}Det`;
+    return `<article class="wncard ${level}">
+      <div class="wnhead"><span class="wnper">${esc(o.period)}</span><span class="wnkind">${esc(o.kind)}</span></div>
+      ${level === "strong" && head && !o.incomplete ? `<div class="wnbadge ${L.side === "high" ? (o.kind === "Temperature" ? "warm" : "wet") : (o.kind === "Temperature" ? "cold" : "dry")}">${esc(head)}</div>` : ""}
+      <div class="wnbig">${o.primary}<small>${esc(o.primaryNote)}</small></div>
+      ${o.incomplete ? `<div class="wndep unavail">Incomplete: ${esc(o.incomplete)}. No departure or rank.</div>` : o.dep ? `<div class="wndep ${o.dep.cls}">${esc(o.dep.txt)}</div>` : ""}
+      ${o.support ? `<div class="wnsup">${esc(o.support)}</div>` : ""}
+      <div class="wnrank${level === "notable" && !o.incomplete ? " notable" : ""}">${esc(rankLine)}${shortP && L && !o.incomplete ? " · short period, not highlighted" : ""}</div>
+      <button class="wninfo" type="button" aria-expanded="false" aria-controls="${det}">ⓘ Details</button>
+      <div class="wndet" id="${det}" hidden><dl class="kv">
+        <dt>Period</dt><dd>${esc(o.period.split(" · ")[1])} (${o.days} days)</dd>
+        <dt>Observed at</dt><dd>CVG airport</dd>
+        <dt>Ranked in</dt><dd>Cincinnati threaded record</dd>
+        ${r && r.available ? `<dt>${esc(o.words.high[0].toUpperCase() + o.words.high.slice(1))} rank</dt><dd>${A.ordinal(r.high.rank)} of ${r.n}</dd><dt>${esc(o.words.low[0].toUpperCase() + o.words.low.slice(1))} rank</dt><dd>${A.ordinal(r.low.rank)} of ${r.n}</dd>
+          <dt>Value used for ranking</dt><dd>${r.value}${o.kind === "Temperature" ? "°F" : "″"}</dd><dt>Tied years</dt><dd>${r.ties.length ? esc(r.ties.join(", ")) : "none"}</dd>` : ""}
+        ${r ? `<dt>Excluded years</dt><dd>${r.excludedCount ? `${r.excludedCount} (missing days)` : "none"}</dd>` : ""}
+      </dl><p class="msg" style="margin-top:6px">${esc(o.method)}</p></div>
+    </article>`;
   }
 
   /* ---------- forecast (existing NWS loader) ---------- */
@@ -211,6 +265,7 @@
     if (my !== run) return;
     if (!N || !N.ok) { el.innerHTML = `<div class="section-title">Forecast</div><p class="msg unavail">NWS forecast unavailable: ${esc((N && N.reason) || "no data")}.</p>`; return; }
     const tz = N.tz || CLIM.tz, dayOf = (ms) => C.time.toLocal(ms, tz).slice(0, 10);
+    fcPeriods = N.periods || null; if (climData) facts();
     const pers = (N.periods || []).filter((p) => dayOf(p.s) === sel || (dayOf(p.s) === A.addDays(sel, 1) && p.isDaytime));
     const raw = (((N.parts.hourly || {}).properties || {}).periods || []);
     const g = N.parts.grid && N.parts.grid.properties, gust = g && g.windGust ? (ms) => C.nws.stateAt(g.windGust, [ms])[0] : () => null;

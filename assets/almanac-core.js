@@ -157,6 +157,31 @@
     const better = ok.filter((a) => (desc ? a.x.v > me.x.v : a.x.v < me.x.v)).length, ties = ok.filter((a) => a.x.v === me.x.v && a.y !== year).map((a) => a.y);
     return { available: true, rank: better + 1, of: ok.length, ties, value: me.x.v, excluded: all.length - ok.length, from: ok[0].y, to: ok[ok.length - 1].y };
   }
+  /* Both ends of a historical ranking from yearly values (ACIS [date, [value, missingDays]]).
+     Usable years: a value present and no missing days. Competition ranking with tied groups:
+     high rank = 1 + (number of usable years with a HIGHER value), low rank = 1 + (number LOWER);
+     years with an equal value are reported as ties for both. The selected year must itself be usable. */
+  function rankBoth(rows, year) {
+    const all = (rows || []).filter((r) => Array.isArray(r[1])).map((r) => ({ y: +String(r[0]).slice(0, 4), x: val(r[1][0]), miss: +r[1][1] || 0 }));
+    const usable = all.filter((a) => !a.x.missing && a.miss === 0), excluded = all.filter((a) => a.x.missing || a.miss > 0).map((a) => a.y);
+    const me = usable.find((a) => a.y === year);
+    const base = { n: usable.length, from: usable.length ? usable[0].y : null, to: usable.length ? usable[usable.length - 1].y : null, excluded, excludedCount: excluded.length };
+    if (!me) return { ...base, available: false, why: all.find((a) => a.y === year) ? "this year's total has missing days" : "no value for this year" };
+    const v = me.x.v, ties = usable.filter((a) => a.y !== year && a.x.v === v).map((a) => a.y);
+    return { ...base, available: true, value: v, ties,
+      high: { rank: 1 + usable.filter((a) => a.x.v > v).length }, low: { rank: 1 + usable.filter((a) => a.x.v < v).length } };
+  }
+  /* Which end to lead with: the nearer extreme; a tie between ends goes to the departure's sign.
+     level: "strong" (top 10 and top 10% of usable years), "notable" (top third), otherwise "typical". */
+  function leadRank(rb, departure) {
+    if (!rb || !rb.available) return null;
+    const side = rb.high.rank < rb.low.rank ? "high" : rb.low.rank < rb.high.rank ? "low" : departure != null && departure < 0 ? "low" : "high";
+    const r = rb[side].rank, other = side === "high" ? "low" : "high";
+    const level = r <= 10 && r <= Math.max(1, Math.round(rb.n * 0.1)) ? "strong" : r <= rb.n / 3 ? "notable" : "typical";
+    return { side, rank: r, other, otherRank: rb[other].rank, level, tied: rb.ties.length > 0 };
+  }
+  const ordinal = (n) => { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
+
   /* Meteorological season containing a date: DJF (from Dec 1), MAM, JJA, SON. */
   function metSeason(d) {
     const y = +d.slice(0, 4), m = +d.slice(5, 7);
@@ -185,7 +210,7 @@
       normalHigh: r1(nh), normalLow: r1(nl), normalMean: nh == null ? null : r1((nh + nl) / 2),
       departure: complete ? r1((mh + ml) / 2 - (nh + nl) / 2) : null };
   }
-  const API = { metSeason, meanTemps, noaaSun, eventMs, solarNoonMs, roundMin, fmtHMS, fmtDelta, jdOf, usnoInstant, parseOneDay, daylightMin, fmtDur, daylightChange, nextPhase, val, show, records, accumulate, dryStreak, countDays, rank, addDays, dayDiff };
+  const API = { rankBoth, leadRank, ordinal, metSeason, meanTemps, noaaSun, eventMs, solarNoonMs, roundMin, fmtHMS, fmtDelta, jdOf, usnoInstant, parseOneDay, daylightMin, fmtDur, daylightChange, nextPhase, val, show, records, accumulate, dryStreak, countDays, rank, addDays, dayDiff };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   root.AlmanacCore = API;
 })(typeof self !== "undefined" ? self : globalThis);

@@ -426,3 +426,39 @@ textarea.notes { width: 100%; resize: vertical; font: 13px/1.45 var(--font-body,
   .kv dt { margin-top: 7px; } .kv dd { text-align: left; }
   .big2 .v { font-size: 19px; }
 }
+
+/* ---------- Almanac: weather numbers cards ---------- */
+.wngrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 10px; }
+.wncard { background: var(--raised); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 5px; align-content: start; }
+.wncard.strong { border-color: var(--accent); }
+.wnhead { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); }
+.wnkind { color: var(--text); }
+.wnbadge { justify-self: start; font-size: 13px; font-weight: 800; padding: 3px 8px; border-radius: 6px; border: 1px solid currentColor; }
+.wnbadge.warm, .wndep.warm { color: var(--warm, #F97316); } .wnbadge.cold, .wndep.cold { color: var(--cold, #60A5FA); }
+.wnbadge.wet, .wndep.wet { color: #2DD4BF; } .wnbadge.dry, .wndep.dry { color: #EAB308; }
+.wnbig { font-family: var(--font-mono); font-size: 28px; font-weight: 800; line-height: 1.1; }
+.wnbig small { display: inline; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 6px; }
+.wndep { font-size: 14px; font-weight: 700; }
+.wnsup, .wnrank { font-size: 12.5px; color: var(--muted); }
+.wninfo { all: unset; cursor: pointer; justify-self: start; font-size: 12px; color: var(--muted); border-bottom: 1px dotted var(--faint); }
+.wninfo:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wndet { border-top: 1px solid var(--line); padding-top: 6px; }
+.infopanel { margin-top: 8px; font-size: 12.5px; color: var(--muted); background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; display: grid; gap: 6px; }
+.oprow { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-top: 12px; }
+.optile { border: 1px solid var(--line); border-radius: 9px; padding: 8px 12px; display: grid; gap: 2px; }
+.optile .k { font-size: 11px; font-weight: 800; letter-spacing: .5px; color: var(--muted); text-transform: uppercase; }
+.optile .v { font-family: var(--font-mono); font-size: 18px; font-weight: 800; }
+.optile .s { font-size: 11.5px; color: var(--muted); }
+@media print { .wninfo, #wnHow { display: none !important; } .wncard { break-inside: avoid; border: 1px solid #999; } .wngrid { grid-template-columns: 1fr 1fr; } }
+:root[data-theme="light"] .wnbadge.dry, :root[data-theme="light"] .wndep.dry { color: #A16207; }
+:root[data-theme="light"] .wnbadge.wet, :root[data-theme="light"] .wndep.wet { color: #0F766E; }
+
+#factCard { grid-column: 1 / -1; }
+.wngrid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+@media (min-width: 1100px) { .wngrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.wnrank.notable { color: var(--text); font-weight: 700; }
+#wnHow { flex: 0 0 auto; width: auto; }
+@media print {
+  .wnbadge.warm, .wndep.warm { color: #B91C1C !important; } .wnbadge.cold, .wndep.cold { color: #1D4ED8 !important; }
+  .wnbadge.wet, .wndep.wet { color: #0F766E !important; } .wnbadge.dry, .wndep.dry { color: #A16207 !important; }
+}
