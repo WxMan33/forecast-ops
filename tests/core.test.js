@@ -197,6 +197,15 @@ for (let k = 0; k < 300; k++) {
   compared++; if (mine.type === ref.type) agree++;
 }
 eq(agree, compared, `bourgouin: random profiles agree with UPP away from thresholds (${agree}/${compared})`);
+/* representation sensitivity: same sparse levels, two layer representations */
+const sens = [{ z: 2, p: 1000, t: -2 }, { z: 650, p: 925, t: -3 }, { z: 1400, p: 850, t: 0.6 }, { z: 2950, p: 700, t: -6 }, { z: 4150, p: 600, t: -14 }, { z: 5500, p: 500, t: -24 }];
+const rs = Wn.bourgouin(sens);
+eq([typeof rs.alt.PA, rs.repSensitive === (rs.alt.type !== rs.type || (rs.alt.detail || null) !== (rs.detail || null))], ["number", true], "representation: alternate step-layer diagnosis is always computed and compared");
+const stepL = Wn.pointsToStepLayers(sens);
+eq([stepL[0].zb, stepL[0].zt, stepL[stepL.length - 1].zt], [2, 326, 5500], "representation: step layers run between level midpoints, surface to top");
+let sensCount = 0, tot2 = 0;
+for (let a = -1; a <= 3; a += 0.1) { const p2 = sens.map((q, k) => (k === 2 ? { ...q, t: a } : q)); const r2 = Wn.bourgouin(p2); tot2++; if (r2.repSensitive) sensCount++; }
+eq(sensCount > 0 && sensCount < tot2, true, `representation: a coarse warm nose sweep is sensitive in some cases (${sensCount}/${tot2}), not all`);
 /* completeness: truncated, gappy or shallow profiles are unavailable, not guessed */
 eq(Wn.bourgouin(mk(CASES["classic warm nose over a shallow cold layer"][0], 2500)).type, null, "bourgouin: data stopping at 2500 m fail the precip-type checks");
 eq(Wn.bourgouin(mk(CASES["classic warm nose over a shallow cold layer"][0], 3400)).type, "freezing", "bourgouin: data through 3400 m (not 500 hPa) pass the precip-type checks");

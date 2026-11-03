@@ -111,7 +111,7 @@
       <a href="https://open-meteo.com/" target="_blank" rel="noopener">Weather data by Open-Meteo.com</a> (CC BY 4.0) ·
       alerts from <a href="https://www.weather.gov/" target="_blank" rel="noopener">NWS</a> ·
       Model guidance only. Not an official forecast or warning. NWS values are labelled NWS and never blended in. ·
-      <a href="#" id="verifyExport">export verification log</a>`;
+      <a href="#" id="verifyExport">export forecast &amp; observation logs</a>`;
     document.body.append(foot);
 
     $("themeBtn").addEventListener("click", () => { const t = theme() === "dark" ? "light" : "dark"; store.set("ops_theme", t); applyTheme(t); });
@@ -665,9 +665,66 @@
     records.forEach((r) => { if (!have.has(key(r))) all.push(r); });
     store.set("ops_verify", all.slice(-1500));
   }
+  /* Append to a capped log without ever dropping data silently: if browser storage is full, the oldest
+     records are trimmed and the caller is told how many, so the page can say "export soon". */
+  function appendLog(key, records, cap, keyOf) {
+    if (!records || !records.length) return { ok: true, added: 0, dropped: 0 };
+    let all = store.get(key, []);
+    const have = new Set(all.map(keyOf)); let added = 0;
+    records.forEach((r) => { if (!have.has(keyOf(r))) { all.push(r); added++; } });
+    let dropped = Math.max(0, all.length - cap); all = all.slice(-cap);
+    for (let tries = 0; tries < 6; tries++) {
+      try { localStorage.setItem(key, JSON.stringify(all)); return { ok: true, added, dropped, size: all.length }; }
+      catch (e) { const cut = Math.max(1, Math.ceil(all.length * 0.2)); all = all.slice(cut); dropped += cut; }
+    }
+    return { ok: false, added: 0, dropped, size: all.length };
+  }
+  const LOG_KEYS = { forecasts: "ops_verify", ptype: "ops_verify_ptype", observations: "ops_obs" };
+  /* One export with every log, kept as separate arrays: forecasts and observations never mix. */
   function exportVerify() {
-    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), records: store.get("ops_verify", []) }, null, 1)], { type: "application/json" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `forecast-ops-verification-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+    const out = { exportedAt: new Date().toISOString(), note: "Forecast records and observations are separate. Agreement between sources (including NWS) is a comparison, not verification.",
+      methods: { [Core.winter.METHOD_ID]: Core.winter.METHOD }, forecastRecords: store.get(LOG_KEYS.forecasts, []), ptypeRecords: store.get(LOG_KEYS.ptype, []), observations: store.get(LOG_KEYS.observations, []) };
+    const blob = new Blob([JSON.stringify(out, null, 1)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `forecast-ops-log-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+  }
+
+  /* Observation log: what actually happened, recorded separately from every forecast. */
+  const OBS_TYPES = [["snow", "Snow"], ["rain", "Rain"], ["sleet", "Sleet / ice pellets"], ["freezing_rain", "Freezing rain"], ["freezing_drizzle", "Freezing drizzle"], ["drizzle", "Drizzle"], ["graupel", "Graupel"], ["none", "No precipitation"]];
+  const OBS_SOURCES = ["My own observation", "Trained spotter", "ASOS / METAR", "mPING", "Social media / other", "Unknown"];
+  function obsCard(container) {
+    if (!container) return;
+    const draw = () => {
+      const list = store.get(LOG_KEYS.observations, []).filter((o) => Math.abs(o.location.lat - loc.lat) < 0.3 && Math.abs(o.location.lon - loc.lon) < 0.3).slice(-8).reverse();
+      const now = new Date(Date.now() - new Date().getTimezoneOffset() * 60e3).toISOString().slice(0, 16);
+      container.innerHTML = `<div class="section-title">Observation log</div>
+        <p class="section-sub">Record what actually fell, including mixes and uncertain reports. Stored separately from forecasts and exported with them. NWS wording is a forecast, not an observation.</p>
+        <div class="stack">
+          <div class="row"><div><label class="field-label" for="obsTime">Observed at (your clock)</label><input class="input mono" type="datetime-local" id="obsTime" value="${now}"></div>
+          <div><label class="field-label" for="obsSrc">Source</label><select class="input" id="obsSrc">${OBS_SOURCES.map((x) => `<option>${esc(x)}</option>`).join("")}</select></div></div>
+          <div><span class="field-label">Types seen (choose every one that applies)</span><div class="row" style="gap:6px;flex-wrap:wrap">${OBS_TYPES.map(([k, l]) => `<label class="chk"><input type="checkbox" value="${k}"> ${esc(l)}</label>`).join("")}</div></div>
+          <div class="row"><div><label class="field-label" for="obsCert">Certainty</label><select class="input" id="obsCert"><option value="certain">Certain</option><option value="probable">Probable</option><option value="uncertain">Uncertain</option></select></div>
+          <div><label class="field-label" for="obsInt">Intensity (optional)</label><select class="input" id="obsInt"><option value="">—</option><option>light</option><option>moderate</option><option>heavy</option></select></div></div>
+          <div><label class="field-label" for="obsNote">Notes (accumulation, road state, timing…)</label><input class="input" id="obsNote" placeholder="e.g. sleet mixing in at 7:40, 0.5&quot; on grass"></div>
+          <div class="row"><button class="btn sm" id="obsSave" type="button">SAVE OBSERVATION</button><button class="btn ghost sm" id="obsExport" type="button">EXPORT ALL LOGS</button></div>
+          <p class="msg" id="obsMsg"></p>
+          ${list.length ? `<div class="tablewrap"><table><thead><tr><th>Observed</th><th style="text-align:left">Types</th><th>Certainty</th><th style="text-align:left">Source</th><th></th></tr></thead><tbody>${list.map((o) => `<tr><td class="num">${esc(new Date(o.validUtc).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" }))}</td><td style="text-align:left">${esc(o.types.join(", ").replace(/_/g, " "))}${o.intensity ? ` <span class="msg">(${esc(o.intensity)})</span>` : ""}</td><td>${esc(o.certainty)}</td><td style="text-align:left">${esc(o.source)}</td><td><button class="btn ghost sm" data-del="${esc(o.id)}" type="button">×</button></td></tr>`).join("")}</tbody></table></div>` : '<p class="msg">No observations saved for this location yet.</p>'}
+        </div>`;
+      $("obsExport").addEventListener("click", exportVerify);
+      $("obsSave").addEventListener("click", () => {
+        const types = [...container.querySelectorAll(".chk input:checked")].map((x) => x.value);
+        if (!types.length) { $("obsMsg").textContent = "Choose at least one type (or 'No precipitation')."; return; }
+        const t = $("obsTime").value; if (!t) { $("obsMsg").textContent = "Enter when it was observed."; return; }
+        const rec = { schema: 1, kind: "observation", id: "ob_" + Date.now().toString(36), validUtc: new Date(t).toISOString(), recordedAt: new Date().toISOString(),
+          location: { lat: loc.lat, lon: loc.lon, name: loc.name }, types, mixed: types.filter((x) => x !== "none").length > 1, certainty: $("obsCert").value,
+          intensity: $("obsInt").value || null, source: $("obsSrc").value, notes: $("obsNote").value.trim() };
+        const r = appendLog(LOG_KEYS.observations, [rec], 5000, (x) => x.id);
+        $("obsMsg").textContent = r.ok ? "Saved." : "Browser storage is full: export your logs, then clear old forecast records.";
+        if (r.ok) draw();
+      });
+      container.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", () => { if (!confirm("Delete this observation?")) return; store.set(LOG_KEYS.observations, store.get(LOG_KEYS.observations, []).filter((o) => o.id !== b.dataset.del)); draw(); }));
+    };
+    locListeners.push(draw);
+    draw();
   }
 
   window.Ops = {
@@ -678,6 +735,6 @@
     blendSeries: Core.stats.blendSeries, weightedQuantile: Core.stats.weightedQuantile,
     modelColor, modelPicker, linesToggle, chartBase, modelLine, tierStrip, trackChanges, renderChanges,
     events, activeEvent, setActiveEvent, onEvent, eventCard, eventContext, eventBands, eventTable, fmtLocal, fmtSpan,
-    nowIdx, logVerify, exportVerify,
+    nowIdx, logVerify, exportVerify, appendLog, LOG_KEYS, obsCard,
   };
 })();

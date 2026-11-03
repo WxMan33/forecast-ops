@@ -67,7 +67,10 @@ The Winter page shows:
   None of these claim ground or road accumulation.
 - **Ensemble odds** use only members that cover the whole window.
 - **COARSE** marks the largest gap between levels in any interval overlapping the lowest 3 km, shown in metres, when it exceeds 1000 m. The rule and threshold are the same for every model, and provisional.
-- **Precip-type comparisons are logged.** For every hour with precipitation, each model's code type, the NWS wording type and the experimental profile type are saved to the verification log, so agreement and divergence across real setups can be reviewed later.
+- **Representation sensitivity is shown, not hidden.** Each profile is also diagnosed with step layers between level midpoints (`winter.pointsToStepLayers`). Where that changes the type, the hour is marked REP-SENSITIVE and both diagnoses (with PA / NA / surface energies) are available beside the result.
+- **Reconstructable p-type log.** For every hour with precipitation, one record per model holds: UTC valid time, retrieval time, model, location and elevation, the exact input profile (`z, p, t, rh`), method versions (`winter.METHOD`), coverage flags for p-type and Kuchera, the model's own code type, primary and alternate diagnoses with energies, and `repSensitive`. NWS wording is saved per hour with its grid update time. Stored under `ops_verify_ptype` (last 3000 records, about 1 KB each; export regularly during an event).
+- **Observations are logged separately** (Winter page, `ops_obs`): time, every type seen (mixes are first-class), certainty (certain / probable / uncertain), intensity, report source and notes. The footer export writes forecasts, p-type records and observations as separate arrays in one file.
+- **Three distinctions are kept.** *Algorithm agreement*: the energy sums and decision tree match UPP on the tested layers. *Profile representation*: converting sparse levels to layers is an approximation (12 of 842 test profiles change category; refreezing energy gaps up to 1,280 J/kg). *Forecast skill*: neither establishes which type will fall; only observations do, and agreement with NWS is a comparison, not truth.
 
 ### How the Bourgouin implementation is checked
 

@@ -840,11 +840,34 @@
       for (let z = pts[0].z; z < top - 1e-6; z += step) { const zt = Math.min(z + step, top); layers.push({ zb: z, zt, t: at(hp, "t", (z + zt) / 2), p: null }); }
       return layers;
     },
+    /* Alternative representation for sensitivity: each level's temperature held constant between the
+       midpoints to its neighbours (step layers, as a model's own layers would be treated by UPP). */
+    pointsToStepLayers(pts) {
+      const n = pts.length, layers = [];
+      for (let k = 0; k < n; k++) {
+        const zb = k === 0 ? pts[0].z : (pts[k - 1].z + pts[k].z) / 2, zt = k === n - 1 ? pts[n - 1].z : (pts[k].z + pts[k + 1].z) / 2;
+        if (zt > zb) layers.push({ zb, zt, t: pts[k].t, p: null });
+      }
+      return layers;
+    },
+    /* Method identifiers stored with every logged diagnosis, so a record can be reproduced later. */
+    METHOD_ID: "ptype-v1",
+    METHOD: {
+      ptype: "bourgouin-original via UPP CALWXT_BOURG@76d5b18 (energy sums + decision tree verified on identical layers)",
+      primaryRepresentation: "linear-in-height, 25 m layers (pointsToLayers v1)",
+      alternateRepresentation: "step layers between level midpoints (pointsToStepLayers v1)",
+      coverage: "coverage v1 (provisional thresholds: first level 1500 m, ptype top 3000 m, gap fail 1800 m, coarse 1000 m in lowest 3 km)",
+      kuchera: "Kuchera ratio from max T surface-500 hPa, clamped 0-30 (v1)",
+    },
+    /* Primary diagnosis plus the alternate representation. repSensitive when the two disagree in
+       category: the result depends on how sparse levels are turned into layers. */
     bourgouin(pts) {
       const cov = winter.coverage(pts, "ptype");
       if (!cov.pass) return { type: null, unavailable: cov.why, cov };
       const r = winter.bourgouinLayers(winter.pointsToLayers(pts));
-      return { ...r, coarse: cov.coarse, cov, method: "bourgouin-original-upp" };
+      const alt = winter.bourgouinLayers(winter.pointsToStepLayers(pts));
+      const repSensitive = alt.type !== r.type || (alt.detail || null) !== (r.detail || null);
+      return { ...r, alt, repSensitive, coarse: cov.coarse, cov, method: "bourgouin-original-upp" };
     },
     /* Kuchera snow ratio from the warmest temperature (K) between the surface and 500 hPa. */
     kuchera(tmaxC) {

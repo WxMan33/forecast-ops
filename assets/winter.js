@@ -253,7 +253,8 @@
   function renderPtype(ids, s, e) {
     const times = det.times.slice(s, e), n = times.length, A = det.nwsAxis;
     const tpl = `grid-template-columns:150px repeat(${n},minmax(5px,1fr))`;
-    const cell = (t, i, title) => { const c = t && TYPE[t] ? TYPE[t][1] : null; return `<div class="strip-cell${O.hourOf(times[i]) === 0 ? " d0" : ""}${s + i === selH ? " sel" : ""}" data-i="${s + i}" style="background:${c || "var(--raised)"}" title="${O.esc(title)}"></div>`; };
+    const cell = (t, i, title, sens) => { const c = t && TYPE[t] ? TYPE[t][1] : null; return `<div class="strip-cell${O.hourOf(times[i]) === 0 ? " d0" : ""}${s + i === selH ? " sel" : ""}${sens ? " rs" : ""}" data-i="${s + i}" style="background:${c || "var(--raised)"}" title="${O.esc(title)}"></div>`; };
+    const diag = (b) => `${lab(b.type)}${b.detail ? ` (${b.detail})` : ""} · PA ${b.PA.toFixed(1)}, NA ${b.NA.toFixed(1)}, surface ${b.sfcWarm.toFixed(1)} J/kg`;
     const lab = (t) => (t ? TYPE[t][0] : "no precip");
     const head = `<div class="strip-row" style="${tpl}"><div></div>${times.map((t, i) => `<div class="strip-lab day">${O.hourOf(t) === 0 || i === 0 ? O.fmtDay(O.dayOf(t)).slice(0, 3) : ""}</div>`).join("")}</div>` +
       `<div class="strip-row" style="${tpl}"><div></div>${times.map((t) => `<div class="strip-lab">${O.hourOf(t) % 6 === 0 && O.hourOf(t) ? O.fmtHour(O.hourOf(t)) : ""}</div>`).join("")}</div>`;
@@ -262,7 +263,8 @@
     const nwsRow = A ? `<div class="strip-row" style="${tpl}"><div class="strip-name bold" style="color:var(--ev)">NWS wording</div>${times.map((t, i) => { const ty = A.ptype[s + i]; const w = A.weather[s + i]; return cell(ty, i, `NWS · ${O.fmtWhen(t)} · ${w && w.length ? w.map((c) => `${c.coverage || ""} ${c.intensity || ""} ${c.weather}`.trim()).join(", ").replace(/_/g, " ") : "none"}`); }).join("")}</div>` : "";
     const profIds = ids.filter((id) => det.rows[id].some((r) => r.bour));
     const profRows = profIds.map((id) => `<div class="strip-row" style="${tpl}"><div class="strip-name">${O.esc(DNAMES[id])}${(() => { const g = Math.max(0, ...det.rows[id].map((r) => (r.covP && r.covP.lowGap) || 0)); return g > W.COVERAGE.coarseGap ? ` <span class="ltd" title="Largest gap between levels overlapping the lowest 3 km: ${Math.round(g)} m. Provisional threshold ${W.COVERAGE.coarseGap} m.">COARSE ${(g / 1000).toFixed(1)} km</span>` : ""; })()}</div>${times.map((t, i) => { const r = det.rows[id][s + i]; const ty = r.bour ? r.bour.type : null;
-      return cell(ty, i, `${DNAMES[id]} profile · ${O.fmtWhen(t)} · ${ty ? `${lab(ty)}${r.bour.detail ? ` (${r.bour.detail})` : ""} · PA ${r.bour.PA.toFixed(1)}, NA ${r.bour.NA.toFixed(1)}, surface ${r.bour.sfcWarm.toFixed(1)} J/kg${r.covP && r.covP.lowGapSpan ? ` · largest gap ${Math.round(r.covP.lowGap)} m (${Math.round(r.covP.lowGapSpan[0])}–${Math.round(r.covP.lowGapSpan[1])} m)` : ""}` : r.wet ? `fails coverage checks: ${(r.bour && r.bour.unavailable ? r.bour.unavailable : (r.covP && r.covP.why) || ["no profile"]).join("; ")}` : "no precip"}`); }).join("")}</div>`).join("");
+      return cell(ty, i, `${DNAMES[id]} profile · ${O.fmtWhen(t)} · ${ty ? `${r.bour.repSensitive ? "REPRESENTATION SENSITIVE · linear: " : ""}${diag(r.bour)}${r.bour.repSensitive ? ` · step layers: ${diag(r.bour.alt)}` : ""}${r.covP && r.covP.lowGapSpan ? ` · largest gap ${Math.round(r.covP.lowGap)} m (${Math.round(r.covP.lowGapSpan[0])}–${Math.round(r.covP.lowGapSpan[1])} m)` : ""}` : r.wet ? `fails coverage checks: ${(r.bour && r.bour.unavailable ? r.bour.unavailable : (r.covP && r.covP.why) || ["no profile"]).join("; ")}` : "no precip"}`, r.bour && r.bour.type && r.bour.repSensitive); }).join("")}</div>`).join("");
+    const nSens = profIds.reduce((a, id) => a + det.rows[id].slice(s, e).filter((r) => r.bour && r.bour.type && r.bour.repSensitive).length, 0);
     /* transitions per model, by model type; and the spread of each transition across models */
     const tr = ids.map((id) => { const types = det.rows[id].map((r) => (r.wet ? r.codeType || r.split : null)); return { id, first: types.findIndex((x, i) => i >= s && i < e && x && x !== "none"), list: W.transitions(types, s, e) }; });
     const byKind = {};
@@ -272,6 +274,7 @@
     $("ptCard").innerHTML = `<div class="section-title">Precipitation type &amp; transitions</div>
       <p class="section-sub">Hours with precipitation (≥ 0.1 mm/h) only. Model type is each model's own weather code; the profile rows are an experimental reading of each model's temperature profile (Bourgouin method, see "Precip type methods"). <b>Click an hour</b> for the profiles. Counts of models are not probabilities.</p>
       <div class="tablewrap strip-scroll" id="ptStrip"><div class="strip">${head}${grp("Model weather code")}${modelRows}${nwsRow ? grp("NWS (official wording; can include sleet)") + nwsRow : ""}${profRows ? grp("Profile type · experimental") + profRows : ""}</div></div>
+      ${profRows ? `<p class="msg" style="margin-top:6px">${nSens ? `<span class="repsens">REP-SENSITIVE</span> ${nSens} model-hour${nSens > 1 ? "s" : ""} (dashed outline): the two ways of turning the model's levels into layers give different profile types. Hover or click for both diagnoses.` : "No representation-sensitive hours: both layer representations give the same profile type in this window."}</p>` : ""}
       <div class="legend">${Object.entries(TYPE).filter(([k]) => k !== "none").map(([k, [w, c]]) => `<span><i class="sw" style="background:${c};height:10px"></i>${w}</span>`).join("")}<span><i class="sw" style="background:var(--raised);height:10px;border:1px solid var(--line)"></i>No precip / not available</span></div>
       <div class="tablewrap" style="margin-top:10px"><table><thead><tr><th>Model</th><th style="text-align:left">Type changes (model weather code)</th></tr></thead><tbody>${tr.map((m) => `<tr><td>${O.esc(DNAMES[m.id])}</td><td style="text-align:left;white-space:normal">${m.first < 0 ? '<span class="msg">no precipitation in window</span>' : m.list.length ? m.list.map((x) => `${TYPE[x.from][0]} → ${TYPE[x.to][0]} <span class="mono">${loc(det.ms[x.i])}</span>`).join(" · ") : `${TYPE[(det.rows[m.id][m.first].codeType || det.rows[m.id][m.first].split)][0]} throughout`}</td></tr>`).join("")}
       ${A ? `<tr class="nwscol"><td><span class="src-nws">NWS</span></td><td style="text-align:left;white-space:normal">${nwsTr.length ? O.esc(nwsTr.join(" · ")) : '<span class="msg">no type change in NWS wording</span>'}</td></tr>` : ""}</tbody></table></div>
@@ -299,24 +302,35 @@
       <div class="tablewrap"><table><thead><tr><th>Model</th><th>Sfc T</th><th>Wet-bulb</th><th>Dew pt</th><th>Warm nose</th><th>Warm layer</th><th>Cold layer</th><th>Model type</th><th>Profile type</th><th>Kuchera</th></tr></thead><tbody>${ids.map((id, k) => { const r = det.rows[id][i], st = r.st || {};
         return `<tr><td><span class="sw" style="background:${O.modelColor(k)};margin-right:6px"></span>${O.esc(DNAMES[id])}</td><td class="num">${f1(r.t2F, 0, "°")}</td><td class="num">${f1(r.twF, 0, "°")}</td><td class="num">${f1(r.tdF, 0, "°")}</td>` +
           `<td class="num">${st.maxAloftT == null ? "—" : `${st.maxAloftT.toFixed(1)}°C`}</td><td class="num">${st.warmDepth == null ? "—" : `${Math.round(st.warmDepth)} m`}</td><td class="num">${st.coldDepth == null ? "—" : `${Math.round(st.coldDepth)} m`}</td>` +
-          `<td>${r.wet && r.codeType && r.codeType !== "none" ? `<span class="pt" style="--c:${TYPE[r.codeType][1]}">${TYPE[r.codeType][0]}</span>` : '<span class="msg">no precip</span>'}</td><td>${r.bour && r.bour.type ? `<span class="pt" style="--c:${TYPE[r.bour.type][1]}" title="${O.esc(r.bour.detail || "")}">${TYPE[r.bour.type][0]}</span>${r.bour.coarse ? ` <span class="ltd" title="Largest gap overlapping the lowest 3 km (provisional threshold ${W.COVERAGE.coarseGap} m)">COARSE ${Math.round(r.covP.lowGap)} m</span>` : ""}` : `<span class="msg" title="${O.esc(((r.covP && r.covP.why) || []).join("; "))}">${r.covP && !r.covP.pass && r.covP.why.length ? "fails checks" : "—"}</span>`}</td><td class="num">${r.kuchera == null ? `<span class="msg" title="${O.esc(((r.covK && r.covK.why) || []).join("; ") || "needs a profile that passes the Kuchera coverage checks")}">—</span>` : `${r.kuchera.toFixed(0)}:1${r.covK && r.covK.coarse ? ` <span class="ltd" title="Largest low-level gap ${Math.round(r.covK.lowGap)} m">COARSE</span>` : ""}`}</td></tr>`; }).join("")}</tbody></table></div></div>
-      <p class="msg">Warm nose: warmest temperature more than 300 m above ground. Warm layer: depth of the above-freezing layer aloft. Cold layer: depth of the sub-freezing layer beneath it. Models without levels (NBM, NAM) show surface values only.</p></div>`;
+          `<td>${r.wet && r.codeType && r.codeType !== "none" ? `<span class="pt" style="--c:${TYPE[r.codeType][1]}">${TYPE[r.codeType][0]}</span>` : '<span class="msg">no precip</span>'}</td><td>${r.bour && r.bour.type ? `<span class="pt" style="--c:${TYPE[r.bour.type][1]}" title="${O.esc(`linear layers: ${r.bour.detail || r.bour.type} · PA ${r.bour.PA.toFixed(1)}, NA ${r.bour.NA.toFixed(1)} J/kg`)}">${TYPE[r.bour.type][0]}</span>${r.bour.repSensitive && r.bour.alt.type ? ` <span class="repsens" title="${O.esc(`Representation sensitive. Linear layers: ${r.bour.detail || r.bour.type}, PA ${r.bour.PA.toFixed(1)}, NA ${r.bour.NA.toFixed(1)} J/kg. Step layers: ${r.bour.alt.detail || r.bour.alt.type}, PA ${r.bour.alt.PA.toFixed(1)}, NA ${r.bour.alt.NA.toFixed(1)} J/kg.`)}">REP-SENSITIVE · step: ${TYPE[r.bour.alt.type][0]}</span>` : ""}${r.bour.coarse ? ` <span class="ltd" title="Largest gap overlapping the lowest 3 km (provisional threshold ${W.COVERAGE.coarseGap} m)">COARSE ${Math.round(r.covP.lowGap)} m</span>` : ""}` : `<span class="msg" title="${O.esc(((r.covP && r.covP.why) || []).join("; "))}">${r.covP && !r.covP.pass && r.covP.why.length ? "fails checks" : "—"}</span>`}</td><td class="num">${r.kuchera == null ? `<span class="msg" title="${O.esc(((r.covK && r.covK.why) || []).join("; ") || "needs a profile that passes the Kuchera coverage checks")}">—</span>` : `${r.kuchera.toFixed(0)}:1${r.covK && r.covK.coarse ? ` <span class="ltd" title="Largest low-level gap ${Math.round(r.covK.lowGap)} m">COARSE</span>` : ""}`}</td></tr>`; }).join("")}</tbody></table></div></div>
+      <p class="msg">Warm nose: warmest temperature more than 300 m above ground. Warm layer: depth of the above-freezing layer aloft. Cold layer: depth of the sub-freezing layer beneath it. Models without levels (NBM, NAM) show surface values only. REP-SENSITIVE: the profile type changes between linear-in-height layers (primary) and step layers between level midpoints; both diagnoses are in the hover text and in the log. It is a property of the sparse levels, not a probability.</p></div>`;
   }
 
-  /* Record, per hour with precipitation, what each source says about type, for later review of where
-     model codes, NWS wording and the experimental profile reading agree or diverge. */
+  /* Reconstructable p-type log: one record per source per hour with precipitation, holding the exact
+     input profile, method versions, coverage flags and both layer representations. These are forecasts
+     only; observations are logged separately, and NWS wording is another forecast, not truth. */
   function logPtype(ids, s, e) {
     const at = new Date().toISOString(), loc = { lat: O.location.lat, lon: O.location.lon, name: O.location.name }, recs = [], A = det.nwsAxis;
+    const r1 = (x, d) => (x == null || !isFinite(x) ? null : +x.toFixed(d));
+    const dg = (b) => (b && b.type !== undefined ? { type: b.type, detail: b.detail || null, PA: r1(b.PA, 2), NA: r1(b.NA, 2), sfcWarm: r1(b.sfcWarm, 2) } : null);
+    const cv = (c) => (c ? { pass: c.pass, coarse: !!c.coarse, lowGap: r1(c.lowGap, 0), maxGap: r1(c.maxGap, 0), why: c.why || [] } : null);
     for (let i = s; i < e; i++) {
-      const vals = {};
-      ids.forEach((id) => { const r = det.rows[id][i]; if (r.wet) { vals[`code:${id}`] = r.codeType || null; if (r.bour) vals[`profile:${id}`] = r.bour.type ? `${r.bour.type}${r.bour.detail ? ` (${r.bour.detail})` : ""}` : "fails checks"; } });
-      if (A && A.ptype[i]) vals.nws = A.ptype[i];
-      if (!Object.keys(vals).length) continue;
-      recs.push(C.verify.record({ kind: "ptype-hour", source: "winter-compare", location: loc, retrievedAt: at,
-        cycle: nwsW && nwsW.ok && nwsW.status.updated.grid ? new Date(nwsW.status.updated.grid).toISOString() : null,
-        window: { key: new Date(det.ms[i]).toISOString(), tz: det.tz }, contributors: ids, values: vals }));
+      const validUtc = new Date(det.ms[i]).toISOString();
+      ids.forEach((id) => {
+        const r = det.rows[id][i]; if (!r.wet) return; const m = det.models[id];
+        const pts = W.profile(m.h, i, m.elev).map((q) => [r1(q.z, 0), q.p, r1(q.t, 2), r1(q.rh, 0)]);
+        recs.push({ schema: 2, kind: "ptype-model-hour", validUtc, retrievedAt: at, source: id, model: DNAMES[id], location: loc, tz: det.tz, elevation: m.elev ?? null,
+          method: W.METHOD_ID, input: { t2F: r1(r.t2F, 1), twF: r1(r.twF, 1), precipIn: r1(r.precipIn, 3), sweIn: r1(r.swe, 3), profileFields: ["z_m_agl", "p_hPa", "t_C", "rh_pct"], profile: pts },
+          modelCode: r.codeType || null, split: r.split || null, coverage: { ptype: cv(r.covP), kuchera: cv(r.covK) },
+          primary: r.bour && r.bour.type ? dg(r.bour) : null, alternate: r.bour && r.bour.alt ? dg(r.bour.alt) : null,
+          repSensitive: !!(r.bour && r.bour.repSensitive), unavailable: r.bour && r.bour.unavailable ? r.bour.unavailable : null, kuchera: r1(r.kuchera, 1) });
+      });
+      if (A && A.weather[i] && A.weather[i].length) recs.push({ schema: 2, kind: "ptype-nws-hour", validUtc, retrievedAt: at, source: "nws", location: loc, tz: det.tz,
+        gridUpdated: nwsW && nwsW.ok && nwsW.status.updated.grid ? new Date(nwsW.status.updated.grid).toISOString() : null,
+        type: A.ptype[i] || null, weather: A.weather[i], note: "NWS forecast wording: a comparison source, not an observation" });
     }
-    O.logVerify(recs);
+    const res = O.appendLog(O.LOG_KEYS.ptype, recs, 3000, (x) => `${x.source}|${x.validUtc}|${x.retrievedAt.slice(0, 13)}`);
+    if (res.dropped) console.warn(`p-type log trimmed ${res.dropped} oldest records; export the logs to keep them`);
   }
 
   /* snow amounts kept distinct: as reported, water, 10:1, Kuchera; NWS separately */
@@ -369,5 +383,6 @@
   }
 
   render();
+  O.obsCard($("obsCard"));
   run();
 })();
