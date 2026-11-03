@@ -14,7 +14,11 @@
   const p = (rel) => (cfg().root ? `${cfg().root}/${rel}` : rel);
   async function gh(rel, { raw = true, method = "GET", body } = {}) {
     const c = cfg(), url = `https://api.github.com/repos/${c.repo}/contents/${p(rel).split("/").map(encodeURIComponent).join("/")}${method === "GET" ? `?ref=${encodeURIComponent(c.branch)}` : ""}`;
-    const r = await fetch(url, { method, headers: { Authorization: `Bearer ${c.tok}`, Accept: raw && method === "GET" ? "application/vnd.github.raw+json" : "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" }, body: body ? JSON.stringify(body) : undefined });
+    const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 30000);
+    let r;
+    try { r = await fetch(url, { signal: ctl.signal, method, headers: { Authorization: `Bearer ${c.tok}`, Accept: raw && method === "GET" ? "application/vnd.github.raw+json" : "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" }, body: body ? JSON.stringify(body) : undefined }); }
+    catch (e) { throw new Error(`${rel}: ${e.name === "AbortError" ? "no response after 30 s" : e.message}`); }
+    finally { clearTimeout(to); }
     if (!r.ok) throw new Error(`${rel}: HTTP ${r.status}`);
     return r;
   }

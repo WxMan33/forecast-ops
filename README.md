@@ -166,3 +166,12 @@ GitHub Actions (`.github/workflows/tests.yml`) runs the unit and fixture tests o
 The shared event window, NWS comparison and verification log are in place. The next step is to use the workspace on real setups and collect verification records; those, scored against observations, are the evidence for any change to blend weights.
 
 Advance thunder guidance stays separate from detected lightning and the all-clear clock, which remain Heads-Up's job.
+
+## Publishing changes to assets
+
+After editing anything in `assets/`, run `node tools/stamp-assets.js` before committing. It gives each
+asset reference a content-hash version (`assets/ops.js?v=…`), so a returning browser can never
+combine new HTML with cached older JavaScript or CSS. It also keeps a small load guard in each page that shows a
+"didn't finish loading" message with a Reload button if a script fails. The Tests workflow runs
+`node tools/stamp-assets.js --check` and fails if a stamp is out of date. Saved locations,
+settings and logs (browser localStorage) are not affected.

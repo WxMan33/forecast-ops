@@ -77,7 +77,8 @@
   function render() {
     if (!data) {
       $("odds").innerHTML = '<tbody><tr><td class="msg">No ensemble loaded yet.</td></tr></tbody>';
-      $("daily").innerHTML = ""; if (chart) { chart.destroy(); chart = null; } $("legend").innerHTML = ""; return;
+      $("daily").innerHTML = ""; if (chart) { chart.destroy(); chart = null; } $("legend").innerHTML = "";
+      $("ptCard").innerHTML = '<div class="section-title">Precipitation type &amp; transitions</div><p class="msg unavail">Needs the ensemble window; nothing loaded yet. Use FETCH ENSEMBLES to try again.</p>'; $("amtCard").innerHTML = ""; return;
     }
     data.ctx = O.eventContext(data);
     const mem = pool("snow"), { s, e } = windowIdx();

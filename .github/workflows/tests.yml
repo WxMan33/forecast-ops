@@ -24,6 +24,7 @@ jobs:
       - run: node tests/fixtures.test.js
       - run: node verify/tests/verify.test.js
       - run: node tests/almanac.test.js
+      - run: node tools/stamp-assets.js --check
 
   live:
     runs-on: ubuntu-latest

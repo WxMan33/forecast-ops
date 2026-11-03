@@ -28,7 +28,16 @@
     const c = cget(k, maxMs); if (c) return { v: c.v, at: c.at, cached: true };
     const v = await fn(); if (v && !v.error) cset(k, v); return { v, at: Date.now(), cached: false };
   }
-  const getJ = (url, opt) => fetch(url, opt).then((r) => (r.ok ? r.json() : { error: `HTTP ${r.status}` })).catch((e) => ({ error: String(e.message || e) }));
+  /* every request is bounded: after TIMEOUT_MS it resolves to an error so no card can stay "Loading" */
+  const TIMEOUT_MS = 15000;
+  const getJ = (url, opt = {}) => {
+    const ctl = typeof AbortController === "function" ? new AbortController() : null;
+    const to = ctl ? setTimeout(() => ctl.abort(), TIMEOUT_MS) : null;
+    return fetch(url, ctl ? { ...opt, signal: ctl.signal } : opt)
+      .then((r) => (r.ok ? r.json() : { error: `HTTP ${r.status}` }))
+      .catch((e) => ({ error: e && e.name === "AbortError" ? `no response after ${TIMEOUT_MS / 1000} s` : String((e && e.message) || e) }))
+      .finally(() => to && clearTimeout(to));
+  };
   const acis = (body) => getJ("https://data.rcc-acis.org/StnData", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((j) => (j && j.error ? { error: typeof j.error === "string" ? j.error : "ACIS error" } : j));
   const H = 3600e3, D = 86400e3;
 
@@ -66,8 +75,9 @@
     $("astroName").textContent = pt.name;
     note("astro", { name: pt.name, lat: pt.lat, lon: pt.lon, tz: tzA });
     loadNotes();
-    sunCard(my, pt, tzA);
-    climate(my, today, future);
+    const fail = (id, title) => (e) => { if (my === run) $(id).innerHTML = `<div class="section-title">${title}</div><div class="state err">This section couldn't be shown (${esc(String((e && e.message) || e))}). Other sections are unaffected; reload to try again.</div>`; };
+    sunCard(my, pt, tzA).catch(fail("sunCard", "Sun and moon"));
+    climate(my, today, future).catch((e) => { fail("climCard", "Daily climate")(e); fail("factCard", "Weather numbers")(e); });
   }
 
   /* ---------- sun and moon ---------- */
@@ -89,13 +99,17 @@
   async function sunCard(my, pt, tz) {
     const el = $("sunCard");
     const s = sunFor(sel, pt, tz), p = sunFor(A.addDays(sel, -1), pt, tz);
+    /* the sun is calculated locally, so it is drawn immediately; the moon fills in when USNO answers (or fails) */
+    draw(null, null, true);
     const [a, ph] = await Promise.all([usnoDay(sel, pt, tz), cached(`usnoph:${sel}`, 30 * D, () => getJ(`https://aa.usno.navy.mil/api/moon/phases/date?date=${A.addDays(sel, -1)}&nump=5`))]);
     if (my !== run) return;
-    const m = a.v && !a.v.error ? A.parseOneDay(a.v) : null;
-    note("usno", { at: a, error: a.v && a.v.error, api: m && m.apiversion });
+    draw(a, ph, false);
+    function draw(a, ph, pending) {
+    const m = a && a.v && !a.v.error ? A.parseOneDay(a.v) : null;
+    if (!pending) note("usno", { at: a, error: a.v && a.v.error, api: m && m.apiversion });
     const t = (ms) => (ms == null ? "—" : hm(A.roundMin(ms), tz));
     const ch = s.daylightSec != null && p.daylightSec != null ? s.daylightSec - p.daylightSec : null;
-    const np = ph.v && !ph.v.error ? A.nextPhase(ph.v, C.time.toUtc(`${sel}T00:00`, tz)) : null;
+    const np = ph && ph.v && !ph.v.error ? A.nextPhase(ph.v, C.time.toUtc(`${sel}T00:00`, tz)) : null;
     const waxing = m && m.phase ? /Waxing|First Quarter|New/.test(m.phase) : true;
     const zone = C.time.abbr(s.set || s.rise || Date.now(), tz);
     const uid = "sunDet";
@@ -108,7 +122,7 @@
         <span class="chg" title="Change from ${esc(fmtDate(A.addDays(sel, -1), { month: "short", day: "numeric" }))}, min:sec">${ch == null ? "—" : `${A.fmtDelta(ch)} ${ch < 0 ? "shorter" : ch > 0 ? "longer" : ""}`}</span></div>
       <div class="msg">vs ${esc(fmtDate(A.addDays(sel, -1), { weekday: "short", month: "short", day: "numeric" }))} · times ${esc(zone)}</div>
       <div class="moonrow">${m ? moonSvg(m.illumination || 0, waxing) : ""}
-        <div>${m ? `<div class="ph">${esc(m.phase || "—")}</div><div class="s">${m.illumination != null ? `${m.illumination}% illuminated` : ""}</div>` : `<div class="state unavail">Moon data (USNO) unavailable right now.</div>`}
+        <div>${m ? `<div class="ph">${esc(m.phase || "—")}</div><div class="s">${m.illumination != null ? `${m.illumination}% illuminated` : ""}</div>` : (pending ? `<div class="state loading">Loading moon data (USNO)…</div>` : `<div class="state unavail">Moon data (USNO) unavailable right now${a && a.v && a.v.error ? ` (${esc(a.v.error)})` : ""}. Sun times above are calculated here and unaffected.</div>`)}
           ${np ? `<div class="s">Next: <b style="color:var(--text)">${esc(np.phase)}</b> ${esc(fmtDate(C.time.toLocal(np.ms, tz).slice(0, 10), { weekday: "short", month: "short", day: "numeric" }))}, ${clock(np.ms, tz)}</div>` : ""}</div></div>
       <div class="cardfoot"><button class="infobtn" type="button" aria-expanded="false" aria-controls="${uid}">ⓘ Twilight, solar noon, moonrise</button></div>
       <div class="infopanel" id="${uid}" hidden>
@@ -119,6 +133,7 @@
         <p>Sun times are <b>calculated</b> with the NOAA Solar Calculator algorithm and shown to the minute exactly as NOAA's table rounds them; daylight and its change use the unrounded times. Moon phase, illumination, moonrise and moonset are <b>retrieved</b> from the U.S. Naval Observatory.</p>
       </div>`;
     el.querySelector(".infobtn").addEventListener("click", (e) => { const pn = $(uid); pn.hidden = !pn.hidden; e.currentTarget.setAttribute("aria-expanded", String(!pn.hidden)); });
+    }
   }
 
   /* ---------- daily climate ---------- */
@@ -153,7 +168,8 @@
     const nRows = nor.v && nor.v.data ? nor.v.data : [], nMap = new Map(nRows.map((r) => [r[0], r]));
     const oRows = obs && obs.v && obs.v.data ? obs.v.data : [];
     const col = (k) => (rk && rk.v && rk.v.data ? rk.v.data.map((r) => [r[0], r[k]]) : null);
-    climData = { R, nRows, oRows, thru, sel, met, rankMonthP: col(1), rankSeasonP: col(2), rankSeasonT: col(3), rankMonthT: col(4) };
+    const obsErr = obs && obs.v && obs.v.error ? obs.v.error : null;
+    climData = { R, nRows, oRows, thru, sel, met, obsErr, rankMonthP: col(1), rankSeasonP: col(2), rankSeasonT: col(3), rankMonthT: col(4) };
     const nd = nMap.get(sel), yd = thru ? oRows.find((r) => r[0] === thru) : null;
     /* value helpers: "M" is never shown as a number; trace stays "Trace" */
     const val = (s) => A.val(s);
@@ -179,7 +195,8 @@
         ${R && R.precip ? tile("Most precipitation", R.precip.value === 0 && R.precip.trace ? "Trace" : `${R.precip.value.toFixed(2)}″`, yrs(R.precip)) : ""}
         ${R && R.snow ? tile("Most snowfall", R.snow.value === 0 ? "None" : `${R.snow.value.toFixed(1)}″`, R.snow.value === 0 ? `none recorded since ${R.snow.from}` : yrs(R.snow)) : ""}
         ${!R ? `<div class="state unavail">Records unavailable.</div>` : ""}</div></div>
-      ${thru ? `<div class="cgroup"><span class="kick">Observed ${esc(fmtDate(thru, { weekday: "long", month: "short", day: "numeric" }))}${thru >= A.addDays(today, -45) ? " · preliminary" : ""}</span><div class="cgrid">
+      ${thru && obsErr ? `<div class="cgroup"><span class="kick">Observed ${esc(fmtDate(thru, { weekday: "long", month: "short", day: "numeric" }))}</span><div class="state unavail">Observations unavailable right now (${esc(obsErr)}); observed values and totals will appear when ACIS responds. Reload to try again.</div></div>`
+      : thru ? `<div class="cgroup"><span class="kick">Observed ${esc(fmtDate(thru, { weekday: "long", month: "short", day: "numeric" }))}${thru >= A.addDays(today, -45) ? " · preliminary" : ""}</span><div class="cgrid">
         ${yd ? tile("High", T(yd[1])) + tile("Low", T(yd[2])) + tile("Precipitation", P(yd[3], 2)) + tile("Snowfall", P(yd[4], 1)) : `<div class="state unavail">Not reported yet for ${esc(dshort(thru))}.</div>`}</div></div>
       <div class="cgroup"><span class="kick">Totals through ${esc(dshort(thru))}</span><div class="cgrid">
         ${accum(thru.slice(0, 4) + "-01-01", 3, 2, "Precipitation, year")}${accum(thru.slice(0, 8) + "01", 4, 1, "Snowfall, month")}${accum(seasonStart, 4, 1, "Snowfall, season")}</div>
@@ -191,6 +208,7 @@
   function facts() {
     const el = $("factCard"), d = climData; if (!d) return;
     const hiT = +O.store.get("alm_hiT", 80), loT = +O.store.get("alm_loT", 32);
+    if (d.obsErr) { el.innerHTML = `<div class="section-title">Weather numbers</div><div class="state unavail">Unavailable right now: the observation request failed (${esc(d.obsErr)}). Reload to try again.</div>`; return; }
     if (!d.thru || !d.oRows.length) { el.innerHTML = `<div class="section-title">Weather numbers</div><p class="msg unavail">These need observations before the sheet date.</p>`; return; }
     const y = +d.thru.slice(0, 4), short = (x) => fmtDate(x, { month: "short", day: "numeric" });
     const sgn = (x, dd, unit) => `${Math.abs(x).toFixed(dd)}${unit}`;

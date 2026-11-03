@@ -5,10 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Forecast Ops</title>
 <meta name="description" content="Point-forecast summary and tools: multi-model blend, thunder signal, severe environment and ensemble snow odds.">
-<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icon.svg?v=05c4bd5103" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap">
-<link rel="stylesheet" href="assets/ops.css">
+<!--load-guard--><script>/* Load guard (managed by tools/stamp-assets.js). Shown only if a page script fails to download or throws. */
+(function () { var shown = false;
+  function show(msg) { if (shown) return; shown = true;
+    var go = function () { var b = document.createElement("div"); b.setAttribute("role", "alert"); b.id = "loadGuard";
+      b.style.cssText = "position:sticky;top:0;z-index:9999;margin:0;padding:10px 16px;background:#7a1f12;color:#fff;font:600 14px/1.4 system-ui,sans-serif;display:flex;gap:12px;align-items:center;flex-wrap:wrap";
+      b.innerHTML = '<span>This page didn\u2019t finish loading. <span style="font-weight:400"></span></span><button type="button" style="font:inherit;padding:4px 12px;border-radius:6px;border:1px solid #fff;background:#fff;color:#7a1f12;cursor:pointer">Reload</button>';
+      b.querySelector("span span").textContent = msg; b.querySelector("button").onclick = function () { location.reload(); };
+      document.body.insertBefore(b, document.body.firstChild); };
+    if (document.body) go(); else document.addEventListener("DOMContentLoaded", go); }
+  window.addEventListener("error", function (e) { var t = e.target;
+    if (t && (t.tagName === "SCRIPT" || (t.tagName === "LINK" && t.rel === "stylesheet")) && (t.src || t.href || "").indexOf(location.origin) === 0) show("A site file (" + (t.src || t.href).split("/").pop().split("?")[0] + ") could not be downloaded.");
+    else if (e.filename && e.filename.indexOf(location.origin) === 0) show("A script error stopped it (" + e.message + ").");
+  }, true);
+  window.addEventListener("unhandledrejection", function (e) { var r = e.reason, st = (r && r.stack) || "";
+    if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
+  });
+})();</script><!--/load-guard-->
+<link rel="stylesheet" href="assets/ops.css?v=f20f265b2d">
 </head>
 <body>
 <main class="workspace">
@@ -83,9 +100,9 @@
     </details>
   </aside>
 </main>
-<script src="assets/ops-core.js"></script>
-<script src="assets/ops-data.js"></script>
-<script src="assets/ops.js"></script>
-<script src="assets/overview.js"></script>
+<script src="assets/ops-core.js?v=530910120c"></script>
+<script src="assets/ops-data.js?v=eaafbbbee1"></script>
+<script src="assets/ops.js?v=5de0e95f18"></script>
+<script src="assets/overview.js?v=8a078cfb67"></script>
 </body>
 </html>
