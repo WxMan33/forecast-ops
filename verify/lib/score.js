@@ -22,10 +22,14 @@ function loadCorrections(DATA) { return U.readJSONLDir(path.join(DATA, "correcti
 
 /* Apply review decisions and corrections (audit trail stays in corrections/). */
 function reviewedTV(recs, corr) {
-  const key = (c) => `${c.captureId}|${c.product}`;
-  const byRec = new Map(); corr.forEach((c) => { if (c.kind === "tv-review") (byRec.get(key(c)) || byRec.set(key(c), []).get(key(c))).push(c); });
+  /* a decision applies to its capture, and to every capture of the same product whose evidence is
+     byte-identical (same content hash): an unchanged graphic is the same publication */
+  const key = (c) => `${c.captureId}|${c.product}`, hkey = (p, h) => `${p}#${h}`;
+  const byRec = new Map(), byHash = new Map();
+  corr.forEach((c) => { if (c.kind !== "tv-review") return; (byRec.get(key(c)) || byRec.set(key(c), []).get(key(c))).push(c); if (c.contentSha256) (byHash.get(hkey(c.product, c.contentSha256)) || byHash.set(hkey(c.product, c.contentSha256), []).get(hkey(c.product, c.contentSha256))).push(c); });
   return recs.filter((r) => r.status === "ok").map((r) => {
-    const cs = (byRec.get(key(r)) || []).sort((a, b) => a.at.localeCompare(b.at));
+    const h = r.evidence && r.evidence[0] && r.evidence[0].contentSha256;
+    const cs = [...new Set([...(byRec.get(key(r)) || []), ...(h ? byHash.get(hkey(r.product, h)) || [] : [])])].sort((a, b) => a.at.localeCompare(b.at));
     let status = r.review ? r.review.status : "needs-review"; const days = JSON.parse(JSON.stringify(r.days || []));
     cs.forEach((c) => {
       if (c.decision === "approve") status = "approved";

@@ -100,6 +100,8 @@ const T = (s) => Date.parse(s), FX = path.join(__dirname, "fixtures");
   const late = SC.cases([], SC.reviewedTV([{ ...tvrec[0], retrievedAt: "2026-11-03T06:00:00Z" }], []), LOC);
   eq(late.map((c) => c.target), ["tmin_night"], "TV retrieved after the climate day began: only windows still ahead are scored");
   const fixed = SC.reviewedTV(tvrec, [{ kind: "tv-review", captureId: "2026-11-02_evening", product: "q", decision: "correct", date: "2026-11-03", field: "hi", value: 71, at: "2026-11-04T00:00Z", by: "brad" }]);
+  const same = SC.reviewedTV([{ ...tvrec[1], captureId: "2026-11-03_midday", evidence: [{ contentSha256: "abc" }] }], [{ kind: "tv-review", captureId: "2026-11-02_evening", product: "q", contentSha256: "abc", decision: "approve", at: "2026-11-04T00:00Z" }]);
+  eq(same[0].reviewStatus, "approved", "a decision applies to later captures of byte-identical evidence");
   eq([fixed[1].reviewStatus, fixed[1].days[0].hi, fixed[1].days[0].corrected, tvrec[1].days[0].hi], ["corrected", 71, ["hi"], 70], "versioned correction applied at scoring; original record untouched");
 }
 /* ---------- normalization: outages, incomplete windows, frozen weights ---------- */

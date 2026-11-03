@@ -29,7 +29,10 @@ function writeReports(DATA, loc, res, nowMs = Date.now()) {
   const runs = U.readJSONLDir(path.join(DATA, "runs")).slice(-200);
   const H = captureHealth(caps, loc, nowMs);
   const last = (job, ok) => runs.filter((r) => r.job === job && (!ok || ["ok", "partial"].includes(r.outcome))).pop();
-  const queue = res.tv.filter((r) => r.reviewStatus === "needs-review").map((r) => ({ captureId: r.captureId, product: r.product, station: r.station, reason: r.review && r.review.reason, evidence: r.evidence, days: r.days, issues: r.extraction && r.extraction.issues, retrievedAt: r.retrievedAt, issuedAt: r.issuedAt, text: r.text ? r.text.slice(0, 3000) : undefined }));
+  /* one queue item per distinct evidence (identical re-captures are collapsed and counted) */
+  const qmap = new Map();
+  res.tv.filter((r) => r.reviewStatus === "needs-review").forEach((r) => { const h = r.evidence && r.evidence[0] ? r.evidence[0].contentSha256 : r.captureId; const k = `${r.product}#${h}`; const prev = qmap.get(k); qmap.set(k, { r, n: (prev ? prev.n : 0) + 1, first: prev ? prev.first : r.captureId }); });
+  const queue = [...qmap.values()].map(({ r, n, first }) => ({ captures: n, firstCapture: first, contentSha256: r.evidence && r.evidence[0] ? r.evidence[0].contentSha256 : null, captureId: r.captureId, product: r.product, station: r.station, reason: r.review && r.review.reason, evidence: r.evidence, days: r.days, issues: r.extraction && r.extraction.issues, retrievedAt: r.retrievedAt, issuedAt: r.issuedAt, text: r.text ? r.text.slice(0, 3000) : undefined }));
   U.writeJSON(path.join(R, "review-queue.json"), { at: U.iso(nowMs), items: queue });
   /* compact scores for the dashboard (pairs omitted: they are rebuilt from the archive) */
   U.writeJSON(path.join(R, "scores.json"), { version: res.version, at: res.at, minDates: res.minDates, summary: res.summary, hourly: res.hourly, comparisons: res.comparisons, pendingCount: res.pending.length, pending: res.pending.slice(-300), pairsCount: res.pairs.length });

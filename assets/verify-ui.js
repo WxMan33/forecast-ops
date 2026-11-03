@@ -82,7 +82,7 @@
       <div class="ev"><div id="ev${i}">${r.evidence && r.evidence[0] && /jpg|png/.test(r.evidence[0].type) ? '<span class="msg">loading evidence…</span>' : `<span class="msg">Evidence: ${esc(r.evidence && r.evidence[0] ? r.evidence[0].path : "none")} (sha256 ${esc(r.evidence && r.evidence[0] ? r.evidence[0].sha256.slice(0, 12) : "")})</span>`}</div>
       <div class="tablewrap"><table><thead><tr><th>Date</th><th>High</th><th>Low</th><th>PoP</th><th>By</th></tr></thead><tbody>${(r.days || []).map((d) => `<tr><td class="mono">${esc(d.date)}</td><td class="num">${d.hi ?? "—"}</td><td class="num">${d.lo ?? "—"}</td><td class="num">${d.pop != null ? d.pop + "%" : d.popDay != null ? `${d.popDay}/${d.popNight}%` : "—"}</td><td class="msg">${esc(d.by ? [...new Set(Object.values(d.by).filter(Boolean))].join("/") : "")}</td></tr>`).join("")}</tbody></table></div></div></section>`).join("");
     items.forEach(async (r, i) => { if (r.evidence && r.evidence[0] && /jpg|png/.test(r.evidence[0].type)) { try { $("ev" + i).innerHTML = `<img alt="Original evidence" src="${await imgURL(r.evidence[0].path)}">`; } catch (e) { $("ev" + i).innerHTML = `<span class="msg err">${esc(e.message)}</span>`; } } });
-    $("rq").innerHTML = RQ.items.length ? RQ.items.map((q, i) => `<div class="card tight" style="margin-bottom:10px"><b>${esc(q.captureId)} · ${esc(q.product)}</b> <span class="msg">${esc(q.reason)}</span>
+    $("rq").innerHTML = RQ.items.length ? RQ.items.map((q, i) => `<div class="card tight" style="margin-bottom:10px"><b>${esc(q.captureId)} · ${esc(q.product)}</b> <span class="msg">${esc(q.reason)}${q.captures > 1 ? ` · identical evidence in ${q.captures} captures since ${esc(q.firstCapture)}` : ""}</span>
       <div class="ev" style="margin-top:8px"><div id="rqe${i}">${q.text ? `<pre>${esc(q.text)}</pre>` : '<span class="msg">loading…</span>'}</div><div>
       <div class="tablewrap"><table><thead><tr><th>Date</th><th>High</th><th>Low</th></tr></thead><tbody>${(q.days || []).map((d) => `<tr><td class="mono">${esc(d.date || d.dayName)}</td><td>${d.hi ?? "—"}</td><td>${d.lo ?? "—"}</td></tr>`).join("") || '<tr><td colspan="3" class="msg">No extracted values.</td></tr>'}</tbody></table></div>
       <p class="msg">${esc((q.issues || []).join("; "))}</p>
@@ -93,7 +93,7 @@
     $("rq").querySelectorAll("[data-dec]").forEach((b) => b.addEventListener("click", () => decide(RQ.items[+b.dataset.i], b.dataset.dec, +b.dataset.i)));
   }
   async function decide(q, decision, i) {
-    const rec = { kind: "tv-review", captureId: q.captureId, product: q.product, decision, at: new Date().toISOString(), by: "dashboard", note: $("cn" + i).value.trim() };
+    const rec = { kind: "tv-review", captureId: q.captureId, product: q.product, contentSha256: q.contentSha256 || undefined, appliesTo: "this capture and every capture with identical evidence", decision, at: new Date().toISOString(), by: "dashboard", note: $("cn" + i).value.trim() };
     if (decision === "correct") { rec.date = $("cd" + i).value.trim(); rec.field = $("cf" + i).value; rec.value = +$("cv" + i).value; if (!/^\d{4}-\d{2}-\d{2}$/.test(rec.date) || !isFinite(rec.value)) { alert("Enter a date (YYYY-MM-DD) and a numeric value."); return; } }
     const name = `corrections/${rec.at.slice(0, 7)}/${rec.at.replace(/[:.]/g, "")}-${q.product}.jsonl`;
     try {
