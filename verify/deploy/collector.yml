@@ -1,15 +1,16 @@
-# Forecast Ops verification collector. Install as .github/workflows/collector.yml in the PRIVATE data
-# repository (for example WxMan33/forecast-ops-data). It runs on GitHub's servers whether or not any
-# browser is open, checks out the public collector code from WxMan33/forecast-ops, and commits raw
-# evidence, normalized forecasts, observations, run logs and reports into this private repository.
-# No secrets are needed: it reads only public sources and writes with this repository's own token.
+# Forecast Ops verification collector: .github/workflows/collector.yml in the PRIVATE repository
+# WxMan33/forecast-ops-data. Runs on GitHub's servers whether or not any browser is open. The collector
+# code is vendored in collector/ and versioned with the data (every record stores the commit), so any
+# capture can be re-normalized with the exact code that produced it. No secrets: it reads public sources
+# and writes with this repository's own GITHUB_TOKEN.
 #
-# Schedule (UTC; GitHub has no time zones, so both EST and EDT offsets are listed). Each capture
-# trigger fires ~10 min before the target; the collector waits for the target, records its actual
-# start, and labels itself on_time / late / off_schedule. A backup trigger retries only if the slot
-# has no usable capture. Non-matching triggers exit as "not due" (logged).
-#   midday 12:00 America/New_York  -> 15:50 / 16:50 UTC (+ backups 16:35 / 17:35)
-#   evening 23:30 America/New_York -> 03:20 / 04:20 UTC (+ backups 04:05 / 05:05)
+# Capture schedule (GitHub cron is UTC only, so both EST and EDT offsets are listed). Each primary trigger
+# fires ~10 min before the target; the collector waits for the target and records its actual start and
+# every source's retrieval time. Triggers in the "wrong" DST offset exit as "not due" (logged).
+#   midday  12:00 America/New_York -> 15:50 / 16:50 UTC; backups 16:35 / 17:35 UTC
+#   evening 23:30 America/New_York -> 03:20 / 04:20 UTC; backups 04:05 / 05:05 UTC
+# A backup only re-attempts an edition that is still incomplete; scoring keeps one capture per edition
+# and source (collector/verify/lib/editions.js), so retries never add weight.
 name: Verification collector
 on:
   schedule:
@@ -22,10 +23,11 @@ on:
     - cron: "5 4 * * *"
     - cron: "5 5 * * *"
     - cron: "41 */3 * * *"   # observations + scoring every 3 hours
+    - cron: "23 9 20 1 *"    # 20 January: archive the previous year (see README "Retention")
   workflow_dispatch:
     inputs:
       job:
-        description: "collect | collect-manual | observe-score"
+        description: "observe-score | collect-manual | archive"
         default: "observe-score"
 permissions:
   contents: write
@@ -35,13 +37,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      VERIFY_DATA: ${{ github.workspace }}/data
-      CODE_REPO: WxMan33/forecast-ops
+      VERIFY_DATA: ${{ github.workspace }}
+      CODE_REPO: ${{ github.repository }} (collector/)
+      CODE_SHA: ${{ github.sha }}
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
-        with: { path: data }
-      - uses: actions/checkout@v4
-        with: { repository: WxMan33/forecast-ops, ref: main, path: code }
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - name: Decide job
@@ -51,40 +52,47 @@ jobs:
           if [ -z "$J" ]; then
             case "${{ github.event.schedule }}" in
               "41 */3 * * *") J=observe-score ;;
+              "23 9 20 1 *") J=archive ;;
               "35 16 * * *"|"35 17 * * *"|"5 4 * * *"|"5 5 * * *") J=collect-backup ;;
               *) J=collect ;;
             esac
           fi
           echo "job=$J" >> "$GITHUB_OUTPUT"
-          echo "CODE_SHA=$(git -C code rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "trigger: ${{ github.event_name }} ${{ github.event.schedule }} -> $J"
       - name: Collector self-test
-        run: node code/verify/tests/verify.test.js
-        continue-on-error: true   # raw evidence is still collected; the failure shows in the run log
+        run: node collector/verify/tests/verify.test.js
+        continue-on-error: true   # raw evidence is still collected; a failure shows in the Actions log
       - name: Install OCR
         if: startsWith(steps.job.outputs.job, 'collect')
         run: sudo apt-get install -y -qq tesseract-ocr > /dev/null || echo "::warning::OCR unavailable; graphics saved for review"
-      - name: Collect
+      - name: Collect (scheduled)
         if: steps.job.outputs.job == 'collect'
-        run: node code/verify/run.js collect --trigger scheduled
-      - name: Collect (backup trigger)
+        run: node collector/verify/run.js collect --trigger scheduled
+      - name: Collect (backup)
         if: steps.job.outputs.job == 'collect-backup'
-        run: node code/verify/run.js collect --trigger backup
-      - name: Collect (manual, labelled manual)
+        run: node collector/verify/run.js collect --trigger backup
+      - name: Collect (manual; labelled manual, never scored as an edition)
         if: steps.job.outputs.job == 'collect-manual'
-        run: node code/verify/run.js collect --manual --trigger manual
+        run: node collector/verify/run.js collect --manual --trigger manual
       - name: Observe
         if: steps.job.outputs.job == 'observe-score'
-        run: node code/verify/run.js observe
+        run: node collector/verify/run.js observe
+      - name: Archive previous year
+        if: steps.job.outputs.job == 'archive'
+        run: |
+          Y=$(( $(date -u +%Y) - 1 ))
+          node collector/verify/tools/archive.js pack --year $Y --out "$RUNNER_TEMP/arc"
+          gh release create "archive-$Y" "$RUNNER_TEMP/arc/forecast-ops-data-$Y.tar" --title "Evidence archive $Y" --notes "Tarball of $Y raw evidence; manifest with every file hash at archives/$Y/manifest.json" || gh release upload "archive-$Y" "$RUNNER_TEMP/arc/forecast-ops-data-$Y.tar" --clobber
+          node -e 'const f="archives/'$Y'/manifest.json",m=JSON.parse(require("fs").readFileSync(f));m.releaseAsset="archive-'$Y'/forecast-ops-data-'$Y'.tar";m.uploadedAt=new Date().toISOString();require("fs").writeFileSync(f,JSON.stringify(m,null,1)+"\n")'
       - name: Score and reports
-        if: always()
-        run: node code/verify/run.js score
+        if: always() && steps.job.outputs.job != 'archive'
+        run: node collector/verify/run.js score
       - name: Commit
         if: always()
-        working-directory: data
         run: |
           git config user.name "forecast-ops collector"
           git config user.email "actions@users.noreply.github.com"
-          git add -A
+          git add -A -- . ':!collector'
           git diff --cached --quiet && exit 0
           git commit -q -m "verify: ${{ steps.job.outputs.job }} $(date -u +%Y-%m-%dT%H:%MZ)"
           for i in 1 2 3 4; do git pull --rebase -q && git push -q && exit 0; sleep $((i*5)); done

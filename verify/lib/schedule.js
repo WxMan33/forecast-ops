@@ -30,5 +30,11 @@ function timeliness(startMs, target, cfg) {
   return { status: "off_schedule", delayMin: d };
 }
 /* A slot already has a usable capture (failed attempts don't block a retry). */
-const alreadyCaptured = (caps, captureId) => caps.some((c) => c.captureId === captureId && c.outcome !== "failed");
-module.exports = { targetMs, resolve, timeliness, alreadyCaptured };
+/* scheduled trigger: skip if any usable capture exists; backup trigger: retry only if the edition is
+   still incomplete (no capture with every source ok). Extra captures never add weight: scoring keeps
+   one capture per edition and source (lib/editions.js). */
+const editionOf = (c) => c.edition || c.captureId;
+const alreadyCaptured = (caps, edition, trigger = "scheduled") => caps.some((c) => editionOf(c) === edition && (trigger === "backup" ? c.outcome === "ok" : c.outcome !== "failed"));
+/* each attempt has its own capture id: the edition id for the first, then _a2, _a3 ... */
+const attemptId = (caps, edition) => { const n = caps.filter((c) => editionOf(c) === edition).length; return n ? `${edition}_a${n + 1}` : edition; };
+module.exports = { targetMs, resolve, timeliness, alreadyCaptured, attemptId, editionOf };

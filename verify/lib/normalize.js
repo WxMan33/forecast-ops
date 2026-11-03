@@ -96,7 +96,8 @@ function normalize(raw, cap, loc, recipes) {
   const lastMs = retr.length ? Date.parse(retr[retr.length - 1]) : Date.parse(cap.startedAt);
   bundle.retrieval = { first: retr[0] || null, last: retr[retr.length - 1] || null };
   bundle.timing = TM.VERSION;
-  bundle.sourceIssue = Object.fromEntries(Object.values(cap.sources || {}).map((s) => [s.id, { retrievedAt: s.retrievedAt || null, issued: s.kind === "nws" ? s.issuedAt || null : s.meta ? s.meta.lastRunInit || null : null, issuedNote: s.kind === "nws" ? "NWS grid updateTime" : "provider metadata: latest run at retrieval", implausible: s.meta && s.meta.implausible }]));
+  /* cycle provenance as recorded at collection (older captures without it: reconstructed labels only from what they recorded) */
+  bundle.sourceIssue = Object.fromEntries(Object.values(cap.sources || {}).map((s) => [s.id, { retrievedAt: s.retrievedAt || null, cycle: s.cycle || SRC.cycleOf(s.kind, s) }]));
   const prospective = (key, d) => TM.windowOk(TG.TARGETS[key].window(d, loc)[0], lastMs);
   /* sources */
   present.forEach((id) => {

@@ -142,7 +142,7 @@ const T = (s) => Date.parse(s), FX = path.join(__dirname, "fixtures");
   const pm = SC.metrics("precip_clim", [{ v: 0.2, o: 0.5, date: "a" }, { v: 0.1, o: 0, date: "b" }]);
   eq([pm.wet.n, near(pm.wet.mae, 0.3, 1e-9, "wet MAE") === undefined, pm.dry.falseWet], [1, true, 1], "precip: wet and dry results kept apart");
   near(SC.metrics("pop01_clim", [{ v: 0.8, o: 1, date: "a" }, { v: 0.2, o: 0, date: "b" }]).brier, 0.04, 1e-12, "Brier score");
-  const mk = (id, v, d, tl = "on_time") => ({ id, target: "tmax_clim", lead: 2, slot: "midday", timeliness: tl, captureId: `c${d}`, date: `2026-01-${String(d).padStart(2, "0")}`, v, o: 50 });
+  const mk = (id, v, d, tl = "on_time") => ({ id, target: "tmax_clim", lead: 2, slot: "midday", timeliness: tl, cls: tl === "on_time" ? "primary" : "late", captureId: `c${d}`, date: `2026-01-${String(d).padStart(2, "0")}`, v, o: 50 });
   const P = [];
   for (let d = 1; d <= 10; d++) { P.push(mk("baseline-v1", 52, d)); P.push(mk("x", 51, d)); }
   P.push(mk("x", 50, 11)); P.push(mk("baseline-v1", 50, 12, "late")); P.push(mk("x", 80, 12, "late"));
@@ -172,6 +172,34 @@ const T = (s) => Date.parse(s), FX = path.join(__dirname, "fixtures");
   const res = SC.scoreAll(D, LOC, T("2026-11-03T05:00:00Z"));
   eq(res.hourlyPairs.map((p) => [p.valid, p.obsMeasured, p.leadMin]), [["2026-11-03T04:00:00.000Z", "2026-11-03T03:52:00.000Z", 68.8]], "scoreAll drops the 03:00Z pair (8.8 min lead) and keeps the 04:00Z pair with its timing");
   eq(res.hourlyPairs[0].normVersion, NV, "each scored pair records the normalizer version that produced it");
+}
+/* ---------- editions: one capture per edition and source; manual excluded ---------- */
+{
+  const ED = require("../lib/editions.js");
+  const tg = "2026-11-04T17:00:00.000Z", it = (cid, ret) => ({ edition: "CVG|2026-11-04_midday", key: "source:x", captureId: cid, retrievedAt: ret, target: tg });
+  const s = ED.select([it("a", "2026-11-04T17:02:00Z"), it("b", "2026-11-04T17:40:00Z"), it("c", "2026-11-04T17:01:00Z")]);
+  eq([s.get("CVG|2026-11-04_midday|source:x|c").selected, s.get("CVG|2026-11-04_midday|source:x|a").selected, s.get("CVG|2026-11-04_midday|source:x|b").selected], [true, false, false], "earliest on-time retrieval is the one capture scored; retries and backups add nothing");
+  const s2 = ED.select([it("b", "2026-11-04T17:40:00Z"), it("d", "2026-11-04T19:00:00Z")]);
+  eq([s2.get("CVG|2026-11-04_midday|source:x|b").selected, s2.get("CVG|2026-11-04_midday|source:x|b").timeliness.status], [true, "late"], "no on-time capture: the earliest late one is kept and labelled late");
+  eq([ED.isEdition({ slot: "manual", trigger: "manual" }), ED.isEdition({ slot: "midday", trigger: "backup" })], [false, true], "manual captures are never editions");
+  eq([SCH.alreadyCaptured([{ captureId: "e", outcome: "partial" }], "e", "backup"), SCH.alreadyCaptured([{ captureId: "e", outcome: "partial" }], "e", "scheduled")], [false, true], "a backup trigger may retry an incomplete edition");
+  const S = require("../lib/sources.js");
+  eq(S.cycleOf("det", { meta: { metaUrl: "u", lastRunInit: null } }).status, "unknown", "no reported run: cycle stays unknown (never inferred)");
+  eq([S.cycleOf("det", { meta: { metaUrl: "u", lastRunInit: "2026-05-26T00:00:00.000Z", implausible: "reported run is 4000 h old" } }).status, S.cycleOf("det", { meta: { metaUrl: "u", lastRunInit: "2026-05-26T00:00:00.000Z", implausible: "x" } }).reported], ["provider-reported-implausible", "2026-05-26T00:00:00.000Z"], "implausible reported cycle is kept as reported and flagged");
+  /* scoreAll: manual excluded from primary, duplicate edition captures superseded */
+  const os = require("os"), D = fs.mkdtempSync(path.join(os.tmpdir(), "vfe-")), NV = NORM.VERSION;
+  const mkCap = (cid, trig, start) => ({ captureId: cid, slot: cid.includes("manual") ? "manual" : "midday", trigger: trig, localDate: "2026-11-04", slotTarget: tg, startedAt: start, timeliness: { status: "on_time" }, sources: {} });
+  const caps = [mkCap("2026-11-04_midday", "scheduled", "2026-11-04T17:00:30Z"), mkCap("2026-11-04_manual_1205", "manual", "2026-11-04T17:05:00Z")];
+  U.appendJSONL(path.join(D, "captures", "CVG.jsonl"), caps.concat([{ ...caps[0], captureId: "2026-11-04_midday_a2", edition: "2026-11-04_midday", startedAt: "2026-11-04T17:36:00Z", trigger: "backup" }]));
+  U.mkdirp(path.join(D, "normalized", "CVG", "2026"));
+  const wb = (cid, ret, v) => fs.writeFileSync(path.join(D, "normalized", "CVG", "2026", `${cid}.${NV}.json.gz`), U.gz(Buffer.from(JSON.stringify({ version: NV, retrieval: { last: ret }, sourceIssue: { x: { retrievedAt: ret } }, sources: { x: { tmax_clim: { "2026-11-06": { v } } } }, blends: {}, official: {} }))));
+  wb("2026-11-04_midday", "2026-11-04T17:01:00Z", 60); wb("2026-11-04_manual_1205", "2026-11-04T17:05:10Z", 70); wb("2026-11-04_midday_a2", "2026-11-04T17:36:30Z", 65);
+  U.appendJSONL(path.join(D, "obs", "CVG", "o.jsonl"), [{ target: "tmax_clim", date: "2026-11-06", value: 61, src: "CLI", status: "preliminary", flags: [] }]);
+  const R = SC.scoreAll(D, LOC, T("2026-11-08T00:00:00Z"));
+  eq(R.pairs.map((p) => [p.captureId, p.cls]).sort(), [["2026-11-04_manual_1205", "pilot"], ["2026-11-04_midday", "primary"], ["2026-11-04_midday_a2", "superseded"]], "scheduled edition is primary; its backup retry is superseded; manual capture is pilot only");
+  eq(SCH.attemptId([{ captureId: "2026-11-04_midday" }], "2026-11-04_midday"), "2026-11-04_midday_a2", "a retry gets its own capture id (no collision with the first attempt's evidence)");
+  const prim = R.summary.filter((x) => x.cls === "primary");
+  eq([prim.length, prim[0].n, prim[0].uniqueDates, prim[0].leadHours.minH], [1, 1, 1, 36], "primary summary: pair count with unique dates and actual lead hours (window start - last retrieval)");
 }
 /* ---------- learning prep: time splits, constraints, shrinkage, no auto-promotion ---------- */
 {

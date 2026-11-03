@@ -47,16 +47,16 @@ function writeBundle(cap) {
 async function collect() {
   const now = Date.now(), manual = flag("manual");
   let slot = manual ? null : SCH.resolve(now, loc.tz, SCHED);
-  if (!manual && !slot.slot) { runLog({ job: "collect", outcome: "not-due", detail: slot.reason }); console.log("No capture slot due now:", slot.reason); return; }
+  if (!manual && !slot.slot) { runLog({ job: "collect", outcome: "not-due", trigger: arg("trigger", "scheduled"), detail: slot.reason, slotNear: slot.nearestPast ? `${slot.nearestPast.localDate}_${slot.nearestPast.slot}` : null }); console.log("No capture slot due now:", slot.reason); return; }
   const have = U.readJSONL(capturesFile);
   if (!manual) {
-    if (SCH.alreadyCaptured(have, slot.captureId)) { runLog({ job: "collect", outcome: "skipped-duplicate", captureId: slot.captureId, trigger: arg("trigger", "scheduled") }); console.log("Already captured", slot.captureId); return; }
+    if (SCH.alreadyCaptured(have, slot.captureId, arg("trigger", "scheduled"))) { runLog({ job: "collect", outcome: "skipped-duplicate", captureId: slot.captureId, trigger: arg("trigger", "scheduled") }); console.log("Already captured", slot.captureId); return; }
     if (slot.waitMs > 0) { console.log(`Early by ${(slot.waitMs / 60e3).toFixed(1)} min: waiting for the target`); await sleep(slot.waitMs); }
   }
   const startedAt = Date.now(), lp = U.localParts(startedAt, loc.tz);
   const cap = manual
     ? { captureId: `${lp.date}_manual_${lp.hm.replace(":", "")}`, slot: "manual", localDate: lp.date, slotTarget: null, timeliness: { status: "manual", delayMin: null } }
-    : { captureId: slot.captureId, slot: slot.slot, localDate: slot.localDate, slotTarget: U.iso(slot.target), timeliness: SCH.timeliness(startedAt, slot.target, SCHED) };
+    : { captureId: SCH.attemptId(have, slot.captureId), edition: slot.captureId, slot: slot.slot, localDate: slot.localDate, slotTarget: U.iso(slot.target), timeliness: SCH.timeliness(startedAt, slot.target, SCHED) };
   Object.assign(cap, { schema: 1, loc: loc.id, trigger: manual ? "manual" : arg("trigger", "scheduled"), startedAt: U.iso(startedAt), scheduleConfig: SCHED, code: CODE });
   logConfig();
   const rel = `raw/${loc.id}/${cap.localDate.slice(0, 7)}/${cap.captureId}`;

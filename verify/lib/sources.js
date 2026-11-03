@@ -29,8 +29,18 @@ async function fetchMeta(id) {
   if (!j) return { metaId: m, error: r.error || `HTTP ${r.status}` };
   const init = j.last_run_initialisation_time, avail = j.last_run_availability_time;
   const ageH = init ? (Date.now() - init * 1000) / 3600e3 : null;
-  return { metaId: m, lastRunInit: init ? U.iso(init * 1000) : null, lastRunAvailable: avail ? U.iso(avail * 1000) : null, seamless: SEAMLESS.has(id) || undefined,
-    note: "latest run reported by the provider's metadata at retrieval; the response itself does not state its run", implausible: ageH != null && ageH > 72 ? `reported run is ${Math.round(ageH)} h old` : undefined };
+  return { metaId: m, metaUrl: `https://api.open-meteo.com/data/${m}/static/meta.json`, lastRunInit: init ? U.iso(init * 1000) : null, lastRunAvailable: avail ? U.iso(avail * 1000) : null, seamless: SEAMLESS.has(id) || undefined,
+    implausible: ageH != null && ageH > 72 ? `reported run is ${Math.round(ageH)} h old` : undefined };
+}
+/* Model-cycle provenance. Provider-reported values are kept exactly as reported and labelled with
+   where they came from; nothing is inferred (inferred stays null); missing or implausible stays
+   "unknown" for analysis while the reported value is still preserved. */
+function cycleOf(kind, rec) {
+  if (kind === "nws") return { reported: rec.issuedAt || null, reportedBy: "NWS gridpoint response field properties.updateTime (forecast update time, not a model run)", inferred: null, status: rec.issuedAt ? "provider-reported" : "unknown" };
+  const m = rec.meta || {};
+  if (!m.lastRunInit) return { reported: null, reportedBy: m.metaUrl || "no metadata endpoint", inferred: null, status: "unknown", note: m.error || "provider reported no run time" };
+  return { reported: m.lastRunInit, reportedBy: `${m.metaUrl} last_run_initialisation_time (the latest run Open-Meteo reported as available at retrieval; the forecast response itself does not state its run${m.seamless ? "; seamless product combines several models, value is for its global component" : ""})`,
+    inferred: null, status: m.implausible ? "provider-reported-implausible" : "provider-reported", note: m.implausible || undefined };
 }
 
 /* Collect every source's raw response into dataRoot/rel. Returns per-source outcome records. */
@@ -58,6 +68,7 @@ async function collect(loc, dataRoot, rel, { days = 16 } = {}) {
           if (s.kind === "ens") rec.members = Object.keys(j.hourly).filter((k) => k.startsWith("temperature_2m")).length;
         }
         rec.meta = await fetchMeta(s.id);
+        rec.cycle = cycleOf(s.kind, rec);
       } else {
         /* NWS: the forecast for the observing site's own grid point */
         const H = { accept: "application/geo+json" };
@@ -79,6 +90,7 @@ async function collect(loc, dataRoot, rel, { days = 16 } = {}) {
         const ok = Object.values(rec.parts).filter((p) => p.status === "ok").length;
         rec.status = ok === 3 ? "ok" : ok ? "partial" : "failed";
         rec.issuedAt = rec.parts.grid && rec.parts.grid.updateTime;
+        rec.cycle = cycleOf("nws", rec);
       }
     } catch (e) { rec.error = String((e && e.message) || e); }
     out[s.id] = rec;
@@ -86,4 +98,4 @@ async function collect(loc, dataRoot, rel, { days = 16 } = {}) {
   await Promise.all(jobs);
   return out;
 }
-module.exports = { sourceList, collect, DET_VARS, ENS_VARS, META };
+module.exports = { sourceList, collect, cycleOf, DET_VARS, ENS_VARS, META };

@@ -54,6 +54,52 @@ Late, off-schedule and manual captures stay in the archive and in full-sample ta
 
 The first pilot run showed why this matters. A capture retrieved at 02:53Z had been matched to the 02:52Z report for 03:00Z, an observation made *before* the forecast was retrieved. That is now impossible, and a test uses those real timings. Nothing is reconstructed from later data. Historical forecasts may be added only with documented as-issued provenance.
 
+## Editions and what counts (`lib/editions.js`)
+
+**Editions.** An *edition* is one location, one local date and one slot, e.g. CVG 2026-11-04 midday. Only scheduled and backup triggers produce editions. Each attempt has its own capture id (the edition id, then `_a2`, `_a3`, …) so evidence never collides. A backup trigger re-attempts only an edition that is still incomplete.
+
+**Selection rule.** For each edition and each source/product, exactly one capture is scored:
+- the earliest **source retrieval** within 15 minutes of the target;
+- if none is on time, the earliest retrieval, labelled by its own lateness.
+
+A blend uses its capture's last retrieval, because it is only as timely as its latest input. Retries and backups therefore never multiply a forecast's influence.
+
+**Classes:**
+- **Primary:** selected and on time. Only these go into scorecards and matched comparisons.
+- **Late:** selected but late; kept and labelled.
+- **Superseded:** not selected; never scored.
+- **Pilot:** manual captures; reported separately as pipeline evidence, never as accuracy evidence.
+
+**What every score shows:**
+- the pair count, next to unique verifying dates (and hours, for hourly temperature);
+- 7-day blocks;
+- weather episodes: maximal runs of consecutive climate days with the same observed wet/dry state, capped at 7 days;
+- the **actual lead time** in hours (window start, or valid hour, minus last retrieval), alongside the lead day.
+
+Comparisons are made only within the same lead day and slot.
+
+**Collector runs vs. captured editions.** Every collector run is logged, including "not due" triggers. Each edition is reported separately as captured on time (all sources), partly on time, late, off schedule, missed, or failed, with its attempts and runs.
+
+## Model-cycle provenance
+
+Each source records `cycle: {reported, reportedBy, inferred, status}`:
+- **Open-Meteo models:** `reported` is the `last_run_initialisation_time` from the model's `/data/<model>/static/meta.json` at retrieval. That is the latest run Open-Meteo reported as available; the forecast response itself does not state its run. Seamless products blend several models, and the value is for the global component.
+- **NWS:** the gridpoint response's own `updateTime`. That is a forecast update time, not a model run.
+- **Nothing is inferred:** `inferred` is always null.
+- **Missing or implausible values:** a missing value stays `unknown`. An implausible one (more than 72 h old, e.g. GEM reporting May 2026) keeps the reported value but is labelled `provider-reported-implausible`.
+
+## Retention, backup and recovery
+
+**Retention.** Everything is kept, and nothing is deleted automatically.
+
+**Yearly archive.** `tools/archive.js pack` writes a tarball of a year's raw evidence and a committed manifest (every path, size and SHA-256, plus the tarball's hash). It verifies the tarball by re-extraction before the workflow uploads it as release `archive-<year>`.
+
+**Restore.** `tools/archive.js restore` re-checks the manifest, then every content hash recorded in `captures/`.
+
+**Prune.** `tools/archive.js prune` refuses to run without a verified manifest *and* a recorded upload. Git history keeps every file regardless.
+
+**Code with the data.** The collector code is vendored in the data repository, so each capture's recorded commit reproduces its exact normalization. Details are in `deploy/DATA_README.md`.
+
 ## Storage (private data repository)
 
 | Path | Contents |

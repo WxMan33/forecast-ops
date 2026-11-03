@@ -9,7 +9,8 @@ const fs = require("fs"), path = require("path");
 const U = require("./util.js");
 const OBS = require("./obs.js");
 const TG = require("./targets.js");
-const VERSION = "score-v2";
+const VERSION = "score-v3"; // v3: one capture per edition and source; primary/late/superseded/pilot classes; independence counts; lead hours
+const ED = require("./editions.js");
 const TM = require("./timing.js");
 const MIN_DATES = 30; // distinct valid dates before any comparison is called anything but "insufficient"
 
@@ -50,18 +51,20 @@ function reviewedTV(recs, corr) {
 }
 
 /* Forecast cases from bundles and TV records. */
-function cases(bundles, tv, loc) {
+function cases(bundles, tv, loc, capsById = {}) {
   const out = [];
   const add = (o) => out.push(o);
   bundles.forEach(({ cap, b }) => {
-    const base = { captureId: cap.captureId, slot: cap.slot, timeliness: cap.timeliness && cap.timeliness.status, localDate: cap.localDate, retrievedLast: b.retrieval && b.retrieval.last, normVersion: b.version };
-    Object.entries(b.sources || {}).forEach(([id, o]) => Object.entries(o).forEach(([t, byD]) => Object.entries(byD).forEach(([d, x]) => add({ ...base, track: "source", id, target: t, date: d, lead: TG.leadDay(cap.localDate, d), v: x.v, ens: x.ens, flags: x.flags || [] }))));
-    Object.entries((b.official && b.official.nws) || {}).forEach(([t, byD]) => Object.entries(byD).forEach(([d, x]) => add({ ...base, track: "source", id: "nws-official", target: t, date: d, lead: TG.leadDay(cap.localDate, d), v: x.v, flags: x.flags || [] })));
-    Object.entries(b.blends || {}).forEach(([rid, info]) => Object.entries(info.values || {}).forEach(([t, byD]) => Object.entries(byD).forEach(([d, x]) => add({ ...base, track: "blend", id: rid, group: info.group, target: t, date: d, lead: TG.leadDay(cap.localDate, d), v: x.v, spread: x.spread, flags: x.flags || [] }))));
+    const base = { captureId: cap.captureId, slot: cap.slot, trigger: cap.trigger, slotTarget: cap.slotTarget, edition: ED.isEdition(cap) ? `${loc.id}|${ED.editionId(cap)}` : null, timeliness: cap.timeliness && cap.timeliness.status, localDate: cap.localDate, retrievedLast: b.retrieval && b.retrieval.last, normVersion: b.version };
+    const srcRet = (id) => (b.sourceIssue && b.sourceIssue[id] ? b.sourceIssue[id].retrievedAt : null);
+    Object.entries(b.sources || {}).forEach(([id, o]) => Object.entries(o).forEach(([t, byD]) => Object.entries(byD).forEach(([d, x]) => add({ ...base, track: "source", id, selKey: `source:${id}`, selRetrieved: srcRet(id), target: t, date: d, lead: TG.leadDay(cap.localDate, d), v: x.v, ens: x.ens, flags: x.flags || [] }))));
+    Object.entries((b.official && b.official.nws) || {}).forEach(([t, byD]) => Object.entries(byD).forEach(([d, x]) => add({ ...base, track: "source", id: "nws-official", selKey: "source:nws", selRetrieved: srcRet("nws"), target: t, date: d, lead: TG.leadDay(cap.localDate, d), v: x.v, flags: x.flags || [] })));
+    Object.entries(b.blends || {}).forEach(([rid, info]) => Object.entries(info.values || {}).forEach(([t, byD]) => Object.entries(byD).forEach(([d, x]) => add({ ...base, track: "blend", id: rid, selKey: `blend:${rid}`, selRetrieved: base.retrievedLast, group: info.group, target: t, date: d, lead: TG.leadDay(cap.localDate, d), v: x.v, spread: x.spread, flags: x.flags || [] }))));
   });
   tv.forEach((r) => {
     if (!["auto-accepted", "approved", "corrected"].includes(r.reviewStatus)) return;
-    const base = { captureId: r.captureId, slot: r.slot, timeliness: r.timeliness && r.timeliness.status, localDate: r.captureId.slice(0, 10), track: "tv", id: r.product, station: r.station, locClass: r.location && r.location.class, retrievedLast: r.retrievedAt, extractVersion: r.extractVersion, reviewStatus: r.reviewStatus };
+    const cap = capsById[r.captureId] || {};
+    const base = { captureId: r.captureId, slot: r.slot, trigger: cap.trigger, slotTarget: r.slotTarget || cap.slotTarget, edition: ED.isEdition(cap) ? `${loc.id}|${ED.editionId(cap)}` : null, timeliness: r.timeliness && r.timeliness.status, localDate: r.captureId.slice(0, 10), track: "tv", id: r.product, selKey: `tv:${r.product}`, selRetrieved: r.retrievedAt, station: r.station, locClass: r.location && r.location.class, retrievedLast: r.retrievedAt, extractVersion: r.extractVersion, reviewStatus: r.reviewStatus };
     const got = Date.parse(r.retrievedAt);
     (r.days || []).forEach((d) => {
       /* prospective only: skip any date whose target window had begun before retrieval */
@@ -104,7 +107,7 @@ function blockBootstrap(diffsByDate, iters = 2000, seed = 12345) {
 /* Matched comparison: cases every member has (same capture, same valid date, on time). */
 function matched(pairs, members, ref, target, lead, slot) {
   const idx = new Map();
-  pairs.filter((p) => p.target === target && p.lead === lead && p.slot === slot && p.timeliness === "on_time" && members.includes(p.id)).forEach((p) => { const k = `${p.captureId}|${p.date}`; (idx.get(k) || idx.set(k, {}).get(k))[p.id] = p; });
+  pairs.filter((p) => p.target === target && p.lead === lead && p.slot === slot && p.cls === "primary" && members.includes(p.id)).forEach((p) => { const k = `${p.captureId}|${p.date}`; (idx.get(k) || idx.set(k, {}).get(k))[p.id] = p; });
   const rows = [...idx.values()].filter((r) => members.every((m) => r[m]));
   if (!rows.length) return { n: 0, members };
   const kind = (TG.TARGETS[target] || {}).kind, loss = (p) => (kind === "prob" ? (p.v - p.o) ** 2 : Math.abs(p.v - p.o));
@@ -124,7 +127,18 @@ function scoreAll(DATA, loc, nowMs = Date.now(), normVersion = require("./normal
   const best = OBS.best(obsRows);
   const bundles = loadBundles(DATA, loc, normVersion);
   const tv = reviewedTV(U.readJSONLDir(path.join(DATA, "tv", loc.id)), loadCorrections(DATA));
-  const all = cases(bundles, tv, loc);
+  const capsAll = U.readJSONL(path.join(DATA, "captures", `${loc.id}.jsonl`)), capsById = Object.fromEntries(capsAll.map((c) => [c.captureId, c]));
+  const all = cases(bundles, tv, loc, capsById);
+  /* one capture per edition and source/product (see lib/editions.js) */
+  const seen = new Set(), items = [];
+  all.forEach((c) => { if (!c.edition) return; const k = `${c.edition}|${c.selKey}|${c.captureId}`; if (seen.has(k)) return; seen.add(k); items.push({ edition: c.edition, key: c.selKey, captureId: c.captureId, retrievedAt: c.selRetrieved, target: c.slotTarget }); });
+  const sel = ED.select(items);
+  all.forEach((c) => {
+    if (!c.edition) { c.cls = "pilot"; return; }
+    const s = sel.get(`${c.edition}|${c.selKey}|${c.captureId}`);
+    c.sourceTimeliness = s ? s.timeliness : null;
+    c.cls = !s || !s.selected ? "superseded" : s.timeliness.status === "on_time" ? "primary" : "late";
+  });
   const pairs = [], pending = [];
   const rejected = [];
   all.forEach((c) => {
@@ -132,7 +146,7 @@ function scoreAll(DATA, loc, nowMs = Date.now(), normVersion = require("./normal
     const o = best.get(`${c.target}|${c.date}`);
     /* boundary re-checked at scoring time (defence in depth): the window must start after retrieval + minimum lead */
     if (!c.retrievedLast || !TM.windowOk(TG.TARGETS[c.target].window(c.date, loc)[0], Date.parse(c.retrievedLast))) { rejected.push({ ...c, why: "window starts before retrieval + minimum lead" }); return; }
-    if (o) pairs.push({ ...c, o: o.value, obsSrc: o.src, obsStatus: o.status, obsRevised: o.revised, obsWindowStart: U.iso(TG.TARGETS[c.target].window(c.date, loc)[0]), leadMinToWindow: TM.leadMin(TG.TARGETS[c.target].window(c.date, loc)[0], Date.parse(c.retrievedLast)) });
+    if (o) pairs.push({ ...c, leadHours: Math.round((TG.TARGETS[c.target].window(c.date, loc)[0] - Date.parse(c.retrievedLast)) / 360e3) / 10, o: o.value, obsSrc: o.src, obsStatus: o.status, obsRevised: o.revised, obsWindowStart: U.iso(TG.TARGETS[c.target].window(c.date, loc)[0]), leadMinToWindow: TM.leadMin(TG.TARGETS[c.target].window(c.date, loc)[0], Date.parse(c.retrievedLast)) });
     else { const end = TG.TARGETS[c.target].window(c.date, loc)[1]; if (end < nowMs) pending.push({ target: c.target, date: c.date }); }
   });
   /* hourly temperature (valid instants), by lead day; the observation's MEASUREMENT time must be at
@@ -145,14 +159,24 @@ function scoreAll(DATA, loc, nowMs = Date.now(), normVersion = require("./normal
       const o = best.get(`temp_hourly|${t}`); if (!o || o.obsAt == null) return;
       if (!TM.obsOk(o.obsAt, last)) return;
       const ld = Math.ceil((t - last) / 86400e3), k = `${id}|${ld}|${cap.slot}`, e = v - o.value;
-      hourlyPairs.push({ captureId: cap.captureId, slot: cap.slot, timeliness: cap.timeliness && cap.timeliness.status, id, valid: U.iso(t), v, o: o.value, obsMeasured: U.iso(o.obsAt), obsIngested: o.seenAt, obsRawSha: o.sha, obsReport: o.report, retrievedLast: b.retrieval.last, leadMin: TM.leadMin(o.obsAt, last), normVersion: b.version, bundle: b.__path });
-      const h = (hourly[k] = hourly[k] || { id, leadDay: ld, slot: cap.slot, n: 0, abs: 0, sum: 0, in2: 0 }); h.n++; h.abs += Math.abs(e); h.sum += e; h.in2 += Math.abs(e) <= 2 ? 1 : 0;
+      const ed = ED.isEdition(cap) ? `${loc.id}|${ED.editionId(cap)}` : null, sk = id.startsWith("blend:") ? id : `source:${id}`, sv = ed && sel.get(`${ed}|${sk}|${cap.captureId}`);
+      const cls = !ed ? "pilot" : !sv || !sv.selected ? "superseded" : sv.timeliness.status === "on_time" ? "primary" : "late";
+      hourlyPairs.push({ cls, leadHours: Math.round((t - last) / 360e3) / 10, captureId: cap.captureId, slot: cap.slot, timeliness: cap.timeliness && cap.timeliness.status, id, valid: U.iso(t), v, o: o.value, obsMeasured: U.iso(o.obsAt), obsIngested: o.seenAt, obsRawSha: o.sha, obsReport: o.report, retrievedLast: b.retrieval.last, leadMin: TM.leadMin(o.obsAt, last), normVersion: b.version, bundle: b.__path });
+      const hk = `${k}|${cls}`, h = (hourly[hk] = hourly[hk] || { id, leadDay: ld, slot: cap.slot, cls, n: 0, abs: 0, sum: 0, in2: 0, hours: new Set(), dates: new Set(), lead: [] });
+      h.n++; h.abs += Math.abs(e); h.sum += e; h.in2 += Math.abs(e) <= 2 ? 1 : 0; h.hours.add(t); h.dates.add(new Date(t + loc.lstOffsetMin * 60e3).toISOString().slice(0, 10)); h.lead.push((t - last) / 3600e3);
     }));
   });
-  /* summaries */
+  /* independence: unique dates, 7-day blocks and weather episodes (maximal runs of consecutive
+     climate days with the same observed wet/dry state, split at 7 days) */
+  const wet = {}; best.forEach((v, k) => { const [t, d] = k.split("|"); if (t === "precip_clim") wet[d] = v.value >= 0.01; });
+  const epi = {}; { let prev = null, id = 0, len = 0; Object.keys(wet).sort().forEach((d) => { const cont = prev && U.dayDiff(prev.d, d) === 1 && prev.w === wet[d] && len < 7; if (!cont) { id++; len = 0; } len++; epi[d] = `${wet[d] ? "wet" : "dry"}-${id}`; prev = { d, w: wet[d] }; }); }
+  const block = (d) => Math.floor(Date.parse(d + "T00:00:00Z") / (7 * 86400e3));
+  const indep = (dates) => { const u = [...new Set(dates)]; return { uniqueDates: u.length, blocks7d: new Set(u.map(block)).size, episodes: new Set(u.map((d) => epi[d] || `unknown-${block(d)}`)).size, episodesKnown: u.filter((d) => epi[d]).length === u.length }; };
+  const leadStats = (a) => (a.length ? { meanH: Math.round(a.reduce((s, x) => s + x, 0) / a.length * 10) / 10, minH: Math.round(Math.min(...a) * 10) / 10, maxH: Math.round(Math.max(...a) * 10) / 10 } : null);
+  /* summaries: primary (scheduled, selected, on time) separate from late, superseded and pilot */
   const groups = {};
-  pairs.forEach((p) => { const k = [p.track, p.id, p.target, p.lead, p.slot, p.timeliness === "on_time" ? "on_time" : p.timeliness].join("|"); (groups[k] = groups[k] || []).push(p); });
-  const summary = Object.entries(groups).map(([k, ps]) => { const [track, id, target, lead, slot, tl] = k.split("|"); return { track, id, target, lead: +lead, slot, timeliness: tl, ...metrics(target, ps), ens: ensMetrics(ps), obsRevised: ps.filter((p) => p.obsRevised).length, flags: [...new Set(ps.flatMap((p) => p.flags || []))] }; });
+  pairs.forEach((p) => { const k = [p.track, p.id, p.target, p.lead, p.slot, p.cls].join("|"); (groups[k] = groups[k] || []).push(p); });
+  const summary = Object.entries(groups).map(([k, ps]) => { const [track, id, target, lead, slot, cls] = k.split("|"); return { track, id, target, lead: +lead, leadGroup: TG.leadGroup(+lead), slot, cls, timeliness: cls === "primary" ? "on_time" : cls, ...metrics(target, ps), ...indep(ps.map((p) => p.date)), leadHours: leadStats(ps.map((p) => p.leadHours)), ens: ensMetrics(ps), obsRevised: ps.filter((p) => p.obsRevised).length, flags: [...new Set(ps.flatMap((p) => p.flags || []))] }; });
   /* matched comparisons: OPE blends + benchmarks + sources (temperature and PoP), TV pilot separately */
   const comps = [];
   const opeMembers = ["baseline-v1", "equal-raw-v1", "ecmwf-ens-only", "gefs-only", "nbm-only", "nws-only"];
@@ -169,6 +193,6 @@ function scoreAll(DATA, loc, nowMs = Date.now(), normVersion = require("./normal
     Object.entries(b.hourly.temperature_2m || {}).forEach(([id, arr]) => { const tr = id.startsWith("blend:") ? "blend" : "source", nm = id.replace(/^blend:/, "");
       arr.forEach((v, i) => { if (v != null && TM.obsOk(b.hourly.t0 + i * b.hourly.stepMs - TM.MATCH_TOLERANCE_MIN * 60e3, last)) E(tr, nm).hourlyEligible++; }); }); });
   hourlyPairs.forEach((p) => { E(p.id.startsWith("blend:") ? "blend" : "source", p.id.replace(/^blend:/, "")).hourlyScored++; });
-  return { version: VERSION, timing: TM.VERSION, normVersion, eligibility: Object.values(elig), at: U.iso(nowMs), pairs, hourlyPairs, rejected, pending, obsBest, summary, hourly: Object.values(hourly).map((h) => ({ id: h.id, leadDay: h.leadDay, slot: h.slot, n: h.n, mae: h.abs / h.n, bias: h.sum / h.n, within2: h.in2 / h.n })), comparisons: comps, bundles: bundles.length, tv, obsCount: obsRows.length, minDates: MIN_DATES };
+  return { version: VERSION, timing: TM.VERSION, normVersion, eligibility: Object.values(elig), at: U.iso(nowMs), pairs, hourlyPairs, rejected, pending, obsBest, summary, hourly: Object.values(hourly).map((h) => ({ id: h.id, leadDay: h.leadDay, slot: h.slot, cls: h.cls, n: h.n, uniqueHours: h.hours.size, ...indep([...h.dates]), leadHours: leadStats(h.lead), mae: h.abs / h.n, bias: h.sum / h.n, within2: h.in2 / h.n })), editionsVersion: ED.VERSION, comparisons: comps, bundles: bundles.length, tv, obsCount: obsRows.length, minDates: MIN_DATES };
 }
 module.exports = { VERSION, scoreAll, cases, metrics, ensMetrics, matched, blockBootstrap, reviewedTV, MIN_DATES };
