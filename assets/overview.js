@@ -13,9 +13,10 @@
   const NAMES = { ...name(CFG.blend), ...name({ models: CFG.blend.extra }), ...name(CFG.thunder), ...name(CFG.winter) };
 
   let RB = null;
+  $("ovHow").addEventListener("click", (e) => { const pn = $("ovHowPanel"); pn.hidden = !pn.hidden; e.currentTarget.setAttribute("aria-expanded", String(!pn.hidden)); });
   async function run() {
     O.setChip("FETCHING…");
-    $("sumMsg").textContent = "Loading guidance…";
+    $("sumMsg").textContent = ""; $("days").innerHTML = '<div class="state loading">Loading guidance…</div>';
     const where = { lat: O.location.lat, lon: O.location.lon };
     RB = O.blendRecipe(); const wsT = O.savedWeights(CFG.thunder), wsW = O.savedWeights(CFG.winter);
     /* Request exactly what the tool pages request (same models, variables and days), so the
@@ -34,7 +35,7 @@
     const optB = { rules: RB.rules };
     if (B.empty) {
       O.setChip("NO DATA", "err"); O.headline({ tier: "nodata", word: "NO DATA" });
-      $("sumMsg").textContent = "Couldn't reach Open-Meteo."; $("days").innerHTML = ""; return;
+      $("sumMsg").textContent = ""; $("days").innerHTML = '<div class="state err">Couldn\'t reach Open-Meteo, so the summary can\'t be built right now. Try again in a minute.</div>'; return;
     }
     const rows = C.blend.dailyRows(B, wsB, optB).slice(0, 3);
     const TH = T.empty ? null : C.thunder.hourly(T, wsT);

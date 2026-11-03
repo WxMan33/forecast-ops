@@ -26,28 +26,18 @@
   </aside>
 
   <div class="main">
-    <section class="card" id="changes" hidden></section>
 
+    <section class="card" id="changes" hidden></section>
+    <h2 class="group-title">Accumulation guidance</h2>
     <section class="card">
       <div class="section-title">Snow odds for the window</div>
       <p class="section-sub" id="oddsSub">Share of ensemble members reaching each total.</p>
       <div class="tablewrap"><table id="odds"></table></div>
     </section>
-
-    <section class="card" id="ptCard"><div class="section-title">Precipitation type &amp; transitions</div><p class="msg">Loading deterministic models…</p></section>
-
-    <section class="card" id="amtCard"></section>
-
-    <section class="card" id="obsCard"></section>
-
     <section class="card">
-      <div class="section-title" id="tTitle">Surface temperatures</div>
-      <div class="tabs" role="tablist" id="tTabs"></div>
-      <p class="section-sub" id="tSub"></p>
-      <div class="chartbox short"><canvas id="tChart" aria-label="Winter temperature chart" role="img"></canvas></div>
-      <div class="legend" id="tLegend"></div>
+      <div class="section-title" id="dailyTitle">Day by day, within the window</div>
+      <div class="tablewrap"><table id="daily"></table></div>
     </section>
-
     <section class="card">
       <div class="section-title" id="chartTitle">Accumulation plume</div>
       <div class="tabs" role="tablist" id="tabs"></div>
@@ -55,11 +45,19 @@
       <div class="chartbox"><canvas id="chart" aria-label="Ensemble plume chart" role="img"></canvas></div>
       <div class="legend" id="legend"></div>
     </section>
-
+    <section class="card" id="amtCard"></section>
+    <h2 class="group-title">Precipitation type and profiles</h2>
+    <section class="card" id="ptCard"><div class="section-title">Precipitation type &amp; transitions</div><p class="msg">Loading deterministic models…</p></section>
     <section class="card">
-      <div class="section-title" id="dailyTitle">Day by day, within the window</div>
-      <div class="tablewrap"><table id="daily"></table></div>
+      <div class="section-title" id="tTitle">Surface temperatures</div>
+      <div class="tabs" role="tablist" id="tTabs"></div>
+      <p class="section-sub" id="tSub"></p>
+      <div class="chartbox short"><canvas id="tChart" aria-label="Winter temperature chart" role="img"></canvas></div>
+      <div class="legend" id="tLegend"></div>
     </section>
+    <h2 class="group-title">Observations</h2>
+    <section class="card" id="obsCard"></section>
+
   </div>
 
   <aside class="side-extra">

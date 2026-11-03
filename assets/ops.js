@@ -80,16 +80,19 @@
     { href: "almanac.html", id: "almanac", label: "ALMANAC", icon: "sun" },
   ];
 
-  function shell(pageId, title) {
+  /* opts: { subtitle, forecastPoint (default true): show the forecast point and its NWS alerts } */
+  const SUBTITLES = { home: "Next three days at a glance", blend: "Weighted guidance from models, ensembles and NWS", thunder: "Hour-by-hour thunder signal", severe: "Severe-weather environment by hour", winter: "Snow odds, precipitation type and profiles", almanac: "Sun, moon and Cincinnati daily climate" };
+  function shell(pageId, title, opts = {}) {
+    const fp = opts.forecastPoint !== false, sub = opts.subtitle || SUBTITLES[pageId] || "";
     document.title = `${title} · ${BRAND.name}`;
     const header = document.createElement("header");
     header.className = "statusbar";
     header.innerHTML = `
-      <div class="site-id">${icon("pin", 18)}
+      ${fp ? `<div class="site-id">${icon("pin", 18)}
         <div style="min-width:0"><div class="kicker">Forecast point</div><div class="site-name" id="siteName">—</div><div class="site-sub" id="siteSub"></div></div>
       </div>
-      <div class="vsep"></div>
-      <div class="headline" id="headline"><span class="hl-word" style="color:var(--muted)">${esc(title.toUpperCase())}</span></div>
+      <div class="vsep"></div>` : ""}
+      <div class="headline" id="headline"><div><span class="hl-word" style="color:var(--muted)">${esc(title.toUpperCase())}</span>${sub ? `<div class="page-sub">${esc(sub)}</div>` : ""}</div></div>
       <div class="utility">
         <span class="chip" id="dataChip">IDLE</span>
         <button class="chip noprint" id="printBtn" type="button" style="cursor:pointer" aria-label="Print or save as PDF">${icon("print", 13)}</button>
@@ -119,12 +122,11 @@
     $("printBtn").addEventListener("click", () => window.print());
     $("verifyExport").addEventListener("click", (e) => { e.preventDefault(); exportVerify(); });
     applyTheme(theme());
-    showLocation();
-    loadAlerts();
-    locListeners.push(() => loadAlerts());
+    if (fp) { showLocation(); loadAlerts(); locListeners.push(() => loadAlerts()); }
     /* event slots on every page: editor under Location, results at the top of the main column */
     const side = document.querySelector(".side"), main = document.querySelector(".main");
-    if (side) { const c = document.createElement("section"); c.className = "card tight"; c.id = "evCard"; const lc = $("locCard"); lc && lc.nextSibling ? side.insertBefore(c, lc.nextSibling) : side.appendChild(c); }
+    /* the event slot stays hidden until a page actually uses it (eventCard), so no empty panel shows */
+    if (side) { const c = document.createElement("section"); c.className = "card tight"; c.id = "evCard"; c.hidden = true; const lc = $("locCard"); lc && lc.nextSibling ? side.insertBefore(c, lc.nextSibling) : side.appendChild(c); }
     if (main) { const c = document.createElement("section"); c.className = "card"; c.id = "eventCard"; c.hidden = true; main.prepend(c); }
   }
 
@@ -471,7 +473,8 @@
           grid: { color: (ctx) => (hours[ctx.index] === 0 ? line : "transparent"), drawTicks: false },
         },
         y: {
-          ticks: { color: muted, font: { family: mono, size: 11 }, callback: (v) => (+v).toFixed(dec && Math.abs(v) < 10 ? dec : 0) + sfx },
+          /* precision keeps tick steps at the displayed resolution, so a flat 0-1 axis never repeats "1, 1, 1" */
+          ticks: { color: muted, font: { family: mono, size: 11 }, precision: dec, callback: (v) => (+v).toFixed(dec && Math.abs(v) < 10 ? dec : 0) + sfx },
           grid: { color: line }, beginAtZero: !!beginAtZero, min: yMin, max: yMax,
           title: { display: !!yTitle, text: yTitle, color: muted, font: { size: 11.5 } },
         },
@@ -566,6 +569,7 @@
   /* Event card: pick, create, edit, delete. Saved events keep their ID across edits. */
   function eventCard(container) {
     if (!container) return;
+    container.hidden = false;
     let editing = null;
     const draw = () => {
       const list = events(), ev = activeEvent();

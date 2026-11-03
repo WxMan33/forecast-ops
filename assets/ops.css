@@ -462,3 +462,99 @@ textarea.notes { width: 100%; resize: vertical; font: 13px/1.45 var(--font-body,
   .wnbadge.warm, .wndep.warm { color: #B91C1C !important; } .wnbadge.cold, .wndep.cold { color: #1D4ED8 !important; }
   .wnbadge.wet, .wndep.wet { color: #0F766E !important; } .wnbadge.dry, .wndep.dry { color: #A16207 !important; }
 }
+
+/* =====================================================================
+   Design system v2 — reference: the Almanac "Weather numbers" cards.
+   Calm structure, large readable values, small uppercase kickers only for
+   labels, sentence-case headings, strong color reserved for real conditions.
+   ===================================================================== */
+:root { --r-card: 12px; --r-inner: 10px; --pad-card: 18px; }
+:root[data-theme="light"] { --line: #C9D0D8; --muted: #3F4856; --faint: #515B69; }
+.card { border-radius: var(--r-card); padding: var(--pad-card); }
+.card.tight { padding: 14px 16px; }
+.section-title { font-family: var(--font-body); font-size: 15.5px; font-weight: 700; letter-spacing: .1px; text-transform: none; color: var(--text); margin: 0 0 10px; }
+.section-sub { font-size: 13px; line-height: 1.5; }
+.kick { font-size: 11px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); }
+.group-title { font-size: 12px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--muted); margin: 8px 2px -4px; display: flex; align-items: center; gap: 10px; }
+.group-title::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+/* metric tiles share the summary-card look */
+.tile { border-radius: var(--r-inner); padding: 12px 14px; gap: 4px; }
+.tile .v { font-size: 26px; }
+.tile .s { font-size: 12px; }
+/* tables: headings wrap instead of clipping; compact, aligned cells */
+th, td { padding: 7px 8px; }
+th { white-space: normal; vertical-align: bottom; line-height: 1.25; }
+td.num { font-size: 13px; }
+/* form fields never overflow their row */
+.input { max-width: 100%; }
+.row .input { width: 100%; }
+/* one look for loading / unavailable / partial / error */
+.state { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: var(--r-inner); border: 1px dashed var(--line); color: var(--muted); font-size: 13px; line-height: 1.45; }
+.state::before { content: "•"; font-weight: 800; }
+.state.loading::before { content: "…"; } .state.unavail::before { content: "—"; }
+.state.partial { border-color: color-mix(in srgb, var(--monitor) 55%, var(--line)); } .state.partial::before { content: "!"; color: var(--monitor); }
+.state.err { border-style: solid; border-color: color-mix(in srgb, var(--action) 55%, var(--line)); color: var(--text); } .state.err::before { content: "×"; color: var(--action); }
+/* disclosure buttons (tap and keyboard; never hover-only) */
+.infobtn { all: unset; cursor: pointer; font-size: 12px; font-weight: 700; color: var(--muted); border: 1px solid var(--line); border-radius: 7px; padding: 4px 9px; white-space: nowrap; }
+.infobtn:hover { color: var(--text); } .infobtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.infobtn[aria-expanded="true"] { color: var(--text); border-color: var(--accent); }
+details.fold > summary .section-title { margin: 0; }
+/* page subtitle in the header */
+.page-sub { font-size: 12px; color: var(--muted); max-width: 46ch; }
+/* selected-hour headers */
+.selhead { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.selhead .kick { color: var(--accent); }
+.selhead .when { font-family: var(--font-mono); font-size: 18px; font-weight: 800; }
+@media (max-width: 600px) { .card { padding: 14px; } .tile .v { font-size: 22px; } }
+@media print { .infobtn { display: none !important; } .state { border: 1px solid #999; } }
+
+/* ---------- Almanac layout v2 ---------- */
+.workspace.single { grid-template-columns: minmax(0, 1fr); grid-template-areas: "main"; max-width: 1180px; }
+.almanac-page .site-id, .almanac-page .statusbar > .vsep { display: none; }
+.almhead { display: grid; gap: 10px; }
+.almhead-top { display: flex; justify-content: space-between; align-items: end; gap: 12px; flex-wrap: wrap; }
+.almtitle { font-size: 24px; font-weight: 800; margin: 2px 0 0; letter-spacing: .1px; }
+.datenav { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.datenav .input { width: auto; }
+.almlocs { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; font-size: 13.5px; }
+.almlocs .kick { margin-right: 4px; }
+select.input.inline { width: auto; display: inline-block; padding: 3px 8px; font-size: 12.5px; margin-left: 6px; }
+.almtop { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr); gap: 16px; align-items: start; }
+.almcol { display: grid; gap: 16px; align-content: start; }
+@media (max-width: 900px) { .almtop { grid-template-columns: minmax(0, 1fr); } }
+/* sun and moon */
+.sunrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mtile { background: var(--raised); border: 1px solid var(--line); border-radius: var(--r-inner); padding: 10px 12px; display: grid; gap: 2px; align-content: start; }
+.mtile .k { font-size: 11px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); }
+.mtile .v { font-family: var(--font-mono); font-size: 22px; font-weight: 800; line-height: 1.15; }
+.mtile .s { font-size: 12px; color: var(--muted); }
+.mtile .v.big { font-size: 28px; }
+.dayrow { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 12px 2px 4px; }
+.dayrow .v { font-family: var(--font-mono); font-size: 26px; font-weight: 800; }
+.chg { font-family: var(--font-mono); font-size: 14px; font-weight: 800; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); }
+.moonrow { display: flex; gap: 12px; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.moonrow svg { flex: none; }
+.moonrow .ph { font-weight: 700; } .moonrow .s { font-size: 12.5px; color: var(--muted); }
+.cardfoot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+/* daily climate groups */
+.cgroup + .cgroup { margin-top: 14px; }
+.cgroup > .kick { display: block; margin-bottom: 6px; }
+.cgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+.mtile .yr { font-family: var(--font-body); font-size: 12px; font-weight: 600; color: var(--muted); }
+@media print { .almtop { grid-template-columns: 1fr 1.4fr; } .mtile { border: 1px solid #aaa; } .almanac-page .statusbar { display: none; } }
+
+.printonly { display: none; }
+@media print { .printonly { display: inline; } }
+.hubcard { border-top: 1px solid var(--line) !important; border-radius: var(--r-card); }
+.hubcard:hover { border-color: var(--accent) !important; }
+.hubcard h2 { font-family: var(--font-body); font-weight: 700; font-size: 18px; letter-spacing: .1px; }
+.hub { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.detail { border-radius: var(--r-inner); border-left: 3px solid var(--accent); }
+.detail-head .when { font-family: var(--font-mono); font-size: 16px; font-weight: 800; letter-spacing: 0; }
+.selk { color: var(--accent); }
+/* the selected cell in timelines stands out more */
+.strip-cell.sel { outline: 2px solid var(--text); outline-offset: -1px; box-shadow: 0 0 0 2px var(--accent); }
+.selwhen { font-family: var(--font-mono); font-size: 14px; font-weight: 800; color: var(--text); text-transform: none; letter-spacing: 0; margin-left: 4px; }
+
+/* Rows: checkboxes and buttons keep their natural width and wrap instead of being squeezed */
+.row > .chk, .row > .btn, .row > button { flex: 0 0 auto; }

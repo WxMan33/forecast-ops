@@ -145,7 +145,7 @@
     const i = sel, t = Cx.tiers[i];
     const ms = Cx.perModel.map((p) => p.m);
     $("detail").innerHTML = `<div class="detail">
-      <div class="detail-head"><span class="when">${O.fmtDay(O.dayOf(data.times[i]))} · ${O.fmtHour(O.hourOf(data.times[i]))} ${O.tzShort(data.tz)}</span>${O.badge(t)}</div>
+      <div class="detail-head"><span class="kick selk">Selected hour</span><span class="when">${O.fmtDay(O.dayOf(data.times[i]))} · ${O.fmtHour(O.hourOf(data.times[i]))} ${O.tzShort(data.tz)}</span>${O.badge(t)}</div>
       <div class="tiles">
         <div class="tile"><span class="k">Thunder share</span><span class="v">${Cx.frac[i] == null ? "—" : Math.round(Cx.frac[i] * 100) + "%"}</span><span class="s">of model weight</span></div>
         <div class="tile"><span class="k">CAPE blend</span><span class="v">${f(Cx.cape.mean[i], 0)}</span><span class="s">range ${f(Cx.cape.min[i], 0)}–${f(Cx.cape.max[i], 0)} J/kg</span></div>

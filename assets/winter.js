@@ -297,7 +297,7 @@
     profs.forEach((p) => { const k = ids.indexOf(p.id); svg += `<polyline points="${p.pts.filter((q) => q.z <= top + 400).map((q) => `${X(q.t).toFixed(1)},${Y(q.z).toFixed(1)}`).join(" ")}" fill="none" stroke="${O.modelColor(k)}" stroke-width="2"/>`; });
     svg += `<text x="40" y="12" font-size="9" fill="${muted}">°C vs height above ground · 0 °C dashed</text></svg>`;
     const f1 = (x, d = 0, u = "") => (x == null ? "—" : x.toFixed(d) + u);
-    $("profPanel").innerHTML = `<div class="detail"><div class="detail-head"><span class="when">${O.fmtDay(O.dayOf(det.times[i]))} · ${O.fmtHour(O.hourOf(det.times[i]))} ${C.time.abbr(det.ms[i], det.tz)}</span><span class="msg">temperature profiles, deterministic models</span></div>
+    $("profPanel").innerHTML = `<div class="detail"><div class="detail-head"><span class="kick selk">Selected hour</span><span class="when">${O.fmtDay(O.dayOf(det.times[i]))} · ${O.fmtHour(O.hourOf(det.times[i]))} ${C.time.abbr(det.ms[i], det.tz)}</span><span class="msg">temperature profiles, deterministic models</span></div>
       <div class="hodo-wrap"><div class="hodo" style="aspect-ratio:auto;height:${H}px">${svg}</div>
       <div class="tablewrap"><table><thead><tr><th>Model</th><th>Sfc T</th><th>Wet-bulb</th><th>Dew pt</th><th>Warm nose</th><th>Warm layer</th><th>Cold layer</th><th>Model type</th><th>Profile type</th><th>Kuchera</th></tr></thead><tbody>${ids.map((id, k) => { const r = det.rows[id][i], st = r.st || {};
         return `<tr><td><span class="sw" style="background:${O.modelColor(k)};margin-right:6px"></span>${O.esc(DNAMES[id])}</td><td class="num">${f1(r.t2F, 0, "°")}</td><td class="num">${f1(r.twF, 0, "°")}</td><td class="num">${f1(r.tdF, 0, "°")}</td>` +

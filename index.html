@@ -21,36 +21,43 @@
 
     <section class="card">
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div class="section-title" style="margin:0">Next 3 days</div>
-        <span class="msg" id="sumMsg">Loading guidance…</span>
+        <div class="section-title" style="margin:0;flex:none">Day by day</div>
+        <button class="infobtn" type="button" id="ovHow" aria-expanded="false" aria-controls="ovHowPanel" style="flex:none">ⓘ How this summary is built</button>
       </div>
-      <div class="daycards" id="days"></div>
-      <p class="msg" style="margin-top:10px">Rows marked NWS are NWS's own day (≈6a–6p) and night (≈6p–6a) periods. NWS is also one weighted source inside the blend values. Every other value uses the same sources, weights and calculation as its tool page: temperatures, precip and gusts from MODEL BLEND (models, ECMWF ENS, GEFS and NWS, using the blend recipe you picked there), snow chances from WINTER, the thunder signal from THUNDER. Change a model's weight on a tool page and this summary follows it. Days are full calendar days, so today includes hours already past.</p>
+      <div class="daycards" id="days"><div class="state loading">Loading guidance…</div></div>
+      <p class="msg" id="sumMsg" style="margin-top:8px"></p>
+      <div class="infopanel" id="ovHowPanel" hidden><p>Rows marked NWS are NWS's own day (≈6a–6p) and night (≈6p–6a) periods. NWS is also one weighted source inside the blend values. Every other value uses the same sources, weights and calculation as its tool page: temperatures, precip and gusts from MODEL BLEND (models, ECMWF ENS, GEFS and NWS, using the blend recipe you picked there), snow chances from WINTER, the thunder signal from THUNDER. Change a model's weight on a tool page and this summary follows it. Days are full calendar days, so today includes hours already past.</p></div>
     </section>
 
     <div class="hub">
       <a class="hubcard" href="blend.html">
         <span class="kicker">Tool 01</span>
-        <h2>MODEL BLEND</h2>
+        <h2>Model Blend</h2>
         <p>Up to 11 models side by side, blended with weights you set: spread bands, accumulated precip and snow, and a daily table with temperature agreement.</p>
         <span class="go">OPEN →</span>
       </a>
       <a class="hubcard" href="thunder.html">
         <span class="kicker">Tool 02</span>
-        <h2>THUNDER</h2>
+        <h2>Thunder</h2>
         <p>Hour-by-hour thunder signal from model thunder codes, CAPE and precip chance, with a click-for-detail timeline and instability charts.</p>
         <span class="go">OPEN →</span>
       </a>
       <a class="hubcard" href="severe.html">
         <span class="kicker">Tool 03</span>
-        <h2>SEVERE</h2>
+        <h2>Severe</h2>
         <p>Severe environment from each model's sounding: shear, SRH, Bunkers motion, lapse rates, LCL and ≈ STP / SCP, with hail, wind and tornado ingredient flags and a hodograph.</p>
         <span class="go">OPEN →</span>
       </a>
       <a class="hubcard" href="winter.html">
         <span class="kicker">Tool 04</span>
-        <h2>WINTER</h2>
+        <h2>Winter</h2>
         <p>Snow odds from about 140 ensemble members: chance of each total, accumulation plume, temperature spread and a day-by-day table for the window you pick.</p>
+        <span class="go">OPEN →</span>
+      </a>
+      <a class="hubcard" href="almanac.html">
+        <span class="kicker">Tool 05</span>
+        <h2>Almanac</h2>
+        <p>Sunrise, sunset and daylight to the second, the moon, Cincinnati normals and records, and month and season rankings.</p>
         <span class="go">OPEN →</span>
       </a>
     </div>

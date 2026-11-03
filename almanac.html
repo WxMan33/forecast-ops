@@ -4,54 +4,50 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Daily Almanac</title>
-<meta name="description" content="Daily forecast sheet: sun and moon (USNO), daily climate (RCC-ACIS), NWS forecast context and notes.">
+<meta name="description" content="Daily almanac: sun and moon, Cincinnati daily climate, weather numbers and notes.">
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap">
 <link rel="stylesheet" href="assets/ops.css">
 </head>
-<body>
-<main class="workspace almanac">
-  <aside class="side">
-    <section class="card tight" id="locCard"></section>
-    <section class="card tight noprint">
-      <div class="section-title">Date</div>
-      <label class="field-label" for="almDate">Sheet date</label>
-      <input class="input mono" type="date" id="almDate" style="width:100%">
-      <div class="row" style="gap:6px;margin-top:6px">
-        <button class="btn ghost sm" id="prevDay" type="button" aria-label="Previous day" style="flex:1">◀ PREV</button>
-        <button class="btn sm" id="todayBtn" type="button" style="flex:1">TODAY</button>
-        <button class="btn ghost sm" id="nextDay" type="button" aria-label="Next day" style="flex:1">NEXT ▶</button>
-      </div>
-      <div style="margin-top:10px"><label class="field-label" for="astroPoint">Astronomy location</label>
-        <select class="input" id="astroPoint"><option value="noaa">Cincinnati: NOAA table point (39.124556, −84.50386)</option><option value="loc">Forecast location</option><option value="cvg">CVG climate site</option></select></div>
-      <p class="msg" style="margin-top:8px">Climate values always come from the Cincinnati climate station shown on the sheet, whatever the forecast location.</p>
-    </section>
-  </aside>
+<body class="almanac-page">
+<main class="workspace single almanac">
   <div class="main">
-    <section class="card sheet-head">
-      <div class="row" style="justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px">
-        <div class="section-title" style="margin:0" id="sheetTitle">Daily Almanac</div>
-        <span class="msg" id="sheetStamp"></span>
+    <section class="card almhead">
+      <div class="almhead-top">
+        <div>
+          <span class="kick">Daily almanac</span>
+          <h1 class="almtitle" id="sheetTitle">—</h1>
+        </div>
+        <div class="datenav noprint" role="group" aria-label="Sheet date">
+          <button class="btn ghost sm" id="prevDay" type="button" aria-label="Previous day">◀</button>
+          <input class="input mono" type="date" id="almDate" aria-label="Sheet date">
+          <button class="btn ghost sm" id="nextDay" type="button" aria-label="Next day">▶</button>
+          <button class="btn sm" id="todayBtn" type="button">TODAY</button>
+        </div>
       </div>
-      <div class="locline" id="locLine"></div>
+      <div class="almlocs">
+        <span><span class="kick">Sun and moon</span> <b id="astroName" class="printonly">—</b>
+          <select class="input inline noprint" id="astroPoint" aria-label="Astronomy location">
+            <option value="noaa">Cincinnati (NOAA table point)</option><option value="cvg">CVG airport</option><option value="loc">Your selected location</option></select></span>
+        <span><span class="kick">Climate</span> <b>Cincinnati</b> <span class="msg">(CVG airport observations · city record since 1871)</span></span>
+        <button class="infobtn noprint" id="srcBtn" type="button" aria-expanded="false" aria-controls="srcPanel">ⓘ Source details</button>
+      </div>
+      <div class="infopanel" id="srcPanel" hidden></div>
     </section>
-    <div class="almgrid">
-      <section class="card" id="sunCard"><div class="section-title">Sun and moon</div><p class="msg">Loading…</p></section>
-      <section class="card" id="climCard"><div class="section-title">Daily climate</div><p class="msg">Loading…</p></section>
-      <section class="card" id="fcCard"><div class="section-title">Forecast</div><p class="msg">Loading…</p></section>
-      <section class="card" id="factCard"><div class="section-title">Weather numbers</div><p class="msg">Loading…</p></section>
+    <div class="almtop">
+      <div class="almcol">
+        <section class="card" id="sunCard"><div class="section-title">Sun and moon</div><div class="state loading">Loading…</div></section>
+        <section class="card" id="notesCard">
+          <div class="row" style="justify-content:space-between;align-items:baseline"><div class="section-title" style="margin:0;flex:none">Notes</div><span class="msg" id="notesState" style="flex:none"></span></div>
+          <p class="msg noprint" style="margin:4px 0 8px">Your notes for this date. Saved in this browser only, apart from the sourced values.</p>
+          <textarea class="input notes noprint" id="notes" rows="5" aria-label="Notes for this date"></textarea>
+          <div class="printnotes" id="printNotes"></div>
+        </section>
+      </div>
+      <section class="card" id="climCard"><div class="section-title">Daily climate</div><div class="state loading">Loading…</div></section>
     </div>
-    <section class="card" id="notesCard">
-      <div class="row" style="justify-content:space-between;align-items:baseline"><div class="section-title" style="margin:0">Notes</div><span class="msg" id="notesState"></span></div>
-      <p class="msg noprint" style="margin:4px 0 6px">Your own notes for this date and location. Saved in this browser only; kept apart from the sourced values above.</p>
-      <textarea class="input notes noprint" id="notes" rows="5" aria-label="Notes for this date"></textarea>
-      <div class="printnotes" id="printNotes"></div>
-    </section>
-    <details class="card tight fold">
-      <summary><span class="section-title" style="margin:0">Sources and conventions</span></summary>
-      <div class="stack msg" style="margin-top:8px" id="sourcesNote"></div>
-    </details>
+    <section class="card" id="factCard"><div class="section-title">Weather numbers</div><div class="state loading">Loading…</div></section>
   </div>
 </main>
 <script src="assets/ops-core.js"></script>
