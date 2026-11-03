@@ -16,7 +16,7 @@ cap['sources']['blend:default-v2']={'hash':'synthetic-hash'}
 D['sourceLabels']['blend:default-v2']='Synthetic Default v2'
 idx={'at':'synthetic fixture','loc':{'name':'CVG'},'reviewQueue':0,'health':{'expected':0,'slots':[],'gaps':[],'manual':0},'lastRuns':{},'captures':[],'runs':[],'latestBlendInfo':{},'tvLatest':[]}
 history=D.pop('history');history += [{'captureId':cap['captureId'],'id':'blend:default-v2','date':'2026-11-04','target':target,'value':value,'slot':'midday','cls':'primary'} for target,value in [('tmax_clim',65),('tmin_clim',45),('precip_clim',0.25)]];D['historyFiles']={'2026-11-04':'reports/dashboard/history-2026-11-04.json'}
-files={'reports/dashboard/history-2026-11-04.json':history,'reports/index.json':idx,'reports/scores.json':{'pairsCount':0,'pendingCount':0,'summary':[],'comparisons':[],'hourly':[],'minDates':30},'reports/review-queue.json':{'items':[]},'reports/dashboard/index.json':D,'reports/dashboard/synthetic.json':{**cap,'bundle':'synthetic fixture','normalizer':'synthetic','hourly':{'t0':t,'stepMs':3600000,'n':5,'temperature_2m':{'nws':[60,61,62,63,64],'ecmwf_ens':[61,62,None,64,65]}}}}
+files={'reports/my-forecast.json':{'entries':[],'pairs':[],'pending':[]},'reports/dashboard/history-2026-11-04.json':history,'reports/index.json':idx,'reports/scores.json':{'pairsCount':0,'pendingCount':0,'summary':[],'comparisons':[],'hourly':[],'minDates':30},'reports/review-queue.json':{'items':[]},'reports/dashboard/index.json':D,'reports/dashboard/synthetic.json':{**cap,'bundle':'synthetic fixture','normalizer':'synthetic','hourly':{'t0':t,'stepMs':3600000,'n':5,'temperature_2m':{'nws':[60,61,62,63,64],'ecmwf_ens':[61,62,None,64,65]}}}}
 with sync_playwright() as p:
  browser=p.chromium.launch()
  page=browser.new_page()
@@ -55,9 +55,15 @@ with sync_playwright() as p:
  assert saved['days'][0]['hi']==63 and saved['days'][0]['lo']==45
  assert saved['days'][0]['precip']==0.25
  assert page.evaluate('localStorage.getItem("vf_personal_draft_v1")') is None
+ page.locator('.mf-saved summary').click()
  page.get_by_role('button',name='Copy into new draft',exact=True).click()
  assert page.evaluate('JSON.parse(localStorage.vf_personal_draft_v1).id')!=saved['id']
  assert 'Revision of' in page.locator('#mf-note').input_value()
+ Path(root/'tests/out').mkdir(exist_ok=True)
+ for width in [360,1280]:
+  page.set_viewport_size({'width':width,'height':900})
+  assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+  page.screenshot(path=str(root/f'tests/out/dashboard-personal-{width}.png'),full_page=True)
  page.get_by_role('button',name='Temperature tracking',exact=True).click()
  page.locator('.vchart').wait_for()
  assert page.locator('#thour').count()==1
