@@ -18,3 +18,8 @@ rows.forEach((r,i)=>{assert.equal(r.hi,cov.days[i].vars.hi.value);assert.equal(r
 const late=C.blend.windowRow(d,ws,Array.from({length:24},(_,i)=>i+72),null,{rules});assert.equal(late.hi,55);assert(!late.contrib.includes('gfs_hrrr'));
 const early=C.blend.windowRow(d,ws,Array.from({length:24},(_,i)=>i),null,{rules});assert(early.hi>60);assert(!early.contrib.includes('gfs_seamless'));
 console.log('Scoped weights: independent on/off and weights, exact 48h boundary, whole-period averaging, missing/excluded sources, source shares and no mutation pass');
+const sourceIds=Object.keys(C.blend.CUSTOM_DEFAULTS.near).concat('icon_seamless'),sources=sourceIds.map(id=>({id,w:1})),def=C.blend.defaultProfiles(sources),flat=C.blend.scopedWeights(def);
+assert.equal(flat.rules.periodWeights.near.nws,4);assert.equal(flat.rules.periodWeights.far.nws,3);assert.equal(flat.rules.periodWeights.near.gfs_hrrr,3);assert.equal(flat.rules.periodWeights.far.gfs_hrrr,undefined);assert.equal(flat.rules.periodWeights.far.ecmwf_ens,4);assert.equal(flat.rules.periodWeights.far.gefs,1);assert.equal(def.near.icon_seamless.on,false);
+assert.equal(Object.values(flat.rules.periodWeights.near).reduce((a,b)=>a+b,0),21);assert.equal(Object.values(flat.rules.periodWeights.far).reduce((a,b)=>a+b,0),14);
+def.near.nws.w=9;assert.equal(C.blend.defaultProfiles(sources).near.nws.w,4);assert.equal(C.blend.PREFERRED.weights.nws,3);
+console.log('Recommended scoped defaults, 21/14 weight totals, independent copies and frozen original recipe pass');

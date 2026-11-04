@@ -160,6 +160,16 @@
     if (["preferred", "custom", null].includes(store.get("ops_blend_preset", null))) store.set("ops_blend_preset", "near48");
     store.set("ops_near48_default_v1", true);
   }
+  /* User-requested scoped defaults, installed once without rewriting old recipes. */
+  if (store.get("ops_scoped_default_version", null)!==Core.blend.CUSTOM_DEFAULTS.id) {
+    const old=store.get("ops_blend_period_weights_v1",null);
+    if(old)store.set("ops_blend_period_weights_before_defaults_v2",old);
+    const spec=Core.config.blend;
+    store.set("ops_blend_period_weights_v1",Core.blend.defaultProfiles([...spec.extra,...spec.models]));
+    store.set("ops_blend_preset","custom");
+    store.set("ops_blend_weight_scope","near");
+    store.set("ops_scoped_default_version",Core.blend.CUSTOM_DEFAULTS.id);
+  }
   /* ---------- location (URL first, so a shared link opens the same point) ---------- */
   const DEFAULT_LOC = { name: PRESETS[0][0], lat: PRESETS[0][1], lon: PRESETS[0][2] };
   function fromUrl() {
@@ -413,7 +423,7 @@
     }
     function save(id) { if(opts.persist!==false) store.set(key, st); summary(); onChange && onChange(id); }
     draw();
-    $(`reset_${key}`).addEventListener("click", () => { models.forEach((m) => (st[m.id] = { on: m.on !== false, w: m.w })); if(opts.persist!==false) store.set(key, st); draw(); onChange && onChange(null); });
+    $(`reset_${key}`).addEventListener("click", () => { if(opts.onReset){opts.onReset();return;} models.forEach((m) => (st[m.id] = { on: m.on !== false, w: m.w })); if(opts.persist!==false) store.set(key, st); draw(); onChange && onChange(null); });
     return {
       /* {id: weight} for models in use that returned data */
       weights() { const w = {}; models.forEach((m) => { if (st[m.id].on && st[m.id].w > 0 && status[m.id] !== "none") w[m.id] = st[m.id].w; }); return w; },

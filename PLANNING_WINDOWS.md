@@ -39,3 +39,11 @@ The First 48 h range is the half-open interval from the loaded forecast's viewed
 Entire forecast shows the longer-range settings. When profiles differ the editor says so. Changing one source's slider or checkbox copies only that source's setting to both profiles, retaining differences for other sources. Reset restores the displayed picker defaults only for the selected profile, or both profiles in Entire forecast. Simply switching the editor scope never edits a forecast weight.
 
 Both profiles persist across reloads and are shared with Overview. Older `ops_blend_models` values remain saved. Browser exports record custom range rules; private scheduled scoring is unchanged and does not yet verify this recipe prospectively.
+
+## Requested default weights, revision 2 (Nov. 4, 2026)
+
+Default Custom profiles now use `OpsCore.blend.CUSTOM_DEFAULTS`, ID `brad-scoped-default-2026-11-04-v2`. First 48 h: NWS 4, ECMWF ENS 3, GEFS .75, RRFS ENS 2, ECMWF IFS 1, ECMWF AIFS .75, GFS .5, NBM 3, HRRR 3, RRFS 3. After 48 h: NWS 3, ECMWF ENS 4, GEFS 1, RRFS ENS .5, ECMWF IFS 1.25, ECMWF AIFS 1, GFS .75, NBM 2, HRRR off, RRFS .5. Other sources are off in both defaults. These are provisional preference-based settings, not verified station skill or independent information weights; sources overlap substantially.
+
+The user's request authorizes a one-time switch to these default profiles and Custom mode. Prior scoped settings, when present, are preserved under `ops_blend_period_weights_before_defaults_v2`; original frozen preferred weights remain unchanged. Later edits survive normal reloads. Reset restores the recommended profile for the selected range; resetting Entire forecast restores each range's distinct defaults.
+
+Nominal all-source short-range weight is 21: NWS 19%, NBM 14%, HRRR/RRFS/RRFS ensemble together 38%, ECMWF ENS 14%. Later total is 14: ECMWF ENS 29%, NWS 21%, NBM 14%. Real shares depend on each variable's usable contributors. Horizons are enforced by data availability, so an RRFS late-range setting does not extend RRFS past its actual forecast. This revision is website-only until deliberately adopted as a new prospective scheduled-verification recipe.

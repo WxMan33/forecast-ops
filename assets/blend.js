@@ -31,7 +31,7 @@
     if (had) O.store.set("ops_blend_migrated", new Date().toISOString());
   }
   /* v3: ensembles and NWS join the blend; the stated preference becomes the default view once. */
-  if (O.store.get("ops_blend_cfg_v", 1) < 3) { O.store.set("ops_blend_cfg_v", 3); O.store.set("ops_blend_preset", "near48"); O.store.set("ops_blend_v3", new Date().toISOString()); }
+  if (O.store.get("ops_blend_cfg_v", 1) < 3) { O.store.set("ops_blend_cfg_v", 3); O.store.set("ops_blend_preset", O.store.get("ops_scoped_default_version",null)?"custom":"near48"); O.store.set("ops_blend_v3", new Date().toISOString()); }
   let preset = O.store.get("ops_blend_preset", "preferred");
   if (!C.blend.PRESETS[preset]) preset = "preferred";
 
@@ -51,14 +51,17 @@
   const picker = O.modelPicker($("models"), "ops_blend_models", SOURCES, (id)=>{
     const edited=picker.state(),scopes=weightScope==="all"?["near","far"]:[weightScope];
     for(const scope of scopes){if(id)weightProfiles[scope][id]={...edited[id]};else weightProfiles[scope]=JSON.parse(JSON.stringify(edited));}
-    O.store.set("ops_blend_period_weights_v1",weightProfiles);preset="custom";O.store.set("ops_blend_preset",preset);
-    $("presetTabs").querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected",String(b.textContent===C.blend.PRESETS.custom.label.toUpperCase())));
-    fresh=true;updateWeightHelp();render();
-  }, { title: "Custom weights", max: 10, persist:false, initial:weightProfiles[weightScope==="near"?"near":"far"] });
+    saveWeightProfiles();
+  }, { title: "Custom weights", max: 10, persist:false, initial:weightProfiles[weightScope==="near"?"near":"far"],onReset:()=>{const defaults=C.blend.defaultProfiles(SOURCES);for(const scope of weightScope==="all"?["near","far"]:[weightScope])weightProfiles[scope]=defaults[scope];picker.setState(weightProfiles[weightScope==="near"?"near":"far"]);saveWeightProfiles();} });
   const weightBox=document.createElement("div");weightBox.className="weight-scope";
   weightBox.innerHTML='<label class="kick" for="weightScope">Edit weights for</label><select id="weightScope" class="input"><option value="near">First 48 hours</option><option value="far">Days 3–14 (after 48 h)</option><option value="all">Entire forecast</option></select><p id="weightScopeHelp" class="msg"></p>';
   $("models").querySelector(".models").before(weightBox);$("weightScope").value=weightScope;
   $("weightScope").onchange=e=>{weightScope=e.target.value;O.store.set("ops_blend_weight_scope",weightScope);picker.setState(weightProfiles[weightScope==="near"?"near":"far"]);updateWeightHelp();};
+  function saveWeightProfiles(){
+    O.store.set("ops_blend_period_weights_v1",weightProfiles);preset="custom";O.store.set("ops_blend_preset",preset);
+    $("presetTabs").querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected",String(b.textContent===C.blend.PRESETS.custom.label.toUpperCase())));
+    fresh=true;updateWeightHelp();render();
+  }
   function updateWeightHelp(){const different=SOURCES.some(m=>JSON.stringify(weightProfiles.near[m.id])!==JSON.stringify(weightProfiles.far[m.id]));$("weightScopeHelp").textContent=(weightScope==="all"?(different?"The two ranges differ. Sliders show days 3–14; changing a source applies that setting to both ranges. ":"Changes apply to both ranges. "):weightScope==="near"?"Only valid hours within the next 48 hours change. ":"Only hours after 48 hours change. ")+"Editing activates Custom weights. Direct weights, no extra hi-res multipliers. Reset affects the selected range.";}
   updateWeightHelp();
   const showLines = O.linesToggle($("linesBtn"), "ops_blend_lines", () => renderChart());

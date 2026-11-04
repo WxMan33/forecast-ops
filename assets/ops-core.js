@@ -387,6 +387,14 @@
       return { ...custom };
     },
     /* Resolve a separate, versioned website preset. The frozen preferred recipe is unchanged. */
+    CUSTOM_DEFAULTS: {
+      id: "brad-scoped-default-2026-11-04-v2",
+      near: {nws:4,ecmwf_ens:3,gefs:0.75,rrfs_ens:2,ecmwf_ifs025:1,ecmwf_aifs025_single:0.75,gfs_seamless:0.5,ncep_nbm_conus:3,gfs_hrrr:3,ncep_rrfs_conus:3},
+      far: {nws:3,ecmwf_ens:4,gefs:1,rrfs_ens:0.5,ecmwf_ifs025:1.25,ecmwf_aifs025_single:1,gfs_seamless:0.75,ncep_nbm_conus:2,gfs_hrrr:0,ncep_rrfs_conus:0.5},
+    },
+    defaultProfiles(sources) {
+      return Object.fromEntries(["near","far"].map(scope=>[scope,Object.fromEntries(sources.map(m=>{const w=blend.CUSTOM_DEFAULTS[scope][m.id]||0;return [m.id,{on:w>0,w:w||m.w||0}];}))]));
+    },
     scopedWeights(profiles) {
       const flat=scope=>Object.fromEntries(Object.entries(scope||{}).filter(([,s])=>s.on&&Number.isFinite(s.w)&&s.w>0).map(([id,s])=>[id,s.w]));
       const near=flat(profiles.near),far=flat(profiles.far),ws={};
