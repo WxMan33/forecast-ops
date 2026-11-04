@@ -86,3 +86,13 @@ body.wide-main.forecast-focus:not(.brief-view) .workspace {grid-template-columns
 .brief-view .statusbar .site-id {flex:1}
 #modelTrendCard,#timingCard {scroll-margin-top:20px}
 @media(max-width:600px){.forecast-toolbar {align-items:flex-start;flex-wrap:wrap}.forecast-jumps {justify-content:flex-start}.forecast-jumps .btn {font-size:10px}}
+
+/* Grid children must shrink to the card; wide diagnostics scroll within their own region. */
+.forecast-focus .technical-body {grid-template-columns:minmax(0,1fr)}
+.forecast-focus .technical-body>section {min-width:0;max-width:100%}
+.forecast-focus .technical .tablewrap {width:100%;max-width:100%;min-width:0;overscroll-behavior-inline:contain}
+.forecast-focus .tablewrap:focus-visible {outline:2px solid var(--accent);outline-offset:3px}
+.forecast-focus details.technical:not([open])>.technical-body,
+.forecast-focus #forecastControls:not([open])>.controls-body {display:none}
+.forecast-focus .technical .section-sub {max-width:80ch}
+.forecast-focus .table-scroll-note {font-size:11px;color:var(--muted);margin:7px 0}

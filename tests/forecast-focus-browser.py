@@ -37,10 +37,10 @@ with sync_playwright() as p:
  browser=p.chromium.launch()
  context=browser.new_context(viewport={'width':1440,'height':1000})
  page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+ page.add_init_script("localStorage.setItem('ops_blend_days','14')")
  page.clock.install(time=datetime(2026,11,4,6,tzinfo=timezone.utc))
  def external(route):
   url=route.request.url
-  print('MOCK',revision,url[:180],flush=True)
   if 'open-meteo.com' in url:
    if 'meta.json' in url:route.fulfill(status=200,content_type='application/json',body='{}')
    else:route.fulfill(status=200,content_type='application/json',body=json.dumps(om_response(url)))
@@ -56,7 +56,8 @@ with sync_playwright() as p:
  assert page.locator('.side #models').count()==1
  assert page.locator('.side #presetTabs').count()==1
  assert page.locator('.main #recipeNote').count()==0
- assert page.locator('#daily tbody tr').count()>3
+ assert page.locator('#daily tbody tr').count()>=14
+ assert page.evaluate('document.querySelector("#daily").closest(".card").nextElementSibling.id')=='forecastChartCard','graph immediately follows daily blend'
  def history():return page.evaluate('Object.values(JSON.parse(localStorage.getItem("ops_model_guidance_history_v1")))[0].items')
  assert len(history())==1,'first snapshot persisted'
  assert history()[0]['tz']=='UTC','synthetic model response must be used, not live data'
@@ -66,8 +67,6 @@ with sync_playwright() as p:
  revision=1
  page.evaluate('sessionStorage.clear()');page.clock.run_for(60_000)
  page.reload();page.wait_for_function('!document.querySelector("#runBtn").disabled && !document.querySelector("#dataChip").textContent.includes("FETCHING")')
- print('UPDATE DIAGNOSTICS',page.locator('#modelTrendCard').inner_text(),[(x['at'],x['loc'],list(x['models']['gfs_seamless']['rows'].items())[:1]) for x in history()])
- page.screenshot(path=str(ROOT/'tests/out/focus-update-debug.png'),full_page=True)
  page.wait_for_function('document.querySelectorAll("#modelTrendCard .model-change-list li").length>0')
  assert len(history())==2
  text=page.locator('#modelTrendCard').inner_text()
@@ -82,6 +81,12 @@ with sync_playwright() as p:
  # The meteorologist tools stay available under a disclosure.
  page.locator('.technical>summary').click()
  assert page.locator('#covCard').is_visible()
+ for width in [360,390,900,1280,1440]:
+  page.set_viewport_size({'width':width,'height':900})
+  assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1'),f'open diagnostics overflow at {width}'
+  assert page.evaluate('[...document.querySelectorAll(".technical .tablewrap")].every(e=>e.getBoundingClientRect().right<=e.closest(".technical").getBoundingClientRect().right+1)'),f'table escaped card at {width}'
+ page.set_viewport_size({'width':1440,'height':1000})
+ page.screenshot(path=str(ROOT/'tests/out/focus-diagnostics-desktop.png'),full_page=True)
  page.locator('.technical>summary').click()
  page.locator('#viewMode').click()
  assert page.locator('#briefingView').is_visible()
@@ -97,12 +102,12 @@ with sync_playwright() as p:
  assert page.locator('#briefingView').is_visible() and 'view=brief' in page.url
  for width in [360,390,900,1280,1440]:
   page.set_viewport_size({'width':width,'height':900})
-  assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),f'brief overflow at {width}'
+  assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1'),f'brief overflow at {width}'
  page.set_viewport_size({'width':390,'height':844});page.screenshot(path=str(out/'focus-brief-phone.png'),full_page=True)
  page.locator('#viewMode').click()
  for width in [360,390,900,1280,1440]:
   page.set_viewport_size({'width':width,'height':900})
-  assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),f'workspace overflow at {width}'
+  assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1'),f'workspace overflow at {width}'
  page.set_viewport_size({'width':1440,'height':1000})
  page.screenshot(path=str(out/'focus-workspace-desktop.png'),full_page=True)
  page.set_viewport_size({'width':390,'height':844})
@@ -112,7 +117,7 @@ with sync_playwright() as p:
  page.locator('#forecastControls>summary').click()
  page.locator('#themeBtn').click()
  assert page.locator('html').get_attribute('data-theme')=='light'
- assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+ assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1')
  page.locator('#viewMode').click();page.emulate_media(media='print')
  assert page.locator('#briefingView').is_visible()
  page.screenshot(path=str(out/'focus-brief-print.png'),full_page=True)

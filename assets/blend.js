@@ -147,7 +147,7 @@
         <div class="tabs" role="group" aria-label="Variable" style="margin:0">${C.blend.VARS.map((v) => `<button type="button" class="tab" data-cv="${v.key}" aria-pressed="${v.key === covVar}" aria-selected="${v.key === covVar}">${v.label}s</button>`).join("").replace("Precips", "Precipitation")}</div>
         <div class="tabs" role="group" aria-label="Cell value" style="margin:0"><button type="button" class="tab" data-cm="share" aria-pressed="${covMode === "share"}" aria-selected="${covMode === "share"}">Share of weight</button><button type="button" class="tab" data-cm="effect" aria-pressed="${covMode === "effect"}" aria-selected="${covMode === "effect"}">Effect on blend</button></div>
       </div>
-      <div class="tablewrap"><table class="covtab"><caption class="sr-only">${V.label} contributions by source and day</caption>
+      <p class="table-scroll-note">Scroll inside the table for later forecast days.</p><div class="tablewrap"><table class="covtab"><caption class="sr-only">${V.label} contributions by source and day</caption>
         <thead><tr><th scope="col" style="text-align:left">Source</th>${cov.days.map((d) => `<th scope="col">${O.esc(O.fmtDay(d.k))}</th>`).join("")}</tr></thead>
         <tbody>${ids.map((id) => `<tr><th scope="row" style="text-align:left;font-weight:600">${O.esc(NAMES[id] || id)}</th>${cov.days.map((d) => cell(d, id)).join("")}</tr>`).join("")}
           <tr class="covsum"><th scope="row" style="text-align:left">Blend ${V.label.toLowerCase()}</th>${cov.days.map((d) => `<td class="num"><b>${d.vars[V.key].value == null ? "—" : d.vars[V.key].value.toFixed(dec) + unit}</b><div class="msg">${d.vars[V.key].contributors.length} sources</div></td>`).join("")}</tr>
@@ -199,6 +199,10 @@
     renderEvent();
     renderDrivers();
     renderCoverage();
+    document.querySelectorAll(".technical .tablewrap").forEach((wrap) => {
+      wrap.tabIndex = 0; wrap.setAttribute("role", "region");
+      wrap.setAttribute("aria-label", "Detailed forecast table. Scroll horizontally for additional columns.");
+    });
     renderChart();
     focus.update(data, { record: fresh, names: NAMES, rows: data.rows });
     if (fresh) { logRecords(); fresh = false; }
