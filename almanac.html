@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Daily Almanac</title>
-<meta name="description" content="Daily almanac: sun and moon, Cincinnati daily climate, weather numbers and notes.">
+<meta name="description" content="Daily almanac: sun and moon, Cincinnati daily climate, weather numbers and Cincinnati skywatching.">
 <link rel="icon" href="assets/icon.svg?v=05c4bd5103" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap">
@@ -26,7 +26,7 @@
   });
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/ops.css?v=6d2fd0fbe5">
-<link rel="stylesheet" href="assets/climate-report.css?v=c1386414ea">
+<link rel="stylesheet" href="assets/climate-report.css?v=b93c18da07">
 </head>
 <body class="almanac-page">
 <main class="workspace single almanac">
@@ -53,17 +53,11 @@
       </div>
       <div class="infopanel" id="srcPanel" hidden></div>
     </section>
-    <section class="card" id="climCard"><div class="section-title">Daily climate</div><div class="state loading">Loading…</div></section>
-    <div class="almtop">
-
-        <section class="card" id="sunCard"><div class="section-title">Sun and moon</div><div class="state loading">Loading…</div></section>
-        <section class="card" id="notesCard">
-          <div class="row" style="justify-content:space-between;align-items:baseline"><div class="section-title" style="margin:0;flex:none">Notes</div><span class="msg" id="notesState" style="flex:none"></span></div>
-          <p class="msg noprint" style="margin:4px 0 8px">Your notes for this date. Saved in this browser only, apart from the sourced values.</p>
-          <textarea class="input notes noprint" id="notes" rows="5" aria-label="Notes for this date"></textarea>
-          <div class="printnotes" id="printNotes"></div>
-        </section>
+    <div class="astronomy-top">
+      <section class="card" id="sunCard"><div class="section-title">Sun and moon</div><div class="state loading">Loading…</div></section>
+      <section class="card" id="skyCard"><div class="section-title">Cincinnati skywatch</div><div class="state loading">Loading…</div></section>
     </div>
+    <section class="card" id="climCard"><div class="section-title">Daily climate</div><div class="state loading">Loading…</div></section>
     <section class="card" id="factCard"><div class="section-title">Weather numbers</div><div class="state loading">Loading…</div></section>
   </div>
 </main>
@@ -72,7 +66,9 @@
 <script src="assets/ops.js?v=415e760231"></script>
 <script src="assets/almanac-core.js?v=715a4bf1f5"></script>
 <script src="assets/climate-report.js?v=6ca1fdc23a"></script>
-<script src="assets/almanac.js?v=b540b8c3be"></script>
+<script src="assets/astronomy-core.js?v=4bd40fce85"></script>
+<script src="assets/skywatch.js?v=15cc12c07e"></script>
+<script src="assets/almanac.js?v=3612a8a93f"></script>
 </body>
 </html>
 

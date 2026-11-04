@@ -1,0 +1,10 @@
+{
+ "schema":1,"region":"Cincinnati Tri-State","reviewedFrom":"2026-11-01","reviewedThrough":"2026-11-30","reviewedAt":"2026-11-04",
+ "events":[
+  {"id":"sta2026","from":"2026-11-04","to":"2026-11-05","title":"Southern Taurids near their peak","detail":"Occasional bright meteors are possible from a dark Cincinnati-area site. Look across a broad sky after dark; this is a low-rate shower, not a meteor storm.","source":"International Meteor Organization","url":"https://www.imo.net/calendar/"},
+  {"id":"nta2026","from":"2026-11-11","to":"2026-11-12","title":"Northern Taurids near their peak","detail":"A few meteors and occasional fireballs may be visible. Dark skies and an unobstructed view matter more than looking at one exact spot.","source":"International Meteor Organization","url":"https://www.imo.net/files/meteor-shower/cal2026.pdf"},
+  {"id":"planets2026","from":"2026-11-15","to":"2026-11-16","title":"Mars and Jupiter close before sunrise","detail":"Look southeast before dawn for Jupiter with reddish Mars nearby. NASA lists an apparent separation of about 1.2 degrees. A clear horizon is needed.","source":"NASA November skywatching guide","url":"https://science.nasa.gov/solar-system/skywatching/whats-up-november-2026-skywatching-tips-from-nasa/"},
+  {"id":"leonids2026","from":"2026-11-17","to":"2026-11-18","title":"Leonid viewing window before dawn","detail":"NASA recommends the early morning after moonset. Cincinnati-area light pollution and clouds can reduce what you see; ideal-sky rates are not a local forecast.","source":"NASA November skywatching guide","url":"https://science.nasa.gov/solar-system/skywatching/whats-up-november-2026-skywatching-tips-from-nasa/"},
+  {"id":"full2026nov","from":"2026-11-24","to":"2026-11-24","title":"Full supermoon","detail":"Look east near sunset for the rising full Moon. Its apparent size difference is modest. The selected date’s moonrise and phase information appear alongside this guide.","source":"NASA November skywatching guide","url":"https://science.nasa.gov/solar-system/skywatching/whats-up-november-2026-skywatching-tips-from-nasa/"}
+ ]
+}
