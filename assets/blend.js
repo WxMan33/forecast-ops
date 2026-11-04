@@ -57,7 +57,7 @@
     });
   };
   mkTabs($("tabs"), TABS.map((t) => [t.id, t.label]), tab, (id) => { tab = id; O.store.set("ops_blend_tab", tab); renderChart(); });
-  mkTabs($("range"), RANGES, range, (id) => { range = id; viewDay = null; O.store.set("ops_blend_range", range); renderDaily(); renderChart(); });
+  mkTabs($("range"), RANGES, range, (id) => { range = id; viewDay = null; O.store.set("ops_blend_range", range); renderDaily(); renderChart(); if (data) { renderDrivers(); renderScenarios(); } });
   mkTabs($("presetTabs"), Object.entries(C.blend.PRESETS).map(([k, p]) => [k, p.label.toUpperCase()]), preset, (id) => { preset = id; O.store.set("ops_blend_preset", id); fresh = true; render(); });
   window.addEventListener("ops:theme", () => { picker.redraw(); render(); });
 
@@ -147,14 +147,14 @@
         <div class="tabs" role="group" aria-label="Variable" style="margin:0">${C.blend.VARS.map((v) => `<button type="button" class="tab" data-cv="${v.key}" aria-pressed="${v.key === covVar}" aria-selected="${v.key === covVar}">${v.label}s</button>`).join("").replace("Precips", "Precipitation")}</div>
         <div class="tabs" role="group" aria-label="Cell value" style="margin:0"><button type="button" class="tab" data-cm="share" aria-pressed="${covMode === "share"}" aria-selected="${covMode === "share"}">Share of weight</button><button type="button" class="tab" data-cm="effect" aria-pressed="${covMode === "effect"}" aria-selected="${covMode === "effect"}">Effect on blend</button></div>
       </div>
-      <div class="tablewrap"><table class="covtab"><caption class="sr-only">${V.label} contributions by source and day</caption>
+      <p class="table-scroll-note">Scroll inside the table for later forecast days.</p><div class="tablewrap" tabindex="0" role="region" aria-label="Forecast detail table; scroll horizontally for additional columns"><table class="covtab"><caption class="sr-only">${V.label} contributions by source and day</caption>
         <thead><tr><th scope="col" style="text-align:left">Source</th>${cov.days.map((d) => `<th scope="col">${O.esc(O.fmtDay(d.k))}</th>`).join("")}</tr></thead>
         <tbody>${ids.map((id) => `<tr><th scope="row" style="text-align:left;font-weight:600">${O.esc(NAMES[id] || id)}</th>${cov.days.map((d) => cell(d, id)).join("")}</tr>`).join("")}
           <tr class="covsum"><th scope="row" style="text-align:left">Blend ${V.label.toLowerCase()}</th>${cov.days.map((d) => `<td class="num"><b>${d.vars[V.key].value == null ? "—" : d.vars[V.key].value.toFixed(dec) + unit}</b><div class="msg">${d.vars[V.key].contributors.length} sources</div></td>`).join("")}</tr>
           <tr><th scope="row" style="text-align:left">Change from previous day</th>${cov.days.map((d) => `<td class="covchg">${chg(d)}</td>`).join("")}</tr></tbody></table></div>
       <p class="msg" style="margin-top:6px"><b>Share of weight</b>: each source's part of this variable's total weight among sources with a complete day (preset rules applied). <b>Effect on blend</b>: the displayed blend minus the same blend recomputed without that source for that day, all else fixed. A source that left the blend has no value that day, so no effect is calculated or claimed for it; the shares of the remaining sources are rescaled. <b>Partial</b>: some hours or members missing, so the day is not used (no partial highs, lows or totals). Ensembles show usable/total members. * NWS total prorated across interval edges.</p>
       <details class="fold" style="margin-top:8px"><summary>Retrieval, model runs and forecast horizons</summary>
-        <div class="tablewrap"><table class="provtab"><thead><tr><th style="text-align:left">Source</th><th>Retrieved</th><th style="text-align:left">Run</th><th>Temperature to</th><th>Precipitation to</th><th>Members</th></tr></thead><tbody>
+        <div class="tablewrap" tabindex="0" role="region" aria-label="Forecast detail table; scroll horizontally for additional columns"><table class="provtab"><thead><tr><th style="text-align:left">Source</th><th>Retrieved</th><th style="text-align:left">Run</th><th>Temperature to</th><th>Precipitation to</th><th>Members</th></tr></thead><tbody>
         ${ids.map((id) => { const md = data.models[id], h = cov.horizons[id] || {};
           return `<tr><td style="text-align:left">${O.esc(NAMES[id] || id)}</td><td class="num">${md && md.retrievedAt ? `${O.esc(local(Date.parse(md.retrievedAt)))}${md.fromCache ? '<div class="msg">from this browser\'s cache</div>' : ""}` : '<span class="msg">—</span>'}</td><td style="text-align:left">${md ? runCell(id) : '<span class="msg">unavailable this run</span>'}</td><td class="num">${fmtH(h.temperature)}</td><td class="num">${id === "nws" ? '<span class="msg">intervals</span>' : fmtH(h.precipitation)}</td><td class="num">${md && md.kind === "ens" ? md.members.length : "—"}</td></tr>`; }).join("")}
         </tbody></table></div>
@@ -199,6 +199,10 @@
     renderEvent();
     renderDrivers();
     renderCoverage();
+    document.querySelectorAll(".technical .tablewrap").forEach((wrap) => {
+      wrap.tabIndex = 0; wrap.setAttribute("role", "region");
+      wrap.setAttribute("aria-label", "Detailed forecast table. Scroll horizontally for additional columns.");
+    });
     renderChart();
     focus.update(data, { record: fresh, names: NAMES, rows: data.rows });
     if (fresh) { logRecords(); fresh = false; }
@@ -288,7 +292,7 @@
     wireHeaders(COLS);
     $("dailyNote").innerHTML = `Small numbers under each value: <b>weighted guidance spread</b>, the 10th–90th percentile across all sources (ensemble members share their system's weight; NWS, NBM and each model count once). It mixes ensembles with single forecasts, so it is not a calibrated probability; hover for the ensembles-only range. Ensemble highs and lows are each member's own daily extreme, then combined. NWS enters highs and lows through its hourly temperatures over the calendar day, not its official day-high / night-low. * NWS precip prorated across interval edges (hover for the blend at NWS's lower and upper bounds). Click a day for its source breakdown. ` + (hasN ? `${nwsTag} columns are the official day (usually 6a–6p) and night (6p–6a) periods, not calendar days, so they can differ from the blend's midnight-to-midnight high and low. See <b>NWS vs blend</b> for a same-hours comparison.` : "");
     $("daily").querySelectorAll("tr[data-k]").forEach((tr) => {
-      const pickDay = () => { viewDay = viewDay === tr.dataset.k ? null : tr.dataset.k; renderDaily(); renderChart(); focus.selectDay(tr.dataset.k); };
+      const pickDay = () => { viewDay = viewDay === tr.dataset.k ? null : tr.dataset.k; renderDaily(); renderChart(); renderDrivers(); renderScenarios(); focus.selectDay(tr.dataset.k); };
       const det = tr.querySelector(".detbtn");
       det.addEventListener("click", (e) => { e.stopPropagation(); const row = $("daily").querySelector(`tr.detrow[data-for="${tr.dataset.k}"]`); row.hidden = !row.hidden; det.setAttribute("aria-expanded", String(!row.hidden)); det.textContent = row.hidden ? "▸" : "▾"; });
       tr.addEventListener("click", pickDay);
@@ -337,7 +341,7 @@
     const cell = (k, id, d, u) => { const p = get(k, id); return p ? `${p.v.toFixed(d)}${u}${p.prorated ? "*" : ""} <span class="msg">${Math.round(p.share * 100)}%</span>` : '<span class="msg">—</span>'; };
     el.innerHTML = `<div class="section-title">What's driving the blend · ${O.fmtDay(r.k)}</div>
       <p class="section-sub">Each source's own value for this calendar day and its share of the weight for that variable (${O.esc(C.blend.PRESETS[preset].label)}). Ensembles show the mean of their members' own highs, lows and totals.</p>
-      <div class="tablewrap"><table><thead><tr><th style="text-align:left">Source</th><th>High · share</th><th>Low · share</th><th>Precip · share</th><th>Members</th></tr></thead><tbody>
+      <div class="tablewrap" tabindex="0" role="region" aria-label="Forecast detail table; scroll horizontally for additional columns"><table><thead><tr><th style="text-align:left">Source</th><th>High · share</th><th>Low · share</th><th>Precip · share</th><th>Members</th></tr></thead><tbody>
       ${ids.map((id) => { const p = get("hi", id) || get("qpf", id) || get("lo", id); return `<tr><td style="text-align:left">${O.esc(NAMES[id] || id)}</td><td class="num">${cell("hi", id, 0, "°")}</td><td class="num">${cell("lo", id, 0, "°")}</td><td class="num">${cell("qpf", id, 2, '"')}</td><td class="num">${p && p.n > 1 ? p.n : "—"}</td></tr>`; }).join("")}
       <tr><td style="text-align:left" class="msg">Weighted guidance spread (10–90%)</td><td class="num msg">${sp(r.hiR, 0)}</td><td class="num msg">${sp(r.loR, 0)}</td><td class="num msg">${sp(r.qpfR, 2)}</td><td></td></tr>
       <tr><td style="text-align:left" class="msg">Ensembles only (10–90%)</td><td class="num msg">${sp(r.ensR.hi, 0)}</td><td class="num msg">${sp(r.ensR.lo, 0)}</td><td class="num msg">${sp(r.ensR.qpf, 2)}</td><td></td></tr>
@@ -369,7 +373,7 @@
     el.innerHTML = `<div class="row" style="justify-content:space-between;align-items:baseline;margin-bottom:6px"><div class="section-title" style="margin:0">${nwsTag} NWS vs blend</div><span class="msg">NWS ${O.esc(nws.office)} · forecast updated ${upd}</span></div>` +
       `<p class="section-sub">Each row is an official NWS day or night period. The blend column is ${O.esc(C.blend.PRESETS[preset].label.toLowerCase())} over exactly that period's hours (high for day, low for night)${ws.nws ? `, and includes NWS at ×${ws.nws}, so differences are smaller than NWS vs the other sources` : ""}. NWS chance is the official period probability; the blend has no comparable period probability, so none is shown.</p>` +
       (meaningful.length ? `<div class="changes" style="margin-bottom:10px">${meaningful.slice(0, 8).map((x) => `<span class="change diffchip">${O.esc(x)}</span>`).join("")}</div>` : '<p class="msg" style="margin-bottom:8px">No meaningful differences (temps within 4°F; precip inside the NWS range ±0.10").</p>') +
-      `<div class="tablewrap"><table><thead><tr><th>Period</th><th>Local time</th><th class="nwscol">NWS temp</th><th>Blend, same hours</th><th>Δ NWS−blend</th><th class="nwscol">NWS chance</th><th class="nwscol">NWS precip</th><th>Blend precip</th><th style="text-align:left">NWS wording</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+      `<div class="tablewrap" tabindex="0" role="region" aria-label="Forecast detail table; scroll horizontally for additional columns"><table><thead><tr><th>Period</th><th>Local time</th><th class="nwscol">NWS temp</th><th>Blend, same hours</th><th>Δ NWS−blend</th><th class="nwscol">NWS chance</th><th class="nwscol">NWS precip</th><th>Blend precip</th><th style="text-align:left">NWS wording</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
   /* Precipitation timing scenarios over the chart window: different storm timings kept apart. */
@@ -378,8 +382,8 @@
     const nm = (ids) => ids.map((id) => NAMES[id]).join(", ");
     const span = (a) => (a[0] === a[1] ? local(a[0]) : `${local(a[0])} – ${local(a[1])}`);
     $("scenCard").innerHTML = `<div class="section-title">Precip timing scenarios</div>` +
-      `<p class="section-sub">${O.fmtWhen(data.times[s])} to ${O.fmtWhen(data.times[e - 1])}. Models are grouped by when their precipitation starts (0.01"/h or more), so early and late timings stay separate instead of averaging into a long, light event. Totals are each model's own.</p>` +
-      (P.scenarios.length ? `<div class="tablewrap"><table><thead><tr><th>Scenario</th><th>Models</th><th>Starts</th><th>Ends</th><th>Total</th></tr></thead><tbody>${P.scenarios.map((sc, k) => `<tr><td class="display" style="font-size:12px">${String.fromCharCode(65 + k)}</td><td style="text-align:left">${O.esc(nm(sc.ids))}</td><td class="num">${span(sc.onset)}</td><td class="num">${span(sc.end)}</td><td class="num">${sc.total[0].toFixed(2)}–${sc.total[1].toFixed(2)}"</td></tr>`).join("")}</tbody></table></div>` : '<p class="msg">No model has measurable precipitation in this window.</p>') +
+      `<p class="section-sub">${O.fmtLocal(data.times[s])} to ${O.fmtLocal(data.times[e - 1])}. Models are grouped by when their precipitation starts (0.01"/h or more), so early and late timings stay separate instead of averaging into a long, light event. Totals are each model's own.</p>` +
+      (P.scenarios.length ? `<div class="tablewrap" tabindex="0" role="region" aria-label="Forecast detail table; scroll horizontally for additional columns"><table><thead><tr><th>Scenario</th><th>Models</th><th>Starts</th><th>Ends</th><th>Total</th></tr></thead><tbody>${P.scenarios.map((sc, k) => `<tr><td class="display" style="font-size:12px">${String.fromCharCode(65 + k)}</td><td style="text-align:left">${O.esc(nm(sc.ids))}</td><td class="num">${span(sc.onset)}</td><td class="num">${span(sc.end)}</td><td class="num">${sc.total[0].toFixed(2)}–${sc.total[1].toFixed(2)}"</td></tr>`).join("")}</tbody></table></div>` : '<p class="msg">No model has measurable precipitation in this window.</p>') +
       (P.dry.length ? `<p class="msg" style="margin-top:6px">Dry in this window: ${O.esc(nm(P.dry))}.</p>` : "") +
       (P.incomplete.length ? `<p class="msg">Left out (data doesn't cover the whole window): ${O.esc(nm(P.incomplete))}.</p>` : "");
   }

@@ -145,11 +145,13 @@
     const seasonStart = `${+anchor.slice(5, 7) >= 7 ? y : y - 1}-07-01`, yearStart = `${y}-01-01`;
     const met = A.metSeason(anchor);
     const nStart = [seasonStart, yearStart, met.start].sort()[0], nEnd = [sel, anchor].sort().pop();
-    const md = sel.slice(5), recThru = +sel.slice(0, 4) - 1;
+    const reportDate = thru || sel, md = reportDate.slice(5), recThru = +reportDate.slice(0, 4) - 1;
+    const previousStart = window.ClimateReport.previousYear(nStart);
+    const obsStart = [A.addDays(nStart, -150), previousStart || nStart].sort()[0];
     const recentObs = thru && thru >= A.addDays(today, -45);
     const [nor, obs, rec, rk] = await Promise.all([
       cached(`acisN:${nStart}:${nEnd}`, 30 * D, () => acis({ sid: CLIM.obsSid, sdate: nStart, edate: nEnd, elems: ["maxt", "mint", "pcpn", "snow"].map((name) => ({ name, normal: "1" })), meta: ["name"] })),
-      thru ? cached(`acisO:${A.addDays(nStart, -150)}:${thru}`, recentObs ? H : 7 * D, () => acis({ sid: CLIM.obsSid, sdate: A.addDays(nStart, -150), edate: thru, elems: ["maxt", "mint", "pcpn", "snow", "snwd"], meta: ["name", "valid_daterange"] })) : Promise.resolve(null),
+      thru ? cached(`acisO:${obsStart}:${thru}`, recentObs ? H : 7 * D, () => acis({ sid: CLIM.obsSid, sdate: obsStart, edate: thru, elems: ["maxt", "mint", "pcpn", "snow", "snwd"], meta: ["name", "valid_daterange"] })) : Promise.resolve(null),
       cached(`acisR:${md}:${recThru}`, 7 * D, () => (md === "02-29"
         ? acis({ sid: CLIM.recordsSid, sdate: `${CLIM.firstYear}-01-01`, edate: `${recThru}-12-31`, elems: ["maxt", "mint", "pcpn", "snow"].map((name) => ({ name, interval: "dly", duration: "dly", groupby: ["year", "02-28", "03-01"] })), meta: ["name", "valid_daterange"] })
         : acis({ sid: CLIM.recordsSid, sdate: `${CLIM.firstYear}-${md}`, edate: `${recThru}-${md}`, elems: ["maxt", "mint", "pcpn", "snow"].map((name) => ({ name, interval: [1, 0, 0] })), meta: ["name", "valid_daterange"] }))),
@@ -160,50 +162,40 @@
         { name: "avgt", interval: [1, 0, 0], duration: "mtd", reduce: { reduce: "mean", add: "mcnt" } }], meta: ["name"] })) : Promise.resolve(null),
     ]);
     if (my !== run) return;
-    note("acis", { normals: nor, obs, records: rec, ranks: rk, recThru, thru });
+    note("acis", { normals: nor, obs, records: rec, ranks: rk, recThru, thru, reportDate });
     /* leap day: the middle value of Feb 28 - Mar 1, in leap years only (ACIS's yearly step would substitute Feb 28 in 1900) */
     let recRows = rec.v && rec.v.data ? rec.v.data : null;
     if (recRows && md === "02-29") { const leap = (yy) => (yy % 4 === 0 && yy % 100 !== 0) || yy % 400 === 0; recRows = recRows.filter((r) => leap(+r[0])).map((r) => [`${r[0]}-02-29`, ...r.slice(1).map((x) => x[1])]); }
     const R = recRows ? A.records(recRows) : null;
-    const nRows = nor.v && nor.v.data ? nor.v.data : [], nMap = new Map(nRows.map((r) => [r[0], r]));
+    const nRows = nor.v && nor.v.data ? nor.v.data : [];
     const oRows = obs && obs.v && obs.v.data ? obs.v.data : [];
     const col = (k) => (rk && rk.v && rk.v.data ? rk.v.data.map((r) => [r[0], r[k]]) : null);
     const obsErr = obs && obs.v && obs.v.error ? obs.v.error : null;
-    climData = { R, nRows, oRows, thru, sel, met, obsErr, rankMonthP: col(1), rankSeasonP: col(2), rankSeasonT: col(3), rankMonthT: col(4) };
-    const nd = nMap.get(sel), yd = thru ? oRows.find((r) => r[0] === thru) : null;
-    /* value helpers: "M" is never shown as a number; trace stays "Trace" */
-    const val = (s) => A.val(s);
-    const T = (s) => { const x = val(s); return x.missing ? `<span class="unavail" title="missing: not reported or not yet available">Missing</span>` : `${x.v}°`; };
-    const P = (s, d, u = "″") => { const x = val(s); return x.missing ? `<span class="unavail" title="missing: not reported or not yet available">Missing</span>` : x.trace ? "Trace" : `${x.v.toFixed(d)}${u}`; };
-    const yrs = (r) => (r.years.length > 1 ? `tied: ${r.years.join(", ")}` : String(r.years[0]));
-    const tile = (k, v, s2) => `<div class="mtile"><span class="k">${k}</span><span class="v">${v}</span>${s2 ? `<span class="yr">${s2}</span>` : ""}</div>`;
-    const recT = (r) => (!r ? tile("—", "—") : null);
-    const err = [nor, rec, obs].filter((x) => x && x.v && x.v.error).map((x) => x.v.error);
-    const dshort = (x) => fmtDate(x, { month: "short", day: "numeric" });
-    const accum = (from, colIdx, d, label, normalWord = "normal") => {
-      const a = A.accumulate(oRows, nRows, from, thru, colIdx);
-      const v = a.complete ? (a.traceOnly ? "Trace" : `${a.total.toFixed(d)}″`) : `<span class="unavail">Incomplete</span>`;
-      const s2 = !a.complete ? `${a.missing.length} of ${a.days} days missing` : a.normalMissing.length ? `no normal for ${a.normalMissing.length} days` : a.normal != null ? `${normalWord} ${a.normal.toFixed(d)}″ · ${a.departure >= 0 ? "+" : "−"}${Math.abs(a.departure).toFixed(d)}″` : "";
-      return tile(`${label}<br><span style="font-weight:600;text-transform:none;letter-spacing:0">${esc(dshort(from))}–${esc(dshort(thru))}</span>`, v, s2);
-    };
-    el.innerHTML = `<div class="section-title">Daily climate · ${esc(fmtDate(sel, { month: "long", day: "numeric" }))}</div>
-      ${err.length ? `<div class="state partial" style="margin-bottom:10px">Some climate data is unavailable right now (${esc(err[0])}). Other values are unaffected.</div>` : ""}
-      <div class="cgroup"><span class="kick">Normal (1991–2020)</span><div class="cgrid">
-        ${nd ? tile("High", T(nd[1])) + tile("Low", T(nd[2])) : `<div class="state unavail">Normals unavailable.</div>`}</div></div>
-      <div class="cgroup"><span class="kick">Records for this date${R && R.highMax ? ` · ${R.highMax.from}–${R.highMax.to}` : ""}</span><div class="cgrid">
-        ${R && R.highMax ? tile("Record high", `${R.highMax.value}°`, yrs(R.highMax)) : recT() || ""}${R && R.lowMin ? tile("Record low", `${R.lowMin.value}°`, yrs(R.lowMin)) : ""}
-        ${R && R.precip ? tile("Most precipitation", R.precip.value === 0 && R.precip.trace ? "Trace" : `${R.precip.value.toFixed(2)}″`, yrs(R.precip)) : ""}
-        ${R && R.snow ? tile("Most snowfall", R.snow.value === 0 ? "None" : `${R.snow.value.toFixed(1)}″`, R.snow.value === 0 ? `none recorded since ${R.snow.from}` : yrs(R.snow)) : ""}
-        ${!R ? `<div class="state unavail">Records unavailable.</div>` : ""}</div></div>
-      ${thru && obsErr ? `<div class="cgroup"><span class="kick">Observed ${esc(fmtDate(thru, { weekday: "long", month: "short", day: "numeric" }))}</span><div class="state unavail">Observations unavailable right now (${esc(obsErr)}); observed values and totals will appear when ACIS responds. Reload to try again.</div></div>`
-      : thru ? `<div class="cgroup"><span class="kick">Observed ${esc(fmtDate(thru, { weekday: "long", month: "short", day: "numeric" }))}${thru >= A.addDays(today, -45) ? " · preliminary" : ""}</span><div class="cgrid">
-        ${yd ? tile("High", T(yd[1])) + tile("Low", T(yd[2])) + tile("Precipitation", P(yd[3], 2)) + tile("Snowfall", P(yd[4], 1)) : `<div class="state unavail">Not reported yet for ${esc(dshort(thru))}.</div>`}</div></div>
-      <div class="cgroup"><span class="kick">Totals through ${esc(dshort(thru))}</span><div class="cgrid">
-        ${accum(thru.slice(0, 4) + "-01-01", 3, 2, "Precipitation, year")}${accum(thru.slice(0, 8) + "01", 4, 1, "Snowfall, month")}${accum(seasonStart, 4, 1, "Snowfall, season")}</div>
-        <p class="msg" style="margin-top:6px">Month and meteorological-season precipitation are in Weather numbers below.</p></div>`
-      : `<div class="cgroup"><div class="state unavail">${esc(fmtDate(sel, { month: "short", day: "numeric", year: "numeric" }))} is in the future: observations aren't available yet. Normals and records are shown.</div></div>`}`;
+    climData = { R, nRows, oRows, thru, sel, reportDate, met, obsErr, rankMonthP: col(1), rankSeasonP: col(2), rankSeasonT: col(3), rankMonthT: col(4) };
+    renderClimateSheet(el, { reportDate, thru, today, nRows, oRows, R, recThru, errors: [nor, rec, obs].filter(x => x?.v?.error).map(x => x.v.error) });
     facts();
   }
+  function renderClimateSheet(el, d) {
+    const report = window.ClimateReport.build(A, { date: d.reportDate, observations: d.oRows, normals: d.nRows, records: d.R, observed: !!d.thru });
+    const short = date => fmtDate(date, { month: "short", day: "numeric", year: "numeric" });
+    const fmt = (x, digits, signed = false) => {
+      if (!x || x.value == null) return `<span class="climo-missing"${x?.reason ? ` title="${esc(x.reason)}"` : ""}>—</span>`;
+      if (x.trace) return '<span title="Trace: below a measurable amount">Trace</span>';
+      return Number(x.value).toFixed(digits);
+    };
+    const number = (x, digits, signed = false) => {
+      if (!x || x.value == null || x.trace) return fmt(x, digits, signed);
+      return (signed && x.value > 0 ? "+" : x.value < 0 ? "−" : "") + Math.abs(x.value).toFixed(digits);
+    };
+    const row = r => `<tr data-climo-row="${r.id}"><th scope="row">${esc(r.label)}${r.from ? `<small>${esc(short(r.from))}–${esc(short(r.to))}</small>` : ""}</th><td class="climo-observed" data-label="Observed">${number(r.observed, r.decimals)}${r.observed.reason ? `<small>${esc(r.observed.reason)}</small>` : ""}</td><td data-label="Record">${number(r.record, r.decimals)}${r.record?.years?.length ? `<small>${esc(r.record.years.join(", "))}</small>` : ""}</td><td data-label="Normal">${number(r.normal, r.decimals)}</td><td data-label="Departure" class="${r.departure?.value > 0 ? "climo-above" : r.departure?.value < 0 ? "climo-below" : ""}">${number(r.departure, r.decimals, true)}</td><td data-label="Last year">${number(r.lastYear, r.decimals)}${r.lastYear?.reason ? `<small>${esc(r.lastYear.reason)}</small>` : ""}</td></tr>`;
+    el.innerHTML = `<div class="climo-title"><div><span class="kick">Cincinnati · CVG airport observations</span><h2>Climate report · ${esc(short(d.reportDate))}</h2></div><span class="climo-tag">${d.thru ? d.thru >= A.addDays(d.today, -45) ? "Preliminary observations" : "Observed" : "Reference only"}</span></div>
+      <p class="climo-context">${d.thru ? `Yesterday relative to the sheet date. Daily normals and records below apply to <b>${esc(short(d.reportDate))}</b>.` : "This climate day has not been observed. Normals and records are shown where available."}</p>
+      <div class="climo-periods"><span>Normal period <b>1991–2020</b></span><span>City record <b>${CLIM.firstYear}–${d.recThru}</b></span><span>Last year <b>${report.previousDate ? esc(short(report.previousDate)) : "No matching date"}</b></span></div>
+      ${d.errors.length ? `<div class="state partial">Some climate data is unavailable (${esc(d.errors[0])}). Available values remain visible.</div>` : ""}
+      <div class="climo-table-wrap"><table class="climo-table"><caption class="sr-only">Climate values for ${esc(short(d.reportDate))}. Temperature, precipitation and snowfall, with historical comparisons.</caption><thead><tr><th scope="col">Weather item</th><th scope="col">Observed</th><th scope="col">Record<small>value · year(s)</small></th><th scope="col">Normal</th><th scope="col">Departure<small>from normal</small></th><th scope="col">Last year<small>same dates</small></th></tr></thead>${report.sections.map(section => `<tbody><tr class="climo-group"><th colspan="6" scope="rowgroup">${esc(section.label)} <span>${esc(section.unit)}</span></th></tr>${section.rows.map(row).join("")}</tbody>`).join("")}</table></div>
+      <p class="climo-foot">Observations and normals: CVG via RCC-ACIS. Records: Cincinnati threaded city record, through ${d.recThru}. Totals use the printed date ranges; season-to-date uses meteorological seasons. Trace is not measurable; — means unavailable or not applicable. Missing days prevent a total or departure. Daily high/low occurrence times are not supplied by this feed. Last year compares the same calendar dates; leap-year day counts can differ.</p>`;
+  }
+
   /* ---------- weather numbers: four summary cards + operational row ---------- */
   function facts() {
     const el = $("factCard"), d = climData; if (!d) return;
@@ -244,7 +236,7 @@
     const hm = cnt(m0, 1, (x) => x >= hiT), hy = cnt(y0, 1, (x) => x >= hiT), lm = cnt(m0, 2, (x) => x <= loT), ly = cnt(y0, 2, (x) => x <= loT);
     const traceSince = (() => { if (ds.endedBy !== "measurable" && !ds.atLeast) return 0; let n = 0; d.oRows.forEach((r) => { if (r[0] > ds.at && r[0] <= d.thru && A.val(r[3]).trace) n++; }); return n; })();
     /* record comparison: observed (if the sheet date is observed) or a labelled NWS forecast */
-    const recH = d.R && d.R.highMax, selObs = d.oRows.find((r) => r[0] === d.sel), obsHi = selObs ? A.val(selObs[1]) : null;
+    const recH = d.R && d.R.highMax, selObs = d.oRows.find((r) => r[0] === d.reportDate), obsHi = selObs ? A.val(selObs[1]) : null;
     const recLine = !recH ? null : obsHi && !obsHi.missing ? { k: "Observed high vs record", v: `${obsHi.v}° vs ${recH.value}°`, s: `${Math.abs(obsHi.v - recH.value)}° ${obsHi.v >= recH.value ? "above" : "below"} the record (${recH.years.join(", ")})` }
       : null;
     const tile = (k, v, s2) => `<div class="optile"><span class="k">${k}</span><span class="v">${v}</span>${s2 ? `<span class="s">${s2}</span>` : ""}</div>`;
