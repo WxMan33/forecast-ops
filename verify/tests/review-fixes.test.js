@@ -148,7 +148,7 @@ try {
   const det = { hourly: { time: hours, temperature_2m: hours.map(() => 50), precipitation: hours.map(() => 0), snowfall: hours.map(() => 0), precipitation_probability: hours.map(() => 0) } };
   const raw = { det: { ecmwf_ifs025: det }, ens: {}, nws: {} };
   const early = NORM.normalize(raw, { captureId: "x", slot: "midday", localDate: "2026-11-03", slotTarget: "2026-11-03T17:00:00Z", startedAt: "2026-11-03T17:00:00Z" }, loc, BL.recipes);
-  eq([!!early.blends[v2.id], early.recipesNotApplied.map((x) => x.id)], [false, [v2.id]], "4: re-normalizing the Nov 3 noon capture does not create Default v2 values");
+  eq([!!early.blends[v2.id], early.recipesNotApplied.map((x) => x.id).includes(v2.id)], [false, true], "4: re-normalizing the Nov 3 noon capture does not create Default v2 values");
   const later = NORM.normalize(raw, { captureId: "y", slot: "evening", localDate: "2026-11-03", slotTarget: "2026-11-04T04:30:00Z", startedAt: "2026-11-04T04:30:00Z" }, loc, BL.recipes);
   ok(!!later.blends[v2.id] && later.blends[v2.id].configHash === BL.FROZEN[v2.id], "4: captures after effectiveFrom carry Default v2 with its frozen hash");
   eq([SC.retrospective(v2.id, { startedAt: "2026-11-03T17:00:00Z" }), SC.retrospective(v2.id, { startedAt: "2026-11-04T04:30:00Z" }), SC.retrospective("baseline-v1", { startedAt: "2026-11-01T00:00:00Z" })], [true, false, false], "4: scoring labels pre-effective values retrospective");

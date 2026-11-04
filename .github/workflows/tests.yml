@@ -31,6 +31,7 @@ jobs:
       - run: node tests/precip.test.js
       - run: node verify/tests/personal.test.js
       - run: node verify/tests/review-fixes.test.js
+      - run: node verify/tests/scoped-recipe.test.js
       - run: node tests/token-store.test.js
       - run: node tests/coverage.test.js
       - run: node tests/model-trends.test.js

@@ -76,6 +76,9 @@ jobs:
       - name: Review-fix regression self-test
         run: node collector/verify/tests/review-fixes.test.js
         continue-on-error: true
+      - name: Scoped-recipe self-test
+        run: node collector/verify/tests/scoped-recipe.test.js
+        continue-on-error: true
       - name: Install OCR
         if: startsWith(steps.job.outputs.job, 'collect')
         run: sudo apt-get install -y -qq tesseract-ocr > /dev/null || echo "::warning::OCR unavailable; graphics saved for review"

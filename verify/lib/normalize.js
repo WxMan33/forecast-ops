@@ -114,16 +114,21 @@ function normalize(raw, cap, loc, recipesIn) {
   bundle.official.nws = nwsOfficial(raw, loc, dates);
   Object.entries(bundle.official.nws).forEach(([key, byD]) => Object.keys(byD).forEach((d) => { if (!prospective(key, d)) delete byD[d]; }));
   /* blends: requested vs actual weights, missing sources, effective shares and contributors */
+  /* period-scoped recipes: the 48-h boundary is pinned to this capture's last retrieval (reproducible) */
+  const rulesFor = (rc) => (rc.rules && rc.rules.periodWeights ? { ...rc.rules, referenceMs: lastMs } : rc.rules);
   recipes.forEach((rc) => {
     const wsAct = {}, missing = [];
     Object.entries(rc.weights).forEach(([id, w]) => { if (data.models[id]) wsAct[id] = w; else missing.push(id); });
     const info = { label: rc.label, group: rc.group, configHash: U.configHash({ weights: rc.weights, rules: rc.rules }), requested: rc.weights, rules: rc.rules, actual: wsAct, missing,
-      shares: { temperature_2m: B.shares(wsAct, rc.rules, "temperature_2m").map((x) => [x.id, r1(x.share, 3)]), precipitation: B.shares(wsAct, rc.rules, "precipitation").map((x) => [x.id, r1(x.share, 3)]) }, values: {} };
+      shares: rc.rules && rc.rules.periodWeights
+        ? Object.fromEntries(["near", "far"].map((p) => { const w = Object.fromEntries(Object.entries(rc.rules.periodWeights[p]).filter(([id, x]) => wsAct[id] && x > 0)); return [p, { temperature_2m: B.shares(w, null, "temperature_2m").map((x) => [x.id, r1(x.share, 3)]), precipitation: B.shares(w, null, "precipitation").map((x) => [x.id, r1(x.share, 3)]) }]; }))
+        : { temperature_2m: B.shares(wsAct, rc.rules, "temperature_2m").map((x) => [x.id, r1(x.share, 3)]), precipitation: B.shares(wsAct, rc.rules, "precipitation").map((x) => [x.id, r1(x.share, 3)]) },
+      periodBoundary: rc.rules && rc.rules.periodWeights ? new Date(lastMs + 48 * 3600e3).toISOString() : undefined, values: {} };
     if (Object.keys(wsAct).length) keys.forEach((key) => dates.forEach((d) => {
       if (!prospective(key, d)) return;
       const tg = TG.TARGETS[key], [s, e] = tg.window(d, loc);
       const idx = idxIn(data.ms, s, e), acc = accIn(data.ms, s, e);
-      const a = B.aggregate(data, wsAct, idx, acc, { rules: rc.rules });
+      const a = B.aggregate(data, wsAct, idx, acc, { rules: rulesFor(rc) });
       let v = null, extra = {};
       if (tg.kind === "temp") { const max = /max/.test(key); v = max ? a.hi : a.lo; extra = { spread: (max ? a.hiR : a.loR).map((x) => r1(x)), ensOnly: max ? a.ensR.hi : a.ensR.lo, used: (max ? a.parts.hi : a.parts.lo).map((p) => [p.id, p.n]) }; }
       else if (tg.kind === "precip") { v = a.qpf; extra = { spread: a.qpfR.map((x) => r1(x, 3)), bounds: a.qpfBounds, used: a.parts.qpf.map((p) => [p.id, p.n]), flags: a.prorated ? ["nws-prorated"] : undefined }; }
@@ -137,7 +142,11 @@ function normalize(raw, cap, loc, recipesIn) {
   const n = data.ms.length, series = {};
   present.forEach((id) => { const a = data.models[id].h.temperature_2m; if (S.hasData(a)) series[id] = a.map((x) => r1(x)); });
   recipes.forEach((rc) => { const ws = bundle.blends[rc.id].actual, ids = Object.keys(ws); if (!ids.length) return;
-    const b = S.blendSeries(ids.map((id) => ({ w: B.w(ws, rc.rules, id, "temperature_2m"), data: data.models[id].h.temperature_2m })), n).mean; series["blend:" + rc.id] = b.map((x) => r1(x)); });
+    let b;
+    if (rc.rules && rc.rules.periodWeights) { // per-hour weights: near or far by the hour's lead from the capture
+      const R = rulesFor(rc); b = data.ms.map((_, i) => { let t = 0, w = 0; ids.forEach((id) => { const x = data.models[id].h.temperature_2m && data.models[id].h.temperature_2m[i], wi = B.hourWeight(data, ws, R, id, "temperature_2m", i); if (x != null && wi > 0) { t += wi * x; w += wi; } }); return w ? t / w : null; });
+    } else b = S.blendSeries(ids.map((id) => ({ w: B.w(ws, rc.rules, id, "temperature_2m"), data: data.models[id].h.temperature_2m })), n).mean;
+    series["blend:" + rc.id] = b.map((x) => (x == null ? null : r1(x))); });
   bundle.hourly = { t0: data.ms[0], stepMs: 3600e3, n, temperature_2m: series };
   return bundle;
 }
