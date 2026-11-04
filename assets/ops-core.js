@@ -194,6 +194,11 @@
         "lifted_index", "freezing_level_height", "precipitation_probability", "weather_code", ...PL],
     },
     /* Ensembles used inside the blend (temperature and precipitation). */
+    /* Open-Meteo metadata ids (static/meta.json) per blend source: provider-reported latest run. Seamless
+       products combine several runs; the listed component is the global one. */
+    metaIds: { ecmwf_ifs025: "ecmwf_ifs025", ecmwf_aifs025_single: "ecmwf_aifs025_single", gfs_seamless: "ncep_gfs013", ncep_nbm_conus: "ncep_nbm_conus", gfs_hrrr: "ncep_hrrr_conus",
+      ncep_rrfs_conus: "ncep_rrfs_conus", rrfs_ens: "ncep_rrfs_conus_ensemble", icon_seamless: "dwd_icon", gem_seamless: "cmc_gem_gdps", ukmo_seamless: "ukmo_global_deterministic_10km",
+      ecmwf_ens: "ecmwf_ifs025_ensemble", gefs: "ncep_gefs025" },
     blendEns: {
       id: "blendEns", base: ENSEMBLE, params: US, days: 7, ensemble: true, require: ["temperature_2m"],
       models: [
@@ -243,7 +248,8 @@
           const onAxis = (a) => { const out = data.ms.map(() => null); ens.ms.forEach((ms, k) => { const i = at.get(ms); if (i != null) out[i] = a[k]; }); return out; };
           const members = Array.from({ length: n }, (_, k) => { const h = {}; vars.forEach((v) => { if (E[v][k]) h[v] = onAxis(E[v][k]); }); return { h }; });
           const h = {}; vars.forEach((v) => (h[v] = data.ms.map((_, i) => { let t = 0, c = 0; members.forEach((mb) => { const x = mb.h[v] && mb.h[v][i]; if (x != null) { t += x; c++; } }); return c ? t / c : null; })));
-          data.models[m.source] = { kind: "ens", h, members, n, provenance: ens.sourceProvenance && ens.sourceProvenance[m.id] || null };
+          const rt = ens.retrieved && ens.retrieved[m.id] || {};
+          data.models[m.source] = { kind: "ens", h, members, n, provenance: ens.sourceProvenance && ens.sourceProvenance[m.id] || null, retrievedAt: rt.at || null, fromCache: !!rt.fromCache };
         });
       }
       if (nwsAxis) {
@@ -417,6 +423,83 @@
       return { models, scenarios: scen, dry: models.filter((m) => m.complete && m.onset == null).map((m) => m.id), incomplete: models.filter((m) => !m.complete).map((m) => m.id) };
     },
     /* Daily rows for the full calendar days in data. ws: {sourceId: weight}; opts.rules: per-variable rules. */
+    /* Source contributions by forecast day (point blend transparency). Uses EXACTLY the calculation
+       behind dailyRows (same day groups, provider daily values and blend.aggregate), so it explains the
+       displayed numbers rather than recomputing different ones. For each day and for lows, highs and
+       precipitation separately:
+         contributors  sources that produced a value, with effective share of that variable's weight
+                       (after preset rules), usable ensemble members, and a leave-one-out effect:
+                       the blend minus the same blend recomputed without that source, all else fixed
+         missing       sources the recipe asks for (weight > 0) that gave no value: unavailable this
+                       run, beyond their forecast horizon, no data, or partial (hours / members counted)
+         changes       composition versus the previous day: sources that left or joined and share
+                       changes. A dropout is never given a forecast effect here: its effect on a day it
+                       has no data for cannot be calculated, so none is claimed.
+       req: weights the recipe requests (before removing unavailable sources); ws: weights in use. */
+    VARS: [
+      { key: "lo", hv: "temperature_2m", how: "min", label: "Low" },
+      { key: "hi", hv: "temperature_2m", how: "max", label: "High" },
+      { key: "qpf", hv: "precipitation", how: "sum", label: "Precip" },
+    ],
+    horizon(md, hv) {
+      if (!md) return null;
+      const last = (a) => { if (!a) return -1; for (let i = a.length - 1; i >= 0; i--) if (a[i] != null) return i; return -1; };
+      if (md.kind === "ens") return Math.max(-1, ...md.members.map((mb) => last(mb.h[hv])));
+      if (md.kind === "nws" && hv === "precipitation" && md.iv && md.iv.precipitation) return null; // NWS accumulations are intervals, not hours
+      return last(md.h && md.h[hv]);
+    },
+    coverage(data, req, ws, opts = {}) {
+      const dt = data.dtimes ? Object.assign(data.dtimes.slice(), { labels: data.labels, local: data.times }) : null;
+      const rules = opts.rules || null, V = blend.VARS;
+      const hz = {}; Object.keys(data.models).forEach((id) => { hz[id] = {}; ["temperature_2m", "precipitation"].forEach((hv) => { const i = blend.horizon(data.models[id], hv); hz[id][hv] = i == null ? null : i >= 0 ? data.ms[i] : -1; }); });
+      const days = time.dayGroups(data.times).filter((d) => d.idx.length >= 12).map((d) => {
+        const own = (id, dv, hv) => blend.ownDaily(data.models[id], d, dv, dt, hv);
+        const full = blend.aggregate(data, ws, d.idx, d.idx, { ...opts, own });
+        const cache = new Map();
+        const without = (id) => { if (!cache.has(id)) { const w2 = { ...ws }; delete w2[id]; cache.set(id, Object.keys(w2).length ? blend.aggregate(data, w2, d.idx, d.idx, { ...opts, own }) : null); } return cache.get(id); };
+        const vars = {};
+        V.forEach((v) => {
+          const parts = full.parts[v.key] || [], value = full[v.key] == null ? null : full[v.key];
+          const contributors = parts.map((p) => {
+            const md = data.models[p.id], wo = without(p.id), woV = wo && wo[v.key] != null ? wo[v.key] : null;
+            return { id: p.id, share: p.share, v: p.v, members: md && md.kind === "ens" ? { usable: p.n, total: md.members.length } : null, prorated: !!p.prorated,
+              withoutValue: woV, effect: value != null && woV != null ? value - woV : null, onlySource: parts.length === 1 };
+          }).sort((a, b) => b.share - a.share);
+          const have = new Set(parts.map((p) => p.id)), missing = [];
+          Object.keys(req).filter((id) => blend.w(req, rules, id, v.hv) > 0 && !have.has(id)).forEach((id) => {
+            const md = data.models[id], of = d.idx.length;
+            if (!md) { missing.push({ id, reason: "unavailable", detail: "no data returned this run" }); return; }
+            if (!(blend.w(ws, rules, id, v.hv) > 0)) { missing.push({ id, reason: "excluded", detail: "not used for this variable" }); return; }
+            if (md.kind === "ens") {
+              const some = md.members.filter((mb) => mb.h[v.hv] && d.idx.some((i) => mb.h[v.hv][i] != null)).length;
+              const start = data.ms[d.idx[0]], end = hz[id][v.hv];
+              missing.push(some ? { id, reason: "partial", detail: `no member covers the whole day (${some} of ${md.members.length} have some hours)` }
+                : end != null && end >= 0 && end < start ? { id, reason: "beyond-horizon", detail: "forecast ends before this day" } : { id, reason: "no-data", detail: "no values for this day" });
+              return;
+            }
+            if (md.kind === "nws" && v.hv === "precipitation" && md.iv && md.iv.precipitation) { missing.push({ id, reason: "no-data", detail: "NWS precipitation intervals do not cover this day" }); return; }
+            const a = md.h && md.h[v.hv], k = a ? d.idx.filter((i) => a[i] != null).length : 0, end = hz[id][v.hv], start = data.ms[d.idx[0]];
+            missing.push(k ? { id, reason: "partial", detail: `${k} of ${of} hours`, hours: k, of }
+              : end != null && end >= 0 && end < start ? { id, reason: "beyond-horizon", detail: "forecast ends before this day" } : { id, reason: "no-data", detail: "no values for this day" });
+          });
+          vars[v.key] = { value, contributors, missing, totalShare: parts.reduce((s, p) => s + p.share, 0) };
+        });
+        return { k: d.k, win: time.windowKey(data.times, d.idx), hours: d.idx.length, vars };
+      });
+      /* composition change versus the previous day (no causal claim) */
+      days.forEach((day, i) => {
+        const prev = days[i - 1]; day.changes = {};
+        V.forEach((v) => {
+          if (!prev) { day.changes[v.key] = null; return; }
+          const a = new Map(prev.vars[v.key].contributors.map((c) => [c.id, c.share])), b = new Map(day.vars[v.key].contributors.map((c) => [c.id, c.share]));
+          const left = [...a.keys()].filter((id) => !b.has(id)), joined = [...b.keys()].filter((id) => !a.has(id));
+          const shifts = [...b.keys()].filter((id) => a.has(id)).map((id) => ({ id, from: a.get(id), to: b.get(id) })).filter((x) => Math.abs(x.to - x.from) >= 0.005);
+          day.changes[v.key] = { left, joined, shifts, changed: left.length > 0 || joined.length > 0 };
+        });
+      });
+      const horizons = Object.fromEntries(Object.entries(hz).map(([id, h]) => [id, { temperature: h.temperature_2m > 0 ? h.temperature_2m : null, precipitation: h.precipitation > 0 ? h.precipitation : null }]));
+      return { days, horizons };
+    },
     dailyRows(data, ws, opts = {}) {
       const dt = data.dtimes ? Object.assign(data.dtimes.slice(), { labels: data.labels, local: data.times }) : null;
       return time.dayGroups(data.times).filter((d) => d.idx.length >= 12).map((d) => {

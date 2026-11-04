@@ -97,8 +97,76 @@
       ` · NWS ${nws && nws.ok ? `${nws.office} grid ${nws.gridX},${nws.gridY}` : "unavailable"} · times in ${O.tzShort(data.tz)}`;
     const native = Object.entries(data.models).filter(([,m]) => m.provenance && m.provenance.provider === "NOAA native GRIB2");
     if (native.length) $("runMsg").textContent += ` · RRFS: NOAA native CVG grid, ${native[0][1].provenance.cycle.slice(0,16).replace("T"," ")} UTC; temperature/precip/snow only; no elevation adjustment`;
-    fresh = true;
+    fresh = true; meta = null; loadMeta();
     render();
+  }
+
+  /* ---------- source contributions by forecast day (point blend transparency) ---------- */
+  let meta = null, covVar = O.store.get("ops_cov_var", "hi"), covMode = O.store.get("ops_cov_mode", "share");
+  async function loadMeta() {
+    const ids = Object.fromEntries(Object.entries(C.config.metaIds).filter(([id]) => data && data.models[id] && !(data.models[id].provenance && data.models[id].provenance.provider === "NOAA native GRIB2")));
+    try { meta = await O.Data.loadModelMeta(ids); } catch (e) { meta = {}; }
+    if (data) renderCoverage();
+  }
+  const SEAMLESS = new Set(["gfs_seamless", "icon_seamless", "gem_seamless", "ukmo_seamless", "meteofrance_seamless", "jma_seamless"]);
+  const utc = (iso) => (iso ? `${iso.slice(5, 10).replace("-", "/")} ${iso.slice(11, 13)}Z` : "—");
+  function runCell(id) {
+    const md = data.models[id];
+    if (!md) return '<span class="msg">—</span>';
+    if (md.provenance && md.provenance.provider === "NOAA native GRIB2")
+      return `<b>${utc(md.provenance.cycle)}</b> <span class="cyc conf">confirmed</span><div class="msg">NOAA GRIB2 init; feed built ${utc(md.provenance.generatedAt)}</div>`;
+    if (id === "nws") { const u = nws && nws.status && nws.status.updated && nws.status.updated.grid; return u ? `updated ${O.esc(local(u))} <span class="cyc conf">from NWS</span><div class="msg">issuance, not a model run</div>` : '<span class="msg">update time unavailable</span>'; }
+    const m = meta && meta[id];
+    if (!meta) return '<span class="msg">checking…</span>';
+    if (!m || m.error) return '<span class="msg">no run information</span>';
+    return `${utc(m.lastRunInit)} <span class="cyc rep">provider-reported</span>${SEAMLESS.has(id) ? '<div class="msg">seamless: combines runs</div>' : ""}`;
+  }
+  function renderCoverage() {
+    const el = $("covCard"); if (!el) return;
+    if (!data) { el.innerHTML = ""; return; }
+    const req = C.blend.presetWeights(preset, SPEC, picker.weights());
+    const cov = C.blend.coverage(data, req, W(), OPTS());
+    const V = C.blend.VARS.find((v) => v.key === covVar) || C.blend.VARS[1];
+    const ids = SOURCES.map((m) => m.id).filter((id) => C.blend.w(req, R(), id, V.hv) > 0);
+    const unit = V.key === "qpf" ? '"' : "°", dec = V.key === "qpf" ? 2 : 1;
+    const sgn = (x) => (x > 0 ? "+" : x < 0 ? "−" : "±") + Math.abs(x).toFixed(dec) + unit;
+    const REASON = { unavailable: "unavailable", "beyond-horizon": "past horizon", partial: "partial", "no-data": "no data", excluded: "not used" };
+    const cell = (day, id) => {
+      const v = day.vars[V.key], c = v.contributors.find((x) => x.id === id), miss = v.missing.find((x) => x.id === id);
+      const left = day.changes[V.key] && day.changes[V.key].left.includes(id), joined = day.changes[V.key] && day.changes[V.key].joined.includes(id);
+      if (c) {
+        const main = covMode === "effect" ? (c.effect == null ? '<span class="msg">n/a</span>' : sgn(c.effect)) : `${Math.round(c.share * 100)}%`;
+        const tip = `${NAMES[id] || id}: ${(c.share * 100).toFixed(1)}% of the ${V.label.toLowerCase()} weight; its own value ${c.v.toFixed(dec)}${unit}` + (c.effect != null ? `; blend ${sgn(c.effect)} versus the same blend without it (${c.withoutValue.toFixed(dec)}${unit})` : c.onlySource ? "; only source, no comparison possible" : "");
+        return `<td class="num${joined ? " cjoin" : ""}" title="${O.esc(tip)}">${main}${c.prorated ? "*" : ""}${c.members ? `<div class="msg">${c.members.usable}/${c.members.total} mem</div>` : ""}${joined ? '<div class="msg">joined</div>' : ""}</td>`;
+      }
+      if (miss) return `<td class="num cmiss${left ? " cleft" : ""}" title="${O.esc(`${NAMES[id] || id}: ${miss.detail}`)}"><span class="msg">${REASON[miss.reason] || miss.reason}${miss.reason === "partial" && miss.hours ? ` ${miss.hours}/${miss.of} h` : ""}</span>${left ? '<div class="cl">left</div>' : ""}</td>`;
+      return '<td class="num"><span class="msg">—</span></td>';
+    };
+    const chg = (day) => { const c = day.changes[V.key]; if (!c) return '<span class="msg">first day</span>';
+      if (!c.changed) return c.shifts.length ? '<span class="msg">same sources</span>' : '<span class="msg">no change</span>';
+      return [c.left.length ? `left: ${c.left.map((id) => O.esc(NAMES[id] || id)).join(", ")}` : "", c.joined.length ? `joined: ${c.joined.map((id) => O.esc(NAMES[id] || id)).join(", ")}` : ""].filter(Boolean).join("; ") + (c.shifts.length ? '<div class="msg">other shares rescaled</div>' : ""); };
+    const fmtH = (x) => (x ? O.esc(local(x)) : "—");
+    el.innerHTML = `<div class="section-title" id="covTitle">Source contributions by day</div>
+      <p class="section-sub">Which sources make up each day's blend at this point, using the same calculation as the daily table (${O.esc(C.blend.PRESETS[preset].label)}). This describes the point blend only, not coverage across an area.</p>
+      <div class="row" style="justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px">
+        <div class="tabs" role="group" aria-label="Variable" style="margin:0">${C.blend.VARS.map((v) => `<button type="button" class="tab" data-cv="${v.key}" aria-pressed="${v.key === covVar}" aria-selected="${v.key === covVar}">${v.label}s</button>`).join("").replace("Precips", "Precipitation")}</div>
+        <div class="tabs" role="group" aria-label="Cell value" style="margin:0"><button type="button" class="tab" data-cm="share" aria-pressed="${covMode === "share"}" aria-selected="${covMode === "share"}">Share of weight</button><button type="button" class="tab" data-cm="effect" aria-pressed="${covMode === "effect"}" aria-selected="${covMode === "effect"}">Effect on blend</button></div>
+      </div>
+      <div class="tablewrap"><table class="covtab"><caption class="sr-only">${V.label} contributions by source and day</caption>
+        <thead><tr><th scope="col" style="text-align:left">Source</th>${cov.days.map((d) => `<th scope="col">${O.esc(O.fmtDay(d.k))}</th>`).join("")}</tr></thead>
+        <tbody>${ids.map((id) => `<tr><th scope="row" style="text-align:left;font-weight:600">${O.esc(NAMES[id] || id)}</th>${cov.days.map((d) => cell(d, id)).join("")}</tr>`).join("")}
+          <tr class="covsum"><th scope="row" style="text-align:left">Blend ${V.label.toLowerCase()}</th>${cov.days.map((d) => `<td class="num"><b>${d.vars[V.key].value == null ? "—" : d.vars[V.key].value.toFixed(dec) + unit}</b><div class="msg">${d.vars[V.key].contributors.length} sources</div></td>`).join("")}</tr>
+          <tr><th scope="row" style="text-align:left">Change from previous day</th>${cov.days.map((d) => `<td class="covchg">${chg(d)}</td>`).join("")}</tr></tbody></table></div>
+      <p class="msg" style="margin-top:6px"><b>Share of weight</b>: each source's part of this variable's total weight among sources with a complete day (preset rules applied). <b>Effect on blend</b>: the displayed blend minus the same blend recomputed without that source for that day, all else fixed. A source that left the blend has no value that day, so no effect is calculated or claimed for it; the shares of the remaining sources are rescaled. <b>Partial</b>: some hours or members missing, so the day is not used (no partial highs, lows or totals). Ensembles show usable/total members. * NWS total prorated across interval edges.</p>
+      <details class="fold" style="margin-top:8px"><summary>Retrieval, model runs and forecast horizons</summary>
+        <div class="tablewrap"><table class="provtab"><thead><tr><th style="text-align:left">Source</th><th>Retrieved</th><th style="text-align:left">Run</th><th>Temperature to</th><th>Precipitation to</th><th>Members</th></tr></thead><tbody>
+        ${ids.map((id) => { const md = data.models[id], h = cov.horizons[id] || {};
+          return `<tr><td style="text-align:left">${O.esc(NAMES[id] || id)}</td><td class="num">${md && md.retrievedAt ? `${O.esc(local(Date.parse(md.retrievedAt)))}${md.fromCache ? '<div class="msg">from this browser\'s cache</div>' : ""}` : '<span class="msg">—</span>'}</td><td style="text-align:left">${md ? runCell(id) : '<span class="msg">unavailable this run</span>'}</td><td class="num">${fmtH(h.temperature)}</td><td class="num">${id === "nws" ? '<span class="msg">intervals</span>' : fmtH(h.precipitation)}</td><td class="num">${md && md.kind === "ens" ? md.members.length : "—"}</td></tr>`; }).join("")}
+        </tbody></table></div>
+        <p class="msg"><span class="cyc conf">confirmed</span> = stated by the data itself (NOAA GRIB2 initialization; NWS update time). <span class="cyc rep">provider-reported</span> = the latest run Open-Meteo's metadata reports when checked; Open-Meteo responses do not say which run produced them, so the forecast may come from that run or an earlier one. Horizon = last hour with a value.</p>
+      </details>`;
+    el.querySelectorAll("[data-cv]").forEach((b) => b.addEventListener("click", () => { covVar = b.dataset.cv; O.store.set("ops_cov_var", covVar); renderCoverage(); }));
+    el.querySelectorAll("[data-cm]").forEach((b) => b.addEventListener("click", () => { covMode = b.dataset.cm; O.store.set("ops_cov_mode", covMode); renderCoverage(); }));
   }
 
   /* Current weights: the chosen preset applied to sources that returned data; rules = per-variable factors. */
@@ -134,6 +202,7 @@
     renderScenarios();
     renderEvent();
     renderDrivers();
+    renderCoverage();
     renderChart();
     if (fresh) { logRecords(); fresh = false; }
   }

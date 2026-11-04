@@ -47,14 +47,16 @@
   }
   async function loadDirectRrfs(model, params, loc) {
     const feed = await getJSON(RRFS_FEED, 2);
-    return directRrfsResponse(feed, model, params, loc);
+    const out = directRrfsResponse(feed, model, params, loc);
+    out.__retrievedAt = feed.__retrievedAt; out.__fromCache = feed.__fromCache;
+    return out;
   }
   async function getJSON(url, cacheMin = 15, headers) {
     const key = "ops_c:" + url;
     let cache = null;
     try { cache = root.sessionStorage || null; } catch (e) { cache = null; }
     if (cacheMin && cache) {
-      try { const c = JSON.parse(cache.getItem(key) || "null"); if (c && Date.now() - c.at < cacheMin * 60e3) return c.json; } catch (e) { /* no cache */ }
+      try { const c = JSON.parse(cache.getItem(key) || "null"); if (c && Date.now() - c.at < cacheMin * 60e3) { if (c.json && typeof c.json === "object") { c.json.__retrievedAt = new Date(c.at).toISOString(); c.json.__fromCache = true; } return c.json; } } catch (e) { /* no cache */ }
     }
     const ctl = new AbortController();
     const to = setTimeout(() => ctl.abort(), 20000);
@@ -62,7 +64,10 @@
     try { res = await fetch(url, headers ? { signal: ctl.signal, headers } : { signal: ctl.signal }); } finally { clearTimeout(to); }
     const json = await res.json().catch(() => ({ error: true, reason: `HTTP ${res.status}` }));
     if (!res.ok && !json.error) { json.error = true; json.reason = `HTTP ${res.status}`; }
-    if (cacheMin && cache && !json.error) { try { cache.setItem(key, JSON.stringify({ at: Date.now(), json })); } catch (e) { /* full */ } }
+    const at = Date.now();
+    if (cacheMin && cache && !json.error) { try { cache.setItem(key, JSON.stringify({ at, json })); } catch (e) { /* full */ } }
+    /* when this response was actually retrieved (the original time when served from the browser cache) */
+    if (json && typeof json === "object") { json.__retrievedAt = new Date(at).toISOString(); json.__fromCache = false; }
     return json;
   }
 
@@ -189,7 +194,7 @@
       const hh = {}, dd = {};
       names.forEach((v) => (hh[v] = S.align(times, j.hourly.time, toMeters(v, h[v], unitOf(j, v)))));
       (spec.daily || []).forEach((v) => (dd[v] = j.daily ? S.align(dtimes, j.daily.time, d[v]) : dtimes.map(() => null)));
-      models[m.id] = { h: hh, d: dd, elev: j.elevation ?? null, provenance: j.__rrfs || null };
+      models[m.id] = { h: hh, d: dd, elev: j.elevation ?? null, provenance: j.__rrfs || null, retrievedAt: j.__retrievedAt || null, fromCache: !!j.__fromCache };
     });
     return withAxis({ times, dtimes, tz: master.timezone, offset: master.utc_offset_seconds, models, status, problems });
   }
@@ -215,10 +220,25 @@
     const master = ok.reduce((a, b) => (b.j.hourly.time.length > a.j.hourly.time.length ? b : a)).j;
     const times = master.hourly.time, ens = {};
     ok.forEach(({ m, j, byVar }) => { ens[m.id] = {}; Object.keys(byVar).forEach((v) => (ens[m.id][v] = byVar[v].map((a) => S.align(times, j.hourly.time, a)))); });
-    return withAxis({ times, tz: master.timezone, offset: master.utc_offset_seconds, ens, status, problems, sourceProvenance: Object.fromEntries(ok.filter(x => x.j.__rrfs).map(x => [x.m.id, x.j.__rrfs])) });
+    return withAxis({ times, tz: master.timezone, offset: master.utc_offset_seconds, ens, status, problems, sourceProvenance: Object.fromEntries(ok.filter(x => x.j.__rrfs).map(x => [x.m.id, x.j.__rrfs])),
+      retrieved: Object.fromEntries(ok.map(x => [x.m.id, { at: x.j.__retrievedAt || null, fromCache: !!x.j.__fromCache }])) });
   }
 
-  const OpsData = { getJSON, fetchModel, pick, loadModels, loadEnsemble, toMeters, loadNWS, withAxis, directRrfsResponse, loadDirectRrfs };
+  /* Open-Meteo's own run metadata for a model (static/meta.json). This is PROVIDER-REPORTED: the latest
+     run Open-Meteo says it has, not a statement about which run produced a given forecast response. */
+  async function loadModelMeta(metaIds) {
+    const out = {};
+    await Promise.all(Object.entries(metaIds).map(async ([id, metaId]) => {
+      try {
+        const j = await getJSON(`https://api.open-meteo.com/data/${metaId}/static/meta.json`, 15);
+        if (j.error || !Number.isFinite(j.last_run_initialisation_time)) { out[id] = { error: j.reason || "no metadata" }; return; }
+        out[id] = { metaId, lastRunInit: new Date(j.last_run_initialisation_time * 1000).toISOString(), lastRunAvailable: Number.isFinite(j.last_run_availability_time) ? new Date(j.last_run_availability_time * 1000).toISOString() : null,
+          updateIntervalH: Number.isFinite(j.update_interval_seconds) ? j.update_interval_seconds / 3600 : null, retrievedAt: j.__retrievedAt || null };
+      } catch (e) { out[id] = { error: String(e.message || e) }; }
+    }));
+    return out;
+  }
+  const OpsData = { getJSON, loadModelMeta, fetchModel, pick, loadModels, loadEnsemble, toMeters, loadNWS, withAxis, directRrfsResponse, loadDirectRrfs };
   if (typeof module !== "undefined" && module.exports) module.exports = OpsData;
   root.OpsData = OpsData;
 })(typeof self !== "undefined" ? self : globalThis);
