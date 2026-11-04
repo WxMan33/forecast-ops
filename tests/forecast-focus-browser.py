@@ -81,6 +81,13 @@ with sync_playwright() as p:
  # The meteorologist tools stay available under a disclosure.
  page.locator('.technical>summary').click()
  assert page.locator('#covCard').is_visible()
+ page.locator('#daily tr[data-k="2026-11-05"]').click()
+ assert 'THU NOV 5' in page.locator('#driverCard .section-title').inner_text()
+ assert page.locator('#timingDay').input_value()=='2026-11-05'
+ assert 'THU NOV 5' in page.locator('#scenCard .section-sub').inner_text()
+ page.get_by_role('tab',name='48 H',exact=True).click()
+ assert 'WED NOV 4' in page.locator('#driverCard .section-title').inner_text(),'range reset refreshes source breakdown'
+ page.locator('#daily tr[data-k="2026-11-04"]').click()
  for width in [360,390,900,1280,1440]:
   page.set_viewport_size({'width':width,'height':900})
   assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1'),f'open diagnostics overflow at {width}'

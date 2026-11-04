@@ -14,8 +14,8 @@
 .climo-table thead th {white-space:normal;text-align:right;padding:12px 10px;font-size:10px;letter-spacing:.05em}
 .climo-table th small,.climo-table td small {display:block;font:400 10.5px/1.4 var(--font-body);color:var(--muted);letter-spacing:0;text-transform:none;white-space:normal;overflow-wrap:anywhere;margin-top:3px}
 .climo-table tbody tr:not(.climo-group)>th {text-align:left;font:500 13px/1.4 var(--font-body);white-space:normal}
-.climo-table tbody td {text-align:right;font:500 15px/1.45 var(--font-mono);white-space:normal}
-.climo-table th,.climo-table td {padding:10px;border-color:var(--line);vertical-align:top;overflow-wrap:anywhere}
+.climo-table tbody td {text-align:right;font:500 14px/1.4 var(--font-mono);white-space:normal}
+.climo-table th,.climo-table td {padding:7px 10px;border-color:var(--line);vertical-align:top;overflow-wrap:anywhere}
 .climo-table .climo-group th {padding:13px 10px 9px;text-align:left;font:700 12px/1.4 var(--font-body);letter-spacing:.04em;text-transform:uppercase;background:var(--raised);border-bottom:1px solid var(--line);color:var(--text)}
 .climo-group span {color:var(--muted);font-weight:500;font-size:10px;margin-left:8px;letter-spacing:0;text-transform:none}
 .climo-table td.climo-observed {font-weight:800;color:var(--text)}
