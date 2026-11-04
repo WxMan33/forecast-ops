@@ -15,7 +15,16 @@ const basis = { captureId: "2026-11-03_midday", recipeId: "baseline-v1", hash: "
 const rec = (id, hi) => ({ schema: 1, method: M.VERSION, id, location: "CVG", basis, note: "synthetic", days: [{ date: "2026-11-05", hi, lo: 40, precip: 0 }] });
 let pushN = 0;
 const commit = (r, commitDate) => { const f = `personal-forecasts/CVG/${r.id}.json`; fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true }); fs.writeFileSync(path.join(dir, f), JSON.stringify(r) + "\n"); git(["add", f]); git(["commit", "-qm", "synthetic " + r.id], commitDate); return git(["rev-parse", "HEAD"]).trim(); };
-const push = (after, at, source = "activity-api", before = null) => R.record(dir, [{ source, id: `${source}-${++pushN}`, ref: "refs/heads/main", before, after, receivedAt: new Date(at).toISOString(), kind: "push" }]);
+/* Synthetic GitHub: what the activity API returns, the push event of the scoring run, and commit
+   statuses (creator recorded). Receipts count only through these, never through the log alone. */
+const truth = [], events = [], statusStore = new Map();
+const gh = { activity: () => truth, statuses: (r, sha) => statusStore.get(sha) || [],
+  post: (r, sha, description) => { const l = statusStore.get(sha) || []; l.push({ id: 1000 + l.length, context: R.CONTEXT, creator: { login: R.BOT }, description, created_at: "x" }); statusStore.set(sha, l); } };
+const push = (after, at, source = "activity", before = null) => { const ts = new Date(at).toISOString();
+  if (source === "event") events.push({ source: "push-event", id: `run:${++pushN}:${after}`, ref: "refs/heads/main", before, after, receivedAt: ts, kind: "push" });
+  else truth.push({ id: ++pushN, activity_type: "push", ref: "refs/heads/main", before, after, timestamp: ts }); };
+const ctxFor = (d, now, o = {}) => R.confirmContext(d, { repo: "o/r", gh, post: false, nowMs: now, eventRecs: events, ...o });
+const L = (now = NOW, o = {}, d = dir) => P.load(d, loc, now, ctxFor(d, now, o));
 const entry = (p, id) => p.entries.find((e) => e.id === id);
 const NOW = Date.parse("2026-11-04T02:00:00Z");
 try {
@@ -29,26 +38,55 @@ try {
   /* 1. Backdated commit: the commit says 17:05 on Nov 3, but GitHub received it on Nov 4. */
   const A = "aaaaaaaa-0000-4000-8000-000000000001";
   const cA = commit(rec(A, 70), "2026-11-03T17:05:00Z");
-  let p = P.load(dir, loc, NOW);
+  let p = P.load(dir, loc, NOW, null);
+  eq(entry(p, A).status, "awaiting-receipt", "1: with no GitHub access in the run, nothing is confirmed");
+  p = L();
   eq([entry(p, A).status, entry(p, A).scoringClass, p.cases.length], ["awaiting-receipt", "awaiting-receipt", 0], "1: without GitHub receipt evidence a commit's own timestamp never makes it eligible");
-  push(cA, "2026-11-04T01:29:00Z", "activity-api", c0);
-  p = P.load(dir, loc, NOW);
+  push(cA, "2026-11-04T01:29:00Z", "activity", c0);
+  p = L();
   eq([entry(p, A).receivedAt, entry(p, A).submittedAt.startsWith("2026-11-03T17:05"), entry(p, A).scoringClass], ["2026-11-04T01:29:00.000Z", true, "personal"], "1: issue time is GitHub's receipt; the backdated submission is a late personal update, not primary");
   ok(entry(p, A).notes.some((x) => /before GitHub received it/.test(x)), "1: the gap between commit time and receipt is reported");
 
   /* 1b. Delayed workflow processing does not make an on-time submission late. */
   const B = "bbbbbbbb-0000-4000-8000-000000000002";
-  const cB = commit(rec(B, 61), "2026-11-03T17:06:00Z"); push(cB, "2026-11-03T17:06:10Z", "activity-api", cA);
+  const cB = commit(rec(B, 61), "2026-11-03T17:06:00Z"); push(cB, "2026-11-03T17:06:10Z", "activity", cA);
   R.markProcessed(dir, [{ file: `personal-forecasts/CVG/${B}.json`, commit: cB }], "2026-11-03T19:40:00Z", "run-late");
-  p = P.load(dir, loc, NOW);
+  p = L();
   eq([entry(p, B).receivedAt, entry(p, B).processedAt, entry(p, B).timeliness, entry(p, B).scoringClass], ["2026-11-03T17:06:10.000Z", "2026-11-03T19:40:00Z", "on_time", "primary"], "1b: a workflow that starts 2.5 h late records processedAt but eligibility follows receipt");
   ok(p.cases.every((c) => c.submissionId !== B || (c.receivedAt && c.submittedAt && c.processedAt)), "1b: submitted, received and processed times are kept separately on every case");
 
   /* 1c. Conflicting GitHub evidence for the same push excludes the submission. */
   const C = "cccccccc-0000-4000-8000-000000000003";
-  const cC = commit(rec(C, 62), "2026-11-03T17:07:00Z"); push(cC, "2026-11-03T17:07:00Z", "activity-api", cB); push(cC, "2026-11-03T17:20:00Z", "push-event", cB);
-  p = P.load(dir, loc, NOW);
+  const cC = commit(rec(C, 62), "2026-11-03T17:07:00Z"); push(cC, "2026-11-03T17:07:00Z", "activity", cB); push(cC, "2026-11-03T17:20:00Z", "event", cB);
+  p = L();
   eq([entry(p, C).status, entry(p, C).errors.some((x) => /conflicts/.test(x))], ["excluded", true], "1c: receipt sources that disagree by more than 2 minutes exclude the submission");
+  events.length = 0; // that push event belonged to one run only
+
+  /* 1e. TRUST BOUNDARY: an invented early log row for the forecast commit cannot override GitHub's
+         genuine (later) receipt for the push containing it. */
+  const F = "ffffffff-0000-4000-8000-000000000006";
+  const cF1 = commit(rec(F, 65), "2026-11-03T17:05:00Z"), cF2 = commit({ ...rec("ffffffff-0000-4000-8000-0000000000f2", 1), days: [{ date: "2026-11-06", hi: 50, lo: 40, precip: 0 }] }, "2026-11-03T17:05:30Z");
+  push(cF2, "2026-11-03T21:00:00Z", "activity", cC); // genuine: both commits arrived in one push at 21:00
+  R.record(dir, [{ source: "activity-api", id: "forged-1", ref: "refs/heads/main", before: cC, after: cF1, receivedAt: "2026-11-03T17:05:05.000Z", kind: "push" }]);
+  p = L();
+  eq([entry(p, F).status, entry(p, F).receivedAt, entry(p, F).errors.some((x) => /does not confirm/.test(x))], ["excluded", null, true], "1e: a log row GitHub does not confirm (inside live coverage) is treated as tampering and excludes the submission");
+  ok(!p.cases.some((c) => c.submissionId === F), "1e: the forged early receipt never produces a primary or scored case");
+  const later = Date.parse("2026-12-20T00:00:00Z"); // after the activity API's coverage has moved on
+  const ctxPost = ctxFor(dir, NOW, { post: true }); // a collector run while the push was still in the live API attests it
+  ok(ctxPost.attested >= 1 && (statusStore.get(cF2) || []).some((x) => x.creator.login === R.BOT), "1e: collector runs attest live receipts as github-actions[bot] commit statuses");
+  truth.length = 0; // GitHub's activity retention has passed
+  p = L(later);
+  eq([entry(p, F).status, entry(p, F).receivedAt, entry(p, F).receiptSource], ["accepted", "2026-11-03T21:00:00.000Z", "attested"], "1e: once outside live coverage the forged row is ignored and the attested genuine receipt (21:00) is used, never the forged 17:05");
+  statusStore.set(cF1, [{ id: 1, context: R.CONTEXT, creator: { login: "WxMan33" }, description: `receipt-v1 at=2026-11-03T17:05:05Z before=${cC} src=activity:forged`, created_at: "x" }]);
+  p = L(later);
+  eq(entry(p, F).receivedAt, "2026-11-03T21:00:00.000Z", "1e: a status created by any account other than github-actions[bot] is not evidence");
+  statusStore.set(cF2, [...statusStore.get(cF2), { id: 77, context: R.CONTEXT, creator: { login: R.BOT }, description: `receipt-v1 at=2026-11-03T17:05:05Z before=${cC} src=activity:x`, created_at: "x" }]);
+  p = L(later);
+  eq(entry(p, F).status, "excluded", "1e: two bot attestations that disagree for the same push exclude the submission");
+  statusStore.get(cF2).pop();
+  const noNet = R.confirmContext(dir, { repo: "o/r", gh: { activity: () => { throw new Error("HTTP 403"); }, statuses: () => { throw new Error("HTTP 403"); }, post: () => {} }, post: false, nowMs: later, eventRecs: [] });
+  p = P.load(dir, loc, later, noNet);
+  eq([entry(p, F).status, noNet.errors.length > 0], ["awaiting-receipt", true], "1e: if GitHub cannot be queried the log is never used on its own: submissions wait");
 
   /* 1d. GitHub record parsing and de-duplication. */
   const act = R.fromActivity([{ id: 9, activity_type: "push", ref: "refs/heads/main", before: "b", after: "a", timestamp: "2026-11-03T12:10:00-05:00", actor: { login: "u" } }, { id: 10, activity_type: "branch_creation", after: "x", timestamp: "2026-11-03T17:00:00Z" }]);
@@ -68,8 +106,8 @@ try {
   fs.rmSync(path.join(dir2, "receipts"), { recursive: true, force: true }); git2(["checkout", "-q", "--detach", c0]); git2(["checkout", "-q", "-B", "main"]);
   const put2 = (r, d) => { const f = `personal-forecasts/CVG/${r.id}.json`; fs.mkdirSync(path.dirname(path.join(dir2, f)), { recursive: true }); fs.writeFileSync(path.join(dir2, f), JSON.stringify(r) + "\n"); git2(["add", f]); git2(["commit", "-qm", r.id], d); return git2(["rev-parse", "HEAD"]).trim(); };
   const cD = put2(rec(D, 63), "2026-11-03T17:05:00+00:00"), cE = put2(rec(E, 64), "2026-11-03T12:10:00-05:00");
-  R.record(dir2, R.fromActivity([{ id: 1, activity_type: "push", ref: "refs/heads/main", before: c0, after: cD, timestamp: "2026-11-03T12:05:00-05:00" }, { id: 2, activity_type: "push", ref: "refs/heads/main", before: cD, after: cE, timestamp: "2026-11-03T17:10:00Z" }]));
-  p = P.load(dir2, loc, NOW);
+  const truth2 = [{ id: 1, activity_type: "push", ref: "refs/heads/main", before: c0, after: cD, timestamp: "2026-11-03T12:05:00-05:00" }, { id: 2, activity_type: "push", ref: "refs/heads/main", before: cD, after: cE, timestamp: "2026-11-03T17:10:00Z" }];
+  p = P.load(dir2, loc, NOW, R.confirmContext(dir2, { repo: "o/r", gh: { activity: () => truth2, statuses: () => [], post: () => {} }, post: false, nowMs: NOW, eventRecs: [] }));
   eq([entry(p, D).scoringClass, entry(p, E).scoringClass], ["primary", "revision"], "2: the earliest RECEIVED save is primary whatever offsets the commit or receipt text uses");
   fs.rmSync(dir2, { recursive: true, force: true });
 
@@ -90,9 +128,15 @@ try {
   eq(PC.select([pp("my-forecast", { track: "personal", normVersion: null, basisNormVersion: "normalize-v4", compatible: true }), pp("nbm", { track: "source", normVersion: "normalize-v5" })], { members: ["my-forecast", "nbm"], slot: "midday", lead: 2 }).n, 1, "3: precipitation join treats the personal snapshot version as provenance");
   const ps = PC.select([pp("a", { track: "source", normVersion: "normalize-v4" }), pp("b", { track: "source", normVersion: "normalize-v5" })], { members: ["a", "b"], slot: "midday", lead: 2 });
   eq([ps.n, ps.excluded["mixed normalizer versions"]], [0, 1], "3: precipitation join excludes mixed archive normalizers");
+  const origWin = TG.TARGETS.tmax_clim.window; TG.TARGETS.tmax_clim.window = (d, L2) => origWin(d, L2).map((x) => x + 3600e3); // boundary moves 1 h, label unchanged
+  try { const lp = L(), sc = P.score(lp, new Map([["tmax_clim|2026-11-05", { value: 58 }]]), loc, NOW + 5 * 864e5), c = lp.cases.find((x) => x.target === "tmax_clim" && x.submissionId === B);
+    eq([c.conv, TG.TARGETS.tmax_clim.conv, c.window[0], c.currentWindow[0] - c.window[0], c.compatible], ["climate-day-LST", "climate-day-LST", Date.parse("2026-11-05T05:00:00Z"), 3600e3, false], "3: the personal window is frozen for my-forecast-v1; a shifted current boundary with the same label is detected");
+    ok(sc.excluded.some((x) => x.target === "tmax_clim" && x.why === "target definition changed since submission") && !sc.pairs.some((x) => x.target === "tmax_clim"), "3: a boundary change under an unchanged convention label excludes the personal case");
+  } finally { TG.TARGETS.tmax_clim.window = origWin; }
+  { const lp = L(), c = lp.cases.find((x) => x.target === "tmax_clim" && x.submissionId === B); eq([c.compatible, c.window], [true, [Date.parse("2026-11-05T05:00:00Z"), Date.parse("2026-11-06T05:00:00Z")]], "3: unchanged target: frozen window equals the current one (midnight-midnight EST)"); }
   const conv = TG.TARGETS.tmax_clim.conv; TG.TARGETS.tmax_clim.conv = "some-new-definition";
-  try { const lp = P.load(dir, loc, NOW), sc = P.score(lp, new Map([["tmax_clim|2026-11-05", { value: 58 }]]), loc, NOW + 5 * 864e5);
-    ok(lp.cases.filter((c) => c.target === "tmax_clim").every((c) => c.compatible === false) && sc.excluded.some((x) => x.why === "target definition changed since submission") && !sc.pairs.some((x) => x.target === "tmax_clim"), "3: an incompatible target-definition change excludes personal cases explicitly");
+  try { const lp = L(), sc = P.score(lp, new Map([["tmax_clim|2026-11-05", { value: 58 }]]), loc, NOW + 5 * 864e5);
+    ok(lp.cases.some((c) => c.target === "tmax_clim") && lp.cases.filter((c) => c.target === "tmax_clim").every((c) => c.compatible === false) && sc.excluded.some((x) => x.why === "target definition changed since submission") && !sc.pairs.some((x) => x.target === "tmax_clim"), "3: an incompatible target-definition change excludes personal cases explicitly");
   } finally { TG.TARGETS.tmax_clim.conv = conv; }
 } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 

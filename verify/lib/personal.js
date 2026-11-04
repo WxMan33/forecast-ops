@@ -22,9 +22,17 @@
 const fs = require("fs"), path = require("path"), cp = require("child_process");
 const U = require("./util"), TG = require("./targets"), ED = require("./editions"), TM = require("./timing"), R = require("./receipts");
 const M = require("../../assets/my-forecast-core");
-const VERSION = "personal-v2";
-/* What each personal-forecast method meant by its fields when it was submitted. */
-const DEFINED = { "my-forecast-v1": { tmin_clim: "climate-day-LST", tmax_clim: "climate-day-LST", precip_clim: "climate-day-LST" } };
+const VERSION = "personal-v3";
+/* What each personal-forecast method meant by its fields, FROZEN here independently of lib/targets.js:
+   the convention label and the exact window function. my-forecast-v1 is CVG-only, so its climate day
+   is midnight to midnight EST (UTC-5) all year. A case is compared only while the current target has
+   the same convention AND produces the same UTC window; changing either excludes it explicitly. */
+const DAY = 864e5, EST = 5 * 3600e3;
+const climateDayEST = (d) => { const s = Date.parse(d + "T00:00:00Z") + EST; return [s, s + DAY]; };
+const DEFINED = { "my-forecast-v1": {
+  tmin_clim: { conv: "climate-day-LST", window: climateDayEST },
+  tmax_clim: { conv: "climate-day-LST", window: climateDayEST },
+  precip_clim: { conv: "climate-day-LST", window: climateDayEST } } };
 
 function files(dir) { if (!fs.existsSync(dir)) return []; return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? files(path.join(dir, e.name)) : e.name.endsWith(".json") ? [path.join(dir, e.name)] : [])); }
 
@@ -45,9 +53,10 @@ function provenance(DATA, rel) {
 
 const ms = (s) => (s ? Date.parse(s) : NaN);
 
-function load(DATA, loc, nowMs = Date.now()) {
+/* rctx: GitHub confirmation context from receipts.confirmContext (required for any receipt to count). */
+function load(DATA, loc, nowMs = Date.now(), rctx = null) {
   const entries = [], cases = [], caps = U.readJSONL(path.join(DATA, "captures", loc.id + ".jsonl"));
-  const pushes = R.readPushes(DATA), isAnc = R.ancestry(DATA);
+  const isAnc = R.ancestry(DATA);
   const processed = new Map(R.readProcessed(DATA).map((p) => [`${p.file}|${p.commit}`, p]));
   const paths = new Set(files(path.join(DATA, "personal-forecasts", loc.id)).map((f) => path.relative(DATA, f).split(path.sep).join("/")));
   try {
@@ -58,12 +67,12 @@ function load(DATA, loc, nowMs = Date.now()) {
   for (const rel of paths) {
     let r; const p = provenance(DATA, rel);
     try { r = p.originalRecord || JSON.parse(fs.readFileSync(path.join(DATA, rel))); } catch (e) { entries.push({ path: rel, status: "invalid", errors: ["Invalid JSON or deleted unverified file."] }); continue; }
-    const rc = p.commit ? R.receiptFor(DATA, p.commit, pushes, isAnc) : { error: "No commit." };
+    const rc = p.commit ? R.receiptFor(DATA, p.commit, rctx, isAnc) : { error: "No commit." };
     const receivedAt = rc.receivedAt || null, issued = ms(receivedAt);
     const errors = [], notes = [];
     if (p.error) errors.push(p.error);
     let awaiting = false;
-    if (rc.error) { errors.push(rc.error); awaiting = !rc.conflict && !p.error; }
+    if (rc.error) { errors.push(rc.error); awaiting = !rc.conflict && !rc.tampered && !p.error; }
     errors.push(...(Number.isFinite(issued) ? M.validate(r, issued, loc.lstOffsetMin) : M.validate(r, NaN, loc.lstOffsetMin).filter((x) => !/Issue time/.test(x))));
     if (rel !== "personal-forecasts/" + loc.id + "/" + r.id + ".json") errors.push("Forecast ID must match its unique file name.");
     if (Number.isFinite(issued) && issued > nowMs + 60000) errors.push("Receipt time is in the future.");
@@ -96,10 +105,12 @@ function load(DATA, loc, nowMs = Date.now()) {
     const defined = DEFINED[r.method] || {};
     r.days.forEach((d) => Object.entries(M.targets).forEach(([key, target]) => {
       if (d[key] == null) return;
-      const tg = TG.TARGETS[target], win = tg.window(d.date, loc), compatible = defined[target] === tg.conv;
+      const tg = TG.TARGETS[target], def = defined[target];
+      const win = def ? def.window(d.date) : null, cur = tg.window(d.date, loc);
+      const compatible = !!def && def.conv === tg.conv && cur[0] === win[0] && cur[1] === win[1];
       cases.push({ track: "personal", id: "my-forecast", submissionId: r.id, captureId: cap.captureId, slot: e.slot, edition: e.edition, target, date: d.date, lead: TG.leadDay(localDate, d.date), v: d[key],
-        conv: tg.conv, window: win, definedAs: defined[target] || null, compatible,
-        retrievedLast: receivedAt, issuedAt: receivedAt, receivedAt, submittedAt: p.submittedAt, processedAt: e.processedAt, leadHours: (win[0] - issued) / 3600000,
+        conv: def ? def.conv : null, window: win, currentConv: tg.conv, currentWindow: cur, definedAs: def ? `${r.method}: ${def.conv} (frozen window)` : null, compatible,
+        retrievedLast: receivedAt, issuedAt: receivedAt, receivedAt, submittedAt: p.submittedAt, processedAt: e.processedAt, leadHours: win ? (win[0] - issued) / 3600000 : null,
         normVersion: null, basisNormVersion: b.version, basis: r.basis, baseValue: blend.values?.[target]?.[d.date]?.v ?? null, baseRetrievedAt: b.retrieval.last, commit: p.commit, file: rel,
         flags: ["personal forecast", "issue time: GitHub receipt"].concat(compatible ? [] : ["target definition changed"]),
         cls: e.timeliness === "on_time" ? "eligible" : "personal" });
@@ -118,9 +129,11 @@ function load(DATA, loc, nowMs = Date.now()) {
 function score(personal, best, loc, nowMs) {
   const pairs = [], pending = [], excluded = [];
   personal.cases.forEach((c) => {
-    const w = TG.TARGETS[c.target].window(c.date, loc);
+    /* the frozen my-forecast-v1 window is the forecast's window; the current target must still match it */
+    if (!c.window) { excluded.push({ ...c, why: "unknown personal forecast method" }); return; }
+    const w = c.window, cur = TG.TARGETS[c.target].window(c.date, loc);
     if (!TM.windowOk(w[0], Date.parse(c.receivedAt))) return;
-    if (!c.compatible || w[0] !== c.window[0] || w[1] !== c.window[1]) { excluded.push({ ...c, why: "target definition changed since submission" }); return; }
+    if (!c.compatible || cur[0] !== w[0] || cur[1] !== w[1] || TG.TARGETS[c.target].conv !== c.conv) { excluded.push({ ...c, why: "target definition changed since submission" }); return; }
     const o = best.get(c.target + "|" + c.date);
     if (o) pairs.push({ ...c, o: o.value, obsSrc: o.src, obsStatus: o.status, obsRevised: o.revised, obsFlags: o.flags });
     else pending.push({ ...c, status: w[1] > nowMs ? "future" : "waiting for observation" });

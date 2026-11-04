@@ -126,10 +126,13 @@ async function score() {
     try { writeBundle(c); rebuilt++; } catch (e) { console.log("rebuild failed", c.captureId, e.message); }
   });
   if (rebuilt) runLog({ job: "renormalize", outcome: "ok", count: rebuilt, reason: `normalizer ${NORM.VERSION}` });
-  const res = SC.scoreAll(DATA, loc);
+  /* personal receipts count only when GitHub confirms them in THIS run (lib/receipts.js) */
+  const RC = require("./lib/receipts.js"), rctx = RC.confirmContext(DATA, { locId: loc.id });
+  if (rctx.errors.length) runLog({ job: "receipts-confirm", outcome: "partial", errors: rctx.errors, live: rctx.live, attested: rctx.attested });
+  const res = SC.scoreAll(DATA, loc, Date.now(), undefined, { receipts: rctx });
   /* first collector run to process each personal submission (informational; never decides eligibility) */
-  const marked = require("./lib/receipts.js").markProcessed(DATA, (res.personal.entries || []).map((e) => ({ file: e.path, commit: e.commit })));
-  if (marked) { const again = SC.scoreAll(DATA, loc); Object.assign(res, again); }
+  const marked = RC.markProcessed(DATA, (res.personal.entries || []).map((e) => ({ file: e.path, commit: e.commit })));
+  if (marked) { const again = SC.scoreAll(DATA, loc, Date.now(), undefined, { receipts: rctx }); Object.assign(res, again); }
   RP.writeReports(DATA, loc, res);
   runLog({ job: "score", outcome: "ok", pairs: res.pairs.length, pending: res.pending.length });
   console.log(`score: ${res.pairs.length} scored pairs, ${res.pending.length} awaiting observations`);
@@ -142,7 +145,7 @@ async function score() {
     else if (cmd === "observe") await observe();
     else if (cmd === "score") await score();
     else if (cmd === "renormalize") renormalize();
-    else if (cmd === "receipts") { const r = require("./lib/receipts.js").collect(DATA); runLog({ job: "receipts", outcome: r.errors.length ? "partial" : "ok", ...r }); console.log("receipts:", JSON.stringify(r)); }
+    else if (cmd === "receipts") { const c = require("./lib/receipts.js").confirmContext(DATA, { locId: loc.id }); const r = { live: c.live, confirmed: c.confirmed.length, logged: c.ledger.length, attested: c.attested, errors: c.errors }; runLog({ job: "receipts", outcome: c.errors.length ? "partial" : "ok", ...r }); console.log("receipts:", JSON.stringify(r)); }
     else { console.log("usage: run.js collect|observe|score|renormalize"); process.exit(2); }
   } catch (e) {
     try { runLog({ job: cmd, outcome: "crashed", error: String(e.stack || e).slice(0, 2000) }); } catch (e2) { /* ignore */ }

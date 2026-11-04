@@ -34,6 +34,7 @@ on:
         default: "observe-score"
 permissions:
   contents: write
+  statuses: write   # receipt attestations: commit statuses created by github-actions[bot]
 concurrency: { group: verification-data, cancel-in-progress: false }
 jobs:
   run:

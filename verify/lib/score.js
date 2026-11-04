@@ -129,7 +129,9 @@ function matched(pairs, members, ref, target, lead, slot) {
   return res;
 }
 
-function scoreAll(DATA, loc, nowMs = Date.now(), normVersion = require("./normalize.js").VERSION) {
+/* opts.receipts: GitHub confirmation context (lib/receipts.js confirmContext); without it personal
+   forecasts wait for confirmed receipts and are not scored. */
+function scoreAll(DATA, loc, nowMs = Date.now(), normVersion = require("./normalize.js").VERSION, opts = {}) {
   const obsRows = U.readJSONLDir(path.join(DATA, "obs", loc.id));
   const best = OBS.best(obsRows);
   const bundles = loadBundles(DATA, loc, normVersion);
@@ -148,7 +150,7 @@ function scoreAll(DATA, loc, nowMs = Date.now(), normVersion = require("./normal
     c.cls = !s || !s.selected ? "superseded" : s.timeliness.status === "on_time" ? "primary" : "late";
   });
   const PERSONAL = require('./personal.js');
-  const personal = PERSONAL.load(DATA, loc, nowMs);
+  const personal = PERSONAL.load(DATA, loc, nowMs, opts.receipts || null);
   const personalScored = PERSONAL.score(personal, best, loc, nowMs);
   const pairs = personalScored.pairs.slice(), pending = [];
   /* personal pairs carry the time GitHub received them as their retrieval boundary */
