@@ -338,6 +338,8 @@
   function blendRecipe() {
     const spec = Core.config.blend, preset = Core.blend.PRESETS[store.get("ops_blend_preset", "preferred")] ? store.get("ops_blend_preset", "preferred") : "preferred";
     const custom = savedWeights({ id: spec.id, models: [...spec.extra, ...spec.models] });
+    const profiles=store.get("ops_blend_period_weights_v1",null);
+    if(preset==="custom"&&profiles?.near&&profiles?.far)return {preset,...Core.blend.scopedWeights(profiles)};
     return { preset, ws: Core.blend.presetWeights(preset, spec, custom), rules: Core.blend.presetRules(preset) };
   }
   const savedDays = (spec) => store.get(`ops_${spec.id}_days`, spec.days);
@@ -377,7 +379,7 @@
 
   /* Model checklist with weight sliders, folded away by default. */
   function modelPicker(container, key, models, onChange, opts = {}) {
-    const savedW = store.get(key, {});
+    const savedW = opts.initial || store.get(key, {});
     const st = {};
     models.forEach((m) => (st[m.id] = { on: savedW[m.id] ? savedW[m.id].on : m.on !== false, w: savedW[m.id] ? savedW[m.id].w : m.w }));
     const status = {};
@@ -404,20 +406,22 @@
       }).join("");
       list.querySelectorAll(".model").forEach((el, i) => {
         const id = models[i].id;
-        el.querySelector("input[type=checkbox]").addEventListener("change", (e) => { st[id].on = e.target.checked; el.classList.toggle("off", !e.target.checked); save(); });
-        el.querySelector("input[type=range]").addEventListener("input", (e) => { st[id].w = +e.target.value; el.querySelector(".w").textContent = "×" + st[id].w.toFixed(2); save(); });
+        el.querySelector("input[type=checkbox]").addEventListener("change", (e) => { st[id].on = e.target.checked; el.classList.toggle("off", !e.target.checked); save(id); });
+        el.querySelector("input[type=range]").addEventListener("input", (e) => { st[id].w = +e.target.value; el.querySelector(".w").textContent = "×" + st[id].w.toFixed(2); save(id); });
       });
       summary();
     }
-    function save() { store.set(key, st); summary(); onChange && onChange(); }
+    function save(id) { if(opts.persist!==false) store.set(key, st); summary(); onChange && onChange(id); }
     draw();
-    $(`reset_${key}`).addEventListener("click", () => { models.forEach((m) => (st[m.id] = { on: m.on !== false, w: m.w })); store.set(key, st); draw(); onChange && onChange(); });
+    $(`reset_${key}`).addEventListener("click", () => { models.forEach((m) => (st[m.id] = { on: m.on !== false, w: m.w })); if(opts.persist!==false) store.set(key, st); draw(); onChange && onChange(null); });
     return {
       /* {id: weight} for models in use that returned data */
       weights() { const w = {}; models.forEach((m) => { if (st[m.id].on && st[m.id].w > 0 && status[m.id] !== "none") w[m.id] = st[m.id].w; }); return w; },
       on: (id) => st[id] && st[id].on && st[id].w > 0 && status[id] !== "none",
       w: (id) => (st[id] ? st[id].w : 0),
       setStatus(id, s) { status[id] = s; },
+      state() { return JSON.parse(JSON.stringify(st)); },
+      setState(values) { models.forEach(m=>{if(values[m.id])st[m.id]={...values[m.id]};});draw(); },
       redraw: draw,
     };
   }

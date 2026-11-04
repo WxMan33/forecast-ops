@@ -29,3 +29,13 @@ The website selects this default once for users on the preferred or custom view.
 The separate `near48` recipe name and rules are recorded in browser forecast exports. Frozen Baseline v1/Default v2 and private scheduled verification collection are unchanged. The private collector does not yet archive near48 as a new prospective recipe; it must be deliberately added with a version/effective time before claiming scheduled verification for it. No historical capture is rewritten.
 
 Checks: forecast-clock.test.js includes morning/afternoon/night transitions, DST, past/ongoing/later precipitation rounds, clipped timing, hourly taper, day-3 identity with the base recipe and agreement between actual daily blend values and source-contribution shares.
+
+## Custom weight ranges
+
+The Custom weights foldout has an Edit weights for selector: First 48 hours, Days 3–14 (after 48 h), or Entire forecast. Both time ranges independently store enabled sources and direct weights in `ops_blend_period_weights_v1`. Existing custom weights seed both ranges when first opened from Custom; the hi-res preset seeds the early range with its precipitation/gust-sized multipliers and the later range with the preferred base. This initialization does not activate Custom or change the selected preset. The first slider/checkbox edit activates Custom. Custom weights have no extra hidden variable multipliers.
+
+The First 48 h range is the half-open interval from the loaded forecast's viewedAt through viewedAt+48h; later hours and already-past hours use the later profile. Unlike the automatic near48 preset, these explicit custom ranges switch exactly at 48h. Periods spanning the boundary use the time average of the absolute source weights; highs/lows remain each source's own extreme and ensembles remain member-first. Hourly charts, period summaries, daily rows and source diagnostics use this same rule.
+
+Entire forecast shows the longer-range settings. When profiles differ the editor says so. Changing one source's slider or checkbox copies only that source's setting to both profiles, retaining differences for other sources. Reset restores the displayed picker defaults only for the selected profile, or both profiles in Entire forecast. Simply switching the editor scope never edits a forecast weight.
+
+Both profiles persist across reloads and are shared with Overview. Older `ops_blend_models` values remain saved. Browser exports record custom range rules; private scheduled scoring is unchanged and does not yet verify this recipe prospectively.

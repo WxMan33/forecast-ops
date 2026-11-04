@@ -106,7 +106,7 @@
 
     renderEventBriefing(B, T, W, TH, mem, wsB, wsT, wsW, nwsOk ? NW : null, optB);
 
-    const snap = { cfg: `${RB.preset}|${CFG.fingerprint(wsB)}|${CFG.fingerprint(wsT)}|${CFG.fingerprint(wsW)}`, rows: {} };
+    const snap = { cfg: `${RB.preset}|${CFG.fingerprint(wsB)}|${CFG.fingerprint(wsT)}|${CFG.fingerprint(wsW)}|${JSON.stringify(RB.rules)}`, rows: {} };
     cards.forEach(({ r, t, w }) => (snap.rows[r.period.label+"|"+r.k] = {
       label: r.period.label, win: r.win, contrib: [...r.contrib, ...(TH ? TH.ids.map((id) => "thunder:" + id) : []), ...(W.ens ? Object.keys(wsW).filter((id) => W.ens[id]).map((id) => "ens:" + id) : [])],
       hi: r.hi, lo: r.lo, qpf: r.qpf, pop: r.pop, gust: r.gust, p1: w && w.st.used ? w.st.P[1] * 100 : null, t }));
@@ -152,7 +152,7 @@
 
     if (cB.mismatch) return;
     /* track the same event windows across updates, keyed by event ID and exact window */
-    const ev = cB.ev, snap = { cfg: `${RB.preset}|${CFG.fingerprint(wsB)}|${CFG.fingerprint(wsT)}|${CFG.fingerprint(wsW)}`, rows: {} };
+    const ev = cB.ev, snap = { cfg: `${RB.preset}|${CFG.fingerprint(wsB)}|${CFG.fingerprint(wsT)}|${CFG.fingerprint(wsW)}|${JSON.stringify(RB.rules)}`, rows: {} };
     cB.wins.filter((w) => w.cov.status === "full").forEach((w) => {
       const r = rowB(w), st = stW(w), th = thW(w);
       snap.rows[w.key] = { label: w.label, win: C.event.windowKey(ev, w), contrib: [...r.contrib, ...(TH ? TH.ids.map((id) => "thunder:" + id) : [])],

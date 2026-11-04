@@ -104,3 +104,6 @@ body.wide-main.forecast-focus:not(.brief-view) .workspace {grid-template-columns
 .record-watch.warm {color:var(--warm)}.record-watch.cold {color:var(--cold)}
 .record-watch-detail:not([hidden]) {display:block;max-width:24ch;margin:6px 0 0 auto;text-align:left;white-space:normal;font:400 11px/1.5 var(--font-body);color:var(--muted)}
 @media print{.record-watch.warm {color:#9f2424!important}.record-watch.cold {color:#075985!important}}
+
+.weight-scope {display:grid;gap:7px;margin:12px 0;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.weight-scope .msg {font-size:11px;line-height:1.5;margin:0}

@@ -269,7 +269,7 @@
        different threshold and period from Open-Meteo's precipitation_probability. */
     EXCLUDE: { nws: ["precipitation_probability"] },
     /* Weight of source id for variable v, after preset rules and exclusions. */
-    w(ws, rules, id, v) { if ((blend.EXCLUDE[id] || []).includes(v)) return 0; return blend.weightFor(ws, rules, id, v); },
+    w(ws, rules, id, v) { if ((blend.EXCLUDE[id] || []).includes(v) || !(ws[id]>0)) return 0; if(rules?.absoluteWeights)return rules.absoluteWeights[id] || 0; return blend.weightFor(ws, rules, id, v); },
     /* One deterministic series over hours: extreme or sum, only if every hour is present. */
     reduce(a, use, how) {
       if (!use.length || !stats.complete(a, use)) return null;
@@ -387,9 +387,16 @@
       return { ...custom };
     },
     /* Resolve a separate, versioned website preset. The frozen preferred recipe is unchanged. */
+    scopedWeights(profiles) {
+      const flat=scope=>Object.fromEntries(Object.entries(scope||{}).filter(([,s])=>s.on&&Number.isFinite(s.w)&&s.w>0).map(([id,s])=>[id,s.w]));
+      const near=flat(profiles.near),far=flat(profiles.far),ws={};
+      for(const id of new Set([...Object.keys(near),...Object.keys(far)]))ws[id]=Math.max(near[id]||0,far[id]||0);
+      return {ws,rules:{periodWeights:{near,far}}};
+    },
     periodRules(data, rules, idx) {
+      if(rules?.periodWeights&&idx.length){const now=rules.referenceMs||data.viewedAt||Date.now(),absoluteWeights={};const {near,far}=rules.periodWeights;for(const id of new Set([...Object.keys(near),...Object.keys(far)]))absoluteWeights[id]=idx.reduce((sum,i)=>sum+((data.ms[i]>=now&&data.ms[i]<now+48*3600000?near:far)[id]||0),0)/idx.length;return {...rules,absoluteWeights};}
       if (!rules?.near48 || !idx.length) return rules;
-      const now = data.viewedAt || Date.now(), byVar = { ...(rules.byVar || {}) };
+      const now = rules.referenceMs || data.viewedAt || Date.now(), byVar = { ...(rules.byVar || {}) };
       for (const v of ["temperature_2m", "apparent_temperature", "precipitation", "snowfall", "wind_gusts_10m"]) {
         const temp = ["temperature_2m", "apparent_temperature"].includes(v);
         byVar[v] = { ...(byVar[v] || {}) };
@@ -471,6 +478,7 @@
       const hz = {}; Object.keys(data.models).forEach((id) => { hz[id] = {}; ["temperature_2m", "precipitation"].forEach((hv) => { const i = blend.horizon(data.models[id], hv); hz[id][hv] = i == null ? null : i >= 0 ? data.ms[i] : -1; }); });
       const days = time.dayGroups(data.times).filter((d) => d.idx.length >= 12).map((d) => {
         const own = (id, dv, hv) => blend.ownDaily(data.models[id], d, dv, dt, hv);
+        const dayRules=blend.periodRules(data,rules,d.idx);
         const full = blend.aggregate(data, ws, d.idx, d.idx, { ...opts, own });
         const cache = new Map();
         const without = (id) => { if (!cache.has(id)) { const w2 = { ...ws }; delete w2[id]; cache.set(id, Object.keys(w2).length ? blend.aggregate(data, w2, d.idx, d.idx, { ...opts, own }) : null); } return cache.get(id); };
@@ -483,10 +491,10 @@
               withoutValue: woV, effect: value != null && woV != null ? value - woV : null, onlySource: parts.length === 1 };
           }).sort((a, b) => b.share - a.share);
           const have = new Set(parts.map((p) => p.id)), missing = [];
-          Object.keys(req).filter((id) => blend.w(req, rules, id, v.hv) > 0 && !have.has(id)).forEach((id) => {
+          Object.keys(req).filter((id) => blend.w(req, dayRules, id, v.hv) > 0 && !have.has(id)).forEach((id) => {
             const md = data.models[id], of = d.idx.length;
             if (!md) { missing.push({ id, reason: "unavailable", detail: "no data returned this run" }); return; }
-            if (!(blend.w(ws, rules, id, v.hv) > 0)) { missing.push({ id, reason: "excluded", detail: "not used for this variable" }); return; }
+            if (!(blend.w(ws, dayRules, id, v.hv) > 0)) { missing.push({ id, reason: "excluded", detail: "not used for this variable" }); return; }
             if (md.kind === "ens") {
               const some = md.members.filter((mb) => mb.h[v.hv] && d.idx.some((i) => mb.h[v.hv][i] != null)).length;
               const start = data.ms[d.idx[0]], end = hz[id][v.hv];

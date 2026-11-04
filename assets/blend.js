@@ -38,7 +38,29 @@
   let data = null, nws = null, chart = null, viewDay = null, fresh = false;
   let tab = O.store.get("ops_blend_tab", "temp"), range = O.store.get("ops_blend_range", "168");
 
-  const picker = O.modelPicker($("models"), "ops_blend_models", SOURCES, render, { title: "Custom weights", max: 5 });
+  let weightScope=O.store.get("ops_blend_weight_scope","near");
+  if(!["near","far","all"].includes(weightScope))weightScope="near";
+  let weightProfiles=O.store.get("ops_blend_period_weights_v1",null);
+  if(!weightProfiles?.near||!weightProfiles?.far){
+    const legacy=O.store.get("ops_blend_models",{}),base=C.blend.presetWeights(preset,SPEC,Object.fromEntries(SOURCES.map(m=>[m.id,legacy[m.id]?legacy[m.id].on?legacy[m.id].w:0:m.on!==false?m.w:0])));
+    const state=()=>Object.fromEntries(SOURCES.map(m=>[m.id,{on:(base[m.id]||0)>0,w:base[m.id]??m.w}]));
+    weightProfiles={near:state(),far:state()};
+    if(preset==="near48")for(const id of ["gfs_hrrr","ncep_rrfs_conus","rrfs_ens"]){if(weightProfiles.near[id].on)weightProfiles.near[id].w*=id==="rrfs_ens"?2:3;}
+    O.store.set("ops_blend_period_weights_v1",weightProfiles);
+  }
+  const picker = O.modelPicker($("models"), "ops_blend_models", SOURCES, (id)=>{
+    const edited=picker.state(),scopes=weightScope==="all"?["near","far"]:[weightScope];
+    for(const scope of scopes){if(id)weightProfiles[scope][id]={...edited[id]};else weightProfiles[scope]=JSON.parse(JSON.stringify(edited));}
+    O.store.set("ops_blend_period_weights_v1",weightProfiles);preset="custom";O.store.set("ops_blend_preset",preset);
+    $("presetTabs").querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected",String(b.textContent===C.blend.PRESETS.custom.label.toUpperCase())));
+    fresh=true;updateWeightHelp();render();
+  }, { title: "Custom weights", max: 10, persist:false, initial:weightProfiles[weightScope==="near"?"near":"far"] });
+  const weightBox=document.createElement("div");weightBox.className="weight-scope";
+  weightBox.innerHTML='<label class="kick" for="weightScope">Edit weights for</label><select id="weightScope" class="input"><option value="near">First 48 hours</option><option value="far">Days 3–14 (after 48 h)</option><option value="all">Entire forecast</option></select><p id="weightScopeHelp" class="msg"></p>';
+  $("models").querySelector(".models").before(weightBox);$("weightScope").value=weightScope;
+  $("weightScope").onchange=e=>{weightScope=e.target.value;O.store.set("ops_blend_weight_scope",weightScope);picker.setState(weightProfiles[weightScope==="near"?"near":"far"]);updateWeightHelp();};
+  function updateWeightHelp(){const different=SOURCES.some(m=>JSON.stringify(weightProfiles.near[m.id])!==JSON.stringify(weightProfiles.far[m.id]));$("weightScopeHelp").textContent=(weightScope==="all"?(different?"The two ranges differ. Sliders show days 3–14; changing a source applies that setting to both ranges. ":"Changes apply to both ranges. "):weightScope==="near"?"Only valid hours within the next 48 hours change. ":"Only hours after 48 hours change. ")+"Editing activates Custom weights. Direct weights, no extra hi-res multipliers. Reset affects the selected range.";}
+  updateWeightHelp();
   const showLines = O.linesToggle($("linesBtn"), "ops_blend_lines", () => renderChart());
   O.locationCard($("locCard"), () => run());
   O.eventCard($("evCard"));
@@ -119,7 +141,7 @@
   function renderCoverage() {
     const el = $("covCard"); if (!el) return;
     if (!data) { el.innerHTML = ""; return; }
-    const req = C.blend.presetWeights(preset, SPEC, picker.weights());
+    const req = (preset==="custom"?C.blend.scopedWeights(weightProfiles).ws:C.blend.presetWeights(preset, SPEC, picker.weights()));
     const cov = C.blend.coverage(data, req, W(), OPTS());
     const V = C.blend.VARS.find((v) => v.key === covVar) || C.blend.VARS[1];
     const ids = SOURCES.map((m) => m.id).filter((id) => C.blend.w(req, R(), id, V.hv) > 0);
@@ -166,11 +188,11 @@
 
   /* Current weights: the chosen preset applied to sources that returned data; rules = per-variable factors. */
   const W = () => {
-    const base = C.blend.presetWeights(preset, SPEC, picker.weights()), w = {};
+    const base = (preset==="custom"?C.blend.scopedWeights(weightProfiles).ws:C.blend.presetWeights(preset, SPEC, picker.weights())), w = {};
     Object.keys(base).forEach((id) => { if (data && data.models[id] && base[id] > 0) w[id] = base[id]; });
     return w;
   };
-  const R = () => C.blend.presetRules(preset);
+  const R = () => preset==="custom"?C.blend.scopedWeights(weightProfiles).rules:C.blend.presetRules(preset);
   const OPTS = () => ({ rules: R() });
   const wv = (id, v) => C.blend.w(W(), R(), id, v);
   const active = (v) => (data ? SOURCES.filter((m) => wv(m.id, v) > 0 && data.models[m.id] && O.hasData(data.models[m.id].h[v])) : []);
@@ -217,7 +239,7 @@
       (mig ? ` <span class="msg">Your weights saved before presets existed were kept as Custom weights.</span>` : "") +
       (v3 ? ` <span class="msg">Ensembles and NWS are now blend sources; this page switched once to "Your preferred weighting".</span>` : "") +
       (w ? (() => { const sh = (v) => { const x = C.blend.shares(w, rules, v), top = x.slice(0, 2); return `${top.map((p) => `${O.esc(NAMES[p.id])} ${Math.round(p.share * 100)}%`).join(", ")}, everything else ${Math.round(100 * (1 - top.reduce((t, p) => t + p.share, 0)))}%`; };
-        return ` <b>Base shares with every loaded source present</b>: temperatures ${sh("temperature_2m")}; precip ${sh("precipitation")}. The hi-res preset changes near-term shares by valid hour; shares also rescale when sources drop out; see "What's driving the blend" for each day.`; })() : "") +
+        return ` <b>Base/maximum shares with every loaded source present</b>: temperatures ${sh("temperature_2m")}; precip ${sh("precipitation")}. Custom range weights and the hi-res preset change shares by valid hour; shares also rescale when sources drop out; see "What's driving the blend" for each day.`; })() : "") +
       ` <span class="msg">Each ensemble's weight is shared by its members. NWS precip uses its interval totals; NWS hourly chance is not mixed with model chances (different threshold and period).</span>`;
   }
 
@@ -304,7 +326,7 @@
     recordWatch.wire($("daily"));
     $("dailyNote").append(document.createTextNode(recordWatch.note(rows, O.location, data.tz)));
     if (fresh) {
-      const snap = { cfg: `${preset}|${C.config.fingerprint(W())}`, rows: {} };
+      const snap = { cfg: `${preset}|${C.config.fingerprint(W())}|${JSON.stringify(R())}`, rows: {} };
       rows.forEach((r) => (snap.rows[r.k] = { label: O.fmtDay(r.k), win: r.win, contrib: r.contrib, hi: r.hi, lo: r.lo, qpf: r.qpf, pop: r.pop, sn: r.sn, gust: r.gust }));
       data.snapPair = O.trackChanges("blend", snap);
     }
@@ -490,13 +512,13 @@
   /* Verification records: what each source said for each window, for later scoring. */
   function logRecords() {
     const at = new Date().toISOString(), loc = { lat: O.location.lat, lon: O.location.lon, name: O.location.name }, recs = [];
-    const presets = ["preferred", "custom", "equal", "nbm"];
+    const presets = ["near48", "preferred", "custom", "equal", "nbm"];
     presets.forEach((p) => {
-      const base = C.blend.presetWeights(p, SPEC, picker.weights()), ws = {}; Object.keys(base).forEach((id) => { if (data.models[id]) ws[id] = base[id]; });
+      const base = p==="custom"?C.blend.scopedWeights(weightProfiles).ws:C.blend.presetWeights(p, SPEC, picker.weights()), ws = {}; Object.keys(base).forEach((id) => { if (data.models[id]) ws[id] = base[id]; });
       if (!Object.keys(ws).length) return;
-      const rules = C.blend.presetRules(p);
+      const rules = p==="custom"?C.blend.scopedWeights(weightProfiles).rules:C.blend.presetRules(p);
       C.blend.dailyRows(data, ws, { rules }).forEach((r) => recs.push(C.verify.record({ kind: "calendar-day", source: `blend:${p}`, location: loc, retrievedAt: at, cycle: null,
-        window: { key: r.win, tz: data.tz }, contributors: r.contrib, weights: rules ? { ...ws, rules } : ws,
+        window: { key: r.win, tz: data.tz }, contributors: r.contrib, weights: rules ? { ...ws, rules: {...rules,referenceMs:data.viewedAt} } : ws,
         values: { hi: r.hi, lo: r.lo, qpf: r.qpf, snow: r.sn, gust: r.gust, hiP10P90: r.hiR, loP10P90: r.loR, chance01: r.chance ? r.chance.v : null, nwsPrecipProrated: r.prorated,
           parts: { hi: r.parts.hi.map((x) => [x.id, x.v, x.w]), lo: r.parts.lo.map((x) => [x.id, x.v, x.w]), qpf: r.parts.qpf.map((x) => [x.id, x.v, x.w]) } } })));
     });
