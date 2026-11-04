@@ -84,7 +84,12 @@ function nwsOfficial(raw, loc, dates) {
 }
 
 /* Main: raw = {det:{id:json}, ens:{id:json}, nws:{grid,forecast,hourly}}; cap = capture record. */
-function normalize(raw, cap, loc, recipes) {
+function normalize(raw, cap, loc, recipesIn) {
+  /* A recipe applies only to captures that started at or after its effectiveFrom: re-normalizing old
+     evidence never creates values for a recipe that did not exist when the capture was made. */
+  const started = Date.parse(cap.startedAt);
+  const recipes = recipesIn.filter((rc) => !rc.effectiveFrom || started >= Date.parse(rc.effectiveFrom));
+  const notApplied = recipesIn.filter((rc) => !recipes.includes(rc)).map((rc) => ({ id: rc.id, effectiveFrom: rc.effectiveFrom }));
   const data = buildData(raw);
   const bundle = { schema: 1, version: VERSION, targetsVersion: TG.VERSION, captureId: cap.captureId, loc: loc.id, slot: cap.slot, localDate: cap.localDate, slotTarget: cap.slotTarget, startedAt: cap.startedAt, timeliness: cap.timeliness, sources: {}, blends: {}, official: {}, hourly: null };
   if (!data) { bundle.error = "no deterministic model data"; return bundle; }
@@ -95,6 +100,7 @@ function normalize(raw, cap, loc, recipes) {
   const retr = Object.values(cap.sources || {}).map((s) => s.retrievedAt).filter(Boolean).sort();
   const lastMs = retr.length ? Date.parse(retr[retr.length - 1]) : Date.parse(cap.startedAt);
   bundle.retrieval = { first: retr[0] || null, last: retr[retr.length - 1] || null };
+  if (notApplied.length) bundle.recipesNotApplied = notApplied;
   bundle.timing = TM.VERSION;
   /* cycle provenance as recorded at collection (older captures without it: reconstructed labels only from what they recorded) */
   bundle.sourceIssue = Object.fromEntries(Object.values(cap.sources || {}).map((s) => [s.id, { retrievedAt: s.retrievedAt || null, cycle: s.cycle || SRC.cycleOf(s.kind, s) }]));

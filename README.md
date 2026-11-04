@@ -178,3 +178,9 @@ combine new HTML with cached older JavaScript or CSS. It also keeps a small load
 "didn't finish loading" message with a Reload button if a script fails. The Tests workflow runs
 `node tools/stamp-assets.js --check` and fails if a stamp is out of date. Saved locations,
 settings and logs (browser localStorage) are not affected.
+
+## Third-party code and tokens
+
+Chart.js 4.4.1 is served from this site (`assets/vendor/chart.umd-4.4.1.js`, the unmodified `dist/chart.umd.js` from the npm package, SHA-256 `74401d738dd3e03ee5dfb3b6841210fe2c4ead8a960c4011ca4ba0b78a9fd8f3`, MIT licence in `assets/vendor/chart.js-LICENSE.md`); no page loads scripts from a CDN.
+
+The private verification page keeps a GitHub token only while the page is open unless you choose otherwise ("until this tab closes" or, as an explicit opt-in, "on this device"). Every page on wxman33.github.io shares one browser origin, so use a fine-grained token limited to the private data repository.

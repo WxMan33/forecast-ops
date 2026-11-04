@@ -24,6 +24,8 @@ The private archive and scheduled collector for Forecast Ops verification. The c
 | `raw/`, `obs-raw/`, `evidence/` | Original responses, observations and TV evidence (hash-recorded) |
 | `captures/`, `tv/`, `obs/`, `runs/`, `corrections/`, `config-log.jsonl` | Append-only records |
 | `normalized/` | One bundle per capture **per normalizer version** (never overwritten) |
+| `personal-forecasts/CVG/` | Immutable personal forecasts (one UUID file per save) |
+| `receipts/pushes.jsonl`, `receipts/personal-processed.jsonl` | Append-only: GitHub's receipt times for pushes to main (activity API, push events) and the first collector run that processed each personal forecast. Personal issue time = GitHub receipt, never the commit's own timestamp |
 | `reports/` | STATUS, SCORECARD, scores, review queue, CSV exports, a traceable example pair (regenerated each run) |
 | `archives/<year>/manifest.json` | Yearly archive manifests |
 | `collector/` | The code that produced everything here, versioned with it |

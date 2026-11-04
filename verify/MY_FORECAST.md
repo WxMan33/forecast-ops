@@ -6,12 +6,30 @@ Choose an archived snapshot and one of its actual archived recipes. **Use this b
 
 Every save creates a unique `personal-forecasts/CVG/<UUID>.json`. No update SHA is ever sent. Copying a saved forecast creates a new UUID and records its parent. If a request times out after GitHub saved it, a retry checks the existing file instead of overwriting it.
 
-The collector uses full Git history. Issue time is the first addition commit's committer time, not the client's clock, source-model cycle or age of the starting blend. The original file bytes must match the current file. Altered files, unverifiable timestamps, inconsistent basis metadata and windows starting less than 60 minutes after issue are excluded. Git history is the audit authority within the owner's repository, not an independent tamper-proof service.
+**Issue time.** Three times are kept for every submission and never mixed:
+
+| Time | Source | Used for |
+|---|---|---|
+| `submittedAt` | the commit's own committer time | display only (a local commit can carry any time) |
+| `receivedAt` | GitHub's record of the push that first brought the commit onto `main` | **eligibility, order and lead** |
+| `processedAt` | the first collector run that saw the file | display only (workflow start-up delay) |
+
+`receivedAt` comes from GitHub, not from the client: the repository activity API (each push's server timestamp with its before/after commits) and, for the run a push triggered, the push event's `repository.pushed_at`. Every collector run copies these into `receipts/pushes.jsonl` so the evidence outlives GitHub's activity retention. If both sources describe the same push and disagree by more than 2 minutes, the submission is excluded. Until receipt evidence exists the submission is shown as *awaiting receipt* and is not scored. A delayed workflow therefore cannot make an on-time save late, and a backdated or late-pushed local commit cannot make a late save on time. Saving from the browser is the normal path; a downloaded draft committed by hand gets the time GitHub receives the push.
+
+The original file bytes (from the first commit that added the file) must still match the current file. Altered files, deleted files, inconsistent starting-snapshot metadata and windows starting less than 60 minutes after `receivedAt` are excluded. Git history and the receipt log live in the owner's repository: they are an audit trail, not an independent tamper-proof service.
 
 Daily targets use CVG's climate day: midnight to midnight local STANDARD time (EST throughout the year). In summer that is 1 a.m.–1 a.m. EDT. The minimum 60-minute lead also means a 11:30 p.m. EST save cannot verify the immediately following climate day; the editor excludes such dates.
 
-The first accepted submission within the same captured edition's noon–12:15 p.m. or 11:30–11:45 p.m. America/New_York window is primary. Its starting snapshot must belong to that edition and predate the submission. Later saves are revisions; saves outside those windows are personal updates. These are all retained and individual results are shown, but only primary cases enter equal-edition matched scorecards. A changed original cannot promote a later revision into primary scoring.
+**Selection policy (primary, revision, personal).** For each captured edition:
 
-Scores record actual issue lead, basis retrieval time, recipe hash, normalization version, file and commit. Temperature and precipitation are compared with the existing climate observations. Shared source scorecards match valid date, capture edition and method, and filter lead day and edition; they display each source's actual lead range. An earlier source retrieval can have a slightly longer lead than the personal submission within the same edition. At least 30 unique verifying dates and varied weather are needed before drawing skill conclusions. No weights change automatically.
+1. Candidates are accepted submissions *received* within the edition's on-time window (12:00–12:15 p.m. or 11:30–11:45 p.m. America/New_York, same local date) whose starting snapshot belongs to that edition and was retrieved before receipt.
+2. The earliest received candidate is **primary**; ties break on forecast ID. Times are compared as instants, never as text.
+3. An original that is later altered or deleted keeps its primary slot and is excluded, so changing a file can never promote a later revision.
+4. A submission excluded for any other reason (invalid values, unverifiable starting snapshot, missing or conflicting receipt evidence) never held the slot; the next valid candidate is primary. Excluded submissions are listed with their reasons.
+5. Later candidates are **revisions**; submissions received outside the window are **personal updates**. All are kept with individual results; only primary cases enter matched scorecards. Selection never looks at observations or scores.
+
+**Method changes.** Personal values are frozen. `my-forecast-v1` values were entered for CVG climate days (midnight to midnight local standard time). A personal case is compared only while the current target definition is the same convention and exact UTC window; otherwise it is excluded as *target definition changed*. The starting snapshot's normalizer version is kept as provenance (`basisNormVersion`) and does not have to equal the version of the archive forecasts it is compared with, but all archive forecasts in one matched case must share a single normalizer version. Version mixes are excluded, never merged.
+
+Scores record actual issue lead (from `receivedAt`), basis retrieval time, recipe hash, normalization version, file and commit. Temperature and precipitation are compared with the existing climate observations. Shared source scorecards match valid date, capture edition and method, and filter lead day and edition; they display each source's actual lead range. An earlier source retrieval can have a slightly longer lead than the personal submission within the same edition. At least 30 unique verifying dates and varied weather are needed before drawing skill conclusions. No weights change automatically.
 
 Submitting a file triggers **score-only**, without collecting forecasts or observations. Scheduled observation/scoring runs subsequently update `reports/my-forecast.json` and the private dashboard projections. Forecast collection schedules are unchanged. A downloaded draft must be committed under the personal-forecasts path before it can be processed; its issue time will be the actual commit time, never its draft time.

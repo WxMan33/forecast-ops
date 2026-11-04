@@ -22,7 +22,7 @@ rainpairs=[{**rainbase,'id':id,'target':'precip_clim','v':v,'o':0.3} for id,v in
 rainpairs += [{**rainbase,'id':id,'target':'pop01_clim','v':v,'o':1,'thresholdIn':0.01,'probabilityMethod':'ensemble-frequency'} for id,v in [('ecmwf_ens',0.3),('gefs',0.6)]]
 files['reports/precip.json']={'schema':1,'at':'synthetic fixture','minDates':30,'pairs':rainpairs,'excluded':{},'pendingCount':0}
 with sync_playwright() as p:
- browser=p.chromium.launch()
+ browser=p.chromium.launch(executable_path=__import__('os').environ.get('CHROMIUM_PATH') or None)
  page=browser.new_page()
  page.clock.install(time=datetime(2026,11,3,17,5,tzinfo=timezone.utc))
  writes=[];allow_write=False
@@ -40,8 +40,20 @@ with sync_playwright() as p:
   r.fulfill(status=200 if rel in files else 404,content_type='application/json',body=json.dumps(files.get(rel,{})))
  page.route('https://api.github.com/**',route)
  page.goto(f'http://127.0.0.1:{server.server_port}/verify.html')
+ page.evaluate('localStorage.setItem("vf_tok","legacy-synthetic-token")')
+ page.reload()
+ assert page.evaluate('localStorage.getItem("vf_tok")') is None, 'legacy remembered token removed'
+ assert page.locator('#tok').input_value()=='legacy-synthetic-token'
  page.locator('#tok').fill('synthetic-test-token')
  page.locator('#load').click()
+ # token persistence is opt-in: the default keeps it in page memory only
+ assert page.evaluate('[localStorage.getItem("vf_tok"),sessionStorage.getItem("vf_tok")]')==[None,None]
+ page.locator('#tokMode').select_option('session')
+ assert page.evaluate('[localStorage.getItem("vf_tok"),sessionStorage.getItem("vf_tok")]')==[None,'synthetic-test-token']
+ page.locator('#tokMode').select_option('device')
+ assert page.evaluate('localStorage.getItem("vf_tok")')=='synthetic-test-token'
+ page.locator('#tokMode').select_option('page')
+ assert page.evaluate('[localStorage.getItem("vf_tok"),sessionStorage.getItem("vf_tok")]')==[None,None]
  page.get_by_role('button',name='My Forecast',exact=True).click()
  page.get_by_role('button',name='Use this blend',exact=True).click()
  page.get_by_label('2026-11-04 hi',exact=True).fill('63')
@@ -52,7 +64,7 @@ with sync_playwright() as p:
  assert page.get_by_label('2026-11-04 hi',exact=True).input_value()=='63'
  allow_write=True
  page.get_by_role('button',name='Save frozen edition',exact=True).click()
- page.locator('#mf-message').filter(has_text='Saved').wait_for()
+ page.locator('#mf-message').filter(has_text='Submitted').wait_for()
  assert len(writes)==1
  import base64
  saved=json.loads(base64.b64decode(writes[0]['content']))

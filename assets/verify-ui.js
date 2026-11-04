@@ -1,5 +1,10 @@
 /* Private verification dashboard. Independent of the forecast pages: it loads report files from the
-   private data repository through the GitHub contents API, using a token kept in localStorage.
+   private data repository through the GitHub contents API with a token the viewer enters.
+   TOKEN STORAGE is opt-in (see TokenStore): by default the token lives only in this page's memory;
+   "this tab" keeps it in sessionStorage until the tab closes; "this device" (explicit opt-in) keeps it
+   in localStorage. Choosing a weaker option, or Forget, deletes it from the stronger stores. A token
+   remembered by an earlier version (which always used localStorage) is removed from localStorage on
+   first load unless "this device" was chosen.
    Review decisions are written as new files under corrections/ (never edits), so every change has an
    audit trail; without a write token the decision can be downloaded and committed by hand. */
 (function () {
@@ -7,7 +12,12 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const ls = { get: (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }, del: (k) => { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } } };
-  $("repo").value = ls.get("vf_repo", "WxMan33/forecast-ops-data"); $("tok").value = ls.get("vf_tok", ""); $("branch").value = ls.get("vf_branch", "main"); $("root").value = ls.get("vf_root", "");
+  const tokens = window.TokenStore.create({ local: window.localStorage, session: window.sessionStorage });
+  const boot = tokens.init();
+  $("tokMode").value = boot.mode; $("tok").value = boot.token || "";
+  $("tokMode").addEventListener("change", () => { const m = tokens.setMode($("tokMode").value, $("tok").value.trim()); $("msg").className = "msg"; $("msg").textContent = m; });
+  if (boot.message) { $("msg").className = "msg"; $("msg").textContent = boot.message; }
+  $("repo").value = ls.get("vf_repo", "WxMan33/forecast-ops-data"); $("branch").value = ls.get("vf_branch", "main"); $("root").value = ls.get("vf_root", "");
   const f = (x, d = 1) => (x == null || !isFinite(x) ? "—" : (+x).toFixed(d)), pct = (x) => (x == null ? "—" : Math.round(x * 100) + "%");
   let IDX = null, SC = null, RQ = null, DASH = null;
   const cfg = () => ({ repo: $("repo").value.trim(), tok: $("tok").value.trim(), branch: $("branch").value.trim() || "main", root: $("root").value.trim().replace(/^\/|\/$/g, "") });
@@ -25,12 +35,12 @@
   const getJSON = async (rel) => (await gh(rel)).json();
   async function imgURL(rel) { const b = await (await gh(rel)).blob(); return URL.createObjectURL(b); }
 
-  $("forget").addEventListener("click", () => { ls.del("vf_tok"); $("tok").value = ""; $("msg").textContent = "Token removed from this browser."; });
+  $("forget").addEventListener("click", () => { tokens.forget(); $("tok").value = ""; $("tokMode").value = tokens.mode(); $("msg").className = "msg"; $("msg").textContent = "Token removed from this page, this tab and this device."; });
   $("load").addEventListener("click", load);
   if ($("tok").value) load();
 
   async function load() {
-    const c = cfg(); ls.set("vf_repo", c.repo); ls.set("vf_tok", c.tok); ls.set("vf_branch", c.branch); ls.set("vf_root", c.root);
+    const c = cfg(); ls.set("vf_repo", c.repo); tokens.keep(c.tok); ls.set("vf_branch", c.branch); ls.set("vf_root", c.root);
     $("msg").className = "msg"; $("msg").textContent = "Loading reports…";
     try { [IDX, SC, RQ] = await Promise.all([getJSON("reports/index.json"), getJSON("reports/scores.json"), getJSON("reports/review-queue.json")]); }
     catch (e) { $("msg").className = "msg err"; $("msg").textContent = `Couldn't load: ${e.message}. Check the repository, branch, folder and token.`; return; }

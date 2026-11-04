@@ -13,6 +13,12 @@ const VERSION = "score-v3"; // v3: one capture per edition and source; primary/l
 const ED = require("./editions.js");
 const TM = require("./timing.js");
 const MIN_DATES = 30; // distinct valid dates before any comparison is called anything but "insufficient"
+const BLENDS = require("../config/blends.js");
+/* A recipe is prospective only for captures that STARTED at or after its effectiveFrom. Values for an
+   earlier capture (e.g. produced by re-normalizing old evidence) are labelled "retrospective" and never
+   enter primary scorecards or matched comparisons. */
+const EFFECTIVE = Object.fromEntries(BLENDS.recipes.concat(BLENDS.candidates || []).filter((r) => r.effectiveFrom).map((r) => [r.id, Date.parse(r.effectiveFrom)]));
+const retrospective = (rid, cap) => EFFECTIVE[rid] != null && !(Date.parse(cap.startedAt) >= EFFECTIVE[rid]);
 
 /* Bundles of the CURRENT normalizer version (older versions stay on disk beside them). */
 function loadBundles(DATA, loc, version) {
@@ -59,7 +65,7 @@ function cases(bundles, tv, loc, capsById = {}) {
     const srcRet = (id) => (b.sourceIssue && b.sourceIssue[id] ? b.sourceIssue[id].retrievedAt : null);
     Object.entries(b.sources || {}).forEach(([id, o]) => Object.entries(o).forEach(([t, byD]) => Object.entries(byD).forEach(([d, x]) => add({ ...base, track: "source", id, selKey: `source:${id}`, selRetrieved: srcRet(id), target: t, date: d, lead: TG.leadDay(cap.localDate, d), v: x.v, ens: x.ens, flags: x.flags || [] }))));
     Object.entries((b.official && b.official.nws) || {}).forEach(([t, byD]) => Object.entries(byD).forEach(([d, x]) => add({ ...base, track: "source", id: "nws-official", selKey: "source:nws", selRetrieved: srcRet("nws"), target: t, date: d, lead: TG.leadDay(cap.localDate, d), v: x.v, flags: x.flags || [] })));
-    Object.entries(b.blends || {}).forEach(([rid, info]) => Object.entries(info.values || {}).forEach(([t, byD]) => Object.entries(byD).forEach(([d, x]) => add({ ...base, track: "blend", id: rid, selKey: `blend:${rid}`, selRetrieved: base.retrievedLast, group: info.group, target: t, date: d, lead: TG.leadDay(cap.localDate, d), v: x.v, spread: x.spread, flags: x.flags || [] }))));
+    Object.entries(b.blends || {}).forEach(([rid, info]) => Object.entries(info.values || {}).forEach(([t, byD]) => Object.entries(byD).forEach(([d, x]) => add({ ...base, track: "blend", id: rid, selKey: `blend:${rid}`, selRetrieved: base.retrievedLast, group: info.group, retrospective: retrospective(rid, cap), target: t, date: d, lead: TG.leadDay(cap.localDate, d), v: x.v, spread: x.spread, flags: x.flags || [] }))));
   });
   tv.forEach((r) => {
     if (!["auto-accepted", "approved", "corrected"].includes(r.reviewStatus)) return;
@@ -135,6 +141,7 @@ function scoreAll(DATA, loc, nowMs = Date.now(), normVersion = require("./normal
   all.forEach((c) => { if (!c.edition) return; const k = `${c.edition}|${c.selKey}|${c.captureId}`; if (seen.has(k)) return; seen.add(k); items.push({ edition: c.edition, key: c.selKey, captureId: c.captureId, retrievedAt: c.selRetrieved, target: c.slotTarget }); });
   const sel = ED.select(items);
   all.forEach((c) => {
+    if (c.retrospective) { c.cls = "retrospective"; return; }
     if (!c.edition) { c.cls = "pilot"; return; }
     const s = sel.get(`${c.edition}|${c.selKey}|${c.captureId}`);
     c.sourceTimeliness = s ? s.timeliness : null;
@@ -144,6 +151,7 @@ function scoreAll(DATA, loc, nowMs = Date.now(), normVersion = require("./normal
   const personal = PERSONAL.load(DATA, loc, nowMs);
   const personalScored = PERSONAL.score(personal, best, loc, nowMs);
   const pairs = personalScored.pairs.slice(), pending = [];
+  /* personal pairs carry the time GitHub received them as their retrieval boundary */
   const rejected = [];
   all.forEach((c) => {
     if (!TG.TARGETS[c.target]) return;
@@ -164,7 +172,7 @@ function scoreAll(DATA, loc, nowMs = Date.now(), normVersion = require("./normal
       if (!TM.obsOk(o.obsAt, last)) return;
       const ld = Math.ceil((t - last) / 86400e3), k = `${id}|${ld}|${cap.slot}`, e = v - o.value;
       const ed = ED.isEdition(cap) ? `${loc.id}|${ED.editionId(cap)}` : null, sk = id.startsWith("blend:") ? id : `source:${id}`, sv = ed && sel.get(`${ed}|${sk}|${cap.captureId}`);
-      const cls = !ed ? "pilot" : !sv || !sv.selected ? "superseded" : sv.timeliness.status === "on_time" ? "primary" : "late";
+      const cls = id.startsWith("blend:") && retrospective(id.slice(6), cap) ? "retrospective" : !ed ? "pilot" : !sv || !sv.selected ? "superseded" : sv.timeliness.status === "on_time" ? "primary" : "late";
       hourlyPairs.push({ cls, leadHours: Math.round((t - last) / 360e3) / 10, captureId: cap.captureId, slot: cap.slot, timeliness: cap.timeliness && cap.timeliness.status, id, valid: U.iso(t), v, o: o.value, obsMeasured: U.iso(o.obsAt), obsIngested: o.seenAt, obsRawSha: o.sha, obsReport: o.report, retrievedLast: b.retrieval.last, leadMin: TM.leadMin(o.obsAt, last), normVersion: b.version, bundle: b.__path });
       const hk = `${k}|${cls}`, h = (hourly[hk] = hourly[hk] || { id, leadDay: ld, slot: cap.slot, cls, n: 0, abs: 0, sum: 0, in2: 0, hours: new Set(), dates: new Set(), lead: [] });
       h.n++; h.abs += Math.abs(e); h.sum += e; h.in2 += Math.abs(e) <= 2 ? 1 : 0; h.hours.add(t); h.dates.add(new Date(t + loc.lstOffsetMin * 60e3).toISOString().slice(0, 10)); h.lead.push((t - last) / 3600e3);
@@ -186,8 +194,12 @@ function scoreAll(DATA, loc, nowMs = Date.now(), normVersion = require("./normal
   /* matched comparisons: OPE blends + benchmarks + sources (temperature and PoP), TV pilot separately */
   const comps = [];
   const opeMembers = ["baseline-v1", "equal-raw-v1", "ecmwf-ens-only", "gefs-only", "nbm-only", "nws-only"];
+  /* The operational default (site preset, archived with an effectiveFrom) in its own set, so editions
+     captured before it existed still count in the established set above. */
+  const defaultId = U.Core.blend.PREFERRED.id, defaultMembers = BLENDS.recipes.some((r) => r.id === defaultId) && !opeMembers.includes(defaultId) ? [defaultId, ...opeMembers] : null;
   const tvIds = [...new Set(pairs.filter((p) => p.track === "tv" && p.locClass !== "explicit-other-point").map((p) => p.id))];
-  ["tmax_clim", "tmin_clim", "pop01_clim", "precip_clim"].forEach((t) => [1, 2, 3, 4, 5, 6, 7].forEach((L) => ["midday", "evening"].forEach((sl) => { const r = matched(pairs, opeMembers, "baseline-v1", t, L, sl); if (r.n) comps.push({ set: "ope", target: t, lead: L, slot: sl, ...r }); })));
+  ["tmax_clim", "tmin_clim", "pop01_clim", "precip_clim"].forEach((t) => [1, 2, 3, 4, 5, 6, 7].forEach((L) => ["midday", "evening"].forEach((sl) => { const r = matched(pairs, opeMembers, "baseline-v1", t, L, sl); if (r.n) comps.push({ set: "ope", target: t, lead: L, slot: sl, ...r });
+    if (defaultMembers) { const d = matched(pairs, defaultMembers, "baseline-v1", t, L, sl); if (d.n) comps.push({ set: "default", target: t, lead: L, slot: sl, ...d }); } })));
   ["tmax_clim", "tmin_night", "pop01_clim"].forEach((t) => [1, 2, 3, 4, 5, 6, 7].forEach((L) => ["midday", "evening"].forEach((sl) => { const mem = [...tvIds, "baseline-v1"]; if (tvIds.length) { const r = matched(pairs, mem, "baseline-v1", t, L, sl); if (r.n) comps.push({ set: "tv-pilot", target: t, lead: L, slot: sl, ...r }); } })));
   const obsBest = [...best.entries()].filter(([k]) => !k.startsWith("temp_hourly")).map(([k, v]) => { const [target, date] = k.split("|"); return { target, date, ...v }; });
   /* eligibility counts per source/product: prospective values held, matched to an observation, scored */
@@ -201,4 +213,4 @@ function scoreAll(DATA, loc, nowMs = Date.now(), normVersion = require("./normal
   hourlyPairs.forEach((p) => { E(p.id.startsWith("blend:") ? "blend" : "source", p.id.replace(/^blend:/, "")).hourlyScored++; });
   return { personal: { ...personal, ...personalScored }, version: VERSION, timing: TM.VERSION, normVersion, eligibility: Object.values(elig), at: U.iso(nowMs), pairs, hourlyPairs, rejected, pending, obsBest, summary, hourly: Object.values(hourly).map((h) => ({ id: h.id, leadDay: h.leadDay, slot: h.slot, cls: h.cls, n: h.n, uniqueHours: h.hours.size, ...indep([...h.dates]), leadHours: leadStats(h.lead), mae: h.abs / h.n, bias: h.sum / h.n, within2: h.in2 / h.n })), editionsVersion: ED.VERSION, comparisons: comps, bundles: bundles.length, tv, obsCount: obsRows.length, minDates: MIN_DATES };
 }
-module.exports = { VERSION, scoreAll, cases, metrics, ensMetrics, matched, blockBootstrap, reviewedTV, MIN_DATES };
+module.exports = { VERSION, EFFECTIVE, retrospective, scoreAll, cases, metrics, ensMetrics, matched, blockBootstrap, reviewedTV, MIN_DATES };

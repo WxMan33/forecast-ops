@@ -4,6 +4,11 @@ Updated November 3, 2026. This is planned work, not a claim that these features 
 
 ## 1. Verification and the daily forecast workspace
 
+**Before expanding collection (from the Nov 4 verification review):**
+
+- [ ] Workflow concurrency: the collector's single concurrency group keeps only one waiting run, so a newer queued run (for example a personal-forecast push or an observation run) can cancel a waiting collection run. Split collection from scoring/receipt runs, or make every scheduled collection independently recoverable, before adding markets, stations or editions. Receipt evidence no longer depends on the push-triggered run (the activity API is read on every run), so this affects collection reliability, not issue times.
+- [ ] Blend rain-probability composition by lead: the blend's chance of >=0.01 in is a weighted mix of the ensemble systems that cover the whole window. Short-range systems (RRFS ensemble) drop out at longer leads, changing the mix silently. Record and display the contributing systems per lead, and compare probabilities only between cases with the same contributing set.
+
 - [ ] CVG forecast-versus-observed dashboard: overlay earlier archived forecasts with observed temperature, dew point and wind; summarize bias, timing and errors by source and actual lead time. Keep routine hourly observations separate from official daily climate extrema.
 - [ ] Forecast history: follow a fixed valid hour, calendar day or event window through successive captures, including temperatures, precipitation and snowfall. Distinguish changed contributors/settings from changed guidance.
 - [ ] My forecast: begin with the blend, edit lows/highs, precipitation and wording, and save immutable issued forecasts with issue times and method versions. Verify these separately from the untouched blend.

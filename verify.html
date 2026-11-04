@@ -48,12 +48,16 @@
       <div class="section-title" style="margin:0">CVG forecast verification</div>
       <a class="msg" href="index.html">← forecast tools</a>
     </div>
-    <p class="msg">This page holds no data. It reads the private data repository with a GitHub token you enter here; the token stays in this browser only. Results are private pilot evidence: no rankings or "most accurate" claims.</p>
+    <p class="msg">This page holds no data. It reads the private data repository with a GitHub token you enter here; by default the token is kept only while this page is open. Results are private pilot evidence: no rankings or "most accurate" claims.</p>
     <div class="row" style="gap:8px;flex-wrap:wrap;align-items:end">
       <div><label class="field-label" for="repo">Data repository</label><input class="input mono" id="repo" placeholder="WxMan33/forecast-ops-data"></div>
       <div style="flex:1;min-width:220px"><label class="field-label" for="tok">Fine-grained token (Contents: read, or read &amp; write for reviews)</label><input class="input mono" id="tok" type="password" autocomplete="off"></div>
       <div><label class="field-label" for="branch">Branch</label><input class="input mono" id="branch" placeholder="main" style="width:110px"></div>
       <div><label class="field-label" for="root">Data folder</label><input class="input mono" id="root" placeholder="(repo root)" style="width:130px"></div>
+      <div><label class="field-label" for="tokMode">Keep token</label><select class="input" id="tokMode" style="width:auto">
+        <option value="page">Only while this page is open</option>
+        <option value="session">Until this tab closes</option>
+        <option value="device">On this device (opt-in)</option></select></div>
       <button class="btn" id="load" type="button">LOAD</button>
       <button class="btn ghost" id="forget" type="button">FORGET TOKEN</button>
     </div>
@@ -61,13 +65,14 @@
   </section>
   <div id="out"></div>
 </main>
-<script src="assets/precip-core.js?v=d0b6858432"></script>
+<script src="assets/precip-core.js?v=d95b72192e"></script>
 <script src="assets/precip-ui.js?v=7d6dd3579a"></script>
 <script src="assets/my-forecast-core.js?v=5900bd2753"></script>
-<script src="assets/my-forecast.js?v=8527a7e9b4"></script>
-<script src="assets/verify-core.js?v=99a258ec33"></script>
+<script src="assets/my-forecast.js?v=02c9f82a42"></script>
+<script src="assets/verify-core.js?v=bb8b1d223d"></script>
 <script src="assets/verify-panels.js?v=bf9ea88e07"></script>
-<script src="assets/verify-ui.js?v=561d43ecd5"></script>
+<script src="assets/token-store.js?v=97756d24e3"></script>
+<script src="assets/verify-ui.js?v=d9228c4ae1"></script>
 </body>
 </html>
 

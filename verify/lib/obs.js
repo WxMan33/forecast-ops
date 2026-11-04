@@ -9,7 +9,7 @@
 "use strict";
 const U = require("./util.js");
 const TG = require("./targets.js");
-const VERSION = "obs-v1";
+const VERSION = "obs-v2";
 const c2f = (c) => (c == null ? null : Math.round((c * 9 / 5 + 32) * 10) / 10);
 
 /* ---------- METAR ---------- */
@@ -122,9 +122,11 @@ function parseACIS(json) {
   ((json && json.data) || []).forEach(([date, mx, mn, pc, sn]) => {
     const add = (target, s) => {
       if (s == null || s === "M" || s === "S" || s === "") return;
-      const acc = /A$/.test(s); const v = s.replace(/A$/, "");
+      /* "A" = an amount ACCUMULATED over several days and reported on the last one. It is not that
+         day's value, so it is never scored as a climate-day amount (the CLI/CF6 daily values stand). */
+      const acc = /A$/.test(s); if (acc) return; const v = s;
       if (v === "T") out.push({ target, date, value: 0, flags: ["trace"], src: "ACIS", status: "revised" });
-      else if (isFinite(+v)) out.push({ target, date, value: +v, flags: acc ? ["accumulated"] : [], src: "ACIS", status: "revised" });
+      else if (isFinite(+v)) out.push({ target, date, value: +v, flags: [], src: "ACIS", status: "revised" });
     };
     add("tmax_clim", mx); add("tmin_clim", mn); add("precip_clim", pc); add("snow_clim", sn);
     if (pc && pc !== "M" && pc !== "S" && !/A$/.test(pc)) out.push({ target: "pop01_clim", date, value: pc !== "T" && +pc >= 0.01 ? 1 : 0, flags: pc === "T" ? ["trace"] : [], src: "ACIS", status: "revised" });
@@ -150,7 +152,8 @@ const RANK = { final: 4, revised: 3, corrected: 2, preliminary: 1 };
 const SRC_RANK = { GHCND: 4, ACIS: 3, CLI: 2, CF6: 1.5, METAR: 1 };
 function best(rows) {
   const by = new Map();
-  rows.forEach((r) => { if (!(r.status in RANK)) return; const k = `${r.target}|${r.date || r.time}`; (by.get(k) || by.set(k, []).get(k)).push(r); });
+  /* rows archived before obs-v2 may still carry ACIS multi-day ("accumulated") totals: never use them */
+  rows.forEach((r) => { if (!(r.status in RANK) || (r.flags || []).includes("accumulated")) return; const k = `${r.target}|${r.date || r.time}`; (by.get(k) || by.set(k, []).get(k)).push(r); });
   const out = new Map();
   by.forEach((list, k) => {
     const s = list.slice().sort((a, b) => RANK[b.status] - RANK[a.status] || SRC_RANK[b.src] - SRC_RANK[a.src] || String(b.seenAt || b.issuedAt || "").localeCompare(String(a.seenAt || a.issuedAt || "")));
