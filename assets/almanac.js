@@ -74,9 +74,9 @@
     $("sheetTitle").textContent = fmtDate(sel, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
     $("astroName").textContent = pt.name;
     note("astro", { name: pt.name, lat: pt.lat, lon: pt.lon, tz: tzA });
-    loadNotes();
     const fail = (id, title) => (e) => { if (my === run) $(id).innerHTML = `<div class="section-title">${title}</div><div class="state err">This section couldn't be shown (${esc(String((e && e.message) || e))}). Other sections are unaffected; reload to try again.</div>`; };
     sunCard(my, pt, tzA).catch(fail("sunCard", "Sun and moon"));
+    skywatch.load(sel).catch(fail("skyCard", "Cincinnati skywatch"));
     climate(my, today, future).catch((e) => { fail("climCard", "Daily climate")(e); fail("factCard", "Weather numbers")(e); });
   }
 
@@ -128,7 +128,7 @@
       <div class="infopanel" id="${uid}" hidden>
         <dl class="kv">
           <dt>Civil twilight begins</dt><dd>${t(s.civilBegin)}</dd><dt>Solar noon</dt><dd>${t(s.noon)}</dd><dt>Civil twilight ends</dt><dd>${t(s.civilEnd)}</dd>
-          <dt>Moonrise</dt><dd>${m && m.moon.rise ? hm(m.moon.rise.ms, tz) : "none this date"}</dd><dt>Moonset</dt><dd>${m && m.moon.set ? hm(m.moon.set.ms, tz) : "none this date"}</dd>
+          <dt>Moonrise</dt><dd>${m ? m.moon.rise ? hm(m.moon.rise.ms, tz) : "none this date" : "unavailable"}</dd><dt>Moonset</dt><dd>${m ? m.moon.set ? hm(m.moon.set.ms, tz) : "none this date" : "unavailable"}</dd>
         </dl>
         <p>Sun times are <b>calculated</b> with the NOAA Solar Calculator algorithm and shown to the minute exactly as NOAA's table rounds them; daylight and its change use the unrounded times. Moon phase, illumination, moonrise and moonset are <b>retrieved</b> from the U.S. Naval Observatory.</p>
       </div>`;
@@ -244,7 +244,7 @@
         <button class="infobtn" type="button" id="wnHow" aria-expanded="false" aria-controls="wnHowPanel">ⓘ How these are calculated</button></div>
       <div class="infopanel" id="wnHowPanel" hidden>
         <p><b>Observed values</b> come from the Cincinnati/Northern Kentucky airport (CVG), observed through ${esc(fmtDate(d.thru, { month: "long", day: "numeric", year: "numeric" }))}. Recent days are preliminary and can be corrected. <b>Normals</b> are NCEI 1991–2020 daily normals for CVG. <b>Rankings</b> use the Cincinnati threaded record (the official city record joined across sites since 1871) for exactly the same elapsed dates in every year; meteorological winter runs Dec 1 to Feb 28/29 and crosses the calendar year. A year counts only if it has no missing days in that span. Ranks are competition ranks: tied years share a rank, and the opposite extreme is counted separately from the values, not by reversing the rank.</p>
-        <p>Missing observations or normals are reported, never filled: an incomplete period shows no departure and no rank. Ranks over fewer than 7 days are shown but not highlighted. Trace precipitation is recorded but not measurable.</p></div>
+        <p>Missing observations or normals are reported, never filled: an incomplete period shows no departure and no rank. Every complete, ranked card has a standing badge. Early periods under 7 days use quiet styling. Strong emphasis requires a top-10 rank that is also in the top 10% of usable years; the top third gets lighter emphasis. Trace precipitation is recorded but not measurable.</p></div>
       <div class="wngrid">${cards.join("")}</div>
       <div class="oprow">
         ${tile("Without measurable precip", `${ds.atLeast ? "≥ " : ""}${ds.days} day${ds.days === 1 ? "" : "s"}`, ds.endedBy === "measurable" ? `since ${ds.amount.toFixed(2)}″ on ${short(ds.at)}${traceSince ? ` · ${traceSince} day${traceSince > 1 ? "s" : ""} with a trace` : ""}` : ds.endedBy === "missing" ? `count stops at a missing day (${short(ds.at)})` : `data window starts ${short(ds.from)}`)}
@@ -262,15 +262,15 @@
     const r = o.rank, L = o.lead, shortP = o.days < 7;
     const head = !L ? null : `${A.ordinal(L.rank)}${L.tied ? " (tie)" : ""} ${o.words[L.side]}`;
     const level = !L || shortP ? "typical" : L.level;
-    const rankLine = !r ? "Ranking unavailable" : !r.available ? `Not ranked: ${r.why}` : o.incomplete ? "Not ranked: incomplete period" : `${head} of ${r.n} usable years (${r.from}–${r.to})`;
+    const rankLine = !r ? "Ranking unavailable" : !r.available ? `Not ranked: ${r.why}` : o.incomplete ? "Not ranked: incomplete period" : `${r.n} usable years (${r.from}–${r.to})`;
     const det = `${o.id}Det`;
     return `<article class="wncard ${level}">
       <div class="wnhead"><span class="wnper">${esc(o.period)}</span><span class="wnkind">${esc(o.kind)}</span></div>
-      ${level === "strong" && head && !o.incomplete ? `<div class="wnbadge ${L.side === "high" ? (o.kind === "Temperature" ? "warm" : "wet") : (o.kind === "Temperature" ? "cold" : "dry")}">${esc(head)}</div>` : ""}
+      ${head && !o.incomplete ? `<div class="wnbadge standing ${level === "strong" ? "emph" : level === "notable" ? "noteworthy" : "quiet"} ${L.side === "high" ? (o.kind === "Temperature" ? "warm" : "wet") : (o.kind === "Temperature" ? "cold" : "dry")}">${esc(head)}</div>` : ""}
       <div class="wnbig">${o.primary}<small>${esc(o.primaryNote)}</small></div>
       ${o.incomplete ? `<div class="wndep unavail">Incomplete: ${esc(o.incomplete)}. No departure or rank.</div>` : o.dep ? `<div class="wndep ${o.dep.cls}">${esc(o.dep.txt)}</div>` : ""}
       ${o.support ? `<div class="wnsup">${esc(o.support)}</div>` : ""}
-      <div class="wnrank${level === "notable" && !o.incomplete ? " notable" : ""}">${esc(rankLine)}${shortP && L && !o.incomplete ? " · short period, not highlighted" : ""}</div>
+      <div class="wnrank${level === "notable" && !o.incomplete ? " notable" : ""}">${esc(rankLine)}${shortP && L && !o.incomplete ? ` · early ${o.days}-day snapshot` : ""}</div>
       <button class="wninfo" type="button" aria-expanded="false" aria-controls="${det}">ⓘ Details</button>
       <div class="wndet" id="${det}" hidden><dl class="kv">
         <dt>Period</dt><dd>${esc(o.period.split(" · ")[1])} (${o.days} days)</dd>
@@ -298,19 +298,10 @@
     <p>Daylight is the difference of two real instants, so daylight-saving changes never add or remove an hour. T = trace (not measurable); missing values are never counted as zero. No precipitation or snowfall normal is published for Feb 29. timeanddate.com and NOAA's own table are comparison references only.</p>`;
   }
 
-  /* ---------- notes (this browser only; never mixed with sourced values) ---------- */
-  const noteKey = () => `alm_notes:${(+O.location.lat).toFixed(3)},${(+O.location.lon).toFixed(3)}:${sel}`;
-  function loadNotes() {
-    const n = O.store.get(noteKey(), null);
-    $("notes").value = n ? n.text : ""; $("printNotes").textContent = n ? n.text : "";
-    $("notesState").textContent = n ? `saved ${new Date(n.at).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` : "";
-  }
-  let nt = null;
-  $("notes").addEventListener("input", () => { clearTimeout(nt); nt = setTimeout(() => { const text = $("notes").value; if (text.trim()) O.store.set(noteKey(), { text, at: Date.now() }); else { try { localStorage.removeItem(noteKey()); } catch (e) { /* ignore */ } } loadNotes(); }, 400); });
-
   /* printing: include expandable details */
   window.addEventListener("beforeprint", () => document.querySelectorAll(".almanac .infopanel").forEach((d) => { d.dataset.wasHidden = d.hidden ? "1" : ""; d.hidden = false; }));
   window.addEventListener("afterprint", () => document.querySelectorAll(".almanac .infopanel").forEach((d) => { d.hidden = d.dataset.wasHidden === "1"; }));
+  const skywatch = window.Skywatch.mount({ O, getJSON: getJ });
   keepDate();
   render();
 })();

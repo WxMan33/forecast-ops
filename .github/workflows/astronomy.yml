@@ -1,0 +1,34 @@
+name: Refresh Cincinnati astronomy
+on:
+  push:
+    branches: [main]
+    paths: ['tools/refresh-astronomy.js', '.github/workflows/astronomy.yml']
+  schedule:
+    - cron: '43 0,6,12,18 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: astronomy-feed
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tests/astronomy.test.js
+      - run: node tools/refresh-astronomy.js
+      - name: Publish refreshed schedule
+        run: |
+          git config user.name 'forecast-ops astronomy collector'
+          git config user.email 'actions@users.noreply.github.com'
+          git add feeds/iss-cincinnati.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'data: refresh NASA Cincinnati ISS sightings'
+          git pull --rebase origin main
+          git push origin HEAD:main
