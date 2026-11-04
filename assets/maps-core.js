@@ -1,0 +1,87 @@
+/* Forecast Ops model maps: pure functions shared by the viewer and its tests (maps-core-v1).
+   The display uses the model's OWN Lambert conformal projection, so every native grid cell is an exact
+   rectangle on screen: nothing is resampled. Locations and boundaries are projected into the grid with
+   the GRIB projection parameters stored in each run's manifest. */
+(function (root) {
+  "use strict";
+  const VERSION = "maps-core-v1";
+  const rad = (d) => (d * Math.PI) / 180;
+
+  /* Spherical Lambert conformal conic, GRIB2 template 3.30. Returns grid coordinates (fractional cell
+     index within the crop) for a latitude/longitude, and back. */
+  function projector(grid) {
+    const R = grid.radius, p1 = rad(grid.Latin1InDegrees), p2 = rad(grid.Latin2InDegrees), p0 = rad(grid.LaDInDegrees);
+    const l0 = rad(((grid.LoVInDegrees + 180) % 360 + 360) % 360 - 180);
+    const n = Math.abs(p1 - p2) < 1e-12 ? Math.sin(p1) : Math.log(Math.cos(p1) / Math.cos(p2)) / Math.log(Math.tan(Math.PI / 4 + p2 / 2) / Math.tan(Math.PI / 4 + p1 / 2));
+    const F = (Math.cos(p1) * Math.pow(Math.tan(Math.PI / 4 + p1 / 2), n)) / n, rho0 = (R * F) / Math.pow(Math.tan(Math.PI / 4 + p0 / 2), n);
+    const xy = (lat, lon) => {
+      const L = rad(((lon + 180) % 360 + 360) % 360 - 180), rho = (R * F) / Math.pow(Math.tan(Math.PI / 4 + rad(lat) / 2), n);
+      const th = n * ((((L - l0) + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI);
+      return [rho * Math.sin(th), rho0 - rho * Math.cos(th)];
+    };
+    const toCell = (lat, lon) => { const [x, y] = xy(lat, lon); return [(x - grid.x0) / grid.DxInMetres - grid.i0, (y - grid.y0) / grid.DyInMetres - grid.j0]; };
+    const fromCell = (ci, cj) => {
+      const x = (ci + grid.i0) * grid.DxInMetres + grid.x0, y = (cj + grid.j0) * grid.DyInMetres + grid.y0, dy = rho0 - y;
+      const rho = Math.sign(n) * Math.hypot(x, dy), th = Math.atan2(Math.sign(n) * x, Math.sign(n) * dy);
+      const lat = 2 * Math.atan(Math.pow((R * F) / rho, 1 / n)) - Math.PI / 2, lon = l0 + th / n;
+      return [(lat * 180) / Math.PI, ((((lon * 180) / Math.PI) + 180) % 360 + 360) % 360 - 180];
+    };
+    /* nearest native cell; null outside the crop */
+    const nearest = (lat, lon) => { const [fi, fj] = toCell(lat, lon), i = Math.round(fi), j = Math.round(fj); return i >= 0 && j >= 0 && i < grid.nx && j < grid.ny ? [i, j] : null; };
+    return { toCell, fromCell, nearest };
+  }
+
+  /* One field's decoded block: values[hour][j][i] as a flat typed array. */
+  function field(spec, buf, nHours, ny, nx) {
+    const a = spec.dtype === "int16" ? new Int16Array(buf) : new Uint16Array(buf), miss = spec.dtype === "int16" ? -32768 : 65535, per = ny * nx;
+    if (a.length !== nHours * per) throw new Error(`field size ${a.length} != ${nHours}x${ny}x${nx}`);
+    const at = (h, i, j) => { if (h < 0 || h >= nHours || i < 0 || j < 0 || i >= nx || j >= ny) return null; const v = a[h * per + j * nx + i]; return v === miss ? null : v * spec.scale; };
+    const present = (h) => !(spec.missingHours || []).includes(h);
+    return { at, present, raw: a, per, miss };
+  }
+
+  /* Precipitation over a window ending at forecast hour index h, from compatible fields of this run only.
+     width "run": the GRIB 0-N accumulation as published. Otherwise the sum of consecutive one-hour GRIB
+     accumulations (N-1)-N for the last `width` hours; unavailable (null) unless every hour in the window
+     is present with exactly that interval. Returns {mm, from, to} or {mm:null, why}. */
+  function precip(man, fields, h, width, i, j) {
+    const hrs = man.hours, H = hrs[h];
+    if (width === "run") {
+      const iv = man.fields.apcp_run.intervals[h];
+      if (H === 0 || (iv && iv.endStep === iv.startStep)) return { mm: null, why: "no accumulation at the start of the run" }; // GRIB 0-0 h: zero-length interval
+      if (!iv || iv.startStep !== 0 || iv.endStep !== H) return { mm: null, why: "run total missing for this hour" };
+      const v = fields.apcp_run.at(h, i, j); return v == null ? { mm: null, why: "missing" } : { mm: v, from: 0, to: H };
+    }
+    if (H - width < 0) return { mm: null, why: `only ${H} h of this run precede this time` };
+    let s = 0;
+    for (let k = H - width + 1; k <= H; k++) {
+      const hi = hrs.indexOf(k), iv = hi < 0 ? null : man.fields.apcp_hour.intervals[hi];
+      if (!iv || iv.startStep !== k - 1 || iv.endStep !== k) return { mm: null, why: `hour ${k} is missing` };
+      const v = fields.apcp_hour.at(hi, i, j); if (v == null) return { mm: null, why: `hour ${k} is missing` };
+      s += v;
+    }
+    return { mm: s, from: H - width, to: H };
+  }
+
+  /* Colour scales: stepped, labelled, original. Returns [r,g,b,a] or null (transparent). */
+  const SCALES = {
+    t2m: { units: "°F", stops: [[-10, [94, 60, 153]], [0, [77, 92, 186]], [10, [62, 125, 214]], [20, [72, 165, 230]], [32, [120, 200, 236]], [33, [96, 186, 140]], [40, [128, 200, 110]], [50, [196, 214, 92]], [60, [238, 204, 78]], [70, [240, 150, 60]], [80, [222, 92, 52]], [90, [180, 40, 52]], [100, [128, 20, 60]]], step: 2 },
+    precip: { units: "in", stops: [[0.01, [178, 226, 178]], [0.05, [120, 198, 121]], [0.10, [49, 163, 84]], [0.25, [0, 109, 44]], [0.50, [44, 127, 184]], [0.75, [37, 52, 148]], [1.00, [122, 1, 119]], [1.50, [197, 27, 138]], [2.00, [247, 104, 161]], [3.00, [253, 224, 239]]] },
+    refc: { units: "dBZ", stops: [[5, [170, 210, 232]], [15, [95, 170, 220]], [20, [40, 180, 90]], [25, [20, 145, 60]], [30, [10, 110, 40]], [35, [240, 220, 40]], [40, [235, 165, 30]], [45, [225, 95, 25]], [50, [200, 20, 20]], [55, [150, 0, 60]], [60, [190, 70, 200]], [65, [245, 245, 245]]] },
+  };
+  function color(scale, v) {
+    if (v == null || !Number.isFinite(v)) return null;
+    const st = SCALES[scale].stops;
+    if (scale === "t2m") { // continuous ramp between stops, in 2 degF steps; freezing stays a hard boundary
+      const q = Math.floor(v / 2) * 2 + 1, x = Math.max(st[0][0], Math.min(st[st.length - 1][0], q));
+      for (let k = 0; k < st.length - 1; k++) { const [a, ca] = st[k], [b, cb] = st[k + 1]; if (x >= a && x <= b) { if (b - a <= 1) return [...(x < b ? ca : cb), 205]; const f = (x - a) / (b - a); return [0, 1, 2].map((c) => Math.round(ca[c] + (cb[c] - ca[c]) * f)).concat(205); } }
+      return [...st[x <= st[0][0] ? 0 : st.length - 1][1], 205];
+    }
+    if (v < st[0][0]) return null; // below the lowest threshold: transparent (no precipitation / echo shown)
+    let c = st[0][1]; for (const [t, rgb] of st) { if (v >= t) c = rgb; } return [...c, 215];
+  }
+  const mmToIn = (mm) => (mm == null ? null : mm / 25.4);
+
+  const api = { VERSION, projector, field, precip, SCALES, color, mmToIn };
+  if (typeof module !== "undefined" && module.exports) module.exports = api; else root.MapsCore = api;
+})(typeof globalThis !== "undefined" ? globalThis : this);

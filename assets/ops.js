@@ -40,6 +40,7 @@
     snow: '<path d="M12 2v20M4.9 4.9l14.2 14.2M2 12h20M4.9 19.1 19.1 4.9"/><path d="m9 4 3 2 3-2M9 20l3-2 3 2M4 9l2 3-2 3M20 9l-2 3 2 3"/>',
     sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
     moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+    map: '<path d="M9 3 3 5v16l6-2 6 2 6-2V3l-6 2-6-2Z"/><path d="M9 3v16M15 5v16"/>',
     crosshair: '<circle cx="12" cy="12" r="9"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',
     star: '<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.2-6.2 3.2 1.2-6.8-5-4.9 6.9-1Z"/>',
     link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
@@ -79,10 +80,11 @@
     { href: "severe.html", id: "severe", label: "SEVERE", icon: "tornado" },
     { href: "winter.html", id: "winter", label: "WINTER", icon: "snow" },
     { href: "almanac.html", id: "almanac", label: "ALMANAC", icon: "sun" },
+    { href: "maps.html", id: "maps", label: "MAPS", icon: "map" },
   ];
 
   /* opts: { subtitle, forecastPoint (default true): show the forecast point and its NWS alerts } */
-  const SUBTITLES = { home: "Next three days at a glance", blend: "Weighted guidance from models, ensembles and NWS", thunder: "Hour-by-hour thunder signal", severe: "Severe-weather environment by hour", winter: "Snow odds, precipitation type and profiles", almanac: "Sun, moon and Cincinnati daily climate" };
+  const SUBTITLES = { home: "Next three days at a glance", blend: "Weighted guidance from models, ensembles and NWS", thunder: "Hour-by-hour thunder signal", severe: "Severe-weather environment by hour", winter: "Snow odds, precipitation type and profiles", almanac: "Sun, moon and Cincinnati daily climate", maps: "HRRR model guidance across the Tri-State" };
   function shell(pageId, title, opts = {}) {
     const fp = opts.forecastPoint !== false, sub = opts.subtitle || SUBTITLES[pageId] || "";
     document.title = `${title} · ${BRAND.name}`;

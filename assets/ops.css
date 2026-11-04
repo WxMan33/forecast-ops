@@ -578,3 +578,26 @@ select.input.inline { width: auto; display: inline-block; padding: 3px 8px; font
 .covtab th[scope="row"] { position: sticky; left: 0; z-index: 1; background: var(--panel); }
 .covtab thead th:first-child { position: sticky; left: 0; z-index: 2; background: var(--panel); }
 @media (max-width: 600px) { .covtab th[scope="row"] { max-width: 120px; white-space: normal; } }
+
+/* Model maps */
+.mapctl { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-top: 10px; }
+.mapctl .input.inline { width: auto; }
+.validtxt { font-size: 12.5px; min-width: 220px; }
+.mapwrap { position: relative; width: 100%; }
+.mapwrap canvas { display: block; border-radius: var(--r-inner); outline-offset: 3px; cursor: crosshair; }
+.mapnote { position: absolute; left: 10px; right: 10px; top: 10px; padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, var(--panel) 88%, transparent); border: 1px solid var(--line); font-size: 13px; }
+.maplegend { margin-top: 10px; }
+.maplegend .lgt { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+.maplegend .lgs { display: flex; flex-wrap: wrap; gap: 2px 8px; }
+.maplegend .lg { display: inline-flex; align-items: center; gap: 4px; font: 12px var(--font-mono); }
+.maplegend .lg i { display: inline-block; width: 16px; height: 12px; border-radius: 2px; border: 1px solid color-mix(in srgb, var(--text) 25%, transparent); }
+.inspect { margin-top: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-inner); }
+.inspect-v { font-size: 15px; }
+@media print { .mapnote { position: static; } }
+.maplegend .lgbar { height: 12px; border-radius: 3px; max-width: 520px; border: 1px solid color-mix(in srgb, var(--text) 25%, transparent); }
+.maplegend .lgticks { position: relative; height: 16px; max-width: 520px; font: 11px var(--font-mono); }
+.maplegend .lgticks span { position: absolute; transform: translateX(-50%); top: 2px; }
+.maplegend .lgs > .lgbar, .maplegend .lgs > .lgticks { flex: 1 1 100%; width: 100%; }
+.maplegend .lgs:has(.lgbar) { display: block; }
+.maplegend .lgticks span:first-child { transform: none; }
+.maplegend .lgticks span:last-child { transform: translateX(-100%); }

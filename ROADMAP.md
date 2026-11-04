@@ -23,6 +23,16 @@ Updated November 3, 2026. This is planned work, not a claim that these features 
 - [ ] Later: calendar import/connection, routine daily event briefings and meaningful-change notifications using the same shared calculations.
 - [ ] Keep forecast thunder potential distinct from detected lightning and OPE's operational lightning timer.
 
+## Regional forecasting workspace
+
+1. [x] Point blend transparency: source contributions by forecast day on Model Blend.
+2. [x] Gridded model maps v1: HRRR 3 km over the Tri-State (temperature, precipitation windows, simulated reflectivity) on the native grid, published by WxMan33/forecast-ops-maps.
+   - [ ] Next models through the same pipeline: RRFS, then GFS for days 3–10. Other forecast areas.
+3. [ ] Area forecasts: county, venue-area and custom-polygon summaries showing spatial variation and where/when thresholds are exceeded.
+4. [ ] Regional gridded blend: variable-specific weights, explicit handling of different grids and forecast horizons.
+   - [ ] Verify at additional reporting stations before claiming CVG-tuned weights work across the region.
+- [ ] Hosting plan for OPE Weather Ops: GitHub Pages is for this personal pilot only (size and bandwidth limits; not for commercial services).
+
 ## 3. Additional guidance and context
 
 RRFS deterministic and the five-member RRFS ensemble are registered. A native CVG point feed is the initial implementation; full time-lagged REFS is a separate future integration. See [model status](MODEL-STATUS.md). HREF is legacy guidance under the November 2026 transition, rather than a new integration target.

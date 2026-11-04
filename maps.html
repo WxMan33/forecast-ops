@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Model Maps</title>
+<meta name="description" content="HRRR model guidance across the Cincinnati Tri-State: temperature, precipitation and simulated reflectivity on the native grid.">
+<link rel="icon" href="assets/icon.svg?v=05c4bd5103" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap">
+<!--load-guard--><script>/* Load guard (managed by tools/stamp-assets.js). Shown only if a page script fails to download or throws. */
+(function () { var shown = false;
+  function show(msg) { if (shown) return; shown = true;
+    var go = function () { var b = document.createElement("div"); b.setAttribute("role", "alert"); b.id = "loadGuard";
+      b.style.cssText = "position:sticky;top:0;z-index:9999;margin:0;padding:10px 16px;background:#7a1f12;color:#fff;font:600 14px/1.4 system-ui,sans-serif;display:flex;gap:12px;align-items:center;flex-wrap:wrap";
+      b.innerHTML = '<span>This page didn\u2019t finish loading. <span style="font-weight:400"></span></span><button type="button" style="font:inherit;padding:4px 12px;border-radius:6px;border:1px solid #fff;background:#fff;color:#7a1f12;cursor:pointer">Reload</button>';
+      b.querySelector("span span").textContent = msg; b.querySelector("button").onclick = function () { location.reload(); };
+      document.body.insertBefore(b, document.body.firstChild); };
+    if (document.body) go(); else document.addEventListener("DOMContentLoaded", go); }
+  window.addEventListener("error", function (e) { var t = e.target;
+    if (t && (t.tagName === "SCRIPT" || (t.tagName === "LINK" && t.rel === "stylesheet")) && (t.src || t.href || "").indexOf(location.origin) === 0) show("A site file (" + (t.src || t.href).split("/").pop().split("?")[0] + ") could not be downloaded.");
+    else if (e.filename && e.filename.indexOf(location.origin) === 0) show("A script error stopped it (" + e.message + ").");
+  }, true);
+  window.addEventListener("unhandledrejection", function (e) { var r = e.reason, st = (r && r.stack) || "";
+    if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
+  });
+})();</script><!--/load-guard-->
+<link rel="stylesheet" href="assets/ops.css?v=8a9c0d6ddf">
+</head>
+<body class="maps-page">
+<main class="workspace single maps">
+  <div class="main">
+    <section class="card mapshead">
+      <div class="row" style="justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+        <div><span class="kick">Model maps · HRRR 3 km</span><h1 class="almtitle" id="mapTitle">Tri-State guidance</h1></div>
+        <div id="mapStatus" class="msg" role="status" aria-live="polite">Loading the run list…</div>
+      </div>
+      <div class="mapctl noprint">
+        <div><label class="field-label" for="runSel">Run</label><select class="input inline" id="runSel"></select></div>
+        <div class="tabs" role="group" aria-label="Field" id="fieldTabs" style="margin:0">
+          <button type="button" class="tab" data-f="t2m">Temperature</button>
+          <button type="button" class="tab" data-f="precip">Precipitation</button>
+          <button type="button" class="tab" data-f="refc">Simulated radar</button>
+        </div>
+        <div id="winWrap"><label class="field-label" for="winSel">Precipitation window</label><select class="input inline" id="winSel">
+          <option value="1">1 hour ending at valid time</option><option value="6">6 hours ending at valid time</option>
+          <option value="24">24 hours ending at valid time</option><option value="run">Since the run started</option></select></div>
+      </div>
+      <div class="mapctl noprint">
+        <button class="btn ghost sm" id="prevH" type="button" aria-label="Previous forecast hour">◀</button>
+        <button class="btn sm" id="playBtn" type="button" aria-pressed="false">PLAY</button>
+        <button class="btn ghost sm" id="nextH" type="button" aria-label="Next forecast hour">▶</button>
+        <input type="range" id="hourSl" min="0" max="18" value="0" step="1" aria-label="Forecast hour" style="flex:1 1 220px">
+        <div id="validTxt" class="mono validtxt" aria-live="polite"></div>
+      </div>
+    </section>
+    <section class="card mapcard">
+      <div class="mapwrap"><canvas id="mapCv" tabindex="0" role="img" aria-label="Model map"></canvas><div id="mapNote" class="mapnote" hidden></div></div>
+      <div id="legend" class="maplegend"></div>
+      <div class="row noprint" style="gap:8px;align-items:end;margin-top:10px">
+        <div><label class="field-label" for="placeSel">Inspect a place</label><select class="input inline" id="placeSel"><option value="">Click or tap the map, or choose…</option></select></div>
+      </div>
+      <div id="inspect" class="inspect" aria-live="polite"><p class="msg">Click or tap the map (or focus it and use the arrow keys, then Enter) to read the value in that grid cell.</p></div>
+    </section>
+    <section class="card">
+      <div class="section-title">About these maps</div>
+      <p class="msg">NOAA HRRR, 3 km, shown on its own Lambert conformal grid: each coloured square is one model grid cell, not interpolated. Temperature is the 2-m value at the valid time. Simulated radar is the model's composite reflectivity (dBZ), not observed radar. Precipitation windows are read from the GRIB accumulation intervals: one-hour amounts are the model's own (N−1)–N h fields; 6- and 24-hour totals add consecutive one-hour fields from this run and are blank unless every hour is present; "since the run started" is the model's own 0–N h field. Missing hours are left blank, never shown as zero. County and state lines: US Census cartographic boundaries (us-atlas). Model guidance only, not an official forecast.</p>
+      <div id="runInfo" class="msg"></div>
+    </section>
+  </div>
+</main>
+<script src="assets/ops-core.js?v=a652d0436c"></script>
+<script src="assets/ops-data.js?v=ddeebf20ff"></script>
+<script src="assets/ops.js?v=e10d3125ed"></script>
+<script src="assets/maps-core.js?v=246e22bc9a"></script>
+<script src="assets/maps.js?v=eb600e9617"></script>
+</body>
+</html>
