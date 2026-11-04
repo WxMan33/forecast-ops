@@ -147,6 +147,7 @@
     map.on("render", drawLabels);
   }
   /* zoom limits: the closest view is the Cincinnati DMA; the widest is the model's data area */
+  const TRISTATE = [[-86.6, 37.6], [-82.4, 40.7]];
   const DMAPAD = () => (innerWidth < 700 ? { top: 96, bottom: 150, left: 12, right: 12 } : { top: 70, bottom: 70, left: 24, right: 24 });
   function limits() {
     const map = st.map, dma = st.base.dma.bounds, ext = st.mesh.extent, xs = ext.map((p) => p[0]), ys = ext.map((p) => p[1]);
@@ -164,7 +165,7 @@
     const map = st.map, opt = { padding: { top: 70, bottom: 90, left: 16, right: 16 }, duration: animate ? 600 : 0 };
     if (v === "dma") { const c = map.cameraForBounds(st.base.dma.bounds, { padding: DMAPAD() }); map.easeTo({ center: c.center, zoom: st.limits.zDMA, duration: opt.duration }); } // the DMA view is the closest permitted zoom
     else if (v === "venue") { const L = O.location; if (!L || !st.P.nearest(+L.lat, +L.lon)) { note("The saved venue is outside the model data area."); return; } map.easeTo({ center: [+L.lon, +L.lat], zoom: Math.min(map.getZoom() + 1, map.getMaxZoom()), duration: opt.duration }); }
-    else map.fitBounds(st.limits.ext, opt);
+    else map.fitBounds(TRISTATE, opt); // fixed Tri-State bounds, independent of how large the model data area is
     st.view = v; O.store.set("maps2_view", v); document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
   }
   function note(t) { const n = $("mapNote"); n.textContent = t || ""; n.hidden = !t; }
