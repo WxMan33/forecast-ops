@@ -7,6 +7,8 @@ eq(f.passes.find(p=>p.date==='2026-11-04').start,'2026-11-04T11:00:00.000Z','Cin
 eq(f.passes.find(p=>p.date==='2026-11-05').durationLessThan,true,'less than one minute retained');
 eq(f.passes.find(p=>p.date==='2026-11-08').start,'2026-11-09T00:29:00.000Z','evening pass bins by local calendar date, not UTC date');
 eq(K.issDay(f,'2026-11-06',at).status,'ready','no listed pass is distinct from unavailable data');
+eq(K.issDay(f,'2026-11-06',at).next.date,'2026-11-08','quiet date links to the next actual listed opportunity');
+eq(K.issDay(f,'2026-11-04',at).next.date,'2026-11-05','expired morning pass does not hide the next upcoming pass');
 eq(K.issDay(f,'2026-11-06',at).passes.length,0,'quiet listed date');
 eq(K.issDay(f,'2026-11-25',at).status,'outside','outside horizon never means no passes');
 eq(K.issDay(f,'2026-11-05',at+4*86400000).status,'stale','stale schedule suppressed');

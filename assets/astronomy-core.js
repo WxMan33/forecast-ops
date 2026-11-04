@@ -7,7 +7,7 @@ function issDay(feed,date,now=Date.now()){
  if(now-at>3*DAY)return {status:'stale',passes:[],upcoming:[]};
  if(date<feed.from||date>feed.through)return {status:'outside',passes:[],upcoming:[]};
  const passes=feed.passes.filter(p=>p.date===date),end=new Date(Date.parse(date+'T12:00Z')+7*DAY).toISOString().slice(0,10);
- return {status:'ready',passes,upcoming:feed.passes.filter(p=>p.date>date&&p.date<end),through:feed.through};
+ return {status:'ready',passes,next:feed.passes.find(p=>p.date>=date&&Date.parse(p.start)>=now)||null,upcoming:feed.passes.filter(p=>p.date>date&&p.date<end),through:feed.through};
 }
 function skyDay(catalog,date){
  const reviewed=catalog&&date>=catalog.reviewedFrom&&date<=catalog.reviewedThrough;
