@@ -127,3 +127,13 @@
 
 .sky-next-pass {position:relative;padding-right:30px}
 .sky-next-arrow {position:absolute;right:12px;top:50%;transform:translateY(-50%)}
+
+/* One shared astronomy panel: internal dividers replace uneven card outlines. */
+.astronomy-panel>.astronomy-top {align-items:stretch;gap:20px}
+.astronomy-panel .astronomy-section {min-width:0}
+.astronomy-panel #skyCard {padding-left:20px;border-left:1px solid var(--line)}
+.astronomy-panel .sky-heading {padding-bottom:10px;margin-bottom:12px}
+.astronomy-panel .sky-heading h2 {font-size:16px}
+.astronomy-panel .sky-heading .kick {font-size:10px}
+@media(max-width:900px){.astronomy-panel #skyCard {padding:18px 0 0;border-left:0;border-top:1px solid var(--line)}}
+@media print{.astronomy-panel #skyCard {padding:0 0 0 16px;border-top:0;border-left:1px solid #ccc}}
