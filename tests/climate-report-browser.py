@@ -79,7 +79,13 @@ with sync_playwright() as p:
  page.reload();page.locator('.climo-table').wait_for()
  assert page.locator('[data-climo-row="maxt"] [data-label="Observed"]').inner_text()=='—'
  assert 'unavailable' in page.locator('#climCard').inner_text()
- assert 'unavailable' in page.locator('#skyCard').inner_text()
+ page.locator('.iss-pass').first.wait_for()
+ assert 'unavailable' not in page.locator('#skyCard').inner_text(),'fresh same-origin fallback survives a remote-source outage'
+ context.unroute('**/*')
+ context.route('**/*',lambda r:r.continue_() if r.request.url.startswith('http://127.0.0.1:') and '/feeds/iss-cincinnati.json' not in r.request.url else r.fulfill(status=503,content_type='application/json',body='{"error":"synthetic outage"}'))
+ page.reload()
+ page.wait_for_function('document.querySelector("#skyCard").textContent.includes("NASA schedule is unavailable")')
+ assert 'does not mean' in page.locator('#skyCard').inner_text()
  assert not errors,errors
  print('Climate sheet: captured observations, matched date/normal, six columns, totals, missing data, astronomy date selection, calendar reminders, rank badges, themes, print and five widths pass')
  browser.close()

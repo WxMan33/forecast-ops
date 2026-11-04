@@ -91,3 +91,7 @@
  .sky-group p {font-size:10px}
  .wnbadge.standing.quiet {color:#4b5563!important}
 }
+
+.sky-help summary {cursor:pointer;font-size:11px;color:var(--muted)}
+.sky-help {margin:6px 0}
+@media print{.sky-help {display:none}}
