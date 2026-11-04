@@ -12,6 +12,7 @@
   };
   /* Built-in quick picks: [name, lat, lon]. Locations you save with ★ are added on top of these. */
   const PRESETS = [
+    ["CVG airport, Cincinnati/Northern Kentucky", 39.04456, -84.67229],
     ["TQL Stadium, Cincinnati, OH", 39.11113, -84.52229],
     ["Dayton, OH", 39.7589, -84.1916],
     ["Columbus, OH", 39.9612, -82.9988],
@@ -155,6 +156,10 @@
       stats.map((s) => `<div class="vsep" style="height:30px"></div><div class="hl-stat"${s.title ? ` title="${esc(s.title)}"` : ""}><span class="hl-num"${s.color ? ` style="color:${s.color}"` : ""}>${esc(s.num)}</span><span class="hl-unit">${esc(s.unit || "")}</span></div>`).join("");
   }
 
+  if (!store.get("ops_near48_default_v1", false)) {
+    if (["preferred", null].includes(store.get("ops_blend_preset", null))) store.set("ops_blend_preset", "near48");
+    store.set("ops_near48_default_v1", true);
+  }
   /* ---------- location (URL first, so a shared link opens the same point) ---------- */
   const DEFAULT_LOC = { name: PRESETS[0][0], lat: PRESETS[0][1], lon: PRESETS[0][2] };
   function fromUrl() {
@@ -164,7 +169,13 @@
     } catch (e) { /* ignore */ }
     return null;
   }
-  let loc = fromUrl() || store.get("ops_loc", DEFAULT_LOC);
+  let startupLocation = fromUrl();
+  if (!store.get("ops_cvg_default_v1", false)) {
+    const oldDefault = startupLocation && Math.abs(startupLocation.lat-39.11113)<0.00001 && Math.abs(startupLocation.lon+84.52229)<0.00001;
+    if (!startupLocation || oldDefault) { startupLocation = DEFAULT_LOC; store.set("ops_loc", DEFAULT_LOC); }
+    store.set("ops_cvg_default_v1", true);
+  }
+  let loc = startupLocation || store.get("ops_loc", DEFAULT_LOC);
   store.set("ops_loc", loc);
   const locListeners = [];
   const shareUrl = (page) => { const u = new URL(page || location.href, location.href); u.search = new URLSearchParams({ lat: loc.lat, lon: loc.lon, name: loc.name }).toString(); return u.toString(); };

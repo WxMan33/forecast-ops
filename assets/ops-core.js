@@ -328,9 +328,9 @@
     /* Aggregate a window for every source. idx: hours for instantaneous fields; acc: hours whose
        preceding-hour accumulation falls inside (defaults to idx). opts: {rules, own(id, dv, how)}. */
     aggregate(data, ws, idx, acc, opts = {}) {
-      const A = acc || idx, rules = opts.rules || null;
+      const A = acc || idx, rules = blend.periodRules(data, opts.rules || null, idx), accRules = A===idx ? rules : blend.periodRules(data, opts.rules || null, A);
       const ids = Object.keys(data.models).filter((id) => (ws[id] || 0) > 0);
-      const one = (hv, how, use, dv, only) => blend.combine(ids.filter((id) => !only || (data.models[id] && data.models[id].kind === only)).map((id) => ({ id, r: blend.sourceValue(data.models[id], hv, how, use, data, opts.own ? opts.own(id, dv, hv) : null) })), (id) => blend.w(ws, rules, id, hv));
+      const one = (hv, how, use, dv, only) => blend.combine(ids.filter((id) => !only || (data.models[id] && data.models[id].kind === only)).map((id) => ({ id, r: blend.sourceValue(data.models[id], hv, how, use, data, opts.own ? opts.own(id, dv, hv) : null) })), (id) => blend.w(ws, use===A ? accRules : rules, id, hv));
       /* ensemble members only (each system at its weight): a spread from ensembles alone, kept apart from the mixed-source spread */
       const eq = (hv, how, use) => { const c = one(hv, how, use, null, "ens"); return c.v == null ? null : [c.p10, c.p90]; };
       const hi = one("temperature_2m", "max", idx, "temperature_2m_max"), lo = one("temperature_2m", "min", idx, "temperature_2m_min");
@@ -343,7 +343,7 @@
         hiR: [hi.p10, hi.p90], loR: [lo.p10, lo.p90], qpfR: [qpf.p10, qpf.p90],
         ensR: { hi: eq("temperature_2m", "max", idx), lo: eq("temperature_2m", "min", idx), qpf: eq("precipitation", "sum", A) },
         qpfBounds: qpf.bounds, snBounds: sn.bounds,
-        chance: blend.ensChance(data, ids, (id) => blend.w(ws, rules, id, "precipitation"), A, 0.01),
+        chance: blend.ensChance(data, ids, (id) => blend.w(ws, accRules, id, "precipitation"), A, 0.01),
         parts: { hi: hi.parts, lo: lo.parts, qpf: qpf.parts, sn: sn.parts },
         prorated: qpf.parts.some((p) => p.prorated) || sn.parts.some((p) => p.prorated),
         ag: blend.agreement(srcHighs), contrib: hi.parts.map((p) => p.id),
@@ -365,8 +365,9 @@
     windowRow(data, ws, idx, acc, opts) { return blend.aggregate(data, ws, idx, acc, opts); },
     /* Comparison presets. "custom" is the user's own weights. "equal" is a raw-model consensus:
        every raw model at weight 1, NBM excluded because NBM is itself a calibrated blend of many
-       of these models. "nbm" is NBM alone. NWS is never part of any blend; it is shown separately. */
+       of these models. "nbm" is NBM alone. NWS participates where enabled; its official periods also remain available for comparison. */
     PRESETS: {
+      near48: { label: "Hi-res first 48 h", note: "Preferred base weights with HRRR/RRFS emphasis for the next 48 hours: temperatures ×2, precipitation/snow/gusts ×3, RRFS ensemble ×2 (temps ×1.5). Full boost through 36 h, fading to base at 48 h. Period weights average their hourly factors. Provisional preference, not verified skill; later guidance keeps the original recipe." },
       preferred: { label: "Your preferred weighting", note: "Brad’s ten-source default: ECMWF ENS ×4, NWS ×3, with supporting guidance. No extra temperature multiplier; preference, not verified skill." },
       custom: { label: "Custom weights", note: "Your saved models and weights." },
       equal: { label: "Equal raw consensus", note: "Every available raw model at weight 1. NBM excluded (it already blends and calibrates these models)." },
@@ -378,16 +379,32 @@
       /* Exact ten-source screenshot: no hidden variable or temperature multiplier. */
       rules: null,
     },
-    presetRules(preset) { return preset === "preferred" ? blend.PREFERRED.rules : null; },
+    presetRules(preset) { return preset === "near48" ? { near48: true } : preset === "preferred" ? blend.PREFERRED.rules : null; },
     presetWeights(preset, spec, custom) {
-      if (preset === "preferred") return { ...blend.PREFERRED.weights };
+      if (preset === "preferred" || preset === "near48") return { ...blend.PREFERRED.weights };
       if (preset === "nbm") return { ncep_nbm_conus: 1 };
       if (preset === "equal") { const w = {}; spec.models.forEach((m) => { if (m.id !== "ncep_nbm_conus") w[m.id] = 1; }); return w; }
       return { ...custom };
     },
+    /* Resolve a separate, versioned website preset. The frozen preferred recipe is unchanged. */
+    periodRules(data, rules, idx) {
+      if (!rules?.near48 || !idx.length) return rules;
+      const now = data.viewedAt || Date.now(), byVar = { ...(rules.byVar || {}) };
+      for (const v of ["temperature_2m", "apparent_temperature", "precipitation", "snowfall", "wind_gusts_10m"]) {
+        const temp = ["temperature_2m", "apparent_temperature"].includes(v);
+        byVar[v] = { ...(byVar[v] || {}) };
+        for (const id of ["gfs_hrrr", "ncep_rrfs_conus", "rrfs_ens"]) {
+          const boost = id === "rrfs_ens" ? (temp ? 1.5 : 2) : (temp ? 2 : 3);
+          const factor = idx.reduce((sum,i) => { const lead=(data.ms[i]-now)/3600000; const strength=lead<0||lead>=48?0:lead<=36?1:(48-lead)/12; return sum+1+(boost-1)*strength; },0)/idx.length;
+          byVar[v][id] = (byVar[v][id] || 1)*factor;
+        }
+      }
+      return { ...rules, near48: false, byVar };
+    },
+    hourWeight(data, ws, rules, id, v, i) { return blend.w(ws, blend.periodRules(data, rules, [i]), id, v); },
     /* Weight of model id for variable v at lead hour L. base: {id: w}; rules (optional):
        {byVar: {v: {id: factor}}, byLead: [{maxH, factor: {id: factor}}]}. Shared by every page and
-       future briefings. No rules are enabled by default: see HYPOTHESES. */
+       future briefings. The near48 preset resolves its time-dependent factors before calling this helper. */
     weightFor(base, rules, id, v, leadH) {
       let w = base[id] || 0;
       if (!rules || !(w > 0)) return w;

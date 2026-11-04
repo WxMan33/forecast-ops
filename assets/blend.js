@@ -31,7 +31,7 @@
     if (had) O.store.set("ops_blend_migrated", new Date().toISOString());
   }
   /* v3: ensembles and NWS join the blend; the stated preference becomes the default view once. */
-  if (O.store.get("ops_blend_cfg_v", 1) < 3) { O.store.set("ops_blend_cfg_v", 3); O.store.set("ops_blend_preset", "preferred"); O.store.set("ops_blend_v3", new Date().toISOString()); }
+  if (O.store.get("ops_blend_cfg_v", 1) < 3) { O.store.set("ops_blend_cfg_v", 3); O.store.set("ops_blend_preset", "near48"); O.store.set("ops_blend_v3", new Date().toISOString()); }
   let preset = O.store.get("ops_blend_preset", "preferred");
   if (!C.blend.PRESETS[preset]) preset = "preferred";
 
@@ -174,7 +174,7 @@
   const OPTS = () => ({ rules: R() });
   const wv = (id, v) => C.blend.w(W(), R(), id, v);
   const active = (v) => (data ? SOURCES.filter((m) => wv(m.id, v) > 0 && data.models[m.id] && O.hasData(data.models[m.id].h[v])) : []);
-  const series = (v, ms) => ms.map((m) => ({ w: wv(m.id, v), data: data.models[m.id].h[v] }));
+  const series = (v, ms) => ms.map((m) => ({ w: (i) => C.blend.hourWeight(data, W(), R(), m.id, v, i), data: data.models[m.id].h[v] }));
   const colorOf = (m) => O.modelColor(SOURCES.indexOf(m));
 
   const f = (x, d = 0, u = "") => (x == null ? "—" : x.toFixed(d) + u);
@@ -204,7 +204,7 @@
       wrap.setAttribute("aria-label", "Detailed forecast table. Scroll horizontally for additional columns.");
     });
     renderChart();
-    focus.update(data, { record: fresh, names: NAMES, rows: data.rows });
+    focus.update(data, { record: fresh, names: NAMES, rows: data.rows, ctx: { weights: W(), rules: R() } });
     if (fresh) { logRecords(); fresh = false; }
   }
 
@@ -217,7 +217,7 @@
       (mig ? ` <span class="msg">Your weights saved before presets existed were kept as Custom weights.</span>` : "") +
       (v3 ? ` <span class="msg">Ensembles and NWS are now blend sources; this page switched once to "Your preferred weighting".</span>` : "") +
       (w ? (() => { const sh = (v) => { const x = C.blend.shares(w, rules, v), top = x.slice(0, 2); return `${top.map((p) => `${O.esc(NAMES[p.id])} ${Math.round(p.share * 100)}%`).join(", ")}, everything else ${Math.round(100 * (1 - top.reduce((t, p) => t + p.share, 0)))}%`; };
-        return ` <b>Effective shares with every loaded source present</b>: temperatures ${sh("temperature_2m")}; precip ${sh("precipitation")}. Shares rise for the remaining sources when short-range models drop out; see "What's driving the blend" for each day.`; })() : "") +
+        return ` <b>Base shares with every loaded source present</b>: temperatures ${sh("temperature_2m")}; precip ${sh("precipitation")}. The hi-res preset changes near-term shares by valid hour; shares also rescale when sources drop out; see "What's driving the blend" for each day.`; })() : "") +
       ` <span class="msg">Each ensemble's weight is shared by its members. NWS precip uses its interval totals; NWS hourly chance is not mixed with model chances (different threshold and period).</span>`;
   }
 
@@ -442,7 +442,7 @@
     const [s, e] = viewRange(), times = data.times.slice(s, e), sl = (a) => a.slice(s, e);
     $("chartTitle").textContent = t.label + (viewDay ? ` · ${O.fmtDay(viewDay)}` : "");
     $("chartSub").textContent = t.accum ? `Running total from ${O.fmtWhen(data.times[s])} ${O.tzShort(data.tz)}. A model's line ends where its data ends. NWS reports precip and snow as multi-hour interval totals; its line is drawn only at interval ends.` : viewDay ? "Showing one day. Click the day again in the table to go back." : "";
-    const ms = active(t.v), B = O.blendSeries(series(t.v, ms).map((x) => ({ w: x.w, data: sl(x.data) })), times.length);
+    const ms = active(t.v), B = O.blendSeries(series(t.v, ms).map((x) => ({ w: (i) => x.w(i + s), data: sl(x.data) })), times.length);
     const labels = O.hourLabels(times, data.ms.slice(s, e), data.tz), hours = times.map(O.hourOf), fg = O.css("--text");
     const ds = [];
     if (!t.accum && ms.length > 1) {
