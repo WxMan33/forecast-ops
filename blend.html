@@ -26,10 +26,11 @@
   });
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/ops.css?v=6d2fd0fbe5">
+<link rel="stylesheet" href="assets/forecast-focus.css?v=1ddd2e169d">
 </head>
-<body>
+<body class="forecast-focus">
 <main class="workspace">
-  <aside class="side">
+  <aside class="side"><details id="forecastControls" open><summary class="controls-summary">Location &amp; forecast controls</summary><div class="controls-body">
     <section class="card tight" id="locCard"></section>
     <section class="card tight">
       <div class="section-title">Run</div>
@@ -40,18 +41,20 @@
       </div>
       <p class="msg" id="runMsg" style="margin-top:8px"></p>
     </section>
-  </aside>
-
-  <div class="main">
-    <section class="card" id="changes" hidden></section>
-
     <section class="card">
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
         <div class="section-title" style="margin:0">Blend recipe</div>
         <div class="tabs" id="presetTabs" style="margin:0"></div>
       </div>
-      <p class="msg" id="recipeNote"></p>
+      <details class="fold"><summary>Recipe details</summary><p class="msg" id="recipeNote"></p></details>
     </section>
+
+    <section class="card tight" id="models"></section>
+  </div></details></aside>
+
+  <div class="main">
+    <div class="forecast-toolbar"><div><span class="kicker">Point forecast workspace</span><span class="msg">Forecast · model changes · timing</span></div><div class="forecast-jumps"><a class="btn ghost sm" href="#modelTrendCard">Model changes</a><a class="btn ghost sm" href="#timingCard">Timing</a><button class="btn ghost sm" type="button" id="viewMode" aria-pressed="false">Decision briefing</button></div></div>
+    <section class="card" id="briefingView" hidden aria-label="Decision briefing"></section>
 
     <section class="card">
       <div class="section-title">Next 24 hours</div>
@@ -73,14 +76,18 @@
       </details>
     </section>
 
-    <section class="card" id="driverCard"></section>
+    <section class="card" id="modelTrendCard" aria-label="Model guidance trends"><p class="msg">Loading model history…</p></section>
+    <section class="card" id="timingCard" aria-label="Precipitation timing and trends"><p class="msg">Loading timing guidance…</p></section>
+    <details class="card technical"><summary>Source breakdown &amp; detailed diagnostics</summary><div class="technical-body">
+    <section id="driverCard"></section>
 
-    <section class="card" id="covCard" aria-labelledby="covTitle"></section>
+    <section id="covCard" aria-labelledby="covTitle"></section>
 
-    <section class="card" id="nwsCard"></section>
+    <section id="nwsCard"></section>
 
-    <section class="card" id="scenCard"></section>
+    <section id="scenCard"></section>
 
+    </div></details>
     <section class="card">
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
         <div class="section-title" id="chartTitle" style="margin:0;flex:1 1 auto">Temperature</div>
@@ -96,16 +103,16 @@
     </section>
   </div>
 
-  <aside class="side-extra">
-    <section class="card tight" id="models"></section>
-  </aside>
+
 </main>
 
 <script src="assets/vendor/chart.umd-4.4.1.js?v=74401d738d"></script>
 <script src="assets/ops-core.js?v=5e70d15833"></script>
 <script src="assets/ops-data.js?v=ddeebf20ff"></script>
-<script src="assets/ops.js?v=8dc90c6f87"></script>
-<script src="assets/blend.js?v=593c3de65c"></script>
+<script src="assets/ops.js?v=415e760231"></script>
+<script src="assets/model-trends.js?v=20f2fb637c"></script>
+<script src="assets/forecast-focus.js?v=2c03911252"></script>
+<script src="assets/blend.js?v=f544237911"></script>
 </body>
 </html>
 

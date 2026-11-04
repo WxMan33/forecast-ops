@@ -3,7 +3,9 @@
 (function () {
   "use strict";
   const O = window.Ops, $ = O.$, C = O.Core, N = C.nws;
+  const initialBrief = new URLSearchParams(location.search).get("view") === "brief";
   O.shell("blend", "Model Blend");
+  const focus = window.ForecastFocus.mount({ O, C, initialBrief });
 
   /* Models, variables and request settings are shared with the overview: OpsCore.config.blend */
   const SPEC = C.config.blend, MODELS = SPEC.models, SOURCES = [...SPEC.extra, ...MODELS];
@@ -19,14 +21,6 @@
     { id: "cloud", label: "Cloud cover", v: "cloud_cover", unit: "%", min: 0, max: 100, nws: true },
   ];
   const NAMES = Object.fromEntries(SOURCES.map((m) => [m.id, m.name]));
-  const BLEND_CHANGES = [
-    { k: "hi", label: "high", min: 3, fmt: (v) => `${Math.round(v)}°` },
-    { k: "lo", label: "low", min: 3, fmt: (v) => `${Math.round(v)}°` },
-    { k: "qpf", label: "precip", min: 0.1, fmt: (v) => `${v.toFixed(2)}"` },
-    { k: "pop", label: "max chance", min: 15, fmt: (v) => `${Math.round(v)}%` },
-    { k: "sn", label: "snow", min: 0.5, fmt: (v) => `${v.toFixed(1)}"` },
-    { k: "gust", label: "peak gust", min: 8, fmt: (v) => `${Math.round(v)} mph` },
-  ];
   const RANGES = [["event", "EVENT"], ["48", "48 H"], ["72", "72 H"], ["168", "7 D"], ["all", "ALL"]];
   const NWS_COLOR = () => (O.css("--ev") || "#FDE68A");
 
@@ -89,6 +83,7 @@
       return;
     }
     data = res;
+    data.viewedAt = Date.now();
     data.nwsAxis = nws && nws.ok ? N.onAxis(nws, data.ms) : null;
     const ensProb = C.config.blendEns.models.filter((m) => !data.models[m.source]).map((m) => `${m.name}: unavailable`);
     O.dataStatus([...res.problems, ...ensProb, ...(nws && !nws.ok ? [`NWS: ${nws.reason}`] : nws && nws.errors && nws.errors.length ? nws.errors.map((x) => `NWS ${x}`) : [])]);
@@ -194,6 +189,7 @@
       $("daily").innerHTML = '<tbody><tr><td class="msg">No forecast loaded yet.</td></tr></tbody>';
       if (chart) { chart.destroy(); chart = null; }
       $("legend").innerHTML = "";
+      focus.clear();
       return;
     }
     renderDaily();
@@ -204,6 +200,7 @@
     renderDrivers();
     renderCoverage();
     renderChart();
+    focus.update(data, { record: fresh, names: NAMES, rows: data.rows });
     if (fresh) { logRecords(); fresh = false; }
   }
 
@@ -302,7 +299,7 @@
       rows.forEach((r) => (snap.rows[r.k] = { label: O.fmtDay(r.k), win: r.win, contrib: r.contrib, hi: r.hi, lo: r.lo, qpf: r.qpf, pop: r.pop, sn: r.sn, gust: r.gust }));
       data.snapPair = O.trackChanges("blend", snap);
     }
-    O.renderChanges($("changes"), data.snapPair, BLEND_CHANGES, NAMES);
+
   }
 
   const agTxt = (r) => (r.ag.lo == null ? "—" : r.ag.n > 1 ? `${r.ag.lo.toFixed(0)}–${r.ag.hi.toFixed(0)}°` : `${r.ag.lo.toFixed(0)}°`);
