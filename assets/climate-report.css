@@ -79,7 +79,7 @@
 .sky-upcoming {display:grid;gap:6px;margin-top:10px}
 .sky-date {border:1px solid var(--line);border-radius:6px;background:var(--raised);color:var(--text);padding:9px 10px;text-align:left;font:400 12px/1.4 var(--font-body);cursor:pointer}
 .sky-date b {margin-right:7px}
-.wnbadge.standing.quiet {color:var(--muted);border-color:var(--line);font-size:12px;font-weight:600}
+.wnbadge.standing.quiet {font-size:12px;font-weight:700}
 .wnbadge.standing.noteworthy {background:color-mix(in srgb,currentColor 6%,transparent);font-size:12px}
 .wncard.notable {border-color:var(--faint)}
 @media(max-width:900px){.astronomy-top {grid-template-columns:minmax(0,1fr)}}
@@ -89,7 +89,6 @@
  .iss-pass {padding:7px;break-inside:avoid}
  .iss-pass-head b {font-size:15px}
  .sky-group p {font-size:10px}
- .wnbadge.standing.quiet {color:#4b5563!important}
 }
 
 .sky-help summary {cursor:pointer;font-size:11px;color:var(--muted)}
@@ -98,3 +97,33 @@
 
 .sky-next-pass {display:block;width:100%;text-align:left;cursor:pointer;background:var(--raised);color:var(--text);border:1px solid var(--accent);border-radius:7px;padding:9px 11px;margin-bottom:10px;font:400 12px/1.5 var(--font-body)}
 @media print {.sky-next-pass {display:none}}
+
+/* Compact astronomy workspace, with all rank directions visible at a glance. */
+.almanac-page .astronomy-top {grid-template-columns:minmax(0,.85fr) minmax(0,1.65fr);gap:14px}
+.almanac-page .sky-heading {padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.almanac-page .sky-heading h2 {margin-bottom:0;font-size:20px}
+.sky-columns {display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px}
+.sky-columns>.sky-group {min-width:0;margin:0;padding:0;border:0}
+.sky-columns>.sky-group+.sky-group {padding-left:18px;border-left:1px solid var(--line)}
+.sky-columns h3 {margin:0 0 12px;font-size:12px;color:var(--muted);font-weight:700}
+.sky-event {padding:12px;border:1px solid var(--line);border-radius:9px;background:var(--raised)}
+.sky-event>b {font-size:14px;line-height:1.4;display:block}
+.sky-event p {margin:8px 0 10px;line-height:1.55}
+.sky-event+.sky-event {margin-top:8px}
+.sky-columns .iss-details {grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.sky-next-pass {border-color:color-mix(in srgb,var(--accent) 45%,var(--line));background:color-mix(in srgb,var(--accent) 7%,var(--raised));padding:10px 12px;line-height:1.6}
+.sky-next-pass b {display:block}
+.iss-pass:has(button:disabled) {background:transparent}
+.iss-pass button:disabled {display:none}
+.sky-help {margin:9px 0 0}
+.sky-help summary {padding:4px 0}
+.sky-source {line-height:1.5}
+.wnbadge.standing {border-color:currentColor;background:color-mix(in srgb,currentColor 8%,transparent);line-height:1.4}
+.wnbadge.standing.emph {background:color-mix(in srgb,currentColor 14%,transparent)}
+@media(min-width:901px) and (max-width:1100px){.almanac-page .astronomy-top {grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)}.sky-columns {grid-template-columns:minmax(0,1fr)}.sky-columns>.sky-group+.sky-group {padding:14px 0 0;border-left:0;border-top:1px solid var(--line)}}
+@media(max-width:900px){.almanac-page .astronomy-top {grid-template-columns:minmax(0,1fr)}}
+@media(max-width:560px){.sky-columns {grid-template-columns:minmax(0,1fr)}.sky-columns>.sky-group+.sky-group {padding:14px 0 0;border-left:0;border-top:1px solid var(--line)}.sky-heading .sky-label {display:none}}
+@media print{.sky-columns {grid-template-columns:minmax(0,1fr)}.sky-columns>.sky-group+.sky-group {padding:8px 0 0;border-left:0;border-top:1px solid var(--line)}.sky-event {padding:8px}.almanac-page .astronomy-top {grid-template-columns:minmax(0,.85fr) minmax(0,1.65fr)}}
+
+.sky-next-pass {position:relative;padding-right:30px}
+.sky-next-arrow {position:absolute;right:12px;top:50%;transform:translateY(-50%)}
