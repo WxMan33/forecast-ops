@@ -38,7 +38,8 @@ with sync_playwright() as p:
  context=browser.new_context(viewport={'width':1440,'height':1000})
  page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  page.add_init_script("localStorage.setItem('ops_blend_days','14')")
- page.clock.install(time=datetime(2026,11,4,6,tzinfo=timezone.utc))
+ # Keep the captured NWS issuance fresh so its wide comparison table is exercised.
+ page.clock.install(time=datetime(2026,11,3,17,tzinfo=timezone.utc))
  def external(route):
   url=route.request.url
   if 'open-meteo.com' in url:
@@ -81,6 +82,7 @@ with sync_playwright() as p:
  # The meteorologist tools stay available under a disclosure.
  page.locator('.technical>summary').click()
  assert page.locator('#covCard').is_visible()
+ assert page.locator('#nwsCard tbody tr').count()>1,'exercise populated NWS comparison, not an unavailable placeholder'
  page.locator('#daily tr[data-k="2026-11-05"]').click()
  assert 'THU NOV 5' in page.locator('#driverCard .section-title').inner_text()
  assert page.locator('#timingDay').input_value()=='2026-11-05'
