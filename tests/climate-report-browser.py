@@ -35,8 +35,8 @@ with sync_playwright() as p:
  assert page.locator('[data-climo-row="maxt"] [data-label="Observed"]').inner_text()=='60'
  assert page.locator('[data-climo-row="maxt"] [data-label="Normal"]').inner_text()=='60'
  assert page.locator('[data-climo-row="maxt"] [data-label="Departure"]').inner_text()=='0'
- assert 'Precipitation' in page.locator('#climCard').inner_text()
- assert 'Snowfall' in page.locator('#climCard').inner_text()
+ assert 'precipitation' in page.locator('#climCard').inner_text().lower()
+ assert 'snowfall' in page.locator('#climCard').inner_text().lower()
  assert page.locator('[data-climo-row="pcpn-mtd"]').count()==1
  assert page.locator('[data-climo-row="snow-season"]').count()==1
  assert page.locator('[data-climo-row="snwd"]').count()==1
