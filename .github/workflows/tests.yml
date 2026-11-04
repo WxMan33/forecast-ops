@@ -36,6 +36,7 @@ jobs:
       - run: node tests/model-trends.test.js
       - run: node tests/climate-report.test.js
       - run: node tests/astronomy.test.js
+      - run: node tests/record-watch.test.js
       - run: node tools/stamp-assets.js --check
 
   live:

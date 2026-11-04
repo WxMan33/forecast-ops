@@ -257,17 +257,20 @@
     return { day: nws.periods.find((p) => p.isDaytime && on(p)), night: nws.periods.find((p) => !p.isDaytime && on(p)) };
   };
 
+  const recordWatch = window.RecordWatch.mount({ O, C, rerender: () => { if (data) renderDaily(); } });
+
   function renderDaily() {
     if (!data) return;
     const rows = C.blend.dailyRows(data, W(), OPTS());
     data.rows = rows;
+    recordWatch.prepare(rows, O.location, data.tz);
     const hasN = nws && nws.periods && nws.periods.length;
     /* Columns. tier: 1 always shown; 2 moves into the day's details when the table is narrow (< 880 px);
        3 also moves there on phone widths (< 600 px). Breakpoints follow the table's own width. */
     const COLS = [
       { l: ["Day"], def: "Calendar day (midnight to midnight local time). Click a row to zoom the chart and see that day's source breakdown.", tier: 1, cell: (r) => `<td class="display day"><button type="button" class="detbtn" aria-expanded="false" aria-label="Show details for ${O.fmtDay(r.k)}">▸</button>${O.fmtDay(r.k)}</td>` },
-      { l: ["Low"], def: "Blended daily low for the calendar day (midnight to midnight), usually the morning low. Small numbers: weighted guidance spread (10th–90th percentile across all sources; not a calibrated probability).", tier: 1, cell: (r) => `<td class="num"><span class="lo">${f(r.lo, 0, "°")}</span>${rng(r.loR, 0, r.ensR.lo)}</td>`, txt: (r) => f(r.lo, 0, "°") },
-      { l: ["High"], def: "Blended daily high for the calendar day. Small numbers: weighted guidance spread (10th–90th percentile across all sources; not a calibrated probability). Hover a range for the ensembles-only range.", tier: 1, cell: (r) => `<td class="num"><span class="hi">${f(r.hi, 0, "°")}</span>${rng(r.hiR, 0, r.ensR.hi)}</td>`, txt: (r) => f(r.hi, 0, "°") },
+      { l: ["Low"], def: "Blended daily low for the calendar day (midnight to midnight), usually the morning low. Small numbers: weighted guidance spread (10th–90th percentile across all sources; not a calibrated probability).", tier: 1, cell: (r) => `<td class="num"><span class="lo">${f(r.lo, 0, "°")}</span>${rng(r.loR, 0, r.ensR.lo)}${recordWatch.badge(r, "lo", O.location, data.tz)}</td>`, txt: (r) => f(r.lo, 0, "°") },
+      { l: ["High"], def: "Blended daily high for the calendar day. Small numbers: weighted guidance spread (10th–90th percentile across all sources; not a calibrated probability). Hover a range for the ensembles-only range.", tier: 1, cell: (r) => `<td class="num"><span class="hi">${f(r.hi, 0, "°")}</span>${rng(r.hiR, 0, r.ensR.hi)}${recordWatch.badge(r, "hi", O.location, data.tz)}</td>`, txt: (r) => f(r.hi, 0, "°") },
       { l: ["Precip"], def: "Blended liquid-equivalent precipitation for the calendar day, with its guidance spread. * = NWS share prorated across its interval edges (hover for the blend at NWS's lower and upper bounds).", tier: 1,
         cell: (r) => `<td class="num">${f(r.qpf, 2, '"')}${r.prorated ? ` <span class="msg" title="NWS precip intervals cross this day's edges; its share was prorated assuming a uniform rate. With NWS at its lower or upper bound the blend would be ${r.qpfBounds ? `${r.qpfBounds[0].toFixed(2)}–${r.qpfBounds[1].toFixed(2)}"` : "unchanged"}.">*</span>` : ""}${rng(r.qpfR, 2, r.ensR.qpf)}</td>`, txt: (r) => f(r.qpf, 2, '"') + (r.prorated ? " *" : "") },
       { l: ["Snow"], def: "Blended snowfall (model snow at Open-Meteo's 7:1 ratio; not ground accumulation). Shown from 0.05\".", tier: 3, cell: (r) => `<td class="num">${r.sn != null && r.sn >= 0.05 ? f(r.sn, 1, '"') : "—"}</td>`, txt: (r) => (r.sn != null && r.sn >= 0.05 ? f(r.sn, 1, '"') : "—") },
@@ -298,6 +301,8 @@
       tr.addEventListener("click", pickDay);
       tr.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pickDay(); } });
     });
+    recordWatch.wire($("daily"));
+    $("dailyNote").append(document.createTextNode(recordWatch.note(rows, O.location, data.tz)));
     if (fresh) {
       const snap = { cfg: `${preset}|${C.config.fingerprint(W())}`, rows: {} };
       rows.forEach((r) => (snap.rows[r.k] = { label: O.fmtDay(r.k), win: r.win, contrib: r.contrib, hi: r.hi, lo: r.lo, qpf: r.qpf, pop: r.pop, sn: r.sn, gust: r.gust }));

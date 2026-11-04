@@ -98,3 +98,9 @@ body.wide-main.forecast-focus:not(.brief-view) .workspace {grid-template-columns
 .forecast-focus .table-scroll-note {font-size:11px;color:var(--muted);margin:7px 0}
 
 .forecast-focus .chartbox canvas {display:block;max-width:100%}
+
+/* A quiet record heads-up under the daily extreme; no extra dashboard panel. */
+.record-watch {display:block;max-width:100%;margin:5px 0 0 auto;padding:3px 5px;border:1px solid currentColor;border-radius:5px;background:transparent;font:600 10px/1.35 var(--font-body);white-space:normal;cursor:pointer}
+.record-watch.warm {color:var(--warm)}.record-watch.cold {color:var(--cold)}
+.record-watch-detail:not([hidden]) {display:block;max-width:24ch;margin:6px 0 0 auto;text-align:left;white-space:normal;font:400 11px/1.5 var(--font-body);color:var(--muted)}
+@media print{.record-watch.warm {color:#9f2424!important}.record-watch.cold {color:#075985!important}}
