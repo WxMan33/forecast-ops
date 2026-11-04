@@ -24,7 +24,7 @@ The separately labeled `near48` website preset starts with the unchanged frozen 
 
 Full enhancement applies to future valid times through 36 hours from forecast retrieval/view. It tapers linearly to base at 48 hours. Beyond 48 hours the original preferred recipe applies exactly. Hourly charts use each valid hour's factors. Daily extremes remain member-first: daily/event values use each source's own extreme/total with the average of the corresponding period's hourly weight factors. Source-contribution tables use the same calculation.
 
-The website makes this the default once for users on the preferred recipe; existing custom, NBM-only and equal-model selections are kept. All original presets and custom sliders remain available. This is a user-preferred experimental emphasis, not a verified improvement.
+The website selects this default once for users on the preferred or custom view. Saved custom weights are retained and can be selected again; NBM-only and equal-model selections are kept. All original presets and custom sliders remain available. This is a user-preferred experimental emphasis, not a verified improvement.
 
 The separate `near48` recipe name and rules are recorded in browser forecast exports. Frozen Baseline v1/Default v2 and private scheduled verification collection are unchanged. The private collector does not yet archive near48 as a new prospective recipe; it must be deliberately added with a version/effective time before claiming scheduled verification for it. No historical capture is rewritten.
 

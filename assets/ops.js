@@ -157,7 +157,7 @@
   }
 
   if (!store.get("ops_near48_default_v1", false)) {
-    if (["preferred", null].includes(store.get("ops_blend_preset", null))) store.set("ops_blend_preset", "near48");
+    if (["preferred", "custom", null].includes(store.get("ops_blend_preset", null))) store.set("ops_blend_preset", "near48");
     store.set("ops_near48_default_v1", true);
   }
   /* ---------- location (URL first, so a shared link opens the same point) ---------- */
