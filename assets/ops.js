@@ -126,7 +126,7 @@
     /* event slots on every page: editor under Location, results at the top of the main column */
     const side = document.querySelector(".side"), main = document.querySelector(".main");
     /* the event slot stays hidden until a page actually uses it (eventCard), so no empty panel shows */
-    if (side) { const c = document.createElement("section"); c.className = "card tight"; c.id = "evCard"; c.hidden = true; const lc = $("locCard"); lc && lc.nextSibling ? side.insertBefore(c, lc.nextSibling) : side.appendChild(c); }
+    if (side) { const c = document.createElement("section"); c.className = "card tight"; c.id = "evCard"; c.hidden = true; const lc = $("locCard"); lc && lc.parentNode ? lc.parentNode.insertBefore(c, lc.nextSibling) : side.appendChild(c); }
     if (main) { const c = document.createElement("section"); c.className = "card"; c.id = "eventCard"; c.hidden = true; main.prepend(c); }
   }
 

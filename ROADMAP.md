@@ -87,3 +87,10 @@ Build an original model-data explorer inspired by the workflow of [WeatherBell's
 
 This roadmap does not authorize changing blend weights, starting paid services or enabling new notification delivery.
 
+
+
+### Forecast trends and two audiences
+
+- Implemented: forecast-first Model Blend; recipe/sliders in the left controls; individual-source saved-guidance comparisons; precipitation timing and timing shifts; compact decision briefing from the same forecast. See MODEL_TRENDS.md for limits.
+- Next: collector-backed historical run comparisons across devices, with confirmed initialization times where supplied. Browser snapshots do not represent every model run.
+- Later: snowfall transitions, wind and thunder timing with suitable inputs, and OPE integration using exact venue/event windows and operational thresholds. Keep the detailed meteorologist workspace alongside the simple presentation.

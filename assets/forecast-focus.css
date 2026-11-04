@@ -1,0 +1,88 @@
+/* Forecast workspace only. The detailed tools and forecast recipe keep their existing calculations. */
+.forecast-focus .workspace {grid-template-columns:285px minmax(0,1fr);grid-template-rows:auto;grid-template-areas:"side main";max-width:1440px}
+.forecast-focus .side {min-width:0}
+.controls-body {display:grid;gap:12px;min-width:0}
+.controls-summary {display:none;cursor:pointer;font-weight:700;padding:12px}
+.forecast-focus .side .tabs {display:flex;flex-wrap:wrap;gap:5px}
+.forecast-focus .side .tabs .tab {white-space:normal;flex:1 1 100%;text-align:left}
+.forecast-focus .side .row {flex-wrap:wrap}
+.forecast-focus .side .card {min-width:0}
+.forecast-focus .side .section-title {font-size:13px}
+.forecast-focus #recipeNote {line-height:1.6}
+.forecast-toolbar {display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 3px}
+.forecast-toolbar > div {display:grid;gap:3px}
+.kicker {display:block;color:var(--muted);font:700 10px/1.5 system-ui,sans-serif;letter-spacing:.09em;text-transform:uppercase}
+.focus-heading,.brief-top {display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.focus-heading h2,.brief-top h1,.brief-headline h2 {margin:3px 0 10px;line-height:1.25;letter-spacing:-.02em}
+.focus-heading h2 {font:700 20px/1.25 system-ui,sans-serif}
+.focus-heading label,.brief-actions label {font-size:11px;color:var(--muted);display:grid;gap:4px;min-width:155px}
+.focus-heading .input,.brief-actions .input {font-size:12px;min-height:36px}
+#modelTrendCard {border-top:3px solid var(--accent,#38bdf8)}
+#timingCard p {font-size:13px;line-height:1.6}
+#modelTrendCard details,#timingCard details {margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+#modelTrendCard summary,#timingCard summary,.technical>summary {cursor:pointer;color:var(--text);font-size:12px;font-weight:600;line-height:1.5}
+.model-change-list {list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0;margin:14px 0}
+.model-change-list li {padding:10px 12px;background:var(--raised);border:1px solid var(--line);border-radius:8px;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.model-change-list li span {color:var(--muted)}
+.focus-empty {font-size:14px;margin:14px 0;color:var(--muted)}
+.technical-body {display:grid;gap:22px;padding-top:20px;min-width:0}
+.technical-body>section+section {border-top:1px solid var(--line);padding-top:20px}
+.forecast-focus #timingCard table {white-space:normal}
+.forecast-focus #timingCard th,.forecast-focus #timingCard td {text-align:left;vertical-align:top}
+.forecast-focus #timingCard td:first-child {font-weight:600;width:28%}
+#briefingView[hidden] {display:none!important}
+#briefingView {padding:24px}
+.brief-top h1 {font:700 26px/1.2 system-ui,sans-serif;margin-bottom:4px}
+.brief-top p {color:var(--muted);font-size:12px;margin:5px 0}
+.brief-actions {display:flex;align-items:end;gap:12px;flex-wrap:wrap}
+.brief-headline {background:var(--raised);border-left:3px solid var(--accent,#38bdf8);border-radius:8px;margin:20px 0;padding:14px 16px}
+.brief-headline h2 {font-size:23px;margin-bottom:0}
+.brief-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.brief-grid>section {border-bottom:1px solid var(--line);padding-bottom:16px;min-width:0}
+.brief-grid h2,.brief-next h2 {font:700 14px/1.4 system-ui,sans-serif;margin:0 0 10px}
+.brief-grid p {font-size:13px;line-height:1.6;margin:7px 0}
+.brief-values {display:flex;gap:20px;flex-wrap:wrap}
+.brief-values>div {display:grid;gap:5px}
+.brief-values span {font-size:11px;color:var(--muted)}
+.brief-values strong {font:700 23px/1.3 ui-monospace,monospace}
+.brief-next {margin-top:20px}
+.brief-daycards {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.brief-daycards>div {border:1px solid var(--line);border-radius:8px;padding:12px;font-size:12px}
+.brief-daycards p {font-size:12px;margin-bottom:0}
+.brief-foot {font-size:11px;color:var(--muted);line-height:1.6;margin-top:20px}
+body.brief-view .workspace {max-width:1160px;grid-template-columns:minmax(0,1fr);grid-template-areas:"main"}
+body.brief-view .side,body.brief-view .main>:not(.forecast-toolbar):not(#briefingView) {display:none!important}
+body.wide-main.forecast-focus:not(.brief-view) .workspace {grid-template-columns:minmax(0,1fr);grid-template-areas:"main" "side"}
+@media(max-width:900px){
+ .forecast-focus .workspace {grid-template-columns:minmax(0,1fr);grid-template-areas:"side" "main";padding-top:10px}
+ .controls-summary {display:list-item}
+ #forecastControls {border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+ .controls-body {padding:0 10px 10px}
+ .model-change-list {grid-template-columns:minmax(0,1fr)}
+ .focus-heading h2 {font-size:18px}
+ .forecast-toolbar .msg {display:none}
+ .brief-grid {grid-template-columns:minmax(0,1fr);gap:16px}
+ .brief-daycards {grid-template-columns:minmax(0,1fr)}
+ #briefingView {padding:16px}
+ .brief-top h1 {font-size:22px}
+ .brief-headline h2 {font-size:20px}
+ .brief-values {gap:16px}
+}
+@media print {
+ .forecast-toolbar,.controls-summary,.brief-actions {display:none!important}
+ body.brief-view .workspace {max-width:none;display:block;padding:0}
+ body.brief-view #briefingView {border:0;padding:0;box-shadow:none}
+ .brief-grid {grid-template-columns:1fr 1fr;gap:12px}
+ .brief-grid>section,.brief-next,.brief-headline {break-inside:avoid}
+ .brief-daycards {grid-template-columns:repeat(3,1fr)}
+ .brief-headline,.model-change-list li {background:#f4f6f8!important}
+ .brief-grid p {font-size:11px}
+ .brief-values strong {font-size:20px}
+ .brief-foot {font-size:9px}
+}
+
+.forecast-jumps {display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.brief-view .forecast-jumps>a,.brief-view .statusbar .headline,.brief-view .statusbar>.vsep {display:none}
+.brief-view .statusbar .site-id {flex:1}
+#modelTrendCard,#timingCard {scroll-margin-top:20px}
+@media(max-width:600px){.forecast-toolbar {align-items:flex-start;flex-wrap:wrap}.forecast-jumps {justify-content:flex-start}.forecast-jumps .btn {font-size:10px}}
