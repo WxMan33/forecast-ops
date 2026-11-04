@@ -1,5 +1,8 @@
 name: Refresh Cincinnati astronomy
 on:
+  push:
+    branches: [main]
+    paths: ['tools/refresh-astronomy.js', '.github/workflows/astronomy.yml']
   schedule:
     - cron: '43 0,6,12,18 * * *'
   workflow_dispatch:
