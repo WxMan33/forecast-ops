@@ -38,7 +38,10 @@ async function fetchMeta(id) {
    where they came from; nothing is inferred (inferred stays null); missing or implausible stays
    "unknown" for analysis while the reported value is still preserved. */
 function cycleOf(kind, rec) {
-  if (rec.nativeRrfs) return { kind: "noaa-model-initialization", reported: rec.nativeRrfs.cycle, responseCycle: rec.nativeRrfs.cycle, reportedBy: "NOAA native GRIB2 initialization, validated by the point collector", inferred: null, status: "provider-reported", generatedAt: rec.nativeRrfs.generatedAt };
+  if (rec.nativeRrfs) return { kind: "noaa-model-initialization", reported: rec.nativeRrfs.cycle, responseCycle: rec.nativeRrfs.cycle, reportedBy: "NOAA native GRIB2 initialization, validated by the point collector", inferred: null,
+    /* the cycle is read from the GRIB2 messages themselves (dataDate/dataTime), not from provider metadata;
+       records written before this label existed say "provider-reported" and are left unchanged */
+    status: "confirmed-in-data", generatedAt: rec.nativeRrfs.generatedAt };
   /* NWS: a forecast UPDATE time from the response itself; never presented as a model cycle */
   if (kind === "nws") return { kind: "nws-grid-update-time", nwsGridUpdateTime: rec.issuedAt || null, reported: rec.issuedAt || null, reportedBy: "NWS gridpoint response field properties.updateTime (forecast update time, not a model run)", responseCycle: null, inferred: null, status: rec.issuedAt ? "provider-reported" : "unknown" };
   /* Open-Meteo: the latest run its METADATA reported at retrieval. Not confirmed as the run behind the

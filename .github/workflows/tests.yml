@@ -40,6 +40,7 @@ jobs:
       - run: node tests/forecast-clock.test.js
       - run: node tests/scoped-weights.test.js
       - run: node tests/maps.test.js
+      - run: node tests/trend-archive.test.js
       - run: node tools/stamp-assets.js --check
 
   live:
