@@ -63,7 +63,10 @@ with sync_playwright() as p:
  assert len(history())==1
  revision=1
  page.evaluate('sessionStorage.clear()');page.clock.run_for(60_000)
- page.reload();page.wait_for_function('document.querySelectorAll("#modelTrendCard .model-change-list li").length>0')
+ page.reload();page.wait_for_function('!document.querySelector("#runBtn").disabled && !document.querySelector("#dataChip").textContent.includes("FETCHING")')
+ print('UPDATE DIAGNOSTICS',page.locator('#modelTrendCard').inner_text(),[(x['at'],x['loc'],list(x['models']['gfs_seamless']['rows'].items())[:1]) for x in history()])
+ page.screenshot(path=str(ROOT/'tests/out/focus-update-debug.png'),full_page=True)
+ page.wait_for_function('document.querySelectorAll("#modelTrendCard .model-change-list li").length>0')
  assert len(history())==2
  text=page.locator('#modelTrendCard').inner_text()
  assert 'High' in text or 'Low' in text
