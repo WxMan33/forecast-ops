@@ -189,7 +189,7 @@
       $("daily").innerHTML = '<tbody><tr><td class="msg">No forecast loaded yet.</td></tr></tbody>';
       if (chart) { chart.destroy(); chart = null; }
       $("legend").innerHTML = "";
-      focus.clear();
+      focus.clear($("dataChip").textContent !== "NO DATA");
       return;
     }
     renderDaily();
