@@ -25,46 +25,46 @@
     if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
   });
 })();</script><!--/load-guard-->
-<link rel="stylesheet" href="assets/ops.css?v=8a9c0d6ddf">
+<link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
+<link rel="stylesheet" href="assets/ops.css?v=5b05708f77">
 </head>
 <body class="maps-page">
-<main class="workspace single maps">
+<main class="workspace single maps2">
   <div class="main">
-    <section class="card mapshead">
-      <div class="row" style="justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
-        <div><span class="kick">Model maps · HRRR 3 km</span><h1 class="almtitle" id="mapTitle">Tri-State guidance</h1></div>
-        <div id="mapStatus" class="msg" role="status" aria-live="polite">Loading the run list…</div>
-      </div>
-      <div class="mapctl noprint">
-        <div><label class="field-label" for="runSel">Run</label><select class="input inline" id="runSel"></select></div>
-        <div class="tabs" role="group" aria-label="Field" id="fieldTabs" style="margin:0">
-          <button type="button" class="tab" data-f="t2m">Temperature</button>
-          <button type="button" class="tab" data-f="precip">Precipitation</button>
-          <button type="button" class="tab" data-f="refc">Simulated radar</button>
+    <section class="mapstage" id="stage" aria-label="Model map">
+      <div id="map" class="mapgl"></div>
+      <canvas id="labels" class="maplabels" aria-hidden="true"></canvas>
+      <div class="mapinfo" id="mapInfo" aria-live="polite">Loading…</div>
+      <div class="mapctl2 noprint" id="mapCtl">
+        <div class="ctlrow">
+          <label class="sr-only" for="fieldSel">Field</label><select class="input inline" id="fieldSel"></select>
+          <label class="sr-only" for="winSel">Precipitation window</label><select class="input inline" id="winSel"><option value="1">1 h</option><option value="6">6 h</option><option value="24">24 h</option><option value="run">Since run start</option></select>
+          <label class="sr-only" for="runSel">Run</label><select class="input inline" id="runSel"></select>
         </div>
-        <div id="winWrap"><label class="field-label" for="winSel">Precipitation window</label><select class="input inline" id="winSel">
-          <option value="1">1 hour ending at valid time</option><option value="6">6 hours ending at valid time</option>
-          <option value="24">24 hours ending at valid time</option><option value="run">Since the run started</option></select></div>
+        <div class="ctlrow">
+          <div class="seg" role="group" aria-label="Map view"><button type="button" class="segb" data-view="tristate">Tri-State</button><button type="button" class="segb" data-view="dma">Cincinnati DMA</button><button type="button" class="segb" data-view="venue" id="venueBtn">Venue</button></div>
+          <label class="chk smoothchk"><input type="checkbox" id="smoothChk"> Smooth<span class="wide-only"> display</span></label>
+          <button type="button" class="btn ghost sm" id="fsBtn" aria-pressed="false">FULLSCREEN</button>
+        </div>
       </div>
-      <div class="mapctl noprint">
-        <button class="btn ghost sm" id="prevH" type="button" aria-label="Previous forecast hour">◀</button>
-        <button class="btn sm" id="playBtn" type="button" aria-pressed="false">PLAY</button>
-        <button class="btn ghost sm" id="nextH" type="button" aria-label="Next forecast hour">▶</button>
-        <input type="range" id="hourSl" min="0" max="18" value="0" step="1" aria-label="Forecast hour" style="flex:1 1 220px">
-        <div id="validTxt" class="mono validtxt" aria-live="polite"></div>
+      <div class="maplegend2" id="legend"></div>
+      <div class="timeline noprint" id="timeline">
+        <button type="button" class="btn sm" id="playBtn" aria-pressed="false">PLAY</button>
+        <div class="tlwrap"><input type="range" id="hourSl" min="0" max="18" value="0" step="1" aria-label="Forecast hour"><div class="tlticks" id="tlTicks" aria-hidden="true"></div></div>
+        <div class="tlvalid mono" id="tlValid"></div>
       </div>
+      <div class="mapnote2" id="mapNote" hidden></div>
     </section>
-    <section class="card mapcard">
-      <div class="mapwrap"><canvas id="mapCv" tabindex="0" role="img" aria-label="Model map"></canvas><div id="mapNote" class="mapnote" hidden></div></div>
-      <div id="legend" class="maplegend"></div>
-      <div class="row noprint" style="gap:8px;align-items:end;margin-top:10px">
+    <section class="card">
+      <div class="row" style="justify-content:space-between;gap:10px;align-items:end;flex-wrap:wrap">
+        <div class="section-title" style="margin:0">Point values</div>
         <div><label class="field-label" for="placeSel">Inspect a place</label><select class="input inline" id="placeSel"><option value="">Click or tap the map, or choose…</option></select></div>
       </div>
-      <div id="inspect" class="inspect" aria-live="polite"><p class="msg">Click or tap the map (or focus it and use the arrow keys, then Enter) to read the value in that grid cell.</p></div>
+      <div id="inspect" class="inspect" aria-live="polite"><p class="msg">Click or tap the map to read the model value in that grid cell. Values come from the original grid, never from the smoothed display.</p></div>
     </section>
     <section class="card">
       <div class="section-title">About these maps</div>
-      <p class="msg">NOAA HRRR, 3 km, shown on its own Lambert conformal grid: each coloured square is one model grid cell, not interpolated. Temperature is the 2-m value at the valid time. Simulated radar is the model's composite reflectivity (dBZ), not observed radar. Precipitation windows are read from the GRIB accumulation intervals: one-hour amounts are the model's own (N−1)–N h fields; 6- and 24-hour totals add consecutive one-hour fields from this run and are blank unless every hour is present; "since the run started" is the model's own 0–N h field. Missing hours are left blank, never shown as zero. County and state lines: US Census cartographic boundaries (us-atlas). Model guidance only, not an official forecast.</p>
+      <p class="msg">NOAA HRRR, 3 km. Every model grid cell is drawn as its own shape at its exact position (corners from the model's Lambert conformal projection), so cells look like cells at any zoom: zooming never adds model detail. "Smooth display" blends colours between cell centres for readability only; it never crosses missing data, and point values always come from the original cells. Composite reflectivity is the model's column maximum; 1 km reflectivity is the model at 1,000 m above ground; both are simulated, not radar. Precipitation windows are read from the GRIB accumulation intervals and are blank unless every hour is present. The closest zoom is the Cincinnati DMA (county-based outline). Geography: US Census boundaries (us-atlas) and Natural Earth (public domain). Model guidance only, not an official forecast.</p>
       <div id="runInfo" class="msg"></div>
     </section>
   </div>
@@ -72,7 +72,8 @@
 <script src="assets/ops-core.js?v=a652d0436c"></script>
 <script src="assets/ops-data.js?v=ddeebf20ff"></script>
 <script src="assets/ops.js?v=e10d3125ed"></script>
-<script src="assets/maps-core.js?v=246e22bc9a"></script>
-<script src="assets/maps.js?v=eb600e9617"></script>
+<script src="assets/vendor/maplibre-gl-4.7.1.js?v=be9633c4d8"></script>
+<script src="assets/maps-core.js?v=c1c32a54ca"></script>
+<script src="assets/maps.js?v=65720a9a84"></script>
 </body>
 </html>

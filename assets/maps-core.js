@@ -4,7 +4,7 @@
    the GRIB projection parameters stored in each run's manifest. */
 (function (root) {
   "use strict";
-  const VERSION = "maps-core-v1";
+  const VERSION = "maps-core-v2";
   const rad = (d) => (d * Math.PI) / 180;
 
   /* Spherical Lambert conformal conic, GRIB2 template 3.30. Returns grid coordinates (fractional cell
@@ -82,6 +82,52 @@
   }
   const mmToIn = (mm) => (mm == null ? null : mm / 25.4);
 
-  const api = { VERSION, projector, field, precip, SCALES, color, mmToIn };
+  /* ---------- GPU rendering support (maps-core-v2) ----------
+     Web Mercator coordinates in MapLibre's convention ([0,1] x [0,1]). Each native cell becomes a quad
+     whose corners are the projection's own cell corners (i +/- 0.5, j +/- 0.5), so a cell is drawn
+     exactly where the model put it; nothing is resampled. */
+  const merc = (lat, lon) => [(lon + 180) / 360, (1 - Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) / Math.PI) / 2];
+  function mesh(grid) {
+    const P = projector(grid), nx = grid.nx, ny = grid.ny;
+    /* corner lattice (nx+1) x (ny+1) shared by neighbouring cells */
+    const cx = new Float64Array((nx + 1) * (ny + 1) * 2);
+    for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) { const [la, lo] = P.fromCell(i - 0.5, j - 0.5), m = merc(la, lo), k = (j * (nx + 1) + i) * 2; cx[k] = m[0]; cx[k + 1] = m[1]; }
+    const nPos = new Float32Array(nx * ny * 8), nIdx = new Uint32Array(nx * ny * 6);
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      const c = j * nx + i, corners = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]];
+      corners.forEach(([a, b], q) => { const k = (b * (nx + 1) + a) * 2; nPos[c * 8 + q * 2] = cx[k]; nPos[c * 8 + q * 2 + 1] = cx[k + 1]; });
+      nIdx.set([c * 4, c * 4 + 1, c * 4 + 2, c * 4, c * 4 + 2, c * 4 + 3], c * 6);
+    }
+    /* smoothing mesh: vertices at cell centres, two triangles per square of four centres */
+    const sPos = new Float32Array(nx * ny * 2), sIdx = new Uint32Array((nx - 1) * (ny - 1) * 6);
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const [la, lo] = P.fromCell(i, j), m = merc(la, lo); sPos[(j * nx + i) * 2] = m[0]; sPos[(j * nx + i) * 2 + 1] = m[1]; }
+    let t = 0; for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = j * nx + i, b = a + 1, c = a + nx + 1, d = a + nx; sIdx.set([a, b, c, a, c, d], t); t += 6; }
+    /* data extent: outline of the outer cell edges, as lon/lat (for the outside-data mask) */
+    const ring = [], edge = (i, j) => { const [la, lo] = P.fromCell(i - 0.5, j - 0.5); ring.push([lo, la]); };
+    for (let i = 0; i <= nx; i++) edge(i, 0); for (let j = 1; j <= ny; j++) edge(nx, j); for (let i = nx - 1; i >= 0; i--) edge(i, ny); for (let j = ny - 1; j >= 1; j--) edge(0, j); ring.push(ring[0]);
+    return { nx, ny, native: { pos: nPos, idx: nIdx }, smooth: { pos: sPos, idx: sIdx }, extent: ring, merc };
+  }
+  /* value -> colour-table coordinate u in [0,1]; -1 = below the first threshold (transparent).
+     Stepped scales map to the centre of their step, so native rendering shows exact legend colours. */
+  const STEPPED = { precip: true, refc: true };
+  function scaleU(scale, v) {
+    if (v == null || !Number.isFinite(v)) return null;
+    const st = SCALES[scale].stops, n = st.length;
+    if (STEPPED[scale]) { if (v < st[0][0]) return -1; let k = 0; for (let q = 0; q < n; q++) if (v >= st[q][0]) k = q; return (k + 0.5) / n; }
+    const lo = st[0][0], hi = st[n - 1][0]; return Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
+  }
+  /* 256-entry RGBA colour table matching scaleU and the legend */
+  function colorTable(scale) {
+    const st = SCALES[scale].stops, n = st.length, out = new Uint8Array(256 * 4);
+    for (let x = 0; x < 256; x++) {
+      const u = (x + 0.5) / 256; let c;
+      if (STEPPED[scale]) c = st[Math.min(n - 1, Math.floor(u * n))][1];
+      else { const v = st[0][0] + u * (st[n - 1][0] - st[0][0]); c = color(scale, v).slice(0, 3); }
+      out.set([c[0], c[1], c[2], 255], x * 4);
+    }
+    return out;
+  }
+
+  const api = { VERSION, projector, field, precip, SCALES, color, mmToIn, mesh, merc, scaleU, colorTable, STEPPED };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.MapsCore = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

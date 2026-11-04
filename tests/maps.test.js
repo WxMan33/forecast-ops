@@ -54,4 +54,21 @@ eq(MC.color("precip", 0.005), null, "below 0.01 in: transparent");
 eq(MC.color("refc", 0), null, "no echo below 5 dBZ");
 ok(MC.color("t2m", 31.9)[2] !== MC.color("t2m", 33)[2], "freezing line is a colour boundary");
 eq(MC.color("t2m", null), null, "missing temperature is not coloured");
+
+/* GPU mesh: every native cell is a quad at its exact projected corners; neighbours share corners (no gaps) */
+const M = MC.mesh(g), unmerc = ([x, y]) => [(Math.atan(Math.sinh(Math.PI * (1 - 2 * y))) * 180) / Math.PI, x * 360 - 180];
+eq(M.native.pos.length, g.nx * g.ny * 8, "four corners per native cell");
+eq(M.native.idx.length, g.nx * g.ny * 6, "two triangles per native cell");
+{ const [ci, cj] = cp.points[0].cell, c = cj * g.nx + ci, q = [0, 1, 2, 3].map((k) => [M.native.pos[c * 8 + k * 2], M.native.pos[c * 8 + k * 2 + 1]]);
+  const ctr = unmerc([(q[0][0] + q[2][0]) / 2, (q[0][1] + q[2][1]) / 2]), back = P.nearest(ctr[0], ctr[1]);
+  eq(back.join(","), cp.points[0].cell.join(","), "the CVG quad's centre maps back to the GRIB checkpoint cell");
+  ok(Math.abs(ctr[0] - cp.points[0].gribLat) < 0.003 && Math.abs(ctr[1] - cp.points[0].gribLon) < 0.003, "quad centre within ~300 m of the GRIB grid point");
+  const r = c + 1; ok(M.native.pos[r * 8] === q[1][0] && M.native.pos[r * 8 + 1] === q[1][1], "east neighbour shares the corner exactly (no seams)"); }
+eq(M.smooth.pos.length, g.nx * g.ny * 2, "smoothing mesh: one vertex per cell centre (values never resampled)");
+eq(M.extent[0].join(), M.extent[M.extent.length - 1].join(), "data-extent ring is closed");
+/* colour table: stepped scales land exactly on their legend colours; below-threshold is transparent */
+const T = MC.colorTable("refc"), uu = MC.scaleU("refc", 37), k = Math.floor(uu * 256);
+eq([...T.slice(k * 4, k * 4 + 3)].join(), MC.color("refc", 37).slice(0, 3).join(), "37 dBZ renders the 35-40 legend colour");
+eq(MC.scaleU("refc", 4.9), -1, "below 5 dBZ is not drawn");
+eq(MC.scaleU("precip", null), null, "missing precipitation has no colour coordinate");
 console.log(`ok - ${n} model-map checks passed (real HRRR package + synthetic cases)`);
