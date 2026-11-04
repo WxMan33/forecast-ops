@@ -50,6 +50,7 @@ with sync_playwright() as p:
  page.locator('#themeBtn').click()
  page.screenshot(path=str(out/'climo-light-desktop.png'),full_page=True)
  page.locator('#notes').fill('Synthetic QA note, saved separately from official values.')
+ page.wait_for_function('Object.keys(localStorage).some(k=>k.startsWith("alm_notes:") && localStorage.getItem(k).includes("Synthetic QA note"))')
  page.reload();page.locator('[data-climo-row="maxt"]').wait_for()
  assert 'Synthetic QA note' in page.locator('#notes').input_value()
  page.emulate_media(media='print');page.screenshot(path=str(out/'climo-print.png'),full_page=True)

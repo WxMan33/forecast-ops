@@ -96,3 +96,5 @@ body.wide-main.forecast-focus:not(.brief-view) .workspace {grid-template-columns
 .forecast-focus #forecastControls:not([open])>.controls-body {display:none}
 .forecast-focus .technical .section-sub {max-width:80ch}
 .forecast-focus .table-scroll-note {font-size:11px;color:var(--muted);margin:7px 0}
+
+.forecast-focus .chartbox canvas {display:block;max-width:100%}

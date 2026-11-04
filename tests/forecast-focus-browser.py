@@ -90,7 +90,7 @@ with sync_playwright() as p:
  page.locator('#daily tr[data-k="2026-11-04"]').click()
  for width in [360,390,900,1280,1440]:
   page.set_viewport_size({'width':width,'height':900})
-  assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1'),f'open diagnostics overflow at {width}'
+  assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1'),str((width,page.evaluate('[...document.querySelectorAll("body *")].filter(e=>e.getBoundingClientRect().right>innerWidth+1&&!e.closest(".tablewrap")&&!e.closest(".navbar")).slice(0,12).map(e=>[e.tagName,e.id,e.className,e.getBoundingClientRect().width])')))
   assert page.evaluate('[...document.querySelectorAll(".technical .tablewrap")].every(e=>e.getBoundingClientRect().right<=e.closest(".technical").getBoundingClientRect().right+1)'),f'table escaped card at {width}'
  page.set_viewport_size({'width':1440,'height':1000})
  page.screenshot(path=str(ROOT/'tests/out/focus-diagnostics-desktop.png'),full_page=True)
