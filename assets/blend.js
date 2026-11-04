@@ -288,7 +288,7 @@
     wireHeaders(COLS);
     $("dailyNote").innerHTML = `Small numbers under each value: <b>weighted guidance spread</b>, the 10th–90th percentile across all sources (ensemble members share their system's weight; NWS, NBM and each model count once). It mixes ensembles with single forecasts, so it is not a calibrated probability; hover for the ensembles-only range. Ensemble highs and lows are each member's own daily extreme, then combined. NWS enters highs and lows through its hourly temperatures over the calendar day, not its official day-high / night-low. * NWS precip prorated across interval edges (hover for the blend at NWS's lower and upper bounds). Click a day for its source breakdown. ` + (hasN ? `${nwsTag} columns are the official day (usually 6a–6p) and night (6p–6a) periods, not calendar days, so they can differ from the blend's midnight-to-midnight high and low. See <b>NWS vs blend</b> for a same-hours comparison.` : "");
     $("daily").querySelectorAll("tr[data-k]").forEach((tr) => {
-      const pickDay = () => { viewDay = viewDay === tr.dataset.k ? null : tr.dataset.k; renderDaily(); renderChart(); };
+      const pickDay = () => { viewDay = viewDay === tr.dataset.k ? null : tr.dataset.k; renderDaily(); renderChart(); focus.selectDay(tr.dataset.k); };
       const det = tr.querySelector(".detbtn");
       det.addEventListener("click", (e) => { e.stopPropagation(); const row = $("daily").querySelector(`tr.detrow[data-for="${tr.dataset.k}"]`); row.hidden = !row.hidden; det.setAttribute("aria-expanded", String(!row.hidden)); det.textContent = row.hidden ? "▸" : "▾"; });
       tr.addEventListener("click", pickDay);

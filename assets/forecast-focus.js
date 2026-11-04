@@ -5,13 +5,13 @@ const KEY='ops_model_guidance_history_v1';let memory=null,warning='';
 function read(){if(memory)return memory;try{const x=JSON.parse(localStorage.getItem(KEY)||'{}');return x&&typeof x==='object'&&!Array.isArray(x)?x:{};}catch(e){return {}; }}
 function save(loc,items){const all=read();all[loc]={at:Date.now(),items};const kept=Object.fromEntries(Object.entries(all).sort((a,b)=>b[1].at-a[1].at).slice(0,3));memory=kept;try{localStorage.setItem(KEY,JSON.stringify(kept));warning='';}catch(e){warning='History is available for this session only; browser storage is unavailable or full.';}}
 function mount({O,C,initialBrief=false}){
- const $=O.$;let state=null,reference=1,chosenDay='',brief=initialBrief,pair=null;
+ const $=O.$;let state=null,reference=1,chosenDay='',brief=initialBrief,pair=null,lastData=null,lastSnapshot=null;
  function applyMode(){document.body.classList.toggle('brief-view',brief);$('briefingView').hidden=!brief;$('viewMode').textContent=brief?'Meteorologist view':'Decision briefing';$('viewMode').setAttribute('aria-pressed',String(brief));const u=new URL(location.href);if(brief)u.searchParams.set('view','brief');else u.searchParams.delete('view');history.replaceState(null,'',u);}
  const mobile=matchMedia('(max-width: 900px)');$('forecastControls').open=!mobile.matches;mobile.addEventListener('change',e=>{$('forecastControls').open=!e.matches;});
  $('viewMode').onclick=()=>{brief=!brief;applyMode();if(state)render();};applyMode();
  function nowFormat(t){return new Date(t).toLocaleString('en-US',{timeZone:state.data.tz,weekday:'short',hour:'numeric',minute:'2-digit',timeZoneName:'short'});}
  function dayLabel(d){return O.fmtDay(d);}
- function update(data,{record=false,names={},rows=[],ctx=null}={}){state={data,names,rows,ctx};const current=T.capture(C,data,O.location);const key=current.loc.join(',')+'|'+data.tz;const old=read()[key]?.items||[];
+ function update(data,{record=false,names={},rows=[],ctx=null}={}){state={data,names,rows,ctx};if(lastData!==data){lastSnapshot=T.capture(C,data,O.location,data.viewedAt||Date.now());lastData=data;}const current=lastSnapshot;const key=current.loc.join(',')+'|'+data.tz;const old=read()[key]?.items||[];
  pair=T.history(old,current);if(record&&pair.changed)save(key,pair.items);
  const days=Object.keys(Object.values(current.models).find(m=>Object.keys(m.rows).length)?.rows||{});if(!days.includes(chosenDay))chosenDay=days.find(d=>d>=C.time.toLocal(Date.now(),data.tz).slice(0,10))||days[0]||'';render();}
  const name=id=>state.names[id]||id;
@@ -41,7 +41,7 @@ function mount({O,C,initialBrief=false}){
  $('briefPrint').onclick=()=>window.print();$('briefDay').onchange=e=>{chosenDay=e.target.value;render();};
  }
  function clear(){state=null;['modelTrendCard','timingCard'].forEach(id=>{$(id).innerHTML='<p class="msg">Forecast guidance unavailable. Retry loading models.</p>';});$('briefingView').innerHTML='<h1>Forecast briefing unavailable</h1><p>Guidance could not be loaded. Return to the meteorologist view and retry.</p>';}
- return {update,clear};
+ return {update,clear,selectDay(day){chosenDay=day;if(state)render();}};
 }
 root.ForecastFocus={mount};
 })(typeof globalThis!=='undefined'?globalThis:this);

@@ -40,6 +40,7 @@ with sync_playwright() as p:
  page.clock.install(time=datetime(2026,11,4,6,tzinfo=timezone.utc))
  def external(route):
   url=route.request.url
+  print('MOCK',revision,url[:180],flush=True)
   if 'open-meteo.com' in url:
    if 'meta.json' in url:route.fulfill(status=200,content_type='application/json',body='{}')
    else:route.fulfill(status=200,content_type='application/json',body=json.dumps(om_response(url)))
@@ -47,7 +48,7 @@ with sync_playwright() as p:
    key='points' if '/points/' in url else 'hourly' if '/forecast/hourly' in url else 'forecast' if '/forecast' in url else 'grid'
    route.fulfill(status=200,content_type='application/json',body=json.dumps({'features':[]} if '/alerts/' in url else fixtures[key]))
   else:route.fulfill(status=404,content_type='application/json',body='{}')
- page.route('https://**',external)
+ context.route('**/*',lambda r: r.continue_() if r.request.url.startswith('http://127.0.0.1:') else external(r))
  url=f'http://127.0.0.1:{server.server_port}/blend.html?lat=39.05&lon=-84.66&name=Synthetic+QA'
  page.goto(url)
  page.wait_for_function('document.querySelector("#modelTrendCard").textContent.includes("first guidance")')
@@ -58,6 +59,7 @@ with sync_playwright() as p:
  assert page.locator('#daily tbody tr').count()>3
  def history():return page.evaluate('Object.values(JSON.parse(localStorage.getItem("ops_model_guidance_history_v1")))[0].items')
  assert len(history())==1,'first snapshot persisted'
+ assert history()[0]['tz']=='UTC','synthetic model response must be used, not live data'
  # Repeated refresh (including cache) never creates a new guidance update.
  page.reload();page.wait_for_function('document.querySelector("#modelTrendCard").textContent.includes("first guidance")')
  assert len(history())==1
@@ -115,7 +117,7 @@ with sync_playwright() as p:
  assert page.locator('#briefingView').is_visible()
  page.screenshot(path=str(out/'focus-brief-print.png'),full_page=True)
  # Full failure state, with retained local history/settings.
- page.emulate_media(media='screen');page.unroute('https://**');page.route('https://**',lambda r:r.fulfill(status=503,content_type='application/json',body='{"error":true,"reason":"synthetic outage"}'))
+ page.emulate_media(media='screen');context.unroute('**/*');context.route('**/*',lambda r:r.continue_() if r.request.url.startswith('http://127.0.0.1:') else r.fulfill(status=503,content_type='application/json',body='{"error":true,"reason":"synthetic outage"}'))
  page.evaluate('sessionStorage.clear()');page.reload()
  page.wait_for_function('document.querySelector("#briefingView").textContent.includes("could not be loaded")')
  assert len(history())==2,'failed fetch leaves saved history intact'
