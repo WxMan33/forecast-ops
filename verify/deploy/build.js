@@ -15,6 +15,9 @@ fs.rmSync(path.join(OUT, "collector", "verify", "deploy"), { recursive: true, fo
 copy(path.join(ROOT, "assets", "ops-core.js"), path.join(OUT, "collector", "assets", "ops-core.js"));
 copy(path.join(ROOT, "assets", "ops-data.js"), path.join(OUT, "collector", "assets", "ops-data.js"));
 copy(path.join(ROOT, "assets", "my-forecast-core.js"), path.join(OUT, "collector", "assets", "my-forecast-core.js"));
+/* pure join cores shared with the private dashboard; vendored so the collector's regression self-test checks them */
+copy(path.join(ROOT, "assets", "verify-core.js"), path.join(OUT, "collector", "assets", "verify-core.js"));
+copy(path.join(ROOT, "assets", "precip-core.js"), path.join(OUT, "collector", "assets", "precip-core.js"));
 fs.writeFileSync(path.join(OUT, "collector", "COLLECTOR_VERSION.json"), JSON.stringify({ builtAt: new Date().toISOString(), sourceRepo: "WxMan33/forecast-ops", sourceCommit: arg("source-commit", null), note: "vendored copy; every capture also records this repository's commit (GITHUB_SHA)" }, null, 1) + "\n");
 copy(path.join(__dirname, "collector.yml"), path.join(OUT, ".github", "workflows", "collector.yml"));
 copy(path.join(__dirname, "DATA_README.md"), path.join(OUT, "README.md"));
