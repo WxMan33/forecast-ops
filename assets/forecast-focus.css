@@ -9,8 +9,9 @@
 .forecast-focus .side .card {min-width:0}
 .forecast-focus .side .section-title {font-size:13px}
 .forecast-focus #recipeNote {line-height:1.6}
-.forecast-toolbar {display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 3px}
-.forecast-toolbar > div {display:grid;gap:3px}
+.forecast-toolbar {display:flex;justify-content:flex-end;align-items:center;gap:6px;padding:0;min-width:0}
+.forecast-toolbar > .forecast-jumps {display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.forecast-toolbar .btn {white-space:nowrap}
 .kicker {display:block;color:var(--muted);font:700 10px/1.5 system-ui,sans-serif;letter-spacing:.09em;text-transform:uppercase}
 .focus-heading,.brief-top {display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .focus-heading h2,.brief-top h1,.brief-headline h2 {margin:3px 0 10px;line-height:1.25;letter-spacing:-.02em}
