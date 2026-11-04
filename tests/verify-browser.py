@@ -17,6 +17,10 @@ D['sourceLabels']['blend:default-v2']='Synthetic Default v2'
 idx={'at':'synthetic fixture','loc':{'name':'CVG'},'reviewQueue':0,'health':{'expected':0,'slots':[],'gaps':[],'manual':0},'lastRuns':{},'captures':[],'runs':[],'latestBlendInfo':{},'tvLatest':[]}
 history=D.pop('history');history += [{'captureId':cap['captureId'],'id':'blend:default-v2','date':'2026-11-04','target':target,'value':value,'slot':'midday','cls':'primary','retrievedAt':cap['retrievedAt'],'window':[1,2],'hash':'synthetic-hash','contributors':[['nws',1]],'normVersion':'synthetic'} for target,value in [('tmax_clim',65),('tmin_clim',45),('precip_clim',0.25)]];D['historyFiles']={'2026-11-04':'reports/dashboard/history-2026-11-04.json'}
 files={'reports/my-forecast.json':{'entries':[],'pairs':[],'pending':[]},'reports/dashboard/history-2026-11-04.json':history,'reports/index.json':idx,'reports/scores.json':{'pairsCount':0,'pendingCount':0,'summary':[],'comparisons':[],'hourly':[],'minDates':30},'reports/review-queue.json':{'items':[]},'reports/dashboard/index.json':D,'reports/dashboard/synthetic.json':{**cap,'bundle':'synthetic fixture','normalizer':'synthetic','hourly':{'t0':t,'stepMs':3600000,'n':5,'temperature_2m':{'nws':[60,61,62,63,64],'ecmwf_ens':[61,62,None,64,65]}}}}
+rainbase={'captureId':'synthetic_midday','date':'2026-11-04','slot':'midday','lead':1,'leadHours':12,'cls':'primary','period':'climate-day-LST','window':[1793768400000,1793854800000],'normVersion':'normalize-v4','flags':[]}
+rainpairs=[{**rainbase,'id':id,'target':'precip_clim','v':v,'o':0.3} for id,v in [('nws',0.2),('ecmwf_ens',0.4)]]
+rainpairs += [{**rainbase,'id':id,'target':'pop01_clim','v':v,'o':1,'thresholdIn':0.01,'probabilityMethod':'ensemble-frequency'} for id,v in [('ecmwf_ens',0.3),('gefs',0.6)]]
+files['reports/precip.json']={'schema':1,'at':'synthetic fixture','minDates':30,'pairs':rainpairs,'excluded':{},'pendingCount':0}
 with sync_playwright() as p:
  browser=p.chromium.launch()
  page=browser.new_page()
@@ -82,6 +86,19 @@ with sync_playwright() as p:
   assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),str((width,page.evaluate('[...document.querySelectorAll("body *")].filter(e=>e.getBoundingClientRect().right>innerWidth+1).map(e=>[e.tagName,e.id,e.className,e.getBoundingClientRect().width]).slice(0,12)')))
   Path(root/'tests/out').mkdir(exist_ok=True)
   page.screenshot(path=str(root/f'tests/out/dashboard-{width}.png'),full_page=True)
+ page.get_by_role('button',name='Precipitation',exact=True).click()
+ page.locator('#rp-kind').wait_for()
+ assert '1 matched cases' in page.locator('#pane').inner_text()
+ assert 'Wet-frequency bias' in page.locator('#pane').inner_text()
+ page.locator('#rp-kind').select_option('probability')
+ assert page.locator('.rp-chart').count()==2
+ assert 'Brier score 0.490' in page.locator('#pane').inner_text()
+ for width in [360,1280]:
+  page.set_viewport_size({'width':width,'height':900})
+  assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+  page.screenshot(path=str(root/f'tests/out/dashboard-precip-{width}.png'),full_page=True)
+ page.locator('#rp-lead').select_option('2')
+ assert 'No common verified cases' in page.locator('#pane').inner_text()
  page.get_by_role('button',name='TV products & review',exact=True).click()
  assert 'Nothing to review.' in page.locator('#pane').inner_text()
  page.get_by_role('button',name='Blend recipes',exact=True).click()

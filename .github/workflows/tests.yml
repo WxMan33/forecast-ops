@@ -26,6 +26,7 @@ jobs:
       - run: node tests/almanac.test.js
       - run: node tests/rrfs.test.js
       - run: node tests/verify-dashboard.test.js
+      - run: node tests/precip.test.js
       - run: node verify/tests/personal.test.js
       - run: node tools/stamp-assets.js --check
 
