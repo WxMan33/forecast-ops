@@ -32,7 +32,7 @@
     const fd = st.fields[f]; if (!fd) return { v: null, why: "not in this run" };
     return { v: fd.at(h, i, j) };
   }
-  const fieldOk = (f) => f === "precip" ? !!(st.fields.apcp_hour && st.fields.apcp_run) : !!st.fields[f];
+  const fieldOk = (f) => window.MapRunLoader.supports(st.man, f, st.win);
   /* one frame of colour-table coordinates for the GPU (cached per run/field/window/hour) */
   function frame(h) {
     const key = `${st.run.id}|${st.field}|${st.win}|${h}`; if (st.frames.has(key)) return st.frames.get(key);
@@ -150,6 +150,7 @@
   const TRISTATE = [[-86.6, 37.6], [-82.4, 40.7]];
   const DMAPAD = () => (innerWidth < 700 ? { top: 96, bottom: 150, left: 12, right: 12 } : { top: 70, bottom: 70, left: 24, right: 24 });
   function limits() {
+    if (!st.mesh) return;
     const map = st.map, dma = st.base.dma.bounds, ext = st.mesh.extent, xs = ext.map((p) => p[0]), ys = ext.map((p) => p[1]);
     /* closest zoom = the Cincinnati DMA view. Landscape: the whole DMA fits inside the map (clear of the overlays).
        Portrait phone: the DMA fills the map's height; fitting its width into ~390 px would make 3-km cells ~3 px wide. */
@@ -162,41 +163,87 @@
     st.limits = { zDMA, ext: [[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]] };
   }
   function goView(v, animate = true) {
+    if (!st.limits) return;
     const map = st.map, opt = { padding: { top: 70, bottom: 90, left: 16, right: 16 }, duration: animate ? 600 : 0 };
     if (v === "dma") { const c = map.cameraForBounds(st.base.dma.bounds, { padding: DMAPAD() }); map.easeTo({ center: c.center, zoom: st.limits.zDMA, duration: opt.duration }); } // the DMA view is the closest permitted zoom
-    else if (v === "venue") { const L = O.location; if (!L || !st.P.nearest(+L.lat, +L.lon)) { note("The saved venue is outside the model data area."); return; } map.easeTo({ center: [+L.lon, +L.lat], zoom: Math.min(map.getZoom() + 1, map.getMaxZoom()), duration: opt.duration }); }
+    else if (v === "venue") { const L = O.location; if (!st.limits || !L || !st.P.nearest(+L.lat, +L.lon)) { note("The saved venue is outside the model data area."); return; } map.easeTo({ center: [+L.lon, +L.lat], zoom: Math.min(map.getZoom() + 1, map.getMaxZoom()), duration: opt.duration }); }
     else map.fitBounds(TRISTATE, opt); // fixed Tri-State bounds, independent of how large the model data area is
     st.view = v; O.store.set("maps2_view", v); document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
   }
-  function note(t) { const n = $("mapNote"); n.textContent = t || ""; n.hidden = !t; }
+  function note(t, retry) { const n = $("mapNote"); n.textContent = t || ""; n.hidden = !t;
+    if (retry) { const b = document.createElement("button"); b.type = "button"; b.className = "btn ghost sm"; b.textContent = "RETRY"; b.addEventListener("click", retry); n.append(" ", b); }
+  }
 
   /* ---------- runs and fields ---------- */
+  const loader = window.MapRunLoader.create({ json: getJSON, buffer: getGz, decode: MC.field });
+  let requestId = 0;
+  function busy(on, message, runChange = false) {
+    st.loading = on; stop();
+    $("stage").setAttribute("aria-busy", String(on));
+    ["playBtn", "hourSl", "smoothChk", "winSel"].forEach((id) => { $(id).disabled = on; });
+    $("fieldSel").disabled = on && runChange;
+    if (on) { if (layer.gl) { layer.count = 0; st.map.triggerRepaint(); } note(message); }
+  }
+  function updateGrid() {
+    if (!st.map.getSource("mask")) return;
+    st.map.getSource("mask").setData({ type: "Feature", geometry: { type: "Polygon", coordinates: [[[-100, 30], [-70, 30], [-70, 48], [-100, 48], [-100, 30]], st.mesh.extent.slice().reverse()] } });
+    limits();
+    $("venueBtn").disabled = !(O.location && st.P.nearest(+O.location.lat, +O.location.lon));
+    if (st.sel) { const old = st.selectedPoint; if (old) select(old.lat, old.lon, old.name); else st.sel = null; }
+  }
   async function loadRun(id, keepValid) {
-    stop(); const r = st.index.runs.find((x) => x.id === id); if (!r) return;
+    const token = ++requestId, r = st.index.runs.find((x) => x.id === id); if (!r) return false;
     const prevValid = keepValid && st.man ? Date.parse(st.man.valid[st.h]) : null;
-    $("mapInfo").textContent = `Loading ${fmtUTC(Date.parse(r.cycle))} run…`;
+    busy(true, `Loading ${fmtUTC(Date.parse(r.cycle))} run…`, true);
     const base = `${DATA.replace(/\/data$/, "")}/${r.path}`;
     try {
-      const man = await getJSON(`${base}/manifest.json`), g = man.grid, nh = man.hours.length, fields = {}; let loaded = 0;
-      const ll = await getGz(`${base}/${g.latlon.file}`); loaded += g.latlon.gzipBytes;
-      await Promise.all(Object.entries(man.fields).map(async ([f, spec]) => { const b = await getGz(`${base}/${spec.file}`); fields[f] = MC.field(spec, b, nh, g.ny, g.nx); loaded += spec.gzipBytes; }));
-      const sameGrid = st.man && JSON.stringify(st.man.grid.i0 + "," + st.man.grid.j0 + "," + st.man.grid.nx + "," + st.man.grid.ny) === JSON.stringify(g.i0 + "," + g.j0 + "," + g.nx + "," + g.ny);
-      Object.assign(st, { run: r, man, fields, lat: new Float32Array(ll), loaded, P: MC.projector(g) }); st.frames.clear();
-      if (!sameGrid || !st.mesh) { st.mesh = MC.mesh(g); geomMode = null; }
-    } catch (e) { $("mapInfo").innerHTML = `<span class="state err">This run could not be loaded (${esc(e.message)}).</span>`; return; }
-    /* keep the valid time when switching runs; otherwise the nearest available, and say so */
-    let msg = null;
-    if (prevValid != null) { const k = st.man.valid.findIndex((v) => Date.parse(v) === prevValid); if (k >= 0) st.h = k; else { const near = st.man.valid.map((v, i) => [Math.abs(Date.parse(v) - prevValid), i]).sort((a, b) => a[0] - b[0])[0][1]; st.h = near; msg = `${fmtLocal(prevValid)} is not in this run; showing the nearest valid time.`; } }
-    st.h = Math.min(st.h, st.man.hours.length - 1);
-    if (!fieldOk(st.field)) { msg = `${FIELDS[st.field].label} is not in this run.`; }
-    buildFieldSel(); timeline(); refresh(); if (msg) { note(msg); const at = st.run.id; setTimeout(() => { if (st.run.id === at) refresh(); }, 5000); }
+      const runData = await loader.open(r.id + "|" + base, base);
+      if (token !== requestId) return false;
+      let field = FIELDS[st.field] ? st.field : "t2m", msg = null;
+      if (!window.MapRunLoader.supports(runData.man, field, st.win)) { msg = `${FIELDS[field].label} is not in this run; showing temperature.`; field = "t2m"; }
+      await loader.ensure(runData, field, st.win);
+      if (token !== requestId) return false;
+      const man = runData.man, g = man.grid;
+      // Grid geometry changes independently of forecast run identity.
+      const sameGrid = st.man && JSON.stringify(st.man.grid) === JSON.stringify(g);
+      Object.assign(st, { run: r, man, fields: runData.fields, field, lat: runData.lat, loaded: runData.loaded, runData, P: MC.projector(g) }); st.frames.clear();
+      if (!sameGrid || !st.mesh) st.mesh = MC.mesh(g);
+      geomMode = null;
+      if (prevValid != null) { const k = man.valid.findIndex((v) => Date.parse(v) === prevValid); if (k >= 0) st.h = k; else { st.h = man.valid.map((v, i) => [Math.abs(Date.parse(v) - prevValid), i]).sort((a, b) => a[0] - b[0])[0][1]; msg = `${fmtLocal(prevValid)} is not in this run; showing the nearest valid time.`; } }
+      st.h = Math.min(st.h, man.hours.length - 1);
+      busy(false); $("runSel").value = r.id; buildFieldSel(); updateGrid(); setColors(); timeline(); refresh(); if (msg) note(msg);
+      return true;
+    } catch (e) {
+      if (token !== requestId) return false;
+      busy(false);
+      if (st.man) { $("runSel").value = st.run.id; buildFieldSel(); geomMode = null; refresh(); }
+      else $("mapInfo").textContent = "This run could not be loaded.";
+      note(`Run could not be loaded (${e.message}). ${st.man ? "Previous run remains displayed. Select the run again to retry." : ""}`, () => loadRun(id, keepValid).then((ok) => { if (ok && !st.map.getSource("mask")) { addBasemap(); setColors(); limits(); goView("tristate", false); upload(); } }));
+      return false;
+    }
+  }
+  async function chooseField(field, win) {
+    if (!st.runData) return;
+    const token = ++requestId, run = st.runData;
+    busy(true, `Loading ${FIELDS[field].label.toLowerCase()}…`);
+    try {
+      await loader.ensure(run, field, win);
+      if (token !== requestId) return;
+      st.field = field; st.win = win; st.loaded = run.loaded;
+      O.store.set("maps2_field", field); O.store.set("maps2_win", win);
+      busy(false); buildFieldSel(); setColors(); geomMode = null; timeline(); refresh();
+    } catch (e) {
+      if (token !== requestId) return;
+      busy(false); buildFieldSel(); geomMode = null; refresh();
+      note(`Could not load ${FIELDS[field].label.toLowerCase()} (${e.message}). Previous field remains displayed. Select it again to retry.`);
+    }
   }
   function buildFieldSel() {
     $("fieldSel").innerHTML = Object.entries(FIELDS).map(([k, f]) => `<option value="${k}" ${fieldOk(k) ? "" : "disabled"}>${esc(f.short || f.label)}${fieldOk(k) ? "" : " (not in this run)"}</option>`).join("");
     if (!fieldOk(st.field)) st.field = "t2m"; $("fieldSel").value = st.field; $("winSel").value = st.win; $("winSel").hidden = st.field !== "precip";
     $("smoothChk").checked = st.smooth; $("smoothChk").disabled = !FIELDS[st.field].smooth;
   }
-  function missingHours() { if (st.field === "precip") return st.man.fields.apcp_hour.missingHours; const f = st.man.fields[st.field]; return f ? f.missingHours : []; }
+  function missingHours() { if (st.field === "precip") return st.man.fields[st.win === "run" ? "apcp_run" : "apcp_hour"].missingHours || []; const f = st.man.fields[st.field]; return f ? f.missingHours || [] : []; }
   function timeline() {
     const m = st.man, n = m.hours.length; $("hourSl").max = String(n - 1); $("hourSl").value = String(st.h);
     const miss = new Set(missingHours());
@@ -207,7 +254,7 @@
     return `${st.win === "run" ? "since run start" : `${w}-h total`} · ${fmtUTC(c + (H0 - w) * H)}–${fmtUTC(Date.parse(st.man.valid[st.h]))}`;
   }
   function refresh() {
-    if (!st.man) return; const fr = upload(), m = st.man, F = FIELDS[st.field], valid = Date.parse(m.valid[st.h]), H0 = m.hours[st.h];
+    if (!st.man || st.loading) return; const fr = upload(), m = st.man, F = FIELDS[st.field], valid = Date.parse(m.valid[st.h]), H0 = m.hours[st.h];
     const newest = st.index.runs[0], ageH = (Date.now() - Date.parse(newest.cycle)) / H, stale = ageH > 4 || (Date.now() - Date.parse(st.index.generatedAt)) / H > 3;
     const miss = missingHours();
     $("mapInfo").innerHTML = `<b class="fld">HRRR · ${esc(F.label)}</b><div>Init <b>${esc(fmtUTC(Date.parse(m.cycle)))}</b> · F${String(H0).padStart(2, "0")} · valid <b>${esc(fmtLocal(valid))}</b> (${esc(fmtUTC(valid))})</div>${st.field === "precip" ? `<div>${esc(windowText())}</div>` : ""}<div class="st msg${!stale && !miss.length ? " phone-hide" : ""}">${st.smooth && F.smooth ? "Smoothed display (values from original cells)" : "Native 3 km cells"}${stale ? ` · <span class="unavail">stale: newest run ${ageH.toFixed(1)} h old</span>` : ""}${miss.length ? ` · missing F${miss.join(", F")}` : ""}</div>`;
@@ -215,7 +262,7 @@
     const blank = st.field !== "precip" && st.fields[st.field] && !st.fields[st.field].present(H0);
     note(blank ? `No ${F.label.toLowerCase()} for F${H0}: missing from this run (left blank).` : fr && !fr.any && fr.why ? `Unavailable at this hour: ${fr.why}.` : null);
     legend(); inspect(); drawLabels();
-    $("runInfo").innerHTML = `Run ${esc(fmtUTC(Date.parse(m.cycle)))} (${esc(st.run.role)}), ${m.hours.length} forecast hours. Downloaded from NOAA: <b>${MB(m.gribBytesDownloaded)}</b> of GRIB2 messages; loaded by this page: <b>${MB(st.loaded)}</b> compressed. Grid ${m.grid.nx}×${m.grid.ny} cells of ${m.grid.DxInMetres / 1000} km; georeference check ${m.grid.georefMaxErrorCells} cells.`;
+    $("runInfo").innerHTML = `Run ${esc(fmtUTC(Date.parse(m.cycle)))} (${esc(st.run.role)}), ${m.hours.length} forecast hours. Downloaded from NOAA: <b>${MB(m.gribBytesDownloaded)}</b> of GRIB2 messages; loaded for this run: <b>${MB(st.runData.loaded)}</b> of <b>${MB(m.browserPayloadBytes)}</b> compressed (weather fields load only when selected). Grid ${m.grid.nx}×${m.grid.ny} cells of ${m.grid.DxInMetres / 1000} km; georeference check ${m.grid.georefMaxErrorCells} cells.`;
   }
   function legend() {
     const F = FIELDS[st.field], sc = MC.SCALES[F.scale], stops = sc.stops, title = st.field === "precip" ? `Precipitation (liquid), in · ${st.win === "run" ? "since run start" : `${st.win}-h total`}` : `${F.label}, ${F.units}`;
@@ -229,10 +276,11 @@
     const val = r.v == null ? `<span class="unavail">unavailable</span>${r.why ? ` (${esc(r.why)})` : ""}` : (st.field.startsWith("ref") && r.v < 5) ? `<b>no echo</b> <span class="msg">(model value ${r.v.toFixed(0)} dBZ)</span>` : `<b>${r.v.toFixed(F.dec)} ${esc(F.units)}</b>`;
     $("inspect").innerHTML = `<div class="inspect-v">${esc(F.label)}: ${val}</div><div class="msg">${st.selName ? esc(st.selName) + " · " : ""}HRRR cell ${i},${j} centred at ${la.toFixed(4)}, ${lo.toFixed(4)} (GRIB coordinates)${st.selDist != null ? ` · ${st.selDist.toFixed(1)} km from the point` : ""} · valid ${esc(fmtLocal(Date.parse(st.man.valid[st.h])))}${st.field === "precip" ? " · " + esc(windowText()) : ""}${st.smooth && F.smooth ? " · original cell value (the map colours are smoothed)" : ""}</div>`;
   }
-  function select(lat, lon, name) { const c = st.P && st.P.nearest(lat, lon); if (!c) { st.sel = null; $("inspect").innerHTML = '<p class="msg">That point is outside the model data area.</p>'; drawLabels(); return; } const g = st.man.grid, per = g.nx * g.ny; st.sel = c; st.selName = name || null; st.selDist = hav(lat, lon, st.lat[c[1] * g.nx + c[0]], st.lat[per + c[1] * g.nx + c[0]]); inspect(); drawLabels(); }
-  function step(d) { if (!st.man) return; st.h = (st.h + d + st.man.hours.length) % st.man.hours.length; refresh(); }
+  function select(lat, lon, name) { st.selectedPoint = { lat, lon, name }; const c = st.P && st.P.nearest(lat, lon); if (!c) { st.sel = null; $("inspect").innerHTML = '<p class="msg">That point is outside the model data area.</p>'; drawLabels(); return; } const g = st.man.grid, per = g.nx * g.ny; st.sel = c; st.selName = name || null; st.selDist = hav(lat, lon, st.lat[c[1] * g.nx + c[0]], st.lat[per + c[1] * g.nx + c[0]]); inspect(); drawLabels(); }
+  function step(d) { if (!st.man || st.loading) return; st.h = (st.h + d + st.man.hours.length) % st.man.hours.length; refresh(); }
   function stop() { if (st.play) cancelAnimationFrame(st.play); st.play = null; $("playBtn").textContent = "PLAY"; $("playBtn").setAttribute("aria-pressed", "false"); }
   function play() {
+    if (!st.man || st.loading) return;
     if (st.play) { stop(); return; } for (let h = 0; h < st.man.hours.length; h++) frame(h); // precompute every frame before playing
     let last = 0; const tick = (t) => { if (t - last > 600) { last = t; step(1); } st.play = requestAnimationFrame(tick); }; st.play = requestAnimationFrame(tick);
     $("playBtn").textContent = "PAUSE"; $("playBtn").setAttribute("aria-pressed", "true");
@@ -245,20 +293,23 @@
     if (!st.index.runs.length) { $("mapInfo").textContent = "No published runs yet."; return; }
     $("runSel").innerHTML = st.index.runs.map((r) => `<option value="${esc(r.id)}">${esc(fmtUTC(Date.parse(r.cycle)))} · ${r.hoursExpected} h${r.role.startsWith("latest") ? " · newest" : ""}</option>`).join("");
     await initMap();
-    await loadRun(st.index.runs[0].id, false);
-    addBasemap(); setColors(); limits(); goView(st.view === "venue" ? "tristate" : st.view, false); upload();
+    const openRun = async (id, keep) => {
+      const ok = await loadRun(id, keep);
+      if (ok && !st.map.getSource("mask")) { addBasemap(); setColors(); limits(); goView(st.view === "venue" ? "tristate" : st.view, false); upload(); }
+    };
+    await openRun(st.index.runs[0].id, false);
     $("placeSel").innerHTML = '<option value="">Click or tap the map, or choose…</option>' + [...SITES.map((s) => s[0]), "Dayton", "Columbus", "Louisville", "Lexington"].map((n) => `<option>${esc(n)}</option>`).join("");
     const PL = { Dayton: [39.9024, -84.2194], Columbus: [39.998, -82.8919], Louisville: [38.1744, -85.736], Lexington: [38.0365, -84.6059] };
     $("placeSel").addEventListener("change", () => { const n = $("placeSel").value, s = SITES.find((x) => x[0] === n), p = s ? [s[1], s[2]] : PL[n]; if (p) select(p[0], p[1], n); });
     st.map.on("click", (e) => { $("placeSel").value = ""; select(e.lngLat.lat, e.lngLat.lng, null); });
-    $("fieldSel").addEventListener("change", () => { st.field = $("fieldSel").value; O.store.set("maps2_field", st.field); buildFieldSel(); setColors(); geomMode = null; timeline(); refresh(); });
-    $("winSel").addEventListener("change", () => { st.win = $("winSel").value; O.store.set("maps2_win", st.win); refresh(); });
-    $("runSel").addEventListener("change", async () => { await loadRun($("runSel").value, true); setColors(); upload(); });
+    $("fieldSel").addEventListener("change", () => chooseField($("fieldSel").value, st.win));
+    $("winSel").addEventListener("change", () => chooseField(st.field, $("winSel").value));
+    $("runSel").addEventListener("change", () => openRun($("runSel").value, true));
     $("smoothChk").addEventListener("change", () => { st.smooth = $("smoothChk").checked; O.store.set("maps2_smooth", st.smooth); geomMode = null; refresh(); });
     $("hourSl").addEventListener("input", () => { st.h = +$("hourSl").value; refresh(); });
     $("playBtn").addEventListener("click", play);
     document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => goView(b.dataset.view)));
-    const L = O.location; $("venueBtn").textContent = L ? String(L.name).split(",")[0] : "Venue"; $("venueBtn").disabled = !(L && st.P.nearest(+L.lat, +L.lon));
+    const L = O.location; $("venueBtn").textContent = L ? String(L.name).split(",")[0] : "Venue"; $("venueBtn").disabled = !(L && st.P && st.P.nearest(+L.lat, +L.lon));
     if (!document.fullscreenEnabled) $("fsBtn").hidden = true;
     $("fsBtn").addEventListener("click", () => { const s = $("stage"); if (document.fullscreenElement) document.exitFullscreen(); else if (s.requestFullscreen) s.requestFullscreen(); });
     document.addEventListener("fullscreenchange", () => { $("fsBtn").setAttribute("aria-pressed", String(!!document.fullscreenElement)); $("fsBtn").textContent = document.fullscreenElement ? "EXIT FULLSCREEN" : "FULLSCREEN"; setTimeout(() => { st.map.resize(); limits(); }, 50); });

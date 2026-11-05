@@ -41,6 +41,7 @@ jobs:
       - run: node tests/forecast-clock.test.js
       - run: node tests/scoped-weights.test.js
       - run: node tests/maps.test.js
+      - run: node tests/maps-loader.test.js
       - run: node tests/trend-archive.test.js
       - run: node tools/stamp-assets.js --check
 
@@ -107,6 +108,7 @@ jobs:
       - run: python tests/verify-browser.py
       - run: python tests/forecast-focus-browser.py
       - run: python tests/climate-report-browser.py
+      - run: python tests/maps-browser.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -115,3 +117,4 @@ jobs:
             tests/out/dashboard-*.png
             tests/out/focus-*.png
             tests/out/climo-*.png
+            tests/out/maps-demand-*.png
