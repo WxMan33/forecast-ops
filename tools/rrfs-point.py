@@ -24,6 +24,17 @@ UTC = dt.timezone.utc
 GRID = {}
 LOCK = threading.Lock()
 EVIDENCE = []
+VISIBILITY_METHOD = "native-VIS-surface-v1"
+
+
+def validate_visibility(meta, value, hour):
+    if (meta["discipline"], meta["parameterCategory"], meta["parameterNumber"]) != (0, 19, 0):
+        raise ValueError("Unexpected visibility parameter")
+    if meta["typeOfLevel"] != "surface" or meta["level"] != 0 or meta["stepType"] != "instant" or meta["startStep"] != hour or meta["endStep"] != hour or meta["stepUnits"] != 1:
+        raise ValueError("Unexpected visibility level/time window")
+    if meta["units"] != "m" or not math.isfinite(value) or not 0 <= value <= 200000:
+        raise ValueError("Unexpected visibility units/range")
+    return value
 
 
 def download(url, byte_range=None):
@@ -98,6 +109,8 @@ def point_value(file_key, bounds, expected_field, cycle, hour, member):
         if not math.isfinite(value) or abs(value) > 1e10 or value == codes_get(g, "missingValue"):
             raise ValueError("Missing native point value")
         units = codes_get(g, "units")
+        if expected_field == "VIS":
+            validate_visibility({k: codes_get(g, k) for k in ["discipline", "parameterCategory", "parameterNumber", "typeOfLevel", "level", "stepType", "startStep", "endStep", "stepUnits", "units"]}, value, hour)
         # ecCodes 2.50 lacks WMO 0/1/50: Total Snow Precipitation (kg m-2).
         if expected_field == "TSNOWP" and tuple(codes_get(g, k) for k in ["discipline", "parameterCategory", "parameterNumber"]) != (0, 1, 50):
             raise ValueError("Unexpected TSNOWP parameter identity")
@@ -106,6 +119,22 @@ def point_value(file_key, bounds, expected_field, cycle, hour, member):
         return value, units, dict(near)
     finally:
         codes_release(g)
+
+
+def visibility_hour(cycle, hour, rows=None):
+    """Optional native deterministic visibility; unknown stays unknown without losing other fields."""
+    file_key = key(cycle, hour)
+    try:
+        if rows is None:
+            idx = download(ROOT + file_key + ".idx")
+            rows = inventory(idx.decode())
+            with LOCK:
+                EVIDENCE.append({"file": file_key + ".idx", "sha256": hashlib.sha256(idx).hexdigest()})
+        value, _, _ = point_value(file_key, select(rows, "VIS", "surface", hour), "VIS", cycle, hour, None)
+        return round(value, 2)
+    except Exception as e:
+        print(f"RRFS optional visibility f{hour:03d} unavailable: {str(e)[:160]}", flush=True)
+        return None
 
 
 def one_hour(cycle, hour, member):
@@ -118,6 +147,8 @@ def one_hour(cycle, hour, member):
     if unit != "K" or not 180 <= t <= 340:
         raise ValueError("Unexpected temperature units/range")
     result = {"temperature_2m": round(t - 273.15, 3), "precipitation": None, "snowfall": None}
+    if member is None:
+        result["visibility"] = visibility_hour(cycle, hour, rows)
     if hour:
         p, unit, _ = point_value(file_key, select(rows, "APCP", "surface", hour, True), "APCP", cycle, hour, member)
         if unit not in ("kg m**-2", "kg m-2") or not 0 <= p <= 500:
@@ -164,6 +195,8 @@ def produce(cycle, det_hours, ens_hours, workers):
     for member in [None, 1, 2, 3, 4, 5]:
         end = det_hours if member is None else ens_hours
         vals = {v: [None] * (end + 1) for v in ["temperature_2m", "precipitation", "snowfall"]}
+        if member is None:
+            vals["visibility"] = [None] * (end + 1)
         near = None
         with futures.ThreadPoolExecutor(max_workers=workers) as pool:
             jobs = {pool.submit(one_hour, cycle, hour, member): hour for hour in range(end + 1)}
@@ -183,6 +216,9 @@ def produce(cycle, det_hours, ens_hours, workers):
         print(f"RRFS {'deterministic' if member is None else f'member {member}'}: f000-f{end:03d} temp/precip complete; {len(missing_snow)} snow hours unknown", flush=True)
     now = dt.datetime.now(UTC).isoformat().replace("+00:00", "Z")
     payload = {"schema": 1, "method": "rrfs-cvg-native-v1", "generatedAt": now, "cycle": cycle.isoformat().replace("+00:00", "Z"), "point": {"name": "CVG", "lat": LAT, "lon": LON}, "source": ROOT, "timezone": "UTC", "units": {"temperature_2m": "°C", "precipitation": "mm", "snowfall": "cm"}, "snowMethod": "fixed 7:1 from TSNOWP (deterministic) or APCP times CPOFP (members); not ground accumulation", "members": output, "errors": errors}
+    payload["visibilityMethod"] = VISIBILITY_METHOD
+    payload["units"]["visibility"] = "m"
+    payload["members"]["deterministic"]["visibilityUnavailableHours"] = [i for i, v in enumerate(output["deterministic"]["hourly"]["visibility"]) if v is None]
     return payload
 
 
@@ -207,12 +243,31 @@ def main():
     if dt.datetime.now(UTC) - cycle > dt.timedelta(hours=16):
         raise RuntimeError("Refusing stale model cycle")
     output = Path(args.out)
+    payload = None
     if output.exists():
         previous = json.loads(output.read_text())
         if previous.get("cycle") == cycle.isoformat().replace("+00:00", "Z") and len(previous.get("members", {}).get("deterministic", {}).get("hourly", {}).get("temperature_2m", [])) == args.det_hours + 1:
-            print("Current complete cycle already published; no GRIB re-download", flush=True)
-            return
-    payload = produce(cycle, args.det_hours, args.ens_hours, args.workers)
+            vals = previous["members"]["deterministic"]["hourly"].get("visibility", [])
+            vals = vals[:] if previous.get("visibilityMethod") == VISIBILITY_METHOD and len(vals) == args.det_hours + 1 else [None] * (args.det_hours + 1)
+            missing = [i for i, v in enumerate(vals) if v is None or not isinstance(v, (int, float)) or not math.isfinite(v) or not 0 <= v <= 200000]
+            if not missing:
+                print("Current complete cycle already published; no GRIB re-download", flush=True)
+                return
+            # Upgrade only the optional deterministic field; preserve existing temp/precip/member data.
+            payload = previous
+            with futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
+                for hour, value in zip(missing, pool.map(lambda h: visibility_hour(cycle, h), missing)):
+                    vals[hour] = value
+            payload["members"]["deterministic"]["hourly"]["visibility"] = vals
+            payload["members"]["deterministic"]["visibilityUnavailableHours"] = [i for i, v in enumerate(vals) if v is None]
+            payload["visibilityMethod"] = VISIBILITY_METHOD
+            payload["units"]["visibility"] = "m"
+            payload["generatedAt"] = dt.datetime.now(UTC).isoformat().replace("+00:00", "Z")
+            old_manifest = output.with_name(output.stem + "-manifest.json")
+            if old_manifest.exists():
+                EVIDENCE.extend(json.loads(old_manifest.read_text()).get("evidence", []))
+    if payload is None:
+        payload = produce(cycle, args.det_hours, args.ens_hours, args.workers)
     output.parent.mkdir(parents=True, exist_ok=True)
     manifest = output.with_name(output.stem + "-manifest.json")
     tmp = output.with_suffix(".tmp")

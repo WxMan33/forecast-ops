@@ -46,3 +46,47 @@ assert(detail.includes('&lt;script&gt;'));assert(!detail.includes('<script>bad')
 assert(detail.includes('3:00 AM EST–8:00 AM EST'));assert(ui.badges(day, flags).includes('aria-controls="impact-2026-11-06"'));
 assert.equal(ui.badges(day, []), '');assert.equal(ui.details(day, [], {}, tz, 12), '');
 console.log('Impact screens pass: joint same-source conditions, persistence, missing values, past hours, UTC/DST, source gating, wind thresholds and escaped accessible details');
+const D = require('../assets/ops-data.js'), MILE = 1609.344;
+assert.deepEqual(D.toMeters('visibility', [5280, 0, null, -1], 'ft'), [MILE, 0, null, null]);
+assert.deepEqual(D.toMeters('visibility', [1, 0], 'mi'), [MILE, 0]);
+assert.deepEqual(D.toMeters('visibility', [1000], 'undefined'), [null]);
+assert.deepEqual(D.toMeters('visibility', [false, '', '100', NaN, 999999], 'm'), [null, null, null, null, null]);
+const visModel = (v, changes = {}) => model({ temperature_2m: 50, dew_point_2m: 49, visibility: v, ...changes });
+const vd = (m, euro) => ({ tz, ms, models: { gfs_hrrr: m }, visibilitySources: euro ? { ecmwf_ifs: euro } : {} });
+const visRun = d => I.assess(d, day, C, ms[0]);
+let v = visRun(vd(visModel(MILE / 2)));
+assert.equal(v[0].label, 'AM fog?', 'one sustained visibility source with moisture/dry context gives a heads-up');
+assert.equal(v[0].visibility[0].min, MILE / 2);
+assert.equal(v[0].visibility[1].min, null, 'missing RRFS stays unavailable');
+assert.equal(visRun(vd(visModel(MILE, { precipitation: .2 })))[0].label, 'AM vis↓', 'rain-reduced visibility is not diagnosed as fog');
+assert.equal(visRun(vd(visModel(MILE, { dew_point_2m: null })))[0].label, 'AM vis↓', 'unknown humidity does not confirm fog');
+assert.equal(visRun(vd(visModel(0)))[0].visibility[0].min, 0, 'zero visibility is valid');
+assert.deepEqual(visRun(vd(visModel(null))), []);
+assert.deepEqual(visRun(vd(visModel([null, null, null, 100, null, 100, null, null, null]))), [], 'isolated low samples cannot satisfy persistence');
+v=visRun(vd(visModel(ms.map((_,i)=>i<3?10*MILE:i<9?MILE/4:10*MILE))));
+assert.equal(v[0].visibility[0].before, 10 * MILE);
+assert.equal(v[0].visibility[0].minTimes[0], ms[3]);
+assert.deepEqual(I.assess(vd(visModel(100)), day, C, ms[12]), [], 'past morning visibility cannot flag');
+v=visRun(vd(visModel(null),visModel(MILE)));
+assert.equal(v[0].visibility[2].name, 'ECMWF IFS 9 km');
+assert.equal(v[0].visibility[2].min, MILE);
+const vhtml=ui.details(day,v,{},tz,12);
+assert(vhtml.includes('1.0 mi')&&vhtml.includes('not an area-wide minimum')&&vhtml.includes('exact run not confirmed'));
+assert(!C.config.blend.models.some(m=>m.id==='ecmwf_ifs'), '9 km visibility source does not change blend contributors');
+const native = JSON.parse(JSON.stringify(require('./fixtures/rrfs/cvg-native-smoke.json')));
+native.units.visibility='m';native.members.deterministic.hourly.visibility=[0,null];
+const nativeResponse=D.directRrfsResponse(native,'ncep_rrfs_conus',{temperature_unit:'fahrenheit',precipitation_unit:'inch',timezone:'GMT'},{lat:39.04456,lon:-84.67229},Date.parse(native.generatedAt));
+assert.deepEqual(nativeResponse.hourly.visibility,[0,null]);assert.equal(nativeResponse.hourly_units.visibility,'m');
+assert.equal(nativeResponse.__rrfs.cycle,native.cycle,'native VIS keeps the same confirmed RRFS run');
+console.log('Visibility checks pass: units, unavailable data, zero, one-source persistence, precipitation ambiguity, separate Euro identity, forecast drop, timing and native RRFS run');
+for (const id of ['gfs_hrrr', 'ncep_rrfs_conus', 'ecmwf_ifs025', 'ecmwf_ifs']) {
+  const j=require('./fixtures/visibility/'+id+'.json').json;
+  const a=D.toMeters('visibility',j.hourly.visibility,j.hourly_units.visibility);
+  assert.equal(a.length,j.hourly.time.length);
+  if(id==='ecmwf_ifs025')assert(a.every(v=>v===null),'0.25-degree Euro must not claim 9 km visibility');
+  else {assert(a.some(v=>Number.isFinite(v)));assert(a.every(v=>v===null||(v>=0&&v<=200000)));const raw=j.hourly.visibility.find(v=>typeof v==='number');const converted=a[j.hourly.visibility.indexOf(raw)];assert(Math.abs(converted-raw*(j.hourly_units.visibility==='ft'?.3048:1))<1e-7);}
+}
+const visEvidence=require('./fixtures/visibility/rrfs-native-visibility.json');
+assert(Math.abs(visEvidence.visibilityMetres-33994.16948852539)<.01);
+assert(visEvidence.evidence.some(e=>e.field==='VIS'&&e.units==='m'&&e.hour===1&&e.sha256.length===64));
+console.log('Captured real HRRR, provider RRFS, native NOAA RRFS and both Euro feed visibility checks pass');

@@ -40,6 +40,10 @@
         h[k] = a.map(x => x == null || !isFinite(x) ? null : v === "temperature_2m" ? params.temperature_unit === "fahrenheit" ? x * 9 / 5 + 32 : x : params.precipitation_unit === "inch" ? x / (v === "snowfall" ? 2.54 : 25.4) : x);
         units[k] = v === "temperature_2m" ? params.temperature_unit === "fahrenheit" ? "°F" : "°C" : params.precipitation_unit === "inch" ? "inch" : v === "snowfall" ? "cm" : "mm";
       });
+      if (model === "ncep_rrfs_conus" && feed.units?.visibility === "m" && Array.isArray(b.hourly.visibility) && b.hourly.visibility.length === n) {
+        h.visibility = b.hourly.visibility.map(x => typeof x === "number" && Number.isFinite(x) && x >= 0 && x <= 200000 ? x : null);
+        units.visibility = "m";
+      }
     });
     const g = blocks[0].grid;
     return { latitude: g.lat, longitude: g.lon > 180 ? g.lon - 360 : g.lon, timezone: tz, utc_offset_seconds: offset, hourly: h, hourly_units: units,
@@ -118,6 +122,10 @@
   const LENGTH = /^(geopotential_height_|freezing_level_height)/;
   const unitOf = (j, v) => { const u = j.hourly_units || {}; const k = Object.keys(u).find((k) => k === v || k.startsWith(v + "_")); return k ? String(u[k]).toLowerCase() : ""; };
   function toMeters(v, arr, unit) {
+    if (v === "visibility") {
+      const factor = { m: 1, meter: 1, meters: 1, ft: .3048, feet: .3048, km: 1000, mi: 1609.344, mile: 1609.344, miles: 1609.344 }[unit];
+      return (arr || []).map(x => factor && typeof x === "number" && Number.isFinite(x) && x >= 0 && x * factor <= 200000 ? x * factor : null);
+    }
     if (!arr || !LENGTH.test(v)) return arr;
     if (unit === "ft" || unit === "feet") return arr.map((x) => (x == null ? null : x * 0.3048));
     return arr;

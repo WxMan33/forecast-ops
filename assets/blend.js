@@ -91,8 +91,11 @@
     O.setChip("FETCHING…");
     $("runMsg").className = "msg"; $("runMsg").textContent = `Requesting ${MODELS.length} models, ECMWF ENS, GEFS, RRFS ensemble and the NWS point forecast…`;
     const where = { lat: O.location.lat, lon: O.location.lon }, days = +$("days").value;
-    const [res, nw, en] = await Promise.all([O.Data.loadModels(SPEC, { ...where, days }), O.Data.loadNWS(where),
-      O.Data.loadEnsemble(C.config.blendEns, { ...where, days }).catch(() => ({ empty: true, problems: ["ensembles unavailable"], status: {} }))]);
+    // Native IFS 9 km visibility is a separate diagnostic; never add it to blend sources or weights.
+    const visibilitySpec = { id: "visibility", base: SPEC.base, params: SPEC.params, days: 3, require: ["visibility"], models: [{ id: "ecmwf_ifs", name: "ECMWF IFS 9 km visibility" }], hourly: ["visibility", "temperature_2m", "dew_point_2m", "precipitation"], daily: [] };
+    const [res, nw, en, vis] = await Promise.all([O.Data.loadModels(SPEC, { ...where, days }), O.Data.loadNWS(where),
+      O.Data.loadEnsemble(C.config.blendEns, { ...where, days }).catch(() => ({ empty: true, problems: ["ensembles unavailable"], status: {} })),
+      O.Data.loadModels(visibilitySpec, { ...where, days: Math.min(days, 7) }).catch(() => ({ empty: true }))]);
     $("runBtn").disabled = false;
     if (!res.empty) C.blend.addSources(res, en, nw && nw.ok ? N.onAxis(nw, res.ms) : null);
     SOURCES.forEach((m) => picker.setStatus(m.id, !res.empty && res.models[m.id] ? "ok" : "none"));
@@ -108,6 +111,7 @@
       return;
     }
     data = res;
+    data.visibilitySources = vis.empty || !vis.models.ecmwf_ifs ? {} : { ecmwf_ifs: { ...vis.models.ecmwf_ifs, h: Object.fromEntries(Object.entries(vis.models.ecmwf_ifs.h).map(([v, a]) => [v, C.stats.align(data.ms, vis.ms, a)])) } };
     data.viewedAt = Date.now();
     data.nwsAxis = nws && nws.ok ? N.onAxis(nws, data.ms) : null;
     const ensProb = C.config.blendEns.models.filter((m) => !data.models[m.source]).map((m) => `${m.name}: unavailable`);
@@ -116,7 +120,7 @@
     $("runMsg").textContent = `${MODELS.filter((m) => res.models[m.id]).length} models` + (ensTxt ? ` · ensembles ${ensTxt} members` : " · ensembles unavailable") + (res.problems.length ? ` · ${res.problems.join(" · ")}` : "") +
       ` · NWS ${nws && nws.ok ? `${nws.office} grid ${nws.gridX},${nws.gridY}` : "unavailable"} · times in ${O.tzShort(data.tz)}`;
     const native = Object.entries(data.models).filter(([,m]) => m.provenance && m.provenance.provider === "NOAA native GRIB2");
-    if (native.length) $("runMsg").textContent += ` · RRFS: NOAA native CVG grid, ${native[0][1].provenance.cycle.slice(0,16).replace("T"," ")} UTC; temperature/precip/snow only; no elevation adjustment`;
+    if (native.length) $("runMsg").textContent += ` · RRFS: NOAA native CVG grid, ${native[0][1].provenance.cycle.slice(0,16).replace("T"," ")} UTC; temperature/precip/snow and visibility where available; no elevation adjustment`;
     fresh = true; meta = null; loadMeta();
     render();
   }

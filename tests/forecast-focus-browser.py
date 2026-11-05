@@ -17,6 +17,9 @@ def om_response(url):
  ens='ensemble-api' in url;members=5 if 'rrfs' in model else 3
  axis=[(base+timedelta(hours=i)).strftime('%Y-%m-%dT%H:%M') for i in range(n)]
  def values(v,k):
+  if v=='visibility':
+   low=2640 if model=='gfs_hrrr' else 5280 if model=='ecmwf_ifs' else 10560
+   return [low if impact_mode and 3<=i%24<9 else 52800 for i in range(n)]
   if impact_mode and v in ['temperature_2m','dew_point_2m','wind_speed_10m','wind_gusts_10m','cloud_cover','precipitation']:
    return [{'temperature_2m':35,'dew_point_2m':34,'wind_speed_10m':3,'wind_gusts_10m':26,'cloud_cover':20,'precipitation':0}[v]]*n
   if v=='temperature_2m':return [42+(i%24)/2+revision*4+k/10 for i in range(n)]
@@ -35,7 +38,7 @@ def om_response(url):
   if not v:continue
   d[v]=[54+revision*4 if v=='temperature_2m_max' else 42+revision*4 if v=='temperature_2m_min' else .36+revision*.24 if v=='precipitation_sum' else 18 if 'gust' in v else 0 for _ in dates]
   if impact_mode and 'gust' in v:d[v]=[26]*len(dates)
- return {'latitude':39.05,'longitude':-84.66,'timezone':'UTC','utc_offset_seconds':0,'hourly':h,'daily':d,'hourly_units':{v:('°F' if 'temperature' in v else 'inch' if v in ['precipitation','snowfall'] else 'mph') for v in h}}
+ return {'latitude':39.05,'longitude':-84.66,'timezone':'UTC','utc_offset_seconds':0,'hourly':h,'daily':d,'hourly_units':{v:('ft' if v=='visibility' else '°F' if 'temperature' in v else 'inch' if v in ['precipitation','snowfall'] else 'mph') for v in h}}
 
 with sync_playwright() as p:
  browser=p.chromium.launch()
@@ -147,6 +150,10 @@ with sync_playwright() as p:
  assert page.locator('#impact-2026-11-04').is_visible()
  assert 'ECMWF IFS' in page.locator('#impact-2026-11-04').inner_text()
  assert 'not a visibility forecast' in page.locator('#impact-2026-11-04').inner_text()
+ vis_text=page.locator('#impact-2026-11-04 .impact-visibility').inner_text()
+ assert '0.50 mi' in vis_text and '1.0 mi' in vis_text and '2.0 mi' in vis_text,'visibility is converted from feet to miles by source'
+ assert 'ECMWF IFS 9 km' in vis_text and 'earlier forecast' in vis_text.lower()
+ assert page.evaluate('!("ecmwf_ifs" in JSON.parse(JSON.stringify(window.Ops.Core.config.blend.models)).reduce((a,m)=>(a[m.id]=true,a),{}))'),'visibility-only IFS 9 km must not enter blend sources'
  assert 'sel' not in (dayrow.get_attribute('class') or ''),'flag click must not select the whole day'
  dayrow.locator('.impact-fog').press('Enter')
  assert not page.locator('#impact-2026-11-04').is_visible()
