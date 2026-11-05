@@ -18,6 +18,20 @@ try:
     raise AssertionError("wrong valid hour accepted")
 except ValueError:
     pass
+vis_meta = {"discipline": 0, "parameterCategory": 19, "parameterNumber": 0, "typeOfLevel": "surface", "level": 0, "stepType": "instant", "startStep": 1, "endStep": 1, "stepUnits": 1, "units": "m"}
+assert m.validate_visibility(vis_meta, 0, 1) == 0
+for bad in [{"units": "ft"}, {"parameterNumber": 1}, {"level": 2}, {"stepType": "avg"}, {"startStep": 0}, {"stepUnits": 0}]:
+    try:
+        m.validate_visibility({**vis_meta, **bad}, 100, 1)
+        raise AssertionError("invalid visibility metadata accepted")
+    except ValueError:
+        pass
+for value in [-1, float("nan"), 999999]:
+    try:
+        m.validate_visibility(vis_meta, value, 1)
+        raise AssertionError("invalid visibility value accepted")
+    except ValueError:
+        pass
 args = argparse.ArgumentParser()
 args.add_argument("--feed")
 a = args.parse_args()
@@ -38,6 +52,10 @@ if a.feed:
         assert all(x is None or x >= 0 for x in h["snowfall"][1:])
         if "snowUnavailableHours" in member:
             assert member["snowUnavailableHours"] == [i for i in range(1,n) if h["snowfall"][i] is None]
+        if "visibility" in h:
+            assert name == "deterministic" and j["units"]["visibility"] == "m"
+            assert all(v is None or 0 <= v <= 200000 for v in h["visibility"])
+            assert member["visibilityUnavailableHours"] == [i for i, v in enumerate(h["visibility"]) if v is None]
         assert member["grid"]["distance"] < 3
     manifest = json.loads(Path(a.feed).with_name(Path(a.feed).stem + "-manifest.json").read_text())
     assert manifest["cycle"] == j["cycle"] and len(manifest["evidence"]) >= 12
