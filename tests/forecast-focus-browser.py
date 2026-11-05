@@ -34,6 +34,7 @@ def om_response(url):
  for v in q.get('daily',[''])[0].split(','):
   if not v:continue
   d[v]=[54+revision*4 if v=='temperature_2m_max' else 42+revision*4 if v=='temperature_2m_min' else .36+revision*.24 if v=='precipitation_sum' else 18 if 'gust' in v else 0 for _ in dates]
+  if impact_mode and 'gust' in v:d[v]=[26]*len(dates)
  return {'latitude':39.05,'longitude':-84.66,'timezone':'UTC','utc_offset_seconds':0,'hourly':h,'daily':d,'hourly_units':{v:('°F' if 'temperature' in v else 'inch' if v in ['precipitation','snowfall'] else 'mph') for v in h}}
 
 with sync_playwright() as p:
@@ -141,6 +142,7 @@ with sync_playwright() as p:
  dayrow=page.locator('#daily tr[data-k="2026-11-04"]')
  assert dayrow.locator('.impact-fog').count()==1 and dayrow.locator('.impact-frost').count()==1
  assert dayrow.locator('.impact-wind').inner_text().startswith('G:20+')
+ assert 20<=float(dayrow.locator('td').nth(7).inner_text().split()[0])<30,'future wind badge matches the displayed daily gust band'
  dayrow.locator('.impact-fog').click()
  assert page.locator('#impact-2026-11-04').is_visible()
  assert 'ECMWF IFS' in page.locator('#impact-2026-11-04').inner_text()

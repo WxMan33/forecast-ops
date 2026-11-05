@@ -290,12 +290,12 @@
     const rows = C.blend.dailyRows(data, W(), OPTS());
     data.rows = rows;
     recordWatch.prepare(rows, O.location, data.tz);
-    const impactNow = Date.now(), futureStart = Math.floor(impactNow / 3600000) * 3600000;
+    const impactNow = Date.now(), futureStart = Math.floor(impactNow / 3600000) * 3600000, impactToday = C.time.toLocal(impactNow, data.tz).slice(0, 10);
     const impacts = new Map(rows.map(r => {
       const idx = data.ms.map((ms, i) => ({ ms, i })).filter(p => p.ms >= futureStart && C.time.toLocal(p.ms, data.tz).slice(0, 10) === r.k).map(p => p.i);
       // Reuse the displayed forecast's aggregation and weights for the remaining-day wind cue.
-      const remaining = idx.length ? C.blend.windowRow(data, W(), idx, idx, OPTS()) : null;
-      return [r.k, window.ImpactFlags.assess(data, r.k, C, impactNow, remaining?.gust)];
+      const remaining = r.k === impactToday && idx.length ? C.blend.windowRow(data, W(), idx, idx, OPTS()) : null;
+      return [r.k, window.ImpactFlags.assess(data, r.k, C, impactNow, r.k === impactToday ? remaining?.gust : r.gust)];
     }));
     const hasN = nws && nws.periods && nws.periods.length;
     /* Columns. tier: 1 always shown; 2 moves into the day's details when the table is narrow (< 880 px);
