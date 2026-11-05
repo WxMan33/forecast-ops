@@ -1,0 +1,16 @@
+# Daily blend investigation flags
+
+Small buttons under the calendar date open inline supporting guidance. Existing temperature record badges remain in the low/high cells. These screens change no forecasts, weights or verification records and make no new API requests.
+
+- **AM fog?**: 03:00–08:59 local; temperature minus dew point 0–2°F, 10-m wind 0–7 mph and hourly precipitation 0–0.01 in. All conditions must coincide within the same source for at least two consecutive hourly samples. At least two individual sources must support the screen. This is a near-saturation/light-wind cue, not predicted visibility; low cloud can produce the same signal and other fog mechanisms can be missed.
+- **Frost?**: 00:00–08:59 local; air temperature ≤36°F, temperature minus dew point 0–8°F, wind 0–5 mph, total cloud cover 0–50%. Same-source persistence and two-source requirements as fog. Surface, soil and valley temperatures are not diagnosed.
+- **Freeze?**: 00:00–08:59 local; air temperature ≤32°F in at least two consecutive hourly samples in at least two sources. Replaces the frost badge when this temperature screen qualifies. Not an official advisory or a claim about frost formation, vegetation or growing season.
+- **G:20+, G:30+, …**: upcoming blended peak hourly gust in mph, grouped into 10-mph bands from 20 mph. Uses the same weights and aggregation as the daily table; for today, only the remaining hourly window is aggregated, so an earlier gust peak cannot create this cue. Not an NWS advisory threshold.
+
+The morning screens inspect loaded deterministic and NWS sources independently of slider settings; ensemble hourly means are excluded because joint conditions in their average need not occur in any individual member. Inputs must be finite numbers; missing variables cannot become zero, calm, clear or saturated. Sample pairs must be exactly one hour apart on the UTC axis, including across DST. Only the current hour onward is considered when rendered. Each flagged date refers to that date's morning, not the following morning. Refresh updates the assessment. There is no background notification timer.
+
+Details name supporting sources and qualifying hourly samples, explain the thresholds, report the number of sources with at least a usable two-sample segment, and disclose incomplete coverage. This denominator is not full-morning coverage or a probability. Different sources can support different hours. Longer-lead flags are preliminary, and no flag is not an all-clear. Thresholds are provisional project screening choices, not calibrated event probabilities.
+
+Physical background: [NWS frost formation](https://www.weather.gov/arx/why_frost) and [NWS dew/frost training](https://www.weather.gov/source/zhu/ZHU_Training_Page/fog_stuff/Dew_Frost/Dew_Frost.htm) explain the roles of clear skies, light wind, moisture and surface cooling below shelter-level temperature. These sources support the ingredients, not the project's exact thresholds or skill.
+
+Validation: `node tests/impact-flags.test.js`; existing planning-clock/weights and record-watch tests; `tests/forecast-focus-browser.py` exercises inline expansion, keyboard activation and 360/390/1440-pixel layouts with synthetic flag-producing guidance. The browser cases run in CI with the existing dashboard tests.
