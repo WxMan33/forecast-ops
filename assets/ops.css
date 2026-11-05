@@ -651,6 +651,9 @@ select.input.inline { width: auto; display: inline-block; padding: 3px 8px; font
   .wide-only { display: none; }
   .mapctl2 { left: 6px; right: 6px; top: 6px; gap: 4px; align-items: stretch; }
   .mapctl2 .ctlrow { flex-wrap: nowrap; justify-content: flex-start; padding: 4px; gap: 4px; }
+  .mapctl2 .ctlrow:last-child { flex-wrap: wrap; }
+  .mapctl2 .ctlrow:last-child .seg { flex: 1 0 100%; min-width: 0; }
+  .mapctl2 .ctlrow:last-child .segb { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
   .mapctl2 select.input.inline { flex: 1 1 0; min-width: 0; max-width: none; font-size: 12px; padding: 4px 6px; }
   .mapctl2 select#winSel { flex: 0 0 auto; }
   .seg { flex: 1 1 auto; } .segb { flex: 1 1 auto; padding: 5px 4px; font-size: 11.5px; }

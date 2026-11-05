@@ -71,11 +71,13 @@ with sync_playwright() as p:
  assert count('t2m.bin.gz')==2 and count('latlon.bin.gz')==2,'both recent runs retained'
  assert page.locator('#hourSl').input_value()=='2','return to first run keeps the same valid time'
  out=root/'tests/out';out.mkdir(exist_ok=True)
- for width in [390,1440]:
+ for width in [360,390,1440]:
   page.set_viewport_size({'width':width,'height':1000})
   assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1')
+  assert page.locator('#venueBtn').evaluate('(e)=>e.scrollWidth<=e.clientWidth+1'),'saved-location text stays inside its button'
+  assert page.locator('#mapCtl .seg').evaluate('(e)=>Array.from(e.children).every(b=>b.getBoundingClientRect().right<=e.getBoundingClientRect().right+1)'),'view shortcuts stay inside their group'
   page.screenshot(path=str(out/f'maps-demand-{width}.png'),full_page=True)
  assert not errors,errors
- print('Map browser: selected-field requests, outage/retry, cached switches, original-cell inspection, precip dependencies, valid-time matching and two widths pass')
+ print('Map browser: selected-field requests, outage/retry, cached switches, original-cell inspection, precip dependencies, valid-time matching and three widths pass')
  browser.close()
 server.shutdown()
