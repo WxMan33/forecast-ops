@@ -1,6 +1,6 @@
 /* Model maps v2: interactive HRRR map. MapLibre GL draws the basemap lines; a custom WebGL layer draws
-   every native HRRR cell at its exact projected corners (no resampling); a 2-D overlay draws labels so
-   cities, sites and highway names stay sharp above the weather. Point values always come from the
+   every native HRRR cell at its exact projected corners (no resampling); MapLibre symbol layers place city and venue labels
+   above the weather; a small 2-D overlay marks the inspected grid cell. Point values always come from the
    original grid (maps-core), never from the display. Data: WxMan33/forecast-ops-maps. */
 (function () {
   "use strict";
@@ -81,56 +81,58 @@
   }
   function setColors() { const sc = FIELDS[st.field].scale; layer.setColors(MC.colorTable(sc), !!MC.STEPPED[sc]); }
 
-  /* ---------- labels overlay (sharp text above the weather) ---------- */
+  /* ---------- native MapLibre labels ---------- */
   const SITES = [["CVG airport", 39.04456, -84.67229], ["TQL Stadium", 39.11113, -84.52229], ["Great American Ball Park", 39.0975, -84.5066], ["Paycor Stadium", 39.0955, -84.5161]];
+  // Only the inspected cell needs the canvas. All names use native symbol placement.
   function drawLabels() {
-    const cv = $("labels"), map = st.map, W = cv.clientWidth, Hh = cv.clientHeight, dpr = window.devicePixelRatio || 1;
+    const cv = $("labels"), W = cv.clientWidth, Hh = cv.clientHeight, dpr = window.devicePixelRatio || 1;
     if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(Hh * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(Hh * dpr); }
     const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, Hh);
-    if (!st.base) return;
-    const z = map.getZoom(), fg = css("--text", "#e8eaee"), bg = css("--bg", "#0b0d12"), boxes = [];
-    const free = (b) => !boxes.some((o) => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]);
-    /* keep labels clear of the overlay panels (info, controls, legend, timeline, note) */
-    const cr = cv.getBoundingClientRect(); ["mapInfo", "mapCtl", "legend", "timeline", "mapNote"].forEach((id) => { const e = $(id); if (!e || e.hidden || !e.offsetParent) return; const r = e.getBoundingClientRect(); boxes.push([r.left - cr.left - 3, r.top - cr.top - 3, r.right - cr.left + 3, r.bottom - cr.top + 3]); });
-    const text = (x, y, t, size, weight, anchor, color = fg) => {
-      ctx.font = `${weight} ${size}px system-ui, -apple-system, Segoe UI, sans-serif`; const w = ctx.measureText(t).width, h = size;
-      const bx = anchor === "right" ? [x + 6, y - h / 2 - 2, x + 6 + w + 2, y + h / 2 + 2] : [x - w / 2 - 2, y - h - 6, x + w / 2 + 2, y - 4];
-      if (bx[0] < 2 || bx[2] > W - 2 || bx[1] < 2 || bx[3] > Hh - 2 || !free(bx)) return false; boxes.push(bx);
-      ctx.lineJoin = "round"; ctx.lineWidth = 3.2; ctx.strokeStyle = bg; ctx.fillStyle = color; ctx.textBaseline = "middle";
-      const tx = anchor === "right" ? x + 7 : x - w / 2, ty = anchor === "right" ? y : y - h / 2 - 5; ctx.strokeText(t, tx, ty); ctx.fillText(t, tx, ty); return true;
-    };
-    const pt = (lat, lon) => { const p = map.project([lon, lat]); return [p.x, p.y]; };
-    /* selected cell marker first (highest priority) */
-    if (st.sel && st.lat) { const g = st.man.grid, per = g.nx * g.ny, c = st.sel[1] * g.nx + st.sel[0], [x, y] = pt(st.lat[c], st.lat[per + c]); ctx.strokeStyle = fg; ctx.lineWidth = 2; ctx.strokeRect(x - 6, y - 6, 12, 12); boxes.push([x - 8, y - 8, x + 8, y + 8]); }
-    /* Regional guidance first: only the selected venue is labelled, not every stadium. */
-    const L = O.location, site = SITES.find((s) => s[0] === st.selName);
-    const venue = site || (st.view === "venue" && L ? [String(L.name).split(",")[0], +L.lat, +L.lon] : null);
-    const anchors = [], phone = W < 700, separation = phone ? 115 : 125, maxCities = phone ? 8 : 22;
-    if (venue) { const [name, la, lo] = venue, [x, y] = pt(la, lo);
-      if (x > 0 && y > 0 && x < W && y < Hh && text(x, y, name, 11.5, 600, "right")) {
-        ctx.fillStyle = css("--accent", "#4cb4f0"); ctx.beginPath(); ctx.arc(x, y, 3.5, 0, 7); ctx.fill();
-      }
+    if (st.sel && st.lat) { const g = st.man.grid, per = g.nx * g.ny, c = st.sel[1] * g.nx + st.sel[0];
+      const p = st.map.project([st.lat[per + c], st.lat[c]]); ctx.strokeStyle = css("--text", "#e8eaee"); ctx.lineWidth = 2; ctx.strokeRect(p.x - 6, p.y - 6, 12, 12);
     }
-    /* Population-ranked cities, with generous screen-space separation. Zooming never fills
-       the Cincinnati core with suburban labels. Small places remain available by inspection. */
-    const minPop = z < 6.3 ? 250000 : z < 7 ? 75000 : 15000;
-    const cities = st.base.layers.places.features.filter((f) => f.properties.pop >= minPop).slice().sort((a, b) => b.properties.pop - a.properties.pop);
-    cities.forEach((f) => {
-      if (anchors.length >= maxCities) return;
-      const p = f.properties, [lo, la] = f.geometry.coordinates, [x, y] = pt(la, lo);
-      if (x < 12 || y < 12 || x > W - 12 || y > Hh - 12 || anchors.some(([ax, ay]) => Math.hypot(ax - x, ay - y) < separation)) return;
-      const big = p.pop >= 250000, ok = text(x, y, p.name, big ? 13 : 11.5, big ? 700 : 500, "right");
-      if (ok) { anchors.push([x, y]); ctx.fillStyle = fg; ctx.strokeStyle = bg; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.arc(x, y, big ? 2.8 : 2, 0, 7); ctx.fill(); ctx.stroke();
-      }
+  }
+  let labelKey = null;
+  function syncLabels() {
+    const map = st.map, source = map && map.getSource("map-labels"); if (!source || !st.base) return;
+    const cv = $("labels"), W = cv.clientWidth, Hh = cv.clientHeight, cr = cv.getBoundingClientRect(), boxes = [];
+    ["mapInfo", "mapCtl", "legend", "timeline", "mapNote"].forEach((id) => {
+      const e = $(id); if (!e || e.hidden || !e.offsetParent) return; const r = e.getBoundingClientRect();
+      boxes.push([r.left - cr.left - 24, r.top - cr.top - 24, r.right - cr.left + 24, r.bottom - cr.top + 24]);
     });
-    // Roads remain geographic context; route-number badges are intentionally omitted.
-
+    const clean = (name) => String(name).normalize("NFKD").replace(/[^\x20-\x7e]/g, "").trim();
+    const features = [], anchors = [], phone = W < 700, max = phone ? 8 : 22, gap = phone ? 115 : 125, z = map.getZoom();
+    const visible = (lo, la) => { const p = map.project([lo, la]);
+      return p.x > 24 && p.y > 20 && p.x < W - 24 && p.y < Hh - 20 && !boxes.some(([a,b,c,d]) => p.x >= a && p.x <= c && p.y >= b && p.y <= d) ? p : null;
+    };
+    const L = O.location, selected = SITES.find((s) => s[0] === st.selName), venue = selected || (st.view === "venue" && L ? [L.name, +L.lat, +L.lon] : null);
+    const add = (name, lo, la, pop, kind) => features.push({ type: "Feature", geometry: { type: "Point", coordinates: [lo, la] }, properties: { name: clean(name) || "Selected site", pop, kind } });
+    if (venue && visible(venue[2],venue[1])) add(venue[0],venue[2],venue[1],1e12,"venue");
+    const minPop = z < 6.3 ? 250000 : z < 7 ? 75000 : 15000;
+    st.base.layers.places.features.filter((f) => f.properties.pop >= minPop).slice().sort((a,b) => b.properties.pop-a.properties.pop).forEach((f) => {
+      if (anchors.length >= max) return;
+      const [lo,la] = f.geometry.coordinates, p = visible(lo,la);
+      if (!p || anchors.some(([x,y]) => Math.hypot(x-p.x,y-p.y) < gap)) return;
+      anchors.push([p.x,p.y]); add(f.properties.name,lo,la,f.properties.pop,"city");
+    });
+    const key = JSON.stringify(features); if (key !== labelKey) { labelKey = key; source.setData({ type: "FeatureCollection", features }); }
+  }
+  function addMapLabels() {
+    const map = st.map;
+    map.addSource("map-labels", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+    map.addLayer({ id: "place-labels", type: "symbol", source: "map-labels", layout: {
+      "text-field": ["get", "name"], "text-font": ["Open Sans Semibold"],
+      "text-size": ["case", ["==", ["get", "kind"], "venue"], 11.5, [">=", ["get", "pop"], 250000], 13, 11.5],
+      "symbol-sort-key": ["-", 0, ["get", "pop"]], "text-padding": 20,
+      "text-variable-anchor": ["top", "right", "bottom", "left"], "text-radial-offset": 0.65,
+      "text-max-width": 12, "text-allow-overlap": false, "text-ignore-placement": false,
+    }, paint: { "text-color": css("--text", "#e8eaee"), "text-halo-color": css("--bg", "#0b0d12"), "text-halo-width": 1.5, "text-halo-blur": 0.3 } });
+    map.on("moveend", syncLabels); map.on("resize", syncLabels); syncLabels();
   }
 
   /* ---------- map, basemap and views ---------- */
   function initMap() {
-    const map = new ML.Map({ container: "map", style: { version: 8, sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": palette().land } }] },
+    const map = new ML.Map({ container: "map", style: { version: 8, glyphs: new URL("assets/maps/fonts/open-sans-v1/{fontstack}/{range}.pbf", location.href).href.replace(/%7B/g, "{").replace(/%7D/g, "}"), sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": palette().land } }] },
       center: [-84.5, 39.1], zoom: 6.6, minZoom: 5, maxZoom: 9, attributionControl: false, dragRotate: false, pitchWithRotate: false, renderWorldCopies: false });
     map.touchZoomRotate.disableRotation(); map.addControl(new ML.NavigationControl({ showCompass: false }), "bottom-right");
     map.addControl(new ML.AttributionControl({ compact: true, customAttribution: "NOAA HRRR · US Census (us-atlas) · Natural Earth · GeoNames (CC BY 4.0)" }), "bottom-right");
@@ -140,7 +142,7 @@
     ? { land: "#151a22", county: "#3a4250", state: "#cfd5de", road: "#6d5a3c", road2: "#4c4537", river: "#2d5d86", dma: "#7cc4f0", mask: "#0b0e13", maskOp: 0.6 }
     : { land: "#f1f2ee", county: "#b9bec6", state: "#353c47", road: "#c08436", road2: "#d8b98c", river: "#5f9bd0", dma: "#1f6fb0", mask: "#ffffff", maskOp: 0.65 });
   const PAINT = { bg: ["background-color", "land"], mask: ["fill-color", "mask"], "mask-edge": ["line-color", "state"], "rivers-minor": ["line-color", "river"], rivers: ["line-color", "river"], counties: ["line-color", "county"], roads2: ["line-color", "road2"], roads: ["line-color", "road"], states: ["line-color", "state"] };
-  function applyPalette() { const C = palette(), map = st.map; Object.entries(PAINT).forEach(([id, [prop, k]]) => map.getLayer(id) && map.setPaintProperty(id, prop, C[k])); if (map.getLayer("mask")) map.setPaintProperty("mask", "fill-opacity", C.maskOp); drawLabels(); }
+  function applyPalette() { const C = palette(), map = st.map; Object.entries(PAINT).forEach(([id, [prop, k]]) => map.getLayer(id) && map.setPaintProperty(id, prop, C[k])); if (map.getLayer("mask")) map.setPaintProperty("mask", "fill-opacity", C.maskOp); if (map.getLayer("place-labels")) { map.setPaintProperty("place-labels", "text-color", css("--text", "#e8eaee")); map.setPaintProperty("place-labels", "text-halo-color", css("--bg", "#0b0d12")); } drawLabels(); }
   function addBasemap() {
     const map = st.map, b = st.base.layers, C = palette();
     Object.entries(b).filter(([k]) => k !== "dma").forEach(([k, v]) => map.addSource(k, { type: "geojson", data: v }));
@@ -155,7 +157,7 @@
     map.addLayer({ id: "roads2", type: "line", source: "roads", filter: ["==", ["get", "kind"], "secondary"], minzoom: 7.4, paint: { "line-color": C.road2, "line-width": ["interpolate", ["linear"], ["zoom"], 7.4, 0.6, 9, 1.4] } });
     map.addLayer({ id: "roads", type: "line", source: "roads", filter: ["==", ["get", "kind"], "major"], paint: { "line-color": C.road, "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.7, 9, 2.4] } });
     map.addLayer({ id: "states", type: "line", source: "states", paint: { "line-color": C.state, "line-width": ["interpolate", ["linear"], ["zoom"], 5, 1.2, 9, 2.4] } });
-    applyPalette(); window.addEventListener("ops:theme", applyPalette);
+    addMapLabels(); applyPalette(); window.addEventListener("ops:theme", applyPalette);
     map.on("render", drawLabels);
   }
   /* zoom limits: the closest view is the Cincinnati DMA; the widest is the model's data area */
@@ -180,7 +182,7 @@
     if (v === "dma") { const c = map.cameraForBounds(st.base.dma.bounds, { padding: DMAPAD() }); map.easeTo({ center: c.center, zoom: st.limits.zDMA, duration: opt.duration }); } // the DMA view is the closest permitted zoom
     else if (v === "venue") { const L = O.location; if (!st.limits || !L || !st.P.nearest(+L.lat, +L.lon)) { note("The saved venue is outside the model data area."); return; } map.easeTo({ center: [+L.lon, +L.lat], zoom: Math.min(map.getZoom() + 1, map.getMaxZoom()), duration: opt.duration }); }
     else map.fitBounds(TRISTATE, opt); // fixed Tri-State bounds, independent of how large the model data area is
-    st.view = v; O.store.set("maps2_view", v); document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
+    st.view = v; O.store.set("maps2_view", v); document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === v))); syncLabels();
   }
   function note(t, retry) { const n = $("mapNote"); n.textContent = t || ""; n.hidden = !t;
     if (retry) { const b = document.createElement("button"); b.type = "button"; b.className = "btn ghost sm"; b.textContent = "RETRY"; b.addEventListener("click", retry); n.append(" ", b); }
@@ -273,7 +275,7 @@
     $("tlValid").textContent = `${fmtLocal(valid)} · F${String(H0).padStart(2, "0")}`; $("hourSl").value = String(st.h);
     const blank = st.field !== "precip" && st.fields[st.field] && !st.fields[st.field].present(H0);
     note(blank ? `No ${F.label.toLowerCase()} for F${H0}: missing from this run (left blank).` : fr && !fr.any && fr.why ? `Unavailable at this hour: ${fr.why}.` : null);
-    legend(); inspect(); drawLabels();
+    legend(); inspect(); drawLabels(); syncLabels();
     $("runInfo").innerHTML = `Run ${esc(fmtUTC(Date.parse(m.cycle)))} (${esc(st.run.role)}), ${m.hours.length} forecast hours. Downloaded from NOAA: <b>${MB(m.gribBytesDownloaded)}</b> of GRIB2 messages; loaded for this run: <b>${MB(st.runData.loaded)}</b> of <b>${MB(m.browserPayloadBytes)}</b> compressed (weather fields load only when selected). Grid ${m.grid.nx}×${m.grid.ny} cells of ${m.grid.DxInMetres / 1000} km; georeference check ${m.grid.georefMaxErrorCells} cells.`;
   }
   function legend() {
@@ -288,7 +290,7 @@
     const val = r.v == null ? `<span class="unavail">unavailable</span>${r.why ? ` (${esc(r.why)})` : ""}` : (st.field.startsWith("ref") && r.v < 5) ? `<b>no echo</b> <span class="msg">(model value ${r.v.toFixed(0)} dBZ)</span>` : `<b>${r.v.toFixed(F.dec)} ${esc(F.units)}</b>`;
     $("inspect").innerHTML = `<div class="inspect-v">${esc(F.label)}: ${val}</div><div class="msg">${st.selName ? esc(st.selName) + " · " : ""}HRRR cell ${i},${j} centred at ${la.toFixed(4)}, ${lo.toFixed(4)} (GRIB coordinates)${st.selDist != null ? ` · ${st.selDist.toFixed(1)} km from the point` : ""} · valid ${esc(fmtLocal(Date.parse(st.man.valid[st.h])))}${st.field === "precip" ? " · " + esc(windowText()) : ""}${st.smooth && F.smooth ? " · original cell value (the map colours are smoothed)" : ""}</div>`;
   }
-  function select(lat, lon, name) { st.selectedPoint = { lat, lon, name }; const c = st.P && st.P.nearest(lat, lon); if (!c) { st.sel = null; $("inspect").innerHTML = '<p class="msg">That point is outside the model data area.</p>'; drawLabels(); return; } const g = st.man.grid, per = g.nx * g.ny; st.sel = c; st.selName = name || null; st.selDist = hav(lat, lon, st.lat[c[1] * g.nx + c[0]], st.lat[per + c[1] * g.nx + c[0]]); inspect(); drawLabels(); }
+  function select(lat, lon, name) { st.selectedPoint = { lat, lon, name }; const c = st.P && st.P.nearest(lat, lon); if (!c) { st.sel = null; $("inspect").innerHTML = '<p class="msg">That point is outside the model data area.</p>'; drawLabels(); syncLabels(); return; } const g = st.man.grid, per = g.nx * g.ny; st.sel = c; st.selName = name || null; st.selDist = hav(lat, lon, st.lat[c[1] * g.nx + c[0]], st.lat[per + c[1] * g.nx + c[0]]); inspect(); drawLabels(); syncLabels(); }
   function step(d) { if (!st.man || st.loading) return; st.h = (st.h + d + st.man.hours.length) % st.man.hours.length; refresh(); }
   function stop() { if (st.play) cancelAnimationFrame(st.play); st.play = null; $("playBtn").textContent = "PLAY"; $("playBtn").setAttribute("aria-pressed", "false"); }
   function play() {
@@ -328,8 +330,8 @@
     $("stage").addEventListener("keydown", (e) => { if (e.target.tagName === "SELECT" || e.target.tagName === "INPUT") return; if (e.key === "ArrowRight" || e.key === "]") { e.preventDefault(); step(1); } else if (e.key === "ArrowLeft" || e.key === "[") { e.preventDefault(); step(-1); } else if (e.key === " ") { e.preventDefault(); play(); } });
     /* phones: the info box sits just below the (wrapping) control rows */
     const place = () => { $("mapInfo").style.top = innerWidth < 700 ? `${$("mapCtl").offsetTop + $("mapCtl").offsetHeight + 4}px` : ""; };
-    if (window.ResizeObserver) new ResizeObserver(place).observe($("mapCtl")); place();
-    let rz = null; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { limits(); place(); }, 200); });
+    if (window.ResizeObserver) new ResizeObserver(place).observe($("mapCtl")); place(); syncLabels();
+    let rz = null; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { limits(); place(); syncLabels(); }, 200); });
     st.layer = layer; window.__maps = st; // test hook (read-only use)
   }
   init();

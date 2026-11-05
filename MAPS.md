@@ -12,7 +12,7 @@ The About section reports compressed data loaded for the selected run against it
 
 ## Viewing area
 
-Tri-State remains the fixed default extent. The closer preset is labelled Cincinnati area, with the previous zoom limit retained. No DMA outline is drawn. Road-number badges are omitted; city labels are population-ranked with a screen-space separation rule and a lower count on phones. Stadiums are labelled only when selected or used as the venue view. These are display changes only; point inspection remains available everywhere inside the model grid.
+Tri-State remains the fixed default extent. The closer preset is labelled Cincinnati area, with the previous zoom limit retained. No DMA outline is drawn. Road-number badges are omitted; city labels use native MapLibre symbol collision handling, variable anchors, population ranking and a lower count on phones. Stadiums are labelled only when selected or used as the venue view. These are display changes only; point inspection remains available everywhere inside the model grid.
 
 Ohio Valley expansion is not enabled. The earlier benchmark indicated roughly 5.8 times the cells and 18.2 MB per full run when all fields load. On-demand loading removes that upfront requirement, but real-device playback and memory must be assessed before expanding the production area. This change does not expand collection or alter the data publishing workflow.
 
@@ -23,3 +23,7 @@ Ohio Valley expansion is not enabled. The earlier benchmark indicated roughly 5.
 - `python tests/maps-browser.py` in GitHub Actions: renderer/browser integration, selected-field requests, an HTTP failure/retry, cached switching, valid-time matching and desktop/phone widths. Uses captured real NOAA data; not a physical phone frame-rate measurement.
 
 The Almanac browser test separately checks the shared astronomy panel with the calendar outside it. Its ISS schedule is an immutable capture, rather than the rotating production schedule.
+
+## Label fonts
+
+MapLibre uses a locally hosted Open Sans Semibold Latin glyph block. City and venue labels stay above the weather and share collision placement; the canvas now draws only the selected grid-cell marker. Label candidates are reduced near controls and by screen-space spacing. Names are transliterated to the supported Latin block on the map; point-inspection text retains the original location name. No external tile or glyph service is called. Font provenance, checksum and license are in `assets/maps/fonts/open-sans-v1/README.md`.

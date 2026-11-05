@@ -1,6 +1,6 @@
 # Forecast Ops roadmap
 
-Updated November 3, 2026. This is planned work, not a claim that these features are implemented. Forecast Ops remains a standalone forecasting workspace, with eventual integration into OPE Weather Ops.
+Updated November 4, 2026. This is planned work, not a claim that these features are implemented. Forecast Ops remains a standalone forecasting workspace, with eventual integration into OPE Weather Ops.
 
 ## 1. Verification and the daily forecast workspace
 
@@ -14,6 +14,16 @@ Updated November 3, 2026. This is planned work, not a claim that these features 
 - [ ] My forecast: begin with the blend, edit lows/highs, precipitation and wording, and save immutable issued forecasts with issue times and method versions. Verify these separately from the untouched blend.
 - [ ] Continue prospective CVG blend and local-TV verification through the private collector. Preserve matched cases, edition timing, source/product identity and uncertainty. Expand markets and official reporting stations after the pilot is operational.
 - [ ] Evaluate variable-, lead- and location-specific blend candidates against held-out observations; provide regional fallback for locations with little history. Keep current production weights and Baseline v1 unchanged until evidence supports a change.
+
+### Original verification dashboard and winter-impact workspace
+
+- [ ] Build an original Forecast Ops verification presentation with a compact Model Blend report card and a detailed Verification page. Other sites are functional references only; use our own visual design, source handling and scoring methods.
+- [ ] Begin with CVG, then add suitable Tri-State stations after collector concurrency and capture health are resolved. Hourly temperature, dew point and wind use quality-controlled station observations; daily extrema retain official climate-day definitions.
+- [ ] Show matched-case MAE, bias, sample size and coverage by station, variable and lead group (0–24 h, 24–48 h, days 3–5 and days 6–10). Offer recent-pattern, 30-day and 90-day views as the archive supports them. Comparisons require the same valid cases and explicitly compatible methods.
+- [ ] Compare individual models, NWS, frozen prospective blend recipes and immutable personal forecasts. Small-sample ranks must not automatically change production weights. Treat forecast disagreement as guidance spread rather than calibrated confidence.
+- [ ] Build our own winter-impact view: distinguish snow falling, new accumulation and possible surface impacts; show timing, supported thresholds, usable member coverage and uncertainty. Inspect existing winter calculations before adding methods.
+- [ ] Experimental sticking/melting estimates remain labelled scenarios until tested against observations; do not present an unverified rule-of-thumb score as a calibrated probability. Avoid double-counting seamless/duplicate model products.
+- [ ] Retain the detailed meteorologist workspace while providing an original, simple one-page OPE decision briefing focused on what, when, uncertainty and operational relevance.
 
 ## 2. Event planning and briefings
 
@@ -59,6 +69,14 @@ RRFS deterministic and the five-member RRFS ensemble are registered. A native CV
 ## 5. Long-term model-map workspace
 
 Build an original model-data explorer inspired by the workflow of [WeatherBell's model maps](https://maps.weatherbell.com/view/model), integrated with Forecast Ops and eventually OPE. Use independently sourced model data and original rendering.
+
+### Current map priorities
+
+- [x] On-demand field loading, cached run switching, failure recovery and sparse geography labels. No DMA outline or road-number badges.
+- [x] Use native MapLibre symbol placement for city and selected-venue labels, with locally hosted font glyphs, population hierarchy and restrained density.
+- [ ] Validate real-phone playback and memory before enabling the larger Ohio Valley data area.
+- [ ] First additional HRRR field batch: dew point, wind/gusts, cloud cover, precipitation type and snowfall, subject to actual GRIB availability and documented definitions.
+- [ ] Follow with matched-valid-time run comparisons. Repair RRFS/GEM archive gaps separately from rendering changes.
 
 ### Initial scope
 

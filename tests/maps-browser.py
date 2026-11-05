@@ -9,10 +9,11 @@ manifest=json.loads((fixture/'manifest.json').read_text())
 server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(http.server.SimpleHTTPRequestHandler,directory=str(root)))
 threading.Thread(target=server.serve_forever,daemon=True).start()
 origin=f'http://127.0.0.1:{server.server_port}'
-requests=[];fail={'refc':True};errors=[]
+requests=[];glyph_requests=[];fail={'refc':True};errors=[]
 index={'generatedAt':'2026-11-05T01:00:00Z','runs':[{'id':'a','cycle':manifest['cycle'],'path':'qa-map/a','hoursExpected':3,'role':'latest-extended'},{'id':'b','cycle':'2026-11-04T17:00:00Z','path':'qa-map/b','hoursExpected':3,'role':'extended'}]}
 def route(r):
  url=r.request.url
+ if '/fonts/open-sans-v1/' in urlsplit(url).path:glyph_requests.append(url)
  if '/qa-map/' not in urlsplit(url).path:
   if url.startswith(origin):r.continue_()
   else:r.fulfill(status=404,body='')
@@ -35,6 +36,10 @@ with sync_playwright() as p:
  context.route('**/*',route);page=context.new_page();page.on('pageerror',lambda e:errors.append(str(e)))
  page.goto(origin+'/maps.html?data='+origin+'/qa-map/data')
  page.wait_for_function('document.querySelector("#runInfo").textContent.includes("loaded for this run")')
+ page.wait_for_function('window.__maps && __maps.map.queryRenderedFeatures({layers:["place-labels"]}).length>0')
+ assert glyph_requests and all(u.startswith(origin) for u in glyph_requests),'native labels use same-origin font glyphs'
+ assert not page.evaluate('!!__maps.map.getLayer("dma")'),'no DMA outline'
+ assert page.evaluate('__maps.map.getLayoutProperty("place-labels","text-allow-overlap")') is False
  assert count('t2m.bin.gz')==1 and count('latlon.bin.gz')==1
  assert count('refc.bin.gz')==count('apcp_hour.bin.gz')==count('apcp_run.bin.gz')==0
  assert page.locator('#fieldSel option[value="refd1km"]').is_disabled()
@@ -78,6 +83,6 @@ with sync_playwright() as p:
   assert page.locator('#mapCtl .seg').evaluate('(e)=>Array.from(e.children).every(b=>b.getBoundingClientRect().right<=e.getBoundingClientRect().right+1)'),'view shortcuts stay inside their group'
   page.screenshot(path=str(out/f'maps-demand-{width}.png'),full_page=True)
  assert not errors,errors
- print('Map browser: selected-field requests, outage/retry, cached switches, original-cell inspection, precip dependencies, valid-time matching and three widths pass')
+ print('Map browser: native labels, local glyphs, no DMA outline, selected-field requests, outage/retry, cached switches, original-cell inspection, precip dependencies, valid-time matching and three widths pass')
  browser.close()
 server.shutdown()
