@@ -27,3 +27,11 @@ The Almanac browser test separately checks the shared astronomy panel with the c
 ## Label fonts
 
 MapLibre uses a locally hosted Open Sans Semibold Latin glyph block. City and venue labels stay above the weather and share collision placement; the canvas now draws only the selected grid-cell marker. Label candidates are reduced near controls and by screen-space spacing. Names are transliterated to the supported Latin block on the map; point-inspection text retains the original location name. No external tile or glyph service is called. Font provenance, checksum and license are in `assets/maps/fonts/open-sans-v1/README.md`.
+
+## Surface-v2 products
+
+The grouped field menu adds 2-m dew point (°F), 10-m wind speed (mph), surface gust (mph) and entire-atmosphere total cloud cover (%). Wind speed is the magnitude of compatible grid-relative U/V components, not direction; rotation preserves this magnitude. Gust is an instantaneous surface diagnostic at the displayed valid hour, not the previous-hour maximum. Cloud cover is not ceiling. All are 0.1-unit packed, with original-cell inspection and separate color scales/units. Zero wind and zero cloud are valid values.
+
+The pipeline independently samples nine GRIB checkpoints for each new product. The captured Nov 5 00Z f00–f03 package and `tests/maps-surface.test.js` reproduce the packed values within 0.051 units. The browser test checks the new field values and lazy downloads, as well as disabled products on legacy runs.
+
+New packages use versioned `surface-v2` paths. Previous package URLs are retained for as long as their run remains in the retention set. A failed upgrade carries the previous complete package and excludes partial new output. The observation/forecast verification archive, blend weights, source schedules and regional domain are unchanged.

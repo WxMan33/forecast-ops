@@ -66,6 +66,9 @@
   /* Colour scales: stepped, labelled, original. Returns [r,g,b,a] or null (transparent). */
   const SCALES = {
     t2m: { units: "°F", stops: [[-10, [94, 60, 153]], [0, [77, 92, 186]], [10, [62, 125, 214]], [20, [72, 165, 230]], [32, [120, 200, 236]], [33, [96, 186, 140]], [40, [128, 200, 110]], [50, [196, 214, 92]], [60, [238, 204, 78]], [70, [240, 150, 60]], [80, [222, 92, 52]], [90, [180, 40, 52]], [100, [128, 20, 60]]], step: 2 },
+    d2m: { units: "°F", stops: [[-20,[135,91,60]],[0,[174,126,73]],[20,[195,169,103]],[35,[155,191,123]],[45,[83,169,116]],[55,[42,150,154]],[60,[58,134,184]],[65,[89,108,185]],[70,[133,83,172]],[75,[176,66,143]],[80,[216,91,136]]] },
+    wind: { units: "mph", stops: [[0,[36,56,83]],[5,[52,94,139]],[10,[43,139,159]],[15,[71,169,135]],[20,[174,190,81]],[30,[230,164,57]],[40,[220,99,55]],[50,[181,57,103]],[65,[156,103,191]]] },
+    cloud: { units: "%", stops: [[0,[27,42,61]],[20,[59,80,103]],[40,[94,114,136]],[60,[143,158,175]],[80,[190,199,209]],[100,[237,240,244]]] },
     precip: { units: "in", stops: [[0.01, [178, 226, 178]], [0.05, [120, 198, 121]], [0.10, [49, 163, 84]], [0.25, [0, 109, 44]], [0.50, [44, 127, 184]], [0.75, [37, 52, 148]], [1.00, [122, 1, 119]], [1.50, [197, 27, 138]], [2.00, [247, 104, 161]], [3.00, [253, 224, 239]]] },
     refc: { units: "dBZ", stops: [[5, [170, 210, 232]], [15, [95, 170, 220]], [20, [40, 180, 90]], [25, [20, 145, 60]], [30, [10, 110, 40]], [35, [240, 220, 40]], [40, [235, 165, 30]], [45, [225, 95, 25]], [50, [200, 20, 20]], [55, [150, 0, 60]], [60, [190, 70, 200]], [65, [245, 245, 245]]] },
   };
@@ -76,6 +79,11 @@
       const q = Math.floor(v / 2) * 2 + 1, x = Math.max(st[0][0], Math.min(st[st.length - 1][0], q));
       for (let k = 0; k < st.length - 1; k++) { const [a, ca] = st[k], [b, cb] = st[k + 1]; if (x >= a && x <= b) { if (b - a <= 1) return [...(x < b ? ca : cb), 205]; const f = (x - a) / (b - a); return [0, 1, 2].map((c) => Math.round(ca[c] + (cb[c] - ca[c]) * f)).concat(205); } }
       return [...st[x <= st[0][0] ? 0 : st.length - 1][1], 205];
+    }
+    if (scale === "d2m") {
+      const x = Math.max(st[0][0], Math.min(st[st.length-1][0], v));
+      for (let k=0;k<st.length-1;k++) { const [a,ca]=st[k], [b,cb]=st[k+1]; if(x>=a&&x<=b) { const f=(x-a)/(b-a); return ca.map((c,i)=>Math.round(c+(cb[i]-c)*f)).concat(205); } }
+      return [...st[st.length-1][1],205];
     }
     if (v < st[0][0]) return null; // below the lowest threshold: transparent (no precipitation / echo shown)
     let c = st[0][1]; for (const [t, rgb] of st) { if (v >= t) c = rgb; } return [...c, 215];
@@ -109,7 +117,7 @@
   }
   /* value -> colour-table coordinate u in [0,1]; -1 = below the first threshold (transparent).
      Stepped scales map to the centre of their step, so native rendering shows exact legend colours. */
-  const STEPPED = { precip: true, refc: true };
+  const STEPPED = { precip: true, refc: true, wind: true, cloud: true };
   function scaleU(scale, v) {
     if (v == null || !Number.isFinite(v)) return null;
     const st = SCALES[scale].stops, n = st.length;
