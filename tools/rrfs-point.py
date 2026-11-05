@@ -247,13 +247,17 @@ def main():
     if output.exists():
         previous = json.loads(output.read_text())
         if previous.get("cycle") == cycle.isoformat().replace("+00:00", "Z") and len(previous.get("members", {}).get("deterministic", {}).get("hourly", {}).get("temperature_2m", [])) == args.det_hours + 1:
-            if previous.get("visibilityMethod") == VISIBILITY_METHOD:
+            vals = previous["members"]["deterministic"]["hourly"].get("visibility", [])
+            vals = vals[:] if previous.get("visibilityMethod") == VISIBILITY_METHOD and len(vals) == args.det_hours + 1 else [None] * (args.det_hours + 1)
+            missing = [i for i, v in enumerate(vals) if v is None or not isinstance(v, (int, float)) or not math.isfinite(v) or not 0 <= v <= 200000]
+            if not missing:
                 print("Current complete cycle already published; no GRIB re-download", flush=True)
                 return
             # Upgrade only the optional deterministic field; preserve existing temp/precip/member data.
             payload = previous
             with futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
-                vals = list(pool.map(lambda h: visibility_hour(cycle, h), range(args.det_hours + 1)))
+                for hour, value in zip(missing, pool.map(lambda h: visibility_hour(cycle, h), missing)):
+                    vals[hour] = value
             payload["members"]["deterministic"]["hourly"]["visibility"] = vals
             payload["members"]["deterministic"]["visibilityUnavailableHours"] = [i for i, v in enumerate(vals) if v is None]
             payload["visibilityMethod"] = VISIBILITY_METHOD

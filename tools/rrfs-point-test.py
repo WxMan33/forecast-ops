@@ -4,6 +4,9 @@ import argparse
 import datetime as dt
 import importlib.util
 import json
+import sys
+import tempfile
+from unittest.mock import patch
 from pathlib import Path
 
 s = importlib.util.spec_from_file_location("rrfs_point", Path(__file__).with_name("rrfs-point.py"))
@@ -32,6 +35,25 @@ for value in [-1, float("nan"), 999999]:
         raise AssertionError("invalid visibility value accepted")
     except ValueError:
         pass
+# Same-cycle upgrades must not re-fetch or alter existing temperature/precip/member forecasts.
+with tempfile.TemporaryDirectory() as tmp:
+    out = Path(tmp) / "point.json"
+    cycle = dt.datetime.now(dt.timezone.utc).replace(minute=0, second=0, microsecond=0)
+    original = {"schema": 1, "method": "rrfs-cvg-native-v1", "cycle": cycle.isoformat().replace("+00:00", "Z"), "units": {"temperature_2m": "°C"}, "source": m.ROOT, "point": {"lat": m.LAT, "lon": m.LON}, "members": {"deterministic": {"hourly": {"temperature_2m": [10, 11], "precipitation": [None, .1]}}, "member01": {"hourly": {"temperature_2m": [9, 10]}}}}
+    out.write_text(json.dumps(original))
+    argv = ["rrfs-point.py", "--cycle", cycle.strftime("%Y%m%d%H"), "--det-hours", "1", "--ens-hours", "1", "--out", str(out)]
+    with patch.object(sys, "argv", argv), patch.object(m, "visibility_hour", side_effect=lambda c, h: 0 if h == 0 else None), patch.object(m, "produce", side_effect=AssertionError("unexpected full rebuild")):
+        m.main()
+    upgraded = json.loads(out.read_text())
+    assert upgraded["members"]["deterministic"]["hourly"]["visibility"] == [0, None]
+    assert upgraded["members"]["deterministic"]["visibilityUnavailableHours"] == [1]
+    assert upgraded["members"]["member01"] == original["members"]["member01"]
+    assert upgraded["members"]["deterministic"]["hourly"]["temperature_2m"] == [10, 11]
+    with patch.object(sys, "argv", argv), patch.object(m, "visibility_hour", return_value=1609.344) as getvis, patch.object(m, "produce", side_effect=AssertionError("unexpected full rebuild")):
+        m.main()
+        assert getvis.call_count == 1 and getvis.call_args.args[1] == 1, "retry only the missing visibility hour"
+    with patch.object(sys, "argv", argv), patch.object(m, "visibility_hour", side_effect=AssertionError("complete VIS should be carried")):
+        m.main()
 args = argparse.ArgumentParser()
 args.add_argument("--feed")
 a = args.parse_args()
