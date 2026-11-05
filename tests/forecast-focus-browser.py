@@ -10,12 +10,15 @@ threading.Thread(target=server.serve_forever,daemon=True).start()
 fixtures={key:json.loads((ROOT/'tests/fixtures'/f'nws-cincinnati-{key}.json').read_text())['json'] for key in ['points','grid','hourly','forecast']}
 base=datetime(2026,11,4,tzinfo=timezone.utc)
 revision=0
+impact_mode=False
 
 def om_response(url):
  q=parse_qs(urlparse(url).query);n=int(q.get('forecast_days',['7'])[0])*24;model=q.get('models',[''])[0]
  ens='ensemble-api' in url;members=5 if 'rrfs' in model else 3
  axis=[(base+timedelta(hours=i)).strftime('%Y-%m-%dT%H:%M') for i in range(n)]
  def values(v,k):
+  if impact_mode and v in ['temperature_2m','dew_point_2m','wind_speed_10m','wind_gusts_10m','cloud_cover','precipitation']:
+   return [{'temperature_2m':35,'dew_point_2m':34,'wind_speed_10m':3,'wind_gusts_10m':26,'cloud_cover':20,'precipitation':0}[v]]*n
   if v=='temperature_2m':return [42+(i%24)/2+revision*4+k/10 for i in range(n)]
   if v=='precipitation':return [.12+revision*.08 if i%24 in [8+revision*3,9+revision*3,19] else 0 for i in range(n)]
   if v in ['snowfall','rain','showers']:return [0]*n
@@ -31,6 +34,7 @@ def om_response(url):
  for v in q.get('daily',[''])[0].split(','):
   if not v:continue
   d[v]=[54+revision*4 if v=='temperature_2m_max' else 42+revision*4 if v=='temperature_2m_min' else .36+revision*.24 if v=='precipitation_sum' else 18 if 'gust' in v else 0 for _ in dates]
+  if impact_mode and 'gust' in v:d[v]=[26]*len(dates)
  return {'latitude':39.05,'longitude':-84.66,'timezone':'UTC','utc_offset_seconds':0,'hourly':h,'daily':d,'hourly_units':{v:('°F' if 'temperature' in v else 'inch' if v in ['precipitation','snowfall'] else 'mph') for v in h}}
 
 with sync_playwright() as p:
@@ -130,11 +134,35 @@ with sync_playwright() as p:
  page.locator('#viewMode').click();page.emulate_media(media='print')
  assert page.locator('#briefingView').is_visible()
  page.screenshot(path=str(out/'focus-brief-print.png'),full_page=True)
+ # Compact investigation flags: sustained two-source screens, inline details and keyboard operation.
+ page.emulate_media(media='screen');page.locator('#viewMode').click()
+ impact_mode=True
+ page.evaluate('sessionStorage.clear()');page.reload()
+ page.wait_for_function('document.querySelectorAll(".impact-flag").length>0 && !document.querySelector("#runBtn").disabled')
+ dayrow=page.locator('#daily tr[data-k="2026-11-04"]')
+ assert dayrow.locator('.impact-fog').count()==1 and dayrow.locator('.impact-frost').count()==1
+ assert dayrow.locator('.impact-wind').inner_text().startswith('G:20+')
+ assert 20<=float(dayrow.locator('td').nth(7).inner_text().split()[0])<30,'future wind badge matches the displayed daily gust band'
+ dayrow.locator('.impact-fog').click()
+ assert page.locator('#impact-2026-11-04').is_visible()
+ assert 'ECMWF IFS' in page.locator('#impact-2026-11-04').inner_text()
+ assert 'not a visibility forecast' in page.locator('#impact-2026-11-04').inner_text()
+ assert 'sel' not in (dayrow.get_attribute('class') or ''),'flag click must not select the whole day'
+ dayrow.locator('.impact-fog').press('Enter')
+ assert not page.locator('#impact-2026-11-04').is_visible()
+ for width in [360,390,1440]:
+  page.set_viewport_size({'width':width,'height':900})
+  dayrow.locator('.impact-frost').click()
+  assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1'),f'impact overflow at {width}'
+  page.screenshot(path=str(out/f'focus-impacts-{width}.png'),full_page=True)
+  dayrow.locator('.impact-frost').click()
+ saved_history_count=len(history())
+ page.locator('#viewMode').click()
  # Full failure state, with retained local history/settings.
  page.emulate_media(media='screen');context.unroute('**/*');context.route('**/*',lambda r:r.continue_() if r.request.url.startswith('http://127.0.0.1:') else r.fulfill(status=503,content_type='application/json',body='{"error":true,"reason":"synthetic outage"}'))
  page.evaluate('sessionStorage.clear()');page.reload()
  page.wait_for_function('document.querySelector("#briefingView").textContent.includes("could not be loaded")')
- assert len(history())==2,'failed fetch leaves saved history intact'
+ assert len(history())==saved_history_count,'failed fetch leaves saved history intact'
  assert not errors,errors
  print('Forecast-first, trends, timing, briefing, reload, failure, themes, print and five viewport widths pass')
  browser.close()

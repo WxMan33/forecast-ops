@@ -38,6 +38,7 @@ jobs:
       - run: node tests/climate-report.test.js
       - run: node tests/astronomy.test.js
       - run: node tests/record-watch.test.js
+      - run: node tests/impact-flags.test.js
       - run: node tests/forecast-clock.test.js
       - run: node tests/scoped-weights.test.js
       - run: node tests/maps.test.js
