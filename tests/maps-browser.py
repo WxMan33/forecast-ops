@@ -1,6 +1,7 @@
 """On-demand field downloads and recovery using the captured NOAA HRRR grid."""
 import functools,http.server,json,threading
 from pathlib import Path
+from urllib.parse import urlsplit
 from playwright.sync_api import sync_playwright
 root=Path(__file__).resolve().parents[1]
 fixture=root/'tests/fixtures/maps/2026110418'
@@ -12,12 +13,12 @@ requests=[];fail={'refc':True};errors=[]
 index={'generatedAt':'2026-11-05T01:00:00Z','runs':[{'id':'a','cycle':manifest['cycle'],'path':'qa-map/a','hoursExpected':3,'role':'latest-extended'},{'id':'b','cycle':'2026-11-04T17:00:00Z','path':'qa-map/b','hoursExpected':3,'role':'extended'}]}
 def route(r):
  url=r.request.url
- if '/qa-map/' not in url:
+ if '/qa-map/' not in urlsplit(url).path:
   if url.startswith(origin):r.continue_()
   else:r.fulfill(status=404,body='')
   return
  requests.append(url)
- name=url.split('/')[-1]
+ name=urlsplit(url).path.split('/')[-1]
  if name=='index.json':r.fulfill(content_type='application/json',body=json.dumps(index));return
  if name=='manifest.json':
   m=json.loads(json.dumps(manifest))
@@ -68,7 +69,7 @@ with sync_playwright() as p:
  page.locator('#runSel').select_option('a')
  page.wait_for_function('document.querySelector("#mapInfo").textContent.includes("18Z")')
  assert count('t2m.bin.gz')==2 and count('latlon.bin.gz')==2,'both recent runs retained'
- assert '64 °F' not in page.locator('#inspect').inner_text() or page.locator('#hourSl').input_value()=='2'
+ assert page.locator('#hourSl').input_value()=='2','return to first run keeps the same valid time'
  out=root/'tests/out';out.mkdir(exist_ok=True)
  for width in [390,1440]:
   page.set_viewport_size({'width':width,'height':1000})
