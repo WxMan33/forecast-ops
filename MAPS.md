@@ -12,7 +12,7 @@ The About section reports compressed data loaded for the selected run against it
 
 ## Viewing area
 
-Tri-State remains the fixed default extent. The closest view still uses the existing 23-county bounds, but is labelled `Cincinnati DMA*`: the outline is approximate and has not been checked against an authoritative Nielsen county assignment. It must not be presented as an official DMA boundary. The county list and bounds remain in `assets/maps/basemap.json` and `tools/build-basemap.js`. Saved locations cannot bypass the zoom cap.
+Tri-State remains the fixed default extent. The closer preset is labelled Cincinnati area, with the previous zoom limit retained. No DMA outline is drawn. Road-number badges are omitted; city labels are population-ranked with a screen-space separation rule and a lower count on phones. Stadiums are labelled only when selected or used as the venue view. These are display changes only; point inspection remains available everywhere inside the model grid.
 
 Ohio Valley expansion is not enabled. The earlier benchmark indicated roughly 5.8 times the cells and 18.2 MB per full run when all fields load. On-demand loading removes that upfront requirement, but real-device playback and memory must be assessed before expanding the production area. This change does not expand collection or alter the data publishing workflow.
 

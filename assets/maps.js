@@ -102,17 +102,30 @@
     const pt = (lat, lon) => { const p = map.project([lon, lat]); return [p.x, p.y]; };
     /* selected cell marker first (highest priority) */
     if (st.sel && st.lat) { const g = st.man.grid, per = g.nx * g.ny, c = st.sel[1] * g.nx + st.sel[0], [x, y] = pt(st.lat[c], st.lat[per + c]); ctx.strokeStyle = fg; ctx.lineWidth = 2; ctx.strokeRect(x - 6, y - 6, 12, 12); boxes.push([x - 8, y - 8, x + 8, y + 8]); }
-    /* sites and the saved venue */
-    if (z >= 7.2) SITES.forEach(([n, la, lo]) => { const [x, y] = pt(la, lo); if (x < 0 || y < 0 || x > W || y > Hh) return; ctx.fillStyle = fg; ctx.strokeStyle = bg; ctx.lineWidth = 2; ctx.beginPath(); ctx.rect(x - 3, y - 3, 6, 6); ctx.fill(); ctx.stroke(); text(x, y, n, 11.5, 600, "right"); });
-    const L = O.location; if (L && !SITES.some((s) => Math.abs(s[1] - L.lat) < 0.005 && Math.abs(s[2] - L.lon) < 0.005)) { const [x, y] = pt(+L.lat, +L.lon); if (x > 0 && y > 0 && x < W && y < Hh) { ctx.fillStyle = css("--accent", "#4cb4f0"); ctx.beginPath(); ctx.arc(x, y, 4.5, 0, 7); ctx.fill(); text(x, y, String(L.name).split(",")[0], 12, 700, "right"); } }
-    /* cities by population, thinned by zoom and collisions */
-    const minPop = z < 6.3 ? 400000 : z < 7 ? 120000 : z < 7.5 ? 30000 : z < 8 ? 12000 : 5000;
-    st.base.layers.places.features.forEach((f) => { const p = f.properties; if (p.pop < minPop) return; const [lo, la] = f.geometry.coordinates, [x, y] = pt(la, lo); if (x < 0 || y < 0 || x > W || y > Hh) return;
-      const big = p.pop >= 400000, ok = text(x, y, p.name, big ? 13.5 : 12, big ? 700 : 600, "right"); if (ok) { ctx.fillStyle = fg; ctx.strokeStyle = bg; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, big ? 3.5 : 2.6, 0, 7); ctx.fill(); ctx.stroke(); } });
-    /* interstate / highway route labels: one per route, near the middle of its visible part */
-    if (z >= 6.6) { const done = new Set(); st.base.layers.roads.features.forEach((f) => { const lab = f.properties.label; if (!lab || done.has(lab) || f.properties.kind !== "major") return; const ln = f.geometry.coordinates.reduce((a, b) => (b.length > a.length ? b : a), []); const vis = ln.map(([lo, la]) => pt(la, lo)).filter(([x, y]) => x > 30 && y > 30 && x < W - 30 && y < Hh - 30); if (vis.length < 2) return; const [x, y] = vis[Math.floor(vis.length / 2)];
-      ctx.font = "700 10.5px system-ui, sans-serif"; const w = ctx.measureText(lab).width + 8, bx = [x - w / 2, y - 8, x + w / 2, y + 8]; if (!free(bx)) return; boxes.push(bx); done.add(lab);
-      ctx.fillStyle = css("--panel", "#151922"); ctx.strokeStyle = css("--muted", "#8a93a3"); ctx.lineWidth = 1; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(bx[0], bx[1], w, 16, 4) : ctx.rect(bx[0], bx[1], w, 16); ctx.fill(); ctx.stroke(); ctx.fillStyle = fg; ctx.textBaseline = "middle"; ctx.fillText(lab, x - w / 2 + 4, y + 0.5); }); }
+    /* Regional guidance first: only the selected venue is labelled, not every stadium. */
+    const L = O.location, site = SITES.find((s) => s[0] === st.selName);
+    const venue = site || (st.view === "venue" && L ? [String(L.name).split(",")[0], +L.lat, +L.lon] : null);
+    const anchors = [], phone = W < 700, separation = phone ? 115 : 125, maxCities = phone ? 8 : 22;
+    if (venue) { const [name, la, lo] = venue, [x, y] = pt(la, lo);
+      if (x > 0 && y > 0 && x < W && y < Hh && text(x, y, name, 11.5, 600, "right")) {
+        ctx.fillStyle = css("--accent", "#4cb4f0"); ctx.beginPath(); ctx.arc(x, y, 3.5, 0, 7); ctx.fill();
+      }
+    }
+    /* Population-ranked cities, with generous screen-space separation. Zooming never fills
+       the Cincinnati core with suburban labels. Small places remain available by inspection. */
+    const minPop = z < 6.3 ? 250000 : z < 7 ? 75000 : 15000;
+    const cities = st.base.layers.places.features.filter((f) => f.properties.pop >= minPop).slice().sort((a, b) => b.properties.pop - a.properties.pop);
+    cities.forEach((f) => {
+      if (anchors.length >= maxCities) return;
+      const p = f.properties, [lo, la] = f.geometry.coordinates, [x, y] = pt(la, lo);
+      if (x < 12 || y < 12 || x > W - 12 || y > Hh - 12 || anchors.some(([ax, ay]) => Math.hypot(ax - x, ay - y) < separation)) return;
+      const big = p.pop >= 250000, ok = text(x, y, p.name, big ? 13 : 11.5, big ? 700 : 500, "right");
+      if (ok) { anchors.push([x, y]); ctx.fillStyle = fg; ctx.strokeStyle = bg; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(x, y, big ? 2.8 : 2, 0, 7); ctx.fill(); ctx.stroke();
+      }
+    });
+    // Roads remain geographic context; route-number badges are intentionally omitted.
+
   }
 
   /* ---------- map, basemap and views ---------- */
@@ -126,11 +139,11 @@
   const palette = () => (document.documentElement.getAttribute("data-theme") !== "light"
     ? { land: "#151a22", county: "#3a4250", state: "#cfd5de", road: "#6d5a3c", road2: "#4c4537", river: "#2d5d86", dma: "#7cc4f0", mask: "#0b0e13", maskOp: 0.6 }
     : { land: "#f1f2ee", county: "#b9bec6", state: "#353c47", road: "#c08436", road2: "#d8b98c", river: "#5f9bd0", dma: "#1f6fb0", mask: "#ffffff", maskOp: 0.65 });
-  const PAINT = { bg: ["background-color", "land"], mask: ["fill-color", "mask"], "mask-edge": ["line-color", "state"], "rivers-minor": ["line-color", "river"], rivers: ["line-color", "river"], counties: ["line-color", "county"], roads2: ["line-color", "road2"], roads: ["line-color", "road"], states: ["line-color", "state"], dma: ["line-color", "dma"] };
+  const PAINT = { bg: ["background-color", "land"], mask: ["fill-color", "mask"], "mask-edge": ["line-color", "state"], "rivers-minor": ["line-color", "river"], rivers: ["line-color", "river"], counties: ["line-color", "county"], roads2: ["line-color", "road2"], roads: ["line-color", "road"], states: ["line-color", "state"] };
   function applyPalette() { const C = palette(), map = st.map; Object.entries(PAINT).forEach(([id, [prop, k]]) => map.getLayer(id) && map.setPaintProperty(id, prop, C[k])); if (map.getLayer("mask")) map.setPaintProperty("mask", "fill-opacity", C.maskOp); drawLabels(); }
   function addBasemap() {
     const map = st.map, b = st.base.layers, C = palette();
-    Object.entries(b).forEach(([k, v]) => map.addSource(k, { type: "geojson", data: v }));
+    Object.entries(b).filter(([k]) => k !== "dma").forEach(([k, v]) => map.addSource(k, { type: "geojson", data: v }));
     map.addLayer(layer);
     map.addSource("mask", { type: "geojson", data: { type: "Feature", geometry: { type: "Polygon", coordinates: [[[-100, 30], [-70, 30], [-70, 48], [-100, 48], [-100, 30]], st.mesh.extent.slice().reverse()] } } });
     map.addLayer({ id: "mask", type: "fill", source: "mask", paint: { "fill-color": C.mask, "fill-opacity": C.maskOp } });
@@ -142,7 +155,6 @@
     map.addLayer({ id: "roads2", type: "line", source: "roads", filter: ["==", ["get", "kind"], "secondary"], minzoom: 7.4, paint: { "line-color": C.road2, "line-width": ["interpolate", ["linear"], ["zoom"], 7.4, 0.6, 9, 1.4] } });
     map.addLayer({ id: "roads", type: "line", source: "roads", filter: ["==", ["get", "kind"], "major"], paint: { "line-color": C.road, "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.7, 9, 2.4] } });
     map.addLayer({ id: "states", type: "line", source: "states", paint: { "line-color": C.state, "line-width": ["interpolate", ["linear"], ["zoom"], 5, 1.2, 9, 2.4] } });
-    map.addLayer({ id: "dma", type: "line", source: "dma", paint: { "line-color": C.dma, "line-width": 1.4, "line-dasharray": [3, 2], "line-opacity": 0.9 } });
     applyPalette(); window.addEventListener("ops:theme", applyPalette);
     map.on("render", drawLabels);
   }

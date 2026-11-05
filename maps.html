@@ -42,7 +42,7 @@
           <label class="sr-only" for="runSel">Run</label><select class="input inline" id="runSel"></select>
         </div>
         <div class="ctlrow">
-          <div class="seg" role="group" aria-label="Map view"><button type="button" class="segb" data-view="tristate">Tri-State</button><button type="button" class="segb" data-view="dma" title="Approximate county-based Cincinnati viewing area; not a verified Nielsen DMA boundary">Cincinnati DMA*</button><button type="button" class="segb" data-view="venue" id="venueBtn">Venue</button></div>
+          <div class="seg" role="group" aria-label="Map view"><button type="button" class="segb" data-view="tristate">Tri-State</button><button type="button" class="segb" data-view="dma" title="Closer regional view; keeps the existing model zoom limit">Cincinnati area</button><button type="button" class="segb" data-view="venue" id="venueBtn">Venue</button></div>
           <label class="chk smoothchk"><input type="checkbox" id="smoothChk"> Smooth<span class="wide-only"> display</span></label>
           <button type="button" class="btn ghost sm" id="fsBtn" aria-pressed="false">FULLSCREEN</button>
         </div>
@@ -64,7 +64,7 @@
     </section>
     <section class="card">
       <div class="section-title">About these maps</div>
-      <p class="msg">NOAA HRRR, 3 km. Every model grid cell is drawn as its own shape at its exact position (corners from the model's Lambert conformal projection), so cells look like cells at any zoom: zooming never adds model detail. "Smooth display" blends colours between cell centres for readability only; it never crosses missing data, and point values always come from the original cells. Composite reflectivity is the model's column maximum; 1 km reflectivity is the model at 1,000 m above ground; both are simulated, not radar. Precipitation windows are read from the GRIB accumulation intervals and are blank unless every hour is present. The closest zoom uses an approximate Cincinnati DMA viewing area. The dashed county outline is a working 23-county selection, not a verified Nielsen DMA boundary. Weather fields download only when selected; up to two runs are kept in memory for quick switching. Geography: US Census boundaries (us-atlas) and Natural Earth (public domain); towns from GeoNames (CC BY 4.0). Model guidance only, not an official forecast.</p>
+      <p class="msg">NOAA HRRR, 3 km. Every model grid cell is drawn as its own shape at its exact position (corners from the model's Lambert conformal projection), so cells look like cells at any zoom: zooming never adds model detail. "Smooth display" blends colours between cell centres for readability only; it never crosses missing data, and point values always come from the original cells. Composite reflectivity is the model's column maximum; 1 km reflectivity is the model at 1,000 m above ground; both are simulated, not radar. Precipitation windows are read from the GRIB accumulation intervals and are blank unless every hour is present. The closest zoom is limited to a Cincinnati-area regional view. City labels are deliberately sparse; venue labels appear when selected. Roads are shown without route-number badges. Weather fields download only when selected; up to two runs are kept in memory for quick switching. Geography: US Census boundaries (us-atlas) and Natural Earth (public domain); towns from GeoNames (CC BY 4.0). Model guidance only, not an official forecast.</p>
       <div id="runInfo" class="msg"></div>
     </section>
   </div>
@@ -75,6 +75,6 @@
 <script src="assets/vendor/maplibre-gl-4.7.1.js?v=be9633c4d8"></script>
 <script src="assets/maps-core.js?v=c1c32a54ca"></script>
 <script src="assets/maps-loader.js?v=21d2de8d6c"></script>
-<script src="assets/maps.js?v=f04b32c34b"></script>
+<script src="assets/maps.js?v=f2bc3862f9"></script>
 </body>
 </html>
