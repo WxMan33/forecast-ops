@@ -75,7 +75,8 @@ Build an original model-data explorer inspired by the workflow of [WeatherBell's
 - [x] On-demand field loading, cached run switching, failure recovery and sparse geography labels. No DMA outline or road-number badges.
 - [x] Use native MapLibre symbol placement for city and selected-venue labels, with locally hosted font glyphs, population hierarchy and restrained density.
 - [ ] Validate real-phone playback and memory before enabling the larger Ohio Valley data area.
-- [ ] First additional HRRR field batch: dew point, wind/gusts, cloud cover, precipitation type and snowfall, subject to actual GRIB availability and documented definitions.
+- [x] First additional HRRR surface batch: 2-m dew point, 10-m wind speed, surface gusts and total cloud cover, with GRIB-defined units/levels and independent point checks.
+- [ ] Next HRRR products: precipitation type and snowfall, with explicit categorical and accumulation definitions.
 - [ ] Follow with matched-valid-time run comparisons. Repair RRFS/GEM archive gaps separately from rendering changes.
 
 ### Initial scope

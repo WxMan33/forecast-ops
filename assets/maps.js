@@ -11,6 +11,10 @@
   const TZ = "America/New_York", H = 3600e3;
   const FIELDS = {
     t2m: { label: "2-m temperature", scale: "t2m", units: "°F", dec: 0, smooth: true },
+    d2m: { label: "2-m dew point", scale: "d2m", units: "°F", dec: 0, smooth: true },
+    w10m: { label: "10-m wind speed", scale: "wind", units: "mph", dec: 1, smooth: true, note: "Speed from the two 10-m wind components; no direction is inferred." },
+    gust: { label: "Surface wind gust", scale: "wind", units: "mph", dec: 1, smooth: true, note: "Model gust diagnostic at this valid hour; not the previous-hour maximum." },
+    cloud: { label: "Total cloud cover", scale: "cloud", units: "%", dec: 0, smooth: true, note: "Cloud cover through the entire atmosphere, not cloud ceiling." },
     precip: { label: "Precipitation", scale: "precip", units: "in", dec: 2, smooth: true },
     refc: { label: "Composite reflectivity (simulated)", short: "Composite reflectivity", scale: "refc", units: "dBZ", dec: 0, smooth: true },
     refd1km: { label: "1 km AGL reflectivity (simulated)", short: "1 km reflectivity", scale: "refc", units: "dBZ", dec: 0, smooth: true },
@@ -253,7 +257,8 @@
     }
   }
   function buildFieldSel() {
-    $("fieldSel").innerHTML = Object.entries(FIELDS).map(([k, f]) => `<option value="${k}" ${fieldOk(k) ? "" : "disabled"}>${esc(f.short || f.label)}${fieldOk(k) ? "" : " (not in this run)"}</option>`).join("");
+    const groups = { "Temperature & moisture": ["t2m", "d2m"], "Wind": ["w10m", "gust"], "Sky": ["cloud"], "Precipitation": ["precip"], "Simulated radar": ["refc", "refd1km"] };
+    $("fieldSel").innerHTML = Object.entries(groups).map(([name, keys]) => `<optgroup label="${esc(name)}">${keys.map((k) => { const f=FIELDS[k]; return `<option value="${k}" ${fieldOk(k) ? "" : "disabled"}>${esc(f.short || f.label)}${fieldOk(k) ? "" : " (not in this run)"}</option>`; }).join("")}</optgroup>`).join("");
     if (!fieldOk(st.field)) st.field = "t2m"; $("fieldSel").value = st.field; $("winSel").value = st.win; $("winSel").hidden = st.field !== "precip";
     $("smoothChk").checked = st.smooth; $("smoothChk").disabled = !FIELDS[st.field].smooth;
   }
@@ -271,7 +276,7 @@
     if (!st.man || st.loading) return; const fr = upload(), m = st.man, F = FIELDS[st.field], valid = Date.parse(m.valid[st.h]), H0 = m.hours[st.h];
     const newest = st.index.runs[0], ageH = (Date.now() - Date.parse(newest.cycle)) / H, stale = ageH > 4 || (Date.now() - Date.parse(st.index.generatedAt)) / H > 3;
     const miss = missingHours();
-    $("mapInfo").innerHTML = `<b class="fld">HRRR · ${esc(F.label)}</b><div>Init <b>${esc(fmtUTC(Date.parse(m.cycle)))}</b> · F${String(H0).padStart(2, "0")} · valid <b>${esc(fmtLocal(valid))}</b> (${esc(fmtUTC(valid))})</div>${st.field === "precip" ? `<div>${esc(windowText())}</div>` : ""}<div class="st msg${!stale && !miss.length ? " phone-hide" : ""}">${st.smooth && F.smooth ? "Smoothed display (values from original cells)" : "Native 3 km cells"}${stale ? ` · <span class="unavail">stale: newest run ${ageH.toFixed(1)} h old</span>` : ""}${miss.length ? ` · missing F${miss.join(", F")}` : ""}</div>`;
+    $("mapInfo").innerHTML = `<b class="fld">HRRR · ${esc(F.label)}</b><div>Init <b>${esc(fmtUTC(Date.parse(m.cycle)))}</b> · F${String(H0).padStart(2, "0")} · valid <b>${esc(fmtLocal(valid))}</b> (${esc(fmtUTC(valid))})</div>${st.field === "precip" ? `<div>${esc(windowText())}</div>` : F.note ? `<div class="msg phone-hide">${esc(F.note)}</div>` : ""}<div class="st msg${!stale && !miss.length ? " phone-hide" : ""}">${st.smooth && F.smooth ? "Smoothed display (values from original cells)" : "Native 3 km cells"}${stale ? ` · <span class="unavail">stale: newest run ${ageH.toFixed(1)} h old</span>` : ""}${miss.length ? ` · missing F${miss.join(", F")}` : ""}</div>`;
     $("tlValid").textContent = `${fmtLocal(valid)} · F${String(H0).padStart(2, "0")}`; $("hourSl").value = String(st.h);
     const blank = st.field !== "precip" && st.fields[st.field] && !st.fields[st.field].present(H0);
     note(blank ? `No ${F.label.toLowerCase()} for F${H0}: missing from this run (left blank).` : fr && !fr.any && fr.why ? `Unavailable at this hour: ${fr.why}.` : null);
@@ -280,8 +285,8 @@
   }
   function legend() {
     const F = FIELDS[st.field], sc = MC.SCALES[F.scale], stops = sc.stops, title = st.field === "precip" ? `Precipitation (liquid), in · ${st.win === "run" ? "since run start" : `${st.win}-h total`}` : `${F.label}, ${F.units}`;
-    const body = F.scale === "t2m" ? `<div class="lgbar" style="background:linear-gradient(to right,${stops.map(([t, c]) => `rgb(${c.join(",")}) ${(((t - stops[0][0]) / (stops[stops.length - 1][0] - stops[0][0])) * 100).toFixed(1)}%`).join(",")})"></div><div class="lgticks">${stops.filter((s, k) => k % 2 === 0 || s[0] === 32).map(([t]) => `<span style="left:${(((t - stops[0][0]) / (stops[stops.length - 1][0] - stops[0][0])) * 100).toFixed(1)}%">${t}</span>`).join("")}</div>`
-      : `<div class="lgs">${stops.map(([t, c], k) => `<span class="lg"><i style="background:rgb(${c.join(",")})"></i>${t}${stops[k + 1] ? "" : "+"}</span>`).join("")}</div>`;
+    const body = !MC.STEPPED[F.scale] ? `<div class="lgbar" style="background:linear-gradient(to right,${stops.map(([t, c]) => `rgb(${c.join(",")}) ${(((t - stops[0][0]) / (stops[stops.length - 1][0] - stops[0][0])) * 100).toFixed(1)}%`).join(",")})"></div><div class="lgticks">${stops.filter((s, k) => k % 2 === 0 || (F.scale === "t2m" && s[0] === 32) || k === stops.length-1).map(([t]) => `<span style="left:${(((t - stops[0][0]) / (stops[stops.length - 1][0] - stops[0][0])) * 100).toFixed(1)}%">${t}</span>`).join("")}</div>`
+      : `<div class="lgs">${stops.map(([t, c], k) => `<span class="lg"><i style="background:rgb(${c.join(",")})"></i>${t}${stops[k + 1] || F.scale === "cloud" ? "" : "+"}</span>`).join("")}</div>`;
     $("legend").innerHTML = `<div class="lgt">${esc(title)}</div>${body}`;
   }
   const hav = (a, b, c, d) => { const R = 6371.2, t = (x) => (x * Math.PI) / 180, dl = t(c - a), dn = t(d - b), h = Math.sin(dl / 2) ** 2 + Math.cos(t(a)) * Math.cos(t(c)) * Math.sin(dn / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
