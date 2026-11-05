@@ -78,9 +78,15 @@ with sync_playwright() as p:
  out=root/'tests/out';out.mkdir(exist_ok=True)
  for width in [360,390,1440]:
   page.set_viewport_size({'width':width,'height':1000})
+  page.wait_for_timeout(600) # allow the 200-ms resize handler and MapLibre's symbol placement to settle
+  page.wait_for_function('window.__maps && __maps.map.areTilesLoaded()')
   assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1')
   assert page.locator('#venueBtn').evaluate('(e)=>e.scrollWidth<=e.clientWidth+1'),'saved-location text stays inside its button'
   assert page.locator('#mapCtl .seg').evaluate('(e)=>Array.from(e.children).every(b=>b.getBoundingClientRect().right<=e.getBoundingClientRect().right+1)'),'view shortcuts stay inside their group'
+  if width==1440:
+   names=page.evaluate('__maps.map.getSource("map-labels").serialize().data.features.map(f=>f.properties.name)')
+   assert len(names)>=5,('regional cities remain available after phone-to-desktop resize',names)
+   print('Desktop label candidates:',names)
   page.screenshot(path=str(out/f'maps-demand-{width}.png'),full_page=True)
  assert not errors,errors
  print('Map browser: native labels, local glyphs, no DMA outline, selected-field requests, outage/retry, cached switches, original-cell inspection, precip dependencies, valid-time matching and three widths pass')
