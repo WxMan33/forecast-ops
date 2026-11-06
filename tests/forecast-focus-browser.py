@@ -79,6 +79,9 @@ with sync_playwright() as p:
  assert page.locator('.side #presetTabs').count()==1
  assert page.locator('.main #recipeNote').count()==0
  assert page.locator('#daily tbody tr').count()>=14
+ headings=page.locator('#daily thead').text_content().lower()
+ assert headings.index('morning')<headings.index('nws day'),'NWS morning low precedes daytime high'
+
  assert page.evaluate('document.querySelector("#daily").closest(".card").nextElementSibling.id')=='forecastChartCard','graph immediately follows daily blend'
  def history():return page.evaluate('Object.values(JSON.parse(localStorage.getItem("ops_model_guidance_history_v1")))[0].items')
  assert len(history())==1,'first snapshot persisted'
@@ -206,6 +209,21 @@ with sync_playwright() as p:
  page.evaluate('sessionStorage.clear()');page.reload()
  page.wait_for_function('document.querySelector("#daily tr[data-k]") && !document.querySelector("#runBtn").disabled')
  assert page.locator('#daily .impact-fog').count()==0,'rain-obscured LUK must not produce a regional fog/visibility flag'
+ # Evening planning focus and an explicit way to reopen the elapsed calendar day.
+ page.clock.set_fixed_time(datetime(2026,11,4,19,46,tzinfo=timezone.utc))
+ page.reload();page.wait_for_function('!document.querySelector("#runBtn").disabled && document.querySelector("#daily tr[data-k]")')
+ assert page.locator('#daily tr[data-k]').first.get_attribute('data-k')=='2026-11-05'
+ tile_text=page.locator('#tiles').inner_text().casefold()
+ assert 'tonight low' in tile_text and 'tomorrow high' in tile_text,tile_text
+ assert page.locator('#timingDay option:checked').inner_text()=='Tonight / tomorrow'
+ page.locator('#elapsedToday').click()
+ assert page.locator('#daily tr[data-k]').first.get_attribute('data-k')=='2026-11-04'
+ page.locator('#elapsedToday').click()
+ assert page.locator('#daily tr[data-k]').first.get_attribute('data-k')=='2026-11-05'
+ for width in [360,1440]:
+  page.set_viewport_size({'width':width,'height':900})
+  assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1')
+  page.screenshot(path=str(out/f'focus-evening-{width}.png'),full_page=True)
  saved_history_count=len(history())
  page.locator('#viewMode').click()
  # Full failure state, with retained local history/settings.

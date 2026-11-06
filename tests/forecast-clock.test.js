@@ -24,3 +24,24 @@ const weights={gfs_hrrr:1.5,ecmwf_ifs025:1.25},rr=C.blend.dailyRows(dd,weights,{
 rr.forEach((r,i)=>{assert.equal(r.hi,coverage.days[i].vars.hi.value);assert.equal(r.qpf,coverage.days[i].vars.qpf.value);assert.deepEqual(r.parts.hi.map(p=>[p.id,p.share]),coverage.days[i].vars.hi.contributors.sort((a,b)=>r.parts.hi.findIndex(p=>p.id===a.id)-r.parts.hi.findIndex(p=>p.id===b.id)).map(p=>[p.id,p.share]));});
 assert(rr[0].hi>plain[0].hi);assert.equal(rr.at(-1).hi,plain.at(-1).hi);assert.equal(rr.at(-1).qpf,plain.at(-1).qpf);
 console.log('Daily values and coverage shares match under near48 rules; beyond-48-hour values match the original blend');
+
+// Low is the preceding night ending on this date, never the following night.
+const periods=[{isDaytime:false,s:C.time.toUtc('2026-11-03T18:00',tz),e:at('06:00'),temp:42},{isDaytime:true,s:at('06:00'),e:at('18:00'),temp:60},{isDaytime:false,s:at('18:00'),e:C.time.toUtc('2026-11-05T06:00',tz),temp:35}];
+assert.equal(F.nwsMorning(C,tz,periods,'2026-11-04').morning.temp,42);
+assert.equal(F.nwsMorning(C,tz,periods,'2026-11-05').morning.temp,35);
+assert.equal(F.nwsMorning(C,tz,periods.slice(1),'2026-11-04').morning,undefined);
+assert(!F.focus(C,tz,at('13:59')).forward);assert(F.focus(C,tz,at('14:00')).forward);
+assert(!F.focus(C,tz,at('17:59')).evening);assert(F.focus(C,tz,at('19:46')).evening);
+const axis=Array.from({length:48},(_,i)=>at('00:00')+i*H),day='2026-11-04';
+const diurnal=axis.map(ms=>{const h=+C.time.toLocal(ms,tz).slice(11,13);return 50+10*Math.cos((h-15)*Math.PI/12);});
+assert.deepEqual(F.temperaturePattern(C,tz,axis,diurnal,day),[],'ordinary diurnal cycle has no extra cue');
+const falling=axis.map((_,i)=>70-i*.7);
+assert(F.temperaturePattern(C,tz,axis,falling,day).some(c=>c.kind==='falling'));
+const warming=axis.map((_,i)=>40+i*.7);
+assert(F.temperaturePattern(C,tz,axis,warming,day).some(c=>c.kind==='rising'));
+const gap=falling.slice();gap[10]=null;
+assert(!F.temperaturePattern(C,tz,axis,gap,day).some(c=>c.kind==='falling'),'missing daytime hour suppresses cooling cue');
+assert.deepEqual(F.temperaturePattern(C,tz,axis,axis.map(()=>50),day),[],'flat temperatures do not flag timing');
+const lateLow=axis.map((_,i)=>50-8*Math.cos(((i%24)-15)*Math.PI/12));
+assert(F.temperaturePattern(C,tz,axis,lateLow,day).some(c=>c.kind==='oddLow'));
+console.log('NWS morning pairing, afternoon/evening focus and non-diurnal hourly cues pass');
