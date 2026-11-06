@@ -1,0 +1,158 @@
+{
+  "status": "engineering_report_labels_not_a_trained_forecast",
+  "windows": 72,
+  "sample_locations": 16413,
+  "hazards": 3,
+  "location_windows": 1181736,
+  "label_codes": {
+    "0": "no qualifying report in source; not proof of no event",
+    "1": "qualifying reported event",
+    "255": "unresolved source metadata; exclude from fitting/scoring"
+  },
+  "cohort": "15th monthly initializations, 2022\u20132024; frozen calendar pilot, not representative climatology",
+  "sources": [
+    {
+      "file": "StormEvents_details-ftp_v1.0_d2022_c20260625.csv.gz",
+      "sha256": "7d6b79d0049a6edec96b061738289daddba90be26fc9afe7b0a6fd617f21452e",
+      "receipt": {
+        "url": "https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2022_c20260625.csv.gz",
+        "start": null,
+        "end": null,
+        "sha256": "7d6b79d0049a6edec96b061738289daddba90be26fc9afe7b0a6fd617f21452e",
+        "bytes": 11817849,
+        "etag": "\"b45379-6551850843637\"",
+        "retrieved_at": "2026-11-06T19:53:38.294560+00:00"
+      },
+      "normalization": {
+        "tornado_accepted": 1383,
+        "wind_accepted": 16724,
+        "below_hail_threshold": 1294,
+        "hail_accepted": 5884,
+        "below_wind_threshold": 848
+      }
+    },
+    {
+      "file": "StormEvents_details-ftp_v1.0_d2023_c20260323.csv.gz",
+      "sha256": "713784bed40d9e5a95b1d6240a654f865f3ef97703713105c7b35437270da134",
+      "receipt": {
+        "url": "https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2023_c20260323.csv.gz",
+        "start": null,
+        "end": null,
+        "sha256": "713784bed40d9e5a95b1d6240a654f865f3ef97703713105c7b35437270da134",
+        "bytes": 12888092,
+        "etag": "\"c4a81c-64db41dc7428e\"",
+        "retrieved_at": "2026-11-06T19:53:44.668780+00:00"
+      },
+      "normalization": {
+        "wind_accepted": 20184,
+        "hail_accepted": 10061,
+        "below_hail_threshold": 1696,
+        "tornado_accepted": 1519,
+        "below_wind_threshold": 1032
+      }
+    },
+    {
+      "file": "StormEvents_details-ftp_v1.0_d2024_c20260728.csv.gz",
+      "sha256": "2070b83eccab041b36360ab73645b9a249c3eefc5b92b5b3fc0cbba4d9fcc09c",
+      "receipt": {
+        "url": "https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2024_c20260728.csv.gz",
+        "start": null,
+        "end": null,
+        "sha256": "2070b83eccab041b36360ab73645b9a249c3eefc5b92b5b3fc0cbba4d9fcc09c",
+        "bytes": 12693243,
+        "etag": "\"c1aefb-657a1843238c9\"",
+        "retrieved_at": "2026-11-06T19:53:52.217171+00:00"
+      },
+      "normalization": {
+        "wind_accepted": 18980,
+        "hail_accepted": 7420,
+        "below_hail_threshold": 1514,
+        "tornado_accepted": 2135,
+        "below_wind_threshold": 916
+      }
+    }
+  ],
+  "artifact": {
+    "file": "daily-labels.npz",
+    "sha256": "6a34d0bb8a01b3119a086e32df04bf7b66825b071e67fdaa36b41be234eeddbc"
+  },
+  "grid_sha256": "d700ec03464bdddd27f366ce1fec6802438e1c7bdc51029d08623b6ea58bd454",
+  "splits": {
+    "train": {
+      "tornado": {
+        "positive_windows": 6,
+        "positive_samples": 334,
+        "unknown_samples": 0,
+        "regional_report_records": 25
+      },
+      "wind": {
+        "positive_windows": 17,
+        "positive_samples": 7461,
+        "unknown_samples": 0,
+        "regional_report_records": 1051
+      },
+      "hail": {
+        "positive_windows": 14,
+        "positive_samples": 4174,
+        "unknown_samples": 0,
+        "regional_report_records": 461
+      }
+    },
+    "calibration": {
+      "tornado": {
+        "positive_windows": 10,
+        "positive_samples": 1062,
+        "unknown_samples": 0,
+        "regional_report_records": 84
+      },
+      "wind": {
+        "positive_windows": 15,
+        "positive_samples": 9754,
+        "unknown_samples": 0,
+        "regional_report_records": 1219
+      },
+      "hail": {
+        "positive_windows": 14,
+        "positive_samples": 5600,
+        "unknown_samples": 0,
+        "regional_report_records": 783
+      }
+    },
+    "development": {
+      "tornado": {
+        "positive_windows": 10,
+        "positive_samples": 1219,
+        "unknown_samples": 0,
+        "regional_report_records": 135
+      },
+      "wind": {
+        "positive_windows": 14,
+        "positive_samples": 8632,
+        "unknown_samples": 0,
+        "regional_report_records": 1579
+      },
+      "hail": {
+        "positive_windows": 13,
+        "positive_samples": 3098,
+        "unknown_samples": 0,
+        "regional_report_records": 302
+      }
+    }
+  },
+  "audit": {
+    "status": "passed",
+    "method": "independent raw CSV parse, fixed-standard offsets and unit-sphere cKDTree neighbors; wind/hail full grid in all 72 windows",
+    "comparisons": 144,
+    "known_sample_labels_compared": 2363472,
+    "tornado_check": "separate dense-track geometry and time-clipping unit tests; reported endpoints remain an imperfect path proxy",
+    "source_files": [
+      "StormEvents_details-ftp_v1.0_d2022_c20260625.csv.gz",
+      "StormEvents_details-ftp_v1.0_d2023_c20260323.csv.gz",
+      "StormEvents_details-ftp_v1.0_d2024_c20260728.csv.gz"
+    ],
+    "final_2025_outcomes_accessed": false
+  },
+  "no_2025_outcomes": true,
+  "daily_model_fitted": false,
+  "spc_outlook_inputs": false
+}

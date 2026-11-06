@@ -33,15 +33,15 @@ def write_json(path,value):
 class Client:
     def __init__(self,root,budget_mb):
         self.root=Path(root);self.limit=budget_mb*1000000;self.used=0;self.lock=threading.Lock()
-    def fetch(self,url,name,start=None,end=None):
+    def fetch(self,url,name,start=None,end=None,max_bytes=200000):
         path=self.root/name;receipt=path.with_suffix(path.suffix+'.receipt.json')
         identity={'url':url,'start':start,'end':end}
         if path.exists():
             meta=json.loads(receipt.read_text())
             if any(meta.get(k)!=v for k,v in identity.items()) or digest(path)!=meta['sha256']:raise ValueError('Cache identity/hash mismatch: '+str(path))
             return path
-        limit=200000 if start is None else end-start+1
-        if limit>8000000:raise ValueError('Requested range exceeds per-field limit')
+        limit=max_bytes if start is None else end-start+1
+        if limit>(8000000 if start is not None else 25000000):raise ValueError('Requested response exceeds per-file limit')
         headers={'User-Agent':'Forecast-Ops-Severe-Daily/0.1','Accept-Encoding':'identity'}
         if start is not None:headers['Range']=f'bytes={start}-{end}'
         for attempt in range(3):

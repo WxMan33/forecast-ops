@@ -37,7 +37,7 @@ Only after artifacts and complete current predictors exist should the publisher 
 
 ## Day 3
 
-Extended HRRR reaches 48 hours, so it cannot provide a complete third 24-hour window. Day 3 needs a separate longer-range model/ensemble adapter and training/calibration for that lead and model family. No HRRR extrapolation or recycled Day 2 forecast is allowed.
+Extended HRRR reaches 48 hours, so it cannot provide a complete third 24-hour window. NOAA’s November 5, 2026 RRFS announcement documents an 84-hour range, making RRFS a candidate for a complete Day 3 window. It needs a separate RRFS/REFS adapter, verified cycle/field coverage and training/calibration for that lead and model version. The existing HRRR pipeline does not gain Day 3 support from this announcement. No HRRR extrapolation or recycled Day 2 forecast is allowed.
 
 ## Nadocast reference
 
@@ -78,3 +78,15 @@ A timing restriction remains before forecast training: the 12 UTC engineering wi
 ### November 6 extraction checkpoint
 
 The 12 UTC engineering run completed both windows, each with 16,413 centers and 34 predictors. It downloaded 471,745,406 bytes in bounded field/index requests and decoded 384 native GRIB messages. There are 48 complete hourly feature records. An independent audit verified all source hashes and time records and recalculated selected daily CAPE/UH statistics from raw fields; it passed. The sampled coordinate order also matches the archive viewer at six decimal places. The compact result is in `evidence/severe-daily-extraction-20261106.json`. This proves successful predictor extraction, not forecast skill or a completed daily model.
+
+## Daily reported-event label build
+
+`tools/severe/labels.py` now creates labels for the fixed 72 engineering windows (the 15th and 16th 12–12 UTC windows of each month, 2022–2024). Training, calibration and development years remain separate. No 2025 outcome file is fetched. These labels are not a trained daily forecast and are not yet paired with historical full-day predictors.
+
+Labels use NCEI Storm Data: any tornado, thunderstorm wind of at least 50 kt and hail of at least one inch. Local-standard timezone offsets are converted explicitly; daylight saving time is not added. Wind/hail point records use the report start time. Tornadoes use great-circle segments between reported endpoints, clipped by event time to the daily window. Endpoint paths are proxies for surveyed tracks. Duplicates with matching IDs are removed; conflicting duplicates fail the build.
+
+Codes are 0 for no qualifying report in the checked source, 1 for a qualifying report and 255 for unresolved magnitude/location/path metadata. Unknown records are excluded from fitting and scoring rather than turned into negatives. Report absence remains an imperfect proxy for no severe event. Unlocated eligible events conservatively mask the affected hazard/window; a known qualifying positive still takes precedence.
+
+All annual input files, revision filenames, hashes and retrieval receipts are preserved. Eleven unit tests cover daily boundaries, thresholds, local-standard time, missing data, duplicates, time-clipped tracks and protected years. The separate `audit_labels.py` independently parses raw CSVs and uses unit-sphere nearest neighbors to check all wind/hail labels.
+
+See [model and SPC source roles](severe-model-inputs.md) for how forecasts, reports, outlooks and contour rendering are kept distinct.

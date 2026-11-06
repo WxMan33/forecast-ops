@@ -41,3 +41,5 @@ Contour generation is shared by WebGL and canvas renderers. `node tests/severe-c
 ## Live Day 1 / Day 2 build
 
 See [the daily-model specification](severe-daily.md). The user-facing goal is current model-based daily guidance. The existing archive model supports only one four-hour lead configuration; changing its display cannot turn it into a daily model. No live daily forecasts have been issued by this build.
+
+Source provenance and the planned roles of SPC, HRRR, RRFS/REFS and NBM are described in [model and SPC source roles](severe-model-inputs.md). The historical viewer remains HRRR research guidance; no live daily model is implied by the new label/extraction builds.
