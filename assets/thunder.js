@@ -83,7 +83,7 @@
       { label: "First marginal+", cell: (w) => { const i = inP(w).find((k) => O.TIER[Cx.tiers[k].tier].rank >= 1); return i == null ? "—" : O.fmtLocal(O.Core.time.toLocal(ctx.inst.ms[i], ctx.ev.tz), false); } },
       { label: "Thunder share max", cell: (w) => { const v = inP(w).map((i) => Cx.frac[i]).filter((x) => x != null); return v.length ? Math.round(Math.max(...v) * 100) + "%" : "—"; } },
       { label: "CAPE max (any model)", cell: (w) => { const v = inP(w).map((i) => Cx.cape.max[i]).filter((x) => x != null); return v.length ? Math.round(Math.max(...v)).toLocaleString() : "—"; } },
-      { label: "Precip chance max", cell: (w) => { const v = inP(w).map((i) => Cx.pop.mean[i]).filter((x) => x != null); return v.length ? Math.round(Math.max(...v)) + "%" : "—"; } },
+      { label: "Precip chance max", cell: (w) => { const v = inP(w).map((i) => Cx.pop.mean[i]).filter((x) => x != null); return v.length ? O.pct5(Math.max(...v)) : "—"; } },
       ...(data.nwsAxis ? [{ label: "NWS thunder chance (grid intervals)", cell: (w) => { const ivs = data.nwsAxis.thunderIv.filter((x) => x.e > w.startMs && x.s < w.endMs); return !ivs.length || ivs.some((x) => x.v == null) ? "—" : `<span title="NWS grid values whose intervals overlap this phase, each with its own interval. Not a probability for the phase.">${ivs.map((x) => `${x.v}% <span class="msg">${ivText(x)}</span>`).join("<br>")}</span>`; } }] : []),
     ], { note: "Model thunder signal during each phase. Detected lightning and clearance decisions stay in Heads-Up." });
     const now = Math.max(0, O.nowIdx(data)), end = Math.min(data.times.length, now + 24);
@@ -149,14 +149,14 @@
       <div class="tiles">
         <div class="tile"><span class="k">Thunder share</span><span class="v">${Cx.frac[i] == null ? "—" : Math.round(Cx.frac[i] * 100) + "%"}</span><span class="s">of model weight</span></div>
         <div class="tile"><span class="k">CAPE blend</span><span class="v">${f(Cx.cape.mean[i], 0)}</span><span class="s">range ${f(Cx.cape.min[i], 0)}–${f(Cx.cape.max[i], 0)} J/kg</span></div>
-        <div class="tile"><span class="k">Precip chance</span><span class="v">${f(Cx.pop.mean[i], 0, "%")}</span><span class="s">blend</span></div>
+        <div class="tile"><span class="k">Precip chance</span><span class="v">${O.pct5(Cx.pop.mean[i])}</span><span class="s">blend</span></div>
         <div class="tile"><span class="k">Lifted index</span><span class="v">${f(Cx.li.mean[i], 1)}</span><span class="s">°C, blend</span></div>
         <div class="tile"><span class="k">Deep shear</span><span class="v">${f(Cx.sh.mean[i], 0, " kt")}</span><span class="s">10 m–500 hPa</span></div>
         <div class="tile nwscol"><span class="k"><span class="src-nws">NWS</span> thunder chance</span><span class="v">${(() => { const iv = nwsIv(data.ms[i]); return iv && iv.v != null ? iv.v + "%" : "—"; })()}</span><span class="s">${(() => { const iv = nwsIv(data.ms[i]); return iv ? `grid value for ${ivText(iv)}` : "NWS grid"; })()}</span></div>
       </div>
       <div class="tablewrap"><table><thead><tr><th>Model</th><th>Weather</th><th>CAPE</th><th>Precip chance</th><th>Signal</th></tr></thead><tbody>${ms.map((m) => {
         const a = data.models[m.id].h, c = a.weather_code ? a.weather_code[i] : null, p = Cx.perModel.find((x) => x.m === m);
-        return `<tr><td><span class="sw" style="background:${O.modelColor(MODELS.indexOf(m))};margin-right:6px"></span>${O.esc(m.name)}</td><td class="num"${c >= 95 ? ' style="color:var(--prepare);font-weight:800"' : ""}>${CODE(c)}</td><td class="num">${f(a.cape ? a.cape[i] : null, 0)}</td><td class="num">${f(a.precipitation_probability ? a.precipitation_probability[i] : null, 0, "%")}</td><td>${O.badge(p.tiers[i])}</td></tr>`;
+        return `<tr><td><span class="sw" style="background:${O.modelColor(MODELS.indexOf(m))};margin-right:6px"></span>${O.esc(m.name)}</td><td class="num"${c >= 95 ? ' style="color:var(--prepare);font-weight:800"' : ""}>${CODE(c)}</td><td class="num">${f(a.cape ? a.cape[i] : null, 0)}</td><td class="num">${O.pct5(a.precipitation_probability ? a.precipitation_probability[i] : null)}</td><td>${O.badge(p.tiers[i])}</td></tr>`;
       }).join("")}</tbody></table></div></div>`;
   }
 
@@ -176,7 +176,7 @@
       const v = data.nwsAxis ? data.nwsAxis[t.v] : null;
       if (v && v.some((x) => x != null)) ds.push({ label: "NWS thunder chance", data: v, borderColor: O.css("--ev"), backgroundColor: "rgba(253,230,138,.18)", fill: true, borderWidth: 2.5, borderDash: [7, 4], pointRadius: 0, stepped: "before", spanGaps: false, order: 0 });
     }
-    const base = O.chartBase({ labels, hours, nowIdx: O.nowIdx(data), selIdx: sel, bands: O.eventBands(data.ctx), unit: t.unit, dec: t.dec || 0, yTitle: t.unit, beginAtZero: t.zero, yMin: t.min, yMax: t.max });
+    const base = O.chartBase({ labels, hours, nowIdx: O.nowIdx(data), selIdx: sel, bands: O.eventBands(data.ctx), unit: t.unit, probability: t.id === "pop", dec: t.dec || 0, yTitle: t.unit, beginAtZero: t.zero, yMin: t.min, yMax: t.max });
     if (chart) chart.destroy();
     chart = new Chart($("chart"), { type: "line", data: { labels, datasets: ds }, options: base.options, plugins: base.plugins });
     $("legend").innerHTML = (showLines() ? ms.map((m) => `<span><i class="sw" style="background:${O.modelColor(MODELS.indexOf(m))}"></i>${O.esc(m.name)}</span>`).join("") : "") +

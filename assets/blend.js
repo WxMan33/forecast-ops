@@ -118,6 +118,8 @@
     data.visibilitySites = airports;
     data.visibilitySources = vis.empty || !vis.models.ecmwf_ifs ? {} : { ecmwf_ifs: { ...vis.models.ecmwf_ifs, h: Object.fromEntries(Object.entries(vis.models.ecmwf_ifs.h).map(([v, a]) => [v, C.stats.align(data.ms, vis.ms, a)])) } };
     data.viewedAt = Date.now();
+    const regionalData=data;data.broadcast=null;
+    window.BroadcastPoP.load(where,days,O.Data).then(area=>{if(data!==regionalData)return;area.tz=data.tz;data.broadcast=area;renderDaily();}).catch(()=>{if(data===regionalData){data.broadcast={status:'unavailable',systems:[]};renderDaily();}});
     data.nwsAxis = nws && nws.ok ? N.onAxis(nws, data.ms) : null;
     const ensProb = C.config.blendEns.models.filter((m) => !data.models[m.source]).map((m) => `${m.name}: unavailable`);
     O.dataStatus([...res.problems, ...ensProb, ...(nws && !nws.ok ? [`NWS: ${nws.reason}`] : nws && nws.errors && nws.errors.length ? nws.errors.map((x) => `NWS ${x}`) : [])]);
@@ -262,7 +264,7 @@
     const A = data.nwsAxis;
     const nwsCols = A ? [
       { label: "NWS temp", cell: (w) => { const v = w.L.idx.map((i) => A.temperature_2m[i]); return v.some((x) => x == null) ? "—" : `<span class="lo">${Math.min(...v).toFixed(0)}°</span>–<span class="hi">${Math.max(...v).toFixed(0)}°</span>`; } },
-      { label: "NWS hourly PoP", cell: (w) => { const v = w.L.idx.map((i) => A.precipitation_probability[i]); return v.some((x) => x == null) ? "—" : `<span title="Range of NWS hourly probabilities in this phase. Not a probability for the whole phase.">${Math.min(...v)}–${Math.max(...v)}% <span class="msg">hourly</span></span>`; } },
+      { label: "NWS hourly PoP", cell: (w) => { const v = w.L.idx.map((i) => A.precipitation_probability[i]); return v.some((x) => x == null) ? "—" : `<span title="Range of NWS hourly probabilities in this phase. Not a probability for the whole phase.">${O.pct5(Math.min(...v))}–${O.pct5(Math.max(...v))} <span class="msg">hourly</span></span>`; } },
       { label: "NWS precip", cell: (w) => qpfText(N.totalOver(A.qpf, w.startMs, w.endMs)) },
       { label: "NWS wording", cell: (w) => O.esc(wording(w.startMs, w.endMs)) },
     ] : [];
@@ -270,11 +272,11 @@
       { label: "Temp", cell: (w) => { const r = row(w); return r.lo == null ? "—" : `<span class="lo">${r.lo.toFixed(0)}°</span>–<span class="hi">${r.hi.toFixed(0)}°</span>`; } },
       { label: "Feels like (min)", cell: (w) => f(row(w).feel, 0, "°") },
       { label: "Precip", cell: (w) => { const r = row(w); return `${f(r.qpf, 2, '"')}${r.qpfBounds ? ` <span class="msg" title="NWS intervals cross this phase's edges. Its share was prorated assuming a uniform rate; with NWS at its lower or upper bound the blend is this range.">(${r.qpfBounds[0].toFixed(2)}–${r.qpfBounds[1].toFixed(2)})</span>` : ""}`; } },
-      { label: "Max hourly chance", cell: (w) => f(row(w).pop, 0, "%") },
+      { label: "Max hourly chance", cell: (w) => O.pct5(row(w).pop) },
       { label: "Snow", cell: (w) => { const v = row(w).sn; return v != null && v >= 0.05 ? f(v, 1, '"') : "—"; } },
       { label: "Peak gust", cell: (w) => f(row(w).gust, 0, " mph") },
       { label: "Temp agreement", cell: (w) => { const a = row(w).ag; return `${meter(a.level)}${a.word}`; } },
-      { label: "Chance ≥0.01\" (ens.)", cell: (w) => { const c = row(w).chance; return c ? `<span title="Share of ${c.members} ECMWF ENS / GEFS members with at least 0.01 in. over this phase, weighted by system">${c.v.toFixed(0)}%</span>` : "—"; } },
+      { label: "Chance ≥0.01\" (ens.)", cell: (w) => { const c = row(w).chance; return c ? `<span title="Share of ${c.members} ECMWF ENS / GEFS members with at least 0.01 in. over this phase, weighted by system">${O.pct5(c.v)}</span>` : "—"; } },
       { label: "Sources", cell: (w) => `<span title="${O.esc(row(w).contrib.map((id) => NAMES[id]).join(", "))}">${row(w).contrib.length}</span>` },
       ...nwsCols,
     ], { note: `Blend: ${O.esc(C.blend.PRESETS[preset].label)}. A source counts for a phase only if it has every hour of it (an ensemble member likewise). NWS is inside the blend at its weight; the NWS columns are NWS values alone for the same hours; NWS precip is from its interval totals (a range when an interval straddles the phase edge).` });
@@ -325,10 +327,12 @@
         cell: (r) => `<td class="num">${f(r.qpf, 2, '"')}${r.prorated ? ` <span class="msg" title="NWS precip intervals cross this day's edges; its share was prorated assuming a uniform rate. With NWS at its lower or upper bound the blend would be ${r.qpfBounds ? `${r.qpfBounds[0].toFixed(2)}–${r.qpfBounds[1].toFixed(2)}"` : "unchanged"}.">*</span>` : ""}${rng(r.qpfR, 2, r.ensR.qpf)}</td>`, txt: (r) => f(r.qpf, 2, '"') + (r.prorated ? " *" : "") },
       { l: ["Snow"], def: "Blended snowfall (model snow at Open-Meteo's 7:1 ratio; not ground accumulation). Shown from 0.05\".", tier: 3, cell: (r) => `<td class="num">${r.sn != null && r.sn >= 0.05 ? f(r.sn, 1, '"') : "—"}</td>`, txt: (r) => (r.sn != null && r.sn >= 0.05 ? f(r.sn, 1, '"') : "—") },
       { l: ["Ens. chance", "≥0.01″"], def: "Ensemble threshold chance: the weighted share of ECMWF ENS and GEFS members with at least 0.01 in. over this calendar day. Not the same as the maximum hourly PoP.", tier: 1,
-        cell: (r) => `<td class="num">${r.chance ? `<span title="Share of ${r.chance.members} ensemble members with 0.01 in. or more this calendar day, weighted by system">${r.chance.v.toFixed(0)}%</span>` : "—"}</td>`, txt: (r) => (r.chance ? `${r.chance.v.toFixed(0)}% (${r.chance.members} members)` : "—") },
-      { l: ["Max hourly", "PoP"], def: "Highest hourly precipitation probability from the deterministic models during the day (blended). An hourly figure, not a chance for the whole day, and not comparable to the ensemble threshold chance.", tier: 3, cell: (r) => `<td class="num">${f(r.pop, 0, "%")}</td>`, txt: (r) => f(r.pop, 0, "%") },
+        cell: (r) => `<td class="num">${r.chance ? `<span title="Share of ${r.chance.members} ensemble members with 0.01 in. or more this calendar day, weighted by system">${O.pct5(r.chance.v)}</span>` : "—"}</td>`, txt: (r) => (r.chance ? `${O.pct5(r.chance.v)} (${r.chance.members} members)` : "—") },
+      { l: ["Max hourly", "PoP"], def: "Highest hourly precipitation probability from the deterministic models during the day (blended). An hourly figure, not a chance for the whole day, and not comparable to the ensemble threshold chance.", tier: 3, cell: (r) => `<td class="num">${O.pct5(r.pop)}</td>`, txt: (r) => O.pct5(r.pop) },
       { l: ["Peak", "gust"], def: "Blended highest hourly wind gust during the day.", tier: 3, cell: (r) => `<td class="num">${f(r.gust, 0, " mph")}</td>`, txt: (r) => f(r.gust, 0, " mph") },
-      { l: ["Source", "highs"], def: "Range of the individual sources' daily highs (ensembles as their members' mean high).", tier: 2, cell: (r) => `<td class="num">${agTxt(r)}</td>`, txt: agTxt },
+      { l: ["Broadcast", "PoP"], def: "Experimental regional planning guidance: ensemble chance of ≥0.01 inch at a typical sampled location during this calendar day (remaining hours for today). Equal average of nine points spanning roughly 160 km, weighted between Euro ENS and GEFS. Not the chance of rain anywhere in the region. Timing and ≥0.5 inch/3 h heavier-burst signals are separate annotations. Partial data are labeled; no missing hour becomes dry.", tier: 2,
+        cell:r=>{const b=window.BroadcastPoP.assess(data.broadcast,r.k,C,W(),R(),data.viewedAt);return `<td class="num" title="${O.esc(b?`${b.areaLabel}; ${b.points} points; ${b.systems.join(' + ')}; model guidance, not calibrated probability`:data.broadcast?'Regional ensemble guidance unavailable':'Regional ensemble guidance loading')}">${b?`<strong>${O.pct5(b.probability)}</strong><div class="msg">${O.esc(b.timing)}</div>${b.heavyShare>=.2?'<div class="msg">Heavier burst signal</div>':''}${b.partial?`<div class="msg">${O.esc(b.systems[0])} only</div>`:''}`:'<span class="msg">'+(data.broadcast?'Unavailable':'Loading…')+'</span>'}</td>`;},
+        txt:r=>{const b=window.BroadcastPoP.assess(data.broadcast,r.k,C,W(),R(),data.viewedAt);return b?O.pct5(b.probability)+' · '+b.timing+(b.heavyShare>=.2?' · heavier burst signal':'')+(b.partial?' · '+b.systems[0]+' only':''):'Regional guidance unavailable';} },
       { l: ["Temp", "agreement"], def: "How close the sources' daily highs are: TIGHT ≤ 3°F apart, FAIR ≤ 6°F, WIDE more. Says nothing about rain or timing.", tier: 2,
         cell: (r) => `<td title="${r.contrib.length} sources with a complete day: ${r.contrib.map((id) => NAMES[id]).join(", ")}">${meter(r.ag.level)}<span class="msg" style="color:var(--text);font-weight:700">${r.ag.word}</span></td>`, txt: (r) => `${r.ag.word} (${r.contrib.length} sources)` },
       ...(hasN ? [
@@ -353,7 +357,7 @@
     });
     recordWatch.wire($("daily"));
     impactFlags.wire($("daily"));
-    $("dailyNote").append(document.createTextNode(' Arrows and timing labels describe the weighted hourly temperature curve, which may differ from the daily-extrema blend. After 9 AM, today’s elapsed morning low is hidden; after 5 PM, earlier today is collapsed. Daily flags: AM fog?, Frost?/Freeze? and G:20+ (mph bands). Tap for sources, hours and screening limits. These are investigation cues, not advisories; no flag is not an all-clear.'));
+    $("dailyNote").append(document.createTextNode(' Precipitation chances are displayed to the nearest 5%; underlying values and verification are unchanged. Broadcast PoP is experimental regional ensemble guidance over nine points, not the chance of rain somewhere. Its timing/heavier-burst cues do not increase the percentage. Arrows and timing labels describe the weighted hourly temperature curve, which may differ from the daily-extrema blend. After 9 AM, today’s elapsed morning low is hidden; after 5 PM, earlier today is collapsed. Daily flags: AM fog?, Frost?/Freeze? and G:20+ (mph bands). Tap for sources, hours and screening limits. These are investigation cues, not advisories; no flag is not an all-clear.'));
     $("dailyNote").append(document.createTextNode(recordWatch.note(rows, O.location, data.tz)));
     if (fresh) {
       const snap = { cfg: `${preset}|${C.config.fingerprint(W())}|${JSON.stringify(R())}`, rows: {} };
@@ -425,7 +429,7 @@
       if (qOff) meaningful.push(`${p.name}: blend precip ${bq.toFixed(2)}" vs NWS ${nq.exact ? nq.lower.toFixed(2) : `${nq.lower.toFixed(2)}–${nq.upper.toFixed(2)}`}"`);
       return `<tr><td class="display" style="font-size:12px">${O.esc(p.name)}</td><td class="num">${local(p.s)}–${O.fmtLocal(C.time.toLocal(p.e, tz()), false)}</td>` +
         `<td class="num nwscol"><span class="${p.isDaytime ? "hi" : "lo"}">${p.temp}°</span></td><td class="num">${bT == null ? "—" : `${bT.toFixed(0)}°`}</td><td class="num${d != null && Math.abs(d) >= 4 ? " diff" : ""}">${d == null ? "—" : `${d > 0 ? "+" : ""}${d.toFixed(0)}°`}</td>` +
-        `<td class="num nwscol">${p.pop == null ? "—" : p.pop + "%"}</td><td class="num nwscol">${nq ? qpfText(nq) : "—"}</td><td class="num">${f(bq, 2, '"')}</td>` +
+        `<td class="num nwscol">${p.pop == null ? "—" : O.pct5(p.pop)}</td><td class="num nwscol">${nq ? qpfText(nq) : "—"}</td><td class="num">${f(bq, 2, '"')}</td>` +
         `<td style="white-space:normal;min-width:180px;text-align:left" title="${O.esc(p.detailed)}">${O.esc(p.short)}</td></tr>`;
     }).join("");
     el.innerHTML = `<div class="row" style="justify-content:space-between;align-items:baseline;margin-bottom:6px"><div class="section-title" style="margin:0">${nwsTag} NWS vs blend</div><span class="msg">NWS ${O.esc(nws.office)} · forecast updated ${upd}</span></div>` +
@@ -464,7 +468,7 @@
       word, note: `${C.blend.PRESETS[preset].label} · next 24 h`,
       stats: [
         { num: `${f(lo, 0, "°")} / ${f(hi, 0, "°")}`, unit: "lo / hi" },
-        { num: f(qpf, 2, '"'), unit: `precip · max hourly ${f(pop, 0, "%")}` },
+        { num: f(qpf, 2, '"'), unit: `precip · max hourly ${O.pct5(pop)}` },
         { num: f(gust, 0, " mph"), unit: "peak gust" },
       ],
     });
@@ -477,7 +481,7 @@
     $("tiles").innerHTML = [
       [clock.forward ? "Tonight low" : clock.dayLead ? "Today high" : "Blend now", f(clock.forward ? nightRow?.lo : clock.dayLead ? todayRow?.hi : tNow, 0, "°F"), clock.forward ? "Upcoming night hours · through 6 AM" : clock.dayLead ? "Upcoming daytime hours · through 6 PM" : spreadNow ? `sources ${spreadNow[0].toFixed(0)}–${spreadNow[1].toFixed(0)}° · not an observation` : "not an observation"],
       [clock.forward ? "Tomorrow high" : clock.dayLead ? "Tonight low" : "24 h low / high", clock.forward ? f(dayRow?.hi,0,"°F") : clock.dayLead ? f(nightRow?.lo,0,"°F") : `${f(lo, 0, "°")} / ${f(hi, 0, "°")}`, clock.forward ? "6 AM–6 PM local" : clock.dayLead ? "6 PM–6 AM local" : `${tm.length} sources in blend`],
-      ["24 h precip", f(qpf, 2, '"'), `max hourly chance ${f(pop, 0, "%")}`],
+      ["24 h precip", f(qpf, 2, '"'), `max hourly chance ${O.pct5(pop)}`],
       ["24 h snow", sn != null && sn >= 0.05 ? f(sn, 1, '"') : "—", "blended snow"],
       ["Peak gust", f(gust, 0, " mph"), "blended, next 24 h"],
       [clock.forward ? "Tomorrow's temp agreement" : "Today's temp agreement", today ? today.ag.word : "—", today && today.ag.n > 1 ? `highs ${today.ag.lo.toFixed(0)}–${today.ag.hi.toFixed(0)}°` : "needs 2+ models"],
@@ -532,7 +536,7 @@
     }
     if (nwsStart != null && t.accum) $("chartSub").textContent += ` NWS running total starts at its first interval boundary, ${local(nwsStart)}.`;
     const nowIdx = O.nowIdx(data) - s;
-    const base = O.chartBase({ labels, hours, nowIdx, unit: t.unit, dec: t.dec || 0, yTitle: t.accum ? `Accumulated (${t.unit})` : t.unit,
+    const base = O.chartBase({ labels, hours, nowIdx, unit: t.unit, probability: t.v === "precipitation_probability", dec: t.dec || 0, yTitle: t.accum ? `Accumulated (${t.unit})` : t.unit,
       y2Title: t.accum ? "Per hour (in)" : null, beginAtZero: t.accum || t.zero, yMin: t.min, yMax: t.max, bands: O.eventBands(data.ctx, s) });
     base.options.plugins.tooltip.callbacks.footer = (items) => items.length ? `${B.count[items[0].dataIndex]} source${B.count[items[0].dataIndex] === 1 ? "" : "s"} in the blend at this hour` : "";
     if (chart) chart.destroy();

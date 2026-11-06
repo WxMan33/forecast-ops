@@ -450,7 +450,8 @@
   }
 
   /* ---------- Chart.js helpers ---------- */
-  function chartBase({ labels, hours, nowIdx, unit, dec = 0, yTitle, y2Title, beginAtZero, yMin, yMax, selIdx, bands = [] }) {
+  const pct5 = v => { const p=Core.stats.roundProbability(v);return p==null?"—":p+"%"; };
+  function chartBase({ labels, hours, nowIdx, probability = false, unit, dec = 0, yTitle, y2Title, beginAtZero, yMin, yMax, selIdx, bands = [] }) {
     const muted = css("--muted"), line = css("--line"), mono = css("--font-mono");
     const marks = {
       id: "marks",
@@ -487,7 +488,7 @@
           titleFont: { family: mono }, bodyFont: { family: mono, size: 11.5 },
           filter: (it) => !it.dataset.hideTip,
           itemSort: (a, b) => (b.parsed.y ?? -1e9) - (a.parsed.y ?? -1e9),
-          callbacks: { label: (it) => `${it.dataset.label}: ${it.parsed.y == null ? "—" : it.parsed.y.toFixed(it.dataset.dec ?? dec)}${it.dataset.sfx ?? sfx}` },
+          callbacks: { label: (it) => `${it.dataset.label}: ${probability ? pct5(it.parsed.y) : (it.parsed.y == null ? "—" : it.parsed.y.toFixed(it.dataset.dec ?? dec))+(it.dataset.sfx ?? sfx)}` },
         },
       },
       scales: {
@@ -770,7 +771,7 @@
   }
 
   window.Ops = {
-    Core, BRAND, PRESETS, TIER, maxTier, badge, $, esc, store, css, icon,
+    pct5, Core, BRAND, PRESETS, TIER, maxTier, badge, $, esc, store, css, icon,
     shell, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
     Data, getJSON, hasData, savedWeights, savedDays, align: Core.stats.align,
     nowIndex, hourOf, dayOf, fmtDay, fmtHour, fmtWhen, tzShort, hourLabels, dayGroups,

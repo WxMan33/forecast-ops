@@ -70,7 +70,7 @@
     }
     const s = Math.max(0, O.nowIdx(data) + 1), e = Math.min(data.times.length, s + (+$("win").value || 72)); return { s, e };
   };
-  const pct = (p) => (p == null ? "—" : Math.round(p * 100) + "%");
+  const pct = (p) => O.pct5(p == null ? null : p * 100);
   const inch = (x) => (x == null ? "—" : (x < 10 ? x.toFixed(1) : x.toFixed(0)) + '"');
   const winText = () => ($("win").value === "event" ? "event" : $("win").selectedOptions[0].text);
 
@@ -154,9 +154,9 @@
     }
     O.renderChanges($("changes"), data.snapPair, [
       { k: "t", label: "signal", tier: true },
-      { k: "p01", label: "any snow", min: 10, fmt: (v) => `${Math.round(v)}%` },
-      { k: "p1", label: '1"+', min: 10, fmt: (v) => `${Math.round(v)}%` },
-      { k: "p4", label: '4"+', min: 10, fmt: (v) => `${Math.round(v)}%` },
+      { k: "p01", label: "any snow", min: 10, fmt: (v) => O.pct5(v) },
+      { k: "p1", label: '1"+', min: 10, fmt: (v) => O.pct5(v) },
+      { k: "p4", label: '4"+', min: 10, fmt: (v) => O.pct5(v) },
       { k: "p50", label: "median", min: 0.5, fmt: (v) => `${v.toFixed(1)}"` },
       { k: "p90", label: "90th pct", min: 1, fmt: (v) => `${v.toFixed(1)}"` },
     ], NAMES);
