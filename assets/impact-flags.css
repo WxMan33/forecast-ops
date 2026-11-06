@@ -10,3 +10,5 @@ table.daily tr.impact-detail td{white-space:normal;text-align:left;background:va
 
 .impact-sites{display:block;font-size:9px}
 @media(max-width:600px){.impact-visibility table{table-layout:fixed}.impact-visibility th,.impact-visibility td{overflow-wrap:anywhere}}
+
+.impact-airports{display:grid;gap:10px}.impact-airport{padding:10px 12px;border:1px solid var(--line);border-radius:6px}.impact-airport ul{margin:5px 0 0;padding-left:18px}.impact-airport li{margin:3px 0;overflow-wrap:anywhere}.impact-visibility-diagnostics{margin-top:10px}.impact-visibility-diagnostics summary{cursor:pointer;color:var(--muted)}

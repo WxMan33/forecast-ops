@@ -71,7 +71,7 @@ v=visRun(vd(visModel(null),visModel(MILE)));
 assert.equal(v[0].visibility[2].name, 'ECMWF IFS 9 km');
 assert.equal(v[0].visibility[2].min, MILE);
 const vhtml=ui.details(day,v,{},tz,12);
-assert(vhtml.includes('1.0 mi')&&vhtml.includes('not an area-wide minimum')&&vhtml.includes('exact run not confirmed'));
+assert(vhtml.includes('1.0 mi')&&vhtml.includes('not airport observations')&&vhtml.includes('exact run not confirmed'));
 assert(!C.config.blend.models.some(m=>m.id==='ecmwf_ifs'), '9 km visibility source does not change blend contributors');
 const native = JSON.parse(JSON.stringify(require('./fixtures/rrfs/cvg-native-smoke.json')));
 native.units.visibility='m';native.members.deterministic.hourly.visibility=[0,null];
@@ -133,3 +133,12 @@ console.log('LUK valley-only fog, regional scope, precipitation/snow exclusions 
  assert(failed.every(p=>!p.ms.length&&!Object.keys(p.models).length),'failed requests never inherit CVG values');
  console.log('Bounded three-request airport loading, aligned units and graceful outage checks pass');
 })().catch(e=>{console.error(e);process.exitCode=1});
+
+const airportDetail = ui.details(day, visRun(valley), {}, tz, 12);
+assert.equal((airportDetail.match(/class="impact-airport"/g)||[]).length,1);
+assert(airportDetail.includes('LUK · Lunken Field'));
+assert(airportDetail.includes('0.50 mi minimum'));
+assert(airportDetail.includes('No qualifying signal: CVG'));
+assert(airportDetail.includes('<details class="impact-visibility-diagnostics"><summary>'));
+assert(!airportDetail.includes('Visibility gate:'));
+console.log('Airport-first compact visibility details pass');
