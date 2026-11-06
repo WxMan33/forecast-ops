@@ -114,11 +114,9 @@
 
     const foot = document.createElement("footer");
     foot.className = "foot";
-    foot.innerHTML = `${esc(BRAND.name)} · built by ${BRAND.contact ? `<a href="${esc(BRAND.contact)}">${esc(BRAND.owner)}</a>` : esc(BRAND.owner)} ·
-      <a href="https://open-meteo.com/" target="_blank" rel="noopener">Weather data by Open-Meteo.com</a> (CC BY 4.0) ·
-      alerts from <a href="https://www.weather.gov/" target="_blank" rel="noopener">NWS</a> ·
-      Model guidance only. Not an official forecast or warning. NWS is one weighted source in MODEL BLEND; elsewhere NWS values are labelled NWS and shown alongside. ·
-      <a href="verify.html">CVG verification</a> · <a href="#" id="verifyExport">export forecast &amp; observation logs</a>`;
+    foot.innerHTML = `<div class="foot-top"><span class="foot-brand">${esc(BRAND.name)}</span><div class="foot-links"><a href="verify.html">CVG verification</a><a href="#" id="verifyExport">Export forecast &amp; observation logs</a></div></div>
+      <p class="foot-attribution">Built by ${BRAND.contact ? `<a href="${esc(BRAND.contact)}">${esc(BRAND.owner)}</a>` : esc(BRAND.owner)} · Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0) · Alerts from <a href="https://www.weather.gov/" target="_blank" rel="noopener">NWS</a></p>
+      <p class="foot-disclaimer">Model guidance only. Not an official forecast or warning. NWS is one weighted source in Model Blend; elsewhere NWS values are labelled NWS and shown alongside.</p>`;
     document.body.append(foot);
 
     $("themeBtn").addEventListener("click", () => { const t = theme() === "dark" ? "light" : "dark"; store.set("ops_theme", t); applyTheme(t); });

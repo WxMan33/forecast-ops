@@ -61,7 +61,7 @@
     const wDays = mem.length ? Object.fromEntries(C.winter.dayRows(W.times, mem).map((r) => [r.k, r])) : {};
     const tDays = TH ? Object.fromEntries(C.time.dayGroups(T.times).map((d) => [d.k, d.idx])) : {};
 
-    const f = (x, d = 0, u = "") => (x == null ? "—" : x.toFixed(d) + u);
+    const f = (x, d = 0, u = "") => (x == null ? "—" : x.toFixed(d).replace(/^-0(?=\.0+$|$)/, "0") + u);
     const pctTxt = (p) => O.pct5(p == null ? null : p * 100);
     const cards = rows.map((r, n) => {
       const ti = TH ? T.ms.map((t,i)=>({t,i})).filter(x=>x.t>=r.period.s&&x.t<r.period.e).map(x=>x.i) : [], ta = ti.map((i) => TH.assess[i]);
@@ -129,7 +129,7 @@
     if (!cB) { el.hidden = true; return; }
     const NA = NW && !cB.mismatch ? C.nws.onAxis(NW, B.ms) : null;
     const by = (ctx, key) => ctx && ctx.wins && ctx.wins.find((w) => w.key === key);
-    const f = (x, d = 0, u = "") => (x == null ? "—" : x.toFixed(d) + u);
+    const f = (x, d = 0, u = "") => (x == null ? "—" : x.toFixed(d).replace(/^-0(?=\.0+$|$)/, "0") + u);
     const pctTxt = (p) => O.pct5(p == null ? null : p * 100);
     const rows = {};
     const rowB = (w) => (rows["b" + w.key] = rows["b" + w.key] || C.blend.windowRow(B, wsB, w.L.idx, w.L.acc, optB));

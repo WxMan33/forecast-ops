@@ -108,3 +108,60 @@ body.wide-main.forecast-focus:not(.brief-view) .workspace {grid-template-columns
 
 .weight-scope {display:grid;gap:7px;margin:12px 0;padding-bottom:12px;border-bottom:1px solid var(--line)}
 .weight-scope .msg {font-size:11px;line-height:1.5;margin:0}
+
+
+/* Keep forecast values primary and source controls easy to scan. */
+.forecast-focus .workspace { grid-template-columns:270px minmax(0,1fr); gap:20px; padding-top:20px; }
+.forecast-focus .main { gap:18px; }
+.forecast-focus .side .card { padding:16px; }
+.forecast-focus .side .section-title { font-size:14px; }
+.forecast-focus #presetTabs { flex:1 0 100%; display:grid; grid-template-columns:minmax(0,1fr); gap:4px; }
+.forecast-focus #presetTabs .tab { padding:9px 11px; font-size:10.5px; letter-spacing:.025em; }
+.forecast-focus #recipeNote { margin-top:10px; }
+.guidance-details { margin-top:12px; border-top:1px solid var(--line); padding-top:10px; }
+.guidance-details summary { cursor:pointer; color:var(--muted); font-size:12px; font-weight:600; }
+.guidance-details #runMsg { margin-top:8px; font-size:11px; line-height:1.6; overflow-wrap:anywhere; }
+.forecast-focus #tiles { grid-template-columns:repeat(6,minmax(0,1fr)); gap:0; background:var(--raised); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+.forecast-focus #tiles .tile { border:0; border-radius:0; padding:14px 12px; background:transparent; align-content:start; gap:7px; }
+.forecast-focus #tiles .tile+.tile { border-left:1px solid var(--line); }
+.forecast-focus #tiles .k { font-size:10px; line-height:1.4; letter-spacing:.04em; }
+.forecast-focus #tiles .v { font-size:25px; letter-spacing:-.03em; }
+.forecast-focus #tiles .s { font-size:11px; line-height:1.5; }
+.forecast-toolbar .btn { text-decoration:none; }
+.forecast-focus table.daily th { padding-top:13px; padding-bottom:10px; font-size:10px; letter-spacing:.035em; }
+.forecast-focus table.daily td { padding-top:10px; padding-bottom:10px; vertical-align:middle; }
+.forecast-focus table.daily td.day { font-family:var(--font-body); font-weight:750; letter-spacing:.01em; }
+.forecast-focus table.daily tr[data-k]:hover { background:color-mix(in srgb,var(--accent) 5%,transparent); }
+.forecast-focus table.daily tr.is-today>td:first-child { box-shadow:inset 2px 0 var(--accent); padding-left:10px; }
+.forecast-focus #dailyExplain { margin-top:10px; }
+.forecast-focus #dailyExplain>summary { padding:4px 0; }
+@media(max-width:1200px) {
+ .forecast-focus #tiles { grid-template-columns:repeat(3,minmax(0,1fr)); }
+ .forecast-focus #tiles .tile:nth-child(3n+1) { border-left:0; }
+ .forecast-focus #tiles .tile:nth-child(n+4) { border-top:1px solid var(--line); }
+}
+@media(max-width:900px) {
+ .forecast-focus .workspace { grid-template-columns:minmax(0,1fr); gap:14px; padding-top:14px; }
+ .forecast-focus .side .card { padding:14px; }
+ .controls-summary { padding:14px; font-size:13px; }
+}
+@media(max-width:600px) {
+ .forecast-focus .main { gap:14px; }
+ .forecast-focus #tiles { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .forecast-focus #tiles .tile:nth-child(n) { border-left:0; border-top:0; padding:13px 12px; }
+ .forecast-focus #tiles .tile:nth-child(2n) { border-left:1px solid var(--line); }
+ .forecast-focus #tiles .tile:nth-child(n+3) { border-top:1px solid var(--line); }
+ .forecast-focus #tiles .v { font-size:24px; }
+ .forecast-focus table.daily th,.forecast-focus table.daily td { padding-left:4px; padding-right:4px; }
+ .forecast-focus table.daily td.num { font-size:12px; }
+ .forecast-focus table.daily td.day { font-size:11px; }
+ .forecast-focus table.daily tr.is-today>td:first-child { padding-left:7px; }
+ .forecast-jumps { gap:5px; }
+ .forecast-jumps .btn { min-height:32px; display:inline-flex; align-items:center; }
+}
+@media print {
+ .forecast-focus #tiles { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); }
+ .guidance-details { display:none; }
+}
+
+body.brief-view .statusbar:has(.site-id) { grid-template-columns:minmax(0,1fr) auto; }
