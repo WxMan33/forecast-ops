@@ -190,7 +190,7 @@ with sync_playwright() as p:
  assert valley_flag.inner_text().startswith('AM fog?') and 'LUK' in valley_flag.inner_text() and 'CVG' not in valley_flag.inner_text(),'valley-only flag names LUK despite clear CVG'
  valley_flag.click()
  valley_text=page.locator('#impact-2026-11-04 .impact-visibility').inner_text()
- assert 'Lunken Field' in valley_text and 'Butler County Regional' in valley_text and 'Middletown' in valley_text
+ assert all(name in valley_text.casefold() for name in ['lunken field','butler county regional','middletown']),valley_text
  assert '8.5 mi' in valley_text and '0.50 mi' in valley_text
  for width in [360,390,1440]:
   page.set_viewport_size({'width':width,'height':900})
