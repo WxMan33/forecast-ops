@@ -35,7 +35,7 @@
   let preset = O.store.get("ops_blend_preset", "preferred");
   if (!C.blend.PRESETS[preset]) preset = "preferred";
 
-  let data = null, nws = null, chart = null, viewDay = null, fresh = false;
+  let data = null, nws = null, chart = null, viewDay = null, fresh = false, showElapsedToday = false;
   let tab = O.store.get("ops_blend_tab", "temp"), range = O.store.get("ops_blend_range", "168");
 
   let weightScope=O.store.get("ops_blend_weight_scope","near");
@@ -282,12 +282,10 @@
   /* distinct NWS hourly wording during [s, e) */
   const wording = (s, e) => { if (!nws || !nws.hourly || !nws.hourly.length) return "—"; const w = [...new Set(nws.hourly.filter((h) => h.s < e && h.e > s).map((h) => h.short).filter(Boolean))]; return w.length ? w.slice(0, 3).join(" → ") : "—"; };
 
-  /* NWS day/night periods on a calendar day: daytime period starting that day, night period starting that evening. */
-  const nwsDayNight = (k) => {
-    if (!nws || !nws.periods || !nws.periods.length) return {};
-    const on = (p) => C.time.toLocal(p.s, tz()).slice(0, 10) === k;
-    return { day: nws.periods.find((p) => p.isDaytime && on(p)), night: nws.periods.find((p) => !p.isDaytime && on(p)) };
-  };
+  /* Pair the preceding night's low with this date's daytime high. */
+  const nwsDayNight = k => window.ForecastClock.nwsMorning(C, tz(), nws?.periods || [], k);
+  const temperatureCues = (r, values) => window.ForecastClock.temperaturePattern(C, data.tz, data.ms, values, r.k);
+  const cueHtml = (cues, source) => cues.map(c => `<span class="temp-timing" title="${O.esc(source + ': ' + c.text)}">${O.esc(c.label)}</span>`).join('');
 
   const recordWatch = window.RecordWatch.mount({ O, C, rerender: () => { if (data) renderDaily(); } });
   const impactFlags = window.ImpactFlags.mount({ O, C });
@@ -296,6 +294,15 @@
     if (!data) return;
     const rows = C.blend.dailyRows(data, W(), OPTS());
     data.rows = rows;
+    const clock = window.ForecastClock.focus(C, data.tz, Date.now());
+    const visibleRows = rows.filter(r => !clock.evening || showElapsedToday || r.k !== clock.day);
+    const elapsedButton = $("elapsedToday");
+    elapsedButton.hidden = !clock.evening || !rows.some(r=>r.k===clock.day);
+    elapsedButton.textContent = showElapsedToday ? "Hide earlier today" : "Show earlier today";
+    elapsedButton.setAttribute("aria-pressed", String(showElapsedToday));
+    elapsedButton.onclick = () => { showElapsedToday = !showElapsedToday; renderDaily(); };
+    const temps = O.blendSeries(series("temperature_2m", active("temperature_2m")), data.times.length).mean;
+    const patterns = new Map(rows.map(r=>[r.k, temperatureCues(r, temps)]));
     recordWatch.prepare(rows, O.location, data.tz);
     const impactNow = Date.now(), futureStart = Math.floor(impactNow / 3600000) * 3600000, impactToday = C.time.toLocal(impactNow, data.tz).slice(0, 10);
     const impacts = new Map(rows.map(r => {
@@ -308,7 +315,7 @@
     /* Columns. tier: 1 always shown; 2 moves into the day's details when the table is narrow (< 880 px);
        3 also moves there on phone widths (< 600 px). Breakpoints follow the table's own width. */
     const COLS = [
-      { l: ["Day"], def: "Calendar day (midnight to midnight local time). Click a row to zoom the chart and see that day's source breakdown. Small impact flags open supporting guidance below the day.", tier: 1, cell: (r) => `<td class="display day"><button type="button" class="detbtn" aria-expanded="false" aria-label="Show details for ${O.fmtDay(r.k)}">▸</button>${O.fmtDay(r.k)}${impactFlags.badges(r.k, impacts.get(r.k))}</td>` },
+      { l: ["Day"], def: "Calendar day (midnight to midnight local time). Click a row to zoom the chart and see that day's source breakdown. Small impact flags open supporting guidance below the day.", tier: 1, cell: (r) => `<td class="display day"><button type="button" class="detbtn" aria-expanded="false" aria-label="Show details for ${O.fmtDay(r.k)}">▸</button>${O.fmtDay(r.k)}${cueHtml(patterns.get(r.k), "Hourly blend")}${impactFlags.badges(r.k, impacts.get(r.k))}</td>` },
       { l: ["Low"], def: "Blended daily low for the calendar day (midnight to midnight), usually the morning low. Small numbers: weighted guidance spread (10th–90th percentile across all sources; not a calibrated probability).", tier: 1, cell: (r) => `<td class="num"><span class="lo">${f(r.lo, 0, "°")}</span>${rng(r.loR, 0, r.ensR.lo)}${recordWatch.badge(r, "lo", O.location, data.tz)}</td>`, txt: (r) => f(r.lo, 0, "°") },
       { l: ["High"], def: "Blended daily high for the calendar day. Small numbers: weighted guidance spread (10th–90th percentile across all sources; not a calibrated probability). Hover a range for the ensembles-only range.", tier: 1, cell: (r) => `<td class="num"><span class="hi">${f(r.hi, 0, "°")}</span>${rng(r.hiR, 0, r.ensR.hi)}${recordWatch.badge(r, "hi", O.location, data.tz)}</td>`, txt: (r) => f(r.hi, 0, "°") },
       { l: ["Precip"], def: "Blended liquid-equivalent precipitation for the calendar day, with its guidance spread. * = NWS share prorated across its interval edges (hover for the blend at NWS's lower and upper bounds).", tier: 1,
@@ -322,18 +329,18 @@
       { l: ["Temp", "agreement"], def: "How close the sources' daily highs are: TIGHT ≤ 3°F apart, FAIR ≤ 6°F, WIDE more. Says nothing about rain or timing.", tier: 2,
         cell: (r) => `<td title="${r.contrib.length} sources with a complete day: ${r.contrib.map((id) => NAMES[id]).join(", ")}">${meter(r.ag.level)}<span class="msg" style="color:var(--text);font-weight:700">${r.ag.word}</span></td>`, txt: (r) => `${r.ag.word} (${r.contrib.length} sources)` },
       ...(hasN ? [
+        { l: [`${nwsTag} morning`, "low"], def: "NWS official low for the night leading into this date's morning (usually the preceding 6 PM through 6 AM). Not tonight's low. Unavailable when the issued forecast no longer contains that period.", tier: 2, nws: true,
+          cell: (r) => { const dn=nwsDayNight(r.k); return `<td class="num nwscol" title="${dn.morning ? O.esc(`${dn.morning.name}: ${local(dn.morning.s)}–${local(dn.morning.e)}`) : "Morning period no longer in this NWS forecast"}">${dn.morning ? `<span class="lo">${dn.morning.temp}°</span>` : "—"}</td>`; }, txt: r => { const p=nwsDayNight(r.k).morning;return p?`${p.temp}° (${p.name})`:"—"; } },
         { l: [`${nwsTag} day`, "high"], def: "NWS official daytime period high (usually 6 AM–6 PM), not a calendar-day high; it can differ from the blend's midnight-to-midnight high.", tier: 2, nws: true,
           cell: (r) => { const dn = nwsDayNight(r.k); return `<td class="num nwscol" title="${dn.day ? O.esc(`${dn.day.name}: ${local(dn.day.s)}–${local(dn.day.e)}`) : "No NWS daytime period starts this day"}">${dn.day ? `<span class="hi">${dn.day.temp}°</span>` : "—"}</td>`; }, txt: (r) => { const dn = nwsDayNight(r.k); return dn.day ? `${dn.day.temp}° (${dn.day.name})` : "—"; } },
-        { l: [`${nwsTag} night`, "low"], def: "NWS official night period low (usually 6 PM–6 AM, starting this evening).", tier: 2, nws: true,
-          cell: (r) => { const dn = nwsDayNight(r.k); return `<td class="num nwscol" title="${dn.night ? O.esc(`${dn.night.name}: ${local(dn.night.s)}–${local(dn.night.e)}`) : "No NWS night period starts this day"}">${dn.night ? `<span class="lo">${dn.night.temp}°</span>` : "—"}</td>`; }, txt: (r) => { const dn = nwsDayNight(r.k); return dn.night ? `${dn.night.temp}° (${dn.night.name})` : "—"; } },
       ] : []),
     ];
     const tcls = (c) => `t${c.tier}${c.nws ? " nwscol" : ""}`;
     $("daily").innerHTML = `<thead><tr>${COLS.map((c, i) => `<th class="${tcls(c)}" scope="col"><button type="button" class="thd" data-i="${i}" aria-describedby="thd${i}">${c.l.map((x, k) => (k ? "<br>" : "") + (/<span/.test(x) ? x : O.esc(x))).join("")}</button><span class="sr" id="thd${i}">${O.esc(c.def)}</span></th>`).join("")}</tr></thead><tbody>` +
-      rows.map((r) => `<tr data-k="${r.k}" class="${viewDay === r.k ? "sel" : ""}" tabindex="0">${COLS.map((c) => c.cell(r).replace(/^<td( class="([^"]*)")?/, (m, a, cl) => `<td class="${[cl || "", tcls(c)].join(" ").trim()}"`)).join("")}</tr>` +
+      visibleRows.map((r) => `<tr data-k="${r.k}" class="${viewDay === r.k ? "sel" : ""}" tabindex="0">${COLS.map((c) => c.cell(r).replace(/^<td( class="([^"]*)")?/, (m, a, cl) => `<td class="${[cl || "", tcls(c)].join(" ").trim()}"`)).join("")}</tr>` +
         `<tr class="detrow" data-for="${r.k}" hidden><td colspan="${COLS.length}"><dl class="detlist">${COLS.filter((c) => c.tier > 1).map((c) => `<div class="${tcls(c)}d"><dt>${c.l.join(" ").replace(/<[^>]+>/g, "")}</dt><dd>${c.txt(r)}</dd></div>`).join("")}</dl></td></tr>` + impactFlags.details(r.k, impacts.get(r.k), NAMES, data.tz, COLS.length)).join("") + "</tbody>";
     wireHeaders(COLS);
-    $("dailyNote").innerHTML = `Small numbers under each value: <b>weighted guidance spread</b>, the 10th–90th percentile across all sources (ensemble members share their system's weight; NWS, NBM and each model count once). It mixes ensembles with single forecasts, so it is not a calibrated probability; hover for the ensembles-only range. Ensemble highs and lows are each member's own daily extreme, then combined. NWS enters highs and lows through its hourly temperatures over the calendar day, not its official day-high / night-low. * NWS precip prorated across interval edges (hover for the blend at NWS's lower and upper bounds). Click a day for its source breakdown. ` + (hasN ? `${nwsTag} columns are the official day (usually 6a–6p) and night (6p–6a) periods, not calendar days, so they can differ from the blend's midnight-to-midnight high and low. See <b>NWS vs blend</b> for a same-hours comparison.` : "");
+    $("dailyNote").innerHTML = `Small numbers under each value: <b>weighted guidance spread</b>, the 10th–90th percentile across all sources (ensemble members share their system's weight; NWS, NBM and each model count once). It mixes ensembles with single forecasts, so it is not a calibrated probability; hover for the ensembles-only range. Ensemble highs and lows are each member's own daily extreme, then combined. NWS enters highs and lows through its hourly temperatures over the calendar day, not its official day-high / night-low. * NWS precip prorated across interval edges (hover for the blend at NWS's lower and upper bounds). Click a day for its source breakdown. ` + (hasN ? `${nwsTag} columns show the preceding night’s morning low first, then the daytime high (usually 6a–6p), not calendar days, so they can differ from the blend's midnight-to-midnight high and low. See <b>NWS vs blend</b> for a same-hours comparison.` : "");
     $("daily").querySelectorAll("tr[data-k]").forEach((tr) => {
       const pickDay = () => { viewDay = viewDay === tr.dataset.k ? null : tr.dataset.k; renderDaily(); renderChart(); renderDrivers(); renderScenarios(); focus.selectDay(tr.dataset.k); };
       const det = tr.querySelector(".detbtn");
@@ -343,7 +350,7 @@
     });
     recordWatch.wire($("daily"));
     impactFlags.wire($("daily"));
-    $("dailyNote").append(document.createTextNode(' Daily flags: AM fog?, Frost?/Freeze? and G:20+ (mph bands). Tap for sources, hours and screening limits. These are investigation cues, not advisories; no flag is not an all-clear.'));
+    $("dailyNote").append(document.createTextNode(' Arrows and timing labels describe the weighted hourly temperature curve, which may differ from the daily-extrema blend. After 6 PM, earlier today is collapsed. Daily flags: AM fog?, Frost?/Freeze? and G:20+ (mph bands). Tap for sources, hours and screening limits. These are investigation cues, not advisories; no flag is not an all-clear.'));
     $("dailyNote").append(document.createTextNode(recordWatch.note(rows, O.location, data.tz)));
     if (fresh) {
       const snap = { cfg: `${preset}|${C.config.fingerprint(W())}|${JSON.stringify(R())}`, rows: {} };
@@ -381,7 +388,8 @@
   /* Source comparison for the selected day (or the first day): what is driving the blend. */
   function renderDrivers() {
     const el = $("driverCard"); if (!el) return;
-    const r = (data.rows || []).find((x) => x.k === viewDay) || (data.rows || [])[0];
+    const clock=window.ForecastClock.focus(C,data.tz,Date.now());
+    const r = (data.rows || []).find(x=>x.k===(viewDay || (clock.evening?clock.tomorrow:clock.day))) || (data.rows || [])[0];
     if (!r) { el.innerHTML = ""; return; }
     const ids = [...new Set([...r.parts.hi, ...r.parts.lo, ...r.parts.qpf].map((p) => p.id))].sort((a, b) => SOURCES.findIndex((m) => m.id === a) - SOURCES.findIndex((m) => m.id === b));
     const get = (k, id) => r.parts[k].find((p) => p.id === id);
@@ -457,14 +465,19 @@
         { num: f(gust, 0, " mph"), unit: "peak gust" },
       ],
     });
-    const today = data.rows && data.rows[0];
+    const clock=window.ForecastClock.focus(C, data.tz, Date.now());
+    const today = data.rows?.find(r=>r.k===(clock.forward?clock.tomorrow:clock.day));
+    const planning=window.ForecastClock.periods(C,data.tz,Date.now());
+    const periodValue=p=>{const ix=data.ms.map((ms,i)=>({ms,i})).filter(x=>x.ms>=p.s&&x.ms<p.e).map(x=>x.i);return ix.length===(p.e-p.s)/3600000?C.blend.windowRow(data,W(),ix,ix,OPTS()):null;};
+    const night=planning.primary.find(p=>p.label==='Tonight'),day=planning.primary.find(p=>p.label==='Tomorrow');
+    const nightRow=night?periodValue(night):null,dayRow=day?periodValue(day):null;
     $("tiles").innerHTML = [
-      ["Blend now", f(tNow, 0, "°F"), spreadNow ? `sources ${spreadNow[0].toFixed(0)}–${spreadNow[1].toFixed(0)}° · not an observation` : "not an observation"],
-      ["24 h low / high", `${f(lo, 0, "°")} / ${f(hi, 0, "°")}`, `${tm.length} sources in blend`],
+      [clock.forward ? "Tonight low" : "Blend now", f(clock.forward ? nightRow?.lo : tNow, 0, "°F"), clock.forward ? "Upcoming night hours · through 6 AM" : spreadNow ? `sources ${spreadNow[0].toFixed(0)}–${spreadNow[1].toFixed(0)}° · not an observation` : "not an observation"],
+      [clock.forward ? "Tomorrow high" : "24 h low / high", clock.forward ? f(dayRow?.hi,0,"°F") : `${f(lo, 0, "°")} / ${f(hi, 0, "°")}`, clock.forward ? "6 AM–6 PM local" : `${tm.length} sources in blend`],
       ["24 h precip", f(qpf, 2, '"'), `max hourly chance ${f(pop, 0, "%")}`],
       ["24 h snow", sn != null && sn >= 0.05 ? f(sn, 1, '"') : "—", "blended snow"],
       ["Peak gust", f(gust, 0, " mph"), "blended, next 24 h"],
-      ["Today's temp agreement", today ? today.ag.word : "—", today && today.ag.n > 1 ? `highs ${today.ag.lo.toFixed(0)}–${today.ag.hi.toFixed(0)}°` : "needs 2+ models"],
+      [clock.forward ? "Tomorrow's temp agreement" : "Today's temp agreement", today ? today.ag.word : "—", today && today.ag.n > 1 ? `highs ${today.ag.lo.toFixed(0)}–${today.ag.hi.toFixed(0)}°` : "needs 2+ models"],
     ].map(([k, v, s]) => `<div class="tile"><span class="k">${k}</span><span class="v">${v}</span><span class="s">${s}</span></div>`).join("");
   }
 
@@ -550,5 +563,7 @@
 
   render();
   run();
+  const displayTimer=setInterval(()=>{if(data&&!document.hidden)render();},60000);
+  window.addEventListener('pagehide',()=>clearInterval(displayTimer),{once:true});
 })();
 
