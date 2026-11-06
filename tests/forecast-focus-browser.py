@@ -163,10 +163,11 @@ with sync_playwright() as p:
  dayrow.locator('.impact-fog').click()
  assert page.locator('#impact-2026-11-04').is_visible()
  assert 'ECMWF IFS' in page.locator('#impact-2026-11-04').inner_text()
- assert 'Humidity/light wind alone never creates' in page.locator('#impact-2026-11-04').inner_text()
+ assert 'Sustained visibility of 3 miles or less' in page.locator('#impact-2026-11-04').inner_text()
  vis_text=page.locator('#impact-2026-11-04 .impact-visibility').inner_text()
  assert '0.50 mi' in vis_text and '1.0 mi' in vis_text and '2.0 mi' in vis_text,'visibility is converted from feet to miles by source'
- assert 'ECMWF IFS 9 km' in vis_text and 'earlier forecast' in vis_text.lower()
+ assert 'ECMWF IFS 9 km' in vis_text
+ assert not page.locator('#impact-2026-11-04 .impact-visibility-diagnostics').get_attribute('open')
  assert page.evaluate('!("ecmwf_ifs" in JSON.parse(JSON.stringify(window.Ops.Core.config.blend.models)).reduce((a,m)=>(a[m.id]=true,a),{}))'),'visibility-only IFS 9 km must not enter blend sources'
  assert 'sel' not in (dayrow.get_attribute('class') or ''),'flag click must not select the whole day'
  dayrow.locator('.impact-fog').press('Enter')
@@ -190,8 +191,13 @@ with sync_playwright() as p:
  assert valley_flag.inner_text().startswith('AM fog?') and 'LUK' in valley_flag.inner_text() and 'CVG' not in valley_flag.inner_text(),'valley-only flag names LUK despite clear CVG'
  valley_flag.click()
  valley_text=page.locator('#impact-2026-11-04 .impact-visibility').inner_text()
- assert all(name in valley_text.casefold() for name in ['lunken field','butler county regional','middletown']),valley_text
- assert '8.5 mi' in valley_text and '0.50 mi' in valley_text
+ assert 'Lunken Field' in valley_text and '0.50 mi' in valley_text
+ assert '8.5 mi' not in valley_text and 'retrieved' not in valley_text
+ assert page.locator('#impact-2026-11-04 .impact-airport').count()==1
+ assert 'No qualifying signal: CVG, HAO, MWO' in valley_text
+ page.locator('#impact-2026-11-04 .impact-visibility-diagnostics summary').click()
+ assert '8.5 mi' in page.locator('#impact-2026-11-04 .impact-visibility').inner_text()
+ page.locator('#impact-2026-11-04 .impact-visibility-diagnostics summary').click()
  for width in [360,390,1440]:
   page.set_viewport_size({'width':width,'height':900})
   assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1'),f'airport visibility overflow at {width}'

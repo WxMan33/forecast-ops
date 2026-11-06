@@ -40,3 +40,7 @@ Three batched requests, one per named visibility model, cover the other airports
 Flags identify qualifying airport codes, e.g. AM fog? · LUK while CVG stays clear. More than two sites are compacted to the first two codes plus a count; the hover/detail lists qualifying location names and each airport/model value. All samples represent model grid cells, not observations, exact valley minima or spatial coverage. Coarser grids may still miss valley fog.
 
 Tests reproduce a clear CVG with fog only at LUK, remove flags when that LUK low visibility is accompanied by rain/snow or missing precipitation, and keep the independent frost screen. Browser tests exercise the actual batch loader, source labels, positive/negative flags and 360/390/1440-pixel details. A captured real three-airport HRRR response validates units and geographic identity.
+
+## Compact airport presentation
+
+The expanded heads-up groups qualifying guidance by airport. Each airport lists only models with sustained qualifying low visibility, their minimum across qualifying hours and the supporting sample window. Airports without a qualifying signal appear on a single coverage-qualified line. Full morning minima, source/run metadata and unavailable values remain in a closed “Full values & source details” disclosure. Screening thresholds and blend calculations are unchanged.
