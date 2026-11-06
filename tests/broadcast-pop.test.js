@@ -1,6 +1,6 @@
 'use strict';
 const assert=require('node:assert/strict'),C=require('../assets/ops-core.js'),D=require('../assets/ops-data.js'),B=require('../assets/broadcast-pop.js'),H=3600000;
-for(const [v,want] of [[0,0],[1,0],[2.49,0],[2.5,5],[37,35],[42,40],[63,65],[97.5,100],[100,100],[null,null],[NaN,null],['42',null],[-1,null],[101,null]])assert.equal(C.stats.roundProbability(v),want);
+for(const [v,want] of [[0,0],[1,0],[2.49,0],[2.5,5],[37,35],[42,40],[63,65],[97.5,100],[100,100],[100+1e-12,100],[-1e-12,0],[null,null],[NaN,null],['42',null],[-1,null],[101,null]])assert.equal(C.stats.roundProbability(v),want);
 const points=B.grid({lat:39.05,lon:-84.66});assert.equal(points.length,9);assert.deepEqual(points[4],{lat:39.05,lon:-84.66});
 function area(day='2026-11-07',tz='America/New_York'){
  const start=C.time.toUtc(day+'T00:00',tz),next=new Date(Date.parse(day+'T12:00Z')+86400000).toISOString().slice(0,10),end=C.time.toUtc(next+'T00:00',tz),ms=Array.from({length:(end-start)/H},(_,i)=>start+(i+1)*H);
