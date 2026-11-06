@@ -9,6 +9,7 @@
 
   /* ======================= stats ======================= */
   const stats = {
+    roundProbability(v) { return typeof v === "number" && Number.isFinite(v) && v >= -1e-9 && v <= 100 + 1e-9 ? Math.round(Math.max(0, Math.min(100, v)) / 5) * 5 : null; },
     /* Weighted mean/min/max across series at each index. series: [{w, data[]}] */
     blendSeries(series, n) {
       const mean = [], min = [], max = [], count = [];

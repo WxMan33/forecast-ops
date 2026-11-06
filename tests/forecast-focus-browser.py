@@ -25,7 +25,7 @@ def om_response(url):
    j=om_response(urlparse(url)._replace(query=urlencode(qq,doseq=True)).geturl())
    j.update(latitude=float(lat),longitude=float(lon),location_id=i);rows.append(j)
   return rows
- ens='ensemble-api' in url;members=5 if 'rrfs' in model else 3
+ ens='ensemble-api' in url;members=(51 if 'ecmwf' in model else 31) if ens and q.get('hourly')==['precipitation'] else 5 if 'rrfs' in model else 3
  axis=[(base+timedelta(hours=i)).strftime('%Y-%m-%dT%H:%M') for i in range(n)]
  def values(v,k):
   if v=='visibility':
@@ -39,7 +39,7 @@ def om_response(url):
   if v=='temperature_2m':return [42+(i%24)/2+revision*4+k/10 for i in range(n)]
   if v=='precipitation':return [.12+revision*.08 if i%24 in [8+revision*3,9+revision*3,19] else 0 for i in range(n)]
   if v in ['snowfall','rain','showers']:return [0]*n
-  if v=='precipitation_probability':return [60]*n
+  if v=='precipitation_probability':return [63]*n
   if v in ['wind_gusts_10m','wind_speed_10m']:return [18]*n
   if v=='weather_code':return [3]*n
   return [30]*n
@@ -52,7 +52,7 @@ def om_response(url):
   if not v:continue
   d[v]=[54+revision*4 if v=='temperature_2m_max' else 42+revision*4 if v=='temperature_2m_min' else .36+revision*.24 if v=='precipitation_sum' else 18 if 'gust' in v else 0 for _ in dates]
   if impact_mode and 'gust' in v:d[v]=[26]*len(dates)
- return {'latitude':float(lats[0]),'longitude':float(lons[0]),'timezone':'UTC','utc_offset_seconds':0,'hourly':h,'daily':d,'hourly_units':{v:('ft' if v=='visibility' else 'wmo code' if v=='weather_code' else '°F' if v in ['temperature_2m','dew_point_2m'] else 'inch' if v in ['precipitation','snowfall'] else 'mph') for v in h}}
+ return {'latitude':float(lats[0]),'longitude':float(lons[0]),'timezone':'UTC','utc_offset_seconds':0,'hourly':h,'daily':d,'hourly_units':{v:('ft' if v=='visibility' else 'wmo code' if v=='weather_code' else '°F' if v in ['temperature_2m','dew_point_2m'] else 'inch' if v.split('_member')[0] in ['precipitation','snowfall'] else 'mph') for v in h}}
 
 with sync_playwright() as p:
  browser=p.chromium.launch()
@@ -91,6 +91,14 @@ with sync_playwright() as p:
 
  assert page.locator('#daily tbody tr').count()>=14
  headings=page.locator('#daily thead').text_content().lower()
+ assert 'broadcast' in headings and 'source highs' not in headings
+ page.wait_for_function("""Array.from(document.querySelectorAll('#daily td')).some(el=>el.title.includes('regional sample'))""")
+ regional=page.locator('#daily td[title*="regional sample"]').first
+ assert regional.locator('strong').text_content()=='100%'
+ assert any(x in regional.text_content() for x in ['AM','PM','Overnight','Evening','windows'])
+ assert page.evaluate('Ops.pct5(63)')=='65%', '63% displays as 65%'
+ for cell in page.locator('#daily tr[data-k] td:nth-child(7)').all_text_contents():
+  if '%' in cell:assert float(cell.rstrip('%'))%5==0, cell
  assert headings.index('morning')<headings.index('nws day'),'NWS morning low precedes daytime high'
 
  assert page.evaluate('document.querySelector("#daily").closest(".card").nextElementSibling.id')=='forecastChartCard','graph immediately follows daily blend'

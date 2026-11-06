@@ -62,7 +62,7 @@
     const tDays = TH ? Object.fromEntries(C.time.dayGroups(T.times).map((d) => [d.k, d.idx])) : {};
 
     const f = (x, d = 0, u = "") => (x == null ? "—" : x.toFixed(d) + u);
-    const pctTxt = (p) => (p == null ? "—" : p > 0 && p < 0.05 ? "<5%" : Math.round(p * 100) + "%");
+    const pctTxt = (p) => O.pct5(p == null ? null : p * 100);
     const cards = rows.map((r, n) => {
       const ti = TH ? T.ms.map((t,i)=>({t,i})).filter(x=>x.t>=r.period.s&&x.t<r.period.e).map(x=>x.i) : [], ta = ti.map((i) => TH.assess[i]);
       const t = ta.length ? O.maxTier(ta.map((a) => a.tier)) : "nodata";
@@ -76,7 +76,7 @@
         <div class="r" style="align-items:center"><span class="d">${O.esc(r.period.label)}</span></div>
         <div class="t"><span class="${r.period.kind==='low'?'lo':'hi'}">${f(r.period.kind==='low'?r.lo:r.hi,0,'°')}</span> <span class="msg">${r.period.kind==='low'?'low':'high'}</span></div>
         <div class="msg">${localStamp(r.period.s)}–${localStamp(r.period.e)} · ${O.tzShort(B.tz)}</div>
-        <div class="r"><span>Precip</span><b>${f(r.qpf, 2, '"')} · ${f(r.pop, 0, "%")}</b></div>
+        <div class="r"><span>Precip</span><b>${f(r.qpf, 2, '"')} · ${O.pct5(r.pop)}</b></div>
         <div class="r"><span>Peak gust</span><b>${f(r.gust, 0, " mph")}</b></div>
         <div class="r"><span>Snow (ens.)</span><b>${!w || !w.st.used ? "—" : `any ${pctTxt(w.st.P[0.1])} · 1"+ ${pctTxt(w.st.P[1])}`}</b></div>
         <div class="r" style="align-items:center"><span>Thunder</span><a href="thunder.html" style="text-decoration:none">${O.badge({ tier: t, limited: lim.length > 0, missing: miss })}</a></div>
@@ -116,9 +116,9 @@
       { k: "hi", label: "high", min: 3, fmt: (v) => `${Math.round(v)}°` },
       { k: "lo", label: "low", min: 3, fmt: (v) => `${Math.round(v)}°` },
       { k: "qpf", label: "precip", min: 0.1, fmt: (v) => `${v.toFixed(2)}"` },
-      { k: "pop", label: "max chance", min: 15, fmt: (v) => `${Math.round(v)}%` },
+      { k: "pop", label: "max chance", min: 15, fmt: (v) => O.pct5(v) },
       { k: "gust", label: "peak gust", min: 8, fmt: (v) => `${Math.round(v)} mph` },
-      { k: "p1", label: '1"+ snow chance', min: 10, fmt: (v) => `${Math.round(v)}%` },
+      { k: "p1", label: '1"+ snow chance', min: 10, fmt: (v) => O.pct5(v) },
       { k: "t", label: "thunder", tier: true },
     ], names);
   }
@@ -130,7 +130,7 @@
     const NA = NW && !cB.mismatch ? C.nws.onAxis(NW, B.ms) : null;
     const by = (ctx, key) => ctx && ctx.wins && ctx.wins.find((w) => w.key === key);
     const f = (x, d = 0, u = "") => (x == null ? "—" : x.toFixed(d) + u);
-    const pctTxt = (p) => (p == null ? "—" : p > 0 && p < 0.05 ? "<5%" : Math.round(p * 100) + "%");
+    const pctTxt = (p) => O.pct5(p == null ? null : p * 100);
     const rows = {};
     const rowB = (w) => (rows["b" + w.key] = rows["b" + w.key] || C.blend.windowRow(B, wsB, w.L.idx, w.L.acc, optB));
     const stW = (w) => { const x = by(cW, w.key); if (!x || x.cov.status !== "full" || !mem.length) return null; return (rows["w" + w.key] = rows["w" + w.key] || C.winter.windowStats(mem, x.L.acc[0], x.L.acc[x.L.acc.length - 1] + 1)); };
@@ -138,14 +138,14 @@
     O.eventTable(el, cB, [
       { label: "Temp", cell: (w) => { const r = rowB(w); return r.lo == null ? "—" : `<span class="lo">${r.lo.toFixed(0)}°</span>–<span class="hi">${r.hi.toFixed(0)}°</span>`; } },
       { label: "Feels like", cell: (w) => f(rowB(w).feel, 0, "°") },
-      { label: "Precip · chance", cell: (w) => `${f(rowB(w).qpf, 2, '"')} · ${f(rowB(w).pop, 0, "%")}` },
+      { label: "Precip · chance", cell: (w) => `${f(rowB(w).qpf, 2, '"')} · ${O.pct5(rowB(w).pop)}` },
       { label: "Peak gust", cell: (w) => f(rowB(w).gust, 0, " mph") },
       { label: "Snow (ens.)", cell: (w) => { const st = stW(w); return !st || !st.used ? "—" : `any ${pctTxt(st.P[0.1])} · 1"+ ${pctTxt(st.P[1])}`; } },
       { label: "Thunder", cell: (w) => { const a = thW(w); return a ? O.badge(a) : "—"; } },
       { label: "Models · members", cell: (w) => { const st = stW(w); return `${rowB(w).contrib.length} · ${st ? `${st.used}/${st.total}` : "—"}`; } },
       ...(NA ? [
         { label: "NWS temp", cell: (w) => { const v = w.L.idx.map((i) => NA.temperature_2m[i]); return v.some((x) => x == null) ? "—" : `<span class="lo">${Math.min(...v).toFixed(0)}°</span>–<span class="hi">${Math.max(...v).toFixed(0)}°</span>`; } },
-        { label: "NWS hourly PoP", cell: (w) => { const v = w.L.idx.map((i) => NA.precipitation_probability[i]); return v.some((x) => x == null) ? "—" : `${Math.min(...v)}–${Math.max(...v)}% <span class="msg">hourly</span>`; } },
+        { label: "NWS hourly PoP", cell: (w) => { const v = w.L.idx.map((i) => NA.precipitation_probability[i]); return v.some((x) => x == null) ? "—" : `${O.pct5(Math.min(...v))}–${O.pct5(Math.max(...v))} <span class="msg">hourly</span>`; } },
         { label: "NWS precip", cell: (w) => { const t = C.nws.totalOver(NA.qpf, w.startMs, w.endMs); return !t.covers ? '<span class="msg">not covered</span>' : t.exact ? `${t.lower.toFixed(2)}"` : `${t.lower.toFixed(2)}–${t.upper.toFixed(2)}"`; } },
       ] : []),
     ], { title: "Event briefing", note: "Same models, weights and rules as the tool pages, over each phase's exact hours. A cell shows only when the phase is fully inside the forecast. NWS columns are NWS's own values for the same hours (precip from its interval totals: a range when an interval straddles the phase edge; hourly PoP is a range of hourly values, not a phase probability)." });
@@ -164,9 +164,9 @@
       { k: "lo", label: "low", min: 3, fmt: (v) => `${Math.round(v)}°` },
       { k: "hi", label: "high", min: 3, fmt: (v) => `${Math.round(v)}°` },
       { k: "qpf", label: "precip", min: 0.05, fmt: (v) => `${v.toFixed(2)}"` },
-      { k: "pop", label: "max chance", min: 15, fmt: (v) => `${Math.round(v)}%` },
+      { k: "pop", label: "max chance", min: 15, fmt: (v) => O.pct5(v) },
       { k: "gust", label: "peak gust", min: 8, fmt: (v) => `${Math.round(v)} mph` },
-      { k: "p1", label: '1"+ snow chance', min: 10, fmt: (v) => `${Math.round(v)}%` },
+      { k: "p1", label: '1"+ snow chance', min: 10, fmt: (v) => O.pct5(v) },
       { k: "t", label: "thunder", tier: true },
     ], NAMES);
   }
