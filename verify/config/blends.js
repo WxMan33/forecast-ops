@@ -9,6 +9,7 @@ const BASELINE_V1 = {
 const RAW = ["ecmwf_ifs025", "ecmwf_aifs025_single", "gfs_seamless", "gfs_hrrr", "ncep_nam_conus", "icon_seamless", "gem_seamless", "ukmo_seamless"];
 module.exports = {
   recipes: [
+    {"id":"brad-scoped-temp-2026-11-05-v3","group":"ope","mode":"scoped","label":"Temperature-tuned scoped default v3 (Nov 5)","weights":{"nws":4,"ecmwf_ens":4,"gefs":1,"rrfs_ens":2,"ecmwf_ifs025":1.25,"ecmwf_aifs025_single":1.25,"gfs_seamless":0.75,"ncep_nbm_conus":3,"gfs_hrrr":3,"ncep_rrfs_conus":3},"rules":{"periodWeights":{"near":{"nws":4,"ecmwf_ens":3,"gefs":0.75,"rrfs_ens":2,"ecmwf_ifs025":1,"ecmwf_aifs025_single":0.75,"gfs_seamless":0.5,"ncep_nbm_conus":3,"gfs_hrrr":3,"ncep_rrfs_conus":3},"far":{"nws":3,"ecmwf_ens":4,"gefs":1,"rrfs_ens":0.5,"ecmwf_ifs025":1.25,"ecmwf_aifs025_single":1,"gfs_seamless":0.75,"ncep_nbm_conus":2,"ncep_rrfs_conus":0.5},"nearTemp":{"nws":4,"ecmwf_ens":4,"gefs":0.75,"rrfs_ens":1.5,"ecmwf_ifs025":1,"ecmwf_aifs025_single":1.25,"gfs_seamless":0.5,"ncep_nbm_conus":3,"gfs_hrrr":2.5,"ncep_rrfs_conus":2.5}}},"frozen":"2026-11-05","effectiveFrom":"2026-11-06T02:26:04.641Z","note":"User-authorized temperature-only retune for first 48 hours. Precipitation, wind and longer-range defaults unchanged. Separate prospective track; not an ENSO offset."},
     {"id":"brad-default-2026-11-03-v2","group":"ope","mode":"brads-preferred","label":"Brad default v2 (10 sources, Nov 3)","weights":{"nws":3,"ecmwf_ens":4,"gefs":0.75,"rrfs_ens":1.25,"ecmwf_ifs025":1.25,"ecmwf_aifs025_single":1,"gfs_seamless":0.75,"ncep_nbm_conus":2,"gfs_hrrr":1.5,"ncep_rrfs_conus":1.5},"rules":null,"frozen":"2026-11-03","effectiveFrom":"2026-11-03T18:44:47.823Z","note":"User-selected default from latest screenshot: no extra temperature multiplier; score alongside preserved earlier recipes."},
     /* The website's scoped default (assets/ops-core.js blend.CUSTOM_DEFAULTS, 2026-11-04 v2), frozen here:
        "near" weights for valid hours in the first 48 h after the capture's last retrieval, "far" weights
@@ -44,5 +45,5 @@ module.exports = {
   ],
   BASELINE_V1,
   /* Frozen hashes: changing a recipe in place fails the tests. */
-  FROZEN: { "brad-scoped-default-2026-11-04-v2": "d97256d5a424", "brad-default-2026-11-03-v2": "cc2949c5658d", "baseline-v1": "968fcc338b9c", "equal-raw-v1": "1862866abde3", "ecmwf-ens-only": "81e5f60cb022", "gefs-only": "8cbe17fdde0a", "nbm-only": "04958566c9fd", "nws-only": "a93c7f217bb9" },
+  FROZEN: { "brad-scoped-temp-2026-11-05-v3": "55844f7b83ea", "brad-scoped-default-2026-11-04-v2": "d97256d5a424", "brad-default-2026-11-03-v2": "cc2949c5658d", "baseline-v1": "968fcc338b9c", "equal-raw-v1": "1862866abde3", "ecmwf-ens-only": "81e5f60cb022", "gefs-only": "8cbe17fdde0a", "nbm-only": "04958566c9fd", "nws-only": "a93c7f217bb9" },
 };

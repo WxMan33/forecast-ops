@@ -270,7 +270,7 @@
        different threshold and period from Open-Meteo's precipitation_probability. */
     EXCLUDE: { nws: ["precipitation_probability"] },
     /* Weight of source id for variable v, after preset rules and exclusions. */
-    w(ws, rules, id, v) { if ((blend.EXCLUDE[id] || []).includes(v) || !(ws[id]>0)) return 0; if(rules?.absoluteWeights)return rules.absoluteWeights[id] || 0; return blend.weightFor(ws, rules, id, v); },
+    w(ws, rules, id, v) { if ((blend.EXCLUDE[id] || []).includes(v) || !(ws[id]>0)) return 0; if(rules?.absoluteByVar?.[v])return rules.absoluteByVar[v][id] || 0; if(rules?.absoluteWeights)return rules.absoluteWeights[id] || 0; return blend.weightFor(ws, rules, id, v); },
     /* One deterministic series over hours: extreme or sum, only if every hour is present. */
     reduce(a, use, how) {
       if (!use.length || !stats.complete(a, use)) return null;
@@ -389,21 +389,26 @@
     },
     /* Resolve a separate, versioned website preset. The frozen preferred recipe is unchanged. */
     CUSTOM_DEFAULTS: {
-      id: "brad-scoped-default-2026-11-04-v2",
+      id: "brad-scoped-temp-2026-11-05-v3",
       near: {nws:4,ecmwf_ens:3,gefs:0.75,rrfs_ens:2,ecmwf_ifs025:1,ecmwf_aifs025_single:0.75,gfs_seamless:0.5,ncep_nbm_conus:3,gfs_hrrr:3,ncep_rrfs_conus:3},
       far: {nws:3,ecmwf_ens:4,gefs:1,rrfs_ens:0.5,ecmwf_ifs025:1.25,ecmwf_aifs025_single:1,gfs_seamless:0.75,ncep_nbm_conus:2,gfs_hrrr:0,ncep_rrfs_conus:0.5},
+      nearTemp: {nws:4,ecmwf_ens:4,gefs:0.75,rrfs_ens:1.5,ecmwf_ifs025:1,ecmwf_aifs025_single:1.25,gfs_seamless:0.5,ncep_nbm_conus:3,gfs_hrrr:2.5,ncep_rrfs_conus:2.5},
     },
     defaultProfiles(sources) {
-      return Object.fromEntries(["near","far"].map(scope=>[scope,Object.fromEntries(sources.map(m=>{const w=blend.CUSTOM_DEFAULTS[scope][m.id]||0;return [m.id,{on:w>0,w:w||m.w||0}];}))]));
+      return Object.fromEntries(["near","far","nearTemp"].map(scope=>[scope,Object.fromEntries(sources.map(m=>{const w=blend.CUSTOM_DEFAULTS[scope][m.id]||0;return [m.id,{on:w>0,w:w||m.w||0}];}))]));
     },
     scopedWeights(profiles) {
       const flat=scope=>Object.fromEntries(Object.entries(scope||{}).filter(([,s])=>s.on&&Number.isFinite(s.w)&&s.w>0).map(([id,s])=>[id,s.w]));
-      const near=flat(profiles.near),far=flat(profiles.far),ws={};
-      for(const id of new Set([...Object.keys(near),...Object.keys(far)]))ws[id]=Math.max(near[id]||0,far[id]||0);
-      return {ws,rules:{periodWeights:{near,far}}};
+      const near=flat(profiles.near),far=flat(profiles.far),nearTemp=profiles.nearTemp?flat(profiles.nearTemp):null,ws={};
+      for(const id of new Set([...Object.keys(near),...Object.keys(far),...Object.keys(nearTemp||{})]))ws[id]=Math.max(near[id]||0,far[id]||0,nearTemp?.[id]||0);
+      return {ws,rules:{periodWeights:{near,far,...(nearTemp?{nearTemp}:{})}}};
     },
     periodRules(data, rules, idx) {
-      if(rules?.periodWeights&&idx.length){const now=rules.referenceMs||data.viewedAt||Date.now(),absoluteWeights={};const {near,far}=rules.periodWeights;for(const id of new Set([...Object.keys(near),...Object.keys(far)]))absoluteWeights[id]=idx.reduce((sum,i)=>sum+((data.ms[i]>=now&&data.ms[i]<now+48*3600000?near:far)[id]||0),0)/idx.length;return {...rules,absoluteWeights};}
+      if(rules?.periodWeights&&idx.length){
+        const now=rules.referenceMs||data.viewedAt||Date.now(),{near,far,nearTemp}=rules.periodWeights;
+        const average=early=>Object.fromEntries([...new Set([...Object.keys(early),...Object.keys(far)])].map(id=>[id,idx.reduce((sum,i)=>sum+((data.ms[i]>=now&&data.ms[i]<now+48*3600000?early:far)[id]||0),0)/idx.length]));
+        return {...rules,absoluteWeights:average(near),...(nearTemp?{absoluteByVar:{temperature_2m:average(nearTemp)}}:{})};
+      }
       if (!rules?.near48 || !idx.length) return rules;
       const now = rules.referenceMs || data.viewedAt || Date.now(), byVar = { ...(rules.byVar || {}) };
       for (const v of ["temperature_2m", "apparent_temperature", "precipitation", "snowfall", "wind_gusts_10m"]) {

@@ -39,7 +39,7 @@
   let tab = O.store.get("ops_blend_tab", "temp"), range = O.store.get("ops_blend_range", "168");
 
   let weightScope=O.store.get("ops_blend_weight_scope","near");
-  if(!["near","far","all"].includes(weightScope))weightScope="near";
+  if(!["near","nearTemp","far","all"].includes(weightScope))weightScope="near";
   let weightProfiles=O.store.get("ops_blend_period_weights_v1",null);
   if(!weightProfiles?.near||!weightProfiles?.far){
     const legacy=O.store.get("ops_blend_models",{}),base=C.blend.presetWeights(preset,SPEC,Object.fromEntries(SOURCES.map(m=>[m.id,legacy[m.id]?legacy[m.id].on?legacy[m.id].w:0:m.on!==false?m.w:0])));
@@ -48,21 +48,23 @@
     if(preset==="near48")for(const id of ["gfs_hrrr","ncep_rrfs_conus","rrfs_ens"]){if(weightProfiles.near[id].on)weightProfiles.near[id].w*=id==="rrfs_ens"?2:3;}
     O.store.set("ops_blend_period_weights_v1",weightProfiles);
   }
+  if(!weightProfiles.nearTemp)weightProfiles.nearTemp=JSON.parse(JSON.stringify(weightProfiles.near));
   const picker = O.modelPicker($("models"), "ops_blend_models", SOURCES, (id)=>{
-    const edited=picker.state(),scopes=weightScope==="all"?["near","far"]:[weightScope];
+    const edited=picker.state(),scopes=weightScope==="all"?["near","nearTemp","far"]:[weightScope];
     for(const scope of scopes){if(id)weightProfiles[scope][id]={...edited[id]};else weightProfiles[scope]=JSON.parse(JSON.stringify(edited));}
     saveWeightProfiles();
-  }, { title: "Custom weights", max: 10, persist:false, initial:weightProfiles[weightScope==="near"?"near":"far"],onReset:()=>{const defaults=C.blend.defaultProfiles(SOURCES);for(const scope of weightScope==="all"?["near","far"]:[weightScope])weightProfiles[scope]=defaults[scope];picker.setState(weightProfiles[weightScope==="near"?"near":"far"]);saveWeightProfiles();} });
+  }, { title: "Custom weights", max: 10, persist:false, initial:weightProfiles[weightScope==="all"?"far":weightScope],onReset:()=>{const defaults=C.blend.defaultProfiles(SOURCES);for(const scope of weightScope==="all"?["near","nearTemp","far"]:[weightScope])weightProfiles[scope]=defaults[scope];picker.setState(weightProfiles[weightScope==="all"?"far":weightScope]);saveWeightProfiles();} });
   const weightBox=document.createElement("div");weightBox.className="weight-scope";
-  weightBox.innerHTML='<label class="kick" for="weightScope">Edit weights for</label><select id="weightScope" class="input"><option value="near">First 48 hours</option><option value="far">Days 3–14 (after 48 h)</option><option value="all">Entire forecast</option></select><p id="weightScopeHelp" class="msg"></p>';
+  weightBox.innerHTML='<label class="kick" for="weightScope">Edit weights for</label><select id="weightScope" class="input"><option value="nearTemp">First 48 h · temperature</option><option value="near">First 48 h · other fields</option><option value="far">Days 3–14 (after 48 h)</option><option value="all">Entire forecast</option></select><p id="weightScopeHelp" class="msg"></p>';
   $("models").querySelector(".models").before(weightBox);$("weightScope").value=weightScope;
-  $("weightScope").onchange=e=>{weightScope=e.target.value;O.store.set("ops_blend_weight_scope",weightScope);picker.setState(weightProfiles[weightScope==="near"?"near":"far"]);updateWeightHelp();};
+  $("weightScope").onchange=e=>{weightScope=e.target.value;O.store.set("ops_blend_weight_scope",weightScope);picker.setState(weightProfiles[weightScope==="all"?"far":weightScope]);updateWeightHelp();};
   function saveWeightProfiles(){
     O.store.set("ops_blend_period_weights_v1",weightProfiles);preset="custom";O.store.set("ops_blend_preset",preset);
     $("presetTabs").querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-selected",String(b.textContent===C.blend.PRESETS.custom.label.toUpperCase())));
     fresh=true;updateWeightHelp();render();
   }
-  function updateWeightHelp(){const different=SOURCES.some(m=>JSON.stringify(weightProfiles.near[m.id])!==JSON.stringify(weightProfiles.far[m.id]));$("weightScopeHelp").textContent=(weightScope==="all"?(different?"The two ranges differ. Sliders show days 3–14; changing a source applies that setting to both ranges. ":"Changes apply to both ranges. "):weightScope==="near"?"Only valid hours within the next 48 hours change. ":"Only hours after 48 hours change. ")+"Editing activates Custom weights. Direct weights, no extra hi-res multipliers. Reset affects the selected range.";}
+  function updateWeightHelp(){$("weightScopeHelp").textContent=(weightScope==="all"?"Sliders show days 3–14. Editing a source applies it to all three profiles. ":weightScope==="nearTemp"?"Only 2-m temperature in the first 48 hours changes. ":weightScope==="near"?"First 48 hours: precipitation, wind, dew point and other fields; temperature has its own profile. ":"All variables after 48 hours change. ")+"Direct weights; Reset affects the selected profile. Editing activates Custom weights.";}
+
   updateWeightHelp();
   const showLines = O.linesToggle($("linesBtn"), "ops_blend_lines", () => renderChart());
   O.locationCard($("locCard"), () => run());
