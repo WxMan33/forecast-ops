@@ -92,7 +92,7 @@ with sync_playwright() as p:
  assert page.locator('#daily tbody tr').count()>=14
  headings=page.locator('#daily thead').text_content().lower()
  assert 'broadcast' in headings and 'source highs' not in headings
- page.wait_for_function('document.querySelector("#daily tbody").textContent.includes("100%") && document.querySelector("#daily td[title*=\"regional sample\"]")')
+ page.wait_for_function("""Array.from(document.querySelectorAll('#daily td')).some(el=>el.title.includes('regional sample'))""")
  regional=page.locator('#daily td[title*="regional sample"]').first
  assert regional.locator('strong').text_content()=='100%'
  assert any(x in regional.text_content() for x in ['AM','PM','Overnight','Evening','windows'])
