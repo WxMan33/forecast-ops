@@ -295,7 +295,7 @@
     const rows = C.blend.dailyRows(data, W(), OPTS());
     data.rows = rows;
     const clock = window.ForecastClock.focus(C, data.tz, Date.now());
-    displayClockKey = `${clock.day}|${clock.forward}|${clock.evening}`;
+    displayClockKey = `${clock.day}|${clock.dayLead}|${clock.forward}|${clock.evening}`;
     const visibleRows = rows.filter(r => !clock.evening || showElapsedToday || r.k !== clock.day);
     const elapsedButton = $("elapsedToday");
     elapsedButton.hidden = !clock.evening || !rows.some(r=>r.k===clock.day);
@@ -317,7 +317,7 @@
        3 also moves there on phone widths (< 600 px). Breakpoints follow the table's own width. */
     const COLS = [
       { l: ["Day"], def: "Calendar day (midnight to midnight local time). Click a row to zoom the chart and see that day's source breakdown. Small impact flags open supporting guidance below the day.", tier: 1, cell: (r) => `<td class="display day"><button type="button" class="detbtn" aria-expanded="false" aria-label="Show details for ${O.fmtDay(r.k)}">▸</button>${O.fmtDay(r.k)}${cueHtml(patterns.get(r.k), "Hourly blend")}${impactFlags.badges(r.k, impacts.get(r.k))}</td>` },
-      { l: ["Low"], def: "Blended daily low for the calendar day (midnight to midnight), usually the morning low. Small numbers: weighted guidance spread (10th–90th percentile across all sources; not a calibrated probability).", tier: 1, cell: (r) => `<td class="num"><span class="lo">${f(r.lo, 0, "°")}</span>${rng(r.loR, 0, r.ensR.lo)}${recordWatch.badge(r, "lo", O.location, data.tz)}</td>`, txt: (r) => f(r.lo, 0, "°") },
+      { l: ["Low"], def: "Blended daily low for the calendar day (midnight to midnight), usually the morning low. Small numbers: weighted guidance spread (10th–90th percentile across all sources; not a calibrated probability).", tier: 1, cell: (r) => r.k === clock.day && (clock.dayLead || clock.forward) ? `<td class="num" title="Morning low elapsed; focus is on upcoming hours">—</td>` : `<td class="num"><span class="lo">${f(r.lo, 0, "°")}</span>${rng(r.loR, 0, r.ensR.lo)}${recordWatch.badge(r, "lo", O.location, data.tz)}</td>`, txt: (r) => f(r.lo, 0, "°") },
       { l: ["High"], def: "Blended daily high for the calendar day. Small numbers: weighted guidance spread (10th–90th percentile across all sources; not a calibrated probability). Hover a range for the ensembles-only range.", tier: 1, cell: (r) => `<td class="num"><span class="hi">${f(r.hi, 0, "°")}</span>${rng(r.hiR, 0, r.ensR.hi)}${recordWatch.badge(r, "hi", O.location, data.tz)}</td>`, txt: (r) => f(r.hi, 0, "°") },
       { l: ["Precip"], def: "Blended liquid-equivalent precipitation for the calendar day, with its guidance spread. * = NWS share prorated across its interval edges (hover for the blend at NWS's lower and upper bounds).", tier: 1,
         cell: (r) => `<td class="num">${f(r.qpf, 2, '"')}${r.prorated ? ` <span class="msg" title="NWS precip intervals cross this day's edges; its share was prorated assuming a uniform rate. With NWS at its lower or upper bound the blend would be ${r.qpfBounds ? `${r.qpfBounds[0].toFixed(2)}–${r.qpfBounds[1].toFixed(2)}"` : "unchanged"}.">*</span>` : ""}${rng(r.qpfR, 2, r.ensR.qpf)}</td>`, txt: (r) => f(r.qpf, 2, '"') + (r.prorated ? " *" : "") },
@@ -331,7 +331,7 @@
         cell: (r) => `<td title="${r.contrib.length} sources with a complete day: ${r.contrib.map((id) => NAMES[id]).join(", ")}">${meter(r.ag.level)}<span class="msg" style="color:var(--text);font-weight:700">${r.ag.word}</span></td>`, txt: (r) => `${r.ag.word} (${r.contrib.length} sources)` },
       ...(hasN ? [
         { l: [`${nwsTag} morning`, "low"], def: "NWS official low for the night leading into this date's morning (usually the preceding 6 PM through 6 AM). Not tonight's low. Unavailable when the issued forecast no longer contains that period.", tier: 2, nws: true,
-          cell: (r) => { const dn=nwsDayNight(r.k); return `<td class="num nwscol" title="${dn.morning ? O.esc(`${dn.morning.name}: ${local(dn.morning.s)}–${local(dn.morning.e)}`) : "Morning period no longer in this NWS forecast"}">${dn.morning ? `<span class="lo">${dn.morning.temp}°</span>` : "—"}</td>`; }, txt: r => { const p=nwsDayNight(r.k).morning;return p?`${p.temp}° (${p.name})`:"—"; } },
+          cell: (r) => { const dn=r.k===clock.day&&(clock.dayLead||clock.forward)?{}:nwsDayNight(r.k); return `<td class="num nwscol" title="${dn.morning ? O.esc(`${dn.morning.name}: ${local(dn.morning.s)}–${local(dn.morning.e)}`) : "Morning period no longer in this NWS forecast"}">${dn.morning ? `<span class="lo">${dn.morning.temp}°</span>` : "—"}</td>`; }, txt: r => { const p=nwsDayNight(r.k).morning;return p?`${p.temp}° (${p.name})`:"—"; } },
         { l: [`${nwsTag} day`, "high"], def: "NWS official daytime period high (usually 6 AM–6 PM), not a calendar-day high; it can differ from the blend's midnight-to-midnight high.", tier: 2, nws: true,
           cell: (r) => { const dn = nwsDayNight(r.k); return `<td class="num nwscol" title="${dn.day ? O.esc(`${dn.day.name}: ${local(dn.day.s)}–${local(dn.day.e)}`) : "No NWS daytime period starts this day"}">${dn.day ? `<span class="hi">${dn.day.temp}°</span>` : "—"}</td>`; }, txt: (r) => { const dn = nwsDayNight(r.k); return dn.day ? `${dn.day.temp}° (${dn.day.name})` : "—"; } },
       ] : []),
@@ -351,7 +351,7 @@
     });
     recordWatch.wire($("daily"));
     impactFlags.wire($("daily"));
-    $("dailyNote").append(document.createTextNode(' Arrows and timing labels describe the weighted hourly temperature curve, which may differ from the daily-extrema blend. After 6 PM, earlier today is collapsed. Daily flags: AM fog?, Frost?/Freeze? and G:20+ (mph bands). Tap for sources, hours and screening limits. These are investigation cues, not advisories; no flag is not an all-clear.'));
+    $("dailyNote").append(document.createTextNode(' Arrows and timing labels describe the weighted hourly temperature curve, which may differ from the daily-extrema blend. After 9 AM, today’s elapsed morning low is hidden; after 5 PM, earlier today is collapsed. Daily flags: AM fog?, Frost?/Freeze? and G:20+ (mph bands). Tap for sources, hours and screening limits. These are investigation cues, not advisories; no flag is not an all-clear.'));
     $("dailyNote").append(document.createTextNode(recordWatch.note(rows, O.location, data.tz)));
     if (fresh) {
       const snap = { cfg: `${preset}|${C.config.fingerprint(W())}|${JSON.stringify(R())}`, rows: {} };
@@ -471,10 +471,10 @@
     const planning=window.ForecastClock.periods(C,data.tz,Date.now());
     const periodValue=p=>{const ix=data.ms.map((ms,i)=>({ms,i})).filter(x=>x.ms>=p.s&&x.ms<p.e).map(x=>x.i);return ix.length===(p.e-p.s)/3600000?C.blend.windowRow(data,W(),ix,ix,OPTS()):null;};
     const night=planning.primary.find(p=>p.label==='Tonight'),day=planning.primary.find(p=>p.label==='Tomorrow');
-    const nightRow=night?periodValue(night):null,dayRow=day?periodValue(day):null;
+    const nightRow=night?periodValue(night):null,dayRow=day?periodValue(day):null,todayRow=clock.dayLead?periodValue(planning.primary[0]):null;
     $("tiles").innerHTML = [
-      [clock.forward ? "Tonight low" : "Blend now", f(clock.forward ? nightRow?.lo : tNow, 0, "°F"), clock.forward ? "Upcoming night hours · through 6 AM" : spreadNow ? `sources ${spreadNow[0].toFixed(0)}–${spreadNow[1].toFixed(0)}° · not an observation` : "not an observation"],
-      [clock.forward ? "Tomorrow high" : "24 h low / high", clock.forward ? f(dayRow?.hi,0,"°F") : `${f(lo, 0, "°")} / ${f(hi, 0, "°")}`, clock.forward ? "6 AM–6 PM local" : `${tm.length} sources in blend`],
+      [clock.forward ? "Tonight low" : clock.dayLead ? "Today high" : "Blend now", f(clock.forward ? nightRow?.lo : clock.dayLead ? todayRow?.hi : tNow, 0, "°F"), clock.forward ? "Upcoming night hours · through 6 AM" : clock.dayLead ? "Upcoming daytime hours · through 6 PM" : spreadNow ? `sources ${spreadNow[0].toFixed(0)}–${spreadNow[1].toFixed(0)}° · not an observation` : "not an observation"],
+      [clock.forward ? "Tomorrow high" : clock.dayLead ? "Tonight low" : "24 h low / high", clock.forward ? f(dayRow?.hi,0,"°F") : clock.dayLead ? f(nightRow?.lo,0,"°F") : `${f(lo, 0, "°")} / ${f(hi, 0, "°")}`, clock.forward ? "6 AM–6 PM local" : clock.dayLead ? "6 PM–6 AM local" : `${tm.length} sources in blend`],
       ["24 h precip", f(qpf, 2, '"'), `max hourly chance ${f(pop, 0, "%")}`],
       ["24 h snow", sn != null && sn >= 0.05 ? f(sn, 1, '"') : "—", "blended snow"],
       ["Peak gust", f(gust, 0, " mph"), "blended, next 24 h"],
@@ -564,7 +564,7 @@
 
   render();
   run();
-  const displayTimer=setInterval(()=>{if(data&&!document.hidden){const c=window.ForecastClock.focus(C,data.tz,Date.now());if(`${c.day}|${c.forward}|${c.evening}`!==displayClockKey)render();else renderNow();}},60000);
+  const displayTimer=setInterval(()=>{if(data&&!document.hidden){const c=window.ForecastClock.focus(C,data.tz,Date.now());if(`${c.day}|${c.dayLead}|${c.forward}|${c.evening}`!==displayClockKey)render();else renderNow();}},60000);
   window.addEventListener('pagehide',()=>clearInterval(displayTimer),{once:true});
 })();
 
