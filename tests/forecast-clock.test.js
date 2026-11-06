@@ -31,7 +31,7 @@ assert.equal(F.nwsMorning(C,tz,periods,'2026-11-04').morning.temp,42);
 assert.equal(F.nwsMorning(C,tz,periods,'2026-11-05').morning.temp,35);
 assert.equal(F.nwsMorning(C,tz,periods.slice(1),'2026-11-04').morning,undefined);
 assert(!F.focus(C,tz,at('13:59')).forward);assert(F.focus(C,tz,at('14:00')).forward);
-assert(!F.focus(C,tz,at('17:59')).evening);assert(F.focus(C,tz,at('19:46')).evening);
+assert(!F.focus(C,tz,at('16:59')).evening);assert(F.focus(C,tz,at('19:46')).evening);
 const axis=Array.from({length:48},(_,i)=>at('00:00')+i*H),day='2026-11-04';
 const diurnal=axis.map(ms=>{const h=+C.time.toLocal(ms,tz).slice(11,13);return 50+10*Math.cos((h-15)*Math.PI/12);});
 assert.deepEqual(F.temperaturePattern(C,tz,axis,diurnal,day),[],'ordinary diurnal cycle has no extra cue');
@@ -45,3 +45,9 @@ assert.deepEqual(F.temperaturePattern(C,tz,axis,axis.map(()=>50),day),[],'flat t
 const lateLow=axis.map((_,i)=>50-8*Math.cos(((i%24)-15)*Math.PI/12));
 assert(F.temperaturePattern(C,tz,axis,lateLow,day).some(c=>c.kind==='oddLow'));
 console.log('NWS morning pairing, afternoon/evening focus and non-diurnal hourly cues pass');
+
+assert(!F.focus(C,tz,at('08:59')).dayLead);assert(F.focus(C,tz,at('09:00')).dayLead);assert(!F.focus(C,tz,at('14:00')).dayLead);
+assert(F.focus(C,tz,at('17:00')).evening);
+p=F.periods(C,tz,at('16:59'));assert(p.remaining);
+p=F.periods(C,tz,at('17:00'));assert.equal(p.remaining,null);assert.equal(p.primary[0].s,at('17:00'));assert.equal(p.primary[0].label,'Tonight');
+console.log('9 AM / 2 PM / 5 PM local focus transitions pass');

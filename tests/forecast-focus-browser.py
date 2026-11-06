@@ -209,8 +209,19 @@ with sync_playwright() as p:
  page.evaluate('sessionStorage.clear()');page.reload()
  page.wait_for_function('document.querySelector("#daily tr[data-k]") && !document.querySelector("#runBtn").disabled')
  assert page.locator('#daily .impact-fog').count()==0,'rain-obscured LUK must not produce a regional fog/visibility flag'
+ # At 9 AM, elapsed morning lows disappear while today stays available.
+ page.clock.set_fixed_time(datetime(2026,11,4,9,0,tzinfo=timezone.utc))
+ page.reload();page.wait_for_function('!document.querySelector("#runBtn").disabled && document.querySelector("#daily tr[data-k]")')
+ tile_text=page.locator('#tiles').inner_text().casefold()
+ assert 'today high' in tile_text and 'tonight low' in tile_text,tile_text
+ assert page.locator('#daily tr[data-k="2026-11-04"] td').nth(1).inner_text()=='—'
+ # At 2 PM, tonight leads but today remains in the table.
+ page.clock.set_fixed_time(datetime(2026,11,4,14,0,tzinfo=timezone.utc))
+ page.reload();page.wait_for_function('!document.querySelector("#runBtn").disabled && document.querySelector("#daily tr[data-k]")')
+ assert page.locator('#tiles .tile .k').first.inner_text().casefold()=='tonight low'
+ assert page.locator('#daily tr[data-k]').first.get_attribute('data-k')=='2026-11-04'
  # Evening planning focus and an explicit way to reopen the elapsed calendar day.
- page.clock.set_fixed_time(datetime(2026,11,4,19,46,tzinfo=timezone.utc))
+ page.clock.set_fixed_time(datetime(2026,11,4,17,0,tzinfo=timezone.utc))
  page.reload();page.wait_for_function('!document.querySelector("#runBtn").disabled && document.querySelector("#daily tr[data-k]")')
  assert page.locator('#daily tr[data-k]').first.get_attribute('data-k')=='2026-11-05'
  tile_text=page.locator('#tiles').inner_text().casefold()
