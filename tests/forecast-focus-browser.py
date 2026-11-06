@@ -52,7 +52,7 @@ def om_response(url):
   if not v:continue
   d[v]=[54+revision*4 if v=='temperature_2m_max' else 42+revision*4 if v=='temperature_2m_min' else .36+revision*.24 if v=='precipitation_sum' else 18 if 'gust' in v else 0 for _ in dates]
   if impact_mode and 'gust' in v:d[v]=[26]*len(dates)
- return {'latitude':float(lats[0]),'longitude':float(lons[0]),'timezone':'UTC','utc_offset_seconds':0,'hourly':h,'daily':d,'hourly_units':{v:('ft' if v=='visibility' else 'wmo code' if v=='weather_code' else '°F' if v in ['temperature_2m','dew_point_2m'] else 'inch' if v in ['precipitation','snowfall'] else 'mph') for v in h}}
+ return {'latitude':float(lats[0]),'longitude':float(lons[0]),'timezone':'UTC','utc_offset_seconds':0,'hourly':h,'daily':d,'hourly_units':{v:('ft' if v=='visibility' else 'wmo code' if v=='weather_code' else '°F' if v in ['temperature_2m','dew_point_2m'] else 'inch' if v.split('_member')[0] in ['precipitation','snowfall'] else 'mph') for v in h}}
 
 with sync_playwright() as p:
  browser=p.chromium.launch()
