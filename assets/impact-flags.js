@@ -74,7 +74,7 @@
   function mount({ O, C }) {
     const E = O.esc;
     function badges(day, flags) {
-      return flags.length ? `<div class="impact-flags">${flags.map(f => `<button type="button" class="impact-flag impact-${f.kind}" data-impact-day="${E(day)}" aria-expanded="false" aria-controls="impact-${E(day)}" title="${E(f.criteria)}">${f.label}<span class="sr"> Investigate guidance for ${E(day)}</span></button>`).join('')}</div>` : '';
+      return flags.length ? `<div class="impact-flags">${flags.map(f => `<button type="button" class="impact-flag impact-${f.kind}" data-impact-day="${E(day)}" aria-expanded="false" aria-controls="impact-${E(day)}" title="${E(f.criteria)}">${E(f.label.split(" · ")[0])}${f.label.includes(" · ") ? `<span class="impact-sites">${E(f.label.split(" · ")[1])}</span>` : ""}<span class="sr"> Investigate guidance for ${E(day)}</span></button>`).join('')}</div>` : '';
     }
     function details(day, flags, names, tz, columns) {
       if (!flags.length) return '';
