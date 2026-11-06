@@ -96,7 +96,9 @@ with sync_playwright() as p:
  regional=page.locator('#daily td[title*="regional sample"]').first
  assert regional.locator('strong').text_content()=='100%'
  assert any(x in regional.text_content() for x in ['AM','PM','Overnight','Evening','windows'])
- assert '65%' in page.locator('#daily').text_content(), '63% point PoP displays as 65%'
+ assert page.evaluate('Ops.pct5(63)')=='65%', '63% displays as 65%'
+ for cell in page.locator('#daily tr[data-k] td:nth-child(7)').all_text_contents():
+  if '%' in cell:assert float(cell.rstrip('%'))%5==0, cell
  assert headings.index('morning')<headings.index('nws day'),'NWS morning low precedes daytime high'
 
  assert page.evaluate('document.querySelector("#daily").closest(".card").nextElementSibling.id')=='forecastChartCard','graph immediately follows daily blend'
