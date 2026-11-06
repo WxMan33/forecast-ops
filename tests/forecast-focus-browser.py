@@ -181,7 +181,7 @@ with sync_playwright() as p:
  dayrow=page.locator('#daily tr[data-k="2026-11-04"]')
  assert dayrow.locator('.impact-fog').count()==1 and dayrow.locator('.impact-frost').count()==1
  assert dayrow.locator('.impact-wind').inner_text().startswith('G:20+')
- assert 20<=float(dayrow.locator('td').nth(7).inner_text().split()[0])<30,'future wind badge matches the displayed daily gust band'
+ assert 20<=float(dayrow.locator('td').nth(8).inner_text().split()[0])<30,'future wind badge matches the displayed daily gust band'
  dayrow.locator('.impact-fog').click()
  assert page.locator('#impact-2026-11-04').is_visible()
  assert 'ECMWF IFS' in page.locator('#impact-2026-11-04').inner_text()
