@@ -7,7 +7,8 @@ The product goal is current model-based tornado, wind and hail probability conto
 - Implemented: filled probability contours, original sample dots, combined display, consistent color legend, light/dark basemaps, opacity, original-sample readouts and missing-data handling.
 - Implemented: an explicit daily input contract, current NOAA HRRR index availability probe and rejection of incompatible four-hour/other-lead model artifacts.
 - Verified: all 49 required hourly input indices from the November 6, 2026 12 UTC cycle contain the selected Day 1/2 fields. The exact index records, retrieval times and hashes are in `evidence/severe-daily-inputs-20261106.json`.
-- Not implemented: daily feature extraction/training/calibration, independent daily verification, daily inference or a current probability feed. Input availability is not a successful GRIB decode or a forecast.
+- Implemented in the next backend checkpoint: complete daily predictor extraction with native-grid neighborhood summaries, byte-range receipts, time/parameter/grid checks and immutable predictor artifacts. See the extraction section below.
+- Not implemented: daily training/calibration, independent daily verification, daily inference or a current probability feed. Extracted predictors alone are not a forecast.
 
 The current research model was fit only for f06–f10 of a 12 UTC cycle and a four-hour outcome. Its inference code rejects other leads. It cannot be applied to f24–f48 or treated as a daily forecast by renaming a file. A four-hour maximum, sum or independent-event product is not a calibrated 24-hour probability.
 
@@ -49,3 +50,31 @@ Extended HRRR reaches 48 hours, so it cannot provide a complete third 24-hour wi
 `python tools/severe/daily.py --output tests/out/severe-daily-inputs.json`
 
 An explicit initialization date can be passed with `--date YYYY-MM-DD`. The tool requests bounded index text only (four concurrent requests), records exact field ranges and creates no probabilities. `python tests/severe-daily.test.py` checks window alignment, UH endpoints, model compatibility and unsupported horizons.
+
+## Complete daily predictor extraction
+
+Install `tools/severe/requirements.txt`, then run:
+
+```bash
+python tools/severe/extract.py --date 2026-11-06 --output tests/out/severe-daily/20261106 --cache tests/out/severe-daily-cache/20261106 --max-download-mb 2000
+```
+
+The extractor downloads only the selected GRIB messages, enforces an overall byte budget and rejects servers that ignore exact byte ranges. Verified cache entries must match their URL, byte range and SHA-256; an unverified or corrupt entry fails closed. Use a separate cache directory for each initialization. The output directory must be new.
+
+All requested windows must contain exactly 24 valid hours before a completed artifact is written. The extractor checks initialization, step units and instantaneous/UH interval semantics, native Lambert grid definition, parameter identities and unit strings across every hour. Nonfinite or missing predictors fail the build. Neighborhoods use a 40.2336 km disk at nominal 3 km native-grid spacing without missing-value or edge padding. No unit scaling is guessed. These engineering checks do not resolve all model-version and producer-unit interpretation questions before scientific evaluation.
+
+The two predictor artifacts each contain 16,413 sampled locations across the initial eastern/central-U.S. domain (100–75°W, 30–45°N), not the full CONUS. There are 34 columns: temporal maximum and mean of eight native fields and their neighborhood maxima, plus the vector-magnitude shear maximum and mean. Means use float64 accumulation and final predictors use native float32 precision. The artifacts preserve the actual coordinates, feature names and independent Day 1/Day 2 time windows.
+
+The manifest records valid windows, grid geometry/hash, parameter identities, source field hashes and download times, hourly sampled-feature hashes and completed-file hashes. Each artifact is marked `predictors_only_not_a_forecast`. No labels, models or probabilities are fabricated. The 2025 final outcomes remain untouched.
+
+`python tests/severe-extraction.test.py` checks the daily statistics, window completeness, cross-day separation, missing/changed data rejection, native-disk calculations and GRIB time semantics. The `Severe daily predictor extraction` workflow runs these checks on relevant changes. A manual run can additionally extract both full windows and retain the completed artifacts; extraction is off by default.
+
+The next training build must extract matching historical daily predictors, create full-window report labels and fit/calibrate separate daily models. Existing four-hour predictions and scores are not inputs or evidence of daily model skill.
+
+An independent raw-data audit is available with `tools/severe/audit_extraction.py`. It verifies every retained source hash and time record, then recalculates full-day point and neighborhood CAPE/UH means and maxima at five distributed grid centers plus daily CAPE/UH maxima. The audit uses direct native-grid disk slices independently of the extractor's sampling routine. It also compares the preserved coordinates and complete 34-column matrix dimensions. A manual workflow runs this audit before retaining the predictor artifact.
+
+A timing restriction remains before forecast training: the 12 UTC engineering window begins at initialization, while the complete model run becomes available later. Its first elapsed hours must not be counted as future forecast skill. An operational full-day Day 1 product needs an earlier available cycle, or a separately trained remaining-window target with the actual availability/issuance cutoff. The current extraction is an input-engineering replay and must not be promoted unchanged as a prospective full-day forecast.
+
+### November 6 extraction checkpoint
+
+The 12 UTC engineering run completed both windows, each with 16,413 centers and 34 predictors. It downloaded 471,745,406 bytes in bounded field/index requests and decoded 384 native GRIB messages. There are 48 complete hourly feature records. An independent audit verified all source hashes and time records and recalculated selected daily CAPE/UH statistics from raw fields; it passed. The sampled coordinate order also matches the archive viewer at six decimal places. The compact result is in `evidence/severe-daily-extraction-20261106.json`. This proves successful predictor extraction, not forecast skill or a completed daily model.

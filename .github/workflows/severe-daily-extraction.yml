@@ -1,0 +1,61 @@
+name: Severe daily predictor extraction
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/severe/extract.py'
+      - 'tools/severe/daily.py'
+      - 'tools/severe/audit_extraction.py'
+      - 'tools/severe/requirements.txt'
+      - 'tests/severe-extraction.test.py'
+      - '.github/workflows/severe-daily-extraction.yml'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: '12 UTC initialization date, YYYY-MM-DD (blank: latest 12 UTC cycle)'
+        required: false
+        type: string
+      extract:
+        description: 'Extract both full daily predictor windows (up to 2 GB downloaded)'
+        default: false
+        type: boolean
+permissions:
+  contents: read
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: tools/severe/requirements.txt
+      - run: pip install -r tools/severe/requirements.txt
+      - run: python tests/severe-extraction.test.py
+      - run: python tests/severe-daily.test.py
+      - name: Extract current predictors only
+        if: github.event_name == 'workflow_dispatch' && inputs.extract
+        env:
+          REQUESTED_DATE: ${{ inputs.date }}
+        run: |
+          python - <<'PY'
+          import datetime as dt, os, subprocess
+          now=dt.datetime.now(dt.timezone.utc)
+          issue=now.replace(hour=12,minute=0,second=0,microsecond=0)
+          if issue>now:issue-=dt.timedelta(days=1)
+          date=os.environ['REQUESTED_DATE'] or issue.date().isoformat()
+          dt.datetime.strptime(date,'%Y-%m-%d')
+          subprocess.run(['python','tools/severe/extract.py','--date',date,'--output','tests/out/severe-daily','--cache','tests/out/severe-cache','--max-download-mb','2000'],check=True)
+          PY
+      - name: Audit completed predictor artifacts
+        if: github.event_name == 'workflow_dispatch' && inputs.extract
+        run: python tools/severe/audit_extraction.py --output tests/out/severe-daily --cache tests/out/severe-cache --report tests/out/severe-daily/raw-audit.json
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch' && inputs.extract
+        with:
+          name: severe-daily-predictors
+          path: tests/out/severe-daily
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,603 @@
+{
+  "schema_version": 1,
+  "status": "predictors_only_not_a_forecast",
+  "feature_schema": "hrrr-daily-25mi-v1",
+  "model_init_time": "2026-11-06T12:00:00+00:00",
+  "completed_at": "2026-11-06T19:02:05.487565+00:00",
+  "bounds": [
+    -100,
+    -75,
+    30,
+    45
+  ],
+  "stride": 5,
+  "native_grid": {
+    "gridType": "lambert",
+    "Ni": 1799,
+    "Nj": 1059,
+    "DxInMetres": 3000.0,
+    "DyInMetres": 3000.0,
+    "latitudeOfFirstGridPointInDegrees": 21.138123,
+    "longitudeOfFirstGridPointInDegrees": 237.280472,
+    "LaDInDegrees": 38.5,
+    "LoVInDegrees": 262.5,
+    "Latin1InDegrees": 38.5,
+    "Latin2InDegrees": 38.5,
+    "iScansNegatively": 0,
+    "jScansPositively": 1
+  },
+  "field_identities": {
+    "sbcape": {
+      "units": "J kg**-1",
+      "discipline": 0,
+      "parameterCategory": 7,
+      "parameterNumber": 6,
+      "typeOfLevel": "surface",
+      "level": 0
+    },
+    "sbcin": {
+      "units": "J kg**-1",
+      "discipline": 0,
+      "parameterCategory": 7,
+      "parameterNumber": 7,
+      "typeOfLevel": "surface",
+      "level": 0
+    },
+    "srh01": {
+      "units": "m**2 s**-2",
+      "discipline": 0,
+      "parameterCategory": 7,
+      "parameterNumber": 8,
+      "typeOfLevel": "heightAboveGroundLayer",
+      "level": 1000
+    },
+    "reflectivity": {
+      "units": "dB",
+      "discipline": 0,
+      "parameterCategory": 16,
+      "parameterNumber": 196,
+      "typeOfLevel": "atmosphere",
+      "level": 0
+    },
+    "dewpoint2m": {
+      "units": "K",
+      "discipline": 0,
+      "parameterCategory": 0,
+      "parameterNumber": 6,
+      "typeOfLevel": "heightAboveGround",
+      "level": 2
+    },
+    "shear06_u": {
+      "units": "s**-1",
+      "discipline": 0,
+      "parameterCategory": 2,
+      "parameterNumber": 15,
+      "typeOfLevel": "heightAboveGroundLayer",
+      "level": 0
+    },
+    "shear06_v": {
+      "units": "s**-1",
+      "discipline": 0,
+      "parameterCategory": 2,
+      "parameterNumber": 16,
+      "typeOfLevel": "heightAboveGroundLayer",
+      "level": 0
+    },
+    "uh25": {
+      "units": "unknown",
+      "discipline": 0,
+      "parameterCategory": 7,
+      "parameterNumber": 199,
+      "typeOfLevel": "heightAboveGroundLayer",
+      "level": 5000
+    }
+  },
+  "grid_sha256": "d700ec03464bdddd27f366ce1fec6802438e1c7bdc51029d08623b6ea58bd454",
+  "products": [
+    {
+      "day": 1,
+      "model": "hrrr-v4",
+      "feature_schema": "hrrr-daily-25mi-v1",
+      "model_init_time": "2026-11-06T12:00:00+00:00",
+      "radius_km": 40.2336,
+      "valid_start": "2026-11-06T12:00:00+00:00",
+      "valid_end": "2026-11-07T12:00:00+00:00",
+      "window_hours": 24,
+      "first_forecast_hour": 0,
+      "last_forecast_hour": 24,
+      "file": "day1-features.npz",
+      "sha256": "05a976e633c29fc2154e434f0b8f9d602c6af1446ffd99d7800b0cc3406eccb3",
+      "samples": 16413,
+      "features": [
+        "x_dewpoint2m_max",
+        "x_dewpoint2m_mean",
+        "x_dewpoint2m_nearby_max_max",
+        "x_dewpoint2m_nearby_max_mean",
+        "x_reflectivity_max",
+        "x_reflectivity_mean",
+        "x_reflectivity_nearby_max_max",
+        "x_reflectivity_nearby_max_mean",
+        "x_sbcape_max",
+        "x_sbcape_mean",
+        "x_sbcape_nearby_max_max",
+        "x_sbcape_nearby_max_mean",
+        "x_sbcin_max",
+        "x_sbcin_mean",
+        "x_sbcin_nearby_max_max",
+        "x_sbcin_nearby_max_mean",
+        "x_shear06_max",
+        "x_shear06_mean",
+        "x_shear06_u_max",
+        "x_shear06_u_mean",
+        "x_shear06_u_nearby_max_max",
+        "x_shear06_u_nearby_max_mean",
+        "x_shear06_v_max",
+        "x_shear06_v_mean",
+        "x_shear06_v_nearby_max_max",
+        "x_shear06_v_nearby_max_mean",
+        "x_srh01_max",
+        "x_srh01_mean",
+        "x_srh01_nearby_max_max",
+        "x_srh01_nearby_max_mean",
+        "x_uh25_max",
+        "x_uh25_mean",
+        "x_uh25_nearby_max_max",
+        "x_uh25_nearby_max_mean"
+      ],
+      "probabilities_available": false
+    },
+    {
+      "day": 2,
+      "model": "hrrr-v4",
+      "feature_schema": "hrrr-daily-25mi-v1",
+      "model_init_time": "2026-11-06T12:00:00+00:00",
+      "radius_km": 40.2336,
+      "valid_start": "2026-11-07T12:00:00+00:00",
+      "valid_end": "2026-11-08T12:00:00+00:00",
+      "window_hours": 24,
+      "first_forecast_hour": 24,
+      "last_forecast_hour": 48,
+      "file": "day2-features.npz",
+      "sha256": "b503d28ae1d544ec73fe83f827ca19cb6b777e3e210d4dfad1d590dff7f62b8f",
+      "samples": 16413,
+      "features": [
+        "x_dewpoint2m_max",
+        "x_dewpoint2m_mean",
+        "x_dewpoint2m_nearby_max_max",
+        "x_dewpoint2m_nearby_max_mean",
+        "x_reflectivity_max",
+        "x_reflectivity_mean",
+        "x_reflectivity_nearby_max_max",
+        "x_reflectivity_nearby_max_mean",
+        "x_sbcape_max",
+        "x_sbcape_mean",
+        "x_sbcape_nearby_max_max",
+        "x_sbcape_nearby_max_mean",
+        "x_sbcin_max",
+        "x_sbcin_mean",
+        "x_sbcin_nearby_max_max",
+        "x_sbcin_nearby_max_mean",
+        "x_shear06_max",
+        "x_shear06_mean",
+        "x_shear06_u_max",
+        "x_shear06_u_mean",
+        "x_shear06_u_nearby_max_max",
+        "x_shear06_u_nearby_max_mean",
+        "x_shear06_v_max",
+        "x_shear06_v_mean",
+        "x_shear06_v_nearby_max_max",
+        "x_shear06_v_nearby_max_mean",
+        "x_srh01_max",
+        "x_srh01_mean",
+        "x_srh01_nearby_max_max",
+        "x_srh01_nearby_max_mean",
+        "x_uh25_max",
+        "x_uh25_mean",
+        "x_uh25_nearby_max_max",
+        "x_uh25_nearby_max_mean"
+      ],
+      "probabilities_available": false
+    }
+  ],
+  "downloaded_bytes": 471745406,
+  "neighborhood": "Nominal 3 km native-grid disk; no missing/edge padding",
+  "operational_skill_established": false,
+  "source_messages": 384,
+  "hourly_feature_records": 48,
+  "manifest_sha256": "f8abbece5b2540b3d2ad9512d63f5666cfe3cb278c34e9266b7ceca7c84bc511",
+  "raw_audit": {
+    "status": "passed",
+    "model_init_time": "2026-11-06T12:00:00+00:00",
+    "source_messages_checked": 384,
+    "raw_recalculation": "24-hour CAPE and hourly UH point/native-disk mean and maximum; five distributed centers plus day-specific CAPE/UH maxima",
+    "checks": [
+      {
+        "day": 1,
+        "feature": "x_sbcape_mean",
+        "sample_indices": [
+          0,
+          2476,
+          4103,
+          7145,
+          8053,
+          8206,
+          12309,
+          16412
+        ],
+        "values": [
+          0.0,
+          1235.8333740234375,
+          0.0,
+          371.25,
+          410.8333435058594,
+          196.25,
+          7.5,
+          42.91666793823242
+        ]
+      },
+      {
+        "day": 1,
+        "feature": "x_sbcape_max",
+        "sample_indices": [
+          0,
+          2476,
+          4103,
+          7145,
+          8053,
+          8206,
+          12309,
+          16412
+        ],
+        "values": [
+          0.0,
+          2700.0,
+          0.0,
+          1590.0,
+          1820.0,
+          580.0,
+          10.0,
+          230.0
+        ]
+      },
+      {
+        "day": 1,
+        "feature": "x_sbcape_nearby_max_mean",
+        "sample_indices": [
+          0,
+          2476,
+          4103,
+          7145,
+          8053,
+          8206,
+          12309,
+          16412
+        ],
+        "values": [
+          1.25,
+          1615.0,
+          5.0,
+          575.0,
+          763.3333129882812,
+          505.4166564941406,
+          13.75,
+          89.16666412353516
+        ]
+      },
+      {
+        "day": 1,
+        "feature": "x_sbcape_nearby_max_max",
+        "sample_indices": [
+          0,
+          2476,
+          4103,
+          7145,
+          8053,
+          8206,
+          12309,
+          16412
+        ],
+        "values": [
+          10.0,
+          2730.0,
+          10.0,
+          2080.0,
+          2240.0,
+          1460.0,
+          20.0,
+          260.0
+        ]
+      },
+      {
+        "day": 1,
+        "feature": "x_uh25_mean",
+        "sample_indices": [
+          0,
+          2476,
+          4103,
+          7145,
+          8053,
+          8206,
+          12309,
+          16412
+        ],
+        "values": [
+          0.0,
+          0.05416666343808174,
+          0.0,
+          0.07500000298023224,
+          2.183333396911621,
+          0.09166666865348816,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "day": 1,
+        "feature": "x_uh25_max",
+        "sample_indices": [
+          0,
+          2476,
+          4103,
+          7145,
+          8053,
+          8206,
+          12309,
+          16412
+        ],
+        "values": [
+          0.0,
+          1.2999999523162842,
+          0.0,
+          0.6000000238418579,
+          46.79999923706055,
+          1.2999999523162842,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "day": 1,
+        "feature": "x_uh25_nearby_max_mean",
+        "sample_indices": [
+          0,
+          2476,
+          4103,
+          7145,
+          8053,
+          8206,
+          12309,
+          16412
+        ],
+        "values": [
+          0.0,
+          0.5291666388511658,
+          0.0,
+          9.583333015441895,
+          8.537500381469727,
+          5.1875,
+          0.0,
+          0.004166666883975267
+        ]
+      },
+      {
+        "day": 1,
+        "feature": "x_uh25_nearby_max_max",
+        "sample_indices": [
+          0,
+          2476,
+          4103,
+          7145,
+          8053,
+          8206,
+          12309,
+          16412
+        ],
+        "values": [
+          0.0,
+          4.099999904632568,
+          0.0,
+          59.400001525878906,
+          51.29999923706055,
+          32.5,
+          0.0,
+          0.10000000149011612
+        ]
+      },
+      {
+        "day": 2,
+        "feature": "x_sbcape_mean",
+        "sample_indices": [
+          0,
+          2656,
+          2658,
+          2978,
+          4103,
+          8206,
+          12309,
+          16412
+        ],
+        "values": [
+          2.5,
+          302.5,
+          360.4166564941406,
+          397.0833435058594,
+          0.0,
+          0.0,
+          3.75,
+          0.4166666567325592
+        ]
+      },
+      {
+        "day": 2,
+        "feature": "x_sbcape_max",
+        "sample_indices": [
+          0,
+          2656,
+          2658,
+          2978,
+          4103,
+          8206,
+          12309,
+          16412
+        ],
+        "values": [
+          10.0,
+          2100.0,
+          1340.0,
+          1550.0,
+          0.0,
+          0.0,
+          10.0,
+          10.0
+        ]
+      },
+      {
+        "day": 2,
+        "feature": "x_sbcape_nearby_max_mean",
+        "sample_indices": [
+          0,
+          2656,
+          2658,
+          2978,
+          4103,
+          8206,
+          12309,
+          16412
+        ],
+        "values": [
+          9.166666984558105,
+          575.4166870117188,
+          680.8333129882812,
+          694.5833129882812,
+          1.6666666269302368,
+          5.416666507720947,
+          6.25,
+          12.916666984558105
+        ]
+      },
+      {
+        "day": 2,
+        "feature": "x_sbcape_nearby_max_max",
+        "sample_indices": [
+          0,
+          2656,
+          2658,
+          2978,
+          4103,
+          8206,
+          12309,
+          16412
+        ],
+        "values": [
+          30.0,
+          2140.0,
+          2140.0,
+          1820.0,
+          10.0,
+          20.0,
+          10.0,
+          30.0
+        ]
+      },
+      {
+        "day": 2,
+        "feature": "x_uh25_mean",
+        "sample_indices": [
+          0,
+          2656,
+          2658,
+          2978,
+          4103,
+          8206,
+          12309,
+          16412
+        ],
+        "values": [
+          0.22500000894069672,
+          0.004166666883975267,
+          0.1041666641831398,
+          0.6875,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "day": 2,
+        "feature": "x_uh25_max",
+        "sample_indices": [
+          0,
+          2656,
+          2658,
+          2978,
+          4103,
+          8206,
+          12309,
+          16412
+        ],
+        "values": [
+          2.5,
+          0.10000000149011612,
+          1.2999999523162842,
+          15.5,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "day": 2,
+        "feature": "x_uh25_nearby_max_mean",
+        "sample_indices": [
+          0,
+          2656,
+          2658,
+          2978,
+          4103,
+          8206,
+          12309,
+          16412
+        ],
+        "values": [
+          1.3291666507720947,
+          1.25,
+          2.2125000953674316,
+          2.2125000953674316,
+          0.0,
+          0.0,
+          0.0,
+          0.05833333358168602
+        ]
+      },
+      {
+        "day": 2,
+        "feature": "x_uh25_nearby_max_max",
+        "sample_indices": [
+          0,
+          2656,
+          2658,
+          2978,
+          4103,
+          8206,
+          12309,
+          16412
+        ],
+        "values": [
+          5.0,
+          20.100000381469727,
+          24.700000762939453,
+          24.700000762939453,
+          0.0,
+          0.0,
+          0.0,
+          0.6000000238418579
+        ]
+      }
+    ],
+    "probabilities_generated": false
+  },
+  "viewer_grid_matches_at_six_decimals": true,
+  "forecast_probabilities_generated": false
+}
