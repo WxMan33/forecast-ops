@@ -679,7 +679,7 @@ select.input.inline { width: auto; display: inline-block; padding: 3px 8px; font
 /* Presentation polish: quiet surfaces, legible hierarchy and compact mobile chrome. */
 :root:not([data-theme="light"]) { --muted:#A0ABBC; --faint:#8895A8; --line:#293341; }
 .btn.ghost { text-decoration:none; }
-.btn,.tab,.navbar a,.hubcard { transition:background-color .15s ease,border-color .15s ease,color .15s ease; }
+.btn,.tab,.navbar a,.hubcard { transition:border-color .15s ease; }
 .btn.ghost:hover,.tab:not([aria-selected="true"]):hover { background:var(--raised); border-color:var(--faint); }
 .btn:not(.ghost):not(:disabled):hover { background:color-mix(in srgb,var(--accent) 85%,var(--text)); }
 .input:hover { border-color:var(--faint); }
@@ -701,6 +701,9 @@ body:not(.almanac-page) .statusbar:has(.site-id) { display:grid; grid-template-c
 .hl-note { font-size:9px; line-height:1.4; }
 .utility { gap:7px; }
 .utility .chip { font-size:9px; padding:6px 8px; }
+:root[data-theme="light"] .chip.live { color:#15803D; }
+:root[data-theme="light"] .chip.warn { color:#854D0E; }
+:root[data-theme="light"] .badge { color:color-mix(in srgb,var(--b,var(--nodata)) 65%,#111); }
 .alerts { padding:8px 20px; }
 .card { box-shadow:0 1px 2px rgb(0 0 0 / .04); }
 .section-title { font-size:16px; letter-spacing:-.015em; }
