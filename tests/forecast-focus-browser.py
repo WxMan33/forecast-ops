@@ -2,7 +2,7 @@
 import functools,http.server,json,threading
 from datetime import datetime,timedelta,timezone
 from pathlib import Path
-from urllib.parse import urlparse,parse_qs
+from urllib.parse import urlparse,parse_qs,urlencode
 from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1]
 server=http.server.ThreadingHTTPServer(('127.0.0.1',0),functools.partial(http.server.SimpleHTTPRequestHandler,directory=str(ROOT)))
@@ -11,15 +11,29 @@ fixtures={key:json.loads((ROOT/'tests/fixtures'/f'nws-cincinnati-{key}.json').re
 base=datetime(2026,11,4,tzinfo=timezone.utc)
 revision=0
 impact_mode=False
+visibility_clear=False
+valley_mode=False
+rain_mode=False
 
 def om_response(url):
  q=parse_qs(urlparse(url).query);n=int(q.get('forecast_days',['7'])[0])*24;model=q.get('models',[''])[0]
+ lats=q.get('latitude',['39.05'])[0].split(',');lons=q.get('longitude',['-84.66'])[0].split(',')
+ if len(lats)>1:
+  rows=[]
+  for i,(lat,lon) in enumerate(zip(lats,lons)):
+   qq={**q,'latitude':[lat],'longitude':[lon]}
+   j=om_response(urlparse(url)._replace(query=urlencode(qq,doseq=True)).geturl())
+   j.update(latitude=float(lat),longitude=float(lon),location_id=i);rows.append(j)
+  return rows
  ens='ensemble-api' in url;members=5 if 'rrfs' in model else 3
  axis=[(base+timedelta(hours=i)).strftime('%Y-%m-%dT%H:%M') for i in range(n)]
  def values(v,k):
   if v=='visibility':
+   if valley_mode and abs(float(lats[0])-39.10583)<.01:return [2640 if 3<=i%24<9 else 52800 for i in range(n)]
+   if visibility_clear:return [({'gfs_hrrr':8.5,'ncep_rrfs_conus':8.7,'ecmwf_ifs':17.4}.get(model,10))*5280]*n
    low=2640 if model=='gfs_hrrr' else 5280 if model=='ecmwf_ifs' else 10560
    return [low if impact_mode and 3<=i%24<9 else 52800 for i in range(n)]
+  if rain_mode and v=='precipitation':return [.2]*n
   if impact_mode and v in ['temperature_2m','dew_point_2m','wind_speed_10m','wind_gusts_10m','cloud_cover','precipitation']:
    return [{'temperature_2m':35,'dew_point_2m':34,'wind_speed_10m':3,'wind_gusts_10m':26,'cloud_cover':20,'precipitation':0}[v]]*n
   if v=='temperature_2m':return [42+(i%24)/2+revision*4+k/10 for i in range(n)]
@@ -38,7 +52,7 @@ def om_response(url):
   if not v:continue
   d[v]=[54+revision*4 if v=='temperature_2m_max' else 42+revision*4 if v=='temperature_2m_min' else .36+revision*.24 if v=='precipitation_sum' else 18 if 'gust' in v else 0 for _ in dates]
   if impact_mode and 'gust' in v:d[v]=[26]*len(dates)
- return {'latitude':39.05,'longitude':-84.66,'timezone':'UTC','utc_offset_seconds':0,'hourly':h,'daily':d,'hourly_units':{v:('ft' if v=='visibility' else '°F' if 'temperature' in v else 'inch' if v in ['precipitation','snowfall'] else 'mph') for v in h}}
+ return {'latitude':float(lats[0]),'longitude':float(lons[0]),'timezone':'UTC','utc_offset_seconds':0,'hourly':h,'daily':d,'hourly_units':{v:('ft' if v=='visibility' else 'wmo code' if v=='weather_code' else '°F' if v in ['temperature_2m','dew_point_2m'] else 'inch' if v in ['precipitation','snowfall'] else 'mph') for v in h}}
 
 with sync_playwright() as p:
  browser=p.chromium.launch()
@@ -149,7 +163,7 @@ with sync_playwright() as p:
  dayrow.locator('.impact-fog').click()
  assert page.locator('#impact-2026-11-04').is_visible()
  assert 'ECMWF IFS' in page.locator('#impact-2026-11-04').inner_text()
- assert 'not a visibility forecast' in page.locator('#impact-2026-11-04').inner_text()
+ assert 'Humidity/light wind alone never creates' in page.locator('#impact-2026-11-04').inner_text()
  vis_text=page.locator('#impact-2026-11-04 .impact-visibility').inner_text()
  assert '0.50 mi' in vis_text and '1.0 mi' in vis_text and '2.0 mi' in vis_text,'visibility is converted from feet to miles by source'
  assert 'ECMWF IFS 9 km' in vis_text and 'earlier forecast' in vis_text.lower()
@@ -160,9 +174,32 @@ with sync_playwright() as p:
  for width in [360,390,1440]:
   page.set_viewport_size({'width':width,'height':900})
   dayrow.locator('.impact-frost').click()
-  assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1'),f'impact overflow at {width}'
+  assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1'),str((width,page.evaluate('[...document.querySelectorAll(".impact-flags,.impact-flag,.impact-visibility,.dailywrap,#daily")].map(e=>[e.className,e.getBoundingClientRect().width,e.getBoundingClientRect().right])')))
   page.screenshot(path=str(out/f'focus-impacts-{width}.png'),full_page=True)
   dayrow.locator('.impact-frost').click()
+ # Reproduce the report: all humidity/light-wind ingredients persist, but visibility is clear.
+ visibility_clear=True
+ page.evaluate('sessionStorage.clear()');page.reload()
+ page.wait_for_function('document.querySelector("#daily tr[data-k]") && !document.querySelector("#runBtn").disabled')
+ assert page.locator('#daily .impact-fog').count()==0,'8.5/8.7/17.4 mi must not show fog or limited-visibility flags'
+ assert page.locator('#daily .impact-frost').count()>0,'frost screening stays independent'
+ valley_mode=True
+ page.evaluate('sessionStorage.clear()');page.reload()
+ page.wait_for_function('document.querySelector("#daily .impact-fog") && !document.querySelector("#runBtn").disabled')
+ valley_flag=page.locator('#daily tr[data-k="2026-11-04"] .impact-fog')
+ assert valley_flag.inner_text().startswith('AM fog?') and 'LUK' in valley_flag.inner_text() and 'CVG' not in valley_flag.inner_text(),'valley-only flag names LUK despite clear CVG'
+ valley_flag.click()
+ valley_text=page.locator('#impact-2026-11-04 .impact-visibility').inner_text()
+ assert all(name in valley_text.casefold() for name in ['lunken field','butler county regional','middletown']),valley_text
+ assert '8.5 mi' in valley_text and '0.50 mi' in valley_text
+ for width in [360,390,1440]:
+  page.set_viewport_size({'width':width,'height':900})
+  assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1'),f'airport visibility overflow at {width}'
+  page.screenshot(path=str(out/f'focus-valley-fog-{width}.png'),full_page=True)
+ rain_mode=True
+ page.evaluate('sessionStorage.clear()');page.reload()
+ page.wait_for_function('document.querySelector("#daily tr[data-k]") && !document.querySelector("#runBtn").disabled')
+ assert page.locator('#daily .impact-fog').count()==0,'rain-obscured LUK must not produce a regional fog/visibility flag'
  saved_history_count=len(history())
  page.locator('#viewMode').click()
  # Full failure state, with retained local history/settings.

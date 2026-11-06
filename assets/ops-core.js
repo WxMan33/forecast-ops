@@ -162,7 +162,7 @@
         { id: "rrfs_ens", name: "RRFS ensemble (5 members)", w: 1.25, kind: "ens", ens: "ncep_rrfs_conus_ensemble", note: "Five RRFS perturbed members, not the full time-lagged REFS product. One system weight shared across its five members. Only covered variables and windows contribute." },
       ],
       hourly: ["temperature_2m", "dew_point_2m", "apparent_temperature", "precipitation_probability", "precipitation", "snowfall", "wind_speed_10m", "wind_gusts_10m", "cloud_cover"],
-      extraHourly: { gfs_hrrr: ["visibility"], ncep_rrfs_conus: ["visibility"] },
+      extraHourly: { gfs_hrrr: ["visibility", "weather_code"], ncep_rrfs_conus: ["visibility", "weather_code"] },
       daily: ["temperature_2m_max", "temperature_2m_min", "precipitation_sum", "snowfall_sum", "precipitation_probability_max", "wind_gusts_10m_max"],
     },
     thunder: {

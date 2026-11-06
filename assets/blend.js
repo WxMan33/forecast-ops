@@ -92,10 +92,11 @@
     $("runMsg").className = "msg"; $("runMsg").textContent = `Requesting ${MODELS.length} models, ECMWF ENS, GEFS, RRFS ensemble and the NWS point forecast…`;
     const where = { lat: O.location.lat, lon: O.location.lon }, days = +$("days").value;
     // Native IFS 9 km visibility is a separate diagnostic; never add it to blend sources or weights.
-    const visibilitySpec = { id: "visibility", base: SPEC.base, params: SPEC.params, days: 3, require: ["visibility"], models: [{ id: "ecmwf_ifs", name: "ECMWF IFS 9 km visibility" }], hourly: ["visibility", "temperature_2m", "dew_point_2m", "precipitation"], daily: [] };
-    const [res, nw, en, vis] = await Promise.all([O.Data.loadModels(SPEC, { ...where, days }), O.Data.loadNWS(where),
+    const visibilitySpec = { id: "visibility", base: SPEC.base, params: SPEC.params, days: 3, require: ["visibility"], models: [{ id: "ecmwf_ifs", name: "ECMWF IFS 9 km visibility" }], hourly: ["visibility", "temperature_2m", "dew_point_2m", "precipitation", "snowfall", "weather_code"], daily: [] };
+    const [res, nw, en, vis, airports] = await Promise.all([O.Data.loadModels(SPEC, { ...where, days }), O.Data.loadNWS(where),
       O.Data.loadEnsemble(C.config.blendEns, { ...where, days }).catch(() => ({ empty: true, problems: ["ensembles unavailable"], status: {} })),
-      O.Data.loadModels(visibilitySpec, { ...where, days: Math.min(days, 7) }).catch(() => ({ empty: true }))]);
+      O.Data.loadModels(visibilitySpec, { ...where, days: Math.min(days, 7) }).catch(() => ({ empty: true })),
+      window.AirportVisibility.load(where, days, O.Data, C).catch(() => [])]);
     $("runBtn").disabled = false;
     if (!res.empty) C.blend.addSources(res, en, nw && nw.ok ? N.onAxis(nw, res.ms) : null);
     SOURCES.forEach((m) => picker.setStatus(m.id, !res.empty && res.models[m.id] ? "ok" : "none"));
@@ -111,6 +112,8 @@
       return;
     }
     data = res;
+    data.visibilityPoint = window.AirportVisibility.identify(where);
+    data.visibilitySites = airports;
     data.visibilitySources = vis.empty || !vis.models.ecmwf_ifs ? {} : { ecmwf_ifs: { ...vis.models.ecmwf_ifs, h: Object.fromEntries(Object.entries(vis.models.ecmwf_ifs.h).map(([v, a]) => [v, C.stats.align(data.ms, vis.ms, a)])) } };
     data.viewedAt = Date.now();
     data.nwsAxis = nws && nws.ok ? N.onAxis(nws, data.ms) : null;
