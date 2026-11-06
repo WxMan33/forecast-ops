@@ -1,0 +1,2406 @@
+{
+  "schema_version": 1,
+  "product": "severe-daily-input-readiness",
+  "forecast": false,
+  "created_at": "2026-11-06T18:41:55.736102+00:00",
+  "windows": [
+    {
+      "day": 1,
+      "model": "hrrr-v4",
+      "feature_schema": "hrrr-daily-25mi-v1",
+      "model_init_time": "2026-11-06T12:00:00+00:00",
+      "radius_km": 40.2336,
+      "valid_start": "2026-11-06T12:00:00+00:00",
+      "valid_end": "2026-11-07T12:00:00+00:00",
+      "window_hours": 24,
+      "first_forecast_hour": 0,
+      "last_forecast_hour": 24,
+      "inputs_available": true,
+      "probabilities_available": false,
+      "reason": "Separate 24-hour trained and calibrated model not yet available"
+    },
+    {
+      "day": 2,
+      "model": "hrrr-v4",
+      "feature_schema": "hrrr-daily-25mi-v1",
+      "model_init_time": "2026-11-06T12:00:00+00:00",
+      "radius_km": 40.2336,
+      "valid_start": "2026-11-07T12:00:00+00:00",
+      "valid_end": "2026-11-08T12:00:00+00:00",
+      "window_hours": 24,
+      "first_forecast_hour": 24,
+      "last_forecast_hour": 48,
+      "inputs_available": true,
+      "probabilities_available": false,
+      "reason": "Separate 24-hour trained and calibrated model not yet available"
+    }
+  ],
+  "files": [
+    {
+      "forecast_hour": 0,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf00.grib2",
+      "retrieved_at": "2026-11-06T18:41:16.106844+00:00",
+      "index_sha256": "253979ce5ef9c2280178b56660383d29bf336dfaa12d7beae4deaace43b97580",
+      "fields": {
+        "sbcape": {
+          "start": 65370281,
+          "end": 65779689,
+          "index_line": "105:65370281:d=2026110612:CAPE:surface:anl:"
+        },
+        "sbcin": {
+          "start": 65779690,
+          "end": 66278199,
+          "index_line": "106:65779690:d=2026110612:CIN:surface:anl:"
+        },
+        "srh01": {
+          "start": 88598240,
+          "end": 90507852,
+          "index_line": "132:88598240:d=2026110612:HLCY:1000-0 m above ground:anl:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 293845,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:anl:"
+        },
+        "dewpoint2m": {
+          "start": 39620487,
+          "end": 40813386,
+          "index_line": "74:39620487:d=2026110612:DPT:2 m above ground:anl:"
+        },
+        "shear06_u": {
+          "start": 97229703,
+          "end": 99849459,
+          "index_line": "137:97229703:d=2026110612:VUCSH:0-6000 m above ground:anl:"
+        },
+        "shear06_v": {
+          "start": 99849460,
+          "end": 102469216,
+          "index_line": "138:99849460:d=2026110612:VVCSH:0-6000 m above ground:anl:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 1,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf01.grib2",
+      "retrieved_at": "2026-11-06T18:41:16.118988+00:00",
+      "index_sha256": "7f3204eba1c6a0f9b22a0b2022f43e2b80524f1f961e2ad50373e1aa64b356e3",
+      "fields": {
+        "uh25": {
+          "start": 27789078,
+          "end": 27852713,
+          "index_line": "45:27789078:d=2026110612:MXUPHL:5000-2000 m above ground:0-1 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 73059487,
+          "end": 73437857,
+          "index_line": "105:73059487:d=2026110612:CAPE:surface:1 hour fcst:"
+        },
+        "sbcin": {
+          "start": 73437858,
+          "end": 73934713,
+          "index_line": "106:73437858:d=2026110612:CIN:surface:1 hour fcst:"
+        },
+        "srh01": {
+          "start": 99932198,
+          "end": 101866908,
+          "index_line": "132:99932198:d=2026110612:HLCY:1000-0 m above ground:1 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 313472,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:1 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 46212250,
+          "end": 47404084,
+          "index_line": "74:46212250:d=2026110612:DPT:2 m above ground:1 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 108608122,
+          "end": 111227878,
+          "index_line": "137:108608122:d=2026110612:VUCSH:0-6000 m above ground:1 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 111227879,
+          "end": 113847635,
+          "index_line": "138:111227879:d=2026110612:VVCSH:0-6000 m above ground:1 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 2,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf02.grib2",
+      "retrieved_at": "2026-11-06T18:41:16.026910+00:00",
+      "index_sha256": "bb524628af7229af6e0b1671ad2b8d464d72e96aa99e1935b346d2dcd879a6c8",
+      "fields": {
+        "uh25": {
+          "start": 28086111,
+          "end": 28140961,
+          "index_line": "45:28086111:d=2026110612:MXUPHL:5000-2000 m above ground:1-2 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 74217916,
+          "end": 74607033,
+          "index_line": "108:74217916:d=2026110612:CAPE:surface:2 hour fcst:"
+        },
+        "sbcin": {
+          "start": 74607034,
+          "end": 75105083,
+          "index_line": "109:74607034:d=2026110612:CIN:surface:2 hour fcst:"
+        },
+        "srh01": {
+          "start": 104830558,
+          "end": 106764064,
+          "index_line": "135:104830558:d=2026110612:HLCY:1000-0 m above ground:2 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 382920,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:2 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 46849257,
+          "end": 48059276,
+          "index_line": "74:46849257:d=2026110612:DPT:2 m above ground:2 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 113520450,
+          "end": 116140206,
+          "index_line": "140:113520450:d=2026110612:VUCSH:0-6000 m above ground:2 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 116140207,
+          "end": 118759963,
+          "index_line": "141:116140207:d=2026110612:VVCSH:0-6000 m above ground:2 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 3,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf03.grib2",
+      "retrieved_at": "2026-11-06T18:41:16.030652+00:00",
+      "index_sha256": "ac2a2609e4e8924336ad40ac81abb7b900a59c013f5206483848af391aa08f76",
+      "fields": {
+        "uh25": {
+          "start": 28466166,
+          "end": 28521203,
+          "index_line": "45:28466166:d=2026110612:MXUPHL:5000-2000 m above ground:2-3 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 75666450,
+          "end": 76078470,
+          "index_line": "108:75666450:d=2026110612:CAPE:surface:3 hour fcst:"
+        },
+        "sbcin": {
+          "start": 76078471,
+          "end": 76576584,
+          "index_line": "109:76078471:d=2026110612:CIN:surface:3 hour fcst:"
+        },
+        "srh01": {
+          "start": 110099616,
+          "end": 112021619,
+          "index_line": "135:110099616:d=2026110612:HLCY:1000-0 m above ground:3 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 441674,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:3 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 47306915,
+          "end": 48537136,
+          "index_line": "74:47306915:d=2026110612:DPT:2 m above ground:3 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 118784262,
+          "end": 121404018,
+          "index_line": "140:118784262:d=2026110612:VUCSH:0-6000 m above ground:3 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 121404019,
+          "end": 124023775,
+          "index_line": "141:121404019:d=2026110612:VVCSH:0-6000 m above ground:3 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 4,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf04.grib2",
+      "retrieved_at": "2026-11-06T18:41:19.006814+00:00",
+      "index_sha256": "ae438df9982f2c77fe725917cf986e8cfa5910f2bd43ddd7c8e08a95f80a7040",
+      "fields": {
+        "uh25": {
+          "start": 28964520,
+          "end": 29023533,
+          "index_line": "45:28964520:d=2026110612:MXUPHL:5000-2000 m above ground:3-4 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 76041455,
+          "end": 76477314,
+          "index_line": "108:76041455:d=2026110612:CAPE:surface:4 hour fcst:"
+        },
+        "sbcin": {
+          "start": 76477315,
+          "end": 76997537,
+          "index_line": "109:76477315:d=2026110612:CIN:surface:4 hour fcst:"
+        },
+        "srh01": {
+          "start": 112138481,
+          "end": 114045341,
+          "index_line": "135:112138481:d=2026110612:HLCY:1000-0 m above ground:4 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 485159,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:4 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 47443443,
+          "end": 48681362,
+          "index_line": "74:47443443:d=2026110612:DPT:2 m above ground:4 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 120807765,
+          "end": 123427521,
+          "index_line": "140:120807765:d=2026110612:VUCSH:0-6000 m above ground:4 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 123427522,
+          "end": 126047278,
+          "index_line": "141:123427522:d=2026110612:VVCSH:0-6000 m above ground:4 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 5,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf05.grib2",
+      "retrieved_at": "2026-11-06T18:41:19.058538+00:00",
+      "index_sha256": "d3dcb3e7e884c950f0697a697bc31f7abb341c2f16c58db9bcbbaa265780875c",
+      "fields": {
+        "uh25": {
+          "start": 29229376,
+          "end": 29292286,
+          "index_line": "45:29229376:d=2026110612:MXUPHL:5000-2000 m above ground:4-5 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 76232709,
+          "end": 76697935,
+          "index_line": "108:76232709:d=2026110612:CAPE:surface:5 hour fcst:"
+        },
+        "sbcin": {
+          "start": 76697936,
+          "end": 77242309,
+          "index_line": "109:76697936:d=2026110612:CIN:surface:5 hour fcst:"
+        },
+        "srh01": {
+          "start": 113281323,
+          "end": 115167957,
+          "index_line": "135:113281323:d=2026110612:HLCY:1000-0 m above ground:5 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 504815,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:5 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 47912840,
+          "end": 49140003,
+          "index_line": "74:47912840:d=2026110612:DPT:2 m above ground:5 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 121927180,
+          "end": 124546936,
+          "index_line": "140:121927180:d=2026110612:VUCSH:0-6000 m above ground:5 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 124546937,
+          "end": 127166693,
+          "index_line": "141:124546937:d=2026110612:VVCSH:0-6000 m above ground:5 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 6,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf06.grib2",
+      "retrieved_at": "2026-11-06T18:41:19.054635+00:00",
+      "index_sha256": "c24cae24932046d8086b19fe1fce31471f1327984ea69a42fb21ddf5c4676b5e",
+      "fields": {
+        "uh25": {
+          "start": 29394121,
+          "end": 29463201,
+          "index_line": "45:29394121:d=2026110612:MXUPHL:5000-2000 m above ground:5-6 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 76521021,
+          "end": 77008916,
+          "index_line": "108:76521021:d=2026110612:CAPE:surface:6 hour fcst:"
+        },
+        "sbcin": {
+          "start": 77008917,
+          "end": 77580109,
+          "index_line": "109:77008917:d=2026110612:CIN:surface:6 hour fcst:"
+        },
+        "srh01": {
+          "start": 113688284,
+          "end": 115564733,
+          "index_line": "135:113688284:d=2026110612:HLCY:1000-0 m above ground:6 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 511941,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:6 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 48155404,
+          "end": 49378760,
+          "index_line": "74:48155404:d=2026110612:DPT:2 m above ground:6 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 122339092,
+          "end": 124958848,
+          "index_line": "140:122339092:d=2026110612:VUCSH:0-6000 m above ground:6 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 124958849,
+          "end": 127578605,
+          "index_line": "141:124958849:d=2026110612:VVCSH:0-6000 m above ground:6 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 7,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf07.grib2",
+      "retrieved_at": "2026-11-06T18:41:19.022712+00:00",
+      "index_sha256": "2f32eb00c0d5ad53c0be19ffc19478ab4bf32e89b25cad1a5078a455cd269384",
+      "fields": {
+        "uh25": {
+          "start": 29568196,
+          "end": 29641282,
+          "index_line": "45:29568196:d=2026110612:MXUPHL:5000-2000 m above ground:6-7 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 76434296,
+          "end": 76932297,
+          "index_line": "108:76434296:d=2026110612:CAPE:surface:7 hour fcst:"
+        },
+        "sbcin": {
+          "start": 76932298,
+          "end": 77531367,
+          "index_line": "109:76932298:d=2026110612:CIN:surface:7 hour fcst:"
+        },
+        "srh01": {
+          "start": 113465861,
+          "end": 115337279,
+          "index_line": "135:113465861:d=2026110612:HLCY:1000-0 m above ground:7 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 508771,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:7 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 48264126,
+          "end": 49483088,
+          "index_line": "74:48264126:d=2026110612:DPT:2 m above ground:7 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 122081856,
+          "end": 124701612,
+          "index_line": "140:122081856:d=2026110612:VUCSH:0-6000 m above ground:7 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 124701613,
+          "end": 127321369,
+          "index_line": "141:124701613:d=2026110612:VVCSH:0-6000 m above ground:7 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 8,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf08.grib2",
+      "retrieved_at": "2026-11-06T18:41:22.168687+00:00",
+      "index_sha256": "d6206348026a8908eab0934bca92b7f5e06433d19cae31c939d94d8843461eae",
+      "fields": {
+        "uh25": {
+          "start": 29443396,
+          "end": 29517526,
+          "index_line": "45:29443396:d=2026110612:MXUPHL:5000-2000 m above ground:7-8 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 76035949,
+          "end": 76538355,
+          "index_line": "108:76035949:d=2026110612:CAPE:surface:8 hour fcst:"
+        },
+        "sbcin": {
+          "start": 76538356,
+          "end": 77166963,
+          "index_line": "109:76538356:d=2026110612:CIN:surface:8 hour fcst:"
+        },
+        "srh01": {
+          "start": 113088067,
+          "end": 114955945,
+          "index_line": "135:113088067:d=2026110612:HLCY:1000-0 m above ground:8 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 514315,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:8 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 48119284,
+          "end": 49334200,
+          "index_line": "74:48119284:d=2026110612:DPT:2 m above ground:8 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 121721086,
+          "end": 124340842,
+          "index_line": "140:121721086:d=2026110612:VUCSH:0-6000 m above ground:8 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 124340843,
+          "end": 126960599,
+          "index_line": "141:124340843:d=2026110612:VVCSH:0-6000 m above ground:8 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 9,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf09.grib2",
+      "retrieved_at": "2026-11-06T18:41:22.217416+00:00",
+      "index_sha256": "6a82fe0cfd1ee7878903f4edf1f1ba2fbc2584c5dfaf51354aed203e979a3a4a",
+      "fields": {
+        "uh25": {
+          "start": 29678811,
+          "end": 29751100,
+          "index_line": "45:29678811:d=2026110612:MXUPHL:5000-2000 m above ground:8-9 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 76453083,
+          "end": 76957199,
+          "index_line": "108:76453083:d=2026110612:CAPE:surface:9 hour fcst:"
+        },
+        "sbcin": {
+          "start": 76957200,
+          "end": 77624859,
+          "index_line": "109:76957200:d=2026110612:CIN:surface:9 hour fcst:"
+        },
+        "srh01": {
+          "start": 113150425,
+          "end": 115022334,
+          "index_line": "135:113150425:d=2026110612:HLCY:1000-0 m above ground:9 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 523492,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:9 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 48694391,
+          "end": 49904784,
+          "index_line": "74:48694391:d=2026110612:DPT:2 m above ground:9 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 121792608,
+          "end": 124412364,
+          "index_line": "140:121792608:d=2026110612:VUCSH:0-6000 m above ground:9 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 124412365,
+          "end": 127032121,
+          "index_line": "141:124412365:d=2026110612:VVCSH:0-6000 m above ground:9 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 10,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf10.grib2",
+      "retrieved_at": "2026-11-06T18:41:22.207064+00:00",
+      "index_sha256": "996e796ff1eb5c24e871b36d366caaeee73c3b0385e4d9bf67a6b1c7754c10fe",
+      "fields": {
+        "uh25": {
+          "start": 29915015,
+          "end": 29988397,
+          "index_line": "45:29915015:d=2026110612:MXUPHL:5000-2000 m above ground:9-10 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 76296502,
+          "end": 76796317,
+          "index_line": "108:76296502:d=2026110612:CAPE:surface:10 hour fcst:"
+        },
+        "sbcin": {
+          "start": 76796318,
+          "end": 77488199,
+          "index_line": "109:76796318:d=2026110612:CIN:surface:10 hour fcst:"
+        },
+        "srh01": {
+          "start": 110601382,
+          "end": 112483522,
+          "index_line": "135:110601382:d=2026110612:HLCY:1000-0 m above ground:10 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 527543,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:10 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 49159297,
+          "end": 50369340,
+          "index_line": "74:49159297:d=2026110612:DPT:2 m above ground:10 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 119264951,
+          "end": 121884707,
+          "index_line": "140:119264951:d=2026110612:VUCSH:0-6000 m above ground:10 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 121884708,
+          "end": 124504464,
+          "index_line": "141:121884708:d=2026110612:VVCSH:0-6000 m above ground:10 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 11,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf11.grib2",
+      "retrieved_at": "2026-11-06T18:41:22.214576+00:00",
+      "index_sha256": "0ba82da7d5c4c12114af89bc98070b5077a6139a3f4146d70fb9667fa933870c",
+      "fields": {
+        "uh25": {
+          "start": 30005432,
+          "end": 30079631,
+          "index_line": "45:30005432:d=2026110612:MXUPHL:5000-2000 m above ground:10-11 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 75866248,
+          "end": 76359220,
+          "index_line": "108:75866248:d=2026110612:CAPE:surface:11 hour fcst:"
+        },
+        "sbcin": {
+          "start": 76359221,
+          "end": 77050802,
+          "index_line": "109:76359221:d=2026110612:CIN:surface:11 hour fcst:"
+        },
+        "srh01": {
+          "start": 106551093,
+          "end": 108454554,
+          "index_line": "135:106551093:d=2026110612:HLCY:1000-0 m above ground:11 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 532567,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:11 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 49116438,
+          "end": 50322644,
+          "index_line": "74:49116438:d=2026110612:DPT:2 m above ground:11 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 115252311,
+          "end": 117872067,
+          "index_line": "140:115252311:d=2026110612:VUCSH:0-6000 m above ground:11 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 117872068,
+          "end": 120491824,
+          "index_line": "141:117872068:d=2026110612:VVCSH:0-6000 m above ground:11 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 12,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf12.grib2",
+      "retrieved_at": "2026-11-06T18:41:25.499946+00:00",
+      "index_sha256": "9139158acd5fd349a2309c50405a18b83f176a32883a80e9679f39cf8a096125",
+      "fields": {
+        "uh25": {
+          "start": 30094584,
+          "end": 30169211,
+          "index_line": "45:30094584:d=2026110612:MXUPHL:5000-2000 m above ground:11-12 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 76191440,
+          "end": 76668889,
+          "index_line": "108:76191440:d=2026110612:CAPE:surface:12 hour fcst:"
+        },
+        "sbcin": {
+          "start": 76668890,
+          "end": 77338569,
+          "index_line": "109:76668890:d=2026110612:CIN:surface:12 hour fcst:"
+        },
+        "srh01": {
+          "start": 104435917,
+          "end": 106374130,
+          "index_line": "135:104435917:d=2026110612:HLCY:1000-0 m above ground:12 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 535449,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:12 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 49417851,
+          "end": 50617051,
+          "index_line": "74:49417851:d=2026110612:DPT:2 m above ground:12 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 113190574,
+          "end": 115810330,
+          "index_line": "140:113190574:d=2026110612:VUCSH:0-6000 m above ground:12 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 115810331,
+          "end": 118430087,
+          "index_line": "141:115810331:d=2026110612:VVCSH:0-6000 m above ground:12 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 13,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf13.grib2",
+      "retrieved_at": "2026-11-06T18:41:25.502822+00:00",
+      "index_sha256": "a8d2e6361f7eda9bc3ac92b0c263e2500a07fc695fa7e3f31e27e3b5b487a324",
+      "fields": {
+        "uh25": {
+          "start": 30182169,
+          "end": 30253557,
+          "index_line": "45:30182169:d=2026110612:MXUPHL:5000-2000 m above ground:12-13 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 76801574,
+          "end": 77263492,
+          "index_line": "108:76801574:d=2026110612:CAPE:surface:13 hour fcst:"
+        },
+        "sbcin": {
+          "start": 77263493,
+          "end": 77902466,
+          "index_line": "109:77263493:d=2026110612:CIN:surface:13 hour fcst:"
+        },
+        "srh01": {
+          "start": 102675622,
+          "end": 104652060,
+          "index_line": "135:102675622:d=2026110612:HLCY:1000-0 m above ground:13 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 537100,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:13 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 49801045,
+          "end": 50996557,
+          "index_line": "74:49801045:d=2026110612:DPT:2 m above ground:13 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 111480247,
+          "end": 114100003,
+          "index_line": "140:111480247:d=2026110612:VUCSH:0-6000 m above ground:13 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 114100004,
+          "end": 116719760,
+          "index_line": "141:114100004:d=2026110612:VVCSH:0-6000 m above ground:13 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 14,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf14.grib2",
+      "retrieved_at": "2026-11-06T18:41:25.548375+00:00",
+      "index_sha256": "2a8021cf94b7eca3533512ce0cc011759587d74f5c9ec7903e810b60c17e40a9",
+      "fields": {
+        "uh25": {
+          "start": 30243196,
+          "end": 30315225,
+          "index_line": "45:30243196:d=2026110612:MXUPHL:5000-2000 m above ground:13-14 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 76957335,
+          "end": 77405728,
+          "index_line": "108:76957335:d=2026110612:CAPE:surface:14 hour fcst:"
+        },
+        "sbcin": {
+          "start": 77405729,
+          "end": 78016888,
+          "index_line": "109:77405729:d=2026110612:CIN:surface:14 hour fcst:"
+        },
+        "srh01": {
+          "start": 102460863,
+          "end": 104461330,
+          "index_line": "135:102460863:d=2026110612:HLCY:1000-0 m above ground:14 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 533162,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:14 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 49635596,
+          "end": 50831897,
+          "index_line": "74:49635596:d=2026110612:DPT:2 m above ground:14 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 111301355,
+          "end": 113921111,
+          "index_line": "140:111301355:d=2026110612:VUCSH:0-6000 m above ground:14 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 113921112,
+          "end": 116540868,
+          "index_line": "141:113921112:d=2026110612:VVCSH:0-6000 m above ground:14 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 15,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf15.grib2",
+      "retrieved_at": "2026-11-06T18:41:25.546778+00:00",
+      "index_sha256": "66d9e31dc64a5ceb9e5786874509dcd2b68af0b70e34514b2977a1d26975bc84",
+      "fields": {
+        "uh25": {
+          "start": 30334378,
+          "end": 30405803,
+          "index_line": "45:30334378:d=2026110612:MXUPHL:5000-2000 m above ground:14-15 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 77448468,
+          "end": 77883971,
+          "index_line": "108:77448468:d=2026110612:CAPE:surface:15 hour fcst:"
+        },
+        "sbcin": {
+          "start": 77883972,
+          "end": 78472137,
+          "index_line": "109:77883972:d=2026110612:CIN:surface:15 hour fcst:"
+        },
+        "srh01": {
+          "start": 102987707,
+          "end": 105000723,
+          "index_line": "135:102987707:d=2026110612:HLCY:1000-0 m above ground:15 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 532036,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:15 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50003346,
+          "end": 51201850,
+          "index_line": "74:50003346:d=2026110612:DPT:2 m above ground:15 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 111849892,
+          "end": 114469648,
+          "index_line": "140:111849892:d=2026110612:VUCSH:0-6000 m above ground:15 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 114469649,
+          "end": 117089405,
+          "index_line": "141:114469649:d=2026110612:VVCSH:0-6000 m above ground:15 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 16,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf16.grib2",
+      "retrieved_at": "2026-11-06T18:41:28.362654+00:00",
+      "index_sha256": "d44b92a3246d1d0e64306a874d9e195acac65fa2d69ebbfe1e635056baa1d6e4",
+      "fields": {
+        "uh25": {
+          "start": 30452192,
+          "end": 30528862,
+          "index_line": "45:30452192:d=2026110612:MXUPHL:5000-2000 m above ground:15-16 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 77581230,
+          "end": 78004464,
+          "index_line": "108:77581230:d=2026110612:CAPE:surface:16 hour fcst:"
+        },
+        "sbcin": {
+          "start": 78004465,
+          "end": 78565539,
+          "index_line": "109:78004465:d=2026110612:CIN:surface:16 hour fcst:"
+        },
+        "srh01": {
+          "start": 103167603,
+          "end": 105189520,
+          "index_line": "135:103167603:d=2026110612:HLCY:1000-0 m above ground:16 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 536854,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:16 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50037057,
+          "end": 51239967,
+          "index_line": "74:50037057:d=2026110612:DPT:2 m above ground:16 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 112042050,
+          "end": 114661806,
+          "index_line": "140:112042050:d=2026110612:VUCSH:0-6000 m above ground:16 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 114661807,
+          "end": 117281563,
+          "index_line": "141:114661807:d=2026110612:VVCSH:0-6000 m above ground:16 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 17,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf17.grib2",
+      "retrieved_at": "2026-11-06T18:41:28.306945+00:00",
+      "index_sha256": "23c4109b00ff756401b25cdd31f418f7a076976c99908decfcccf8d021d2a7eb",
+      "fields": {
+        "uh25": {
+          "start": 30542037,
+          "end": 30619354,
+          "index_line": "45:30542037:d=2026110612:MXUPHL:5000-2000 m above ground:16-17 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 78301113,
+          "end": 78715656,
+          "index_line": "108:78301113:d=2026110612:CAPE:surface:17 hour fcst:"
+        },
+        "sbcin": {
+          "start": 78715657,
+          "end": 79258610,
+          "index_line": "109:78715657:d=2026110612:CIN:surface:17 hour fcst:"
+        },
+        "srh01": {
+          "start": 104330252,
+          "end": 106358966,
+          "index_line": "135:104330252:d=2026110612:HLCY:1000-0 m above ground:17 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 541093,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:17 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50501722,
+          "end": 51707530,
+          "index_line": "74:50501722:d=2026110612:DPT:2 m above ground:17 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 113219529,
+          "end": 115839285,
+          "index_line": "140:113219529:d=2026110612:VUCSH:0-6000 m above ground:17 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 115839286,
+          "end": 118459042,
+          "index_line": "141:115839286:d=2026110612:VVCSH:0-6000 m above ground:17 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 18,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf18.grib2",
+      "retrieved_at": "2026-11-06T18:41:28.314927+00:00",
+      "index_sha256": "a28a07bb8a15b23e5288b87237884ace7630a154f9f4588a8acd8d6f39b1f325",
+      "fields": {
+        "uh25": {
+          "start": 30697534,
+          "end": 30773969,
+          "index_line": "45:30697534:d=2026110612:MXUPHL:5000-2000 m above ground:17-18 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 78234598,
+          "end": 78640529,
+          "index_line": "108:78234598:d=2026110612:CAPE:surface:18 hour fcst:"
+        },
+        "sbcin": {
+          "start": 78640530,
+          "end": 79168483,
+          "index_line": "109:78640530:d=2026110612:CIN:surface:18 hour fcst:"
+        },
+        "srh01": {
+          "start": 104871745,
+          "end": 106905484,
+          "index_line": "135:104871745:d=2026110612:HLCY:1000-0 m above ground:18 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 546199,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:18 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50372876,
+          "end": 51581777,
+          "index_line": "74:50372876:d=2026110612:DPT:2 m above ground:18 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 114013599,
+          "end": 116633355,
+          "index_line": "140:114013599:d=2026110612:VUCSH:0-6000 m above ground:18 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 116633356,
+          "end": 119253112,
+          "index_line": "141:116633356:d=2026110612:VVCSH:0-6000 m above ground:18 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 19,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf19.grib2",
+      "retrieved_at": "2026-11-06T18:41:28.335550+00:00",
+      "index_sha256": "7a67336ef15a89e7bdab190786c2e1a046763976fe370101eacd71567657559c",
+      "fields": {
+        "uh25": {
+          "start": 30473242,
+          "end": 30554937,
+          "index_line": "45:30473242:d=2026110612:MXUPHL:5000-2000 m above ground:18-19 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 78905153,
+          "end": 79303005,
+          "index_line": "108:78905153:d=2026110612:CAPE:surface:19 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79303006,
+          "end": 79814771,
+          "index_line": "109:79303006:d=2026110612:CIN:surface:19 hour fcst:"
+        },
+        "srh01": {
+          "start": 105654444,
+          "end": 107709452,
+          "index_line": "135:105654444:d=2026110612:HLCY:1000-0 m above ground:19 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 563189,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:19 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50520036,
+          "end": 51731005,
+          "index_line": "74:50520036:d=2026110612:DPT:2 m above ground:19 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 114582972,
+          "end": 117202728,
+          "index_line": "140:114582972:d=2026110612:VUCSH:0-6000 m above ground:19 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 117202729,
+          "end": 119822485,
+          "index_line": "141:117202729:d=2026110612:VVCSH:0-6000 m above ground:19 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 20,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf20.grib2",
+      "retrieved_at": "2026-11-06T18:41:31.646964+00:00",
+      "index_sha256": "4f62cfbb0c2e15c35567866ac7f51c67dc5f229728fe64554c52c02484dc9b5c",
+      "fields": {
+        "uh25": {
+          "start": 30600845,
+          "end": 30685809,
+          "index_line": "45:30600845:d=2026110612:MXUPHL:5000-2000 m above ground:19-20 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 78904731,
+          "end": 79292319,
+          "index_line": "108:78904731:d=2026110612:CAPE:surface:20 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79292320,
+          "end": 79790514,
+          "index_line": "109:79292320:d=2026110612:CIN:surface:20 hour fcst:"
+        },
+        "srh01": {
+          "start": 105546650,
+          "end": 107604622,
+          "index_line": "135:105546650:d=2026110612:HLCY:1000-0 m above ground:20 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 573983,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:20 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50505058,
+          "end": 51719633,
+          "index_line": "74:50505058:d=2026110612:DPT:2 m above ground:20 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 114716659,
+          "end": 117336415,
+          "index_line": "140:114716659:d=2026110612:VUCSH:0-6000 m above ground:20 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 117336416,
+          "end": 119956172,
+          "index_line": "141:117336416:d=2026110612:VVCSH:0-6000 m above ground:20 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 21,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf21.grib2",
+      "retrieved_at": "2026-11-06T18:41:31.635049+00:00",
+      "index_sha256": "0cb97913f28eb214c926bc6c26863529f9b3e71e7d9dfb50c590acf2b281db0c",
+      "fields": {
+        "uh25": {
+          "start": 30907975,
+          "end": 30996867,
+          "index_line": "45:30907975:d=2026110612:MXUPHL:5000-2000 m above ground:20-21 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 79176434,
+          "end": 79553506,
+          "index_line": "108:79176434:d=2026110612:CAPE:surface:21 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79553507,
+          "end": 80036481,
+          "index_line": "109:79553507:d=2026110612:CIN:surface:21 hour fcst:"
+        },
+        "srh01": {
+          "start": 105819808,
+          "end": 107881879,
+          "index_line": "135:105819808:d=2026110612:HLCY:1000-0 m above ground:21 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 578101,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:21 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50689861,
+          "end": 51906177,
+          "index_line": "74:50689861:d=2026110612:DPT:2 m above ground:21 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 114999059,
+          "end": 117618815,
+          "index_line": "140:114999059:d=2026110612:VUCSH:0-6000 m above ground:21 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 117618816,
+          "end": 120238572,
+          "index_line": "141:117618816:d=2026110612:VVCSH:0-6000 m above ground:21 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 22,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf22.grib2",
+      "retrieved_at": "2026-11-06T18:41:31.598974+00:00",
+      "index_sha256": "aa33ce48c46fda0b701871c13ea25adfb2942d22c366baf4f2e9b4bf6815ac60",
+      "fields": {
+        "uh25": {
+          "start": 30929630,
+          "end": 31019812,
+          "index_line": "45:30929630:d=2026110612:MXUPHL:5000-2000 m above ground:21-22 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 78631131,
+          "end": 79001556,
+          "index_line": "108:78631131:d=2026110612:CAPE:surface:22 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79001557,
+          "end": 79472456,
+          "index_line": "109:79001557:d=2026110612:CIN:surface:22 hour fcst:"
+        },
+        "srh01": {
+          "start": 105291593,
+          "end": 107355628,
+          "index_line": "135:105291593:d=2026110612:HLCY:1000-0 m above ground:22 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 598157,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:22 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50110370,
+          "end": 51325540,
+          "index_line": "74:50110370:d=2026110612:DPT:2 m above ground:22 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 114478907,
+          "end": 117098663,
+          "index_line": "140:114478907:d=2026110612:VUCSH:0-6000 m above ground:22 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 117098664,
+          "end": 119718420,
+          "index_line": "141:117098664:d=2026110612:VVCSH:0-6000 m above ground:22 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 23,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf23.grib2",
+      "retrieved_at": "2026-11-06T18:41:31.647595+00:00",
+      "index_sha256": "dea9ff30fe553252a2e88010fcdd59758766154891b01bc6d2a8c33de4d63512",
+      "fields": {
+        "uh25": {
+          "start": 30882441,
+          "end": 30970829,
+          "index_line": "45:30882441:d=2026110612:MXUPHL:5000-2000 m above ground:22-23 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 79288049,
+          "end": 79653329,
+          "index_line": "108:79288049:d=2026110612:CAPE:surface:23 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79653330,
+          "end": 80113364,
+          "index_line": "109:79653330:d=2026110612:CIN:surface:23 hour fcst:"
+        },
+        "srh01": {
+          "start": 105530838,
+          "end": 107597013,
+          "index_line": "135:105530838:d=2026110612:HLCY:1000-0 m above ground:23 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 601333,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:23 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50476643,
+          "end": 51691254,
+          "index_line": "74:50476643:d=2026110612:DPT:2 m above ground:23 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 114723582,
+          "end": 117343338,
+          "index_line": "140:114723582:d=2026110612:VUCSH:0-6000 m above ground:23 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 117343339,
+          "end": 119963095,
+          "index_line": "141:117343339:d=2026110612:VVCSH:0-6000 m above ground:23 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 24,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf24.grib2",
+      "retrieved_at": "2026-11-06T18:41:35.174739+00:00",
+      "index_sha256": "cb98d08259553561de13c415ddbdef3356f0b2f33778b13b7010e9a1b9271c29",
+      "fields": {
+        "uh25": {
+          "start": 31006870,
+          "end": 31091235,
+          "index_line": "45:31006870:d=2026110612:MXUPHL:5000-2000 m above ground:23-24 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 79543954,
+          "end": 79904226,
+          "index_line": "108:79543954:d=2026110612:CAPE:surface:24 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79904227,
+          "end": 80358844,
+          "index_line": "109:79904227:d=2026110612:CIN:surface:24 hour fcst:"
+        },
+        "srh01": {
+          "start": 108044822,
+          "end": 110111721,
+          "index_line": "135:108044822:d=2026110612:HLCY:1000-0 m above ground:24 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 609111,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:24 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50719750,
+          "end": 51934979,
+          "index_line": "74:50719750:d=2026110612:DPT:2 m above ground:24 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 117241218,
+          "end": 119860974,
+          "index_line": "140:117241218:d=2026110612:VUCSH:0-6000 m above ground:24 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 119860975,
+          "end": 122480731,
+          "index_line": "141:119860975:d=2026110612:VVCSH:0-6000 m above ground:24 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 25,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf25.grib2",
+      "retrieved_at": "2026-11-06T18:41:35.166641+00:00",
+      "index_sha256": "e6d1367a0c9c17324ae2f7d012f31603c6e91f145d444bb2d299af39f332377d",
+      "fields": {
+        "uh25": {
+          "start": 31106304,
+          "end": 31191266,
+          "index_line": "45:31106304:d=2026110612:MXUPHL:5000-2000 m above ground:24-25 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 79631486,
+          "end": 79990424,
+          "index_line": "108:79631486:d=2026110612:CAPE:surface:25 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79990425,
+          "end": 80434414,
+          "index_line": "109:79990425:d=2026110612:CIN:surface:25 hour fcst:"
+        },
+        "srh01": {
+          "start": 110892043,
+          "end": 112937179,
+          "index_line": "135:110892043:d=2026110612:HLCY:1000-0 m above ground:25 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 610122,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:25 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50782693,
+          "end": 51997514,
+          "index_line": "74:50782693:d=2026110612:DPT:2 m above ground:25 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 120066933,
+          "end": 122686689,
+          "index_line": "140:120066933:d=2026110612:VUCSH:0-6000 m above ground:25 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 122686690,
+          "end": 125306446,
+          "index_line": "141:122686690:d=2026110612:VVCSH:0-6000 m above ground:25 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 26,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf26.grib2",
+      "retrieved_at": "2026-11-06T18:41:35.134538+00:00",
+      "index_sha256": "07d4a73236d9ddc41e07019dd658e2a4eecd31a440351e9b858a2e3982300aee",
+      "fields": {
+        "uh25": {
+          "start": 30891280,
+          "end": 30975524,
+          "index_line": "45:30891280:d=2026110612:MXUPHL:5000-2000 m above ground:25-26 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 79487417,
+          "end": 79850160,
+          "index_line": "108:79487417:d=2026110612:CAPE:surface:26 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79850161,
+          "end": 80273769,
+          "index_line": "109:79850161:d=2026110612:CIN:surface:26 hour fcst:"
+        },
+        "srh01": {
+          "start": 113706295,
+          "end": 115734126,
+          "index_line": "135:113706295:d=2026110612:HLCY:1000-0 m above ground:26 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 609079,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:26 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50617339,
+          "end": 51833178,
+          "index_line": "74:50617339:d=2026110612:DPT:2 m above ground:26 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 122857501,
+          "end": 125477257,
+          "index_line": "140:122857501:d=2026110612:VUCSH:0-6000 m above ground:26 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 125477258,
+          "end": 128097014,
+          "index_line": "141:125477258:d=2026110612:VVCSH:0-6000 m above ground:26 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 27,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf27.grib2",
+      "retrieved_at": "2026-11-06T18:41:35.130579+00:00",
+      "index_sha256": "0711d394b7a10333da065722c0808df2b2e37ba538f607d0be604ca4112e0673",
+      "fields": {
+        "uh25": {
+          "start": 30912634,
+          "end": 30993419,
+          "index_line": "45:30912634:d=2026110612:MXUPHL:5000-2000 m above ground:26-27 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 78971021,
+          "end": 79342374,
+          "index_line": "108:78971021:d=2026110612:CAPE:surface:27 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79342375,
+          "end": 79756591,
+          "index_line": "109:79342375:d=2026110612:CIN:surface:27 hour fcst:"
+        },
+        "srh01": {
+          "start": 115708748,
+          "end": 117713328,
+          "index_line": "135:115708748:d=2026110612:HLCY:1000-0 m above ground:27 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 598169,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:27 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 49963853,
+          "end": 51175862,
+          "index_line": "74:49963853:d=2026110612:DPT:2 m above ground:27 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 124824371,
+          "end": 127444127,
+          "index_line": "140:124824371:d=2026110612:VUCSH:0-6000 m above ground:27 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 127444128,
+          "end": 130063884,
+          "index_line": "141:127444128:d=2026110612:VVCSH:0-6000 m above ground:27 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 28,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf28.grib2",
+      "retrieved_at": "2026-11-06T18:41:38.286721+00:00",
+      "index_sha256": "c9167bee606a61b033c82ef16da59fa355fd4ab786e667de4a54ca97df3462e7",
+      "fields": {
+        "uh25": {
+          "start": 30904736,
+          "end": 30984510,
+          "index_line": "45:30904736:d=2026110612:MXUPHL:5000-2000 m above ground:27-28 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 80003407,
+          "end": 80386531,
+          "index_line": "108:80003407:d=2026110612:CAPE:surface:28 hour fcst:"
+        },
+        "sbcin": {
+          "start": 80386532,
+          "end": 80812770,
+          "index_line": "109:80386532:d=2026110612:CIN:surface:28 hour fcst:"
+        },
+        "srh01": {
+          "start": 118112644,
+          "end": 120086223,
+          "index_line": "135:118112644:d=2026110612:HLCY:1000-0 m above ground:28 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 584793,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:28 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50362615,
+          "end": 51585695,
+          "index_line": "74:50362615:d=2026110612:DPT:2 m above ground:28 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 127183902,
+          "end": 129803658,
+          "index_line": "140:127183902:d=2026110612:VUCSH:0-6000 m above ground:28 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 129803659,
+          "end": 132423415,
+          "index_line": "141:129803659:d=2026110612:VVCSH:0-6000 m above ground:28 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 29,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf29.grib2",
+      "retrieved_at": "2026-11-06T18:41:38.278925+00:00",
+      "index_sha256": "211c144c3016e98d95d42387b6d5ccf1b624fabcfe92e4c85ef51c8f61a852c7",
+      "fields": {
+        "uh25": {
+          "start": 30822735,
+          "end": 30904504,
+          "index_line": "45:30822735:d=2026110612:MXUPHL:5000-2000 m above ground:28-29 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 79328657,
+          "end": 79723621,
+          "index_line": "108:79328657:d=2026110612:CAPE:surface:29 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79723622,
+          "end": 80154283,
+          "index_line": "109:79723622:d=2026110612:CIN:surface:29 hour fcst:"
+        },
+        "srh01": {
+          "start": 117561880,
+          "end": 119504959,
+          "index_line": "135:117561880:d=2026110612:HLCY:1000-0 m above ground:29 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 575377,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:29 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 49761073,
+          "end": 50991704,
+          "index_line": "74:49761073:d=2026110612:DPT:2 m above ground:29 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 126349549,
+          "end": 128969305,
+          "index_line": "140:126349549:d=2026110612:VUCSH:0-6000 m above ground:29 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 128969306,
+          "end": 131589062,
+          "index_line": "141:128969306:d=2026110612:VVCSH:0-6000 m above ground:29 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 30,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf30.grib2",
+      "retrieved_at": "2026-11-06T18:41:38.287516+00:00",
+      "index_sha256": "cf84f66cccc27738060fab9d7945a80a164d8cfa232f9b0da3650a8a6070572e",
+      "fields": {
+        "uh25": {
+          "start": 30687855,
+          "end": 30768313,
+          "index_line": "45:30687855:d=2026110612:MXUPHL:5000-2000 m above ground:29-30 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 78905824,
+          "end": 79308205,
+          "index_line": "108:78905824:d=2026110612:CAPE:surface:30 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79308206,
+          "end": 79755817,
+          "index_line": "109:79308206:d=2026110612:CIN:surface:30 hour fcst:"
+        },
+        "srh01": {
+          "start": 117491035,
+          "end": 119411824,
+          "index_line": "135:117491035:d=2026110612:HLCY:1000-0 m above ground:30 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 568107,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:30 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 49588164,
+          "end": 50814452,
+          "index_line": "74:49588164:d=2026110612:DPT:2 m above ground:30 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 126242581,
+          "end": 128862337,
+          "index_line": "140:126242581:d=2026110612:VUCSH:0-6000 m above ground:30 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 128862338,
+          "end": 131482094,
+          "index_line": "141:128862338:d=2026110612:VVCSH:0-6000 m above ground:30 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 31,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf31.grib2",
+      "retrieved_at": "2026-11-06T18:41:38.290424+00:00",
+      "index_sha256": "84b51b9d1f5013e0fb5cbf7ae92551f09bdef0ad1bf7cc7a9804aabd4032d94f",
+      "fields": {
+        "uh25": {
+          "start": 30507260,
+          "end": 30591409,
+          "index_line": "45:30507260:d=2026110612:MXUPHL:5000-2000 m above ground:30-31 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 78535342,
+          "end": 78937511,
+          "index_line": "108:78535342:d=2026110612:CAPE:surface:31 hour fcst:"
+        },
+        "sbcin": {
+          "start": 78937512,
+          "end": 79392368,
+          "index_line": "109:78937512:d=2026110612:CIN:surface:31 hour fcst:"
+        },
+        "srh01": {
+          "start": 116549335,
+          "end": 118456380,
+          "index_line": "135:116549335:d=2026110612:HLCY:1000-0 m above ground:31 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 557518,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:31 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 49979473,
+          "end": 51195815,
+          "index_line": "74:49979473:d=2026110612:DPT:2 m above ground:31 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 125277297,
+          "end": 127897053,
+          "index_line": "140:125277297:d=2026110612:VUCSH:0-6000 m above ground:31 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 127897054,
+          "end": 130516810,
+          "index_line": "141:127897054:d=2026110612:VVCSH:0-6000 m above ground:31 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 32,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf32.grib2",
+      "retrieved_at": "2026-11-06T18:41:41.810758+00:00",
+      "index_sha256": "9cceb8bcf36e37c05b81f70322202d2899e93b3c82e99cf75a79d0fa7c591ba6",
+      "fields": {
+        "uh25": {
+          "start": 30712849,
+          "end": 30800011,
+          "index_line": "45:30712849:d=2026110612:MXUPHL:5000-2000 m above ground:31-32 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 78063046,
+          "end": 78463042,
+          "index_line": "108:78063046:d=2026110612:CAPE:surface:32 hour fcst:"
+        },
+        "sbcin": {
+          "start": 78463043,
+          "end": 78938987,
+          "index_line": "109:78463043:d=2026110612:CIN:surface:32 hour fcst:"
+        },
+        "srh01": {
+          "start": 114898281,
+          "end": 116814827,
+          "index_line": "135:114898281:d=2026110612:HLCY:1000-0 m above ground:32 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 550866,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:32 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 49754800,
+          "end": 50962153,
+          "index_line": "74:49754800:d=2026110612:DPT:2 m above ground:32 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 123631464,
+          "end": 126251220,
+          "index_line": "140:123631464:d=2026110612:VUCSH:0-6000 m above ground:32 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 126251221,
+          "end": 128870977,
+          "index_line": "141:126251221:d=2026110612:VVCSH:0-6000 m above ground:32 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 33,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf33.grib2",
+      "retrieved_at": "2026-11-06T18:41:41.842476+00:00",
+      "index_sha256": "bb09b9027e0edac48ba2642257996bc2128d72d03bab1fe38b81cdfe04e31062",
+      "fields": {
+        "uh25": {
+          "start": 30609927,
+          "end": 30696952,
+          "index_line": "45:30609927:d=2026110612:MXUPHL:5000-2000 m above ground:32-33 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 77503904,
+          "end": 77899940,
+          "index_line": "108:77503904:d=2026110612:CAPE:surface:33 hour fcst:"
+        },
+        "sbcin": {
+          "start": 77899941,
+          "end": 78408803,
+          "index_line": "109:77899941:d=2026110612:CIN:surface:33 hour fcst:"
+        },
+        "srh01": {
+          "start": 113617937,
+          "end": 114761562,
+          "index_line": "135:113617937:d=2026110612:HLCY:1000-0 m above ground:33 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 555294,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:33 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 49392706,
+          "end": 50595092,
+          "index_line": "74:49392706:d=2026110612:DPT:2 m above ground:33 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 121578849,
+          "end": 124198605,
+          "index_line": "140:121578849:d=2026110612:VUCSH:0-6000 m above ground:33 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 124198606,
+          "end": 126818362,
+          "index_line": "141:124198606:d=2026110612:VVCSH:0-6000 m above ground:33 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 34,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf34.grib2",
+      "retrieved_at": "2026-11-06T18:41:41.840026+00:00",
+      "index_sha256": "417437e2f04645bb9243b72842076f9bcb3b530cdb325e016d941688a3bd09f1",
+      "fields": {
+        "uh25": {
+          "start": 30777906,
+          "end": 30865943,
+          "index_line": "45:30777906:d=2026110612:MXUPHL:5000-2000 m above ground:33-34 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 77422551,
+          "end": 77811363,
+          "index_line": "108:77422551:d=2026110612:CAPE:surface:34 hour fcst:"
+        },
+        "sbcin": {
+          "start": 77811364,
+          "end": 78332152,
+          "index_line": "109:77811364:d=2026110612:CIN:surface:34 hour fcst:"
+        },
+        "srh01": {
+          "start": 110620787,
+          "end": 111758187,
+          "index_line": "135:110620787:d=2026110612:HLCY:1000-0 m above ground:34 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 568377,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:34 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 49565929,
+          "end": 50767514,
+          "index_line": "74:49565929:d=2026110612:DPT:2 m above ground:34 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 118579520,
+          "end": 121199276,
+          "index_line": "140:118579520:d=2026110612:VUCSH:0-6000 m above ground:34 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 121199277,
+          "end": 123819033,
+          "index_line": "141:121199277:d=2026110612:VVCSH:0-6000 m above ground:34 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 35,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf35.grib2",
+      "retrieved_at": "2026-11-06T18:41:41.838929+00:00",
+      "index_sha256": "e110e0fbdb0fcc3004bf75507f699a71d57253360e3d3737f5958febf389bd2b",
+      "fields": {
+        "uh25": {
+          "start": 30778317,
+          "end": 30871216,
+          "index_line": "45:30778317:d=2026110612:MXUPHL:5000-2000 m above ground:34-35 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 77551795,
+          "end": 77930746,
+          "index_line": "108:77551795:d=2026110612:CAPE:surface:35 hour fcst:"
+        },
+        "sbcin": {
+          "start": 77930747,
+          "end": 78449612,
+          "index_line": "109:77930747:d=2026110612:CIN:surface:35 hour fcst:"
+        },
+        "srh01": {
+          "start": 107565283,
+          "end": 109487649,
+          "index_line": "135:107565283:d=2026110612:HLCY:1000-0 m above ground:35 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 574748,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:35 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 49831694,
+          "end": 51028190,
+          "index_line": "74:49831694:d=2026110612:DPT:2 m above ground:35 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 116329377,
+          "end": 118949133,
+          "index_line": "140:116329377:d=2026110612:VUCSH:0-6000 m above ground:35 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 118949134,
+          "end": 121568890,
+          "index_line": "141:118949134:d=2026110612:VVCSH:0-6000 m above ground:35 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 36,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf36.grib2",
+      "retrieved_at": "2026-11-06T18:41:45.422773+00:00",
+      "index_sha256": "952a42765d6021fc59923ae8e85eb406b17cfc6fc81ac483ad74098fd4d438de",
+      "fields": {
+        "uh25": {
+          "start": 31069269,
+          "end": 31168889,
+          "index_line": "45:31069269:d=2026110612:MXUPHL:5000-2000 m above ground:35-36 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 78007143,
+          "end": 78375808,
+          "index_line": "108:78007143:d=2026110612:CAPE:surface:36 hour fcst:"
+        },
+        "sbcin": {
+          "start": 78375809,
+          "end": 78876178,
+          "index_line": "109:78375809:d=2026110612:CIN:surface:36 hour fcst:"
+        },
+        "srh01": {
+          "start": 105528637,
+          "end": 107485472,
+          "index_line": "135:105528637:d=2026110612:HLCY:1000-0 m above ground:36 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 577833,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:36 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50238591,
+          "end": 51428221,
+          "index_line": "74:50238591:d=2026110612:DPT:2 m above ground:36 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 114340184,
+          "end": 116959940,
+          "index_line": "140:114340184:d=2026110612:VUCSH:0-6000 m above ground:36 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 116959941,
+          "end": 119579697,
+          "index_line": "141:116959941:d=2026110612:VVCSH:0-6000 m above ground:36 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 37,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf37.grib2",
+      "retrieved_at": "2026-11-06T18:41:45.471210+00:00",
+      "index_sha256": "49f8e4b77168e4572a68d8b3a5a290ae20c0e27f951d6e70499c190ff607174b",
+      "fields": {
+        "uh25": {
+          "start": 30941988,
+          "end": 31041336,
+          "index_line": "45:30941988:d=2026110612:MXUPHL:5000-2000 m above ground:36-37 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 78302348,
+          "end": 78657603,
+          "index_line": "108:78302348:d=2026110612:CAPE:surface:37 hour fcst:"
+        },
+        "sbcin": {
+          "start": 78657604,
+          "end": 79141372,
+          "index_line": "109:78657604:d=2026110612:CIN:surface:37 hour fcst:"
+        },
+        "srh01": {
+          "start": 103434858,
+          "end": 105421932,
+          "index_line": "135:103434858:d=2026110612:HLCY:1000-0 m above ground:37 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 578977,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:37 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50191536,
+          "end": 51378806,
+          "index_line": "74:50191536:d=2026110612:DPT:2 m above ground:37 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 112280160,
+          "end": 114899916,
+          "index_line": "140:112280160:d=2026110612:VUCSH:0-6000 m above ground:37 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 114899917,
+          "end": 117519673,
+          "index_line": "141:114899917:d=2026110612:VVCSH:0-6000 m above ground:37 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 38,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf38.grib2",
+      "retrieved_at": "2026-11-06T18:41:45.474881+00:00",
+      "index_sha256": "8831a727ee9be2eb1d614e39308607700547ec2331aa77aa9dbee12867a51a41",
+      "fields": {
+        "uh25": {
+          "start": 31093982,
+          "end": 31192981,
+          "index_line": "45:31093982:d=2026110612:MXUPHL:5000-2000 m above ground:37-38 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 78837159,
+          "end": 79179879,
+          "index_line": "108:78837159:d=2026110612:CAPE:surface:38 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79179880,
+          "end": 79632541,
+          "index_line": "109:79179880:d=2026110612:CIN:surface:38 hour fcst:"
+        },
+        "srh01": {
+          "start": 103079876,
+          "end": 105083841,
+          "index_line": "135:103079876:d=2026110612:HLCY:1000-0 m above ground:38 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 578213,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:38 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50381197,
+          "end": 51571670,
+          "index_line": "74:50381197:d=2026110612:DPT:2 m above ground:38 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 112185352,
+          "end": 114805108,
+          "index_line": "140:112185352:d=2026110612:VUCSH:0-6000 m above ground:38 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 114805109,
+          "end": 117424865,
+          "index_line": "141:114805109:d=2026110612:VVCSH:0-6000 m above ground:38 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 39,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf39.grib2",
+      "retrieved_at": "2026-11-06T18:41:45.472142+00:00",
+      "index_sha256": "0a5eedac2c8e6a8d1cb4ad2d98276f95f9ef1cc054dabcc99a803e4634955039",
+      "fields": {
+        "uh25": {
+          "start": 31059167,
+          "end": 31162033,
+          "index_line": "45:31059167:d=2026110612:MXUPHL:5000-2000 m above ground:38-39 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 79046558,
+          "end": 79380942,
+          "index_line": "108:79046558:d=2026110612:CAPE:surface:39 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79380943,
+          "end": 79818894,
+          "index_line": "109:79380943:d=2026110612:CIN:surface:39 hour fcst:"
+        },
+        "srh01": {
+          "start": 103446429,
+          "end": 105462103,
+          "index_line": "135:103446429:d=2026110612:HLCY:1000-0 m above ground:39 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 573961,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:39 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50339867,
+          "end": 51532183,
+          "index_line": "74:50339867:d=2026110612:DPT:2 m above ground:39 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 112332104,
+          "end": 114951860,
+          "index_line": "140:112332104:d=2026110612:VUCSH:0-6000 m above ground:39 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 114951861,
+          "end": 117571617,
+          "index_line": "141:114951861:d=2026110612:VVCSH:0-6000 m above ground:39 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 40,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf40.grib2",
+      "retrieved_at": "2026-11-06T18:41:49.290977+00:00",
+      "index_sha256": "d226ccc1fcbe92b01b209fff70225b5ade1c70f61ce0a385406159ce66296e5a",
+      "fields": {
+        "uh25": {
+          "start": 30983903,
+          "end": 31087264,
+          "index_line": "45:30983903:d=2026110612:MXUPHL:5000-2000 m above ground:39-40 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 78952853,
+          "end": 79281626,
+          "index_line": "108:78952853:d=2026110612:CAPE:surface:40 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79281627,
+          "end": 79709701,
+          "index_line": "109:79281627:d=2026110612:CIN:surface:40 hour fcst:"
+        },
+        "srh01": {
+          "start": 103788248,
+          "end": 105826428,
+          "index_line": "135:103788248:d=2026110612:HLCY:1000-0 m above ground:40 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 571573,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:40 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50196189,
+          "end": 51389748,
+          "index_line": "74:50196189:d=2026110612:DPT:2 m above ground:40 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 112938341,
+          "end": 115558097,
+          "index_line": "140:112938341:d=2026110612:VUCSH:0-6000 m above ground:40 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 115558098,
+          "end": 118177854,
+          "index_line": "141:115558098:d=2026110612:VVCSH:0-6000 m above ground:40 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 41,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf41.grib2",
+      "retrieved_at": "2026-11-06T18:41:49.289567+00:00",
+      "index_sha256": "630824902a0e5fb987e670e9cfa32e9df11239c9f6cbb9463ebbba8f1a73e67c",
+      "fields": {
+        "uh25": {
+          "start": 30956395,
+          "end": 31059428,
+          "index_line": "45:30956395:d=2026110612:MXUPHL:5000-2000 m above ground:40-41 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 79371139,
+          "end": 79699419,
+          "index_line": "108:79371139:d=2026110612:CAPE:surface:41 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79699420,
+          "end": 80126887,
+          "index_line": "109:79699420:d=2026110612:CIN:surface:41 hour fcst:"
+        },
+        "srh01": {
+          "start": 103765376,
+          "end": 105014655,
+          "index_line": "135:103765376:d=2026110612:HLCY:1000-0 m above ground:41 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 556601,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:41 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50330258,
+          "end": 51525978,
+          "index_line": "74:50330258:d=2026110612:DPT:2 m above ground:41 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 111891967,
+          "end": 114511723,
+          "index_line": "140:111891967:d=2026110612:VUCSH:0-6000 m above ground:41 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 114511724,
+          "end": 117131480,
+          "index_line": "141:114511724:d=2026110612:VVCSH:0-6000 m above ground:41 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 42,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf42.grib2",
+      "retrieved_at": "2026-11-06T18:41:49.283994+00:00",
+      "index_sha256": "157c203339c112617467909048d2eb1daa52917ca9dd1a88277ad3439c4a6099",
+      "fields": {
+        "uh25": {
+          "start": 30971025,
+          "end": 31073540,
+          "index_line": "45:30971025:d=2026110612:MXUPHL:5000-2000 m above ground:41-42 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 79686768,
+          "end": 80014761,
+          "index_line": "108:79686768:d=2026110612:CAPE:surface:42 hour fcst:"
+        },
+        "sbcin": {
+          "start": 80014762,
+          "end": 80434028,
+          "index_line": "109:80014762:d=2026110612:CIN:surface:42 hour fcst:"
+        },
+        "srh01": {
+          "start": 104446317,
+          "end": 105700395,
+          "index_line": "135:104446317:d=2026110612:HLCY:1000-0 m above ground:42 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 552355,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:42 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50537931,
+          "end": 51736652,
+          "index_line": "74:50537931:d=2026110612:DPT:2 m above ground:42 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 112599100,
+          "end": 115218856,
+          "index_line": "140:112599100:d=2026110612:VUCSH:0-6000 m above ground:42 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 115218857,
+          "end": 117838613,
+          "index_line": "141:115218857:d=2026110612:VVCSH:0-6000 m above ground:42 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 43,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf43.grib2",
+      "retrieved_at": "2026-11-06T18:41:49.283165+00:00",
+      "index_sha256": "77b9bc09c391aea26d8cea239f5733186219ae90b1373d22d7d396772a08c102",
+      "fields": {
+        "uh25": {
+          "start": 30794677,
+          "end": 30893255,
+          "index_line": "45:30794677:d=2026110612:MXUPHL:5000-2000 m above ground:42-43 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 79474894,
+          "end": 79800817,
+          "index_line": "108:79474894:d=2026110612:CAPE:surface:43 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79800818,
+          "end": 80220444,
+          "index_line": "109:79800818:d=2026110612:CIN:surface:43 hour fcst:"
+        },
+        "srh01": {
+          "start": 104102606,
+          "end": 105358343,
+          "index_line": "135:104102606:d=2026110612:HLCY:1000-0 m above ground:43 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 543275,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:43 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50239658,
+          "end": 51439495,
+          "index_line": "74:50239658:d=2026110612:DPT:2 m above ground:43 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 112485437,
+          "end": 115105193,
+          "index_line": "140:112485437:d=2026110612:VUCSH:0-6000 m above ground:43 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 115105194,
+          "end": 117724950,
+          "index_line": "141:115105194:d=2026110612:VVCSH:0-6000 m above ground:43 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 44,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf44.grib2",
+      "retrieved_at": "2026-11-06T18:41:52.432279+00:00",
+      "index_sha256": "73c118113f8d42a9699d1ec927c07bbe014d305eb08e7546bfb5b8a0815d5880",
+      "fields": {
+        "uh25": {
+          "start": 30765508,
+          "end": 30864420,
+          "index_line": "45:30765508:d=2026110612:MXUPHL:5000-2000 m above ground:43-44 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 79700849,
+          "end": 80023806,
+          "index_line": "108:79700849:d=2026110612:CAPE:surface:44 hour fcst:"
+        },
+        "sbcin": {
+          "start": 80023807,
+          "end": 80431987,
+          "index_line": "109:80023807:d=2026110612:CIN:surface:44 hour fcst:"
+        },
+        "srh01": {
+          "start": 104329362,
+          "end": 105600427,
+          "index_line": "135:104329362:d=2026110612:HLCY:1000-0 m above ground:44 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 536295,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:44 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50384405,
+          "end": 51585126,
+          "index_line": "74:50384405:d=2026110612:DPT:2 m above ground:44 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 112493290,
+          "end": 115113046,
+          "index_line": "140:112493290:d=2026110612:VUCSH:0-6000 m above ground:44 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 115113047,
+          "end": 117732803,
+          "index_line": "141:115113047:d=2026110612:VVCSH:0-6000 m above ground:44 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 45,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf45.grib2",
+      "retrieved_at": "2026-11-06T18:41:52.431798+00:00",
+      "index_sha256": "99d07a8a6e52c52fc5702a0621b5b7af40171ece8ceb425c2c4d01c5153d5dff",
+      "fields": {
+        "uh25": {
+          "start": 30682274,
+          "end": 30777825,
+          "index_line": "45:30682274:d=2026110612:MXUPHL:5000-2000 m above ground:44-45 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 79356861,
+          "end": 79678286,
+          "index_line": "108:79356861:d=2026110612:CAPE:surface:45 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79678287,
+          "end": 80095769,
+          "index_line": "109:79678287:d=2026110612:CIN:surface:45 hour fcst:"
+        },
+        "srh01": {
+          "start": 104023906,
+          "end": 105280911,
+          "index_line": "135:104023906:d=2026110612:HLCY:1000-0 m above ground:45 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 534176,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:45 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50013669,
+          "end": 51217490,
+          "index_line": "74:50013669:d=2026110612:DPT:2 m above ground:45 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 112413347,
+          "end": 115033103,
+          "index_line": "140:112413347:d=2026110612:VUCSH:0-6000 m above ground:45 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 115033104,
+          "end": 117652860,
+          "index_line": "141:115033104:d=2026110612:VVCSH:0-6000 m above ground:45 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 46,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf46.grib2",
+      "retrieved_at": "2026-11-06T18:41:52.431021+00:00",
+      "index_sha256": "fc97f7022e755efd186a68169a794345fbb65704909cfc81ca3c6debb70c74bc",
+      "fields": {
+        "uh25": {
+          "start": 30760273,
+          "end": 30855560,
+          "index_line": "45:30760273:d=2026110612:MXUPHL:5000-2000 m above ground:45-46 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 79444254,
+          "end": 79765389,
+          "index_line": "108:79444254:d=2026110612:CAPE:surface:46 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79765390,
+          "end": 80183628,
+          "index_line": "109:79765390:d=2026110612:CIN:surface:46 hour fcst:"
+        },
+        "srh01": {
+          "start": 104120450,
+          "end": 105376023,
+          "index_line": "135:104120450:d=2026110612:HLCY:1000-0 m above ground:46 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 529978,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:46 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50100458,
+          "end": 51305977,
+          "index_line": "74:50100458:d=2026110612:DPT:2 m above ground:46 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 112504816,
+          "end": 115124572,
+          "index_line": "140:112504816:d=2026110612:VUCSH:0-6000 m above ground:46 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 115124573,
+          "end": 117744329,
+          "index_line": "141:115124573:d=2026110612:VVCSH:0-6000 m above ground:46 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 47,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf47.grib2",
+      "retrieved_at": "2026-11-06T18:41:52.426763+00:00",
+      "index_sha256": "e77d22400f2297b2f868d86ad67e4174120b00ba8b6df595fd5e3a65845e5d9c",
+      "fields": {
+        "uh25": {
+          "start": 30545210,
+          "end": 30638136,
+          "index_line": "45:30545210:d=2026110612:MXUPHL:5000-2000 m above ground:46-47 hour max fcst:"
+        },
+        "sbcape": {
+          "start": 79329907,
+          "end": 79651438,
+          "index_line": "108:79329907:d=2026110612:CAPE:surface:47 hour fcst:"
+        },
+        "sbcin": {
+          "start": 79651439,
+          "end": 80072803,
+          "index_line": "109:79651439:d=2026110612:CIN:surface:47 hour fcst:"
+        },
+        "srh01": {
+          "start": 104009095,
+          "end": 106036583,
+          "index_line": "135:104009095:d=2026110612:HLCY:1000-0 m above ground:47 hour fcst:"
+        },
+        "reflectivity": {
+          "start": 0,
+          "end": 526073,
+          "index_line": "1:0:d=2026110612:REFC:entire atmosphere:47 hour fcst:"
+        },
+        "dewpoint2m": {
+          "start": 50003087,
+          "end": 51212319,
+          "index_line": "74:50003087:d=2026110612:DPT:2 m above ground:47 hour fcst:"
+        },
+        "shear06_u": {
+          "start": 113158434,
+          "end": 115778190,
+          "index_line": "140:113158434:d=2026110612:VUCSH:0-6000 m above ground:47 hour fcst:"
+        },
+        "shear06_v": {
+          "start": 115778191,
+          "end": 118397947,
+          "index_line": "141:115778191:d=2026110612:VVCSH:0-6000 m above ground:47 hour fcst:"
+        }
+      }
+    },
+    {
+      "forecast_hour": 48,
+      "status": "available",
+      "source_url": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com/hrrr.20261106/conus/hrrr.t12z.wrfsfcf48.grib2",
+      "retrieved_at": "2026-11-06T18:41:55.734795+00:00",
+      "index_sha256": "cc83fa4633dee4a4e3010674647b008f784da52f01d3cb039671e7be64021646",
+      "fields": {
+        "uh25": {
+          "start": 30406279,
+          "end": 30499999,
+          "index_line": "45:30406279:d=2026110612:MXUPHL:5000-2000 m above ground:47-48 hour max fcst:"
+        }
+      }
+    }
+  ],
+  "day3": {
+    "supported": false,
+    "reason": "Outside 48-hour HRRR horizon; requires a separate longer-range model"
+  },
+  "important": "Input inventory only. No daily or significant-severe probabilities have been generated."
+}

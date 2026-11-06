@@ -27,7 +27,7 @@
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/ops.css?v=4575faf8f0">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
-<link rel="stylesheet" href="assets/severe-research.css?v=2a9b1e0a40">
+<link rel="stylesheet" href="assets/severe-research.css?v=06f465c118">
 </head>
 <body>
 <main class="workspace">
@@ -74,6 +74,15 @@
             <button class="btn ghost sm" type="button" data-sr-hazard="hail" aria-pressed="false">HAIL</button>
           </div></div>
         </div>
+        <div class="sr-view-controls">
+          <div><span class="field-label" id="srDisplayLabel">Display</span><div class="sr-display" role="group" aria-labelledby="srDisplayLabel">
+            <button class="btn ghost sm" type="button" data-sr-display="contours" aria-pressed="true">CONTOURS</button>
+            <button class="btn ghost sm" type="button" data-sr-display="dots" aria-pressed="false">DOTS</button>
+            <button class="btn ghost sm" type="button" data-sr-display="both" aria-pressed="false">BOTH</button>
+          </div></div>
+          <div><label class="field-label" for="srBasemap">Map theme</label><select class="input" id="srBasemap"><option value="light">Light</option><option value="dark">Dark</option><option value="site">Match site</option></select></div>
+          <div class="sr-opacity"><label class="field-label" for="srOpacity">Probability opacity <output id="srOpacityValue" for="srOpacity">85%</output></label><input id="srOpacity" type="range" min="30" max="100" value="85" step="5"></div>
+        </div>
         <div class="sr-meta"><strong id="srWindow">Choose a historical case</strong><span id="srInit"></span></div>
         <div class="sr-layout">
           <div class="sr-map" id="srMap" role="region" aria-label="Historical severe probability map"></div>
@@ -90,13 +99,10 @@
           <button class="btn ghost sm" id="srPeak" type="button">HIGHEST SAMPLE</button>
           <button class="btn ghost sm" id="srDomain" type="button">WHOLE DOMAIN</button>
         </div>
-        <div class="sr-scale" aria-label="Probability color scale">
-          <span><i style="background:#5c8fe7"></i>0.1%</span><span><i style="background:#46c6ca"></i>1%</span>
-          <span><i style="background:#e9d452"></i>2%</span><span><i style="background:#f9a23f"></i>5%</span>
-          <span><i style="background:#f27243"></i>10%</span><span><i style="background:#eb4e65"></i>15%</span>
-          <span><i style="background:#b68beb"></i>30%+</span>
-        </div>
-        <p class="sr-caption">Dots show sampled grid centers about 15 km apart, with no interpolation. Values below 0.1% are hidden on the map and retained in the readout. An unavailable value is never shown as zero.</p>
+        <div class="sr-scale" id="srLegend" aria-label="Neighborhood probability color scale"></div>
+        <p class="sr-caption sr-target">Chance of a qualifying <span id="srLegendHazard">tornado</span> report within 25 miles of a sampled grid center · four-hour window.</p>
+        <p class="sr-caption" id="srDisplayNote">Filled contours interpolate between archived samples about 15 km apart. Point readouts always use an original sample.</p>
+        <p class="sr-caption">Colors show experimental probabilities, not official SPC outlook categories. No EF2+, significant wind or significant hail hatching is available from this model.</p>
         <p class="sr-status" id="srStatus" role="status">Open the viewer to load archived research results.</p>
         <button class="btn ghost sm" type="button" id="srRetry" hidden>RETRY ARCHIVE</button>
         <details class="sr-evidence">
@@ -185,8 +191,12 @@
 <script src="assets/severe.js?v=85bc276313"></script>
 <script src="assets/vendor/maplibre-gl-4.7.1.js?v=be9633c4d8"></script>
 <script src="assets/severe-research-core.js?v=d3ca3809d8"></script>
-<script src="assets/severe-research-canvas.js?v=847b1662d1"></script>
-<script src="assets/severe-research.js?v=cf1cacaacf"></script>
+<script src="assets/vendor/d3-array-3.2.4.js?v=80aa70d0cd"></script>
+<script src="assets/vendor/d3-contour-4.0.2.js?v=78e1d80350"></script>
+<script src="assets/vendor/d3-delaunay-6.0.4.js?v=efc726aa8a"></script>
+<script src="assets/severe-research-contours.js?v=a6e065bab5"></script>
+<script src="assets/severe-research-canvas.js?v=0c047ea44d"></script>
+<script src="assets/severe-research.js?v=949ea7b6c2"></script>
 </body>
 </html>
 

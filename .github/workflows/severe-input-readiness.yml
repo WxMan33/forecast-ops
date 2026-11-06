@@ -1,0 +1,26 @@
+name: Severe daily input readiness
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/severe/daily.py'
+      - '.github/workflows/severe-input-readiness.yml'
+permissions:
+  contents: read
+jobs:
+  inputs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python tests/severe-daily.test.py
+      - run: python tools/severe/daily.py --output tests/out/severe-daily-inputs.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: severe-daily-input-readiness
+          path: tests/out/severe-daily-inputs.json
+          retention-days: 30
