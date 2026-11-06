@@ -213,7 +213,8 @@ with sync_playwright() as p:
  page.clock.set_fixed_time(datetime(2026,11,4,19,46,tzinfo=timezone.utc))
  page.reload();page.wait_for_function('!document.querySelector("#runBtn").disabled && document.querySelector("#daily tr[data-k]")')
  assert page.locator('#daily tr[data-k]').first.get_attribute('data-k')=='2026-11-05'
- assert 'Tonight low' in page.locator('#tiles').inner_text() and 'Tomorrow high' in page.locator('#tiles').inner_text()
+ tile_text=page.locator('#tiles').inner_text().casefold()
+ assert 'tonight low' in tile_text and 'tomorrow high' in tile_text,tile_text
  assert page.locator('#timingDay option:checked').inner_text()=='Tonight / tomorrow'
  page.locator('#elapsedToday').click()
  assert page.locator('#daily tr[data-k]').first.get_attribute('data-k')=='2026-11-04'
