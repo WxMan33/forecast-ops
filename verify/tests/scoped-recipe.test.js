@@ -6,7 +6,7 @@ const R = BL.recipes.find((r) => r.id === "brad-scoped-default-2026-11-04-v2");
 ok(R && R.effectiveFrom && R.rules.periodWeights, "scoped default archived with near/far weights and an effectiveFrom");
 eq(U.configHash({ weights: R.weights, rules: R.rules }), BL.FROZEN[R.id], "recipe is frozen by hash");
 const C = U.Core, site = C.blend.scopedWeights(C.blend.defaultProfiles([...C.config.blend.extra, ...C.config.blend.models].map((m) => ({ id: m.id, w: m.w }))));
-eq({ weights: R.weights, rules: R.rules }, { weights: site.ws, rules: site.rules }, "identical to the website's scoped default at freeze time");
+ok(!R.rules.periodWeights.nearTemp, "old scoped recipe retains its original shared-variable rules");
 /* synthetic: HRRR (near 3, far 0) at 50 F and ECMWF IFS (near 1, far 1.25) at 70 F */
 const t0 = Date.parse(R.effectiveFrom) + 6 * 3600e3, start = Date.parse(new Date(t0).toISOString().slice(0, 10) + "T00:00Z");
 const hours = Array.from({ length: 24 * 5 }, (_, i) => new Date(start + i * 3600e3).toISOString().slice(0, 16));
@@ -29,3 +29,20 @@ eq(SC.retrospective(R.id, { startedAt: new Date(Date.parse(R.effectiveFrom) - 10
 const early = NORM.normalize(raw, { ...cap, startedAt: new Date(Date.parse(R.effectiveFrom) - 3600e3).toISOString() }, loc, BL.recipes);
 ok(!early.blends[R.id] && early.recipesNotApplied.some((x) => x.id === R.id), "not applied to captures made before it existed");
 console.log(`ok - ${n} scoped-recipe checks passed`);
+
+const V3=BL.recipes.find(r=>r.id===C.blend.CUSTOM_DEFAULTS.id);
+eq({weights:V3.weights,rules:V3.rules},{weights:site.ws,rules:site.rules},'v3 matches website defaults');
+eq(U.configHash({weights:V3.weights,rules:V3.rules}),BL.FROZEN[V3.id],'v3 recipe hash is frozen');
+const tuneTime=Date.parse(V3.effectiveFrom)+6*3600e3;
+const tuneStart=Date.parse(new Date(tuneTime).toISOString().slice(0,10)+'T00:00Z');
+const tuneHours=Array.from({length:120},(_,i)=>new Date(tuneStart+i*3600e3).toISOString().slice(0,16));
+const tuneDet=t=>({hourly:{time:tuneHours,temperature_2m:tuneHours.map(()=>t),precipitation:tuneHours.map(()=>.01),snowfall:tuneHours.map(()=>0)}});
+const tuneRaw={det:{gfs_hrrr:tuneDet(50),ecmwf_ifs025:tuneDet(70)},ens:{},nws:{}};
+const tuneCap={...cap,startedAt:new Date(tuneTime).toISOString(),slotTarget:new Date(tuneTime).toISOString(),sources:{gfs_hrrr:{retrievedAt:new Date(tuneTime).toISOString()}}};
+const tuned=NORM.normalize(tuneRaw,tuneCap,loc,BL.recipes),old=tuned.blends[R.id],next=tuned.blends[V3.id];
+eq(next.values.precip_clim,old.values.precip_clim,'precipitation amounts/spreads stay identical');
+const ti=Math.round((tuneTime+3*3600e3-tuneStart)/3600e3);
+ok(tuned.hourly.temperature_2m['blend:'+V3.id][ti]>tuned.hourly.temperature_2m['blend:'+R.id][ti],'new temperature profile reduces the cold HRRR contribution');
+ok(next.shares.near.temperature_2m.find(x=>x[0]==='gfs_hrrr')[1]<next.shares.near.precipitation.find(x=>x[0]==='gfs_hrrr')[1],'archive records distinct temperature and precipitation shares');
+ok(SC.retrospective(V3.id,{startedAt:new Date(Date.parse(V3.effectiveFrom)-1000).toISOString()}),'v3 cannot score earlier captures as prospective');
+console.log('Temperature-tuned v3 prospective normalization and unchanged precipitation checks pass');

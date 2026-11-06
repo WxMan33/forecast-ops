@@ -121,7 +121,7 @@ function normalize(raw, cap, loc, recipesIn) {
     Object.entries(rc.weights).forEach(([id, w]) => { if (data.models[id]) wsAct[id] = w; else missing.push(id); });
     const info = { label: rc.label, group: rc.group, configHash: U.configHash({ weights: rc.weights, rules: rc.rules }), requested: rc.weights, rules: rc.rules, actual: wsAct, missing,
       shares: rc.rules && rc.rules.periodWeights
-        ? Object.fromEntries(["near", "far"].map((p) => { const w = Object.fromEntries(Object.entries(rc.rules.periodWeights[p]).filter(([id, x]) => wsAct[id] && x > 0)); return [p, { temperature_2m: B.shares(w, null, "temperature_2m").map((x) => [x.id, r1(x.share, 3)]), precipitation: B.shares(w, null, "precipitation").map((x) => [x.id, r1(x.share, 3)]) }]; }))
+        ? Object.fromEntries(["near", "far"].map((p) => { const w = Object.fromEntries(Object.entries(rc.rules.periodWeights[p]).filter(([id, x]) => wsAct[id] && x > 0)); return [p, { temperature_2m: B.shares(p==="near"&&rc.rules.periodWeights.nearTemp?Object.fromEntries(Object.entries(rc.rules.periodWeights.nearTemp).filter(([id,x])=>wsAct[id]&&x>0)):w, null, "temperature_2m").map((x) => [x.id, r1(x.share, 3)]), precipitation: B.shares(w, null, "precipitation").map((x) => [x.id, r1(x.share, 3)]) }]; }))
         : { temperature_2m: B.shares(wsAct, rc.rules, "temperature_2m").map((x) => [x.id, r1(x.share, 3)]), precipitation: B.shares(wsAct, rc.rules, "precipitation").map((x) => [x.id, r1(x.share, 3)]) },
       periodBoundary: rc.rules && rc.rules.periodWeights ? new Date(lastMs + 48 * 3600e3).toISOString() : undefined, values: {} };
     if (Object.keys(wsAct).length) keys.forEach((key) => dates.forEach((d) => {

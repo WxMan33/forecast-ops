@@ -165,11 +165,14 @@
   /* User-requested scoped defaults, installed once without rewriting old recipes. */
   if (store.get("ops_scoped_default_version", null)!==Core.blend.CUSTOM_DEFAULTS.id) {
     const old=store.get("ops_blend_period_weights_v1",null);
-    if(old)store.set("ops_blend_period_weights_before_defaults_v2",old);
+    if(old)store.set("ops_blend_period_weights_before_"+Core.blend.CUSTOM_DEFAULTS.id,old);
     const spec=Core.config.blend;
-    store.set("ops_blend_period_weights_v1",Core.blend.defaultProfiles([...spec.extra,...spec.models]));
+    const next=Core.blend.defaultProfiles([...spec.extra,...spec.models]);
+    if(old?.near&&old?.far){next.near=old.near;next.far=old.far;next.nearTemp=JSON.parse(JSON.stringify(old.near));
+      for(const id of ["gfs_hrrr","ncep_rrfs_conus","rrfs_ens","ecmwf_ens","ecmwf_aifs025_single"]){if(next.nearTemp[id])next.nearTemp[id]={...next.nearTemp[id],w:Core.blend.CUSTOM_DEFAULTS.nearTemp[id]};}}
+    store.set("ops_blend_period_weights_v1",next);
     store.set("ops_blend_preset","custom");
-    store.set("ops_blend_weight_scope","near");
+    store.set("ops_blend_weight_scope","nearTemp");
     store.set("ops_scoped_default_version",Core.blend.CUSTOM_DEFAULTS.id);
   }
   /* ---------- location (URL first, so a shared link opens the same point) ---------- */

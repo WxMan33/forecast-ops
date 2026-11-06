@@ -23,3 +23,17 @@ assert.equal(flat.rules.periodWeights.near.nws,4);assert.equal(flat.rules.period
 assert.equal(Object.values(flat.rules.periodWeights.near).reduce((a,b)=>a+b,0),21);assert.equal(Object.values(flat.rules.periodWeights.far).reduce((a,b)=>a+b,0),14);
 def.near.nws.w=9;assert.equal(C.blend.defaultProfiles(sources).near.nws.w,4);assert.equal(C.blend.PREFERRED.weights.nws,3);
 console.log('Recommended scoped defaults, 21/14 weight totals, independent copies and frozen original recipe pass');
+
+assert.equal(flat.rules.periodWeights.nearTemp.gfs_hrrr,2.5);
+assert.equal(flat.rules.periodWeights.nearTemp.ncep_rrfs_conus,2.5);
+assert.equal(flat.rules.periodWeights.nearTemp.rrfs_ens,1.5);
+assert.equal(flat.rules.periodWeights.nearTemp.ecmwf_ens,4);
+assert.equal(flat.rules.periodWeights.nearTemp.ecmwf_aifs025_single,1.25);
+assert.equal(Object.values(flat.rules.periodWeights.nearTemp).reduce((a,b)=>a+b,0),21);
+const fw=(v,i)=>C.blend.hourWeight(data,flat.ws,flat.rules,'gfs_hrrr',v,i);
+assert.equal(fw('temperature_2m',1),2.5);assert.equal(fw('temperature_2m',3),0);
+for(const v of ['precipitation','wind_speed_10m','wind_gusts_10m','dew_point_2m','apparent_temperature'])assert.equal(fw(v,1),3,v+' stays unchanged');
+const crossing=C.blend.periodRules(data,flat.rules,[2,3]);
+assert.equal(C.blend.w(flat.ws,crossing,'gfs_hrrr','temperature_2m'),1.25);
+assert.equal(C.blend.w(flat.ws,crossing,'gfs_hrrr','precipitation'),1.5);
+console.log('Temperature-only weights, unchanged other variables and exact 48h crossing pass');

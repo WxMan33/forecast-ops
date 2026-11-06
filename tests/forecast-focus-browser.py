@@ -78,6 +78,17 @@ with sync_playwright() as p:
  assert page.locator('.side #models').count()==1
  assert page.locator('.side #presetTabs').count()==1
  assert page.locator('.main #recipeNote').count()==0
+ assert page.locator('#weightScope').input_value()=='nearTemp'
+ profiles=page.evaluate('JSON.parse(localStorage.getItem("ops_blend_period_weights_v1"))')
+ assert profiles['nearTemp']['gfs_hrrr']['w']==2.5 and profiles['near']['gfs_hrrr']['w']==3
+ assert profiles['nearTemp']['ecmwf_ens']['w']==4 and profiles['near']['ecmwf_ens']['w']==3
+ page.locator('#fold_ops_blend_models > summary').click()
+ page.locator('#weightScope').select_option('near')
+ assert 'other fields' in page.locator('#weightScope option:checked').inner_text()
+ page.locator('#weightScope').select_option('nearTemp')
+ assert 'Only 2-m temperature' in page.locator('#weightScopeHelp').text_content()
+ page.locator('#fold_ops_blend_models > summary').click()
+
  assert page.locator('#daily tbody tr').count()>=14
  headings=page.locator('#daily thead').text_content().lower()
  assert headings.index('morning')<headings.index('nws day'),'NWS morning low precedes daytime high'

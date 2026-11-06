@@ -200,11 +200,13 @@ function scoreAll(DATA, loc, nowMs = Date.now(), normVersion = require("./normal
      captured before it existed still count in the established set above. */
   /* the scoped (short/long-range) default: its own set, with Default v2 and Baseline v1, so the
      short-range emphasis is judged against both on the same cases */
-  const scopedRecipe = BLENDS.recipes.find((r) => r.rules && r.rules.periodWeights), scopedMembers = scopedRecipe ? [scopedRecipe.id, U.Core.blend.PREFERRED.id, ...opeMembers].filter((x, k, a) => a.indexOf(x) === k && BLENDS.recipes.some((r) => r.id === x)) : null;
+  const scopedRecipe = BLENDS.recipes.find((r) => r.rules && r.rules.periodWeights && !r.rules.periodWeights.nearTemp), scopedMembers = scopedRecipe ? [scopedRecipe.id, U.Core.blend.PREFERRED.id, ...opeMembers].filter((x, k, a) => a.indexOf(x) === k && BLENDS.recipes.some((r) => r.id === x)) : null;
+  const tunedRecipe=BLENDS.recipes.find(r=>r.rules?.periodWeights?.nearTemp),tunedMembers=tunedRecipe?[tunedRecipe.id,scopedRecipe?.id,...opeMembers].filter((x,k,a)=>x&&a.indexOf(x)===k):null;
   const defaultId = U.Core.blend.PREFERRED.id, defaultMembers = BLENDS.recipes.some((r) => r.id === defaultId) && !opeMembers.includes(defaultId) ? [defaultId, ...opeMembers] : null;
   const tvIds = [...new Set(pairs.filter((p) => p.track === "tv" && p.locClass !== "explicit-other-point").map((p) => p.id))];
   ["tmax_clim", "tmin_clim", "pop01_clim", "precip_clim"].forEach((t) => [1, 2, 3, 4, 5, 6, 7].forEach((L) => ["midday", "evening"].forEach((sl) => { const r = matched(pairs, opeMembers, "baseline-v1", t, L, sl); if (r.n) comps.push({ set: "ope", target: t, lead: L, slot: sl, ...r });
     if (defaultMembers) { const d = matched(pairs, defaultMembers, "baseline-v1", t, L, sl); if (d.n) comps.push({ set: "default", target: t, lead: L, slot: sl, ...d }); }
+    if(tunedMembers){const d=matched(pairs,tunedMembers,"baseline-v1",t,L,sl);if(d.n)comps.push({set:"temperature-tuned",target:t,lead:L,slot:sl,...d});}
     if (scopedMembers) { const d = matched(pairs, scopedMembers, "baseline-v1", t, L, sl); if (d.n) comps.push({ set: "scoped", target: t, lead: L, slot: sl, ...d }); } })));
   ["tmax_clim", "tmin_night", "pop01_clim"].forEach((t) => [1, 2, 3, 4, 5, 6, 7].forEach((L) => ["midday", "evening"].forEach((sl) => { const mem = [...tvIds, "baseline-v1"]; if (tvIds.length) { const r = matched(pairs, mem, "baseline-v1", t, L, sl); if (r.n) comps.push({ set: "tv-pilot", target: t, lead: L, slot: sl, ...r }); } })));
   const obsBest = [...best.entries()].filter(([k]) => !k.startsWith("temp_hourly")).map(([k, v]) => { const [target, date] = k.split("|"); return { target, date, ...v }; });
