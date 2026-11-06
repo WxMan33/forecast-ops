@@ -26,6 +26,8 @@
   });
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/ops.css?v=4575faf8f0">
+<link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
+<link rel="stylesheet" href="assets/severe-research.css?v=2a9b1e0a40">
 </head>
 <body>
 <main class="workspace">
@@ -58,6 +60,55 @@
         <span><i class="sw" style="background:var(--raised);height:10px;border:1px solid var(--line)"></i>No data</span>
       </div>
     </section>
+
+    <details class="card sr-research" id="severe-research" aria-busy="false">
+      <summary><span class="sr-title">Experimental severe probabilities</span><span class="sr-badge">HISTORICAL REPLAY</span></summary>
+      <p class="sr-intro">Explore the research model’s tornado, wind and hail maps from 12 archived 2024 cases.</p>
+      <div class="sr-body">
+        <div class="sr-warning"><b>Archive only. No live forecast.</b> Research v0.2 has not established dependable forecast skill. These maps describe the selected historical window.</div>
+        <div class="sr-controls">
+          <div><label class="field-label" for="srRun">Archived case</label><select class="input" id="srRun" disabled><option>Loading archive…</option></select></div>
+          <div><span class="field-label" id="srHazardLabel">Hazard</span><div class="sr-hazards" role="group" aria-labelledby="srHazardLabel">
+            <button class="btn ghost sm" type="button" data-sr-hazard="tornado" aria-pressed="true">TORNADO</button>
+            <button class="btn ghost sm" type="button" data-sr-hazard="wind" aria-pressed="false">WIND</button>
+            <button class="btn ghost sm" type="button" data-sr-hazard="hail" aria-pressed="false">HAIL</button>
+          </div></div>
+        </div>
+        <div class="sr-meta"><strong id="srWindow">Choose a historical case</strong><span id="srInit"></span></div>
+        <div class="sr-layout">
+          <div class="sr-map" id="srMap" role="region" aria-label="Historical severe probability map"></div>
+          <div class="sr-readout" aria-live="polite" aria-atomic="true">
+            <div class="sr-sample-name" id="srSample">Saved location</div>
+            <div><div class="sr-value" id="srValue">—</div><div class="sr-caption" id="srHazardName">Tornado probability</div></div>
+            <div class="sr-caption">A qualifying report <b>within 25 miles</b> of the sampled grid center during this <b>four-hour window</b>. This is a neighborhood probability, not a direct-hit probability.</div>
+            <div class="sr-coordinates" id="srCoordinates"></div>
+            <div class="sr-caption">Dashed circle: the area assessed around the selected sample.</div>
+          </div>
+        </div>
+        <div class="sr-map-actions">
+          <button class="btn ghost sm" id="srLocation" type="button">INSPECT SAVED LOCATION</button>
+          <button class="btn ghost sm" id="srPeak" type="button">HIGHEST SAMPLE</button>
+          <button class="btn ghost sm" id="srDomain" type="button">WHOLE DOMAIN</button>
+        </div>
+        <div class="sr-scale" aria-label="Probability color scale">
+          <span><i style="background:#5c8fe7"></i>0.1%</span><span><i style="background:#46c6ca"></i>1%</span>
+          <span><i style="background:#e9d452"></i>2%</span><span><i style="background:#f9a23f"></i>5%</span>
+          <span><i style="background:#f27243"></i>10%</span><span><i style="background:#eb4e65"></i>15%</span>
+          <span><i style="background:#b68beb"></i>30%+</span>
+        </div>
+        <p class="sr-caption">Dots show sampled grid centers about 15 km apart, with no interpolation. Values below 0.1% are hidden on the map and retained in the readout. An unavailable value is never shown as zero.</p>
+        <p class="sr-status" id="srStatus" role="status">Open the viewer to load archived research results.</p>
+        <button class="btn ghost sm" type="button" id="srRetry" hidden>RETRY ARCHIVE</button>
+        <details class="sr-evidence">
+          <summary>How well did it perform?</summary>
+          <p class="sr-caption">36 calendar-selected cases: 2022 for training, 2023 for calibration and 12 dates in 2024 for development evaluation. Lower Brier scores are better. Nearby grid samples are correlated.</p>
+          <div class="tablewrap"><table id="srEvidenceTable" aria-label="Research model and baseline Brier scores"></table></div>
+          <p class="sr-caption"><b>Every paired uncertainty interval includes zero.</b> This small sample does not establish a dependable advantage over the baselines. Only two evaluation days had tornado reports. 2025 remains untouched for a later evaluation.</p>
+          <p class="sr-caption">Targets: tornado reports, wind reports of at least 50 kt and hail reports of at least 1 inch. Report absence is an imperfect non-event proxy. This is separate from official outlooks and from the live environment guidance above.</p>
+          <p class="sr-caption"><a href="docs/severe-research.md">Method, provenance and development results</a> · <a href="http://data.nadocast.com/viewer.html" target="_blank" rel="noopener noreferrer">Nadocast reference viewer</a></p>
+        </details>
+      </div>
+    </details>
 
     <section class="card">
       <div class="section-title">Hodograph &amp; sounding summary</div>
@@ -131,7 +182,11 @@
 <script src="assets/ops-core.js?v=737773bf4d"></script>
 <script src="assets/ops-data.js?v=457e2eb9ec"></script>
 <script src="assets/ops.js?v=ac696b8435"></script>
-<script src="assets/severe.js?v=d63691ef76"></script>
+<script src="assets/severe.js?v=85bc276313"></script>
+<script src="assets/vendor/maplibre-gl-4.7.1.js?v=be9633c4d8"></script>
+<script src="assets/severe-research-core.js?v=d3ca3809d8"></script>
+<script src="assets/severe-research-canvas.js?v=847b1662d1"></script>
+<script src="assets/severe-research.js?v=cf1cacaacf"></script>
 </body>
 </html>
 

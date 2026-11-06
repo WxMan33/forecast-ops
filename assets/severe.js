@@ -27,7 +27,7 @@
   let data = null, chart = null, fresh = false, tab = O.store.get("ops_severe_tab", "scp");
   const picker = O.modelPicker($("models"), "ops_severe_models", MODELS, render);
   const showLines = O.linesToggle($("linesBtn"), "ops_severe_lines", () => renderChart());
-  O.locationCard($("locCard"), () => run());
+  O.locationCard($("locCard"), () => { window.dispatchEvent(new Event("ops:research-location")); run(); });
   O.eventCard($("evCard"));
   O.onEvent(() => render());
   $("runBtn").addEventListener("click", () => run());

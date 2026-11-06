@@ -22,6 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - run: node tests/severe-research.test.js
       - run: node tests/core.test.js
       - run: node tests/fixtures.test.js
       - run: node verify/tests/verify.test.js
