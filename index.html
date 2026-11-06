@@ -25,7 +25,7 @@
     if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
   });
 })();</script><!--/load-guard-->
-<link rel="stylesheet" href="assets/ops.css?v=b5b12a07e2">
+<link rel="stylesheet" href="assets/ops.css?v=5e0065a18d">
 </head>
 <body>
 <main class="workspace">
@@ -34,7 +34,7 @@
   </aside>
 
   <div class="main">
-    <a class="btn ghost sm" href="blend.html?view=brief">Decision briefing · simple forecast view →</a>
+    <div class="overview-brief"><a class="btn ghost sm" href="blend.html?view=brief">Open decision briefing →</a></div>
     <section class="card" id="changes" hidden></section>
 
     <section class="card">
@@ -52,31 +52,37 @@
       <a class="hubcard" href="blend.html">
         <span class="kicker">Tool 01</span>
         <h2>Model Blend</h2>
-        <p>Up to 11 models side by side, blended with weights you set: spread bands, accumulated precip and snow, and a daily table with temperature agreement.</p>
+        <p>Your weighted forecast, source agreement and daily investigation flags.</p>
         <span class="go">OPEN →</span>
       </a>
       <a class="hubcard" href="thunder.html">
         <span class="kicker">Tool 02</span>
         <h2>Thunder</h2>
-        <p>Hour-by-hour thunder signal from model thunder codes, CAPE and precip chance, with a click-for-detail timeline and instability charts.</p>
+        <p>Find storm windows and compare hourly instability and thunder signals.</p>
         <span class="go">OPEN →</span>
       </a>
       <a class="hubcard" href="severe.html">
         <span class="kicker">Tool 03</span>
         <h2>Severe</h2>
-        <p>Severe environment from each model's sounding: shear, SRH, Bunkers motion, lapse rates, LCL and ≈ STP / SCP, with hail, wind and tornado ingredient flags and a hodograph.</p>
+        <p>Explore soundings, wind profiles and ingredients for severe weather.</p>
         <span class="go">OPEN →</span>
       </a>
       <a class="hubcard" href="winter.html">
         <span class="kicker">Tool 04</span>
         <h2>Winter</h2>
-        <p>Snow odds from about 140 ensemble members: chance of each total, accumulation plume, temperature spread and a day-by-day table for the window you pick.</p>
+        <p>Compare ensemble snow totals, threshold chances and precipitation types.</p>
         <span class="go">OPEN →</span>
       </a>
       <a class="hubcard" href="almanac.html">
         <span class="kicker">Tool 05</span>
         <h2>Almanac</h2>
-        <p>Sunrise, sunset and daylight to the second, the moon, Cincinnati normals and records, and month and season rankings.</p>
+        <p>Local skywatch, sun and moon times, climate records and seasonal rankings.</p>
+        <span class="go">OPEN →</span>
+      </a>
+      <a class="hubcard" href="maps.html">
+        <span class="kicker">Tool 06</span>
+        <h2>Model Maps</h2>
+        <p>Animate regional HRRR guidance and inspect conditions at your sites.</p>
         <span class="go">OPEN →</span>
       </a>
     </div>
@@ -104,9 +110,9 @@
 </main>
 <script src="assets/ops-core.js?v=737773bf4d"></script>
 <script src="assets/ops-data.js?v=457e2eb9ec"></script>
-<script src="assets/ops.js?v=784e1d19eb"></script>
+<script src="assets/ops.js?v=ac696b8435"></script>
 <script src="assets/forecast-clock.js?v=c6df9f20b7"></script>
-<script src="assets/overview.js?v=5d4599056f"></script>
+<script src="assets/overview.js?v=eafd8ac3d9"></script>
 </body>
 </html>
 
