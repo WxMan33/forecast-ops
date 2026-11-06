@@ -35,7 +35,7 @@
   let preset = O.store.get("ops_blend_preset", "preferred");
   if (!C.blend.PRESETS[preset]) preset = "preferred";
 
-  let data = null, nws = null, chart = null, viewDay = null, fresh = false, showElapsedToday = false;
+  let data = null, nws = null, chart = null, viewDay = null, fresh = false, showElapsedToday = false, displayClockKey = null;
   let tab = O.store.get("ops_blend_tab", "temp"), range = O.store.get("ops_blend_range", "168");
 
   let weightScope=O.store.get("ops_blend_weight_scope","near");
@@ -295,6 +295,7 @@
     const rows = C.blend.dailyRows(data, W(), OPTS());
     data.rows = rows;
     const clock = window.ForecastClock.focus(C, data.tz, Date.now());
+    displayClockKey = `${clock.day}|${clock.forward}|${clock.evening}`;
     const visibleRows = rows.filter(r => !clock.evening || showElapsedToday || r.k !== clock.day);
     const elapsedButton = $("elapsedToday");
     elapsedButton.hidden = !clock.evening || !rows.some(r=>r.k===clock.day);
@@ -563,7 +564,7 @@
 
   render();
   run();
-  const displayTimer=setInterval(()=>{if(data&&!document.hidden)render();},60000);
+  const displayTimer=setInterval(()=>{if(data&&!document.hidden){const c=window.ForecastClock.focus(C,data.tz,Date.now());if(`${c.day}|${c.forward}|${c.evening}`!==displayClockKey)render();else renderNow();}},60000);
   window.addEventListener('pagehide',()=>clearInterval(displayTimer),{once:true});
 })();
 
