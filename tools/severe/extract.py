@@ -126,7 +126,7 @@ class Aggregate:
         return columns,np.column_stack([arrays[n] for n in columns]).astype(np.float32)
 
 
-def extract(issue,output,cache,budget_mb=2000,days=(1,2),stride=5,bounds=(-100,-75,30,45),target_windows=None):
+def extract(issue,output,cache,budget_mb=2000,days=(1,2),stride=5,bounds=(-100,-75,30,45),target_windows=None,expected_coordinates=None):
     targets=[w for w in windows(issue) if w['day'] in days] if target_windows is None else target_windows
     if any(w['model_init_time']!=issue.isoformat() or w['day'] not in days for w in targets):raise ValueError('Target initialization/day mismatch')
     if len({w['day'] for w in targets})!=len(targets) or len({w['feature_schema'] for w in targets})!=1:raise ValueError('Mixed or duplicate target schemas')
@@ -158,6 +158,9 @@ def extract(issue,output,cache,budget_mb=2000,days=(1,2),stride=5,bounds=(-100,-
                 sample=np.zeros(mask.shape,bool);sample[::stride,::stride]=True;rows,cols=np.where(mask&sample)
                 if not len(rows):raise ValueError('No sample centers in domain')
                 coords=np.column_stack((data['lon'][rows,cols],data['lat'][rows,cols]))
+                if expected_coordinates is not None:
+                    from protocol import check_grid
+                    print('Grid alignment: '+json.dumps(check_grid(coords,expected_coordinates)),flush=True)
             if data['geometry']!=geometry:raise ValueError('Native grid definition changed')
             field_id={k:v for k,v in data['metadata'].items() if k not in ['dataDate','dataTime','startStep','endStep','stepType','stepUnits']}
             if name in identity and identity[name]!=field_id:raise ValueError('Parameter identity or units changed')

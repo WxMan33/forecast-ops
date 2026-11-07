@@ -29,3 +29,15 @@ def validate(w):
     if start!=issue+timedelta(hours=w['first_forecast_hour']) or end-start!=timedelta(hours=24) or start.hour!=12:raise ValueError('Target window mismatch')
     if cutoff!=issue+timedelta(hours=3) or cutoff>=start or w['historical_public_availability_verified'] is not False:raise ValueError('Invalid release assumption or retrospective availability claim')
     return w
+
+
+# Bound decoder/platform roundoff to about 0.1 mm. Preserve source coordinates;
+# never reorder points or resample labels to make a grid match.
+GRID_TOLERANCE_DEGREES=1e-9
+
+def check_grid(actual,expected):
+    import numpy as np
+    if actual.shape!=expected.shape or not np.isfinite(actual).all() or not np.isfinite(expected).all():raise ValueError('Grid shape or finite-coordinate mismatch')
+    maximum=float(np.max(np.abs(actual-expected)))
+    if maximum>GRID_TOLERANCE_DEGREES:raise ValueError(f'Grid coordinates/order differ: max_delta_degrees={maximum:.17g}')
+    return {'exact':bool(np.array_equal(actual,expected)),'maximum_difference_degrees':maximum,'tolerance_degrees':GRID_TOLERANCE_DEGREES}

@@ -49,5 +49,7 @@
   "max_parallel_cases": 3,
   "max_download_mb_per_case": 2000,
   "release_lag_assumption_hours": 3,
-  "historical_public_availability_verified": false
+  "historical_public_availability_verified": false,
+  "collection_revision": 2,
+  "grid_roundoff_tolerance_degrees": 1e-09
 }

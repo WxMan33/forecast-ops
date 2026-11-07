@@ -4,7 +4,7 @@ import argparse,hashlib,json,math,shutil
 from datetime import datetime
 from pathlib import Path
 import numpy as np
-from protocol import future_window,validate,SCHEMA,PROTOCOL
+from protocol import future_window,validate,check_grid,SCHEMA,PROTOCOL
 from extract import extract,digest,write_json
 from audit_extraction import audit
 
@@ -27,17 +27,17 @@ def join_case(case,manifests,labels,output):
         data=np.load(source,allow_pickle=False);coords=data['coordinates'];x=data['features'];names=data['feature_names']
         if grid is None:grid=coords;columns=names;geometry=m['native_grid'];identities=m['field_identities']
         if not np.array_equal(coords,grid) or not np.array_equal(names,columns) or m['native_grid']!=geometry or m['field_identities']!=identities:raise ValueError('Grid, column definitions or physical field identities differ between days')
-        if not np.array_equal(coords,truth['coordinates']):raise ValueError('Label coordinates/order differ from forecast grid')
+        alignment=check_grid(coords,truth['coordinates'])
         if x.shape!=(len(coords),34) or x.dtype!=np.float32 or not np.isfinite(x).all():raise ValueError('Invalid predictor matrix')
         matches=[p for p in lm['products'] if p['initialization_date']==case and p['day']==w['day'] and p['valid_start']==w['valid_start'] and p['valid_end']==w['valid_end']]
         if len(matches)!=1:raise ValueError('No unique matching report-label window')
         p=matches[0];y=truth['labels'][p['index']]
         if y.shape!=(len(coords),3) or not np.isin(y,[0,1,255]).all():raise ValueError('Invalid report labels')
-        features.append(x);targets.append(y);windows.append({**expected,'split':p['split'],'predictor_sha256':w['sha256'],'predictor_manifest_sha256':digest(manifest_path),'raw_audit_sha256':digest(audit_path),'label_window_index':p['index']})
+        features.append(x);targets.append(y);windows.append({**expected,'label_grid_alignment':alignment,'split':p['split'],'predictor_sha256':w['sha256'],'predictor_manifest_sha256':digest(manifest_path),'raw_audit_sha256':digest(audit_path),'label_window_index':p['index']})
     if [w['day'] for w in windows]!=[1,2]:raise ValueError('Both ordered daily windows are required')
     output=Path(output);path=output/'joined.npz'
     np.savez_compressed(path,coordinates=grid,feature_names=columns,features=np.stack(features),labels=np.stack(targets),hazards=truth['hazards'],days=np.array([1,2]))
-    result={'schema_version':1,'status':'paired_predictors_and_report_labels_not_a_trained_forecast','case':case,'feature_schema':SCHEMA,'timing_protocol':PROTOCOL,'windows':windows,'label_artifact_sha256':lm['artifact']['sha256'],'grid_sha256':hashlib.sha256(grid.astype('<f8').tobytes()).hexdigest(),'samples_per_day':len(grid),'features_per_sample':34,'artifact':{'file':path.name,'sha256':digest(path)},'historical_public_availability_verified':False,'release_lag_assumption_hours':3,'operational_forecast_eligible':False,'model_fitted':False,'protected_2025_outcomes_accessed':False}
+    result={'schema_version':1,'status':'paired_predictors_and_report_labels_not_a_trained_forecast','case':case,'feature_schema':SCHEMA,'timing_protocol':PROTOCOL,'windows':windows,'label_artifact_sha256':lm['artifact']['sha256'],'grid_sha256':hashlib.sha256(grid.astype('<f8').tobytes()).hexdigest(),'canonical_label_grid_sha256':hashlib.sha256(truth['coordinates'].astype('<f8').tobytes()).hexdigest(),'samples_per_day':len(grid),'features_per_sample':34,'artifact':{'file':path.name,'sha256':digest(path)},'historical_public_availability_verified':False,'release_lag_assumption_hours':3,'operational_forecast_eligible':False,'model_fitted':False,'protected_2025_outcomes_accessed':False}
     write_json(output/'case-manifest.json',result);return result
 
 
@@ -48,13 +48,14 @@ def run_case(case,cohort,labels,output,cache,purge=False):
     output=Path(output)/case;cache=Path(cache)/case;output.mkdir(parents=True,exist_ok=True)
     code_hashes={p.name:digest(p) for p in Path(__file__).parent.glob('*.py')}
     paths=[];spent=0
+    expected_coordinates=np.load(Path(labels)/'daily-labels.npz',allow_pickle=False)['coordinates']
     for day in [1,2]:
         w=future_window(case,day);issue=datetime.fromisoformat(w['model_init_time']);dest=output/f'day{day}';raw=cache/f'{issue.hour:02d}z'
         mp=dest/'manifest.json'
         if not mp.exists():
             remaining=cfg['max_download_mb_per_case']-math.ceil(spent/1000000)
             if remaining<=0:raise ValueError('Case download budget exhausted')
-            extract(issue,dest,raw,budget_mb=remaining,days=(day,),target_windows=[w])
+            extract(issue,dest,raw,budget_mb=remaining,days=(day,),target_windows=[w],expected_coordinates=expected_coordinates)
         m=json.loads(mp.read_text());spent+=m['downloaded_bytes']
         if any(m['products'][0].get(k)!=v for k,v in w.items()):raise ValueError('Cached product is not the requested future window')
         ap=dest/'raw-audit.json'

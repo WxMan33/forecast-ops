@@ -3,12 +3,17 @@ from pathlib import Path
 from datetime import datetime,timedelta,timezone
 import numpy as np
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools/severe'))
-from protocol import future_window,validate,SCHEMA
+from protocol import future_window,validate,check_grid,SCHEMA
 from daily import required_fields
 from history import join_case,run_case
 from extract import digest,validate_time
 
 class History(unittest.TestCase):
+ def test_only_bounded_grid_roundoff_is_allowed(self):
+  a=np.array([[-90.,35.],[-89.,36.]])
+  result=check_grid(a+1e-12,a);self.assertFalse(result['exact']);self.assertLess(result['maximum_difference_degrees'],1e-9)
+  with self.assertRaises(ValueError):check_grid(a+1e-7,a)
+  with self.assertRaises(ValueError):check_grid(a[::-1],a)
  def test_future_day1(self):
   w=future_window('2022-01-15',1)
   self.assertEqual(w['model_init_time'],'2022-01-15T06:00:00+00:00');self.assertEqual(w['valid_start'],'2022-01-15T12:00:00+00:00');self.assertEqual(w['valid_end'],'2022-01-16T12:00:00+00:00')
@@ -45,6 +50,12 @@ class History(unittest.TestCase):
   with tempfile.TemporaryDirectory() as d:
    root=Path(d);labels,manifests=self.fixture(root);r=join_case('2022-01-15',manifests,labels,root);data=np.load(root/'joined.npz',allow_pickle=False)
    self.assertEqual(data['features'].shape,(2,2,34));self.assertEqual(data['features'][1,0,0],2);self.assertEqual(data['labels'][1,0,2],1);self.assertFalse(r['operational_forecast_eligible'])
+ def test_platform_roundoff_preserves_original_values(self):
+  with tempfile.TemporaryDirectory() as d:
+   root=Path(d);labels,manifests=self.fixture(root)
+   for i,p in enumerate(manifests,1):
+    f=root/f'day{i}/features.npz';a=np.load(f,allow_pickle=False);np.savez_compressed(f,coordinates=a['coordinates']+1e-12,features=a['features'],feature_names=a['feature_names']);m=json.loads(p.read_text());m['products'][0]['sha256']=digest(f);p.write_text(json.dumps(m))
+   r=join_case('2022-01-15',manifests,labels,root);self.assertFalse(r['windows'][0]['label_grid_alignment']['exact']);self.assertEqual(np.load(root/'joined.npz',allow_pickle=False)['labels'][1,0,2],1)
  def test_reordered_grid_rejected(self):
   with tempfile.TemporaryDirectory() as d:
    root=Path(d);labels,manifests=self.fixture(root);f=root/'day2/features.npz';a=np.load(f,allow_pickle=False);np.savez_compressed(f,coordinates=a['coordinates'][::-1],features=a['features'],feature_names=a['feature_names']);m=json.loads(manifests[1].read_text());m['products'][0]['sha256']=digest(f);manifests[1].write_text(json.dumps(m))
