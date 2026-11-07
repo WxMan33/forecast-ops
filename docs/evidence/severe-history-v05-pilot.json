@@ -1,0 +1,78 @@
+{
+  "status": "paired_predictors_and_report_labels_not_a_trained_forecast",
+  "case": "2022-01-15",
+  "feature_schema": "hrrr-daily-25mi-v2-future-window",
+  "timing_protocol": "day1-06z-f06-30__day2-12z-f24-48-v1",
+  "windows": [
+    {
+      "day": 1,
+      "model": "hrrr-v4",
+      "feature_schema": "hrrr-daily-25mi-v2-future-window",
+      "timing_protocol": "day1-06z-f06-30__day2-12z-f24-48-v1",
+      "model_init_time": "2022-01-15T06:00:00+00:00",
+      "assumed_issuance_time": "2022-01-15T09:00:00+00:00",
+      "release_lag_assumption_hours": 3,
+      "historical_public_availability_verified": false,
+      "valid_start": "2022-01-15T12:00:00+00:00",
+      "valid_end": "2022-01-16T12:00:00+00:00",
+      "radius_km": 40.2336,
+      "window_hours": 24,
+      "first_forecast_hour": 6,
+      "last_forecast_hour": 30,
+      "split": "train",
+      "predictor_sha256": "9b51af688d38509a77304ae347f9f2fee4de0ab9b6c3bea900f75115a71fd288",
+      "predictor_manifest_sha256": "63a76bf8a3b0fc6dcb49e7fa786097fc0b9b60e53602d9d63473a3552ae42b3e",
+      "raw_audit_sha256": "a352faae26ae6f2514b92e3fb010f425b58acd3e5726263949dcb4014d032cbf",
+      "label_window_index": 0
+    },
+    {
+      "day": 2,
+      "model": "hrrr-v4",
+      "feature_schema": "hrrr-daily-25mi-v2-future-window",
+      "timing_protocol": "day1-06z-f06-30__day2-12z-f24-48-v1",
+      "model_init_time": "2022-01-15T12:00:00+00:00",
+      "assumed_issuance_time": "2022-01-15T15:00:00+00:00",
+      "release_lag_assumption_hours": 3,
+      "historical_public_availability_verified": false,
+      "valid_start": "2022-01-16T12:00:00+00:00",
+      "valid_end": "2022-01-17T12:00:00+00:00",
+      "radius_km": 40.2336,
+      "window_hours": 24,
+      "first_forecast_hour": 24,
+      "last_forecast_hour": 48,
+      "split": "train",
+      "predictor_sha256": "bdb1c965ecdec1a768ab6cbdd9e43455b340c33ae2a79c3701a2ba4e9952010b",
+      "predictor_manifest_sha256": "3b25ff4f99468be77d97bc7b03b909ce148e79e2cce8c7d24bb003a062c43486",
+      "raw_audit_sha256": "0c6a8823f5128f7e3eab24fd92549296c5b2078fea92b816456fb45f9b2b7caf",
+      "label_window_index": 1
+    }
+  ],
+  "label_artifact_sha256": "6a34d0bb8a01b3119a086e32df04bf7b66825b071e67fdaa36b41be234eeddbc",
+  "grid_sha256": "d700ec03464bdddd27f366ce1fec6802438e1c7bdc51029d08623b6ea58bd454",
+  "samples_per_day": 16413,
+  "features_per_sample": 34,
+  "artifact": {
+    "file": "joined.npz",
+    "sha256": "a44d68b79d1779ac335e2093bbeaf36e1d58265333133ea552676229ad49c945"
+  },
+  "historical_public_availability_verified": false,
+  "release_lag_assumption_hours": 3,
+  "operational_forecast_eligible": false,
+  "model_fitted": false,
+  "protected_2025_outcomes_accessed": false,
+  "feature_shape": [
+    2,
+    16413,
+    34
+  ],
+  "label_shape": [
+    2,
+    16413,
+    3
+  ],
+  "raw_audits": [
+    "passed",
+    "passed"
+  ],
+  "source_messages_audited": 384
+}

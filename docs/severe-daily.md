@@ -12,7 +12,7 @@ The product goal is current model-based tornado, wind and hail probability conto
 
 The current research model was fit only for f06–f10 of a 12 UTC cycle and a four-hour outcome. Its inference code rejects other leads. It cannot be applied to f24–f48 or treated as a daily forecast by renaming a file. A four-hour maximum, sum or independent-event product is not a calibrated 24-hour probability.
 
-## First daily version
+## Original engineering extraction (v1)
 
 Start with the 12 UTC extended HRRR cycle and two separately trained/calibrated 24-hour targets:
 
@@ -23,7 +23,7 @@ Start with the 12 UTC extended HRRR cycle and two separately trained/calibrated 
 
 All dates/times must be explicit. Labels are convective-day windows anchored at 12 UTC, not local midnight days. Later intraday cycles need their own lead-aware training and remaining-window coverage; partial windows must never be labeled complete Day 1 or Day 2.
 
-The initial daily schema is `hrrr-daily-25mi-v1`. Separate artifact manifests must identify the model family, cycle, forecast leads, 24-hour target, 40.2336 km radius, features, fitted hazards, calibration split and artifact hashes. Missing fields, partial windows, changed model versions or stale cycles produce unavailable guidance.
+The original engineering schema is `hrrr-daily-25mi-v1`; its zero-lead Day 1 window is not eligible for prospective daily forecast scoring. The future-window collection below uses a new schema and earlier cycle. Separate artifact manifests must identify the model family, cycle, forecast leads, 24-hour target, 40.2336 km radius, features, fitted hazards, calibration split and artifact hashes. Missing fields, partial windows, changed model versions or stale cycles produce unavailable guidance.
 
 ## Inputs and training work
 
@@ -90,3 +90,28 @@ Codes are 0 for no qualifying report in the checked source, 1 for a qualifying r
 All annual input files, revision filenames, hashes and retrieval receipts are preserved. Eleven unit tests cover daily boundaries, thresholds, local-standard time, missing data, duplicates, time-clipped tracks and protected years. The separate `audit_labels.py` independently parses raw CSVs and uses unit-sphere nearest neighbors to check all wind/hail labels.
 
 See [model and SPC source roles](severe-model-inputs.md) for how forecasts, reports, outlooks and contour rendering are kept distinct.
+
+## Future-window historical collection (v0.5)
+
+The next collection uses `hrrr-daily-25mi-v2-future-window` and the frozen protocol `day1-06z-f06-30__day2-12z-f24-48-v1`:
+
+| Target | Model initialization | Input leads | Target window | Assumed issuance |
+| --- | --- | --- | --- | --- |
+| Day 1 | 06 UTC on case date | f06–f30 | Case-date 12 UTC to next-date 12 UTC | Case-date 09 UTC |
+| Day 2 | 12 UTC on case date | f24–f48 | Next-date 12 UTC to following-date 12 UTC | Case-date 15 UTC |
+
+Instantaneous fields use the first 24 hours of each lead interval; hourly UH maxima use the following forecast-hour endpoints. This removes f00 analysis hours from the Day 1 target. The three-hour release lag is an explicit replay assumption. Historical product availability has not been reconstructed, so this must not be described as verified as-issued operational performance. Retrieved-at times describe the present archive download, not original release times.
+
+`research/severe/cohort-v05.json` freezes the 36 calendar cases and source labels. The tracked label dataset retains the verified v0.4 bytes and full-precision sample grid. The 2025 outcome protection remains in force. This is a limited regional engineering cohort, not a representative or final skill test.
+
+```bash
+python tools/severe/history.py --case 2022-01-15 --output tests/out/severe-history-v05 --cache tests/out/severe-history-cache-v05
+```
+
+Each case extracts both future windows, independently audits CAPE/UH summaries and all source hashes, verifies exact grid/column/field identity across days, and joins the report labels by date, day and exact valid window. The joined file contains original float32 features and 0/1/255 labels. Unknown labels remain excluded candidates, not invented negatives. An existing completed predictor window can be reused only with matching protocol, file hashes and a successful matching audit. No daily model is fitted by the collection.
+
+The historical cohort workflow runs three cases at a time and preserves audited case artifacts for 30 days. Failed cases do not stop other cases. Its final summary lists complete, missing and invalid cases and fails if the requested collection is incomplete. Cache deletion is scoped to the completed case and occurs only after the joined artifact is written. The first collection is triggered when the frozen cohort configuration is published; individual frozen cases or the full set can be rerun manually.
+
+`python tests/severe-history.test.py` checks future-window timing, 06 UTC metadata, release-assumption honesty, protected cases, day order and label/grid matching. The original engineering extractor remains available to reproduce the earlier checkpoint; it does not silently gain the new schema or daily forecast eligibility.
+
+The initial `2022-01-15` case completed both new windows, passed both raw audits (384 source messages in total) and joined to the saved labels with exact grid equality. Its joined matrix has shape 2 × 16,413 × 34 and its label matrix 2 × 16,413 × 3. The result is recorded in `evidence/severe-history-v05-pilot.json`. This verifies the pipeline on one case; the rest of the fixed cohort still requires collection and audit.

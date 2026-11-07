@@ -1,0 +1,2319 @@
+{
+  "schema_version": 1,
+  "status": "engineering_report_labels_not_a_trained_forecast",
+  "target": "at least one qualifying reported event within 25 statute miles during [start,end)",
+  "radius_km": 40.2336,
+  "window_hours": 24,
+  "cohort": "15th monthly initializations, 2022\u20132024; frozen calendar pilot, not representative climatology",
+  "label_codes": {
+    "0": "no qualifying report in source; not proof of no event",
+    "1": "qualifying reported event",
+    "255": "unresolved source metadata; exclude from fitting/scoring"
+  },
+  "tornado_geometry": "great-circle segment between reported endpoints, clipped to window; not a surveyed path",
+  "products": [
+    {
+      "index": 0,
+      "split": "train",
+      "initialization_date": "2022-01-15",
+      "day": 1,
+      "valid_start": "2022-01-15T12:00:00+00:00",
+      "valid_end": "2022-01-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 4,
+          "unknown_samples": 0,
+          "report_records": 2,
+          "regional_report_records": 1,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 22,
+          "unknown_samples": 0,
+          "report_records": 3,
+          "regional_report_records": 3,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 1,
+      "split": "train",
+      "initialization_date": "2022-01-15",
+      "day": 2,
+      "valid_start": "2022-01-16T12:00:00+00:00",
+      "valid_end": "2022-01-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 5,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 32,
+          "unknown_samples": 0,
+          "report_records": 12,
+          "regional_report_records": 2,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 2,
+      "split": "train",
+      "initialization_date": "2022-02-15",
+      "day": 1,
+      "valid_start": "2022-02-15T12:00:00+00:00",
+      "valid_end": "2022-02-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 3,
+      "split": "train",
+      "initialization_date": "2022-02-15",
+      "day": 2,
+      "valid_start": "2022-02-16T12:00:00+00:00",
+      "valid_end": "2022-02-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 22,
+          "unknown_samples": 0,
+          "report_records": 4,
+          "regional_report_records": 1,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 4,
+      "split": "train",
+      "initialization_date": "2022-03-15",
+      "day": 1,
+      "valid_start": "2022-03-15T12:00:00+00:00",
+      "valid_end": "2022-03-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 5,
+      "split": "train",
+      "initialization_date": "2022-03-15",
+      "day": 2,
+      "valid_start": "2022-03-16T12:00:00+00:00",
+      "valid_end": "2022-03-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 43,
+          "unknown_samples": 0,
+          "report_records": 3,
+          "regional_report_records": 2,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 236,
+          "unknown_samples": 0,
+          "report_records": 29,
+          "regional_report_records": 19,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 6,
+      "split": "train",
+      "initialization_date": "2022-04-15",
+      "day": 1,
+      "valid_start": "2022-04-15T12:00:00+00:00",
+      "valid_end": "2022-04-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 245,
+          "unknown_samples": 0,
+          "report_records": 22,
+          "regional_report_records": 22,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 616,
+          "unknown_samples": 0,
+          "report_records": 66,
+          "regional_report_records": 66,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 7,
+      "split": "train",
+      "initialization_date": "2022-04-15",
+      "day": 2,
+      "valid_start": "2022-04-16T12:00:00+00:00",
+      "valid_end": "2022-04-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 143,
+          "unknown_samples": 0,
+          "report_records": 10,
+          "regional_report_records": 8,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 62,
+          "unknown_samples": 0,
+          "report_records": 6,
+          "regional_report_records": 6,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 8,
+      "split": "train",
+      "initialization_date": "2022-05-15",
+      "day": 1,
+      "valid_start": "2022-05-15T12:00:00+00:00",
+      "valid_end": "2022-05-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 47,
+          "unknown_samples": 0,
+          "report_records": 2,
+          "regional_report_records": 2,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 1308,
+          "unknown_samples": 0,
+          "report_records": 168,
+          "regional_report_records": 164,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 978,
+          "unknown_samples": 0,
+          "report_records": 142,
+          "regional_report_records": 138,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 9,
+      "split": "train",
+      "initialization_date": "2022-05-15",
+      "day": 2,
+      "valid_start": "2022-05-16T12:00:00+00:00",
+      "valid_end": "2022-05-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 23,
+          "unknown_samples": 0,
+          "report_records": 5,
+          "regional_report_records": 1,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 840,
+          "unknown_samples": 0,
+          "report_records": 221,
+          "regional_report_records": 125,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 240,
+          "unknown_samples": 0,
+          "report_records": 40,
+          "regional_report_records": 31,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 10,
+      "split": "train",
+      "initialization_date": "2022-06-15",
+      "day": 1,
+      "valid_start": "2022-06-15T12:00:00+00:00",
+      "valid_end": "2022-06-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 147,
+          "unknown_samples": 0,
+          "report_records": 16,
+          "regional_report_records": 12,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 1158,
+          "unknown_samples": 0,
+          "report_records": 227,
+          "regional_report_records": 220,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 499,
+          "unknown_samples": 0,
+          "report_records": 36,
+          "regional_report_records": 35,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 11,
+      "split": "train",
+      "initialization_date": "2022-06-15",
+      "day": 2,
+      "valid_start": "2022-06-16T12:00:00+00:00",
+      "valid_end": "2022-06-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 95,
+          "unknown_samples": 0,
+          "report_records": 8,
+          "regional_report_records": 8,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 2241,
+          "unknown_samples": 0,
+          "report_records": 384,
+          "regional_report_records": 377,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 798,
+          "unknown_samples": 0,
+          "report_records": 104,
+          "regional_report_records": 96,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 12,
+      "split": "train",
+      "initialization_date": "2022-07-15",
+      "day": 1,
+      "valid_start": "2022-07-15T12:00:00+00:00",
+      "valid_end": "2022-07-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 30,
+          "unknown_samples": 0,
+          "report_records": 35,
+          "regional_report_records": 2,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 24,
+          "unknown_samples": 0,
+          "report_records": 7,
+          "regional_report_records": 2,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 13,
+      "split": "train",
+      "initialization_date": "2022-07-15",
+      "day": 2,
+      "valid_start": "2022-07-16T12:00:00+00:00",
+      "valid_end": "2022-07-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 679,
+          "unknown_samples": 0,
+          "report_records": 109,
+          "regional_report_records": 81,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 164,
+          "unknown_samples": 0,
+          "report_records": 20,
+          "regional_report_records": 12,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 14,
+      "split": "train",
+      "initialization_date": "2022-08-15",
+      "day": 1,
+      "valid_start": "2022-08-15T12:00:00+00:00",
+      "valid_end": "2022-08-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 4,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 268,
+          "unknown_samples": 0,
+          "report_records": 22,
+          "regional_report_records": 17,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 84,
+          "unknown_samples": 0,
+          "report_records": 8,
+          "regional_report_records": 5,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 15,
+      "split": "train",
+      "initialization_date": "2022-08-15",
+      "day": 2,
+      "valid_start": "2022-08-16T12:00:00+00:00",
+      "valid_end": "2022-08-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 225,
+          "unknown_samples": 0,
+          "report_records": 18,
+          "regional_report_records": 14,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 24,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 1,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 16,
+      "split": "train",
+      "initialization_date": "2022-09-15",
+      "day": 1,
+      "valid_start": "2022-09-15T12:00:00+00:00",
+      "valid_end": "2022-09-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 59,
+          "unknown_samples": 0,
+          "report_records": 11,
+          "regional_report_records": 4,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 18,
+          "unknown_samples": 0,
+          "report_records": 11,
+          "regional_report_records": 3,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 17,
+      "split": "train",
+      "initialization_date": "2022-09-15",
+      "day": 2,
+      "valid_start": "2022-09-16T12:00:00+00:00",
+      "valid_end": "2022-09-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 13,
+          "unknown_samples": 0,
+          "report_records": 8,
+          "regional_report_records": 1,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 8,
+          "unknown_samples": 0,
+          "report_records": 10,
+          "regional_report_records": 1,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 18,
+      "split": "train",
+      "initialization_date": "2022-10-15",
+      "day": 1,
+      "valid_start": "2022-10-15T12:00:00+00:00",
+      "valid_end": "2022-10-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 133,
+          "unknown_samples": 0,
+          "report_records": 27,
+          "regional_report_records": 8,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 423,
+          "unknown_samples": 0,
+          "report_records": 54,
+          "regional_report_records": 46,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 19,
+      "split": "train",
+      "initialization_date": "2022-10-15",
+      "day": 2,
+      "valid_start": "2022-10-16T12:00:00+00:00",
+      "valid_end": "2022-10-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 2,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 20,
+      "split": "train",
+      "initialization_date": "2022-11-15",
+      "day": 1,
+      "valid_start": "2022-11-15T12:00:00+00:00",
+      "valid_end": "2022-11-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 21,
+      "split": "train",
+      "initialization_date": "2022-11-15",
+      "day": 2,
+      "valid_start": "2022-11-16T12:00:00+00:00",
+      "valid_end": "2022-11-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 22,
+      "split": "train",
+      "initialization_date": "2022-12-15",
+      "day": 1,
+      "valid_start": "2022-12-15T12:00:00+00:00",
+      "valid_end": "2022-12-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 18,
+          "unknown_samples": 0,
+          "report_records": 5,
+          "regional_report_records": 1,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 3,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 23,
+      "split": "train",
+      "initialization_date": "2022-12-15",
+      "day": 2,
+      "valid_start": "2022-12-16T12:00:00+00:00",
+      "valid_end": "2022-12-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 24,
+      "split": "calibration",
+      "initialization_date": "2023-01-15",
+      "day": 1,
+      "valid_start": "2023-01-15T12:00:00+00:00",
+      "valid_end": "2023-01-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 25,
+      "split": "calibration",
+      "initialization_date": "2023-01-15",
+      "day": 2,
+      "valid_start": "2023-01-16T12:00:00+00:00",
+      "valid_end": "2023-01-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 38,
+          "unknown_samples": 0,
+          "report_records": 2,
+          "regional_report_records": 2,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 21,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 1,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 26,
+      "split": "calibration",
+      "initialization_date": "2023-02-15",
+      "day": 1,
+      "valid_start": "2023-02-15T12:00:00+00:00",
+      "valid_end": "2023-02-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 58,
+          "unknown_samples": 0,
+          "report_records": 4,
+          "regional_report_records": 4,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 278,
+          "unknown_samples": 0,
+          "report_records": 19,
+          "regional_report_records": 19,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 378,
+          "unknown_samples": 0,
+          "report_records": 40,
+          "regional_report_records": 40,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 27,
+      "split": "calibration",
+      "initialization_date": "2023-02-15",
+      "day": 2,
+      "valid_start": "2023-02-16T12:00:00+00:00",
+      "valid_end": "2023-02-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 206,
+          "unknown_samples": 0,
+          "report_records": 10,
+          "regional_report_records": 10,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 234,
+          "unknown_samples": 0,
+          "report_records": 15,
+          "regional_report_records": 15,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 90,
+          "unknown_samples": 0,
+          "report_records": 6,
+          "regional_report_records": 6,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 28,
+      "split": "calibration",
+      "initialization_date": "2023-03-15",
+      "day": 1,
+      "valid_start": "2023-03-15T12:00:00+00:00",
+      "valid_end": "2023-03-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 29,
+      "split": "calibration",
+      "initialization_date": "2023-03-15",
+      "day": 2,
+      "valid_start": "2023-03-16T12:00:00+00:00",
+      "valid_end": "2023-03-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 77,
+          "unknown_samples": 0,
+          "report_records": 4,
+          "regional_report_records": 4,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 234,
+          "unknown_samples": 0,
+          "report_records": 14,
+          "regional_report_records": 12,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 432,
+          "unknown_samples": 0,
+          "report_records": 82,
+          "regional_report_records": 80,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 30,
+      "split": "calibration",
+      "initialization_date": "2023-04-15",
+      "day": 1,
+      "valid_start": "2023-04-15T12:00:00+00:00",
+      "valid_end": "2023-04-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 130,
+          "unknown_samples": 0,
+          "report_records": 15,
+          "regional_report_records": 15,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 1465,
+          "unknown_samples": 0,
+          "report_records": 164,
+          "regional_report_records": 161,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 1202,
+          "unknown_samples": 0,
+          "report_records": 211,
+          "regional_report_records": 204,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 31,
+      "split": "calibration",
+      "initialization_date": "2023-04-15",
+      "day": 2,
+      "valid_start": "2023-04-16T12:00:00+00:00",
+      "valid_end": "2023-04-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 150,
+          "unknown_samples": 0,
+          "report_records": 29,
+          "regional_report_records": 25,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 5,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 32,
+      "split": "calibration",
+      "initialization_date": "2023-05-15",
+      "day": 1,
+      "valid_start": "2023-05-15T12:00:00+00:00",
+      "valid_end": "2023-05-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 24,
+          "unknown_samples": 0,
+          "report_records": 2,
+          "regional_report_records": 1,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 237,
+          "unknown_samples": 0,
+          "report_records": 14,
+          "regional_report_records": 13,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 149,
+          "unknown_samples": 0,
+          "report_records": 8,
+          "regional_report_records": 8,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 33,
+      "split": "calibration",
+      "initialization_date": "2023-05-15",
+      "day": 2,
+      "valid_start": "2023-05-16T12:00:00+00:00",
+      "valid_end": "2023-05-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 56,
+          "unknown_samples": 0,
+          "report_records": 4,
+          "regional_report_records": 4,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 1102,
+          "unknown_samples": 0,
+          "report_records": 183,
+          "regional_report_records": 178,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 289,
+          "unknown_samples": 0,
+          "report_records": 31,
+          "regional_report_records": 27,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 34,
+      "split": "calibration",
+      "initialization_date": "2023-06-15",
+      "day": 1,
+      "valid_start": "2023-06-15T12:00:00+00:00",
+      "valid_end": "2023-06-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 349,
+          "unknown_samples": 0,
+          "report_records": 42,
+          "regional_report_records": 38,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 1799,
+          "unknown_samples": 0,
+          "report_records": 273,
+          "regional_report_records": 250,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 1033,
+          "unknown_samples": 0,
+          "report_records": 212,
+          "regional_report_records": 201,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 35,
+      "split": "calibration",
+      "initialization_date": "2023-06-15",
+      "day": 2,
+      "valid_start": "2023-06-16T12:00:00+00:00",
+      "valid_end": "2023-06-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 102,
+          "unknown_samples": 0,
+          "report_records": 6,
+          "regional_report_records": 5,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 1178,
+          "unknown_samples": 0,
+          "report_records": 177,
+          "regional_report_records": 169,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 1124,
+          "unknown_samples": 0,
+          "report_records": 162,
+          "regional_report_records": 136,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 36,
+      "split": "calibration",
+      "initialization_date": "2023-07-15",
+      "day": 1,
+      "valid_start": "2023-07-15T12:00:00+00:00",
+      "valid_end": "2023-07-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 694,
+          "unknown_samples": 0,
+          "report_records": 95,
+          "regional_report_records": 69,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 44,
+          "unknown_samples": 0,
+          "report_records": 23,
+          "regional_report_records": 2,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 37,
+      "split": "calibration",
+      "initialization_date": "2023-07-15",
+      "day": 2,
+      "valid_start": "2023-07-16T12:00:00+00:00",
+      "valid_end": "2023-07-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 22,
+          "unknown_samples": 0,
+          "report_records": 2,
+          "regional_report_records": 1,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 1057,
+          "unknown_samples": 0,
+          "report_records": 138,
+          "regional_report_records": 125,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 368,
+          "unknown_samples": 0,
+          "report_records": 43,
+          "regional_report_records": 36,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 38,
+      "split": "calibration",
+      "initialization_date": "2023-08-15",
+      "day": 1,
+      "valid_start": "2023-08-15T12:00:00+00:00",
+      "valid_end": "2023-08-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 2,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 1170,
+          "unknown_samples": 0,
+          "report_records": 170,
+          "regional_report_records": 170,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 171,
+          "unknown_samples": 0,
+          "report_records": 12,
+          "regional_report_records": 12,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 39,
+      "split": "calibration",
+      "initialization_date": "2023-08-15",
+      "day": 2,
+      "valid_start": "2023-08-16T12:00:00+00:00",
+      "valid_end": "2023-08-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 60,
+          "unknown_samples": 0,
+          "report_records": 29,
+          "regional_report_records": 5,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 122,
+          "unknown_samples": 0,
+          "report_records": 11,
+          "regional_report_records": 9,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 40,
+      "split": "calibration",
+      "initialization_date": "2023-09-15",
+      "day": 1,
+      "valid_start": "2023-09-15T12:00:00+00:00",
+      "valid_end": "2023-09-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 11,
+          "unknown_samples": 0,
+          "report_records": 11,
+          "regional_report_records": 1,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 3,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 41,
+      "split": "calibration",
+      "initialization_date": "2023-09-15",
+      "day": 2,
+      "valid_start": "2023-09-16T12:00:00+00:00",
+      "valid_end": "2023-09-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 85,
+          "unknown_samples": 0,
+          "report_records": 8,
+          "regional_report_records": 7,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 177,
+          "unknown_samples": 0,
+          "report_records": 21,
+          "regional_report_records": 21,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 42,
+      "split": "calibration",
+      "initialization_date": "2023-10-15",
+      "day": 1,
+      "valid_start": "2023-10-15T12:00:00+00:00",
+      "valid_end": "2023-10-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 43,
+      "split": "calibration",
+      "initialization_date": "2023-10-15",
+      "day": 2,
+      "valid_start": "2023-10-16T12:00:00+00:00",
+      "valid_end": "2023-10-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 44,
+      "split": "calibration",
+      "initialization_date": "2023-11-15",
+      "day": 1,
+      "valid_start": "2023-11-15T12:00:00+00:00",
+      "valid_end": "2023-11-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 45,
+      "split": "calibration",
+      "initialization_date": "2023-11-15",
+      "day": 2,
+      "valid_start": "2023-11-16T12:00:00+00:00",
+      "valid_end": "2023-11-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 46,
+      "split": "calibration",
+      "initialization_date": "2023-12-15",
+      "day": 1,
+      "valid_start": "2023-12-15T12:00:00+00:00",
+      "valid_end": "2023-12-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 47,
+      "split": "calibration",
+      "initialization_date": "2023-12-15",
+      "day": 2,
+      "valid_start": "2023-12-16T12:00:00+00:00",
+      "valid_end": "2023-12-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 48,
+      "split": "development",
+      "initialization_date": "2024-01-15",
+      "day": 1,
+      "valid_start": "2024-01-15T12:00:00+00:00",
+      "valid_end": "2024-01-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 49,
+      "split": "development",
+      "initialization_date": "2024-01-15",
+      "day": 2,
+      "valid_start": "2024-01-16T12:00:00+00:00",
+      "valid_end": "2024-01-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 50,
+      "split": "development",
+      "initialization_date": "2024-02-15",
+      "day": 1,
+      "valid_start": "2024-02-15T12:00:00+00:00",
+      "valid_end": "2024-02-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 51,
+      "split": "development",
+      "initialization_date": "2024-02-15",
+      "day": 2,
+      "valid_start": "2024-02-16T12:00:00+00:00",
+      "valid_end": "2024-02-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 22,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 1,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 73,
+          "unknown_samples": 0,
+          "report_records": 4,
+          "regional_report_records": 4,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 52,
+      "split": "development",
+      "initialization_date": "2024-03-15",
+      "day": 1,
+      "valid_start": "2024-03-15T12:00:00+00:00",
+      "valid_end": "2024-03-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 43,
+          "unknown_samples": 0,
+          "report_records": 2,
+          "regional_report_records": 2,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 277,
+          "unknown_samples": 0,
+          "report_records": 37,
+          "regional_report_records": 23,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 202,
+          "unknown_samples": 0,
+          "report_records": 38,
+          "regional_report_records": 19,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 53,
+      "split": "development",
+      "initialization_date": "2024-03-15",
+      "day": 2,
+      "valid_start": "2024-03-16T12:00:00+00:00",
+      "valid_end": "2024-03-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 54,
+      "split": "development",
+      "initialization_date": "2024-04-15",
+      "day": 1,
+      "valid_start": "2024-04-15T12:00:00+00:00",
+      "valid_end": "2024-04-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 69,
+          "unknown_samples": 0,
+          "report_records": 3,
+          "regional_report_records": 3,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 482,
+          "unknown_samples": 0,
+          "report_records": 60,
+          "regional_report_records": 51,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 464,
+          "unknown_samples": 0,
+          "report_records": 65,
+          "regional_report_records": 52,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 55,
+      "split": "development",
+      "initialization_date": "2024-04-15",
+      "day": 2,
+      "valid_start": "2024-04-16T12:00:00+00:00",
+      "valid_end": "2024-04-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 348,
+          "unknown_samples": 0,
+          "report_records": 29,
+          "regional_report_records": 29,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 575,
+          "unknown_samples": 0,
+          "report_records": 48,
+          "regional_report_records": 48,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 472,
+          "unknown_samples": 0,
+          "report_records": 44,
+          "regional_report_records": 44,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 56,
+      "split": "development",
+      "initialization_date": "2024-05-15",
+      "day": 1,
+      "valid_start": "2024-05-15T12:00:00+00:00",
+      "valid_end": "2024-05-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 334,
+          "unknown_samples": 0,
+          "report_records": 36,
+          "regional_report_records": 28,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 455,
+          "unknown_samples": 0,
+          "report_records": 63,
+          "regional_report_records": 52,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 57,
+      "split": "development",
+      "initialization_date": "2024-05-15",
+      "day": 2,
+      "valid_start": "2024-05-16T12:00:00+00:00",
+      "valid_end": "2024-05-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 30,
+          "unknown_samples": 0,
+          "report_records": 5,
+          "regional_report_records": 4,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 487,
+          "unknown_samples": 0,
+          "report_records": 151,
+          "regional_report_records": 122,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 92,
+          "unknown_samples": 0,
+          "report_records": 28,
+          "regional_report_records": 8,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 58,
+      "split": "development",
+      "initialization_date": "2024-06-15",
+      "day": 1,
+      "valid_start": "2024-06-15T12:00:00+00:00",
+      "valid_end": "2024-06-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 78,
+          "unknown_samples": 0,
+          "report_records": 7,
+          "regional_report_records": 7,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 405,
+          "unknown_samples": 0,
+          "report_records": 97,
+          "regional_report_records": 45,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 115,
+          "unknown_samples": 0,
+          "report_records": 30,
+          "regional_report_records": 15,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 59,
+      "split": "development",
+      "initialization_date": "2024-06-15",
+      "day": 2,
+      "valid_start": "2024-06-16T12:00:00+00:00",
+      "valid_end": "2024-06-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 598,
+          "unknown_samples": 0,
+          "report_records": 83,
+          "regional_report_records": 81,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 78,
+          "unknown_samples": 0,
+          "report_records": 18,
+          "regional_report_records": 4,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 60,
+      "split": "development",
+      "initialization_date": "2024-07-15",
+      "day": 1,
+      "valid_start": "2024-07-15T12:00:00+00:00",
+      "valid_end": "2024-07-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 512,
+          "unknown_samples": 0,
+          "report_records": 81,
+          "regional_report_records": 81,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 2451,
+          "unknown_samples": 0,
+          "report_records": 772,
+          "regional_report_records": 739,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 423,
+          "unknown_samples": 0,
+          "report_records": 45,
+          "regional_report_records": 39,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 61,
+      "split": "development",
+      "initialization_date": "2024-07-15",
+      "day": 2,
+      "valid_start": "2024-07-16T12:00:00+00:00",
+      "valid_end": "2024-07-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 67,
+          "unknown_samples": 0,
+          "report_records": 13,
+          "regional_report_records": 6,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 1283,
+          "unknown_samples": 0,
+          "report_records": 477,
+          "regional_report_records": 268,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 176,
+          "unknown_samples": 0,
+          "report_records": 20,
+          "regional_report_records": 15,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 62,
+      "split": "development",
+      "initialization_date": "2024-08-15",
+      "day": 1,
+      "valid_start": "2024-08-15T12:00:00+00:00",
+      "valid_end": "2024-08-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 25,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 1,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 598,
+          "unknown_samples": 0,
+          "report_records": 110,
+          "regional_report_records": 54,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 265,
+          "unknown_samples": 0,
+          "report_records": 41,
+          "regional_report_records": 20,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 63,
+      "split": "development",
+      "initialization_date": "2024-08-15",
+      "day": 2,
+      "valid_start": "2024-08-16T12:00:00+00:00",
+      "valid_end": "2024-08-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 1088,
+          "unknown_samples": 0,
+          "report_records": 122,
+          "regional_report_records": 116,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 275,
+          "unknown_samples": 0,
+          "report_records": 31,
+          "regional_report_records": 28,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 64,
+      "split": "development",
+      "initialization_date": "2024-09-15",
+      "day": 1,
+      "valid_start": "2024-09-15T12:00:00+00:00",
+      "valid_end": "2024-09-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 24,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 1,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 22,
+          "unknown_samples": 0,
+          "report_records": 30,
+          "regional_report_records": 1,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 12,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 65,
+      "split": "development",
+      "initialization_date": "2024-09-15",
+      "day": 2,
+      "valid_start": "2024-09-16T12:00:00+00:00",
+      "valid_end": "2024-09-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 23,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 1,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 10,
+          "unknown_samples": 0,
+          "report_records": 24,
+          "regional_report_records": 2,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 8,
+          "unknown_samples": 0,
+          "report_records": 6,
+          "regional_report_records": 2,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 66,
+      "split": "development",
+      "initialization_date": "2024-10-15",
+      "day": 1,
+      "valid_start": "2024-10-15T12:00:00+00:00",
+      "valid_end": "2024-10-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 67,
+      "split": "development",
+      "initialization_date": "2024-10-15",
+      "day": 2,
+      "valid_start": "2024-10-16T12:00:00+00:00",
+      "valid_end": "2024-10-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 1,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 68,
+      "split": "development",
+      "initialization_date": "2024-11-15",
+      "day": 1,
+      "valid_start": "2024-11-15T12:00:00+00:00",
+      "valid_end": "2024-11-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 69,
+      "split": "development",
+      "initialization_date": "2024-11-15",
+      "day": 2,
+      "valid_start": "2024-11-16T12:00:00+00:00",
+      "valid_end": "2024-11-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 70,
+      "split": "development",
+      "initialization_date": "2024-12-15",
+      "day": 1,
+      "valid_start": "2024-12-15T12:00:00+00:00",
+      "valid_end": "2024-12-16T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    },
+    {
+      "index": 71,
+      "split": "development",
+      "initialization_date": "2024-12-15",
+      "day": 2,
+      "valid_start": "2024-12-16T12:00:00+00:00",
+      "valid_end": "2024-12-17T12:00:00+00:00",
+      "counts": {
+        "tornado": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 0,
+          "unknown_samples": 0,
+          "report_records": 0,
+          "regional_report_records": 0,
+          "uncertain_records": 0
+        }
+      }
+    }
+  ],
+  "sources": [
+    {
+      "file": "StormEvents_details-ftp_v1.0_d2022_c20260625.csv.gz",
+      "sha256": "7d6b79d0049a6edec96b061738289daddba90be26fc9afe7b0a6fd617f21452e",
+      "receipt": {
+        "url": "https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2022_c20260625.csv.gz",
+        "start": null,
+        "end": null,
+        "sha256": "7d6b79d0049a6edec96b061738289daddba90be26fc9afe7b0a6fd617f21452e",
+        "bytes": 11817849,
+        "etag": "\"b45379-6551850843637\"",
+        "retrieved_at": "2026-11-06T19:53:38.294560+00:00"
+      },
+      "normalization": {
+        "tornado_accepted": 1383,
+        "wind_accepted": 16724,
+        "below_hail_threshold": 1294,
+        "hail_accepted": 5884,
+        "below_wind_threshold": 848
+      }
+    },
+    {
+      "file": "StormEvents_details-ftp_v1.0_d2023_c20260323.csv.gz",
+      "sha256": "713784bed40d9e5a95b1d6240a654f865f3ef97703713105c7b35437270da134",
+      "receipt": {
+        "url": "https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2023_c20260323.csv.gz",
+        "start": null,
+        "end": null,
+        "sha256": "713784bed40d9e5a95b1d6240a654f865f3ef97703713105c7b35437270da134",
+        "bytes": 12888092,
+        "etag": "\"c4a81c-64db41dc7428e\"",
+        "retrieved_at": "2026-11-06T19:53:44.668780+00:00"
+      },
+      "normalization": {
+        "wind_accepted": 20184,
+        "hail_accepted": 10061,
+        "below_hail_threshold": 1696,
+        "tornado_accepted": 1519,
+        "below_wind_threshold": 1032
+      }
+    },
+    {
+      "file": "StormEvents_details-ftp_v1.0_d2024_c20260728.csv.gz",
+      "sha256": "2070b83eccab041b36360ab73645b9a249c3eefc5b92b5b3fc0cbba4d9fcc09c",
+      "receipt": {
+        "url": "https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/StormEvents_details-ftp_v1.0_d2024_c20260728.csv.gz",
+        "start": null,
+        "end": null,
+        "sha256": "2070b83eccab041b36360ab73645b9a249c3eefc5b92b5b3fc0cbba4d9fcc09c",
+        "bytes": 12693243,
+        "etag": "\"c1aefb-657a1843238c9\"",
+        "retrieved_at": "2026-11-06T19:53:52.217171+00:00"
+      },
+      "normalization": {
+        "wind_accepted": 18980,
+        "hail_accepted": 7420,
+        "below_hail_threshold": 1514,
+        "tornado_accepted": 2135,
+        "below_wind_threshold": 916
+      }
+    }
+  ],
+  "artifact": {
+    "file": "daily-labels.npz",
+    "sha256": "6a34d0bb8a01b3119a086e32df04bf7b66825b071e67fdaa36b41be234eeddbc"
+  },
+  "grid_sha256": "d700ec03464bdddd27f366ce1fec6802438e1c7bdc51029d08623b6ea58bd454",
+  "report_count_definition": "report_records are time-filtered CONUS records; regional_report_records intersect a sample neighborhood. County-segment records are not independent storms",
+  "outlook_inputs": false,
+  "final_2025_outcomes_accessed": false,
+  "daily_model_fitted": false
+}

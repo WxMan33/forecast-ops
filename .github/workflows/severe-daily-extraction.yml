@@ -6,11 +6,14 @@ on:
       - 'tools/severe/extract.py'
       - 'tools/severe/daily.py'
       - 'tools/severe/labels.py'
+      - 'tools/severe/protocol.py'
+      - 'tools/severe/history.py'
       - 'tools/severe/audit_labels.py'
       - 'tools/severe/audit_extraction.py'
       - 'tools/severe/requirements.txt'
       - 'tests/severe-extraction.test.py'
       - 'tests/severe-labels.test.py'
+      - 'tests/severe-history.test.py'
       - '.github/workflows/severe-daily-extraction.yml'
   workflow_dispatch:
     inputs:
@@ -39,6 +42,7 @@ jobs:
       - run: python tests/severe-extraction.test.py
       - run: python tests/severe-daily.test.py
       - run: python tests/severe-labels.test.py
+      - run: python tests/severe-history.test.py
       - name: Extract current predictors only
         if: github.event_name == 'workflow_dispatch' && inputs.extract
         env:

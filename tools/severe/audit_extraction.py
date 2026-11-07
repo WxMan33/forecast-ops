@@ -21,7 +21,8 @@ def audit(output,cache,destination):
         field=receipt['field'];hour=receipt['forecast_hour'];path=cache/f'f{hour:02d}'/(field+'.grib2')
         if digest(path)!=receipt['sha256']:raise ValueError('Source hash mismatch')
         validate_time(receipt['metadata'],issue,hour,field)
-    w,e,s,n=m['bounds'];first=decode(cache/'f00/sbcape.grib2' if any(p['day']==1 for p in m['products']) else cache/'f24/sbcape.grib2',issue,0 if any(p['day']==1 for p in m['products']) else 24,'sbcape',True)
+    w,e,s,n=m['bounds'];first_hour=min(p['first_forecast_hour'] for p in m['products'])
+    first=decode(cache/f'f{first_hour:02d}/sbcape.grib2',issue,first_hour,'sbcape',True)
     sample=np.zeros(first['lat'].shape,bool);sample[::m['stride'],::m['stride']]=True
     rows,cols=np.where(sample&(first['lon']>=w)&(first['lon']<=e)&(first['lat']>=s)&(first['lat']<=n))
     points=np.unique(np.linspace(0,len(rows)-1,5,dtype=int));rr,cc=rows[points],cols[points]

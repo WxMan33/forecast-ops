@@ -40,7 +40,7 @@ def windows(initialization):
 
 def required_fields(window):
     start, end = window['first_forecast_hour'], window['last_forecast_hour']
-    if end-start != 24 or start not in [0, 24] or end > 48:
+    if end-start != 24 or start not in [0, 6, 24] or end > 48:
         raise ValueError('Only complete Day 1 and Day 2 windows are supported')
     hours = {}
     for hour in range(start, end):

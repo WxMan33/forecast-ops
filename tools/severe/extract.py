@@ -65,7 +65,7 @@ class Client:
 
 
 def validate_time(meta,issue,hour,name):
-    if meta['dataDate']!=int(issue.strftime('%Y%m%d')) or meta['dataTime']!=1200 or meta['endStep']!=hour or meta['stepUnits']!=1:raise ValueError('GRIB initialization/lead mismatch')
+    if meta['dataDate']!=int(issue.strftime('%Y%m%d')) or meta['dataTime']!=issue.hour*100 or meta['endStep']!=hour or meta['stepUnits']!=1:raise ValueError('GRIB initialization/lead mismatch')
     if name=='uh25':
         if meta['stepType']!='max' or meta['startStep']!=hour-1:raise ValueError('UH must cover the preceding complete hourly interval')
     elif meta['stepType']!='instant' or meta['startStep']!=hour:raise ValueError('Instantaneous field has unexpected time semantics')
@@ -126,8 +126,15 @@ class Aggregate:
         return columns,np.column_stack([arrays[n] for n in columns]).astype(np.float32)
 
 
-def extract(issue,output,cache,budget_mb=2000,days=(1,2),stride=5,bounds=(-100,-75,30,45)):
-    targets=[w for w in windows(issue) if w['day'] in days]
+def extract(issue,output,cache,budget_mb=2000,days=(1,2),stride=5,bounds=(-100,-75,30,45),target_windows=None):
+    targets=[w for w in windows(issue) if w['day'] in days] if target_windows is None else target_windows
+    if any(w['model_init_time']!=issue.isoformat() or w['day'] not in days for w in targets):raise ValueError('Target initialization/day mismatch')
+    if len({w['day'] for w in targets})!=len(targets) or len({w['feature_schema'] for w in targets})!=1:raise ValueError('Mixed or duplicate target schemas')
+    for w in targets:
+        if w['feature_schema']!=SCHEMA:
+            from protocol import validate
+            validate(w)
+    schema=targets[0]['feature_schema']
     if not targets or set(days)-{1,2}:raise ValueError('Choose Day 1 and/or Day 2')
     output=Path(output)
     if output.exists():raise ValueError('Output must be a new directory; use the verified download cache to resume')
@@ -138,7 +145,7 @@ def extract(issue,output,cache,budget_mb=2000,days=(1,2),stride=5,bounds=(-100,-
     # One decoded native field at a time; retain only the sampled hourly vectors.
     sampled={}
     for hour,fields in sorted(required.items()):
-        url=f'{ROOT}/hrrr.{issue:%Y%m%d}/conus/hrrr.t12z.wrfsfcf{hour:02d}.grib2'
+        url=f'{ROOT}/hrrr.{issue:%Y%m%d}/conus/hrrr.t{issue.hour:02d}z.wrfsfcf{hour:02d}.grib2'
         idx=client.fetch(url+'.idx',f'f{hour:02d}.idx');spec=select_ranges(idx.read_text(),fields)
         def get(item):
             name,selection=item;path=client.fetch(url,f'f{hour:02d}/{name}.grib2',selection['start'],selection['end']);return name,path
@@ -165,20 +172,20 @@ def extract(issue,output,cache,budget_mb=2000,days=(1,2),stride=5,bounds=(-100,-
                 pairs['uh25']=sampled[hour]['uh25'];features={}
                 for name,(point,nearby) in pairs.items():features[name]=point;features[name+'_nearby_max']=nearby
                 features['shear06']=np.hypot(pairs['shear06_u'][0],pairs['shear06_v'][0])
-                day=1 if previous<24 else 2
-                if day in aggregates:aggregates[day].add(previous,features)
+                for window in targets:
+                    if window['first_forecast_hour']<=previous<window['last_forecast_hour']:aggregates[window['day']].add(previous,features)
                 hour_hashes.append({'valid_hour':previous,'sha256':hashlib.sha256(b''.join(features[k].astype('<f4').tobytes() for k in sorted(features))).hexdigest()})
             del sampled[previous]
         print(f'Extracted f{hour:02d}; {len(rows)} sample centers; {client.used/1e6:.1f} MB downloaded',flush=True)
     # Nothing is written as a complete output until both requested windows pass.
-    completed={day:agg.finish(0 if day==1 else 24) for day,agg in aggregates.items()}
+    completed={w['day']:aggregates[w['day']].finish(w['first_forecast_hour']) for w in targets}
     output.mkdir(parents=True)
     products=[]
     for window in targets:
         day=window['day'];columns,matrix=completed[day];path=output/f'day{day}-features.npz'
         np.savez_compressed(path,coordinates=coords,features=matrix,feature_names=np.array(columns))
         products.append({**window,'file':path.name,'sha256':digest(path),'samples':len(coords),'features':columns,'probabilities_available':False})
-    manifest={'schema_version':1,'status':'predictors_only_not_a_forecast','feature_schema':SCHEMA,'model_init_time':issue.isoformat(),'completed_at':datetime.now(timezone.utc).isoformat(),'bounds':list(bounds),'stride':stride,'native_grid':geometry,'field_identities':identity,'grid_sha256':hashlib.sha256(coords.astype('<f8').tobytes()).hexdigest(),'products':products,'hour_hashes':hour_hashes,'source_receipts':receipts,'downloaded_bytes':client.used,'neighborhood':'Nominal 3 km native-grid disk; no missing/edge padding','operational_skill_established':False}
+    manifest={'schema_version':1,'status':'predictors_only_not_a_forecast','feature_schema':schema,'model_init_time':issue.isoformat(),'completed_at':datetime.now(timezone.utc).isoformat(),'bounds':list(bounds),'stride':stride,'native_grid':geometry,'field_identities':identity,'grid_sha256':hashlib.sha256(coords.astype('<f8').tobytes()).hexdigest(),'products':products,'hour_hashes':hour_hashes,'source_receipts':receipts,'downloaded_bytes':client.used,'neighborhood':'Nominal 3 km native-grid disk; no missing/edge padding','operational_skill_established':False}
     write_json(output/'manifest.json',manifest)
     return manifest
 

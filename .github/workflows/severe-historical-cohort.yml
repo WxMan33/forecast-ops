@@ -1,0 +1,99 @@
+name: Severe historical future-window cohort
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'research/severe/cohort-v05.json'
+  workflow_dispatch:
+    inputs:
+      case:
+        description: 'One frozen YYYY-MM-DD case, or blank for all 36 cases'
+        required: false
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: severe-history-v05-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        env:
+          REQUESTED_CASE: ${{ inputs.case }}
+        run: |
+          python - <<'PY'
+          import json,os
+          c=json.load(open('research/severe/cohort-v05.json'))
+          cases=c['cases'];requested=os.environ.get('REQUESTED_CASE','')
+          if requested:
+              if requested not in cases:raise SystemExit('Not a frozen development case')
+              cases=[requested]
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('matrix='+json.dumps({'case':cases})+'\n')
+          PY
+  collect:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: tools/severe/requirements.txt
+      - run: pip install -r tools/severe/requirements.txt
+      - run: python tests/severe-history.test.py
+      - name: Collect, audit and pair both daily windows
+        env:
+          FROZEN_CASE: ${{ matrix.case }}
+        run: python tools/severe/history.py --case "$FROZEN_CASE" --output tests/out/severe-history --cache tests/out/severe-history-cache --purge-cache
+      - uses: actions/upload-artifact@v4
+        with:
+          name: severe-history-v05-${{ matrix.case }}
+          path: tests/out/severe-history/${{ matrix.case }}
+          if-no-files-found: error
+          retention-days: 30
+  summary:
+    needs: [plan, collect]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: severe-history-v05-*
+          path: tests/out/collected-history
+      - name: Summarize completeness
+        env:
+          EXPECTED_MATRIX: ${{ needs.plan.outputs.matrix }}
+        run: |
+          python - <<'PY'
+          import hashlib,json,os,pathlib
+          expected=json.loads(os.environ['EXPECTED_MATRIX'])['case'];found={};invalid=[]
+          for p in pathlib.Path('tests/out/collected-history').rglob('case-manifest.json'):
+              m=json.loads(p.read_text());artifact=p.parent/m['artifact']['file']
+              if hashlib.sha256(artifact.read_bytes()).hexdigest()!=m['artifact']['sha256']:invalid.append(m['case']);continue
+              found[m['case']]={'samples_per_day':m['samples_per_day'],'artifact_sha256':m['artifact']['sha256']}
+          missing=sorted(set(expected)-set(found))
+          result={'status':'complete' if not missing and not invalid else 'partial','expected_cases':expected,'collected':found,'missing':missing,'invalid':invalid,'historical_public_availability_verified':False,'model_fitted':False,'operational_forecast_eligible':False}
+          p=pathlib.Path('tests/out/history-collection-summary.json');p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps({'status':result['status'],'complete_cases':len(found),'expected_cases':len(expected),'missing':missing}))
+          if missing or invalid:raise SystemExit(1)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: severe-history-v05-summary
+          path: tests/out/history-collection-summary.json
+          retention-days: 30
