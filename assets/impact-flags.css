@@ -1,5 +1,6 @@
-.impact-flags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;width:96px;max-width:100%;white-space:normal}
-.impact-flag{font:700 10px/1.4 var(--font-mono);border:1px solid var(--line);border-radius:4px;padding:1px 5px;background:var(--raised);color:var(--text);cursor:pointer;white-space:normal;max-width:96px;overflow-wrap:anywhere}
+.impact-flags{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;margin-top:6px;width:110px;max-width:100%;white-space:normal}
+.impact-flag{display:flex;align-items:center;justify-content:center;gap:5px;box-sizing:border-box;width:100%;min-height:36px;font:700 10px/1.25 var(--font-mono);border:1px solid var(--line);border-radius:5px;padding:4px 6px;background:var(--raised);color:var(--text);cursor:pointer;white-space:normal;text-align:center;overflow-wrap:anywhere}
+.impact-label{min-width:0}.impact-flag .impact-agency{flex:none}
 .impact-fog{color:var(--muted)}.impact-frost,.impact-freeze{color:var(--cold)}.impact-wind{color:var(--text)}
 .impact-flag:hover,.impact-flag[aria-expanded=true]{border-color:var(--accent)}.impact-flag:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 table.daily tr.impact-detail td{white-space:normal;text-align:left;background:var(--raised);padding:14px;max-width:0;font:12px/1.6 var(--font-body)}
