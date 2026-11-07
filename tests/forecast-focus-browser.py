@@ -14,6 +14,7 @@ impact_mode=False
 visibility_clear=False
 valley_mode=False
 rain_mode=False
+frost_alert=False
 
 def om_response(url):
  q=parse_qs(urlparse(url).query);n=int(q.get('forecast_days',['7'])[0])*24;model=q.get('models',[''])[0]
@@ -67,6 +68,10 @@ with sync_playwright() as p:
    if 'meta.json' in url:route.fulfill(status=200,content_type='application/json',body='{}')
    else:route.fulfill(status=200,content_type='application/json',body=json.dumps(om_response(url)))
   elif 'api.weather.gov' in url:
+   if '/alerts/' in url:
+    if frost_alert=='unavailable':route.fulfill(status=503,content_type='application/json',body='{"error":true}');return
+    alert={'id':'synthetic-frost','status':'Actual','messageType':'Cancel' if frost_alert=='cancelled' else 'Alert','event':'Frost Advisory','effective':'2026-11-04T12:00:00Z','onset':'2026-11-05T00:00:00Z','ends':'2026-11-05T09:00:00Z','expires':'2026-11-05T10:00:00Z','senderName':'NWS Synthetic QA','description':'Temperatures as low as 35 will result in frost formation.'}
+    route.fulfill(status=200,content_type='application/json',body=json.dumps({'features':[{'id':'synthetic-frost','properties':alert}] if frost_alert else []}));return
    key='points' if '/points/' in url else 'hourly' if '/forecast/hourly' in url else 'forecast' if '/forecast' in url else 'grid'
    route.fulfill(status=200,content_type='application/json',body=json.dumps({'features':[]} if '/alerts/' in url else fixtures[key]))
   else:route.fulfill(status=404,content_type='application/json',body='{}')
@@ -254,6 +259,33 @@ with sync_playwright() as p:
   page.set_viewport_size({'width':width,'height':900})
   assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1')
   page.screenshot(path=str(out/f'focus-evening-{width}.png'),full_page=True)
+ # An official point advisory must survive warm/windy model guidance and stay clearly NWS-labeled.
+ frost_alert=True;impact_mode=False;rain_mode=False;valley_mode=False
+ page.evaluate('sessionStorage.clear()');page.reload()
+ page.wait_for_function('document.querySelector("#next48HeadsUp .impact-official") && !document.querySelector("#runBtn").disabled')
+ assert page.locator('#daily tr[data-k="2026-11-05"] .impact-official').count()==1
+ assert 'Frost Advisory' in page.locator('#next48HeadsUp').inner_text()
+ assert 'EST' in page.locator('.alert-pill').first.inner_text(),'alert bar uses point time zone, not browser time zone'
+ assert 'Frost?' not in page.locator('#daily tr[data-k="2026-11-05"]').inner_text(),'official tag is distinct from the model-only screen'
+ chip=page.locator('#next48HeadsUp .impact-official').first
+ chip.press('Enter');assert page.locator('#next48Detail').is_visible()
+ assert 'Temperatures as low as 35' in page.locator('#next48Detail').inner_text()
+ assert chip.get_attribute('aria-expanded')=='true'
+ page.locator('#next48Detail').get_by_role('button',name='Close heads-up details').click()
+ assert not page.locator('#next48Detail').is_visible()
+ for width in [360,390,1440]:
+  page.set_viewport_size({'width':width,'height':900});chip.click()
+  assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1'),f'next48 overflow at {width}'
+  page.screenshot(path=str(out/f'focus-next48-{width}.png'),full_page=True)
+  page.locator('#next48Detail').get_by_role('button',name='Close heads-up details').click()
+ # Cancellation and a failed advisory check must not retain the previous official tag.
+ frost_alert='cancelled';page.evaluate('sessionStorage.clear()');page.reload()
+ page.wait_for_function('!document.querySelector("#runBtn").disabled && document.querySelector("#next48HeadsUp").textContent.includes("Next 48 hours")')
+ assert page.locator('#next48HeadsUp .impact-official').count()==0
+ frost_alert='unavailable';page.evaluate('sessionStorage.clear()');page.reload()
+ page.wait_for_function('document.querySelector("#next48HeadsUp").textContent.includes("NWS alert check unavailable") && !document.querySelector("#runBtn").disabled')
+ assert page.locator('#next48HeadsUp .impact-official').count()==0
+ frost_alert=False
  saved_history_count=len(history())
  page.locator('#viewMode').click()
  # Full failure state, with retained local history/settings.
