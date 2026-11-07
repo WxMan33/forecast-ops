@@ -123,7 +123,7 @@
     $("printBtn").addEventListener("click", () => window.print());
     $("verifyExport").addEventListener("click", (e) => { e.preventDefault(); exportVerify(); });
     applyTheme(theme());
-    if (fp) { showLocation(); loadAlerts(); locListeners.push(() => loadAlerts()); }
+    if (fp) { showLocation(); loadAlerts(); locListeners.push(() => loadAlerts()); if(alertRefresh)clearInterval(alertRefresh);alertRefresh=setInterval(()=>{if(!document.hidden)loadAlerts();},300000); }
     /* event slots on every page: editor under Location, results at the top of the main column */
     const side = document.querySelector(".side"), main = document.querySelector(".main");
     /* the event slot stays hidden until a page actually uses it (eventCard), so no empty panel shows */
@@ -312,27 +312,33 @@
   const STATES = { Alabama: "AL", Alaska: "AK", Arizona: "AZ", Arkansas: "AR", California: "CA", Colorado: "CO", Connecticut: "CT", Delaware: "DE", Florida: "FL", Georgia: "GA", Hawaii: "HI", Idaho: "ID", Illinois: "IL", Indiana: "IN", Iowa: "IA", Kansas: "KS", Kentucky: "KY", Louisiana: "LA", Maine: "ME", Maryland: "MD", Massachusetts: "MA", Michigan: "MI", Minnesota: "MN", Mississippi: "MS", Missouri: "MO", Montana: "MT", Nebraska: "NE", Nevada: "NV", "New Hampshire": "NH", "New Jersey": "NJ", "New Mexico": "NM", "New York": "NY", "North Carolina": "NC", "North Dakota": "ND", Ohio: "OH", Oklahoma: "OK", Oregon: "OR", Pennsylvania: "PA", "Rhode Island": "RI", "South Carolina": "SC", "South Dakota": "SD", Tennessee: "TN", Texas: "TX", Utah: "UT", Vermont: "VT", Virginia: "VA", Washington: "WA", "West Virginia": "WV", Wisconsin: "WI", Wyoming: "WY", "District of Columbia": "DC" };
   const stateAbbr = (s) => STATES[s] || s;
 
-  /* ---------- NWS alerts for the point (US only; quietly absent elsewhere) ---------- */
+  /* NWS point alerts are shared with the forecast heads-up, separate from model screens. */
+  let alertState={status:"loading",items:[],locationKey:null,tz:"UTC",retrievedAt:null}, alertGeneration=0,alertRefresh=null;
+  const alertListeners=[];
+  const alertKey=p=>`${Number(p.lat).toFixed(4)},${Number(p.lon).toFixed(4)}`;
+  function onAlerts(fn){alertListeners.push(fn);return()=>{const i=alertListeners.indexOf(fn);if(i>=0)alertListeners.splice(i,1);};}
+  function publishAlerts(next){alertState=next;alertListeners.forEach(fn=>fn(next));}
   async function loadAlerts() {
-    const box = $("alerts"); if (!box) return;
+    const box=$("alerts");if(!box)return;
+    const where={...loc},key=alertKey(where),generation=++alertGeneration;
+    publishAlerts({status:"loading",items:[],locationKey:key,tz:alertState.locationKey===key?alertState.tz:"UTC",retrievedAt:null});
+    box.hidden=true;box.innerHTML="";
     try {
-      const j = await getJSON(`https://api.weather.gov/alerts/active?point=${loc.lat},${loc.lon}`, 5);
-      const f = (j.features || []).map((x) => x.properties).filter(Boolean);
-      if (!f.length) { box.hidden = true; box.innerHTML = ""; return; }
-      const rank = (p) => (/Warning/.test(p.event) ? 3 : /Watch/.test(p.event) ? 2 : /Advisory/.test(p.event) ? 1 : 0);
-      f.sort((a, b) => rank(b) - rank(a));
-      const col = (p) => ["var(--muted)", "var(--monitor)", "var(--prepare)", "var(--action)"][rank(p)];
-      const until = (p) => { const e = p.ends || p.expires; if (!e) return ""; const d = new Date(e); return ` until ${d.toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })}`; };
-      box.innerHTML = `<div class="alerts-inner">${icon("alert", 15)}<span class="kicker" style="color:var(--text)">NWS ACTIVE</span>` +
-        f.map((p, i) => `<button type="button" class="alert-pill" data-i="${i}" style="--a:${col(p)}">${esc(p.event)}<span class="msg">${esc(until(p))}</span></button>`).join("") +
-        `</div><div class="alert-detail" id="alertDetail" hidden></div>`;
-      box.hidden = false;
-      box.querySelectorAll(".alert-pill").forEach((b) => b.addEventListener("click", () => {
-        const p = f[b.dataset.i], d = $("alertDetail"), same = d.dataset.i === b.dataset.i && !d.hidden;
-        d.hidden = same; d.dataset.i = b.dataset.i;
-        d.innerHTML = `<b>${esc(p.headline || p.event)}</b><p>${esc((p.description || "").slice(0, 1200))}</p>${p.instruction ? `<p><b>Instructions:</b> ${esc(p.instruction.slice(0, 600))}</p>` : ""}<p class="msg">${esc(p.senderName || "")} · <a href="https://alerts.weather.gov/" target="_blank" rel="noopener">alerts.weather.gov</a></p>`;
-      }));
-    } catch (e) { box.hidden = true; }
+      const [j,pt]=await Promise.all([getJSON(`https://api.weather.gov/alerts/active?point=${where.lat},${where.lon}`,5),getJSON(`https://api.weather.gov/points/${Number(where.lat).toFixed(4)},${Number(where.lon).toFixed(4)}`,7*24*60).catch(()=>null)]);
+      if(generation!==alertGeneration||key!==alertKey(loc))return;
+      if(j.error||!Array.isArray(j.features))throw Error("NWS alerts unavailable");
+      const now=Date.now(),f=j.features.map(x=>({...x.properties,id:x.id||x.properties?.id})).filter(p=>p.event&&(!p.status||p.status==="Actual")&&!["Cancel","Ack","Error"].includes(p.messageType)&&(!p.ends||Date.parse(p.ends)>now)&&(!p.expires||Date.parse(p.expires)>now));
+      const zone=pt?.properties?.timeZone||"UTC";
+      const rank=p=>(/Warning/.test(p.event)?3:/Watch/.test(p.event)?2:/Advisory/.test(p.event)?1:0);
+      f.sort((a,b)=>rank(b)-rank(a));
+      publishAlerts({status:"ready",items:f,locationKey:key,tz:zone,retrievedAt:j.__retrievedAt||new Date().toISOString()});
+      if(!f.length)return;
+      const col=p=>["var(--muted)","var(--monitor)","var(--prepare)","var(--action)"][rank(p)];
+      const until=p=>{const e=p.ends||p.expires;return e?` until ${new Date(e).toLocaleString([], {timeZone:zone,weekday:"short",hour:"numeric",minute:"2-digit",timeZoneName:"short"})}`:"";};
+      box.innerHTML=`<div class="alerts-inner">${icon("alert",15)}<span class="kicker" style="color:var(--text)">NWS ACTIVE</span>`+f.map((p,i)=>`<button type="button" class="alert-pill" data-i="${i}" style="--a:${col(p)}">${esc(p.event)}<span class="msg">${esc(until(p))}</span></button>`).join("")+`</div><div class="alert-detail" id="alertDetail" hidden></div>`;
+      box.hidden=false;
+      box.querySelectorAll(".alert-pill").forEach(b=>b.addEventListener("click",()=>{const p=f[b.dataset.i],d=$("alertDetail"),same=d.dataset.i===b.dataset.i&&!d.hidden;d.hidden=same;d.dataset.i=b.dataset.i;d.innerHTML=`<b>${esc(p.headline||p.event)}</b><p>${esc((p.description||"").slice(0,1200))}</p>${p.instruction?`<p><b>Instructions:</b> ${esc(p.instruction.slice(0,600))}</p>`:""}<p class="msg">${esc(p.senderName||"")} · <a href="https://alerts.weather.gov/" target="_blank" rel="noopener">alerts.weather.gov</a></p>`;}));
+    }catch(e){if(generation===alertGeneration&&key===alertKey(loc)){box.hidden=true;publishAlerts({status:"unavailable",items:[],locationKey:key,tz:alertState.tz,retrievedAt:null});}}
   }
 
   /* ---------- fetching: shared loader in ops-data.js ---------- */
@@ -770,7 +776,7 @@
 
   window.Ops = {
     pct5, Core, BRAND, PRESETS, TIER, maxTier, badge, $, esc, store, css, icon,
-    shell, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
+    shell, onAlerts, get alertState(){return alertState;}, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
     Data, getJSON, hasData, savedWeights, savedDays, align: Core.stats.align,
     nowIndex, hourOf, dayOf, fmtDay, fmtHour, fmtWhen, tzShort, hourLabels, dayGroups,
     blendSeries: Core.stats.blendSeries, weightedQuantile: Core.stats.weightedQuantile,

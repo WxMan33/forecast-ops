@@ -26,10 +26,18 @@
       const first = low[0]?.ms;
       const prior = first == null ? [] : (data.ms || []).map((ms, i) => ({ ms, value: h.visibility?.[i] })).filter(p => p.ms < first && p.ms >= first - 6 * H && finite(p.value) && p.value >= 0 && p.value <= 200000);
       const before = prior.length ? Math.max(...prior.map(p => p.value)) : null;
-      return { id, name, min, lowMin: low.length ? Math.min(...low.map(p => p.value)) : null, minTimes, count: points.length, expected: morning.length, lowTimes: low.map(p => p.ms), fogTimes: fog.map(p => p.ms), excludedTimes:rawLow.filter(p=>!dry(p)).map(p=>p.ms), before: before != null && min != null && before - min >= MILE ? before : null, retrievedAt: model?.retrievedAt || null, cycle: model?.provenance?.cycle || null };
+      return { id, name, min, lowMin: low.length ? Math.min(...low.map(p => p.value)) : null, minTimes, count: points.length, expected: morning.length, lowTimes: low.map(p => p.ms), lowSamples: low.map(p=>({ms:p.ms,value:p.value})), fogTimes: fog.map(p => p.ms), excludedTimes:rawLow.filter(p=>!dry(p)).map(p=>p.ms), before: before != null && min != null && before - min >= MILE ? before : null, retrievedAt: model?.retrievedAt || null, cycle: model?.provenance?.cycle || null };
     });
   }
-  function assess(data, day, C, now = Date.now(), gust = null) {
+  function officialCold(alerts,day,C,tz,now=Date.now()) {
+    const start=C.time.toUtc(day+'T00:00',tz),end=C.time.toUtc(day+'T09:00',tz),seen=new Set();
+    return (alerts||[]).filter(p=>p.status==='Actual'&&['Alert','Update'].includes(p.messageType)&&/^(Frost Advisory|Freeze Watch|Freeze Warning|Hard Freeze Warning)$/.test(p.event)).sort((a,b)=>Date.parse(b.sent||b.effective)-Date.parse(a.sent||a.effective)).flatMap(p=>{
+      const s=Date.parse(p.onset||p.effective),e=Date.parse(p.ends||p.expires),expiry=Date.parse(p.expires),issued=Date.parse(p.effective),key=p.event;
+      if(![s,e,expiry,issued].every(Number.isFinite)||e<=s||expiry<=now||issued>now||Math.min(e,end)<=Math.max(s,start,now)||seen.has(key))return [];
+      seen.add(key);return [{kind:p.event==='Frost Advisory'?'frost':'freeze',label:p.event,origin:'nws',agency:'NWS',alertId:p.id||null,start:s,end:e,expires:expiry,sources:[],checked:0,criteria:'Official NWS '+p.event+' for the selected forecast point. This tag does not depend on the model frost screen.',headline:p.headline||p.event,description:p.description||'',sender:p.senderName||'National Weather Service'}];
+    });
+  }
+  function assess(data, day, C, now = Date.now(), gust = null, alerts = []) {
     const by = { frost: [], freeze: [] }, coverage = { frost: 0, freeze: 0 };
     const start = Math.floor(now / H) * H;
     const axis = (data.ms || []).map((ms, i) => {
@@ -64,19 +72,21 @@
     const visSites=[...new Set(vis.filter(v=>v.lowTimes.length&&!fogSites.includes(v.site)).map(v=>v.site))];
     for(const [ids,label] of [[fogSites,'AM fog?'],[visSites,'AM vis↓']])if(ids.length){
       const suffix=ids.length===1&&ids[0]==='POINT'?'':' · '+ids.slice(0,2).join('/')+(ids.length>2?' +'+(ids.length-2):'');
-      out.push({kind:'fog',label:label+suffix,sources:[],checked:0,visibility:vis,criteria:criteria.fog});
+      out.push({kind:'fog',signal:label==='AM fog?'?'fog':'visibility',label:label+suffix,sources:[],checked:0,visibility:vis,criteria:criteria.fog});
     }
     const cold = by.freeze.length >= 2 ? 'freeze' : 'frost';
-    if (by[cold].length >= 2) out.push({ kind: cold, label: cold === 'freeze' ? 'Freeze?' : 'Frost?', sources: by[cold], checked: coverage[cold], criteria: criteria[cold] });
+    const official=officialCold(alerts,day,C,data.tz,now);
+    if(official.length)out.push(...official.map(f=>({...f,sources:by[f.kind],checked:coverage[f.kind]})));
+    else if (by[cold].length >= 2) out.push({ kind: cold, label: cold === 'freeze' ? 'Freeze?' : 'Frost?', sources: by[cold], checked: coverage[cold], criteria: criteria[cold] });
     if (axis.length && finite(gust) && gust >= 20) out.push({ kind: 'wind', label: 'G:' + Math.floor(gust / 10) * 10 + '+', gust, sources: [], criteria: 'Upcoming blended peak hourly gust ' + gust.toFixed(0) + ' mph. The badge groups gusts into 10-mph bands starting at 20 mph; it is not an NWS wind-advisory threshold.' });
     return out;
   }
   function mount({ O, C }) {
     const E = O.esc;
     function badges(day, flags) {
-      return flags.length ? `<div class="impact-flags">${flags.map(f => `<button type="button" class="impact-flag impact-${f.kind}" data-impact-day="${E(day)}" aria-expanded="false" aria-controls="impact-${E(day)}" title="${E(f.criteria)}">${E(f.label.split(" · ")[0])}${f.label.includes(" · ") ? `<span class="impact-sites">${E(f.label.split(" · ")[1])}</span>` : ""}<span class="sr"> Investigate guidance for ${E(day)}</span></button>`).join('')}</div>` : '';
+      return flags.length ? `<div class="impact-flags">${flags.map(f => `<button type="button" class="impact-flag impact-${f.kind}${f.origin==='nws'?' impact-official':''}" data-impact-day="${E(day)}" aria-expanded="false" aria-controls="impact-${E(day)}" title="${E(f.criteria)}">${f.origin==='nws'?'<span class="impact-agency">NWS</span> ':''}${E(f.label.split(" · ")[0])}${f.label.includes(" · ") ? `<span class="impact-sites">${E(f.label.split(" · ")[1])}</span>` : ""}<span class="sr"> Investigate guidance for ${E(day)}</span></button>`).join('')}</div>` : '';
     }
-    function details(day, flags, names, tz, columns) {
+    function content(day, flags, names, tz, title=true) {
       if (!flags.length) return '';
       const time = ms => new Date(ms).toLocaleTimeString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
       const times = a => { const groups = []; for (const ms of a) { const g = groups.at(-1); if (g && ms - g.at(-1) === H) g.push(ms); else groups.push([ms]); } return groups.map(g => time(g[0]) + (g.length > 1 ? '–' + time(g.at(-1)) : '')).join('; '); };
@@ -92,16 +102,17 @@
         }).join('')}</div>${inactive.length ? `<p class="msg">No qualifying signal: ${inactive.map(E).join(', ')}. Coverage varies.</p>` : ''}<details class="impact-visibility-diagnostics"><summary>Full values &amp; source details</summary><p class="msg">Model grid guidance, not airport observations. Missing hours are unavailable.</p>${fullVisTable(rows)}</details></div>`;
       };
       const visibilityRows = flags.find(f => f.visibility)?.visibility;
-      return `<tr class="impact-detail" id="impact-${E(day)}" hidden><td colspan="${columns}"><strong>Heads-up · ${E(O.fmtDay(day))}</strong><p class="msg">Upcoming model guidance for investigation, not an advisory. No flag is not an all-clear.</p>${flags.map(f => `<div class="impact-explanation"><b>${f.label}</b><p>${E(f.criteria)}</p>${f.sources.length ? `<p>${f.sources.length} of ${f.checked} sources with at least two consecutive usable samples support the temperature screen. Partial mornings can qualify; these counts do not measure full-window coverage.</p><ul>${f.sources.map(s => `<li>${E(names[s.id] || s.id)}: ${E(times(s.times))}</li>`).join('')}</ul>` : ''}</div>`).join('')}${visibilityRows ? visTable(visibilityRows) : ''}<p class="msg">Morning flags refer to this date. Times are hourly samples; refresh to update.</p></td></tr>`;
+      return `${title?`<strong>Heads-up · ${E(O.fmtDay(day))}</strong>`:''}<p class="msg">NWS tags are official point alerts; other flags are model guidance for investigation. No flag is not an all-clear.</p>${flags.map(f => `<div class="impact-explanation"><b>${E(f.label)}</b><p>${E(f.criteria)}</p>${f.origin==='nws'?`<p><strong>${E(f.sender)}</strong> · ${E(new Date(f.start).toLocaleString('en-US',{timeZone:tz,weekday:'short',hour:'numeric',minute:'2-digit',timeZoneName:'short'}))}–${E(new Date(f.end).toLocaleString('en-US',{timeZone:tz,weekday:'short',hour:'numeric',minute:'2-digit',timeZoneName:'short'}))}</p><p>${E(f.description)}</p>`:''}${f.sources.length ? `<p>${f.sources.length} of ${f.checked} sources with at least two consecutive usable samples support the temperature screen. Partial mornings can qualify; these counts do not measure full-window coverage.</p><ul>${f.sources.map(s => `<li>${E(names[s.id] || s.id)}: ${E(times(s.times))}</li>`).join('')}</ul>` : ''}</div>`).join('')}${visibilityRows ? visTable(visibilityRows) : ''}<p class="msg">Morning flags refer to this date. Times are hourly samples; refresh to update.</p>`;
     }
+    function details(day,flags,names,tz,columns){return flags.length?`<tr class="impact-detail" id="impact-${E(day)}" hidden><td colspan="${columns}">${content(day,flags,names,tz)}</td></tr>`:'';}
     function wire(table) {
       table.querySelectorAll('[data-impact-day]').forEach(b => {
         b.onclick = e => { e.stopPropagation(); const row = table.querySelector('#impact-' + b.dataset.impactDay); row.hidden = !row.hidden; table.querySelectorAll(`[data-impact-day="${b.dataset.impactDay}"]`).forEach(x => x.setAttribute('aria-expanded', String(!row.hidden))); };
         b.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') e.stopPropagation(); };
       });
     }
-    return { badges, details, wire };
+    return { badges, details, wire, content };
   }
-  const api = { assess, consecutive, visibility, mount };
+  const api = { assess, consecutive, visibility, officialCold, mount };
   if (typeof module === 'object' && module.exports) module.exports = api; else root.ImpactFlags = api;
 })(typeof globalThis === 'object' ? globalThis : this);

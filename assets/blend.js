@@ -90,6 +90,7 @@
 
   async function run() {
     $("runBtn").disabled = true;
+    $("next48HeadsUp").hidden=true;
     O.setChip("FETCHING…");
     $("runMsg").className = "msg"; $("runMsg").textContent = `Requesting ${MODELS.length} models, ECMWF ENS, GEFS, RRFS ensemble and the NWS point forecast…`;
     const where = { lat: O.location.lat, lon: O.location.lon }, days = +$("days").value;
@@ -106,6 +107,7 @@
     nws = nw;
     if (res.empty) {
       data = null;
+      refreshHeadsUp();
       O.setChip("NO DATA", "err");
       $("runMsg").className = "msg err";
       $("runMsg").textContent = "Couldn't reach Open-Meteo. Check your connection and try again.";
@@ -114,6 +116,7 @@
       return;
     }
     data = res;
+    data.pointKey=`${Number(where.lat).toFixed(4)},${Number(where.lon).toFixed(4)}`;
     data.visibilityPoint = window.AirportVisibility.identify(where);
     data.visibilitySites = airports;
     data.visibilitySources = vis.empty || !vis.models.ecmwf_ifs ? {} : { ecmwf_ifs: { ...vis.models.ecmwf_ifs, h: Object.fromEntries(Object.entries(vis.models.ecmwf_ifs.h).map(([v, a]) => [v, C.stats.align(data.ms, vis.ms, a)])) } };
@@ -293,9 +296,28 @@
 
   const recordWatch = window.RecordWatch.mount({ O, C, rerender: () => { if (data) renderDaily(); } });
   const impactFlags = window.ImpactFlags.mount({ O, C });
+  const headsUp=window.Next48HeadsUp.mount({O,C,host:$("next48HeadsUp"),details:item=>impactFlags.content(item.day,[item.flag],NAMES,data?.tz||O.alertState.tz,false)});
+  O.onAlerts(state=>{if(state.status!=="loading"){if(data)renderDaily();else refreshHeadsUp();}});
+
+  function refreshHeadsUp(now=Date.now()){
+    if(!data?.headsUpInput){
+      const state=O.alertState,zone=state.tz||'UTC',start=C.time.toLocal(now,zone).slice(0,10),rows=Array.from({length:3},(_,i)=>({k:new Date(Date.parse(start+'T12:00Z')+i*86400000).toISOString().slice(0,10)}));
+      const key=`${Number(O.location.lat).toFixed(4)},${Number(O.location.lon).toFixed(4)}`,alerts=state.locationKey===key?state.items:[];
+      const impacts=new Map(rows.map(r=>[r.k,window.ImpactFlags.officialCold(alerts,r.k,C,zone,now)]));
+      headsUp.render({data:{tz:zone},rows,impacts,now,alertStatus:state.status,modelStatus:'unavailable'});return;
+    }
+    if(data.pointKey!==`${Number(O.location.lat).toFixed(4)},${Number(O.location.lon).toFixed(4)}`){$("next48HeadsUp").hidden=true;return;}
+    const {rows,impacts,temps}=data.headsUpInput;
+    const horizon=now+48*3600000,gusts={};
+    for(const r of rows){const idx=data.ms.map((ms,i)=>({ms,i})).filter(p=>p.ms>=now&&p.ms<horizon&&C.time.toLocal(p.ms,data.tz).slice(0,10)===r.k).map(p=>p.i);if(idx.length){const clipped=C.blend.windowRow(data,W(),idx,idx,OPTS());gusts[r.k]={value:clipped.gust,times:idx.map(i=>data.ms[i])};}}
+    const records=recordWatch.summary(rows,O.location,data.tz,now,horizon,data.ms,temps);
+    headsUp.render({data,rows,impacts,records,gusts,now:now,alertStatus:O.alertState.locationKey===data.pointKey?O.alertState.status:'loading',recordStatus:recordWatch.status(rows,O.location,data.tz,now,horizon)});
+  }
 
   function renderDaily() {
     if (!data) return;
+    const expandedDays=new Set([...$("daily").querySelectorAll('tr.detrow:not([hidden])')].map(r=>r.dataset.for));
+    const expandedImpacts=new Set([...$("daily").querySelectorAll('tr.impact-detail:not([hidden])')].map(r=>r.id));
     const rows = C.blend.dailyRows(data, W(), OPTS());
     data.rows = rows;
     const clock = window.ForecastClock.focus(C, data.tz, Date.now());
@@ -314,8 +336,9 @@
       const idx = data.ms.map((ms, i) => ({ ms, i })).filter(p => p.ms >= futureStart && C.time.toLocal(p.ms, data.tz).slice(0, 10) === r.k).map(p => p.i);
       // Reuse the displayed forecast's aggregation and weights for the remaining-day wind cue.
       const remaining = r.k === impactToday && idx.length ? C.blend.windowRow(data, W(), idx, idx, OPTS()) : null;
-      return [r.k, window.ImpactFlags.assess(data, r.k, C, impactNow, r.k === impactToday ? remaining?.gust : r.gust)];
+      return [r.k, window.ImpactFlags.assess(data, r.k, C, impactNow, r.k === impactToday ? remaining?.gust : r.gust, O.alertState.locationKey===data.pointKey?O.alertState.items:[])];
     }));
+    data.headsUpInput={rows,impacts,temps};refreshHeadsUp(impactNow);
     const hasN = nws && nws.periods && nws.periods.length;
     /* Columns. tier: 1 always shown; 2 moves into the day's details when the table is narrow (< 880 px);
        3 also moves there on phone widths (< 600 px). Breakpoints follow the table's own width. */
@@ -357,7 +380,9 @@
     });
     recordWatch.wire($("daily"));
     impactFlags.wire($("daily"));
-    $("dailyNote").append(document.createTextNode(' Precipitation chances are displayed to the nearest 5%; underlying values and verification are unchanged. Broadcast PoP is experimental regional ensemble guidance over nine points, not the chance of rain somewhere. Its timing/heavier-burst cues do not increase the percentage. Arrows and timing labels describe the weighted hourly temperature curve, which may differ from the daily-extrema blend. After 9 AM, today’s elapsed morning low is hidden; after 5 PM, earlier today is collapsed. Daily flags: AM fog?, Frost?/Freeze? and G:20+ (mph bands). Tap for sources, hours and screening limits. These are investigation cues, not advisories; no flag is not an all-clear.'));
+    for(const row of $("daily").querySelectorAll('tr.detrow'))if(expandedDays.has(row.dataset.for)){row.hidden=false;const b=$("daily").querySelector(`tr[data-k="${row.dataset.for}"] .detbtn`);if(b){b.setAttribute('aria-expanded','true');b.textContent='▾';}}
+    for(const row of $("daily").querySelectorAll('tr.impact-detail'))if(expandedImpacts.has(row.id)){row.hidden=false;$("daily").querySelectorAll(`[aria-controls="${row.id}"]`).forEach(b=>b.setAttribute('aria-expanded','true'));}
+    $("dailyNote").append(document.createTextNode(' Precipitation chances are displayed to the nearest 5%; underlying values and verification are unchanged. Broadcast PoP is experimental regional ensemble guidance over nine points, not the chance of rain somewhere. Its timing/heavier-burst cues do not increase the percentage. Arrows and timing labels describe the weighted hourly temperature curve, which may differ from the daily-extrema blend. After 9 AM, today’s elapsed morning low is hidden; after 5 PM, earlier today is collapsed. Daily flags: AM fog?, Frost?/Freeze? and G:20+ (mph bands). Tap for sources, hours and screening limits. NWS-labeled tags are official point alerts; other flags are investigation cues. No flag is not an all-clear.'));
     $("dailyNote").append(document.createTextNode(recordWatch.note(rows, O.location, data.tz)));
     if (fresh) {
       const snap = { cfg: `${preset}|${C.config.fingerprint(W())}|${JSON.stringify(R())}`, rows: {} };
@@ -570,7 +595,7 @@
 
   render();
   run();
-  const displayTimer=setInterval(()=>{if(data&&!document.hidden){const c=window.ForecastClock.focus(C,data.tz,Date.now());if(`${c.day}|${c.dayLead}|${c.forward}|${c.evening}`!==displayClockKey)render();else renderNow();}},60000);
+  const displayTimer=setInterval(()=>{if(!document.hidden){if(!data){refreshHeadsUp();return;}const c=window.ForecastClock.focus(C,data.tz,Date.now());if(`${c.day}|${c.dayLead}|${c.forward}|${c.evening}`!==displayClockKey)render();else {renderNow();refreshHeadsUp();}}},60000);
   window.addEventListener('pagehide',()=>clearInterval(displayTimer),{once:true});
 })();
 

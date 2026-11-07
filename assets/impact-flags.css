@@ -14,3 +14,26 @@ table.daily tr.impact-detail td{white-space:normal;text-align:left;background:va
 .impact-airports{display:grid;gap:10px}.impact-airport{padding:10px 12px;border:1px solid var(--line);border-radius:6px}.impact-airport ul{margin:5px 0 0;padding-left:18px}.impact-airport li{margin:3px 0;overflow-wrap:anywhere}.impact-visibility-diagnostics{margin-top:10px}.impact-visibility-diagnostics summary{cursor:pointer;color:var(--muted)}
 
 .temp-timing{display:block;max-width:96px;white-space:normal;font:600 9px/1.35 var(--font-body);color:var(--accent);margin-top:4px}
+
+/* One quiet line below the summary; supporting evidence opens only on request. */
+.next48-heads-up{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);min-width:0}
+.heads-up-line{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap}
+.heads-up-label{font-size:10px;font-weight:750;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.heads-up-chips{display:flex;align-items:center;flex-wrap:wrap;gap:6px;min-width:0}
+.heads-up-chip{display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px;font:650 11px/1.4 var(--font-body);padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--text);cursor:pointer;max-width:100%;text-align:left;overflow-wrap:anywhere}
+.heads-up-day{color:var(--muted);font-weight:500}
+.heads-up-chip.impact-frost,.heads-up-chip.impact-freeze{color:var(--cold)}
+.heads-up-chip.impact-record{color:var(--text)}
+.heads-up-chip:hover,.heads-up-chip[aria-expanded=true]{background:var(--raised);border-color:var(--accent)}
+.heads-up-chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.impact-agency{font:800 8px/1.2 var(--font-body);letter-spacing:.04em;color:var(--cold);border:1px solid currentColor;border-radius:3px;padding:1px 3px;display:inline-block}
+.impact-official{border-color:color-mix(in srgb,var(--cold) 55%,var(--line))}
+.heads-up-status{font-size:11px;line-height:1.5}
+.heads-up-detail{margin-top:10px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--raised);font:12px/1.6 var(--font-body);overflow-wrap:anywhere;min-width:0}
+.heads-up-detail-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.heads-up-detail-head strong{font-size:12px}
+.heads-up-detail p{margin:6px 0}
+.heads-up-detail .impact-explanation:first-of-type{border-top:0;padding-top:0}
+.heads-up-detail:focus{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:600px){.heads-up-label{flex-basis:100%}.heads-up-chip{font-size:11px}.heads-up-detail{padding:11px}.heads-up-detail-head{align-items:flex-start}}
+@media print{.next48-heads-up{break-inside:avoid}.heads-up-chip{color:#111!important;border-color:#aaa}.heads-up-detail{display:none!important}.impact-agency{color:#075985!important}}

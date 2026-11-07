@@ -12,6 +12,20 @@
  function badge(row,kind,loc,tz){if(!eligible(loc)||tz!=='America/New_York')return '';const today=C.time.toLocal(Date.now(),tz).slice(0,10);if(row.k<today)return '';const item=cache.get(row.k);if(!item||item.error)return '';return assess(row,kind,item.records).map(hit=>{const id='rw-'+row.k+'-'+hit.key;const start=C.time.toUtc(row.k+'T00:00',tz);const aligned=new Date(start).getUTCHours()===5;const detail=`${hit.label}: ${hit.record}°F (${hit.years.join(', ')}). Blend ${hit.forecast}°F for ${row.k}. Cincinnati threaded city record via RCC-ACIS, ${hit.n} usable years before ${row.k.slice(0,4)}${hit.missing?'; '+hit.missing+' years missing':''}. Forecast point is within 5 km of CVG; this is guidance, not a confirmed record. ${aligned?'Forecast calendar day matches midnight-to-midnight EST.':'Forecast uses daylight-saving calendar hours; official records use midnight-to-midnight EST. This is an approximate heads-up.'} Checked ${new Date(item.at).toISOString().slice(0,10)}.`;return `<button type="button" class="record-watch ${hit.color}" data-record-detail="${O.esc(detail)}" aria-expanded="false" aria-controls="${id}" title="${O.esc(detail)}">${hit.status==='Near record'?'Near rec · '+hit.gap+'°':hit.status==='Potential tie'?'Record tie?':'Record?'}<span class="sr"> ${O.esc(hit.label)}</span></button><span id="${id}" class="record-watch-detail" hidden></span>`;}).join('');}
  function wire(host){host.querySelectorAll('.record-watch').forEach(b=>{b.onclick=e=>{e.stopPropagation();const panel=document.getElementById(b.getAttribute('aria-controls'));panel.hidden=!panel.hidden;panel.textContent=b.dataset.recordDetail;b.setAttribute('aria-expanded',String(!panel.hidden));};b.onkeydown=e=>{if(e.key==='Enter'||e.key===' ')e.stopPropagation();};});}
  function note(rows,loc,tz){if(!eligible(loc)||tz!=='America/New_York')return '';const errors=rows.filter(r=>cache.get(r.k)?.error).length;return ' Record watch: small badges flag a full-day blend within 2°F of, tying or exceeding a Cincinnati temperature record. Tap for record, year and time-window caveats. '+(errors?`Record checks unavailable for ${errors} day${errors===1?'':'s'}; no badge does not mean no record risk.`:'');}
- return {prepare,badge,wire,note};}
+ function summary(rows,loc,tz,start,end,ms,temperatures){
+   if(!eligible(loc)||tz!=='America/New_York')return [];
+   return rows.flatMap(row=>{const item=cache.get(row.k);if(!item||item.error)return [];
+     const ix=ms.map((time,i)=>({time,i})).filter(p=>p.time>=start&&p.time<end&&C.time.toLocal(p.time,tz).slice(0,10)===row.k);
+     if(!ix.length||!ix.every(p=>Number.isFinite(temperatures[p.i])))return [];
+     const values=ix.map(p=>temperatures[p.i]),upcoming={...row,hi:Math.max(...values),lo:Math.min(...values)};
+     return ['hi','lo'].flatMap(kind=>{const daily=new Set(assess(row,kind,item.records).map(h=>h.key));return assess(upcoming,kind,item.records).filter(hit=>daily.has(hit.key)).map(hit=>{
+       const dir=TYPES[kind].find(t=>t[0]===hit.key)[3],times=ix.filter(p=>(temperatures[p.i]-hit.record)*dir>=-2).map(p=>p.time);
+       return {key:row.k+'-'+hit.key,day:row.k,kind:'record',color:hit.color,label:hit.status==='Near record'?'Near '+hit.label.toLowerCase():hit.label+'?',times,
+         detail:`${hit.label}: ${hit.record}°F (${hit.years.join(', ')}). Upcoming hourly blend ${hit.forecast}°F for ${row.k}, also supported by the full calendar-day blend. Cincinnati threaded record via RCC-ACIS, ${hit.n} usable years. This is guidance, not a confirmed record. Forecast uses local calendar hours; official records use midnight-to-midnight EST.`};
+     });});
+   });
+ }
+ function status(rows,loc,tz,start,end){if(!eligible(loc)||tz!=='America/New_York')return 'not-applicable';const relevant=rows.filter(r=>r.hours===24&&C.time.toUtc(r.k+'T00:00',tz)<end&&C.time.toUtc(r.k+'T00:00',tz)+25*3600000>start);if(relevant.some(r=>!cache.has(r.k)))return 'loading';return relevant.some(r=>cache.get(r.k)?.error)?'unavailable':'ready';}
+ return {prepare,badge,wire,note,summary,status};}
  const api={eligible,records,assess,mount};if(typeof module==='object'&&module.exports)module.exports=api;else root.RecordWatch=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

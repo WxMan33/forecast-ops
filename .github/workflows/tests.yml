@@ -43,6 +43,7 @@ jobs:
       - run: node tests/astronomy.test.js
       - run: node tests/record-watch.test.js
       - run: node tests/impact-flags.test.js
+      - run: node tests/next48-heads-up.test.js
       - run: python tools/rrfs-point-test.py
       - run: node tests/forecast-clock.test.js
       - run: node tests/scoped-weights.test.js
