@@ -84,7 +84,7 @@
   function mount({ O, C }) {
     const E = O.esc;
     function badges(day, flags) {
-      return flags.length ? `<div class="impact-flags">${flags.map(f => `<button type="button" class="impact-flag impact-${f.kind}${f.origin==='nws'?' impact-official':''}" data-impact-day="${E(day)}" aria-expanded="false" aria-controls="impact-${E(day)}" title="${E(f.criteria)}">${f.origin==='nws'?'<span class="impact-agency">NWS</span> ':''}${E(f.label.split(" · ")[0])}${f.label.includes(" · ") ? `<span class="impact-sites">${E(f.label.split(" · ")[1])}</span>` : ""}<span class="sr"> Investigate guidance for ${E(day)}</span></button>`).join('')}</div>` : '';
+      return flags.length ? `<div class="impact-flags">${flags.map(f => `<button type="button" class="impact-flag impact-${f.kind}${f.origin==='nws'?' impact-official':''}" data-impact-day="${E(day)}" aria-expanded="false" aria-controls="impact-${E(day)}" title="${E(f.criteria)}">${f.origin==='nws'?'<span class="impact-agency">NWS</span> ':''}<span class="impact-label">${E(f.label.split(" · ")[0])}${f.label.includes(" · ") ? `<span class="impact-sites">${E(f.label.split(" · ")[1])}</span>` : ""}</span><span class="sr"> Investigate guidance for ${E(day)}</span></button>`).join('')}</div>` : '';
     }
     function content(day, flags, names, tz, title=true) {
       if (!flags.length) return '';

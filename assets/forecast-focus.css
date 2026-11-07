@@ -165,3 +165,10 @@ body.wide-main.forecast-focus:not(.brief-view) .workspace {grid-template-columns
 }
 
 body.brief-view .statusbar:has(.site-id) { grid-template-columns:minmax(0,1fr) auto; }
+
+/* Keep table tools together; let the title and actions wrap as complete groups. */
+.daily-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:8px}
+.daily-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px;margin-left:auto}
+.daily-actions .btn{min-height:30px;display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+@media(max-width:600px){.daily-actions{width:100%;margin-left:0;justify-content:flex-start}.daily-actions .btn{font-size:10px;flex:1 1 auto;padding:6px 8px}.daily-heading{gap:8px}}
+@media print{.daily-actions{display:none!important}}

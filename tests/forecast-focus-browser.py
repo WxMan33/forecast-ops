@@ -104,7 +104,7 @@ with sync_playwright() as p:
  assert page.evaluate('Ops.pct5(63)')=='65%', '63% displays as 65%'
  for cell in page.locator('#daily tr[data-k] td:nth-child(7)').all_text_contents():
   if '%' in cell:assert float(cell.rstrip('%'))%5==0, cell
- assert headings.index('morning')<headings.index('nws day'),'NWS morning low precedes daytime high'
+ assert headings.index('nws low')<headings.index('nws high'),'NWS morning low precedes daytime high'
 
  assert page.evaluate('document.querySelector("#daily").closest(".card").nextElementSibling.id')=='forecastChartCard','graph immediately follows daily blend'
  def history():return page.evaluate('Object.values(JSON.parse(localStorage.getItem("ops_model_guidance_history_v1")))[0].items')

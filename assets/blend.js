@@ -359,9 +359,9 @@
       { l: ["Temp", "agreement"], def: "How close the sources' daily highs are: TIGHT ≤ 3°F apart, FAIR ≤ 6°F, WIDE more. Says nothing about rain or timing.", tier: 2,
         cell: (r) => `<td title="${r.contrib.length} sources with a complete day: ${r.contrib.map((id) => NAMES[id]).join(", ")}">${meter(r.ag.level)}<span class="msg" style="color:var(--text);font-weight:700">${r.ag.word}</span></td>`, txt: (r) => `${r.ag.word} (${r.contrib.length} sources)` },
       ...(hasN ? [
-        { l: [`${nwsTag} morning`, "low"], def: "NWS official low for the night leading into this date's morning (usually the preceding 6 PM through 6 AM). Not tonight's low. Unavailable when the issued forecast no longer contains that period.", tier: 2, nws: true,
+        { l: [`${nwsTag} LOW`], def: "NWS official low for the night leading into this date's morning (usually the preceding 6 PM through 6 AM). Not tonight's low. Unavailable when the issued forecast no longer contains that period.", tier: 2, nws: true,
           cell: (r) => { const dn=r.k===clock.day&&(clock.dayLead||clock.forward)?{}:nwsDayNight(r.k); return `<td class="num nwscol" title="${dn.morning ? O.esc(`${dn.morning.name}: ${local(dn.morning.s)}–${local(dn.morning.e)}`) : "Morning period no longer in this NWS forecast"}">${dn.morning ? `<span class="lo">${dn.morning.temp}°</span>` : "—"}</td>`; }, txt: r => { const p=nwsDayNight(r.k).morning;return p?`${p.temp}° (${p.name})`:"—"; } },
-        { l: [`${nwsTag} day`, "high"], def: "NWS official daytime period high (usually 6 AM–6 PM), not a calendar-day high; it can differ from the blend's midnight-to-midnight high.", tier: 2, nws: true,
+        { l: [`${nwsTag} HIGH`], def: "NWS official daytime period high (usually 6 AM–6 PM), not a calendar-day high; it can differ from the blend's midnight-to-midnight high.", tier: 2, nws: true,
           cell: (r) => { const dn = nwsDayNight(r.k); return `<td class="num nwscol" title="${dn.day ? O.esc(`${dn.day.name}: ${local(dn.day.s)}–${local(dn.day.e)}`) : "No NWS daytime period starts this day"}">${dn.day ? `<span class="hi">${dn.day.temp}°</span>` : "—"}</td>`; }, txt: (r) => { const dn = nwsDayNight(r.k); return dn.day ? `${dn.day.temp}° (${dn.day.name})` : "—"; } },
       ] : []),
     ];
