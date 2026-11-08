@@ -97,7 +97,9 @@
         <div class="kick">${esc(event.date.slice(0, 4))} · ${esc(event.place)}</div>
         <h3>${esc(event.title)}</h3>
         <p>${esc(event.summary)}</p>
-        <a href="${esc(event.url)}">${esc(event.source)}</a>
+        <a href="${esc(event.url)}">${esc(event.source)}</a>${event.archive
+          ? ` <span aria-hidden="true">·</span> <a href="${esc(event.archive.url)}">${esc(event.archive.label)}</a>`
+          : ""}
       </article>`).join("");
   }
 
