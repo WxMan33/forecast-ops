@@ -83,8 +83,14 @@
 
   function renderWeatherHistory(date) {
     const card = $("weatherHistoryCard");
+    const monthDay = date.slice(5);
     const events = (window.CincinnatiWeatherHistory ?? [])
-      .filter((event) => event.date <= date && event.date.slice(5) === date.slice(5));
+      .filter((event) => event.date.slice(5) === monthDay);
+    if (!events.length) {
+      const record = (window.CincinnatiDailyClimateHistory ?? [])
+        .find(([observed]) => observed.slice(5) === monthDay);
+      if (record) events.push(climateHistoryEntry(record));
+    }
     card.hidden = events.length === 0;
     $("weatherHistoryEntries").innerHTML = events.map((event) => `
       <article class="weather-history-entry">
@@ -93,6 +99,29 @@
         <p>${esc(event.summary)}</p>
         <a href="${esc(event.url)}">${esc(event.source)}</a>
       </article>`).join("");
+  }
+
+  function climateHistoryEntry([date, metric, value, count]) {
+    const temperature = `${value}°F`;
+    const [title, observation, recordName] = {
+      hot: [`A high of ${temperature}`, `Cincinnati reached ${temperature}`, "highest daily high"],
+      cold: [`A low of ${temperature}`, `Cincinnati fell to ${temperature}`, "lowest daily low"],
+      warmNight: [`A low of ${temperature}`, `Cincinnati’s temperature stayed at or above ${temperature}`, "highest daily low"],
+      coldDay: [`A high of just ${temperature}`, `Cincinnati’s temperature only reached ${temperature}`, "lowest daily high"],
+      precip: [`${value.toFixed(2)} inches of precipitation`, `Cincinnati measured ${value.toFixed(2)} inches of liquid-equivalent precipitation`, "largest daily precipitation total"],
+      snow: [`${value.toFixed(1)} inches of snow`, `Cincinnati measured ${value.toFixed(1)} inches of snow`, "largest daily snowfall total"],
+    }[metric];
+    const day = fmtDate(date, { month: "short", day: "numeric" });
+    const rank = count > 1 ? "tied for the" : "the";
+    const params = new URLSearchParams({ sid: CLIM.recordsSid, sdate: date, edate: date, elems: "maxt,mint,pcpn,snow" });
+    return {
+      date,
+      title,
+      place: "Cincinnati climate record",
+      summary: `${observation}, ${rank} ${recordName} for ${day} in the Cincinnati record through 2025.`,
+      url: `https://data.rcc-acis.org/StnData?${params}`,
+      source: "RCC-ACIS daily observation",
+    };
   }
 
   /* ---------- sun and moon ---------- */
