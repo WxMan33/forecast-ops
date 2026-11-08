@@ -26,7 +26,7 @@
   });
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/ops.css?v=4575faf8f0">
-<link rel="stylesheet" href="assets/climate-report.css?v=5945401ccd">
+<link rel="stylesheet" href="assets/climate-report.css?v=553086c5ef">
 </head>
 <body class="almanac-page">
 <main class="workspace single almanac">
@@ -57,6 +57,10 @@
       <section class="astronomy-section" id="sunCard"><div class="section-title">Sun and moon</div><div class="state loading">Loading…</div></section>
       <section class="astronomy-section" id="skyCard"><div class="section-title">Cincinnati skywatch</div><div class="state loading">Loading…</div></section>
     </div></section>
+    <section class="card" id="weatherHistoryCard" aria-labelledby="weatherHistoryTitle" hidden>
+      <h2 class="section-title" id="weatherHistoryTitle">This day in Cincinnati weather</h2>
+      <div id="weatherHistoryEntries"></div>
+    </section>
     <section class="card" id="climCard"><div class="section-title">Daily climate</div><div class="state loading">Loading…</div></section>
     <section class="card" id="factCard"><div class="section-title">Weather numbers</div><div class="state loading">Loading…</div></section>
   </div>
@@ -68,7 +72,8 @@
 <script src="assets/climate-report.js?v=6ca1fdc23a"></script>
 <script src="assets/astronomy-core.js?v=e2aa996e6a"></script>
 <script src="assets/skywatch.js?v=62538a3e9d"></script>
-<script src="assets/almanac.js?v=be9c600014"></script>
+<script src="assets/cincinnati-weather-history.js?v=7d30adfcec"></script>
+<script src="assets/almanac.js?v=23d6fed7cb"></script>
 </body>
 </html>
 

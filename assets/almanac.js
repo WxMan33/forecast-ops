@@ -67,6 +67,7 @@
   }
   async function render() {
     const my = ++run, loc = O.location;
+    renderWeatherHistory(sel);
     const pt = astro === "cvg" ? CLIM.cvg : astro === "noaa" ? CLIM.noaa : { name: loc.name, lat: +loc.lat, lon: +loc.lon };
     const tzA = astro === "loc" ? await tzOf(pt.lat, pt.lon) : CLIM.tz;
     if (my !== run) return;
@@ -78,6 +79,20 @@
     sunCard(my, pt, tzA).catch(fail("sunCard", "Sun and moon"));
     skywatch.load(sel).catch(fail("skyCard", "Cincinnati skywatch"));
     climate(my, today, future).catch((e) => { fail("climCard", "Daily climate")(e); fail("factCard", "Weather numbers")(e); });
+  }
+
+  function renderWeatherHistory(date) {
+    const card = $("weatherHistoryCard");
+    const events = (window.CincinnatiWeatherHistory ?? [])
+      .filter((event) => event.date <= date && event.date.slice(5) === date.slice(5));
+    card.hidden = events.length === 0;
+    $("weatherHistoryEntries").innerHTML = events.map((event) => `
+      <article class="weather-history-entry">
+        <div class="kick">${esc(event.date.slice(0, 4))} · ${esc(event.place)}</div>
+        <h3>${esc(event.title)}</h3>
+        <p>${esc(event.summary)}</p>
+        <a href="${esc(event.url)}">${esc(event.source)}</a>
+      </article>`).join("");
   }
 
   /* ---------- sun and moon ---------- */
