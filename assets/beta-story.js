@@ -7,6 +7,7 @@
   "use strict";
   const H = 3600e3;
   const fin = (x) => typeof x === "number" && Number.isFinite(x);
+  const formatPrecipPercent = (x) => fin(x) ? `${Math.round(x / 5) * 5}%` : "—";
   const RANK = { nodata: -1, normal: 0, monitor: 1, prepare: 2, action: 3 };
 
   /* Hazard rules. Thresholds are display defaults for planning conversations, not calibrated
@@ -23,7 +24,7 @@
     rain: { label: "Rain", noun: "rain", order: 2,
       level: (r) => { const c = r.chanceV, q = r.qpf ?? 0; if (fin(c) && c >= 0.7 && q >= 0.25) return 3; if ((fin(c) && c >= 0.5) || q >= 0.1) return 2; if ((fin(c) && c >= 0.2) || q >= 0.02) return 1; return 0; },
       hour: (h) => (fin(h.qpf) && h.qpf >= 0.01) || (fin(h.pop) && h.pop >= 40),
-      why: (r) => `${fin(r.chanceV) ? Math.round(r.chanceV * 100) + "% of ensemble members wet" : "Precipitation in guidance"}${fin(r.qpf) ? `, about ${r.qpf.toFixed(2)}″` : ""}` },
+      why: (r) => `${fin(r.chanceV) ? formatPrecipPercent(r.chanceV * 100) + " of ensemble members wet" : "Precipitation in guidance"}${fin(r.qpf) ? `, about ${r.qpf.toFixed(2)}″` : ""}` },
     snow: { label: "Snow", noun: "snow", order: 3,
       level: (r) => (!fin(r.sn) ? 0 : r.sn >= 1 ? 3 : r.sn >= 0.3 ? 2 : r.sn >= 0.05 ? 1 : 0),
       hour: (h) => fin(h.sn) && h.sn >= 0.05,
@@ -226,7 +227,7 @@
     if (!cands.length) return sampleEvent(C, ctx.now, tz, 1);
     return cands.reduce((a, b) => (b.score > a.score ? b : a)).ev;
   }
-  const api = { pickSample, phaseRow, HAZARDS, LEVEL_WORD, LEVEL_TIER, AGREE_WORD, context, windowRow, hourly, precipTiming, disagreement, guidanceAge, nextUpdates, hazardTiming, certainty, eventBrief, planChanges, checkAgain, sampleEvent, SAMPLE_VENUE };
+  const api = { formatPrecipPercent, pickSample, phaseRow, HAZARDS, LEVEL_WORD, LEVEL_TIER, AGREE_WORD, context, windowRow, hourly, precipTiming, disagreement, guidanceAge, nextUpdates, hazardTiming, certainty, eventBrief, planChanges, checkAgain, sampleEvent, SAMPLE_VENUE };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.BetaStory = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

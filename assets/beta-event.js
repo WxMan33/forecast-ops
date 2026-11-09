@@ -77,7 +77,7 @@
     $("phases").innerHTML = b.phases.map((p) => {
       const r = p.r, lvl = p.level, tier = S.LEVEL_TIER[lvl];
       const status = p.cov.status === "past" ? "Done" : !r ? "Beyond guidance" : lvl ? `${S.HAZARDS[p.top].label}: ${S.LEVEL_WORD[lvl]}` : "No concern";
-      const rain = !r ? "—" : r.chanceV != null ? `${Math.round(r.chanceV * 100)}%` : fin(r.pop) ? `${Math.round(r.pop)}%` : "—";
+      const rain = !r ? "—" : U.pct(r.chanceV != null ? r.chanceV * 100 : r.pop);
       const lt = !r || !r.thunder || r.thunder === "nodata" ? "—" : r.thunder === "normal" ? "Low" : C.TIERS[r.thunder].word.charAt(0) + C.TIERS[r.thunder].word.slice(1).toLowerCase();
       return `<div class="bx-phase ${p.cov.status === "past" ? "past" : ""}"><div><div class="nm">${esc(p.label)}</div><div class="tm">${esc(fmt.span(p.startMs, p.endMs, tz))}</div><div style="margin-top:6px"><span class="bx-chip" style="--tier:var(--${p.cov.status === "past" || !r ? "nodata" : tier})">${esc(status)}</span></div></div>
         <div class="tp">${r && fin(r.lo) ? (Math.round(r.lo) === Math.round(r.hi) ? `${Math.round(r.hi)}°` : `${Math.round(r.lo)}–${Math.round(r.hi)}°`) : "—"}</div>

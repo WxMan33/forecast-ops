@@ -51,7 +51,7 @@
       const ok = r && r.complete, v = ok ? (p.kind === "high" ? r.hi : r.lo) : null, rng = ok ? (p.kind === "high" ? r.hiR : r.loR) : null;
       return `<div class="bx-period"><div class="lbl">${esc(p.label)}</div><div class="val ${p.kind === "high" ? "hi" : "lo"}">${deg(v)}</div>
         <div class="kind">${p.kind === "high" ? "High" : "Low"}${rng && fin(rng[0]) && rng[1] - rng[0] >= 1 ? ` · guidance ${Math.round(rng[0])}–${Math.round(rng[1])}°` : ""}</div>
-        <div class="facts"><span><b>${inch(ok ? r.qpf : null)}</b> precip${ok && r.chanceV != null ? (r.chanceV < 0.005 ? " · dry in every ensemble member" : ` · ${Math.round(r.chanceV * 100)}% of members wet`) : ""}</span><span>Gusts <b>${mph(ok ? r.gust : null)}</b>${ok && r.thunder && C.TIERS[r.thunder] && r.thunder !== "normal" && r.thunder !== "nodata" ? ` · thunder ${esc(C.TIERS[r.thunder].word.toLowerCase())}` : ""}</span>
+        <div class="facts"><span><b>${inch(ok ? r.qpf : null)}</b> precip${ok && r.chanceV != null ? (r.chanceV === 0 ? " · dry in every ensemble member" : ` · ${U.pct(r.chanceV * 100)} of members wet`) : ""}</span><span>Gusts <b>${mph(ok ? r.gust : null)}</b>${ok && r.thunder && C.TIERS[r.thunder] && r.thunder !== "normal" && r.thunder !== "nodata" ? ` · thunder ${esc(C.TIERS[r.thunder].word.toLowerCase())}` : ""}</span>
         <span class="bx-note">${esc(fmt.span(p.s, p.e, tz))}</span>${ok ? "" : '<span class="bx-note">Incomplete hourly coverage</span>'}</div></div>`;
     }).join("");
     /* disagreement over the next 24 hours */

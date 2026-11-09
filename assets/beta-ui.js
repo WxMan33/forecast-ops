@@ -20,7 +20,7 @@
   };
   const deg = (x) => (fin(x) ? `${Math.round(x)}°` : "—");
   const inch = (x) => (fin(x) ? `${x < 0.005 ? "0" : x.toFixed(2)}″` : "—");
-  const pct = (x) => (fin(x) ? `${Math.round(x)}%` : "—");
+  const pct = S.formatPrecipPercent;
   const mph = (x) => (fin(x) ? `${Math.round(x)} mph` : "—");
 
   /* ---------- header ---------- */
