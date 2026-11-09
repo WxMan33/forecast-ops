@@ -78,7 +78,7 @@
     ctx.B.ms.forEach((m, i) => {
       if (m < s || m >= e) return;
       const r = ctx.C.blend.windowRow(ctx.B, ctx.ws, [i], [i], ctx.opts);
-      out.push({ ms: m, i, temp: r.hi, tempR: r.hiR, qpf: r.qpf, pop: r.pop, chance: r.chance ? r.chance.v : null, gust: r.gust, sn: r.sn, feel: r.feel, n: r.contrib.length, thunder: ctx.th ? ctx.th.at(m) : null });
+      out.push({ ms: m, i, temp: r.hi, tempR: r.hiR, qpf: r.qpf, pop: r.pop, chance: r.chance ? r.chance.v / 100 : null, gust: r.gust, sn: r.sn, feel: r.feel, n: r.contrib.length, thunder: ctx.th ? ctx.th.at(m) : null });
     });
     return out;
   }
