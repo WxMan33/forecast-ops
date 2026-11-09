@@ -26,28 +26,22 @@
     if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
   });
 })();</script><!--/load-guard-->
-<link rel="stylesheet" href="assets/ops.css?v=172148857c">
-<link rel="stylesheet" href="assets/beta.css?v=26987efbd5">
+<link rel="stylesheet" href="assets/ops.css?v=0d4e27a038">
+<link rel="stylesheet" href="assets/beta.css?v=e0df1e3eda">
 </head>
 <body class="bx">
-<main class="bx-page bx-narrow" id="bx">
-  <div class="bx-sample" id="sample" hidden><span><b>Sample event.</b> Its date is the most weather-active evening in the next three days, so you can see the full briefing. Edit it to match your event; it stays in this browser.</span><button class="bx-btn" type="button" id="editBtn2">Edit event</button></div>
-  <section class="bx-sec" aria-labelledby="evName">
-    <span class="bx-kicker" id="evVenue"></span>
-    <h1 class="bx-h1" id="evName">Loading event…</h1>
-    <p class="bx-event-when" id="evWhen"></p>
-    <p class="bx-note" id="evPhasesLine"></p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="bx-btn" type="button" id="editBtn">Edit event</button><button class="bx-btn" type="button" id="resetBtn" hidden>Back to sample</button><button class="bx-btn" type="button" id="printBtn">Print / PDF</button></div>
-    <div id="alerts"></div>
-  </section>
-  <section class="bx-sec"><div id="verdict"><div class="bx-loading">Reading the guidance…</div></div></section>
-  <section class="bx-sec"><div class="bx-sec-head"><h2 class="bx-h2">Setup, event and teardown</h2><span class="bx-valid" id="phasesValid"></span></div><div class="bx-phases" id="phases"></div></section>
-  <section class="bx-sec bx-grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
-    <div><h2 class="bx-h2" style="margin-bottom:12px">What could change the plan</h2><ul class="bx-bullets" id="changes"></ul></div>
-    <div><h2 class="bx-h2" style="margin-bottom:12px">When to check again</h2><ol class="bx-checks" id="checks"></ol></div>
-  </section>
-  <section class="bx-sec"><div class="bx-sec-head"><h2 class="bx-h2">Hour by hour</h2><span class="bx-valid" id="hourlyValid"></span></div><div class="bx-panel" id="timeline"></div></section>
-  <section class="bx-sec"><div class="bx-map-bar"><h2 class="bx-h2">Regional map</h2><a class="bx-btn" id="mapFull" href="maps.html">Open full map ↗</a></div><p class="bx-note" style="margin:0 0 10px">Simulated radar from the HRRR model (not observed radar). Press play to step through the hours.</p><div id="map"></div></section>
+<main class="bx-brief">
+  <div class="bx-evctx"><span class="bx-label" id="sampleTag" hidden>Sample</span><b id="evName">Loading event…</b><span id="evVenue"></span><button class="bx-link" type="button" id="editBtn">Edit</button><button class="bx-link" type="button" id="resetBtn" hidden>Use sample</button></div>
+  <div class="bx-evctx" id="evWhen" style="margin-top:2px"></div>
+  <div class="bx-alerts" id="alerts" style="margin-top:10px"></div>
+  <h1 class="bx-decision" id="decision" aria-live="polite">Reading the guidance…</h1>
+  <dl class="bx-keys" id="keys"></dl>
+  <div class="bx-sched" id="schedule"></div>
+  <section class="bx-sec"><h2>By phase</h2><div class="bx-phases" id="phases"></div></section>
+  <section class="bx-sec"><h2>What could change the plan</h2><ul class="bx-list" id="changes"></ul></section>
+  <section class="bx-sec"><h2>When to check again</h2><ol class="bx-checks" id="checks"></ol></section>
+  <section class="bx-sec"><h2>Map</h2><div id="map" style="margin-top:4px"></div></section>
+  <section class="bx-sec"><div class="bx-bh"><h2>Hour by hour</h2><span class="bx-note" id="hourlyValid"></span></div><div id="timeline"></div></section>
   <section class="bx-sec" id="detail"></section>
   <footer class="bx-foot" id="foot"></footer>
 </main>
@@ -57,8 +51,8 @@
 <script src="assets/ops.js?v=2f86f6a912"></script>
 <script src="assets/forecast-clock.js?v=c6df9f20b7"></script>
 <script src="assets/model-trends.js?v=20f2fb637c"></script>
-<script src="assets/beta-story.js?v=f5d06cfe97"></script>
-<script src="assets/beta-ui.js?v=7232b6e37e"></script>
-<script src="assets/beta-event.js?v=d8c5c1d2ad"></script>
+<script src="assets/beta-story.js?v=c38ac9ea45"></script>
+<script src="assets/beta-ui.js?v=03892c967b"></script>
+<script src="assets/beta-event.js?v=28d61f7ad0"></script>
 </body>
 </html>

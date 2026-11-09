@@ -763,3 +763,7 @@ body.embed .workspace { padding: 0; margin: 0; max-width: none; display: block; 
 body.embed .main { padding: 0; gap: 0; }
 body.embed .main > .card { display: none; }
 body.embed .mapstage { height: 100vh; min-height: 0; border-radius: 0; border: 0; }
+/* embedded map: the host page provides the toolbar, valid time and playback */
+body.embed #mapCtl, body.embed #timeline, body.embed #mapInfo { display: none !important; }
+body.embed .maplegend2 { bottom: 10px; left: 10px; padding: 5px 8px; }
+body.embed .mapstage .maplibregl-ctrl-bottom-right { bottom: 4px; }

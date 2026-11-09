@@ -227,7 +227,43 @@
     if (!cands.length) return sampleEvent(C, ctx.now, tz, 1);
     return cands.reduce((a, b) => (b.score > a.score ? b : a)).ev;
   }
-  const api = { formatPrecipPercent, pickSample, phaseRow, HAZARDS, LEVEL_WORD, LEVEL_TIER, AGREE_WORD, context, windowRow, hourly, precipTiming, disagreement, guidanceAge, nextUpdates, hazardTiming, certainty, eventBrief, planChanges, checkAgain, sampleEvent, SAMPLE_VENUE };
+  /* ---------- strongest signal first (meteorologist workspace) ---------- */
+  const TIER_RANK = { action: 3, prepare: 2, monitor: 1, normal: 0, nodata: -1 };
+  const AGREE_TIER = { split: "prepare", some: "monitor", agree: "normal" };
+  function signals(ctx, s, e, fmt) {
+    const d = disagreement(ctx, s, e), out = []; if (!d) return out;
+    const hrs = hourly(ctx, s, e);
+    if (d.timing.n >= 2) { const sp = Math.round(d.timing.spreadH);
+      out.push({ key: "timing", tier: AGREE_TIER[d.timing.level], at: d.timing.first, title: sp >= 1 ? `Rain onset differs by ${sp} hour${sp === 1 ? "" : "s"}` : "Rain onset agrees within an hour",
+        detail: `First rain ${fmt(d.timing.first)} – ${fmt(d.timing.last)} across ${d.timing.n} sources` }); }
+    if (d.precip.of) out.push({ key: "precip", tier: AGREE_TIER[d.precip.level],
+      title: d.precip.wet === 0 ? "No source shows rain" : d.precip.wet === d.precip.of ? `All ${d.precip.of} sources show rain` : `${d.precip.wet} of ${d.precip.of} sources show rain`,
+      detail: `Measurable (≥0.01″ in an hour)${d.precip.qpfR && fin(d.precip.qpfR[1]) && d.precip.qpfR[1] >= 0.01 ? `; totals ${d.precip.qpfR[0].toFixed(2)}–${d.precip.qpfR[1].toFixed(2)}″` : ""}` });
+    if (fin(d.temp.spread)) { const sp = Math.round(d.temp.spread);
+      out.push({ key: "temp", tier: AGREE_TIER[d.temp.level], title: d.temp.level === "agree" ? `Highs agree within ${Math.max(1, sp)}°` : `Highs differ by ${Math.max(1, sp)}°`, detail: `${Math.round(d.temp.p10)}–${Math.round(d.temp.p90)}° across guidance (10th–90th percentile, weighted)` }); }
+    const th = hrs.filter((h) => (RANK[h.thunder] ?? 0) >= 1);
+    if (th.length) { const top = th.reduce((a, b) => ((RANK[b.thunder] ?? 0) > (RANK[a.thunder] ?? 0) ? b : a));
+      out.push({ key: "thunder", tier: top.thunder, at: th[0].ms, title: `Thunder signal ${fmt(th[0].ms)}${th.length > 1 ? ` – ${fmt(th[th.length - 1].ms + H)}` : ""}`, detail: `Peak signal ${({ 1: "marginal", 2: "elevated", 3: "high" })[RANK[top.thunder]]} at ${fmt(top.ms)}; forecast potential, not detected lightning` }); }
+    const g = hrs.filter((h) => fin(h.gust)).reduce((a, b) => (!a || b.gust > a.gust ? b : a), null);
+    if (g && g.gust >= 25) out.push({ key: "gust", tier: g.gust >= 35 ? "prepare" : "monitor", at: g.ms, title: `Gusts to ${Math.round(g.gust)} mph`, detail: `Peak blended gust ${fmt(g.ms)}` });
+    return out.sort((a, b) => (TIER_RANK[b.tier] ?? -1) - (TIER_RANK[a.tier] ?? -1));
+  }
+
+  /* ---------- the event decision in one sentence ---------- */
+  const VERB = ["", "Watch for", "Plan for", "Expect"];
+  function decision(brief) {
+    const top = brief.top;
+    if (!top) return { tier: "normal", text: "No weather concern for this event right now." };
+    const evp = brief.phases.find((p) => p.key === "event"), phs = top.phases;
+    let where;
+    if (evp && phs.includes("Event") && top.from != null) {
+      const dur = evp.endMs - evp.startMs, f = (top.from - evp.startMs) / dur, t = (top.to - evp.startMs) / dur;
+      where = f <= 0 && t >= 1 ? "throughout the event" : t >= 1 ? (f < 0.35 ? "for most of the event" : "late in the event") : f >= 0.5 ? "late in the event" : t <= 0.5 ? "early in the event" : "during the event";
+    } else where = phs.length ? `during ${phs.map((x) => x.toLowerCase()).join(" and ")}` : "during the event";
+    return { tier: top.tier, text: `${VERB[top.level]} ${top.noun} ${where}.` };
+  }
+
+  const api = { signals, decision, formatPrecipPercent, pickSample, phaseRow, HAZARDS, LEVEL_WORD, LEVEL_TIER, AGREE_WORD, context, windowRow, hourly, precipTiming, disagreement, guidanceAge, nextUpdates, hazardTiming, certainty, eventBrief, planChanges, checkAgain, sampleEvent, SAMPLE_VENUE };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.BetaStory = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

@@ -20,6 +20,24 @@ there that checks out `WxMan33/forecast-ops@beta-previews` and deploys it. The l
 links on desktop and phone from a fresh, signed-out browser on every push and refreshes the screenshots in
 [`screens/`](screens/).
 
+## Design direction (pass 2)
+
+The organizing idea is the weather itself: how it moves across the map and when it reaches a place.
+
+- One selected time drives the map and the timeline (click the timeline, step or play the map). The map
+  toolbar (layer, run, step/play, valid time) and the valid-time treatment ("Wed 8 PM EST · in 2 days") are
+  shared components meant to carry into OPE Lightning Ops.
+- When the selected time is outside the HRRR run, a note beside the map says so instead of quietly showing
+  another hour.
+- Typography: Archivo for text and numbers, medium-weight headings, Archivo Black for one moment per page (the
+  event decision). Strong colour only for a real weather concern, the selected time and active controls.
+- Meteorologist: a workspace. Compact context bar and tool rail (Models, Weights, Runs, Soundings, Thunder,
+  Winter, Full map); map beside timeline; signals strongest first ("Rain onset differs by 3 hours").
+  Phone: Map | Timeline switch.
+- Event manager: decision first ("Plan for rain late in the event."), then likely window, timing and next
+  check; the schedule strip (Setup → Gates → Event → Teardown) is the graphic, with the affected window and
+  the possible-start range across sources marked.
+
 ## What both betas share
 
 - One visual identity (`assets/beta.css`): larger forecast numbers, Archivo typography, explicit valid times

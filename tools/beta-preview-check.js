@@ -20,17 +20,18 @@ const DEVICES = [["desktop", { viewport: { width: 1440, height: 1000 }, deviceSc
     const notice = await p.getByText("Open the page", { exact: true }).count();
     if (notice) { await p.getByText("Open the page", { exact: true }).first().click(); await p.waitForLoadState("domcontentloaded"); }
     await p.waitForFunction(() => document.querySelector("#timeline svg") || document.querySelector(".bx-err"), null, { timeout: 90000 }).catch(() => errors.push("content did not finish loading"));
-    await p.locator(".bx-map iframe").scrollIntoViewIfNeeded().catch(() => {});
-    await p.waitForFunction(() => { const f = document.querySelector(".bx-map iframe"); return f && f.contentDocument && f.contentDocument.querySelector(".maplibregl-canvas"); }, null, { timeout: 60000 }).catch(() => errors.push("map did not load"));
+    await p.locator(".bx-mapframe iframe").scrollIntoViewIfNeeded().catch(() => {});
+    await p.waitForFunction(() => { const f = document.querySelector(".bx-mapframe iframe"); return f && f.contentWindow && f.contentWindow.MapEmbed && f.contentWindow.MapEmbed.state().ready; }, null, { timeout: 60000 }).catch(() => errors.push("map did not load"));
     await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(5000);
-    const info = await p.evaluate(() => ({ title: document.title, h1: document.querySelector("h1").innerText, guard: !!document.getElementById("loadGuard"), err: !!document.querySelector(".bx-err"),
+    const info = await p.evaluate(() => ({ title: document.title, h1: (document.querySelector("h1") || {}).textContent || "", guard: !!document.getElementById("loadGuard"), err: !!document.querySelector(".bx-err"),
       hscroll: document.documentElement.scrollWidth > innerWidth + 1, verifyLinks: document.querySelectorAll('a[href*="verify"]').length, signin: /sign in|log in/i.test(document.body.innerText) }));
     const fresh = !stamp || (await p.content()).includes(stamp); // after any host notice
     const ok = status === 200 && !info.guard && !info.err && !info.hscroll && !info.verifyLinks && !info.signin && fresh && !errors.length;
     if (!ok) failed++;
     console.log(`${ok ? "PASS" : "FAIL"} ${tag} ${dev}: HTTP ${status}${notice ? ", host notice clicked through" : ", no host notice"}, "${info.h1}"${fresh ? "" : " (preview host still serving an older build)"}${errors.length ? " errors: " + errors.join("; ") : ""}${info.hscroll ? " horizontal scroll" : ""}${info.verifyLinks ? " verification link present" : ""}`);
-    await p.screenshot({ path: `${out}/${tag}-${dev}.png`, fullPage: dev === "phone" });
-    if (dev === "desktop") await p.screenshot({ path: `${out}/${tag}-${dev}-full.png`, fullPage: true });
+    /* the first screen as a colleague sees it, then the whole page */
+    await p.screenshot({ path: `${out}/${tag}-${dev}.png` });
+    await p.screenshot({ path: `${out}/${tag}-${dev}-full.png`, fullPage: true });
     await ctx.close();
   }
   await browser.close();

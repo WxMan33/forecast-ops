@@ -26,37 +26,27 @@
     if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
   });
 })();</script><!--/load-guard-->
-<link rel="stylesheet" href="assets/ops.css?v=172148857c">
-<link rel="stylesheet" href="assets/beta.css?v=26987efbd5">
+<link rel="stylesheet" href="assets/ops.css?v=0d4e27a038">
+<link rel="stylesheet" href="assets/beta.css?v=e0df1e3eda">
 </head>
 <body class="bx">
-<main class="bx-page" id="bx">
-  <section class="bx-sec" aria-labelledby="placeName">
-    <div class="bx-sec-head" style="align-items:end">
-      <div><span class="bx-kicker">Forecast point</span><h1 class="bx-h1" id="placeName">CVG airport</h1><p class="bx-sub" id="placeSub"></p></div>
-      <label class="bx-valid">Point <select class="input inline" id="placeSel" aria-label="Forecast point"></select></label>
+<nav class="bx-rail" id="rail" aria-label="Meteorologist tools"></nav>
+<main class="bx-ws">
+  <h1 class="sr-only" id="pageTitle">Forecast workspace</h1>
+  <div class="bx-alerts" id="alerts"></div>
+  <section class="bx-strip" id="strip" aria-label="Next 48 hours"><div class="bx-loading">Loading guidance…</div></section>
+  <div class="bx-tabs" role="tablist" aria-label="View"><button type="button" role="tab" data-tab="map" aria-selected="true">Map</button><button type="button" role="tab" data-tab="timeline" aria-selected="false">Timeline</button></div>
+  <div class="bx-work" id="work" data-tab="map">
+    <div id="map"></div>
+    <div class="bx-side">
+      <section class="bx-block bx-tlblock"><div class="bx-bh"><h2>Timeline · next 72 hours</h2><span class="bx-note" id="tlValid"></span></div><div id="timeline"></div></section>
+      <section class="bx-block"><div class="bx-bh"><h2>Signals · next 48 hours</h2><span class="bx-note">strongest first</span></div><ol class="bx-signals" id="signals"></ol></section>
     </div>
-    <div id="alerts"></div>
-  </section>
-  <section class="bx-sec bx-grid bx-cols-hero">
-    <div><div class="bx-sec-head"><h2 class="bx-h2">Next 48 hours</h2><span class="bx-valid" id="periodsValid"></span></div><div class="bx-periods" id="periods"><div class="bx-loading">Loading guidance…</div></div></div>
-    <div><div class="bx-sec-head"><h2 class="bx-h2">Model disagreement</h2><span class="bx-valid" id="agreeValid"></span></div><div id="agree"></div></div>
-  </section>
-  <section class="bx-sec">
-    <div class="bx-sec-head"><h2 class="bx-h2">Forecast timeline</h2><span class="bx-valid" id="tlValid"></span></div>
-    <div class="bx-panel" id="timeline"></div>
-  </section>
-  <section class="bx-sec bx-grid bx-cols-map">
-    <div><div class="bx-map-bar"><h2 class="bx-h2">Regional map · HRRR 3 km</h2><a class="bx-btn" id="mapFull" href="maps.html">Open full map ↗</a></div><div id="map"></div></div>
-    <div class="bx-grid" style="align-content:start">
-      <div><div class="bx-sec-head"><h2 class="bx-h2">Guidance age</h2><span class="bx-valid">latest run each source</span></div><div id="ages"></div></div>
-      <div><div class="bx-sec-head"><h2 class="bx-h2">Go deeper</h2></div><div class="bx-tools" id="tools"></div></div>
-    </div>
-  </section>
-  <section class="bx-sec">
-    <div class="bx-sec-head"><h2 class="bx-h2">Next 7 days</h2><span class="bx-valid">calendar-day low / high · model agreement on the high</span></div>
-    <div class="bx-days" id="days"></div>
-  </section>
+  </div>
+  <div class="bx-lower">
+    <section class="bx-block"><div class="bx-bh"><h2>Next 7 days</h2><span class="bx-note">low / high · model agreement on the high</span></div><div class="bx-days" id="days"></div></section>
+    <section class="bx-block"><div class="bx-bh"><h2>Guidance age</h2><span class="bx-note">latest run per source</span></div><div id="ages"></div></section>
+  </div>
   <footer class="bx-foot" id="foot"></footer>
 </main>
 <script src="assets/ops-core.js?v=737773bf4d"></script>
@@ -64,8 +54,8 @@
 <script src="assets/ops.js?v=2f86f6a912"></script>
 <script src="assets/forecast-clock.js?v=c6df9f20b7"></script>
 <script src="assets/model-trends.js?v=20f2fb637c"></script>
-<script src="assets/beta-story.js?v=f5d06cfe97"></script>
-<script src="assets/beta-ui.js?v=7232b6e37e"></script>
-<script src="assets/beta-met.js?v=a6f557a89b"></script>
+<script src="assets/beta-story.js?v=c38ac9ea45"></script>
+<script src="assets/beta-ui.js?v=03892c967b"></script>
+<script src="assets/beta-met.js?v=16216bb599"></script>
 </body>
 </html>

@@ -61,4 +61,15 @@ eq(S.pickSample(ctx, C, TZ).times.start.slice(0, 10), "2026-11-11", "picker choo
 /* disagreement: the quick read reports split timing */
 const d = S.disagreement(ctx, at(1, 12), at(2, 0));
 eq(d.precip.wet, 3, "all three sources wet"); eq(d.timing.level, "some", "3-hour onset spread is 'some disagreement'");
+/* strongest signal first; decision sentence */
+const sig = S.signals(ctx, at(1, 12), at(2, 0), (m) => C.time.toLocal(m, TZ).slice(11, 16));
+eq(sig[0].key, "timing", "the 3-hour onset spread is the strongest signal");
+eq(sig[0].title, "Rain onset differs by 3 hours", "plain-language strongest signal");
+ok(sig.some((x) => x.title === "All 3 sources show rain"), "precipitation agreement worded by count");
+eq(S.decision(b).text, "Plan for rain for most of the event.", "decision: rain from 6 PM through the end of a 5–10 PM event covers most of it");
+const late = { ...b, top: { ...b.top, from: at(1, 20), to: at(2, 0) } };
+eq(S.decision(late).text, "Plan for rain late in the event.", "decision: rain from 8 PM in a 5–10 PM event is late");
+const setupOnly = { ...b, top: { ...b.top, level: 1, phases: ["Setup"], from: at(1, 13), to: at(1, 15) } };
+eq(S.decision(setupOnly).text, "Watch for rain during setup.", "decision: a watch-level setup-only concern");
+eq(S.decision({ top: null, phases: [] }).text, "No weather concern for this event right now.", "quiet decision");
 console.log(`ok - ${n} beta story checks passed`);
