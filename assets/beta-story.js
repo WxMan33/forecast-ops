@@ -60,7 +60,7 @@
     const tiers = ctx.th ? idx.map((i) => ctx.th.at(B.ms[i])).filter(Boolean) : [];
     const thunder = tiers.length ? tiers.reduce((a, b) => ((RANK[b] ?? -1) > (RANK[a] ?? -1) ? b : a), "nodata") : null;
     const complete = idx.length === Math.round((e - s) / H);
-    return { ...r, s, e, idx, acc, thunder, chanceV: r.chance ? r.chance.v : null, complete };
+    return { ...r, s, e, idx, acc, thunder, chanceV: r.chance ? r.chance.v / 100 : null, complete };
   }
   /* an event phase located exactly as Model Blend's event table locates it (Core.event.locate), so short
      phases such as a 30-minute gates window still get the hour that covers them */
@@ -70,7 +70,7 @@
     const idx = L.idx.length ? L.idx : L.acc, r = C.blend.windowRow(B, ctx.ws, idx, L.acc, ctx.opts);
     const tiers = ctx.th ? idx.map((i) => ctx.th.at(B.ms[i])).filter(Boolean) : [];
     const thunder = tiers.length ? tiers.reduce((a, b) => ((RANK[b] ?? -1) > (RANK[a] ?? -1) ? b : a), "nodata") : null;
-    return { ...r, s: w.startMs, e: w.endMs, idx, acc: L.acc, thunder, chanceV: r.chance ? r.chance.v : null, complete: L.acc.length >= L.need };
+    return { ...r, s: w.startMs, e: w.endMs, idx, acc: L.acc, thunder, chanceV: r.chance ? r.chance.v / 100 : null, complete: L.acc.length >= L.need };
   }
   /* hour-by-hour blend over [s, e): every value is windowRow over that single hour */
   function hourly(ctx, s, e) {

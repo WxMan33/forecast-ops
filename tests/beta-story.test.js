@@ -22,6 +22,9 @@ const ctx = S.context({ C, T, B, ws, rules: null, meta, now });
 /* the beta value for a window is Model Blend's windowRow for the same hours */
 const idx = [], acc = []; ms.forEach((m, i) => { if (m >= at(1, 12) && m < at(1, 18)) idx.push(i); if (m > at(1, 12) && m <= at(1, 18)) acc.push(i); });
 eq(S.windowRow(ctx, at(1, 12), at(1, 18)).qpf, C.blend.windowRow(B, ws, idx, acc, {}).qpf, "window value equals Model Blend's aggregation");
+const ensB = { ...B, models: { e: { kind: "ens", members: [det(at(1, 12), at(1, 18)), det(0, 0)] } } };
+const ensCtx = S.context({ C, T, B: ensB, ws: { e: 1 }, rules: null, now });
+eq(S.windowRow(ensCtx, at(1, 12), at(1, 18)).chanceV, 0.5, "50 percent ensemble chance is a fraction in the beta story");
 /* a 30-minute gates window still has values (Model Blend event-table locate), not "beyond guidance" */
 const ev = { id: "t", name: "Test", loc: { lat: 39.1, lon: -84.5 }, tz: TZ, times: { setup: "2026-11-11T12:00", gates: "2026-11-11T16:30", start: "2026-11-11T17:00", end: "2026-11-11T22:00", teardown: "2026-11-12T00:00" } };
 eq(C.event.validate(ev), [], "sample-shaped event is valid");
