@@ -9,7 +9,14 @@ Two previews built from the same code on the `beta-previews` branch. They are se
 | Event manager | https://raw.githack.com/WxMan33/forecast-ops/beta-previews/event-beta.html |
 
 The links serve the branch's files directly from GitHub through raw.githack.com (a free static file CDN for
-public repositories). They update a few minutes after each push. The `Beta preview check` workflow opens both
+public repositories). They update a few minutes after each push. **On the first visit, raw.githack.com shows its
+own "One more step" notice; click "Open the page" once.** The notice is the host's, not ours, and it is
+remembered for that browser, so the second beta opens directly.
+
+For links without that notice, give the previews their own GitHub Pages site: create an empty public repository
+(for example `WxMan33/forecast-ops-beta`) with Settings → Pages → Source: GitHub Actions, and add a workflow
+there that checks out `WxMan33/forecast-ops@beta-previews` and deploys it. The links would then be
+`https://wxman33.github.io/forecast-ops-beta/meteorologist-beta.html` and `…/event-beta.html`. The `Beta preview check` workflow opens both
 links on desktop and phone from a fresh, signed-out browser on every push and refreshes the screenshots in
 [`screens/`](screens/).
 
