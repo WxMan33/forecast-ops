@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meteorologist beta · Forecast Ops</title>
+<meta name="description" content="Beta: forecast timeline, regional HRRR map, guidance age and model disagreement for meteorologists.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/icon.svg?v=05c4bd5103" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Archivo+Black&display=swap">
+<!--load-guard--><script>/* Load guard (managed by tools/stamp-assets.js). Shown only if a page script fails to download or throws. */
+(function () { var shown = false;
+  function show(msg) { if (shown) return; shown = true;
+    var go = function () { var b = document.createElement("div"); b.setAttribute("role", "alert"); b.id = "loadGuard";
+      b.style.cssText = "position:sticky;top:0;z-index:9999;margin:0;padding:10px 16px;background:#7a1f12;color:#fff;font:600 14px/1.4 system-ui,sans-serif;display:flex;gap:12px;align-items:center;flex-wrap:wrap";
+      b.innerHTML = '<span>This page didn\u2019t finish loading. <span style="font-weight:400"></span></span><button type="button" style="font:inherit;padding:4px 12px;border-radius:6px;border:1px solid #fff;background:#fff;color:#7a1f12;cursor:pointer">Reload</button>';
+      b.querySelector("span span").textContent = msg; b.querySelector("button").onclick = function () { location.reload(); };
+      document.body.insertBefore(b, document.body.firstChild); };
+    if (document.body) go(); else document.addEventListener("DOMContentLoaded", go); }
+  window.addEventListener("error", function (e) { var t = e.target;
+    if (t && (t.tagName === "SCRIPT" || (t.tagName === "LINK" && t.rel === "stylesheet")) && (t.src || t.href || "").indexOf(location.origin) === 0) show("A site file (" + (t.src || t.href).split("/").pop().split("?")[0] + ") could not be downloaded.");
+    else if (e.filename && e.filename.indexOf(location.origin) === 0) show("A script error stopped it (" + e.message + ").");
+  }, true);
+  window.addEventListener("unhandledrejection", function (e) { var r = e.reason, st = (r && r.stack) || "";
+    if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
+  });
+})();</script><!--/load-guard-->
+<link rel="stylesheet" href="assets/ops.css?v=172148857c">
+<link rel="stylesheet" href="assets/beta.css?v=26987efbd5">
+</head>
+<body class="bx">
+<main class="bx-page" id="bx">
+  <section class="bx-sec" aria-labelledby="placeName">
+    <div class="bx-sec-head" style="align-items:end">
+      <div><span class="bx-kicker">Forecast point</span><h1 class="bx-h1" id="placeName">CVG airport</h1><p class="bx-sub" id="placeSub"></p></div>
+      <label class="bx-valid">Point <select class="input inline" id="placeSel" aria-label="Forecast point"></select></label>
+    </div>
+    <div id="alerts"></div>
+  </section>
+  <section class="bx-sec bx-grid bx-cols-hero">
+    <div><div class="bx-sec-head"><h2 class="bx-h2">Next 48 hours</h2><span class="bx-valid" id="periodsValid"></span></div><div class="bx-periods" id="periods"><div class="bx-loading">Loading guidance…</div></div></div>
+    <div><div class="bx-sec-head"><h2 class="bx-h2">Model disagreement</h2><span class="bx-valid" id="agreeValid"></span></div><div id="agree"></div></div>
+  </section>
+  <section class="bx-sec">
+    <div class="bx-sec-head"><h2 class="bx-h2">Forecast timeline</h2><span class="bx-valid" id="tlValid"></span></div>
+    <div class="bx-panel" id="timeline"></div>
+  </section>
+  <section class="bx-sec bx-grid bx-cols-map">
+    <div><div class="bx-map-bar"><h2 class="bx-h2">Regional map · HRRR 3 km</h2><a class="bx-btn" id="mapFull" href="maps.html">Open full map ↗</a></div><div id="map"></div></div>
+    <div class="bx-grid" style="align-content:start">
+      <div><div class="bx-sec-head"><h2 class="bx-h2">Guidance age</h2><span class="bx-valid">latest run each source</span></div><div id="ages"></div></div>
+      <div><div class="bx-sec-head"><h2 class="bx-h2">Go deeper</h2></div><div class="bx-tools" id="tools"></div></div>
+    </div>
+  </section>
+  <section class="bx-sec">
+    <div class="bx-sec-head"><h2 class="bx-h2">Next 7 days</h2><span class="bx-valid">calendar-day low / high · model agreement on the high</span></div>
+    <div class="bx-days" id="days"></div>
+  </section>
+  <footer class="bx-foot" id="foot"></footer>
+</main>
+<script src="assets/ops-core.js?v=737773bf4d"></script>
+<script src="assets/ops-data.js?v=457e2eb9ec"></script>
+<script src="assets/ops.js?v=2f86f6a912"></script>
+<script src="assets/forecast-clock.js?v=c6df9f20b7"></script>
+<script src="assets/model-trends.js?v=20f2fb637c"></script>
+<script src="assets/beta-story.js?v=ed8bd52569"></script>
+<script src="assets/beta-ui.js?v=c1ae0ae007"></script>
+<script src="assets/beta-met.js?v=e2e0981d29"></script>
+</body>
+</html>

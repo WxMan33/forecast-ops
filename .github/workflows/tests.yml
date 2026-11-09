@@ -51,6 +51,7 @@ jobs:
       - run: node tests/maps-loader.test.js
       - run: node tests/maps-surface.test.js
       - run: node tests/trend-archive.test.js
+      - run: node tests/beta-story.test.js
       - run: node tools/stamp-assets.js --check
 
   live:

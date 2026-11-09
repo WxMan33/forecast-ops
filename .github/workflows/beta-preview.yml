@@ -1,0 +1,41 @@
+# Beta previews: checks that the public preview links open for someone who is not signed in, and refreshes
+# the review screenshots in docs/beta/screens. Runs only for the beta branch; the live site (main) is untouched.
+name: Beta preview check
+on:
+  push:
+    branches: [beta-previews]
+    paths-ignore: ["docs/beta/screens/**"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: { group: beta-preview, cancel-in-progress: true }
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BASE: https://raw.githack.com/${{ github.repository }}/${{ github.ref_name }}/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: node tests/beta-story.test.js
+      - run: npm install --no-save playwright@1.48.2 && npx playwright install --with-deps chromium
+      - name: Wait until the preview host serves this commit
+        run: |
+          STAMP=$(grep -o 'beta-ui.js?v=[0-9a-f]*' event-beta.html | head -1)
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+          for i in $(seq 1 40); do
+            if curl -fsS "${BASE}event-beta.html" | grep -q "$STAMP"; then echo "preview current"; exit 0; fi
+            sleep 30
+          done
+          echo "::warning::preview host did not refresh within 20 minutes"
+      - name: Signed-out check and screenshots
+        run: mkdir -p docs/beta/screens && node tools/beta-preview-check.js "$BASE" docs/beta/screens "$STAMP"
+      - name: Commit screenshots
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/beta/screens
+          git diff --cached --quiet || (git commit -m "Beta preview screenshots [skip ci]" && git push)

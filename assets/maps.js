@@ -21,6 +21,10 @@
   };
   const st = { index: null, run: null, man: null, fields: {}, h: 0, field: O.store.get("maps2_field", "t2m"), win: O.store.get("maps2_win", "1"), smooth: !!O.store.get("maps2_smooth", false),
     lat: null, P: null, mesh: null, frames: new Map(), sel: null, play: null, base: null, map: null, view: O.store.get("maps2_view", "tristate"), loaded: 0 };
+  /* embed mode (used by the beta pages): the shell skips its header and these optional parameters set the opening view */
+  const EMBED = Q.get("embed") === "1", Q_VIEW = Q.get("view"), Q_FIELD = Q.get("field");
+  if (Q_FIELD && FIELDS[Q_FIELD]) st.field = Q_FIELD;
+  if (EMBED && ["tristate", "dma", "venue"].includes(Q_VIEW)) st.view = Q_VIEW;
   const fmtLocal = (ms) => new Date(ms).toLocaleString("en-US", { timeZone: TZ, weekday: "short", month: "short", day: "numeric", hour: "numeric", timeZoneName: "short" });
   const fmtUTC = (ms) => { const d = new Date(ms).toISOString(); return `${d.slice(5, 10).replace("-", "/")} ${d.slice(11, 13)}Z`; };
   const MB = (b) => (b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.round(b / 1e3)} KB`);
@@ -314,7 +318,7 @@
     await initMap();
     const openRun = async (id, keep) => {
       const ok = await loadRun(id, keep);
-      if (ok && !st.map.getSource("mask")) { addBasemap(); setColors(); limits(); goView(st.view === "venue" ? "tristate" : st.view, false); upload(); }
+      if (ok && !st.map.getSource("mask")) { addBasemap(); setColors(); limits(); goView(st.view === "venue" && !(EMBED && Q_VIEW === "venue") ? "tristate" : st.view, false); upload(); }
     };
     await openRun(st.index.runs[0].id, false);
     $("placeSel").innerHTML = '<option value="">Click or tap the map, or choose…</option>' + [...SITES.map((s) => s[0]), "Dayton", "Columbus", "Louisville", "Lexington"].map((n) => `<option>${esc(n)}</option>`).join("");

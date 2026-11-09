@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Event briefing beta · Forecast Ops</title>
+<meta name="description" content="Beta: phone-first weather briefing for an outdoor event — biggest concern, timing and when to check again.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/icon.svg?v=05c4bd5103" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Archivo+Black&display=swap">
+<!--load-guard--><script>/* Load guard (managed by tools/stamp-assets.js). Shown only if a page script fails to download or throws. */
+(function () { var shown = false;
+  function show(msg) { if (shown) return; shown = true;
+    var go = function () { var b = document.createElement("div"); b.setAttribute("role", "alert"); b.id = "loadGuard";
+      b.style.cssText = "position:sticky;top:0;z-index:9999;margin:0;padding:10px 16px;background:#7a1f12;color:#fff;font:600 14px/1.4 system-ui,sans-serif;display:flex;gap:12px;align-items:center;flex-wrap:wrap";
+      b.innerHTML = '<span>This page didn\u2019t finish loading. <span style="font-weight:400"></span></span><button type="button" style="font:inherit;padding:4px 12px;border-radius:6px;border:1px solid #fff;background:#fff;color:#7a1f12;cursor:pointer">Reload</button>';
+      b.querySelector("span span").textContent = msg; b.querySelector("button").onclick = function () { location.reload(); };
+      document.body.insertBefore(b, document.body.firstChild); };
+    if (document.body) go(); else document.addEventListener("DOMContentLoaded", go); }
+  window.addEventListener("error", function (e) { var t = e.target;
+    if (t && (t.tagName === "SCRIPT" || (t.tagName === "LINK" && t.rel === "stylesheet")) && (t.src || t.href || "").indexOf(location.origin) === 0) show("A site file (" + (t.src || t.href).split("/").pop().split("?")[0] + ") could not be downloaded.");
+    else if (e.filename && e.filename.indexOf(location.origin) === 0) show("A script error stopped it (" + e.message + ").");
+  }, true);
+  window.addEventListener("unhandledrejection", function (e) { var r = e.reason, st = (r && r.stack) || "";
+    if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
+  });
+})();</script><!--/load-guard-->
+<link rel="stylesheet" href="assets/ops.css?v=172148857c">
+<link rel="stylesheet" href="assets/beta.css?v=26987efbd5">
+</head>
+<body class="bx">
+<main class="bx-page bx-narrow" id="bx">
+  <div class="bx-sample" id="sample" hidden><span><b>Sample event.</b> Its date is the most weather-active evening in the next three days, so you can see the full briefing. Edit it to match your event; it stays in this browser.</span><button class="bx-btn" type="button" id="editBtn2">Edit event</button></div>
+  <section class="bx-sec" aria-labelledby="evName">
+    <span class="bx-kicker" id="evVenue"></span>
+    <h1 class="bx-h1" id="evName">Loading event…</h1>
+    <p class="bx-event-when" id="evWhen"></p>
+    <p class="bx-note" id="evPhasesLine"></p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="bx-btn" type="button" id="editBtn">Edit event</button><button class="bx-btn" type="button" id="resetBtn" hidden>Back to sample</button><button class="bx-btn" type="button" id="printBtn">Print / PDF</button></div>
+    <div id="alerts"></div>
+  </section>
+  <section class="bx-sec"><div id="verdict"><div class="bx-loading">Reading the guidance…</div></div></section>
+  <section class="bx-sec"><div class="bx-sec-head"><h2 class="bx-h2">Setup, event and teardown</h2><span class="bx-valid" id="phasesValid"></span></div><div class="bx-phases" id="phases"></div></section>
+  <section class="bx-sec bx-grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+    <div><h2 class="bx-h2" style="margin-bottom:12px">What could change the plan</h2><ul class="bx-bullets" id="changes"></ul></div>
+    <div><h2 class="bx-h2" style="margin-bottom:12px">When to check again</h2><ol class="bx-checks" id="checks"></ol></div>
+  </section>
+  <section class="bx-sec"><div class="bx-sec-head"><h2 class="bx-h2">Hour by hour</h2><span class="bx-valid" id="hourlyValid"></span></div><div class="bx-panel" id="timeline"></div></section>
+  <section class="bx-sec"><div class="bx-map-bar"><h2 class="bx-h2">Regional map</h2><a class="bx-btn" id="mapFull" href="maps.html">Open full map ↗</a></div><p class="bx-note" style="margin:0 0 10px">Simulated radar from the HRRR model (not observed radar). Press play to step through the hours.</p><div id="map"></div></section>
+  <section class="bx-sec" id="detail"></section>
+  <footer class="bx-foot" id="foot"></footer>
+</main>
+<dialog id="editDlg" aria-labelledby="editTitle"><form class="bx-form" id="editForm" method="dialog"></form></dialog>
+<script src="assets/ops-core.js?v=737773bf4d"></script>
+<script src="assets/ops-data.js?v=457e2eb9ec"></script>
+<script src="assets/ops.js?v=2f86f6a912"></script>
+<script src="assets/forecast-clock.js?v=c6df9f20b7"></script>
+<script src="assets/model-trends.js?v=20f2fb637c"></script>
+<script src="assets/beta-story.js?v=ed8bd52569"></script>
+<script src="assets/beta-ui.js?v=c1ae0ae007"></script>
+<script src="assets/beta-event.js?v=1fccc5f42a"></script>
+</body>
+</html>

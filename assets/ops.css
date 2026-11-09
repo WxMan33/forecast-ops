@@ -757,3 +757,9 @@ body:not(.almanac-page) .statusbar:has(.site-id) { display:grid; grid-template-c
  .foot-top { border-color:#bbb; }
  .foot-links { display:none; }
 }
+
+/* embed=1: a page shown inside another page (the map inside the beta briefings) */
+body.embed .workspace { padding: 0; margin: 0; max-width: none; display: block; }
+body.embed .main { padding: 0; gap: 0; }
+body.embed .main > .card { display: none; }
+body.embed .mapstage { height: 100vh; min-height: 0; border-radius: 0; border: 0; }
