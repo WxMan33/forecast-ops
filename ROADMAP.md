@@ -123,3 +123,9 @@ This roadmap does not authorize changing blend weights, starting paid services o
 - Implemented: forecast-first Model Blend; recipe/sliders in the left controls; individual-source saved-guidance comparisons; precipitation timing and timing shifts; compact decision briefing from the same forecast. See MODEL_TRENDS.md for limits.
 - Next: collector-backed historical run comparisons across devices, with confirmed initialization times where supplied. Browser snapshots do not represent every model run.
 - Later: snowfall transitions, wind and thunder timing with suitable inputs, and OPE integration using exact venue/event windows and operational thresholds. Keep the detailed meteorologist workspace alongside the simple presentation.
+
+### Later: Forecast Editor Chrome extension
+
+- [ ] Prototype a Chrome helper for The Weather Company's 10-day and 48-hour Forecast Editor tabs. Match daily and overnight periods and hourly timestamps to an editable Forecast Ops blend draft.
+- [ ] Fill supported numeric and wind fields from the blend. Keep weather phrases and narratives manual. Round precipitation chances to the nearest 10 percentage points and confirm whether humidity should use the same rounding. Confirm whether icons can be edited independently and how to map the Weather Impact Index.
+- [ ] Preview the changes, unlock the active tab, verify the applied values and relock the tab, including recovery after a partial fill. Leave Publish as a manual step.
