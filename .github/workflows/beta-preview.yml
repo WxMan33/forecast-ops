@@ -21,15 +21,19 @@ jobs:
         with: { node-version: 20 }
       - run: node tests/beta-story.test.js
       - run: npm install --no-save playwright@1.48.2 && npx playwright install --with-deps chromium
-      - name: Wait until the preview host serves this commit
+      - name: Wait until the preview host serves this commit (pages and scripts)
         run: |
           STAMP=$(grep -o 'beta-ui.js?v=[0-9a-f]*' event-beta.html | head -1)
           echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+          # raw.githack.com caches each file by path (it ignores ?v=), so check every file the betas load
+          FILES="meteorologist-beta.html event-beta.html maps.html assets/beta-ui.js assets/beta-story.js assets/beta-met.js assets/beta-event.js assets/beta.css assets/maps.js assets/ops.js assets/ops.css"
           for i in $(seq 1 40); do
-            if curl -fsS "${BASE}event-beta.html" | grep -q "$STAMP"; then echo "preview current"; exit 0; fi
-            sleep 30
+            stale=""
+            for f in $FILES; do [ "$(curl -fsS "${BASE}$f" | sha256sum | cut -c1-16)" = "$(sha256sum "$f" | cut -c1-16)" ] || stale="$stale $f"; done
+            if [ -z "$stale" ]; then echo "preview current"; exit 0; fi
+            echo "waiting for:$stale"; sleep 30
           done
-          echo "::warning::preview host did not refresh within 20 minutes"
+          echo "::warning::preview host still stale after 20 minutes:$stale"
       - name: Signed-out check and screenshots
         run: mkdir -p docs/beta/screens && node tools/beta-preview-check.js "$BASE" docs/beta/screens "$STAMP"
       - name: Commit screenshots
