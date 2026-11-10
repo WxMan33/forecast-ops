@@ -62,7 +62,7 @@ jobs:
         run: |
           for i in $(seq 1 36); do
             stale=""
-            for f in event-beta.html assets/beta-config.js assets/calendar-import.js assets/beta-analytics.js assets/ops.js; do [ "$(curl -fsSL "${PAGES}$f" | sha256sum | cut -c1-16)" = "$(sha256sum "$f" | cut -c1-16)" ] || stale="$stale $f"; done
+            for f in event-beta.html assets/beta-config.js assets/calendar-import.js assets/venue-search.js assets/beta-analytics.js assets/ops.js; do [ "$(curl -fsSL "${PAGES}$f" | sha256sum | cut -c1-16)" = "$(sha256sum "$f" | cut -c1-16)" ] || stale="$stale $f"; done
             if [ -z "$stale" ]; then echo "Cloudflare Pages current"; exit 0; fi
             echo "waiting for:$stale"; sleep 30
           done

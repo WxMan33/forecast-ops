@@ -12,4 +12,4 @@ window.BETA_CALENDAR = { clientId: "194107562342-hutpdsodiktf5j439n2laka2jkqk1eh
 /* LocationIQ ("Search by LocationIQ.com") is used only on the origins listed with its token: a token dedicated to this
    beta, restricted by HTTP referrer to forecast-ops-beta.pages.dev. Elsewhere (e.g. the Githack demo) the reviewed public
    search is used and the token is never sent. */
-window.BETA_GEOCODER = { locationiq: { key: "", origins: ["https://forecast-ops-beta.pages.dev"] } };
+window.BETA_GEOCODER = { locationiq: { key: "pk.373d7a892d05fd1086f525af6a916b25", origins: ["https://forecast-ops-beta.pages.dev"] } };

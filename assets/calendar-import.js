@@ -177,6 +177,12 @@
       $("ciImport").addEventListener("click", async () => {
         const btn = $("ciImport"); btn.disabled = true; btn.textContent = "Importing…";
         let remembered = 0; const picked = [];
+        /* time zones for new places, all at once: the lookup service (up to 6 s), else the venue's state, else the calendar's */
+        const rows = [...form.querySelectorAll("[data-pick]:checked")].map((c) => +c.dataset.pick);
+        const zoneOf = new Map(await Promise.all(rows.filter((i) => state[i].kind === "place" && !E.venues().some((v) => VS.km(v, state[i].place) <= 0.15)).map(async (i) => {
+          const p = state[i].place, quick = await Promise.race([O.zoneFor(p.lat, p.lon).catch(() => null), new Promise((ok) => setTimeout(() => ok(null), 6000))]);
+          return [i, quick || VS.tzGuess(p) || calTz];
+        })));
         for (const c of form.querySelectorAll("[data-pick]:checked")) {
           const i = +c.dataset.pick, { g } = recs[i], st = state[i]; let r = recs[i].r;
           if (st.kind === "saved") {
@@ -185,7 +191,7 @@
             /* the place becomes a saved venue (or an existing one within 150 m), remembered for this calendar location */
             const p = st.place, near = E.venues().find((v) => VS.km(v, p) <= 0.15);
             let v = near;
-            if (!v) { const tz = (await O.zoneFor(p.lat, p.lon).catch(() => null)) || VS.tzGuess(p) || calTz; if (!tz) { err(`Couldn't look up the time zone for ${p.name}. Try again.`); btn.disabled = false; count(); return; }
+            if (!v) { const tz = zoneOf.get(i) || VS.tzGuess(p) || calTz; if (!tz) { err(`Couldn't look up the time zone for ${p.name}. Try again.`); btn.disabled = false; count(); return; }
               v = E.saveVenue({ name: p.name, address: p.kind === "pin" ? "" : p.address, city: p.address || "", lat: +p.lat.toFixed(5), lon: +p.lon.toFixed(5), tz, aliases: [] }); U.track("venue_saved"); }
             if (g.location) { v = E.rememberAlias(v, g.location); remembered++; }
             r = E.confirmVenue(r, v);

@@ -381,6 +381,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     /* every geocoding host counts (public Nominatim, city search and common commercial geocoders) */
     let geo = 0; const GEOHOSTS = /nominatim\.openstreetmap\.org|geocoding-api\.open-meteo\.com|api\.geoapify\.com|geocode|api\.mapbox\.com\/search|maps\.googleapis\.com\/maps\/api\/(geocode|place)|locationiq|opencagedata/;
     await ctx.route(GEOHOSTS, (r) => { geo++; const q = new URL(r.request().url()).searchParams.get("q"); r.fulfill({ contentType: "application/json", body: JSON.stringify(fix[q] || []) }); });
+    const tokenSeen = []; p.on("request", (r) => { const u = r.url(); if (/locationiq\.com/.test(u) || /pk\.[0-9a-f]{20,}/.test(u + (r.postData() || ""))) tokenSeen.push(u); });
     const fc = []; await ctx.route(/api\.open-meteo\.com\/v1\/forecast/, (r) => { const u = new URL(r.request().url()); fc.push([+u.searchParams.get("latitude"), +u.searchParams.get("longitude")]); r.continue(); });
     await until(p, () => document.querySelector("#upView:not([hidden]) #upImport"), null, 30000);
     const day = (n, hm) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10) + `T${hm}:00Z`;
@@ -402,7 +403,8 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     await p.screenshot({ path: `${out}/venue-search-import-phone.png`, fullPage: false });
     const cands = await p.evaluate(() => [...document.querySelectorAll('.ci-ev[data-match="ambiguous"] .vs-hit')].map((b) => b.innerText.replace(/\s+/g, " ")));
     await p.evaluate(() => [...document.querySelectorAll('.ci-ev[data-match="ambiguous"] .vs-hit')].find((b) => /Lincoln, NE/.test(b.innerText)).click());
-    await p.click("#ciImport"); await until(p, () => !document.getElementById("editDlg").open, null, 30000);
+    await p.click("#ciImport");
+    if (!(await until(p, () => !document.getElementById("editDlg").open, null, 60000))) throw new Error(`import didn't finish: "${await p.evaluate(() => (document.getElementById("ciErr") || {}).innerText || document.getElementById("ciImport").innerText)}"`);
     const note1 = await p.evaluate(() => document.getElementById("upNote").innerText);
     const stored = await p.evaluate(() => ({ ev: JSON.parse(localStorage.getItem("beta_events_v2")).map((e) => ({ id: e.id, lat: e.loc.lat, lon: e.loc.lon, name: e.loc.name, tz: e.tz })), vn: JSON.parse(localStorage.getItem("beta_venues_v1")).map((v) => ({ name: v.name, lat: v.lat, lon: v.lon, address: v.address, aliases: v.aliases })) }));
     const at = (id) => stored.ev.find((e) => e.id === `cal_${id.replace(/\s/g, "_")}`) || {};
@@ -426,6 +428,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     fc.length = 0; await p.goto(base + `event-beta.html?ev=${encodeURIComponent("cal_Memorial_Stadium_game")}`, { waitUntil: "domcontentloaded" });
     await until(p, () => document.body.dataset.readiness, null, 150000);
     const used = fc.find(([la, lo]) => Math.abs(la - 40.8207) < 0.0003 && Math.abs(lo + 96.7048) < 0.0003);
+    report(!tokenSeen.length, "Githack demo: venue searches use the public search; no request goes to LocationIQ or carries its token", `${tokenSeen.length} LocationIQ/token requests over ${geo} searches`);
     report(!!used && !fc.some(([la]) => Math.abs(la - 40.8136) < 0.001), "venue search: the briefing's forecast is requested at the venue's exact point, not the city centre", `forecast requests at ${[...new Set(fc.map((x) => x.join(",")))].slice(0, 3).join(" ; ")}`);
     await ctx.close();
   });

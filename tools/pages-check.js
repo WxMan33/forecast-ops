@@ -28,6 +28,13 @@ const [base, out] = process.argv.slice(2);
     const q = await c2.newPage(), errs = [], liq = []; q.on("pageerror", (e) => errs.push(e.message)); q.on("request", (r) => { if (/locationiq\.com/.test(r.url())) liq.push(r.url()); });
     await q.goto(base + "event-beta.html#upcoming", { waitUntil: "domcontentloaded", timeout: 60000 }); await q.waitForSelector("#upView:not([hidden]) #vnAdd", { timeout: 60000 });
     const prov = await q.evaluate(() => window.VenueSearch.provider());
+    /* opening the calendar picker (sample calendar, unfamiliar locations) sends no geocoding request */
+    let geoReq = 0; q.on("request", (r) => { if (/locationiq\.com|nominatim\.openstreetmap\.org|geocoding-api\.open-meteo\.com/.test(r.url())) geoReq++; });
+    await q.click("#upImport"); await q.click("#ciSample"); await q.waitForSelector("#ciNext"); await q.click("#ciNext");
+    await q.waitForFunction(() => document.getElementById("editForm").dataset.resolved === "true", null, { timeout: 30000 }); await q.waitForTimeout(2500);
+    const rows = await q.evaluate(() => [...document.querySelectorAll(".ci-ev")].map((r) => r.dataset.match).join(","));
+    report(geoReq === 0 && /review/.test(rows), "Cloudflare Pages: opening the calendar picker makes zero geocoding requests", `${geoReq} geocoding requests · rows ${rows}`);
+    await q.evaluate(() => document.getElementById("editDlg").close()); geoReq = 0;
     if (prov !== "locationiq") report(true, "Cloudflare Pages: LocationIQ venue search", "token not configured yet; the reviewed public search is in use");
     else {
       const out2 = [];
