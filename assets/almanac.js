@@ -77,7 +77,7 @@
     const res = await window.ClimateStation.forPoint(loc, { fetchJSON }).catch((e) => ({ station: null, alternatives: [], missing: [`Climate station lookup failed (${(e && e.message) || e}).`] }));
     if (my !== run) return; // a slow answer for an earlier point never replaces the current one
     const next = fromStation(res);
-    if (next) CLIM = { ...next, tz: tzP };
+    CLIM = next ? { ...next, tz: tzP } : { ...CLIM, cincy: false, tz: tzP }; // no station: never fall back to Cincinnati history
     stationHeader(res, loc, next);
     renderWeatherHistory(sel);
     $("skyCard").closest(".astronomy-section").hidden = !(next && next.cincy);

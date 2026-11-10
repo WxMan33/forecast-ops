@@ -35,10 +35,9 @@
     const day = (ms) => new Date(ms).toISOString().slice(0, 10);
     const post = (path, body) => fetchJSON(ACIS + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const nws = (url) => fetchJSON(url, { headers: { Accept: "application/geo+json" } });
-    const [pp, meta] = await Promise.all([
-      nws(`${NWS}/points/${lat.toFixed(4)},${lon.toFixed(4)}`),
-      post("/StnMeta", { bbox: [lon - 3.2, lat - 2.4, lon + 3.2, lat + 2.4], meta: "name,sids,ll,valid_daterange", elems: "maxt", sdate: day(now - 12 * D), edate: day(now) }),
-    ]);
+    const search = () => post("/StnMeta", { bbox: [lon - 3.2, lat - 2.4, lon + 3.2, lat + 2.4], meta: "name,sids,ll,valid_daterange", elems: "maxt", sdate: day(now - 12 * D), edate: day(now) });
+    let [pp, meta] = await Promise.all([nws(`${NWS}/points/${lat.toFixed(4)},${lon.toFixed(4)}`), search()]);
+    if (!meta || !meta.meta) meta = await search(); // RCC-ACIS is occasionally slow or busy: one retry
     const pointOffice = pp && pp.properties ? pp.properties.gridId : null;
     if (!meta || !meta.meta) return { pointOffice, station: null, alternatives: [], missing: ["RCC-ACIS station search is unavailable right now."], error: true };
     /* first-order / ASOS sites: a WBAN id (type 1) and an FAA id (type 3) */

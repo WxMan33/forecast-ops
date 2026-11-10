@@ -27,10 +27,12 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
   const eventReady = (p, name) => until(p, (n) => document.body && (document.body.dataset.loaded || "").startsWith(n) && document.querySelector("#timeline svg"), name).then((x) => p.waitForTimeout(1200).then(() => x));
   const almanacReady = (p) => until(p, () => document.querySelector("#climCard .climo-title, #climCard .state.unavail, #climCard .state.err") && !/…/.test(document.getElementById("climName").innerText));
   const pickCity = async (p, query, label, scope = "") => {
-    await p.click(`${scope} .bx-ppin`); await p.keyboard.type(query);
-    await until(p, ([l, s]) => [...document.querySelectorAll(`${s} .bx-ppres button`)].some((b) => b.innerText.startsWith(l)), [label, scope], 30000);
-    return () => p.evaluate(([l, s]) => [...document.querySelectorAll(`${s} .bx-ppres button`)].find((b) => b.innerText.startsWith(l)).dispatchEvent(new MouseEvent("mousedown", { bubbles: true })), [label, scope]);
+    const has = () => until(p, ([l, s]) => [...document.querySelectorAll(`${s} .bx-ppres button`)].some((b) => b.innerText.startsWith(l)), [label, scope], 45000);
+    for (let attempt = 0; attempt < 2; attempt++) { await p.click(`${scope} .bx-ppin`); await p.fill(`${scope} .bx-ppin`, ""); await p.keyboard.type(query, { delay: 30 }); if (await has()) break; }
+    return () => p.evaluate(([l, s]) => { const b = [...document.querySelectorAll(`${s} .bx-ppres button`)].find((x) => x.innerText.startsWith(l)); if (!b) throw new Error(`city search showed no "${l}"`); b.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })); }, [label, scope]);
   };
+  /* each scenario stands alone: a failure is reported and the rest still run */
+  const section = async (name, fn) => { try { await fn(); } catch (e) { report(false, name, `stopped: ${String(e.message || e).split("\n")[0]}`); } };
   const pageOk = async (p, errors, status, notice, name) => {
     const info = await p.evaluate(() => ({ guard: !!document.getElementById("loadGuard"), hscroll: document.documentElement.scrollWidth > innerWidth + 1, verifyLinks: /githack\.com$/.test(location.hostname) ? document.querySelectorAll('a[href*="verify"]').length : 0, signin: /sign in|log in/i.test(document.body.innerText) }));
     const fresh = !stamp || /githack/.test(base) === false || (await p.content()).includes(stamp);
@@ -38,6 +40,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
   };
 
   /* ---------- 1. meteorologist menu: CVG default; Charleston → Model Blend → MENU, desktop and phone ---------- */
+  await section('1. meteorologist menu: CVG default; Charleston → Model Blend', async () => {
   for (const [dev, opts] of [["desktop", DESK], ["phone", PHONE]]) {
     const { ctx, p, errors, status, notice } = await go(opts, base + "meteorologist-beta.html");
     await menuReady(p, "CVG");
@@ -65,8 +68,10 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     if (dev === "desktop") { const f = await go(DESK, link); await menuReady(f.p, "Charleston"); const x = await f.p.evaluate(() => document.body.dataset.place);
       report(x.startsWith("Charleston"), "menu: copied Charleston link reopens in a fresh browser", `${link.replace(/^.*\?/, "?")} → ${x}`); await f.ctx.close(); }
   }
+  });
 
   /* ---------- 2. location handoffs from the menu (Charleston) ---------- */
+  await section('2. location handoffs from the menu (Charleston)', async () => {
   { const url = base + "meteorologist-beta.html?lat=38.3498&lon=-81.6326&name=Charleston%2C%20WV";
     for (const [tool, label] of [["thunder", "Thunder"], ["soundings", "Severe & Soundings"], ["winter", "Winter"]]) {
       const { ctx, p, errors } = await go(DESK, url); await menuReady(p, "Charleston");
@@ -78,8 +83,10 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     await Promise.all([p.waitForNavigation({ waitUntil: "domcontentloaded" }), p.click('#tools a[data-tool="almanac"]')]); await almanacReady(p);
     const a = await p.evaluate(() => ({ astro: document.getElementById("astroName").innerText, clim: document.getElementById("climName").innerText }));
     report(/Charleston/.test(a.astro) && /CRW/.test(a.clim) && !errors.length, "handoff: Almanac opens for Charleston (sun and moon at the point, climate at CRW)", `${a.astro} · ${a.clim}`); await ctx.close(); }
+  });
 
   /* ---------- 3. Almanac climate stations (live NWS + RCC-ACIS) ---------- */
+  await section('3. Almanac climate stations (live NWS + RCC-ACIS)', async () => {
   for (const [name, lat, lon, want] of [["CVG airport, Cincinnati/Northern Kentucky", 39.04456, -84.67229, { stn: "CVG", rec: "CVGthr", office: "ILN" }], ["Indianapolis, IN", 39.7684, -86.1581, { stn: "IND", rec: "INDthr", office: "IND" }],
     ["Muncie, IN", 40.1934, -85.3864, { stn: "MIE", rec: null, office: "IND" }], ["Denver, CO", 39.7392, -104.9903, { stn: "DEN", rec: "DENthr", office: "BOU" }]]) {
     const { ctx, p, errors } = await go(DESK, `${base}almanac.html?lat=${lat}&lon=${lon}&name=${encodeURIComponent(name)}`); await almanacReady(p);
@@ -95,14 +102,18 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       report(/IND$/.test(o.clim) && o.astro === "Muncie, IN" && o.q === "Muncie, IN", "almanac: changing the climate station keeps the forecast point", `climate ${o.clim} · point ${o.q} · astronomy ${o.astro}`);
     }
     await ctx.close(); }
+  });
 
   /* ---------- 4. record watch on Model Blend follows the point's station ---------- */
+  await section("4. record watch on Model Blend follows the point's station", async () => {
   { const { ctx, p, errors } = await go(DESK, `${base}blend.html?lat=39.7684&lon=-86.1581&name=Indianapolis%2C%20IN`);
     const ok = await until(p, () => /INDthr/.test((document.getElementById("dailyNote") || {}).textContent || ""), null, 150000);
     const note = await p.evaluate(() => ((document.getElementById("dailyNote") || {}).textContent || "").match(/Record watch:[^.]*\./));
     report(ok && !errors.length, "Model Blend: record watch uses the Indianapolis threaded record", note ? note[0] : "record-watch note not shown"); await ctx.close(); }
+  });
 
   /* ---------- 5. event beta: page loads, Cincinnati map/timeline sync, first screen, out-of-range map ---------- */
+  await section('5. event beta: page loads, Cincinnati map/timeline sync, fir', async () => {
   for (const [dev, opts] of [["desktop", DESK], ["phone", PHONE]]) {
     const { ctx, p, errors, status, notice } = await go(opts, base + "event-beta.html"); await eventReady(p, "Sawyer");
     await pageOk(p, errors, status, notice, `event ${dev}: loads signed out`);
@@ -136,8 +147,10 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     const t = await times(p);
     report(t.range === "beyond" && t.map < t.page && /Last HRRR hour/.test(t.flag || "") && /coverage ends|This run ends/.test(t.note || "") && !errors.length, "event: out-of-range map is labelled", `selected ${iso(t.page)} · map ${iso(t.map)} · flag "${t.flag}"`);
     await p.locator(".bx-mapwrap").screenshot({ path: `${out}/check-out-of-range-map.png` }); await ctx.close(); }
+  });
 
   /* ---------- 6. event beta in other markets: Indianapolis search, Denver overnight event, slow-response race ---------- */
+  await section('6. event beta in other markets: Indianapolis search, Denver ', async () => {
   { const { ctx, p, errors } = await go(DESK, base + "event-beta.html"); await eventReady(p, "Sawyer");
     const choose = await pickCity(p, "Indianapolis", "Indianapolis, IN", ".bx-head"); await choose(); await eventReady(p, "Indianapolis");
     const i = await p.evaluate(() => ({ ...document.body.dataset, nws: document.getElementById("nwsEv").innerText, blend: document.getElementById("blendLine").innerText, map: !!document.querySelector("#map iframe") }));
@@ -157,8 +170,10 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     await p.fill(".bx-head .bx-ppin", ""); const den = await pickCity(p, "Denver", "Denver, CO", ".bx-head"); await den(); await eventReady(p, "Denver");
     await p.waitForTimeout(15000); const d = await p.evaluate(() => ({ ...document.body.dataset }));
     report(d.loaded.startsWith("Denver") && d.office === "BOU" && d.tz === "America/Denver" && !errors.length, "slow Indianapolis response never overwrites Denver", `after 15 s: ${d.loaded} · ${d.office} · ${d.tz}`); await ctx.close(); }
+  });
 
   /* ---------- 7. analytics blocked or opted out: the betas work; nothing is sent when opted out ---------- */
+  await section('7. analytics blocked or opted out: the betas work; nothing i', async () => {
   for (const [mode, init] of [["blocked", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec")'], ["opted out", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec");localStorage.setItem("fo_analytics_optout","1")']]) {
     for (const page of ["meteorologist-beta.html", "event-beta.html"]) {
       const ctx = await browser.newContext(PHONE); await ctx.addInitScript(`try{${init}}catch(e){}`); let sent = 0;
@@ -171,6 +186,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       const notice = await p.evaluate(() => (document.getElementById("bxPrivacy") || {}).innerText || "");
       report(ready && !errors.length && (mode === "blocked" ? /Turn off/.test(notice) : sent === 0 && /off in this browser/.test(notice)), `analytics ${mode}: ${page.split("-")[0]} works signed out`, `${sent} collector requests${mode === "blocked" ? " (all blocked)" : ""} · notice "${notice.slice(0, 60)}"`);
       await ctx.close(); } }
+  });
 
   await browser.close();
   console.log(failed ? `${failed} check(s) failed` : "all checks passed");
