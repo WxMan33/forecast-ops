@@ -200,7 +200,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     /* match 1: new venue TQL Stadium, its schedule saved as the venue default */
     await p.click("#upAdd"); await until(p, () => document.getElementById("editDlg").open, null, 10000);
     await p.fill("#fName", "FC Cincinnati vs. Test FC (check)"); await p.fill("#fVenue", "TQL Stadium");
-    const pick = await pickCity(p, "Cincinnati", "Cincinnati, OH", "#fCity"); await pick();
+    const pick = await pickCity(p, "", "TQL Stadium, Cincinnati, OH", "#fCity"); await pick(); // built-in quick pick: no dependence on the city search service
     await p.locator("#fNewVenue details summary").click(); await p.fill("#fLat", "39.1111"); await p.fill("#fLon", "-84.5222");
     await setVal("#fDate", d1); await setVal("#fStart", "19:30"); await setVal("#fEnd", "21:30"); await setVal("#fSetup", "15:00"); await setVal("#fGates", "18:00"); await setVal("#fTear", "23:30"); await setVal("#fGust", "30");
     await p.click("#fSave"); await until(p, () => !document.getElementById("editDlg").open, null, 30000);
