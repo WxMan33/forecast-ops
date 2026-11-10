@@ -28,12 +28,12 @@
     const opt = (v) => `<option value="${esc(v.id)}" ${venue && venue.id === v.id ? "selected" : ""}>${esc(v.name)}</option>`;
     $("editForm").innerHTML = `<h2 id="editTitle">${esc(title || (stored ? "Edit event" : "Add event"))}</h2>
       <label>Event name<input id="fName" maxlength="80" value="${esc(base && !base.sample ? base.name : "")}" placeholder="${esc(base ? base.name : "e.g. FC Cincinnati vs. Columbus")}"></label>
-      <label>Venue<select id="fVenueSel">${vns.map(opt).join("")}<option value="" ${venue ? "" : "selected"}>${base && !venue && !base.sample ? "This event's venue (not saved)" : "New venue…"}</option></select></label>
+      <label>Venue<select id="fVenueSel">${vns.map(opt).join("")}<option value="" ${venue ? "" : "selected"}>${base && !venue && !base.sample && fin(base.loc.lat) ? "This event's venue (not saved)" : "New venue…"}</option></select></label>
       <div id="fNewVenue" class="bx-subform">
-        <label>Venue name<input id="fVenue" maxlength="80" value="${esc(base && !venue && !base.sample ? base.loc.name : "")}" placeholder="e.g. TQL Stadium"></label>
+        <label>Venue name<input id="fVenue" maxlength="80" value="${esc(base && !venue && !base.sample ? (fin(base.loc.lat) ? base.loc.name : String(base.loc.name || "").split(",")[0].replace(/^Venue not set$/, "")) : "")}" placeholder="e.g. TQL Stadium"></label>
         <div><span class="bx-cap" style="display:block;margin-bottom:4px">Venue city</span><div id="fCity" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"></div></div>
         <details><summary class="bx-note">Exact coordinates (optional)</summary><div class="two" style="margin-top:8px"><label>Latitude<input id="fLat" inputmode="decimal" value="${fin(city.lat) ? city.lat : ""}"></label><label>Longitude<input id="fLon" inputmode="decimal" value="${fin(city.lon) ? city.lon : ""}"></label></div></details>
-        <label class="bx-check"><input type="checkbox" id="fSaveVenue" ${base && !base.sample && !venue ? "" : "checked"}> Save this venue and its schedule for future events</label>
+        <label class="bx-check"><input type="checkbox" id="fSaveVenue" ${base && !base.sample && !venue && fin(base.loc.lat) ? "" : "checked"}> Save this venue and its schedule for future events</label>
       </div>
       <label>Date<input type="date" id="fDate" value="${esc(t.start ? t.start.slice(0, 10) : defDate)}"></label>
       <div class="two"><label>Event starts<input type="time" id="fStart" value="${esc(hm(t.start) || "19:30")}" required></label><label>Event ends<input type="time" id="fEnd" value="${esc(hm(t.end) || "21:30")}" required></label></div>
@@ -138,11 +138,13 @@
   let gen = 0;
   function render(host, { onOpen } = {}) {
     const my = ++gen, now = Date.now(), list = E.events(), vns = E.venues();
-    host.innerHTML = `<div class="up-head"><h1 class="up-title">Upcoming events</h1><button class="bx-btn primary" type="button" id="upAdd">+ Add event</button></div>
+    host.innerHTML = `<div class="up-head"><h1 class="up-title">Upcoming events</h1><div class="up-act"><button class="bx-btn" type="button" id="upImport">Import from calendar</button><button class="bx-btn primary" type="button" id="upAdd">+ Add event</button></div></div><div id="upNote" class="bx-note" hidden></div>
       <div id="upList" class="up-list"></div><details id="upPast" class="up-past" hidden><summary></summary><div class="up-list"></div></details>
       <section class="bx-sec"><div class="bx-bh"><h2>Saved venues</h2><button class="bx-btn" type="button" id="vnAdd">+ Add venue</button></div><div id="vnList" class="up-list" style="margin-top:8px"></div></section>
       <p class="bx-note" style="margin-top:18px">Events and venues are stored only in this browser. A calendar import will add to this same list later.</p>`;
     $("upAdd").addEventListener("click", () => editEvent(null, { onSaved: () => render(host, { onOpen }) }));
+    $("upImport").addEventListener("click", () => window.CalendarImport.open({ onDone: (r) => { render(host, { onOpen }); const need = E.events().filter((x) => !fin(x.loc.lat)).length;
+      const n = $("upNote"); n.hidden = false; n.textContent = `Imported ${r.added} new${r.updated ? `, updated ${r.updated}` : ""}${r.unchanged ? `, ${r.unchanged} unchanged` : ""}.${need ? ` ${need} ${need === 1 ? "event needs" : "events need"} a venue: use Edit to pick a saved venue or search its city.` : ""}`; } }));
     $("vnAdd").addEventListener("click", () => editVenue(null, { onSaved: () => render(host, { onOpen }) }));
     $("vnList").innerHTML = vns.length ? vns.map((v) => `<article class="up-vn" data-id="${esc(v.id)}"><div><b>${esc(v.name)}</b><div class="bx-note">${esc(v.city || `${v.lat}, ${v.lon}`)} · ${esc(fmt.zone(now, v.tz))}</div><div class="bx-note">${esc(offText(v.defaults))}</div></div>
       <div class="up-act"><button class="bx-btn" type="button" data-vedit>Edit</button><button class="bx-btn" type="button" data-vremove>Remove</button></div></article>`).join("") : '<p class="bx-note">No saved venues yet. Save one with its setup, gates and teardown times, and new events there start from them.</p>';

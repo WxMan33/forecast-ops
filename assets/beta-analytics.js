@@ -16,10 +16,10 @@
 
   /* ---- what may be recorded: types per beta and allow-listed context values ---- */
   const TYPES = new Set(["session_start", "city_selected", "tool_opened", "models_compared", "weights_adjusted", "map_layer_changed", "playback_started", "timeline_used",
-    "sample_opened", "custom_event_started", "event_saved", "phase_details_opened", "event_revisited", "reminder_exported", "upcoming_opened", "venue_saved", "event_removed",
+    "sample_opened", "custom_event_started", "event_saved", "phase_details_opened", "event_revisited", "reminder_exported", "upcoming_opened", "venue_saved", "event_removed", "calendar_import_opened", "calendar_import_started", "calendar_events_imported",
     "city_searched", "search_no_results", "search_failed", "load_failed", "feeds_missing", "link_copied", "feedback", "analytics_opt_out"]);
   const CTX = { market: ["cincinnati", "elsewhere"], tool: ["models", "weights", "runs", "soundings", "thunder", "winter", "map"], what: ["models", "nws"],
-    phase: ["setup", "gates", "event", "teardown"], layer: ["refc", "refd1km", "precip", "t2m", "d2m", "gust", "w10m", "cloud"], rating: ["useful", "not_useful"], via: ["google", "ics"], returning: [true, false] };
+    phase: ["setup", "gates", "event", "teardown"], layer: ["refc", "refd1km", "precip", "t2m", "d2m", "gust", "w10m", "cloud"], rating: ["useful", "not_useful"], via: ["google", "ics", "sample"], returning: [true, false] };
   const clean = (c) => { const o = {}; Object.entries(c || {}).forEach(([k, v]) => { if (CTX[k] && CTX[k].includes(v)) o[k] = v; else if (k === "n" && Number.isInteger(v) && v >= 0 && v < 100) o.n = v; }); return o; };
 
   /* ---- who: random browser ID (approximate returning browsers), 30-minute sessions ---- */

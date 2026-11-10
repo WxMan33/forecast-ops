@@ -53,4 +53,37 @@ eq([g.venueId, g.times.gates, g.times.teardown, g.source], ["vn_t", "2026-11-28T
 const u = E.fromCalendar({ id: "x", summary: "Away match", location: "Somewhere Field", start: { dateTime: "2026-12-01T18:00:00-06:00", timeZone: "America/Chicago" }, end: { dateTime: "2026-12-01T20:00:00-06:00" } }, venues);
 eq([u.loc.lat, E.statusOf(u, {}).key, u.times.start], [null, "venue", "2026-12-01T18:00"], "unknown location: venue needs confirmation, times kept in the event's zone");
 eq(E.fromCalendar({ id: "d", summary: "Holiday", start: { date: "2026-12-25" }, end: { date: "2026-12-26" } }, venues), null, "all-day items are skipped");
-console.log(`ok - ${n} event store checks passed`);
+
+/* ---------- calendar import: merge, confirm venue, sample provider, origin gate ---------- */
+{
+  const CI = require("../assets/calendar-import.js");
+  const tqlV = { id: "vn_t", name: "TQL Stadium", lat: 39.1111, lon: -84.5222, tz: "America/New_York", defaults: tql };
+  const colV = { id: "vn_c", name: "Lower.com Field", lat: 39.968, lon: -83.017, tz: "America/New_York", defaults: { setup: 180, gates: 60, teardown: 90, gust: 25 } };
+  const g1 = { id: "a1", etag: "1", summary: "Home match", location: "TQL Stadium, Cincinnati, OH", start: { dateTime: "2026-11-28T19:30:00-05:00", timeZone: "America/New_York" }, end: { dateTime: "2026-11-28T21:30:00-05:00" } };
+  const g2 = { id: "a2", etag: "1", summary: "Away match", location: "Lower.com Field, Columbus, OH", start: { dateTime: "2026-12-05T19:30:00-05:00", timeZone: "America/New_York" }, end: { dateTime: "2026-12-05T21:30:00-05:00" } };
+  let r = E.mergeImported([], [E.fromCalendar(g1, [tqlV], "c"), E.fromCalendar(g2, [tqlV], "c")], () => tqlV);
+  eq([r.added, r.list.map((x) => [x.venueId, x.times.gates || "-"])], [2, [["vn_t", "2026-11-28T18:00"], [null, "-"]]], "import: saved venue matched with its defaults; unfamiliar location waits for a venue");
+  const again = E.mergeImported(r.list, [E.fromCalendar(g1, [tqlV], "c"), E.fromCalendar(g2, [tqlV], "c")], () => tqlV);
+  eq([again.added, again.updated, again.unchanged, again.list.length], [0, 0, 2, 2], "re-importing the same events changes nothing and adds no duplicates");
+  /* planner moves gates to 2 h before for the home match; the calendar later moves kickoff to 8 PM */
+  const own = r.list.map((x) => (x.id === "cal_a1" ? { ...x, times: { ...x.times, gates: "2026-11-28T17:30" }, overrides: ["gates"] } : x));
+  const moved = { ...g1, etag: "2", start: { ...g1.start, dateTime: "2026-11-28T20:00:00-05:00" }, end: { dateTime: "2026-11-28T22:00:00-05:00" } };
+  const m = E.mergeImported(own, [E.fromCalendar(moved, [tqlV], "c")], (id) => (id === "vn_t" ? tqlV : null)), h = m.list.find((x) => x.id === "cal_a1");
+  eq([m.updated, h.times.start, h.times.gates, h.times.setup, h.overrides, h.source.etag], [1, "2026-11-28T20:00", "2026-11-28T18:00", "2026-11-28T16:00", ["gates"], "2"], "a calendar time change updates the event; the planner's gates override keeps its offset; other times follow the venue");
+  const c = E.confirmVenue(r.list.find((x) => x.id === "cal_a2"), colV);
+  eq([c.venueId, c.loc.lat, c.times.gates, E.statusOf(c, {}).key], ["vn_c", 39.968, "2026-12-05T18:30", "waiting"], "confirming an unfamiliar location applies that venue; the event can now be briefed");
+  const kept = E.mergeImported([c], [E.fromCalendar({ ...g2, etag: "2", summary: "Away match (moved)" }, [tqlV], "c")], (id) => (id === "vn_c" ? colV : null)).list[0];
+  eq([kept.venueId, kept.name, kept.times.gates], ["vn_c", "Away match (moved)", "2026-12-05T18:30"], "a confirmed venue survives re-import; the name follows the calendar");
+  const sp = CI.sampleProvider(Date.UTC(2026, 10, 10, 12));
+  const run = async () => { const cals = await sp.listCalendars(), evs = await sp.listEvents(cals[0].id, { timeMin: new Date(Date.UTC(2026, 10, 10, 12)).toISOString(), timeMax: new Date(Date.UTC(2026, 10, 10, 12) + 90 * 864e5).toISOString() });
+    const recs = evs.map((x) => E.fromCalendar(x, [tqlV], "sample")).filter(Boolean);
+    eq([cals.length, evs.length, recs.length, recs.filter((x) => x.venueId).length], [2, 5, 4, 3], "sample calendar: 5 items, the all-day one skipped, 3 at the saved venue");
+    ok(/Sample FC/.test(recs[0].name) && recs[0].times.start.endsWith("T19:30"), "sample events keep the venue's local start time");
+    console.log(`ok - ${n} event store checks passed`); };
+  const loc = (origin) => ({ origin, hostname: new URL(origin).hostname });
+  global.BETA_CALENDAR = { clientId: "x.apps.googleusercontent.com", origins: ["https://beta.example.org"] };
+  eq([CI.googleAvailable(loc("https://beta.example.org")), CI.googleAvailable(loc("https://raw.githack.com")), CI.googleAvailable(loc("https://other.example.org"))], [true, false, false], "Google sign-in only on the configured beta origin, never on the preview host");
+  global.BETA_CALENDAR = { clientId: "", origins: ["https://beta.example.org"] }; eq(CI.googleAvailable(loc("https://beta.example.org")), false, "no client ID: no Google sign-in");
+  ok(CI.SCOPES.split(" ").sort().join(" ") === "https://www.googleapis.com/auth/calendar.calendarlist.readonly https://www.googleapis.com/auth/calendar.events.readonly", "only the two read-only scopes are requested");
+  run().catch((e) => { console.error(e); process.exit(1); });
+}

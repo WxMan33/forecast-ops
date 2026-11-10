@@ -232,6 +232,48 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       "upcoming phone: one tap opens each match's briefing, and a refresh keeps it", opened.map((o) => `${o.name} · ${o.when} · ${o.state}`).join(" | ") + (errors.length ? " · " + errors.join("; ") : ""));
     await ctx.close();
   });
+  /* ---------- 9. calendar import with the sample calendar (phone): choose events, match saved venues, confirm an unfamiliar one ---------- */
+  await section('9. calendar import with sample data (phone)', async () => {
+    const venue = { id: "vn_check", name: "TQL Stadium", city: "Cincinnati, OH", lat: 39.1111, lon: -84.5222, tz: "America/New_York", defaults: { setup: 270, gates: 90, teardown: 120, gust: 30 } };
+    const { ctx, p, errors } = await go(PHONE, base + "event-beta.html#upcoming", `localStorage.setItem("beta_venues_v1", ${JSON.stringify(JSON.stringify([venue]))})`);
+    const sent = []; await ctx.route(/script\.google\.com\/macros/, (r) => { sent.push(r.request().postData() || ""); r.abort(); });
+    await until(p, () => document.querySelector("#upView:not([hidden]) #upImport"), null, 30000);
+    const live = await p.evaluate(() => !!document.getElementById("upImport") && window.CalendarImport.googleAvailable());
+    await p.click("#upImport"); await until(p, () => document.getElementById("ciSample"), null, 10000);
+    const gate = await p.evaluate(() => ({ google: !!document.getElementById("ciGoogle"), note: document.getElementById("editForm").innerText }));
+    await p.click("#ciSample"); await until(p, () => document.getElementById("ciNext"), null, 10000);
+    await p.click("#ciNext"); await until(p, () => document.getElementById("ciImport"), null, 10000);
+    const listed = await p.evaluate(() => [...document.querySelectorAll(".ci-ev")].map((e) => ({ t: e.innerText.replace(/\s+/g, " "), on: e.querySelector("[data-pick]").checked, sel: !!e.querySelector("select") })));
+    await p.screenshot({ path: `${out}/calendar-import-phone.png`, fullPage: false });
+    await p.evaluate(() => { const r = [...document.querySelectorAll(".ci-ev")].find((e) => /Columbus/.test(e.innerText)); const c = r.querySelector("[data-pick]"); c.checked = true; c.dispatchEvent(new Event("change", { bubbles: true })); });
+    await p.click("#ciImport"); await until(p, () => !document.getElementById("editDlg").open && document.querySelectorAll("#upList .up-ev").length === 4, null, 30000);
+    await until(p, () => document.querySelector("#upView").dataset.ready === "true", null, 150000);
+    const rows = await p.evaluate(() => [...document.querySelectorAll("#upList .up-ev")].map((r) => ({ id: r.dataset.id, st: r.dataset.status, t: r.innerText.replace(/\s+/g, " ") })));
+    const stored = await p.evaluate(() => JSON.parse(localStorage.getItem("beta_events_v2")).map((e) => [e.id, e.venueId, e.times.gates ? e.times.gates.slice(11) : "-", e.source.kind]));
+    report(!live && !gate.google && /isn't available on this preview link/.test(gate.note) && listed.length === 4 && listed.filter((x) => x.on).length === 3 && listed.filter((x) => x.sel).length === 1
+      && stored.length === 4 && stored.filter((x) => x[1] === "vn_check").length === 3 && stored.filter((x) => x[2] === "18:00").length === 2 && stored.some((x) => x[2] === "14:30") && rows.filter((r) => r.st === "venue").length === 1 && stored.every((x) => x[3] === "calendar"),
+      "calendar import (sample): Google sign-in off on the preview link; 3 TQL events matched with venue defaults, the away match waits for a venue",
+      `${listed.length} listed, ${listed.filter((x) => x.on).length} preselected · stored ${stored.map((x) => `${x[0]}:${x[1] || "no venue"}:${x[2]}`).join(" ")} · statuses ${rows.map((r) => r.st).join(",")}`);
+    /* importing again adds nothing */
+    await p.click("#upImport"); await p.click("#ciSample"); await until(p, () => document.getElementById("ciNext"), null, 10000); await p.click("#ciNext"); await until(p, () => document.getElementById("ciImport"), null, 10000);
+    const marked = await p.evaluate(() => [...document.querySelectorAll(".ci-ev")].filter((e) => /already imported/.test(e.innerText)).length);
+    await p.click("#ciImport"); await until(p, () => !document.getElementById("editDlg").open, null, 10000);
+    const note = await p.evaluate(() => document.getElementById("upNote").innerText), count = await p.evaluate(() => JSON.parse(localStorage.getItem("beta_events_v2")).length);
+    /* confirm the unfamiliar location: Edit, search its city, save it as a venue */
+    const vid = rows.find((r) => r.st === "venue").id;
+    await p.click(`.up-ev[data-id="${vid}"] [data-edit]`); await until(p, () => document.getElementById("editDlg").open, null, 10000);
+    const pick = await pickCity(p, "Columbus", "Columbus, OH", "#fCity"); await pick();
+    await p.fill("#fVenue", "Lower.com Field"); await p.click("#fSave");
+    if (!(await until(p, () => !document.getElementById("editDlg").open, null, 30000))) console.log(`note: editor still open: "${await p.evaluate(() => document.getElementById("fErr").innerText)}" · lat ${await p.inputValue("#fLat")}`);
+    await until(p, () => document.querySelector("#upView").dataset.ready === "true", null, 150000);
+    const after = await p.evaluate((id) => ({ st: document.querySelector(`.up-ev[data-id="${id}"]`).dataset.status, venues: JSON.parse(localStorage.getItem("beta_venues_v1")).map((v) => v.name) }), vid);
+    await p.evaluate(() => window.BetaAnalytics && window.BetaAnalytics.flush()); await p.waitForTimeout(800);
+    const leaked = sent.filter((b) => /Sample FC|Example United|Columbus|TQL|Home matches|Venue operations|1501 Central/.test(b));
+    report(marked >= 3 && /Imported 0 new/.test(note) && count === 4 && after.st !== "venue" && after.venues.includes("Lower.com Field") && !leaked.length && !errors.length,
+      "calendar import: re-import adds no duplicates; confirming the away venue enables its briefing; no calendar details in analytics",
+      `re-import: "${note}" (${count} events) · away match now ${after.st} · venues ${after.venues.join(", ")} · analytics requests ${sent.length}, with calendar details ${leaked.length}${errors.length ? " · " + errors.join("; ") : ""}`);
+    await ctx.close();
+  });
   await section('7. analytics blocked or opted out: the betas work; nothing i', async () => {
   for (const [mode, init] of [["blocked", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec")'], ["opted out", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec");localStorage.setItem("fo_analytics_optout","1")']]) {
     for (const page of ["meteorologist-beta.html", "event-beta.html"]) {

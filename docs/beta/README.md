@@ -52,6 +52,24 @@ lets you pick another verified station without moving the forecast point.
 - The HRRR map (in development) covers the Cincinnati Tri-State only; elsewhere it is replaced by a short note.
 - Usage analytics: see `tools/analytics/README.md` (off until a collector URL is configured).
 
+## Calendar import (read-only; sample data on this link)
+
+In **Upcoming events**, **Import from calendar** walks through: choose a calendar → tick the events to import → each
+event at a saved venue gets that venue's setup, gates and teardown times; an unfamiliar location can be matched to a
+saved venue right there or left as **Venue needs confirmation** (no briefing until a venue is chosen with Edit).
+Importing again updates events in place: the calendar's name and start/end win, a confirmed venue and the
+planner's own times are kept (an override keeps its offset from the start). All-day items are skipped.
+
+- **On this preview link only the sample calendar is offered** (synthetic demo data). Google sign-in is off here and
+  is only enabled when `BETA_CALENDAR.clientId` is set and the page is served from an origin listed in
+  `BETA_CALENDAR.origins` (never raw.githack.com).
+- **Live Google Calendar** (on the dedicated beta origin): Google Identity Services token client, scopes
+  `calendar.calendarlist.readonly` and `calendar.events.readonly` only; the access token stays in memory for the
+  tab; requests ask Google for just the fields used (id, summary, location, start, end, status, etag).
+- **Stored:** only the events the planner imports (in this browser). Not the calendar list, unselected events or the
+  token. **Analytics:** `calendar_import_opened`, `calendar_import_started` (provider: sample/google) and
+  `calendar_events_imported` (provider and count) only; no calendar names, event details or tokens.
+
 ## Upcoming events and saved venues
 
 The briefing stays the main screen; **Upcoming events** (link at the top, or `event-beta.html#upcoming`) lists every saved event:

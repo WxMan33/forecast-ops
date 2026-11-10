@@ -92,6 +92,38 @@
       source: { kind: "calendar", calendarId: calendarId || null, eventId: g.id, etag: g.etag || null }, created: Date.now(), updated: Date.now() };
   }
 
+  /* ---- merge imported calendar records into the list ----
+     New events are added. An event imported before (same calendar event ID) is updated in place: name and
+     start/end follow the calendar; a confirmed venue and the planner's per-event times are kept (an override
+     keeps its offset from the start, so "gates 2 h before" survives a kickoff change). Pure: list in, list out. */
+  function mergeImported(list, recs, venueOf) {
+    const out = list.slice(), now = Date.now(); let added = 0, updated = 0, unchanged = 0;
+    recs.forEach((r) => {
+      const i = out.findIndex((x) => x.id === r.id);
+      if (i < 0) { out.push({ ...r, created: now, updated: now }); added++; return; }
+      const old = out[i], keepVenue = old.venueId || (old.loc && fin(old.loc.lat));
+      const venue = keepVenue && old.venueId && venueOf ? venueOf(old.venueId) : null;
+      const sameTimes = old.times.start === r.times.start && old.times.end === r.times.end;
+      let times;
+      if (sameTimes) times = old.times;
+      else {
+        const start = r.times.start, end = r.times.end;
+        times = venue ? applyDefaults(venue.defaults, start.slice(0, 10), start.slice(11, 16), end.slice(11, 16)) : { ...r.times };
+        (old.overrides || []).forEach((k) => { if (k === "teardown" && old.times.teardown) times.teardown = addMin(end, diffMin(old.times.teardown, old.times.end)); else if (old.times[k]) times[k] = addMin(start, diffMin(old.times[k], old.times.start)); });
+        if (!venue && !keepVenue) times = { ...r.times };
+      }
+      const next = { ...old, name: r.name, times, tz: keepVenue ? old.tz : r.tz, venueId: keepVenue ? old.venueId : r.venueId, loc: keepVenue ? old.loc : r.loc,
+        source: { ...old.source, ...r.source }, updated: now };
+      if (JSON.stringify({ ...next, updated: 0 }) === JSON.stringify({ ...old, updated: 0 })) unchanged++; else { out[i] = next; updated++; }
+    });
+    return { list: out, added, updated, unchanged };
+  }
+  /* confirm an imported event's venue: it takes the venue's place and defaults (the calendar's start/end stay) */
+  function confirmVenue(ev, v) {
+    const t = applyDefaults(v.defaults, ev.times.start.slice(0, 10), ev.times.start.slice(11, 16), ev.times.end.slice(11, 16));
+    return { ...ev, venueId: v.id, loc: { name: v.name, lat: v.lat, lon: v.lon }, tz: v.tz, times: t, gust: (v.defaults && v.defaults.gust) || ev.gust, overrides: [] };
+  }
+
   /* ---- browser storage ---- */
   function ls() { try { return root.localStorage; } catch (e) { return null; } }
   const read = (k, d) => { try { const v = JSON.parse(ls().getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
@@ -121,7 +153,9 @@
     try { ls().removeItem(OLD_KEY); } catch (e) { /* ignore */ }
   }
 
-  const api = { STD, STATUS, applyDefaults, offsetsOf, overridesOf, statusOf, order, fromCalendar, addMin, diffMin,
+  function importEvents(recs) { const r = mergeImported(events(), recs, getVenue); write(EV_KEY, r.list); return r; }
+
+  const api = { mergeImported, confirmVenue, importEvents, STD, STATUS, applyDefaults, offsetsOf, overridesOf, statusOf, order, fromCalendar, addMin, diffMin,
     events, venues, saveEvent, getEvent, removeEvent, saveVenue, getVenue, removeVenue, last, setLast, migrate, EV_KEY, VN_KEY };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.EventStore = api;
