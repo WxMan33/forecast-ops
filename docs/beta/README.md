@@ -20,6 +20,19 @@ there that checks out `WxMan33/forecast-ops@beta-previews` and deploys it. The l
 links on desktop and phone from a fresh, signed-out browser on every push and refreshes the screenshots in
 [`screens/`](screens/).
 
+## Any U.S. market
+
+- City search on both betas (the site's own place search; results shown as "City, ST"). The meteorologist beta
+  opens on CVG; **Copy link** gives a link that opens the selected city (or, on the event beta, the event).
+- The selected point drives the blend, hourly timeline, signals, active NWS alerts, the official NWS point
+  forecast (grid and serving office resolved from the coordinates) and links into the full tools.
+- Times follow the selected location's time zone; event phases follow the venue's clock wherever the planner is,
+  including events that cross midnight. The event editor takes a venue name, a city and optional coordinates.
+- Inside the Cincinnati DMA the Cincinnati-tuned blend applies; elsewhere the default recipe is used and labelled
+  unverified for that market, with contributing and missing sources listed.
+- The HRRR map (in development) covers the Cincinnati Tri-State only; elsewhere it is replaced by a short note.
+- Usage analytics: see `tools/analytics/README.md` (off until a collector URL is configured).
+
 ## Design direction (pass 2)
 
 The organizing idea is the weather itself: how it moves across the map and when it reaches a place.

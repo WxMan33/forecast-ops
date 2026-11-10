@@ -84,7 +84,7 @@
   ];
 
   /* opts: { subtitle, forecastPoint (default true): show the forecast point and its NWS alerts } */
-  const SUBTITLES = { home: "Next three days at a glance", blend: "Weighted guidance from models, ensembles and NWS", thunder: "Hour-by-hour thunder signal", severe: "Severe-weather environment by hour", winter: "Snow odds, precipitation type and profiles", almanac: "Sun, moon and Cincinnati daily climate", maps: "HRRR model guidance across the Tri-State" };
+  const SUBTITLES = { home: "Next three days at a glance", blend: "Weighted guidance from models, ensembles and NWS", thunder: "Hour-by-hour thunder signal", severe: "Severe-weather environment by hour", winter: "Snow odds, precipitation type and profiles", almanac: "Sun, moon and Cincinnati daily climate", maps: "In development · HRRR 3 km, Cincinnati Tri-State only" };
   function shell(pageId, title, opts = {}) {
     const fp = opts.forecastPoint !== false, sub = opts.subtitle || SUBTITLES[pageId] || "";
     document.title = `${title} · ${BRAND.name}`;
@@ -306,8 +306,7 @@
       if (q.length < 2) { $("locResults").innerHTML = ""; return; }
       timer = setTimeout(async () => {
         try {
-          const j = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=en&format=json`, 0);
-          const r = j.results || [];
+          const r = await searchPlaces(q, { raw: true });
           $("locResults").innerHTML = r.length ? r.map((x, i) =>
             `<button type="button" data-i="${i}">${esc(x.name)} <small>${esc([x.admin1, x.country_code].filter(Boolean).join(", "))}</small></button>`).join("")
             : '<p class="msg">No matches.</p>';
@@ -319,6 +318,16 @@
         } catch (err) { $("locResults").innerHTML = '<p class="msg err">Place search is unavailable right now.</p>'; }
       }, 300);
     });
+  }
+  /* Place search (Open-Meteo geocoding), shared by the location card and the betas.
+     raw: the provider's results as-is; otherwise {name: "City, ST", city, state, country, county, lat, lon, tz, pop}. */
+  async function searchPlaces(q, { raw = false, usOnly = false, count = 6 } = {}) {
+    const j = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=${usOnly ? Math.max(count, 10) : count}&language=en&format=json`, 0);
+    let r = j.results || [];
+    if (usOnly) r = r.filter((x) => x.country_code === "US").slice(0, count);
+    if (raw) return r;
+    return r.map((x) => ({ name: [x.name, x.admin1 && x.country_code === "US" ? stateAbbr(x.admin1) : x.country_code].filter(Boolean).join(", "), city: x.name, state: x.admin1 ? stateAbbr(x.admin1) : "",
+      country: x.country_code, county: x.admin2 || "", lat: x.latitude, lon: x.longitude, tz: x.timezone || null, pop: x.population || null }));
   }
   const STATES = { Alabama: "AL", Alaska: "AK", Arizona: "AZ", Arkansas: "AR", California: "CA", Colorado: "CO", Connecticut: "CT", Delaware: "DE", Florida: "FL", Georgia: "GA", Hawaii: "HI", Idaho: "ID", Illinois: "IL", Indiana: "IN", Iowa: "IA", Kansas: "KS", Kentucky: "KY", Louisiana: "LA", Maine: "ME", Maryland: "MD", Massachusetts: "MA", Michigan: "MI", Minnesota: "MN", Mississippi: "MS", Missouri: "MO", Montana: "MT", Nebraska: "NE", Nevada: "NV", "New Hampshire": "NH", "New Jersey": "NJ", "New Mexico": "NM", "New York": "NY", "North Carolina": "NC", "North Dakota": "ND", Ohio: "OH", Oklahoma: "OK", Oregon: "OR", Pennsylvania: "PA", "Rhode Island": "RI", "South Carolina": "SC", "South Dakota": "SD", Tennessee: "TN", Texas: "TX", Utah: "UT", Vermont: "VT", Virginia: "VA", Washington: "WA", "West Virginia": "WV", Wisconsin: "WI", Wyoming: "WY", "District of Columbia": "DC" };
   const stateAbbr = (s) => STATES[s] || s;
@@ -787,7 +796,7 @@
 
   window.Ops = {
     pct5, Core, BRAND, PRESETS, TIER, maxTier, badge, $, esc, store, css, icon,
-    shell, onAlerts, get alertState(){return alertState;}, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
+    shell, onAlerts, searchPlaces, zoneFor, stateAbbr, get alertState(){return alertState;}, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
     Data, getJSON, hasData, savedWeights, savedDays, align: Core.stats.align,
     nowIndex, hourOf, dayOf, fmtDay, fmtHour, fmtWhen, tzShort, hourLabels, dayGroups,
     blendSeries: Core.stats.blendSeries, weightedQuantile: Core.stats.weightedQuantile,

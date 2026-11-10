@@ -201,3 +201,27 @@ body.bx * { font-variant-numeric: tabular-nums; }
 .bx-mapflag { position: absolute; top: 10px; left: 10px; z-index: 2; padding: 6px 10px; border-radius: 8px; background: var(--panel); border: 1.5px solid var(--monitor); font-weight: 700; font-size: 13px; pointer-events: none; }
 .bx-mapflag span { display: block; font-weight: 500; font-size: 11.5px; color: var(--muted); }
 .bx-maptool .vt.oor b { text-decoration: line-through; text-decoration-color: var(--monitor); }
+
+/* city search */
+.bx-pp { position: relative; min-width: 0; flex: 0 1 300px; }
+.bx-ppin { width: 100%; font-weight: 600; }
+.bx-ppin::placeholder { color: var(--text); opacity: 1; }
+.bx-ppin:focus::placeholder { color: var(--muted); }
+.bx-ppres { position: absolute; z-index: 50; top: calc(100% + 4px); left: 0; right: 0; min-width: 240px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.3); padding: 4px; max-height: 60vh; overflow: auto; }
+.bx-ppres button { display: flex; flex-direction: column; align-items: flex-start; width: 100%; text-align: left; background: none; border: 0; color: var(--text); padding: 7px 9px; border-radius: 7px; cursor: pointer; font: 500 14px var(--bx-font); }
+.bx-ppres button:hover, .bx-ppres button:focus { background: var(--bx-quiet); }
+.bx-ppres small { color: var(--muted); font-size: 12px; }
+.bx-ppres p { margin: 6px 9px; }
+/* map gating, in-development label, official NWS block */
+.bx-dev { font: 600 10.5px var(--bx-font); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); border: 1px dashed var(--faint); border-radius: 5px; padding: 1px 6px; white-space: nowrap; }
+.bx-mapoff { height: 100%; min-height: 180px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 6px; padding: 22px; border: 1px dashed var(--bx-rule); border-radius: var(--bx-r); }
+.bx-mapoff b { font-size: 16px; }
+.bx-mapoff span { color: var(--muted); max-width: 520px; }
+.bx-work > .bx-mapwrap:has(.bx-mapoff) { height: auto; }
+.bx-brief .bx-mapwrap:has(.bx-mapoff) { height: auto; min-height: 0; }
+.bx-nws ul { list-style: none; margin: 6px 0; padding: 0; display: grid; gap: 4px; }
+.bx-nws li { font-size: 13.5px; } .bx-nws li .t { font-weight: 700; margin: 0 4px; }
+.bx-blendline { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+@media (max-width: 760px) { .bx-pp { flex: 1 1 auto; } .bx-ppcopy { padding: 6px 8px; } }
+
+.bx-privacy { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 6px; }

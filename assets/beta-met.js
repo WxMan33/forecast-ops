@@ -5,43 +5,50 @@
   "use strict";
   const O = window.Ops, C = O.Core, S = window.BetaStory, U = window.BetaUI, FC = window.ForecastClock, $ = O.$, esc = O.esc, H = 3600e3;
   const { fmt, vt, st, deg, inch, mph, fin } = U;
-  const PLACES = O.PRESETS.map(([name, lat, lon]) => ({ name, lat, lon }));
+  const CVG = { name: O.PRESETS[0][0], lat: O.PRESETS[0][1], lon: O.PRESETS[0][2], tz: "America/New_York" };
   const Q = new URLSearchParams(location.search);
-  const fromQ = (() => { const lat = parseFloat(Q.get("lat")), lon = parseFloat(Q.get("lon")); return fin(lat) && fin(lon) ? { name: Q.get("name") || `${lat.toFixed(3)}, ${lon.toFixed(3)}`, lat, lon } : null; })();
-  if (fromQ && !PLACES.some((p) => p.lat === fromQ.lat && p.lon === fromQ.lon)) PLACES.push(fromQ);
-  let place = fromQ ? PLACES.find((p) => p.lat === fromQ.lat && p.lon === fromQ.lon) : PLACES[0]; // CVG by default
-  const TZ = "America/New_York";
-  const head = U.header({ audience: "Meteorologist", other: { self: "meteorologist-beta.html", href: "event-beta.html", label: "Event" },
-    ctx: `<label class="sr-only" for="placeSel">Forecast point</label><select class="bx-sel" id="placeSel"></select><span id="selVt" class="bx-note"></span>` });
+  /* a shared link opens the same point: ?lat=&lon=&name=&tz= */
+  const fromQ = (() => { const lat = parseFloat(Q.get("lat")), lon = parseFloat(Q.get("lon")); return fin(lat) && fin(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 ? { name: Q.get("name") || `${lat.toFixed(3)}, ${lon.toFixed(3)}`, lat, lon, tz: Q.get("tz") || null } : null; })();
+  let place = fromQ || CVG, lastTz = place.tz || "America/New_York"; // CVG is the default
+  const tzNow = () => place.tz || lastTz;
+  const link = () => { const u = new URL(location.href); u.search = new URLSearchParams({ lat: place.lat, lon: place.lon, name: place.name, ...(place.tz ? { tz: place.tz } : {}) }); u.hash = ""; return u.toString(); };
+  const head = U.header({ audience: "Meteorologist", other: { self: "meteorologist-beta.html", href: "event-beta.html", label: "Event" }, ctx: `<div id="picker" class="bx-ctx" style="flex:1 1 auto"></div><span id="selVt" class="bx-note"></span>` });
   document.title = "Meteorologist beta · Forecast Ops";
-  $("placeSel").innerHTML = PLACES.map((p, i) => `<option value="${i}" ${p === place ? "selected" : ""}>${esc(p.name.split(",")[0])}</option>`).join("");
-  $("placeSel").addEventListener("change", () => { place = PLACES[+$("placeSel").value]; const u = new URL(location.href); u.search = new URLSearchParams({ lat: place.lat, lon: place.lon, name: place.name }); history.replaceState(null, "", u); run(); });
+  const picker = U.placePicker($("picker"), { current: place, link, label: "Search a U.S. city",
+    onPick(p) { place = p; history.replaceState(null, "", link()); U.track("city_selected", { market: S.market(p.lat, p.lon).tuned ? "cincinnati" : "elsewhere" }); run(); } });
   head.onRefresh(() => run());
 
   /* one selected time for the whole workspace */
   const bus = U.timeBus(Math.floor(Date.now() / H) * H);
-  const showSel = () => { $("selVt").innerHTML = bus.get() ? `Selected ${vt(bus.get(), TZ)}` : ""; };
+  const showSel = () => { $("selVt").innerHTML = bus.get() ? `Selected ${vt(bus.get(), tzNow())}` : ""; };
   bus.on(showSel); showSel();
   bus.on((ms) => { document.body.dataset.selected = ms; }); document.body.dataset.selected = bus.get();
 
   /* phone: Map | Timeline */
   document.querySelectorAll(".bx-tabs [data-tab]").forEach((b) => b.addEventListener("click", () => { $("work").dataset.tab = b.dataset.tab; document.querySelectorAll(".bx-tabs [data-tab]").forEach((x) => x.setAttribute("aria-selected", String(x === b))); }));
 
-  const RAIL = [["Workspace", null], ["Models", "blend.html"], ["Weights", "blend.html#forecastControls"], ["Runs", "blend.html#modelTrendCard"], ["Soundings", "severe.html"], ["Thunder", "thunder.html"], ["Winter", "winter.html"], ["Full map", "maps.html"]];
+  const RAIL = [["Workspace", null], ["Models", "blend.html"], ["Weights", "blend.html#forecastControls"], ["Runs", "blend.html#modelTrendCard"], ["Soundings", "severe.html"], ["Thunder", "thunder.html"], ["Winter", "winter.html"], ["Map (in development)", "maps.html"]];
   const drawRail = () => { const q = new URLSearchParams({ lat: place.lat, lon: place.lon, name: place.name });
-    $("rail").innerHTML = RAIL.map(([t, h]) => { if (!h) return `<a href="#" aria-current="page">${t}</a>`; const [pg, hash] = h.split("#"); return `<a href="${pg}?${q}${hash ? "#" + hash : ""}">${t}</a>`; }).join(""); };
+    $("rail").innerHTML = RAIL.map(([t, h]) => { if (!h) return `<a href="#" aria-current="page">${t}</a>`; const [pg, hash] = h.split("#"); return `<a href="${pg}?${q}${hash ? "#" + hash : ""}" data-tool="${esc(t)}">${t}</a>`; }).join("");
+    $("rail").querySelectorAll("[data-tool]").forEach((a) => a.addEventListener("click", () => { const tool = a.dataset.tool.split(" ")[0].toLowerCase(); U.track("tool_opened", { tool }); if (tool === "models" || tool === "runs") U.track("models_compared"); })); };
 
+  /* every load is numbered; a slow answer for an earlier city is dropped, never drawn over the current one */
   let gen = 0, mapMade = null;
   async function run() {
-    const g = ++gen, where = { lat: place.lat, lon: place.lon };
-    drawRail(); $("pageTitle").textContent = `${place.name.split(",")[0]} forecast workspace`;
-    $("strip").innerHTML = '<div class="bx-loading">Loading guidance…</div>'; ["timeline", "signals", "ages", "days"].forEach((id) => { $(id).innerHTML = ""; });
-    if (mapMade !== place) { U.mapPanel($("map"), { view: "tristate", field: "refc", place, bus, tz: TZ }); mapMade = place; }
-    U.alerts(where).then((a) => { if (g !== gen) return; $("alerts").innerHTML = a.slice(0, 3).map((x) => `<div class="bx-alert" role="alert">${st("action", x.event)}${x.ends ? `<span class="bx-note">until ${esc(fmt.time(Date.parse(x.ends), TZ))}</span>` : ""}<a href="https://forecast.weather.gov/MapClick.php?lat=${place.lat}&lon=${place.lon}" target="_blank" rel="noopener">NWS ↗</a></div>`).join(""); });
+    const g = ++gen, where = { lat: place.lat, lon: place.lon }, mk = S.market(place.lat, place.lon), key = `${place.lat},${place.lon}`;
+    picker.setCurrent(place); drawRail(); $("pageTitle").textContent = `${place.name.split(",")[0]} forecast workspace`;
+    document.body.dataset.place = place.name; document.body.dataset.loaded = ""; document.body.dataset.market = mk.tuned ? "tuned" : "default";
+    $("strip").innerHTML = '<div class="bx-loading">Loading guidance…</div>'; ["timeline", "signals", "ages", "days", "nws", "blendLine", "alerts"].forEach((id) => { $(id).innerHTML = ""; });
+    if (mapMade !== key) { if (mk.map) U.mapPanel($("map"), { view: "tristate", field: "refc", place, bus, tz: "America/New_York" }); else U.mapUnavailable($("map"), place); mapMade = key; }
+    U.alerts(where).then((a) => { if (g !== gen) return; $("alerts").innerHTML = a.slice(0, 3).map((x) => `<div class="bx-alert" role="alert">${st("action", x.event)}${x.ends ? `<span class="bx-note">until ${esc(fmt.time(Date.parse(x.ends), tzNow()))}</span>` : ""}<a href="https://forecast.weather.gov/MapClick.php?lat=${place.lat}&lon=${place.lon}" target="_blank" rel="noopener">NWS ↗</a></div>`).join(""); });
     const res = await U.load(where, { days: Math.max(3, O.savedDays(C.config.blend)) });
     if (g !== gen) return;
-    if (res.empty) { $("strip").innerHTML = '<div class="bx-err">Model guidance could not be loaded (Open-Meteo unreachable). Try ↻ in a minute.</div>'; return; }
+    if (res.empty) { U.track("load_failed", { what: "models" }); $("strip").innerHTML = '<div class="bx-err">Model guidance could not be loaded (Open-Meteo unreachable). Try ↻ in a minute.</div>'; $("nws").innerHTML = U.nwsBlock(res, tzNow()); return; }
+    if (!res.NW || !res.NW.ok) U.track("load_failed", { what: "nws" });
+    if (res.feeds.missing.length) U.track("feeds_missing", { n: res.feeds.missing.length });
+    lastTz = res.ctx.B.tz; if (!place.tz) place.tz = lastTz;
     render(res);
+    document.body.dataset.loaded = place.name; document.body.dataset.tz = res.ctx.B.tz; document.body.dataset.office = res.NW && res.NW.ok ? res.NW.office : "";
   }
 
   function render(res) {
@@ -59,7 +66,9 @@
     $("tlValid").innerHTML = `${esc(fmt.span(s0, s0 + 72 * H, tz))} ${esc(fmt.zone(s0, tz))} · tap to select a time`;
     U.timeline($("timeline"), hrs, { tz, now, bus });
     const sig = S.signals(ctx, s0, s0 + 48 * H, (ms) => fmt.time(ms, tz));
-    $("signals").innerHTML = sig.map((x, i) => `<li class="${i ? "" : "first"}"${x.at ? ` data-at="${x.at}" style="cursor:pointer" title="Select this time"` : ""}>${st(x.tier === "normal" ? null : x.tier, x.title)}<div class="d">${esc(x.detail)}</div></li>`).join("") + `<li class="bx-note">Spread among guidance, not a calibrated probability. Blend recipe: ${esc(res.recipe)}.</li>`;
+    $("nws").innerHTML = U.nwsBlock(res, tz, { from: now, max: 4 });
+    $("blendLine").innerHTML = `<b>Model blend:</b> ${esc(U.blendLine(res))}. ${esc(res.verified)}`;
+    $("signals").innerHTML = sig.map((x, i) => `<li class="${i ? "" : "first"}"${x.at ? ` data-at="${x.at}" style="cursor:pointer" title="Select this time"` : ""}>${st(x.tier === "normal" ? null : x.tier, x.title)}<div class="d">${esc(x.detail)}</div></li>`).join("") + `<li class="bx-note">Spread among guidance, not a calibrated probability.</li>`;
     $("signals").querySelectorAll("[data-at]").forEach((li) => li.addEventListener("click", () => bus.set(+li.dataset.at, "signal")));
     /* days and guidance age */
     const rows = C.blend.dailyRows(B, ctx.ws, ctx.opts).slice(0, 7);

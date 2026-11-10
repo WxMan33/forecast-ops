@@ -29,7 +29,7 @@
   /* ---------- the selected time: one value, many views ---------- */
   function timeBus(initial = null) {
     let ms = initial, src = null; const fns = [];
-    return { get: () => ms, source: () => src, set(v, from) { if (!fin(v) || v === ms) return; ms = v; src = from || null; fns.forEach((f) => f(ms, src)); }, on(f) { fns.push(f); } };
+    return { get: () => ms, source: () => src, set(v, from) { if (!fin(v) || v === ms) return; ms = v; src = from || null; fns.slice().forEach((f) => f(ms, src)); }, on(f) { fns.push(f); return () => { const i = fns.indexOf(f); if (i >= 0) fns.splice(i, 1); }; } };
   }
 
   /* ---------- header: brand, page context, theme ---------- */
@@ -48,8 +48,15 @@
   }
 
   /* ---------- data: the same requests and recipe as Model Blend / overview ---------- */
+  /* Cincinnati's tuned recipe where it was set (Cincinnati DMA); the site's default ten-source recipe elsewhere,
+     labelled unverified for that market. Missing feeds are named; whatever loaded stays usable. */
+  const FEED_NAMES = { ...Object.fromEntries([...CFG.blend.models, ...CFG.blend.extra].map((m) => [m.id, m.name.replace(/ \(\d+ members\)$/, "")])) };
+  function recipeFor(mk) {
+    if (mk.tuned) { const RB = O.blendRecipe(); return { ...RB, label: "Cincinnati-tuned blend", verified: "Weights tuned for CVG; prospective verification at CVG is under way." }; }
+    return { preset: "preferred", ws: C.blend.presetWeights("preferred", CFG.blend, {}), rules: C.blend.presetRules("preferred"), label: "Default blend recipe", verified: "Not verified for this market: weights were chosen for Cincinnati, not tested here." };
+  }
   async function load(where, { days = 7, thunder = true } = {}) {
-    const RB = O.blendRecipe();
+    const mk = S.market(where.lat, where.lon), RB = recipeFor(mk);
     const [B, NW, BE, TH, META] = await Promise.all([
       O.Data.loadModels(CFG.blend, { ...where, days }),
       O.Data.loadNWS(where),
@@ -57,14 +64,27 @@
       thunder ? O.Data.loadModels(CFG.thunder, { ...where, days: Math.max(3, O.savedDays(CFG.thunder)) }).catch(() => ({ empty: true })) : Promise.resolve(null),
       O.Data.loadModelMeta(CFG.metaIds).catch(() => ({})),
     ]);
-    if (B.empty) return { empty: true, problems: B.problems || [] };
+    if (B.empty) return { empty: true, problems: B.problems || [], NW, market: mk };
     C.blend.addSources(B, BE, NW && NW.ok ? C.nws.onAxis(NW, B.ms) : null);
     B.viewedAt = Date.now();
     const ws = {}; Object.keys(RB.ws).forEach((id) => { if (B.models[id] && RB.ws[id] > 0) ws[id] = RB.ws[id]; });
     const ctx = S.context({ C, T: root.ModelTrends, B, ws, rules: RB.rules, TH, thWs: O.savedWeights(CFG.thunder), meta: META, nws: NW, now: Date.now() });
+    const requested = Object.keys(RB.ws).filter((id) => RB.ws[id] > 0);
+    const why = (id) => id === "nws" ? (NW && NW.reason) || "unavailable" : B.status && B.status[id] === "empty" ? "no coverage here" : B.status && B.status[id] === "failed" ? "request failed" : "no data returned";
+    const feeds = { used: requested.filter((id) => ws[id]).map((id) => FEED_NAMES[id] || id), missing: requested.filter((id) => !ws[id]).map((id) => ({ id, name: FEED_NAMES[id] || id, why: why(id) })) };
     const problems = [...(B.problems || []), ...(NW && !NW.ok ? [`NWS: ${NW.reason}`] : [])];
-    return { ctx, RB, NW, problems, recipe: C.blend.PRESETS[RB.preset] ? C.blend.PRESETS[RB.preset].label : RB.preset };
+    return { ctx, RB, NW, problems, feeds, market: mk, recipe: RB.label, verified: RB.verified };
   }
+  /* "Model blend: default recipe · 9 of 13 sources · missing RRFS 3 km (no coverage here)" */
+  const blendLine = (res) => `${res.recipe}${res.market.tuned ? "" : " · unverified for this market"} · ${res.feeds.used.length} of ${res.feeds.used.length + res.feeds.missing.length} sources${res.feeds.missing.length ? ` · missing ${res.feeds.missing.map((m) => `${m.name} (${m.why})`).join(", ")}` : ""}`;
+  /* the official NWS point forecast, labelled as NWS and kept separate from the blend */
+  function nwsBlock(res, tz, { from = null, to = null, max = 4 } = {}) {
+    const NW = res.NW;
+    if (!NW || !NW.ok) return `<p class="bx-note">Official NWS forecast unavailable${NW && NW.reason ? ` (${esc(NW.reason)})` : ""}. The blend above still uses every other source.</p>`;
+    const per = (NW.periods || []).filter((p) => (from == null || p.e > from) && (to == null || p.s < to)).slice(0, max);
+    return `<div class="bx-nws"><div class="bx-cap">Official NWS forecast · ${esc(NW.office)} office · grid ${NW.gridX},${NW.gridY}</div>${per.length ? `<ul>${per.map((p) => `<li><b>${esc(p.name)}</b> <span class="t">${p.temp == null ? "—" : Math.round(p.temp) + "°"}</span> <span>${esc(p.short)}${fin(p.pop) ? ` · ${pct(p.pop)} chance` : ""}</span></li>`).join("")}</ul>` : '<p class="bx-note">No NWS periods for this window yet.</p>'}<p class="bx-note">Issued by NWS ${esc(NW.office)} for this point. Shown alongside the model blend, not mixed into these lines.</p></div>`;
+  }
+
   async function alerts(where) {
     try {
       const r = await fetch(`https://api.weather.gov/alerts/active?point=${(+where.lat).toFixed(4)},${(+where.lon).toFixed(4)}`, { headers: { Accept: "application/geo+json" } });
@@ -76,6 +96,7 @@
   /* ---------- timeline chart (SVG), driven by and driving the selected time ---------- */
   function timeline(host, hours, { tz, now = Date.now(), bands = [], gustLine = null, height = null, bus = null, mark = null } = {}) {
     host.classList.add("bx-chart");
+    if (host._dispose) host._dispose(); // a previous chart on this host (e.g. the last city) must not redraw over this one
     let sel = null;
     const draw = () => {
       const W = Math.max(260, host.clientWidth), small = W < 520, Ht = height || (small ? 230 : 250);
@@ -123,15 +144,16 @@
         tip.hidden = false; const px = (x(h.ms) / W) * r.width; tip.style.left = `${Math.min(r.width - 180, Math.max(0, px + 12))}px`; tip.style.top = "26px"; };
       svgEl.addEventListener("pointermove", (e) => show(e.clientX));
       svgEl.addEventListener("pointerleave", () => { tip.hidden = true; });
-      svgEl.addEventListener("click", (e) => { const h = hourAt(e.clientX); if (h && bus) bus.set(h.ms, "timeline"); });
+      svgEl.addEventListener("click", (e) => { const h = hourAt(e.clientX); if (h && bus) bus.set(h.ms, "timeline"); track("timeline_used"); });
       place(sel);
       host._place = place;
     };
     draw();
-    if (bus) bus.on((ms) => { sel = ms; if (host._place) host._place(ms); });
+    const offBus = bus ? bus.on((ms) => { sel = ms; if (host._place) host._place(ms); }) : null;
     sel = bus ? bus.get() : null; if (host._place) host._place(sel);
-    let t = null; new ResizeObserver(() => { clearTimeout(t); t = setTimeout(draw, 120); }).observe(host);
+    let t = null; const ro = new ResizeObserver(() => { clearTimeout(t); t = setTimeout(draw, 120); }); ro.observe(host);
     window.addEventListener("ops:theme", draw);
+    host._dispose = () => { ro.disconnect(); clearTimeout(t); window.removeEventListener("ops:theme", draw); if (offBus) offBus(); host._dispose = null; };
   }
 
   /* ---------- the HRRR map with the shared toolbar (layer, run, step/play, valid time) ---------- */
@@ -144,7 +166,7 @@
         <label class="sr-only" for="mpField">Layer</label><select class="bx-sel" id="mpField" disabled><option>Loading map…</option></select>
         <label class="sr-only" for="mpRun">Model run</label><select class="bx-sel" id="mpRun" disabled></select>
         <span class="grp"><button type="button" id="mpBack" aria-label="Previous hour" disabled>‹</button><button type="button" id="mpPlay" aria-pressed="false" disabled>Play</button><button type="button" id="mpNext" aria-label="Next hour" disabled>›</button></span>
-        <span class="vt" id="mpVt" aria-live="polite"></span><a class="bx-btn" href="maps.html?${full}" title="Open the full map page">Full map ↗</a></div>
+        <span class="vt" id="mpVt" aria-live="polite"></span><span class="bx-dev" title="The map is a feature in development">In development</span><a class="bx-btn" href="maps.html?${full}" title="Open the full map page">Full map ↗</a></div>
       <div class="bx-mapnote" id="mpNote" hidden></div>
       <div class="bx-mapframe"><iframe title="HRRR regional model map" src="maps.html?${q}"></iframe><div class="bx-mapflag" id="mpFlag" hidden></div></div></div>`;
     const $ = (id) => host.querySelector("#" + id), frame = host.querySelector("iframe");
@@ -189,17 +211,55 @@
     const attach = () => { const w = frame.contentWindow; if (!w || !w.MapEmbed) return false; M = w.MapEmbed; M.on(render);
       if (wanted != null && bus) bus.set(wanted, "page"); wanted = null; if (bus && bus.get() != null) M.setTime(bus.get()); return true; };
     const poll = setInterval(() => { if (attach()) clearInterval(poll); }, 300); setTimeout(() => clearInterval(poll), 60000);
-    $("mpField").addEventListener("change", (e) => M && M.setField(e.target.value));
+    $("mpField").addEventListener("change", (e) => { if (M) M.setField(e.target.value); track("map_layer_changed", { layer: e.target.value }); });
     $("mpRun").addEventListener("change", (e) => M && M.setRun(e.target.value));
     /* stepping moves the selected time; the map (and the chart) follow it, so nothing can snap back */
     const stepBy = (d) => { if (!M) return; M.stop(); const s0 = M.state(); if (!s0.valid.length) return; const n = s0.valid.length, k = (s0.h + d + n) % n;
       if (bus) bus.set(s0.valid[k], "step"); else M.step(d); };
     $("mpBack").addEventListener("click", () => stepBy(-1));
     $("mpNext").addEventListener("click", () => stepBy(1));
-    $("mpPlay").addEventListener("click", () => { if (!M) return; if (M.state().playing) M.stop(); else M.play(); });
-    if (bus) bus.on((ms, src) => { if (M && src !== "map") { const r = M.setTime(ms); if (r && r.validMs && r.inRange === false) rangeNote(); } rangeNote(); });
+    $("mpPlay").addEventListener("click", () => { if (!M) return; if (M.state().playing) M.stop(); else { M.play(); track("playback_started"); } });
+    const offBus = bus ? bus.on((ms, src) => { if (M && src !== "map") { const r = M.setTime(ms); if (r && r.validMs && r.inRange === false) rangeNote(); } rangeNote(); }) : null;
+    host._dispose = () => { clearInterval(poll); if (offBus) offBus(); M = null; host._dispose = null; };
     return { want(ms) { if (M && bus) bus.set(ms, "page"); else wanted = ms; } };
   }
 
-  root.BetaUI = { NAMES, fmt, vt, st, deg, inch, pct, mph, fin, timeBus, header, load, alerts, timeline, mapPanel };
+  /* analytics hook (filled in by beta-analytics.js when it loads; a no-op otherwise) */
+  const track = (type, ctx) => { try { if (root.BetaAnalytics) root.BetaAnalytics.track(type, ctx); } catch (e) { /* never break the page */ } };
+
+  /* ---------- city search: the site's place search (Open-Meteo geocoding), U.S. results as "City, ST" ---------- */
+  const QUICK = O.PRESETS.map(([name, lat, lon]) => ({ name, lat, lon, tz: null, quick: true })); // time zone comes from the forecast for the point
+  let ppN = 0;
+  function placePicker(host, { current, onPick, link, label = "Search a U.S. city" }) {
+    const id = `pp${++ppN}`;
+    host.innerHTML = `<div class="bx-pp"><label class="sr-only" for="${id}">${esc(label)}</label><input id="${id}" class="bx-sel bx-ppin" type="search" autocomplete="off" spellcheck="false" placeholder="${esc(label)}">
+      <div class="bx-ppres" role="listbox" hidden></div></div><button class="bx-btn bx-ppcopy" type="button" title="Copy a link that opens this city">Copy link</button><span class="bx-note bx-ppmsg" role="status"></span>`;
+    const inp = host.querySelector(".bx-ppin"), res = host.querySelector(".bx-ppres"), msg = host.querySelector(".bx-ppmsg");
+    const show = (items, note) => { res.hidden = false; res.innerHTML = (note ? `<p class="bx-note">${esc(note)}</p>` : "") + items.map((x, i) => `<button type="button" role="option" data-i="${i}"><b>${esc(x.city ? `${x.city}${x.state ? ", " + x.state : ""}` : x.name)}</b>${x.county ? `<small>${esc(x.county)}</small>` : ""}</button>`).join("");
+      res.querySelectorAll("button").forEach((b) => b.addEventListener("mousedown", (e) => { e.preventDefault(); pick(items[+b.dataset.i]); })); };
+    const pick = (x) => { res.hidden = true; inp.value = ""; inp.placeholder = x.name; inp.blur(); onPick({ name: x.name, lat: +(+x.lat).toFixed(4), lon: +(+x.lon).toFixed(4), tz: x.tz || null }); };
+    const setCurrent = (p) => { inp.placeholder = p ? p.name : label; inp.setAttribute("aria-label", `${label} (now ${p ? p.name : "none"})`); };
+    setCurrent(current);
+    let timer = null, seq = 0;
+    inp.addEventListener("focus", () => { if (!inp.value.trim()) show(QUICK, "Quick picks, or type any U.S. city"); });
+    inp.addEventListener("blur", () => setTimeout(() => { res.hidden = true; }, 150));
+    inp.addEventListener("keydown", (e) => { if (e.key === "Escape") { res.hidden = true; inp.blur(); } if (e.key === "Enter") { const b = res.querySelector("button"); if (b) b.dispatchEvent(new MouseEvent("mousedown")); } });
+    inp.addEventListener("input", () => { clearTimeout(timer); const q = inp.value.trim(), my = ++seq;
+      if (q.length < 2) { show(QUICK, "Quick picks, or type any U.S. city"); return; }
+      timer = setTimeout(async () => { try { const r = await O.searchPlaces(q, { usOnly: true, count: 7 }); if (my !== seq) return; track("city_searched");
+        if (!r.length) { track("search_no_results"); show([], "No U.S. city matches. Try the city name without the state."); } else show(r); }
+        catch (e) { if (my === seq) { track("search_failed"); show([], "City search is unavailable right now."); } } }, 250); });
+    host.querySelector(".bx-ppcopy").addEventListener("click", async () => { const url = link(); host.dataset.link = url; track("link_copied");
+      try { await navigator.clipboard.writeText(url); msg.textContent = "Link copied"; } catch (e) { msg.textContent = "Copy this link: " + url; }
+      setTimeout(() => { msg.textContent = ""; }, 4000); });
+    return { setCurrent };
+  }
+  /* outside the HRRR package's domain the map is replaced by a short note; the timeline and briefing stay usable */
+  function mapUnavailable(host, place) {
+    if (host._dispose) host._dispose();
+    host.classList.add("bx-mapwrap");
+    host.innerHTML = `<div class="bx-mapoff" role="note"><b>HRRR map available for Cincinnati Tri-State only</b><span>The regional map is in development and covers the Cincinnati Tri-State. ${esc(place.name.split(",")[0])} is outside it; the timeline, signals and briefing below are complete for this location.</span><span class="bx-dev">In development</span></div>`;
+  }
+
+  root.BetaUI = { NAMES, fmt, vt, st, deg, inch, pct, mph, fin, timeBus, header, load, alerts, timeline, mapPanel, mapUnavailable, placePicker, blendLine, nwsBlock, recipeFor, track };
 })(typeof globalThis !== "undefined" ? globalThis : this);

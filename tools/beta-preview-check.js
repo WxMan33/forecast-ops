@@ -87,6 +87,73 @@ const DEVICES = [["desktop", { viewport: { width: 1440, height: 1000 }, deviceSc
     await p.locator(".bx-mapwrap").screenshot({ path: `${out}/check-out-of-range-map.png` });
     report(!errors.length, "out-of-range: no script errors", errors.join("; ") || "none"); await ctx.close(); }
 
+
+  /* ---------- markets: Cincinnati, Indianapolis, Denver (city search, NWS office, local time, links, map gating) ---------- */
+  const go = async (opts, url, init) => {
+    const ctx = await browser.newContext(opts); if (init) await ctx.addInitScript(init);
+    const p = await ctx.newPage(), errors = []; p.on("pageerror", (e) => errors.push(e.message));
+    await p.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+    if (await p.getByText("Open the page", { exact: true }).count()) { await p.getByText("Open the page", { exact: true }).first().click(); await p.waitForLoadState("domcontentloaded"); }
+    return { ctx, p, errors };
+  };
+  const loaded = (p, name) => p.waitForFunction((n) => (document.body.dataset.loaded || "").startsWith(n), name, { timeout: 120000 }).then(() => p.waitForTimeout(1200));
+  const ds = (p) => p.evaluate(() => ({ ...document.body.dataset, nws: (document.getElementById("nws") || document.getElementById("nwsEv") || {}).innerText || "", blend: (document.getElementById("blendLine") || {}).innerText || "",
+    map: document.getElementById("map").innerText, mapFrame: !!document.querySelector("#map iframe"), timeline: !!document.querySelector("#timeline svg"), when: (document.getElementById("evWhen") || {}).innerText || "" }));
+  const pickCity = async (p, query, label) => {
+    await p.click(".bx-head .bx-ppin"); await p.keyboard.type(query);
+    await p.waitForFunction((l) => [...document.querySelectorAll(".bx-head .bx-ppres button")].some((b) => b.innerText.startsWith(l)), label, { timeout: 30000 });
+    return async () => p.evaluate((l) => [...document.querySelectorAll(".bx-head .bx-ppres button")].find((b) => b.innerText.startsWith(l)).dispatchEvent(new MouseEvent("mousedown", { bubbles: true })), label); };
+
+  /* Cincinnati: CVG default */
+  { const { ctx, p, errors } = await go(DEVICES[0][1], base + "meteorologist-beta.html"); await loaded(p, "CVG"); const d = await ds(p);
+    report(d.office === "ILN" && d.tz === "America/New_York" && d.market === "tuned" && d.mapFrame && /ILN office/i.test(d.nws) && /Cincinnati-tuned/.test(d.blend), "Cincinnati: CVG default, NWS ILN, Eastern time, tuned blend, map", `office ${d.office} · ${d.tz} · ${d.market} · map ${d.mapFrame}`);
+    /* Indianapolis by city search, then a copied link reopened in a fresh browser */
+    const choose = await pickCity(p, "Indianapolis", "Indianapolis, IN");
+    await p.screenshot({ path: `${out}/city-search.png` });
+    await choose(); await loaded(p, "Indianapolis"); const i = await ds(p);
+    report(i.office === "IND" && /^America\/Indiana\/Indianapolis$/.test(i.tz) && i.market === "default" && /unverified for this market/.test(i.blend) && /IND office/i.test(i.nws) && i.mapFrame && i.timeline,
+      "Indianapolis: city search, NWS IND, Indiana time, default blend labelled unverified, map (inside HRRR domain)", `office ${i.office} · ${i.tz} · ${i.market} · map ${i.mapFrame} · ${i.blend.slice(0, 120)}`);
+    await p.click(".bx-head .bx-ppcopy"); const link = await p.evaluate(() => document.querySelector(".bx-head #picker").dataset.link);
+    report(!errors.length, "Cincinnati → Indianapolis: no script errors", errors.join("; ") || "none"); await ctx.close();
+    const fresh = await go(DEVICES[0][1], link); await loaded(fresh.p, "Indianapolis"); const f = await ds(fresh.p);
+    report(f.office === "IND" && f.loaded.startsWith("Indianapolis"), "Indianapolis link reopened in a fresh browser", `${link.replace(/^.*\?/, "?")} → ${f.loaded}, office ${f.office}`); await fresh.ctx.close(); }
+
+  /* Denver, meteorologist: NWS BOU, Mountain time, no map, timeline complete */
+  { const { ctx, p, errors } = await go(DEVICES[0][1], base + "meteorologist-beta.html?lat=39.7392&lon=-104.9903&name=Denver%2C%20CO"); await loaded(p, "Denver"); const d = await ds(p);
+    report(d.office === "BOU" && d.tz === "America/Denver" && !d.mapFrame && /HRRR map available for Cincinnati Tri-State only/.test(d.map) && d.timeline && /unverified/.test(d.blend), "Denver: NWS BOU, Mountain time, out-of-region map message, timeline usable", `office ${d.office} · ${d.tz} · map "${d.map.split("\n")[0]}"`);
+    await p.screenshot({ path: `${out}/denver-meteorologist-desktop.png` });
+    report(!errors.length, "Denver meteorologist: no script errors", errors.join("; ") || "none"); await ctx.close(); }
+
+  /* Denver event crossing midnight, planned from a browser on Eastern time */
+  { const day = new Date(Date.now() + 2 * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Denver" }), next = new Date(Date.parse(day + "T12:00Z") + 864e5).toISOString().slice(0, 10);
+    const ev = { n: "Late show", v: { name: "Red Rocks Amphitheatre", lat: 39.6654, lon: -105.2057 }, z: "America/Denver", t: { setup: `${day}T17:00`, start: `${day}T20:00`, end: `${next}T01:00`, teardown: `${next}T02:30` }, g: 25 };
+    const { ctx, p, errors } = await go({ ...DEVICES[1][1], timezoneId: "America/New_York" }, base + "event-beta.html?e=" + encodeURIComponent(JSON.stringify(ev))); await loaded(p, "Red Rocks"); const d = await ds(p);
+    const phases = await p.evaluate(() => document.getElementById("phases").innerText);
+    report(/8 PM–1 AM MST/.test(d.when) && /Teardown\s+\S+ 1 AM – 2:30 AM/.test(phases) && d.tz === "America/Denver", "Denver overnight event keeps the venue clock (planner on Eastern time)", `${d.when} | ${phases.split("\n").filter((x) => /Event|Teardown/.test(x)).slice(0, 2).join(" | ")}`);
+    report(d.office === "BOU" && !d.mapFrame && /Cincinnati Tri-State only/.test(d.map) && d.timeline && (await p.evaluate(() => document.getElementById("decision").innerText)).length > 10, "Denver event: NWS BOU, map message, briefing and timeline usable", `office ${d.office} · decision "${await p.evaluate(() => document.getElementById("decision").innerText)}"`);
+    await p.evaluate(() => scrollTo(0, 0)); await p.screenshot({ path: `${out}/denver-event-phone.png` });
+    report(!errors.length, "Denver event: no script errors", errors.join("; ") || "none"); await ctx.close(); }
+
+  /* a slow answer for the previous city never overwrites the new one */
+  { const { ctx, p, errors } = await go(DEVICES[0][1], base + "meteorologist-beta.html"); await loaded(p, "CVG");
+    await ctx.route(/api\.open-meteo\.com\/v1\/forecast.*latitude=39\.76/, async (r) => { await new Promise((ok) => setTimeout(ok, 12000)); r.continue().catch(() => {}); });
+    const indy = await pickCity(p, "Indianapolis", "Indianapolis, IN"); await indy(); await p.waitForTimeout(400);
+    await p.fill(".bx-head .bx-ppin", ""); const den = await pickCity(p, "Denver", "Denver, CO"); await den(); await loaded(p, "Denver");
+    await p.waitForTimeout(15000); const d = await ds(p);
+    report(d.loaded.startsWith("Denver") && d.office === "BOU" && d.tz === "America/Denver", "slow Indianapolis response does not overwrite Denver", `after 15 s: ${d.loaded} · ${d.office} · ${d.tz}`);
+    report(!errors.length, "city switch: no script errors", errors.join("; ") || "none"); await ctx.close(); }
+
+  /* analytics blocked, or opted out: the betas work and nothing is sent when opted out */
+  for (const [mode, init] of [["blocked", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec")'], ["opted out", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec");localStorage.setItem("fo_analytics_optout","1")']]) {
+    for (const page of ["meteorologist-beta.html", "event-beta.html"]) {
+      const ctx = await browser.newContext(DEVICES[1][1]); await ctx.addInitScript(`try{${init}}catch(e){}`); let sent = 0;
+      await ctx.route(/collector\.invalid/, (r) => { sent++; r.abort(); });
+      const p = await ctx.newPage(), errors = []; p.on("pageerror", (e) => errors.push(e.message));
+      await p.goto(base + page, { waitUntil: "domcontentloaded" }); if (await p.getByText("Open the page", { exact: true }).count()) await p.getByText("Open the page", { exact: true }).first().click();
+      await loaded(p, page.startsWith("met") ? "CVG" : "Sawyer"); await p.click("#timeline svg", { position: { x: 120, y: 60 } }).catch(() => {}); await p.evaluate(() => window.BetaAnalytics && window.BetaAnalytics.flush()); await p.waitForTimeout(800);
+      const notice = await p.evaluate(() => (document.getElementById("bxPrivacy") || {}).innerText || "");
+      report(!errors.length && (mode === "blocked" ? /Turn off/.test(notice) : sent === 0 && /off in this browser/.test(notice)), `analytics ${mode}: ${page.split("-")[0]} works signed out`, `${sent} collector requests${mode === "blocked" ? " (all blocked)" : ""} · notice "${notice.slice(0, 60)}"`);
+      await ctx.close(); } }
   await browser.close();
   process.exit(failed ? 1 : 0);
 })();

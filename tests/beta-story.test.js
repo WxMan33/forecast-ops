@@ -72,4 +72,21 @@ eq(S.decision(late).text, "Plan for rain late in the event.", "decision: rain fr
 const setupOnly = { ...b, top: { ...b.top, level: 1, phases: ["Setup"], from: at(1, 13), to: at(1, 15) } };
 eq(S.decision(setupOnly).text, "Watch for rain during setup.", "decision: a watch-level setup-only concern");
 eq(S.decision({ top: null, phases: [] }).text, "No weather concern for this event right now.", "quiet decision");
+/* markets: tuned blend inside the Cincinnati DMA; HRRR map inside the Tri-State crop */
+eq(S.market(39.0446, -84.6723), { tuned: true, map: true }, "CVG: tuned blend and map");
+eq(S.market(39.7684, -86.1581), { tuned: false, map: true }, "Indianapolis: default blend, inside the map");
+eq(S.market(39.7392, -104.9903), { tuned: false, map: false }, "Denver: default blend, no map");
+/* a Denver event crossing midnight keeps the venue's clock */
+const den = { id: "d", name: "Late show", loc: { name: "Red Rocks", lat: 39.6654, lon: -105.2057 }, tz: "America/Denver", times: { setup: "2026-11-12T17:00", start: "2026-11-12T20:00", end: "2026-11-13T01:00", teardown: "2026-11-13T02:30" } };
+eq(C.event.validate(den), [], "overnight Denver event is valid");
+const dw = C.event.windows(den), dEv = dw.find((w) => w.key === "event");
+eq(dEv.startMs, Date.UTC(2026, 10, 13, 3), "8 PM MST is 03Z");
+eq(dEv.endMs, Date.UTC(2026, 10, 13, 8), "1 AM MST the next day is 08Z");
+eq(dw.find((w) => w.key === "teardown").endLocal.slice(0, 16), "2026-11-13T02:30", "teardown ends 2:30 AM local, after midnight");
+/* events travel in links */
+const back = S.eventFromParam(S.eventToParam(den), C);
+eq([back.tz, back.times.end, back.loc.name], ["America/Denver", "2026-11-13T01:00", "Red Rocks"], "event survives a link round trip");
+eq(S.eventFromParam("{not json", C), null, "a broken link is ignored");
+const s2 = S.sampleEvent(C, now, "America/Denver", 1, { name: "Denver, CO", lat: 39.74, lon: -104.98 });
+eq([s2.loc.name, s2.tz, C.event.validate(s2).length], ["Denver, CO", "America/Denver", 0], "sample event at another city uses its venue and time zone");
 console.log(`ok - ${n} beta story checks passed`);

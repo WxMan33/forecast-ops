@@ -215,18 +215,33 @@
 
   /* ---------- sample event: opens with no account or calendar connection ---------- */
   const SAMPLE_VENUE = { name: "Sawyer Point, Cincinnati, OH", lat: 39.0966, lon: -84.4996 };
-  function sampleEvent(C, now = Date.now(), tz = "America/New_York", offset = 1) {
+  function sampleEvent(C, now = Date.now(), tz = "America/New_York", offset = 1, venue = null) {
     const add = (d, n) => new Date(Date.parse(d + "T12:00Z") + n * 86400e3).toISOString().slice(0, 10);
-    const today = C.time.toLocal(now, tz).slice(0, 10), day = add(today, offset);
-    return { id: "sample", sample: true, offset, name: "Riverfront Music Night (sample)", loc: { ...SAMPLE_VENUE }, tz,
+    const today = C.time.toLocal(now, tz).slice(0, 10), day = add(today, offset), v = venue || SAMPLE_VENUE;
+    return { id: "sample", sample: true, offset, name: venue ? "Outdoor concert (sample)" : "Riverfront Music Night (sample)", loc: { name: v.name, lat: +v.lat, lon: +v.lon }, tz,
       times: { setup: `${day}T12:00`, gates: `${day}T16:30`, start: `${day}T17:00`, end: `${day}T22:00`, teardown: `${add(day, 1)}T00:00` } };
   }
 
-  function pickSample(ctx, C, tz, offsets = [1, 2, 3]) {
-    const cands = offsets.map((o) => { const ev = sampleEvent(C, ctx.now, tz, o), b = eventBrief(ctx, ev); return { ev, score: b.top ? b.top.level * 10 + b.concerns.length : 0, full: b.coverage === "full" }; }).filter((c) => c.full);
-    if (!cands.length) return sampleEvent(C, ctx.now, tz, 1);
+  function pickSample(ctx, C, tz, offsets = [1, 2, 3], venue = null) {
+    const cands = offsets.map((o) => { const ev = sampleEvent(C, ctx.now, tz, o, venue), b = eventBrief(ctx, ev); return { ev, score: b.top ? b.top.level * 10 + b.concerns.length : 0, full: b.coverage === "full" }; }).filter((c) => c.full);
+    if (!cands.length) return sampleEvent(C, ctx.now, tz, 1, venue);
     return cands.reduce((a, b) => (b.score > a.score ? b : a)).ev;
   }
+
+  /* ---------- market: where the Cincinnati-tuned blend and the HRRR map apply ---------- */
+  /* The tuned recipe was set and is being verified at CVG: it applies inside the Cincinnati DMA (county outline
+     bounds). The HRRR map package covers the Tri-State crop only. Everywhere else: default recipe, no map. */
+  const CINCY_DMA = { w: -85.45, e: -83.27, s: 38.34, n: 39.59 }, HRRR_BOX = { w: -86.6, e: -82.4, s: 37.6, n: 40.7 };
+  const inBox = (b, lat, lon) => lat >= b.s && lat <= b.n && lon >= b.w && lon <= b.e;
+  function market(lat, lon) { return { tuned: inBox(CINCY_DMA, +lat, +lon), map: inBox(HRRR_BOX, +lat, +lon) }; }
+
+  /* event <-> link: an event can travel in a URL so a colleague opens the same briefing */
+  function eventToParam(ev) { return JSON.stringify({ n: ev.name, v: ev.loc, z: ev.tz, t: ev.times, g: ev.gust || 25 }); }
+  function eventFromParam(str, C) {
+    try { const x = JSON.parse(str); const ev = { id: "link", name: String(x.n || "Shared event").slice(0, 80), loc: { name: String(x.v.name || "Venue").slice(0, 80), lat: +x.v.lat, lon: +x.v.lon }, tz: x.z, times: x.t, gust: +x.g || 25 };
+      return C.event.validate(ev).length ? null : ev; } catch (e) { return null; }
+  }
+
   /* ---------- strongest signal first (meteorologist workspace) ---------- */
   const TIER_RANK = { action: 3, prepare: 2, monitor: 1, normal: 0, nodata: -1 };
   const AGREE_TIER = { split: "prepare", some: "monitor", agree: "normal" };
@@ -263,7 +278,7 @@
     return { tier: top.tier, text: `${VERB[top.level]} ${top.noun} ${where}.` };
   }
 
-  const api = { signals, decision, formatPrecipPercent, pickSample, phaseRow, HAZARDS, LEVEL_WORD, LEVEL_TIER, AGREE_WORD, context, windowRow, hourly, precipTiming, disagreement, guidanceAge, nextUpdates, hazardTiming, certainty, eventBrief, planChanges, checkAgain, sampleEvent, SAMPLE_VENUE };
+  const api = { market, eventToParam, eventFromParam, CINCY_DMA, HRRR_BOX, signals, decision, formatPrecipPercent, pickSample, phaseRow, HAZARDS, LEVEL_WORD, LEVEL_TIER, AGREE_WORD, context, windowRow, hourly, precipTiming, disagreement, guidanceAge, nextUpdates, hazardTiming, certainty, eventBrief, planChanges, checkAgain, sampleEvent, SAMPLE_VENUE };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.BetaStory = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

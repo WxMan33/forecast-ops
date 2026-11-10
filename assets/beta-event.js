@@ -6,34 +6,58 @@
   "use strict";
   const O = window.Ops, C = O.Core, S = window.BetaStory, U = window.BetaUI, $ = O.$, esc = O.esc, H = 3600e3;
   const { fmt, vt, st, deg, inch, mph, fin } = U;
-  const KEY = "beta_event_v1", TZ = "America/New_York";
-  const VENUES = [S.SAMPLE_VENUE, { name: "TQL Stadium, Cincinnati, OH", lat: 39.1111, lon: -84.5223 }, { name: "Great American Ball Park, Cincinnati, OH", lat: 39.0975, lon: -84.5066 },
-    { name: "Paycor Stadium, Cincinnati, OH", lat: 39.0955, lon: -84.5161 }, { name: "Kings Island, Mason, OH", lat: 39.3448, lon: -84.2687 }, { name: "CVG airport, Hebron, KY", lat: 39.0446, lon: -84.6723 }];
-  const head = U.header({ audience: "Event", other: { self: "event-beta.html", href: "meteorologist-beta.html", label: "Met" } });
-  document.title = "Event briefing beta · Forecast Ops";
+  const KEY = "beta_event_v1", SEEN = "beta_event_seen_v1";
+  const Q = new URLSearchParams(location.search);
   const saved = () => { const e = O.store.get(KEY, null); return e && !C.event.validate(e).length ? e : null; };
-  let ev = saved() || S.sampleEvent(C, Date.now(), TZ), gen = 0, lastRes = null, bus = null;
+  /* a link can carry a whole event (?e=…) or just a city (?lat=&lon=&name=&tz=) for a sample there */
+  const linkEvent = Q.get("e") ? S.eventFromParam(Q.get("e"), C) : null;
+  const linkCity = (() => { const lat = parseFloat(Q.get("lat")), lon = parseFloat(Q.get("lon")); return fin(lat) && fin(lon) ? { name: Q.get("name") || `${lat.toFixed(3)}, ${lon.toFixed(3)}`, lat, lon, tz: Q.get("tz") || null } : null; })();
+  const sampleAt = (city) => S.sampleEvent(C, Date.now(), (city && city.tz) || "America/New_York", 1, city || null);
+  let ev = linkEvent || (linkCity ? null : saved()) || null, gen = 0, lastRes = null, bus = null, pendingCity = linkCity;
+  if (!ev) ev = sampleAt(linkCity && linkCity.tz ? linkCity : null);
   const isSample = () => !!ev.sample;
+  /* a saved event opened again in a later session (approximate, per browser) */
+  if (!linkEvent && !linkCity && !isSample()) { const last = O.store.get(SEEN, null); let sess = null; try { sess = sessionStorage.getItem("beta_sess_seen"); sessionStorage.setItem("beta_sess_seen", "1"); } catch (e) { /* no storage */ }
+    if (last && !sess) U.track("event_revisited"); }
+  const link = () => { const u = new URL(location.href); u.hash = ""; u.search = isSample() ? new URLSearchParams({ lat: ev.loc.lat, lon: ev.loc.lon, name: ev.loc.name, tz: ev.tz }) : new URLSearchParams({ e: S.eventToParam(ev) }); return u.toString(); };
+  const head = U.header({ audience: "Event", other: { self: "event-beta.html", href: "meteorologist-beta.html", label: "Met" }, ctx: `<div id="picker" class="bx-ctx" style="flex:1 1 auto"></div>` });
+  document.title = "Event briefing beta · Forecast Ops";
+  const picker = U.placePicker($("picker"), { current: { name: ev.loc.name }, link, label: "Venue city",
+    async onPick(p) { const tz = p.tz || await O.zoneFor(p.lat, p.lon).catch(() => null); if (!tz) return;
+      U.track("city_selected", { market: S.market(p.lat, p.lon).tuned ? "cincinnati" : "elsewhere" });
+      if (isSample()) ev = sampleAt({ ...p, tz }); else ev = { ...ev, loc: { name: p.name, lat: p.lat, lon: p.lon }, tz };
+      run(); } });
   head.onRefresh(() => run());
   $("editBtn").addEventListener("click", openEditor);
-  $("resetBtn").addEventListener("click", () => { try { localStorage.removeItem(KEY); } catch (e) { /* storage blocked */ } ev = S.sampleEvent(C, Date.now(), TZ); run(); });
+  $("resetBtn").addEventListener("click", () => { try { localStorage.removeItem(KEY); } catch (e) { /* storage blocked */ } ev = sampleAt(null); run(); });
+  if (isSample()) U.track("sample_opened");
 
   async function run() {
-    const g = ++gen, where = { lat: ev.loc.lat, lon: ev.loc.lon };
+    const g = ++gen;
+    /* a city link without a time zone: look it up; failing that, take it from the forecast response for that point */
+    let tzFromData = null;
+    if (pendingCity && !pendingCity.tz) { const tz = await O.zoneFor(pendingCity.lat, pendingCity.lon).catch(() => null); if (g !== gen) return;
+      if (tz) ev = sampleAt({ ...pendingCity, tz }); else { tzFromData = pendingCity; ev = { ...sampleAt(null), loc: { name: pendingCity.name, lat: pendingCity.lat, lon: pendingCity.lon } }; } }
+    pendingCity = null;
+    const where = { lat: ev.loc.lat, lon: ev.loc.lon }, mk = S.market(ev.loc.lat, ev.loc.lon);
+    picker.setCurrent({ name: ev.loc.name }); document.body.dataset.place = ev.loc.name; document.body.dataset.loaded = ""; document.body.dataset.tz = ev.tz; document.body.dataset.market = mk.tuned ? "tuned" : "default";
     context();
     $("decision").textContent = "Reading the guidance…"; ["keys", "schedule", "phases", "changes", "checks", "timeline", "detail"].forEach((id) => { $(id).innerHTML = ""; });
     U.alerts(where).then((a) => { if (g !== gen) return; $("alerts").innerHTML = a.slice(0, 2).map((x) => `<div class="bx-alert" role="alert">${st("action", x.event + " in effect")}${x.ends ? `<span class="bx-note">until ${esc(fmt.time(Date.parse(x.ends), ev.tz))}</span>` : ""}<a href="https://forecast.weather.gov/MapClick.php?lat=${ev.loc.lat}&lon=${ev.loc.lon}" target="_blank" rel="noopener">NWS ↗</a></div>`).join(""); });
     const endMs = Math.max(...C.event.windows(ev).map((w) => w.endMs)), days = isSample() ? 5 : Math.min(7, Math.max(3, Math.ceil((endMs - Date.now()) / 864e5) + 1));
     const res = await U.load(where, { days });
     if (g !== gen) return;
-    if (res.empty) { $("decision").textContent = "Weather guidance could not be loaded."; $("keys").innerHTML = '<p class="bx-note">Try ↻ in a minute.</p>'; return; }
+    if (res.empty) { U.track("load_failed", { what: "models" }); $("decision").textContent = "Weather guidance could not be loaded."; $("keys").innerHTML = '<p class="bx-note">Try ↻ in a minute.</p>'; return; }
+    if (!res.NW || !res.NW.ok) U.track("load_failed", { what: "nws" });
+    if (tzFromData) { ev = sampleAt({ ...tzFromData, tz: res.ctx.B.tz }); context(); document.body.dataset.tz = ev.tz; }
     lastRes = res; render(res);
+    document.body.dataset.loaded = ev.loc.name; document.body.dataset.office = res.NW && res.NW.ok ? res.NW.office : "";
   }
   function context() {
     const w = C.event.windows(ev), ph = Object.fromEntries(w.map((x) => [x.key, x])), main = ph.event || ph.all, tz = ev.tz;
     $("sampleTag").hidden = !isSample(); $("resetBtn").hidden = isSample();
     $("evName").textContent = ev.name.replace(/ \(sample\)$/, "");
-    $("evVenue").textContent = `· ${ev.loc.name.split(",")[0]}`;
+    $("evVenue").textContent = `· ${ev.loc.name}`;
     $("evWhen").textContent = main ? `${fmt.day(main.startMs, tz)} · ${fmt.clock(main.startMs, tz)}–${fmt.clock(main.endMs, tz)} ${fmt.zone(main.startMs, tz)}${ph.setup ? ` · setup from ${fmt.clock(ph.setup.startMs, tz)}` : ""}` : "";
   }
 
@@ -55,7 +79,7 @@
 
   function render(res) {
     const ctx = res.ctx, tz = ev.tz, now = ctx.now, thr = { gust: ev.gust || 25 };
-    if (isSample() && !ev.picked) { ev = { ...S.pickSample(ctx, C, TZ), picked: true }; context(); }
+    if (isSample() && !ev.picked) { const v = ev.loc.name === S.SAMPLE_VENUE.name ? null : ev.loc; ev = { ...S.pickSample(ctx, C, ev.tz, [1, 2, 3], v), picked: true }; context(); }
     head.setUpdated(ctx.B.viewedAt);
     const b = S.eventBrief(ctx, ev, thr);
     if (b.error) { $("decision").textContent = b.error; return; }
@@ -86,16 +110,21 @@
       const rain = !r ? "—" : U.pct(r.chanceV != null ? r.chanceV * 100 : r.pop), rainLbl = r && r.chanceV == null && fin(r.pop) ? "Peak hourly precip chance" : "Precip chance";
       const th = !r || !r.thunder || r.thunder === "nodata" ? "—" : r.thunder === "normal" ? "low" : C.TIERS[r.thunder].word.toLowerCase();
       const temp = r && fin(r.lo) ? (Math.round(r.lo) === Math.round(r.hi) ? `${Math.round(r.hi)}°` : `${Math.round(r.lo)}–${Math.round(r.hi)}°`) : "—";
+      const ph = r ? S.hourly(ctx, p.startMs, p.endMs) : [];
+      const more = ph.length ? `<details class="bx-phd" data-phase="${esc(p.key)}"><summary>Hour by hour</summary><table class="bx-age"><tbody>${ph.map((h) => `<tr><td>${esc(fmt.time(h.ms, tz))}</td><td>${deg(h.temp)}</td><td>${U.pct(h.pop)}</td><td class="n">${mph(h.gust)}</td></tr>`).join("")}</tbody></table></details>` : "";
       return `<div class="bx-phase ${past ? "past" : ""}"><div><div class="nm">${esc(p.label)} <span class="tm">${esc(fmt.span(p.startMs, p.endMs, tz))}</span></div><div style="margin-top:3px;font-size:13.5px">${status}</div></div><div class="tp">${temp}</div>
-        <div class="mt"><span>${rainLbl} <b>${esc(rain)}</b></span><span>Gusts <b>${esc(r ? mph(r.gust) : "—")}</b></span><span>Thunder signal <b>${esc(th)}</b></span></div></div>`;
+        <div class="mt"><span>${rainLbl} <b>${esc(rain)}</b></span><span>Gusts <b>${esc(r ? mph(r.gust) : "—")}</b></span><span>Thunder signal <b>${esc(th)}</b></span></div>${more}</div>`;
     }).join("");
+    $("phases").querySelectorAll(".bx-phd").forEach((d) => d.addEventListener("toggle", () => { if (d.open) U.track("phase_details_opened", { phase: d.dataset.phase }); }));
+    $("nwsEv").innerHTML = U.nwsBlock(res, tz, { from: b.all.startMs, to: b.all.endMs, max: 3 });
+    $("blendLine").innerHTML = `<b>Model blend:</b> ${esc(U.blendLine(res))}. ${esc(res.verified)}`;
     $("changes").innerHTML = S.planChanges(b, (ms) => fmt.time(ms, tz)).map((t) => `<li>${esc(t)}</li>`).join("");
     $("checks").innerHTML = checks.length ? checks.map((c) => `<li><div class="when">${esc(fmt.time(c.at, tz))}<em>${esc(fmt.rel(c.at, now))}</em></div><div><b>${esc(c.what)}</b><div class="bx-note">${esc(c.why)}</div></div></li>`).join("") : '<li><div class="when">Now</div><div>Use radar, lightning detection and NWS warnings.</div></li>';
     /* ---- one selected time for the map and the hour-by-hour chart: the concern's start, or the event start ---- */
     const evStart = (b.phases.find((p) => p.key === "event") || b.phases[0]).startMs, focus = top && top.from != null ? top.from : evStart;
     bus = U.timeBus(focus);
     bus.on((ms) => { document.body.dataset.selected = ms; }); document.body.dataset.selected = focus;
-    U.mapPanel($("map"), { view: "venue", field: "refc", place: { ...ev.loc }, bus, tz, now, autoRun: true });
+    if (S.market(ev.loc.lat, ev.loc.lon).map) U.mapPanel($("map"), { view: "venue", field: "refc", place: { ...ev.loc }, bus, tz: "America/New_York", now, autoRun: true }); else U.mapUnavailable($("map"), ev.loc);
     const s = Math.max(Math.floor(now / H) * H, b.all.startMs - 2 * H), e = b.all.endMs + H, hours = S.hourly(ctx, s, e);
     $("hourlyValid").innerHTML = `${esc(fmt.span(s, e, tz))} ${esc(fmt.zone(s, tz))} · tap to select`;
     U.timeline($("timeline"), hours, { tz, now, bus, gustLine: thr.gust, mark: top && top.from != null ? { s: top.from, e: top.to, tier: top.tier } : null,
@@ -106,7 +135,7 @@
     $("detail").innerHTML = `<h2>Detail</h2>
       <details><summary>All concerns</summary>${b.concerns.length ? `<ul class="bx-list" style="margin-top:8px">${b.concerns.map((c) => `<li><b>${esc(c.label)}: ${esc(c.word.toLowerCase())}</b> — ${esc(c.why)}. ${c.from != null ? "Most likely " + esc(fmt.span(c.from, c.to, tz)) + ". " : ""}Timing: ${esc(c.certainty.word)}.</li>`).join("")}</ul>` : '<p class="bx-note">No hazard reaches a planning threshold.</p>'}</details>
       <details><summary>NWS forecast wording</summary><p>${words.length ? esc(words.slice(0, 6).join(" → ")) : "NWS hourly wording unavailable."}</p></details>
-      <details><summary>How this briefing is built</summary><p class="bx-note">Values are the Forecast Ops model blend (recipe: ${esc(lastRes.recipe)}), the same calculation as Model Blend's event table. Phase precipitation chance is the weighted ensemble estimate for at least 0.01″ during the phase; when unavailable, the peak hourly precipitation chance is shown. The thunder signal comes from the Thunder page and describes forecast potential, not detected lightning. Planning levels use display thresholds: gusts ${thr.gust}/35/45 mph; rain chance 20/50/70%; snow 0.05/0.3/1″; heat 90/95°; feels-like 32/20°. They are not calibrated probabilities. Timing certainty compares when each model source first shows the hazard.</p></details>
+      <details><summary>How this briefing is built</summary><p class="bx-note">Values are the Forecast Ops model blend (${esc(lastRes.recipe)}${lastRes.market.tuned ? "" : ", unverified for this market"}), the same calculation as Model Blend's event table. Phase precipitation chance is the weighted ensemble estimate for at least 0.01″ during the phase; when unavailable, the peak hourly precipitation chance is shown. The thunder signal comes from the Thunder page and describes forecast potential, not detected lightning. Planning levels use display thresholds: gusts ${thr.gust}/35/45 mph; rain chance 20/50/70%; snow 0.05/0.3/1″; heat 90/95°; feels-like 32/20°. They are not calibrated probabilities. Timing certainty compares when each model source first shows the hazard.</p></details>
       <details><summary>Sources and how recent they are</summary><table class="bx-age"><tbody>${ages.map((a) => `<tr><td>${esc(a.name)}</td><td class="n ${a.late ? "bx-late" : ""}">${a.unknown ? "run time unknown" : esc(fmt.age(a.ageH)) + " old" + (a.late ? " · late" : "")}</td></tr>`).join("")}</tbody></table></details>
       <p style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><a class="bx-btn" href="meteorologist-beta.html?${mq}">Meteorologist view of this venue</a><button class="bx-btn" type="button" id="printBtn">Print / PDF</button></p>`;
     $("printBtn").addEventListener("click", () => window.print());
@@ -115,29 +144,44 @@
 
   /* ---------- editor: no account; stored in this browser only ---------- */
   function openEditor() {
+    U.track("custom_event_started");
     const t = ev.times, d = (x) => (x ? x.slice(0, 10) : ""), tm = (x) => (x ? x.slice(11, 16) : "");
-    const vi = Math.max(0, VENUES.findIndex((v) => Math.abs(v.lat - ev.loc.lat) < 1e-3 && Math.abs(v.lon - ev.loc.lon) < 1e-3));
+    let city = { name: ev.loc.name, lat: ev.loc.lat, lon: ev.loc.lon, tz: ev.tz };
     $("editForm").innerHTML = `<h2 id="editTitle">Edit event</h2>
-      <label>Event name<input id="fName" value="${esc(ev.sample ? "" : ev.name)}" placeholder="${esc(ev.name)}"></label>
-      <label>Venue<select id="fVenue">${VENUES.map((v, i) => `<option value="${i}" ${i === vi ? "selected" : ""}>${esc(v.name)}</option>`).join("")}</select></label>
+      <label>Event name<input id="fName" maxlength="80" value="${esc(ev.sample ? "" : ev.name)}" placeholder="${esc(ev.name)}"></label>
+      <label>Venue name<input id="fVenue" maxlength="80" value="${esc(ev.sample ? "" : ev.loc.name)}" placeholder="${esc(ev.loc.name)}"></label>
+      <div><span class="bx-cap" style="display:block;margin-bottom:4px">Venue city</span><div id="fCity" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"></div></div>
+      <details id="fCoordsBox"><summary class="bx-note">Exact coordinates (optional)</summary><div class="two" style="margin-top:8px"><label>Latitude<input id="fLat" inputmode="decimal" value="${ev.loc.lat}"></label><label>Longitude<input id="fLon" inputmode="decimal" value="${ev.loc.lon}"></label></div></details>
       <label>Date<input type="date" id="fDate" value="${d(t.start)}"></label>
       <div class="two"><label>Setup starts<input type="time" id="fSetup" value="${tm(t.setup)}"></label><label>Gates open<input type="time" id="fGates" value="${tm(t.gates)}"></label></div>
       <div class="two"><label>Event starts<input type="time" id="fStart" value="${tm(t.start)}" required></label><label>Event ends<input type="time" id="fEnd" value="${tm(t.end)}" required></label></div>
       <div class="two"><label>Teardown ends<input type="time" id="fTear" value="${tm(t.teardown)}"></label><label>Gust limit (mph)<input type="number" id="fGust" min="10" max="60" value="${ev.gust || 25}"></label></div>
-      <p class="bx-note" style="margin:0">Times are Eastern. An end or teardown time earlier than the start is read as after midnight. Setup, gates and teardown are optional.</p>
+      <p class="bx-note" style="margin:0" id="fTzNote"></p>
       <p class="err" id="fErr" hidden></p>
       <div style="display:flex;gap:8px;justify-content:flex-end"><button class="bx-btn" value="cancel" formnovalidate>Cancel</button><button class="bx-btn primary" id="fSave" value="save">Save event</button></div>`;
+    const tzNote = () => { $("fTzNote").textContent = `Times are local to the venue (${city.tz || "time zone found on save"}${city.tz ? ", " + fmt.zone(Date.now(), city.tz) : ""}), wherever you are. An end or teardown time earlier than the start is read as after midnight. Setup, gates and teardown are optional.`; };
+    U.placePicker($("fCity"), { current: city, link: () => location.href, label: "Search a U.S. city",
+      onPick(p) { city = p; $("fLat").value = p.lat; $("fLon").value = p.lon; if (!$("fVenue").value.trim()) $("fVenue").placeholder = p.name; tzNote(); } });
+    $("fCity").querySelector(".bx-ppcopy").remove();
+    tzNote();
     $("editDlg").showModal();
-    $("fSave").addEventListener("click", (e) => {
+    $("fSave").addEventListener("click", async (e) => {
       e.preventDefault();
       const date = $("fDate").value, add = (x, n) => new Date(Date.parse(x + "T12:00Z") + n * 864e5).toISOString().slice(0, 10);
       const st = $("fStart").value, at = (v, after) => (!v ? null : `${v < st && after ? add(date, 1) : date}T${v}`);
       const times = { setup: at($("fSetup").value, false), gates: at($("fGates").value, false), start: date && st ? `${date}T${st}` : null, end: at($("fEnd").value, true), teardown: at($("fTear").value, true) };
       Object.keys(times).forEach((k) => { if (!times[k]) delete times[k]; });
-      const v = VENUES[+$("fVenue").value], next = { id: "beta", name: $("fName").value.trim() || "My event", loc: { ...v }, tz: TZ, times, gust: Math.min(60, Math.max(10, +$("fGust").value || 25)) };
+      const lat = parseFloat($("fLat").value), lon = parseFloat($("fLon").value);
+      if (!fin(lat) || !fin(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) { $("fErr").textContent = "Coordinates must be decimal degrees, e.g. 39.7392 and -104.9903."; $("fErr").hidden = false; return; }
+      /* the venue's own time zone: from the city search, or looked up for exact coordinates */
+      let tz = city.tz; if (!tz || Math.abs(lat - city.lat) > 0.05 || Math.abs(lon - city.lon) > 0.05) { tz = await O.zoneFor(lat, lon).catch(() => null); }
+      if (!tz) { $("fErr").textContent = "Couldn't look up the venue's time zone. Try again."; $("fErr").hidden = false; return; }
+      const next = { id: "beta", name: $("fName").value.trim() || "My event", loc: { name: $("fVenue").value.trim() || city.name, lat: +lat.toFixed(4), lon: +lon.toFixed(4) }, tz, times, gust: Math.min(60, Math.max(10, +$("fGust").value || 25)) };
       const errs = C.event.validate(next);
       if (errs.length) { $("fErr").textContent = errs.join(" "); $("fErr").hidden = false; return; }
-      ev = next; O.store.set(KEY, ev); $("editDlg").close(); run();
+      ev = next; O.store.set(KEY, ev); O.store.set(SEEN, Date.now()); try { sessionStorage.setItem("beta_sess_seen", "1"); } catch (x) { /* no storage */ }
+      U.track("event_saved", { market: S.market(lat, lon).tuned ? "cincinnati" : "elsewhere" });
+      $("editDlg").close(); run();
     });
   }
   run();
