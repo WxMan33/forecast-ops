@@ -23,16 +23,27 @@
     a = a || {};
     const street = [a.house_number, shortStreet(a.road)].filter(Boolean).join(" ");
     const city = a.city || a.town || a.village || a.hamlet || a.suburb || a.county || "";
-    const st = String(a["ISO3166-2-lvl4"] || "").replace(/^US-/, "") || a.state || "";
+    const st = stateCode(a) || a.state || "";
     return [street, city, [st, a.postcode].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   }
   /* Nominatim jsonv2 results → places with a kind */
+  const STATES = { alabama: "AL", alaska: "AK", arizona: "AZ", arkansas: "AR", california: "CA", colorado: "CO", connecticut: "CT", delaware: "DE", "district of columbia": "DC", florida: "FL", georgia: "GA", hawaii: "HI", idaho: "ID", illinois: "IL",
+    indiana: "IN", iowa: "IA", kansas: "KS", kentucky: "KY", louisiana: "LA", maine: "ME", maryland: "MD", massachusetts: "MA", michigan: "MI", minnesota: "MN", mississippi: "MS", missouri: "MO", montana: "MT", nebraska: "NE", nevada: "NV",
+    "new hampshire": "NH", "new jersey": "NJ", "new mexico": "NM", "new york": "NY", "north carolina": "NC", "north dakota": "ND", ohio: "OH", oklahoma: "OK", oregon: "OR", pennsylvania: "PA", "rhode island": "RI", "south carolina": "SC",
+    "south dakota": "SD", tennessee: "TN", texas: "TX", utah: "UT", vermont: "VT", virginia: "VA", washington: "WA", "west virginia": "WV", wisconsin: "WI", wyoming: "WY", "puerto rico": "PR" };
+  const stateCode = (a) => String(a["ISO3166-2-lvl4"] || "").replace(/^US-/, "") || STATES[String(a.state || "").toLowerCase()] || null;
+  /* both result formats: Nominatim jsonv2 (category, addresstype, name) and the classic format LocationIQ returns
+     (class, no addresstype; the place's own name, when it has one, comes from namedetails or the address part named by its type) */
   function parse(results) {
-    return (results || []).map((x) => {
-      const at = x.addresstype || x.type, a = x.address || {}, named = !!(x.name && x.name.trim());
+    return (results || []).map((x0) => {
+      const a = x0.address || {}, category = x0.category || x0.class;
+      const name = x0.name || (x0.namedetails && (x0.namedetails.name || x0.namedetails["name:en"])) || (category !== "place" && category !== "boundary" && a[x0.type]) || "";
+      const at = x0.addresstype || (category === "place" || category === "boundary" ? x0.type : category === "highway" ? "road" : x0.type);
+      const x = { ...x0, category, name };
+      const named = !!(x.name && String(x.name).trim());
       const kind = AREA.has(at) || x.category === "boundary" ? "area" : at === "road" && !a.house_number ? "street" : named && x.category !== "place" ? "venue" : "address";
       const address = formatAddress(a);
-      const state = String(a["ISO3166-2-lvl4"] || "").replace(/^US-/, "") || null;
+      const state = stateCode(a);
       return { name: kind === "venue" ? x.name : address.split(",")[0] || x.display_name.split(",")[0], address, state, lat: +(+x.lat).toFixed(5), lon: +(+x.lon).toFixed(5), kind, type: `${x.category}/${x.type}`, osm: x.osm_type && x.osm_id ? `${x.osm_type}/${x.osm_id}` : null, label: x.display_name };
     }).filter((p) => isFinite(p.lat) && isFinite(p.lon));
   }
@@ -77,22 +88,33 @@
   }
 
   /* ---------------- browser: cached, rate-limited search ---------------- */
-  const CACHE = "venue_geo_v1:", DAY = 864e5;
+  const CACHE = "venue_geo_v2:", DAY = 864e5;
   const store = () => { try { return root.localStorage; } catch (e) { return null; } };
   let last = 0, chain = Promise.resolve();
   /* Searches run only when a planner presses Search on text they have reviewed: never automatically for calendar
      locations, never as-you-type. The provider is set in beta-config.js (BETA_GEOCODER); "nominatim" is the public
      OpenStreetMap service OPE uses, suitable only for these occasional, user-started, reviewed searches. */
-  const provider = () => (root.BETA_GEOCODER && root.BETA_GEOCODER.provider) || "nominatim";
+  /* LocationIQ (Search by LocationIQ.com) on its authorized origin when a token is set; elsewhere (e.g. the Githack demo)
+     the reviewed public search. Cached responses: 48 h for LocationIQ (free-plan terms), 30 days otherwise. */
+  function provider(loc = root.location) {
+    const c = root.BETA_GEOCODER || {}, l = c.locationiq || {};
+    if (l.key && loc && Array.isArray(l.origins) && l.origins.includes(loc.origin)) return "locationiq";
+    return "nominatim";
+  }
+  const PROVIDERS = {
+    nominatim: { url: ENDPOINT, ttl: 30 * DAY, params: (q) => ({ format: "jsonv2", addressdetails: "1", countrycodes: "us", limit: "6", q }) },
+    locationiq: { url: "https://us1.locationiq.com/v1/search", ttl: 2 * DAY, params: (q) => ({ key: (root.BETA_GEOCODER.locationiq || {}).key, format: "json", addressdetails: "1", namedetails: "1", countrycodes: "us", limit: "6", q }) },
+  };
+  const attribution = () => (provider() === "locationiq" ? '<a class="vs-attr" href="https://locationiq.com" target="_blank" rel="noopener">Search by LocationIQ.com</a>' : '<span class="vs-attr">Search: © OpenStreetMap contributors</span>');
   function search(q) {
-    if (provider() !== "nominatim") return Promise.reject(new Error(`Geocoding provider "${provider()}" is not set up in this build.`));
-    const key = CACHE + norm(q), s = store();
-    try { const c = s && JSON.parse(s.getItem(key)); if (c && Date.now() - c.at < 30 * DAY) return Promise.resolve(c.places); } catch (e) { /* ignore */ }
+    const P = PROVIDERS[provider()];
+    const key = CACHE + provider() + ":" + norm(q), s = store();
+    try { const c = s && JSON.parse(s.getItem(key)); if (c && Date.now() - c.at < P.ttl) return Promise.resolve(c.places); if (c) s.removeItem(key); } catch (e) { /* ignore */ }
     const run = async () => {
       const wait = Math.max(0, last + 1100 - Date.now()); if (wait) await new Promise((ok) => setTimeout(ok, wait)); last = Date.now();
-      const u = new URL(ENDPOINT); Object.entries({ format: "jsonv2", addressdetails: "1", countrycodes: "us", limit: "6", q }).forEach(([k, v]) => u.searchParams.set(k, v));
+      const u = new URL(P.url); Object.entries(P.params(q)).forEach(([k, v]) => u.searchParams.set(k, v));
       const ctl = typeof AbortController === "function" ? new AbortController() : null, to = ctl && setTimeout(() => ctl.abort(), 15000);
-      try { const r = await fetch(u, { headers: { Accept: "application/json" }, signal: ctl && ctl.signal }); if (!r.ok) throw new Error(`HTTP ${r.status}`); const places = parse(await r.json());
+      try { const r = await fetch(u, { headers: { Accept: "application/json" }, signal: ctl && ctl.signal }); if (r.status === 404) return []; if (!r.ok) throw new Error(`HTTP ${r.status}`); const places = parse(await r.json());
         try { s && s.setItem(key, JSON.stringify({ at: Date.now(), places })); } catch (e) { /* storage full */ } return places; }
       finally { if (to) clearTimeout(to); }
     };
@@ -129,7 +151,7 @@
   function picker(host, { initial = "", onPick, label = "Venue name or street address" } = {}) { // searches only on Search / Enter
     const esc = root.Ops.esc, id = `vs${Math.random().toString(36).slice(2, 8)}`;
     host.innerHTML = `<div class="vs"><div class="vs-row"><input type="search" class="vs-q" id="${id}" aria-label="${esc(label)}" placeholder="${esc(label)}" value="${esc(initial)}"><button type="button" class="bx-btn vs-go">Search</button><button type="button" class="bx-btn vs-pinbtn">Drop a pin</button></div>
-      <div class="vs-msg bx-note" aria-live="polite"></div><div class="vs-res"></div></div>`;
+      <div class="vs-msg bx-note" aria-live="polite"></div><div class="vs-res"></div><div class="vs-foot bx-note">${attribution()}</div></div>`;
     const q = host.querySelector(".vs-q"), msg = host.querySelector(".vs-msg"), res = host.querySelector(".vs-res");
     const show = (places, note) => {
       msg.textContent = note || "";
@@ -151,7 +173,7 @@
     return { search: go, set(v) { q.value = v; } };
   }
 
-  const api = { tzGuess, parse, decide, formatAddress, km, search, picker, pinDialog, SAME_PLACE_KM };
+  const api = { provider, attribution, tzGuess, parse, decide, formatAddress, km, search, picker, pinDialog, SAME_PLACE_KM };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.VenueSearch = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

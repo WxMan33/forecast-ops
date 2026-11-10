@@ -79,10 +79,12 @@ planner's own times are kept (an override keeps its offset from the start). All-
   venue. A found or chosen place becomes a saved venue at its exact point and is remembered for that calendar
   location, so a re-import neither asks nor sends a lookup. Add Event, Edit Event and Add Venue use the same search;
   city search stays in the forecast tools.
-- **Search provider:** set in `assets/beta-config.js` (`BETA_GEOCODER`). It is currently public OpenStreetMap
-  Nominatim (the geocoder OPE uses), used only for these occasional, planner-started searches of reviewed text, one a
-  second at most, cached for 30 days. For wider sharing, replace it with a commercial geocoder whose terms cover venue
-  search and storing results (provider choice and key pending).
+- **Search provider:** on the Cloudflare beta (`forecast-ops-beta.pages.dev`), **LocationIQ** once its token is set in
+  `assets/beta-config.js` (`BETA_GEOCODER.locationiq`): a token dedicated to this beta, restricted by HTTP referrer to
+  that host. Results carry "Search by LocationIQ.com". Confirmed venues and their coordinates are saved as the
+  planner's records; cached search responses expire after 48 hours (free-plan terms, 5,000 requests a day). Everywhere
+  else, including the Githack demo, the reviewed public OpenStreetMap search is used and the token is never sent. If a
+  lookup fails, saved venues and Drop a pin still work.
 - **Times:** the calendar's original start/end instants are kept with each imported event; venue-local times are
   always computed from them in the venue's time zone (or the calendar's, until a venue is known). Re-importing an
   event imported by an earlier build corrects its times.

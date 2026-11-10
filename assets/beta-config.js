@@ -7,6 +7,9 @@ window.BETA_ANALYTICS = { endpoint: "https://script.google.com/macros/s/AKfycbx7
 window.BETA_CALENDAR = { clientId: "194107562342-hutpdsodiktf5j439n2laka2jkqk1ehe.apps.googleusercontent.com", origins: ["https://forecast-ops-beta.pages.dev"] };
 /* Venue search provider for Add/Edit Event, Add Venue and calendar import. Searches run only when a planner presses
    Search on a place or address they have reviewed; calendar locations are never looked up automatically.
-   "nominatim" = public OpenStreetMap Nominatim (the geocoder OPE uses), for occasional user-started searches only.
-   A commercial provider (with its own key and terms covering venue search and stored results) can replace it here. */
-window.BETA_GEOCODER = { provider: "nominatim" };
+   Without a LocationIQ token for this origin: public OpenStreetMap Nominatim (the geocoder OPE uses), for occasional
+   user-started searches only. */
+/* LocationIQ ("Search by LocationIQ.com") is used only on the origins listed with its token: a token dedicated to this
+   beta, restricted by HTTP referrer to forecast-ops-beta.pages.dev. Elsewhere (e.g. the Githack demo) the reviewed public
+   search is used and the token is never sent. */
+window.BETA_GEOCODER = { locationiq: { key: "", origins: ["https://forecast-ops-beta.pages.dev"] } };
