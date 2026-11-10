@@ -345,7 +345,10 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       await ctx.route(/collector\.invalid/, (r) => { sent++; r.abort(); });
       const p = await ctx.newPage(), errors = []; p.on("pageerror", (e) => errors.push(e.message));
       await p.goto(base + page, { waitUntil: "domcontentloaded" }); if (await p.getByText("Open the page", { exact: true }).count()) await Promise.all([p.waitForNavigation().catch(() => {}), p.getByText("Open the page", { exact: true }).first().click()]);
-      const ready = page.startsWith("met") ? await menuReady(p, "CVG") : await eventReady(p, "Sawyer");
+      const wait = () => (page.startsWith("met") ? menuReady(p, "CVG") : eventReady(p, "Sawyer"));
+      let ready = await wait();
+      /* the weather data service is sometimes slow late in a run: note what the page showed and reload once */
+      if (!ready) { const shown = await p.evaluate(() => ((document.getElementById("decision") || document.querySelector(".bx-brief, .workspace") || {}).innerText || "—").trim().slice(0, 80)); console.log(`note: ${page} not ready after 2 min (page showed "${shown}"); reloading once`); await p.reload({ waitUntil: "domcontentloaded" }); ready = await wait(); }
       if (page.startsWith("met")) await p.evaluate(() => window.BetaAnalytics && window.BetaAnalytics.track("tool_opened", { tool: "models" })); else await p.click("#timeline svg", { position: { x: 120, y: 60 } }).catch(() => {});
       await p.evaluate(() => window.BetaAnalytics && window.BetaAnalytics.flush()); await p.waitForTimeout(800);
       const notice = await p.evaluate(() => (document.getElementById("bxPrivacy") || {}).innerText || "");
