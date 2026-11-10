@@ -15,6 +15,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
   /* open a page as a signed-out colleague; raw.githack.com shows a one-time notice that they click through */
   const go = async (opts, url, init) => {
     const ctx = await browser.newContext(opts); if (init) await ctx.addInitScript(init);
+    await ctx.route(/script\.google\.com\/macros/, (r) => r.abort()); // automated checks never reach the real usage collector
     const p = await ctx.newPage(), errors = []; p.on("pageerror", (e) => errors.push(e.message));
     const res = await p.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
     let notice = 0;
@@ -179,7 +180,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
   await section('7. analytics blocked or opted out: the betas work; nothing i', async () => {
   for (const [mode, init] of [["blocked", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec")'], ["opted out", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec");localStorage.setItem("fo_analytics_optout","1")']]) {
     for (const page of ["meteorologist-beta.html", "event-beta.html"]) {
-      const ctx = await browser.newContext(PHONE); await ctx.addInitScript(`try{${init}}catch(e){}`); let sent = 0;
+      const ctx = await browser.newContext(PHONE); await ctx.addInitScript(`try{${init}}catch(e){}`); let sent = 0; await ctx.route(/script\.google\.com\/macros/, (r) => { sent++; r.abort(); });
       await ctx.route(/collector\.invalid/, (r) => { sent++; r.abort(); });
       const p = await ctx.newPage(), errors = []; p.on("pageerror", (e) => errors.push(e.message));
       await p.goto(base + page, { waitUntil: "domcontentloaded" }); if (await p.getByText("Open the page", { exact: true }).count()) await Promise.all([p.waitForNavigation().catch(() => {}), p.getByText("Open the page", { exact: true }).first().click()]);
