@@ -320,6 +320,24 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       `"${note2.trim()}" · after refresh: Sample FC kickoff ${a1 && a1.start}, gates ${a1 && a1.gates} (${a1 && a1.own} kept), setup ${a1 && a1.setup}, venue ${a1 && a1.venue} · Columbus venue ${a3 && a3.venue} · ${after.length} events${errors.length ? " · " + errors.join("; ") : ""}`);
     await ctx.close();
   });
+  /* ---------- 11. city search slow or unavailable: the picker says so and the quick picks still work ---------- */
+  await section('11. city search unavailable (phone)', async () => {
+    const { ctx, p, errors } = await go(PHONE, base + "event-beta.html");
+    await eventReady(p, "Sawyer");
+    let blocked = 0; await ctx.route(/geocoding-api\.open-meteo\.com/, (r) => { blocked++; r.abort(); });
+    await p.click(".bx-head .bx-ppin"); await p.keyboard.type("Cincinnati", { delay: 30 });
+    const said = await until(p, () => [...document.querySelectorAll(".bx-head .bx-ppres")].some((x) => !x.hidden && /City search is unavailable/.test(x.innerText)), null, 30000);
+    const msg = await p.evaluate(() => (document.querySelector(".bx-head .bx-ppres") || {}).innerText || "");
+    await p.fill(".bx-head .bx-ppin", ""); await p.click(".bx-head .bx-ppin");
+    const quick = await until(p, () => [...document.querySelectorAll(".bx-head .bx-ppres button")].some((b) => b.innerText.startsWith("Indianapolis, IN")), null, 10000);
+    await p.evaluate(() => [...document.querySelectorAll(".bx-head .bx-ppres button")].find((b) => b.innerText.startsWith("Indianapolis, IN")).dispatchEvent(new MouseEvent("mousedown", { bubbles: true })));
+    const loaded = await eventReady(p, "Indianapolis");
+    const d = await p.evaluate(() => ({ tz: document.body.dataset.tz, office: document.body.dataset.office }));
+    report(said && quick && loaded && blocked > 0 && d.tz === "America/Indiana/Indianapolis" && !errors.length,
+      "city search unavailable: the picker says so, and a quick pick still loads the city on its own time zone",
+      `${blocked} search requests blocked · "${msg.trim().slice(0, 60)}" · quick pick Indianapolis → ${d.tz}, NWS ${d.office || "—"}${errors.length ? " · " + errors.join("; ") : ""}`);
+    await ctx.close();
+  });
   await section('7. analytics blocked or opted out: the betas work; nothing i', async () => {
   for (const [mode, init] of [["blocked", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec")'], ["opted out", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec");localStorage.setItem("fo_analytics_optout","1")']]) {
     for (const page of ["meteorologist-beta.html", "event-beta.html"]) {
