@@ -140,6 +140,19 @@ def fit_product(groups, day, hazard):
     for key in ("raw", "calibrated"):
         result[key]["brier_skill_vs_training_climatology"] = (
             1 - result[key]["brier"] / baseline["brier"])
+    probability = expit(calibrated)
+    edges = (0, 0.001, 0.01, 0.02, 0.05, 0.10, 0.15, 0.30, 1.000001)
+    result["calibrated_reliability"] = []
+    for lower, upper in zip(edges, edges[1:]):
+        selected = (probability >= lower) & (probability < upper)
+        if selected.any():
+            result["calibrated_reliability"].append({
+                "lower": lower, "upper": min(upper, 1),
+                "known_points": int(selected.sum()),
+                "dates": len(np.unique(dev_dates[selected])),
+                "mean_probability": float(probability[selected].mean()),
+                "observed_rate": float(y_dev[selected].mean()),
+            })
     result["development_by_date"] = [
         {"case": case, "positive_points": int(y_dev[dev_dates == i].sum()),
          "known_points": int((dev_dates == i).sum()),
