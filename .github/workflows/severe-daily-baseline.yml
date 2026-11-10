@@ -1,0 +1,39 @@
+name: Severe daily research baseline
+on:
+  push:
+    branches: [codex/severe-daily-baseline]
+    paths:
+      - 'tools/severe/train_daily.py'
+      - '.github/workflows/severe-daily-baseline.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Retrieve frozen historical cohort
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: '42321856909'
+          pattern: severe-history-v05-20*
+          path: tests/out/daily-baseline-history
+      - run: pip install numpy==2.3.5 scipy==1.17.0
+      - name: Fit, calibrate and score daily baselines
+        run: python tools/severe/train_daily.py --history tests/out/daily-baseline-history --output tests/out/daily-baseline
+      - uses: actions/upload-artifact@v4
+        with:
+          name: severe-daily-research-baseline
+          path: tests/out/daily-baseline
+          if-no-files-found: error
+          retention-days: 30
