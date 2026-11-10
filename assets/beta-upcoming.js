@@ -19,7 +19,7 @@
     U.track("custom_event_started");
     const stored = target && target.id && E.getEvent(target.id) ? E.getEvent(target.id) : null, saved = E.venues(), vns = [...saved, ...E.BUILTIN.filter((b) => !saved.some((v) => E.norm(v.name) === E.norm(b.name)))];
     const base = stored || target || null;
-    let venue = base && base.venueId ? E.getVenue(base.venueId) : !base ? vns[0] || null : null;
+    let venue = base && base.venueId ? E.getVenue(base.venueId) : !base ? saved[0] || null : null; // a new event starts at the first saved venue (never a built-in one by default)
     let city = base && !venue ? { name: base.loc.name, lat: base.loc.lat, lon: base.loc.lon, tz: base.tz } : { name: "", lat: null, lon: null, tz: null };
     /* an event's own times stay its own: overrides at a saved venue, every time when it has no saved venue */
     const dirty = new Set(stored ? (venue ? stored.overrides || [] : ["setup", "gates", "teardown"].filter((k) => stored.times[k])) : []);
