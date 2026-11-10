@@ -15,6 +15,7 @@
   const linkEvent = Q.get("e") ? S.eventFromParam(Q.get("e"), C) : null;
   const linkCity = (() => { const lat = parseFloat(Q.get("lat")), lon = parseFloat(Q.get("lon")); return fin(lat) && fin(lon) ? { name: Q.get("name") || `${lat.toFixed(3)}, ${lon.toFixed(3)}`, lat, lon, tz: Q.get("tz") || null } : null; })();
   const sampleAt = (city) => S.sampleEvent(C, Date.now(), (city && city.tz) || "America/New_York", 1, city || null);
+  let retried = false;
   let ev = storedOk(Q.get("ev")) || linkEvent || (linkCity ? null : storedOk(E.last())) || null, tzFromPick = false, pickSeq = 0, gen = 0, lastRes = null, bus = null, pendingCity = linkCity;
   if (!ev) ev = sampleAt(linkCity && linkCity.tz ? linkCity : null);
   const isSample = () => !!ev.sample, isStored = () => !!(ev.id && E.getEvent(ev.id));
@@ -62,7 +63,13 @@
     const endMs = Math.max(...C.event.windows(ev).map((w) => w.endMs)), days = isSample() ? 5 : Math.min(7, Math.max(3, Math.ceil((endMs - Date.now()) / 864e5) + 1));
     const res = await U.load(where, { days });
     if (g !== gen) return;
-    if (res.empty) { U.track("load_failed", { what: "models" }); $("decision").textContent = "Weather guidance could not be loaded."; $("keys").innerHTML = '<p class="bx-note">Try ↻ in a minute.</p>'; return; }
+    if (res.empty) {
+      U.track("load_failed", { what: "models" });
+      /* the guidance service is occasionally busy for a minute: try once more on our own before asking */
+      if (!retried) { retried = true; $("decision").textContent = "Guidance is slow to answer…"; $("keys").innerHTML = '<p class="bx-note">Trying again in 20 seconds.</p>'; setTimeout(() => { if (g === gen) run(); }, 20000); return; }
+      $("decision").textContent = "Weather guidance could not be loaded."; $("keys").innerHTML = '<p class="bx-note">Try ↻ in a minute.</p>'; retried = false; return;
+    }
+    retried = false;
     if (!res.NW || !res.NW.ok) U.track("load_failed", { what: "nws" });
     if (tzFromData) { ev = sampleAt({ ...tzFromData, tz: res.ctx.B.tz }); context(); document.body.dataset.tz = ev.tz; }
     if (tzFromPick) { tzFromPick = false; ev = { ...ev, tz: res.ctx.B.tz }; if (isStored()) ev = E.saveEvent(ev); context(); document.body.dataset.tz = ev.tz; }
