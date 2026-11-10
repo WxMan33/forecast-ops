@@ -57,12 +57,15 @@
   }
   async function load(where, { days = 7, thunder = true } = {}) {
     const mk = S.market(where.lat, where.lon), RB = recipeFor(mk);
+    /* a slow secondary feed (NWS, ensembles, thunder data, run metadata) must not hold the briefing hostage:
+       after its cap the page renders without it and names it as missing */
+    const capped = (p, ms, late) => Promise.race([p, new Promise((ok) => setTimeout(() => ok(late), ms))]);
     const [B, NW, BE, TH, META] = await Promise.all([
       O.Data.loadModels(CFG.blend, { ...where, days }),
-      O.Data.loadNWS(where),
-      O.Data.loadEnsemble(CFG.blendEns, { ...where, days }).catch(() => ({ empty: true })),
-      thunder ? O.Data.loadModels(CFG.thunder, { ...where, days: Math.max(3, O.savedDays(CFG.thunder)) }).catch(() => ({ empty: true })) : Promise.resolve(null),
-      O.Data.loadModelMeta(CFG.metaIds).catch(() => ({})),
+      capped(O.Data.loadNWS(where).catch((e) => ({ ok: false, reason: `NWS unavailable (${e.message || e})` })), 15000, { ok: false, reason: "NWS did not respond within 15 s" }),
+      capped(O.Data.loadEnsemble(CFG.blendEns, { ...where, days }).catch(() => ({ empty: true })), 20000, { empty: true }),
+      thunder ? capped(O.Data.loadModels(CFG.thunder, { ...where, days: Math.max(3, O.savedDays(CFG.thunder)) }).catch(() => ({ empty: true })), 20000, { empty: true }) : Promise.resolve(null),
+      capped(O.Data.loadModelMeta(CFG.metaIds).catch(() => ({})), 10000, {}),
     ]);
     if (B.empty) return { empty: true, problems: B.problems || [], NW, market: mk };
     C.blend.addSources(B, BE, NW && NW.ok ? C.nws.onAxis(NW, B.ms) : null);
