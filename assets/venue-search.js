@@ -7,7 +7,8 @@
      ambiguous  several places in different spots (e.g. "Memorial Stadium" in five states): show the candidates
      unknown    nothing, or only a city / county / bare street: the venue stays unconfirmed
    Pure helpers (parse, decide, formatAddress, km) run in Node; search() and the picker are browser-only.
-   Nominatim usage policy: at most one request per second, results cached in this browser for 30 days. */
+   Searches are started by the planner on reviewed text only (no automatic lookups of calendar locations, no
+   autocomplete); one request a second at most, results cached in this browser for 30 days. */
 (function (root) {
   "use strict";
   const ENDPOINT = "https://nominatim.openstreetmap.org/search";
@@ -79,7 +80,12 @@
   const CACHE = "venue_geo_v1:", DAY = 864e5;
   const store = () => { try { return root.localStorage; } catch (e) { return null; } };
   let last = 0, chain = Promise.resolve();
+  /* Searches run only when a planner presses Search on text they have reviewed: never automatically for calendar
+     locations, never as-you-type. The provider is set in beta-config.js (BETA_GEOCODER); "nominatim" is the public
+     OpenStreetMap service OPE uses, suitable only for these occasional, user-started, reviewed searches. */
+  const provider = () => (root.BETA_GEOCODER && root.BETA_GEOCODER.provider) || "nominatim";
   function search(q) {
+    if (provider() !== "nominatim") return Promise.reject(new Error(`Geocoding provider "${provider()}" is not set up in this build.`));
     const key = CACHE + norm(q), s = store();
     try { const c = s && JSON.parse(s.getItem(key)); if (c && Date.now() - c.at < 30 * DAY) return Promise.resolve(c.places); } catch (e) { /* ignore */ }
     const run = async () => {
@@ -92,15 +98,6 @@
     };
     const p = chain.then(run, run); chain = p.catch(() => {}); return p;
   }
-  /* saved venues and remembered locations first (EventStore.matchVenue), then the map search */
-  async function resolve(location, venues) {
-    const E = root.EventStore, m = E.matchVenue(location, venues);
-    if (m.status === "matched") return { status: "matched", venue: m.venue, via: m.via };
-    if (!String(location || "").trim()) return { status: "unknown", why: "blank", candidates: [] };
-    try { return { ...decide(location, await search(location)), searched: true }; }
-    catch (e) { return { status: "unknown", why: "failed", candidates: [], error: String(e.message || e) }; }
-  }
-
   /* ---------------- browser: drop a pin (Leaflet + OpenStreetMap tiles, loaded on first use) ---------------- */
   let leaflet = null;
   const loadLeaflet = () => leaflet || (leaflet = new Promise((ok, no) => {
@@ -129,7 +126,7 @@
 
   /* ---------------- browser: venue picker (search box, candidates, drop a pin) ----------------
      onPick(place) with { name, address, lat, lon, kind } */
-  function picker(host, { initial = "", onPick, label = "Venue name or street address", auto = false } = {}) {
+  function picker(host, { initial = "", onPick, label = "Venue name or street address" } = {}) { // searches only on Search / Enter
     const esc = root.Ops.esc, id = `vs${Math.random().toString(36).slice(2, 8)}`;
     host.innerHTML = `<div class="vs"><div class="vs-row"><input type="search" class="vs-q" id="${id}" aria-label="${esc(label)}" placeholder="${esc(label)}" value="${esc(initial)}"><button type="button" class="bx-btn vs-go">Search</button><button type="button" class="bx-btn vs-pinbtn">Drop a pin</button></div>
       <div class="vs-msg bx-note" aria-live="polite"></div><div class="vs-res"></div></div>`;
@@ -151,11 +148,10 @@
     host.querySelector(".vs-go").addEventListener("click", go);
     q.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); go(); } });
     host.querySelector(".vs-pinbtn").addEventListener("click", async () => { const p = await pinDialog(null); if (p) { const place = { name: q.value.trim() || "Dropped pin", address: `Pin at ${p.lat}, ${p.lon}`, lat: p.lat, lon: p.lon, kind: "pin" }; msg.textContent = `Selected: ${place.address}`; res.innerHTML = ""; if (onPick) onPick(place); } });
-    if (auto && initial) go();
     return { search: go, set(v) { q.value = v; } };
   }
 
-  const api = { tzGuess, parse, decide, formatAddress, km, search, resolve, picker, pinDialog, SAME_PLACE_KM };
+  const api = { tzGuess, parse, decide, formatAddress, km, search, picker, pinDialog, SAME_PLACE_KM };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.VenueSearch = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

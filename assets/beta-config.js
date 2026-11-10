@@ -5,3 +5,8 @@ window.BETA_ANALYTICS = { endpoint: "https://script.google.com/macros/s/AKfycbx7
    branch); everywhere else, including raw.githack.com, the import offers the sample calendar only.
    The OAuth client ID is public by design; the client secret is never used here. */
 window.BETA_CALENDAR = { clientId: "194107562342-hutpdsodiktf5j439n2laka2jkqk1ehe.apps.googleusercontent.com", origins: ["https://forecast-ops-beta.pages.dev"] };
+/* Venue search provider for Add/Edit Event, Add Venue and calendar import. Searches run only when a planner presses
+   Search on a place or address they have reviewed; calendar locations are never looked up automatically.
+   "nominatim" = public OpenStreetMap Nominatim (the geocoder OPE uses), for occasional user-started searches only.
+   A commercial provider (with its own key and terms covering venue search and stored results) can replace it here. */
+window.BETA_GEOCODER = { provider: "nominatim" };

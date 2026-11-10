@@ -378,7 +378,9 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
   await section('13. venue search on calendar import (phone)', async () => {
     const FIX = require("path").join(__dirname, "../tests/fixtures/nominatim/venues.json"), fix = JSON.parse(require("fs").readFileSync(FIX, "utf8")).queries;
     const { ctx, p, errors } = await go(PHONE, base + "event-beta.html#upcoming");
-    let geo = 0; await ctx.route(/nominatim\.openstreetmap\.org\/search/, (r) => { geo++; const q = new URL(r.request().url()).searchParams.get("q"); r.fulfill({ contentType: "application/json", body: JSON.stringify(fix[q] || []) }); });
+    /* every geocoding host counts (public Nominatim, city search and common commercial geocoders) */
+    let geo = 0; const GEOHOSTS = /nominatim\.openstreetmap\.org|geocoding-api\.open-meteo\.com|api\.geoapify\.com|geocode|api\.mapbox\.com\/search|maps\.googleapis\.com\/maps\/api\/(geocode|place)|locationiq|opencagedata/;
+    await ctx.route(GEOHOSTS, (r) => { geo++; const q = new URL(r.request().url()).searchParams.get("q"); r.fulfill({ contentType: "application/json", body: JSON.stringify(fix[q] || []) }); });
     const fc = []; await ctx.route(/api\.open-meteo\.com\/v1\/forecast/, (r) => { const u = new URL(r.request().url()); fc.push([+u.searchParams.get("latitude"), +u.searchParams.get("longitude")]); r.continue(); });
     await until(p, () => document.querySelector("#upView:not([hidden]) #upImport"), null, 30000);
     const day = (n, hm) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10) + `T${hm}:00Z`;
@@ -389,6 +391,13 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     const openImport = async () => { await p.click("#upImport"); await p.click("#ciSample"); await until(p, () => document.getElementById("ciNext"), null, 10000); await p.click("#ciNext"); await until(p, () => document.getElementById("ciImport") && document.getElementById("editForm").dataset.resolved === "true", null, 60000); };
     const rows = () => p.evaluate(() => [...document.querySelectorAll(".ci-ev")].map((r) => ({ match: r.dataset.match, on: r.querySelector("[data-pick]").checked, text: r.querySelector(".ci-venue").innerText.replace(/\s+/g, " ") })));
     await openImport();
+    const opened = await rows(), geo0 = geo;
+    await p.screenshot({ path: `${out}/venue-review-import-phone.png`, fullPage: false });
+    report(geo0 === 0 && opened.every((r) => r.match === "review" && !r.on) && /Nothing is sent until you do/.test(opened[0].text),
+      "venue privacy: opening the calendar picker sends zero geocoding requests; unfamiliar locations wait for the planner to review and search",
+      `${geo0} geocoding requests on opening · rows ${opened.map((r) => r.match).join(",")}`);
+    /* the planner reviews each location and searches; one clear place is selected automatically */
+    for (let k = 0; k < 4; k++) { await p.click(`[data-search="${k}"]`); await until(p, (n) => document.querySelector(`.ci-ev[data-row="${n}"]`).dataset.match !== "searching", k, 20000); }
     const first = await rows(), geo1 = geo;
     await p.screenshot({ path: `${out}/venue-search-import-phone.png`, fullPage: false });
     const cands = await p.evaluate(() => [...document.querySelectorAll('.ci-ev[data-match="ambiguous"] .vs-hit')].map((b) => b.innerText.replace(/\s+/g, " ")));
@@ -398,10 +407,10 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     const stored = await p.evaluate(() => ({ ev: JSON.parse(localStorage.getItem("beta_events_v2")).map((e) => ({ id: e.id, lat: e.loc.lat, lon: e.loc.lon, name: e.loc.name, tz: e.tz })), vn: JSON.parse(localStorage.getItem("beta_venues_v1")).map((v) => ({ name: v.name, lat: v.lat, lon: v.lon, address: v.address, aliases: v.aliases })) }));
     const at = (id) => stored.ev.find((e) => e.id === `cal_${id.replace(/\s/g, "_")}`) || {};
     const rv = at("Riverbend concert"), kv = at("Kellogg Ave event"), mv = at("Memorial Stadium game");
-    report(first.map((r) => r.match).join() === "found,found,ambiguous,unknown" && first[0].on && first[1].on && !first[2].on && !first[3].on && /Riverbend Music Center/.test(first[0].text) && /6295 Kellogg Ave, Cincinnati, OH 45230/.test(first[1].text)
+    report(first.map((r) => r.match).join() === "found,found,ambiguous,unknown" && geo1 === 4 && first[0].on && first[1].on && !first[2].on && !first[3].on && /Riverbend Music Center/.test(first[0].text) && /6295 Kellogg Ave, Cincinnati, OH 45230/.test(first[1].text)
       && cands.length >= 4 && /only matches a city/.test(first[3].text) && !errors.length,
       "venue search: an unfamiliar venue by name and an address-only event are found automatically; a shared name lists real candidates with addresses; a city-only match stays unconfirmed",
-      `${first.map((r) => `${r.match}${r.on ? "✓" : ""}: ${r.text.slice(0, 70)}`).join(" | ")} · candidates: ${cands.slice(0, 3).map((c) => c.slice(0, 45)).join(" / ")} · ${geo1} map searches`);
+      `${first.map((r) => `${r.match}${r.on ? "✓" : ""}: ${r.text.slice(0, 70)}`).join(" | ")} · candidates: ${cands.slice(0, 3).map((c) => c.slice(0, 45)).join(" / ")} · ${geo1} searches, one per reviewed location`);
     report(stored.ev.length === 3 && Math.abs(rv.lat - 39.0519) < 0.0002 && Math.abs(rv.lon + 84.4189) < 0.0002 && Math.abs(kv.lat - 39.0562) < 0.0002 && kv.name === "6295 Kellogg Ave" && Math.abs(mv.lat - 40.8207) < 0.0002 && Math.abs(mv.lon + 96.7048) < 0.0002 && mv.tz === "America/Chicago" && !stored.ev.some((e) => /Downtown/.test(e.id)) && /3 added/.test(note1),
       "venue search: imported events sit at the venues' exact points (Memorial Stadium, Lincoln, NE on Central time); the city-only event was not imported",
       `${stored.ev.map((e) => `${e.name} ${e.lat},${e.lon} ${e.tz}`).join(" | ")} · "${note1.trim().slice(0, 90)}"`);
@@ -410,9 +419,9 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     const second = await rows(), geo2 = geo - geo1;
     await p.click("#ciImport"); await until(p, () => !document.getElementById("editDlg").open, null, 30000);
     const note2 = await p.evaluate(() => document.getElementById("upNote").innerText), count2 = await p.evaluate(() => JSON.parse(localStorage.getItem("beta_events_v2")).length);
-    report(second.slice(0, 3).every((r) => r.match === "matched" && r.on && /matched by name|matched by street address|confirmed before/.test(r.text)) && geo2 <= 1 && count2 === 3 && /0 added/.test(note2),
-      "venue search: re-importing updates the same events and recognises all three venues without asking again",
-      `${second.slice(0, 3).map((r) => r.text.slice(0, 60)).join(" | ")} · ${geo2} new map searches (city-only row only) · ${count2} events · "${note2.trim().slice(0, 80)}"`);
+    report(second.slice(0, 3).every((r) => r.match === "matched" && r.on && /matched by name|matched by street address|confirmed before/.test(r.text)) && geo2 === 0 && second[3].match === "review" && count2 === 3 && /0 added/.test(note2),
+      "venue search: re-importing updates the same events and recognises all three venues without asking or sending any lookup",
+      `${second.slice(0, 3).map((r) => r.text.slice(0, 60)).join(" | ")} · ${geo2} geocoding requests on re-import · ${count2} events · "${note2.trim().slice(0, 80)}"`);
     /* the briefing's forecast request uses the venue's exact coordinates */
     fc.length = 0; await p.goto(base + `event-beta.html?ev=${encodeURIComponent("cal_Memorial_Stadium_game")}`, { waitUntil: "domcontentloaded" });
     await until(p, () => document.body.dataset.readiness, null, 150000);

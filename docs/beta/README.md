@@ -69,16 +69,20 @@ planner's own times are kept (an override keeps its offset from the start). All-
   venue. A location matched by hand (in the import list or later with Edit) is remembered as an alias of that venue,
   so the next import of that location matches automatically. If the calendar later changes an event's location, the
   new location is matched again rather than keeping the old venue.
-- **Venue search (like OPE's location setup):** after saved venues and remembered locations, the full calendar
-  location is looked up on OpenStreetMap (Nominatim, the geocoder OPE uses) for the actual venue, business, park,
-  school or street address. One clear place (results within ~1.5 km are one place, e.g. a venue and its building) is
-  selected automatically with its name, address and **Change**; several places (e.g. "Memorial Stadium" in five states)
-  are listed with their addresses; a city, county or bare street only leaves the venue unconfirmed, with **Search
-  again**, **Drop a pin** (OpenStreetMap map) or a saved venue. A place chosen or found becomes a saved venue at its
-  exact point, remembered for that calendar location, so re-importing never asks again and does not search again.
-  Add Event, Edit Event and Add Venue use the same search; city search stays in the forecast tools. Lookups send only
-  the location text to OpenStreetMap, at most one a second, cached in the browser for 30 days. When the time-zone
-  lookup is unavailable, a found venue's time zone comes from its state (longitude for split states).
+- **Venue search (like OPE's location setup), reviewed before anything is sent:** saved venues and remembered
+  calendar locations match automatically, with no lookup. An unfamiliar location is shown in an editable box; nothing
+  leaves the browser until the planner checks the text (removing anything private, such as a home address or
+  directions) and presses **Search**. Calendar locations are never looked up automatically and there is no
+  as-you-type search. A search with one clear place (results within ~1.5 km are one place) selects it automatically
+  with its name, address and **Change**; several places are listed with their addresses; a city, county or bare
+  street only leaves the venue unconfirmed, with **Search again**, **Drop a pin** (OpenStreetMap map) or a saved
+  venue. A found or chosen place becomes a saved venue at its exact point and is remembered for that calendar
+  location, so a re-import neither asks nor sends a lookup. Add Event, Edit Event and Add Venue use the same search;
+  city search stays in the forecast tools.
+- **Search provider:** set in `assets/beta-config.js` (`BETA_GEOCODER`). It is currently public OpenStreetMap
+  Nominatim (the geocoder OPE uses), used only for these occasional, planner-started searches of reviewed text, one a
+  second at most, cached for 30 days. For wider sharing, replace it with a commercial geocoder whose terms cover venue
+  search and storing results (provider choice and key pending).
 - **Times:** the calendar's original start/end instants are kept with each imported event; venue-local times are
   always computed from them in the venue's time zone (or the calendar's, until a venue is known). Re-importing an
   event imported by an earlier build corrects its times.

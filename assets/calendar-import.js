@@ -121,9 +121,10 @@
       const when = (r) => { if (!r.tz) return r.times.start.replace("T", " ") + " UTC"; const s = Date.parse(r.times.start + ":00Z"); return `${new Date(s).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" })} · ${h12(r.times.start)}–${h12(r.times.end)} ${fmt.zone(Date.parse(r.source.start), r.tz)}`; };
       const VIA = { name: "matched by name", address: "matched by street address", remembered: "a location you confirmed before", manual: "chosen by you", found: "found on the map", pin: "dropped pin" };
       /* one venue state per row: saved venue, a place found on the map, still searching, or unconfirmed */
-      const state = recs.map(({ g, r }) => (r.venueId ? { kind: "saved", venue: E.getVenue(r.venueId), via: (r.match || {}).via, auto: r.venueId } : g.location ? { kind: "searching" } : { kind: "none", why: "blank" }));
+      /* unfamiliar locations start in review: nothing leaves the browser until the planner checks the text and searches */
+      const state = recs.map(({ g, r }) => (r.venueId ? { kind: "saved", venue: E.getVenue(r.venueId), via: (r.match || {}).via, auto: r.venueId } : g.location ? { kind: "review", text: g.location } : { kind: "none", why: "blank" }));
       form.innerHTML = `<h2 id="editTitle">Choose events to import</h2>
-        <p class="bx-note" style="margin:0">${esc(cal.summary || "Calendar")} · next 90 days${skipped ? ` · ${skipped} all-day ${skipped === 1 ? "item" : "items"} skipped` : ""}. Times are shown at the venue. Saved venues are matched first; other locations are looked up on the map (OpenStreetMap), and the forecast uses the venue's exact point.</p>
+        <p class="bx-note" style="margin:0">${esc(cal.summary || "Calendar")} · next 90 days${skipped ? ` · ${skipped} all-day ${skipped === 1 ? "item" : "items"} skipped` : ""}. Times are shown at the venue. Saved venues are matched automatically. For other locations, review the place or address before searching: remove anything private, like a home address or directions. The forecast uses the venue's exact point.</p>
         <div class="ci-list">${recs.map(({ r }, i) => `<div class="ci-ev" data-row="${i}"><label class="bx-check"><input type="checkbox" data-pick="${i}"> <span><b>${esc(r.name)}</b>${have.has(r.id) ? ' <span class="bx-note">· already imported (will update)</span>' : ""}<span class="bx-note" style="display:block" data-when>${esc(when(r))}</span></span></label>
           <div class="ci-venue" data-venue-box="${i}"></div></div>`).join("") || '<p class="bx-note">No upcoming timed events in the next 90 days.</p>'}</div>
         <p class="err" id="ciErr" hidden></p>${foot('<button class="bx-btn" value="cancel" formnovalidate>Cancel</button><button type="button" class="bx-btn primary" id="ciImport">Import selected</button>')}`;
@@ -133,14 +134,19 @@
       function draw(i) {
         const box = form.querySelector(`[data-venue-box="${i}"]`), row = box.closest(".ci-ev"), st = state[i], loc = recs[i].g.location || "";
         const tools = `<div class="ci-tools"><button type="button" class="bx-link" data-again="${i}">Search again</button><button type="button" class="bx-link" data-pin="${i}">Drop a pin</button>${savedSelect(i)}</div>`;
-        row.dataset.match = { saved: "matched", place: "found", searching: "searching", ambiguous: "ambiguous", none: "unknown" }[st.kind];
+        row.dataset.match = { saved: "matched", place: "found", searching: "searching", ambiguous: "ambiguous", none: "unknown", review: "review" }[st.kind];
         if (st.kind === "saved") box.innerHTML = `<span>Venue: <b>${esc(st.venue.name)}</b>${st.venue.address ? ` <span class="bx-note">· ${esc(st.venue.address)}</span>` : ""} <span class="bx-note">· ${esc(VIA[st.via] || "matched")}</span></span> <button type="button" class="bx-link" data-change="${i}">Change</button>`;
         else if (st.kind === "place") box.innerHTML = `<span>Venue: <b>${esc(st.place.name)}</b> <span class="bx-note">· ${esc(st.place.address || "")} · ${esc(VIA[st.via] || "found on the map")}</span></span> <button type="button" class="bx-link" data-change="${i}">Change</button>`;
-        else if (st.kind === "searching") box.innerHTML = `<span class="bx-note">Looking up “${esc(loc)}”…</span>`;
+        else if (st.kind === "searching") box.innerHTML = `<span class="bx-note">Searching for “${esc(st.text || loc)}”…</span>`;
+        else if (st.kind === "review") box.innerHTML = `<span class="bx-note" style="flex-basis:100%">Not a saved venue yet. Check the text (remove anything private), then search. Nothing is sent until you do.</span>
+          <div class="vs-row" style="flex-basis:100%"><input type="search" class="vs-q" data-review="${i}" value="${esc(st.text)}" aria-label="Place or address to search"><button type="button" class="bx-btn" data-search="${i}">Search</button></div>${tools.replace(`<button type="button" class="bx-link" data-again="${i}">Search again</button>`, "")}`;
         else if (st.kind === "ambiguous") box.innerHTML = `<span class="bx-note" style="flex-basis:100%">“${esc(loc)}” matches several places. Choose one, or leave it to confirm later:</span>
           <div class="ci-cands">${st.candidates.map((c, k) => `<button type="button" class="vs-hit" data-cand="${i}:${k}"><b>${esc(c.name)}</b><span class="bx-note">${esc(c.address)}</span></button>`).join("")}</div>${tools}`;
         else box.innerHTML = `<span class="bx-note" style="flex-basis:100%">${esc(st.why === "blank" ? "No location in the calendar." : st.why === "area" ? `“${loc}” only matches a city or area, not a venue. The venue stays unconfirmed.` : st.why === "street" ? `“${loc}” only matches a street, not a venue.` : st.why === "failed" ? "Venue search is unavailable right now." : `Couldn't find “${loc}” on the map.`)} Search again, drop a pin or choose a saved venue, or confirm it later.</span>${tools}`;
-        box.querySelectorAll("[data-change], [data-again]").forEach((b) => b.addEventListener("click", () => openSearch(i)));
+        box.querySelectorAll("[data-change]").forEach((b) => b.addEventListener("click", () => openSearch(i)));
+        box.querySelectorAll("[data-again]").forEach((b) => b.addEventListener("click", () => { state[i] = { kind: "review", text: st.text || recs[i].g.location || "" }; draw(i); }));
+        box.querySelectorAll("[data-search]").forEach((b) => b.addEventListener("click", () => runSearch(i, box.querySelector("[data-review]").value)));
+        box.querySelectorAll("[data-review]").forEach((q) => { q.addEventListener("input", () => { state[i].text = q.value; }); q.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); runSearch(i, q.value); } }); });
         box.querySelectorAll("[data-pin]").forEach((b) => b.addEventListener("click", () => pinFor(i)));
         box.querySelectorAll("[data-saved]").forEach((s) => s.addEventListener("change", () => { if (!s.value) return; state[i] = { kind: "saved", venue: E.getVenue(s.value), via: "manual", auto: state[i].auto || null }; draw(i); setPick(i, true); }));
         box.querySelectorAll("[data-cand]").forEach((b) => b.addEventListener("click", () => { const [, k] = b.dataset.cand.split(":"); state[i] = { kind: "place", place: st.candidates[+k], via: "manual" }; draw(i); setPick(i, true); }));
@@ -150,26 +156,24 @@
         box.innerHTML = `<div style="flex-basis:100%;display:grid;gap:6px"><div class="ci-tools">${savedSelect(i)}<button type="button" class="bx-link" data-keep="${i}">Keep ${prev.kind === "saved" || prev.kind === "place" ? "current venue" : "as is"}</button></div><div data-picker></div></div>`;
         box.querySelector("[data-keep]").addEventListener("click", () => draw(i));
         box.querySelector("[data-saved]").addEventListener("change", (e) => { if (!e.target.value) return; state[i] = { kind: "saved", venue: E.getVenue(e.target.value), via: "manual", auto: prev.auto || null }; draw(i); setPick(i, true); });
-        VS.picker(box.querySelector("[data-picker]"), { initial: loc, auto: !!loc, onPick: (p) => { state[i] = { kind: "place", place: p, via: p.kind === "pin" ? "pin" : "manual" }; draw(i); setPick(i, true); } });
+        VS.picker(box.querySelector("[data-picker]"), { initial: loc, onPick: (p) => { state[i] = { kind: "place", place: p, via: p.kind === "pin" ? "pin" : "manual" }; draw(i); setPick(i, true); } });
       }
       async function pinFor(i) { const p = await VS.pinDialog(null); if (p) { state[i] = { kind: "place", place: { name: recs[i].g.location ? recs[i].g.location.split(",")[0] : "Dropped pin", address: `Pin at ${p.lat}, ${p.lon}`, lat: p.lat, lon: p.lon, kind: "pin" }, via: "pin" }; draw(i); setPick(i, true); } }
       recs.forEach((_, i) => { draw(i); if (state[i].kind === "saved") setPick(i, true); });
       form.querySelectorAll("[data-pick]").forEach((c) => c.addEventListener("change", count));
       count();
-      /* look up unfamiliar locations one by one (Nominatim allows one request a second; results are cached) */
-      (async () => {
-        for (let i = 0; i < recs.length; i++) {
-          if (state[i].kind !== "searching") continue;
-          const res = await VS.resolve(recs[i].g.location, venues);
-          if (!dlg.open || state[i].kind !== "searching") continue; // closed, or the planner already chose
-          if (res.status === "matched") state[i] = { kind: "saved", venue: res.venue, via: res.via, auto: res.venue.id };
-          else if (res.status === "found") state[i] = { kind: "place", place: res.place, via: "found" };
-          else if (res.status === "ambiguous") state[i] = { kind: "ambiguous", candidates: res.candidates };
-          else state[i] = { kind: "none", why: res.why };
-          draw(i); if (state[i].kind === "saved" || state[i].kind === "place") setPick(i, true);
-        }
-        form.dataset.resolved = "true";
-      })();
+      /* a search the planner started, with the text they reviewed; one clear place is selected automatically */
+      async function runSearch(i, text) {
+        text = String(text || "").trim(); if (!text) return;
+        state[i] = { kind: "searching", text }; draw(i);
+        let res; try { res = VS.decide(text, await VS.search(text)); } catch (e) { res = { status: "unknown", why: "failed" }; }
+        if (!dlg.open) return;
+        if (res.status === "found") state[i] = { kind: "place", place: res.place, via: "found" };
+        else if (res.status === "ambiguous") state[i] = { kind: "ambiguous", candidates: res.candidates, text };
+        else state[i] = { kind: "none", why: res.why, text };
+        draw(i); if (state[i].kind === "place") setPick(i, true);
+      }
+      form.dataset.resolved = "true"; // nothing is looked up on opening
       $("ciImport").addEventListener("click", async () => {
         const btn = $("ciImport"); btn.disabled = true; btn.textContent = "Importing…";
         let remembered = 0; const picked = [];

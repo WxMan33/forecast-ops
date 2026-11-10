@@ -73,7 +73,7 @@
     function tzNote() { const z = venue ? venue.tz : city.tz; $("fTzNote").textContent = `Times are local to the venue (${z ? `${z}, ${fmt.zone(Date.now(), z)}` : "time zone found on save"}), wherever you are. An end or teardown earlier than the start is read as after midnight; a setup later than the start, as the day before.`; }
     /* the venue itself (stadium, business, park, school or street address), not just its city; or a dropped pin */
     const calLoc = base && !base.sample && !fin(base.loc.lat) && base.source && base.source.location ? base.source.location : "";
-    window.VenueSearch.picker($("fCity"), { initial: calLoc, auto: !!calLoc,
+    window.VenueSearch.picker($("fCity"), { initial: calLoc, // prefilled for review; searched only when the planner presses Search
       onPick(p) { city = { name: p.address || "", address: p.kind === "pin" ? "" : p.address, lat: p.lat, lon: p.lon, tz: null }; $("fLat").value = p.lat; $("fLon").value = p.lon;
         if (!$("fVenue").value.trim() || $("fVenue").dataset.auto === "1") { $("fVenue").value = p.name; $("fVenue").dataset.auto = "1"; } fill(false); tzNote(); } });
     $("fVenue").addEventListener("input", () => { $("fVenue").dataset.auto = ""; });
