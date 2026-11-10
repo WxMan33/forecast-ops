@@ -194,7 +194,10 @@
     draw();
     (async () => {
       for (const group of byVenue.values()) {
-        const ev0 = group[0].ev, get = () => U.load({ lat: ev0.loc.lat, lon: ev0.loc.lon }, { days: 7 }).catch(() => ({ empty: true }));
+        /* the same request the briefing makes (days just past the latest event here), so the list and the briefing agree
+           and share the browser's cached guidance; a far-off event's partial coverage still shows correctly */
+        const days = Math.min(7, Math.max(3, ...group.map((r) => Math.ceil((r.endMs - Date.now()) / 864e5) + 1)));
+        const ev0 = group[0].ev, get = () => U.load({ lat: ev0.loc.lat, lon: ev0.loc.lon }, { days }).catch(() => ({ empty: true }));
         let res = await get();
         /* the guidance service is occasionally busy: one quiet retry before showing "Couldn't check" */
         if ((res.empty || !res.ctx) && my === gen) { await new Promise((ok) => setTimeout(ok, 15000)); if (my !== gen) return; res = await get(); }
