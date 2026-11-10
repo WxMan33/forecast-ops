@@ -188,7 +188,10 @@
     draw();
     (async () => {
       for (const group of byVenue.values()) {
-        const ev0 = group[0].ev, res = await U.load({ lat: ev0.loc.lat, lon: ev0.loc.lon }, { days: 7 }).catch(() => ({ empty: true }));
+        const ev0 = group[0].ev, get = () => U.load({ lat: ev0.loc.lat, lon: ev0.loc.lon }, { days: 7 }).catch(() => ({ empty: true }));
+        let res = await get();
+        /* the guidance service is occasionally busy: one quiet retry before showing "Couldn't check" */
+        if ((res.empty || !res.ctx) && my === gen) { await new Promise((ok) => setTimeout(ok, 15000)); if (my !== gen) return; res = await get(); }
         if (my !== gen) return;
         if (res.ctx && res.ctx.B && res.ctx.B.ms.length) lead = Math.max(0, res.ctx.B.ms[res.ctx.B.ms.length - 1] - res.ctx.now);
         group.forEach((r) => {
