@@ -92,7 +92,7 @@
           <button type="button" class="bx-btn ${live ? "" : "primary"}" id="ciSample">Open the sample calendar</button>
         </div>
         <p class="err" id="ciErr" hidden></p>${foot('<button class="bx-btn" value="cancel" formnovalidate>Cancel</button>')}`;
-      $("ciSample").addEventListener("click", () => start(sampleProvider()));
+      $("ciSample").addEventListener("click", () => start((root.CalendarImport || api).sampleProvider())); // looked up at click time so checks can supply shifted sample data
       if (live) $("ciGoogle").addEventListener("click", () => start(googleProvider()));
     }
     async function start(p) {

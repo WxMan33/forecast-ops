@@ -269,9 +269,55 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     const after = await p.evaluate((id) => ({ st: document.querySelector(`.up-ev[data-id="${id}"]`).dataset.status, venues: JSON.parse(localStorage.getItem("beta_venues_v1")).map((v) => v.name) }), vid);
     await p.evaluate(() => window.BetaAnalytics && window.BetaAnalytics.flush()); await p.waitForTimeout(800);
     const leaked = sent.filter((b) => /Sample FC|Example United|Columbus|TQL|Home matches|Venue operations|1501 Central/.test(b));
-    report(marked >= 3 && /Imported 0 new/.test(note) && count === 4 && after.st !== "venue" && after.venues.includes("Lower.com Field") && !leaked.length && !errors.length,
+    report(marked >= 3 && /0 added · 0 updated/.test(note) && count === 4 && after.st !== "venue" && after.venues.includes("Lower.com Field") && !leaked.length && !errors.length,
       "calendar import: re-import adds no duplicates; confirming the away venue enables its briefing; no calendar details in analytics",
       `re-import: "${note}" (${count} events) · away match now ${after.st} · venues ${after.venues.join(", ")} · analytics requests ${sent.length}, with calendar details ${leaked.length}${errors.length ? " · " + errors.join("; ") : ""}`);
+    await ctx.close();
+  });
+  /* ---------- 10. calendar kickoff change: re-import updates in place, keeps the confirmed venue and the planner's gates offset ---------- */
+  await section('10. calendar kickoff change and re-import (phone)', async () => {
+    const tqlV = { id: "vn_check", name: "TQL Stadium", city: "Cincinnati, OH", lat: 39.1111, lon: -84.5222, tz: "America/New_York", defaults: { setup: 270, gates: 90, teardown: 120, gust: 30 } };
+    const colV = { id: "vn_col", name: "Columbus away venue", city: "Columbus, OH", lat: 39.9685, lon: -83.0171, tz: "America/New_York", defaults: { setup: 180, gates: 60, teardown: 90, gust: 25 } };
+    const { ctx, p, errors } = await go(PHONE, base + "event-beta.html#upcoming", `localStorage.setItem("beta_venues_v1", ${JSON.stringify(JSON.stringify([tqlV, colV]))})`);
+    const openSample = async (shift) => {
+      if (shift) await p.evaluate(() => { const CI = window.CalendarImport, orig = CI.__orig || CI.sampleProvider; CI.__orig = orig;
+        CI.sampleProvider = () => { const sp = orig(); return { ...sp, listEvents: async (id, o) => (await sp.listEvents(id, o)).map((e) => (e.id !== "m1" ? e : { ...e, etag: '"m1-2"',
+          start: { ...e.start, dateTime: e.start.dateTime.replace("T19:30", "T20:15") }, end: { ...e.end, dateTime: e.end.dateTime.replace("T21:30", "T22:15") } })) }; }; });
+      await p.click("#upImport"); await until(p, () => document.getElementById("ciSample"), null, 10000); await p.click("#ciSample");
+      await until(p, () => document.getElementById("ciNext"), null, 10000); await p.click("#ciNext"); await until(p, () => document.getElementById("ciImport"), null, 10000);
+    };
+    const tick = (re, on) => p.evaluate(([r, v]) => { const row = [...document.querySelectorAll(".ci-ev")].find((e) => new RegExp(r).test(e.innerText)); const c = row.querySelector("[data-pick]"); c.checked = v; c.dispatchEvent(new Event("change", { bubbles: true })); }, [re, on]);
+    const stored = () => p.evaluate(() => JSON.parse(localStorage.getItem("beta_events_v2") || "[]").map((e) => ({ id: e.id, name: e.name, venue: e.venueId, start: e.times.start.slice(11), gates: e.times.gates ? e.times.gates.slice(11) : "-", setup: e.times.setup ? e.times.setup.slice(11) : "-", own: (e.overrides || []).join(","), etag: e.source.etag })));
+    await until(p, () => document.querySelector("#upView:not([hidden]) #upImport"), null, 30000);
+    /* first import: Sample FC (TQL) and the Columbus away match confirmed as Lower.com Field; Example United left unchecked */
+    await openSample(false);
+    await tick("Example United", false); await tick("Columbus", true);
+    await p.evaluate(() => { const row = [...document.querySelectorAll(".ci-ev")].find((e) => /Columbus/.test(e.innerText)); const s = row.querySelector("select"); s.value = "vn_col"; s.dispatchEvent(new Event("change", { bubbles: true })); });
+    await tick("Test City", false);
+    await p.click("#ciImport"); await until(p, () => !document.getElementById("editDlg").open, null, 10000);
+    const first = await stored(), note1 = await p.evaluate(() => document.getElementById("upNote").innerText);
+    /* planner moves gates for Sample FC to 2 h before kickoff (17:30 for 19:30) */
+    const m1 = first.find((e) => e.id === "cal_m1");
+    await p.click(`.up-ev[data-id="cal_m1"] [data-edit]`); await until(p, () => document.getElementById("editDlg").open, null, 10000);
+    await p.evaluate(() => { const el = document.getElementById("fGates"); el.value = "17:30"; el.dispatchEvent(new Event("input", { bubbles: true })); });
+    await p.click("#fSave"); await until(p, () => !document.getElementById("editDlg").open, null, 30000);
+    /* the calendar moves kickoff to 8:15 PM; re-import the same two events (Example United still unchecked) */
+    await openSample(true);
+    await tick("Example United", false); await tick("Test City", false); await tick("Columbus", true);
+    await p.click("#ciImport"); await until(p, () => !document.getElementById("editDlg").open, null, 10000);
+    const note2 = await p.evaluate(() => document.getElementById("upNote").innerText);
+    await until(p, () => document.querySelector("#upView").dataset.ready === "true", null, 150000);
+    await p.screenshot({ path: `${out}/calendar-reimport-phone.png`, fullPage: false });
+    await p.reload({ waitUntil: "domcontentloaded" }); await until(p, () => document.querySelector("#upView .up-ev"), null, 30000);
+    const after = await stored(), a1 = after.find((e) => e.id === "cal_m1"), a3 = after.find((e) => e.id === "cal_m3");
+    const listIds = await p.evaluate(() => [...document.querySelectorAll(".up-ev")].map((r) => r.dataset.id));
+    report(first.length === 2 && !first.some((e) => e.id === "cal_m2") && m1 && m1.gates === "18:00" && /2 added · 0 updated/.test(note1) && /0 need venue confirmation/.test(note1),
+      "calendar import: only checked events are imported; unchecked Example United stays out; summary counts added, updated and venue confirmations",
+      `imported ${first.map((e) => `${e.id}:${e.venue}`).join(" ")} · "${note1.trim()}"`);
+    report(after.length === 2 && a1 && a1.start === "20:15" && a1.gates === "18:15" && a1.own === "gates" && a1.venue === "vn_check" && a1.setup === "15:45" && a1.etag === '"m1-2"'
+      && a3 && a3.venue === "vn_col" && !listIds.includes("cal_m2") && /0 added · 1 updated/.test(note2) && !errors.length,
+      "calendar kickoff change: re-import updates the match in place after a refresh, keeps its confirmed venue and the planner's 2 h gates offset",
+      `"${note2.trim()}" · after refresh: Sample FC kickoff ${a1 && a1.start}, gates ${a1 && a1.gates} (${a1 && a1.own} kept), setup ${a1 && a1.setup}, venue ${a1 && a1.venue} · Columbus venue ${a3 && a3.venue} · ${after.length} events${errors.length ? " · " + errors.join("; ") : ""}`);
     await ctx.close();
   });
   await section('7. analytics blocked or opted out: the betas work; nothing i', async () => {

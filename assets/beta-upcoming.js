@@ -88,7 +88,7 @@
         const lat = parseFloat($("fLat").value), lon = parseFloat($("fLon").value), vname = $("fVenue").value.trim() || city.name;
         if (!vname) return err("Name the venue.");
         if (!fin(lat) || !fin(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return err("Search the venue's city, or enter coordinates in decimal degrees (e.g. 39.1111 and -84.5222).");
-        tz = city.tz; if (!tz || Math.abs(lat - city.lat) > 0.05 || Math.abs(lon - city.lon) > 0.05) tz = await O.zoneFor(lat, lon).catch(() => null);
+        tz = city.tz; if (!tz || Math.abs(lat - city.lat) > 0.05 || Math.abs(lon - city.lon) > 0.05) tz = await O.zoneFor(lat, lon).catch(() => null) || await new Promise((ok) => setTimeout(ok, 1500)).then(() => O.zoneFor(lat, lon)).catch(() => null);
         if (!tz) return err("Couldn't look up the venue's time zone. Try again.");
         loc = { name: vname, lat: +lat.toFixed(4), lon: +lon.toFixed(4) };
       }
@@ -125,7 +125,7 @@
       const name = $("vName").value.trim(), lat = parseFloat($("vLat").value), lon = parseFloat($("vLon").value);
       if (!name) return err("Name the venue.");
       if (!fin(lat) || !fin(lon)) return err("Search the city, or enter coordinates in decimal degrees.");
-      let tz = city.tz; if (!tz || Math.abs(lat - city.lat) > 0.05 || Math.abs(lon - city.lon) > 0.05) tz = await O.zoneFor(lat, lon).catch(() => null);
+      let tz = city.tz; if (!tz || Math.abs(lat - city.lat) > 0.05 || Math.abs(lon - city.lon) > 0.05) tz = await O.zoneFor(lat, lon).catch(() => null) || await new Promise((ok) => setTimeout(ok, 1500)).then(() => O.zoneFor(lat, lon)).catch(() => null);
       if (!tz) return err("Couldn't look up the venue's time zone. Try again.");
       const num = (id, dflt) => (fin(parseFloat($(id).value)) ? parseFloat($(id).value) : dflt);
       const rec = E.saveVenue({ ...(v || {}), name, city: city.name || "", lat: +lat.toFixed(4), lon: +lon.toFixed(4), tz,
@@ -144,7 +144,7 @@
       <p class="bx-note" style="margin-top:18px">Events and venues are stored only in this browser. A calendar import will add to this same list later.</p>`;
     $("upAdd").addEventListener("click", () => editEvent(null, { onSaved: () => render(host, { onOpen }) }));
     $("upImport").addEventListener("click", () => window.CalendarImport.open({ onDone: (r) => { render(host, { onOpen }); const need = E.events().filter((x) => !fin(x.loc.lat)).length;
-      const n = $("upNote"); n.hidden = false; n.textContent = `Imported ${r.added} new${r.updated ? `, updated ${r.updated}` : ""}${r.unchanged ? `, ${r.unchanged} unchanged` : ""}.${need ? ` ${need} ${need === 1 ? "event needs" : "events need"} a venue: use Edit to pick a saved venue or search its city.` : ""}`; } }));
+      const n = $("upNote"); n.hidden = false; n.innerHTML = `<b>Import complete:</b> ${r.added} added · ${r.updated} updated${r.unchanged ? ` · ${r.unchanged} unchanged` : ""} · ${need} ${need === 1 ? "needs" : "need"} venue confirmation${need ? " (use Edit to pick a saved venue or search its city)" : ""}.`; } }));
     $("vnAdd").addEventListener("click", () => editVenue(null, { onSaved: () => render(host, { onOpen }) }));
     $("vnList").innerHTML = vns.length ? vns.map((v) => `<article class="up-vn" data-id="${esc(v.id)}"><div><b>${esc(v.name)}</b><div class="bx-note">${esc(v.city || `${v.lat}, ${v.lon}`)} · ${esc(fmt.zone(now, v.tz))}</div><div class="bx-note">${esc(offText(v.defaults))}</div></div>
       <div class="up-act"><button class="bx-btn" type="button" data-vedit>Edit</button><button class="bx-btn" type="button" data-vremove>Remove</button></div></article>`).join("") : '<p class="bx-note">No saved venues yet. Save one with its setup, gates and teardown times, and new events there start from them.</p>';
@@ -184,7 +184,7 @@
     };
     /* guidance: one load per venue for events within reach (8 days); everything else is already known */
     const need = rows.filter((r) => r.status.key === "waiting" && r.w && r.startMs - now < 8 * 864e5);
-    const byVenue = new Map(); need.forEach((r) => { r.pending = true; const k = `${r.ev.loc.lat.toFixed(3)},${r.ev.loc.lon.toFixed(3)}`; if (!byVenue.has(k)) byVenue.set(k, []); byVenue.get(k).push(r); });
+    const byVenue = new Map(); need.forEach((r) => { r.pending = true; r.status = { ...r.status, label: "Checking", text: "Checking the guidance for this venue…" }; const k = `${r.ev.loc.lat.toFixed(3)},${r.ev.loc.lon.toFixed(3)}`; if (!byVenue.has(k)) byVenue.set(k, []); byVenue.get(k).push(r); });
     draw();
     (async () => {
       for (const group of byVenue.values()) {

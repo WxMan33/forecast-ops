@@ -231,7 +231,9 @@
   const track = (type, ctx) => { try { if (root.BetaAnalytics) root.BetaAnalytics.track(type, ctx); } catch (e) { /* never break the page */ } };
 
   /* ---------- city search: the site's place search (Open-Meteo geocoding), U.S. results as "City, ST" ---------- */
-  const QUICK = O.PRESETS.map(([name, lat, lon]) => ({ name, lat, lon, tz: null, quick: true })); // time zone comes from the forecast for the point
+  /* quick picks are fixed, known places: their own time zones (anything else comes from the lookup or the forecast) */
+  const QUICK_TZ = { "Indianapolis, IN": "America/Indiana/Indianapolis", "Louisville, KY": "America/Kentucky/Louisville" };
+  const QUICK = O.PRESETS.map(([name, lat, lon]) => ({ name, lat, lon, tz: QUICK_TZ[name] || (/(, (OH|KY)$|Cincinnati)/.test(name) ? "America/New_York" : null), quick: true }));
   let ppN = 0;
   function placePicker(host, { current, onPick, link, label = "Search a U.S. city" }) {
     const id = `pp${++ppN}`;
