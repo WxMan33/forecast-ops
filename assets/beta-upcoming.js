@@ -17,7 +17,7 @@
   /* ---------------- event editor (new, existing, or a sample/shared event saved as new) ---------------- */
   function editEvent(target, { onSaved, title } = {}) {
     U.track("custom_event_started");
-    const stored = target && target.id && E.getEvent(target.id) ? E.getEvent(target.id) : null, vns = E.venues();
+    const stored = target && target.id && E.getEvent(target.id) ? E.getEvent(target.id) : null, saved = E.venues(), vns = [...saved, ...E.BUILTIN.filter((b) => !saved.some((v) => E.norm(v.name) === E.norm(b.name)))];
     const base = stored || target || null;
     let venue = base && base.venueId ? E.getVenue(base.venueId) : !base ? vns[0] || null : null;
     let city = base && !venue ? { name: base.loc.name, lat: base.loc.lat, lon: base.loc.lon, tz: base.tz } : { name: "", lat: null, lon: null, tz: null };
@@ -65,11 +65,14 @@
     }
     Object.entries(F).forEach(([k, el]) => el.addEventListener("input", () => { dirty.add(k); el.classList.add("own"); fill(false); }));
     ["fDate", "fStart", "fEnd"].forEach((id) => $(id).addEventListener("change", () => fill(false)));
-    $("fVenueSel").addEventListener("change", () => { venue = E.getVenue($("fVenueSel").value); dirty.clear(); fill(false); $("fGust").value = defs().gust; });
+    /* a calendar event's date and times come from the calendar's own instants, shown in the chosen venue's time zone */
+    const src = base && base.source && base.source.start ? base.source : null;
+    const fromSource = (tz) => { if (!src || !tz) return; const s = E.wallAt(src.start, tz), e = E.wallAt(src.end, tz); $("fDate").value = s.slice(0, 10); $("fStart").value = s.slice(11, 16); $("fEnd").value = e.slice(11, 16); };
+    $("fVenueSel").addEventListener("change", () => { venue = E.getVenue($("fVenueSel").value); dirty.clear(); if (venue) fromSource(venue.tz); fill(false); $("fGust").value = defs().gust; });
     $("fVenue").addEventListener("input", () => fill(false));
     function tzNote() { const z = venue ? venue.tz : city.tz; $("fTzNote").textContent = `Times are local to the venue (${z ? `${z}, ${fmt.zone(Date.now(), z)}` : "time zone found on save"}), wherever you are. An end or teardown earlier than the start is read as after midnight; a setup later than the start, as the day before.`; }
     U.placePicker($("fCity"), { current: city.name ? city : null, link: () => location.href, label: "Search a U.S. city",
-      onPick(p) { city = p; $("fLat").value = p.lat; $("fLon").value = p.lon; if (!$("fVenue").value.trim()) $("fVenue").placeholder = p.name; tzNote(); } });
+      onPick(p) { city = p; $("fLat").value = p.lat; $("fLon").value = p.lon; if (!$("fVenue").value.trim()) $("fVenue").placeholder = p.name; fromSource(p.tz); fill(false); tzNote(); } });
     const cp = $("fCity").querySelector(".bx-ppcopy"); if (cp) cp.remove();
     fill(true);
     $("editDlg").showModal();
@@ -97,6 +100,9 @@
       const errs = C.event.validate(draft); if (errs.length) return err(errs.join(" "));
       if (!venue && $("fSaveVenue").checked) { venue = E.saveVenue({ name: loc.name, city: city.name || "", lat: loc.lat, lon: loc.lon, tz, defaults: { ...E.offsetsOf(times), gust } }); venueId = venue.id; U.track("venue_saved"); }
       else if (venue && $("fMakeDef").checked) { venue = E.saveVenue({ ...venue, defaults: { ...venue.defaults, ...E.offsetsOf(times), gust } }); U.track("venue_saved"); }
+      if (venue && venue.builtin) { venue = E.saveVenue({ ...venue, builtin: undefined }); venueId = venue.id; } // a built-in venue becomes a saved one
+      /* confirming a calendar event's venue by hand: remember its calendar location for future imports */
+      if (venue && src && src.location && (!stored || stored.venueId !== venue.id)) venue = E.rememberAlias(venue, src.location);
       const rec = E.saveEvent({ ...(stored || {}), ...draft, id: stored ? stored.id : null, venueId, overrides: venue ? E.overridesOf(times, venue.defaults) : [], source: (stored && stored.source) || { kind: "manual" } });
       U.track("event_saved", { market: S.market(loc.lat, loc.lon).tuned ? "cincinnati" : "elsewhere" });
       $("editDlg").close(); if (onSaved) onSaved(rec);
@@ -141,10 +147,10 @@
     host.innerHTML = `<div class="up-head"><h1 class="up-title">Upcoming events</h1><div class="up-act"><button class="bx-btn" type="button" id="upImport">Import from calendar</button><button class="bx-btn primary" type="button" id="upAdd">+ Add event</button></div></div><div id="upNote" class="bx-note" hidden></div>
       <div id="upList" class="up-list"></div><details id="upPast" class="up-past" hidden><summary></summary><div class="up-list"></div></details>
       <section class="bx-sec"><div class="bx-bh"><h2>Saved venues</h2><button class="bx-btn" type="button" id="vnAdd">+ Add venue</button></div><div id="vnList" class="up-list" style="margin-top:8px"></div></section>
-      <p class="bx-note" style="margin-top:18px">Events and venues are stored only in this browser. A calendar import will add to this same list later.</p>`;
+      <p class="bx-note" style="margin-top:18px">Events and venues are stored only in this browser. Calendar imports land in this same list.</p>`;
     $("upAdd").addEventListener("click", () => editEvent(null, { onSaved: () => render(host, { onOpen }) }));
     $("upImport").addEventListener("click", () => window.CalendarImport.open({ onDone: (r) => { render(host, { onOpen }); const need = E.events().filter((x) => !fin(x.loc.lat)).length;
-      const n = $("upNote"); n.hidden = false; n.innerHTML = `<b>Import complete:</b> ${r.added} added · ${r.updated} updated${r.unchanged ? ` · ${r.unchanged} unchanged` : ""} · ${need} ${need === 1 ? "needs" : "need"} venue confirmation${need ? " (use Edit to pick a saved venue or search its city)" : ""}.`; } }));
+      const n = $("upNote"); n.hidden = false; n.innerHTML = `<b>Import complete:</b> ${r.added} added · ${r.updated} updated${r.unchanged ? ` · ${r.unchanged} unchanged` : ""} · ${need} ${need === 1 ? "needs" : "need"} venue confirmation${need ? " (use Edit to pick a saved venue or search its city)" : ""}.${r.relocated ? ` ${r.relocated} changed location in the calendar and ${r.relocated === 1 ? "was" : "were"} matched again.` : ""}${r.remembered ? ` Remembered ${r.remembered} calendar ${r.remembered === 1 ? "location" : "locations"} for next time.` : ""}`; } }));
     $("vnAdd").addEventListener("click", () => editVenue(null, { onSaved: () => render(host, { onOpen }) }));
     $("vnList").innerHTML = vns.length ? vns.map((v) => `<article class="up-vn" data-id="${esc(v.id)}"><div><b>${esc(v.name)}</b><div class="bx-note">${esc(v.city || `${v.lat}, ${v.lon}`)} · ${esc(fmt.zone(now, v.tz))}</div><div class="bx-note">${esc(offText(v.defaults))}</div></div>
       <div class="up-act"><button class="bx-btn" type="button" data-vedit>Edit</button><button class="bx-btn" type="button" data-vremove>Remove</button></div></article>`).join("") : '<p class="bx-note">No saved venues yet. Save one with its setup, gates and teardown times, and new events there start from them.</p>';

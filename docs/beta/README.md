@@ -63,6 +63,15 @@ planner's own times are kept (an override keeps its offset from the start). All-
 - **Live Google Calendar import:** https://forecast-ops-beta.pages.dev/event-beta.html#upcoming (Cloudflare Pages,
   `beta-previews` branch). OAuth client ID set in `assets/beta-config.js`, authorized for that exact origin only;
   testers must be listed under Google Auth Platform → Audience → Test users while the app is in testing.
+- **Venue matching:** a calendar location is matched automatically when it fits exactly one saved or built-in
+  venue (Paycor Stadium, TQL Stadium, Great American Ball Park) by name, street address or a known alias. The
+  import list shows the match with **Change**. It only asks when the location is blank, unknown or fits more than one
+  venue. A location matched by hand (in the import list or later with Edit) is remembered as an alias of that venue,
+  so the next import of that location matches automatically. If the calendar later changes an event's location, the
+  new location is matched again rather than keeping the old venue.
+- **Times:** the calendar's original start/end instants are kept with each imported event; venue-local times are
+  always computed from them in the venue's time zone (or the calendar's, until a venue is known). Re-importing an
+  event imported by an earlier build corrects its times.
 - **On the Githack preview link only the sample calendar is offered** (synthetic demo data). Google sign-in is off here and
   is only enabled when `BETA_CALENDAR.clientId` is set and the page is served from an origin listed in
   `BETA_CALENDAR.origins` (never raw.githack.com).

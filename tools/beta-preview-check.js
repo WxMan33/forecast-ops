@@ -243,7 +243,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     const gate = await p.evaluate(() => ({ google: !!document.getElementById("ciGoogle"), note: document.getElementById("editForm").innerText }));
     await p.click("#ciSample"); await until(p, () => document.getElementById("ciNext"), null, 10000);
     await p.click("#ciNext"); await until(p, () => document.getElementById("ciImport"), null, 10000);
-    const listed = await p.evaluate(() => [...document.querySelectorAll(".ci-ev")].map((e) => ({ t: e.innerText.replace(/\s+/g, " "), on: e.querySelector("[data-pick]").checked, sel: !!e.querySelector("select") })));
+    const listed = await p.evaluate(() => [...document.querySelectorAll(".ci-ev")].map((e) => ({ t: e.innerText.replace(/\s+/g, " "), on: e.querySelector("[data-pick]").checked, sel: !!e.querySelector("select:not([hidden])") })));
     await p.screenshot({ path: `${out}/calendar-import-phone.png`, fullPage: false });
     await p.evaluate(() => { const r = [...document.querySelectorAll(".ci-ev")].find((e) => /Columbus/.test(e.innerText)); const c = r.querySelector("[data-pick]"); c.checked = true; c.dispatchEvent(new Event("change", { bubbles: true })); });
     await p.click("#ciImport"); await until(p, () => !document.getElementById("editDlg").open && document.querySelectorAll("#upList .up-ev").length === 4, null, 30000);
@@ -336,6 +336,38 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     report(said && quick && loaded && blocked > 0 && d.tz === "America/Indiana/Indianapolis" && !errors.length,
       "city search unavailable: the picker says so, and a quick pick still loads the city on its own time zone",
       `${blocked} search requests blocked · "${msg.trim().slice(0, 60)}" · quick pick Indianapolis → ${d.tz}, NWS ${d.office || "—"}${errors.length ? " · " + errors.join("; ") : ""}`);
+    await ctx.close();
+  });
+  /* ---------- 12. Paycor Stadium: two separate imports match automatically; Sunday-night times stay Sunday ---------- */
+  await section('12. Paycor imports and calendar times (phone)', async () => {
+    const { ctx, p, errors } = await go(PHONE, base + "event-beta.html#upcoming");
+    await until(p, () => document.querySelector("#upView:not([hidden]) #upImport"), null, 30000);
+    /* sample calendar replaced by two Bengals games as Google returns them from a UTC calendar: no event time zone */
+    const feed = (events) => p.evaluate((evs) => { const CI = window.CalendarImport, orig = CI.__orig || CI.sampleProvider; CI.__orig = orig;
+      CI.sampleProvider = () => ({ kind: "sample", label: "check", listCalendars: async () => [{ id: "bengals", summary: "Bengals (check)", timeZone: "America/New_York" }], listEvents: async () => evs }); }, events);
+    const game = (id, location, start, end) => ({ id, etag: `"${id}"`, status: "confirmed", summary: `Bengals game ${id} (check)`, location, start: { dateTime: start }, end: { dateTime: end } });
+    const nextSundayUtc = (() => { const d = new Date(); d.setUTCDate(d.getUTCDate() + ((7 - d.getUTCDay()) % 7 || 7) + 1); return d.toISOString().slice(0, 10); })(); // Monday UTC = Sunday night EST
+    const run = async (events, shot) => {
+      await feed(events); await p.click("#upImport"); await p.click("#ciSample"); await until(p, () => document.getElementById("ciNext"), null, 10000); await p.click("#ciNext"); await until(p, () => document.getElementById("ciImport"), null, 10000);
+      const rows = await p.evaluate(() => [...document.querySelectorAll(".ci-ev")].map((r) => ({ match: r.dataset.match, on: r.querySelector("[data-pick]").checked, ask: !!r.querySelector("select:not([hidden])"), when: r.querySelector("[data-when]").innerText, venue: (r.querySelector(".ci-venue b") || {}).innerText || "" })));
+      if (shot) await p.screenshot({ path: `${out}/calendar-paycor-phone.png`, fullPage: false });
+      await p.click("#ciImport"); await until(p, () => !document.getElementById("editDlg").open, null, 10000);
+      return { rows, note: await p.evaluate(() => document.getElementById("upNote").innerText) };
+    };
+    const a = await run([game("g1", "Paycor Stadium", `${nextSundayUtc}T01:20:00Z`, `${nextSundayUtc}T04:30:00Z`)]);
+    const sunday2 = new Date(Date.parse(`${nextSundayUtc}T12:00:00Z`) + 6 * 864e5).toISOString().slice(0, 10); // the following Sunday, 1 PM EST
+    const b = await run([game("g2", "1 Paycor Stadium, Cincinnati, OH 45202", `${sunday2}T18:00:00Z`, `${sunday2}T21:00:00Z`)], true);
+    await p.reload({ waitUntil: "domcontentloaded" }); await until(p, () => document.querySelector("#upView .up-ev"), null, 30000);
+    const st = await p.evaluate(() => ({ ev: JSON.parse(localStorage.getItem("beta_events_v2")).map((e) => ({ id: e.id, venue: e.venueId, start: e.times.start, tz: e.tz, src: e.source.start })), venues: JSON.parse(localStorage.getItem("beta_venues_v1") || "[]").map((v) => v.name),
+      rows: [...document.querySelectorAll(".up-ev")].map((r) => r.querySelector(".up-when").innerText) }));
+    const g1 = st.ev.find((e) => e.id === "cal_g1"), dayName = new Date(Date.parse(`${nextSundayUtc}T01:20:00Z`) - 5 * 36e5).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short" });
+    report(a.rows.length === 1 && a.rows[0].match === "matched" && a.rows[0].on && !a.rows[0].ask && /Paycor Stadium/.test(a.rows[0].venue) && /0 need venue confirmation/.test(a.note)
+      && b.rows.length === 1 && b.rows[0].match === "matched" && !b.rows[0].ask && /Sun, .* 1 PM/.test(b.rows[0].when) && /0 need venue confirmation/.test(b.note) && st.venues.includes("Paycor Stadium") && !errors.length,
+      "Paycor Stadium: two separate imports (name, then full street address) match the venue automatically; neither asks for confirmation",
+      `import 1: ${a.rows.map((r) => `${r.venue} · ${r.when}`).join("")} · "${a.note.trim()}" | import 2: ${b.rows.map((r) => `${r.venue} · ${r.when}`).join("")} · "${b.note.trim()}" · saved venues ${st.venues.join(", ")}`);
+    report(g1 && g1.tz === "America/New_York" && g1.start.endsWith("T20:20") && dayName === "Sun" && /Sun, .* 8:20 PM/.test(a.rows[0].when) && st.rows.some((t) => /Sun, .*8:20 PM/.test(t)),
+      "calendar times: a Sunday 8:20 PM EST game returned in UTC (Monday 01:20Z) imports as Sunday 8:20 PM at the venue, before and after a refresh",
+      `calendar ${g1 && g1.src} → venue ${g1 && g1.start} ${g1 && g1.tz} · list "${(st.rows[0] || "").slice(0, 70)}"`);
     await ctx.close();
   });
   await section('7. analytics blocked or opted out: the betas work; nothing i', async () => {

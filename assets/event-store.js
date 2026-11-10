@@ -77,19 +77,51 @@
     return { live, past };
   }
 
-  /* ---- a calendar event (Google Calendar API shape) mapped onto the same record; venue matched by name ---- */
-  function fromCalendar(g, venues, calendarId) {
-    const s = g.start && (g.start.dateTime || g.start.date), e = g.end && (g.end.dateTime || g.end.date);
-    if (!s || !e || !g.start.dateTime) return null; // all-day items are not events with a schedule
-    const loc = String(g.location || "").trim(), v = venues.find((x) => loc && (loc.toLowerCase().includes(x.name.toLowerCase()) || x.name.toLowerCase().includes(loc.split(",")[0].toLowerCase())));
-    const tz = (v && v.tz) || g.start.timeZone || null;
-    const wall = (iso) => (tz && root.Intl ? new Date(iso).toLocaleString("sv-SE", { timeZone: tz }).slice(0, 16).replace(" ", "T") : iso.slice(0, 16));
-    const start = wall(s), end = wall(e);
-    const times = v ? applyDefaults(v.defaults, start.slice(0, 10), start.slice(11, 16), end.slice(11, 16)) : { start, end };
+  /* ---- venue matching for calendar locations ----
+     One answer per location: a single clear match (by remembered alias, venue name or street address), "ambiguous"
+     (several venues fit) or "unknown" (blank or nothing fits). Saved venues come first; built-in venues cover the
+     local stadiums so a first import at Paycor Stadium needs no confirmation. */
+  const BUILTIN = [
+    { id: "bi_paycor", name: "Paycor Stadium", city: "Cincinnati, OH", lat: 39.0955, lon: -84.5161, tz: "America/New_York", address: "1 Paycor Stadium, Cincinnati, OH 45202", aliases: ["paul brown stadium"], builtin: true },
+    { id: "bi_tql", name: "TQL Stadium", city: "Cincinnati, OH", lat: 39.1111, lon: -84.5222, tz: "America/New_York", address: "1501 Central Pkwy W, Cincinnati, OH 45214", aliases: [], builtin: true },
+    { id: "bi_gabp", name: "Great American Ball Park", city: "Cincinnati, OH", lat: 39.0975, lon: -84.5066, tz: "America/New_York", address: "100 Joe Nuxhall Way, Cincinnati, OH 45202", aliases: ["great american ballpark", "gabp"], builtin: true },
+  ];
+  const norm = (t) => String(t || "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ").replace(/\b(street|st|parkway|pkwy|west|w|east|e|north|n|south|s|avenue|ave|road|rd|drive|dr|boulevard|blvd)\b/g, (m) => ({ street: "st", parkway: "pkwy", west: "w", east: "e", north: "n", south: "s", avenue: "ave", road: "rd", drive: "dr", boulevard: "blvd" }[m] || m)).replace(/\s+/g, " ").trim();
+  const has = (hay, needle) => !!needle && needle.length >= 4 && (" " + hay + " ").includes(" " + needle + " ");
+  const streetOf = (addr) => norm(String(addr || "").split(",")[0]); // "1501 central pkwy w"
+  function matchVenue(location, venues) {
+    const loc = norm(location); if (!loc) return { status: "unknown", reason: "no location" };
+    const pool = [...venues, ...BUILTIN.filter((b) => !venues.some((v) => norm(v.name) === norm(b.name)))].map((v) => ({ ...v, defaults: { ...STD, ...(v.defaults || {}) } }));
+    const by = (pred) => pool.filter(pred);
+    let hit = by((v) => (v.aliases || []).some((a) => norm(a) === loc));
+    if (hit.length === 1) return { status: "matched", venue: hit[0], via: "remembered" };
+    hit = by((v) => has(loc, norm(v.name)) || (v.aliases || []).some((a) => has(loc, norm(a))));
+    if (hit.length === 1) return { status: "matched", venue: hit[0], via: "name" };
+    if (hit.length > 1) return { status: "ambiguous", candidates: hit };
+    hit = by((v) => v.address && has(loc, streetOf(v.address)));
+    if (hit.length === 1) return { status: "matched", venue: hit[0], via: "address" };
+    if (hit.length > 1) return { status: "ambiguous", candidates: hit };
+    return { status: "unknown", reason: "no saved or built-in venue fits" };
+  }
+  /* the venue's local wall clock for an instant: "YYYY-MM-DDTHH:MM" */
+  const wallAt = (iso, tz) => new Date(iso).toLocaleString("sv-SE", { timeZone: tz, hourCycle: "h23" }).slice(0, 16).replace(" ", "T");
+
+  /* ---- a calendar event (Google Calendar API shape) mapped onto the same record ----
+     The calendar's own start/end instants are kept on the record (source.start/end), so venue-local times are always
+     computed from them, whenever the venue (and so the time zone) is known or changes. calTz: the calendar's time zone. */
+  function fromCalendar(g, venues, calendarId, calTz) {
+    const s = g.start && g.start.dateTime, e = g.end && g.end.dateTime;
+    if (!s || !e) return null; // all-day items are not events with a schedule
+    const location = String(g.location || "").trim(), m = matchVenue(location, venues), v = m.status === "matched" ? m.venue : null;
+    const tz = (v && v.tz) || g.start.timeZone || calTz || null;
+    const start = tz ? wallAt(s, tz) : null, end = tz ? wallAt(e, tz) : null;
+    const times = v ? applyDefaults(v.defaults, start.slice(0, 10), start.slice(11, 16), end.slice(11, 16)) : start ? { start, end } : { start: wallAt(s, "UTC"), end: wallAt(e, "UTC") };
     return { id: `cal_${g.id}`, name: String(g.summary || "Calendar event").slice(0, 80), venueId: v ? v.id : null,
-      loc: v ? { name: v.name, lat: v.lat, lon: v.lon } : { name: loc || "Venue not set", lat: null, lon: null }, tz,
+      loc: v ? { name: v.name, lat: v.lat, lon: v.lon } : { name: location || "Venue not set", lat: null, lon: null }, tz,
       times, gust: v && v.defaults && v.defaults.gust ? v.defaults.gust : STD.gust, overrides: [],
-      source: { kind: "calendar", calendarId: calendarId || null, eventId: g.id, etag: g.etag || null }, created: Date.now(), updated: Date.now() };
+      match: { status: m.status, via: m.via || null, candidates: (m.candidates || []).map((c) => c.id) },
+      source: { kind: "calendar", calendarId: calendarId || null, eventId: g.id, etag: g.etag || null, start: s, end: e, location, calTz: calTz || null },
+      created: Date.now(), updated: Date.now() };
   }
 
   /* ---- merge imported calendar records into the list ----
@@ -97,31 +129,45 @@
      start/end follow the calendar; a confirmed venue and the planner's per-event times are kept (an override
      keeps its offset from the start, so "gates 2 h before" survives a kickoff change). Pure: list in, list out. */
   function mergeImported(list, recs, venueOf) {
-    const out = list.slice(), now = Date.now(); let added = 0, updated = 0, unchanged = 0;
+    const out = list.slice(), now = Date.now(); let added = 0, updated = 0, unchanged = 0, relocated = 0;
     recs.forEach((r) => {
       const i = out.findIndex((x) => x.id === r.id);
       if (i < 0) { out.push({ ...r, created: now, updated: now }); added++; return; }
-      const old = out[i], keepVenue = old.venueId || (old.loc && fin(old.loc.lat));
+      const old = out[i], os = old.source || {}, rs = r.source || {};
+      /* a venue the planner confirmed stays only while the calendar location is the same; a new location is resolved */
+      const sameLoc = os.location == null || norm(os.location) === norm(rs.location);
+      const keepVenue = sameLoc && (old.venueId || (old.loc && fin(old.loc.lat)));
       const venue = keepVenue && old.venueId && venueOf ? venueOf(old.venueId) : null;
-      const sameTimes = old.times.start === r.times.start && old.times.end === r.times.end;
+      const tz = keepVenue ? old.tz : r.tz;
+      const start = rs.start && tz ? wallAt(rs.start, tz) : r.times.start, end = rs.end && tz ? wallAt(rs.end, tz) : r.times.end;
       let times;
-      if (sameTimes) times = old.times;
+      if (keepVenue && old.times.start === start && old.times.end === end) times = old.times;
       else {
-        const start = r.times.start, end = r.times.end;
-        times = venue ? applyDefaults(venue.defaults, start.slice(0, 10), start.slice(11, 16), end.slice(11, 16)) : { ...r.times };
-        (old.overrides || []).forEach((k) => { if (k === "teardown" && old.times.teardown) times.teardown = addMin(end, diffMin(old.times.teardown, old.times.end)); else if (old.times[k]) times[k] = addMin(start, diffMin(old.times[k], old.times.start)); });
-        if (!venue && !keepVenue) times = { ...r.times };
+        const v = keepVenue ? venue : r.venueId && venueOf ? venueOf(r.venueId) : null;
+        times = v ? applyDefaults(v.defaults, start.slice(0, 10), start.slice(11, 16), end.slice(11, 16)) : { ...r.times, start, end };
+        (old.overrides || []).forEach((k) => { if (!times.start || !old.times[k]) return; if (k === "teardown") times.teardown = addMin(end, diffMin(old.times.teardown, old.times.end)); else times[k] = addMin(start, diffMin(old.times[k], old.times.start)); });
       }
-      const next = { ...old, name: r.name, times, tz: keepVenue ? old.tz : r.tz, venueId: keepVenue ? old.venueId : r.venueId, loc: keepVenue ? old.loc : r.loc,
-        source: { ...old.source, ...r.source }, updated: now };
+      const next = { ...old, name: r.name, times, tz, venueId: keepVenue ? old.venueId : r.venueId, loc: keepVenue ? old.loc : r.loc,
+        match: keepVenue ? old.match : r.match, source: { ...os, ...rs }, updated: now };
+      if (!sameLoc) relocated++;
       if (JSON.stringify({ ...next, updated: 0 }) === JSON.stringify({ ...old, updated: 0 })) unchanged++; else { out[i] = next; updated++; }
     });
-    return { list: out, added, updated, unchanged };
+    return { list: out, added, updated, unchanged, relocated };
+  }
+  /* remember a calendar location as an alias of the venue the planner matched it to (saved venues only) */
+  function rememberAlias(venue, location) {
+    const a = String(location || "").trim(); if (!a || !venue) return venue;
+    const base = getVenue(venue.id) || venue, aliases = base.aliases || [];
+    if (aliases.some((x) => norm(x) === norm(a)) || norm(a) === norm(base.name)) return saveVenue({ ...base, builtin: undefined });
+    return saveVenue({ ...base, builtin: undefined, aliases: [...aliases, a] });
   }
   /* confirm an imported event's venue: it takes the venue's place and defaults (the calendar's start/end stay) */
   function confirmVenue(ev, v) {
-    const t = applyDefaults(v.defaults, ev.times.start.slice(0, 10), ev.times.start.slice(11, 16), ev.times.end.slice(11, 16));
-    return { ...ev, venueId: v.id, loc: { name: v.name, lat: v.lat, lon: v.lon }, tz: v.tz, times: t, gust: (v.defaults && v.defaults.gust) || ev.gust, overrides: [] };
+    v = { ...v, defaults: { ...STD, ...(v.defaults || {}) } };
+    /* times come from the calendar's original instants in the venue's time zone (never relabel another zone's clock) */
+    const src = ev.source || {}, start = src.start ? wallAt(src.start, v.tz) : ev.times.start, end = src.end ? wallAt(src.end, v.tz) : ev.times.end;
+    const t = applyDefaults(v.defaults, start.slice(0, 10), start.slice(11, 16), end.slice(11, 16));
+    return { ...ev, venueId: v.id, loc: { name: v.name, lat: v.lat, lon: v.lon }, tz: v.tz, times: t, gust: (v.defaults && v.defaults.gust) || ev.gust, overrides: [], match: { status: "matched", via: "confirmed", candidates: [] } };
   }
 
   /* ---- browser storage ---- */
@@ -142,7 +188,7 @@
     const i = list.findIndex((x) => x.id === rec.id); if (i >= 0) list[i] = rec; else list.push(rec);
     write(VN_KEY, list); return rec;
   }
-  const getVenue = (id) => venues().find((x) => x.id === id) || null;
+  const getVenue = (id) => venues().find((x) => x.id === id) || (BUILTIN.find((b) => b.id === id) ? { ...BUILTIN.find((b) => b.id === id), defaults: { ...STD } } : null);
   /* removing a venue keeps its events (they carry their own coordinates); they just lose the link to defaults */
   function removeVenue(id) { write(VN_KEY, venues().filter((x) => x.id !== id)); write(EV_KEY, events().map((e) => (e.venueId === id ? { ...e, venueId: null } : e))); }
   const last = () => read(LAST_KEY, null), setLast = (id) => write(LAST_KEY, id);
@@ -153,9 +199,13 @@
     try { ls().removeItem(OLD_KEY); } catch (e) { /* ignore */ }
   }
 
-  function importEvents(recs) { const r = mergeImported(events(), recs, getVenue); write(EV_KEY, r.list); return r; }
+  function importEvents(recs) {
+    /* a built-in venue used by an import becomes a saved venue (its defaults can then be edited) */
+    recs.forEach((x) => { if (x.venueId && !venues().some((v) => v.id === x.venueId)) { const b = getVenue(x.venueId); if (b) saveVenue({ ...b, builtin: undefined }); } });
+    const r = mergeImported(events(), recs, getVenue); write(EV_KEY, r.list); return r;
+  }
 
-  const api = { mergeImported, confirmVenue, importEvents, STD, STATUS, applyDefaults, offsetsOf, overridesOf, statusOf, order, fromCalendar, addMin, diffMin,
+  const api = { wallAt, BUILTIN, matchVenue, rememberAlias, norm, mergeImported, confirmVenue, importEvents, STD, STATUS, applyDefaults, offsetsOf, overridesOf, statusOf, order, fromCalendar, addMin, diffMin,
     events, venues, saveEvent, getEvent, removeEvent, saveVenue, getVenue, removeVenue, last, setLast, migrate, EV_KEY, VN_KEY };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.EventStore = api;

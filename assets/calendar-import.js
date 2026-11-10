@@ -113,23 +113,45 @@
     }
     function step3() {
       const venues = E.venues(), have = new Set(E.events().map((x) => x.id));
-      const recs = items.map((g) => ({ g, r: E.fromCalendar(g, venues, provider.kind === "sample" ? `sample:${cal.id}` : cal.id) })).filter((x) => x.r);
+      const pool = [...venues, ...E.BUILTIN.filter((b) => !venues.some((v) => E.norm(v.name) === E.norm(b.name)))];
+      const recs = items.map((g) => ({ g, r: E.fromCalendar(g, venues, provider.kind === "sample" ? `sample:${cal.id}` : cal.id, cal.timeZone || null) })).filter((x) => x.r);
       const skipped = items.length - recs.length;
-      const when = (r) => { if (!r.tz) return `${r.times.start.replace("T", " ")}`; const s = Date.parse(r.times.start + ":00Z"); const h12 = (t) => { const h = +t.slice(11, 13), m = t.slice(14, 16); return `${h % 12 || 12}${m === "00" ? "" : ":" + m} ${h < 12 ? "AM" : "PM"}`; }; return `${new Date(s).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" })} · ${h12(r.times.start)}–${h12(r.times.end)} ${fmt.zone(s, r.tz)}`; };
-      const venueSel = (r, i) => r.venueId ? `<span class="bx-st" style="--tier:var(--normal)">${esc(r.loc.name)}</span>`
-        : `<select data-venue="${i}" aria-label="Venue for this event"><option value="">Confirm the venue later</option>${venues.map((v) => `<option value="${esc(v.id)}">${esc(v.name)}</option>`).join("")}</select>`;
+      const h12 = (t) => { const h = +t.slice(11, 13), m = t.slice(14, 16); return `${h % 12 || 12}${m === "00" ? "" : ":" + m} ${h < 12 ? "AM" : "PM"}`; };
+      const when = (r) => { if (!r.tz) return r.times.start.replace("T", " ") + " UTC"; const s = Date.parse(r.times.start + ":00Z"); return `${new Date(s).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" })} · ${h12(r.times.start)}–${h12(r.times.end)} ${fmt.zone(Date.parse(r.source.start), r.tz)}`; };
+      const VIA = { name: "matched by name", address: "matched by street address", remembered: "a location you matched before" };
+      const options = (sel, first) => `<option value="">${first}</option>${pool.map((v) => `<option value="${esc(v.id)}" ${v.id === sel ? "selected" : ""}>${esc(v.name)}${v.builtin ? " (built in)" : ""}</option>`).join("")}`;
+      const venueRow = (g, r, i) => {
+        const m = r.match || {};
+        if (r.venueId) return `<span>Venue: <b>${esc(r.loc.name)}</b> <span class="bx-note">· ${esc(VIA[m.via] || "matched")}</span></span> <button type="button" class="bx-link" data-change="${i}">Change</button>
+          <select data-venue="${i}" data-auto="${esc(r.venueId)}" hidden aria-label="Venue for this event">${options(r.venueId, "Confirm the venue later")}</select>`;
+        const why = !g.location ? "No location in the calendar." : m.status === "ambiguous" ? `"${g.location}" fits more than one venue.` : `"${g.location}" isn't a saved venue yet.`;
+        return `<span class="bx-note" style="flex-basis:100%">${esc(why)} Choose the venue (it will be remembered for this location), or confirm it later.</span>
+          <select data-venue="${i}" aria-label="Venue for this event">${options(m.status === "ambiguous" ? "" : "", m.status === "ambiguous" ? "Which venue? (confirm later)" : "Confirm the venue later")}</select>`;
+      };
       form.innerHTML = `<h2 id="editTitle">Choose events to import</h2>
-        <p class="bx-note" style="margin:0">${esc(cal.summary || "Calendar")} · next 90 days${skipped ? ` · ${skipped} all-day ${skipped === 1 ? "item" : "items"} skipped` : ""}. Events at a saved venue get that venue's setup, gates and teardown times. Unfamiliar locations need a venue before a site-specific briefing.</p>
-        <div class="ci-list">${recs.map(({ g, r }, i) => `<div class="ci-ev"><label class="bx-check"><input type="checkbox" data-pick="${i}" ${r.venueId ? "checked" : ""}> <span><b>${esc(r.name)}</b>${have.has(r.id) ? ' <span class="bx-note">· already imported (will update)</span>' : ""}<span class="bx-note" style="display:block">${esc(when(r))}${g.location ? "" : " · no location in the calendar"}</span></span></label>
-          <div class="ci-venue">${r.venueId ? "Venue: " : `<span class="bx-note">${esc(g.location || "No location")}</span> `}${venueSel(r, i)}</div></div>`).join("") || '<p class="bx-note">No upcoming timed events in the next 90 days.</p>'}</div>
+        <p class="bx-note" style="margin:0">${esc(cal.summary || "Calendar")} · next 90 days${skipped ? ` · ${skipped} all-day ${skipped === 1 ? "item" : "items"} skipped` : ""}. Times are shown at the venue. Recognised venues are matched automatically and bring their setup, gates and teardown times.</p>
+        <div class="ci-list">${recs.map(({ g, r }, i) => `<div class="ci-ev" data-row="${i}" data-match="${esc((r.match || {}).status || "")}"><label class="bx-check"><input type="checkbox" data-pick="${i}" ${r.venueId ? "checked" : ""}> <span><b>${esc(r.name)}</b>${have.has(r.id) ? ' <span class="bx-note">· already imported (will update)</span>' : ""}<span class="bx-note" style="display:block" data-when>${esc(when(r))}</span></span></label>
+          <div class="ci-venue">${venueRow(g, r, i)}</div></div>`).join("") || '<p class="bx-note">No upcoming timed events in the next 90 days.</p>'}</div>
         <p class="err" id="ciErr" hidden></p>${foot('<button class="bx-btn" value="cancel" formnovalidate>Cancel</button><button type="button" class="bx-btn primary" id="ciImport">Import selected</button>')}`;
       const count = () => { const n = form.querySelectorAll("[data-pick]:checked").length; $("ciImport").textContent = n ? `Import ${n} ${n === 1 ? "event" : "events"}` : "Import selected"; $("ciImport").disabled = !n; };
       form.querySelectorAll("[data-pick]").forEach((c) => c.addEventListener("change", count));
-      form.querySelectorAll("[data-venue]").forEach((s) => s.addEventListener("change", () => { const c = form.querySelector(`[data-pick="${s.dataset.venue}"]`); if (s.value && c) { c.checked = true; count(); } }));
+      form.querySelectorAll("[data-change]").forEach((b) => b.addEventListener("click", () => { const sel = form.querySelector(`[data-venue="${b.dataset.change}"]`); sel.hidden = false; b.hidden = true; sel.focus(); }));
+      form.querySelectorAll("[data-venue]").forEach((s) => s.addEventListener("change", () => { const i = +s.dataset.venue, c = form.querySelector(`[data-pick="${i}"]`); if (s.value && c) { c.checked = true; count(); }
+        const v = s.value ? E.getVenue(s.value) : null, w = form.querySelector(`[data-row="${i}"] [data-when]`); if (w) w.textContent = when(v ? E.confirmVenue(recs[i].r, v) : recs[i].r); }));
       count();
       $("ciImport").addEventListener("click", () => {
-        const picked = [...form.querySelectorAll("[data-pick]:checked")].map((c) => { const i = +c.dataset.pick; let r = recs[i].r; const s = form.querySelector(`[data-venue="${i}"]`); if (s && s.value) r = E.confirmVenue(r, E.getVenue(s.value)); return r; });
-        const res = E.importEvents(picked);
+        let remembered = 0;
+        const picked = [...form.querySelectorAll("[data-pick]:checked")].map((c) => {
+          const i = +c.dataset.pick, { g } = recs[i]; let r = recs[i].r; const s = form.querySelector(`[data-venue="${i}"]`);
+          const chosen = s ? s.value : r.venueId || "", auto = s && s.dataset.auto ? s.dataset.auto : r.venueId || "";
+          if (chosen && chosen !== auto) {
+            /* a manual match: apply it and remember this calendar location for future imports */
+            let v = E.getVenue(chosen); if (g.location) { v = E.rememberAlias(v, g.location); remembered++; }
+            r = E.confirmVenue(r, v);
+          } else if (!chosen && auto) r = { ...r, venueId: null, loc: { name: g.location || "Venue not set", lat: null, lon: null }, match: { status: "unknown", via: null, candidates: [] } };
+          return r;
+        });
+        const res = E.importEvents(picked); res.remembered = remembered;
         U.track("calendar_events_imported", { via: provider.kind, n: Math.min(99, picked.length) });
         dlg.close(); if (onDone) onDone(res);
       });

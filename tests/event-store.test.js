@@ -49,11 +49,51 @@ E2.removeEvent(b.id); E2.migrate(); eq([E2.events().map((x) => x.name), mem.beta
 /* calendar: the same record shape; venue matched by name, else needs confirmation */
 const venues = [{ id: "vn_t", name: "TQL Stadium", lat: 39.1111, lon: -84.5222, tz: "America/New_York", defaults: tql }];
 const g = E.fromCalendar({ id: "abc", etag: "e1", summary: "FC Cincinnati vs. Test FC", location: "TQL Stadium, 1501 Central Pkwy, Cincinnati, OH", start: { dateTime: "2026-11-28T19:30:00-05:00", timeZone: "America/New_York" }, end: { dateTime: "2026-11-28T21:30:00-05:00" } }, venues, "primary");
-eq([g.venueId, g.times.gates, g.times.teardown, g.source], ["vn_t", "2026-11-28T18:00", "2026-11-28T23:30", { kind: "calendar", calendarId: "primary", eventId: "abc", etag: "e1" }], "a calendar event at a saved venue gets that venue's defaults");
+eq([g.venueId, g.times.gates, g.times.teardown, (({ kind, calendarId, eventId, etag }) => ({ kind, calendarId, eventId, etag }))(g.source)], ["vn_t", "2026-11-28T18:00", "2026-11-28T23:30", { kind: "calendar", calendarId: "primary", eventId: "abc", etag: "e1" }], "a calendar event at a saved venue gets that venue's defaults");
 const u = E.fromCalendar({ id: "x", summary: "Away match", location: "Somewhere Field", start: { dateTime: "2026-12-01T18:00:00-06:00", timeZone: "America/Chicago" }, end: { dateTime: "2026-12-01T20:00:00-06:00" } }, venues);
 eq([u.loc.lat, E.statusOf(u, {}).key, u.times.start], [null, "venue", "2026-12-01T18:00"], "unknown location: venue needs confirmation, times kept in the event's zone");
 eq(E.fromCalendar({ id: "d", summary: "Holiday", start: { date: "2026-12-25" }, end: { date: "2026-12-26" } }, venues), null, "all-day items are skipped");
 
+
+/* ---------- venue matching, remembered locations, original instants (Bengals at Paycor regression) ---------- */
+{
+  for (const k of Object.keys(mem)) delete mem[k];
+  delete require.cache[require.resolve("../assets/event-store.js")]; const S = require("../assets/event-store.js");
+  /* the reported case: a Sunday 8:20 PM EST game the calendar returns in UTC with no event time zone */
+  const sun = { id: "bengals", summary: "Bengals vs. Test", location: "Somewhere unfamiliar", start: { dateTime: "2026-11-16T01:20:00Z" }, end: { dateTime: "2026-11-16T04:30:00Z" } };
+  const u = S.fromCalendar(sun, [], "c", "America/New_York");
+  eq([u.tz, u.times.start, u.venueId], ["America/New_York", "2026-11-15T20:20", null], "unmatched event: times in the calendar's time zone (Sunday 8:20 PM), not the UTC clock");
+  const noTz = S.fromCalendar(sun, [], "c", null);
+  const fixed = S.confirmVenue(noTz, S.getVenue("bi_paycor"));
+  eq([fixed.tz, fixed.times.start, fixed.times.end], ["America/New_York", "2026-11-15T20:20", "2026-11-15T23:30"], "confirming a venue converts the calendar's original instants (the bug relabelled 01:20 UTC as 1:20 AM EST)");
+  ok(S.wallAt("2026-07-05T00:20:00Z", "America/New_York") === "2026-07-04T20:20", "daylight time handled (EDT)");
+  /* matching: name, street address, built-ins, remembered aliases, ambiguous, unknown */
+  const g = (id, location, iso = "2026-11-22T18:00:00Z") => ({ id, summary: id, location, start: { dateTime: iso }, end: { dateTime: "2026-11-22T21:00:00Z" } });
+  eq([S.matchVenue("Paycor Stadium", []).status, S.matchVenue("Paycor Stadium", []).venue.id, S.matchVenue("Paycor Stadium", []).via], ["matched", "bi_paycor", "name"], "built-in venue by name");
+  eq(S.matchVenue("1501 Central Parkway West, Cincinnati, OH 45214", []).venue.id, "bi_tql", "built-in venue by full street address (Parkway West = Pkwy W)");
+  eq(S.matchVenue("Paul Brown Stadium, Cincinnati", []).venue.id, "bi_paycor", "built-in venue by a known alias");
+  eq([S.matchVenue("", []).status, S.matchVenue("Somewhere Field, Dayton, OH", []).status], ["unknown", "unknown"], "blank or unfamiliar locations are unknown");
+  eq(S.matchVenue("TQL Stadium / Paycor Stadium watch party", []).status, "ambiguous", "two venues in one location is ambiguous");
+  ok(S.matchVenue("Stadium", []).status === "unknown", "a generic word does not match a venue");
+  /* two separate imports at Paycor: neither needs confirmation once the venue is saved */
+  let r1 = S.importEvents([S.fromCalendar(g("p1", "Paycor Stadium"), S.venues(), "c", "America/New_York")]);
+  const pv = S.venues().find((v) => v.name === "Paycor Stadium");
+  const r2 = S.importEvents([S.fromCalendar(g("p2", "Paycor Stadium, 1 Paycor Stadium, Cincinnati, OH 45202", "2026-11-29T18:00:00Z"), S.venues(), "c", "America/New_York")]);
+  eq([r1.added, r2.added, !!pv, S.events().map((e) => [e.id, e.venueId, e.times.start])], [1, 1, true, [["cal_p1", "bi_paycor", "2026-11-22T13:00"], ["cal_p2", "bi_paycor", "2026-11-29T13:00"]]], "two Paycor imports (name, then full address) both match the saved venue; times at the venue");
+  /* a location confirmed by hand is remembered */
+  const odd = g("x1", "Riverfront Lot C, 120 Mehring Way");
+  const r0 = S.fromCalendar(odd, S.venues(), "c", "America/New_York");
+  eq(r0.match.status, "unknown", "an unfamiliar location asks once");
+  S.rememberAlias(pv, odd.location);
+  const again = S.fromCalendar(g("x2", "Riverfront Lot C, 120 Mehring Way"), S.venues(), "c", "America/New_York");
+  eq([again.venueId, again.match.via], ["bi_paycor", "remembered"], "after a manual match, the same calendar location matches automatically");
+  /* a calendar event that changes location is matched again, not kept at the old venue */
+  const moved = S.fromCalendar({ ...g("p1", "TQL Stadium"), etag: "2" }, S.venues(), "c", "America/New_York");
+  const mr = S.mergeImported(S.events(), [moved], S.getVenue), e1 = mr.list.find((e) => e.id === "cal_p1");
+  eq([mr.relocated, e1.venueId, e1.loc.name], [1, "bi_tql", "TQL Stadium"], "a new calendar location is resolved again instead of silently keeping the old venue");
+  const same = S.mergeImported(S.events(), [S.fromCalendar(g("p2", "Paycor Stadium, 1 Paycor Stadium, Cincinnati, OH 45202", "2026-11-29T18:00:00Z"), S.venues(), "c", "America/New_York")], S.getVenue);
+  eq([same.relocated, same.unchanged], [0, 1], "same location: venue kept, nothing changes");
+}
 /* ---------- calendar import: merge, confirm venue, sample provider, origin gate ---------- */
 {
   const CI = require("../assets/calendar-import.js");
