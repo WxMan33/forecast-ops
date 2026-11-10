@@ -33,10 +33,11 @@
   const TIMEOUT_MS = 15000;
   const getJ = (url, opt = {}) => {
     const ctl = typeof AbortController === "function" ? new AbortController() : null;
-    const to = ctl ? setTimeout(() => ctl.abort(), TIMEOUT_MS) : null;
-    return fetch(url, ctl ? { ...opt, signal: ctl.signal } : opt)
+    const { timeoutMs = TIMEOUT_MS, ...init } = opt;
+    const to = ctl ? setTimeout(() => ctl.abort(), timeoutMs) : null;
+    return fetch(url, ctl ? { ...init, signal: ctl.signal } : init)
       .then((r) => (r.ok ? r.json() : { error: `HTTP ${r.status}` }))
-      .catch((e) => ({ error: e && e.name === "AbortError" ? `no response after ${TIMEOUT_MS / 1000} s` : String((e && e.message) || e) }))
+      .catch((e) => ({ error: e && e.name === "AbortError" ? `no response after ${timeoutMs / 1000} s` : String((e && e.message) || e) }))
       .finally(() => to && clearTimeout(to));
   };
   const acis = (body) => getJ("https://data.rcc-acis.org/StnData", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((j) => (j && j.error ? { error: typeof j.error === "string" ? j.error : "ACIS error" } : j));
@@ -96,7 +97,11 @@
 
   /* climate station: shown prominently, changeable to another verified station */
   function stationHeader(res, loc, c) {
-    if (!c) { $("climName").textContent = "No verified station"; $("climMeta").textContent = (res.missing || []).join(" "); $("climStn").innerHTML = ""; $("climStn").hidden = true; return; }
+    if (!c) {
+      $("climName").textContent = "No verified station"; $("climMeta").textContent = (res.missing || []).join(" "); $("climStn").innerHTML = ""; $("climStn").hidden = true;
+      if (res.error) { const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.style.cursor = "pointer"; b.id = "climRetry"; b.textContent = "Try again"; b.addEventListener("click", () => render()); $("climMeta").append(" ", b); }
+      return;
+    }
     $("climName").textContent = `${c.obsName} · ${c.obsSid}`;
     $("climMeta").textContent = `NWS ${c.office} climate site, ${Math.round(c.station.km)} km from ${loc.name.split(",")[0]} · records: ${c.threaded ? `${c.recordsName} (${c.recordsSid}) since ${c.firstYear}` : `station record since ${c.firstYear}`}${c.office !== res.pointOffice ? ` · outside the point's NWS ${res.pointOffice} area` : ""}${c.missing.length ? " · " + c.missing.join(" ") : ""}`;
     const alts = res.alternatives || [];

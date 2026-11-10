@@ -35,11 +35,13 @@
     const day = (ms) => new Date(ms).toISOString().slice(0, 10);
     const post = (path, body) => fetchJSON(ACIS + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const nws = (url) => fetchJSON(url, { headers: { Accept: "application/geo+json" } });
-    const search = () => post("/StnMeta", { bbox: [lon - 3.2, lat - 2.4, lon + 3.2, lat + 2.4], meta: "name,sids,ll,valid_daterange", elems: "maxt", sdate: day(now - 12 * D), edate: day(now) });
+    /* RCC-ACIS answers this search in 2-5 s usually, but sometimes takes 40 s or more: wait up to 45 s, retry twice */
+    const search = () => fetchJSON(ACIS + "/StnMeta", { method: "POST", headers: { "Content-Type": "application/json" }, timeoutMs: 45000,
+      body: JSON.stringify({ bbox: [lon - 3.2, lat - 2.4, lon + 3.2, lat + 2.4], meta: "name,sids,ll,valid_daterange", elems: "maxt", sdate: day(now - 12 * D), edate: day(now) }) });
     let [pp, meta] = await Promise.all([nws(`${NWS}/points/${lat.toFixed(4)},${lon.toFixed(4)}`), search()]);
-    if (!meta || !meta.meta) meta = await search(); // RCC-ACIS is occasionally slow or busy: one retry
+    for (let i = 0; i < 2 && (!meta || !meta.meta); i++) { await new Promise((r) => setTimeout(r, 1500 * (i + 1))); meta = await search(); }
     const pointOffice = pp && pp.properties ? pp.properties.gridId : null;
-    if (!meta || !meta.meta) return { pointOffice, station: null, alternatives: [], missing: ["RCC-ACIS station search is unavailable right now."], error: true };
+    if (!meta || !meta.meta) return { pointOffice, station: null, alternatives: [], missing: ["RCC-ACIS, the climate data service, did not answer the station search. Try again in a minute."], error: true };
     /* first-order / ASOS sites: a WBAN id (type 1) and an FAA id (type 3) */
     const sites = meta.meta.filter((s) => s.ll && s.sids.some((x) => / 1$/.test(x)) && s.sids.some((x) => / 3$/.test(x)))
       .map((s) => ({ faa: s.sids.find((x) => / 3$/.test(x)).split(" ")[0], name: titleCase(s.name), ll: s.ll, km: km(lat, lon, s.ll[1], s.ll[0]) }))
