@@ -106,7 +106,11 @@ Keep typography and colours as they are for this round. Give each colleague one 
 
 - **Meteorologist:** "Find the hour when the guidance starts to diverge." (Signals, timeline and map are on one
   selected time; the strongest signal is listed first.)
-- **Event manager:** "Decide which phase needs a rain plan." (Decision sentence, schedule strip, phase details.)
+- **Event manager:** "Save a venue, add two events there, then change the gates time for just one of them."
+  Open **Upcoming events** at the top of the briefing. Ask where they hesitated: choosing or saving the venue,
+  seeing that the second event picked up the venue's setup, gates and teardown times, changing one event's gates
+  without touching the venue, or finding each event again in the list. This is the same workflow planners will
+  use after importing events from Google Calendar.
 
 ## Automated checks before sharing
 
