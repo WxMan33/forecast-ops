@@ -49,6 +49,24 @@ The organizing idea is the weather itself: how it moves across the map and when 
 - No private verification records: none are in this public repository, the betas do not link to
   verification, and on the preview host the workspace footer omits its verification links.
 
+## First feedback round: one task each
+
+Keep typography and colours as they are for this round. Give each colleague one task and note where they hesitate.
+
+- **Meteorologist:** "Find the hour when the guidance starts to diverge." (Signals, timeline and map are on one
+  selected time; the strongest signal is listed first.)
+- **Event manager:** "Decide which phase needs a rain plan." (Decision sentence, schedule strip, phase details.)
+
+## Automated checks before sharing
+
+The `Beta preview check` workflow opens the public preview links signed out and fails if any of these break:
+- Meteorologist desktop: clicking an hour, stepping the map and playing it back keep the page, chart and map on
+  the same valid time.
+- Event phone: the decision sentence and likely window / timing / next check fit on the first screen; the phase
+  strip fits the width; precipitation chances are in 5-point steps.
+- Out-of-range event (six days out): the map shows the HRRR run that reaches furthest, flags "Last HRRR hour ·
+  not the selected time" on the map, and says when coverage ends.
+
 ## Feedback checklist: meteorologists
 
 1. Does the first screen tell you the next 48 hours at a glance? Are the numbers large enough, and are the

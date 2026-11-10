@@ -117,7 +117,7 @@
         <div class="bx-key"><span><i style="background:var(--warm)"></i>Blend temperature (shaded: guidance range)</span><span><i style="background:var(--accent)"></i>Hourly precipitation (faint: chance)</span><span><i style="background:var(--muted)"></i>Gust</span><span><i style="background:var(--monitor)"></i>Thunder signal</span></div><div class="bx-tip" hidden></div>`;
       const svgEl = host.querySelector("svg"), tip = host.querySelector(".bx-tip"), g = host.querySelector("#bxSel");
       const hourAt = (cx) => { const r = svgEl.getBoundingClientRect(), vx = ((cx - r.left) / r.width) * W, ms = t0 + ((vx - L) / (W - L - R)) * (t1 - t0); return hours[Math.max(0, Math.min(hours.length - 1, Math.floor((ms - t0) / H)))]; };
-      const place = (ms) => { if (!fin(ms) || ms < t0 || ms > t1) { g.setAttribute("opacity", "0"); return; } const px = x(ms); g.setAttribute("opacity", "1"); g.querySelector("line").setAttribute("x1", px); g.querySelector("line").setAttribute("x2", px); g.querySelector("rect").setAttribute("x", px - 4); };
+      const place = (ms) => { host.dataset.selected = fin(ms) ? ms : ""; if (!fin(ms) || ms < t0 || ms > t1) { g.setAttribute("opacity", "0"); return; } const px = x(ms); g.setAttribute("opacity", "1"); g.querySelector("line").setAttribute("x1", px); g.querySelector("line").setAttribute("x2", px); g.querySelector("rect").setAttribute("x", px - 4); };
       const show = (cx) => { const h = hourAt(cx); if (!h) return; const r = svgEl.getBoundingClientRect();
         tip.innerHTML = `<b>${esc(fmt.time(h.ms, tz))} ${esc(fmt.zone(h.ms, tz))}</b>${deg(h.temp)}${h.tempR && fin(h.tempR[0]) ? ` <span class="bx-note">(${Math.round(h.tempR[0])}–${Math.round(h.tempR[1])}°)</span>` : ""}<br>Precip ${inch(h.qpf)} · chance ${pct(h.pop)}<br>Gust ${mph(h.gust)}${h.thunder && !["normal", "nodata"].includes(h.thunder) ? `<br>Thunder signal: ${esc(C.TIERS[h.thunder].word.toLowerCase())}` : ""}`;
         tip.hidden = false; const px = (x(h.ms) / W) * r.width; tip.style.left = `${Math.min(r.width - 180, Math.max(0, px + 12))}px`; tip.style.top = "26px"; };
@@ -136,7 +136,7 @@
 
   /* ---------- the HRRR map with the shared toolbar (layer, run, step/play, valid time) ---------- */
   const MAP_FIELDS = ["refc", "refd1km", "precip", "t2m", "d2m", "gust", "w10m", "cloud"];
-  function mapPanel(host, { view = "tristate", field = "refc", place = null, bus, tz = "America/New_York", now = Date.now(), want = null } = {}) {
+  function mapPanel(host, { view = "tristate", field = "refc", place = null, bus, tz = "America/New_York", now = Date.now(), want = null, autoRun = false } = {}) {
     const q = new URLSearchParams({ embed: "1", view, field }); if (place) { q.set("lat", place.lat); q.set("lon", place.lon); q.set("name", place.name); }
     const full = new URLSearchParams({ view, field }); if (place) { full.set("lat", place.lat); full.set("lon", place.lon); full.set("name", place.name); }
     host.classList.add("bx-mapwrap");
@@ -146,7 +146,7 @@
         <span class="grp"><button type="button" id="mpBack" aria-label="Previous hour" disabled>‹</button><button type="button" id="mpPlay" aria-pressed="false" disabled>Play</button><button type="button" id="mpNext" aria-label="Next hour" disabled>›</button></span>
         <span class="vt" id="mpVt" aria-live="polite"></span><a class="bx-btn" href="maps.html?${full}" title="Open the full map page">Full map ↗</a></div>
       <div class="bx-mapnote" id="mpNote" hidden></div>
-      <div class="bx-mapframe"><iframe title="HRRR regional model map" src="maps.html?${q}"></iframe></div></div>`;
+      <div class="bx-mapframe"><iframe title="HRRR regional model map" src="maps.html?${q}"></iframe><div class="bx-mapflag" id="mpFlag" hidden></div></div></div>`;
     const $ = (id) => host.querySelector("#" + id), frame = host.querySelector("iframe");
     let M = null, last = null, wanted = want;
     const runLabel = (r) => `HRRR ${String(new Date(r.cycle).getUTCHours()).padStart(2, "0")}Z · ${r.hours} h`;
@@ -158,24 +158,44 @@
       fsel.value = s.field; if (rsel.options.length !== s.runs.length) rsel.innerHTML = s.runs.map((r) => `<option value="${esc(r.id)}">${esc(runLabel(r))}</option>`).join(""); rsel.value = s.run || "";
       [fsel, rsel, $("mpBack"), $("mpPlay"), $("mpNext")].forEach((b) => { b.disabled = !s.ready && !s.playing; });
       $("mpPlay").textContent = s.playing ? "Pause" : "Play"; $("mpPlay").setAttribute("aria-pressed", String(s.playing));
+      host.dataset.mapValid = s.validMs || ""; host.dataset.ready = String(!!s.ready);
       $("mpVt").innerHTML = s.validMs ? `${vt(s.validMs, tz, now)} <span class="run">· F${String(s.fh).padStart(2, "0")} of ${esc(runLabel(s.runs.find((r) => r.id === s.run) || s.runs[0]))}</span>` : "";
       /* the map leads only while playing (or before anything is selected); otherwise it follows the selected time */
       if (s.ready && s.validMs && bus) { if (s.playing || bus.get() == null) bus.set(s.validMs, "map"); else if (M) M.setTime(bus.get()); }
       rangeNote();
     };
-    /* when the selected time is outside this run's hours, say so beside the map instead of silently showing another hour */
-    const rangeNote = () => { const s = last, n = $("mpNote"); if (!s || !s.valid.length || !bus || bus.get() == null) { n.hidden = true; return; }
-      const ms = bus.get(), a = s.valid[0], b = s.valid[s.valid.length - 1];
-      if (ms > b + 30 * 60e3) { n.hidden = false; n.innerHTML = `The HRRR map runs through ${vt(b, tz, now)}. ${esc(fmt.time(ms, tz))} is beyond its range, so the map shows its last hour. Model run ${esc(fmt.utc(s.init))}.`; }
-      else if (ms < a - 30 * 60e3) { n.hidden = false; n.innerHTML = `The map starts at ${vt(a, tz, now)}; showing its first hour.`; }
-      else n.hidden = true; };
+    /* when the selected time is outside this run's hours, say so on and beside the map; never let another hour
+       pass for the selected time. With autoRun, first switch to the newest published run that reaches it. */
+    const covering = (s, ms) => s.runs.filter((r) => r.cycle <= ms + 30 * 60e3 && r.cycle + r.hours * H >= ms - 30 * 60e3).sort((a, b) => b.cycle - a.cycle)[0] || null;
+    let switched = null;
+    const rangeNote = () => { const s = last, n = $("mpNote"), flag = $("mpFlag"); if (!s || !s.valid.length || !bus || bus.get() == null) { n.hidden = true; flag.hidden = true; host.dataset.range = ""; return; }
+      const ms = bus.get(), a = s.valid[0], b = s.valid[s.valid.length - 1], cur = s.runs.find((r) => r.id === s.run);
+      const out = ms > b + 30 * 60e3 ? "beyond" : ms < a - 30 * 60e3 ? "before" : "in";
+      const endOf = (r) => r.cycle + r.hours * H, furthest = s.runs.slice().sort((x, y) => endOf(y) - endOf(x) || y.cycle - x.cycle)[0];
+      if (out !== "in" && autoRun && M && s.ready) {
+        /* the newest run that reaches the selected time; failing that, the run that reaches furthest toward it */
+        const r = covering(s, ms) || (out === "beyond" ? furthest : null);
+        if (r && r.id !== s.run && switched !== r.id + ms) { switched = r.id + ms; M.setRun(r.id); n.hidden = false; n.innerHTML = `Switching to ${esc(runLabel(r))}, the HRRR run that ${covering(s, ms) ? "reaches" : "gets closest to"} ${esc(fmt.time(ms, tz))}…`; return; } }
+      host.dataset.range = out;
+      const later = furthest && cur && endOf(furthest) > endOf(cur) + 30 * 60e3 ? furthest : null;
+      if (out === "beyond") { n.hidden = false; n.innerHTML = later
+          ? `<b>This run ends ${esc(fmt.time(b, tz))} ${esc(fmt.zone(b, tz))}.</b> The selected time, ${esc(fmt.time(ms, tz))}, is beyond it, so the map is frozen on its last hour. ${esc(runLabel(later))} reaches ${esc(fmt.time(endOf(later), tz))}.`
+          : `<b>HRRR coverage ends ${esc(fmt.time(b, tz))} ${esc(fmt.zone(b, tz))}.</b> The selected time, ${esc(fmt.time(ms, tz))}, is beyond every published run, so the map is frozen on its last hour. Use the timeline and briefing for that time.`; }
+      else if (out === "before") { n.hidden = false; n.innerHTML = `<b>This run starts ${esc(fmt.time(a, tz))} ${esc(fmt.zone(a, tz))}.</b> The map shows its first hour, not ${esc(fmt.time(ms, tz))}.`; }
+      else if (switched && cur && switched.startsWith(cur.id)) { n.hidden = false; n.innerHTML = `Showing ${esc(runLabel(cur))}, the newest run that reaches ${esc(fmt.time(ms, tz))}.`; }
+      else n.hidden = true;
+      flag.hidden = out === "in"; flag.innerHTML = out === "in" ? "" : `${out === "beyond" ? "Last HRRR hour" : "First HRRR hour"} · ${esc(fmt.time(out === "beyond" ? b : a, tz))}<span>not the selected time</span>`;
+      $("mpVt").classList.toggle("oor", out !== "in"); };
     const attach = () => { const w = frame.contentWindow; if (!w || !w.MapEmbed) return false; M = w.MapEmbed; M.on(render);
       if (wanted != null && bus) bus.set(wanted, "page"); wanted = null; if (bus && bus.get() != null) M.setTime(bus.get()); return true; };
     const poll = setInterval(() => { if (attach()) clearInterval(poll); }, 300); setTimeout(() => clearInterval(poll), 60000);
     $("mpField").addEventListener("change", (e) => M && M.setField(e.target.value));
     $("mpRun").addEventListener("change", (e) => M && M.setRun(e.target.value));
-    $("mpBack").addEventListener("click", () => { if (M) { M.stop(); M.step(-1); bus && bus.set(M.state().validMs, "map"); } });
-    $("mpNext").addEventListener("click", () => { if (M) { M.stop(); M.step(1); bus && bus.set(M.state().validMs, "map"); } });
+    /* stepping moves the selected time; the map (and the chart) follow it, so nothing can snap back */
+    const stepBy = (d) => { if (!M) return; M.stop(); const s0 = M.state(); if (!s0.valid.length) return; const n = s0.valid.length, k = (s0.h + d + n) % n;
+      if (bus) bus.set(s0.valid[k], "step"); else M.step(d); };
+    $("mpBack").addEventListener("click", () => stepBy(-1));
+    $("mpNext").addEventListener("click", () => stepBy(1));
     $("mpPlay").addEventListener("click", () => { if (!M) return; if (M.state().playing) M.stop(); else M.play(); });
     if (bus) bus.on((ms, src) => { if (M && src !== "map") { const r = M.setTime(ms); if (r && r.validMs && r.inRange === false) rangeNote(); } rangeNote(); });
     return { want(ms) { if (M && bus) bus.set(ms, "page"); else wanted = ms; } };

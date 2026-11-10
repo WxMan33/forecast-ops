@@ -196,3 +196,8 @@ body.bx * { font-variant-numeric: tabular-nums; }
   .bx-maptool > .bx-btn { display: none; } /* "Full map" stays in the tool rail */
   .bx-maptool .bx-sel { max-width: none; flex: 1 1 40%; }
 }
+
+/* out-of-range map: a flag on the map itself, so an earlier frame cannot pass for the selected time */
+.bx-mapflag { position: absolute; top: 10px; left: 10px; z-index: 2; padding: 6px 10px; border-radius: 8px; background: var(--panel); border: 1.5px solid var(--monitor); font-weight: 700; font-size: 13px; pointer-events: none; }
+.bx-mapflag span { display: block; font-weight: 500; font-size: 11.5px; color: var(--muted); }
+.bx-maptool .vt.oor b { text-decoration: line-through; text-decoration-color: var(--monitor); }

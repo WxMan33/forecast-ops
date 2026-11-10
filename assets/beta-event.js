@@ -94,7 +94,8 @@
     /* ---- one selected time for the map and the hour-by-hour chart: the concern's start, or the event start ---- */
     const evStart = (b.phases.find((p) => p.key === "event") || b.phases[0]).startMs, focus = top && top.from != null ? top.from : evStart;
     bus = U.timeBus(focus);
-    U.mapPanel($("map"), { view: "venue", field: "refc", place: { ...ev.loc }, bus, tz, now });
+    bus.on((ms) => { document.body.dataset.selected = ms; }); document.body.dataset.selected = focus;
+    U.mapPanel($("map"), { view: "venue", field: "refc", place: { ...ev.loc }, bus, tz, now, autoRun: true });
     const s = Math.max(Math.floor(now / H) * H, b.all.startMs - 2 * H), e = b.all.endMs + H, hours = S.hourly(ctx, s, e);
     $("hourlyValid").innerHTML = `${esc(fmt.span(s, e, tz))} ${esc(fmt.zone(s, tz))} · tap to select`;
     U.timeline($("timeline"), hours, { tz, now, bus, gustLine: thr.gust, mark: top && top.from != null ? { s: top.from, e: top.to, tier: top.tier } : null,

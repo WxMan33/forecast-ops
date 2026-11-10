@@ -22,6 +22,7 @@
   const bus = U.timeBus(Math.floor(Date.now() / H) * H);
   const showSel = () => { $("selVt").innerHTML = bus.get() ? `Selected ${vt(bus.get(), TZ)}` : ""; };
   bus.on(showSel); showSel();
+  bus.on((ms) => { document.body.dataset.selected = ms; }); document.body.dataset.selected = bus.get();
 
   /* phone: Map | Timeline */
   document.querySelectorAll(".bx-tabs [data-tab]").forEach((b) => b.addEventListener("click", () => { $("work").dataset.tab = b.dataset.tab; document.querySelectorAll(".bx-tabs [data-tab]").forEach((x) => x.setAttribute("aria-selected", String(x === b))); }));
