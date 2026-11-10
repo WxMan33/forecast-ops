@@ -13,7 +13,7 @@
   const linkEvent = Q.get("e") ? S.eventFromParam(Q.get("e"), C) : null;
   const linkCity = (() => { const lat = parseFloat(Q.get("lat")), lon = parseFloat(Q.get("lon")); return fin(lat) && fin(lon) ? { name: Q.get("name") || `${lat.toFixed(3)}, ${lon.toFixed(3)}`, lat, lon, tz: Q.get("tz") || null } : null; })();
   const sampleAt = (city) => S.sampleEvent(C, Date.now(), (city && city.tz) || "America/New_York", 1, city || null);
-  let ev = linkEvent || (linkCity ? null : saved()) || null, gen = 0, lastRes = null, bus = null, pendingCity = linkCity;
+  let ev = linkEvent || (linkCity ? null : saved()) || null, pickSeq = 0, gen = 0, lastRes = null, bus = null, pendingCity = linkCity;
   if (!ev) ev = sampleAt(linkCity && linkCity.tz ? linkCity : null);
   const isSample = () => !!ev.sample;
   /* a saved event opened again in a later session (approximate, per browser) */
@@ -23,7 +23,7 @@
   const head = U.header({ audience: "Event", other: { self: "event-beta.html", href: "meteorologist-beta.html", label: "Met" }, ctx: `<div id="picker" class="bx-ctx" style="flex:1 1 auto"></div>` });
   document.title = "Event briefing beta · Forecast Ops";
   const picker = U.placePicker($("picker"), { current: { name: ev.loc.name }, link, label: "Venue city",
-    async onPick(p) { const tz = p.tz || await O.zoneFor(p.lat, p.lon).catch(() => null); if (!tz) return;
+    async onPick(p) { const my = ++pickSeq; const tz = p.tz || await O.zoneFor(p.lat, p.lon).catch(() => null); if (my !== pickSeq || !tz) return; // a later pick wins, even over a slow time-zone lookup
       U.track("city_selected", { market: S.market(p.lat, p.lon).tuned ? "cincinnati" : "elsewhere" });
       if (isSample()) ev = sampleAt({ ...p, tz }); else ev = { ...ev, loc: { name: p.name, lat: p.lat, lon: p.lon }, tz };
       run(); } });

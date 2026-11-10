@@ -25,7 +25,7 @@
     if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
   });
 })();</script><!--/load-guard-->
-<link rel="stylesheet" href="assets/ops.css?v=0d4e27a038">
+<link rel="stylesheet" href="assets/ops.css?v=4d803a5167">
 <link rel="stylesheet" href="assets/climate-report.css?v=553086c5ef">
 </head>
 <body class="almanac-page">
@@ -47,8 +47,10 @@
       <div class="almlocs">
         <span><span class="kick">Sun and moon</span> <b id="astroName" class="printonly">—</b>
           <select class="input inline noprint" id="astroPoint" aria-label="Astronomy location">
-            <option value="noaa">Cincinnati (NOAA table point)</option><option value="cvg">CVG airport</option><option value="loc">Your selected location</option></select></span>
-        <span><span class="kick">Climate</span> <b>Cincinnati</b> <span class="msg">(CVG airport observations · city record since 1871)</span></span>
+            <option value="loc">Selected point</option><option value="stn">Climate station</option><option value="noaa">Cincinnati (NOAA table point)</option></select></span>
+        <span class="climstn"><span class="kick">Climate station</span> <b id="climName">—</b>
+          <select class="input inline noprint" id="climStn" aria-label="Climate station" hidden></select>
+          <span class="msg" id="climMeta"></span></span>
         <button class="infobtn noprint" id="srcBtn" type="button" aria-expanded="false" aria-controls="srcPanel">ⓘ Source details</button>
       </div>
       <div class="infopanel" id="srcPanel" hidden></div>
@@ -67,14 +69,15 @@
 </main>
 <script src="assets/ops-core.js?v=737773bf4d"></script>
 <script src="assets/ops-data.js?v=457e2eb9ec"></script>
-<script src="assets/ops.js?v=b203db17bf"></script>
+<script src="assets/ops.js?v=889332ab14"></script>
 <script src="assets/almanac-core.js?v=715a4bf1f5"></script>
 <script src="assets/climate-report.js?v=6ca1fdc23a"></script>
 <script src="assets/astronomy-core.js?v=e2aa996e6a"></script>
 <script src="assets/skywatch.js?v=62538a3e9d"></script>
 <script src="assets/cincinnati-weather-history.js?v=92775c23ad"></script>
 <script src="assets/cincinnati-daily-climate-history.js?v=068c745fcb"></script>
-<script src="assets/almanac.js?v=399775d14b"></script>
+<script src="assets/climate-station.js?v=e625f4b228"></script>
+<script src="assets/almanac.js?v=7f358ddd56"></script>
 </body>
 </html>
 

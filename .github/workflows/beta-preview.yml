@@ -26,7 +26,7 @@ jobs:
           STAMP=$(grep -o 'beta-ui.js?v=[0-9a-f]*' event-beta.html | head -1)
           echo "STAMP=$STAMP" >> "$GITHUB_ENV"
           # raw.githack.com caches each file by path (it ignores ?v=), so check every file the betas load
-          FILES="meteorologist-beta.html event-beta.html maps.html assets/beta-analytics.js assets/beta-config.js assets/beta-ui.js assets/beta-story.js assets/beta-met.js assets/beta-event.js assets/beta.css assets/maps.js assets/ops.js assets/ops.css"
+          FILES="meteorologist-beta.html event-beta.html maps.html almanac.html blend.html assets/climate-station.js assets/almanac.js assets/record-watch.js assets/beta-analytics.js assets/beta-config.js assets/beta-ui.js assets/beta-story.js assets/beta-met.js assets/beta-event.js assets/beta.css assets/maps.js assets/ops.js assets/ops.css"
           for i in $(seq 1 40); do
             stale=""
             for f in $FILES; do [ "$(curl -fsS "${BASE}$f" | sha256sum | cut -c1-16)" = "$(sha256sum "$f" | cut -c1-16)" ] || stale="$stale $f"; done

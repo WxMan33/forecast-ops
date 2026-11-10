@@ -8,7 +8,7 @@
 <meta name="robots" content="noindex">
 <link rel="icon" href="assets/icon.svg?v=05c4bd5103" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Archivo+Black&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap">
 <!--load-guard--><script>/* Load guard (managed by tools/stamp-assets.js). Shown only if a page script fails to download or throws. */
 (function () { var shown = false;
   function show(msg) { if (shown) return; shown = true;
@@ -26,39 +26,35 @@
     if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
   });
 })();</script><!--/load-guard-->
-<link rel="stylesheet" href="assets/ops.css?v=0d4e27a038">
+<link rel="stylesheet" href="assets/ops.css?v=4d803a5167">
 <link rel="stylesheet" href="assets/beta.css?v=76b4446044">
 </head>
-<body class="bx">
-<nav class="bx-rail" id="rail" aria-label="Meteorologist tools"></nav>
-<main class="bx-ws">
-  <h1 class="sr-only" id="pageTitle">Forecast workspace</h1>
-  <div class="bx-alerts" id="alerts"></div>
-  <section class="bx-strip" id="strip" aria-label="Next 48 hours"><div class="bx-loading">Loading guidance…</div></section>
-  <div class="bx-tabs" role="tablist" aria-label="View"><button type="button" role="tab" data-tab="map" aria-selected="true">Map</button><button type="button" role="tab" data-tab="timeline" aria-selected="false">Timeline</button></div>
-  <div class="bx-work" id="work" data-tab="map">
-    <div id="map"></div>
-    <div class="bx-side">
-      <section class="bx-block bx-tlblock"><div class="bx-bh"><h2>Timeline · next 72 hours</h2><span class="bx-note" id="tlValid"></span></div><div id="timeline"></div></section>
-      <section class="bx-block"><div class="bx-bh"><h2>Signals · next 48 hours</h2><span class="bx-note">strongest first</span></div><ol class="bx-signals" id="signals"></ol></section>
-      <section class="bx-block" aria-label="Official NWS forecast and blend sources"><div id="nws"></div><div class="bx-blendline" id="blendLine"></div></section>
-    </div>
+<body class="betamenu-page">
+<main class="workspace single">
+  <div class="main">
+    <section class="card betaplace" aria-label="Location">
+      <div class="betaplace-row">
+        <div class="betaplace-pick"><span class="kick">Forecast point</span><div id="picker"></div></div>
+        <div class="betaplace-clim"><span class="kick">Climate station</span><b id="climName">Finding…</b><span class="msg" id="climMeta"></span></div>
+      </div>
+      <p class="msg" style="margin:8px 0 0">Every tool below opens for this point. Use <b>MENU</b> in the bar above to come back here.</p>
+    </section>
+
+    <div class="hub hub-lead" id="lead"></div>
+    <div class="hub" id="tools"></div>
+    <p class="msg betamenu-foot">Beta for colleague testing · <a href="event-beta.html">Event briefing beta</a> · Model guidance only, not an official forecast. The official NWS forecast is shown, labelled, alongside the blend.</p>
   </div>
-  <div class="bx-lower">
-    <section class="bx-block"><div class="bx-bh"><h2>Next 7 days</h2><span class="bx-note">low / high · model agreement on the high</span></div><div class="bx-days" id="days"></div></section>
-    <section class="bx-block"><div class="bx-bh"><h2>Guidance age</h2><span class="bx-note">latest run per source</span></div><div id="ages"></div></section>
-  </div>
-  <footer class="bx-foot" id="foot"></footer>
 </main>
 <script src="assets/ops-core.js?v=737773bf4d"></script>
 <script src="assets/ops-data.js?v=457e2eb9ec"></script>
-<script src="assets/ops.js?v=b203db17bf"></script>
+<script src="assets/ops.js?v=889332ab14"></script>
 <script src="assets/forecast-clock.js?v=c6df9f20b7"></script>
+<script src="assets/climate-station.js?v=e625f4b228"></script>
 <script src="assets/model-trends.js?v=20f2fb637c"></script>
 <script src="assets/beta-story.js?v=70362815cc"></script>
 <script src="assets/beta-config.js?v=94af3fb6da"></script>
-<script src="assets/beta-analytics.js?v=03ee849c27"></script>
+<script src="assets/beta-analytics.js?v=55d785d1b1"></script>
 <script src="assets/beta-ui.js?v=e0532abf2f"></script>
-<script src="assets/beta-met.js?v=1c4e669aec"></script>
+<script src="assets/beta-met.js?v=780ae6eb41"></script>
 </body>
 </html>

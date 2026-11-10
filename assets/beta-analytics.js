@@ -67,7 +67,7 @@
 
   /* ---- notice, opt-out and feedback (beta pages only) ---- */
   function notice() {
-    const foot = root.document.getElementById("foot"); if (!foot || root.document.getElementById("bxPrivacy")) return;
+    const foot = root.document.getElementById("foot") || root.document.querySelector("footer.foot .foot-top"); if (!foot || root.document.getElementById("bxPrivacy")) return;
     const el = root.document.createElement("div"); el.id = "bxPrivacy"; el.className = "bx-privacy";
     const draw = () => { el.innerHTML = optedOut()
       ? `<span>Usage analytics are off in this browser${privacyOff() ? " (your browser's privacy setting)" : ""}.</span>${privacyOff() ? "" : '<button type="button" class="bx-link" data-a="on">Turn on</button>'}`
@@ -76,7 +76,7 @@
     draw(); foot.after(el); // beside the footer, which pages redraw
   }
   function feedback() {
-    const head = root.document.querySelector(".bx-head-in"); if (!head || root.document.getElementById("bxFeedback")) return;
+    const head = root.document.querySelector(".bx-head-in") || root.document.querySelector(".statusbar .utility"); if (!head || root.document.getElementById("bxFeedback")) return;
     const b = root.document.createElement("button"); b.id = "bxFeedback"; b.type = "button"; b.className = "bx-btn"; b.textContent = "Feedback";
     b.addEventListener("click", () => {
       let d = root.document.getElementById("bxFbDlg");
@@ -86,7 +86,7 @@
         ${optedOut() ? '<p class="bx-note" style="margin:0">Analytics are off in this browser, so feedback is not sent.</p>' : ""}</form>`;
       d.addEventListener("close", () => { if (["useful", "not_useful"].includes(d.returnValue)) { track("feedback", { rating: d.returnValue }); flush(); } }, { once: true });
       d.showModal(); });
-    head.insertBefore(b, head.querySelector("#bxRefresh"));
+    if (head.querySelector("#bxRefresh")) head.insertBefore(b, head.querySelector("#bxRefresh")); else { b.className = "chip noprint"; b.style.cursor = "pointer"; head.prepend(b); }
   }
   /* full tools opened from a beta (same browser tab): weights adjusted / models compared on Model Blend */
   function toolHooks() {
@@ -96,7 +96,7 @@
     on("#linesBtn", "click", "models_compared"); on("#tabs", "click", "models_compared"); on("#modelTrendCard", "click", "models_compared");
   }
   function boot() { if (AUD && (page === "meteorologist-beta.html" || page === "event-beta.html")) { notice(); feedback(); } toolHooks(); }
-  if (root.document) { if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", boot); else boot(); root.setTimeout(notice, 3000); }
+  if (root.document) { if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", boot); else boot(); root.setTimeout(() => { notice(); feedback(); }, 1500); }
 
   root.BetaAnalytics = { track, flush, optedOut, enabled, internal, TYPES, CTX, clean, _queue: () => queue };
 })(typeof globalThis !== "undefined" ? globalThis : this);

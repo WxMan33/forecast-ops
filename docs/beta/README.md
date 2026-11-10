@@ -5,7 +5,7 @@ Two previews built from the same code on the `beta-previews` branch. They are se
 
 | Beta | Preview link |
 |---|---|
-| Meteorologist | https://raw.githack.com/WxMan33/forecast-ops/beta-previews/meteorologist-beta.html |
+| Meteorologist (tool menu) | https://raw.githack.com/WxMan33/forecast-ops/beta-previews/meteorologist-beta.html |
 | Event manager | https://raw.githack.com/WxMan33/forecast-ops/beta-previews/event-beta.html |
 
 The links serve the branch's files directly from GitHub through raw.githack.com (a free static file CDN for
@@ -19,6 +19,25 @@ there that checks out `WxMan33/forecast-ops@beta-previews` and deploys it. The l
 `https://wxman33.github.io/forecast-ops-beta/meteorologist-beta.html` and `…/event-beta.html`. The `Beta preview check` workflow opens both
 links on desktop and phone from a fresh, signed-out browser on every push and refreshes the screenshots in
 [`screens/`](screens/).
+
+## Meteorologist beta: a tool menu
+
+The meteorologist beta opens on a menu in the existing Forecast Ops style (same header, navigation, theme and
+tool cards). City search and Copy link sit at the top, with CVG as the default. Model Blend is the lead card
+("Daily and hourly forecasts, adjustable model weights and official NWS highs and lows"), with Weights and Runs
+as shortcuts; Thunder, Severe & Soundings, Winter, Almanac and Model Maps (in development) follow. Every tool
+opens for the selected city, and MENU in the shared navigation returns to the menu with it.
+
+## Two location values: forecast point and climate station
+
+The forecast point (the selected city or venue) drives forecasts, the NWS point forecast, alerts, the event
+briefing and astronomy. The climate station drives Almanac observations, normals and records and Model Blend's
+record-watch flags. It is the nearest official NWS daily climate reporting site (one NWS issues a CLI report for)
+served by the same NWS office as the point, with usable recent observations and normals in RCC-ACIS; a site with a
+threaded city record (for example IND, DEN) is preferred within 50 km. Examples verified live: CVG → CVG (CVGthr),
+Indianapolis and Carmel → IND (INDthr), Muncie → MIE (station record; no threaded record), Terre Haute → HUF,
+Lafayette → LAF, Charleston WV → CRW (CRWthr), Denver → DEN (DENthr). The Almanac shows the station name and ID and
+lets you pick another verified station without moving the forecast point.
 
 ## Any U.S. market
 

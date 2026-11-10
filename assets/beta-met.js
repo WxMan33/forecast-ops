@@ -1,82 +1,47 @@
-/* Meteorologist beta: a workspace. The map sits beside the timeline and one selected time drives both;
-   signals are listed strongest first; models, runs and soundings are one click away in the tool rail.
-   Calculations: BetaStory over the Model Blend data and recipe. */
+/* Meteorologist beta: a tool menu in the Forecast Ops style. The selected city (CVG by default) is the shared
+   forecast point: every tool opens for it, and MENU in the shared navigation comes back here with it. */
 (function () {
   "use strict";
-  const O = window.Ops, C = O.Core, S = window.BetaStory, U = window.BetaUI, FC = window.ForecastClock, $ = O.$, esc = O.esc, H = 3600e3;
-  const { fmt, vt, st, deg, inch, mph, fin } = U;
-  const CVG = { name: O.PRESETS[0][0], lat: O.PRESETS[0][1], lon: O.PRESETS[0][2], tz: "America/New_York" };
-  const Q = new URLSearchParams(location.search);
-  /* a shared link opens the same point: ?lat=&lon=&name=&tz= */
-  const fromQ = (() => { const lat = parseFloat(Q.get("lat")), lon = parseFloat(Q.get("lon")); return fin(lat) && fin(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 ? { name: Q.get("name") || `${lat.toFixed(3)}, ${lon.toFixed(3)}`, lat, lon, tz: Q.get("tz") || null } : null; })();
-  let place = fromQ || CVG, lastTz = place.tz || "America/New_York"; // CVG is the default
-  const tzNow = () => place.tz || lastTz;
-  const link = () => { const u = new URL(location.href); u.search = new URLSearchParams({ lat: place.lat, lon: place.lon, name: place.name, ...(place.tz ? { tz: place.tz } : {}) }); u.hash = ""; return u.toString(); };
-  const head = U.header({ audience: "Meteorologist", other: { self: "meteorologist-beta.html", href: "event-beta.html", label: "Event" }, ctx: `<div id="picker" class="bx-ctx" style="flex:1 1 auto"></div><span id="selVt" class="bx-note"></span>` });
-  document.title = "Meteorologist beta · Forecast Ops";
-  const picker = U.placePicker($("picker"), { current: place, link, label: "Search a U.S. city",
-    onPick(p) { place = p; history.replaceState(null, "", link()); U.track("city_selected", { market: S.market(p.lat, p.lon).tuned ? "cincinnati" : "elsewhere" }); run(); } });
-  head.onRefresh(() => run());
+  const O = window.Ops, $ = O.$, esc = O.esc, U = window.BetaUI, S = window.BetaStory;
+  const CVG = { name: O.PRESETS[0][0], lat: O.PRESETS[0][1], lon: O.PRESETS[0][2] };
+  const hasPoint = (() => { const q = new URLSearchParams(location.search); return isFinite(parseFloat(q.get("lat"))) && isFinite(parseFloat(q.get("lon"))); })(); // read before the shell rewrites the URL
+  try { sessionStorage.setItem("fo_beta_aud", "met"); } catch (e) { /* no storage */ }
+  O.shell("betamenu", "Forecast Ops");
+  if (!hasPoint) O.setLocation(CVG); // a fresh link opens on CVG; a shared or returning link keeps its city
+  document.title = "Forecast Ops · Meteorologist beta";
 
-  /* one selected time for the whole workspace */
-  const bus = U.timeBus(Math.floor(Date.now() / H) * H);
-  const showSel = () => { $("selVt").innerHTML = bus.get() ? `Selected ${vt(bus.get(), tzNow())}` : ""; };
-  bus.on(showSel); showSel();
-  bus.on((ms) => { document.body.dataset.selected = ms; }); document.body.dataset.selected = bus.get();
-
-  /* phone: Map | Timeline */
-  document.querySelectorAll(".bx-tabs [data-tab]").forEach((b) => b.addEventListener("click", () => { $("work").dataset.tab = b.dataset.tab; document.querySelectorAll(".bx-tabs [data-tab]").forEach((x) => x.setAttribute("aria-selected", String(x === b))); }));
-
-  const RAIL = [["Workspace", null], ["Models", "blend.html"], ["Weights", "blend.html#forecastControls"], ["Runs", "blend.html#modelTrendCard"], ["Soundings", "severe.html"], ["Thunder", "thunder.html"], ["Winter", "winter.html"], ["Map (in development)", "maps.html"]];
-  const drawRail = () => { const q = new URLSearchParams({ lat: place.lat, lon: place.lon, name: place.name });
-    $("rail").innerHTML = RAIL.map(([t, h]) => { if (!h) return `<a href="#" aria-current="page">${t}</a>`; const [pg, hash] = h.split("#"); return `<a href="${pg}?${q}${hash ? "#" + hash : ""}" data-tool="${esc(t)}">${t}</a>`; }).join("");
-    $("rail").querySelectorAll("[data-tool]").forEach((a) => a.addEventListener("click", () => { const tool = a.dataset.tool.split(" ")[0].toLowerCase(); U.track("tool_opened", { tool }); if (tool === "models" || tool === "runs") U.track("models_compared"); })); };
-
-  /* every load is numbered; a slow answer for an earlier city is dropped, never drawn over the current one */
-  let gen = 0, mapMade = null;
-  async function run() {
-    const g = ++gen, where = { lat: place.lat, lon: place.lon }, mk = S.market(place.lat, place.lon), key = `${place.lat},${place.lon}`;
-    picker.setCurrent(place); drawRail(); $("pageTitle").textContent = `${place.name.split(",")[0]} forecast workspace`;
-    document.body.dataset.place = place.name; document.body.dataset.loaded = ""; document.body.dataset.market = mk.tuned ? "tuned" : "default";
-    $("strip").innerHTML = '<div class="bx-loading">Loading guidance…</div>'; ["timeline", "signals", "ages", "days", "nws", "blendLine", "alerts"].forEach((id) => { $(id).innerHTML = ""; });
-    if (mapMade !== key) { if (mk.map) U.mapPanel($("map"), { view: "tristate", field: "refc", place, bus, tz: "America/New_York" }); else U.mapUnavailable($("map"), place); mapMade = key; }
-    U.alerts(where).then((a) => { if (g !== gen) return; $("alerts").innerHTML = a.slice(0, 3).map((x) => `<div class="bx-alert" role="alert">${st("action", x.event)}${x.ends ? `<span class="bx-note">until ${esc(fmt.time(Date.parse(x.ends), tzNow()))}</span>` : ""}<a href="https://forecast.weather.gov/MapClick.php?lat=${place.lat}&lon=${place.lon}" target="_blank" rel="noopener">NWS ↗</a></div>`).join(""); });
-    const res = await U.load(where, { days: Math.max(3, O.savedDays(C.config.blend)) });
-    if (g !== gen) return;
-    if (res.empty) { U.track("load_failed", { what: "models" }); $("strip").innerHTML = '<div class="bx-err">Model guidance could not be loaded (Open-Meteo unreachable). Try ↻ in a minute.</div>'; $("nws").innerHTML = U.nwsBlock(res, tzNow()); return; }
-    if (!res.NW || !res.NW.ok) U.track("load_failed", { what: "nws" });
-    if (res.feeds.missing.length) U.track("feeds_missing", { n: res.feeds.missing.length });
-    lastTz = res.ctx.B.tz; if (!place.tz) place.tz = lastTz;
-    render(res);
-    document.body.dataset.loaded = place.name; document.body.dataset.tz = res.ctx.B.tz; document.body.dataset.office = res.NW && res.NW.ok ? res.NW.office : "";
+  const TOOLS = [
+    { id: "thunder", page: "thunder.html", kick: "Storms", name: "Thunder", desc: "Storm timing and how guidance differs on thunder potential." },
+    { id: "soundings", page: "severe.html", kick: "Severe", name: "Severe & Soundings", desc: "Forecast profiles and the ingredients that could support severe storms." },
+    { id: "winter", page: "winter.html", kick: "Winter", name: "Winter", desc: "Snow and ice guidance, ensemble ranges and chances of reaching key thresholds." },
+    { id: "almanac", page: "almanac.html", kick: "Climate", name: "Almanac", desc: "Normals, records and observations from the nearest official climate station, plus daylight for this point." },
+    { id: "map", page: "maps.html", kick: "Maps · in development", name: "Model Maps", desc: "HRRR forecast layers for the Cincinnati Tri-State only.", dev: true },
+  ];
+  const url = (page, hash) => O.shareUrl(page) + (hash ? "#" + hash : "");
+  function draw() {
+    const here = O.location, short = here.name.split(",")[0];
+    $("lead").innerHTML = `<div class="hubcard lead">
+        <a class="lead-main" href="${esc(url("blend.html"))}" data-tool="models"><span class="kicker">Start here · ${esc(short)}</span><h2>Model Blend</h2>
+          <p>Daily and hourly forecasts, adjustable model weights and official NWS highs and lows.</p><span class="go">OPEN MODEL BLEND →</span></a>
+        <div class="lead-links"><span class="kick">Shortcuts</span><a href="${esc(url("blend.html", "forecastControls"))}" data-tool="weights">Weights</a><a href="${esc(url("blend.html", "modelTrendCard"))}" data-tool="runs">Runs</a></div></div>`;
+    $("tools").innerHTML = TOOLS.map((t) => `<a class="hubcard${t.dev ? " dev" : ""}" href="${esc(url(t.page))}" data-tool="${t.id}"><span class="kicker">${esc(t.kick)}</span><h2>${esc(t.name)}</h2><p>${esc(t.desc)}</p><span class="go">OPEN →</span></a>`).join("");
+    document.querySelectorAll("[data-tool]").forEach((a) => a.addEventListener("click", () => { U.track("tool_opened", { tool: a.dataset.tool === "soundings" ? "soundings" : a.dataset.tool }); if (["models", "runs"].includes(a.dataset.tool)) U.track("models_compared"); }));
+    document.body.dataset.place = here.name;
   }
-
-  function render(res) {
-    const ctx = res.ctx, B = ctx.B, tz = B.tz, now = ctx.now, s0 = Math.floor(now / H) * H;
-    head.setUpdated(B.viewedAt);
-    /* number strip: the overview's planning periods (same aggregation), then the 48-hour totals */
-    const plan = FC.periods(C, tz, now).primary.slice(0, 3);
-    const cells = plan.map((p) => { const r = S.windowRow(ctx, p.s, p.e), ok = r && r.complete, v = ok ? (p.kind === "high" ? r.hi : r.lo) : null;
-      return `<div><div class="bx-cap">${esc(p.label)} · ${p.kind === "high" ? "high" : "low"}</div><div class="n ${p.kind === "high" ? "hi" : "lo"}">${deg(v)}</div><div class="s">${esc(fmt.span(p.s, p.e, tz))}${ok && r.qpf >= 0.01 ? ` · ${inch(r.qpf)}` : ""}</div></div>`; });
-    const w48 = S.windowRow(ctx, s0, s0 + 48 * H);
-    cells.push(`<div><div class="bx-cap">Next 48 h · precip</div><div class="n">${inch(w48 && w48.qpf)}</div><div class="s">Peak gust ${mph(w48 && w48.gust)}${w48 && w48.chanceV != null ? ` · ${U.pct(w48.chanceV * 100)} of members wet` : ""}</div></div>`);
-    $("strip").innerHTML = cells.join("");
-    /* timeline (72 h) and signals (48 h), both on the selected time */
-    const hrs = S.hourly(ctx, s0, s0 + 72 * H);
-    $("tlValid").innerHTML = `${esc(fmt.span(s0, s0 + 72 * H, tz))} ${esc(fmt.zone(s0, tz))} · tap to select a time`;
-    U.timeline($("timeline"), hrs, { tz, now, bus });
-    const sig = S.signals(ctx, s0, s0 + 48 * H, (ms) => fmt.time(ms, tz));
-    $("nws").innerHTML = U.nwsBlock(res, tz, { from: now, max: 4 });
-    $("blendLine").innerHTML = `<b>Model blend:</b> ${esc(U.blendLine(res))}. ${esc(res.verified)}`;
-    $("signals").innerHTML = sig.map((x, i) => `<li class="${i ? "" : "first"}"${x.at ? ` data-at="${x.at}" style="cursor:pointer" title="Select this time"` : ""}>${st(x.tier === "normal" ? null : x.tier, x.title)}<div class="d">${esc(x.detail)}</div></li>`).join("") + `<li class="bx-note">Spread among guidance, not a calibrated probability.</li>`;
-    $("signals").querySelectorAll("[data-at]").forEach((li) => li.addEventListener("click", () => bus.set(+li.dataset.at, "signal")));
-    /* days and guidance age */
-    const rows = C.blend.dailyRows(B, ctx.ws, ctx.opts).slice(0, 7);
-    $("days").innerHTML = rows.map((r) => `<div class="bx-day"><div class="d">${esc(new Date(C.time.toUtc(r.k + "T12:00", tz)).toLocaleDateString("en-US", { timeZone: tz, weekday: "short", day: "numeric" }))}</div><div class="t"><span class="lo">${deg(r.lo)}</span> <span class="hi">${deg(r.hi)}</span></div><div class="x">${inch(r.qpf)} · ${mph(r.gust)}</div><div class="x">${esc(r.ag.word.toLowerCase())}${r.hours < 24 ? " · partial" : ""}</div></div>`).join("");
-    const ages = S.guidanceAge(ctx, U.NAMES);
-    $("ages").innerHTML = ages.length ? `<table class="bx-age"><thead><tr><th>Source</th><th>Run</th><th class="n">Age</th></tr></thead><tbody>${ages.map((a) => `<tr><td>${esc(a.name)}</td><td>${a.nws ? "updated" : a.unknown ? "—" : esc(fmt.utc(a.init))}</td><td class="n ${a.late ? "bx-late" : ""}">${a.unknown ? '<span class="bx-note">unknown</span>' : esc(fmt.age(a.ageH)) + (a.late ? " · late" : "")}</td></tr>`).join("")}</tbody></table>
-      <p class="bx-note" style="margin:6px 0 0">Run times from provider metadata (NWS: last grid update). Late: older than the usual cycle plus typical delay. Unknown: the provider's run metadata has stopped updating.</p>` : '<p class="bx-note">Run metadata unavailable.</p>';
-    $("foot").innerHTML = `<span>Model guidance only — not an official forecast or warning.</span><span>Data: Open-Meteo (CC BY 4.0), NWS, NOAA HRRR. ${res.problems.length ? `Partial data: ${esc(res.problems.slice(0, 4).join("; "))}.` : "All requested sources returned data."}</span><span>Beta for colleague testing; same blend, timing and aggregation code as Model Blend and the decision briefing.</span>`;
+  /* climate station for this point: shown here so the Almanac's reference is never a surprise */
+  let gen = 0;
+  async function station() {
+    const g = ++gen, here = O.location; $("climName").textContent = "Finding…"; $("climMeta").textContent = ""; document.body.dataset.station = "";
+    const fetchJSON = (u, o) => fetch(u, o).then((r) => (r.ok ? r.json() : { error: "HTTP " + r.status })).catch((e) => ({ error: String(e) }));
+    const r = await window.ClimateStation.forPoint(here, { fetchJSON }).catch(() => ({ station: null, missing: ["lookup failed"] }));
+    if (g !== gen) return; // a slow answer for the previous city is dropped
+    const st = r.station;
+    $("climName").textContent = st ? `${st.faa} · ${st.name}` : "No verified station";
+    $("climMeta").textContent = st ? `NWS ${st.office} climate site · ${Math.round(st.km)} km away · ${st.thr ? `${st.thr.name} since ${st.thr.since}` : "station record (no threaded city record)"}. Change it on the Almanac.` : (r.missing || []).join(" ");
+    document.body.dataset.station = st ? st.faa : "none";
   }
-  run();
+  U.placePicker($("picker"), { current: O.location, link: () => O.shareUrl(), label: "Search a U.S. city",
+    onPick(p) { O.setLocation({ name: p.name, lat: p.lat, lon: p.lon }); U.track("city_selected", { market: S.market(p.lat, p.lon).tuned ? "cincinnati" : "elsewhere" }); } });
+  O.onLocation(() => { draw(); station(); });
+  draw(); station();
 })();

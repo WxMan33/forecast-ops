@@ -1,19 +1,20 @@
 /* Daily Almanac. No forecasts on this page (they live on Overview and Model Blend).
    Sun: NOAA Solar Calculator algorithm, computed here (matches NOAA's yearly table to the minute).
-   Moon: USNO Astronomical Applications API (retrieved). Climate: RCC-ACIS web services —
-   records from the Cincinnati threaded record, normals and observations from the CVG airport.
+   Moon: USNO Astronomical Applications API (retrieved). Climate: RCC-ACIS web services at the climate station
+   for the selected point (ClimateStation: nearest official NWS climate site in the point's office area) —
+   records from its threaded city record where one exists, normals and observations from the station.
    Each card loads on its own; an unavailable source never breaks the others. */
 (function () {
   "use strict";
   const O = window.Ops, $ = O.$, C = O.Core, A = window.AlmanacCore, esc = O.esc;
   const DATE_PARAM = new URLSearchParams(location.search).get("date"); // read before the shell rewrites the query
   O.shell("almanac", "Almanac", { forecastPoint: false });
-  const CLIM = {
-    tz: "America/New_York", recordsSid: "CVGthr", recordsName: "Cincinnati threaded record",
-    obsSid: "CVG", obsName: "CVG airport", firstYear: 1871,
-    cvg: { name: "CVG airport", lat: 39.04456, lon: -84.67229 },
-    noaa: { name: "Cincinnati (NOAA table point)", lat: 39.124556, lon: -84.50386 },
-  };
+  /* the climate reference for this sheet, set from the selected point's climate station on every render */
+  const CINCY = { noaa: { name: "Cincinnati (NOAA table point)", lat: 39.124556, lon: -84.50386 } };
+  let CLIM = { tz: "America/New_York", recordsSid: "CVGthr", recordsName: "Cincinnati Area threaded record", obsSid: "CVG", obsName: "Cincinnati/Northern Kentucky International Airport", firstYear: 1871, office: "ILN", cincy: true, threaded: true, missing: [], station: null };
+  const fromStation = (r) => { const st = r.station; if (!st) return null;
+    return { tz: CLIM.tz, obsSid: st.faa, obsName: st.name, recordsSid: st.thr ? st.thr.sid : st.faa, recordsName: st.thr ? st.thr.name : `${st.name} station record`, threaded: !!st.thr,
+      firstYear: (st.thr && st.thr.since) || st.since || 1900, office: st.office, cincy: st.faa === "CVG", missing: r.missing || [], station: st, alternatives: r.alternatives || [], pointOffice: r.pointOffice, override: r.override }; };
   /* provenance for the Source details panel, filled as each request completes */
   const prov = {};
   const note = (k, v) => { prov[k] = v; if (!$("srcPanel").hidden) renderSources(); };
@@ -44,7 +45,7 @@
   /* ---------- state and header ---------- */
   const todayIn = (tz) => C.time.toLocal(Date.now(), tz).slice(0, 10);
   let sel = /^\d{4}-\d{2}-\d{2}$/.test(DATE_PARAM || "") ? DATE_PARAM : todayIn(CLIM.tz);
-  let astro = O.store.get("alm_astro2", "noaa"), run = 0;
+  let astro = O.store.get("alm_astro3", "loc"), run = 0; // astronomy follows the selected point by default
   const keepDate = () => { const u = new URL(location.href); u.searchParams.set("date", sel); history.replaceState(null, "", u); };
   const setDate = (d) => { sel = d; $("almDate").value = d; keepDate(); render(); };
   $("astroPoint").value = astro;
@@ -53,7 +54,8 @@
   $("todayBtn").addEventListener("click", () => setDate(todayIn(CLIM.tz)));
   $("prevDay").addEventListener("click", () => setDate(A.addDays(sel, -1)));
   $("nextDay").addEventListener("click", () => setDate(A.addDays(sel, 1)));
-  $("astroPoint").addEventListener("change", () => { astro = $("astroPoint").value; O.store.set("alm_astro2", astro); render(); });
+  $("astroPoint").addEventListener("change", () => { astro = $("astroPoint").value; O.store.set("alm_astro3", astro); render(); });
+  $("climStn").addEventListener("change", () => { window.ClimateStation.setOverride(O.location, $("climStn").value === "auto" ? null : $("climStn").value); render(); });
   $("srcBtn").addEventListener("click", () => { const p = $("srcPanel"); p.hidden = !p.hidden; $("srcBtn").setAttribute("aria-expanded", String(!p.hidden)); if (!p.hidden) renderSources(); });
 
   const fmtDate = (d, opt = { weekday: "short", month: "short", day: "numeric", year: "numeric" }) => new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", ...opt });
@@ -65,25 +67,49 @@
     const r = await cached(`tz:${lat.toFixed(3)},${lon.toFixed(3)}`, 30 * D, () => getJ(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&timezone=auto&forecast_days=1&daily=temperature_2m_max`).then((j) => (j && j.timezone ? { tz: j.timezone } : { error: "no timezone" })));
     return r.v && r.v.tz ? r.v.tz : Intl.DateTimeFormat().resolvedOptions().timeZone;
   }
+  const fetchJSON = (url, opt) => getJ(url, opt);
   async function render() {
     const my = ++run, loc = O.location;
-    renderWeatherHistory(sel);
-    const pt = astro === "cvg" ? CLIM.cvg : astro === "noaa" ? CLIM.noaa : { name: loc.name, lat: +loc.lat, lon: +loc.lon };
-    const tzA = astro === "loc" ? await tzOf(pt.lat, pt.lon) : CLIM.tz;
+    ["climCard", "factCard"].forEach((id) => { $(id).innerHTML = `<div class="section-title">${id === "climCard" ? "Daily climate" : "Weather numbers"}</div><div class="state loading">Finding the climate station for ${esc(loc.name.split(",")[0])}…</div>`; });
+    $("climName").textContent = "…"; $("climMeta").textContent = "";
+    const tzP = await tzOf(+loc.lat, +loc.lon);
     if (my !== run) return;
+    const res = await window.ClimateStation.forPoint(loc, { fetchJSON }).catch((e) => ({ station: null, alternatives: [], missing: [`Climate station lookup failed (${(e && e.message) || e}).`] }));
+    if (my !== run) return; // a slow answer for an earlier point never replaces the current one
+    const next = fromStation(res);
+    if (next) CLIM = { ...next, tz: tzP };
+    stationHeader(res, loc, next);
+    renderWeatherHistory(sel);
+    $("skyCard").closest(".astronomy-section").hidden = !(next && next.cincy);
+    const pt = astro === "stn" && next ? { name: `${next.obsName} (${next.obsSid})`, lat: next.station.ll[1], lon: next.station.ll[0] } : astro === "noaa" && next && next.cincy ? CINCY.noaa : { name: loc.name, lat: +loc.lat, lon: +loc.lon };
+    const tzA = tzP;
     const today = todayIn(CLIM.tz), future = sel > today;
     $("sheetTitle").textContent = fmtDate(sel, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
     $("astroName").textContent = pt.name;
     note("astro", { name: pt.name, lat: pt.lat, lon: pt.lon, tz: tzA });
     const fail = (id, title) => (e) => { if (my === run) $(id).innerHTML = `<div class="section-title">${title}</div><div class="state err">This section couldn't be shown (${esc(String((e && e.message) || e))}). Other sections are unaffected; reload to try again.</div>`; };
     sunCard(my, pt, tzA).catch(fail("sunCard", "Sun and moon"));
-    skywatch.load(sel).catch(fail("skyCard", "Cincinnati skywatch"));
+    if (next && next.cincy) skywatch.load(sel).catch(fail("skyCard", "Cincinnati skywatch"));
+    if (!next) { ["climCard", "factCard"].forEach((id) => { $(id).innerHTML = `<div class="section-title">${id === "climCard" ? "Daily climate" : "Weather numbers"}</div><div class="state unavail">No official climate station could be verified for this point (${esc((res.missing || []).join(" ") || "unknown reason")}). Sun and moon remain available.</div>`; }); return; }
     climate(my, today, future).catch((e) => { fail("climCard", "Daily climate")(e); fail("factCard", "Weather numbers")(e); });
+  }
+
+  /* climate station: shown prominently, changeable to another verified station */
+  function stationHeader(res, loc, c) {
+    if (!c) { $("climName").textContent = "No verified station"; $("climMeta").textContent = (res.missing || []).join(" "); $("climStn").innerHTML = ""; $("climStn").hidden = true; return; }
+    $("climName").textContent = `${c.obsName} · ${c.obsSid}`;
+    $("climMeta").textContent = `NWS ${c.office} climate site, ${Math.round(c.station.km)} km from ${loc.name.split(",")[0]} · records: ${c.threaded ? `${c.recordsName} (${c.recordsSid}) since ${c.firstYear}` : `station record since ${c.firstYear}`}${c.office !== res.pointOffice ? ` · outside the point's NWS ${res.pointOffice} area` : ""}${c.missing.length ? " · " + c.missing.join(" ") : ""}`;
+    const alts = res.alternatives || [];
+    $("climStn").hidden = alts.length < 2;
+    $("climStn").innerHTML = `<option value="auto">Nearest official site (default)</option>` + alts.map((a) => `<option value="${esc(a.faa)}" ${res.override && a.faa === c.obsSid ? "selected" : ""}>${esc(a.faa)} · ${esc(a.name)} · NWS ${esc(a.office)} · ${Math.round(a.km)} km${a.thr ? " · city record" : ""}</option>`).join("");
+    const noaaOpt = $("astroPoint").querySelector('option[value="noaa"]'); if (noaaOpt) noaaOpt.hidden = !c.cincy;
+    if (astro === "noaa" && !c.cincy) { astro = "loc"; $("astroPoint").value = "loc"; }
   }
 
   function renderWeatherHistory(date) {
     const card = $("weatherHistoryCard");
     const monthDay = date.slice(5);
+    if (!CLIM.cincy) { card.hidden = true; return; } // local history stories are Cincinnati's; other markets have none yet
     const events = (window.CincinnatiWeatherHistory ?? [])
       .filter((event) => event.date.slice(5) === monthDay);
     if (!events.length) {
@@ -196,12 +222,12 @@
     const obsStart = [A.addDays(nStart, -150), previousStart || nStart].sort()[0];
     const recentObs = thru && thru >= A.addDays(today, -45);
     const [nor, obs, rec, rk] = await Promise.all([
-      cached(`acisN:${nStart}:${nEnd}`, 30 * D, () => acis({ sid: CLIM.obsSid, sdate: nStart, edate: nEnd, elems: ["maxt", "mint", "pcpn", "snow"].map((name) => ({ name, normal: "1" })), meta: ["name"] })),
-      thru ? cached(`acisO:${obsStart}:${thru}`, recentObs ? H : 7 * D, () => acis({ sid: CLIM.obsSid, sdate: obsStart, edate: thru, elems: ["maxt", "mint", "pcpn", "snow", "snwd"], meta: ["name", "valid_daterange"] })) : Promise.resolve(null),
-      cached(`acisR:${md}:${recThru}`, 7 * D, () => (md === "02-29"
+      cached(`acisN:${CLIM.obsSid}:${nStart}:${nEnd}`, 30 * D, () => acis({ sid: CLIM.obsSid, sdate: nStart, edate: nEnd, elems: ["maxt", "mint", "pcpn", "snow"].map((name) => ({ name, normal: "1" })), meta: ["name"] })),
+      thru ? cached(`acisO:${CLIM.obsSid}:${obsStart}:${thru}`, recentObs ? H : 7 * D, () => acis({ sid: CLIM.obsSid, sdate: obsStart, edate: thru, elems: ["maxt", "mint", "pcpn", "snow", "snwd"], meta: ["name", "valid_daterange"] })) : Promise.resolve(null),
+      cached(`acisR:${CLIM.recordsSid}:${md}:${recThru}`, 7 * D, () => (md === "02-29"
         ? acis({ sid: CLIM.recordsSid, sdate: `${CLIM.firstYear}-01-01`, edate: `${recThru}-12-31`, elems: ["maxt", "mint", "pcpn", "snow"].map((name) => ({ name, interval: "dly", duration: "dly", groupby: ["year", "02-28", "03-01"] })), meta: ["name", "valid_daterange"] })
         : acis({ sid: CLIM.recordsSid, sdate: `${CLIM.firstYear}-${md}`, edate: `${recThru}-${md}`, elems: ["maxt", "mint", "pcpn", "snow"].map((name) => ({ name, interval: [1, 0, 0] })), meta: ["name", "valid_daterange"] }))),
-      thru ? cached(`acisRank3:${thru}`, 6 * H, () => acis({ sid: CLIM.recordsSid, sdate: `${CLIM.firstYear + 1}-${thru.slice(5)}`, edate: thru, elems: [
+      thru ? cached(`acisRank3:${CLIM.recordsSid}:${thru}`, 6 * H, () => acis({ sid: CLIM.recordsSid, sdate: `${CLIM.firstYear + 1}-${thru.slice(5)}`, edate: thru, elems: [
         { name: "pcpn", interval: [1, 0, 0], duration: "mtd", reduce: { reduce: "sum", add: "mcnt" } },
         { name: "pcpn", interval: [1, 0, 0], duration: "std", season_start: met.startMD, reduce: { reduce: "sum", add: "mcnt" } },
         { name: "avgt", interval: [1, 0, 0], duration: "std", season_start: met.startMD, reduce: { reduce: "mean", add: "mcnt" } },
@@ -234,12 +260,12 @@
       return (signed && x.value > 0 ? "+" : x.value < 0 ? "−" : "") + Math.abs(x.value).toFixed(digits);
     };
     const row = r => `<tr data-climo-row="${r.id}"><th scope="row">${esc(r.label)}${r.from ? `<small>${esc(short(r.from))}–${esc(short(r.to))}</small>` : ""}</th><td class="climo-observed" data-label="Observed">${number(r.observed, r.decimals)}${r.observed.reason ? `<small>${esc(r.observed.reason)}</small>` : ""}</td><td data-label="Record">${number(r.record, r.decimals)}${r.record?.years?.length ? `<small>${esc(r.record.years.join(", "))}</small>` : ""}</td><td data-label="Normal">${number(r.normal, r.decimals)}</td><td data-label="Departure" class="${r.departure?.value > 0 ? "climo-above" : r.departure?.value < 0 ? "climo-below" : ""}">${number(r.departure, r.decimals, true)}</td><td data-label="Last year">${number(r.lastYear, r.decimals)}${r.lastYear?.reason ? `<small>${esc(r.lastYear.reason)}</small>` : ""}</td></tr>`;
-    el.innerHTML = `<div class="climo-title"><div><span class="kick">Cincinnati · CVG airport observations</span><h2>Climate report · ${esc(short(d.reportDate))}</h2></div><span class="climo-tag">${d.thru ? d.thru >= A.addDays(d.today, -45) ? "Preliminary observations" : "Observed" : "Reference only"}</span></div>
+    el.innerHTML = `<div class="climo-title"><div><span class="kick">${esc(CLIM.obsName)} · ${esc(CLIM.obsSid)} observations</span><h2>Climate report · ${esc(short(d.reportDate))}</h2></div><span class="climo-tag">${d.thru ? d.thru >= A.addDays(d.today, -45) ? "Preliminary observations" : "Observed" : "Reference only"}</span></div>
       <p class="climo-context">${d.thru ? `Yesterday relative to the sheet date. Daily normals and records below apply to <b>${esc(short(d.reportDate))}</b>.` : "This climate day has not been observed. Normals and records are shown where available."}</p>
-      <div class="climo-periods"><span>Normal period <b>1991–2020</b></span><span>City record <b>${CLIM.firstYear}–${d.recThru}</b></span><span>Last year <b>${report.previousDate ? esc(short(report.previousDate)) : "No matching date"}</b></span></div>
+      <div class="climo-periods"><span>Normal period <b>1991–2020</b></span><span>${CLIM.threaded ? "City record" : "Station record"} <b>${CLIM.firstYear}–${d.recThru}</b></span><span>Last year <b>${report.previousDate ? esc(short(report.previousDate)) : "No matching date"}</b></span></div>
       ${d.errors.length ? `<div class="state partial">Some climate data is unavailable (${esc(d.errors[0])}). Available values remain visible.</div>` : ""}
       <div class="climo-table-wrap"><table class="climo-table"><caption class="sr-only">Climate values for ${esc(short(d.reportDate))}. Temperature, precipitation and snowfall, with historical comparisons.</caption><thead><tr><th scope="col">Weather item</th><th scope="col">Observed</th><th scope="col">Record<small>value · year(s)</small></th><th scope="col">Normal</th><th scope="col">Departure<small>from normal</small></th><th scope="col">Last year<small>same dates</small></th></tr></thead>${report.sections.map(section => `<tbody><tr class="climo-group"><th colspan="6" scope="rowgroup">${esc(section.label)} <span>${esc(section.unit)}</span></th></tr>${section.rows.map(row).join("")}</tbody>`).join("")}</table></div>
-      <p class="climo-foot">Observations and normals: CVG via RCC-ACIS. Records: Cincinnati threaded city record, through ${d.recThru}. Totals use the printed date ranges; season-to-date uses meteorological seasons. Trace is not measurable; — means unavailable or not applicable. Missing days prevent a total or departure. Daily high/low occurrence times are not supplied by this feed. Last year compares the same calendar dates; leap-year day counts can differ.</p>`;
+      <p class="climo-foot">Observations and normals: ${esc(CLIM.obsSid)} via RCC-ACIS. Records: ${esc(CLIM.recordsName)} (${esc(CLIM.recordsSid)}), through ${d.recThru}.${CLIM.threaded ? "" : " No threaded city record exists for this site, so records cover the station's own period."} Totals use the printed date ranges; season-to-date uses meteorological seasons. Trace is not measurable; — means unavailable or not applicable. Missing days prevent a total or departure. Daily high/low occurrence times are not supplied by this feed. Last year compares the same calendar dates; leap-year day counts can differ.</p>`;
   }
 
   /* ---------- weather numbers: four summary cards + operational row ---------- */
@@ -289,7 +315,7 @@
     el.innerHTML = `<div class="row" style="justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap"><div class="section-title" style="margin:0;flex:none">Weather numbers</div>
         <button class="infobtn" type="button" id="wnHow" aria-expanded="false" aria-controls="wnHowPanel">ⓘ How these are calculated</button></div>
       <div class="infopanel" id="wnHowPanel" hidden>
-        <p><b>Observed values</b> come from the Cincinnati/Northern Kentucky airport (CVG), observed through ${esc(fmtDate(d.thru, { month: "long", day: "numeric", year: "numeric" }))}. Recent days are preliminary and can be corrected. <b>Normals</b> are NCEI 1991–2020 daily normals for CVG. <b>Rankings</b> use the Cincinnati threaded record (the official city record joined across sites since 1871) for exactly the same elapsed dates in every year; meteorological winter runs Dec 1 to Feb 28/29 and crosses the calendar year. A year counts only if it has no missing days in that span. Ranks are competition ranks: tied years share a rank, and the opposite extreme is counted separately from the values, not by reversing the rank.</p>
+        <p><b>Observed values</b> come from ${esc(CLIM.obsName)} (${esc(CLIM.obsSid)}), observed through ${esc(fmtDate(d.thru, { month: "long", day: "numeric", year: "numeric" }))}. Recent days are preliminary and can be corrected. <b>Normals</b> are NCEI 1991–2020 daily normals for ${esc(CLIM.obsSid)}. <b>Rankings</b> use the ${esc(CLIM.recordsName)}${CLIM.threaded ? ` (the official city record joined across sites since ${CLIM.firstYear})` : ` (this station's own record since ${CLIM.firstYear})`} for exactly the same elapsed dates in every year; meteorological winter runs Dec 1 to Feb 28/29 and crosses the calendar year. A year counts only if it has no missing days in that span. Ranks are competition ranks: tied years share a rank, and the opposite extreme is counted separately from the values, not by reversing the rank.</p>
         <p>Missing observations or normals are reported, never filled: an incomplete period shows no departure and no rank. Every complete, ranked card has a standing badge. Badge colors identify warm, cold, wet or dry rankings, including early periods under 7 days; these early snapshots keep their short-period label. Strong emphasis requires a top-10 rank that is also in the top 10% of usable years; the top third gets lighter emphasis. Trace precipitation is recorded but not measurable.</p></div>
       <div class="wngrid">${cards.join("")}</div>
       <div class="oprow">
@@ -298,7 +324,7 @@
         ${tile(`Lows ≤ <input class="input mono thr" id="loT" value="${loT}" aria-label="Low threshold in °F">°F`, `Month ${lm.n} · Year ${ly.n}`, lm.missing + ly.missing ? `${lm.missing + ly.missing} missing days not counted` : "month to date · year to date")}
         ${recLine ? tile(recLine.k, recLine.v, recLine.s) : ""}
       </div>
-      <div class="src">CVG observations through ${esc(short(d.thru))}; rankings: Cincinnati threaded record. ${!recLine && recH ? `The observed-vs-record comparison appears once ${esc(short(d.sel))} has been observed.` : ""}</div>`;
+      <div class="src">${esc(CLIM.obsSid)} observations through ${esc(short(d.thru))}; rankings: ${esc(CLIM.recordsName)}. ${!recLine && recH ? `The observed-vs-record comparison appears once ${esc(short(d.sel))} has been observed.` : ""}</div>`;
     $("wnHow").addEventListener("click", (e) => { const pn = $("wnHowPanel"); pn.hidden = !pn.hidden; e.currentTarget.setAttribute("aria-expanded", String(!pn.hidden)); });
     el.querySelectorAll(".wninfo").forEach((b) => b.addEventListener("click", () => { const pn = $(b.getAttribute("aria-controls")); pn.hidden = !pn.hidden; b.setAttribute("aria-expanded", String(!pn.hidden)); }));
     ["hiT", "loT"].forEach((k) => { const inp = $(k); if (inp) inp.addEventListener("change", () => { const n = parseFloat(inp.value); if (isFinite(n)) { O.store.set("alm_" + k, n); facts(); } }); });
@@ -320,8 +346,8 @@
       <button class="wninfo" type="button" aria-expanded="false" aria-controls="${det}">ⓘ Details</button>
       <div class="wndet" id="${det}" hidden><dl class="kv">
         <dt>Period</dt><dd>${esc(o.period.split(" · ")[1])} (${o.days} days)</dd>
-        <dt>Observed at</dt><dd>CVG airport</dd>
-        <dt>Ranked in</dt><dd>Cincinnati threaded record</dd>
+        <dt>Observed at</dt><dd>${esc(CLIM.obsName)} (${esc(CLIM.obsSid)})</dd>
+        <dt>Ranked in</dt><dd>${esc(CLIM.recordsName)}</dd>
         ${r && r.available ? `<dt>${esc(o.words.high[0].toUpperCase() + o.words.high.slice(1))} rank</dt><dd>${A.ordinal(r.high.rank)} of ${r.n}</dd><dt>${esc(o.words.low[0].toUpperCase() + o.words.low.slice(1))} rank</dt><dd>${A.ordinal(r.low.rank)} of ${r.n}</dd>
           <dt>Value used for ranking</dt><dd>${r.value}${o.kind === "Temperature" ? "°F" : "″"}</dd><dt>Tied years</dt><dd>${r.ties.length ? esc(r.ties.join(", ")) : "none"}</dd>` : ""}
         ${r ? `<dt>Excluded years</dt><dd>${r.excludedCount ? `${r.excludedCount} (missing days)` : "none"}</dd>` : ""}
@@ -336,10 +362,11 @@
     $("srcPanel").innerHTML = `<dl class="kv">
       <dt>Sun times</dt><dd>Calculated: NOAA Solar Calculator algorithm at ${a.lat != null ? `${a.lat.toFixed(6)}, ${a.lon.toFixed(6)}` : "—"} (${esc(a.tz || "")})</dd>
       <dt>Moon</dt><dd>Retrieved: USNO API ${esc(u.api || "")}${u.error ? ` · unavailable (${esc(u.error)})` : ""} · ${esc(stampTxt(u.at))}</dd>
-      <dt>Records</dt><dd>Cincinnati threaded record, RCC-ACIS "CVGthr" (uid 32698), through ${c.recThru || "—"} · ${esc(stampTxt(c.records))}</dd>
-      <dt>Normals</dt><dd>CVG airport (ACIS uid 8337, GHCN USW00093814), NCEI 1991–2020 daily normals · ${esc(stampTxt(c.normals))}</dd>
-      <dt>Observations</dt><dd>CVG airport through ${c.thru || "—"}; recent days preliminary · ${esc(stampTxt(c.obs))}</dd>
-      <dt>Rankings</dt><dd>Cincinnati threaded record, same elapsed dates each year · ${esc(stampTxt(c.ranks))}</dd>
+      <dt>Climate station</dt><dd>${esc(CLIM.obsName)} (${esc(CLIM.obsSid)}), NWS ${esc(CLIM.office || "—")} climate reporting site${CLIM.override ? " (chosen by you)" : " (nearest official site in the point's NWS office area)"}</dd>
+      <dt>Records</dt><dd>${esc(CLIM.recordsName)}, RCC-ACIS "${esc(CLIM.recordsSid)}", through ${c.recThru || "—"} · ${esc(stampTxt(c.records))}${CLIM.threaded ? "" : " · no threaded city record for this site"}</dd>
+      <dt>Normals</dt><dd>${esc(CLIM.obsSid)} (RCC-ACIS), NCEI 1991–2020 daily normals · ${esc(stampTxt(c.normals))}</dd>
+      <dt>Observations</dt><dd>${esc(CLIM.obsSid)} through ${c.thru || "—"}; recent days preliminary · ${esc(stampTxt(c.obs))}</dd>
+      <dt>Rankings</dt><dd>${esc(CLIM.recordsName)}, same elapsed dates each year · ${esc(stampTxt(c.ranks))}</dd>
     </dl>
     <p>Daylight is the difference of two real instants, so daylight-saving changes never add or remove an hour. T = trace (not measurable); missing values are never counted as zero. No precipitation or snowfall normal is published for Feb 29. timeanddate.com and NOAA's own table are comparison references only.</p>`;
   }

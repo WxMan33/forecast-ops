@@ -53,6 +53,7 @@ jobs:
       - run: node tests/trend-archive.test.js
       - run: node tests/beta-story.test.js
       - run: node tests/beta-analytics.test.js
+      - run: node tests/climate-station.test.js
       - run: node tools/analytics/build.js --check
       - run: node tools/stamp-assets.js --check
 

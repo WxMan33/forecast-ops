@@ -84,7 +84,7 @@
   ];
 
   /* opts: { subtitle, forecastPoint (default true): show the forecast point and its NWS alerts } */
-  const SUBTITLES = { home: "Next three days at a glance", blend: "Weighted guidance from models, ensembles and NWS", thunder: "Hour-by-hour thunder signal", severe: "Severe-weather environment by hour", winter: "Snow odds, precipitation type and profiles", almanac: "Sun, moon and Cincinnati daily climate", maps: "In development · HRRR 3 km, Cincinnati Tri-State only" };
+  const SUBTITLES = { betamenu: "Meteorologist beta · choose a tool", home: "Next three days at a glance", blend: "Weighted guidance from models, ensembles and NWS", thunder: "Hour-by-hour thunder signal", severe: "Severe-weather environment by hour", winter: "Snow odds, precipitation type and profiles", almanac: "Sun, moon and daily climate for the selected point", maps: "In development · HRRR 3 km, Cincinnati Tri-State only" };
   function shell(pageId, title, opts = {}) {
     const fp = opts.forecastPoint !== false, sub = opts.subtitle || SUBTITLES[pageId] || "";
     document.title = `${title} · ${BRAND.name}`;
@@ -112,8 +112,11 @@
     const nav = document.createElement("nav");
     nav.className = "navbar";
     nav.setAttribute("aria-label", "Tools");
-    nav.innerHTML = PAGES.map((p) =>
+    let betaMenu = pageId === "betamenu"; try { betaMenu = betaMenu || sessionStorage.getItem("fo_beta_aud") === "met"; } catch (e) { /* no storage */ }
+    const menuLink = () => shareUrl("meteorologist-beta.html");
+    nav.innerHTML = (betaMenu ? `<a href="${esc(menuLink())}" id="betaMenuLink"${pageId === "betamenu" ? ' aria-current="page"' : ""}>${icon("grid")}MENU</a>` : "") + PAGES.filter((p) => !betaMenu || p.id !== "home").map((p) =>
       `<a href="${p.href}"${p.id === pageId ? ' aria-current="page"' : ""}>${icon(p.icon)}${p.label}</a>`).join("");
+    if (betaMenu) locListeners.push(() => { const a = document.getElementById("betaMenuLink"); if (a) a.href = menuLink(); });
     const alerts = document.createElement("div");
     alerts.id = "alerts";
     alerts.className = "alerts";
@@ -796,7 +799,7 @@
 
   window.Ops = {
     pct5, Core, BRAND, PRESETS, TIER, maxTier, badge, $, esc, store, css, icon,
-    shell, onAlerts, searchPlaces, zoneFor, stateAbbr, get alertState(){return alertState;}, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
+    shell, onAlerts, searchPlaces, zoneFor, stateAbbr, onLocation: (f) => locListeners.push(f), get alertState(){return alertState;}, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
     Data, getJSON, hasData, savedWeights, savedDays, align: Core.stats.align,
     nowIndex, hourOf, dayOf, fmtDay, fmtHour, fmtWhen, tzShort, hourLabels, dayGroups,
     blendSeries: Core.stats.blendSeries, weightedQuantile: Core.stats.weightedQuantile,
