@@ -225,3 +225,17 @@ body.bx * { font-variant-numeric: tabular-nums; }
 @media (max-width: 760px) { .bx-pp { flex: 1 1 auto; } .bx-ppcopy { padding: 6px 8px; } }
 
 .bx-privacy { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+/* coverage: what the hourly guidance reaches, and a reminder for the rest */
+.bx-cover { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+.bx-cover b { color: var(--text); font-weight: 600; }
+.bx-pending { margin: 14px 0 0; font-size: 15px; max-width: 46ch; }
+.bx-remind { margin-top: 14px; }
+.bx-remind > summary { list-style: none; display: inline-flex; cursor: pointer; }
+.bx-remind > summary::-webkit-details-marker { display: none; }
+.bx-remind[open] > summary { opacity: .85; }
+.bx-remind .opts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+.bx-phase.pending { padding: 10px 12px; }
+.bx-phase.pending .tp, .bx-phase.pending .mt { display: none; }
+body[data-readiness="pending"] #secPhases, body[data-readiness="pending"] #secNws, body[data-readiness="pending"] #secChanges,
+body[data-readiness="pending"] #secChecks, body[data-readiness="pending"] #secMap, body[data-readiness="pending"] #secHourly { display: none; }

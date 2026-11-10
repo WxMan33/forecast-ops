@@ -5,15 +5,15 @@
 var BetaReport = (function () {
   "use strict";
   var TYPES = ["session_start", "city_selected", "tool_opened", "models_compared", "weights_adjusted", "map_layer_changed", "playback_started", "timeline_used",
-    "sample_opened", "custom_event_started", "event_saved", "phase_details_opened", "event_revisited",
+    "sample_opened", "custom_event_started", "event_saved", "phase_details_opened", "event_revisited", "reminder_set",
     "city_searched", "search_no_results", "search_failed", "load_failed", "feeds_missing", "link_copied", "feedback", "analytics_opt_out"];
   var CTX = { market: ["cincinnati", "elsewhere"], tool: ["models", "weights", "runs", "soundings", "thunder", "winter", "map"], what: ["models", "nws"],
-    phase: ["setup", "gates", "event", "teardown"], layer: ["refc", "refd1km", "precip", "t2m", "d2m", "gust", "w10m", "cloud"], rating: ["useful", "not_useful"], returning: [true, false] };
+    phase: ["setup", "gates", "event", "teardown"], layer: ["refc", "refd1km", "precip", "t2m", "d2m", "gust", "w10m", "cloud"], rating: ["useful", "not_useful"], via: ["google", "ics"], returning: [true, false] };
   var AUDS = { met: "Meteorologist beta", event: "Event manager beta" };
   var FEATURES = {
     met: [["city_selected", "Selected a city"], ["tool_opened", "Opened a forecast tool"], ["models_compared", "Compared models"], ["weights_adjusted", "Adjusted weights"],
       ["map_layer_changed", "Changed map layer"], ["playback_started", "Started map playback"], ["timeline_used", "Used the timeline"], ["link_copied", "Copied a link"]],
-    event: [["sample_opened", "Opened the sample briefing"], ["custom_event_started", "Started a custom event"], ["event_saved", "Saved an event"],
+    event: [["sample_opened", "Opened the sample briefing"], ["custom_event_started", "Started a custom event"], ["event_saved", "Saved an event"], ["reminder_set", "Set a briefing reminder"],
       ["phase_details_opened", "Opened phase details"], ["event_revisited", "Revisited a saved event"], ["city_selected", "Selected a city"], ["timeline_used", "Used the timeline"], ["link_copied", "Copied a link"]],
   };
   var FUNNEL = [["sample_opened", "Sample opened"], ["custom_event_started", "Custom event started"], ["event_saved", "Event saved"], ["event_revisited", "Returned later"]];

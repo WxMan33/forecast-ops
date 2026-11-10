@@ -197,7 +197,7 @@
       if (c.key === "snow") out.push("Model snowfall is not ground accumulation; road and surface impacts depend on temperatures at the time.");
     });
     if (brief.coverage === "beyond") out.push("Part of the event is beyond the hourly guidance. The briefing will fill in as the date gets closer.");
-    if (!brief.concerns.length) out.push("No phase reaches a planning threshold right now. A new signal in the next model update would change that.");
+    if (!brief.concerns.length && brief.coverage === "full") out.push("No phase reaches a planning threshold right now. A new signal in the next model update would change that.");
     return out;
   }
   function phaseAt(brief, ms) { const p = brief.phases.find((x) => ms >= x.startMs && ms < x.endMs); return p ? (p.key === "event" ? "the event itself" : p.label.toLowerCase()) : null; }
@@ -278,7 +278,40 @@
     return { tier: top.tier, text: `${VERB[top.level]} ${top.noun} ${where}.` };
   }
 
-  const api = { market, eventToParam, eventFromParam, CINCY_DMA, HRRR_BOX, signals, decision, formatPrecipPercent, pickSample, phaseRow, HAZARDS, LEVEL_WORD, LEVEL_TIER, AGREE_WORD, context, windowRow, hourly, precipTiming, disagreement, guidanceAge, nextUpdates, hazardTiming, certainty, eventBrief, planChanges, checkAgain, sampleEvent, SAMPLE_VENUE };
+  /* How much of the event the hourly guidance covers, and when it will cover the rest.
+     The guidance used here reaches `lead` hours ahead of now; that horizon moves forward with every run, so a phase
+     comes into range about `lead` before it starts, and the whole briefing is ready `lead` before teardown ends. */
+  const listWords = (a) => (a.length < 2 ? a.join("") : `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}`);
+  const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+  function readiness(brief, ctx) {
+    const now = ctx.now, ms = (ctx.B && ctx.B.ms) || [], last = ms.length ? ms[ms.length - 1] : now, lead = Math.max(0, last - now);
+    const name = (p) => (p.key === "event" ? "the event" : p.label.toLowerCase());
+    const live = brief.phases.filter((p) => p.cov.status !== "past");
+    const covered = live.filter((p) => p.cov.status === "full"), partly = live.filter((p) => p.cov.status === "partial"), pending = live.filter((p) => p.cov.status === "beyond");
+    const state = !live.length ? "past" : pending.length === live.length ? "pending" : partly.length || pending.length ? "partial" : "ready";
+    const end = brief.all.endMs, start = live.length ? live[0].startMs : brief.all.startMs;
+    const firstAt = state === "pending" ? Math.max(now, start - lead) : null, readyAt = state === "pending" || state === "partial" ? Math.max(now, end - lead) : null;
+    const bits = [];
+    if (covered.length) bits.push(`${cap(listWords(covered.map(name)))} covered`);
+    if (partly.length) bits.push(`${bits.length ? listWords(partly.map(name)) : cap(listWords(partly.map(name)))} partly covered`);
+    if (pending.length && state !== "pending") bits.push(`${listWords(pending.map(name))} pending`);
+    return { state, lead, firstAt, readyAt, covered: covered.map((p) => p.key), partly: partly.map((p) => p.key), pending: pending.map((p) => p.key), line: bits.join(" · "), names: live.map(name), all: listWords(live.map(name)), inRange: listWords([...covered, ...partly].map(name)) };
+  }
+  /* a reminder the planner can put in their own calendar: no account and nothing stored on a server */
+  function reminder(ev, atMs, url) {
+    const z = (ms) => new Date(ms).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    const title = `Weather briefing ready: ${ev.name}`, body = `The Forecast Ops briefing for ${ev.name} (${ev.loc.name}) should now cover the whole event. Open it: ${url}`;
+    const g = new URL("https://calendar.google.com/calendar/render");
+    g.search = new URLSearchParams({ action: "TEMPLATE", text: title, dates: `${z(atMs)}/${z(atMs + 15 * 60e3)}`, details: body }).toString();
+    const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Forecast Ops//Event beta//EN", "BEGIN:VEVENT", `UID:${z(atMs)}-${Math.abs(hash(url))}@forecast-ops`, `DTSTAMP:${z(Date.now())}`,
+      `DTSTART:${z(atMs)}`, `DTEND:${z(atMs + 15 * 60e3)}`, `SUMMARY:${icsText(title)}`, `DESCRIPTION:${icsText(body)}`, `URL:${url}`,
+      "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${icsText(title)}`, "TRIGGER:PT0M", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+    return { google: g.toString(), ics };
+  }
+  const icsText = (t) => String(t).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+  const hash = (t) => [...String(t)].reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0);
+
+  const api = { market, eventToParam, eventFromParam, CINCY_DMA, HRRR_BOX, signals, decision, formatPrecipPercent, pickSample, phaseRow, HAZARDS, LEVEL_WORD, LEVEL_TIER, AGREE_WORD, context, windowRow, hourly, precipTiming, disagreement, guidanceAge, nextUpdates, hazardTiming, certainty, eventBrief, planChanges, checkAgain, sampleEvent, SAMPLE_VENUE, readiness, reminder, listWords };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.BetaStory = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

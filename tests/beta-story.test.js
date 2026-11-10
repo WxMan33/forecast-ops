@@ -89,4 +89,26 @@ eq([back.tz, back.times.end, back.loc.name], ["America/Denver", "2026-11-13T01:0
 eq(S.eventFromParam("{not json", C), null, "a broken link is ignored");
 const s2 = S.sampleEvent(C, now, "America/Denver", 1, { name: "Denver, CO", lat: 39.74, lon: -104.98 });
 eq([s2.loc.name, s2.tz, C.event.validate(s2).length], ["Denver, CO", "America/Denver", 0], "sample event at another city uses its venue and time zone");
+
+/* ---------- readiness: pending, partly covered and ready events (guidance reaches 85 h ahead here) ---------- */
+{
+  const lead = ms[ms.length - 1] - now, mkEv = (day, t) => ({ id: "r", name: "Match, Test; FC", loc: { name: "TQL Stadium", lat: 39.11, lon: -84.52 }, tz: TZ, times: t });
+  const far = mkEv(0, { setup: "2026-11-20T15:00", gates: "2026-11-20T18:00", start: "2026-11-20T19:30", end: "2026-11-20T21:30", teardown: "2026-11-20T23:30" });
+  const bf = S.eventBrief(ctx, far), rf = S.readiness(bf, ctx);
+  eq(rf.state, "pending", "an event weeks out is pending");
+  eq([rf.firstAt, rf.readyAt], [C.time.toUtc("2026-11-20T15:00", TZ) - lead, C.time.toUtc("2026-11-20T23:30", TZ) - lead], "reminder times follow the guidance's actual reach: setup and teardown come into range one lead time before they happen");
+  eq(rf.all, "setup, gates, the event and teardown", "pending message names every phase");
+  ok(!S.planChanges(bf, String).some((x) => /planning threshold/.test(x)), "no 'no phase reaches a planning threshold' while coverage is missing");
+  const edge = mkEv(0, { setup: "2026-11-13T18:00", gates: "2026-11-13T21:00", start: "2026-11-13T22:00", end: "2026-11-13T23:30", teardown: "2026-11-14T01:00" });
+  const be = S.eventBrief(ctx, edge), re = S.readiness(be, ctx);
+  eq([re.state, re.covered, re.partly, re.pending], ["partial", ["setup", "gates"], ["event"], ["teardown"]], "an event at the edge of the guidance is partly covered, phase by phase");
+  eq(re.line, "Setup and gates covered · the event partly covered · teardown pending", "coverage says exactly what the guidance reaches");
+  eq(re.readyAt, C.time.toUtc("2026-11-14T01:00", TZ) - lead, "full briefing expected when guidance reaches the end of teardown");
+  const near = mkEv(0, { setup: "2026-11-11T15:00", gates: "2026-11-11T18:00", start: "2026-11-11T19:30", end: "2026-11-11T21:30", teardown: "2026-11-11T23:30" });
+  const rn = S.readiness(S.eventBrief(ctx, near), ctx);
+  eq([rn.state, rn.readyAt, rn.line], ["ready", null, "Setup, gates, the event and teardown covered"], "a covered event is ready, with no reminder");
+  const rem = S.reminder(far, rf.readyAt, "https://example.test/event-beta.html?e=1");
+  ok(/BEGIN:VALARM/.test(rem.ics) && /SUMMARY:Weather briefing ready: Match\\, Test\\; FC/.test(rem.ics) && /URL:https:\/\/example\.test/.test(rem.ics), "calendar reminder: alarm, escaped title, link back");
+  ok(new URL(rem.google).searchParams.get("dates").startsWith(new Date(rf.readyAt).toISOString().replace(/[-:]/g, "").slice(0, 13)), "Google Calendar reminder at the ready time");
+}
 console.log(`ok - ${n} beta story checks passed`);

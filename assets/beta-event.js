@@ -13,7 +13,7 @@
   const linkEvent = Q.get("e") ? S.eventFromParam(Q.get("e"), C) : null;
   const linkCity = (() => { const lat = parseFloat(Q.get("lat")), lon = parseFloat(Q.get("lon")); return fin(lat) && fin(lon) ? { name: Q.get("name") || `${lat.toFixed(3)}, ${lon.toFixed(3)}`, lat, lon, tz: Q.get("tz") || null } : null; })();
   const sampleAt = (city) => S.sampleEvent(C, Date.now(), (city && city.tz) || "America/New_York", 1, city || null);
-  let ev = linkEvent || (linkCity ? null : saved()) || null, pickSeq = 0, gen = 0, lastRes = null, bus = null, pendingCity = linkCity;
+  let ev = linkEvent || (linkCity ? null : saved()) || null, tzFromPick = false, pickSeq = 0, gen = 0, lastRes = null, bus = null, pendingCity = linkCity;
   if (!ev) ev = sampleAt(linkCity && linkCity.tz ? linkCity : null);
   const isSample = () => !!ev.sample;
   /* a saved event opened again in a later session (approximate, per browser) */
@@ -23,7 +23,9 @@
   const head = U.header({ audience: "Event", other: { self: "event-beta.html", href: "meteorologist-beta.html", label: "Met" }, ctx: `<div id="picker" class="bx-ctx" style="flex:1 1 auto"></div>` });
   document.title = "Event briefing beta · Forecast Ops";
   const picker = U.placePicker($("picker"), { current: { name: ev.loc.name }, link, label: "Venue city",
-    async onPick(p) { const my = ++pickSeq; const tz = p.tz || await O.zoneFor(p.lat, p.lon).catch(() => null); if (my !== pickSeq || !tz) return; // a later pick wins, even over a slow time-zone lookup
+    async onPick(p) { const my = ++pickSeq; const tz = p.tz || await O.zoneFor(p.lat, p.lon).catch(() => null); if (my !== pickSeq) return; // a later pick wins, even over a slow time-zone lookup
+      /* no time zone (lookup failed): still switch city, and take the zone from that city's forecast response */
+      if (!tz) { U.track("city_selected", { market: S.market(p.lat, p.lon).tuned ? "cincinnati" : "elsewhere" }); if (isSample()) pendingCity = { ...p, tz: null }; else { ev = { ...ev, loc: { name: p.name, lat: p.lat, lon: p.lon } }; tzFromPick = true; } return run(); }
       U.track("city_selected", { market: S.market(p.lat, p.lon).tuned ? "cincinnati" : "elsewhere" });
       if (isSample()) ev = sampleAt({ ...p, tz }); else ev = { ...ev, loc: { name: p.name, lat: p.lat, lon: p.lon }, tz };
       run(); } });
@@ -40,9 +42,9 @@
       if (tz) ev = sampleAt({ ...pendingCity, tz }); else { tzFromData = pendingCity; ev = { ...sampleAt(null), loc: { name: pendingCity.name, lat: pendingCity.lat, lon: pendingCity.lon } }; } }
     pendingCity = null;
     const where = { lat: ev.loc.lat, lon: ev.loc.lon }, mk = S.market(ev.loc.lat, ev.loc.lon);
-    picker.setCurrent({ name: ev.loc.name }); document.body.dataset.place = ev.loc.name; document.body.dataset.loaded = ""; document.body.dataset.tz = ev.tz; document.body.dataset.market = mk.tuned ? "tuned" : "default";
+    picker.setCurrent({ name: ev.loc.name }); document.body.dataset.place = ev.loc.name; document.body.dataset.loaded = ""; document.body.dataset.office = ""; document.body.dataset.tz = ev.tz; document.body.dataset.market = mk.tuned ? "tuned" : "default";
     context();
-    $("decision").textContent = "Reading the guidance…"; ["keys", "schedule", "phases", "changes", "checks", "timeline", "detail"].forEach((id) => { $(id).innerHTML = ""; });
+    $("decision").textContent = "Reading the guidance…"; $("coverage").hidden = true; document.body.dataset.readiness = ""; ["keys", "schedule", "phases", "changes", "checks", "timeline", "detail"].forEach((id) => { $(id).innerHTML = ""; });
     U.alerts(where).then((a) => { if (g !== gen) return; $("alerts").innerHTML = a.slice(0, 2).map((x) => `<div class="bx-alert" role="alert">${st("action", x.event + " in effect")}${x.ends ? `<span class="bx-note">until ${esc(fmt.time(Date.parse(x.ends), ev.tz))}</span>` : ""}<a href="https://forecast.weather.gov/MapClick.php?lat=${ev.loc.lat}&lon=${ev.loc.lon}" target="_blank" rel="noopener">NWS ↗</a></div>`).join(""); });
     const endMs = Math.max(...C.event.windows(ev).map((w) => w.endMs)), days = isSample() ? 5 : Math.min(7, Math.max(3, Math.ceil((endMs - Date.now()) / 864e5) + 1));
     const res = await U.load(where, { days });
@@ -50,6 +52,7 @@
     if (res.empty) { U.track("load_failed", { what: "models" }); $("decision").textContent = "Weather guidance could not be loaded."; $("keys").innerHTML = '<p class="bx-note">Try ↻ in a minute.</p>'; return; }
     if (!res.NW || !res.NW.ok) U.track("load_failed", { what: "nws" });
     if (tzFromData) { ev = sampleAt({ ...tzFromData, tz: res.ctx.B.tz }); context(); document.body.dataset.tz = ev.tz; }
+    if (tzFromPick) { tzFromPick = false; ev = { ...ev, tz: res.ctx.B.tz }; O.store.set(KEY, ev); context(); document.body.dataset.tz = ev.tz; }
     lastRes = res; render(res);
     document.body.dataset.loaded = ev.loc.name; document.body.dataset.office = res.NW && res.NW.ok ? res.NW.office : "";
   }
@@ -85,11 +88,23 @@
     if (b.error) { $("decision").textContent = b.error; return; }
     const top = b.top, checks = S.checkAgain(ctx, b, U.NAMES), next = checks[0];
     /* ---- the decision, then the three facts that support it ---- */
-    if (b.coverage === "past") { $("decision").textContent = "This event has ended."; $("keys").innerHTML = '<dt>Next</dt><dd>Edit the event to brief a future date.</dd>'; return; }
-    if (!b.phases.some((p) => p.r)) { $("decision").textContent = "Too early to brief this event."; $("keys").innerHTML = `<dt>Why</dt><dd>It is beyond the hourly guidance used here.<span class="bx-note">The briefing fills in about a week ahead.</span></dd>`; }
-    else {
-      const d = S.decision(b);
-      $("decision").innerHTML = top ? esc(d.text).replace(esc(top.noun), `<span class="hz" style="--tier:var(--${top.tier})">${esc(top.noun)}</span>`) : esc(d.text);
+    /* ---- how much of the event the guidance reaches: pending, partly covered or ready ---- */
+    const R = S.readiness(b, ctx); document.body.dataset.readiness = R.state;
+    if (R.state === "past") { $("decision").textContent = "This event has ended."; $("keys").innerHTML = '<dt>Next</dt><dd>Edit the event to brief a future date.</dd>'; $("coverage").hidden = true; return; }
+    const around = (ms) => { const h = Math.ceil(ms / H) * H; return `${fmt.day(h, tz)}, about ${fmt.clock(h, tz)}`; };
+    const remind = R.readyAt ? remindHtml(R.readyAt, R.state === "pending" ? "Remind me when the briefing is ready" : "Remind me when the full briefing is ready") : "";
+    if (R.state === "pending") {
+      $("decision").textContent = "Weather briefing pending";
+      $("keys").innerHTML = "";
+      $("coverage").className = "bx-pending"; $("coverage").hidden = false;
+      $("coverage").innerHTML = `Hourly guidance doesn’t reach this event yet. We’ll flag when ${esc(R.all)} come into range.
+        <span class="bx-note" style="display:block;margin-top:6px">Guidance here reaches about ${Math.round(R.lead / 864e5)} days ahead: it should start covering ${esc(R.names[0])} around ${esc(around(R.firstAt))} and the whole event by ${esc(around(R.readyAt))}.</span>${remind}`;
+    } else {
+      $("coverage").className = "bx-cover"; $("coverage").hidden = false;
+      $("coverage").innerHTML = R.state === "ready" ? `<b>Forecast covers ${esc(R.names[0])} through ${esc(R.names[R.names.length - 1])}.</b>`
+        : `<b>${esc(R.line)}</b><span class="bx-note"> · full briefing around ${esc(around(R.readyAt))}</span>${remind}`;
+      const d = S.decision(b), text = !top && R.state === "partial" ? `No weather concern so far for ${R.inRange}.` : d.text;
+      $("decision").innerHTML = top ? esc(text).replace(esc(top.noun), `<span class="hz" style="--tier:var(--${top.tier})">${esc(top.noun)}</span>`) : esc(text);
       const nextDd = next ? `${vt(next.at, tz, now)}<span class="bx-note">${esc(next.what)}</span>` : "Now: use radar, lightning detection and NWS warnings.";
       if (top) {
         const [cw, cd] = top.certainty.word.split(" — ");
@@ -98,14 +113,17 @@
       } else {
         const live = b.phases.filter((p) => p.r), lo = Math.min(...live.map((p) => p.r.lo).filter(fin)), hi = Math.max(...live.map((p) => p.r.hi).filter(fin)), gust = Math.max(...live.map((p) => p.r.gust).filter(fin));
         const dd = S.disagreement(ctx, b.all.startMs, b.all.endMs);
-        $("keys").innerHTML = `<dt>Expected</dt><dd>${fin(lo) ? `${Math.round(lo)}–${Math.round(hi)}°` : "—"}, gusts to ${mph(gust)}<span class="bx-note">Setup through teardown</span></dd>
+        $("keys").innerHTML = `<dt>Expected</dt><dd>${fin(lo) ? (Math.round(lo) === Math.round(hi) ? `${Math.round(hi)}°` : `${Math.round(lo)}–${Math.round(hi)}°`) : "—"}, gusts to ${mph(gust)}<span class="bx-note">${R.state === "partial" ? esc(S.listWords(live.map((p) => (p.key === "event" ? "event" : p.label.toLowerCase())))) + " so far" : "Setup through teardown"}</span></dd>
           <dt>Guidance</dt><dd>${esc(dd && dd.overall ? S.AGREE_WORD[dd.overall] : "Limited")}<span class="bx-note">A quiet forecast can still change.</span></dd><dt>Next check</dt><dd>${nextDd}</dd>`;
       }
     }
+    $("coverage").querySelectorAll("[data-remind]").forEach((a) => a.addEventListener("click", () => U.track("reminder_set", { via: a.dataset.remind })));
     $("schedule").innerHTML = schedule(b, now);
+    if (R.state === "pending") { detail(b, ctx, thr); return; } // nothing at event time yet: schedule and sources only
     /* ---- phases ---- */
     $("phases").innerHTML = b.phases.map((p) => {
       const r = p.r, lvl = p.level, past = p.cov.status === "past";
+      if (!past && !r) return `<div class="bx-phase pending"><div><div class="nm">${esc(p.label)} <span class="tm">${esc(fmt.span(p.startMs, p.endMs, tz))}</span></div><div style="margin-top:3px;font-size:13.5px">${st(null, "Pending")} <span class="bx-note">in range around ${esc(around(Math.max(now, p.startMs - R.lead)))}</span></div></div></div>`;
       const status = past ? st(null, "Done") : !r ? st(null, "Beyond guidance") : lvl ? st(S.LEVEL_TIER[lvl], `${S.HAZARDS[p.top].label}: ${S.LEVEL_WORD[lvl].toLowerCase()}`) : st(null, "No concern");
       const rain = !r ? "—" : U.pct(r.chanceV != null ? r.chanceV * 100 : r.pop), rainLbl = r && r.chanceV == null && fin(r.pop) ? "Peak hourly precip chance" : "Precip chance";
       const th = !r || !r.thunder || r.thunder === "nodata" ? "—" : r.thunder === "normal" ? "low" : C.TIERS[r.thunder].word.toLowerCase();
@@ -129,17 +147,25 @@
     $("hourlyValid").innerHTML = `${esc(fmt.span(s, e, tz))} ${esc(fmt.zone(s, tz))} · tap to select`;
     U.timeline($("timeline"), hours, { tz, now, bus, gustLine: thr.gust, mark: top && top.from != null ? { s: top.from, e: top.to, tier: top.tier } : null,
       bands: b.phases.map((p) => ({ s: p.startMs, e: p.endMs, label: p.label.toUpperCase(), fill: p.key === "event" ? "color-mix(in srgb, var(--text) 7%, transparent)" : "transparent" })) });
-    /* ---- supporting detail ---- */
+    detail(b, ctx, thr);
+  }
+  function remindHtml(atMs, label) {
+    const r = S.reminder(ev, atMs, link()), ics = "data:text/calendar;charset=utf-8," + encodeURIComponent(r.ics);
+    return `<details class="bx-remind"><summary class="bx-btn">${esc(label)}</summary><div class="opts"><a class="bx-btn" data-remind="google" href="${esc(r.google)}" target="_blank" rel="noopener">Google Calendar</a><a class="bx-btn" data-remind="ics" href="${ics}" download="weather-briefing-reminder.ics">Apple / Outlook (.ics)</a><span class="bx-note">Adds a reminder to your own calendar with a link back here.</span></div></details>`;
+  }
+  /* ---- supporting detail ---- */
+  function detail(b, ctx, thr) {
+    const tz = ev.tz;
     const ages = S.guidanceAge(ctx, U.NAMES), words = [...new Set((ctx.nws && ctx.nws.hourly ? ctx.nws.hourly : []).filter((h) => h.s < b.all.endMs && h.e > b.all.startMs).map((h) => h.short).filter(Boolean))];
     const mq = new URLSearchParams({ lat: ev.loc.lat, lon: ev.loc.lon, name: ev.loc.name });
     $("detail").innerHTML = `<h2>Detail</h2>
-      <details><summary>All concerns</summary>${b.concerns.length ? `<ul class="bx-list" style="margin-top:8px">${b.concerns.map((c) => `<li><b>${esc(c.label)}: ${esc(c.word.toLowerCase())}</b> — ${esc(c.why)}. ${c.from != null ? "Most likely " + esc(fmt.span(c.from, c.to, tz)) + ". " : ""}Timing: ${esc(c.certainty.word)}.</li>`).join("")}</ul>` : '<p class="bx-note">No hazard reaches a planning threshold.</p>'}</details>
+      <details><summary>All concerns</summary>${b.concerns.length ? `<ul class="bx-list" style="margin-top:8px">${b.concerns.map((c) => `<li><b>${esc(c.label)}: ${esc(c.word.toLowerCase())}</b> — ${esc(c.why)}. ${c.from != null ? "Most likely " + esc(fmt.span(c.from, c.to, tz)) + ". " : ""}Timing: ${esc(c.certainty.word)}.</li>`).join("")}</ul>` : (b.coverage === "full" ? '<p class="bx-note">No hazard reaches a planning threshold.</p>' : '<p class="bx-note">Concerns are listed once the guidance reaches every phase.</p>')}</details>
       <details><summary>NWS forecast wording</summary><p>${words.length ? esc(words.slice(0, 6).join(" → ")) : "NWS hourly wording unavailable."}</p></details>
       <details><summary>How this briefing is built</summary><p class="bx-note">Values are the Forecast Ops model blend (${esc(lastRes.recipe)}${lastRes.market.tuned ? "" : ", unverified for this market"}), the same calculation as Model Blend's event table. Phase precipitation chance is the weighted ensemble estimate for at least 0.01″ during the phase; when unavailable, the peak hourly precipitation chance is shown. The thunder signal comes from the Thunder page and describes forecast potential, not detected lightning. Planning levels use display thresholds: gusts ${thr.gust}/35/45 mph; rain chance 20/50/70%; snow 0.05/0.3/1″; heat 90/95°; feels-like 32/20°. They are not calibrated probabilities. Timing certainty compares when each model source first shows the hazard.</p></details>
       <details><summary>Sources and how recent they are</summary><table class="bx-age"><tbody>${ages.map((a) => `<tr><td>${esc(a.name)}</td><td class="n ${a.late ? "bx-late" : ""}">${a.unknown ? "run time unknown" : esc(fmt.age(a.ageH)) + " old" + (a.late ? " · late" : "")}</td></tr>`).join("")}</tbody></table></details>
       <p style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><a class="bx-btn" href="meteorologist-beta.html?${mq}">Meteorologist view of this venue</a><button class="bx-btn" type="button" id="printBtn">Print / PDF</button></p>`;
     $("printBtn").addEventListener("click", () => window.print());
-    $("foot").innerHTML = `<span>Model guidance only — not an official forecast or warning. Follow NWS warnings and your venue's lightning policy.</span><span>Data: Open-Meteo (CC BY 4.0), NWS, NOAA HRRR. ${res.problems.length ? `Partial data: ${esc(res.problems.slice(0, 3).join("; "))}.` : ""}</span><span>Beta for colleague testing. Your edited event is stored only in this browser.</span>`;
+    $("foot").innerHTML = `<span>Model guidance only — not an official forecast or warning. Follow NWS warnings and your venue's lightning policy.</span><span>Data: Open-Meteo (CC BY 4.0), NWS, NOAA HRRR. ${lastRes.problems.length ? `Partial data: ${esc(lastRes.problems.slice(0, 3).join("; "))}.` : ""}</span><span>Beta for colleague testing. Your edited event is stored only in this browser.</span>`;
   }
 
   /* ---------- editor: no account; stored in this browser only ---------- */

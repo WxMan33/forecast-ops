@@ -52,6 +52,15 @@ lets you pick another verified station without moving the forecast point.
 - The HRRR map (in development) covers the Cincinnati Tri-State only; elsewhere it is replaced by a short note.
 - Usage analytics: see `tools/analytics/README.md` (off until a collector URL is configured).
 
+## Event briefing before there is a forecast
+
+An event weeks out (for example one imported from a calendar later) gets a useful screen from day one:
+
+- **Pending:** the event, venue and schedule strip, then "Weather briefing pending": hourly guidance doesn't reach the event yet, with the dates it should start covering setup and cover the whole event. Phase cards, the hourly chart, the map and "what could change the plan" stay collapsed until they have event-time data.
+- **Partly covered:** the briefing shows what the guidance reaches, phase by phase (e.g. "Setup and gates covered · the event and teardown pending"); pending phases show when they come into range. "No phase reaches a planning threshold" only appears once every phase is covered.
+- **Reminder:** "Remind me when the briefing is ready" adds a reminder to the planner's own calendar (Google Calendar link or an .ics file for Apple/Outlook) at the time the guidance should reach the end of teardown, with a link back to the event. Nothing is stored on a server.
+- Dates come from how far the loaded guidance actually reaches (about 6–7 days here), so they move with the data rather than a fixed rule.
+
 ## Design direction (pass 2)
 
 The organizing idea is the weather itself: how it moves across the map and when it reaches a place.
