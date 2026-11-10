@@ -239,3 +239,28 @@ body.bx * { font-variant-numeric: tabular-nums; }
 .bx-phase.pending .tp, .bx-phase.pending .mt { display: none; }
 body[data-readiness="pending"] #secPhases, body[data-readiness="pending"] #secNws, body[data-readiness="pending"] #secChanges,
 body[data-readiness="pending"] #secChecks, body[data-readiness="pending"] #secMap, body[data-readiness="pending"] #secHourly { display: none; }
+
+/* Upcoming events and saved venues */
+.up-nav { margin: 0 0 10px; font-size: 13.5px; }
+.up-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 14px; }
+.up-title { font: 600 24px/1.2 var(--bx-font); margin: 0; letter-spacing: -.01em; }
+.up-list { display: grid; gap: 10px; }
+.up-ev, .up-vn { border: 1px solid var(--bx-rule); border-radius: 12px; padding: 12px 14px; display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; background: var(--bx-panel, transparent); }
+.up-ev.concern { border-color: color-mix(in srgb, var(--tier, var(--watch)) 70%, var(--bx-rule)); }
+.bx-brief a.up-open, .bx-brief a.up-open:visited { color: var(--text); text-decoration: none; flex: 1 1 auto; min-width: 0; }
+.bx-brief a.up-open:hover .up-name { text-decoration: underline; }
+.up-name { font-weight: 600; font-size: 16px; }
+.up-when { font-size: 13.5px; color: var(--muted); margin-top: 2px; }
+.up-status { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-top: 8px; font-size: 14px; }
+.up-act { display: flex; gap: 6px; flex: 0 0 auto; }
+.up-past { margin-top: 16px; } .up-past > summary { cursor: pointer; color: var(--muted); font-size: 14px; margin-bottom: 10px; }
+.up-empty { border: 1px dashed var(--bx-rule); border-radius: 12px; padding: 14px; }
+.up-empty p { margin: 0 0 4px; }
+@media (max-width: 560px) { .up-ev, .up-vn { flex-direction: column; } .up-act { align-self: flex-end; } }
+body[data-view="upcoming"] #picker { visibility: hidden; }
+.bx-subform { display: grid; gap: 10px; padding: 10px 12px; border: 1px solid var(--bx-rule); border-radius: 10px; }
+.bx-sched-f { border: 1px solid var(--bx-rule); border-radius: 10px; padding: 10px 12px; display: grid; gap: 10px; margin: 0; }
+.bx-sched-f legend { font-size: 13px; color: var(--muted); padding: 0 4px; }
+.bx-sched-f input.own { border-color: var(--bx-sel); }
+.bx-check { display: flex !important; gap: 8px; align-items: center; font-size: 14px; flex-direction: row !important; }
+.bx-check input { width: auto !important; }

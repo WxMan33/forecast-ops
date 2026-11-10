@@ -27,10 +27,12 @@
   });
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/ops.css?v=4d803a5167">
-<link rel="stylesheet" href="assets/beta.css?v=76b4446044">
+<link rel="stylesheet" href="assets/beta.css?v=9a4d430ce9">
 </head>
 <body class="bx">
 <main class="bx-brief">
+  <div id="briefView">
+  <div class="up-nav"><a class="bx-link" href="#upcoming" id="upLink">Upcoming events</a></div>
   <div class="bx-evctx"><span class="bx-label" id="sampleTag" hidden>Sample</span><b id="evName">Loading event…</b><span id="evVenue"></span><button class="bx-link" type="button" id="editBtn">Edit</button><button class="bx-link" type="button" id="resetBtn" hidden>Use sample</button></div>
   <div class="bx-evctx" id="evWhen" style="margin-top:2px"></div>
   <div class="bx-alerts" id="alerts" style="margin-top:10px"></div>
@@ -45,6 +47,8 @@
   <section class="bx-sec" id="secMap"><h2>Map</h2><div id="map" style="margin-top:4px"></div></section>
   <section class="bx-sec" id="secHourly"><div class="bx-bh"><h2>Hour by hour</h2><span class="bx-note" id="hourlyValid"></span></div><div id="timeline"></div></section>
   <section class="bx-sec" id="detail"></section>
+  </div>
+  <div id="upView" hidden></div>
   <footer class="bx-foot" id="foot"></footer>
 </main>
 <dialog id="editDlg" aria-labelledby="editTitle"><form class="bx-form" id="editForm" method="dialog"></form></dialog>
@@ -53,10 +57,12 @@
 <script src="assets/ops.js?v=df14d492ff"></script>
 <script src="assets/forecast-clock.js?v=c6df9f20b7"></script>
 <script src="assets/model-trends.js?v=20f2fb637c"></script>
-<script src="assets/beta-story.js?v=70362815cc"></script>
+<script src="assets/beta-story.js?v=7699954c0d"></script>
 <script src="assets/beta-config.js?v=dd9a17f472"></script>
-<script src="assets/beta-analytics.js?v=55d785d1b1"></script>
+<script src="assets/beta-analytics.js?v=94b7122ef7"></script>
 <script src="assets/beta-ui.js?v=e0532abf2f"></script>
-<script src="assets/beta-event.js?v=dfe842e8ca"></script>
+<script src="assets/event-store.js?v=6799bc6a9e"></script>
+<script src="assets/beta-upcoming.js?v=9e232439fd"></script>
+<script src="assets/beta-event.js?v=6c16bf7b1a"></script>
 </body>
 </html>

@@ -190,6 +190,48 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
   });
 
   /* ---------- 7. analytics blocked or opted out: the betas work; nothing is sent when opted out ---------- */
+  /* ---------- 8. Upcoming events and saved venues on a phone: two TQL matches, venue defaults, one gates override, refresh ---------- */
+  await section('8. Upcoming events and saved venues (phone)', async () => {
+    const day = (n) => new Date(Date.now() + n * 864e5).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+    const d1 = day(2), d2 = day(16);
+    const { ctx, p, errors } = await go(PHONE, base + "event-beta.html#upcoming");
+    await until(p, () => document.querySelector("#upView:not([hidden]) #upAdd"), null, 30000);
+    const setVal = (sel, v) => p.evaluate(([s, x]) => { const el = document.querySelector(s); el.value = x; el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); }, [sel, v]);
+    /* match 1: new venue TQL Stadium, its schedule saved as the venue default */
+    await p.click("#upAdd"); await until(p, () => document.getElementById("editDlg").open, null, 10000);
+    await p.fill("#fName", "FC Cincinnati vs. Test FC (check)"); await p.fill("#fVenue", "TQL Stadium");
+    const pick = await pickCity(p, "Cincinnati", "Cincinnati, OH", "#fCity"); await pick();
+    await p.locator("#fNewVenue details summary").click(); await p.fill("#fLat", "39.1111"); await p.fill("#fLon", "-84.5222");
+    await setVal("#fDate", d1); await setVal("#fStart", "19:30"); await setVal("#fEnd", "21:30"); await setVal("#fSetup", "15:00"); await setVal("#fGates", "18:00"); await setVal("#fTear", "23:30"); await setVal("#fGust", "30");
+    await p.click("#fSave"); await until(p, () => !document.getElementById("editDlg").open, null, 30000);
+    /* match 2: the saved venue fills setup, gates and teardown; gates changed for this match only */
+    await until(p, () => document.querySelectorAll(".up-ev").length === 1 && document.querySelectorAll(".up-vn").length === 1, null, 20000);
+    await p.click("#upAdd"); await until(p, () => document.getElementById("editDlg").open, null, 10000);
+    const sel = await p.evaluate(() => document.querySelector("#fVenueSel").selectedOptions[0].textContent);
+    await p.fill("#fName", "FC Cincinnati vs. Second FC (check)"); await setVal("#fDate", d2); await setVal("#fStart", "19:30"); await setVal("#fEnd", "21:30");
+    const filled = await p.evaluate(() => ["fSetup", "fGates", "fTear", "fGust"].map((i) => document.getElementById(i).value).join(" "));
+    await setVal("#fGates", "17:30");
+    const note = await p.evaluate(() => document.getElementById("fDefNote").innerText);
+    await p.click("#fSave"); await until(p, () => !document.getElementById("editDlg").open, null, 30000);
+    report(sel === "TQL Stadium" && filled === "15:00 18:00 23:30 30" && /Changed for this event: gates/.test(note), "upcoming phone: second match starts from TQL Stadium defaults; gates changed for that match only", `venue "${sel}" · filled ${filled} · "${note.split(".").slice(-3).join(".").trim().slice(0, 80)}"`);
+    /* refresh: both matches back, with their own gates and a status each; then open each one */
+    await p.reload({ waitUntil: "domcontentloaded" }); await until(p, () => document.querySelector("#upView").dataset.ready === "true", null, 150000);
+    const rows = await p.evaluate(() => [...document.querySelectorAll("#upList .up-ev")].map((r) => ({ id: r.dataset.id, st: r.dataset.status, txt: r.innerText.replace(/\s+/g, " ") })));
+    const ev = await p.evaluate(() => JSON.parse(localStorage.getItem("beta_events_v2")).map((e) => [e.name, e.times.setup.slice(11), e.times.gates.slice(11), e.times.teardown.slice(11), e.overrides.join(",") || "-"]));
+    report(rows.length === 2 && ev.length === 2 && ev[0][2] === "18:00" && ev[1][2] === "17:30" && ev[1][4] === "gates" && ev[0][4] === "-" && rows.every((r) => r.st && r.st !== "unknown"),
+      "upcoming phone: both matches reopen after refreshing, each with its own gates time and a briefing status", rows.map((r) => `${r.txt.slice(0, 120)} [${r.st}]`).join(" | "));
+    await p.screenshot({ path: `${out}/upcoming-phone.png`, fullPage: true });
+    const opened = [];
+    for (const r of rows) {
+      await Promise.all([p.waitForNavigation({ waitUntil: "domcontentloaded" }), p.click(`.up-ev[data-id="${r.id}"] .up-open`)]);
+      await until(p, () => document.body.dataset.readiness, null, 150000); await p.reload({ waitUntil: "domcontentloaded" }); await until(p, () => document.body.dataset.readiness, null, 150000);
+      opened.push(await p.evaluate(() => ({ name: document.getElementById("evName").innerText, when: document.getElementById("evWhen").innerText, state: document.body.dataset.readiness, q: location.search })));
+      await p.goto(base + "event-beta.html#upcoming", { waitUntil: "domcontentloaded" }); await until(p, () => document.querySelector("#upView .up-ev"), null, 30000);
+    }
+    report(opened.length === 2 && opened.every((o) => /\(check\)/.test(o.name) && /^\?ev=ev_/.test(o.q)) && opened.some((o) => /from 3 PM/.test(o.when)) && !errors.length,
+      "upcoming phone: one tap opens each match's briefing, and a refresh keeps it", opened.map((o) => `${o.name} · ${o.when} · ${o.state}`).join(" | ") + (errors.length ? " · " + errors.join("; ") : ""));
+    await ctx.close();
+  });
   await section('7. analytics blocked or opted out: the betas work; nothing i', async () => {
   for (const [mode, init] of [["blocked", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec")'], ["opted out", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec");localStorage.setItem("fo_analytics_optout","1")']]) {
     for (const page of ["meteorologist-beta.html", "event-beta.html"]) {

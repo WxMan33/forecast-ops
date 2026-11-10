@@ -16,7 +16,7 @@
 
   /* ---- what may be recorded: types per beta and allow-listed context values ---- */
   const TYPES = new Set(["session_start", "city_selected", "tool_opened", "models_compared", "weights_adjusted", "map_layer_changed", "playback_started", "timeline_used",
-    "sample_opened", "custom_event_started", "event_saved", "phase_details_opened", "event_revisited", "reminder_set",
+    "sample_opened", "custom_event_started", "event_saved", "phase_details_opened", "event_revisited", "reminder_exported", "upcoming_opened", "venue_saved", "event_removed",
     "city_searched", "search_no_results", "search_failed", "load_failed", "feeds_missing", "link_copied", "feedback", "analytics_opt_out"]);
   const CTX = { market: ["cincinnati", "elsewhere"], tool: ["models", "weights", "runs", "soundings", "thunder", "winter", "map"], what: ["models", "nws"],
     phase: ["setup", "gates", "event", "teardown"], layer: ["refc", "refd1km", "precip", "t2m", "d2m", "gust", "w10m", "cloud"], rating: ["useful", "not_useful"], via: ["google", "ics"], returning: [true, false] };

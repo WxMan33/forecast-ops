@@ -52,13 +52,23 @@ lets you pick another verified station without moving the forecast point.
 - The HRRR map (in development) covers the Cincinnati Tri-State only; elsewhere it is replaced by a short note.
 - Usage analytics: see `tools/analytics/README.md` (off until a collector URL is configured).
 
+## Upcoming events and saved venues
+
+The briefing stays the main screen; **Upcoming events** (link at the top, or `event-beta.html#upcoming`) lists every saved event:
+
+- One row per event: name, venue, local time at the venue (plus your own time when it differs) and one status: **Weather concern**, **Briefing ready**, **Briefing partly ready**, **Waiting for guidance** or **Venue needs confirmation** (calendar imports without a recognised venue). Events that need a weather decision come first, then the rest by start time; past events fold away.
+- Tap an event to open its briefing (`?ev=<id>`, so a refresh keeps it). Add, edit and remove from the list.
+- **Saved venues:** name, coordinates, time zone and default offsets (setup before the start, gates before the start, teardown after the end) plus the tent gust limit. New events at a venue start from its defaults; a time changed for one event is kept as that event's override ("Gates set for this event") and can be reset to the defaults.
+- Everything is stored in this browser (`beta_events_v2`, `beta_venues_v1`). The records carry a `source` (`manual` now; `calendar` with calendar and event IDs later), and `EventStore.fromCalendar` already maps a Google Calendar event onto the same record, matching its location to a saved venue.
+- The calendar reminder on a pending or partly covered briefing reads "Add a calendar reminder" and says it is set for the estimated time the full briefing will be ready. It is counted as `reminder_exported` (a link click or .ics download; the beta can't tell whether it was saved).
+
 ## Event briefing before there is a forecast
 
 An event weeks out (for example one imported from a calendar later) gets a useful screen from day one:
 
 - **Pending:** the event, venue and schedule strip, then "Weather briefing pending": hourly guidance doesn't reach the event yet, with the dates it should start covering setup and cover the whole event. Phase cards, the hourly chart, the map and "what could change the plan" stay collapsed until they have event-time data.
 - **Partly covered:** the briefing shows what the guidance reaches, phase by phase (e.g. "Setup and gates covered · the event and teardown pending"); pending phases show when they come into range. "No phase reaches a planning threshold" only appears once every phase is covered.
-- **Reminder:** "Remind me when the briefing is ready" adds a reminder to the planner's own calendar (Google Calendar link or an .ics file for Apple/Outlook) at the time the guidance should reach the end of teardown, with a link back to the event. Nothing is stored on a server.
+- **Reminder:** "Add a calendar reminder" adds a reminder to the planner's own calendar (Google Calendar link or an .ics file for Apple/Outlook) at the time the guidance should reach the end of teardown, with a link back to the event. Nothing is stored on a server.
 - Dates come from how far the loaded guidance actually reaches (about 6–7 days here), so they move with the data rather than a fixed rule.
 
 ## Design direction (pass 2)
