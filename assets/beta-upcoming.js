@@ -31,7 +31,7 @@
       <label>Venue<select id="fVenueSel">${vns.map(opt).join("")}<option value="" ${venue ? "" : "selected"}>${base && !venue && !base.sample && fin(base.loc.lat) ? "This event's venue (not saved)" : "New venue…"}</option></select></label>
       <div id="fNewVenue" class="bx-subform">
         <label>Venue name<input id="fVenue" maxlength="80" value="${esc(base && !venue && !base.sample ? (fin(base.loc.lat) ? base.loc.name : String(base.loc.name || "").split(",")[0].replace(/^Venue not set$/, "")) : "")}" placeholder="e.g. TQL Stadium"></label>
-        <div><span class="bx-cap" style="display:block;margin-bottom:4px">Venue city</span><div id="fCity" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"></div></div>
+        <div><span class="bx-cap" style="display:block;margin-bottom:4px">Find the venue (name or street address)</span><div id="fCity"></div></div>
         <details><summary class="bx-note">Exact coordinates (optional)</summary><div class="two" style="margin-top:8px"><label>Latitude<input id="fLat" inputmode="decimal" value="${fin(city.lat) ? city.lat : ""}"></label><label>Longitude<input id="fLon" inputmode="decimal" value="${fin(city.lon) ? city.lon : ""}"></label></div></details>
         <label class="bx-check"><input type="checkbox" id="fSaveVenue" ${base && !base.sample && !venue && fin(base.loc.lat) ? "" : "checked"}> Save this venue and its schedule for future events</label>
       </div>
@@ -71,9 +71,12 @@
     $("fVenueSel").addEventListener("change", () => { venue = E.getVenue($("fVenueSel").value); dirty.clear(); if (venue) fromSource(venue.tz); fill(false); $("fGust").value = defs().gust; });
     $("fVenue").addEventListener("input", () => fill(false));
     function tzNote() { const z = venue ? venue.tz : city.tz; $("fTzNote").textContent = `Times are local to the venue (${z ? `${z}, ${fmt.zone(Date.now(), z)}` : "time zone found on save"}), wherever you are. An end or teardown earlier than the start is read as after midnight; a setup later than the start, as the day before.`; }
-    U.placePicker($("fCity"), { current: city.name ? city : null, link: () => location.href, label: "Search a U.S. city",
-      onPick(p) { city = p; $("fLat").value = p.lat; $("fLon").value = p.lon; if (!$("fVenue").value.trim()) $("fVenue").placeholder = p.name; fromSource(p.tz); fill(false); tzNote(); } });
-    const cp = $("fCity").querySelector(".bx-ppcopy"); if (cp) cp.remove();
+    /* the venue itself (stadium, business, park, school or street address), not just its city; or a dropped pin */
+    const calLoc = base && !base.sample && !fin(base.loc.lat) && base.source && base.source.location ? base.source.location : "";
+    window.VenueSearch.picker($("fCity"), { initial: calLoc, auto: !!calLoc,
+      onPick(p) { city = { name: p.address || "", address: p.kind === "pin" ? "" : p.address, lat: p.lat, lon: p.lon, tz: null }; $("fLat").value = p.lat; $("fLon").value = p.lon;
+        if (!$("fVenue").value.trim() || $("fVenue").dataset.auto === "1") { $("fVenue").value = p.name; $("fVenue").dataset.auto = "1"; } fill(false); tzNote(); } });
+    $("fVenue").addEventListener("input", () => { $("fVenue").dataset.auto = ""; });
     fill(true);
     $("editDlg").showModal();
     $("fSave").addEventListener("click", async (ev0) => {
@@ -90,15 +93,15 @@
       else {
         const lat = parseFloat($("fLat").value), lon = parseFloat($("fLon").value), vname = $("fVenue").value.trim() || city.name;
         if (!vname) return err("Name the venue.");
-        if (!fin(lat) || !fin(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return err("Search the venue's city, or enter coordinates in decimal degrees (e.g. 39.1111 and -84.5222).");
-        tz = city.tz; if (!tz || Math.abs(lat - city.lat) > 0.05 || Math.abs(lon - city.lon) > 0.05) tz = await O.zoneFor(lat, lon).catch(() => null) || await new Promise((ok) => setTimeout(ok, 1500)).then(() => O.zoneFor(lat, lon)).catch(() => null);
+        if (!fin(lat) || !fin(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return err("Find the venue by name or street address, drop a pin, or enter coordinates in decimal degrees (e.g. 39.1111 and -84.5222).");
+        tz = city.tz; if (!tz || Math.abs(lat - city.lat) > 0.05 || Math.abs(lon - city.lon) > 0.05) tz = await O.zoneFor(lat, lon).catch(() => null) || await new Promise((ok) => setTimeout(ok, 1500)).then(() => O.zoneFor(lat, lon)).catch(() => null) || window.VenueSearch.tzGuess({ ...city, lat, lon });
         if (!tz) return err("Couldn't look up the venue's time zone. Try again.");
-        loc = { name: vname, lat: +lat.toFixed(4), lon: +lon.toFixed(4) };
+        loc = { name: vname, lat: +lat.toFixed(5), lon: +lon.toFixed(5) };
       }
       const gust = Math.min(60, Math.max(10, +$("fGust").value || 25));
       const draft = { name: $("fName").value.trim() || (base && !base.sample ? base.name : "My event"), loc, tz, times, gust };
       const errs = C.event.validate(draft); if (errs.length) return err(errs.join(" "));
-      if (!venue && $("fSaveVenue").checked) { venue = E.saveVenue({ name: loc.name, city: city.name || "", lat: loc.lat, lon: loc.lon, tz, defaults: { ...E.offsetsOf(times), gust } }); venueId = venue.id; U.track("venue_saved"); }
+      if (!venue && $("fSaveVenue").checked) { venue = E.saveVenue({ name: loc.name, city: city.name || "", address: city.address || "", lat: loc.lat, lon: loc.lon, tz, defaults: { ...E.offsetsOf(times), gust } }); venueId = venue.id; U.track("venue_saved"); }
       else if (venue && $("fMakeDef").checked) { venue = E.saveVenue({ ...venue, defaults: { ...venue.defaults, ...E.offsetsOf(times), gust } }); U.track("venue_saved"); }
       if (venue && venue.builtin) { venue = E.saveVenue({ ...venue, builtin: undefined }); venueId = venue.id; } // a built-in venue becomes a saved one
       /* confirming a calendar event's venue by hand: remember its calendar location for future imports */
@@ -115,7 +118,7 @@
     let city = v ? { name: v.city || v.name, lat: v.lat, lon: v.lon, tz: v.tz } : { name: "", lat: null, lon: null, tz: null };
     $("editForm").innerHTML = `<h2 id="editTitle">${v ? "Edit venue" : "Add venue"}</h2>
       <label>Venue name<input id="vName" maxlength="80" value="${esc(v ? v.name : "")}" placeholder="e.g. TQL Stadium"></label>
-      <div><span class="bx-cap" style="display:block;margin-bottom:4px">City</span><div id="vCity" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"></div></div>
+      <div><span class="bx-cap" style="display:block;margin-bottom:4px">Find the venue (name or street address)</span><div id="vCity"></div></div>${v && v.address ? `<p class="bx-note" style="margin:0">Address: ${esc(v.address)}</p>` : ""}
       <details ${v ? "open" : ""}><summary class="bx-note">Exact coordinates</summary><div class="two" style="margin-top:8px"><label>Latitude<input id="vLat" inputmode="decimal" value="${v ? v.lat : ""}"></label><label>Longitude<input id="vLon" inputmode="decimal" value="${v ? v.lon : ""}"></label></div></details>
       <fieldset class="bx-sched-f"><legend>Default schedule</legend>
         <div class="two"><label>Setup starts (hours before)<input type="number" id="vSetup" min="0" max="48" step="0.25" value="${d.setup / 60}"></label><label>Gates open (minutes before)<input type="number" id="vGates" min="0" max="600" step="5" value="${d.gates}"></label></div>
@@ -123,18 +126,17 @@
         <p class="bx-note" style="margin:0">Applied to new events at this venue. Existing events keep their times.</p></fieldset>
       <p class="err" id="vErr" hidden></p>
       <div style="display:flex;gap:8px;justify-content:flex-end"><button class="bx-btn" value="cancel" formnovalidate>Cancel</button><button class="bx-btn primary" id="vSave" value="save">Save venue</button></div>`;
-    U.placePicker($("vCity"), { current: city.name ? city : null, link: () => location.href, label: "Search a U.S. city", onPick(p) { city = p; $("vLat").value = p.lat; $("vLon").value = p.lon; if (!$("vName").value.trim()) $("vName").placeholder = p.name; } });
-    const cp = $("vCity").querySelector(".bx-ppcopy"); if (cp) cp.remove();
+    window.VenueSearch.picker($("vCity"), { onPick(p) { city = { name: p.address || "", address: p.kind === "pin" ? "" : p.address, lat: p.lat, lon: p.lon, tz: null }; $("vLat").value = p.lat; $("vLon").value = p.lon; if (!$("vName").value.trim()) $("vName").value = p.name; } });
     $("editDlg").showModal();
     $("vSave").addEventListener("click", async (e) => {
       e.preventDefault(); const err = (m) => { $("vErr").textContent = m; $("vErr").hidden = false; };
       const name = $("vName").value.trim(), lat = parseFloat($("vLat").value), lon = parseFloat($("vLon").value);
       if (!name) return err("Name the venue.");
-      if (!fin(lat) || !fin(lon)) return err("Search the city, or enter coordinates in decimal degrees.");
-      let tz = city.tz; if (!tz || Math.abs(lat - city.lat) > 0.05 || Math.abs(lon - city.lon) > 0.05) tz = await O.zoneFor(lat, lon).catch(() => null) || await new Promise((ok) => setTimeout(ok, 1500)).then(() => O.zoneFor(lat, lon)).catch(() => null);
+      if (!fin(lat) || !fin(lon)) return err("Find the venue by name or street address, drop a pin, or enter coordinates in decimal degrees.");
+      let tz = city.tz; if (!tz || Math.abs(lat - city.lat) > 0.05 || Math.abs(lon - city.lon) > 0.05) tz = await O.zoneFor(lat, lon).catch(() => null) || await new Promise((ok) => setTimeout(ok, 1500)).then(() => O.zoneFor(lat, lon)).catch(() => null) || window.VenueSearch.tzGuess({ ...city, lat, lon });
       if (!tz) return err("Couldn't look up the venue's time zone. Try again.");
       const num = (id, dflt) => (fin(parseFloat($(id).value)) ? parseFloat($(id).value) : dflt);
-      const rec = E.saveVenue({ ...(v || {}), name, city: city.name || "", lat: +lat.toFixed(4), lon: +lon.toFixed(4), tz,
+      const rec = E.saveVenue({ ...(v || {}), name, city: city.name || (v && v.city) || "", address: city.address != null ? city.address : (v && v.address) || "", lat: +lat.toFixed(5), lon: +lon.toFixed(5), tz,
         defaults: { setup: Math.round(num("vSetup", 4) * 60), gates: Math.round(num("vGates", 90)), teardown: Math.round(num("vTear", 120)), gust: Math.min(60, Math.max(10, num("vGust", 25))) } });
       U.track("venue_saved"); $("editDlg").close(); if (onSaved) onSaved(rec);
     });

@@ -275,3 +275,14 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .ci-venue select { max-width: 100%; }
 .up-head .up-act { flex-wrap: wrap; justify-content: flex-end; }
 #upNote { margin: -6px 0 12px; }
+
+/* venue search (name or street address, candidates, drop a pin) */
+.vs { display: grid; gap: 6px; }
+.vs-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.vs-row .vs-q { flex: 1 1 180px; min-width: 0; }
+.vs-res, .ci-cands { display: grid; gap: 6px; flex-basis: 100%; }
+.vs-hit { text-align: left; display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--bx-rule); border-radius: 8px; background: transparent; color: var(--text); font: inherit; cursor: pointer; }
+.vs-hit:hover, .vs-hit:focus-visible { border-color: var(--bx-sel); }
+.ci-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.vs-pin { width: min(640px, 94vw); }
+.vs-map { height: min(60vh, 420px); border-radius: 8px; border: 1px solid var(--bx-rule); }

@@ -112,45 +112,82 @@
       });
     }
     function step3() {
-      const venues = E.venues(), have = new Set(E.events().map((x) => x.id));
+      const VS = root.VenueSearch, venues = E.venues(), have = new Set(E.events().map((x) => x.id));
       const pool = [...venues, ...E.BUILTIN.filter((b) => !venues.some((v) => E.norm(v.name) === E.norm(b.name)))];
-      const recs = items.map((g) => ({ g, r: E.fromCalendar(g, venues, provider.kind === "sample" ? `sample:${cal.id}` : cal.id, cal.timeZone || null) })).filter((x) => x.r);
+      const calTz = cal.timeZone || null;
+      const recs = items.map((g) => ({ g, r: E.fromCalendar(g, venues, provider.kind === "sample" ? `sample:${cal.id}` : cal.id, calTz) })).filter((x) => x.r);
       const skipped = items.length - recs.length;
       const h12 = (t) => { const h = +t.slice(11, 13), m = t.slice(14, 16); return `${h % 12 || 12}${m === "00" ? "" : ":" + m} ${h < 12 ? "AM" : "PM"}`; };
       const when = (r) => { if (!r.tz) return r.times.start.replace("T", " ") + " UTC"; const s = Date.parse(r.times.start + ":00Z"); return `${new Date(s).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" })} · ${h12(r.times.start)}–${h12(r.times.end)} ${fmt.zone(Date.parse(r.source.start), r.tz)}`; };
-      const VIA = { name: "matched by name", address: "matched by street address", remembered: "a location you matched before" };
-      const options = (sel, first) => `<option value="">${first}</option>${pool.map((v) => `<option value="${esc(v.id)}" ${v.id === sel ? "selected" : ""}>${esc(v.name)}${v.builtin ? " (built in)" : ""}</option>`).join("")}`;
-      const venueRow = (g, r, i) => {
-        const m = r.match || {};
-        if (r.venueId) return `<span>Venue: <b>${esc(r.loc.name)}</b> <span class="bx-note">· ${esc(VIA[m.via] || "matched")}</span></span> <button type="button" class="bx-link" data-change="${i}">Change</button>
-          <select data-venue="${i}" data-auto="${esc(r.venueId)}" hidden aria-label="Venue for this event">${options(r.venueId, "Confirm the venue later")}</select>`;
-        const why = !g.location ? "No location in the calendar." : m.status === "ambiguous" ? `"${g.location}" fits more than one venue.` : `"${g.location}" isn't a saved venue yet.`;
-        return `<span class="bx-note" style="flex-basis:100%">${esc(why)} Choose the venue (it will be remembered for this location), or confirm it later.</span>
-          <select data-venue="${i}" aria-label="Venue for this event">${options(m.status === "ambiguous" ? "" : "", m.status === "ambiguous" ? "Which venue? (confirm later)" : "Confirm the venue later")}</select>`;
-      };
+      const VIA = { name: "matched by name", address: "matched by street address", remembered: "a location you confirmed before", manual: "chosen by you", found: "found on the map", pin: "dropped pin" };
+      /* one venue state per row: saved venue, a place found on the map, still searching, or unconfirmed */
+      const state = recs.map(({ g, r }) => (r.venueId ? { kind: "saved", venue: E.getVenue(r.venueId), via: (r.match || {}).via, auto: r.venueId } : g.location ? { kind: "searching" } : { kind: "none", why: "blank" }));
       form.innerHTML = `<h2 id="editTitle">Choose events to import</h2>
-        <p class="bx-note" style="margin:0">${esc(cal.summary || "Calendar")} · next 90 days${skipped ? ` · ${skipped} all-day ${skipped === 1 ? "item" : "items"} skipped` : ""}. Times are shown at the venue. Recognised venues are matched automatically and bring their setup, gates and teardown times.</p>
-        <div class="ci-list">${recs.map(({ g, r }, i) => `<div class="ci-ev" data-row="${i}" data-match="${esc((r.match || {}).status || "")}"><label class="bx-check"><input type="checkbox" data-pick="${i}" ${r.venueId ? "checked" : ""}> <span><b>${esc(r.name)}</b>${have.has(r.id) ? ' <span class="bx-note">· already imported (will update)</span>' : ""}<span class="bx-note" style="display:block" data-when>${esc(when(r))}</span></span></label>
-          <div class="ci-venue">${venueRow(g, r, i)}</div></div>`).join("") || '<p class="bx-note">No upcoming timed events in the next 90 days.</p>'}</div>
+        <p class="bx-note" style="margin:0">${esc(cal.summary || "Calendar")} · next 90 days${skipped ? ` · ${skipped} all-day ${skipped === 1 ? "item" : "items"} skipped` : ""}. Times are shown at the venue. Saved venues are matched first; other locations are looked up on the map (OpenStreetMap), and the forecast uses the venue's exact point.</p>
+        <div class="ci-list">${recs.map(({ r }, i) => `<div class="ci-ev" data-row="${i}"><label class="bx-check"><input type="checkbox" data-pick="${i}"> <span><b>${esc(r.name)}</b>${have.has(r.id) ? ' <span class="bx-note">· already imported (will update)</span>' : ""}<span class="bx-note" style="display:block" data-when>${esc(when(r))}</span></span></label>
+          <div class="ci-venue" data-venue-box="${i}"></div></div>`).join("") || '<p class="bx-note">No upcoming timed events in the next 90 days.</p>'}</div>
         <p class="err" id="ciErr" hidden></p>${foot('<button class="bx-btn" value="cancel" formnovalidate>Cancel</button><button type="button" class="bx-btn primary" id="ciImport">Import selected</button>')}`;
       const count = () => { const n = form.querySelectorAll("[data-pick]:checked").length; $("ciImport").textContent = n ? `Import ${n} ${n === 1 ? "event" : "events"}` : "Import selected"; $("ciImport").disabled = !n; };
+      const setPick = (i, on) => { const c = form.querySelector(`[data-pick="${i}"]`); if (c) { c.checked = on; count(); } };
+      const savedSelect = (i) => `<select data-saved="${i}" aria-label="Saved venue"><option value="">Saved venues…</option>${pool.map((v) => `<option value="${esc(v.id)}">${esc(v.name)}${v.builtin ? " (built in)" : ""}</option>`).join("")}</select>`;
+      function draw(i) {
+        const box = form.querySelector(`[data-venue-box="${i}"]`), row = box.closest(".ci-ev"), st = state[i], loc = recs[i].g.location || "";
+        const tools = `<div class="ci-tools"><button type="button" class="bx-link" data-again="${i}">Search again</button><button type="button" class="bx-link" data-pin="${i}">Drop a pin</button>${savedSelect(i)}</div>`;
+        row.dataset.match = { saved: "matched", place: "found", searching: "searching", ambiguous: "ambiguous", none: "unknown" }[st.kind];
+        if (st.kind === "saved") box.innerHTML = `<span>Venue: <b>${esc(st.venue.name)}</b>${st.venue.address ? ` <span class="bx-note">· ${esc(st.venue.address)}</span>` : ""} <span class="bx-note">· ${esc(VIA[st.via] || "matched")}</span></span> <button type="button" class="bx-link" data-change="${i}">Change</button>`;
+        else if (st.kind === "place") box.innerHTML = `<span>Venue: <b>${esc(st.place.name)}</b> <span class="bx-note">· ${esc(st.place.address || "")} · ${esc(VIA[st.via] || "found on the map")}</span></span> <button type="button" class="bx-link" data-change="${i}">Change</button>`;
+        else if (st.kind === "searching") box.innerHTML = `<span class="bx-note">Looking up “${esc(loc)}”…</span>`;
+        else if (st.kind === "ambiguous") box.innerHTML = `<span class="bx-note" style="flex-basis:100%">“${esc(loc)}” matches several places. Choose one, or leave it to confirm later:</span>
+          <div class="ci-cands">${st.candidates.map((c, k) => `<button type="button" class="vs-hit" data-cand="${i}:${k}"><b>${esc(c.name)}</b><span class="bx-note">${esc(c.address)}</span></button>`).join("")}</div>${tools}`;
+        else box.innerHTML = `<span class="bx-note" style="flex-basis:100%">${esc(st.why === "blank" ? "No location in the calendar." : st.why === "area" ? `“${loc}” only matches a city or area, not a venue. The venue stays unconfirmed.` : st.why === "street" ? `“${loc}” only matches a street, not a venue.` : st.why === "failed" ? "Venue search is unavailable right now." : `Couldn't find “${loc}” on the map.`)} Search again, drop a pin or choose a saved venue, or confirm it later.</span>${tools}`;
+        box.querySelectorAll("[data-change], [data-again]").forEach((b) => b.addEventListener("click", () => openSearch(i)));
+        box.querySelectorAll("[data-pin]").forEach((b) => b.addEventListener("click", () => pinFor(i)));
+        box.querySelectorAll("[data-saved]").forEach((s) => s.addEventListener("change", () => { if (!s.value) return; state[i] = { kind: "saved", venue: E.getVenue(s.value), via: "manual", auto: state[i].auto || null }; draw(i); setPick(i, true); }));
+        box.querySelectorAll("[data-cand]").forEach((b) => b.addEventListener("click", () => { const [, k] = b.dataset.cand.split(":"); state[i] = { kind: "place", place: st.candidates[+k], via: "manual" }; draw(i); setPick(i, true); }));
+      }
+      function openSearch(i) {
+        const box = form.querySelector(`[data-venue-box="${i}"]`), loc = recs[i].g.location || "", prev = state[i];
+        box.innerHTML = `<div style="flex-basis:100%;display:grid;gap:6px"><div class="ci-tools">${savedSelect(i)}<button type="button" class="bx-link" data-keep="${i}">Keep ${prev.kind === "saved" || prev.kind === "place" ? "current venue" : "as is"}</button></div><div data-picker></div></div>`;
+        box.querySelector("[data-keep]").addEventListener("click", () => draw(i));
+        box.querySelector("[data-saved]").addEventListener("change", (e) => { if (!e.target.value) return; state[i] = { kind: "saved", venue: E.getVenue(e.target.value), via: "manual", auto: prev.auto || null }; draw(i); setPick(i, true); });
+        VS.picker(box.querySelector("[data-picker]"), { initial: loc, auto: !!loc, onPick: (p) => { state[i] = { kind: "place", place: p, via: p.kind === "pin" ? "pin" : "manual" }; draw(i); setPick(i, true); } });
+      }
+      async function pinFor(i) { const p = await VS.pinDialog(null); if (p) { state[i] = { kind: "place", place: { name: recs[i].g.location ? recs[i].g.location.split(",")[0] : "Dropped pin", address: `Pin at ${p.lat}, ${p.lon}`, lat: p.lat, lon: p.lon, kind: "pin" }, via: "pin" }; draw(i); setPick(i, true); } }
+      recs.forEach((_, i) => { draw(i); if (state[i].kind === "saved") setPick(i, true); });
       form.querySelectorAll("[data-pick]").forEach((c) => c.addEventListener("change", count));
-      form.querySelectorAll("[data-change]").forEach((b) => b.addEventListener("click", () => { const sel = form.querySelector(`[data-venue="${b.dataset.change}"]`); sel.hidden = false; b.hidden = true; sel.focus(); }));
-      form.querySelectorAll("[data-venue]").forEach((s) => s.addEventListener("change", () => { const i = +s.dataset.venue, c = form.querySelector(`[data-pick="${i}"]`); if (s.value && c) { c.checked = true; count(); }
-        const v = s.value ? E.getVenue(s.value) : null, w = form.querySelector(`[data-row="${i}"] [data-when]`); if (w) w.textContent = when(v ? E.confirmVenue(recs[i].r, v) : recs[i].r); }));
       count();
-      $("ciImport").addEventListener("click", () => {
-        let remembered = 0;
-        const picked = [...form.querySelectorAll("[data-pick]:checked")].map((c) => {
-          const i = +c.dataset.pick, { g } = recs[i]; let r = recs[i].r; const s = form.querySelector(`[data-venue="${i}"]`);
-          const chosen = s ? s.value : r.venueId || "", auto = s && s.dataset.auto ? s.dataset.auto : r.venueId || "";
-          if (chosen && chosen !== auto) {
-            /* a manual match: apply it and remember this calendar location for future imports */
-            let v = E.getVenue(chosen); if (g.location) { v = E.rememberAlias(v, g.location); remembered++; }
+      /* look up unfamiliar locations one by one (Nominatim allows one request a second; results are cached) */
+      (async () => {
+        for (let i = 0; i < recs.length; i++) {
+          if (state[i].kind !== "searching") continue;
+          const res = await VS.resolve(recs[i].g.location, venues);
+          if (!dlg.open || state[i].kind !== "searching") continue; // closed, or the planner already chose
+          if (res.status === "matched") state[i] = { kind: "saved", venue: res.venue, via: res.via, auto: res.venue.id };
+          else if (res.status === "found") state[i] = { kind: "place", place: res.place, via: "found" };
+          else if (res.status === "ambiguous") state[i] = { kind: "ambiguous", candidates: res.candidates };
+          else state[i] = { kind: "none", why: res.why };
+          draw(i); if (state[i].kind === "saved" || state[i].kind === "place") setPick(i, true);
+        }
+        form.dataset.resolved = "true";
+      })();
+      $("ciImport").addEventListener("click", async () => {
+        const btn = $("ciImport"); btn.disabled = true; btn.textContent = "Importing…";
+        let remembered = 0; const picked = [];
+        for (const c of form.querySelectorAll("[data-pick]:checked")) {
+          const i = +c.dataset.pick, { g } = recs[i], st = state[i]; let r = recs[i].r;
+          if (st.kind === "saved") {
+            if (st.venue.id !== st.auto) { let v = st.venue; if (g.location) { v = E.rememberAlias(v, g.location); remembered++; } r = E.confirmVenue(r, v); }
+          } else if (st.kind === "place") {
+            /* the place becomes a saved venue (or an existing one within 150 m), remembered for this calendar location */
+            const p = st.place, near = E.venues().find((v) => VS.km(v, p) <= 0.15);
+            let v = near;
+            if (!v) { const tz = (await O.zoneFor(p.lat, p.lon).catch(() => null)) || VS.tzGuess(p) || calTz; if (!tz) { err(`Couldn't look up the time zone for ${p.name}. Try again.`); btn.disabled = false; count(); return; }
+              v = E.saveVenue({ name: p.name, address: p.kind === "pin" ? "" : p.address, city: p.address || "", lat: +p.lat.toFixed(5), lon: +p.lon.toFixed(5), tz, aliases: [] }); U.track("venue_saved"); }
+            if (g.location) { v = E.rememberAlias(v, g.location); remembered++; }
             r = E.confirmVenue(r, v);
-          } else if (!chosen && auto) r = { ...r, venueId: null, loc: { name: g.location || "Venue not set", lat: null, lon: null }, match: { status: "unknown", via: null, candidates: [] } };
-          return r;
-        });
+          } else r = { ...r, venueId: null, loc: { name: g.location || "Venue not set", lat: null, lon: null }, match: { status: "unknown", via: null, candidates: [] } };
+          picked.push(r);
+        }
         const res = E.importEvents(picked); res.remembered = remembered;
         U.track("calendar_events_imported", { via: provider.kind, n: Math.min(99, picked.length) });
         dlg.close(); if (onDone) onDone(res);

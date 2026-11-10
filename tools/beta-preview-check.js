@@ -7,6 +7,7 @@ const { chromium, devices } = require("playwright");
 const [base, out, stamp] = process.argv.slice(2);
 const DESK = { viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 2 }, PHONE = { ...devices["iPhone 13"] };
 let failed = 0;
+const GEO = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "../tests/fixtures/nominatim/venues.json"), "utf8")).queries;
 const report = (ok, name, detail) => { if (!ok) failed++; console.log(`${ok ? "PASS" : "FAIL"} ${name}: ${detail}`); };
 const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", " ") + "Z" : "—");
 
@@ -16,6 +17,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
   const go = async (opts, url, init) => {
     const ctx = await browser.newContext(opts); if (init) await ctx.addInitScript(init);
     await ctx.route(/script\.google\.com\/macros/, (r) => r.abort()); // automated checks never reach the real usage collector
+    await ctx.route(/nominatim\.openstreetmap\.org\/search/, (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(GEO[new URL(r.request().url()).searchParams.get("q")] || []) })); // captured real responses
     const p = await ctx.newPage(), errors = []; p.on("pageerror", (e) => errors.push(e.message));
     const res = await p.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
     let notice = 0;
@@ -200,8 +202,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     /* match 1: new venue TQL Stadium, its schedule saved as the venue default */
     await p.click("#upAdd"); await until(p, () => document.getElementById("editDlg").open, null, 10000);
     await p.fill("#fName", "FC Cincinnati vs. Test FC (check)"); await p.fill("#fVenue", "TQL Stadium");
-    const pick = await pickCity(p, "", "TQL Stadium, Cincinnati, OH", "#fCity"); await pick(); // built-in quick pick: no dependence on the city search service
-    await p.locator("#fNewVenue details summary").click(); await p.fill("#fLat", "39.1111"); await p.fill("#fLon", "-84.5222");
+    await p.fill("#fCity .vs-q", "TQL Stadium"); await p.click("#fCity .vs-go"); await until(p, () => document.querySelector("#fCity .vs-hit"), null, 20000); await p.click("#fCity .vs-hit");
     await setVal("#fDate", d1); await setVal("#fStart", "19:30"); await setVal("#fEnd", "21:30"); await setVal("#fSetup", "15:00"); await setVal("#fGates", "18:00"); await setVal("#fTear", "23:30"); await setVal("#fGust", "30");
     await p.click("#fSave"); await until(p, () => !document.getElementById("editDlg").open, null, 30000);
     /* match 2: the saved venue fills setup, gates and teardown; gates changed for this match only */
@@ -237,12 +238,13 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     const venue = { id: "vn_check", name: "TQL Stadium", city: "Cincinnati, OH", lat: 39.1111, lon: -84.5222, tz: "America/New_York", defaults: { setup: 270, gates: 90, teardown: 120, gust: 30 } };
     const { ctx, p, errors } = await go(PHONE, base + "event-beta.html#upcoming", `localStorage.setItem("beta_venues_v1", ${JSON.stringify(JSON.stringify([venue]))})`);
     const sent = []; await ctx.route(/script\.google\.com\/macros/, (r) => { sent.push(r.request().postData() || ""); r.abort(); });
+    await ctx.route(/nominatim\.openstreetmap\.org\/search/, (r) => { const q = new URL(r.request().url()).searchParams.get("q"); r.fulfill({ contentType: "application/json", body: JSON.stringify(q === "ScottsMiracle-Gro Field" ? GEO["Lower.com Field, Columbus, OH"] : []) }); });
     await until(p, () => document.querySelector("#upView:not([hidden]) #upImport"), null, 30000);
     const live = await p.evaluate(() => !!document.getElementById("upImport") && window.CalendarImport.googleAvailable());
     await p.click("#upImport"); await until(p, () => document.getElementById("ciSample"), null, 10000);
     const gate = await p.evaluate(() => ({ google: !!document.getElementById("ciGoogle"), note: document.getElementById("editForm").innerText }));
     await p.click("#ciSample"); await until(p, () => document.getElementById("ciNext"), null, 10000);
-    await p.click("#ciNext"); await until(p, () => document.getElementById("ciImport"), null, 10000);
+    await p.click("#ciNext"); await until(p, () => document.getElementById("ciImport") && document.getElementById("editForm").dataset.resolved === "true", null, 30000);
     const listed = await p.evaluate(() => [...document.querySelectorAll(".ci-ev")].map((e) => ({ t: e.innerText.replace(/\s+/g, " "), on: e.querySelector("[data-pick]").checked, sel: !!e.querySelector("select:not([hidden])") })));
     await p.screenshot({ path: `${out}/calendar-import-phone.png`, fullPage: false });
     await p.evaluate(() => { const r = [...document.querySelectorAll(".ci-ev")].find((e) => /Columbus/.test(e.innerText)); const c = r.querySelector("[data-pick]"); c.checked = true; c.dispatchEvent(new Event("change", { bubbles: true })); });
@@ -262,7 +264,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     /* confirm the unfamiliar location: Edit, search its city, save it as a venue */
     const vid = rows.find((r) => r.st === "venue").id;
     await p.click(`.up-ev[data-id="${vid}"] [data-edit]`); await until(p, () => document.getElementById("editDlg").open, null, 10000);
-    const pick = await pickCity(p, "Columbus", "Columbus, OH", "#fCity"); await pick();
+    await p.fill("#fCity .vs-q", "ScottsMiracle-Gro Field"); await p.click("#fCity .vs-go"); await until(p, () => document.querySelector("#fCity .vs-hit"), null, 20000); await p.click("#fCity .vs-hit");
     await p.fill("#fVenue", "Lower.com Field"); await p.click("#fSave");
     if (!(await until(p, () => !document.getElementById("editDlg").open, null, 30000))) console.log(`note: editor still open: "${await p.evaluate(() => document.getElementById("fErr").innerText)}" · lat ${await p.inputValue("#fLat")}`);
     await until(p, () => document.querySelector("#upView").dataset.ready === "true", null, 150000);
@@ -279,6 +281,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     const tqlV = { id: "vn_check", name: "TQL Stadium", city: "Cincinnati, OH", lat: 39.1111, lon: -84.5222, tz: "America/New_York", defaults: { setup: 270, gates: 90, teardown: 120, gust: 30 } };
     const colV = { id: "vn_col", name: "Columbus away venue", city: "Columbus, OH", lat: 39.9685, lon: -83.0171, tz: "America/New_York", defaults: { setup: 180, gates: 60, teardown: 90, gust: 25 } };
     const { ctx, p, errors } = await go(PHONE, base + "event-beta.html#upcoming", `localStorage.setItem("beta_venues_v1", ${JSON.stringify(JSON.stringify([tqlV, colV]))})`);
+    await ctx.route(/nominatim\.openstreetmap\.org\/search/, (r) => r.fulfill({ contentType: "application/json", body: "[]" })); // the away venue isn't on the map
     const openSample = async (shift) => {
       if (shift) await p.evaluate(() => { const CI = window.CalendarImport, orig = CI.__orig || CI.sampleProvider; CI.__orig = orig;
         CI.sampleProvider = () => { const sp = orig(); return { ...sp, listEvents: async (id, o) => (await sp.listEvents(id, o)).map((e) => (e.id !== "m1" ? e : { ...e, etag: '"m1-2"',
@@ -292,7 +295,8 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     /* first import: Sample FC (TQL) and the Columbus away match confirmed as Lower.com Field; Example United left unchecked */
     await openSample(false);
     await tick("Example United", false); await tick("Columbus", true);
-    await p.evaluate(() => { const row = [...document.querySelectorAll(".ci-ev")].find((e) => /Columbus/.test(e.innerText)); const s = row.querySelector("select"); s.value = "vn_col"; s.dispatchEvent(new Event("change", { bubbles: true })); });
+    await until(p, () => document.getElementById("editForm").dataset.resolved === "true", null, 30000);
+    await p.evaluate(() => { const row = [...document.querySelectorAll(".ci-ev")].find((e) => /Columbus/.test(e.innerText)); const s = row.querySelector("[data-saved]"); s.value = "vn_col"; s.dispatchEvent(new Event("change", { bubbles: true })); });
     await tick("Test City", false);
     await p.click("#ciImport"); await until(p, () => !document.getElementById("editDlg").open, null, 10000);
     const first = await stored(), note1 = await p.evaluate(() => document.getElementById("upNote").innerText);
@@ -368,6 +372,52 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     report(g1 && g1.tz === "America/New_York" && g1.start.endsWith("T20:20") && dayName === "Sun" && /Sun, .* 8:20 PM/.test(a.rows[0].when) && st.rows.some((t) => /Sun, .*8:20 PM/.test(t)),
       "calendar times: a Sunday 8:20 PM EST game returned in UTC (Monday 01:20Z) imports as Sunday 8:20 PM at the venue, before and after a refresh",
       `calendar ${g1 && g1.src} → venue ${g1 && g1.start} ${g1 && g1.tz} · list "${(st.rows[0] || "").slice(0, 70)}"`);
+    await ctx.close();
+  });
+  /* ---------- 13. venue search on import: name, address-only, same name in two cities, city-only; exact coordinates ---------- */
+  await section('13. venue search on calendar import (phone)', async () => {
+    const FIX = require("path").join(__dirname, "../tests/fixtures/nominatim/venues.json"), fix = JSON.parse(require("fs").readFileSync(FIX, "utf8")).queries;
+    const { ctx, p, errors } = await go(PHONE, base + "event-beta.html#upcoming");
+    let geo = 0; await ctx.route(/nominatim\.openstreetmap\.org\/search/, (r) => { geo++; const q = new URL(r.request().url()).searchParams.get("q"); r.fulfill({ contentType: "application/json", body: JSON.stringify(fix[q] || []) }); });
+    const fc = []; await ctx.route(/api\.open-meteo\.com\/v1\/forecast/, (r) => { const u = new URL(r.request().url()); fc.push([+u.searchParams.get("latitude"), +u.searchParams.get("longitude")]); r.continue(); });
+    await until(p, () => document.querySelector("#upView:not([hidden]) #upImport"), null, 30000);
+    const day = (n, hm) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10) + `T${hm}:00Z`;
+    const ev = (id, location, n) => ({ id, etag: `"${id}"`, status: "confirmed", summary: `${id} (check)`, location, start: { dateTime: day(n, "23:00") }, end: { dateTime: day(n + 1, "02:00") } });
+    const events = [ev("Riverbend concert", "Riverbend Music Center", 2), ev("Kellogg Ave event", "6295 Kellogg Ave, Cincinnati, OH 45230", 3), ev("Memorial Stadium game", "Memorial Stadium", 4), ev("Downtown meetup", "Cincinnati, OH", 5)];
+    await p.evaluate((evs) => { const CI = window.CalendarImport, orig = CI.__orig || CI.sampleProvider; CI.__orig = orig;
+      CI.sampleProvider = () => ({ kind: "sample", label: "check", listCalendars: async () => [{ id: "venues", summary: "Venues (check)", timeZone: "America/New_York" }], listEvents: async () => evs }); }, events.map((e) => ({ ...e, id: e.id.replace(/\s/g, "_") })));
+    const openImport = async () => { await p.click("#upImport"); await p.click("#ciSample"); await until(p, () => document.getElementById("ciNext"), null, 10000); await p.click("#ciNext"); await until(p, () => document.getElementById("ciImport") && document.getElementById("editForm").dataset.resolved === "true", null, 60000); };
+    const rows = () => p.evaluate(() => [...document.querySelectorAll(".ci-ev")].map((r) => ({ match: r.dataset.match, on: r.querySelector("[data-pick]").checked, text: r.querySelector(".ci-venue").innerText.replace(/\s+/g, " ") })));
+    await openImport();
+    const first = await rows(), geo1 = geo;
+    await p.screenshot({ path: `${out}/venue-search-import-phone.png`, fullPage: false });
+    const cands = await p.evaluate(() => [...document.querySelectorAll('.ci-ev[data-match="ambiguous"] .vs-hit')].map((b) => b.innerText.replace(/\s+/g, " ")));
+    await p.evaluate(() => [...document.querySelectorAll('.ci-ev[data-match="ambiguous"] .vs-hit')].find((b) => /Lincoln, NE/.test(b.innerText)).click());
+    await p.click("#ciImport"); await until(p, () => !document.getElementById("editDlg").open, null, 30000);
+    const note1 = await p.evaluate(() => document.getElementById("upNote").innerText);
+    const stored = await p.evaluate(() => ({ ev: JSON.parse(localStorage.getItem("beta_events_v2")).map((e) => ({ id: e.id, lat: e.loc.lat, lon: e.loc.lon, name: e.loc.name, tz: e.tz })), vn: JSON.parse(localStorage.getItem("beta_venues_v1")).map((v) => ({ name: v.name, lat: v.lat, lon: v.lon, address: v.address, aliases: v.aliases })) }));
+    const at = (id) => stored.ev.find((e) => e.id === `cal_${id.replace(/\s/g, "_")}`) || {};
+    const rv = at("Riverbend concert"), kv = at("Kellogg Ave event"), mv = at("Memorial Stadium game");
+    report(first.map((r) => r.match).join() === "found,found,ambiguous,unknown" && first[0].on && first[1].on && !first[2].on && !first[3].on && /Riverbend Music Center/.test(first[0].text) && /6295 Kellogg Ave, Cincinnati, OH 45230/.test(first[1].text)
+      && cands.length >= 4 && /only matches a city/.test(first[3].text) && !errors.length,
+      "venue search: an unfamiliar venue by name and an address-only event are found automatically; a shared name lists real candidates with addresses; a city-only match stays unconfirmed",
+      `${first.map((r) => `${r.match}${r.on ? "✓" : ""}: ${r.text.slice(0, 70)}`).join(" | ")} · candidates: ${cands.slice(0, 3).map((c) => c.slice(0, 45)).join(" / ")} · ${geo1} map searches`);
+    report(stored.ev.length === 3 && Math.abs(rv.lat - 39.0519) < 0.0002 && Math.abs(rv.lon + 84.4189) < 0.0002 && Math.abs(kv.lat - 39.0562) < 0.0002 && kv.name === "6295 Kellogg Ave" && Math.abs(mv.lat - 40.8207) < 0.0002 && Math.abs(mv.lon + 96.7048) < 0.0002 && mv.tz === "America/Chicago" && !stored.ev.some((e) => /Downtown/.test(e.id)) && /3 added/.test(note1),
+      "venue search: imported events sit at the venues' exact points (Memorial Stadium, Lincoln, NE on Central time); the city-only event was not imported",
+      `${stored.ev.map((e) => `${e.name} ${e.lat},${e.lon} ${e.tz}`).join(" | ")} · "${note1.trim().slice(0, 90)}"`);
+    /* re-import: every location now matches a saved venue; nothing asks, nothing is searched again */
+    await openImport();
+    const second = await rows(), geo2 = geo - geo1;
+    await p.click("#ciImport"); await until(p, () => !document.getElementById("editDlg").open, null, 30000);
+    const note2 = await p.evaluate(() => document.getElementById("upNote").innerText), count2 = await p.evaluate(() => JSON.parse(localStorage.getItem("beta_events_v2")).length);
+    report(second.slice(0, 3).every((r) => r.match === "matched" && r.on && /matched by name|matched by street address|confirmed before/.test(r.text)) && geo2 <= 1 && count2 === 3 && /0 added/.test(note2),
+      "venue search: re-importing updates the same events and recognises all three venues without asking again",
+      `${second.slice(0, 3).map((r) => r.text.slice(0, 60)).join(" | ")} · ${geo2} new map searches (city-only row only) · ${count2} events · "${note2.trim().slice(0, 80)}"`);
+    /* the briefing's forecast request uses the venue's exact coordinates */
+    fc.length = 0; await p.goto(base + `event-beta.html?ev=${encodeURIComponent("cal_Memorial_Stadium_game")}`, { waitUntil: "domcontentloaded" });
+    await until(p, () => document.body.dataset.readiness, null, 150000);
+    const used = fc.find(([la, lo]) => Math.abs(la - 40.8207) < 0.0003 && Math.abs(lo + 96.7048) < 0.0003);
+    report(!!used && !fc.some(([la]) => Math.abs(la - 40.8136) < 0.001), "venue search: the briefing's forecast is requested at the venue's exact point, not the city centre", `forecast requests at ${[...new Set(fc.map((x) => x.join(",")))].slice(0, 3).join(" ; ")}`);
     await ctx.close();
   });
   await section('7. analytics blocked or opted out: the betas work; nothing i', async () => {
