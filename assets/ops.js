@@ -114,9 +114,14 @@
     nav.setAttribute("aria-label", "Tools");
     let betaMenu = pageId === "betamenu"; try { betaMenu = betaMenu || sessionStorage.getItem("fo_beta_aud") === "met"; } catch (e) { /* no storage */ }
     const menuLink = () => shareUrl("meteorologist-beta.html");
+    const navHref = (p) => (p.id === "maps" ? p.href : shareUrl(p.href)); // the HRRR map is Tri-State only: no point to carry
     nav.innerHTML = (betaMenu ? `<a href="${esc(menuLink())}" id="betaMenuLink"${pageId === "betamenu" ? ' aria-current="page"' : ""}>${icon("grid")}MENU</a>` : "") + PAGES.filter((p) => !betaMenu || p.id !== "home").map((p) =>
-      `<a href="${p.href}"${p.id === pageId ? ' aria-current="page"' : ""}>${icon(p.icon)}${p.label}</a>`).join("");
-    if (betaMenu) locListeners.push(() => { const a = document.getElementById("betaMenuLink"); if (a) a.href = menuLink(); });
+      `<a href="${esc(navHref(p))}" data-nav="${p.id}"${p.id === pageId ? ' aria-current="page"' : ""}>${icon(p.icon)}${p.label}</a>`).join("");
+    /* every way into a tool carries the selected point, so a copied nav link opens the same place for anyone */
+    locListeners.push(() => {
+      const a = document.getElementById("betaMenuLink"); if (a) a.href = menuLink();
+      PAGES.forEach((p) => { const el = nav.querySelector(`[data-nav="${p.id}"]`); if (el) el.href = navHref(p); });
+    });
     const alerts = document.createElement("div");
     alerts.id = "alerts";
     alerts.className = "alerts";

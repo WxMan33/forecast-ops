@@ -60,6 +60,9 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     await until(p, () => document.getElementById("siteName") && /CHARLESTON/.test(document.getElementById("siteName").innerText), null, 30000); await p.waitForTimeout(2500);
     const b = await p.evaluate(() => ({ site: document.getElementById("siteName").innerText, sub: document.getElementById("siteSub").innerText, menu: !!document.getElementById("betaMenuLink") }));
     report(/CHARLESTON/.test(b.site) && b.menu, `menu ${dev}: Model Blend opens for Charleston with a MENU link`, `${b.site} ${b.sub} · MENU ${b.menu}`);
+    const nav = await p.evaluate(() => [...document.querySelectorAll(".navbar a[data-nav]")].map((a) => ({ id: a.dataset.nav, q: new URL(a.href).searchParams.get("name") })));
+    const navOk = nav.length && nav.every((x) => (x.id === "maps" ? !x.q : x.q === "Charleston, WV"));
+    report(navOk, `menu ${dev}: top navigation links carry Charleston (Maps stays Tri-State)`, nav.map((x) => `${x.id}:${x.q || "—"}`).join(" "));
     if (dev === "phone") await p.screenshot({ path: `${out}/blend-charleston-phone.png` });
     await Promise.all([p.waitForNavigation({ waitUntil: "domcontentloaded" }), p.click("#betaMenuLink")]); await menuReady(p, "Charleston");
     const d2 = await p.evaluate(() => ({ ...document.body.dataset, ph: document.querySelector(".bx-ppin").placeholder }));
