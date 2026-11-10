@@ -131,7 +131,7 @@
     const foot = document.createElement("footer");
     foot.className = "foot";
     /* beta preview builds (served from the preview host) carry no verification links */
-    const preview = /(^|\.)githack\.com$/.test(location.hostname);
+    const preview = /(^|\.)githack\.com$|(^|\.)forecast-ops-beta\.pages\.dev$/.test(location.hostname); // beta preview hosts: no private verification links
     foot.innerHTML = `<div class="foot-top"><span class="foot-brand">${esc(BRAND.name)}${preview ? " · beta preview" : ""}</span><div class="foot-links">${preview ? '<a href="meteorologist-beta.html">Meteorologist beta</a><a href="event-beta.html">Event beta</a>' : '<a href="verify.html">CVG verification</a><a href="#" id="verifyExport">Export forecast &amp; observation logs</a>'}</div></div>
       <p class="foot-attribution">Built by ${BRAND.contact ? `<a href="${esc(BRAND.contact)}">${esc(BRAND.owner)}</a>` : esc(BRAND.owner)} · Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0) · Alerts from <a href="https://www.weather.gov/" target="_blank" rel="noopener">NWS</a></p>
       <p class="foot-disclaimer">Model guidance only. Not an official forecast or warning. NWS is one weighted source in Model Blend; elsewhere NWS values are labelled NWS and shown alongside.</p>`;

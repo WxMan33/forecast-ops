@@ -60,7 +60,10 @@ saved venue right there or left as **Venue needs confirmation** (no briefing unt
 Importing again updates events in place: the calendar's name and start/end win, a confirmed venue and the
 planner's own times are kept (an override keeps its offset from the start). All-day items are skipped.
 
-- **On this preview link only the sample calendar is offered** (synthetic demo data). Google sign-in is off here and
+- **Live Google Calendar import:** https://forecast-ops-beta.pages.dev/event-beta.html#upcoming (Cloudflare Pages,
+  `beta-previews` branch). OAuth client ID set in `assets/beta-config.js`, authorized for that exact origin only;
+  testers must be listed under Google Auth Platform → Audience → Test users while the app is in testing.
+- **On the Githack preview link only the sample calendar is offered** (synthetic demo data). Google sign-in is off here and
   is only enabled when `BETA_CALENDAR.clientId` is set and the page is served from an origin listed in
   `BETA_CALENDAR.origins` (never raw.githack.com).
 - **Live Google Calendar** (on the dedicated beta origin): Google Identity Services token client, scopes

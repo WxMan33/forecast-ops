@@ -30,6 +30,7 @@ function client({ page = "meteorologist-beta.html", endpoint = "https://collecto
 { const c = client({ gpc: true }); c.A.track("timeline_used"); c.A.flush(); eq(c.sent.length, 0, "Global Privacy Control: nothing is sent"); }
 { const c = client({ search: "?internal=1" }); c.A.track("sample_opened"); c.A.flush(); eq(c.rows()[0].int, 1, "?internal=1 marks this browser as internal testing"); }
 { const c = client({ page: "event-beta.html" }); c.A.track("sample_opened"); c.A.flush(); eq(c.rows()[1].aud, "event", "event beta audience"); }
+{ const c = client({ page: "event-beta" }); c.A.track("sample_opened"); c.A.flush(); eq(c.rows()[1].aud, "event", "event beta audience without .html (Cloudflare Pages pretty URL)"); }
 
 /* ---------- report ---------- */
 eq(R.validate({ v: 1, aud: "met", type: "city_selected", b: "abcdef0123", s: "0123abcdef", n: 1, t: "2026-11-10T14:00Z", c: { market: "elsewhere", name: "Jane", venue: "Red Rocks" } }).c, { market: "elsewhere" }, "collector drops anything not on the allow-list");

@@ -45,3 +45,27 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "Beta preview screenshots [skip ci]"
           for i in 1 2 3; do git pull --rebase --autostash -q origin "$GITHUB_REF_NAME" && git push && exit 0; sleep 5; done; exit 1
+
+  # The dedicated Google Calendar beta origin (Cloudflare Pages builds the beta-previews branch on its own).
+  pages:
+    name: Cloudflare Pages calendar origin
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PAGES: https://forecast-ops-beta.pages.dev/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install --no-save playwright@1.48.2 && npx playwright install --with-deps chromium
+      - name: Wait until Cloudflare serves this commit
+        run: |
+          for i in $(seq 1 36); do
+            stale=""
+            for f in event-beta.html assets/beta-config.js assets/calendar-import.js assets/beta-analytics.js assets/ops.js; do [ "$(curl -fsSL "${PAGES}$f" | sha256sum | cut -c1-16)" = "$(sha256sum "$f" | cut -c1-16)" ] || stale="$stale $f"; done
+            if [ -z "$stale" ]; then echo "Cloudflare Pages current"; exit 0; fi
+            echo "waiting for:$stale"; sleep 30
+          done
+          echo "::error::Cloudflare Pages did not serve this commit within 18 minutes:$stale"; exit 1
+      - name: Live calendar origin check (no sign-in)
+        run: mkdir -p docs/beta/screens && node tools/pages-check.js "$PAGES" docs/beta/screens

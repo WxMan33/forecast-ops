@@ -23,7 +23,8 @@
   const clean = (c) => { const o = {}; Object.entries(c || {}).forEach(([k, v]) => { if (CTX[k] && CTX[k].includes(v)) o[k] = v; else if (k === "n" && Number.isInteger(v) && v >= 0 && v < 100) o.n = v; }); return o; };
 
   /* ---- who: random browser ID (approximate returning browsers), 30-minute sessions ---- */
-  const page = (root.location && root.location.pathname.split("/").pop()) || "";
+  /* the page name with or without ".html" (Cloudflare Pages serves /event-beta for event-beta.html) */
+  const page = (((root.location && root.location.pathname.split("/").pop()) || "").replace(/\.html$/, "") || "index") + ".html";
   const AUD = page === "meteorologist-beta.html" ? "met" : page === "event-beta.html" ? "event" : get(SS, "fo_beta_aud");
   if (page === "meteorologist-beta.html" || page === "event-beta.html") set(SS, "fo_beta_aud", AUD);
   const q = (() => { try { return new URLSearchParams(root.location.search); } catch (e) { return new URLSearchParams(); } })();
