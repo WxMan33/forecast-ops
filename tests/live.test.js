@@ -29,11 +29,54 @@ const EXCEPT = {
   "blend:ecmwf_aifs025_single": ["wind_gusts_10m"],
   "blend:jma_seamless": ["wind_gusts_10m"],
 };
-function usable(group, data) {
+/* Upstream-sparse fields (diagnosed Nov 2026 from raw responses): Open-Meteo's GEM CAPE is null, not 0, through
+   long stable stretches (Denver and Phoenix had 0-6 of 72 hours while GFS, ECMWF and ICON reported 0 J/kg; Houston
+   had gaps between convective hours). The hour count says nothing about our code, so these fields get a stricter
+   check instead: every hour must match the raw response exactly (missing stays missing, never zero), and the
+   thunder/severe math must treat each missing hour as missing (out of the blend, CAPE listed as missing, severe
+   "nodata"). checkSparse() below runs it; coverage is logged and saved in the summary. */
+const SPARSE = { "thunder:gem_seamless": ["cape"], "severe:gem_seamless": ["cape"] };
+/* raw Open-Meteo responses as the loader received them, keyed "<models>|<hourly>", for the sparse-field check */
+const RAW = {};
+{ const real = globalThis.fetch;
+  globalThis.fetch = async (url, opt) => { const res = await real(url, opt); const u = String(url);
+    if (/open-meteo\.com\/v1\/forecast/.test(u)) { try { const q = new URL(u).searchParams; RAW[`${q.get("models")}|${q.get("hourly")}`] = await res.clone().json(); } catch (e) { /* not JSON: the loader reports it */ } }
+    return res; }; }
+/* the response for this spec: requested variables all belong to the spec (the loader may have dropped unsupported ones) */
+const rawFor = (spec, id) => { const own = new Set([...spec.hourly, ...((spec.extraHourly || {})[id] || [])]);
+  return Object.entries(RAW).filter(([k]) => k.split("|")[0] === id && k.split("|")[1].split(",").every((v) => own.has(v))).map(([, j]) => j).pop(); };
+const coverage = {};
+function checkSparse(group, spec, data, id, v) {
+  const raw = rawFor(spec, id), md = data.models[id], label = `${group} ${id}: ${v}`;
+  if (!raw || !raw.hourly) { ok(false, `${label}: raw response captured for the sparse-field check`); return; }
+  const key = Object.keys(raw.hourly).find((k) => k === v || (k.startsWith(v + "_") && !/_member\d+/.test(k)));
+  const at = new Map(raw.hourly.time.map((t, i) => [t, key ? raw.hourly[key][i] : null]));
+  const got = md.h[v] || [], bad = [];
+  data.times.forEach((t, i) => { const r = at.has(t) ? at.get(t) : null, g = got[i] == null ? null : got[i]; if (!(r === g || (r != null && g != null && Math.abs(r - g) < 1e-9))) bad.push(`${t}: raw ${r} loaded ${g}`); });
+  const n = finite(got).length; (coverage[group] = coverage[group] || {})[id] = `${n}/${data.times.length}`;
+  console.log(`    ${label} upstream coverage ${n}/${data.times.length} h (documented sparse field; checked hour by hour against the raw response)`);
+  ok(!bad.length, `${label}: every hour matches the raw response, missing stays missing (${bad.length} mismatches${bad.length ? ": " + bad.slice(0, 3).join("; ") : ""})`);
+}
+/* Missing CAPE from one model must stay missing in the math: out of the hourly blend, listed as missing, never an all-clear. */
+function checkMissingCape(group, data, id, out) {
+  const h = data.models[id].h, gaps = data.times.map((_, i) => i).filter((i) => h.cape[i] == null);
+  if (!gaps.length) return;
+  if (group === "thunder") {
+    const others = (i) => out.ids.filter((x) => x !== id && data.models[x].h.cape && data.models[x].h.cape[i] != null && isFinite(data.models[x].h.cape[i])).length;
+    ok(gaps.every((i) => out.cape.count[i] === others(i)), `thunder ${id}: hours without CAPE are left out of the CAPE blend (${gaps.length} h)`);
+    ok(gaps.every((i) => out.perModel[id][i].limited && out.perModel[id][i].missing.includes("CAPE")), `thunder ${id}: hours without CAPE are flagged limited with CAPE missing (${gaps.length} h)`);
+  } else {
+    const ser = C.severe.series(h, data.times.length, data.models[id].elev);
+    ok(gaps.every((i) => ser.cape[i] == null && ser.stp[i] == null && ser.scp[i] == null), `severe ${id}: hours without CAPE keep CAPE, STP and SCP missing (${gaps.length} h)`);
+    ok(gaps.every((i) => C.severe.assess(Object.fromEntries(Object.keys(ser).map((k) => [k, ser[k][i]]))).tier === "nodata"), `severe ${id}: hours without CAPE assess as no data, not normal (${gaps.length} h)`);
+  }
+}
+function usable(group, data, spec) {
   Object.keys(data.models).forEach((id) => {
     const skip = EXCEPT[`${group}:${id}`] || [];
     EXPECT[group].forEach((v) => {
       if (skip.includes(v)) return;
+      if ((SPARSE[`${group}:${id}`] || []).includes(v)) { checkSparse(group, spec, data, id, v); return; }
       const n = finite(data.models[id].h[v] || []).length;
       ok(n >= 24, `${group} ${id}: ${v} has usable values (${n} of ${data.times.length} hours)`);
     });
@@ -63,7 +106,7 @@ const providerDown = (what, cond, why) => { if (!cond) return false; skips++; co
     ok(B.times.every((t, i) => t === C.time.toLocal(B.ms[i], B.tz)), "blend: shown labels are true local time from real instants");
     bOk.forEach((id) => ok(between(B.models[id].h.temperature_2m, -60, 125), `blend ${id}: temperatures in °F range`));
     bOk.filter((id) => !(EXCEPT[`blend:${id}`] || []).includes("wind_gusts_10m")).forEach((id) => ok(between(B.models[id].h.wind_gusts_10m || [], 0, 200), `blend ${id}: gusts in mph range`));
-    usable("blend", B);
+    usable("blend", B, C.config.blend);
     const rows = C.blend.dailyRows(B, C.config.defaultWeights(C.config.blend));
     ok(rows.length >= 3, "blend: at least 3 daily rows");
     ok(rows.every((r) => r.hi == null || r.lo == null || r.hi >= r.lo), "blend: daily high >= low");
@@ -93,8 +136,9 @@ const providerDown = (what, cond, why) => { if (!cond) return false; skips++; co
     const tws = C.config.defaultWeights(C.config.thunder);
     console.log(`  thunder: ${Object.keys(T.models).length} models ok · problems: ${T.problems.join(" | ") || "none"}`);
     ok(Object.keys(T.models).length >= 3, "thunder: at least 3 models");
-    usable("thunder", T);
+    usable("thunder", T, C.config.thunder);
     const TH = C.thunder.hourly(T, tws);
+    TH.ids.forEach((id) => checkMissingCape("thunder", T, id, TH));
     ok(TH.assess.length === T.times.length, "thunder: one assessment per hour");
     ok(between(TH.cape.mean, -50, 8000), `thunder: CAPE in J/kg range (blend ${range(TH.cape.mean)}; ${TH.ids.map((id) => `${id} ${range(T.models[id].h.cape)}`).join("; ")})`);
     ok(TH.assess.every((a) => C.TIERS[a.tier] && typeof a.limited === "boolean"), "thunder: assessments well formed");
@@ -105,7 +149,8 @@ const providerDown = (what, cond, why) => { if (!cond) return false; skips++; co
     const sIds = Object.keys(Sv.models);
     console.log(`  severe: ${sIds.length} models ok · problems: ${Sv.problems.join(" | ") || "none"}`);
     rec.severe = {};
-    usable("severe", Sv);
+    usable("severe", Sv, C.config.severe);
+    sIds.forEach((id) => checkMissingCape("severe", Sv, id));
     sIds.forEach((id) => {
       const md = Sv.models[id], ser = C.severe.series(md.h, Sv.times.length, md.elev);
       const bs6 = finite(ser.bs6), srh1 = finite(ser.srh1);
@@ -175,6 +220,7 @@ const providerDown = (what, cond, why) => { if (!cond) return false; skips++; co
       ["ncep_nbm_conus"].filter((id) => WD.models[id]).forEach((id) => ok(WD.times.every((_, i) => C.winter.profile(WD.models[id].h, i, WD.models[id].elev).length <= 1), `winter ${id}: no profile, as documented`));
     }
 
+    rec.sparseCoverage = JSON.parse(JSON.stringify(coverage)); Object.keys(coverage).forEach((k) => delete coverage[k]);
     out.places.push(rec);
   }
   /* Time changes: Open-Meteo labels a response with ONE fixed offset. The event code relies on this
