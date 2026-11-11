@@ -90,7 +90,7 @@ with sync_playwright() as p:
  context.route('**/*',lambda r:r.fulfill(status=200,content_type='application/json',body=iss_fixture) if '/feeds/iss-cincinnati.json' in r.request.url else r.continue_() if r.request.url.startswith('http://127.0.0.1:') else r.fulfill(status=503,content_type='application/json',body='{"error":"synthetic outage"}'))
  page.evaluate('Object.keys(localStorage).filter(k=>k.startsWith("alm:")).forEach(k=>localStorage.removeItem(k))')
  page.reload();page.locator('.climo-table').wait_for()
- assert page.locator('[data-climo-row="maxt"] [data-label="Observed"]').inner_text()=='—'
+ assert page.locator('[data-climo-row="maxt"] [data-label="Observed"] .climo-missing').inner_text()=='—'
  assert 'unavailable' in page.locator('#climCard').inner_text()
  page.locator('.iss-pass').first.wait_for()
  assert 'unavailable' not in page.locator('#skyCard').inner_text(),'fresh same-origin fallback survives a remote-source outage'
