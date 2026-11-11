@@ -47,4 +47,34 @@ eq(future.sections[0].rows[0].observed.value,null,'future reference does not inv
 eq(future.sections[1].rows[1].observed.value,null,'future reference cannot show a period total');
 const accum=structuredClone(obs);accum.find(r=>r[0]==='2026-11-03')[3]='1.00A';
 eq(R.build(A,{date:'2026-11-03',observations:accum,normals}).sections[1].rows[0].observed.value,null,'accumulated multi-day amount is not a daily value');
+
+/* ---------- the selected date drives the sheet: past, today (in progress), future, boundaries ---------- */
+{
+  const series = [], norms = [];
+  for (let d = '2025-01-01'; d <= '2026-03-05'; d = A.addDays(d, 1)) { series.push([d, '50', '30', '0.10', '0.0', '0']); norms.push([d, '45', '28', '0.12', '0.1']); }
+  const r = (b) => (id) => b.sections.flatMap(x => x.rows).find(x => x.id === id);
+  /* past date: that exact day, totals through it */
+  const past = R.build(A, { date: '2026-03-04', observations: series, normals: norms, status: 'observed', cutoff: '2026-03-04' });
+  eq([r(past)('maxt').observed.value, r(past)('pcpn-mtd').to, r(past)('pcpn-mtd').partial, r(past)('pcpn-mtd').observed.value], [50, '2026-03-04', false, 0.4], 'past date: its own observations; month total through that date');
+  /* today in progress: today's values pending, totals labelled through yesterday with matching normals */
+  const tod = series.filter(x => x[0] < '2026-03-05').concat([['2026-03-05', '52', 'M', 'M', 'M', 'M']]);
+  const t = R.build(A, { date: '2026-03-05', observations: tod, normals: norms, status: 'today', cutoff: '2026-03-04' });
+  eq([r(t)('maxt').observed.value, r(t)('mint').observed.reason, r(t)('avgt').observed.reason], [52, 'Pending: not reported yet', 'Pending: not reported yet'], "today: reported values shown, missing ones pending");
+  eq([r(t)('pcpn-mtd').to, r(t)('pcpn-mtd').partial, r(t)('pcpn-mtd').observed.value, r(t)('pcpn-mtd').normal.value], ['2026-03-04', true, 0.4, 0.48], 'today: month total through yesterday, labelled partial, normal over the same days');
+  eq(r(t)('maxt').normal.value, 45, "today: normals and records are today's");
+  /* future: reference values; observations pending */
+  const fut = R.build(A, { date: '2026-03-20', observations: series, normals: norms.concat([['2026-03-20', '55', '35', '0.13', '0.0']]), status: 'future' });
+  eq([r(fut)('maxt').observed.reason, r(fut)('maxt').normal.value, r(fut)('pcpn-mtd').observed.reason, r(fut)('pcpn-mtd').to], ['Pending: future date', 55, 'Pending: future date', '2026-03-20'], 'future: normals shown, observations and totals pending');
+  /* month / year boundary: Jan 1 today, cutoff Dec 31 - month and year totals have no complete day yet */
+  const jan = R.build(A, { date: '2026-01-01', observations: series.filter(x => x[0] < '2026-01-01'), normals: norms, status: 'today', cutoff: '2025-12-31' });
+  eq([r(jan)('pcpn-mtd').observed.reason, r(jan)('pcpn-ytd').observed.reason, r(jan)('pcpn-std').to, r(jan)('pcpn-std').partial], ['Pending: no complete day since Jan 1', 'Pending: no complete day since Jan 1', '2025-12-31', true], 'year boundary: Jan totals pending, winter season-to-date through Dec 31');
+  /* past date whose newest day is not reported yet: totals stop at the last reported day and say so */
+  const lag = R.build(A, { date: '2026-03-04', observations: series.filter(x => x[0] < '2026-03-04'), normals: norms, status: 'observed', cutoff: '2026-03-03', pending: true });
+  eq([r(lag)('maxt').observed.reason, r(lag)('pcpn-mtd').to, r(lag)('pcpn-mtd').partial], ['Pending: not reported yet', '2026-03-03', true], 'recent day not in the feed yet: pending, totals through the last reported day');
+  /* Feb 29: leap day uses its own normals; last year has no matching date */
+  const leapObs = [], leapNorm = [];
+  for (let d = '2027-02-01'; d <= '2028-03-01'; d = A.addDays(d, 1)) { leapObs.push([d, '40', '20', '0.05', '0.2', '1']); leapNorm.push([d, '41', '24', '0.10', '0.2']); }
+  const leap = R.build(A, { date: '2028-02-29', observations: leapObs, normals: leapNorm, status: 'observed', cutoff: '2028-02-29' });
+  eq([r(leap)('maxt').observed.value, leap.previousDate, r(leap)('maxt').lastYear.value, r(leap)('pcpn-mtd').to], [40, null, null, '2028-02-29'], 'Feb 29: its own day, no invented last-year date, month total through Feb 29');
+}
 console.log(`${n} climate-sheet checks pass`);

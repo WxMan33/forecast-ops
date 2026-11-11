@@ -32,10 +32,11 @@ with sync_playwright() as p:
    r.fulfill(status=200,content_type='application/json',body=json.dumps(fixture(name)))
   else:r.fulfill(status=404,content_type='application/json',body='{}')
  context.route('**/*',route)
- page.goto(f'http://127.0.0.1:{server.server_port}/almanac.html?date=2026-11-03')
+ page.goto(f'http://127.0.0.1:{server.server_port}/almanac.html?date=2026-11-02')
  page.locator('[data-climo-row="maxt"]').wait_for()
  assert page.locator('#loadGuard').count()==0,errors
  assert 'Nov 2, 2026' in page.locator('.climo-title').inner_text()
+ assert 'Monday, November 2, 2026' in page.locator('#sheetTitle').inner_text()
  assert page.locator('[data-climo-row="maxt"] [data-label="Observed"]').inner_text()=='60'
  assert page.locator('[data-climo-row="maxt"] [data-label="Normal"]').inner_text()=='60'
  assert page.locator('[data-climo-row="maxt"] [data-label="Departure"]').inner_text()=='0'
@@ -59,6 +60,13 @@ with sync_playwright() as p:
   page.screenshot(path=str(out/f'climo-dark-{width}.png'),full_page=True)
  page.locator('#themeBtn').click()
  page.screenshot(path=str(out/'climo-light-desktop.png'),full_page=True)
+ # The selected day keeps its own climate references even when observations are pending.
+ page.locator('#almDate').fill('2026-11-03');page.locator('#almDate').press('Tab')
+ page.wait_for_function('document.querySelector(".climo-title").textContent.includes("Nov 3, 2026")')
+ assert 'Tuesday, November 3, 2026' in page.locator('#sheetTitle').inner_text()
+ assert 'Pending' in page.locator('[data-climo-row="maxt"] [data-label="Observed"]').inner_text()
+ assert page.locator('.climo-context').get_attribute('data-cutoff')=='2026-11-02'
+ assert 'Nov 2, 2026' in page.locator('[data-climo-row="pcpn-mtd"] th').inner_text()
  # Date changes drive both the astronomy panel and the existing climate sheet.
  page.locator('#almDate').fill('2026-11-05');page.locator('#almDate').press('Tab')
  page.wait_for_function('document.querySelector("#skyCard").textContent.includes("Thu, Nov 5")')
