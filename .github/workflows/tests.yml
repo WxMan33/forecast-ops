@@ -29,6 +29,7 @@ jobs:
       - run: node tests/fixtures.test.js
       - run: node verify/tests/verify.test.js
       - run: node tests/almanac.test.js
+      - run: node tests/weather-history.test.js
       - run: node tests/rrfs.test.js
       - run: node tests/verify-dashboard.test.js
       - run: node tests/precip.test.js
@@ -113,6 +114,7 @@ jobs:
           python-version: '3.12'
       - run: pip install playwright
       - run: python -m playwright install --with-deps chromium
+      - run: node tools/weather-history-check.js
       - run: python tests/verify-browser.py
       - run: python tests/forecast-focus-browser.py
       - run: python tests/climate-report-browser.py
@@ -122,6 +124,7 @@ jobs:
         with:
           name: dashboard-browser
           path: |
+            tests/out/history-*.png
             tests/out/dashboard-*.png
             tests/out/focus-*.png
             tests/out/climo-*.png
