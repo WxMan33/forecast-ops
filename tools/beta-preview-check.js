@@ -119,6 +119,21 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
   });
 
   /* ---------- 5. event beta: page loads, Cincinnati map/timeline sync, first screen, out-of-range map ---------- */
+  /* ---------- 3b. Almanac: the selected date drives the climate report (viewer in another time zone) ---------- */
+  await section('3b. Almanac date agreement', async () => {
+    const out3 = [];
+    for (const [q, label] of [["lat=39.0446&lon=-84.6723&name=CVG%20airport%2C%20Cincinnati%2FNorthern%20Kentucky", "Cincinnati"], ["lat=39.7392&lon=-104.9903&name=Denver%2C%20CO", "Denver"]]) {
+      for (const date of ["", "2026-01-01", "2024-02-29"]) {
+        const { ctx, p, errors } = await go({ ...DESK, timezoneId: "Asia/Tokyo" }, base + `almanac.html?${q}${date ? `&date=${date}` : ""}`);
+        await until(p, () => document.querySelector("#climCard .climo-title") && document.querySelector("#factCard .wngrid, #factCard .msg"), null, 120000);
+        const r = await p.evaluate(() => ({ sel: document.getElementById("almDate").value, head: document.getElementById("sheetTitle").innerText, h2: (document.querySelector("#climCard h2") || {}).innerText || "", cutoff: (document.querySelector("#climCard .climo-context") || { dataset: {} }).dataset.cutoff, tag: (document.querySelector("#climCard .climo-tag") || {}).innerText }));
+        const d = new Date(r.sel + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" });
+        out3.push({ ok: r.h2.endsWith(d) && r.head.includes(new Date(r.sel + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", month: "long", day: "numeric" })) && r.cutoff <= r.sel && !errors.length, txt: `${label} ${date || "today"}: ${r.head} / ${r.h2} / ${r.tag} / totals through ${r.cutoff}` });
+        await ctx.close();
+      }
+    }
+    report(out3.every((x) => x.ok), "Almanac: heading, climate report date and totals cutoff agree (viewer in Tokyo; today, Jan 1, Feb 29; Cincinnati and Denver)", out3.map((x) => x.txt).join(" | "));
+  });
   await section('5. event beta: page loads, Cincinnati map/timeline sync, fir', async () => {
   for (const [dev, opts] of [["desktop", DESK], ["phone", PHONE]]) {
     const { ctx, p, errors, status, notice } = await go(opts, base + "event-beta.html"); await eventReady(p, "Sawyer");
