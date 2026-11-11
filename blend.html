@@ -27,6 +27,7 @@
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/ops.css?v=4d803a5167">
 <link rel="stylesheet" href="assets/impact-flags.css?v=159b17c117">
+<link rel="stylesheet" href="assets/hourly-grid.css?v=e606a878bd">
 <link rel="stylesheet" href="assets/forecast-focus.css?v=f2e3aeb03b">
 </head>
 <body class="forecast-focus">
@@ -81,6 +82,20 @@
       </details>
     </section>
 
+    <section class="card" id="hourlyCard" aria-labelledby="hgTitle">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:8px">
+        <div class="section-title" id="hgTitle" style="margin:0;flex:1 1 auto">Hourly forecast</div>
+        <div class="tabs" id="hgRange" role="tablist" aria-label="Hours to show" style="margin:0;flex:0 0 auto"></div>
+      </div>
+      <div class="hg-controls hg-custom" id="hgCustom" hidden>
+        <label>From <input type="datetime-local" id="hgFrom" step="3600"></label><label>To <input type="datetime-local" id="hgTo" step="3600"></label>
+        <button class="btn ghost sm" id="hgApply" type="button">SHOW HOURS</button><span class="msg" id="hgErr" role="alert"></span>
+      </div>
+      <p class="section-sub" id="hgSub"></p>
+      <div id="hgGrid"></div><div id="hgLegend"></div>
+      <div id="hgDetail" class="hg-detail" hidden aria-live="polite"></div>
+    </section>
+
     <section class="card" id="forecastChartCard">
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
         <div class="section-title" id="chartTitle" style="margin:0;flex:1 1 auto">Temperature</div>
@@ -113,7 +128,7 @@
 </main>
 
 <script src="assets/vendor/chart.umd-4.4.1.js?v=74401d738d"></script>
-<script src="assets/ops-core.js?v=737773bf4d"></script>
+<script src="assets/ops-core.js?v=51da40cf5f"></script>
 <script src="assets/ops-data.js?v=457e2eb9ec"></script>
 <script src="assets/ops.js?v=164a58c5bf"></script>
 <script src="assets/model-trends.js?v=20f2fb637c"></script>
@@ -127,7 +142,10 @@
 <script src="assets/airport-visibility.js?v=d57436f48d"></script>
 <script src="assets/impact-flags.js?v=12771805a4"></script>
 <script src="assets/next48-heads-up.js?v=bfc0cd8a49"></script>
-<script src="assets/blend.js?v=1e615a9df8"></script>
+<script src="assets/hourly-model.js?v=ac5cf11d13"></script>
+<script src="assets/hourly-views.js?v=5fcb8ba9f8"></script>
+<script src="assets/hourly-grid.js?v=e31ea1ab75"></script>
+<script src="assets/blend.js?v=73e51ae6f0"></script>
 <script src="assets/beta-config.js?v=b700775810"></script>
 <script src="assets/beta-analytics.js?v=2fe1a4634a"></script>
 </body>

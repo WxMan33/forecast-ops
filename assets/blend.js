@@ -243,6 +243,7 @@
       wrap.setAttribute("aria-label", "Detailed forecast table. Scroll horizontally for additional columns.");
     });
     renderChart();
+    renderHourly();
     focus.update(data, { record: fresh, names: NAMES, rows: data.rows, ctx: { weights: W(), rules: R() } });
     if (fresh) { logRecords(); fresh = false; }
   }
@@ -572,6 +573,37 @@
       (!t.accum && ms.length > 1 ? `<span><i class="sw" style="background:var(--band);height:10px"></i>Source range (min–max; ensembles as member means)</span>` : "") +
       (nwsNote ? `<span><i class="sw" style="background:repeating-linear-gradient(90deg,${NWS_COLOR()} 0 6px,transparent 6px 9px);height:3px"></i>NWS ${wv("nws", t.v) > 0 ? (t.accum ? "(interval totals; in daily and phase totals, not the hourly line)" : `(in blend ×${wv("nws", t.v)})`) : "(comparison only for this field)"}</span>` : (data.nwsAxis ? "" : "<span>NWS unavailable</span>")) +
       (ms.length ? `<span>${nMin === nMax ? `${nMax} sources` : `${nMin}–${nMax} sources, varies by hour`}</span>` : "<span>None of the checked sources carry this field here.</span>");
+  }
+
+  /* ---------- hourly forecast: the shared hourly grid over the blend's own hourly values ---------- */
+  const HG_RANGES = [["24", "24 H"], ["48", "48 H"], ["72", "72 H"], ["custom", "CUSTOM"]];
+  let hgRange = O.store.get("ops_blend_hg_range", "24"), hgCustom = null, hgSel = null;
+  if (!HG_RANGES.some(([k]) => k === hgRange)) hgRange = "24";
+  const wallOf = (ms) => C.time.toLocal(ms, data.tz); // "YYYY-MM-DDTHH:MM" in the forecast point's zone, for datetime-local
+  mkTabs($("hgRange"), HG_RANGES, hgRange, (id) => { hgRange = id; O.store.set("ops_blend_hg_range", id); $("hgCustom").hidden = id !== "custom"; if (id === "custom" && data && !hgCustom) seedCustom(); renderHourly(); });
+  $("hgCustom").hidden = hgRange !== "custom";
+  function seedCustom() { const s = Math.floor(Date.now() / 3600e3) * 3600e3; $("hgFrom").value = wallOf(s); $("hgTo").value = wallOf(s + 24 * 3600e3); hgCustom = { s, e: s + 24 * 3600e3 }; }
+  $("hgApply").addEventListener("click", () => {
+    if (!data) return;
+    const f = $("hgFrom").value, t = $("hgTo").value, err = (m) => { $("hgErr").textContent = m; };
+    if (!f || !t) return err("Choose a start and an end.");
+    const s = C.time.toUtc(f.slice(0, 16), data.tz), e = C.time.toUtc(t.slice(0, 16), data.tz);
+    if (!(e > s)) return err("The end must be after the start.");
+    if (e - s > 14 * 864e5) return err("Choose 14 days or less.");
+    err(""); hgCustom = { s, e }; renderHourly();
+  });
+  function renderHourly() {
+    if (!data) { $("hgGrid").innerHTML = '<p class="msg">Fetch models to load the hourly forecast.</p>'; $("hgLegend").innerHTML = ""; $("hgDetail").hidden = true; $("hgSub").textContent = ""; return; }
+    if (hgRange === "custom" && !hgCustom) seedCustom();
+    const M = window.HourlyModel, now = Date.now(), span = M.blendSpan(now, hgRange === "custom" ? 24 : +hgRange, hgRange === "custom" ? hgCustom : null);
+    const V = window.HourlyViews.blendView({ C, M, B: data, ws: W(), opts: OPTS(), span, tz: data.tz, names: NAMES, nwsAxis: data.nwsAxis, now });
+    const last = data.ms[data.ms.length - 1], beyond = V.hrs.filter((h) => h.state === "beyond").length;
+    $("hgSub").textContent = `${C.blend.PRESETS[preset].label} · times in ${O.tzShort(data.tz)} at the forecast point · tap an hour for its sources${beyond ? ` · ${beyond} hour${beyond === 1 ? "" : "s"} beyond the loaded forecast (through ${O.fmtWhen(wallOf(last))})` : ""}`;
+    if (!span.includes(hgSel)) hgSel = span.find((m) => m + 3600e3 > now) ?? span[0];
+    const show = (ms) => { const i = span.indexOf(ms); if (i < 0) return; hgSel = ms; $("hgDetail").hidden = false; $("hgDetail").innerHTML = V.detail(i); };
+    window.HourlyGrid.render($("hgGrid"), { axis: V.axis, rows: V.rows, selected: hgSel, now, label: "Hourly forecast", caption: "Model blend hour by hour", onSelect: show });
+    $("hgLegend").innerHTML = window.HourlyGrid.legend(V.legend) + `<p class="msg" style="margin:6px 0 0">${O.esc(V.note)}</p>`;
+    show(hgSel);
   }
 
   /* Verification records: what each source said for each window, for later scoring. */

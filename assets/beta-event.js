@@ -167,7 +167,20 @@
     $("hourlyValid").innerHTML = `${esc(fmt.span(s, e, tz))} ${esc(fmt.zone(s, tz))} · tap to select`;
     U.timeline($("timeline"), hours, { tz, now, bus, gustLine: thr.gust, mark: top && top.from != null ? { s: top.from, e: top.to, tier: top.tier } : null,
       bands: b.phases.map((p) => ({ s: p.startMs, e: p.endMs, label: p.label.toUpperCase(), fill: p.key === "event" ? "color-mix(in srgb, var(--text) 7%, transparent)" : "transparent" })) });
+    hourGrid(b, ctx, thr, now);
     detail(b, ctx, thr);
+  }
+  /* ---- hour-by-hour grid: setup through teardown, the briefing engine's concerns per hour, the blend's values ---- */
+  function hourGrid(b, ctx, thr, now) {
+    const V = window.HourlyViews.eventView({ C, S, M: window.HourlyModel, ctx, brief: b, thr, tz: ev.tz, now }), G = window.HourlyGrid;
+    const showHour = (ms) => { const i = V.span.indexOf(ms), d = $("evGridDetail"); if (i < 0) { d.hidden = true; return; } d.hidden = false; d.innerHTML = V.detail(i); };
+    const pick = (ms) => (fin(ms) ? Math.min(V.span[V.span.length - 1], Math.max(V.span[0], Math.floor(ms / H) * H)) : V.span[0]);
+    const sel0 = pick(bus && bus.get());
+    const grid = G.render($("evGrid"), { axis: V.axis, rows: V.rows, selected: sel0, now, label: "Event hour by hour", caption: "Event weather hour by hour, setup through teardown",
+      onSelect: (ms) => { if (bus) bus.set(ms, "grid"); showHour(ms); } });
+    $("evGridLegend").innerHTML = G.legend(V.legend) + `<p class="bx-note" style="margin:6px 0 0">${esc(V.note)}</p>`;
+    showHour(sel0);
+    if (bus) bus.on((ms) => { const hm = Math.floor(ms / H) * H; if (V.span.includes(hm)) { grid.setSelected(hm); showHour(hm); } });
   }
   function remindHtml(atMs, label) {
     const r = S.reminder(ev, atMs, link()), ics = "data:text/calendar;charset=utf-8," + encodeURIComponent(r.ics);

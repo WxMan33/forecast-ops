@@ -560,6 +560,59 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       `EST end: fold ${b2.fold.end} → unchanged save ${m2.fold.end} → gates edit + refresh ${a2.fold.end}, end ${new Date(a2.end).toISOString().slice(11, 16)}Z, teardown +${(a2.tear - a2.end) / H} h, gates ${a2.times.gates.slice(11)} (${a2.own}) · EDT end: fold ${b1.fold.end} → ${m1.fold.end}, end ${new Date(m1.end).toISOString().slice(11, 16)}Z · editor showed ${e2.shown.s}..${e2.shown.e} ends ${e2.shown.end}, teardown ${e2.shown.tear}${e2.err || e1.err || e2g.err ? " · errors: " + [e2.err, e1.err, e2g.err].join(" ") : ""}${errors.length ? " · " + errors.join("; ") : ""}`);
     await ctx.close();
   });
+  /* ---------- 16. shared hourly forecast on the live pages: Event Manager (setup → teardown) and Model Blend ---------- */
+  await section('16. hourly forecast grids (Event Manager and Model Blend)', async () => {
+    const themed = (t) => `localStorage.setItem("ops_theme", ${JSON.stringify(JSON.stringify(t))})`;
+    for (const [dev, devName] of [[PHONE, "phone"], [DESK, "desktop"]]) for (const theme of ["dark", "light"]) {
+      /* Event Manager: the sample event's grid follows the briefing's phases and the shared selected time */
+      { const { ctx, p, errors } = await go(dev, base + "event-beta.html", themed(theme));
+        const ready = await until(p, () => document.querySelector("#evGrid .hg-t") && document.body.dataset.readiness, null, 150000);
+        const g = ready ? await p.evaluate(() => {
+          const cols = [...document.querySelectorAll("#evGrid .hg-hb")].map((b) => b.innerText.replace(/\s+/g, " ").trim());
+          const rows = [...document.querySelectorAll("#evGrid tr.hg-row")].map((tr) => tr.dataset.row);
+          const phase = [...document.querySelectorAll('#evGrid tr[data-row="phase"] td')].map((td) => td.innerText.trim());
+          const tiers = [...document.querySelectorAll("#evGrid td.hg-s-concern")].map((td) => [...td.classList].find((c) => c.startsWith("hg-t-")));
+          const unlabeled = [...document.querySelectorAll("#evGrid td.hg-s-concern")].filter((td) => !td.innerText.trim()).length;
+          const missingAsClear = [...document.querySelectorAll('#evGrid tr[data-row="temp"] td')].map((td, i) => td.classList.contains("hg-s-missing") && document.querySelectorAll('#evGrid tr[data-row="concern"] td')[i].classList.contains("hg-s-clear")).filter(Boolean).length;
+          return { cols, rows, phase, tiers, unlabeled, missingAsClear, state: document.body.dataset.readiness, hscroll: document.documentElement.scrollWidth > innerWidth + 1 }; }) : null;
+        /* grid → shared time → timeline, then timeline-side change → grid */
+        let sync = null;
+        if (g && g.cols.length > 3) {
+          await p.click("#evGrid .hg-hb >> nth=2"); await p.waitForTimeout(300);
+          const a = await p.evaluate(() => ({ grid: +document.querySelector('#evGrid .hg-hb[aria-pressed="true"]').dataset.ms, bus: +document.body.dataset.selected, line: +document.getElementById("timeline").dataset.selected }));
+          await p.click("#evGrid .hg-hb >> nth=1"); await p.waitForTimeout(300);
+          const b2 = await p.evaluate(() => ({ grid: +document.querySelector('#evGrid .hg-hb[aria-pressed="true"]').dataset.ms, bus: +document.body.dataset.selected, detail: document.getElementById("evGridDetail").innerText.split("\n")[0] }));
+          sync = { a, b: b2, ok: a.grid === a.bus && a.bus === a.line && b2.grid === b2.bus && b2.grid !== a.grid };
+        }
+        const ok = g && g.state !== "pending" && g.rows[0] === "phase" && g.rows[1] === "concern" && ["temp", "feel", "pop", "chance", "qpf", "wind", "gust"].every((k) => g.rows.includes(k))
+          && /Setup/.test(g.phase[0]) && /Teardown/.test(g.phase[g.phase.length - 1]) && g.tiers.every((t) => ["hg-t-monitor", "hg-t-prepare", "hg-t-action"].includes(t)) && !g.unlabeled && !g.missingAsClear
+          && sync && sync.ok && !g.hscroll && !errors.length;
+        report(ok, `event hourly grid (${devName}, ${theme}): setup through teardown, concerns from the briefing engine with text, values per hour; selecting an hour moves the shared time, the timeline and the detail`,
+          g ? `${g.cols.length} hours ${g.cols[0]} → ${g.cols[g.cols.length - 1]} · phases ${g.phase[0]} … ${g.phase[g.phase.length - 1]} · rows ${g.rows.join(",")} · coloured ${g.tiers.length} (${[...new Set(g.tiers)].join(",") || "none"}), unlabeled ${g.unlabeled}, missing-as-clear ${g.missingAsClear} · sync ${sync && sync.ok} ("${sync && sync.b.detail}")${errors.length ? " · " + errors.join("; ") : ""}` : "grid did not appear");
+        if (ok) { const el = await p.$("#secHourly"); await el.screenshot({ path: `${out}/hourly-event-${devName}-${theme}.png` }); }
+        await ctx.close(); }
+      /* Model Blend: 24/48/72 hours, a custom window, an hour's sources */
+      { const { ctx, p, errors } = await go(dev, base + "blend.html", themed(theme) + ';localStorage.setItem("ops_blend_hg_range", "\\"24\\"")');
+        const ready = await until(p, () => document.querySelector("#hgGrid .hg-t"), null, 150000);
+        const count = () => p.evaluate(() => document.querySelectorAll("#hgGrid .hg-hb").length);
+        const n = {}; if (ready) for (const [lbl, k] of [["24 H", 24], ["48 H", 48], ["72 H", 72]]) { await p.click(`#hgRange .tab:text-is("${lbl}")`); await p.waitForTimeout(200); n[k] = await count(); }
+        let custom = null;
+        if (ready) { await p.click('#hgRange .tab:text-is("CUSTOM")'); await p.waitForSelector("#hgCustom:not([hidden])");
+          const from = await p.inputValue("#hgFrom"); const to = await p.evaluate((f) => { const d = new Date(f + ":00Z"); d.setUTCHours(d.getUTCHours() + 6); return d.toISOString().slice(0, 16); }, from);
+          await p.fill("#hgTo", to); await p.click("#hgApply"); await p.waitForTimeout(250); custom = { from, to, n: await count() };
+          await p.fill("#hgTo", from); await p.click("#hgApply"); custom.err = await p.evaluate(() => document.getElementById("hgErr").innerText); custom.after = await count();
+          await p.click('#hgRange .tab:text-is("48 H")'); await p.waitForTimeout(200); }
+        const d = ready ? await p.evaluate(() => { document.querySelectorAll("#hgGrid .hg-hb")[3].click(); const t = document.getElementById("hgDetail").innerText;
+          return { labels: [...document.querySelectorAll("#hgGrid tr.hg-row th")].map((th) => th.childNodes[0].textContent.trim()), detail: t, hscroll: document.documentElement.scrollWidth > innerWidth + 1, chart: !!document.querySelector("#chart"), daily: document.querySelectorAll("#daily tbody tr").length }; }) : null;
+        const want = ["Temperature", "Feels like", "Precip chance", "Ensemble ≥0.01″", "Precip amount", "Wind", "Gusts"];
+        const ok = d && n[24] === 24 && n[48] === 48 && n[72] === 72 && custom && custom.n === 6 && /after the start/.test(custom.err) && custom.after === 6 && JSON.stringify(d.labels) === JSON.stringify(want)
+          && /source \(\d+\)/i.test(d.detail) && /hourly PoP/.test(d.detail) && d.chart && d.daily > 0 && !d.hscroll && !errors.length;
+        report(ok, `Model Blend hourly forecast (${devName}, ${theme}): next 24/48/72 hours and a custom window; local time, temperature, feels like, hourly PoP apart from the ensemble threshold, amount, wind, gusts; an hour lists its sources; chart and daily table still there`,
+          d ? `hours ${n[24]}/${n[48]}/${n[72]} · custom ${custom.from}→${custom.to}: ${custom.n} hours; reversed window "${custom.err}" (kept ${custom.after}) · rows ${d.labels.join(" | ")} · detail "${d.detail.split("\n").filter(Boolean).slice(0, 2).join(" / ").slice(0, 150)}"${errors.length ? " · " + errors.join("; ") : ""}` : "grid did not appear");
+        if (ok) { const el = await p.$("#hourlyCard"); await el.screenshot({ path: `${out}/hourly-blend-${devName}-${theme}.png` }); }
+        await ctx.close(); }
+    }
+  });
   await section('7. analytics blocked or opted out: the betas work; nothing i', async () => {
   for (const [mode, init] of [["blocked", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec")'], ["opted out", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec");localStorage.setItem("fo_analytics_optout","1")']]) {
     for (const page of ["meteorologist-beta.html", "event-beta.html"]) {
