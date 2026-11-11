@@ -107,6 +107,7 @@ with sync_playwright() as p:
  page.wait_for_function('document.querySelector("[data-climo-row=maxt] .climo-observed").textContent==="73"')
  assert len(nws_calls)>=4,'list and product fetched again after five minutes'
  page.unroute('https://api.weather.gov/**')
+ page.clock.set_system_time(datetime.fromisoformat(json.loads(iss_fixture)['retrievedAt'].replace('Z','+00:00'))+timedelta(minutes=1))
  page.locator('#almDate').fill('2026-11-03');page.locator('#almDate').press('Tab')
  page.wait_for_function('document.querySelector(".climo-title").textContent.includes("Nov 3, 2026")')
  # Failure does not imply that observations were zero.
