@@ -19,14 +19,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - run: node tests/beta-story.test.js && node tests/beta-analytics.test.js && node tests/event-store.test.js && node tests/venue-search.test.js
+      - run: node tests/beta-story.test.js && node tests/beta-analytics.test.js && node tests/event-store.test.js && node tests/venue-search.test.js && node tests/climate-report.test.js && node tests/climate-station.test.js
       - run: npm install --no-save playwright@1.48.2 && npx playwright install --with-deps chromium
+      - name: Almanac station-aware NWS refresh regression
+        run: node tools/almanac-refresh-check.js
       - name: Wait until the preview host serves this commit (pages and scripts)
         run: |
           STAMP=$(grep -o 'beta-ui.js?v=[0-9a-f]*' event-beta.html | head -1)
           echo "STAMP=$STAMP" >> "$GITHUB_ENV"
           # raw.githack.com caches each file by path (it ignores ?v=), so check every file the betas load
-          FILES="meteorologist-beta.html event-beta.html maps.html almanac.html blend.html assets/climate-station.js assets/almanac.js assets/record-watch.js assets/beta-analytics.js assets/beta-config.js assets/beta-ui.js assets/beta-story.js assets/beta-met.js assets/beta-event.js assets/event-store.js assets/beta-upcoming.js assets/calendar-import.js assets/venue-search.js assets/beta.css assets/maps.js assets/ops.js assets/ops.css"
+          FILES="meteorologist-beta.html event-beta.html maps.html almanac.html blend.html assets/climate-station.js assets/almanac.js assets/climate-report.js assets/record-watch.js assets/beta-analytics.js assets/beta-config.js assets/beta-ui.js assets/beta-story.js assets/beta-met.js assets/beta-event.js assets/event-store.js assets/beta-upcoming.js assets/calendar-import.js assets/venue-search.js assets/beta.css assets/maps.js assets/ops.js assets/ops.css"
           for i in $(seq 1 40); do
             stale=""
             for f in $FILES; do [ "$(curl -fsS "${BASE}$f" | sha256sum | cut -c1-16)" = "$(sha256sum "$f" | cut -c1-16)" ] || stale="$stale $f"; done
@@ -62,7 +64,7 @@ jobs:
         run: |
           for i in $(seq 1 36); do
             stale=""
-            for f in event-beta.html assets/beta-config.js assets/calendar-import.js assets/venue-search.js assets/beta-analytics.js assets/ops.js; do [ "$(curl -fsSL "${PAGES}$f" | sha256sum | cut -c1-16)" = "$(sha256sum "$f" | cut -c1-16)" ] || stale="$stale $f"; done
+            for f in almanac.html assets/almanac.js assets/climate-report.js event-beta.html assets/beta-config.js assets/calendar-import.js assets/venue-search.js assets/beta-analytics.js assets/ops.js; do [ "$(curl -fsSL "${PAGES}$f" | sha256sum | cut -c1-16)" = "$(sha256sum "$f" | cut -c1-16)" ] || stale="$stale $f"; done
             if [ -z "$stale" ]; then echo "Cloudflare Pages current"; exit 0; fi
             echo "waiting for:$stale"; sleep 30
           done
