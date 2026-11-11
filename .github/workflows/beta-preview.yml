@@ -12,14 +12,15 @@ concurrency: { group: beta-preview, cancel-in-progress: true }
 jobs:
   preview:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # the preview host can take up to 20 minutes to serve a new commit, and the signed-out check itself takes about 12
+    timeout-minutes: 45
     env:
       BASE: https://raw.githack.com/${{ github.repository }}/${{ github.ref_name }}/
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - run: node tests/beta-story.test.js && node tests/beta-analytics.test.js && node tests/event-store.test.js && node tests/calendar-provider.test.js && node tests/venue-search.test.js && node tests/climate-report.test.js && node tests/climate-station.test.js && node tests/weather-history.test.js
+      - run: node tests/beta-story.test.js && node tests/beta-analytics.test.js && node tests/event-store.test.js && node tests/event-times.test.js && node tests/event-backup.test.js && node tests/calendar-provider.test.js && node tests/venue-search.test.js && node tests/climate-report.test.js && node tests/climate-station.test.js && node tests/weather-history.test.js
       - run: npm install --no-save playwright@1.48.2 && npx playwright install --with-deps chromium
       - name: Documentary weather history regression
         run: node tools/weather-history-check.js
@@ -66,7 +67,7 @@ jobs:
         run: |
           for i in $(seq 1 36); do
             stale=""
-            for f in almanac.html assets/almanac.js assets/climate-report.js assets/climate-report.css assets/cincinnati-weather-history.js assets/history/cincinnati-flood-1913-bain.jpg event-beta.html assets/event-store.js assets/beta-config.js assets/calendar-import.js assets/venue-search.js assets/beta-analytics.js assets/ops.js; do [ "$(curl -fsSL "${PAGES}$f" | sha256sum | cut -c1-16)" = "$(sha256sum "$f" | cut -c1-16)" ] || stale="$stale $f"; done
+            for f in almanac.html assets/almanac.js assets/climate-report.js assets/climate-report.css assets/cincinnati-weather-history.js assets/history/cincinnati-flood-1913-bain.jpg event-beta.html assets/event-store.js assets/beta-upcoming.js assets/beta-config.js assets/calendar-import.js assets/venue-search.js assets/beta-analytics.js assets/ops.js; do [ "$(curl -fsSL "${PAGES}$f" | sha256sum | cut -c1-16)" = "$(sha256sum "$f" | cut -c1-16)" ] || stale="$stale $f"; done
             if [ -z "$stale" ]; then echo "Cloudflare Pages current"; exit 0; fi
             echo "waiting for:$stale"; sleep 30
           done

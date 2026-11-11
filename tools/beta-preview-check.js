@@ -447,6 +447,79 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     report(!!used && !fc.some(([la]) => Math.abs(la - 40.8136) < 0.001), "venue search: the briefing's forecast is requested at the venue's exact point, not the city centre", `forecast requests at ${[...new Set(fc.map((x) => x.join(",")))].slice(0, 3).join(" ; ")}`);
     await ctx.close();
   });
+  /* ---------- 14. multi-day calendar event through import, edit, re-import, refresh; backup export and restore ---------- */
+  await section('14. multi-day import and backup round trip (phone)', async () => {
+    const tqlV = { id: "vn_check", name: "TQL Stadium", city: "Cincinnati, OH", lat: 39.1111, lon: -84.5222, tz: "America/New_York", aliases: ["TQL Stadium, 1501 Central Pkwy W, Cincinnati, OH 45214"], defaults: { setup: 270, gates: 90, teardown: 120, gust: 30 } };
+    const { ctx, p, errors } = await go({ ...PHONE, acceptDownloads: true }, base + "event-beta.html#upcoming", `if (!sessionStorage.getItem("seeded")) { sessionStorage.setItem("seeded", "1"); localStorage.setItem("beta_venues_v1", ${JSON.stringify(JSON.stringify([tqlV]))}); }`); // seeded once, so emptying the browser below sticks
+    await until(p, () => document.querySelector("#upView:not([hidden]) #upImport"), null, 30000);
+    /* a three-day synthetic fair at TQL, 10 AM day 1 to 6 PM day 3 (Eastern), in place of the sample matches */
+    await p.evaluate(() => { const CI = window.CalendarImport, orig = CI.__orig || CI.sampleProvider; CI.__orig = orig;
+      const day = new Date(Date.now() + 5 * 864e5).toLocaleDateString("en-CA", { timeZone: "America/New_York" }), s = window.Ops.Core.time.toUtc(`${day}T10:00`, "America/New_York"), e = s + 56 * 3600e3;
+      CI.sampleProvider = () => { const sp = orig(); return { ...sp, listEvents: async (id) => (id !== "sample-matches" ? [] : [{ id: "fair", etag: '"fair-1"', status: "confirmed", summary: "Synthetic three-day fair", location: "TQL Stadium, 1501 Central Pkwy W, Cincinnati, OH 45214", start: { dateTime: new Date(s).toISOString(), timeZone: "America/New_York" }, end: { dateTime: new Date(e).toISOString(), timeZone: "America/New_York" } }]) }; }; });
+    const importFair = async () => {
+      await p.click("#upImport"); await until(p, () => document.getElementById("ciSample"), null, 10000); await p.click("#ciSample");
+      await until(p, () => document.getElementById("ciNext"), null, 10000); await p.click("#ciNext"); await until(p, () => document.getElementById("ciImport"), null, 10000);
+      await until(p, () => document.getElementById("editForm").dataset.resolved === "true", null, 30000);
+      const row = await p.evaluate(() => document.querySelector(".ci-ev").innerText.replace(/\s+/g, " "));
+      await p.evaluate(() => { const c = document.querySelector(".ci-ev [data-pick]"); c.checked = true; c.dispatchEvent(new Event("change", { bubbles: true })); });
+      await p.click("#ciImport"); await until(p, () => !document.getElementById("editDlg").open, null, 10000);
+      return { row, note: await p.evaluate(() => document.getElementById("upNote").innerText.trim()) };
+    };
+    const saved = () => p.evaluate(() => JSON.parse(localStorage.getItem("beta_events_v2") || "[]"));
+    const first = await importFair(), ev1 = (await saved())[0];
+    const listText = await p.evaluate(() => (document.querySelector('.up-ev[data-id="cal_fair"]') || {}).innerText || "");
+    const d0 = ev1 && ev1.times.start.slice(0, 10), d2 = ev1 && ev1.times.end.slice(0, 10);
+    const span = ev1 ? Math.round((Date.parse(d2 + "T12:00Z") - Date.parse(d0 + "T12:00Z")) / 864e5) : null;
+    /* edit: the end date is shown, a custom gates time saves, the end date stays */
+    await p.click('.up-ev[data-id="cal_fair"] [data-edit]'); await until(p, () => document.getElementById("editDlg").open, null, 10000);
+    const form = await p.evaluate(() => ({ s: document.getElementById("fDate").value, e: document.getElementById("fEndDate").value, end: document.getElementById("fEnd").value, tear: document.getElementById("fTear").value }));
+    await p.evaluate(() => { const el = document.getElementById("fGates"); el.value = "07:30"; el.dispatchEvent(new Event("input", { bubbles: true })); });
+    await p.click("#fSave"); await until(p, () => !document.getElementById("editDlg").open, null, 30000);
+    const ev2 = (await saved())[0];
+    const again = await importFair();
+    await p.reload({ waitUntil: "domcontentloaded" }); await until(p, () => document.querySelector("#upView .up-ev"), null, 30000);
+    const ev3 = await saved();
+    report(ev1 && span === 2 && ev1.times.start.slice(11) === "10:00" && ev1.times.end.slice(11) === "18:00" && ev1.times.teardown === `${d2}T20:00` && ev1.times.gates === `${d0}T08:30`
+      && /–\w{3}, \w{3} \d+ /.test(first.row) && new RegExp(`${new Date(Date.parse(d2 + "T12:00Z")).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" })}`).test(listText)
+      && form.s === d0 && form.e === d2 && form.end === "18:00" && form.tear === "20:00"
+      && ev2.times.end === ev1.times.end && ev2.times.gates === `${d0}T07:30` && (ev2.overrides || []).join() === "gates"
+      && /0 added · 0 updated · 1 unchanged/.test(again.note) && ev3.length === 1 && JSON.stringify(ev3[0].times) === JSON.stringify(ev2.times) && !errors.length,
+      "multi-day calendar event: real end date through import, list, edit (custom gates), re-import and refresh; teardown from the end, setup/gates from the start",
+      `import row "${first.row.slice(0, 90)}" · stored ${ev1 && ev1.times.start}→${ev1 && ev1.times.end} (${span} days), gates ${ev1 && ev1.times.gates.slice(11)}, teardown ${ev1 && ev1.times.teardown} · editor ${form.s}..${form.e} ${form.end} · after edit gates ${ev2 && ev2.times.gates.slice(11)} (${ev2 && (ev2.overrides || []).join()}) end ${ev2 && ev2.times.end} · re-import "${again.note.slice(0, 70)}" · after refresh ${ev3.length} event, times kept ${ev3[0] && JSON.stringify(ev3[0].times) === JSON.stringify(ev2.times)}${errors.length ? " · " + errors.join("; ") : ""}`);
+
+    /* backup: export, empty the browser, restore, restore again (duplicates skipped), a damaged file (nothing changed) */
+    const beforeEv = await saved(), beforeVn = await p.evaluate(() => JSON.parse(localStorage.getItem("beta_venues_v1") || "[]"));
+    const [dl] = await Promise.all([p.waitForEvent("download", { timeout: 15000 }), p.click("#upExport")]);
+    const file = `${out}/../backup-check.json`; await dl.saveAs(file); const text = require("fs").readFileSync(file, "utf8"); require("fs").unlinkSync(file);
+    const B = JSON.parse(text), exportNote = await p.evaluate(() => document.getElementById("upNote").innerText.trim());
+    await p.evaluate(() => { localStorage.removeItem("beta_events_v2"); localStorage.removeItem("beta_venues_v1"); });
+    await p.reload({ waitUntil: "domcontentloaded" }); await until(p, () => document.querySelector("#upView:not([hidden]) #upRestore"), null, 30000);
+    const emptied = (await saved()).length;
+    await p.setInputFiles("#upRestoreFile", { name: "forecast-ops-events.json", mimeType: "application/json", buffer: Buffer.from(text) });
+    await until(p, () => document.getElementById("editDlg").open && document.getElementById("rsSummary"), null, 10000);
+    const summary = await p.evaluate(() => document.getElementById("rsSummary").innerText.replace(/\s+/g, " "));
+    await p.screenshot({ path: `${out}/backup-restore-phone.png` });
+    await p.click("#rsGo"); await until(p, () => !document.getElementById("editDlg").open, null, 10000);
+    const restoredNote = await p.evaluate(() => document.getElementById("upNote").innerText.trim());
+    const afterEv = await saved(), afterVn = await p.evaluate(() => JSON.parse(localStorage.getItem("beta_venues_v1") || "[]"));
+    await p.setInputFiles("#upRestoreFile", { name: "again.json", mimeType: "application/json", buffer: Buffer.from(text) });
+    await until(p, () => document.getElementById("editDlg").open, null, 10000);
+    const dup = await p.evaluate(() => document.getElementById("editForm").innerText.replace(/\s+/g, " "));
+    await p.evaluate(() => document.getElementById("editDlg").close());
+    const snap = await p.evaluate(() => localStorage.getItem("beta_events_v2") + localStorage.getItem("beta_venues_v1"));
+    await p.setInputFiles("#upRestoreFile", { name: "damaged.json", mimeType: "application/json", buffer: Buffer.from(text.slice(0, 200)) });
+    await until(p, () => !document.getElementById("upBackupErr").hidden, null, 10000);
+    const bad = await p.evaluate(() => document.getElementById("upBackupErr").innerText.replace(/\s+/g, " "));
+    const snap2 = await p.evaluate(() => localStorage.getItem("beta_events_v2") + localStorage.getItem("beta_venues_v1"));
+    const canon = (x) => (Array.isArray(x) ? x.map(canon) : x && typeof x === "object" ? Object.keys(x).sort().reduce((o, k) => ((o[k] = canon(x[k])), o), {}) : x), same = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b)); // key order aside
+    report(B.kind === "forecast-ops-event-backup" && B.version === 1 && B.counts.events === 1 && B.counts.venues === 1 && B.counts.aliases === 1 && !/pk\.[0-9a-f]{20,}|access_token|fo_bid|token/i.test(text)
+      && /Backup exported: 1 event · 1 venue · 1 remembered calendar location/.test(exportNote) && emptied === 0 && /Events: 1 new/.test(summary) && /Venues: 1 new/.test(summary)
+      && same(afterEv, beforeEv) && same(afterVn, beforeVn) && /Backup restored: 1 event and 1 venue added/.test(restoredNote)
+      && /Everything in this backup is already saved here/.test(dup) && /can't be restored/.test(bad) && /valid JSON/.test(bad) && snap === snap2 && !errors.length,
+      "backup: export (no credentials), restore into an empty browser, restore again (duplicates skipped), damaged file refused with nothing changed",
+      `file v${B.version}: ${B.counts.events} event, ${B.counts.venues} venue, ${B.counts.aliases} alias · "${exportNote.slice(0, 60)}" · emptied ${emptied} · restore "${summary.slice(0, 80)}" → "${restoredNote.slice(0, 70)}" · records identical ${same(afterEv, beforeEv) && same(afterVn, beforeVn)} (custom gates ${afterEv[0] && afterEv[0].times.gates.slice(11)}, venue gates ${afterVn[0] && afterVn[0].defaults.gates} min) · again: "${dup.match(/Everything[^.]*\./) || dup.slice(0, 60)}" · damaged: "${bad.slice(0, 70)}", storage unchanged ${snap === snap2}${errors.length ? " · " + errors.join("; ") : ""}`);
+    await ctx.close();
+  });
   await section('7. analytics blocked or opted out: the betas work; nothing i', async () => {
   for (const [mode, init] of [["blocked", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec")'], ["opted out", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec");localStorage.setItem("fo_analytics_optout","1")']]) {
     for (const page of ["meteorologist-beta.html", "event-beta.html"]) {

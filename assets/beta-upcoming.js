@@ -35,7 +35,7 @@
         <details><summary class="bx-note">Exact coordinates (optional)</summary><div class="two" style="margin-top:8px"><label>Latitude<input id="fLat" inputmode="decimal" value="${fin(city.lat) ? city.lat : ""}"></label><label>Longitude<input id="fLon" inputmode="decimal" value="${fin(city.lon) ? city.lon : ""}"></label></div></details>
         <label class="bx-check"><input type="checkbox" id="fSaveVenue" ${base && !base.sample && !venue && fin(base.loc.lat) ? "" : "checked"}> Save this venue and its schedule for future events</label>
       </div>
-      <label>Date<input type="date" id="fDate" value="${esc(t.start ? t.start.slice(0, 10) : defDate)}"></label>
+      <div class="two"><label>Starts on<input type="date" id="fDate" value="${esc(t.start ? t.start.slice(0, 10) : defDate)}"></label><label>Ends on<input type="date" id="fEndDate" value="${esc(t.end ? t.end.slice(0, 10) : defDate)}"></label></div>
       <div class="two"><label>Event starts<input type="time" id="fStart" value="${esc(hm(t.start) || "19:30")}" required></label><label>Event ends<input type="time" id="fEnd" value="${esc(hm(t.end) || "21:30")}" required></label></div>
       <fieldset class="bx-sched-f"><legend>Schedule</legend>
         <div class="two"><label>Setup starts<input type="time" id="fSetup" data-k="setup"></label><label>Gates open<input type="time" id="fGates" data-k="gates"></label></div>
@@ -49,9 +49,19 @@
     const F = { setup: $("fSetup"), gates: $("fGates"), teardown: $("fTear") };
     /* defaults → the schedule fields the planner hasn't changed for this event */
     const defs = () => (venue ? venue.defaults : E.STD);
+    const zone = () => (venue ? venue.tz : city.tz) || null;
+    /* the end date follows the start (same day, or the next morning for an end before the start) until the planner sets it;
+       moving the start date moves the end date with it, so a multi-day event keeps its length */
+    const autoEnd = () => { const d = $("fDate").value, s = $("fStart").value, e = $("fEnd").value; return d && s && e ? (e <= s ? nextDay(d, 1) : d) : d; };
+    let endAuto = !t.end || t.end.slice(0, 10) === autoEnd(), prevDate = $("fDate").value;
+    const dayGap = (a, b) => Math.round((Date.parse(a + "T12:00Z") - Date.parse(b + "T12:00Z")) / 864e5);
+    $("fDate").addEventListener("change", () => { const d = $("fDate").value; if (d && prevDate && $("fEndDate").value && !endAuto) $("fEndDate").value = nextDay($("fEndDate").value, dayGap(d, prevDate)); prevDate = d; });
+    ["fDate", "fStart", "fEnd"].forEach((id) => $(id).addEventListener("change", () => { if (endAuto) $("fEndDate").value = autoEnd(); }));
+    $("fEndDate").addEventListener("change", () => { endAuto = $("fEndDate").value === autoEnd(); fill(false); });
+    const endLocal = () => `${$("fEndDate").value || $("fDate").value}T${$("fEnd").value}`;
     function fill(first) {
       const d = $("fDate").value, s = $("fStart").value, e = $("fEnd").value; if (!d || !s || !e) return;
-      const want = E.applyDefaults(defs(), d, s, e);
+      const want = E.schedule(defs(), { start: `${d}T${s}`, end: endLocal(), tz: zone() }).times;
       Object.entries(F).forEach(([k, el]) => { if (first && base && base.times && (stored ? true : !base.sample)) { el.value = hm(base.times[k]); } else if (!dirty.has(k)) el.value = hm(want[k]); el.classList.toggle("own", dirty.has(k)); });
       if (first) $("fGust").value = base && base.gust && !base.sample ? base.gust : defs().gust;
       const name = venue ? venue.name : $("fVenue").value.trim() || "this venue";
@@ -67,10 +77,10 @@
     ["fDate", "fStart", "fEnd"].forEach((id) => $(id).addEventListener("change", () => fill(false)));
     /* a calendar event's date and times come from the calendar's own instants, shown in the chosen venue's time zone */
     const src = base && base.source && base.source.start ? base.source : null;
-    const fromSource = (tz) => { if (!src || !tz) return; const s = E.wallAt(src.start, tz), e = E.wallAt(src.end, tz); $("fDate").value = s.slice(0, 10); $("fStart").value = s.slice(11, 16); $("fEnd").value = e.slice(11, 16); };
+    const fromSource = (tz) => { if (!src || !tz) return; const s = E.wallAt(src.start, tz), e = E.wallAt(src.end, tz); $("fDate").value = prevDate = s.slice(0, 10); $("fStart").value = s.slice(11, 16); $("fEnd").value = e.slice(11, 16); $("fEndDate").value = e.slice(0, 10); endAuto = e.slice(0, 10) === autoEnd(); };
     $("fVenueSel").addEventListener("change", () => { venue = E.getVenue($("fVenueSel").value); dirty.clear(); if (venue) fromSource(venue.tz); fill(false); $("fGust").value = defs().gust; });
     $("fVenue").addEventListener("input", () => fill(false));
-    function tzNote() { const z = venue ? venue.tz : city.tz; $("fTzNote").textContent = `Times are local to the venue (${z ? `${z}, ${fmt.zone(Date.now(), z)}` : "time zone found on save"}), wherever you are. An end or teardown earlier than the start is read as after midnight; a setup later than the start, as the day before.`; }
+    function tzNote() { const z = venue ? venue.tz : city.tz; $("fTzNote").textContent = `Times are local to the venue (${z ? `${z}, ${fmt.zone(Date.now(), z)}` : "time zone found on save"}), wherever you are. A teardown earlier than the end is read as after midnight; a setup later than the start, as the day before.`; }
     /* the venue itself (stadium, business, park, school or street address), not just its city; or a dropped pin */
     const calLoc = base && !base.sample && !fin(base.loc.lat) && base.source && base.source.location ? base.source.location : "";
     window.VenueSearch.picker($("fCity"), { initial: calLoc, // prefilled for review; searched only when the planner presses Search
@@ -83,8 +93,8 @@
       ev0.preventDefault();
       const err = (m) => { $("fErr").textContent = m; $("fErr").hidden = false; };
       const date = $("fDate").value, s = $("fStart").value, e = $("fEnd").value;
-      if (!date || !s || !e) return err("Date, start and end are required.");
-      const end = `${e <= s ? nextDay(date, 1) : date}T${e}`;
+      if (!date || !s || !e || !$("fEndDate").value) return err("Start and end dates and times are required.");
+      const end = endLocal();
       const before = (v) => (!v ? null : `${v > s ? nextDay(date, -1) : date}T${v}`), tear = (v) => (!v ? null : `${v < end.slice(11, 16) ? nextDay(end.slice(0, 10), 1) : end.slice(0, 10)}T${v}`);
       const times = { setup: before(F.setup.value), gates: before(F.gates.value), start: `${date}T${s}`, end, teardown: tear(F.teardown.value) };
       Object.keys(times).forEach((k) => { if (!times[k]) delete times[k]; });
@@ -100,13 +110,20 @@
       }
       const gust = Math.min(60, Math.max(10, +$("fGust").value || 25));
       const draft = { name: $("fName").value.trim() || (base && !base.sample ? base.name : "My event"), loc, tz, times, gust };
+      /* times that happen twice on a fall-back night: settled from the calendar's own instants, the times as saved, or
+         the venue defaults; a repeated time typed by hand is still left for validation to flag */
+      { const ms = {};
+        if (src && src.start && src.end && tz) { if (times.start === E.wallAt(src.start, tz)) ms.start = Date.parse(src.start); if (times.end === E.wallAt(src.end, tz)) ms.end = Date.parse(src.end); }
+        const sch = E.schedule(defs(), { start: times.start, end: times.end, tz, startMs: ms.start, endMs: ms.end });
+        Object.keys(times).forEach((k) => { if (ms[k] != null) return; if (stored && stored.tz === tz && stored.times[k] === times[k] && E.msOf(stored, k) != null) ms[k] = E.msOf(stored, k); else if (sch.times[k] === times[k]) ms[k] = E.localMs(times[k], tz, sch.fold[k]); });
+        draft.fold = E.foldsFor(times, ms, tz); }
       const errs = C.event.validate(draft); if (errs.length) return err(errs.join(" "));
-      if (!venue && $("fSaveVenue").checked) { venue = E.saveVenue({ name: loc.name, city: city.name || "", address: city.address || "", lat: loc.lat, lon: loc.lon, tz, defaults: { ...E.offsetsOf(times), gust } }); venueId = venue.id; U.track("venue_saved"); }
-      else if (venue && $("fMakeDef").checked) { venue = E.saveVenue({ ...venue, defaults: { ...venue.defaults, ...E.offsetsOf(times), gust } }); U.track("venue_saved"); }
+      if (!venue && $("fSaveVenue").checked) { venue = E.saveVenue({ name: loc.name, city: city.name || "", address: city.address || "", lat: loc.lat, lon: loc.lon, tz, defaults: { ...E.offsetsOf(times, tz, draft.fold), gust } }); venueId = venue.id; U.track("venue_saved"); }
+      else if (venue && $("fMakeDef").checked) { venue = E.saveVenue({ ...venue, defaults: { ...venue.defaults, ...E.offsetsOf(times, tz, draft.fold), gust } }); U.track("venue_saved"); }
       if (venue && venue.builtin) { venue = E.saveVenue({ ...venue, builtin: undefined }); venueId = venue.id; } // a built-in venue becomes a saved one
       /* confirming a calendar event's venue by hand: remember its calendar location for future imports */
       if (venue && src && src.location && (!stored || stored.venueId !== venue.id)) venue = E.rememberAlias(venue, src.location);
-      const rec = E.saveEvent({ ...(stored || {}), ...draft, id: stored ? stored.id : null, venueId, overrides: venue ? E.overridesOf(times, venue.defaults) : [], source: (stored && stored.source) || { kind: "manual" } });
+      const rec = E.saveEvent({ ...(stored || {}), ...draft, id: stored ? stored.id : null, venueId, overrides: venue ? E.overridesOf(times, venue.defaults, tz, draft.fold) : [], source: (stored && stored.source) || { kind: "manual" } });
       U.track("event_saved", { market: S.market(loc.lat, loc.lon).tuned ? "cincinnati" : "elsewhere" });
       $("editDlg").close(); if (onSaved) onSaved(rec);
     });
@@ -149,11 +166,16 @@
     host.innerHTML = `<div class="up-head"><h1 class="up-title">Upcoming events</h1><div class="up-act"><button class="bx-btn" type="button" id="upImport">Import from calendar</button><button class="bx-btn primary" type="button" id="upAdd">+ Add event</button></div></div><div id="upNote" class="bx-note" hidden></div>
       <div id="upList" class="up-list"></div><details id="upPast" class="up-past" hidden><summary></summary><div class="up-list"></div></details>
       <section class="bx-sec"><div class="bx-bh"><h2>Saved venues</h2><button class="bx-btn" type="button" id="vnAdd">+ Add venue</button></div><div id="vnList" class="up-list" style="margin-top:8px"></div></section>
-      <p class="bx-note" style="margin-top:18px">Events and venues are stored only in this browser. Calendar imports land in this same list.</p>`;
+      <section class="bx-sec" id="upBackup"><div class="bx-bh"><h2>Backup</h2><div class="up-act"><button class="bx-btn" type="button" id="upExport">Export backup</button><button class="bx-btn" type="button" id="upRestore">Restore backup</button></div></div>
+        <input type="file" id="upRestoreFile" accept=".json,application/json" hidden>
+        <p class="bx-note" style="margin:6px 0 0">Events and venues are stored only in this browser. A backup file keeps your events, saved venues, their default schedules and the calendar locations you've matched, so you can restore them in another browser. It never contains sign-in or API credentials.</p>
+        <div class="err" id="upBackupErr" role="alert" hidden></div></section>
+      <p class="bx-note" style="margin-top:18px">Calendar imports land in this same list.</p>`;
     $("upAdd").addEventListener("click", () => editEvent(null, { onSaved: () => render(host, { onOpen }) }));
     $("upImport").addEventListener("click", () => window.CalendarImport.open({ onDone: (r) => { render(host, { onOpen }); const need = E.events().filter((x) => !fin(x.loc.lat)).length;
       const n = $("upNote"); n.hidden = false; n.innerHTML = `<b>Import complete:</b> ${r.added} added · ${r.updated} updated${r.unchanged ? ` · ${r.unchanged} unchanged` : ""} · ${need} ${need === 1 ? "needs" : "need"} venue confirmation${need ? " (use Edit to pick a saved venue or search its city)" : ""}.${r.relocated ? ` ${r.relocated} changed location in the calendar and ${r.relocated === 1 ? "was" : "were"} matched again.` : ""}${r.remembered ? ` Remembered ${r.remembered} calendar ${r.remembered === 1 ? "location" : "locations"} for next time.` : ""}`; } }));
     $("vnAdd").addEventListener("click", () => editVenue(null, { onSaved: () => render(host, { onOpen }) }));
+    backupControls(host, { onOpen });
     $("vnList").innerHTML = vns.length ? vns.map((v) => `<article class="up-vn" data-id="${esc(v.id)}"><div><b>${esc(v.name)}</b><div class="bx-note">${esc(v.city || `${v.lat}, ${v.lon}`)} · ${esc(fmt.zone(now, v.tz))}</div><div class="bx-note">${esc(offText(v.defaults))}</div></div>
       <div class="up-act"><button class="bx-btn" type="button" data-vedit>Edit</button><button class="bx-btn" type="button" data-vremove>Remove</button></div></article>`).join("") : '<p class="bx-note">No saved venues yet. Save one with its setup, gates and teardown times, and new events there start from them.</p>';
     $("vnList").querySelectorAll(".up-vn").forEach((row) => {
@@ -171,7 +193,8 @@
       if (my !== gen) return;
       const o = E.order(rows), row = (r) => {
         const ev = r.ev, tz = ev.tz, s = r.status, w = r.w;
-        const when = w && tz ? `${fmt.day(w.main.startMs, tz)} · ${fmt.clock(w.main.startMs, tz)}–${fmt.clock(w.main.endMs, tz)} ${fmt.zone(w.main.startMs, tz)}` : "Time not set";
+        const z0 = w && tz ? fmt.zone(w.main.startMs, tz) : "", z1 = w && tz ? fmt.zone(w.main.endMs, tz) : "", otherDay = w && tz && fmt.day(w.main.endMs, tz) !== fmt.day(w.main.startMs, tz);
+        const when = w && tz ? `${fmt.day(w.main.startMs, tz)} · ${fmt.clock(w.main.startMs, tz)}${z1 !== z0 ? " " + z0 : ""}–${otherDay ? fmt.day(w.main.endMs, tz) + " " : ""}${fmt.clock(w.main.endMs, tz)} ${z1}` : "Time not set";
         const mine = w && tz && myTz && fmt.zone(w.main.startMs, myTz) !== fmt.zone(w.main.startMs, tz) ? ` <span class="bx-note">(${esc(fmt.clock(w.main.startMs, myTz))} ${esc(fmt.zone(w.main.startMs, myTz))} your time)</span>` : "";
         const own = (ev.overrides || []).length ? `<span class="bx-note"> · ${esc(ev.overrides.map((k) => k.charAt(0).toUpperCase() + k.slice(1)).join(", "))} set for this event</span>` : "";
         const chip = st(s.key === "concern" ? s.tier || "watch" : s.key === "ready" ? "normal" : null, s.label);
@@ -217,6 +240,58 @@
       }
       if (my === gen) { host.dataset.ready = "true"; }
     })();
+  }
+
+  /* ---------------- backup and restore ---------------- */
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  function backupControls(host, opts) {
+    const errBox = $("upBackupErr"), note = $("upNote");
+    const fail = (lines) => { errBox.innerHTML = [].concat(lines).map((l) => `<div>${esc(l)}</div>`).join(""); errBox.hidden = false; };
+    const tell = (html) => { errBox.hidden = true; note.innerHTML = html; note.hidden = false; };
+    $("upExport").addEventListener("click", () => {
+      if (!E.storageOk()) return fail("This browser isn't letting the page use its storage (private browsing or storage turned off), so there is nothing saved here to export.");
+      const b = E.backup();
+      if (!b.counts.events && !b.counts.venues) return fail("Nothing is saved in this browser yet, so there is nothing to back up.");
+      try {
+        const url = URL.createObjectURL(new Blob([JSON.stringify(b, null, 2)], { type: "application/json" }));
+        const a = document.createElement("a"); a.href = url; a.download = `forecast-ops-events-${b.exportedAt.slice(0, 10)}.json`; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      } catch (e) { return fail("The browser couldn't create the backup file. Try again, or try another browser."); }
+      tell(`<b>Backup exported:</b> ${plural(b.counts.events, "event", "events")} · ${plural(b.counts.venues, "venue", "venues")} · ${plural(b.counts.aliases, "remembered calendar location", "remembered calendar locations")}. Keep the file somewhere safe; Restore backup reads it back.`);
+    });
+    const file = $("upRestoreFile");
+    $("upRestore").addEventListener("click", () => { file.value = ""; file.click(); });
+    file.addEventListener("change", async () => {
+      const f = file.files && file.files[0]; if (!f) return;
+      if (f.size > 5e6) return fail("That file is larger than 5 MB, so it isn't a Forecast Ops backup. Nothing was changed.");
+      let text; try { text = await f.text(); } catch (e) { return fail("The file couldn't be read. Nothing was changed."); }
+      const r = E.readBackup(text);
+      if (!r.ok) return fail(["This file can't be restored, so nothing was changed:", ...r.errors]);
+      restoreDialog(r, () => render(host, opts));
+    });
+  }
+  function restoreDialog(r, onDone) {
+    const p = E.planRestore(r), S = p.summary, conflicts = [...p.events, ...p.venues].filter((x) => x.action === "conflict");
+    const line = (what, x, extra) => `<li><b>${esc(what)}:</b> ${x.add} new · ${x.same} already here${x.conflict ? ` · <b>${x.conflict} different from what's saved here</b>` : ""}${extra || ""}</li>`;
+    const nothing = !S.events.add && !S.venues.add && !conflicts.length && !S.venues.aliases;
+    $("editForm").innerHTML = `<h2>Restore backup</h2>
+      <p class="bx-note" style="margin-top:0">${r.exportedAt ? `Backup from ${esc(new Date(r.exportedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }))}. ` : ""}Nothing is changed until you choose Restore.</p>
+      <ul class="bx-note" id="rsSummary" style="padding-left:18px">${line("Events", S.events)}${line("Venues", S.venues, S.venues.aliases ? ` · ${plural(S.venues.aliases, "venue gets", "venues get")} remembered calendar locations from the backup` : "")}</ul>
+      ${conflicts.length ? `<p class="bx-note">Different here: ${esc(conflicts.slice(0, 6).map((c) => c.name).join(", "))}${conflicts.length > 6 ? ` and ${conflicts.length - 6} more` : ""}. These keep the version saved in this browser unless you choose otherwise; remembered calendar locations from both are kept either way.</p>
+        <label class="bx-check"><input type="checkbox" id="rsReplace"> Replace ${plural(conflicts.length, "record", "records")} saved here with the backup's version</label>` : ""}
+      ${nothing ? '<p class="bx-note"><b>Everything in this backup is already saved here.</b></p>' : ""}
+      <p class="err" id="fErr" role="alert" hidden></p>
+      <div style="display:flex;gap:8px;justify-content:flex-end"><button class="bx-btn" value="cancel" formnovalidate>${nothing ? "Close" : "Cancel"}</button>${nothing ? "" : '<button class="bx-btn primary" id="rsGo" value="save">Restore</button>'}</div>`;
+    $("editDlg").showModal();
+    const go = $("rsGo"); if (!go) return;
+    go.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      const replace = !!($("rsReplace") && $("rsReplace").checked);
+      let res; try { res = E.applyRestore(p, { replace }); } catch (e) { $("fErr").textContent = e.message; $("fErr").hidden = false; return; }
+      $("editDlg").close(); onDone();
+      const n = $("upNote"); n.hidden = false;
+      n.innerHTML = `<b>Backup restored:</b> ${plural(res.events.add, "event", "events")} and ${plural(res.venues.add, "venue", "venues")} added · ${res.events.same + res.venues.same} already here${conflicts.length ? ` · ${res.replaced ? `${res.replaced} replaced with the backup's version` : `${plural(conflicts.length, "record", "records")} that differed kept as saved here`}` : ""}.`;
+    });
   }
 
   window.BetaUpcoming = { editEvent, editVenue, render };

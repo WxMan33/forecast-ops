@@ -124,20 +124,23 @@
       });
     }
     function step3() {
-      const VS = root.VenueSearch, venues = E.venues(), have = new Set(E.events().map((x) => x.id));
+      const VS = root.VenueSearch, venues = E.venues(), have = new Set(E.events().filter((x) => x.source && x.source.kind === "calendar").map((x) => JSON.stringify([x.source.calendarId, x.source.eventId])));
       const pool = [...venues, ...E.BUILTIN.filter((b) => !venues.some((v) => E.norm(v.name) === E.norm(b.name)))];
       const calTz = cal.timeZone || null;
       const recs = items.map((g) => ({ g, r: E.fromCalendar(g, venues, provider.kind === "sample" ? `sample:${cal.id}` : cal.id, calTz) })).filter((x) => x.r);
       const skipped = items.length - recs.length;
       const h12 = (t) => { const h = +t.slice(11, 13), m = t.slice(14, 16); return `${h % 12 || 12}${m === "00" ? "" : ":" + m} ${h < 12 ? "AM" : "PM"}`; };
-      const when = (r) => { if (!r.tz) return r.times.start.replace("T", " ") + " UTC"; const s = Date.parse(r.times.start + ":00Z"); return `${new Date(s).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" })} · ${h12(r.times.start)}–${h12(r.times.end)} ${fmt.zone(Date.parse(r.source.start), r.tz)}`; };
+      const when = (r) => { if (!r.tz) return r.times.start.replace("T", " ") + " UTC"; const s = Date.parse(r.times.start + ":00Z"); const dd = (t) => new Date(Date.parse(t + ":00Z")).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" });
+        /* an event that ends on another day says so (multi-day or overnight); the zone shown at each end (a time change between) */
+        const z0 = fmt.zone(Date.parse(r.source.start), r.tz), z1 = fmt.zone(Date.parse(r.source.end), r.tz), other = r.times.end.slice(0, 10) !== r.times.start.slice(0, 10);
+        return `${dd(r.times.start)} · ${h12(r.times.start)}${z1 !== z0 ? " " + z0 : ""}–${other ? dd(r.times.end) + " " : ""}${h12(r.times.end)} ${z1}`; };
       const VIA = { name: "matched by name", address: "matched by street address", remembered: "a location you confirmed before", manual: "chosen by you", found: "found on the map", pin: "dropped pin" };
       /* one venue state per row: saved venue, a place found on the map, still searching, or unconfirmed */
       /* unfamiliar locations start in review: nothing leaves the browser until the planner checks the text and searches */
       const state = recs.map(({ g, r }) => (r.venueId ? { kind: "saved", venue: E.getVenue(r.venueId), via: (r.match || {}).via, auto: r.venueId } : g.location ? { kind: "review", text: g.location } : { kind: "none", why: "blank" }));
       form.innerHTML = `<h2 id="editTitle">Choose events to import</h2>
         <p class="bx-note" style="margin:0">${esc(cal.summary || "Calendar")} · next 90 days${skipped ? ` · ${skipped} all-day ${skipped === 1 ? "item" : "items"} skipped` : ""}. Times are shown at the venue. Saved venues are matched automatically. For other locations, review the place or address before searching: remove anything private, like a home address or directions. The forecast uses the venue's exact point.</p>
-        <div class="ci-list">${recs.map(({ r }, i) => `<div class="ci-ev" data-row="${i}"><label class="bx-check"><input type="checkbox" data-pick="${i}"> <span><b>${esc(r.name)}</b>${have.has(r.id) ? ' <span class="bx-note">· already imported (will update)</span>' : ""}<span class="bx-note" style="display:block" data-when>${esc(when(r))}</span></span></label>
+        <div class="ci-list">${recs.map(({ r }, i) => `<div class="ci-ev" data-row="${i}"><label class="bx-check"><input type="checkbox" data-pick="${i}"> <span><b>${esc(r.name)}</b>${have.has(JSON.stringify([r.source.calendarId, r.source.eventId])) ? ' <span class="bx-note">· already imported (will update)</span>' : ""}<span class="bx-note" style="display:block" data-when>${esc(when(r))}</span></span></label>
           <div class="ci-venue" data-venue-box="${i}"></div></div>`).join("") || '<p class="bx-note">No upcoming timed events in the next 90 days.</p>'}</div>
         <p class="err" id="ciErr" hidden></p>${foot('<button class="bx-btn" value="cancel" formnovalidate>Cancel</button><button type="button" class="bx-btn primary" id="ciImport">Import selected</button>')}`;
       const count = () => { const n = form.querySelectorAll("[data-pick]:checked").length; $("ciImport").textContent = n ? `Import ${n} ${n === 1 ? "event" : "events"}` : "Import selected"; $("ciImport").disabled = !n; };

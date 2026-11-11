@@ -54,6 +54,8 @@ jobs:
       - run: node tests/beta-story.test.js
       - run: node tests/beta-analytics.test.js
       - run: node tests/event-store.test.js
+      - run: node tests/event-times.test.js
+      - run: node tests/event-backup.test.js
       - run: node tests/venue-search.test.js
       - run: node tests/climate-station.test.js
       - run: node tools/analytics/build.js --check
