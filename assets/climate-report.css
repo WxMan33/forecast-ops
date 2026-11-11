@@ -153,3 +153,13 @@
 .weather-history-entry h3 { margin: 5px 0; font-size: 1rem; }
 .weather-history-entry p { margin: 0 0 6px; line-height: 1.5; }
 .weather-history-entry a { font-size: .8rem; }
+
+/* Archive links and documentary photographs retain their own dates and credits. */
+.weather-history-links { display:flex; flex-wrap:wrap; gap:6px 16px; margin:8px 0 0; padding:0; list-style:none; }
+.weather-history-links li { min-width:0; }
+.weather-history-entry a { overflow-wrap:anywhere; }
+.weather-history-photo { margin:12px 0; }
+.weather-history-photo img { display:block; width:100%; max-width:640px; height:auto; border-radius:5px; }
+.weather-history-photo figcaption { margin-top:6px; font-size:.75rem; line-height:1.45; color:var(--muted); }
+.weather-history-photo figcaption span { display:block; margin-top:3px; }
+@media print { .weather-history-photo { break-inside:avoid; } .weather-history-photo img { max-width:360px; } }

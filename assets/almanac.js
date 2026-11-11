@@ -127,15 +127,20 @@
       if (record) events.push(climateHistoryEntry(record));
     }
     card.hidden = events.length === 0;
-    $("weatherHistoryEntries").innerHTML = events.map((event) => `
-      <article class="weather-history-entry">
-        <div class="kick">${esc(event.date.slice(0, 4))} · ${esc(event.place)}</div>
-        <h3>${esc(event.title)}</h3>
-        <p>${esc(event.summary)}</p>
-        <a href="${esc(event.url)}">${esc(event.source)}</a>${event.archive
-          ? ` <span aria-hidden="true">·</span> <a href="${esc(event.archive.url)}">${esc(event.archive.label)}</a>`
-          : ""}
-      </article>`).join("");
+    $("weatherHistoryEntries").innerHTML = events.map(historyArticle).join("");
+  }
+
+  function historyArticle(event) {
+    const links = [...(event.links || []), ...(event.archive ? [event.archive] : [])];
+    const photo = event.photo;
+    return `<article class="weather-history-entry">
+      <div class="kick">${esc(event.date.slice(0, 4))} · ${esc(event.place)}</div>
+      <h3>${esc(event.title)}</h3>
+      <p>${esc(event.summary)}</p>
+      ${photo ? `<figure class="weather-history-photo"><a href="${esc(photo.url)}"><img src="${esc(photo.src)}" width="${photo.width}" height="${photo.height}" alt="${esc(photo.alt)}" loading="lazy" decoding="async"></a><figcaption>${esc(photo.caption)} <span>${esc(photo.credit)}</span></figcaption></figure>` : ""}
+      <a href="${esc(event.url)}">${esc(event.source)}</a>
+      ${links.length ? `<ul class="weather-history-links" aria-label="More about this event">${links.map(link => `<li><a href="${esc(link.url)}">${esc(link.label)}</a></li>`).join("")}</ul>` : ""}
+    </article>`;
   }
 
   function climateHistoryEntry([date, metric, value, count]) {
