@@ -26,6 +26,8 @@ jobs:
       - run: |
           npm install --no-save playwright@1.48.2
           npx playwright install --with-deps chromium || { echo "::warning::Ubuntu packages for Chromium could not be installed; installing the browser alone"; npx playwright install chromium; }
+      - name: Network recorder self-test (offline, bounded)
+        run: node tools/net-recorder-check.js
       - name: Documentary weather history regression
         run: node tools/weather-history-check.js
       - name: Almanac station-aware NWS refresh regression

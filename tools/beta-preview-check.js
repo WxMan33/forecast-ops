@@ -8,17 +8,8 @@ const [base, out, stamp] = process.argv.slice(2);
 const DESK = { viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 2 }, PHONE = { ...devices["iPhone 13"] };
 let failed = 0;
 const GEO = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "../tests/fixtures/nominatim/venues.json"), "utf8")).queries;
-/* weather-data requests that failed or answered with an error, from every page the check opens: host and path only
-   (query strings, which can carry keys, are dropped; any pk. token is masked), status or failure, and when */
-const NET = [], DATA_HOSTS = /(^|\.)(api\.open-meteo\.com|ensemble-api\.open-meteo\.com|api\.weather\.gov|data\.rcc-acis\.org)$/;
-const netRec = (url, what) => { try { const u = new URL(url); if (!DATA_HOSTS.test(u.hostname)) return; NET.push({ at: Date.now(), where: `${u.hostname}${u.pathname}`.replace(/pk\.[0-9a-f]+/g, "pk.[REDACTED]"), models: u.searchParams.get("models") || "", what }); } catch (e) { /* not a URL */ } };
-const watchNet = (p) => {
-  p.on("requestfailed", (r) => netRec(r.url(), `failed: ${(r.failure() && r.failure().errorText) || "unknown"}`));
-  p.on("response", (r) => { if (r.status() >= 400) netRec(r.url(), `HTTP ${r.status()}`); });
-};
-const netSince = (ms) => { const rows = NET.filter((x) => x.at >= ms), by = {};
-  rows.forEach((x) => { const k = `${x.where}${x.models ? ` [${x.models}]` : ""} → ${x.what}`; by[k] = by[k] || { n: 0, first: x.at, last: x.at }; by[k].n++; by[k].last = x.at; });
-  return Object.entries(by).map(([k, v]) => `${k} ×${v.n} (${new Date(v.first).toISOString().slice(11, 19)}–${new Date(v.last).toISOString().slice(11, 19)}Z)`); };
+/* weather-data requests that failed or answered with an error, from every page the check opens (see tools/net-recorder.js) */
+const NETREC = require("./net-recorder.js").createRecorder(), watchNet = NETREC.watch, netSince = NETREC.since;
 let lastReport = Date.now();
 const report = (ok, name, detail) => { if (!ok) failed++; console.log(`${ok ? "PASS" : "FAIL"} ${name}: ${detail}`);
   if (!ok) { const n = netSince(lastReport - 5 * 60e3); console.log(n.length ? `  data requests that failed around this check:\n    ${n.join("\n    ")}` : "  data requests that failed around this check: none recorded"); }
