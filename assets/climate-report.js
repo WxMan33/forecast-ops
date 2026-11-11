@@ -52,6 +52,42 @@
     const snow = [dayRow('snow', 'Daily total', 4, 'snow', 'in', 1), totalRow('snow-mtd', 'Month to date', month, 4, 1), totalRow('snow-std', since(season.start), season.start, 4, 1), totalRow('snow-season', since(snowStart), snowStart, 4, 1), { id: 'snwd', label: 'Snow depth', unit: 'in', decimals: 0, observed: dayValue(5), normal: null, departure: null, record: null, lastYear: value(last?.[5]) }];
     return { date, status, cutoff: end, previousDate: prior, season, observed, sections: [{ id: 'temperature', label: 'Temperature', unit: '°F', rows: temp }, { id: 'precipitation', label: 'Precipitation', unit: 'inches', rows: precip }, { id: 'snowfall', label: 'Snowfall', unit: 'inches', rows: snow }] };
   }
-  const api = { previousYear, build };
+  /* Only CLICVG products with an explicit climate-summary date may supply CVG values.
+     Afternoon reports are usable daily observations, never complete-day totals. */
+  function parseCLI(product) {
+    const text = String(product?.productText || '').replace(/\r/g, '');
+    if (!/^CLICVG\s*$/m.test(text)) return null;
+    const header = /CLIMATE SUMMARY FOR ([A-Z]+) (\d{1,2}) (\d{4})/.exec(text);
+    const months = 'JANUARY FEBRUARY MARCH APRIL MAY JUNE JULY AUGUST SEPTEMBER OCTOBER NOVEMBER DECEMBER'.split(' ');
+    if (!header || !months.includes(header[1])) return null;
+    const date = `${header[3]}-${String(months.indexOf(header[1]) + 1).padStart(2, '0')}-${header[2].padStart(2, '0')}`;
+    if (new Date(date + 'T12:00Z').toISOString().slice(0, 10) !== date) return null;
+    const asOf = /VALID (?:TODAY )?AS OF (\d{4}) ([AP]M)/.exec(text);
+    const complete = !asOf || (asOf[1] === '1159' && asOf[2] === 'PM');
+    const section = name => {
+      const match = new RegExp(name + '\\s*\\n([\\s\\S]*?)(?=\\n[A-Z]|$)').exec(text);
+      return match ? match[1] : '';
+    };
+    const read = (body, label) => {
+      const match = new RegExp('^\\s*' + label + '\\s+(MM|M|T|-?\\d+(?:\\.\\d+)?)(?:R)?(?=\\s|$)', 'm').exec(body);
+      return match && !['M', 'MM'].includes(match[1]) ? match[1] : 'M';
+    };
+    const temp = section('TEMPERATURE \\(F\\)'), precip = section('PRECIPITATION \\(IN\\)'), snow = section('SNOWFALL \\(IN\\)');
+    return { date, complete, asOf: asOf ? `${+asOf[1].slice(0, 2)}:${asOf[1].slice(2)} ${asOf[2]} local standard time` : 'end of day',
+      issuedAt: product.issuanceTime || null, id: product.id || null,
+      row: [date, read(temp, 'MAXIMUM'), read(temp, 'MINIMUM'), read(precip, '(?:TODAY|YESTERDAY)'), read(snow, '(?:TODAY|YESTERDAY)'), read(snow, 'SNOW DEPTH')] };
+  }
+  function supplementCLI(A, rows, cli, date) {
+    if (!cli || cli.date !== date) return { rows, used: false };
+    const output = rows.map(row => row.slice());
+    let row = output.find(row => row[0] === date);
+    if (!row) { row = [date, 'M', 'M', 'M', 'M', 'M']; output.push(row); }
+    let used = false;
+    for (let col = 1; col <= 5; col++) {
+      if (A.val(row[col]).missing && !A.val(cli.row[col]).missing) { row[col] = cli.row[col]; used = true; }
+    }
+    return { rows: output, used };
+  }
+  const api = { previousYear, build, parseCLI, supplementCLI };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.ClimateReport = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

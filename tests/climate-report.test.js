@@ -77,4 +77,24 @@ eq(R.build(A,{date:'2026-11-03',observations:accum,normals}).sections[1].rows[0]
   const leap = R.build(A, { date: '2028-02-29', observations: leapObs, normals: leapNorm, status: 'observed', cutoff: '2028-02-29' });
   eq([r(leap)('maxt').observed.value, leap.previousDate, r(leap)('maxt').lastYear.value, r(leap)('pcpn-mtd').to], [40, null, null, '2028-02-29'], 'Feb 29: its own day, no invented last-year date, month total through Feb 29');
 }
+// NWS can publish afternoon values before ACIS. Use only the dated CVG daily product.
+{
+ const product = require('./fixtures/almanac/nws-cli-cvg-20261110.json');
+ const cli = R.parseCLI(product);
+ eq([cli.date, cli.complete, cli.asOf, cli.row], ['2026-11-10', false, '5:00 PM local standard time', ['2026-11-10','72','39','0.00','0.0','0']], 'captured afternoon CVG report');
+ eq(R.parseCLI({...product, productText: product.productText.replace('CLICVG','CLIDAY')}), null, 'wrong station rejected');
+ eq(R.parseCLI({productText:'service unavailable'}), null, 'non-product rejected');
+ eq(R.parseCLI({...product, productText:product.productText.replace('0500 PM','1159 PM')}).complete, true, 'end-of-day report is complete');
+ const input = [['2026-11-10','M','38','M','M','M']];
+ const filled = R.supplementCLI(A,input,cli,'2026-11-10');
+ eq(filled.rows[0], ['2026-11-10','72','38','0.00','0.0','0'], 'only missing ACIS values supplemented');
+ eq(input[0][1], 'M', 'cached ACIS input not mutated');
+ eq(R.supplementCLI(A,input,cli,'2026-11-09').used, false, 'adjacent-day report cannot fill selected day');
+ const trace = R.parseCLI({...product, productText:product.productText.replace('TODAY            0.00','TODAY            T   ')});
+ eq(trace.row[3], 'T', 'trace is retained');
+ const sheet=R.build(A,{date:cli.date,observations:filled.rows,normals:[],status:'today',cutoff:'2026-11-09'});
+ const rows=sheet.sections.flatMap(x=>x.rows);
+ eq(rows.find(x=>x.id==='maxt').observed.value,72,'NWS daily max reaches sheet');
+ eq(rows.find(x=>x.id==='pcpn-mtd').to,'2026-11-09','afternoon report never extends complete-day totals');
+}
 console.log(`${n} climate-sheet checks pass`);

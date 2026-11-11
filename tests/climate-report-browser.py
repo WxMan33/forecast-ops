@@ -85,6 +85,29 @@ with sync_playwright() as p:
  page.locator('#almDate').fill('2026-11-03');page.locator('#almDate').press('Tab')
  page.locator('[data-climo-row="maxt"]').wait_for()
  page.emulate_media(media='print');page.screenshot(path=str(out/'climo-print.png'),full_page=True)
+ # Official afternoon CLI fills today's missing ACIS values, then refreshes without a reload.
+ nws=json.loads((fixtures/'nws-cli-cvg-20261110.json').read_text())
+ nws_calls=[]
+ def nws_route(r):
+  nws_calls.append(r.request.url)
+  body={'@graph':[{'id':nws['id'],'issuingOffice':'KILN','issuanceTime':nws['issuanceTime']}]} if '/types/CLI/' in r.request.url else nws
+  r.fulfill(status=200,content_type='application/json',body=json.dumps(body))
+ page.route('https://api.weather.gov/**',nws_route)
+ page.clock.set_system_time(datetime(2026,11,10,23,0,tzinfo=timezone.utc))
+ page.locator('#almDate').fill('2026-11-10');page.locator('#almDate').press('Tab')
+ page.wait_for_function('document.querySelector(".climo-title").textContent.includes("Nov 10, 2026")')
+ assert page.locator('[data-climo-row="maxt"] .climo-observed').inner_text()=='72'
+ assert page.locator('[data-climo-row="mint"] .climo-observed').inner_text()=='39'
+ assert '5:00 PM local standard time' in page.locator('.climo-nws').inner_text()
+ assert 'not complete' in page.locator('.climo-nws').inner_text()
+ assert page.locator('.climo-context').get_attribute('data-cutoff')<'2026-11-10'
+ nws['productText']=nws['productText'].replace('MAXIMUM         72','MAXIMUM         73')
+ page.clock.fast_forward(5*60*1000)
+ page.wait_for_function('document.querySelector("[data-climo-row=maxt] .climo-observed").textContent==="73"')
+ assert len(nws_calls)>=4,'list and product fetched again after five minutes'
+ page.unroute('https://api.weather.gov/**')
+ page.locator('#almDate').fill('2026-11-03');page.locator('#almDate').press('Tab')
+ page.wait_for_function('document.querySelector(".climo-title").textContent.includes("Nov 3, 2026")')
  # Failure does not imply that observations were zero.
  page.emulate_media(media='screen');context.unroute('**/*')
  context.route('**/*',lambda r:r.fulfill(status=200,content_type='application/json',body=iss_fixture) if '/feeds/iss-cincinnati.json' in r.request.url else r.continue_() if r.request.url.startswith('http://127.0.0.1:') else r.fulfill(status=503,content_type='application/json',body='{"error":"synthetic outage"}'))
