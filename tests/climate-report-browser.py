@@ -85,6 +85,7 @@ with sync_playwright() as p:
  page.locator('#almDate').fill('2026-11-03');page.locator('#almDate').press('Tab')
  page.locator('[data-climo-row="maxt"]').wait_for()
  page.emulate_media(media='print');page.screenshot(path=str(out/'climo-print.png'),full_page=True)
+ page.emulate_media(media='screen')
  # Official afternoon CLI fills today's missing ACIS values, then refreshes without a reload.
  nws=json.loads((fixtures/'nws-cli-cvg-20261110.json').read_text())
  nws_calls=[]
