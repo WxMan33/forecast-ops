@@ -125,14 +125,28 @@
   }
 
   /* ---- merge imported calendar records into the list ----
-     New events are added. An event imported before (same calendar event ID) is updated in place: name and
+     New events are added. An event imported before (same calendar and event IDs) is updated in place: name and
      start/end follow the calendar; a confirmed venue and the planner's per-event times are kept (an override
      keeps its offset from the start, so "gates 2 h before" survives a kickoff change). Pure: list in, list out. */
   function mergeImported(list, recs, venueOf) {
     const out = list.slice(), now = Date.now(); let added = 0, updated = 0, unchanged = 0, relocated = 0;
     recs.forEach((r) => {
-      const i = out.findIndex((x) => x.id === r.id);
-      if (i < 0) { out.push({ ...r, created: now, updated: now }); added++; return; }
+      // Google event IDs are unique within a calendar, not across calendars.
+      // Match the source pair first; preserve existing local IDs and saved links.
+      const rsKey = r.source || {};
+      const keyed = (s) => s && s.kind === "calendar" && s.calendarId != null && s.eventId != null;
+      const i = out.findIndex((x) => keyed(rsKey) && keyed(x.source)
+        ? x.source.calendarId === rsKey.calendarId && x.source.eventId === rsKey.eventId
+        : x.id === r.id && !keyed(rsKey) && !keyed(x.source));
+      if (i < 0) {
+        let id = r.id;
+        if (out.some((x) => x.id === id)) {
+          const base = `cal_source_${encodeURIComponent(JSON.stringify([rsKey.calendarId, rsKey.eventId]))}`;
+          id = base; let n = 1;
+          while (out.some((x) => x.id === id)) id = `${base}_${n++}`;
+        }
+        out.push({ ...r, id, created: now, updated: now }); added++; return;
+      }
       const old = out[i], os = old.source || {}, rs = r.source || {};
       /* a venue the planner confirmed stays only while the calendar location is the same; a new location is resolved */
       const sameLoc = os.location == null || norm(os.location) === norm(rs.location);

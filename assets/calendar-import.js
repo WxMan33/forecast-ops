@@ -69,9 +69,21 @@
       if (!r.ok) throw new Error(`Google Calendar answered HTTP ${r.status}.`);
       return r.json();
     }
+    // Both endpoints paginate. A short (or empty) page can still have a next page.
+    async function list(path, params) {
+      const items = [], seen = new Set(); let pageToken = null;
+      do {
+        const j = await get(path, { ...params, ...(pageToken ? { pageToken } : {}) });
+        items.push(...(j.items || []));
+        pageToken = j.nextPageToken || null;
+        if (pageToken && seen.has(pageToken)) throw new Error("Google Calendar repeated a results page. Try importing again.");
+        if (pageToken) seen.add(pageToken);
+      } while (pageToken);
+      return items;
+    }
     return { kind: "google", label: "Google Calendar",
-      async listCalendars() { const j = await get("/users/me/calendarList", { minAccessRole: "reader", fields: "items(id,summary,primary,timeZone)" }); return j.items || []; },
-      async listEvents(id, { timeMin, timeMax }) { const j = await get(`/calendars/${encodeURIComponent(id)}/events`, { timeMin, timeMax, singleEvents: "true", orderBy: "startTime", maxResults: "250", fields: "items(id,etag,status,summary,location,start,end)" }); return (j.items || []).filter((e) => e.status !== "cancelled"); },
+      async listCalendars() { return list("/users/me/calendarList", { minAccessRole: "reader", fields: "nextPageToken,items(id,summary,primary,timeZone)" }); },
+      async listEvents(id, { timeMin, timeMax }) { return (await list(`/calendars/${encodeURIComponent(id)}/events`, { timeMin, timeMax, singleEvents: "true", orderBy: "startTime", maxResults: "250", fields: "nextPageToken,items(id,etag,status,summary,location,start,end)" })).filter((e) => e.status !== "cancelled"); },
       disconnect() { if (token && root.google && root.google.accounts) root.google.accounts.oauth2.revoke(token, () => {}); token = null; expires = 0; } };
   }
 
