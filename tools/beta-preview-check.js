@@ -520,6 +520,41 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       `file v${B.version}: ${B.counts.events} event, ${B.counts.venues} venue, ${B.counts.aliases} alias · "${exportNote.slice(0, 60)}" · emptied ${emptied} · restore "${summary.slice(0, 80)}" → "${restoredNote.slice(0, 70)}" · records identical ${same(afterEv, beforeEv) && same(afterVn, beforeVn)} (custom gates ${afterEv[0] && afterEv[0].times.gates.slice(11)}, venue gates ${afterVn[0] && afterVn[0].defaults.gates} min) · again: "${dup.match(/Everything[^.]*\./) || dup.slice(0, 60)}" · damaged: "${bad.slice(0, 70)}", storage unchanged ${snap === snap2}${errors.length ? " · " + errors.join("; ") : ""}`);
     await ctx.close();
   });
+  /* ---------- 15. editing an imported fall-back event keeps which 1:30 AM it is ---------- */
+  await section('15. fall-back event edit (phone)', async () => {
+    const tqlV = { id: "vn_check", name: "TQL Stadium", city: "Cincinnati, OH", lat: 39.1111, lon: -84.5222, tz: "America/New_York", aliases: [], defaults: { setup: 270, gates: 90, teardown: 120, gust: 30 } };
+    const { ctx, p, errors } = await go(PHONE, base + "event-beta.html#upcoming", `if (!sessionStorage.getItem("seeded")) { sessionStorage.setItem("seeded", "1"); localStorage.setItem("beta_venues_v1", ${JSON.stringify(JSON.stringify([tqlV]))}); }`);
+    await until(p, () => document.querySelector("#upView:not([hidden]) #upImport"), null, 30000);
+    /* Nov 7 2027 (clocks fall back at 2 AM): one event ends at the second 1:30 AM (EST), one at the first (EDT) */
+    await p.evaluate(() => { const E = window.EventStore, V = E.venues();
+      E.importEvents([E.fromCalendar({ id: "fb2", summary: "Synthetic late show (EST end)", location: "TQL Stadium", start: { dateTime: "2027-11-07T02:00:00Z" }, end: { dateTime: "2027-11-07T06:30:00Z" } }, V, "cal-fb", "America/New_York"),
+        E.fromCalendar({ id: "fb1", summary: "Synthetic late show (EDT end)", location: "TQL Stadium", start: { dateTime: "2027-11-07T02:00:00Z" }, end: { dateTime: "2027-11-07T05:30:00Z" } }, V, "cal-fb", "America/New_York")]); });
+    await p.reload({ waitUntil: "domcontentloaded" }); await until(p, () => document.querySelector('.up-ev[data-id="cal_fb2"] [data-edit]'), null, 30000);
+    const get = () => p.evaluate(() => Object.fromEntries(JSON.parse(localStorage.getItem("beta_events_v2")).map((e) => [e.id, { times: e.times, fold: e.fold || {}, own: (e.overrides || []).join(), end: window.EventStore.msOf(e, "end"), tear: window.EventStore.msOf(e, "teardown") }])));
+    const before = await get();
+    const edit = async (id, gates) => {
+      await p.click(`.up-ev[data-id="${id}"] [data-edit]`); await until(p, () => document.getElementById("editDlg").open, null, 10000);
+      const shown = await p.evaluate(() => ({ s: document.getElementById("fDate").value, e: document.getElementById("fEndDate").value, end: document.getElementById("fEnd").value, tear: document.getElementById("fTear").value }));
+      if (gates) await p.evaluate((g) => { const el = document.getElementById("fGates"); el.value = g; el.dispatchEvent(new Event("input", { bubbles: true })); }, gates);
+      await p.click("#fSave"); await until(p, () => !document.getElementById("editDlg").open, null, 15000);
+      const err = await p.evaluate(() => (document.getElementById("editDlg").open ? document.getElementById("fErr").innerText : ""));
+      return { shown, err };
+    };
+    const e2 = await edit("cal_fb2", null), e1 = await edit("cal_fb1", null);
+    const mid = await get();
+    const e2g = await edit("cal_fb2", "19:45");
+    await p.reload({ waitUntil: "domcontentloaded" }); await until(p, () => document.querySelector(".up-ev"), null, 30000);
+    const after = await get();
+    const canon = (x) => (Array.isArray(x) ? x.map(canon) : x && typeof x === "object" ? Object.keys(x).sort().reduce((o, k) => ((o[k] = canon(x[k])), o), {}) : x), same = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
+    const H = 3600e3, b2 = before.cal_fb2, b1 = before.cal_fb1, a2 = after.cal_fb2, m1 = mid.cal_fb1, m2 = mid.cal_fb2;
+    report(b2.fold.end === 1 && b1.fold.end === 0 && b2.end === Date.parse("2027-11-07T06:30:00Z") && b1.end === Date.parse("2027-11-07T05:30:00Z")
+      && !e2.err && !e1.err && e2.shown.e === "2027-11-07" && e2.shown.end === "01:30"
+      && same(m2, b2) && same(m1, b1)
+      && a2.fold.end === 1 && a2.end === b2.end && a2.tear - a2.end === 2 * H && a2.own === "gates" && a2.times.gates === "2027-11-06T19:45" && !e2g.err && !errors.length,
+      "fall-back event: saving an imported event unchanged keeps which 1:30 AM it ends at (EST vs EDT); a gates edit keeps it too, after a refresh",
+      `EST end: fold ${b2.fold.end} → unchanged save ${m2.fold.end} → gates edit + refresh ${a2.fold.end}, end ${new Date(a2.end).toISOString().slice(11, 16)}Z, teardown +${(a2.tear - a2.end) / H} h, gates ${a2.times.gates.slice(11)} (${a2.own}) · EDT end: fold ${b1.fold.end} → ${m1.fold.end}, end ${new Date(m1.end).toISOString().slice(11, 16)}Z · editor showed ${e2.shown.s}..${e2.shown.e} ends ${e2.shown.end}, teardown ${e2.shown.tear}${e2.err || e1.err || e2g.err ? " · errors: " + [e2.err, e1.err, e2g.err].join(" ") : ""}${errors.length ? " · " + errors.join("; ") : ""}`);
+    await ctx.close();
+  });
   await section('7. analytics blocked or opted out: the betas work; nothing i', async () => {
   for (const [mode, init] of [["blocked", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec")'], ["opted out", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec");localStorage.setItem("fo_analytics_optout","1")']]) {
     for (const page of ["meteorologist-beta.html", "event-beta.html"]) {

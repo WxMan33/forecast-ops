@@ -59,9 +59,19 @@
     ["fDate", "fStart", "fEnd"].forEach((id) => $(id).addEventListener("change", () => { if (endAuto) $("fEndDate").value = autoEnd(); }));
     $("fEndDate").addEventListener("change", () => { endAuto = $("fEndDate").value === autoEnd(); fill(false); });
     const endLocal = () => `${$("fEndDate").value || $("fDate").value}T${$("fEnd").value}`;
+    /* the real instant behind a start or end that hasn't been changed: the calendar's own, or the one saved with the event
+       (on a fall-back night 1:30 AM happens twice; this keeps the one the event really means) */
+    const srcOf = base && base.source && base.source.start ? base.source : null;
+    const knownMs = (k, label, tz) => {
+      if (!tz || !label) return null;
+      if (srcOf && srcOf.end && E.wallAt(k === "start" ? srcOf.start : srcOf.end, tz) === label) return Date.parse(k === "start" ? srcOf.start : srcOf.end);
+      if (stored && stored.tz === tz && stored.times[k] === label) return E.msOf(stored, k);
+      return null;
+    };
     function fill(first) {
       const d = $("fDate").value, s = $("fStart").value, e = $("fEnd").value; if (!d || !s || !e) return;
-      const want = E.schedule(defs(), { start: `${d}T${s}`, end: endLocal(), tz: zone() }).times;
+      const z = zone(), st = `${d}T${s}`, en = endLocal();
+      const want = E.schedule(defs(), { start: st, end: en, tz: z, startMs: knownMs("start", st, z), endMs: knownMs("end", en, z) }).times;
       Object.entries(F).forEach(([k, el]) => { if (first && base && base.times && (stored ? true : !base.sample)) { el.value = hm(base.times[k]); } else if (!dirty.has(k)) el.value = hm(want[k]); el.classList.toggle("own", dirty.has(k)); });
       if (first) $("fGust").value = base && base.gust && !base.sample ? base.gust : defs().gust;
       const name = venue ? venue.name : $("fVenue").value.trim() || "this venue";
@@ -113,7 +123,7 @@
       /* times that happen twice on a fall-back night: settled from the calendar's own instants, the times as saved, or
          the venue defaults; a repeated time typed by hand is still left for validation to flag */
       { const ms = {};
-        if (src && src.start && src.end && tz) { if (times.start === E.wallAt(src.start, tz)) ms.start = Date.parse(src.start); if (times.end === E.wallAt(src.end, tz)) ms.end = Date.parse(src.end); }
+        ["start", "end"].forEach((k) => { const m = knownMs(k, times[k], tz); if (m != null) ms[k] = m; });
         const sch = E.schedule(defs(), { start: times.start, end: times.end, tz, startMs: ms.start, endMs: ms.end });
         Object.keys(times).forEach((k) => { if (ms[k] != null) return; if (stored && stored.tz === tz && stored.times[k] === times[k] && E.msOf(stored, k) != null) ms[k] = E.msOf(stored, k); else if (sch.times[k] === times[k]) ms[k] = E.localMs(times[k], tz, sch.fold[k]); });
         draft.fold = E.foldsFor(times, ms, tz); }
