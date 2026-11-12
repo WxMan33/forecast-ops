@@ -7,6 +7,7 @@
   const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   /* the site's 5-point precipitation steps; a small but real chance reads <5%, never 0% */
   const pct = (x) => { if (!fin(x)) return "—"; const r = Math.round(x / 5) * 5; return r === 0 && x > 0 ? "<5%" : `${r}%`; };
+  const rainAmount = (x) => x > 0 && x < 0.01 ? "<0.01" : x === 0 ? "0" : x.toFixed(2);
   const LIGHTNING_WORD = { normal: "Low", monitor: "Moderate", prepare: "Moderate", action: "High" };
   const day = (ms, tz) => new Date(ms).toLocaleDateString("en-US", { timeZone: tz, weekday: "short", month: "short", day: "numeric" });
   const HZ_ICON = { lightning: "ϟ", wind: "≋", rain: "☂", snow: "❄", heat: "☀", cold: "❆" };
@@ -26,7 +27,7 @@
       { key: "feel", label: "Feels like", sub: "°F", cells: val("feel", (x) => `${Math.round(x)}°`) },
       { key: "pop", label: "Precip chance", sub: "hourly PoP", cells: val("pop", (x) => pct(x)) },
       { key: "chance", label: "Ensemble ≥0.01″", sub: "share of members", cells: val("chance", (x) => pct(x * 100)) },
-      { key: "qpf", label: "Precip amount", sub: "inches", cells: val("qpf", (x) => (x < 0.005 ? "0" : x.toFixed(2))) },
+      { key: "qpf", label: "Precip amount", sub: "inches", cells: val("qpf", (x) => rainAmount(x)) },
       { key: "wind", label: "Wind", sub: "sustained mph", cells: val("wind", (x) => `${Math.round(x)}`) },
       { key: "gust", label: "Gusts", sub: "mph", cells: val("gust", (x) => `${Math.round(x)}`) },
     ];
@@ -45,8 +46,8 @@
     });
     const cellOf = (c, icon) => c.state === "concern" ? { state: "concern", tier: c.tier, icon, text: SHORT[c.word] || c.word, why: c.why }
       : c.state === "flag" ? { state: "flag", icon, text: "Low", why: c.why } : c.state === "missing" ? { state: "missing", text: "n/a", why: c.why }
-      : c.state === "partial" ? { state: "partial", text: "None*", why: c.why }
-      : c.state === "rated" ? { state: "flag", icon: HZ_ICON[c.key] || "", text: `${SHORT[c.word] || c.word}†`, why: c.why } : { state: "clear", text: "–", why: c.why || "No concern identified" };
+      : c.state === "partial" ? { state: "partial", text: "Limited", why: c.why }
+      : c.state === "rated" ? { state: "flag", icon: HZ_ICON[c.key] || "", text: "–", why: c.why } : { state: "clear", text: "–", why: c.why || "No concern identified" };
     const summary = con.summary.map((c) => { const x = cellOf(c, c.keys ? c.keys.map((k) => HZ_ICON[k]).join("") : ""); if (c.count > 1) x.text += ` ×${c.count}`; return x; });
     /* lightning potential for every hour, in plain words (the Thunder page's tiers; colour only where it is raised) */
     const lightningCells = hrs.map((h) => {
@@ -58,7 +59,7 @@
     const values = valueRows(hrs, now).filter((r) => r.key !== "chance").map((r) => (r.key === "pop" ? { ...r, label: "Rain chance", sub: "each hour, at the venue" } : r.key === "qpf" ? { ...r, label: "Rain amount", sub: "inches" } : r));
     const rows = [
       { key: "phase", kind: "phase", label: "Phase", cells: phaseCells },
-      { key: "concern", kind: "summary", label: "Main concern", sub: "this hour", cells: summary },
+      { key: "concern", kind: "summary", label: "Hourly signal", sub: "tap for details", cells: summary },
       ...con.rows.filter((r) => r.key !== "lightning").map((r) => ({ key: `hz-${r.key}`, kind: "concern", label: `${HZ_ICON[r.key]} ${r.label}`, sub: "rating for this part of the event", cells: r.cells.map((c) => cellOf(c, "")) })),
       { key: "lightning", kind: "concern", label: "ϟ Lightning", sub: "potential", cells: lightningCells },
       ...values,
@@ -66,9 +67,9 @@
     const tiers = [...new Set(con.rows.flatMap((r) => r.cells.filter((c) => c.state === "concern").map((c) => c.tier)))];
     const legend = [
       ...["monitor", "prepare", "action"].filter((t) => tiers.includes(t)).map((t) => ({ state: "concern", tier: t, text: { monitor: "Watch · marginal", prepare: "Plan for it · elevated", action: "Likely disruptive · high" }[t] })),
-      { state: "flag", text: "Low — possible this hour, rated low for this part of the event" }, { state: "flag", text: "† no single hour stands out; this part of the event carries the rating" }, { state: "clear", text: "– no concern found" },
-      { state: "partial", text: "None* — lightning guidance missing" }, { state: "missing", text: "n/a — no guidance (not an all-clear)" }];
-    const note = "Colours are the briefing's own ratings for each part of the event (lightning: its potential that hour). Rain chance is the blended hourly chance of rain at the venue. Lightning potential is a forecast signal, not detected lightning.";
+      { state: "flag", text: "Low — a signal below the phase planning threshold" }, { state: "clear", text: "– no specific hourly signal; see phase plan above" },
+      { state: "partial", text: "Limited — some guidance missing" }, { state: "missing", text: "n/a — no guidance (not an all-clear)" }];
+    const note = "Shading marks hours with an identified signal; its colour uses the existing phase rating. A phase plan does not mean every hour has that threat. Rain chance is the blended hourly chance at the venue. Lightning potential is forecast guidance, not detected lightning.";
     function detail(i) {
       const h = hrs[i], a = axis[i], hits = con.rows.map((r) => ({ r, c: r.cells[i] })).filter((x) => x.c.state === "concern" || x.c.state === "flag");
       const head = `<h3>${esc(day(h.ms, tz))}, ${esc(a.hourText)} ${esc(a.zone)}${cover[i].length ? ` · ${esc(cover[i].map((p) => p.label).join(", "))}` : ""}</h3>`;
@@ -102,7 +103,7 @@
     return { hrs, axis, rows, legend, note, detail };
   }
 
-  const api = { pct, LIGHTNING_WORD, eventView, blendView, valueRows, HZ_ICON, PROB_NOTE };
+  const api = { pct, rainAmount, LIGHTNING_WORD, eventView, blendView, valueRows, HZ_ICON, PROB_NOTE };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.HourlyViews = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

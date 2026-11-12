@@ -292,32 +292,102 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .bx-thunder { margin-top: 8px; padding: 7px 10px; border: 1px solid var(--bx-rule); border-radius: 8px; font-size: 13.5px; }
 .bx-more { margin-top: 12px; }
 .bx-more > summary { cursor: pointer; font-weight: 600; font-size: 13.5px; color: var(--muted); }
-/* ---- printout (two US Letter pages): only the print view, black on white, no controls or embeds ---- */
+/* Event briefing polish: task-focused presentation; the existing design tokens and engines stay in place. */
+.event-planner .bx-brief { max-width: 860px; padding-top: 24px; }
+.event-planner .bx-decision { font-family: var(--bx-font) !important; font-weight: 700 !important; font-size: clamp(28px, 5.6vw, 38px) !important; line-height: 1.16 !important; max-width: 24ch; margin-top: 22px !important; }
+.event-planner .bx-keys { margin-top: 22px; gap: 15px 20px; font-size: 17px; }
+.event-planner .bx-keys dt { font-size: 13px; }
+.event-planner .bx-keys .bx-note { font-size: 13px; margin-top: 3px; line-height: 1.45; }
+.brief-source { display: flex; align-items: flex-start; gap: 9px; margin-top: 20px; padding: 11px 12px; border: 1px solid var(--bx-rule); border-radius: 8px; font-size: 12px; background: var(--bx-quiet); }
+.brief-source-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex: none; margin-top: 5px; }
+.brief-source.is-limited .brief-source-dot { background: var(--monitor); }
+.brief-source b { display: block; font-weight: 600; }
+.brief-source span:not(.brief-source-dot) { display: block; color: var(--muted); margin-top: 2px; }
+.event-planner .bx-phase { padding: 17px 0; gap: 8px 16px; }
+.event-planner .bx-phase .nm { font-size: 16px; }
+.event-planner .bx-phase .tm { display: block; font-size: 12px; font-weight: 400; margin: 2px 0 3px; }
+.event-planner .bx-phase .tp { font-size: 25px; }
+.event-planner .bx-phase .mt { gap: 8px 20px; }
+.event-planner .bx-phase .mt > span:first-child { flex: 1 1 100%; }
+.event-planner .bx-phase .mt [data-peak] { font-size: 16px; }
+.event-planner .sch-visual { margin-bottom: 6px; }
+.event-planner .sch-labels { list-style: none; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; margin: 0; padding: 0; }
+.event-planner .sch-labels li { display: flex; gap: 7px; font-size: 12px; }
+.sch-number { display: grid; place-items: center; width: 20px; height: 20px; border: 1px solid var(--bx-rule); border-radius: 50%; font-size: 10px; flex: none; }
+.sch-labels b, .sch-labels div > span { display: block; }
+.sch-labels div > span { color: var(--muted); font-size: 11px; margin-top: 2px; }
+.event-planner .sch-legend { margin-top: 12px; }
+.event-planner .hg-k-phase .hg-c { white-space: normal; min-width: 76px; max-width: 92px; line-height: 1.3; }
+.event-planner .hg-lab { isolation: isolate; box-shadow: 1px 0 0 var(--line); }
+.event-planner .hg-k-summary .hg-s-flag .hg-v { text-decoration: none; color: var(--muted); }
+.event-planner #evGridLegend > p { font-size: 11px; margin: 8px 0; }
+.event-planner .bx-more > summary { cursor: pointer; padding: 10px 0; font-size: 13px; }
+@media (max-width: 600px) {
+  .event-planner .bx-head-in { flex-wrap: wrap; gap: 7px; }
+  .event-planner .bx-head #bxCtx { order: 2; flex-basis: 100%; }
+  .event-planner .bx-head .bx-brand { margin-right: auto; }
+  .event-planner .bx-head .tag { display: none; }
+  .event-planner .bx-head .bx-ctx:empty { display: none; }
+  .event-planner .bx-brief { padding: 18px 16px 32px; }
+  .event-planner .bx-keys { grid-template-columns: 1fr; gap: 3px; }
+  .event-planner .bx-keys dt:not(:first-child) { margin-top: 10px; }
+  .event-planner .bx-keys dd { font-size: 17px; }
+  .event-planner .sch-visual .sch-seg span { display: none; }
+  .event-planner .sch-bar { height: 14px; }
+  .event-planner .sch-ticks { display: none; }
+  .event-planner .sch-labels { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px 18px; padding-top: 9px; }
+  .event-planner .bx-phase .mt { font-size: 12.5px; }
+  .event-planner .hg { --hg-lab: 100px; }
+}
+/* Two-page US Letter print view. Date ranges, coverage and pagination are part of the document. */
 .pv { display: none; }
 @media print {
-  @page { size: letter; margin: 0.55in 0.6in; }
-  html, body { background: #fff !important; color: #111 !important; }
+  @page { size: letter; margin: 0.52in 0.55in; }
+  html, body { background: #fff !important; color: #17202a !important; margin: 0; }
   body > :not(#printView) { display: none !important; }
-  .pv { display: block !important; font: 10.5pt/1.35 Archivo, system-ui, sans-serif; color: #111; }
-  .pv h1, .pv h2 { break-after: avoid; }
-  .pv-head { display: flex; justify-content: space-between; gap: 16px; border-bottom: 1.5px solid #111; padding-bottom: 6px; }
-  .pv-head > div:first-child { display: flex; flex-direction: column; gap: 1px; }
-  .pv-title { font-size: 15pt; }
-  .pv-iss { text-align: right; font-size: 9.5pt; color: #333; white-space: nowrap; }
-  .pv-dec { font-size: 16pt; margin: 10px 0 2px; line-height: 1.2; }
-  .pv-cov { margin: 0 0 6px; color: #333; }
-  .pv-keys { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 6px 0 4px; }
-  .pv-keys dt { font-weight: 700; }
-  .pv-keys dd { margin: 0; }
-  .pv h2 { font-size: 11.5pt; margin: 12px 0 4px; }
-  .pv-t { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
-  .pv-t th, .pv-t td { border-bottom: 0.75px solid #999; padding: 3px 5px; text-align: left; vertical-align: top; }
-  .pv-t th { border-bottom: 1.25px solid #111; font-size: 9pt; }
-  .pv-t tr { break-inside: avoid; }
-  .pv-hours td:nth-child(n+4) { text-align: right; }
-  .pv-note { color: #333; font-size: 9pt; margin: 3px 0 0; font-weight: 400; }
-  .pv-nws, .pv-checks, .pv-small { margin: 2px 0; padding-left: 16px; }
-  .pv-nws li, .pv-checks li, .pv-small li { margin: 1px 0; }
+  .pv { display: block !important; font: 11pt/1.36 Arial, sans-serif; color: #17202a; }
+  .pv-page { position: relative; box-sizing: border-box; min-height: 9.92in; padding-bottom: 0.36in; }
   .pv-p2 { break-before: page; }
-  .pv-src { margin-top: 10px; padding-top: 6px; border-top: 0.75px solid #999; font-size: 8.5pt; color: #333; }
+  .pv-head { display: flex; justify-content: space-between; gap: 18px; padding-bottom: 10px; border-bottom: 2px solid #17202a; }
+  .pv-kicker { font-size: 8pt; letter-spacing: 1.2px; color: #506070; }
+  .pv-title { font: 700 19pt/1.15 Arial,sans-serif; margin: 5px 0 !important; }
+  .pv-venue { font-size: 10.5pt; color: #3b4856; }
+  .pv-iss { font-size: 8.5pt; text-align: right; max-width: 150px; }
+  .pv-dates { margin: 12px 0; padding: 9px 0; border-bottom: 1px solid #c7cdd3; font-size: 10pt; }
+  .pv-dates > div { display: grid; grid-template-columns: 96px 1fr; gap: 10px; margin: 3px 0; }
+  .pv-takeaway { margin: 14px 0; }
+  .pv-dec { font: 700 20pt/1.18 Arial,sans-serif !important; margin: 0 0 5px !important; }
+  .pv-takeaway p { margin: 0; font-size: 10pt; color: #425262; }
+  .pv-keys { display: grid; grid-template-columns: 132px 1fr; gap: 6px 12px; margin: 12px 0; font-size: 10.5pt; }
+  .pv-keys dt { color: #425262; }
+  .pv-keys dd { margin: 0; }
+  .pv small { display: block; font-size: 8.5pt; color: #526170; font-weight: 400; }
+  .pv .brief-source { margin: 12px 0; padding: 8px 10px; border: 1px solid #bac3cc; border-radius: 4px; background: #f5f7f9; font-size: 9pt; }
+  .pv .brief-source-dot { background: #526170; }
+  .pv .brief-source span:not(.brief-source-dot) { color: #425262; font-size: 8.5pt; }
+  .pv-section { font: 700 12pt/1.2 Arial,sans-serif !important; margin: 16px 0 7px !important; break-after: avoid; }
+  .pv-t { width: 100%; border-collapse: collapse; font-size: 10.5pt; }
+  .pv-t th, .pv-t td { border-bottom: 0.6px solid #c7cdd3; padding: 7px 6px; text-align: left; vertical-align: top; }
+  .pv-t th { font-size: 8pt; letter-spacing: .2px; color: #425262; border-bottom: 1px solid #17202a; }
+  .pv-t tr { break-inside: avoid; }
+  .pv-phases th:first-child { width: 26%; }
+  .pv-phases th:nth-child(2) { width: 23%; }
+  .pv-hours th:not(:first-child), .pv-hours td:not(:first-child) { text-align: right; white-space: nowrap; }
+  .pv-hours td { vertical-align: middle; padding-top: 6px; padding-bottom: 6px; }
+  .pv-hours td:first-child { width: 27%; }
+  .pv-hours-window { font-size: 10pt; margin: 12px 0; }
+  .pv-note { font-size: 8.5pt; color: #425262; margin: 6px 0 0; }
+  .pv-nws, .pv-checks { font-size: 10pt; margin: 0; padding-left: 15px; }
+  .pv-nws li, .pv-checks li { margin: 4px 0; }
+  .pv-policy { font-size: 9pt; margin-top: 14px; }
+  .pv-reading p { font-size: 9.5pt; margin: 0; }
+  .pv-src { border-top: 1px solid #c7cdd3; margin-top: 14px; padding-top: 9px; font-size: 8.5pt; color: #425262; }
+  .pv-footer { position: absolute; bottom: 0; left: 0; right: 0; border-top: 1px solid #c7cdd3; padding-top: 7px; font-size: 8pt; display: flex; justify-content: space-between; gap: 12px; color: #526170; }
+  .pv-dense .pv-hours { font-size: 9.5pt; }
+  .pv-dense .pv-hours td { padding-top: 2px; padding-bottom: 2px; }
+  .pv-dense .pv-hours small { font-size: 7.5pt; }
+  .pv-dense .pv-head { padding-bottom: 6px; }
+  .pv-dense .pv-hours-window { margin: 7px 0; }
+  .pv-dense .pv-section { margin-top: 9px !important; }
+  .pv-dense .pv-reading p { font-size: 8.5pt; }
 }
