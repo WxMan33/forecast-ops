@@ -409,3 +409,12 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
   .pv-nws li, .pv-checks li { margin: 3px 0; }
   .pv-policy { font-size: 8.5pt; margin-top: 8px; }
 }
+@media print {
+  .pv-p1 .pv-section { margin-top: 8px !important; }
+  .pv-p1 .pv-phases th, .pv-p1 .pv-phases td { padding-top: 4px; padding-bottom: 4px; }
+  .pv-p1 .pv-dates { margin: 6px 0; padding: 4px 0; }
+  .pv-p1 .pv-takeaway { margin: 8px 0; }
+  .pv-p1 .brief-source { padding-top: 4px; padding-bottom: 4px; }
+  .pv-dense .pv-hours td:first-child { width: 32%; }
+  .pv-dense .pv-hours td:first-child small { display: inline; margin-left: 5px; }
+}
