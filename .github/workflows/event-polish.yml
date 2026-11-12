@@ -1,7 +1,7 @@
 name: Event briefing visual check
 on:
   push:
-    branches: [polish-event-briefing]
+    branches: [polish-event-briefing, event-variable-charts]
     paths-ignore: ["docs/beta/screens/**"]
   workflow_dispatch:
 permissions:

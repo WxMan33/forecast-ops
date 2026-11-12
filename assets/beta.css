@@ -424,3 +424,15 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
   .pv-phases small { font-size: 9pt; line-height: 1.15; }
   .pv-dense .pv-hours small { font-size: 9pt; line-height: 1.1; }
 }
+
+/* Event variable charts: one aligned time axis, no sideways scrolling. */
+.evc-tools { display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:16px 0 8px; }
+.evc-tools b {display:block;font-size:14px}.evc-tools .bx-note{display:block;margin-top:3px}
+.evc-nav{display:flex;gap:6px}.evc-nav button:disabled{opacity:.4;cursor:default}
+.evc-window,.evc-selected{font-size:12px;color:var(--muted);margin:8px 0}.evc-selected b{color:var(--text)}
+.evc-stack{display:grid;gap:14px;margin-top:16px}.evc-card{border:1px solid var(--bx-rule);border-radius:10px;background:var(--panel);padding:14px 12px 2px;min-width:0}
+.evc-card header{display:flex;justify-content:space-between;gap:12px;align-items:baseline}.evc-card h3{font-size:15px;font-weight:700}.evc-card header>div{text-align:right;font-size:14px}.evc-card header span{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+.evc-card svg{display:block;width:100%;overflow:visible;margin-top:8px}.evc-rain{--series:#25a9e0}.evc-temp{--series:#ee8989}.evc-wind{--series:#45b6a5}.evc-lightning{--series:#d6ad35}
+[data-theme="light"] .evc-rain{--series:#087aa6}[data-theme="light"] .evc-temp{--series:#b94049}[data-theme="light"] .evc-wind{--series:#147d70}
+.evc-axis{fill:var(--muted);font:11px var(--bx-font)}.evc-rule{stroke:var(--line);stroke-width:.8}.evc-line{fill:none;stroke:var(--series);stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}.evc-second{stroke-dasharray:5 4;opacity:.7;stroke-width:2}.evc-bar{fill:var(--series);opacity:.8}.evc-cursor{stroke:var(--accent);stroke-width:1.5;stroke-dasharray:3 3}.evc-limit{stroke:var(--muted);stroke-dasharray:2 4;stroke-width:1}.evc-gap{fill:var(--muted);opacity:.08}.evc-card [role="button"]{cursor:pointer}.evc-card [role="button"]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.evc-note{margin:12px 0}
+@media(max-width:600px){.evc-tools{align-items:flex-start}.evc-nav{width:100%;justify-content:space-between}.evc-card{padding:12px 10px 0}.evc-card h3{font-size:14px}.evc-card header>div{font-size:14px}.evc-card header span{max-width:170px}.evc-window{line-height:1.6}}

@@ -18,6 +18,13 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  const label=(phone?'phone':'desktop')+' '+theme;
  check(errors.length===0,label+' no script errors '+errors.join('; '));
  check(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),label+' no horizontal page overflow');
+ check(await p.locator('#evCharts .evc-card').count()===4,label+' four separate variable charts');
+ check(await p.locator('#hourlyTable').getAttribute('open')===null,label+' data table is secondary and collapsed');
+ check(await p.evaluate(()=>[...document.querySelectorAll('.evc-card')].every(e=>e.scrollWidth<=e.clientWidth+1)),label+' variable charts fit without side scrolling');
+ const chartValues=await p.evaluate(()=>[...document.querySelectorAll('#evCharts [data-value]')].every(e=>e.textContent.length>0));check(chartValues,label+' selected hour values shown on each chart');
+ await p.locator('#evCharts [data-variable=pop] [data-hour]').nth(1).click();
+ check(await p.evaluate(()=>{const s=document.body.dataset.selected;return [...document.querySelectorAll('#evCharts [aria-pressed=true]')].length===4&&[...document.querySelectorAll('#evCharts [aria-pressed=true]')].every(e=>e.dataset.hour===s)}),label+' selecting an hour synchronizes all four charts');
+ const before=await p.locator('.evc-window').innerText();const later=p.locator('#evCharts [data-move="1"]');if(await later.isEnabled()){await later.click();check((await p.locator('.evc-window').innerText())!==before,label+' later hours use paging rather than horizontal scrolling')}
  check(await p.locator('.sch-labels li').count()===4,label+' all four schedule phases have full labels');
  check(await p.locator('#sourceCoverage').innerText().then(t=>t.includes('1 of 3')&&t.includes('HRRR')),label+' reduced source coverage is visible');
  check(!(await p.locator('#evGrid').innerText()).includes('†'),label+' hourly table has no unexplained phase-rating daggers');
@@ -39,6 +46,15 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  const pages=(pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length;check(pages===2,'three-day event prints two pages (got '+pages+')');
  check((await p.locator('#printView').innerText()).includes('First 24 hours only'),'long event clearly labels the hourly excerpt');
  }
+ if(!phone&&theme==='light'){
+ await p.emulateMedia({media:'screen'});await p.goto(base+'/event-beta.html?gaps=1');await p.waitForFunction(()=>document.body.dataset.loaded);
+ await p.locator('#evCharts [data-variable=pop] [data-hour="'+Date.parse('2026-11-12T19:00Z')+'"]').click();
+ check((await p.locator('#evCharts [data-value=pop]').innerText())==='—','missing rain guidance stays missing rather than zero');
+ check(/n\/a|Unavail/.test(await p.locator('#evCharts [data-value=lightning]').innerText()),'missing lightning is never shown as Low');
+ check(await p.locator('#evCharts .evc-gap').count()>=4,'missing hour is visibly marked in every variable chart');
+ }
+ check(await p.locator('#loadGuard').count()===0,label+' no loading error banner after interaction and printing');
+ check(errors.length===0,label+' no late script errors '+errors.join('; '));
  await ctx.close();
 }
 })().catch(e=>{failed++;console.error(e)}).finally(async()=>{if(browser)await browser.close();server.close();process.exitCode=failed?1:0});
