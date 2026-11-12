@@ -222,3 +222,7 @@ The `Beta preview check` workflow opens the public preview links signed out and 
 6. Is the map and supporting detail useful below the briefing, or is it noise?
 7. Would you share or print this briefing as is? What would you change first?
 8. Is any wording too technical?
+
+### Event variable charts
+
+The event briefing leads with four separate, vertically stacked charts: rain chance (with the selected hour's amount), temperature and feels like, sustained wind and gusts, and lightning potential. All use the same six-hour phone or twelve-hour desktop window and selected hour. Earlier/Later pages through the event without sideways scrolling. The exact data table and old combined overview are secondary, collapsed views. Values and concern shading come from the existing hourly model and briefing ratings; no forecast weights or thresholds change. Missing values break the plotted line or bar and never become zero. Print continues to use the compact two-page briefing.

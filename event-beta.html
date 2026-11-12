@@ -27,7 +27,7 @@
   });
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/ops.css?v=4d803a5167">
-<link rel="stylesheet" href="assets/beta.css?v=48a19cd528">
+<link rel="stylesheet" href="assets/beta.css?v=cf6f795dd6">
 <link rel="stylesheet" href="assets/hourly-grid.css?v=e606a878bd">
 </head>
 <body class="bx event-planner">
@@ -46,8 +46,8 @@
   <section class="bx-sec" id="secChanges"><h2>What could change the plan</h2><ul class="bx-list" id="changes"></ul></section>
   <section class="bx-sec" id="secChecks"><h2>When to check again</h2><ol class="bx-checks" id="checks"></ol></section>
   <section class="bx-sec" id="secMap"><h2>Map</h2><div id="map" style="margin-top:4px"></div></section>
-  <section class="bx-sec" id="secHourly"><div class="bx-bh"><h2>Hour by hour</h2><span class="bx-note" id="hourlyValid"></span></div><div id="evGrid" style="margin-top:6px"></div><div id="evGridLegend"></div><div id="evGridDetail" class="hg-detail" hidden aria-live="polite"></div>
-    <details class="bx-more" id="chartMore"><summary>Chart view</summary><div id="timeline"></div></details></section>
+  <section class="bx-sec" id="secHourly"><div class="bx-bh"><h2>Hour by hour</h2><span class="bx-note" id="hourlyValid"></span></div><div id="evCharts"></div><details class="bx-more" id="hourlyTable"><summary>All hourly values · data table</summary><div id="evGrid" style="margin-top:6px"></div><div id="evGridLegend"></div></details><div id="evGridDetail" class="hg-detail" hidden aria-live="polite"></div>
+    <details class="bx-more" id="chartMore"><summary>Combined overview · advanced</summary><div id="timeline"></div></details></section>
   <section class="bx-sec" id="detail"></section>
   </div>
   <div id="upView" hidden></div>
@@ -71,7 +71,8 @@
 <script src="assets/hourly-model.js?v=39f2e3abc6"></script>
 <script src="assets/hourly-views.js?v=f3e501ab7e"></script>
 <script src="assets/hourly-grid.js?v=69f4843e3f"></script>
+<script src="assets/event-hourly-charts.js?v=19ae38b647"></script>
 <script src="assets/event-briefing-ui.js?v=fc5401afb5"></script>
-<script src="assets/beta-event.js?v=dc2fb62ad1"></script>
+<script src="assets/beta-event.js?v=14f08c08c5"></script>
 </body>
 </html>

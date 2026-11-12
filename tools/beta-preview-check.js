@@ -579,9 +579,9 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
         /* grid → shared time → timeline, then timeline-side change → grid */
         let sync = null;
         if (g && g.cols.length > 3) {
-          await p.click("#evGrid .hg-hb >> nth=2"); await p.waitForTimeout(300);
+          await p.click("#evCharts [data-variable=pop] [data-hour] >> nth=2"); await p.waitForTimeout(300);
           const a = await p.evaluate(() => ({ grid: +document.querySelector('#evGrid .hg-hb[aria-pressed="true"]').dataset.ms, bus: +document.body.dataset.selected, line: +document.getElementById("timeline").dataset.selected }));
-          await p.click("#evGrid .hg-hb >> nth=1"); await p.waitForTimeout(300);
+          await p.click("#evCharts [data-variable=pop] [data-hour] >> nth=1"); await p.waitForTimeout(300);
           const b2 = await p.evaluate(() => ({ grid: +document.querySelector('#evGrid .hg-hb[aria-pressed="true"]').dataset.ms, bus: +document.body.dataset.selected, detail: document.getElementById("evGridDetail").innerText.split("\n")[0] }));
           sync = { a, b: b2, ok: a.grid === a.bus && a.bus === a.line && b2.grid === b2.bus && b2.grid !== a.grid };
         }
