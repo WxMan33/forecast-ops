@@ -3,7 +3,7 @@
 'use strict';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),fin=Number.isFinite,H=3600e3;
 function windowFor(axis,selected,count){const i=Math.max(0,axis.findIndex(a=>a.ms===selected));return Math.min(Math.max(0,axis.length-count),Math.max(0,i-Math.floor(count/2)))}
-function render(host,{view:V,selected,onSelect,gustLimit=25}){
+function render(host,{view:V,selected,onSelect,gustLimit=25,tz}){
  let sel=selected,start=0,width=0,first=true;const rows=Object.fromEntries(V.rows.map(r=>[r.key,r]));
  const specs=[{key:'pop',name:'Rain chance',unit:'%',color:'rain',type:'bar',hazard:'hz-rain',extra:'qpf',extraLabel:'Rain amount',max:100},
  {key:'temp',name:'Temperature',unit:'°F',color:'temp',second:'feel',secondLabel:'Feels like'},
@@ -15,8 +15,8 @@ function render(host,{view:V,selected,onSelect,gustLimit=25}){
  const count=host.clientWidth<600?6:12,w=Math.max(280,host.clientWidth),endMax=Math.max(0,V.axis.length-count);
  if(first||recenter)start=windowFor(V.axis,sel,count);start=Math.max(0,Math.min(start,endMax));first=false;width=w;
  const indices=V.axis.map((_,i)=>i).slice(start,start+count),end=indices[indices.length-1],a=V.axis[start],z=V.axis[end];if(!a)return;
- const iSel=V.span.indexOf(sel);
- host.innerHTML=`<div class="evc-tools"><div><b>One timeline. Four clear views.</b><span class="bx-note">Choose an hour in any chart to compare the conditions.</span></div><div class="evc-nav"><button class="bx-btn" data-move="-1" aria-label="Earlier forecast hours" ${start===0?'disabled':''}>← Earlier</button><button class="bx-btn" data-move="1" aria-label="Later forecast hours" ${start===endMax?'disabled':''}>Later →</button></div></div><p class="evc-window">${esc(a.date)} · ${esc(a.hourText)} ${esc(a.zone)} – ${a.date!==z.date?esc(z.date)+' · ':''}${esc(z.hourText)} ${esc(z.zone)}</p><p class="evc-selected">Selected: <b>${esc(V.axis[iSel]?.date)} · ${esc(V.axis[iSel]?.hourText)} ${esc(V.axis[iSel]?.zone)}</b> · ${esc(text('phase',iSel))}</p><div class="evc-stack">${specs.map(s=>card(s,indices,w,iSel)).join('')}</div><p class="bx-note evc-note">Dashed lines: feels like or gusts. Shading marks the briefing’s existing concern levels. Gaps mean missing guidance. Low lightning potential is not zero.</p>`;
+ const iSel=V.span.indexOf(sel),dayLabel=d=>new Date(d+'T12:00Z').toLocaleDateString('en-US',{timeZone:'UTC',weekday:'short',month:'short',day:'numeric'});
+ host.innerHTML=`<div class="evc-tools"><div><b>One timeline. Four clear views.</b><span class="bx-note">Choose an hour in any chart to compare the conditions.</span></div><div class="evc-nav"><button class="bx-btn" data-move="-1" aria-label="Earlier forecast hours" ${start===0?'disabled':''}>← Earlier</button><button class="bx-btn" data-move="1" aria-label="Later forecast hours" ${start===endMax?'disabled':''}>Later →</button></div></div><p class="evc-window">${esc(root.EventBriefingUI.dateSpan(a.ms,z.ms+H,tz))}</p><p class="evc-selected">Selected: <b>${esc(dayLabel(V.axis[iSel]?.date))} · ${esc(V.axis[iSel]?.hourText)} ${esc(V.axis[iSel]?.zone)}</b> · ${esc(text('phase',iSel))}</p><div class="evc-stack">${specs.map(s=>card(s,indices,w,iSel)).join('')}</div><p class="bx-note evc-note">Dashed lines: feels like or gusts. Shading marks the briefing’s existing concern levels. Gaps mean missing guidance. Low lightning potential is not zero.</p>`;
  host.querySelectorAll('[data-move]').forEach(b=>b.onclick=()=>{start=Math.max(0,Math.min(endMax,start+Number(b.dataset.move)*count));sel=V.span[start];draw();onSelect(sel)});
  host.querySelectorAll('[data-hour]').forEach(g=>{const choose=()=>{sel=+g.dataset.hour;draw();onSelect(sel)};g.onclick=choose;g.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choose()}}});
  }
