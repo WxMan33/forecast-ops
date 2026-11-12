@@ -165,7 +165,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       const dd = [...document.querySelectorAll("#keys dd")], bar = document.querySelector(".sch-bar"), ticks = [...document.querySelectorAll(".sch-ticks span")].map((x) => b(x));
       const pcts = [...document.querySelectorAll("#keys, #phases")].flatMap((el) => [...el.innerText.matchAll(/(\d{1,3})%/g)].map((m) => +m[1]));
       return { decision: document.getElementById("decision").innerText, keys, nextBottom: dd.length ? b(dd[dd.length - 1]).bottom : 9999, vh, barFits: bar && bar.scrollWidth <= bar.clientWidth + 1 && b(bar).right <= innerWidth + 0.5 && b(bar).left >= 0, ticksFit: ticks.every((t) => t.left >= -0.5 && t.right <= innerWidth + 0.5), pcts }; });
-    report(/^(Plan for|Watch for|Expect|No weather concern)/.test(r.decision) && r.keys[r.keys.length - 1] === "Next check" && r.keys.includes("Rain chance") && r.keys.includes("Lightning potential") && r.nextBottom <= r.vh, "event phone: decision, window, timing and next check on the first screen", `"${r.decision}" · ${r.keys.join(" · ")} · ends at ${Math.round(r.nextBottom)} of ${r.vh} px`);
+    report(/^(Plan for|Have a rain plan|Watch for|Expect|No weather concern)/.test(r.decision) && r.keys[r.keys.length - 1] === "Next check" && r.keys.includes("Rain chance") && r.keys.includes("Lightning potential") && r.nextBottom <= r.vh, "event phone: decision, window, timing and next check on the first screen", `"${r.decision}" · ${r.keys.join(" · ")} · ends at ${Math.round(r.nextBottom)} of ${r.vh} px`);
     report(r.barFits && r.ticksFit, "event phone: phase strip fits the width", `bar ${r.barFits ? "fits" : "overflows"}, labels ${r.ticksFit ? "fit" : "overflow"}`);
     report(r.pcts.length > 0 && r.pcts.every((x) => x % 5 === 0), "event phone: precipitation chances in 5-point steps", r.pcts.join("%, ") + "%");
     await p.screenshot({ path: `${out}/check-event-first-screen.png` }); await ctx.close(); }
@@ -201,7 +201,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     const ev = { n: "Late show", v: { name: "Red Rocks Amphitheatre", lat: 39.6654, lon: -105.2057 }, z: "America/Denver", t: { setup: `${day}T17:00`, start: `${day}T20:00`, end: `${next}T01:00`, teardown: `${next}T02:30` }, g: 25 };
     const { ctx, p, errors } = await go({ ...PHONE, timezoneId: "America/New_York" }, base + "event-beta.html?e=" + encodeURIComponent(JSON.stringify(ev))); await eventReady(p, "Red Rocks");
     const d = await p.evaluate(() => ({ ...document.body.dataset, when: document.getElementById("evWhen").innerText, phases: document.getElementById("phases").innerText, map: document.getElementById("map").innerText, frame: !!document.querySelector("#map iframe") }));
-    report(/8 PM–1 AM MST/.test(d.when) && /Teardown\s+\S+ 1 AM – 2:30 AM/.test(d.phases) && d.tz === "America/Denver", "Denver overnight event keeps the venue clock (planner on Eastern time)", `${d.when} | ${d.phases.split("\n").filter((x) => /^(Event|Teardown)/.test(x)).join(" | ")}`);
+    report(/8 PM/.test(d.when) && /1 AM MST/.test(d.when) && (d.when.match(/2026|2027/g) || []).length >= 2 && /Teardown\s+\S+ 1 AM – 2:30 AM/.test(d.phases) && d.tz === "America/Denver", "Denver overnight event keeps the venue clock (planner on Eastern time)", `${d.when} | ${d.phases.split("\n").filter((x) => /^(Event|Teardown)/.test(x)).join(" | ")}`);
     report(d.office === "BOU" && !d.frame && /HRRR map available for Cincinnati Tri-State only/.test(d.map) && !errors.length, "Denver event: NWS BOU, out-of-region map message, briefing usable", `office ${d.office} · map "${d.map.split("\n")[0]}"`);
     await p.evaluate(() => scrollTo(0, 0)); await p.screenshot({ path: `${out}/denver-event-phone.png` }); await ctx.close(); }
   { const { ctx, p, errors } = await go(DESK, base + "event-beta.html"); await eventReady(p, "Sawyer");
@@ -648,7 +648,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
         const pdf = await p.pdf({ path: `${out}/event-briefing.pdf`, format: "Letter", preferCSSPageSize: true });
         const pages = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length;
         await p.emulateMedia({ media: "screen" });
-        const must = ["Issued", "times are the venue's local time", "Peak hourly rain chance", "Official NWS forecast", "Next check", "Hour by hour", "Open-Meteo", "National Weather Service"];
+        const must = ["Issued", "Times are the venue's local time", "Peak hourly rain chance", "Official NWS forecast", "When to check again", "Hour by hour", "Open-Meteo", "National Weather Service"];
         report(pages === 2 && shown.pv === "block" && !shown.briefShown && !shown.iframes && must.every((m) => shown.text.includes(m)) && shown.fontPt >= 9,
           "printout: a two-page US Letter PDF for the single-day sample event, with issue time, time zone, phase summaries, NWS, next check, hourly table and attribution; no controls or map; table text 9 pt or larger",
           `${pages} pages · print view ${shown.pv}, screen view ${shown.brief} · controls/iframes ${shown.iframes} · table ${shown.fontPt.toFixed(1)} pt · missing: ${must.filter((m) => !shown.text.includes(m)).join(", ") || "none"}`);
@@ -660,9 +660,9 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
         times: { setup: `${day(1)}T08:00`, start: `${day(1)}T10:00`, end: `${day(3)}T18:00`, teardown: `${day(3)}T20:00` }, gust: 25, overrides: [], source: { kind: "manual" } };
       const { ctx, p, errors } = await go(PHONE, base + "event-beta.html?ev=ev_check3day", `if (!sessionStorage.getItem("seeded3")) { sessionStorage.setItem("seeded3", "1"); localStorage.setItem("beta_events_v2", ${JSON.stringify(JSON.stringify([ev3]))}); }`);
       const ready = await until(p, () => document.querySelector("#printView .pv-p2"), null, 150000);
-      const m = ready ? await p.evaluate(() => ({ head: document.querySelector("#printView .pv-p2 h2").innerText, rows: document.querySelectorAll("#printView .pv-hours tbody tr").length, phases: document.querySelectorAll("#printView tr[data-phase]").length })) : null;
+      const m = ready ? await p.evaluate(() => ({ head: document.querySelector("#printView .pv-p2 .pv-hours-window").innerText, rows: document.querySelectorAll("#printView .pv-hours tbody tr").length, phases: document.querySelectorAll("#printView tr[data-phase]").length })) : null;
       let pages = null; if (ready) { await p.emulateMedia({ media: "print" }); const pdf = await p.pdf({ path: `${out}/event-briefing-3day.pdf`, format: "Letter", preferCSSPageSize: true }); pages = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length; }
-      report(m && m.rows === 24 && /first 24 hours/.test(m.head) && /open the briefing for the rest/.test(m.head) && m.phases >= 3 && pages && !errors.length,
+      report(m && m.rows === 24 && /first 24 hours/i.test(m.head) && /open the briefing for the rest/.test(m.head) && m.phases >= 3 && pages === 2 && !errors.length,
         "long multi-day event: the printout keeps the full phase summary and states the hourly window it includes (first 24 hours) instead of silently cutting",
         m ? `${m.phases} phases summarised · ${m.rows} hourly rows · "${m.head.replace(/\s+/g, " ").slice(0, 160)}" · ${pages} PDF pages` : "briefing did not load");
       await ctx.close(); }
