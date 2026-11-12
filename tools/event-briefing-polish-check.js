@@ -54,6 +54,17 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  check(/n\/a|Unavail/.test(await p.locator('#evCharts [data-value=lightning]').innerText()),'missing lightning is never shown as Low');
  check(await p.locator('#evCharts .evc-gap').count()>=4,'missing hour is visibly marked in every variable chart');
  }
+ if(!phone&&theme==='light'){
+ await p.goto(base+'/event-beta.html?delta=1');await p.waitForFunction(()=>document.body.dataset.loaded);
+ check(/Gusts now reach your 25 mph venue limit/.test(await p.locator('#briefUpdate').innerText()),'return visit explains the venue gust-limit crossing');
+ const details=p.locator('#opsHandoff details');await details.locator('summary').click();
+ await p.locator('[data-ops-address]').fill('http://localhost:3000');await p.locator('[data-save-ops]').click();
+ const href=await p.locator('#opsHandoff a').getAttribute('href'),u=new URL(href),data=JSON.parse(new URLSearchParams(u.hash.slice(1)).get('handoff'));
+ check(u.pathname==='/forecast-event'&&u.search===''&&data.venue.lat===39.1005&&data.venue.lon===-84.5017&&!JSON.stringify(data).includes('lightning'),'OPE link carries the exact venue in a fragment, with no forecast threats');
+ await p.goto(base+'/event-beta.html?live=1');await p.waitForFunction(()=>document.body.dataset.loaded);
+ check(await p.evaluate(()=>!!(document.getElementById('opsHandoff').compareDocumentPosition(document.getElementById('decision'))&Node.DOCUMENT_POSITION_FOLLOWING)),'event-day monitoring handoff appears before the forecast decision');
+ await p.screenshot({path:path.join(out,'event-polish-live-monitoring.png'),fullPage:true});
+ }
  check(await p.locator('#loadGuard').count()===0,label+' no loading error banner after interaction and printing');
  check(errors.length===0,label+' no late script errors '+errors.join('; '));
  await ctx.close();

@@ -72,6 +72,7 @@
     B.viewedAt = Date.now();
     const ws = {}; Object.keys(RB.ws).forEach((id) => { if (B.models[id] && RB.ws[id] > 0) ws[id] = RB.ws[id]; });
     const ctx = S.context({ C, T: root.ModelTrends, B, ws, rules: RB.rules, TH, thWs: O.savedWeights(CFG.thunder), meta: META, nws: NW, now: Date.now() });
+    ctx.thRecipe = O.savedWeights(CFG.thunder);
     const requested = Object.keys(RB.ws).filter((id) => RB.ws[id] > 0);
     const why = (id) => id === "nws" ? (NW && NW.reason) || "unavailable" : B.status && B.status[id] === "empty" ? "no coverage here" : B.status && B.status[id] === "failed" ? "request failed" : "no data returned";
     const feeds = { used: requested.filter((id) => ws[id]).map((id) => FEED_NAMES[id] || id), missing: requested.filter((id) => !ws[id]).map((id) => ({ id, name: FEED_NAMES[id] || id, why: why(id) })) };
@@ -89,11 +90,14 @@
   }
 
   async function alerts(where) {
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 8000);
     try {
-      const r = await fetch(`https://api.weather.gov/alerts/active?point=${(+where.lat).toFixed(4)},${(+where.lon).toFixed(4)}`, { headers: { Accept: "application/geo+json" } });
-      if (!r.ok) return [];
-      const j = await r.json(); return (j.features || []).map((f) => ({ event: f.properties.event, headline: f.properties.headline, ends: f.properties.ends || f.properties.expires, url: f.properties["@id"] }));
-    } catch (e) { return []; }
+      const r = await fetch(`https://api.weather.gov/alerts/active?point=${(+where.lat).toFixed(4)},${(+where.lon).toFixed(4)}`, { headers: { Accept: "application/geo+json" }, signal: ctl.signal });
+      if (!r.ok) throw new Error("Alerts unavailable");
+      const j = await r.json(); if (!Array.isArray(j.features)) throw new Error("Invalid alert response"); const items = (j.features || []).map((f) => ({ event: f.properties.event, headline: f.properties.headline, starts: f.properties.onset || f.properties.effective || f.properties.sent, ends: f.properties.ends || f.properties.expires, url: f.properties["@id"] || f.id }));
+      items.available = true; return items;
+    } catch (e) { const items = []; items.available = false; return items; }
+    finally { clearTimeout(timer); }
   }
 
   /* ---------- timeline chart (SVG), driven by and driving the selected time ---------- */

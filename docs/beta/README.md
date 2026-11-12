@@ -226,3 +226,11 @@ The `Beta preview check` workflow opens the public preview links signed out and 
 ### Event variable charts
 
 The event briefing leads with four separate, vertically stacked charts: rain chance (with the selected hour's amount), temperature and feels like, sustained wind and gusts, and lightning potential. All use the same six-hour phone or twelve-hour desktop window and selected hour. Earlier/Later pages through the event without sideways scrolling. The exact data table and old combined overview are secondary, collapsed views. Values and concern shading come from the existing hourly model and briefing ratings; no forecast weights or thresholds change. Missing values break the plotted line or bar and never become zero. Print continues to use the compact two-page briefing.
+
+### Changes since your last briefing
+
+Saved events keep a local snapshot of the last successful briefing (up to 25 events, expiring after 30 days). Return visits compare only the same future hours for the same venue, schedule, gust limit and model-source set. The short update calls out rain entering a phase, a venue gust-limit crossing, a rise in forecast lightning potential, a substantial rise in hourly rain chance or a new official NWS alert for the venue. Newly covered hours and missing data are not treated as changing weather. Changes to source coverage or the event setup are labelled instead of making an improvement/worsening claim. Nothing is sent to analytics and there is no push notification service.
+
+### Handoff to live OPE monitoring
+
+On event day, the live-monitoring handoff is placed before the forecast decision. Earlier visits show it under the next-check section. Copy venue and coordinates works immediately. Connect an OPE address (HTTPS, or HTTP localhost) to open its `/forecast-event` review with the venue and exact event instants in a URL fragment. The receiver requires the Forecast Ops handoff update in `WxMan33/heads-up`; it opens the existing venue editor and requires the operator to save before changing the monitored site. No forecast threats, API tokens, ring settings or resume/stop instructions are transferred. The address and briefing history stay in this browser and are not part of backups or analytics.
