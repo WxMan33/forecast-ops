@@ -11,9 +11,10 @@ function check(ok,name){console.log((ok?'PASS ':'FAIL ')+name);if(!ok)failed++}
 for(const theme of ['dark','light'])for(const phone of [true,false]){
  const ctx=await browser.newContext({viewport:{width:phone?390:1280,height:phone?844:960},timezoneId:'America/New_York'}),p=await ctx.newPage(),errors=[];
  p.on('pageerror',e=>errors.push(e.message));await p.clock.install({time:new Date('2026-11-11T20:30:00Z')});
- await p.addInitScript(t=>{localStorage.setItem('ops_theme',t);localStorage.setItem('beta_analytics_optout','1')},theme);
+ await p.addInitScript(t=>{localStorage.setItem('ops_theme',JSON.stringify(t));localStorage.setItem('beta_analytics_optout','1')},theme);
  await ctx.route('**/*',r=>{const u=new URL(r.request().url());if(u.origin!==base)return r.fulfill({status:200,body:'',contentType:u.pathname.endsWith('.js')?'application/javascript':'text/plain'});if(u.pathname==='/assets/beta-event.js')return r.fulfill({contentType:'application/javascript',body:fixture+'\n'+fs.readFileSync(path.join(root,'assets/beta-event.js'),'utf8')});return r.continue()});
- await p.goto(base+'/event-beta.html');await p.waitForFunction(()=>document.body.dataset.loaded,{timeout:15000});await p.evaluate(t=>document.documentElement.dataset.theme=t,theme);
+ await p.goto(base+'/event-beta.html');await p.waitForFunction(()=>document.body.dataset.loaded,{timeout:15000});check(await p.evaluate(t=>document.documentElement.dataset.theme===t,theme),'saved '+theme+' theme restored');
+ await p.locator('#bxTheme').click();check(await p.evaluate(t=>document.documentElement.dataset.theme!==t,theme),'theme toggle changes the page');await p.locator('#bxTheme').click();
  const label=(phone?'phone':'desktop')+' '+theme;
  check(errors.length===0,label+' no script errors '+errors.join('; '));
  check(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),label+' no horizontal page overflow');
