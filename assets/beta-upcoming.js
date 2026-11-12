@@ -12,7 +12,8 @@
   const hm = (s) => (s ? s.slice(11, 16) : "");
   const nextDay = (d, n) => new Date(Date.parse(d + "T12:00Z") + n * 864e5).toISOString().slice(0, 10);
   const winOf = (ev) => { try { const w = C.event.windows(ev), all = w.find((x) => x.key === "all"), main = w.find((x) => x.key === "event") || all; return { all, main }; } catch (e) { return null; } };
-  const offText = (d) => { const h = (m) => (m % 60 ? `${Math.floor(m / 60) ? Math.floor(m / 60) + " h " : ""}${m % 60} min` : `${m / 60} h`); return `Setup ${h(d.setup)} before · gates ${h(d.gates)} before · teardown ${h(d.teardown)} after · gust limit ${d.gust} mph`; };
+  const offText = (d) => { const h = (m) => (m % 60 ? `${Math.floor(m / 60) ? Math.floor(m / 60) + " h " : ""}${m % 60} min` : `${m / 60} h`);
+    return [d.setup != null ? `Setup ${h(d.setup)} before` : "No setup", d.gates != null ? `gates ${h(d.gates)} before` : "no gates", d.teardown != null ? `teardown ${h(d.teardown)} after` : "no teardown", d.gust != null ? `gust limit ${d.gust} mph` : ""].filter(Boolean).join(" · "); };
 
   /* ---------------- event editor (new, existing, or a sample/shared event saved as new) ---------------- */
   function editEvent(target, { onSaved, title } = {}) {
@@ -23,6 +24,8 @@
     let city = base && !venue ? { name: base.loc.name, lat: base.loc.lat, lon: base.loc.lon, tz: base.tz } : { name: "", lat: null, lon: null, tz: null };
     /* an event's own times stay its own: overrides at a saved venue, every time when it has no saved venue */
     const dirty = new Set(stored ? (venue ? stored.overrides || [] : ["setup", "gates", "teardown"].filter((k) => stored.times[k])) : []);
+    /* the schedule preset this event uses (the venue's standard schedule when none) */
+    let preset = base && base.preset && venue && E.presetsOf(venue).some((p) => p.id === base.preset) ? base.preset : null;
     const t = base ? base.times : {};
     const defDate = new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10);
     const opt = (v) => `<option value="${esc(v.id)}" ${venue && venue.id === v.id ? "selected" : ""}>${esc(v.name)}</option>`;
@@ -38,17 +41,25 @@
       <div class="two"><label>Starts on<input type="date" id="fDate" value="${esc(t.start ? t.start.slice(0, 10) : defDate)}"></label><label>Ends on<input type="date" id="fEndDate" value="${esc(t.end ? t.end.slice(0, 10) : defDate)}"></label></div>
       <div class="two"><label>Event starts<input type="time" id="fStart" value="${esc(hm(t.start) || "19:30")}" required></label><label>Event ends<input type="time" id="fEnd" value="${esc(hm(t.end) || "21:30")}" required></label></div>
       <fieldset class="bx-sched-f"><legend>Schedule</legend>
+        <label id="fPresetBox">Schedule preset<select id="fPreset"></select></label>
         <div class="two"><label>Setup starts<input type="time" id="fSetup" data-k="setup"></label><label>Gates open<input type="time" id="fGates" data-k="gates"></label></div>
         <div class="two"><label>Teardown ends<input type="time" id="fTear" data-k="teardown"></label><label>Gust limit (mph)<input type="number" id="fGust" min="10" max="60"></label></div>
         <p class="bx-note" id="fDefNote" style="margin:0"></p>
         <label class="bx-check" id="fMakeDefBox"><input type="checkbox" id="fMakeDef"> <span id="fMakeDefTxt">Make this schedule the venue default</span></label>
+        <label id="fNewPresetBox">Save these times as a new preset (optional)<input id="fNewPreset" maxlength="40" placeholder="e.g. Practice"></label>
       </fieldset>
       <p class="bx-note" style="margin:0" id="fTzNote"></p>
       <p class="err" id="fErr" hidden></p>
       <div style="display:flex;gap:8px;justify-content:flex-end"><button class="bx-btn" value="cancel" formnovalidate>Cancel</button><button class="bx-btn primary" id="fSave" value="save">Save event</button></div>`;
     const F = { setup: $("fSetup"), gates: $("fGates"), teardown: $("fTear") };
     /* defaults → the schedule fields the planner hasn't changed for this event */
-    const defs = () => (venue ? venue.defaults : E.STD);
+    const defs = () => (venue ? E.defsFor(venue, preset) : E.STD);
+    const presetName = () => { const p = venue && preset ? E.presetsOf(venue).find((x) => x.id === preset) : null; return p ? p.name : null; };
+    function presetOptions() {
+      const list = venue ? E.presetsOf(venue) : [];
+      $("fPreset").innerHTML = `<option value="">Standard (${esc(venue ? venue.name : "venue")} default)</option>${list.map((p) => `<option value="${esc(p.id)}" ${p.id === preset ? "selected" : ""}>${esc(p.name)}</option>`).join("")}`;
+      $("fPresetBox").hidden = !venue;
+    }
     const zone = () => (venue ? venue.tz : city.tz) || null;
     /* the end date follows the start (same day, or the next morning for an end before the start) until the planner sets it;
        moving the start date moves the end date with it, so a multi-day event keeps its length */
@@ -75,10 +86,12 @@
       Object.entries(F).forEach(([k, el]) => { if (first && base && base.times && (stored ? true : !base.sample)) { el.value = hm(base.times[k]); } else if (!dirty.has(k)) el.value = hm(want[k]); el.classList.toggle("own", dirty.has(k)); });
       if (first) $("fGust").value = base && base.gust && !base.sample ? base.gust : defs().gust;
       const name = venue ? venue.name : $("fVenue").value.trim() || "this venue";
+      const pn = presetName();
       $("fDefNote").innerHTML = venue
-        ? `From ${esc(venue.name)} defaults (${esc(offText(venue.defaults))}). A time changed here applies to this event only.${dirty.size ? ` <b>Changed for this event: ${esc([...dirty].join(", "))}.</b> <button type="button" class="bx-link" id="fUseDef">Use defaults</button>` : ""}`
+        ? `From ${esc(pn ? `the ${pn} preset` : `${venue.name} defaults`)} (${esc(offText(defs()))}). A time changed here applies to this event only; the saved ${pn ? "preset" : "defaults"} stay as they are.${dirty.size ? ` <b>Changed for this event: ${esc([...dirty].join(", "))}.</b> <button type="button" class="bx-link" id="fUseDef">Use ${pn ? "preset" : "defaults"}</button>` : ""}`
         : `Standard offsets until the venue has its own: setup 4 h and gates 90 min before the start, teardown 2 h after the end.`;
-      $("fMakeDefBox").hidden = !venue; $("fMakeDefTxt").textContent = `Make this schedule the default for ${name}`;
+      $("fMakeDefBox").hidden = !venue; $("fMakeDefTxt").textContent = pn ? `Update the saved ${pn} preset at ${name} to these times` : `Make this schedule the default for ${name}`;
+      $("fNewPresetBox").hidden = !venue;
       const ud = $("fUseDef"); if (ud) ud.addEventListener("click", () => { dirty.clear(); fill(false); });
       $("fNewVenue").hidden = !!venue;
       tzNote();
@@ -88,7 +101,9 @@
     /* a calendar event's date and times come from the calendar's own instants, shown in the chosen venue's time zone */
     const src = base && base.source && base.source.start ? base.source : null;
     const fromSource = (tz) => { if (!src || !tz) return; const s = E.wallAt(src.start, tz), e = E.wallAt(src.end, tz); $("fDate").value = prevDate = s.slice(0, 10); $("fStart").value = s.slice(11, 16); $("fEnd").value = e.slice(11, 16); $("fEndDate").value = e.slice(0, 10); endAuto = e.slice(0, 10) === autoEnd(); };
-    $("fVenueSel").addEventListener("change", () => { venue = E.getVenue($("fVenueSel").value); dirty.clear(); if (venue) fromSource(venue.tz); fill(false); $("fGust").value = defs().gust; });
+    $("fVenueSel").addEventListener("change", () => { venue = E.getVenue($("fVenueSel").value); preset = null; presetOptions(); dirty.clear(); if (venue) fromSource(venue.tz); fill(false); $("fGust").value = defs().gust; });
+    $("fPreset").addEventListener("change", () => { preset = $("fPreset").value || null; dirty.clear(); fill(false); });
+    presetOptions();
     $("fVenue").addEventListener("input", () => fill(false));
     function tzNote() { const z = venue ? venue.tz : city.tz; $("fTzNote").textContent = `Times are local to the venue (${z ? `${z}, ${fmt.zone(Date.now(), z)}` : "time zone found on save"}), wherever you are. A teardown earlier than the end is read as after midnight; a setup later than the start, as the day before.`; }
     /* the venue itself (stadium, business, park, school or street address), not just its city; or a dropped pin */
@@ -129,11 +144,16 @@
         draft.fold = E.foldsFor(times, ms, tz); }
       const errs = C.event.validate(draft); if (errs.length) return err(errs.join(" "));
       if (!venue && $("fSaveVenue").checked) { venue = E.saveVenue({ name: loc.name, city: city.name || "", address: city.address || "", lat: loc.lat, lon: loc.lon, tz, defaults: { ...E.offsetsOf(times, tz, draft.fold), gust } }); venueId = venue.id; U.track("venue_saved"); }
+      else if (venue && $("fMakeDef").checked && preset) { const o = E.offsetsOf(times, tz, draft.fold); venue = E.saveVenue({ ...venue, presets: E.presetsOf(venue).map((p) => (p.id === preset ? { ...p, setup: o.setup ?? null, gates: o.gates ?? null, teardown: o.teardown ?? null } : p)) }); U.track("venue_saved"); }
       else if (venue && $("fMakeDef").checked) { venue = E.saveVenue({ ...venue, defaults: { ...venue.defaults, ...E.offsetsOf(times, tz, draft.fold), gust } }); U.track("venue_saved"); }
+      const newPreset = venue ? $("fNewPreset").value.trim() : "";
+      if (newPreset) { if (venue.builtin) venue = E.saveVenue({ ...venue, builtin: undefined });
+        const o = E.offsetsOf(times, tz, draft.fold), id = E.newPresetId();
+        venue = E.saveVenue({ ...venue, presets: [...E.presetsOf(venue), { id, name: newPreset, setup: o.setup ?? null, gates: o.gates ?? null, teardown: o.teardown ?? null }] }); preset = id; U.track("venue_saved"); }
       if (venue && venue.builtin) { venue = E.saveVenue({ ...venue, builtin: undefined }); venueId = venue.id; } // a built-in venue becomes a saved one
       /* confirming a calendar event's venue by hand: remember its calendar location for future imports */
       if (venue && src && src.location && (!stored || stored.venueId !== venue.id)) venue = E.rememberAlias(venue, src.location);
-      const rec = E.saveEvent({ ...(stored || {}), ...draft, id: stored ? stored.id : null, venueId, overrides: venue ? E.overridesOf(times, venue.defaults, tz, draft.fold) : [], source: (stored && stored.source) || { kind: "manual" } });
+      const rec = E.saveEvent({ ...(stored || {}), ...draft, id: stored ? stored.id : null, venueId, preset: venue ? preset : null, overrides: venue ? E.overridesOf(times, E.defsFor(venue, preset), tz, draft.fold) : [], source: (stored && stored.source) || { kind: "manual" } });
       U.track("event_saved", { market: S.market(loc.lat, loc.lon).tuned ? "cincinnati" : "elsewhere" });
       $("editDlg").close(); if (onSaved) onSaved(rec);
     });
@@ -151,8 +171,19 @@
         <div class="two"><label>Setup starts (hours before)<input type="number" id="vSetup" min="0" max="48" step="0.25" value="${d.setup / 60}"></label><label>Gates open (minutes before)<input type="number" id="vGates" min="0" max="600" step="5" value="${d.gates}"></label></div>
         <div class="two"><label>Teardown ends (minutes after)<input type="number" id="vTear" min="0" max="1440" step="15" value="${d.teardown}"></label><label>Gust limit (mph)<input type="number" id="vGust" min="10" max="60" value="${d.gust}"></label></div>
         <p class="bx-note" style="margin:0">Applied to new events at this venue. Existing events keep their times.</p></fieldset>
+      <fieldset class="bx-sched-f"><legend>Schedule presets</legend>
+        <p class="bx-note" style="margin:0">Named schedules for this venue, such as Practice or Match day. Choose one when adding an event; changing one event's times never changes the preset. Leave a time blank when that part isn't used (for example, no gates).</p>
+        <div id="vPresets"></div>
+        <button type="button" class="bx-btn" id="vAddPreset">+ Add preset</button></fieldset>
       <p class="err" id="vErr" hidden></p>
       <div style="display:flex;gap:8px;justify-content:flex-end"><button class="bx-btn" value="cancel" formnovalidate>Cancel</button><button class="bx-btn primary" id="vSave" value="save">Save venue</button></div>`;
+    const presetRow = (p = {}) => `<div class="vp-row" data-id="${esc(p.id || "")}"><label>Name<input class="vp-name" maxlength="40" value="${esc(p.name || "")}" placeholder="e.g. Practice"></label>
+      <div class="two"><label>Setup (hours before)<input class="vp-setup" type="number" min="0" max="48" step="0.25" value="${p.setup != null ? p.setup / 60 : ""}"></label><label>Gates (minutes before)<input class="vp-gates" type="number" min="0" max="600" step="5" value="${p.gates != null ? p.gates : ""}"></label></div>
+      <div class="two"><label>Teardown (minutes after)<input class="vp-tear" type="number" min="0" max="1440" step="15" value="${p.teardown != null ? p.teardown : ""}"></label><div style="display:flex;align-items:flex-end"><button type="button" class="bx-link vp-del">Remove preset</button></div></div></div>`;
+    $("vPresets").innerHTML = (v ? E.presetsOf(v) : []).map(presetRow).join("");
+    const wireRows = () => $("vPresets").querySelectorAll(".vp-del").forEach((b) => { b.onclick = () => b.closest(".vp-row").remove(); });
+    wireRows();
+    $("vAddPreset").addEventListener("click", () => { $("vPresets").insertAdjacentHTML("beforeend", presetRow()); wireRows(); $("vPresets").lastElementChild.querySelector(".vp-name").focus(); });
     window.VenueSearch.picker($("vCity"), { onPick(p) { city = { name: p.address || "", address: p.kind === "pin" ? "" : p.address, lat: p.lat, lon: p.lon, tz: null }; $("vLat").value = p.lat; $("vLon").value = p.lon; if (!$("vName").value.trim()) $("vName").value = p.name; } });
     $("editDlg").showModal();
     $("vSave").addEventListener("click", async (e) => {
@@ -163,8 +194,18 @@
       let tz = city.tz; if (!tz || Math.abs(lat - city.lat) > 0.05 || Math.abs(lon - city.lon) > 0.05) tz = await O.zoneFor(lat, lon).catch(() => null) || await new Promise((ok) => setTimeout(ok, 1500)).then(() => O.zoneFor(lat, lon)).catch(() => null) || window.VenueSearch.tzGuess({ ...city, lat, lon });
       if (!tz) return err("Couldn't look up the venue's time zone. Try again.");
       const num = (id, dflt) => (fin(parseFloat($(id).value)) ? parseFloat($(id).value) : dflt);
+      const opt = (el, scale) => { const x = parseFloat(el.value); return fin(x) && x >= 0 ? Math.round(x * scale) : null; };
+      const presets = []; let bad = null;
+      $("vPresets").querySelectorAll(".vp-row").forEach((row) => {
+        const name = row.querySelector(".vp-name").value.trim(), setup = opt(row.querySelector(".vp-setup"), 60), gates = opt(row.querySelector(".vp-gates"), 1), teardown = opt(row.querySelector(".vp-tear"), 1);
+        if (!name && setup == null && gates == null && teardown == null) return; // an empty row is ignored
+        if (!name) { bad = "Name each schedule preset (or remove it)."; return; }
+        if (presets.some((p) => E.norm(p.name) === E.norm(name))) { bad = `Two presets are called “${name}”.`; return; }
+        presets.push({ id: row.dataset.id || E.newPresetId(), name, setup, gates, teardown });
+      });
+      if (bad) return err(bad);
       const rec = E.saveVenue({ ...(v || {}), name, city: city.name || (v && v.city) || "", address: city.address != null ? city.address : (v && v.address) || "", lat: +lat.toFixed(5), lon: +lon.toFixed(5), tz,
-        defaults: { setup: Math.round(num("vSetup", 4) * 60), gates: Math.round(num("vGates", 90)), teardown: Math.round(num("vTear", 120)), gust: Math.min(60, Math.max(10, num("vGust", 25))) } });
+        defaults: { setup: Math.round(num("vSetup", 4) * 60), gates: Math.round(num("vGates", 90)), teardown: Math.round(num("vTear", 120)), gust: Math.min(60, Math.max(10, num("vGust", 25))) }, presets });
       U.track("venue_saved"); $("editDlg").close(); if (onSaved) onSaved(rec);
     });
   }
@@ -186,7 +227,7 @@
       const n = $("upNote"); n.hidden = false; n.innerHTML = `<b>Import complete:</b> ${r.added} added · ${r.updated} updated${r.unchanged ? ` · ${r.unchanged} unchanged` : ""} · ${need} ${need === 1 ? "needs" : "need"} venue confirmation${need ? " (use Edit to pick a saved venue or search its city)" : ""}.${r.relocated ? ` ${r.relocated} changed location in the calendar and ${r.relocated === 1 ? "was" : "were"} matched again.` : ""}${r.remembered ? ` Remembered ${r.remembered} calendar ${r.remembered === 1 ? "location" : "locations"} for next time.` : ""}`; } }));
     $("vnAdd").addEventListener("click", () => editVenue(null, { onSaved: () => render(host, { onOpen }) }));
     backupControls(host, { onOpen });
-    $("vnList").innerHTML = vns.length ? vns.map((v) => `<article class="up-vn" data-id="${esc(v.id)}"><div><b>${esc(v.name)}</b><div class="bx-note">${esc(v.city || `${v.lat}, ${v.lon}`)} · ${esc(fmt.zone(now, v.tz))}</div><div class="bx-note">${esc(offText(v.defaults))}</div></div>
+    $("vnList").innerHTML = vns.length ? vns.map((v) => `<article class="up-vn" data-id="${esc(v.id)}"><div><b>${esc(v.name)}</b><div class="bx-note">${esc(v.city || `${v.lat}, ${v.lon}`)} · ${esc(fmt.zone(now, v.tz))}</div><div class="bx-note">${esc(offText(v.defaults))}</div>${E.presetsOf(v).length ? `<div class="bx-note">Presets: ${esc(E.presetsOf(v).map((p) => p.name).join(", "))}</div>` : ""}</div>
       <div class="up-act"><button class="bx-btn" type="button" data-vedit>Edit</button><button class="bx-btn" type="button" data-vremove>Remove</button></div></article>`).join("") : '<p class="bx-note">No saved venues yet. Save one with its setup, gates and teardown times, and new events there start from them.</p>';
     $("vnList").querySelectorAll(".up-vn").forEach((row) => {
       const v = E.getVenue(row.dataset.id);

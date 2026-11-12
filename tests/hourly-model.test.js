@@ -71,13 +71,26 @@ const ctxFor = (B, thunderAt) => { const ctx = S.context({ C, T, B, ws, rules: n
   const con = M.eventConcerns(S, C, b, hrs, { gust: 25 });
   eq(con.rows.map((r) => r.key), ["lightning", "wind", "rain"], "overlapping concerns each get their own row, in the engine's order");
   const ev10 = ax.findIndex((a) => a.hourText === "10 PM"), p = b.phases.find((x) => x.key === "event");
-  eq(con.rows.find((r) => r.key === "rain").cells[ev10], { state: "concern", tier: S.LEVEL_TIER[p.levels.rain], level: p.levels.rain, word: S.LEVEL_WORD[p.levels.rain], why: `Rain meets its hourly rule; Event rated ${S.LEVEL_WORD[p.levels.rain].toLowerCase()}`, source: "phase" }, "rain at 10 PM carries the event phase's own level");
+  eq(con.rows.find((r) => r.key === "rain").cells[ev10], { state: "concern", tier: S.LEVEL_TIER[p.levels.rain], level: p.levels.rain, word: S.LEVEL_WORD[p.levels.rain], why: `Rain possible this hour; rated ${S.LEVEL_WORD[p.levels.rain].toLowerCase()} for event`, source: "phase" }, "rain at 10 PM carries the event phase's own level");
   eq(con.rows.find((r) => r.key === "wind").cells[ev10].tier, S.LEVEL_TIER[p.levels.wind], "wind at 10 PM carries the phase's wind level");
   const l11 = con.rows.find((r) => r.key === "lightning").cells[ax.findIndex((a) => a.hourText === "11 PM")];
-  eq([l11.state, l11.tier, l11.source], ["concern", "prepare", "hour"], "lightning uses the Thunder page's tier for that hour");
+  eq([l11.state, l11.tier, l11.source, l11.word], ["concern", "prepare", "hour", "Moderate"], "lightning uses the Thunder page's tier for that hour, in plain words (elevated -> Moderate)");
+  /* phase summaries come from the same hours as the grid */
+  const ps = M.phaseSummaries(S, b, hrs, cov), evS = ps.find((x) => x.key === "event");
+  const evHours = cov.map((c, i) => (c.some((x) => x.key === "event") ? i : -1)).filter((i) => i >= 0);
+  eq(evS.peakPop.v, Math.max(...evHours.map((i) => hrs[i].pop)), "phase peak hourly rain chance is the highest hourly value among the phase's own grid hours");
+  eq(evS.hours, evHours.map((i) => hrs[i].ms), "phase hours are exactly the grid hours the phase overlaps (overnight: 8 PM through the 12 AM hour)");
+  eq([evS.lightning.word, evS.lightning.state], ["Moderate", "ok"], "event lightning potential: strongest hourly tier in plain words");
+  const setupS = ps.find((x) => x.key === "setup");
+  eq([setupS.lightning.word, setupS.peakPop.v], ["Low", 10], "a quiet phase: lightning Low (a real word, not none), peak rain chance from its hours");
+  const tdS = ps.find((x) => x.key === "teardown"), tdHours = evHours.length;
+  eq(tdS.hours.map((m) => C.time.toLocal(m, NY).slice(11, 16)), ["01:00", "02:00"], "overnight teardown 1:00-2:30 AM covers the 1 AM and 2 AM hours");
+  ok(tdHours > 0, "event hours present");
   eq(con.rows.find((r) => r.key === "rain").cells[0].state, "clear", "a dry 4 PM hour: no concern");
   eq([con.summary[ev10].count, con.summary[ev10].keys.sort()], [2, ["rain", "wind"]], "summary counts overlapping concerns");
   ok(con.summary[ax.findIndex((a) => a.hourText === "11 PM")].count === 3, "11 PM: lightning, wind and rain overlap");
+  const s8 = con.summary[ax.findIndex((a) => a.hourText === "8 PM")];
+  eq([s8.state, s8.key, s8.level], ["rated", p.top, p.level], "8 PM: no single-hour signal, but the event carries a rating (its top hazard) — the hour says so instead of 'no concern'");
   const tiers = new Set(con.rows.flatMap((r) => r.cells.filter((c) => c.state === "concern").map((c) => c.tier)));
   ok([...tiers].every((t) => ["monitor", "prepare", "action"].includes(t)), "only the engine's tiers appear (monitor/prepare/action)");
 }
@@ -103,5 +116,13 @@ const ctxFor = (B, thunderAt) => { const ctx = S.context({ C, T, B, ws, rules: n
   eq([con.summary[2].state, con.summary[10].state, con.summary[40].state], ["clear", "partial", "missing"], "covered with thunder: no concern; covered without thunder: partial; beyond the guidance: missing");
   ok(con.summary.filter((c) => c.state === "missing").every((c) => /Beyond the hourly guidance/.test(c.why)), "missing hours say why");
   ok(!con.summary.some((c) => c.state === "clear" && hrs[con.summary.indexOf(c)].state !== "ok"), "no hour without guidance is ever shown as 'no concern'");
+  const ps = M.phaseSummaries(S, b, hrs, M.phaseCover(span, b.phases)), evS = ps.find((x) => x.key === "event"), td = ps.find((x) => x.key === "teardown");
+  eq([evS.lightning.word, evS.lightning.state], ["Low", "limited"], "thunder guidance for only some event hours: Low where available, marked limited (never plain Low)");
+  eq([td.lightning.word, td.lightning.state], ["Unavailable", "missing"], "no thunder guidance at all for teardown: Unavailable, never Low");
+  eq(td.peakPop, null, "teardown beyond the guidance: no peak rain chance, not 0%");
 }
+/* ---------- small chances and plain lightning words ---------- */
+eq([S.formatPrecipPercent(0), S.formatPrecipPercent(1), S.formatPrecipPercent(2.4), S.formatPrecipPercent(2.5), S.formatPrecipPercent(12), S.formatPrecipPercent(null)], ["0%", "<5%", "<5%", "5%", "10%", "—"], "a small nonzero chance reads <5%, never 0%; zero stays 0%; missing stays —");
+eq(["normal", "monitor", "prepare", "action", "nodata", null].map(S.lightningWord), ["Low", "Moderate", "Moderate", "High", "Unavailable", "Unavailable"], "lightning words map the Thunder tiers (LOW, MARGINAL, ELEVATED, HIGH); no data is Unavailable");
+eq(M.nwsThunder({ hourly: [{ s: 0, e: 10, short: "Chance Showers And Thunderstorms" }, { s: 10, e: 20, short: "Mostly Cloudy" }, { s: 20, e: 30, short: "Slight Chance T-storms" }] }, 5, 25).map((h) => h.short), ["Chance Showers And Thunderstorms", "Slight Chance T-storms"], "NWS thunder wording inside the window");
 console.log(`ok - ${n} hourly model checks passed`);

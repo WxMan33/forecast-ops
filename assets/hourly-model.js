@@ -79,13 +79,13 @@
         if (key === "lightning") {
           if (!h.thunder || h.thunder === "nodata") return { state: "missing", why: "Thunder guidance unavailable for this hour" };
           const r = RANK[h.thunder] ?? 0;
-          return r >= 1 ? { state: "concern", tier: h.thunder, word: C.TIERS[h.thunder].word.charAt(0) + C.TIERS[h.thunder].word.slice(1).toLowerCase(), why: `Thunder signal ${C.TIERS[h.thunder].word.toLowerCase()} this hour (Thunder page tier)`, source: "hour" }
+          return r >= 1 ? { state: "concern", tier: h.thunder, word: S.lightningWord(h.thunder), why: `Lightning potential ${S.lightningWord(h.thunder).toLowerCase()} this hour`, source: "hour" }
             : { state: "clear" };
         }
         if (!hz.hour(h, thr)) return { state: "clear" };
         const ph = phasesAt(h.ms), lvl = Math.max(0, ...ph.map((p) => p.levels[key] || 0));
-        if (lvl >= 1) return { state: "concern", tier: S.LEVEL_TIER[lvl], level: lvl, word: S.LEVEL_WORD[lvl], why: `${hz.label} meets its hourly rule; ${ph.filter((p) => (p.levels[key] || 0) === lvl).map((p) => p.label).join(" and ")} rated ${S.LEVEL_WORD[lvl].toLowerCase()}`, source: "phase" };
-        return { state: "flag", why: ph.length ? `${hz.label} meets its hourly rule; ${ph.map((p) => p.label).join(" and ")} rated low` : `${hz.label} meets its hourly rule outside the event's phases`, source: "rule" };
+        if (lvl >= 1) return { state: "concern", tier: S.LEVEL_TIER[lvl], level: lvl, word: S.LEVEL_WORD[lvl], why: `${hz.label} possible this hour; rated ${S.LEVEL_WORD[lvl].toLowerCase()} for ${ph.filter((p) => (p.levels[key] || 0) === lvl).map((p) => p.label.toLowerCase()).join(" and ")}`, source: "phase" };
+        return { state: "flag", why: ph.length ? `${hz.label} possible this hour, but rated low for ${ph.map((p) => p.label.toLowerCase()).join(" and ")}` : `${hz.label} possible this hour, outside the event's schedule`, source: "rule" };
       });
       if (cells.some((c) => c.state === "concern" || c.state === "flag")) rows.push({ key, label: hz.label, cells });
     });
@@ -95,13 +95,42 @@
       const hits = rows.map((r) => ({ r, c: r.cells[i] })).filter((x) => x.c.state === "concern" || x.c.state === "flag");
       if (!hits.length) {
         const partial = rows.some((r) => r.cells[i].state === "missing") || (S.HAZARDS.lightning && (!h.thunder || h.thunder === "nodata"));
-        return partial ? { state: "partial", why: "No concern identified in the guidance available; thunder guidance is missing for this hour" } : { state: "clear", why: "No concern identified" };
+        /* no single-hour signal, but the part of the event this hour belongs to carries a rating: say so (unshaded) */
+        const rated = phasesAt(h.ms).filter((p) => p.level >= 1 && p.top).sort((a, b) => b.level - a.level)[0];
+        if (rated) return { state: "rated", key: rated.top, level: rated.level, word: S.LEVEL_WORD[rated.level], why: `No single hour stands out, but ${rated.label.toLowerCase()} is rated ${S.HAZARDS[rated.top].label.toLowerCase()}: ${S.LEVEL_WORD[rated.level].toLowerCase()}` };
+        return partial ? { state: "partial", why: "No concern found in the guidance available; lightning guidance is missing for this hour" } : { state: "clear", why: "No concern identified" };
       }
       const worst = hits.filter((x) => x.c.state === "concern").sort((a, b) => (RANK[b.c.tier] ?? 0) - (RANK[a.c.tier] ?? 0))[0];
       return { state: worst ? "concern" : "flag", tier: worst ? worst.c.tier : null, word: worst ? worst.c.word : "Low", count: hits.length, keys: hits.map((x) => x.r.key),
         why: hits.map((x) => `${x.r.label}: ${x.c.word || "low"}`).join(" · ") };
     });
     return { rows, summary };
+  }
+
+  /* one summary per phase from the same hours the grid shows (an hour belongs to a phase when they overlap):
+     peak hourly rain chance (the highest hourly PoP, not a chance of rain sometime in the phase), temperature range,
+     peak gust and lightning potential (the strongest Thunder-page tier among those hours, in plain words).
+     Lightning is "Unavailable" when no hour has thunder guidance and "Limited guidance" when only some do. */
+  function phaseSummaries(S, brief, hrs, cover) {
+    const RANK = { normal: 0, monitor: 1, prepare: 2, action: 3 };
+    return brief.phases.map((p) => {
+      const idx = cover.map((c, i) => (c.some((x) => x.key === p.key) ? i : -1)).filter((i) => i >= 0);
+      const ok = idx.filter((i) => hrs[i].state === "ok"), val = (k) => ok.filter((i) => fin(hrs[i][k]));
+      const popI = val("pop"), peak = popI.length ? popI.reduce((a, b) => (hrs[b].pop > hrs[a].pop ? b : a)) : null;
+      const temps = val("temp").map((i) => hrs[i].temp), gustI = val("gust"), gust = gustI.length ? gustI.reduce((a, b) => (hrs[b].gust > hrs[a].gust ? b : a)) : null;
+      const thI = ok.filter((i) => hrs[i].thunder && hrs[i].thunder !== "nodata"), worst = thI.length ? thI.reduce((a, b) => ((RANK[hrs[b].thunder] ?? 0) > (RANK[hrs[a].thunder] ?? 0) ? b : a)) : null;
+      const lightning = !idx.length ? { word: "Unavailable", state: "missing" } : !thI.length ? { word: "Unavailable", state: "missing", why: "No lightning guidance reaches these hours" }
+        : { word: S.lightningWord(hrs[worst].thunder), tier: hrs[worst].thunder, at: hrs[worst].ms, state: thI.length < idx.length ? "limited" : "ok", missing: idx.length - thI.length };
+      return { key: p.key, label: p.label, startMs: p.startMs, endMs: p.endMs, hours: idx.map((i) => hrs[i].ms), covered: ok.length, of: idx.length,
+        peakPop: peak == null ? null : { v: hrs[peak].pop, at: hrs[peak].ms }, popMissing: ok.length - popI.length,
+        temp: temps.length ? { lo: Math.min(...temps), hi: Math.max(...temps) } : null, gust: gust == null ? null : { v: hrs[gust].gust, at: hrs[gust].ms }, lightning,
+        level: p.level || 0, top: p.top || null, ensemble: p.r && p.r.chanceV != null ? p.r.chanceV : null };
+    });
+  }
+  /* NWS hourly wording that mentions thunder inside [s, e) */
+  function nwsThunder(nws, s, e) {
+    const hrs = nws && nws.hourly ? nws.hourly : [];
+    return hrs.filter((h) => h.s < e && h.e > s && /thunder|t-?storm/i.test(h.short || "")).map((h) => ({ s: h.s, e: h.e, short: h.short }));
   }
 
   /* hours to show for an event: setup through teardown, aligned to whole hours */
@@ -115,7 +144,7 @@
     const s = Math.floor(now / H) * H; return spanHours(s, s + hoursAhead * H);
   }
 
-  const api = { H, spanHours, axis, zoneOf, blendHour, blendHours, phaseCover, eventConcerns, eventSpan, blendSpan };
+  const api = { phaseSummaries, nwsThunder, H, spanHours, axis, zoneOf, blendHour, blendHours, phaseCover, eventConcerns, eventSpan, blendSpan };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.HourlyModel = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

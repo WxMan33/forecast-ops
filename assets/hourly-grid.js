@@ -9,7 +9,7 @@
   "use strict";
   const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   const DAY = (date) => { const d = new Date(Date.parse(date + "T12:00:00Z")); return d.toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" }); };
-  const STATE_WORD = { missing: "No guidance", partial: "Partial guidance", clear: "No concern identified", flag: "Meets an hourly rule (rated low)", concern: "Concern", ok: "", past: "" };
+  const STATE_WORD = { missing: "No guidance", partial: "Partial guidance", clear: "No concern found", flag: "", concern: "", ok: "", past: "" }; // each cell's own explanation says the rest
 
   function cellHtml(c, ms, sel) {
     const cls = ["hg-c", `hg-s-${c.state || "ok"}`]; if (c.tier) cls.push(`hg-t-${c.tier}`); if (ms === sel) cls.push("hg-sel"); if (c.past) cls.push("hg-past");

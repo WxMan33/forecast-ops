@@ -60,6 +60,18 @@
   function scheduleAt(defs, startIso, endIso, tz) {
     return schedule(defs, { start: wallAt(startIso, tz), end: wallAt(endIso, tz), tz, startMs: Date.parse(startIso), endMs: Date.parse(endIso) });
   }
+  /* ---- named schedule presets on a venue ----
+     venue.presets: [{ id, name, setup, gates, teardown }] in minutes (setup/gates before the start, teardown after the end;
+     null = that phase isn't used, e.g. a practice with no gates). The venue's own defaults stay the standard outdoor-event
+     schedule. An event names the preset it uses (event.preset); a time changed for one event is that event's override and
+     never changes the saved preset. */
+  const presetsOf = (v) => (Array.isArray(v && v.presets) ? v.presets : []);
+  function defsFor(v, presetId) {
+    const base = { ...STD, ...((v && v.defaults) || {}) }, p = presetId ? presetsOf(v).find((x) => x.id === presetId) : null;
+    return p ? { ...base, setup: p.setup ?? null, gates: p.gates ?? null, teardown: p.teardown ?? null } : base;
+  }
+  const newPresetId = () => newId("ps");
+
   /* event times from a venue's defaults: date + start/end ("HH:MM"); an end before the start is the next day.
      (Single-day shorthand kept for callers that have one date; multi-day events use schedule().) */
   function applyDefaults(defs, date, start, end) {
@@ -197,15 +209,16 @@
       else {
         const v = keepVenue ? venue : r.venueId && venueOf ? venueOf(r.venueId) : null;
         const ms = { start: sMs, end: eMs };
-        times = v ? schedule(v.defaults, { start, end, tz, startMs: sMs, endMs: eMs }).times : { ...r.times, start, end };
+        const vd = v ? defsFor(v, keepVenue ? old.preset : null) : null;
+        times = v ? schedule(vd, { start, end, tz, startMs: sMs, endMs: eMs }).times : { ...r.times, start, end };
         if (!v) ["setup", "gates", "teardown"].forEach((k) => { if (!keepVenue || !old.times[k]) return; const d = gap(old.times, k, k === "teardown" ? "end" : "start", old.tz, old.fold); ms[k] = (k === "teardown" ? eMs : sMs); if (ms[k] != null && tz) { ms[k] += d * 60e3; times[k] = wallMs(ms[k], tz); } else times[k] = addMin(k === "teardown" ? end : start, d); });
         /* the planner's own phase times keep their offset: setup/gates from the start, teardown from the end (real minutes) */
         (old.overrides || []).forEach((k) => { if (!times.start || !old.times[k]) return; const from = k === "teardown" ? "end" : "start", d = gap(old.times, k, from, old.tz, old.fold), base = k === "teardown" ? eMs : sMs;
           if (base != null && tz) { ms[k] = base + d * 60e3; times[k] = wallMs(ms[k], tz); } else times[k] = addMin(k === "teardown" ? end : start, d); });
-        if (v && tz) { const full = schedule(v.defaults, { start, end, tz, startMs: sMs, endMs: eMs }); PHASE_KEYS.forEach((k) => { if (ms[k] == null && full.times[k] === times[k]) ms[k] = localMs(times[k], tz, full.fold[k]); }); }
+        if (v && tz) { const full = schedule(vd, { start, end, tz, startMs: sMs, endMs: eMs }); PHASE_KEYS.forEach((k) => { if (ms[k] == null && full.times[k] === times[k]) ms[k] = localMs(times[k], tz, full.fold[k]); }); }
         fold = tz ? foldsFor(times, ms, tz) : {};
       }
-      const next = { ...old, name: r.name, times, fold, tz, venueId: keepVenue ? old.venueId : r.venueId, loc: keepVenue ? old.loc : r.loc,
+      const next = { ...old, ...(!keepVenue && old.preset != null ? { preset: null } : {}), name: r.name, times, fold, tz, venueId: keepVenue ? old.venueId : r.venueId, loc: keepVenue ? old.loc : r.loc,
         match: keepVenue ? old.match : r.match, source: { ...os, ...rs }, updated: now };
       if (!sameLoc) relocated++;
       if (JSON.stringify({ ...next, updated: 0 }) === JSON.stringify({ ...old, updated: 0 })) unchanged++; else { out[i] = next; updated++; }
@@ -225,7 +238,8 @@
     /* times come from the calendar's original instants in the venue's time zone (never relabel another zone's clock) */
     const src = ev.source || {};
     const sch = src.start && src.end ? scheduleAt(v.defaults, src.start, src.end, v.tz) : schedule(v.defaults, { start: ev.times.start, end: ev.times.end, tz: v.tz });
-    return { ...ev, venueId: v.id, loc: { name: v.name, lat: v.lat, lon: v.lon }, tz: v.tz, times: sch.times, fold: sch.fold, gust: (v.defaults && v.defaults.gust) || ev.gust, overrides: [], match: { status: "matched", via: "confirmed", candidates: [] } };
+    const { preset, ...rest } = ev; // a preset belongs to the old venue
+    return { ...rest, ...(preset != null ? { preset: null } : {}), venueId: v.id, loc: { name: v.name, lat: v.lat, lon: v.lon }, tz: v.tz, times: sch.times, fold: sch.fold, gust: (v.defaults && v.defaults.gust) || ev.gust, overrides: [], match: { status: "matched", via: "confirmed", candidates: [] } };
   }
 
   /* ---- browser storage ---- */
@@ -279,6 +293,8 @@
       aliases: Array.isArray(v.aliases) ? v.aliases.filter((a) => typeof a === "string" && a.trim()).map((a) => a.slice(0, 200)).slice(0, 50) : [],
       defaults: Object.fromEntries(["setup", "gates", "teardown", "gust"].filter((k) => fin(d[k])).map((k) => [k, d[k]])) };
     if (typeof v.city === "string") out.city = v.city.slice(0, 200); // optional fields stay optional (exact round trip)
+    if (Array.isArray(v.presets)) out.presets = v.presets.filter((p) => p && typeof p === "object").slice(0, 20).map((p) => ({ id: str(p.id, 80), name: str(p.name, 60),
+      setup: fin(p.setup) ? p.setup : null, gates: fin(p.gates) ? p.gates : null, teardown: fin(p.teardown) ? p.teardown : null }));
     if (typeof v.address === "string") out.address = v.address.slice(0, 200);
     return out;
   }
@@ -290,6 +306,7 @@
     const out = { id: str(e.id, 400), name: str(e.name, 80), venueId: str(e.venueId, 120), loc: { name: str(e.loc && e.loc.name, 200) || "", lat: num(e.loc && e.loc.lat), lon: num(e.loc && e.loc.lon) }, tz: str(e.tz, 64),
       times, gust: num(e.gust), overrides: Array.isArray(e.overrides) ? e.overrides.filter((k) => PHASE_KEYS.includes(k)) : [], source, created: num(e.created), updated: num(e.updated) };
     if (e.fold) out.fold = fold; // optional fields stay optional, so a record round-trips exactly
+    if (e.preset !== undefined) out.preset = str(e.preset, 80);
     if (e.match) out.match = { status: str(m.status, 20) || "unknown", via: str(m.via, 20), candidates: Array.isArray(m.candidates) ? m.candidates.filter((x) => typeof x === "string").slice(0, 20) : [] };
     return out;
   }
@@ -320,6 +337,7 @@
       if (v.lat == null || v.lon == null || Math.abs(v.lat) > 90 || Math.abs(v.lon) > 180) errors.push(`${where} has no valid coordinates.`);
       if (!v.tz || !validZone(v.tz)) errors.push(`${where} has no valid time zone.`);
       if (["setup", "gates", "teardown"].some((k) => v.defaults[k] != null && (v.defaults[k] < 0 || v.defaults[k] > 7 * 1440))) errors.push(`${where} has an out-of-range default schedule.`);
+      if ((v.presets || []).some((p) => !p.id || !p.name || ["setup", "gates", "teardown"].some((k) => p[k] != null && (p[k] < 0 || p[k] > 7 * 1440)))) errors.push(`${where} has a schedule preset without a name or with out-of-range times.`);
       vIds.add(v.id); vs.push(v);
     });
     j.events.forEach((raw, i) => {
@@ -394,7 +412,7 @@
     return { ...plan.summary, replaced };
   }
 
-  const api = { BACKUP_KIND, BACKUP_VERSION, backup, readBackup, planRestore, applyRestore, storageOk, wallAt, wallMs, localMs, instantsOf, foldsFor, schedule, scheduleAt, msOf, BUILTIN, matchVenue, rememberAlias, norm, mergeImported, confirmVenue, importEvents, STD, STATUS, applyDefaults, offsetsOf, overridesOf, statusOf, order, fromCalendar, addMin, diffMin,
+  const api = { presetsOf, defsFor, newPresetId, BACKUP_KIND, BACKUP_VERSION, backup, readBackup, planRestore, applyRestore, storageOk, wallAt, wallMs, localMs, instantsOf, foldsFor, schedule, scheduleAt, msOf, BUILTIN, matchVenue, rememberAlias, norm, mergeImported, confirmVenue, importEvents, STD, STATUS, applyDefaults, offsetsOf, overridesOf, statusOf, order, fromCalendar, addMin, diffMin,
     events, venues, saveEvent, getEvent, removeEvent, saveVenue, getVenue, removeVenue, last, setLast, migrate, EV_KEY, VN_KEY };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.EventStore = api;

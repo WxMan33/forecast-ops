@@ -7,7 +7,12 @@
   "use strict";
   const H = 3600e3;
   const fin = (x) => typeof x === "number" && Number.isFinite(x);
-  const formatPrecipPercent = (x) => fin(x) ? `${Math.round(x / 5) * 5}%` : "—";
+  /* 5-point steps; a small but real chance (under 2.5%) reads "<5%", never 0% */
+  const formatPrecipPercent = (x) => { if (!fin(x)) return "—"; const r = Math.round(x / 5) * 5; return r === 0 && x > 0 ? "<5%" : `${r}%`; };
+  /* lightning potential in plain words, from the Thunder page's own tiers (thresholds unchanged):
+     LOW -> Low (not zero), MARGINAL and ELEVATED -> Moderate, HIGH -> High; no data -> Unavailable */
+  const LIGHTNING_WORD = { normal: "Low", monitor: "Moderate", prepare: "Moderate", action: "High" };
+  const lightningWord = (tier) => LIGHTNING_WORD[tier] || "Unavailable";
   const RANK = { nodata: -1, normal: 0, monitor: 1, prepare: 2, action: 3 };
 
   /* Hazard rules. Thresholds are display defaults for planning conversations, not calibrated
@@ -24,7 +29,7 @@
     rain: { label: "Rain", noun: "rain", order: 2,
       level: (r) => { const c = r.chanceV, q = r.qpf ?? 0; if (fin(c) && c >= 0.7 && q >= 0.25) return 3; if ((fin(c) && c >= 0.5) || q >= 0.1) return 2; if ((fin(c) && c >= 0.2) || q >= 0.02) return 1; return 0; },
       hour: (h) => (fin(h.qpf) && h.qpf >= 0.01) || (fin(h.pop) && h.pop >= 40),
-      why: (r) => `${fin(r.chanceV) ? formatPrecipPercent(r.chanceV * 100) + " of ensemble members wet" : "Precipitation in guidance"}${fin(r.qpf) ? `, about ${r.qpf.toFixed(2)}″` : ""}` },
+      why: (r) => `Rain in the forecast${fin(r.qpf) && r.qpf >= 0.005 ? `, about ${r.qpf.toFixed(2)}″ in total` : ""}` },
     snow: { label: "Snow", noun: "snow", order: 3,
       level: (r) => (!fin(r.sn) ? 0 : r.sn >= 1 ? 3 : r.sn >= 0.3 ? 2 : r.sn >= 0.05 ? 1 : 0),
       hour: (h) => fin(h.sn) && h.sn >= 0.05,
@@ -311,7 +316,7 @@
   const icsText = (t) => String(t).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
   const hash = (t) => [...String(t)].reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0);
 
-  const api = { market, eventToParam, eventFromParam, CINCY_DMA, HRRR_BOX, signals, decision, formatPrecipPercent, pickSample, phaseRow, HAZARDS, LEVEL_WORD, LEVEL_TIER, AGREE_WORD, context, windowRow, hourly, precipTiming, disagreement, guidanceAge, nextUpdates, hazardTiming, certainty, eventBrief, planChanges, checkAgain, sampleEvent, SAMPLE_VENUE, readiness, reminder, listWords };
+  const api = { lightningWord, LIGHTNING_WORD, market, eventToParam, eventFromParam, CINCY_DMA, HRRR_BOX, signals, decision, formatPrecipPercent, pickSample, phaseRow, HAZARDS, LEVEL_WORD, LEVEL_TIER, AGREE_WORD, context, windowRow, hourly, precipTiming, disagreement, guidanceAge, nextUpdates, hazardTiming, certainty, eventBrief, planChanges, checkAgain, sampleEvent, SAMPLE_VENUE, readiness, reminder, listWords };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.BetaStory = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

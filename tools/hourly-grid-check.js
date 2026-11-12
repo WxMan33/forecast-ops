@@ -50,11 +50,11 @@ const report = (ok, name, detail) => { if (!ok) failed++; console.log(`${ok ? "P
           const ms = v.span[i], lvl = Math.max(0, ...b.phases.filter((ph) => ph.r && ph.startMs < ms + 3600e3 && ph.endMs > ms).map((ph) => ph.levels[r.key] || 0));
           return { want: S.LEVEL_TIER[lvl], got: c.tier }; }).filter(Boolean)); });
       const at = (h) => g.hours.findIndex((x) => x.startsWith(h));
-      const concernRows = ["lightning", "wind", "rain"].filter((k) => g.rows[`hz-${k}`]);
+      const concernRows = [g.rows.lightning ? "lightning" : null, ...["wind", "rain"].filter((k) => g.rows[`hz-${k}`])].filter(Boolean);
       const tiersUsed = new Set(Object.values(g.rows).flat().map((c) => c.tier).filter(Boolean));
-      report(concernRows.length === 3 && g.rows.concern[at("11 PM")].text.endsWith("×3") && g.rows["hz-lightning"][at("11 PM")].tier === "prepare" && g.rows["hz-lightning"][at("10 PM")].tier === "monitor" && Object.keys(g.rows).filter((k) => k.startsWith("hz-")).length === 3
+      report(concernRows.length === 3 && g.rows.concern[at("11 PM")].text.endsWith("×3") && g.rows.lightning[at("11 PM")].tier === "prepare" && g.rows.lightning[at("11 PM")].text === "Moderate" && g.rows.lightning[at("10 PM")].tier === "monitor" && g.rows.lightning[at("4 PM")].text === "Low" && g.rows.lightning[at("4 PM")].state === "clear" && Object.keys(g.rows).filter((k) => k.startsWith("hz-")).length === 2 && !g.rows.chance
         && engine.length > 0 && engine.every((x) => x.want === x.got) && [...tiersUsed].every((t) => ["monitor", "prepare", "action"].includes(t)) && !errors.length,
-        `overlapping concerns (${devName}, ${theme}): lightning, wind and rain each get a row; 11 PM shows all three; every coloured hour matches the engine's phase level (lightning: the hour's thunder tier)`,
+        `overlapping concerns (${devName}, ${theme}): lightning, wind and rain each get a row; 11 PM shows all three; every coloured hour matches the engine's phase level; lightning reads Low / Moderate / High from the hour's thunder tier; the ensemble share is not in the event grid`,
         `rows ${concernRows.join(", ")} · 11 PM summary "${g.rows.concern[at("11 PM")].text}" · ${engine.length} coloured hours checked against the engine, ${engine.filter((x) => x.want !== x.got).length} mismatches · tiers ${[...tiersUsed].join(", ")}${errors.length ? " · " + errors.join("; ") : ""}`);
       /* selecting an hour shows its details */
       await p.click(`.hg-hb >> nth=${at("11 PM")}`); const d = await p.evaluate(() => ({ t: document.getElementById("detail").innerText, pressed: [...document.querySelectorAll('.hg-hb[aria-pressed="true"]')].map((b) => b.innerText.replace(/\s+/g, " ")) }));
@@ -89,10 +89,10 @@ const report = (ok, name, detail) => { if (!ok) failed++; console.log(`${ok ? "P
     /* ---------- missing data ---------- */
     { const { ctx, p, errors } = await open(dev, `case=missing&theme=${theme}`), g = await read(p);
       const i8 = g.hours.indexOf("8 PM"), i9 = g.hours.indexOf("9 PM");
-      const valueRows = ["temp", "feel", "pop", "chance", "qpf", "wind", "gust"];
+      const valueRows = ["temp", "feel", "pop", "qpf", "wind", "gust"];
       report(valueRows.every((k) => g.rows[k][i8].state === "missing" && g.rows[k][i8].text === "—") && g.rows.concern[i8].text === "n/a" && g.rows.pop[i9].state === "missing" && g.rows.temp[i9].state === "ok"
-        && g.rows.concern[i9].text === "None*" && g.rows.chance.every((c) => c.state === "missing") && !errors.length,
-        `missing data (${devName}, ${theme}): a source gap reads — and n/a (never 0 or "no concern"); one missing field stays missing while the rest show; no ensemble means the ensemble row is missing`,
+        && g.rows.concern[i9].text === "None*" && g.rows.lightning[i9].text === "Unavail." && g.rows.lightning[i9].state === "missing" && g.rows.lightning[i8].text === "n/a" && !errors.length,
+        `missing data (${devName}, ${theme}): a source gap reads — and n/a (never 0 or "no concern"); one missing field stays missing while the rest show; missing lightning guidance reads Unavailable, never Low`,
         `8 PM ${valueRows.map((k) => g.rows[k][i8].text).join(" ")} / concern ${g.rows.concern[i8].text} · 9 PM PoP ${g.rows.pop[i9].text}, temp ${g.rows.temp[i9].text}, concern ${g.rows.concern[i9].text}${errors.length ? " · " + errors.join("; ") : ""}`);
       await ctx.close(); }
     /* ---------- Model Blend view: 24/48/72 hours ---------- */

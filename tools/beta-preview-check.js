@@ -151,6 +151,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     /* a burst of guidance requests from the CI machine is occasionally throttled upstream: say what the page showed, reload once */
     if (!(await eventReady(p, "Sawyer"))) { const shown = await p.evaluate(() => (document.getElementById("decision") || {}).textContent || "—"); console.log(`note: Cincinnati event not ready after 2 min (page showed "${shown.trim().slice(0, 80)}"); reloading once`); await p.reload({ waitUntil: "domcontentloaded" }); if (!(await eventReady(p, "Sawyer"))) throw new Error("Cincinnati event did not load after a reload"); }
     await p.locator(".bx-mapframe iframe").scrollIntoViewIfNeeded(); await until(p, () => { const m = document.querySelector(".bx-mapwrap"); return m && m.dataset.ready === "true" && m.dataset.mapValid; }, null, 90000);
+    await p.evaluate(() => { document.getElementById("chartMore").open = true; }); await p.waitForTimeout(800); // the chart is a secondary view under "Chart view"
     const box = await p.locator("#timeline svg").boundingBox(); await p.mouse.click(box.x + box.width * 0.1, box.y + box.height * 0.3); await p.waitForTimeout(1500);
     let t = await times(p); report(same(t), "Cincinnati event: click an hour keeps page, chart and map on one time", `page ${iso(t.page)} · chart ${iso(t.chart)} · map ${iso(t.map)} (${t.range})`);
     await p.click("#mpBack"); await p.waitForTimeout(1500); const before = (await times(p)).page; await p.click("#mpBack"); await p.waitForTimeout(1500);
@@ -164,7 +165,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       const dd = [...document.querySelectorAll("#keys dd")], bar = document.querySelector(".sch-bar"), ticks = [...document.querySelectorAll(".sch-ticks span")].map((x) => b(x));
       const pcts = [...document.querySelectorAll("#keys, #phases")].flatMap((el) => [...el.innerText.matchAll(/(\d{1,3})%/g)].map((m) => +m[1]));
       return { decision: document.getElementById("decision").innerText, keys, nextBottom: dd.length ? b(dd[dd.length - 1]).bottom : 9999, vh, barFits: bar && bar.scrollWidth <= bar.clientWidth + 1 && b(bar).right <= innerWidth + 0.5 && b(bar).left >= 0, ticksFit: ticks.every((t) => t.left >= -0.5 && t.right <= innerWidth + 0.5), pcts }; });
-    report(/^(Plan for|Watch for|Expect|No weather concern)/.test(r.decision) && r.keys.length === 3 && r.keys[2] === "Next check" && r.nextBottom <= r.vh, "event phone: decision, window, timing and next check on the first screen", `"${r.decision}" · ${r.keys.join(" · ")} · ends at ${Math.round(r.nextBottom)} of ${r.vh} px`);
+    report(/^(Plan for|Watch for|Expect|No weather concern)/.test(r.decision) && r.keys[r.keys.length - 1] === "Next check" && r.keys.includes("Rain chance") && r.keys.includes("Lightning potential") && r.nextBottom <= r.vh, "event phone: decision, window, timing and next check on the first screen", `"${r.decision}" · ${r.keys.join(" · ")} · ends at ${Math.round(r.nextBottom)} of ${r.vh} px`);
     report(r.barFits && r.ticksFit, "event phone: phase strip fits the width", `bar ${r.barFits ? "fits" : "overflows"}, labels ${r.ticksFit ? "fit" : "overflow"}`);
     report(r.pcts.length > 0 && r.pcts.every((x) => x % 5 === 0), "event phone: precipitation chances in 5-point steps", r.pcts.join("%, ") + "%");
     await p.screenshot({ path: `${out}/check-event-first-screen.png` }); await ctx.close(); }
@@ -584,7 +585,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
           const b2 = await p.evaluate(() => ({ grid: +document.querySelector('#evGrid .hg-hb[aria-pressed="true"]').dataset.ms, bus: +document.body.dataset.selected, detail: document.getElementById("evGridDetail").innerText.split("\n")[0] }));
           sync = { a, b: b2, ok: a.grid === a.bus && a.bus === a.line && b2.grid === b2.bus && b2.grid !== a.grid };
         }
-        const ok = g && g.state !== "pending" && g.rows[0] === "phase" && g.rows[1] === "concern" && ["temp", "feel", "pop", "chance", "qpf", "wind", "gust"].every((k) => g.rows.includes(k))
+        const ok = g && g.state !== "pending" && g.rows[0] === "phase" && g.rows[1] === "concern" && ["lightning", "temp", "feel", "pop", "qpf", "wind", "gust"].every((k) => g.rows.includes(k)) && !g.rows.includes("chance")
           && /Setup/.test(g.phase[0]) && /Teardown/.test(g.phase[g.phase.length - 1]) && g.tiers.every((t) => ["hg-t-monitor", "hg-t-prepare", "hg-t-action"].includes(t)) && !g.unlabeled && !g.missingAsClear
           && sync && sync.ok && !g.hscroll && !errors.length;
         report(ok, `event hourly grid (${devName}, ${theme}): setup through teardown, concerns from the briefing engine with text, values per hour; selecting an hour moves the shared time, the timeline and the detail`,
@@ -612,6 +613,83 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
         if (ok) { const el = await p.$("#hourlyCard"); await el.screenshot({ path: `${out}/hourly-blend-${devName}-${theme}.png` }); }
         await ctx.close(); }
     }
+  });
+  /* ---------- 17. simple briefing: site rain chance agrees everywhere; lightning words; printout; schedule presets ---------- */
+  await section('17. event briefing: rain chance agreement, lightning wording, two-page printout, schedule presets', async () => {
+    const pctVal = (t) => (/^<5%$/.test(t) ? 2.5 : /^(\d+)%$/.test(t) ? +RegExp.$1 : null);
+    { const { ctx, p, errors } = await go(PHONE, base + "event-beta.html");
+      const ready = await until(p, () => document.querySelector("#evGrid .hg-t") && document.querySelector("#printView .pv-p2") && document.body.dataset.readiness && document.body.dataset.readiness !== "pending", null, 150000);
+      const r = ready ? await p.evaluate(() => {
+        const phaseCells = [...document.querySelectorAll('#evGrid tr[data-row="phase"] td .hg-v')].map((td) => td.innerText.trim());
+        const pops = [...document.querySelectorAll('#evGrid tr[data-row="pop"] td .hg-v')].map((td) => td.innerText.trim());
+        const cards = [...document.querySelectorAll(".bx-phase[data-phase]")].map((c) => ({ key: c.dataset.phase, label: c.querySelector(".nm").childNodes[0].textContent.trim(), peak: c.querySelector("[data-peak]").innerText.trim(), light: c.querySelector("[data-light]").innerText.trim() }));
+        const printPeaks = Object.fromEntries([...document.querySelectorAll("#printView tr[data-phase]")].map((tr) => [tr.dataset.phase, tr.querySelector("[data-peak]").innerText.trim().split(" ")[0]]));
+        const printPops = [...document.querySelectorAll("#printView td[data-pop]")].map((td) => td.innerText.trim());
+        const keys = document.getElementById("keys").innerText;
+        return { phaseCells, pops, cards, printPeaks, printPops, keys, ensembleInDetails: !!document.querySelector("#detail #ensDetail"), ensembleInGrid: !!document.querySelector('#evGrid tr[data-row="chance"]'),
+          chartTucked: !document.getElementById("chartMore").open, perPhaseTables: document.querySelectorAll(".bx-phd").length, jargon: /hourly rule|phase level/i.test(document.getElementById("briefView").innerText) }; }) : null;
+      /* each card's peak = the highest hourly rain chance among the grid hours that overlap that phase; the printout says the same */
+      const peaks = r ? r.cards.map((c) => { const vals = r.phaseCells.map((t, i) => (t.split(" → ").some((x) => x.startsWith(c.label)) ? r.pops[i] : null)).filter((x) => x && x !== "—");
+        const max = vals.reduce((a, v) => (a == null || pctVal(v) > pctVal(a) ? v : a), null); return { ...c, gridMax: max || "—", print: r.printPeaks[c.key] }; }) : [];
+      const agree = peaks.length && peaks.every((c) => c.peak === c.gridMax && c.print === c.peak);
+      const printAgree = r && r.printPops.length === Math.min(24, r.pops.length) && r.printPops.every((v, i) => v === r.pops[i]);
+      const lightOk = r && r.cards.every((c) => /^(Low|Moderate|High|Unavailable)( · limited guidance)?$/.test(c.light)) && /Lightning potential\s*(Low|Moderate|High|Unavailable|Not available yet)/.test(r.keys) && (!/Lightning potential\s*Low/.test(r.keys) || /Low is not zero/.test(r.keys));
+      report(ready && agree && printAgree && lightOk && r.ensembleInDetails && !r.ensembleInGrid && r.chartTucked && !r.perPhaseTables && !r.jargon && !errors.length,
+        "event briefing: each phase's peak hourly rain chance equals the highest hourly value in the grid for that phase, and the printout shows the same numbers; lightning in plain words (Low says it isn't zero); ensemble share only in Details; one hourly display; no internal jargon",
+        r ? `${peaks.map((c) => `${c.label}: card ${c.peak} / grid max ${c.gridMax} / print ${c.print} · lightning ${c.light}`).join(" | ")} · print hours match ${printAgree} · ensemble in Details ${r.ensembleInDetails}, in grid ${r.ensembleInGrid} · chart tucked ${r.chartTucked} · jargon ${r.jargon}${errors.length ? " · " + errors.join("; ") : ""}` : "briefing did not load");
+      if (ready) {
+        await p.screenshot({ path: `${out}/event-brief-phone-top.png` });
+        await p.evaluate(() => document.getElementById("secPhases").scrollIntoView()); await p.screenshot({ path: `${out}/event-brief-phone-phases.png` });
+        await p.evaluate(() => document.getElementById("secHourly").scrollIntoView()); await p.screenshot({ path: `${out}/event-brief-phone-hourly.png` });
+        /* the printout: a real PDF on US Letter, two pages for this single-day event, no controls or map */
+        await p.emulateMedia({ media: "print" });
+        const shown = await p.evaluate(() => ({ pv: getComputedStyle(document.getElementById("printView")).display, briefShown: document.getElementById("briefView").checkVisibility(), brief: document.getElementById("briefView").checkVisibility() ? "shown" : "hidden", iframes: [...document.querySelectorAll("#printView iframe, #printView button, #printView details, #printView input")].length,
+          text: document.getElementById("printView").innerText, fontPt: parseFloat(getComputedStyle(document.querySelector("#printView .pv-t")).fontSize) * 0.75 }));
+        const pdf = await p.pdf({ path: `${out}/event-briefing.pdf`, format: "Letter", preferCSSPageSize: true });
+        const pages = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length;
+        await p.emulateMedia({ media: "screen" });
+        const must = ["Issued", "times are the venue's local time", "Peak hourly rain chance", "Official NWS forecast", "Next check", "Hour by hour", "Open-Meteo", "National Weather Service"];
+        report(pages === 2 && shown.pv === "block" && !shown.briefShown && !shown.iframes && must.every((m) => shown.text.includes(m)) && shown.fontPt >= 9,
+          "printout: a two-page US Letter PDF for the single-day sample event, with issue time, time zone, phase summaries, NWS, next check, hourly table and attribution; no controls or map; table text 9 pt or larger",
+          `${pages} pages · print view ${shown.pv}, screen view ${shown.brief} · controls/iframes ${shown.iframes} · table ${shown.fontPt.toFixed(1)} pt · missing: ${must.filter((m) => !shown.text.includes(m)).join(", ") || "none"}`);
+      }
+      await ctx.close(); }
+    /* a three-day event prints a summary and says which hours the hourly table covers */
+    { const day = (n) => new Date(Date.now() + n * 864e5).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+      const ev3 = { id: "ev_check3day", name: "Three-day fair (check)", venueId: null, loc: { name: "Sawyer Point, Cincinnati, OH", lat: 39.0966, lon: -84.4996 }, tz: "America/New_York",
+        times: { setup: `${day(1)}T08:00`, start: `${day(1)}T10:00`, end: `${day(3)}T18:00`, teardown: `${day(3)}T20:00` }, gust: 25, overrides: [], source: { kind: "manual" } };
+      const { ctx, p, errors } = await go(PHONE, base + "event-beta.html?ev=ev_check3day", `if (!sessionStorage.getItem("seeded3")) { sessionStorage.setItem("seeded3", "1"); localStorage.setItem("beta_events_v2", ${JSON.stringify(JSON.stringify([ev3]))}); }`);
+      const ready = await until(p, () => document.querySelector("#printView .pv-p2"), null, 150000);
+      const m = ready ? await p.evaluate(() => ({ head: document.querySelector("#printView .pv-p2 h2").innerText, rows: document.querySelectorAll("#printView .pv-hours tbody tr").length, phases: document.querySelectorAll("#printView tr[data-phase]").length })) : null;
+      let pages = null; if (ready) { await p.emulateMedia({ media: "print" }); const pdf = await p.pdf({ path: `${out}/event-briefing-3day.pdf`, format: "Letter", preferCSSPageSize: true }); pages = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length; }
+      report(m && m.rows === 24 && /first 24 hours/.test(m.head) && /open the briefing for the rest/.test(m.head) && m.phases >= 3 && pages && !errors.length,
+        "long multi-day event: the printout keeps the full phase summary and states the hourly window it includes (first 24 hours) instead of silently cutting",
+        m ? `${m.phases} phases summarised · ${m.rows} hourly rows · "${m.head.replace(/\s+/g, " ").slice(0, 160)}" · ${pages} PDF pages` : "briefing did not load");
+      await ctx.close(); }
+    /* schedule presets: a Practice preset at a saved venue; one event uses it and changes its own teardown; the preset stays */
+    { const tqlV = { id: "vn_check", name: "TQL Stadium", city: "Cincinnati, OH", lat: 39.1111, lon: -84.5222, tz: "America/New_York", defaults: { setup: 270, gates: 90, teardown: 120, gust: 30 } };
+      const { ctx, p, errors } = await go(PHONE, base + "event-beta.html#upcoming", `if (!sessionStorage.getItem("seeded")) { sessionStorage.setItem("seeded", "1"); localStorage.setItem("beta_venues_v1", ${JSON.stringify(JSON.stringify([tqlV]))}); }`);
+      await until(p, () => document.querySelector('#upView:not([hidden]) .up-vn[data-id="vn_check"] [data-vedit]'), null, 30000);
+      await p.click('.up-vn[data-id="vn_check"] [data-vedit]'); await until(p, () => document.getElementById("vAddPreset"), null, 10000);
+      await p.click("#vAddPreset"); await p.fill(".vp-row .vp-name", "Practice"); await p.fill(".vp-row .vp-setup", "1"); await p.fill(".vp-row .vp-tear", "30");
+      await p.click("#vSave"); await until(p, () => !document.getElementById("editDlg").open, null, 30000);
+      const venue1 = await p.evaluate(() => JSON.parse(localStorage.getItem("beta_venues_v1"))[0]);
+      await p.click("#upAdd"); await until(p, () => document.getElementById("fPreset"), null, 10000);
+      await p.selectOption("#fVenueSel", "vn_check"); const pid = venue1.presets && venue1.presets[0] && venue1.presets[0].id;
+      await p.selectOption("#fPreset", pid); await p.fill("#fName", "Practice (check)"); await p.fill("#fStart", "17:00"); await p.fill("#fEnd", "19:00");
+      await p.evaluate(() => ["fStart", "fEnd"].forEach((id) => document.getElementById(id).dispatchEvent(new Event("change", { bubbles: true }))));
+      const filled = await p.evaluate(() => ({ setup: document.getElementById("fSetup").value, gates: document.getElementById("fGates").value, tear: document.getElementById("fTear").value, note: document.getElementById("fDefNote").innerText }));
+      await p.evaluate(() => { const el = document.getElementById("fTear"); el.value = "20:00"; el.dispatchEvent(new Event("input", { bubbles: true })); });
+      await p.click("#fSave"); await until(p, () => !document.getElementById("editDlg").open, null, 30000);
+      await p.reload({ waitUntil: "domcontentloaded" }); await until(p, () => document.querySelector("#upView .up-ev"), null, 30000);
+      const after = await p.evaluate(() => ({ ev: JSON.parse(localStorage.getItem("beta_events_v2")).find((e) => e.name === "Practice (check)"), venue: JSON.parse(localStorage.getItem("beta_venues_v1"))[0] }));
+      const e = after.ev || {};
+      report(pid && venue1.presets.length === 1 && venue1.presets[0].gates == null && filled.setup === "16:00" && filled.gates === "" && filled.tear === "19:30" && /Practice preset/.test(filled.note)
+        && e.preset === pid && JSON.stringify(e.overrides) === '["teardown"]' && e.times && e.times.teardown.endsWith("20:00") && !e.times.gates && JSON.stringify(after.venue.presets) === JSON.stringify(venue1.presets) && !errors.length,
+        "schedule presets: a Practice preset (setup 1 h, no gates, teardown 30 min) fills a new event; changing that event's teardown is its own override; the saved preset is unchanged after a refresh",
+        `preset ${venue1.presets ? JSON.stringify(venue1.presets.map((x) => [x.name, x.setup, x.gates, x.teardown])) : "none"} · filled setup ${filled.setup}, gates "${filled.gates}", teardown ${filled.tear} · saved preset ${e.preset === pid}, overrides ${JSON.stringify(e.overrides)}, teardown ${e.times && e.times.teardown} · preset unchanged ${JSON.stringify(after.venue.presets) === JSON.stringify(venue1.presets)}${errors.length ? " · " + errors.join("; ") : ""}`);
+      await p.screenshot({ path: `${out}/event-presets-phone.png` });
+      await ctx.close(); }
   });
   await section('7. analytics blocked or opted out: the betas work; nothing i', async () => {
   for (const [mode, init] of [["blocked", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec")'], ["opted out", 'localStorage.setItem("fo_analytics_endpoint_test","https://collector.invalid/exec");localStorage.setItem("fo_analytics_optout","1")']]) {
