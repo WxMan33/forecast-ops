@@ -27,4 +27,7 @@ test('corrupted history is ignored',()=>{const a=make();a.hours=[null];A.equal(c
 test('bounded storage retains only 25 events',()=>{let value='{}';const storage={getItem:()=>value,setItem:(k,v)=>{A.equal(k,KEY);value=v}};for(let i=0;i<30;i++)visit(storage,'ev_'+i,make(i+1));A.equal(Object.keys(JSON.parse(value)).length,25)});
 test('storage failures do not break the briefing',()=>{const r=visit({getItem:()=>'{bad',setItem:()=>{throw Error('full')}},'ev_1',make());A.equal(r.stored,false)});
 test('unavailable guidance does not replace a valid baseline',()=>{let value=JSON.stringify({ev_1:make()});const s={getItem:()=>value,setItem:(k,v)=>value=v},b=make(2);b.hours.forEach(h=>h.ok=false);visit(s,'ev_1',b);A.equal(JSON.parse(value).ev_1.at,1)});
+test('changing blend weights cannot look like changed weather',()=>{const a=make(),b=make(2);a.recipe='heavy Euro';b.recipe='heavy GFS';b.hours[0].gust=40;A.equal(compare(a,b).state,'recipe-changed');A.equal(compare(a,b).items.length,0)});
+test('missing hourly model contributors cannot create a gust crossing',()=>{const a=make(),b=make(2);a.hours.forEach(h=>h.gustSources='gfs,ifs');b.hours.forEach(h=>h.gustSources='gfs');b.hours[0].gust=40;A.equal(compare(a,b).items.length,0)});
+test('changing hourly rain contributors cannot create rain entering gates',()=>{const a=make(),b=make(2);a.hours.forEach(h=>h.rainSources='gfs,ifs');b.hours.forEach(h=>h.rainSources='gfs');b.hours[0].rain=true;A.equal(compare(a,b).items.length,0)});
 console.log(n+' briefing history checks passed');

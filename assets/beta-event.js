@@ -225,9 +225,9 @@
     let delta; try { delta = history.visit(localStorage, event.id, current); } catch { delta = { state: "first", stored: false, items: [] }; }
     lastView.update = delta;
     if (delta.state === "first" && delta.stored) return;
-    const note = delta.state === "sources-changed" ? "Model source coverage changed. Weather trends are not compared across different source sets."
+    const note = delta.state === "recipe-changed" ? "Your blend recipe changed. Weather trends start fresh with these weights." : delta.state === "sources-changed" ? "Model source coverage changed. Weather trends are not compared across different source sets."
       : delta.state === "event-changed" ? "Your venue, schedule or gust limit changed. This briefing starts a new comparison."
-      : delta.state === "no-overlap" ? "More event hours are in range. There is not enough matching guidance to compare yet."
+      : delta.state === "no-overlap" ? "There is not enough matching future guidance to compare yet."
       : !delta.stored ? "This browser could not save the briefing. Changes cannot be remembered reliably."
       : delta.items.length ? "" : "No meaningful change in the matching event hours since your last briefing.";
     host.className = delta.items.length ? "brief-update has-changes" : "brief-update quiet";

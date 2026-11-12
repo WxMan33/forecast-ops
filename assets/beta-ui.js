@@ -72,6 +72,7 @@
     B.viewedAt = Date.now();
     const ws = {}; Object.keys(RB.ws).forEach((id) => { if (B.models[id] && RB.ws[id] > 0) ws[id] = RB.ws[id]; });
     const ctx = S.context({ C, T: root.ModelTrends, B, ws, rules: RB.rules, TH, thWs: O.savedWeights(CFG.thunder), meta: META, nws: NW, now: Date.now() });
+    ctx.thRecipe = O.savedWeights(CFG.thunder);
     const requested = Object.keys(RB.ws).filter((id) => RB.ws[id] > 0);
     const why = (id) => id === "nws" ? (NW && NW.reason) || "unavailable" : B.status && B.status[id] === "empty" ? "no coverage here" : B.status && B.status[id] === "failed" ? "request failed" : "no data returned";
     const feeds = { used: requested.filter((id) => ws[id]).map((id) => FEED_NAMES[id] || id), missing: requested.filter((id) => !ws[id]).map((id) => ({ id, name: FEED_NAMES[id] || id, why: why(id) })) };
