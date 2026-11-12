@@ -89,11 +89,14 @@
   }
 
   async function alerts(where) {
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 8000);
     try {
-      const r = await fetch(`https://api.weather.gov/alerts/active?point=${(+where.lat).toFixed(4)},${(+where.lon).toFixed(4)}`, { headers: { Accept: "application/geo+json" } });
-      if (!r.ok) return [];
-      const j = await r.json(); return (j.features || []).map((f) => ({ event: f.properties.event, headline: f.properties.headline, ends: f.properties.ends || f.properties.expires, url: f.properties["@id"] }));
-    } catch (e) { return []; }
+      const r = await fetch(`https://api.weather.gov/alerts/active?point=${(+where.lat).toFixed(4)},${(+where.lon).toFixed(4)}`, { headers: { Accept: "application/geo+json" }, signal: ctl.signal });
+      if (!r.ok) throw new Error("Alerts unavailable");
+      const j = await r.json(), items = (j.features || []).map((f) => ({ event: f.properties.event, headline: f.properties.headline, ends: f.properties.ends || f.properties.expires, url: f.properties["@id"] || f.id }));
+      items.available = true; return items;
+    } catch (e) { const items = []; items.available = false; return items; }
+    finally { clearTimeout(timer); }
   }
 
   /* ---------- timeline chart (SVG), driven by and driving the selected time ---------- */

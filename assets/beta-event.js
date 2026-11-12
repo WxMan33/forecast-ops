@@ -60,8 +60,10 @@
     const where = { lat: ev.loc.lat, lon: ev.loc.lon }, mk = S.market(ev.loc.lat, ev.loc.lon);
     picker.setCurrent({ name: ev.loc.name }); document.body.dataset.place = ev.loc.name; document.body.dataset.loaded = ""; document.body.dataset.office = ""; document.body.dataset.tz = ev.tz; document.body.dataset.market = mk.tuned ? "tuned" : "default";
     context();
+    $("briefUpdate").hidden = true; $("opsHandoff").hidden = true;
     $("decision").textContent = "Reading the guidance…"; $("coverage").hidden = true; document.body.dataset.readiness = ""; ["sourceCoverage", "keys", "schedule", "phases", "changes", "checks", "timeline", "detail"].forEach((id) => { $(id).innerHTML = ""; });
-    U.alerts(where).then((a) => { if (g !== gen) return; $("alerts").innerHTML = a.slice(0, 2).map((x) => `<div class="bx-alert" role="alert">${st("action", x.event + " in effect")}${x.ends ? `<span class="bx-note">until ${esc(fmt.time(Date.parse(x.ends), ev.tz))}</span>` : ""}<a href="https://forecast.weather.gov/MapClick.php?lat=${ev.loc.lat}&lon=${ev.loc.lon}" target="_blank" rel="noopener">NWS ↗</a></div>`).join(""); });
+    const alertsPromise = U.alerts(where);
+    alertsPromise.then((a) => { if (g !== gen) return; $("alerts").innerHTML = a.slice(0, 2).map((x) => `<div class="bx-alert" role="alert">${st("action", x.event + " in effect")}${x.ends ? `<span class="bx-note">until ${esc(fmt.time(Date.parse(x.ends), ev.tz))}</span>` : ""}<a href="https://forecast.weather.gov/MapClick.php?lat=${ev.loc.lat}&lon=${ev.loc.lon}" target="_blank" rel="noopener">NWS ↗</a></div>`).join(""); });
     const endMs = Math.max(...C.event.windows(ev).map((w) => w.endMs)), days = isSample() ? 5 : Math.min(7, Math.max(3, Math.ceil((endMs - Date.now()) / 864e5) + 1));
     const res = await U.load(where, { days });
     if (g !== gen) return;
@@ -75,6 +77,8 @@
     if (!res.NW || !res.NW.ok) U.track("load_failed", { what: "nws" });
     if (tzFromData) { ev = sampleAt({ ...tzFromData, tz: res.ctx.B.tz }); context(); document.body.dataset.tz = ev.tz; }
     if (tzFromPick) { tzFromPick = false; ev = { ...ev, tz: res.ctx.B.tz }; if (isStored()) ev = E.saveEvent(ev); context(); document.body.dataset.tz = ev.tz; }
+    res.alerts = await alertsPromise; res.alertsAvailable = res.alerts.available !== false;
+    if (g !== gen) return;
     lastRes = res; render(res);
     document.body.dataset.loaded = ev.loc.name; document.body.dataset.office = res.NW && res.NW.ok ? res.NW.office : "";
   }
@@ -149,6 +153,8 @@
     }
     $("coverage").querySelectorAll("[data-remind]").forEach((a) => a.addEventListener("click", () => U.track("reminder_exported", { via: a.dataset.remind })));
     $("sourceCoverage").innerHTML = BUI.sourceHtml(res);
+    briefingUpdate(ev, b, V, res);
+    monitoringHandoff(ev, b, now);
     $("schedule").innerHTML = schedule(b, now);
     if (R.state === "pending") { detail(b, ctx, thr); return; } // nothing at event time yet: schedule and sources only
     /* ---- phases: from the same hours as the grid ---- */
@@ -210,6 +216,33 @@
     chartController = window.EventHourlyCharts.render($("evCharts"), { view: V, selected: sel0, tz: ev.tz, gustLimit: ev.gust || 25, onSelect: ms => { if (bus) bus.set(ms, "variable-charts"); showHour(ms); } });
     showHour(sel0);
     if (bus) bus.on((ms) => { const hm = Math.floor(ms / H) * H; if (V.span.includes(hm)) { grid.setSelected(hm); chartController.setSelected(hm); showHour(hm); } });
+  }
+  function briefingUpdate(event, b, V, res) {
+    const host = $("briefUpdate"); host.hidden = true;
+    if (!isStored() || isSample()) return;
+    const history = window.EventBriefingHistory;
+    const current = history.snapshot(event, b, V, res);
+    let delta; try { delta = history.visit(localStorage, event.id, current); } catch { delta = { state: "first", stored: false, items: [] }; }
+    lastView.update = delta;
+    if (delta.state === "first" && delta.stored) return;
+    const note = delta.state === "sources-changed" ? "Model source coverage changed. Weather trends are not compared across different source sets."
+      : delta.state === "event-changed" ? "Your venue, schedule or gust limit changed. This briefing starts a new comparison."
+      : delta.state === "no-overlap" ? "More event hours are in range. There is not enough matching guidance to compare yet."
+      : !delta.stored ? "This browser could not save the briefing. Changes cannot be remembered reliably."
+      : delta.items.length ? "" : "No meaningful change in the matching event hours since your last briefing.";
+    host.className = delta.items.length ? "brief-update has-changes" : "brief-update quiet";
+    host.hidden = false;
+    host.innerHTML = `${delta.items.length ? '<h2>Since your last briefing</h2><ul>'+delta.items.map(x=>`<li>${esc(x.text)}</li>`).join("")+'</ul>' : ''}${note ? `<p>${esc(note)}</p>` : ''}${delta.previousAt ? `<small>Compared with ${esc(BUI.date(delta.previousAt,event.tz))}, ${esc(fmt.clock(delta.previousAt,event.tz))} ${esc(fmt.zone(delta.previousAt,event.tz))}. Saved only in this browser.</small>` : ''}`;
+  }
+  function monitoringHandoff(event, b, now) {
+    const K = window.EventOpsHandoff, host = $("opsHandoff"), data = K.payload(event,b,now), day = K.eventDay(event,b,now);
+    let address = null; try { address = K.baseAddress(localStorage.getItem(K.KEY) || ""); } catch {}
+    host.hidden = false; host.className = `ops-handoff${day ? " is-event-day" : ""}`;
+    const url = address ? K.link(address,data) : null;
+    host.innerHTML = `<h2>${day ? "Event day: switch to live monitoring" : "Ready for event day"}</h2><p>Use OPE for live radar and lightning monitoring. The forecast below is for planning; your venue’s lightning policy governs stop and resume decisions.</p><div class="ops-actions">${url ? `<a class="bx-btn" href="${esc(url)}" target="_blank" rel="noopener noreferrer">Open venue in OPE ↗</a>` : ''}<button type="button" class="bx-btn" data-copy-venue>Copy venue &amp; coordinates</button></div><details class="bx-more" ${!address ? '' : ''}><summary>${address ? "OPE connection" : "Connect your OPE address"}</summary><p class="bx-note">OPE must be running with the Forecast Ops handoff update. This opens a venue review, not an automatic change to the monitored site.</p><label class="bx-note">OPE address <input type="url" data-ops-address placeholder="http://localhost:3000" value="${esc(address||'')}" /></label><button type="button" class="bx-btn" data-save-ops>Save address</button><p class="bx-note" data-ops-note aria-live="polite"></p></details><textarea data-copy-fallback hidden readonly aria-label="Venue details to copy"></textarea>`;
+    if (!day) { const sec = $("secChecks"); sec.append(host); } else { $("briefUpdate").after(host); }
+    host.querySelector("[data-save-ops]").onclick = () => { const v = K.baseAddress(host.querySelector("[data-ops-address]").value); const note = host.querySelector("[data-ops-note]"); if (!v) { note.textContent = "Use an HTTPS address, or HTTP localhost for your local OPE. Do not include a token, query string or password."; return; } try { localStorage.setItem(K.KEY,v); monitoringHandoff(event,b,now); } catch { note.textContent = "This browser could not save the address."; } };
+    host.querySelector("[data-copy-venue]").onclick = async () => { const text = K.venueText(data), button = host.querySelector("[data-copy-venue]"); try { await navigator.clipboard.writeText(text); button.textContent = "Venue copied"; } catch { const box = host.querySelector("[data-copy-fallback]"); box.hidden = false; box.value = text; box.select(); } };
   }
   function remindHtml(atMs, label) {
     const r = S.reminder(ev, atMs, link()), ics = "data:text/calendar;charset=utf-8," + encodeURIComponent(r.ics);

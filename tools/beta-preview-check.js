@@ -569,11 +569,11 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       { const { ctx, p, errors } = await go(dev, base + "event-beta.html", themed(theme));
         const ready = await until(p, () => document.querySelector("#evGrid .hg-t") && document.body.dataset.readiness, null, 150000);
         const g = ready ? await p.evaluate(() => {
-          const cols = [...document.querySelectorAll("#evGrid .hg-hb")].map((b) => b.innerText.replace(/\s+/g, " ").trim());
+          const cols = [...document.querySelectorAll("#evGrid .hg-hb")].map((b) => b.textContent.replace(/\s+/g, " ").trim());
           const rows = [...document.querySelectorAll("#evGrid tr.hg-row")].map((tr) => tr.dataset.row);
-          const phase = [...document.querySelectorAll('#evGrid tr[data-row="phase"] td')].map((td) => td.innerText.trim());
+          const phase = [...document.querySelectorAll('#evGrid tr[data-row="phase"] td')].map((td) => td.textContent.trim());
           const tiers = [...document.querySelectorAll("#evGrid td.hg-s-concern")].map((td) => [...td.classList].find((c) => c.startsWith("hg-t-")));
-          const unlabeled = [...document.querySelectorAll("#evGrid td.hg-s-concern")].filter((td) => !td.innerText.trim()).length;
+          const unlabeled = [...document.querySelectorAll("#evGrid td.hg-s-concern")].filter((td) => !td.textContent.trim()).length;
           const missingAsClear = [...document.querySelectorAll('#evGrid tr[data-row="temp"] td')].map((td, i) => td.classList.contains("hg-s-missing") && document.querySelectorAll('#evGrid tr[data-row="concern"] td')[i].classList.contains("hg-s-clear")).filter(Boolean).length;
           return { cols, rows, phase, tiers, unlabeled, missingAsClear, state: document.body.dataset.readiness, hscroll: document.documentElement.scrollWidth > innerWidth + 1 }; }) : null;
         /* grid → shared time → timeline, then timeline-side change → grid */
@@ -620,11 +620,11 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     { const { ctx, p, errors } = await go(PHONE, base + "event-beta.html");
       const ready = await until(p, () => document.querySelector("#evGrid .hg-t") && document.querySelector("#printView .pv-p2") && document.body.dataset.readiness && document.body.dataset.readiness !== "pending", null, 150000);
       const r = ready ? await p.evaluate(() => {
-        const phaseCells = [...document.querySelectorAll('#evGrid tr[data-row="phase"] td .hg-v')].map((td) => td.innerText.trim());
-        const pops = [...document.querySelectorAll('#evGrid tr[data-row="pop"] td .hg-v')].map((td) => td.innerText.trim());
-        const cards = [...document.querySelectorAll(".bx-phase[data-phase]")].map((c) => ({ key: c.dataset.phase, label: c.querySelector(".nm").childNodes[0].textContent.trim(), peak: c.querySelector("[data-peak]").innerText.trim(), light: c.querySelector("[data-light]").innerText.trim() }));
-        const printPeaks = Object.fromEntries([...document.querySelectorAll("#printView tr[data-phase]")].map((tr) => [tr.dataset.phase, tr.querySelector("[data-peak]").innerText.trim().split(" ")[0]]));
-        const printPops = [...document.querySelectorAll("#printView td[data-pop]")].map((td) => td.innerText.trim());
+        const phaseCells = [...document.querySelectorAll('#evGrid tr[data-row="phase"] td .hg-v')].map((td) => td.textContent.trim());
+        const pops = [...document.querySelectorAll('#evGrid tr[data-row="pop"] td .hg-v')].map((td) => td.textContent.trim());
+        const cards = [...document.querySelectorAll(".bx-phase[data-phase]")].map((c) => ({ key: c.dataset.phase, label: c.querySelector(".nm").childNodes[0].textContent.trim(), peak: c.querySelector("[data-peak]").textContent.trim(), light: c.querySelector("[data-light]").textContent.trim() }));
+        const printPeaks = Object.fromEntries([...document.querySelectorAll("#printView tr[data-phase]")].map((tr) => [tr.dataset.phase, tr.querySelector("[data-peak]").textContent.trim().split(" ")[0]]));
+        const printPops = [...document.querySelectorAll("#printView td[data-pop]")].map((td) => td.textContent.trim());
         const keys = document.getElementById("keys").innerText;
         return { phaseCells, pops, cards, printPeaks, printPops, keys, ensembleInDetails: !!document.querySelector("#detail #ensDetail"), ensembleInGrid: !!document.querySelector('#evGrid tr[data-row="chance"]'),
           chartTucked: !document.getElementById("chartMore").open, perPhaseTables: document.querySelectorAll(".bx-phd").length, jargon: /hourly rule|phase level/i.test(document.getElementById("briefView").innerText) }; }) : null;
