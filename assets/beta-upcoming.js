@@ -266,7 +266,7 @@
     };
     /* guidance: one load per venue for events within reach (8 days); everything else is already known */
     const need = rows.filter((r) => r.status.key === "waiting" && r.w && r.startMs - now < 8 * 864e5);
-    const byVenue = new Map(); need.forEach((r) => { r.pending = true; r.status = { ...r.status, label: "Checking", text: "Checking the guidance for this venue…" }; const k = `${r.ev.loc.lat.toFixed(3)},${r.ev.loc.lon.toFixed(3)}`; if (!byVenue.has(k)) byVenue.set(k, []); byVenue.get(k).push(r); });
+    const byVenue = new Map(); need.forEach((r) => { r.pending = true; r.status = { ...r.status, label: "Checking", text: "Loading the venue forecast…" }; const k = `${r.ev.loc.lat.toFixed(3)},${r.ev.loc.lon.toFixed(3)}`; if (!byVenue.has(k)) byVenue.set(k, []); byVenue.get(k).push(r); });
     draw();
     (async () => {
       for (const group of byVenue.values()) {

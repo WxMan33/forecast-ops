@@ -1,0 +1,32 @@
+name: Event briefing visual check
+on:
+  push:
+    branches: [polish-event-briefing]
+    paths-ignore: ["docs/beta/screens/**"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  visuals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 20}
+      - run: npm install --no-save playwright@1.48.2 && npx playwright install chromium
+      - run: node tests/event-briefing-ui.test.js && node tests/hourly-model.test.js && node tools/event-briefing-polish-check.js
+      - name: Shared hourly grid regressions
+        run: |
+          python3 -m http.server 8765 >/dev/null 2>&1 &
+          mkdir -p /tmp/hourly
+          node tools/hourly-grid-check.js http://localhost:8765/ /tmp/hourly
+      - name: Save visual proofs
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/beta/screens/event-polish-*
+          git diff --cached --quiet && exit 0
+          git commit -m "Event briefing visual proofs [skip ci]"
+          git push

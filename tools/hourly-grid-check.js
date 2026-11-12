@@ -73,8 +73,8 @@ const report = (ok, name, detail) => { if (!ok) failed++; console.log(`${ok ? "P
     { const { ctx, p, errors } = await open(dev, `case=multiday&theme=${theme}`), g = await read(p);
       const beyond = g.rows.concern.filter((c) => c.state === "missing"), wrong = g.rows.concern.filter((c, i) => c.state === "clear" && g.rows.temp[i].state === "missing");
       const partial = g.rows.concern.filter((c) => c.state === "partial");
-      report(g.days.length === 3 && g.hours.length === 60 && beyond.length > 0 && beyond.every((c) => c.text === "n/a") && !wrong.length && partial.length > 0 && partial.every((c) => c.text === "None*") && g.rows.temp.filter((c) => c.state === "missing").every((c) => c.text === "—") && !errors.length,
-        `multi-day event (${devName}, ${theme}): 60 hours over three dates; hours beyond the guidance read n/a (never "no concern"); hours without thunder guidance read None*`,
+      report(g.days.length === 3 && g.hours.length === 60 && beyond.length > 0 && beyond.every((c) => c.text === "n/a") && !wrong.length && partial.length > 0 && partial.every((c) => c.text === "Limited") && g.rows.temp.filter((c) => c.state === "missing").every((c) => c.text === "—") && !errors.length,
+        `multi-day event (${devName}, ${theme}): 60 hours over three dates; hours beyond the guidance read n/a (never "no concern"); hours without thunder guidance read Limited`,
         `${g.days.join(" | ")} · ${beyond.length} beyond · ${partial.length} partial · ${wrong.length} missing hours shown as clear${errors.length ? " · " + errors.join("; ") : ""}`);
       if (shots.includes("multiday")) await p.screenshot({ path: `${out}/hourly-event-multiday-${devName}-${theme}.png` });
       await ctx.close(); }
@@ -91,7 +91,7 @@ const report = (ok, name, detail) => { if (!ok) failed++; console.log(`${ok ? "P
       const i8 = g.hours.indexOf("8 PM"), i9 = g.hours.indexOf("9 PM");
       const valueRows = ["temp", "feel", "pop", "qpf", "wind", "gust"];
       report(valueRows.every((k) => g.rows[k][i8].state === "missing" && g.rows[k][i8].text === "—") && g.rows.concern[i8].text === "n/a" && g.rows.pop[i9].state === "missing" && g.rows.temp[i9].state === "ok"
-        && g.rows.concern[i9].text === "None*" && g.rows.lightning[i9].text === "Unavail." && g.rows.lightning[i9].state === "missing" && g.rows.lightning[i8].text === "n/a" && !errors.length,
+        && g.rows.concern[i9].text === "Limited" && g.rows.lightning[i9].text === "Unavail." && g.rows.lightning[i9].state === "missing" && g.rows.lightning[i8].text === "n/a" && !errors.length,
         `missing data (${devName}, ${theme}): a source gap reads — and n/a (never 0 or "no concern"); one missing field stays missing while the rest show; missing lightning guidance reads Unavailable, never Low`,
         `8 PM ${valueRows.map((k) => g.rows[k][i8].text).join(" ")} / concern ${g.rows.concern[i8].text} · 9 PM PoP ${g.rows.pop[i9].text}, temp ${g.rows.temp[i9].text}, concern ${g.rows.concern[i9].text}${errors.length ? " · " + errors.join("; ") : ""}`);
       await ctx.close(); }
