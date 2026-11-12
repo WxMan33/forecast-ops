@@ -391,3 +391,21 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
   .pv-dense .pv-section { margin-top: 9px !important; }
   .pv-dense .pv-reading p { font-size: 8.5pt; }
 }
+/* Keep the decision sheet together with three forecast periods and three check-ins. */
+@media print {
+  .pv-head { gap: 12px; padding-bottom: 8px; }
+  .pv-iss { max-width: 170px; }
+  .pv-dates { margin: 8px 0; padding: 6px 0; }
+  .pv-dates > div { grid-template-columns: 120px 1fr; }
+  .pv-takeaway { margin: 10px 0; }
+  .pv-keys { gap: 4px 12px; margin: 8px 0; font-size: 10pt; }
+  .pv .brief-source { margin: 8px 0; padding: 6px 9px; }
+  .pv-section { margin: 10px 0 5px !important; }
+  .pv-phases { font-size: 10pt; }
+  .pv-phases th, .pv-phases td { padding: 5px 6px; }
+  .pv-phases small { font-size: 8pt; }
+  .pv-p1 .pv-note { font-size: 8pt; line-height: 1.25; }
+  .pv-nws, .pv-checks { font-size: 9.5pt; }
+  .pv-nws li, .pv-checks li { margin: 3px 0; }
+  .pv-policy { font-size: 8.5pt; margin-top: 8px; }
+}

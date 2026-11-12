@@ -30,6 +30,13 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
   check(!text.includes('†')&&text.includes('1 / 2')&&text.includes('2 / 2'),'print has page numbers and no undefined daggers');
   check(await p.locator('.pv-p1').innerText().then(t=>t.includes('1 of 3')&&t.includes('HRRR')),'print page one names missing sources');
  }
+ if(!phone&&theme==='light'){
+ await p.emulateMedia({media:'screen'});await p.goto(base+'/event-beta.html?long=1');await p.waitForFunction(()=>document.body.dataset.loaded);
+ await p.emulateMedia({media:'print'});await p.evaluate(()=>window.dispatchEvent(new Event('beforeprint')));
+ const pdf=await p.pdf({path:path.join(out,'event-polish-long-briefing.pdf'),preferCSSPageSize:true,printBackground:true});
+ const pages=(pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length;check(pages===2,'three-day event prints two pages (got '+pages+')');
+ check((await p.locator('#printView').innerText()).includes('First 24 hours only'),'long event clearly labels the hourly excerpt');
+ }
  await ctx.close();
 }
 })().catch(e=>{failed++;console.error(e)}).finally(async()=>{if(browser)await browser.close();server.close();process.exitCode=failed?1:0});
