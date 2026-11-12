@@ -418,3 +418,9 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
   .pv-dense .pv-hours td:first-child { width: 32%; }
   .pv-dense .pv-hours td:first-child small { display: inline; margin-left: 5px; }
 }
+
+@media print {
+  :root { color-scheme: light !important; }
+  .pv-phases small { font-size: 9pt; line-height: 1.15; }
+  .pv-dense .pv-hours small { font-size: 9pt; line-height: 1.1; }
+}
