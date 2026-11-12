@@ -94,7 +94,7 @@
     try {
       const r = await fetch(`https://api.weather.gov/alerts/active?point=${(+where.lat).toFixed(4)},${(+where.lon).toFixed(4)}`, { headers: { Accept: "application/geo+json" }, signal: ctl.signal });
       if (!r.ok) throw new Error("Alerts unavailable");
-      const j = await r.json(), items = (j.features || []).map((f) => ({ event: f.properties.event, headline: f.properties.headline, ends: f.properties.ends || f.properties.expires, url: f.properties["@id"] || f.id }));
+      const j = await r.json(); if (!Array.isArray(j.features)) throw new Error("Invalid alert response"); const items = (j.features || []).map((f) => ({ event: f.properties.event, headline: f.properties.headline, starts: f.properties.onset || f.properties.effective || f.properties.sent, ends: f.properties.ends || f.properties.expires, url: f.properties["@id"] || f.id }));
       items.available = true; return items;
     } catch (e) { const items = []; items.available = false; return items; }
     finally { clearTimeout(timer); }

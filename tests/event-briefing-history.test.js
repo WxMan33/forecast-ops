@@ -1,5 +1,5 @@
 'use strict';
-const A=require('node:assert/strict'),{compare,visit,KEY}=require('../assets/event-briefing-history.js');let n=0;
+const A=require('node:assert/strict'),{compare,visit,snapshot,KEY}=require('../assets/event-briefing-history.js');let n=0;
 const test=(name,f)=>{f();n++;console.log('PASS '+name)},H=3600e3;
 const make=(at=1)=>({version:1,identity:'same-event',at,gust:25,feeds:['GFS','IFS'],alertsAvailable:true,alerts:[],phases:[{key:'gates',label:'Gates',start:10*H,end:12*H}],hours:[10,11,12].map(i=>({ms:i*H,ok:true,pop:5,gust:15,lightning:0,rain:false}))});
 test('first visit establishes baseline',()=>A.equal(compare(null,make()).state,'first'));
@@ -30,4 +30,5 @@ test('unavailable guidance does not replace a valid baseline',()=>{let value=JSO
 test('changing blend weights cannot look like changed weather',()=>{const a=make(),b=make(2);a.recipe='heavy Euro';b.recipe='heavy GFS';b.hours[0].gust=40;A.equal(compare(a,b).state,'recipe-changed');A.equal(compare(a,b).items.length,0)});
 test('missing hourly model contributors cannot create a gust crossing',()=>{const a=make(),b=make(2);a.hours.forEach(h=>h.gustSources='gfs,ifs');b.hours.forEach(h=>h.gustSources='gfs');b.hours[0].gust=40;A.equal(compare(a,b).items.length,0)});
 test('changing hourly rain contributors cannot create rain entering gates',()=>{const a=make(),b=make(2);a.hours.forEach(h=>h.rainSources='gfs,ifs');b.hours.forEach(h=>h.rainSources='gfs');b.hours[0].rain=true;A.equal(compare(a,b).items.length,0)});
+test('an alert ending before the event cannot become an event-change notification',()=>{const ev={loc:{lat:39,lon:-84},tz:'America/New_York'},b={all:{startMs:10*H,endMs:20*H},phases:[]},V={rows:[],hrs:[]},res={ctx:{now:H,B:{models:{}},ws:{}},feeds:{used:[]},alertsAvailable:true,alerts:[{event:'Warning now',url:'early',ends:new Date(2*H).toISOString()},{event:'Warning affecting the event',url:'event',starts:new Date(11*H).toISOString(),ends:new Date(18*H).toISOString()}]};A.deepEqual(snapshot(ev,b,V,res).alerts.map(a=>a.id),['event'])});
 console.log(n+' briefing history checks passed');
