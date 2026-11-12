@@ -46,6 +46,8 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  const pages=(pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length;check(pages===2,'three-day event prints two pages (got '+pages+')');
  check((await p.locator('#printView').innerText()).includes('First 24 hours only'),'long event clearly labels the hourly excerpt');
  }
+ check(await p.locator('#loadGuard').count()===0,label+' no loading error banner after interaction and printing');
+ check(errors.length===0,label+' no late script errors '+errors.join('; '));
  await ctx.close();
 }
 })().catch(e=>{failed++;console.error(e)}).finally(async()=>{if(browser)await browser.close();server.close();process.exitCode=failed?1:0});
