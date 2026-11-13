@@ -25,6 +25,31 @@
     const normal = num(toks[3]), dep = num(toks[4]);
     return normal ? { normal: normal.value, departure: dep && !dep.trace ? dep.value : null } : null;
   }
+  /* A CLI lists record highs, record lows and daily precip/snow maxima, not every kind of record. */
+  function recordColumn(text, section, label) {
+    const body = new RegExp(section + '\\s*\\n([\\s\\S]*?)(?=\\n[A-Z]|$)').exec(text);
+    const line = body && new RegExp('^\\s*' + label + '\\s+(\\S+)\\s+(?:(?:\\d{1,2}:\\d{2})\\s+[AP]M\\s+)?(\\S+)\\s+(\\d{4})(?=\\s|$)', 'm').exec(body[1]);
+    if (!line) return null;
+    const observed = num(line[1]), record = num(line[2]);
+    return observed && record ? { observed, record, year: +line[3], flagged: /R$/.test(line[1]) } : null;
+  }
+  function recordStatus(report) {
+    if (!report || !report.records) return { text: 'Record comparison unavailable.', checked: 0, events: [] };
+    const names = { maxt: 'Daily high', mint: 'Daily low', pcpn: 'Daily precipitation', snow: 'Daily snowfall' };
+    const events = []; let checked = 0;
+    for (const [key, r] of Object.entries(report.records)) {
+      if (!r) continue;
+      checked++;
+      // A dry day tying a zero/trace maximum is not a meaningful precipitation record.
+      if (['pcpn', 'snow'].includes(key) && (r.observed.trace || r.observed.value === 0)) continue;
+      const diff = r.observed.value - r.record.value;
+      const broken = key === 'mint' ? diff < 0 : diff > 0;
+      const tied = diff === 0 && r.observed.trace === r.record.trace;
+      if (broken || tied || r.flagged) events.push(`${names[key]} record ${broken ? 'broken' : tied ? 'tied' : 'reported by NWS'}${report.kind === 'interim' ? ' so far' : ''}${!r.flagged ? ` (previous record ${r.record.value}${key === 'maxt' || key === 'mint' ? '°F' : ' inches'} in ${r.year})` : ''}.`);
+    }
+    const prefix = report.kind === 'interim' ? 'Interim: ' : '';
+    return { checked, events, text: prefix + (events.length ? events.join(' ') + (checked < 4 ? ' Other record comparisons unavailable.' : '') : checked === 4 ? 'No daily high, low, precipitation or snowfall record tied or broken in this report.' : 'Record comparison incomplete; no record conclusion for missing items.') };
+  }
   function parse(product, station) {
     const base = R.parseCLI(product, station); if (!base) return null;
     const text = String(product.productText || '').replace(/\r/g, '');
@@ -33,6 +58,7 @@
     const day = /\n\s*(TODAY|YESTERDAY)\s*\n/.exec(text);
     const T = 'TEMPERATURE \\(F\\)', P = 'PRECIPITATION \\(IN\\)', S = 'SNOWFALL \\(IN\\)', d = '(?:TODAY|YESTERDAY)';
     return { ...base, kind: base.complete ? 'final' : 'interim', corrected, issuedMs: Date.parse(base.issuedAt) || null, dayWord: day ? day[1] : null,
+      records: { maxt: recordColumn(text, T, 'MAXIMUM'), mint: recordColumn(text, T, 'MINIMUM'), pcpn: recordColumn(text, P, d), snow: recordColumn(text, S, d) },
       normals: { maxt: columns(text, T, 'MAXIMUM'), mint: columns(text, T, 'MINIMUM'), pcpn: columns(text, P, d), snow: columns(text, S, d) } };
   }
   /* the report to use for one date: a completed day over an interim one, then the latest issuance */
@@ -76,6 +102,6 @@
     if (check.error) return `Couldn't refresh NWS climate reports at ${fmtTime(check.at)} (${check.error}).${check.lastGoodAt ? ` Showing the reports retrieved at ${fmtTime(check.lastGoodAt)}.` : ' No earlier reports are saved in this browser.'}`;
     return `NWS climate reports checked at ${fmtTime(check.at)}.`;
   }
-  const api = { parse, choose, summary, view, forTotals, checkLine, addDays };
+  const api = { parse, choose, summary, view, forTotals, checkLine, addDays, recordStatus };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.ClimateDaily = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

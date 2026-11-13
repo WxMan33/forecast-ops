@@ -80,6 +80,7 @@ async function advance(p, iso) { await p.clock.setSystemTime(new Date(iso)); awa
     check(!new URL(p.url()).searchParams.has('date'), 'morning: an unchosen "today" is not written into the address');
     let y = await txt(p, '#dailyCard [data-daily="yesterday"]');
     check(/Yesterday's weather Tue, Nov 10, 2026/.test(y) && /High 73°F \+17° vs normal 56°/.test(y) && /Low 39°F/.test(y) && /Precipitation 0\.00″/.test(y) && /Snowfall 0\.0″/.test(y), 'morning: yesterday\'s high, low, precipitation and snowfall with departures (' + y.slice(0, 160) + ')');
+    check(/No daily high, low, precipitation or snowfall record tied or broken/.test(y), 'morning: yesterday explicitly reports the four listed record comparisons');
     check(/Completed day/.test(y) && /issued Nov 11, 1:31 AM EST/.test(y), 'morning: yesterday is a completed NWS report with its issue time, not today\'s');
     check(/No NWS climate report for today yet/.test(await txt(p, '#dailyCard [data-daily="today"]')), 'morning: no report for today is stated as not issued yet');
     check(await p.evaluate(() => document.querySelector('.climo-context')?.dataset.cutoff) === '2026-11-10', 'morning: totals run through yesterday from the NWS report without waiting for ACIS');

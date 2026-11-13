@@ -338,7 +338,7 @@
     const tag = d.status === "future" ? "Reference only" : d.status === "today" ? "In progress · preliminary" : d.pending ? "Pending" : d.reportDate >= A.addDays(d.today, -45) ? "Preliminary observations" : "Observed";
     const through = d.cutoff && d.cutoff < d.reportDate && d.status !== "future" ? ` Totals run through <b>${esc(short(d.cutoff))}</b>${d.status === "today" ? " (the last complete day)" : " (later days not reported yet)"}.` : "";
     const context = d.status === "future" ? `Reference values for <b>${esc(short(d.reportDate))}</b>: daily normals and records. Observations are pending until the day is over.`
-      : d.status === "today" ? `Today, in progress. ${reported ? `${reported} of ${dayRows.length} daily values reported so far, preliminary` : "No daily values reported yet"}; the rest are pending.${through}`
+      : d.status === "today" ? `Today, in progress. ${reported === dayRows.length ? "All four daily values available; today’s values remain preliminary." : reported ? `${reported} of ${dayRows.length} daily values reported so far; the rest are pending.` : "No daily values reported yet; the rest are pending."}${through}`
       : `Observations for <b>${esc(short(d.reportDate))}</b>: ${reported} of ${dayRows.length} daily values reported${d.pending ? "; the rest are pending" : ""}${d.reportDate >= A.addDays(d.today, -45) ? " (preliminary; recent days can be corrected)" : ""}.${through}`;
     el.innerHTML = `<div class="climo-title"><div><span class="kick">${esc(CLIM.obsName)} · ${esc(CLIM.obsSid)} observations</span><h2>Climate report · ${esc(short(d.reportDate))}</h2></div><span class="climo-tag" data-status="${esc(d.status)}">${esc(tag)}</span></div>
       <p class="climo-context" data-cutoff="${esc(d.cutoff || "")}">${context}</p>
@@ -372,7 +372,7 @@
     const y = v.y, td = v.t;
     el.innerHTML = `<div class="section-title">Daily reports · ${esc(CLIM.obsSid)}</div><div class="dly-grid">
       <article class="dly" data-daily="yesterday" data-source="${esc(y.source || "none")}" data-kind="${esc(y.kind || "none")}"><h2>Yesterday's weather <span>${esc(fmtDate(v.yesterday))}</span></h2>
-        ${y.source ? items(y) + `<p class="msg">${src(y)}</p>` : `<p class="msg">${none("yesterday's report")}</p>`}</article>
+        ${y.source ? items(y) + `<p class="msg" data-record-status>${esc(DLY.recordStatus(y.report).text)}</p><p class="msg">${src(y)}</p>` : `<p class="msg">${none("yesterday's report")}</p>`}</article>
       <article class="dly" data-daily="today" data-kind="${esc(td ? td.kind : "none")}"><h2>Today's climate update <span>${esc(fmtDate(v.today))}</span></h2>
         ${td ? `<span class="dly-tag" data-kind="${esc(td.kind)}">${td.kind === "final" ? "Completed day" : `Interim · as of ${esc(td.report.asOf.replace(" local standard time", ""))}`}</span>${items(td)}<p class="msg">${src(td)}${td.kind !== "final" ? " Totals elsewhere on this page stop at the last completed day." : ""}</p>`
           : `<p class="msg">${rpt.check.error ? none("today's report") : "No NWS climate report for today yet. Offices often issue an afternoon update and a completed report after midnight; times vary."}</p>`}</article></div>

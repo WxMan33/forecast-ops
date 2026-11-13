@@ -177,3 +177,10 @@
 .dly-tag[data-kind="interim"] {border-style:dashed}
 @media (max-width:720px) {.dly-grid {grid-template-columns:1fr} .dly-items {grid-template-columns:repeat(2,minmax(0,1fr))}}
 .dly-card > p.msg {margin-top:10px}
+
+/* Keep the Almanac shell inside phone widths; links wrap instead of widening the document. */
+@media (max-width:600px) {
+  .almanac-page .navbar { flex-wrap:wrap; overflow-x:visible; }
+  .almanac-page .statusbar { flex-wrap:wrap; min-width:0; }
+  .almanac-page .statusbar > * { min-width:0; max-width:100%; }
+}

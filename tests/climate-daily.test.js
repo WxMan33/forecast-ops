@@ -72,4 +72,18 @@ test('time zones: "yesterday" is relative to the location\'s today that the call
   const v = D.view({ today: '2026-11-12', reports: [P(final())], station: 'CVG', A });
   eq([v.yesterday, v.y.source], ['2026-11-11', null], 'Nov 10 report is not yesterday when it is already Nov 12 at the location');
 });
+test('completed report record comparison checks all four listed extremes', () => {
+  const r = P(final()); eq(D.recordStatus(r).checked, 4); eq(D.recordStatus(r).events, []);
+});
+test('a new high and a tied low are detected with the proper comparison direction', () => {
+  const r = P(final('90')); r.records.mint.observed.value = r.records.mint.record.value;
+  const x = D.recordStatus(r); ok(x.events.some(t => /high record broken/.test(t))); ok(x.events.some(t => /low record tied/.test(t)));
+});
+test('missing records never produce a no-record claim', () => {
+  eq(D.recordStatus(null).text, 'Record comparison unavailable.');
+  const r = P(final()); r.records.pcpn = null; ok(/incomplete/.test(D.recordStatus(r).text));
+});
+test('dry and trace days do not claim a tied precipitation maximum', () => {
+  const r = P(final()); r.records.snow = { observed: { value: 0 }, record: { value: 0 }, year: 2025 }; eq(D.recordStatus(r).events, []);
+});
 console.log(`ok - ${n} daily climate report checks passed`);
