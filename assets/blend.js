@@ -146,7 +146,7 @@
     const forData = data; let got;
     try { got = await O.Data.loadModelMeta(ids); } catch (e) { got = {}; }
     if (data !== forData) return; // run metadata for an earlier point never lands on a newer one
-    meta = got; if (data) renderCoverage();
+    meta = got; if (data) { renderCoverage(); renderHourly(); }
   }
   const SEAMLESS = new Set(["gfs_seamless", "icon_seamless", "gem_seamless", "ukmo_seamless", "meteofrance_seamless", "jma_seamless"]);
   const utc = (iso) => (iso ? `${iso.slice(5, 10).replace("-", "/")} ${iso.slice(11, 13)}Z` : "—");
@@ -231,6 +231,8 @@
   function render() {
     renderRecipe();
     if (!data) {
+      $("guidanceSupport").innerHTML = "";
+      renderHourly();
       $("daily").innerHTML = '<tbody><tr><td class="msg">No forecast loaded yet.</td></tr></tbody>';
       if (chart) { chart.destroy(); chart = null; }
       $("legend").innerHTML = "";
@@ -598,11 +600,20 @@
     if (e - s > 14 * 864e5) return err("Choose 14 days or less.");
     err(""); hgCustom = { s, e }; renderHourly();
   });
+  function renderSupport(span=null,now=Date.now()) {
+    if(!data)return;
+    if(!span)span=window.HourlyModel.blendSpan(now,hgRange==='custom'?24:+hgRange,hgRange==='custom'?hgCustom:null);
+    const requested=preset==='custom'?C.blend.scopedWeights(weightProfiles).ws:C.blend.presetWeights(preset,SPEC,picker.weights());
+    const open=$("guidanceSupport").querySelector('details')?.open;
+    $("guidanceSupport").innerHTML=window.ForecastSupport.html(window.ForecastSupport.analyze({C,B:data,requested,rules:R(),start:span[0],end:span.at(-1)+3600e3,now,names:NAMES,meta:meta||{},nws}));
+    if(open)$("guidanceSupport").querySelector('details').open=true;
+  }
   function renderHourly() {
     if (!data) { $("hgGrid").innerHTML = '<p class="msg">Fetch models to load the hourly forecast.</p>'; $("hgLegend").innerHTML = ""; $("hgDetail").hidden = true; $("hgSub").textContent = ""; return; }
     if (hgRange === "custom" && !hgCustom) seedCustom();
     const M = window.HourlyModel, now = Date.now(), span = M.blendSpan(now, hgRange === "custom" ? 24 : +hgRange, hgRange === "custom" ? hgCustom : null);
     const V = window.HourlyViews.blendView({ C, M, B: data, ws: W(), opts: OPTS(), span, tz: data.tz, names: NAMES, nwsAxis: data.nwsAxis, now });
+    renderSupport(span,now);
     const last = data.ms[data.ms.length - 1], beyond = V.hrs.filter((h) => h.state === "beyond").length;
     $("hgSub").textContent = `${C.blend.PRESETS[preset].label} · times in ${O.tzShort(data.tz)} at the forecast point · tap an hour for its sources${beyond ? ` · ${beyond} hour${beyond === 1 ? "" : "s"} beyond the loaded forecast (through ${O.fmtWhen(wallOf(last))})` : ""}`;
     if (!span.includes(hgSel)) hgSel = span.find((m) => m + 3600e3 > now) ?? span[0];
@@ -633,7 +644,7 @@
 
   render();
   run();
-  const displayTimer=setInterval(()=>{if(!document.hidden){if(!data){refreshHeadsUp();return;}const c=window.ForecastClock.focus(C,data.tz,Date.now());if(`${c.day}|${c.dayLead}|${c.forward}|${c.evening}`!==displayClockKey)render();else {renderNow();refreshHeadsUp();}}},60000);
+  const displayTimer=setInterval(()=>{if(!document.hidden){if(!data){refreshHeadsUp();return;}const c=window.ForecastClock.focus(C,data.tz,Date.now());if(`${c.day}|${c.dayLead}|${c.forward}|${c.evening}`!==displayClockKey)render();else {renderNow();refreshHeadsUp();renderSupport();}}},60000);
   window.addEventListener('pagehide',()=>clearInterval(displayTimer),{once:true});
 })();
 

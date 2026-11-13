@@ -20,7 +20,12 @@ function compare(old,now){
  if(old.alertsAvailable&&now.alertsAvailable)for(const a of now.alerts)if(!aKeys.has(a.id))out.items.push({kind:'alert',priority:0,text:`New official NWS alert for this venue: ${a.event}.`});
  if(old.recipe!==now.recipe){out.state='recipe-changed';return out}
  if(JSON.stringify(old.feeds)!==JSON.stringify(now.feeds)){out.state='sources-changed';return out}
- const previous=new Map(old.hours.map(h=>[h.ms,h]));let paired=0;
+ const previous=new Map(old.hours.map(h=>[h.ms,h]));
+ // A changed variable's contributors or missing hours is a coverage change, not improving weather.
+ const future=now.hours.filter(h=>h.ms+H>now.at&&now.phases.some(p=>h.ms<p.end&&h.ms+H>p.start));
+ const signature=h=>JSON.stringify([h.ok,h.popSources,h.rainSources,h.gustSources,h.lightningSources,finite(h.pop),h.rain!==null,finite(h.gust),h.lightning!==null]);
+ if(future.some(h=>!previous.has(h.ms)||signature(previous.get(h.ms))!==signature(h))){out.state='sources-changed';return out}
+ let paired=0;
  for(const p of now.phases){
  const hours=now.hours.filter(h=>h.ms+H>now.at&&h.ms<p.end&&h.ms+H>p.start&&h.ok&&previous.get(h.ms)?.ok).map(h=>({old:previous.get(h.ms),now:h}));if(!hours.length)continue;paired+=hours.filter(h=>(h.old.rain!==null&&h.now.rain!==null&&h.old.rainSources===h.now.rainSources)||(finite(h.old.gust)&&finite(h.now.gust)&&h.old.gustSources===h.now.gustSources)||(h.old.lightning!==null&&h.now.lightning!==null&&h.old.lightningSources===h.now.lightningSources)).length;
  const phase=p.label.toLowerCase(),rain=hours.filter(h=>h.old.rain!==null&&h.now.rain!==null&&h.old.rainSources===h.now.rainSources),wet=rain.filter(h=>h.now.rain),wasWet=rain.filter(h=>h.old.rain);
