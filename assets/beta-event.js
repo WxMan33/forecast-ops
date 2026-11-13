@@ -230,9 +230,11 @@
       : delta.state === "no-overlap" ? "There is not enough matching future guidance to compare yet."
       : !delta.stored ? "This browser could not save the briefing. Changes cannot be remembered reliably."
       : delta.items.length ? "" : "No meaningful change in the matching event hours since your last briefing.";
-    host.className = delta.items.length ? "brief-update has-changes" : "brief-update quiet";
+    const better = delta.items.filter((x) => x.trend === "better").length, allBetter = better > 0 && better === delta.items.length;
+    host.className = !delta.items.length ? "brief-update quiet" : allBetter ? "brief-update has-changes is-better" : "brief-update has-changes";
     host.hidden = false;
-    host.innerHTML = `${delta.items.length ? '<h2>Since your last briefing</h2><ul>'+delta.items.map(x=>`<li>${esc(x.text)}</li>`).join("")+'</ul>' : ''}${note ? `<p>${esc(note)}</p>` : ''}${delta.previousAt ? `<small>Compared with ${esc(BUI.date(delta.previousAt,event.tz))}, ${esc(fmt.clock(delta.previousAt,event.tz))} ${esc(fmt.zone(delta.previousAt,event.tz))}. Saved only in this browser.</small>` : ''}`;
+    const tag = (x) => x.kind === "alert" ? "New alert" : x.trend === "better" ? "Better" : "Worse";
+    host.innerHTML = `${delta.items.length ? `<h2>${allBetter ? "Improved since your last briefing" : "Since your last briefing"}</h2><ul>`+delta.items.map(x=>`<li class="is-${x.trend||'alert'}"><b>${tag(x)}:</b> ${esc(x.text)}</li>`).join("")+'</ul>' : ''}${note ? `<p>${esc(note)}</p>` : ''}${delta.previousAt ? `<small>Compared with ${esc(BUI.date(delta.previousAt,event.tz))}, ${esc(fmt.clock(delta.previousAt,event.tz))} ${esc(fmt.zone(delta.previousAt,event.tz))}. Saved only in this browser.</small>` : ''}`;
   }
   function monitoringHandoff(event, b, now) {
     const K = window.EventOpsHandoff, host = $("opsHandoff"), data = K.payload(event,b,now), day = K.eventDay(event,b,now);

@@ -11,7 +11,7 @@ function check(ok,name){console.log((ok?'PASS ':'FAIL ')+name);if(!ok)failed++}
 for(const theme of ['dark','light'])for(const phone of [true,false]){
  const ctx=await browser.newContext({viewport:{width:phone?390:1280,height:phone?664:960},timezoneId:'America/New_York'}),p=await ctx.newPage(),errors=[];
  p.on('pageerror',e=>errors.push(e.message));await p.clock.install({time:new Date('2026-11-11T20:30:00Z')});
- await p.addInitScript(t=>{localStorage.setItem('ops_theme',JSON.stringify(t));localStorage.setItem('beta_analytics_optout','1')},theme);
+ await p.addInitScript(t=>{localStorage.setItem('ops_theme',JSON.stringify(t));localStorage.setItem('beta_analytics_optout','1');window.__analytics=[];let A;Object.defineProperty(window,'BetaAnalytics',{configurable:true,get:()=>A,set:v=>{const t=v.track;v.track=(type,c)=>{window.__analytics.push([type,c]);return t(type,c)};A=v}})},theme);
  await ctx.route('**/*',r=>{const u=new URL(r.request().url());if(u.origin!==base)return r.fulfill({status:200,body:'',contentType:u.pathname.endsWith('.js')?'application/javascript':'text/plain'});if(u.pathname==='/assets/beta-event.js')return r.fulfill({contentType:'application/javascript',body:fixture+'\n'+fs.readFileSync(path.join(root,'assets/beta-event.js'),'utf8')});return r.continue()});
  await p.goto(base+'/event-beta.html');await p.waitForFunction(()=>document.body.dataset.loaded,{timeout:15000});check(await p.evaluate(t=>document.documentElement.dataset.theme===t,theme),'saved '+theme+' theme restored');
  await p.locator('#bxTheme').click();check(await p.evaluate(t=>document.documentElement.dataset.theme!==t,theme),'theme toggle changes the page');await p.locator('#bxTheme').click();
@@ -61,6 +61,12 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  await p.locator('[data-ops-address]').fill('http://localhost:3000');await p.locator('[data-save-ops]').click();
  const href=await p.locator('#opsHandoff a').getAttribute('href'),u=new URL(href),data=JSON.parse(new URLSearchParams(u.hash.slice(1)).get('handoff'));
  check(u.pathname==='/forecast-event'&&u.search===''&&data.venue.lat===39.1005&&data.venue.lon===-84.5017&&!JSON.stringify(data).includes('lightning'),'OPE link carries the exact venue in a fragment, with no forecast threats');
+ await p.goto(base+'/event-beta.html?improve=1');await p.waitForFunction(()=>document.body.dataset.loaded);
+ const better=await p.locator('#briefUpdate').innerText();
+ check(/^Improved since your last briefing/.test(better)&&/Better:/.test(better)&&!/No meaningful change/.test(better),'return visit explains improving conditions instead of reporting no change');
+ check(/no longer reaches|now stay below your 25 mph venue limit|fell from/.test(better)&&!/Worse:/.test(better),'improvement names what got better in the same event hours');
+ check(await p.evaluate(()=>{const s=JSON.stringify(window.__analytics||[]);const q=JSON.stringify(window.BetaAnalytics?._queue?.()||[]);return Array.isArray(window.__analytics)&&String(window.BetaAnalytics.track).includes('__analytics')&&!/Improved|no longer|venue limit|briefing|Riverfront|Sawyer|39\.1|84\.5/.test(s+q)}),'comparison text never reaches analytics');
+ await p.screenshot({path:path.join(out,'event-polish-improved.png'),fullPage:false});
  await p.goto(base+'/event-beta.html?live=1');await p.waitForFunction(()=>document.body.dataset.loaded);
  check(await p.evaluate(()=>!!(document.getElementById('opsHandoff').compareDocumentPosition(document.getElementById('decision'))&Node.DOCUMENT_POSITION_FOLLOWING)),'event-day monitoring handoff appears before the forecast decision');
  await p.screenshot({path:path.join(out,'event-polish-live-monitoring.png'),fullPage:true});
