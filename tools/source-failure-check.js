@@ -219,6 +219,14 @@ async function blendChecks(base) {
     if(label!=='all models 500'){
       check(await p.locator('#guidanceSupport [data-support]').count()===1, `blend (${label}): shared coverage and agreement panel renders`);
     }
+    if(label==='one model 429'){
+      const before=await p.locator('#guidanceSupport .fs-window').innerText();
+      await p.locator('#hgRange').getByRole('tab',{name:'48 H',exact:true}).click();
+      check((await p.locator('#guidanceSupport .fs-window').innerText())!==before,'blend: support follows the selected 48-hour window');
+      await p.locator('#hgRange').getByRole('tab',{name:'CUSTOM',exact:true}).click();
+      await p.locator('#hgFrom').fill('2026-11-12T12:00');await p.locator('#hgTo').fill('2026-11-12T18:00');await p.locator('#hgApply').click();
+      check((await p.locator('#guidanceSupport').textContent()).includes('6/6 hours'),'blend: custom six-hour support counts the same six forecast hours');
+    }
     check(state.errors.length === 0, `blend (${label}): no script errors ` + state.errors.join('; '));
     await ctx.close();
   }

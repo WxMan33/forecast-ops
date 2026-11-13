@@ -30,6 +30,10 @@ function compare(old,now){
  const hours=now.hours.filter(h=>h.ms+H>now.at&&h.ms<p.end&&h.ms+H>p.start&&h.ok&&previous.get(h.ms)?.ok).map(h=>({old:previous.get(h.ms),now:h}));if(!hours.length)continue;paired+=hours.filter(h=>(h.old.rain!==null&&h.now.rain!==null&&h.old.rainSources===h.now.rainSources)||(finite(h.old.gust)&&finite(h.now.gust)&&h.old.gustSources===h.now.gustSources)||(h.old.lightning!==null&&h.now.lightning!==null&&h.old.lightningSources===h.now.lightningSources)).length;
  const phase=p.label.toLowerCase(),rain=hours.filter(h=>h.old.rain!==null&&h.now.rain!==null&&h.old.rainSources===h.now.rainSources),wet=rain.filter(h=>h.now.rain),wasWet=rain.filter(h=>h.old.rain);
  if(wet.length&&!wasWet.length)out.items.push({kind:'rain-window',trend:'worse',priority:p.key==='gates'?3:4,phase:p.key});
+ if(wet.length&&wasWet.length){const from=wasWet[0].now.ms,to=wet[0].now.ms;
+  // Two hours is a display change filter, not a new rain or safety threshold.
+  if(Math.abs(to-from)>=2*H)out.items.push({kind:to>from?'rain-later':'rain-earlier',trend:'timing',priority:5,phase:p.key,from,to});
+ }
  /* improvements: the same matching hours, the same contributors, and never from missing guidance */
  if(wasWet.length&&!wet.length)out.items.push({kind:'rain-clear',trend:'better',priority:6,phase:p.key});
  const wind=hours.filter(h=>finite(h.old.gust)&&finite(h.now.gust)&&h.old.gustSources===h.now.gustSources);
@@ -47,11 +51,12 @@ function compare(old,now){
  }
  const W=['Low','Moderate','High'],list=xs=>xs.length<3?xs.join(' and '):xs.slice(0,-1).join(', ')+' and '+xs.at(-1),label=k=>now.phases.find(p=>p.key===k).label.toLowerCase(),r=Math.round;
  /* one line per kind of change: phases joined, worst-case values kept */
- const TEXT={'rain-window':(w)=>`Rain now reaches ${w}. The previous briefing had no hourly rain signal there.`,'rain-clear':(w)=>`Rain no longer reaches ${w}. The previous briefing had an hourly rain signal there; the same hours now show none.`,
+ const TEXT={'rain-later':(w,a,b)=>`The first rain signal during ${w} shifted about ${Math.round((b-a)/H)} hours later in the same forecast hours. This is a timing change, not an all-clear.`,'rain-earlier':(w,a,b)=>`The first rain signal during ${w} shifted about ${Math.round((a-b)/H)} hours earlier in the same forecast hours.`,
+ 'rain-window':(w)=>`Rain now reaches ${w}. The previous briefing had no hourly rain signal there.`,'rain-clear':(w)=>`Rain no longer reaches ${w}. The previous briefing had an hourly rain signal there; the same hours now show none.`,
  'gust-limit':(w,a,b)=>`Gusts now reach your ${now.gust} mph venue limit during ${w} (peak about ${r(b)} mph, up from ${r(a)} mph).`,'gust-below':(w,a,b)=>`Gusts during ${w} now stay below your ${now.gust} mph venue limit (peak about ${r(b)} mph, down from ${r(a)} mph).`,
  lightning:(w,a,b)=>`Lightning potential during ${w} is now ${W[b]}, up from ${W[a]}. This is forecast potential, not detected lightning.`,'lightning-down':(w,a,b)=>`Lightning potential during ${w} is now ${W[b]}${b===0?' (not zero)':''}, down from ${W[a]}. It is forecast potential, not detected lightning, and never permission to resume; your venue's lightning policy decides.`,
  'rain-chance':(w,a,b)=>`The peak hourly rain chance during ${w} rose from ${percent(a)} to ${percent(b)}.`,'rain-chance-down':(w,a,b)=>`The peak hourly rain chance during ${w} fell from ${percent(a)} to ${percent(b)}.`};
- const merged=[];for(const x of out.items){if(x.kind==='alert'){merged.push(x);continue}const g=merged.find(y=>y.kind===x.kind);if(!g){merged.push({...x,phases:[x.phase]});continue}g.phases.push(x.phase);g.priority=Math.min(g.priority,x.priority);if(finite(x.from)){g.from=Math.max(g.from,x.from);g.to=Math.max(g.to,x.to)}}
+ const merged=[];for(const x of out.items){if(x.kind==='alert'){merged.push(x);continue}const g=merged.find(y=>y.kind===x.kind&&(!['rain-later','rain-earlier'].includes(x.kind)||x.to-x.from===y.to-y.from));if(!g){merged.push({...x,phases:[x.phase]});continue}g.phases.push(x.phase);g.priority=Math.min(g.priority,x.priority);if(finite(x.from)){g.from=Math.max(g.from,x.from);g.to=Math.max(g.to,x.to)}}
  for(const x of merged)if(x.kind!=='alert'){x.text=TEXT[x.kind](list(x.phases.map(label)),x.from,x.to);delete x.phase}
  out.items=merged;
  out.items.sort((a,b)=>a.priority-b.priority);out.better=out.items.filter(x=>x.trend==='better').length;out.items=out.items.slice(0,3);out.state=out.items.length?'changed':paired?'same':'no-overlap';return out;

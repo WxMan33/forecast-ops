@@ -255,7 +255,7 @@
     let delta; try { delta = history.visit(localStorage, event.id, current); } catch { delta = { state: "first", stored: false, items: [] }; }
     lastView.update = delta;
     if (delta.state === "first" && delta.stored) return;
-    const note = delta.state === "recipe-changed" ? "Your blend recipe changed. Weather trends start fresh with these weights." : delta.state === "sources-changed" ? "Model source coverage changed. Weather trends are not compared across different source sets."
+    const note = delta.state === "recipe-changed" ? "Your blend recipe changed. Weather trends start fresh with these weights." : delta.state === "sources-changed" ? "Model source coverage changed. Weather trends are not compared across different contributors or missing hours."
       : delta.state === "event-changed" ? "Your venue, schedule or gust limit changed. This briefing starts a new comparison."
       : delta.state === "no-overlap" ? "There is not enough matching future guidance to compare yet."
       : !delta.stored ? "This browser could not save the briefing. Changes cannot be remembered reliably."
@@ -263,7 +263,7 @@
     const better = delta.items.filter((x) => x.trend === "better").length, allBetter = better > 0 && better === delta.items.length;
     host.className = !delta.items.length ? "brief-update quiet" : allBetter ? "brief-update has-changes is-better" : "brief-update has-changes";
     host.hidden = false;
-    const tag = (x) => x.kind === "alert" ? "New alert" : x.trend === "better" ? "Better" : "Worse";
+    const tag = (x) => x.kind === "alert" ? "New alert" : x.trend === "better" ? "Better" : x.trend === "timing" ? "Timing" : "Worse";
     host.innerHTML = `${delta.items.length ? `<h2>${allBetter ? "Improved since your last briefing" : "Since your last briefing"}</h2><ul>`+delta.items.map(x=>`<li class="is-${x.trend||'alert'}"><b>${tag(x)}:</b> ${esc(x.text)}</li>`).join("")+'</ul>' : ''}${note ? `<p>${esc(note)}</p>` : ''}${delta.previousAt ? `<small>Compared with ${esc(BUI.date(delta.previousAt,event.tz))}, ${esc(fmt.clock(delta.previousAt,event.tz))} ${esc(fmt.zone(delta.previousAt,event.tz))}. Saved only in this browser.</small>` : ''}`;
   }
   function monitoringHandoff(event, b, now) {

@@ -55,7 +55,8 @@ function analyze({C,B,requested={},rules=null,start,end,now=Date.now(),names={},
   }
   return {key,label,sources,full:sources.filter(s=>s.full).length,total:sources.length,min:counts.length?Math.min(...counts):0,max:counts.length?Math.max(...counts):0,agreement,detail};
  });
- const any=fields.some(f=>f.max>0),good=any&&fields.every(f=>f.total>=2&&f.full===f.total);
+ const truncated=hours.length>0&&hours.at(-1)+H<end;
+ const any=fields.some(f=>f.max>0),good=!truncated&&any&&fields.every(f=>f.total>=2&&f.full===f.total);
  const ids=[...new Set(fields.flatMap(f=>f.sources.filter(s=>s.got).map(s=>s.id)))];
  const freshness=ids.map(id=>{
   const md=models[id],part=id==='nws'?nws?.parts?.grid:null;
@@ -67,7 +68,7 @@ function analyze({C,B,requested={},rules=null,start,end,now=Date.now(),names={},
   return {id,name:names[id]||id,retrieved,fromCache,cycle,providerRun,delayed};
  });
  const times=freshness.map(f=>f.retrieved).filter(fin),oldest=times.length?Math.min(...times):null,saved=freshness.filter(f=>f.fromCache&&fin(f.retrieved)&&now-f.retrieved>60e3).length;
- return {start,end,hours,now,tz:B.tz||'UTC',status:good?'Good coverage':any?'Limited coverage':'Unavailable',fields,freshness,oldest,saved,
+ return {start,end,hours,truncated,now,tz:B.tz||'UTC',status:good?'Good coverage':any?'Limited coverage':'Unavailable',fields,freshness,oldest,saved,
   freshnessText:!any?'No guidance in this window':`${saved?`${saved} saved ${saved===1?'source':'sources'} · `:''}${fin(oldest)?`Oldest retrieval ${age(oldest,now)}`:'Retrieval time unavailable'}${freshness.some(f=>!fin(f.retrieved))?' · some retrieval times unknown':''}${freshness.some(f=>f.delayed)?' · older provider run metadata':''}`};
 }
 function html(d,{compact=false}={}){
@@ -75,7 +76,7 @@ function html(d,{compact=false}={}){
  if(compact)return `<div class="fs-print"><b>Guidance support:</b> ${esc(summary)}.<br>${d.fields.map(f=>`${esc(f.label)}: ${esc(f.agreement)}`).join(' · ')}. Coverage is not forecast confidence.</div>`;
  return `<section class="forecast-support" data-support="${esc(d.status)}" aria-label="Forecast guidance support">
  <div class="fs-heading"><h3>Guidance support</h3><b class="fs-status">${esc(d.status)}</b></div>
- <p class="fs-window">${esc(stamp(d.start,d.tz))} – ${esc(stamp(d.end,d.tz))}</p>
+ <p class="fs-window">${d.end>d.start?`${esc(stamp(d.start,d.tz))} – ${esc(stamp(d.end,d.tz))}`:'No remaining planning hours'}${d.truncated?' · First 14 days checked; remaining hours unassessed':''}</p>
  <div class="fs-metrics">${d.fields.map(f=>`<div><span>${esc(f.key==='rain'?'Rain timing':f.label)}</span><b>${esc(f.agreement)}</b><small>${f.full} of ${f.total} sources complete</small></div>`).join('')}</div>
  <p class="fs-freshness">${esc(d.freshnessText)}${fin(d.oldest)?` · ${esc(stamp(d.oldest,d.tz))}`:''}</p>
  <details><summary>Coverage, agreement and source times</summary><p>Coverage describes available data, not verified forecast skill. Agreement compares source systems; ensembles count once using complete members’ means, so member spread can be wider. Retrieval time is when this browser downloaded guidance, not its issue time.</p>

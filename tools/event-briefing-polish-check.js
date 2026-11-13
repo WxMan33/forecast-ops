@@ -58,6 +58,8 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  check(await p.locator('#evCharts .evc-gap').count()>=4,'missing hour is visibly marked in every variable chart');
  }
  if(!phone&&theme==='light'){
+ // Restore complete guidance before testing a weather change; the preceding fixture intentionally removed an hour.
+ await p.goto(base+'/event-beta.html');await p.waitForFunction(()=>document.body.dataset.loaded);
  await p.goto(base+'/event-beta.html?delta=1');await p.waitForFunction(()=>document.body.dataset.loaded);
  check(/Gusts now reach your 25 mph venue limit/.test(await p.locator('#briefUpdate').innerText()),'return visit explains the venue gust-limit crossing');
  const details=p.locator('#opsHandoff details');await details.locator('summary').click();
@@ -70,6 +72,11 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  check(/no longer reaches|now stay below your 25 mph venue limit|fell from/.test(better)&&!/Worse:/.test(better),'improvement names what got better in the same event hours');
  check(await p.evaluate(()=>{const s=JSON.stringify(window.__analytics||[]);const q=JSON.stringify(window.BetaAnalytics?._queue?.()||[]);return Array.isArray(window.__analytics)&&String(window.BetaAnalytics.track).includes('__analytics')&&!/Improved|no longer|venue limit|briefing|Riverfront|Sawyer|39\.1|84\.5/.test(s+q)}),'comparison text never reaches analytics');
  await p.screenshot({path:path.join(out,'event-polish-improved.png'),fullPage:false});
+ await p.evaluate(()=>localStorage.removeItem('forecast_ops_briefing_history_v1'));
+ await p.goto(base+'/event-beta.html');await p.waitForFunction(()=>document.body.dataset.loaded);
+ await p.goto(base+'/event-beta.html?shift=1');await p.waitForFunction(()=>document.body.dataset.loaded);
+ const timing=await p.locator('#briefUpdate').innerText();
+ check(/Timing:/.test(timing)&&/2 hours later/.test(timing)&&!/Worse:/.test(timing),'same-source rain shift is labelled Timing, not worsening or an all-clear');
  await p.goto(base+'/event-beta.html?live=1');await p.waitForFunction(()=>document.body.dataset.loaded);
  check(await p.evaluate(()=>!!(document.getElementById('opsHandoff').compareDocumentPosition(document.getElementById('decision'))&Node.DOCUMENT_POSITION_FOLLOWING)),'event-day monitoring handoff appears before the forecast decision');
  await p.screenshot({path:path.join(out,'event-polish-live-monitoring.png'),fullPage:true});

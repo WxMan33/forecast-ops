@@ -55,4 +55,6 @@ test('a missing wet hour is coverage loss, never rain clearing',()=>{const a=mak
 test('same named systems with different hourly contributors suppress improvement',()=>{const a=make(),b=make(2);a.hours[0].rain=true;a.hours[0].rainSources='GFS|IFS';b.hours[0].rainSources='GFS';const r=compare(a,b);A.equal(r.state,'sources-changed');A.equal(r.items.length,0)});
 test('official new alerts survive variable coverage loss',()=>{const a=make(),b=make(2);b.hours[0].pop=null;b.alerts=[{id:'new',event:'Tornado Warning'}];const r=compare(a,b);A.equal(r.state,'sources-changed');A.equal(r.items[0].kind,'alert')});
 
+test('same-source rain shifting by two hours is named as timing, not improvement',()=>{const a=make(),b=make(2);a.phases=b.phases=[{key:'event',label:'Event',start:10*H,end:16*H}];a.hours=b.hours.map(h=>({...h}));a.hours[0].rain=true;b.hours[2].rain=true;const r=compare(a,b);A.equal(r.items[0].kind,'rain-later');A.equal(r.items[0].trend,'timing');A.match(r.items[0].text,/2 hours later/)});
+test('rain timing never changes across a lost contributor',()=>{const a=make(),b=make(2);a.phases=b.phases=[{key:'event',label:'Event',start:10*H,end:16*H}];a.hours[0].rain=true;b.hours[2].rain=true;b.hours[2].rainSources='only-GFS';const r=compare(a,b);A.equal(r.state,'sources-changed');A.equal(r.items.length,0)});
 console.log(n+' briefing history checks passed');
