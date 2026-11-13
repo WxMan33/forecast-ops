@@ -106,7 +106,8 @@ with sync_playwright() as p:
   if '%' in cell:assert float(cell.rstrip('%'))%5==0, cell
  assert ''.join(headings.split()).index('nwslow')<''.join(headings.split()).index('nwshigh'),'NWS morning low precedes daytime high'
 
- assert page.evaluate('document.querySelector("#daily").closest(".card").nextElementSibling.id')=='forecastChartCard','graph immediately follows daily blend'
+ assert page.evaluate('document.querySelector("#daily").closest(".card").nextElementSibling.id')=='hourlyCard','hourly forecast immediately follows daily blend'
+ assert page.evaluate('document.querySelector("#hourlyCard").nextElementSibling.id')=='forecastChartCard','existing graph follows the hourly forecast'
  def history():return page.evaluate('Object.values(JSON.parse(localStorage.getItem("ops_model_guidance_history_v1")))[0].items')
  assert len(history())==1,'first snapshot persisted'
  assert history()[0]['tz']=='UTC','synthetic model response must be used, not live data'
