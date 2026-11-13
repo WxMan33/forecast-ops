@@ -88,7 +88,10 @@
   mkTabs($("presetTabs"), Object.entries(C.blend.PRESETS).map(([k, p]) => [k, p.label.toUpperCase()]), preset, (id) => { preset = id; O.store.set("ops_blend_preset", id); fresh = true; render(); });
   window.addEventListener("ops:theme", () => { picker.redraw(); render(); });
 
+  /* only the latest request may draw: a slow answer for the previous point (or day count) is dropped */
+  let runGen = 0;
   async function run() {
+    const myRun = ++runGen;
     $("runBtn").disabled = true;
     $("next48HeadsUp").hidden=true;
     O.setChip("FETCHING…");
@@ -100,6 +103,7 @@
       O.Data.loadEnsemble(C.config.blendEns, { ...where, days }).catch(() => ({ empty: true, problems: ["ensembles unavailable"], status: {} })),
       O.Data.loadModels(visibilitySpec, { ...where, days: Math.min(days, 7) }).catch(() => ({ empty: true })),
       window.AirportVisibility.load(where, days, O.Data, C).catch(() => [])]);
+    if (myRun !== runGen) return;
     $("runBtn").disabled = false;
     if (!res.empty) C.blend.addSources(res, en, nw && nw.ok ? N.onAxis(nw, res.ms) : null);
     SOURCES.forEach((m) => picker.setStatus(m.id, !res.empty && res.models[m.id] ? "ok" : "none"));
@@ -124,7 +128,7 @@
     const regionalData=data;data.broadcast=null;
     window.BroadcastPoP.load(where,days,O.Data).then(area=>{if(data!==regionalData)return;area.tz=data.tz;data.broadcast=area;renderDaily();}).catch(()=>{if(data===regionalData){data.broadcast={status:'unavailable',systems:[]};renderDaily();}});
     data.nwsAxis = nws && nws.ok ? N.onAxis(nws, data.ms) : null;
-    const ensProb = C.config.blendEns.models.filter((m) => !data.models[m.source]).map((m) => `${m.name}: unavailable`);
+    const ensProb = C.config.blendEns.models.filter((m) => !data.models[m.source]).map((m) => (en.problems || []).find((x) => x.startsWith(m.name + ":")) || `${m.name}: unavailable`);
     O.dataStatus([...res.problems, ...ensProb, ...(nws && !nws.ok ? [`NWS: ${nws.reason}`] : nws && nws.errors && nws.errors.length ? nws.errors.map((x) => `NWS ${x}`) : [])]);
     const ensTxt = C.config.blendEns.models.filter((m) => data.models[m.source]).map((m) => `${m.name.replace(/ \(\d+ members\)$/, "")} ${data.models[m.source].n}`).join(", ");
     $("runMsg").textContent = `${MODELS.filter((m) => res.models[m.id]).length} models` + (ensTxt ? ` · ensembles ${ensTxt} members` : " · ensembles unavailable") + (res.problems.length ? ` · ${res.problems.join(" · ")}` : "") +
@@ -139,8 +143,10 @@
   let meta = null, covVar = O.store.get("ops_cov_var", "hi"), covMode = O.store.get("ops_cov_mode", "share");
   async function loadMeta() {
     const ids = Object.fromEntries(Object.entries(C.config.metaIds).filter(([id]) => data && data.models[id] && !(data.models[id].provenance && data.models[id].provenance.provider === "NOAA native GRIB2")));
-    try { meta = await O.Data.loadModelMeta(ids); } catch (e) { meta = {}; }
-    if (data) renderCoverage();
+    const forData = data; let got;
+    try { got = await O.Data.loadModelMeta(ids); } catch (e) { got = {}; }
+    if (data !== forData) return; // run metadata for an earlier point never lands on a newer one
+    meta = got; if (data) renderCoverage();
   }
   const SEAMLESS = new Set(["gfs_seamless", "icon_seamless", "gem_seamless", "ukmo_seamless", "meteofrance_seamless", "jma_seamless"]);
   const utc = (iso) => (iso ? `${iso.slice(5, 10).replace("-", "/")} ${iso.slice(11, 13)}Z` : "—");

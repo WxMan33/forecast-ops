@@ -61,17 +61,25 @@
     picker.setCurrent({ name: ev.loc.name }); document.body.dataset.place = ev.loc.name; document.body.dataset.loaded = ""; document.body.dataset.office = ""; document.body.dataset.tz = ev.tz; document.body.dataset.market = mk.tuned ? "tuned" : "default";
     context();
     $("briefUpdate").hidden = true; $("opsHandoff").hidden = true;
+    /* nothing from the previous briefing (another venue, or guidance that has since failed) may stay on screen or in print */
+    lastRes = null; lastView = null;
+    if (chartController) { chartController.destroy(); chartController = null; }
+    if ($("map")._dispose) $("map")._dispose();
+    ["alerts", "evCharts", "evGrid", "evGridDetail", "evGridLegend", "nwsEv", "blendLine", "hourlyValid", "map", "printView"].forEach((id) => { const el = $(id); if (el) el.innerHTML = ""; });
+    head.setUpdated(null);
     $("decision").textContent = "Reading the guidance…"; $("coverage").hidden = true; document.body.dataset.readiness = ""; ["sourceCoverage", "keys", "schedule", "phases", "changes", "checks", "timeline", "detail"].forEach((id) => { $(id).innerHTML = ""; });
     const alertsPromise = U.alerts(where);
-    alertsPromise.then((a) => { if (g !== gen) return; $("alerts").innerHTML = a.slice(0, 2).map((x) => `<div class="bx-alert" role="alert">${st("action", x.event + " in effect")}${x.ends ? `<span class="bx-note">until ${esc(fmt.time(Date.parse(x.ends), ev.tz))}</span>` : ""}<a href="https://forecast.weather.gov/MapClick.php?lat=${ev.loc.lat}&lon=${ev.loc.lon}" target="_blank" rel="noopener">NWS ↗</a></div>`).join(""); });
+    alertsPromise.then((a) => { if (g !== gen) return; $("alerts").innerHTML = a.available === false ? `<div class="bx-alert-off" role="status" data-alerts="unavailable">NWS alerts could not be checked just now. No alert shown here does not mean none is in effect; check <a href="https://www.weather.gov/" target="_blank" rel="noopener">weather.gov</a>.</div>` : a.slice(0, 2).map((x) => `<div class="bx-alert" role="alert">${st("action", x.event + " in effect")}${x.ends ? `<span class="bx-note">until ${esc(fmt.time(Date.parse(x.ends), ev.tz))}</span>` : ""}<a href="https://forecast.weather.gov/MapClick.php?lat=${ev.loc.lat}&lon=${ev.loc.lon}" target="_blank" rel="noopener">NWS ↗</a></div>`).join(""); });
     const endMs = Math.max(...C.event.windows(ev).map((w) => w.endMs)), days = isSample() ? 5 : Math.min(7, Math.max(3, Math.ceil((endMs - Date.now()) / 864e5) + 1));
     const res = await U.load(where, { days });
     if (g !== gen) return;
     if (res.empty) {
       U.track("load_failed", { what: "models" });
       /* the guidance service is occasionally busy for a minute: try once more on our own before asking */
-      if (!retried) { retried = true; $("decision").textContent = "Guidance is slow to answer…"; $("keys").innerHTML = '<p class="bx-note">Trying again in 20 seconds.</p>'; setTimeout(() => { if (g === gen) run(); }, 20000); return; }
-      $("decision").textContent = "Weather guidance could not be loaded."; $("keys").innerHTML = '<p class="bx-note">Try ↻ in a minute.</p>'; retried = false; return;
+      /* one automatic retry, after 20 s or the provider's Retry-After if longer; a wait over two minutes is left to the planner */
+      const wait = Math.max(20, fin(res.retryAfter) ? res.retryAfter : 0);
+      if (!retried && wait <= 120) { retried = true; $("decision").textContent = "Guidance is slow to answer…"; $("keys").innerHTML = `<p class="bx-note">Trying again in ${wait} seconds.</p>`; setTimeout(() => { if (g === gen) run(); }, wait * 1000); return; }
+      $("decision").textContent = "Weather guidance could not be loaded."; $("keys").innerHTML = `<p class="bx-note">${wait > 120 ? `The guidance service asked us to wait about ${Math.ceil(wait / 60)} minutes. Try ↻ after ${esc(fmt.clock(Date.now() + wait * 1000, ev.tz))}.` : "Try ↻ in a minute."}</p>`; retried = false; return;
     }
     retried = false;
     if (!res.NW || !res.NW.ok) U.track("load_failed", { what: "nws" });
@@ -82,6 +90,9 @@
     lastRes = res; render(res);
     document.body.dataset.loaded = ev.loc.name; document.body.dataset.office = res.NW && res.NW.ok ? res.NW.office : "";
   }
+  /* the same event (venue, schedule) keeps its selected hour across refreshes; anything else starts at the focus hour */
+  let selKey = null;
+  const selectionKey = () => JSON.stringify([ev.id || ev.name, ev.loc.lat, ev.loc.lon, ev.tz, ev.times]);
   function context() {
     const w = C.event.windows(ev), ph = Object.fromEntries(w.map((x) => [x.key, x])), main = ph.event || ph.all, tz = ev.tz;
     $("sampleTag").hidden = !isSample(); $("resetBtn").hidden = isSample();
@@ -109,7 +120,11 @@
   function render(res) {
     const ctx = res.ctx, tz = ev.tz, now = ctx.now, thr = { gust: ev.gust || 25 };
     if (isSample() && !ev.picked) { const v = ev.loc.name === S.SAMPLE_VENUE.name ? null : ev.loc; ev = { ...S.pickSample(ctx, C, ev.tz, [1, 2, 3], v), picked: true }; context(); }
-    head.setUpdated(ctx.B.viewedAt);
+    /* guidance reused from this tab's short cache keeps its original retrieval time and is labelled as a saved copy
+       (a copy under a minute old is simply current) */
+    const got = Object.keys(ctx.ws).map((id) => ctx.B.models[id]).filter(Boolean), oldest = Math.min(...got.map((m) => Date.parse(m.retrievedAt)).filter(fin));
+    const saved = got.some((m) => m.fromCache && ctx.B.viewedAt - Date.parse(m.retrievedAt) > 60e3);
+    head.setUpdated(saved && fin(oldest) ? oldest : ctx.B.viewedAt, { saved: saved && fin(oldest) });
     const b = S.eventBrief(ctx, ev, thr);
     if (b.error) { $("decision").textContent = b.error; return; }
     const top = b.top, checks = S.checkAgain(ctx, b, U.NAMES), next = checks[0];
@@ -152,7 +167,9 @@
       }
     }
     $("coverage").querySelectorAll("[data-remind]").forEach((a) => a.addEventListener("click", () => U.track("reminder_exported", { via: a.dataset.remind })));
-    $("sourceCoverage").innerHTML = BUI.sourceHtml(res);
+    /* counted for this event's hours: a source whose forecast ends before the event is named, not counted */
+    res.eventFeeds = BUI.eventFeeds(res.feeds, ctx.B, b.all.startMs, b.all.endMs);
+    $("sourceCoverage").innerHTML = BUI.sourceHtml({ ...res, feeds: res.eventFeeds });
     briefingUpdate(ev, b, V, res);
     monitoringHandoff(ev, b, now);
     $("schedule").innerHTML = schedule(b, now);
@@ -173,8 +190,10 @@
     $("checks").innerHTML = checks.length ? checks.map((c) => `<li><div class="when">${esc(fmt.time(c.at, tz))}<em>${esc(fmt.rel(c.at, now))}</em></div><div><b>${esc(c.what)}</b><div class="bx-note">${esc(c.why)}</div></div></li>`).join("") : '<li><div class="when">Now</div><div>Use radar, lightning detection and NWS warnings.</div></li>';
     /* ---- one selected time for the map and the hour-by-hour chart: the concern's start, or the event start ---- */
     const evStart = (b.phases.find((p) => p.key === "event") || b.phases[0]).startMs, focus = top && top.from != null ? top.from : evStart;
-    bus = U.timeBus(focus);
-    bus.on((ms) => { document.body.dataset.selected = ms; }); document.body.dataset.selected = focus;
+    const key = selectionKey(), prev = bus && selKey === key ? bus.get() : null;
+    const keep = fin(prev) && prev >= b.all.startMs - 2 * H && prev < b.all.endMs + H ? prev : null;
+    bus = U.timeBus(keep ?? focus); selKey = key;
+    bus.on((ms) => { document.body.dataset.selected = ms; }); document.body.dataset.selected = bus.get();
     if (S.market(ev.loc.lat, ev.loc.lon).map) U.mapPanel($("map"), { view: "venue", field: "refc", place: { ...ev.loc }, bus, tz: "America/New_York", now, autoRun: true }); else U.mapUnavailable($("map"), ev.loc);
     const s = Math.max(Math.floor(now / H) * H, b.all.startMs - 2 * H), e = b.all.endMs + H, hours = S.hourly(ctx, s, e);
     $("hourlyValid").innerHTML = `${esc(fmt.span(V.span[0], V.span[V.span.length - 1] + H, tz))} ${esc(fmt.zone(V.span[0], tz))} · tap an hour`;
@@ -271,7 +290,7 @@
   /* ---- printout: two US Letter pages for a typical single-day event, built from the same values as the screen ---- */
   function printView(res) {
     const host = $("printView"); if (!host || !lastView || !res) return;
-    host.innerHTML = BUI.printMarkup({ ev, res, view: lastView, S, U });
+    host.innerHTML = BUI.printMarkup({ ev, res: { ...res, feeds: res.eventFeeds || res.feeds }, view: lastView, S, U });
   }
   window.addEventListener("beforeprint", () => printView(lastRes));
 

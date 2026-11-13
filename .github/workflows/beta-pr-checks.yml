@@ -1,0 +1,46 @@
+# Offline checks for pull requests into the beta branch: unit tests and deterministic browser checks against
+# simulated or recorded data. Read-only: it commits nothing and never touches the live sites.
+name: Beta pull request checks
+on:
+  pull_request:
+    branches: [beta-previews]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Unit tests
+        run: |
+          for t in core fixtures source-failure beta-story beta-analytics event-store event-times event-backup hourly-model event-presets event-briefing-history event-ops-handoff event-briefing-ui almanac climate-report climate-station weather-history; do
+            echo "::group::$t"; node tests/$t.test.js || { echo "::error::$t failed"; exit 1; }; echo "::endgroup::"
+          done
+      - run: node tools/stamp-assets.js --check
+      - run: |
+          npm install --no-save playwright@1.48.2
+          npx playwright install --with-deps chromium || npx playwright install chromium
+      - name: Missing, failed and delayed sources (simulated network; Event Manager and Model Blend)
+        run: node tools/source-failure-check.js /tmp/source-failure
+      - name: Event briefing phone, themes and two-page print (offline)
+        run: node tools/event-briefing-polish-check.js
+      - name: Hourly grid fixtures (offline)
+        run: |
+          python3 -m http.server 8765 >/dev/null 2>&1 &
+          for i in $(seq 1 20); do curl -fs http://localhost:8765/ >/dev/null && break; sleep 0.5; done
+          mkdir -p /tmp/hourly && node tools/hourly-grid-check.js http://localhost:8765/ /tmp/hourly
+      - name: Almanac station-aware NWS refresh regression
+        run: node tools/almanac-refresh-check.js
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-check-screens
+          path: |
+            /tmp/source-failure
+            docs/beta/screens/event-polish-*
+          if-no-files-found: ignore
