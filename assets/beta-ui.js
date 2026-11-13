@@ -44,7 +44,7 @@
     const apply = (t) => { document.documentElement.setAttribute("data-theme", t); O.$("bxTheme").textContent = t === "dark" ? "Light" : "Dark"; window.dispatchEvent(new CustomEvent("ops:theme")); };
     apply(O.store.get("ops_theme", "dark"));
     O.$("bxTheme").addEventListener("click", () => { const t = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark"; O.store.set("ops_theme", t); apply(t); });
-    return { setUpdated(ms) { O.$("bxUpd").textContent = ms ? `Loaded ${new Date(ms).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}` : ""; }, onRefresh(f) { O.$("bxRefresh").addEventListener("click", f); } };
+    return { setUpdated(ms, { saved = false } = {}) { O.$("bxUpd").textContent = ms ? `${saved ? "Guidance from" : "Loaded"} ${new Date(ms).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}${saved ? " · saved copy" : ""}` : ""; }, onRefresh(f) { O.$("bxRefresh").addEventListener("click", f); } };
   }
 
   /* ---------- data: the same requests and recipe as Model Blend / overview ---------- */
@@ -67,15 +67,15 @@
       thunder ? capped(O.Data.loadModels(CFG.thunder, { ...where, days: Math.max(3, O.savedDays(CFG.thunder)) }).catch(() => ({ empty: true })), 20000, { empty: true }) : Promise.resolve(null),
       capped(O.Data.loadModelMeta(CFG.metaIds).catch(() => ({})), 10000, {}),
     ]);
-    if (B.empty) return { empty: true, problems: B.problems || [], NW, market: mk };
+    if (B.empty) return { empty: true, problems: B.problems || [], retryAfter: B.retryAfter ?? null, NW, market: mk };
     C.blend.addSources(B, BE, NW && NW.ok ? C.nws.onAxis(NW, B.ms) : null);
     B.viewedAt = Date.now();
     const ws = {}; Object.keys(RB.ws).forEach((id) => { if (B.models[id] && RB.ws[id] > 0) ws[id] = RB.ws[id]; });
     const ctx = S.context({ C, T: root.ModelTrends, B, ws, rules: RB.rules, TH, thWs: O.savedWeights(CFG.thunder), meta: META, nws: NW, now: Date.now() });
     ctx.thRecipe = O.savedWeights(CFG.thunder);
     const requested = Object.keys(RB.ws).filter((id) => RB.ws[id] > 0);
-    const why = (id) => id === "nws" ? (NW && NW.reason) || "unavailable" : B.status && B.status[id] === "empty" ? "no coverage here" : B.status && B.status[id] === "failed" ? "request failed" : "no data returned";
-    const feeds = { used: requested.filter((id) => ws[id]).map((id) => FEED_NAMES[id] || id), missing: requested.filter((id) => !ws[id]).map((id) => ({ id, name: FEED_NAMES[id] || id, why: why(id) })) };
+    const why = (id) => id === "nws" ? (NW && NW.reason) || "unavailable" : B.status && B.status[id] === "empty" ? "no coverage here" : B.status && B.status[id] === "failed" ? `request failed${B.failures && B.failures[id] ? ` (${B.failures[id].error})` : ""}` : BE && BE.status && Object.entries(BE.status).some(([e, st]) => st !== "ok" && (CFG.blendEns.models.find((m) => m.id === e) || {}).source === id) ? "ensemble unavailable" : BE && BE.empty ? "ensemble did not answer in time" : "no data returned";
+    const feeds = { usedIds: requested.filter((id) => ws[id]), used: requested.filter((id) => ws[id]).map((id) => FEED_NAMES[id] || id), missing: requested.filter((id) => !ws[id]).map((id) => ({ id, name: FEED_NAMES[id] || id, why: why(id) })) };
     const problems = [...(B.problems || []), ...(NW && !NW.ok ? [`NWS: ${NW.reason}`] : [])];
     return { ctx, RB, NW, problems, feeds, market: mk, recipe: RB.label, verified: RB.verified };
   }

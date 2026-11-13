@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - run: node tests/beta-story.test.js && node tests/beta-analytics.test.js && node tests/event-store.test.js && node tests/event-times.test.js && node tests/event-backup.test.js && node tests/hourly-model.test.js && node tests/event-presets.test.js && node tests/event-briefing-history.test.js && node tests/event-ops-handoff.test.js && node tests/event-briefing-ui.test.js && node tests/calendar-provider.test.js && node tests/venue-search.test.js && node tests/climate-report.test.js && node tests/climate-station.test.js && node tests/weather-history.test.js
+      - run: node tests/beta-story.test.js && node tests/beta-analytics.test.js && node tests/event-store.test.js && node tests/event-times.test.js && node tests/event-backup.test.js && node tests/hourly-model.test.js && node tests/event-presets.test.js && node tests/event-briefing-history.test.js && node tests/event-ops-handoff.test.js && node tests/event-briefing-ui.test.js && node tests/calendar-provider.test.js && node tests/venue-search.test.js && node tests/climate-report.test.js && node tests/climate-station.test.js && node tests/weather-history.test.js && node tests/source-failure.test.js && node tests/climate-daily.test.js
       # system packages come from the Ubuntu mirrors; when the runner can't reach them, install the browser alone
       # (the runner image already carries Chromium's libraries) and say so, rather than skipping every check
       - run: |
@@ -33,18 +33,22 @@ jobs:
           python3 -m http.server 8765 >/dev/null 2>&1 &
           for i in $(seq 1 20); do curl -fs http://localhost:8765/ >/dev/null && break; sleep 0.5; done
           mkdir -p /tmp/hourly && node tools/hourly-grid-check.js http://localhost:8765/ /tmp/hourly
+      - name: Missing, failed and delayed sources (simulated network; Event Manager and Model Blend)
+        run: node tools/source-failure-check.js
       - name: Event briefing phone, themes and two-page print (offline)
         run: node tools/event-briefing-polish-check.js
       - name: Documentary weather history regression
         run: node tools/weather-history-check.js
       - name: Almanac station-aware NWS refresh regression
         run: node tools/almanac-refresh-check.js
+      - name: Almanac daily reports (morning, interim, correction, failed refresh, rollover, time zones)
+        run: node tools/almanac-daily-check.js
       - name: Wait until the preview host serves this commit (pages and scripts)
         run: |
           STAMP=$(grep -o 'beta-ui.js?v=[0-9a-f]*' event-beta.html | head -1)
           echo "STAMP=$STAMP" >> "$GITHUB_ENV"
           # raw.githack.com caches each file by path (it ignores ?v=), so check every file the betas load
-          FILES="meteorologist-beta.html event-beta.html maps.html almanac.html blend.html assets/climate-station.js assets/almanac.js assets/climate-report.js assets/climate-report.css assets/cincinnati-weather-history.js assets/history/cincinnati-flood-1913-bain.jpg assets/record-watch.js assets/beta-analytics.js assets/beta-config.js assets/beta-ui.js assets/beta-story.js assets/beta-met.js assets/beta-event.js assets/event-briefing-history.js assets/event-ops-handoff.js assets/event-hourly-charts.js assets/event-briefing-ui.js assets/event-store.js assets/beta-upcoming.js assets/calendar-import.js assets/venue-search.js assets/hourly-model.js assets/hourly-views.js assets/hourly-grid.js assets/hourly-grid.css assets/blend.js assets/ops-core.js assets/beta.css assets/maps.js assets/ops.js assets/ops.css"
+          FILES="meteorologist-beta.html event-beta.html maps.html almanac.html blend.html assets/climate-station.js assets/almanac.js assets/climate-daily.js assets/ops-data.js assets/blend.js assets/climate-report.js assets/climate-report.css assets/cincinnati-weather-history.js assets/history/cincinnati-flood-1913-bain.jpg assets/record-watch.js assets/beta-analytics.js assets/beta-config.js assets/beta-ui.js assets/beta-story.js assets/beta-met.js assets/beta-event.js assets/event-briefing-history.js assets/event-ops-handoff.js assets/event-hourly-charts.js assets/event-briefing-ui.js assets/event-store.js assets/beta-upcoming.js assets/calendar-import.js assets/venue-search.js assets/hourly-model.js assets/hourly-views.js assets/hourly-grid.js assets/hourly-grid.css assets/blend.js assets/ops-core.js assets/beta.css assets/maps.js assets/ops.js assets/ops.css"
           for i in $(seq 1 40); do
             stale=""
             # -L: the host redirects some files (images) to raw.githubusercontent.com; compare what a browser receives
@@ -85,7 +89,7 @@ jobs:
         run: |
           for i in $(seq 1 36); do
             stale=""
-            for f in almanac.html assets/almanac.js assets/climate-report.js assets/climate-report.css assets/cincinnati-weather-history.js assets/history/cincinnati-flood-1913-bain.jpg event-beta.html assets/event-briefing-history.js assets/event-ops-handoff.js assets/event-hourly-charts.js assets/event-briefing-ui.js assets/beta-event.js assets/beta.css assets/event-store.js assets/beta-upcoming.js assets/hourly-model.js assets/hourly-views.js assets/hourly-grid.js assets/hourly-grid.css assets/beta-config.js assets/calendar-import.js assets/venue-search.js assets/beta-analytics.js assets/ops.js; do [ "$(curl -fsSL "${PAGES}$f" | sha256sum | cut -c1-16)" = "$(sha256sum "$f" | cut -c1-16)" ] || stale="$stale $f"; done
+            for f in almanac.html assets/almanac.js assets/climate-daily.js assets/ops-data.js assets/climate-report.js assets/climate-report.css assets/cincinnati-weather-history.js assets/history/cincinnati-flood-1913-bain.jpg event-beta.html assets/event-briefing-history.js assets/event-ops-handoff.js assets/event-hourly-charts.js assets/event-briefing-ui.js assets/beta-event.js assets/beta.css assets/event-store.js assets/beta-upcoming.js assets/hourly-model.js assets/hourly-views.js assets/hourly-grid.js assets/hourly-grid.css assets/beta-config.js assets/calendar-import.js assets/venue-search.js assets/beta-analytics.js assets/ops.js; do [ "$(curl -fsSL "${PAGES}$f" | sha256sum | cut -c1-16)" = "$(sha256sum "$f" | cut -c1-16)" ] || stale="$stale $f"; done
             if [ -z "$stale" ]; then echo "Cloudflare Pages current"; exit 0; fi
             echo "waiting for:$stale"; sleep 30
           done

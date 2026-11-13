@@ -23,8 +23,19 @@
   }
   function coverage(res) {
     const feeds = res.feeds || {used:[],missing:[]}, used = feeds.used.length, missing = feeds.missing || [];
+    const down = missing.filter(x=>!x.range), short = missing.filter(x=>x.range);
     return {limited:missing.length>0, text:`${used} of ${used+missing.length} model sources available`,
-      detail:missing.length ? `Unavailable: ${missing.map(x=>x.name).join(', ')}. The blend uses the sources available.` : 'All configured model sources returned guidance.'};
+      detail:missing.length ? `${down.length?`Unavailable: ${down.map(x=>x.name).join(', ')}. `:''}${short.length?`Forecast does not reach the event hours yet: ${short.map(x=>x.name).join(', ')}. `:''}The blend uses the sources available.` : 'All configured model sources returned guidance.'};
+  }
+  /* "available" for an event means guidance for at least one of its hours, not just a response: a model whose
+     forecast ends before the event (HRRR at 48 h, say) is listed as not reaching it rather than counted */
+  function eventFeeds(feeds, B, startMs, endMs) {
+    if (!feeds || !Array.isArray(feeds.usedIds) || !B || !Array.isArray(B.ms)) return feeds;
+    const idx = B.ms.map((m,i)=>m+3600e3>startMs&&m<endMs?i:-1).filter(i=>i>=0);
+    const reaches = id => { const h = B.models && B.models[id] && B.models[id].h; return !!h && Object.values(h).some(a=>Array.isArray(a)&&idx.some(i=>Number.isFinite(a[i]))); };
+    const used=[], usedIds=[], short=[];
+    feeds.usedIds.forEach((id,k)=>{ if(reaches(id)){used.push(feeds.used[k]);usedIds.push(id);} else short.push({id,name:feeds.used[k],why:'does not reach the event hours yet',range:true}); });
+    return {...feeds, used, usedIds, missing:[...(feeds.missing||[]), ...short]};
   }
   function sourceHtml(res) {
     const c = coverage(res);
@@ -61,7 +72,7 @@
       <div class="pv-reading"><h2 class="pv-section">Reading this briefing</h2><p>Phase planning notes are on page 1. They do not mean every hour has the same threat. Rain is the blended hourly chance at the venue. Low lightning potential is not zero; Unavailable means guidance is missing. A dash is missing data, not a forecast of none.</p></div>
       <p class="pv-src">${esc(res.recipe)}${res.market.tuned?' · Cincinnati weights; verification under way.':' · Weights unverified for this market.'} Forecast at ${Number(ev.loc.lat).toFixed(4)}, ${Number(ev.loc.lon).toFixed(4)}. Times are the venue's local time (${esc(tz)}). Data: Open-Meteo (CC BY 4.0), National Weather Service, NOAA. Model guidance only, not an official forecast or warning.</p>${foot(2)}</section>`;
   }
-  const api={date,dateSpan,hourWindow,headline,coverage,sourceHtml,rainAmount,printMarkup};
+  const api={date,dateSpan,hourWindow,headline,coverage,eventFeeds,sourceHtml,rainAmount,printMarkup};
   if(typeof module!=='undefined'&&module.exports) module.exports=api;
   root.EventBriefingUI=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
