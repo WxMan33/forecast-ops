@@ -136,7 +136,7 @@ with sync_playwright() as p:
  assert 'THU NOV 5' in page.locator('#driverCard .section-title').inner_text()
  assert page.locator('#timingDay').input_value()=='2026-11-05'
  assert 'THU NOV 5' in page.locator('#scenCard .section-sub').inner_text()
- page.get_by_role('tab',name='48 H',exact=True).click()
+ page.locator('#range').get_by_role('tab',name='48 H',exact=True).click()
  assert 'WED NOV 4' in page.locator('#driverCard .section-title').inner_text(),'range reset refreshes source breakdown'
  page.locator('#daily tr[data-k="2026-11-04"]').click()
  for width in [360,390,900,1280,1440]:
