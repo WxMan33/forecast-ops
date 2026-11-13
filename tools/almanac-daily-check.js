@@ -39,8 +39,12 @@ async function session(browser, { viewerTz = 'America/New_York', locTz = 'Americ
     }
     if (url.hostname === 'data.rcc-acis.org') {
       const q = route.request().postDataJSON();
+      if (q.elems.every(e => ['pcpn','snow'].includes(e.name) && e.reduce?.reduce === 'sum')) {
+        const md = q.edate.slice(5), vals = [4.44,14.5,60.78,9.2,9.2,9.2];
+        return reply({data:[['2020-'+md,...q.elems.map((e,i)=>[vals[i],0])],['2021-'+md,...q.elems.map((e,i)=>[vals[i]+100,1])]]});
+      }
       if (q.elems.some((e) => e.duration)) return reply({ data: [] });
-      if (typeof q.elems[0] === 'object' && !q.elems[0].normal) return reply({ data: [['2025-11-10', '75', '20', '0.5', '0']] });
+      if (typeof q.elems[0] === 'object' && !q.elems[0].normal) return reply({ data: [['2025-'+q.edate.slice(5), '75', '20', '0.5', '0', '3']] });
       const normal = !!q.elems[0].normal, data = [];
       for (let d = new Date(q.sdate + 'T12:00Z'); d <= new Date(q.edate + 'T12:00Z'); d.setUTCDate(d.getUTCDate() + 1)) {
         const day = d.toISOString().slice(0, 10);
@@ -85,6 +89,10 @@ async function advance(p, iso) { await p.clock.setSystemTime(new Date(iso)); awa
     check(/No NWS climate report for today yet/.test(await txt(p, '#dailyCard [data-daily="today"]')), 'morning: no report for today is stated as not issued yet');
     check(await p.evaluate(() => document.querySelector('.climo-context')?.dataset.cutoff) === '2026-11-10', 'morning: totals run through yesterday from the NWS report without waiting for ACIS');
     check(/Wednesday/.test(await txt(p, '#sheetTitle')) && /Climate report · Nov 11, 2026/.test(await txt(p, '#climCard h2')), 'morning: today\'s normals and records stay on today\'s sheet');
+    check(/^4\.44/.test(await txt(p, '[data-climo-row="pcpn-mtd"] td[data-label="Record"]')), 'records: month-to-date maximum appears, excluding the larger incomplete year');
+    check(/^60\.78/.test(await txt(p, '[data-climo-row="pcpn-ytd"] td[data-label="Record"]')), 'records: year-to-date uses its own historical total');
+    check(/^9\.2/.test(await txt(p, '[data-climo-row="snow-season"] td[data-label="Record"]')), 'records: snow-season maximum appears');
+    check(/^3/.test(await txt(p, '[data-climo-row="snwd"] td[data-label="Record"]')), 'records: snow-depth maximum follows the selected calendar date');
     if (shots) { await p.evaluate(() => document.getElementById('dailyCard').scrollIntoView()); await p.screenshot({ path: path.join(shots, 'almanac-morning-desktop-light.png') }); }
 
     /* ---- today's interim report arrives in the afternoon ---- */

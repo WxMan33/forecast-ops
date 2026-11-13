@@ -42,6 +42,7 @@ jobs:
       - run: node tests/model-trends.test.js
       - run: node tests/climate-report.test.js
       - run: node tests/climate-daily.test.js
+      - run: node tests/climate-period-records.test.js
       - run: node tests/astronomy.test.js
       - run: node tests/record-watch.test.js
       - run: node tests/impact-flags.test.js

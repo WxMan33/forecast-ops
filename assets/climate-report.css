@@ -184,3 +184,7 @@
   .almanac-page .statusbar { flex-wrap:wrap; min-width:0; }
   .almanac-page .statusbar > * { min-width:0; max-width:100%; }
 }
+
+.climo-record-ties { font-size:11px; white-space:normal; }
+.climo-record-ties summary { cursor:pointer; color:var(--muted); }
+.climo-record-ties small { overflow-wrap:anywhere; }
