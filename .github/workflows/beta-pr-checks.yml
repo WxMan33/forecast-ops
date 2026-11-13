@@ -17,7 +17,7 @@ jobs:
         with: { node-version: 20 }
       - name: Unit tests
         run: |
-          for t in core fixtures source-failure beta-story beta-analytics event-store event-times event-backup hourly-model event-presets event-briefing-history event-ops-handoff event-briefing-ui almanac climate-report climate-daily climate-station weather-history; do
+          for t in core fixtures source-failure beta-story beta-analytics event-store event-times event-backup hourly-model event-presets event-briefing-history event-ops-handoff event-briefing-ui almanac climate-report climate-daily climate-period-records climate-station weather-history; do
             echo "::group::$t"; node tests/$t.test.js || { echo "::error::$t failed"; exit 1; }; echo "::endgroup::"
           done
       - run: node tools/stamp-assets.js --check

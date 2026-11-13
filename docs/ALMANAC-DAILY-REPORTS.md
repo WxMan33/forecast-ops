@@ -87,3 +87,11 @@ dates and validity lines inside each product, not on these times.
   raw.githack.com preview. A merge into `beta-previews` reaches both; the Beta preview check workflow verifies them.
 - **Production** (GitHub Pages from `main`, wxman33.github.io/forecast-ops): only through the existing release
   process (beta-previews → main). Merging this change into `beta-previews` does not deploy it there.
+
+## Historical to-date records
+
+The Record column now compares cumulative precipitation and snowfall over the exact date range printed at left. These are maxima among complete historical periods in the selected climate station's threaded city series where available, or its own station series otherwise. Month, meteorological season, calendar year and the July 1 snowfall season remain distinct. Winter/snow seasons spanning years show both years. No completed day at the start of a new month/year means observations stay pending; reference records still use the selected date's matching period, never the previous month's total. Snow depth uses the selected calendar day's historical maximum.
+
+ACIS `StnData` requests yearly season-to-date sums with the appropriate `season_start`, `maxmissing:0` and `reduce:{reduce:"sum",add:"mcnt"}`. Missing or absent missing-count metadata disqualifies a historical period. All ties are retained; longer lists can be expanded. Zero and Trace remain distinct. February 29 comparisons exclude nonleap years. Current period-ending years never compete with the past-record baseline. The source and complete-period count accompany the values; histories are cached 24 hours by station and exact query. Errors remain unavailable rather than zero.
+
+Method reference: https://docs.rcc-acis.org/acisws/ . A captured CVG response for totals through November 12, 2026 is retained in `tests/fixtures/almanac/acis-period-records-cvg-1112.json`. It contains historical periods ending in 1872–2025; no current observations were used to choose a historical maximum.

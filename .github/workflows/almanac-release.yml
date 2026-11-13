@@ -28,6 +28,7 @@ jobs:
           node tests/almanac.test.js
           node tests/climate-report.test.js
           node tests/climate-daily.test.js
+          node tests/climate-period-records.test.js
           node tests/climate-station.test.js
           node tests/astronomy.test.js
           node tools/stamp-assets.js --check
