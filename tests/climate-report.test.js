@@ -97,4 +97,15 @@ eq(R.build(A,{date:'2026-11-03',observations:accum,normals}).sections[1].rows[0]
  eq(rows.find(x=>x.id==='maxt').observed.value,72,'NWS daily max reaches sheet');
  eq(rows.find(x=>x.id==='pcpn-mtd').to,'2026-11-09','afternoon report never extends complete-day totals');
 }
+// Beta station selection is part of a report's identity, including cached supplements.
+{
+ const product=require('./fixtures/almanac/nws-cli-cvg-20261110.json');
+ const indy={...product, productText:product.productText.replace('CLICVG','CLIIND')};
+ const cli=R.parseCLI(indy,'IND');
+ eq(cli.station,'IND','parse the selected Indianapolis station');
+ eq(R.parseCLI(product,'IND'),null,'CVG product rejected for Indianapolis');
+ eq(R.parseCLI(indy,'CVG'),null,'Indianapolis product rejected for CVG');
+ eq(R.supplementCLI(A,[],cli,'2026-11-10','IND').used,true,'same-station supplement accepted');
+ eq(R.supplementCLI(A,[],cli,'2026-11-10','DEN').used,false,'same-date different station cannot supply Denver');
+}
 console.log(`${n} climate-sheet checks pass`);
