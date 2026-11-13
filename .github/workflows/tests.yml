@@ -25,6 +25,7 @@ jobs:
       - run: node tests/severe-research.test.js
       - run: node tests/severe-contours.test.js
       - run: python tests/severe-daily.test.py
+      - run: node tests/forecast-support.test.js
       - run: node tests/core.test.js
       - run: node tests/fixtures.test.js
       - run: node verify/tests/verify.test.js

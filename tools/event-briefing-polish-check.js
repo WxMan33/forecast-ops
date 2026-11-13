@@ -27,6 +27,9 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  check(await p.evaluate(()=>{const s=document.body.dataset.selected;return [...document.querySelectorAll('#evCharts [aria-pressed=true]')].length===4&&[...document.querySelectorAll('#evCharts [aria-pressed=true]')].every(e=>e.dataset.hour===s)}),label+' selecting an hour synchronizes all four charts');
  const before=await p.locator('.evc-window').innerText();const later=p.locator('#evCharts [data-move="1"]');if(await later.isEnabled()){await later.click();check((await p.locator('.evc-window').innerText())!==before,label+' later hours use paging rather than horizontal scrolling')}
  check(await p.locator('.sch-labels li').count()===4,label+' all four schedule phases have full labels');
+ check(await p.locator('#sourceCoverage [data-support]').getAttribute('data-support')==='Limited coverage',label+' one source never implies good coverage');
+ check(await p.locator('#sourceCoverage .fs-metrics').innerText().then(t=>t.includes('Unavailable')&&t.includes('1 of 1')),label+' agreement unavailable with one source, hours still counted');
+ check(await p.locator('#sourceCoverage .fs-freshness').innerText().then(t=>t.includes('unavailable')||t.includes('unknown')),label+' missing retrieval times are explicit');
  check(await p.locator('#sourceCoverage').innerText().then(t=>t.includes('1 of 3')&&t.includes('HRRR')),label+' reduced source coverage is visible');
  check(!(await p.locator('#evGrid').innerText()).includes('†'),label+' hourly table has no unexplained phase-rating daggers');
  const head=await p.evaluate(()=>{const els=[...document.querySelectorAll('.bx-head button,.bx-head input,.bx-head a')].filter(e=>e.getBoundingClientRect().width&&getComputedStyle(e).visibility!=='hidden');return els.every((e,i)=>els.slice(i+1).every(f=>{if(e.contains(f)||f.contains(e))return true;const a=e.getBoundingClientRect(),b=f.getBoundingClientRect();return a.right<=b.left+1||b.right<=a.left+1||a.bottom<=b.top+1||b.bottom<=a.top+1}))});check(head,label+' header controls do not overlap');
@@ -34,7 +37,7 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  if(phone&&theme==='dark'){await p.locator('#secHourly').scrollIntoViewIfNeeded();await p.screenshot({path:path.join(out,'event-polish-hourly-phone.png')})}
  if(!phone&&theme==='light'){
   await p.emulateMedia({media:'print'});await p.evaluate(()=>window.dispatchEvent(new Event('beforeprint')));
-  const text=await p.locator('#printView').innerText();check(/Planning window/.test(text)&&/Event\n/.test(text)&&/Nov 13/.test(text),'print separates event from overnight planning window');
+  const text=await p.locator('#printView').innerText();check(text.includes('Guidance support:')&&text.includes('Coverage is not forecast confidence'),'print includes compact coverage and agreement');check(/Planning window/.test(text)&&/Event\n/.test(text)&&/Nov 13/.test(text),'print separates event from overnight planning window');
   const pdf=await p.pdf({path:path.join(out,'event-polish-briefing.pdf'),preferCSSPageSize:true,printBackground:true});const pages=(pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length;check(pages===2,'US Letter printout is exactly two pages (got '+pages+')');
   check(!text.includes('†')&&text.includes('1 / 2')&&text.includes('2 / 2'),'print has page numbers and no undefined daggers');
   check(await p.locator('.pv-p1').innerText().then(t=>t.includes('1 of 3')&&t.includes('HRRR')),'print page one names missing sources');
@@ -55,6 +58,8 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  check(await p.locator('#evCharts .evc-gap').count()>=4,'missing hour is visibly marked in every variable chart');
  }
  if(!phone&&theme==='light'){
+ // Restore complete guidance before testing a weather change; the preceding fixture intentionally removed an hour.
+ await p.goto(base+'/event-beta.html');await p.waitForFunction(()=>document.body.dataset.loaded);
  await p.goto(base+'/event-beta.html?delta=1');await p.waitForFunction(()=>document.body.dataset.loaded);
  check(/Gusts now reach your 25 mph venue limit/.test(await p.locator('#briefUpdate').innerText()),'return visit explains the venue gust-limit crossing');
  const details=p.locator('#opsHandoff details');await details.locator('summary').click();
@@ -67,6 +72,11 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  check(/no longer reaches|now stay below your 25 mph venue limit|fell from/.test(better)&&!/Worse:/.test(better),'improvement names what got better in the same event hours');
  check(await p.evaluate(()=>{const s=JSON.stringify(window.__analytics||[]);const q=JSON.stringify(window.BetaAnalytics?._queue?.()||[]);return Array.isArray(window.__analytics)&&String(window.BetaAnalytics.track).includes('__analytics')&&!/Improved|no longer|venue limit|briefing|Riverfront|Sawyer|39\.1|84\.5/.test(s+q)}),'comparison text never reaches analytics');
  await p.screenshot({path:path.join(out,'event-polish-improved.png'),fullPage:false});
+ await p.evaluate(()=>localStorage.removeItem('forecast_ops_briefing_history_v1'));
+ await p.goto(base+'/event-beta.html');await p.waitForFunction(()=>document.body.dataset.loaded);
+ await p.goto(base+'/event-beta.html?shift=1');await p.waitForFunction(()=>document.body.dataset.loaded);
+ const timing=await p.locator('#briefUpdate').innerText();
+ check(/Timing:/.test(timing)&&/2 hours later/.test(timing)&&!/Worse:/.test(timing),'same-source rain shift is labelled Timing, not worsening or an all-clear');
  await p.goto(base+'/event-beta.html?live=1');await p.waitForFunction(()=>document.body.dataset.loaded);
  check(await p.evaluate(()=>!!(document.getElementById('opsHandoff').compareDocumentPosition(document.getElementById('decision'))&Node.DOCUMENT_POSITION_FOLLOWING)),'event-day monitoring handoff appears before the forecast decision');
  await p.screenshot({path:path.join(out,'event-polish-live-monitoring.png'),fullPage:true});

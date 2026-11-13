@@ -51,11 +51,13 @@ async function eventChecks(base) {
   const all = (await text(p, '#sourceCoverage')).match(/(\d+) of (\d+)/);
   check(all && all[1] === all[2], 'event: all simulated sources answer and all are counted (' + (all && all[0]) + ')');
   const total = all ? +all[2] : 0;
+  check(await p.locator('#sourceCoverage [data-support]').count()===1, 'event: shared guidance support panel renders');
 
   /* ---- one model rate-limited ---- */
   state.scenario = { forecast: { gfs_seamless: { status: 429 } } };
   await p.goto(base + '/event-beta.html?ev=ev_sim'); await p.evaluate(() => sessionStorage.clear()); await p.reload(); await settled(p);
   let cov = await text(p, '#sourceCoverage'), line = await text(p, '#blendLine');
+  check(await p.locator('#sourceCoverage [data-support]').getAttribute('data-support')==='Limited coverage','event: rate limit leaves support limited, not improving weather');
   check(cov.includes(`${total - 1} of ${total}`) && /GFS/.test(cov), 'event: one rate-limited model is excluded from the count and named');
   check(/GFS \(request failed[^)]*429/.test(line), 'event: the blend line records the provider status for the missing model (HTTP 429)');
 
@@ -214,6 +216,17 @@ async function blendChecks(base) {
     if (label === 'one model 429') check(/GFS: request failed \(HTTP 429\)/.test(m), 'blend: a rate-limited model is named with its HTTP status (' + m.slice(0, 160) + ')');
     if (label === 'all models 500') { check(/Couldn't reach/.test(m), 'blend: all models failing says so'); check(!/No (additional )?flags|all clear/i.test(await text(p, '#next48HeadsUp')), 'blend: no all-clear while every model is down'); }
     if (label === 'NWS down') { check(/NWS unavailable/.test(m), 'blend: NWS outage is named while models load'); check(/NWS alert check unavailable/.test(await text(p, '#next48HeadsUp')), 'blend: alert-check failure is stated'); }
+    if(label!=='all models 500'){
+      check(await p.locator('#guidanceSupport [data-support]').count()===1, `blend (${label}): shared coverage and agreement panel renders`);
+    }
+    if(label==='one model 429'){
+      const before=await p.locator('#guidanceSupport .fs-window').innerText();
+      await p.locator('#hgRange').getByRole('tab',{name:'48 H',exact:true}).click();
+      check((await p.locator('#guidanceSupport .fs-window').innerText())!==before,'blend: support follows the selected 48-hour window');
+      await p.locator('#hgRange').getByRole('tab',{name:'CUSTOM',exact:true}).click();
+      await p.locator('#hgFrom').fill('2026-11-12T12:00');await p.locator('#hgTo').fill('2026-11-12T18:00');await p.locator('#hgApply').click();
+      check((await p.locator('#guidanceSupport').textContent()).includes('6/6 hours'),'blend: custom six-hour support counts the same six forecast hours');
+    }
     check(state.errors.length === 0, `blend (${label}): no script errors ` + state.errors.join('; '));
     await ctx.close();
   }
