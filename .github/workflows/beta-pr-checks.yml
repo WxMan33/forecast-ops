@@ -17,7 +17,7 @@ jobs:
         with: { node-version: 20 }
       - name: Unit tests
         run: |
-          for t in core fixtures source-failure beta-story beta-analytics event-store event-times event-backup hourly-model event-presets event-briefing-history event-ops-handoff event-briefing-ui almanac climate-report climate-station weather-history; do
+          for t in core fixtures source-failure beta-story beta-analytics event-store event-times event-backup hourly-model event-presets event-briefing-history event-ops-handoff event-briefing-ui almanac climate-report climate-daily climate-station weather-history; do
             echo "::group::$t"; node tests/$t.test.js || { echo "::error::$t failed"; exit 1; }; echo "::endgroup::"
           done
       - run: node tools/stamp-assets.js --check
@@ -35,6 +35,8 @@ jobs:
           mkdir -p /tmp/hourly && node tools/hourly-grid-check.js http://localhost:8765/ /tmp/hourly
       - name: Almanac station-aware NWS refresh regression
         run: node tools/almanac-refresh-check.js
+      - name: Almanac daily reports (morning, interim, correction, failed refresh, rollover, time zones)
+        run: node tools/almanac-daily-check.js /tmp/almanac-daily
       - name: Keep the screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -42,5 +44,6 @@ jobs:
           name: offline-check-screens
           path: |
             /tmp/source-failure
+            /tmp/almanac-daily
             docs/beta/screens/event-polish-*
           if-no-files-found: ignore
