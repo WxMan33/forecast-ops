@@ -151,6 +151,7 @@ GitHub Actions (`.github/workflows/tests.yml`) runs the unit and fixture tests o
 - **Ensemble odds use only members that cover every hour of the window.** A member with gaps gives a lower bound ("at least") and is reported separately. It never decides a threshold. Plume lines stop at a gap.
 - **"Since your last check" compares like with like.** Rows are compared only when they cover the same valid window. Each snapshot records the contributing models and your weights. If either changed, those differences go in a separate **recipe changed** group (`affected` in `changes.diff`). They are never treated as forecast changes, so they can't trigger a "forecast worsened" alert later.
 - **The overview matches the tools.** It uses the same config, the weights you've set on each tool page, and the same aggregation, over full calendar days.
+- **Almanac daily reports** (yesterday's weather, today's NWS climate update, refresh cadence, interim versus completed reports): see [docs/ALMANAC-DAILY-REPORTS.md](docs/ALMANAC-DAILY-REPORTS.md).
 - The header chip says **PARTIAL DATA** whenever a model failed, had no coverage, or lacked fields. Hover it for the list.
 
 ## Forecast verification (private)

@@ -55,6 +55,15 @@
     out.__retrievedAt = feed.__retrievedAt; out.__fromCache = feed.__fromCache;
     return out;
   }
+  /* Retry-After: delta-seconds or an HTTP date. Anything else, or a negative or absurd value, is ignored (null). */
+  function retryAfterSeconds(v, now = Date.now()) {
+    if (v == null || v === "") return null;
+    const s = String(v).trim();
+    const sec = /^\d+$/.test(s) ? +s : (() => { const t = Date.parse(s); return Number.isFinite(t) && /[a-z]/i.test(s) ? Math.round((t - now) / 1000) : NaN; })();
+    return Number.isFinite(sec) && sec >= 0 && sec <= 86400 ? sec : null;
+  }
+  /* why a request failed, as recorded for the user: HTTP status, timeout or network error */
+  const failureText = (e) => e && e.httpStatus ? `HTTP ${e.httpStatus}` : e && e.timeout ? "timed out" : (e && e.message) || "unknown error";
   async function getJSON(url, cacheMin = 15, headers) {
     const key = "ops_c:" + url;
     let cache = null;
@@ -65,9 +74,14 @@
     const ctl = new AbortController();
     const to = setTimeout(() => ctl.abort(), 20000);
     let res;
-    try { res = await fetch(url, headers ? { signal: ctl.signal, headers } : { signal: ctl.signal }); } finally { clearTimeout(to); }
-    const json = await res.json().catch(() => ({ error: true, reason: `HTTP ${res.status}` }));
+    try { res = await fetch(url, headers ? { signal: ctl.signal, headers } : { signal: ctl.signal }); }
+    catch (e) { const err = new Error(e && e.name === "AbortError" ? "timed out" : `network error: ${(e && e.message) || e}`); err.timeout = !!(e && e.name === "AbortError"); throw err; }
+    finally { clearTimeout(to); }
+    let json = await res.json().catch(() => ({ error: true, reason: `HTTP ${res.status}` }));
+    if (!json || typeof json !== "object") json = { error: !res.ok, reason: `HTTP ${res.status}` };
     if (!res.ok && !json.error) { json.error = true; json.reason = `HTTP ${res.status}`; }
+    /* the provider's own status and retry guidance travel with a failure (Retry-After only where the provider exposes it) */
+    if (!res.ok) { json.httpStatus = res.status; json.retryAfter = retryAfterSeconds(res.headers && res.headers.get ? res.headers.get("Retry-After") : null); }
     const at = Date.now();
     if (cacheMin && cache && !json.error) { try { cache.setItem(key, JSON.stringify({ at, json })); } catch (e) { /* full */ } }
     /* when this response was actually retrieved (the original time when served from the browser cache) */
@@ -98,7 +112,7 @@
       const why = String(json.reason || "");
       const levels = [...why.matchAll(/(\d{3,4})\s*hPa/gi)].map((m) => `_${m[1]}hPa`);
       const bad = [...hv, ...dv].filter((v) => why.includes(v) || levels.some((l) => v.endsWith(l)));
-      if (!bad.length) throw new Error(why || "Request failed");
+      if (!bad.length || json.httpStatus >= 429) { const err = new Error(why || "Request failed"); err.httpStatus = json.httpStatus || null; err.retryAfter = json.retryAfter ?? null; throw err; }
       dropped.push(...bad);
       hv = hv.filter((v) => !bad.includes(v)); dv = dv.filter((v) => !bad.includes(v));
     }
@@ -180,10 +194,10 @@
     const list = spec.models.filter((m) => !ids || ids.includes(m.id));
     const params = { ...spec.params, forecast_days: days || spec.days };
     const res = await Promise.allSettled(list.map((m) => fetchModel(spec.base, params, m.id, [...spec.hourly, ...((spec.extraHourly || {})[m.id] || [])], spec.daily, { lat, lon })));
-    const status = {}, problems = [], ok = [];
+    const status = {}, problems = [], ok = [], failures = {};
     res.forEach((r, i) => {
       const m = list[i];
-      if (r.status !== "fulfilled") { status[m.id] = "failed"; problems.push(`${m.name}: request failed`); return; }
+      if (r.status !== "fulfilled") { status[m.id] = "failed"; failures[m.id] = { status: r.reason && r.reason.httpStatus || null, retryAfter: r.reason && r.reason.retryAfter != null ? r.reason.retryAfter : null, error: failureText(r.reason) }; problems.push(`${m.name}: request failed (${failureText(r.reason)})`); return; }
       const names = [...spec.hourly, ...((spec.extraHourly || {})[m.id] || [])];
       const h = pick(r.value.hourly, names), d = pick(r.value.daily, spec.daily || []);
       const absentMinimum = (m.minimumFields || []).filter(v => !S.hasData(h[v]));
@@ -194,7 +208,8 @@
       status[m.id] = "ok";
       ok.push({ m, j: r.value, h, d, names });
     });
-    if (!ok.length) return { times: [], dtimes: [], tz: null, models: {}, status, problems, empty: true };
+    const waits = Object.values(failures).map((f) => f.retryAfter).filter((x) => x != null);
+    if (!ok.length) return { times: [], dtimes: [], tz: null, models: {}, status, problems, failures, retryAfter: waits.length ? Math.max(...waits) : null, empty: true };
     const master = ok.reduce((a, b) => (b.j.hourly.time.length > a.j.hourly.time.length ? b : a)).j;
     const times = master.hourly.time, dtimes = (master.daily && master.daily.time) || [];
     const models = {};
@@ -204,7 +219,7 @@
       (spec.daily || []).forEach((v) => (dd[v] = j.daily ? S.align(dtimes, j.daily.time, d[v]) : dtimes.map(() => null)));
       models[m.id] = { h: hh, d: dd, elev: j.elevation ?? null, provenance: j.__rrfs || null, retrievedAt: j.__retrievedAt || null, fromCache: !!j.__fromCache };
     });
-    return withAxis({ times, dtimes, tz: master.timezone, offset: master.utc_offset_seconds, models, status, problems });
+    return withAxis({ times, dtimes, tz: master.timezone, offset: master.utc_offset_seconds, models, status, problems, failures });
   }
 
   /* Ensembles for a config spec. Returns {times, tz, ens: {id: {var: [member arrays]}}, status, problems} */
@@ -218,7 +233,7 @@
     const members = (block, v) => Object.keys(block || {}).filter((k) => (k === v || k.startsWith(v + "_")) && Array.isArray(block[k])).sort((a,b) => a.localeCompare(b)).map((k) => block[k]);
     res.forEach((r, i) => {
       const m = list[i];
-      if (r.status !== "fulfilled") { status[m.id] = "failed"; problems.push(`${m.name}: unavailable`); return; }
+      if (r.status !== "fulfilled") { status[m.id] = "failed"; problems.push(`${m.name}: unavailable (${failureText(r.reason)})`); return; }
       const byVar = {}; spec.hourly.forEach((v) => (byVar[v] = members(r.value.hourly, v)));
       if (!byVar[spec.require[0]].some(S.hasData)) { status[m.id] = "empty"; problems.push(`${m.name}: no members here`); return; }
       status[m.id] = "ok";
@@ -246,7 +261,7 @@
     }));
     return out;
   }
-  const OpsData = { getJSON, loadModelMeta, fetchModel, pick, loadModels, loadEnsemble, toMeters, loadNWS, withAxis, directRrfsResponse, loadDirectRrfs };
+  const OpsData = { getJSON, retryAfterSeconds, loadModelMeta, fetchModel, pick, loadModels, loadEnsemble, toMeters, loadNWS, withAxis, directRrfsResponse, loadDirectRrfs };
   if (typeof module !== "undefined" && module.exports) module.exports = OpsData;
   root.OpsData = OpsData;
 })(typeof self !== "undefined" ? self : globalThis);

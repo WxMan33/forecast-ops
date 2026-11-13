@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Meteorologist beta · Forecast Ops</title>
+<meta name="description" content="Beta: forecast timeline, regional HRRR map, guidance age and model disagreement for meteorologists.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/icon.svg?v=05c4bd5103" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap">
+<!--load-guard--><script>/* Load guard (managed by tools/stamp-assets.js). Shown only if a page script fails to download or throws. */
+(function () { var shown = false;
+  function show(msg) { if (shown) return; shown = true;
+    var go = function () { var b = document.createElement("div"); b.setAttribute("role", "alert"); b.id = "loadGuard";
+      b.style.cssText = "position:sticky;top:0;z-index:9999;margin:0;padding:10px 16px;background:#7a1f12;color:#fff;font:600 14px/1.4 system-ui,sans-serif;display:flex;gap:12px;align-items:center;flex-wrap:wrap";
+      b.innerHTML = '<span>This page didn\u2019t finish loading. <span style="font-weight:400"></span></span><button type="button" style="font:inherit;padding:4px 12px;border-radius:6px;border:1px solid #fff;background:#fff;color:#7a1f12;cursor:pointer">Reload</button>';
+      b.querySelector("span span").textContent = msg; b.querySelector("button").onclick = function () { location.reload(); };
+      document.body.insertBefore(b, document.body.firstChild); };
+    if (document.body) go(); else document.addEventListener("DOMContentLoaded", go); }
+  window.addEventListener("error", function (e) { var t = e.target;
+    if (t && (t.tagName === "SCRIPT" || (t.tagName === "LINK" && t.rel === "stylesheet")) && (t.src || t.href || "").indexOf(location.origin) === 0) show("A site file (" + (t.src || t.href).split("/").pop().split("?")[0] + ") could not be downloaded.");
+    else if (e.filename && e.filename.indexOf(location.origin) === 0) show("A script error stopped it (" + e.message + ").");
+  }, true);
+  window.addEventListener("unhandledrejection", function (e) { var r = e.reason, st = (r && r.stack) || "";
+    if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
+  });
+})();</script><!--/load-guard-->
+<link rel="stylesheet" href="assets/ops.css?v=4d803a5167">
+<link rel="stylesheet" href="assets/beta.css?v=6f49a75490">
+<style>
+  #tools { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  #tools .hubcard { grid-template-rows: auto auto 1fr auto; align-content: stretch; }
+  #tools .hubcard .go { align-self: end; }
+  .hubcard.lead .lead-links { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row; }
+  .hubcard.lead .lead-links .kick { grid-column: 1 / -1; }
+  .hubcard.lead .lead-links a { justify-self: stretch; text-align: center; }
+  @media (max-width: 1100px) {
+    #tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #tools .hubcard.dev { grid-column: 1 / -1; }
+  }
+  @media (max-width: 560px) {
+    #tools { grid-template-columns: minmax(0, 1fr); }
+    .hubcard.lead .lead-links { justify-self: start; }
+  }
+</style>
+</head>
+<body class="betamenu-page">
+<main class="workspace single">
+  <div class="main">
+    <section class="card betaplace" aria-label="Location">
+      <div class="betaplace-row">
+        <div class="betaplace-pick"><span class="kick">Forecast point</span><div id="picker"></div></div>
+        <div class="betaplace-clim"><span class="kick">Climate station</span><b id="climName">Finding…</b><span class="msg" id="climMeta"></span></div>
+      </div>
+      <p class="msg" style="margin:8px 0 0">Every tool below opens for this point. Use <b>MENU</b> in the bar above to come back here.</p>
+    </section>
+
+    <div class="hub hub-lead" id="lead"></div>
+    <div class="hub" id="tools"></div>
+    <p class="msg betamenu-foot">Beta for colleague testing · <a href="event-beta.html">Event briefing beta</a> · Model guidance only, not an official forecast. The official NWS forecast is shown, labelled, alongside the blend.</p>
+  </div>
+</main>
+<script src="assets/ops-core.js?v=51da40cf5f"></script>
+<script src="assets/ops-data.js?v=90043b23b0"></script>
+<script src="assets/ops.js?v=164a58c5bf"></script>
+<script src="assets/forecast-clock.js?v=c6df9f20b7"></script>
+<script src="assets/climate-station.js?v=80f06ff23b"></script>
+<script src="assets/model-trends.js?v=20f2fb637c"></script>
+<script src="assets/beta-story.js?v=6daae83280"></script>
+<script src="assets/beta-config.js?v=b700775810"></script>
+<script src="assets/beta-analytics.js?v=2fe1a4634a"></script>
+<script src="assets/beta-ui.js?v=e0e1560d9a"></script>
+<script src="assets/beta-met.js?v=780ae6eb41"></script>
+</body>
+</html>

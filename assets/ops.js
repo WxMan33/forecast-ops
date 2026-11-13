@@ -84,10 +84,18 @@
   ];
 
   /* opts: { subtitle, forecastPoint (default true): show the forecast point and its NWS alerts } */
-  const SUBTITLES = { home: "Next three days at a glance", blend: "Weighted guidance from models, ensembles and NWS", thunder: "Hour-by-hour thunder signal", severe: "Severe-weather environment by hour", winter: "Snow odds, precipitation type and profiles", almanac: "Sun, moon and Cincinnati daily climate", maps: "HRRR model guidance across the Tri-State" };
+  const SUBTITLES = { betamenu: "Meteorologist beta · choose a tool", home: "Next three days at a glance", blend: "Weighted guidance from models, ensembles and NWS", thunder: "Hour-by-hour thunder signal", severe: "Severe-weather environment by hour", winter: "Snow odds, precipitation type and profiles", almanac: "Sun, moon and daily climate for the selected point", maps: "In development · HRRR 3 km, Cincinnati Tri-State only" };
   function shell(pageId, title, opts = {}) {
     const fp = opts.forecastPoint !== false, sub = opts.subtitle || SUBTITLES[pageId] || "";
     document.title = `${title} · ${BRAND.name}`;
+    /* embed=1 (a page shown inside another page, e.g. the map in the beta briefings): no header,
+       navigation, alerts or footer; the theme follows the host page through shared storage */
+    if (EMBED) {
+      document.body.classList.add("embed");
+      applyTheme(theme());
+      window.addEventListener("storage", (e) => { if (e.key === "ops_theme") applyTheme(store.get("ops_theme", "dark")); });
+      return;
+    }
     const header = document.createElement("header");
     header.className = "statusbar";
     header.innerHTML = `
@@ -104,8 +112,16 @@
     const nav = document.createElement("nav");
     nav.className = "navbar";
     nav.setAttribute("aria-label", "Tools");
-    nav.innerHTML = PAGES.map((p) =>
-      `<a href="${p.href}"${p.id === pageId ? ' aria-current="page"' : ""}>${icon(p.icon)}${p.label}</a>`).join("");
+    let betaMenu = pageId === "betamenu"; try { betaMenu = betaMenu || sessionStorage.getItem("fo_beta_aud") === "met"; } catch (e) { /* no storage */ }
+    const menuLink = () => shareUrl("meteorologist-beta.html");
+    const navHref = (p) => (p.id === "maps" ? p.href : shareUrl(p.href)); // the HRRR map is Tri-State only: no point to carry
+    nav.innerHTML = (betaMenu ? `<a href="${esc(menuLink())}" id="betaMenuLink"${pageId === "betamenu" ? ' aria-current="page"' : ""}>${icon("grid")}MENU</a>` : "") + PAGES.filter((p) => !betaMenu || p.id !== "home").map((p) =>
+      `<a href="${esc(navHref(p))}" data-nav="${p.id}"${p.id === pageId ? ' aria-current="page"' : ""}>${icon(p.icon)}${p.label}</a>`).join("");
+    /* every way into a tool carries the selected point, so a copied nav link opens the same place for anyone */
+    locListeners.push(() => {
+      const a = document.getElementById("betaMenuLink"); if (a) a.href = menuLink();
+      PAGES.forEach((p) => { const el = nav.querySelector(`[data-nav="${p.id}"]`); if (el) el.href = navHref(p); });
+    });
     const alerts = document.createElement("div");
     alerts.id = "alerts";
     alerts.className = "alerts";
@@ -114,14 +130,16 @@
 
     const foot = document.createElement("footer");
     foot.className = "foot";
-    foot.innerHTML = `<div class="foot-top"><span class="foot-brand">${esc(BRAND.name)}</span><div class="foot-links"><a href="verify.html">CVG verification</a><a href="#" id="verifyExport">Export forecast &amp; observation logs</a></div></div>
+    /* beta preview builds (served from the preview host) carry no verification links */
+    const preview = /(^|\.)githack\.com$|(^|\.)forecast-ops-beta\.pages\.dev$/.test(location.hostname); // beta preview hosts: no private verification links
+    foot.innerHTML = `<div class="foot-top"><span class="foot-brand">${esc(BRAND.name)}${preview ? " · beta preview" : ""}</span><div class="foot-links">${preview ? '<a href="meteorologist-beta.html">Meteorologist beta</a><a href="event-beta.html">Event beta</a>' : '<a href="verify.html">CVG verification</a><a href="#" id="verifyExport">Export forecast &amp; observation logs</a>'}</div></div>
       <p class="foot-attribution">Built by ${BRAND.contact ? `<a href="${esc(BRAND.contact)}">${esc(BRAND.owner)}</a>` : esc(BRAND.owner)} · Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0) · Alerts from <a href="https://www.weather.gov/" target="_blank" rel="noopener">NWS</a></p>
       <p class="foot-disclaimer">Model guidance only. Not an official forecast or warning. NWS is one weighted source in Model Blend; elsewhere NWS values are labelled NWS and shown alongside.</p>`;
     document.body.append(foot);
 
     $("themeBtn").addEventListener("click", () => { const t = theme() === "dark" ? "light" : "dark"; store.set("ops_theme", t); applyTheme(t); });
     $("printBtn").addEventListener("click", () => window.print());
-    $("verifyExport").addEventListener("click", (e) => { e.preventDefault(); exportVerify(); });
+    if ($("verifyExport")) $("verifyExport").addEventListener("click", (e) => { e.preventDefault(); exportVerify(); });
     applyTheme(theme());
     if (fp) { showLocation(); loadAlerts(); locListeners.push(() => loadAlerts()); if(alertRefresh)clearInterval(alertRefresh);alertRefresh=setInterval(()=>{if(!document.hidden)loadAlerts();},300000); }
     /* event slots on every page: editor under Location, results at the top of the main column */
@@ -173,6 +191,7 @@
     store.set("ops_blend_weight_scope","nearTemp");
     store.set("ops_scoped_default_version",Core.blend.CUSTOM_DEFAULTS.id);
   }
+  const EMBED = (() => { try { return new URLSearchParams(location.search).get("embed") === "1"; } catch (e) { return false; } })();
   /* ---------- location (URL first, so a shared link opens the same point) ---------- */
   const DEFAULT_LOC = { name: PRESETS[0][0], lat: PRESETS[0][1], lon: PRESETS[0][2] };
   function fromUrl() {
@@ -295,8 +314,7 @@
       if (q.length < 2) { $("locResults").innerHTML = ""; return; }
       timer = setTimeout(async () => {
         try {
-          const j = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=en&format=json`, 0);
-          const r = j.results || [];
+          const r = await searchPlaces(q, { raw: true });
           $("locResults").innerHTML = r.length ? r.map((x, i) =>
             `<button type="button" data-i="${i}">${esc(x.name)} <small>${esc([x.admin1, x.country_code].filter(Boolean).join(", "))}</small></button>`).join("")
             : '<p class="msg">No matches.</p>';
@@ -308,6 +326,16 @@
         } catch (err) { $("locResults").innerHTML = '<p class="msg err">Place search is unavailable right now.</p>'; }
       }, 300);
     });
+  }
+  /* Place search (Open-Meteo geocoding), shared by the location card and the betas.
+     raw: the provider's results as-is; otherwise {name: "City, ST", city, state, country, county, lat, lon, tz, pop}. */
+  async function searchPlaces(q, { raw = false, usOnly = false, count = 6 } = {}) {
+    const j = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=${usOnly ? Math.max(count, 10) : count}&language=en&format=json`, 0);
+    let r = j.results || [];
+    if (usOnly) r = r.filter((x) => x.country_code === "US").slice(0, count);
+    if (raw) return r;
+    return r.map((x) => ({ name: [x.name, x.admin1 && x.country_code === "US" ? stateAbbr(x.admin1) : x.country_code].filter(Boolean).join(", "), city: x.name, state: x.admin1 ? stateAbbr(x.admin1) : "",
+      country: x.country_code, county: x.admin2 || "", lat: x.latitude, lon: x.longitude, tz: x.timezone || null, pop: x.population || null }));
   }
   const STATES = { Alabama: "AL", Alaska: "AK", Arizona: "AZ", Arkansas: "AR", California: "CA", Colorado: "CO", Connecticut: "CT", Delaware: "DE", Florida: "FL", Georgia: "GA", Hawaii: "HI", Idaho: "ID", Illinois: "IL", Indiana: "IN", Iowa: "IA", Kansas: "KS", Kentucky: "KY", Louisiana: "LA", Maine: "ME", Maryland: "MD", Massachusetts: "MA", Michigan: "MI", Minnesota: "MN", Mississippi: "MS", Missouri: "MO", Montana: "MT", Nebraska: "NE", Nevada: "NV", "New Hampshire": "NH", "New Jersey": "NJ", "New Mexico": "NM", "New York": "NY", "North Carolina": "NC", "North Dakota": "ND", Ohio: "OH", Oklahoma: "OK", Oregon: "OR", Pennsylvania: "PA", "Rhode Island": "RI", "South Carolina": "SC", "South Dakota": "SD", Tennessee: "TN", Texas: "TX", Utah: "UT", Vermont: "VT", Virginia: "VA", Washington: "WA", "West Virginia": "WV", Wisconsin: "WI", Wyoming: "WY", "District of Columbia": "DC" };
   const stateAbbr = (s) => STATES[s] || s;
@@ -776,7 +804,7 @@
 
   window.Ops = {
     pct5, Core, BRAND, PRESETS, TIER, maxTier, badge, $, esc, store, css, icon,
-    shell, onAlerts, get alertState(){return alertState;}, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
+    shell, onAlerts, searchPlaces, zoneFor, stateAbbr, onLocation: (f) => locListeners.push(f), get alertState(){return alertState;}, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
     Data, getJSON, hasData, savedWeights, savedDays, align: Core.stats.align,
     nowIndex, hourOf, dayOf, fmtDay, fmtHour, fmtWhen, tzShort, hourLabels, dayGroups,
     blendSeries: Core.stats.blendSeries, weightedQuantile: Core.stats.weightedQuantile,

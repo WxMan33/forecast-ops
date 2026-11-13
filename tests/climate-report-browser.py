@@ -11,6 +11,8 @@ threading.Thread(target=server.serve_forever,daemon=True).start()
 with sync_playwright() as p:
  browser=p.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1000});page=context.new_page()
  errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+ # Station choice has its own resolver tests; this layout regression fixes CVG explicitly.
+ page.route('**/assets/climate-station.js*',lambda r:r.fulfill(status=200,content_type='application/javascript',body="window.ClimateStation={setOverride(){},forPoint:async()=>({pointOffice:'ILN',station:{faa:'CVG',name:'CVG airport',office:'ILN',ll:[-84.67,39.04],km:0,since:1871,thr:{sid:'CVGthr',name:'Cincinnati',since:1871}},alternatives:[],missing:[]})};"))
  page.clock.install(time=datetime.fromisoformat(json.loads(iss_fixture)['retrievedAt'].replace('Z','+00:00'))+timedelta(minutes=1))
  requests=[]
  def route(r):
@@ -52,7 +54,7 @@ with sync_playwright() as p:
  assert page.locator('#notesCard').count()==0
  assert page.locator('.wnbadge.standing').count()>=1
  assert '${o.days}' not in page.locator('#factCard').inner_text()
- assert not any('forecast.weather.gov' in u or ('api.weather.gov' in u and '/products/' not in u) for u in requests),'only observed climate products, no forecast on Almanac'
+ assert not any('forecast.weather.gov' in u or ('api.weather.gov' in u and '/products/' not in u and '/points/' not in u) for u in requests),'only observed climate products, no forecast on Almanac'
  out=root/'tests/out';out.mkdir(exist_ok=True)
  for width in [360,390,900,1280,1440]:
   page.set_viewport_size({'width':width,'height':1000})
