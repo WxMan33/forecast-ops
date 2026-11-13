@@ -9,7 +9,7 @@
   /* status: "observed" (a past date), "today" (in progress: reported values are preliminary, the rest pending) or
      "future" (reference values only). cutoff: the last date included in observed totals (<= date); when it is earlier
      than date the totals are labelled with it and never shown as complete for the selected date. */
-  function build(A, { date, observations = [], normals = [], records = null, observed = true, status = null, cutoff = null, pending = false }) {
+  function build(A, { date, observations = [], normals = [], records = null, periodRecords = {}, observed = true, status = null, cutoff = null, pending = false }) {
     status = status || (observed ? "observed" : "future");
     observed = status !== "future";
     const end = status === "future" ? null : (cutoff && cutoff < date ? cutoff : date);
@@ -45,11 +45,11 @@
       const ps = previousYear(start), pe = previousYear(span);
       const p = ps && pe ? A.accumulate(observations, [], ps, pe, col) : null;
       const ly = p?.complete ? { value: p.total, trace: !!p.traceOnly } : missing(p ? `${p.missing.length} of ${p.days} days missing` : 'No matching calendar date last year');
-      return { id, label, from: start, to: span, partial: !!to && to < date, unit: 'in', decimals, observed: o, normal: n, departure: departure(o, n), lastYear: ly, record: null };
+      return { id, label, from: start, to: span, partial: !!to && to < date, unit: 'in', decimals, observed: o, normal: n, departure: departure(o, n), lastYear: ly, record: periodRecords[id] || null };
     }
     const since = start => 'Since ' + new Date(start + 'T12:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
     const precip = [dayRow('pcpn', 'Daily total', 3, 'precip', 'in', 2), totalRow('pcpn-mtd', 'Month to date', month, 3, 2), totalRow('pcpn-std', since(season.start), season.start, 3, 2), totalRow('pcpn-ytd', 'Since Jan 1', `${y}-01-01`, 3, 2)];
-    const snow = [dayRow('snow', 'Daily total', 4, 'snow', 'in', 1), totalRow('snow-mtd', 'Month to date', month, 4, 1), totalRow('snow-std', since(season.start), season.start, 4, 1), totalRow('snow-season', since(snowStart), snowStart, 4, 1), { id: 'snwd', label: 'Snow depth', unit: 'in', decimals: 0, observed: dayValue(5), normal: null, departure: null, record: null, lastYear: value(last?.[5]) }];
+    const snow = [dayRow('snow', 'Daily total', 4, 'snow', 'in', 1), totalRow('snow-mtd', 'Month to date', month, 4, 1), totalRow('snow-std', since(season.start), season.start, 4, 1), totalRow('snow-season', since(snowStart), snowStart, 4, 1), { id: 'snwd', label: 'Snow depth', unit: 'in', decimals: 0, observed: dayValue(5), normal: null, departure: null, record: records?.snowDepth || null, lastYear: value(last?.[5]) }];
     return { date, status, cutoff: end, previousDate: prior, season, observed, sections: [{ id: 'temperature', label: 'Temperature', unit: '°F', rows: temp }, { id: 'precipitation', label: 'Precipitation', unit: 'inches', rows: precip }, { id: 'snowfall', label: 'Snowfall', unit: 'inches', rows: snow }] };
   }
   /* Only products for the requested station with an explicit climate-summary date may supply values.
