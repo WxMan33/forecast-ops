@@ -1,0 +1,61 @@
+/* Shared hourly grid (hourly-grid.js). Uses the site's existing tokens, so light and dark themes follow ops.css. */
+.hg { --hg-lab: 128px; --hg-col: 58px; font-variant-numeric: tabular-nums; }
+.hg-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); outline-offset: 2px; }
+.hg-t { border-collapse: separate; border-spacing: 0; font-size: 13px; min-width: 100%; }
+.hg-t th, .hg-t td { padding: 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.hg-t th { text-transform: none; letter-spacing: normal; } /* readable row labels, not the table-heading capitals */
+.hg-lab { position: sticky; left: 0; z-index: 2; min-width: var(--hg-lab); max-width: var(--hg-lab); background: var(--panel); text-align: left; padding: 6px 8px !important; font-weight: 600; border-right: 1px solid var(--line); white-space: normal !important; line-height: 1.2; }
+.hg-lab small { display: block; font-weight: 400; color: var(--muted); font-size: 11px; }
+.hg-corner { z-index: 3; color: var(--muted); font-weight: 500; font-size: 11.5px; }
+.hg-day { text-align: left; padding: 5px 8px !important; font-size: 11.5px; font-weight: 700; color: var(--muted); border-left: 1px solid var(--line); background: var(--raised); }
+.hg-day:first-of-type { border-left: 0; }
+.hg-h { min-width: var(--hg-col); background: var(--raised); }
+.hg-h.hg-nd, td.hg-c[data-nd] { border-left: 1px solid var(--line); }
+.hg-hb { all: unset; box-sizing: border-box; display: block; width: 100%; padding: 6px 4px; text-align: center; cursor: pointer; font-weight: 600; font-size: 12.5px; color: var(--text); }
+.hg-hb small { display: block; font-weight: 500; font-size: 10px; color: var(--muted); }
+.hg-hb:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.hg-c { position: relative; text-align: center; padding: 6px 4px !important; min-width: var(--hg-col); cursor: pointer; }
+.hg-v { position: relative; z-index: 1; }
+.hg-i { position: relative; z-index: 1; margin-right: 3px; font-size: 12px; }
+/* selection: a column outline, visible in both themes */
+.hg-sel { box-shadow: inset 2px 0 0 var(--accent), inset -2px 0 0 var(--accent); }
+.hg-h.hg-sel { background: color-mix(in srgb, var(--accent) 22%, var(--raised)); }
+.hg-past .hg-v, .hg-h.hg-past .hg-hb { color: var(--muted); }
+/* states */
+.hg-s-missing { color: var(--muted); background: repeating-linear-gradient(135deg, transparent 0 5px, color-mix(in srgb, var(--muted) 22%, transparent) 5px 6px); }
+.hg-s-missing .hg-v { font-size: 11px; }
+.hg-s-partial { outline: 1px dashed color-mix(in srgb, var(--muted) 70%, transparent); outline-offset: -3px; color: var(--muted); }
+.hg-s-clear { color: var(--muted); }
+.hg-s-flag { color: var(--text); }
+.hg-s-flag .hg-v { text-decoration: underline dotted var(--muted); text-underline-offset: 3px; }
+.hg-s-concern { font-weight: 700; }
+.hg-s-concern.hg-t-monitor { background: color-mix(in srgb, var(--monitor) 30%, transparent); }
+.hg-s-concern.hg-t-prepare { background: color-mix(in srgb, var(--prepare) 36%, transparent); }
+.hg-s-concern.hg-t-action { background: color-mix(in srgb, var(--action) 40%, transparent); }
+/* phase row: a bar for the part of the hour the phase covers (a 7:30 gates time fills the second half) */
+.hg-k-phase .hg-c { font-size: 11.5px; font-weight: 600; color: var(--text); }
+.hg-k-phase .hg-c[style]::before { content: ""; position: absolute; top: 3px; bottom: 3px; left: var(--hg-from, 0%); right: calc(100% - var(--hg-to, 100%)); background: color-mix(in srgb, var(--accent) 16%, transparent); border-radius: 3px; }
+.hg-k-summary th, .hg-k-summary td { border-bottom-width: 2px; }
+.hg-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.hg-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.hg-sw { display: inline-block; min-width: 18px; height: 14px; border-radius: 3px; border: 1px solid var(--line); font-style: normal; font-size: 10px; text-align: center; line-height: 14px; color: var(--text); }
+.hg-empty { color: var(--muted); font-size: 13px; }
+/* the selected hour's details under the grid */
+.hg-detail { margin-top: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--raised); font-size: 13px; }
+.hg-detail h3 { margin: 0 0 6px; font-size: 14px; }
+.hg-detail table { border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
+.hg-detail td, .hg-detail th { padding: 3px 10px 3px 0; text-align: left; border-bottom: 1px solid var(--line); }
+.hg-detail .n { text-align: right; font-variant-numeric: tabular-nums; }
+.hg-detail .hg-note { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
+.hg-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
+.hg-controls .hg-custom { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; }
+.hg-controls input[type="datetime-local"] { font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); }
+@media (max-width: 560px) { .hg { --hg-lab: 92px; --hg-col: 52px; } .hg-t { font-size: 12.5px; } .hg-lab { font-size: 12px; padding: 5px 6px !important; } .hg-lab small { font-size: 10.5px; } }
+@media print { .hg-scroll { overflow: visible; } .hg-lab { position: static; } }
+
+/* The selected-hour source table must fit a phone even when ensemble names are long. */
+@media (max-width:560px) {
+  .hg-detail table { width:100%; table-layout:fixed; }
+  .hg-detail th, .hg-detail td { white-space:normal; overflow-wrap:anywhere; }
+  .hg-detail th:first-child, .hg-detail td:first-child { width:42%; }
+}

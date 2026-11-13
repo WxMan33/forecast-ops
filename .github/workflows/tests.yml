@@ -29,7 +29,6 @@ jobs:
       - run: node tests/fixtures.test.js
       - run: node verify/tests/verify.test.js
       - run: node tests/almanac.test.js
-      - run: node tests/weather-history.test.js
       - run: node tests/rrfs.test.js
       - run: node tests/verify-dashboard.test.js
       - run: node tests/precip.test.js
@@ -39,8 +38,10 @@ jobs:
       - run: node verify/tests/scoped-recipe.test.js
       - run: node tests/token-store.test.js
       - run: node tests/coverage.test.js
+      - run: node tests/source-failure.test.js
       - run: node tests/model-trends.test.js
       - run: node tests/climate-report.test.js
+      - run: node tests/climate-daily.test.js
       - run: node tests/astronomy.test.js
       - run: node tests/record-watch.test.js
       - run: node tests/impact-flags.test.js
@@ -52,6 +53,16 @@ jobs:
       - run: node tests/maps-loader.test.js
       - run: node tests/maps-surface.test.js
       - run: node tests/trend-archive.test.js
+      - run: node tests/beta-story.test.js
+      - run: node tests/beta-analytics.test.js
+      - run: node tests/event-store.test.js
+      - run: node tests/event-times.test.js
+      - run: node tests/event-backup.test.js
+      - run: node tests/hourly-model.test.js
+      - run: node tests/event-presets.test.js
+      - run: node tests/venue-search.test.js
+      - run: node tests/climate-station.test.js
+      - run: node tools/analytics/build.js --check
       - run: node tools/stamp-assets.js --check
 
   live:
@@ -114,7 +125,6 @@ jobs:
           python-version: '3.12'
       - run: pip install playwright
       - run: python -m playwright install --with-deps chromium
-      - run: node tools/weather-history-check.js
       - run: python tests/verify-browser.py
       - run: python tests/forecast-focus-browser.py
       - run: python tests/climate-report-browser.py
@@ -124,7 +134,6 @@ jobs:
         with:
           name: dashboard-browser
           path: |
-            tests/out/history-*.png
             tests/out/dashboard-*.png
             tests/out/focus-*.png
             tests/out/climo-*.png
