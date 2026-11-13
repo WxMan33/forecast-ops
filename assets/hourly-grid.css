@@ -52,3 +52,10 @@
 .hg-controls input[type="datetime-local"] { font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); }
 @media (max-width: 560px) { .hg { --hg-lab: 92px; --hg-col: 52px; } .hg-t { font-size: 12.5px; } .hg-lab { font-size: 12px; padding: 5px 6px !important; } .hg-lab small { font-size: 10.5px; } }
 @media print { .hg-scroll { overflow: visible; } .hg-lab { position: static; } }
+
+/* The selected-hour source table must fit a phone even when ensemble names are long. */
+@media (max-width:560px) {
+  .hg-detail table { width:100%; table-layout:fixed; }
+  .hg-detail th, .hg-detail td { white-space:normal; overflow-wrap:anywhere; }
+  .hg-detail th:first-child, .hg-detail td:first-child { width:42%; }
+}
