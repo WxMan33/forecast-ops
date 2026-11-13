@@ -258,8 +258,8 @@ with sync_playwright() as p:
  assert page.locator('#daily tr[data-k]').first.get_attribute('data-k')=='2026-11-05'
  for width in [360,1440]:
   page.set_viewport_size({'width':width,'height':900})
-  assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1')
   page.screenshot(path=str(out/f'focus-evening-{width}.png'),full_page=True)
+  assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1'), str((width,page.evaluate('[...document.querySelectorAll("body *")].filter(e=>e.getBoundingClientRect().right>innerWidth+1&&!e.closest(".hg-scroll")&&!e.closest(".navbar")&&!e.closest(".tablewrap")).slice(0,25).map(e=>[e.tagName,e.id,e.className,e.getBoundingClientRect().width,e.getBoundingClientRect().right])')))
  # An official point advisory must survive warm/windy model guidance and stay clearly NWS-labeled.
  frost_alert=True;impact_mode=False;rain_mode=False;valley_mode=False
  page.evaluate('sessionStorage.clear()');page.reload()
