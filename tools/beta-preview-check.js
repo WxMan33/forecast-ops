@@ -120,7 +120,9 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
   { const { ctx, p, errors } = await go(DESK, `${base}blend.html?lat=39.7684&lon=-86.1581&name=Indianapolis%2C%20IN`);
     const ok = await until(p, () => /INDthr/.test((document.getElementById("dailyNote") || {}).textContent || ""), null, 150000);
     const note = await p.evaluate(() => ((document.getElementById("dailyNote") || {}).textContent || "").match(/Record watch:[^.]*\./));
-    report(ok && !errors.length, "Model Blend: record watch uses the Indianapolis threaded record", note ? note[0] : "record-watch note not shown"); await ctx.close(); }
+    /* when the note is missing, say what Model Blend itself showed (e.g. provider rate limiting), so a throttled run is not mistaken for a code failure */
+    const shown = note ? null : await p.evaluate(() => (document.getElementById("runMsg") || {}).textContent || "—");
+    report(ok && !errors.length, "Model Blend: record watch uses the Indianapolis threaded record", note ? note[0] : `record-watch note not shown; Model Blend said: "${String(shown).trim().slice(0, 160)}"`); await ctx.close(); }
   });
 
   /* ---------- 5. event beta: page loads, Cincinnati map/timeline sync, first screen, out-of-range map ---------- */
