@@ -281,6 +281,7 @@
       ${A ? `<tr class="nwscol"><td><span class="src-nws">NWS</span></td><td style="text-align:left;white-space:normal">${nwsTr.length ? O.esc(nwsTr.join(" · ")) : '<span class="msg">no type change in NWS wording</span>'}</td></tr>` : ""}</tbody></table></div>
       ${Object.keys(byKind).length ? `<p class="msg" style="margin-top:8px">Transition timing across models: ${Object.entries(byKind).map(([k, v]) => { const t = v.map((x) => x.ms).sort((a, b) => a - b); return `<b style="color:var(--text)">${O.esc(k)}</b> ${loc(t[0])}${t.length > 1 ? ` – ${loc(t[t.length - 1])}` : ""} (${v.length} model${v.length > 1 ? "s" : ""})`; }).join(" · ")}.</p>` : ""}
       <div id="profPanel"></div>`;
+    O.stripPager($("ptStrip"), times, { sel: selH == null ? null : selH - s }); // hour pages: no sideways drag on a phone
     $("ptStrip").addEventListener("click", (ev) => { const c = ev.target.closest("[data-i]"); if (!c) return; selH = +c.dataset.i; renderPtype(ids, s, e); });
     renderProfile(ids);
   }

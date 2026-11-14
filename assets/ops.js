@@ -587,6 +587,25 @@
 
   }
 
+  /* Hour pages for a strip a page draws itself (Winter's precipitation type): the same paging as tierStrip, so a
+     phone never needs a sideways drag. Single-cell rows (group headings) span the whole width and are left alone. */
+  function stripPager(sc, times, { sel = null, nowIdx = -1, labelMax = 150 } = {}) {
+    const host = sc.parentElement; if (!host) return;
+    if (host._pagerDispose) host._pagerDispose();
+    const n = times.length; let pageStart = Number(host.dataset.stripPage) || 0, perPage = 12;
+    const nav = document.createElement('div'); nav.className = 'table-pager'; nav.innerHTML = '<button class="btn ghost sm" type="button" data-strip-prev>← Earlier hours</button><span aria-live="polite"></span><button class="btn ghost sm" type="button" data-strip-next>Later hours →</button>'; sc.before(nav);
+    function page(initial = false) {
+      const label = Math.min(labelMax, sc.clientWidth * .4); perPage = Math.max(1, Math.min(24, Math.floor((sc.clientWidth - label) / 28)));
+      const picked = sel ?? Math.max(0, nowIdx); if (initial && (picked < pageStart || picked >= pageStart + perPage)) pageStart = Math.floor(picked / perPage) * perPage;
+      pageStart = Math.max(0, Math.min(pageStart, Math.max(0, n - perPage))); const end = Math.min(n, pageStart + perPage);
+      sc.querySelectorAll('.strip-row').forEach((row) => { if (row.children.length < 2) return; row.style.gridTemplateColumns = label + 'px repeat(' + Math.max(1, end - pageStart) + ',minmax(0,1fr))'; Array.from(row.children).forEach((c, i) => { c.hidden = i > 0 && (i - 1 < pageStart || i - 1 >= end); }); });
+      nav.querySelector('span').textContent = n ? `${fmtWhen(times[pageStart])} – ${fmtWhen(times[end - 1])} · ${pageStart + 1}–${end} of ${n} hours` : 'No hours';
+      nav.querySelector('[data-strip-prev]').disabled = pageStart === 0; nav.querySelector('[data-strip-next]').disabled = end === n; nav.hidden = n <= perPage; host.dataset.stripPage = String(pageStart);
+    }
+    nav.querySelector('[data-strip-prev]').onclick = () => { pageStart -= perPage; page(); }; nav.querySelector('[data-strip-next]').onclick = () => { pageStart += perPage; page(); };
+    const ro = new ResizeObserver(() => page(true)); ro.observe(sc); host._pagerDispose = () => ro.disconnect(); page(true);
+  }
+
   /* ---------- "since your last check" ----------
      Keeps two snapshots per page+location: the latest and the one before it. A new load only
      pushes the old one back once it's at least 30 minutes old, so refreshing doesn't wipe out
@@ -819,7 +838,7 @@
     Data, getJSON, hasData, savedWeights, savedDays, align: Core.stats.align,
     nowIndex, hourOf, dayOf, fmtDay, fmtHour, fmtWhen, tzShort, hourLabels, dayGroups,
     blendSeries: Core.stats.blendSeries, weightedQuantile: Core.stats.weightedQuantile,
-    modelColor, modelPicker, linesToggle, chartBase, modelLine, tierStrip, trackChanges, renderChanges,
+    modelColor, modelPicker, linesToggle, chartBase, modelLine, tierStrip, stripPager, trackChanges, renderChanges,
     events, activeEvent, setActiveEvent, onEvent, eventCard, eventContext, eventBands, eventTable, fmtLocal, fmtSpan,
     nowIdx, logVerify, exportVerify, blendRecipe, appendLog, LOG_KEYS, obsCard,
   };

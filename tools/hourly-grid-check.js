@@ -64,8 +64,9 @@ const report = (ok, name, detail) => { if (!ok) failed++; console.log(`${ok ? "P
       if (shots.includes("overlap")) await p.screenshot({ path: `${out}/hourly-event-overlap-${devName}-${theme}.png`, fullPage: true });
       // Walk every page with real controls: every hour remains reachable without sideways dragging.
       while(await p.locator('[data-hg-prev]').isEnabled())await p.locator('[data-hg-prev]').click();
-      const reached=new Set();for(let page=0;page<100;page++){for(const ms of await p.locator('.hg-hours th[data-ms]:not([hidden])').evaluateAll(xs=>xs.map(x=>x.dataset.ms)))reached.add(ms);if(!(await p.locator('[data-hg-next]').isEnabled()))break;await p.locator('[data-hg-next]').click();}
+      const reached=new Set(),heights=[];for(let page=0;page<100;page++){heights.push(await p.locator('.hg-t').evaluate(t=>Math.round(t.getBoundingClientRect().height)));for(const ms of await p.locator('.hg-hours th[data-ms]:not([hidden])').evaluateAll(xs=>xs.map(x=>x.dataset.ms)))reached.add(ms);if(!(await p.locator('[data-hg-next]').isEnabled()))break;await p.locator('[data-hg-next]').click();}
       report(reached.size===g.hours.length,`hour paging (${devName}, ${theme}): every forecast hour remains reachable`,`${reached.size} of ${g.hours.length} hours`);
+      report(Math.max(...heights)-Math.min(...heights)<=1,`hour paging (${devName}, ${theme}): the table keeps one height, so the page below never jumps`,`table heights ${[...new Set(heights)].join(', ')} px`);
       /* Every device pages readable hours; no sideways scroller is needed. */
       {const m=await p.evaluate(()=>{const sc=document.querySelector('.hg-scroll');return {scrolls:sc.scrollWidth>sc.clientWidth+1,pageOverflow:document.documentElement.scrollWidth>innerWidth+1,shown:document.querySelectorAll('.hg-hours th[data-ms]:not([hidden])').length}});
        report(!m.scrolls&&!m.pageOverflow&&m.shown>0,`hour pages (${devName}, ${theme}): readable columns without horizontal scrolling`,JSON.stringify(m));}
