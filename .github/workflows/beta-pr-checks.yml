@@ -10,7 +10,7 @@ permissions:
 jobs:
   offline:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,6 +39,8 @@ jobs:
         run: node tools/almanac-refresh-check.js
       - name: Almanac daily reports (morning, interim, correction, failed refresh, rollover, time zones)
         run: node tools/almanac-daily-check.js /tmp/almanac-daily
+      - name: Whole-site layout sweep (every page; phone and desktop; light and dark; simulated network)
+        run: node tools/site-sweep-check.js /tmp/site-sweep
       - name: Keep the screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -47,5 +49,6 @@ jobs:
           path: |
             /tmp/source-failure
             /tmp/almanac-daily
+            /tmp/site-sweep
             docs/beta/screens/event-polish-*
           if-no-files-found: ignore
