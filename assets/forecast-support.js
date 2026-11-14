@@ -48,8 +48,8 @@ function analyze({C,B,requested={},rules=null,start,end,now=Date.now(),names={},
     if(!wet.length){agreement='No ≥0.01″ hourly signal';detail=`None of ${eligible.length} complete systems reaches 0.01″ in an hour. Smaller amounts or rain chances may remain.`;}
     else if(wet.length<2){agreement='Sources differ on rain';detail=`${wet.length} of ${eligible.length} complete systems reaches 0.01″ in an hour; timing agreement is unavailable.`;}
     else {const starts=wet.map(s=>hours[s.values.findIndex(v=>v>=0.01)]),span=(Math.max(...starts)-Math.min(...starts))/H;
-     agreement=span===0?'First wet hour aligns':`First wet hours span ${span} h`;
-     detail=`${wet.length} of ${eligible.length} complete systems reaches 0.01″ in an hour${wet.length<eligible.length?'; others stay below that amount':''}. First wet hour in this window, not necessarily storm onset.`;}
+     agreement=wet.length<eligible.length?'Sources differ on rain':span===0?'First wet hour aligns':`First wet hours span ${span} h`;
+     detail=`${wet.length} of ${eligible.length} complete systems reaches 0.01″ in an hour${wet.length<eligible.length?`; others stay below that amount. Wet systems’ first hours span ${span} h`:''}. First wet hour in this window, not necessarily storm onset.`;}
    }
    detail+=' NWS interval totals are excluded from this hourly timing comparison.';
   }

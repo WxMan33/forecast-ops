@@ -76,7 +76,7 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  await p.goto(base+'/event-beta.html');await p.waitForFunction(()=>document.body.dataset.loaded);
  await p.goto(base+'/event-beta.html?shift=1');await p.waitForFunction(()=>document.body.dataset.loaded);
  const timing=await p.locator('#briefUpdate').innerText();
- check(/Timing:/.test(timing)&&/2 hours later/.test(timing)&&!/Worse:/.test(timing),'same-source rain shift is labelled Timing, not worsening or an all-clear');
+ check(/Timing:/.test(timing)&&/2 hours later/.test(timing)&&!/Worse:/.test(timing),'same-source rain shift is labelled Timing, not worsening or an all-clear ('+timing+')');
  await p.goto(base+'/event-beta.html?live=1');await p.waitForFunction(()=>document.body.dataset.loaded);
  check(await p.evaluate(()=>!!(document.getElementById('opsHandoff').compareDocumentPosition(document.getElementById('decision'))&Node.DOCUMENT_POSITION_FOLLOWING)),'event-day monitoring handoff appears before the forecast decision');
  await p.screenshot({path:path.join(out,'event-polish-live-monitoring.png'),fullPage:true});
