@@ -35,10 +35,16 @@
   });
   window.addEventListener("ops:theme", () => { picker.redraw(); render(); });
 
+  /* each load captures its point and forecast length; only the newest load may draw anything */
+  let runGen = 0;
+  const restorePanels = O.pristine(["chartTitle", "chartSub", "legend", "strip", "detail", "daily", "changes", "eventCard"]);
   async function run() {
-    $("runBtn").disabled = true; O.setChip("FETCHING…");
+    const my = ++runGen, where = { lat: O.location.lat, lon: O.location.lon }, days = +$("days").value;
+    $("runBtn").disabled = true; O.beginLoad(picker, MODELS.map((m) => m.id));
+    data = null; sel = null; restorePanels(); render(); // the previous point's guidance leaves the page as soon as a new load starts
     $("runMsg").className = "msg"; $("runMsg").textContent = `Requesting ${MODELS.length} models…`;
-    const [res, nw] = await Promise.all([O.Data.loadModels(SPEC, { lat: O.location.lat, lon: O.location.lon, days: +$("days").value }), O.Data.loadNWS({ lat: O.location.lat, lon: O.location.lon })]);
+    const [res, nw] = await Promise.all([O.Data.loadModels(SPEC, { ...where, days }), O.Data.loadNWS(where)]);
+    if (my !== runGen) return;
     $("runBtn").disabled = false;
     MODELS.forEach((m) => picker.setStatus(m.id, res.status[m.id] === "ok" ? "ok" : "none"));
     picker.redraw();
