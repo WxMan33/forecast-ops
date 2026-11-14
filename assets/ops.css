@@ -790,6 +790,11 @@ body.embed .mapstage .maplibregl-ctrl-bottom-right { bottom: 4px; }
 @media (max-width: 640px) { .hubcard.lead { grid-template-columns: 1fr; } .hubcard.lead .lead-links { grid-auto-flow: column; justify-content: start; } }
 /* the Almanac's climate station line */
 .climstn { display: inline-flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+/* the station picker's options are long official names: the closed control fits the screen, the list shows them in full */
+.almhead-top, .almlocs { min-width: 0; max-width: 100%; }
+.climstn { max-width: 100%; min-width: 0; }
+.climstn select, #climStn { max-width: 100%; min-width: 0; text-overflow: ellipsis; }
+#climMeta { overflow-wrap: anywhere; min-width: 0; }
 
 /* Navigation stays visible on narrow screens. */
 .navbar{flex-wrap:wrap;overflow-x:visible}

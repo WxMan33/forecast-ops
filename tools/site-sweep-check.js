@@ -22,7 +22,8 @@ async function route(ctx, base) {
     if (u.origin === base) return r.continue();
     if (u.hostname === 'data.rcc-acis.org') {
       const q = r.request().postDataJSON() || {};
-      if (u.pathname.endsWith('/StnMeta')) return json({ meta: [{ name: 'CINCINNATI/NORTHERN KENTUCKY INTL AP', sids: ['93814 1', 'CVG 3'], ll: [-84.67, 39.04], valid_daterange: [['1947-01-01', '2026-11-10']] }] });
+      /* several candidate stations with real-length names, so the station picker appears as it does live */
+      if (u.pathname.endsWith('/StnMeta')) return json({ meta: [['CINCINNATI/NORTHERN KENTUCKY INTERNATIONAL AIRPORT', '93814', 'CVG', -84.67, 39.04], ['CINCINNATI MUNICIPAL AIRPORT LUNKEN FIELD', '93812', 'LUK', -84.42, 39.10], ['DAYTON JAMES M COX DAYTON INTERNATIONAL AIRPORT', '93815', 'DAY', -84.22, 39.91], ['COLUMBUS JOHN GLENN COLUMBUS INTERNATIONAL AIRPORT', '14821', 'CMH', -82.88, 39.99]].map(([name, wban, faa, lon, lat]) => ({ name, sids: [wban + ' 1', faa + ' 3'], ll: [lon, lat], valid_daterange: [['1947-01-01', '2026-11-10']] })) });
       if ((q.elems || []).some((e) => e && e.duration)) return json({ data: [] });
       if ((q.elems || []).some((e) => e && e.interval)) return json({ data: [['2025-11-11', '75', '20', '0.50', '1.0']] });
       const normal = (q.elems || []).some((e) => e && e.normal), data = [];
