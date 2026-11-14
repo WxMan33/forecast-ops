@@ -238,8 +238,10 @@ const providerDown = (what, cond, why) => { if (!cond) return false; skips++; co
     }
     if (!found) console.log("\nDST check skipped: no time change in the last 85 days in the probe zones");
     else {
-      const j = await D.getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${found.lat}&longitude=${found.lon}&hourly=temperature_2m&models=gfs_seamless&timezone=${encodeURIComponent(found.tz)}&start_date=${found.day}&end_date=${found.day2}`, 0);
-      if (j.error) ok(false, `DST check request: ${j.reason}`);
+      /* an unreachable or rate-limited provider is reported as unavailable, like every other block; a bad answer still fails */
+      let j; try { j = await D.getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${found.lat}&longitude=${found.lon}&hourly=temperature_2m&models=gfs_seamless&timezone=${encodeURIComponent(found.tz)}&start_date=${found.day}&end_date=${found.day2}`, 0); } catch (e) { j = { unreachable: String(e.message || e) }; }
+      if (providerDown("Open-Meteo DST check", j.unreachable || (j.error && j.httpStatus >= 429), j.unreachable || `HTTP ${j.httpStatus}`)) { /* skipped */ }
+      else if (j.error) ok(false, `DST check request: ${j.reason}`);
       else {
         const t = j.hourly.time, inst = C.time.instants(t, found.tz, j.utc_offset_seconds);
         const steps = inst.ms.every((m, i) => i === 0 || m - inst.ms[i - 1] === 3600e3);
