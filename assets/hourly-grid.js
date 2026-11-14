@@ -1,5 +1,5 @@
 /* Shared hourly grid: presentation only. It draws whatever rows it is given (values, phases, concerns) against an hour
-   axis from HourlyModel.axis, with sticky row labels, responsive pages of hours on phones and desktop, a date row, zone labels on repeated
+   axis from HourlyModel.axis, with sticky row labels, responsive pages of hours on phones and desktop, a date row, accessible zone labels on repeated
    or changing hours, and one selected hour that callers can set from outside (a time bus) without redrawing.
    It knows nothing about weather, thresholds or how a cell's state was decided: each cell arrives as
      { text, state: "ok" | "missing" | "partial" | "clear" | "flag" | "concern", tier, icon, title, split: {from, to} }
@@ -28,7 +28,7 @@
     const head1 = `<tr class="hg-days"><th scope="col" class="hg-lab hg-corner"><span class="sr-only">Local date</span></th>${days.map((d) => `<th scope="colgroup" colspan="${d.n}" class="hg-day">${esc(DAY(d.date))}</th>`).join("")}</tr>`;
     const head2 = `<tr class="hg-hours"><th scope="col" class="hg-lab hg-corner">Local time</th>${axis.map((a) => {
       const cls = ["hg-h"]; if (a.newDay) cls.push("hg-nd"); if (a.ms === selected) cls.push("hg-sel"); if (now != null && a.ms + 3600e3 <= now) cls.push("hg-past");
-      return `<th scope="col" class="${cls.join(" ")}" data-ms="${a.ms}"><button type="button" class="hg-hb" data-ms="${a.ms}" aria-pressed="${a.ms === selected}" aria-label="${esc(`${DAY(a.date)} ${a.hourText} ${a.zone}`)}">${esc(a.hourText)}${a.showZone ? ` <small>${esc(a.zone)}</small>` : ""}</button></th>`; }).join("")}</tr>`;
+      return `<th scope="col" class="${cls.join(" ")}" data-ms="${a.ms}"><button type="button" class="hg-hb" data-ms="${a.ms}" aria-pressed="${a.ms === selected}" aria-label="${esc(`${DAY(a.date)} ${a.hourText} ${a.zone}`)}">${esc(a.hourText)}${a.showZone ? ` <span class="sr-only">${esc(a.zone)}</span>` : ""}</button></th>`; }).join("")}</tr>`;
     const body = rows.map((r) => `<tr class="hg-row hg-k-${esc(r.kind || "value")}" data-row="${esc(r.key)}"><th scope="row" class="hg-lab">${esc(r.label)}${r.sub ? `<small>${esc(r.sub)}</small>` : ""}</th>${r.cells.map((c, i) => cellHtml(c, axis[i].ms, selected)).join("")}</tr>`).join("");
     host.innerHTML = `<div class="hg-scroll" tabindex="0" role="region" aria-label="${esc(label)}; use Earlier and Later for more hours"><table class="hg-t">${caption ? `<caption class="sr-only">${esc(caption)}</caption>` : ""}<thead>${head1}${head2}</thead><tbody>${body}</tbody></table></div>`;
     const scroller = host.querySelector(".hg-scroll");
