@@ -13,11 +13,11 @@ function enhance(table){
  nav.innerHTML='<button class="btn ghost sm" type="button" data-table-prev>← Previous columns</button><span aria-live="polite"></span><button class="btn ghost sm" type="button" data-table-next>Next columns →</button>';
  wrap.insertBefore(nav,table);table.classList.add('paged-detail-table');wrap.classList.add('paged-table-wrap');
  wrap.setAttribute('aria-label','Detailed forecast table; use Previous and Next columns to see every field');
- let start=1,lastSignature='',lastFirst=null;
+ let start=1,perPage=1,lastSignature='',lastFirst=null;
  function draw(){
   if(!table.isConnected)return;
   const width=wrap.clientWidth;if(!width)return;
-  const count=Math.min(n-1,Math.max(1,Math.floor((width-Math.min(150,width*.35))/125)));
+  const count=Math.min(n-1,Math.max(1,Math.floor((width-Math.min(150,width*.35))/125)));perPage=count;
   start=Math.max(1,Math.min(start,n-count));
   const signature=[width,start,count,table.rows.length].join('|');const first=table.tBodies[0]?.firstElementChild;if(signature===lastSignature&&lastFirst===first)return;lastSignature=signature;lastFirst=first;
   for(const row of table.rows){if(row.cells.length===n){Array.from(row.cells).forEach((c,i)=>{c.hidden=i!==0&&(i<start||i>=start+count)});}else if(row.cells.length===1&&row.cells[0].colSpan>1)row.cells[0].colSpan=count+1;}
@@ -26,8 +26,8 @@ function enhance(table){
   nav.querySelector('[data-table-prev]').disabled=start===1;nav.querySelector('[data-table-next]').disabled=start+count>=n;
   table.style.setProperty('--table-label-width',Math.min(150,width*.35)+'px');
  }
- nav.querySelector('[data-table-prev]').onclick=()=>{start=Math.max(1,start-1);lastSignature='';draw()};
- nav.querySelector('[data-table-next]').onclick=()=>{start=Math.min(n-1,start+1);lastSignature='';draw()};
+ nav.querySelector('[data-table-prev]').onclick=()=>{start=Math.max(1,start-perPage);lastSignature='';draw()};
+ nav.querySelector('[data-table-next]').onclick=()=>{start=Math.min(n-1,start+perPage);lastSignature='';draw()};
  const observer=new ResizeObserver(draw);observer.observe(wrap);state={header,nav,observer,draw};states.set(table,state);draw();
 }
 function scan(){frame=null;document.querySelectorAll('.tablewrap > table').forEach(enhance);}

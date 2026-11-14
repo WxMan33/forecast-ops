@@ -13,6 +13,11 @@ const venue={id:'vn_test',name:'Fixture Park',city:'Cincinnati, OH',lat:39.1,lon
  await p.locator('#ciGoogle').click();await p.locator('#ciNext').waitFor();
  check((await p.locator('#editForm').innerText()).includes('Fixture calendar'),`${width}px: provider response reaches calendar selection on the same origin`);
  check(await p.evaluate(()=>window.__testScopes.length===1&&window.__testScopes[0].includes('calendar.events.readonly')&&!JSON.stringify([localStorage,sessionStorage]).includes('test-calendar-token')),`${width}px: access remains read-only and token is never stored`);
+ await p.locator('#editForm button[value="cancel"]').click();
+ await p.evaluate(()=>{const w=document.createElement('div');w.className='tablewrap';w.id='test-wide';w.innerHTML='<table><thead><tr><th>Source</th>'+Array.from({length:7},(_,i)=>'<th>Field '+(i+1)+'</th>').join('')+'</tr></thead><tbody><tr><th>Test source</th>'+Array.from({length:7},(_,i)=>'<td>Value '+(i+1)+'</td>').join('')+'</tr></tbody></table>';document.getElementById('upView').append(w)});
+ await p.locator('#test-wide .table-pager').waitFor();
+ const reached=new Set();for(let page=0;page<20;page++){for(const name of await p.locator('#test-wide thead th:not([hidden])').allTextContents())reached.add(name);if(!(await p.locator('#test-wide [data-table-next]').isEnabled()))break;await p.locator('#test-wide [data-table-next]').click();}
+ check(reached.size===8&&await p.evaluate(()=>{const w=document.getElementById('test-wide');return w.scrollWidth<=w.clientWidth+1&&document.documentElement.scrollWidth<=innerWidth+1}),`${width}px: every detailed-table column is reachable without horizontal scrolling`);
  check(errors.length===0,`${width}px: no script errors ${errors.join(';')}`);await ctx.close();
 }
 })().catch(e=>{fail++;console.error(e)}).finally(async()=>{if(browser)await browser.close();process.exitCode=fail?1:0});
