@@ -35,6 +35,8 @@ jobs:
           mkdir -p /tmp/hourly && node tools/hourly-grid-check.js http://localhost:8765/ /tmp/hourly
       - name: Missing, failed and delayed sources (simulated network; Event Manager and Model Blend)
         run: node tools/source-failure-check.js
+      - name: Location switches on Thunder, Severe and Winter (simulated network; slow A/fast B, failed B/late A, loading, partial, rapid settings)
+        run: node tools/location-race-check.js
       - name: Event briefing phone, themes and two-page print (offline)
         run: node tools/event-briefing-polish-check.js
       - name: Documentary weather history regression

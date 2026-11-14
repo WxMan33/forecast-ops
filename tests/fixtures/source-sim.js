@@ -6,7 +6,7 @@ const H = 3600e3;
 const VENUES = {
   // two venues in the same zone, so switching venues never depends on a time-zone lookup
   cvg: { lat: 39.1005, lon: -84.5017, name: 'Sawyer Point, Cincinnati, OH', base: { t: 50, pop: 20, gust: 18 } },
-  cmh: { lat: 39.9612, lon: -82.9988, name: 'Columbus, OH', base: { t: 62, pop: 70, gust: 31 } },
+  cmh: { lat: 39.9612, lon: -82.9988, name: 'Columbus, OH', base: { t: 62, pop: 70, gust: 31, cape: 1400, snow: .03, code: 95 } },
 };
 const venueOf = (lat, lon) => Object.entries(VENUES).find(([, v]) => Math.abs(v.lat - lat) < .05 && Math.abs(v.lon - lon) < .05)?.[0] || 'cvg';
 const DAY0 = Date.parse('2026-11-11T05:00:00Z'); // local midnight, America/New_York (EST)
@@ -21,14 +21,14 @@ function value(v, model, i, venue) {
     case 'apparent_temperature': return b.t - 3 + wobble;
     case 'precipitation_probability': return Math.max(0, Math.min(100, b.pop + wobble * 3));
     case 'precipitation': return b.pop >= 50 && i % 24 >= 12 && i % 24 <= 20 ? .04 : 0;
-    case 'snowfall': return 0;
+    case 'snowfall': return b.snow && i % 24 >= 2 && i % 24 <= 6 ? b.snow : 0;
     case 'wind_speed_10m': return b.gust * .55;
     case 'wind_gusts_10m': return b.gust + wobble;
     case 'cloud_cover': return 60;
-    case 'cape': return 50;
+    case 'cape': return b.cape ? b.cape + wobble * 40 : 50;
     case 'lifted_index': return 3;
     case 'convective_inhibition': return 0;
-    case 'weather_code': return 3;
+    case 'weather_code': return b.code && i % 24 >= 15 && i % 24 <= 19 ? b.code : 3;
     case 'visibility': return 16000;
     case 'lightning_potential': return 0;
     default: return /_\d+hPa$/.test(v) ? 10 : 0;
@@ -81,7 +81,7 @@ async function answer(url, scenario, now, log) {
     : host === 'api.weather.gov' ? (u.pathname.startsWith('/alerts') ? scenario.alerts : scenario.nws) : null;
   const rule = typeof pick === 'function' ? pick(u, venue) : pick || {};
   log.push({ host, path: u.pathname, model, venue, rule: rule.status || (rule.hang ? 'timeout' : 'ok') });
-  const wait = (scenario.delay && scenario.delay[venue]) || 0;
+  const wait = typeof scenario.delay === 'function' ? scenario.delay(u, venue) || 0 : (scenario.delay && scenario.delay[venue]) || 0;
   if (wait) await new Promise((r) => setTimeout(r, wait));
   if (rule.hang) return { hang: true };
   if (rule.status) return { status: rule.status, headers: rule.retryAfter != null ? { 'Retry-After': String(rule.retryAfter) } : {}, body: JSON.stringify({ error: true, reason: rule.status === 429 ? 'Minutely API request limit exceeded. Please try again in one minute.' : 'Internal Server Error' }) };

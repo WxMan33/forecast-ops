@@ -31,11 +31,17 @@
   });
   window.addEventListener("ops:theme", () => { picker.redraw(); render(); });
 
+  /* each load captures its point; only the newest load may draw anything */
+  let runGen = 0;
+  const restorePanels = O.pristine(["chartTitle", "chartSub", "legend", "oddsSub", "odds", "dailyTitle", "daily", "changes", "eventCard", "amtCard", "ptCard", "tTitle", "tSub", "tChart", "tLegend"]);
   async function run() {
-    $("runBtn").disabled = true; O.setChip("FETCHING…");
+    const my = ++runGen;
+    $("runBtn").disabled = true; O.beginLoad(picker, ENS.map((e) => e.id));
+    data = null; det = null; nwsW = null; selH = null; if (tChart) { tChart.destroy(); tChart = null; } restorePanels(); render(); // the previous point's ensembles and profiles leave the page now
     $("runMsg").className = "msg"; $("runMsg").textContent = `Requesting ${ENS.length} ensembles…`;
     const where = { lat: O.location.lat, lon: O.location.lon };
     const [res, dt, nw] = await Promise.all([O.Data.loadEnsemble(SPEC, where), O.Data.loadModels(C.config.winterDet, { ...where, days: 5 }), O.Data.loadNWS(where)]);
+    if (my !== runGen) return;
     prepDet(dt, nw);
     $("runBtn").disabled = false;
     ENS.forEach((e) => picker.setStatus(e.id, res.status[e.id] === "ok" ? "ok" : "none"));

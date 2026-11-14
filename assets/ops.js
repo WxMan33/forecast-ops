@@ -127,6 +127,7 @@
     alerts.className = "alerts";
     alerts.hidden = true;
     document.body.prepend(header, nav, alerts);
+    { const h = $("headline"); shellHeadline = h ? h.innerHTML : null; }
 
     const foot = document.createElement("footer");
     foot.className = "foot";
@@ -164,6 +165,20 @@
   }
 
   /* Headline in the status bar: a tier word with its color, an optional note, plus big stats. */
+  /* A new load (another point or setting) starts from the page's opening state: the previous point's headline,
+     status and model availability never stay on screen while the new answers are pending or after they fail. */
+  let shellHeadline = null;
+  function beginLoad(picker, ids = []) {
+    const h = $("headline"); if (h && shellHeadline != null) { h.className = "headline"; h.style.removeProperty("--tier"); h.innerHTML = shellHeadline; }
+    setChip("FETCHING…");
+    if (picker) { ids.forEach((id) => picker.setStatus(id, undefined)); picker.redraw(); }
+  }
+  /* the opening contents of a page's data panels, captured before the first load and put back at the start of each
+     new load, so a loading or failed page shows exactly what a freshly opened page shows (and nothing of the last point) */
+  function pristine(ids) {
+    const saved = ids.map((id) => [id, $(id) ? $(id).innerHTML : null]);
+    return () => saved.forEach(([id, html]) => { const el = $(id); if (el && html != null && el.innerHTML !== html) el.innerHTML = html; });
+  }
   function headline({ tier, word, note, stats = [] }) {
     const h = $("headline"); if (!h) return;
     const t = TIER[tier] || null;
@@ -834,7 +849,7 @@
 
   window.Ops = {
     pct5, Core, BRAND, PRESETS, TIER, maxTier, badge, $, esc, store, css, icon,
-    shell, onAlerts, searchPlaces, zoneFor, stateAbbr, onLocation: (f) => locListeners.push(f), get alertState(){return alertState;}, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
+    shell, beginLoad, pristine, onAlerts, searchPlaces, zoneFor, stateAbbr, onLocation: (f) => locListeners.push(f), get alertState(){return alertState;}, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
     Data, getJSON, hasData, savedWeights, savedDays, align: Core.stats.align,
     nowIndex, hourOf, dayOf, fmtDay, fmtHour, fmtWhen, tzShort, hourLabels, dayGroups,
     blendSeries: Core.stats.blendSeries, weightedQuantile: Core.stats.weightedQuantile,

@@ -30,7 +30,9 @@ function enhance(table){
  nav.querySelector('[data-table-next]').onclick=()=>{start=Math.min(n-1,start+perPage);lastSignature='';draw()};
  const observer=new ResizeObserver(draw);observer.observe(wrap);state={header,nav,observer,draw};states.set(table,state);draw();
 }
-function scan(){frame=null;document.querySelectorAll('.tablewrap > table').forEach(enhance);}
+/* a table emptied for a new load (another point or setting) loses its pager too: no column labels from the previous table remain */
+function prune(){document.querySelectorAll('.paged-table-wrap > .table-pager').forEach(nav=>{const t=nav.nextElementSibling;if(t&&t.tagName==='TABLE'&&t.tHead&&t.tHead.rows.length)return;const st=t&&states.get(t);if(st){st.observer.disconnect();states.delete(t);}nav.remove();});}
+function scan(){frame=null;prune();document.querySelectorAll('.tablewrap > table').forEach(enhance);}
 const changes=new MutationObserver(records=>{if(records.every(r=>r.target.closest?.('.table-pager')))return;if(frame===null)frame=requestAnimationFrame(scan)});
 changes.observe(document.body,{childList:true,subtree:true});scan();
 })();
