@@ -17,7 +17,8 @@ const venue={id:'vn_test',name:'Fixture Park',city:'Cincinnati, OH',lat:39.1,lon
  await p.evaluate(()=>{const w=document.createElement('div');w.className='tablewrap';w.id='test-wide';w.innerHTML='<table><thead><tr><th>Source</th>'+Array.from({length:7},(_,i)=>'<th>Field '+(i+1)+'</th>').join('')+'</tr></thead><tbody><tr><th>Test source</th>'+Array.from({length:7},(_,i)=>'<td>Value '+(i+1)+'</td>').join('')+'</tr></tbody></table>';document.getElementById('upView').append(w)});
  await p.locator('#test-wide .table-pager').waitFor();
  const reached=new Set();for(let page=0;page<20;page++){for(const name of await p.locator('#test-wide thead th:not([hidden])').allTextContents())reached.add(name);if(!(await p.locator('#test-wide [data-table-next]').isEnabled()))break;await p.locator('#test-wide [data-table-next]').click();}
- check(reached.size===8&&await p.evaluate(()=>{const w=document.getElementById('test-wide');return w.scrollWidth<=w.clientWidth+1&&document.documentElement.scrollWidth<=innerWidth+1}),`${width}px: every detailed-table column is reachable without horizontal scrolling`);
+ const geometry=await p.evaluate(()=>{const w=document.getElementById('test-wide');return {wrapper:w.clientWidth,contents:w.scrollWidth,page:document.documentElement.scrollWidth,viewport:innerWidth,wide:[...document.querySelectorAll('#test-wide *')].filter(e=>e.scrollWidth>e.clientWidth+2).map(e=>[e.tagName,e.className,e.clientWidth,e.scrollWidth]).slice(0,6)}});
+ check(reached.size===8&&geometry.contents<=geometry.wrapper+1&&geometry.page<=geometry.viewport+1,`${width}px: every detailed-table column is reachable without horizontal scrolling (${reached.size}/8; ${JSON.stringify(geometry)})`);
  check(errors.length===0,`${width}px: no script errors ${errors.join(';')}`);await ctx.close();
 }
 })().catch(e=>{fail++;console.error(e)}).finally(async()=>{if(browser)await browser.close();process.exitCode=fail?1:0});
