@@ -57,8 +57,8 @@
       await loadGis();
       return new Promise((ok, no) => {
         const client = root.google.accounts.oauth2.initTokenClient({ client_id: CFG().clientId, scope: SCOPES, include_granted_scopes: false,
-          callback: (r) => { if (r && r.access_token) { token = r.access_token; expires = Date.now() + (+r.expires_in || 3600) * 1000; ok(token); } else no(new Error((r && r.error) || "Calendar access was not granted.")); },
-          error_callback: (e) => no(new Error((e && e.type === "popup_closed") ? "The Google window was closed." : "Calendar access was not granted.")) });
+          callback: (r) => { if (r && r.access_token) { token = r.access_token; expires = Date.now() + (+r.expires_in || 3600) * 1000; ok(token); } else no(new Error(r?.error === "origin_mismatch" ? `Google has not authorized ${root.location.origin}. Add that exact address under Authorized JavaScript origins for this app in Google Cloud.` : (r && r.error) || "Calendar access was not granted.")); },
+          error_callback: (e) => no(new Error((e && e.type === "popup_closed") ? "The Google window was closed." : e?.type === "popup_failed_to_open" ? "Your browser blocked the Google window. Allow popups for this site, then select Connect Google Calendar again." : "Calendar access was not granted.")) });
         client.requestAccessToken();
       });
     }
@@ -93,6 +93,7 @@
     const dlg = $("editDlg"), form = $("editForm");
     const live = googleAvailable();
     let provider = null, cal = null, items = [];
+    if (live) loadGis().catch(() => {}); // prepare Google before the user clicks, preserving the popup gesture
     U.track("calendar_import_opened");
     const foot = (btns) => `<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">${btns}</div>`;
     const err = (m) => { const e = $("ciErr"); if (e) { e.textContent = m; e.hidden = false; } };
@@ -100,7 +101,7 @@
       form.innerHTML = `<h2 id="editTitle">Import from a calendar</h2>
         <p class="bx-note" style="margin:0">Read-only. You choose which events to import; only those are saved, in this browser. Calendar names and event details are never sent anywhere else.</p>
         <div class="ci-choices">
-          ${live ? `<button type="button" class="bx-btn primary" id="ciGoogle">Connect Google Calendar</button><p class="bx-note" style="margin:0">Asks Google for read-only access to your calendar list and events. Access lasts for this tab only.</p>` : `<p class="bx-note" style="margin:0"><b>Google Calendar sign-in isn't available on this preview link.</b> It will be tested on a dedicated Forecast Ops beta address. Try the flow with demo data:</p>`}
+          ${live ? `<button type="button" class="bx-btn primary" id="ciGoogle">Connect Google Calendar</button><p class="bx-note" style="margin:0">Asks Google for read-only access to your calendar list and events. Access lasts for this tab only.</p>` : `<p class="bx-note" style="margin:0"><b>Google Calendar sign-in isn't available on this preview link.</b> Use the main Forecast Ops site or the dedicated Cloudflare beta for your real calendar. This preview offers demo data:</p>`}
           <button type="button" class="bx-btn ${live ? "" : "primary"}" id="ciSample">Open the sample calendar</button>
         </div>
         <p class="err" id="ciErr" hidden></p>${foot('<button class="bx-btn" value="cancel" formnovalidate>Cancel</button>')}`;

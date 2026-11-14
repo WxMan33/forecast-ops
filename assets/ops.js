@@ -551,6 +551,7 @@
 
   /* ---------- hourly tier strip: labelled, with NOW and a selectable hour ---------- */
   function tierStrip(el, times, rows, { nowIdx = -1, sel = null, onPick, bands = [] } = {}) {
+    if(el._stripDispose)el._stripDispose();
     const n = times.length;
     const tpl = `grid-template-columns:140px repeat(${n},minmax(5px,1fr))`;
     const dayRow = `<div class="strip-row" style="${tpl}"><div></div>${times.map((t, i) => `<div class="strip-lab day">${hourOf(t) === 0 || i === 0 ? fmtDay(dayOf(t)).slice(0, 3) : ""}</div>`).join("")}</div>`;
@@ -564,6 +565,18 @@
     const evRow = bands.length ? `<div class="strip-row" style="${tpl}"><div class="strip-name bold" style="color:var(--ev)">EVENT</div>${times.map((_, i) => `<div class="strip-ev${ph[i] ? " on" : ""}" title="${esc(ph[i])}">${ph[i] && ph[i] !== ph[i - 1] ? esc(ph[i].toUpperCase()) : ""}</div>`).join("")}</div>` : "";
     el.innerHTML = `<div class="tablewrap strip-scroll" tabindex="0" aria-label="Hourly signal. Click an hour, or use the arrow keys, for details."><div class="strip">${dayRow}${hrRow}${evRow}${body}</div></div>`;
     const sc = el.firstChild;
+    let pageStart=Number(el.dataset.stripPage)||0,perPage=12;
+    const nav=document.createElement('div');nav.className='table-pager';nav.innerHTML='<button class="btn ghost sm" type="button" data-strip-prev>← Earlier hours</button><span aria-live="polite"></span><button class="btn ghost sm" type="button" data-strip-next>Later hours →</button>';el.prepend(nav);
+    function page(initial=false){
+      const label=Math.min(140,sc.clientWidth*.4);perPage=Math.max(1,Math.min(24,Math.floor((sc.clientWidth-label)/28)));
+      const picked=sel??Math.max(0,nowIdx);if(initial&&(picked<pageStart||picked>=pageStart+perPage))pageStart=Math.floor(picked/perPage)*perPage;
+      pageStart=Math.max(0,Math.min(pageStart,Math.max(0,n-perPage)));const end=Math.min(n,pageStart+perPage);
+      sc.querySelectorAll('.strip-row').forEach(row=>{row.style.gridTemplateColumns=label+'px repeat('+Math.max(1,end-pageStart)+',minmax(0,1fr))';Array.from(row.children).forEach((c,i)=>{c.hidden=i>0&&(i-1<pageStart||i-1>=end)})});
+      nav.querySelector('span').textContent=n?`${fmtWhen(times[pageStart])} – ${fmtWhen(times[end-1])} · ${pageStart+1}–${end} of ${n} hours`:'No hours';
+      nav.querySelector('[data-strip-prev]').disabled=pageStart===0;nav.querySelector('[data-strip-next]').disabled=end===n;nav.hidden=n<=perPage;el.dataset.stripPage=String(pageStart);
+    }
+    nav.querySelector('[data-strip-prev]').onclick=()=>{pageStart-=perPage;page()};nav.querySelector('[data-strip-next]').onclick=()=>{pageStart+=perPage;page()};
+    const ro=new ResizeObserver(()=>page(true));ro.observe(sc);el._stripDispose=()=>ro.disconnect();page(true);
     if (onPick) {
       sc.addEventListener("click", (e) => { const c = e.target.closest("[data-i]"); if (c) onPick(+c.dataset.i); });
       sc.addEventListener("keydown", (e) => {
@@ -571,9 +584,7 @@
         e.preventDefault(); onPick(Math.min(n - 1, Math.max(0, (sel == null ? Math.max(0, nowIdx) : sel) + (e.key === "ArrowRight" ? 1 : -1))));
       });
     }
-    /* keep the selected (or current) hour in view */
-    const target = sc.querySelector(".strip-cell.sel") || sc.querySelector(".strip-cell.now");
-    if (target && sc.scrollWidth > sc.clientWidth) sc.scrollLeft = Math.max(0, target.offsetLeft - sc.clientWidth / 3);
+
   }
 
   /* ---------- "since your last check" ----------

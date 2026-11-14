@@ -57,17 +57,18 @@ const report = (ok, name, detail) => { if (!ok) failed++; console.log(`${ok ? "P
         `overlapping concerns (${devName}, ${theme}): lightning, wind and rain each get a row; 11 PM shows all three; every coloured hour matches the engine's phase level; lightning reads Low / Moderate / High from the hour's thunder tier; the ensemble share is not in the event grid`,
         `rows ${concernRows.join(", ")} · 11 PM summary "${g.rows.concern[at("11 PM")].text}" · ${engine.length} coloured hours checked against the engine, ${engine.filter((x) => x.want !== x.got).length} mismatches · tiers ${[...tiersUsed].join(", ")}${errors.length ? " · " + errors.join("; ") : ""}`);
       /* selecting an hour shows its details */
+      for(let page=0;page<30&&!(await p.locator('.hg-hb').nth(at("11 PM")).isVisible());page++)await p.locator('[data-hg-next]').click();
       await p.click(`.hg-hb >> nth=${at("11 PM")}`); const d = await p.evaluate(() => ({ t: document.getElementById("detail").innerText, pressed: [...document.querySelectorAll('.hg-hb[aria-pressed="true"]')].map((b) => b.innerText.replace(/\s+/g, " ")) }));
       report(/11 PM/.test(d.t) && /Lightning/.test(d.t) && /Wind/.test(d.t) && /Rain/.test(d.t) && d.pressed.length === 1 && /11 PM/.test(d.pressed[0]),
         `selecting an hour (${devName}, ${theme}) reveals that hour's concerns and why`, `"${d.t.split("\n").slice(0, 2).join(" / ").slice(0, 160)}"`);
       if (shots.includes("overlap")) await p.screenshot({ path: `${out}/hourly-event-overlap-${devName}-${theme}.png`, fullPage: true });
-      /* phone: sticky labels, sideways scrolling, no page overflow */
-      if (devName === "phone") {
-        const m = await p.evaluate(() => { const sc = document.querySelector(".hg-scroll"); sc.scrollLeft = 400; const lab = document.querySelector("tr.hg-row th").getBoundingClientRect(), box = sc.getBoundingClientRect();
-          return { scrolls: sc.scrollWidth > sc.clientWidth, labLeft: Math.round(lab.left - box.left), pageOverflow: document.documentElement.scrollWidth > innerWidth + 1, moved: sc.scrollLeft }; });
-        report(m.scrolls && m.moved > 0 && Math.abs(m.labLeft) <= 2 && !m.pageOverflow, `phone (${theme}): hours scroll sideways inside the grid; row labels stay put; the page itself never scrolls sideways`,
-          `grid scrolls ${m.scrolls} (scrolled ${m.moved}px) · label offset ${m.labLeft}px · page overflow ${m.pageOverflow}`);
-      }
+      // Walk every page with real controls: every hour remains reachable without sideways dragging.
+      while(await p.locator('[data-hg-prev]').isEnabled())await p.locator('[data-hg-prev]').click();
+      const reached=new Set();for(let page=0;page<100;page++){for(const ms of await p.locator('.hg-hours th[data-ms]:not([hidden])').evaluateAll(xs=>xs.map(x=>x.dataset.ms)))reached.add(ms);if(!(await p.locator('[data-hg-next]').isEnabled()))break;await p.locator('[data-hg-next]').click();}
+      report(reached.size===g.hours.length,`hour paging (${devName}, ${theme}): every forecast hour remains reachable`,`${reached.size} of ${g.hours.length} hours`);
+      /* Every device pages readable hours; no sideways scroller is needed. */
+      {const m=await p.evaluate(()=>{const sc=document.querySelector('.hg-scroll');return {scrolls:sc.scrollWidth>sc.clientWidth+1,pageOverflow:document.documentElement.scrollWidth>innerWidth+1,shown:document.querySelectorAll('.hg-hours th[data-ms]:not([hidden])').length}});
+       report(!m.scrolls&&!m.pageOverflow&&m.shown>0,`hour pages (${devName}, ${theme}): readable columns without horizontal scrolling`,JSON.stringify(m));}
       await ctx.close(); }
     /* ---------- multi-day, partly beyond the guidance ---------- */
     { const { ctx, p, errors } = await open(dev, `case=multiday&theme=${theme}`), g = await read(p);

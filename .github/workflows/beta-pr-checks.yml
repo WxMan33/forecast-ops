@@ -17,13 +17,15 @@ jobs:
         with: { node-version: 20 }
       - name: Unit tests
         run: |
-          for t in forecast-support core fixtures source-failure beta-story beta-analytics event-store event-times event-backup hourly-model event-presets event-briefing-history event-ops-handoff event-briefing-ui almanac climate-report climate-daily climate-period-records climate-station weather-history; do
+          for t in calendar-provider forecast-support core fixtures source-failure beta-story beta-analytics event-store event-times event-backup hourly-model event-presets event-briefing-history event-ops-handoff event-briefing-ui almanac climate-report climate-daily climate-period-records climate-station weather-history; do
             echo "::group::$t"; node tests/$t.test.js || { echo "::error::$t failed"; exit 1; }; echo "::endgroup::"
           done
       - run: node tools/stamp-assets.js --check
       - run: |
           npm install --no-save playwright@1.48.2
           npx playwright install --with-deps chromium || npx playwright install chromium
+      - name: Calendar main-origin connection and paged tables (offline)
+        run: node tools/calendar-main-check.js
       - name: Missing, failed and delayed sources (simulated network; Event Manager and Model Blend)
         run: node tools/source-failure-check.js /tmp/source-failure
       - name: Event briefing phone, themes and two-page print (offline)
