@@ -114,7 +114,12 @@
       refreshHeadsUp();
       O.setChip("NO DATA", "err");
       $("runMsg").className = "msg err";
-      $("runMsg").textContent = "Couldn't reach Open-Meteo. Check your connection and try again.";
+      /* say what actually happened: provider rate limiting or errors are not a problem with the planner's connection */
+      const fails = Object.values(res.failures || {}), statuses = [...new Set(fails.map((f) => f.status).filter(Boolean))];
+      const wait = Number.isFinite(res.retryAfter) && res.retryAfter > 0 ? ` Open-Meteo asked to wait ${res.retryAfter < 120 ? `${res.retryAfter} s` : `about ${Math.ceil(res.retryAfter / 60)} min`}.` : "";
+      $("runMsg").textContent = fails.length && statuses.length === 1 && statuses[0] === 429 ? `Open-Meteo is limiting requests right now (HTTP 429 for every model).${wait} Try ↻ again in a minute.`
+        : fails.length && statuses.length && fails.every((f) => f.status) ? `Open-Meteo answered with an error for every model (HTTP ${statuses.join(", ")}).${wait} Try again in a minute.`
+        : "Couldn't reach Open-Meteo. Check your connection and try again.";
       O.headline({ tier: "nodata", word: "NO DATA" });
       render();
       return;

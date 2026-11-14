@@ -208,15 +208,17 @@ async function raceChecks(base) {
 }
 
 async function blendChecks(base) {
-  for (const [label, scenario] of [['one model 429', { forecast: { gfs_seamless: { status: 429 } } }], ['all models 500', { forecast: { '*': { status: 500 } }, ensemble: { '*': { status: 500 } } }], ['NWS down', { nws: { status: 503 }, alerts: { status: 500 } }]]) {
+  for (const [label, scenario] of [['one model 429', { forecast: { gfs_seamless: { status: 429 } } }], ['all models 500', { forecast: { '*': { status: 500 } }, ensemble: { '*': { status: 500 } } }], ['all models 429', { forecast: { '*': { status: 429 } }, ensemble: { '*': { status: 429 } } }], ['all models unreachable', { forecast: { '*': { hang: true } }, ensemble: { '*': { hang: true } } }], ['NWS down', { nws: { status: 503 }, alerts: { status: 500 } }]]) {
     const { ctx, p, state } = await open(base); state.scenario = scenario;
     await p.goto(base + '/blend.html');
     await p.waitForFunction(() => !document.getElementById('runBtn')?.disabled && /models|Couldn't/.test(document.getElementById('runMsg')?.textContent || ''), null, { timeout: 40000 }).catch(() => {});
     const m = await text(p, '#runMsg');
     if (label === 'one model 429') check(/GFS: request failed \(HTTP 429\)/.test(m), 'blend: a rate-limited model is named with its HTTP status (' + m.slice(0, 160) + ')');
-    if (label === 'all models 500') { check(/Couldn't reach/.test(m), 'blend: all models failing says so'); check(!/No (additional )?flags|all clear/i.test(await text(p, '#next48HeadsUp')), 'blend: no all-clear while every model is down'); }
+    if (label === 'all models unreachable') check(/Couldn't reach Open-Meteo/.test(m), 'blend: requests that never answer are reported as unreachable (' + m.slice(0, 100) + ')');
+    if (label === 'all models 429') { check(/limiting requests/i.test(m) && /HTTP 429/.test(m) && !/connection/i.test(m), 'blend: every model rate-limited is reported as provider rate limiting (HTTP 429), not as a connection problem (' + m.slice(0, 140) + ')'); check(!/No (additional )?flags|all clear/i.test(await text(p, '#next48HeadsUp')), 'blend: no all-clear while every model is rate-limited'); }
+    if (label === 'all models 500') { check(/error for every model \(HTTP 500\)/.test(m) && !/connection/i.test(m), 'blend: all models failing says so, naming the provider error rather than the connection (' + m.slice(0, 120) + ')'); check(!/No (additional )?flags|all clear/i.test(await text(p, '#next48HeadsUp')), 'blend: no all-clear while every model is down'); }
     if (label === 'NWS down') { check(/NWS unavailable/.test(m), 'blend: NWS outage is named while models load'); check(/NWS alert check unavailable/.test(await text(p, '#next48HeadsUp')), 'blend: alert-check failure is stated'); }
-    if(label!=='all models 500'){
+    if(!/^all models/.test(label)){
       check(await p.locator('#guidanceSupport [data-support]').count()===1, `blend (${label}): shared coverage and agreement panel renders`);
     }
     if(label==='one model 429'){
