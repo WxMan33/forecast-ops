@@ -117,6 +117,17 @@
     return `<div class="sch-visual" aria-hidden="true"><div class="sch-bar">${segs}${over}</div><div class="sch-ticks">${ticks}</div></div><ol class="sch-labels">${P.map((p,i) => `<li><span class="sch-number">${i+1}</span><div><b>${esc(p.label)}</b><span>${esc(fmt.clock(p.startMs,tz))}–${esc(fmt.clock(p.endMs,tz))}</span></div></li>`).join("")}</ol><div class="sch-legend">${legend}</div>`;
   }
 
+  function renderSupport(res,b,now=Date.now()) {
+    const open=$("sourceCoverage").querySelector('details')?.open;
+    res.support=window.ForecastSupport.analyze({C,B:res.ctx.B,requested:res.RB?.ws||res.ctx.ws,rules:res.ctx.rules,
+      start:Math.max(b.all.startMs,Math.floor(now/3600e3)*3600e3),end:b.all.endMs,now,names:U.NAMES,meta:res.ctx.meta||{},nws:res.NW});
+    $("sourceCoverage").innerHTML=BUI.sourceHtml({...res,feeds:res.eventFeeds||res.feeds})+window.ForecastSupport.html(res.support);
+    if(open)$("sourceCoverage").querySelector('details').open=true;
+  }
+  // Refresh ages without making provider requests or resetting the selected forecast hour.
+  const refreshSupport=()=>{if(!document.hidden&&lastRes&&lastView)renderSupport(lastRes,lastView.b);};
+  setInterval(refreshSupport,60000);
+  document.addEventListener('visibilitychange',refreshSupport);
   function render(res) {
     const ctx = res.ctx, tz = ev.tz, now = ctx.now, thr = { gust: ev.gust || 25 };
     if (isSample() && !ev.picked) { const v = ev.loc.name === S.SAMPLE_VENUE.name ? null : ev.loc; ev = { ...S.pickSample(ctx, C, ev.tz, [1, 2, 3], v), picked: true }; context(); }
@@ -169,7 +180,7 @@
     $("coverage").querySelectorAll("[data-remind]").forEach((a) => a.addEventListener("click", () => U.track("reminder_exported", { via: a.dataset.remind })));
     /* counted for this event's hours: a source whose forecast ends before the event is named, not counted */
     res.eventFeeds = BUI.eventFeeds(res.feeds, ctx.B, b.all.startMs, b.all.endMs);
-    $("sourceCoverage").innerHTML = BUI.sourceHtml({ ...res, feeds: res.eventFeeds });
+    renderSupport(res,b,now);
     briefingUpdate(ev, b, V, res);
     monitoringHandoff(ev, b, now);
     $("schedule").innerHTML = schedule(b, now);
@@ -244,7 +255,7 @@
     let delta; try { delta = history.visit(localStorage, event.id, current); } catch { delta = { state: "first", stored: false, items: [] }; }
     lastView.update = delta;
     if (delta.state === "first" && delta.stored) return;
-    const note = delta.state === "recipe-changed" ? "Your blend recipe changed. Weather trends start fresh with these weights." : delta.state === "sources-changed" ? "Model source coverage changed. Weather trends are not compared across different source sets."
+    const note = delta.state === "recipe-changed" ? "Your blend recipe changed. Weather trends start fresh with these weights." : delta.state === "sources-changed" ? "Model source coverage changed. Weather trends are not compared across different contributors or missing hours."
       : delta.state === "event-changed" ? "Your venue, schedule or gust limit changed. This briefing starts a new comparison."
       : delta.state === "no-overlap" ? "There is not enough matching future guidance to compare yet."
       : !delta.stored ? "This browser could not save the briefing. Changes cannot be remembered reliably."
@@ -252,7 +263,7 @@
     const better = delta.items.filter((x) => x.trend === "better").length, allBetter = better > 0 && better === delta.items.length;
     host.className = !delta.items.length ? "brief-update quiet" : allBetter ? "brief-update has-changes is-better" : "brief-update has-changes";
     host.hidden = false;
-    const tag = (x) => x.kind === "alert" ? "New alert" : x.trend === "better" ? "Better" : "Worse";
+    const tag = (x) => x.kind === "alert" ? "New alert" : x.trend === "better" ? "Better" : x.trend === "timing" ? "Timing" : "Worse";
     host.innerHTML = `${delta.items.length ? `<h2>${allBetter ? "Improved since your last briefing" : "Since your last briefing"}</h2><ul>`+delta.items.map(x=>`<li class="is-${x.trend||'alert'}"><b>${tag(x)}:</b> ${esc(x.text)}</li>`).join("")+'</ul>' : ''}${note ? `<p>${esc(note)}</p>` : ''}${delta.previousAt ? `<small>Compared with ${esc(BUI.date(delta.previousAt,event.tz))}, ${esc(fmt.clock(delta.previousAt,event.tz))} ${esc(fmt.zone(delta.previousAt,event.tz))}. Saved only in this browser.</small>` : ''}`;
   }
   function monitoringHandoff(event, b, now) {
@@ -290,6 +301,7 @@
   /* ---- printout: two US Letter pages for a typical single-day event, built from the same values as the screen ---- */
   function printView(res) {
     const host = $("printView"); if (!host || !lastView || !res) return;
+    renderSupport(res, lastView.b);
     host.innerHTML = BUI.printMarkup({ ev, res: { ...res, feeds: res.eventFeeds || res.feeds }, view: lastView, S, U });
   }
   window.addEventListener("beforeprint", () => printView(lastRes));
