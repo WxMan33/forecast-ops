@@ -450,3 +450,8 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 
 /* Navigation stays visible on narrow screens. */
 .bx-rail{flex-wrap:wrap;overflow-x:visible}
+
+/* Upcoming actions take a new row when the heading and controls cannot fit together. */
+.up-head{flex-wrap:wrap}
+.up-head .up-act{flex:0 1 auto;min-width:0;max-width:100%}
+.up-title{min-width:0;overflow-wrap:anywhere}
