@@ -600,9 +600,12 @@
     if (e - s > 14 * 864e5) return err("Choose 14 days or less.");
     err(""); hgCustom = { s, e }; renderHourly();
   });
+  let supportSpan=null;
   function renderSupport(span=null,now=Date.now()) {
     if(!data)return;
-    if(!span)span=window.HourlyModel.blendSpan(now,hgRange==='custom'?24:+hgRange,hgRange==='custom'?hgCustom:null);
+    if(span)supportSpan=span;
+    else span=supportSpan;
+    if(!span?.length)return;
     const requested=preset==='custom'?C.blend.scopedWeights(weightProfiles).ws:C.blend.presetWeights(preset,SPEC,picker.weights());
     const open=$("guidanceSupport").querySelector('details')?.open;
     $("guidanceSupport").innerHTML=window.ForecastSupport.html(window.ForecastSupport.analyze({C,B:data,requested,rules:R(),start:span[0],end:span.at(-1)+3600e3,now,names:NAMES,meta:meta||{},nws}));

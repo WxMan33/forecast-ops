@@ -39,7 +39,7 @@ function analyze({C,B,requested={},rules=null,start,end,now=Date.now(),names={},
   let agreement='Unavailable',detail='At least two complete source systems are needed.';
   if(key!=='rain'&&complete.length>=2){
    const spread=Math.max(...hours.map((m,j)=>Math.max(...complete.map(s=>s.values[j]))-Math.min(...complete.map(s=>s.values[j]))));
-   agreement=`Up to ${Math.ceil(spread)}${key==='temp'?'°F':key==='pop'?' percentage points':' mph'} apart`;
+   agreement=`Up to ${Math.ceil(spread)}${key==='temp'?'°F':key==='pop'?(Math.ceil(spread)===1?' percentage point':' percentage points'):' mph'} apart`;
    detail=`Largest same-hour difference across ${complete.length} complete source systems.`;
   }
   if(key==='rain'){
