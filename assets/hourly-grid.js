@@ -36,15 +36,24 @@
     const nav=document.createElement('div');nav.className='hg-pager';
     nav.innerHTML='<button type="button" class="btn bx-btn ghost sm" data-hg-prev aria-label="Earlier table hours">← Earlier</button><span class="hg-window" aria-live="polite"></span><button type="button" class="btn bx-btn ghost sm" data-hg-next aria-label="Later table hours">Later →</button>';
     host.prepend(nav);
+    let sizedFor='';
+    function setVisible(start,end){
+      const visible=i=>i>=start&&i<end;
+      host.querySelectorAll('.hg-hours th[data-ms]').forEach((th,i)=>{th.hidden=!visible(i)});
+      host.querySelectorAll('tr.hg-row').forEach(tr=>Array.from(tr.querySelectorAll('td')).forEach((td,i)=>{td.hidden=!visible(i)}));
+      let from=0;host.querySelectorAll('.hg-day').forEach(th=>{const full=days[Array.from(th.parentNode.querySelectorAll('.hg-day')).indexOf(th)].n;const n=Math.max(0,Math.min(from+full,end)-Math.max(from,start));th.hidden=!n;th.colSpan=n||1;from+=full;});
+    }
     function showPage(target=null){
       const labWidth=host.clientWidth<=560?92:128;
       pageSize=Math.max(1,Math.min(12,Math.floor((host.clientWidth-labWidth-2)/70)));
       if(target!==null){const i=axis.findIndex(a=>a.ms===target);if(i>=0&&(i<pageStart||i>=pageStart+pageSize))pageStart=Math.floor(i/pageSize)*pageSize;}
       pageStart=Math.max(0,Math.min(pageStart,Math.max(0,axis.length-pageSize)));
-      const end=Math.min(axis.length,pageStart+pageSize),visible=i=>i>=pageStart&&i<end;
-      host.querySelectorAll('.hg-hours th[data-ms]').forEach((th,i)=>{th.hidden=!visible(i)});
-      host.querySelectorAll('tr.hg-row').forEach(tr=>Array.from(tr.querySelectorAll('td')).forEach((td,i)=>{td.hidden=!visible(i)}));
-      let from=0;host.querySelectorAll('.hg-day').forEach(th=>{const full=days[Array.from(th.parentNode.querySelectorAll('.hg-day')).indexOf(th)].n;const n=Math.max(0,Math.min(from+full,end)-Math.max(from,pageStart));th.hidden=!n;th.colSpan=n||1;from+=full;});
+      const end=Math.min(axis.length,pageStart+pageSize);
+      /* every row keeps its tallest height across all pages of this width, so paging never moves the page below */
+      if(sizedFor!==host.clientWidth+':'+pageSize){sizedFor=host.clientWidth+':'+pageSize;const trs=Array.from(host.querySelectorAll('tr'));trs.forEach(tr=>{tr.style.height='';});const tall=trs.map(()=>0);
+        for(let s0=0;s0<axis.length;s0+=pageSize){setVisible(s0,Math.min(axis.length,s0+pageSize));trs.forEach((tr,k)=>{tall[k]=Math.max(tall[k],tr.getBoundingClientRect().height);});}
+        trs.forEach((tr,k)=>{if(tall[k])tr.style.height=Math.ceil(tall[k])+'px';});}
+      setVisible(pageStart,end);
       const a=axis[pageStart],z=axis[end-1];
       nav.querySelector('.hg-window').textContent=`${DAY(a.date)} · ${a.hourText} ${a.zone} – ${z.date!==a.date?DAY(z.date)+' · ':''}${z.hourText} ${z.zone} · ${pageStart+1}–${end} of ${axis.length} hours`;
       nav.querySelector('[data-hg-prev]').disabled=pageStart===0;nav.querySelector('[data-hg-next]').disabled=end===axis.length;
