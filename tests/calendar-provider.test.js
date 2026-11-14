@@ -17,6 +17,11 @@ global.fetch = async (url, options) => {
   return { ok: !reply.error, status: reply.error || 200, json: async () => reply };
 };
 async function run() {
+  const vm=require('node:vm'),fs=require('node:fs'),box={window:{}};
+  vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../assets/beta-config.js'),'utf8'),box);
+  const saved=global.BETA_CALENDAR;global.BETA_CALENDAR=box.window.BETA_CALENDAR;
+  for(const [origin,want] of [['https://wxman33.github.io',true],['https://forecast-ops-beta.pages.dev',true],['https://raw.githack.com',false],['https://other.github.io',false],['https://forecast-ops-beta.pages.dev.evil.example',false]])check(CI.googleAvailable({origin,hostname:new URL(origin).hostname}),want);
+  global.BETA_CALENDAR=saved;
   const p = CI.googleProvider();
   replies = [{ items: [{ id: 'first' }], nextPageToken: 'page2' }, { nextPageToken: 'page3' }, { items: [{ id: 'last' }] }];
   check((await p.listCalendars()).map(x => x.id), ['first', 'last']);

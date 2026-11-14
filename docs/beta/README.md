@@ -61,7 +61,7 @@ Importing again updates events in place: the calendar's name and start/end win, 
 planner's own times are kept (an override keeps its offset from the start). All-day items are skipped.
 
 - **Live Google Calendar import:** https://forecast-ops-beta.pages.dev/event-beta.html#upcoming (Cloudflare Pages,
-  `beta-previews` branch). OAuth client ID set in `assets/beta-config.js`, authorized for that exact origin only;
+  `beta-previews` branch). OAuth client ID set in `assets/beta-config.js`, enabled on that origin and `https://wxman33.github.io`; both must be in Google Cloud’s Authorized JavaScript origins;
   testers must be listed under Google Auth Platform → Audience → Test users while the app is in testing.
 - **Venue matching:** a calendar location is matched automatically when it fits exactly one saved or built-in
   venue (Paycor Stadium, TQL Stadium, Great American Ball Park) by name, street address or a known alias. The
@@ -234,3 +234,9 @@ Saved events keep a local snapshot of the last successful briefing (up to 25 eve
 ### Handoff to live OPE monitoring
 
 On event day, the live-monitoring handoff is placed before the forecast decision. Earlier visits show it under the next-check section. Copy venue and coordinates works immediately. Connect an OPE address (HTTPS, or HTTP localhost) to open its `/forecast-event` review with the venue and exact event instants in a URL fragment. The receiver requires the Forecast Ops handoff update in `WxMan33/heads-up`; it opens the existing venue editor and requires the operator to save before changing the monitored site. No forecast threats, API tokens, ring settings or resume/stop instructions are transferred. The address and briefing history stay in this browser and are not part of backups or analytics.
+
+### Main-site Calendar and readable tables
+
+The main GitHub Pages origin and Cloudflare beta both offer Google Calendar. Google Cloud must authorize both exact origins on the configured OAuth client; a site allowlist change alone cannot authorize an origin at Google. Githack and branch previews stay demo-only. Tokens remain in the connecting tab’s memory. Events and venues remain on the current origin; users are never silently moved to another site or asked to relay tokens.
+
+Hourly grids, model signal strips and detailed comparison tables use pages of readable columns instead of horizontal scrolling. Navigation wraps. Every hour and field remains available with labelled controls; missing data, selected-hour details, phase boundaries and threat ratings are unchanged.
