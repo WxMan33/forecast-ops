@@ -40,7 +40,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     return () => p.evaluate(([l, s]) => { const b = [...document.querySelectorAll(`${s} .bx-ppres button`)].find((x) => x.innerText.startsWith(l)); if (!b) throw new Error(`city search showed no "${l}"`); b.dispatchEvent(new MouseEvent("mousedown", { bubbles: true })); }, [label, scope]);
   };
   /* each scenario stands alone: a failure is reported and the rest still run */
-  const section = async (name, fn) => { try { await fn(); } catch (e) { report(false, name, `stopped: ${String(e.message || e).split("\n")[0]}`); } };
+  const section = async (name, fn) => { const t0 = Date.now(); try { await fn(); } catch (e) { report(false, name, `stopped: ${String(e.message || e).split("\n")[0]}`); } console.log(`  volume · ${name}: ${NETREC.volume(t0).line} · ${Math.round((Date.now() - t0) / 1000)} s`); };
   const pageOk = async (p, errors, status, notice, name) => {
     const info = await p.evaluate(() => ({ guard: !!document.getElementById("loadGuard"), hscroll: document.documentElement.scrollWidth > innerWidth + 1, verifyLinks: /githack\.com$/.test(location.hostname) ? document.querySelectorAll('a[href*="verify"]').length : 0, signin: /sign in|log in/i.test(document.body.innerText) }));
     const fresh = !stamp || /githack/.test(base) === false || (await p.content()).includes(stamp);
@@ -713,6 +713,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
 
   await browser.close();
   { const n = netSince(0); console.log(`weather-data requests that failed during the whole run: ${n.length ? "\n  " + n.join("\n  ") : "none"}`); }
+  { const v = NETREC.volume(0, { detail: true }); console.log(`weather-data request volume for the whole run: ${v.line}${v.top.length ? "\n  by endpoint: " + v.top.join("; ") : ""}${v.dup.length ? "\n  most repeated: " + v.dup.join("; ") : ""}`); }
   console.log(failed ? `${failed} check(s) failed` : "all checks passed");
   process.exit(failed ? 1 : 0);
 })();

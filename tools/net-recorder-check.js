@@ -26,6 +26,11 @@ const run = async () => {
     if (lines.length !== 2) problems.push(`expected 2 recorded requests, got ${lines.length}`);
     want.forEach((re, i) => { if (!lines.some((l) => re.test(l))) problems.push(`missing diagnostic ${i + 1} (${re})`); });
     if (/pk\.[0-9a-f]{8}|apikey|key=|\?/.test(text)) problems.push("a query string or key leaked into the diagnostics");
+    /* request volume: the same blocked request asked again is one exact repeat; keys never appear in the summary */
+    await p.evaluate((key) => fetch(`https://api.open-meteo.com/v1/forecast?latitude=39.1&longitude=-84.5&models=gfs_seamless&apikey=${key}`).catch(() => {}), KEY); await p.waitForTimeout(300);
+    const v = rec.volume(0, { detail: true });
+    if (v.total !== 3 || v.repeats !== 1 || v.openMeteo !== 2) problems.push(`volume: expected 3 requests, 1 exact repeat, 2 to Open-Meteo; got ${v.line}`);
+    if (/pk\.[0-9a-f]{8}|apikey/.test(v.line + v.top.join() + v.dup.join())) problems.push("a key leaked into the volume summary");
     return { problems, lines };
   } finally { await browser.close(); }
 };
@@ -33,6 +38,6 @@ Promise.race([run(), new Promise((_, no) => setTimeout(() => no(new Error(`timed
   .then(({ problems, lines }) => {
     lines.forEach((l) => console.log(`  recorded: ${l}`));
     if (problems.length) { problems.forEach((x) => console.log(`FAIL ${x}`)); process.exit(1); }
-    console.log("ok - network recorder: blocked request and HTTP 503 recorded, redacted, nothing else"); process.exit(0);
+    console.log("ok - network recorder: blocked request and HTTP 503 recorded, redacted, nothing else; request volume and exact repeats counted"); process.exit(0);
   })
   .catch((e) => { console.log(`FAIL network recorder self-test: ${e.message}`); process.exit(1); });

@@ -12,9 +12,28 @@ function createRecorder(now = () => Date.now()) {
     const model = (u.searchParams.get("models") || "").replace(/[^a-z0-9_,.-]/gi, "").slice(0, 80);
     rows.push({ at: now(), where: `${u.hostname}${u.pathname}`.replace(/pk\.[0-9a-z]+/gi, "pk.[REDACTED]"), model, what });
   };
+  /* request volume: every weather-data request (not only failures), keyed without its query values' secrets.
+     Exact duplicates are the same endpoint, model and query asked again within one run. */
+  const sent = [];
+  const keyOf = (u) => { const q = [...u.searchParams.entries()].filter(([k]) => !/key|token/i.test(k)).sort().map(([k, v]) => `${k}=${v}`).join("&"); return `${u.hostname}${u.pathname}?${q}`.replace(/pk\.[0-9a-z]+/gi, "pk.[REDACTED]"); };
   const watch = (page) => {
     page.on("requestfailed", (r) => record(r.url(), `failed: ${(r.failure() && r.failure().errorText) || "unknown"}`));
-    page.on("response", (r) => { if (r.status() >= 400) record(r.url(), `HTTP ${r.status()}`); });
+    page.on("response", (r) => { if (r.status() >= 400) record(r.url(), `HTTP ${r.status()}`); const x = sent.find((y) => y.req === r.request()); if (x) x.status = r.status(); });
+    page.on("request", (r) => { let u; try { u = new URL(r.url()); } catch (e) { return; } if (!DATA_HOSTS.test(u.hostname) || r.method() === "OPTIONS") return;
+      sent.push({ at: now(), req: r, host: u.hostname, endpoint: `${u.hostname}${u.pathname.replace(/\/-?\d+(\.\d+)?,-?\d+(\.\d+)?/, "/{point}").replace(/\/products\/[0-9a-f-]{36}/, "/products/{id}").replace(/gridpoints\/[A-Z]{3}\/\d+,\d+/, "gridpoints/{grid}")}`, model: (u.searchParams.get("models") || "").slice(0, 60), key: keyOf(u), status: null }); });
+  };
+  /* "N requests (open-meteo forecast N, ...) · M exact repeats · 429 ×K · busiest minute N" for requests since ms */
+  const volume = (ms = 0, { detail = false } = {}) => {
+    const xs = sent.filter((x) => x.at >= ms); if (!xs.length) return { total: 0, line: "0 weather-data requests" };
+    const count = (f) => xs.reduce((m, x) => { const k = f(x); m[k] = (m[k] || 0) + 1; return m; }, {});
+    const byKey = count((x) => x.key), repeats = Object.values(byKey).reduce((a, n) => a + n - 1, 0);
+    const byEndpoint = Object.entries(count((x) => x.endpoint)).sort((a, b) => b[1] - a[1]);
+    const perMin = Object.values(count((x) => Math.floor(x.at / 60e3))), r429 = xs.filter((x) => x.status === 429).length;
+    const om = xs.filter((x) => /open-meteo\.com$/.test(x.host)).length;
+    const line = `${xs.length} weather-data requests (Open-Meteo ${om}) · ${repeats} exact repeats · HTTP 429 ×${r429} · busiest minute ${Math.max(...perMin)}`;
+    const top = detail ? byEndpoint.slice(0, 8).map(([k, n]) => `${k} ×${n}`) : [];
+    const dup = detail ? Object.entries(byKey).filter(([, n]) => n > 2).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, n]) => `${k.replace(/latitude=[^&]*&longitude=[^&]*&?/, "{point}&").slice(0, 140)} ×${n}`) : [];
+    return { total: xs.length, openMeteo: om, repeats, r429, busiestMinute: Math.max(...perMin), line, top, dup };
   };
   /* grouped lines: "host/path [model] → what ×n (first–last Z)" */
   const since = (ms) => {
@@ -22,6 +41,6 @@ function createRecorder(now = () => Date.now()) {
     rows.filter((x) => x.at >= ms).forEach((x) => { const k = `${x.where}${x.model ? ` [${x.model}]` : ""} → ${x.what}`; by[k] = by[k] || { n: 0, first: x.at, last: x.at }; by[k].n++; by[k].last = x.at; });
     return Object.entries(by).map(([k, v]) => `${k} ×${v.n} (${new Date(v.first).toISOString().slice(11, 19)}–${new Date(v.last).toISOString().slice(11, 19)}Z)`);
   };
-  return { record, watch, since, rows };
+  return { record, watch, since, rows, volume };
 }
 module.exports = { createRecorder, DATA_HOSTS };
