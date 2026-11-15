@@ -19,8 +19,26 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
 (async () => {
   const browser = await chromium.launch({ args: ["--use-gl=swiftshader", "--enable-unsafe-swiftshader"] });
   /* open a page as a signed-out colleague; raw.githack.com shows a one-time notice that they click through */
+  /* Live Open-Meteo forecasts and ensembles are requested from the provider once per run and reused for identical requests
+     for 15 minutes, as the app's own session cache would for one person (each check opens a fresh browser, which loses it).
+     Run 64 measured 1,680 Open-Meteo requests in about 15 minutes, most of them exact repeats, and every HTTP 429 fell on these
+     two endpoints. Only successful answers are reused; errors and rate limits always reach the page. A section's own route
+     (a delayed or recorded request) is registered later and still takes precedence. */
+  const LIVE = new Map(); let liveFetched = 0, liveReused = 0;
+  const shareLive = (ctx) => ctx.route(/^https:\/\/(api|ensemble-api)\.open-meteo\.com\/v1\/(forecast|ensemble)\?/, async (r) => {
+    if (r.request().method() !== "GET") return r.fallback();
+    const key = r.request().url(), hit = LIVE.get(key);
+    if (hit && Date.now() - hit.at < 15 * 60e3) { const v = await hit.p.catch(() => null); if (v) { liveReused++; return r.fulfill({ status: 200, headers: { ...v.headers, "x-forecast-ops-reused": "1", "access-control-expose-headers": "*" }, body: v.body }).catch(() => {}); } }
+    let done; const p = new Promise((ok, no) => { done = { ok, no }; }); LIVE.set(key, { at: Date.now(), p }); p.catch(() => {});
+    try {
+      const resp = await r.fetch({ timeout: 30000 }); liveFetched++;
+      if (resp.status() === 200) done.ok({ headers: resp.headers(), body: await resp.body() }); else { done.no(new Error("not reusable")); LIVE.delete(key); }
+      return r.fulfill({ response: resp }).catch(() => {});
+    } catch (e) { done.no(e); LIVE.delete(key); return r.abort("failed").catch(() => {}); }
+  });
   const go = async (opts, url, init) => {
     const ctx = await browser.newContext(opts); if (init) await ctx.addInitScript(init);
+    await shareLive(ctx);
     await ctx.route(/script\.google\.com\/macros/, (r) => r.abort()); // automated checks never reach the real usage collector
     await ctx.route(/nominatim\.openstreetmap\.org\/search/, (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(GEO[new URL(r.request().url()).searchParams.get("q")] || []) })); // captured real responses
     const p = await ctx.newPage(), errors = []; p.on("pageerror", (e) => errors.push(e.message)); watchNet(p);
@@ -713,6 +731,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
 
   await browser.close();
   { const n = netSince(0); console.log(`weather-data requests that failed during the whole run: ${n.length ? "\n  " + n.join("\n  ") : "none"}`); }
+  console.log(`live Open-Meteo forecasts/ensembles: ${liveFetched} fetched from the provider, ${liveReused} identical requests answered from this run's earlier live responses`);
   { const v = NETREC.volume(0, { detail: true }); console.log(`weather-data request volume for the whole run: ${v.line}${v.top.length ? "\n  by endpoint: " + v.top.join("; ") : ""}${v.dup.length ? "\n  most repeated: " + v.dup.join("; ") : ""}`); }
   console.log(failed ? `${failed} check(s) failed` : "all checks passed");
   process.exit(failed ? 1 : 0);

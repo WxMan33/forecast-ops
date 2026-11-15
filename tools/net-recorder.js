@@ -18,7 +18,9 @@ function createRecorder(now = () => Date.now()) {
   const keyOf = (u) => { const q = [...u.searchParams.entries()].filter(([k]) => !/key|token/i.test(k)).sort().map(([k, v]) => `${k}=${v}`).join("&"); return `${u.hostname}${u.pathname}?${q}`.replace(/pk\.[0-9a-z]+/gi, "pk.[REDACTED]"); };
   const watch = (page) => {
     page.on("requestfailed", (r) => record(r.url(), `failed: ${(r.failure() && r.failure().errorText) || "unknown"}`));
-    page.on("response", (r) => { if (r.status() >= 400) record(r.url(), `HTTP ${r.status()}`); const x = sent.find((y) => y.req === r.request()); if (x) x.status = r.status(); });
+    page.on("response", (r) => { if (r.status() >= 400) record(r.url(), `HTTP ${r.status()}`); const x = sent.find((y) => y.req === r.request()); if (!x) return; x.status = r.status();
+      /* Open-Meteo reports what each request cost against its per-minute budget; answers reused from this run's own cache cost nothing */
+      const h = r.headers(); if (h["x-forecast-ops-reused"]) { x.reused = true; return; } const c = parseFloat(h["x-ratelimit-cost"]), left = parseFloat(h["x-ratelimit-remaining"]); if (Number.isFinite(c)) { x.cost = c; x.budget = parseFloat(h["x-ratelimit-limit"]); } if (Number.isFinite(left)) x.left = left; });
     page.on("request", (r) => { let u; try { u = new URL(r.url()); } catch (e) { return; } if (!DATA_HOSTS.test(u.hostname) || r.method() === "OPTIONS") return;
       sent.push({ at: now(), req: r, host: u.hostname, endpoint: `${u.hostname}${u.pathname.replace(/\/-?\d+(\.\d+)?,-?\d+(\.\d+)?/, "/{point}").replace(/\/products\/[0-9a-f-]{36}/, "/products/{id}").replace(/gridpoints\/[A-Z]{3}\/\d+,\d+/, "gridpoints/{grid}")}`, model: (u.searchParams.get("models") || "").slice(0, 60), key: keyOf(u), status: null }); });
   };
@@ -30,7 +32,10 @@ function createRecorder(now = () => Date.now()) {
     const byEndpoint = Object.entries(count((x) => x.endpoint)).sort((a, b) => b[1] - a[1]);
     const perMin = Object.values(count((x) => Math.floor(x.at / 60e3))), r429 = xs.filter((x) => x.status === 429).length;
     const om = xs.filter((x) => /open-meteo\.com$/.test(x.host)).length;
-    const line = `${xs.length} weather-data requests (Open-Meteo ${om}) · ${repeats} exact repeats · HTTP 429 ×${r429} · busiest minute ${Math.max(...perMin)}`;
+    const costs = xs.filter((x) => Number.isFinite(x.cost)), costMin = costs.length ? Object.values(costs.reduce((m, x) => { const k = Math.floor(x.at / 60e3); m[k] = (m[k] || 0) + x.cost; return m; }, {})) : [];
+    const reused = xs.filter((x) => x.reused).length, lows = xs.filter((x) => Number.isFinite(x.left)).map((x) => x.left);
+    const budget = costs.length ? ` · Open-Meteo cost ${Math.round(costs.reduce((a, x) => a + x.cost, 0))} units (peak ${Math.round(Math.max(...costMin))} in a minute of ${costs[0].budget || "?"} allowed; lowest remaining ${lows.length ? Math.round(Math.min(...lows)) : "?"})` : "";
+    const line = `${xs.length} weather-data requests (Open-Meteo ${om}${reused ? `, ${reused} answered from this run's live cache` : ""}) · ${repeats} exact repeats · HTTP 429 ×${r429} · busiest minute ${Math.max(...perMin)}${budget}`;
     const top = detail ? byEndpoint.slice(0, 8).map(([k, n]) => `${k} ×${n}`) : [];
     const dup = detail ? Object.entries(byKey).filter(([, n]) => n > 2).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, n]) => `${k.replace(/latitude=[^&]*&longitude=[^&]*&?/, "{point}&").slice(0, 140)} ×${n}`) : [];
     return { total: xs.length, openMeteo: om, repeats, r429, busiestMinute: Math.max(...perMin), line, top, dup };
