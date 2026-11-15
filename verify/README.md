@@ -192,6 +192,24 @@ How TV values are scored:
 - Coverage (expected vs captured slots, gaps, pending observations) is always shown next to scores.
 - **National expansion:** scores will be expressed relative to local benchmarks (e.g. skill against `nws-official` or a climatology baseline), not as raw errors across climates.
 
+## Context and conditions (`lib/context.js`, `lib/stratify.js`, `lib/experiments.js`)
+
+Every scored temperature case carries context on three bases, which are never mixed:
+
+| Basis | Known | Contents | Stored |
+|---|---|---|---|
+| target | Before issue | Valid date, month, season, lead band, slot, local day/night hour | Computed |
+| issue | At retrieval | Source status and HTTP code, retrieval times, provider-reported cycle and its status, NWS grid update time, recipe weights requested and used, missing sources, code and normalizer versions, the forecast's own change from the previous day (Baseline v1, from its hourly series), ECMWF ENS 10–90 % width, mixed-source range, and the latest climate-day observation the archive had ingested before the last retrieval (`firstSeenAt`) | `context/<loc>/<YYYY>/<captureId>.context-v1.json`, written once at capture (or backfilled from the same issue-time evidence, labelled `builtAfterCapture`) and never rewritten |
+| observed | Afterward | Observed change from the previous day, wet/dry, night sky and wind from the routine METARs (radiational, cloudy, windy, mixed) | `reports/context.json`, rebuilt every run because observations are revised |
+
+- **Thresholds** were fixed by definition before any error was examined: a change of ±6 °F, ECMWF ENS width < 4, 4–8 and > 8 °F, and a radiational night when two thirds of its routine reports are clear or few with wind ≤ 5 kt.
+- **Skill by condition** (`reports/CONTEXT.md`) uses matched cases only. A member joins a target/lead cell when it has 80 % of that cell's cases, and members left out are named. Each cell shows cases, distinct dates and 7-day blocks. Below 10 dates, no cell names a lowest error; below 30 dates, a cell is a small sample. Cells are descriptive: verdicts still come only from the matched comparisons above.
+- **Observed classes explain errors; they never select weights.** Only target- and issue-basis classes may condition an experimental recipe.
+- **Experimental weights** (`config/experiments.js`) wait until their matched training cases reach 60 distinct dates. Each is then fitted once and recorded in `experiments/<id>.fit.json`, never refitted or edited. It is evaluated only on captures that started after the fit, for valid dates beyond a 3-day embargo. Nothing here changes a recipe or a default.
+- **Climate patterns** (ENSO, AO, NAO, PNA, MJO) have reserved fields and are not collected. When collected, they must be stored as published, with publication times, and no relationship is inferred before several seasons per phase.
+- **Model versions:** no provider reports one. `MODEL_VERSIONS` in `lib/context.js` holds dated upgrades from cited notices, and is empty until such a notice is entered.
+- **Originals are only read.** Raw responses, normalized bundles, observations and captures are never modified by this layer.
+
 ## Local blend learning (prepared, not active)
 
 `lib/learn.js` provides the following:

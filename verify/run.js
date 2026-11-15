@@ -73,6 +73,11 @@ async function collect() {
   }
   cap.finishedAt = U.iso(Date.now());
   try { cap.normalized = writeBundle(cap); } catch (e) { cap.normalized = { error: String(e.stack || e) }; }
+  /* issue context (lib/context.js): stored once, now, from this capture and observations already ingested */
+  if (!cap.normalized.error) try {
+    const CR = require("./lib/context-report.js"), b = U.parseJSON(U.gunzip(fs.readFileSync(path.join(DATA, cap.normalized.path))).toString());
+    cap.context = { path: CR.storeIssueContext(DATA, loc, cap, b, U.readJSONLDir(path.join(DATA, "obs", loc.id)), Date.now()).path, version: require("./lib/context.js").VERSION };
+  } catch (e) { cap.context = { error: String(e.message || e).slice(0, 300) }; }
   const st = Object.values(cap.sources).map((s) => s.status);
   cap.outcome = st.every((x) => x === "ok") ? "ok" : st.some((x) => x === "ok") ? "partial" : "failed";
   cap.summary = { ok: st.filter((x) => x === "ok").length, total: st.length, failed: Object.values(cap.sources).filter((s) => s.status !== "ok").map((s) => `${s.id}: ${s.status}${s.error ? ` (${String(s.error).slice(0, 80)})` : ""}`) };
@@ -134,7 +139,12 @@ async function score() {
   const marked = RC.markProcessed(DATA, (res.personal.entries || []).map((e) => ({ file: e.path, commit: e.commit })));
   if (marked) { const again = SC.scoreAll(DATA, loc, Date.now(), undefined, { receipts: rctx }); Object.assign(res, again); }
   RP.writeReports(DATA, loc, res);
-  runLog({ job: "score", outcome: "ok", pairs: res.pairs.length, pending: res.pending.length });
+  /* context layer: issue contexts for captures that lack one, observed classes, skill by condition,
+     experimental weights (never defaults). A failure here is logged and never stops scoring. */
+  let ctx = null;
+  try { const o = require("./lib/context-report.js").build(DATA, loc, res, Date.now(), NORM.VERSION); ctx = { stored: o.stored, cells: o.tables.length, experiments: o.experiments.map((e) => `${e.id}: ${e.status}`) }; }
+  catch (e) { ctx = { error: String(e.stack || e).slice(0, 1000) }; console.log("context report failed:", e.message); }
+  runLog({ job: "score", outcome: "ok", pairs: res.pairs.length, pending: res.pending.length, context: ctx });
   console.log(`score: ${res.pairs.length} scored pairs, ${res.pending.length} awaiting observations`);
 }
 
