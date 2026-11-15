@@ -73,8 +73,13 @@ test('a failed run-metadata lookup is not requested again on every page load (10
     const b = await Data.loadModelMeta({ ecmwf_ifs025: 'ecmwf_ifs025', gfs_seamless: 'ncep_gfs013' });
     A.equal(calls, 2, 'no new requests within 10 minutes'); A.ok(b.ecmwf_ifs025.error && /recently unavailable|Not Found|HTTP 404/.test(b.ecmwf_ifs025.error), b.ecmwf_ifs025.error);
     Date.now = () => t0() + 11 * 60e3;
-    await Data.loadModelMeta({ ecmwf_ifs025: 'ecmwf_ifs025' });
+    const ok = (body) => new Response(JSON.stringify(body), { status: 200 }), now = Math.floor(Date.now() / 1000);
+    globalThis.fetch = async () => { calls++; return ok({ last_run_initialisation_time: now - 6 * 3600, last_run_availability_time: now - 3 * 3600, update_interval_seconds: 21600 }); };
+    const c = await Data.loadModelMeta({ ecmwf_ifs025: 'ecmwf_ifs025' });
     A.equal(calls, 3, 'asked again after 10 minutes');
+    A.ok(!c.ecmwf_ifs025.error && c.ecmwf_ifs025.lastRunInit, 'the provider recovered: the run time is shown again');
+    const d = await Data.loadModelMeta({ ecmwf_ifs025: 'ecmwf_ifs025' });
+    A.ok(!d.ecmwf_ifs025.error && d.ecmwf_ifs025.lastRunInit && calls === 4, 'after recovery the old failure is forgotten');
   } finally { globalThis.fetch = prev; Date.now = t0; }
 });
 /* the event's own hours decide what "available" means */

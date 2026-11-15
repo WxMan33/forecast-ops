@@ -89,8 +89,15 @@ const hourly = (d) => d.ms && d.ms.length > 0 && d.ms.every((m, i) => i === 0 ||
 let skips = 0;
 const providerDown = (what, cond, why) => { if (!cond) return false; skips++; console.log(`  SKIP provider unavailable: ${what}${why ? ` (${why})` : ""}`); console.log(`::warning::Provider unavailable during live test: ${what}`); return true; };
 
+/* the diagnostic summary is written however the run ends, so a crash or failure still leaves what was checked */
+const out = { at: new Date().toISOString(), places: [] };
+function writeSummary(status, error) {
+  try {
+    fs.mkdirSync(path.join(__dirname, "out"), { recursive: true });
+    fs.writeFileSync(path.join(__dirname, "out", "live-summary.json"), JSON.stringify({ ...out, status, checks, fails, skips, ...(error ? { error } : {}) }, null, 2));
+  } catch (e) { console.error(`could not write the live summary: ${e.message}`); }
+}
 (async () => {
-  const out = { at: new Date().toISOString(), places: [] };
   for (const P of PLACES) {
     console.log(`\n== ${P.name}`);
     const where = { lat: P.lat, lon: P.lon };
@@ -252,9 +259,8 @@ const providerDown = (what, cond, why) => { if (!cond) return false; skips++; co
     }
   }
 
-  fs.mkdirSync(path.join(__dirname, "out"), { recursive: true });
-  fs.writeFileSync(path.join(__dirname, "out", "live-summary.json"), JSON.stringify(out, null, 2));
+  writeSummary(fails ? "failed" : "passed");
   console.log(`\n${checks - fails}/${checks} live checks passed${skips ? ` · ${skips} block(s) skipped because a provider was unavailable` : ""}`);
   process.exit(fails ? 1 : 0);
-})().catch((e) => { console.error(e); process.exit(1); });
+})().catch((e) => { console.error(e); writeSummary("crashed", String((e && e.stack) || e).slice(0, 2000)); process.exit(1); });
 

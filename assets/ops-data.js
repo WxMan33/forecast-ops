@@ -270,6 +270,7 @@
       try {
         const j = await getJSON(`https://api.open-meteo.com/data/${metaId}/static/meta.json`, 15);
         if (j.error || !Number.isFinite(j.last_run_initialisation_time)) { out[id] = { error: j.reason || "no metadata" }; noteMetaFailure(metaId, out[id].error); return; }
+        metaFailed.delete(metaId); try { if (root.sessionStorage) root.sessionStorage.removeItem(metaFailKey(metaId)); } catch (e) { /* none */ } // recovered
         out[id] = { metaId, lastRunInit: new Date(j.last_run_initialisation_time * 1000).toISOString(), lastRunAvailable: Number.isFinite(j.last_run_availability_time) ? new Date(j.last_run_availability_time * 1000).toISOString() : null,
           updateIntervalH: Number.isFinite(j.update_interval_seconds) ? j.update_interval_seconds / 3600 : null, retrievedAt: j.__retrievedAt || null };
       } catch (e) { out[id] = { error: String(e.message || e) }; noteMetaFailure(metaId, out[id].error); }
