@@ -64,6 +64,19 @@ test('a failed ensemble is named with its status too', () => withFetch({ '*': { 
   A.ok(E.problems.includes('GEFS: unavailable (HTTP 502)'), E.problems.join('; '));
 }));
 
+test('a failed run-metadata lookup is not requested again on every page load (10 minutes)', async () => {
+  let calls = 0; const prev = globalThis.fetch, t0 = Date.now;
+  globalThis.fetch = async () => { calls++; return new Response('{"error":true,"reason":"Not Found"}', { status: 404 }); };
+  try {
+    const a = await Data.loadModelMeta({ ecmwf_ifs025: 'ecmwf_ifs025', gfs_seamless: 'ncep_gfs013' });
+    A.equal(calls, 2); A.ok(a.ecmwf_ifs025.error);
+    const b = await Data.loadModelMeta({ ecmwf_ifs025: 'ecmwf_ifs025', gfs_seamless: 'ncep_gfs013' });
+    A.equal(calls, 2, 'no new requests within 10 minutes'); A.ok(b.ecmwf_ifs025.error && /recently unavailable|Not Found|HTTP 404/.test(b.ecmwf_ifs025.error), b.ecmwf_ifs025.error);
+    Date.now = () => t0() + 11 * 60e3;
+    await Data.loadModelMeta({ ecmwf_ifs025: 'ecmwf_ifs025' });
+    A.equal(calls, 3, 'asked again after 10 minutes');
+  } finally { globalThis.fetch = prev; Date.now = t0; }
+});
 /* the event's own hours decide what "available" means */
 const B2 = { ms: Array.from({ length: 48 }, (_, i) => NOW + i * H), models: { gfs: { h: { temperature_2m: Array(48).fill(50) } }, hrrr: { h: { temperature_2m: Array.from({ length: 48 }, (_, i) => (i < 10 ? 50 : null)) } } } };
 const feeds = { used: ['GFS', 'HRRR (48 h)'], usedIds: ['gfs', 'hrrr'], missing: [{ id: 'nbm', name: 'NBM', why: 'request failed (HTTP 500)' }] };

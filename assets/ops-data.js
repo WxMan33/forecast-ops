@@ -249,15 +249,30 @@
 
   /* Open-Meteo's own run metadata for a model (static/meta.json). This is PROVIDER-REPORTED: the latest
      run Open-Meteo says it has, not a statement about which run produced a given forecast response. */
+  /* A metadata lookup that failed is not asked again for 10 minutes (this tab, or this process): the page still says the run
+     time is unknown, but every page load no longer repeats a dozen failing requests against the provider's budget. */
+  const metaFailed = new Map(), META_RETRY_MS = 10 * 60e3;
+  const metaFailKey = (metaId) => "ops_meta_fail:" + metaId;
+  function metaFailure(metaId) {
+    let f = metaFailed.get(metaId);
+    if (!f) { try { const c = root.sessionStorage && JSON.parse(root.sessionStorage.getItem(metaFailKey(metaId)) || "null"); if (c) f = c; } catch (e) { /* no storage */ } }
+    return f && Date.now() - f.at < META_RETRY_MS ? f : null;
+  }
+  function noteMetaFailure(metaId, error) {
+    const f = { at: Date.now(), error }; metaFailed.set(metaId, f);
+    try { if (root.sessionStorage) root.sessionStorage.setItem(metaFailKey(metaId), JSON.stringify(f)); } catch (e) { /* full */ }
+  }
   async function loadModelMeta(metaIds) {
     const out = {};
     await Promise.all(Object.entries(metaIds).map(async ([id, metaId]) => {
+      const recent = metaFailure(metaId);
+      if (recent) { out[id] = { error: `${recent.error} (recently unavailable; not asked again yet)` }; return; }
       try {
         const j = await getJSON(`https://api.open-meteo.com/data/${metaId}/static/meta.json`, 15);
-        if (j.error || !Number.isFinite(j.last_run_initialisation_time)) { out[id] = { error: j.reason || "no metadata" }; return; }
+        if (j.error || !Number.isFinite(j.last_run_initialisation_time)) { out[id] = { error: j.reason || "no metadata" }; noteMetaFailure(metaId, out[id].error); return; }
         out[id] = { metaId, lastRunInit: new Date(j.last_run_initialisation_time * 1000).toISOString(), lastRunAvailable: Number.isFinite(j.last_run_availability_time) ? new Date(j.last_run_availability_time * 1000).toISOString() : null,
           updateIntervalH: Number.isFinite(j.update_interval_seconds) ? j.update_interval_seconds / 3600 : null, retrievedAt: j.__retrievedAt || null };
-      } catch (e) { out[id] = { error: String(e.message || e) }; }
+      } catch (e) { out[id] = { error: String(e.message || e) }; noteMetaFailure(metaId, out[id].error); }
     }));
     return out;
   }
