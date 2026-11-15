@@ -71,17 +71,10 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
   await section('0. direct browser path to the providers (uncached)', async () => {
     const ctx = await browser.newContext(DESK), p = await ctx.newPage(); watchNet(p);
     await p.goto(base + "meteorologist-beta.html", { waitUntil: "domcontentloaded", timeout: 60000 });
-    const r = await p.evaluate(async () => {
-      const get = (u, o) => fetch(u, o).then(async (x) => ({ status: x.status, ok: x.ok, json: await x.json().then((j) => !!j && typeof j === "object").catch(() => false), cost: x.headers.get("x-ratelimit-cost") })).catch((e) => ({ status: 0, error: String(e.message || e) }));
-      return {
-        origin: location.origin,
-        forecast: await get("https://api.open-meteo.com/v1/forecast?latitude=39.04&longitude=-84.67&hourly=temperature_2m&forecast_days=1&models=gfs_seamless"),
-        ensemble: await get("https://ensemble-api.open-meteo.com/v1/ensemble?latitude=39.04&longitude=-84.67&hourly=temperature_2m&forecast_days=1&models=gfs025"),
-        nws: await get("https://api.weather.gov/points/39.0446,-84.6723", { headers: { Accept: "application/geo+json" } }),
-      };
-    });
-    const line = (k) => `${k} ${r[k].status}${r[k].error ? ` (${r[k].error})` : ""}${r[k].json ? " JSON" : ""}`;
-    report(["forecast", "ensemble", "nws"].every((k) => r[k].ok && r[k].json), "direct browser path: Open-Meteo forecast and ensemble and the NWS answer this origin's own requests (no run cache)", `${r.origin} · ${["forecast", "ensemble", "nws"].map(line).join(" · ")}`);
+    /* shared with main's Tests workflow: a failed browser request is classified by asking the provider from the runner */
+    const { directCheck, line } = require("./direct-origin-check.js"), r = await directCheck(p);
+    const bad = r.results.filter((x) => x.verdict === "fail"), unv = r.results.filter((x) => x.verdict === "unverified");
+    report(!bad.length && !unv.length, "direct browser path: Open-Meteo forecast and ensemble and the NWS answer this origin's own requests (no run cache)", `${r.origin} · ${r.results.map(line).join(" · ")}${unv.length && !bad.length ? " · UNVERIFIED (the provider did not answer the runner either), not a confirmed browser or provider failure" : ""}`);
     await ctx.close();
   });
   await section('1. meteorologist menu: CVG default; Charleston → Model Blend', async () => {
