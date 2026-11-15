@@ -40,7 +40,7 @@ const daily = { temperature_2m_max: 'temperature_2m', temperature_2m_min: 'tempe
 function forecast(u, rule = {}, ensemble = false) {
   const q = u.searchParams, model = q.get('models') || 'best_match', venue = venueOf(+q.get('latitude'), +q.get('longitude'));
   const days = +q.get('forecast_days') || 7, n = days * 24, hourly = (q.get('hourly') || '').split(',').filter(Boolean), dvars = (q.get('daily') || '').split(',').filter(Boolean);
-  const avail = Math.min(n, rule.hoursAvailable ?? n), members = ensemble ? (model === 'ncep_rrfs_conus_ensemble' ? 5 : 3) : 0;
+  const avail = Math.min(n, rule.hoursAvailable ?? n), members = ensemble ? (model === 'ncep_rrfs_conus_ensemble' ? 5 : rule.realMembers ? ({ ecmwf_ifs025: 50, gfs025: 30, icon_seamless: 39, gem_global: 20 })[model] || 3 : 3) : 0;
   const time = Array.from({ length: n }, (_, i) => local(DAY0 + i * H));
   const series = (v, k) => time.map((_, i) => i >= avail || (rule.nullFrom && i >= rule.nullFrom[0] && i < rule.nullFrom[1] && (!rule.nullVars || rule.nullVars.includes(v))) ? null : +(value(v, model + k, i, venue)).toFixed(3));
   const h = { time }, units = { time: 'iso8601' };

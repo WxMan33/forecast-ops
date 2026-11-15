@@ -70,7 +70,7 @@
     $("decision").textContent = "Reading the guidance…"; $("coverage").hidden = true; document.body.dataset.readiness = ""; ["sourceCoverage", "keys", "schedule", "phases", "changes", "checks", "timeline", "detail"].forEach((id) => { $(id).innerHTML = ""; });
     const alertsPromise = U.alerts(where);
     alertsPromise.then((a) => { if (g !== gen) return; $("alerts").innerHTML = a.available === false ? `<div class="bx-alert-off" role="status" data-alerts="unavailable">NWS alerts could not be checked just now. No alert shown here does not mean none is in effect; check <a href="https://www.weather.gov/" target="_blank" rel="noopener">weather.gov</a>.</div>` : a.slice(0, 2).map((x) => `<div class="bx-alert" role="alert">${st("action", x.event + " in effect")}${x.ends ? `<span class="bx-note">until ${esc(fmt.time(Date.parse(x.ends), ev.tz))}</span>` : ""}<a href="https://forecast.weather.gov/MapClick.php?lat=${ev.loc.lat}&lon=${ev.loc.lon}" target="_blank" rel="noopener">NWS ↗</a></div>`).join(""); });
-    const endMs = Math.max(...C.event.windows(ev).map((w) => w.endMs)), days = isSample() ? 5 : Math.min(7, Math.max(3, Math.ceil((endMs - Date.now()) / 864e5) + 1));
+    const endMs = Math.max(...C.event.windows(ev).map((w) => w.endMs)), days = 7; // the same forecast length Overview and Model Blend request, so this tab's answers for them are reused (briefing values are identical)
     const res = await U.load(where, { days });
     if (g !== gen) return;
     if (res.empty) {
