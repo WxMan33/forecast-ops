@@ -41,6 +41,7 @@ jobs:
       - run: node tests/token-store.test.js
       - run: node tests/coverage.test.js
       - run: node tests/source-failure.test.js
+      - run: node tests/forecast-cache.test.js
       - run: node tests/model-trends.test.js
       - run: node tests/climate-report.test.js
       - run: node tests/climate-daily.test.js
@@ -141,3 +142,19 @@ jobs:
             tests/out/focus-*.png
             tests/out/climo-*.png
             tests/out/maps-demand-*.png
+
+  # The browser's own path from the main site's real origin to the providers (no cache, no interception). A provider that
+  # does not answer the runner at all is reported as unverified with a warning; a browser/CORS failure fails the job.
+  main-origin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: |
+          npm install --no-save playwright@1.48.2
+          npx playwright install --with-deps chromium || npx playwright install chromium
+      - name: Direct browser requests from https://wxman33.github.io (main site)
+        run: node tools/direct-origin-check.js https://wxman33.github.io/forecast-ops/ index.html
