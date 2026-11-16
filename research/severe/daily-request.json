@@ -3,5 +3,5 @@
   "day": 2,
   "model": "research/severe/baseline-v06/models.json",
   "model_sha256": "5912bb8a63f32468fa52daa408b9793d672a6e3446e22b3a769637c617d1cef0",
-  "purpose": "Current Day 2 production with pinned training field identities and geometry"
+  "purpose": "Exercise audited daily feed export and publication on the research branch"
 }
