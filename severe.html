@@ -61,6 +61,55 @@
       </div>
     </section>
 
+    <details class="card sr-research" id="severe-daily" aria-busy="false">
+      <summary><span class="sr-title">Daily severe probability research</span><span class="sr-badge">CURRENT MODEL INPUTS</span></summary>
+      <p class="sr-intro">Inspect experimental Day 1 and Day 2 tornado, wind and hail probabilities from audited HRRR inputs.</p>
+      <div class="sr-body">
+        <div class="sr-warning"><b>Experimental calibration.</b> These regional research probabilities show substantial errors on some development dates. Read the initialization, preparation time and valid window before use.</div>
+        <div class="sr-controls">
+          <div><label class="field-label" for="sdRun">Lead day</label><select class="input" id="sdRun" disabled><option>Loading daily research…</option></select></div>
+          <div><span class="field-label" id="sdHazardLabel">Hazard</span><div class="sr-hazards" role="group" aria-labelledby="sdHazardLabel">
+            <button class="btn ghost sm" type="button" data-sr-hazard="tornado" aria-pressed="true">TORNADO</button>
+            <button class="btn ghost sm" type="button" data-sr-hazard="wind" aria-pressed="false">WIND</button>
+            <button class="btn ghost sm" type="button" data-sr-hazard="hail" aria-pressed="false">HAIL</button>
+          </div></div>
+        </div>
+        <div class="sr-view-controls">
+          <div><span class="field-label" id="sdDisplayLabel">Display</span><div class="sr-display" role="group" aria-labelledby="sdDisplayLabel">
+            <button class="btn ghost sm" type="button" data-sr-display="contours" aria-pressed="true">CONTOURS</button>
+            <button class="btn ghost sm" type="button" data-sr-display="dots" aria-pressed="false">DOTS</button>
+            <button class="btn ghost sm" type="button" data-sr-display="both" aria-pressed="false">BOTH</button>
+          </div></div>
+          <div><label class="field-label" for="sdBasemap">Map theme</label><select class="input" id="sdBasemap"><option value="light">Light</option><option value="dark">Dark</option><option value="site">Match site</option></select></div>
+          <div class="sr-opacity"><label class="field-label" for="sdOpacity">Probability opacity <output id="sdOpacityValue" for="sdOpacity">85%</output></label><input id="sdOpacity" type="range" min="30" max="100" value="85" step="5"></div>
+        </div>
+        <div class="sr-meta"><strong id="sdWindow">Choose a daily product</strong><span id="sdInit"></span></div>
+        <div class="sr-layout">
+          <div class="sr-map" id="sdMap" role="region" aria-label="Daily experimental severe probability map"></div>
+          <div class="sr-readout" aria-live="polite" aria-atomic="true">
+            <div class="sr-sample-name" id="sdSample">Saved location</div>
+            <div><div class="sr-value" id="sdValue">—</div><div class="sr-caption" id="sdHazardName">Tornado probability</div></div>
+            <div class="sr-caption">A qualifying report <b>within 25 miles</b> of the sampled grid center during this <b>24-hour window</b>. This is a neighborhood probability, not a direct-hit probability.</div>
+            <div class="sr-coordinates" id="sdCoordinates"></div>
+            <div class="sr-caption">Dashed circle: the area assessed around the selected sample.</div>
+          </div>
+        </div>
+        <div class="sr-map-actions">
+          <button class="btn ghost sm" id="sdLocation" type="button">INSPECT SAVED LOCATION</button>
+          <button class="btn ghost sm" id="sdPeak" type="button">HIGHEST SAMPLE</button>
+          <button class="btn ghost sm" id="sdDomain" type="button">WHOLE DOMAIN</button>
+        </div>
+        <div class="sr-scale" id="sdLegend" aria-label="Neighborhood probability color scale"></div>
+        <p class="sr-caption sr-target">Chance of a qualifying <span id="sdLegendHazard">tornado</span> report within 25 miles of a sampled grid center · 24-hour window.</p>
+        <p class="sr-caption" id="sdDisplayNote">Filled contours interpolate between model samples about 15 km apart. Point readouts always use an original sample.</p>
+        <p class="sr-caption">Colors show experimental probabilities, not official SPC outlook categories. No EF2+, significant wind or significant hail hatching is available from this model.</p>
+        <p class="sr-status" id="sdStatus" role="status">Open the viewer to load daily research results.</p>
+        <button class="btn ghost sm" type="button" id="sdRetry" hidden>REFRESH DAILY DATA</button>
+        <p class="sr-caption">Targets are tornado reports, wind reports of at least 50 kt and hail reports of at least 1 inch. Expired or incomplete products are withheld. Regional coverage is approximately 100°W–75°W, 30°N–45°N.</p>
+        <p class="sr-caption"><a href="docs/severe-product.md">Daily research method and data contract</a></p>
+      </div>
+    </details>
+
     <details class="card sr-research" id="severe-research" aria-busy="false">
       <summary><span class="sr-title">Experimental severe probabilities</span><span class="sr-badge">HISTORICAL REPLAY</span></summary>
       <p class="sr-intro">Explore the research model’s tornado, wind and hail maps from 12 archived 2024 cases.</p>
@@ -196,7 +245,8 @@
 <script src="assets/vendor/d3-delaunay-6.0.4.js?v=efc726aa8a"></script>
 <script src="assets/severe-research-contours.js?v=a6e065bab5"></script>
 <script src="assets/severe-research-canvas.js?v=0c047ea44d"></script>
-<script src="assets/severe-research.js?v=949ea7b6c2"></script>
+<script src="assets/severe-daily-core.js?v=bd94e773d2"></script>
+<script src="assets/severe-research.js?v=c3e921042d"></script>
 </body>
 </html>
 
