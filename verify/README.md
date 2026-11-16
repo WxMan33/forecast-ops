@@ -211,6 +211,7 @@ Every scored temperature case carries context on three bases, which are never mi
   - **Log:** every retrieval is written to `climate/retrievals/` with its time, HTTP status, the server's Last-Modified header (its modification time, not an official issue time) and a SHA-256.
   - **Versions:** each distinct published version is saved as received under `climate/raw/`, so revisions are new versions, never edits.
   - **Isolation:** failures never affect observations or scoring.
+  - **Times:** three are kept apart: retrieval (ours), the valid period (from the data), and official publication. These files do not state an official publication time, so it stays unknown. A version's earliest proven availability is our first retrieval of it, never backdated from Last-Modified, and `availableAt()` gives the version a capture at a given time could have used.
   - **Use:** the values are not yet attached to issue contexts, and no relationship with forecast skill is inferred before several seasons per phase.
 - **Model versions:** no provider reports one. `MODEL_VERSIONS` in `lib/context.js` holds dated upgrades from cited notices, and is empty until such a notice is entered.
 - **Coverage through days 8–10:** `reports/CONTEXT.md` lists primary pairs and dates per source, recipe, target and lead band, the matched cases at days 8–10, and each source's horizon. Overnight lows (7p–7a) and climate-day minimums stay separate targets.
@@ -219,6 +220,7 @@ Every scored temperature case carries context on three bases, which are never mi
   - **Requests:** after the primary sources, one separate request per deterministic model asks for `cloud_cover`, `wind_speed_10m`, `wind_direction_10m` and `dew_point_2m`. Each model gets one attempt, made one after another. The first HTTP 429 stops the rest for that capture, and so do three requests in a row without an answer.
   - **Storage:** responses are saved as received (`ctx-<model>.json.gz`), and the capture record lists each variable's unit, non-null hours, last valid time and any missing fields. NWS values come from the gridpoint response every capture already saves; no new request is made.
   - **Effect on existing data:** the primary requests, their raw responses, normalization (normalize-v4) and scores are unchanged, and a context failure never changes a capture's outcome.
+- **Capture order** (`lib/capture-order.js`): core models and NWS first, then TV products, then optional context requests. Optional requests also have a total time budget of 180 s, so they can never delay a core or TV retrieval. Each step's start and end are recorded on the capture, and every response keeps its own retrieval time.
 - **Forecast night classes** (forecast-night-v1), fixed before their errors were examined and using only the capture's own responses. Each night runs 7 PM to 7 AM local standard time and must start at least 60 minutes after the response was retrieved.
   - **clear/calm:** two thirds of the night's hours have cloud cover ≤ 25 % and wind ≤ 6 mph.
   - **windy:** mean wind ≥ 12 mph.

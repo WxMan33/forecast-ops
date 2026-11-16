@@ -61,20 +61,29 @@ async function collect() {
   Object.assign(cap, { schema: 1, loc: loc.id, trigger: manual ? "manual" : arg("trigger", "scheduled"), startedAt: U.iso(startedAt), scheduleConfig: SCHED, code: CODE });
   logConfig();
   const rel = `raw/${loc.id}/${cap.localDate.slice(0, 7)}/${cap.captureId}`;
-  cap.sources = await SRC.collect(loc, DATA, rel);
-  cap.sourcesRetrievedLast = Object.values(cap.sources).map((s) => s.retrievedAt).filter(Boolean).sort().pop();
-  /* optional issue-time context (cloud cover, wind, dewpoint): after the primary sources, never part of their outcome */
-  if (!flag("no-context-vars")) try {
-    cap.contextVars = await require("./lib/context-vars.js").collect(loc, DATA, rel, SRC.sourceList().filter((s) => s.kind === "det").map((s) => s.id));
-  } catch (e) { cap.contextVars = { version: require("./lib/context-vars.js").VERSION, error: String(e.message || e).slice(0, 300), sources: {} }; }
-  /* TV products (market pilot) */
-  if (TVCFG.verifySite === loc.id && !flag("no-tv")) {
-    const tvFile = path.join(DATA, "tv", loc.id, `${cap.localDate.slice(0, 7)}.jsonl`);
-    const prevAll = U.readJSONLDir(path.join(DATA, "tv", loc.id)), prev = {};
-    prevAll.forEach((r) => { if (r.status === "ok") prev[r.product] = r; });
-    try { const recs = await TV.collect(TVCFG, loc, DATA, cap, prev); U.appendJSONL(tvFile, recs); cap.tv = recs.map((r) => ({ product: r.product, status: r.status, review: r.review && r.review.status, days: r.days ? r.days.length : 0, reason: r.reason || r.error })); }
-    catch (e) { cap.tv = [{ status: "failed", error: String(e.message || e) }]; }
-  }
+  /* order (lib/capture-order.js): core sources, then TV, then optional context requests, which can never delay either */
+  const steps = await require("./lib/capture-order.js").sequence({
+    core: async () => {
+      cap.sources = await SRC.collect(loc, DATA, rel);
+      cap.sourcesRetrievedLast = Object.values(cap.sources).map((s) => s.retrievedAt).filter(Boolean).sort().pop();
+    },
+    tv: async () => {
+      if (!(TVCFG.verifySite === loc.id && !flag("no-tv"))) return;
+      const tvFile = path.join(DATA, "tv", loc.id, `${cap.localDate.slice(0, 7)}.jsonl`);
+      const prevAll = U.readJSONLDir(path.join(DATA, "tv", loc.id)), prev = {};
+      prevAll.forEach((r) => { if (r.status === "ok") prev[r.product] = r; });
+      try { const recs = await TV.collect(TVCFG, loc, DATA, cap, prev); U.appendJSONL(tvFile, recs); cap.tv = recs.map((r) => ({ product: r.product, status: r.status, review: r.review && r.review.status, days: r.days ? r.days.length : 0, reason: r.reason || r.error })); }
+      catch (e) { cap.tv = [{ status: "failed", error: String(e.message || e) }]; }
+    },
+    optional: async () => {
+      /* optional issue-time context (cloud cover, wind, dewpoint): never part of the core outcome */
+      if (flag("no-context-vars")) return;
+      const CV = require("./lib/context-vars.js");
+      try { cap.contextVars = await CV.collect(loc, DATA, rel, SRC.sourceList().filter((s) => s.kind === "det").map((s) => s.id)); }
+      catch (e) { cap.contextVars = { version: CV.VERSION, error: String(e.message || e).slice(0, 300), sources: {} }; }
+    },
+  });
+  cap.steps = Object.fromEntries(Object.entries(steps).map(([k, v]) => [k, typeof v === "number" ? U.iso(v) : v]));
   cap.finishedAt = U.iso(Date.now());
   try { cap.normalized = writeBundle(cap); } catch (e) { cap.normalized = { error: String(e.stack || e) }; }
   /* issue context (lib/context.js): stored once, now, from this capture and observations already ingested */
