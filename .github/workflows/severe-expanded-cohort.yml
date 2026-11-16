@@ -1,0 +1,107 @@
+name: Severe expanded training cohort
+on:
+  push:
+    branches: [codex/severe-daily-baseline]
+    paths: ['research/severe/cohort-v07.json']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: severe-expanded-cohort
+  cancel-in-progress: false
+jobs:
+  labels:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy==2.3.5 scipy==1.17.0
+      - run: python tests/severe-labels.test.py && python tests/severe-history.test.py && python tests/severe-product.test.py
+      - run: python tools/severe/expanded_labels.py --cohort research/severe/cohort-v07.json --output tests/out/labels-v07 --cache tests/out/report-cache
+      - run: python tools/severe/audit_labels.py --labels tests/out/labels-v07 --source-cache tests/out/report-cache --report tests/out/labels-v07/raw-audit.json
+      - id: plan
+        run: |
+          python - <<'PY'
+          import json,os
+          config=json.load(open('research/severe/cohort-v07.json'))
+          cases=[{'case':c,'reuse':c.endswith('-15')} for c in config['cases']]
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('matrix='+json.dumps({'include':cases})+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: severe-labels-v07
+          path: tests/out/labels-v07
+          retention-days: 90
+  collect:
+    needs: labels
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.labels.outputs.matrix) }}
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r tools/severe/requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: severe-labels-v07
+          path: tests/out/labels-v07
+      - if: matrix.reuse
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: '42321856909'
+          name: severe-history-v05-${{ matrix.case }}
+          path: tests/out/history/${{ matrix.case }}
+      - name: Collect or reuse, audit and pair both days
+        env:
+          CASE: ${{ matrix.case }}
+        run: python tools/severe/history.py --case "$CASE" --cohort research/severe/cohort-v07.json --labels tests/out/labels-v07 --output tests/out/history --cache tests/out/grib-cache --purge-cache
+      - uses: actions/upload-artifact@v4
+        with:
+          name: severe-history-v07-${{ matrix.case }}
+          path: tests/out/history/${{ matrix.case }}
+          if-no-files-found: error
+          retention-days: 90
+  train:
+    needs: collect
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy==2.3.5 scipy==1.17.0
+      - uses: actions/download-artifact@v4
+        with:
+          name: severe-labels-v07
+          path: tests/out/labels-v07
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: severe-history-v07-*
+          path: tests/out/expanded-history
+      - name: Fit and evaluate the expanded cohort
+        run: python tools/severe/train_daily.py --history tests/out/expanded-history --cohort research/severe/cohort-v07.json --labels tests/out/labels-v07 --output tests/out/expanded-models
+      - uses: actions/upload-artifact@v4
+        with:
+          name: severe-expanded-models-v07
+          path: tests/out/expanded-models
+          retention-days: 90

@@ -1,0 +1,38 @@
+{
+  "experiment": "v08-fixed-hist-gradient-boosting",
+  "cohort": "research/severe/cohort-v07.json",
+  "cohort_sha256": "de630ae0a8ada2c2bb42434f0c34a9c9d8fd2aad35ac6469734e9155eb294d7c",
+  "reference_scores": "research/severe/baseline-v07/development-scores.json",
+  "reference_scores_sha256": "8823d2bc46c1b8f930d69fdc7dc8e8e48721640af0d6a0dc061b5a41fe9313ea",
+  "source_run": 43901185832,
+  "training_year": 2022,
+  "calibration_year": 2023,
+  "development_year": 2024,
+  "protected_outcome_year": 2025,
+  "selection": "one fixed candidate; evaluation dates do not tune parameters",
+  "parameters": {
+    "loss": "log_loss",
+    "learning_rate": 0.05,
+    "max_iter": 150,
+    "max_leaf_nodes": 15,
+    "max_depth": null,
+    "min_samples_leaf": 500,
+    "l2_regularization": 1.0,
+    "max_bins": 63,
+    "categorical_features": null,
+    "early_stopping": false,
+    "random_state": 20261116,
+    "class_weight": null
+  },
+  "calibration_penalty": 0.0001,
+  "calibration_nonnegative_slope": true,
+  "dependencies": {
+    "numpy": "2.3.5",
+    "scipy": "1.17.0",
+    "scikit-learn": "1.9.1",
+    "joblib": "1.5.2",
+    "threadpoolctl": "3.6.0"
+  },
+  "operational_forecast_eligible": false,
+  "execution_revision": 2
+}
