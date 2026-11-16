@@ -122,7 +122,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     const { ctx, p, errors } = await go(DESK, url); await menuReady(p, "Charleston");
     await Promise.all([p.waitForNavigation({ waitUntil: "domcontentloaded" }), p.click('#tools a[data-tool="almanac"]')]); await almanacReady(p);
     const a = await p.evaluate(() => ({ astro: document.getElementById("astroName").innerText, clim: document.getElementById("climName").innerText }));
-    report(/Charleston/.test(a.astro) && /CRW/.test(a.clim) && !errors.length, "handoff: Almanac opens for Charleston (sun and moon at the point, climate at CRW)", `${a.astro} · ${a.clim}`); await ctx.close(); }
+    report(/Charleston/.test(a.astro) && /CRW/.test(a.clim) && !errors.length, "handoff: Almanac opens for Charleston (sun and moon at the point, climate at CRW)", `${a.astro} · ${a.clim}${errors.length ? " · page errors: " + errors.join("; ") : ""}`); await ctx.close(); }
   });
 
   /* ---------- 3. Almanac climate stations (live NWS + RCC-ACIS) ---------- */
@@ -134,7 +134,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       title: (document.querySelector("#climCard .climo-title .kick") || {}).innerText || "", sheet: !!document.querySelector("#climCard .climo-title"), history: !document.getElementById("weatherHistoryCard").hidden }));
     const okRec = want.rec ? a.meta.includes(`(${want.rec})`) : /station record since \d{4}/.test(a.meta) && /no threaded city record/.test(a.meta);
     report(a.clim.endsWith("· " + want.stn) && a.meta.includes(`NWS ${want.office} climate site`) && okRec && a.astro === name && a.sheet && (want.stn === "CVG") === a.history && !errors.length,
-      `almanac: ${name.split(",")[0]} → ${want.stn}${want.rec ? " / " + want.rec : " (no threaded record)"}, NWS ${want.office}, sun and moon at the point`, `${a.clim} · ${a.meta.slice(0, 150)} · astronomy "${a.astro}" · local history ${a.history ? "shown" : "hidden"}`);
+      `almanac: ${name.split(",")[0]} → ${want.stn}${want.rec ? " / " + want.rec : " (no threaded record)"}, NWS ${want.office}, sun and moon at the point`, `${a.clim} · ${a.meta.slice(0, 150)} · astronomy "${a.astro}" · local history ${a.history ? "shown" : "hidden"}${errors.length ? " · page errors: " + errors.join("; ") : ""}`);
     if (want.stn === "MIE") {
       await p.screenshot({ path: `${out}/almanac-muncie.png` });
       await p.selectOption("#climStn", "IND"); await until(p, () => /· IND$/.test(document.getElementById("climName").innerText) && document.querySelector("#climCard .climo-title") && /IND/.test(document.querySelector("#climCard .climo-title .kick").innerText));
