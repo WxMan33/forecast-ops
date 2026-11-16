@@ -57,6 +57,7 @@ async function walk({ browser, base, scenario = {}, pages = WALK, between = null
        still being answered (regional requests can start after the main guidance), at most 10 s */
     for (let k = 0; k < 20 && [...st.pending.values()].some((n) => n > 0); k++) await p.waitForTimeout(500);
     await p.waitForTimeout(800);
+    if (process.env.CACHE_TRACE) console.log('CACHE_TRACE', st.page, await p.evaluate(() => ({ now: Date.now(), entries: Object.keys(sessionStorage).filter(k => k.startsWith('ops_c:')).map(k => {const c=JSON.parse(sessionStorage.getItem(k));const u=new URL(k.slice(6));return {model:u.searchParams.get('models'),days:u.searchParams.get('forecast_days'),at:c.at,chars:sessionStorage.getItem(k).length};}) })));
     shown.push(await p.evaluate(() => ({ chip: (document.getElementById('dataChip') || {}).textContent || '', msg: (document.getElementById('runMsg') || {}).textContent || '', decision: (document.getElementById('decision') || {}).textContent || '' })));
   }
   const failedWrites = +(await p.evaluate(() => localStorage.getItem('__failedWrites') || 0));
