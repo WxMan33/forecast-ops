@@ -159,6 +159,26 @@ ok(/Context report FAILED this run/.test(st) && /collection and scoring continue
   ok(ic2.version === "context-v2" && ic2.forecastNight.nights["2026-01-10"].models.m1.cls === "clear/calm" && ic2.forecastNight.nights["2026-01-10"].nws.cls === "not available in our current collection" && ic2.forecastNight.modelStatus.m2 === "rate-limited", "forecast nights at issue, with each model's collection status");
   ok(ic2.contextAvailability.sources.m1.cloud[0] === true && ic2.contextAvailability.sources.m2.cloud === null, "availability by lead: a model whose request failed is 'not collected', not 'unavailable'");
   ok(!("radiational" in { [ic2.forecastNight.nights["2026-01-10"].models.m1.cls]: 1 }) && CX.nightClass(Array(12).fill("KTST 100052Z 00000KT 10SM CLR 05/01 A3010")).cls === "radiational", "forecast (clear/calm) and observed (radiational) night classes stay separate vocabularies");
+  /* ---------- climate indices as published ---------- */
+  const CI = require("../lib/climate-indices.js");
+  ok(JSON.stringify(CI.latest("seasonal", "SEAS  YR   TOTAL   ANOM\nASO 2026  26.10  -0.55\nSON 2026  25.90  -0.71\n")) === JSON.stringify({ period: "SON 2026", value: -0.71, valueField: "last column (anomaly)" }), "ONI latest season parsed");
+  ok(CI.latest("daily-csv", "year,month,day,ao_index_cdas\n2026,11,14,-0.321\n2026,11,15,0.112\n").date === "2026-11-15", "daily CPC index parsed");
+  ok(CI.latest("rmm", "RMM values\nyear month day RMM1 RMM2 phase amplitude\n2026 11 14 0.512 -1.201 4 1.306 Final_value\n").phase === 4 && CI.latest("rmm", "<html>blocked</html>") === null, "MJO RMM parsed; an unknown format is unparsed, not guessed");
+  const C1 = fs.mkdtempSync(path.join(os.tmpdir(), "ci-")), body = "SEAS YR TOTAL ANOM\nSON 2026 25.90 -0.71\n";
+  const list = [{ id: "a", url: "https://h1.test/a", format: "seasonal", publisher: "p" }, { id: "b", url: "https://h1.test/b", format: "seasonal", publisher: "p" }, { id: "c", url: "https://h2.test/c", format: "seasonal", publisher: "p" }];
+  const cfake = (m) => async (url) => { calls.push(url); const x = m[url]; return { ok: x.status === 200, status: x.status, retrievedAt: new Date(x.at || Date.parse("2026-11-16T15:00:00Z")).toISOString(), lastModified: "Mon, 09 Nov 2026 14:00:00 GMT", buf: Buffer.from(x.text || ""), text: x.text || "" }; };
+  calls.length = 0;
+  let cr1 = await CI.run(C1, Date.parse("2026-11-16T15:00:00Z"), { list, fetchRaw: cfake({ "https://h1.test/a": { status: 403 }, "https://h1.test/b": { status: 200, text: body }, "https://h2.test/c": { status: 200, text: body } }) });
+  ok(calls.length === 2 && /skipped: h1.test/.test(cr1.results[1].status) && cr1.results[2].status === "new version saved", "a 403 stops further requests to that host for the day; other hosts continue");
+  const log1 = U.readJSONLDir(path.join(C1, "climate", "retrievals"));
+  ok(log1.find((r) => r.id === "c").serverLastModified === "Mon, 09 Nov 2026 14:00:00 GMT" && log1.find((r) => r.id === "c").at && log1.find((r) => r.id === "a").httpStatus === 403, "retrieval time, HTTP status and the server's Last-Modified are logged, failures included");
+  calls.length = 0; cr1 = await CI.run(C1, Date.parse("2026-11-16T18:00:00Z"), { list, fetchRaw: cfake({}) });
+  ok(calls.length === 0 && cr1.results[2].status === "already retrieved today", "at most once per UTC day");
+  calls.length = 0; cr1 = await CI.run(C1, Date.parse("2026-11-17T15:00:00Z"), { list: [list[2]], fetchRaw: cfake({ "https://h2.test/c": { status: 200, text: body, at: Date.parse("2026-11-17T15:00:00Z") } }) });
+  ok(cr1.results[0].status === "unchanged", "an unchanged publication is logged but not stored again");
+  cr1 = await CI.run(C1, Date.parse("2026-11-18T15:00:00Z"), { list: [list[2]], fetchRaw: cfake({ "https://h2.test/c": { status: 200, text: body.replace("-0.71", "-0.65"), at: Date.parse("2026-11-18T15:00:00Z") } }) });
+  const saved = fs.readdirSync(path.join(C1, "climate", "raw", "c"));
+  ok(cr1.results[0].status === "new version saved" && saved.length === 2, "a revised publication is kept as a new version beside the old one");
   console.log(fails ? `${fails} of ${n} context checks failed` : `ok - ${n} context checks passed`);
   process.exit(fails ? 1 : 0);
 })();

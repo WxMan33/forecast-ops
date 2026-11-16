@@ -161,11 +161,11 @@ function observedContext(best, hourlyRows, loc) {
    time, so an issue-time analysis uses only values public before the capture; revised values are new rows. */
 const CLIMATE_PATTERNS = [
   { id: "enso-oni", label: "ENSO (Oceanic Niño Index)", cadence: "monthly, 3-month running mean, revised", source: "NOAA CPC" },
-  { id: "enso-relative-oni", label: "ENSO (relative ONI)", cadence: "monthly", source: "NOAA CPC" },
+  { id: "enso-roni", label: "ENSO (relative ONI)", cadence: "monthly", source: "NOAA CPC" },
   { id: "ao", label: "Arctic Oscillation", cadence: "daily index and forecasts", source: "NOAA CPC" },
   { id: "nao", label: "North Atlantic Oscillation", cadence: "daily index and forecasts", source: "NOAA CPC" },
   { id: "pna", label: "Pacific–North American pattern", cadence: "daily index and forecasts", source: "NOAA CPC" },
-  { id: "mjo", label: "Madden–Julian Oscillation (RMM phase/amplitude)", cadence: "daily", source: "BoM / CPC" },
+  { id: "mjo-rmm", label: "Madden–Julian Oscillation (RMM phase/amplitude)", cadence: "daily", source: "BoM / CPC" },
 ];
 /* Reserved: model upgrades. No provider reports a model version with its forecast, so versions must come from
    dated upgrade notices. Comparisons spanning an entry here must be split at its date. Empty until entered

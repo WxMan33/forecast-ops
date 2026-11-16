@@ -117,6 +117,9 @@ async function observe() {
   const bad = Object.entries(res.outcomes).filter(([, o]) => o.status !== "ok").map(([k, o]) => `${k}: ${o.error || o.status}`);
   runLog({ job: "observe", outcome: bad.length ? (bad.length === Object.keys(res.outcomes).length ? "failed" : "partial") : "ok", outcomes: res.outcomes, newRows: fresh.length, revisions: fresh.filter((r) => r.changesValue).length });
   console.log(`observe: ${fresh.length} new observation rows; ${JSON.stringify(res.outcomes)}`);
+  /* climate-pattern indices as published (once per UTC day); never affects observations or scoring */
+  try { const ci = await require("./lib/climate-indices.js").run(DATA, Date.now()); runLog({ job: "climate-indices", outcome: ci.results.some((r) => /^failed|^skipped:/.test(r.status)) ? "partial" : "ok", results: ci.results.map((r) => ({ id: r.id, status: r.status, httpStatus: r.httpStatus })) }); console.log("climate indices:", ci.results.map((r) => `${r.id} ${r.status}`).join("; ")); }
+  catch (e) { runLog({ job: "climate-indices", outcome: "crashed", error: String(e.stack || e).slice(0, 1000) }); console.log("climate indices failed:", e.message); }
 }
 
 function renormalize() {
@@ -149,7 +152,7 @@ async function score() {
   try { ctxOut = require("./lib/context-report.js").build(DATA, loc, res, Date.now(), NORM.VERSION); ctx = { stored: ctxOut.stored, cells: ctxOut.tables.length, experiments: ctxOut.experiments.map((e) => `${e.id}: ${e.status}`) }; }
   catch (e) { ctxErr = String(e.stack || e); ctx = { error: ctxErr.slice(0, 1000) }; console.log("context report failed:", e.message); }
   /* the context layer's health is part of STATUS.md, failures included */
-  try { fs.appendFileSync(path.join(DATA, "reports", "STATUS.md"), require("./lib/context-report.js").statusSection(U.readJSONL(capturesFile), ctxOut, ctxErr)); }
+  try { fs.appendFileSync(path.join(DATA, "reports", "STATUS.md"), require("./lib/context-report.js").statusSection(U.readJSONL(capturesFile), ctxOut, ctxErr, DATA)); }
   catch (e) { console.log("context status failed:", e.message); }
   runLog({ job: "score", outcome: "ok", pairs: res.pairs.length, pending: res.pending.length, context: ctx });
   console.log(`score: ${res.pairs.length} scored pairs, ${res.pending.length} awaiting observations`);
