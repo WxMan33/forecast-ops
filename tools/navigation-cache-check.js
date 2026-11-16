@@ -59,7 +59,7 @@ async function walk({ browser, base, scenario = {}, pages = WALK, between = null
     await p.waitForTimeout(800);
     /* A routed response can be delivered before response.json() and its session-cache write finish.
        Keep the page open until every successful forecast answer is actually reusable by the next page. */
-    await p.waitForFunction((urls) => urls.every(url => {
+    if (!between) await p.waitForFunction((urls) => urls.every(url => {
       try { return !!JSON.parse(sessionStorage.getItem('ops_c:' + url) || 'null'); } catch { return false; }
     }), [...st.seen.keys()], { timeout: 15000 });
     shown.push(await p.evaluate(() => ({ chip: (document.getElementById('dataChip') || {}).textContent || '', msg: (document.getElementById('runMsg') || {}).textContent || '', decision: (document.getElementById('decision') || {}).textContent || '' })));
