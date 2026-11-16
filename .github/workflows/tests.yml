@@ -133,6 +133,7 @@ jobs:
       - run: python tests/verify-browser.py
       - run: python tests/forecast-focus-browser.py
       - run: python tests/climate-report-browser.py
+      - run: python tests/skywatch-race-browser.py
       - run: python tests/maps-browser.py
       - uses: actions/upload-artifact@v4
         if: always()
