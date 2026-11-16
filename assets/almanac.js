@@ -82,6 +82,7 @@
   const fetchJSON = (url, opt) => getJ(url, opt);
   async function render() {
     const my = ++run, loc = O.location;
+    if (CLIM.cincy) skywatch.loading(sel); // synchronous: the previous date's sky card is gone before any await
     ["climCard", "factCard"].forEach((id) => { $(id).innerHTML = `<div class="section-title">${id === "climCard" ? "Daily climate" : "Weather numbers"}</div><div class="state loading">Finding the climate station for ${esc(loc.name.split(",")[0])}…</div>`; });
     $("climName").textContent = "…"; $("climMeta").textContent = "";
     $("dailyCard").hidden = true; // another station's or day's reports never stay on screen while this one loads
@@ -102,7 +103,7 @@
     $("sheetTitle").textContent = fmtDate(sel, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
     $("astroName").textContent = pt.name;
     note("astro", { name: pt.name, lat: pt.lat, lon: pt.lon, tz: tzA });
-    const fail = (id, title) => (e) => { if (my === run) $(id).innerHTML = `<div class="section-title">${title}</div><div class="state err">This section couldn't be shown (${esc(String((e && e.message) || e))}). Other sections are unaffected; reload to try again.</div>`; };
+    const fail = (id, title) => (e) => { if (my !== run) return; const card = $(id); card.dataset.state = "error"; card.removeAttribute("aria-busy"); card.innerHTML = `<div class="section-title">${title}</div><div class="state err">This section couldn't be shown (${esc(String((e && e.message) || e))}). Other sections are unaffected; reload to try again.</div>`; };
     sunCard(my, pt, tzA).catch(fail("sunCard", "Sun and moon"));
     if (next && next.cincy) skywatch.load(sel).catch(fail("skyCard", "Cincinnati skywatch"));
     if (!next) { ["climCard", "factCard"].forEach((id) => { $(id).innerHTML = `<div class="section-title">${id === "climCard" ? "Daily climate" : "Weather numbers"}</div><div class="state unavail">No official climate station could be verified for this point (${esc((res.missing || []).join(" ") || "unknown reason")}). Sun and moon remain available.</div>`; }); return; }
