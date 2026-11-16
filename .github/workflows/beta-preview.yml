@@ -53,6 +53,11 @@ jobs:
           echo "STAMP=$STAMP" >> "$GITHUB_ENV"
           # raw.githack.com caches each file by path (it ignores ?v=), so check every file the betas load
           FILES="assets/table-pages.js assets/forecast-support.js assets/forecast-support.css meteorologist-beta.html event-beta.html maps.html almanac.html blend.html assets/climate-station.js assets/almanac.js assets/climate-daily.js assets/climate-period-records.js assets/ops-data.js assets/blend.js assets/climate-report.js assets/climate-report.css assets/cincinnati-weather-history.js assets/history/cincinnati-flood-1913-bain.jpg assets/record-watch.js assets/beta-analytics.js assets/beta-config.js assets/beta-ui.js assets/beta-story.js assets/beta-met.js assets/beta-event.js assets/event-briefing-history.js assets/event-ops-handoff.js assets/event-hourly-charts.js assets/event-briefing-ui.js assets/event-store.js assets/beta-upcoming.js assets/calendar-import.js assets/venue-search.js assets/hourly-model.js assets/hourly-views.js assets/hourly-grid.js assets/hourly-grid.css assets/blend.js assets/ops-core.js assets/beta.css assets/maps.js assets/ops.js assets/ops.css"
+          # plus every local script and stylesheet the checked pages load, read from the pages themselves, so a
+          # newly added file can never be served stale next to a fresh caller (run 74: skywatch.js was not listed)
+          PAGES="almanac.html meteorologist-beta.html event-beta.html blend.html maps.html"
+          FILES="$(printf '%s\n' $FILES $PAGES $(grep -ho '\(src\|href\)="assets/[^"?]*' $PAGES | sed 's/^[a-z]*="//') | sort -u | tr '\n' ' ')"
+          echo "checking $(echo $FILES | wc -w) files"
           for i in $(seq 1 40); do
             stale=""
             # -L: the host redirects some files (images) to raw.githubusercontent.com; compare what a browser receives
