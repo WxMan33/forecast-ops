@@ -15,14 +15,14 @@ const CORS = { 'Access-Control-Allow-Origin': '*' };
 
 async function walk({ browser, base, scenario = {}, pages = WALK, between = null, clockAt = NOW }) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, timezoneId: 'America/New_York' });
-  const st = { scenario, log: [], page: null, perPage: {}, seen: new Map(), repeats: 0, inflightDup: 0, pending: new Map() };
+  const st = { scenario, log: [], page: null, perPage: {}, seen: new Map(), repeats: 0, inflightDup: 0, pending: new Map(), delivered: new Set(), repeated: [] };
   await ctx.route('**/*', async (r) => {
     const u = new URL(r.request().url());
     if (u.origin === base) return r.continue();
     if (/^(api|ensemble-api)\.open-meteo\.com$/.test(u.hostname) && /^\/v1\/(forecast|ensemble)$/.test(u.pathname)) {
       const key = u.href, pg = st.perPage[st.page] = st.perPage[st.page] || { requests: 0, repeats: 0 };
       pg.requests++;
-      if (st.seen.has(key)) { pg.repeats++; st.repeats++; }
+      if (st.seen.has(key)) { pg.repeats++; st.repeats++; st.repeated.push(`${st.page}: ${u.searchParams.get('models') || '?'} d${u.searchParams.get('forecast_days') || '?'} (first answer ${st.delivered.has(key) ? 'reached the page' : 'never reached the page'})`); }
       if (st.pending.get(key)) st.inflightDup++;
       st.pending.set(key, (st.pending.get(key) || 0) + 1);
       const a = await sim.answer(u.href, st.scenario, NOW, st.log).catch(() => null);
@@ -39,6 +39,7 @@ async function walk({ browser, base, scenario = {}, pages = WALK, between = null
     return r.fulfill({ status: 503, headers: CORS, body: '' });
   });
   const p = await ctx.newPage(), errors = [];
+  p.on('requestfinished', (q) => { const u = q.url(); if (/open-meteo\.com\/v1\/(forecast|ensemble)\?/.test(u)) st.delivered.add(u); });
   p.on('pageerror', (e) => errors.push(e.message.split('\n')[0]));
   await p.clock.install({ time: new Date(clockAt) });
   await p.addInitScript(() => {
@@ -52,6 +53,9 @@ async function walk({ browser, base, scenario = {}, pages = WALK, between = null
     if (between) await between(i, st, p);
     await p.goto(`${base}/${pages[i]}?${LOC}`);
     await p.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
+    /* settle: a person stays on the page until its guidance has arrived; leave only once no provider request is
+       still being answered (regional requests can start after the main guidance), at most 10 s */
+    for (let k = 0; k < 20 && [...st.pending.values()].some((n) => n > 0); k++) await p.waitForTimeout(500);
     await p.waitForTimeout(800);
     shown.push(await p.evaluate(() => ({ chip: (document.getElementById('dataChip') || {}).textContent || '', msg: (document.getElementById('runMsg') || {}).textContent || '', decision: (document.getElementById('decision') || {}).textContent || '' })));
   }
@@ -59,7 +63,7 @@ async function walk({ browser, base, scenario = {}, pages = WALK, between = null
   const stored = await p.evaluate(() => Object.keys(sessionStorage).filter((k) => k.startsWith('ops_c:')).reduce((a, k) => a + k.length + sessionStorage.getItem(k).length, 0));
   await ctx.close();
   const total = Object.values(st.perPage).reduce((a, x) => a + x.requests, 0);
-  return { total, repeats: st.repeats, inflightDup: st.inflightDup, perPage: st.perPage, failedWrites, storedChars: stored, errors, shown };
+  return { total, repeated: st.repeated, repeats: st.repeats, inflightDup: st.inflightDup, perPage: st.perPage, failedWrites, storedChars: stored, errors, shown };
 }
 
 module.exports = { walk, WALK };
@@ -72,6 +76,7 @@ if (require.main === module) (async () => {
     const r = await walk({ browser, base, scenario: { ensemble: { '*': { realMembers: true } } } });
     Object.entries(r.perPage).forEach(([k, v]) => console.log(`  ${k.padEnd(22)} ${String(v.requests).padStart(4)} provider forecast/ensemble requests`));
     console.log(`  walk total ${r.total} (before this change: 60) · repeats ${r.repeats} · failed storage writes ${r.failedWrites}`);
+    r.repeated.forEach((x) => console.log(`    repeated: ${x}`));
     check(r.total <= 46 && r.repeats === 0 && !r.errors.length, `walk: ${r.total} provider requests for 8 page views, none repeating an answered request (was 60)`);
     const ev = Object.entries(r.perPage).find(([k]) => k.includes('event-beta'));
     check(ev && ev[1].requests <= 1, `walk: Event Manager after Model Blend reuses its answers (${ev ? ev[1].requests : 0} request, its time-zone lookup)`);
