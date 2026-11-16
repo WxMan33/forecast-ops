@@ -72,14 +72,48 @@ function auditArchive(caps, issue, res, obsRows, loc, nowMs) {
     hourlyPrimaryPairs: hourly.length, hourlyObsHours: hrs.length, hourlyObsMissingHours: missingHours, hourlyObsFrom: hrs.length ? U.iso(hrs[0]) : null,
     editionsWithEveryScheduledSource: `${full} of ${avail.length}`, cycleStatus: cyc,
     issueContexts: Object.keys(issue).length, backfilled: Object.values(issue).filter((x) => x.builtAfterCapture).length,
+    retrospectiveCaptures: Object.values(issue).filter((x) => x.builtAfterCapture).map((x) => x.captureId).sort(),
+    leadCoverage: leadCoverage(caps, issue, res, loc),
   };
+}
+
+/* Which sources and recipes reach each lead band, per target, from scheduled captures (primary pairs), and how
+   far each source's horizon reaches. Overnight lows (tmin_night, 7p–7a) and climate-day minimums (tmin_clim)
+   stay separate targets. */
+function leadCoverage(caps, issue, res, loc) {
+  const BANDS = ["d1-2", "d3-4", "d5-7", "d8-10", "d11+"], out = { bands: BANDS, targets: {}, horizon: {} };
+  res.pairs.filter((p) => p.cls === "primary" && CX.TEMP_TARGETS.includes(p.target)).forEach((p) => {
+    const b = CX.leadBand(p.lead); if (!BANDS.includes(b)) return;
+    const t = (out.targets[p.target] = out.targets[p.target] || {}), x = ((t[p.id] = t[p.id] || { track: p.track }), t[p.id]);
+    const c = (x[b] = x[b] || { pairs: 0, dates: new Set() }); c.pairs++; c.dates.add(p.date);
+  });
+  Object.values(out.targets).forEach((t) => Object.values(t).forEach((x) => BANDS.forEach((b) => { if (x[b]) x[b] = { pairs: x[b].pairs, dates: x[b].dates.size }; })));
+  /* horizon: hours from the last retrieval to the source's last forecast hour, over scheduled captures */
+  Object.values(issue).filter((x) => x.edition).forEach((x) => { const last = x.retrieval && Date.parse(x.retrieval.last);
+    Object.entries(x.sources).forEach(([id, s]) => { if (!s.horizonEnd || !last) return; (out.horizon[id] = out.horizon[id] || []).push((Date.parse(s.horizonEnd) - last) / 3600e3); }); });
+  Object.keys(out.horizon).forEach((id) => { const a = out.horizon[id].sort((p, q) => p - q); out.horizon[id] = { captures: a.length, minH: Math.round(a[0]), medianH: Math.round(a[Math.floor(a.length / 2)]), reachesDay10: a.filter((h) => h >= 10 * 24).length }; });
+  return out;
+}
+
+/* Context-layer health for STATUS.md: failures are shown, never hidden, and never stop collection or scoring. */
+function statusSection(caps, result, error) {
+  const L = ["", "## Context layer", ""];
+  if (error) L.push(`**Context report FAILED this run** (collection and scoring continued): ${String(error).split("\n")[0].slice(0, 300)}`, "");
+  const capFail = caps.filter((c) => c.context && c.context.error), noCtx = caps.filter((c) => c.edition && !(c.context && c.context.path));
+  if (capFail.length) L.push(`Issue context failed at capture for ${capFail.length}: ${capFail.slice(-5).map((c) => `${c.captureId} (${c.context.error.slice(0, 120)})`).join("; ")}`, "");
+  if (result) {
+    const a = result.audit;
+    L.push(`- Issue contexts: ${a.issueContexts} (${result.stored.new} new this run). ${a.backfilled} were assembled after their capture from issue-time evidence and are labelled retrospective; ${noCtx.length} scheduled captures predate capture-time context.`,
+      `- Condition cells: ${result.tables.length}. Experiments: ${result.experiments.map((e) => `${e.id} ${e.status}`).join("; ")}.`, `- Details: reports/CONTEXT.md`);
+  } else if (!error) L.push("- Not run.");
+  return L.join("\n") + "\n";
 }
 
 /* Prioritized collection gaps. Static judgments, with this run's numbers where they apply. */
 function gaps(a) {
   return [
     { priority: 1, gap: "Sample length", now: `${a.tempVerifyingDates} verifying dates (${a.firstVerifyingDate} to ${a.lastVerifyingDate}), seasons: ${a.seasonsCovered.join(", ") || "none"}`, need: "30+ distinct dates per condition before any cell can rank sources; 60 training plus 60 later dates before an experimental fit can be judged; a full year before season-by-season comparisons", action: "Keep both daily captures running without gaps. Nothing to change; time is the constraint." },
-    { priority: 2, gap: "Issue-time weather variables beyond temperature", now: "Model requests save hourly temperature, precipitation and snowfall only (plus NWS grids, which already include sky cover, wind and dewpoint)", need: "Forecast cloud cover, 10 m wind, dewpoint, sea-level pressure and 850 hPa temperature at issue, so patterns such as cold-air advection, radiational nights and frontal timing can be classified from what the forecast said, not only from what happened", action: "Add those variables to the deterministic-model requests after checking each model accepts them. A 2026-11-15 check from the development machine confirmed 6 of 11 models return all of them (RRFS, JMA, GFS, GEM, Météo-France, UKMO); the other 5 (ECMWF IFS, AIFS, NBM, HRRR, ICON) could not be checked because Open-Meteo's daily request limit for that machine was reached. Ensemble requests stay as they are (cost)." },
+    { priority: 2, gap: "Forecast cloud cover, wind and dewpoint at issue (next collection priority)", now: "Model requests save hourly temperature, precipitation and snowfall only. NWS grids already include sky cover, wind and dewpoint", need: "Classifying clear/calm and windy nights from what the forecast said before the night, to investigate the warm lows on radiational nights and cold lows on windy nights that the observed classes show", action: "Add cloud_cover, wind_speed_10m, wind_direction_10m and dew_point_2m to the deterministic-model requests after each model is confirmed to accept them. A 2026-11-15 check confirmed 6 of 11 (RRFS, JMA, GFS, GEM, Météo-France, UKMO); ECMWF IFS, AIFS, NBM, HRRR and ICON were not checked because Open-Meteo's daily limit for that machine was reached. Then add issue-basis night classes from both models and NWS grids. Ensemble requests stay as they are (cost). Sea-level pressure and 850 hPa temperature follow later." },
     { priority: 3, gap: "Climate-pattern indices as published", now: "Not collected", need: "ENSO (ONI), AO, NAO, PNA and MJO values stored as published, with publication times and revisions, so a future analysis uses only values public at issue", action: "Start a daily snapshot of NOAA CPC index pages now: as-published values cannot be reconstructed later. Analyse only after several seasons per phase; no relationships are inferred before then." },
     { priority: 4, gap: "Confirmed model cycle per response", now: `Open-Meteo responses do not state their run; the archive keeps the latest run reported by model metadata (status "provider-reported"), never a confirmed cycle`, need: "The run behind each forecast, to compare like cycles and to measure model latency", action: "Evaluate Open-Meteo's single-run API (requests naming an explicit initialisation time) for the deterministic models, as a parallel capture before replacing anything." },
     { priority: 5, gap: "Model versions", now: "No provider reports a model version; the version registry (lib/context.js MODEL_VERSIONS) is empty", need: "Dated upgrade entries (e.g. GFS, ECMWF IFS cycle, NBM version) so comparisons can be split at an upgrade", action: "Enter upgrades from official notices with their source and effective date; never guessed." },
@@ -93,7 +127,7 @@ function gaps(a) {
 const f1 = (x) => (x == null ? "—" : (Math.round(x * 10) / 10).toFixed(1));
 const sgn = (x) => (x == null ? "—" : (x > 0 ? "+" : "") + f1(x));
 const KEY = { blends: ["baseline-v1", "brad-default-2026-11-03-v2", "brad-scoped-temp-2026-11-05-v3", "nbm-only", "nws-only"], sources: ["nws", "ncep_nbm_conus", "ecmwf_ens", "ecmwf_ifs025", "gfs_seamless"] };
-const SHORT = { "baseline-v1": "Baseline v1", "brad-default-2026-11-03-v2": "Default v2", "brad-scoped-default-2026-11-04-v2": "Scoped v2", "brad-scoped-temp-2026-11-05-v3": "Temp-tuned v3", "equal-raw-v1": "Equal raw", "ecmwf-ens-only": "ECMWF ENS only", "gefs-only": "GEFS only", "nbm-only": "NBM only", "nws-only": "NWS only",
+const SHORT = { "baseline-v1": "Baseline v1", "brad-custom-2026-11-03-v1": "Custom v1", "brad-default-2026-11-03-v2": "Default v2", "brad-scoped-default-2026-11-04-v2": "Scoped v2", "brad-scoped-temp-2026-11-05-v3": "Temp-tuned v3", "equal-raw-v1": "Equal raw", "ecmwf-ens-only": "ECMWF ENS only", "gefs-only": "GEFS only", "nbm-only": "NBM only", "nws-only": "NWS only",
   nws: "NWS", "nws-official": "NWS official", ncep_nbm_conus: "NBM", ecmwf_ens: "ECMWF ENS", gefs: "GEFS", ecmwf_ifs025: "ECMWF IFS", ecmwf_aifs025_single: "AIFS", gfs_seamless: "GFS", icon_seamless: "ICON", gem_seamless: "GEM", ukmo_seamless: "UKMO", jma_seamless: "JMA", meteofrance_seamless: "Météo-France", gfs_hrrr: "HRRR", ncep_rrfs_conus: "RRFS", rrfs_ens: "RRFS ens", ncep_nam_conus: "NAM" };
 const nm = (id) => SHORT[id] || id;
 const TLABEL = { tmax_clim: "Daily high (climate day)", tmin_clim: "Daily low (climate day)", tmax_day: "Daytime high 7a–7p", tmin_night: "Overnight low 7p–7a", temp_hourly: "Hourly temperature" };
@@ -110,13 +144,27 @@ function markdown(o, loc) {
     `Observed classes explain errors. They are never allowed to choose weights at issue time; the experiment runner refuses them. Thresholds were fixed by definition before looking at errors: change ±${o.thresholds.changeF} °F; ECMWF ENS 10–90 % width < ${o.thresholds.spreadF[0]}, ${o.thresholds.spreadF[0]}–${o.thresholds.spreadF[1]}, > ${o.thresholds.spreadF[1]} °F; a night is radiational when two thirds of its routine reports are clear or few with wind ≤ 5 kt.`, "");
   L.push("## Archive audit", "",
     `- Captures: ${a.captures} (${a.scheduled} scheduled, ${a.manual} manual pilot), ${a.firstCapture} to ${a.lastCapture}.`,
-    `- Issue contexts stored: ${a.issueContexts} (${o.stored.new} new this run; ${a.backfilled} assembled after their capture from issue-time evidence only).`,
+    `- Issue contexts stored: ${a.issueContexts} (${o.stored.new} new this run). **Retrospective:** ${a.backfilled} were assembled after their capture, from that capture, its bundle and observations already ingested at its retrieval; issue-basis rows say how many of their cases rely on them${a.retrospectiveCaptures.length ? ` (${a.retrospectiveCaptures[0]} to ${a.retrospectiveCaptures[a.retrospectiveCaptures.length - 1]})` : ""}.`,
     `- Scheduled editions with every source on time: ${a.editionsWithEveryScheduledSource}.`,
     `- Primary temperature pairs: ${a.tempPrimaryPairs} on ${a.tempVerifyingDates} verifying dates (${a.firstVerifyingDate} to ${a.lastVerifyingDate}); months ${a.monthsCovered.join(", ")}; seasons ${a.seasonsCovered.join(", ")}.`,
     `- Hourly temperature pairs: ${a.hourlyPrimaryPairs}; ${a.hourlyObsHours} hourly observations since ${a.hourlyObsFrom}, ${a.hourlyObsMissingHours} missing hours.`, "",
     "| Target | Verifying dates | By lead band (dates) |", "|---|---|---|",
     ...Object.entries(a.byTarget).map(([t, b]) => `| ${TLABEL[t] || t} | ${b.dates} | ${BAND_ORDER.filter((k) => b.bands[k]).map((k) => `${k}: ${b.bands[k]}`).join(" · ")} |`), "",
     "Provider-reported cycle status by source (captures): " + Object.entries(a.cycleStatus).map(([id, c]) => `${nm(id)} ${Object.entries(c).map(([k, n]) => `${k} ${n}`).join("/")}`).join("; ") + ".", "");
+  const lc = a.leadCoverage;
+  if (lc) {
+    L.push("## Coverage by lead, through days 8–10", "", "Primary (scheduled, on-time) pairs and distinct verifying dates per lead band. Overnight lows (7p–7a) and climate-day minimums are separate targets and are never pooled.", "");
+    Object.keys(lc.targets).sort((x, y) => CX.TEMP_TARGETS.indexOf(x) - CX.TEMP_TARGETS.indexOf(y)).forEach((t) => {
+      const rows = Object.entries(lc.targets[t]).sort((x, y) => (x[1].track + x[0]).localeCompare(y[1].track + y[0]));
+      L.push(`### ${TLABEL[t]}`, "", `| Source or recipe | ${lc.bands.join(" | ")} |`, `|---|${lc.bands.map(() => "---|").join("")}`,
+        ...rows.map(([id, x]) => `| ${nm(id)}${x.track === "blend" ? " (recipe)" : x.track === "tv" ? " (TV pilot, private)" : ""} | ${lc.bands.map((b) => (x[b] ? `${x[b].pairs} / ${x[b].dates} d` : "—")).join(" | ")} |`));
+      const m = o.tables.filter((c) => c.kind === "daily" && c.target === t && c.band === "d8-10" && c.dim === "all");
+      m.forEach((c) => L.push("", `Days 8–10 matched ${c.set}: ${c.cases} cases on ${c.dates} dates, members ${c.membersUsed.map(nm).join(", ")}${c.membersLeftOut.length ? `; left out for short coverage: ${c.membersLeftOut.map(nm).join(", ")}` : ""}.`));
+      if (!m.length) L.push("", "Days 8–10: no matched set (fewer than two members with enough cases).");
+      L.push("");
+    });
+    L.push("Source horizon from the last retrieval (scheduled captures): " + Object.entries(lc.horizon).sort((x, y) => y[1].medianH - x[1].medianH).map(([id, h]) => `${nm(id)} median ${h.medianH} h (min ${h.minH}), reaches day 10 in ${h.reachesDay10}/${h.captures}`).join("; ") + ".", "");
+  }
   const sec = (kind, title) => {
     L.push(`## ${title}`, "");
     const ts = o.tables.filter((t) => t.kind === kind);
@@ -129,7 +177,7 @@ function markdown(o, loc) {
       const allN = (cell.find((c) => c.dim === "all") || {}).cases;
       /* a dimension with one class covering every case repeats the All row; it stays in context.json */
       const redundant = new Set([...new Set(cell.map((c) => c.dim))].filter((d) => d !== "all" && cell.filter((c) => c.dim === d).length === 1 && cell.find((c) => c.dim === d).cases === allN));
-      cell.filter((c) => !redundant.has(c.dim)).forEach((c) => L.push(`| ${c.dim === "all" ? "**All**" : `${c.dim}: ${c.cls}`} | ${c.basis} | ${c.cases} | ${c.dates} | ${keys.map((k) => `${f1(c.members[k].mae)} (${sgn(c.members[k].bias)})`).join(" | ")} | ${c.lowestMAE ? `${nm(c.lowestMAE)} ${f1(c.members[c.lowestMAE].mae)}` : "—"} | ${c.flag} |`));
+      cell.filter((c) => !redundant.has(c.dim)).forEach((c) => L.push(`| ${c.dim === "all" ? "**All**" : `${c.dim}: ${c.cls}`} | ${c.basis} | ${c.cases} | ${c.dates} | ${keys.map((k) => `${f1(c.members[k].mae)} (${sgn(c.members[k].bias)})`).join(" | ")} | ${c.lowestMAE ? `${nm(c.lowestMAE)} ${f1(c.members[c.lowestMAE].mae)}` : "—"} | ${c.flag}${c.basis === "issue" && c.retrospectiveContextCases ? ` · ${c.retrospectiveContextCases} of ${c.cases} cases from retrospective issue context` : ""} |`));
       L.push("");
     })));
   };
@@ -140,10 +188,10 @@ function markdown(o, loc) {
     ...o.agreement.slice().sort((x, y) => x.target.localeCompare(y.target) || BAND_ORDER.indexOf(x.band) - BAND_ORDER.indexOf(y.band)).map((t) => `| ${TLABEL[t.target]} | ${t.band} | ${t.dates} | ${Object.entries(t.cells).sort((x, y) => y[1] - x[1]).map(([k, n]) => `${k}: ${n}`).join("; ")} | ${t.flag} |`), "");
   L.push("## Experimental weights (never defaults)", "", "Each experiment is fitted once, on earlier dates, after its training cases reach the required distinct dates; it is then judged only on cases from later captures beyond an embargo. Promotion still needs the rules in verify/README.md and a recorded decision.", "",
     "| Experiment | Status | Detail |", "|---|---|---|",
-    ...o.experiments.map((e) => `| ${e.label || e.id} | ${e.status} | ${e.have ? e.have.map((h) => `${h.cls}: ${h.dates} of ${e.need} dates`).join("; ") : e.results ? Object.entries(e.results).map(([k, r]) => `${k}: ${r.status}${r.evalDates != null ? ` (${r.evalDates} dates)` : ""}`).join("; ") : e.fittedAt ? `fitted ${e.fittedAt}` : ""} |`), "");
+    ...o.experiments.map((e) => `| ${e.label || e.id} | ${e.status} | ${e.have ? e.have.map((h) => `${h.cls}: ${h.dates} of ${e.need} dates${h.dates ? "" : " (absent)"}`).join("; ") + (e.casesOutsideClasses ? `; ${e.casesOutsideClasses} cases outside the named classes` : "") + `. Fallback meanwhile: ${e.fallback}` : e.results ? Object.entries(e.results).map(([k, r]) => `${k}: ${r.status}${r.evalDates != null ? ` (${r.evalDates} dates)` : ""}`).join("; ") : e.fittedAt ? `fitted ${e.fittedAt}` : ""} |`), "");
   L.push("## Climate patterns (reserved)", "", "Not collected. Each index, when collected, is stored as published with its publication time, so an analysis uses only values public at issue. With fewer than several seasons per phase, no relationship between these patterns and forecast skill is inferred.", "",
     "| Pattern | Cadence | Source | Status |", "|---|---|---|---|", ...o.climatePatterns.map((p) => `| ${p.label} | ${p.cadence} | ${p.source} | ${p.status} |`), "");
   L.push("## Collection gaps, in priority order", "", "| # | Gap | Now | Needed for | Next step |", "|---|---|---|---|---|", ...o.gaps.map((g) => `| ${g.priority} | ${g.gap} | ${g.now} | ${g.need} | ${g.action} |`), "");
   return L.join("\n");
 }
-module.exports = { VERSION, build, storeIssueContext, auditArchive, gaps, markdown, ctxRel };
+module.exports = { VERSION, build, storeIssueContext, auditArchive, leadCoverage, statusSection, gaps, markdown, ctxRel };

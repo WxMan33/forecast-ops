@@ -84,7 +84,7 @@ const expPairs = (from, nDates) => { const ps = [], issue = {}; for (let i = 0; 
   return { ps, issue }; };
 const E = fs.mkdtempSync(path.join(os.tmpdir(), "exp-")), blendsBefore = crypto.createHash("sha256").update(fs.readFileSync(path.join(__dirname, "../config/blends.js"))).digest("hex");
 let a = expPairs("2026-03-01", 10), r = EX.runAll(E, EXP, a.ps, a.issue, Date.parse("2026-03-11T00:00:00Z"));
-ok(r[0].status === "waiting for training dates" && r[0].have[0].dates === 10 && !fs.existsSync(path.join(E, "experiments/exp-test.fit.json")), "waits below the required training dates; nothing fitted");
+ok(r[0].status === "insufficient training data" && r[0].have[0].dates === 10 && /baseline-v1/.test(r[0].fallback) && !fs.existsSync(path.join(E, "experiments/exp-test.fit.json")), "waits below the required training dates; nothing fitted");
 ok(/refused/.test(r[1].status), "an observed-basis condition is refused");
 a = expPairs("2026-03-01", 20); r = EX.runAll(E, EXP, a.ps, a.issue, Date.parse("2026-03-21T00:00:00Z"));
 const fitFile = path.join(E, "experiments/exp-test.fit.json"), fit1 = fs.readFileSync(fitFile, "utf8");
@@ -96,6 +96,34 @@ const res0 = r[0].results.all;
 ok(r[0].status === "evaluating on unseen dates" && r[0].evalAfter === "2026-03-23" && res0.evalDates === 17, "evaluated only on later captures beyond the embargo");
 ok(/insufficient unseen dates/.test(res0.status), "short evaluation reads as insufficient");
 ok(crypto.createHash("sha256").update(fs.readFileSync(path.join(__dirname, "../config/blends.js"))).digest("hex") === blendsBefore, "recipes are untouched");
+
+/* ---------- conditional experiments: every required class must reach the minimum; absent classes wait ---------- */
+const COND = { id: "exp-cond", label: "cond", targets: ["tmax_clim"], band: "d1-2", sources: ["nws", "ncep_nbm_conus"], prior: "baseline-v1", condition: { basis: "issue", dim: "forecastChange" }, classes: ["warmup", "cooldown", "small change"], minTrainDates: 5, embargoDays: 3 };
+const condPairs = (nDates, clsOf) => { const x = expPairs("2026-05-01", nDates); Object.values(x.issue).forEach((ic) => { ic.implied = { byTarget: { tmax_clim: {} } }; });
+  x.ps.forEach((p) => { x.issue[p.captureId].implied.byTarget.tmax_clim[p.date] = { changeClass: clsOf(p.date) }; }); return x; };
+const E2 = fs.mkdtempSync(path.join(os.tmpdir(), "exp2-"));
+/* 40 dates, plenty of cooldown and small-change cases, NO warmup at all */
+let c = condPairs(40, (d) => (+d.slice(8) % 2 ? "cooldown" : "small change")), cr = EX.runAll(E2, [COND], c.ps, c.issue, Date.parse("2026-06-15T00:00:00Z"))[0];
+ok(cr.status === "insufficient training data" && cr.absent.length === 1 && cr.absent[0] === "warmup" && cr.have.find((h) => h.cls === "warmup").dates === 0, "an entirely absent warmup class keeps the experiment at insufficient training data");
+ok(!fs.existsSync(path.join(E2, "experiments/exp-cond.fit.json")), "nothing is fitted while a required class is absent");
+ok(/baseline-v1 \(the prior recipe, unchanged\)/.test(cr.fallback), "the documented fallback is the prior recipe");
+/* unknown cases never count toward a class */
+c = condPairs(40, (d) => (+d.slice(8) % 3 === 0 ? "warmup" : +d.slice(8) % 3 === 1 ? "cooldown" : "unknown")); cr = EX.runAll(E2, [COND], c.ps, c.issue, Date.parse("2026-06-15T00:00:00Z"))[0];
+ok(cr.status === "insufficient training data" && cr.absent[0] === "small change" && cr.casesOutsideClasses > 0, "unknown cases are outside the classes and never fill an absent one");
+/* all three present: fitted once, per class */
+c = condPairs(40, (d) => ["warmup", "cooldown", "small change"][+d.slice(8) % 3]); cr = EX.runAll(E2, [COND], c.ps, c.issue, Date.parse("2026-06-15T00:00:00Z"))[0];
+const cf = JSON.parse(fs.readFileSync(path.join(E2, "experiments/exp-cond.fit.json"), "utf8"));
+ok(/fitted now/.test(cr.status) && Object.keys(cf.fits).sort().join() === "cooldown,small change,warmup" && cf.classes.length === 3, "fitted only when every required class has enough dates");
+/* a fit lacking a class (e.g. written by an older version) evaluates that class on the fallback */
+const E3 = fs.mkdtempSync(path.join(os.tmpdir(), "exp3-")); fs.mkdirSync(path.join(E3, "experiments"));
+fs.writeFileSync(path.join(E3, "experiments/exp-cond.fit.json"), JSON.stringify({ ...cf, classes: ["cooldown", "small change"], fits: { cooldown: cf.fits.cooldown, "small change": cf.fits["small change"] } }));
+c = condPairs(70, (d) => ["warmup", "cooldown", "small change"][+d.slice(8) % 3]); cr = EX.runAll(E3, [COND], c.ps, c.issue, Date.parse("2026-07-15T00:00:00Z"))[0];
+ok(/insufficient training data; uses the fallback/.test(cr.results.warmup.status) && cr.unseenCasesOnFallback > 0, "a class without a fit is evaluated on the fallback, and counted");
+ok(/refused/.test(EX.runAll(E2, [{ ...COND, id: "exp-noclasses", classes: undefined }], c.ps, c.issue, Date.now())[0].status), "a conditional experiment that does not name its classes is refused");
+
+/* ---------- status visibility ---------- */
+const st = CR.statusSection([{ captureId: "a", edition: "a", context: { error: "boom" } }], null, new Error("context exploded"));
+ok(/Context report FAILED this run/.test(st) && /collection and scoring continued/.test(st) && /a \(boom\)/.test(st), "context failures are visible in the status report");
 
 console.log(fails ? `${fails} of ${n} context checks failed` : `ok - ${n} context checks passed`);
 process.exit(fails ? 1 : 0);

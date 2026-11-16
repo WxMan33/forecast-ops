@@ -141,9 +141,12 @@ async function score() {
   RP.writeReports(DATA, loc, res);
   /* context layer: issue contexts for captures that lack one, observed classes, skill by condition,
      experimental weights (never defaults). A failure here is logged and never stops scoring. */
-  let ctx = null;
-  try { const o = require("./lib/context-report.js").build(DATA, loc, res, Date.now(), NORM.VERSION); ctx = { stored: o.stored, cells: o.tables.length, experiments: o.experiments.map((e) => `${e.id}: ${e.status}`) }; }
-  catch (e) { ctx = { error: String(e.stack || e).slice(0, 1000) }; console.log("context report failed:", e.message); }
+  let ctx = null, ctxOut = null, ctxErr = null;
+  try { ctxOut = require("./lib/context-report.js").build(DATA, loc, res, Date.now(), NORM.VERSION); ctx = { stored: ctxOut.stored, cells: ctxOut.tables.length, experiments: ctxOut.experiments.map((e) => `${e.id}: ${e.status}`) }; }
+  catch (e) { ctxErr = String(e.stack || e); ctx = { error: ctxErr.slice(0, 1000) }; console.log("context report failed:", e.message); }
+  /* the context layer's health is part of STATUS.md, failures included */
+  try { fs.appendFileSync(path.join(DATA, "reports", "STATUS.md"), require("./lib/context-report.js").statusSection(U.readJSONL(capturesFile), ctxOut, ctxErr)); }
+  catch (e) { console.log("context status failed:", e.message); }
   runLog({ job: "score", outcome: "ok", pairs: res.pairs.length, pending: res.pending.length, context: ctx });
   console.log(`score: ${res.pairs.length} scored pairs, ${res.pending.length} awaiting observations`);
 }

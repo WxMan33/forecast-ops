@@ -50,6 +50,8 @@ function caseList(res, loc) {
 function cellStats(rows, members, dateOf) {
   const dates = new Set(rows.map(dateOf)), out = { cases: rows.length, dates: dates.size, blocks7d: new Set([...dates].map(block)).size };
   out.flag = flagFor(out.dates);
+  /* cases whose issue context was assembled after the capture (from issue-time evidence only): labelled, never hidden */
+  out.retrospectiveContextCases = rows.filter((r) => r.__retro).length;
   out.members = Object.fromEntries(members.map((m) => { const e = rows.map((r) => r.v[m] - r.o); return [m, { mae: r2(mean(e.map(Math.abs))), bias: r2(mean(e)), within2: r2(mean(e.map((x) => (Math.abs(x) <= 2 ? 1 : 0)))) }]; }));
   if (out.dates >= MIN_RANK_DATES) out.lowestMAE = members.slice().sort((a, b) => out.members[a].mae - out.members[b].mae)[0];
   return out;
@@ -65,7 +67,7 @@ function stratify(res, issue, observed, loc) {
       Object.entries(SETS).forEach(([setId, ids]) => {
         /* rows keyed by capture and valid date/hour */
         const rows = new Map();
-        cs.filter((c) => ids.includes(c.id)).forEach((c) => { const r = rows.get(c.key) || rows.set(c.key, { ...c, v: {} }).get(c.key); r.v[c.id] = c.v; });
+        cs.filter((c) => ids.includes(c.id)).forEach((c) => { const r = rows.get(c.key) || rows.set(c.key, { ...c, v: {}, __retro: !!(issue[c.captureId] && issue[c.captureId].builtAfterCapture) }).get(c.key); r.v[c.id] = c.v; });
         const all = [...rows.values()]; if (!all.length) return;
         const members = ids.filter((m) => all.filter((r) => r.v[m] != null).length >= PRESENT_SHARE * all.length);
         if (members.length < 2) return;
