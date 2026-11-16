@@ -6,6 +6,7 @@
    weights at issue time; only target- and issue-basis classes can feed an experimental recipe. */
 "use strict";
 const CX = require("./context.js");
+const U = require("./util.js");
 const VERSION = "stratify-v1";
 const MIN_RANK_DATES = 10; // below this, a cell shows counts and errors but no ordering
 const SMALL_DATES = 30;    // below this, a cell is a small sample: descriptive only
@@ -24,6 +25,9 @@ function dims(issue, observed, loc) {
   const imp = (c) => { const x = issue[c.captureId]; return x && x.implied.byTarget[c.target] && x.implied.byTarget[c.target][c.date]; };
   const obs = (c) => observed[c.date];
   const isMax = (c) => /^tmax/.test(c.target);
+  /* the night a low belongs to: tmin_night = the night after its date; tmin_clim = the night before it */
+  const fn = (c, k) => { const x = issue[c.captureId], nd = c.target === "tmin_night" ? c.date : c.target === "tmin_clim" ? U.addDays(c.date, -1) : null;
+    const n = nd && x && x.forecastNight && x.forecastNight.nights && x.forecastNight.nights[nd]; const v = n && n[k] && n[k].cls; return !v || /^not /.test(v) ? null : v; };
   return [
     ["all", "target", "All cases", () => "all"],
     ["season", "target", "Season of the valid date", (c) => CX.season(c.date)],
@@ -33,6 +37,8 @@ function dims(issue, observed, loc) {
     ["forecastChange", "issue", `Forecast's own change from the previous day (${CX.REF_RECIPE}, ±${CX.CHANGE_F} °F)`, (c) => { const x = imp(c); return x ? x.changeClass : null; }],
     ["ensSpread", "issue", `ECMWF ENS 10–90 % width (< ${CX.SPREAD_F[0]}, ${CX.SPREAD_F[0]}–${CX.SPREAD_F[1]}, > ${CX.SPREAD_F[1]} °F)`, (c) => { const x = imp(c); return x ? x.spreadClass : null; }],
     ["availability", "issue", "Sources available at issue", (c) => { const x = issue[c.captureId]; return x ? (x.availability.missing.length ? "some missing" : "all available") : null; }],
+    ["forecastNightNWS", "issue", "Forecast night at issue, NWS grid (clear/calm, cloudy, windy, mixed)", (c) => fn(c, "nws")],
+    ["forecastNightModels", "issue", "Forecast night at issue, deterministic-model consensus", (c) => fn(c, "consensus")],
     ["observedChange", "observed", `Observed change from the previous day (±${CX.CHANGE_F} °F)`, (c) => { const o = obs(c); return o ? (isMax(c) ? o.tmaxClass : o.tminClass) : null; }],
     ["wet", "observed", "Observed climate-day precipitation", (c) => { const o = obs(c); return o && o.wet != null ? (o.wet ? "wet" : "dry") : null; }],
     ["night", "observed", "Observed night (METAR sky and wind)", (c) => { const o = obs(c); if (!o) return null; return c.target === "tmin_night" ? o.nightAfter.cls : c.target === "tmin_clim" ? o.nightBefore.cls : null; }],

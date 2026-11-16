@@ -18,7 +18,7 @@ const recipesById = () => Object.fromEntries(BLENDS.recipes.concat(BLENDS.candid
 function storeIssueContext(DATA, loc, cap, bundle, obsRows, nowMs) {
   const rel = ctxRel(loc, cap), full = path.join(DATA, rel);
   if (fs.existsSync(full)) return { path: rel, existed: true, ctx: JSON.parse(fs.readFileSync(full, "utf8")) };
-  const ctx = CX.issueContext(cap, bundle, obsRows, loc, recipesById());
+  const ctx = CX.issueContext(cap, bundle, obsRows, loc, recipesById(), forecastContext(DATA, cap));
   const last = bundle.retrieval && bundle.retrieval.last;
   ctx.builtAt = U.iso(nowMs);
   /* built later than the capture (backfill): every input is still issue-time evidence (the capture, its bundle,
@@ -26,6 +26,18 @@ function storeIssueContext(DATA, loc, cap, bundle, obsRows, nowMs) {
   ctx.builtAfterCapture = !!(last && nowMs - Date.parse(last) > 3600e3);
   U.mkdirp(path.dirname(full)); fs.writeFileSync(full, JSON.stringify(ctx));
   return { path: rel, existed: false, ctx };
+}
+
+/* The capture's own raw context responses (lib/context-vars.js) and its saved NWS grid, as hourly series. */
+function forecastContext(DATA, cap) {
+  const CV = require("./context-vars.js"), raw = (f) => { try { return U.parseJSON(U.loadRaw(DATA, f.path).toString()); } catch (e) { return null; } };
+  const models = {};
+  Object.entries((cap.contextVars && cap.contextVars.sources) || {}).forEach(([id, r]) => {
+    const j = (r.status === "ok" || r.status === "partial") && r.file ? raw(r.file) : null;
+    models[id] = { status: r.status, retrievedAt: r.retrievedAt || null, series: j && !j.error ? CV.seriesOM(j) : null };
+  });
+  const n = cap.sources && cap.sources.nws, g = n && n.files && n.files.grid && n.parts && n.parts.grid && n.parts.grid.status === "ok" ? raw(n.files.grid) : null;
+  return { models, nws: g ? { series: CV.seriesNWS(g), retrievedAt: n.parts.grid.retrievedAt } : null, requested: !!cap.contextVars };
 }
 
 function loadBundle(DATA, rel) { try { return JSON.parse(U.gunzip(fs.readFileSync(path.join(DATA, rel))).toString()); } catch (e) { return null; } }
@@ -45,6 +57,9 @@ function build(DATA, loc, res, nowMs, normVersion) {
   const tables = ST.stratify(res, issue, observed, loc), agreement = ST.regimeAgreement(res, issue, observed);
   const experiments = EX.runAll(DATA, require("../config/experiments.js"), res.pairs, issue, nowMs);
   const audit = auditArchive(caps, issue, res, obsRows, loc, nowMs);
+  audit.capability = capability(caps, DATA);
+  audit.contextAvailability = ctxAvailability(issue);
+  audit.nightAgreement = nightAgreement(issue, observed);
   const out = { version: VERSION, contextVersion: CX.VERSION, observedVersion: CX.OBSERVED_VERSION, stratifyVersion: ST.VERSION, experimentsVersion: EX.VERSION, at: U.iso(nowMs), loc: loc.id,
     thresholds: { changeF: CX.CHANGE_F, spreadF: CX.SPREAD_F, minRankDates: ST.MIN_RANK_DATES, smallDates: ST.SMALL_DATES, presentShare: ST.PRESENT_SHARE }, stored, audit, observed, tables, agreement, experiments,
     climatePatterns: CX.CLIMATE_PATTERNS.map((p) => ({ ...p, status: "not collected" })), modelVersions: CX.MODEL_VERSIONS, gaps: gaps(audit) };
@@ -95,11 +110,61 @@ function leadCoverage(caps, issue, res, loc) {
   return out;
 }
 
+/* Capability per source for the optional context variables, from what the collector actually received:
+   status counts, units, and how far each variable reached (hours after retrieval), over scheduled captures. */
+function capability(caps, DATA) {
+  const CV = require("./context-vars.js"), out = {};
+  caps.filter((c) => c.edition && c.contextVars).forEach((c) => Object.entries(c.contextVars.sources || {}).forEach(([id, r]) => {
+    const x = (out[id] = out[id] || { requested: 0, status: {}, vars: {} }); x.requested++; x.status[r.status] = (x.status[r.status] || 0) + 1;
+    CV.VARS.forEach((v) => { const f = r.fields && r.fields[v], y = (x.vars[v] = x.vars[v] || { present: 0, units: new Set(), reachH: [] }); if (!f) return;
+      if (f.present && f.nonNull) { y.present++; if (f.unit) y.units.add(f.unit); if (f.lastNonNull && r.retrievedAt) y.reachH.push((Date.parse(f.lastNonNull) - Date.parse(r.retrievedAt)) / 3600e3); } });
+  }));
+  /* NWS from the saved grids (no extra request): units as the grid states them */
+  const nws = { requested: 0, status: {}, vars: {}, note: "from the gridpoint response every capture already saves" };
+  caps.filter((c) => c.edition && c.sources && c.sources.nws && c.sources.nws.parts && c.sources.nws.parts.grid).slice(-6).forEach((c) => {
+    const n = c.sources.nws, ok = n.parts.grid.status === "ok"; nws.requested++; nws.status[ok ? "ok" : "failed"] = (nws.status[ok ? "ok" : "failed"] || 0) + 1; if (!ok) return;
+    let g = null; try { g = U.parseJSON(U.loadRaw(DATA, n.files.grid.path).toString()); } catch (e) { return; }
+    const p = (g && g.properties) || {};
+    [["cloud_cover", "skyCover"], ["wind_speed_10m", "windSpeed"], ["wind_direction_10m", "windDirection"], ["dew_point_2m", "dewpoint"]].forEach(([v, f]) => {
+      const y = (nws.vars[v] = nws.vars[v] || { present: 0, units: new Set(), reachH: [] }), vals = p[f] && p[f].values; if (!vals || !vals.length) return;
+      y.present++; if (p[f].uom) y.units.add(p[f].uom);
+      const last = vals[vals.length - 1].validTime.split("/"), mm = /P(?:(\d+)D)?T?(?:(\d+)H)?/.exec(last[1] || "") || [], end = Date.parse(last[0]) + ((+(mm[1] || 0)) * 24 + (+(mm[2] || 0))) * 3600e3;
+      y.reachH.push((end - Date.parse(n.parts.grid.retrievedAt)) / 3600e3); });
+  });
+  if (nws.requested) out.nws = nws;
+  Object.values(out).forEach((x) => Object.values(x.vars).forEach((y) => { const a = y.reachH.sort((p, q) => p - q); y.units = [...y.units]; y.reachMedianH = a.length ? Math.round(a[Math.floor(a.length / 2)]) : null; y.reachMinH = a.length ? Math.round(a[0]) : null; delete y.reachH; }));
+  return out;
+}
+/* Per source, variable and lead day 1–10: in how many scheduled captures every hour of that local day was present. */
+function ctxAvailability(issue) {
+  const out = {};
+  Object.values(issue).filter((x) => x.edition && x.contextAvailability).forEach((x) => Object.entries(x.contextAvailability.sources || {}).forEach(([id, vars]) => Object.entries(vars).forEach(([k, arr]) => {
+    const y = (((out[id] = out[id] || {})[k] = out[id][k] || { captures: 0, notCollected: 0, byLead: Array(10).fill(0) }));
+    if (!arr) { y.notCollected++; return; } y.captures++; arr.forEach((ok, i) => { if (ok) y.byLead[i]++; });
+  })));
+  return out;
+}
+/* Forecast night class at issue (NWS grid, model consensus) vs the observed night afterward. */
+function nightAgreement(issue, observed) {
+  const out = { nws: {}, consensus: {} };
+  Object.values(issue).filter((x) => x.edition && x.forecastNight && x.forecastNight.nights).forEach((x) => Object.entries(x.forecastNight.nights).forEach(([d, n]) => {
+    const o = observed[d] && observed[d].nightAfter && observed[d].nightAfter.cls; if (!o || o === "unknown") return;
+    const lead = Math.round((Date.parse(d) - Date.parse(x.captureId.slice(0, 10))) / 86400e3), band = CX.leadBand(lead);
+    [["nws", n.nws && n.nws.cls], ["consensus", n.consensus && n.consensus.cls]].forEach(([k, f]) => { if (!f || /unknown|not /.test(f)) return;
+      const t = (out[k][band] = out[k][band] || { cells: {}, dates: new Set(), retrospective: 0, cases: 0 }); const c = `${f} → ${o}`; t.cells[c] = (t.cells[c] || 0) + 1; t.dates.add(d); t.cases++; if (x.builtAfterCapture) t.retrospective++; });
+  }));
+  Object.values(out).forEach((m) => Object.values(m).forEach((t) => { t.dates = t.dates.size; t.flag = ST.flagFor(t.dates); }));
+  return out;
+}
+
 /* Context-layer health for STATUS.md: failures are shown, never hidden, and never stop collection or scoring. */
 function statusSection(caps, result, error) {
   const L = ["", "## Context layer", ""];
   if (error) L.push(`**Context report FAILED this run** (collection and scoring continued): ${String(error).split("\n")[0].slice(0, 300)}`, "");
   const capFail = caps.filter((c) => c.context && c.context.error), noCtx = caps.filter((c) => c.edition && !(c.context && c.context.path));
+  const lastCv = caps.filter((c) => c.contextVars).pop();
+  if (lastCv) { const st = {}; Object.values(lastCv.contextVars.sources || {}).forEach((r) => (st[r.status] = (st[r.status] || 0) + 1));
+    L.push(`Forecast cloud/wind/dewpoint (optional; never blocks collection), latest capture ${lastCv.captureId}: ${lastCv.contextVars.error ? `FAILED (${lastCv.contextVars.error})` : Object.entries(st).map(([k, n]) => `${k} ${n}`).join(", ")}${Object.values(lastCv.contextVars.sources || {}).some((r) => r.missing && r.missing.length) ? ` · missing fields: ${Object.entries(lastCv.contextVars.sources).filter(([, r]) => r.missing && r.missing.length).map(([id, r]) => `${id} ${r.missing.join("/")}`).join("; ")}` : ""}`, ""); }
   if (capFail.length) L.push(`Issue context failed at capture for ${capFail.length}: ${capFail.slice(-5).map((c) => `${c.captureId} (${c.context.error.slice(0, 120)})`).join("; ")}`, "");
   if (result) {
     const a = result.audit;
@@ -131,7 +196,7 @@ const SHORT = { "baseline-v1": "Baseline v1", "brad-custom-2026-11-03-v1": "Cust
   nws: "NWS", "nws-official": "NWS official", ncep_nbm_conus: "NBM", ecmwf_ens: "ECMWF ENS", gefs: "GEFS", ecmwf_ifs025: "ECMWF IFS", ecmwf_aifs025_single: "AIFS", gfs_seamless: "GFS", icon_seamless: "ICON", gem_seamless: "GEM", ukmo_seamless: "UKMO", jma_seamless: "JMA", meteofrance_seamless: "Météo-France", gfs_hrrr: "HRRR", ncep_rrfs_conus: "RRFS", rrfs_ens: "RRFS ens", ncep_nam_conus: "NAM" };
 const nm = (id) => SHORT[id] || id;
 const TLABEL = { tmax_clim: "Daily high (climate day)", tmin_clim: "Daily low (climate day)", tmax_day: "Daytime high 7a–7p", tmin_night: "Overnight low 7p–7a", temp_hourly: "Hourly temperature" };
-const BAND_ORDER = ["0-12 h", "12-24 h", "24-48 h", "48-72 h", "3-7 d", "7-10 d", "10 d+", "d1-2", "d3-4", "d5-7", "d8-10", "d11+"];
+const BAND_ORDER = ["d0", "0-12 h", "12-24 h", "24-48 h", "48-72 h", "3-7 d", "7-10 d", "10 d+", "d1-2", "d3-4", "d5-7", "d8-10", "d11+"];
 
 function markdown(o, loc) {
   const a = o.audit, L = [];
@@ -165,6 +230,30 @@ function markdown(o, loc) {
     });
     L.push("Source horizon from the last retrieval (scheduled captures): " + Object.entries(lc.horizon).sort((x, y) => y[1].medianH - x[1].medianH).map(([id, h]) => `${nm(id)} median ${h.medianH} h (min ${h.minH}), reaches day 10 in ${h.reachesDay10}/${h.captures}`).join("; ") + ".", "");
   }
+  /* forecast context variables: capability, per-lead availability, forecast vs observed nights */
+  const VN = { cloud_cover: "Cloud cover", wind_speed_10m: "Wind 10 m", wind_direction_10m: "Wind direction", dew_point_2m: "Dewpoint" }, KN = { temp: "Temperature", cloud: "Cloud cover", wind: "Wind 10 m", dir: "Wind direction", dew: "Dewpoint" };
+  L.push("## Forecast cloud cover, wind and dewpoint (issue-time context)", "", "Collected by a separate, optional request per deterministic model (one attempt each; the first HTTP 429 stops the rest for that capture), saved as received; NWS values come from the grid each capture already saves. The primary temperature and precipitation requests are unchanged. A variable shows as not available when our collection did not receive it, which says nothing about whether the provider can produce it.", "");
+  const cap = a.capability || {};
+  if (!Object.keys(cap).length) L.push("No capture has requested these variables yet.", "");
+  else {
+    L.push("### Capability as received", "", "| Source | Requests (status) | " + Object.values(VN).join(" | ") + " |", "|---|---|" + Object.keys(VN).map(() => "---|").join(""),
+      ...Object.entries(cap).map(([id, x]) => `| ${nm(id)} | ${x.requested}${x.note ? " grids" : ""} (${Object.entries(x.status).map(([k, n]) => `${k} ${n}`).join(", ")}) | ${Object.keys(VN).map((v) => { const y = x.vars[v]; return !y || !y.present ? "not available in our current collection" : `${y.units.join("/") || "unit not stated"} · to ${y.reachMedianH} h (min ${y.reachMinH})`; }).join(" | ")} |`), "");
+  }
+  const av = a.contextAvailability || {};
+  if (Object.keys(av).length) {
+    const leads = Array.from({ length: 10 }, (_, k) => k + 1);
+    L.push("### Availability by lead day (every hour of the local day present; scheduled captures)", "", "Each cell: captures with the whole day present / captures where the variable was collected. Leads 8, 9 and 10 are separate columns. † not available in our current collection (not a statement that the model never reaches that lead).", "",
+      `| Source | Variable | ${leads.map((l) => `d${l}`).join(" | ")} | Not collected |`, `|---|---|${leads.map(() => "---|").join("")}---|`);
+    Object.entries(av).sort((x, y) => x[0].localeCompare(y[0])).forEach(([id, vars]) => ["temp", "cloud", "wind", "dew"].forEach((k) => { const y = vars[k]; if (!y) return;
+      L.push(`| ${nm(id)} | ${KN[k]} | ${y.byLead.map((n) => (y.captures ? (n ? `${n}/${y.captures}` : `0/${y.captures} †`) : "—")).join(" | ")} | ${y.notCollected} |`); }));
+    L.push("");
+  }
+  const na = a.nightAgreement || {};
+  L.push("### Forecast night at issue vs observed night", "", "Forecast classes (forecast-night-v1, fixed before any errors were examined): clear/calm when two thirds of the night's hours have cloud cover ≤ 25 % and wind ≤ 6 mph; windy when mean wind ≥ 12 mph; cloudy when two thirds have cloud cover ≥ 63 %; otherwise mixed; any missing hour is unknown. Observed classes come from METAR afterward and are kept separate.", "",
+    "| Forecast by | Lead | Dates | Forecast → observed (cases) | Flag |", "|---|---|---|---|---|");
+  ["nws", "consensus"].forEach((k) => BAND_ORDER.forEach((b) => { const t = (na[k] || {})[b]; if (t) L.push(`| ${k === "nws" ? "NWS grid" : "Model consensus"} | ${b} | ${t.dates} | ${Object.entries(t.cells).sort((x, y) => y[1] - x[1]).map(([c, n]) => `${c}: ${n}`).join("; ")} | ${t.flag}${t.retrospective ? ` · ${t.retrospective} of ${t.cases} from retrospective issue context` : ""} |`); }));
+  if (!Object.keys(na.nws || {}).length && !Object.keys(na.consensus || {}).length) L.push("| — | — | 0 | no forecast nights with observations yet | — |");
+  L.push("");
   const sec = (kind, title) => {
     L.push(`## ${title}`, "");
     const ts = o.tables.filter((t) => t.kind === kind);
@@ -194,4 +283,4 @@ function markdown(o, loc) {
   L.push("## Collection gaps, in priority order", "", "| # | Gap | Now | Needed for | Next step |", "|---|---|---|---|---|", ...o.gaps.map((g) => `| ${g.priority} | ${g.gap} | ${g.now} | ${g.need} | ${g.action} |`), "");
   return L.join("\n");
 }
-module.exports = { VERSION, build, storeIssueContext, auditArchive, leadCoverage, statusSection, gaps, markdown, ctxRel };
+module.exports = { VERSION, build, storeIssueContext, forecastContext, capability, ctxAvailability, nightAgreement, auditArchive, leadCoverage, statusSection, gaps, markdown, ctxRel };

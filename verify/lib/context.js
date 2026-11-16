@@ -15,7 +15,7 @@
 "use strict";
 const U = require("./util.js");
 const TG = require("./targets.js");
-const VERSION = "context-v1";
+const VERSION = "context-v2"; // v2: forecast night classes and per-lead availability of cloud, wind and dewpoint (lib/context-vars.js)
 const OBSERVED_VERSION = "observed-v1";
 /* Classification thresholds, fixed by definition before any error was examined (not tuned to results). */
 const CHANGE_F = 6; // day-to-day change of the daily high or low, °F: >= +6 warmup, <= -6 cooldown, otherwise small change
@@ -45,7 +45,9 @@ function windowExtreme(series, t0, step, [a, b], fn) {
 
 /* Issue context for one capture. obsRows: every observation row in the archive; only rows the archive had
    ingested by the capture's last retrieval (firstSeenAt <= last) are used. */
-function issueContext(cap, b, obsRows, loc, recipesById = {}) {
+/* fc (optional): { models: {id: {series, retrievedAt, status}}, nws: {series, retrievedAt} } from lib/context-vars.js,
+   built from this capture's own raw responses. */
+function issueContext(cap, b, obsRows, loc, recipesById = {}, fc = null) {
   const last = b.retrieval && b.retrieval.last, lastMs = last ? Date.parse(last) : null;
   const sources = {};
   Object.values(cap.sources || {}).forEach((s) => {
@@ -89,7 +91,33 @@ function issueContext(cap, b, obsRows, loc, recipesById = {}) {
     sources, availability: { ok: ok.length, total: Object.keys(sources).length, missing }, recipes,
     knownAtIssue: known, implied: { ref: REF_RECIPE, thresholds: { changeF: CHANGE_F, spreadF: SPREAD_F }, byTarget: implied },
     climatePatterns: CLIMATE_PATTERNS.map((p) => ({ id: p.id, status: "not collected", value: null, asOf: null, source: null })),
+    forecastNight: forecastNight(cap, loc, fc), contextAvailability: contextAvailability(cap, b, loc, fc),
   };
+}
+/* Forecast night classes from the capture's own responses (issue basis), for the nights after lead days 0–10. */
+function forecastNight(cap, loc, fc) {
+  const CV = require("./context-vars.js");
+  if (!fc) return { version: CV.NIGHT_VERSION, status: "not collected at this capture" };
+  const dates = Array.from({ length: 11 }, (_, k) => U.addDays(cap.localDate, k)), nights = {};
+  const models = Object.fromEntries(Object.entries(fc.models || {}).filter(([, m]) => m.series).map(([id, m]) => [id, CV.nights(m.series, Date.parse(m.retrievedAt), dates, loc.lstOffsetMin)]));
+  const nws = fc.nws && fc.nws.series ? CV.nights(fc.nws.series, Date.parse(fc.nws.retrievedAt), dates, loc.lstOffsetMin) : null;
+  dates.forEach((d) => { const byModel = Object.fromEntries(Object.entries(models).map(([id, n]) => [id, n[d]]));
+    nights[d] = { nws: nws ? nws[d] : { cls: "not available in our current collection" }, models: byModel, consensus: CV.consensus(byModel) }; });
+  return { version: CV.NIGHT_VERSION, thresholds: CV.NIGHT, status: Object.keys(models).length ? "collected" : "models not collected at this capture", modelStatus: Object.fromEntries(Object.entries(fc.models || {}).map(([id, m]) => [id, m.status])), nights };
+}
+/* For lead days 1–10: is every local-standard hour of the day present, per source and variable? */
+function contextAvailability(cap, b, loc, fc) {
+  const CV = require("./context-vars.js"), out = {}, hr = b.hourly;
+  const day0 = (L) => Date.parse(U.addDays(cap.localDate, L) + "T00:00:00Z") - loc.lstOffsetMin * 60e3;
+  const temp = (id) => { const a = hr && hr.temperature_2m && hr.temperature_2m[id]; if (!a) return null; const m = new Map(); a.forEach((v, i) => m.set(hr.t0 + i * hr.stepMs, { temp: v })); return m; };
+  const leads = Array.from({ length: 10 }, (_, k) => k + 1);
+  const add = (id, key, series) => { (out[id] = out[id] || {})[key] = series ? leads.map((L) => CV.dayAvailable(series, key, day0(L))) : null; };
+  Object.keys((b.hourly && b.hourly.temperature_2m) || {}).filter((id) => !id.startsWith("blend:")).forEach((id) => add(id, "temp", temp(id)));
+  if (fc) {
+    Object.entries(fc.models || {}).forEach(([id, m]) => ["cloud", "wind", "dir", "dew"].forEach((k) => add(id, k, m.series || null)));
+    if (fc.nws && fc.nws.series) ["cloud", "wind", "dir", "dew"].forEach((k) => add("nws", k, fc.nws.series));
+  }
+  return { leads, collected: !!fc, sources: out };
 }
 
 /* ---------- observed (derived afterward) ---------- */
