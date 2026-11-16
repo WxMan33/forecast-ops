@@ -1,7 +1,7 @@
 {
   "date": "2026-11-16",
-  "day": 1,
+  "day": 2,
   "model": "research/severe/baseline-v06/models.json",
   "model_sha256": "5912bb8a63f32468fa52daa408b9793d672a6e3446e22b3a769637c617d1cef0",
-  "purpose": "Day 1 current-input pipeline trial; late preparation must be explicitly retained"
+  "purpose": "Current Day 2 production with pinned training field identities and geometry"
 }

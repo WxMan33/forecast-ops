@@ -10,7 +10,7 @@ from scipy.optimize import minimize
 from scipy.special import expit
 
 from protocol import PROTOCOL, SCHEMA, check_grid, future_window
-from cohort import calendar_cases
+from cohort import calendar_cases, predictor_contract
 
 
 def digest(path):
@@ -31,6 +31,7 @@ def load_cohort(root, config_path, labels_root=None):
     groups = {split: [] for split in years.values()}
     feature_names = None
     sources = {}
+    expected_contract = None
     with np.load(label_path, allow_pickle=False) as truth:
         for case in cases:
             split = years[int(case[:4])]
@@ -59,6 +60,19 @@ def load_cohort(root, config_path, labels_root=None):
                 for window in manifest["windows"]:
                     day = window["day"]
                     expected = future_window(case, day)
+                    predictor_manifest = case_root / f"day{day}" / "manifest.json"
+                    raw_audit = case_root / f"day{day}" / "raw-audit.json"
+                    if (digest(predictor_manifest) != window["predictor_manifest_sha256"]
+                            or digest(raw_audit) != window["raw_audit_sha256"]):
+                        raise ValueError(f"{case}: source manifest or raw audit checksum mismatch")
+                    audit = json.loads(raw_audit.read_text())
+                    if audit["status"] != "passed" or audit["source_messages_checked"] != 192:
+                        raise ValueError(f"{case}: incomplete raw audit")
+                    contract = predictor_contract(json.loads(predictor_manifest.read_text()))
+                    if expected_contract is None:
+                        expected_contract = contract
+                    if contract != expected_contract:
+                        raise ValueError(f"{case}: physical fields or sampling geometry changed")
                     product = label_manifest["products"][window["label_window_index"]]
                     if (any(window.get(k) != v for k, v in expected.items())
                             or window["split"] != split or product["split"] != split
@@ -182,6 +196,11 @@ def main():
                 "protected_2025_outcomes_accessed": False,
                 "cohort_sha256": digest(config), "frozen_labels_sha256": label_hash,
                 "joined_artifact_sha256_by_case": sources}
+    configuration = json.loads(config.read_text())
+    first_case = args.history / (configuration.get("artifact_prefix", "severe-history-v05-")
+                                 + configuration["cases"][0])
+    metadata["input_contract"] = predictor_contract(
+        json.loads((first_case / "day1" / "manifest.json").read_text()))
     models, report = {}, {}
     for day in (1, 2):
         for index, hazard in enumerate(("tornado", "wind", "hail")):

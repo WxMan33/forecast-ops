@@ -13,7 +13,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools/severe"))
 from cohort import calendar_cases
-from product import freshness, predict, read_model
+from product import freshness, predict, read_model, check_predictor_contract
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -49,6 +49,9 @@ class ProductTests(unittest.TestCase):
                     model["products"]["day1_wind"]["feature_scale"][0] = 0
                 path.write_text(json.dumps(model))
                 sha = hashlib.sha256(path.read_bytes()).hexdigest()
+                contract = json.loads((ROOT / "research/severe/baseline-v06/input-contract.json").read_text())
+                contract["model_sha256"] = sha
+                (path.parent / "input-contract.json").write_text(json.dumps(contract))
                 with self.assertRaises(ValueError):
                     read_model(path, "0" * 64)
                 if change == "valid":
@@ -56,6 +59,20 @@ class ProductTests(unittest.TestCase):
                 else:
                     with self.assertRaises(ValueError):
                         read_model(path, sha)
+
+    def test_physical_units_and_native_geometry_cannot_silently_change(self):
+        contract = json.loads((ROOT / "research/severe/baseline-v06/input-contract.json").read_text())
+        keys = ("native_grid", "field_identities", "bounds", "stride")
+        model = {"input_contract": {k: contract[k] for k in keys}}
+        check_predictor_contract(model, contract)
+        changed = copy.deepcopy(contract)
+        changed["field_identities"]["sbcape"]["units"] = "kJ kg**-1"
+        with self.assertRaises(ValueError):
+            check_predictor_contract(model, changed)
+        changed = copy.deepcopy(contract)
+        changed["stride"] = 10
+        with self.assertRaises(ValueError):
+            check_predictor_contract(model, changed)
 
     def test_feature_identity_missing_values_and_probability_bounds(self):
         names = np.array(self.model["feature_names"])

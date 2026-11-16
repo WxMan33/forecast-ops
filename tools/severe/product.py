@@ -9,6 +9,7 @@ import numpy as np
 from scipy.special import expit
 
 from audit_extraction import audit
+from cohort import predictor_contract
 from extract import digest, extract, write_json
 from protocol import PROTOCOL, SCHEMA, future_window
 
@@ -36,7 +37,17 @@ def read_model(path, expected_sha256):
             scalars = [product[k] for k in ("intercept", "calibration_intercept", "calibration_slope")]
             if not np.isfinite(scalars).all() or product["calibration_slope"] < 0:
                 raise ValueError("Invalid fitted calibration")
+    if "input_contract" not in model:
+        associated = json.loads((path.parent / "input-contract.json").read_text())
+        if associated["model_sha256"] != expected_sha256:
+            raise ValueError("Input contract belongs to a different model")
+        model["input_contract"] = predictor_contract(associated)
     return model
+
+
+def check_predictor_contract(model, manifest):
+    if predictor_contract(manifest) != model["input_contract"]:
+        raise ValueError("Current physical fields, units or sampling geometry differ from training")
 
 
 def predict(model, day, features, names):
@@ -80,6 +91,7 @@ def produce(date, day, model_path, model_sha256, output, cache):
     features_root = output / "predictors"
     manifest = extract(issue, features_root, cache, budget_mb=1000, days=(day,),
                        target_windows=[window], expected_coordinates=coordinates)
+    check_predictor_contract(model, manifest)
     checked = audit(features_root, cache, features_root / "raw-audit.json")
     if checked["status"] != "passed" or checked["source_messages_checked"] != 192:
         raise ValueError("Raw predictor audit failed")
@@ -97,7 +109,8 @@ def produce(date, day, model_path, model_sha256, output, cache):
         "available_before_target_start": prepared < datetime.fromisoformat(window["valid_start"]),
         "coordinates": grid, "probabilities": probabilities, "model_sha256": model_sha256,
         "predictor_sha256": spec["sha256"], "raw_audit_sha256": digest(features_root / "raw-audit.json"),
-        "grid_sha256": manifest["grid_sha256"], "operational_forecast_eligible": False,
+        "grid_sha256": manifest["grid_sha256"], "input_contract": model["input_contract"],
+        "operational_forecast_eligible": False,
         "notice": "Experimental regional probabilities. Development overforecasting remains under review.",
     }
     candidate["freshness_at_preparation"] = freshness(candidate, prepared)

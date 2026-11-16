@@ -17,3 +17,8 @@ def calendar_cases(config):
     if config["cases"] != cases:
         raise ValueError("Dates differ from the frozen calendar")
     return cases
+
+
+def predictor_contract(manifest):
+    """Physical field identities and sampling geometry must stay fixed."""
+    return {key: manifest[key] for key in ("native_grid", "field_identities", "bounds", "stride")}
