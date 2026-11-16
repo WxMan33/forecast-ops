@@ -210,6 +210,18 @@ Every scored temperature case carries context on three bases, which are never mi
 - **Model versions:** no provider reports one. `MODEL_VERSIONS` in `lib/context.js` holds dated upgrades from cited notices, and is empty until such a notice is entered.
 - **Coverage through days 8–10:** `reports/CONTEXT.md` lists primary pairs and dates per source, recipe, target and lead band, the matched cases at days 8–10, and each source's horizon. Overnight lows (7p–7a) and climate-day minimums stay separate targets.
 - **Failures are visible:** a context failure at capture is recorded on the capture, and a failed condition report appears in `STATUS.md` under "Context layer"; collection and scoring continue either way.
+- **Forecast cloud cover, wind and dewpoint** (`lib/context-vars.js`, ctxvars-v1):
+  - **Requests:** after the primary sources, one separate request per deterministic model asks for `cloud_cover`, `wind_speed_10m`, `wind_direction_10m` and `dew_point_2m`. Each model gets one attempt, made one after another. The first HTTP 429 stops the rest for that capture, and so do three requests in a row without an answer.
+  - **Storage:** responses are saved as received (`ctx-<model>.json.gz`), and the capture record lists each variable's unit, non-null hours, last valid time and any missing fields. NWS values come from the gridpoint response every capture already saves; no new request is made.
+  - **Effect on existing data:** the primary requests, their raw responses, normalization (normalize-v4) and scores are unchanged, and a context failure never changes a capture's outcome.
+- **Forecast night classes** (forecast-night-v1), fixed before their errors were examined and using only the capture's own responses. Each night runs 7 PM to 7 AM local standard time and must start at least 60 minutes after the response was retrieved.
+  - **clear/calm:** two thirds of the night's hours have cloud cover ≤ 25 % and wind ≤ 6 mph.
+  - **windy:** mean wind ≥ 12 mph.
+  - **cloudy:** two thirds of the hours have cloud cover ≥ 63 %.
+  - **mixed:** otherwise. Any missing hour makes the night unknown.
+  - **Sources:** each night is classed per model, from the NWS grid, and as a model consensus (a majority of at least three models).
+  - **Kept apart from observed nights:** observed nights (radiational, cloudy, windy, mixed) come from METAR afterward and use separate names. Issue contexts built after their capture (context-v2 beside context-v1, never rewritten) are labelled retrospective.
+- **Availability by lead and variable:** `reports/CONTEXT.md` gives, per source and variable, each of leads 1–10 separately as captures with every hour of that local day present out of captures where the variable was collected. "Not available in our current collection" means only that our captures did not receive it.
 - **Originals are only read.** Raw responses, normalized bundles, observations and captures are never modified by this layer.
 
 ## Local blend learning (prepared, not active)

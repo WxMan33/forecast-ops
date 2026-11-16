@@ -125,5 +125,40 @@ ok(/refused/.test(EX.runAll(E2, [{ ...COND, id: "exp-noclasses", classes: undefi
 const st = CR.statusSection([{ captureId: "a", edition: "a", context: { error: "boom" } }], null, new Error("context exploded"));
 ok(/Context report FAILED this run/.test(st) && /collection and scoring continued/.test(st) && /a \(boom\)/.test(st), "context failures are visible in the status report");
 
-console.log(fails ? `${fails} of ${n} context checks failed` : `ok - ${n} context checks passed`);
-process.exit(fails ? 1 : 0);
+/* ---------- forecast cloud cover, wind and dewpoint (lib/context-vars.js) ---------- */
+(async () => {
+  const CV = require("../lib/context-vars.js"), SRC = require("../lib/sources.js");
+  ok(JSON.stringify(SRC.DET_VARS) === JSON.stringify(["temperature_2m", "precipitation", "snowfall", "precipitation_probability"]), "the primary model request asks for exactly the same variables as before");
+  const hours = Array.from({ length: 48 }, (_, i) => new Date(Date.parse("2026-01-10T00:00:00Z") + i * H).toISOString().slice(0, 16));
+  const resp = (extra = {}) => JSON.stringify({ hourly_units: { cloud_cover: "%", wind_speed_10m: "mp/h", wind_direction_10m: "°", dew_point_2m: "°F" }, hourly: { time: hours, cloud_cover: hours.map(() => 10), wind_speed_10m: hours.map(() => 3), wind_direction_10m: hours.map(() => 180), dew_point_2m: hours.map(() => 20), ...extra } });
+  const calls = []; const fake = (plan) => async (url, opt) => { calls.push({ url, opt }); const r = plan.shift(); const text = r.text || ""; return { ok: r.status === 200, status: r.status, retrievedAt: "2026-01-10T17:00:05.000Z", buf: Buffer.from(text), text, error: r.status ? undefined : "fetch failed" }; };
+  const D2 = fs.mkdtempSync(path.join(os.tmpdir(), "cv-"));
+  let r = await CV.collect({ lat: 1, lon: 2 }, D2, "cap", ["a", "b", "c", "d"], { fetchRaw: fake([{ status: 200, text: resp() }, { status: 429, text: '{"error":true,"reason":"limit"}' }, { status: 200, text: resp() }, { status: 200, text: resp() }]) });
+  ok(r.sources.a.status === "ok" && r.sources.b.status === "rate-limited" && r.sources.c.status === "skipped after rate limit" && r.sources.d.status === "skipped after rate limit" && calls.length === 2, "the first HTTP 429 stops the remaining context requests");
+  ok(calls.every((c) => c.opt.tries === 1) && /hourly=cloud_cover,wind_speed_10m,wind_direction_10m,dew_point_2m/.test(calls[0].url) && fs.existsSync(path.join(D2, r.sources.a.file.path)), "one attempt per model; raw response saved as received");
+  calls.length = 0; r = await CV.collect({ lat: 1, lon: 2 }, D2, "cap2", ["a", "b", "c", "d", "e"], { fetchRaw: fake([{ status: 0 }, { status: 0 }, { status: 0 }, { status: 200, text: resp() }, { status: 200, text: resp() }]) });
+  ok(calls.length === 3 && /network failures/.test(r.sources.d.status), "three requests without an answer stop the rest");
+  const d = CV.describe(JSON.parse(resp({ dew_point_2m: hours.map(() => null), wind_direction_10m: undefined, cloud_cover: hours.map((_, i) => (i < 30 ? 50 : null)) })));
+  ok(d.status === "partial" && d.missing.includes("dew_point_2m") && d.missing.includes("wind_direction_10m") && d.fields.wind_direction_10m.present === false && d.partialFields.includes("cloud_cover") && d.fields.cloud_cover.lastNonNull === hours[29] + "Z", "absent, all-null and short variables are recorded explicitly");
+  /* night classes */
+  const mk = (f) => { const m = new Map(); for (let k = 0; k < 96; k++) m.set(Date.parse("2026-01-10T00:00:00Z") + k * H, f(k)); return m; };
+  const s0 = Date.parse("2026-01-10T00:00:00Z") + 5 * H + 19 * H; // 7 PM EST on Jan 10
+  ok(CV.nightClass(mk(() => ({ cloud: 10, wind: 3, dew: 20 })), s0).cls === "clear/calm", "clear and calm forecast night");
+  ok(CV.nightClass(mk(() => ({ cloud: 90, wind: 15 })), s0).cls === "windy", "windy forecast night (tested before cloudy, as for observed nights)");
+  ok(CV.nightClass(mk(() => ({ cloud: 90, wind: 5 })), s0).cls === "cloudy", "cloudy forecast night");
+  ok(CV.nightClass(mk(() => ({ cloud: 40, wind: 8 })), s0).cls === "mixed", "mixed forecast night");
+  ok(CV.nightClass(mk((k) => ({ cloud: k === 27 ? null : 10, wind: 3 })), s0).cls === "unknown", "one missing hour makes the forecast night unknown");
+  const nn = CV.nights(mk(() => ({ cloud: 10, wind: 3 })), s0 - 30 * 60e3, ["2026-01-10"], -300);
+  ok(nn["2026-01-10"].cls === "not eligible", "a night that starts within an hour of retrieval is not issue-time guidance");
+  ok(CV.consensus({ a: { cls: "windy" }, b: { cls: "windy" }, c: { cls: "mixed" } }).cls === "windy" && CV.consensus({ a: { cls: "windy" }, b: { cls: "cloudy" }, c: { cls: "mixed" } }).cls === "no majority" && CV.consensus({ a: { cls: "windy" }, b: { cls: "windy" } }).cls === "unknown", "model consensus needs a majority of at least three");
+  const g = CV.seriesNWS({ properties: { skyCover: { uom: "wmoUnit:percent", values: [{ validTime: "2026-01-10T00:00:00+00:00/PT3H", value: 80 }] }, windSpeed: { uom: "wmoUnit:km_h-1", values: [{ validTime: "2026-01-10T00:00:00+00:00/PT2H", value: 16.09344 }] }, dewpoint: { uom: "wmoUnit:degC", values: [{ validTime: "2026-01-10T01:00:00+00:00/PT1H", value: 0 }] } } });
+  const t1 = Date.parse("2026-01-10T01:00:00Z");
+  ok(g.get(Date.parse("2026-01-10T02:00:00Z")).cloud === 80 && Math.abs(g.get(t1).wind - 10) < 1e-6 && g.get(t1).dew === 32 && g.get(Date.parse("2026-01-10T02:00:00Z")).wind === null, "NWS grid intervals expand hour by hour, in °F and mph; gaps stay null");
+  /* issue context: forecast nights are issue basis, kept apart from observed nights */
+  const ic2 = CX.issueContext(cap, bundle, obsRows, loc, {}, { models: { m1: { status: "ok", retrievedAt: last, series: mk(() => ({ cloud: 10, wind: 3 })) }, m2: { status: "rate-limited", retrievedAt: null, series: null } }, nws: null });
+  ok(ic2.version === "context-v2" && ic2.forecastNight.nights["2026-01-10"].models.m1.cls === "clear/calm" && ic2.forecastNight.nights["2026-01-10"].nws.cls === "not available in our current collection" && ic2.forecastNight.modelStatus.m2 === "rate-limited", "forecast nights at issue, with each model's collection status");
+  ok(ic2.contextAvailability.sources.m1.cloud[0] === true && ic2.contextAvailability.sources.m2.cloud === null, "availability by lead: a model whose request failed is 'not collected', not 'unavailable'");
+  ok(!("radiational" in { [ic2.forecastNight.nights["2026-01-10"].models.m1.cls]: 1 }) && CX.nightClass(Array(12).fill("KTST 100052Z 00000KT 10SM CLR 05/01 A3010")).cls === "radiational", "forecast (clear/calm) and observed (radiational) night classes stay separate vocabularies");
+  console.log(fails ? `${fails} of ${n} context checks failed` : `ok - ${n} context checks passed`);
+  process.exit(fails ? 1 : 0);
+})();

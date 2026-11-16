@@ -63,6 +63,10 @@ async function collect() {
   const rel = `raw/${loc.id}/${cap.localDate.slice(0, 7)}/${cap.captureId}`;
   cap.sources = await SRC.collect(loc, DATA, rel);
   cap.sourcesRetrievedLast = Object.values(cap.sources).map((s) => s.retrievedAt).filter(Boolean).sort().pop();
+  /* optional issue-time context (cloud cover, wind, dewpoint): after the primary sources, never part of their outcome */
+  if (!flag("no-context-vars")) try {
+    cap.contextVars = await require("./lib/context-vars.js").collect(loc, DATA, rel, SRC.sourceList().filter((s) => s.kind === "det").map((s) => s.id));
+  } catch (e) { cap.contextVars = { version: require("./lib/context-vars.js").VERSION, error: String(e.message || e).slice(0, 300), sources: {} }; }
   /* TV products (market pilot) */
   if (TVCFG.verifySite === loc.id && !flag("no-tv")) {
     const tvFile = path.join(DATA, "tv", loc.id, `${cap.localDate.slice(0, 7)}.jsonl`);
