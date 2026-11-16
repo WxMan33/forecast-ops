@@ -7,6 +7,7 @@ on:
       - '.github/workflows/severe-daily-baseline.yml'
       - 'tools/severe/replay_daily.py'
       - 'tools/severe/replay_daily.html'
+      - 'tests/severe-daily-replay-browser.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -35,6 +36,14 @@ jobs:
         run: python tools/severe/train_daily.py --history tests/out/daily-baseline-history --output tests/out/daily-baseline
       - name: Export checked Day 1 wind replays
         run: python tools/severe/replay_daily.py --history tests/out/daily-baseline-history --output tests/out/daily-replay --cache tests/out/report-cache
+      - run: pip install playwright
+      - run: python -m playwright install --with-deps chromium
+      - name: Check replay controls and rendering
+        run: python tests/severe-daily-replay-browser.py tests/out/daily-replay
+      - uses: actions/upload-artifact@v4
+        with:
+          name: severe-replay-review-screens
+          path: tests/out/wind-replay-*.png
       - uses: actions/upload-artifact@v4
         with:
           name: severe-day1-wind-replay

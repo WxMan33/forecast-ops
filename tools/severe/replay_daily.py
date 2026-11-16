@@ -94,6 +94,22 @@ def export(history, output, cache):
     html = template.replace("/*VENDOR*/", vendor + "\n" + contours)
     html = html.replace("/*PAYLOAD*/", "const archive=" + data + ";const states=" + states + ";")
     (output / "replay.html").write_text(html)
+    license_root = output / "licenses"
+    license_root.mkdir(exist_ok=True)
+    for license_path in Path("assets/vendor").glob("d3*-LICENSE"):
+        (license_root / license_path.name).write_bytes(license_path.read_bytes())
+    (output / "README.txt").write_text(
+        "Forecast Ops Day 1 wind historical replay\n\n"
+        "Extract this ZIP and open replay.html in a browser. Everything needed for "
+        "the map is embedded, so no server or live connection is required.\n"
+        "Select any of the 12 calendar-selected 2024 dates. Contours, Dots and Both "
+        "use the same calibrated predictions. Black crosses show NCEI wind report records.\n"
+        "The 25-mile target and exact 24-hour valid window appear on the map.\n"
+        "This is a regional development study. The small cohort and assumed "
+        "three-hour issuance lag limit performance claims.\n"
+        "The checks file records independent label reconstruction and score reproduction. "
+        "Source and model hashes are in replay.json. Third-party licenses are included.\n"
+    )
     receipts = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in output.iterdir() if p.is_file()}
     (output / "checks.json").write_text(json.dumps({
         "cases": len(runs), "independent_wind_label_reconstructions_passed": len(runs),
