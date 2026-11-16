@@ -192,6 +192,45 @@ How TV values are scored:
 - Coverage (expected vs captured slots, gaps, pending observations) is always shown next to scores.
 - **National expansion:** scores will be expressed relative to local benchmarks (e.g. skill against `nws-official` or a climatology baseline), not as raw errors across climates.
 
+## Context and conditions (`lib/context.js`, `lib/stratify.js`, `lib/experiments.js`)
+
+Every scored temperature case carries context on three bases, which are never mixed:
+
+| Basis | Known | Contents | Stored |
+|---|---|---|---|
+| target | Before issue | Valid date, month, season, lead band, slot, local day/night hour | Computed |
+| issue | At retrieval | Source status and HTTP code, retrieval times, provider-reported cycle and its status, NWS grid update time, recipe weights requested and used, missing sources, code and normalizer versions, the forecast's own change from the previous day (Baseline v1, from its hourly series), ECMWF ENS 10–90 % width, mixed-source range, and the latest climate-day observation the archive had ingested before the last retrieval (`firstSeenAt`) | `context/<loc>/<YYYY>/<captureId>.context-v1.json`, written once at capture (or backfilled from the same issue-time evidence, labelled `builtAfterCapture`) and never rewritten |
+| observed | Afterward | Observed change from the previous day, wet/dry, night sky and wind from the routine METARs (radiational, cloudy, windy, mixed) | `reports/context.json`, rebuilt every run because observations are revised |
+
+- **Thresholds** were fixed by definition before any error was examined: a change of ±6 °F, ECMWF ENS width < 4, 4–8 and > 8 °F, and a radiational night when two thirds of its routine reports are clear or few with wind ≤ 5 kt.
+- **Skill by condition** (`reports/CONTEXT.md`) uses matched cases only. A member joins a target/lead cell when it has 80 % of that cell's cases, and members left out are named. Each cell shows cases, distinct dates and 7-day blocks. Below 10 dates, no cell names a lowest error; below 30 dates, a cell is a small sample. Cells are descriptive: verdicts still come only from the matched comparisons above.
+- **Observed classes explain errors; they never select weights.** Only target- and issue-basis classes may condition an experimental recipe.
+- **Experimental weights** (`config/experiments.js`) wait until their matched training cases reach 60 distinct dates. A conditional experiment names every required class (for forecast change: warmup, cooldown, small change). Each class must reach 60 dates; a class with no cases is 0 dates and keeps the experiment at "insufficient training data". Wherever no usable fit exists (before fitting, a failed fit, or a case outside the named classes such as "unknown"), the experiment uses the prior recipe, unchanged. Each is then fitted once and recorded in `experiments/<id>.fit.json`, never refitted or edited. It is evaluated only on captures that started after the fit, for valid dates beyond a 3-day embargo. Nothing here changes a recipe or a default.
+- **Climate patterns are archived as published** (`lib/climate-indices.js`, climidx-v1): NOAA CPC ONI, RONI, daily AO, NAO and PNA, and the BoM MJO RMM.
+  - **Retrieval:** once per UTC day during the observation job, one attempt each. A 403 or 429 stops further requests to that host for the day.
+  - **Log:** every retrieval is written to `climate/retrievals/` with its time, HTTP status, the server's Last-Modified header (its modification time, not an official issue time) and a SHA-256.
+  - **Versions:** each distinct published version is saved as received under `climate/raw/`, so revisions are new versions, never edits.
+  - **Isolation:** failures never affect observations or scoring.
+  - **Times:** three are kept apart: retrieval (ours), the valid period (from the data), and official publication. These files do not state an official publication time, so it stays unknown. A version's earliest proven availability is our first retrieval of it, never backdated from Last-Modified, and `availableAt()` gives the version a capture at a given time could have used.
+  - **Use:** the values are not yet attached to issue contexts, and no relationship with forecast skill is inferred before several seasons per phase.
+- **Model versions:** no provider reports one. `MODEL_VERSIONS` in `lib/context.js` holds dated upgrades from cited notices, and is empty until such a notice is entered.
+- **Coverage through days 8–10:** `reports/CONTEXT.md` lists primary pairs and dates per source, recipe, target and lead band, the matched cases at days 8–10, and each source's horizon. Overnight lows (7p–7a) and climate-day minimums stay separate targets.
+- **Failures are visible:** a context failure at capture is recorded on the capture, and a failed condition report appears in `STATUS.md` under "Context layer"; collection and scoring continue either way.
+- **Forecast cloud cover, wind and dewpoint** (`lib/context-vars.js`, ctxvars-v1):
+  - **Requests:** after the primary sources, one separate request per deterministic model asks for `cloud_cover`, `wind_speed_10m`, `wind_direction_10m` and `dew_point_2m`. Each model gets one attempt, made one after another. The first HTTP 429 stops the rest for that capture, and so do three requests in a row without an answer.
+  - **Storage:** responses are saved as received (`ctx-<model>.json.gz`), and the capture record lists each variable's unit, non-null hours, last valid time and any missing fields. NWS values come from the gridpoint response every capture already saves; no new request is made.
+  - **Effect on existing data:** the primary requests, their raw responses, normalization (normalize-v4) and scores are unchanged, and a context failure never changes a capture's outcome.
+- **Capture order** (`lib/capture-order.js`): core models and NWS first, then TV products, then optional context requests. Optional requests also have a total time budget of 180 s, so they can never delay a core or TV retrieval. Each step's start and end are recorded on the capture, and every response keeps its own retrieval time.
+- **Forecast night classes** (forecast-night-v1), fixed before their errors were examined and using only the capture's own responses. Each night runs 7 PM to 7 AM local standard time and must start at least 60 minutes after the response was retrieved.
+  - **clear/calm:** two thirds of the night's hours have cloud cover ≤ 25 % and wind ≤ 6 mph.
+  - **windy:** mean wind ≥ 12 mph.
+  - **cloudy:** two thirds of the hours have cloud cover ≥ 63 %.
+  - **mixed:** otherwise. Any missing hour makes the night unknown.
+  - **Sources:** each night is classed per model, from the NWS grid, and as a model consensus (a majority of at least three models).
+  - **Kept apart from observed nights:** observed nights (radiational, cloudy, windy, mixed) come from METAR afterward and use separate names. Issue contexts built after their capture (context-v2 beside context-v1, never rewritten) are labelled retrospective.
+- **Availability by lead and variable:** `reports/CONTEXT.md` gives, per source and variable, each of leads 1–10 separately as captures with every hour of that local day present out of captures where the variable was collected. "Not available in our current collection" means only that our captures did not receive it.
+- **Originals are only read.** Raw responses, normalized bundles, observations and captures are never modified by this layer.
+
 ## Local blend learning (prepared, not active)
 
 `lib/learn.js` provides the following:

@@ -55,25 +55,78 @@
     out.__retrievedAt = feed.__retrievedAt; out.__fromCache = feed.__fromCache;
     return out;
   }
-  async function getJSON(url, cacheMin = 15, headers) {
-    const key = "ops_c:" + url;
-    let cache = null;
-    try { cache = root.sessionStorage || null; } catch (e) { cache = null; }
-    if (cacheMin && cache) {
-      try { const c = JSON.parse(cache.getItem(key) || "null"); if (c && Date.now() - c.at < cacheMin * 60e3) { if (c.json && typeof c.json === "object") { c.json.__retrievedAt = new Date(c.at).toISOString(); c.json.__fromCache = true; } return c.json; } } catch (e) { /* no cache */ }
-    }
-    const ctl = new AbortController();
-    const to = setTimeout(() => ctl.abort(), 20000);
-    let res;
-    try { res = await fetch(url, headers ? { signal: ctl.signal, headers } : { signal: ctl.signal }); } finally { clearTimeout(to); }
-    const json = await res.json().catch(() => ({ error: true, reason: `HTTP ${res.status}` }));
-    if (!res.ok && !json.error) { json.error = true; json.reason = `HTTP ${res.status}`; }
-    const at = Date.now();
-    if (cacheMin && cache && !json.error) { try { cache.setItem(key, JSON.stringify({ at, json })); } catch (e) { /* full */ } }
-    /* when this response was actually retrieved (the original time when served from the browser cache) */
-    if (json && typeof json === "object") { json.__retrievedAt = new Date(at).toISOString(); json.__fromCache = false; }
-    return json;
+  /* Retry-After: delta-seconds or an HTTP date. Anything else, or a negative or absurd value, is ignored (null). */
+  function retryAfterSeconds(v, now = Date.now()) {
+    if (v == null || v === "") return null;
+    const s = String(v).trim();
+    const sec = /^\d+$/.test(s) ? +s : (() => { const t = Date.parse(s); return Number.isFinite(t) && /[a-z]/i.test(s) ? Math.round((t - now) / 1000) : NaN; })();
+    return Number.isFinite(sec) && sec >= 0 && sec <= 86400 ? sec : null;
   }
+  /* why a request failed, as recorded for the user: HTTP status, timeout or network error */
+  const failureText = (e) => e && e.httpStatus ? `HTTP ${e.httpStatus}` : e && e.timeout ? "timed out" : (e && e.message) || "unknown error";
+  /* ---------- the shared forecast cache (this tab's sessionStorage) ----------
+     Key: the exact request URL (location, variables, models, window). Each entry keeps the time it was retrieved and its
+     own expiry. A failed answer is never stored. When storage is full, room is made only from these cache entries:
+     expired ones first, then the oldest. Identical requests already in flight share one provider request. */
+  const CACHE = "ops_c:", inflight = new Map();
+  const storeOf = () => { try { return root.sessionStorage || null; } catch (e) { return null; } };
+  function cacheRead(store, key, maxMs) {
+    let c = null; try { c = JSON.parse(store.getItem(key) || "null"); } catch (e) { c = null; }
+    if (!c || !Number.isFinite(c.at)) return null;
+    const exp = Number.isFinite(c.exp) ? c.exp : c.at + 15 * 60e3;
+    if (Date.now() >= exp && Date.now() - c.at >= maxMs) { try { store.removeItem(key); } catch (e) { /* none */ } return null; }
+    return Date.now() - c.at < maxMs ? c : null;
+  }
+  function cacheEntries(store) {
+    const out = []; let n = 0; try { n = store.length; } catch (e) { return out; }
+    for (let k = 0; k < n; k++) { const key = store.key(k); if (!key || !key.startsWith(CACHE)) continue; let c = null; try { c = JSON.parse(store.getItem(key)); } catch (e) { /* unreadable */ } out.push({ key, at: c && Number.isFinite(c.at) ? c.at : 0, exp: c && Number.isFinite(c.exp) ? c.exp : (c && c.at ? c.at + 15 * 60e3 : 0) }); }
+    return out;
+  }
+  function cacheWrite(store, key, entry) {
+    const text = JSON.stringify(entry);
+    for (let attempt = 0; attempt < 6; attempt++) {
+      try { store.setItem(key, text); return true; } catch (e) {
+        const all = cacheEntries(store).filter((x) => x.key !== key); if (!all.length) return false;
+        const expired = all.filter((x) => x.exp <= Date.now());
+        const drop = expired.length && attempt === 0 ? expired : all.sort((a, b) => a.at - b.at).slice(0, Math.max(1, Math.ceil(all.length / 4)));
+        drop.forEach((x) => { try { store.removeItem(x.key); } catch (e2) { /* none */ } });
+      }
+    }
+    return false;
+  }
+  const copy = (json) => JSON.parse(JSON.stringify(json));
+  async function getJSON(url, cacheMin = 15, headers) {
+    const key = CACHE + url, store = cacheMin ? storeOf() : null;
+    if (store) {
+      const c = cacheRead(store, key, cacheMin * 60e3);
+      if (c) { if (c.json && typeof c.json === "object") { c.json.__retrievedAt = new Date(c.at).toISOString(); c.json.__fromCache = true; } return c.json; }
+    }
+    /* one provider request for identical requests in flight (cacheable requests only); every caller gets its own copy */
+    const shareKey = cacheMin ? url + "|" + JSON.stringify(headers || null) : null;
+    if (shareKey && inflight.has(shareKey)) { const r = await inflight.get(shareKey); return copy(r); }
+    const run = (async () => {
+      const ctl = new AbortController();
+      const to = setTimeout(() => ctl.abort(), 20000);
+      let res;
+      try { res = await fetch(url, headers ? { signal: ctl.signal, headers } : { signal: ctl.signal }); }
+      catch (e) { const err = new Error(e && e.name === "AbortError" ? "timed out" : `network error: ${(e && e.message) || e}`); err.timeout = !!(e && e.name === "AbortError"); throw err; }
+      finally { clearTimeout(to); }
+      let json = await res.json().catch(() => ({ error: true, reason: `HTTP ${res.status}` }));
+      if (!json || typeof json !== "object") json = { error: !res.ok, reason: `HTTP ${res.status}` };
+      if (!res.ok && !json.error) { json.error = true; json.reason = `HTTP ${res.status}`; }
+      /* the provider's own status and retry guidance travel with a failure (Retry-After only where the provider exposes it) */
+      if (!res.ok) { json.httpStatus = res.status; json.retryAfter = retryAfterSeconds(res.headers && res.headers.get ? res.headers.get("Retry-After") : null); }
+      const at = Date.now();
+      if (store && !json.error) cacheWrite(store, key, { at, exp: at + cacheMin * 60e3, json });
+      /* when this response was actually retrieved (the original time when served from the browser cache) */
+      if (json && typeof json === "object") { json.__retrievedAt = new Date(at).toISOString(); json.__fromCache = false; }
+      return json;
+    })();
+    if (!shareKey) return run;
+    inflight.set(shareKey, run);
+    try { return copy(await run); } finally { inflight.delete(shareKey); }
+  }
+
 
   /* One model, one request. If Open-Meteo rejects a variable (or a whole pressure level) for
      this model, drop it and retry, so one unsupported field never sinks the whole model. */
@@ -98,7 +151,7 @@
       const why = String(json.reason || "");
       const levels = [...why.matchAll(/(\d{3,4})\s*hPa/gi)].map((m) => `_${m[1]}hPa`);
       const bad = [...hv, ...dv].filter((v) => why.includes(v) || levels.some((l) => v.endsWith(l)));
-      if (!bad.length) throw new Error(why || "Request failed");
+      if (!bad.length || json.httpStatus >= 429) { const err = new Error(why || "Request failed"); err.httpStatus = json.httpStatus || null; err.retryAfter = json.retryAfter ?? null; throw err; }
       dropped.push(...bad);
       hv = hv.filter((v) => !bad.includes(v)); dv = dv.filter((v) => !bad.includes(v));
     }
@@ -180,10 +233,10 @@
     const list = spec.models.filter((m) => !ids || ids.includes(m.id));
     const params = { ...spec.params, forecast_days: days || spec.days };
     const res = await Promise.allSettled(list.map((m) => fetchModel(spec.base, params, m.id, [...spec.hourly, ...((spec.extraHourly || {})[m.id] || [])], spec.daily, { lat, lon })));
-    const status = {}, problems = [], ok = [];
+    const status = {}, problems = [], ok = [], failures = {};
     res.forEach((r, i) => {
       const m = list[i];
-      if (r.status !== "fulfilled") { status[m.id] = "failed"; problems.push(`${m.name}: request failed`); return; }
+      if (r.status !== "fulfilled") { status[m.id] = "failed"; failures[m.id] = { status: r.reason && r.reason.httpStatus || null, retryAfter: r.reason && r.reason.retryAfter != null ? r.reason.retryAfter : null, error: failureText(r.reason) }; problems.push(`${m.name}: request failed (${failureText(r.reason)})`); return; }
       const names = [...spec.hourly, ...((spec.extraHourly || {})[m.id] || [])];
       const h = pick(r.value.hourly, names), d = pick(r.value.daily, spec.daily || []);
       const absentMinimum = (m.minimumFields || []).filter(v => !S.hasData(h[v]));
@@ -194,7 +247,8 @@
       status[m.id] = "ok";
       ok.push({ m, j: r.value, h, d, names });
     });
-    if (!ok.length) return { times: [], dtimes: [], tz: null, models: {}, status, problems, empty: true };
+    const waits = Object.values(failures).map((f) => f.retryAfter).filter((x) => x != null);
+    if (!ok.length) return { times: [], dtimes: [], tz: null, models: {}, status, problems, failures, retryAfter: waits.length ? Math.max(...waits) : null, empty: true };
     const master = ok.reduce((a, b) => (b.j.hourly.time.length > a.j.hourly.time.length ? b : a)).j;
     const times = master.hourly.time, dtimes = (master.daily && master.daily.time) || [];
     const models = {};
@@ -204,7 +258,7 @@
       (spec.daily || []).forEach((v) => (dd[v] = j.daily ? S.align(dtimes, j.daily.time, d[v]) : dtimes.map(() => null)));
       models[m.id] = { h: hh, d: dd, elev: j.elevation ?? null, provenance: j.__rrfs || null, retrievedAt: j.__retrievedAt || null, fromCache: !!j.__fromCache };
     });
-    return withAxis({ times, dtimes, tz: master.timezone, offset: master.utc_offset_seconds, models, status, problems });
+    return withAxis({ times, dtimes, tz: master.timezone, offset: master.utc_offset_seconds, models, status, problems, failures });
   }
 
   /* Ensembles for a config spec. Returns {times, tz, ens: {id: {var: [member arrays]}}, status, problems} */
@@ -218,7 +272,7 @@
     const members = (block, v) => Object.keys(block || {}).filter((k) => (k === v || k.startsWith(v + "_")) && Array.isArray(block[k])).sort((a,b) => a.localeCompare(b)).map((k) => block[k]);
     res.forEach((r, i) => {
       const m = list[i];
-      if (r.status !== "fulfilled") { status[m.id] = "failed"; problems.push(`${m.name}: unavailable`); return; }
+      if (r.status !== "fulfilled") { status[m.id] = "failed"; problems.push(`${m.name}: unavailable (${failureText(r.reason)})`); return; }
       const byVar = {}; spec.hourly.forEach((v) => (byVar[v] = members(r.value.hourly, v)));
       if (!byVar[spec.require[0]].some(S.hasData)) { status[m.id] = "empty"; problems.push(`${m.name}: no members here`); return; }
       status[m.id] = "ok";
@@ -234,19 +288,35 @@
 
   /* Open-Meteo's own run metadata for a model (static/meta.json). This is PROVIDER-REPORTED: the latest
      run Open-Meteo says it has, not a statement about which run produced a given forecast response. */
+  /* A metadata lookup that failed is not asked again for 10 minutes (this tab, or this process): the page still says the run
+     time is unknown, but every page load no longer repeats a dozen failing requests against the provider's budget. */
+  const metaFailed = new Map(), META_RETRY_MS = 10 * 60e3;
+  const metaFailKey = (metaId) => "ops_meta_fail:" + metaId;
+  function metaFailure(metaId) {
+    let f = metaFailed.get(metaId);
+    if (!f) { try { const c = root.sessionStorage && JSON.parse(root.sessionStorage.getItem(metaFailKey(metaId)) || "null"); if (c) f = c; } catch (e) { /* no storage */ } }
+    return f && Date.now() - f.at < META_RETRY_MS ? f : null;
+  }
+  function noteMetaFailure(metaId, error) {
+    const f = { at: Date.now(), error }; metaFailed.set(metaId, f);
+    try { if (root.sessionStorage) root.sessionStorage.setItem(metaFailKey(metaId), JSON.stringify(f)); } catch (e) { /* full */ }
+  }
   async function loadModelMeta(metaIds) {
     const out = {};
     await Promise.all(Object.entries(metaIds).map(async ([id, metaId]) => {
+      const recent = metaFailure(metaId);
+      if (recent) { out[id] = { error: `${recent.error} (recently unavailable; not asked again yet)` }; return; }
       try {
         const j = await getJSON(`https://api.open-meteo.com/data/${metaId}/static/meta.json`, 15);
-        if (j.error || !Number.isFinite(j.last_run_initialisation_time)) { out[id] = { error: j.reason || "no metadata" }; return; }
+        if (j.error || !Number.isFinite(j.last_run_initialisation_time)) { out[id] = { error: j.reason || "no metadata" }; noteMetaFailure(metaId, out[id].error); return; }
+        metaFailed.delete(metaId); try { if (root.sessionStorage) root.sessionStorage.removeItem(metaFailKey(metaId)); } catch (e) { /* none */ } // recovered
         out[id] = { metaId, lastRunInit: new Date(j.last_run_initialisation_time * 1000).toISOString(), lastRunAvailable: Number.isFinite(j.last_run_availability_time) ? new Date(j.last_run_availability_time * 1000).toISOString() : null,
           updateIntervalH: Number.isFinite(j.update_interval_seconds) ? j.update_interval_seconds / 3600 : null, retrievedAt: j.__retrievedAt || null };
-      } catch (e) { out[id] = { error: String(e.message || e) }; }
+      } catch (e) { out[id] = { error: String(e.message || e) }; noteMetaFailure(metaId, out[id].error); }
     }));
     return out;
   }
-  const OpsData = { getJSON, loadModelMeta, fetchModel, pick, loadModels, loadEnsemble, toMeters, loadNWS, withAxis, directRrfsResponse, loadDirectRrfs };
+  const OpsData = { getJSON, retryAfterSeconds, loadModelMeta, fetchModel, pick, loadModels, loadEnsemble, toMeters, loadNWS, withAxis, directRrfsResponse, loadDirectRrfs };
   if (typeof module !== "undefined" && module.exports) module.exports = OpsData;
   root.OpsData = OpsData;
 })(typeof self !== "undefined" ? self : globalThis);

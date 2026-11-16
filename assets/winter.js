@@ -31,11 +31,17 @@
   });
   window.addEventListener("ops:theme", () => { picker.redraw(); render(); });
 
+  /* each load captures its point; only the newest load may draw anything */
+  let runGen = 0;
+  const restorePanels = O.pristine(["chartTitle", "chartSub", "legend", "oddsSub", "odds", "dailyTitle", "daily", "changes", "eventCard", "amtCard", "ptCard", "tTitle", "tSub", "tChart", "tLegend"]);
   async function run() {
-    $("runBtn").disabled = true; O.setChip("FETCHING…");
+    const my = ++runGen;
+    $("runBtn").disabled = true; O.beginLoad(picker, ENS.map((e) => e.id));
+    data = null; det = null; nwsW = null; selH = null; if (tChart) { tChart.destroy(); tChart = null; } restorePanels(); render(); // the previous point's ensembles and profiles leave the page now
     $("runMsg").className = "msg"; $("runMsg").textContent = `Requesting ${ENS.length} ensembles…`;
     const where = { lat: O.location.lat, lon: O.location.lon };
     const [res, dt, nw] = await Promise.all([O.Data.loadEnsemble(SPEC, where), O.Data.loadModels(C.config.winterDet, { ...where, days: 5 }), O.Data.loadNWS(where)]);
+    if (my !== runGen) return;
     prepDet(dt, nw);
     $("runBtn").disabled = false;
     ENS.forEach((e) => picker.setStatus(e.id, res.status[e.id] === "ok" ? "ok" : "none"));
@@ -281,6 +287,7 @@
       ${A ? `<tr class="nwscol"><td><span class="src-nws">NWS</span></td><td style="text-align:left;white-space:normal">${nwsTr.length ? O.esc(nwsTr.join(" · ")) : '<span class="msg">no type change in NWS wording</span>'}</td></tr>` : ""}</tbody></table></div>
       ${Object.keys(byKind).length ? `<p class="msg" style="margin-top:8px">Transition timing across models: ${Object.entries(byKind).map(([k, v]) => { const t = v.map((x) => x.ms).sort((a, b) => a - b); return `<b style="color:var(--text)">${O.esc(k)}</b> ${loc(t[0])}${t.length > 1 ? ` – ${loc(t[t.length - 1])}` : ""} (${v.length} model${v.length > 1 ? "s" : ""})`; }).join(" · ")}.</p>` : ""}
       <div id="profPanel"></div>`;
+    O.stripPager($("ptStrip"), times, { sel: selH == null ? null : selH - s }); // hour pages: no sideways drag on a phone
     $("ptStrip").addEventListener("click", (ev) => { const c = ev.target.closest("[data-i]"); if (!c) return; selH = +c.dataset.i; renderPtype(ids, s, e); });
     renderProfile(ids);
   }

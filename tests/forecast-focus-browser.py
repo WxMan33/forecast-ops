@@ -106,7 +106,8 @@ with sync_playwright() as p:
   if '%' in cell:assert float(cell.rstrip('%'))%5==0, cell
  assert ''.join(headings.split()).index('nwslow')<''.join(headings.split()).index('nwshigh'),'NWS morning low precedes daytime high'
 
- assert page.evaluate('document.querySelector("#daily").closest(".card").nextElementSibling.id')=='forecastChartCard','graph immediately follows daily blend'
+ assert page.evaluate('document.querySelector("#daily").closest(".card").nextElementSibling.id')=='hourlyCard','hourly forecast immediately follows daily blend'
+ assert page.evaluate('document.querySelector("#hourlyCard").nextElementSibling.id')=='forecastChartCard','existing graph follows the hourly forecast'
  def history():return page.evaluate('Object.values(JSON.parse(localStorage.getItem("ops_model_guidance_history_v1")))[0].items')
  assert len(history())==1,'first snapshot persisted'
  assert history()[0]['tz']=='UTC','synthetic model response must be used, not live data'
@@ -135,7 +136,7 @@ with sync_playwright() as p:
  assert 'THU NOV 5' in page.locator('#driverCard .section-title').inner_text()
  assert page.locator('#timingDay').input_value()=='2026-11-05'
  assert 'THU NOV 5' in page.locator('#scenCard .section-sub').inner_text()
- page.get_by_role('tab',name='48 H',exact=True).click()
+ page.locator('#range').get_by_role('tab',name='48 H',exact=True).click()
  assert 'WED NOV 4' in page.locator('#driverCard .section-title').inner_text(),'range reset refreshes source breakdown'
  page.locator('#daily tr[data-k="2026-11-04"]').click()
  for width in [360,390,900,1280,1440]:
@@ -257,8 +258,8 @@ with sync_playwright() as p:
  assert page.locator('#daily tr[data-k]').first.get_attribute('data-k')=='2026-11-05'
  for width in [360,1440]:
   page.set_viewport_size({'width':width,'height':900})
-  assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1')
   page.screenshot(path=str(out/f'focus-evening-{width}.png'),full_page=True)
+  assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1'), str((width,page.evaluate('[...document.querySelectorAll("body *")].filter(e=>e.getBoundingClientRect().right>innerWidth+1&&!e.closest(".hg-scroll")&&!e.closest(".navbar")&&!e.closest(".tablewrap")).slice(0,25).map(e=>[e.tagName,e.id,e.className,e.getBoundingClientRect().width,e.getBoundingClientRect().right])')))
  # An official point advisory must survive warm/windy model guidance and stay clearly NWS-labeled.
  frost_alert=True;impact_mode=False;rain_mode=False;valley_mode=False
  page.evaluate('sessionStorage.clear()');page.reload()

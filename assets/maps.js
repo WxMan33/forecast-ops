@@ -21,6 +21,10 @@
   };
   const st = { index: null, run: null, man: null, fields: {}, h: 0, field: O.store.get("maps2_field", "t2m"), win: O.store.get("maps2_win", "1"), smooth: !!O.store.get("maps2_smooth", false),
     lat: null, P: null, mesh: null, frames: new Map(), sel: null, play: null, base: null, map: null, view: O.store.get("maps2_view", "tristate"), loaded: 0 };
+  /* embed mode (used by the beta pages): the shell skips its header and these optional parameters set the opening view */
+  const EMBED = Q.get("embed") === "1", Q_VIEW = Q.get("view"), Q_FIELD = Q.get("field");
+  if (Q_FIELD && FIELDS[Q_FIELD]) st.field = Q_FIELD;
+  if (EMBED && ["tristate", "dma", "venue"].includes(Q_VIEW)) st.view = Q_VIEW;
   const fmtLocal = (ms) => new Date(ms).toLocaleString("en-US", { timeZone: TZ, weekday: "short", month: "short", day: "numeric", hour: "numeric", timeZoneName: "short" });
   const fmtUTC = (ms) => { const d = new Date(ms).toISOString(); return `${d.slice(5, 10).replace("-", "/")} ${d.slice(11, 13)}Z`; };
   const MB = (b) => (b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.round(b / 1e3)} KB`);
@@ -140,7 +144,9 @@
       center: [-84.5, 39.1], zoom: 6.6, minZoom: 5, maxZoom: 9, attributionControl: false, dragRotate: false, pitchWithRotate: false, renderWorldCopies: false });
     map.touchZoomRotate.disableRotation(); map.addControl(new ML.NavigationControl({ showCompass: false }), "bottom-right");
     map.addControl(new ML.AttributionControl({ compact: true, customAttribution: "NOAA HRRR · US Census (us-atlas) · Natural Earth · GeoNames (CC BY 4.0)" }), "bottom-right");
-    st.map = map; return new Promise((res) => map.on("load", () => { if (innerWidth < 700) document.querySelectorAll(".maplibregl-ctrl-attrib").forEach((e) => e.classList.remove("maplibregl-compact-show")); res(); }));
+    /* follow the container's size, not only the window's: inside a frame or a resized panel the window may not resize */
+    if (window.ResizeObserver) { let t = null; new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => { map.resize(); if (st.mesh) limits(); }, 60); }).observe(map.getContainer()); }
+    st.map = map; return new Promise((res) => map.on("load", () => { map.resize(); if (innerWidth < 700) document.querySelectorAll(".maplibregl-ctrl-attrib").forEach((e) => e.classList.remove("maplibregl-compact-show")); res(); }));
   }
   const palette = () => (document.documentElement.getAttribute("data-theme") !== "light"
     ? { land: "#151a22", county: "#3a4250", state: "#cfd5de", road: "#6d5a3c", road2: "#4c4537", river: "#2d5d86", dma: "#7cc4f0", mask: "#0b0e13", maskOp: 0.6 }
@@ -195,8 +201,20 @@
   /* ---------- runs and fields ---------- */
   const loader = window.MapRunLoader.create({ json: getJSON, buffer: getGz, decode: MC.field });
   let requestId = 0;
+  /* embed API: the host page owns the toolbar and the selected time; the map reports every change */
+  const embedListeners = [];
+  function embedState() {
+    const m = st.man;
+    return { ready: !!m && !st.loading, loading: !!st.loading, field: st.field, win: st.win,
+      fields: Object.entries(FIELDS).map(([k, f]) => ({ key: k, label: f.short || f.label, ok: m ? fieldOk(k) : false })),
+      runs: ((st.index && st.index.runs) || []).map((r) => ({ id: r.id, cycle: Date.parse(r.cycle), hours: r.hoursExpected, role: r.role })),
+      run: st.run ? st.run.id : null, init: m ? Date.parse(m.cycle) : null, valid: m ? m.valid.map((v) => Date.parse(v)) : [], h: st.h,
+      validMs: m ? Date.parse(m.valid[st.h]) : null, fh: m ? m.hours[st.h] : null, playing: !!st.play, label: FIELDS[st.field] ? FIELDS[st.field].label : "",
+      note: $("mapNote") && !$("mapNote").hidden ? $("mapNote").textContent : null };
+  }
+  function emit() { const s0 = embedState(); embedListeners.forEach((f) => { try { f(s0); } catch (e) { /* host errors stay in the host */ } }); }
   function busy(on, message, runChange = false) {
-    st.loading = on; stop();
+    st.loading = on; stop(); emit();
     $("stage").setAttribute("aria-busy", String(on));
     ["playBtn", "hourSl", "smoothChk", "winSel"].forEach((id) => { $(id).disabled = on; });
     $("fieldSel").disabled = on && runChange;
@@ -280,7 +298,7 @@
     $("tlValid").textContent = `${fmtLocal(valid)} · F${String(H0).padStart(2, "0")}`; $("hourSl").value = String(st.h);
     const blank = st.field !== "precip" && st.fields[st.field] && !st.fields[st.field].present(H0);
     note(blank ? `No ${F.label.toLowerCase()} for F${H0}: missing from this run (left blank).` : fr && !fr.any && fr.why ? `Unavailable at this hour: ${fr.why}.` : null);
-    legend(); inspect(); drawLabels(); syncLabels();
+    legend(); inspect(); drawLabels(); syncLabels(); emit();
     $("runInfo").innerHTML = `Run ${esc(fmtUTC(Date.parse(m.cycle)))} (${esc(st.run.role)}), ${m.hours.length} forecast hours. Downloaded from NOAA: <b>${MB(m.gribBytesDownloaded)}</b> of GRIB2 messages; loaded for this run: <b>${MB(st.runData.loaded)}</b> of <b>${MB(m.browserPayloadBytes)}</b> compressed (weather fields load only when selected). Grid ${m.grid.nx}×${m.grid.ny} cells of ${m.grid.DxInMetres / 1000} km; georeference check ${m.grid.georefMaxErrorCells} cells.`;
   }
   function legend() {
@@ -302,7 +320,7 @@
     if (!st.man || st.loading) return;
     if (st.play) { stop(); return; } for (let h = 0; h < st.man.hours.length; h++) frame(h); // precompute every frame before playing
     let last = 0; const tick = (t) => { if (t - last > 600) { last = t; step(1); } st.play = requestAnimationFrame(tick); }; st.play = requestAnimationFrame(tick);
-    $("playBtn").textContent = "PAUSE"; $("playBtn").setAttribute("aria-pressed", "true");
+    $("playBtn").textContent = "PAUSE"; $("playBtn").setAttribute("aria-pressed", "true"); emit();
   }
 
   async function init() {
@@ -314,7 +332,7 @@
     await initMap();
     const openRun = async (id, keep) => {
       const ok = await loadRun(id, keep);
-      if (ok && !st.map.getSource("mask")) { addBasemap(); setColors(); limits(); goView(st.view === "venue" ? "tristate" : st.view, false); upload(); }
+      if (ok && !st.map.getSource("mask")) { addBasemap(); setColors(); limits(); goView(st.view === "venue" && !(EMBED && Q_VIEW === "venue") ? "tristate" : st.view, false); upload(); }
     };
     await openRun(st.index.runs[0].id, false);
     $("placeSel").innerHTML = '<option value="">Click or tap the map, or choose…</option>' + [...SITES.map((s) => s[0]), "Dayton", "Columbus", "Louisville", "Lexington"].map((n) => `<option>${esc(n)}</option>`).join("");
@@ -338,6 +356,19 @@
     if (window.ResizeObserver) new ResizeObserver(place).observe($("mapCtl")); place(); syncLabels();
     let rz = null; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { limits(); place(); syncLabels(); }, 200); });
     st.layer = layer; window.__maps = st; // test hook (read-only use)
+    window.MapEmbed = {
+      state: embedState,
+      on(f) { embedListeners.push(f); f(embedState()); },
+      setField: (k) => (FIELDS[k] ? chooseField(k, st.win) : null),
+      setWindow: (w) => chooseField("precip", w),
+      setRun: (id) => openRun(id, true),
+      setView: (v) => goView(v),
+      /* nearest published hour to ms; says whether ms is inside this run's forecast range */
+      setTime(ms) { if (!st.man || st.loading) return { inRange: false }; const v = st.man.valid.map((x) => Date.parse(x)); let k = 0; v.forEach((t, i) => { if (Math.abs(t - ms) < Math.abs(v[k] - ms)) k = i; });
+        const inRange = ms >= v[0] - 30 * 60e3 && ms <= v[v.length - 1] + 30 * 60e3; if (k !== st.h) { stop(); st.h = k; refresh(); } return { inRange, exact: Math.abs(v[k] - ms) < 30 * 60e3, validMs: v[k] }; },
+      step: (d) => step(d), play: () => play(), stop: () => { stop(); emit(); },
+    };
+    emit();
   }
   init();
 })();

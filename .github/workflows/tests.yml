@@ -26,6 +26,8 @@ jobs:
       - run: node tests/severe-daily.test.js
       - run: node tests/severe-contours.test.js
       - run: python tests/severe-daily.test.py
+      - run: node tests/calendar-provider.test.js
+      - run: node tests/forecast-support.test.js
       - run: node tests/core.test.js
       - run: node tests/fixtures.test.js
       - run: node verify/tests/verify.test.js
@@ -37,10 +39,15 @@ jobs:
       - run: node verify/tests/personal.test.js
       - run: node verify/tests/review-fixes.test.js
       - run: node verify/tests/scoped-recipe.test.js
+      - run: node verify/tests/context.test.js
       - run: node tests/token-store.test.js
       - run: node tests/coverage.test.js
+      - run: node tests/source-failure.test.js
+      - run: node tests/forecast-cache.test.js
       - run: node tests/model-trends.test.js
       - run: node tests/climate-report.test.js
+      - run: node tests/climate-daily.test.js
+      - run: node tests/climate-period-records.test.js
       - run: node tests/astronomy.test.js
       - run: node tests/record-watch.test.js
       - run: node tests/impact-flags.test.js
@@ -52,6 +59,16 @@ jobs:
       - run: node tests/maps-loader.test.js
       - run: node tests/maps-surface.test.js
       - run: node tests/trend-archive.test.js
+      - run: node tests/beta-story.test.js
+      - run: node tests/beta-analytics.test.js
+      - run: node tests/event-store.test.js
+      - run: node tests/event-times.test.js
+      - run: node tests/event-backup.test.js
+      - run: node tests/hourly-model.test.js
+      - run: node tests/event-presets.test.js
+      - run: node tests/venue-search.test.js
+      - run: node tests/climate-station.test.js
+      - run: node tools/analytics/build.js --check
       - run: node tools/stamp-assets.js --check
 
   live:
@@ -128,3 +145,19 @@ jobs:
             tests/out/focus-*.png
             tests/out/climo-*.png
             tests/out/maps-demand-*.png
+
+  # The browser's own path from the main site's real origin to the providers (no cache, no interception). A provider that
+  # does not answer the runner at all is reported as unverified with a warning; a browser/CORS failure fails the job.
+  main-origin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: |
+          npm install --no-save playwright@1.48.2
+          npx playwright install --with-deps chromium || npx playwright install chromium
+      - name: Direct browser requests from https://wxman33.github.io (main site)
+        run: node tools/direct-origin-check.js https://wxman33.github.io/forecast-ops/ index.html

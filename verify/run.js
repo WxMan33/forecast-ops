@@ -61,18 +61,36 @@ async function collect() {
   Object.assign(cap, { schema: 1, loc: loc.id, trigger: manual ? "manual" : arg("trigger", "scheduled"), startedAt: U.iso(startedAt), scheduleConfig: SCHED, code: CODE });
   logConfig();
   const rel = `raw/${loc.id}/${cap.localDate.slice(0, 7)}/${cap.captureId}`;
-  cap.sources = await SRC.collect(loc, DATA, rel);
-  cap.sourcesRetrievedLast = Object.values(cap.sources).map((s) => s.retrievedAt).filter(Boolean).sort().pop();
-  /* TV products (market pilot) */
-  if (TVCFG.verifySite === loc.id && !flag("no-tv")) {
-    const tvFile = path.join(DATA, "tv", loc.id, `${cap.localDate.slice(0, 7)}.jsonl`);
-    const prevAll = U.readJSONLDir(path.join(DATA, "tv", loc.id)), prev = {};
-    prevAll.forEach((r) => { if (r.status === "ok") prev[r.product] = r; });
-    try { const recs = await TV.collect(TVCFG, loc, DATA, cap, prev); U.appendJSONL(tvFile, recs); cap.tv = recs.map((r) => ({ product: r.product, status: r.status, review: r.review && r.review.status, days: r.days ? r.days.length : 0, reason: r.reason || r.error })); }
-    catch (e) { cap.tv = [{ status: "failed", error: String(e.message || e) }]; }
-  }
+  /* order (lib/capture-order.js): core sources, then TV, then optional context requests, which can never delay either */
+  const steps = await require("./lib/capture-order.js").sequence({
+    core: async () => {
+      cap.sources = await SRC.collect(loc, DATA, rel);
+      cap.sourcesRetrievedLast = Object.values(cap.sources).map((s) => s.retrievedAt).filter(Boolean).sort().pop();
+    },
+    tv: async () => {
+      if (!(TVCFG.verifySite === loc.id && !flag("no-tv"))) return;
+      const tvFile = path.join(DATA, "tv", loc.id, `${cap.localDate.slice(0, 7)}.jsonl`);
+      const prevAll = U.readJSONLDir(path.join(DATA, "tv", loc.id)), prev = {};
+      prevAll.forEach((r) => { if (r.status === "ok") prev[r.product] = r; });
+      try { const recs = await TV.collect(TVCFG, loc, DATA, cap, prev); U.appendJSONL(tvFile, recs); cap.tv = recs.map((r) => ({ product: r.product, status: r.status, review: r.review && r.review.status, days: r.days ? r.days.length : 0, reason: r.reason || r.error })); }
+      catch (e) { cap.tv = [{ status: "failed", error: String(e.message || e) }]; }
+    },
+    optional: async () => {
+      /* optional issue-time context (cloud cover, wind, dewpoint): never part of the core outcome */
+      if (flag("no-context-vars")) return;
+      const CV = require("./lib/context-vars.js");
+      try { cap.contextVars = await CV.collect(loc, DATA, rel, SRC.sourceList().filter((s) => s.kind === "det").map((s) => s.id)); }
+      catch (e) { cap.contextVars = { version: CV.VERSION, error: String(e.message || e).slice(0, 300), sources: {} }; }
+    },
+  });
+  cap.steps = Object.fromEntries(Object.entries(steps).map(([k, v]) => [k, typeof v === "number" ? U.iso(v) : v]));
   cap.finishedAt = U.iso(Date.now());
   try { cap.normalized = writeBundle(cap); } catch (e) { cap.normalized = { error: String(e.stack || e) }; }
+  /* issue context (lib/context.js): stored once, now, from this capture and observations already ingested */
+  if (!cap.normalized.error) try {
+    const CR = require("./lib/context-report.js"), b = U.parseJSON(U.gunzip(fs.readFileSync(path.join(DATA, cap.normalized.path))).toString());
+    cap.context = { path: CR.storeIssueContext(DATA, loc, cap, b, U.readJSONLDir(path.join(DATA, "obs", loc.id)), Date.now()).path, version: require("./lib/context.js").VERSION };
+  } catch (e) { cap.context = { error: String(e.message || e).slice(0, 300) }; }
   const st = Object.values(cap.sources).map((s) => s.status);
   cap.outcome = st.every((x) => x === "ok") ? "ok" : st.some((x) => x === "ok") ? "partial" : "failed";
   cap.summary = { ok: st.filter((x) => x === "ok").length, total: st.length, failed: Object.values(cap.sources).filter((s) => s.status !== "ok").map((s) => `${s.id}: ${s.status}${s.error ? ` (${String(s.error).slice(0, 80)})` : ""}`) };
@@ -108,6 +126,9 @@ async function observe() {
   const bad = Object.entries(res.outcomes).filter(([, o]) => o.status !== "ok").map(([k, o]) => `${k}: ${o.error || o.status}`);
   runLog({ job: "observe", outcome: bad.length ? (bad.length === Object.keys(res.outcomes).length ? "failed" : "partial") : "ok", outcomes: res.outcomes, newRows: fresh.length, revisions: fresh.filter((r) => r.changesValue).length });
   console.log(`observe: ${fresh.length} new observation rows; ${JSON.stringify(res.outcomes)}`);
+  /* climate-pattern indices as published (once per UTC day); never affects observations or scoring */
+  try { const ci = await require("./lib/climate-indices.js").run(DATA, Date.now()); runLog({ job: "climate-indices", outcome: ci.results.some((r) => /^failed|^skipped:/.test(r.status)) ? "partial" : "ok", results: ci.results.map((r) => ({ id: r.id, status: r.status, httpStatus: r.httpStatus })) }); console.log("climate indices:", ci.results.map((r) => `${r.id} ${r.status}`).join("; ")); }
+  catch (e) { runLog({ job: "climate-indices", outcome: "crashed", error: String(e.stack || e).slice(0, 1000) }); console.log("climate indices failed:", e.message); }
 }
 
 function renormalize() {
@@ -134,7 +155,15 @@ async function score() {
   const marked = RC.markProcessed(DATA, (res.personal.entries || []).map((e) => ({ file: e.path, commit: e.commit })));
   if (marked) { const again = SC.scoreAll(DATA, loc, Date.now(), undefined, { receipts: rctx }); Object.assign(res, again); }
   RP.writeReports(DATA, loc, res);
-  runLog({ job: "score", outcome: "ok", pairs: res.pairs.length, pending: res.pending.length });
+  /* context layer: issue contexts for captures that lack one, observed classes, skill by condition,
+     experimental weights (never defaults). A failure here is logged and never stops scoring. */
+  let ctx = null, ctxOut = null, ctxErr = null;
+  try { ctxOut = require("./lib/context-report.js").build(DATA, loc, res, Date.now(), NORM.VERSION); ctx = { stored: ctxOut.stored, cells: ctxOut.tables.length, experiments: ctxOut.experiments.map((e) => `${e.id}: ${e.status}`) }; }
+  catch (e) { ctxErr = String(e.stack || e); ctx = { error: ctxErr.slice(0, 1000) }; console.log("context report failed:", e.message); }
+  /* the context layer's health is part of STATUS.md, failures included */
+  try { fs.appendFileSync(path.join(DATA, "reports", "STATUS.md"), require("./lib/context-report.js").statusSection(U.readJSONL(capturesFile), ctxOut, ctxErr, DATA)); }
+  catch (e) { console.log("context status failed:", e.message); }
+  runLog({ job: "score", outcome: "ok", pairs: res.pairs.length, pending: res.pending.length, context: ctx });
   console.log(`score: ${res.pairs.length} scored pairs, ${res.pending.length} awaiting observations`);
 }
 

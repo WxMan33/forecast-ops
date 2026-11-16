@@ -88,7 +88,10 @@
   mkTabs($("presetTabs"), Object.entries(C.blend.PRESETS).map(([k, p]) => [k, p.label.toUpperCase()]), preset, (id) => { preset = id; O.store.set("ops_blend_preset", id); fresh = true; render(); });
   window.addEventListener("ops:theme", () => { picker.redraw(); render(); });
 
+  /* only the latest request may draw: a slow answer for the previous point (or day count) is dropped */
+  let runGen = 0;
   async function run() {
+    const myRun = ++runGen;
     $("runBtn").disabled = true;
     $("next48HeadsUp").hidden=true;
     O.setChip("FETCHING…");
@@ -100,6 +103,7 @@
       O.Data.loadEnsemble(C.config.blendEns, { ...where, days }).catch(() => ({ empty: true, problems: ["ensembles unavailable"], status: {} })),
       O.Data.loadModels(visibilitySpec, { ...where, days: Math.min(days, 7) }).catch(() => ({ empty: true })),
       window.AirportVisibility.load(where, days, O.Data, C).catch(() => [])]);
+    if (myRun !== runGen) return;
     $("runBtn").disabled = false;
     if (!res.empty) C.blend.addSources(res, en, nw && nw.ok ? N.onAxis(nw, res.ms) : null);
     SOURCES.forEach((m) => picker.setStatus(m.id, !res.empty && res.models[m.id] ? "ok" : "none"));
@@ -110,7 +114,12 @@
       refreshHeadsUp();
       O.setChip("NO DATA", "err");
       $("runMsg").className = "msg err";
-      $("runMsg").textContent = "Couldn't reach Open-Meteo. Check your connection and try again.";
+      /* say what actually happened: provider rate limiting or errors are not a problem with the planner's connection */
+      const fails = Object.values(res.failures || {}), statuses = [...new Set(fails.map((f) => f.status).filter(Boolean))];
+      const wait = Number.isFinite(res.retryAfter) && res.retryAfter > 0 ? ` Open-Meteo asked to wait ${res.retryAfter < 120 ? `${res.retryAfter} s` : `about ${Math.ceil(res.retryAfter / 60)} min`}.` : "";
+      $("runMsg").textContent = fails.length && statuses.length === 1 && statuses[0] === 429 ? `Open-Meteo is limiting requests right now (HTTP 429 for every model).${wait} Try ↻ again in a minute.`
+        : fails.length && statuses.length && fails.every((f) => f.status) ? `Open-Meteo answered with an error for every model (HTTP ${statuses.join(", ")}).${wait} Try again in a minute.`
+        : "Couldn't reach Open-Meteo. Check your connection and try again.";
       O.headline({ tier: "nodata", word: "NO DATA" });
       render();
       return;
@@ -124,7 +133,7 @@
     const regionalData=data;data.broadcast=null;
     window.BroadcastPoP.load(where,days,O.Data).then(area=>{if(data!==regionalData)return;area.tz=data.tz;data.broadcast=area;renderDaily();}).catch(()=>{if(data===regionalData){data.broadcast={status:'unavailable',systems:[]};renderDaily();}});
     data.nwsAxis = nws && nws.ok ? N.onAxis(nws, data.ms) : null;
-    const ensProb = C.config.blendEns.models.filter((m) => !data.models[m.source]).map((m) => `${m.name}: unavailable`);
+    const ensProb = C.config.blendEns.models.filter((m) => !data.models[m.source]).map((m) => (en.problems || []).find((x) => x.startsWith(m.name + ":")) || `${m.name}: unavailable`);
     O.dataStatus([...res.problems, ...ensProb, ...(nws && !nws.ok ? [`NWS: ${nws.reason}`] : nws && nws.errors && nws.errors.length ? nws.errors.map((x) => `NWS ${x}`) : [])]);
     const ensTxt = C.config.blendEns.models.filter((m) => data.models[m.source]).map((m) => `${m.name.replace(/ \(\d+ members\)$/, "")} ${data.models[m.source].n}`).join(", ");
     $("runMsg").textContent = `${MODELS.filter((m) => res.models[m.id]).length} models` + (ensTxt ? ` · ensembles ${ensTxt} members` : " · ensembles unavailable") + (res.problems.length ? ` · ${res.problems.join(" · ")}` : "") +
@@ -139,8 +148,10 @@
   let meta = null, covVar = O.store.get("ops_cov_var", "hi"), covMode = O.store.get("ops_cov_mode", "share");
   async function loadMeta() {
     const ids = Object.fromEntries(Object.entries(C.config.metaIds).filter(([id]) => data && data.models[id] && !(data.models[id].provenance && data.models[id].provenance.provider === "NOAA native GRIB2")));
-    try { meta = await O.Data.loadModelMeta(ids); } catch (e) { meta = {}; }
-    if (data) renderCoverage();
+    const forData = data; let got;
+    try { got = await O.Data.loadModelMeta(ids); } catch (e) { got = {}; }
+    if (data !== forData) return; // run metadata for an earlier point never lands on a newer one
+    meta = got; if (data) { renderCoverage(); renderHourly(); }
   }
   const SEAMLESS = new Set(["gfs_seamless", "icon_seamless", "gem_seamless", "ukmo_seamless", "meteofrance_seamless", "jma_seamless"]);
   const utc = (iso) => (iso ? `${iso.slice(5, 10).replace("-", "/")} ${iso.slice(11, 13)}Z` : "—");
@@ -186,14 +197,14 @@
         <div class="tabs" role="group" aria-label="Variable" style="margin:0">${C.blend.VARS.map((v) => `<button type="button" class="tab" data-cv="${v.key}" aria-pressed="${v.key === covVar}" aria-selected="${v.key === covVar}">${v.label}s</button>`).join("").replace("Precips", "Precipitation")}</div>
         <div class="tabs" role="group" aria-label="Cell value" style="margin:0"><button type="button" class="tab" data-cm="share" aria-pressed="${covMode === "share"}" aria-selected="${covMode === "share"}">Share of weight</button><button type="button" class="tab" data-cm="effect" aria-pressed="${covMode === "effect"}" aria-selected="${covMode === "effect"}">Effect on blend</button></div>
       </div>
-      <p class="table-scroll-note">Scroll inside the table for later forecast days.</p><div class="tablewrap" tabindex="0" role="region" aria-label="Forecast detail table; scroll horizontally for additional columns"><table class="covtab"><caption class="sr-only">${V.label} contributions by source and day</caption>
+      <p class="table-scroll-note">Use Previous and Next columns for later forecast days.</p><div class="tablewrap" tabindex="0" role="region" aria-label="Forecast detail table; use Previous and Next columns for additional fields"><table class="covtab"><caption class="sr-only">${V.label} contributions by source and day</caption>
         <thead><tr><th scope="col" style="text-align:left">Source</th>${cov.days.map((d) => `<th scope="col">${O.esc(O.fmtDay(d.k))}</th>`).join("")}</tr></thead>
         <tbody>${ids.map((id) => `<tr><th scope="row" style="text-align:left;font-weight:600">${O.esc(NAMES[id] || id)}</th>${cov.days.map((d) => cell(d, id)).join("")}</tr>`).join("")}
           <tr class="covsum"><th scope="row" style="text-align:left">Blend ${V.label.toLowerCase()}</th>${cov.days.map((d) => `<td class="num"><b>${d.vars[V.key].value == null ? "—" : d.vars[V.key].value.toFixed(dec) + unit}</b><div class="msg">${d.vars[V.key].contributors.length} sources</div></td>`).join("")}</tr>
           <tr><th scope="row" style="text-align:left">Change from previous day</th>${cov.days.map((d) => `<td class="covchg">${chg(d)}</td>`).join("")}</tr></tbody></table></div>
       <p class="msg" style="margin-top:6px"><b>Share of weight</b>: each source's part of this variable's total weight among sources with a complete day (preset rules applied). <b>Effect on blend</b>: the displayed blend minus the same blend recomputed without that source for that day, all else fixed. A source that left the blend has no value that day, so no effect is calculated or claimed for it; the shares of the remaining sources are rescaled. <b>Partial</b>: some hours or members missing, so the day is not used (no partial highs, lows or totals). Ensembles show usable/total members. * NWS total prorated across interval edges.</p>
       <details class="fold" style="margin-top:8px"><summary>Retrieval, model runs and forecast horizons</summary>
-        <div class="tablewrap" tabindex="0" role="region" aria-label="Forecast detail table; scroll horizontally for additional columns"><table class="provtab"><thead><tr><th style="text-align:left">Source</th><th>Retrieved</th><th style="text-align:left">Run</th><th>Temperature to</th><th>Precipitation to</th><th>Members</th></tr></thead><tbody>
+        <div class="tablewrap" tabindex="0" role="region" aria-label="Forecast detail table; use Previous and Next columns for additional fields"><table class="provtab"><thead><tr><th style="text-align:left">Source</th><th>Retrieved</th><th style="text-align:left">Run</th><th>Temperature to</th><th>Precipitation to</th><th>Members</th></tr></thead><tbody>
         ${ids.map((id) => { const md = data.models[id], h = cov.horizons[id] || {};
           return `<tr><td style="text-align:left">${O.esc(NAMES[id] || id)}</td><td class="num">${md && md.retrievedAt ? `${O.esc(local(Date.parse(md.retrievedAt)))}${md.fromCache ? '<div class="msg">from this browser\'s cache</div>' : ""}` : '<span class="msg">—</span>'}</td><td style="text-align:left">${md ? runCell(id) : '<span class="msg">unavailable this run</span>'}</td><td class="num">${fmtH(h.temperature)}</td><td class="num">${id === "nws" ? '<span class="msg">intervals</span>' : fmtH(h.precipitation)}</td><td class="num">${md && md.kind === "ens" ? md.members.length : "—"}</td></tr>`; }).join("")}
         </tbody></table></div>
@@ -225,6 +236,8 @@
   function render() {
     renderRecipe();
     if (!data) {
+      $("guidanceSupport").innerHTML = "";
+      renderHourly();
       $("daily").innerHTML = '<tbody><tr><td class="msg">No forecast loaded yet.</td></tr></tbody>';
       if (chart) { chart.destroy(); chart = null; }
       $("legend").innerHTML = "";
@@ -240,9 +253,10 @@
     renderCoverage();
     document.querySelectorAll(".technical .tablewrap").forEach((wrap) => {
       wrap.tabIndex = 0; wrap.setAttribute("role", "region");
-      wrap.setAttribute("aria-label", "Detailed forecast table. Scroll horizontally for additional columns.");
+      wrap.setAttribute("aria-label", "Detailed forecast table. Use Previous and Next columns for additional fields.");
     });
     renderChart();
+    renderHourly();
     focus.update(data, { record: fresh, names: NAMES, rows: data.rows, ctx: { weights: W(), rules: R() } });
     if (fresh) { logRecords(); fresh = false; }
   }
@@ -428,7 +442,7 @@
     const cell = (k, id, d, u) => { const p = get(k, id); return p ? `${p.v.toFixed(d)}${u}${p.prorated ? "*" : ""} <span class="msg">${Math.round(p.share * 100)}%</span>` : '<span class="msg">—</span>'; };
     el.innerHTML = `<div class="section-title">What's driving the blend · ${O.fmtDay(r.k)}</div>
       <p class="section-sub">Each source's own value for this calendar day and its share of the weight for that variable (${O.esc(C.blend.PRESETS[preset].label)}). Ensembles show the mean of their members' own highs, lows and totals.</p>
-      <div class="tablewrap" tabindex="0" role="region" aria-label="Forecast detail table; scroll horizontally for additional columns"><table><thead><tr><th style="text-align:left">Source</th><th>High · share</th><th>Low · share</th><th>Precip · share</th><th>Members</th></tr></thead><tbody>
+      <div class="tablewrap" tabindex="0" role="region" aria-label="Forecast detail table; use Previous and Next columns for additional fields"><table><thead><tr><th style="text-align:left">Source</th><th>High · share</th><th>Low · share</th><th>Precip · share</th><th>Members</th></tr></thead><tbody>
       ${ids.map((id) => { const p = get("hi", id) || get("qpf", id) || get("lo", id); return `<tr><td style="text-align:left">${O.esc(NAMES[id] || id)}</td><td class="num">${cell("hi", id, 0, "°")}</td><td class="num">${cell("lo", id, 0, "°")}</td><td class="num">${cell("qpf", id, 2, '"')}</td><td class="num">${p && p.n > 1 ? p.n : "—"}</td></tr>`; }).join("")}
       <tr><td style="text-align:left" class="msg">Weighted guidance spread (10–90%)</td><td class="num msg">${sp(r.hiR, 0)}</td><td class="num msg">${sp(r.loR, 0)}</td><td class="num msg">${sp(r.qpfR, 2)}</td><td></td></tr>
       <tr><td style="text-align:left" class="msg">Ensembles only (10–90%)</td><td class="num msg">${sp(r.ensR.hi, 0)}</td><td class="num msg">${sp(r.ensR.lo, 0)}</td><td class="num msg">${sp(r.ensR.qpf, 2)}</td><td></td></tr>
@@ -460,7 +474,7 @@
     el.innerHTML = `<div class="row" style="justify-content:space-between;align-items:baseline;margin-bottom:6px"><div class="section-title" style="margin:0">${nwsTag} NWS vs blend</div><span class="msg">NWS ${O.esc(nws.office)} · forecast updated ${upd}</span></div>` +
       `<p class="section-sub">Each row is an official NWS day or night period. The blend column is ${O.esc(C.blend.PRESETS[preset].label.toLowerCase())} over exactly that period's hours (high for day, low for night)${ws.nws ? `, and includes NWS at ×${ws.nws}, so differences are smaller than NWS vs the other sources` : ""}. NWS chance is the official period probability; the blend has no comparable period probability, so none is shown.</p>` +
       (meaningful.length ? `<div class="changes" style="margin-bottom:10px">${meaningful.slice(0, 8).map((x) => `<span class="change diffchip">${O.esc(x)}</span>`).join("")}</div>` : '<p class="msg" style="margin-bottom:8px">No meaningful differences (temps within 4°F; precip inside the NWS range ±0.10").</p>') +
-      `<div class="tablewrap" tabindex="0" role="region" aria-label="Forecast detail table; scroll horizontally for additional columns"><table><thead><tr><th>Period</th><th>Local time</th><th class="nwscol">NWS temp</th><th>Blend, same hours</th><th>Δ NWS−blend</th><th class="nwscol">NWS chance</th><th class="nwscol">NWS precip</th><th>Blend precip</th><th style="text-align:left">NWS wording</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+      `<div class="tablewrap" tabindex="0" role="region" aria-label="Forecast detail table; use Previous and Next columns for additional fields"><table><thead><tr><th>Period</th><th>Local time</th><th class="nwscol">NWS temp</th><th>Blend, same hours</th><th>Δ NWS−blend</th><th class="nwscol">NWS chance</th><th class="nwscol">NWS precip</th><th>Blend precip</th><th style="text-align:left">NWS wording</th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
   /* Precipitation timing scenarios over the chart window: different storm timings kept apart. */
@@ -470,7 +484,7 @@
     const span = (a) => (a[0] === a[1] ? local(a[0]) : `${local(a[0])} – ${local(a[1])}`);
     $("scenCard").innerHTML = `<div class="section-title">Precip timing scenarios</div>` +
       `<p class="section-sub">${O.fmtLocal(data.times[s])} to ${O.fmtLocal(data.times[e - 1])}. Models are grouped by when their precipitation starts (0.01"/h or more), so early and late timings stay separate instead of averaging into a long, light event. Totals are each model's own.</p>` +
-      (P.scenarios.length ? `<div class="tablewrap" tabindex="0" role="region" aria-label="Forecast detail table; scroll horizontally for additional columns"><table><thead><tr><th>Scenario</th><th>Models</th><th>Starts</th><th>Ends</th><th>Total</th></tr></thead><tbody>${P.scenarios.map((sc, k) => `<tr><td class="display" style="font-size:12px">${String.fromCharCode(65 + k)}</td><td style="text-align:left">${O.esc(nm(sc.ids))}</td><td class="num">${span(sc.onset)}</td><td class="num">${span(sc.end)}</td><td class="num">${sc.total[0].toFixed(2)}–${sc.total[1].toFixed(2)}"</td></tr>`).join("")}</tbody></table></div>` : '<p class="msg">No model has measurable precipitation in this window.</p>') +
+      (P.scenarios.length ? `<div class="tablewrap" tabindex="0" role="region" aria-label="Forecast detail table; use Previous and Next columns for additional fields"><table><thead><tr><th>Scenario</th><th>Models</th><th>Starts</th><th>Ends</th><th>Total</th></tr></thead><tbody>${P.scenarios.map((sc, k) => `<tr><td class="display" style="font-size:12px">${String.fromCharCode(65 + k)}</td><td style="text-align:left">${O.esc(nm(sc.ids))}</td><td class="num">${span(sc.onset)}</td><td class="num">${span(sc.end)}</td><td class="num">${sc.total[0].toFixed(2)}–${sc.total[1].toFixed(2)}"</td></tr>`).join("")}</tbody></table></div>` : '<p class="msg">No model has measurable precipitation in this window.</p>') +
       (P.dry.length ? `<p class="msg" style="margin-top:6px">Dry in this window: ${O.esc(nm(P.dry))}.</p>` : "") +
       (P.incomplete.length ? `<p class="msg">Left out (data doesn't cover the whole window): ${O.esc(nm(P.incomplete))}.</p>` : "");
   }
@@ -574,6 +588,49 @@
       (ms.length ? `<span>${nMin === nMax ? `${nMax} sources` : `${nMin}–${nMax} sources, varies by hour`}</span>` : "<span>None of the checked sources carry this field here.</span>");
   }
 
+  /* ---------- hourly forecast: the shared hourly grid over the blend's own hourly values ---------- */
+  const HG_RANGES = [["24", "24 H"], ["48", "48 H"], ["72", "72 H"], ["custom", "CUSTOM"]];
+  let hgRange = O.store.get("ops_blend_hg_range", "24"), hgCustom = null, hgSel = null;
+  if (!HG_RANGES.some(([k]) => k === hgRange)) hgRange = "24";
+  const wallOf = (ms) => C.time.toLocal(ms, data.tz); // "YYYY-MM-DDTHH:MM" in the forecast point's zone, for datetime-local
+  mkTabs($("hgRange"), HG_RANGES, hgRange, (id) => { hgRange = id; O.store.set("ops_blend_hg_range", id); $("hgCustom").hidden = id !== "custom"; if (id === "custom" && data && !hgCustom) seedCustom(); renderHourly(); });
+  $("hgCustom").hidden = hgRange !== "custom";
+  function seedCustom() { const s = Math.floor(Date.now() / 3600e3) * 3600e3; $("hgFrom").value = wallOf(s); $("hgTo").value = wallOf(s + 24 * 3600e3); hgCustom = { s, e: s + 24 * 3600e3 }; }
+  $("hgApply").addEventListener("click", () => {
+    if (!data) return;
+    const f = $("hgFrom").value, t = $("hgTo").value, err = (m) => { $("hgErr").textContent = m; };
+    if (!f || !t) return err("Choose a start and an end.");
+    const s = C.time.toUtc(f.slice(0, 16), data.tz), e = C.time.toUtc(t.slice(0, 16), data.tz);
+    if (!(e > s)) return err("The end must be after the start.");
+    if (e - s > 14 * 864e5) return err("Choose 14 days or less.");
+    err(""); hgCustom = { s, e }; renderHourly();
+  });
+  let supportSpan=null;
+  function renderSupport(span=null,now=Date.now()) {
+    if(!data)return;
+    if(span)supportSpan=span;
+    else span=supportSpan;
+    if(!span?.length)return;
+    const requested=preset==='custom'?C.blend.scopedWeights(weightProfiles).ws:C.blend.presetWeights(preset,SPEC,picker.weights());
+    const open=$("guidanceSupport").querySelector('details')?.open;
+    $("guidanceSupport").innerHTML=window.ForecastSupport.html(window.ForecastSupport.analyze({C,B:data,requested,rules:R(),start:span[0],end:span.at(-1)+3600e3,now,names:NAMES,meta:meta||{},nws}));
+    if(open)$("guidanceSupport").querySelector('details').open=true;
+  }
+  function renderHourly() {
+    if (!data) { $("hgGrid").innerHTML = '<p class="msg">Fetch models to load the hourly forecast.</p>'; $("hgLegend").innerHTML = ""; $("hgDetail").hidden = true; $("hgSub").textContent = ""; return; }
+    if (hgRange === "custom" && !hgCustom) seedCustom();
+    const M = window.HourlyModel, now = Date.now(), span = M.blendSpan(now, hgRange === "custom" ? 24 : +hgRange, hgRange === "custom" ? hgCustom : null);
+    const V = window.HourlyViews.blendView({ C, M, B: data, ws: W(), opts: OPTS(), span, tz: data.tz, names: NAMES, nwsAxis: data.nwsAxis, now });
+    renderSupport(span,now);
+    const last = data.ms[data.ms.length - 1], beyond = V.hrs.filter((h) => h.state === "beyond").length;
+    $("hgSub").textContent = `${C.blend.PRESETS[preset].label} · times in ${O.tzShort(data.tz)} at the forecast point · tap an hour for its sources${beyond ? ` · ${beyond} hour${beyond === 1 ? "" : "s"} beyond the loaded forecast (through ${O.fmtWhen(wallOf(last))})` : ""}`;
+    if (!span.includes(hgSel)) hgSel = span.find((m) => m + 3600e3 > now) ?? span[0];
+    const show = (ms) => { const i = span.indexOf(ms); if (i < 0) return; hgSel = ms; $("hgDetail").hidden = false; $("hgDetail").innerHTML = V.detail(i); };
+    window.HourlyGrid.render($("hgGrid"), { axis: V.axis, rows: V.rows, selected: hgSel, now, label: "Hourly forecast", caption: "Model blend hour by hour", onSelect: show });
+    $("hgLegend").innerHTML = window.HourlyGrid.legend(V.legend) + `<p class="msg" style="margin:6px 0 0">${O.esc(V.note)}</p>`;
+    show(hgSel);
+  }
+
   /* Verification records: what each source said for each window, for later scoring. */
   function logRecords() {
     const at = new Date().toISOString(), loc = { lat: O.location.lat, lon: O.location.lon, name: O.location.name }, recs = [];
@@ -595,7 +652,7 @@
 
   render();
   run();
-  const displayTimer=setInterval(()=>{if(!document.hidden){if(!data){refreshHeadsUp();return;}const c=window.ForecastClock.focus(C,data.tz,Date.now());if(`${c.day}|${c.dayLead}|${c.forward}|${c.evening}`!==displayClockKey)render();else {renderNow();refreshHeadsUp();}}},60000);
+  const displayTimer=setInterval(()=>{if(!document.hidden){if(!data){refreshHeadsUp();return;}const c=window.ForecastClock.focus(C,data.tz,Date.now());if(`${c.day}|${c.dayLead}|${c.forward}|${c.evening}`!==displayClockKey)render();else {renderNow();refreshHeadsUp();renderSupport();}}},60000);
   window.addEventListener('pagehide',()=>clearInterval(displayTimer),{once:true});
 })();
 

@@ -1,0 +1,3741 @@
+{
+  "reviewed": "2026-11-11",
+  "scope": "Cincinnati and the Tri-State; regional context labelled explicitly",
+  "method": "Indexed 365 NWS anniversary-card URLs and the ILN event index against all 366 calendar dates. OCR generated research leads only. Published summaries were selected and checked separately; unfilled dates retain the climate-record fallback. Not an exhaustive newspaper search for every date.",
+  "stories": 92,
+  "storyDays": 83,
+  "days": [
+    {
+      "monthDay": "01-01",
+      "publishedStories": [
+        "1948-01-01"
+      ],
+      "fallbackObservationDate": "1964-01-01",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/001.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20180101"
+      ]
+    },
+    {
+      "monthDay": "01-02",
+      "publishedStories": [
+        "2014-01-02"
+      ],
+      "fallbackObservationDate": "1928-01-02",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/002.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20180102",
+        "https://www.weather.gov/iln/20140102"
+      ]
+    },
+    {
+      "monthDay": "01-03",
+      "publishedStories": [],
+      "fallbackObservationDate": "2000-01-03",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/003.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "01-04",
+      "publishedStories": [],
+      "fallbackObservationDate": "1949-01-04",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/004.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "01-05",
+      "publishedStories": [],
+      "fallbackObservationDate": "1977-01-05",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/005.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20170105",
+        "https://www.weather.gov/iln/20140105",
+        "https://www.weather.gov/iln/20050105"
+      ]
+    },
+    {
+      "monthDay": "01-06",
+      "publishedStories": [
+        "2014-01-06"
+      ],
+      "fallbackObservationDate": "1946-01-06",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/006.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20250106",
+        "https://www.weather.gov/iln/20220106",
+        "https://www.weather.gov/iln/20150106",
+        "https://www.weather.gov/iln/20140106"
+      ]
+    },
+    {
+      "monthDay": "01-07",
+      "publishedStories": [
+        "1996-01-07"
+      ],
+      "fallbackObservationDate": "1996-01-07",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/007.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "01-08",
+      "publishedStories": [
+        "1926-01-08"
+      ],
+      "fallbackObservationDate": "1965-01-08",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/008.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20180108"
+      ]
+    },
+    {
+      "monthDay": "01-09",
+      "publishedStories": [],
+      "fallbackObservationDate": "2024-01-09",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/009.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "01-10",
+      "publishedStories": [
+        "1982-01-10"
+      ],
+      "fallbackObservationDate": "1982-01-10",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/010.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20170110"
+      ]
+    },
+    {
+      "monthDay": "01-11",
+      "publishedStories": [
+        "2011-01-11"
+      ],
+      "fallbackObservationDate": "1886-01-11",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/011.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20250111",
+        "https://www.weather.gov/iln/20200111",
+        "https://www.weather.gov/iln/20110111"
+      ]
+    },
+    {
+      "monthDay": "01-12",
+      "publishedStories": [],
+      "fallbackObservationDate": "1890-01-12",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/012.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20230112",
+        "https://www.weather.gov/iln/20190112",
+        "https://www.weather.gov/iln/20180112",
+        "https://www.weather.gov/iln/20160112"
+      ]
+    },
+    {
+      "monthDay": "01-13",
+      "publishedStories": [],
+      "fallbackObservationDate": "1910-01-13",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/013.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "01-14",
+      "publishedStories": [
+        "1937-01-14"
+      ],
+      "fallbackObservationDate": "1937-01-14",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/014.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "01-15",
+      "publishedStories": [],
+      "fallbackObservationDate": "1893-01-15",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/015.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20180115"
+      ]
+    },
+    {
+      "monthDay": "01-16",
+      "publishedStories": [
+        "1978-01-16"
+      ],
+      "fallbackObservationDate": "1977-01-16",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/016.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "01-17",
+      "publishedStories": [],
+      "fallbackObservationDate": "1977-01-17",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/017.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20220117"
+      ]
+    },
+    {
+      "monthDay": "01-18",
+      "publishedStories": [
+        "1977-01-18"
+      ],
+      "fallbackObservationDate": "1977-01-18",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/018.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "01-19",
+      "publishedStories": [],
+      "fallbackObservationDate": "1994-01-19",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/019.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20240119",
+        "https://www.weather.gov/iln/20190119",
+        "https://www.weather.gov/iln/20140119"
+      ]
+    },
+    {
+      "monthDay": "01-20",
+      "publishedStories": [],
+      "fallbackObservationDate": "1985-01-20",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/020.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20160120",
+        "https://www.weather.gov/iln/20120120",
+        "https://www.weather.gov/iln/20110120",
+        "https://www.weather.gov/iln/20010120",
+        "https://www.weather.gov/iln/20000120"
+      ]
+    },
+    {
+      "monthDay": "01-21",
+      "publishedStories": [
+        "1959-01-21"
+      ],
+      "fallbackObservationDate": "1959-01-21",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/021.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20140121"
+      ]
+    },
+    {
+      "monthDay": "01-22",
+      "publishedStories": [],
+      "fallbackObservationDate": "1982-01-22",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/022.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20230122",
+        "https://www.weather.gov/iln/20180122",
+        "https://www.weather.gov/iln/20160122",
+        "https://www.weather.gov/iln/20000122"
+      ]
+    },
+    {
+      "monthDay": "01-23",
+      "publishedStories": [],
+      "fallbackObservationDate": "1909-01-23",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/023.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "01-24",
+      "publishedStories": [
+        "1937-01-24"
+      ],
+      "fallbackObservationDate": "1943-01-24",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/024.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20150124"
+      ]
+    },
+    {
+      "monthDay": "01-25",
+      "publishedStories": [],
+      "fallbackObservationDate": "1950-01-25",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/025.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20260125",
+        "https://www.weather.gov/iln/20140125",
+        "https://www.weather.gov/iln/20130125"
+      ]
+    },
+    {
+      "monthDay": "01-26",
+      "publishedStories": [
+        "1937-01-26",
+        "1978-01-26"
+      ],
+      "fallbackObservationDate": "1978-01-26",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/026.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20150126",
+        "https://www.weather.gov/iln/19780126"
+      ]
+    },
+    {
+      "monthDay": "01-27",
+      "publishedStories": [],
+      "fallbackObservationDate": "1925-01-27",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/027.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20210127"
+      ]
+    },
+    {
+      "monthDay": "01-28",
+      "publishedStories": [
+        "1995-01-28",
+        "2009-01-28"
+      ],
+      "fallbackObservationDate": "1876-01-28",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/028.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20090128"
+      ]
+    },
+    {
+      "monthDay": "01-29",
+      "publishedStories": [],
+      "fallbackObservationDate": "2002-01-29",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/029.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20080129"
+      ]
+    },
+    {
+      "monthDay": "01-30",
+      "publishedStories": [],
+      "fallbackObservationDate": "1916-01-30",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/030.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20210130"
+      ]
+    },
+    {
+      "monthDay": "01-31",
+      "publishedStories": [],
+      "fallbackObservationDate": "2004-01-31",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/031.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20110131"
+      ]
+    },
+    {
+      "monthDay": "02-01",
+      "publishedStories": [],
+      "fallbackObservationDate": "1877-02-01",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/032.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20190201"
+      ]
+    },
+    {
+      "monthDay": "02-02",
+      "publishedStories": [],
+      "fallbackObservationDate": "1887-02-02",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/033.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "02-03",
+      "publishedStories": [],
+      "fallbackObservationDate": "1995-02-03",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/034.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20140203",
+        "https://www.weather.gov/iln/20090203"
+      ]
+    },
+    {
+      "monthDay": "02-04",
+      "publishedStories": [
+        "1998-02-04"
+      ],
+      "fallbackObservationDate": "1998-02-04",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/035.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20220204",
+        "https://www.weather.gov/iln/20060204"
+      ]
+    },
+    {
+      "monthDay": "02-05",
+      "publishedStories": [
+        "2010-02-05"
+      ],
+      "fallbackObservationDate": "1998-02-05",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/036.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20150205",
+        "https://www.weather.gov/iln/20140205",
+        "https://www.weather.gov/iln/20100205"
+      ]
+    },
+    {
+      "monthDay": "02-06",
+      "publishedStories": [],
+      "fallbackObservationDate": "2007-02-06",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/037.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20080206",
+        "https://www.weather.gov/iln/20070206"
+      ]
+    },
+    {
+      "monthDay": "02-07",
+      "publishedStories": [],
+      "fallbackObservationDate": "1895-02-07",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/038.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20200207",
+        "https://www.weather.gov/iln/20190207",
+        "https://www.weather.gov/iln/20180207"
+      ]
+    },
+    {
+      "monthDay": "02-08",
+      "publishedStories": [],
+      "fallbackObservationDate": "1895-02-08",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/039.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20200208",
+        "https://www.weather.gov/iln/20170208",
+        "https://www.weather.gov/iln/20160208"
+      ]
+    },
+    {
+      "monthDay": "02-09",
+      "publishedStories": [
+        "2010-02-09"
+      ],
+      "fallbackObservationDate": "1899-02-09",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/040.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20230209",
+        "https://www.weather.gov/iln/20210209",
+        "https://www.weather.gov/iln/20140209",
+        "https://www.weather.gov/iln/20100209"
+      ]
+    },
+    {
+      "monthDay": "02-10",
+      "publishedStories": [],
+      "fallbackObservationDate": "1899-02-10",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/041.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20210210",
+        "https://www.weather.gov/iln/20120210"
+      ]
+    },
+    {
+      "monthDay": "02-11",
+      "publishedStories": [],
+      "fallbackObservationDate": "1899-02-11",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/042.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20090211"
+      ]
+    },
+    {
+      "monthDay": "02-12",
+      "publishedStories": [],
+      "fallbackObservationDate": "1899-02-12",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/043.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20200212",
+        "https://www.weather.gov/iln/20180212"
+      ]
+    },
+    {
+      "monthDay": "02-13",
+      "publishedStories": [],
+      "fallbackObservationDate": "1938-02-13",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/044.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "02-14",
+      "publishedStories": [
+        "1884-02-14"
+      ],
+      "fallbackObservationDate": "1908-02-14",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/045.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20160214",
+        "https://www.weather.gov/iln/20070214"
+      ]
+    },
+    {
+      "monthDay": "02-15",
+      "publishedStories": [],
+      "fallbackObservationDate": "1990-02-15",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/046.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20210215_WinterStorm",
+        "https://www.weather.gov/iln/20140215"
+      ]
+    },
+    {
+      "monthDay": "02-16",
+      "publishedStories": [
+        "2010-02-16"
+      ],
+      "fallbackObservationDate": "2015-02-16",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/047.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20250216",
+        "https://www.weather.gov/iln/20240216",
+        "https://www.weather.gov/iln/20160216",
+        "https://www.weather.gov/iln/20150216",
+        "https://www.weather.gov/iln/20100216"
+      ]
+    },
+    {
+      "monthDay": "02-17",
+      "publishedStories": [],
+      "fallbackObservationDate": "1910-02-17",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/048.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20220217",
+        "https://www.weather.gov/iln/20030217"
+      ]
+    },
+    {
+      "monthDay": "02-18",
+      "publishedStories": [],
+      "fallbackObservationDate": "2000-02-18",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/049.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20210218",
+        "https://www.weather.gov/iln/20150218"
+      ]
+    },
+    {
+      "monthDay": "02-19",
+      "publishedStories": [],
+      "fallbackObservationDate": "2015-02-19",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/050.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20000219"
+      ]
+    },
+    {
+      "monthDay": "02-20",
+      "publishedStories": [],
+      "fallbackObservationDate": "2018-02-20",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/051.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20190220",
+        "https://www.weather.gov/iln/20140220"
+      ]
+    },
+    {
+      "monthDay": "02-21",
+      "publishedStories": [
+        "2015-02-21"
+      ],
+      "fallbackObservationDate": "1874-02-21",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/052.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20150221"
+      ]
+    },
+    {
+      "monthDay": "02-22",
+      "publishedStories": [],
+      "fallbackObservationDate": "1963-02-22",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/053.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20130222"
+      ]
+    },
+    {
+      "monthDay": "02-23",
+      "publishedStories": [],
+      "fallbackObservationDate": "1914-02-23",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/054.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "02-24",
+      "publishedStories": [],
+      "fallbackObservationDate": "2017-02-24",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/055.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20220224",
+        "https://www.weather.gov/iln/20190224",
+        "https://www.weather.gov/iln/20170224",
+        "https://www.weather.gov/iln/20110224"
+      ]
+    },
+    {
+      "monthDay": "02-25",
+      "publishedStories": [
+        "2018-02-25"
+      ],
+      "fallbackObservationDate": "1993-02-25",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/056.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20180225"
+      ]
+    },
+    {
+      "monthDay": "02-26",
+      "publishedStories": [],
+      "fallbackObservationDate": "1945-02-26",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/057.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20200226"
+      ]
+    },
+    {
+      "monthDay": "02-27",
+      "publishedStories": [],
+      "fallbackObservationDate": "1934-02-27",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/058.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20230227"
+      ]
+    },
+    {
+      "monthDay": "02-28",
+      "publishedStories": [],
+      "fallbackObservationDate": "2021-02-28",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/059.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20240228",
+        "https://www.weather.gov/iln/20200228",
+        "https://www.weather.gov/iln/20110228"
+      ]
+    },
+    {
+      "monthDay": "02-29",
+      "publishedStories": [],
+      "fallbackObservationDate": "1980-02-29",
+      "nwsAnniversaryCard": null,
+      "anniversaryScan": "not-published-for-leap-day",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "03-01",
+      "publishedStories": [
+        "1997-03-01",
+        "2017-03-01"
+      ],
+      "fallbackObservationDate": "1980-03-01",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/060.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20170301",
+        "https://www.weather.gov/iln/20150301",
+        "https://www.weather.gov/iln/20050301"
+      ]
+    },
+    {
+      "monthDay": "03-02",
+      "publishedStories": [
+        "2012-03-02"
+      ],
+      "fallbackObservationDate": "1980-03-02",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/061.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20140302",
+        "https://www.weather.gov/iln/20120302"
+      ]
+    },
+    {
+      "monthDay": "03-03",
+      "publishedStories": [],
+      "fallbackObservationDate": "1980-03-03",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/062.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20230303",
+        "https://www.weather.gov/iln/20190303"
+      ]
+    },
+    {
+      "monthDay": "03-04",
+      "publishedStories": [],
+      "fallbackObservationDate": "1964-03-04",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/063.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "03-05",
+      "publishedStories": [
+        "1997-03-05"
+      ],
+      "fallbackObservationDate": "1897-03-05",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/064.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20150305",
+        "https://www.weather.gov/iln/20130305"
+      ]
+    },
+    {
+      "monthDay": "03-06",
+      "publishedStories": [],
+      "fallbackObservationDate": "1967-03-06",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/065.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "03-07",
+      "publishedStories": [
+        "1945-03-07"
+      ],
+      "fallbackObservationDate": "2008-03-07",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/066.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20220307"
+      ]
+    },
+    {
+      "monthDay": "03-08",
+      "publishedStories": [
+        "2008-03-08"
+      ],
+      "fallbackObservationDate": "1996-03-08",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/067.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20180308",
+        "https://www.weather.gov/iln/20090308",
+        "https://www.weather.gov/iln/20080308"
+      ]
+    },
+    {
+      "monthDay": "03-09",
+      "publishedStories": [],
+      "fallbackObservationDate": "1964-03-09",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/068.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "03-10",
+      "publishedStories": [],
+      "fallbackObservationDate": "1952-03-10",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/069.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "03-11",
+      "publishedStories": [
+        "1964-03-11"
+      ],
+      "fallbackObservationDate": "1959-03-11",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/070.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20260311"
+      ]
+    },
+    {
+      "monthDay": "03-12",
+      "publishedStories": [],
+      "fallbackObservationDate": "1907-03-12",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/071.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20220312"
+      ]
+    },
+    {
+      "monthDay": "03-13",
+      "publishedStories": [],
+      "fallbackObservationDate": "1937-03-13",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/072.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20260313",
+        "https://www.weather.gov/iln/20170313"
+      ]
+    },
+    {
+      "monthDay": "03-14",
+      "publishedStories": [],
+      "fallbackObservationDate": "1922-03-14",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/073.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20240314",
+        "https://www.weather.gov/iln/20190314",
+        "https://www.weather.gov/iln/20160314",
+        "https://www.weather.gov/iln/20140314",
+        "https://www.weather.gov/iln/19990314"
+      ]
+    },
+    {
+      "monthDay": "03-15",
+      "publishedStories": [],
+      "fallbackObservationDate": "1944-03-15",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/074.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "03-16",
+      "publishedStories": [],
+      "fallbackObservationDate": "1963-03-16",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/075.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "03-17",
+      "publishedStories": [],
+      "fallbackObservationDate": "1900-03-17",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/076.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20140317",
+        "https://www.weather.gov/iln/20130317"
+      ]
+    },
+    {
+      "monthDay": "03-18",
+      "publishedStories": [
+        "2008-03-18"
+      ],
+      "fallbackObservationDate": "2008-03-18",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/077.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "03-19",
+      "publishedStories": [
+        "2008-03-19"
+      ],
+      "fallbackObservationDate": "1943-03-19",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/078.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20250319",
+        "https://www.weather.gov/iln/20200319",
+        "https://www.weather.gov/iln/20080319"
+      ]
+    },
+    {
+      "monthDay": "03-20",
+      "publishedStories": [],
+      "fallbackObservationDate": "1885-03-20",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/079.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "03-21",
+      "publishedStories": [],
+      "fallbackObservationDate": "2011-03-21",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/080.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20180321"
+      ]
+    },
+    {
+      "monthDay": "03-22",
+      "publishedStories": [
+        "1968-03-22"
+      ],
+      "fallbackObservationDate": "1968-03-22",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/081.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20260322"
+      ]
+    },
+    {
+      "monthDay": "03-23",
+      "publishedStories": [],
+      "fallbackObservationDate": "1907-03-23",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/082.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20220323",
+        "https://www.weather.gov/iln/20150323",
+        "https://www.weather.gov/iln/20120323",
+        "https://www.weather.gov/iln/20110323"
+      ]
+    },
+    {
+      "monthDay": "03-24",
+      "publishedStories": [],
+      "fallbackObservationDate": "1910-03-24",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/083.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20180324",
+        "https://www.weather.gov/iln/20130324"
+      ]
+    },
+    {
+      "monthDay": "03-25",
+      "publishedStories": [
+        "1913-03-25"
+      ],
+      "fallbackObservationDate": "1929-03-25",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/084.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20210325"
+      ]
+    },
+    {
+      "monthDay": "03-26",
+      "publishedStories": [
+        "1913-03-26",
+        "2017-03-26"
+      ],
+      "fallbackObservationDate": "1894-03-26",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/085.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20260326",
+        "https://www.weather.gov/iln/20170326"
+      ]
+    },
+    {
+      "monthDay": "03-27",
+      "publishedStories": [
+        "1913-03-27"
+      ],
+      "fallbackObservationDate": "1910-03-27",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/086.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "03-28",
+      "publishedStories": [],
+      "fallbackObservationDate": "1907-03-28",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/087.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20200328"
+      ]
+    },
+    {
+      "monthDay": "03-29",
+      "publishedStories": [],
+      "fallbackObservationDate": "1985-03-29",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/088.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20140329"
+      ]
+    },
+    {
+      "monthDay": "03-30",
+      "publishedStories": [],
+      "fallbackObservationDate": "1987-03-30",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/089.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20250330"
+      ]
+    },
+    {
+      "monthDay": "03-31",
+      "publishedStories": [],
+      "fallbackObservationDate": "1923-03-31",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/090.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20220331"
+      ]
+    },
+    {
+      "monthDay": "04-01",
+      "publishedStories": [
+        "1913-04-01"
+      ],
+      "fallbackObservationDate": "1996-04-01",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/091.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20230401"
+      ]
+    },
+    {
+      "monthDay": "04-02",
+      "publishedStories": [],
+      "fallbackObservationDate": "1977-04-02",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/092.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20250402",
+        "https://www.weather.gov/iln/20240402",
+        "https://www.weather.gov/iln/20160402",
+        "https://www.weather.gov/iln/20150402"
+      ]
+    },
+    {
+      "monthDay": "04-03",
+      "publishedStories": [
+        "1974-04-03"
+      ],
+      "fallbackObservationDate": "1950-04-03",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/093.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20180403",
+        "https://www.weather.gov/iln/19740403"
+      ]
+    },
+    {
+      "monthDay": "04-04",
+      "publishedStories": [],
+      "fallbackObservationDate": "1987-04-04",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/094.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20110404"
+      ]
+    },
+    {
+      "monthDay": "04-05",
+      "publishedStories": [],
+      "fallbackObservationDate": "1873-04-05",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/095.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20230405",
+        "https://www.weather.gov/iln/20170405",
+        "https://www.weather.gov/iln/20100405"
+      ]
+    },
+    {
+      "monthDay": "04-06",
+      "publishedStories": [],
+      "fallbackObservationDate": "1873-04-06",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/096.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "04-07",
+      "publishedStories": [],
+      "fallbackObservationDate": "1882-04-07",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/097.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20060407"
+      ]
+    },
+    {
+      "monthDay": "04-08",
+      "publishedStories": [
+        "2020-04-08"
+      ],
+      "fallbackObservationDate": "1916-04-08",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/098.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20200408",
+        "https://www.weather.gov/iln/20000408"
+      ]
+    },
+    {
+      "monthDay": "04-09",
+      "publishedStories": [
+        "1999-04-09"
+      ],
+      "fallbackObservationDate": "1997-04-09",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/099.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20200409",
+        "https://www.weather.gov/iln/19990409"
+      ]
+    },
+    {
+      "monthDay": "04-10",
+      "publishedStories": [],
+      "fallbackObservationDate": "1973-04-10",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/100.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "04-11",
+      "publishedStories": [
+        "1980-04-11"
+      ],
+      "fallbackObservationDate": "1930-04-11",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/101.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "04-12",
+      "publishedStories": [],
+      "fallbackObservationDate": "1930-04-12",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/102.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20240412",
+        "https://www.weather.gov/iln/20190412"
+      ]
+    },
+    {
+      "monthDay": "04-13",
+      "publishedStories": [],
+      "fallbackObservationDate": "1950-04-13",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/103.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20220413"
+      ]
+    },
+    {
+      "monthDay": "04-14",
+      "publishedStories": [],
+      "fallbackObservationDate": "1922-04-14",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/104.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20260414",
+        "https://www.weather.gov/iln/20190414"
+      ]
+    },
+    {
+      "monthDay": "04-15",
+      "publishedStories": [],
+      "fallbackObservationDate": "1939-04-15",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/105.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20140415"
+      ]
+    },
+    {
+      "monthDay": "04-16",
+      "publishedStories": [],
+      "fallbackObservationDate": "1998-04-16",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/106.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "04-17",
+      "publishedStories": [],
+      "fallbackObservationDate": "1875-04-17",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/107.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20240417"
+      ]
+    },
+    {
+      "monthDay": "04-18",
+      "publishedStories": [],
+      "fallbackObservationDate": "1875-04-18",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/108.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "04-19",
+      "publishedStories": [],
+      "fallbackObservationDate": "1940-04-19",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/109.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20150419"
+      ]
+    },
+    {
+      "monthDay": "04-20",
+      "publishedStories": [
+        "2011-04-20"
+      ],
+      "fallbackObservationDate": "1976-04-20",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/110.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20110420"
+      ]
+    },
+    {
+      "monthDay": "04-21",
+      "publishedStories": [],
+      "fallbackObservationDate": "2021-04-21",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/111.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20210421"
+      ]
+    },
+    {
+      "monthDay": "04-22",
+      "publishedStories": [],
+      "fallbackObservationDate": "1902-04-22",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/112.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "04-23",
+      "publishedStories": [
+        "1968-04-23",
+        "2011-04-23"
+      ],
+      "fallbackObservationDate": "2011-04-23",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/113.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20110423"
+      ]
+    },
+    {
+      "monthDay": "04-24",
+      "publishedStories": [],
+      "fallbackObservationDate": "1925-04-24",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/114.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "04-25",
+      "publishedStories": [],
+      "fallbackObservationDate": "1880-04-25",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/115.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20250425",
+        "https://www.weather.gov/iln/20190425"
+      ]
+    },
+    {
+      "monthDay": "04-26",
+      "publishedStories": [],
+      "fallbackObservationDate": "1915-04-26",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/116.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20070426"
+      ]
+    },
+    {
+      "monthDay": "04-27",
+      "publishedStories": [],
+      "fallbackObservationDate": "1915-04-27",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/117.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20110427"
+      ]
+    },
+    {
+      "monthDay": "04-28",
+      "publishedStories": [],
+      "fallbackObservationDate": "1899-04-28",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/118.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "04-29",
+      "publishedStories": [],
+      "fallbackObservationDate": "1996-04-29",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/119.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20170429",
+        "https://www.weather.gov/iln/20140429"
+      ]
+    },
+    {
+      "monthDay": "04-30",
+      "publishedStories": [],
+      "fallbackObservationDate": "1908-04-30",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/120.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "05-01",
+      "publishedStories": [],
+      "fallbackObservationDate": "1951-05-01",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/121.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20120501",
+        "https://www.weather.gov/iln/20090501"
+      ]
+    },
+    {
+      "monthDay": "05-02",
+      "publishedStories": [
+        "2010-05-02"
+      ],
+      "fallbackObservationDate": "1897-05-02",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/122.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20100502",
+        "https://www.weather.gov/iln/20020502"
+      ]
+    },
+    {
+      "monthDay": "05-03",
+      "publishedStories": [],
+      "fallbackObservationDate": "1940-05-03",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/123.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20220503",
+        "https://www.weather.gov/iln/20100503"
+      ]
+    },
+    {
+      "monthDay": "05-04",
+      "publishedStories": [],
+      "fallbackObservationDate": "1902-05-04",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/124.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20240504"
+      ]
+    },
+    {
+      "monthDay": "05-05",
+      "publishedStories": [],
+      "fallbackObservationDate": "1959-05-05",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/125.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "05-06",
+      "publishedStories": [],
+      "fallbackObservationDate": "2022-05-06",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/126.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "05-07",
+      "publishedStories": [],
+      "fallbackObservationDate": "1961-05-07",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/127.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20240507"
+      ]
+    },
+    {
+      "monthDay": "05-08",
+      "publishedStories": [],
+      "fallbackObservationDate": "1875-05-08",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/128.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20080508"
+      ]
+    },
+    {
+      "monthDay": "05-09",
+      "publishedStories": [],
+      "fallbackObservationDate": "2020-05-09",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/129.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "05-10",
+      "publishedStories": [
+        "1926-05-10"
+      ],
+      "fallbackObservationDate": "1960-05-10",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/130.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20200510",
+        "https://www.weather.gov/iln/20110510",
+        "https://www.weather.gov/iln/20060510",
+        "https://www.weather.gov/iln/20030510"
+      ]
+    },
+    {
+      "monthDay": "05-11",
+      "publishedStories": [],
+      "fallbackObservationDate": "1905-05-11",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/131.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20150511",
+        "https://www.weather.gov/iln/20140511"
+      ]
+    },
+    {
+      "monthDay": "05-12",
+      "publishedStories": [
+        "2010-05-12"
+      ],
+      "fallbackObservationDate": "2000-05-12",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/132.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20100512"
+      ]
+    },
+    {
+      "monthDay": "05-13",
+      "publishedStories": [],
+      "fallbackObservationDate": "1933-05-13",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/133.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20100513"
+      ]
+    },
+    {
+      "monthDay": "05-14",
+      "publishedStories": [],
+      "fallbackObservationDate": "1886-05-14",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/134.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20200514",
+        "https://www.weather.gov/iln/20140514"
+      ]
+    },
+    {
+      "monthDay": "05-15",
+      "publishedStories": [],
+      "fallbackObservationDate": "1996-05-15",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/135.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20070515"
+      ]
+    },
+    {
+      "monthDay": "05-16",
+      "publishedStories": [],
+      "fallbackObservationDate": "1990-05-16",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/136.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20250516"
+      ]
+    },
+    {
+      "monthDay": "05-17",
+      "publishedStories": [],
+      "fallbackObservationDate": "1894-05-17",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/137.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "05-18",
+      "publishedStories": [],
+      "fallbackObservationDate": "1962-05-18",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/138.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20200518",
+        "https://www.weather.gov/iln/20010518"
+      ]
+    },
+    {
+      "monthDay": "05-19",
+      "publishedStories": [],
+      "fallbackObservationDate": "1894-05-19",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/139.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20190519",
+        "https://www.weather.gov/iln/20170519",
+        "https://www.weather.gov/iln/20050519"
+      ]
+    },
+    {
+      "monthDay": "05-20",
+      "publishedStories": [],
+      "fallbackObservationDate": "1902-05-20",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/140.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "05-21",
+      "publishedStories": [],
+      "fallbackObservationDate": "1894-05-21",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/141.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20220521",
+        "https://www.weather.gov/iln/20180521",
+        "https://www.weather.gov/iln/20140521",
+        "https://www.weather.gov/iln/20100521"
+      ]
+    },
+    {
+      "monthDay": "05-22",
+      "publishedStories": [],
+      "fallbackObservationDate": "1883-05-22",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/142.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "05-23",
+      "publishedStories": [],
+      "fallbackObservationDate": "1998-05-23",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/143.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20110523"
+      ]
+    },
+    {
+      "monthDay": "05-24",
+      "publishedStories": [],
+      "fallbackObservationDate": "1968-05-24",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/144.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20170524"
+      ]
+    },
+    {
+      "monthDay": "05-25",
+      "publishedStories": [],
+      "fallbackObservationDate": "1979-05-25",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/145.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20110525",
+        "https://www.weather.gov/iln/20060525"
+      ]
+    },
+    {
+      "monthDay": "05-26",
+      "publishedStories": [],
+      "fallbackObservationDate": "1879-05-26",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/146.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20150526"
+      ]
+    },
+    {
+      "monthDay": "05-27",
+      "publishedStories": [],
+      "fallbackObservationDate": "1956-05-27",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/147.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20190527",
+        "https://www.weather.gov/iln/20040527"
+      ]
+    },
+    {
+      "monthDay": "05-28",
+      "publishedStories": [],
+      "fallbackObservationDate": "1882-05-28",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/148.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "05-29",
+      "publishedStories": [],
+      "fallbackObservationDate": "1965-05-29",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/149.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "05-30",
+      "publishedStories": [
+        "2009-05-30"
+      ],
+      "fallbackObservationDate": "1874-05-30",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/150.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20180530",
+        "https://www.weather.gov/iln/20090530"
+      ]
+    },
+    {
+      "monthDay": "05-31",
+      "publishedStories": [],
+      "fallbackObservationDate": "1889-05-31",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/151.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20040531"
+      ]
+    },
+    {
+      "monthDay": "06-01",
+      "publishedStories": [],
+      "fallbackObservationDate": "1934-06-01",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/152.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "06-02",
+      "publishedStories": [
+        "1990-06-02"
+      ],
+      "fallbackObservationDate": "1947-06-02",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/153.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20100602",
+        "https://www.weather.gov/iln/20090602",
+        "https://www.weather.gov/iln/20010602",
+        "https://www.weather.gov/iln/19900602"
+      ]
+    },
+    {
+      "monthDay": "06-03",
+      "publishedStories": [],
+      "fallbackObservationDate": "1895-06-03",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/154.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "06-04",
+      "publishedStories": [],
+      "fallbackObservationDate": "1925-06-04",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/155.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20160604",
+        "https://www.weather.gov/iln/20140604",
+        "https://www.weather.gov/iln/20100604",
+        "https://www.weather.gov/iln/20080604"
+      ]
+    },
+    {
+      "monthDay": "06-05",
+      "publishedStories": [],
+      "fallbackObservationDate": "1925-06-05",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/156.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20240605"
+      ]
+    },
+    {
+      "monthDay": "06-06",
+      "publishedStories": [],
+      "fallbackObservationDate": "1905-06-06",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/157.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20260606",
+        "https://www.weather.gov/iln/20100606"
+      ]
+    },
+    {
+      "monthDay": "06-07",
+      "publishedStories": [],
+      "fallbackObservationDate": "1874-06-07",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/158.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "06-08",
+      "publishedStories": [],
+      "fallbackObservationDate": "1874-06-08",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/159.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20220608",
+        "https://www.weather.gov/iln/20180608"
+      ]
+    },
+    {
+      "monthDay": "06-09",
+      "publishedStories": [],
+      "fallbackObservationDate": "1874-06-09",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/160.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20180609",
+        "https://www.weather.gov/iln/20090609"
+      ]
+    },
+    {
+      "monthDay": "06-10",
+      "publishedStories": [],
+      "fallbackObservationDate": "2011-06-10",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/161.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20200610"
+      ]
+    },
+    {
+      "monthDay": "06-11",
+      "publishedStories": [],
+      "fallbackObservationDate": "1998-06-11",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/162.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20230611",
+        "https://www.weather.gov/iln/20210611"
+      ]
+    },
+    {
+      "monthDay": "06-12",
+      "publishedStories": [],
+      "fallbackObservationDate": "1903-06-12",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/163.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20260612",
+        "https://www.weather.gov/iln/20100612"
+      ]
+    },
+    {
+      "monthDay": "06-13",
+      "publishedStories": [],
+      "fallbackObservationDate": "1955-06-13",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/164.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20220613",
+        "https://www.weather.gov/iln/20130613"
+      ]
+    },
+    {
+      "monthDay": "06-14",
+      "publishedStories": [],
+      "fallbackObservationDate": "1880-06-14",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/165.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20090614",
+        "https://www.weather.gov/iln/20040614"
+      ]
+    },
+    {
+      "monthDay": "06-15",
+      "publishedStories": [
+        "2016-06-15",
+        "2019-06-15"
+      ],
+      "fallbackObservationDate": "1917-06-15",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/166.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20190615",
+        "https://www.weather.gov/iln/20160615"
+      ]
+    },
+    {
+      "monthDay": "06-16",
+      "publishedStories": [],
+      "fallbackObservationDate": "2019-06-16",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/167.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20180616",
+        "https://www.weather.gov/iln/20090616"
+      ]
+    },
+    {
+      "monthDay": "06-17",
+      "publishedStories": [],
+      "fallbackObservationDate": "1917-06-17",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/168.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20190617"
+      ]
+    },
+    {
+      "monthDay": "06-18",
+      "publishedStories": [
+        "2021-06-18"
+      ],
+      "fallbackObservationDate": "1944-06-18",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/169.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20260618",
+        "https://www.weather.gov/iln/20250618",
+        "https://www.weather.gov/iln/20210618"
+      ]
+    },
+    {
+      "monthDay": "06-19",
+      "publishedStories": [],
+      "fallbackObservationDate": "2021-06-19",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/170.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20090619"
+      ]
+    },
+    {
+      "monthDay": "06-20",
+      "publishedStories": [],
+      "fallbackObservationDate": "1933-06-20",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/171.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "06-21",
+      "publishedStories": [
+        "1926-06-21"
+      ],
+      "fallbackObservationDate": "1961-06-21",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/172.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20100621",
+        "https://www.weather.gov/iln/20010621"
+      ]
+    },
+    {
+      "monthDay": "06-22",
+      "publishedStories": [],
+      "fallbackObservationDate": "1974-06-22",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/173.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20220622",
+        "https://www.weather.gov/iln/20060622"
+      ]
+    },
+    {
+      "monthDay": "06-23",
+      "publishedStories": [],
+      "fallbackObservationDate": "1972-06-23",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/174.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20170623",
+        "https://www.weather.gov/iln/20160623",
+        "https://www.weather.gov/iln/20150623"
+      ]
+    },
+    {
+      "monthDay": "06-24",
+      "publishedStories": [],
+      "fallbackObservationDate": "1972-06-24",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/175.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20190624"
+      ]
+    },
+    {
+      "monthDay": "06-25",
+      "publishedStories": [],
+      "fallbackObservationDate": "1972-06-25",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/176.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "06-26",
+      "publishedStories": [],
+      "fallbackObservationDate": "2013-06-26",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/177.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20150626",
+        "https://www.weather.gov/iln/20090626"
+      ]
+    },
+    {
+      "monthDay": "06-27",
+      "publishedStories": [],
+      "fallbackObservationDate": "1944-06-27",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/178.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20110627",
+        "https://www.weather.gov/iln/20100627"
+      ]
+    },
+    {
+      "monthDay": "06-28",
+      "publishedStories": [],
+      "fallbackObservationDate": "1924-06-28",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/179.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "06-29",
+      "publishedStories": [
+        "2012-06-29"
+      ],
+      "fallbackObservationDate": "2012-06-29",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/180.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20120629"
+      ]
+    },
+    {
+      "monthDay": "06-30",
+      "publishedStories": [],
+      "fallbackObservationDate": "1923-06-30",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/181.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20150630"
+      ]
+    },
+    {
+      "monthDay": "07-01",
+      "publishedStories": [],
+      "fallbackObservationDate": "2008-07-01",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/182.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20120701"
+      ]
+    },
+    {
+      "monthDay": "07-02",
+      "publishedStories": [],
+      "fallbackObservationDate": "1872-07-02",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/183.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20190702"
+      ]
+    },
+    {
+      "monthDay": "07-03",
+      "publishedStories": [],
+      "fallbackObservationDate": "1877-07-03",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/184.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20190703",
+        "https://www.weather.gov/iln/20040703"
+      ]
+    },
+    {
+      "monthDay": "07-04",
+      "publishedStories": [],
+      "fallbackObservationDate": "1911-07-04",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/185.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20240704"
+      ]
+    },
+    {
+      "monthDay": "07-05",
+      "publishedStories": [],
+      "fallbackObservationDate": "1953-07-05",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/186.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "07-06",
+      "publishedStories": [
+        "2022-07-06"
+      ],
+      "fallbackObservationDate": "2012-07-06",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/187.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20220706",
+        "https://www.weather.gov/iln/20190706"
+      ]
+    },
+    {
+      "monthDay": "07-07",
+      "publishedStories": [
+        "1915-07-07"
+      ],
+      "fallbackObservationDate": "1881-07-07",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/188.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20190707",
+        "https://www.weather.gov/iln/20170707",
+        "https://www.weather.gov/iln/20140707"
+      ]
+    },
+    {
+      "monthDay": "07-08",
+      "publishedStories": [
+        "1936-07-08"
+      ],
+      "fallbackObservationDate": "1881-07-08",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/189.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "07-09",
+      "publishedStories": [],
+      "fallbackObservationDate": "1947-07-09",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/190.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "07-10",
+      "publishedStories": [],
+      "fallbackObservationDate": "1936-07-10",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/191.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20170710",
+        "https://www.weather.gov/iln/20130710"
+      ]
+    },
+    {
+      "monthDay": "07-11",
+      "publishedStories": [],
+      "fallbackObservationDate": "1963-07-11",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/192.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20170711",
+        "https://www.weather.gov/iln/20110711",
+        "https://www.weather.gov/iln/20090711",
+        "https://www.weather.gov/iln/20060711"
+      ]
+    },
+    {
+      "monthDay": "07-12",
+      "publishedStories": [],
+      "fallbackObservationDate": "1881-07-12",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/193.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20250712"
+      ]
+    },
+    {
+      "monthDay": "07-13",
+      "publishedStories": [],
+      "fallbackObservationDate": "1881-07-13",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/194.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20170713",
+        "https://www.weather.gov/iln/20160713",
+        "https://www.weather.gov/iln/20150713"
+      ]
+    },
+    {
+      "monthDay": "07-14",
+      "publishedStories": [
+        "2015-07-14"
+      ],
+      "fallbackObservationDate": "1936-07-14",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/195.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20150714"
+      ]
+    },
+    {
+      "monthDay": "07-15",
+      "publishedStories": [],
+      "fallbackObservationDate": "1962-07-15",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/196.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20070715"
+      ]
+    },
+    {
+      "monthDay": "07-16",
+      "publishedStories": [],
+      "fallbackObservationDate": "1887-07-16",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/197.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20170716"
+      ]
+    },
+    {
+      "monthDay": "07-17",
+      "publishedStories": [
+        "2026-07-17"
+      ],
+      "fallbackObservationDate": "1887-07-17",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/198.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20260717",
+        "https://www.weather.gov/iln/20220717"
+      ]
+    },
+    {
+      "monthDay": "07-18",
+      "publishedStories": [],
+      "fallbackObservationDate": "1887-07-18",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/199.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20010718"
+      ]
+    },
+    {
+      "monthDay": "07-19",
+      "publishedStories": [],
+      "fallbackObservationDate": "1988-07-19",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/200.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20250719"
+      ]
+    },
+    {
+      "monthDay": "07-20",
+      "publishedStories": [],
+      "fallbackObservationDate": "1925-07-20",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/201.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20180720",
+        "https://www.weather.gov/iln/20110720"
+      ]
+    },
+    {
+      "monthDay": "07-21",
+      "publishedStories": [
+        "1934-07-21",
+        "2010-07-21"
+      ],
+      "fallbackObservationDate": "1934-07-21",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/202.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20260721",
+        "https://www.weather.gov/iln/20100721"
+      ]
+    },
+    {
+      "monthDay": "07-22",
+      "publishedStories": [],
+      "fallbackObservationDate": "1934-07-22",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/203.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "07-23",
+      "publishedStories": [],
+      "fallbackObservationDate": "1947-07-23",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/204.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20220723",
+        "https://www.weather.gov/iln/20170723_3DaysOfStorms"
+      ]
+    },
+    {
+      "monthDay": "07-24",
+      "publishedStories": [],
+      "fallbackObservationDate": "1934-07-24",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/205.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "07-25",
+      "publishedStories": [],
+      "fallbackObservationDate": "1934-07-25",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/206.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "07-26",
+      "publishedStories": [],
+      "fallbackObservationDate": "2004-07-26",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/207.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "07-27",
+      "publishedStories": [],
+      "fallbackObservationDate": "1926-07-27",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/208.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20140727"
+      ]
+    },
+    {
+      "monthDay": "07-28",
+      "publishedStories": [],
+      "fallbackObservationDate": "1901-07-28",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/209.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "07-29",
+      "publishedStories": [],
+      "fallbackObservationDate": "1901-07-29",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/210.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20230729",
+        "https://www.weather.gov/iln/20210729"
+      ]
+    },
+    {
+      "monthDay": "07-30",
+      "publishedStories": [
+        "2004-07-30"
+      ],
+      "fallbackObservationDate": "1999-07-30",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/211.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20240730",
+        "https://www.weather.gov/iln/20040730"
+      ]
+    },
+    {
+      "monthDay": "07-31",
+      "publishedStories": [],
+      "fallbackObservationDate": "1926-07-31",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/212.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "08-01",
+      "publishedStories": [],
+      "fallbackObservationDate": "1875-08-01",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/213.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20260801",
+        "https://www.weather.gov/iln/20090801",
+        "https://www.weather.gov/iln/20030801"
+      ]
+    },
+    {
+      "monthDay": "08-02",
+      "publishedStories": [],
+      "fallbackObservationDate": "1875-08-02",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/214.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "08-03",
+      "publishedStories": [],
+      "fallbackObservationDate": "1965-08-03",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/215.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "08-04",
+      "publishedStories": [
+        "2009-08-04"
+      ],
+      "fallbackObservationDate": "1930-08-04",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/216.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20180804",
+        "https://www.weather.gov/iln/20100804",
+        "https://www.weather.gov/iln/20090804"
+      ]
+    },
+    {
+      "monthDay": "08-05",
+      "publishedStories": [],
+      "fallbackObservationDate": "1995-08-05",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/217.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "08-06",
+      "publishedStories": [],
+      "fallbackObservationDate": "1918-08-06",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/218.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "08-07",
+      "publishedStories": [],
+      "fallbackObservationDate": "1920-08-07",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/219.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20110807"
+      ]
+    },
+    {
+      "monthDay": "08-08",
+      "publishedStories": [],
+      "fallbackObservationDate": "1989-08-08",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/220.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "08-09",
+      "publishedStories": [],
+      "fallbackObservationDate": "1960-08-09",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/221.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20070809",
+        "https://www.weather.gov/iln/20000809"
+      ]
+    },
+    {
+      "monthDay": "08-10",
+      "publishedStories": [],
+      "fallbackObservationDate": "1881-08-10",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/222.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "08-11",
+      "publishedStories": [],
+      "fallbackObservationDate": "1957-08-11",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/223.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20260811"
+      ]
+    },
+    {
+      "monthDay": "08-12",
+      "publishedStories": [],
+      "fallbackObservationDate": "1964-08-12",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/224.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20230812",
+        "https://www.weather.gov/iln/20140812"
+      ]
+    },
+    {
+      "monthDay": "08-13",
+      "publishedStories": [],
+      "fallbackObservationDate": "1964-08-13",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/225.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20260813"
+      ]
+    },
+    {
+      "monthDay": "08-14",
+      "publishedStories": [],
+      "fallbackObservationDate": "1964-08-14",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/226.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20230814",
+        "https://www.weather.gov/iln/20100814"
+      ]
+    },
+    {
+      "monthDay": "08-15",
+      "publishedStories": [],
+      "fallbackObservationDate": "1979-08-15",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/227.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20260815"
+      ]
+    },
+    {
+      "monthDay": "08-16",
+      "publishedStories": [],
+      "fallbackObservationDate": "2018-08-16",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/228.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "08-17",
+      "publishedStories": [
+        "2016-08-17"
+      ],
+      "fallbackObservationDate": "1927-08-17",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/229.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20160817"
+      ]
+    },
+    {
+      "monthDay": "08-18",
+      "publishedStories": [],
+      "fallbackObservationDate": "1915-08-18",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/230.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "08-19",
+      "publishedStories": [],
+      "fallbackObservationDate": "1936-08-19",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/231.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "08-20",
+      "publishedStories": [],
+      "fallbackObservationDate": "1962-08-20",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/232.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20260820",
+        "https://www.weather.gov/iln/20160820",
+        "https://www.weather.gov/iln/20090820"
+      ]
+    },
+    {
+      "monthDay": "08-21",
+      "publishedStories": [],
+      "fallbackObservationDate": "1888-08-21",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/233.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "08-22",
+      "publishedStories": [],
+      "fallbackObservationDate": "1936-08-22",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/234.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "08-23",
+      "publishedStories": [],
+      "fallbackObservationDate": "1936-08-23",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/235.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "08-24",
+      "publishedStories": [],
+      "fallbackObservationDate": "2007-08-24",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/236.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "08-25",
+      "publishedStories": [],
+      "fallbackObservationDate": "1871-08-25",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/237.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20200825"
+      ]
+    },
+    {
+      "monthDay": "08-26",
+      "publishedStories": [],
+      "fallbackObservationDate": "1890-08-26",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/238.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "08-27",
+      "publishedStories": [],
+      "fallbackObservationDate": "1944-08-27",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/239.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "08-28",
+      "publishedStories": [
+        "2016-08-28"
+      ],
+      "fallbackObservationDate": "1974-08-28",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/240.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20160828",
+        "https://www.weather.gov/iln/20060828"
+      ]
+    },
+    {
+      "monthDay": "08-29",
+      "publishedStories": [],
+      "fallbackObservationDate": "1881-08-29",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/241.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "08-30",
+      "publishedStories": [
+        "2005-08-30"
+      ],
+      "fallbackObservationDate": "1881-08-30",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/242.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20050830"
+      ]
+    },
+    {
+      "monthDay": "08-31",
+      "publishedStories": [],
+      "fallbackObservationDate": "1915-08-31",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/243.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-01",
+      "publishedStories": [],
+      "fallbackObservationDate": "1953-09-01",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/244.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-02",
+      "publishedStories": [
+        "1926-09-02"
+      ],
+      "fallbackObservationDate": "1950-09-02",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/245.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-03",
+      "publishedStories": [],
+      "fallbackObservationDate": "1974-09-03",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/246.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-04",
+      "publishedStories": [],
+      "fallbackObservationDate": "1991-09-04",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/247.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-05",
+      "publishedStories": [],
+      "fallbackObservationDate": "1915-09-05",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/248.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-06",
+      "publishedStories": [],
+      "fallbackObservationDate": "1954-09-06",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/249.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-07",
+      "publishedStories": [],
+      "fallbackObservationDate": "1917-09-07",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/250.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20200907"
+      ]
+    },
+    {
+      "monthDay": "09-08",
+      "publishedStories": [],
+      "fallbackObservationDate": "2018-09-08",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/251.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20160908",
+        "https://www.weather.gov/iln/20120908"
+      ]
+    },
+    {
+      "monthDay": "09-09",
+      "publishedStories": [],
+      "fallbackObservationDate": "1939-09-09",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/252.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20180909"
+      ]
+    },
+    {
+      "monthDay": "09-10",
+      "publishedStories": [],
+      "fallbackObservationDate": "1964-09-10",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/253.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20160910"
+      ]
+    },
+    {
+      "monthDay": "09-11",
+      "publishedStories": [],
+      "fallbackObservationDate": "1975-09-11",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/254.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-12",
+      "publishedStories": [],
+      "fallbackObservationDate": "2006-09-12",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/255.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-13",
+      "publishedStories": [],
+      "fallbackObservationDate": "1979-09-13",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/256.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-14",
+      "publishedStories": [
+        "2008-09-14"
+      ],
+      "fallbackObservationDate": "1939-09-14",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/257.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20080914"
+      ]
+    },
+    {
+      "monthDay": "09-15",
+      "publishedStories": [],
+      "fallbackObservationDate": "1893-09-15",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/258.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-16",
+      "publishedStories": [],
+      "fallbackObservationDate": "1996-09-16",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/259.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20100916"
+      ]
+    },
+    {
+      "monthDay": "09-17",
+      "publishedStories": [],
+      "fallbackObservationDate": "1931-09-17",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/260.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-18",
+      "publishedStories": [],
+      "fallbackObservationDate": "1895-09-18",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/261.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-19",
+      "publishedStories": [],
+      "fallbackObservationDate": "1918-09-19",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/262.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-20",
+      "publishedStories": [],
+      "fallbackObservationDate": "2013-09-20",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/263.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20000920"
+      ]
+    },
+    {
+      "monthDay": "09-21",
+      "publishedStories": [],
+      "fallbackObservationDate": "1940-09-21",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/264.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-22",
+      "publishedStories": [],
+      "fallbackObservationDate": "1931-09-22",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/265.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20250922",
+        "https://www.weather.gov/iln/20100922"
+      ]
+    },
+    {
+      "monthDay": "09-23",
+      "publishedStories": [],
+      "fallbackObservationDate": "2010-09-23",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/266.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-24",
+      "publishedStories": [],
+      "fallbackObservationDate": "2024-09-24",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/267.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20240924"
+      ]
+    },
+    {
+      "monthDay": "09-25",
+      "publishedStories": [],
+      "fallbackObservationDate": "1881-09-25",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/268.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20240925"
+      ]
+    },
+    {
+      "monthDay": "09-26",
+      "publishedStories": [],
+      "fallbackObservationDate": "2011-09-26",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/269.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20180926",
+        "https://www.weather.gov/iln/20110926"
+      ]
+    },
+    {
+      "monthDay": "09-27",
+      "publishedStories": [
+        "2024-09-27"
+      ],
+      "fallbackObservationDate": "2002-09-27",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/270.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20240927",
+        "https://www.weather.gov/iln/20030927",
+        "https://www.weather.gov/iln/20020927"
+      ]
+    },
+    {
+      "monthDay": "09-28",
+      "publishedStories": [],
+      "fallbackObservationDate": "1967-09-28",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/271.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-29",
+      "publishedStories": [],
+      "fallbackObservationDate": "1953-09-29",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/272.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "09-30",
+      "publishedStories": [],
+      "fallbackObservationDate": "1881-09-30",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/273.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-01",
+      "publishedStories": [],
+      "fallbackObservationDate": "1973-10-01",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/274.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-02",
+      "publishedStories": [],
+      "fallbackObservationDate": "2019-10-02",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/275.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-03",
+      "publishedStories": [],
+      "fallbackObservationDate": "1974-10-03",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/276.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-04",
+      "publishedStories": [],
+      "fallbackObservationDate": "1987-10-04",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/277.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20061004"
+      ]
+    },
+    {
+      "monthDay": "10-05",
+      "publishedStories": [],
+      "fallbackObservationDate": "1995-10-05",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/278.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-06",
+      "publishedStories": [],
+      "fallbackObservationDate": "1910-10-06",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/279.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-07",
+      "publishedStories": [
+        "2017-10-07"
+      ],
+      "fallbackObservationDate": "1952-10-07",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/280.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20171007",
+        "https://www.weather.gov/iln/20141007"
+      ]
+    },
+    {
+      "monthDay": "10-08",
+      "publishedStories": [],
+      "fallbackObservationDate": "2007-10-08",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/281.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-09",
+      "publishedStories": [],
+      "fallbackObservationDate": "1999-10-09",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/282.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-10",
+      "publishedStories": [],
+      "fallbackObservationDate": "1906-10-10",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/283.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-11",
+      "publishedStories": [],
+      "fallbackObservationDate": "1964-10-11",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/284.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20061011"
+      ]
+    },
+    {
+      "monthDay": "10-12",
+      "publishedStories": [],
+      "fallbackObservationDate": "1978-10-12",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/285.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-13",
+      "publishedStories": [],
+      "fallbackObservationDate": "1988-10-13",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/286.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/19991013"
+      ]
+    },
+    {
+      "monthDay": "10-14",
+      "publishedStories": [],
+      "fallbackObservationDate": "1954-10-14",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/287.PNG",
+      "anniversaryScan": "unavailable",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-15",
+      "publishedStories": [],
+      "fallbackObservationDate": "1914-10-15",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/288.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-16",
+      "publishedStories": [],
+      "fallbackObservationDate": "1989-10-16",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/289.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20211016"
+      ]
+    },
+    {
+      "monthDay": "10-17",
+      "publishedStories": [],
+      "fallbackObservationDate": "1975-10-17",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/290.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-18",
+      "publishedStories": [],
+      "fallbackObservationDate": "2004-10-18",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/291.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-19",
+      "publishedStories": [
+        "1989-10-19"
+      ],
+      "fallbackObservationDate": "1989-10-19",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/292.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20161019"
+      ]
+    },
+    {
+      "monthDay": "10-20",
+      "publishedStories": [],
+      "fallbackObservationDate": "1985-10-20",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/293.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20181020"
+      ]
+    },
+    {
+      "monthDay": "10-21",
+      "publishedStories": [],
+      "fallbackObservationDate": "1952-10-21",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/294.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-22",
+      "publishedStories": [],
+      "fallbackObservationDate": "2007-10-22",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/295.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-23",
+      "publishedStories": [],
+      "fallbackObservationDate": "2007-10-23",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/296.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20091023"
+      ]
+    },
+    {
+      "monthDay": "10-24",
+      "publishedStories": [],
+      "fallbackObservationDate": "1981-10-24",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/297.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20011024"
+      ]
+    },
+    {
+      "monthDay": "10-25",
+      "publishedStories": [],
+      "fallbackObservationDate": "1962-10-25",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/298.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-26",
+      "publishedStories": [],
+      "fallbackObservationDate": "1962-10-26",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/299.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20101026"
+      ]
+    },
+    {
+      "monthDay": "10-27",
+      "publishedStories": [],
+      "fallbackObservationDate": "1962-10-27",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/300.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-28",
+      "publishedStories": [],
+      "fallbackObservationDate": "1883-10-28",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/301.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-29",
+      "publishedStories": [],
+      "fallbackObservationDate": "2020-10-29",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/302.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-30",
+      "publishedStories": [
+        "1993-10-30"
+      ],
+      "fallbackObservationDate": "1993-10-30",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/303.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "10-31",
+      "publishedStories": [
+        "1993-10-31"
+      ],
+      "fallbackObservationDate": "1882-10-31",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/304.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20131031"
+      ]
+    },
+    {
+      "monthDay": "11-01",
+      "publishedStories": [],
+      "fallbackObservationDate": "2018-11-01",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/305.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-02",
+      "publishedStories": [],
+      "fallbackObservationDate": "1966-11-02",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/306.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-03",
+      "publishedStories": [],
+      "fallbackObservationDate": "2011-11-03",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/307.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-04",
+      "publishedStories": [],
+      "fallbackObservationDate": "1936-11-04",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/308.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-05",
+      "publishedStories": [],
+      "fallbackObservationDate": "1948-11-05",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/309.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20171105",
+        "https://www.weather.gov/iln/20071105"
+      ]
+    },
+    {
+      "monthDay": "11-06",
+      "publishedStories": [],
+      "fallbackObservationDate": "1971-11-06",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/310.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-07",
+      "publishedStories": [],
+      "fallbackObservationDate": "1925-11-07",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/311.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-08",
+      "publishedStories": [],
+      "fallbackObservationDate": "1971-11-08",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/312.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-09",
+      "publishedStories": [],
+      "fallbackObservationDate": "1888-11-09",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/313.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-10",
+      "publishedStories": [
+        "2002-11-10"
+      ],
+      "fallbackObservationDate": "2025-11-10",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/314.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20251110",
+        "https://www.weather.gov/iln/20021110"
+      ]
+    },
+    {
+      "monthDay": "11-11",
+      "publishedStories": [
+        "2019-11-11"
+      ],
+      "fallbackObservationDate": "2019-11-11",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/315.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-12",
+      "publishedStories": [
+        "2019-11-12"
+      ],
+      "fallbackObservationDate": "1879-11-12",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/316.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20191112",
+        "https://www.weather.gov/iln/20131112"
+      ]
+    },
+    {
+      "monthDay": "11-13",
+      "publishedStories": [],
+      "fallbackObservationDate": "1879-11-13",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/317.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-14",
+      "publishedStories": [],
+      "fallbackObservationDate": "1871-11-14",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/318.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-15",
+      "publishedStories": [
+        "2018-11-15"
+      ],
+      "fallbackObservationDate": "2005-11-15",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/319.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20201115",
+        "https://www.weather.gov/iln/20181115"
+      ]
+    },
+    {
+      "monthDay": "11-16",
+      "publishedStories": [],
+      "fallbackObservationDate": "1920-11-16",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/320.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-17",
+      "publishedStories": [
+        "2013-11-17"
+      ],
+      "fallbackObservationDate": "1958-11-17",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/321.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20141117",
+        "https://www.weather.gov/iln/20131117"
+      ]
+    },
+    {
+      "monthDay": "11-18",
+      "publishedStories": [
+        "2017-11-18"
+      ],
+      "fallbackObservationDate": "1957-11-18",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/322.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20171118"
+      ]
+    },
+    {
+      "monthDay": "11-19",
+      "publishedStories": [],
+      "fallbackObservationDate": "1985-11-19",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/323.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-20",
+      "publishedStories": [],
+      "fallbackObservationDate": "1931-11-20",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/324.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-21",
+      "publishedStories": [],
+      "fallbackObservationDate": "1883-11-21",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/325.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-22",
+      "publishedStories": [],
+      "fallbackObservationDate": "1874-11-22",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/326.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-23",
+      "publishedStories": [],
+      "fallbackObservationDate": "1880-11-23",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/327.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-24",
+      "publishedStories": [
+        "2004-11-24"
+      ],
+      "fallbackObservationDate": "1950-11-24",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/328.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20191124",
+        "https://www.weather.gov/iln/20141124",
+        "https://www.weather.gov/iln/20041124"
+      ]
+    },
+    {
+      "monthDay": "11-25",
+      "publishedStories": [
+        "1950-11-25"
+      ],
+      "fallbackObservationDate": "2010-11-25",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/329.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-26",
+      "publishedStories": [],
+      "fallbackObservationDate": "1950-11-26",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/330.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-27",
+      "publishedStories": [
+        "2019-11-27"
+      ],
+      "fallbackObservationDate": "1990-11-27",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/331.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20191127",
+        "https://www.weather.gov/iln/20131127"
+      ]
+    },
+    {
+      "monthDay": "11-28",
+      "publishedStories": [],
+      "fallbackObservationDate": "1958-11-28",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/332.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-29",
+      "publishedStories": [],
+      "fallbackObservationDate": "1952-11-29",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/333.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "11-30",
+      "publishedStories": [],
+      "fallbackObservationDate": "1974-11-30",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/334.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20201130"
+      ]
+    },
+    {
+      "monthDay": "12-01",
+      "publishedStories": [
+        "2006-12-01"
+      ],
+      "fallbackObservationDate": "2018-12-01",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/335.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20061201"
+      ]
+    },
+    {
+      "monthDay": "12-02",
+      "publishedStories": [],
+      "fallbackObservationDate": "1991-12-02",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/336.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20251202"
+      ]
+    },
+    {
+      "monthDay": "12-03",
+      "publishedStories": [],
+      "fallbackObservationDate": "1982-12-03",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/337.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "12-04",
+      "publishedStories": [],
+      "fallbackObservationDate": "1880-12-04",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/338.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20101204"
+      ]
+    },
+    {
+      "monthDay": "12-05",
+      "publishedStories": [],
+      "fallbackObservationDate": "2011-12-05",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/339.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20021205"
+      ]
+    },
+    {
+      "monthDay": "12-06",
+      "publishedStories": [
+        "2013-12-06"
+      ],
+      "fallbackObservationDate": "1998-12-06",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/340.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20131206",
+        "https://www.weather.gov/iln/20111206"
+      ]
+    },
+    {
+      "monthDay": "12-07",
+      "publishedStories": [],
+      "fallbackObservationDate": "1977-12-07",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/341.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "12-08",
+      "publishedStories": [
+        "2005-12-08"
+      ],
+      "fallbackObservationDate": "1917-12-08",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/342.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20051208"
+      ]
+    },
+    {
+      "monthDay": "12-09",
+      "publishedStories": [],
+      "fallbackObservationDate": "1876-12-09",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/343.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20171209",
+        "https://www.weather.gov/iln/20091209"
+      ]
+    },
+    {
+      "monthDay": "12-10",
+      "publishedStories": [],
+      "fallbackObservationDate": "1917-12-10",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/344.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20131210"
+      ]
+    },
+    {
+      "monthDay": "12-11",
+      "publishedStories": [],
+      "fallbackObservationDate": "1917-12-11",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/345.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20211211",
+        "https://www.weather.gov/iln/20161211"
+      ]
+    },
+    {
+      "monthDay": "12-12",
+      "publishedStories": [],
+      "fallbackObservationDate": "1873-12-12",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/346.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "12-13",
+      "publishedStories": [],
+      "fallbackObservationDate": "2025-12-13",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/347.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20251213",
+        "https://www.weather.gov/iln/20161213",
+        "https://www.weather.gov/iln/20101213"
+      ]
+    },
+    {
+      "monthDay": "12-14",
+      "publishedStories": [],
+      "fallbackObservationDate": "1948-12-14",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/348.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20131214"
+      ]
+    },
+    {
+      "monthDay": "12-15",
+      "publishedStories": [],
+      "fallbackObservationDate": "1989-12-15",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/349.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20051215"
+      ]
+    },
+    {
+      "monthDay": "12-16",
+      "publishedStories": [],
+      "fallbackObservationDate": "1951-12-16",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/350.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20191216",
+        "https://www.weather.gov/iln/20131216",
+        "https://www.weather.gov/iln/20101216"
+      ]
+    },
+    {
+      "monthDay": "12-17",
+      "publishedStories": [],
+      "fallbackObservationDate": "1981-12-17",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/351.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20191217",
+        "https://www.weather.gov/iln/20161217"
+      ]
+    },
+    {
+      "monthDay": "12-18",
+      "publishedStories": [],
+      "fallbackObservationDate": "1990-12-18",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/352.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "12-19",
+      "publishedStories": [],
+      "fallbackObservationDate": "2002-12-19",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/353.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "12-20",
+      "publishedStories": [],
+      "fallbackObservationDate": "1981-12-20",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/354.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "12-21",
+      "publishedStories": [],
+      "fallbackObservationDate": "1989-12-21",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/355.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20131221"
+      ]
+    },
+    {
+      "monthDay": "12-22",
+      "publishedStories": [],
+      "fallbackObservationDate": "1989-12-22",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/356.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "12-23",
+      "publishedStories": [
+        "2004-12-23",
+        "2015-12-23",
+        "2022-12-23"
+      ],
+      "fallbackObservationDate": "1921-12-23",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/357.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20221223",
+        "https://www.weather.gov/iln/20171223",
+        "https://www.weather.gov/iln/20151223",
+        "https://www.weather.gov/iln/20041223"
+      ]
+    },
+    {
+      "monthDay": "12-24",
+      "publishedStories": [],
+      "fallbackObservationDate": "1983-12-24",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/358.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20171224",
+        "https://www.weather.gov/iln/20141224"
+      ]
+    },
+    {
+      "monthDay": "12-25",
+      "publishedStories": [
+        "1926-12-25"
+      ],
+      "fallbackObservationDate": "1983-12-25",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/359.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20201225"
+      ]
+    },
+    {
+      "monthDay": "12-26",
+      "publishedStories": [
+        "2012-12-26"
+      ],
+      "fallbackObservationDate": "2016-12-26",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/360.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20121226"
+      ]
+    },
+    {
+      "monthDay": "12-27",
+      "publishedStories": [],
+      "fallbackObservationDate": "1990-12-27",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/361.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "12-28",
+      "publishedStories": [
+        "1926-12-28"
+      ],
+      "fallbackObservationDate": "2025-12-28",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/362.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    },
+    {
+      "monthDay": "12-29",
+      "publishedStories": [],
+      "fallbackObservationDate": "1889-12-29",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/363.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20241229",
+        "https://www.weather.gov/iln/20171229",
+        "https://www.weather.gov/iln/20121229"
+      ]
+    },
+    {
+      "monthDay": "12-30",
+      "publishedStories": [],
+      "fallbackObservationDate": "1932-12-30",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/364.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": [
+        "https://www.weather.gov/iln/20191230"
+      ]
+    },
+    {
+      "monthDay": "12-31",
+      "publishedStories": [],
+      "fallbackObservationDate": "1875-12-31",
+      "nwsAnniversaryCard": "https://www.weather.gov/images/iln/wxhistory/365.PNG",
+      "anniversaryScan": "retrieved",
+      "candidateEventUrls": []
+    }
+  ]
+}

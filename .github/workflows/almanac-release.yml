@@ -1,0 +1,48 @@
+name: Almanac release checks
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'almanac.html'
+      - 'assets/almanac*.js'
+      - 'assets/climate-*'
+      - '.github/workflows/almanac-release.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'almanac.html'
+      - 'assets/almanac*.js'
+      - 'assets/climate-*'
+permissions:
+  contents: read
+jobs:
+  almanac:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Almanac unit tests and asset stamps
+        run: |
+          node tests/almanac.test.js
+          node tests/climate-report.test.js
+          node tests/climate-daily.test.js
+          node tests/climate-period-records.test.js
+          node tests/climate-station.test.js
+          node tests/astronomy.test.js
+          node tools/stamp-assets.js --check
+      - name: Install test browser
+        run: |
+          npm install --no-save playwright@1.48.2
+          npx playwright install --with-deps chromium || npx playwright install chromium
+      - name: Morning, evening, correction, refresh failure, midnight and phone checks
+        run: node tools/almanac-daily-check.js /tmp/almanac-release
+      - name: Station-aware refresh regression
+        run: node tools/almanac-refresh-check.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: almanac-release-screens
+          path: /tmp/almanac-release
+          if-no-files-found: ignore

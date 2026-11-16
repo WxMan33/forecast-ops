@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hourly grid fixtures</title>
+<link rel="stylesheet" href="../../../assets/ops.css">
+<link rel="stylesheet" href="../../../assets/hourly-grid.css">
+<style>body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;margin:0;padding:16px}h1{font-size:16px;margin:0 0 4px}p.k{color:var(--muted);font-size:12.5px;margin:0 0 10px}</style>
+<script>(function(){const q=new URLSearchParams(location.search);document.documentElement.dataset.theme=q.get("theme")||"dark";})();</script>
+</head><body>
+<h1 id="title"></h1><p class="k" id="kind"></p>
+<div id="grid"></div><div id="legend"></div><div id="detail" class="hg-detail" hidden></div>
+<script src="../../../assets/ops-core.js"></script>
+<script src="../../../assets/model-trends.js"></script>
+<script src="../../../assets/beta-story.js"></script>
+<script src="../../../assets/hourly-model.js"></script>
+<script src="../../../assets/hourly-views.js"></script>
+<script src="../../../assets/hourly-grid.js"></script>
+<script>
+/* Deterministic synthetic guidance (no network): the same blend, briefing engine and views as the pages. */
+const C = window.OpsCore, S = window.BetaStory, M = window.HourlyModel, V = window.HourlyViews, G = window.HourlyGrid, T = window.ModelTrends;
+const H = 3600e3, NY = "America/New_York", q = new URLSearchParams(location.search), which = q.get("case") || "overlap";
+function guidance(t0, hours, f) {
+  const ms = Array.from({ length: hours }, (_, i) => t0 + i * H), keys = ["temperature_2m", "apparent_temperature", "precipitation_probability", "precipitation", "wind_speed_10m", "wind_gusts_10m", "snowfall"], h = {};
+  keys.forEach((k) => (h[k] = [])); ms.forEach((m, i) => { const v = f(i, m); keys.forEach((k) => h[k].push(v[k] === undefined ? null : v[k])); });
+  return { ms, times: ms.map((m) => C.time.toLocal(m, NY)), tz: NY, models: { gfs_seamless: { h, d: {} } } };
+}
+const hr = (m) => +C.time.toLocal(m, NY).slice(11, 13);
+const calm = (i) => ({ temperature_2m: 48 + (i % 6), apparent_temperature: 44 + (i % 6), precipitation_probability: 5, precipitation: 0, wind_speed_10m: 6, wind_gusts_10m: 12, snowfall: 0 });
+const CASES = {
+  ordinary: { title: "Ordinary evening event", t0: "2026-11-20T18:00:00Z", n: 14, f: (i) => calm(i), th: () => "normal", times: { setup: "2026-11-20T15:00", gates: "2026-11-20T18:30", start: "2026-11-20T19:00", end: "2026-11-20T21:00", teardown: "2026-11-20T22:00" } },
+  overnight: { title: "Overnight event across midnight", t0: "2026-11-20T18:00:00Z", n: 20, f: (i, m) => ({ ...calm(i), precipitation_probability: hr(m) === 0 ? 30 : 5 }), th: () => "normal", times: { setup: "2026-11-20T16:00", gates: "2026-11-20T19:30", start: "2026-11-20T20:00", end: "2026-11-21T01:00", teardown: "2026-11-21T02:30" } },
+  overlap: { title: "Overlapping concerns (rain, wind, thunder)", t0: "2026-11-20T18:00:00Z", n: 20, f: (i, m) => { const h = hr(m), wet = h >= 22 || h === 0; return { ...calm(i), precipitation_probability: wet ? 80 : h === 21 ? 45 : 10, precipitation: wet ? 0.3 : 0, wind_gusts_10m: wet ? 38 : 14, wind_speed_10m: wet ? 20 : 7 }; },
+    th: (m) => (hr(m) === 23 ? "prepare" : hr(m) === 22 ? "monitor" : "normal"), times: { setup: "2026-11-20T16:00", gates: "2026-11-20T19:30", start: "2026-11-20T20:00", end: "2026-11-21T01:00", teardown: "2026-11-21T02:30" } },
+  multiday: { title: "Three-day fair, partly beyond the guidance", t0: "2026-11-20T13:00:00Z", n: 40, f: (i) => calm(i), th: (m, t0) => (m < t0 + 20 * H ? "normal" : null), times: { setup: "2026-11-20T08:00", start: "2026-11-20T10:00", end: "2026-11-22T18:00", teardown: "2026-11-22T20:00" } },
+  dst: { title: "Fall-back night: both 1 AM hours", t0: "2026-11-01T00:00:00Z", n: 12, f: (i) => calm(i), th: () => "normal", times: { setup: "2026-10-31T21:00", start: "2026-10-31T22:00", end: "2026-11-01T01:30", teardown: "2026-11-01T02:30" }, fold: { end: 1 } },
+  missing: { title: "Missing guidance (a source gap and no thunder)", t0: "2026-11-20T18:00:00Z", n: 14, f: (i, m) => (hr(m) === 20 ? {} : { ...calm(i), precipitation_probability: hr(m) === 21 ? null : 10 }), th: (m) => (hr(m) >= 21 ? null : "normal"), times: { setup: "2026-11-20T16:00", start: "2026-11-20T18:00", end: "2026-11-20T22:00", teardown: "2026-11-20T23:00" } },
+};
+const cs = CASES[which], t0 = Date.parse(cs.t0), B = guidance(t0, cs.n, cs.f);
+const ctx = S.context({ C, T, B, ws: { gfs_seamless: 1 }, rules: null, now: t0 - 2 * H }); ctx.th = { at: (m) => cs.th(m, t0), perModel: () => null, ids: [] };
+let view;
+if (q.get("view") === "blend") {
+  const span = M.blendSpan(t0, +(q.get("hours") || 24), null);
+  view = V.blendView({ C, M, B, ws: { gfs_seamless: 1 }, opts: {}, span, tz: NY, names: { gfs_seamless: "GFS (synthetic)" }, now: t0 });
+  document.getElementById("kind").textContent = "Model Blend view · synthetic guidance";
+} else {
+  const ev = { name: cs.title, loc: { name: "Synthetic venue", lat: 39.1, lon: -84.5 }, tz: NY, times: cs.times, fold: cs.fold || {} };
+  const brief = S.eventBrief(ctx, ev, { gust: 25 });
+  view = V.eventView({ C, S, M, ctx, brief, thr: { gust: 25 }, tz: NY, now: t0 - 2 * H });
+  document.getElementById("kind").textContent = "Event Manager view · synthetic guidance · briefing engine levels";
+  window.__brief = brief;
+}
+document.getElementById("title").textContent = cs.title;
+const show = (ms) => { const i = view.axis.findIndex((a) => a.ms === ms); const d = document.getElementById("detail"); d.hidden = false; d.innerHTML = view.detail(i); };
+const sel = view.axis[Math.min(view.axis.length - 1, +(q.get("sel") || 0))].ms;
+window.__grid = G.render(document.getElementById("grid"), { axis: view.axis, rows: view.rows, selected: sel, now: t0, onSelect: show });
+document.getElementById("legend").innerHTML = G.legend(view.legend) + `<p class="k" style="margin-top:6px">${view.note}</p>`;
+show(sel); window.__view = view; document.body.dataset.ready = "1";
+</script></body></html>

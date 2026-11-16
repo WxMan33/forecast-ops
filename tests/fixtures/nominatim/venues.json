@@ -1,0 +1,589 @@
+{
+ "captured": "2026-11-10",
+ "source": "nominatim.openstreetmap.org (ODbL, \u00a9 OpenStreetMap contributors)",
+ "queries": {
+  "Paycor Stadium": [
+   {
+    "place_id": 339948093,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "way",
+    "osm_id": 210540615,
+    "lat": "39.0954645",
+    "lon": "-84.5160488",
+    "category": "leisure",
+    "type": "stadium",
+    "place_rank": 30,
+    "importance": 0.4659500514924121,
+    "addresstype": "leisure",
+    "name": "Paycor Stadium",
+    "display_name": "Paycor Stadium, 1, West Pete Rose Way, West Fourth Street Historic District, Central Business District, Cincinnati, Hamilton County, Ohio, 45202, United States",
+    "address": {
+     "leisure": "Paycor Stadium",
+     "house_number": "1",
+     "road": "West Pete Rose Way",
+     "neighbourhood": "West Fourth Street Historic District",
+     "suburb": "Central Business District",
+     "city": "Cincinnati",
+     "county": "Hamilton County",
+     "state": "Ohio",
+     "ISO3166-2-lvl4": "US-OH",
+     "postcode": "45202",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "39.0942100",
+     "39.0966339",
+     "-84.5175382",
+     "-84.5145272"
+    ]
+   }
+  ],
+  "Paycor Stadium, Cincinnati, OH": [
+   {
+    "place_id": 338710924,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "way",
+    "osm_id": 210540615,
+    "lat": "39.0954645",
+    "lon": "-84.5160488",
+    "category": "leisure",
+    "type": "stadium",
+    "place_rank": 30,
+    "importance": 0.4659500514924121,
+    "addresstype": "leisure",
+    "name": "Paycor Stadium",
+    "display_name": "Paycor Stadium, 1, West Freedom Way, The Banks, Central Business District, Cincinnati, Hamilton County, Ohio, 45202, United States",
+    "address": {
+     "leisure": "Paycor Stadium",
+     "house_number": "1",
+     "road": "West Freedom Way",
+     "retail": "The Banks",
+     "suburb": "Central Business District",
+     "city": "Cincinnati",
+     "county": "Hamilton County",
+     "state": "Ohio",
+     "ISO3166-2-lvl4": "US-OH",
+     "postcode": "45202",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "39.0942100",
+     "39.0966339",
+     "-84.5175382",
+     "-84.5145272"
+    ]
+   }
+  ],
+  "6295 Kellogg Ave, Cincinnati, OH 45230": [
+   {
+    "place_id": 339016150,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "way",
+    "osm_id": 37094023,
+    "lat": "39.0521043",
+    "lon": "-84.4184876",
+    "category": "building",
+    "type": "pavilion",
+    "place_rank": 30,
+    "importance": 6.060807202253784e-05,
+    "addresstype": "building",
+    "name": "J. Ralph Corbett Pavilion",
+    "display_name": "J. Ralph Corbett Pavilion, 6295, Kellogg Avenue, California, Cincinnati, Anderson Township, Hamilton County, Ohio, 45230, United States",
+    "address": {
+     "building": "J. Ralph Corbett Pavilion",
+     "house_number": "6295",
+     "road": "Kellogg Avenue",
+     "suburb": "California",
+     "city": "Cincinnati",
+     "municipality": "Anderson Township",
+     "county": "Hamilton County",
+     "state": "Ohio",
+     "ISO3166-2-lvl4": "US-OH",
+     "postcode": "45230",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "39.0514882",
+     "39.0528029",
+     "-84.4198434",
+     "-84.4176568"
+    ]
+   },
+   {
+    "place_id": 339288640,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "way",
+    "osm_id": 37094033,
+    "lat": "39.0519365",
+    "lon": "-84.4188631",
+    "category": "building",
+    "type": "roof",
+    "place_rank": 30,
+    "importance": 6.060807202253784e-05,
+    "addresstype": "building",
+    "name": "Riverbend Music Center",
+    "display_name": "Riverbend Music Center, 6295, Kellogg Avenue, California, Cincinnati, Anderson Township, Hamilton County, Ohio, 45230, United States",
+    "address": {
+     "building": "Riverbend Music Center",
+     "house_number": "6295",
+     "road": "Kellogg Avenue",
+     "suburb": "California",
+     "city": "Cincinnati",
+     "municipality": "Anderson Township",
+     "county": "Hamilton County",
+     "state": "Ohio",
+     "ISO3166-2-lvl4": "US-OH",
+     "postcode": "45230",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "39.0514882",
+     "39.0524079",
+     "-84.4194355",
+     "-84.4182447"
+    ]
+   },
+   {
+    "place_id": 404943076,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "way",
+    "osm_id": 545898218,
+    "lat": "39.0561745",
+    "lon": "-84.4175689",
+    "category": "place",
+    "type": "house",
+    "place_rank": 30,
+    "importance": 9.99999999995449e-06,
+    "addresstype": "place",
+    "name": "",
+    "display_name": "6295, Kellogg Avenue, California, Cincinnati, Hamilton County, Ohio, 45230, United States",
+    "address": {
+     "house_number": "6295",
+     "road": "Kellogg Avenue",
+     "suburb": "California",
+     "city": "Cincinnati",
+     "county": "Hamilton County",
+     "state": "Ohio",
+     "ISO3166-2-lvl4": "US-OH",
+     "postcode": "45230",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "39.0561245",
+     "39.0562245",
+     "-84.4176189",
+     "-84.4175189"
+    ]
+   },
+   {
+    "place_id": 404939172,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "way",
+    "osm_id": 545898207,
+    "lat": "39.0594928",
+    "lon": "-84.4206710",
+    "category": "place",
+    "type": "house",
+    "place_rank": 30,
+    "importance": 9.99999999995449e-06,
+    "addresstype": "place",
+    "name": "",
+    "display_name": "6295, Kellogg Avenue, California, Cincinnati, Hamilton County, Ohio, 45230, United States",
+    "address": {
+     "house_number": "6295",
+     "road": "Kellogg Avenue",
+     "suburb": "California",
+     "city": "Cincinnati",
+     "county": "Hamilton County",
+     "state": "Ohio",
+     "ISO3166-2-lvl4": "US-OH",
+     "postcode": "45230",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "39.0594428",
+     "39.0595428",
+     "-84.4207210",
+     "-84.4206210"
+    ]
+   }
+  ],
+  "Memorial Stadium": [
+   {
+    "place_id": 315277997,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "way",
+    "osm_id": 128637559,
+    "lat": "30.2838412",
+    "lon": "-97.7326229",
+    "category": "leisure",
+    "type": "stadium",
+    "place_rank": 30,
+    "importance": 0.4804572665154754,
+    "addresstype": "leisure",
+    "name": "Darrell K Royal-Texas Memorial Stadium",
+    "display_name": "Darrell K Royal-Texas Memorial Stadium, San Jacinto Boulevard, Austin, Travis County, Texas, 78705, United States",
+    "address": {
+     "leisure": "Darrell K Royal-Texas Memorial Stadium",
+     "road": "San Jacinto Boulevard",
+     "city": "Austin",
+     "county": "Travis County",
+     "state": "Texas",
+     "ISO3166-2-lvl4": "US-TX",
+     "postcode": "78705",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "30.2827820",
+     "30.2848613",
+     "-97.7338401",
+     "-97.7313880"
+    ]
+   },
+   {
+    "place_id": 327409514,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "relation",
+    "osm_id": 3364536,
+    "lat": "40.8207179",
+    "lon": "-96.7047562",
+    "category": "leisure",
+    "type": "stadium",
+    "place_rank": 30,
+    "importance": 0.45657830080577694,
+    "addresstype": "leisure",
+    "name": "Memorial Stadium",
+    "display_name": "Memorial Stadium, 1, Salt Creek Roadway Trail, North Lincoln, Lincoln, Lancaster County, Nebraska, 68588, United States",
+    "address": {
+     "leisure": "Memorial Stadium",
+     "house_number": "1",
+     "road": "Salt Creek Roadway Trail",
+     "neighbourhood": "North Lincoln",
+     "city": "Lincoln",
+     "county": "Lancaster County",
+     "state": "Nebraska",
+     "ISO3166-2-lvl4": "US-NE",
+     "postcode": "68588",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "40.8195322",
+     "40.8219063",
+     "-96.7068487",
+     "-96.7042814"
+    ]
+   },
+   {
+    "place_id": 371805983,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "way",
+    "osm_id": 144183176,
+    "lat": "40.0992862",
+    "lon": "-88.2359605",
+    "category": "leisure",
+    "type": "stadium",
+    "place_rank": 30,
+    "importance": 0.4557747258879297,
+    "addresstype": "leisure",
+    "name": "Gies Memorial Stadium",
+    "display_name": "Gies Memorial Stadium, 1402, South First Street, Campustown, Champaign, Champaign County, Illinois, 61820, United States",
+    "address": {
+     "leisure": "Gies Memorial Stadium",
+     "house_number": "1402",
+     "road": "South First Street",
+     "quarter": "Campustown",
+     "city": "Champaign",
+     "county": "Champaign County",
+     "state": "Illinois",
+     "ISO3166-2-lvl4": "US-IL",
+     "postcode": "61820",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "40.0983292",
+     "40.1001999",
+     "-88.2371223",
+     "-88.2347974"
+    ]
+   },
+   {
+    "place_id": 343382722,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "relation",
+    "osm_id": 8555183,
+    "lat": "34.6787669",
+    "lon": "-82.8434264",
+    "category": "leisure",
+    "type": "stadium",
+    "place_rank": 30,
+    "importance": 0.4538818041116547,
+    "addresstype": "leisure",
+    "name": "Memorial Stadium",
+    "display_name": "Memorial Stadium, Press Road, Pickens County, South Carolina, 29634, United States",
+    "address": {
+     "leisure": "Memorial Stadium",
+     "road": "Press Road",
+     "county": "Pickens County",
+     "state": "South Carolina",
+     "ISO3166-2-lvl4": "US-SC",
+     "postcode": "29634",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "34.6776893",
+     "34.6798428",
+     "-82.8448353",
+     "-82.8420856"
+    ]
+   },
+   {
+    "place_id": 335827916,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "way",
+    "osm_id": 109314568,
+    "lat": "38.9358467",
+    "lon": "-92.3332826",
+    "category": "leisure",
+    "type": "stadium",
+    "place_rank": 30,
+    "importance": 0.45106949687043796,
+    "addresstype": "leisure",
+    "name": "Memorial Stadium",
+    "display_name": "Memorial Stadium, Mick Deaver Memorial Drive, Columbia, Columbia Township, Boone County, Missouri, 65212, United States",
+    "address": {
+     "leisure": "Memorial Stadium",
+     "road": "Mick Deaver Memorial Drive",
+     "city": "Columbia",
+     "township": "Columbia Township",
+     "county": "Boone County",
+     "state": "Missouri",
+     "ISO3166-2-lvl4": "US-MO",
+     "postcode": "65212",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "38.9346067",
+     "38.9371235",
+     "-92.3346158",
+     "-92.3318821"
+    ]
+   },
+   {
+    "place_id": 337748679,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "way",
+    "osm_id": 104955698,
+    "lat": "39.1808943",
+    "lon": "-86.5256420",
+    "category": "leisure",
+    "type": "stadium",
+    "place_rank": 30,
+    "importance": 0.4210857630196239,
+    "addresstype": "leisure",
+    "name": "Memorial Stadium",
+    "display_name": "Memorial Stadium, Faris Way, Bloomington, Monroe County, Indiana, 47405, United States",
+    "address": {
+     "leisure": "Memorial Stadium",
+     "road": "Faris Way",
+     "city": "Bloomington",
+     "county": "Monroe County",
+     "state": "Indiana",
+     "ISO3166-2-lvl4": "US-IN",
+     "postcode": "47405",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "39.1796341",
+     "39.1821533",
+     "-86.5268683",
+     "-86.5244877"
+    ]
+   }
+  ],
+  "Riverbend Music Center": [
+   {
+    "place_id": 340315386,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "way",
+    "osm_id": 612806973,
+    "lat": "39.0533395",
+    "lon": "-84.4173403",
+    "category": "amenity",
+    "type": "theatre",
+    "place_rank": 30,
+    "importance": 0.38867939096549164,
+    "addresstype": "amenity",
+    "name": "Riverbend Music Center",
+    "display_name": "Riverbend Music Center, Ohio River Trail, Riverview Heights, Anderson Township, Hamilton County, Ohio, 41085, United States",
+    "address": {
+     "amenity": "Riverbend Music Center",
+     "road": "Ohio River Trail",
+     "hamlet": "Riverview Heights",
+     "municipality": "Anderson Township",
+     "county": "Hamilton County",
+     "state": "Ohio",
+     "ISO3166-2-lvl4": "US-OH",
+     "postcode": "41085",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "39.0511499",
+     "39.0552547",
+     "-84.4209223",
+     "-84.4140342"
+    ]
+   },
+   {
+    "place_id": 340213659,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "way",
+    "osm_id": 37094033,
+    "lat": "39.0519365",
+    "lon": "-84.4188631",
+    "category": "building",
+    "type": "roof",
+    "place_rank": 30,
+    "importance": 6.060807202253784e-05,
+    "addresstype": "building",
+    "name": "Riverbend Music Center",
+    "display_name": "Riverbend Music Center, 6295, Kellogg Avenue, California, Cincinnati, Anderson Township, Hamilton County, Ohio, 45230, United States",
+    "address": {
+     "building": "Riverbend Music Center",
+     "house_number": "6295",
+     "road": "Kellogg Avenue",
+     "suburb": "California",
+     "city": "Cincinnati",
+     "municipality": "Anderson Township",
+     "county": "Hamilton County",
+     "state": "Ohio",
+     "ISO3166-2-lvl4": "US-OH",
+     "postcode": "45230",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "39.0514882",
+     "39.0524079",
+     "-84.4194355",
+     "-84.4182447"
+    ]
+   }
+  ],
+  "Cincinnati, OH": [
+   {
+    "place_id": 339092124,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "relation",
+    "osm_id": 183453,
+    "lat": "39.1012809",
+    "lon": "-84.5127405",
+    "category": "boundary",
+    "type": "administrative",
+    "place_rank": 16,
+    "importance": 0.6937808596993696,
+    "addresstype": "city",
+    "name": "Cincinnati",
+    "display_name": "Cincinnati, Hamilton County, Ohio, United States",
+    "address": {
+     "city": "Cincinnati",
+     "county": "Hamilton County",
+     "state": "Ohio",
+     "ISO3166-2-lvl4": "US-OH",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "39.0520565",
+     "39.2210368",
+     "-84.7123900",
+     "-84.3695773"
+    ]
+   }
+  ],
+  "TQL Stadium": [
+   {
+    "place_id": 338743975,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "way",
+    "osm_id": 1445692208,
+    "lat": "39.1111789",
+    "lon": "-84.5222288",
+    "category": "leisure",
+    "type": "stadium",
+    "place_rank": 30,
+    "importance": 0.44820083971558566,
+    "addresstype": "leisure",
+    "name": "TQL Stadium",
+    "display_name": "TQL Stadium, 1501, Central Parkway, Betts-Longworth Historic District, West End, Cincinnati, Hamilton County, Ohio, 45214, United States",
+    "address": {
+     "leisure": "TQL Stadium",
+     "house_number": "1501",
+     "road": "Central Parkway",
+     "neighbourhood": "Betts-Longworth Historic District",
+     "suburb": "West End",
+     "city": "Cincinnati",
+     "county": "Hamilton County",
+     "state": "Ohio",
+     "ISO3166-2-lvl4": "US-OH",
+     "postcode": "45214",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "39.1099606",
+     "39.1123063",
+     "-84.5238226",
+     "-84.5207656"
+    ]
+   }
+  ],
+  "Lower.com Field, Columbus, OH": [
+   {
+    "place_id": 340861348,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "way",
+    "osm_id": 836864820,
+    "lat": "39.9683620",
+    "lon": "-83.0166582",
+    "category": "leisure",
+    "type": "stadium",
+    "place_rank": 30,
+    "importance": 0.45039779319602985,
+    "addresstype": "leisure",
+    "name": "ScottsMiracle-Gro Field",
+    "display_name": "ScottsMiracle-Gro Field, 96, Columbus Crew Way, Columbus, Franklin County, Ohio, 43215, United States",
+    "address": {
+     "leisure": "ScottsMiracle-Gro Field",
+     "house_number": "96",
+     "road": "Columbus Crew Way",
+     "city": "Columbus",
+     "county": "Franklin County",
+     "state": "Ohio",
+     "ISO3166-2-lvl4": "US-OH",
+     "postcode": "43215",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "39.9674299",
+     "39.9693659",
+     "-83.0179940",
+     "-83.0154489"
+    ]
+   }
+  ]
+ }
+}

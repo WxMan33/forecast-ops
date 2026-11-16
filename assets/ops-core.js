@@ -339,9 +339,11 @@
       const qpf = one("precipitation", "sum", A, "precipitation_sum"), sn = one("snowfall", "sum", A, "snowfall_sum");
       const pop = one("precipitation_probability", "max", idx, "precipitation_probability_max"), gust = one("wind_gusts_10m", "max", idx, "wind_gusts_10m_max");
       const feel = one("apparent_temperature", "min", idx, null);
+      /* sustained wind: same weighted combination as gusts (the hourly grids show it; nothing else reads it) */
+      const wind = one("wind_speed_10m", "max", idx, null);
       const srcHighs = hi.parts.map((p) => p.v);
       return {
-        hi: hi.v, lo: lo.v, qpf: qpf.v, sn: sn.v, pop: pop.v, gust: gust.v, feel: feel.v,
+        hi: hi.v, lo: lo.v, qpf: qpf.v, sn: sn.v, pop: pop.v, gust: gust.v, feel: feel.v, wind: wind.v,
         hiR: [hi.p10, hi.p90], loR: [lo.p10, lo.p90], qpfR: [qpf.p10, qpf.p90],
         ensR: { hi: eq("temperature_2m", "max", idx), lo: eq("temperature_2m", "min", idx), qpf: eq("precipitation", "sum", A) },
         qpfBounds: qpf.bounds, snBounds: sn.bounds,
