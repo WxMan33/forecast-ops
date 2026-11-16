@@ -1,5 +1,6 @@
-"""Normal Severe-page daily viewer checks with fixed time and controlled failures."""
+"""Normal Severe-page checks using synthetic publication times and controlled failures."""
 import functools
+import hashlib
 import http.server
 import json
 import threading
@@ -18,6 +19,29 @@ threading.Thread(target=server.serve_forever, daemon=True).start()
 origin = f"http://127.0.0.1:{server.server_port}"
 corrupt = False
 errors = []
+# Reuse sample arrays while fixing synthetic dates, so future feed updates cannot
+# make this clock/late-publication regression test depend on the wall clock.
+fixture_index = json.loads((root / "assets/severe-daily/index.json").read_text())
+fixture_files = {}
+for spec in fixture_index["runs"]:
+    day = spec["day"]
+    data = json.loads((root / "assets/severe-daily" / spec["file"]).read_text())
+    timing = {
+        "id": f"synthetic-day{day}", "day": day,
+        "model_init_time": f"2026-11-16T{6 if day == 1 else 12:02d}:00:00+00:00",
+        "valid_start": f"2026-11-{16 if day == 1 else 17}T12:00:00+00:00",
+        "valid_end": f"2026-11-{17 if day == 1 else 18}T12:00:00+00:00",
+        "prepared_at": f"2026-11-16T{15 if day == 1 else 16}:00:00+00:00",
+        "available_before_target_start": day == 2,
+    }
+    data.update(timing)
+    body = json.dumps(data).encode()
+    fixture_files[spec["file"]] = body
+    spec.update(timing)
+    spec["date"] = "2026-11-16"
+    spec["sha256"] = hashlib.sha256(body).hexdigest()
+fixture_files["index.json"] = json.dumps(fixture_index).encode()
+
 
 
 def route(request):
@@ -26,6 +50,10 @@ def route(request):
         return
     if corrupt and urlsplit(request.request.url).path == "/assets/severe-daily/day2.json":
         request.fulfill(content_type="application/json", body="{}")
+        return
+    path = urlsplit(request.request.url).path
+    if path.startswith("/assets/severe-daily/") and path.split("/")[-1] in fixture_files:
+        request.fulfill(content_type="application/json", body=fixture_files[path.split("/")[-1]])
         return
     request.continue_()
 

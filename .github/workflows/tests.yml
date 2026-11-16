@@ -23,6 +23,7 @@ jobs:
         with:
           node-version: 20
       - run: node tests/severe-research.test.js
+      - run: node tests/severe-daily.test.js
       - run: node tests/severe-contours.test.js
       - run: python tests/severe-daily.test.py
       - run: node tests/core.test.js
@@ -117,6 +118,7 @@ jobs:
       - run: python tests/forecast-focus-browser.py
       - run: python tests/climate-report-browser.py
       - run: python tests/maps-browser.py
+      - run: python tests/severe-current-browser.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
