@@ -24,14 +24,16 @@ const H = 3600e3;
 const NIGHT = { clearCloudPct: 25, calmMph: 6, windyMph: 12, cloudyPct: 63, share: 2 / 3 };
 
 /* ---------- collection ---------- */
-async function collect(loc, dataRoot, rel, detIds, { days = 16, fetchRaw = U.fetchRaw } = {}) {
+async function collect(loc, dataRoot, rel, detIds, { days = 16, fetchRaw = U.fetchRaw, budgetMs = 180000, now = Date.now } = {}) {
+  const t0 = now(); /* a total time budget: optional context never runs on indefinitely */
   const q = (o) => new URLSearchParams(o).toString().replace(/%2C/g, ","), out = { version: VERSION, vars: VARS, sources: {} };
   let limited = null, noAnswer = 0;
   for (const id of detIds) {
     /* three requests in a row without any answer: the network, not the models; stop instead of probing on */
     if (!limited && noAnswer >= 3) limited = `${noAnswer} requests without an answer`;
+    if (!limited && now() - t0 >= budgetMs) limited = `optional time budget of ${Math.round(budgetMs / 1000)} s reached`;
     const url = `${OM}?${q({ latitude: loc.lat, longitude: loc.lon, ...UNITS, forecast_days: days, models: id, ...(/^ncep_rrfs/.test(id) ? { cell_selection: "nearest", elevation: "nan" } : {}), hourly: VARS.join(",") })}`;
-    if (limited) { out.sources[id] = { status: noAnswer >= 3 ? "skipped after repeated network failures" : "skipped after rate limit", request: url, after: limited }; continue; }
+    if (limited) { out.sources[id] = { status: /budget/.test(limited) ? "skipped: time budget reached" : noAnswer >= 3 ? "skipped after repeated network failures" : "skipped after rate limit", request: url, after: limited }; continue; }
     const rec = { status: "failed", request: url };
     try {
       const r = await fetchRaw(url, { accept: "application/json", tries: 1, timeoutMs: 20000 });

@@ -179,6 +179,23 @@ ok(/Context report FAILED this run/.test(st) && /collection and scoring continue
   cr1 = await CI.run(C1, Date.parse("2026-11-18T15:00:00Z"), { list: [list[2]], fetchRaw: cfake({ "https://h2.test/c": { status: 200, text: body.replace("-0.71", "-0.65"), at: Date.parse("2026-11-18T15:00:00Z") } }) });
   const saved = fs.readdirSync(path.join(C1, "climate", "raw", "c"));
   ok(cr1.results[0].status === "new version saved" && saved.length === 2, "a revised publication is kept as a new version beside the old one");
+  /* ---------- capture order: slow optional requests cannot delay core or TV retrievals ---------- */
+  const CO = require("../lib/capture-order.js"), order = [];
+  const sleepMs = (ms) => new Promise((res) => setTimeout(res, ms));
+  const st = await CO.sequence({ core: async () => { order.push("core"); await sleepMs(20); }, tv: async () => { order.push("tv"); await sleepMs(20); }, optional: async () => { order.push("optional"); await sleepMs(1500); throw new Error("slow optional failed"); } });
+  ok(order.join() === "core,tv,optional" && st.tvStart - st.coreEnd < 50 && st.tvEnd <= st.optionalStart, "TV starts right after the core sources, before any optional request");
+  ok(st.optionalEnd - st.optionalStart >= 1400 && /slow optional failed/.test(st.optionalError), "a slow, failing optional step runs last and its failure is recorded, not thrown");
+  /* a real collect() with slow answers: the time budget stops it; each response keeps its own retrieval time */
+  let clock = 0; const slow = async (url) => { clock += 25000; return { ok: true, status: 200, retrievedAt: new Date(1e12 + clock).toISOString(), buf: Buffer.from(resp()), text: resp() }; };
+  const rb = await CV.collect({ lat: 1, lon: 2 }, D2, "cap3", ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"], { fetchRaw: slow, budgetMs: 100000, now: () => clock });
+  const okd = Object.values(rb.sources).filter((x) => x.status === "ok"), skipped = Object.values(rb.sources).filter((x) => /time budget/.test(x.status));
+  ok(okd.length === 4 && skipped.length === 6 && new Set(okd.map((x) => x.retrievedAt)).size === 4, "the optional time budget stops slow context requests; each keeps its own retrieval time");
+  /* climate indices: availability is proven by our first retrieval, never backdated from Last-Modified */
+  const av = CI.availableAt(C1, "c", Date.parse("2026-11-16T14:59:00Z")), av2 = CI.availableAt(C1, "c", Date.parse("2026-11-16T15:00:00Z")), av3 = CI.availableAt(C1, "c", Date.parse("2026-11-18T16:00:00Z"));
+  ok(av === null && av2 && av2.availableFrom === "2026-11-16T15:00:00.000Z" && av2.serverLastModified === "Mon, 09 Nov 2026 14:00:00 GMT", "a version is available from our first retrieval, not from the earlier Last-Modified");
+  ok(av3 && av3.availableFrom === "2026-11-18T15:00:00.000Z" && av3.validPeriod === "SON 2026", "a revised version replaces the old one only from its own first retrieval");
+  const lg = U.readJSONLDir(path.join(C1, "climate", "retrievals")).filter((r) => r.id === "c" && r.httpStatus === 200);
+  ok(lg.every((r) => r.officialPublication === null && r.validPeriod === "SON 2026") && lg.find((r) => r.newVersion === false).versionFirstRetrievedAt === "2026-11-16T15:00:00.000Z", "retrieval, valid period and official publication are kept apart; unchanged retrievals point to the version's first retrieval");
   console.log(fails ? `${fails} of ${n} context checks failed` : `ok - ${n} context checks passed`);
   process.exit(fails ? 1 : 0);
 })();
