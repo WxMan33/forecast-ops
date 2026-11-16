@@ -17,7 +17,7 @@ button[aria-pressed=true]{background:#173950;color:white}label{display:flex;alig
 .note{font-size:13px;color:#4b5c70}#error{color:#a01919;font-weight:600}
 .state{fill:none;stroke:#596472;stroke-width:.8;vector-effect:non-scaling-stroke;pointer-events:none}
 .report{fill:#111;stroke:white;stroke-width:.7}
-@media(max-width:600px){main{padding:10px}h1{font-size:22px}.controls{gap:8px}#map{min-height:320px}}
+@media(max-width:600px){main{padding:10px}h1{font-size:22px}.controls{gap:8px}#map{min-height:0}}
 </style>
 <main>
 <header><small>FORECAST OPS / EXPERIMENTAL RESEARCH</small><h1>Day 1 severe wind replay</h1>
@@ -37,7 +37,7 @@ button[aria-pressed=true]{background:#173950;color:white}label{display:flex;alig
 <p id="summary"></p><p id="error" role="alert"></p>
 <p class="note">Contours linearly interpolate the original samples, spaced about 15 km apart, using the existing Forecast Ops contour renderer. Point readouts use original samples. Colors below 0.1% are transparent. Black × markers show qualifying NCEI wind report records, which can include multiple records from one storm.</p>
 <p class="note">Regional development study, 100°W–75°W and 30°N–45°N. Training uses 2022, calibration uses 2023 and these 12 evaluation dates are from 2024. The assumed issuance lag is three hours. Original public availability remains unverified. Day 1 wind calibrated Brier skill was +21.6% against the fixed training event rate across these dates. Nearby samples are correlated and the cohort is small.</p>
-<p class="note">The checked export includes models, source hashes and exact-window wind-report reconstruction. The map is a dated replay. Current operational forecast eligibility remains under evaluation.</p>
+<p class="note">The checked export includes source hashes and exact-window wind-report reconstruction. The map is a dated replay. Current operational forecast eligibility remains under evaluation.</p>
 </main>
 <script>/*VENDOR*/</script>
 <script>
@@ -86,7 +86,7 @@ function render(){
  }catch(error){$('error').textContent='Replay unavailable: '+error.message;}
 }
 $('map').addEventListener('click',event=>{
- const rect=$('map').getBoundingClientRect(),matrix=$('map').getScreenCTM();
+ const matrix=$('map').getScreenCTM();
  const point=new DOMPoint(event.clientX,event.clientY).matrixTransform(matrix.inverse());
  const lon=point.x/1100*25-100,lat=45-point.y/700*15;
  let best=Infinity;selected=null;
