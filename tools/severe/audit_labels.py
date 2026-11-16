@@ -44,7 +44,7 @@ def audit(root,source,report):
             actual=data['labels'][product['index'],:,k];known=actual!=255
             np.testing.assert_array_equal(actual[known],expected[known])
             checks.append({'window':product['index'],'hazard':h,'known_samples_compared':int(known.sum()),'positive_samples':int((actual==1).sum())})
-    result={'status':'passed','method':'independent raw CSV parse, fixed-standard offsets and unit-sphere cKDTree neighbors; wind/hail full grid in all 72 windows','comparisons':len(checks),'known_sample_labels_compared':sum(c['known_samples_compared'] for c in checks),'checks':checks,'tornado_check':'separate dense-track geometry and time-clipping unit tests; reported endpoints remain an imperfect path proxy','source_files':[s['file'] for s in m['sources']],'final_2025_outcomes_accessed':False}
+    result={'status':'passed','method':'independent raw CSV parse, fixed-standard offsets and unit-sphere cKDTree neighbors; wind/hail full grid in every supplied window','comparisons':len(checks),'known_sample_labels_compared':sum(c['known_samples_compared'] for c in checks),'checks':checks,'tornado_check':'separate dense-track geometry and time-clipping unit tests; reported endpoints remain an imperfect path proxy','source_files':[s['file'] for s in m['sources']],'final_2025_outcomes_accessed':False}
     write_json(report,result);return result
 
 if __name__=='__main__':

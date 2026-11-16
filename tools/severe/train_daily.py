@@ -10,21 +10,19 @@ from scipy.optimize import minimize
 from scipy.special import expit
 
 from protocol import PROTOCOL, SCHEMA, check_grid, future_window
+from cohort import calendar_cases
 
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def load_cohort(root, config_path):
+def load_cohort(root, config_path, labels_root=None):
     config = json.loads(config_path.read_text())
     years = {2022: "train", 2023: "calibration", 2024: "development"}
-    cases = [f"{year}-{month:02d}-15" for year in years for month in range(1, 13)]
-    if (config["cases"] != cases or config["protocol"] != PROTOCOL
-            or config["feature_schema"] != SCHEMA
-            or [config[k] for k in ("training_year", "calibration_year", "development_year")] != list(years)):
-        raise ValueError("Expected the frozen v0.5 cohort")
-    label_root = Path(config["labels"])
+    cases = calendar_cases(config)
+    label_root = Path(labels_root or config["labels"])
+    artifact_prefix = config.get("artifact_prefix", "severe-history-v05-")
     label_manifest = json.loads((label_root / "manifest.json").read_text())
     label_path = label_root / label_manifest["artifact"]["file"]
     label_hash = digest(label_path)
@@ -36,7 +34,7 @@ def load_cohort(root, config_path):
     with np.load(label_path, allow_pickle=False) as truth:
         for case in cases:
             split = years[int(case[:4])]
-            case_root = root / f"severe-history-v05-{case}"
+            case_root = root / f"{artifact_prefix}{case}"
             manifest = json.loads((case_root / "case-manifest.json").read_text())
             source = case_root / "joined.npz"
             if (manifest["case"] != case or manifest["timing_protocol"] != PROTOCOL
@@ -172,9 +170,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--history", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--cohort", type=Path, default=Path("research/severe/cohort-v05.json"))
+    parser.add_argument("--labels", type=Path)
     args = parser.parse_args()
-    config = Path("research/severe/cohort-v05.json")
-    groups, names, sources, label_hash = load_cohort(args.history, config)
+    config = args.cohort
+    groups, names, sources, label_hash = load_cohort(args.history, config, args.labels)
     metadata = {"feature_schema": SCHEMA, "timing_protocol": PROTOCOL,
                 "status": "regional_research_baseline",
                 "operational_forecast_eligible": False,

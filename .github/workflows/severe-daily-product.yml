@@ -1,0 +1,68 @@
+name: Severe current daily research product
+on:
+  schedule:
+    - cron: '30 9,15 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'UTC model date, blank for today'
+        type: string
+      day:
+        description: 'Lead day'
+        type: choice
+        options: ['1', '2']
+        default: '1'
+  push:
+    branches: [codex/severe-daily-baseline]
+    paths: ['research/severe/daily-request.json']
+permissions:
+  contents: read
+concurrency:
+  group: severe-current-research
+  cancel-in-progress: false
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r tools/severe/requirements.txt
+      - run: python tests/severe-product.test.py
+      - name: Select the explicit run request
+        id: request
+        env:
+          EVENT: ${{ github.event_name }}
+          REQUEST_DATE: ${{ inputs.date }}
+          REQUEST_DAY: ${{ inputs.day }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          python - <<'PY'
+          import json,os
+          from datetime import datetime,timezone
+          request=json.load(open('research/severe/daily-request.json'))
+          if os.environ['EVENT']!='push':
+              request['date']=os.environ.get('REQUEST_DATE') or datetime.now(timezone.utc).date().isoformat()
+              request['day']=int(os.environ.get('REQUEST_DAY') or (1 if datetime.now(timezone.utc).hour<12 else 2))
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              for key in ('date','day','model','model_sha256'):f.write(f'{key}={request[key]}\n')
+          PY
+      - name: Extract, audit and infer current daily probabilities
+        env:
+          DATE: ${{ steps.request.outputs.date }}
+          DAY: ${{ steps.request.outputs.day }}
+          MODEL: ${{ steps.request.outputs.model }}
+          MODEL_SHA: ${{ steps.request.outputs.model_sha256 }}
+        run: python tools/severe/product.py --date "$DATE" --day "$DAY" --model "$MODEL" --model-sha256 "$MODEL_SHA" --output tests/out/current-daily --cache tests/out/current-cache
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: severe-current-research-day${{ steps.request.outputs.day }}-${{ github.run_id }}
+          path: tests/out/current-daily
+          if-no-files-found: warn
+          retention-days: 90
