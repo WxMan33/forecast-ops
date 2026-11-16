@@ -41,9 +41,9 @@ ordered identically. No field may be substituted with zero after a failure.
 attempt.json records success or failure and actual timestamps. The upload contains
 the predictor files, manifests and raw audit so the result can be reproduced.
 
-The schedule is prepared for 09:30 UTC Day 1 and 15:30 UTC Day 2. GitHub activates
-scheduled workflows on the default branch, so the research-branch trials use explicit
-push requests. Recurring execution starts after integration into the default branch.
+The backend schedule is enabled on the default branch for 09:30 UTC Day 1 and
+15:30 UTC Day 2. Research-branch trials use explicit push requests. The daily
+viewer integration is staged separately in PR #22.
 Scheduled lead selection uses the trigger expression even when a runner starts late.
 
 Current trials use the original v0.6 fitted baseline. Expanded models are evaluated
@@ -71,5 +71,5 @@ reaches no feed publication step.
 The hosted viewer reads the public default-branch raw feed, matching the site's
 existing NOAA feed pattern, so daily data updates do not depend on a Pages rebuild.
 Local tests use the checked local feed. An open panel refreshes every five minutes
-and checks expiry every 30 seconds. Deployment of this research branch and schedule
-activation remain part of website integration.
+and checks expiry every 30 seconds. Deployment of the daily viewer remains part of website integration. The backend
+schedule runs independently on the default branch.
