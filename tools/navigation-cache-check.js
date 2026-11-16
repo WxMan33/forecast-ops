@@ -13,16 +13,16 @@ const WALK = ['index.html', 'blend.html', 'event-beta.html', 'thunder.html', 'se
 const server = http.createServer((req, res) => { const rel = decodeURIComponent(new URL(req.url, 'http://x').pathname).replace(/^\//, ''); const f = path.resolve(root, rel || 'index.html'); if (!f.startsWith(root + path.sep)) { res.writeHead(403).end(); return; } try { res.setHeader('Content-Type', f.endsWith('.js') ? 'application/javascript' : f.endsWith('.css') ? 'text/css' : f.endsWith('.json') ? 'application/json' : 'text/html'); res.end(fs.readFileSync(f)); } catch { res.writeHead(404).end(); } });
 const CORS = { 'Access-Control-Allow-Origin': '*' };
 
-async function walk({ browser, base, scenario = {}, pages = WALK, between = null, clockAt = NOW }) {
+async function walk({ browser, base, scenario = {}, pages = WALK, between = null, clockAt = NOW, pageInit = null }) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, timezoneId: 'America/New_York' });
-  const st = { scenario, log: [], page: null, perPage: {}, seen: new Map(), repeats: 0, inflightDup: 0, pending: new Map(), delivered: new Set(), repeated: [] };
+  const st = { scenario, log: [], page: null, perPage: {}, seen: new Map(), repeats: 0, inflightDup: 0, pending: new Map(), delivered: new Set(), repeated: [], repeatedKeys: [], explained: [] };
   await ctx.route('**/*', async (r) => {
     const u = new URL(r.request().url());
     if (u.origin === base) return r.continue();
     if (/^(api|ensemble-api)\.open-meteo\.com$/.test(u.hostname) && /^\/v1\/(forecast|ensemble)$/.test(u.pathname)) {
       const key = u.href, pg = st.perPage[st.page] = st.perPage[st.page] || { requests: 0, repeats: 0 };
       pg.requests++;
-      if (st.seen.has(key)) { pg.repeats++; st.repeats++; st.repeated.push(`${st.page}: ${u.searchParams.get('models') || '?'} d${u.searchParams.get('forecast_days') || '?'} (first answer ${st.delivered.has(key) ? 'reached the page' : 'never reached the page'})`); }
+      if (st.seen.has(key)) { pg.repeats++; st.repeats++; const label = `${st.page}: ${u.searchParams.get('models') || '?'} d${u.searchParams.get('forecast_days') || '?'}`; st.repeated.push(`${label} (first answer ${st.delivered.has(key) ? 'delivered to the browser' : 'never delivered to the browser'})`); st.repeatedKeys.push({ key, label }); }
       if (st.pending.get(key)) st.inflightDup++;
       st.pending.set(key, (st.pending.get(key) || 0) + 1);
       const a = await sim.answer(u.href, st.scenario, NOW, st.log).catch(() => null);
@@ -41,7 +41,33 @@ async function walk({ browser, base, scenario = {}, pages = WALK, between = null
   const p = await ctx.newPage(), errors = [];
   p.on('requestfinished', (q) => { const u = q.url(); if (/open-meteo\.com\/v1\/(forecast|ensemble)\?/.test(u)) st.delivered.add(u); });
   p.on('pageerror', (e) => errors.push(e.message.split('\n')[0]));
+  if (pageInit) await p.addInitScript(pageInit.fn, pageInit.arg); // a scenario's page-side change, installed before the probes below
   await p.clock.install({ time: new Date(clockAt) });
+  await p.addInitScript(() => {
+    /* page-side completion: a provider forecast/ensemble response counts as handled once the page has read its body and
+       run the code that follows in the same task (getJSON stores it in the cache there). A response that reached the
+       browser is not yet handled. */
+    const f = window.fetch, mc = new MessageChannel(), later = [];
+    mc.port1.onmessage = () => { const fn = later.shift(); if (fn) fn(); };
+    const afterTask = (fn) => { later.push(fn); mc.port2.postMessage(0); };
+    window.__prov = { open: 0 };
+    window.fetch = function (input, init) {
+      const url = String((input && input.url) || input);
+      if (!/open-meteo\.com\/v1\/(forecast|ensemble)\?/.test(url)) return f.apply(this, arguments);
+      window.__prov.open++; let done = false; const fin = () => { if (!done) { done = true; window.__prov.open--; } };
+      return f.apply(this, arguments).then((res) => { ['json', 'text'].forEach((m) => { const o = res[m].bind(res); res[m] = () => { const q = o(); q.then(() => afterTask(fin), () => afterTask(fin)); return q; }; }); return res; }, (e) => { fin(); throw e; });
+    };
+    /* cache trace (kept in localStorage across page views): every read, write and removal of a forecast/ensemble cache
+       entry, so a repeat can be explained: written or not, size, storage error, eviction, expiry, exact key */
+    const S = Storage.prototype, set0 = S.setItem, get0 = S.getItem, rm0 = S.removeItem;
+    const isKey = (s, k) => s === sessionStorage && typeof k === 'string' && k.startsWith('ops_c:') && /\/v1\/(forecast|ensemble)\?/.test(k);
+    const buf = window.__cachebuf = [], log = (e) => buf.push({ ...e, page: location.pathname.slice(1), t: Date.now() }); // flushed once per page view
+    window.addEventListener('pagehide', () => { try { set0.call(localStorage, '__cachelog', JSON.stringify(JSON.parse(get0.call(localStorage, '__cachelog') || '[]').concat(buf))); } catch (x) { /* trace only */ } });
+    S.getItem = function (k) { const v = get0.call(this, k); if (isKey(this, k)) { let c = null; try { c = JSON.parse(v); } catch (x) { /* unreadable */ } log({ op: 'read', key: k.slice(6), hit: v != null, exp: c && c.exp }); } return v; };
+    S.removeItem = function (k) { if (isKey(this, k)) log({ op: 'remove', key: k.slice(6) }); return rm0.call(this, k); };
+    S.setItem = function (k, v) { if (!isKey(this, k)) return set0.call(this, k, v); let exp = null; try { exp = JSON.parse(v).exp; } catch (x) { /* none */ }
+      try { set0.call(this, k, v); log({ op: 'write', key: k.slice(6), size: v.length, exp, ok: true }); } catch (e) { log({ op: 'write', key: k.slice(6), size: v.length, exp, ok: false, error: String((e && e.name) || e) }); throw e; } };
+  });
   await p.addInitScript(() => {
     localStorage.setItem('fo_analytics_optout', '1');
     const set = Storage.prototype.setItem;
@@ -55,15 +81,25 @@ async function walk({ browser, base, scenario = {}, pages = WALK, between = null
     await p.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
     /* settle: a person stays on the page until its guidance has arrived; leave only once no provider request is
        still being answered (regional requests can start after the main guidance), at most 10 s */
-    for (let k = 0; k < 20 && [...st.pending.values()].some((n) => n > 0); k++) await p.waitForTimeout(500);
+    /* ...and once the page has handled every response it received (read it and stored it), not just received it */
+    const pageOpen = () => p.evaluate(() => (window.__prov ? window.__prov.open : 0)).catch(() => 0);
+    for (let k = 0; k < 20 && ([...st.pending.values()].some((n) => n > 0) || (await pageOpen()) > 0); k++) await p.waitForTimeout(500);
     await p.waitForTimeout(800);
     shown.push(await p.evaluate(() => ({ chip: (document.getElementById('dataChip') || {}).textContent || '', msg: (document.getElementById('runMsg') || {}).textContent || '', decision: (document.getElementById('decision') || {}).textContent || '' })));
   }
   const failedWrites = +(await p.evaluate(() => localStorage.getItem('__failedWrites') || 0));
+  const trace = await p.evaluate(() => JSON.parse(localStorage.getItem('__cachelog') || '[]').concat(window.__cachebuf || []));
+  /* for each repeat: what the cache shows for exactly that key */
+  st.explained = st.repeatedKeys.map(({ key, label }) => {
+    const ev = trace.filter((e) => e.key === key), w = ev.filter((e) => e.op === 'write');
+    const firstOk = w.find((e) => e.ok), before = firstOk ? ev.filter((e) => e.t > firstOk.t) : [];
+    const removed = before.find((e) => e.op === 'remove');
+    return `${label}: ${!w.length ? 'never written to the cache before it was requested again (no write for this exact key)' : `written on ${firstOk ? firstOk.page : '—'} (${w.map((e) => e.ok ? `${e.size} chars, expires +${Math.round((e.exp - e.t) / 1000)} s` : `failed: ${e.error}`).join('; ')})${removed ? `, then removed on ${removed.page}` : ', not removed'}`}; reads of this key: ${ev.filter((e) => e.op === 'read').map((e) => `${e.page} ${e.hit ? 'hit' : 'miss'}`).join(', ') || 'none'}`;
+  });
   const stored = await p.evaluate(() => Object.keys(sessionStorage).filter((k) => k.startsWith('ops_c:')).reduce((a, k) => a + k.length + sessionStorage.getItem(k).length, 0));
   await ctx.close();
   const total = Object.values(st.perPage).reduce((a, x) => a + x.requests, 0);
-  return { total, repeated: st.repeated, repeats: st.repeats, inflightDup: st.inflightDup, perPage: st.perPage, failedWrites, storedChars: stored, errors, shown };
+  return { explained: st.explained, trace, total, repeated: st.repeated, repeats: st.repeats, inflightDup: st.inflightDup, perPage: st.perPage, failedWrites, storedChars: stored, errors, shown };
 }
 
 module.exports = { walk, WALK };
@@ -77,10 +113,21 @@ if (require.main === module) (async () => {
     Object.entries(r.perPage).forEach(([k, v]) => console.log(`  ${k.padEnd(22)} ${String(v.requests).padStart(4)} provider forecast/ensemble requests`));
     console.log(`  walk total ${r.total} (before this change: 60) · repeats ${r.repeats} · failed storage writes ${r.failedWrites}`);
     r.repeated.forEach((x) => console.log(`    repeated: ${x}`));
+    r.explained.forEach((x) => console.log(`    cache: ${x}`));
     check(r.total <= 46 && r.repeats === 0 && !r.errors.length, `walk: ${r.total} provider requests for 8 page views, none repeating an answered request (was 60)`);
     const ev = Object.entries(r.perPage).find(([k]) => k.includes('event-beta'));
     check(ev && ev[1].requests <= 1, `walk: Event Manager after Model Blend reuses its answers (${ev ? ev[1].requests : 0} request, its time-zone lookup)`);
     check(r.shown.every((x) => !/Couldn't|NO DATA|could not be loaded/i.test(x.msg + x.chip + x.decision)), 'walk: every page shows loaded guidance');
+    /* 1b. slow page-side handling (deterministic): Model Blend's two 8-day ensemble answers arrive at once but take
+       the page 1.5 s longer to read, as on a busy runner. Leaving is decided by what the page has handled, so both are
+       stored before the walk moves on and the return visit asks for nothing again. */
+    { const slow = { fn: (ms) => { const j = Response.prototype.json; Response.prototype.json = function () { const u = this.url, q = j.call(this); return /\/v1\/ensemble\?.*forecast_days=8/.test(u) ? q.then((v) => new Promise((ok) => setTimeout(() => ok(v), ms))) : q; }; }, arg: 1500 };
+      const s1 = await walk({ browser, base, pages: ['blend.html', 'index.html', 'blend.html'], scenario: { ensemble: { '*': { realMembers: true } } }, pageInit: slow });
+      const slowKeys = s1.trace.filter((e) => e.op === 'write' && e.ok && /\/v1\/ensemble\?.*forecast_days=8/.test(e.key) && e.page === 'blend.html');
+      const firstHide = slowKeys.length && s1.trace.find((e) => e.op === 'read' && e.page === 'index.html');
+      s1.repeated.forEach((x) => console.log(`    repeated: ${x}`)); s1.explained.forEach((x) => console.log(`    cache: ${x}`));
+      check(s1.repeats === 0 && slowKeys.length === 2 && firstHide && slowKeys.every((e) => e.t < firstHide.t) && !s1.errors.length,
+        `slow page handling: two 8-day ensemble answers read 1.5 s late are stored before leaving Model Blend; the return visit repeats nothing (${slowKeys.length} stored on the first view, repeats ${s1.repeats})`); }
     /* 2-4. expiry, a failed refresh after expiry, recovery — in one tab */
     let expiryReq = 0, failedShown = '', recovered = 0, recoveredMsg = '';
     await walk({ browser, base, pages: ['blend.html', 'blend.html', 'blend.html', 'blend.html'], between: async (i, st, p) => {
