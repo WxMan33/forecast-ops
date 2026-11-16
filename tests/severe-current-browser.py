@@ -63,6 +63,7 @@ with sync_playwright() as p:
     corrupt = False
     page.locator("#sdRetry").click()
     page.wait_for_function("document.querySelector('#sdValue').textContent !== '—'")
+    assert page.locator("#sdRun").input_value() == day2
     page.locator("#severe-research summary").first.click()
     page.wait_for_function("document.querySelector('#srValue').textContent !== '—'")
     assert "4 hours" in page.locator("#srInit").inner_text()

@@ -51,3 +51,25 @@ separately before selecting any replacement. All outputs remain regional researc
 products over approximately 100°W–75°W, 30°N–45°N. Operational publication,
 national coverage, independent final evaluation and the ongoing verification feed
 remain subsequent integration and validation work.
+
+## Viewer and publication
+
+The Severe-page daily panel shares the existing map and contour renderer with
+the historical viewer. It offers Day 1/Day 2, tornado/wind/hail, contours/dots/both,
+map themes and original-sample point readouts. The daily parser enforces the
+24-hour protocol and requires all three complete probability fields. Index-linked
+checksums protect both grid and forecast files. Expired values are removed even
+if a new run failed. A corrupted refresh clears the old readout and can be retried.
+
+Successful current runs export a reproducible feed under assets/severe-daily.
+The runner independently reproduces probabilities within 1e-14 absolute numerical
+roundoff and preserves the original candidate values. All three hazards share the
+same canonical sample order. The feed is committed atomically, with bounded
+push/rebase retries that preserve other changes. A failed generation or audit
+reaches no feed publication step.
+
+The hosted viewer reads the public default-branch raw feed, matching the site's
+existing NOAA feed pattern, so daily data updates do not depend on a Pages rebuild.
+Local tests use the checked local feed. An open panel refreshes every five minutes
+and checks expiry every 30 seconds. Deployment of this research branch and schedule
+activation remain part of website integration.
