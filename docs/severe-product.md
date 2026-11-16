@@ -46,8 +46,12 @@ The backend schedule is enabled on the default branch for 09:30 UTC Day 1 and
 viewer integration is staged separately in PR #22.
 Scheduled lead selection uses the trigger expression even when a runner starts late.
 
-Current trials use the original v0.6 fitted baseline. Expanded models are evaluated
-separately before selecting any replacement. All outputs remain regional research
+The original v0.6 baseline remains archived. The expanded v0.7 model is the next
+research candidate after fixed-date comparison. Five of six products reduced Brier
+error against v0.6. Day 1 tornado changed slightly in the opposite direction.
+Day 2 tornado and hail still score worse than training climatology, and the May 15
+high-probability wind area remains overforecast. This is a prospective research
+trial rather than an operational release. All outputs remain regional research
 products over approximately 100°W–75°W, 30°N–45°N. Operational publication,
 national coverage, independent final evaluation and the ongoing verification feed
 remain subsequent integration and validation work.
