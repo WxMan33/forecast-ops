@@ -1,0 +1,19 @@
+{
+  "decision": "retain_v07_research_reference",
+  "candidate": "fixed_hist_gradient_boosting_v08",
+  "candidate_run": 43953298265,
+  "products_improved_mean_brier": [
+    "day2_wind",
+    "day2_hail"
+  ],
+  "products_worsened_mean_brier": [
+    "day1_tornado",
+    "day1_wind",
+    "day1_hail",
+    "day2_tornado"
+  ],
+  "paired_date_intervals_exclude_zero": 0,
+  "evaluation_dates": 12,
+  "protected_2025_outcomes_accessed": false,
+  "protocol_commit": "84e8fbf16980d6d4168c6d21f3b8845fda365268"
+}
