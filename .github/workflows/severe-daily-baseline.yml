@@ -5,6 +5,8 @@ on:
     paths:
       - 'tools/severe/train_daily.py'
       - '.github/workflows/severe-daily-baseline.yml'
+      - 'tools/severe/replay_daily.py'
+      - 'tools/severe/replay_daily.html'
   workflow_dispatch:
 permissions:
   contents: read
@@ -31,6 +33,14 @@ jobs:
       - run: pip install numpy==2.3.5 scipy==1.17.0
       - name: Fit, calibrate and score daily baselines
         run: python tools/severe/train_daily.py --history tests/out/daily-baseline-history --output tests/out/daily-baseline
+      - name: Export checked Day 1 wind replays
+        run: python tools/severe/replay_daily.py --history tests/out/daily-baseline-history --output tests/out/daily-replay --cache tests/out/report-cache
+      - uses: actions/upload-artifact@v4
+        with:
+          name: severe-day1-wind-replay
+          path: tests/out/daily-replay
+          if-no-files-found: error
+          retention-days: 30
       - uses: actions/upload-artifact@v4
         with:
           name: severe-daily-research-baseline

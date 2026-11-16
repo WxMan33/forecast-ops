@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forecast Ops · Day 1 wind replay</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#edf0f3;color:#172438;font:15px system-ui,sans-serif}
+main{max-width:1280px;margin:auto;padding:24px}h1{font-size:26px;margin:8px 0}p{line-height:1.5}
+header small{letter-spacing:.12em;font-weight:700;color:#58677a}
+.controls{display:flex;flex-wrap:wrap;gap:16px;align-items:center;background:white;padding:16px;border:1px solid #ccd3dc;border-radius:8px}
+select,button{font:inherit;padding:8px;border:1px solid #8f9bab;background:white;border-radius:5px}
+button[aria-pressed=true]{background:#173950;color:white}label{display:flex;align-items:center;gap:7px}
+#map{width:100%;display:block;background:#fafaf7;touch-action:manipulation;border:1px solid #a9b2bc}
+#legend{display:flex;flex-wrap:wrap;gap:10px;padding:12px;background:white;font-size:13px}
+#legend i{display:inline-block;width:22px;height:12px;margin-right:4px;border:1px solid #666}
+#inspect{min-height:48px;padding:12px;background:#173950;color:white}
+.note{font-size:13px;color:#4b5c70}#error{color:#a01919;font-weight:600}
+.state{fill:none;stroke:#596472;stroke-width:.8;vector-effect:non-scaling-stroke;pointer-events:none}
+.report{fill:#111;stroke:white;stroke-width:.7}
+@media(max-width:600px){main{padding:10px}h1{font-size:22px}.controls{gap:8px}#map{min-height:320px}}
+</style>
+<main>
+<header><small>FORECAST OPS / EXPERIMENTAL RESEARCH</small><h1>Day 1 severe wind replay</h1>
+<p>Calibrated HRRR probabilities of a wind report of at least 50 kt within 25 miles during a 24-hour window.</p></header>
+<div class="controls">
+<label>2024 case <select id="case"></select></label>
+<div aria-label="Display"><button data-mode="contours" aria-pressed="true">Contours</button> <button data-mode="dots" aria-pressed="false">Dots</button> <button data-mode="both" aria-pressed="false">Both</button></div>
+<label><input id="reports" type="checkbox" checked> Wind reports ×</label>
+<label>Basemap <select id="theme"><option value="light">Light</option><option value="dark">Dark</option></select></label>
+</div>
+<p id="timing"></p>
+<svg id="map" viewBox="0 0 1100 700" role="img" aria-label="Regional wind probability replay with states and wind report markers">
+<defs><clipPath id="domain"><rect width="1100" height="700"/></clipPath></defs>
+<g clip-path="url(#domain)"><g id="fills"></g><g id="dots"></g><g id="states"></g><g id="cities"></g><g id="observations"></g><circle id="selected" r="5" fill="none" stroke="#0055d5" stroke-width="2" visibility="hidden"/></g>
+</svg>
+<div id="legend"></div><div id="inspect" role="status">Click the map to inspect an original forecast sample.</div>
+<p id="summary"></p><p id="error" role="alert"></p>
+<p class="note">Contours linearly interpolate the original samples, spaced about 15 km apart, using the existing Forecast Ops contour renderer. Point readouts use original samples. Colors below 0.1% are transparent. Black × markers show qualifying NCEI wind report records, which can include multiple records from one storm.</p>
+<p class="note">Regional development study, 100°W–75°W and 30°N–45°N. Training uses 2022, calibration uses 2023 and these 12 evaluation dates are from 2024. The assumed issuance lag is three hours. Original public availability remains unverified. Day 1 wind calibrated Brier skill was +21.6% against the fixed training event rate across these dates. Nearby samples are correlated and the cohort is small.</p>
+<p class="note">The checked export includes models, source hashes and exact-window wind-report reconstruction. The map is a dated replay. Current operational forecast eligibility remains under evaluation.</p>
+</main>
+<script>/*VENDOR*/</script>
+<script>
+'use strict';
+/*PAYLOAD*/
+const G=SevereResearchContours, ns='http://www.w3.org/2000/svg';
+const $=id=>document.getElementById(id);
+const project=([lon,lat])=>[(lon+100)/25*1100,(45-lat)/15*700];
+function path(coordinates){
+ return coordinates.map(ring=>ring.map((p,i)=>(i?'L':'M')+project(p).join(',')).join(' ')+'Z').join(' ');
+}
+function geometry(g){return g.type==='Polygon'?path(g.coordinates):g.coordinates.map(path).join(' ');}
+function add(group,tag,attrs){const el=document.createElementNS(ns,tag);for(const [key,v] of Object.entries(attrs))el.setAttribute(key,v);$(group).append(el);return el;}
+function drawStates(){for(const state of states.features)add('states','path',{d:geometry(state.geometry),class:'state'});}
+const cities=[['Cincinnati',-84.51,39.10],['Indianapolis',-86.16,39.77],['Chicago',-87.63,41.88],['Louisville',-85.76,38.25],['Nashville',-86.78,36.16],['St. Louis',-90.20,38.63],['Dallas',-96.80,32.78],['Atlanta',-84.39,33.75]];
+for(const [name,lon,lat] of cities){const [x,y]=project([lon,lat]);add('cities','text',{x:x+4,y:y-4,'font-size':12,'paint-order':'stroke','stroke-width':3}).textContent=name;}
+let mode='contours',mesh,active,selected=null;
+const contourCache=new Map();
+for(const run of archive.runs){const option=document.createElement('option');option.value=run.date;option.textContent=run.date;$('case').append(option);}
+for(const [p,color,label] of G.BANDS){const span=document.createElement('span');const swatch=document.createElement('i');swatch.style.background=color;span.append(swatch,document.createTextNode(label));$('legend').append(span);}
+function showSample(){
+ if(selected===null)return;
+ const p=active.probabilities[selected],label=active.labels[selected],point=archive.coordinates[selected];
+ $('inspect').textContent=(p*100).toFixed(2)+'% · '+point[1].toFixed(4)+'°, '+point[0].toFixed(4)+'° · Verification within 25 miles: '+(label===1?'qualifying wind report':label===0?'no qualifying report in source':'unresolved');
+ const [cx,cy]=project(point);$('selected').setAttribute('cx',cx);$('selected').setAttribute('cy',cy);$('selected').setAttribute('visibility','visible');
+}
+function render(){
+ try{
+ active=archive.runs.find(r=>r.date===$('case').value);
+ $('timing').textContent='HRRR initialized '+active.model_init_time.replace('T',' ').replace('+00:00',' UTC')+' · Valid '+active.valid_start.replace('T',' ').replace('+00:00',' UTC')+' → '+active.valid_end.replace('T',' ').replace('+00:00',' UTC');
+ const dark=$('theme').value==='dark',land=dark?'#18232f':'#fafaf7';
+ $('map').style.background=land;
+ document.querySelectorAll('.state').forEach(el=>el.style.stroke=dark?'#b3bec9':'#596472');
+ document.querySelectorAll('#cities text').forEach(el=>{el.setAttribute('fill',dark?'#edf1f6':'#172438');el.setAttribute('stroke',land);});
+ $('fills').replaceChildren();$('dots').replaceChildren();$('observations').replaceChildren();
+ if(mode!=='dots'){
+ if(!mesh)mesh=G.mesh(archive.coordinates);
+ if(!contourCache.has(active.date))contourCache.set(active.date,G.contours(mesh,active.probabilities));
+ for(const feature of contourCache.get(active.date).features)add('fills','path',{d:geometry(feature.geometry),fill:G.blend(feature.properties.color,land,.85),stroke:'#333','stroke-width':.65});
+ }
+ if(mode!=='contours')active.probabilities.forEach((p,i)=>{const c=G.color(p);if(c){const [cx,cy]=project(archive.coordinates[i]);add('dots','circle',{cx,cy,r:1.9,fill:c,stroke:'#222','stroke-width':.15});}});
+ if($('reports').checked)for(const report of active.reports){const [x,y]=project([report.longitude,report.latitude]);const mark=add('observations','path',{d:'M'+(x-3)+','+(y-3)+'l6,6m0,-6l-6,6',stroke:dark?'#fff':'#000','stroke-width':1.5});const title=document.createElementNS(ns,'title');title.textContent='NCEI '+report.id+' · '+report.time+' · '+(report.magnitude_type||'magnitude type unspecified');mark.append(title);}
+ $('summary').textContent=active.reports.length+' qualifying report records in the displayed region · Peak sample '+(Math.max(...active.probabilities)*100).toFixed(1)+'% · Case Brier score '+active.reconstructed_brier.toFixed(6);
+ document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
+ showSample();$('error').textContent='';
+ }catch(error){$('error').textContent='Replay unavailable: '+error.message;}
+}
+$('map').addEventListener('click',event=>{
+ const rect=$('map').getBoundingClientRect(),matrix=$('map').getScreenCTM();
+ const point=new DOMPoint(event.clientX,event.clientY).matrixTransform(matrix.inverse());
+ const lon=point.x/1100*25-100,lat=45-point.y/700*15;
+ let best=Infinity;selected=null;
+ archive.coordinates.forEach(([x,y],i)=>{const d=((x-lon)*Math.cos(lat*Math.PI/180))**2+(y-lat)**2;if(d<best){best=d;selected=i;}});
+ if(best>.15**2){selected=null;$('selected').setAttribute('visibility','hidden');$('inspect').textContent='Outside the nearby sampled grid.';return;}
+ showSample();
+});
+for(const id of ['case','theme','reports'])$(id).addEventListener('change',render);
+document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>{mode=button.dataset.mode;render();}));
+drawStates();render();
+</script>
+</html>
