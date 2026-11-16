@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Produce timestamped experimental Day 1/2 probabilities from audited current HRRR."""
 import argparse
-import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -43,7 +42,7 @@ def read_model(path, expected_sha256):
 def predict(model, day, features, names):
     if names.tolist() != model["feature_names"]:
         raise ValueError("Prediction feature order differs from training")
-    if features.ndim != 2 or features.shape[1] != 34 or not np.isfinite(features).all():
+    if features.ndim != 2 or not len(features) or features.shape[1] != 34 or not np.isfinite(features).all():
         raise ValueError("Incomplete or invalid daily features")
     result = {}
     for hazard in HAZARDS:

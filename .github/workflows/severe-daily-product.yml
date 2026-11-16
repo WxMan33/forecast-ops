@@ -1,7 +1,8 @@
 name: Severe current daily research product
 on:
   schedule:
-    - cron: '30 9,15 * * *'
+    - cron: '30 9 * * *'
+    - cron: '30 15 * * *'
   workflow_dispatch:
     inputs:
       date:
@@ -48,7 +49,9 @@ jobs:
           request=json.load(open('research/severe/daily-request.json'))
           if os.environ['EVENT']!='push':
               request['date']=os.environ.get('REQUEST_DATE') or datetime.now(timezone.utc).date().isoformat()
-              request['day']=int(os.environ.get('REQUEST_DAY') or (1 if datetime.now(timezone.utc).hour<12 else 2))
+              request['day']=int(os.environ.get('REQUEST_DAY') or 1)
+          if os.environ['EVENT']=='schedule':
+              request['day']={'30 9 * * *':1,'30 15 * * *':2}[os.environ['SCHEDULE']]
           with open(os.environ['GITHUB_OUTPUT'],'a') as f:
               for key in ('date','day','model','model_sha256'):f.write(f'{key}={request[key]}\n')
           PY
