@@ -18,6 +18,19 @@ def compact(path, data):
     temporary.replace(path)
 
 
+def check_publishable(output, candidate):
+    """The viewer refuses unregistered models, and a late or manual rerun of an old date must
+    not replace a newer run of the same lead day."""
+    registry_path = output / "models.json"
+    if not registry_path.exists() or candidate["model_sha256"] not in json.loads(registry_path.read_text())["models"]:
+        raise ValueError("The run's model has no registry entry; run tools/severe/model_registry.py first")
+    existing = output / f"day{candidate['day']}.json"
+    if existing.exists():
+        published = json.loads(existing.read_text())
+        if datetime.fromisoformat(published["model_init_time"]) > datetime.fromisoformat(candidate["model_init_time"]):
+            raise ValueError(f"A newer Day {candidate['day']} run is already published; an older run must not replace it")
+
+
 def export(source, output, model_path):
     candidate = json.loads((source / "candidate.json").read_text())
     attempt = json.loads((source / "attempt.json").read_text())
@@ -52,6 +65,7 @@ def export(source, output, model_path):
     prepared = datetime.fromisoformat(candidate["prepared_at"])
     if prepared.tzinfo is None:
         raise ValueError("Actual preparation time required")
+    check_publishable(output, candidate)
     output.mkdir(parents=True, exist_ok=True)
     compact(output / "grid.json", {"coordinates": coordinates.tolist()})
     identity = candidate["model_init_time"][:13].replace("-", "").replace("T", "") + f"-day{day}"

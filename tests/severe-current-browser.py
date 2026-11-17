@@ -20,6 +20,7 @@ origin = f"http://127.0.0.1:{server.server_port}"
 corrupt = False
 unregistered = None
 errors = []
+requests = []
 # Reuse sample arrays while fixing synthetic dates, so future feed updates cannot
 # make this clock/late-publication regression test depend on the wall clock.
 fixture_index = json.loads((root / "assets/severe-daily/index.json").read_text())
@@ -53,6 +54,7 @@ def route(request):
         request.fulfill(content_type="application/json", body="{}")
         return
     path = urlsplit(request.request.url).path
+    requests.append(path)
     if unregistered and path == "/assets/severe-daily/models.json":
         registry = json.loads((root / "assets/severe-daily/models.json").read_text())
         del registry["models"][unregistered]
@@ -107,6 +109,35 @@ with sync_playwright() as p:
         assert page.locator("#sdReliability tbody tr").count() == len(registry["products"][f"day2_{hazard}"]["reliability"])
     page.locator("#severe-daily [data-sr-hazard='tornado']").click()
     assert registry["version"] in page.locator("#sdRun option").nth(1).inner_text()
+    # A background refresh keeps a clicked sample and downloads no unchanged run file.
+    page.locator("#sdMap").click(position={"x": 300, "y": 300})
+    page.wait_for_function("document.querySelector('#sdSample').textContent === 'Selected map sample'")
+    clicked = page.locator("#sdCoordinates").inner_text()
+    requests.clear()
+    page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")  # too soon: no refresh
+    assert not any(r.endswith("index.json") for r in requests), requests
+    page.clock.run_for(300_000)
+    page.wait_for_function("document.querySelector('#severe-daily').getAttribute('aria-busy') === 'false'")
+    page.wait_for_timeout(300)
+    assert any(r.endswith("index.json") for r in requests), requests
+    assert not any(r.endswith(("day1.json", "day2.json", "grid.json")) for r in requests), requests
+    assert page.locator("#sdSample").inner_text() == "Selected map sample"
+    assert page.locator("#sdCoordinates").inner_text() == clicked
+    # Hidden tabs do not refresh.
+    page.evaluate("Object.defineProperty(document, 'hidden', {configurable: true, get: () => true})")
+    requests.clear()
+    page.clock.run_for(300_000)
+    page.wait_for_timeout(300)
+    assert not any(r.endswith("index.json") for r in requests), requests
+    page.evaluate("Object.defineProperty(document, 'hidden', {configurable: true, get: () => false}); document.dispatchEvent(new Event('visibilitychange'))")
+    page.wait_for_timeout(300)
+    assert any(r.endswith("index.json") for r in requests), requests
+    page.wait_for_function("document.querySelector('#severe-daily').getAttribute('aria-busy') === 'false'")
+    # "Highest sample" follows the selected hazard.
+    page.locator("#sdPeak").click()
+    page.locator("#severe-daily [data-sr-hazard='wind']").click()
+    assert page.locator("#sdSample").inner_text() == "Highest severe wind sample in this run"
+    page.locator("#severe-daily [data-sr-hazard='tornado']").click()
     # A model with no published development results is refused rather than shown.
     unregistered = day2_model
     page.locator("#sdRetry").evaluate("(el) => el.click()")

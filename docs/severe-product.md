@@ -41,10 +41,12 @@ ordered identically. No field may be substituted with zero after a failure.
 attempt.json records success or failure and actual timestamps. The upload contains
 the predictor files, manifests and raw audit so the result can be reproduced.
 
-The backend schedule is enabled on the default branch for 09:30 UTC Day 1 and
-15:30 UTC Day 2. Research-branch trials use explicit push requests. The daily
-viewer integration is staged separately in PR #22.
-Scheduled lead selection uses the trigger expression even when a runner starts late.
+The backend schedule runs on the default branch: Day 1 at 09:30 UTC with catch-ups at
+10:30, 11:45 and 13:15, and Day 2 at 15:30 with catch-ups at 16:30 and 18:30. A catch-up
+reads the latest published feed and exits at once if that run is already there. A Day 1
+run published after 12 UTC is flagged late. Scheduled lead selection uses the trigger
+expression even when a runner starts late. Each schedule entry and manual lead day has
+its own concurrency queue, so a manual run cannot cancel a waiting scheduled run.
 
 The original v0.6 baseline remains archived. The expanded v0.7 model is the next
 research candidate after fixed-date comparison. Five of six products reduced Brier
@@ -92,12 +94,18 @@ if a new run failed. A corrupted refresh clears the old readout and can be retri
 Successful current runs export a reproducible feed under assets/severe-daily.
 The runner independently reproduces probabilities within 1e-14 absolute numerical
 roundoff and preserves the original candidate values. All three hazards share the
-same canonical sample order. The feed is committed atomically, with bounded
-push/rebase retries that preserve other changes. A failed generation or audit
-reaches no feed publication step.
+same canonical sample order. Export refuses a model with no registry entry and refuses
+to replace a newer run of the same lead day. Each publish attempt starts from the
+newest branch tip, exports again, runs the viewer's feed, contour and registry checks
+on the exact files to be committed, and pushes; up to four attempts. index.json is a
+single line, so the previous rebase approach failed whenever two runs overlapped.
+A failed generation, audit or check reaches no commit.
 
 The hosted viewer reads the public default-branch raw feed, matching the site's
 existing NOAA feed pattern, so daily data updates do not depend on a Pages rebuild.
-Local tests use the checked local feed. An open panel refreshes every five minutes
-and checks expiry every 30 seconds. Deployment of the daily viewer remains part of website integration. The backend
+Local tests use the checked local feed. An open, visible panel revalidates the index
+and registry every five minutes (and on returning to a hidden tab after that), and
+downloads a run file or the grid only when its checksum changed. A clicked sample stays
+selected across refreshes; "highest sample" follows the current field. Expiry is
+checked every 30 seconds. Deployment of the daily viewer remains part of website integration. The backend
 schedule runs independently on the default branch.
