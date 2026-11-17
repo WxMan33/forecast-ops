@@ -63,6 +63,10 @@ products over approximately 100°W–75°W, 30°N–45°N. Operational publicati
 national coverage, independent final evaluation and the ongoing verification feed
 remain subsequent integration and validation work.
 
+Open methodological questions (offshore samples, the climatology baseline, archived inputs,
+uncertain report locations) and the decisions to freeze before the single 2025 evaluation
+are in docs/severe-methods-review.md.
+
 ## Viewer and publication
 
 ### Product evidence
