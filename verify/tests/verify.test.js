@@ -229,4 +229,15 @@ if (process.env.VERIFY_PRIVATE_FIXTURES) {
   const x = TV.adapters.wxix(rd("fox19_com_weather_.html.gz"), { loc: LOC });
   eq(x.days[1].date, "2026-11-03", "real FOX19 page");
 }
-console.log(`ok - ${n} verification checks passed`);
+/* ---------- fetchRaw keeps each attempt and the network cause behind "fetch failed" (retries unchanged) ---------- */
+(async () => {
+  const net = require("net"), srv = net.createServer(); await new Promise((r) => srv.listen(0, "127.0.0.1", r));
+  const port = srv.address().port; await new Promise((r) => srv.close(r)); // a closed local port: connection refused
+  const r = await U.fetchRaw(`http://127.0.0.1:${port}/x`, { tries: 2, timeoutMs: 5000 });
+  eq([r.ok, r.status, r.attempts, r.error, r.code], [false, 0, 2, "fetch failed", "ECONNREFUSED"], "the cause code survives the generic error");
+  eq(r.attemptLog.length, 2, "both attempts are logged"); ok(r.attemptLog.every((x) => x.code === "ECONNREFUSED" && Number.isFinite(x.ms)), "per-attempt cause and duration");
+  const http = require("http"), h = http.createServer((q, s) => { s.writeHead(503); s.end("busy"); }); await new Promise((res) => h.listen(0, "127.0.0.1", res));
+  const r2 = await U.fetchRaw(`http://127.0.0.1:${h.address().port}/y`, { tries: 2 }); h.close();
+  eq(r2.attemptLog.map((x) => x.status), [503, 503], "HTTP answers are logged by status, no cause code"); eq(r2.code, undefined, "no code on an HTTP answer");
+  console.log(`ok - ${n} verification checks passed`);
+})().catch((e) => { console.error(e); process.exit(1); });
