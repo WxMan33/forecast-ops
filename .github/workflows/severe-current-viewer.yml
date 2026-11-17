@@ -13,6 +13,7 @@ on:
       - 'severe.html'
       - 'tests/severe-current-browser.py'
       - 'tests/severe-daily.test.js'
+      - 'tests/severe-display-mask.test.py'
 permissions:
   contents: read
 jobs:
@@ -24,7 +25,7 @@ jobs:
       - run: node tools/stamp-assets.js --check
       - run: node tests/severe-daily.test.js && node tests/severe-research.test.js && node tests/severe-contours.test.js
       - run: python3 tools/severe/model_registry.py --check
-      - run: pip install shapely==2.2.0 && python3 tools/severe/display_mask.py --check
+      - run: pip install numpy==2.3.5 scipy==1.17.0 shapely==2.2.0 && python3 tests/severe-display-mask.test.py
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

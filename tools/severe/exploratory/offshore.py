@@ -11,14 +11,10 @@ lab=np.load(R+'research/severe/labels-v04/daily-labels.npz')
 coords=lab['coordinates'];L=lab['labels']  # windows x samples x hazards
 m=json.load(open(R+'research/severe/labels-v04/manifest.json'))
 years=sorted({p['initialization_date'][:4] for p in m['products']});assert years==['2022','2023','2024'],years
-# Distance offshore (km) approximated in a local equirectangular frame around each point.
-boundary=states.boundary
-onland=np.array([land.contains(Point(x,y)) for x,y in coords])
-dist=np.zeros(len(coords))
-for i,(x,y) in enumerate(coords):
-    if onland[i]:continue
-    nearest=boundary.interpolate(boundary.project(Point(x,y)))
-    dx=(nearest.x-x)*111.32*np.cos(np.radians(y));dy=(nearest.y-y)*110.57;dist[i]=np.hypot(dx,dy)
+# Distance from US land (km), shared with the display mask (no linear referencing).
+import sys;sys.path.insert(0,R+'tools/severe')
+from display_mask import distances
+dist=np.asarray(distances(coords.tolist()));onland=dist==0
 cat=np.where(onland,'land',np.where(dist<=40.2336,'outside US outlines, within 25 mi','more than 25 mi from US land'))
 out={'samples':{c:int((cat==c).sum()) for c in np.unique(cat)}}
 H=['tornado','wind','hail']
