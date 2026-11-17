@@ -18,7 +18,11 @@ server = http.server.ThreadingHTTPServer(
 threading.Thread(target=server.serve_forever, daemon=True).start()
 origin = f"http://127.0.0.1:{server.server_port}"
 corrupt = False
+unregistered = None
+extra_hidden = None
+renamed = None
 errors = []
+requests = []
 # Reuse sample arrays while fixing synthetic dates, so future feed updates cannot
 # make this clock/late-publication regression test depend on the wall clock.
 fixture_index = json.loads((root / "assets/severe-daily/index.json").read_text())
@@ -52,6 +56,22 @@ def route(request):
         request.fulfill(content_type="application/json", body="{}")
         return
     path = urlsplit(request.request.url).path
+    requests.append(path)
+    if extra_hidden is not None and path == "/assets/severe-daily/display-mask.json":
+        mask = json.loads((root / "assets/severe-daily/display-mask.json").read_text())
+        mask["hidden"] = sorted(set(mask["hidden"]) | {extra_hidden})
+        request.fulfill(content_type="application/json", body=json.dumps(mask))
+        return
+    if renamed and path == "/assets/severe-daily/models.json":
+        registry = json.loads((root / "assets/severe-daily/models.json").read_text())
+        registry["models"][renamed]["version"] = "v9.9"
+        request.fulfill(content_type="application/json", body=json.dumps(registry))
+        return
+    if unregistered and path == "/assets/severe-daily/models.json":
+        registry = json.loads((root / "assets/severe-daily/models.json").read_text())
+        del registry["models"][unregistered]
+        request.fulfill(content_type="application/json", body=json.dumps(registry))
+        return
     if path.startswith("/assets/severe-daily/") and path.split("/")[-1] in fixture_files:
         request.fulfill(content_type="application/json", body=fixture_files[path.split("/")[-1]])
         return
@@ -70,6 +90,10 @@ with sync_playwright() as p:
     assert page.locator("#sdRun option").count() == 2
     assert "24 hours" in page.locator("#sdInit").inner_text()
     assert "LATE FOR FULL WINDOW" in page.locator("#sdInit").inner_text()
+    meta = page.locator("#sdInit").inner_text()
+    assert "Initialized Nov 16, 2026 06:00 UTC" in meta and "Day 1 forecast" in meta and "Model v" in meta, meta
+    assert page.locator("#sdWindow").inner_text().startswith("In effect now:")
+    assert page.locator("#sdRun option").nth(1).inner_text().startswith("Next window · Nov 17–18 12 UTC · Day 2 issued Nov 16 12Z")
     for hazard in ("wind", "hail", "tornado"):
         page.locator(f"#severe-daily [data-sr-hazard='{hazard}']").click()
         assert page.locator("#sdValue").inner_text() != "—"
@@ -83,6 +107,83 @@ with sync_playwright() as p:
     page.select_option("#sdRun", day2)
     page.wait_for_function("document.querySelector('#sdValue').textContent !== '—'")
     assert "LATE FOR FULL WINDOW" not in page.locator("#sdInit").inner_text()
+    # Each product carries its own development evidence; Day 2 tornado and hail show no skill.
+    day2_model = fixture_index["runs"][1]["model_sha256"]
+    registry = json.loads((root / "assets/severe-daily/models.json").read_text())["models"][day2_model]
+    for hazard in ("tornado", "wind", "hail"):
+        page.locator(f"#severe-daily [data-sr-hazard='{hazard}']").click()
+        product = page.locator("#sdProduct")
+        assert product.is_visible() and registry["version"] in product.inner_text()
+        expected = "positive" if registry["products"][f"day2_{hazard}"]["positive_development_skill"] else "none"
+        assert product.get_attribute("data-skill") == expected, (hazard, expected)
+        if expected == "none":
+            assert "No demonstrated development skill" in product.inner_text()
+        assert page.locator("#sdReliability tbody tr").count() == len(registry["products"][f"day2_{hazard}"]["reliability"])
+    page.locator("#severe-daily [data-sr-hazard='tornado']").click()
+    assert registry["version"] in page.locator("#sdRun option").nth(1).inner_text()
+    # A background refresh keeps a clicked sample and downloads no unchanged run file.
+    page.locator("#sdMap").click(position={"x": 300, "y": 300})
+    page.wait_for_function("document.querySelector('#sdSample').textContent === 'Selected map sample'")
+    clicked = page.locator("#sdCoordinates").inner_text()
+    requests.clear()
+    page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")  # too soon: no refresh
+    assert not any(r.endswith("index.json") for r in requests), requests
+    page.clock.run_for(300_000)
+    page.wait_for_function("document.querySelector('#severe-daily').getAttribute('aria-busy') === 'false'")
+    page.wait_for_timeout(300)
+    assert any(r.endswith("index.json") for r in requests), requests
+    assert not any(r.endswith(("day1.json", "day2.json", "grid.json")) for r in requests), requests
+    assert page.locator("#sdSample").inner_text() == "Selected map sample"
+    assert page.locator("#sdCoordinates").inner_text() == clicked
+    # A refresh that changes only the mask or the registry must still change what is shown,
+    # even though the forecast file is unchanged and not downloaded again.
+    grid = json.loads((root / "assets/severe-daily/grid.json").read_text())["coordinates"]
+    lat, lon = (float(v.strip("°")) for v in clicked.split(" · ")[0].split(", "))
+    sample = min(range(len(grid)), key=lambda i: (grid[i][0] - lon) ** 2 + (grid[i][1] - lat) ** 2)
+    assert page.locator("#sdValue").inner_text() != "Not shown"
+    extra_hidden, renamed = sample, fixture_index["runs"][1]["model_sha256"]
+    requests.clear()
+    page.clock.run_for(300_000)
+    page.wait_for_function("document.querySelector('#sdValue').textContent === 'Not shown'")
+    page.wait_for_function("document.querySelector('#sdProduct').textContent.includes('v9.9')")
+    assert "display mask" in page.locator("#sdCoordinates").inner_text()
+    assert not any(r.endswith(("day1.json", "day2.json", "grid.json")) for r in requests), requests
+    extra_hidden, renamed = None, None
+    page.clock.run_for(300_000)
+    page.wait_for_function("document.querySelector('#sdValue').textContent !== 'Not shown'")
+    page.wait_for_function("!document.querySelector('#sdProduct').textContent.includes('v9.9')")
+    # Hidden tabs do not refresh.
+    page.evaluate("Object.defineProperty(document, 'hidden', {configurable: true, get: () => true})")
+    requests.clear()
+    page.clock.run_for(300_000)
+    page.wait_for_timeout(300)
+    assert not any(r.endswith("index.json") for r in requests), requests
+    page.evaluate("Object.defineProperty(document, 'hidden', {configurable: true, get: () => false}); document.dispatchEvent(new Event('visibilitychange'))")
+    page.wait_for_timeout(300)
+    assert any(r.endswith("index.json") for r in requests), requests
+    page.wait_for_function("document.querySelector('#severe-daily').getAttribute('aria-busy') === 'false'")
+    # The display mask hides offshore samples: the Day 2 hail peak was 174 km off the coast.
+    mask = set(json.loads((root / "assets/severe-daily/display-mask.json").read_text())["hidden"])
+    grid = json.loads((root / "assets/severe-daily/grid.json").read_text())["coordinates"]
+    page.locator("#severe-daily [data-sr-hazard='hail']").click()
+    page.locator("#sdPeak").click()
+    lat, lon = (float(v.strip("°")) for v in page.locator("#sdCoordinates").inner_text().split(" · ")[0].split(", "))
+    peak = min(range(len(grid)), key=lambda i: (grid[i][0] - lon) ** 2 + (grid[i][1] - lat) ** 2)
+    assert peak not in mask, "highest sample must not be a hidden offshore sample"
+    assert "hidden" in page.locator("#sdDisplayNote").inner_text()
+    # "Highest sample" follows the selected hazard.
+    page.locator("#sdPeak").click()
+    page.locator("#severe-daily [data-sr-hazard='wind']").click()
+    assert page.locator("#sdSample").inner_text() == "Highest severe wind sample in this run"
+    page.locator("#severe-daily [data-sr-hazard='tornado']").click()
+    # A model with no published development results is refused rather than shown.
+    unregistered = day2_model
+    page.locator("#sdRetry").evaluate("(el) => el.click()")
+    page.wait_for_function("document.querySelector('#sdStatus').textContent.includes('no published development results')")
+    assert page.locator("#sdValue").inner_text() == "—" and page.locator("#sdProduct").is_hidden()
+    unregistered = None
+    page.locator("#sdRetry").click()
+    page.wait_for_function("document.querySelector('#sdValue').textContent !== '—'")
     # A failed refresh must clear the previous values, including cached data.
     corrupt = True
     page.locator("#sdRetry").evaluate("(el) => el.click()")
@@ -110,7 +211,7 @@ with sync_playwright() as p:
     (target / "severe-current-browser.json").write_text(json.dumps({
         "days": 2, "hazards": 3, "displays": 3, "checksum_failure_recovery": True,
         "late_flag": True, "expired_values_suppressed": True, "archive_preserved": True,
-        "mobile_no_overflow": True, "page_errors": errors,
+        "mobile_no_overflow": True, "product_evidence": True, "unregistered_model_refused": True, "page_errors": errors,
     }, indent=2) + "\n")
     print("Current Severe panel: days, hazards, displays, corrupt recovery, expiry, archive and mobile passed")
     browser.close()

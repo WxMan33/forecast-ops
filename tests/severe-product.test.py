@@ -14,8 +14,29 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools/severe"))
 from cohort import calendar_cases
 from product import freshness, predict, read_model, check_predictor_contract
+from export_daily import check_publishable
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+class PublicationTests(unittest.TestCase):
+    def test_registered_model_and_no_older_replacement(self):
+        registry = json.loads((ROOT / "assets/severe-daily/models.json").read_text())
+        model = next(iter(registry["models"]))
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder)
+            candidate = {"day": 2, "model_sha256": model, "model_init_time": "2026-11-16T12:00:00+00:00"}
+            with self.assertRaisesRegex(ValueError, "registry"):
+                check_publishable(output, candidate)
+            (output / "models.json").write_text(json.dumps(registry))
+            check_publishable(output, candidate)
+            with self.assertRaisesRegex(ValueError, "registry"):
+                check_publishable(output, {**candidate, "model_sha256": "0" * 64})
+            (output / "day2.json").write_text(json.dumps({"model_init_time": "2026-11-17T12:00:00+00:00"}))
+            with self.assertRaisesRegex(ValueError, "newer Day 2"):
+                check_publishable(output, candidate)
+            check_publishable(output, {**candidate, "model_init_time": "2026-11-17T12:00:00+00:00"})
+            check_publishable(output, {**candidate, "day": 1})
 
 
 class ProductTests(unittest.TestCase):

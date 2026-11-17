@@ -26,6 +26,8 @@ jobs:
       - run: node tests/severe-daily.test.js
       - run: node tests/severe-contours.test.js
       - run: python tests/severe-daily.test.py
+      - run: python tools/severe/model_registry.py --check
+      - run: pip install numpy==2.3.5 scipy==1.17.0 shapely==2.2.0 && python tests/severe-display-mask.test.py
       - run: node tests/calendar-provider.test.js
       - run: node tests/forecast-support.test.js
       - run: node tests/core.test.js

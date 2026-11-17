@@ -27,7 +27,7 @@
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/ops.css?v=35098c1775">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
-<link rel="stylesheet" href="assets/severe-research.css?v=06f465c118">
+<link rel="stylesheet" href="assets/severe-research.css?v=06d3aa9393">
 </head>
 <body>
 <main class="workspace">
@@ -65,7 +65,7 @@
       <summary><span class="sr-title">Daily severe probability research</span><span class="sr-badge">CURRENT MODEL INPUTS</span></summary>
       <p class="sr-intro">Inspect experimental Day 1 and Day 2 tornado, wind and hail probabilities from audited HRRR inputs.</p>
       <div class="sr-body">
-        <div class="sr-warning"><b>Experimental calibration.</b> These regional research probabilities show substantial errors on some development dates. Read the initialization, preparation time and valid window before use.</div>
+        <div class="sr-warning"><b>Experimental research model.</b> Skill and reliability differ by hazard and lead day. The selected product&rsquo;s own development results appear with the map; some products show no skill at all. Read the initialization, preparation time and valid window before use.</div>
         <div class="sr-controls">
           <div><label class="field-label" for="sdRun">Lead day</label><select class="input" id="sdRun" disabled><option>Loading daily research…</option></select></div>
           <div><span class="field-label" id="sdHazardLabel">Hazard</span><div class="sr-hazards" role="group" aria-labelledby="sdHazardLabel">
@@ -99,13 +99,15 @@
           <button class="btn ghost sm" id="sdPeak" type="button">HIGHEST SAMPLE</button>
           <button class="btn ghost sm" id="sdDomain" type="button">WHOLE DOMAIN</button>
         </div>
+        <div class="sr-product" id="sdProduct" hidden></div>
+        <details class="sr-evidence" id="sdEvidence" hidden><summary>Development reliability for this product</summary><div class="tablewrap"><table id="sdReliability"></table></div><p class="sr-caption" id="sdEvidenceNote"></p></details>
         <div class="sr-scale" id="sdLegend" aria-label="Neighborhood probability color scale"></div>
         <p class="sr-caption sr-target">Chance of a qualifying <span id="sdLegendHazard">tornado</span> report within 25 miles of a sampled grid center · 24-hour window.</p>
-        <p class="sr-caption" id="sdDisplayNote">Filled contours interpolate between model samples about 15 km apart. Point readouts always use an original sample.</p>
+        <p class="sr-caption" id="sdDisplayNote">Filled bands blend linearly between neighboring model samples about 15 km apart, without smoothing. Point readouts always use an original sample.</p>
         <p class="sr-caption">Colors show experimental probabilities, not official SPC outlook categories. No EF2+, significant wind or significant hail hatching is available from this model.</p>
         <p class="sr-status" id="sdStatus" role="status">Open the viewer to load daily research results.</p>
         <button class="btn ghost sm" type="button" id="sdRetry" hidden>REFRESH DAILY DATA</button>
-        <p class="sr-caption">Targets are tornado reports, wind reports of at least 50 kt and hail reports of at least 1 inch. Expired or incomplete products are withheld. Regional coverage is approximately 100°W–75°W, 30°N–45°N.</p>
+        <p class="sr-caption">Targets are tornado reports, wind reports of at least 50 kt and hail reports of at least 1 inch. Expired or incomplete products are withheld. Regional coverage is approximately 100°W–75°W, 30°N–45°N. Samples more than 25 miles from US land (Gulf and Atlantic waters, Great Lakes interiors, Canada, Mexico) are hidden because reports are essentially never made there; this is a display mask, and the model is unchanged.</p>
         <p class="sr-caption"><a href="docs/severe-product.md">Daily research method and data contract</a></p>
       </div>
     </details>
@@ -150,7 +152,7 @@
         </div>
         <div class="sr-scale" id="srLegend" aria-label="Neighborhood probability color scale"></div>
         <p class="sr-caption sr-target">Chance of a qualifying <span id="srLegendHazard">tornado</span> report within 25 miles of a sampled grid center · four-hour window.</p>
-        <p class="sr-caption" id="srDisplayNote">Filled contours interpolate between archived samples about 15 km apart. Point readouts always use an original sample.</p>
+        <p class="sr-caption" id="srDisplayNote">Filled bands blend linearly between neighboring archived samples about 15 km apart, without smoothing. Point readouts always use an original sample.</p>
         <p class="sr-caption">Colors show experimental probabilities, not official SPC outlook categories. No EF2+, significant wind or significant hail hatching is available from this model.</p>
         <p class="sr-status" id="srStatus" role="status">Open the viewer to load archived research results.</p>
         <button class="btn ghost sm" type="button" id="srRetry" hidden>RETRY ARCHIVE</button>
@@ -243,10 +245,10 @@
 <script src="assets/vendor/d3-array-3.2.4.js?v=80aa70d0cd"></script>
 <script src="assets/vendor/d3-contour-4.0.2.js?v=78e1d80350"></script>
 <script src="assets/vendor/d3-delaunay-6.0.4.js?v=efc726aa8a"></script>
-<script src="assets/severe-research-contours.js?v=a6e065bab5"></script>
-<script src="assets/severe-research-canvas.js?v=0c047ea44d"></script>
-<script src="assets/severe-daily-core.js?v=bd94e773d2"></script>
-<script src="assets/severe-research.js?v=09814b74d1"></script>
+<script src="assets/severe-research-contours.js?v=2f0dc34948"></script>
+<script src="assets/severe-research-canvas.js?v=264023e357"></script>
+<script src="assets/severe-daily-core.js?v=dce4557c95"></script>
+<script src="assets/severe-research.js?v=b3f0ca6acd"></script>
 <script src="assets/table-pages.js?v=5852a434bf"></script>
 </body>
 </html>
