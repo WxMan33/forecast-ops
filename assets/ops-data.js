@@ -95,11 +95,30 @@
     return false;
   }
   const copy = (json) => JSON.parse(JSON.stringify(json));
+  /* The provider's Retry-After, honoured for the exact request it answered: after an HTTP 429 or 503 carrying a readable
+     Retry-After, the same URL is not sent again in this tab until the wait has passed. Until then the answer is that
+     failure itself, kept with its original retrieval time and the seconds still to wait, and marked as not sent. Other
+     requests (another model, location or window) are unaffected, and nothing is waited for without the provider's own
+     Retry-After (delta-seconds or an HTTP date; a missing or invalid value means no wait). It applies whether or not the
+     request uses the forecast cache, so a refresh, a reload of the tab or an automatic retry cannot send it early.
+     getJSON only sends GET requests without a body, so the method and the exact URL are the request's whole identity.
+     Kept apart from the forecast cache (its own prefix), so it never displaces a forecast. */
+  const WAIT = "ops_w:", waitKey = (url) => WAIT + "GET " + url;
+  function waitRead(store, url) {
+    let w = null; try { w = JSON.parse(store.getItem(waitKey(url)) || "null"); } catch (e) { w = null; }
+    if (!w || !Number.isFinite(w.until)) return null;
+    if (Date.now() >= w.until) { try { store.removeItem(waitKey(url)); } catch (e) { /* none */ } return null; }
+    return w;
+  }
   async function getJSON(url, cacheMin = 15, headers) {
-    const key = CACHE + url, store = cacheMin ? storeOf() : null;
+    const key = CACHE + url, waits = storeOf(), store = cacheMin ? waits : null;
     if (store) {
       const c = cacheRead(store, key, cacheMin * 60e3);
       if (c) { if (c.json && typeof c.json === "object") { c.json.__retrievedAt = new Date(c.at).toISOString(); c.json.__fromCache = true; } return c.json; }
+    }
+    if (waits) {
+      const w = waitRead(waits, url);
+      if (w) return { ...w.json, retryAfter: Math.max(1, Math.ceil((w.until - Date.now()) / 1000)), __retrievedAt: new Date(w.at).toISOString(), __fromCache: false, __notSent: true, __waitUntil: new Date(w.until).toISOString() };
     }
     /* one provider request for identical requests in flight (cacheable requests only); every caller gets its own copy */
     const shareKey = cacheMin ? url + "|" + JSON.stringify(headers || null) : null;
@@ -118,6 +137,7 @@
       if (!res.ok) { json.httpStatus = res.status; json.retryAfter = retryAfterSeconds(res.headers && res.headers.get ? res.headers.get("Retry-After") : null); }
       const at = Date.now();
       if (store && !json.error) cacheWrite(store, key, { at, exp: at + cacheMin * 60e3, json });
+      if (waits && (res.status === 429 || res.status === 503) && json.retryAfter > 0) { try { waits.setItem(waitKey(url), JSON.stringify({ at, until: at + json.retryAfter * 1000, json: { error: true, reason: json.reason, httpStatus: json.httpStatus, retryAfter: json.retryAfter } })); } catch (e) { /* storage full: the wait is simply not remembered */ } }
       /* when this response was actually retrieved (the original time when served from the browser cache) */
       if (json && typeof json === "object") { json.__retrievedAt = new Date(at).toISOString(); json.__fromCache = false; }
       return json;

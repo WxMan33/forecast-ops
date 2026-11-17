@@ -28,6 +28,8 @@ jobs:
           npx playwright install --with-deps chromium || { echo "::warning::Ubuntu packages for Chromium could not be installed; installing the browser alone"; npx playwright install chromium; }
       - name: Network recorder self-test (offline, bounded)
         run: node tools/net-recorder-check.js
+      - name: CI metadata sharing keeps original retrieval times and 15-minute expiry (offline)
+        run: node tests/ci-meta-share.test.js
       - name: Hourly grid fixtures (offline; ordinary, overnight, overlapping, multi-day, DST, missing data; phone and desktop, both themes)
         run: |
           python3 -m http.server 8765 >/dev/null 2>&1 &
