@@ -72,7 +72,8 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     const ctx = await browser.newContext(DESK), p = await ctx.newPage(); watchNet(p);
     await p.goto(base + "meteorologist-beta.html", { waitUntil: "domcontentloaded", timeout: 60000 });
     /* shared with main's Tests workflow: a failed browser request is classified by asking the provider from the runner */
-    const { directCheck, line } = require("./direct-origin-check.js"), r = await directCheck(p);
+    const { directCheck, line, diagLines } = require("./direct-origin-check.js"), r = await directCheck(p);
+    r.results.forEach((x) => diagLines(x).forEach((d) => console.log(d))); // evidence for any request that did not pass
     const bad = r.results.filter((x) => x.verdict === "fail"), unv = r.results.filter((x) => x.verdict === "unverified");
     report(!bad.length && !unv.length, "direct browser path: Open-Meteo forecast and ensemble and the NWS answer this origin's own requests (no run cache)", `${r.origin} · ${r.results.map(line).join(" · ")}${unv.length && !bad.length ? " · UNVERIFIED (the provider did not answer the runner either), not a confirmed browser or provider failure" : ""}`);
     await ctx.close();
