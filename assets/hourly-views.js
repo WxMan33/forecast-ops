@@ -14,6 +14,23 @@
   const SHORT = { "Plan for it": "Plan", "Likely disruptive": "Likely" };
   const PROB_NOTE = "Precip chance is the models' own hourly probability of precipitation (PoP), blended. Ensemble ≥0.01″ is a different number: the weighted share of ensemble members with at least 0.01″ in that hour.";
 
+  /* sustained wind with the direction it blows from, e.g. "NW 12" (16-point compass). No direction in the guidance:
+     the speed alone, with the reason; never north by default. Calm: "Calm". Winds that cancel between sources: "VRB". */
+  const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+  const compass = (deg) => (fin(deg) ? COMPASS[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16] : null);
+  function windCells(hrs, now) {
+    return hrs.map((h) => {
+      if (h.state !== "ok") return { state: "missing", text: "—", why: h.state === "beyond" ? "Beyond the hourly guidance" : "No guidance for this hour" };
+      const past = now != null && h.ms + H <= now, note = past ? "Earlier hour: model guidance, not an observation" : "";
+      if (!fin(h.wind)) return { state: "missing", text: "—", why: "Not in the guidance for this hour", past };
+      const spd = Math.round(h.wind);
+      if (h.windCalm || spd === 0) return { state: "ok", text: "Calm", past, why: note };
+      const dir = h.windVariable ? "VRB" : compass(h.windDir);
+      const why = [note, h.windVariable ? "Direction varies between sources" : dir ? `From ${Math.round(h.windDir)}°` : "Direction not in the guidance for this hour"].filter(Boolean).join(" · ");
+      return { state: "ok", text: dir ? `${dir} ${spd}` : `${spd}`, wind: { dir, spd: String(spd) }, past, why };
+    });
+  }
+
   /* the value rows both pages share: same order, same definitions */
   function valueRows(hrs, now) {
     const miss = (h) => ({ state: "missing", text: "—", why: h.state === "beyond" ? "Beyond the hourly guidance" : "No guidance for this hour" });
@@ -28,7 +45,7 @@
       { key: "pop", label: "Precip chance", sub: "hourly PoP", cells: val("pop", (x) => pct(x)) },
       { key: "chance", label: "Ensemble ≥0.01″", sub: "share of members", cells: val("chance", (x) => pct(x * 100)) },
       { key: "qpf", label: "Precip amount", sub: "inches", cells: val("qpf", (x) => rainAmount(x)) },
-      { key: "wind", label: "Wind", sub: "sustained mph", cells: val("wind", (x) => `${Math.round(x)}`) },
+      { key: "wind", label: "Wind", sub: "direction · sustained mph", cells: windCells(hrs, now) },
       { key: "gust", label: "Gusts", sub: "mph", cells: val("gust", (x) => `${Math.round(x)}`) },
     ];
   }

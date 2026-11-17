@@ -73,3 +73,7 @@
 @media print{.hg-pager button{display:none}}
 
 .hg-day{white-space:normal!important;overflow-wrap:anywhere}
+
+/* wind: direction before speed ("NW 12"); stacked on narrow columns, every wind cell two lines so row height stays even */
+.hg-wind{white-space:nowrap}.hg-wd{font-size:.86em}.hg-wd-none{display:none}
+@media (max-width:560px){.hg-wind .hg-wd,.hg-wind .hg-ws{display:block;line-height:1.15}.hg-wd{font-size:.8em}.hg-wd-none{display:block;visibility:hidden}}

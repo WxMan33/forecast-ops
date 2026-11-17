@@ -96,6 +96,18 @@ const report = (ok, name, detail) => { if (!ok) failed++; console.log(`${ok ? "P
         && g.rows.concern[i9].text === "Limited" && g.rows.lightning[i9].text === "Unavail." && g.rows.lightning[i9].state === "missing" && g.rows.lightning[i8].text === "n/a" && !errors.length,
         `missing data (${devName}, ${theme}): a source gap reads — and n/a (never 0 or "no concern"); one missing field stays missing while the rest show; missing lightning guidance reads Unavailable, never Low`,
         `8 PM ${valueRows.map((k) => g.rows[k][i8].text).join(" ")} / concern ${g.rows.concern[i8].text} · 9 PM PoP ${g.rows.pop[i9].text}, temp ${g.rows.temp[i9].text}, concern ${g.rows.concern[i9].text}${errors.length ? " · " + errors.join("; ") : ""}`);
+      /* wind: direction before speed; missing direction is the speed alone (never N); calm reads Calm; gusts unchanged;
+         on a phone direction stacks above speed and every wind cell keeps one height */
+      const i10 = g.hours.indexOf("10 PM"), i11 = g.hours.indexOf("7 PM"), wt = (c) => c.text.replace(/\s+/g, " ").trim();
+      const w = await p.evaluate(() => { const tds = [...document.querySelectorAll('tr.hg-row[data-row="wind"] td')].filter((td) => !td.hidden && td.offsetParent);
+        return { heights: [...new Set(tds.map((td) => td.offsetHeight))], stacked: tds.filter((td) => td.querySelector(".hg-wd")).map((td) => getComputedStyle(td.querySelector(".hg-ws")).display), label: document.querySelector('tr.hg-row[data-row="wind"] th').innerText.replace(/\s+/g, " ").trim(),
+          why10: (document.querySelectorAll('tr.hg-row[data-row="wind"] td')[2] || {}).title || "" }; });
+      const firstOk = g.rows.wind.findIndex((c) => c.state === "ok" && /^NW/.test(wt(c)));
+      report(firstOk >= 0 && wt(g.rows.wind[firstOk]) === "NW 6" && wt(g.rows.wind[i10]) === "6" && !/^N\b|^N\s/.test(wt(g.rows.wind[i10])) && wt(g.rows.wind[i11]) === "Calm" && wt(g.rows.gust[i10]) === "12"
+        && /mph/.test(w.label) && /direction/i.test(w.label) && w.heights.length === 1 && (devName === "phone" ? w.stacked.every((d) => d === "block") : w.stacked.every((d) => d !== "block")) && !errors.length,
+        `wind direction (${devName}, ${theme}): "NW 6" before speed, mph in the row label; missing direction shows the speed alone, never north; calm reads Calm; gusts stay separate; ${devName === "phone" ? "direction stacks above speed" : "one line"}; every wind cell the same height`,
+        `first "${firstOk >= 0 ? wt(g.rows.wind[firstOk]) : "none"}" · 10 PM "${wt(g.rows.wind[i10])}" · 7 PM "${wt(g.rows.wind[i11])}" · gust 10 PM "${wt(g.rows.gust[i10])}" · label "${w.label}" · heights ${w.heights.join("/")} · display ${[...new Set(w.stacked)].join("/")}`);
+      if (devName === "phone") await p.screenshot({ path: `${out}/hourly-event-wind-${devName}-${theme}.png` });
       await ctx.close(); }
     /* ---------- Model Blend view: 24/48/72 hours ---------- */
     for (const hrs of [24, 48, 72]) {

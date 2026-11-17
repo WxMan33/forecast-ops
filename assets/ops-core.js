@@ -162,7 +162,7 @@
         { id: "gefs", name: "GEFS", w: 0.75, kind: "ens", ens: "gfs025", note: "31 members; the system's weight is shared by its members." },
         { id: "rrfs_ens", name: "RRFS ensemble (5 members)", w: 1.25, kind: "ens", ens: "ncep_rrfs_conus_ensemble", note: "Five RRFS perturbed members, not the full time-lagged REFS product. One system weight shared across its five members. Only covered variables and windows contribute." },
       ],
-      hourly: ["temperature_2m", "dew_point_2m", "apparent_temperature", "precipitation_probability", "precipitation", "snowfall", "wind_speed_10m", "wind_gusts_10m", "cloud_cover"],
+      hourly: ["temperature_2m", "dew_point_2m", "apparent_temperature", "precipitation_probability", "precipitation", "snowfall", "wind_speed_10m", "wind_direction_10m", "wind_gusts_10m", "cloud_cover"],
       extraHourly: { gfs_hrrr: ["visibility", "weather_code"], ncep_rrfs_conus: ["visibility", "weather_code"] },
       daily: ["temperature_2m_max", "temperature_2m_min", "precipitation_sum", "snowfall_sum", "precipitation_probability_max", "wind_gusts_10m_max"],
     },
@@ -256,7 +256,7 @@
       }
       if (nwsAxis) {
         const A = nwsAxis, h = {};
-        ["temperature_2m", "dew_point_2m", "apparent_temperature", "precipitation_probability", "wind_speed_10m", "wind_gusts_10m", "cloud_cover"].forEach((v) => { if (A[v]) h[v] = A[v]; });
+        ["temperature_2m", "dew_point_2m", "apparent_temperature", "precipitation_probability", "wind_speed_10m", "wind_direction_10m", "wind_gusts_10m", "cloud_cover"].forEach((v) => { if (A[v]) h[v] = A[v]; });
         if (stats.hasData(h.temperature_2m)) data.models.nws = { kind: "nws", h, iv: { precipitation: A.qpf || [], snowfall: A.snow || [] } };
       }
       return data;
@@ -327,6 +327,24 @@
         t += wi * mv.filter((x) => x >= thr).length / mv.length; w += wi; n += mv.length; });
       return w ? { v: (100 * t) / w, members: n } : null;
     },
+    /* Wind direction (degrees the wind blows FROM) for the hours in idx: each source's wind as a vector (speed and
+       direction), combined at the source's blend weight for sustained wind; an ensemble is the mean of its members'
+       vectors. Never a plain average of angles (350° and 10° give 0°, not 180°). No source with both speed and
+       direction: deg null, never north. Every contributing speed zero: calm (a calm wind has no direction). Winds that
+       cancel (the combined vector is numerically zero against the winds' own scale): variable, with no direction. */
+    windDirection(data, ids, wOf, idx) {
+      let u = 0, v = 0, n = 0, moving = 0, scale = 0;
+      const vec = (h) => { let a = 0, b = 0, k = 0, m = 0; (idx || []).forEach((i) => { const s = h && h.wind_speed_10m && h.wind_speed_10m[i], d = h && h.wind_direction_10m && h.wind_direction_10m[i];
+        if (s == null || d == null || !isFinite(s) || !isFinite(d)) return; const r = (d * Math.PI) / 180; a += s * Math.sin(r); b += s * Math.cos(r); k++; if (s > 0) m++; }); return k ? { a: a / k, b: b / k, m } : null; };
+      ids.forEach((id) => { const md = data.models[id], wi = wOf(id); if (!md || !(wi > 0)) return;
+        const parts = md.kind === "ens" ? (md.members || []).map((mb) => vec(mb.h)).filter(Boolean) : [vec(md.h)].filter(Boolean); if (!parts.length) return;
+        u += wi * parts.reduce((t, p) => t + p.a, 0) / parts.length; v += wi * parts.reduce((t, p) => t + p.b, 0) / parts.length; n++; moving += parts.reduce((t, p) => t + p.m, 0);
+        scale += wi * parts.reduce((t, p) => t + Math.hypot(p.a, p.b), 0) / parts.length; });
+      if (!n) return { deg: null, calm: false, variable: false };
+      if (!moving) return { deg: null, calm: true, variable: false };
+      if (Math.hypot(u, v) <= scale * 1e-9) return { deg: null, calm: false, variable: true };
+      return { deg: ((Math.atan2(u, v) * 180) / Math.PI + 360) % 360, calm: false, variable: false };
+    },
     /* Aggregate a window for every source. idx: hours for instantaneous fields; acc: hours whose
        preceding-hour accumulation falls inside (defaults to idx). opts: {rules, own(id, dv, how)}. */
     aggregate(data, ws, idx, acc, opts = {}) {
@@ -341,9 +359,10 @@
       const feel = one("apparent_temperature", "min", idx, null);
       /* sustained wind: same weighted combination as gusts (the hourly grids show it; nothing else reads it) */
       const wind = one("wind_speed_10m", "max", idx, null);
+      const windDir = blend.windDirection(data, ids, (id) => blend.w(ws, rules, id, "wind_speed_10m"), idx);
       const srcHighs = hi.parts.map((p) => p.v);
       return {
-        hi: hi.v, lo: lo.v, qpf: qpf.v, sn: sn.v, pop: pop.v, gust: gust.v, feel: feel.v, wind: wind.v,
+        hi: hi.v, lo: lo.v, qpf: qpf.v, sn: sn.v, pop: pop.v, gust: gust.v, feel: feel.v, wind: wind.v, windDir: windDir.deg, windCalm: windDir.calm, windVariable: windDir.variable,
         hiR: [hi.p10, hi.p90], loR: [lo.p10, lo.p90], qpfR: [qpf.p10, qpf.p90],
         ensR: { hi: eq("temperature_2m", "max", idx), lo: eq("temperature_2m", "min", idx), qpf: eq("precipitation", "sum", A) },
         qpfBounds: qpf.bounds, snBounds: sn.bounds,
@@ -960,7 +979,7 @@
       const f = (k) => (g[k] ? nws.stateAt(g[k], ms) : ms.map(() => null));
       const wx = nws.weatherAt(N.parts.grid, ms);
       return { temperature_2m: f("temperature"), dew_point_2m: f("dewpoint"), apparent_temperature: f("apparentTemperature"), precipitation_probability: f("probabilityOfPrecipitation"),
-        wind_speed_10m: f("windSpeed"), wind_gusts_10m: f("windGust"), cloud_cover: f("skyCover"),
+        wind_speed_10m: f("windSpeed"), wind_direction_10m: f("windDirection"), wind_gusts_10m: f("windGust"), cloud_cover: f("skyCover"),
         /* thunder probability: kept as NWS's own intervals; "thunder" samples the value valid at each hour */
         thunder: f("probabilityOfThunder"), thunderIv: nws.intervals(g.probabilityOfThunder ? { ...g.probabilityOfThunder, uom: "percent" } : null), weather: wx, ptype: wx.map(nws.ptype),
         qpf: nws.intervals(g.quantitativePrecipitation), snow: nws.intervals(g.snowfallAmount), ice: nws.intervals(g.iceAccumulation),
