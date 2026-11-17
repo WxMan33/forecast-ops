@@ -32,8 +32,10 @@
     const cov = Object.fromEntries(members.map((id) => [id, VC.coverage(att, ps, { id, target: st.target, lead: st.lead, track: sc.tracks[id] })]));
     /* scheduled editions whose verifying date for this lead falls in the period: on time, late, missed/failed */
     const slots = ((health && health.slots) || []).filter((x) => x.status !== "pending" && slotOk(String(x.id).split("_").pop()) && inPeriod(VC.addDays(String(x.id).slice(0, 10), +st.lead)));
-    const sched = { total: slots.length, onTime: slots.filter((x) => x.status === "on_time").length, late: slots.filter((x) => x.status === "late").length, missed: slots.filter((x) => /missed|failed/.test(x.status)).length, other: 0 };
-    sched.other = sched.total - sched.onTime - sched.late - sched.missed;
+    const sched = { total: slots.length, onTime: slots.filter((x) => x.status === "on_time").length, late: slots.filter((x) => x.status === "late").length, missed: slots.filter((x) => /missed|failed/.test(x.status)).length,
+      partial: slots.filter((x) => x.status === "partial").length, offSchedule: slots.filter((x) => x.status === "off_schedule").length, others: {} };
+    /* any status not named above is listed by its own name, never folded into an unnamed "other" */
+    slots.filter((x) => !/^(on_time|late|partial|off_schedule)$/.test(x.status) && !/missed|failed/.test(x.status)).forEach((x) => { sched.others[x.status] = (sched.others[x.status] || 0) + 1; });
     return { available, members, defaultMembers: fullest, adding, m, cov, sched, period: { start: start || verDates[0] || null, end: last } };
   }
 
@@ -75,7 +77,7 @@
         ${ex ? `<p class="msg">Excluded: ${ex.missingSource} case${ex.missingSource === 1 ? "" : "s"} without every selected source${ex.duplicate ? ` · ${ex.duplicate} with a repeated forecast` : ""}${ex.observationDiffers ? ` · ${ex.observationDiffers} with differing observations` : ""}${ex.methodMismatch ? ` · ${ex.methodMismatch} made with a different method` : ""}.${only.length ? ` Missing only one source: ${only.slice(0, 4).map(([id, n]) => `${E(label(id))} ${n}`).join(", ")}.` : ""}</p>` : ""}
         ${r.members.length ? `<div class="tablewrap vstack"><table class="vcompare"><thead><tr><th>Source</th><th>MAE °F</th><th>Bias °F</th><th>Distinct dates</th><th>Cases</th><th>Coverage</th></tr></thead><tbody>${rows}</tbody></table></div>` : ""}
         <p class="msg">Bias is forecast minus observed. Coverage: on-time captures where the source delivered a verified forecast for this lead, out of those where it was attempted; not attempted is counted, never hidden. Listed alphabetically within each group, not ranked.</p>
-        <p class="vsched">Scheduled editions for this lead and period: ${r.sched.total} · on time ${r.sched.onTime} · late ${r.sched.late} (kept, excluded from comparisons) · <b>missed or failed ${r.sched.missed}</b>${r.sched.other ? ` · other ${r.sched.other}` : ""}. Missed editions are outside every coverage count above.</p></section>`;
+        <p class="vsched">Scheduled editions for this lead and period: ${r.sched.total} · on time ${r.sched.onTime} · late ${r.sched.late} (kept, excluded from comparisons) · <b>partly captured ${r.sched.partial}</b> (only some sources on time; the rest count as not attempted above) · <b>missed or failed ${r.sched.missed}</b>${r.sched.offSchedule ? ` · off schedule ${r.sched.offSchedule}` : ""}${Object.entries(r.sched.others).map(([k, n]) => ` · ${E(k.replace(/_/g, " "))} ${n}`).join("")}. Missed editions are outside every coverage count above.</p></section>`;
       const on = (id, ev, f) => { const el = pane.querySelector("#" + id); if (el) el.addEventListener(ev, f); };
       on("ctarget", "change", (e) => { st.target = e.target.value; st.members = null; render(); });
       on("clead", "change", (e) => { st.lead = +e.target.value; st.members = null; render(); });

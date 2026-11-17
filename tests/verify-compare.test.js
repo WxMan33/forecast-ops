@@ -22,7 +22,7 @@ caps.forEach((c, ci) => { if (c.slot !== 'midday') { rows.push([0, ci, 0, 1, 20,
 rows.forEach((r) => { if (r[0] === 3) r[7] = 1; }); // TV products carry their extraction version, not the model normalizer's
 const sc = { attempts: caps, targets, ids, tracks, norms: ['normalize-v4', 'tv:tv-extract-v3'], rows, minDates: 30, sourceLabels: {} };
 const pairs = V.expandScorecard(sc);
-const health = { slots: [...caps.filter((c) => c.slot === 'midday').map((c) => ({ id: c.captureId, status: 'on_time' })), { id: '2026-11-11_midday', status: 'missed' }, { id: '2026-11-04_evening', status: 'late' }, { id: '2026-11-12_midday', status: 'pending' }] };
+const health = { slots: [...caps.filter((c) => c.slot === 'midday').map((c) => ({ id: c.captureId, status: 'on_time' })), { id: '2026-11-11_midday', status: 'missed' }, { id: '2026-11-04_evening', status: 'late' }, { id: '2026-11-09_evening', status: 'partial' }, { id: '2026-11-08_evening', status: 'mystery_state' }, { id: '2026-11-12_midday', status: 'pending' }] };
 const base = { target: 'tmax_clim', lead: 1, slot: 'midday', period: 'all', groups: ['models', 'tv'], members: null };
 
 t('expanded rows carry the verifying date (capture date + lead), edition and definition', () => {
@@ -58,7 +58,8 @@ t('coverage shows numerator and denominator; not attempted is counted, not dropp
 t('missed and late scheduled editions are visible, outside the coverage counts; pending is not counted', () => {
   const r = C.compute(sc, pairs, health, base);
   A.equal(r.sched.missed, 1); A.equal(r.sched.onTime, 10); A.equal(r.sched.late, 0, 'the late edition is evening, filtered by edition'); A.equal(r.sched.total, 11);
-  const both = C.compute(sc, pairs, health, { ...base, slot: 'both' }); A.equal(both.sched.late, 1); A.equal(both.sched.total, 12);
+  const both = C.compute(sc, pairs, health, { ...base, slot: 'both' }); A.equal(both.sched.late, 1); A.equal(both.sched.total, 14);
+  A.equal(both.sched.partial, 1, 'a partly captured edition is counted by name'); A.deepEqual(both.sched.others, { mystery_state: 1 }, 'an unknown status is listed by its own name');
 });
 t('targets stay distinct: climate-day low and the following overnight low never mix; TV has no climate-day low', () => {
   const lo = C.compute(sc, pairs, health, { ...base, target: 'tmin_clim' }), night = C.compute(sc, pairs, health, { ...base, target: 'tmin_night', members: ['nws', 'wkrc-7day'] });

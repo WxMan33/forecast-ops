@@ -20,7 +20,7 @@ sc = {'schema': 2, 'version': 'dashboard-v2', 'at': 'synthetic', 'minDates': 30,
       'targets': [{'id': 'tmax_clim', 'label': 'Daily high (climate day)', 'conv': 'climate-day-LST'}, {'id': 'tmin_clim', 'label': 'Daily low (climate day)', 'conv': 'climate-day-LST'}, {'id': 'tmin_night', 'label': 'Overnight low (night after date)', 'conv': 'nws-night-12h'}],
       'sourceLabels': {'blend:b1': 'Synthetic blend', 'wkrc-7day': 'WKRC 7-day'}, 'tracks': {'nws': 'source', 'gfs_seamless': 'source', 'blend:b1': 'blend', 'wkrc-7day': 'tv'},
       'attempts': attempts, 'ids': ids, 'norms': ['normalize-v4', 'tv:tv-extract-v3'], 'columns': [], 'rows': rows, 'droppedInconsistent': 0}
-health = {'expected': 11, 'manual': 0, 'gaps': [{'id': '2026-11-11_midday'}], 'slots': [{'id': a['captureId'], 'status': 'on_time'} for a in attempts] + [{'id': '2026-11-11_midday', 'status': 'missed'}]}
+health = {'expected': 12, 'manual': 0, 'gaps': [{'id': '2026-11-11_midday'}], 'slots': [{'id': a['captureId'], 'status': 'on_time'} for a in attempts] + [{'id': '2026-11-11_midday', 'status': 'missed'}, {'id': '2026-11-06_evening', 'status': 'partial'}]}
 idx = {'at': 'synthetic fixture', 'loc': {'name': 'CVG'}, 'reviewQueue': 0, 'health': health, 'lastRuns': {}, 'captures': [], 'runs': [], 'latestBlendInfo': {}, 'tvLatest': []}
 dash = {'schema': 1, 'version': 'dashboard-v2', 'scorecardFile': 'reports/dashboard/scorecard.json', 'sourceLabels': {}, 'captures': [], 'observed': [], 'historyFiles': {}, 'dailyPairs': [], 'hourlyPairs': [], 'minDates': 30, 'defaultId': 'blend:b1', 'defaultCaptured': True, 'loc': {'lstOffsetMin': -300}}
 files = {'reports/index.json': idx, 'reports/scores.json': {'summary': [], 'comparisons': [], 'hourly': [], 'minDates': 30, 'pairsCount': 0, 'pendingCount': 0}, 'reports/review-queue.json': {'items': []},
@@ -52,6 +52,10 @@ with sync_playwright() as p:
     tvrow = page.locator('.vcompare tbody tr', has_text='WKRC 7-day').inner_text()
     assert '8 of 9 attempted' in tvrow and 'not attempted in 1 of 10' in tvrow, tvrow
     assert 'missed or failed 1' in text, 'a missed scheduled edition stays visible'
+    assert 'partly captured 0' in text and 'other' not in page.locator('.vsched').inner_text(), 'partial editions are named, never "other" (the evening one is filtered out by edition)'
+    page.locator('#cslot').select_option('both'); page.locator('.vsummary').wait_for()
+    assert 'partly captured 1' in page.locator('.vsched').inner_text(), page.locator('.vsched').inner_text()
+    page.locator('#cslot').select_option('midday'); page.locator('.vpick summary').click(); page.locator('#call').click(); page.locator('.vcompare').wait_for()
     assert page.locator('.vcompare tbody tr').count() == 4
     page.screenshot(path=str(out / 'verify-compare-desktop-dark.png'), full_page=True)
     # targets stay distinct: the climate-day low has no TV product; the overnight low does
