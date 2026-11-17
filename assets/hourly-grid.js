@@ -15,7 +15,7 @@
     const cls = ["hg-c", `hg-s-${c.state || "ok"}`]; if (c.tier) cls.push(`hg-t-${c.tier}`); if (ms === sel) cls.push("hg-sel"); if (c.past) cls.push("hg-past");
     const split = c.split ? ` style="--hg-from:${(c.split.from / 60) * 100}%;--hg-to:${(c.split.to / 60) * 100}%"` : "";
     const title = c.title || [STATE_WORD[c.state] || "", c.why || ""].filter(Boolean).join(" · ");
-    return `<td class="${cls.join(" ")}" data-ms="${ms}"${split}${title ? ` title="${esc(title)}"` : ""}>${c.icon ? `<span class="hg-i" aria-hidden="true">${esc(c.icon)}</span>` : ""}<span class="hg-v">${esc(c.text == null ? "" : c.text)}</span>${title && (c.state === "missing" || c.state === "concern" || c.state === "flag" || c.state === "partial") ? `<span class="sr-only"> (${esc(title)})</span>` : ""}</td>`;
+    return `<td class="${cls.join(" ")}" data-ms="${ms}"${split}${title ? ` title="${esc(title)}"` : ""}>${c.icon ? `<span class="hg-i" aria-hidden="true">${esc(c.icon)}</span>` : ""}${c.wind ? `<span class="hg-v hg-wind" aria-label="${esc(c.text)}"><span class="hg-wd${c.wind.dir ? "" : " hg-wd-none"}" aria-hidden="true">${c.wind.dir ? esc(c.wind.dir) : "&nbsp;"}</span> <span class="hg-ws" aria-hidden="true">${esc(c.wind.spd)}</span></span>` : `<span class="hg-v">${esc(c.text == null ? "" : c.text)}</span>`}${title && (c.state === "missing" || c.state === "concern" || c.state === "flag" || c.state === "partial") ? `<span class="sr-only"> (${esc(title)})</span>` : ""}</td>`;
   }
 
   /* opts: { axis, rows: [{key, label, sub, kind, cells}], selected, onSelect(ms), caption, now } -> { setSelected(ms) } */

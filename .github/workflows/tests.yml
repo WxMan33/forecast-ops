@@ -47,6 +47,7 @@ jobs:
       - run: node tests/coverage.test.js
       - run: node tests/source-failure.test.js
       - run: node tests/forecast-cache.test.js
+      - run: node tests/wind-direction.test.js
       - run: node tests/model-trends.test.js
       - run: node tests/climate-report.test.js
       - run: node tests/climate-daily.test.js

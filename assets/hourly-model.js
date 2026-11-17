@@ -39,7 +39,7 @@
     const i = ix ? ix.get(ms) : B.ms.indexOf(ms);
     if (i == null || i < 0) return { ms, state: "beyond", thunder: null };
     const r = C.blend.windowRow(B, ws, [i], [i], opts);
-    const val = { temp: r.hi, tempR: r.hiR, feel: r.feel, pop: r.pop, qpf: r.qpf, sn: r.sn, wind: r.wind, gust: r.gust, chance: r.chance ? r.chance.v / 100 : null, chanceInfo: r.chance || null };
+    const val = { temp: r.hi, tempR: r.hiR, feel: r.feel, pop: r.pop, qpf: r.qpf, sn: r.sn, wind: r.wind, windDir: r.windDir, windCalm: r.windCalm, windVariable: r.windVariable, gust: r.gust, chance: r.chance ? r.chance.v / 100 : null, chanceInfo: r.chance || null };
     const has = ["temp", "feel", "pop", "qpf", "wind", "gust"].some((k) => fin(val[k]));
     return { ms, i, state: has ? "ok" : "nodata", ...val, n: r.contrib.length, contrib: r.contrib, parts: r.parts, prorated: r.prorated, thunder: th ? th.at(ms) : null };
   }
