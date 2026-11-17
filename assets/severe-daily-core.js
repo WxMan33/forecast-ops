@@ -98,5 +98,40 @@
       bins: p.reliability.map(b => ({range: range(b), mean: b.mean_probability, observed: b.observed_rate, points: b.known_points, dates: b.dates})),
     };
   }
-  return {validateRun, validateIndex, validateCase, freshness, validateRegistry, productSummary};
+  const utcDay = t => new Date(t).toLocaleDateString('en-US', {timeZone: 'UTC', month: 'short', day: 'numeric'});
+  const utcFull = t => new Date(t).toLocaleDateString('en-US', {timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric'}) +
+    ' ' + new Date(t).toISOString().slice(11, 16) + ' UTC';
+  const span = run => { const a = utcDay(run.valid_start), b = utcDay(run.valid_end);
+    return a.split(' ')[0] === b.split(' ')[0] ? a + '–' + b.split(' ')[1] : a + '–' + b; };
+  // Where a run stands against the visitor's clock. "Day 2" alone reads as "tomorrow", but a
+  // Day 2 run issued yesterday covers today's window, so labels lead with this relation.
+  function relation(run, now = Date.now()) {
+    const state = freshness(run, now);
+    if (state === 'valid') return 'In effect now';
+    if (state === 'upcoming') return Date.parse(run.valid_start) - now <= 86400000 ? 'Next window' : 'Later window';
+    return state === 'expired' ? 'Expired' : 'Not yet published';
+  }
+  const lead = run => 'Day ' + run.day + ' forecast (' + (run.day === 1 ? '6–30' : '24–48') + ' h after initialization)';
+  function runLabel(run, version, now = Date.now()) {
+    return relation(run, now) + ' · ' + span(run) + ' 12 UTC · Day ' + run.day +
+      ' issued ' + utcDay(run.model_init_time) + ' ' + run.model_init_time.slice(11, 13) + 'Z · ' + (version || 'unregistered model');
+  }
+  // Prefer the window in effect now, then the next one; for the same window, the newest run.
+  function defaultRun(runs, now = Date.now()) {
+    const rank = run => ({valid: 0, upcoming: 1})[freshness(run, now)];
+    return runs.filter(run => rank(run) !== undefined).sort((a, b) => rank(a) - rank(b) ||
+      Date.parse(a.valid_start) - Date.parse(b.valid_start) || Date.parse(b.model_init_time) - Date.parse(a.model_init_time))[0] || null;
+  }
+  function issuanceNote(run, runs, now = Date.now()) {
+    const same = runs.filter(other => other !== run && other.valid_start === run.valid_start && freshness(other, now) !== 'unavailable');
+    const newer = same.find(other => Date.parse(other.model_init_time) > Date.parse(run.model_init_time));
+    const older = same.find(other => Date.parse(other.model_init_time) < Date.parse(run.model_init_time));
+    if (newer) return 'A newer Day ' + newer.day + ' run (issued ' + utcFull(newer.model_init_time) + ') covers this same window.';
+    if (run.day === 2 && freshness(run, now) === 'valid')
+      return 'This window is in effect now. It was forecast the previous day as Day 2; no Day 1 update for it is published.';
+    if (run.day === 2 && freshness(run, now) === 'upcoming') return 'This is the next 24-hour window, forecast as Day 2.';
+    return older ? 'Replaces the earlier Day ' + older.day + ' run for this window.' : '';
+  }
+  return {validateRun, validateIndex, validateCase, freshness, validateRegistry, productSummary,
+          relation, runLabel, defaultRun, issuanceNote, lead, utcFull};
 });

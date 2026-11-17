@@ -73,6 +73,15 @@ rate, a "No demonstrated development skill" flag when that skill is not positive
 rule-flagged reliability ranges and the full reliability table. A run whose model is
 not in the registry is refused, so no probability is shown without its evidence.
 
+### Timing labels
+
+Each run is labeled against the visitor's clock first ("In effect now", "Next window",
+"Expired"), then by its 12 UTC valid dates, lead day, full initialization date and model
+version. The default is the run in effect now, and for the same window the newest
+initialization. When a Day 1 run is missing, the previous day's Day 2 run for today's
+window says it is in effect and was forecast the previous day; when both exist, the older
+run points to the newer one.
+
 The Severe-page daily panel shares the existing map and contour renderer with
 the historical viewer. It offers Day 1/Day 2, tornado/wind/hail, contours/dots/both,
 map themes and original-sample point readouts. The daily parser enforces the

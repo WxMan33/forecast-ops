@@ -2,7 +2,7 @@
 (function(){'use strict';
 window.createSevereResearchCanvas=function(container,states,options){
  const C=window.SevereResearchCore,G=window.SevereResearchContours,sources=new Map(),layouts=new Map(),paint=new Map(),el=document.getElementById(container);
- el.classList.remove('maplibregl-map');el.innerHTML='<canvas tabindex="0" role="img" aria-label="Historical probability map. Drag to pan; use zoom buttons and the saved-location or highest-sample buttons to inspect values."></canvas><div class="sr-canvas-controls"><button type="button" aria-label="Zoom research map in">+</button><button type="button" aria-label="Zoom research map out">−</button></div><div class="sr-canvas-credit">NOAA HRRR / NCEI · US Census / us-atlas</div>';
+ el.classList.remove('maplibregl-map');el.innerHTML='<canvas tabindex="0" role="img" aria-label="Severe probability map. Drag to pan; use zoom buttons and the saved-location or highest-sample buttons to inspect values."></canvas><div class="sr-canvas-controls"><button type="button" aria-label="Zoom research map in">+</button><button type="button" aria-label="Zoom research map out">−</button></div><div class="sr-canvas-credit">NOAA HRRR / NCEI · US Census / us-atlas</div>';
  el.dataset.renderer='canvas';el.style.position='relative';
  const cv=el.querySelector('canvas'),ctx=cv.getContext('2d');cv.style.cssText='display:block;width:100%;height:100%;touch-action:none;cursor:grab';
  let center=[-87.5,37.5],zoom=4,width=0,height=0,drag=null,pending=false;

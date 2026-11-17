@@ -76,6 +76,10 @@ with sync_playwright() as p:
     assert page.locator("#sdRun option").count() == 2
     assert "24 hours" in page.locator("#sdInit").inner_text()
     assert "LATE FOR FULL WINDOW" in page.locator("#sdInit").inner_text()
+    meta = page.locator("#sdInit").inner_text()
+    assert "Initialized Nov 16, 2026 06:00 UTC" in meta and "Day 1 forecast" in meta and "Model v" in meta, meta
+    assert page.locator("#sdWindow").inner_text().startswith("In effect now:")
+    assert page.locator("#sdRun option").nth(1).inner_text().startswith("Next window · Nov 17–18 12 UTC · Day 2 issued Nov 16 12Z")
     for hazard in ("wind", "hail", "tornado"):
         page.locator(f"#severe-daily [data-sr-hazard='{hazard}']").click()
         assert page.locator("#sdValue").inner_text() != "—"
