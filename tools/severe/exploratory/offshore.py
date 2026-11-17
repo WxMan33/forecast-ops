@@ -19,7 +19,7 @@ for i,(x,y) in enumerate(coords):
     if onland[i]:continue
     nearest=boundary.interpolate(boundary.project(Point(x,y)))
     dx=(nearest.x-x)*111.32*np.cos(np.radians(y));dy=(nearest.y-y)*110.57;dist[i]=np.hypot(dx,dy)
-cat=np.where(onland,'land',np.where(dist<=40.2336,'coastal water (<=25 mi)','open water (>25 mi)'))
+cat=np.where(onland,'land',np.where(dist<=40.2336,'outside US outlines, within 25 mi','more than 25 mi from US land'))
 out={'samples':{c:int((cat==c).sum()) for c in np.unique(cat)}}
 H=['tornado','wind','hail']
 known=L!=255

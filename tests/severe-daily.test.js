@@ -45,6 +45,13 @@ assert.equal(D.productSummary(registry, {day: 1, model_sha256: '0'.repeat(64)}, 
 const broken = structuredClone(registry);
 Object.values(broken.models)[0].products.day1_wind.positive_development_skill = false;
 assert.throws(() => D.validateRegistry(broken));
+// Display mask: tied to the grid checksum, applied without touching other samples.
+const hidden = D.validateMask(read('display-mask.json'), index.grid.sha256, count);
+assert(hidden.size > 1000 && hidden.size < count / 5);
+assert.throws(() => D.validateMask(read('display-mask.json'), '0'.repeat(64), count), /does not match/);
+assert.throws(() => D.validateMask({...read('display-mask.json'), hidden: [count]}, index.grid.sha256, count));
+const raw = D.validateCase(read(index.runs[0].file), index.runs[0], count), shownValues = D.applyMask(raw, hidden);
+for (const hazard of ['tornado', 'wind', 'hail']) shownValues[hazard].forEach((p, i) => assert.equal(p, hidden.has(i) ? null : raw[hazard][i]));
 // Timing labels: a Day 2 issued yesterday that covers today's window must not read as tomorrow.
 const day1 = {day: 1, id: 'd1', model_init_time: '2026-11-16T06:00:00+00:00', valid_start: '2026-11-16T12:00:00+00:00', valid_end: '2026-11-17T12:00:00+00:00', prepared_at: '2026-11-16T09:50:00+00:00'};
 const day2 = {day: 2, id: 'd2', model_init_time: '2026-11-16T12:00:00+00:00', valid_start: '2026-11-17T12:00:00+00:00', valid_end: '2026-11-18T12:00:00+00:00', prepared_at: '2026-11-16T15:50:00+00:00'};

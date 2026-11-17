@@ -132,6 +132,19 @@
     if (run.day === 2 && freshness(run, now) === 'upcoming') return 'This is the next 24-hour window, forecast as Day 2.';
     return older ? 'Replaces the earlier Day ' + older.day + ' run for this window.' : '';
   }
-  return {validateRun, validateIndex, validateCase, freshness, validateRegistry, productSummary,
+  // Display-only mask: samples more than 25 miles from US land, outside report coverage.
+  // A mask for a different grid is refused, so hidden areas can never shift silently.
+  function validateMask(mask, gridSha, count) {
+    if (mask?.schema_version !== 1 || mask.display_only !== true || mask.grid_sha256 !== gridSha ||
+        !Array.isArray(mask.hidden) || mask.hidden.some(i => !Number.isInteger(i) || i < 0 || i >= count) ||
+        new Set(mask.hidden).size !== mask.hidden.length) throw Error('Display mask does not match the daily grid');
+    return new Set(mask.hidden);
+  }
+  function applyMask(values, hidden) {
+    const out = {};
+    for (const [hazard, array] of Object.entries(values)) out[hazard] = array.map((p, i) => hidden.has(i) ? null : p);
+    return out;
+  }
+  return {validateRun, validateIndex, validateCase, freshness, validateRegistry, productSummary, validateMask, applyMask,
           relation, runLabel, defaultRun, issuanceNote, lead, utcFull};
 });

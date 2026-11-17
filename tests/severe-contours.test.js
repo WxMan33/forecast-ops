@@ -74,4 +74,11 @@ for(const run of read('assets/severe-daily/index.json').runs)for(const [hazard,v
   if(v[peak]>=.001&&!near(v[peak]))assert(r.checked>0);
 }
 assert(edges>0,'domain-edge samples must be covered');
+// With the display mask applied, no band reaches a hidden sample and the rest stay faithful.
+const mask=new Set(read('assets/severe-daily/display-mask.json').hidden);
+for(const run of read('assets/severe-daily/index.json').runs)for(const [hazard,v] of Object.entries(read('assets/severe-daily/'+run.file).probabilities)){
+  const masked=v.map((p,i)=>mask.has(i)?null:p),inside=index(G.contours(dailyMesh,masked));
+  for(const i of mask)assert.equal(inside(dailyGrid[i]),-1,`${run.file} ${hazard}: hidden sample ${i} is drawn`);
+  faithful(`${run.file} ${hazard} masked`,dailyGrid,masked,dailyMesh);
+}
 console.log(`Severe contours: exact linear bands, gaps, missing data, winding, visible lowest band; ${h.checked} archived and ${total} daily samples (${edges} on the domain edge) drawn in their own band`);

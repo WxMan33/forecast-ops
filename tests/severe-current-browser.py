@@ -133,6 +133,15 @@ with sync_playwright() as p:
     page.wait_for_timeout(300)
     assert any(r.endswith("index.json") for r in requests), requests
     page.wait_for_function("document.querySelector('#severe-daily').getAttribute('aria-busy') === 'false'")
+    # The display mask hides offshore samples: the Day 2 hail peak was 174 km off the coast.
+    mask = set(json.loads((root / "assets/severe-daily/display-mask.json").read_text())["hidden"])
+    grid = json.loads((root / "assets/severe-daily/grid.json").read_text())["coordinates"]
+    page.locator("#severe-daily [data-sr-hazard='hail']").click()
+    page.locator("#sdPeak").click()
+    lat, lon = (float(v.strip("°")) for v in page.locator("#sdCoordinates").inner_text().split(" · ")[0].split(", "))
+    peak = min(range(len(grid)), key=lambda i: (grid[i][0] - lon) ** 2 + (grid[i][1] - lat) ** 2)
+    assert peak not in mask, "highest sample must not be a hidden offshore sample"
+    assert "hidden" in page.locator("#sdDisplayNote").inner_text()
     # "Highest sample" follows the selected hazard.
     page.locator("#sdPeak").click()
     page.locator("#severe-daily [data-sr-hazard='wind']").click()
