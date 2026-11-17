@@ -50,13 +50,28 @@ The original v0.6 baseline remains archived. The expanded v0.7 model is the next
 research candidate after fixed-date comparison. Five of six products reduced Brier
 error against v0.6. Day 1 tornado changed slightly in the opposite direction.
 Day 2 tornado and hail still score worse than training climatology, and the May 15
-high-probability wind area remains overforecast. This is a prospective research
+high-probability wind area remains overforecast. Errors run in both directions: Day 1
+tornado forecasts of 1–15% verified at more than double the forecast rate, while high
+Day 1 hail and Day 2 tornado/hail forecasts verified at less than half. The 2024
+development dates were also used to choose between model versions, so all of these
+results are exploratory; with twelve dates the uncertainty estimates are fragile.
+This is a prospective research
 trial rather than an operational release. All outputs remain regional research
 products over approximately 100°W–75°W, 30°N–45°N. Operational publication,
 national coverage, independent final evaluation and the ongoing verification feed
 remain subsequent integration and validation work.
 
 ## Viewer and publication
+
+### Product evidence
+
+assets/severe-daily/models.json is generated from each model's committed
+development-scores.json by tools/severe/model_registry.py (CI runs it with --check).
+The viewer looks up every run by model_sha256 and shows, for the selected lead day and
+hazard, the model version, the Brier skill against a constant training-period report
+rate, a "No demonstrated development skill" flag when that skill is not positive, the
+rule-flagged reliability ranges and the full reliability table. A run whose model is
+not in the registry is refused, so no probability is shown without its evidence.
 
 The Severe-page daily panel shares the existing map and contour renderer with
 the historical viewer. It offers Day 1/Day 2, tornado/wind/hail, contours/dots/both,

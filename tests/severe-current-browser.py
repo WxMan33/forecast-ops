@@ -18,6 +18,7 @@ server = http.server.ThreadingHTTPServer(
 threading.Thread(target=server.serve_forever, daemon=True).start()
 origin = f"http://127.0.0.1:{server.server_port}"
 corrupt = False
+unregistered = None
 errors = []
 # Reuse sample arrays while fixing synthetic dates, so future feed updates cannot
 # make this clock/late-publication regression test depend on the wall clock.
@@ -52,6 +53,11 @@ def route(request):
         request.fulfill(content_type="application/json", body="{}")
         return
     path = urlsplit(request.request.url).path
+    if unregistered and path == "/assets/severe-daily/models.json":
+        registry = json.loads((root / "assets/severe-daily/models.json").read_text())
+        del registry["models"][unregistered]
+        request.fulfill(content_type="application/json", body=json.dumps(registry))
+        return
     if path.startswith("/assets/severe-daily/") and path.split("/")[-1] in fixture_files:
         request.fulfill(content_type="application/json", body=fixture_files[path.split("/")[-1]])
         return
@@ -83,6 +89,28 @@ with sync_playwright() as p:
     page.select_option("#sdRun", day2)
     page.wait_for_function("document.querySelector('#sdValue').textContent !== '—'")
     assert "LATE FOR FULL WINDOW" not in page.locator("#sdInit").inner_text()
+    # Each product carries its own development evidence; Day 2 tornado and hail show no skill.
+    day2_model = fixture_index["runs"][1]["model_sha256"]
+    registry = json.loads((root / "assets/severe-daily/models.json").read_text())["models"][day2_model]
+    for hazard in ("tornado", "wind", "hail"):
+        page.locator(f"#severe-daily [data-sr-hazard='{hazard}']").click()
+        product = page.locator("#sdProduct")
+        assert product.is_visible() and registry["version"] in product.inner_text()
+        expected = "positive" if registry["products"][f"day2_{hazard}"]["positive_development_skill"] else "none"
+        assert product.get_attribute("data-skill") == expected, (hazard, expected)
+        if expected == "none":
+            assert "No demonstrated development skill" in product.inner_text()
+        assert page.locator("#sdReliability tbody tr").count() == len(registry["products"][f"day2_{hazard}"]["reliability"])
+    page.locator("#severe-daily [data-sr-hazard='tornado']").click()
+    assert registry["version"] in page.locator("#sdRun option").nth(1).inner_text()
+    # A model with no published development results is refused rather than shown.
+    unregistered = day2_model
+    page.locator("#sdRetry").evaluate("(el) => el.click()")
+    page.wait_for_function("document.querySelector('#sdStatus').textContent.includes('no published development results')")
+    assert page.locator("#sdValue").inner_text() == "—" and page.locator("#sdProduct").is_hidden()
+    unregistered = None
+    page.locator("#sdRetry").click()
+    page.wait_for_function("document.querySelector('#sdValue').textContent !== '—'")
     # A failed refresh must clear the previous values, including cached data.
     corrupt = True
     page.locator("#sdRetry").evaluate("(el) => el.click()")
@@ -110,7 +138,7 @@ with sync_playwright() as p:
     (target / "severe-current-browser.json").write_text(json.dumps({
         "days": 2, "hazards": 3, "displays": 3, "checksum_failure_recovery": True,
         "late_flag": True, "expired_values_suppressed": True, "archive_preserved": True,
-        "mobile_no_overflow": True, "page_errors": errors,
+        "mobile_no_overflow": True, "product_evidence": True, "unregistered_model_refused": True, "page_errors": errors,
     }, indent=2) + "\n")
     print("Current Severe panel: days, hazards, displays, corrupt recovery, expiry, archive and mobile passed")
     browser.close()

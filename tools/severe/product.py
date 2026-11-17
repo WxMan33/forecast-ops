@@ -111,7 +111,8 @@ def produce(date, day, model_path, model_sha256, output, cache):
         "predictor_sha256": spec["sha256"], "raw_audit_sha256": digest(features_root / "raw-audit.json"),
         "grid_sha256": manifest["grid_sha256"], "input_contract": model["input_contract"],
         "operational_forecast_eligible": False,
-        "notice": "Experimental regional probabilities. Development overforecasting remains under review.",
+        "notice": ("Experimental regional probabilities. Development skill and reliability differ by hazard "
+                   "and lead day; see assets/severe-daily/models.json."),
     }
     candidate["freshness_at_preparation"] = freshness(candidate, prepared)
     # Consumers must recompute expiry from valid_end, even after a failed later run.

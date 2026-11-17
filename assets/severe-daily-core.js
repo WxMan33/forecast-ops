@@ -55,5 +55,48 @@
     }
     return result;
   }
-  return {validateRun, validateIndex, validateCase, freshness};
+  const HAZARD_NAMES = {tornado: 'tornado', wind: 'severe wind', hail: 'severe hail'};
+  const pct = v => (v * 100).toFixed(v < .01 ? 1 : 0);
+  const range = b => b.upper >= 1 ? pct(b.lower) + '%+' : pct(b.lower) + '–' + pct(b.upper) + '%';
+  function validateRegistry(registry) {
+    if (registry?.schema_version !== 1 || !registry.models || typeof registry.models !== 'object')
+      throw Error('Unsupported daily model registry');
+    for (const [hash, model] of Object.entries(registry.models)) {
+      if (!sha(hash) || typeof model?.version !== 'string' || !/^v\d+\.\d+$/.test(model.version))
+        throw Error('Invalid daily model registry entry');
+      for (const day of [1, 2]) for (const hazard of Object.keys(HAZARD_NAMES)) {
+        const p = model.products?.['day' + day + '_' + hazard];
+        if (!p || !Number.isFinite(p.brier_skill_vs_training_climatology) ||
+            typeof p.positive_development_skill !== 'boolean' ||
+            p.positive_development_skill !== p.brier_skill_vs_training_climatology > 0 ||
+            !Array.isArray(p.reliability) || !Array.isArray(p.reliability_flags) ||
+            !Number.isInteger(p.evaluation_dates) || !Number.isInteger(p.dates_with_reports))
+          throw Error('Incomplete daily model registry entry');
+      }
+    }
+    return registry;
+  }
+  // The selected product's own development evidence. Unknown models are refused upstream.
+  function productSummary(registry, run, hazard) {
+    const model = registry.models[run.model_sha256];
+    if (!model) return null;
+    const p = model.products['day' + run.day + '_' + hazard];
+    const skill = p.brier_skill_vs_training_climatology * 100;
+    const name = 'Day ' + run.day + ' ' + HAZARD_NAMES[hazard];
+    const signed = (skill > 0 ? '+' : skill < 0 ? '−' : '') + Math.abs(skill).toFixed(1) + '%';
+    const over = p.reliability_flags.filter(f => f.direction === 'overforecast').map(range);
+    const under = p.reliability_flags.filter(f => f.direction === 'underforecast').map(range);
+    return {
+      version: model.version, skill: p.positive_development_skill ? 'positive' : 'none',
+      flag: p.positive_development_skill ? 'Development Brier skill ' + signed : 'No demonstrated development skill',
+      headline: p.positive_development_skill
+        ? name + ' (' + model.version + '): Brier skill ' + signed + ' against a constant training-period report rate on development dates.'
+        : name + ' (' + model.version + '): Brier skill ' + signed + ', no better than a constant training-period report rate on development dates. Treat these values as experimental only.',
+      reliability: [over.length ? 'Where it forecast ' + over.join(', ') + ', reports occurred at less than half the forecast rate.' : '',
+                    under.length ? 'Where it forecast ' + under.join(', ') + ', reports occurred at more than double the forecast rate.' : ''].filter(Boolean).join(' '),
+      dates: p.evaluation_dates + ' development dates in 2024, ' + p.dates_with_reports + ' with qualifying reports. Exploratory: the same dates were used to choose between model versions.',
+      bins: p.reliability.map(b => ({range: range(b), mean: b.mean_probability, observed: b.observed_rate, points: b.known_points, dates: b.dates})),
+    };
+  }
+  return {validateRun, validateIndex, validateCase, freshness, validateRegistry, productSummary};
 });
