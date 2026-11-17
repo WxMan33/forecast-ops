@@ -66,6 +66,7 @@ async function collect(loc, dataRoot, rel, { days = 16 } = {}) {
           : `${OME}?${q({ latitude: loc.lat, longitude: loc.lon, ...UNITS, forecast_days: Math.min(days, 16), models: s.omId, ...(/^ncep_rrfs/.test(s.omId) ? {cell_selection:"nearest", elevation:"nan"} : {}), hourly: ENS_VARS.join(",") })}`;
         const r = await U.fetchRaw(url, { accept: "application/json" });
         rec.request = url; rec.retrievedAt = r.retrievedAt; rec.httpStatus = r.status; rec.attempts = r.attempts;
+        if (!r.ok) { rec.attemptLog = r.attemptLog; if (r.code) rec.errorCode = r.code; } // why it failed, per attempt
         if (r.buf.length) rec.files.response = save(`${s.id}.json`, r);
         let j = r.ok ? U.parseJSON(r.text) : null;
         if (s.id === "ncep_rrfs_conus" || s.id === "rrfs_ens") {

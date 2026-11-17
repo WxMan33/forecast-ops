@@ -21,7 +21,8 @@ function captureHealth(caps, loc, nowMs, runs = []) {
   const first = U.localParts(Date.parse(startIso), loc.tz).date, today = U.localParts(nowMs, loc.tz).date, exp = [];
   for (let d = first; d <= today; d = U.addDays(d, 1)) SCHED.slots.forEach((s) => { const t = SCH.targetMs(d, s.local, loc.tz); if (t < Date.parse(startIso) - 3 * 3600e3) return; exp.push({ id: `${d}_${s.id}`, target: U.iso(t), future: nowMs < t + SCHED.lateMaxMin * 60e3 }); });
   const slots = ED.health(caps, runs, exp).map((x) => ({ ...x, status: x.edition === "captured_on_time" ? "on_time" : x.edition === "captured_partly_on_time" ? "partial" : x.edition === "captured_late" ? "late" : x.edition === "captured_off_schedule" ? "off_schedule" : x.edition }));
-  return { enabled: true, since: startIso, expected: slots.filter((s) => s.status !== "pending").length, slots, gaps: slots.filter((s) => ["missed", "failed"].includes(s.status)), manual,
+  return { enabled: true, since: startIso, expected: slots.filter((s) => s.status !== "pending").length, slots, gaps: slots.filter((s) => ["missed", "failed"].includes(s.status)),
+    partial: slots.filter((s) => s.status === "partial").map((s) => ({ id: s.id, sourcesOnTime: s.sourcesOnTime, sourcesExpected: s.sourcesExpected, recoveredLate: s.recoveredLate || [], notCaptured: s.notCaptured || [] })), manual,
     executed: schedRuns.length, executedOk: schedRuns.filter((r) => !["crashed"].includes(r.outcome)).length, notDue: schedRuns.filter((r) => r.outcome === "not-due").length };
 }
 
@@ -35,15 +36,19 @@ function writeReports(DATA, loc, res, nowMs = Date.now()) {
   const qmap = new Map();
   res.tv.filter((r) => r.reviewStatus === "needs-review").forEach((r) => { const h = r.evidence && r.evidence[0] ? r.evidence[0].contentSha256 : r.captureId;
     const k = [r.station, r.product, r.extractVersion, h, r.days && r.days[0] && r.days[0].date, r.days && r.days.length && r.days[r.days.length - 1].date].join("|"); const prev = qmap.get(k); qmap.set(k, { r, n: (prev ? prev.n : 0) + 1, first: prev ? prev.first : r.captureId }); });
-  const queue = [...qmap.values()].map(({ r, n, first }) => ({ captures: n, firstCapture: first,
+  /* products no longer collected (collect:false) are historical: their archive and review entries are kept but shown apart */
+  const TVC = require("../config/tv.js"), prodCfg = Object.fromEntries((TVC.products || []).map((p) => [p.id, p]));
+  const hist = (id) => ({ ...(prodCfg[id] && prodCfg[id].collect === false ? { historical: true, historicalReason: prodCfg[id].reason || "no longer collected" } : {}),
+    ...(prodCfg[id] && prodCfg[id].lowsDisplay ? { lowsDisplay: prodCfg[id].lowsDisplay } : {}) }); // display labels only
+  const queue = [...qmap.values()].map(({ r, n, first }) => ({ ...hist(r.product), captures: n, firstCapture: first,
     scope: { station: r.station, extractVersion: r.extractVersion, contentSha256: r.evidence && r.evidence[0] ? r.evidence[0].contentSha256 : null, firstDate: r.days && r.days[0] ? r.days[0].date : null, lastDate: r.days && r.days.length ? r.days[r.days.length - 1].date : null }, captureId: r.captureId, product: r.product, station: r.station, reason: r.review && r.review.reason, evidence: r.evidence, days: r.days, issues: r.extraction && r.extraction.issues, retrievedAt: r.retrievedAt, issuedAt: r.issuedAt, text: r.text ? r.text.slice(0, 3000) : undefined }));
   U.writeJSON(path.join(R, "review-queue.json"), { at: U.iso(nowMs), items: queue });
   /* compact scores for the dashboard (pairs omitted: they are rebuilt from the archive) */
   U.writeJSON(path.join(R, "scores.json"), { version: res.version, at: res.at, minDates: res.minDates, summary: res.summary, hourly: res.hourly, comparisons: res.comparisons, pendingCount: res.pending.length, pending: res.pending.slice(-300), pairsCount: res.pairs.length });
   const latestCap = caps[caps.length - 1];
   U.writeJSON(path.join(R, "index.json"), { at: U.iso(nowMs), loc, health: { ...H, slots: H.slots.slice(-60) }, captures: caps.slice(-40).map((c) => ({ captureId: c.captureId, slot: c.slot, trigger: c.trigger, startedAt: c.startedAt, timeliness: c.timeliness, outcome: c.outcome, summary: c.summary, tv: c.tv, normalized: c.normalized && !c.normalized.error })),
-    runs: runs.slice(-60), lastRuns: { collect: last("collect"), observe: last("observe", true), score: last("score") }, reviewQueue: queue.length,
-    tvLatest: Object.values(res.tv.reduce((m, r) => ((m[r.product] = r), m), {})).map((r) => ({ product: r.product, station: r.station, label: r.label, captureId: r.captureId, retrievedAt: r.retrievedAt, issuedAt: r.issuedAt, freshness: r.freshness, reviewStatus: r.reviewStatus, extraction: r.extraction, evidence: r.evidence, days: r.days, location: r.location, authorship: r.authorship, lows: r.lows, crossCheck: r.crossCheck })),
+    runs: runs.slice(-60), lastRuns: { collect: last("collect"), observe: last("observe", true), score: last("score") }, reviewQueue: queue.filter((q) => !q.historical).length, reviewQueueHistorical: queue.filter((q) => q.historical).length,
+    tvLatest: Object.values(res.tv.reduce((m, r) => ((m[r.product] = r), m), {})).map((r) => ({ ...hist(r.product), product: r.product, station: r.station, label: r.label, captureId: r.captureId, retrievedAt: r.retrievedAt, issuedAt: r.issuedAt, freshness: r.freshness, reviewStatus: r.reviewStatus, extraction: r.extraction, evidence: r.evidence, days: r.days, location: r.location, authorship: r.authorship, lows: r.lows, crossCheck: r.crossCheck })),
     latestBlendInfo: latestCap ? (() => { try { const b = JSON.parse(U.gunzip(fs.readFileSync(path.join(DATA, latestCap.normalized.path))).toString()); return Object.fromEntries(Object.entries(b.blends).map(([k, v]) => [k, { label: v.label, configHash: v.configHash, requested: v.requested, actual: v.actual, missing: v.missing, shares: v.shares }])); } catch (e) { return null; } })() : null });
   /* CSV exports: scored pairs and best observations (the archive itself is the full export) */
   const csv = (rows, cols) => [cols.join(","), ...rows.map((r) => cols.map((c) => { const v = r[c]; const s = v == null ? "" : Array.isArray(v) ? v.join(";") : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; }).join(","))].join("\n") + "\n";
@@ -71,6 +76,8 @@ function writeReports(DATA, loc, res, nowMs = Date.now()) {
     : `Scheduled collection: NOT ACTIVE (no scheduled run recorded). Manual (pilot) captures: ${H.manual}; they never enter primary scorecards.`, "");
   if (H.enabled) { st.push("| Edition | Target (UTC) | Status | Sources on time / captured / expected | Attempts | Collector runs |", "|---|---|---|---|---|---|");
     H.slots.slice(-28).reverse().forEach((s) => st.push(`| ${s.id} | ${s.target} | ${s.status} | ${s.sourcesOnTime} / ${s.sourcesCaptured} / ${s.sourcesExpected} | ${s.attempts} | ${s.collectorRuns} |`)); st.push(""); }
+  if (H.enabled && H.partial.length) { st.push("## Partly captured editions", "", "The on-time capture lacks these sources. A late recovery stays labelled late and never replaces on-time evidence; blends in the on-time capture ran without the missing members.", "", "| Edition | On time / expected | Recovered late (labelled late) | Not captured |", "|---|---|---|---|");
+    H.partial.slice(-14).reverse().forEach((s) => st.push(`| ${s.id} | ${s.sourcesOnTime} / ${s.sourcesExpected} | ${s.recoveredLate.join(", ") || "—"} | ${s.notCaptured.join(", ") || "—"} |`)); st.push(""); }
   st.push("| Capture | Trigger | Started | Timeliness | Outcome | Problems |", "|---|---|---|---|---|---|");
   caps.slice(-14).reverse().forEach((c) => st.push(`| ${c.captureId} | ${c.trigger} | ${c.startedAt} | ${c.timeliness.status}${c.timeliness.delayMin != null ? ` (${f(c.timeliness.delayMin)} min)` : ""} | ${c.outcome} | ${(c.summary.failed || []).join("; ") || "—"} |`));
   st.push("", "## Last runs", "", "| Job | At | Outcome | Detail |", "|---|---|---|---|");
@@ -85,7 +92,9 @@ function writeReports(DATA, loc, res, nowMs = Date.now()) {
   const latestTV = Object.values(res.tv.reduce((m, r) => ((m[r.product] = r), m), {}));
   latestTV.filter((r) => !(res.eligibility || []).some((e) => e.track === "tv" && e.id === r.product)).forEach((r) => st.push(`| tv | ${r.product} | ${r.captureId} | ${r.reviewStatus} | 0 (needs review: not eligible) | 0 | 0 |`));
   st.push("", `## Observations`, "", `${res.obsCount} observation rows archived · ${res.pairs.length} forecast values scored · ${res.pending.length} past-window values still waiting for an observation.`);
-  st.push("", `## TV review queue`, "", queue.length ? queue.slice(-20).map((q) => `- ${q.captureId} · ${q.product}: ${q.reason}`).join("\n") : "Empty.");
+  const activeQ = queue.filter((q) => !q.historical), pastQ = queue.filter((q) => q.historical);
+  st.push("", `## TV review queue`, "", activeQ.length ? activeQ.slice(-20).map((q) => `- ${q.captureId} · ${q.product}: ${q.reason}`).join("\n") : "Empty.");
+  if (pastQ.length) st.push("", "## Historical review entries (discontinued products; archived, not scored)", "", [...new Set(pastQ.map((q) => q.product))].map((p) => `- ${p}: ${pastQ.filter((q) => q.product === p).length} entries, ${pastQ.find((q) => q.product === p).historicalReason}`).join("\n"));
   fs.writeFileSync(path.join(R, "STATUS.md"), st.join("\n") + "\n");
   /* SCORECARD.md */
   const sc = [], S = res.summary.filter((x) => x.cls === "primary");

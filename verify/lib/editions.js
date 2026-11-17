@@ -46,7 +46,11 @@ function health(caps, runs, slotsExpected) {
       : st.some((x) => x === "on_time") ? "captured_partly_on_time"
       : st.some((x) => x === "late") ? "captured_late" : "captured_off_schedule";
     return { id: s.id, target: s.target, edition, attempts: mine.length, collectorRuns: execs.length, sourcesOnTime: st.filter((x) => x === "on_time").length, sourcesCaptured: st.length, sourcesExpected: allSrc,
-      firstStart: mine.length ? mine.map((c) => c.startedAt).sort()[0] : null };
+      firstStart: mine.length ? mine.map((c) => c.startedAt).sort()[0] : null,
+      // which sources the on-time edition lacks: recovered late (labelled late, never on-time evidence) or never captured
+      ...(mine.length && edition !== "captured_on_time" ? (() => {
+        const ids = [...new Set(mine.flatMap((c) => Object.keys(c.sources || {})))].sort();
+        return { recoveredLate: ids.filter((id) => per[id] && per[id] !== "on_time"), notCaptured: ids.filter((id) => !per[id]) }; })() : {}) };
   });
 }
 module.exports = { VERSION, isEdition, editionId, lateness, select, health };

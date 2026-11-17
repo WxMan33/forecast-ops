@@ -14,8 +14,12 @@ const iso = (ms) => new Date(ms).toISOString();
 
 /* Fetch with timeout and a few retries on network errors / 5xx. Never throws: returns
    {ok, status, url, type, buf, text, error, attempts, retrievedAt, ms}. */
+/* Each attempt is logged ({ms, status} or {ms, error, code}); a network failure keeps the underlying cause
+   (e.g. UND_ERR_CONNECT_TIMEOUT, ECONNRESET, ENOTFOUND), which "fetch failed" alone hides. Retries unchanged. */
+const causeOf = (e) => { const c = e && e.cause; if (!c) return e && e.name === "TimeoutError" ? { code: "TimeoutError" } : {};
+  return { code: c.code || c.name || null, cause: String(c.message || c).slice(0, 200) }; };
 async function fetchRaw(url, { accept = "*/*", headers = {}, method = "GET", body = null, timeoutMs = 45000, tries = 3 } = {}) {
-  let last = null;
+  let last = null; const log = [];
   for (let a = 1; a <= tries; a++) {
     const t0 = Date.now();
     try {
@@ -23,13 +27,16 @@ async function fetchRaw(url, { accept = "*/*", headers = {}, method = "GET", bod
       const buf = Buffer.from(await r.arrayBuffer());
       last = { ok: r.ok, status: r.status, url: r.url, type: r.headers.get("content-type") || "", lastModified: r.headers.get("last-modified"), date: r.headers.get("date"),
         buf, text: null, attempts: a, retrievedAt: iso(Date.now()), ms: Date.now() - t0 };
+      log.push({ ms: last.ms, status: r.status });
       if (r.status < 500 && r.status !== 429) break;
     } catch (e) {
-      last = { ok: false, status: 0, url, error: String((e && e.message) || e), attempts: a, retrievedAt: iso(Date.now()), ms: Date.now() - t0, buf: Buffer.alloc(0) };
+      const c = causeOf(e);
+      last = { ok: false, status: 0, url, error: String((e && e.message) || e), ...c, attempts: a, retrievedAt: iso(Date.now()), ms: Date.now() - t0, buf: Buffer.alloc(0) };
+      log.push({ ms: last.ms, error: last.error, ...c });
     }
     if (a < tries) await new Promise((res) => setTimeout(res, 2000 * a));
   }
-  last.text = last.buf.toString("utf8");
+  last.text = last.buf.toString("utf8"); last.attemptLog = log;
   return last;
 }
 const parseJSON = (t) => { try { return JSON.parse(t); } catch (e) { return null; } };

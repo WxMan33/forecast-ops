@@ -31,7 +31,7 @@
   .slots { display: flex; flex-wrap: wrap; gap: 3px; }
   .slot { width: 14px; height: 14px; border-radius: 3px; background: var(--raised); border: 1px solid var(--line); }
   .slot.on_time { background: var(--normal); } .slot.late { background: var(--monitor); } .slot.off_schedule { background: var(--prepare); }
-  .slot.missed, .slot.failed { background: var(--action); } .slot.pending { background: transparent; border-style: dashed; }
+  .slot.missed, .slot.failed { background: var(--action); } .slot.partial { background: linear-gradient(to top, var(--normal) 50%, var(--action) 50%); } .slot.pending { background: transparent; border-style: dashed; }
   .ev { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 12px; align-items: start; }
   .ev img { width: 100%; border-radius: 8px; border: 1px solid var(--line); }
   .ev pre { white-space: pre-wrap; font-size: 12px; max-height: 360px; overflow: auto; background: var(--raised); padding: 8px; border-radius: 8px; }
@@ -73,7 +73,7 @@
 <script src="assets/verify-panels.js?v=bf9ea88e07"></script>
 <script src="assets/verify-compare.js?v=c43964ce48"></script>
 <script src="assets/token-store.js?v=97756d24e3"></script>
-<script src="assets/verify-ui.js?v=a14e403073"></script>
+<script src="assets/verify-ui.js?v=538c714886"></script>
 </body>
 </html>
 

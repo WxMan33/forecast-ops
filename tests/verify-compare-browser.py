@@ -20,23 +20,58 @@ sc = {'schema': 2, 'version': 'dashboard-v2', 'at': 'synthetic', 'minDates': 30,
       'targets': [{'id': 'tmax_clim', 'label': 'Daily high (climate day)', 'conv': 'climate-day-LST'}, {'id': 'tmin_clim', 'label': 'Daily low (climate day)', 'conv': 'climate-day-LST'}, {'id': 'tmin_night', 'label': 'Overnight low (night after date)', 'conv': 'nws-night-12h'}],
       'sourceLabels': {'blend:b1': 'Synthetic blend', 'wkrc-7day': 'WKRC 7-day'}, 'tracks': {'nws': 'source', 'gfs_seamless': 'source', 'blend:b1': 'blend', 'wkrc-7day': 'tv'},
       'attempts': attempts, 'ids': ids, 'norms': ['normalize-v4', 'tv:tv-extract-v3'], 'columns': [], 'rows': rows, 'droppedInconsistent': 0}
-health = {'expected': 12, 'manual': 0, 'gaps': [{'id': '2026-11-11_midday'}], 'slots': [{'id': a['captureId'], 'status': 'on_time'} for a in attempts] + [{'id': '2026-11-11_midday', 'status': 'missed'}, {'id': '2026-11-06_evening', 'status': 'partial'}]}
-idx = {'at': 'synthetic fixture', 'loc': {'name': 'CVG'}, 'reviewQueue': 0, 'health': health, 'lastRuns': {}, 'captures': [], 'runs': [], 'latestBlendInfo': {}, 'tvLatest': []}
+health = {'expected': 12, 'manual': 0, 'gaps': [{'id': '2026-11-11_midday'}], 'slots': [{'id': a['captureId'], 'status': 'on_time'} for a in attempts] + [{'id': '2026-11-11_midday', 'status': 'missed'}, {'id': '2026-11-06_evening', 'status': 'partial', 'sourcesOnTime': 2, 'sourcesExpected': 4}],
+          'partial': [{'id': '2026-11-06_evening', 'sourcesOnTime': 2, 'sourcesExpected': 4, 'recoveredLate': ['gfs_seamless'], 'notCaptured': ['wkrc-7day']}]}
+idx = {'at': 'synthetic fixture', 'loc': {'name': 'CVG'}, 'reviewQueue': 0, 'health': health, 'lastRuns': {}, 'captures': [], 'runs': [], 'latestBlendInfo': {},
+       'tvLatest': [{'product': 'wlwt-extended-10day', 'station': 'WLWT', 'label': 'WLWT Extended 10 Day Forecast', 'captureId': '2026-11-10_midday', 'reviewStatus': 'auto-accepted', 'days': [{'date': '2026-11-11', 'hi': 55, 'lo': 40, 'pop': 20}], 'evidence': []},
+                    {'product': 'wlwt-indepth-story', 'station': 'WLWT', 'label': 'Synthetic story', 'captureId': '2026-11-02_midday', 'reviewStatus': 'needs-review', 'historical': True, 'historicalReason': 'Superseded by the numeric 10-day', 'days': [], 'evidence': []}]}
 dash = {'schema': 1, 'version': 'dashboard-v2', 'scorecardFile': 'reports/dashboard/scorecard.json', 'sourceLabels': {}, 'captures': [], 'observed': [], 'historyFiles': {}, 'dailyPairs': [], 'hourlyPairs': [], 'minDates': 30, 'defaultId': 'blend:b1', 'defaultCaptured': True, 'loc': {'lstOffsetMin': -300}}
-files = {'reports/index.json': idx, 'reports/scores.json': {'summary': [], 'comparisons': [], 'hourly': [], 'minDates': 30, 'pairsCount': 0, 'pendingCount': 0}, 'reports/review-queue.json': {'items': []},
+files = {'reports/index.json': idx, 'reports/scores.json': {'summary': [], 'comparisons': [], 'hourly': [], 'minDates': 30, 'pairsCount': 0, 'pendingCount': 0}, 'reports/review-queue.json': {'items': [{'captureId': '2026-11-02_midday', 'product': 'wlwt-indepth-story', 'historical': True, 'reason': 'story text', 'text': 'Synthetic story text mid-70s', 'days': [], 'evidence': []},
+                                                  {'captureId': '2026-11-16_evening', 'product': 'wcpo-9day-graphic', 'lowsDisplay': 'morning-after', 'reason': 'graphic needs review', 'days': [{'date': '2026-11-17', 'hi': 55, 'lo': 35}, {'date': '2026-11-18', 'hi': 62, 'lo': 37}, {'date': '2026-11-19', 'hi': 64, 'lo': None}], 'evidence': []}]},
          'reports/dashboard/index.json': dash, 'reports/dashboard/scorecard.json': sc}
 out = root / 'tests/out'; out.mkdir(exist_ok=True)
 with sync_playwright() as p:
     browser = p.chromium.launch(executable_path=os.environ.get('CHROMIUM_PATH') or None)
     page = browser.new_page(viewport={'width': 1280, 'height': 900}); errors = []
     page.on('pageerror', lambda e: errors.append(str(e)))
+    writes = []
     def route(r):
         rel = r.request.url.split('/contents/')[1].split('?')[0]
-        if r.request.method != 'GET': r.fulfill(status=403, body='read-only'); return
+        if r.request.method != 'GET': writes.append(r.request.post_data_json); r.fulfill(status=403, body='read-only'); return
         r.fulfill(status=200 if rel in files else 404, content_type='application/json', body=json.dumps(files.get(rel, {})))
     page.route('https://api.github.com/**', route)
     page.goto(f'http://127.0.0.1:{server.server_port}/verify.html')
     page.locator('#tok').fill('synthetic-test-token'); page.locator('#load').click()
+    # collector health: a partly captured edition has its own tile and names what its on-time capture lacks
+    page.locator('.vpartial').wait_for()
+    tiles = page.locator('.tiles').inner_text().lower()
+    assert 'partly captured\n1' in tiles and 'missed / failed\n1' in tiles, tiles
+    prow = page.locator('.vpartial tbody tr').inner_text()
+    assert '2026-11-06_evening' in prow and '2 of 4' in prow and 'gfs_seamless' in prow and 'WKRC 7-day' not in prow and 'wkrc-7day' in prow, prow
+    assert 'never replace on-time evidence' in page.locator('.vpartial').inner_text()
+    assert 'partly captured, 2 of 4' in page.locator('.slot.partial').get_attribute('title')
+    # TV: the active numeric WLWT 10-day is the primary display; the discontinued story and its review entry are historical and read-only
+    page.get_by_role('button', name='TV products & review').click(); page.locator('#tvItems').wait_for()
+    active = page.locator('#tvItems').inner_text()
+    assert 'WLWT Extended 10 Day Forecast' in active and 'Synthetic story' not in active, active
+    assert 'Review queue (1)' in page.locator('#pane').inner_text() and 'wlwt-indepth-story' not in page.locator('#rq').inner_text()
+    # WCPO graphic lows are labelled by the morning they verify: Nov 17 has none pictured, Nov 18 gets Tuesday night's 35
+    wrow = lambda d: page.locator('#rq tr', has_text=d).inner_text()
+    assert 'morning low (prior night)' in page.locator('#rq').inner_text().lower()
+    assert 'not pictured' in wrow('2026-11-17') and '35' not in wrow('2026-11-17'), wrow('2026-11-17')
+    assert '35' in wrow('2026-11-18') and 'Tue night' in wrow('2026-11-18') and '37' in wrow('2026-11-19') and 'Wed night' in wrow('2026-11-19'), wrow('2026-11-18')
+    # a morning-low correction entered for Nov 18 is stored under the night it belongs to (Nov 17), not shifted twice
+    page.on('dialog', lambda d: d.accept())
+    page.locator('#cd0').fill('2026-11-18'); page.locator('#cf0').select_option('lo'); page.locator('#cv0').fill('34')
+    with page.expect_download():
+        page.locator('#rq [data-dec="correct"]').first.click()
+    import base64
+    rec = json.loads(base64.b64decode(writes[-1]['content']).decode())
+    assert rec['date'] == '2026-11-17' and rec['field'] == 'lo' and rec['value'] == 34 and rec['enteredAs'] == {'morningOf': '2026-11-18'}, rec
+    h = page.locator('.vhistorical'); assert h.get_attribute('open') is None, 'historical section starts collapsed'
+    h.locator('> summary').click(); ht = h.inner_text()
+    assert 'Historical: discontinued products (1)' in ht and 'old review entries (1)' in ht and 'never substitute' in ht and 'wlwt-indepth-story' in ht, ht
+    assert h.locator('[data-dec]').count() == 0, 'archived story entries cannot be approved or converted into values'
     page.get_by_role('button', name='Compare sources', exact=True).click()
     page.locator('.vcompare').wait_for()
     # default: the sources present in every case; the others are offered with the matched cases they would leave
