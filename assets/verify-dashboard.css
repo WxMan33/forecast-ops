@@ -17,3 +17,23 @@
 }
 
 .rp-chart{max-width:440px;margin:14px auto}.vdcard h3{font-size:16px}
+
+/* Compare sources: selectors above one readable table; stacked cards on phones (no wide grid) */
+.vcontrols{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
+.vcontrols label{display:flex;flex-direction:column;gap:4px;font-size:.85rem}
+.vgroups{display:flex;flex-wrap:wrap;gap:14px;margin:6px 0}
+.vcheck{display:inline-flex;align-items:center;gap:6px}
+.vpick{margin:8px 0}.vpicklist{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0}.vpickbtns{display:flex;gap:6px}
+.vprelim{border-left:3px solid var(--action,#c60);padding:6px 10px;margin:10px 0}
+.vsummary{margin:10px 0 4px}.vsched{margin-top:10px}
+.vtag{font-size:.72rem;opacity:.75;border:1px solid currentColor;border-radius:3px;padding:0 4px;margin-left:4px}
+.vcompare td.vcov{text-align:left}
+@media (max-width:640px){
+  .vstack table,.vstack thead,.vstack tbody,.vstack tr,.vstack td{display:block;width:auto}
+  .vstack thead{position:absolute;left:-9999px}
+  .vstack tr{border:1px solid var(--line,#8884);border-radius:8px;padding:8px 10px;margin:0 0 10px}
+  .vstack td{display:flex;justify-content:space-between;gap:12px;text-align:right;padding:3px 0;border:0}
+  .vstack td::before{content:attr(data-label);font-weight:600;text-align:left}
+  .vstack td[data-label="Source"]{justify-content:flex-start;text-align:left;flex-wrap:wrap;gap:4px}.vstack td[data-label="Source"]::before{content:none}
+  .vstack td.vcov{text-align:right}
+}

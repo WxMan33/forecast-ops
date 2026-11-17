@@ -33,6 +33,7 @@ jobs:
       - run: node tests/almanac.test.js
       - run: node tests/rrfs.test.js
       - run: node tests/verify-dashboard.test.js
+      - run: node tests/verify-compare.test.js
       - run: node tests/precip.test.js
       - run: node tests/broadcast-pop.test.js
       - run: node verify/tests/personal.test.js
@@ -131,6 +132,7 @@ jobs:
       - run: pip install playwright
       - run: python -m playwright install --with-deps chromium
       - run: python tests/verify-browser.py
+      - run: python tests/verify-compare-browser.py
       - run: python tests/forecast-focus-browser.py
       - run: python tests/climate-report-browser.py
       - run: python tests/skywatch-race-browser.py

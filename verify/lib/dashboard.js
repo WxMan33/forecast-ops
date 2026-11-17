@@ -2,7 +2,7 @@
 "use strict";
 const fs = require("fs"), path = require("path");
 const U = require("./util.js"), ED = require("./editions.js"), OBS = require("./obs.js"), TG = require("./targets.js"), TM = require("./timing.js");
-const VERSION = "dashboard-v1";
+const VERSION = "dashboard-v2"; // v2: adds reports/dashboard/scorecard.json (matched source comparison and coverage)
 const DAILY = ["tmax_clim", "tmin_clim", "precip_clim"];
 const good = x => typeof x === "number" && Number.isFinite(x);
 const time = s => Number.isFinite(Date.parse(s)) ? Date.parse(s) : null;
@@ -69,7 +69,23 @@ function writeDashboard(DATA, loc, res, nowMs = Date.now()) {
   const defaultCaptured=captures.some(c=>c.classes[defaultId]==="primary");
   const dailyPairs=(res.pairs || []).filter(p=>p.cls==="primary" && p.track!=="tv" && DAILY.includes(p.target)).map(p=>({track:p.track,conv:TG.TARGETS[p.target].conv,window:TG.TARGETS[p.target].window(p.date,loc),compatible:p.track==="personal"?p.compatible!==false:true,basisNormVersion:p.basisNormVersion||null,captureId:p.captureId,id:p.track==="blend"?"blend:"+p.id:p.id,target:p.target,date:p.date,lead:p.lead,leadHours:p.leadHours,slot:p.slot,cls:p.cls,v:p.v,o:p.o,normVersion:p.normVersion,obsStatus:p.obsStatus,obsRevised:p.obsRevised,obsSrc:p.obsSrc,flags:p.flags || []}));
   const hourlyPairs=(res.hourlyPairs || []).filter(p=>p.cls==="primary").map(p=>({captureId:p.captureId,id:p.id,valid:p.valid,date:new Date(Date.parse(p.valid)+loc.lstOffsetMin*60e3).toISOString().slice(0,10),leadHours:p.leadHours,lead:Math.ceil(p.leadHours/24),slot:p.slot,cls:p.cls,v:p.v,o:p.o,normVersion:p.normVersion,obsMeasured:p.obsMeasured,leadMin:p.leadMin}));
-  U.writeJSON(path.join(base,"index.json"),{schema:1,version:VERSION,at:U.iso(nowMs),loc,minDates:res.minDates || 30,defaultId,defaultLabel:labels[defaultId] || "Default v2",defaultCaptured,minimumLeadMinutes:TM.MIN_LEAD_MIN,matchToleranceMinutes:TM.MATCH_TOLERANCE_MIN,captures,sourceLabels:labels,observed,historyFiles,dailyPairs,hourlyPairs,pendingDaily:(res.pending || []).filter(p=>DAILY.includes(p.target)),normalizer:res.normVersion,scoreVersion:res.version,missingBundles:U.readJSONL(path.join(DATA,"captures",loc.id+".jsonl")).slice(-40).filter(c=>!captures.some(x=>x.captureId===c.captureId)).map(c=>c.captureId)});
-  return {captures:captures.length,observations:observed.length,history:history.length,dailyPairs:dailyPairs.length,hourlyPairs:hourlyPairs.length};
+  /* Source comparison projection (dashboard-v2). Three temperature targets kept distinct: daily high and daily low on
+     the climate day, and the overnight low after the date. Models, blends, NWS and TV products, on-time (primary)
+     pairs only, never personal forecasts. Each capture's on-time sources and TV product statuses let the page count
+     coverage with its numerator and denominator; missed scheduled editions come from the collector's schedule. */
+  const CARD=["tmax_clim","tmin_clim","tmin_night"];
+  const capRec=new Map(U.readJSONL(path.join(DATA,"captures",loc.id+".jsonl")).map(c=>[c.captureId,c]));
+  const cardPairs=(res.pairs || []).filter(p=>p.cls==="primary" && ["source","blend","tv"].includes(p.track) && CARD.includes(p.target)).map(p=>({track:p.track,conv:TG.TARGETS[p.target].conv,window:TG.TARGETS[p.target].window(p.date,loc),compatible:true,basisNormVersion:null,captureId:p.captureId,id:p.track==="blend"?"blend:"+p.id:p.id,target:p.target,date:p.date,lead:p.lead,leadHours:p.leadHours,slot:p.slot,cls:p.cls,v:p.v,o:p.o,normVersion:p.track==="tv"?"tv:"+(((capRec.get(p.captureId)||{}).code||{}).tv||"unknown"):p.normVersion}));
+  const attempts=captures.map(m=>({captureId:m.captureId,localDate:m.localDate,slot:m.slot,startedAt:m.startedAt,onTime:Object.entries(m.classes).filter(([,c])=>c==="primary").map(([id])=>id),tv:Object.fromEntries(((capRec.get(m.captureId)||{}).tv||[]).filter(t=>t&&t.product).map(t=>[t.product,t.status||"unknown"]))}));
+  const tracks={};cardPairs.forEach(p=>{tracks[p.id]=p.track;});
+  /* compact rows (the page expands them with VerifyCore.expandScorecard): every field the matching needs is kept or
+     derivable. The verifying date is the capture's local date + lead (true for all three targets); the slot comes from
+     the capture; the definition (convention and window) is fixed by target and date. */
+  const cardIds=[...new Set(cardPairs.map(p=>p.id))], capIds=attempts.map(a=>a.captureId), norms=[...new Set(cardPairs.map(p=>p.normVersion||"unknown"))];
+  const capDate=new Map(attempts.map(a=>[a.captureId,a.localDate]));
+  const rows=cardPairs.filter(p=>capIds.includes(p.captureId)&&U.addDays(capDate.get(p.captureId),p.lead)===p.date).map(p=>[cardIds.indexOf(p.id),capIds.indexOf(p.captureId),CARD.indexOf(p.target),p.lead,p.leadHours==null?null:Math.round(p.leadHours*10)/10,p.v,p.o,norms.indexOf(p.normVersion||"unknown")]);
+  U.writeJSON(path.join(base,"scorecard.json"),{schema:2,version:VERSION,at:U.iso(nowMs),loc,minDates:res.minDates || 30,targets:CARD.map(t=>({id:t,label:TG.TARGETS[t].label||t,conv:TG.TARGETS[t].conv})),sourceLabels:labels,tracks,attempts,ids:cardIds,norms,columns:["id","capture","target","lead","leadHours","v","o","normVersion"],rows,droppedInconsistent:cardPairs.length-rows.length});
+  U.writeJSON(path.join(base,"index.json"),{schema:1,version:VERSION,scorecardFile:"reports/dashboard/scorecard.json",at:U.iso(nowMs),loc,minDates:res.minDates || 30,defaultId,defaultLabel:labels[defaultId] || "Default v2",defaultCaptured,minimumLeadMinutes:TM.MIN_LEAD_MIN,matchToleranceMinutes:TM.MATCH_TOLERANCE_MIN,captures,sourceLabels:labels,observed,historyFiles,dailyPairs,hourlyPairs,pendingDaily:(res.pending || []).filter(p=>DAILY.includes(p.target)),normalizer:res.normVersion,scoreVersion:res.version,missingBundles:U.readJSONL(path.join(DATA,"captures",loc.id+".jsonl")).slice(-40).filter(c=>!captures.some(x=>x.captureId===c.captureId)).map(c=>c.captureId)});
+  return {captures:captures.length,observations:observed.length,history:history.length,dailyPairs:dailyPairs.length,hourlyPairs:hourlyPairs.length,scorecardPairs:cardPairs.length,scorecardRows:rows.length};
 }
 module.exports={VERSION,bundles,writeDashboard};

@@ -49,14 +49,15 @@
     render();
   }
 
-  let tab = ["precip", "my", "health", "daily", "history", "tracking", "scores", "tv", "recipes", "export"].includes(location.hash.slice(1)) ? location.hash.slice(1) : ls.get("vf_tab", "health");
+  let tab = ["precip", "my", "health", "compare", "daily", "history", "tracking", "scores", "tv", "recipes", "export"].includes(location.hash.slice(1)) ? location.hash.slice(1) : ls.get("vf_tab", "health");
   function render() {
-    const tabs = [["health", "Collector health"], ["my", "My Forecast"], ["tracking", "Temperature tracking"], ["daily", "Daily verification"], ["precip", "Precipitation"], ["history", "Forecast history"], ["scores", "Advanced scorecards"], ["tv", "TV products & review"], ["recipes", "Blend recipes"], ["export", "Exports"]];
+    const tabs = [["health", "Collector health"], ["my", "My Forecast"], ["tracking", "Temperature tracking"], ["compare", "Compare sources"], ["daily", "Daily verification"], ["precip", "Precipitation"], ["history", "Forecast history"], ["scores", "Advanced scorecards"], ["tv", "TV products & review"], ["recipes", "Blend recipes"], ["export", "Exports"]];
     $("out").innerHTML = `<div class="vtabs">${tabs.map(([k, l]) => `<button class="btn ${k === tab ? "" : "ghost"} sm" data-tab="${k}" type="button">${l}${k === "tv" && IDX.reviewQueue ? ` (${IDX.reviewQueue})` : ""}</button>`).join("")}</div><div id="pane" style="margin-top:12px"></div>`;
     $("out").querySelectorAll("[data-tab]").forEach((b) => b.addEventListener("click", () => { tab = b.dataset.tab; ls.set("vf_tab", tab); render(); }));
     if (tab === "precip") PrecipUI.open(DASH, getJSON, $("pane"));
     else if (tab === "my") MyForecast.open(DASH, getJSON, gh, $("pane"), cfg());
     else if (["tracking", "daily", "history"].includes(tab)) VerifyPanels.open(tab, DASH, getJSON, $("pane"));
+    else if (tab === "compare") VerifyCompare.open(DASH, getJSON, $("pane"), IDX);
     else ({ health, scores, tv, recipes, exportsPane })[tab === "export" ? "exportsPane" : tab]?.();
   }
 
@@ -85,7 +86,7 @@
       ${ids.map((k) => { const [tr, id, sl] = k.split("|"); return `<tr><td>${esc(tr)}</td><td style="text-align:left">${esc(id)}</td><td>${esc(sl)}</td>${[1, 2, 3, 4, 5, 6, 7].map((l) => { const x = rows.find((r) => r.track === tr && r.id === id && r.slot === sl && r.lead === l); return `<td class="num" title="${x ? esc(prob ? `n ${x.n}, base rate ${pct(x.baseRate)}` : `n ${x.n}, bias ${f(x.bias)}, within 2°F ${pct(x.within2)}${x.ens ? `, ens range coverage ${pct(x.ens.inRange)}, 10–90% ${pct(x.ens.in10_90)}, width ${f(x.ens.width)}` : ""}`) : ""}">${x ? `${f(prob ? x.brier : x.mae, prob ? 3 : 1)} <span class="msg">(${x.n})</span>` : "—"}</td>`; }).join("")}</tr>`; }).join("")}</tbody></table></div></section>`;
     };
     const comps = SC.comparisons || [];
-    $("pane").innerHTML = `<section class="card"><div class="section-title">Scorecards</div><p class="msg">On-time captures, lead days 1–7, each source's full available sample. Hover a cell for bias, within-2°F and ensemble coverage. Matched comparisons below use only cases every member has. Verdicts need ${SC.minDates}+ distinct valid dates and a 90% block-bootstrap interval excluding zero.</p></section>
+    $("pane").innerHTML = `<section class="card"><div class="section-title">Scorecards</div><p class="msg">On-time captures, lead days 1–7, each source's full available sample. Columns cover different dates, so they are not a side-by-side comparison; use Compare sources for matched cases. Hover a cell for bias, within-2°F and ensemble coverage. Matched comparisons below use only cases every member has. Verdicts need ${SC.minDates}+ distinct valid dates and a 90% block-bootstrap interval excluding zero.</p></section>
       ${targets.map(tbl).join("") || '<section class="card"><p class="msg">Nothing scored yet: forecasts verify as their target windows end and observations arrive.</p></section>'}
       <section class="card" style="margin-top:14px"><div class="section-title">Matched comparisons</div>${comps.length ? comps.map((c) => `<div style="margin-bottom:10px"><b>${esc(c.set)} · ${esc(c.target)} · D${c.lead} · ${esc(c.slot)}</b> <span class="msg">${c.n} cases, ${c.dates} dates, ${esc(c.metric)}</span><div class="msg">${Object.entries(c.members).map(([m, x]) => `${esc(m)} ${f(x.score, 2)}${x.verdict ? ` (${esc(x.verdict)}${x.ci90 ? `, Δ ${f(x.diffVsRef, 2)}, 90% CI ${f(x.ci90[0], 2)}…${f(x.ci90[1], 2)}` : ""})` : ""}`).join(" · ")}</div></div>`).join("") : '<p class="msg">No matched cases yet.</p>'}</section>
       ${SC.hourly && SC.hourly.length ? `<section class="card" style="margin-top:14px"><div class="section-title">Hourly temperature</div><div class="tablewrap"><table><thead><tr><th style="text-align:left">Source</th><th>Slot</th><th>Lead day</th><th>n</th><th>MAE</th><th>Bias</th><th>Within 2°F</th></tr></thead><tbody>${SC.hourly.filter(h => h.cls === "primary").slice().sort((a, b) => a.id.localeCompare(b.id) || a.leadDay - b.leadDay).map((h) => `<tr><td style="text-align:left">${esc(h.id)}</td><td>${esc(h.slot)}</td><td>${h.leadDay}</td><td>${h.n}</td><td class="num">${f(h.mae)}</td><td class="num">${f(h.bias)}</td><td class="num">${pct(h.within2)}</td></tr>`).join("")}</tbody></table></div></section>` : ""}`;
