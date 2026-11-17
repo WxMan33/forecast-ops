@@ -36,9 +36,12 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       return r.fulfill({ response: resp }).catch(() => {});
     } catch (e) { done.no(e); LIVE.delete(key); return r.abort("failed").catch(() => {}); }
   });
+  /* Open-Meteo model metadata, CI only (tools/ci-meta-share.js): later browsers start with earlier answers in their session
+     cache, with their original retrieval times. Run 79 asked for each model's metadata about 30 times. */
+  const METASHARE = require("./ci-meta-share.js").createMetaShare(), shareMeta = (ctx) => METASHARE.attach(ctx);
   const go = async (opts, url, init) => {
     const ctx = await browser.newContext(opts); if (init) await ctx.addInitScript(init);
-    await shareLive(ctx);
+    await shareLive(ctx); await shareMeta(ctx);
     await ctx.route(/script\.google\.com\/macros/, (r) => r.abort()); // automated checks never reach the real usage collector
     await ctx.route(/nominatim\.openstreetmap\.org\/search/, (r) => r.fulfill({ contentType: "application/json", body: JSON.stringify(GEO[new URL(r.request().url()).searchParams.get("q")] || []) })); // captured real responses
     const p = await ctx.newPage(), errors = []; p.on("pageerror", (e) => errors.push(e.message)); watchNet(p);
@@ -744,7 +747,8 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
   await browser.close();
   { const n = netSince(0); console.log(`weather-data requests that failed during the whole run: ${n.length ? "\n  " + n.join("\n  ") : "none"}`); }
   console.log(`live Open-Meteo forecasts/ensembles: ${liveFetched} fetched from the provider, ${liveReused} identical requests answered from this run's earlier live responses`);
-  { const v = NETREC.volume(0, { detail: true }); console.log(`weather-data request volume for the whole run: ${v.line}${v.top.length ? "\n  by endpoint: " + v.top.join("; ") : ""}${v.dup.length ? "\n  most repeated: " + v.dup.join("; ") : ""}`); }
+  console.log(`Open-Meteo model metadata: ${METASHARE.stats.fetched} fetched from the provider; ${METASHARE.stats.seeded} earlier answers placed in later browsers' session caches with their original retrieval times (CI only)`);
+  { const v = NETREC.volume(0, { detail: true }); console.log(`weather-data request volume for the whole run: ${v.line}${v.top.length ? "\n  by endpoint: " + v.top.join("; ") : ""}${v.dup.length ? "\n  most repeated: " + v.dup.join("; ") : ""}\n  ${v.breakdown}${v.limits.length ? "\n  HTTP 429 as the provider stated it: " + v.limits.join("; ") : ""}`); }
   console.log(failed ? `${failed} check(s) failed` : "all checks passed");
   process.exit(failed ? 1 : 0);
 })();
