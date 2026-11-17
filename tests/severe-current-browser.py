@@ -19,6 +19,8 @@ threading.Thread(target=server.serve_forever, daemon=True).start()
 origin = f"http://127.0.0.1:{server.server_port}"
 corrupt = False
 unregistered = None
+extra_hidden = None
+renamed = None
 errors = []
 requests = []
 # Reuse sample arrays while fixing synthetic dates, so future feed updates cannot
@@ -55,6 +57,16 @@ def route(request):
         return
     path = urlsplit(request.request.url).path
     requests.append(path)
+    if extra_hidden is not None and path == "/assets/severe-daily/display-mask.json":
+        mask = json.loads((root / "assets/severe-daily/display-mask.json").read_text())
+        mask["hidden"] = sorted(set(mask["hidden"]) | {extra_hidden})
+        request.fulfill(content_type="application/json", body=json.dumps(mask))
+        return
+    if renamed and path == "/assets/severe-daily/models.json":
+        registry = json.loads((root / "assets/severe-daily/models.json").read_text())
+        registry["models"][renamed]["version"] = "v9.9"
+        request.fulfill(content_type="application/json", body=json.dumps(registry))
+        return
     if unregistered and path == "/assets/severe-daily/models.json":
         registry = json.loads((root / "assets/severe-daily/models.json").read_text())
         del registry["models"][unregistered]
@@ -123,6 +135,23 @@ with sync_playwright() as p:
     assert not any(r.endswith(("day1.json", "day2.json", "grid.json")) for r in requests), requests
     assert page.locator("#sdSample").inner_text() == "Selected map sample"
     assert page.locator("#sdCoordinates").inner_text() == clicked
+    # A refresh that changes only the mask or the registry must still change what is shown,
+    # even though the forecast file is unchanged and not downloaded again.
+    grid = json.loads((root / "assets/severe-daily/grid.json").read_text())["coordinates"]
+    lat, lon = (float(v.strip("°")) for v in clicked.split(" · ")[0].split(", "))
+    sample = min(range(len(grid)), key=lambda i: (grid[i][0] - lon) ** 2 + (grid[i][1] - lat) ** 2)
+    assert page.locator("#sdValue").inner_text() != "Not shown"
+    extra_hidden, renamed = sample, fixture_index["runs"][1]["model_sha256"]
+    requests.clear()
+    page.clock.run_for(300_000)
+    page.wait_for_function("document.querySelector('#sdValue').textContent === 'Not shown'")
+    page.wait_for_function("document.querySelector('#sdProduct').textContent.includes('v9.9')")
+    assert "display mask" in page.locator("#sdCoordinates").inner_text()
+    assert not any(r.endswith(("day1.json", "day2.json", "grid.json")) for r in requests), requests
+    extra_hidden, renamed = None, None
+    page.clock.run_for(300_000)
+    page.wait_for_function("document.querySelector('#sdValue').textContent !== 'Not shown'")
+    page.wait_for_function("!document.querySelector('#sdProduct').textContent.includes('v9.9')")
     # Hidden tabs do not refresh.
     page.evaluate("Object.defineProperty(document, 'hidden', {configurable: true, get: () => true})")
     requests.clear()
