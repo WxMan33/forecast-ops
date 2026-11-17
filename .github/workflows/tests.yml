@@ -148,7 +148,8 @@ jobs:
             tests/out/maps-demand-*.png
 
   # The browser's own path from the main site's real origin to the providers (no cache, no interception). A provider that
-  # does not answer the runner at all is reported as unverified with a warning; a browser/CORS failure fails the job.
+  # does not answer the runner at all is reported as unverified with a warning; any other browser failure fails the job,
+  # with its evidence (page, browser network layer, DevTools protocol, the runner's later request). The cause is not inferred.
   main-origin:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -160,5 +161,7 @@ jobs:
       - run: |
           npm install --no-save playwright@1.48.2
           npx playwright install --with-deps chromium || npx playwright install chromium
+      - name: Direct-origin evidence and verdicts (offline, simulated provider)
+        run: node tests/direct-origin-diag.test.js
       - name: Direct browser requests from https://wxman33.github.io (main site)
         run: node tools/direct-origin-check.js https://wxman33.github.io/forecast-ops/ index.html
