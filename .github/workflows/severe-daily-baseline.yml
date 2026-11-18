@@ -24,7 +24,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Retrieve frozen historical cohort
+      - name: Restore pinned v05 inputs from the private archive
+        if: vars.SEVERE_REBUILD_ARCHIVE_REPO != ''
+        env:
+          GH_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo "::error::Set SEVERE_REBUILD_ARCHIVE_TOKEN for read access to the private archive"
+            exit 1
+          fi
+          python tools/severe/restore_rebuild_inputs.py --repository "$ARCHIVE_REPO" --source v05 --output "tests/out/daily-baseline-history"
+      - name: Retrieve frozen historical cohort from Actions retention
+        if: vars.SEVERE_REBUILD_ARCHIVE_REPO == ''
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}

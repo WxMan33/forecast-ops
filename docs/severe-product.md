@@ -12,10 +12,37 @@ windows. Both predictor windows are independently audited before joining. Traini
 requires every case and matching predictor, label, timing and feature identities.
 
 The expanded run uses three concurrent cases and a 2 GB per-case transfer limit.
-Each case artifact and the fitted models have 90-day Actions retention. Original
-predictor artifacts are fetched from run 42321856909 before their December expiry.
-Reproducing a later run after those artifacts expire requires retrieving a retained
-copy or recollecting those inputs.
+Each case artifact and the fitted models have 90-day Actions retention.
+
+## Rebuild inputs
+
+The daily baseline, expanded-cohort reuse jobs and tree experiment can read the
+frozen cases from a private GitHub release. Until an archive is configured, they
+use their original Actions runs. Run 42321856909 expires December 7 UTC. Run
+43901185832 expires February 14 UTC. Same-run artifact transfers keep using Actions.
+
+- Select a private archive repository and publish the release tag
+  `severe-rebuild-inputs-v1` there. Upload the original individual ZIPs from the
+  preserved backups' `artifacts/` directory with the filenames listed in
+  `research/severe/rebuild-archive.json`. Keep each ZIP's original bytes.
+- In the forecast-ops Actions settings, set the repository variable
+  `SEVERE_REBUILD_ARCHIVE_REPO` to the archive's `owner/repo` and the secret
+  `SEVERE_REBUILD_ARCHIVE_TOKEN` to a credential with read-only Contents access to
+  the private archive. Workflows check the repository's visibility and verify
+  every selected ZIP against its pinned size and SHA-256 before extraction.
+- Trigger the daily baseline and tree workflows on the branch containing the
+  migration. Check the restore counts (36 cases for the baseline, 108 cases and
+  one label ZIP for the tree experiment) and the downstream job results. The
+  expanded cohort restores one original case in each reuse job.
+- To verify a backup or run a local rebuild, extract the backup volumes together
+  and pass `--artifact-dir /path/to/artifacts` to
+  `tools/severe/restore_rebuild_inputs.py`. Use `--source v05`, `--source v07`, or
+  `--source labels` and `--output`. A single `--case YYYY-MM-DD` restores directly
+  into the output directory, matching the matrix workflow layout.
+
+A configured archive that fails verification produces a workflow error with the
+affected source or ZIP name. Remove the repository variable to return to Actions
+storage while the original artifacts are still retained.
 
 ## Current-input contract
 
@@ -114,6 +141,14 @@ newest branch tip, exports again, runs the viewer's feed, contour and registry c
 on the exact files to be committed, and pushes; up to four attempts. index.json is a
 single line, so the previous rebase approach failed whenever two runs overlapped.
 A failed generation, audit or check reaches no commit.
+
+The Severe daily feed health workflow reports failed or cancelled publisher runs
+with a link to the original run. It also reads the same public raw files as the
+viewer, checks their checksums and identities, and reports each missing, stale
+or invalid lead. The expected Day 1 cycle advances at 12 UTC, when its target
+opens. The expected Day 2 cycle advances at 19:15 UTC, after its last scheduled
+catch-up. The checks run at 12:08, 14:04 and 19:17 UTC and can be run on demand.
+A failed check appears in GitHub Actions with the error in its job summary.
 
 The hosted viewer reads the public default-branch raw feed, matching the site's
 existing NOAA feed pattern, so daily data updates do not depend on a Pages rebuild.

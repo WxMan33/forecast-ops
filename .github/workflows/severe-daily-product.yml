@@ -98,25 +98,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # index.json is one compact line, so two runs' edits always conflict in a rebase.
-          # Instead, start from the newest branch tip each attempt and export again: the other
-          # day's published file is then the current one, and nothing is overwritten blindly.
-          for attempt in 1 2 3 4; do
-            git fetch --quiet origin "$BRANCH"
-            git reset --quiet --hard "origin/$BRANCH"
-            python tools/severe/export_daily.py --source tests/out/current-daily --output assets/severe-daily --model "$MODEL"
-            # The exact checks the viewer relies on, run on the feed about to be published.
-            node tests/severe-daily.test.js
-            node tests/severe-contours.test.js
-            python tools/severe/model_registry.py --check
-            git add assets/severe-daily
-            if git diff --cached --quiet; then echo "Feed already current"; exit 0; fi
-            git commit --quiet -m "data: update audited daily severe research feed"
-            if git push origin "HEAD:$BRANCH"; then exit 0; fi
-            sleep $((attempt * 10))
-          done
-          echo "::error::Daily severe feed could not be published after 4 attempts"
-          exit 1
+          bash tools/severe/publish_daily.sh "$BRANCH" "$MODEL" tests/out/current-daily
       - uses: actions/upload-artifact@v4
         if: always() && steps.request.outputs.skip != 'true'
         with:

@@ -1,0 +1,586 @@
+{
+  "42321856909--severe-history-v05-2022-01-15.zip": {
+    "bytes": 5368467,
+    "sha256": "64872aedeb75c8016ce4560616e993e1a6fddeff3e78ae94d4170e18b466c931"
+  },
+  "42321856909--severe-history-v05-2022-02-15.zip": {
+    "bytes": 5276647,
+    "sha256": "146250b6f553cf7d96018a3702bd7ef2d35be67c35366a27ffe85650e4b60fab"
+  },
+  "42321856909--severe-history-v05-2022-03-15.zip": {
+    "bytes": 5398523,
+    "sha256": "724598c59510a11e6efbee9700b84e474d8b4a789acc5c90ed618887be581c23"
+  },
+  "42321856909--severe-history-v05-2022-04-15.zip": {
+    "bytes": 5803121,
+    "sha256": "00759219f5dc7528c75323c8519a61adbacf62612dfc05c63faeee5382159549"
+  },
+  "42321856909--severe-history-v05-2022-05-15.zip": {
+    "bytes": 6052202,
+    "sha256": "5ebeeb7213dd57c711c5e90bb371ded4cc9c5d07cd5af489a219eaf9c91f7805"
+  },
+  "42321856909--severe-history-v05-2022-06-15.zip": {
+    "bytes": 6106449,
+    "sha256": "4b8a1000c1b9f13d7b0565cd0addbe7a179ba36740078b446bcd605c7e50f501"
+  },
+  "42321856909--severe-history-v05-2022-07-15.zip": {
+    "bytes": 6168780,
+    "sha256": "16e9dc588090ab1b1eeeffab39b6c79d4d3e5eb740146e1938cf0379e0b8e498"
+  },
+  "42321856909--severe-history-v05-2022-08-15.zip": {
+    "bytes": 6086093,
+    "sha256": "844f552f865fb89db0f5645edc4e877f581f124914fd25a16eb87e756cafa159"
+  },
+  "42321856909--severe-history-v05-2022-09-15.zip": {
+    "bytes": 5361709,
+    "sha256": "e8dae796fb470588e2b57332a8e5a1777d0ff2cf0abe63f0e6c142f86aeb5f5c"
+  },
+  "42321856909--severe-history-v05-2022-10-15.zip": {
+    "bytes": 5528783,
+    "sha256": "bbfa03a898b460bd4cc54b0cbaa70fbd6c91bd1d078cdc5d0c0ded9246a3cc00"
+  },
+  "42321856909--severe-history-v05-2022-11-15.zip": {
+    "bytes": 5522674,
+    "sha256": "a689c603b6cbfac1b23b78f0f2e507167b2e1eb6595a5eae27165b08f583e156"
+  },
+  "42321856909--severe-history-v05-2022-12-15.zip": {
+    "bytes": 5297402,
+    "sha256": "59631e7ecbb33a229f9677b5e2ca2aa24b61298e6c6c1c8df531e2378e03d1cd"
+  },
+  "42321856909--severe-history-v05-2023-01-15.zip": {
+    "bytes": 5411852,
+    "sha256": "4a9694fede07fab3ca8d934c4ce7d571af26a7320e7a5e7749eb261584c67cac"
+  },
+  "42321856909--severe-history-v05-2023-02-15.zip": {
+    "bytes": 5859199,
+    "sha256": "7ed8a84c8dfc42a7a9ae4324296a44d9461557e6b95f081195106bdbb301f651"
+  },
+  "42321856909--severe-history-v05-2023-03-15.zip": {
+    "bytes": 5401040,
+    "sha256": "df6906141e46523bd475dcddabf1ae41f4f59cbb389832d4b04ecc1be4d8a5ae"
+  },
+  "42321856909--severe-history-v05-2023-04-15.zip": {
+    "bytes": 5916198,
+    "sha256": "2eaf66dcceda935bcbb05bc57dada44b0cf0702463c8ba1db1d0f63e5f4faddb"
+  },
+  "42321856909--severe-history-v05-2023-05-15.zip": {
+    "bytes": 5742523,
+    "sha256": "61a32662613ab2b2cb2fd3acf3a9da61b2e1381600211dd46f33d6d2c1b60078"
+  },
+  "42321856909--severe-history-v05-2023-06-15.zip": {
+    "bytes": 6041945,
+    "sha256": "dd18698615d71fed1234dd44e5e2a20c8f5209dd28bd9325fc7913d8a05b02ec"
+  },
+  "42321856909--severe-history-v05-2023-07-15.zip": {
+    "bytes": 6233728,
+    "sha256": "ed6d910e1ec384d33d36b1671e5de3a3be83a914943bee2d7a1727af1f2f5206"
+  },
+  "42321856909--severe-history-v05-2023-08-15.zip": {
+    "bytes": 5503548,
+    "sha256": "fcab81ad666a08a36f60f1a15401b70979efcab74df916a577fd23639343509d"
+  },
+  "42321856909--severe-history-v05-2023-09-15.zip": {
+    "bytes": 5614740,
+    "sha256": "2f5308dc1ad3795d803130ed6d958ca00b4ddcc191cd484a3e1ddc07989b182a"
+  },
+  "42321856909--severe-history-v05-2023-10-15.zip": {
+    "bytes": 5392577,
+    "sha256": "f51212aded28be397e415be846028c662157be30b7cc65eee1490675451b437f"
+  },
+  "42321856909--severe-history-v05-2023-11-15.zip": {
+    "bytes": 5131277,
+    "sha256": "9a333e9678d8518cd80150146534cf3784d70d7ec37a6b1c8d6d04af4e62e514"
+  },
+  "42321856909--severe-history-v05-2023-12-15.zip": {
+    "bytes": 5314016,
+    "sha256": "a209807c128fc3162c9467ca31805e67a25c9df8996bb5ac3ca9627a86a2d2aa"
+  },
+  "42321856909--severe-history-v05-2024-01-15.zip": {
+    "bytes": 5145438,
+    "sha256": "c592564b770d8d075201b069752bfd728b19b6606077517adbe7db657c57d4bc"
+  },
+  "42321856909--severe-history-v05-2024-02-15.zip": {
+    "bytes": 5770365,
+    "sha256": "c3478d07d049fc7855bb4d665c076079dc0480556d00bb92355a64af7c31048c"
+  },
+  "42321856909--severe-history-v05-2024-03-15.zip": {
+    "bytes": 5539154,
+    "sha256": "153fbb923fbb06045c7a966bc2885e81918958548c7f494399e4f629a2a5c6a5"
+  },
+  "42321856909--severe-history-v05-2024-04-15.zip": {
+    "bytes": 6013221,
+    "sha256": "217960f9fdd8cee170f6caaf665e150e9e2cb4f91532f53fbfa313170622bd0b"
+  },
+  "42321856909--severe-history-v05-2024-05-15.zip": {
+    "bytes": 6029581,
+    "sha256": "71e0a6df97bc2e724f31b345b7738a4345a2e7d715b4b4cf95040bea250dce88"
+  },
+  "42321856909--severe-history-v05-2024-06-15.zip": {
+    "bytes": 5777161,
+    "sha256": "10b0b02f61fe59ca13f47488423305bf48f264703fdeeaf4759fb21d822a4d00"
+  },
+  "42321856909--severe-history-v05-2024-07-15.zip": {
+    "bytes": 6289816,
+    "sha256": "d446eed4701b1070a9dac0722660eb729865eef8d8000b301c94483d28e1a407"
+  },
+  "42321856909--severe-history-v05-2024-08-15.zip": {
+    "bytes": 6118881,
+    "sha256": "57f12e4b7302cebee149011367ebef394c3d107f37b9f0620fd0143c26ce65f0"
+  },
+  "42321856909--severe-history-v05-2024-09-15.zip": {
+    "bytes": 5815804,
+    "sha256": "124ed82e5de328e7a8221b26b2660902cef20303f311401dbd5fe223c8e5827a"
+  },
+  "42321856909--severe-history-v05-2024-10-15.zip": {
+    "bytes": 5130367,
+    "sha256": "447dd429a4786d4ba98d7b03fd5ab8f47d4ab9009965a8f691bc2ac5d80d495c"
+  },
+  "42321856909--severe-history-v05-2024-11-15.zip": {
+    "bytes": 5052553,
+    "sha256": "52f8adb13de60d2713e418d034502d60ad5ba94a0ad3d14decbc048e78962143"
+  },
+  "42321856909--severe-history-v05-2024-12-15.zip": {
+    "bytes": 5684499,
+    "sha256": "c1ebbfcdad220b3ebd4a1aa65350e07b14db9bb7b21eb3fed8df5d9113b27f9b"
+  },
+  "42321856909--severe-history-v05-summary.zip": {
+    "bytes": 1956,
+    "sha256": "0a59336f2a2c3da2876eda267b6caafa707cc7e2f236bc6021dd7801ba7fa2dd"
+  },
+  "43901185832--severe-history-v07-2022-01-01.zip": {
+    "bytes": 5757933,
+    "sha256": "c3292dafb3f7ebc87e64d558720da61d3fb250de41a97915e6d1938a68b007c9"
+  },
+  "43901185832--severe-history-v07-2022-01-08.zip": {
+    "bytes": 5405556,
+    "sha256": "0ad0debe76eab2af1cb2ca99c4b679c145747899433c162f0b5d28b924e1d6e3"
+  },
+  "43901185832--severe-history-v07-2022-01-15.zip": {
+    "bytes": 5368689,
+    "sha256": "aeaa562b8d9ab416a5c3e4213238201beadaafb88dfff888e7fa8d1de73de0b0"
+  },
+  "43901185832--severe-history-v07-2022-01-22.zip": {
+    "bytes": 4964913,
+    "sha256": "a057dc3d9e339afa44ac04d746acbed02429725b3069d0bcfe142f288125d42a"
+  },
+  "43901185832--severe-history-v07-2022-02-01.zip": {
+    "bytes": 5348991,
+    "sha256": "6f0fab6e0012b164ba8e4a48eb0944c9e7b1ab7bbb09b7b8df9aaf8e24917be1"
+  },
+  "43901185832--severe-history-v07-2022-02-08.zip": {
+    "bytes": 5103614,
+    "sha256": "b5790dbf58e6df2e82787c8ba59a4c9e88706f92add4f8415f395fb255a0515f"
+  },
+  "43901185832--severe-history-v07-2022-02-15.zip": {
+    "bytes": 5276870,
+    "sha256": "4e9608c7c443b55431fdae38571572970cd3b248392d0e337fbb0a9d2c5073cf"
+  },
+  "43901185832--severe-history-v07-2022-02-22.zip": {
+    "bytes": 5775429,
+    "sha256": "672fcdb5b1e3fdcb9379dd062bf45a13bcf95dfd2fed736a9245a0d71a96c6f2"
+  },
+  "43901185832--severe-history-v07-2022-03-01.zip": {
+    "bytes": 5050840,
+    "sha256": "3b859887bc5089a7cef1cde73d86b5e6d6e5c06ad3248b35161857f3cfd61b23"
+  },
+  "43901185832--severe-history-v07-2022-03-08.zip": {
+    "bytes": 5645182,
+    "sha256": "5a0f97767387beb949ed6f7f4c4710ad784c9e6e7cfc0a40844c52f1e0a9962a"
+  },
+  "43901185832--severe-history-v07-2022-03-15.zip": {
+    "bytes": 5398746,
+    "sha256": "c07a1033230d102c4bdd19db081af7a94d58c982a81f5f3350532de5e7cf532d"
+  },
+  "43901185832--severe-history-v07-2022-03-22.zip": {
+    "bytes": 5902348,
+    "sha256": "d1aa7f93232d871aec5a691078e9e64dee3592e4d6dff0dde5ce320726cb0bb6"
+  },
+  "43901185832--severe-history-v07-2022-04-01.zip": {
+    "bytes": 5353200,
+    "sha256": "3d892f52a6508d987bb064fc8a2160693fd02b263fe972aaf3e9ab3b33273d14"
+  },
+  "43901185832--severe-history-v07-2022-04-08.zip": {
+    "bytes": 5287788,
+    "sha256": "68afc220cdf935a8fbfb25e74ed0d1477b166ddb55fa95336084bd425c9847a1"
+  },
+  "43901185832--severe-history-v07-2022-04-15.zip": {
+    "bytes": 5803348,
+    "sha256": "e8ad5980288c4931835ff52dfe01ae4d820fa52e65a1cc0baaf5381dcbb5b124"
+  },
+  "43901185832--severe-history-v07-2022-04-22.zip": {
+    "bytes": 5569676,
+    "sha256": "db522e0ff74786032e7036c77cebf8283c7123768a3fbb078f9bd1fcfa969347"
+  },
+  "43901185832--severe-history-v07-2022-05-01.zip": {
+    "bytes": 5936370,
+    "sha256": "08e0c9092fba5f3f43ebd7950a2fc890ebc3dcdc4464de16cf5afff00db69adb"
+  },
+  "43901185832--severe-history-v07-2022-05-08.zip": {
+    "bytes": 5356772,
+    "sha256": "c0640f00ee7b25b8cb7228b215d48027879b92c1042e74faf4d3e5367c981f77"
+  },
+  "43901185832--severe-history-v07-2022-05-15.zip": {
+    "bytes": 6052425,
+    "sha256": "12a91ea2cde52c1422ada801c7f80d3fe11ae9746a9e63acb1595593c94ec04c"
+  },
+  "43901185832--severe-history-v07-2022-05-22.zip": {
+    "bytes": 5799523,
+    "sha256": "984f1916c1448797c0aa615caa4dec45cd114ec0c25a0c1a4801e2a58768b6da"
+  },
+  "43901185832--severe-history-v07-2022-06-01.zip": {
+    "bytes": 6013326,
+    "sha256": "0d5c1f17a278feed19daccd5b996483474fc50e4f90efb8cf9b079b5a61101db"
+  },
+  "43901185832--severe-history-v07-2022-06-08.zip": {
+    "bytes": 6124024,
+    "sha256": "ed29f5f07c5b5a696d67ac086fb672f6be4fb9784cea05f30d610e8ae0c8f5e5"
+  },
+  "43901185832--severe-history-v07-2022-06-15.zip": {
+    "bytes": 6106672,
+    "sha256": "5f880f82b79fd5511a42cc65f4522970d465af5edd62047eadc626306ef93b90"
+  },
+  "43901185832--severe-history-v07-2022-06-22.zip": {
+    "bytes": 5831155,
+    "sha256": "ab9570c7b03a66b4d25851cca8e21521f8ea3e8a1a8598d4aa83b46431d82bae"
+  },
+  "43901185832--severe-history-v07-2022-07-01.zip": {
+    "bytes": 6235011,
+    "sha256": "deefe6cfbd0393e40174df3e3c8893850dfb564b4d750faf7a8d75f54d2bfc5b"
+  },
+  "43901185832--severe-history-v07-2022-07-08.zip": {
+    "bytes": 5989565,
+    "sha256": "146f382b98bd4a095b32975ca5c357992711d26f776644a1fbb0186d935915bd"
+  },
+  "43901185832--severe-history-v07-2022-07-15.zip": {
+    "bytes": 6169004,
+    "sha256": "75737cecf395b668658fd38904da7f4251fa15e3a28e724f13a28d2949116eb2"
+  },
+  "43901185832--severe-history-v07-2022-07-22.zip": {
+    "bytes": 6238133,
+    "sha256": "630ea95cb133f953e1cfc4fb1cec11973d1b0a608af1b0a3022a65ef7715680d"
+  },
+  "43901185832--severe-history-v07-2022-08-01.zip": {
+    "bytes": 6161362,
+    "sha256": "5f5a89a0afa3c0659f5e1f8d7e43e438787a2af7b6077f62f46730b5c60b88a7"
+  },
+  "43901185832--severe-history-v07-2022-08-08.zip": {
+    "bytes": 6071770,
+    "sha256": "70d876cbd66403381738e1074de04886b77c49b13c1cd373b1ca9e845bcdde0f"
+  },
+  "43901185832--severe-history-v07-2022-08-15.zip": {
+    "bytes": 6086315,
+    "sha256": "6684851fe811b39bae323448ed9c2e507f5429c25b9fd3dbab83b280e8a6bfec"
+  },
+  "43901185832--severe-history-v07-2022-08-22.zip": {
+    "bytes": 5891319,
+    "sha256": "4db71890fd3558b6cf2cdbb4bab6470098a87e0b8c042f05626b610c3340419c"
+  },
+  "43901185832--severe-history-v07-2022-09-01.zip": {
+    "bytes": 6008895,
+    "sha256": "ab486029e7b8abecda19acfce4aee35a3b1b43bd2351553fcbc7319e0608a88b"
+  },
+  "43901185832--severe-history-v07-2022-09-08.zip": {
+    "bytes": 5590765,
+    "sha256": "eb6e9f366d1a38d64f47e8ca68cbfa357228f1f4c2967a08aa7864a60b829047"
+  },
+  "43901185832--severe-history-v07-2022-09-15.zip": {
+    "bytes": 5361935,
+    "sha256": "2afd05122184a801142ab9f4988a0e2ce407e80d769474888899fc004ba21000"
+  },
+  "43901185832--severe-history-v07-2022-09-22.zip": {
+    "bytes": 5452890,
+    "sha256": "0ef40bda404e2437eed847f3beefe28da8e37ea1bbdc05dfeaccd4a8df5a2498"
+  },
+  "43901185832--severe-history-v07-2022-10-01.zip": {
+    "bytes": 4936904,
+    "sha256": "279dbf144fb6d63f1fbc17b7bd27d44a36ea50f12a27cfa5cef91c32e57f496c"
+  },
+  "43901185832--severe-history-v07-2022-10-08.zip": {
+    "bytes": 4918456,
+    "sha256": "01c32ddd59ad1555b3c9a34d43bf1fe3eb59d498f65b8927ce2863977ae98d2b"
+  },
+  "43901185832--severe-history-v07-2022-10-15.zip": {
+    "bytes": 5529009,
+    "sha256": "44462930b376afe271f727e92a9037cddba9c7d348f42b777e32b663c61e8c9a"
+  },
+  "43901185832--severe-history-v07-2022-10-22.zip": {
+    "bytes": 5239431,
+    "sha256": "98fadbd60e319fcf977c31140cf86729eaf58561524b2830bafc3cb00ad11852"
+  },
+  "43901185832--severe-history-v07-2022-11-01.zip": {
+    "bytes": 5219295,
+    "sha256": "f365d5f6d8653d384dd87cbb4eac4c026d9e8532bacfb9240ccad7b35eb56038"
+  },
+  "43901185832--severe-history-v07-2022-11-08.zip": {
+    "bytes": 5248706,
+    "sha256": "7cb0fe8e0d37a30dce47ebad5c2baf930de2c73a82fdec5c583d72d2545c25e7"
+  },
+  "43901185832--severe-history-v07-2022-11-15.zip": {
+    "bytes": 5522898,
+    "sha256": "562c40bf1c00be95b14ae3a5a7e2514b56a2064752addd68c2eb0fdb3b9b1349"
+  },
+  "43901185832--severe-history-v07-2022-11-22.zip": {
+    "bytes": 4887588,
+    "sha256": "e487894b76b06afc9c6c3721463f5009e1e9af8bd65dc5926361ca984775d002"
+  },
+  "43901185832--severe-history-v07-2022-12-01.zip": {
+    "bytes": 5110922,
+    "sha256": "c79b06eba1524f9bf3d895c415585c1a7a23dd039a1a7d20475e141cda388d86"
+  },
+  "43901185832--severe-history-v07-2022-12-08.zip": {
+    "bytes": 5643758,
+    "sha256": "877f1b3fbdc48a224ad88e94ac92ad3c6dce43b0ffdc544ebb051ccad9dc7895"
+  },
+  "43901185832--severe-history-v07-2022-12-15.zip": {
+    "bytes": 5297629,
+    "sha256": "c274fb0f1895e6e41d69e72267f9a65f8d051cc035a1c971a3d4f19779f28c79"
+  },
+  "43901185832--severe-history-v07-2022-12-22.zip": {
+    "bytes": 5297917,
+    "sha256": "8d14ff60e3f3b4361402a4dcabafef384883ac5c0493a2348fe2981dc27fcf25"
+  },
+  "43901185832--severe-history-v07-2023-01-01.zip": {
+    "bytes": 5586534,
+    "sha256": "73a2c514737ac72f762d397026b426e75b68790b0a81d464062459d1c7652712"
+  },
+  "43901185832--severe-history-v07-2023-01-08.zip": {
+    "bytes": 5156728,
+    "sha256": "a91d92bde3e871725159b6c91e963a10f45f41139a592e7fa8d01c212c389460"
+  },
+  "43901185832--severe-history-v07-2023-01-15.zip": {
+    "bytes": 5412077,
+    "sha256": "1109d43f9f23cceea540dacc0cea53492dbb136e1f71aa8d2084428282178360"
+  },
+  "43901185832--severe-history-v07-2023-01-22.zip": {
+    "bytes": 5406559,
+    "sha256": "9902106e09131f537bdff5c18810293e51220b319661d8764fc34f45309414b5"
+  },
+  "43901185832--severe-history-v07-2023-02-01.zip": {
+    "bytes": 5466386,
+    "sha256": "fae2046bd99a6f422a43560c6705dadcb58bb76f3a7346b67ac09dd5ffcc8433"
+  },
+  "43901185832--severe-history-v07-2023-02-08.zip": {
+    "bytes": 5701922,
+    "sha256": "c569c3c222487284918fad2647d9e0b8152bfe124894e3bd19b3db0643c3e5d1"
+  },
+  "43901185832--severe-history-v07-2023-02-15.zip": {
+    "bytes": 5859427,
+    "sha256": "2521cb05f7386eacd9413feea03d14ccf86833e57fba967b986b14eb51d17525"
+  },
+  "43901185832--severe-history-v07-2023-02-22.zip": {
+    "bytes": 5828022,
+    "sha256": "ef03c08c94309a42995ecbfb3b762209cfd4ba8e17d1d65801004892c8199efa"
+  },
+  "43901185832--severe-history-v07-2023-03-01.zip": {
+    "bytes": 5888796,
+    "sha256": "c93e84f640d820e5742385e642d1868870928d0faed0e4cb855a154581999ea4"
+  },
+  "43901185832--severe-history-v07-2023-03-08.zip": {
+    "bytes": 5490358,
+    "sha256": "56856779f30032de947d8ae25d61f721856275865944463456fbc4eaffd01272"
+  },
+  "43901185832--severe-history-v07-2023-03-15.zip": {
+    "bytes": 5401265,
+    "sha256": "b5febdbf5844abd6ae6648f3473b77f901af29fe0b45bdf2cf9d1e95bcd7a123"
+  },
+  "43901185832--severe-history-v07-2023-03-22.zip": {
+    "bytes": 5771333,
+    "sha256": "f31938b99de49f5b65e77e679fa2bfc25a5e425ce92a37b7ab3407653c9e511f"
+  },
+  "43901185832--severe-history-v07-2023-04-01.zip": {
+    "bytes": 5470888,
+    "sha256": "6f9036c231378768443a9c723f01e4ca9bfad3639eceb164e7be632bb4435e05"
+  },
+  "43901185832--severe-history-v07-2023-04-08.zip": {
+    "bytes": 5286018,
+    "sha256": "8599107cb0c6f32d1e32c388867ca073ea1ed2c1a0bfa72b8030dc64de59243d"
+  },
+  "43901185832--severe-history-v07-2023-04-15.zip": {
+    "bytes": 5916427,
+    "sha256": "e951aefdcad35214ce8f6333563210a9f9ab144d39f94e6c7b07e8e175ff547e"
+  },
+  "43901185832--severe-history-v07-2023-04-22.zip": {
+    "bytes": 5641323,
+    "sha256": "621eab60a9c0063e8b9a895b5fad4eca0322943f0ec9beed89189d8014b33d21"
+  },
+  "43901185832--severe-history-v07-2023-05-01.zip": {
+    "bytes": 5171940,
+    "sha256": "e4d8d674c84fdaf706c8446aca5a3b33e939c32d99876853f544fcd8a96cb7ae"
+  },
+  "43901185832--severe-history-v07-2023-05-08.zip": {
+    "bytes": 6097326,
+    "sha256": "aacdb6507c29fb95280018c1958d4bdd2bda1c952a1dac9b3357489f0955d6bf"
+  },
+  "43901185832--severe-history-v07-2023-05-15.zip": {
+    "bytes": 5742749,
+    "sha256": "ae636a94bb88fc0a56fc6a026af937c9ec6b969743434fc3d096a6fe92cb10ef"
+  },
+  "43901185832--severe-history-v07-2023-05-22.zip": {
+    "bytes": 5589521,
+    "sha256": "1d375d75a47a16114ff89bb7236c4f6c1eae15206650dab28e6ad599ebddc487"
+  },
+  "43901185832--severe-history-v07-2023-06-01.zip": {
+    "bytes": 5929600,
+    "sha256": "678d236e19182584330c96f41271814f441347a1dad1e9e51838ef5c4e8a130d"
+  },
+  "43901185832--severe-history-v07-2023-06-08.zip": {
+    "bytes": 5809263,
+    "sha256": "93de4604906d1ca32ed25d4f309fdd981f87b9a3eaa2eb9aa110b36aed10c1f4"
+  },
+  "43901185832--severe-history-v07-2023-06-15.zip": {
+    "bytes": 6042170,
+    "sha256": "6db02ce1c6b9c8cd6e517bd8e322ea4155d3255aac9f0b8caa11a2548b769c1c"
+  },
+  "43901185832--severe-history-v07-2023-06-22.zip": {
+    "bytes": 6018359,
+    "sha256": "404c33969689a161931c7a3b0c6636db8121cb855c547dda1b2fc08d174f73a1"
+  },
+  "43901185832--severe-history-v07-2023-07-01.zip": {
+    "bytes": 6249383,
+    "sha256": "1f2a0446ce715e918ab284784224a138d669de55af13416552ca07c73e4d347c"
+  },
+  "43901185832--severe-history-v07-2023-07-08.zip": {
+    "bytes": 6160271,
+    "sha256": "dd22878e0e5d887a14fa355c659c65cfc46796bb40f27b7e97978a1993f5f070"
+  },
+  "43901185832--severe-history-v07-2023-07-15.zip": {
+    "bytes": 6233950,
+    "sha256": "6e9b2b13e00191e3519f564017b5ab19ba2c43af68270748be4da86a3e4c82bf"
+  },
+  "43901185832--severe-history-v07-2023-07-22.zip": {
+    "bytes": 6102194,
+    "sha256": "63bdb37b0c8eb5bbb1f06262a28b87189b81debe0f86713d37fbdf84f1d97e5d"
+  },
+  "43901185832--severe-history-v07-2023-08-01.zip": {
+    "bytes": 5967984,
+    "sha256": "a2ab8441e0a71c0a36b2c97c3df84ac3708649d14607a812467fe2e1a46844c2"
+  },
+  "43901185832--severe-history-v07-2023-08-08.zip": {
+    "bytes": 6170917,
+    "sha256": "1ea9365e061ec68f621ed2fd9c2fd297ba72830909c9d806988a78b197a2b74d"
+  },
+  "43901185832--severe-history-v07-2023-08-15.zip": {
+    "bytes": 5503775,
+    "sha256": "ea303f5fb36f15259d6043db2e275a0556431aa3bf9758837472782d85db860d"
+  },
+  "43901185832--severe-history-v07-2023-08-22.zip": {
+    "bytes": 5660387,
+    "sha256": "7bb9b285aa9ad9b3919d09e9c779511ee05efaf1695c0b56cf367d533f0f3fee"
+  },
+  "43901185832--severe-history-v07-2023-09-01.zip": {
+    "bytes": 5417796,
+    "sha256": "585ab49049816894cf89d4ec6388bdb07ad890e2d1942c4804194345ac0abeb6"
+  },
+  "43901185832--severe-history-v07-2023-09-08.zip": {
+    "bytes": 5928537,
+    "sha256": "09de1dc857271c0f04e70afdda2840ab0fc01fb5d562c1ad794c830264fb12dd"
+  },
+  "43901185832--severe-history-v07-2023-09-15.zip": {
+    "bytes": 5614966,
+    "sha256": "0c677985d5319c9964f3f916308db3d38950c2b845b1d031f3a54c03add9cc7b"
+  },
+  "43901185832--severe-history-v07-2023-09-22.zip": {
+    "bytes": 5888730,
+    "sha256": "e6fb396929c204753206e8bdbc96bda251f10121f8169e7fed45f3d2978aee26"
+  },
+  "43901185832--severe-history-v07-2023-10-01.zip": {
+    "bytes": 5109396,
+    "sha256": "7bb86b0ea6d3bdd78e6135857df0cee0978adb7d5514e710aaa204a3e7924dd7"
+  },
+  "43901185832--severe-history-v07-2023-10-08.zip": {
+    "bytes": 4967476,
+    "sha256": "b0f4a147973de092d7d375b435ea944766f9f44cab8ca516e18b9b8e673af087"
+  },
+  "43901185832--severe-history-v07-2023-10-15.zip": {
+    "bytes": 5392802,
+    "sha256": "4b66b24172151255988c3f85ed814da0906ace02c866581ad39b4ba0391f76cc"
+  },
+  "43901185832--severe-history-v07-2023-10-22.zip": {
+    "bytes": 5350428,
+    "sha256": "7e6e57dbc26473c74eca1c710a34408e145608012289e13a4370b94305111b35"
+  },
+  "43901185832--severe-history-v07-2023-11-01.zip": {
+    "bytes": 4727297,
+    "sha256": "9d556b62a5f0cf4da7063349ca1314d81f77e0c8b4351efb49c764defbb106cc"
+  },
+  "43901185832--severe-history-v07-2023-11-08.zip": {
+    "bytes": 5452186,
+    "sha256": "aee4845f756ca29d9648593e85b46837cc0ab9c83b16acf585fd605237c7dadb"
+  },
+  "43901185832--severe-history-v07-2023-11-15.zip": {
+    "bytes": 5131500,
+    "sha256": "a305e37e15df6d9b71d1641b620084d25185dad6a2e4553c1145b60bb9376f5e"
+  },
+  "43901185832--severe-history-v07-2023-11-22.zip": {
+    "bytes": 5213136,
+    "sha256": "c21bc106f62732493a3bfe050e1806d77c12993d06c17d08c7f28d97edcfd938"
+  },
+  "43901185832--severe-history-v07-2023-12-01.zip": {
+    "bytes": 5736902,
+    "sha256": "e05c578194a9a5aeed3a848f7a3dbbb59956757061faff97e758891225b8a4cf"
+  },
+  "43901185832--severe-history-v07-2023-12-08.zip": {
+    "bytes": 5793861,
+    "sha256": "87d021deb63125e0aa165db23fab1f01fdd58fb7fd7760a77a625b90f8c04c27"
+  },
+  "43901185832--severe-history-v07-2023-12-15.zip": {
+    "bytes": 5314241,
+    "sha256": "5829ce4ea4f7d78e041c65c474c612b1dbb183218e2c9720a1e32be6197d260a"
+  },
+  "43901185832--severe-history-v07-2023-12-22.zip": {
+    "bytes": 5397699,
+    "sha256": "c37e1e0eb6553f26200588daa37e0965d526db46733008eca056e3a01ef0974c"
+  },
+  "43901185832--severe-history-v07-2024-01-15.zip": {
+    "bytes": 5145664,
+    "sha256": "12b5bb09e620cd8e2cc67b6552ce4479076bbba6ccd493c9ec5607da67c8990d"
+  },
+  "43901185832--severe-history-v07-2024-02-15.zip": {
+    "bytes": 5770589,
+    "sha256": "188bc7bb13d662a4a370b85ea385695e59ab22e31bf4595ff3380cd913d7d98a"
+  },
+  "43901185832--severe-history-v07-2024-03-15.zip": {
+    "bytes": 5539381,
+    "sha256": "6bacb0adde60c2377910afb3e450e7def14dc16a25e52ab3065184f32343c284"
+  },
+  "43901185832--severe-history-v07-2024-04-15.zip": {
+    "bytes": 6013448,
+    "sha256": "d5cdb0a1234c33015616d24fcb19fc76c1fbc5921d07c5375f8ab0b64be0b3b2"
+  },
+  "43901185832--severe-history-v07-2024-05-15.zip": {
+    "bytes": 6029808,
+    "sha256": "89b302570a0594222cb9adfd8ec7f9e9b7e64650afcef0845a147e8cee1c8e39"
+  },
+  "43901185832--severe-history-v07-2024-06-15.zip": {
+    "bytes": 5777387,
+    "sha256": "6fab2ac7415ed46c85e889be38d4956e8aeb758e154014be24dd09eb6559ccf5"
+  },
+  "43901185832--severe-history-v07-2024-07-15.zip": {
+    "bytes": 6290042,
+    "sha256": "2b95739431e59f5ae2646cde8b8f743310d51a23e2a7e324c1fffcf26c3eb8d8"
+  },
+  "43901185832--severe-history-v07-2024-08-15.zip": {
+    "bytes": 6119108,
+    "sha256": "3f692534dee13a82aee23ebd2d18bb7d059fe2b9255e4823dbc1ab447e17d045"
+  },
+  "43901185832--severe-history-v07-2024-09-15.zip": {
+    "bytes": 5816031,
+    "sha256": "eeccdab79534e9edb85c61dac772551868b4fee74287eb70a167508885418703"
+  },
+  "43901185832--severe-history-v07-2024-10-15.zip": {
+    "bytes": 5130593,
+    "sha256": "11c649ad8f2b5d003e59eff2171ef983d275512da906c2c8b6cfc722cf9376ee"
+  },
+  "43901185832--severe-history-v07-2024-11-15.zip": {
+    "bytes": 5052776,
+    "sha256": "bb19c29d8f2828148c05f3ac997986b7d0db063634559fc8de6a6f2d358580c8"
+  },
+  "43901185832--severe-history-v07-2024-12-15.zip": {
+    "bytes": 5684724,
+    "sha256": "8ac0d22605167d6079ab8d4768cb6d449706eb24bd39a8567b8568c4ead24fb5"
+  },
+  "43901185832--severe-labels-v07.zip": {
+    "bytes": 289957,
+    "sha256": "bfa926d855f5ee1b5f6bb4073e649e98ffcdb1ea3e464879809199516d78208b"
+  }
+}

@@ -23,11 +23,35 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 joblib==1.5.2 threadpoolctl==3.6.0
-      - name: Retrieve the complete paginated case archive
+      - name: Restore pinned v07 inputs from the private archive
+        if: vars.SEVERE_REBUILD_ARCHIVE_REPO != ''
+        env:
+          GH_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo "::error::Set SEVERE_REBUILD_ARCHIVE_TOKEN for read access to the private archive"
+            exit 1
+          fi
+          python tools/severe/restore_rebuild_inputs.py --repository "$ARCHIVE_REPO" --source v07 --output "tests/out/tree-history"
+      - name: Restore pinned labels inputs from the private archive
+        if: vars.SEVERE_REBUILD_ARCHIVE_REPO != ''
+        env:
+          GH_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo "::error::Set SEVERE_REBUILD_ARCHIVE_TOKEN for read access to the private archive"
+            exit 1
+          fi
+          python tools/severe/restore_rebuild_inputs.py --repository "$ARCHIVE_REPO" --source labels --output "tests/out/tree-labels"
+      - name: Retrieve historical cases from Actions retention
+        if: vars.SEVERE_REBUILD_ARCHIVE_REPO == ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh run download 43901185832 --repo "$GITHUB_REPOSITORY" --pattern 'severe-history-v07-*' --dir tests/out/tree-history
       - uses: actions/download-artifact@v4
+        if: vars.SEVERE_REBUILD_ARCHIVE_REPO == ''
         with:
           github-token: ${{ github.token }}
           run-id: '43901185832'

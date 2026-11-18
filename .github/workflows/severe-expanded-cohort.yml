@@ -60,7 +60,19 @@ jobs:
         with:
           name: severe-labels-v07
           path: tests/out/labels-v07
-      - if: matrix.reuse
+      - name: Restore pinned v05 inputs from the private archive
+        if: matrix.reuse && vars.SEVERE_REBUILD_ARCHIVE_REPO != ''
+        env:
+          GH_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+          CASE: ${{ matrix.case }}
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo "::error::Set SEVERE_REBUILD_ARCHIVE_TOKEN for read access to the private archive"
+            exit 1
+          fi
+          python tools/severe/restore_rebuild_inputs.py --repository "$ARCHIVE_REPO" --source v05 --case "$CASE" --output "tests/out/history/$CASE"
+      - if: matrix.reuse && vars.SEVERE_REBUILD_ARCHIVE_REPO == ''
         uses: actions/download-artifact@v4
         with:
           github-token: ${{ github.token }}

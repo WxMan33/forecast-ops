@@ -1,0 +1,39 @@
+name: Severe daily feed health
+on:
+  schedule:
+    # Day 1 valid window, last Day 1 catch-up, and last Day 2 catch-up.
+    - cron: '8 12 * * *'
+    - cron: '4 14 * * *'
+    - cron: '17 19 * * *'
+  workflow_dispatch:
+  workflow_run:
+    workflows: [Severe current daily research product]
+    branches: [main]
+    types: [completed]
+permissions:
+  contents: read
+jobs:
+  publication:
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      RUN_URL: ${{ github.event.workflow_run.html_url }}
+      CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+      TRIGGER: ${{ github.event.workflow_run.event }}
+    steps:
+      - name: Report failed or cancelled publication
+        run: |
+          echo "::error::Severe publisher finished with $CONCLUSION ($TRIGGER). $RUN_URL"
+          echo "Severe publisher finished with **$CONCLUSION** ($TRIGGER). [Publisher run]($RUN_URL)" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+  public-feed:
+    if: github.event_name != 'workflow_run'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tools/severe/check_daily_feed.js
