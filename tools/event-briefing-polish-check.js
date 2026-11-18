@@ -41,6 +41,8 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
   const pdf=await p.pdf({path:path.join(out,'event-polish-briefing.pdf'),preferCSSPageSize:true,printBackground:true});const pages=(pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length;check(pages===2,'US Letter printout is exactly two pages (got '+pages+')');
   check(!text.includes('†')&&text.includes('1 / 2')&&text.includes('2 / 2'),'print has page numbers and no undefined daggers');
   check(await p.locator('.pv-p1').innerText().then(t=>t.includes('1 of 3')&&t.includes('HRRR')),'print page one names missing sources');
+  check(await p.locator('.pv-time-phase').count()===4 && await p.locator('.pv-time-hour').count()>0,'print timeline aligns schedule phases with hourly rain guidance');
+  check(await p.locator('.pv-hour-bar').count()===await p.locator('.pv-hours tbody tr').count(),'complete hourly print rows show rain bars beside the values');
  }
  if(!phone&&theme==='light'){
  await p.emulateMedia({media:'screen'});await p.goto(base+'/event-beta.html?long=1');await p.waitForFunction(()=>document.body.dataset.loaded);
@@ -56,6 +58,11 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  check((await p.locator('#evCharts [data-value=pop]').innerText())==='—','missing rain guidance stays missing rather than zero');
  check(/n\/a|Unavail/.test(await p.locator('#evCharts [data-value=lightning]').innerText()),'missing lightning is never shown as Low');
  check(await p.locator('#evCharts .evc-gap').count()>=4,'missing hour is visibly marked in every variable chart');
+ await p.emulateMedia({media:'print'});await p.evaluate(()=>window.dispatchEvent(new Event('beforeprint')));
+ check(await p.locator('.pv-time-gap').count()>=1,'print timeline hatches missing hourly rain guidance');
+ const gap=p.locator('.pv-hours tr[data-ms="'+Date.parse('2026-11-12T19:00Z')+'"] [data-pop]');
+ check((await gap.innerText()).trim()==='—' && await gap.locator('.pv-hour-bar').count()===0,'missing printed rain chance has a dash and no bar');
+ await p.emulateMedia({media:'screen'});
  }
  if(!phone&&theme==='light'){
  // Restore complete guidance before testing a weather change; the preceding fixture intentionally removed an hour.
