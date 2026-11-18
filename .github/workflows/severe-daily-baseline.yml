@@ -24,13 +24,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Retrieve frozen historical cohort
-        uses: actions/download-artifact@v4
-        with:
-          github-token: ${{ github.token }}
-          run-id: '42321856909'
-          pattern: severe-history-v05-20*
-          path: tests/out/daily-baseline-history
+      - name: Retrieve frozen historical cohort (checksum-verified; Release first, then the original run)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/severe/fetch_archive.py --manifest research/severe/archives/run-42321856909.json --pattern 'severe-history-v05-20*' --dest tests/out/daily-baseline-history
       - run: pip install numpy==2.3.5 scipy==1.17.0
       - name: Fit, calibrate and score daily baselines
         run: python tools/severe/train_daily.py --history tests/out/daily-baseline-history --output tests/out/daily-baseline

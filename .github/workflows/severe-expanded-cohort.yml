@@ -61,12 +61,11 @@ jobs:
           name: severe-labels-v07
           path: tests/out/labels-v07
       - if: matrix.reuse
-        uses: actions/download-artifact@v4
-        with:
-          github-token: ${{ github.token }}
-          run-id: '42321856909'
-          name: severe-history-v05-${{ matrix.case }}
-          path: tests/out/history/${{ matrix.case }}
+        name: Reuse the archived original case (checksum-verified)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CASE: ${{ matrix.case }}
+        run: python3 tools/severe/fetch_archive.py --manifest research/severe/archives/run-42321856909.json --name "severe-history-v05-$CASE" --dest "tests/out/history/$CASE"
       - name: Collect or reuse, audit and pair both days
         env:
           CASE: ${{ matrix.case }}
