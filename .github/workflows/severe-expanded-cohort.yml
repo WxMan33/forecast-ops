@@ -61,11 +61,13 @@ jobs:
           name: severe-labels-v07
           path: tests/out/labels-v07
       - if: matrix.reuse
-        name: Reuse the archived original case (checksum-verified)
+        name: Restore the pinned original case (private archive, else original run; verified)
         env:
-          GH_TOKEN: ${{ github.token }}
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+          ARCHIVE_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
+          ACTIONS_TOKEN: ${{ github.token }}
           CASE: ${{ matrix.case }}
-        run: python3 tools/severe/fetch_archive.py --manifest research/severe/archives/run-42321856909.json --name "severe-history-v05-$CASE" --dest "tests/out/history/$CASE"
+        run: bash tools/severe/restore_inputs.sh --source v05 --case "$CASE" --output "tests/out/history/$CASE"
       - name: Collect or reuse, audit and pair both days
         env:
           CASE: ${{ matrix.case }}

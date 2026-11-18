@@ -40,95 +40,94 @@ production runs on purpose, which needs the owner's go-ahead.
 
 ## 2. Automatic health checks
 
-`tools/severe/feed_health.py` and `.github/workflows/severe-feed-health.yml` cover the following.
+`tools/severe/feed_health.js` and `.github/workflows/severe-feed-health.yml`, consolidated with
+PR #24's checker. The check validates **the files the viewer actually downloads**: the public
+raw feed, retried three times for CDN skew, and the committed copy. It uses the viewer's own
+`severe-daily-core.js` validators.
 
 | Check | Error (job fails) | Warning |
 |---|---|---|
-| feed | `index.json`, grid or run files disagree with their checksums; a run's model is unregistered; a file claims the wrong lead day | |
-| freshness | Day 1 or Day 2 is missing, or still shows an older initialization after its deadline. Day 1's deadline is 12:00 UTC, when its window starts. Day 2's is 19:15 UTC, 45 min after its last catch-up. | |
-| runs | The newest completed publishing run in the last 26 h failed, timed out or was cancelled | An earlier one did, and a later run succeeded |
-| served | | The raw files the viewer reads differ from git, or can't be read (the CDN can lag a few minutes) |
+| served / committed | A file can't be read or isn't JSON. The index schema fails. A grid or run checksum is wrong. The display mask or registry is invalid. A payload's id, lead, initialization, window, preparation or model differs from `index.json`. Any hazard field is missing or out of range. The model is unregistered. | Served is valid and current but not yet byte-identical to git |
+| freshness | A lead is missing, expired, claims a future time, or is older than required after its deadline. Day 1's deadline is 12:00 UTC; Day 2's is 19:15 UTC. | |
+| runs | The newest completed publishing run **on main** in the last 26 h failed, timed out or was cancelled | An earlier main-branch failure that a later main-branch run recovered |
 
-When the workflow runs:
-- After every completed publishing run (`workflow_run`), so a failure is reported within minutes.
-- At 12:05 and 19:20 UTC, right after each deadline.
-- On demand.
+When it runs: after every publishing run on main, at 12:08, 14:04 and 19:20 UTC, and on demand.
+It reports through the step summary, `::error::` annotations, a JSON artifact and a failed job.
+It can also keep one tracking issue open if `SEVERE_HEALTH_ISSUES=true` is set (off by default).
 
-What it reports:
-- A step summary with a per-day table, plus `::error::` and `::warning::` annotations.
-- `feed-health.json` as an artifact.
-- A failed job, which GitHub reports in its usual way.
-- Optional: set the repository variable `SEVERE_HEALTH_ISSUES=true` to keep one tracking issue
-  open while the feed is unhealthy and close it on recovery. It is off by default.
+Review findings fixed, each now covered by `tests/severe-feed-health.test.js`:
+- A Day 1 payload with no hail field, or with an initialization that disagrees with the index,
+  was called current. Both are now errors.
+- Invalid public responses produced only warnings. They are now errors.
+- A success on another branch downgraded a failed main run. Only runs on main are considered
+  now, both in the runs filter and in the `workflow_run` trigger.
 
-Tests: `tests/severe-feed-health.test.py` (11 cases) covers deadline edges, stale Day 1/Day 2,
-missing day, checksum mismatch, unregistered model, newest vs. recovered failure, served
-mismatch, and the CLI exit code and summary. On the current feed at 02:57Z it reports healthy.
+**Mutation check.** Removing the viewer's payload check makes the test fail, and so does removing
+the branch filter.
 
-## 3. Replacing expiring artifact downloads
+On the current feed (Day 1 and Day 2 from 2026-11-18), both the committed copy and the live raw
+feed check healthy.
 
-Three workflows downloaded straight from Actions runs that expire:
-- `severe-daily-baseline.yml` and `severe-expanded-cohort.yml` use run 42321856909, which
-  expires 2026-12-07.
-- `severe-tree-experiment.yml` uses run 43901185832, which expires 2027-02-14.
+## 3. Replacing expiring artifact downloads (private archive, from PR #24)
 
-All three now call `tools/severe/fetch_archive.py`. It:
-- reads a committed manifest, `research/severe/archives/run-<id>.json`;
-- tries the GitHub Release named in the manifest first, then the original run;
-- accepts a zip only if its SHA-256 matches the manifest;
-- refuses unsafe zip paths;
-- extracts in the same layout as `actions/download-artifact`.
+My first version published a public Release, and its workflow failed before downloading because
+`gh api` has no `-c` flag. That version is removed. In its place is PR #24's private-archive path:
+- `research/severe/rebuild-archive.json` pins all 146 ZIPs (36 v05 cases plus the summary, 108
+  v07 cases, and the v07 labels) by size and SHA-256. I compared it with the 37 digests I had
+  transcribed from the artifact API for run 42321856909, and all 37 match.
+- `tools/severe/restore_rebuild_inputs.py` is #24's tool, extended. It reads from one of:
+  - `--repository`: the private archive's release `severe-rebuild-inputs-v1`. A repository that
+    isn't private is refused before anything is downloaded.
+  - `--artifact-dir`: the verified backup.
+  - `--actions`: the original run, until it expires. It finds each artifact by API id and refuses
+    expired ones.
 
-A local folder, `--source dir:PATH`, works too, which lets the private backup be checked against
-the manifest.
+  Every location goes through the same check: all selected ZIPs must match size and SHA-256
+  before any extraction, and absolute or escaping paths are refused.
+- `tools/severe/restore_inputs.sh` is the single workflow entry point:
+  - If `SEVERE_REBUILD_ARCHIVE_REPO` is set, it reads the private archive. It needs
+    `SEVERE_REBUILD_ARCHIVE_TOKEN` and fails clearly without it.
+  - Otherwise it warns and uses the verified Actions fallback.
+- The baseline (36 cases), expanded-cohort reuse (one case per job) and tree experiment (108
+  cases plus labels) all use it. The tree experiment no longer stops on a missing manifest.
 
-The manifest for run 42321856909 is committed: 37 artifacts (36 cases plus a summary), 203.9 MB.
-The digests were transcribed from GitHub's artifact API. The test checks that its 36 case names
-equal `cohort-v05.json` exactly. I could not download a zip from here to confirm that
-digest = SHA-256 of the zip, because the proxy blocks Azure blob storage. The new workflow below
-checks this on GitHub for every artifact.
+Tests: `tests/severe-restore-inputs.test.py` (9 cases). It uses a stub `gh` on PATH and covers:
+- manifest coverage, including no 2025 dates, and frozen case selection;
+- the three layouts;
+- size/SHA mismatch and missing ZIPs, which stop before extraction;
+- zip-slip;
+- a public archive, refused before download;
+- the private release path;
+- the Actions fallback, including expired artifacts;
+- the wrapper's missing-token error.
 
-`severe-archive-inputs.yml` (manual) does the following:
-- Downloads every zip from the chosen run and checks each against GitHub's digest.
-- Checks each against the committed manifest, if there is one.
-- Uploads the manifest with `release_tag` filled in.
-- Only if you give it a tag: creates the Release, uploads the zips, then re-downloads every asset
-  through `fetch_archive.py --source release` to prove the copies verify. It refuses to reuse an
-  existing tag.
+All `gh` flags used were checked against `gh` 2.89.0.
 
-Tests: `tests/severe-archive.test.py` (8 cases).
+### Owner steps before 2026-12-07
 
-Until a Release exists, the rebuild workflows still fetch from the original run, now
-checksum-verified. After 2026-12-07 the baseline and expanded-cohort workflows will fail with a
-clear message unless the steps below are done.
-
-### Decisions still needed from the owner
-
-1. **Where the durable copy lives.** `severe-archive-inputs.yml` publishes a GitHub Release in
-   this repository. If the repository is public, the Release is public. The earlier handoff judged
-   that reasonable: the files are derived predictors and labels, with no raw GRIB. A private
-   copy would need either:
-   - another private repository's Release, which needs a cross-repository token stored as a
-     secret; or
-   - a cloud bucket, which needs credentials and a new source type in `fetch_archive.py`.
-
-   The private backup you made can't be reached from Actions, so it stays a fallback only.
-2. **Tag names.** Suggested: `severe-inputs-run-42321856909` and `severe-inputs-run-43901185832`.
-3. **Approval to run it**, before 2026-12-07 for 42321856909:
-   - (a) Run "Severe archive inputs" for 42321856909 with no tag, as a check only.
-   - (b) Run it again with the tag.
-   - (c) Commit the manifest artifact it produces. Its `release_tag` is set and it must match the
-     committed one, which the workflow enforces.
-   - (d) Repeat for 43901185832, whose manifest isn't committed yet. Until then the tree
-     experiment stops with "not committed yet".
+1. Create a **private** archive repository, for example `WxMan33/forecast-ops-archive`. In it,
+   create the release `severe-rebuild-inputs-v1` and upload the 146 original ZIPs from the
+   backup, named exactly as in `research/severe/rebuild-archive.json`. Before uploading, you can
+   check the backup locally:
+   `python3 tools/severe/restore_rebuild_inputs.py --artifact-dir <backup>/artifacts --source v05 --output /tmp/v05`,
+   then `--source v07` and `--source labels`.
+2. In forecast-ops, set the variable `SEVERE_REBUILD_ARCHIVE_REPO` to that repository's
+   `owner/repo`, and the secret `SEVERE_REBUILD_ARCHIVE_TOKEN` to a fine-grained token with
+   read-only Contents (and Metadata) access to that repository only.
+3. Dispatch the daily baseline and tree workflows on this branch and check the restore counts:
+   36 for the baseline, and 108 plus 1 for the tree experiment. Dispatching runs workflows, so it
+   needs your go-ahead.
 
 ## Files
 
-- New: `tools/severe/publish_feed.sh`, `feed_health.py`, `fetch_archive.py`,
-  `archive_manifest.py`; `.github/workflows/severe-feed-health.yml`, `severe-archive-inputs.yml`;
-  `research/severe/archives/run-42321856909.json`; three test files.
-- Changed: `severe-daily-product.yml` (calls the script, same behaviour); `severe-daily-baseline.yml`,
-  `severe-expanded-cohort.yml`, `severe-tree-experiment.yml` (verified fetch); `tests.yml` (three
-  new tests).
+- Publishing: `tools/severe/publish_feed.sh` and `tests/severe-publish.test.py` (5 race cases).
+  `severe-daily-product.yml` calls the script.
+- Health: `tools/severe/feed_health.js`, `tests/severe-feed-health.test.js` and
+  `.github/workflows/severe-feed-health.yml`.
+- Archive: `research/severe/rebuild-archive.json`, `tools/severe/restore_rebuild_inputs.py` and
+  `restore_inputs.sh`, `tests/severe-restore-inputs.test.py`. The baseline, expanded-cohort and
+  tree workflows use them.
+- Docs: `docs/severe-product.md` ("Rebuild inputs" and feed health) and
+  `docs/severe-methods-review.md` §3, both from PR #24 and adapted.
 - `actionlint` (with shellcheck) and `shellcheck` are clean on every new or changed workflow and
   script.

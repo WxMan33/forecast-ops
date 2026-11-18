@@ -24,10 +24,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Retrieve frozen historical cohort (checksum-verified; Release first, then the original run)
+      - name: Restore the 36 pinned v05 cases (private archive, else original run; verified)
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 tools/severe/fetch_archive.py --manifest research/severe/archives/run-42321856909.json --pattern 'severe-history-v05-20*' --dest tests/out/daily-baseline-history
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+          ARCHIVE_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
+          ACTIONS_TOKEN: ${{ github.token }}
+        run: bash tools/severe/restore_inputs.sh --source v05 --output tests/out/daily-baseline-history
       - run: pip install numpy==2.3.5 scipy==1.17.0
       - name: Fit, calibrate and score daily baselines
         run: python tools/severe/train_daily.py --history tests/out/daily-baseline-history --output tests/out/daily-baseline

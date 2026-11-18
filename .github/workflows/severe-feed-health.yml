@@ -1,15 +1,18 @@
 name: Severe daily feed health
-# Fails, with a step summary and error annotations, when a publishing run failed or when the
-# Day 1 or Day 2 feed is missing, inconsistent or stale after its deadline. Read-only unless
-# the repository variable SEVERE_HEALTH_ISSUES is 'true': then one tracking issue is opened
-# or updated on failure and closed when the feed is healthy again.
+# Fails, with a step summary and error annotations, when the newest publishing run on main
+# failed, or when the served or committed Day 1/Day 2 feed fails the viewer's own checks or is
+# missing or stale after its deadline (Day 1 12:00 UTC, Day 2 19:15 UTC).
+# Read-only unless the repository variable SEVERE_HEALTH_ISSUES is 'true': then one tracking
+# issue is opened or updated on failure and closed when the feed is healthy again.
 on:
   workflow_run:
     workflows: ['Severe current daily research product']
+    branches: [main]
     types: [completed]
   schedule:
-    - cron: '5 12 * * *'   # Day 1 window has started: today's 06Z run must be published
-    - cron: '20 19 * * *'  # after the last Day 2 catch-up (18:30) plus margin
+    - cron: '8 12 * * *'   # Day 1 window has opened
+    - cron: '4 14 * * *'   # after the last Day 1 catch-up (13:15)
+    - cron: '20 19 * * *'  # after the last Day 2 catch-up (18:30) and its deadline
   workflow_dispatch:
 permissions:
   contents: read
@@ -26,19 +29,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-      - name: List recent publishing runs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: List recent publishing runs on main
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p tests/out
-          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/severe-daily-product.yml/runs?per_page=50" > tests/out/publish-runs.json
-      - name: Check feed and runs
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/severe-daily-product.yml/runs?branch=main&per_page=50" > tests/out/publish-runs.json
+      - name: Check the served and committed feed and the runs
         id: health
         run: |
           set +e
-          python3 tools/severe/feed_health.py --feed assets/severe-daily --runs tests/out/publish-runs.json \
-            --raw-base "https://raw.githubusercontent.com/$GITHUB_REPOSITORY/main/assets/severe-daily" \
-            --summary "$GITHUB_STEP_SUMMARY" --json tests/out/feed-health.json
+          node tools/severe/feed_health.js --local assets/severe-daily --runs tests/out/publish-runs.json \
+            --branch main --summary "$GITHUB_STEP_SUMMARY" --json tests/out/feed-health.json
           code=$?
           echo "healthy=$([ $code = 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
           exit 0
@@ -51,7 +56,7 @@ jobs:
         run: |
           title="Severe daily feed health alert"
           open=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
-          body=$(python3 -c "import json;r=json.load(open('tests/out/feed-health.json'));print('\n'.join(f\"- **{f['level']}** ({f['check']}): {f['message']}\" for f in r['findings']) or 'No problems found.')")
+          body=$(node -e "const r=require('./tests/out/feed-health.json');console.log(r.findings.map(f=>'- **'+f.level+'** ('+f.check+'): '+f.message).join('\n')||'No problems found.')")
           if [ "$HEALTHY" = true ]; then
             if [ -n "$open" ]; then gh issue close "$open" --comment "Healthy again: $RUN_URL"; fi
           elif [ -n "$open" ]; then
