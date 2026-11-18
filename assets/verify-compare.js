@@ -54,7 +54,7 @@
     const sel = (id, opts, v, text) => `<label>${E(text)}<select id="${id}">${opts.map(([k, l]) => `<option value="${E(k)}" ${String(k) === String(v) ? "selected" : ""}>${E(l)}</option>`).join("")}</select></label>`;
     const render = () => {
       if (me !== gen) return;
-      const leads = leadsFor(st.target); if (!leads.includes(+st.lead)) st.lead = leads[0] || 1;
+      const leads = leadsFor(st.target); if (!leads.includes(+st.lead)) st.lead = leads[0] ?? 1;
       const r = compute(sc, pairs, health, st), mm = r.m, prelim = mm.dates < (sc.minDates || 30);
       const ex = mm.excluded, only = Object.entries(mm.onlyMissing || {}).sort((a, b) => b[1] - a[1]);
       const pickable = r.available.slice().sort((a, b) => groupOf(sc.tracks[a]).localeCompare(groupOf(sc.tracks[b])) || label(a).localeCompare(label(b)));
