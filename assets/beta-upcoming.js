@@ -15,13 +15,23 @@
   const offText = (d) => { const h = (m) => (m % 60 ? `${Math.floor(m / 60) ? Math.floor(m / 60) + " h " : ""}${m % 60} min` : `${m / 60} h`);
     return [d.setup != null ? `Setup ${h(d.setup)} before` : "No setup", d.gates != null ? `gates ${h(d.gates)} before` : "no gates", d.teardown != null ? `teardown ${h(d.teardown)} after` : "no teardown", d.gust != null ? `gust limit ${d.gust} mph` : ""].filter(Boolean).join(" · "); };
 
+  const noPoint = () => ({ name: "", lat: null, lon: null, tz: null });
+  const selectedPoint = p => ({ ...p, name: p.address || p.name, address: p.kind === "pin" ? "" : p.address, tz: null });
+  const samePoint = (p, lat, lon) => fin(p.lat) && fin(p.lon) && Math.abs(lat - p.lat) < 0.0001 && Math.abs(lon - p.lon) < 0.0001;
+  async function venueZone(p, lat, lon) {
+    const matched = samePoint(p, lat, lon);
+    if (matched && p.tz) return p.tz;
+    const lookup = () => O.zoneFor(lat, lon).catch(() => null);
+    return await lookup() || (matched && window.VenueSearch.tzGuess(p)) || await new Promise(ok => setTimeout(ok, 1500)).then(lookup);
+  }
+
   /* ---------------- event editor (new, existing, or a sample/shared event saved as new) ---------------- */
   function editEvent(target, { onSaved, title } = {}) {
     U.track("custom_event_started");
     const stored = target && target.id && E.getEvent(target.id) ? E.getEvent(target.id) : null, saved = E.venues(), vns = [...saved, ...E.BUILTIN.filter((b) => !saved.some((v) => E.norm(v.name) === E.norm(b.name)))];
     const base = stored || target || null;
     let venue = base && base.venueId ? E.getVenue(base.venueId) : !base ? saved[0] || null : null; // a new event starts at the first saved venue (never a built-in one by default)
-    let city = base && !venue ? { name: base.loc.name, lat: base.loc.lat, lon: base.loc.lon, tz: base.tz } : { name: "", lat: null, lon: null, tz: null };
+    let city = base && !venue ? { ...base.loc, tz: base.tz } : noPoint();
     /* an event's own times stay its own: overrides at a saved venue, every time when it has no saved venue */
     const dirty = new Set(stored ? (venue ? stored.overrides || [] : ["setup", "gates", "teardown"].filter((k) => stored.times[k])) : []);
     /* the schedule preset this event uses (the venue's standard schedule when none) */
@@ -36,6 +46,7 @@
         <label>Venue name<input id="fVenue" maxlength="80" value="${esc(base && !venue && !base.sample ? (fin(base.loc.lat) ? base.loc.name : String(base.loc.name || "").split(",")[0].replace(/^Venue not set$/, "")) : "")}" placeholder="e.g. TQL Stadium"></label>
         <div><span class="bx-cap" style="display:block;margin-bottom:4px">Find the venue (name or street address)</span><div id="fCity"></div></div>
         <details><summary class="bx-note">Exact coordinates (optional)</summary><div class="two" style="margin-top:8px"><label>Latitude<input id="fLat" inputmode="decimal" value="${fin(city.lat) ? city.lat : ""}"></label><label>Longitude<input id="fLon" inputmode="decimal" value="${fin(city.lon) ? city.lon : ""}"></label></div></details>
+        <p class="bx-note" id="fAreaNote" hidden>City-area forecasts are for planning. Choose an exact point to save a venue or open live monitoring.</p>
         <label class="bx-check"><input type="checkbox" id="fSaveVenue" ${base && !base.sample && !venue && fin(base.loc.lat) ? "" : "checked"}> Save this venue and its schedule for future events</label>
       </div>
       <div class="two"><label>Starts on<input type="date" id="fDate" value="${esc(t.start ? t.start.slice(0, 10) : defDate)}"></label><label>Ends on<input type="date" id="fEndDate" value="${esc(t.end ? t.end.slice(0, 10) : defDate)}"></label></div>
@@ -94,6 +105,8 @@
       $("fNewPresetBox").hidden = !venue;
       const ud = $("fUseDef"); if (ud) ud.addEventListener("click", () => { dirty.clear(); fill(false); });
       $("fNewVenue").hidden = !!venue;
+      $("fSaveVenue").disabled = !!city.approximate;
+      $("fAreaNote").hidden = !city.approximate;
       tzNote();
     }
     Object.entries(F).forEach(([k, el]) => el.addEventListener("input", () => { dirty.add(k); el.classList.add("own"); fill(false); }));
@@ -108,9 +121,21 @@
     function tzNote() { const z = venue ? venue.tz : city.tz; $("fTzNote").textContent = `Times are local to the venue (${z ? `${z}, ${fmt.zone(Date.now(), z)}` : "time zone found on save"}), wherever you are. A teardown earlier than the end is read as after midnight; a setup later than the start, as the day before.`; }
     /* the venue itself (stadium, business, park, school or street address), not just its city; or a dropped pin */
     const calLoc = base && !base.sample && !fin(base.loc.lat) && base.source && base.source.location ? base.source.location : "";
-    window.VenueSearch.picker($("fCity"), { initial: calLoc, // prefilled for review; searched only when the planner presses Search
-      onPick(p) { city = { name: p.address || "", address: p.kind === "pin" ? "" : p.address, lat: p.lat, lon: p.lon, tz: null }; $("fLat").value = p.lat; $("fLon").value = p.lon;
-        if (!$("fVenue").value.trim() || $("fVenue").dataset.auto === "1") { $("fVenue").value = p.name; $("fVenue").dataset.auto = "1"; } fill(false); tzNote(); } });
+    const clearSearchPoint = () => {
+      city = noPoint();
+      $("fLat").value = $("fLon").value = "";
+      $("fErr").hidden = true;
+      fill(false);
+    };
+    window.VenueSearch.picker($("fCity"), { initial: calLoc, allowArea: true, onNewSearch: clearSearchPoint,
+      onPick(p) {
+        city = { ...selectedPoint(p), approximate: p.kind === "area" };
+        if (city.approximate) city.name += " (area forecast)";
+        $("fLat").value = p.lat; $("fLon").value = p.lon;
+        if (!$("fVenue").value.trim() || $("fVenue").dataset.auto === "1") { $("fVenue").value = p.name; $("fVenue").dataset.auto = "1"; }
+        fill(false);
+      } });
+    for (const id of ["fLat","fLon"]) $(id).addEventListener("input", () => { city = noPoint(); fill(false); });
     $("fVenue").addEventListener("input", () => { $("fVenue").dataset.auto = ""; });
     fill(true);
     $("editDlg").showModal();
@@ -129,9 +154,14 @@
         const lat = parseFloat($("fLat").value), lon = parseFloat($("fLon").value), vname = $("fVenue").value.trim() || city.name;
         if (!vname) return err("Name the venue.");
         if (!fin(lat) || !fin(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return err("Find the venue by name or street address, drop a pin, or enter coordinates in decimal degrees (e.g. 39.1111 and -84.5222).");
-        tz = city.tz; if (!tz || Math.abs(lat - city.lat) > 0.05 || Math.abs(lon - city.lon) > 0.05) tz = await O.zoneFor(lat, lon).catch(() => null) || await new Promise((ok) => setTimeout(ok, 1500)).then(() => O.zoneFor(lat, lon)).catch(() => null) || window.VenueSearch.tzGuess({ ...city, lat, lon });
-        if (!tz) return err("Couldn't look up the venue's time zone. Try again.");
-        loc = { name: vname, lat: +lat.toFixed(5), lon: +lon.toFixed(5) };
+        const point = city, save = ev0.currentTarget;
+        const approximate = point.approximate && samePoint(point, lat, lon);
+        save.disabled = true;
+        try { tz = await venueZone(point, lat, lon); }
+        finally { save.disabled = false; }
+        if (!$("editDlg").open || $("fSave") !== save || city !== point || venue) return;
+        if (!tz) return err("Couldn't look up the time zone. Try the venue's street address, or try again.");
+        loc = { name: approximate ? point.name : vname, lat: +lat.toFixed(5), lon: +lon.toFixed(5), ...(approximate ? { approximate: true } : {}) };
       }
       const gust = Math.min(60, Math.max(10, +$("fGust").value || 25));
       const draft = { name: $("fName").value.trim() || (base && !base.sample ? base.name : "My event"), loc, tz, times, gust };
@@ -143,7 +173,7 @@
         Object.keys(times).forEach((k) => { if (ms[k] != null) return; if (stored && stored.tz === tz && stored.times[k] === times[k] && E.msOf(stored, k) != null) ms[k] = E.msOf(stored, k); else if (sch.times[k] === times[k]) ms[k] = E.localMs(times[k], tz, sch.fold[k]); });
         draft.fold = E.foldsFor(times, ms, tz); }
       const errs = C.event.validate(draft); if (errs.length) return err(errs.join(" "));
-      if (!venue && $("fSaveVenue").checked) { venue = E.saveVenue({ name: loc.name, city: city.name || "", address: city.address || "", lat: loc.lat, lon: loc.lon, tz, defaults: { ...E.offsetsOf(times, tz, draft.fold), gust } }); venueId = venue.id; U.track("venue_saved"); }
+      if (!venue && !loc.approximate && $("fSaveVenue").checked) { venue = E.saveVenue({ name: loc.name, city: city.name || "", address: city.address || "", lat: loc.lat, lon: loc.lon, tz, defaults: { ...E.offsetsOf(times, tz, draft.fold), gust } }); venueId = venue.id; U.track("venue_saved"); }
       else if (venue && $("fMakeDef").checked && preset) { const o = E.offsetsOf(times, tz, draft.fold); venue = E.saveVenue({ ...venue, presets: E.presetsOf(venue).map((p) => (p.id === preset ? { ...p, setup: o.setup ?? null, gates: o.gates ?? null, teardown: o.teardown ?? null } : p)) }); U.track("venue_saved"); }
       else if (venue && $("fMakeDef").checked) { venue = E.saveVenue({ ...venue, defaults: { ...venue.defaults, ...E.offsetsOf(times, tz, draft.fold), gust } }); U.track("venue_saved"); }
       const newPreset = venue ? $("fNewPreset").value.trim() : "";
@@ -184,14 +214,14 @@
     const wireRows = () => $("vPresets").querySelectorAll(".vp-del").forEach((b) => { b.onclick = () => b.closest(".vp-row").remove(); });
     wireRows();
     $("vAddPreset").addEventListener("click", () => { $("vPresets").insertAdjacentHTML("beforeend", presetRow()); wireRows(); $("vPresets").lastElementChild.querySelector(".vp-name").focus(); });
-    window.VenueSearch.picker($("vCity"), { onPick(p) { city = { name: p.address || "", address: p.kind === "pin" ? "" : p.address, lat: p.lat, lon: p.lon, tz: null }; $("vLat").value = p.lat; $("vLon").value = p.lon; if (!$("vName").value.trim()) $("vName").value = p.name; } });
+    window.VenueSearch.picker($("vCity"), { onPick(p) { city = selectedPoint(p); $("vLat").value = p.lat; $("vLon").value = p.lon; if (!$("vName").value.trim()) $("vName").value = p.name; } });
     $("editDlg").showModal();
     $("vSave").addEventListener("click", async (e) => {
       e.preventDefault(); const err = (m) => { $("vErr").textContent = m; $("vErr").hidden = false; };
       const name = $("vName").value.trim(), lat = parseFloat($("vLat").value), lon = parseFloat($("vLon").value);
       if (!name) return err("Name the venue.");
       if (!fin(lat) || !fin(lon)) return err("Find the venue by name or street address, drop a pin, or enter coordinates in decimal degrees.");
-      let tz = city.tz; if (!tz || Math.abs(lat - city.lat) > 0.05 || Math.abs(lon - city.lon) > 0.05) tz = await O.zoneFor(lat, lon).catch(() => null) || await new Promise((ok) => setTimeout(ok, 1500)).then(() => O.zoneFor(lat, lon)).catch(() => null) || window.VenueSearch.tzGuess({ ...city, lat, lon });
+      const tz = await venueZone(city, lat, lon);
       if (!tz) return err("Couldn't look up the venue's time zone. Try again.");
       const num = (id, dflt) => (fin(parseFloat($(id).value)) ? parseFloat($(id).value) : dflt);
       const opt = (el, scale) => { const x = parseFloat(el.value); return fin(x) && x >= 0 ? Math.round(x * scale) : null; };

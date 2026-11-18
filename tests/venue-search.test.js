@@ -50,7 +50,7 @@ eq(V.provider({ origin: "https://forecast-ops-beta.pages.dev" }), "nominatim", "
   await V.search("Paycor Stadium");
   ok(calls.length === 1 && /us1\.locationiq\.com\/v1\/search/.test(calls[0]) && /key=pk\.beta/.test(calls[0]) && /namedetails=1/.test(calls[0]), "LocationIQ request with the beta token");
   await V.search("Paycor Stadium"); eq(calls.length, 1, "a repeat search within 48 h uses the cached response");
-  const k = Object.keys(mem).find((x) => x.startsWith("venue_geo_v2:locationiq:")), c = JSON.parse(mem[k]); c.at = Date.now() - 49 * 3600e3; mem[k] = JSON.stringify(c);
+  const k = Object.keys(mem).find((x) => x.startsWith("venue_geo_v3:locationiq:")), c = JSON.parse(mem[k]); c.at = Date.now() - 49 * 3600e3; mem[k] = JSON.stringify(c);
   await V.search("Paycor Stadium"); eq(calls.length, 2, "after 48 h the cached response is dropped and searched again");
   global.location = { origin: "https://raw.githack.com" }; await V.search("TQL Stadium");
   ok(/nominatim\.openstreetmap\.org/.test(calls[2]) && !/pk\.beta/.test(calls[2]), "the demo host's search never carries the LocationIQ token");
