@@ -66,7 +66,7 @@ async function validateFeed(read, now, where) {
     index = D.validateIndex(JSON.parse(indexBytes));
     const [grid, mask, models] = await Promise.all([
       json(index.grid.file, index.grid.sha256), json('display-mask.json'), json('models.json')]);
-    count = grid.coordinates?.length;
+    count = D.validateGrid(grid.coordinates).length;
     if (count !== GRID_SAMPLES) throw Error(`unexpected grid sample count ${count}`);
     D.validateMask(mask, index.grid.sha256, count);
     registry = D.validateRegistry(models);

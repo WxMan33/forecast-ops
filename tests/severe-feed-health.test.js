@@ -48,6 +48,20 @@ async function main() {
   const tampered = await served({...files, 'day2.json': Buffer.from('{}')});
   assert.match(errors(tampered).join('\n'), /Day 2 fails.*checksum differs/);
 
+  // Re-review: one malformed coordinate pair, with the grid checksum updated in both
+  // index.json and display-mask.json, must fail exactly as the viewer would.
+  const grid = JSON.parse(files['grid.json']);
+  grid.coordinates[0] = [null, 'invalid'];
+  const badGrid = Buffer.from(JSON.stringify(grid));
+  const regridded = structuredClone(index);
+  regridded.grid.sha256 = sha(badGrid);
+  const mask = JSON.parse(files['display-mask.json']);
+  mask.grid_sha256 = regridded.grid.sha256;
+  const malformed = await served({...files, 'grid.json': badGrid, 'index.json': Buffer.from(JSON.stringify(regridded)),
+                                  'display-mask.json': Buffer.from(JSON.stringify(mask))});
+  assert.equal(malformed.healthy, false, malformed.report);
+  assert.match(errors(malformed)[0], /served feed is unusable: Invalid archive coordinates/);
+
   // Reviewer 2: invalid or unreachable public responses are errors, not warnings.
   for (const broken of [{...files, 'index.json': Buffer.from('<html>rate limited</html>')},
                         (({'models.json': _, ...rest}) => rest)(files)]) {

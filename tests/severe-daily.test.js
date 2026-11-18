@@ -72,3 +72,12 @@ assert.equal(D.issuanceNote(day2, [day1, day2], Date.parse('2026-11-18T13:00:00Z
 assert.equal(D.defaultRun([day1, day2], Date.parse('2026-11-18T13:00:00Z')), null);
 assert.match(D.lead(day2), /24–48 h after initialization/);
 console.log('Daily viewer: checksums, daily targets, missing values, late flags, expiry, model evidence and timing labels passed');
+
+// Shared grid validator: the viewer (daily and historical) and the feed monitor all use it.
+for (const file of ['assets/severe-daily/grid.json', 'assets/severe-research/grid.json']) {
+  assert.ok(D.validateGrid(JSON.parse(fs.readFileSync(file)).coordinates).length > 0, file);
+}
+for (const bad of [null, [], [[-84, 39], [null, 'invalid']], [[-84, 39], [1]], [[-84, 39], null], [[-84, NaN]], [[-84, 39, 1]]])
+  assert.throws(() => D.validateGrid(bad), /Invalid archive coordinates/);
+assert.match(fs.readFileSync('assets/severe-research.js', 'utf8'), /coordinates=D\.validateGrid\(data\.coordinates\)/);
+assert.match(fs.readFileSync('tools/severe/feed_health.js', 'utf8'), /D\.validateGrid\(grid\.coordinates\)/);

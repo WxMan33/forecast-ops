@@ -65,6 +65,15 @@ Review findings fixed, each now covered by `tests/severe-feed-health.test.js`:
 **Mutation check.** Removing the viewer's payload check makes the test fail, and so does removing
 the branch filter.
 
+Re-review finding fixed: the monitor checked the grid's checksum and sample count but not the
+coordinates themselves. A grid with one pair replaced by `[null, "invalid"]`, with the checksum
+updated in both `index.json` and `display-mask.json`, was called healthy even though the viewer
+rejects it. The coordinate rule now lives once, as `validateGrid` in `assets/severe-daily-core.js`.
+The viewer calls it in both daily and historical mode (same rule and message as before), and the
+monitor calls it too, keeping its 16,413-sample check. The regression case is in
+`tests/severe-feed-health.test.js`: it fails with the monitor's old count-only check and passes
+with the shared validator.
+
 On the current feed (Day 1 and Day 2 from 2026-11-18), both the committed copy and the live raw
 feed check healthy.
 
