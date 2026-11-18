@@ -81,4 +81,50 @@ t('one method per kind: TV products match models; mixed TV extraction or model n
   A.equal(twoNorm.n, 0); A.equal(twoNorm.excluded.methodMismatch, 1, 'the single-normalizer rule for models is unchanged');
   const ok = V.matched([mk('a', 'source', 'normalize-v4', 51), mk('t', 'tv', 'tv:tv-extract-v3', 52)], { members: ['a', 't'] }); A.equal(ok.n, 1);
 });
+t('hourly cases share the valid UTC hour and calendar lead even with different retrieval offsets', () => {
+  const hour = Date.parse('2026-11-03T01:00:00Z') / 3600e3;
+  const h = {
+    ...sc, targets: [{ id: 'temp_hourly', conv: 'valid-instant' }],
+    rows: [[0, 1, 0, 0, 8, 51, 50, 0, hour], [1, 1, 0, 0, 7.9, 48, 50, 0, hour],
+           [0, 1, 0, 0, 9, 70, 51, 0, hour + 1], [1, 1, 0, 1, 9.9, 80, 52, 0, hour + 2]],
+  };
+  const r = C.compute(h, V.expandScorecard(h), health, { ...base, target: 'temp_hourly', lead: 0, members: ['nws', 'gfs_seamless'] });
+  A.equal(r.m.n, 1); A.equal(r.m.hours, 1); A.equal(r.m.from, '2026-11-02');
+  A.equal(r.m.excluded.missingSource, 1); A.deepEqual(r.m.scores.map(s => s.bias), [1, -2]);
+  A.equal(V.matched(V.expandScorecard(h), { members: ['nws', 'gfs_seamless'] }).n, 1);
+});
+t('failed requests count as attempts, on-time retries count once, and late recovery stays outside coverage', () => {
+  const attempts = [
+    { ...caps[0], edition: caps[0].captureId, eligible: true, sources: ['nws', 'gfs_seamless'] },
+    { ...caps[0], captureId: caps[0].captureId + '_a2', edition: caps[0].captureId, eligible: true, sources: ['gfs_seamless'] },
+    { ...caps[1], edition: caps[1].captureId, eligible: true, sources: ['nws'] },
+    { ...caps[1], captureId: caps[1].captureId + '_a2', edition: caps[1].captureId, eligible: false, sources: ['gfs_seamless'] },
+  ];
+  A.deepEqual(V.coverage(attempts, [], { id: 'gfs_seamless', target: 'tmax_clim', lead: 1, track: 'source', verifiedDates: ['2026-11-02', '2026-11-03'] }),
+    { eligible: 2, attempted: 1, notAttempted: 1, delivered: 0 });
+});
+t('collector projection retains an old capture, its real TV extraction version, and hourly valid times', () => {
+  const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
+  const U = require('../verify/lib/util'), D = require('../verify/lib/dashboard');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'verify-scorecard-'));
+  try {
+    const captures = Array.from({ length: 42 }, (_, i) => {
+      const localDate = U.addDays('2026-10-01', i), slotTarget = localDate + 'T17:00:00Z';
+      return { localDate, captureId: localDate + '_midday', slot: 'midday', trigger: 'scheduled', slotTarget, startedAt: slotTarget, sources: { nws: { status: 'ok' } } };
+    });
+    U.appendJSONL(path.join(dir, 'captures', 'CVG.jsonl'), captures);
+    const { captureId } = captures[0];
+    const tv = [{ captureId, product: 'wcpo-9day-graphic', extraction: { version: 'graphic-fixture-v2' } }];
+    const daily = [{ captureId, cls: 'primary', track: 'tv', id: tv[0].product, target: 'tmin_night', date: '2026-10-02', lead: 1, v: 35, o: 36 }];
+    const hourly = [{ captureId, cls: 'primary', valid: '2026-10-02T01:00:00Z', id: 'nws', v: 50, o: 49, normVersion: 'normalize-v4' }];
+    D.writeDashboard(dir, { id: 'CVG', lstOffsetMin: -300 }, { pairs: daily, hourlyPairs: hourly, tv }, Date.parse('2026-11-15T12:00:00Z'));
+    const out = U.readJSON(path.join(dir, 'reports/dashboard/scorecard.json'));
+    const [night, hour] = V.expandScorecard(out);
+    A.equal(out.attempts.length, 42); A.equal(out.droppedInconsistent, 0);
+    A.equal(night.normVersion, 'tv:graphic-fixture-v2'); A.equal(night.date, '2026-10-02');
+    A.equal(hour.date, '2026-10-01'); A.equal(hour.valid, '2026-10-02T01:00:00.000Z');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
 console.log(`ok - ${n} compare-sources checks passed`);

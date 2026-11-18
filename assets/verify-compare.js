@@ -14,7 +14,7 @@
 
   /* everything the view computes, from the expanded pairs, attempts and schedule; pure so it can be tested */
   function compute(sc, pairs, health, st) {
-    const verDates = [...new Set(pairs.filter((p) => p.target === st.target).map((p) => p.date))].sort();
+    const verDates = [...new Set(sc.verifiedDates?.[st.target] || pairs.filter((p) => p.target === st.target).map((p) => p.date))].sort();
     const last = verDates[verDates.length - 1] || null, start = last && st.period === "week" ? VC.addDays(last, -6) : null;
     const inPeriod = (d) => !start || (d >= start && d <= last);
     const slotOk = (s) => st.slot === "both" || s === st.slot;
@@ -22,16 +22,16 @@
     const available = [...new Set(ps.map((p) => p.id))].filter((id) => st.groups.includes(groupOf(sc.tracks[id])));
     /* default selection: the sources present in the most candidate cases (a sparse source would otherwise remove
        every case); each other source is offered with the matched cases adding it would leave */
-    const caseCount = {}; ps.forEach((p) => { (caseCount[p.id] = caseCount[p.id] || new Set()).add(p.captureId + "|" + p.date); });
+    const caseCount = {}; ps.forEach((p) => { (caseCount[p.id] = caseCount[p.id] || new Set()).add(p.captureId + "|" + (p.valid || p.date)); });
     const most = Math.max(0, ...available.map((id) => caseCount[id].size));
     const fullest = available.filter((id) => caseCount[id].size === most);
     const members = (st.members || fullest).filter((id) => available.includes(id));
     const adding = members.length >= 1 ? available.filter((id) => !members.includes(id)).map((id) => ({ id, cases: members.length + 1 >= 2 ? VC.matched(ps, { members: members.concat(id) }).n : 0, own: caseCount[id].size })) : [];
     const m = members.length >= 2 ? VC.matched(ps, { members }) : { n: 0, dates: 0, scores: [], reason: "Select at least two sources for a matched comparison.", excluded: null, onlyMissing: {} };
     const att = sc.attempts.filter((a) => slotOk(a.slot) && inPeriod(VC.addDays(a.localDate, +st.lead)));
-    const cov = Object.fromEntries(members.map((id) => [id, VC.coverage(att, ps, { id, target: st.target, lead: st.lead, track: sc.tracks[id] })]));
+    const cov = Object.fromEntries(members.map((id) => [id, VC.coverage(att, ps, { id, target: st.target, lead: st.lead, track: sc.tracks[id], verifiedDates: verDates })]));
     /* scheduled editions whose verifying date for this lead falls in the period: on time, late, missed/failed */
-    const slots = ((health && health.slots) || []).filter((x) => x.status !== "pending" && slotOk(String(x.id).split("_").pop()) && inPeriod(VC.addDays(String(x.id).slice(0, 10), +st.lead)));
+    const slots = (sc.slots || health?.slots || []).filter((x) => x.status !== "pending" && slotOk(String(x.id).split("_").pop()) && inPeriod(VC.addDays(String(x.id).slice(0, 10), +st.lead)));
     const sched = { total: slots.length, onTime: slots.filter((x) => x.status === "on_time").length, late: slots.filter((x) => x.status === "late").length, missed: slots.filter((x) => /missed|failed/.test(x.status)).length,
       partial: slots.filter((x) => x.status === "partial").length, offSchedule: slots.filter((x) => x.status === "off_schedule").length, others: {} };
     /* any status not named above is listed by its own name, never folded into an unnamed "other" */
@@ -48,36 +48,36 @@
   }
 
   function draw(sc, pairs, health, pane, me) {
-    const label = (id) => NAMES[id] || (sc.sourceLabels && sc.sourceLabels[id]) || id;
-    const leadsFor = (t) => [...new Set(pairs.filter((p) => p.target === t).map((p) => p.lead))].filter((l) => l >= 1 && l <= 10).sort((a, b) => a - b);
+    const label = (id) => NAMES[id] || sc.tvMeta?.[id]?.label || sc.sourceLabels?.[id] || id;
+    const leadsFor = (t) => [...new Set(pairs.filter((p) => p.target === t).map((p) => p.lead))].filter((l) => l >= (t === "temp_hourly" ? 0 : 1) && l <= 10).sort((a, b) => a - b);
     const st = { target: "tmax_clim", lead: 1, slot: "midday", period: "all", groups: ["models", "tv"], members: null };
     const sel = (id, opts, v, text) => `<label>${E(text)}<select id="${id}">${opts.map(([k, l]) => `<option value="${E(k)}" ${String(k) === String(v) ? "selected" : ""}>${E(l)}</option>`).join("")}</select></label>`;
     const render = () => {
       if (me !== gen) return;
-      const leads = leadsFor(st.target); if (!leads.includes(+st.lead)) st.lead = leads[0] || 1;
+      const leads = leadsFor(st.target); if (!leads.includes(+st.lead)) st.lead = leads[0] ?? 1;
       const r = compute(sc, pairs, health, st), mm = r.m, prelim = mm.dates < (sc.minDates || 30);
       const ex = mm.excluded, only = Object.entries(mm.onlyMissing || {}).sort((a, b) => b[1] - a[1]);
       const pickable = r.available.slice().sort((a, b) => groupOf(sc.tracks[a]).localeCompare(groupOf(sc.tracks[b])) || label(a).localeCompare(label(b)));
       const rows = r.members.slice().sort((a, b) => groupOf(sc.tracks[a]).localeCompare(groupOf(sc.tracks[b])) || label(a).localeCompare(label(b))).map((id) => {
-        const s = (mm.scores || []).find((x) => x.id === id), c = r.cov[id];
-        return `<tr><td data-label="Source"><b>${E(label(id))}</b> <span class="vtag">${sc.tracks[id] === "tv" ? "TV" : sc.tracks[id] === "blend" ? "blend" : "model"}</span></td>
+        const s = (mm.scores || []).find((x) => x.id === id), c = r.cov[id], tv = sc.tvMeta?.[id];
+        return `<tr><td data-label="Source"><b>${E(label(id))}</b> <span class="vtag">${sc.tracks[id] === "tv" ? "TV" : sc.tracks[id] === "blend" ? "blend" : "model"}</span>${tv ? `<br><span class="msg">${E(tv.location)} · ${E(tv.authorship)}</span>` : ""}</td>
           <td data-label="MAE °F" class="num">${F(s && s.mae)}</td><td data-label="Bias °F" class="num">${S(s && s.bias)}</td>
           <td data-label="Distinct dates" class="num">${mm.dates || 0}</td><td data-label="Cases" class="num">${s ? s.n : 0}</td>
-          <td data-label="Coverage" class="vcov">${c.delivered} of ${c.attempted} attempted${c.notAttempted ? `<br><span class="msg">not attempted in ${c.notAttempted} of ${c.eligible} on-time captures</span>` : ""}</td></tr>`;
+          <td data-label="Coverage" class="vcov">${c.delivered} of ${c.attempted} attempted${c.notAttempted ? `<br><span class="msg">not attempted in ${c.notAttempted} of ${c.eligible} on-time editions</span>` : ""}</td></tr>`;
       }).join("");
       pane.innerHTML = `<section class="card vdcard"><h2>Compare sources · CVG</h2>
-        <p class="msg">Matched cases only: a case counts when every selected source forecast the same verifying date from the same capture, with one observation and one method. Each source's own full sample is in Advanced scorecards; those columns are not a side-by-side comparison.</p>
-        <div class="vcontrols">${sel("ctarget", sc.targets.map((t) => [t.id, t.label]), st.target, "Target")}${sel("clead", leadsFor(st.target).map((l) => [l, `Day ${l}`]), st.lead, "Lead")}${sel("cslot", [["midday", "Midday edition"], ["evening", "Evening edition"], ["both", "Both editions"]], st.slot, "Edition")}${sel("cperiod", [["all", "Full archive"], ["week", "Recent week"]], st.period, "Period")}</div>
+        <p class="msg">Matched cases only: a case counts when every selected source forecast the same valid window from the same capture, with a shared observation and compatible methods.</p>
+        <div class="vcontrols">${sel("ctarget", sc.targets.map((t) => [t.id, t.label]), st.target, "Target")}${sel("clead", leadsFor(st.target).map((l) => [l, l === 0 ? "Same day" : `Day ${l}`]), st.lead, "Lead")}${sel("cslot", [["midday", "Midday edition"], ["evening", "Evening edition"], ["both", "Both editions"]], st.slot, "Edition")}${sel("cperiod", [["all", "Full archive"], ["week", "Recent week"]], st.period, "Period")}</div>
         <div class="vgroups">${GROUPS.map(([k, l]) => `<label class="vcheck"><input type="checkbox" data-group="${k}" ${st.groups.includes(k) ? "checked" : ""}> ${E(l)}</label>`).join("")}</div>
         <details class="vpick"><summary>Sources (${r.members.length} of ${r.available.length} selected)</summary><div class="vpicklist">${pickable.map((id) => `<label class="vcheck"><input type="checkbox" data-src="${E(id)}" ${r.members.includes(id) ? "checked" : ""}> ${E(label(id))}</label>`).join("") || '<span class="msg">No source has verified forecasts for this selection.</span>'}</div>
           <div class="vpickbtns"><button type="button" class="btn ghost sm" id="cdef">Default</button><button type="button" class="btn ghost sm" id="call">All</button><button type="button" class="btn ghost sm" id="cnone">None</button></div></details>
         ${r.adding.length ? `<p class="msg">Not selected${st.members ? "" : " (fewer cases than the selected sources)"}: ${r.adding.slice().sort((a, b) => b.cases - a.cases).map((x) => `${E(label(x.id))} (adding it leaves ${x.cases} matched case${x.cases === 1 ? "" : "s"})`).join(" · ")}.</p>` : ""}
         ${prelim && mm.n ? `<p class="vprelim" role="note"><b>Preliminary.</b> ${mm.dates} distinct verifying date${mm.dates === 1 ? "" : "s"}. The archive treats fewer than ${sc.minDates || 30} as too few for accuracy conclusions, and reaching that number would not by itself show one source is better.</p>` : ""}
-        <p class="vsummary">${mm.n ? `<b>${mm.n}</b> matched case${mm.n === 1 ? "" : "s"} · <b>${mm.dates}</b> distinct verifying date${mm.dates === 1 ? "" : "s"} · ${E(mm.from)} to ${E(mm.to)} · ${r.members.length} sources` : E(mm.reason || "No matched cases.")}</p>
+        <p class="vsummary">${mm.n ? `<b>${mm.n}</b> matched case${mm.n === 1 ? "" : "s"} · <b>${mm.dates}</b> distinct verifying date${mm.dates === 1 ? "" : "s"} · ${E(mm.from)} to ${E(mm.to)} · ${r.members.length} sources${mm.hours ? ` · ${mm.hours} distinct valid hours` : ""}` : E(mm.reason || "No matched cases.")}</p>
         ${ex ? `<p class="msg">Excluded: ${ex.missingSource} case${ex.missingSource === 1 ? "" : "s"} without every selected source${ex.duplicate ? ` · ${ex.duplicate} with a repeated forecast` : ""}${ex.observationDiffers ? ` · ${ex.observationDiffers} with differing observations` : ""}${ex.methodMismatch ? ` · ${ex.methodMismatch} made with a different method` : ""}.${only.length ? ` Missing only one source: ${only.slice(0, 4).map(([id, n]) => `${E(label(id))} ${n}`).join(", ")}.` : ""}</p>` : ""}
         ${r.members.length ? `<div class="tablewrap vstack"><table class="vcompare"><thead><tr><th>Source</th><th>MAE °F</th><th>Bias °F</th><th>Distinct dates</th><th>Cases</th><th>Coverage</th></tr></thead><tbody>${rows}</tbody></table></div>` : ""}
-        <p class="msg">Bias is forecast minus observed. Coverage: on-time captures where the source delivered a verified forecast for this lead, out of those where it was attempted; not attempted is counted, never hidden. Listed alphabetically within each group, not ranked.</p>
-        <p class="vsched">Scheduled editions for this lead and period: ${r.sched.total} · on time ${r.sched.onTime} · late ${r.sched.late} (kept, excluded from comparisons) · <b>partly captured ${r.sched.partial}</b> (only some sources on time; the rest count as not attempted above) · <b>missed or failed ${r.sched.missed}</b>${r.sched.offSchedule ? ` · off schedule ${r.sched.offSchedule}` : ""}${Object.entries(r.sched.others).map(([k, n]) => ` · ${E(k.replace(/_/g, " "))} ${n}`).join("")}. Missed editions are outside every coverage count above.</p></section>`;
+        <p class="msg">Bias is forecast minus observed. Coverage counts on-time editions that yielded a verified forecast for this lead out of editions where the source was attempted. ${st.target === "temp_hourly" ? "An hourly edition counts when it has at least one verified hour on the selected lead day." : ""}</p>
+        <p class="vsched">Scheduled editions for this lead and period: ${r.sched.total} · on time ${r.sched.onTime} · late ${r.sched.late} (kept, excluded from comparisons) · <b>partly captured ${r.sched.partial}</b> (some sources arrived on time) · <b>missed or failed ${r.sched.missed}</b>${r.sched.offSchedule ? ` · off schedule ${r.sched.offSchedule}` : ""}${Object.entries(r.sched.others).map(([k, n]) => ` · ${E(k.replace(/_/g, " "))} ${n}`).join("")}. Missed editions are outside every coverage count above.</p></section>`;
       const on = (id, ev, f) => { const el = pane.querySelector("#" + id); if (el) el.addEventListener(ev, f); };
       on("ctarget", "change", (e) => { st.target = e.target.value; st.members = null; render(); });
       on("clead", "change", (e) => { st.lead = +e.target.value; st.members = null; render(); });
