@@ -455,3 +455,23 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .up-head{flex-wrap:wrap}
 .up-head .up-act{flex:0 1 auto;min-width:0;max-width:100%}
 .up-title{min-width:0;overflow-wrap:anywhere}
+
+@media print {
+  .pv-head { border-bottom-color: #23526b; }
+  .pv-kicker { color: #23526b; font-weight: 700; }
+  .pv-p1 .pv-takeaway { padding: 7pt 10pt; border-left: 3pt solid #23526b; background: #edf4f7; print-color-adjust: exact; }
+  .pv-timeline { margin: 0 0 5pt; break-inside: avoid; print-color-adjust: exact; }
+  .pv-time-row { display: grid; grid-template-columns: 68pt minmax(0, 1fr); gap: 6pt; align-items: center; font-size: 8pt; }
+  .pv-time-track { position: relative; overflow: hidden; height: 13pt; border: 0.6pt solid #8da2af; }
+  .pv-time-phase { position: absolute; top: 0; bottom: 0; box-sizing: border-box; border-right: 0.65pt solid #8da2af; background: #eef3f5; text-align: center; white-space: nowrap; overflow: hidden; }
+  .pv-time-main { background: #23526b; color: #fff; font-weight: 700; }
+  .pv-time-rain { height: 21pt; margin-top: 2pt; }
+  .pv-time-hour { position: absolute; box-sizing: border-box; bottom: 0; height: var(--pop); border-right: 0.55pt solid #fff; background: #316d8c; }
+  .pv-time-gap { background: repeating-linear-gradient(135deg, #fff 0 2pt, #cbd6db 2pt 3pt); }
+  .pv-time-axis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8pt; color: #425262; }
+  .pv-time-axis span:nth-child(2) { text-align: center; }
+  .pv-time-axis span:last-child { text-align: right; }
+  .pv-next { display: grid; grid-template-columns: 1fr 1fr; gap: 12pt; break-inside: avoid; }
+  .pv-hour-bar { position: absolute; right: 6px; bottom: 0.6pt; height: 1.25pt; width: calc(var(--pop) * .65); background: #316d8c; print-color-adjust: exact; }
+  .pv-hours td[data-pop] { position: relative; min-width: 29pt; }
+}
