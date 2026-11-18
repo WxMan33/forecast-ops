@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Stale-response races on Thunder, Severe and Winter (simulated network; no request reaches a provider).
+/* Stale-response races on Overview, Thunder, Severe and Winter (simulated network; no request reaches a provider).
    Oracle: after switching from location A to location B inside the page, everything the page shows must equal what a
    fresh load of B shows under the same network answers: forecast cards, tables, chart data, source labels, status
    chip, errors and loading text. Clock times are normalised; the location card itself is excluded.
@@ -21,13 +21,14 @@ const failAt = (venue) => (u, v) => (v === venue ? { status: 500 } : {});
 
 async function open(page, { at = A, days = null } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, timezoneId: 'America/New_York' });
+  const now = page === "index.html" ? Date.parse("2026-11-11T20:30:00Z") : NOW;
   const st = { scenario: {}, log: [], pending: 0 };
   await ctx.route('**/*', async (r) => {
     const u = new URL(r.request().url());
     if (u.origin === base) return r.continue();
     if (/^(api|ensemble-api)\.open-meteo\.com$|^api\.weather\.gov$/.test(u.hostname)) {
       st.pending++;
-      const a = await sim.answer(u.href, st.scenario, NOW, st.log).catch(() => null).finally(() => { st.pending--; });
+      const a = await sim.answer(u.href, st.scenario, now, st.log).catch(() => null).finally(() => { st.pending--; });
       if (!a) return r.fulfill({ status: 404, headers: CORS, body: '' }).catch(() => {});
       if (a.hang) return; // never answers: the page's own timeout applies
       return r.fulfill({ status: a.status, headers: { ...CORS, ...(a.headers || {}) }, contentType: 'application/json', body: a.body }).catch(() => {});
@@ -36,7 +37,7 @@ async function open(page, { at = A, days = null } = {}) {
   });
   const p = await ctx.newPage(), errors = [];
   p.on('pageerror', (e) => errors.push(e.message.split('\n')[0]));
-  await p.clock.install({ time: new Date(NOW) });
+  await p.clock.install({ time: new Date(now) });
   await p.addInitScript(([key, d]) => { localStorage.setItem('fo_analytics_optout', '1'); localStorage.setItem('ops_theme', JSON.stringify('light')); if (d) localStorage.setItem(key, JSON.stringify(d)); }, [`ops_${page.replace('.html', '')}_days`, days]);
   return { ctx, p, st, errors, url: (loc) => `${base}/${page}?lat=${loc.lat}&lon=${loc.lon}&name=${encodeURIComponent(loc.name)}` };
 }
@@ -75,6 +76,13 @@ async function pageChecks(page) {
     await settle(o, 4500);
     const t = await snap(o.p), r = await fresh(page, B, { forecast: { '*': failAt('cmh') }, ensemble: { '*': failAt('cmh') }, nws: failAt('cmh') });
     const d = diff(t, r); check(!d && !o.errors.length, `${label}: B fails and A answers late — B's failure is shown, nothing of A`, d || o.errors.join('; '));
+    if (page === 'index.html') {
+      o.st.scenario = {};
+      await o.p.locator('#retryOverview').click();
+      await o.p.locator('#days .daycard').first().waitFor();
+      const current = await snap(o.p), normal = await fresh(page, B, {});
+      check(!diff(current, normal), 'overview: Retry forecast reloads the same selected point after recovery', diff(current, normal));
+    }
     await o.ctx.close(); }
   /* 3. A shown, then B still loading: nothing of A remains, loading state as on a fresh B load */
   { const o = await open(page); o.st.scenario = {};
@@ -82,6 +90,12 @@ async function pageChecks(page) {
     const shownA = await snap(o.p);
     o.st.scenario = { forecast: { '*': hangAt('cmh') }, ensemble: { '*': hangAt('cmh') }, nws: hangAt('cmh'), hanging: true };
     await switchTo(o, B); await o.p.waitForTimeout(2500);
+    if (page === 'index.html') {
+      check(await o.p.locator('#overviewPoint').innerText() === B.name &&
+        await o.p.locator('#days').getAttribute('aria-busy') === 'true' &&
+        !(await o.p.locator('#remainingToday').isVisible()),
+      'overview: the new location is named while the previous rest-of-today note is hidden');
+    }
     const t = await snap(o.p), r = await fresh(page, B, { forecast: { '*': hangAt('cmh') }, ensemble: { '*': hangAt('cmh') }, nws: hangAt('cmh') }, { hanging: true });
     const d = diff(t, r); check(!d && shownA.text !== t.text, `${label}: while B loads, A's guidance is gone and the page shows B's loading state`, d);
     await o.ctx.close(); }
@@ -94,7 +108,7 @@ async function pageChecks(page) {
     const d = diff(t, r); check(!d, `${label}: partial guidance at B (a 429, null hours, a short horizon) matches a fresh B load`, d);
     await o.ctx.close(); }
   /* 5. rapid settings changes: the slowest (earliest) request must not win */
-  if (page !== 'winter.html') {
+  if (page === 'thunder.html' || page === 'severe.html') {
     const o = await open(page, { days: 3 }); o.st.scenario = { delay: (u) => ({ 3: 2500, 5: 1200, 2: 0 })[u.searchParams.get('forecast_days')] || 0 };
     await o.p.goto(o.url(A)); await o.p.waitForTimeout(300);
     await o.p.locator('#days').selectOption('5'); await o.p.waitForTimeout(100); await o.p.locator('#days').selectOption('2');
@@ -117,7 +131,7 @@ async function pageChecks(page) {
 (async () => {
   await new Promise((r) => server.listen(0, '127.0.0.1', r)); base = 'http://127.0.0.1:' + server.address().port;
   browser = await chromium.launch();
-  try { for (const page of ['thunder.html', 'severe.html', 'winter.html'].filter((x) => !only || x.includes(only))) await pageChecks(page).catch((e) => { failed++; console.log(`FAIL ${page} threw: ${String(e.message || e).split('\n')[0]}`); }); }
+  try { for (const page of ['index.html', 'thunder.html', 'severe.html', 'winter.html'].filter((x) => !only || x.includes(only))) await pageChecks(page).catch((e) => { failed++; console.log(`FAIL ${page} threw: ${String(e.message || e).split('\n')[0]}`); }); }
   finally { await browser.close(); server.close(); }
   console.log(failed ? `${failed} location race checks failed` : 'all location race checks passed');
   process.exitCode = failed ? 1 : 0;

@@ -12,38 +12,56 @@
   const name = (spec) => Object.fromEntries(spec.models.map((m) => [m.id, m.name]));
   const NAMES = { ...name(CFG.blend), ...name({ models: CFG.blend.extra }), ...name(CFG.thunder), ...name(CFG.winter) };
 
-  let RB = null, viewState = null;
+  let runGen = 0, viewState = null;
+  const restorePanels = O.pristine(["days", "remainingToday", "sumMsg", "changes", "eventCard"]);
+  function showUnavailable() {
+    O.setChip("NO DATA", "err");
+    O.headline({ tier: "nodata", word: "NO DATA" });
+    $("days").innerHTML = '<div class="state err">Forecast guidance is unavailable for this location. <button type="button" class="btn ghost sm" id="retryOverview">Retry forecast</button></div>';
+    $("retryOverview").addEventListener("click", run);
+  }
   $("ovHow").addEventListener("click", (e) => { const pn = $("ovHowPanel"); pn.hidden = !pn.hidden; e.currentTarget.setAttribute("aria-expanded", String(!pn.hidden)); });
   async function run() {
+    const request = ++runGen, { lat, lon, name } = O.location;
+    const where = { lat, lon };
     viewState = null;
-    O.setChip("FETCHING…");
-    $("sumMsg").textContent = ""; $("days").innerHTML = '<div class="state loading">Loading guidance…</div>';
-    const where = { lat: O.location.lat, lon: O.location.lon };
-    RB = O.blendRecipe(); const wsT = O.savedWeights(CFG.thunder), wsW = O.savedWeights(CFG.winter);
-    /* Request exactly what the tool pages request (same models, variables and days), so the
-       browser cache is shared and nothing is computed differently. */
+    O.beginLoad();
+    restorePanels();
+    for (const id of ["remainingToday", "changes", "eventCard"]) $(id).hidden = true;
+    $("overviewPoint").textContent = name;
+    $("days").setAttribute("aria-busy", "true");
+
+    const RB = O.blendRecipe(), wsT = O.savedWeights(CFG.thunder), wsW = O.savedWeights(CFG.winter);
+    /* Same requests as the tool pages for forecast reuse across navigation. */
     const bDays = Math.max(3, O.savedDays(CFG.blend));
-    const [B, T, W, NW, BE] = await Promise.all([
-      O.Data.loadModels(CFG.blend, { ...where, days: bDays }),
-      O.Data.loadModels(CFG.thunder, { ...where, days: Math.max(3, O.savedDays(CFG.thunder)) }),
-      O.Data.loadEnsemble(CFG.winter, where),
-      O.Data.loadNWS(where),
-      O.Data.loadEnsemble(CFG.blendEns, { ...where, days: bDays }).catch(() => ({ empty: true })),
-    ]);
+    let data;
+    try {
+      data = await Promise.all([
+        O.Data.loadModels(CFG.blend, { ...where, days: bDays }),
+        O.Data.loadModels(CFG.thunder, { ...where, days: Math.max(3, O.savedDays(CFG.thunder)) }),
+        O.Data.loadEnsemble(CFG.winter, where),
+        O.Data.loadNWS(where),
+        O.Data.loadEnsemble(CFG.blendEns, { ...where, days: bDays }).catch(() => ({ empty: true })),
+      ]);
+    } catch {
+      if (request !== runGen) return;
+      $("days").setAttribute("aria-busy", "false");
+      showUnavailable();
+      return;
+    }
+    if (request !== runGen) return;
+    $("days").setAttribute("aria-busy", "false");
+    const [B, T, W, NW, BE] = data;
+    if (B.empty) { showUnavailable(); return; }
     B.viewedAt = Date.now();
-    const nextState = {B,T,W,NW,BE,RB,wsT,wsW};
-    if (!B.empty) viewState = nextState;
-    renderLoaded(nextState);
+    viewState = { B, T, W, NW, BE, RB, wsT, wsW };
+    renderLoaded(viewState);
   }
   function renderLoaded({B,T,W,NW,BE,RB,wsT,wsW}, record=true) {
     const nwsOk = NW && NW.ok;
-    if (!B.empty) C.blend.addSources(B, BE, nwsOk ? C.nws.onAxis(NW, B.ms) : null);
+    C.blend.addSources(B, BE, nwsOk ? C.nws.onAxis(NW, B.ms) : null);
     const wsB = {}; Object.keys(RB.ws).forEach((id) => { if (B.models && B.models[id] && RB.ws[id] > 0) wsB[id] = RB.ws[id]; });
     const optB = { rules: RB.rules };
-    if (B.empty) {
-      O.setChip("NO DATA", "err"); O.headline({ tier: "nodata", word: "NO DATA" });
-      $("sumMsg").textContent = ""; $("days").innerHTML = '<div class="state err">Couldn\'t reach Open-Meteo, so the summary can\'t be built right now. Try again in a minute.</div>'; return;
-    }
     const planning = window.ForecastClock.periods(C, B.tz, Date.now());
     const periodRow = p => {
       const idx=B.ms.map((t,i)=>({t,i})).filter(x=>x.t>=p.s&&x.t<p.e).map(x=>x.i);
@@ -104,15 +122,17 @@
     O.dataStatus([...(nwsOk ? (NW.errors || []).map((x) => `NWS ${x}`) : [`NWS: ${NW ? NW.reason : "unavailable"}`]), ...B.problems.map((p) => `Blend · ${p}`), ...T.problems.map((p) => `Thunder · ${p}`), ...W.problems.map((p) => `Winter · ${p}`)]);
     $("sumMsg").textContent = `${Object.keys(wsB).length} blend sources (${O.esc(C.blend.PRESETS[RB.preset].label)}) · ${TH ? TH.ids.length : 0} thunder models · ${mem.length} ensemble members · ${O.tzShort(B.tz)}`;
 
-    renderEventBriefing(B, T, W, TH, mem, wsB, wsT, wsW, nwsOk ? NW : null, optB);
+    const recipeKey = `${RB.preset}|${CFG.fingerprint(wsB)}|${CFG.fingerprint(wsT)}|${CFG.fingerprint(wsW)}|${JSON.stringify(RB.rules)}`;
+    renderEventBriefing(B, T, W, TH, mem, wsB, nwsOk ? NW : null, optB, recipeKey);
+    if (!record) return;
 
-    const snap = { cfg: `${RB.preset}|${CFG.fingerprint(wsB)}|${CFG.fingerprint(wsT)}|${CFG.fingerprint(wsW)}|${JSON.stringify(RB.rules)}`, rows: {} };
+    const snap = { cfg: recipeKey, rows: {} };
     cards.forEach(({ r, t, w }) => (snap.rows[r.period.label+"|"+r.k] = {
       label: r.period.label, win: r.win, contrib: [...r.contrib, ...(TH ? TH.ids.map((id) => "thunder:" + id) : []), ...(W.ens ? Object.keys(wsW).filter((id) => W.ens[id]).map((id) => "ens:" + id) : [])],
       hi: r.hi, lo: r.lo, qpf: r.qpf, pop: r.pop, gust: r.gust, p1: w && w.st.used ? w.st.P[1] * 100 : null, t }));
     const names = { ...NAMES };
     Object.keys(NAMES).forEach((id) => { names["thunder:" + id] = `${NAMES[id]} (thunder)`; names["ens:" + id] = NAMES[id]; });
-    if(record) O.renderChanges($("changes"), O.trackChanges("overview", snap), [
+    O.renderChanges($("changes"), O.trackChanges("overview", snap), [
       { k: "hi", label: "high", min: 3, fmt: (v) => `${Math.round(v)}°` },
       { k: "lo", label: "low", min: 3, fmt: (v) => `${Math.round(v)}°` },
       { k: "qpf", label: "precip", min: 0.1, fmt: (v) => `${v.toFixed(2)}"` },
@@ -123,7 +143,7 @@
     ], names);
   }
   /* Event briefing: every phase of the active event, each source on its own time axis. */
-  function renderEventBriefing(B, T, W, TH, mem, wsB, wsT, wsW, NW, optB) {
+  function renderEventBriefing(B, T, W, TH, mem, wsB, NW, optB, recipeKey) {
     const cB = O.eventContext(B), cT = T.empty ? null : O.eventContext(T), cW = W.empty ? null : O.eventContext(W);
     const el = $("eventCard");
     if (!cB) { el.hidden = true; return; }
@@ -152,7 +172,7 @@
 
     if (cB.mismatch) return;
     /* track the same event windows across updates, keyed by event ID and exact window */
-    const ev = cB.ev, snap = { cfg: `${RB.preset}|${CFG.fingerprint(wsB)}|${CFG.fingerprint(wsT)}|${CFG.fingerprint(wsW)}|${JSON.stringify(RB.rules)}`, rows: {} };
+    const ev = cB.ev, snap = { cfg: recipeKey, rows: {} };
     cB.wins.filter((w) => w.cov.status === "full").forEach((w) => {
       const r = rowB(w), st = stW(w), th = thW(w);
       snap.rows[w.key] = { label: w.label, win: C.event.windowKey(ev, w), contrib: [...r.contrib, ...(TH ? TH.ids.map((id) => "thunder:" + id) : [])],
