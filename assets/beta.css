@@ -475,3 +475,84 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
   .pv-hour-bar { position: absolute; right: 6px; bottom: 0.6pt; height: 1.25pt; width: calc(var(--pop) * .65); background: #316d8c; print-color-adjust: exact; }
   .pv-hours td[data-pop] { position: relative; min-width: 29pt; }
 }
+
+/* Which part needs attention, and when: aligned schedule, rain, gust-limit and lightning tracks.
+   One markup for screen and print. Grayscale-safe: hatching = missing guidance, solid dark = meets the hourly rule. */
+.at { margin: 10px 0 6px; --at-val: color-mix(in srgb, var(--text) 38%, transparent); --at-hit: var(--text); --at-bg: color-mix(in srgb, var(--text) 5%, transparent); --at-rule: var(--bx-rule, var(--line)); --at-main: color-mix(in srgb, var(--text) 82%, transparent); --at-main-ink: var(--bg); }
+.at-row { display: grid; grid-template-columns: 108px minmax(0, 1fr); gap: 8px; align-items: end; }
+.at-row + .at-row { margin-top: 4px; }
+.at-row > b { font-size: 12px; line-height: 1.15; align-self: center; }
+.at-row > b small { display: block; font-weight: 400; color: var(--muted); font-size: 10.5px; }
+.at-track { position: relative; height: 30px; background: var(--at-bg); border: 1px solid var(--at-rule); box-sizing: border-box; overflow: hidden; }
+.at-badges .at-track { height: 16px; background: none; border: 0; overflow: visible; }
+.at-sched { height: 24px; }
+.at-lightning { height: 20px; }
+.at-phase { position: absolute; top: 0; bottom: 0; box-sizing: border-box; border-right: 1px solid var(--at-rule); font-size: 11px; line-height: 22px; text-align: center; white-space: nowrap; overflow: hidden; color: var(--text); }
+.at-main { background: var(--at-main); color: var(--at-main-ink); font-weight: 700; }
+.at-hour { position: absolute; bottom: 0; height: var(--h, 0%); box-sizing: border-box; border-right: 1px solid var(--bg); background: var(--at-val); }
+.at-hour.at-hit { background: var(--at-hit); }
+.at-lLow { height: 22%; }
+.at-gap { height: 100%; background: repeating-linear-gradient(135deg, transparent 0 3px, color-mix(in srgb, var(--text) 45%, transparent) 3px 4px); }
+.at-limit { position: absolute; left: 0; right: 0; height: 0; border-top: 1.5px dashed var(--text); }
+.at-limit i { position: absolute; right: 3px; bottom: 1px; font: 600 9.5px/1 var(--bx-font, sans-serif); font-style: normal; background: var(--bg); padding: 0 3px; }
+.at-midnight { position: absolute; top: 0; bottom: 0; border-left: 1px dotted var(--muted); }
+.at-win { position: absolute; top: 0; bottom: 0; box-sizing: border-box; border: 2px solid var(--text); }
+.at-uncertain { position: absolute; top: 0; bottom: 0; box-sizing: border-box; border: 2px dotted var(--text); background: repeating-linear-gradient(90deg, transparent 0 6px, color-mix(in srgb, var(--text) 10%, transparent) 6px 8px); }
+.at-uncertain i { position: absolute; left: 4px; top: 2px; font: 600 10px/1.1 var(--bx-font, sans-serif); font-style: normal; background: var(--bg); padding: 0 3px; white-space: nowrap; }
+.at-badge { position: absolute; bottom: 1px; display: grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; background: var(--text); color: var(--bg); font: 700 10px/1 var(--bx-font, sans-serif); }
+.at-p2 { height: 14px; background: none; border: 0; }
+.at-p2 span { position: absolute; top: 0; bottom: 0; border: 1px solid var(--muted); border-top: 0; font-size: 9.5px; text-align: center; color: var(--muted); white-space: nowrap; overflow: hidden; }
+.at-axis { position: relative; height: 16px; font-size: 10.5px; color: var(--muted); }
+.at-axis span { position: absolute; top: 2px; transform: translateX(-50%); white-space: nowrap; }
+.at-axis span.start { transform: none; } .at-axis span.end { transform: translateX(-100%); }
+.at-key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 11px; color: var(--muted); }
+.at-key i { display: inline-block; width: 13px; height: 9px; margin-right: 5px; vertical-align: -1px; box-sizing: border-box; }
+.at-key .k-val { background: var(--at-val); } .at-key .k-hit { background: var(--at-hit); }
+.at-key .k-gap { background: repeating-linear-gradient(135deg, transparent 0 2px, var(--text) 2px 3px); border: 1px solid var(--at-rule); }
+.at-key .k-unc { border: 2px dotted var(--text); } .at-key .k-win { border: 2px solid var(--text); }
+.at-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 7px; }
+.at-list li { display: flex; gap: 8px; font-size: 14px; }
+.at-list li > div > span { display: block; color: var(--muted); font-size: 12.5px; margin-top: 1px; }
+.at-n { flex: none; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--text); color: var(--bg); font-size: 11px; font-weight: 700; margin-top: 1px; }
+.at-more { color: var(--muted); font-size: 12px; padding-left: 26px; }
+.at-none { font-size: 14px; margin: 8px 0 0; }
+@media (max-width: 600px) { .at-axis span.mid { display: none; } .at-row { grid-template-columns: 74px minmax(0, 1fr); gap: 6px; } .at-row > b { font-size: 11px; } .at-row > b small { font-size: 9.5px; } .at-phase { font-size: 10px; } .at-key { font-size: 10.5px; } }
+
+@media print {
+  .pv .at { margin: 2pt 0 3pt; break-inside: avoid; print-color-adjust: exact; -webkit-print-color-adjust: exact;
+    --text: #17202a; --muted: #4a5866; --bg: #fff; --at-val: #8fa6b4; --at-hit: #17202a; --at-bg: #f4f7f8; --at-rule: #8da2af; --at-main: #23526b; --at-main-ink: #fff; }
+  .pv .at-row { grid-template-columns: 70pt minmax(0, 1fr); gap: 5pt; }
+  .pv .at-row + .at-row { margin-top: 2pt; }
+  .pv .at-row > b { font-size: 7.5pt; } .pv .at-row > b small { font-size: 6.5pt; }
+  .pv .at-track { height: 17pt; } .pv .at-sched { height: 13pt; } .pv .at-lightning { height: 11pt; } .pv .at-badges .at-track { height: 10pt; }
+  .pv .at-phase { font-size: 7.5pt; line-height: 12pt; }
+  .pv .at-hour { border-right-width: 0.5pt; }
+  .pv .at-badge { width: 9pt; height: 9pt; font-size: 6.5pt; }
+  .pv .at-limit { border-top-width: 1pt; } .pv .at-limit i { display: none; } .pv .at-uncertain i { font-size: 6.5pt; }
+  .pv .at-win, .pv .at-uncertain { border-width: 1.2pt; }
+  .pv .at-p2 { height: 9pt; } .pv .at-p2 span { font-size: 6.5pt; }
+  .pv .at-axis { height: 10pt; font-size: 7pt; }
+  .pv .at-key { font-size: 7pt; gap: 1pt 9pt; margin-top: 2pt; }
+  .pv .at-key i { width: 9pt; height: 6pt; }
+  .pv .at-list { margin: 3pt 0 0; gap: 2pt; }
+  .pv .at-list li { font-size: 9pt; gap: 5pt; line-height: 1.2; }
+  .pv .at-list li > div > span { font-size: 8pt; display: inline; margin-left: 4pt; }
+  .pv .at-n { width: 10pt; height: 10pt; font-size: 6.5pt; }
+  .pv .at-none { font-size: 9pt; margin: 3pt 0 0; }
+  .pv-area { font-size: 8.5pt; font-weight: 700; margin-top: 2pt; }
+  .pv-keys dd small { display: inline; font-size: 8.5pt; color: #425262; margin-left: 5pt; }
+  .pv-p1 .pv-keys { grid-template-columns: 142pt 1fr; }
+  .pv-footer .pv-policy { margin: 0; font-size: 8pt; text-align: center; }
+  .pv-p1 .pv-dec { font-size: 18pt !important; }
+  .pv-p1 .brief-source { margin-top: 4pt; }
+  .pv .at-badges .at-track { height: 8pt; }
+  .pv-p1 .brief-source div > span { display: inline; margin-left: 4pt; }
+  .pv-p1 .brief-source div > b { display: inline; }
+  .pv-p1 .pv-dates { margin: 4pt 0; padding: 3pt 0; }
+  .pv-p1 .pv-dates > div { margin: 1pt 0; }
+  .pv-p1 .pv-keys { margin: 5pt 0; gap: 2pt 10pt; }
+  .pv-p1 .pv-phases small.pv-in { display: inline; margin-left: 3pt; }
+  .pv-p1 .pv-phases td { padding-top: 3pt; padding-bottom: 3pt; }
+  .pv-hours td.pv-over { font-weight: 700; }
+  .pv-hours td.pv-over small { font-size: 7pt; font-weight: 400; }
+}
