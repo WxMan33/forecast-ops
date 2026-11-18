@@ -73,18 +73,18 @@ Report both baselines.
 
 ## 3. Reproducible inputs
 
-Joined predictor/label artifacts live only in GitHub Actions storage:
+The original Actions artifacts have verified private backup copies. Scheduled
+rebuilds still need a private archive that Actions can access.
 
-- **Run 42321856909:** the original 36 cases (about 204 MB). It expires **2026-12-07**.
-  severe-daily-baseline.yml (the v0.6 reproduction) and severe-expanded-cohort.yml (rebuilding
-  the v0.7 cohort) download from it, so neither can be re-run after that date.
-- **Run 43901185832:** all 108 v0.7 cases, re-uploaded, plus the v0.7 models (about 559 MB). It
-  expires **2027-02-14**. Both v0.7 and the v0.8 experiment depend on it.
+- Run 42321856909 supplies the original 36 predictor cases to the daily baseline
+  and expanded-cohort workflows. Actions retention ends December 7, 2026 UTC.
+- Run 43901185832 supplies the 108 expanded predictor cases and labels to the
+  fixed tree experiment. Actions retention ends February 14, 2027 UTC.
 
-**Proposal.** Before 2026-12-07, copy both runs' artifacts to a GitHub Release. Commit a manifest
-of names, sizes and SHA-256 hashes, and point the workflows at the release. The NCEI report files
-are already pinned by hash. Creating the release publishes about 760 MB, so it is left for the
-owner to approve.
+The rebuild workflows support a private release with pinned ZIP filenames, sizes
+and SHA-256 hashes. The [activation steps](severe-product.md#rebuild-inputs) cover
+the hosting decision, access and verification. NCEI report inputs are pinned
+separately by hash.
 
 ## 4. Uncertain report locations
 
