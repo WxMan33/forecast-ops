@@ -562,4 +562,5 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .bx-print { font-weight: 600; border-width: 1.5px; }
 .bx-print span { font-size: 1.15em; margin-right: 2px; }
 .bx-print:disabled { opacity: .5; cursor: default; }
-@media (max-width: 600px) { .bx-printbar .bx-note { flex-basis: 100%; } }
+/* phones: the button stays at the top; its note is kept for screen readers only, so the decision and next check still fit the first screen */
+@media (max-width: 600px) { .bx-printbar { margin: 8px 0 0; } .bx-printbar .bx-note { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; } }
