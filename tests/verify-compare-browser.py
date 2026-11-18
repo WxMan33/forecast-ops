@@ -21,7 +21,8 @@ first_hour = int(datetime.fromisoformat("2026-11-01T17:00:00+00:00").timestamp()
 rows += [[0, 0, 3, 0, 4, 51, 50, 0, first_hour], [1, 0, 3, 0, 4, 48, 50, 0, first_hour]]
 sc = {'schema': 3, 'version': 'dashboard-v2', 'at': 'synthetic', 'minDates': 30, 'loc': {'lstOffsetMin': -300},
       'targets': [{'id': 'tmax_clim', 'label': 'Daily high (climate day)', 'conv': 'climate-day-LST'}, {'id': 'tmin_clim', 'label': 'Daily low (climate day)', 'conv': 'climate-day-LST'}, {'id': 'tmin_night', 'label': 'Overnight low (night after date)', 'conv': 'nws-night-12h'}, {'id': 'temp_hourly', 'label': 'Hourly temperature', 'conv': 'valid-instant'}],
-      'sourceLabels': {'blend:b1': 'Synthetic blend', 'wkrc-7day': 'WKRC 7-day'}, 'tracks': {'nws': 'source', 'gfs_seamless': 'source', 'blend:b1': 'blend', 'wkrc-7day': 'tv'},
+      'sourceLabels': {'blend:b1': 'Synthetic blend', 'wkrc-7day': 'WKRC 7-day'},
+      'tvMeta': {'wkrc-7day': {'label': 'WKRC 7-day', 'location': 'ZIP 45226, Cincinnati', 'authorship': 'Provider forecast with individual Local 12 weather team edits'}}, 'tracks': {'nws': 'source', 'gfs_seamless': 'source', 'blend:b1': 'blend', 'wkrc-7day': 'tv'},
       'attempts': attempts, 'ids': ids, 'norms': ['normalize-v4', 'tv:tv-extract-v3'], 'columns': [], 'rows': rows, 'droppedInconsistent': 0}
 health = {'expected': 12, 'manual': 0, 'gaps': [{'id': '2026-11-11_midday'}], 'slots': [{'id': a['captureId'], 'status': 'on_time'} for a in attempts] + [{'id': '2026-11-11_midday', 'status': 'missed'}, {'id': '2026-11-06_evening', 'status': 'partial', 'sourcesOnTime': 2, 'sourcesExpected': 4}],
           'partial': [{'id': '2026-11-06_evening', 'sourcesOnTime': 2, 'sourcesExpected': 4, 'recoveredLate': ['gfs_seamless'], 'notCaptured': ['wkrc-7day']}]}
@@ -88,6 +89,7 @@ with sync_playwright() as p:
     assert 'of 30' not in cells and 'preliminary' not in cells.lower(), 'the preliminary label is stated once, not in every cell'
     assert '3 cases without every selected source' in text and 'WKRC 7-day 2' in text, text
     tvrow = page.locator('.vcompare tbody tr', has_text='WKRC 7-day').inner_text()
+    assert 'ZIP 45226, Cincinnati' in tvrow and 'Provider forecast with individual Local 12 weather team edits' in tvrow, tvrow
     assert '8 of 9 attempted' in tvrow and 'not attempted in 1 of 10' in tvrow, tvrow
     assert 'missed or failed 1' in text, 'a missed scheduled edition stays visible'
     assert 'partly captured 0' in text and 'other' not in page.locator('.vsched').inner_text(), 'partial editions are named, never "other" (the evening one is filtered out by edition)'
