@@ -6,6 +6,7 @@ on:
       - 'tools/severe/train_daily.py'
       - '.github/workflows/severe-daily-baseline.yml'
       - 'tools/severe/replay_daily.py'
+      - 'tools/severe/stage_report_source.py'
       - 'tools/severe/replay_daily.html'
       - 'tests/severe-daily-replay-browser.py'
   workflow_dispatch:
@@ -33,6 +34,14 @@ jobs:
       - run: pip install numpy==2.3.5 scipy==1.17.0
       - name: Fit, calibrate and score daily baselines
         run: python tools/severe/train_daily.py --history tests/out/daily-baseline-history --output tests/out/daily-baseline
+      # NOAA replaces Storm Events files when it reprocesses a year (the pinned 2024 file now 404s),
+      # so the frozen bytes are staged into the replay cache first and the export never needs NOAA.
+      - name: Stage the pinned 2024 report source (private release, else checkpoint artifact; verified)
+        env:
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+          ARCHIVE_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
+          ACTIONS_TOKEN: ${{ github.token }}
+        run: python3 tools/severe/stage_report_source.py --cache tests/out/report-cache ${ARCHIVE_REPO:+--repository "$ARCHIVE_REPO"} --actions
       - name: Export checked Day 1 wind replays
         run: python tools/severe/replay_daily.py --history tests/out/daily-baseline-history --output tests/out/daily-replay --cache tests/out/report-cache
       - run: pip install playwright

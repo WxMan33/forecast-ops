@@ -31,6 +31,7 @@ jobs:
       - run: python tests/severe-publish.test.py
       - run: node tests/severe-feed-health.test.js
       - run: python tests/severe-restore-inputs.test.py
+      - run: python tests/severe-replay-source.test.py
       - run: node tests/calendar-provider.test.js
       - run: node tests/forecast-support.test.js
       - run: node tests/core.test.js

@@ -16,6 +16,15 @@ from labels import normalize, label_window
 from train_daily import digest, load_cohort
 
 
+def report_source(cache, source):
+    """The frozen report file, from the cache when staged (tools/severe/stage_report_source.py),
+    otherwise from its original URL. Either way it must be the pinned bytes."""
+    path = Client(cache, 30).fetch(source["receipt"]["url"], source["file"], max_bytes=25000000)
+    if digest(path) != source["sha256"]:
+        raise ValueError("Report source differs from the frozen label source")
+    return path
+
+
 def export(history, output, cache):
     model_path = Path("research/severe/baseline-v06/models.json")
     score_path = Path("research/severe/baseline-v06/development-scores.json")
@@ -29,10 +38,7 @@ def export(history, output, cache):
     labels_path = Path("research/severe/labels-v04/manifest.json")
     labels_manifest = json.loads(labels_path.read_text())
     source = next(s for s in labels_manifest["sources"] if "_d2024_" in s["file"])
-    client = Client(cache, 30)
-    report_path = client.fetch(source["receipt"]["url"], source["file"], max_bytes=25000000)
-    if digest(report_path) != source["sha256"]:
-        raise ValueError("Report source differs from the frozen label source")
+    report_path = report_source(cache, source)
     with gzip.open(report_path, "rt", newline="") as stream:
         events, _ = normalize(csv.DictReader(stream))
     model = models["products"]["day1_wind"]

@@ -42,6 +42,16 @@ verification, until it expires: run 42321856909 on December 7, 2026 UTC and run
   `--source labels` and `--output`. A single `--case YYYY-MM-DD` restores directly
   into the output directory, matching the matrix workflow layout.
 
+- The baseline's Day 1 wind replay also needs the frozen 2024 Storm Events file,
+  `StormEvents_details-ftp_v1.0_d2024_c20260728.csv.gz` (12,693,243 bytes, SHA-256
+  `2070b83eccab041b36360ab73645b9a249c3eefc5b92b5b3fc0cbba4d9fcc09c`, pinned in
+  `research/severe/labels-v04/manifest.json`). NOAA has replaced it, so its URL returns 404.
+  Upload it unchanged to a separate release, `severe-replay-sources-v1`, in the same private
+  archive. `tools/severe/stage_report_source.py` stages it into the replay cache after checking
+  its size and SHA-256, so the export never contacts NOAA. Until it is uploaded, the workflow
+  stages it from the frozen-source checkpoint artifact (run 43909210291, artifact 14247375303,
+  retained to February 14, 2027 UTC) with a warning. A copy that fails the check stops the run.
+
 A configured archive that fails verification, or a variable set without the
 secret, produces a workflow error naming the source or ZIP. Without the variable,
 each restore logs a warning that it is still reading expiring Actions storage.
