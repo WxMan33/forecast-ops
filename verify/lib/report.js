@@ -21,7 +21,9 @@ function captureHealth(caps, loc, nowMs, runs = []) {
   const first = U.localParts(Date.parse(startIso), loc.tz).date, today = U.localParts(nowMs, loc.tz).date, exp = [];
   for (let d = first; d <= today; d = U.addDays(d, 1)) SCHED.slots.forEach((s) => { const t = SCH.targetMs(d, s.local, loc.tz); if (t < Date.parse(startIso) - 3 * 3600e3) return; exp.push({ id: `${d}_${s.id}`, target: U.iso(t), future: nowMs < t + SCHED.lateMaxMin * 60e3 }); });
   const slots = ED.health(caps, runs, exp).map((x) => ({ ...x, status: x.edition === "captured_on_time" ? "on_time" : x.edition === "captured_partly_on_time" ? "partial" : x.edition === "captured_late" ? "late" : x.edition === "captured_off_schedule" ? "off_schedule" : x.edition }));
-  return { enabled: true, since: startIso, expected: slots.filter((s) => s.status !== "pending").length, slots, gaps: slots.filter((s) => ["missed", "failed"].includes(s.status)),
+  const counts = {};
+  for (const { status } of slots) counts[status] = (counts[status] || 0) + 1;
+  return { enabled: true, counts, since: startIso, expected: slots.filter((s) => s.status !== "pending").length, slots, gaps: slots.filter((s) => ["missed", "failed"].includes(s.status)),
     partial: slots.filter((s) => s.status === "partial").map((s) => ({ id: s.id, sourcesOnTime: s.sourcesOnTime, sourcesExpected: s.sourcesExpected, recoveredLate: s.recoveredLate || [], notCaptured: s.notCaptured || [] })), manual,
     executed: schedRuns.length, executedOk: schedRuns.filter((r) => !["crashed"].includes(r.outcome)).length, notDue: schedRuns.filter((r) => r.outcome === "not-due").length };
 }
@@ -45,8 +47,14 @@ function writeReports(DATA, loc, res, nowMs = Date.now()) {
   U.writeJSON(path.join(R, "review-queue.json"), { at: U.iso(nowMs), items: queue });
   /* compact scores for the dashboard (pairs omitted: they are rebuilt from the archive) */
   U.writeJSON(path.join(R, "scores.json"), { version: res.version, at: res.at, minDates: res.minDates, summary: res.summary, hourly: res.hourly, comparisons: res.comparisons, pendingCount: res.pending.length, pending: res.pending.slice(-300), pairsCount: res.pairs.length });
+  const failedSources = (c) => {
+    return (c.summary.failed || []).map(problem => {
+      const code = c.sources?.[problem.split(":")[0]]?.errorCode;
+      return code ? `${problem} [${code}]` : problem;
+    });
+  };
   const latestCap = caps[caps.length - 1];
-  U.writeJSON(path.join(R, "index.json"), { at: U.iso(nowMs), loc, health: { ...H, slots: H.slots.slice(-60) }, captures: caps.slice(-40).map((c) => ({ captureId: c.captureId, slot: c.slot, trigger: c.trigger, startedAt: c.startedAt, timeliness: c.timeliness, outcome: c.outcome, summary: c.summary, tv: c.tv, normalized: c.normalized && !c.normalized.error })),
+  U.writeJSON(path.join(R, "index.json"), { at: U.iso(nowMs), loc, health: { ...H, slots: H.slots.slice(-60) }, captures: caps.slice(-40).map((c) => ({ captureId: c.captureId, slot: c.slot, trigger: c.trigger, startedAt: c.startedAt, timeliness: c.timeliness, outcome: c.outcome, summary: { ...c.summary, failed: failedSources(c) }, tv: c.tv, normalized: c.normalized && !c.normalized.error })),
     runs: runs.slice(-60), lastRuns: { collect: last("collect"), observe: last("observe", true), score: last("score") }, reviewQueue: queue.filter((q) => !q.historical).length, reviewQueueHistorical: queue.filter((q) => q.historical).length,
     tvLatest: Object.values(res.tv.reduce((m, r) => ((m[r.product] = r), m), {})).map((r) => ({ ...hist(r.product), product: r.product, station: r.station, label: r.label, captureId: r.captureId, retrievedAt: r.retrievedAt, issuedAt: r.issuedAt, freshness: r.freshness, reviewStatus: r.reviewStatus, extraction: r.extraction, evidence: r.evidence, days: r.days, location: r.location, authorship: r.authorship, lows: r.lows, crossCheck: r.crossCheck })),
     latestBlendInfo: latestCap ? (() => { try { const b = JSON.parse(U.gunzip(fs.readFileSync(path.join(DATA, latestCap.normalized.path))).toString()); return Object.fromEntries(Object.entries(b.blends).map(([k, v]) => [k, { label: v.label, configHash: v.configHash, requested: v.requested, actual: v.actual, missing: v.missing, shares: v.shares }])); } catch (e) { return null; } })() : null });
@@ -66,7 +74,7 @@ function writeReports(DATA, loc, res, nowMs = Date.now()) {
       timing: { leadMinutesFromLastRetrievalToMeasurement: tp.leadMin, minimumRequired: require("./timing.js").MIN_LEAD_MIN },
       score: { errorF: Math.round((tp.v - tp.o) * 10) / 10, absErrorF: Math.round(Math.abs(tp.v - tp.o) * 10) / 10, scoreVersion: res.version } }; }
   U.writeJSON(path.join(R, "trace-example.json"), trace || { note: "no eligible scored pair yet" });
-  require("./dashboard.js").writeDashboard(DATA, loc, res, nowMs);
+  require("./dashboard.js").writeDashboard(DATA, loc, res, nowMs, H.slots);
   require("./precip.js").write(DATA, loc, res, nowMs);
   /* STATUS.md */
   const st = [];
@@ -79,7 +87,7 @@ function writeReports(DATA, loc, res, nowMs = Date.now()) {
   if (H.enabled && H.partial.length) { st.push("## Partly captured editions", "", "The on-time capture lacks these sources. A late recovery stays labelled late and never replaces on-time evidence; blends in the on-time capture ran without the missing members.", "", "| Edition | On time / expected | Recovered late (labelled late) | Not captured |", "|---|---|---|---|");
     H.partial.slice(-14).reverse().forEach((s) => st.push(`| ${s.id} | ${s.sourcesOnTime} / ${s.sourcesExpected} | ${s.recoveredLate.join(", ") || "—"} | ${s.notCaptured.join(", ") || "—"} |`)); st.push(""); }
   st.push("| Capture | Trigger | Started | Timeliness | Outcome | Problems |", "|---|---|---|---|---|---|");
-  caps.slice(-14).reverse().forEach((c) => st.push(`| ${c.captureId} | ${c.trigger} | ${c.startedAt} | ${c.timeliness.status}${c.timeliness.delayMin != null ? ` (${f(c.timeliness.delayMin)} min)` : ""} | ${c.outcome} | ${(c.summary.failed || []).join("; ") || "—"} |`));
+  caps.slice(-14).reverse().forEach((c) => st.push(`| ${c.captureId} | ${c.trigger} | ${c.startedAt} | ${c.timeliness.status}${c.timeliness.delayMin != null ? ` (${f(c.timeliness.delayMin)} min)` : ""} | ${c.outcome} | ${failedSources(c).join("; ") || "—"} |`));
   st.push("", "## Last runs", "", "| Job | At | Outcome | Detail |", "|---|---|---|---|");
   runs.slice(-15).reverse().forEach((r) => st.push(`| ${r.job} | ${r.at} | ${r.outcome} | ${(r.error || r.detail || (r.outcomes ? Object.entries(r.outcomes).map(([k, o]) => `${k}:${o.status}`).join(" ") : "") || "").toString().slice(0, 140).replace(/\|/g, "/")} |`));
   /* source/product status table */
