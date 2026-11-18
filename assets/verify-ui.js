@@ -63,6 +63,7 @@
 
   function health() {
     const H = IDX.health, L = IDX.lastRuns || {};
+    const count = (status) => H.counts ? H.counts[status] || 0 : H.slots.filter((s) => s.status === status).length;
     // a partly captured edition is neither complete nor missed: name it and what its on-time capture lacks
     const PT = H.partial || H.slots.filter((s) => s.status === "partial").map((s) => ({ id: s.id, sourcesOnTime: s.sourcesOnTime, sourcesExpected: s.sourcesExpected, recoveredLate: s.recoveredLate || [], notCaptured: s.notCaptured || [] }));
     const lbl = (id) => esc(((DASH && DASH.sourceLabels) || {})[id] || id);
@@ -72,7 +73,7 @@
       ${PT.slice().reverse().map((p) => `<tr><td class="mono">${esc(p.id)}</td><td>${esc(p.sourcesOnTime)} of ${esc(p.sourcesExpected)}</td><td style="text-align:left;white-space:normal">${p.recoveredLate.map(lbl).join(", ") || "—"}</td><td style="text-align:left;white-space:normal">${p.notCaptured.map(lbl).join(", ") || "—"}</td></tr>`).join("")}</tbody></table></div></div>` : "";
     const tile = (k, v, s) => `<div class="tile"><span class="k">${k}</span><span class="v">${v}</span><span class="s">${s || ""}</span></div>`;
     $("pane").innerHTML = `<section class="card"><div class="section-title">Collector health · ${esc(IDX.loc.name)}</div>
-      <div class="tiles">${tile("Scheduled slots", H.expected, "since the first scheduled capture")}${tile("On time", H.slots.filter((s) => s.status === "on_time").length, "")}${tile("Late", H.slots.filter((s) => s.status === "late").length, "kept, labelled, excluded from matched comparisons")}${tile("Partly captured", PT.length, "on time, but some sources missing")}${tile("Missed / failed", H.gaps.length, "no usable on-time capture")}${tile("Manual captures", H.manual, "pilot runs, never on-time")}${tile("Review queue", IDX.reviewQueue, "TV values awaiting review")}</div>
+      <div class="tiles">${tile("Scheduled slots", H.expected, "since the first scheduled capture")}${tile("On time", count("on_time"), "")}${tile("Late", count("late"), "kept, labelled, excluded from matched comparisons")}${tile("Partly captured", PT.length, "on time, but some sources missing")}${tile("Missed / failed", H.gaps.length, "no usable capture")}${count("off_schedule") ? tile("Off schedule", count("off_schedule"), "outside the recovery window") : ""}${tile("Manual captures", H.manual, "pilot runs, never on-time")}${tile("Review queue", IDX.reviewQueue, "TV values awaiting review")}</div>
       <p class="msg" style="margin-top:10px">Recent slots (oldest → newest): green on time · half green, half red partly captured · yellow late · orange off schedule · red missed/failed · dashed pending.</p>
       <div class="slots">${H.slots.map((s) => `<span class="slot ${esc(s.status)}" title="${esc(`${s.id}: ${s.status === "partial" ? `partly captured, ${s.sourcesOnTime} of ${s.sourcesExpected} sources on time` : s.status}${s.delayMin != null ? ` (${f(s.delayMin)} min)` : ""}`)}"></span>`).join("") || '<span class="msg">No scheduled captures yet.</span>'}</div>
       ${partial}

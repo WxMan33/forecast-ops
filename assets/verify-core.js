@@ -17,7 +17,7 @@
     if(!members || members.length<2)return {n:0,dates:0,hours:0,rows:[],scores:[],reason:"Select at least two sources for matching."};
     const cases=new Map();
     pairs.filter(p=>p.cls==="primary" && members.includes(p.id) && (!target || p.target===target) && (!slot || p.slot===slot) && (lead==null || p.lead===+lead) && (!captureId || p.captureId===captureId) && finite(p.v) && finite(p.o)).forEach(p=>{
-      const key=[p.captureId,p.target || "hourly",(p.target ? p.date : p.valid),defKey(p)].join("|");
+      const key=[p.captureId,p.slot,p.target || "hourly",p.date,p.valid,p.lead,defKey(p)].join("|");
       if(!cases.has(key))cases.set(key,new Map());const c=cases.get(key);
       // Repeated/ambiguous cases are excluded, not silently given additional weight.
       c.set(p.id,c.has(p.id)?null:p);
@@ -38,28 +38,31 @@
     const scores=members.map(id=>{const ps=rows.map(c=>c.get(id)),e=ps.map(p=>p.v-p.o),leads=ps.map(p=>p.leadHours).filter(finite);return {id,n:ps.length,mae:mean(e.map(Math.abs)),bias:mean(e),within2:mean(e.map(x=>Math.abs(x)<=2?1:0)),leadMin:leads.length?Math.min(...leads):null,leadMax:leads.length?Math.max(...leads):null};});
     return {n:rows.length,dates:dates.size,hours:hours.size,blocks:blocks.size,scores,methodMismatch,reason:rows.length?null:methodMismatch?"Cases exist, but the forecasts were made with incompatible methods or target definitions.":"No common verified cases for this selection.",from:sortedDates[0]||null,to:sortedDates[sortedDates.length-1]||null,candidates:cases.size,excluded,onlyMissing};
   }
-  /* Coverage for one source, target and lead over a set of capture attempts (each: captureId, localDate, slot,
-     onTime: ids captured on time, tv: {product: status}). Eligible: on-time scheduled captures whose verifying date
-     (capture date + lead) has an observation for the target. Attempted: eligible captures where the source was
-     captured on time (a TV product: present and not "not-collected"). Delivered: attempted captures with a verified
-     pair for that lead. Not attempted is reported, never dropped. Missed scheduled editions are outside this count;
-     they come from the collector's schedule (see the scheduled-editions summary). */
+  /* Counts editions once even when multiple attempts started during the on-time window. */
   const addDays=(d,n)=>{const t=new Date(d+"T00:00:00Z");t.setUTCDate(t.getUTCDate()+n);return t.toISOString().slice(0,10);};
-  function coverage(attempts,pairs,{id,target,lead,track}){
-    const verified=new Set(pairs.filter(p=>p.target===target&&finite(p.o)).map(p=>p.date));
+  function coverage(attempts,pairs,{id,target,lead,track,verifiedDates}){
+    const verified=new Set(verifiedDates || pairs.filter(p=>p.target===target&&finite(p.o)).map(p=>p.date));
     const have=new Set(pairs.filter(p=>p.id===id&&p.target===target&&p.lead===+lead&&finite(p.v)&&finite(p.o)).map(p=>p.captureId));
-    const eligible=attempts.filter(a=>a.onTime&&a.onTime.length&&verified.has(addDays(a.localDate,+lead)));
-    /* a delivered forecast proves an attempt (derived sources such as the NWS official text have no capture class) */
-    const tried=a=>have.has(a.captureId)||(track==="tv"?!!(a.tv&&a.tv[id]&&a.tv[id]!=="not-collected"):a.onTime.includes(id));
-    const attempted=eligible.filter(tried);
-    return {eligible:eligible.length,attempted:attempted.length,notAttempted:eligible.length-attempted.length,delivered:attempted.filter(a=>have.has(a.captureId)).length};
+    const editions=new Set(), attempted=new Set(), delivered=new Set();
+    for(const a of attempts){
+      if(!(a.eligible ?? !!a.onTime?.length) || !verified.has(addDays(a.localDate,+lead))) continue;
+      const edition=a.edition || a.captureId;
+      editions.add(edition);
+      if(have.has(a.captureId)){
+        attempted.add(edition);
+        delivered.add(edition);
+      } else if(track==="tv" ? a.tv?.[id] && a.tv[id]!=="not-collected" : (a.sources || a.onTime || []).includes(id==="nws-official"?"nws":id)){
+        attempted.add(edition);
+      }
+    }
+    return {eligible:editions.size,attempted:attempted.size,notAttempted:editions.size-attempted.size,delivered:delivered.size};
   }
-  /* scorecard.json rows -> the pair records matched() and coverage() use (the definition window stands for the
-     target's window on that date: identical for every source of one case, which is all matching compares) */
   function expandScorecard(sc){
-    const caps=sc.attempts,conv=Object.fromEntries(sc.targets.map(t=>[t.id,t.conv]));
-    return sc.rows.map(([i,c,t,lead,leadHours,v,o,n])=>{const id=sc.ids[i],cap=caps[c],target=sc.targets[t].id,date=addDays(cap.localDate,lead);
-      return {track:sc.tracks[id],conv:conv[target],window:[target,date],compatible:true,basisNormVersion:null,captureId:cap.captureId,id,target,date,lead,leadHours,slot:cap.slot,cls:"primary",v,o,normVersion:sc.norms[n]};});
+    return sc.rows.map(([i,c,t,lead,leadHours,v,o,n,validHour])=>{
+      const id=sc.ids[i],cap=sc.attempts[c],{id:target,conv}=sc.targets[t],date=addDays(cap.localDate,lead);
+      const valid=validHour==null?undefined:new Date(validHour*3600e3).toISOString();
+      return {track:sc.tracks[id],conv,window:[target,valid || date],compatible:true,captureId:cap.captureId,id,target,date,valid,lead,leadHours,slot:cap.slot,cls:"primary",v,o,normVersion:sc.norms[n]};
+    });
   }
   function recipeChange(a,b){
     if(!a || !b)return null;
