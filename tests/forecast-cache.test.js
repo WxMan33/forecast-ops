@@ -135,6 +135,81 @@ test("an automatic retry timed from the failure's own Retry-After is never early
   const E = setup(); answer = () => limited(45); const e1 = await E.getJSON(U('gfs_seamless')); const s2 = Date.parse(e1.__retrievedAt); Date.now = () => s2 + 20e3;
   try { const early = await E.getJSON(U('gfs_seamless')); A.equal(calls.length, 1, 'a retry at 20 s, inside a 45 s wait, is not sent'); A.equal(early.__notSent, true); A.ok(early.retryAfter >= 24 && early.retryAfter <= 26); } finally { Date.now = t0; }
 });
+test('Open-Meteo hosts share six slots through response-body reads, including shared queued calls', async () => {
+  const D = setup(), previousFetch = globalThis.fetch;
+  const started = [], bodies = new Map();
+  const forecast = Array.from({ length: 6 }, (_, i) => U('bounded-' + i));
+  const ensemble = 'https://ensemble-api.open-meteo.com/v1/ensemble?models=gfs025';
+  const meta = 'https://api.open-meteo.com/data/ecmwf_ifs025/static/meta.json';
+  const nws = 'https://api.weather.gov/points/39.1,-84.5';
+  globalThis.fetch = async (url) => {
+    started.push(url);
+    return { ok: true, status: 200, json: () => new Promise((resolve, reject) => bodies.set(url, { resolve, reject })) };
+  };
+  const drain = () => new Promise(resolve => setImmediate(resolve));
+  try {
+    const group = forecast.map(url => D.getJSON(url));
+    const one = D.getJSON(ensemble), two = D.getJSON(ensemble), third = D.getJSON(meta), independent = D.getJSON(nws);
+    await drain();
+    A.deepEqual(started.filter(url => url !== nws), forecast);
+    A.ok(started.includes(nws), 'NWS does not wait for a model slot');
+    bodies.get(nws).resolve({ ok: true }); await independent;
+    bodies.get(forecast[0]).reject(new Error('invalid JSON'));
+    await drain();
+    A.equal(started.at(-1), ensemble);
+    A.ok(!started.includes(meta));
+    bodies.get(forecast[1]).resolve({ ok: true }); await drain();
+    A.equal(started.at(-1), meta);
+    for (const url of [...forecast.slice(2), ensemble, meta]) bodies.get(url).resolve({ ok: true });
+    const [a, b] = await Promise.all([one, two]);
+    A.notEqual(a, b); A.equal(started.filter(url => url === ensemble).length, 1);
+    A.equal((await Promise.all(group))[0].error, true); await third;
+  } finally { globalThis.fetch = previousFetch; }
+});
+test('queued work expires without a provider request and active aborts release slots', async () => {
+  const D = setup(), previousFetch = globalThis.fetch, previousTimer = globalThis.setTimeout;
+  const started = [], expire = [];
+  globalThis.setTimeout = (callback, ms) => {
+    if (ms !== 20000) return previousTimer(callback, ms);
+    expire.push(callback);
+    return null;
+  };
+  globalThis.fetch = (url, { signal }) => new Promise((resolve, reject) => {
+    started.push(url);
+    signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+    if (url.endsWith('recovery')) resolve(new Response('{}'));
+  });
+  try {
+    const requests = Array.from({ length: 7 }, (_, i) => D.getJSON(U('timeout-' + i)));
+    const all = Promise.allSettled(requests);
+    await new Promise(resolve => setImmediate(resolve));
+    expire[6]();
+    expire.slice(0, 6).forEach(abort => abort());
+    const result = await all;
+    A.equal(started.length, 6);
+    A.match(result[6].reason.message, /waiting for an Open-Meteo request slot/);
+    A.ok(result.every(r => r.status === 'rejected' && r.reason.timeout));
+    A.equal((await D.getJSON(U('recovery'))).error, undefined);
+  } finally { globalThis.fetch = previousFetch; globalThis.setTimeout = previousTimer; }
+});
+test('queued uncached requests check for Retry-After again before sending', async () => {
+  const D = setup(), previousFetch = globalThis.fetch, finishes = [];
+  globalThis.fetch = () => new Promise(resolve => finishes.push(resolve));
+  try {
+    const url = U('queue-wait');
+    const active = Array.from({ length: 6 }, (_, i) => D.getJSON(i ? U('occupy-' + i) : url, 0));
+    const queued = D.getJSON(url, 0);
+    await new Promise(resolve => setImmediate(resolve));
+    A.equal(finishes.length, 6);
+    finishes[0](new Response('{"error":true}', { status: 429, headers: { 'Retry-After': '30' } }));
+    await new Promise(resolve => setImmediate(resolve));
+    if (finishes[6]) finishes[6](new Response('{}'));
+    for (const finish of finishes.slice(1, 6)) finish(new Response('{}'));
+    const first = (await Promise.all(active))[0], later = await queued;
+    A.equal(finishes.length, 6);
+    A.equal(later.__notSent, true); A.equal(later.__retrievedAt, first.__retrievedAt);
+  } finally { globalThis.fetch = previousFetch; }
+});
 (async () => {
   for (const [name, f] of tests) { try { await f(); n++; console.log('PASS ' + name); } catch (e) { console.log("FAIL " + name + " — " + String(e.message || e).replace(/\n+/g, " ").slice(0, 300)); process.exitCode = 1; } }
   console.log(process.exitCode ? 'forecast cache checks failed' : `ok - ${n} forecast cache checks passed`);

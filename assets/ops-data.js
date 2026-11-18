@@ -63,7 +63,7 @@
     return Number.isFinite(sec) && sec >= 0 && sec <= 86400 ? sec : null;
   }
   /* why a request failed, as recorded for the user: HTTP status, timeout or network error */
-  const failureText = (e) => e && e.httpStatus ? `HTTP ${e.httpStatus}` : e && e.timeout ? "timed out" : (e && e.message) || "unknown error";
+  const failureText = (e) => e && e.httpStatus ? `HTTP ${e.httpStatus}` : e && e.timeout ? (e.message || "timed out") : (e && e.message) || "unknown error";
   /* ---------- the shared forecast cache (this tab's sessionStorage) ----------
      Key: the exact request URL (location, variables, models, window). Each entry keeps the time it was retrieved and its
      own expiry. A failed answer is never stored. When storage is full, room is made only from these cache entries:
@@ -110,37 +110,90 @@
     if (Date.now() >= w.until) { try { store.removeItem(waitKey(url)); } catch (e) { /* none */ } return null; }
     return w;
   }
+  function waitedAnswer(store, url) {
+    const w = store && waitRead(store, url);
+    if (!w) return null;
+    return { ...w.json, retryAfter: Math.max(1, Math.ceil((w.until - Date.now()) / 1000)), __retrievedAt: new Date(w.at).toISOString(), __fromCache: false, __notSent: true, __waitUntil: new Date(w.until).toISOString() };
+  }
+  // Forecasts, ensembles and run metadata share a budget within this page.
+  const MAX_OPEN_METEO_REQUESTS = 6;
+  const queuedForecasts = [];
+  let activeForecasts = 0;
+  function takeForecastSlot(signal) {
+    if (activeForecasts < MAX_OPEN_METEO_REQUESTS) {
+      activeForecasts++;
+      return Promise.resolve();
+    }
+    return new Promise((resolve, reject) => {
+      const resume = () => {
+        signal.removeEventListener("abort", cancel);
+        resolve();
+      };
+      const cancel = () => {
+        queuedForecasts.splice(queuedForecasts.indexOf(resume), 1);
+        const error = new Error("timed out waiting for an Open-Meteo request slot");
+        error.timeout = true;
+        reject(error);
+      };
+      queuedForecasts.push(resume);
+      signal.addEventListener("abort", cancel, { once: true });
+    });
+  }
+  function releaseForecastSlot() {
+    const next = queuedForecasts.shift();
+    if (next) next();
+    else activeForecasts--;
+  }
   async function getJSON(url, cacheMin = 15, headers) {
     const key = CACHE + url, waits = storeOf(), store = cacheMin ? waits : null;
     if (store) {
       const c = cacheRead(store, key, cacheMin * 60e3);
       if (c) { if (c.json && typeof c.json === "object") { c.json.__retrievedAt = new Date(c.at).toISOString(); c.json.__fromCache = true; } return c.json; }
     }
-    if (waits) {
-      const w = waitRead(waits, url);
-      if (w) return { ...w.json, retryAfter: Math.max(1, Math.ceil((w.until - Date.now()) / 1000)), __retrievedAt: new Date(w.at).toISOString(), __fromCache: false, __notSent: true, __waitUntil: new Date(w.until).toISOString() };
-    }
+    const wait = waitedAnswer(waits, url);
+    if (wait) return wait;
     /* one provider request for identical requests in flight (cacheable requests only); every caller gets its own copy */
     const shareKey = cacheMin ? url + "|" + JSON.stringify(headers || null) : null;
     if (shareKey && inflight.has(shareKey)) { const r = await inflight.get(shareKey); return copy(r); }
     const run = (async () => {
+      const bounded = /^https:\/\/(api|ensemble-api)\.open-meteo\.com\//i.test(url);
       const ctl = new AbortController();
-      const to = setTimeout(() => ctl.abort(), 20000);
-      let res;
-      try { res = await fetch(url, headers ? { signal: ctl.signal, headers } : { signal: ctl.signal }); }
-      catch (e) { const err = new Error(e && e.name === "AbortError" ? "timed out" : `network error: ${(e && e.message) || e}`); err.timeout = !!(e && e.name === "AbortError"); throw err; }
-      finally { clearTimeout(to); }
-      let json = await res.json().catch(() => ({ error: true, reason: `HTTP ${res.status}` }));
-      if (!json || typeof json !== "object") json = { error: !res.ok, reason: `HTTP ${res.status}` };
-      if (!res.ok && !json.error) { json.error = true; json.reason = `HTTP ${res.status}`; }
-      /* the provider's own status and retry guidance travel with a failure (Retry-After only where the provider exposes it) */
-      if (!res.ok) { json.httpStatus = res.status; json.retryAfter = retryAfterSeconds(res.headers && res.headers.get ? res.headers.get("Retry-After") : null); }
-      const at = Date.now();
-      if (store && !json.error) cacheWrite(store, key, { at, exp: at + cacheMin * 60e3, json });
-      if (waits && (res.status === 429 || res.status === 503) && json.retryAfter > 0) { try { waits.setItem(waitKey(url), JSON.stringify({ at, until: at + json.retryAfter * 1000, json: { error: true, reason: json.reason, httpStatus: json.httpStatus, retryAfter: json.retryAfter } })); } catch (e) { /* storage full: the wait is simply not remembered */ } }
-      /* when this response was actually retrieved (the original time when served from the browser cache) */
-      if (json && typeof json === "object") { json.__retrievedAt = new Date(at).toISOString(); json.__fromCache = false; }
-      return json;
+      // A queued request still shares the page's existing 20-second request deadline.
+      const timer = setTimeout(() => ctl.abort(), 20000);
+      let hasSlot = false;
+      try {
+        if (bounded) {
+          await takeForecastSlot(ctl.signal);
+          hasSlot = true;
+          const wait = waitedAnswer(waits, url);
+          if (wait) return wait;
+        }
+        const res = await fetch(url, headers ? { signal: ctl.signal, headers } : { signal: ctl.signal });
+        if (!bounded) clearTimeout(timer);
+        let json = await res.json().catch((error) => {
+          if (ctl.signal.aborted) throw error;
+          return { error: true, reason: `HTTP ${res.status}` };
+        });
+        if (!json || typeof json !== "object") json = { error: !res.ok, reason: `HTTP ${res.status}` };
+        if (!res.ok && !json.error) { json.error = true; json.reason = `HTTP ${res.status}`; }
+        /* the provider's own status and retry guidance travel with a failure (Retry-After only where the provider exposes it) */
+        if (!res.ok) { json.httpStatus = res.status; json.retryAfter = retryAfterSeconds(res.headers && res.headers.get ? res.headers.get("Retry-After") : null); }
+        const at = Date.now();
+        if (store && !json.error) cacheWrite(store, key, { at, exp: at + cacheMin * 60e3, json });
+        if (waits && (res.status === 429 || res.status === 503) && json.retryAfter > 0) { try { waits.setItem(waitKey(url), JSON.stringify({ at, until: at + json.retryAfter * 1000, json: { error: true, reason: json.reason, httpStatus: json.httpStatus, retryAfter: json.retryAfter } })); } catch (e) { /* storage full: the wait is simply not remembered */ } }
+        /* when this response was actually retrieved (the original time when served from the browser cache) */
+        if (json && typeof json === "object") { json.__retrievedAt = new Date(at).toISOString(); json.__fromCache = false; }
+        return json;
+      } catch (error) {
+        if (error?.timeout) throw error;
+        const timedOut = ctl.signal.aborted || error?.name === "AbortError";
+        const failure = new Error(timedOut ? "timed out" : `network error: ${error?.message || error}`);
+        failure.timeout = timedOut;
+        throw failure;
+      } finally {
+        clearTimeout(timer);
+        if (hasSlot) releaseForecastSlot();
+      }
     })();
     if (!shareKey) return run;
     inflight.set(shareKey, run);
