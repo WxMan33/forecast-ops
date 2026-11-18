@@ -244,6 +244,7 @@
   function eventToParam(ev) { return JSON.stringify({ n: ev.name, v: ev.loc, z: ev.tz, t: ev.times, g: ev.gust || 25 }); }
   function eventFromParam(str, C) {
     try { const x = JSON.parse(str); const ev = { id: "link", name: String(x.n || "Shared event").slice(0, 80), loc: { name: String(x.v.name || "Venue").slice(0, 80), lat: +x.v.lat, lon: +x.v.lon }, tz: x.z, times: x.t, gust: +x.g || 25 };
+      if (x.v.approximate === true) ev.loc.approximate = true;
       return C.event.validate(ev).length ? null : ev; } catch (e) { return null; }
   }
 

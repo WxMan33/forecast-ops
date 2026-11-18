@@ -267,6 +267,7 @@
     host.innerHTML = `${delta.items.length ? `<h2>${allBetter ? "Improved since your last briefing" : "Since your last briefing"}</h2><ul>`+delta.items.map(x=>`<li class="is-${x.trend||'alert'}"><b>${tag(x)}:</b> ${esc(x.text)}</li>`).join("")+'</ul>' : ''}${note ? `<p>${esc(note)}</p>` : ''}${delta.previousAt ? `<small>Compared with ${esc(BUI.date(delta.previousAt,event.tz))}, ${esc(fmt.clock(delta.previousAt,event.tz))} ${esc(fmt.zone(delta.previousAt,event.tz))}. Saved only in this browser.</small>` : ''}`;
   }
   function monitoringHandoff(event, b, now) {
+    if (event.loc.approximate) { $("opsHandoff").hidden = true; return; }
     const K = window.EventOpsHandoff, host = $("opsHandoff"), data = K.payload(event,b,now), day = K.eventDay(event,b,now);
     let address = null; try { address = K.baseAddress(localStorage.getItem(K.KEY) || ""); } catch {}
     host.hidden = false; host.className = `ops-handoff${day ? " is-event-day" : ""}`;

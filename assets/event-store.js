@@ -305,6 +305,7 @@
     const source = src.kind === "calendar" ? { kind: "calendar", calendarId: str(src.calendarId, 300), eventId: str(src.eventId, 300), etag: str(src.etag, 120), start: ISO(src.start) ? src.start : null, end: ISO(src.end) ? src.end : null, location: str(src.location, 300) || "", calTz: str(src.calTz, 64) } : { kind: "manual" };
     const out = { id: str(e.id, 400), name: str(e.name, 80), venueId: str(e.venueId, 120), loc: { name: str(e.loc && e.loc.name, 200) || "", lat: num(e.loc && e.loc.lat), lon: num(e.loc && e.loc.lon) }, tz: str(e.tz, 64),
       times, gust: num(e.gust), overrides: Array.isArray(e.overrides) ? e.overrides.filter((k) => PHASE_KEYS.includes(k)) : [], source, created: num(e.created), updated: num(e.updated) };
+    if (e.loc?.approximate === true) out.loc.approximate = true;
     if (e.fold) out.fold = fold; // optional fields stay optional, so a record round-trips exactly
     if (e.preset !== undefined) out.preset = str(e.preset, 80);
     if (e.match) out.match = { status: str(m.status, 20) || "unknown", via: str(m.via, 20), candidates: Array.isArray(m.candidates) ? m.candidates.filter((x) => typeof x === "string").slice(0, 20) : [] };

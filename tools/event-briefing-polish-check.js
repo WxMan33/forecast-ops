@@ -87,6 +87,17 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  await p.goto(base+'/event-beta.html?live=1');await p.waitForFunction(()=>document.body.dataset.loaded);
  check(await p.evaluate(()=>!!(document.getElementById('opsHandoff').compareDocumentPosition(document.getElementById('decision'))&Node.DOCUMENT_POSITION_FOLLOWING)),'event-day monitoring handoff appears before the forecast decision');
  await p.screenshot({path:path.join(out,'event-polish-live-monitoring.png'),fullPage:true});
+ await p.route('https://nominatim.openstreetmap.org/search?**',r=>r.fulfill({headers:{'Access-Control-Allow-Origin':'*'},json:[{category:'boundary',type:'administrative',addresstype:'city',name:'Miami',display_name:'Miami, Florida, United States',lat:'25.77417',lon:'-80.19362',address:{city:'Miami',state:'Florida'}}]}));
+ await p.locator('#editBtn').click();
+ await p.locator('#fCity .vs-q').fill('miami, fl');
+ await p.locator('#fCity .vs-go').click();
+ await p.locator('#fCity .vs-hit', {hasText:'Use Miami for planning'}).click();
+ check(!(await p.locator('#fSaveVenue').isEnabled()),'a city forecast cannot become a saved exact venue');
+ await p.locator('#fSave').click();
+ await p.locator('#editDlg').waitFor({state:'hidden'});
+ const miami=await p.evaluate(()=>EventStore.getEvent('ev_layout'));
+ check(miami.loc.approximate && miami.loc.lat===25.77417 && miami.tz==='America/New_York','city selection replaces the old coordinates and resolves Miami time when the lookup fails');
+ check((await p.locator('#evVenue').innerText()).includes('Miami, FL (area forecast)') && !(await p.locator('#opsHandoff').isVisible()),'city forecast is labeled and has no exact-venue monitoring link');
  }
  check(await p.locator('#loadGuard').count()===0,label+' no loading error banner after interaction and printing');
  check(errors.length===0,label+' no late script errors '+errors.join('; '));

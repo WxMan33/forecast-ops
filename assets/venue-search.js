@@ -13,6 +13,7 @@
   "use strict";
   const ENDPOINT = "https://nominatim.openstreetmap.org/search";
   const AREA = new Set(["city", "town", "village", "hamlet", "municipality", "county", "state", "postcode", "suburb", "neighbourhood", "quarter", "city_district", "borough", "region", "country", "state_district", "district", "province"]);
+  const SETTLEMENT = new Set(["city", "town", "village", "hamlet", "municipality"]);
   const SAME_PLACE_KM = 1.5;
   const km = (a, b) => { const R = 6371, t = (x) => (x * Math.PI) / 180, h = Math.sin(t(b.lat - a.lat) / 2) ** 2 + Math.cos(t(a.lat)) * Math.cos(t(b.lat)) * Math.sin(t(b.lon - a.lon) / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
   const STREET = { Avenue: "Ave", Street: "St", Boulevard: "Blvd", Parkway: "Pkwy", Road: "Rd", Drive: "Dr", Lane: "Ln", Court: "Ct", Place: "Pl", Highway: "Hwy", West: "W", East: "E", North: "N", South: "S" };
@@ -43,8 +44,9 @@
       const named = !!(x.name && String(x.name).trim());
       const kind = AREA.has(at) || x.category === "boundary" ? "area" : at === "road" && !a.house_number ? "street" : named && x.category !== "place" ? "venue" : "address";
       const address = formatAddress(a);
+      const settlement = SETTLEMENT.has(at) ? at : category === "boundary" ? [...SETTLEMENT].find(key => norm(a[key]) === norm(name) && norm(name)) : null;
       const state = stateCode(a);
-      return { name: kind === "venue" ? x.name : address.split(",")[0] || x.display_name.split(",")[0], address, state, lat: +(+x.lat).toFixed(5), lon: +(+x.lon).toFixed(5), kind, type: `${x.category}/${x.type}`, osm: x.osm_type && x.osm_id ? `${x.osm_type}/${x.osm_id}` : null, label: x.display_name };
+      return { name: kind === "venue" ? x.name : address.split(",")[0] || x.display_name.split(",")[0], address, state, settlement, lat: +(+x.lat).toFixed(5), lon: +(+x.lon).toFixed(5), kind, type: `${x.category}/${x.type}`, osm: x.osm_type && x.osm_id ? `${x.osm_type}/${x.osm_id}` : null, label: x.display_name };
     }).filter((p) => isFinite(p.lat) && isFinite(p.lon));
   }
   const norm = (t) => String(t || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -88,7 +90,7 @@
   }
 
   /* ---------------- browser: cached, rate-limited search ---------------- */
-  const CACHE = "venue_geo_v2:", DAY = 864e5;
+  const CACHE = "venue_geo_v3:", DAY = 864e5;
   const store = () => { try { return root.localStorage; } catch (e) { return null; } };
   let last = 0, chain = Promise.resolve();
   /* Searches run only when a planner presses Search on text they have reviewed: never automatically for calendar
@@ -148,28 +150,39 @@
 
   /* ---------------- browser: venue picker (search box, candidates, drop a pin) ----------------
      onPick(place) with { name, address, lat, lon, kind } */
-  function picker(host, { initial = "", onPick, label = "Venue name or street address" } = {}) { // searches only on Search / Enter
+  function picker(host, { initial = "", onPick, onNewSearch, allowArea = false, label = "Venue name or street address" } = {}) { // searches only on Search / Enter
     const esc = root.Ops.esc, id = `vs${Math.random().toString(36).slice(2, 8)}`;
     host.innerHTML = `<div class="vs"><div class="vs-row"><input type="search" class="vs-q" id="${id}" aria-label="${esc(label)}" placeholder="${esc(label)}" value="${esc(initial)}"><button type="button" class="bx-btn vs-go">Search</button><button type="button" class="bx-btn vs-pinbtn">Drop a pin</button></div>
       <div class="vs-msg bx-note" aria-live="polite"></div><div class="vs-res"></div><div class="vs-foot bx-note">${attribution()}</div></div>`;
     const q = host.querySelector(".vs-q"), msg = host.querySelector(".vs-msg"), res = host.querySelector(".vs-res");
+    let searchId = 0;
     const show = (places, note) => {
       msg.textContent = note || "";
-      res.innerHTML = places.map((p, i) => `<button type="button" class="vs-hit" data-i="${i}"><b>${esc(p.name)}</b><span class="bx-note">${esc(p.address || p.label || "")}${p.kind === "area" ? " · area only" : ""}</span></button>`).join("");
+      res.innerHTML = places.map((p, i) => `<button type="button" class="vs-hit" data-i="${i}"><b>${esc(p.kind === "area" ? `Use ${p.name} for planning` : p.name)}</b><span class="bx-note">${esc(p.address || p.label || "")}${p.kind === "area" ? " · area forecast" : ""}</span></button>`).join("");
       res.querySelectorAll(".vs-hit").forEach((b) => b.addEventListener("click", () => { const p = places[+b.dataset.i]; res.innerHTML = ""; msg.textContent = `Selected: ${p.name}${p.address ? " · " + p.address : ""}`; if (onPick) onPick(p); }));
     };
     const go = async () => {
       const text = q.value.trim(); if (!text) return;
+      const id = ++searchId;
+      if (onNewSearch) onNewSearch();
       msg.textContent = "Searching…"; res.innerHTML = "";
       try {
         const places = await search(text), exact = places.filter((p) => p.kind !== "area" && p.kind !== "street");
-        if (!exact.length) show([], places.length ? `Only a ${places[0].kind === "street" ? "street" : "city or area"} matches "${text}". Search for the venue name or street address, or drop a pin.` : `No place found for "${text}". Try the venue name with its city, or drop a pin.`);
+        if (id !== searchId) return;
+        const cities = allowArea ? places.filter(p => p.kind === "area" && p.settlement) : [];
+        if (!exact.length && cities.length) show(cities.slice(0, 6), "Choose a city for an area forecast, or search for a venue or street address for a site-specific forecast.");
+        else if (!exact.length) show([], places.length ? `Only a ${places[0].kind === "street" ? "street" : "city or area"} matches "${text}". Search for the venue name or street address, or drop a pin.` : `No place found for "${text}". Try the venue name with its city, or drop a pin.`);
         else show(exact.slice(0, 6), exact.length > 1 ? "Choose the place:" : "");
-      } catch (e) { show([], "Venue search is unavailable right now. Drop a pin or enter coordinates."); }
+      } catch (e) { if (id === searchId) show([], "Venue search is unavailable right now. Drop a pin or enter coordinates."); }
     };
+    q.addEventListener("input", () => {
+      searchId++;
+      show([], "");
+      if (onNewSearch) onNewSearch();
+    });
     host.querySelector(".vs-go").addEventListener("click", go);
     q.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); go(); } });
-    host.querySelector(".vs-pinbtn").addEventListener("click", async () => { const p = await pinDialog(null); if (p) { const place = { name: q.value.trim() || "Dropped pin", address: `Pin at ${p.lat}, ${p.lon}`, lat: p.lat, lon: p.lon, kind: "pin" }; msg.textContent = `Selected: ${place.address}`; res.innerHTML = ""; if (onPick) onPick(place); } });
+    host.querySelector(".vs-pinbtn").addEventListener("click", async () => { const id = ++searchId, p = await pinDialog(null); if (p && id === searchId) { const place = { name: q.value.trim() || "Dropped pin", address: `Pin at ${p.lat}, ${p.lon}`, lat: p.lat, lon: p.lon, kind: "pin" }; msg.textContent = `Selected: ${place.address}`; res.innerHTML = ""; if (onPick) onPick(place); } });
     return { search: go, set(v) { q.value = v; } };
   }
 
