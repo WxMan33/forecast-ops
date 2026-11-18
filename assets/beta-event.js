@@ -60,7 +60,7 @@
     const where = { lat: ev.loc.lat, lon: ev.loc.lon }, mk = S.market(ev.loc.lat, ev.loc.lon);
     picker.setCurrent({ name: ev.loc.name }); document.body.dataset.place = ev.loc.name; document.body.dataset.loaded = ""; document.body.dataset.office = ""; document.body.dataset.tz = ev.tz; document.body.dataset.market = mk.tuned ? "tuned" : "default";
     context();
-    $("briefUpdate").hidden = true; $("opsHandoff").hidden = true; $("secAttention").hidden = true;
+    $("briefUpdate").hidden = true; $("opsHandoff").hidden = true; $("secAttention").hidden = true; printReady(false);
     /* nothing from the previous briefing (another venue, or guidance that has since failed) may stay on screen or in print */
     lastRes = null; lastView = null;
     if (chartController) { chartController.destroy(); chartController = null; }
@@ -306,7 +306,11 @@
     const host = $("printView"); if (!host || !lastView || !res) return;
     renderSupport(res, lastView.b);
     host.innerHTML = BUI.printMarkup({ ev, res: { ...res, feeds: res.eventFeeds || res.feeds }, view: lastView, S, U });
+    printReady(true);
   }
+  /* the top Print button is live only once a full briefing exists to print */
+  function printReady(on) { const b = $("printTop"); if (!b) return; b.disabled = !on; $("printTopNote").textContent = on ? "Two US Letter pages: the decision and timing, then hour by hour." : "Available once the briefing loads."; }
+  $("printTop").addEventListener("click", () => { if (!lastRes) return; printView(lastRes); window.print(); });
   window.addEventListener("beforeprint", () => printView(lastRes));
 
   view();

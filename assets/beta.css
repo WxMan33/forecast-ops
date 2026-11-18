@@ -478,7 +478,7 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 
 /* Which part needs attention, and when: aligned schedule, rain, gust-limit and lightning tracks.
    One markup for screen and print. Grayscale-safe: hatching = missing guidance, solid dark = meets the hourly rule. */
-.at { margin: 10px 0 6px; --at-val: color-mix(in srgb, var(--text) 38%, transparent); --at-hit: var(--text); --at-bg: color-mix(in srgb, var(--text) 5%, transparent); --at-rule: var(--bx-rule, var(--line)); --at-main: color-mix(in srgb, var(--text) 82%, transparent); --at-main-ink: var(--bg); }
+.at { margin: 10px 0 6px; --at-val: color-mix(in srgb, var(--text) 30%, transparent); --at-hit: var(--prepare, var(--text)); --at-bg: color-mix(in srgb, var(--text) 5%, transparent); --at-rule: var(--bx-rule, var(--line)); --at-main: color-mix(in srgb, var(--text) 82%, transparent); --at-main-ink: var(--bg); }
 .at-row { display: grid; grid-template-columns: 108px minmax(0, 1fr); gap: 8px; align-items: end; }
 .at-row + .at-row { margin-top: 4px; }
 .at-row > b { font-size: 12px; line-height: 1.15; align-self: center; }
@@ -511,7 +511,7 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .at-key .k-gap { background: repeating-linear-gradient(135deg, transparent 0 2px, var(--text) 2px 3px); border: 1px solid var(--at-rule); }
 .at-key .k-unc { border: 2px dotted var(--text); } .at-key .k-win { border: 2px solid var(--text); }
 .at-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 7px; }
-.at-list li { display: flex; gap: 8px; font-size: 14px; }
+.at-list li { display: flex; gap: 8px; font-size: 14px; padding-left: 10px; border-left: 3px solid var(--prepare, var(--text)); }
 .at-list li > div > span { display: block; color: var(--muted); font-size: 12.5px; margin-top: 1px; }
 .at-n { flex: none; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--text); color: var(--bg); font-size: 11px; font-weight: 700; margin-top: 1px; }
 .at-more { color: var(--muted); font-size: 12px; padding-left: 26px; }
@@ -535,7 +535,7 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
   .pv .at-key { font-size: 7pt; gap: 1pt 9pt; margin-top: 2pt; }
   .pv .at-key i { width: 9pt; height: 6pt; }
   .pv .at-list { margin: 3pt 0 0; gap: 2pt; }
-  .pv .at-list li { font-size: 9pt; gap: 5pt; line-height: 1.2; }
+  .pv .at-list li { font-size: 9pt; gap: 5pt; line-height: 1.2; padding-left: 5pt; border-left: 2pt solid #17202a; }
   .pv .at-list li > div > span { font-size: 8pt; display: inline; margin-left: 4pt; }
   .pv .at-n { width: 10pt; height: 10pt; font-size: 6.5pt; }
   .pv .at-none { font-size: 9pt; margin: 3pt 0 0; }
@@ -556,3 +556,10 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
   .pv-hours td.pv-over { font-weight: 700; }
   .pv-hours td.pv-over small { font-size: 7pt; font-weight: 400; }
 }
+
+/* Print / PDF sits right under the event name, before the decision, so it is easy to find. */
+.bx-printbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 10px 0 4px; }
+.bx-print { font-weight: 600; border-width: 1.5px; }
+.bx-print span { font-size: 1.15em; margin-right: 2px; }
+.bx-print:disabled { opacity: .5; cursor: default; }
+@media (max-width: 600px) { .bx-printbar .bx-note { flex-basis: 100%; } }
