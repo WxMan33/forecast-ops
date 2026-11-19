@@ -17,7 +17,7 @@
   const linkCity = (() => { const lat = parseFloat(Q.get("lat")), lon = parseFloat(Q.get("lon")); return fin(lat) && fin(lon) ? { name: Q.get("name") || `${lat.toFixed(3)}, ${lon.toFixed(3)}`, lat, lon, tz: Q.get("tz") || null } : null; })();
   const sampleAt = (city) => S.sampleEvent(C, Date.now(), (city && city.tz) || "America/New_York", 1, city || null);
   let retried = false;
-  let lastView = null, chartController = null, updatedMs = null, lastHourly = null;
+  let lastView = null, chartController = null, updatedMs = null, lastHourly = null, hourlyJumped = false;
   let ev = storedOk(Q.get("ev")) || linkEvent || (linkCity ? null : storedOk(E.last())) || null, tzFromPick = false, pickSeq = 0, gen = 0, lastRes = null, bus = null, pendingCity = linkCity;
   if (!ev) ev = sampleAt(linkCity && linkCity.tz ? linkCity : null);
   const isSample = () => !!ev.sample, isStored = () => !!(ev.id && E.getEvent(ev.id));
@@ -311,7 +311,10 @@
     showHour(sel0);
     lastHourly = { V, nwsTypes }; $("tvExport").disabled = false; $("tvExport").title = "Save a 1920 × 1080 image of these hours for a TV display";
     /* a display link (…#hourly) opens straight to these charts */
-    if (location.hash === "#hourly") { const d = $("secHourly"); d.open = true; requestAnimationFrame(() => d.scrollIntoView({ block: "start" })); }
+    if (location.hash === "#hourly" && !hourlyJumped) { hourlyJumped = true; const d = $("secHourly"); d.open = true;
+      /* alerts, the map and late sources can still grow the page above; keep the section in place until the viewer acts */
+      let user = false; const stop = () => { user = true; }; ["wheel", "touchstart", "keydown", "mousedown"].forEach((t) => addEventListener(t, stop, { once: true, passive: true }));
+      [0, 400, 1200, 2500, 5000].forEach((ms) => setTimeout(() => { if (!user) d.scrollIntoView({ block: "start" }); }, ms)); }
     if (bus) bus.on((ms) => { const hm = Math.floor(ms / H) * H; if (V.span.includes(hm)) { grid.setSelected(hm); chartController.setSelected(hm); showHour(hm); } });
   }
   function briefingUpdate(event, b, V, res) {
