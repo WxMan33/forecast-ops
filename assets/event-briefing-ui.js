@@ -177,6 +177,66 @@
     else text = listWords(ranked.map((r) => r[0].toLowerCase())).replace(/^./, (c) => c.toUpperCase());
     return { text, from, to };
   }
+  /* "1–5 PM", "5–7:30 PM", "11 PM–1 AM"; a time on another day than `day0Ms` names that weekday */
+  function clockSpan(s, e, tz, day0Ms = s) {
+    const parts = (ms) => { const t = clock(ms, tz), m = t.match(/^(.*?)\s*(AM|PM)$/); return m ? { t: m[1], ap: m[2] } : { t, ap: '' }; };
+    const wd = (ms) => new Date(ms).toLocaleDateString('en-US', { timeZone: tz, weekday: 'short' });
+    const a = parts(s), z = parts(e), d0 = dayKey(day0Ms, tz), lead = dayKey(s, tz) !== d0 ? `${wd(s)} ` : '', tail = dayKey(e - 1, tz) !== dayKey(s, tz) && dayKey(e, tz) !== d0 ? `${wd(e)} ` : '';
+    return a.ap === z.ap && !tail ? `${lead}${a.t}–${z.t} ${z.ap}` : `${lead}${a.t} ${a.ap}–${tail}${z.t} ${z.ap}`;
+  }
+  /* the event schedule, once, for the screen and the printout alike */
+  function scheduleHtml(phases, tz, cls = 'ev-schedule sch-bar sch-labels') {
+    if (!phases.length) return '';
+    return `<ol class="${cls}">${phases.map((p) => `<li data-phase="${esc(p.key)}"><b>${esc(p.label)}</b><span>${esc(clockSpan(p.startMs, p.endMs, tz, phases[0].startMs))}</span></li>`).join('')}</ol>`;
+  }
+  /* "during setup", "during setup and early gates", "from setup through teardown": the phases a window touches, with
+     "early"/"late" when it covers less than half of the first or last of them */
+  function phaseWords(from, to, phases) {
+    const hit = phases.filter((p) => p.startMs < to && p.endMs > from);
+    if (!hit.length) return '';
+    const name = (p, i) => { const mid = (p.startMs + p.endMs) / 2, low = p.label.toLowerCase();
+      if (hit.length > 1 && i === hit.length - 1 && to <= mid) return `early ${low}`;
+      if (hit.length > 1 && i === 0 && from >= mid) return `late ${low}`;
+      if (hit.length === 1 && to <= mid && from <= p.startMs) return `early ${low}`;
+      if (hit.length === 1 && from >= mid && to >= p.endMs) return `late ${low}`;
+      return low; };
+    const w = hit.map(name);
+    if (hit.length >= 3) return `from ${w[0]} through ${w[w.length - 1]}`;
+    return `during ${w.join(' and ')}`;
+  }
+  /* page 1's "What to plan for": one plain line per concern, timed inside the planning window */
+  function planLines(A, b, lightAll, tz, pct) {
+    const lo = b.all.startMs, hi = b.all.endMs, out = [];
+    const clip = (it) => { const ws = it.windows.map((w) => ({ ...w, from: Math.max(lo, w.from), to: Math.min(hi, w.to) })).filter((w) => w.to > w.from);
+      return ws.length ? { from: ws[0].from, to: ws[ws.length - 1].to, ws } : null; };
+    const when = (c) => `${phaseWords(c.from, c.to, b.phases)} (${clockSpan(c.from, c.to, tz, lo)})`;
+    const uncertain = (it) => it.phaseOnly.length ? ` Exact time uncertain during ${listWords(it.phaseOnly.map((x) => x.toLowerCase()))}.` : '';
+    A.items.forEach((it) => {
+      const c = clip(it);
+      if (it.key === 'rain') {
+        const verb = it.level >= 3 ? 'Expect disruptive rain' : it.level === 2 ? 'Plan for rain' : 'Watch for rain';
+        const pk = c ? Math.max(...c.ws.map((w) => (w.peak && Number.isFinite(w.peak.v) ? w.peak.v : 0))) : null;
+        out.push({ key: 'rain', text: c ? `${verb} ${when(c)}${pk ? `; hourly chance up to ${pct(pk)}` : ''}.${uncertain(it)}` : `${verb} during ${listWords(it.phaseOnly.map((x) => x.toLowerCase()))}; exact time uncertain.` });
+      } else if (it.key === 'wind') {
+        const pk = c ? Math.max(...c.ws.map((w) => (w.peak && Number.isFinite(w.peak.v) ? w.peak.v : 0))) : it.peak && it.peak.v;
+        out.push({ key: 'wind', text: c ? `Gusts may reach the venue’s ${it.limit} mph limit ${when(c)}; up to ${Math.round(pk)} mph.` : `Gusts up to ${Math.round(pk)} mph, below the venue’s ${it.limit} mph limit.` });
+      } else if (it.key === 'lightning') {
+        const w = c && c.ws.some((x) => x.peak === 'High') ? 'High' : 'Moderate';
+        out.push({ key: 'lightning', text: c ? `${w} lightning potential ${when(c)}. This is a forecast, not detected lightning.` : `${w} lightning potential during ${listWords(it.phaseOnly.map((x) => x.toLowerCase()))}. This is a forecast, not detected lightning.` });
+      } else out.push({ key: it.key, text: `${it.label}: ${(it.word || '').toLowerCase()}${c ? ` ${when(c)}` : ''}.` });
+    });
+    if (!A.items.some((x) => x.key === 'lightning')) out.push({ key: 'lightning', text: lightAll.state === 'missing' ? 'Lightning guidance is unavailable for these hours; follow NWS forecasts and your lightning policy.'
+      : `Lightning potential is ${lightAll.base ? lightAll.base.toLowerCase() : 'low'}${lightAll.limited ? ', with some hours missing guidance' : ''}. This is a forecast, not detected lightning; low is not zero.` });
+    if (!A.items.length) out.unshift({ key: 'none', text: 'No weather concern for the event in the current forecast.' });
+    return out;
+  }
+  /* page 2's phase column in plain words: "Setup", "Gates from 4:30", "Teardown until 11:30", "Setup until 4:30, then Gates" */
+  function phaseCellText(cover, ms, tz) {
+    if (!cover || !cover.length) return '';
+    const mm = (min) => clock(ms + Math.round(min) * 60e3, tz);
+    if (cover.length === 1) { const c = cover[0]; return c.starts && c.from > 0 ? `${c.label} from ${mm(c.from)}` : c.ends && c.to < 60 ? `${c.label} until ${mm(c.to)}` : c.label; }
+    return cover.map((c, i) => (i === 0 ? `${c.label} until ${mm(c.to)}` : `then ${c.label}`)).join(', ');
+  }
   /* Page 2 shows up to 24 hours: from the start, unless the most important window would fall outside them */
   function pageHours(A, V, n = 24) {
     const total = V.span.length;
@@ -203,37 +263,65 @@
     });
     return { shown, total: inWin.length, omitted: inWin.length - shown.length, cut, lead };
   }
-  function printMarkup({ev,res,view,S,U}) {
-    const {b,V,PS,peak,lightAll,nwsTh,R,checks,top} = view, tz=ev.tz, now=res.ctx.now;
-    const issued=res.ctx.B.viewedAt||now, issue=`${date(issued,tz)} · ${clock(issued,tz)} ${zone(issued,tz)}`;
-    const main=b.phases.find(p=>p.key==='event')||b.all, A=view.A||attention({b,V,S,thr:{gust:ev.gust||25}}), PH=pageHours(A,V), off=PH.start, hours=V.span.slice(off,off+PH.count), clipped=PH.clipped;
-    const area=!!(ev.loc&&ev.loc.approximate), first=A.primary?attentionText(A.primary,tz,1):null, nextCk=checks[0], missingH=A.hours.filter(x=>x.rain.v==null||x.wind.v==null||x.lightning.v==null).length;
-    const decision=headline(b,!top&&R&&R.state==='partial'?`No weather concern so far for ${R.inRange}.`:S.decision(b).text);
-    const row=k=>V.rows.find(r=>r.key===k), cell=(k,i)=>{const c=row(k)?.cells[i+off];return c ? c.text||'' : '—';};
-    const temp=P=>P.temp?Math.round(P.temp.lo)===Math.round(P.temp.hi)?`${Math.round(P.temp.lo)}°`:`${Math.round(P.temp.lo)}–${Math.round(P.temp.hi)}°`:'—';
-    const light=P=>P.lightning.word+(P.lightning.state==='limited'?' (limited)':'');
-    const nws=res.NW&&res.NW.ok?res.NW:null, NP=nwsPrint(nws?nws.periods:[],main,b.all), per=NP.shown;
-    const foot=(n,mid='')=>`<footer class="pv-footer"><span>Forecast Ops · ${esc(ev.name.replace(/ \(sample\)$/,''))}</span>${mid}<span>${n} / 2</span></footer>`;
-    const sub=R?.state==='ready'?'Forecast covers setup through teardown.':R?.state==='partial'?R.line:'Hourly guidance does not reach this event yet.';
-    return `<section class="pv-page pv-p1"><header class="pv-head"><div><span class="pv-kicker">FORECAST OPS / EVENT BRIEFING</span><h1 class="pv-title">${esc(ev.name.replace(/ \(sample\)$/, ''))}</h1><div class="pv-venue">${esc(ev.loc.name)}</div>${area?'<div class="pv-area">City-area forecast for planning, not a site-specific venue forecast.</div>':''}</div><div class="pv-iss"><b>Issued</b><br>${esc(issue)}</div></header>
-      <div class="pv-takeaway"><h2 class="pv-dec">${esc(decision)}</h2><p>${esc(sub)}</p></div>
-      <div class="pv-dates"><div><b>Event</b><span>${esc(dateSpan(main.startMs,main.endMs,tz))}</span></div><div><b>Planning window</b><span>${esc(dateSpan(b.all.startMs,b.all.endMs,tz))}</span></div></div>
-      <dl class="pv-keys"><dt>Needs attention</dt><dd data-attention>${first?`<b>${esc(first.what)}</b><small>${esc(first.when)}</small>`:R&&R.state==='pending'?'Not in range yet':`<b>Nothing in the schedule needs weather attention right now</b><small>${missingH?`${missingH} hour${missingH>1?'s have':' has'} no forecast data, so that part is not an all-clear.`:`Rain, gusts against your ${A.limit} mph limit and lightning checked hour by hour.`}</small>`}</dd><dt>Next check</dt><dd data-next>${nextCk?`<b>${esc(date(nextCk.at,tz))}, ${esc(clock(nextCk.at,tz))} ${esc(zone(nextCk.at,tz))}</b><small>${esc(nextCk.what)}</small>`:'Now: use radar, lightning detection and NWS warnings.'}</dd><dt>Peak hourly rain chance</dt><dd>${peak?`<b>${esc(U.pct(peak.v))}</b> · ${esc(date(peak.at,tz))}, ${esc(hourWindow(peak.at,tz))}`:'Unavailable'}</dd><dt>Lightning potential</dt><dd><b>${esc(lightAll.word)}</b>${lightAll.base==='Low'?' · Low is not zero.':''}</dd></dl>
-      ${sourceHtml(res)}
-      <h2 class="pv-section">Which part needs attention, and when</h2>${attentionHtml(A,{tz,pageHours:PH,idPrefix:'pv'})}${attentionList(A,tz,3,1)}<table class="pv-t pv-phases"><thead><tr><th>Phase / local time</th><th>Planning note</th><th>Rain / lightning</th><th>Temperature / gusts</th></tr></thead><tbody>${b.phases.map((p,i)=>{const P=PS[i];return `<tr data-phase="${esc(p.key)}"><td><b>${esc(p.label)}</b> <small class="pv-in">${esc(U.fmt.span(p.startMs,p.endMs,tz))}</small></td><td>${p.level?`${esc(S.HAZARDS[p.top].label)}: ${esc(S.LEVEL_WORD[p.level].toLowerCase())}`:P.covered?'No concern identified':'Not in range yet'}${P.covered<P.of?`<small>${P.covered} of ${P.of} hours in range</small>`:''}</td><td><b data-peak>${esc(P.peakPop?U.pct(P.peakPop.v):'—')}</b> peak hourly${P.peakPop?` <small class="pv-in">${esc(hourWindow(P.peakPop.at,tz))}</small>`:''}<small>Lightning: ${esc(light(P))}</small></td><td><b>${esc(temp(P))}</b> <small class="pv-in">Gusts ${esc(P.gust?Math.round(P.gust.v)+' mph':'unavailable')}</small>${P.gust&&S.HAZARDS.wind.hour({gust:P.gust.v},{gust:A.limit})?`<small><b>≥ ${A.limit} mph venue limit</b></small>`:''}</td></tr>`;}).join('')}</tbody></table>
-      
-      <div class="pv-next"><section><h2 class="pv-section">Official NWS forecast</h2>${per.length?`<ul class="pv-nws">${per.map(p=>`<li data-nws-period><b>${esc(p.name)}:</b> ${esc(p.text)}${p.temp!=null?`, ${Math.round(p.temp)}°`:''}${Number.isFinite(p.pop)?` · ${esc(U.pct(p.pop))} precip chance`:''}${p.thunder?' · <b>Thunderstorms mentioned</b>':''}</li>`).join('')}</ul>`:'<p class="pv-note">NWS forecast unavailable for this window.</p>'}
-      ${nwsTh.length?`<p class="pv-note"><b>NWS mentions thunderstorms.</b>${lightAll.base==='Low'?' The model signal is low; thunderstorms remain possible.':''}</p>`:''}<p class="pv-note">${nws?`NWS ${esc(nws.office)} · `:''}${NP.cut||NP.omitted?`${NP.omitted?`${NP.shown.length} of ${NP.total} periods${NP.cut?', shortened':''}`:'Shortened'} to fit this page; the on-screen briefing has the full NWS wording.`:'Forecast periods shown as issued.'}</p></section>
-      <section><h2 class="pv-section">When to check again</h2><ul class="pv-checks">${(checks.length?checks.slice(0,3):[{at:now,what:'Use radar, lightning detection and NWS warnings'}]).map(c=>`<li><b>${esc(date(c.at,tz))}, ${esc(clock(c.at,tz))} ${esc(zone(c.at,tz))}</b> · ${esc(c.what)}</li>`).join('')}</ul></section></div>
-      ${foot(1,'<span class="pv-policy">Forecast planning guidance. For live decisions, follow NWS warnings and your venue’s lightning policy.</span>')}</section>
-      <section class="pv-page pv-p2${hours.length>16?' pv-dense':''}"><header class="pv-head"><div><span class="pv-kicker">FORECAST OPS / HOURLY DETAIL</span><h2 class="pv-title">Hour by hour</h2><div class="pv-venue">${esc(ev.loc.name)}</div></div><div class="pv-iss">Issued ${esc(issue)}</div></header>
-      <p class="pv-hours-window" data-page-hours="${PH.start}-${PH.start+PH.count}"><b>Hours shown:</b> ${hours.length?esc(dateSpan(hours[0],hours[hours.length-1]+H,tz)): 'No hours available'}${clipped?`<br><b>${PH.fromStart?'First 24 hours only':'24 of '+PH.total+' planning hours'}</b>${PH.fromStart?` (24 of ${PH.total})`:', chosen to include the first concern on page 1'}; open the briefing for the rest.`:''}</p>
-      <table class="pv-t pv-hours"><thead><tr><th>Hour / phase</th><th>Temp<br>°F</th><th>Feels<br>°F</th><th>Rain<br>chance</th><th>Amount<br>in.</th><th>Lightning</th><th>Wind<br>mph</th><th>Gusts<br>mph</th></tr></thead><tbody>${hours.map((ms,i)=>`<tr data-ms="${ms}"><td><b>${esc(V.axis[i+off].newDay||i===0?U.fmt.day(ms,tz)+' ':'')}${esc(V.axis[i+off].hourText)}${V.axis[i+off].showZone||i===0?` ${esc(V.axis[i+off].zone)}`:''}</b><small>${esc(cell('phase',i))}</small></td><td>${esc(cell('temp',i))}</td><td>${esc(cell('feel',i))}</td><td data-pop>${esc(cell('pop',i))}${V.hrs[i+off]?.state === 'ok' && Number.isFinite(V.hrs[i+off].pop) ? `<span class="pv-hour-bar" aria-hidden="true" style="--pop:${Math.min(100,Math.max(0,V.hrs[i+off].pop))}%"></span>` : ''}</td><td>${esc(cell('qpf',i))}</td><td>${esc(cell('lightning',i))}</td><td>${esc(cell('wind',i))}</td><td${A.hours[i+off]?.wind.signal?' class="pv-over" data-over':''}>${esc(cell('gust',i))}${A.hours[i+off]?.wind.signal?'<small> ≥ limit</small>':''}</td></tr>`).join('')}</tbody></table>
-      ${res.support ? root.ForecastSupport.html(res.support,{compact:true}) : ""}
-      <div class="pv-reading"><h2 class="pv-section">Reading this briefing</h2><p>Phase planning notes are on page 1. They do not mean every hour has the same threat. Each phase lists its highest single-hour rain chance; an hour that crosses a phase boundary counts in both phases. Rain is the blended hourly chance at the venue. Low lightning potential is not zero, and it is a forecast, not detected lightning; Unavailable means guidance is missing. Gusts marked “≥ limit” reach your ${A.limit} mph venue limit. A dash is missing data, not a forecast of none.</p></div>
-      <p class="pv-src">${esc(res.recipe)}${res.market.tuned?' · Cincinnati weights; verification under way.':' · Weights unverified for this market.'} ${area?'City-area forecast at':'Forecast at'} ${Number(ev.loc.lat).toFixed(4)}, ${Number(ev.loc.lon).toFixed(4)}. Times are the venue's local time (${esc(tz)}). Data: Open-Meteo (CC BY 4.0), National Weather Service, NOAA. Model guidance only, not an official forecast or warning.</p>${foot(2)}</section>`;
+  /* The two-page printout. Page 1 is a handout anyone can read: the event, official alerts, one planning headline,
+     what to plan for and when, the schedule, and the next weather check. Page 2 is the hour-by-hour reference.
+     Values come from the same briefing as the screen; nothing here recalculates the forecast. Black-and-white safe. */
+  function printMarkup({ ev, res, view, S, U }) {
+    const { b, V, lightAll, nwsTh, R, checks, top } = view, tz = ev.tz, now = res.ctx.now, name = ev.name.replace(/ \(sample\)$/, '');
+    const A = view.A || attention({ b, V, S, thr: { gust: ev.gust || 25 } }), PH = pageHours(A, V), off = PH.start, hours = V.span.slice(off, off + PH.count), clipped = PH.clipped;
+    const issued = res.ctx.B.viewedAt || now, issue = `${date(issued, tz)} · ${clock(issued, tz)} ${zone(issued, tz)}`;
+    const main = b.phases.find((p) => p.key === 'event') || b.all, area = !!(ev.loc && ev.loc.approximate), nextCk = checks[0];
+    const decision = headline(b, !top && R && R.state === 'partial' ? `No weather concern so far for ${R.inRange}.` : S.decision(b).text);
+    const foot = (n) => `<footer class="pv-footer"><span class="pv-footer-l">${esc(name)}</span><span class="pv-policy">This is forecast planning guidance. For live decisions, follow official NWS warnings and your venue’s lightning and weather policy.</span><span>${n} / 2</span></footer>`;
+    /* official alerts: their own labelled box; if alerts could not be checked, say so rather than imply none */
+    const alerts = res.alerts || [], alertBox = res.alertsAvailable === false
+      ? '<div class="pv-alerts pv-alerts-off"><b>Official NWS alerts</b><span>Could not be checked when this was printed. Check weather.gov before the event.</span></div>'
+      : alerts.length ? `<div class="pv-alerts"><b>Official NWS alert${alerts.length > 1 ? 's' : ''} in effect</b>${alerts.slice(0, 3).map((x) => `<span>${esc(x.event)}${x.ends ? ` until ${esc(date(Date.parse(x.ends), tz))}, ${esc(clock(Date.parse(x.ends), tz))}` : ''}</span>`).join('')}</div>` : '';
+    const lines = planLines(A, b, lightAll, tz, (v) => U.pct(v));
+    /* a practical gap, in one line, only when it changes what a reader can rely on */
+    const f = res.feeds, total = f ? f.used.length + f.missing.length : 0;
+    const gap = R && R.state === 'partial' ? `The forecast does not reach the whole event yet: ${R.line}. Check again for the rest.`
+      : total && f.used.length / total < 0.7 ? 'Only part of the usual forecast data reaches these hours, so timing could shift. Check again at the next weather check.' : '';
+    const nws = res.NW && res.NW.ok ? res.NW : null, NP = nwsPrint(nws ? nws.periods : [], main, b.all), per = NP.shown;
+    const p1 = `<section class="pv-page pv-p1">
+      <header class="pv-head"><div><span class="pv-kicker">Event weather briefing</span><h1 class="pv-title">${esc(name)}</h1><div class="pv-venue">${esc(ev.loc.name)}</div>
+        <div class="pv-when">${esc(dateSpan(main.startMs, main.endMs, tz))}</div>${area ? '<div class="pv-area">City-area forecast for planning, not a site-specific venue forecast.</div>' : ''}</div>
+        <div class="pv-iss"><b>Issued</b><br>${esc(issue)}</div></header>
+      ${alertBox}
+      <div class="pv-takeaway"><h2 class="pv-dec">${esc(decision)}</h2></div>
+      <h2 class="pv-section">What to plan for</h2>
+      <ul class="pv-plan">${lines.map((l) => `<li data-key="${esc(l.key)}">${esc(l.text)}</li>`).join('')}</ul>
+      ${gap ? `<p class="pv-gap">${esc(gap)}</p>` : ''}
+      <h2 class="pv-section">Event schedule</h2>
+      ${scheduleHtml(b.phases, tz, 'pv-sched')}
+      <p class="pv-nextcheck"><b>Next weather check:</b> ${nextCk ? `${esc(date(nextCk.at, tz))}, ${esc(clock(nextCk.at, tz))} ${esc(zone(nextCk.at, tz))} · ${esc(nextCk.what)}` : 'Now: use radar, lightning detection and official NWS warnings.'}</p>
+      <h2 class="pv-section">Official NWS forecast</h2>
+      ${per.length ? `<ul class="pv-nws">${per.map((p) => `<li data-nws-period><b>${esc(p.name)}:</b> ${esc(p.text)}${p.thunder ? ' Thunderstorms mentioned.' : ''}</li>`).join('')}</ul>` : '<p class="pv-note">The NWS forecast was unavailable when this was printed.</p>'}
+      <p class="pv-note">From the National Weather Service${nws ? ` (${esc(nws.office)} office)` : ''}${NP.cut || NP.omitted ? '; shortened to fit, full wording on the website' : ''}.${nwsTh.length && lightAll.base === 'Low' ? ' The NWS mentions thunderstorms; treat them as possible.' : ''}</p>
+      ${foot(1)}</section>`;
+    /* page 2: one table; missing data is written out; the venue limit is named where gusts reach it */
+    const row = (k) => V.rows.find((r) => r.key === k), cellText = (k, j) => { const c = row(k) && row(k).cells[j]; return c ? c.text || '' : ''; };
+    const nd = '<span class="pv-nd">no data</span>';
+    const body = hours.map((ms, i) => {
+      const j = i + off, h = V.hrs[j] || {}, ok = h.state === 'ok', a = V.axis[j], x = A.hours[j] || {};
+      const newDay = i === 0 || dayKey(ms, tz) !== dayKey(hours[i - 1], tz);
+      const time = `${newDay ? `<span class="pv-day">${esc(shortDay(ms, tz))}</span>` : ''}${esc(a.hourText)}${a.showZone || i === 0 ? ` ${esc(a.zone)}` : ''}`;
+      const pop = ok && Number.isFinite(h.pop) ? esc(cellText('pop', j)) : nd;
+      const gust = ok && Number.isFinite(h.gust) ? `${Math.round(h.gust)} mph${x.wind && x.wind.signal ? `<small>Reaches ${A.limit} mph venue limit</small>` : ''}` : nd;
+      const lc = row('lightning') && row('lightning').cells[j], light = !ok || !lc || lc.state === 'missing' ? nd : esc(lc.state === 'concern' ? lc.text : 'Low');
+      return `<tr data-ms="${ms}"><td class="pv-time">${time}</td><td>${esc(phaseCellText(V.cover[j], ms, tz))}</td><td>${ok && Number.isFinite(h.temp) ? `${Math.round(h.temp)}°F` : nd}</td><td data-pop>${pop}</td><td${x.wind && x.wind.signal ? ' class="pv-over" data-over' : ''}>${gust}</td><td>${light}</td></tr>`;
+    }).join('');
+    const span1 = hours.length ? dateSpan(hours[0], hours[hours.length - 1] + H, tz) : 'No hours available';
+    const p2 = `<section class="pv-page pv-p2${hours.length > 16 ? ' pv-dense' : ''}">
+      <header class="pv-head"><div><span class="pv-kicker">Hour-by-hour forecast</span><h2 class="pv-title">${esc(name)}</h2><div class="pv-venue">${esc(ev.loc.name)}</div></div><div class="pv-iss"><b>Issued</b><br>${esc(issue)}</div></header>
+      <p class="pv-hours-window" data-page-hours="${PH.start}-${PH.start + PH.count}"><b>Hours shown:</b> ${esc(span1)}${clipped ? `<br><b>${PH.fromStart ? 'First 24 hours only' : `24 of ${PH.total} planning hours`}</b>${PH.fromStart ? ` (24 of ${PH.total})` : ', chosen to include the first concern on page 1'}; open the briefing for the rest.` : ''}</p>
+      <table class="pv-t pv-hours"><thead><tr><th>Local time</th><th>Phase</th><th>Temperature</th><th>Rain chance</th><th>Wind gusts</th><th>Lightning potential</th></tr></thead><tbody>${body}</tbody></table>
+      <p class="pv-legend">Times are the venue's local time (${esc(tz)}). Rain chance is the chance of rain at the venue in that hour. Lightning potential is a forecast, not detected lightning; low is not zero. “No data” means no forecast was available for that hour, not zero.${gap ? ` ${esc(gap)}` : ''}</p>
+      <p class="pv-src">Data: Open-Meteo (CC BY 4.0), National Weather Service, NOAA. Model guidance only, not an official forecast or warning.${area ? ' City-area forecast, not site-specific.' : ''}</p>
+      ${foot(2)}</section>`;
+    return p1 + p2;
   }
-  const api={date,dateSpan,hourWindow,windowText,headline,coverage,eventFeeds,sourceHtml,rainAmount,nwsPrint,focusOf,attention,attentionText,attentionHtml,attentionList,pageHours,printMarkup};
+  const api={date,dateSpan,hourWindow,windowText,headline,coverage,eventFeeds,sourceHtml,rainAmount,nwsPrint,focusOf,clockSpan,scheduleHtml,phaseWords,planLines,phaseCellText,attention,attentionText,attentionHtml,attentionList,pageHours,printMarkup};
   if(typeof module!=='undefined'&&module.exports) module.exports=api;
   root.EventBriefingUI=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

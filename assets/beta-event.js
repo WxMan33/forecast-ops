@@ -25,7 +25,10 @@
   if (!linkEvent && !linkCity && !isSample()) { const last = O.store.get(SEEN, null); let sess = null; try { sess = sessionStorage.getItem("beta_sess_seen"); sessionStorage.setItem("beta_sess_seen", "1"); } catch (e) { /* no storage */ }
     if (last && !sess) U.track("event_revisited"); }
   const link = () => { const u = new URL(location.href); u.hash = ""; u.search = isSample() ? new URLSearchParams({ lat: ev.loc.lat, lon: ev.loc.lon, name: ev.loc.name, tz: ev.tz }) : new URLSearchParams({ e: S.eventToParam(ev) }); return u.toString(); };
-  const head = U.header({ audience: "Event", other: { self: "event-beta.html", href: "meteorologist-beta.html", label: "Met" }, ctx: `<div id="picker" class="bx-ctx" style="flex:1 1 auto"></div>` });
+  /* Print / PDF sits in the toolbar with the other page controls (before Feedback); live once a briefing is ready */
+  const PRINT_ICON = '<svg class="bx-ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 6V1.5h8V6M4 12H2.5A1 1 0 0 1 1.5 11V7a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H12M4 9.5h8v5H4z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+  const head = U.header({ audience: "Event", other: { self: "event-beta.html", href: "meteorologist-beta.html", label: "Met" }, ctx: `<div id="picker" class="bx-ctx" style="flex:1 1 auto"></div>`,
+    actions: `<button class="bx-btn bx-print" type="button" id="printTop" disabled title="Available once the briefing loads">${PRINT_ICON}<span>Print / PDF</span></button>` });
   document.title = "Event briefing beta · Forecast Ops";
   const picker = U.placePicker($("picker"), { current: { name: ev.loc.name }, link, label: "Venue city",
     async onPick(p) { const my = ++pickSeq; const tz = p.tz || await O.zoneFor(p.lat, p.lon).catch(() => null); if (my !== pickSeq) return; // a later pick wins, even over a slow time-zone lookup
@@ -145,22 +148,13 @@
     const w = C.event.windows(ev), ph = Object.fromEntries(w.map((x) => [x.key, x])), main = ph.event || ph.all, tz = ev.tz;
     $("sampleTag").hidden = !isSample(); $("resetBtn").hidden = isSample();
     $("evName").textContent = ev.name.replace(/ \(sample\)$/, "");
-    $("evVenue").textContent = `· ${ev.loc.name}`;
+    $("evVenue").textContent = ev.loc.name;
     $("evWhen").textContent = main ? `${BUI.dateSpan(main.startMs, main.endMs, tz)}${ph.setup ? ` · setup from ${fmt.clock(ph.setup.startMs, tz)}` : ""}` : "";
   }
 
   /* the event schedule, once: each part with its venue-local times. The weather for these times is in the briefing above
      and hour by hour under Forecast details. */
-  function schedule(b) {
-    const P = b.phases; if (!P.length) return "";
-    const tz = ev.tz, day = (ms) => C.time.toLocal(ms, tz).slice(0, 10), wd = (ms) => new Date(ms).toLocaleDateString("en-US", { timeZone: tz, weekday: "short" });
-    const parts = (ms) => { const t = fmt.clock(ms, tz), m = t.match(/^(.*?)\s*(AM|PM)$/); return m ? { t: m[1], ap: m[2] } : { t, ap: "" }; };
-    /* "1–5 PM", "5–7:30 PM", "11 PM–1 AM"; a part on another day than setup names that day */
-    const span = (s, e) => { const a = parts(s), z = parts(e), d0 = day(P[0].startMs);
-      const lead = day(s) !== d0 ? `${wd(s)} ` : "", tail = day(e) !== day(s) && day(e) !== d0 ? `${wd(e)} ` : "";
-      return a.ap === z.ap && !tail ? `${lead}${a.t}–${z.t} ${z.ap}` : `${lead}${a.t} ${a.ap}–${tail}${z.t} ${z.ap}`; };
-    return `<ol class="ev-schedule sch-bar sch-labels">${P.map((p) => `<li data-phase="${esc(p.key)}"><b>${esc(p.label)}</b><span>${esc(span(p.startMs, p.endMs))}</span></li>`).join("")}</ol>`;
-  }
+  function schedule(b) { return BUI.scheduleHtml(b.phases, ev.tz); }
   function renderSupport(res,b,now=Date.now()) {
     const open=$("sourceCoverage").querySelector('details')?.open;
     res.support=window.ForecastSupport.analyze({C,B:res.ctx.B,requested:res.RB?.ws||res.ctx.ws,rules:res.ctx.rules,
@@ -376,7 +370,7 @@
     printReady(true);
   }
   /* the top Print button is live only once a full briefing exists to print */
-  function printReady(on) { const b = $("printTop"); if (!b) return; b.disabled = !on; $("printTopNote").textContent = on ? "Two US Letter pages: the decision and timing, then hour by hour." : "Available once the briefing loads."; }
+  function printReady(on) { const b = $("printTop"); if (!b) return; b.disabled = !on; b.title = on ? "Print or save the two-page briefing" : "Available once the briefing loads"; }
   $("hourlyLink").addEventListener("click", (e) => { e.preventDefault(); const d = $("secHourly"); d.open = true; d.scrollIntoView({ behavior: "smooth", block: "start" }); d.querySelector("summary").focus({ preventScroll: true }); });
   $("printTop").addEventListener("click", () => { if (!lastRes) return; printView(lastRes); window.print(); });
   window.addEventListener("beforeprint", () => printView(lastRes));

@@ -669,3 +669,98 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .event-planner .ev-schedule li { display: block; gap: 0; font-size: inherit; }
 /* nor does the old strip's sch-bar sizing (fixed height, flex, fill) */
 .event-planner .ev-schedule.sch-bar, .event-planner .ev-sched .ev-schedule { height: auto; display: grid; background: none; }
+
+/* ---------- Event header: Print in the toolbar; the event name is the page title ---------- */
+.bx-head .bx-print { display: inline-flex; align-items: center; gap: 6px; }
+.bx-head .bx-print .bx-ico { flex: none; }
+.bx-head .bx-print:disabled { opacity: .45; cursor: default; }
+.event-planner .ev-back { display: inline-block; margin-top: 14px; font-size: 13px; color: var(--muted); text-decoration: none; }
+.event-planner .ev-back::before { content: "‹ "; }
+.event-planner .ev-back:hover { color: var(--text); text-decoration: underline; }
+.event-planner .ev-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px 20px; margin-top: 8px; }
+.event-planner .ev-head-text { min-width: 0; }
+.event-planner .ev-name { font: 700 clamp(22px, 5.4vw, 30px)/1.15 var(--bx-font) !important; letter-spacing: -.01em; margin: 0 !important; overflow-wrap: anywhere; }
+.event-planner .ev-venue { margin: 4px 0 0; font-size: 15px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+.event-planner .ev-when { margin: 2px 0 0; font-size: 14px; color: var(--muted); }
+.event-planner .ev-head-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
+.event-planner .ev-quiet { font-size: 12.5px; color: var(--muted); }
+.event-planner #sampleTag { display: inline-block; margin-bottom: 4px; }
+.event-planner #sampleTag[hidden] { display: none; }
+.event-planner .bx-decision { margin-top: 18px !important; }
+@media (max-width: 600px) {
+  .event-planner .ev-back { margin-top: 10px; }
+  .event-planner .ev-head { margin-top: 6px; }
+  .event-planner .ev-venue { font-size: 14px; }
+  .event-planner .ev-when { font-size: 13px; }
+  .event-planner .bx-decision { margin-top: 12px !important; }
+  .bx-head .bx-print span { display: inline; }
+}
+
+/* ---------- Printout, black-and-white: page 1 handout, page 2 hourly reference ---------- */
+@media print {
+  .pv { font: 11pt/1.4 Arial, Helvetica, sans-serif; color: #111; }
+  .pv .pv-head { border-bottom: 1.5pt solid #111; padding-bottom: 8pt; }
+  .pv .pv-kicker { color: #111; font-weight: 700; letter-spacing: 1pt; text-transform: uppercase; font-size: 8.5pt; }
+  .pv .pv-title { font-size: 20pt; margin: 4pt 0 2pt !important; }
+  .pv .pv-venue { font-size: 11.5pt; color: #111; font-weight: 600; }
+  .pv .pv-when { font-size: 11pt; color: #333; margin-top: 1pt; }
+  .pv .pv-iss { color: #333; font-size: 9pt; }
+  .pv .pv-alerts { margin: 10pt 0 0; padding: 7pt 10pt; border: 2pt solid #111; display: flex; flex-direction: column; gap: 2pt; font-size: 11pt; }
+  .pv .pv-alerts b { text-transform: uppercase; letter-spacing: .6pt; font-size: 9pt; }
+  .pv .pv-alerts-off { border-style: dashed; border-width: 1pt; }
+  .pv .pv-p1 .pv-takeaway { background: none !important; border: 0; border-left: 4pt solid #111; padding: 2pt 0 2pt 10pt; margin: 14pt 0 6pt; }
+  .pv .pv-dec { font-size: 19pt !important; line-height: 1.2 !important; }
+  .pv .pv-section { font-size: 12.5pt !important; margin: 16pt 0 6pt !important; padding-bottom: 3pt; border-bottom: .75pt solid #bbb; }
+  .pv .pv-plan { margin: 0; padding-left: 15pt; font-size: 12pt; line-height: 1.4; }
+  .pv .pv-plan li { margin: 0 0 6pt; padding-left: 2pt; }
+  .pv .pv-gap { margin: 6pt 0 0; font-size: 10.5pt; font-style: italic; }
+  .pv .pv-sched { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); border: .75pt solid #999; }
+  .pv .pv-sched li { padding: 5pt 8pt; }
+  .pv .pv-sched li + li { border-left: .75pt solid #999; }
+  .pv .pv-sched b { display: block; font-size: 9.5pt; color: #333; font-weight: 600; }
+  .pv .pv-sched span { display: block; font-size: 12pt; font-weight: 700; }
+  .pv .pv-nextcheck { margin: 14pt 0 0; padding: 7pt 10pt; border: 1pt solid #111; font-size: 12pt; }
+  .pv .pv-nws { font-size: 11pt; padding-left: 15pt; margin: 0; }
+  .pv .pv-nws li { margin: 0 0 4pt; }
+  .pv .pv-note { color: #333; font-size: 9.5pt; }
+  .pv .pv-footer { color: #333; font-size: 8.5pt; border-top: .75pt solid #999; align-items: flex-start; }
+  .pv .pv-footer .pv-policy { flex: 1; text-align: center; font-size: 9pt; color: #111; margin: 0; }
+  .pv .pv-footer-l { max-width: 1.6in; }
+  .pv .pv-hours-window { font-size: 10pt; margin: 10pt 0 8pt; }
+  .pv .pv-hours { font-size: 10.5pt; }
+  .pv .pv-hours th { font-size: 8.5pt; color: #111; text-transform: none; letter-spacing: 0; border-bottom: 1pt solid #111; vertical-align: bottom; }
+  .pv .pv-hours td, .pv .pv-hours th { padding: 4pt 6pt; border-bottom: .5pt solid #ccc; text-align: left !important; }
+  .pv .pv-hours td.pv-time { white-space: nowrap; font-weight: 700; }
+  .pv .pv-hours .pv-day { display: block; font-weight: 400; font-size: 8.5pt; color: #333; }
+  .pv .pv-hours td.pv-over { font-weight: 700; }
+  .pv .pv-hours td small { display: block; font-size: 8pt; font-weight: 400; }
+  .pv .pv-nd { font-style: italic; color: #444; font-weight: 400; }
+  .pv .pv-dense .pv-hours td, .pv .pv-dense .pv-hours th { padding-top: 2.5pt; padding-bottom: 2.5pt; }
+  .pv .pv-legend { font-size: 9pt; color: #333; margin: 8pt 0 0; }
+  .pv .pv-src { font-size: 8.5pt; color: #444; border-top: 0; margin-top: 6pt; padding-top: 0; }
+}
+@media print {
+  .pv .pv-hours { table-layout: fixed; width: 100%; }
+  .pv .pv-hours th, .pv .pv-hours td { white-space: normal !important; overflow-wrap: anywhere; }
+  .pv .pv-hours td.pv-time { white-space: nowrap !important; }
+  .pv .pv-hours th:nth-child(1) { width: 15%; } .pv .pv-hours th:nth-child(2) { width: 27%; } .pv .pv-hours th:nth-child(3) { width: 13%; }
+  .pv .pv-hours th:nth-child(4) { width: 11%; } .pv .pv-hours th:nth-child(5) { width: 18%; } .pv .pv-hours th:nth-child(6) { width: 16%; }
+}
+.bx-head .bx-print .bx-ico { width: 13px; height: 13px; display: block; }
+.bx-head .bx-print { line-height: 1.2; }
+/* the old print-row styling does not apply in the toolbar: same type and border as the neighbouring controls */
+.bx-head .bx-print { border-width: 1px; font-weight: 600; }
+.bx-head .bx-print span { font-size: inherit; margin: 0; }
+/* more than 16 hours on page 2: a tighter table so 24 hours fit one US Letter page */
+@media print {
+  .pv .pv-dense .pv-head { padding-bottom: 5pt; }
+  .pv .pv-dense .pv-title { font-size: 16pt; }
+  .pv .pv-dense .pv-hours-window { margin: 6pt 0 5pt; }
+  .pv .pv-dense .pv-hours { font-size: 9.5pt; }
+  .pv .pv-dense .pv-hours td, .pv .pv-dense .pv-hours th { padding-top: 1.6pt; padding-bottom: 1.6pt; line-height: 1.2; }
+  .pv .pv-dense .pv-hours .pv-day { display: block; font-size: 8pt; }
+  .pv .pv-dense .pv-hours td small { display: inline; margin-left: 3pt; font-size: 7.5pt; }
+  .pv .pv-dense .pv-legend { margin-top: 5pt; font-size: 8.5pt; }
+}
+/* boxed blocks stop just inside the right margin so their right border prints */
+@media print { .pv .pv-sched, .pv .pv-nextcheck, .pv .pv-alerts { box-sizing: border-box; width: calc(100% - 1.5pt); } }
