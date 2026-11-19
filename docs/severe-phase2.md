@@ -194,7 +194,7 @@ the regional gains are consistent but each one is small relative to its date-to-
   - **This is a label gap, not only a model error.** The labels use only Storm Events "Tornado",
     "Thunderstorm Wind" and "Hail" (`tools/severe/labels.py`). Hurricane and tropical-storm winds are
     recorded under other event types, so a landfalling hurricane scores as a no-report wind day.
-  - Excluding that day, the >= 5% over-forecast is broad: about 22,000 km^2 per no-report day for the
+  - Excluding the single largest day, the >= 5% over-forecast is broad: about 21,000 km^2 per no-report day for the
     logistic and 12,000 for the trees.
   - Hail: the observed rate is 0.02%, against mean forecasts of 0.5-1.2%. The trees put no area >= 15%;
     the refit puts 1,400 km^2 per day.
