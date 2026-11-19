@@ -66,6 +66,7 @@ jobs:
       - name: Scorecard and map
         run: |
           PYTHONPATH=tools/severe python3 tools/severe/conus_report.py --study "$OUT" --arrays tests/out/arrays
+          python3 tools/severe/conus_judge.py "$OUT" | tee -a "$GITHUB_STEP_SUMMARY"
           { echo "run_id: $GITHUB_RUN_ID"; echo "extraction_run: ${{ steps.req.outputs.run }}"; } > "$OUT/run.txt"
           cat "$OUT/scorecard.md" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4

@@ -143,6 +143,7 @@ def main():
                     for mm in part["models"].values():
                         mm.pop("precision_recall"); mm.pop("reliability")
             entry["bootstrap_all_supported"] = S.bootstrap(y_dev, probs, d_dev, climatology, "v07_frozen", rng)
+            entry["bootstrap_vs_recipe"] = S.bootstrap(y_dev, probs, d_dev, climatology, "conus_v07_recipe", rng)
             card[product] = entry
             # event support by region and split, for the "needs more dates" flags
             fit_rows_region = {r: v[keep] for r, v in reg.items()}
