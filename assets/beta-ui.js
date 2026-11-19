@@ -119,15 +119,12 @@
       entry.outcome = one && one.status && one.status[t.id] === "ok" ? "recovered" : f && f.status ? `HTTP ${f.status}` : one && one.status && one.status[t.id] === "empty" ? "no coverage" : "failed";
       onAttempt(entry);
       if (entry.outcome !== "recovered") continue;
-      /* rebuild from every source that has answered: those answers come from this tab's forecast cache, so the only
-         network request in this step was the retry above; the sources still refused are left out, not asked again */
-      const okIds = (P, extra) => [...Object.keys((P && P.status) || {}).filter((id) => P.status[id] === "ok"), ...extra];
-      const B = t.kind === "model" || parts.B.empty ? await O.Data.loadModels(CFG.blend, { ...where, days: parts.days, ids: okIds(parts.B, t.kind === "model" ? [t.id] : []) }) : parts.B;
-      const BE = t.kind === "ens" ? await O.Data.loadEnsemble(CFG.blendEns, { ...where, days: parts.days, ids: okIds(parts.BE, [t.id]) }).catch(() => parts.BE) : parts.BE;
-      if (signal && signal.aborted) { entry.outcome = "discarded: venue changed"; return { log, cancelled: true }; }
-      /* keep the record of what is still refused, so the coverage note stays honest */
-      const keepFailures = (fresh, old, done) => ({ ...fresh, status: { ...(old && old.status), ...(fresh && fresh.status) }, failures: Object.fromEntries(Object.entries((old && old.failures) || {}).filter(([id]) => id !== done)) });
-      parts = { ...parts, B: t.kind === "model" ? keepFailures(B, parts.B, t.id) : B, BE: t.kind === "ens" ? keepFailures(BE, parts.BE, t.id) : BE };
+      /* rebuild from the answers this briefing already holds in memory plus the one that just came back, on one time
+         axis: nothing else is requested again, whether or not this tab can store a forecast cache */
+      const merge = (P, fresh) => ({ ...((P && P.outcomes) || {}), [t.id]: fresh.outcomes[t.id] });
+      /* B is always rebuilt from its own held answers: the earlier briefing added ensemble and NWS columns into it */
+      parts = { ...parts, B: O.Data.buildModels(CFG.blend, t.kind === "model" ? merge(parts.B, one) : { ...((parts.B && parts.B.outcomes) || {}) }),
+        BE: t.kind === "ens" ? O.Data.buildEnsemble(CFG.blendEns, merge(parts.BE, one)) : parts.BE };
       const next = assemble(where, parts);
       if (!next.empty) onUpdate(next, entry);
     }

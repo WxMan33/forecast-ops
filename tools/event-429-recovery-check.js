@@ -33,11 +33,12 @@ function ensembleBody(u) {
 }
 
 /* scenario: rules[model] = { refuse: n (first n answers are 429), retryAfter, wet, delayMs (real time, for the late-answer case) } */
-async function scenario(browser, base, name, { rules = {}, ensRules = {}, steps }) {
+async function scenario(browser, base, name, { rules = {}, ensRules = {}, steps, init = null, knownErrors = [] }) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: TZ }), p = await ctx.newPage(), errors = [], log = [];
   p.on('pageerror', (e) => errors.push(e.message));
   await p.clock.install({ time: new Date(T0) });
   await p.addInitScript(() => { localStorage.setItem('beta_analytics_optout', '1'); window.print = () => {}; });
+  if (init) await p.addInitScript(init);
   const seen = {}; let inflight = 0, peakRetryOverlap = 0;
   const pageNow = () => p.evaluate(() => Date.now()).catch(() => null);
   await ctx.route('**/*', async (route) => {
@@ -71,11 +72,14 @@ async function scenario(browser, base, name, { rules = {}, ensRules = {}, steps 
   const S = { p, state, advance, until, log, seen, check: (ok, msg) => check(ok, `${name}: ${msg}`) };
   await steps(S);
   const final = await state();
-  S.check(errors.length === 0, 'no script errors ' + errors.join('; '));
+  const unexpected = errors.filter((e) => !knownErrors.some((k) => k.test(e)));
+  S.check(unexpected.length === 0, 'no script errors ' + unexpected.join('; ') + (errors.length > unexpected.length ? ` (known, outside this change: ${errors.length - unexpected.length})` : ''));
   results[name] = { requests: log, attempts: final.attempts, firstUsableMs: final.firstUsable, finalCoverage: final.cov, finalNote: final.note, peakRetryOverlap };
   await ctx.close();
   return { log, final, peakRetryOverlap };
 }
+/* every distinct request (model, venue, variable set) and how often it reached the network */
+const perRequest = (log) => { const m = new Map(); log.forEach((x) => { const k = `${x.kind}:${x.model}:${x.venue}:${x.spec}`; m.set(k, (m.get(k) || 0) + 1); }); return m; };
 const sentFor = (log, model, kind = 'model', venue = 'paycor', spec = null) => log.filter((x) => x.model === model && x.kind === kind && x.venue === venue && (!spec || x.spec === spec));
 
 (async () => {
@@ -164,6 +168,27 @@ const sentFor = (log, model, kind = 'model', venue = 'paycor', spec = null) => l
       check(/Miami/.test(s.venue) && /9 of 10/.test(s.cov) && !s.note && !/Coverage update/.test(s.note), `the late Paycor answer is discarded: Miami shows its own 9 of 10 and no coverage note (${s.cov})`);
       check(!log.some((x) => x.venue === 'miami' && x.n > 1), 'nothing for Miami was retried');
     } });
+
+  /* 6. no forecast cache: the tab cannot use sessionStorage at all, so nothing a source returned earlier can come back
+     from storage. Recovery must rebuild from what the briefing holds in memory. */
+  const noCacheSteps = (clearMidway) => async ({ p, state, until, log, check }) => {
+    check(await until(() => !!document.body.dataset.loaded, 15000), 'a usable briefing appears before any retry');
+    const first = await state(), sentBefore = log.length;
+    if (clearMidway) await p.evaluate(() => sessionStorage.clear());
+    await until(() => document.body.dataset.recovery === 'done', 60000); const s = await state();
+    const after = log.slice(sentBefore), counts = perRequest(log), refused = ['model:ecmwf_ifs025:paycor:temperature_2m', 'model:gfs_seamless:paycor:temperature_2m', 'ens:gfs025:paycor:temperature_2m'];
+    check(after.length === 3 && after.every((x) => refused.includes(`${x.kind}:${x.model}:${x.venue}:${x.spec}`)), `after the first briefing only the 3 refused requests went back over the network (${after.map((x) => `${x.kind}:${x.model}@${x.at}ms→${x.status}`).join(', ')})`);
+    check([...counts].every(([k, n]) => (refused.includes(k) ? n === 2 : n === 1)), `every other request was sent exactly once (${counts.size} distinct requests)`);
+    check(/6 of 10/.test(first.cov) && /9 of 10/.test(s.cov) && /9 of 10/.test(s.printCov), `previously loaded sources stay and the screen and printout end at the same count (${first.cov} → ${s.cov} / print ${s.printCov})`);
+    check(/rain/i.test(s.decision) && /Coverage update: GEFS answered on its retry\. The briefing now uses 9 of 10 sources\./.test(s.note), 'the recovered wet source still changes the briefing, announced as a coverage update');
+    const printDecision = await p.evaluate(() => (document.querySelector('#printView .pv-dec') || {}).textContent || '');
+    check(printDecision === s.decision, `the printout carries the same updated decision (“${printDecision}”)`);
+  };
+  const partialRules = { rules: { ecmwf_ifs025: { refuse: 1, retryAfter: 2, wet: true, forSpec: BLEND }, gfs_seamless: { refuse: 1, forSpec: BLEND } }, ensRules: { gfs025: { refuse: 1, retryAfter: 1 } } };
+  await scenario(browser, base, 'session storage unavailable', { ...partialRules, init: () => { Object.defineProperty(window, 'sessionStorage', { configurable: true, get() { throw new DOMException('The operation is insecure.', 'SecurityError'); } }); }, steps: noCacheSteps(false),
+    /* existing on main: beta-analytics.js reads root.sessionStorage outside a try when it loads; tracked separately */
+    knownErrors: [/^The operation is insecure\.$/] });
+  await scenario(browser, base, 'session storage cleared during recovery', { ...partialRules, steps: noCacheSteps(true) });
 
   if (outFile) fs.writeFileSync(outFile, JSON.stringify(results, null, 1));
 })().catch((e) => { failed++; console.error(e); }).finally(async () => { server.close(); console.log(failed ? `${failed} recovery checks failed` : 'all recovery checks passed'); process.exitCode = failed ? 1 : 0; process.exit(); });
