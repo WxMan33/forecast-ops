@@ -63,6 +63,19 @@ jobs:
           python-version: '3.12'
       - run: pip install -r tools/severe/requirements.txt matplotlib==3.11.2 shapely==2.2.0
       - run: cd tools/severe && python3 conus_grid.py --check
+      - name: Stage the pinned Storm Events files (NOAA has replaced them; verified by size and SHA-256)
+        env:
+          ARCHIVE_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
+          ACTIONS_TOKEN: ${{ github.token }}
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+          CASES: ${{ matrix.batch.cases }}
+        run: |
+          for year in $(for c in $CASES; do echo "${c:0:4}"; done | sort -u); do
+            name=$(python3 -c "import json,sys;print([s['file'] for s in json.load(open('research/severe/labels-v04/manifest.json'))['sources'] if '_d$year' in s['file']][0])")
+            args=(--name "$name" --cache tests/out/cache/reports --actions)
+            [ -n "$ARCHIVE_REPO" ] && args+=(--repository "$ARCHIVE_REPO")
+            python3 tools/severe/stage_report_source.py "${args[@]}"
+          done
       - name: Extract, audit, label and verify each case
         env:
           ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
