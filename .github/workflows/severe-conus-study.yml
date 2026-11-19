@@ -1,0 +1,86 @@
+name: Severe CONUS study (research)
+# Research only. Trains and scores the first national CONUS HRRR test from the artifacts of a
+# finished severe-conus-extraction run, and commits the scorecard to the research branch. Fits on
+# 2022-2023, scores 2024 (exploratory); never loads 2025; never touches the feed or publisher.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-v1/study-request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-study
+  cancel-in-progress: false
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      OPENBLAS_NUM_THREADS: '4'
+      OMP_NUM_THREADS: '4'
+      OUT: research/severe/conus-v1/study
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 matplotlib==3.11.2 shapely==2.2.0
+      - id: req
+        run: echo "run=$(jq -r .extraction_run research/severe/conus-v1/study-request.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: severe-conus-*
+          merge-multiple: true
+          path: tests/out/batches
+          run-id: ${{ steps.req.outputs.run }}
+          github-token: ${{ github.token }}
+      - name: Inventory (missing inputs by date and lead, storage)
+        run: |
+          mkdir -p "$OUT"
+          python3 - <<'PY' | tee "$OUT/inventory.json"
+          import json, pathlib, sys
+          sys.path.insert(0, "tools/severe")
+          from cohort import calendar_cases
+          cases = calendar_cases(json.load(open("research/severe/cohort-v07.json")))
+          root = pathlib.Path("tests/out/batches/conus")
+          rows, missing = [], []
+          for c in cases:
+              meta = root / c / "conus-case.json"
+              if not meta.exists():
+                  failed = pathlib.Path(f"tests/out/batches/reports/{c}.failed.json").exists()
+                  missing.append({"case": c, "status": "failed" if failed else "absent",
+                                  "leads_present": [d for d in ("day1", "day2") if (root / c / d / "manifest.json").exists()]})
+                  continue
+              m = json.loads(meta.read_text())
+              rows.append({"case": c, "bytes": m["artifact"]["bytes"], **{f"{k}_s": v["seconds"] for k, v in m["timing"].items()},
+                           **{f"{k}_mb": v["downloaded_mb"] for k, v in m["timing"].items()}})
+          print(json.dumps({"cases_expected": len(cases), "cases_present": len(rows), "missing": missing,
+                            "stored_mb": round(sum(r["bytes"] for r in rows) / 1e6, 1),
+                            "downloaded_gb": round(sum(r.get("day1_mb", 0) + r.get("day2_mb", 0) for r in rows) / 1e3, 1),
+                            "extract_hours": round(sum(r.get("day1_s", 0) + r.get("day2_s", 0) for r in rows) / 3600, 2),
+                            "per_case": rows}, indent=1))
+          PY
+      - name: Train and score
+        run: PYTHONPATH=tools/severe python3 tools/severe/conus_study.py --conus tests/out/batches/conus --output "$OUT" --arrays tests/out/arrays 2>&1 | tee tests/out/study.log
+      - name: Scorecard and map
+        run: |
+          PYTHONPATH=tools/severe python3 tools/severe/conus_report.py --study "$OUT" --arrays tests/out/arrays
+          { echo "run_id: $GITHUB_RUN_ID"; echo "extraction_run: ${{ steps.req.outputs.run }}"; } > "$OUT/run.txt"
+          cat "$OUT/scorecard.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: severe-conus-study
+          path: |
+            research/severe/conus-v1/study
+            tests/out/study.log
+          retention-days: 90
+      - name: Commit results to the research branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT"
+          git commit -m "CONUS study results (run $GITHUB_RUN_ID)"
+          for i in 1 2 3; do git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0; sleep 10; done
+          exit 1
