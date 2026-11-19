@@ -59,4 +59,16 @@ ok(mesh.ring.length > 1000 && mesh.ring[0][0] === mesh.ring[mesh.ring.length - 1
 const lut = K.lut((v) => MC.color("t2m", v), -20, 120), at = (v) => Array.from(lut.slice(Math.floor(((v + 20) / 140) * 1024) * 4, Math.floor(((v + 20) / 140) * 1024) * 4 + 3));
 eq(at(71), MC.color("t2m", 71).slice(0, 3), "71 degF colour matches the shared scale");
 
+/* 7. packed layout: one file per field-hour; tiles in a row are one byte range */
+{ const lens = []; let k = 0; [2, 1, 0].forEach((L) => { const lv = K.levelInfo(MAN, L); for (let i = 0; i < lv.tilesX * lv.tilesY; i++) lens.push(100 + k++); });
+  const ix = K.packIndex(MAN, { pack: { lengths: lens } });
+  eq(ix["L2_0_0.bin.gz"], [0, 100], "coarsest level first");
+  eq(ix["L1_0_0.bin.gz"][0], 100 + 101 + 102 + 103, "then L1, row by row");
+  eq(Object.keys(ix).length, 4 + 12 + 40, "56 tiles per field-hour");
+  const r = K.packRanges(ix, ["L0_4_1.bin.gz", "L0_5_1.bin.gz", "L0_4_2.bin.gz", "L0_5_2.bin.gz"]);
+  eq(r.length, 2, "a 2 x 2 block of native tiles = 2 range requests (one per tile row)");
+  eq([r[0].tiles.map((t) => t.name), r[0].end - r[0].start], [["L0_4_1.bin.gz", "L0_5_1.bin.gz"], ix["L0_4_1.bin.gz"][1] + ix["L0_5_1.bin.gz"][1]], "adjacent tiles share a range");
+  eq(K.packRanges(ix, ["L2_0_0.bin.gz", "L2_1_0.bin.gz", "L2_0_1.bin.gz", "L2_1_1.bin.gz"]).length, 1, "the whole coarse level is one request");
+  assert.throws(() => K.packIndex(MAN, { pack: { lengths: lens.slice(1) } })); n++; }
+
 console.log(`ok - ${n} CONUS map checks passed`);

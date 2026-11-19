@@ -19,7 +19,7 @@
   const fmtLocal = (ms) => new Date(ms).toLocaleString("en-US", { timeZone: TZ, weekday: "short", month: "short", day: "numeric", hour: "numeric", timeZoneName: "short" });
   const fmtUTC = (ms) => { const d = new Date(ms).toISOString(); return `${d.slice(11, 13)}Z ${new Date(ms).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" })}`; };
   const MB = (b) => (b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.round(b / 1e3)} KB`);
-  const fetchT = (url, ms = 30000) => { const c = new AbortController(), t = setTimeout(() => c.abort(), ms); return fetch(url, { signal: c.signal }).finally(() => clearTimeout(t)); };
+  const fetchT = (url, ms = 30000, headers) => { const c = new AbortController(), t = setTimeout(() => c.abort(), ms); return fetch(url, { signal: c.signal, ...(headers ? { headers } : {}) }).finally(() => clearTimeout(t)); };
   const getJSON = async (u) => { const r = await fetchT(u + (u.includes("?") ? "&" : "?") + "t=" + Math.floor(Date.now() / 60000), 20000); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); };
   async function gunzip(u) {
     if (typeof DecompressionStream !== "function") throw new Error("this browser cannot decompress the map data");
@@ -31,17 +31,39 @@
   /* ---------- tiles: fetch, decode, cache (least recently used, by decoded bytes) ---------- */
   const CACHE_LIMIT = () => (PHONE() ? 48e6 : 160e6);
   const key = (fh, L, tx, ty) => `${st.run.id}|${st.field}|${fh}|${K.tileName(L, tx, ty)}`;
-  function tile(fh, L, tx, ty) {
-    const k = key(fh, L, tx, ty);
-    if (st.tiles.has(k)) { const e = st.tiles.get(k); st.tiles.delete(k); st.tiles.set(k, e); return e.p; }
-    const d = K.tileDims(st.man, L, tx, ty), url = `${SITE}/${st.run.path}/${st.field}/f${String(fh).padStart(2, "0")}/${K.tileName(L, tx, ty)}`;
-    const e = { p: null, t: null, size: d.nx * d.ny * 2 };
-    e.p = gunzip(url).then((raw) => (e.t = K.decodeTile(raw, d.ny, d.nx)));
-    e.p.catch(() => st.tiles.get(k) === e && st.tiles.delete(k));
+  st.requests = 0;
+  function remember(k, e) {
     st.tiles.set(k, e); st.bytes += e.size;
     while (st.bytes > CACHE_LIMIT() && st.tiles.size > 1) { const [k0, e0] = st.tiles.entries().next().value; if (k0 === k) break; st.tiles.delete(k0); st.bytes -= e0.size; }
-    return e.p;
   }
+  const gunzipBytes = async (u8) => new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
+  /* the tiles of one level and hour; packed runs fetch neighbouring tiles with one HTTP range request */
+  function tiles(fh, L, list) {
+    const out = list.map(([tx, ty]) => { const k = key(fh, L, tx, ty); if (st.tiles.has(k)) { const e = st.tiles.get(k); st.tiles.delete(k); st.tiles.set(k, e); return null; } return [tx, ty, k]; }).filter(Boolean);
+    if (out.length) {
+      if (st.man.layout !== "packed") out.forEach(([tx, ty, k]) => {
+        const d = K.tileDims(st.man, L, tx, ty), url = `${SITE}/${st.run.path}/${st.field}/f${String(fh).padStart(2, "0")}/${K.tileName(L, tx, ty)}`, e = { t: null, size: d.nx * d.ny * 2 };
+        st.requests++; e.p = gunzip(url).then((raw) => (e.t = K.decodeTile(raw, d.ny, d.nx))); e.p.catch(() => st.tiles.get(k) === e && st.tiles.delete(k)); remember(k, e); });
+      else {
+        const rec = st.man.fields[st.field].hours[String(fh)], ix = rec ? (rec.ix || (rec.ix = K.packIndex(st.man, rec))) : null, byName = {};
+        out.forEach(([tx, ty, k]) => { const d = K.tileDims(st.man, L, tx, ty), e = { t: null, size: d.nx * d.ny * 2 }; e.p = new Promise((ok, no) => { e.ok = ok; e.no = no; });
+          e.p.catch(() => st.tiles.get(k) === e && st.tiles.delete(k)); remember(k, e); byName[K.tileName(L, tx, ty)] = { e, d }; });
+        if (!ix) Object.values(byName).forEach(({ e }) => e.no(new Error("hour not published")));
+        else K.packRanges(ix, Object.keys(byName)).forEach(async (r) => {
+          try {
+            st.requests++;
+            const res = await fetchT(`${SITE}/${st.run.path}/${rec.pack.file}`, 45000, { Range: `bytes=${r.start}-${r.end - 1}` });
+            if (res.status !== 206 && res.status !== 200) throw new Error(`HTTP ${res.status}`);
+            const buf = new Uint8Array(await res.arrayBuffer()), base = res.status === 200 ? 0 : r.start; st.loadedBytes += buf.length;
+            if (res.status === 200 && buf.length !== rec.pack.bytes) throw new Error("server ignored the range request");
+            await Promise.all(r.tiles.map(async (x) => { const { e, d } = byName[x.name]; try { e.t = K.decodeTile(await gunzipBytes(buf.subarray(x.off - base, x.off - base + x.len)), d.ny, d.nx); e.ok(e.t); } catch (err) { e.no(err); } }));
+          } catch (err) { r.tiles.forEach((x) => byName[x.name].e.no(err)); }
+        });
+      }
+    }
+    return list.map(([tx, ty]) => st.tiles.get(key(fh, L, tx, ty)).p);
+  }
+  const tile = (fh, L, tx, ty) => tiles(fh, L, [[tx, ty]])[0];
   const ready = (fh, L, tx, ty) => { const e = st.tiles.get(key(fh, L, tx, ty)); return e && e.t; };
 
   /* ---------- what the view needs ---------- */
@@ -62,8 +84,8 @@
   const fhNow = () => st.man.hours[st.h];
   /* load what the current hour needs; the coarsest level always covers the whole grid under the detail */
   async function need(fh, w = wanted()) {
-    const jobs = w.all.map(([x, y]) => tile(fh, w.coarse, x, y));
-    if (w.L !== w.coarse) w.tiles.forEach(([x, y]) => jobs.push(tile(fh, w.L, x, y)));
+    const jobs = tiles(fh, w.coarse, w.all);
+    if (w.L !== w.coarse) jobs.push(...tiles(fh, w.L, w.tiles));
     return Promise.allSettled(jobs);
   }
 
@@ -162,7 +184,7 @@
       `<div class="msg">${every === 1 ? "Every native 3 km cell at this zoom" : `Every ${every === 2 ? "2nd" : "4th"} native cell<span class="wide-only"> at this zoom</span>; zoom in for every cell`}<span class="wide-only"> · click for the cell's own value</span></div>`;
     $("tlValid").textContent = `${fmtLocal(valid)} · F${String(fh).padStart(2, "0")}`; $("hourSl").value = String(st.h);
     $("runInfo").innerHTML = `Run ${esc(fmtUTC(init))}: ${m.status === "in progress" ? `<b>in progress</b>, ${m.hours.length} of ${m.hoursExpected + 1} hours posted by NOAA so far` : `${m.hours.length} forecast hours (${esc(m.status)})`}. ` +
-      `Loop ready for this view: ${loopReady} of ${m.hours.length} hours. Downloaded this visit: <b>${MB(st.loadedBytes)}</b> compressed; decoded tiles in memory: ${MB(st.bytes)}. ` +
+      `Loop ready for this view: ${loopReady} of ${m.hours.length} hours. Downloaded this visit: <b>${MB(st.loadedBytes)}</b> compressed in ${st.requests} map-data requests; decoded tiles in memory: ${MB(st.bytes)}. ` +
       `Every cell is placed from the GRIB projection (checked against GRIB's own latitudes and longitudes: largest difference ${m.georef ? m.georef.maxErrorCells : "?"} cells). ${esc(m.attribution)}`;
     share();
   }
