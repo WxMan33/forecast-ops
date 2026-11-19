@@ -764,3 +764,43 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 }
 /* boxed blocks stop just inside the right margin so their right border prints */
 @media print { .pv .pv-sched, .pv .pv-nextcheck, .pv .pv-alerts { box-sizing: border-box; width: calc(100% - 1.5pt); } }
+
+/* ---------- Hour by hour charts: readable across a room; each chart carries its own key ---------- */
+.evc-selected{font-size:15px;margin:10px 0}.evc-selected b{font-size:17px}
+.evc-card h3{font-size:17px}
+.evc-val{display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right}
+.evc-val>b{font-size:26px;line-height:1.1;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.evc-val span{font-size:14px;color:var(--muted)}.evc-val span b{color:var(--text);font-weight:700}
+.evc-legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:6px 0 0;font-size:13px;color:var(--muted)}
+.evc-key{display:inline-flex;align-items:center;gap:6px}.evc-key i{display:inline-block;flex:none}
+.evc-key .k-line{width:22px;height:0;border-top:3px solid var(--series)}.evc-key .k-dash{border-top-style:dashed;opacity:.8}
+.evc-key .k-dots{position:relative}.evc-key .k-dots::after{content:"";position:absolute;left:7px;top:-6px;width:9px;height:9px;border-radius:50%;background:var(--series)}
+.evc-key .k-limit{width:22px;height:0;border-top:2px dotted var(--muted)}
+.evc-key .k-gap{width:14px;height:14px;background:color-mix(in srgb,var(--muted) 18%,transparent);border-radius:2px}
+.evc-key .k-band{width:14px;height:14px;border-radius:2px}
+.evc-key .k-unc{border:1px dashed var(--muted)}
+.evc-type{color:var(--text);font-weight:600}
+.evc-axis{font:13px var(--bx-font);fill:var(--muted)}
+.evc-hour{font:600 14px var(--bx-font);fill:var(--text)}.evc-hour-sel{font-weight:800;fill:var(--accent)}.evc-zone{font-weight:500;font-size:11px;fill:var(--muted)}
+.evc-rule-minor{opacity:.45}
+.evc-line{stroke-width:3}.evc-second{stroke-width:2.4;opacity:.85}
+.evc-rain{--series:#0b4f78}[data-theme="dark"] .evc-rain,:root:not([data-theme="light"]) .evc-rain{--series:#8fd6ff}
+[data-theme="light"] .evc-rain{--series:#0b4f78}
+.evc-temp{--series:#f08a72}[data-theme="light"] .evc-temp{--series:#d4553b}
+.evc-wind{--series:#3fbfae}[data-theme="light"] .evc-wind{--series:#127a6c}
+.evc-dot{fill:var(--series);stroke:var(--panel);stroke-width:2}.evc-dot-sel{stroke:var(--text);stroke-width:2.5}
+.evc-selcol{fill:var(--accent);opacity:.12}
+.evc-gap{fill:var(--muted);opacity:.12}.evc-gaptext{font:600 12px var(--bx-font);fill:var(--muted)}
+/* precipitation type: light tints, always labelled */
+.evc-band-rain,.evc-key .k-rain{fill:#3aa757;background:#3aa757}.evc-band-mix,.evc-key .k-mix{fill:#e25ca4;background:#e25ca4}.evc-band-snow,.evc-key .k-snow{fill:#3b82f6;background:#3b82f6}
+.evc-band{opacity:.16}.evc-key .k-band:not(.k-unc){opacity:.45}
+.evc-bandlabel{font:700 13px var(--bx-font);fill:var(--text)}.evc-bandlabel-unc{fill:var(--muted);font-style:italic}
+/* flagged hours: labelled brackets; red only for the highest level */
+.evc-flag path{fill:none;stroke:var(--text);stroke-width:1.6}.evc-flag text{font:700 12.5px var(--bx-font);fill:var(--text)}
+.evc-flag-high path{stroke:#d12f2f;stroke-width:2.2}.evc-flag-high text{fill:#d12f2f}
+/* lightning potential: discrete blocks in violet steps, labelled (not alert colours) */
+.evc-tier{stroke:none}.evc-tier-1{fill:#c9bfe6}.evc-tier-2{fill:#9b87d6}.evc-tier-3{fill:#5b3fb0}
+.evc-key .k-tier{width:14px;height:14px;border-radius:2px}.evc-key .k-t1{background:#c9bfe6}.evc-key .k-t2{background:#9b87d6}.evc-key .k-t3{background:#5b3fb0}
+.evc-tiertext{font:700 12px var(--bx-font);fill:#fff;paint-order:stroke;stroke:#2b1f55;stroke-width:2.5px}
+.evc-limittext{font-size:12.5px}
+@media(max-width:600px){.evc-val>b{font-size:23px}.evc-card h3{font-size:16px}.evc-legend{font-size:12.5px;gap:3px 10px}.evc-hour{font-size:15px}.evc-axis{font-size:13.5px}}
