@@ -661,7 +661,8 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
         const cards = [...document.querySelectorAll(".bx-phase[data-phase]")].map((c) => ({ key: c.dataset.phase, label: c.querySelector(".nm").childNodes[0].textContent.trim(), peak: c.querySelector("[data-peak]").textContent.trim(), light: c.querySelector("[data-light]").textContent.trim() }));
         /* the printout has no phase table: each phase's printed peak is the highest chance among its rows in the hourly table */
         const printRows = [...document.querySelectorAll("#printView .pv-hours tbody tr")].map((tr) => ({ phase: tr.children[1].textContent, pop: tr.querySelector("[data-pop]").textContent.trim() }));
-        const printPeaks = Object.fromEntries(cards.map((c) => { const v = printRows.filter((r) => r.phase.includes(c.label)).map((r) => r.pop).filter((x) => /%$/.test(x)); return [c.key, v.length ? v.reduce((a, b) => (parseFloat(b) > parseFloat(a) ? b : a)) : "—"]; }));
+        const printPeaks = Object.fromEntries(cards.map((c) => { const v = printRows.filter((r) => r.phase.includes(c.label)).map((r) => r.pop).filter((x) => /%$/.test(x)); const pv = (t) => (/^<5%$/.test(t) ? 2.5 : parseFloat(t)); /* same reading as pctVal: "<5%" ranks below 5%, never NaN */
+          return [c.key, v.length ? v.reduce((a, b) => (pv(b) > pv(a) ? b : a)) : "—"]; }));
         const printPops = [...document.querySelectorAll("#printView td[data-pop]")].map((td) => td.textContent.trim().replace(/^no data$/, "—"));
         const keys = document.getElementById("keys").innerText;
         return { phaseCells, pops, cards, printPeaks, printPops, keys, ensembleInDetails: !!document.querySelector("#detail #ensDetail"), ensembleInGrid: !!document.querySelector('#evGrid tr[data-row="chance"]'),

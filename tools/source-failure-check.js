@@ -156,7 +156,7 @@ async function eventChecks(base) {
   const agree = await p.evaluate(() => { const cards = [...document.querySelectorAll('#phases .bx-phase[data-phase]')].map((c) => ({ label: c.querySelector('.nm').childNodes[0].textContent.trim(), peak: c.querySelector('[data-peak]').textContent.trim() }));
     window.dispatchEvent(new Event('beforeprint'));
     const rows = [...document.querySelectorAll('#printView .pv-hours tbody tr')].map((tr) => ({ phase: tr.children[1].textContent, pop: tr.querySelector('[data-pop]').textContent.trim() }));
-    const pr = cards.map((c) => { const v = rows.filter((r) => r.phase.includes(c.label)).map((r) => r.pop).filter((x) => /%$/.test(x)); return v.length ? v.reduce((a, b) => (parseFloat(b) > parseFloat(a) ? b : a)) : '—'; });
+    const pr = cards.map((c) => { const v = rows.filter((r) => r.phase.includes(c.label)).map((r) => r.pop).filter((x) => /%$/.test(x)); return v.length ? v.reduce((a, b) => ((/^<5%$/.test(b) ? 2.5 : parseFloat(b)) > (/^<5%$/.test(a) ? 2.5 : parseFloat(a)) ? b : a)) : '—'; });
     return { card: cards.map((c) => c.peak), pr }; });
   check(agree.card.length > 0 && JSON.stringify(agree.card) === JSON.stringify(agree.pr), 'event: phase cards and printout show the same peak rain chances (' + agree.card.join(',') + ' / ' + agree.pr.join(',') + ')');
   const reach = await text(p, '#sourceCoverage');
