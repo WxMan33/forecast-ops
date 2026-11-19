@@ -244,8 +244,20 @@ class Publish(unittest.TestCase):
         self.assertEqual(A.sha256(self.release / A.asset_name("2026-11-20", 1)), before)
         receipt = json.loads((self.release / "severe-guidance-2026-11-20-day1.run-5000-2.json").read_text())
         self.assertEqual(receipt["outcome"], "data_conflict")
+        # Both bundles are kept: the canonical one unchanged, the conflicting one under its attempt name.
+        kept = self.release / "severe-guidance-2026-11-20-day1.run-5000-2.tar.gz"
+        self.assertEqual(receipt["conflict_bundle"], kept.name)
+        self.assertEqual(A.bundle_data_sha256(kept), conflict["local_data_sha256"])
+        self.assertEqual(A.bundle_data_sha256(self.release / A.asset_name("2026-11-20", 1)),
+                         conflict["remote_data_sha256"])
         uploads = [l for l in (self.tmp / "calls.log").read_text().splitlines() if "release upload" in l]
-        self.assertEqual(sum(".tar.gz" in l for l in uploads), 1)
+        self.assertEqual(sum(".tar.gz" in l for l in uploads), 2)
+        # Re-publishing the same conflicting attempt neither duplicates nor replaces anything.
+        run = json.loads((self.out / "run.json").read_text())
+        again = A.publish(self.tmp / "attempt2" / A.asset_name("2026-11-20", 1), "owner/archive", "2026-11-20", 1, run)
+        self.assertEqual((again["outcome"], again["attempt_bundle"]), ("data_conflict", kept.name))
+        uploads = [l for l in (self.tmp / "calls.log").read_text().splitlines() if "release upload" in l]
+        self.assertEqual(sum(".tar.gz" in l for l in uploads), 2)
 
     def test_retried_publish_of_the_same_attempt_is_idempotent(self):
         first, path = self.attempt(1)

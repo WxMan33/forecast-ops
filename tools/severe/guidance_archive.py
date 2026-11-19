@@ -236,7 +236,8 @@ def publish(bundle_path, repository, date, day, run_record, receipt_dir=None):
     attempts are
     compared by data identity (forecast data and S3 timing evidence only), not by bundle bytes:
     the same data is accepted as a duplicate, different data is a conflict and never overwrites.
-    Incomplete attempts retain their own bundle without claiming the canonical name.
+    Incomplete attempts, and complete attempts whose data conflicts with the canonical asset,
+    keep their own bundle under an attempt-specific name.
     Attempt: every attempt also stores its own receipt (run record, data identity, outcome), so
     each attempt's timing and collection evidence is kept, including conflicting ones."""
     bundle_path = Path(bundle_path)
@@ -268,6 +269,22 @@ def publish(bundle_path, repository, date, day, run_record, receipt_dir=None):
             remote_data = bundle_data_sha256(copy)
             result.update(remote_data_sha256=remote_data, remote_bundle_sha256=sha256(copy),
                           outcome="duplicate_data" if remote_data == local_data else "data_conflict")
+            if result["outcome"] == "data_conflict":
+                # Keep the conflicting bundle too, under this attempt's own name; the canonical
+                # asset is never replaced.
+                attempt_name = Path(receipt_file).with_suffix(".tar.gz").name
+                held = Path(tmp) / "attempt"
+                held.mkdir()
+                if gh("release", "download", tag, "--repo", repository, "--pattern", attempt_name, "--dir",
+                      str(held), check=False).returncode == 0 and (held / attempt_name).exists():
+                    if bundle_data_sha256(held / attempt_name) != local_data:
+                        raise RuntimeError(f"A different bundle {attempt_name} already exists for this attempt")
+                    result["attempt_bundle_sha256"] = sha256(held / attempt_name)
+                else:
+                    upload = Path(tmp) / attempt_name
+                    shutil.copyfile(bundle_path, upload)
+                    result["attempt_bundle_sha256"] = upload_verified(tag, upload, repository, tmp)
+                result["attempt_bundle"] = attempt_name
         else:
             upload = bundle_path
             if not complete:
@@ -280,6 +297,8 @@ def publish(bundle_path, repository, date, day, run_record, receipt_dir=None):
                    "outcome": result["outcome"], "data_sha256": local_data,
                    "archived_data_sha256": result["remote_data_sha256"],
                    "attempt_bundle_sha256": result["local_bundle_sha256"], "run": run_record}
+        if "attempt_bundle" in result:
+            receipt["conflict_bundle"] = result["attempt_bundle"]
         receipt_path = Path(receipt_dir or tmp) / receipt_file
         receipt_path.write_text(json.dumps(receipt, indent=1, sort_keys=True) + "\n")
         prior = Path(tmp) / "prior"
@@ -378,7 +397,7 @@ def main(argv=None):
         if out["outcome"] == "data_conflict":
             print(f"::error::Archive already holds different forecast data for {out['asset']} "
                   f"({out['remote_data_sha256']} vs {out['local_data_sha256']}); not overwritten. "
-                  f"This attempt's receipt {out['receipt']} records the conflict.")
+                  f"This attempt's bundle {out.get('attempt_bundle')} and receipt {out['receipt']} record the conflict.")
             return 3
         if out["outcome"] == "error":
             print(f"::error::Archive publish failed: {out['error']}")

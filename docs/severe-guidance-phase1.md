@@ -225,8 +225,9 @@ Each run takes five steps:
      - a hash of every feature array's values.
    - **Same data:** a rerun with the same data is `duplicate_data`. The data asset is unchanged, and
      the new attempt's receipt is still stored.
-   - **Different data:** this is a `data_conflict`. It fails the run, is recorded in that attempt's
-     receipt, and never overwrites the data asset.
+   - **Different data:** this is a `data_conflict`. It fails the run and never overwrites the data
+     asset. The conflicting bundle is kept under `…-dayN.run-RUNID-ATTEMPT.tar.gz`, and the
+     attempt's receipt names it (`conflict_bundle`), so both versions stay available.
    - **Same attempt re-published:** accepted if its stored receipt has the same run record and data
      identity.
    - **Verification:** every upload is downloaded again and its SHA-256 compared.
