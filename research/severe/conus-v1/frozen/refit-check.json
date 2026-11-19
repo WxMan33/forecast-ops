@@ -1,0 +1,31 @@
+{
+ "compared_to": "research/severe/conus-v1/study/scorecard.json (run 44589486745)",
+ "worst_brier_difference": 0.0,
+ "status": "same_models",
+ "by_product_model": {
+  "day1_tornado/v07_frozen": 0.0,
+  "day1_tornado/conus_v07_recipe": 0.0,
+  "day1_tornado/conus_logistic": 0.0,
+  "day1_tornado/conus_gbt": 0.0,
+  "day1_wind/v07_frozen": 0.0,
+  "day1_wind/conus_v07_recipe": 0.0,
+  "day1_wind/conus_logistic": 0.0,
+  "day1_wind/conus_gbt": 0.0,
+  "day1_hail/v07_frozen": 0.0,
+  "day1_hail/conus_v07_recipe": 0.0,
+  "day1_hail/conus_logistic": 0.0,
+  "day1_hail/conus_gbt": 0.0,
+  "day2_tornado/v07_frozen": 0.0,
+  "day2_tornado/conus_v07_recipe": 0.0,
+  "day2_tornado/conus_logistic": 0.0,
+  "day2_tornado/conus_gbt": 0.0,
+  "day2_wind/v07_frozen": 0.0,
+  "day2_wind/conus_v07_recipe": 0.0,
+  "day2_wind/conus_logistic": 0.0,
+  "day2_wind/conus_gbt": 0.0,
+  "day2_hail/v07_frozen": 0.0,
+  "day2_hail/conus_v07_recipe": 0.0,
+  "day2_hail/conus_logistic": 0.0,
+  "day2_hail/conus_gbt": 0.0
+ }
+}
