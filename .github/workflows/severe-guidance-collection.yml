@@ -116,8 +116,10 @@ jobs:
             echo "::error::Set the secret SEVERE_GUIDANCE_ARCHIVE_WRITE_TOKEN and the variable SEVERE_REBUILD_ARCHIVE_REPO"
             exit 1
           fi
+          mkdir -p tests/out/receipt
           python tools/severe/guidance_archive.py publish --bundle "tests/out/bundle/severe-guidance-$DATE-day$DAY.tar.gz" \
-            --repository "$ARCHIVE_REPO" --date "$DATE" --day "$DAY" --result tests/out/publish.json
+            --record "$OUT/run.json" --repository "$ARCHIVE_REPO" --date "$DATE" --day "$DAY" \
+            --receipt-dir tests/out/receipt --result tests/out/publish.json
       - name: Summary
         if: always()
         run: |
@@ -132,7 +134,8 @@ jobs:
           p = pathlib.Path("tests/out/publish.json")
           if p.exists():
               r = json.loads(p.read_text())
-              print(f"- Archive: {r.get('outcome')} {r.get('release', '')}/{r.get('asset', '')} verified={r.get('verified')}")
+              print(f"- Archive: {r.get('outcome')} {r.get('release', '')}/{r.get('asset', '')} data {str(r.get('local_data_sha256', ''))[:12]}; "
+                    f"receipt {r.get('receipt', '')}; verified={r.get('verified')}")
           PY
       - uses: actions/upload-artifact@v4
         if: always()
@@ -143,6 +146,7 @@ jobs:
             tests/out/bundle
             tests/out/bundle-info.json
             tests/out/publish.json
+            tests/out/receipt
           if-no-files-found: error
           retention-days: 30
       - name: Fail visibly on an incomplete collection (after recording and archiving it)

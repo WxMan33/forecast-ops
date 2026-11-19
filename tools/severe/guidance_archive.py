@@ -12,14 +12,17 @@ Two kinds of evidence are kept apart:
     backfilled runs keep their data but are excluded, and a date/lead with no eligible record is
     counted as missed. Coverage therefore cannot be raised by re-running old dates.
 
-Archive: one release per month (severe-guidance-YYYY-MM) in the PRIVATE archive repository, one
-asset per date and lead (severe-guidance-YYYY-MM-DD-dayN.tar.gz). Publishing is safe to retry: an
-identical existing asset is accepted, a different one is a checksum conflict that is reported and
-never overwritten, and every upload is verified by downloading it again.
+Archive: one release per month (severe-guidance-YYYY-MM) in the PRIVATE archive repository with
+one data asset per date and lead (severe-guidance-YYYY-MM-DD-dayN.tar.gz) and one receipt per
+collection attempt (...-dayN.run-RUNID-ATTEMPT.json). Retries are compared by data identity (the
+forecast data and S3 timing evidence; data-identity.json), not by bundle bytes, which change with
+every attempt's own times: the same data is a duplicate, different data is a conflict that is
+recorded in that attempt's receipt and never overwrites the data asset. Every upload is verified
+by downloading it again.
 
   record   --output DIR --day N --event EVENT --started-at ISO [--run-id ID --run-attempt N --commit SHA]
   bundle   --output DIR --dest FILE
-  publish  --bundle FILE --repository OWNER/REPO --date YYYY-MM-DD --day N [--result FILE]
+  publish  --bundle FILE --record run.json --repository OWNER/REPO --date YYYY-MM-DD --day N [--result FILE]
   coverage --records DIR --start YYYY-MM-DD --end YYYY-MM-DD [--day N]
 """
 import argparse
@@ -104,9 +107,66 @@ def record(output, day, event, started_at, run_id=None, run_attempt=None, commit
     return run
 
 
+def array_digests(path):
+    """SHA-256 of each array's name, dtype, shape and values. Zip timestamps inside .npz files
+    differ from run to run, so file bytes cannot identify the data."""
+    import numpy as np
+    out = {}
+    with np.load(path, allow_pickle=False) as data:
+        for name in sorted(data.files):
+            a = np.ascontiguousarray(data[name])
+            h = hashlib.sha256(f"{name}|{a.dtype.str}|{a.shape}|".encode())
+            h.update(a.tobytes())
+            out[name] = h.hexdigest()
+    return out
+
+
+def hour_identity(row):
+    """Object identity and S3 timing evidence for one forecast hour; no fetch or listing times."""
+    def obj(o):
+        return None if o is None else {k: o.get(k) for k in ("etag", "size", "last_modified")}
+    return {"f": row["forecast_hour"], "key": row["key"], "grib": obj(row.get("grib")),
+            "index": obj(row.get("index")), "pair_last_modified": row.get("pair_last_modified"),
+            "status": row["status"]}
+
+
+def data_identity(output):
+    """What the collection found, independent of who ran it, when, or how often.
+
+    Included: the window; per source its status, every needed hour's object identity and S3
+    timing class, every input message's byte range and SHA-256, and every feature array.
+    Excluded: run id/attempt/commit, job and fetch times, listing time, receipts' retrieval times."""
+    output = Path(output)
+    collection = json.loads((output / "collection.json").read_text())
+    guidance_path = output / "guidance" / "manifest.json"
+    guidance = json.loads(guidance_path.read_text())["sources"] if guidance_path.exists() else {}
+    identity = {"window": collection["window"], "sources": {}}
+    hrrr = collection.get("sources", {}).get("hrrr", {})
+    hrrr_manifest = output / "hrrr" / "manifest.json"
+    identity["sources"]["hrrr"] = {
+        "status": hrrr.get("status", "not_run"), "error": hrrr.get("error"),
+        "hours": [hour_identity(r) for r in (hrrr.get("availability") or {}).get("hours", [])],
+        "messages": sorted(([r["forecast_hour"], r["field"], r["start"], r["end"], r["sha256"]]
+                            for r in json.loads(hrrr_manifest.read_text())["source_receipts"])
+                           if hrrr_manifest.exists() else [])}
+    for name in ("rrfs", "nbm"):
+        entry = guidance.get(name, {})
+        identity["sources"][name] = {
+            "status": entry.get("status", "not_run"), "error": entry.get("error"),
+            "cycle": entry.get("cycle"),
+            "hours": [hour_identity(r) for r in (entry.get("availability") or {}).get("hours", [])],
+            "messages": sorted([m["forecast_hour"], m["field"], m["start"], m["end"], m["sha256"]]
+                               for m in entry.get("messages", []))}
+    identity["features"] = {str(p.relative_to(output)): array_digests(p) for p in sorted(output.rglob("*.npz"))}
+    canonical = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+    return {"schema_version": 1, "data_sha256": hashlib.sha256(canonical).hexdigest(), "identity": identity}
+
+
 def bundle(output, dest):
     """A byte-reproducible tar.gz of the collection directory (sorted names, zeroed metadata)."""
     output, dest = Path(output), Path(dest)
+    ident = data_identity(output)
+    (output / "data-identity.json").write_text(json.dumps(ident, indent=1, sort_keys=True) + "\n")
     files = sorted(p for p in output.rglob("*") if p.is_file())
     raw = io.BytesIO()
     with tarfile.open(fileobj=raw, mode="w", format=tarfile.PAX_FORMAT) as tar:
@@ -120,7 +180,8 @@ def bundle(output, dest):
     dest.parent.mkdir(parents=True, exist_ok=True)
     with open(dest, "wb") as out, gzip.GzipFile(filename="", mode="wb", fileobj=out, mtime=0) as gz:
         gz.write(raw.getvalue())
-    return {"file": dest.name, "sha256": sha256(dest), "bytes": dest.stat().st_size, "members": len(files)}
+    return {"file": dest.name, "sha256": sha256(dest), "bytes": dest.stat().st_size, "members": len(files),
+            "data_sha256": ident["data_sha256"]}
 
 
 def asset_name(date, day):
@@ -128,6 +189,20 @@ def asset_name(date, day):
     if day not in (1, 2):
         raise ValueError("Day 1 or Day 2")
     return f"severe-guidance-{date}-day{day}.tar.gz"
+
+
+def receipt_name(date, day, run_id, attempt):
+    if not str(run_id).isdigit() or not str(attempt).isdigit():
+        raise ValueError("A numeric run id and attempt are required for an attempt receipt")
+    return asset_name(date, day).replace(".tar.gz", f".run-{run_id}-{attempt}.json")
+
+
+def bundle_data_sha256(path):
+    with tarfile.open(path, "r:gz") as tar:
+        member = tar.extractfile("data-identity.json")
+        if member is None:
+            raise ValueError(f"{Path(path).name} has no data-identity.json")
+        return json.loads(member.read())["data_sha256"]
 
 
 def release_tag(date):
@@ -141,37 +216,75 @@ def gh(*args, capture=True, check=True):
     return result
 
 
-def publish(bundle_path, repository, date, day):
-    """Upload once, accept an identical copy, never overwrite a different one, verify by download."""
+def upload_verified(tag, path, repository, tmp):
+    """Upload a new asset and prove it by downloading it again; never replace an existing one."""
+    gh("release", "upload", tag, str(path), "--repo", repository)
+    back = Path(tmp) / "readback"
+    back.mkdir(exist_ok=True)
+    gh("release", "download", tag, "--repo", repository, "--pattern", path.name, "--dir", str(back), "--clobber")
+    remote = sha256(back / path.name)
+    if remote != sha256(path):
+        raise RuntimeError(f"Uploaded {path.name} reads back as {remote}, expected {sha256(path)}")
+    return remote
+
+
+def publish(bundle_path, repository, date, day, run_record, receipt_dir=None):
+    """Archive one attempt.
+
+    Data: the first verified bundle for a date and lead is the data asset. Later attempts are
+    compared by data identity (forecast data and S3 timing evidence only), not by bundle bytes:
+    the same data is accepted as a duplicate, different data is a conflict and never overwrites.
+    Attempt: every attempt also stores its own receipt (run record, data identity, outcome), so
+    each attempt's timing and collection evidence is kept, including conflicting ones."""
     bundle_path = Path(bundle_path)
     name, tag = asset_name(date, day), release_tag(date)
     if bundle_path.name != name:
         raise ValueError(f"Bundle must be named {name}")
-    local = sha256(bundle_path)
+    collection = run_record["collection"]
+    receipt_file = receipt_name(date, day, collection["run_id"], collection["run_attempt"])
+    local_data = bundle_data_sha256(bundle_path)
     private = gh("repo", "view", repository, "--json", "isPrivate", "--jq", ".isPrivate", check=False)
     if private.returncode or private.stdout.strip() != "true":
         raise ValueError(f"The guidance archive must be a private, readable repository: {repository}")
     if gh("release", "view", tag, "--repo", repository, check=False).returncode:
         made = gh("release", "create", tag, "--repo", repository, "--title", f"Severe research guidance {date[:7]}",
-                  "--notes", "Research-only HRRR/RRFS/NBM predictors, one asset per date and lead. Not a forecast.",
-                  check=False)
+                  "--notes", "Research-only HRRR/RRFS/NBM predictors: one data asset per date and lead, "
+                             "plus one receipt per collection attempt. Not a forecast.", check=False)
         if made.returncode and gh("release", "view", tag, "--repo", repository, check=False).returncode:
-            raise RuntimeError(f"Could not create release {tag}: {made.stderr.strip()}")  # not a creation race
-    result = {"repository": repository, "release": tag, "asset": name, "local_sha256": local}
+            raise RuntimeError(f"Could not create release {tag}: {made.stderr.strip()}")
+    result = {"repository": repository, "release": tag, "asset": name, "receipt": receipt_file,
+              "local_data_sha256": local_data, "local_bundle_sha256": sha256(bundle_path)}
     with tempfile.TemporaryDirectory() as tmp:
-        existing = gh("release", "download", tag, "--repo", repository, "--pattern", name, "--dir", tmp, check=False)
+        existing = gh("release", "download", tag, "--repo", repository, "--pattern", name, "--dir", tmp,
+                      check=False)
         copy = Path(tmp) / name
         if existing.returncode == 0 and copy.exists():
-            remote = sha256(copy)
-            if remote == local:
-                return {**result, "outcome": "identical_existing", "remote_sha256": remote, "verified": True}
-            return {**result, "outcome": "checksum_conflict", "remote_sha256": remote, "verified": False}
-        gh("release", "upload", tag, str(bundle_path), "--repo", repository)
-        gh("release", "download", tag, "--repo", repository, "--pattern", name, "--dir", tmp, "--clobber")
-        remote = sha256(copy)
-        if remote != local:
-            raise RuntimeError(f"Uploaded {name} reads back as {remote}, expected {local}")
-        return {**result, "outcome": "uploaded", "remote_sha256": remote, "verified": True}
+            remote_data = bundle_data_sha256(copy)
+            result.update(remote_data_sha256=remote_data, remote_bundle_sha256=sha256(copy),
+                          outcome="duplicate_data" if remote_data == local_data else "data_conflict")
+        else:
+            upload_verified(tag, bundle_path, repository, tmp)
+            result.update(remote_data_sha256=local_data, remote_bundle_sha256=sha256(bundle_path),
+                          outcome="uploaded")
+        receipt = {"schema_version": 1, "kind": "collection_attempt_receipt", "data_asset": name,
+                   "outcome": result["outcome"], "data_sha256": local_data,
+                   "archived_data_sha256": result["remote_data_sha256"],
+                   "attempt_bundle_sha256": result["local_bundle_sha256"], "run": run_record}
+        receipt_path = Path(receipt_dir or tmp) / receipt_file
+        receipt_path.write_text(json.dumps(receipt, indent=1, sort_keys=True) + "\n")
+        prior = Path(tmp) / "prior"
+        prior.mkdir()
+        if gh("release", "download", tag, "--repo", repository, "--pattern", receipt_file, "--dir", str(prior),
+              check=False).returncode == 0 and (prior / receipt_file).exists():
+            stored = json.loads((prior / receipt_file).read_text())
+            # Re-publishing the same attempt is fine; only its outcome wording can differ.
+            if stored.get("run") != run_record or stored.get("data_sha256") != local_data:
+                raise RuntimeError(f"A different receipt {receipt_file} already exists for this attempt")
+            result["receipt_already_recorded"] = True
+        else:
+            upload_verified(tag, receipt_path, repository, tmp)
+        result["verified"] = True
+        return result
 
 
 def coverage(records, start, end, days=(1, 2)):
@@ -226,6 +339,8 @@ def main(argv=None):
     u.add_argument("--repository", required=True)
     u.add_argument("--date", required=True)
     u.add_argument("--day", type=int, choices=(1, 2), required=True)
+    u.add_argument("--record", required=True, help="run.json from the record command")
+    u.add_argument("--receipt-dir", help="Also keep the attempt receipt here")
     u.add_argument("--result")
     c = sub.add_parser("coverage")
     c.add_argument("--records", required=True)
@@ -243,15 +358,17 @@ def main(argv=None):
         return 0
     if a.command == "publish":
         try:
-            out = publish(a.bundle, a.repository, a.date, a.day)
+            out = publish(a.bundle, a.repository, a.date, a.day, json.loads(Path(a.record).read_text()),
+                          a.receipt_dir)
         except (ValueError, RuntimeError) as error:
             out = {"outcome": "error", "error": str(error)}
         if a.result:
             Path(a.result).write_text(json.dumps(out, indent=1) + "\n")
         print(json.dumps(out))
-        if out["outcome"] == "checksum_conflict":
-            print(f"::error::Archive already holds a different {out['asset']} "
-                  f"({out['remote_sha256']} vs {out['local_sha256']}); not overwritten")
+        if out["outcome"] == "data_conflict":
+            print(f"::error::Archive already holds different forecast data for {out['asset']} "
+                  f"({out['remote_data_sha256']} vs {out['local_data_sha256']}); not overwritten. "
+                  f"This attempt's receipt {out['receipt']} records the conflict.")
             return 3
         if out["outcome"] == "error":
             print(f"::error::Archive publish failed: {out['error']}")

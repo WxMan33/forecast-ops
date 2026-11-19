@@ -206,14 +206,31 @@ Each run takes five steps:
    30 days.
 5. **Publish:** publishes to the **private** archive (`publish`), using the secret
    `SEVERE_GUIDANCE_ARCHIVE_WRITE_TOKEN` (Contents: read and write on `WxMan33/forecast-ops-archive`
-   only). The rebuild token stays read-only.
-   - **Where:** one release per month, `severe-guidance-YYYY-MM`, and one asset per date and lead,
-     `severe-guidance-YYYY-MM-DD-dayN.tar.gz`.
-   - **Safe retries:** an identical existing asset is accepted.
-   - **Conflicts:** a different existing asset is a **checksum conflict**. It fails the run and is
-     never overwritten.
+   only). The rebuild token stays read-only. Public repositories are refused.
+   - **Where:** one release per month, `severe-guidance-YYYY-MM`.
+   - **Data asset:** one per date and lead, `severe-guidance-YYYY-MM-DD-dayN.tar.gz`. The first
+     verified bundle wins.
+   - **Attempt receipt:** one per collection attempt, `…-dayN.run-RUNID-ATTEMPT.json`. It holds that
+     attempt's run record (timing and collection evidence), its data identity and the outcome.
+   - **How retries are compared:** by **data identity** (`data-identity.json` in each bundle), never
+     by bundle bytes. The bytes change with every attempt's own times, run id and attempt number.
+     The identity covers only forecast data, excluding run ids, job and fetch times and listing
+     times. Per source it records:
+     - status;
+     - every needed hour's object identity and S3 timing class (key, ETag, size, GRIB and index
+       `LastModified`);
+     - every input message's byte range and SHA-256;
+     - a hash of every feature array's values.
+   - **Same data:** a rerun with the same data is `duplicate_data`. The data asset is unchanged, and
+     the new attempt's receipt is still stored.
+   - **Different data:** this is a `data_conflict`. It fails the run, is recorded in that attempt's
+     receipt, and never overwrites the data asset.
+   - **Same attempt re-published:** accepted if its stored receipt has the same run record and data
+     identity.
    - **Verification:** every upload is downloaded again and its SHA-256 compared.
-   - **Public repositories are refused.**
+
+   Two independent real collections of 2026-11-18 Day 1, each with a fresh cache, gave the same data
+   identity, while their manifests differed byte for byte.
 
 The run is then kept as a 30-day Actions artifact too. An incomplete collection fails the job
 visibly, but only after its record and bundle are archived, so failures are counted.
