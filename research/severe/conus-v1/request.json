@@ -1,9 +1,7 @@
 {
-  "purpose": "CONUS pilot: one active and one quiet 2022-2023 cohort date, both leads",
-  "mode": "pilot",
-  "cases": [
-    "2023-06-15",
-    "2023-12-15"
-  ],
-  "request": 2
+  "purpose": "Full CONUS extraction of the 108 v07 cohort cases (2022-2024 only), 12 restartable month batches",
+  "mode": "batch",
+  "cases": [],
+  "pilot_passed": "run 44575042202: 16,413/16,413 overlap points identical (predictors and labels), both dates and leads",
+  "request": 3
 }
