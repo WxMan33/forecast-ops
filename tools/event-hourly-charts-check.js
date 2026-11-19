@@ -6,7 +6,8 @@
 'use strict';
 const fs = require('node:fs'), path = require('node:path'), http = require('node:http'), { chromium } = require('playwright');
 const root = path.resolve(__dirname, '..'), out = path.resolve(process.argv[2] || path.join(require('node:os').tmpdir(), 'event-hourly-charts')); fs.mkdirSync(out, { recursive: true });
-const FIX = fs.readFileSync(path.join(root, 'tests/fixtures/event-winter-data.js'), 'utf8');
+const FIXES = { winter: fs.readFileSync(path.join(root, 'tests/fixtures/event-winter-data.js'), 'utf8'), orlando: fs.readFileSync(path.join(root, 'tests/fixtures/event-orlando-data.js'), 'utf8') };
+let FIX = FIXES.winter;
 const server = http.createServer((req, res) => { const rel = decodeURIComponent(new URL(req.url, 'http://x').pathname).replace(/^\//, ''); const file = path.resolve(root, rel || 'event-beta.html');
   if (!file.startsWith(root + path.sep) || !fs.existsSync(file)) { res.writeHead(404).end(); return; }
   const type = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' }[path.extname(file)] || 'application/octet-stream';
@@ -72,6 +73,31 @@ const facts = (p) => p.evaluate(() => {
       await p.locator('#evCharts').screenshot({ path: path.join(out, `hourly-${wx}-${dev}-${theme}.png`) });
       check(errors.length === 0, `${L} no script errors ${errors.join('; ')}`);
       await ctx.close();
+    }
+    /* ---- Export hourly image (1920 x 1080 PNG) and the hourly display link ---- */
+    for (const [fixName, wx, expectLightning, expectType] of [['winter', 'transition', 'low-throughout', 'bands'], ['winter', 'allrain', 'low-throughout', 'rain'], ['winter', 'gaps', 'blocks', 'bands'], ['orlando', 'storm', 'blocks', 'rain']]) {
+      FIX = FIXES[fixName]; const L = `export ${fixName} ${wx}:`;
+      const { ctx, p, errors } = await open(browser, base, wx === 'storm' ? 'x&orl=storm' : wx, DESK, 'light');
+      const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 30000 }), p.click('#tvExport')]);
+      const file = path.join(out, `tv-${fixName}-${wx}.png`); await dl.saveAs(file);
+      const png = fs.readFileSync(file), w = png.readUInt32BE(16), h = png.readUInt32BE(20);
+      const info = await p.evaluate(() => { const L = window.__lastHourly; const c = window.EventTvExport.draw(document.createElement('canvas'), L); return { min: c.minFontPx, lightning: c.lightning, type: c.typeMode, msg: document.getElementById('hourlyShareMsg').textContent }; });
+      check(png.slice(1, 4).toString() === 'PNG' && w === 1920 && h === 1080 && /1920 × 1080/.test(info.msg), `${L} downloads a 1920 × 1080 PNG (${dl.suggestedFilename()}, ${Math.round(png.length / 1024)} KB)`);
+      check(info.min >= 20, `${L} TV readability: smallest text ${info.min} px on a 1080-line image`);
+      check(info.lightning === expectLightning && info.type === expectType, `${L} lightning ${info.lightning}, precipitation type ${info.type}`);
+      check(errors.length === 0, `${L} no script errors ${errors.join('; ')}`);
+      if (wx === 'transition') {
+        /* the hourly display link: a signed-out browser (fresh context, no storage) opens straight to the charts */
+        await ctx.grantPermissions(['clipboard-read', 'clipboard-write']); await p.click('#hourlyCopy');
+        const url = await p.evaluate(() => navigator.clipboard.readText()); await ctx.close();
+        const ctx2 = await browser.newContext({ ...DESK, timezoneId: 'America/New_York' }), q = await ctx2.newPage(), errs2 = []; q.on('pageerror', (e) => errs2.push(e.message));
+        await ctx2.route('**/*', (r) => { const u = new URL(r.request().url()); if (u.origin !== base) return r.fulfill({ status: 200, body: '' });
+          if (u.pathname === '/assets/beta-event.js') return r.fulfill({ contentType: 'application/javascript', body: FIX + '\n' + fs.readFileSync(path.join(root, 'assets/beta-event.js'), 'utf8') }); return r.continue(); });
+        await q.goto(url); await q.waitForFunction(() => document.querySelector('#evCharts .evc-card'), null, { timeout: 20000 }); await q.waitForTimeout(500);
+        const v = await q.evaluate(() => ({ open: document.getElementById('secHourly').open, top: Math.round(document.getElementById('secHourly').getBoundingClientRect().top), name: document.getElementById('evName').textContent, stored: Object.keys(localStorage).filter((k) => /beta_events/.test(k)).length }));
+        check(/#hourly$/.test(url) && /[?&]e=/.test(url) && v.open && v.top < 200 && /FC Cincinnati/.test(v.name) && !errs2.length, `display link opens the hourly charts in a signed-out browser (section open, ${v.top}px from top, "${v.name}")`);
+        await ctx2.close();
+      } else await ctx.close();
     }
   } finally { await browser.close(); server.close(); }
   console.log(failed ? `${failed} check(s) failed` : 'all hourly chart checks passed'); process.exit(failed ? 1 : 0);

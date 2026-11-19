@@ -17,7 +17,7 @@
   const linkCity = (() => { const lat = parseFloat(Q.get("lat")), lon = parseFloat(Q.get("lon")); return fin(lat) && fin(lon) ? { name: Q.get("name") || `${lat.toFixed(3)}, ${lon.toFixed(3)}`, lat, lon, tz: Q.get("tz") || null } : null; })();
   const sampleAt = (city) => S.sampleEvent(C, Date.now(), (city && city.tz) || "America/New_York", 1, city || null);
   let retried = false;
-  let lastView = null, chartController = null;
+  let lastView = null, chartController = null, updatedMs = null, lastHourly = null;
   let ev = storedOk(Q.get("ev")) || linkEvent || (linkCity ? null : storedOk(E.last())) || null, tzFromPick = false, pickSeq = 0, gen = 0, lastRes = null, bus = null, pendingCity = linkCity;
   if (!ev) ev = sampleAt(linkCity && linkCity.tz ? linkCity : null);
   const isSample = () => !!ev.sample, isStored = () => !!(ev.id && E.getEvent(ev.id));
@@ -173,7 +173,7 @@
        (a copy under a minute old is simply current) */
     const got = Object.keys(ctx.ws).map((id) => ctx.B.models[id]).filter(Boolean), oldest = Math.min(...got.map((m) => Date.parse(m.retrievedAt)).filter(fin));
     const saved = got.some((m) => m.fromCache && ctx.B.viewedAt - Date.parse(m.retrievedAt) > 60e3);
-    head.setUpdated(saved && fin(oldest) ? oldest : ctx.B.viewedAt, { saved: saved && fin(oldest) });
+    head.setUpdated(saved && fin(oldest) ? oldest : ctx.B.viewedAt, { saved: saved && fin(oldest) }); updatedMs = saved && fin(oldest) ? oldest : ctx.B.viewedAt;
     const b = S.eventBrief(ctx, ev, thr);
     if (b.error) { $("decision").textContent = b.error; return; }
     const top = b.top, checks = S.checkAgain(ctx, b, U.NAMES), next = checks[0];
@@ -309,6 +309,9 @@
     $("evGridLegend").innerHTML = `<p class="bx-note">Swipe for more hours · tap an hour for details.</p><details class="bx-more"><summary>How to read these hours</summary>${G.legend(V.legend)}<p class="bx-note">${esc(V.note)}</p><p class="bx-note">Follow NWS warnings and your venue's lightning policy for live decisions.</p></details>`;
     chartController = window.EventHourlyCharts.render($("evCharts"), { view: V, selected: sel0, tz: ev.tz, gustLimit: ev.gust || 25, nwsTypes, onSelect: ms => { if (bus) bus.set(ms, "variable-charts"); showHour(ms); } });
     showHour(sel0);
+    lastHourly = { V, nwsTypes }; $("tvExport").disabled = false; $("tvExport").title = "Save a 1920 × 1080 image of these hours for a TV display";
+    /* a display link (…#hourly) opens straight to these charts */
+    if (location.hash === "#hourly") { const d = $("secHourly"); d.open = true; requestAnimationFrame(() => d.scrollIntoView({ block: "start" })); }
     if (bus) bus.on((ms) => { const hm = Math.floor(ms / H) * H; if (V.span.includes(hm)) { grid.setSelected(hm); chartController.setSelected(hm); showHour(hm); } });
   }
   function briefingUpdate(event, b, V, res) {
@@ -373,6 +376,24 @@
   }
   /* the top Print button is live only once a full briefing exists to print */
   function printReady(on) { const b = $("printTop"); if (!b) return; b.disabled = !on; b.title = on ? "Print or save the two-page briefing" : "Available once the briefing loads"; }
+  /* TV displays: a 1920 x 1080 image of the hourly charts, or a link that opens them (no sign-in; the event is in the link) */
+  $("tvExport").addEventListener("click", async () => {
+    const msg = $("hourlyShareMsg"); if (!lastHourly) return;
+    const when = (ms) => (fin(ms) ? `${new Date(ms).toLocaleString("en-US", { timeZone: ev.tz, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} ${fmt.zone(ms, ev.tz)}` : "—");
+    try {
+      const data = { title: $("evName").textContent, venue: $("evVenue").textContent, when: $("evWhen").textContent, takeaway: $("decision").textContent,
+        updated: when(updatedMs), zone: fmt.zone(lastHourly.V.span[0], ev.tz), view: lastHourly.V, nwsTypes: lastHourly.nwsTypes, gustLimit: ev.gust || 25 };
+      window.__lastHourly = data; // read-only test hook
+      const r = await window.EventTvExport.exportPng(data);
+      msg.textContent = `Saved ${r.name} (1920 × 1080).`;
+    } catch (e) { msg.textContent = `Couldn't make the image (${e.message}).`; }
+  });
+  $("hourlyCopy").addEventListener("click", async () => {
+    const msg = $("hourlyShareMsg"), url = link() + "#hourly";
+    try { await navigator.clipboard.writeText(url); msg.textContent = "Hourly display link copied. It opens these charts with the latest forecast; no sign-in needed."; }
+    catch (e) { msg.textContent = "Copy this link: " + url; }
+    U.track("link_copied");
+  });
   $("hourlyLink").addEventListener("click", (e) => { e.preventDefault(); const d = $("secHourly"); d.open = true; d.scrollIntoView({ behavior: "smooth", block: "start" }); d.querySelector("summary").focus({ preventScroll: true }); });
   $("printTop").addEventListener("click", () => { if (!lastRes) return; printView(lastRes); window.print(); });
   window.addEventListener("beforeprint", () => printView(lastRes));
