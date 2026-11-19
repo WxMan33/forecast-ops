@@ -42,6 +42,7 @@ jobs:
         run: |
           node tools/build-event-sample.js && git diff --exit-code docs/beta/event-sample.html
           node tools/event-dashboard-check.js /tmp/event-dashboard
+          node tools/event-hourly-charts-check.js /tmp/event-hourly-charts
       - name: Hourly grid fixtures (offline)
         run: |
           python3 -m http.server 8765 >/dev/null 2>&1 &
