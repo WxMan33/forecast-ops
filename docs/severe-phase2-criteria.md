@@ -53,3 +53,37 @@ exploratory; it does not by itself justify a change to the production model.
 - Day 1 is judged the same way, separately. With 12 verification dates every result stays
   exploratory; region/hazard pairs with < 5 verification or < 10 training event dates are
   listed as needing more dates before their probabilities can be trusted.
+
+## 6. 36-date CONUS follow-up (frozen before extraction, refit or scoring)
+Dates: the 1st, 8th and 22nd of each month of 2024 (36 dates). Day 1 and Day 2 windows run
+D 12Z to D+2 12Z, so they cannot overlap the 15th-17th windows used in earlier selection. No
+earlier cohort, label set, study or tuning step loaded these dates (checked: cohort-v05,
+cohort-v07, labels-v04/v07 and all research/severe, tools/severe and workflow files). 2025 stays sealed.
+
+Frozen models: exactly the four models scored in run 44589486745 (v0.7 as-is, the v0.7 recipe
+refit on CONUS, CONUS logistic and CONUS trees). They are refit with that commit's code on the same
+96 dates, their 12-date predictions must reproduce the committed ones, and their parameters and
+hashes are committed before the follow-up dates are scored. Nothing is re-tuned.
+
+Reference: the v0.7 recipe refit on CONUS. Lead products: **Day 2 wind and Day 2 hail.**
+
+For each candidate and product:
+- **Repeats nationally:** lower all-supported Brier than the reference, and the paired whole-date
+  bootstrap 95% interval of (candidate - reference) lies entirely below zero.
+- **Holds across regions:** criterion 5 on the 36 dates (interior samples; a region enters with
+  >= 3 verification event dates; better in >= 2 entered regions and in a majority).
+- **Enough data to trust a region** (stricter, reported separately): >= 5 verification and >= 10
+  training event dates. A region can enter the comparison yet still be flagged as thin.
+- Per region: paired Brier difference with 95% whole-date bootstrap interval, plus event-date
+  counts.
+- Day 1 and Day 2 tornado are reported by the same rules, as secondary results.
+
+False-alarm size, for Florida/Gulf and the West (and the other regions, for context):
+- mean forecast vs observed report rate;
+- on no-report days (no qualifying report in that region for that hazard and window), the
+  land area (km^2; 225 km^2 per sample) with forecast >= 5%, >= 15% and >= 30%, as a mean per
+  no-report day and a total.
+
+If the Florida/Gulf or West errors persist, the next step is a **proposal only**: a
+calibration experiment fit on development data, verified on a separate, named set of dates.
+Production stays on v0.7 whatever the outcome.
