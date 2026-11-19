@@ -30,7 +30,7 @@ jobs:
           sys.path.insert(0, "tools/severe")
           from cohort import calendar_cases
           req = json.load(open("research/severe/conus-v1/request.json"))
-          cases = req["cases"] if req["mode"] in ("pilot", "followup") else calendar_cases(json.load(open("research/severe/cohort-v07.json")))
+          cases = req["cases"] if req["mode"] in ("pilot", "followup", "calibration") else calendar_cases(json.load(open("research/severe/cohort-v07.json")))
           if any(not c.startswith(("2022", "2023", "2024")) for c in cases):
               raise SystemExit("2025 is sealed")
           if req["mode"] == "pilot":
@@ -89,7 +89,7 @@ jobs:
           for case in $CASES; do
             start=$(date +%s)
             regional=()
-            if [ "$MODE" != followup ]; then  # follow-up dates have no archived regional case to compare
+            if [ "$MODE" != followup ] && [ "$MODE" != calibration ]; then  # no archived regional case for these dates
               bash tools/severe/restore_inputs.sh --source v07 --case "$case" --output "tests/out/regional/$case"
               regional=(--regional "$(dirname "$(find "tests/out/regional/$case" -name joined.npz | head -1)")")
             fi

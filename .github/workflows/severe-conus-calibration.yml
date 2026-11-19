@@ -1,0 +1,79 @@
+name: Severe CONUS Day 2 wind calibration test (research)
+# Research only (criterion 7). stage "fit": out-of-fold 2022-23 predictions for the frozen CONUS
+# logistic and trees, checked against their frozen calibration, then a per-region Platt correction;
+# commits corrections.json. stage "score": frozen models + committed corrections on the 48
+# verification dates, original labels (primary) and a HURDAT2 tropical-event sensitivity analysis.
+# Never loads 2025; never touches the feed, publisher or registry.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-v1/calibration-request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-calibration
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      OPENBLAS_NUM_THREADS: '4'
+      OMP_NUM_THREADS: '4'
+      REQ: research/severe/conus-v1/calibration-request.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 matplotlib==3.11.2 shapely==2.2.0
+      - id: req
+        run: |
+          echo "stage=$(jq -r .stage "$REQ")" >> "$GITHUB_OUTPUT"
+          echo "artifacts=$(jq -r .extraction_run "$REQ")" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: severe-conus-*
+          merge-multiple: true
+          path: tests/out/x
+          run-id: ${{ steps.req.outputs.artifacts }}
+          github-token: ${{ github.token }}
+      - name: Fit the regional correction on out-of-fold 2022-23 predictions
+        if: steps.req.outputs.stage == 'fit'
+        run: |
+          out=research/severe/conus-v1/calibration-fit
+          mkdir -p tests/out/dev  # only the 2022-23 development dates are visible to the fit
+          for d in tests/out/x/conus/2022-* tests/out/x/conus/2023-*; do ln -s "$PWD/$d" tests/out/dev/; done
+          ls tests/out/dev | wc -l
+          PYTHONPATH=tools/severe python3 tools/severe/conus_calibration.py fit --conus tests/out/dev --output "$out"
+          echo "run_id: $GITHUB_RUN_ID" > "$out/run.txt"
+          echo "dest=$out" >> "$GITHUB_ENV"
+      - name: Fetch HURDAT2 best tracks (sensitivity analysis only)
+        if: steps.req.outputs.stage == 'score'
+        continue-on-error: true
+        run: |
+          mkdir -p tests/out/hurdat
+          index=$(curl -fsSL https://www.nhc.noaa.gov/data/hurdat/)
+          for kind in hurdat2-1851 hurdat2-nepac; do
+            name=$(grep -oE "${kind}-[0-9]{4}-[0-9]+\.txt" <<<"$index" | sort -u | tail -1)
+            curl -fsSL -o "tests/out/hurdat/$name" "https://www.nhc.noaa.gov/data/hurdat/$name"
+            grep -c "^2024" "tests/out/hurdat/$name" | sed "s/^/$name 2024 fixes: /"
+          done
+      - name: Score on the 48 verification dates
+        if: steps.req.outputs.stage == 'score'
+        run: |
+          out=research/severe/conus-v1/calibration-study
+          PYTHONPATH=tools/severe python3 tools/severe/conus_calibration.py score --conus tests/out/x/conus --output "$out" \
+            --hurdat tests/out/hurdat/*.txt
+          echo "run_id: $GITHUB_RUN_ID" > "$out/run.txt"
+          cat "$out/scorecard.md" >> "$GITHUB_STEP_SUMMARY"
+          echo "dest=$out" >> "$GITHUB_ENV"
+      - name: Commit to the research branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$dest"
+          git commit -m "Calibration ${{ steps.req.outputs.stage }} (run $GITHUB_RUN_ID)"
+          for i in 1 2 3; do git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0; sleep 10; done
+          exit 1
