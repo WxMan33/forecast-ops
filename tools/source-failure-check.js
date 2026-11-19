@@ -39,6 +39,8 @@ async function open(base, { phone = false, theme = 'light' } = {}) {
   await p.addInitScript((t) => { localStorage.setItem('ops_theme', JSON.stringify(t)); localStorage.setItem('fo_analytics_optout', '1'); }, theme);
   return { ctx, p, state };
 }
+/* the hourly charts are under the "Hour by hour" details group: open it before using them */
+const openHourly = (p) => p.evaluate(() => { const d = document.getElementById('secHourly'); if (d) d.open = true; });
 const text = (p, sel) => p.evaluate((q) => document.querySelector(q)?.textContent || '', sel).catch(() => '');
 const settled = (p, ms = 30000) => p.waitForFunction(() => { const d = document.getElementById('decision')?.textContent || ''; return document.body.dataset.loaded || /could not be loaded|slow to answer|ended|pending|needs confirmation/i.test(d); }, null, { timeout: ms });
 const requests = (st, host) => st.log.filter((x) => !host || x.host === host).length;
@@ -98,6 +100,7 @@ async function eventChecks(base) {
 
   /* ---- recovery keeps the selected hour and clears obsolete errors ---- */
   const hour = Date.parse('2026-11-12T23:00:00Z');
+  await openHourly(p); await p.waitForTimeout(200);
   await p.locator(`#evCharts [data-variable=pop] [data-hour="${hour}"]`).click();
   check(await p.evaluate((h) => +document.body.dataset.selected === h, hour), 'event: an hour can be selected');
   state.scenario = { forecast: { '*': { status: 500 } } }; await p.evaluate(() => sessionStorage.clear()); await p.locator('#bxRefresh').click(); await settled(p);
@@ -145,6 +148,7 @@ async function eventChecks(base) {
   state.scenario = { forecast: { '*': { nullFrom: [gapFrom, gapTo], nullVars: ['precipitation_probability'] }, gfs_hrrr: { hoursAvailable: 30 } }, ensemble: { '*': { nullFrom: [gapFrom, gapTo] } } };
   await p.evaluate(() => sessionStorage.clear()); await p.locator('#bxRefresh').click(); await settled(p);
   const gapHour = sim.DAY0 + (gapFrom + 1) * H;
+  await openHourly(p); await p.waitForTimeout(200);
   await p.locator(`#evCharts [data-variable=pop] [data-hour="${gapHour}"]`).click();
   check((await text(p, '#evCharts [data-value=pop]')).trim() === '—', 'event: an hour with no rain-chance guidance shows — on the chart, not 0%');
   check(!/\b0%/.test(await text(p, '#evGridDetail')), 'event: selected-hour details never turn the missing chance into 0%');

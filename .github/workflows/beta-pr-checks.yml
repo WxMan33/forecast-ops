@@ -38,6 +38,10 @@ jobs:
         run: (command -v pdftotext >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils)) && node tools/event-attention-check.js /tmp/event-attention
       - name: Event Manager HTTP 429 recovery (mocked providers)
         run: node tools/event-429-recovery-check.js /tmp/event-429-recovery.json
+      - name: Event Manager dashboard layout (Orlando design case, quiet, partly covered, overnight, missing hour; phone and desktop)
+        run: |
+          node tools/build-event-sample.js && git diff --exit-code docs/beta/event-sample.html
+          node tools/event-dashboard-check.js /tmp/event-dashboard
       - name: Hourly grid fixtures (offline)
         run: |
           python3 -m http.server 8765 >/dev/null 2>&1 &

@@ -92,6 +92,7 @@ const sentFor = (log, model, kind = 'model', venue = 'paycor', spec = null) => l
       check(await until(() => !!document.body.dataset.loaded, 15000), 'a usable briefing appears before any retry');
       const first = await state();
       check(first.print && /6 of 10/.test(first.cov) && first.attempts.every((x) => !x.at), `Print is ready on the first briefing with 6 of 10 sources (3 refused, NWS down in this mock) and no retry sent yet (${first.cov}, first usable after ${first.firstUsable} ms)`);
+      await p.evaluate(() => { document.getElementById('secHourly').open = true; }); // hourly charts are under "Hour by hour"
       await p.locator('#evCharts [data-variable=pop] [data-hour]').nth(2).click(); const chosen = (await state()).selected;
       await until(() => document.body.dataset.recovery === 'done', 60000); const s = await state();
       const retried = log.filter((x) => x.n > 1 && x.venue === 'paycor');
