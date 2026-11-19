@@ -659,8 +659,10 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
         const phaseCells = [...document.querySelectorAll('#evGrid tr[data-row="phase"] td .hg-v')].map((td) => td.textContent.trim());
         const pops = [...document.querySelectorAll('#evGrid tr[data-row="pop"] td .hg-v')].map((td) => td.textContent.trim());
         const cards = [...document.querySelectorAll(".bx-phase[data-phase]")].map((c) => ({ key: c.dataset.phase, label: c.querySelector(".nm").childNodes[0].textContent.trim(), peak: c.querySelector("[data-peak]").textContent.trim(), light: c.querySelector("[data-light]").textContent.trim() }));
-        const printPeaks = Object.fromEntries([...document.querySelectorAll("#printView tr[data-phase]")].map((tr) => [tr.dataset.phase, tr.querySelector("[data-peak]").textContent.trim().split(" ")[0]]));
-        const printPops = [...document.querySelectorAll("#printView td[data-pop]")].map((td) => td.textContent.trim());
+        /* the printout has no phase table: each phase's printed peak is the highest chance among its rows in the hourly table */
+        const printRows = [...document.querySelectorAll("#printView .pv-hours tbody tr")].map((tr) => ({ phase: tr.children[1].textContent, pop: tr.querySelector("[data-pop]").textContent.trim() }));
+        const printPeaks = Object.fromEntries(cards.map((c) => { const v = printRows.filter((r) => r.phase.includes(c.label)).map((r) => r.pop).filter((x) => /%$/.test(x)); return [c.key, v.length ? v.reduce((a, b) => (parseFloat(b) > parseFloat(a) ? b : a)) : "—"]; }));
+        const printPops = [...document.querySelectorAll("#printView td[data-pop]")].map((td) => td.textContent.trim().replace(/^no data$/, "—"));
         const keys = document.getElementById("keys").innerText;
         return { phaseCells, pops, cards, printPeaks, printPops, keys, ensembleInDetails: !!document.querySelector("#detail #ensDetail"), ensembleInGrid: !!document.querySelector('#evGrid tr[data-row="chance"]'),
           chartTucked: !document.getElementById("chartMore").open, perPhaseTables: document.querySelectorAll(".bx-phd").length, jargon: /hourly rule|phase level/i.test(document.getElementById("briefView").innerText) }; }) : null;
@@ -684,9 +686,9 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
         const pdf = await p.pdf({ path: `${out}/event-briefing.pdf`, format: "Letter", preferCSSPageSize: true });
         const pages = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length;
         await p.emulateMedia({ media: "screen" });
-        const must = ["Issued", "Times are the venue's local time", "Peak hourly rain chance", "Official NWS forecast", "When to check again", "Hour by hour", "Open-Meteo", "National Weather Service"];
+        const must = ["Issued", "Times are the venue's local time", "What to plan for", "Event schedule", "Official NWS forecast", "Next weather check", "Local time", "Open-Meteo", "National Weather Service"];
         report(pages === 2 && shown.pv === "block" && !shown.briefShown && !shown.iframes && must.every((m) => shown.text.includes(m)) && shown.fontPt >= 9,
-          "printout: a two-page US Letter PDF for the single-day sample event, with issue time, time zone, phase summaries, NWS, next check, hourly table and attribution; no controls or map; table text 9 pt or larger",
+          "printout: a two-page US Letter PDF for the single-day sample event, with issue time, time zone, what to plan for, schedule, NWS, next weather check, hourly table and attribution; no controls or map; table text 9 pt or larger",
           `${pages} pages · print view ${shown.pv}, screen view ${shown.brief} · controls/iframes ${shown.iframes} · table ${shown.fontPt.toFixed(1)} pt · missing: ${must.filter((m) => !shown.text.includes(m)).join(", ") || "none"}`);
       }
       await ctx.close(); }
@@ -696,7 +698,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
         times: { setup: `${day(1)}T08:00`, start: `${day(1)}T10:00`, end: `${day(3)}T18:00`, teardown: `${day(3)}T20:00` }, gust: 25, overrides: [], source: { kind: "manual" } };
       const { ctx, p, errors } = await go(PHONE, base + "event-beta.html?ev=ev_check3day", `if (!sessionStorage.getItem("seeded3")) { sessionStorage.setItem("seeded3", "1"); localStorage.setItem("beta_events_v2", ${JSON.stringify(JSON.stringify([ev3]))}); }`);
       const ready = await until(p, () => document.querySelector("#printView .pv-p2"), null, 150000);
-      const m = ready ? await p.evaluate(() => ({ head: document.querySelector("#printView .pv-p2 .pv-hours-window").innerText, rows: document.querySelectorAll("#printView .pv-hours tbody tr").length, phases: document.querySelectorAll("#printView tr[data-phase]").length })) : null;
+      const m = ready ? await p.evaluate(() => ({ head: document.querySelector("#printView .pv-p2 .pv-hours-window").innerText, rows: document.querySelectorAll("#printView .pv-hours tbody tr").length, phases: document.querySelectorAll("#printView .pv-sched [data-phase]").length })) : null;
       let pages = null; if (ready) { await p.emulateMedia({ media: "print" }); const pdf = await p.pdf({ path: `${out}/event-briefing-3day.pdf`, format: "Letter", preferCSSPageSize: true }); pages = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length; }
       report(m && m.rows === 24 && /first 24 hours/i.test(m.head) && /open the briefing for the rest/.test(m.head) && m.phases >= 3 && pages === 2 && !errors.length,
         "long multi-day event: the printout keeps the full phase summary and states the hourly window it includes (first 24 hours) instead of silently cutting",

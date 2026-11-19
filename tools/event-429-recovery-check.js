@@ -66,7 +66,8 @@ async function scenario(browser, base, name, { rules = {}, ensRules = {}, steps,
   const until = async (fn, ms = 120000) => { for (let t = 0; t < ms; t += 250) { if (await p.evaluate(fn).catch(() => false)) return true; await p.clock.runFor(250); await p.waitForTimeout(15); } return false; };
   const state = () => p.evaluate(() => ({ decision: document.getElementById('decision').textContent, loaded: document.body.dataset.loaded || '', recovery: document.body.dataset.recovery || '', firstUsable: +document.body.dataset.firstUsable || null,
     print: !document.getElementById('printTop').disabled, cov: (document.querySelector('#sourceCoverage .brief-source b') || {}).textContent || '', note: document.getElementById('coverageUpdate').hidden ? '' : document.getElementById('coverageUpdate').textContent,
-    printCov: (document.querySelector('#printView .pv-p1 .brief-source b') || {}).textContent || '', selected: document.body.dataset.selected || '', venue: document.getElementById('evVenue').textContent, update: document.getElementById('briefUpdate').hidden ? '' : document.getElementById('briefUpdate').innerText,
+    /* the printout carries no source counts: it matches the screen when its decision and hourly rain chances do */
+    printMatches: (document.querySelector('#printView .pv-dec') || {}).textContent === document.getElementById('decision').textContent && [...document.querySelectorAll('#printView td[data-pop]')].map((t) => t.textContent.trim().replace('no data', '—')).join() === [...document.querySelectorAll('#evGrid tr[data-row="pop"] td .hg-v')].slice(0, 24).map((t) => t.textContent.trim()).join(), selected: document.body.dataset.selected || '', venue: document.getElementById('evVenue').textContent, update: document.getElementById('briefUpdate').hidden ? '' : document.getElementById('briefUpdate').innerText,
     attempts: (window.EventRecoveryLog || []).map((x) => ({ id: x.id, kind: x.kind, waitMs: x.waitMs, retryAfter: x.retryAfter, outcome: x.outcome, at: x.at })) }));
   await p.goto(`${base}/event-beta.html?e=${encodeURIComponent(EVENT(PAYCOR))}`);
   const S = { p, state, advance, until, log, seen, check: (ok, msg) => check(ok, `${name}: ${msg}`) };
@@ -100,7 +101,7 @@ const sentFor = (log, model, kind = 'model', venue = 'paycor', spec = null) => l
       check(['ecmwf_ifs025', 'gfs_seamless'].every((m) => sentFor(log, m, 'model', 'paycor', BLEND).length === 2) && sentFor(log, 'gfs025', 'ens').length === 2, 'each refused request was retried exactly once');
       const at = retried.map((x) => x.at).sort((a, b) => a - b);
       check(at[0] >= 2000 && at[1] - at[0] >= 8000 && at[2] - at[1] >= 1000, `retries are one at a time and honor Retry-After 2 s, the 8 s default, then Retry-After 1 s (sent at ${at.join(', ')} ms)`);
-      check(/9 of 10/.test(s.cov) && /9 of 10/.test(s.printCov), `coverage and the printout both reach 9 of 10 (all but the mocked NWS outage) (${s.cov} / print ${s.printCov})`);
+      check(/9 of 10/.test(s.cov) && s.printMatches, `coverage reaches 9 of 10 (all but the mocked NWS outage) and the printout carries the same decision and hourly rain chances (${s.cov})`);
       check(/Plan for rain|rain/i.test(s.decision) && !/rain/i.test(first.decision), `the recovered source changed the forecast (“${first.decision}” → “${s.decision}”)`);
       const notes = s.attempts.map((x) => x.outcome);
       check(notes.every((o) => o === 'recovered') && /^Coverage update: GEFS answered on its retry\. The briefing now uses 9 of 10 sources\./.test(s.note), 'the last note is a coverage update, apart from the weather: ' + s.note);
@@ -134,7 +135,7 @@ const sentFor = (log, model, kind = 'model', venue = 'paycor', spec = null) => l
       check(s.firstUsable >= 8000, `the first usable briefing waits for the first retry (${s.firstUsable} ms), it does not appear from unused models`);
       const at = log.filter((x) => x.n > 1 && x.spec === BLEND).map((x) => x.at).sort((a, b) => a - b);
       check(at.every((t, i) => !i || t - at[i - 1] >= 8000), `retries are spaced by the 8 s default (${at.join(', ')} ms)`);
-      check(/9 of 10/.test(s.cov) && /9 of 10/.test(s.printCov), `coverage and print end at 9 of 10 (${s.cov})`);
+      check(/9 of 10/.test(s.cov) && s.printMatches, `coverage ends at 9 of 10 and the printout matches the screen (${s.cov})`);
     } });
 
   /* 3. persistent 429s: two models never answer; one gives Retry-After 3 s */
@@ -180,7 +181,7 @@ const sentFor = (log, model, kind = 'model', venue = 'paycor', spec = null) => l
     const after = log.slice(sentBefore), counts = perRequest(log), refused = ['model:ecmwf_ifs025:paycor:temperature_2m', 'model:gfs_seamless:paycor:temperature_2m', 'ens:gfs025:paycor:temperature_2m'];
     check(after.length === 3 && after.every((x) => refused.includes(`${x.kind}:${x.model}:${x.venue}:${x.spec}`)), `after the first briefing only the 3 refused requests went back over the network (${after.map((x) => `${x.kind}:${x.model}@${x.at}ms→${x.status}`).join(', ')})`);
     check([...counts].every(([k, n]) => (refused.includes(k) ? n === 2 : n === 1)), `every other request was sent exactly once (${counts.size} distinct requests)`);
-    check(/6 of 10/.test(first.cov) && /9 of 10/.test(s.cov) && /9 of 10/.test(s.printCov), `previously loaded sources stay and the screen and printout end at the same count (${first.cov} → ${s.cov} / print ${s.printCov})`);
+    check(/6 of 10/.test(first.cov) && /9 of 10/.test(s.cov) && s.printMatches, `previously loaded sources stay, and the printout matches the updated screen (${first.cov} → ${s.cov})`);
     check(/rain/i.test(s.decision) && /Coverage update: GEFS answered on its retry\. The briefing now uses 9 of 10 sources\./.test(s.note), 'the recovered wet source still changes the briefing, announced as a coverage update');
     const printDecision = await p.evaluate(() => (document.querySelector('#printView .pv-dec') || {}).textContent || '');
     check(printDecision === s.decision, `the printout carries the same updated decision (“${printDecision}”)`);

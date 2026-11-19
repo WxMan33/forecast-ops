@@ -74,7 +74,7 @@ const firstScreen = (p) => p.evaluate(() => { const vh = innerHeight, dd = [...d
       const pdfPath = path.join(out, 'orlando-briefing.pdf'), pdf = await p.pdf({ path: pdfPath, preferCSSPageSize: true, printBackground: true });
       const pages = (pdf.toString('latin1').match(/\/Type\s*\/Page\b/g) || []).length;
       const t = (n) => execFileSync('pdftotext', ['-layout', '-f', String(n), '-l', String(n), pdfPath, '-'], { encoding: 'utf8' });
-      check(pages === 2 && /Which part needs attention/.test(t(1)) && /Hour by hour/.test(t(2)), `${L} PDF exports as two pages (got ${pages}), briefing then hourly detail`);
+      check(pages === 2 && /What to plan for/.test(t(1)) && /Next weather check/.test(t(1)) && /Local time/.test(t(2)), `${L} PDF exports as two pages (got ${pages}): handout, then the hour-by-hour table`);
       try { execFileSync('pdftoppm', ['-r', '70', '-png', pdfPath, path.join(out, 'orlando-briefing')]); } catch {}
     }
     check(errors.length === 0, `${L} no script errors ${errors.join('; ')}`);

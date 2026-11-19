@@ -42,12 +42,12 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  if(phone&&theme==='dark'){await p.locator('#secHourly').scrollIntoViewIfNeeded();await p.screenshot({path:path.join(out,'event-polish-hourly-phone.png')})}
  if(!phone&&theme==='light'){
   await p.emulateMedia({media:'print'});await p.evaluate(()=>window.dispatchEvent(new Event('beforeprint')));
-  const text=await p.locator('#printView').innerText();check(text.includes('Guidance support:')&&text.includes('Coverage is not forecast confidence'),'print includes compact coverage and agreement');check(/Planning window/.test(text)&&/Event\n/.test(text)&&/Nov 13/.test(text),'print separates event from overnight planning window');
+  const text=await p.locator('#printView').innerText();check(!/Guidance support|model sources|ensemble/i.test(text)&&/What to plan for/.test(text)&&/Event schedule/.test(text)&&/Next weather check/.test(text),'print page 1 is a plain handout: what to plan for, schedule, next check; model diagnostics stay on the website');check(/Nov 12/.test(text)&&/Setup\s*12–4:30 PM/.test(text)&&/Teardown\s*10 PM–12 AM/.test(text),'print gives the event date and each part of the schedule once with local times');
   const pdf=await p.pdf({path:path.join(out,'event-polish-briefing.pdf'),preferCSSPageSize:true,printBackground:true});const pages=(pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length;check(pages===2,'US Letter printout is exactly two pages (got '+pages+')');
   check(!text.includes('†')&&text.includes('1 / 2')&&text.includes('2 / 2'),'print has page numbers and no undefined daggers');
-  check(await p.locator('.pv-p1').innerText().then(t=>t.includes('1 of 3')&&t.includes('HRRR')),'print page one names missing sources');
-  check(await p.locator('.pv-time-phase').count()===4 && await p.locator('.pv-time-hour').count()>0,'print timeline aligns schedule phases with hourly rain guidance');
-  check(await p.locator('.pv-hour-bar').count()===await p.locator('.pv-hours tbody tr').count(),'complete hourly print rows show rain bars beside the values');
+  check(await p.locator('.pv-p1').innerText().then(t=>/Only part of the usual forecast data/.test(t)&&!/HRRR|1 of 3/.test(t)),'print page one states the practical guidance gap in plain words, without model names');
+  check(await p.locator('.pv-sched li').count()===4 && await p.locator('.pv-time-phase, .pv-time-hour, .at-key').count()===0,'print shows the four-part schedule once, with no weather bar chart or legend');
+  check(await p.locator('.pv-hour-bar').count()===0 && (await p.locator('.pv-hours thead th').allInnerTexts()).join('|')==='Local time|Phase|Temperature|Rain chance|Wind gusts|Lightning potential','hourly page is one plain table: local time, phase, temperature, rain chance, wind gusts, lightning potential');
  }
  if(!phone&&theme==='light'){
  await p.emulateMedia({media:'screen'});await p.goto(base+'/event-beta.html?long=1');await p.waitForFunction(()=>document.body.dataset.loaded);
@@ -65,9 +65,9 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  check(/n\/a|Unavail/.test(await p.locator('#evCharts [data-value=lightning]').innerText()),'missing lightning is never shown as Low');
  check(await p.locator('#evCharts .evc-gap').count()>=4,'missing hour is visibly marked in every variable chart');
  await p.emulateMedia({media:'print'});await p.evaluate(()=>window.dispatchEvent(new Event('beforeprint')));
- check(await p.locator('.pv-time-gap').count()>=1,'print timeline hatches missing hourly rain guidance');
+ check(await p.locator('.pv-hours tr[data-ms="'+Date.parse('2026-11-12T19:00Z')+'"] .pv-nd').count()===4,'print writes no data in every value column of the missing hour');
  const gap=p.locator('.pv-hours tr[data-ms="'+Date.parse('2026-11-12T19:00Z')+'"] [data-pop]');
- check((await gap.innerText()).trim()==='—' && await gap.locator('.pv-hour-bar').count()===0,'missing printed rain chance has a dash and no bar');
+ check((await gap.innerText()).trim()==='no data' && await gap.locator('.pv-hour-bar').count()===0,'missing printed rain chance reads no data, not zero, and has no bar');
  await p.emulateMedia({media:'screen'});
  }
  if(!phone&&theme==='light'){

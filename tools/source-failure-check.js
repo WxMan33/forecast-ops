@@ -152,7 +152,12 @@ async function eventChecks(base) {
   await p.locator(`#evCharts [data-variable=pop] [data-hour="${gapHour}"]`).click();
   check((await text(p, '#evCharts [data-value=pop]')).trim() === '—', 'event: an hour with no rain-chance guidance shows — on the chart, not 0%');
   check(!/\b0%/.test(await text(p, '#evGridDetail')), 'event: selected-hour details never turn the missing chance into 0%');
-  const agree = await p.evaluate(() => { const card = [...document.querySelectorAll('#phases [data-peak]')].map((e) => e.textContent.trim()); window.dispatchEvent(new Event('beforeprint')); const pr = [...document.querySelectorAll('#printView .pv-phases [data-peak]')].map((e) => e.textContent.trim()); return { card, pr }; });
+  /* the printout has no phase table; each phase's peak in the printed hourly table must equal its card's peak */
+  const agree = await p.evaluate(() => { const cards = [...document.querySelectorAll('#phases .bx-phase[data-phase]')].map((c) => ({ label: c.querySelector('.nm').childNodes[0].textContent.trim(), peak: c.querySelector('[data-peak]').textContent.trim() }));
+    window.dispatchEvent(new Event('beforeprint'));
+    const rows = [...document.querySelectorAll('#printView .pv-hours tbody tr')].map((tr) => ({ phase: tr.children[1].textContent, pop: tr.querySelector('[data-pop]').textContent.trim() }));
+    const pr = cards.map((c) => { const v = rows.filter((r) => r.phase.includes(c.label)).map((r) => r.pop).filter((x) => /%$/.test(x)); return v.length ? v.reduce((a, b) => (parseFloat(b) > parseFloat(a) ? b : a)) : '—'; });
+    return { card: cards.map((c) => c.peak), pr }; });
   check(agree.card.length > 0 && JSON.stringify(agree.card) === JSON.stringify(agree.pr), 'event: phase cards and printout show the same peak rain chances (' + agree.card.join(',') + ' / ' + agree.pr.join(',') + ')');
   const reach = await text(p, '#sourceCoverage');
   check(/HRRR/.test(reach) && /reach|event hours/i.test(reach), 'event: a model whose horizon ends before the event is not counted as contributing (' + reach + ')');
