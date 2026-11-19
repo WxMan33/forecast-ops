@@ -69,10 +69,11 @@ sample (minimum / median / maximum).
 
 ## 3. Availability: observed, not assumed
 
-"Arrival" means the S3 `LastModified` time of the public object. That is when the file became
-retrievable from the bucket, which is what the production workflow depends on. It is observed for
-the cycles listed. For any older date it is only the time of the copy now in the bucket, not proof
-of when the data first became available.
+The timing survey uses the later S3 `LastModified` value of each GRIB and its required index.
+This describes the objects present when we listed the archive. It does not establish the first
+time either object could be downloaded. The collector records listing-observation times and
+successful fetch timestamps separately, with ETags linking the fetched bytes to the listed objects.
+A backfill performed after the forecast deadline cannot establish issue-time fetch availability.
 
 The deadlines are those of the production schedule:
 
@@ -83,18 +84,18 @@ The deadlines are those of the production schedule:
 
 Observed on 2026-11-17 and 2026-11-18 (`research/severe/guidance-phase1/cycle-arrival-20261117-18.json`):
 
-| Lead | Cycle | Last needed file arrived | Margin before the scheduled run |
+| Lead | Cycle | Latest GRIB/index timestamp | Margin before the scheduled run |
 |---|---|---|---|
-| Day 1 | **RRFS 06Z** f006–f030 | 07:51Z on both days | about 1 h 39 m |
-| Day 1 | RRFS 00Z (f012–f036, older) | 02:25Z | about 7 h |
-| Day 1 | **NBM 06Z** core | 06:47Z | about 2 h 43 m |
-| Day 1 | NBM 07Z (hourly to f264) | 08:39Z | 51 m |
-| Day 1 | NBM 09Z | 09:47Z | misses 09:30Z, but beats the 12Z window start |
-| Day 2 | **RRFS 12Z** f024–f048 | 14:44–14:46Z | about 45 m (tight) |
-| Day 2 | RRFS 06Z (f030–f054, older) | about 08:10Z | about 7 h |
-| Day 2 | **NBM 12Z** core | 13:06Z | about 2 h 24 m |
+| Day 1 | **RRFS 06Z** f006–f030 | 07:51:09–07:51:17Z | about 1 h 39 m |
+| Day 1 | RRFS 00Z (f012–f036, older) | 02:31:25–02:36:32Z | about 7 h |
+| Day 1 | **NBM 06Z** core | 06:45:02–06:47:00Z | at least 2 h 43 m |
+| Day 1 | NBM 07Z (hourly to f264) | 08:34:49–08:34:58Z | about 55 m |
+| Day 1 | NBM 09Z | 09:44:52–09:47:30Z | misses 09:30Z, but beats the 12Z window start |
+| Day 2 | **RRFS 12Z** f024–f048 | 14:45:02–14:45:55Z | about 45 m (tight) |
+| Day 2 | RRFS 06Z (f030–f054, older) | 08:16:20–08:18:40Z | about 7 h |
+| Day 2 | **NBM 12Z** core | 13:06:11–13:06:39Z | about 2 h 24 m |
 
-For both leads, every needed RRFS and NBM hour was on time on both days. The Day 2 RRFS 12Z margin
+For both leads, every needed GRIB/index pair at the default cycles had timestamps before the deadline on both days. The Day 2 RRFS 12Z margin
 is about 45 minutes, so Phase 3 must measure how often it is missed. The command accepts an older
 RRFS cycle (`--rrfs-cycle 6` for Day 2) as a fallback, but a fallback is a different input and must
 be scored as its own configuration.
@@ -173,15 +174,20 @@ Three practical consequences:
 
 ## 6. What to start capturing now (prospective)
 
-Each day, for both leads, after the production run:
-- **What:** the 192 RRFS messages and the 26 NBM messages per lead, in the exact cycles above, plus
-  the HRRR inputs already produced. That is about 216 MB of raw messages per lead per day. The
-  features, manifests and availability rows are small.
-- **What to keep:** keep every manifest (arrival times, checksums, missing or late hours) **including
-  failed and incomplete days**, so coverage can be scored honestly. Keep the features, and keep raw
-  messages for at least the evaluation period in the private archive.
-- **Where:** a scheduled workflow separate from the production publisher. It is **proposed, not
-  built in this PR**, and must never write to `assets/severe-daily/`.
+The separate **Severe research guidance collection** workflow accepts an explicit date and
+collects both leads on independent runners. It checks the HRRR predictor contract and audits
+the raw HRRR messages, then captures RRFS and NBM on the same grid. It uploads a collection
+manifest for each attempted window, including source failures, with verified feature files
+for the sources that completed. Each successful fetch records its time and checksum. The
+workflow is read-only and keeps its test artifacts for 30 days. It has no daily schedule.
+
+Before enabling daily collection, choose a durable private destination and retention for the
+paired features, manifests and failure records. The measured RRFS/NBM transfer alone is about
+216 MB per lead, or 13 GB per 30 days for both leads, before HRRR. The manual workflow discards
+the download cache after producing the feature artifacts. Size the durable archive using those
+compressed feature artifacts. If raw GRIB retention is needed, plan it separately using
+measured volumes and retain both raw blobs and their receipts. Future scheduled capture should
+observe inputs at issuance deadlines to distinguish timely access from retrospective availability.
 
 ## 7. Proposed matched-date comparison (Phase 2), fixed before any scoring
 

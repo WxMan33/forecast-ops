@@ -8,8 +8,7 @@ from tools/severe/protocol.py, so the outputs line up with HRRR v0.7 sample for 
 This produces predictors and raw context layers, never probabilities. It does not touch the
 production publisher, the feed, or any 2025 date.
 
-Recorded for every input file: source, key, S3 LastModified (the observed arrival in the public
-bucket), size, ETag, and for every message the index line, byte range, SHA-256 and decoded GRIB
+Recorded for every input file: source, key, S3 LastModified (object metadata, separate from fetch time), size, ETag, and for every message the index line, byte range, SHA-256 and decoded GRIB
 identity. Each needed hour is classed on time / late / after window start / missing against the
 production schedule. A window with any missing or invalid hour is reported and left without a
 features file, rather than filled in.
@@ -69,6 +68,9 @@ RRFS_FIELDS = {
 }
 
 SOURCES = {
+    "hrrr": {"bucket": "noaa-hrrr-bdp-pds", "model": "hrrr-v4",
+             "prefix": "hrrr.{d}/conus/", "file": "hrrr.t{h:02d}z.wrfsfcf{f:02d}.grib2",
+             "cycles": (0, 6, 12, 18)},
     "rrfs": {"bucket": "noaa-rrfs-ops-pds", "model": "rrfs-v1 (operational, CONUS 3 km 2dfld)",
              "prefix": "rrfs.{d}/{h:02d}/", "file": "rrfs.t{h:02d}z.2dfld.3km.f{f:03d}.conus.grib2",
              "cycles": (0, 6, 12, 18)},
@@ -154,23 +156,45 @@ def cycle_for(source, window, cycle_hour):
     return cycle, offset
 
 
+def pair_modified(grib, index):
+    if grib is None or index is None:
+        return None
+    return max((grib, index), key=lambda obj: datetime.fromisoformat(obj["last_modified"]))
+
+
 def availability(source, window, cycle, hours, opener=urllib.request.urlopen):
-    prefix = SOURCES[source]["prefix"].format(d=f"{cycle:%Y%m%d}", h=cycle.hour)
+    config = SOURCES[source]
+    prefix = config["prefix"].format(d=f"{cycle:%Y%m%d}", h=cycle.hour)
+    if source == "hrrr":
+        prefix += f"hrrr.t{cycle.hour:02d}z.wrfsfcf"
     listing = list_prefix(source, prefix, opener)
+    listed_at = datetime.now(timezone.utc).isoformat()
+    if source == "hrrr":
+        prefix = config["prefix"].format(d=f"{cycle:%Y%m%d}", h=cycle.hour)
     limits = deadlines(window)
     rows = []
     for f in hours:
         key = prefix + SOURCES[source]["file"].format(h=cycle.hour, f=f)
         meta, index = listing.get(key), listing.get(key + ".idx")
+        latest = pair_modified(meta, index)
         rows.append({"forecast_hour": f, "valid_time": (cycle + timedelta(hours=f)).isoformat(), "key": key,
-                     "grib": meta, "index": index, "status": classify(meta, limits) if index else "missing"})
+                     "grib": meta, "index": index, "pair_last_modified": latest["last_modified"] if latest else None,
+                     "status": classify(latest, limits)})
     counts = {s: sum(r["status"] == s for r in rows) for s in ("on_time", "late", "after_window_start", "missing")}
     return {"source": source, "bucket": SOURCES[source]["bucket"], "cycle": cycle.isoformat(), "prefix": prefix,
-            "deadlines": limits, "arrival_basis": "S3 LastModified of the public object (observed, not assumed)",
+            "deadlines": limits, "arrival_basis": "Later S3 LastModified of GRIB and index; not an observed first fetch",
+            "listing_observed_at": listed_at,
             "hours": rows, "counts": counts, "complete_on_time": counts["on_time"] == len(rows)}
 
 
 # ---------------------------------------------------------------- RRFS
+
+
+def fetch_receipt(path, listed):
+    receipt = json.loads(path.with_suffix(path.suffix + ".receipt.json").read_text())
+    if (receipt.get("etag") or "").strip('"') != listed["etag"]:
+        raise ValueError(f"Fetched object ETag differs from listing for {receipt['url']}")
+    return receipt
 
 
 def rrfs_requirements(first, last, offset):
@@ -202,6 +226,7 @@ def ingest_rrfs(window, cycle, offset, avail, client, expected_coordinates, budg
     for f in sorted(need):
         entry = status[f]
         index = client.fetch(url("rrfs", entry["key"] + ".idx"), f"rrfs/{cycle:%Y%m%d%H}/f{f:03d}.idx")
+        entry["index_fetch"] = fetch_receipt(index, entry["index"])
         records = parse_index(index.read_text())
         spec = {n: select(records, {"var": RRFS_FIELDS[n]["index"][0], "level": RRFS_FIELDS[n]["index"][1]},
                           entry["grib"]["size"]) for n in sorted(need[f])}
@@ -230,7 +255,7 @@ def ingest_rrfs(window, cycle, offset, avail, client, expected_coordinates, budg
             sampled.setdefault(f, {})[name] = (values[rows, cols], disk_max_at_samples(values, rows, cols))
             messages.append({"forecast_hour": f, "field": name, "key": entry["key"], **sel,
                              "bytes": sel["end"] - sel["start"] + 1, "sha256": digest(path),
-                             "metadata": data["metadata"]})
+                             "fetch": fetch_receipt(path, entry["grib"]), "metadata": data["metadata"]})
         previous = f - 1
         instants = {k: v for k, v in sampled.get(previous, {}).items() if k != "uh25"}
         if "uh25" in sampled[f] and len(instants) == len(RRFS_FIELDS) - 1:
@@ -342,8 +367,9 @@ def ingest_nbm(window, cycle, offset, avail, client, samples):
     messages, hood, gust_max, gust_sum, tstm = [], None, None, None, {}
     for f in need:
         entry = status[f]
-        records = parse_index(client.fetch(url("nbm", entry["key"] + ".idx"),
-                                           f"nbm/{cycle:%Y%m%d%H}/f{f:03d}.idx").read_text())
+        index = client.fetch(url("nbm", entry["key"] + ".idx"), f"nbm/{cycle:%Y%m%d%H}/f{f:03d}.idx")
+        entry["index_fetch"] = fetch_receipt(index, entry["index"])
+        records = parse_index(index.read_text())
         wanted = []
         if f in gust_hours:
             wanted.append(("gust", None, {"var": "GUST", "level": "10 m above ground",
@@ -372,7 +398,7 @@ def ingest_nbm(window, cycle, offset, avail, client, samples):
                 tstm[name] = {"nearby_max": nearby, "nearest": values.ravel()[hood["nearest"]]}
             messages.append({"forecast_hour": f, "field": name, "key": entry["key"], **sel,
                              "bytes": sel["end"] - sel["start"] + 1, "sha256": digest(path),
-                             "metadata": meta, "missing_cells": nmiss})
+                             "fetch": fetch_receipt(path, entry["grib"]), "metadata": meta, "missing_cells": nmiss})
     names = sorted(tstm)
     columns = ["nbm_gust10m_nearby_max_max", "nbm_gust10m_nearby_max_mean"] + \
               [f"nbm_{n}_nearby_max" for n in names] + [f"nbm_{n}_nearest" for n in names] + ["nbm_tstm12_nearby_max_max"]
@@ -422,9 +448,19 @@ def run(date, day, sources, output, cache, budget_mb=1500, cycles=None, opener=u
         cycle, offset = cycle_for(source, window, cycle_hour)
         first, last = window["first_forecast_hour"] + offset, window["last_forecast_hour"] + offset
         hours = list(range(first, last + 1))
-        avail = availability(source, window, cycle, hours, opener)
+        # The archives cross implementation changes. Decoded field IDs are retained separately.
+        declared_version = {"rrfs": "v1", "nbm": "v5.1"}[source] if date >= "2026-11-03" else None
         entry = {"model": SOURCES[source]["model"], "cycle": cycle.isoformat(), "forecast_hours": [first, last],
-                 "availability": avail}
+                 "declared_version": declared_version,
+                 "version_basis": "Operational implementation date, not encoded product version" if declared_version
+                 else "Unverified historical model era"}
+        try:
+            avail = availability(source, window, cycle, hours, opener)
+        except (ValueError, OSError) as error:
+            manifest["sources"][source] = {**entry, "status": "failed", "failure_stage": "listing",
+                                           "error": str(error), "messages": []}
+            continue
+        entry["availability"] = avail
         try:
             if source == "rrfs":
                 result, data = ingest_rrfs(window, cycle, offset, avail, client, expected,
@@ -433,7 +469,7 @@ def run(date, day, sources, output, cache, budget_mb=1500, cycles=None, opener=u
                                         for k, v in RRFS_FIELDS.items()}
             else:
                 result, data = ingest_nbm(window, cycle, offset, avail, client, expected)
-        except (ValueError, OSError) as error:
+        except (ValueError, OSError, RuntimeError) as error:
             result, data = {"status": "failed", "error": str(error), "messages": []}, None
         entry.update(result)
         if data is not None:
@@ -455,7 +491,7 @@ def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--date", required=True, help="Production model date (UTC), e.g. 2026-11-18")
     p.add_argument("--day", type=int, choices=(1, 2), required=True)
-    p.add_argument("--sources", nargs="+", choices=sorted(SOURCES), default=["rrfs", "nbm"])
+    p.add_argument("--sources", nargs="+", choices=("rrfs", "nbm"), default=["rrfs", "nbm"])
     p.add_argument("--rrfs-cycle", type=int, help="RRFS cycle hour (default: the production initialization hour)")
     p.add_argument("--nbm-cycle", type=int, help="NBM cycle hour (default: the production initialization hour)")
     p.add_argument("--output", required=True)
@@ -464,7 +500,8 @@ def main(argv=None):
     a = p.parse_args(argv)
     cycles = {k: v for k, v in (("rrfs", a.rrfs_cycle), ("nbm", a.nbm_cycle)) if v is not None}
     m = run(a.date, a.day, a.sources, a.output, a.cache, a.max_download_mb, cycles)
-    summary = {s: {"status": v["status"], "counts": v["availability"]["counts"]} for s, v in m["sources"].items()}
+    summary = {s: {"status": v["status"], "counts": v.get("availability", {}).get("counts"),
+                   "error": v.get("error")} for s, v in m["sources"].items()}
     print(json.dumps({"window": m["window"]["valid_start"], "downloaded_mb": round(m["downloaded_bytes"] / 1e6, 1),
                       "sources": summary}, indent=1))
     return 0 if all(v["status"] == "complete" for v in m["sources"].values()) else 2

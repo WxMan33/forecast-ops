@@ -190,5 +190,312 @@
    "f048": "2026-11-18T15:45:23.000Z",
    "last": "2026-11-18T16:07:46.000Z"
   }
- }
+ },
+ "paired_window_basis": "Later S3 LastModified of GRIB and required index, observed in a subsequent listing; not a first successful fetch",
+ "paired_windows": [
+  {
+   "date": "2026-11-17",
+   "day": 1,
+   "source": "rrfs",
+   "cycle": "2026-11-17T06:00:00+00:00",
+   "forecast_hours": [
+    6,
+    30
+   ],
+   "latest_pair_last_modified": "2026-11-17T07:51:09Z",
+   "index_after_grib_count": 25,
+   "counts": {
+    "on_time": 25,
+    "late": 0,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "listing_observed_at": "2026-11-19T01:40:50.877173+00:00"
+  },
+  {
+   "date": "2026-11-17",
+   "day": 1,
+   "source": "rrfs",
+   "cycle": "2026-11-17T00:00:00+00:00",
+   "forecast_hours": [
+    12,
+    36
+   ],
+   "latest_pair_last_modified": "2026-11-17T02:31:25Z",
+   "index_after_grib_count": 25,
+   "counts": {
+    "on_time": 25,
+    "late": 0,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "listing_observed_at": "2026-11-19T01:40:50.842870+00:00"
+  },
+  {
+   "date": "2026-11-17",
+   "day": 1,
+   "source": "nbm",
+   "cycle": "2026-11-17T06:00:00+00:00",
+   "forecast_hours": [
+    6,
+    30
+   ],
+   "latest_pair_last_modified": "2026-11-17T06:45:02Z",
+   "index_after_grib_count": 25,
+   "counts": {
+    "on_time": 25,
+    "late": 0,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "listing_observed_at": "2026-11-19T01:40:51.014049+00:00"
+  },
+  {
+   "date": "2026-11-17",
+   "day": 1,
+   "source": "nbm",
+   "cycle": "2026-11-17T07:00:00+00:00",
+   "forecast_hours": [
+    5,
+    29
+   ],
+   "latest_pair_last_modified": "2026-11-17T08:34:49Z",
+   "index_after_grib_count": 25,
+   "counts": {
+    "on_time": 25,
+    "late": 0,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "listing_observed_at": "2026-11-19T01:40:50.972089+00:00"
+  },
+  {
+   "date": "2026-11-17",
+   "day": 1,
+   "source": "nbm",
+   "cycle": "2026-11-17T09:00:00+00:00",
+   "forecast_hours": [
+    3,
+    27
+   ],
+   "latest_pair_last_modified": "2026-11-17T09:44:52Z",
+   "index_after_grib_count": 25,
+   "counts": {
+    "on_time": 0,
+    "late": 25,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "listing_observed_at": "2026-11-19T01:40:50.993815+00:00"
+  },
+  {
+   "date": "2026-11-17",
+   "day": 2,
+   "source": "rrfs",
+   "cycle": "2026-11-17T12:00:00+00:00",
+   "forecast_hours": [
+    24,
+    48
+   ],
+   "latest_pair_last_modified": "2026-11-17T14:45:02Z",
+   "index_after_grib_count": 25,
+   "counts": {
+    "on_time": 25,
+    "late": 0,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "listing_observed_at": "2026-11-19T01:40:50.813647+00:00"
+  },
+  {
+   "date": "2026-11-17",
+   "day": 2,
+   "source": "rrfs",
+   "cycle": "2026-11-17T06:00:00+00:00",
+   "forecast_hours": [
+    30,
+    54
+   ],
+   "latest_pair_last_modified": "2026-11-17T08:16:20Z",
+   "index_after_grib_count": 25,
+   "counts": {
+    "on_time": 25,
+    "late": 0,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "listing_observed_at": "2026-11-19T01:40:56.538169+00:00"
+  },
+  {
+   "date": "2026-11-17",
+   "day": 2,
+   "source": "nbm",
+   "cycle": "2026-11-17T12:00:00+00:00",
+   "forecast_hours": [
+    24,
+    48
+   ],
+   "latest_pair_last_modified": "2026-11-17T13:06:39Z",
+   "index_after_grib_count": 25,
+   "counts": {
+    "on_time": 25,
+    "late": 0,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "listing_observed_at": "2026-11-19T01:40:57.642403+00:00"
+  },
+  {
+   "date": "2026-11-18",
+   "day": 1,
+   "source": "rrfs",
+   "cycle": "2026-11-18T06:00:00+00:00",
+   "forecast_hours": [
+    6,
+    30
+   ],
+   "latest_pair_last_modified": "2026-11-18T07:51:17Z",
+   "index_after_grib_count": 25,
+   "counts": {
+    "on_time": 25,
+    "late": 0,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "listing_observed_at": "2026-11-19T01:40:56.493182+00:00"
+  },
+  {
+   "date": "2026-11-18",
+   "day": 1,
+   "source": "rrfs",
+   "cycle": "2026-11-18T00:00:00+00:00",
+   "forecast_hours": [
+    12,
+    36
+   ],
+   "latest_pair_last_modified": "2026-11-18T02:36:32Z",
+   "index_after_grib_count": 25,
+   "counts": {
+    "on_time": 25,
+    "late": 0,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "listing_observed_at": "2026-11-19T01:40:56.587231+00:00"
+  },
+  {
+   "date": "2026-11-18",
+   "day": 1,
+   "source": "nbm",
+   "cycle": "2026-11-18T06:00:00+00:00",
+   "forecast_hours": [
+    6,
+    30
+   ],
+   "latest_pair_last_modified": "2026-11-18T06:47:00Z",
+   "index_after_grib_count": 25,
+   "counts": {
+    "on_time": 25,
+    "late": 0,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "listing_observed_at": "2026-11-19T01:40:57.731187+00:00"
+  },
+  {
+   "date": "2026-11-18",
+   "day": 1,
+   "source": "nbm",
+   "cycle": "2026-11-18T07:00:00+00:00",
+   "forecast_hours": [
+    5,
+    29
+   ],
+   "latest_pair_last_modified": "2026-11-18T08:34:58Z",
+   "index_after_grib_count": 25,
+   "counts": {
+    "on_time": 25,
+    "late": 0,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "listing_observed_at": "2026-11-19T01:40:57.672158+00:00"
+  },
+  {
+   "date": "2026-11-18",
+   "day": 1,
+   "source": "nbm",
+   "cycle": "2026-11-18T09:00:00+00:00",
+   "forecast_hours": [
+    3,
+    27
+   ],
+   "latest_pair_last_modified": "2026-11-18T09:47:30Z",
+   "index_after_grib_count": 25,
+   "counts": {
+    "on_time": 0,
+    "late": 25,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "listing_observed_at": "2026-11-19T01:41:01.266058+00:00"
+  },
+  {
+   "date": "2026-11-18",
+   "day": 2,
+   "source": "rrfs",
+   "cycle": "2026-11-18T12:00:00+00:00",
+   "forecast_hours": [
+    24,
+    48
+   ],
+   "latest_pair_last_modified": "2026-11-18T14:45:55Z",
+   "index_after_grib_count": 25,
+   "counts": {
+    "on_time": 25,
+    "late": 0,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "listing_observed_at": "2026-11-19T01:41:02.822026+00:00"
+  },
+  {
+   "date": "2026-11-18",
+   "day": 2,
+   "source": "rrfs",
+   "cycle": "2026-11-18T06:00:00+00:00",
+   "forecast_hours": [
+    30,
+    54
+   ],
+   "latest_pair_last_modified": "2026-11-18T08:18:40Z",
+   "index_after_grib_count": 25,
+   "counts": {
+    "on_time": 25,
+    "late": 0,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "listing_observed_at": "2026-11-19T01:41:02.827627+00:00"
+  },
+  {
+   "date": "2026-11-18",
+   "day": 2,
+   "source": "nbm",
+   "cycle": "2026-11-18T12:00:00+00:00",
+   "forecast_hours": [
+    24,
+    48
+   ],
+   "latest_pair_last_modified": "2026-11-18T13:06:11Z",
+   "index_after_grib_count": 25,
+   "counts": {
+    "on_time": 25,
+    "late": 0,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "listing_observed_at": "2026-11-19T01:41:05.185207+00:00"
+  }
+ ]
 }

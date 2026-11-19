@@ -4,6 +4,8 @@ missing-input reporting, field identities and the NBM neighborhood mapping. No n
 import json
 import sys
 import unittest
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -84,6 +86,30 @@ class Arrival(unittest.TestCase):
         self.assertEqual(G.classify({"last_modified": "2026-11-18T10:00:00Z"}, limits), "late")
         self.assertEqual(G.classify({"last_modified": "2026-11-18T12:00:01Z"}, limits), "after_window_start")
         self.assertEqual(G.classify(None, limits), "missing")
+
+    def test_index_arriving_after_grib_delays_pair(self):
+        w = future_window("2026-11-18", 1)
+        cycle = datetime(2026, 11, 18, 6, tzinfo=timezone.utc)
+        key = "rrfs.20261118/06/rrfs.t06z.2dfld.3km.f006.conus.grib2"
+        listing = FakeListing([(key, "2026-11-18T08:00:00Z", 1000),
+                               (key + ".idx", "2026-11-18T10:20:00Z", 10)])
+        result = G.availability("rrfs", w, cycle, [6], opener=listing)
+        self.assertEqual(result["hours"][0]["pair_last_modified"], "2026-11-18T10:20:00Z")
+        self.assertEqual(result["hours"][0]["status"], "late")
+        self.assertFalse(result["complete_on_time"])
+
+    def test_listing_failure_preserves_other_source_and_manifest(self):
+        nbm_list = {"hours": [], "counts": {"missing": 0}}
+        nbm_result = {"status": "complete", "messages": []}
+        with TemporaryDirectory() as t, \
+                patch.object(G, "availability", side_effect=[TimeoutError("RRFS listing timed out"), nbm_list]), \
+                patch.object(G, "ingest_nbm", return_value=(nbm_result, None)) as ingest:
+            output = Path(t) / "outputs"
+            G.run("2026-11-18", 1, ["rrfs", "nbm"], output, Path(t) / "cache")
+            ingest.assert_called_once()
+            manifest = json.loads((output / "manifest.json").read_text())
+        self.assertEqual(manifest["sources"]["rrfs"]["failure_stage"], "listing")
+        self.assertEqual(manifest["sources"]["nbm"]["status"], "complete")
 
     def test_missing_and_late_hours_are_reported_not_filled(self):
         w = future_window("2026-11-18", 1)

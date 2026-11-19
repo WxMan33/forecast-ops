@@ -1,0 +1,42 @@
+name: Severe research guidance collection
+on:
+  # Run a real-case smoke test when this workflow is first added to its draft PR.
+  push:
+    branches: [claude/rrfs-nbm-phase1]
+    paths: ['.github/workflows/severe-guidance-collection.yml']
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Explicit UTC initialization date (YYYY-MM-DD)'
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    if: github.repository == 'WxMan33/forecast-ops'
+    strategy:
+      fail-fast: false
+      matrix:
+        day: [1, 2]
+    env:
+      DATE: ${{ inputs.date || '2026-11-18' }}
+      DAY: ${{ matrix.day }}
+      OPENBLAS_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r tools/severe/requirements.txt
+      - name: Collect and audit matched research inputs
+        run: python tools/severe/collect_guidance.py --date "$DATE" --day "$DAY" --output tests/out/guidance-study --cache tests/out/guidance-study-cache
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: severe-research-guidance-day${{ matrix.day }}-${{ github.run_attempt }}
+          path: tests/out/guidance-study
+          if-no-files-found: error
+          retention-days: 30
