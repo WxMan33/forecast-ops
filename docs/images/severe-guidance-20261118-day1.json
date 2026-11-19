@@ -1,0 +1,45 @@
+{
+ "window": {
+  "day": 1,
+  "model": "hrrr-v4",
+  "feature_schema": "hrrr-daily-25mi-v2-future-window",
+  "timing_protocol": "day1-06z-f06-30__day2-12z-f24-48-v1",
+  "model_init_time": "2026-11-18T06:00:00+00:00",
+  "assumed_issuance_time": "2026-11-18T09:00:00+00:00",
+  "release_lag_assumption_hours": 3,
+  "historical_public_availability_verified": false,
+  "valid_start": "2026-11-18T12:00:00+00:00",
+  "valid_end": "2026-11-19T12:00:00+00:00",
+  "radius_km": 40.2336,
+  "window_hours": 24,
+  "first_forecast_hour": 6,
+  "last_forecast_hour": 30
+ },
+ "panels": [
+  {
+   "title": "HRRR v0.7 Day 1 severe-wind probability (published research model, within 25 mi)",
+   "units": "probability",
+   "shown_max": 0.01901780988971273,
+   "shown_p99": 0.008807167395627251
+  },
+  {
+   "title": "HRRR 2-5 km updraft helicity 24 h max of hourly max, 25-mi neighborhood max",
+   "units": "m\u00b2 s\u207b\u00b2 (GRIB 0/7/199)",
+   "shown_max": 10.100000381469727,
+   "shown_p99": 2.9000000953674316
+  },
+  {
+   "title": "RRFS 2-5 km updraft helicity (raw predictor, not a probability) 24 h max of hourly max, 25-mi neighborhood max",
+   "units": "m\u00b2 s\u207b\u00b2 (GRIB 0/7/199)",
+   "shown_max": 84.25,
+   "shown_p99": 6.625
+  },
+  {
+   "title": "NBM 12 h thunderstorm probability (context, not severe) max of f06-18 and f18-30, 25-mi neighborhood max",
+   "units": "% (GRIB 0/19/2, accumulation period 12 h)",
+   "shown_max": 23.0,
+   "shown_p99": 19.0
+  }
+ ],
+ "masked_samples": 1473
+}
