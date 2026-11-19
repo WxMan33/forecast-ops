@@ -33,10 +33,10 @@
   }
 
   /* ---------- header: brand, page context, theme ---------- */
-  function header({ audience, other, ctx = "" }) {
+  function header({ audience, other, ctx = "", actions = "" }) {
     const el = document.createElement("header"); el.className = "bx-head";
     el.innerHTML = `<div class="bx-head-in"><a class="bx-brand" href="${esc(other.self)}"><span class="bx-mark" aria-hidden="true">F</span><b>Forecast Ops</b><span class="tag">${esc(audience)} beta</span></a>
-      <div class="bx-ctx" id="bxCtx">${ctx}</div><span class="bx-upd" id="bxUpd"></span>
+      <div class="bx-ctx" id="bxCtx">${ctx}</div><span class="bx-upd" id="bxUpd"></span>${actions}
       <button class="bx-btn" type="button" id="bxRefresh" title="Reload guidance" aria-label="Reload guidance">↻</button>
       <button class="bx-btn" type="button" id="bxTheme" aria-label="Switch light or dark">Light</button>
       <a class="bx-btn" href="${esc(other.href)}">${esc(other.label)}</a></div>`;

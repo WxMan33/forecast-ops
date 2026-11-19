@@ -29,22 +29,24 @@
   });
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/ops.css?v=35098c1775">
-<link rel="stylesheet" href="assets/beta.css?v=dfe3ae63fb">
+<link rel="stylesheet" href="assets/beta.css?v=d7e144f9d8">
 <link rel="stylesheet" href="assets/hourly-grid.css?v=befa3eb506">
 <link rel="stylesheet" href="assets/forecast-support.css?v=52766a62f7">
 </head>
 <body class="bx event-planner">
 <main class="bx-brief">
   <div id="briefView">
-  <div class="up-nav"><a class="bx-link" href="#upcoming" id="upLink">Upcoming events</a></div>
-  <!-- 1. Briefing: what to plan for, when it affects us, when to look again -->
+  <!-- 1. Briefing: the event, then what to plan for, when it affects us, when to look again -->
   <section class="ev-brief" id="secBrief" aria-label="Briefing">
-  <div class="bx-evctx"><span class="bx-label" id="sampleTag" hidden>Sample</span><b id="evName">Loading event…</b><span id="evVenue"></span><button class="bx-link" type="button" id="editBtn">Edit</button><button class="bx-link" type="button" id="resetBtn" hidden>Use sample</button></div>
-  <div class="bx-evctx" id="evWhen" style="margin-top:2px"></div>
-  <div class="bx-printbar"><button class="bx-btn bx-print" type="button" id="printTop" disabled aria-describedby="printTopNote"><span aria-hidden="true">⎙</span> Print / PDF briefing</button><span class="bx-note" id="printTopNote">Two US Letter pages: the decision and timing, then hour by hour.</span></div>
+  <a class="ev-back" href="#upcoming" id="upLink">Upcoming events</a>
+  <div class="ev-head">
+    <div class="ev-head-text"><span class="bx-label" id="sampleTag" hidden>Sample</span><h1 class="ev-name" id="evName">Loading event…</h1>
+      <p class="ev-venue" id="evVenue"></p><p class="ev-when" id="evWhen"></p></div>
+    <div class="ev-head-actions"><button class="bx-btn" type="button" id="editBtn">Edit event</button><button class="bx-link ev-quiet" type="button" id="resetBtn" hidden>Use sample event</button></div>
+  </div>
   <div class="bx-alerts" id="alerts"></div>
   <div id="briefUpdate" hidden></div><div id="opsHandoff" hidden></div>
-  <h1 class="bx-decision" id="decision" aria-live="polite">Reading the guidance…</h1>
+  <h2 class="bx-decision" id="decision" aria-live="polite">Reading the guidance…</h2>
   <div class="bx-cover" id="coverage" hidden></div>
   <dl class="bx-keys ev-callouts" id="keys"></dl>
   <p class="bx-cov-update" id="coverageUpdate" role="status" hidden></p><p class="ev-gap" id="gapFlag" role="status" hidden></p>
@@ -77,7 +79,7 @@
 <script src="assets/beta-story.js?v=de17835b04"></script>
 <script src="assets/beta-config.js?v=69b0bd8aed"></script>
 <script src="assets/beta-analytics.js?v=2fe1a4634a"></script>
-<script src="assets/beta-ui.js?v=6038083b76"></script>
+<script src="assets/beta-ui.js?v=32b3d160c0"></script>
 <script src="assets/event-store.js?v=d70073c186"></script>
 <script src="assets/venue-search.js?v=6e1b0f103a"></script>
 <script src="assets/calendar-import.js?v=ccad483399"></script>
@@ -88,9 +90,9 @@
 <script src="assets/event-briefing-history.js?v=51fe1f9804"></script>
 <script src="assets/event-ops-handoff.js?v=fa83113129"></script>
 <script src="assets/event-hourly-charts.js?v=d2ac2eea42"></script>
-<script src="assets/event-briefing-ui.js?v=574f714110"></script>
+<script src="assets/event-briefing-ui.js?v=cb89db0426"></script>
 <script src="tests/fixtures/event-orlando-data.js"></script>
-<script src="assets/beta-event.js?v=dda52f1b3a"></script>
+<script src="assets/beta-event.js?v=9bc86ebf43"></script>
 <script src="assets/table-pages.js?v=5852a434bf"></script>
 </body>
 </html>

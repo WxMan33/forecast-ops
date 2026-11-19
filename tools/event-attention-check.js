@@ -41,79 +41,71 @@ const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - 
     /* what actually landed on each PDF page (the DOM measurement alone missed a three-page PDF) */
     const pageText = n => execFileSync('pdftotext', ['-layout', '-f', String(n), '-l', String(n), pdfPath, '-'], { encoding: 'utf8' });
     if (pages >= 2) { const t1 = pageText(1), t2 = pageText(2);
-      check(/Needs attention/.test(t1) && /Which part needs attention/.test(t1) && /Next check/.test(t1) && /Official NWS forecast/.test(t1) && /When to check again/.test(t1) && /1 ?\/ ?2/.test(t1), L + ' PDF page 1 holds the decision, tracks, NWS block, check-ins and its own footer');
-      check(/Hour by hour/.test(t2) && /HOUR \/ PHASE/i.test(t2) && /2 ?\/ ?2/.test(t2) && !/Official NWS forecast/.test(t2), L + ' PDF page 2 holds the hourly detail and nothing from page 1'); }
+      check(/What to plan for/.test(t1) && /Event schedule/.test(t1) && /Next weather check/.test(t1) && /Official NWS forecast/.test(t1) && /1 ?\/ ?2/.test(t1), L + ' PDF page 1 holds the headline, what to plan for, the schedule, the next check, NWS wording and its own footer');
+      check(/Hours shown/.test(t2) && /Local time/.test(t2) && /Lightning/.test(t2) && /2 ?\/ ?2/.test(t2) && !/What to plan for/.test(t2), L + ' PDF page 2 holds the hourly table and nothing from page 1'); }
     try { execFileSync('pdftoppm', ['-r', '70', '-gray', '-png', pdfPath, path.join(out, `attention-${file}`)]); } catch (e) { console.log('note: grayscale render skipped (' + e.message + ')'); }
     /* clipping: nothing on a page extends past its sides, and page-one content ends above its footer */
     const clip = await p.evaluate(() => [...document.querySelectorAll('.pv-page')].map(pg => { const r = pg.getBoundingClientRect(), f = pg.querySelector('.pv-footer').getBoundingClientRect();
       const kids = [...pg.querySelectorAll('*')].filter(e => !e.closest('.pv-footer') && e.getClientRects().length);
       const wide = kids.filter(e => { const b = e.getBoundingClientRect(); return b.right > r.right + 1 || b.left < r.left - 1; }).map(e => e.className || e.tagName);
       const bottom = Math.max(...kids.map(e => e.getBoundingClientRect().bottom));
-      const cut = [...pg.querySelectorAll('td,th,dd,li,.at-list span,.pv-hours-window')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.className || e.tagName);
+      const cut = [...pg.querySelectorAll('td,th,dd,li,.pv-hours-window')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.className || e.tagName);
       return { wide: wide.slice(0, 4), cut: cut.slice(0, 4), room: f.top - bottom }; }));
     clip.forEach((c, i) => { check(!c.wide.length && !c.cut.length, `${L} page ${i + 1} has no clipped or overflowing elements ${JSON.stringify(c.wide.concat(c.cut))}`); check(c.room >= 0, `${L} page ${i + 1} content ends above the footer (${Math.round(c.room)} px to spare)`); });
-    const p1 = await p.locator('.pv-p1').innerText(), p2 = await p.locator('.pv-p2').innerText(), keys = await p.locator('.pv-keys').innerText();
-    check(/Needs attention/.test(keys) && /Next check/.test(keys) && p1.indexOf('Needs attention') < p1.indexOf('Which part needs attention'), L + ' page 1 leads with the decision, the main window and the next check');
-    check(await p.locator('#pvTracks .at-main').count() === 1 && /Event/.test(await p.locator('#pvTracks .at-main').innerText()), L + ' main event is singled out on the schedule track');
-    check(/forecast potential/i.test(p1) && /not detected/.test(p1 + p2), L + ' lightning is labelled forecast potential, not detection');
+    const p1 = await p.locator('.pv-p1').innerText(), p2 = await p.locator('.pv-p2').innerText();
+    const plan = await p.evaluate(() => [...document.querySelectorAll('.pv-plan li[data-key]')].map((e) => ({ key: e.dataset.key, text: e.innerText })));
+    const line = (k) => (plan.find((x) => x.key === k) || {}).text || '';
+    check(p1.indexOf('What to plan for') > 0 && p1.indexOf('What to plan for') < p1.indexOf('Event schedule') && p1.indexOf('Event schedule') < p1.indexOf('Next weather check'), L + ' page 1 reads headline → what to plan for → schedule → next weather check');
+    check(await p.locator('.pv-p1 .pv-sched li').count() === 4 && await p.locator('#printView .at, #printView .pv-keys, #printView .pv-phases').count() === 0, L + ' one four-part schedule; no bar chart, key facts list or phase table');
+    check(/not detected lightning/.test(p1) && /not detected lightning/.test(p2), L + ' lightning is labelled a forecast, not detection, on both pages');
+    check(!/model sources|ensemble|Guidance support|\d+\.\d{3,}/i.test(p1 + p2), L + ' model counts, ensemble names, diagnostics and coordinates stay on the website');
     check(/Hours shown:/.test(p2), L + ' page 2 states which hours it shows');
-    /* grayscale: value, rule hit, missing and background stay distinguishable without colour */
-    const sw = await p.evaluate(() => { const g = s => getComputedStyle(document.querySelector('#pvTracks ' + s)).backgroundColor; return { val: g('.at-key .k-val'), hit: g('.at-key .k-hit'), bg: getComputedStyle(document.querySelector('#pvTracks .at-track')).backgroundColor, gapImg: getComputedStyle(document.querySelector('#pvTracks .at-key .k-gap')).backgroundImage }; });
-    check(contrast(sw.val, sw.hit) >= 3 && contrast(sw.val, sw.bg) >= 2 && /repeating-linear-gradient/.test(sw.gapImg), L + ' grayscale-safe: hit vs value ' + contrast(sw.val, sw.hit).toFixed(1) + ':1, value vs track ' + contrast(sw.val, sw.bg).toFixed(1) + ':1, missing is hatched');
-    const hits = track => p.evaluate(t => [...document.querySelectorAll(`#pvTracks [data-track=${t}] .at-hit`)].map(e => +e.dataset.ms), track);
-    const items = await p.evaluate(() => [...document.querySelectorAll('.pv-p1 .at-list li[data-key]')].map(e => ({ key: e.dataset.key, text: e.innerText })));
+    /* black-and-white: no fills behind text, dark text, and labels that work without colour */
+    const bw = await p.evaluate(() => { const els = [...document.querySelectorAll('#printView .pv-page *')], lum = (c) => { const m = (c.match(/[\d.]+/g) || []).map(Number); return m.length >= 3 ? (m.length > 3 && m[3] === 0 ? 1 : (0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]) / 255) : 1; };
+      return { fills: els.filter((e) => { const bg = getComputedStyle(e).backgroundColor; return !/rgba\(0, 0, 0, 0\)|transparent/.test(bg) && lum(bg) < 0.97; }).length, lightText: els.filter((e) => e.childNodes.length && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) && lum(getComputedStyle(e).color) > 0.5).length }; });
+    check(bw.fills === 0 && bw.lightText === 0, L + ` black-and-white safe: no shaded fills (${bw.fills}), no pale text (${bw.lightText})`);
     if (sc === 'quiet') {
-      check((await hits('rain')).length === 0 && (await hits('wind')).length === 0 && (await hits('lightning')).length === 0, L + ' quiet event shows no rule hits on any track');
-      check(/Nothing in the schedule needs weather attention/.test(keys) && await p.locator('.pv-p1 .at-none').count() === 1, L + ' quiet event says so plainly on page 1');
+      check(/^No weather concern/.test(plan[0] && plan[0].text) && await p.locator('.pv-hours td[data-over]').count() === 0, L + ' quiet event says so plainly on page 1: ' + (plan[0] && plan[0].text));
     }
     if (sc === 'setuprain') {
-      const h = await hits('rain'); check(h.length === 4 && h.every(m => hourOf(m) >= 12 && hourOf(m) < 16), L + ' rain hits mark only the setup hours (' + h.map(hourOf) + ')');
-      check(items[0] && items[0].key === 'rain' && /Setup · Thu 12 PM–4 PM/.test(items[0].text) && !/Event/.test(items[0].text), L + ' first window is rain during setup: ' + (items[0] && items[0].text.replace(/\n/g, ' ')));
-      check(/Rain/.test(keys) && /Setup/.test(keys), L + ' Needs attention names rain during setup');
+      check(/^Plan for rain during setup \(12–4 PM\)/.test(line('rain')) && !/event/i.test(line('rain')), L + ' rain line names setup and its hours: ' + line('rain'));
     }
     if (sc === 'gusty') {
-      const h = await hits('wind'); check(h.length === 3 && h.every(m => hourOf(m) >= 18 && hourOf(m) < 21), L + ' gust hits are the three hours at or above the 25 mph limit (' + h.map(hourOf) + ')');
-      check(await p.locator('#pvTracks [data-track=wind] .at-limit').count() === 1 && /25 mph limit/.test(await p.locator('#pvTracks [data-track=wind] > b').innerText()), L + ' venue limit line is drawn on the gust track and named');
-      const w = items.find(x => x.key === 'wind'); check(!!w && /Gusts reach your 25 mph limit/.test(w.text) && /up to 33 mph/.test(w.text) && /Event · /.test(w.text), L + ' window list names the limit crossing: ' + (w && w.text.replace(/\n/g, ' ')));
-      check(await p.locator('.pv-hours td[data-over]').count() === 3, L + ' page 2 marks the same three gust hours as at or above the limit');
+      check(/^Gusts may reach the venue’s 25 mph limit during event \(6–9 PM\); up to 33 mph\./.test(line('wind')), L + ' gust line names the limit crossing and its hours: ' + line('wind'));
+      check(await p.locator('.pv-hours td[data-over]').count() === 3 && (await p.locator('.pv-hours td[data-over] small').allInnerTexts()).every((t) => t === 'Reaches 25 mph venue limit'), L + ' page 2 marks the same three gust hours "Reaches 25 mph venue limit"');
     }
     if (sc === 'phaseonly') {
-      check((await hits('rain')).length === 0 && items.some(x => x.key === 'rain' && /Setup · exact time uncertain/.test(x.text)), L + ' setup rated for rain with no qualifying hour names the phase, not an hour');
-      check(/exact time uncertain/.test(keys) && /Setup/.test(keys), L + ' Needs attention names the phase and leaves timing uncertain');
+      check(/rain during setup; exact time uncertain/.test(line('rain')), L + ' setup rated for rain with no qualifying hour names the phase and leaves timing uncertain: ' + line('rain'));
     }
     if (sc === 'storm') {
-      const h = await hits('lightning'); check(h.length === 2 && h.every(m => hourOf(m) >= 19 && hourOf(m) < 21), L + ' lightning potential marks the raised hours (' + h.map(hourOf) + ')');
-      check(items.some(x => x.key === 'lightning' && /a forecast, not detected lightning/.test(x.text)), L + ' lightning window says forecast, not detected');
+      check(/^Moderate lightning potential during event \(7–9 PM\)\. This is a forecast, not detected lightning\./.test(line('lightning')), L + ' lightning line says when, and that it is a forecast: ' + line('lightning'));
     }
     if (sc === 'gaps') {
-      const g = await p.evaluate(() => ['rain', 'wind', 'lightning'].map(t => document.querySelectorAll(`#pvTracks [data-track=${t}] .at-gap`).length));
-      check(g.every(n => n >= 1), L + ' missing guidance is hatched on every track (' + g + ')');
-      check(await p.evaluate(() => [...document.querySelectorAll('#pvTracks .at-gap')].every(e => !e.classList.contains('at-hit') && e.dataset.v === undefined)), L + ' missing hours carry no value and no rule hit');
+      check(await p.locator('.pv-hours tr[data-ms="' + Date.parse('2026-11-12T19:00Z') + '"] .pv-nd').count() === 4, L + ' a missing hour reads "no data" in every value column');
     }
     if (sc === 'overnight') {
-      check(await p.locator('#pvTracks .at-midnight').count() >= 1, L + ' overnight event marks midnight on the tracks');
-      check(/Nov 12/.test(p2) && /Nov 13/.test(p2), L + ' page 2 names both dates');
-      const h = await hits('rain'); check(h.length === 2 && h.every(m => hourOf(m) >= 1 && hourOf(m) < 3), L + ' after-midnight rain is placed in the event (' + h.map(hourOf) + ')');
+      check(/Thu, Nov 12/.test(p2) && /Fri, Nov 13/.test(p2), L + ' page 2 labels both dates');
+      check(/during late event \(Fri 1–3 AM\)/.test(line('rain')) && /Fri 3–5 AM/.test(p1), L + ' after-midnight rain and the overnight schedule keep their day: ' + line('rain'));
     }
     if (/longnws/.test(sc)) {
       const nws = await p.locator('.pv-nws').innerText(), items = await p.locator('.pv-nws li').count();
       check(items >= 1 && items <= 2, L + ' printed NWS block shows at most two periods (' + items + ')');
       check(/^Thursday:/.test(nws.trim()), L + ' the period overlapping the main event leads, with its label');
-      check(/thunder/i.test(await p.locator('.pv-next').innerText()), L + ' a thunder mention in an official period survives shortening');
-      check(/on-screen briefing/.test(await p.locator('.pv-next').innerText()), L + ' shortened NWS wording points to the on-screen briefing');
+      check(/thunder/i.test(nws), L + ' a thunder mention in an official period survives shortening');
+      check(/full wording on the website/.test(p1), L + ' shortened NWS wording points to the website for the full text');
     }
-    if (sc === 'base') check(!/on-screen briefing for the full/.test(await p.locator('.pv-next').innerText()), L + ' short NWS wording prints in full with no pointer');
+    if (sc === 'base') check(!/full wording on the website/.test(p1), L + ' short NWS wording prints in full with no pointer');
     if (sc === 'long') {
-      check(/First 24 hours only/.test(p2) && await p.locator('#pvTracks .at-p2row').count() === 1, L + ' multi-day event labels the page 2 hours, in text and on the graphic');
+      check(/First 24 hours only/.test(p2) && /open the briefing for the rest/.test(p2), L + ' multi-day event labels the page 2 hours and where the rest is');
     }
     if (sc === 'laterain') {
       const r = await p.locator('.pv-hours-window').getAttribute('data-page-hours'), [a] = r.split('-').map(Number);
       check(a > 0 && /24 of \d+ planning hours/.test(p2) && /chosen to include the first concern/.test(p2) && /open the briefing for the rest/.test(p2), L + ' page 2 moves to the main window when it falls after the first 24 hours (from hour ' + a + ')');
-      const rows = await p.evaluate(() => [...document.querySelectorAll('.pv-hours tbody tr')].map(e => +e.dataset.ms)), w = await hits('rain');
-      check(w.length > 0 && rows.includes(w[0]), L + ' the first rain hour is on page 2');
+      const rows = await p.evaluate(() => [...document.querySelectorAll('.pv-hours tbody tr')].map(e => e.querySelector('[data-pop]').textContent));
+      check(rows.includes('80%'), L + ' the 80% rain hours of window 1 are on page 2');
     }
     if (sc === 'area') {
-      check(/City-area forecast for planning/.test(p1) && /City-area forecast at/.test(p2) && /\(area forecast\)/.test(p1), L + ' city-area forecast is labelled on both pages');
+      check(/City-area forecast for planning/.test(p1) && /City-area forecast, not site-specific/.test(p2) && /\(area forecast\)/.test(p1), L + ' city-area forecast is labelled on both pages');
     }
     check(errors.length === 0, L + ' no script errors ' + errors.join('; '));
     await ctx.close();
