@@ -249,10 +249,19 @@
 
   /* Deterministic models for a config spec. ids: which models to request (default: all in the spec).
      Returns {times, dtimes, tz, models: {id: {h, d, elev}}, status: {id: "ok"|"failed"|"empty"}, problems[]} */
+  /* each requested model's raw outcome ({status:"fulfilled", value} or {status:"rejected", reason}) travels with the
+     result (not enumerable, so it is never copied or serialized): a later retry of one model can rebuild from these
+     in memory, on the same time axis, without asking the provider or the tab's cache for the others again */
+  const keepOutcomes = (out, outcomes) => Object.defineProperty(out, "outcomes", { value: outcomes, enumerable: false });
   async function loadModels(spec, { lat, lon, days, ids } = {}) {
     const list = spec.models.filter((m) => !ids || ids.includes(m.id));
     const params = { ...spec.params, forecast_days: days || spec.days };
     const res = await Promise.allSettled(list.map((m) => fetchModel(spec.base, params, m.id, [...spec.hourly, ...((spec.extraHourly || {})[m.id] || [])], spec.daily, { lat, lon })));
+    return buildModels(spec, Object.fromEntries(list.map((m, i) => [m.id, res[i]])));
+  }
+  /* outcomes: {modelId: settled result}; models are taken in the spec's order, whatever order the outcomes arrived in */
+  function buildModels(spec, outcomes) {
+    const list = spec.models.filter((m) => outcomes[m.id]), res = list.map((m) => outcomes[m.id]);
     const status = {}, problems = [], ok = [], failures = {};
     res.forEach((r, i) => {
       const m = list[i];
@@ -268,7 +277,7 @@
       ok.push({ m, j: r.value, h, d, names });
     });
     const waits = Object.values(failures).map((f) => f.retryAfter).filter((x) => x != null);
-    if (!ok.length) return { times: [], dtimes: [], tz: null, models: {}, status, problems, failures, retryAfter: waits.length ? Math.max(...waits) : null, empty: true };
+    if (!ok.length) return keepOutcomes({ times: [], dtimes: [], tz: null, models: {}, status, problems, failures, retryAfter: waits.length ? Math.max(...waits) : null, empty: true }, outcomes);
     const master = ok.reduce((a, b) => (b.j.hourly.time.length > a.j.hourly.time.length ? b : a)).j;
     const times = master.hourly.time, dtimes = (master.daily && master.daily.time) || [];
     const models = {};
@@ -278,7 +287,7 @@
       (spec.daily || []).forEach((v) => (dd[v] = j.daily ? S.align(dtimes, j.daily.time, d[v]) : dtimes.map(() => null)));
       models[m.id] = { h: hh, d: dd, elev: j.elevation ?? null, provenance: j.__rrfs || null, retrievedAt: j.__retrievedAt || null, fromCache: !!j.__fromCache };
     });
-    return withAxis({ times, dtimes, tz: master.timezone, offset: master.utc_offset_seconds, models, status, problems, failures });
+    return keepOutcomes(withAxis({ times, dtimes, tz: master.timezone, offset: master.utc_offset_seconds, models, status, problems, failures }), outcomes);
   }
 
   /* Ensembles for a config spec. Returns {times, tz, ens: {id: {var: [member arrays]}}, status, problems} */
@@ -286,6 +295,10 @@
     const list = spec.models.filter((m) => !ids || ids.includes(m.id));
     const params = { ...spec.params, forecast_days: days || spec.days };
     const res = await Promise.allSettled(list.map((m) => fetchModel(spec.base, params, m.id, spec.hourly, null, { lat, lon })));
+    return buildEnsemble(spec, Object.fromEntries(list.map((m, i) => [m.id, res[i]])));
+  }
+  function buildEnsemble(spec, outcomes) {
+    const list = spec.models.filter((m) => outcomes[m.id]), res = list.map((m) => outcomes[m.id]);
     const status = {}, problems = [], ok = [], failures = {};
     // Keep empty member arrays in their slots. Filtering each variable independently can shift
     // member identities and attach one member's snow to another member's temperature.
@@ -298,12 +311,12 @@
       status[m.id] = "ok";
       ok.push({ m, j: r.value, byVar });
     });
-    if (!ok.length) return { times: [], tz: null, ens: {}, status, problems, failures, empty: true };
+    if (!ok.length) return keepOutcomes({ times: [], tz: null, ens: {}, status, problems, failures, empty: true }, outcomes);
     const master = ok.reduce((a, b) => (b.j.hourly.time.length > a.j.hourly.time.length ? b : a)).j;
     const times = master.hourly.time, ens = {};
     ok.forEach(({ m, j, byVar }) => { ens[m.id] = {}; Object.keys(byVar).forEach((v) => (ens[m.id][v] = byVar[v].map((a) => S.align(times, j.hourly.time, a)))); });
-    return withAxis({ times, tz: master.timezone, offset: master.utc_offset_seconds, ens, status, problems, failures, sourceProvenance: Object.fromEntries(ok.filter(x => x.j.__rrfs).map(x => [x.m.id, x.j.__rrfs])),
-      retrieved: Object.fromEntries(ok.map(x => [x.m.id, { at: x.j.__retrievedAt || null, fromCache: !!x.j.__fromCache }])) });
+    return keepOutcomes(withAxis({ times, tz: master.timezone, offset: master.utc_offset_seconds, ens, status, problems, failures, sourceProvenance: Object.fromEntries(ok.filter(x => x.j.__rrfs).map(x => [x.m.id, x.j.__rrfs])),
+      retrieved: Object.fromEntries(ok.map(x => [x.m.id, { at: x.j.__retrievedAt || null, fromCache: !!x.j.__fromCache }])) }), outcomes);
   }
 
   /* Open-Meteo's own run metadata for a model (static/meta.json). This is PROVIDER-REPORTED: the latest
@@ -336,7 +349,7 @@
     }));
     return out;
   }
-  const OpsData = { getJSON, retryAfterSeconds, loadModelMeta, fetchModel, pick, loadModels, loadEnsemble, toMeters, loadNWS, withAxis, directRrfsResponse, loadDirectRrfs };
+  const OpsData = { getJSON, retryAfterSeconds, loadModelMeta, fetchModel, pick, loadModels, buildModels, loadEnsemble, buildEnsemble, toMeters, loadNWS, withAxis, directRrfsResponse, loadDirectRrfs };
   if (typeof module !== "undefined" && module.exports) module.exports = OpsData;
   root.OpsData = OpsData;
 })(typeof self !== "undefined" ? self : globalThis);
