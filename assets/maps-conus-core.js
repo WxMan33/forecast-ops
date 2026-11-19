@@ -103,6 +103,22 @@
     return out;
   }
 
-  const api = { VERSION, MISS, decodeTile, levelInfo, tileDims, tileName, levelFor, tilesFor, scaleOf, valueAt, gridMesh, meshError, lut };
+  /* Packed layout (one file per field and hour; see forecast-ops-maps/pipeline/conus.py --pack): tiles are separate gzip
+     members, levels from coarsest to native, each level row by row. Returns {name: [offset, length]} for an hour. */
+  function packIndex(man, rec) {
+    const out = {}, lens = rec.pack.lengths; let k = 0, off = 0;
+    man.levels.map((l) => l.level).sort((a, b) => b - a).forEach((L) => { const lv = levelInfo(man, L);
+      for (let ty = 0; ty < lv.tilesY; ty++) for (let tx = 0; tx < lv.tilesX; tx++) { out[tileName(L, tx, ty)] = [off, lens[k]]; off += lens[k]; k++; } });
+    if (k !== lens.length) throw new Error(`pack index has ${lens.length} tiles, layout needs ${k}`);
+    return out;
+  }
+  /* The byte ranges that fetch these tiles: tiles next to each other in the file share one request. */
+  function packRanges(index, names) {
+    const t = [...new Set(names)].map((n) => ({ name: n, off: index[n][0], len: index[n][1] })).sort((a, b) => a.off - b.off), out = [];
+    t.forEach((x) => { const r = out[out.length - 1]; if (r && r.end === x.off) { r.end += x.len; r.tiles.push(x); } else out.push({ start: x.off, end: x.off + x.len, tiles: [x] }); });
+    return out; // end is exclusive: HTTP Range bytes=start-(end-1)
+  }
+
+  const api = { VERSION, MISS, decodeTile, packIndex, packRanges, levelInfo, tileDims, tileName, levelFor, tilesFor, scaleOf, valueAt, gridMesh, meshError, lut };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.MapsConusCore = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);
