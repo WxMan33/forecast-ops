@@ -45,6 +45,7 @@
     star: '<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8-6.2-3.2-6.2 3.2 1.2-6.8-5-4.9 6.9-1Z"/>',
     link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
     print: '<path d="M6 9V2h12v7"/><rect x="6" y="14" width="12" height="8"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>',
+    calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
     alert: '<path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4M12 17h.01"/>',
   };
   const icon = (name, size = 15) =>
@@ -75,6 +76,7 @@
   /* ---------- shell ---------- */
   const PAGES = [
     { href: "index.html", id: "home", label: "OVERVIEW", icon: "grid" },
+    { href: "event-beta.html#upcoming", id: "events", label: "EVENTS", icon: "calendar" },
     { href: "blend.html", id: "blend", label: "MODEL BLEND", icon: "layers" },
     { href: "thunder.html", id: "thunder", label: "THUNDER", icon: "zap" },
     { href: "severe.html", id: "severe", label: "SEVERE", icon: "tornado" },
@@ -114,7 +116,7 @@
     nav.setAttribute("aria-label", "Tools");
     let betaMenu = pageId === "betamenu"; try { betaMenu = betaMenu || sessionStorage.getItem("fo_beta_aud") === "met"; } catch (e) { /* no storage */ }
     const menuLink = () => shareUrl("meteorologist-beta.html");
-    const navHref = (p) => (p.id === "maps" ? p.href : shareUrl(p.href)); // the HRRR map is Tri-State only: no point to carry
+    const navHref = (p) => (p.id === "maps" || p.id === "events" ? p.href : shareUrl(p.href)); // the HRRR map is Tri-State only and events carry their own venue: no point to carry
     nav.innerHTML = (betaMenu ? `<a href="${esc(menuLink())}" id="betaMenuLink"${pageId === "betamenu" ? ' aria-current="page"' : ""}>${icon("grid")}MENU</a>` : "") + PAGES.filter((p) => !betaMenu || p.id !== "home").map((p) =>
       `<a href="${esc(navHref(p))}" data-nav="${p.id}"${p.id === pageId ? ' aria-current="page"' : ""}>${icon(p.icon)}${p.label}</a>`).join("");
     /* every way into a tool carries the selected point, so a copied nav link opens the same place for anyone */
