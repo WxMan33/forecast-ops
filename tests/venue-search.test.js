@@ -78,6 +78,15 @@ const NQ = "Inter & Co Stadium, Orlando, FL", AQ = "655 W Church St, Orlando, FL
   /* other provider shape (LocationIQ classic format) gives the same answer */
   r = await V.resolve(ORL, async (q) => V.parse(classic(F[q] || [])));
   eq([r.status, r.place.name, r.place.lat], ["found", "Inter & Co Stadium", 28.5411], "classic format: same result");
+  /* Barleycorn's (Northern Kentucky): two restaurants with the same name; OpenStreetMap writes Barleycorn’s with a curly
+     apostrophe and files the Dixie Highway one under Fort Mitchell, while its postal address says Lakeside Park */
+  for (const [cal, nq, aq, lat] of [["Barleycorn's, 2642 Dixie Hwy, Lakeside Park, KY 41017, USA", "Barleycorn's, Lakeside Park, KY", "2642 Dixie Hwy, Lakeside Park, KY 41017", 39.03308],
+    ["Barleycorn's, 1073 Industrial Rd, Cold Spring, KY 41076, USA", "Barleycorn's, Cold Spring, KY", "1073 Industrial Rd, Cold Spring, KY 41076", 39.02819]]) {
+    asked = []; r = await V.resolve(cal, recorded(asked));
+    eq([asked, r.status, r.place.name, r.place.address, r.place.lat, r.via], [[nq, aq], "found", "Barleycorn's", aq, lat, "name+address"], `${cal}: the right Barleycorn's, by name and address`);
+  }
+  r = await V.resolve("Barleycorn's", recorded([]));
+  eq([r.status, r.candidates.length, r.candidates.map((c) => c.address.split(", ")[1]).sort()], ["ambiguous", 2, ["Cold Spring", "Fort Mitchell"]], "Barleycorn's alone: the planner chooses between the two");
   /* neither found */
   r = await V.resolve(ORL, async () => []); eq(r.status, "unknown", "nothing found: unknown");
 })().then(() => cacheChecks()).catch((e) => { console.error(e); process.exit(1); });
