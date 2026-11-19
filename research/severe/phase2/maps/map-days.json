@@ -1,0 +1,26 @@
+{
+ "active": {
+  "case": "2024-07-15",
+  "day1_event_points_land": 3386
+ },
+ "quiet": {
+  "case": "2024-01-15",
+  "day1_event_points_land": 0
+ },
+ "rule": "Most and fewest Day 1 land points within 25 mi of a report among the 12 verification dates",
+ "event_points_by_date": {
+  "2024-01-15": 0,
+  "2024-02-15": 0,
+  "2024-03-15": 522,
+  "2024-04-15": 1015,
+  "2024-05-15": 789,
+  "2024-06-15": 598,
+  "2024-07-15": 3386,
+  "2024-08-15": 888,
+  "2024-09-15": 46,
+  "2024-10-15": 0,
+  "2024-11-15": 0,
+  "2024-12-15": 0
+ },
+ "report_locations_drawn": true
+}
