@@ -1,0 +1,7 @@
+{
+  "purpose": "Archive the pinned 2022 and 2023 Storm Events files in the private release severe-replay-sources-v1",
+  "files": [
+    "StormEvents_details-ftp_v1.0_d2022_c20260625.csv.gz",
+    "StormEvents_details-ftp_v1.0_d2023_c20260323.csv.gz"
+  ]
+}
