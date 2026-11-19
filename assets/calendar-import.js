@@ -156,8 +156,8 @@
         else if (st.kind === "searching") box.innerHTML = `<span class="bx-note">Searching for “${esc(st.text || loc)}”…</span>`;
         else if (st.kind === "review") box.innerHTML = `<span class="bx-note" style="flex-basis:100%">Not a saved venue yet. Check the text (remove anything private), then search. Nothing is sent until you do.</span>
           <div class="vs-row" style="flex-basis:100%"><input type="search" class="vs-q" data-review="${i}" value="${esc(st.text)}" aria-label="Place or address to search"><button type="button" class="bx-btn" data-search="${i}">Search</button></div>${tools.replace(`<button type="button" class="bx-link" data-again="${i}">Search again</button>`, "")}`;
-        else if (st.kind === "ambiguous") box.innerHTML = `<span class="bx-note" style="flex-basis:100%">“${esc(loc)}” matches several places. Choose one, or leave it to confirm later:</span>
-          <div class="ci-cands">${st.candidates.map((c, k) => `<button type="button" class="vs-hit" data-cand="${i}:${k}"><b>${esc(c.name)}</b><span class="bx-note">${esc(c.address)}</span></button>`).join("")}</div>${tools}<span class="bx-note">${VS.attribution()}</span>`;
+        else if (st.kind === "ambiguous") box.innerHTML = `<span class="bx-note" style="flex-basis:100%">${st.note ? esc(st.note.replace(/:\s*$/, "")) + ", or leave it to confirm later:" : `“${esc(loc)}” matches several places. Choose one, or leave it to confirm later:`}</span>
+          <div class="ci-cands">${st.candidates.map((c, k) => `<button type="button" class="vs-hit" data-cand="${i}:${k}"><b>${esc(c.name)}</b><span class="bx-note">${esc(c.address)}${VS.matchNote(c)}</span></button>`).join("")}</div>${tools}<span class="bx-note">${VS.attribution()}</span>`;
         else box.innerHTML = `<span class="bx-note" style="flex-basis:100%">${esc(st.why === "blank" ? "No location in the calendar." : st.why === "area" ? `“${loc}” only matches a city or area, not a venue. The venue stays unconfirmed.` : st.why === "street" ? `“${loc}” only matches a street, not a venue.` : st.why === "failed" ? "Venue search is unavailable right now." : `Couldn't find “${loc}” on the map.`)} Search again, drop a pin or choose a saved venue, or confirm it later.</span>${tools}`;
         box.querySelectorAll("[data-change]").forEach((b) => b.addEventListener("click", () => openSearch(i)));
         box.querySelectorAll("[data-again]").forEach((b) => b.addEventListener("click", () => { state[i] = { kind: "review", text: st.text || recs[i].g.location || "" }; draw(i); }));
@@ -182,10 +182,11 @@
       async function runSearch(i, text) {
         text = String(text || "").trim(); if (!text) return;
         state[i] = { kind: "searching", text }; draw(i);
-        let res; try { res = VS.decide(text, await VS.search(text)); } catch (e) { res = { status: "unknown", why: "failed" }; }
+        /* venue name first (with city and state) when the text also carries a street address; the address checks the match */
+        let res; try { res = await VS.resolve(text); } catch (e) { res = { status: "unknown", why: "failed" }; }
         if (!dlg.open) return;
         if (res.status === "found") state[i] = { kind: "place", place: res.place, via: "found" };
-        else if (res.status === "ambiguous") state[i] = { kind: "ambiguous", candidates: res.candidates, text };
+        else if (res.status === "ambiguous") state[i] = { kind: "ambiguous", candidates: res.candidates, text, note: res.note };
         else state[i] = { kind: "none", why: res.why, text };
         draw(i); if (state[i].kind === "place") setPick(i, true);
       }

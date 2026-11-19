@@ -1,5 +1,5 @@
 {
- "captured": "2026-11-10",
+ "captured": "2026-11-10; Orlando (Inter&Co Stadium) queries 2026-11-19",
  "source": "nominatim.openstreetmap.org (ODbL, \u00a9 OpenStreetMap contributors)",
  "queries": {
   "Paycor Stadium": [
@@ -582,6 +582,147 @@
      "39.9693659",
      "-83.0179940",
      "-83.0154489"
+    ]
+   }
+  ],
+  "Inter & Co Stadium, Orlando, FL": [
+   {
+    "place_id": 303172211,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "relation",
+    "osm_id": 9219427,
+    "lat": "28.5411041",
+    "lon": "-81.3891411",
+    "category": "leisure",
+    "type": "stadium",
+    "place_rank": 30,
+    "importance": 0.4396350872746759,
+    "addresstype": "leisure",
+    "name": "Inter.co Stadium",
+    "display_name": "Inter.co Stadium, West Pine Street, Holden Heights, Orlando, Orange County, Florida, 32801, United States",
+    "address": {
+     "leisure": "Inter.co Stadium",
+     "road": "West Pine Street",
+     "neighbourhood": "Holden Heights",
+     "city": "Orlando",
+     "county": "Orange County",
+     "state": "Florida",
+     "ISO3166-2-lvl4": "US-FL",
+     "postcode": "32801",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "28.5402414",
+     "28.5418980",
+     "-81.3901347",
+     "-81.3881608"
+    ]
+   }
+  ],
+  "655 W Church St, Orlando, FL 32805": [
+   {
+    "place_id": 396391313,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "way",
+    "osm_id": 157551333,
+    "lat": "28.5402267",
+    "lon": "-81.3885391",
+    "category": "place",
+    "type": "house",
+    "place_rank": 30,
+    "importance": 9.99999999995449e-06,
+    "addresstype": "place",
+    "name": "",
+    "display_name": "655, West Church Street, Holden Heights, Orlando, Orange County, Florida, 32805, United States",
+    "address": {
+     "house_number": "655",
+     "road": "West Church Street",
+     "neighbourhood": "Holden Heights",
+     "city": "Orlando",
+     "county": "Orange County",
+     "state": "Florida",
+     "ISO3166-2-lvl4": "US-FL",
+     "postcode": "32805",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "28.5401767",
+     "28.5402767",
+     "-81.3885891",
+     "-81.3884891"
+    ]
+   }
+  ],
+  "Inter & Co Stadium, 655 W Church St, Orlando, FL 32805, USA": [],
+  "Inter & Co Stadium": [
+   {
+    "place_id": 303172211,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "relation",
+    "osm_id": 9219427,
+    "lat": "28.5411041",
+    "lon": "-81.3891411",
+    "category": "leisure",
+    "type": "stadium",
+    "place_rank": 30,
+    "importance": 0.4396350872746759,
+    "addresstype": "leisure",
+    "name": "Inter.co Stadium",
+    "display_name": "Inter.co Stadium, West Pine Street, Holden Heights, Orlando, Orange County, Florida, 32801, United States",
+    "address": {
+     "leisure": "Inter.co Stadium",
+     "road": "West Pine Street",
+     "neighbourhood": "Holden Heights",
+     "city": "Orlando",
+     "county": "Orange County",
+     "state": "Florida",
+     "ISO3166-2-lvl4": "US-FL",
+     "postcode": "32801",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "28.5402414",
+     "28.5418980",
+     "-81.3901347",
+     "-81.3881608"
+    ]
+   }
+  ],
+  "Inter & Co Stadium, Orlando": [
+   {
+    "place_id": 302377287,
+    "licence": "Data \u00a9 OpenStreetMap contributors, ODbL 1.0. http://osm.org/copyright",
+    "osm_type": "relation",
+    "osm_id": 9219427,
+    "lat": "28.5411041",
+    "lon": "-81.3891411",
+    "category": "leisure",
+    "type": "stadium",
+    "place_rank": 30,
+    "importance": 0.4396350872746759,
+    "addresstype": "leisure",
+    "name": "Inter.co Stadium",
+    "display_name": "Inter.co Stadium, West Pine Street, Holden Heights, Orlando, Orange County, Florida, 32801, United States",
+    "address": {
+     "leisure": "Inter.co Stadium",
+     "road": "West Pine Street",
+     "neighbourhood": "Holden Heights",
+     "city": "Orlando",
+     "county": "Orange County",
+     "state": "Florida",
+     "ISO3166-2-lvl4": "US-FL",
+     "postcode": "32801",
+     "country": "United States",
+     "country_code": "us"
+    },
+    "boundingbox": [
+     "28.5402414",
+     "28.5418980",
+     "-81.3901347",
+     "-81.3881608"
     ]
    }
   ]
