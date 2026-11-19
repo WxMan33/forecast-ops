@@ -286,23 +286,23 @@
     const list = spec.models.filter((m) => !ids || ids.includes(m.id));
     const params = { ...spec.params, forecast_days: days || spec.days };
     const res = await Promise.allSettled(list.map((m) => fetchModel(spec.base, params, m.id, spec.hourly, null, { lat, lon })));
-    const status = {}, problems = [], ok = [];
+    const status = {}, problems = [], ok = [], failures = {};
     // Keep empty member arrays in their slots. Filtering each variable independently can shift
     // member identities and attach one member's snow to another member's temperature.
     const members = (block, v) => Object.keys(block || {}).filter((k) => (k === v || k.startsWith(v + "_")) && Array.isArray(block[k])).sort((a,b) => a.localeCompare(b)).map((k) => block[k]);
     res.forEach((r, i) => {
       const m = list[i];
-      if (r.status !== "fulfilled") { status[m.id] = "failed"; problems.push(`${m.name}: unavailable (${failureText(r.reason)})`); return; }
+      if (r.status !== "fulfilled") { status[m.id] = "failed"; failures[m.id] = { status: r.reason && r.reason.httpStatus || null, retryAfter: r.reason && r.reason.retryAfter != null ? r.reason.retryAfter : null, error: failureText(r.reason) }; problems.push(`${m.name}: unavailable (${failureText(r.reason)})`); return; }
       const byVar = {}; spec.hourly.forEach((v) => (byVar[v] = members(r.value.hourly, v)));
       if (!byVar[spec.require[0]].some(S.hasData)) { status[m.id] = "empty"; problems.push(`${m.name}: no members here`); return; }
       status[m.id] = "ok";
       ok.push({ m, j: r.value, byVar });
     });
-    if (!ok.length) return { times: [], tz: null, ens: {}, status, problems, empty: true };
+    if (!ok.length) return { times: [], tz: null, ens: {}, status, problems, failures, empty: true };
     const master = ok.reduce((a, b) => (b.j.hourly.time.length > a.j.hourly.time.length ? b : a)).j;
     const times = master.hourly.time, ens = {};
     ok.forEach(({ m, j, byVar }) => { ens[m.id] = {}; Object.keys(byVar).forEach((v) => (ens[m.id][v] = byVar[v].map((a) => S.align(times, j.hourly.time, a)))); });
-    return withAxis({ times, tz: master.timezone, offset: master.utc_offset_seconds, ens, status, problems, sourceProvenance: Object.fromEntries(ok.filter(x => x.j.__rrfs).map(x => [x.m.id, x.j.__rrfs])),
+    return withAxis({ times, tz: master.timezone, offset: master.utc_offset_seconds, ens, status, problems, failures, sourceProvenance: Object.fromEntries(ok.filter(x => x.j.__rrfs).map(x => [x.m.id, x.j.__rrfs])),
       retrieved: Object.fromEntries(ok.map(x => [x.m.id, { at: x.j.__retrievedAt || null, fromCache: !!x.j.__fromCache }])) });
   }
 

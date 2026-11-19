@@ -48,8 +48,13 @@
   window.addEventListener("hashchange", view);
   if (isSample()) U.track("sample_opened");
 
-  async function run() {
-    const g = ++gen;
+  /* one recovery of rate-limited sources per briefing load; a new load (venue, schedule or ↻) cancels it */
+  let recovery = null;
+  async function run({ auto = false } = {}) {
+    const g = ++gen, t0 = Date.now();
+    if (recovery) { recovery.ctl.abort(); recovery = null; }
+    coverageNote(null);
+    delete document.body.dataset.firstUsable;
     /* a city link without a time zone: look it up; failing that, take it from the forecast response for that point */
     let tzFromData = null;
     if (pendingCity && !pendingCity.tz) { const tz = await O.zoneFor(pendingCity.lat, pendingCity.lon).catch(() => null); if (g !== gen) return;
@@ -77,18 +82,61 @@
       U.track("load_failed", { what: "models" });
       /* the guidance service is occasionally busy for a minute: try once more on our own before asking */
       /* one automatic retry, after 20 s or the provider's Retry-After if longer; a wait over two minutes is left to the planner */
+      /* refused for rate limiting (HTTP 429): those requests are retried one at a time instead, never also reloaded whole */
+      const limited = U.rateLimited(res.parts, where);
+      if (!retried && !auto && limited.length) { retried = true; $("decision").textContent = "Guidance is slow to answer…"; const first = limited[0].retryAfter != null ? limited[0].retryAfter : U.RETRY.defaultMs / 1000;
+        $("keys").innerHTML = `<p class="bx-note">The forecast service is limiting requests. Trying ${limited.length} source${limited.length > 1 ? "s" : ""} again one at a time, the first in ${Math.ceil(first)} seconds${limited[0].retryAfter != null ? " as the service asked" : ""}.</p>`; startRecovery(g, where, res, alertsPromise, t0, { fromEmpty: true }); return; }
       const wait = Math.max(20, fin(res.retryAfter) ? res.retryAfter : 0);
-      if (!retried && wait <= 120) { retried = true; $("decision").textContent = "Guidance is slow to answer…"; $("keys").innerHTML = `<p class="bx-note">Trying again in ${wait} seconds.</p>`; setTimeout(() => { if (g === gen) run(); }, wait * 1000); return; }
+      if (!retried && wait <= 120) { retried = true; $("decision").textContent = "Guidance is slow to answer…"; $("keys").innerHTML = `<p class="bx-note">Trying again in ${wait} seconds.</p>`; setTimeout(() => { if (g === gen) run({ auto: true }); }, wait * 1000); return; }
       $("decision").textContent = "Weather guidance could not be loaded."; $("keys").innerHTML = `<p class="bx-note">${wait > 120 ? `The guidance service asked us to wait about ${Math.ceil(wait / 60)} minutes. Try ↻ after ${esc(fmt.clock(Date.now() + wait * 1000, ev.tz))}.` : "Try ↻ in a minute."}</p>`; retried = false; return;
     }
     retried = false;
     if (!res.NW || !res.NW.ok) U.track("load_failed", { what: "nws" });
     if (tzFromData) { ev = sampleAt({ ...tzFromData, tz: res.ctx.B.tz }); context(); document.body.dataset.tz = ev.tz; }
+    if (!(await show(g, res, alertsPromise, t0))) return;
+    /* the briefing and Print are ready; only now are refused sources tried again (never after an automatic whole reload,
+       which already asked every source a second time) */
+    if (!auto && U.rateLimited(res.parts, where).length) startRecovery(g, where, res, alertsPromise, t0);
+  }
+  /* put a usable result on screen and in print; false when a newer load has taken over */
+  async function show(g, res, alertsPromise, t0, opts = {}) {
     if (tzFromPick) { tzFromPick = false; ev = { ...ev, tz: res.ctx.B.tz }; if (isStored()) ev = E.saveEvent(ev); context(); document.body.dataset.tz = ev.tz; }
     res.alerts = await alertsPromise; res.alertsAvailable = res.alerts.available !== false;
-    if (g !== gen) return;
-    lastRes = res; render(res);
+    if (g !== gen) return false;
+    lastRes = res; render(res, opts);
     document.body.dataset.loaded = ev.loc.name; document.body.dataset.office = res.NW && res.NW.ok ? res.NW.office : "";
+    if (!document.body.dataset.firstUsable) document.body.dataset.firstUsable = String(Date.now() - t0);
+    return true;
+  }
+  /* ---- retry only the sources refused with HTTP 429; announce what came back as a coverage change ---- */
+  function startRecovery(g, where, res, alertsPromise, t0, { fromEmpty = false } = {}) {
+    const ctl = new AbortController(), log = [], total = U.rateLimited(res.parts, where).length;
+    recovery = { ctl, g, log };
+    document.body.dataset.recovery = "running";
+    window.EventRecoveryLog = log; // read by the offline checks: which requests were retried, when, and how they ended
+    const sources = () => lastRes && lastRes.feeds ? `${lastRes.feeds.used.length} of ${lastRes.feeds.used.length + lastRes.feeds.missing.length}` : "no";
+    const pending = () => total - log.filter((x) => x.outcome).length;
+    coverageNote(`Trying ${total} rate-limited source${total > 1 ? "s" : ""} again, one at a time. The forecast shown uses ${sources()} sources until then.`, "running");
+    U.recover(where, res, { signal: ctl.signal,
+      onAttempt: (x) => { if (g !== gen) return; if (!log.includes(x)) log.push(x);
+        if (x.outcome !== "recovered") coverageNote(`${x.name} was still unavailable on its retry (${x.outcome}).${pending() ? ` Trying ${pending()} more, one at a time.` : ""}`, pending() ? "running" : "done"); },
+      onUpdate: async (next, x) => {
+        if (g !== gen || ctl.signal.aborted) return; // a late answer for a venue or schedule that is no longer shown
+        const before = $("decision").textContent, hadBriefing = !!lastView;
+        if (!(await show(g, next, alertsPromise, t0, { recovered: true }))) return;
+        const after = $("decision").textContent;
+        coverageNote(`Coverage update: ${x.name} answered on its retry. The briefing now uses ${sources()} sources. ${!hadBriefing ? "" : before === after ? "The forecast decision did not change." : `With it, the forecast changed: “${after}”`}${pending() ? ` Trying ${pending()} more, one at a time.` : ""}`, pending() ? "running" : "done");
+      } })
+      .then((out) => {
+        if (g !== gen || out.cancelled) return;
+        recovery = null; document.body.dataset.recovery = "done";
+        if (fromEmpty && !lastView) { retried = false; $("decision").textContent = "Weather guidance could not be loaded."; $("keys").innerHTML = '<p class="bx-note">The forecast service kept limiting requests. Try ↻ in a minute.</p>'; coverageNote(null); }
+      });
+  }
+  function coverageNote(text, state) {
+    const host = $("coverageUpdate"); if (!host) return;
+    host.hidden = !text; host.textContent = text || ""; host.dataset.state = state || "";
+    if (!text) delete document.body.dataset.recovery;
   }
   /* the same event (venue, schedule) keeps its selected hour across refreshes; anything else starts at the focus hour */
   let selKey = null;
@@ -128,7 +176,7 @@
   const refreshSupport=()=>{if(!document.hidden&&lastRes&&lastView)renderSupport(lastRes,lastView.b);};
   setInterval(refreshSupport,60000);
   document.addEventListener('visibilitychange',refreshSupport);
-  function render(res) {
+  function render(res, { recovered = false } = {}) {
     const ctx = res.ctx, tz = ev.tz, now = ctx.now, thr = { gust: ev.gust || 25 };
     if (isSample() && !ev.picked) { const v = ev.loc.name === S.SAMPLE_VENUE.name ? null : ev.loc; ev = { ...S.pickSample(ctx, C, ev.tz, [1, 2, 3], v), picked: true }; context(); }
     /* guidance reused from this tab's short cache keeps its original retrieval time and is labelled as a saved copy
@@ -182,7 +230,7 @@
     /* counted for this event's hours: a source whose forecast ends before the event is named, not counted */
     res.eventFeeds = BUI.eventFeeds(res.feeds, ctx.B, b.all.startMs, b.all.endMs);
     renderSupport(res,b,now);
-    briefingUpdate(ev, b, V, res);
+    if (!recovered) briefingUpdate(ev, b, V, res); // a source answering late is a coverage change, not a new visit to compare
     monitoringHandoff(ev, b, now);
     $("schedule").innerHTML = schedule(b, now);
     if (R.state === "pending") { detail(b, ctx, thr); return; } // nothing at event time yet: schedule and sources only
