@@ -1,0 +1,6 @@
+{
+  "purpose": "CONUS pilot: one active and one quiet 2022-2023 cohort date, both leads",
+  "mode": "pilot",
+  "cases": ["2023-06-15", "2023-12-15"],
+  "request": 1
+}
