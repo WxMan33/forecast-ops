@@ -143,6 +143,7 @@ def fit_candidate_gbt(x, y, folds):
 
     def predict(xs):
         return expit(calibration[0] + calibration[1] * tree.decision_function(xs))
+    predict.frozen = {"tree": tree, "calibration": calibration.tolist()}  # for freezing; no numeric effect
     return model, predict
 
 

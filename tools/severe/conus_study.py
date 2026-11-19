@@ -75,7 +75,10 @@ def v07_recipe(x_train, y_train, x_cal, y_cal):
     z = S.Standard(x_train)
     w = fit_logistic(z(x_train), y_train, penalty=0.001)
     cal = fit_logistic((w[0] + z(x_cal) @ w[1:])[:, None], y_cal, penalty=0.0001, monotone=True)
-    return lambda xs: expit(cal[0] + cal[1] * (w[0] + z(xs) @ w[1:]))
+    def predict(xs):
+        return expit(cal[0] + cal[1] * (w[0] + z(xs) @ w[1:]))
+    predict.frozen = {"mean": z.mean, "scale": z.scale, "w": w, "cal": cal}  # for freezing; no numeric effect
+    return predict
 
 
 def main():
@@ -85,6 +88,7 @@ def main():
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--arrays", type=Path, required=True)
     p.add_argument("--skip-gbt", action="store_true")
+    p.add_argument("--save-models", type=Path, help="Pickle every fitted model (for frozen follow-up tests)")
     a = p.parse_args()
     rng = np.random.default_rng(20261119)
     cases, X, Y, coords, names, hashes = load(a.conus)
@@ -106,9 +110,11 @@ def main():
     # Unsupported (offshore beyond 25 mi) samples are excluded from fitting and scoring alike.
     keep = supported
     card, counts, models = {}, {}, {}
+    fitted = {"names": names, "coords": coords, "keep": keep, "scales": {}, "products": {}}
     for day in (1, 2):
         e_fit, scales = S.engineer(X[fit_idx, day - 1][:, keep], names)
         e_dev, _ = S.engineer(X[dev_idx, day - 1][:, keep], names, scales)
+        fitted["scales"][day] = scales
         for h, hazard in enumerate(HAZARDS):
             product = f"day{day}_{hazard}"
             print("product", product, flush=True)
@@ -123,13 +129,16 @@ def main():
             zf = (xr_dev - np.array(m["feature_mean"])) / np.array(m["feature_scale"])
             probs = {"v07_frozen": expit(m["calibration_intercept"] + m["calibration_slope"]
                                          * (m["intercept"] + zf @ np.array(m["coefficients"])))}
-            probs["conus_v07_recipe"] = v07_recipe(xr_tr, yr_tr, xr_cal, yr_cal)(xr_dev)
+            recipe = v07_recipe(xr_tr, yr_tr, xr_cal, yr_cal)
+            probs["conus_v07_recipe"] = recipe(xr_dev)
             model_lr, predict_lr, _ = S.fit_candidate_logistic(x_fit, y_fit, folds_by_date[d_fit])
+            fitted["products"][product] = {"conus_v07_recipe": recipe.frozen, "conus_logistic": model_lr}
             probs["conus_logistic"] = predict_lr(x_dev)
             models[product] = {"conus_logistic": model_lr}
             if not a.skip_gbt:
                 model_gbt, predict_gbt = S.fit_candidate_gbt(x_fit, y_fit, folds_by_date[d_fit])
                 probs["conus_gbt"] = predict_gbt(x_dev)
+                fitted["products"][product]["conus_gbt"] = predict_gbt.frozen
                 models[product]["conus_gbt"] = model_gbt
             climatology = float(y_fit.mean())
             exp_k = exposed[keep][p_dev]
@@ -166,6 +175,11 @@ def main():
             if c["verify_event_dates"] < 5 or c["train_event_dates"] < 10:
                 flags.append({"product": product, "region": r, **c,
                               "reason": "fewer than 5 verification event dates or 10 training event dates"})
+    if a.save_models:
+        import pickle
+        a.save_models.parent.mkdir(parents=True, exist_ok=True)
+        with open(a.save_models, "wb") as fh:
+            pickle.dump(fitted, fh, protocol=5)
     np.save(a.arrays / "coordinates.npy", coords[keep])
     np.save(a.arrays / "labels_dev.npy", Y[dev_idx][:, :, keep])
     np.save(a.arrays / "exposed.npy", exposed[keep])

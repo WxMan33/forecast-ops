@@ -30,7 +30,7 @@ jobs:
           sys.path.insert(0, "tools/severe")
           from cohort import calendar_cases
           req = json.load(open("research/severe/conus-v1/request.json"))
-          cases = req["cases"] if req["mode"] == "pilot" else calendar_cases(json.load(open("research/severe/cohort-v07.json")))
+          cases = req["cases"] if req["mode"] in ("pilot", "followup") else calendar_cases(json.load(open("research/severe/cohort-v07.json")))
           if any(not c.startswith(("2022", "2023", "2024")) for c in cases):
               raise SystemExit("2025 is sealed")
           if req["mode"] == "pilot":
@@ -82,15 +82,19 @@ jobs:
           ARCHIVE_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
           ACTIONS_TOKEN: ${{ github.token }}
           CASES: ${{ matrix.batch.cases }}
+          MODE: ${{ needs.plan.outputs.mode }}
         run: |
           mkdir -p tests/out/reports
           status=0
           for case in $CASES; do
             start=$(date +%s)
-            bash tools/severe/restore_inputs.sh --source v07 --case "$case" --output "tests/out/regional/$case"
-            reg=$(dirname "$(find "tests/out/regional/$case" -name joined.npz | head -1)")
+            regional=()
+            if [ "$MODE" != followup ]; then  # follow-up dates have no archived regional case to compare
+              bash tools/severe/restore_inputs.sh --source v07 --case "$case" --output "tests/out/regional/$case"
+              regional=(--regional "$(dirname "$(find "tests/out/regional/$case" -name joined.npz | head -1)")")
+            fi
             if PYTHONPATH=tools/severe python3 tools/severe/conus_pilot.py --case "$case" --output tests/out/conus \
-                 --cache tests/out/cache --regional "$reg" --report "tests/out/reports/$case.json"; then
+                 --cache tests/out/cache "${regional[@]}" --report "tests/out/reports/$case.json"; then
               PYTHONPATH=tools/severe python3 tools/severe/conus_pilot_map.py --case "$case" --conus tests/out/conus --output tests/out/maps || true
             else
               echo "{\"case\": \"$case\", \"status\": \"failed\"}" > "tests/out/reports/$case.failed.json"; status=1
