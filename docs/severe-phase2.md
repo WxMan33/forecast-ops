@@ -103,9 +103,9 @@ Day 2 judged separately.
   range). There's no data blocker; this is the remaining work for the four-way comparison.
 
 ## Blockers met and how they were handled
-- NOAA has replaced the pinned 2022-2024 Storm Events files (old URLs return 404). The exact
-  pinned bytes come from the frozen-source checkpoint artifact (run 43909210291, expires
-  2027-02-14), verified by size and SHA-256. To make this permanent, upload the 2022 and 2023 files to
-  the private release `severe-replay-sources-v1` (2024 is already pending there).
+- NOAA has replaced the pinned 2022-2024 Storm Events files (old URLs return 404). All three pinned
+  files are now in the private release `severe-replay-sources-v1`: 2024 (uploaded by the owner),
+  and 2022 and 2023 (run 44589317670: copied from the checkpoint artifact, uploaded without
+  overwrite, then read back with the read-only token; size and SHA-256 match the pins).
 - This cloud session cannot reach NOAA's NCEI site or the private archive, so heavy steps run in
   GitHub Actions and commit their results to this branch.
