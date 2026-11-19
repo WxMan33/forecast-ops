@@ -1,0 +1,6 @@
+{
+  "purpose": "One real write and read-back of the private guidance archive before daily collection is enabled",
+  "date": "2026-11-18",
+  "days": [1],
+  "archive": true
+}

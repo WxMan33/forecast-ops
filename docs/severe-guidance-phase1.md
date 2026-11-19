@@ -172,22 +172,65 @@ Three practical consequences:
    real comparison needs prospective data.
 3. **2025 stays untouched:** 2025 dates remain sealed, and the command refuses them.
 
-## 6. What to start capturing now (prospective)
+## 6. Daily collection (built; off until enabled)
 
-The separate **Severe research guidance collection** workflow accepts an explicit date and
-collects both leads on independent runners. It checks the HRRR predictor contract and audits
-the raw HRRR messages, then captures RRFS and NBM on the same grid. It uploads a collection
-manifest for each attempted window, including source failures, with verified feature files
-for the sources that completed. Each successful fetch records its time and checksum. The
-workflow is read-only and keeps its test artifacts for 30 days. It has no daily schedule.
+The **Severe research guidance collection** workflow
+(`.github/workflows/severe-guidance-collection.yml`) runs on independent runners for each lead:
+- **Day 1:** 09:40Z.
+- **Day 2:** 15:40Z.
 
-Before enabling daily collection, choose a durable private destination and retention for the
-paired features, manifests and failure records. The measured RRFS/NBM transfer alone is about
-216 MB per lead, or 13 GB per 30 days for both leads, before HRRR. The manual workflow discards
-the download cache after producing the feature artifacts. Size the durable archive using those
-compressed feature artifacts. If raw GRIB retention is needed, plan it separately using
-measured volumes and retain both raw blobs and their receipts. Future scheduled capture should
-observe inputs at issuance deadlines to distinguish timely access from retrospective availability.
+These times are 10 minutes after the production deadlines. The schedules do nothing until the
+repository variable `SEVERE_GUIDANCE_COLLECTION_ENABLED` is `true`. Manual runs take a date, a day,
+and an `archive` switch.
+
+Each run takes five steps:
+1. **Collect:** collects and audits HRRR (the v0.7 predictor contract and raw-message audit), RRFS
+   and NBM on the production grid. A source that fails or times out is recorded and the others
+   continue.
+2. **Record:** writes `run.json` (`tools/severe/guidance_archive.py record`). It keeps two kinds of
+   evidence apart:
+   - **Timing evidence:** each needed hour is classed against the production deadline using the
+     later S3 `LastModified` of its GRIB file and index. This does not depend on when the job ran.
+   - **Collection evidence:** the scheduled slot, the actual job start, the collector's fetch start
+     and finish, the per-file fetch receipts (in the manifests), the run id, the attempt and the
+     commit.
+3. **Classify the run:**
+   - **`scheduled`:** a scheduled run that started within 60 minutes of its slot. Only these are
+     **coverage-eligible**.
+   - **`delayed_scheduled`:** a scheduled run that started outside that window.
+   - **`manual_or_backfill`:** any dispatched run.
+
+   Delayed and manual runs keep their data but never count toward measured on-time coverage.
+4. **Bundle:** builds a byte-reproducible bundle (`bundle`: sorted names, zeroed file metadata).
+   The real 2026-11-18 Day 1 bundle is 2.86 MB, so a day pair is about 5.8 MB, roughly 175 MB per
+   30 days.
+5. **Publish:** publishes to the **private** archive (`publish`), using the secret
+   `SEVERE_GUIDANCE_ARCHIVE_WRITE_TOKEN` (Contents: read and write on `WxMan33/forecast-ops-archive`
+   only). The rebuild token stays read-only.
+   - **Where:** one release per month, `severe-guidance-YYYY-MM`, and one asset per date and lead,
+     `severe-guidance-YYYY-MM-DD-dayN.tar.gz`.
+   - **Safe retries:** an identical existing asset is accepted.
+   - **Conflicts:** a different existing asset is a **checksum conflict**. It fails the run and is
+     never overwritten.
+   - **Verification:** every upload is downloaded again and its SHA-256 compared.
+   - **Public repositories are refused.**
+
+The run is then kept as a 30-day Actions artifact too. An incomplete collection fails the job
+visibly, but only after its record and bundle are archived, so failures are counted.
+
+**Measuring coverage** (`coverage --records DIR --start … --end …`):
+- **Denominator:** every scheduled date and lead.
+- **On time:** a date/lead counts only if a coverage-eligible run found all three sources complete
+  with every hour on time.
+- **Late or incomplete:** an eligible run with any late or missing hour, or a failed source.
+- **Missed:** a date/lead with no record at all.
+- **Backfilled, excluded:** a date/lead with only delayed or manual records.
+
+Missed and backfilled runs therefore lower measured coverage and can never raise it. The report
+also gives per-source on-time counts.
+
+Raw GRIB messages are not retained by the daily job; the manifests keep every key, byte range,
+ETag and SHA-256 needed to identify them.
 
 ## 7. Proposed matched-date comparison (Phase 2), fixed before any scoring
 
@@ -254,7 +297,9 @@ Quiet-season days alone will not support a decision.
 - `tools/severe/guidance.py`: ingestion. It reuses the production client, decoder, time checks,
   25-mi disk maximum and 24 h aggregation.
 - `tools/severe/guidance_preview.py`: the local preview.
-- `tests/severe-guidance.test.py`: offline tests (9).
+- `tests/severe-guidance.test.py` and `tests/severe-guidance-archive.test.py`: offline tests.
+- `tools/severe/guidance_archive.py`: run records, reproducible bundles, safe archive publishing,
+  and coverage.
 - `research/severe/guidance-phase1/availability-20261118.json`: the real case record (per-hour
   arrival and status, message ranges and checksums, feature hashes, RRFS-vs-HRRR comparison).
 - `research/severe/guidance-phase1/cycle-arrival-20261117-18.json`: the multi-cycle arrival survey.
