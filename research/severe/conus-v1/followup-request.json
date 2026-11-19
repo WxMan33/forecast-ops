@@ -1,5 +1,7 @@
 {
- "stage": "freeze",
+ "stage": "score",
  "source_extraction_run": 44577990940,
- "source_scoring_run": 44589486745
+ "followup_extraction_run": 44616848705,
+ "frozen_models_sha256": "a9ff6aa76b94",
+ "preconditions": "freeze run 44616849079: refit Brier difference 0.0 vs run 44589486745, saved models reproduce predictions (max 3.0e-08); extraction 36/36 dates, both leads"
 }
