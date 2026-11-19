@@ -19,6 +19,8 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  if(phone)check(await p.evaluate(()=>[...document.querySelectorAll('#keys dd')].at(-1).getBoundingClientRect().bottom<=innerHeight),'decision and next check fit a smaller phone screen');
  check(errors.length===0,label+' no script errors '+errors.join('; '));
  check(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),label+' no horizontal page overflow');
+ /* the hourly charts are details on demand: open the "Hour by hour" group as a planner would */
+ await p.locator('#secHourly > summary').click(); await p.waitForTimeout(250);
  check(await p.locator('#evCharts .evc-card').count()===4,label+' four separate variable charts');
  check(await p.locator('#hourlyTable').getAttribute('open')===null,label+' data table is secondary and collapsed');
  check(await p.evaluate(()=>[...document.querySelectorAll('.evc-card')].every(e=>e.scrollWidth<=e.clientWidth+1)),label+' variable charts fit without side scrolling');
@@ -27,6 +29,9 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  check(await p.evaluate(()=>{const s=document.body.dataset.selected;return [...document.querySelectorAll('#evCharts [aria-pressed=true]')].length===4&&[...document.querySelectorAll('#evCharts [aria-pressed=true]')].every(e=>e.dataset.hour===s)}),label+' selecting an hour synchronizes all four charts');
  const before=await p.locator('.evc-window').innerText();const later=p.locator('#evCharts [data-move="1"]');if(await later.isEnabled()){await later.click();check((await p.locator('.evc-window').innerText())!==before,label+' later hours use paging rather than horizontal scrolling')}
  check(await p.locator('.sch-labels li').count()===4,label+' all four schedule phases have full labels');
+ /* a material coverage gap is flagged next to the decision; the full coverage panel is under "Sources and model details" */
+ check(await p.locator('#gapFlag').isVisible() && /1 of 3/.test(await p.locator('#gapFlag').innerText()) && /HRRR/.test(await p.locator('#gapFlag').innerText()),label+' material coverage gap is flagged in the briefing');
+ await p.locator('#detail > summary').click(); await p.waitForTimeout(150);
  check(await p.locator('#sourceCoverage [data-support]').getAttribute('data-support')==='Limited coverage',label+' one source never implies good coverage');
  check(await p.locator('#sourceCoverage .fs-metrics').innerText().then(t=>t.includes('Unavailable')&&t.includes('1 of 1')),label+' agreement unavailable with one source, hours still counted');
  check(await p.locator('#sourceCoverage .fs-freshness').innerText().then(t=>t.includes('unavailable')||t.includes('unknown')),label+' missing retrieval times are explicit');
@@ -54,6 +59,7 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  }
  if(!phone&&theme==='light'){
  await p.emulateMedia({media:'screen'});await p.goto(base+'/event-beta.html?gaps=1');await p.waitForFunction(()=>document.body.dataset.loaded);
+ await p.locator('#secHourly > summary').click(); await p.waitForTimeout(250);
  await p.locator('#evCharts [data-variable=pop] [data-hour="'+Date.parse('2026-11-12T19:00Z')+'"]').click();
  check((await p.locator('#evCharts [data-value=pop]').innerText())==='—','missing rain guidance stays missing rather than zero');
  check(/n\/a|Unavail/.test(await p.locator('#evCharts [data-value=lightning]').innerText()),'missing lightning is never shown as Low');
@@ -69,6 +75,8 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  await p.goto(base+'/event-beta.html');await p.waitForFunction(()=>document.body.dataset.loaded);
  await p.goto(base+'/event-beta.html?delta=1');await p.waitForFunction(()=>document.body.dataset.loaded);
  check(/Gusts now reach your 25 mph venue limit/.test(await p.locator('#briefUpdate').innerText()),'return visit explains the venue gust-limit crossing');
+ /* before event day the OPE handoff sits in the check-in schedule group */
+ if(!(await p.locator('#opsHandoff').isVisible()))await p.locator('#secChecks > summary').click();
  const details=p.locator('#opsHandoff details');await details.locator('summary').click();
  await p.locator('[data-ops-address]').fill('http://localhost:3000');await p.locator('[data-save-ops]').click();
  const href=await p.locator('#opsHandoff a').getAttribute('href'),u=new URL(href),data=JSON.parse(new URLSearchParams(u.hash.slice(1)).get('handoff'));

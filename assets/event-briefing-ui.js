@@ -113,7 +113,7 @@
   }
   /* Four aligned rows on one time axis. Kept deliberately plain: a bar per hour, darker where that hour needs
      attention (the briefing's own hourly rule; gusts at or above the venue limit), hatched where there is no data. */
-  function attentionHtml(A, { tz, pageHours = null, idPrefix = 'at' } = {}) {
+  function attentionHtml(A, { tz, pageHours = null, idPrefix = 'at', interactive = false } = {}) {
     const s = A.startMs, e = A.endMs, span = e - s, pr = idPrefix === 'pv'; // the printout keeps its established pv-time-* hooks
     if (!(span > 0)) return '';
     const pos = ms => 100 * (Math.max(s, Math.min(e, ms)) - s) / span;
@@ -143,12 +143,15 @@
     const page2 = pageHours && pageHours.clipped ? `<div class="at-row at-p2row"><b>Page 2</b><div class="at-track at-p2"><span style="${box(pageHours.from, pageHours.to)}">hours on page 2</span></div></div>` : '';
     const row = (key, name, sub, extra = '') => `<div class="at-row" data-track="${key}"><b>${name}<small>${sub}</small></b><div class="at-track at-${key}">${day}${bars(key)}${extra}</div></div>`;
     return `<figure class="at" id="${esc(idPrefix)}Tracks" aria-label="The event schedule with hourly rain chance, gusts against your ${A.limit} mph limit, and lightning potential on one time axis. What needs attention is listed after the graphic.">
-      <div class="at-row" data-track="schedule"><b>Schedule</b><div class="at-track at-sched">${phases}</div></div>
+      <div class="at-rows">
+      <div class="at-row" data-track="schedule"><b>Schedule</b><div class="at-track at-sched${pr ? '' : ' sch-bar'}">${phases}</div></div>
       ${row('rain', 'Rain', 'chance')}
-      ${row('wind', 'Gusts', `- - - your ${A.limit} mph limit`, limitPct <= 100 ? `<span class="at-limit" style="bottom:${limitPct.toFixed(1)}%"></span>` : '')}
+      ${row('wind', 'Gusts', `- - ${A.limit} mph limit`, limitPct <= 100 ? `<span class="at-limit" style="bottom:${limitPct.toFixed(1)}%"></span>` : '')}
       ${row('lightning', 'Lightning', 'forecast potential')}
+      ${interactive ? `<div class="at-hitlayer"><span class="at-cursor" hidden></span>${inView.map((x) => `<button type="button" class="at-hb" data-hour="${x.ms}" style="${box(x.ms, x.ms + H)}" aria-label="${esc(hourWindow(x.ms, tz))}: rain ${x.rain.v == null ? 'no data' : Math.round(x.rain.v) + '%'}, gusts ${x.wind.v == null ? 'no data' : Math.round(x.wind.v) + ' mph'}, lightning potential ${x.lightning.v ? x.lightning.v.toLowerCase() : 'no data'}"></button>`).join('')}</div>` : ''}
+      </div>
       ${page2}
-      <div class="at-row"><span></span><div class="at-axis">${ticks}</div></div>
+      <div class="at-row"><span></span><div class="at-axis${pr ? '' : ' sch-ticks'}">${ticks}</div></div>
       <figcaption class="at-key"><span><i class="k-hit"></i>Needs attention</span><span><i class="k-val"></i>Forecast</span><span><i class="k-gap"></i>No data (not zero)</span></figcaption>
     </figure>`;
   }
@@ -157,6 +160,22 @@
       return `<p class="at-none">Nothing in the schedule needs weather attention right now.${miss ? ` ${miss} hour${miss > 1 ? 's have' : ' has'} no forecast data (hatched), so that part is not an all-clear.` : ''}</p>`; }
     return `<ul class="at-list">${A.items.slice(0, max).map((it, k) => { const t = attentionText(it, tz, maxWin);
       return `<li data-item="${k + 1}" data-key="${esc(it.key)}"><div><b>${esc(t.what)}</b><span>${esc(t.when)}</span></div></li>`; }).join('')}${A.items.length > max ? `<li class="at-more">${A.items.length - max} more in the full briefing</li>` : ''}</ul>`;
+  }
+  /* Where a concern sits in the schedule, in a few words: "Mainly setup", "Across the planning window", or the phases.
+     Counted from the hours that meet the briefing's own hourly rule; a rated phase without such an hour is named as such. */
+  function focusOf(it, phases) {
+    const hrs = it.windows.flatMap((w) => w.hours.length ? w.hours : [{ ms: w.from }]);
+    if (!hrs.length) return it.phaseOnly.length ? { text: `${listWords(it.phaseOnly)} (exact time uncertain)`, from: null, to: null } : { text: '', from: null, to: null };
+    const at = (ms) => phases.reduce((best, p) => { const o = Math.min(ms + H, p.endMs) - Math.max(ms, p.startMs); return o > 0 && (!best || o > best.o) ? { p, o } : best; }, null);
+    const by = new Map(); hrs.forEach((x) => { const a = at(x.ms); if (a) by.set(a.p.label, (by.get(a.p.label) || 0) + 1); });
+    const total = hrs.length, ranked = [...by].sort((a, b) => b[1] - a[1]), planH = Math.round((phases[phases.length - 1].endMs - phases[0].startMs) / H);
+    const from = Math.min(...it.windows.map((w) => w.from)), to = Math.max(...it.windows.map((w) => w.to));
+    let text;
+    if (by.size >= 3 || total >= planH * 0.7) text = 'Across the planning window';
+    else if (by.size === 1) text = `During ${ranked[0][0].toLowerCase()}`;
+    else if (ranked[0][1] / total >= 0.6) text = `Mainly ${ranked[0][0].toLowerCase()}`;
+    else text = listWords(ranked.map((r) => r[0].toLowerCase())).replace(/^./, (c) => c.toUpperCase());
+    return { text, from, to };
   }
   /* Page 2 shows up to 24 hours: from the start, unless the most important window would fall outside them */
   function pageHours(A, V, n = 24) {
@@ -214,7 +233,7 @@
       <div class="pv-reading"><h2 class="pv-section">Reading this briefing</h2><p>Phase planning notes are on page 1. They do not mean every hour has the same threat. Each phase lists its highest single-hour rain chance; an hour that crosses a phase boundary counts in both phases. Rain is the blended hourly chance at the venue. Low lightning potential is not zero, and it is a forecast, not detected lightning; Unavailable means guidance is missing. Gusts marked “≥ limit” reach your ${A.limit} mph venue limit. A dash is missing data, not a forecast of none.</p></div>
       <p class="pv-src">${esc(res.recipe)}${res.market.tuned?' · Cincinnati weights; verification under way.':' · Weights unverified for this market.'} ${area?'City-area forecast at':'Forecast at'} ${Number(ev.loc.lat).toFixed(4)}, ${Number(ev.loc.lon).toFixed(4)}. Times are the venue's local time (${esc(tz)}). Data: Open-Meteo (CC BY 4.0), National Weather Service, NOAA. Model guidance only, not an official forecast or warning.</p>${foot(2)}</section>`;
   }
-  const api={date,dateSpan,hourWindow,windowText,headline,coverage,eventFeeds,sourceHtml,rainAmount,nwsPrint,attention,attentionText,attentionHtml,attentionList,pageHours,printMarkup};
+  const api={date,dateSpan,hourWindow,windowText,headline,coverage,eventFeeds,sourceHtml,rainAmount,nwsPrint,focusOf,attention,attentionText,attentionHtml,attentionList,pageHours,printMarkup};
   if(typeof module!=='undefined'&&module.exports) module.exports=api;
   root.EventBriefingUI=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

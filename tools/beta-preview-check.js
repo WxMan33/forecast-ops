@@ -186,7 +186,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     /* a burst of guidance requests from the CI machine is occasionally throttled upstream: say what the page showed, reload once */
     if (!(await eventReady(p, "Sawyer"))) { const shown = await p.evaluate(() => (document.getElementById("decision") || {}).textContent || "—"); console.log(`note: Cincinnati event not ready after 2 min (page showed "${shown.trim().slice(0, 80)}"); reloading once`); await p.reload({ waitUntil: "domcontentloaded" }); if (!(await eventReady(p, "Sawyer"))) throw new Error("Cincinnati event did not load after a reload"); }
     await p.locator(".bx-mapframe iframe").scrollIntoViewIfNeeded(); await until(p, () => { const m = document.querySelector(".bx-mapwrap"); return m && m.dataset.ready === "true" && m.dataset.mapValid; }, null, 90000);
-    await p.evaluate(() => { document.getElementById("chartMore").open = true; }); await p.waitForTimeout(800); // the chart is a secondary view under "Chart view"
+    await p.evaluate(() => { document.getElementById("secHourly").open = true; document.getElementById("chartMore").open = true; }); await p.waitForTimeout(800); // the chart is a secondary view under "Hour by hour" → "Combined overview"
     const box = await p.locator("#timeline svg").boundingBox(); await p.mouse.click(box.x + box.width * 0.1, box.y + box.height * 0.3); await p.waitForTimeout(1500);
     let t = await times(p); report(same(t), "Cincinnati event: click an hour keeps page, chart and map on one time", `page ${iso(t.page)} · chart ${iso(t.chart)} · map ${iso(t.map)} (${t.range})`);
     await p.click("#mpBack"); await p.waitForTimeout(1500); const before = (await times(p)).page; await p.click("#mpBack"); await p.waitForTimeout(1500);
@@ -198,7 +198,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(500);
     const r = await p.evaluate(() => { const vh = innerHeight, b = (el) => el && el.getBoundingClientRect(), keys = [...document.querySelectorAll("#keys dt")].map((d) => d.textContent);
       const dd = [...document.querySelectorAll("#keys dd")], bar = document.querySelector(".sch-bar"), ticks = [...document.querySelectorAll(".sch-ticks span")].map((x) => b(x));
-      const pcts = [...document.querySelectorAll("#keys, #phases")].flatMap((el) => [...el.innerText.matchAll(/(\d{1,3})%/g)].map((m) => +m[1]));
+      const pcts = [...document.querySelectorAll("#keys, #phases")].flatMap((el) => [...el.textContent.matchAll(/(\d{1,3})%/g)].map((m) => +m[1]));
       return { decision: document.getElementById("decision").innerText, keys, nextBottom: dd.length ? b(dd[dd.length - 1]).bottom : 9999, vh, barFits: bar && bar.scrollWidth <= bar.clientWidth + 1 && b(bar).right <= innerWidth + 0.5 && b(bar).left >= 0, ticksFit: ticks.every((t) => t.left >= -0.5 && t.right <= innerWidth + 0.5), pcts }; });
     report(/^(Plan for|Have a rain plan|Watch for|Expect|No weather concern)/.test(r.decision) && r.keys[r.keys.length - 1] === "Next check" && r.keys.includes("Rain chance") && r.keys.includes("Lightning potential") && r.nextBottom <= r.vh, "event phone: decision, window, timing and next check on the first screen", `"${r.decision}" · ${r.keys.join(" · ")} · ends at ${Math.round(r.nextBottom)} of ${r.vh} px`);
     report(r.barFits && r.ticksFit, "event phone: phase strip fits the width", `bar ${r.barFits ? "fits" : "overflows"}, labels ${r.ticksFit ? "fit" : "overflow"}`);
@@ -228,14 +228,14 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
   await section('6. event beta in other markets: Indianapolis search, Denver ', async () => {
   { const { ctx, p, errors } = await go(DESK, base + "event-beta.html"); await eventReady(p, "Sawyer");
     const choose = await pickCity(p, "Indianapolis", "Indianapolis, IN", ".bx-head"); await choose(); await eventReady(p, "Indianapolis");
-    const i = await p.evaluate(() => ({ ...document.body.dataset, nws: document.getElementById("nwsEv").innerText, blend: document.getElementById("blendLine").innerText, map: !!document.querySelector("#map iframe") }));
+    const i = await p.evaluate(() => ({ ...document.body.dataset, nws: document.getElementById("nwsEv").textContent, blend: document.getElementById("blendLine").textContent, /* both sit in closed detail groups: read the text itself */ map: !!document.querySelector("#map iframe") }));
     report(i.office === "IND" && /^America\/Indiana\/Indianapolis$/.test(i.tz) && i.market === "default" && /unverified for this market/.test(i.blend) && /IND office/i.test(i.nws) && i.map && !errors.length,
       "event: Indianapolis by city search (NWS IND, Indiana time, default blend labelled unverified, map inside HRRR domain)", `office ${i.office} · ${i.tz} · ${i.blend.slice(0, 120)}`);
     await p.screenshot({ path: `${out}/event-indianapolis-desktop.png` }); await ctx.close(); }
   { const day = new Date(Date.now() + 2 * 864e5).toLocaleDateString("en-CA", { timeZone: "America/Denver" }), next = new Date(Date.parse(day + "T12:00Z") + 864e5).toISOString().slice(0, 10);
     const ev = { n: "Late show", v: { name: "Red Rocks Amphitheatre", lat: 39.6654, lon: -105.2057 }, z: "America/Denver", t: { setup: `${day}T17:00`, start: `${day}T20:00`, end: `${next}T01:00`, teardown: `${next}T02:30` }, g: 25 };
     const { ctx, p, errors } = await go({ ...PHONE, timezoneId: "America/New_York" }, base + "event-beta.html?e=" + encodeURIComponent(JSON.stringify(ev))); await eventReady(p, "Red Rocks");
-    const d = await p.evaluate(() => ({ ...document.body.dataset, when: document.getElementById("evWhen").innerText, phases: document.getElementById("phases").innerText, map: document.getElementById("map").innerText, frame: !!document.querySelector("#map iframe") }));
+    const d = await p.evaluate(() => ({ ...document.body.dataset, when: document.getElementById("evWhen").innerText, phases: [...document.querySelectorAll("#phases .bx-phase")].map((x) => x.textContent.replace(/\s+/g, " ").trim()).join("\n"), map: document.getElementById("map").innerText, frame: !!document.querySelector("#map iframe") }));
     report(/8 PM/.test(d.when) && /1 AM MST/.test(d.when) && (d.when.match(/\b\d{4}\b/g) || []).length >= 2 && /Teardown\s+\S+ 1 AM – 2:30 AM/.test(d.phases) && d.tz === "America/Denver", "Denver overnight event keeps the venue clock (planner on Eastern time)", `${d.when} | ${d.phases.split("\n").filter((x) => /^(Event|Teardown)/.test(x)).join(" | ")}`);
     report(d.office === "BOU" && !d.frame && /HRRR map available for Cincinnati Tri-State only/.test(d.map) && !errors.length, "Denver event: NWS BOU, out-of-region map message, briefing usable", `office ${d.office} · map "${d.map.split("\n")[0]}"`);
     await p.evaluate(() => scrollTo(0, 0)); await p.screenshot({ path: `${out}/denver-event-phone.png` }); await ctx.close(); }
@@ -614,6 +614,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
         /* grid → shared time → timeline, then timeline-side change → grid */
         let sync = null;
         if (g && g.cols.length > 3) {
+          await p.evaluate(() => { document.getElementById("secHourly").open = true; }); await p.waitForTimeout(400); // hourly charts are under "Hour by hour"
           await p.click("#evCharts [data-variable=pop] [data-hour] >> nth=2"); await p.waitForTimeout(300);
           const a = await p.evaluate(() => ({ grid: +document.querySelector('#evGrid .hg-hb[aria-pressed="true"]').dataset.ms, bus: +document.body.dataset.selected, line: +document.getElementById("timeline").dataset.selected }));
           await p.click("#evCharts [data-variable=pop] [data-hour] >> nth=1"); await p.waitForTimeout(300);

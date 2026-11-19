@@ -569,3 +569,81 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .bx-cov-update { margin: 12px 0 0; padding: 8px 12px; border-left: 3px solid var(--line); background: var(--panel); border-radius: 0 6px 6px 0; font-size: 13px; color: var(--text); }
 .bx-cov-update[data-state="running"] { border-left-color: var(--accent); }
 @media print { .bx-cov-update { display: none !important; } }
+
+/* ---------- Event Manager as an operations dashboard: briefing → timeline → details ---------- */
+/* 1. Briefing. Official NWS alerts look official: filled band, labelled, never mistaken for model guidance. */
+.event-planner .bx-alerts { margin-top: 10px; }
+.event-planner .bx-alert { background: color-mix(in srgb, var(--action) 14%, var(--bg)); border-width: 1.5px; }
+.event-planner .bx-alert::before { content: "NWS"; font: 800 10px/1 var(--bx-font, sans-serif); letter-spacing: .08em; padding: 3px 5px; border-radius: 4px; background: var(--action); color: #fff; align-self: center; }
+/* callouts: label, one bold value, one line of when/where. A concern carries its tier colour as a left rule. */
+.event-planner .ev-callouts { grid-template-columns: 1fr; gap: 0; margin-top: 16px; border-top: 1px solid var(--bx-rule); }
+.event-planner .ev-callouts dt { margin: 0 !important; padding: 9px 0 0 12px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.event-planner .ev-callouts dd { padding: 1px 0 9px 12px; border-bottom: 1px solid var(--bx-rule); font-size: 17px; line-height: 1.25; }
+.event-planner .ev-callouts dt, .event-planner .ev-callouts dd { border-left: 3px solid transparent; }
+.event-planner .ev-callouts dd[data-tier] { border-left-color: var(--tier); }
+.event-planner .ev-callouts dt[data-tier] { border-left-color: var(--tier); }
+.event-planner .ev-callouts dd .bx-note { font-size: 13px; margin-top: 2px; line-height: 1.35; }
+.event-planner .ev-callouts .ev-next { border-bottom: 0; }
+.event-planner .ev-callouts .ev-next .bx-vt b { font-size: 17px; }
+.ev-gap { margin: 10px 0 0; padding: 8px 12px; border-left: 3px solid var(--monitor); background: var(--panel); border-radius: 0 6px 6px 0; font-size: 13px; }
+.event-planner .brief-update:not(.has-changes) { display: none; }
+.event-planner .bx-printbar { margin-top: 8px; }
+@media (min-width: 720px) {
+  .event-planner .ev-callouts { grid-template-columns: 170px 1fr; column-gap: 16px; }
+  .event-planner .ev-callouts dt { padding: 11px 0 11px 12px; border-bottom: 1px solid var(--bx-rule); }
+  .event-planner .ev-callouts dd { padding: 9px 0; border-left: 0; }
+  .event-planner .ev-callouts dt:nth-last-of-type(1) { border-bottom: 0; }
+}
+@media (max-width: 600px) {
+  .event-planner .ev-callouts { margin-top: 12px; }
+  .event-planner .ev-callouts dt { padding-top: 7px; }
+  .event-planner .ev-callouts dd { padding-bottom: 7px; font-size: 16px; }
+  .event-planner .ev-callouts dd .bx-note { font-size: 12.5px; }
+  .event-planner .bx-decision { margin-top: 10px !important; }
+}
+/* 2. Timeline: tap targets over the four rows, one cursor, a compact read-out */
+.ev-time .at { margin-top: 4px; }
+.at-rows { position: relative; }
+.at-hitlayer { position: absolute; top: 0; bottom: 0; left: calc(108px + 8px); right: 0; }
+.at-hb { position: absolute; top: 0; bottom: 0; padding: 0; margin: 0; border: 0; background: transparent; cursor: pointer; }
+.at-hb:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.at-hb:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.at-cursor { position: absolute; top: -3px; bottom: -3px; box-sizing: border-box; border: 2px solid var(--accent); border-radius: 3px; pointer-events: none; }
+.ev-time .sch-labels { margin-top: 10px; }
+.ev-readout { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--bx-rule); border-radius: 8px; background: var(--panel); }
+.ev-ro-h { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; font-size: 14px; }
+.ev-ro-h span { color: var(--muted); font-size: 12.5px; }
+.ev-ro { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 8px 0 4px; }
+.ev-ro dt { font-size: 11.5px; color: var(--muted); }
+.ev-ro dd { margin: 2px 0 0; font-weight: 700; font-size: 16px; }
+.ev-ro .ev-lim { display: block; font-size: 11px; color: var(--prepare); }
+.ev-nd { font-style: normal; font-weight: 400; color: var(--muted); font-size: 13px; }
+.ev-readout .bx-note { margin: 4px 0 0; font-size: 11.5px; }
+@media (max-width: 600px) {
+  .at-hitlayer { left: calc(74px + 6px); }
+  .ev-ro { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* 3. Details on demand: a few named groups, closed by default; the radar map stays open */
+.ev-details { margin-top: 26px; }
+.ev-details-h { font-size: 13px !important; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 4px !important; }
+.event-planner .ev-group { margin-top: 0; padding: 0; }
+.event-planner details.ev-group > summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 14px 0; cursor: pointer; list-style: none; font-size: 16px; }
+.event-planner details.ev-group > summary::-webkit-details-marker { display: none; }
+.event-planner details.ev-group > summary::before { content: "›"; display: inline-block; width: 12px; color: var(--muted); transition: transform .15s; }
+.event-planner details.ev-group[open] > summary::before { transform: rotate(90deg); }
+.event-planner details.ev-group > summary .bx-note { font-size: 12.5px; }
+.event-planner details.ev-group[open] { padding-bottom: 14px; }
+.event-planner .ev-open { padding: 14px 0 4px; }
+.event-planner .ev-open > h2 { font-size: 16px; margin-bottom: 8px; }
+#secChanges h3 { font-size: 14px; margin: 16px 0 6px; }
+@media print { .ev-readout, .at-hitlayer { display: none !important; } }
+.ev-sample-banner { margin: 10px 0 0; padding: 6px 10px; border: 1px dashed var(--muted); border-radius: 6px; font-size: 12.5px; font-weight: 600; color: var(--text); text-align: center; }
+
+/* phones: label beside value, so the decision, three callouts and the next check fit the first screen */
+@media (max-width: 600px) {
+  .event-planner .ev-callouts { grid-template-columns: 88px minmax(0, 1fr); }
+  .event-planner .ev-callouts dt { padding: 8px 8px 8px 10px; border-bottom: 1px solid var(--bx-rule); font-size: 10.5px; line-height: 1.25; }
+  .event-planner .ev-callouts dd { padding: 6px 0 7px; border-left: 0; font-size: 15.5px; }
+  .event-planner .ev-callouts dt:nth-last-of-type(1), .event-planner .ev-callouts .ev-next { border-bottom: 0; }
+  .event-planner .ev-callouts .ev-next .bx-vt b { font-size: 15.5px; }
+}
