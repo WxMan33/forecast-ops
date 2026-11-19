@@ -56,7 +56,6 @@
     return { preset: "preferred", ws: C.blend.presetWeights("preferred", CFG.blend, {}), rules: C.blend.presetRules("preferred"), label: "Default blend recipe", verified: "Not verified for this market: weights were chosen for Cincinnati, not tested here." };
   }
   async function load(where, { days = 7, thunder = true } = {}) {
-    const mk = S.market(where.lat, where.lon), RB = recipeFor(mk);
     /* a slow secondary feed (NWS, ensembles, thunder data, run metadata) must not hold the briefing hostage:
        after its cap the page renders without it and names it as missing */
     const capped = (p, ms, late) => Promise.race([p, new Promise((ok) => setTimeout(() => ok(late), ms))]);
@@ -67,7 +66,12 @@
       thunder ? capped(O.Data.loadModels(CFG.thunder, { ...where, days: Math.max(3, O.savedDays(CFG.thunder)) }).catch(() => ({ empty: true })), 20000, { empty: true }) : Promise.resolve(null),
       capped(O.Data.loadModelMeta(CFG.metaIds).catch(() => ({})), 10000, {}),
     ]);
-    if (B.empty) return { empty: true, problems: B.problems || [], retryAfter: B.retryAfter ?? null, NW, market: mk };
+    return assemble(where, { B, NW, BE, TH, META, days });
+  }
+  /* the briefing's inputs → the briefing's result. Recovery re-runs this with the sources that have since answered. */
+  function assemble(where, parts) {
+    const { B, NW, BE, TH, META } = parts, mk = S.market(where.lat, where.lon), RB = recipeFor(mk);
+    if (B.empty) return { empty: true, problems: B.problems || [], retryAfter: B.retryAfter ?? null, NW, market: mk, parts };
     C.blend.addSources(B, BE, NW && NW.ok ? C.nws.onAxis(NW, B.ms) : null);
     B.viewedAt = Date.now();
     const ws = {}; Object.keys(RB.ws).forEach((id) => { if (B.models[id] && RB.ws[id] > 0) ws[id] = RB.ws[id]; });
@@ -77,7 +81,57 @@
     const why = (id) => id === "nws" ? (NW && NW.reason) || "unavailable" : B.status && B.status[id] === "empty" ? "no coverage here" : B.status && B.status[id] === "failed" ? `request failed${B.failures && B.failures[id] ? ` (${B.failures[id].error})` : ""}` : BE && BE.status && Object.entries(BE.status).some(([e, st]) => st !== "ok" && (CFG.blendEns.models.find((m) => m.id === e) || {}).source === id) ? "ensemble unavailable" : BE && BE.empty ? "ensemble did not answer in time" : "no data returned";
     const feeds = { usedIds: requested.filter((id) => ws[id]), used: requested.filter((id) => ws[id]).map((id) => FEED_NAMES[id] || id), missing: requested.filter((id) => !ws[id]).map((id) => ({ id, name: FEED_NAMES[id] || id, why: why(id) })) };
     const problems = [...(B.problems || []), ...(NW && !NW.ok ? [`NWS: ${NW.reason}`] : [])];
-    return { ctx, RB, NW, problems, feeds, market: mk, recipe: RB.label, verified: RB.verified };
+    return { ctx, RB, NW, problems, feeds, market: mk, recipe: RB.label, verified: RB.verified, parts };
+  }
+
+  /* ---------- rate-limited sources: one later try each, one at a time ----------
+     A model or ensemble request the provider refused with HTTP 429 is asked once more, never twice, and never
+     alongside another retry. The wait is the provider's Retry-After (so the page's stored cooldown for that request
+     has expired) or a bounded default when it gave none; a Retry-After longer than the cap is not waited for.
+     NWS, thunder data and run metadata keep their own paths. */
+  const RETRY = { defaultMs: 8000, maxMs: 60000 };
+  const ENS_FEED = Object.fromEntries(CFG.blendEns.models.map((m) => [m.id, m.source]));
+  /* only sources this briefing's recipe uses: a refused model the blend gives no weight is not worth another request */
+  function rateLimited(parts, where) {
+    if (!parts || !where) return [];
+    const RB = recipeFor(S.market(where.lat, where.lon)), used = (feed) => RB.ws[feed] > 0;
+    const out = [], take = (kind, P, feed) => Object.entries((P && P.failures) || {}).forEach(([id, f]) => { if (f && f.status === 429 && used(feed(id))) out.push({ kind, id, feed: feed(id), retryAfter: f.retryAfter }); });
+    take("model", parts.B, (id) => id);
+    take("ens", parts.BE, (id) => ENS_FEED[id] || id);
+    return out;
+  }
+  const pause = (ms, signal) => new Promise((ok, no) => { if (signal && signal.aborted) return no(new Error("aborted")); const t = setTimeout(ok, ms);
+    if (signal) signal.addEventListener("abort", () => { clearTimeout(t); no(new Error("aborted")); }, { once: true }); });
+  /* onUpdate(result, attempt) runs after each source that comes back; the caller decides whether it still applies */
+  async function recover(where, res, { signal, onAttempt = () => {}, onUpdate = () => {} } = {}) {
+    let parts = res.parts; const targets = rateLimited(parts, where), log = [];
+    for (const t of targets) {
+      const wait = t.retryAfter != null ? t.retryAfter * 1000 : RETRY.defaultMs;
+      const entry = { kind: t.kind, id: t.id, feed: t.feed, name: FEED_NAMES[t.feed] || t.feed, retryAfter: t.retryAfter, waitMs: wait, outcome: null, at: null };
+      log.push(entry);
+      if (wait > RETRY.maxMs) { entry.outcome = "skipped: Retry-After too long"; onAttempt(entry); continue; }
+      try { await pause(wait, signal); } catch (e) { entry.outcome = "cancelled"; return { log, cancelled: true }; }
+      entry.at = Date.now();
+      const one = t.kind === "model" ? await O.Data.loadModels(CFG.blend, { ...where, days: parts.days, ids: [t.id] }).catch(() => null)
+        : await O.Data.loadEnsemble(CFG.blendEns, { ...where, days: parts.days, ids: [t.id] }).catch(() => null);
+      if (signal && signal.aborted) { entry.outcome = "discarded: venue changed"; return { log, cancelled: true }; }
+      const f = one && one.failures && one.failures[t.id];
+      entry.outcome = one && one.status && one.status[t.id] === "ok" ? "recovered" : f && f.status ? `HTTP ${f.status}` : one && one.status && one.status[t.id] === "empty" ? "no coverage" : "failed";
+      onAttempt(entry);
+      if (entry.outcome !== "recovered") continue;
+      /* rebuild from every source that has answered: those answers come from this tab's forecast cache, so the only
+         network request in this step was the retry above; the sources still refused are left out, not asked again */
+      const okIds = (P, extra) => [...Object.keys((P && P.status) || {}).filter((id) => P.status[id] === "ok"), ...extra];
+      const B = t.kind === "model" || parts.B.empty ? await O.Data.loadModels(CFG.blend, { ...where, days: parts.days, ids: okIds(parts.B, t.kind === "model" ? [t.id] : []) }) : parts.B;
+      const BE = t.kind === "ens" ? await O.Data.loadEnsemble(CFG.blendEns, { ...where, days: parts.days, ids: okIds(parts.BE, [t.id]) }).catch(() => parts.BE) : parts.BE;
+      if (signal && signal.aborted) { entry.outcome = "discarded: venue changed"; return { log, cancelled: true }; }
+      /* keep the record of what is still refused, so the coverage note stays honest */
+      const keepFailures = (fresh, old, done) => ({ ...fresh, status: { ...(old && old.status), ...(fresh && fresh.status) }, failures: Object.fromEntries(Object.entries((old && old.failures) || {}).filter(([id]) => id !== done)) });
+      parts = { ...parts, B: t.kind === "model" ? keepFailures(B, parts.B, t.id) : B, BE: t.kind === "ens" ? keepFailures(BE, parts.BE, t.id) : BE };
+      const next = assemble(where, parts);
+      if (!next.empty) onUpdate(next, entry);
+    }
+    return { log, parts };
   }
   /* "Model blend: default recipe · 9 of 13 sources · missing RRFS 3 km (no coverage here)" */
   const blendLine = (res) => `${res.recipe}${res.market.tuned ? "" : " · unverified for this market"} · ${res.feeds.used.length} of ${res.feeds.used.length + res.feeds.missing.length} sources${res.feeds.missing.length ? ` · missing ${res.feeds.missing.map((m) => `${m.name} (${m.why})`).join(", ")}` : ""}`;
@@ -270,5 +324,5 @@
     host.innerHTML = `<div class="bx-mapoff" role="note"><b>HRRR map available for Cincinnati Tri-State only</b><span>The regional map is in development and covers the Cincinnati Tri-State. ${esc(place.name.split(",")[0])} is outside it; the timeline, signals and briefing below are complete for this location.</span><span class="bx-dev">In development</span></div>`;
   }
 
-  root.BetaUI = { NAMES, fmt, vt, st, deg, inch, pct, mph, fin, timeBus, header, load, alerts, timeline, mapPanel, mapUnavailable, placePicker, blendLine, nwsBlock, recipeFor, track };
+  root.BetaUI = { NAMES, fmt, vt, st, deg, inch, pct, mph, fin, timeBus, header, load, assemble, recover, rateLimited, RETRY, alerts, timeline, mapPanel, mapUnavailable, placePicker, blendLine, nwsBlock, recipeFor, track };
 })(typeof globalThis !== "undefined" ? globalThis : this);

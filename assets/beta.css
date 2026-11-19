@@ -564,3 +564,8 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .bx-print:disabled { opacity: .5; cursor: default; }
 /* phones: the button stays at the top; its note is kept for screen readers only, so the decision and next check still fit the first screen */
 @media (max-width: 600px) { .bx-printbar { margin: 8px 0 0; } .bx-printbar .bx-note { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; } }
+
+/* a source that answers on its retry is announced as a coverage change, apart from any change in the weather */
+.bx-cov-update { margin: 12px 0 0; padding: 8px 12px; border-left: 3px solid var(--line); background: var(--panel); border-radius: 0 6px 6px 0; font-size: 13px; color: var(--text); }
+.bx-cov-update[data-state="running"] { border-left-color: var(--accent); }
+@media print { .bx-cov-update { display: none !important; } }
