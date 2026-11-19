@@ -1,0 +1,522 @@
+{
+ "status": "research_only_first_national_test",
+ "protected_2025_outcomes_accessed": false,
+ "cases": 108,
+ "fit_dates": 96,
+ "verification_dates": [
+  "2024-01-15",
+  "2024-02-15",
+  "2024-03-15",
+  "2024-04-15",
+  "2024-05-15",
+  "2024-06-15",
+  "2024-07-15",
+  "2024-08-15",
+  "2024-09-15",
+  "2024-10-15",
+  "2024-11-15",
+  "2024-12-15"
+ ],
+ "samples": {
+  "conus_grid": 40311,
+  "supported_scored": 38838,
+  "unavailable_offshore": 1473,
+  "coast_border_exposed": 7582
+ },
+ "artifact_sha256_by_case": {
+  "2022-01-01": "544e6bb4bcadacdc607628a89ac3f489ecb06d061fc557c4b27aa1c65b204bb7",
+  "2022-01-08": "b152bae284645fb338c0679c919c515821a52e058014e76bb213a80ecb575b92",
+  "2022-01-15": "8ee896f3514d2f2754a064b9d3c62c18653164d49e3641252f87f89a0e8da58a",
+  "2022-01-22": "2bde22182279c65e1f8755282f0376adc9d5ec168d43ba996334b4c19ae06de3",
+  "2022-02-01": "da0c84342572da1655ed378d6bc7c6a4ef9264fe5543dd3e52aaef3a27fddbc7",
+  "2022-02-08": "845e243a9fa347237f6b87fb3f587b10f6916b6735120fa20989655a01961dc6",
+  "2022-02-15": "50198d91decf231d5ab30cd18e749409faac7ae84506757ff1f5dab0a5626dd8",
+  "2022-02-22": "5535fecc3cc99f39d9e7f1872a978500524d86b57e4dde5de46b3c185939a224",
+  "2022-03-01": "dea068ebf52ce3a5b24e7915164196dd83828a556adc9669c7f7d28d1b7b5324",
+  "2022-03-08": "073b3960aaaed358aab623d8d8fa8f77ce90ed1f3d6cbd2941875efebb496013",
+  "2022-03-15": "e81d6854ca9527770e8aa964d0dc3a7433d7508cefef8aca021efc03ff94f1d8",
+  "2022-03-22": "d7facaf9c6c130e30dfd86959711f3447c7952bc678b45ec7f74a3fc518aa326",
+  "2022-04-01": "1cd71d660e395f131b4c85b88fdeecf64379f5c2d6362dd84cfb636ab3796305",
+  "2022-04-08": "d52f656ca74b0d8f576539afd7e5c5ad2f99a5f5ec79d01c2e0e22eaef57d0b1",
+  "2022-04-15": "efdb003cd4b7c059b7986eb2069fff43d96b9fe8fa83bc659f54cd30fe5aeec5",
+  "2022-04-22": "3edcf580a3187fddfa3aa665351afaa9a6b09e7de508c7e70799d1d24d31e705",
+  "2022-05-01": "9b162dccd3f0e41df29dc8a665d6d5636eb88e390434533e595f3ddac2d498ef",
+  "2022-05-08": "429c406ff0fe96af12e900223cc9762727c4c9b38aa05d009be06d5d2130cd95",
+  "2022-05-15": "34de9c6f01201c50ab8a1d635506fbe1198830bd7a69f347c9e91128ba73d02e",
+  "2022-05-22": "8b88754e5139b097955720ab0844c44217819e34baffdbefc6861a587d5ab024",
+  "2022-06-01": "4662fccd86a7232ecd0c30881aca955ff3eeaaeb9ea1f8682f69a6b427b50f16",
+  "2022-06-08": "69bf17c7526367f39042d6e1cef267f9c143b07e19e90a731792e73f84e2d250",
+  "2022-06-15": "b40693f3b11eb9b75ea4a44f6e89ec8c14485993200ea6b932cddb6853cac749",
+  "2022-06-22": "d95f5fb8492026e656683a089c24573795128a95bbde337425b9390b0b58ec90",
+  "2022-07-01": "098015bddf45ec530b12c755a75846f6016abda2fcd2ab0bd54e6537ca84f1f7",
+  "2022-07-08": "26768e796feb0131f1646b69e39c30850f192a240560d434cfc732b3131ee79c",
+  "2022-07-15": "2bc9cf50c9ae3766bac314ac565079f8a8b51dccfa03d77767c10c41f5478629",
+  "2022-07-22": "df8b49af3e518b5392ca0b5843ca9f944c8eef85001cc387fbf2d9085e672cbb",
+  "2022-08-01": "a1bc3e2d0cc0c054d615d2476ff31bd0ffc0e900680eb0a42e1a9418c2d5784b",
+  "2022-08-08": "2ed5b9578ab011e0fa3ee32a2cc82d305cc8043ba09e31a892ee4756572847aa",
+  "2022-08-15": "b5a668ac25bfcbe07dfa163e4771974fc489bc41894f0ae58b177b83baebc5f9",
+  "2022-08-22": "06b89f448f88ab0cc57105cc814f8721991ebd7e5eca33014a1fb32ced4d0db0",
+  "2022-09-01": "d94fb4d27822ff5efe75d150676f7c0e1be8211b2f61d3f18f13a881cc4f464e",
+  "2022-09-08": "2c5aacf46e81f6e738edbcd135352f2024e381dd7433d001707187d2893efed5",
+  "2022-09-15": "1080067aad4185ea5af21199ad4b071e4564d5976d7fb8cef9e5a59efc49a234",
+  "2022-09-22": "0917c509a359669ef43ed4486a5994a2100824e2141d58ddbb2f04a5bec2c1a0",
+  "2022-10-01": "b1de81e62ebd4dcace56735fe6727b7680d3cd425598c9f1db4b901ca1defa93",
+  "2022-10-08": "650bec0521df7298f5c62b2ce56aa23d18ccb9aeaa8f31a47bb3446e758a2daf",
+  "2022-10-15": "b30e28f543cf24eeaf239fb73d3e63c45bd024d26505a759dae802ff4634e6d8",
+  "2022-10-22": "db3848dc84b8d4673d4e12e36dd08c1649c03a1bb3c0b0c18f92b0c914d507ad",
+  "2022-11-01": "57f6ea00bac43c86a579b7ae189be08d525daa2003a3e2a97fa69e12b420cda6",
+  "2022-11-08": "bbb57f2de2f9ff1856aeadd2c8a6d21d9aa98fc0d5f9f575afd937c5b0024092",
+  "2022-11-15": "4acf671bd29917f65082efea12f31061814435d0dd190986d2485e1531e751fe",
+  "2022-11-22": "336e6e86fe84a811de914a002bcbc5a862c86a1d8286dd42061b6c4c304d6bae",
+  "2022-12-01": "2bf8f0a384b940415bab28ea6aa0e9543a3cabd85f3c2092b1a00d9d971d9005",
+  "2022-12-08": "c6e55a19bb7982c2cd2ae55fcdb07e15e92d8b4c22052f2e3bf594c505b0e6b3",
+  "2022-12-15": "c03d49a8e394a88464ce0f03064feb280a26cdcb36fd5f8320bda1d0e963cf04",
+  "2022-12-22": "e2eae04c5a20747c152e32f0eadd74a5af8e298bb74cfe81a7cc8f7e1997d601",
+  "2023-01-01": "a6f098841c28fbf23b48c9fac497dff7c9e9074e2da488b15b37e49756509ea5",
+  "2023-01-08": "29d888dab40f3c7da71cc26f982bff7ceed154b400a3a6a07b76efb01f514ed9",
+  "2023-01-15": "685e474fc5f1049ae9a058682bd111875fd28ed1133f94704f7986b9360fd9b6",
+  "2023-01-22": "d2f9fe63824c41361c69dcd9d42464043df50122d6469fb4ab37f5a60f78d800",
+  "2023-02-01": "90f2f7a636e56c4388ae5d15406adfbbadf707b56eed41c93836977373ae1428",
+  "2023-02-08": "df5d0c96d86d822736a2a855bd952b33bd24f041b4dc73c7dceacab36dfe6be5",
+  "2023-02-15": "8287a729d667e1eed1c49766faac73976e7c3bd9a2042752aed164de509a260f",
+  "2023-02-22": "8c746803d716b79a765147eda7f6afb80e4a364f683aa5a8eb8a95d604604435",
+  "2023-03-01": "24843645abfc1447667041e4ac63b7395660e02d7a198e8e7c8b27ea03ed6d7e",
+  "2023-03-08": "1caca705179b49762cbb2f65cb956fd9f4921c658c816e2f08fdedfd6b5f8d32",
+  "2023-03-15": "76b425b7eab3fa1c39d582a07944b3957120187c74d026761da676a69b58a584",
+  "2023-03-22": "5a563107b1f1a5c15dce34abb4883c0b1fd1aee5f2c4e08ab974afc0e2604d79",
+  "2023-04-01": "ca0b4fb620336b44cc13673b7d08567b15e91800b7a060a18e63408946ab3f6d",
+  "2023-04-08": "2bbbb5b34c70db64013f19a2797a0fe8192abc9383581555bd286c10fb4d1c0c",
+  "2023-04-15": "aaef78f26b8dc814565b564765b4b02c667220fcafc4e272e39b28a05a144302",
+  "2023-04-22": "f16a63eafca76f3aed12ba717fcf812ce80006008cbad182b9d80ad5edccc1ba",
+  "2023-05-01": "85343d7d1f159d17171f28cfa8281030d47a712895dbac6fb82dac0f2d63e604",
+  "2023-05-08": "4365533fb87e67f0a3bcb4ea877c2c46d958cee7f43e5166c74ef660d1642e49",
+  "2023-05-15": "252538b8ac059dd883fc60757eee732ad14c1a2c9385516edcfdffb120913d60",
+  "2023-05-22": "4bde171007c8f69c724e0c4460dd649bc1b4fd001569946e362a32486f6040b1",
+  "2023-06-01": "713b36ec6561d9485d8dfc58becee009ca5007ac56c3aaecf4982099e6e0123e",
+  "2023-06-08": "3ca3bf5dbbdf8894bce55b8df6527f95f6c3e278286bab943c443effd7c565a9",
+  "2023-06-15": "fc135bede52a24c49899c85b2d633def129605b906419a1dcb7206a424cee6a4",
+  "2023-06-22": "b52f287d685fc2205b70a418702bc8dfac50b468b391616a824de776fb15d554",
+  "2023-07-01": "e88f1cd3743c616371fdd328146362b98b60805194503ef26bcf627c94052c53",
+  "2023-07-08": "320de097a51ac9f553431e90c92e04072d11230cc988ce52634de64c62107223",
+  "2023-07-15": "71d943a465cafc4262ea49466533040947969adb7d2285ed3285b62ea03aab7c",
+  "2023-07-22": "60d9c3918a1217974cd686f741b63abe92d637c92bd42573b92128f16d2e4ee9",
+  "2023-08-01": "52b4c9a6d1ae9bb2806f29e0083255ed5cc68019a65e3f602ac1ec880a4ecd21",
+  "2023-08-08": "9e76aa207cf67a64b8f79c34cc051494fda6a53aed85a5f9dcb54175ae3902a1",
+  "2023-08-15": "1aa04c38b313114df11ee20fc8d989019e7f7a93dd3c4fcc07af5787d4de7de7",
+  "2023-08-22": "0fd34846df635a2a696a0a01bea66bbf0e805fa9f6096a6729508f18efade4fe",
+  "2023-09-01": "ed5673dc72e24b6175677358ddb0866e393b254e0d933eee3ccfa3d99f0326b6",
+  "2023-09-08": "2cab216676ff9aa324ae81f220df709b123f4870766e2d0bf6358a5196a62a38",
+  "2023-09-15": "99896f33e1a8839f884e0feb4e632d434a132f34f26897b431885844a8363438",
+  "2023-09-22": "ffde8961b0756a54a4922bbf2717973f52608ef3c383976251725090c35d0d04",
+  "2023-10-01": "93864b0354952bd5ef25cb6ecfc2d211b33b68de57419b3f55f7d0f45572f399",
+  "2023-10-08": "da103f392028c6ee9d3da20726eef4a718b74d8cfffd523788176eec1e8594b6",
+  "2023-10-15": "6bd78fdddf87aa80d5b9d718abfb7efb11e30e6615680800054a65a12175fc98",
+  "2023-10-22": "3a04553e90fbc491149ccd22c3d766da68afd6eabe311d543b47b2fcc5189653",
+  "2023-11-01": "73a00f1dd3be74c274f116a6cb338272815e7898e6bf8353129cfd012ca43d56",
+  "2023-11-08": "0e9612eb2534b025ed678c936eec230468ab4bfa10d8183339749d600e67d5e5",
+  "2023-11-15": "62d1c018e4b0f8f8d9d02fbbf39184eb58fb6965f47b4c3a735843a4e9af7bd5",
+  "2023-11-22": "e430acbe918c52b6c6ac340e284f0269df0c4a71ba3d3614b7eca2a8be0bd983",
+  "2023-12-01": "3b680e9d15a4c3f8701f1d85a8ecc853764c58ae42e4027adda4baa3efeeb569",
+  "2023-12-08": "85598d0a99daaae189f1d35227d7fbaa6d2a12c327b78e4bc719136b862067e6",
+  "2023-12-15": "1f46b34739a6818bd920c83a547458658bea1a24329f31ef5751bba85e1c5d16",
+  "2023-12-22": "592db3e4aa6223ee2ba202db938d51581b2ae25f4045954378114330ba1b1f4e",
+  "2024-01-15": "24095943a4ce02a433330cc942fc7e5c74bb232c439c387263f71254f1d10ed1",
+  "2024-02-15": "895796b94c9f0fed90216d4d665533643a859f5c95fee97a1d51ef9e48fc15c8",
+  "2024-03-15": "28052b92259b907b317fd0a153971dfaf125a21fe999af18a1b1cb7ccf91bc0e",
+  "2024-04-15": "95d04ad12a3eeb69bfddebffc7c1a8d981b82be989ff155a308da3e22c52ffe4",
+  "2024-05-15": "617ad3c2785ac44cf21cdd277b305a42dc80b5df32375e55efa8ad945319ad2d",
+  "2024-06-15": "c2613888ad3eb76fcaf756e2d6de1af9de2f9a3524abf333e4e3710eb515a2d9",
+  "2024-07-15": "2cf97e42cb1a9b8489da7484526a4282f8d2dcb40a49f80c0ad12f1b31be13da",
+  "2024-08-15": "e1b3584eb06de5c4207f81eb722d264cd58fc09b83be29970210b94fc7bd00a7",
+  "2024-09-15": "d32bb8d9cf5f2ae885cdb10fc38238750eb240426163f6a044e29391fbbf90f2",
+  "2024-10-15": "d5a450d7e5bab53c5b67664fe563c1ba0347e3c17de51ab3e96ee0e85b504bab",
+  "2024-11-15": "73e16f8d69582ad4c98ce231ee3203403cc898d2b05eeda378521f56bd62964b",
+  "2024-12-15": "37caba4f27809cab0818ed37e2f2a70d6c27d5ec711572a9304891e77af8dd38"
+ },
+ "note": "2024 was used in earlier model selection: exploratory, not a sealed test.",
+ "by_product_region": {
+  "day1_tornado": {
+   "original_box": {
+    "train_event_dates": 31,
+    "train_event_points": 2796,
+    "verify_event_dates": 6,
+    "verify_event_points": 751
+   },
+   "west": {
+    "train_event_dates": 11,
+    "train_event_points": 307,
+    "verify_event_dates": 0,
+    "verify_event_points": 0
+   },
+   "plains_outside_box": {
+    "train_event_dates": 21,
+    "train_event_points": 788,
+    "verify_event_dates": 1,
+    "verify_event_points": 13
+   },
+   "florida_gulf_south": {
+    "train_event_dates": 7,
+    "train_event_points": 238,
+    "verify_event_dates": 2,
+    "verify_event_points": 33
+   },
+   "northeast_outside_box": {
+    "train_event_dates": 5,
+    "train_event_points": 177,
+    "verify_event_dates": 0,
+    "verify_event_points": 0
+   }
+  },
+  "day1_wind": {
+   "original_box": {
+    "train_event_dates": 56,
+    "train_event_points": 28626,
+    "verify_event_dates": 7,
+    "verify_event_points": 4569
+   },
+   "west": {
+    "train_event_dates": 35,
+    "train_event_points": 3584,
+    "verify_event_dates": 4,
+    "verify_event_points": 954
+   },
+   "plains_outside_box": {
+    "train_event_dates": 37,
+    "train_event_points": 5046,
+    "verify_event_dates": 7,
+    "verify_event_points": 1262
+   },
+   "florida_gulf_south": {
+    "train_event_dates": 18,
+    "train_event_points": 608,
+    "verify_event_dates": 1,
+    "verify_event_points": 1
+   },
+   "northeast_outside_box": {
+    "train_event_dates": 19,
+    "train_event_points": 1575,
+    "verify_event_dates": 2,
+    "verify_event_points": 484
+   }
+  },
+  "day1_hail": {
+   "original_box": {
+    "train_event_dates": 51,
+    "train_event_points": 11824,
+    "verify_event_dates": 6,
+    "verify_event_points": 1924
+   },
+   "west": {
+    "train_event_dates": 27,
+    "train_event_points": 2044,
+    "verify_event_dates": 3,
+    "verify_event_points": 110
+   },
+   "plains_outside_box": {
+    "train_event_dates": 31,
+    "train_event_points": 4641,
+    "verify_event_dates": 6,
+    "verify_event_points": 916
+   },
+   "florida_gulf_south": {
+    "train_event_dates": 7,
+    "train_event_points": 186,
+    "verify_event_dates": 0,
+    "verify_event_points": 0
+   },
+   "northeast_outside_box": {
+    "train_event_dates": 11,
+    "train_event_points": 608,
+    "verify_event_dates": 2,
+    "verify_event_points": 235
+   }
+  },
+  "day2_tornado": {
+   "original_box": {
+    "train_event_dates": 36,
+    "train_event_points": 3099,
+    "verify_event_dates": 4,
+    "verify_event_points": 468
+   },
+   "west": {
+    "train_event_dates": 7,
+    "train_event_points": 335,
+    "verify_event_dates": 1,
+    "verify_event_points": 24
+   },
+   "plains_outside_box": {
+    "train_event_dates": 14,
+    "train_event_points": 600,
+    "verify_event_dates": 1,
+    "verify_event_points": 31
+   },
+   "florida_gulf_south": {
+    "train_event_dates": 9,
+    "train_event_points": 231,
+    "verify_event_dates": 1,
+    "verify_event_points": 25
+   },
+   "northeast_outside_box": {
+    "train_event_dates": 3,
+    "train_event_points": 68,
+    "verify_event_dates": 1,
+    "verify_event_points": 90
+   }
+  },
+  "day2_wind": {
+   "original_box": {
+    "train_event_dates": 56,
+    "train_event_points": 28847,
+    "verify_event_dates": 7,
+    "verify_event_points": 4063
+   },
+   "west": {
+    "train_event_dates": 34,
+    "train_event_points": 3590,
+    "verify_event_dates": 4,
+    "verify_event_points": 431
+   },
+   "plains_outside_box": {
+    "train_event_dates": 43,
+    "train_event_points": 6166,
+    "verify_event_dates": 6,
+    "verify_event_points": 962
+   },
+   "florida_gulf_south": {
+    "train_event_dates": 24,
+    "train_event_points": 729,
+    "verify_event_dates": 1,
+    "verify_event_points": 89
+   },
+   "northeast_outside_box": {
+    "train_event_dates": 19,
+    "train_event_points": 2004,
+    "verify_event_dates": 1,
+    "verify_event_points": 491
+   }
+  },
+  "day2_hail": {
+   "original_box": {
+    "train_event_dates": 51,
+    "train_event_points": 11640,
+    "verify_event_dates": 7,
+    "verify_event_points": 1174
+   },
+   "west": {
+    "train_event_dates": 24,
+    "train_event_points": 1679,
+    "verify_event_dates": 1,
+    "verify_event_points": 24
+   },
+   "plains_outside_box": {
+    "train_event_dates": 37,
+    "train_event_points": 4606,
+    "verify_event_dates": 6,
+    "verify_event_points": 471
+   },
+   "florida_gulf_south": {
+    "train_event_dates": 5,
+    "train_event_points": 228,
+    "verify_event_dates": 0,
+    "verify_event_points": 0
+   },
+   "northeast_outside_box": {
+    "train_event_dates": 11,
+    "train_event_points": 486,
+    "verify_event_dates": 1,
+    "verify_event_points": 46
+   }
+  }
+ },
+ "needs_more_dates": [
+  {
+   "product": "day1_tornado",
+   "region": "west",
+   "train_event_dates": 11,
+   "train_event_points": 307,
+   "verify_event_dates": 0,
+   "verify_event_points": 0,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day1_tornado",
+   "region": "plains_outside_box",
+   "train_event_dates": 21,
+   "train_event_points": 788,
+   "verify_event_dates": 1,
+   "verify_event_points": 13,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day1_tornado",
+   "region": "florida_gulf_south",
+   "train_event_dates": 7,
+   "train_event_points": 238,
+   "verify_event_dates": 2,
+   "verify_event_points": 33,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day1_tornado",
+   "region": "northeast_outside_box",
+   "train_event_dates": 5,
+   "train_event_points": 177,
+   "verify_event_dates": 0,
+   "verify_event_points": 0,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day1_wind",
+   "region": "west",
+   "train_event_dates": 35,
+   "train_event_points": 3584,
+   "verify_event_dates": 4,
+   "verify_event_points": 954,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day1_wind",
+   "region": "florida_gulf_south",
+   "train_event_dates": 18,
+   "train_event_points": 608,
+   "verify_event_dates": 1,
+   "verify_event_points": 1,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day1_wind",
+   "region": "northeast_outside_box",
+   "train_event_dates": 19,
+   "train_event_points": 1575,
+   "verify_event_dates": 2,
+   "verify_event_points": 484,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day1_hail",
+   "region": "west",
+   "train_event_dates": 27,
+   "train_event_points": 2044,
+   "verify_event_dates": 3,
+   "verify_event_points": 110,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day1_hail",
+   "region": "florida_gulf_south",
+   "train_event_dates": 7,
+   "train_event_points": 186,
+   "verify_event_dates": 0,
+   "verify_event_points": 0,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day1_hail",
+   "region": "northeast_outside_box",
+   "train_event_dates": 11,
+   "train_event_points": 608,
+   "verify_event_dates": 2,
+   "verify_event_points": 235,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day2_tornado",
+   "region": "original_box",
+   "train_event_dates": 36,
+   "train_event_points": 3099,
+   "verify_event_dates": 4,
+   "verify_event_points": 468,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day2_tornado",
+   "region": "west",
+   "train_event_dates": 7,
+   "train_event_points": 335,
+   "verify_event_dates": 1,
+   "verify_event_points": 24,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day2_tornado",
+   "region": "plains_outside_box",
+   "train_event_dates": 14,
+   "train_event_points": 600,
+   "verify_event_dates": 1,
+   "verify_event_points": 31,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day2_tornado",
+   "region": "florida_gulf_south",
+   "train_event_dates": 9,
+   "train_event_points": 231,
+   "verify_event_dates": 1,
+   "verify_event_points": 25,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day2_tornado",
+   "region": "northeast_outside_box",
+   "train_event_dates": 3,
+   "train_event_points": 68,
+   "verify_event_dates": 1,
+   "verify_event_points": 90,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day2_wind",
+   "region": "west",
+   "train_event_dates": 34,
+   "train_event_points": 3590,
+   "verify_event_dates": 4,
+   "verify_event_points": 431,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day2_wind",
+   "region": "florida_gulf_south",
+   "train_event_dates": 24,
+   "train_event_points": 729,
+   "verify_event_dates": 1,
+   "verify_event_points": 89,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day2_wind",
+   "region": "northeast_outside_box",
+   "train_event_dates": 19,
+   "train_event_points": 2004,
+   "verify_event_dates": 1,
+   "verify_event_points": 491,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day2_hail",
+   "region": "west",
+   "train_event_dates": 24,
+   "train_event_points": 1679,
+   "verify_event_dates": 1,
+   "verify_event_points": 24,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day2_hail",
+   "region": "florida_gulf_south",
+   "train_event_dates": 5,
+   "train_event_points": 228,
+   "verify_event_dates": 0,
+   "verify_event_points": 0,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  },
+  {
+   "product": "day2_hail",
+   "region": "northeast_outside_box",
+   "train_event_dates": 11,
+   "train_event_points": 486,
+   "verify_event_dates": 1,
+   "verify_event_points": 46,
+   "reason": "fewer than 5 verification event dates or 10 training event dates"
+  }
+ ]
+}
