@@ -46,6 +46,8 @@ const firstScreen = (p) => p.evaluate(() => { const vh = innerHeight, dd = [...d
       check(/Across the planning window/.test(f.callouts[0]), `${L} rain affects the planning window`);
       check(/^(Moderate|High)/.test(f.callouts[1]) && /(Mainly|During) setup/.test(f.callouts[1]) && /not detected/.test(f.callouts[1]), `${L} lightning potential is mainly a setup concern, labelled as forecast potential`);
       check(/Reach your 25 mph limit/.test(f.callouts[2]) && /(Mainly|During) setup/.test(f.callouts[2]), `${L} gusts reach the 25 mph venue limit, mainly during setup`);
+      const keysText = await p.locator('#keys').innerText();
+      check(/Rain chance/.test(keysText) && /Lightning potential\s*(Low|Moderate|High|Unavailable|Not available yet)/.test(keysText) && /Next check/.test(keysText), `${L} callout labels read in sentence case as rendered (the live preview check matches this text)`);
       check(f.callouts[3].length > 0, `${L} next check with its reason: ${f.callouts[3]}`);
       /* one schedule: the timeline's schedule row is the only phase strip on the page */
       const strips = await p.evaluate(() => ({ bars: document.querySelectorAll('#briefView .sch-bar, #briefView .sch-visual').length, axes: document.querySelectorAll('#briefView .at-axis, #briefView .sch-ticks').length, rows: [...document.querySelectorAll('#screenTracks [data-track]')].map((r) => r.dataset.track) }));

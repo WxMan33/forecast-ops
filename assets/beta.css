@@ -577,7 +577,8 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .event-planner .bx-alert::before { content: "NWS"; font: 800 10px/1 var(--bx-font, sans-serif); letter-spacing: .08em; padding: 3px 5px; border-radius: 4px; background: var(--action); color: #fff; align-self: center; }
 /* callouts: label, one bold value, one line of when/where. A concern carries its tier colour as a left rule. */
 .event-planner .ev-callouts { grid-template-columns: 1fr; gap: 0; margin-top: 16px; border-top: 1px solid var(--bx-rule); }
-.event-planner .ev-callouts dt { margin: 0 !important; padding: 9px 0 0 12px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+/* labels stay in sentence case: screen readers, copy-paste and the live checks read them as written */
+.event-planner .ev-callouts dt { margin: 0 !important; padding: 9px 0 0 12px; font-size: 12.5px; font-weight: 600; letter-spacing: .01em; }
 .event-planner .ev-callouts dd { padding: 1px 0 9px 12px; border-bottom: 1px solid var(--bx-rule); font-size: 17px; line-height: 1.25; }
 .event-planner .ev-callouts dt, .event-planner .ev-callouts dd { border-left: 3px solid transparent; }
 .event-planner .ev-callouts dd[data-tier] { border-left-color: var(--tier); }
@@ -642,7 +643,7 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 /* phones: label beside value, so the decision, three callouts and the next check fit the first screen */
 @media (max-width: 600px) {
   .event-planner .ev-callouts { grid-template-columns: 88px minmax(0, 1fr); }
-  .event-planner .ev-callouts dt { padding: 8px 8px 8px 10px; border-bottom: 1px solid var(--bx-rule); font-size: 10.5px; line-height: 1.25; }
+  .event-planner .ev-callouts dt { padding: 8px 8px 8px 10px; border-bottom: 1px solid var(--bx-rule); font-size: 12px; line-height: 1.25; }
   .event-planner .ev-callouts dd { padding: 6px 0 7px; border-left: 0; font-size: 15.5px; }
   .event-planner .ev-callouts dt:nth-last-of-type(1), .event-planner .ev-callouts .ev-next { border-bottom: 0; }
   .event-planner .ev-callouts .ev-next .bx-vt b { font-size: 15.5px; }
