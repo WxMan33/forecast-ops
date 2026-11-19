@@ -36,6 +36,8 @@ jobs:
         run: node tools/event-briefing-polish-check.js
       - name: Event attention tracks and two-page print scenarios (offline)
         run: (command -v pdftotext >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils)) && node tools/event-attention-check.js /tmp/event-attention
+      - name: Event Manager HTTP 429 recovery (mocked providers)
+        run: node tools/event-429-recovery-check.js /tmp/event-429-recovery.json
       - name: Hourly grid fixtures (offline)
         run: |
           python3 -m http.server 8765 >/dev/null 2>&1 &
