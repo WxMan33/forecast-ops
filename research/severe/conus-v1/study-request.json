@@ -1,0 +1,5 @@
+{
+  "purpose": "First national CONUS HRRR test: train on 2022-2023, score 2024 (exploratory); first question is whether Day 2 gains hold across regions",
+  "extraction_run": 44577990940,
+  "extraction_summary": "108/108 cases; all overlap checks passed (16,413 regional points identical per case); 51.5 GB downloaded; 2.9 h extraction; 728 MB stored"
+}
