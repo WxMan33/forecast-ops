@@ -87,3 +87,56 @@ False-alarm size, for Florida/Gulf and the West (and the other regions, for cont
 If the Florida/Gulf or West errors persist, the next step is a **proposal only**: a
 calibration experiment fit on development data, verified on a separate, named set of dates.
 Production stays on v0.7 whatever the outcome.
+
+## 7. Day 2 wind regional calibration test (frozen before fitting or scoring)
+**Dates:**
+- Verification: the 5th, 12th, 19th and 26th of each month of 2024 (48 dates). Their windows
+  (D 12Z to D+2 12Z: the 5th-7th, 12th-14th, 19th-21st and 26th-28th) overlap none of the 2024 windows
+  used so far (the 1st, 8th, 15th and 22nd), and no severe file references them.
+- The 36 follow-up dates and the 12 dates on the 15th are kept out of fitting.
+- 2025 stays sealed.
+
+**Models:** the frozen CONUS logistic and CONUS trees (sha256 a9ff6aa7...) for Day 2 wind, unchanged.
+Each is tested against itself, calibrated vs uncalibrated. The v0.7 refit and v0.7 as-is are
+reported for context.
+
+**Correction:**
+- Per region (original box, West, plains outside box, Florida/Gulf, Northeast outside box), a monotone
+  Platt map on the frozen model's logit: p' = expit(c_r + d_r * logit(p)), with d_r >= 0.
+- Fit only on **out-of-fold** 2022-23 predictions (the same month-grouped folds the frozen models
+  used: 6 folds for the logistic, 3 for the trees, at the frozen penalty and settings), passed through
+  the frozen model's own calibration.
+- Before any correction is fit, the recomputed out-of-fold predictions must re-derive each frozen
+  model's calibration intercept and slope (to 1e-6).
+- All supported samples in the region are used (interior and coast/border-exposed). Labels: original.
+
+**Target:** unchanged. A qualifying convective wind report (Storm Events "Thunderstorm Wind",
+>= 50 kt) within 25 miles. Qualifying reports stay positive everywhere, including during tropical
+events.
+
+**Primary scoring:** original labels. A candidate passes only if all three hold on the 48 dates:
+1. **Florida/Gulf mean forecast** (all supported samples) is within a factor of 2 of the observed
+   report rate (ratio between 0.5 and 2.0).
+2. **Florida/Gulf area >= 5% on no-report days** (days with no qualifying wind report in the region)
+   falls by at least half versus the same uncalibrated model (total km^2 over those days).
+3. **National Day 2 wind Brier** is no worse than the same uncalibrated model. The point estimate
+   must not be higher, and the paired whole-date bootstrap 95% interval of (calibrated - uncalibrated)
+   is reported.
+
+**Also reported:**
+- Paired whole-date bootstrap intervals for the national and per-region Brier change, the
+  Florida/Gulf ratio, and the area reduction.
+- **Hits on report days:** on days with a qualifying wind report, the number of event points
+  forecast >= 5%, >= 15% and >= 30%, before and after, nationally and per region.
+- The v0.7 refit and v0.7 as-is for context.
+
+**Tropical-event sensitivity analysis** (reported separately; not used for pass/fail):
+- Mask: the NHC HURDAT2 best-track file, fetched in the run with its SHA-256 recorded. Any
+  tropical or subtropical system (status TD, TS, HU, SD or SS) with a 6-hourly fix, linearly
+  interpolated to hourly, between the window start minus 6 h and the window end.
+- No-report samples within 400 km of such a track position are set to unknown. Qualifying reports
+  stay positive.
+- The same mask is used for every model. Scores are shown both with and without it, so the share of
+  any change due to the mask is visible.
+
+Production stays on v0.7 whatever the outcome.
