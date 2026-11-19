@@ -49,17 +49,18 @@ const firstScreen = (p) => p.evaluate(() => { const vh = innerHeight, dd = [...d
       const keysText = await p.locator('#keys').innerText();
       check(/Rain chance/.test(keysText) && /Lightning potential\s*(Low|Moderate|High|Unavailable|Not available yet)/.test(keysText) && /Next check/.test(keysText), `${L} callout labels read in sentence case as rendered (the live preview check matches this text)`);
       check(f.callouts[3].length > 0, `${L} next check with its reason: ${f.callouts[3]}`);
-      /* one schedule: the timeline's schedule row is the only phase strip on the page */
-      const strips = await p.evaluate(() => ({ bars: document.querySelectorAll('#briefView .sch-bar, #briefView .sch-visual').length, axes: document.querySelectorAll('#briefView .at-axis, #briefView .sch-ticks').length, rows: [...document.querySelectorAll('#screenTracks [data-track]')].map((r) => r.dataset.track) }));
-      check(strips.bars === 1 && strips.axes === 1 && strips.rows.join(',') === 'schedule,rain,wind,lightning', `${L} one schedule strip and one time axis in the timeline (${JSON.stringify(strips)})`);
-      /* hourly selection */
-      const btns = p.locator('#screenTracks .at-hb'); const n = await btns.count();
-      await btns.nth(Math.floor(n * 0.2)).click(); await p.waitForTimeout(150);
-      const a = await p.evaluate(() => ({ ro: document.getElementById('hourReadout').innerText, sel: +document.body.dataset.selected, pressed: +(document.querySelector('#screenTracks .at-hb[aria-pressed="true"]') || {}).dataset?.hour }));
-      check(n > 6 && a.sel === a.pressed && /Rain chance/.test(a.ro) && /Temperature/.test(a.ro) && /Gusts/.test(a.ro) && /Lightning potential/.test(a.ro), `${L} tapping an hour shows its rain chance, temperature, gusts and lightning potential (${a.ro.split('\n')[0]})`);
-      await p.locator('#secHourly > summary').click(); await p.waitForTimeout(400);
-      const g = await p.evaluate(() => +document.querySelector('#evGrid .hg-hb[aria-pressed="true"]').dataset.ms);
-      check(g === a.sel, `${L} the hourly table follows the same selected hour`);
+      /* the event schedule: each part once with its times, in plain text; no weather bars, legend, badges or hour card */
+      const sch = await p.evaluate(() => ({ items: [...document.querySelectorAll('#secTimeline .ev-schedule li')].map((li) => li.innerText.replace(/\s+/g, ' ')),
+        strips: document.querySelectorAll('#briefView .sch-bar, #briefView .sch-visual').length, weather: document.querySelectorAll('#secTimeline .at, #secTimeline .at-key, #secTimeline .sch-number, #hourReadout').length,
+        height: document.getElementById('secTimeline').getBoundingClientRect().height }));
+      check(sch.items.length === 4 && /^Setup 1–5 PM$/.test(sch.items[0]) && /^Gates 5–7:30 PM$/.test(sch.items[1]) && /^Event 7:30–9:30 PM$/.test(sch.items[2]) && /^Teardown 9:30–11:30 PM$/.test(sch.items[3]), `${L} event schedule shows each part once with local times (${sch.items.join(' | ')})`);
+      check(sch.strips === 1 && sch.weather === 0, `${L} one schedule, with no weather bars, legend, numbered badges or selected-hour card`);
+      /* hourly values are one tap away */
+      await p.locator('#hourlyLink').click(); await p.waitForTimeout(700);
+      const h = await p.evaluate(() => { const d = document.getElementById('secHourly'), r = d.getBoundingClientRect(); return { open: d.open, top: Math.round(r.top), vh: innerHeight, charts: document.querySelectorAll('#evCharts .evc-card').length }; });
+      check(h.open && h.top >= -2 && h.top < h.vh / 2 && h.charts === 4, `${L} "View hourly forecast" opens the hourly section and brings it to the top (${JSON.stringify(h)})`);
+      await p.locator('#evCharts [data-variable=pop] [data-hour]').nth(2).click(); await p.waitForTimeout(150);
+      const a = { sel: +(await p.evaluate(() => document.body.dataset.selected)) };
       await p.locator('#secHourly > summary').click();
       const groups = await p.evaluate(() => [...document.querySelectorAll('#secDetails details.ev-group')].map((d) => `${d.querySelector('summary b').textContent}${d.open ? ' (open)' : ''}`));
       check(groups.length >= 4 && groups.every((x) => !/open/.test(x)), `${L} details grouped and closed by default: ${groups.join(' · ')}`);
@@ -67,7 +68,7 @@ const firstScreen = (p) => p.evaluate(() => { const vh = innerHeight, dd = [...d
     await p.evaluate(() => scrollTo(0, 0));
     await p.screenshot({ path: path.join(out, `orlando-${dev}-${theme}.png`) });
     if (dev === 'phone' && theme === 'light') { await p.screenshot({ path: path.join(out, `orlando-phone-light-full.png`), fullPage: true });
-      await p.locator('#secTimeline').screenshot({ path: path.join(out, 'orlando-timeline-phone.png') }); }
+      await p.locator('#secTimeline').screenshot({ path: path.join(out, 'orlando-schedule-phone.png') }); }
     if (dev === 'desktop' && theme === 'light') {
       await p.emulateMedia({ media: 'print' }); await p.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
       const pdfPath = path.join(out, 'orlando-briefing.pdf'), pdf = await p.pdf({ path: pdfPath, preferCSSPageSize: true, printBackground: true });
@@ -90,9 +91,10 @@ const firstScreen = (p) => p.evaluate(() => { const vh = innerHeight, dd = [...d
     check(!f.hscroll, `${L} no sideways page scroll`);
     if (name === 'orlando quiet') check(/No weather concern/.test(f.decision) && /below your 25 mph/i.test(f.callouts[2]) && !(await p.locator('#keys dd[data-tier]').count()), `${L} quiet: no concern, nothing highlighted (${f.decision})`);
     if (name === 'orlando partly covered') check(/partly covered|pending/i.test(await p.locator('#coverage').innerText()), `${L} partial coverage is stated next to the decision: ${(await p.locator('#coverage').innerText()).replace(/\s+/g, ' ').slice(0, 120)}`);
-    if (name === 'cincinnati missing hour') { const gaps = await p.locator('#screenTracks .at-gap').count(); const btn = p.locator('#screenTracks .at-hb[data-hour="' + Date.parse('2026-11-12T19:00Z') + '"]'); await btn.click(); const ro = await p.locator('#hourReadout').innerText();
-      check(gaps >= 3 && /no data|missing guidance/i.test(ro) && !/\b0%/.test(ro), `${L} missing hour stays missing in the timeline and the read-out (${ro.replace(/\s+/g, ' ').slice(0, 90)})`); }
-    if (name === 'cincinnati overnight') check((await p.locator('#screenTracks .at-midnight').count()) >= 1, `${L} overnight timeline marks midnight on the one axis`);
+    if (name === 'cincinnati missing hour') { await p.locator('#hourlyLink').click(); await p.waitForTimeout(300); await p.locator('#evCharts [data-variable=pop] [data-hour="' + Date.parse('2026-11-12T19:00Z') + '"]').click();
+      const v = await p.locator('#evCharts [data-value=pop]').innerText(); check(v === '—', `${L} a missing hour stays missing (—) one tap away in the hourly forecast`); }
+    if (name === 'cincinnati overnight') { const items = await p.evaluate(() => [...document.querySelectorAll('#secTimeline .ev-schedule li')].map((li) => li.innerText.replace(/\s+/g, ' ')));
+      check(items.length === 4 && items.some((x) => /Fri/.test(x)), `${L} an overnight schedule names the next day where a part ends after midnight (${items.join(' | ')})`); }
     await p.evaluate(() => scrollTo(0, 0)); await p.screenshot({ path: path.join(out, `${name.replace(/\s+/g, '-')}-${dev}.png`) });
     check(errors.length === 0, `${L} no script errors ${errors.join('; ')}`);
     await ctx.close();

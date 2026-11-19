@@ -33,13 +33,8 @@ const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - 
       await p.setViewportSize({ width: 1280, height: 960 });
     }
     const L = sc + ':', file = sc.replace(/\+/g, '-');
-    /* screen and print draw from one model: every hour's value and rule hit must match */
-    const screen = await p.evaluate(() => [...document.querySelectorAll('#screenTracks [data-track] [data-ms]')].map(e => [e.closest('[data-track]').dataset.track, e.dataset.ms, e.dataset.v ?? 'gap', e.classList.contains('at-hit')].join('|')));
-    check(screen.length > 0 && await p.locator('#screenTracks [data-track]').count() === 4, L + ' screen shows schedule, rain, gust and lightning tracks');
     check(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), L + ' no horizontal page overflow on screen');
     await p.emulateMedia({ media: 'print' }); await p.setViewportSize({ width: Math.round(7.4 * 96), height: 1056 }); await p.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
-    const printed = await p.evaluate(() => [...document.querySelectorAll('#pvTracks [data-track] [data-ms]')].map(e => [e.closest('[data-track]').dataset.track, e.dataset.ms, e.dataset.v ?? 'gap', e.classList.contains('at-hit')].join('|')));
-    check(JSON.stringify(screen) === JSON.stringify(printed), L + ' screen and print tracks use the same hourly values and rule hits');
     const pdfPath = path.join(out, `attention-${file}.pdf`);
     const pdf = await p.pdf({ path: pdfPath, preferCSSPageSize: true, printBackground: true });
     const pages = (pdf.toString('latin1').match(/\/Type\s*\/Page\b/g) || []).length; check(pages === 2, L + ' prints exactly two US Letter pages (got ' + pages + ')');
