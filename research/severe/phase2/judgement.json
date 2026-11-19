@@ -1,0 +1,336 @@
+{
+ "phase2_logistic": {
+  "rule1": {
+   "day1_tornado": "not_distinguishable_higher",
+   "day1_wind": "not_distinguishable_higher",
+   "day1_hail": "not_distinguishable_higher",
+   "day2_tornado": "improves",
+   "day2_wind": "improves",
+   "day2_hail": "not_distinguishable_lower"
+  },
+  "lower_brier_products": 3,
+  "clearly_worse": [],
+  "rule2_calibration": {
+   "day1_tornado": {
+    "result": "pass",
+    "candidate": {
+     "points": 5633,
+     "event_points": 455,
+     "dates_with_forecast": 8,
+     "ratio": 1.67285266056339
+    },
+    "v07": {
+     "points": 2564,
+     "event_points": 320,
+     "dates_with_forecast": 8,
+     "ratio": 2.4778105756897855
+    }
+   },
+   "day1_wind": {
+    "result": "pass",
+    "candidate": {
+     "points": 22821,
+     "event_points": 3833,
+     "dates_with_forecast": 11,
+     "ratio": 0.9855507522223365
+    },
+    "v07": {
+     "points": 22662,
+     "event_points": 3812,
+     "dates_with_forecast": 11,
+     "ratio": 1.145169851713725
+    }
+   },
+   "day1_hail": {
+    "result": "pass",
+    "candidate": {
+     "points": 10952,
+     "event_points": 1099,
+     "dates_with_forecast": 10,
+     "ratio": 0.66026845220864
+    },
+    "v07": {
+     "points": 8619,
+     "event_points": 587,
+     "dates_with_forecast": 8,
+     "ratio": 0.6129267618652631
+    }
+   },
+   "day2_tornado": {
+    "result": "pass",
+    "candidate": {
+     "points": 5207,
+     "event_points": 392,
+     "dates_with_forecast": 9,
+     "ratio": 1.3136463131390257
+    },
+    "v07": {
+     "points": 5234,
+     "event_points": 277,
+     "dates_with_forecast": 8,
+     "ratio": 0.9042957490638859
+    }
+   },
+   "day2_wind": {
+    "result": "pass",
+    "candidate": {
+     "points": 25843,
+     "event_points": 3010,
+     "dates_with_forecast": 11,
+     "ratio": 0.7519262949847892
+    },
+    "v07": {
+     "points": 23228,
+     "event_points": 2863,
+     "dates_with_forecast": 10,
+     "ratio": 0.7975907296019895
+    }
+   },
+   "day2_hail": {
+    "result": "pass",
+    "candidate": {
+     "points": 9017,
+     "event_points": 820,
+     "dates_with_forecast": 10,
+     "ratio": 0.7224298296421424
+    },
+    "v07": {
+     "points": 8418,
+     "event_points": 730,
+     "dates_with_forecast": 9,
+     "ratio": 0.6122132033836108
+    }
+   }
+  },
+  "rule3_regions": {
+   "day1_tornado": {
+    "result": "inconclusive",
+    "conclusive_regions": [
+     "northwest"
+    ]
+   },
+   "day1_wind": {
+    "result": "fail",
+    "conclusive_regions": [
+     "southwest",
+     "northwest",
+     "southeast"
+    ],
+    "better_than_v07": [
+     "southeast"
+    ]
+   },
+   "day1_hail": {
+    "result": "fail",
+    "conclusive_regions": [
+     "southwest",
+     "northwest",
+     "southeast"
+    ],
+    "better_than_v07": [
+     "southeast"
+    ]
+   },
+   "day2_tornado": {
+    "result": "inconclusive",
+    "conclusive_regions": []
+   },
+   "day2_wind": {
+    "result": "pass",
+    "conclusive_regions": [
+     "southwest",
+     "northwest",
+     "southeast",
+     "northeast"
+    ],
+    "better_than_v07": [
+     "southwest",
+     "northwest",
+     "southeast",
+     "northeast"
+    ]
+   },
+   "day2_hail": {
+    "result": "pass",
+    "conclusive_regions": [
+     "southwest",
+     "northwest",
+     "northeast"
+    ],
+    "better_than_v07": [
+     "southwest",
+     "northwest",
+     "northeast"
+    ]
+   }
+  },
+  "verdict": "does_not_meet_bar"
+ },
+ "phase2_gbt": {
+  "rule1": {
+   "day1_tornado": "not_distinguishable_higher",
+   "day1_wind": "not_distinguishable_higher",
+   "day1_hail": "not_distinguishable_lower",
+   "day2_tornado": "not_distinguishable_lower",
+   "day2_wind": "not_distinguishable_lower",
+   "day2_hail": "not_distinguishable_lower"
+  },
+  "lower_brier_products": 4,
+  "clearly_worse": [],
+  "rule2_calibration": {
+   "day1_tornado": {
+    "result": "pass",
+    "candidate": {
+     "points": 4122,
+     "event_points": 287,
+     "dates_with_forecast": 10,
+     "ratio": 1.8782389018481205
+    },
+    "v07": {
+     "points": 2564,
+     "event_points": 320,
+     "dates_with_forecast": 8,
+     "ratio": 2.4778105756897855
+    }
+   },
+   "day1_wind": {
+    "result": "pass",
+    "candidate": {
+     "points": 28124,
+     "event_points": 4146,
+     "dates_with_forecast": 11,
+     "ratio": 1.2280023766825607
+    },
+    "v07": {
+     "points": 22662,
+     "event_points": 3812,
+     "dates_with_forecast": 11,
+     "ratio": 1.145169851713725
+    }
+   },
+   "day1_hail": {
+    "result": "pass",
+    "candidate": {
+     "points": 10910,
+     "event_points": 1000,
+     "dates_with_forecast": 9,
+     "ratio": 0.7361038068863971
+    },
+    "v07": {
+     "points": 8619,
+     "event_points": 587,
+     "dates_with_forecast": 8,
+     "ratio": 0.6129267618652631
+    }
+   },
+   "day2_tornado": {
+    "result": "pass",
+    "candidate": {
+     "points": 8366,
+     "event_points": 380,
+     "dates_with_forecast": 11,
+     "ratio": 0.7975497643187044
+    },
+    "v07": {
+     "points": 5234,
+     "event_points": 277,
+     "dates_with_forecast": 8,
+     "ratio": 0.9042957490638859
+    }
+   },
+   "day2_wind": {
+    "result": "pass",
+    "candidate": {
+     "points": 30649,
+     "event_points": 3300,
+     "dates_with_forecast": 11,
+     "ratio": 0.7645847256961464
+    },
+    "v07": {
+     "points": 23228,
+     "event_points": 2863,
+     "dates_with_forecast": 10,
+     "ratio": 0.7975907296019895
+    }
+   },
+   "day2_hail": {
+    "result": "pass",
+    "candidate": {
+     "points": 10536,
+     "event_points": 856,
+     "dates_with_forecast": 9,
+     "ratio": 0.6822794855399871
+    },
+    "v07": {
+     "points": 8418,
+     "event_points": 730,
+     "dates_with_forecast": 9,
+     "ratio": 0.6122132033836108
+    }
+   }
+  },
+  "rule3_regions": {
+   "day1_tornado": {
+    "result": "inconclusive",
+    "conclusive_regions": [
+     "northwest"
+    ]
+   },
+   "day1_wind": {
+    "result": "fail",
+    "conclusive_regions": [
+     "southwest",
+     "northwest",
+     "southeast"
+    ],
+    "better_than_v07": [
+     "southeast"
+    ]
+   },
+   "day1_hail": {
+    "result": "pass",
+    "conclusive_regions": [
+     "southwest",
+     "northwest",
+     "southeast"
+    ],
+    "better_than_v07": [
+     "southwest",
+     "southeast"
+    ]
+   },
+   "day2_tornado": {
+    "result": "inconclusive",
+    "conclusive_regions": []
+   },
+   "day2_wind": {
+    "result": "pass",
+    "conclusive_regions": [
+     "southwest",
+     "northwest",
+     "southeast",
+     "northeast"
+    ],
+    "better_than_v07": [
+     "southwest",
+     "northwest",
+     "southeast"
+    ]
+   },
+   "day2_hail": {
+    "result": "pass",
+    "conclusive_regions": [
+     "southwest",
+     "northwest",
+     "northeast"
+    ],
+    "better_than_v07": [
+     "southwest",
+     "northwest",
+     "northeast"
+    ]
+   }
+  },
+  "verdict": "does_not_meet_bar"
+ }
+}
