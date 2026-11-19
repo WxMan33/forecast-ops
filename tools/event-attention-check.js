@@ -78,7 +78,7 @@ const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - 
     }
     if (sc === 'gusty') {
       const h = await hits('wind'); check(h.length === 3 && h.every(m => hourOf(m) >= 18 && hourOf(m) < 21), L + ' gust hits are the three hours at or above the 25 mph limit (' + h.map(hourOf) + ')');
-      check(await p.locator('#pvTracks [data-track=wind] .at-limit').count() === 1 && /your 25 mph limit/.test(await p.locator('#pvTracks [data-track=wind] > b').innerText()), L + ' venue limit line is drawn on the gust track and named');
+      check(await p.locator('#pvTracks [data-track=wind] .at-limit').count() === 1 && /25 mph limit/.test(await p.locator('#pvTracks [data-track=wind] > b').innerText()), L + ' venue limit line is drawn on the gust track and named');
       const w = items.find(x => x.key === 'wind'); check(!!w && /Gusts reach your 25 mph limit/.test(w.text) && /up to 33 mph/.test(w.text) && /Event · /.test(w.text), L + ' window list names the limit crossing: ' + (w && w.text.replace(/\n/g, ' ')));
       check(await p.locator('.pv-hours td[data-over]').count() === 3, L + ' page 2 marks the same three gust hours as at or above the limit');
     }
