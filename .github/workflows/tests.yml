@@ -66,6 +66,7 @@ jobs:
       - run: node tests/forecast-clock.test.js
       - run: node tests/scoped-weights.test.js
       - run: node tests/maps.test.js
+      - run: node tests/maps-conus.test.js
       - run: node tests/maps-loader.test.js
       - run: node tests/maps-surface.test.js
       - run: node tests/trend-archive.test.js

@@ -1,0 +1,321 @@
+/* Model maps: full-CONUS HRRR beta (maps.html?domain=conus). A separate viewer from the Tri-State maps.
+   Data: forecast-ops-maps conus-v1 tiles (see maps-conus-core.js). Drawing: a custom MapLibre WebGL layer
+   samples the native grid from a texture with nearest-cell lookup, on a mesh whose nodes sit at exact
+   projected cell edges, so every model cell is drawn where HRRR put it; outside the grid nothing is drawn.
+   Only the tiles in view are downloaded, at the coarsest level that still shows at least one cell per
+   ~2 screen pixels; every click reads the native cell at full precision. */
+(function () {
+  "use strict";
+  const O = window.Ops, $ = O.$, esc = O.esc, MC = window.MapsCore, K = window.MapsConusCore, ML = window.maplibregl;
+  const TZ = "America/New_York", H = 3600e3, Q = new URLSearchParams(location.search);
+  const DATA = (Q.get("data") || "https://wxman33.github.io/forecast-ops-maps/data").replace(/\/$/, "");
+  const SITE = DATA.replace(/\/data$/, "");
+  const PHONE = () => innerWidth < 700;
+  const FIELDS = {
+    t2m: { label: "2-m temperature", units: "°F", dec: 1, color: (v) => MC.color("t2m", v), range: [-20, 120],
+      legend: { stops: MC.SCALES.t2m.stops, ticks: [-10, 0, 10, 20, 32, 40, 50, 60, 70, 80, 90, 100, 110] } },
+  };
+  const st = { index: null, run: null, man: null, field: "t2m", h: 0, level: null, tiles: new Map(), bytes: 0, loadedBytes: 0, play: null, sel: null, map: null, P: null, mesh: null, want: null };
+  const fmtLocal = (ms) => new Date(ms).toLocaleString("en-US", { timeZone: TZ, weekday: "short", month: "short", day: "numeric", hour: "numeric", timeZoneName: "short" });
+  const fmtUTC = (ms) => { const d = new Date(ms).toISOString(); return `${d.slice(11, 13)}Z ${new Date(ms).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" })}`; };
+  const MB = (b) => (b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.round(b / 1e3)} KB`);
+  const fetchT = (url, ms = 30000) => { const c = new AbortController(), t = setTimeout(() => c.abort(), ms); return fetch(url, { signal: c.signal }).finally(() => clearTimeout(t)); };
+  const getJSON = async (u) => { const r = await fetchT(u + (u.includes("?") ? "&" : "?") + "t=" + Math.floor(Date.now() / 60000), 20000); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); };
+  async function gunzip(u) {
+    if (typeof DecompressionStream !== "function") throw new Error("this browser cannot decompress the map data");
+    const r = await fetchT(u, 45000); if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const n = +r.headers.get("content-length") || 0; st.loadedBytes += n;
+    return new Uint8Array(await new Response(r.body.pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
+  }
+
+  /* ---------- tiles: fetch, decode, cache (least recently used, by decoded bytes) ---------- */
+  const CACHE_LIMIT = () => (PHONE() ? 48e6 : 160e6);
+  const key = (fh, L, tx, ty) => `${st.run.id}|${st.field}|${fh}|${K.tileName(L, tx, ty)}`;
+  function tile(fh, L, tx, ty) {
+    const k = key(fh, L, tx, ty);
+    if (st.tiles.has(k)) { const e = st.tiles.get(k); st.tiles.delete(k); st.tiles.set(k, e); return e.p; }
+    const d = K.tileDims(st.man, L, tx, ty), url = `${SITE}/${st.run.path}/${st.field}/f${String(fh).padStart(2, "0")}/${K.tileName(L, tx, ty)}`;
+    const e = { p: null, t: null, size: d.nx * d.ny * 2 };
+    e.p = gunzip(url).then((raw) => (e.t = K.decodeTile(raw, d.ny, d.nx)));
+    e.p.catch(() => st.tiles.get(k) === e && st.tiles.delete(k));
+    st.tiles.set(k, e); st.bytes += e.size;
+    while (st.bytes > CACHE_LIMIT() && st.tiles.size > 1) { const [k0, e0] = st.tiles.entries().next().value; if (k0 === k) break; st.tiles.delete(k0); st.bytes -= e0.size; }
+    return e.p;
+  }
+  const ready = (fh, L, tx, ty) => { const e = st.tiles.get(key(fh, L, tx, ty)); return e && e.t; };
+
+  /* ---------- what the view needs ---------- */
+  function viewCells() {
+    const m = st.map, c = m.getContainer(), w = c.clientWidth, h = c.clientHeight, pts = [];
+    for (let a = 0; a <= 4; a++) for (let b = 0; b <= 4; b++) { const ll = m.unproject([(a / 4) * w, (b / 4) * h]), g = st.P.toCell(ll.lat, ll.lng); pts.push(g); }
+    const is = pts.map((p) => p[0]), js = pts.map((p) => p[1]), g = st.man.grid;
+    return [Math.max(0, Math.floor(Math.min(...is)) - 2), Math.min(g.nx - 1, Math.ceil(Math.max(...is)) + 2), Math.max(0, Math.floor(Math.min(...js)) - 2), Math.min(g.ny - 1, Math.ceil(Math.max(...js)) + 2)];
+  }
+  function cellPx() {
+    const m = st.map, c = m.getCenter(), mpp = (156543.03392 * Math.cos((c.lat * Math.PI) / 180)) / 2 ** m.getZoom();
+    return (st.man.grid.DxInMetres / mpp) * (window.devicePixelRatio || 1);
+  }
+  function wanted() {
+    const L = K.levelFor(cellPx(), st.man.levels), coarse = Math.max(...st.man.levels.map((l) => l.level)), [i0, i1, j0, j1] = viewCells();
+    return { L, coarse, tiles: K.tilesFor(st.man, L, i0, i1, j0, j1), all: K.tilesFor(st.man, coarse, 0, st.man.grid.nx, 0, st.man.grid.ny) };
+  }
+  const fhNow = () => st.man.hours[st.h];
+  /* load what the current hour needs; the coarsest level always covers the whole grid under the detail */
+  async function need(fh, w = wanted()) {
+    const jobs = w.all.map(([x, y]) => tile(fh, w.coarse, x, y));
+    if (w.L !== w.coarse) w.tiles.forEach(([x, y]) => jobs.push(tile(fh, w.L, x, y)));
+    return Promise.allSettled(jobs);
+  }
+
+  /* ---------- GPU layer ---------- */
+  const VS = `attribute vec2 a_pos; attribute vec2 a_g; uniform mat4 u_matrix; varying vec2 v_g;
+    void main(){ v_g=a_g; gl_Position=u_matrix*vec4(a_pos,0.0,1.0); }`;
+  const FS = `precision highp float; uniform sampler2D u_tex; uniform sampler2D u_cmap; uniform vec2 u_size; uniform float u_every; uniform float u_scale; uniform vec2 u_lut; uniform float u_op; varying vec2 v_g;
+    void main(){
+      vec2 t = floor(v_g / u_every);
+      if (t.x < 0.0 || t.y < 0.0 || t.x >= u_size.x || t.y >= u_size.y) discard;
+      vec4 s = texture2D(u_tex, (t + 0.5) / u_size);
+      float st = floor(s.r * 255.0 + 0.5) + 256.0 * floor(s.a * 255.0 + 0.5);
+      if (st >= 32768.0) st -= 65536.0;
+      if (st < -32767.5) discard;
+      float u = (st * u_scale - u_lut.x) / (u_lut.y - u_lut.x);
+      vec4 c = texture2D(u_cmap, vec2(clamp(u, 0.0, 1.0), 0.5));
+      if (c.a < 0.01) discard;
+      gl_FragColor = vec4(c.rgb * u_op, u_op); }`;
+  const layer = {
+    id: "hrrr", type: "custom", renderingMode: "2d",
+    onAdd(map, gl) {
+      this.gl = gl; const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
+      const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(p); this.p = p;
+      this.loc = Object.fromEntries(["a_pos", "a_g"].map((n) => [n, gl.getAttribLocation(p, n)]).concat(["u_matrix", "u_tex", "u_cmap", "u_size", "u_every", "u_scale", "u_lut", "u_op"].map((n) => [n, gl.getUniformLocation(p, n)])));
+      this.buf = { pos: gl.createBuffer(), g: gl.createBuffer(), idx: gl.createBuffer() }; this.cmap = gl.createTexture(); this.tex = {}; this.count = 0;
+      this.uint = !!(gl instanceof WebGL2RenderingContext || gl.getExtension("OES_element_index_uint"));
+    },
+    setMesh(m) { const gl = this.gl; gl.bindBuffer(gl.ARRAY_BUFFER, this.buf.pos); gl.bufferData(gl.ARRAY_BUFFER, m.pos, gl.STATIC_DRAW); gl.bindBuffer(gl.ARRAY_BUFFER, this.buf.g); gl.bufferData(gl.ARRAY_BUFFER, m.g, gl.STATIC_DRAW);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buf.idx); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.uint ? m.idx : new Uint16Array(m.idx), gl.STATIC_DRAW); this.count = m.count; },
+    setColors(rgba) { const gl = this.gl; gl.bindTexture(gl.TEXTURE_2D, this.cmap); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, rgba.length / 4, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
+      [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER].forEach((f) => gl.texParameteri(gl.TEXTURE_2D, f, gl.NEAREST)); [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T].forEach((f) => gl.texParameteri(gl.TEXTURE_2D, f, gl.CLAMP_TO_EDGE)); },
+    /* one texture per level, the size of that whole level; each slot remembers which hour's tile it holds */
+    level(L) {
+      const gl = this.gl, lv = K.levelInfo(st.man, L), k = `${st.run.id}|${L}`;
+      if (this.tex[L] && this.tex[L].k === k) return this.tex[L];
+      if (this.tex[L]) gl.deleteTexture(this.tex[L].t);
+      const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+      const empty = new Uint8Array(lv.nx * lv.ny * 2); for (let q = 1; q < empty.length; q += 2) empty[q] = 0x80; // -32768: nothing drawn
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, lv.nx, lv.ny, 0, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, empty);
+      [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER].forEach((f) => gl.texParameteri(gl.TEXTURE_2D, f, gl.NEAREST)); [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T].forEach((f) => gl.texParameteri(gl.TEXTURE_2D, f, gl.CLAMP_TO_EDGE));
+      return (this.tex[L] = { t, k, lv, slots: {} });
+    },
+    /* make the level texture show hour fh: upload ready tiles, blank slots holding another hour */
+    show(L, fh, tiles) {
+      const gl = this.gl, T = this.level(L), S = st.man.tile; gl.bindTexture(gl.TEXTURE_2D, T.t); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+      const want = new Set(tiles.map(([x, y]) => `${x}_${y}`)); let shown = 0;
+      Object.keys(T.slots).forEach((s) => { if (T.slots[s] !== fh || !want.has(s)) { const [x, y] = s.split("_").map(Number), d = K.tileDims(st.man, L, x, y), e = new Uint8Array(d.nx * d.ny * 2); for (let q = 1; q < e.length; q += 2) e[q] = 0x80;
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, x * S, y * S, d.nx, d.ny, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, e); delete T.slots[s]; } });
+      tiles.forEach(([x, y]) => { const s = `${x}_${y}`, t = ready(fh, L, x, y); if (!t) return; shown++; if (T.slots[s] === fh) return;
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, x * S, y * S, t.nx, t.ny, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, t.bytes); T.slots[s] = fh; });
+      return shown;
+    },
+    render(gl, matrix) {
+      if (!this.count || !st.draw) return; const F = FIELDS[st.field], spec = st.man.fields[st.field];
+      gl.useProgram(this.p); gl.uniformMatrix4fv(this.loc.u_matrix, false, matrix); gl.uniform1f(this.loc.u_op, 0.85);
+      gl.uniform2f(this.loc.u_lut, F.range[0], F.range[1]);
+      const at = (b, l) => { gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, 2, gl.FLOAT, false, 0, 0); };
+      at(this.buf.pos, this.loc.a_pos); at(this.buf.g, this.loc.a_g); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buf.idx);
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.cmap); gl.uniform1i(this.loc.u_cmap, 1);
+      gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      st.draw.forEach((L) => { const T = this.tex[L]; if (!T) return;
+        gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, T.t); gl.uniform1i(this.loc.u_tex, 0);
+        gl.uniform2f(this.loc.u_size, T.lv.nx, T.lv.ny); gl.uniform1f(this.loc.u_every, 2 ** L); gl.uniform1f(this.loc.u_scale, K.scaleOf(spec, L));
+        gl.drawElements(gl.TRIANGLES, this.count, this.uint ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT, 0); });
+    },
+  };
+
+  /* ---------- draw the current hour ---------- */
+  let drawToken = 0;
+  async function redraw() {
+    if (!st.man || !layer.gl) return; const token = ++drawToken, fh = fhNow(), w = wanted(); st.want = w;
+    const paint = () => { if (token !== drawToken) return;
+      const nCoarse = layer.show(w.coarse, fh, w.all), nFine = w.L !== w.coarse ? layer.show(w.L, fh, w.tiles) : 0;
+      st.draw = w.L !== w.coarse ? [w.coarse, w.L] : [w.coarse]; st.shown = { coarse: nCoarse, fine: nFine, of: w.tiles.length };
+      st.map.triggerRepaint(); info(); };
+    paint();
+    const res = await need(fh, w); paint();
+    const failed = res.filter((r) => r.status === "rejected");
+    if (token === drawToken) note(failed.length ? `Some map tiles could not be loaded (${failed[0].reason && failed[0].reason.message}). Move the map or choose the hour again to retry.` : null);
+    if (token === drawToken) prefetch(w);
+  }
+  /* after the visible hour is drawn, quietly fetch the same view for the next hours (for the loop) */
+  let prefetching = 0;
+  async function prefetch(w) {
+    const p = ++prefetching, hrs = st.man.hours, start = st.h;
+    for (let k = 1; k < hrs.length; k++) { if (p !== prefetching) return; await need(hrs[(start + k) % hrs.length], w); }
+    if (p === prefetching) info();
+  }
+  const frameReady = (fh, w) => w.all.every(([x, y]) => ready(fh, w.coarse, x, y)) && (w.L === w.coarse || w.tiles.every(([x, y]) => ready(fh, w.L, x, y)));
+
+  /* ---------- text: init/valid times, level, sizes ---------- */
+  function info() {
+    if (!st.man) return; const m = st.man, F = FIELDS[st.field], fh = fhNow(), valid = Date.parse(m.valid[fh]), init = Date.parse(m.cycle);
+    const w = st.want || wanted(), every = 2 ** w.L, loopReady = m.hours.filter((h) => frameReady(h, w)).length;
+    $("mapInfo").innerHTML = `<b class="fld">HRRR 3 km<span class="wide-only"> CONUS</span> · ${esc(F.label)}</b><div>Init <b>${esc(fmtUTC(init))}</b> · F${String(fh).padStart(2, "0")} · valid <b>${esc(fmtLocal(valid))}</b><span class="wide-only"> (${esc(fmtUTC(valid))})</span></div>` +
+      `<div class="msg">${every === 1 ? "Every native 3 km cell at this zoom" : `Every ${every === 2 ? "2nd" : "4th"} native cell<span class="wide-only"> at this zoom</span>; zoom in for every cell`}<span class="wide-only"> · click for the cell's own value</span></div>`;
+    $("tlValid").textContent = `${fmtLocal(valid)} · F${String(fh).padStart(2, "0")}`; $("hourSl").value = String(st.h);
+    $("runInfo").innerHTML = `Run ${esc(fmtUTC(init))}: ${m.status === "in progress" ? `<b>in progress</b>, ${m.hours.length} of ${m.hoursExpected + 1} hours posted by NOAA so far` : `${m.hours.length} forecast hours (${esc(m.status)})`}. ` +
+      `Loop ready for this view: ${loopReady} of ${m.hours.length} hours. Downloaded this visit: <b>${MB(st.loadedBytes)}</b> compressed; decoded tiles in memory: ${MB(st.bytes)}. ` +
+      `Every cell is placed from the GRIB projection (checked against GRIB's own latitudes and longitudes: largest difference ${m.georef ? m.georef.maxErrorCells : "?"} cells). ${esc(m.attribution)}`;
+    share();
+  }
+  function legend() {
+    const F = FIELDS[st.field], [lo, hi] = [F.legend.ticks[0], F.legend.ticks[F.legend.ticks.length - 1]], n = 48;
+    const grad = Array.from({ length: n + 1 }, (_, k) => { const v = lo + (k / n) * (hi - lo), c = F.color(v); return `rgb(${c.slice(0, 3).join(",")}) ${((k / n) * 100).toFixed(1)}%`; }).join(",");
+    $("legend").innerHTML = `<div class="lgt">${esc(F.label)}, ${esc(F.units)}</div><div class="lgbar" style="background:linear-gradient(to right,${grad})"></div><div class="lgticks">${F.legend.ticks.filter((t, k) => !PHONE() || k % 2 === 0 || t === 32).map((t) => `<span style="left:${(((t - lo) / (hi - lo)) * 100).toFixed(1)}%">${t}</span>`).join("")}</div>`;
+  }
+  function note(t) { const n = $("mapNote"); n.textContent = t || ""; n.hidden = !t; }
+
+  /* ---------- click-to-read: the native cell, full precision ---------- */
+  async function select(lat, lon) {
+    st.selPt = [lat, lon]; const c = st.P.nearest(lat, lon);
+    if (!c) { st.sel = null; outline(); $("inspect").innerHTML = '<p class="msg">That point is outside the HRRR grid (nothing is drawn there).</p>'; share(); return; }
+    st.sel = c; outline(); const [i, j] = c, fh = fhNow(), T = st.man.tile, tx = Math.floor(i / T), ty = Math.floor(j / T), F = FIELDS[st.field];
+    $("inspect").innerHTML = '<p class="msg">Reading the native cell…</p>';
+    try { await tile(fh, 0, tx, ty); } catch (e) { $("inspect").innerHTML = `<p class="msg">Could not load that cell (${esc(e.message)}).</p>`; return; }
+    if (!st.sel || st.sel[0] !== i || st.sel[1] !== j || fhNow() !== fh) return;
+    const v = K.valueAt(st.man, st.field, { [K.tileName(0, tx, ty)]: ready(fh, 0, tx, ty) }, i, j), [la, lo] = st.P.fromCell(i, j), valid = Date.parse(st.man.valid[fh]);
+    $("inspect").innerHTML = `<div class="inspect-v">${esc(F.label)}: ${v == null ? '<span class="unavail">no data in this cell</span>' : `<b>${v.toFixed(F.dec)} ${esc(F.units)}</b>`}</div>` +
+      `<div class="msg">HRRR native cell ${i}, ${j} (3 km), centred at ${la.toFixed(4)}, ${lo.toFixed(4)} · F${String(fh).padStart(2, "0")}, valid ${esc(fmtLocal(valid))} · stored to ${st.man.fields[st.field].scale} ${esc(F.units)} from GRIB, never from the display</div>`;
+    share();
+  }
+  function outline() {
+    const src = st.map.getSource("sel"); if (!src) return;
+    if (!st.sel) { src.setData({ type: "FeatureCollection", features: [] }); return; }
+    const [i, j] = st.sel, ring = [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5], [-0.5, -0.5]].map(([a, b]) => { const [la, lo] = st.P.fromCell(i + a, j + b); return [lo, la]; });
+    src.setData({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [ring] } });
+  }
+  async function reselect() { if (st.selPt) await select(st.selPt[0], st.selPt[1]); }
+
+  /* ---------- shareable link ---------- */
+  function share() {
+    if (!st.man || !st.map) return; const c = st.map.getCenter(), q = new URLSearchParams();
+    q.set("domain", "conus"); if (Q.get("data")) q.set("data", Q.get("data"));
+    q.set("run", st.run.id); q.set("fh", String(fhNow())); q.set("field", st.field);
+    q.set("map", `${c.lat.toFixed(3)},${c.lng.toFixed(3)},${st.map.getZoom().toFixed(2)}`);
+    if (st.selPt) q.set("pt", `${st.selPt[0].toFixed(4)},${st.selPt[1].toFixed(4)}`);
+    try { history.replaceState(null, "", `${location.pathname}?${q.toString()}`); } catch (e) { /* file:// */ }
+  }
+
+  /* ---------- runs, hours, loop ---------- */
+  function runLabel(r) { const c = Date.parse(r.cycle); return `${fmtUTC(c)} · ${r.status === "in progress" ? `F00–F${String(Math.max(...r.hours)).padStart(2, "0")} so far` : `${r.hoursExpected} h`}${r === st.index.runs[0] ? " · newest" : ""}`; }
+  async function openRun(id, keepValid, fhWanted) {
+    stop(); const r = st.index.runs.find((x) => x.id === id) || st.index.runs[0];
+    const prevValid = keepValid && st.man ? Date.parse(st.man.valid[fhNow()]) : null;
+    $("mapInfo").textContent = `Loading ${fmtUTC(Date.parse(r.cycle))} run…`;
+    const man = await getJSON(`${SITE}/${r.path}/manifest.json`);
+    const sameGrid = st.man && JSON.stringify(st.man.grid) === JSON.stringify(man.grid);
+    st.run = r; st.man = man; st.P = MC.projector(man.grid);
+    if (!sameGrid) { st.mesh = K.gridMesh(st.P, man.grid.nx, man.grid.ny, MC.merc, 8); layer.setMesh(st.mesh); footprint(); }
+    let h = 0;
+    if (fhWanted != null && man.hours.includes(+fhWanted)) h = man.hours.indexOf(+fhWanted);
+    else if (prevValid != null) { const v = man.hours.map((x) => Math.abs(Date.parse(man.valid[x]) - prevValid)); h = v.indexOf(Math.min(...v)); }
+    st.h = h; $("runSel").value = r.id; timeline(); legend(); layer.setColors(K.lut(FIELDS[st.field].color, ...FIELDS[st.field].range)); await redraw(); reselect();
+  }
+  function timeline() {
+    const m = st.man, n = m.hours.length; $("hourSl").max = String(n - 1); $("hourSl").value = String(st.h);
+    $("tlTicks").innerHTML = m.hours.map((h, i) => { const hr = +new Date(Date.parse(m.valid[h])).toLocaleString("en-US", { timeZone: TZ, hour: "numeric", hour12: false }); return hr === 0 ? `<i class="day" style="left:${(100 * i) / Math.max(1, n - 1)}%"></i>` : ""; }).join("");
+  }
+  function go(h) { st.h = (h + st.man.hours.length) % st.man.hours.length; redraw(); reselect(); }
+  function stop() { if (st.play) clearTimeout(st.play); st.play = null; $("playBtn").textContent = "PLAY"; $("playBtn").setAttribute("aria-pressed", "false"); }
+  /* the loop advances only to hours whose tiles for this view are in memory, so it never shows a gap */
+  function play() {
+    if (st.play) { stop(); return; }
+    $("playBtn").textContent = "PAUSE"; $("playBtn").setAttribute("aria-pressed", "true"); prefetch(st.want || wanted());
+    const tick = () => { const w = st.want || wanted(), nxt = (st.h + 1) % st.man.hours.length;
+      if (frameReady(st.man.hours[nxt], w)) go(nxt); st.play = setTimeout(tick, PHONE() ? 650 : 500); };
+    st.play = setTimeout(tick, 300);
+  }
+
+  /* ---------- map ---------- */
+  const palette = () => (document.documentElement.getAttribute("data-theme") !== "light"
+    ? { land: "#151a22", state: "#cfd5de", border: "#e6eaf0", coast: "#8fa3b8", lake: "#6f8fae", edge: "#9aa4b2" }
+    : { land: "#f1f2ee", state: "#353c47", border: "#1d232b", coast: "#4b6b8a", lake: "#5f8db8", edge: "#55606e" });
+  function footprint() { const s = st.map && st.map.getSource("footprint"); if (s && st.mesh) s.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: st.mesh.ring } }); }
+  function initMap(base) {
+    const C = palette(), view = (Q.get("map") || "").split(",").map(Number), hasView = view.length === 3 && view.every(Number.isFinite);
+    const map = new ML.Map({ container: "map", style: { version: 8, glyphs: new URL("assets/maps/fonts/open-sans-v1/{fontstack}/{range}.pbf", location.href).href.replace(/%7B/g, "{").replace(/%7D/g, "}"), sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": C.land } }] },
+      center: hasView ? [view[1], view[0]] : [-97.5, 38.6], zoom: hasView ? view[2] : PHONE() ? 2.6 : 3.7, minZoom: 1.5, maxZoom: 10.5, attributionControl: false, dragRotate: false, pitchWithRotate: false, renderWorldCopies: false,
+      maxBounds: [[-175, -5], [-25, 72]] });
+    map.touchZoomRotate.disableRotation(); map.addControl(new ML.NavigationControl({ showCompass: false }), "bottom-right");
+    map.addControl(new ML.AttributionControl({ compact: true, customAttribution: "NOAA/NCEP HRRR · US Census (us-atlas) · Natural Earth" }), "bottom-right");
+    st.map = map;
+    return new Promise((res) => map.on("load", () => {
+      const L = base.layers; Object.entries(L).forEach(([k, v]) => map.addSource(k, { type: "geojson", data: v }));
+      map.addLayer(layer);
+      map.addSource("footprint", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({ id: "footprint", type: "line", source: "footprint", paint: { "line-color": C.edge, "line-width": 1, "line-dasharray": [3, 2], "line-opacity": 0.8 } });
+      map.addLayer({ id: "lakes", type: "line", source: "lakes", paint: { "line-color": C.lake, "line-width": 0.8 } });
+      map.addLayer({ id: "coast", type: "line", source: "coast", paint: { "line-color": C.coast, "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.6, 8, 1.4] } });
+      map.addLayer({ id: "states", type: "line", source: "states", paint: { "line-color": C.state, "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.5, 8, 1.6], "line-opacity": 0.85 } });
+      map.addLayer({ id: "borders", type: "line", source: "borders", paint: { "line-color": C.border, "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.9, 8, 2] } });
+      map.addSource("sel", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({ id: "sel", type: "line", source: "sel", paint: { "line-color": "#ffffff", "line-width": 2 } });
+      map.addLayer({ id: "places", type: "symbol", source: "places", filter: [">=", ["get", "pop"], ["interpolate", ["linear"], ["zoom"], 3, 2500000, 5, 600000, 7, 100000]],
+        layout: { "text-field": ["get", "name"], "text-font": ["Open Sans Semibold"], "text-size": ["interpolate", ["linear"], ["zoom"], 3, 10.5, 8, 13], "symbol-sort-key": ["-", 0, ["get", "pop"]], "text-padding": 6, "text-max-width": 10 },
+        paint: { "text-color": getComputedStyle(document.body).getPropertyValue("--text").trim() || "#e8eaee", "text-halo-color": getComputedStyle(document.body).getPropertyValue("--bg").trim() || "#0b0d12", "text-halo-width": 1.4 } });
+      const repaint = () => { const P = palette(); [["bg", "background-color", "land"], ["footprint", "line-color", "edge"], ["lakes", "line-color", "lake"], ["coast", "line-color", "coast"], ["states", "line-color", "state"], ["borders", "line-color", "border"]].forEach(([id, p, k]) => map.setPaintProperty(id, p, P[k])); };
+      window.addEventListener("ops:theme", repaint);
+      if (window.ResizeObserver) { let t = null; new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => map.resize(), 60); }).observe(map.getContainer()); }
+      res();
+    }));
+  }
+
+  /* ---------- page ---------- */
+  function adaptPage() {
+    document.body.classList.add("maps-conus");
+    ["winSel", "smoothChk"].forEach((id) => { const e = $(id); if (e) (e.closest("label") || e).hidden = true; });
+    const seg = document.querySelector('[aria-label="Map view"]'); if (seg) seg.hidden = true;
+    const ps = $("placeSel"); if (ps) ps.closest("div").hidden = true;
+    $("inspect").innerHTML = '<p class="msg">Click or tap the map to read the HRRR value in that native 3 km cell. Values come from the full-precision grid, never from the display.</p>';
+    const about = document.querySelector("#runInfo") && document.querySelector("#runInfo").previousElementSibling;
+    if (about) about.textContent = "Beta: NOAA HRRR, full CONUS 3 km grid (1799 × 1059 cells) on the model's own Lambert conformal projection; areas outside the model grid are left blank. Zoomed out, the map draws every 2nd or 4th native cell (each drawn over the block it stands for) so a loop stays light on a phone; zoom in for every cell. Clicking always reads the native cell at full precision. Only the tiles in view are downloaded. Runs appear hour by hour as NOAA posts them; the 00, 06, 12 and 18 UTC runs go to 48 hours, the others to 18. Geography: US Census boundaries (us-atlas) and Natural Earth (public domain). Model guidance only, not an official forecast.";
+  }
+  async function start() {
+    O.shell("maps", "Model maps", { forecastPoint: false, subtitle: "Beta · HRRR 3 km, full CONUS" });
+    regionToggle("conus"); adaptPage();
+    if (!ML || !(() => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch (e) { return false; } })()) { $("mapInfo").innerHTML = '<span class="state err">This browser cannot draw the interactive map (WebGL unavailable).</span>'; return; }
+    let base;
+    try { [base, st.index] = await Promise.all([getJSON("assets/maps/basemap-conus.json"), getJSON(`${DATA}/conus/index.json`)]); }
+    catch (e) { $("mapInfo").innerHTML = `<span class="state err">CONUS map data unavailable (${esc(e.message)}).</span>`; return; }
+    if (!st.index.runs.length) { $("mapInfo").textContent = "No CONUS runs published yet."; return; }
+    $("fieldSel").innerHTML = Object.entries(FIELDS).map(([k, f]) => `<option value="${k}">${esc(f.label)}</option>`).join(""); $("fieldSel").value = st.field;
+    $("runSel").innerHTML = st.index.runs.map((r) => `<option value="${esc(r.id)}">${esc(runLabel(r))}</option>`).join("");
+    await initMap(base);
+    const pt = (Q.get("pt") || "").split(",").map(Number); if (pt.length === 2 && pt.every(Number.isFinite)) st.selPt = pt;
+    try { await openRun(Q.get("run") || st.index.runs[0].id, false, Q.get("fh")); }
+    catch (e) { $("mapInfo").innerHTML = `<span class="state err">This run could not be loaded (${esc(e.message)}).</span>`; return; }
+    if (!Q.get("map")) { /* open on the whole model footprint, clear of the overlays */
+      const xs = st.mesh.ring.map((p) => p[0]), ys = st.mesh.ring.map((p) => p[1]);
+      st.map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: PHONE() ? { top: 150, bottom: 90, left: 6, right: 6 } : { top: 60, bottom: 80, left: 20, right: 20 }, duration: 0 });
+      redraw(); }
+    let mv = null; st.map.on("moveend", () => { clearTimeout(mv); mv = setTimeout(() => { redraw(); share(); }, 120); });
+    st.map.on("click", (e) => select(e.lngLat.lat, e.lngLat.lng));
+    $("runSel").addEventListener("change", () => openRun($("runSel").value, true).catch((e) => note(`Run could not be loaded (${e.message}).`)));
+    $("hourSl").addEventListener("input", () => { stop(); go(+$("hourSl").value); });
+    $("playBtn").addEventListener("click", play);
+    if (!document.fullscreenEnabled) $("fsBtn").hidden = true;
+    document.querySelectorAll("#mapCtl .ctlrow").forEach((r) => { if (![...r.children].some((c) => !c.hidden && c.offsetParent !== null)) r.hidden = true; }); // no empty control rows
+    $("fsBtn").addEventListener("click", () => { const s = $("stage"); if (document.fullscreenElement) document.exitFullscreen(); else if (s.requestFullscreen) s.requestFullscreen(); });
+    document.addEventListener("fullscreenchange", () => { $("fsBtn").setAttribute("aria-pressed", String(!!document.fullscreenElement)); $("fsBtn").textContent = document.fullscreenElement ? "EXIT FULLSCREEN" : "FULLSCREEN"; setTimeout(() => st.map.resize(), 50); });
+    $("stage").addEventListener("keydown", (e) => { if (e.target.tagName === "SELECT" || e.target.tagName === "INPUT") return; if (e.key === "ArrowRight") { e.preventDefault(); stop(); go(st.h + 1); } else if (e.key === "ArrowLeft") { e.preventDefault(); stop(); go(st.h - 1); } else if (e.key === " ") { e.preventDefault(); play(); } });
+    const place = () => { $("mapInfo").style.top = PHONE() ? `${$("mapCtl").offsetTop + $("mapCtl").offsetHeight + 4}px` : ""; };
+    if (window.ResizeObserver) new ResizeObserver(place).observe($("mapCtl")); place();
+    window.__conus = st; // test hook (read-only use)
+  }
+  /* Tri-State | CONUS switch, shared by both viewers */
+  function regionToggle(active) {
+    const row = $("mapCtl") && $("mapCtl").querySelector(".ctlrow"); if (!row || $("regionSeg")) return;
+    const d = document.createElement("div"); d.className = "seg"; d.id = "regionSeg"; d.setAttribute("role", "group"); d.setAttribute("aria-label", "Region");
+    d.innerHTML = `<a class="segb" href="maps.html" aria-pressed="${active === "tristate"}">Tri-State</a><a class="segb" href="maps.html?domain=conus" aria-pressed="${active === "conus"}">CONUS <small class="wide-only">beta</small></a>`;
+    row.prepend(d);
+  }
+  window.MapsConus = { start, regionToggle };
+})();
