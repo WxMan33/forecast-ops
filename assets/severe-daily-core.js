@@ -134,6 +134,14 @@
   }
   // Display-only mask: samples more than 25 miles from US land, outside report coverage.
   // A mask for a different grid is refused, so hidden areas can never shift silently.
+  // Grid coordinates for both the daily and historical viewers (and the feed monitor):
+  // a non-empty array of [lon, lat] pairs of finite numbers.
+  function validateGrid(coordinates) {
+    if (!Array.isArray(coordinates) || !coordinates.length ||
+        coordinates.some(p => !Array.isArray(p) || p.length !== 2 || p.some(v => !Number.isFinite(v))))
+      throw Error('Invalid archive coordinates');
+    return coordinates;
+  }
   function validateMask(mask, gridSha, count) {
     if (mask?.schema_version !== 1 || mask.display_only !== true || mask.grid_sha256 !== gridSha ||
         !Array.isArray(mask.hidden) || mask.hidden.some(i => !Number.isInteger(i) || i < 0 || i >= count) ||
@@ -145,6 +153,6 @@
     for (const [hazard, array] of Object.entries(values)) out[hazard] = array.map((p, i) => hidden.has(i) ? null : p);
     return out;
   }
-  return {validateRun, validateIndex, validateCase, freshness, validateRegistry, productSummary, validateMask, applyMask,
+  return {validateRun, validateIndex, validateCase, freshness, validateRegistry, productSummary, validateGrid, validateMask, applyMask,
           relation, runLabel, defaultRun, issuanceNote, lead, utcFull};
 });

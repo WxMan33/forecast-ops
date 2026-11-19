@@ -12,10 +12,49 @@ windows. Both predictor windows are independently audited before joining. Traini
 requires every case and matching predictor, label, timing and feature identities.
 
 The expanded run uses three concurrent cases and a 2 GB per-case transfer limit.
-Each case artifact and the fitted models have 90-day Actions retention. Original
-predictor artifacts are fetched from run 42321856909 before their December expiry.
-Reproducing a later run after those artifacts expire requires retrieving a retained
-copy or recollecting those inputs.
+Each case artifact and the fitted models have 90-day Actions retention.
+
+## Rebuild inputs
+
+The daily baseline, expanded-cohort reuse jobs and tree experiment restore their
+frozen cases through `tools/severe/restore_inputs.sh`, which verifies every ZIP
+against its pinned size and SHA-256 in `research/severe/rebuild-archive.json`
+(146 ZIPs) before anything is extracted. With a private archive configured they
+read its release; otherwise they read the original Actions run, with the same
+verification, until it expires: run 42321856909 on December 7, 2026 UTC and run
+43901185832 on February 14, 2027 UTC. Same-run artifact transfers keep using Actions.
+
+- Select a private archive repository and publish the release tag
+  `severe-rebuild-inputs-v1` there. Upload the original individual ZIPs from the
+  preserved backups' `artifacts/` directory with the filenames listed in
+  `research/severe/rebuild-archive.json`. Keep each ZIP's original bytes.
+- In the forecast-ops Actions settings, set the repository variable
+  `SEVERE_REBUILD_ARCHIVE_REPO` to the archive's `owner/repo` and the secret
+  `SEVERE_REBUILD_ARCHIVE_TOKEN` to a credential with read-only Contents access to
+  the private archive. The restore refuses a repository that is not private.
+- Trigger the daily baseline and tree workflows on the branch containing the
+  migration. Check the restore counts (36 cases for the baseline, 108 cases and
+  one label ZIP for the tree experiment) and the downstream job results. The
+  expanded cohort restores one original case in each reuse job.
+- To verify a backup or run a local rebuild, extract the backup volumes together
+  and pass `--artifact-dir /path/to/artifacts` to
+  `tools/severe/restore_rebuild_inputs.py`. Use `--source v05`, `--source v07`, or
+  `--source labels` and `--output`. A single `--case YYYY-MM-DD` restores directly
+  into the output directory, matching the matrix workflow layout.
+
+- The baseline's Day 1 wind replay also needs the frozen 2024 Storm Events file,
+  `StormEvents_details-ftp_v1.0_d2024_c20260728.csv.gz` (12,693,243 bytes, SHA-256
+  `2070b83eccab041b36360ab73645b9a249c3eefc5b92b5b3fc0cbba4d9fcc09c`, pinned in
+  `research/severe/labels-v04/manifest.json`). NOAA has replaced it, so its URL returns 404.
+  Upload it unchanged to a separate release, `severe-replay-sources-v1`, in the same private
+  archive. `tools/severe/stage_report_source.py` stages it into the replay cache after checking
+  its size and SHA-256, so the export never contacts NOAA. Until it is uploaded, the workflow
+  stages it from the frozen-source checkpoint artifact (run 43909210291, artifact 14247375303,
+  retained to February 14, 2027 UTC) with a warning. A copy that fails the check stops the run.
+
+A configured archive that fails verification, or a variable set without the
+secret, produces a workflow error naming the source or ZIP. Without the variable,
+each restore logs a warning that it is still reading expiring Actions storage.
 
 ## Current-input contract
 
@@ -114,6 +153,18 @@ newest branch tip, exports again, runs the viewer's feed, contour and registry c
 on the exact files to be committed, and pushes; up to four attempts. index.json is a
 single line, so the previous rebase approach failed whenever two runs overlapped.
 A failed generation, audit or check reaches no commit.
+
+The Severe daily feed health workflow (`tools/severe/feed_health.js`) runs after
+every publishing run on main, at 12:08, 14:04 and 19:20 UTC, and on demand. It
+reads the same public raw files as the viewer and validates them, and the committed
+copy, with the viewer's own checks: index schema, grid and run checksums, display
+mask, registry, each payload's identity against the index and all three hazard
+fields. An unreadable or invalid served file is an error. Each lead must show the
+expected cycle: Day 1 advances at 12 UTC, when its target opens, and Day 2 at
+19:15 UTC, after its last catch-up. The newest completed publishing run on main
+must not have failed; runs on other branches are ignored. Failures appear in
+GitHub Actions with the details in the job summary, and optionally in one tracking
+issue (repository variable `SEVERE_HEALTH_ISSUES=true`).
 
 The hosted viewer reads the public default-branch raw feed, matching the site's
 existing NOAA feed pattern, so daily data updates do not depend on a Pages rebuild.

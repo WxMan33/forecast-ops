@@ -23,16 +23,14 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 joblib==1.5.2 threadpoolctl==3.6.0
-      - name: Retrieve the complete paginated case archive
+      - name: Restore the 108 pinned v07 cases and labels (private archive, else original run; verified)
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh run download 43901185832 --repo "$GITHUB_REPOSITORY" --pattern 'severe-history-v07-*' --dir tests/out/tree-history
-      - uses: actions/download-artifact@v4
-        with:
-          github-token: ${{ github.token }}
-          run-id: '43901185832'
-          name: severe-labels-v07
-          path: tests/out/tree-labels
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+          ARCHIVE_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
+          ACTIONS_TOKEN: ${{ github.token }}
+        run: |
+          bash tools/severe/restore_inputs.sh --source v07 --output tests/out/tree-history
+          bash tools/severe/restore_inputs.sh --source labels --output tests/out/tree-labels
       - run: python tools/severe/train_trees.py --history tests/out/tree-history --labels tests/out/tree-labels --output tests/out/tree-candidate
       - run: python tools/severe/compare_daily.py --original research/severe/baseline-v07/development-scores.json --candidate tests/out/tree-candidate/development-scores.json --output tests/out/tree-candidate/comparison.json
       - run: pip freeze > tests/out/tree-candidate/environment.txt
