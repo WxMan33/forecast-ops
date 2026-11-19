@@ -42,8 +42,48 @@ eq([V.provider({ origin: "https://forecast-ops-beta.pages.dev" }), V.provider({ 
 global.BETA_GEOCODER = { locationiq: { key: "", origins: ["https://forecast-ops-beta.pages.dev"] } };
 eq(V.provider({ origin: "https://forecast-ops-beta.pages.dev" }), "nominatim", "no token: LocationIQ stays off");
 
-/* cached LocationIQ responses expire after 48 hours (free-plan terms); saved venues are separate user records */
+/* calendar locations with both a venue name and a street address (Inter&Co Stadium, Orlando: real answers recorded
+   2026-11-19; OpenStreetMap names it "Inter.co Stadium" on W Pine St, ~110 m from 655 W Church St) */
+const ORL = "Inter & Co Stadium, 655 W Church St, Orlando, FL 32805, USA";
+eq(V.splitLocation(ORL), { venue: "Inter & Co Stadium", street: "655 W Church St", city: "Orlando", state: "FL", zip: "32805", nameQuery: "Inter & Co Stadium, Orlando, FL", addressQuery: "655 W Church St, Orlando, FL 32805" }, "the pasted calendar location splits into venue, street, city, state and ZIP");
+eq(F[ORL], [], "the whole pasted string finds nothing (why the split is needed)");
+eq(["655 W Church St, Orlando, FL 32805", "Inter & Co Stadium", "Inter & Co Stadium, Orlando", "Cincinnati, OH", "Memorial Stadium"].map(V.splitLocation), [null, null, null, null, null], "address only, name only, name + city and city are not split");
+eq(V.splitLocation("Riverbend Music Center, 6295 Kellogg Ave, Cincinnati, Ohio 45230").state, "OH", "state names become codes");
+const recorded = (asked, edit = {}) => async (q) => { asked.push(q); return V.parse(q in edit ? edit[q] : F[q] || []); };
+const NQ = "Inter & Co Stadium, Orlando, FL", AQ = "655 W Church St, Orlando, FL 32805";
 (async () => {
+  let asked = [], r = await V.resolve(ORL, recorded(asked));
+  eq(asked, [NQ, AQ], "name + city first, then the address to check it; the raw pasted string is never sent");
+  eq([r.status, r.place.name, r.place.matched, r.place.lat, r.place.lon, r.place.address, r.via], ["found", "Inter & Co Stadium", "Inter.co Stadium", 28.5411, -81.38914, "655 W Church St, Orlando, FL 32805", "name+address"], "exact Orlando input: the stadium's map point, labelled and addressed as the calendar gives them");
+  ok(/matches 655 W Church St/.test(r.note) && V.matchNote(r.place) === "", "says it matched the address; no 'on the map as' note when the names differ only in punctuation");
+  ok(/on the map as Inter Miami Stadium/.test(V.matchNote({ ...r.place, matched: "Inter Miami Stadium" })), "a differently named map entry is shown");
+  asked = []; r = await V.resolve(AQ, recorded(asked));
+  eq([asked, r.status, r.place.kind, r.place.name], [[AQ], "found", "address", "655 W Church St"], "address-only search: found at the address, named by it");
+  ok(V.km(r.place, { lat: 28.5411, lon: -81.3891 }) < 0.2, "address result is at the stadium");
+  r = await V.resolve("Inter & Co Stadium", recorded([]));
+  eq([r.status, r.place.name, r.place.kind], ["found", "Inter.co Stadium", "venue"], "venue name alone: found");
+  r = await V.resolve("Inter & Co Stadium, Orlando", recorded([]));
+  eq([r.status, r.place.lat, r.place.lon], ["found", 28.5411, -81.38914], "venue name with city: found");
+  /* the name search comes up empty: the address stands in, keeps the venue's name, and must be confirmed */
+  asked = []; r = await V.resolve(ORL, recorded(asked, { [NQ]: [] }));
+  eq([asked, r.status, r.candidates.length, r.candidates[0].name, r.candidates[0].address, r.candidates[0].via], [[NQ, AQ], "ambiguous", 1, "Inter & Co Stadium", "655 W Church St, Orlando, FL 32805", "address"], "name not found: the address result is offered as Inter & Co Stadium for the planner to confirm");
+  ok(/Confirm it's the venue/.test(r.note) && /matched by street address/.test(V.matchNote(r.candidates[0])), "asks for confirmation and says it matched by address");
+  /* the named result is somewhere else: both are offered, address first */
+  const far = F[NQ].map((x) => ({ ...x, lat: "28.6000", lon: "-81.2000" }));
+  r = await V.resolve(ORL, recorded([], { [NQ]: far }));
+  eq([r.status, r.via, r.candidates.map((c) => c.via), r.candidates[0].name], ["ambiguous", "conflict", ["address", "name"], "Inter & Co Stadium"], "name and address disagree: the planner chooses");
+  /* the name finds it but the address lookup finds nothing: still found, with a note */
+  r = await V.resolve(ORL, recorded([], { [AQ]: [] }));
+  eq([r.status, r.place.name, r.via], ["found", "Inter & Co Stadium", "name"], "address not found: the named stadium, noted as unchecked");
+  /* other provider shape (LocationIQ classic format) gives the same answer */
+  r = await V.resolve(ORL, async (q) => V.parse(classic(F[q] || [])));
+  eq([r.status, r.place.name, r.place.lat], ["found", "Inter & Co Stadium", 28.5411], "classic format: same result");
+  /* neither found */
+  r = await V.resolve(ORL, async () => []); eq(r.status, "unknown", "nothing found: unknown");
+})().then(() => cacheChecks()).catch((e) => { console.error(e); process.exit(1); });
+
+/* cached LocationIQ responses expire after 48 hours (free-plan terms); saved venues are separate user records */
+async function cacheChecks() {
   const mem = {}; global.localStorage = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; } };
   const calls = []; global.fetch = async (u) => { calls.push(String(u)); return { ok: true, status: 200, json: async () => classic(F["Paycor Stadium"]) }; };
   global.location = { origin: "https://forecast-ops-beta.pages.dev" }; global.BETA_GEOCODER = { locationiq: { key: "pk.beta", origins: ["https://forecast-ops-beta.pages.dev"] } };
@@ -55,5 +95,5 @@ eq(V.provider({ origin: "https://forecast-ops-beta.pages.dev" }), "nominatim", "
   global.location = { origin: "https://raw.githack.com" }; await V.search("TQL Stadium");
   ok(/nominatim\.openstreetmap\.org/.test(calls[2]) && !/pk\.beta/.test(calls[2]), "the demo host's search never carries the LocationIQ token");
   console.log(`ok - ${n} venue search checks passed`);
-})().catch((e) => { console.error(e); process.exit(1); });
+}
 

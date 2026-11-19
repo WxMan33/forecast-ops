@@ -66,6 +66,64 @@
     return { status: "ambiguous", candidates: reps.slice(0, 6) };
   }
 
+  /* Calendar locations often carry both a venue name and its street address, e.g.
+       "Inter & Co Stadium, 655 W Church St, Orlando, FL 32805, USA"
+     Geocoders find neither the whole string nor (always) the name with the street. splitLocation() pulls out the parts:
+     the venue name (everything before the part that starts with a house number), the street, city, state and ZIP.
+     null when the text is not "name + street address" (a name alone, an address alone, a city). */
+  function splitLocation(text) {
+    const parts = String(text || "").split(",").map((x) => x.trim()).filter(Boolean);
+    while (parts.length && /^(usa|us|u\.s\.a?\.?|united states( of america)?)$/i.test(parts[parts.length - 1])) parts.pop();
+    const k = parts.findIndex((x) => /^\d+[a-z]?(-\d+)?\s+\S/i.test(x));
+    if (k < 1 || k + 1 >= parts.length) return null;
+    const venue = parts.slice(0, k).join(", "), street = parts[k], rest = parts.slice(k + 1);
+    let city = rest[0] || "", state = "", zip = "";
+    const tail = rest[rest.length - 1].match(/^([A-Za-z]{2}|[A-Za-z ]{4,})\s*(\d{5}(-\d{4})?)?$/);
+    if (rest.length >= 2 && tail) { state = tail[1].length === 2 ? tail[1].toUpperCase() : STATES[tail[1].trim().toLowerCase()] || tail[1].trim(); zip = tail[2] || ""; city = rest.slice(0, -1).join(", "); }
+    else { const m = city.match(/^(.*?)\s+([A-Z]{2})\s*(\d{5})?$/); if (m) { city = m[1]; state = m[2]; zip = m[3] || ""; } }
+    if (!city || /^\d/.test(city)) return null;
+    const area = [city, state].filter(Boolean).join(", ");
+    return { venue, street, city, state, zip, nameQuery: `${venue}, ${area}`, addressQuery: [street, area + (zip ? ` ${zip}` : "")].join(", ") };
+  }
+  const MATCH_KM = 0.5;   // a named result this close to the calendar's street address is the same place
+  /* Resolve a calendar or typed location, venue name first. Returns decide()'s shape plus `note`:
+       found      one place; for "name + address" text the venue name stays the label (the address is the place's)
+       ambiguous  the planner chooses (several places, the name and address disagree, or only the address was found)
+       unknown    nothing usable
+     searchFn is search() in the browser; tests pass recorded answers. */
+  async function resolve(text, searchFn = search) {
+    const s = splitLocation(text);
+    if (!s) { const r = decide(text, await searchFn(text)); return { ...r, via: "text" }; }
+    const label = (p, via) => ({ ...p, name: s.venue, matched: p.name, via });
+    const inState = (p) => !s.state || !p.state || p.state === s.state;
+    const byName = decide(s.nameQuery, await searchFn(s.nameQuery));
+    const named = (byName.status === "found" ? [byName.place] : byName.candidates || []).filter(inState);
+    let addr = null;
+    const address = async () => { if (addr) return addr; const r = decide(s.addressQuery, await searchFn(s.addressQuery)); addr = r.status === "found" ? r.place : null; return addr; };
+    if (named.length) {
+      const a = await address();
+      if (a) {
+        const near = named.filter((p) => km(p, a) <= MATCH_KM);
+        /* confirmed by the address: the stadium's own map point, shown with the calendar's street address */
+        if (near.length === 1) { const pl = { ...label(near[0], "name+address"), address: a.address || s.addressQuery };
+          return { status: "found", place: pl, candidates: [pl], via: "name+address", note: `${near[0].name} matches ${s.street}.` }; }
+        if (near.length > 1) return { status: "ambiguous", candidates: near.map((p) => label(p, "name+address")), via: "name+address", note: "Several places at this address. Choose one:" };
+        /* the name points somewhere else: let the planner choose, the address first */
+        return { status: "ambiguous", candidates: [label({ ...a, kind: "address" }, "address"), ...named.slice(0, 5).map((p) => ({ ...p, via: "name" }))], via: "conflict",
+          note: `“${s.venue}” was found away from ${s.street}. Choose the right place:` };
+      }
+      if (named.length === 1) return { status: "found", place: label(named[0], "name"), candidates: [label(named[0], "name")], via: "name", note: `Found by name; ${s.street} could not be checked.` };
+      return { status: "ambiguous", candidates: named.slice(0, 6).map((p) => label(p, "name")), via: "name", note: `“${s.venue}” matches several places. Choose one:` };
+    }
+    const a = await address();
+    if (a) { const c = label({ ...a, kind: "address" }, "address"); return { status: "ambiguous", candidates: [c], via: "address", note: `“${s.venue}” wasn't found by name; ${s.street} was. Confirm it's the venue:` }; }
+    return { status: "unknown", why: byName.why || "none", candidates: [], via: "none" };
+  }
+
+  /* where the label and the map's own name differ, say how the place was matched */
+  const matchNote = (p) => { const e = root.Ops ? root.Ops.esc : (x) => x;
+    return p.via === "address" ? " · matched by street address" : p.matched && norm(p.matched) !== norm(p.name) ? ` · on the map as ${e(p.matched)}` : ""; };
+
   /* a U.S. venue's time zone from its state (and longitude where a state spans two zones): the fallback when the
      time-zone lookup service is unavailable, so an out-of-town venue never takes the calendar's zone by mistake */
   const ZONE = { AL: "America/Chicago", AK: "America/Anchorage", AZ: "America/Phoenix", AR: "America/Chicago", CA: "America/Los_Angeles", CO: "America/Denver", CT: "America/New_York", DE: "America/New_York", DC: "America/New_York",
@@ -158,7 +216,7 @@
     let searchId = 0;
     const show = (places, note) => {
       msg.textContent = note || "";
-      res.innerHTML = places.map((p, i) => `<button type="button" class="vs-hit" data-i="${i}"><b>${esc(p.kind === "area" ? `Use ${p.name} for planning` : p.name)}</b><span class="bx-note">${esc(p.address || p.label || "")}${p.kind === "area" ? " · area forecast" : ""}</span></button>`).join("");
+      res.innerHTML = places.map((p, i) => `<button type="button" class="vs-hit" data-i="${i}"><b>${esc(p.kind === "area" ? `Use ${p.name} for planning` : p.name)}</b><span class="bx-note">${esc(p.address || p.label || "")}${p.kind === "area" ? " · area forecast" : ""}${matchNote(p)}</span></button>`).join("");
       res.querySelectorAll(".vs-hit").forEach((b) => b.addEventListener("click", () => { const p = places[+b.dataset.i]; res.innerHTML = ""; msg.textContent = `Selected: ${p.name}${p.address ? " · " + p.address : ""}`; if (onPick) onPick(p); }));
     };
     const go = async () => {
@@ -167,6 +225,12 @@
       if (onNewSearch) onNewSearch();
       msg.textContent = "Searching…"; res.innerHTML = "";
       try {
+        if (splitLocation(text)) { /* "venue, street address": venue name + city first, the address checks it or stands in */
+          const r = await resolve(text); if (id !== searchId) return;
+          if (r.status === "unknown") show([], `Neither “${splitLocation(text).venue}” nor the street address was found. Try the venue name with its city, or drop a pin.`);
+          else show(r.status === "found" ? [r.place] : r.candidates, r.note ? r.note + (r.status === "found" ? " Select it to use it." : "") : "");
+          return;
+        }
         const places = await search(text), exact = places.filter((p) => p.kind !== "area" && p.kind !== "street");
         if (id !== searchId) return;
         const cities = allowArea ? places.filter(p => p.kind === "area" && p.settlement) : [];
@@ -186,7 +250,7 @@
     return { search: go, set(v) { q.value = v; } };
   }
 
-  const api = { provider, attribution, tzGuess, parse, decide, formatAddress, km, search, picker, pinDialog, SAME_PLACE_KM };
+  const api = { provider, attribution, tzGuess, parse, decide, formatAddress, km, search, picker, pinDialog, SAME_PLACE_KM, splitLocation, resolve, MATCH_KM, matchNote };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.VenueSearch = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);
