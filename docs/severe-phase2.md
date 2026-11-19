@@ -109,3 +109,40 @@ Day 2 judged separately.
   overwrite, then read back with the read-only token; size and SHA-256 match the pins).
 - This cloud session cannot reach NOAA's NCEI site or the private archive, so heavy steps run in
   GitHub Actions and commit their results to this branch.
+
+## 9. CONUS first national test (run 44589486745; criterion 5, committed before scores)
+Inputs: 108/108 cases (run 44577990940), every case reproducing the regional overlap exactly;
+51.5 GB downloaded, 2.9 h extraction, 728 MB stored. Fit on 96 dates (2022-23), scored on the 12
+2024 dates (exploratory). 38,838 US-land samples scored, 7,582 coast/border-exposed scored
+separately, 1,473 offshore unavailable. Full tables: `research/severe/conus-v1/study/scorecard.md`.
+
+All-supported BSS vs 2022-23 climatology:
+| Product | Event dates / pts | v0.7 as-is | v0.7 recipe refit (reference) | CONUS logistic | CONUS trees |
+|---|---|---|---|---|---|
+| Day 1 tornado | 7 / 797 | +0.009 | +0.034 | +0.040 | +0.013 |
+| Day 1 wind | 7 / 7270 | +0.163 | +0.163 | +0.164 | +0.158 |
+| Day 1 hail | 7 / 3185 | +0.016 | -0.021 | +0.017 | +0.029 |
+| Day 2 tornado | 5 / 638 | -0.029 | -0.045 | +0.030 | +0.045 |
+| Day 2 wind | 9 / 6036 | +0.002 | +0.019 | +0.064 | +0.070 |
+| Day 2 hail | 8 / 1715 | -0.066 | -0.113 | +0.022 | +0.041 |
+
+**Do the Day 2 gains hold across regions?** (`research/severe/conus-v1/study/judgement.json`)
+- **Wind: yes, for both candidates.** They beat the reference in the original box and the plains outside it; the trees also beat it in the West. Overall paired date bootstrap vs the reference excludes zero (logistic -1.1e-3 to -5.5e-5; trees -1.5e-3 to -2.9e-5).
+- **Hail: yes by the regional rule**, in the original box and plains outside it (the only two conclusive regions). The overall interval just includes zero.
+- **Tornado: inconclusive.** Only the original box has >= 3 verification event dates. The overall difference vs the reference is significant for both candidates, but that comes from one region.
+- **Day 1** no longer trails: the candidates roughly tie the reference (wind) or beat it (hail, regional rule holds; logistic significant overall). Day 1 tornado is inconclusive.
+- **Extending v0.7 as-is is the weakest option at Day 2** (negative skill for tornado and hail nationally).
+
+**Problems the national test exposes**
+- **Florida/Gulf over-forecasting.** On 12 dates with almost no reports there, every model averages 2.5-4% wind probability against an observed 0-0.4%. The active-day map shows 15-45% wind over Florida and Arizona with no reports. No model has learned that summer HRRR convection in Florida rarely produces qualifying reports.
+- **West under-forecasting wind** by about 2x (mean 0.3-0.4% vs observed 0.6%).
+- **Too few dates.** 21 region/hazard pairs have < 5 verification or < 10 training event dates (`event-support.json`):
+  - all six products in the West, Florida/Gulf and the Northeast outside the box;
+  - tornado (both leads) in the plains outside the box;
+  - Day 2 tornado in the original box.
+  Probabilities there cannot be trusted yet.
+
+**Recommendation**
+- Keep v0.7 in production.
+- The Day 2 gain is now supported nationally for wind and hail. It earns a larger test on dates never used for selection: the 1st/8th/22nd of each month in 2024 (36 dates; extraction cost ~2.5 min/case). 2025 stays sealed.
+- Before any national map is published, add regional calibration (or regional terms) and re-check Florida and the West.
