@@ -65,14 +65,14 @@
     const where = { lat: ev.loc.lat, lon: ev.loc.lon }, mk = S.market(ev.loc.lat, ev.loc.lon);
     picker.setCurrent({ name: ev.loc.name }); document.body.dataset.place = ev.loc.name; document.body.dataset.loaded = ""; document.body.dataset.office = ""; document.body.dataset.tz = ev.tz; document.body.dataset.market = mk.tuned ? "tuned" : "default";
     context();
-    $("briefUpdate").hidden = true; $("opsHandoff").hidden = true; $("secTimeline").hidden = true; $("hourReadout").hidden = true; $("gapFlag").hidden = true; printReady(false);
+    $("briefUpdate").hidden = true; $("opsHandoff").hidden = true; $("secTimeline").hidden = true; $("gapFlag").hidden = true; printReady(false);
     /* nothing from the previous briefing (another venue, or guidance that has since failed) may stay on screen or in print */
     lastRes = null; lastView = null;
     if (chartController) { chartController.destroy(); chartController = null; }
     if ($("map")._dispose) $("map")._dispose();
     ["alerts", "evCharts", "evGrid", "evGridDetail", "evGridLegend", "nwsEv", "blendLine", "hourlyValid", "map", "printView"].forEach((id) => { const el = $(id); if (el) el.innerHTML = ""; });
     head.setUpdated(null);
-    $("decision").textContent = "Reading the guidance…"; $("coverage").hidden = true; document.body.dataset.readiness = ""; ["sourceCoverage", "keys", "schedule", "attention", "detailBody", "phases", "changes", "checks", "timeline"].forEach((id) => { $(id).innerHTML = ""; });
+    $("decision").textContent = "Reading the guidance…"; $("coverage").hidden = true; document.body.dataset.readiness = ""; ["sourceCoverage", "keys", "schedule", "detailBody", "phases", "changes", "checks", "timeline"].forEach((id) => { $(id).innerHTML = ""; });
     const alertsPromise = U.alerts(where);
     alertsPromise.then((a) => { if (g !== gen) return; $("alerts").innerHTML = a.available === false ? `<div class="bx-alert-off" role="status" data-alerts="unavailable">NWS alerts could not be checked just now. No alert shown here does not mean none is in effect; check <a href="https://www.weather.gov/" target="_blank" rel="noopener">weather.gov</a>.</div>` : a.slice(0, 2).map((x) => `<div class="bx-alert" role="alert">${st("action", x.event + " in effect")}${x.ends ? `<span class="bx-note">until ${esc(fmt.time(Date.parse(x.ends), ev.tz))}</span>` : ""}<a href="https://forecast.weather.gov/MapClick.php?lat=${ev.loc.lat}&lon=${ev.loc.lon}" target="_blank" rel="noopener">NWS ↗</a></div>`).join(""); });
     const endMs = Math.max(...C.event.windows(ev).map((w) => w.endMs)), days = 7; // the same forecast length Overview and Model Blend request, so this tab's answers for them are reused (briefing values are identical)
@@ -149,24 +149,18 @@
     $("evWhen").textContent = main ? `${BUI.dateSpan(main.startMs, main.endMs, tz)}${ph.setup ? ` · setup from ${fmt.clock(ph.setup.startMs, tz)}` : ""}` : "";
   }
 
-  /* the schedule is the graphic: phases to scale, the affected window marked, possible start range dashed */
-  function schedule(b, now, { labelsOnly = false } = {}) {
+  /* the event schedule, once: each part with its venue-local times. The weather for these times is in the briefing above
+     and hour by hour under Forecast details. */
+  function schedule(b) {
     const P = b.phases; if (!P.length) return "";
-    const s = P[0].startMs, e = P[P.length - 1].endMs, tz = ev.tz, at = (ms) => Math.max(0, Math.min(100, ((ms - s) / (e - s)) * 100));
-    const segs = P.map((p) => { const w = at(p.endMs) - at(p.startMs); return `<div class="sch-seg ${p.key === "event" ? "ev" : ""} ${w < 11 ? "narrow" : ""}" style="flex:${p.endMs - p.startMs}" title="${esc(p.label)} ${esc(fmt.span(p.startMs, p.endMs, tz))}"><span>${esc(p.label)}</span></div>`; }).join("");
-    const t = b.top; let over = "", legend = "";
-    if (t && t.from != null) {
-      over += `<div class="sch-hz" style="--tier:var(--${t.tier});left:${at(t.from)}%;width:${Math.max(1.2, at(t.to) - at(t.from))}%"></div>`;
-      legend += `<span><i style="background:color-mix(in srgb, var(--${t.tier}) 42%, transparent);border:1px solid var(--${t.tier})"></i>${esc(t.label)} most likely</span>`;
-      const tm = t.timing; if (tm && tm.first != null && tm.last != null && tm.last > tm.first) { over += `<div class="sch-rng" style="--tier:var(--${t.tier});left:${at(tm.first)}%;width:${at(tm.last) - at(tm.first)}%"></div>`; legend += `<span><i style="background:repeating-linear-gradient(90deg, var(--${t.tier}) 0 3px, transparent 3px 5px)"></i>Possible start, across sources</span>`; }
-    }
-    if (now > s && now < e) { over += `<div class="sch-now" style="left:${at(now)}%" title="Now"></div>`; legend += `<span><i style="background:var(--accent);width:2px"></i>Now</span>`; }
-    const marks = [...P.map((p) => p.startMs), e]; let lastPct = -99; const ticks = marks.map((ms, i) => { const p = at(ms), end = i === marks.length - 1; if (!end && p - lastPct < 10) return ""; if (end && p - lastPct < 8) return ""; lastPct = p; return `<span class="${end ? "end" : ""}" style="left:${p}%">${esc(fmt.clock(ms, tz))}</span>`; }).join("");
-    const labels = `<ol class="sch-labels">${P.map((p,i) => `<li><span class="sch-number">${i+1}</span><div><b>${esc(p.label)}</b><span>${esc(fmt.clock(p.startMs,tz))}–${esc(fmt.clock(p.endMs,tz))}</span></div></li>`).join("")}</ol>`;
-    if (labelsOnly) return labels;
-    return `<div class="sch-visual" aria-hidden="true"><div class="sch-bar">${segs}${over}</div><div class="sch-ticks">${ticks}</div></div><ol class="sch-labels">${P.map((p,i) => `<li><span class="sch-number">${i+1}</span><div><b>${esc(p.label)}</b><span>${esc(fmt.clock(p.startMs,tz))}–${esc(fmt.clock(p.endMs,tz))}</span></div></li>`).join("")}</ol><div class="sch-legend">${legend}</div>`;
+    const tz = ev.tz, day = (ms) => C.time.toLocal(ms, tz).slice(0, 10), wd = (ms) => new Date(ms).toLocaleDateString("en-US", { timeZone: tz, weekday: "short" });
+    const parts = (ms) => { const t = fmt.clock(ms, tz), m = t.match(/^(.*?)\s*(AM|PM)$/); return m ? { t: m[1], ap: m[2] } : { t, ap: "" }; };
+    /* "1–5 PM", "5–7:30 PM", "11 PM–1 AM"; a part on another day than setup names that day */
+    const span = (s, e) => { const a = parts(s), z = parts(e), d0 = day(P[0].startMs);
+      const lead = day(s) !== d0 ? `${wd(s)} ` : "", tail = day(e) !== day(s) && day(e) !== d0 ? `${wd(e)} ` : "";
+      return a.ap === z.ap && !tail ? `${lead}${a.t}–${z.t} ${z.ap}` : `${lead}${a.t} ${a.ap}–${tail}${z.t} ${z.ap}`; };
+    return `<ol class="ev-schedule sch-bar sch-labels">${P.map((p) => `<li data-phase="${esc(p.key)}"><b>${esc(p.label)}</b><span>${esc(span(p.startMs, p.endMs))}</span></li>`).join("")}</ol>`;
   }
-
   function renderSupport(res,b,now=Date.now()) {
     const open=$("sourceCoverage").querySelector('details')?.open;
     res.support=window.ForecastSupport.analyze({C,B:res.ctx.B,requested:res.RB?.ws||res.ctx.ws,rules:res.ctx.rules,
@@ -225,10 +219,8 @@
     monitoringHandoff(ev, b, now);
     gapFlag(res);
     $("secTimeline").hidden = false;
-    if (R.state === "pending") { $("schedule").innerHTML = schedule(b, now); detail(b, ctx, thr); return; } // nothing at event time yet: schedule and sources only
-    /* one schedule and one time axis: the schedule row of the tracks is the phase strip; the list below only names the phases */
-    $("attention").innerHTML = BUI.attentionHtml(A, { tz, idPrefix: "screen", interactive: true });
-    $("schedule").innerHTML = schedule(b, now, { labelsOnly: true });
+    $("schedule").innerHTML = schedule(b);
+    if (R.state === "pending") { detail(b, ctx, thr); return; } // nothing at event time yet: schedule and sources only
     /* ---- phases: from the same hours as the grid ---- */
     $("phases").innerHTML = b.phases.map((p, i) => {
       const P = PS[i], past = p.cov.status === "past";
@@ -250,7 +242,6 @@
     const keep = fin(prev) && prev >= b.all.startMs - 2 * H && prev < b.all.endMs + H ? prev : null;
     bus = U.timeBus(keep ?? focus); selKey = key;
     bus.on((ms) => { document.body.dataset.selected = ms; }); document.body.dataset.selected = bus.get();
-    trackSelection(A, V, b, tz);
     if (S.market(ev.loc.lat, ev.loc.lon).map) U.mapPanel($("map"), { view: "venue", field: "refc", place: { ...ev.loc }, bus, tz: "America/New_York", now, autoRun: true }); else U.mapUnavailable($("map"), ev.loc);
     const s = Math.max(Math.floor(now / H) * H, b.all.startMs - 2 * H), e = b.all.endMs + H, hours = S.hourly(ctx, s, e);
     $("hourlyValid").innerHTML = `${esc(fmt.span(V.span[0], V.span[V.span.length - 1] + H, tz))} ${esc(fmt.zone(V.span[0], tz))} · tap an hour`;
@@ -290,27 +281,6 @@
     const total = f.used.length + f.missing.length, material = total && f.used.length / total < 0.7;
     host.hidden = !material;
     if (material) host.textContent = `Limited guidance: ${f.used.length} of ${total} model sources reach these hours (missing ${f.missing.slice(0, 3).map((m) => m.name).join(", ")}${f.missing.length > 3 ? " and more" : ""}). Treat timing as rough.`;
-  }
-  /* the timeline's hours: tap one to read it out; the selection is the page's shared time (charts, table, map follow) */
-  function trackSelection(A, V, b, tz) {
-    const fig = $("screenTracks"), out = $("hourReadout"); if (!fig || !bus) return;
-    const cursor = fig.querySelector(".at-cursor"), buttons = [...fig.querySelectorAll(".at-hb")];
-    const show = (ms) => {
-      const hm = Math.floor(ms / H) * H, btn = buttons.find((x) => +x.dataset.hour === hm), i = V.span.indexOf(hm), x = A.hours.find((h) => h.ms === hm);
-      buttons.forEach((x) => x.setAttribute("aria-pressed", String(x === btn)));
-      if (!btn || i < 0 || !x) { cursor.hidden = true; out.hidden = true; return; }
-      cursor.hidden = false; cursor.style.left = btn.style.left; cursor.style.width = btn.style.width;
-      const h = V.hrs[i], ok = h && h.state === "ok", ph = b.phases.filter((p) => p.startMs < hm + H && p.endMs > hm).map((p) => p.label).join(" → ");
-      const val = (v, f) => (v == null ? '<i class="ev-nd">no data</i>' : f(v));
-      out.hidden = false;
-      out.innerHTML = `<div class="ev-ro-h"><b>${esc(fmt.day(hm, tz))}, ${esc(BUI.hourWindow(hm, tz))}</b>${ph ? `<span>${esc(ph)}</span>` : ""}</div>
-        ${ok ? `<dl class="ev-ro"><div><dt>Rain chance</dt><dd>${val(x.rain.v, (v) => esc(U.pct(v)))}</dd></div><div><dt>Temperature</dt><dd>${fin(h.temp) ? `${Math.round(h.temp)}°F` : '<i class="ev-nd">no data</i>'}</dd></div>
-        <div><dt>Gusts</dt><dd>${val(x.wind.v, (v) => `${esc(mph(v))}${x.wind.signal ? ` <b class="ev-lim">≥ ${A.limit} mph limit</b>` : ""}`)}</dd></div><div><dt>Lightning potential</dt><dd>${val(x.lightning.v, esc)}</dd></div></dl>
-        <p class="bx-note">Forecast for this hour at the venue. Lightning potential is a forecast, not detected lightning.</p>`
-        : `<p class="bx-note">No forecast data for this hour. That is missing guidance, not a forecast of none.</p>`}`;
-    };
-    buttons.forEach((x) => x.addEventListener("click", () => bus.set(+x.dataset.hour, "timeline-tracks")));
-    bus.on(show); show(bus.get());
   }
   /* lightning potential across the event: the strongest hourly tier, said plainly; missing guidance never reads Low */
   function lightningOf(PS) {
@@ -407,6 +377,7 @@
   }
   /* the top Print button is live only once a full briefing exists to print */
   function printReady(on) { const b = $("printTop"); if (!b) return; b.disabled = !on; $("printTopNote").textContent = on ? "Two US Letter pages: the decision and timing, then hour by hour." : "Available once the briefing loads."; }
+  $("hourlyLink").addEventListener("click", (e) => { e.preventDefault(); const d = $("secHourly"); d.open = true; d.scrollIntoView({ behavior: "smooth", block: "start" }); d.querySelector("summary").focus({ preventScroll: true }); });
   $("printTop").addEventListener("click", () => { if (!lastRes) return; printView(lastRes); window.print(); });
   window.addEventListener("beforeprint", () => printView(lastRes));
 
