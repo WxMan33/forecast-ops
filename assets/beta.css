@@ -648,3 +648,24 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
   .event-planner .ev-callouts dt:nth-last-of-type(1), .event-planner .ev-callouts .ev-next { border-bottom: 0; }
   .event-planner .ev-callouts .ev-next .bx-vt b { font-size: 15.5px; }
 }
+
+/* Event schedule: each part of the event once, with its local times. Plain text, no weather encoding. */
+.ev-sched { padding-top: 16px; }
+.ev-sched-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; margin-bottom: 8px; }
+.ev-sched-h h2 { margin: 0 !important; }
+.ev-hourly-link { font-size: 14px; font-weight: 600; white-space: nowrap; }
+.event-planner .ev-schedule { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--bx-rule); border-radius: 8px; overflow: hidden; }
+.event-planner .ev-schedule li { padding: 8px 12px; min-width: 0; }
+.event-planner .ev-schedule li + li { border-left: 1px solid var(--bx-rule); }
+.event-planner .ev-schedule b { display: block; font-size: 13px; color: var(--muted); font-weight: 600; }
+.event-planner .ev-schedule span { display: block; font-size: 15px; font-weight: 600; margin-top: 1px; overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .event-planner .ev-schedule { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .event-planner .ev-schedule li:nth-child(odd) { border-left: 0; }
+  .event-planner .ev-schedule li:nth-child(n+3) { border-top: 1px solid var(--bx-rule); }
+}
+/* the schedule list keeps the older sch-labels hook for existing checks; none of that list's layout applies here */
+.event-planner .ev-schedule { gap: 0; padding-top: 0; }
+.event-planner .ev-schedule li { display: block; gap: 0; font-size: inherit; }
+/* nor does the old strip's sch-bar sizing (fixed height, flex, fill) */
+.event-planner .ev-schedule.sch-bar, .event-planner .ev-sched .ev-schedule { height: auto; display: grid; background: none; }
