@@ -209,7 +209,9 @@ Each run takes five steps:
    only). The rebuild token stays read-only. Public repositories are refused.
    - **Where:** one release per month, `severe-guidance-YYYY-MM`.
    - **Data asset:** one per date and lead, `severe-guidance-YYYY-MM-DD-dayN.tar.gz`. The first
-     verified bundle wins.
+     complete, verified bundle wins. An incomplete collection keeps an attempt-specific
+     `…-dayN.run-RUNID-ATTEMPT.tar.gz` alongside its receipt, leaving the canonical name available
+     for a complete retry.
    - **Attempt receipt:** one per collection attempt, `…-dayN.run-RUNID-ATTEMPT.json`. It holds that
      attempt's run record (timing and collection evidence), its data identity and the outcome.
    - **How retries are compared:** by **data identity** (`data-identity.json` in each bundle), never

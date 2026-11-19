@@ -1,5 +1,5 @@
 {
-  "purpose": "One real write and read-back of the private guidance archive before daily collection is enabled",
+  "purpose": "Verify a complete private upload and retry after configuring the archive write secret",
   "date": "2026-11-18",
   "days": [1],
   "archive": true

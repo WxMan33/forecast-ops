@@ -209,6 +209,32 @@ class Publish(unittest.TestCase):
         self.assertEqual((r2["outcome"], r2["run"]["collection"]["run_attempt"]), ("duplicate_data", "2"))
         self.assertEqual(r2["run"]["collection"]["started_at"], "2026-11-20T09:58:00+00:00")
 
+    def test_partial_attempt_keeps_evidence_and_leaves_canonical_name_for_complete_retry(self):
+        collection_path = self.out / "collection.json"
+        complete = collection_path.read_text()
+        partial = json.loads(complete)
+        partial["status"] = "partial"
+        partial["sources"]["hrrr"]["status"] = "failed"
+        collection_path.write_text(json.dumps(partial))
+
+        first, first_path = self.attempt(1)
+        self.assertEqual((first["outcome"], first["verified"]), ("uploaded_incomplete", True))
+        canonical = self.release / A.asset_name("2026-11-20", 1)
+        self.assertFalse(canonical.exists())
+        partial_path = self.release / "severe-guidance-2026-11-20-day1.run-5000-1.tar.gz"
+        self.assertEqual(A.sha256(partial_path), A.sha256(first_path))
+        receipt = json.loads((self.release / first["receipt"]).read_text())
+        self.assertEqual(receipt["data_asset"], partial_path.name)
+        self.assertEqual(receipt["run"]["sources"]["hrrr"]["status"], "failed")
+
+        collection_path.write_text(complete)
+        second, second_path = self.attempt(2)
+        self.assertEqual((second["outcome"], second["verified"]), ("uploaded", True))
+        self.assertEqual(A.sha256(canonical), A.sha256(second_path))
+        self.assertEqual(A.sha256(partial_path), A.sha256(first_path))
+        third, _ = self.attempt(3, started="10:01")
+        self.assertEqual((third["outcome"], third["verified"]), ("duplicate_data", True))
+
     def test_different_data_is_a_conflict_recorded_not_overwritten(self):
         self.attempt(1)
         before = A.sha256(self.release / A.asset_name("2026-11-20", 1))

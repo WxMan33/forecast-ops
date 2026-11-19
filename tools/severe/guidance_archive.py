@@ -31,6 +31,7 @@ import hashlib
 import io
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -231,9 +232,11 @@ def upload_verified(tag, path, repository, tmp):
 def publish(bundle_path, repository, date, day, run_record, receipt_dir=None):
     """Archive one attempt.
 
-    Data: the first verified bundle for a date and lead is the data asset. Later attempts are
+    Data: the first complete, verified bundle for a date and lead is the data asset. Later complete
+    attempts are
     compared by data identity (forecast data and S3 timing evidence only), not by bundle bytes:
     the same data is accepted as a duplicate, different data is a conflict and never overwrites.
+    Incomplete attempts retain their own bundle without claiming the canonical name.
     Attempt: every attempt also stores its own receipt (run record, data identity, outcome), so
     each attempt's timing and collection evidence is kept, including conflicting ones."""
     bundle_path = Path(bundle_path)
@@ -242,31 +245,38 @@ def publish(bundle_path, repository, date, day, run_record, receipt_dir=None):
         raise ValueError(f"Bundle must be named {name}")
     collection = run_record["collection"]
     receipt_file = receipt_name(date, day, collection["run_id"], collection["run_attempt"])
+    complete = (run_record["collection_status"] == "complete"
+                and all(run_record["sources"][source]["status"] == "complete" for source in SOURCES))
+    target_name = name if complete else Path(receipt_file).with_suffix(".tar.gz").name
     local_data = bundle_data_sha256(bundle_path)
     private = gh("repo", "view", repository, "--json", "isPrivate", "--jq", ".isPrivate", check=False)
     if private.returncode or private.stdout.strip() != "true":
         raise ValueError(f"The guidance archive must be a private, readable repository: {repository}")
     if gh("release", "view", tag, "--repo", repository, check=False).returncode:
         made = gh("release", "create", tag, "--repo", repository, "--title", f"Severe research guidance {date[:7]}",
-                  "--notes", "Research-only HRRR/RRFS/NBM predictors: one data asset per date and lead, "
-                             "plus one receipt per collection attempt. Not a forecast.", check=False)
+                  "--notes", "Research-only HRRR/RRFS/NBM predictors, with one canonical asset per date and lead "
+                             "and separate receipts and incomplete bundles per attempt.", check=False)
         if made.returncode and gh("release", "view", tag, "--repo", repository, check=False).returncode:
             raise RuntimeError(f"Could not create release {tag}: {made.stderr.strip()}")
-    result = {"repository": repository, "release": tag, "asset": name, "receipt": receipt_file,
+    result = {"repository": repository, "release": tag, "asset": target_name, "receipt": receipt_file,
               "local_data_sha256": local_data, "local_bundle_sha256": sha256(bundle_path)}
     with tempfile.TemporaryDirectory() as tmp:
-        existing = gh("release", "download", tag, "--repo", repository, "--pattern", name, "--dir", tmp,
+        existing = gh("release", "download", tag, "--repo", repository, "--pattern", target_name, "--dir", tmp,
                       check=False)
-        copy = Path(tmp) / name
+        copy = Path(tmp) / target_name
         if existing.returncode == 0 and copy.exists():
             remote_data = bundle_data_sha256(copy)
             result.update(remote_data_sha256=remote_data, remote_bundle_sha256=sha256(copy),
                           outcome="duplicate_data" if remote_data == local_data else "data_conflict")
         else:
-            upload_verified(tag, bundle_path, repository, tmp)
-            result.update(remote_data_sha256=local_data, remote_bundle_sha256=sha256(bundle_path),
-                          outcome="uploaded")
-        receipt = {"schema_version": 1, "kind": "collection_attempt_receipt", "data_asset": name,
+            upload = bundle_path
+            if not complete:
+                upload = Path(tmp) / target_name
+                shutil.copyfile(bundle_path, upload)
+            remote = upload_verified(tag, upload, repository, tmp)
+            result.update(remote_data_sha256=local_data, remote_bundle_sha256=remote,
+                          outcome="uploaded" if complete else "uploaded_incomplete")
+        receipt = {"schema_version": 1, "kind": "collection_attempt_receipt", "data_asset": target_name,
                    "outcome": result["outcome"], "data_sha256": local_data,
                    "archived_data_sha256": result["remote_data_sha256"],
                    "attempt_bundle_sha256": result["local_bundle_sha256"], "run": run_record}
