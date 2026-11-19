@@ -146,3 +146,83 @@ All-supported BSS vs 2022-23 climatology:
 - Keep v0.7 in production.
 - The Day 2 gain is now supported nationally for wind and hail. It earns a larger test on dates never used for selection: the 1st/8th/22nd of each month in 2024 (36 dates; extraction cost ~2.5 min/case). 2025 stays sealed.
 - Before any national map is published, add regional calibration (or regional terms) and re-check Florida and the West.
+
+## 10. 36-date follow-up with frozen models (criterion 6)
+- **Runs:** extraction 44616848705 (36/36 dates, both leads, 17.1 GB, 1.1 h, 241 MB); freeze
+  44616849079 (refit Brier difference 0.0 vs run 44589486745; saved models reproduce its predictions
+  to 3e-8; models sha256 a9ff6aa7...); scoring 44628021635. Rule committed first (4fcb6c1).
+- **Dates:** the 1st/8th/22nd of 2024, confirmed unused in any earlier cohort, label set or
+  selection step. Their windows (D 12Z to D+2 12Z) cannot overlap the 15th-17th. 2025 sealed.
+- **Full tables:** `research/severe/conus-v1/followup-study/`.
+
+**Day 2 wind repeats.** Both candidates have lower Brier than the v0.7 refit nationally, with whole-date
+95% intervals below zero (logistic -7.1e-4 to -2.5e-5; trees -9.1e-4 to -6.7e-5). Both are better in
+all five regions, and every region has enough data (>= 5 verification and >= 10 training event dates).
+National BSS: v0.7 as-is +0.053, v0.7 refit +0.065, logistic +0.095, trees +0.105.
+
+| Day 2 wind, interior | Event dates (verify / train) | logistic - ref (95%) | trees - ref (95%) | BSS ref / logistic / trees |
+|---|---|---|---|---|
+| original box | 22 / 56 | -1.5e-3 to +8.5e-5 | -1.9e-3 to +3.0e-4 | +0.076 / +0.108 / +0.112 |
+| plains outside box | 18 / 43 | -6.0e-4 to +8.3e-5 | -9.3e-4 to +1.2e-4 | +0.049 / +0.067 / +0.077 |
+| West | 15 / 34 | -5.5e-5 to +1.6e-5 | -9.5e-5 to +4.0e-5 | +0.021 / +0.024 / +0.024 |
+| northeast outside box | 5 / 19 | -5.0e-3 to -9.1e-5 | -5.2e-3 to -2.0e-4 | +0.160 / +0.244 / +0.264 |
+| Florida/Gulf | 5 / 24 | -2.4e-3 to +2.8e-4 | -2.6e-3 to +1.1e-3 | -0.068 / -0.007 / -0.018 |
+
+Every region is better on its point estimate. Individually, only the Northeast interval excludes zero:
+the regional gains are consistent but each one is small relative to its date-to-date noise.
+
+**Day 2 hail:**
+- The logistic repeats nationally (-5.2e-4 to -1.0e-4; BSS +0.075 vs +0.009) and is better in 4 of 4
+  entered regions; it is clearly better in the original box and the plains outside it.
+- The trees pass the regional rule, but their national interval includes zero.
+- Florida/Gulf (1 event date) and the Northeast (4) are too thin to trust.
+
+**Secondary results:**
+- Day 2 tornado: the logistic repeats and holds; the trees do not hold.
+- Day 1 hail: the logistic repeats; the trees do not repeat but hold regionally.
+- Day 1 tornado: both repeat and hold, in the two regions with enough events.
+- Day 1 wind: neither repeats nationally.
+
+**False alarms in practical terms (Day 2, no-report days):**
+- **Florida/Gulf** (about 223,000 km^2 of land and 25-mile coastal buffer):
+  - Wind: the observed report rate is 0.72%, against mean forecasts of 3.0% (v0.7 as-is), 2.6% (refit),
+    2.5% (logistic) and 1.9% (trees).
+  - On a typical no-report day (31 of 36), the area at >= 5% is 28,000 km^2 for the refit (13% of the
+    region), 26,000 for the logistic and 16,000 for the trees (7%).
+  - At >= 15% and >= 30% the area is mostly one day: 2024-10-09/10, Hurricane Milton's landfall. For
+    the logistic that day is 93% of the >= 15% area and all of the >= 30% area.
+  - **This is a label gap, not only a model error.** The labels use only Storm Events "Tornado",
+    "Thunderstorm Wind" and "Hail" (`tools/severe/labels.py`). Hurricane and tropical-storm winds are
+    recorded under other event types, so a landfalling hurricane scores as a no-report wind day.
+  - Excluding that day, the >= 5% over-forecast is broad: about 22,000 km^2 per no-report day for the
+    logistic and 12,000 for the trees.
+  - Hail: the observed rate is 0.02%, against mean forecasts of 0.5-1.2%. The trees put no area >= 15%;
+    the refit puts 1,400 km^2 per day.
+- **West** (about 3.26 million km^2): the earlier under-forecast did not repeat. Wind mean forecast
+  0.29-0.37% vs 0.38% observed. Area >= 15% on no-report days is at most 536 km^2 per day (trees) and
+  zero at >= 30% for the refit, logistic and trees.
+
+**Maps:** `followup-active-2024-01-08-day2.png` (the Southeast wind outbreak of 2024-01-09/10; the
+trees concentrate on the Georgia/Carolinas reports, but all models also paint 10-30% over the Florida
+peninsula) and `followup-false-alarm-2024-10-08-day2.png` (Milton landfall, see the label gap above).
+
+### Proposed calibration experiment (not run; needs approval)
+1. **Fix the label gap first**, decided before any fitting:
+   - Treat samples within 25 miles of a Storm Events "Hurricane (Typhoon)", "Tropical Storm" or
+     "Tropical Depression" record in the window as *unknown* (255) for wind, not zero.
+   - Report how many samples and dates this removes.
+2. **Regional recalibration on top of the frozen models:**
+   - A per-region monotone Platt correction (intercept and slope on the frozen logit, by the five
+     regions), fit on the existing month-grouped out-of-fold predictions from the 96 development
+     dates (2022-23).
+   - No change to the underlying models. Lead with the trees for Day 2 wind and the logistic for Day 2 hail.
+3. **Verify on a separate, named, unused set:**
+   - Dates: the 5th, 12th, 19th and 26th of each month of 2024 (48 dates). Their windows (5-7, 12-14,
+     19-21, 26-28) cannot overlap any window used so far.
+   - Extraction cost is about 2 hours.
+   - The 36 follow-up dates are now spent and would not be reused for verification.
+4. **Pre-register before fitting:**
+   - Success: Florida/Gulf mean wind forecast within a factor of 2 of the observed rate on the
+     verification dates, and the area >= 5% on no-report days at least halved.
+   - Guardrail: national Day 2 wind BSS not worse than the frozen model's, by the paired date bootstrap.
+5. Production stays on v0.7 throughout. 2025 stays sealed as the eventual untouched test.
