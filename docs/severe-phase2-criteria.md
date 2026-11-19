@@ -37,3 +37,19 @@ at least four of six products, with lower Brier on a majority; is clearly worse 
 rule 2 where conclusive; and passes rule 3 where conclusive. If rules 2 or 3 are inconclusive on
 most products, the result is reported as inconclusive and the 12-date comparison stays
 exploratory; it does not by itself justify a change to the production model.
+
+## 5. CONUS first national test: do the Day 2 gains hold across regions?
+(Added before the CONUS study produced any score; extraction run 44577990940.)
+
+- Reference: the **v0.7 recipe refit on the same CONUS data** (train 2022, calibrate 2023), so
+  the comparison isolates the recipe. "v0.7 as-is" (frozen coefficients extended beyond the box)
+  is reported alongside but is not the yardstick, because it extrapolates.
+- Regions: original box, west, plains outside box, Florida/Gulf south, northeast outside box;
+  interior samples only (coast/border-exposed samples are reported separately and do not vote).
+- A region counts for a product only with >= 3 verification event dates there; else inconclusive.
+- "Day 2 gain holds across regions" for a hazard and candidate: higher BSS than the reference in
+  >= 2 conclusive regions AND in a majority of them, AND the all-supported paired date-bootstrap
+  Brier difference vs the reference is not entirely above zero.
+- Day 1 is judged the same way, separately. With 12 verification dates every result stays
+  exploratory; region/hazard pairs with < 5 verification or < 10 training event dates are
+  listed as needing more dates before their probabilities can be trusted.
