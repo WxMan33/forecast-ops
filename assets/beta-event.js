@@ -360,7 +360,7 @@
       if (my !== gen) return;
       const m = window.EventOutlook.build({ windows, rows, hourlyEndMs, R, day: (t) => C.time.toLocal(t, tz).slice(0, 10), now });
       host.innerHTML = window.EventOutlook.html(m, f, remind); host.hidden = !host.innerHTML; document.body.dataset.outlook = m.state;
-      if (R.state === "pending" && host.innerHTML) $("coverage").hidden = true; // the outlook carries the timing and the reminder
+      if (R.state === "pending" && host.innerHTML) { $("coverage").hidden = true; $("coverage").innerHTML = ""; } // the outlook carries the timing and the one reminder
       host.querySelectorAll("[data-remind]").forEach((a) => a.addEventListener("click", () => U.track("reminder_exported", { via: a.dataset.remind })));
     };
     const start = Math.min(...windows.map((w) => w.startMs));
