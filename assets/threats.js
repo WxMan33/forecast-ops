@@ -258,7 +258,7 @@
     return `<button type="button" class="tx-item${S.hover === p.id ? " hl" : ""}" data-id="${esc(p.id)}" style="--tx-c:${colorOf(p)}">${swatch(p)}<span>`
       + `<span class="tx-kind k-${p.kind}">${KIND_WORD[p.kind]}</span><b>${esc(title)}</b>`
       + `<span class="tx-meta">${esc(when)}</span>`
-      + (showRel ? `<span class="tx-rel ${r.kind}">${esc(relText(p))}</span>` : "")
+      + (showRel ? `<span class="tx-rel ${r.kind}">${esc(u ? "Last known: " + relText(p).charAt(0).toLowerCase() + relText(p).slice(1) : relText(p))}</span>` : "")
       + (p.geometrySource === "counties" ? `<span class="tx-meta">${esc(countyText(p))}</span>` : "")
       + (u ? lastKnown(u) : "") + (opts.tag ? `<span class="tx-tag">${esc(opts.tag)}</span>` : "")
       + `</span></button>`;
