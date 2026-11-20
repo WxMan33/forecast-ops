@@ -140,3 +140,67 @@ events.
   any change due to the mask is visible.
 
 Production stays on v0.7 whatever the outcome.
+
+## 8. Day 2 wind two-stage regional experiment (locked before any fitting)
+**Stage 1:** each frozen CONUS candidate (logistic, trees; sha256 a9ff6aa7...), unchanged.
+
+**Stage 2:** a penalized logistic correction on the stage-1 logit z (calibrated logit of the stage-1
+probability), with z entering as a fixed offset:
+
+    logit p2 = z + sum_r w_r(s) * (a_r + c_r * z + sum_j b_rj * f_j(s)),   r in {Florida/Gulf, West}
+
+- **Predictors f_j (locked):** x_srh01_max, x_srh01_nearby_max_max, x_shear06_max, x_sbcin_mean,
+  the SRH x shear interaction (int_srh_shear), and x_sbcape_nearby_max_max. They use the frozen asinh
+  scaling and are standardized on each fit's training rows for the region.
+- **Penalty:** L2 on (a_r, c_r, b_rj), chosen from {1e-4, 1e-3, 1e-2, 1e-1} by month-grouped
+  cross-validation inside the stage-2 training data.
+- **Boundary blend (locked):** w_r(s) = clip(0.5 + d_r(s) / 150 km, 0, 1). Here d_r is the signed
+  distance to the region boundary, positive inside. That gives a 150 km linear ramp centered on the
+  boundary.
+  - Florida/Gulf (lon >= -90, lat < 30) is bounded by lat 30 and lon -90.
+  - The West (lon < -104) is bounded by lon -104.
+  - Everywhere with w = 0 keeps the stage-1 forecast exactly.
+
+**Development gate: nested, whole months held out from both stages.**
+- Outer folds: the 6 month-grouped folds of the 96 development dates (2022-23).
+- For each outer fold, the held-out months are unseen by both stages:
+  1. Refit stage 1 on the training months with the frozen recipe. For the logistic, the penalty is
+     re-selected inside those months. For the trees, the parameters are fixed and calibration uses
+     out-of-fold predictions inside those months.
+  2. Generate stage-2 training inputs from out-of-fold stage-1 predictions **within the training
+     months only**.
+  3. Fit stage 2 on them.
+  4. Predict the held-out months with both the refit stage 1 alone (the uncorrected counterpart) and
+     the complete two-stage model.
+- Pooled over the 6 outer folds, every development date is scored once, by models that never saw its
+  month. Labels are the original labels. The whole-date bootstrap uses 5,000 resamples.
+
+**Gate (all must hold; per candidate):**
+1. **Report points captured at >= 5%:** two-stage / uncorrected >= 0.90, separately in Florida/Gulf,
+   the West and nationally. The bootstrap 2.5% lower bound must be >= 0.75 in Florida/Gulf and the
+   West, and >= 0.90 nationally.
+2. **National report points captured at >= 15%:** ratio >= 0.90.
+3. **Florida/Gulf area >= 5% on no-report days:** two-stage / uncorrected <= 0.60, i.e. at least a 40%
+   reduction.
+4. **National Day 2 wind Brier:** two-stage <= uncorrected (point estimate), with the paired interval
+   reported.
+
+**Reported, not gating:**
+- the Florida/Gulf forecast / observed ratio;
+- the largest step in mean probability across each region boundary;
+- boundary maps (stage-2 weight field, before/after examples on held-out development dates);
+- uncertainty on every gate quantity.
+
+**If a candidate clears the gate:**
+1. Fit its final stage 2 on the full 96-date out-of-fold stage-1 predictions (the same ones that
+   re-derive the frozen calibration).
+2. Freeze it with a SHA-256.
+3. Pin the 2021 Storm Events file and archive it to the private replay-source release.
+4. Verify **once** on the 96 dates in `research/severe/conus-v1/twostage-verification-2021.json`
+   (the 1st, 5th, 8th, 12th, 15th, 19th, 22nd and 26th of each month of 2021), against the same frozen
+   stage 1, with the same four requirements.
+
+**If neither clears it:** no 2021 predictor or outcome is loaded. 2021 is preserved for the next
+experiment, and the failing requirement is reported.
+
+2025 stays sealed. The 48- and 36-date 2024 sets remain diagnostic only. v0.7 stays live.
