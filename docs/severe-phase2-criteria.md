@@ -206,7 +206,7 @@ experiment, and the failing requirement is reported.
 2025 stays sealed. The 48- and 36-date 2024 sets remain diagnostic only. v0.7 stays live.
 
 ## 9. Downburst predictor experiment (locked before any extraction or fitting)
-**Inputs:** the field contract and 16 feature definitions are in
+**Inputs:** the field contract, the 14 meteorological feature definitions and the population definition are in
 `research/severe/conus-v1/downburst/field-contract.json`. They were verified on a real HRRR file
 (2023-06-15 12Z, f30/f31): units, instantaneous vs hourly-max type, accumulation window, and GRIB
 identity.

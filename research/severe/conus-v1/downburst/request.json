@@ -1,0 +1,5 @@
+{
+  "purpose": "Criterion 9: extract Day 2 downburst predictors for the 96 development dates (2022-23) and pin the 2020 Census tract file",
+  "stage": "extract",
+  "request": 1
+}
