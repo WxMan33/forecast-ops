@@ -206,6 +206,7 @@
       $("keys").innerHTML = callouts({ A, PS, live, peak, lightAll, next, R, tz, now });
     }
     $("coverage").querySelectorAll("[data-remind]").forEach((a) => a.addEventListener("click", () => U.track("reminder_exported", { via: a.dataset.remind })));
+    earlyOutlook(res, R, around);
     /* counted for this event's hours: a source whose forecast ends before the event is named, not counted */
     res.eventFeeds = BUI.eventFeeds(res.feeds, ctx.B, b.all.startMs, b.all.endMs);
     renderSupport(res,b,now);
@@ -346,6 +347,27 @@
     if (!day) { const sec = $("secChecks"); sec.append(host); } else { $("briefUpdate").after(host); }
     host.querySelector("[data-save-ops]").onclick = () => { const v = K.baseAddress(host.querySelector("[data-ops-address]").value); const note = host.querySelector("[data-ops-note]"); if (!v) { note.textContent = "Use an HTTPS address, or HTTP localhost for your local OPE. Do not include a token, query string or password."; return; } try { localStorage.setItem(K.KEY,v); monitoringHandoff(event,b,now); } catch { note.textContent = "This browser could not save the address."; } };
     host.querySelector("[data-copy-venue]").onclick = async () => { const text = K.venueText(data), button = host.querySelector("[data-copy-venue]"); try { await navigator.clipboard.writeText(text); button.textContent = "Venue copied"; } catch { const box = host.querySelector("[data-copy-fallback]"); box.hidden = false; box.value = text; box.select(); } };
+  }
+  /* Early weather outlook (event-outlook.js): the daily Forecast Blend for the event dates the hourly briefing doesn't
+     reach yet. Loaded only then, separately from the briefing; nothing hourly is inferred from it. */
+  function earlyOutlook(res, R, around) {
+    const host = $("outlook"), my = gen; host.innerHTML = ""; host.hidden = true; delete document.body.dataset.outlook;
+    if (!R || (R.state !== "pending" && R.state !== "partial")) return;
+    const ctx = res.ctx, tz = ev.tz, now = ctx.now, ms = ctx.B.ms, hourlyEndMs = ms.length ? ms[ms.length - 1] + H : now, windows = C.event.windows(ev);
+    const f = { dayName: (k) => new Date(k + "T12:00Z").toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" }), when: (t) => `${around(t)} ${fmt.zone(t, tz)}` };
+    const remind = R.state === "pending" && R.readyAt ? remindHtml(R.readyAt, "Add a calendar reminder") : "";
+    const show = (rows) => {
+      if (my !== gen) return;
+      const m = window.EventOutlook.build({ windows, rows, hourlyEndMs, R, day: (t) => C.time.toLocal(t, tz).slice(0, 10), now });
+      host.innerHTML = window.EventOutlook.html(m, f, remind); host.hidden = !host.innerHTML; document.body.dataset.outlook = m.state;
+      if (R.state === "pending" && host.innerHTML) $("coverage").hidden = true; // the outlook carries the timing and the reminder
+      host.querySelectorAll("[data-remind]").forEach((a) => a.addEventListener("click", () => U.track("reminder_exported", { via: a.dataset.remind })));
+    };
+    const start = Math.min(...windows.map((w) => w.startMs));
+    if (start >= now + (window.EventOutlook.OUTLOOK_DAYS - 1) * 864e5) { show([]); return; } // past the daily outlook: no request
+    host.hidden = false; host.innerHTML = '<p class="bx-note">Loading the early outlook…</p>';
+    U.outlook({ lat: ev.loc.lat, lon: ev.loc.lon }, { ws: (res.RB || {}).ws || ctx.ws, rules: (res.RB || {}).rules || ctx.rules, NW: res.NW })
+      .then((r) => show(r.empty ? null : r.rows), () => show(null));
   }
   function remindHtml(atMs, label) {
     const r = S.reminder(ev, atMs, link()), ics = "data:text/calendar;charset=utf-8," + encodeURIComponent(r.ics);
