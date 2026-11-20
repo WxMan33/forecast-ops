@@ -156,6 +156,7 @@ jobs:
         run: |
           echo "dev=$(jq -r .development_extraction_run research/severe/conus-v1/downburst/request.json)" >> "$GITHUB_OUTPUT"
           echo "db=$(jq -r .downburst_extraction_run research/severe/conus-v1/downburst/request.json)" >> "$GITHUB_OUTPUT"
+          echo "wind=$(jq -r .wind_extraction_run research/severe/conus-v1/downburst/request.json)" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
           pattern: severe-conus-*
@@ -170,13 +171,19 @@ jobs:
           path: tests/out/db
           run-id: ${{ steps.req.outputs.db }}
           github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: wind10max-development
+          path: tests/out/wind
+          run-id: ${{ steps.req.outputs.wind }}
+          github-token: ${{ github.token }}
       - name: Screening, then nested gate only if screening passes (2022-23 only)
         run: |
           mkdir -p tests/out/dev
           for d in tests/out/x/conus/2022-* tests/out/x/conus/2023-*; do ln -s "$PWD/$d" tests/out/dev/; done
           ls tests/out/dev | wc -l; ls tests/out/db/downburst | wc -l
           PYTHONPATH=tools/severe python3 tools/severe/conus_downburst.py --candidate ${{ matrix.candidate }} \
-            --conus tests/out/dev --downburst tests/out/db/downburst --census tests/out/db/CenPop2020_Mean_TR.txt \
+            --conus tests/out/dev --downburst tests/out/db/downburst --wind tests/out/wind/wind --census tests/out/db/CenPop2020_Mean_TR.txt \
             --committed-gate research/severe/conus-v1/twostage-gate/gate-${{ matrix.candidate }}.json --output tests/out/screen
       - uses: actions/upload-artifact@v4
         if: always()

@@ -36,23 +36,37 @@ REGIMES = {"west_monsoon": ("west", (7, 8, 9)), "florida_spring": (FL, (3, 4, 5)
 DECIDING = ("west_monsoon", "florida_summer")
 SCREEN_MARGIN = 0.15
 RADIUS_KM = 40.2336
+# Amendment 9a: wind10_* come from the direct HRRR hourly max 10 m wind speed (day2-wind10max.npz).
+# The hypot(MAXUW, MAXVW) columns stored as wind10_* in day2-downburst.npz are a component-max proxy,
+# reported only.
+WIND = ("wind10_max", "wind10_nearby_max")
+PROXY = ("wind10_component_proxy_max", "wind10_component_proxy_nearby_max")
 
 
 # ---------------------------------------------------------------- inputs
-def load_downburst(root, cases, coords):
+def _load(root, cases, coords, manifest, names):
     out = []
     for c in cases:
-        meta = json.loads((Path(root) / c / "downburst-case.json").read_text())
+        meta = json.loads((Path(root) / c / manifest).read_text())
         path = Path(root) / c / meta["artifact"]["file"]
         if meta["case"] != c or digest(path) != meta["artifact"]["sha256"]:
-            raise ValueError(f"{c}: downburst artifact hash mismatch")
+            raise ValueError(f"{c}: {manifest} artifact hash mismatch")
         with np.load(path, allow_pickle=False) as d:
-            if d["feature_names"].tolist() != list(MET):
+            if d["feature_names"].tolist() != list(names):
                 raise ValueError(f"{c}: feature order differs from the locked list")
             if not np.array_equal(d["coordinates"], coords):
-                raise ValueError(f"{c}: downburst grid differs from the CONUS grid")
+                raise ValueError(f"{c}: grid differs from the CONUS grid")
             out.append(d["features"].astype(np.float64))
     return np.stack(out)
+
+
+def load_downburst(root, wind_root, cases, coords):
+    """Meteorological features with the direct wind (amendment 9a), and the component-max proxy."""
+    met = _load(root, cases, coords, "downburst-case.json", MET)
+    direct = _load(wind_root, cases, coords, "wind10max-case.json", WIND)
+    proxy = met[..., :2].copy()
+    met[..., :2] = direct
+    return met, proxy
 
 
 def population(census, pin, coords):
@@ -108,7 +122,7 @@ def regime_summary(y, p1, preds, d, rows, dates_n):
     return out
 
 
-def screen(y, p1, p2, d, reg_row, month_row, dates_n, met, pop):
+def screen(y, p1, p2, d, reg_row, month_row, dates_n, met, pop, proxy=None):
     res = {"rule": f"continue only if {' and '.join(DECIDING)} each have a meteorological feature with |AUC-0.5| >= {SCREEN_MARGIN}",
            "regimes": {}}
     for name, (r, months) in REGIMES.items():
@@ -125,14 +139,23 @@ def screen(y, p1, p2, d, reg_row, month_row, dates_n, met, pop):
         feats.sort(key=lambda f: -(f["abs_minus_half"] or 0))
         pa = auc(np.r_[pop[missed], pop[fa]], lab)
         best = feats[0]["abs_minus_half"]
+        no_wind = max((f["abs_minus_half"] or 0) for f in feats if f["feature"] not in WIND)
+        proxy_auc = None
+        if proxy is not None:
+            proxy_auc = {n: auc(np.r_[proxy[missed, j], proxy[fa, j]], lab) for j, n in enumerate(PROXY)}
         res["regimes"][name] = {"region": r, "months": list(months), "missed_points": int(missed.sum()),
                                 "missed_dates": int(len(np.unique(d[missed]))), "false_alarm_points": int(fa.sum()),
                                 "false_alarm_dates": int(len(np.unique(d[fa]))), "features": feats,
                                 "best_abs_auc_minus_half": best,
                                 "population_auc_reported_not_deciding": pa,
+                                "component_proxy_auc_reported_not_deciding": proxy_auc,
+                                "best_abs_auc_minus_half_without_wind_group_not_deciding": no_wind,
+                                "passes_without_wind_group_not_deciding": bool(no_wind >= SCREEN_MARGIN),
                                 "deciding": name in DECIDING,
                                 "passes": bool(best is not None and best >= SCREEN_MARGIN)}
     res["pass"] = all(res["regimes"][n]["passes"] for n in DECIDING)
+    res["pass_without_wind_group_not_deciding"] = all(res["regimes"][n]["passes_without_wind_group_not_deciding"] for n in DECIDING)
+    res["wind_source"] = "direct HRRR hourly max 10 m wind speed (amendment 9a)"
     return res
 
 
@@ -144,11 +167,13 @@ def run(a):
         raise ValueError("The experiment uses exactly the 96 2022-23 development dates")
     keep = fitted["keep"]
     ck = coords[keep]
-    DB = load_downburst(a.downburst, cases, coords)[:, keep]
+    DB, PX = load_downburst(a.downburst, a.wind, cases, coords)
+    DB, PX = DB[:, keep], PX[:, keep]
     pop_k, census_info = population(a.census, a.census_pin, ck)
     e, _ = S.engineer(X[:, T.DAY - 1][:, keep], names, fitted["scales"][T.DAY])
     x, y, d, p = S.rows(e, Y[:, T.DAY - 1][:, keep], T.HAZ)
     met = DB[d, p]
+    proxy = PX[d, p]
     pop = pop_k[p][:, None]
     folds = np.array([S.fold_of(c) for c in cases])[d]
     month_row = np.array([int(c[5:7]) for c in cases])[d]
@@ -183,7 +208,7 @@ def run(a):
     if not reproduces:
         (a.output / f"screen-{a.candidate}.json").write_text(json.dumps({**base, "stopped": "regenerated predictions do not reproduce criterion 8"}, indent=1) + "\n")
         raise SystemExit("Regenerated criterion-8 predictions differ from the committed gate")
-    scr = screen(y, p1, p_old, d, reg_row, month_row, len(cases), met, pop[:, 0])
+    scr = screen(y, p1, p_old, d, reg_row, month_row, len(cases), met, pop[:, 0], proxy)
     (a.output / f"screen-{a.candidate}.json").write_text(json.dumps({**base, "screening": scr}, indent=1, default=float) + "\n")
     print(json.dumps({"candidate": a.candidate, "screening_pass": scr["pass"],
                       "best": {k: v["best_abs_auc_minus_half"] for k, v in scr["regimes"].items()}}), flush=True)
@@ -242,6 +267,7 @@ def main():
     p.add_argument("--manifest", type=Path, default=Path("research/severe/conus-v1/frozen/manifest.json"))
     p.add_argument("--conus", type=Path, required=True, help="2022-23 <case>/conus-case.json directories")
     p.add_argument("--downburst", type=Path, required=True, help="<case>/downburst-case.json directories")
+    p.add_argument("--wind", type=Path, required=True, help="<case>/wind10max-case.json directories (amendment 9a)")
     p.add_argument("--census", type=Path, required=True)
     p.add_argument("--census-pin", type=Path, default=Path("research/severe/conus-v1/downburst/census-pin.json"))
     p.add_argument("--committed-gate", type=Path, required=True)

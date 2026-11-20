@@ -16,7 +16,8 @@
    ],
    "stepType": "max",
    "window": "(H-1,H]",
-   "units": "m s-1 (NCEP local table 2-222: U of hourly max 10 m wind)"
+   "units": "m s-1 (NCEP local table 2-222: U of hourly max 10 m wind)",
+   "use": "component-max proxy only (amendment 9a): the hourly maxima of u and v can occur at different moments, so hypot(MAXUW, MAXVW) is not the hourly max wind speed"
   },
   "maxvw": {
    "index": [
@@ -32,7 +33,8 @@
    ],
    "stepType": "max",
    "window": "(H-1,H]",
-   "units": "m s-1 (NCEP local table 2-223: V of hourly max 10 m wind)"
+   "units": "m s-1 (NCEP local table 2-223: V of hourly max 10 m wind)",
+   "use": "component-max proxy only (amendment 9a): the hourly maxima of u and v can occur at different moments, so hypot(MAXUW, MAXVW) is not the hourly max wind speed"
   },
   "gust": {
    "index": [
@@ -215,14 +217,30 @@
    ],
    "stepType": "instant",
    "units": "HRRR lightning threat (dimensionless)"
+  },
+  "wind10max": {
+   "index": [
+    "WIND",
+    "10 m above ground"
+   ],
+   "id": [
+    0,
+    2,
+    1,
+    "heightAboveGround",
+    10
+   ],
+   "stepType": "max",
+   "window": "(H-1,H]",
+   "units": "m s-1 (WMO 0-2-1, eccodes max_10si 'Time-maximum 10 metre wind speed'); verified on 2022-01-01 and 2023-06-15 12Z f31"
   }
  },
  "excluded": {
   "hgt_lcl": "HGT at LCL has missing values (5,712 points in one f30 message); replaced by 2 m dewpoint depression as the sub-cloud dryness measure"
  },
  "features": {
-  "wind10_max": "24-h max of hourly max 10 m wind speed = hypot(MAXUW, MAXVW) from the same hourly message, at the point",
-  "wind10_nearby_max": "24-h max of the 25-mile native-grid disk max of that hourly speed",
+  "wind10_max": "24-h max of the direct HRRR hourly max 10 m wind speed (WIND 10 m, max over (H-1,H]) at the point (amendment 9a)",
+  "wind10_nearby_max": "24-h max of the 25-mile native-grid disk max of that direct hourly max wind speed (amendment 9a)",
   "gust_max": "24-h max of GUST at the point",
   "gust_nearby_max": "24-h max of the 25-mile disk max of GUST",
   "downdraft_max": "24-h max of -MAXDVV at the point",
@@ -240,5 +258,18 @@
   "source": "US Census 2020 centers of population by tract (CenPop2020_Mean_TR.txt), fetched once in Actions and pinned by SHA-256",
   "feature": "log1p(sum of tract populations whose population centroid lies within 40.2336 km of the sample)",
   "role": "separate sensitivity test only"
- }
+ },
+ "diagnostic_not_deciding": {
+  "wind10_component_proxy_max": "24-h max of hypot(MAXUW, MAXVW): component-max proxy, stored as 'wind10_max' in day2-downburst.npz from run 44753916507",
+  "wind10_component_proxy_nearby_max": "its 25-mile disk max, stored as 'wind10_nearby_max' in day2-downburst.npz"
+ },
+ "amendments": [
+  {
+   "id": "9a",
+   "date": "2026-11-20",
+   "before_any_scoring": true,
+   "change": "wind10_max and wind10_nearby_max come from the direct HRRR hourly max 10 m wind speed (WIND 10 m max). The hypot(MAXUW, MAXVW) values already extracted are relabelled a component-max proxy and are reported only, never deciding. Gust stays a separate group.",
+   "evidence": "On 2023-06-15 12Z f31 the proxy was below the direct field at 36% of grid points (1st percentile ratio 0.979) and up to 1.36x above it."
+  }
+ ]
 }

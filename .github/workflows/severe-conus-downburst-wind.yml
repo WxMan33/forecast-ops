@@ -1,0 +1,65 @@
+name: Severe CONUS downburst direct 10 m wind (research)
+# Research only (criterion 9, amendment 9a). Extracts only the direct HRRR hourly max 10 m wind speed
+# (WIND 10 m max, f25-f48 of 12Z) for the 96 development dates (2022-23) on the CONUS grid. Runs
+# alongside the main downburst extraction; no labels, no 2021/2024/2025 data, no live components.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-v1/downburst/wind-request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-downburst-wind
+  cancel-in-progress: false
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r tools/severe/requirements.txt
+      - name: Extract the direct hourly max 10 m wind speed for each development date
+        run: |
+          cases=$(python3 -c "
+          import json, sys
+          sys.path.insert(0, 'tools/severe')
+          from cohort import calendar_cases
+          c = [x for x in calendar_cases(json.load(open('research/severe/cohort-v07.json'))) if x.startswith(('2022', '2023'))]
+          assert len(c) == 96, len(c)
+          print(' '.join(c))")
+          mkdir -p tests/out/reports
+          status=0
+          for case in $cases; do
+            if PYTHONPATH=tools/severe python3 tools/severe/extract_downburst.py --wind-only --case "$case" \
+                 --output tests/out/wind --cache tests/out/cache; then
+              cp "tests/out/wind/$case/wind10max-case.json" "tests/out/reports/$case.json"
+            else
+              echo "{\"case\": \"$case\", \"status\": \"failed\"}" > "tests/out/reports/$case.failed.json"; status=1
+            fi
+            rm -rf tests/out/cache/"$case"
+          done
+          exit $status
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wind10max-development
+          path: |
+            tests/out/wind
+            tests/out/reports
+          retention-days: 90
+      - name: Commit manifests (not the arrays)
+        if: always()
+        run: |
+          dest=research/severe/conus-v1/downburst/wind-extraction
+          mkdir -p "$dest"; cp tests/out/reports/*.json "$dest"/ 2>/dev/null || true
+          echo "run_id: $GITHUB_RUN_ID" > "$dest/run.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$dest"
+          git commit -m "Direct 10 m wind extraction, amendment 9a (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3; do git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0; sleep 10; done
+          exit 1

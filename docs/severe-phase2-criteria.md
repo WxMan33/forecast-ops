@@ -270,3 +270,26 @@ part of the screening decision or the verdict, and can never open 2021 on its ow
 - The meteorological + population sensitivity gate.
 
 **2021 opens only if a candidate's meteorological gate passes in full.** v0.7 stays live.
+
+### 9a. Amendment: direct hourly max 10 m wind speed (recorded 2026-11-20, before any screening or scoring)
+- **Why:** review found that `wind10_max` and `wind10_nearby_max` were built as hypot(MAXUW, MAXVW).
+  MAXUW and MAXVW are each an hourly maximum, and their peaks can occur at different moments. Their
+  hypot is a **component-max proxy**, not the hourly maximum wind speed.
+- **Check:** HRRR wrfsfc does provide a direct field, `WIND:10 m above ground:(H-1)-H hour max fcst`
+  (GRIB 0/2/1, heightAboveGround 10, stepType max, m/s; eccodes `max_10si`, "Time-maximum 10 metre
+  wind speed"). It was verified on 2022-01-01 and 2023-06-15 12Z f31: single message, no missing
+  values, window (H-1, H].
+  - Hour by hour (2023-06-15 f31), the proxy is below the direct field at 36% of grid points and up
+    to 1.36x above it elsewhere.
+  - After the 24-h maximum, both Day 2 features agree within about 1% on that date.
+- **Change:**
+  - `wind10_max` and `wind10_nearby_max` now come from the direct field. It is extracted separately
+    (`extract_downburst.py --wind-only`, workflow `severe-conus-downburst-wind.yml`) on the same grid
+    and window convention.
+  - All other extracted features are reused unchanged.
+  - The proxy values already extracted are relabelled `wind10_component_proxy_*` and are **reported
+    only, never deciding**.
+  - Gust stays a separate group.
+- **Also reported, not deciding:** whether screening would pass with the wind group excluded.
+- **Unchanged:** the 14-feature count, transforms, screening margin and deciding regimes, the gate
+  design and every pass requirement, the 2021 rule, and the 2025 seal.
