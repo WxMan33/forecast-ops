@@ -18,7 +18,9 @@
   const sampleAt = (city) => S.sampleEvent(C, Date.now(), (city && city.tz) || "America/New_York", 1, city || null);
   let retried = false;
   let lastView = null, chartController = null, updatedMs = null, lastHourly = null, hourlyJumped = false;
-  let ev = storedOk(Q.get("ev")) || linkEvent || (linkCity ? null : storedOk(E.last())) || null, tzFromPick = false, pickSeq = 0, gen = 0, lastRes = null, bus = null, pendingCity = linkCity;
+  /* a local event address (?ev=…) opened in a browser that doesn't have that event: say so; never show another event */
+  let missingId = Q.get("ev") && !storedOk(Q.get("ev")) && !linkEvent ? Q.get("ev") : null;
+  let ev = storedOk(Q.get("ev")) || linkEvent || (linkCity || missingId ? null : storedOk(E.last())) || null, tzFromPick = false, pickSeq = 0, gen = 0, lastRes = null, bus = null, pendingCity = linkCity;
   if (!ev) ev = sampleAt(linkCity && linkCity.tz ? linkCity : null);
   const isSample = () => !!ev.sample, isStored = () => !!(ev.id && E.getEvent(ev.id));
   /* a saved event opened again in a later session (approximate, per browser) */
@@ -38,15 +40,29 @@
       if (isSample()) ev = sampleAt({ ...p, tz }); else ev = { ...ev, loc: { name: p.name, lat: p.lat, lon: p.lon }, tz };
       run(); } });
   head.onRefresh(() => run());
+  { const pc = $("picker").querySelector(".bx-ppcopy"); if (pc) pc.title = "Copy a link to this event (also under Share)"; }
   $("editBtn").addEventListener("click", () => UP.editEvent(ev, { title: isStored() ? "Edit event" : "Save as your event", onSaved: (rec) => { ev = rec; E.setLast(rec.id); O.store.set(SEEN, Date.now()); history.replaceState(null, "", `?ev=${encodeURIComponent(rec.id)}`); upCount(); run(); } }));
-  $("resetBtn").addEventListener("click", () => { E.setLast(null); history.replaceState(null, "", location.pathname); ev = sampleAt(null); run(); });
+  $("resetBtn").addEventListener("click", () => { E.setLast(null); history.replaceState(null, "", location.pathname); ev = sampleAt(null);
+    if (missingId) { missingId = null; delete document.body.dataset.missing; const pc = $("picker").querySelector(".bx-ppcopy"); if (pc) pc.hidden = false; $("editBtn").hidden = false; $("shareMenu").hidden = false; $("resetBtn").textContent = "Use sample event"; $("secDetails") && ($("secDetails").hidden = false); briefStarted = true; }
+    run(); });
   /* two views on one page: the briefing (main screen) and Upcoming events (#upcoming) */
   let briefStarted = false;
   function upCount() { const n = E.events().length; $("upLink").textContent = n ? `Upcoming events (${n})` : "Upcoming events"; }
   function view() {
     const up = location.hash === "#upcoming"; document.body.dataset.view = up ? "upcoming" : "brief"; $("briefView").hidden = up; $("upView").hidden = !up;
     if (up) { U.track("upcoming_opened"); UP.render($("upView"), { onOpen: (id) => { location.href = `${location.pathname}?ev=${encodeURIComponent(id)}`; } }); window.scrollTo(0, 0); }
-    else { upCount(); if (!briefStarted) { briefStarted = true; run(); } }
+    else { upCount(); if (missingId) { notSaved(); return; } if (!briefStarted) { briefStarted = true; run(); } }
+  }
+  function notSaved() {
+    document.body.dataset.missing = "1"; document.body.dataset.readiness = "missing";
+    $("sampleTag").hidden = true; $("editBtn").hidden = true; $("shareMenu").hidden = true; $("resetBtn").hidden = false; $("resetBtn").textContent = "Open the sample event instead";
+    $("evName").textContent = "Event not found"; $("evVenue").textContent = ""; $("evWhen").textContent = "";
+    $("decision").textContent = "This event isn’t saved in this browser";
+    $("keys").innerHTML = ""; picker.setCurrent({ name: "No event open" }); const pc = $("picker").querySelector(".bx-ppcopy"); if (pc) pc.hidden = true;
+    $("coverage").className = "bx-pending ev-missing"; $("coverage").hidden = false;
+    $("coverage").innerHTML = `<p>Saved events live only in the browser where they were saved, so this address doesn't open them anywhere else.</p>
+      <p class="bx-note">Ask the person who sent it for the <b>Share</b> link (Share → Copy event link), which opens the event on any device, or import their workspace backup under <a href="#upcoming">Upcoming events</a> → Restore backup.</p>`;
+    $("secTimeline").hidden = true; $("secDetails") && ($("secDetails").hidden = true);
   }
   window.addEventListener("hashchange", view);
   if (isSample()) U.track("sample_opened");
@@ -72,6 +88,7 @@
     /* nothing from the previous briefing (another venue, or guidance that has since failed) may stay on screen or in print */
     lastRes = null; lastView = null;
     if (chartController) { chartController.destroy(); chartController = null; }
+    lastHourly = null; ["shareImage", "tvExport"].forEach((id) => { $(id).disabled = true; $(id).title = "Available once the hourly forecast covers this event"; });
     if ($("map")._dispose) $("map")._dispose();
     ["alerts", "evCharts", "evGrid", "evGridDetail", "evGridLegend", "nwsEv", "blendLine", "hourlyValid", "map", "printView"].forEach((id) => { const el = $(id); if (el) el.innerHTML = ""; });
     head.setUpdated(null);
@@ -310,7 +327,7 @@
     $("evGridLegend").innerHTML = `<p class="bx-note">Swipe for more hours · tap an hour for details.</p><details class="bx-more"><summary>How to read these hours</summary>${G.legend(V.legend)}<p class="bx-note">${esc(V.note)}</p><p class="bx-note">Follow NWS warnings and your venue's lightning policy for live decisions.</p></details>`;
     chartController = window.EventHourlyCharts.render($("evCharts"), { view: V, selected: sel0, tz: ev.tz, gustLimit: ev.gust || 25, nwsTypes, onSelect: ms => { if (bus) bus.set(ms, "variable-charts"); showHour(ms); } });
     showHour(sel0);
-    lastHourly = { V, nwsTypes }; $("tvExport").disabled = false; $("tvExport").title = "Save a 1920 × 1080 image of these hours for a TV display";
+    lastHourly = { V, nwsTypes }; ["shareImage", "tvExport"].forEach((id) => { $(id).disabled = false; $(id).title = "Save a 1920 × 1080 image of these hours for a TV display"; });
     /* a display link (…#hourly) opens straight to these charts */
     if (location.hash === "#hourly" && !hourlyJumped) { hourlyJumped = true; const d = $("secHourly"); d.open = true;
       /* alerts, the map and late sources can still grow the page above; keep the section in place until the viewer acts */
@@ -402,25 +419,36 @@
   /* the top Print button is live only once a full briefing exists to print */
   function printReady(on) { const b = $("printTop"); if (!b) return; b.disabled = !on; b.title = on ? "Print or save the two-page briefing" : "Available once the briefing loads"; }
   /* TV displays: a 1920 x 1080 image of the hourly charts, or a link that opens them (no sign-in; the event is in the link) */
-  $("tvExport").addEventListener("click", async () => {
-    const msg = $("hourlyShareMsg"); if (!lastHourly) return;
+  /* ---- sharing: one set of actions, from the Share menu or from Hour by hour ---- */
+  async function exportImage(themeSel, msg) {
+    if (!lastHourly) { msg.textContent = "The image is available once the hourly forecast covers this event."; return; }
     const when = (ms) => (fin(ms) ? `${new Date(ms).toLocaleString("en-US", { timeZone: ev.tz, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} ${fmt.zone(ms, ev.tz)}` : "—");
+    const now = Date.now(), l = C.time.toLocal(now, ev.tz); // file name: the export time, venue-local
     try {
       const data = { title: $("evName").textContent, venue: $("evVenue").textContent, when: $("evWhen").textContent, takeaway: $("decision").textContent,
         updated: when(updatedMs), zone: fmt.zone(lastHourly.V.span[0], ev.tz), view: lastHourly.V, nwsTypes: lastHourly.nwsTypes, gustLimit: ev.gust || 25,
+        stamp: `${l.slice(0, 10)}-${l.slice(11, 13)}${l.slice(14, 16)}`,
         /* Match page theme (default), or an explicit Light / Dark PNG without switching the site */
-        theme: $("tvTheme").value === "match" ? (document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark") : $("tvTheme").value };
+        theme: themeSel.value === "match" ? (document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark") : themeSel.value };
       window.__lastHourly = data; // read-only test hook
       const r = await window.EventTvExport.exportPng(data);
-      msg.textContent = `Saved ${r.name} (1920 × 1080, ${data.theme}).`;
+      msg.textContent = `Saved ${r.name} (1920 × 1080, ${data.theme}): the forecast as of ${data.updated}.`;
     } catch (e) { msg.textContent = `Couldn't make the image (${e.message}).`; }
-  });
-  $("hourlyCopy").addEventListener("click", async () => {
-    const msg = $("hourlyShareMsg"), url = link() + "#hourly";
-    try { await navigator.clipboard.writeText(url); msg.textContent = "Hourly display link copied. It opens these charts with the latest forecast; no sign-in needed."; }
-    catch (e) { msg.textContent = "Copy this link: " + url; }
+  }
+  async function copyLink(kind, msg) {
+    const url = link() + (kind === "hourly" ? "#hourly" : "");
+    const said = kind === "hourly" ? "Hourly display link copied. It opens Hour by hour on any device, with the forecast loaded when it's opened." : "Event link copied. It opens this event on any device, with the forecast loaded when it's opened.";
+    try { await navigator.clipboard.writeText(url); msg.textContent = said; } catch (e) { msg.textContent = "Copy this link: " + url; }
     U.track("link_copied");
-  });
+  }
+  $("shareEvent").addEventListener("click", () => copyLink("event", $("shareMsg")));
+  $("shareHourly").addEventListener("click", () => copyLink("hourly", $("shareMsg")));
+  $("shareImage").addEventListener("click", () => exportImage($("shareTheme"), $("shareMsg")));
+  $("tvExport").addEventListener("click", () => exportImage($("tvTheme"), $("hourlyShareMsg")));
+  $("hourlyCopy").addEventListener("click", () => copyLink("hourly", $("hourlyShareMsg")));
+  $("shareMenu").addEventListener("toggle", () => { if ($("shareMenu").open) $("shareMsg").textContent = ""; });
+  /* a tap outside closes the menu; the page's own clicks (the image download) don't */
+  document.addEventListener("click", (e) => { if (e.isTrusted && $("shareMenu").open && !$("shareMenu").contains(e.target)) $("shareMenu").open = false; });
   $("hourlyLink").addEventListener("click", (e) => { e.preventDefault(); const d = $("secHourly"); d.open = true; d.scrollIntoView({ behavior: "smooth", block: "start" }); d.querySelector("summary").focus({ preventScroll: true }); });
   $("printTop").addEventListener("click", () => { if (!lastRes) return; printView(lastRes); window.print(); });
   window.addEventListener("beforeprint", () => printView(lastRes));
