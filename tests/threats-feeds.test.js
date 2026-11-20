@@ -1,0 +1,192 @@
+/* Weather threats live adapters: NWS warning lifecycle, county-only coverage, SPC outlooks and MDs.
+   Real captured responses live in tests/fixtures/threats/ (fetched 2026-11-19/20). Lifecycle sequences are
+   synthetic messages cloned from the real NWS message shape; watch handling is fixture-tested only.
+   Run: node tests/threats-feeds.test.js */
+"use strict";
+const assert = require("assert"), fs = require("fs"), path = require("path");
+const T = require("../assets/threats-core.js"), F = require("../assets/threats-feeds.js");
+const FX = (f) => path.join(__dirname, "fixtures", "threats", f);
+let n = 0; const ok = (name, fn) => { const r = fn(); if (r && r.then) return r.then(() => { n++; console.log("ok -", name); }); n++; console.log("ok -", name); };
+
+const real = JSON.parse(fs.readFileSync(FX("nws-svr-tor-warnings-20261119.json"), "utf8"));
+const template = real.features.find((f) => f.properties.messageType === "Alert");
+const VENUE = { name: "TQL Stadium", lat: 39.1111, lon: -84.5223 };
+const poly = (...p) => ({ type: "Polygon", coordinates: [[...p, p[0]]] });
+const BIG = poly([-84.86, 38.98], [-84.68, 38.92], [-84.30, 39.20], [-84.42, 39.31]);      // covers the venue
+const SHRUNK = poly([-84.50, 39.17], [-84.40, 39.12], [-84.28, 39.22], [-84.38, 39.30]);   // moved northeast, off the venue
+const vt = (action, end, etn = "0071", phen = "TO", sig = "W") => `/O.${action}.KILN.${phen}.${sig}.${etn}.261120T2031Z-${end}/`;
+let seq = 0;
+function msg({ action = "NEW", sent, ends, geometry = BIG, event = "Tornado Warning", etn, phen, sig, mt, id, zones }) {
+  const f = JSON.parse(JSON.stringify(template));
+  const p = f.properties;
+  p.id = id || "urn:test:" + (++seq); p["@id"] = "https://api.weather.gov/alerts/" + p.id;
+  p.event = event; p.sent = p.effective = p.onset = sent; p.expires = p.ends = ends; p.senderName = "NWS Wilmington OH";
+  p.messageType = mt || (action === "NEW" ? "Alert" : action === "CAN" ? "Cancel" : "Update");
+  const z = ends.replace(/[-:]/g, "").slice(2, 13).replace(/(\d{6})T(\d{4})/, "$1T$2") + "Z";
+  p.parameters = { ...p.parameters, VTEC: [vt(action, z.slice(0, 11) + "Z", etn, phen, sig)], eventEndingTime: [ends] };
+  p.affectedZones = zones || ["https://api.weather.gov/zones/county/OHC061"];
+  f.geometry = geometry;
+  return f;
+}
+const coll = (...features) => ({ type: "FeatureCollection", features });
+const at = (s) => Date.parse(s);
+
+ok("VTEC parse (real message) and product key", () => {
+  const v = F.parseVTEC("/O.EXP.KHNX.SV.W.0018.000000T0000Z-261119T2230Z/");
+  assert.deepStrictEqual([v.action, v.office, v.phen, v.sig, v.etn, v.begin, v.end], ["EXP", "KHNX", "SV", "W", "0018", null, "2026-11-19T22:30:00Z"]);
+  const p = F.normalizeAlert(real.features.find((f) => f.properties.messageType === "Cancel"));
+  assert.strictEqual(p.action, "CAN"); assert.match(p.id, /^KHNX\.SV\.W\.\d{4}\.2026$/);
+});
+ok("real sample: every message normalizes; all warnings have polygons; updates reference earlier messages", () => {
+  const all = real.features.map(F.normalizeAlert);
+  assert.ok(all.every(Boolean)); assert.ok(all.every((p) => p.geometry && p.kind === "warning"));
+  assert.ok(all.filter((p) => p.messageType !== "Alert").every((p) => p.references.length >= 1));
+});
+ok("new issuance -> active, covers the venue", () => {
+  const s = F.createAlertStore();
+  s.ingest(coll(msg({ sent: "2026-11-20T20:31:00Z", ends: "2026-11-20T21:15:00Z" })), "2026-11-20T20:32:00Z");
+  const [p] = s.products(at("2026-11-20T20:33:00Z"));
+  assert.strictEqual(p.status, "active"); assert.strictEqual(p.id, "KILN.TO.W.0071.2026"); assert.strictEqual(T.relation(p, VENUE).kind, "covers");
+});
+ok("update shrinks the polygon away from the venue -> near, with What changed", () => {
+  const s = F.createAlertStore();
+  s.ingest(coll(msg({ sent: "2026-11-20T20:31:00Z", ends: "2026-11-20T21:15:00Z" })), "2026-11-20T20:32:00Z");
+  s.ingest(coll(msg({ action: "CON", sent: "2026-11-20T20:52:00Z", ends: "2026-11-20T21:15:00Z", geometry: SHRUNK })), "2026-11-20T20:53:00Z");
+  const [p] = s.products(at("2026-11-20T20:54:00Z"));
+  assert.strictEqual(p.status, "active"); assert.strictEqual(T.relation(p, VENUE).kind, "near");
+  const c = T.changes(p, (x) => x);
+  assert.ok(c.lines.some((l) => /Area reduced/.test(l)) && c.lines.some((l) => /Expiration unchanged/.test(l)));
+});
+ok("extension -> later end time, reported as extended", () => {
+  const s = F.createAlertStore();
+  s.ingest(coll(msg({ sent: "2026-11-20T20:31:00Z", ends: "2026-11-20T21:15:00Z" })), "2026-11-20T20:32:00Z");
+  s.ingest(coll(msg({ action: "EXT", sent: "2026-11-20T21:05:00Z", ends: "2026-11-20T21:45:00Z" })), "2026-11-20T21:06:00Z");
+  const [p] = s.products(at("2026-11-20T21:20:00Z"));
+  assert.strictEqual(p.status, "active"); assert.strictEqual(p.expires, "2026-11-20T21:45:00.000Z");
+  assert.ok(T.changes(p, (x) => x).lines.some((l) => /extended/.test(l)));
+});
+ok("cancellation -> ended, cancelled (confirmed by the source)", () => {
+  const s = F.createAlertStore();
+  s.ingest(coll(msg({ sent: "2026-11-20T20:31:00Z", ends: "2026-11-20T21:15:00Z" })), "2026-11-20T20:32:00Z");
+  s.ingest(coll(msg({ action: "CAN", sent: "2026-11-20T20:58:00Z", ends: "2026-11-20T21:15:00Z" })), "2026-11-20T20:59:00Z");
+  const [p] = s.products(at("2026-11-20T21:00:00Z"));
+  assert.strictEqual(p.status, "ended"); assert.strictEqual(p.endedBy, "cancelled"); assert.ok(p.endedConfirmed);
+});
+ok("duplicate and out-of-order messages are ignored", () => {
+  const s = F.createAlertStore();
+  const a = msg({ sent: "2026-11-20T20:31:00Z", ends: "2026-11-20T21:15:00Z", id: "urn:A" });
+  const b = msg({ action: "CON", sent: "2026-11-20T20:52:00Z", ends: "2026-11-20T21:15:00Z", geometry: SHRUNK, id: "urn:B" });
+  s.ingest(coll(b), "2026-11-20T20:53:00Z");                // newer arrives first
+  s.ingest(coll(a, b, b), "2026-11-20T20:54:00Z");          // older one late, plus duplicates
+  const [p] = s.products(at("2026-11-20T20:55:00Z"));
+  assert.strictEqual(p.messageId, "urn:B"); assert.strictEqual(T.relation(p, VENUE).kind, "near");
+  assert.ok(s._st.ignored.some((x) => x.why === "duplicate") && s._st.ignored.some((x) => /older/.test(x.why)));
+});
+ok("two segments of one statement (CAN some counties, CON the rest): continuing part stays active", () => {
+  const s = F.createAlertStore();
+  s.ingest(coll(msg({ sent: "2026-11-20T20:31:00Z", ends: "2026-11-20T21:15:00Z" })), "2026-11-20T20:32:00Z");
+  s.ingest(coll(msg({ action: "CAN", sent: "2026-11-20T20:52:00Z", ends: "2026-11-20T21:15:00Z", geometry: null }), msg({ action: "CON", sent: "2026-11-20T20:52:00Z", ends: "2026-11-20T21:15:00Z", geometry: SHRUNK })), "2026-11-20T20:53:00Z");
+  const [p] = s.products(at("2026-11-20T20:54:00Z"));
+  assert.strictEqual(p.status, "active"); assert.strictEqual(p.action, "CON");
+});
+ok("expiration during a failed refresh -> lapsed (not cancelled); recovery confirms the end", () => {
+  const s = F.createAlertStore();
+  s.ingest(coll(msg({ sent: "2026-11-20T20:31:00Z", ends: "2026-11-20T21:15:00Z" })), "2026-11-20T20:41:00Z");
+  s.fail("2026-11-20T21:00:00Z", "HTTP 503");
+  assert.strictEqual(s.products(at("2026-11-20T21:05:00Z"))[0].status, "active");  // last known, before its end
+  assert.strictEqual(s.sourceInfo().state, "failed"); assert.strictEqual(s.sourceInfo().lastOk, "2026-11-20T20:41:00Z");
+  s.fail("2026-11-20T21:20:00Z", "timeout");
+  const lapsed = s.products(at("2026-11-20T21:20:00Z"))[0];
+  assert.strictEqual(lapsed.status, "lapsed"); assert.strictEqual(lapsed.endedBy, null);
+  assert.ok(T.expiredUnconfirmed(lapsed, { state: "failed", lastOk: "2026-11-20T20:41:00Z" }, at("2026-11-20T21:20:00Z")));
+  s.ingest(coll(), "2026-11-20T21:22:00Z");                 // source back, product not listed
+  assert.strictEqual(s.products(at("2026-11-20T21:22:00Z"))[0].status, "ended");
+});
+ok("a confirmed empty answer ends products it no longer lists", () => {
+  const s = F.createAlertStore();
+  s.ingest(coll(msg({ sent: "2026-11-20T20:31:00Z", ends: "2026-11-20T21:15:00Z" })), "2026-11-20T20:32:00Z");
+  s.ingest(coll(), "2026-11-20T20:40:00Z");
+  const [p] = s.products(at("2026-11-20T20:41:00Z"));
+  assert.strictEqual(p.status, "ended"); assert.strictEqual(p.endedBy, "no longer listed");
+  assert.strictEqual(s.sourceInfo().state, "ok");
+});
+ok("unrecognized response counts as a failure, not as empty", () => {
+  const s = F.createAlertStore();
+  s.ingest(coll(msg({ sent: "2026-11-20T20:31:00Z", ends: "2026-11-20T21:15:00Z" })), "2026-11-20T20:32:00Z");
+  s.ingest({ title: "Service unavailable" }, "2026-11-20T20:40:00Z");
+  assert.strictEqual(s.sourceInfo().state, "failed"); assert.strictEqual(s.products(at("2026-11-20T20:41:00Z"))[0].status, "active");
+});
+
+/* ---------- watches and county-only coverage (FIXTURE-TESTED: no live watch sample yet) ---------- */
+const zoneShape = JSON.parse(fs.readFileSync(FX("nws-zone-OHC061.json"), "utf8")).geometry;  // real Hamilton County OH shape
+const watchFixture = () => msg({ event: "Tornado Watch", phen: "TO", sig: "A", etn: "0612", sent: "2026-11-20T18:55:00Z", ends: "2026-11-21T02:00:00Z", geometry: null,
+  zones: ["https://api.weather.gov/zones/county/OHC061", "https://api.weather.gov/zones/county/KYC117"] });
+ok("watch fixture: county-only, titled with its number", () => {
+  const p = F.normalizeAlert(watchFixture());
+  assert.strictEqual(p.kind, "watch"); assert.strictEqual(p.title, "Tornado Watch 612"); assert.strictEqual(p.geometry, null); assert.strictEqual(p.geometrySource, "counties");
+  assert.strictEqual(T.relation(p, VENUE).kind, "unknown");
+});
+const resolvedCases = [
+  ok("county shapes resolve -> drawn from counties; venue inside a resolved county is covered", async () => {
+    const p = F.normalizeAlert(watchFixture());
+    const r = await F.resolveZones(p, (u) => /OHC061/.test(u) ? Promise.resolve(zoneShape) : Promise.reject(Error("404")));
+    assert.strictEqual(r.incomplete, true); assert.strictEqual(r.resolved, 1);
+    const q = { ...p, geometry: r.geometry, geometryIncomplete: r.incomplete };
+    assert.strictEqual(T.relation(q, VENUE).kind, "covers");
+    // a venue outside the drawn county stays unknown while another listed county is unresolved
+    const covington = { lat: 39.0837, lon: -84.5086 };  // Kenton County KY (KYC117, the unresolved one)
+    const rel = T.relation(q, covington);
+    assert.strictEqual(rel.kind, "unknown"); assert.match(T.relationText(rel, q), /could not be drawn/);
+  }),
+  ok("all counties resolved -> a normal inside/outside answer", async () => {
+    const p = F.normalizeAlert(watchFixture());
+    const r = await F.resolveZones(p, () => Promise.resolve(zoneShape));
+    assert.strictEqual(r.incomplete, false);
+    assert.strictEqual(T.relation({ ...p, geometry: r.geometry, geometryIncomplete: false }, { lat: 39.76, lon: -84.19 }).kind, "outside");
+  }),
+];
+
+/* ---------- SPC outlooks (real Day 1 sample) ---------- */
+const d1 = JSON.parse(fs.readFileSync(FX("spc-day1-cat-20261120.geojson"), "utf8"));
+ok("SPC Day 1: categories, issue and valid times from the feed", () => {
+  const o = F.parseOutlook(d1, 1);
+  assert.deepStrictEqual(o.products.map((p) => p.category), ["TSTM", "MRGL"]);
+  assert.strictEqual(o.issued, "2026-11-20T16:24:00.000Z"); assert.strictEqual(o.validStart, "2026-11-20T16:30:00.000Z"); assert.strictEqual(o.validEnd, "2026-11-21T12:00:00.000Z");
+});
+ok("SPC outlook rollover: past its valid end the old issuance is not drawn; a failed fetch keeps the last good one", () => {
+  const s = F.createOutlookStore(1);
+  s.ingest(d1, "2026-11-20T19:00:00Z");
+  assert.strictEqual(s.current(at("2026-11-20T20:00:00Z")).status, "current");
+  s.fail("2026-11-20T20:10:00Z", "HTTP 500");
+  assert.strictEqual(s.current(at("2026-11-20T20:10:00Z")).products.length, 2); assert.strictEqual(s.sourceInfo().state, "failed");
+  const late = s.current(at("2026-11-21T12:05:00Z"));
+  assert.strictEqual(late.status, "expired"); assert.strictEqual(late.products.length, 0);
+  s.ingest({ nope: 1 }, "2026-11-21T12:10:00Z"); assert.strictEqual(s.sourceInfo().state, "failed");
+});
+
+/* ---------- SPC MDs (real list page and MD text; active list is a fixture) ---------- */
+const listEmpty = fs.readFileSync(FX("spc-md-list-empty-20261120.html"), "utf8");
+ok("MD list: real 'none in effect' page is a confirmed empty (the 'most recent' link is not active)", () => {
+  const r = F.parseMDList(listEmpty); assert.strictEqual(r.state, "empty"); assert.deepStrictEqual(r.numbers, []);
+});
+ok("MD list: active entries are read from the current-MD image map (FIXTURE: active markup not yet seen live)", () => {
+  const html = listEmpty.replace('<map name="mdimgmap">\n </map>', '<map name="mdimgmap"><area shape="poly" coords="1,2,3" href="/products/md/md2459.html" title="MD 2459"></map>').replace(/<center>No Mesoscale[^<]*<\/center>/, "");
+  const r = F.parseMDList(html); assert.strictEqual(r.state, "list"); assert.deepStrictEqual(r.numbers, [2459]);
+});
+ok("MD list: anything else is unrecognized, never empty", () => {
+  assert.strictEqual(F.parseMDList("<html>maintenance</html>").state, "unrecognized");
+  assert.strictEqual(F.parseMDList(null).state, "unrecognized");
+});
+ok("MD text: real MD 2458 -> valid window and polygon", () => {
+  const p = F.parseMD(fs.readFileSync(FX("spc-md2458.html"), "utf8"), 2458);
+  assert.strictEqual(p.number, 2458); assert.strictEqual(p.validStart, "2026-11-19T18:41:00.000Z"); assert.strictEqual(p.expires, "2026-11-19T21:45:00.000Z");
+  assert.deepStrictEqual(p.geometry.coordinates[0][0], [-119.46, 37.3]); assert.match(p.area, /San Joaquin/); assert.ok(p.severe);
+  assert.throws(() => F.parseMD("<pre>Mesoscale Discussion 1</pre>"), /unrecognized/);
+});
+ok("NOAA MD service: the real NoArea placeholder is empty; other shapes are unrecognized or listed", () => {
+  const r = F.parseMDService(JSON.parse(fs.readFileSync(FX("noaa-md-service-noarea.json"), "utf8")));
+  assert.strictEqual(r.state, "empty"); assert.strictEqual(r.placeholder, true);
+  assert.strictEqual(F.parseMDService({ error: { code: 500 } }).state, "unrecognized");
+});
+
+Promise.all(resolvedCases).then(() => console.log(n + " passed")).catch((e) => { console.error(e); process.exit(1); });

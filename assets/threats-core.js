@@ -96,7 +96,10 @@
     if (!venue) return { kind: "none" };
     const pt = [venue.lon, venue.lat];
     if (!product.geometry || !polygonsOf(product.geometry).length) return { kind: "unknown" };
-    if (contains(product.geometry, pt)) {
+    const inside = contains(product.geometry, pt);
+    // county-only product with counties still unresolved: a venue outside the drawn part could still be covered
+    if (!inside && product.geometryIncomplete) return { kind: "unknown", partial: true };
+    if (inside) {
       const e = nearestEdge(product.geometry, pt);
       return { kind: "covers", edgeKm: e ? e.km : null };
     }
@@ -120,7 +123,7 @@
         if (kind === "md") return "Discussion area " + distanceText(rel.km) + " " + rel.dir + " of the venue";
         return capital(distanceText(rel.km)) + " " + rel.dir + " of the venue · the venue is outside the " + noun + " area";
       case "outside": return rel.km == null ? "Does not include the venue" : "Does not include the venue (" + Math.round(miles(rel.km)) + " mi " + rel.dir + ")";
-      case "unknown": return "Area not drawn by the source · check the listed counties";
+      case "unknown": return rel.partial ? "Unknown: some listed counties could not be drawn · check the county list" : "Area not drawn by the source · check the listed counties";
       default: return "No venue selected";
     }
   }

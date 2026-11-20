@@ -3,10 +3,9 @@
    This preview runs on DEMO fixtures only (assets/threats-demo.js); live feeds come after the layout is approved. */
 (function () {
   "use strict";
-  const O = window.Ops, T = window.ThreatsCore, Demo = window.ThreatsDemo, G = window.SevereResearchContours;
+  const O = window.Ops, T = window.ThreatsCore, Demo = window.ThreatsDemo, G = window.SevereResearchContours, Live = window.ThreatsLive;
   const $ = (id) => document.getElementById(id), esc = O.esc;
   O.shell("threats", "Weather threats", { forecastPoint: false, subtitle: "Preview · severe weather · demo data" });
-  O.setChip("DEMO DATA", "warn", "Fictional products for layout review");
 
   const CITIES = [["Seattle", 47.61, -122.33], ["Portland", 45.52, -122.68], ["San Francisco", 37.77, -122.42], ["Los Angeles", 34.05, -118.24], ["Las Vegas", 36.17, -115.14], ["Phoenix", 33.45, -112.07], ["Salt Lake City", 40.76, -111.89], ["Denver", 39.74, -104.99], ["Albuquerque", 35.08, -106.65], ["Dallas", 32.78, -96.80], ["Houston", 29.76, -95.37], ["San Antonio", 29.42, -98.49], ["Oklahoma City", 35.47, -97.52], ["Kansas City", 39.10, -94.58], ["Omaha", 41.26, -95.93], ["Des Moines", 41.59, -93.62], ["Minneapolis", 44.98, -93.27], ["Chicago", 41.88, -87.63], ["St. Louis", 38.63, -90.20], ["Memphis", 35.15, -90.05], ["Tupelo", 34.26, -88.70], ["New Orleans", 29.95, -90.07], ["Nashville", 36.16, -86.78], ["Huntsville", 34.73, -86.59], ["Louisville", 38.25, -85.76], ["Indianapolis", 39.77, -86.16], ["Cincinnati", 39.10, -84.51], ["Columbus", 39.96, -83.00], ["Dayton", 39.76, -84.19], ["Lexington", 38.04, -84.50], ["Detroit", 42.33, -83.05], ["Cleveland", 41.50, -81.69], ["Pittsburgh", 40.44, -80.00], ["Charleston WV", 38.35, -81.63], ["Atlanta", 33.75, -84.39], ["Birmingham", 33.52, -86.80], ["Jackson", 32.30, -90.18], ["Charlotte", 35.23, -80.84], ["Raleigh", 35.78, -78.64], ["Washington", 38.90, -77.04], ["Philadelphia", 39.95, -75.17], ["New York", 40.71, -74.01], ["Boston", 42.36, -71.06], ["Jacksonville", 30.33, -81.66], ["Tampa", 27.95, -82.46], ["Miami", 25.76, -80.19]];
   const ST = { Cincinnati: "OH", Louisville: "KY", Dayton: "OH", Tupelo: "MS", Huntsville: "AL", Birmingham: "AL", Dallas: "TX", "Des Moines": "IA", Memphis: "TN", Nashville: "TN", "Oklahoma City": "OK" };
@@ -16,8 +15,8 @@
   const SCOPE_NOTE = "This page covers NWS tornado and severe thunderstorm warnings and watches, SPC Mesoscale Discussions and SPC severe outlooks in the contiguous U.S.";
   const empty = { type: "FeatureCollection", features: [] };
 
-  const S = { scenario: "overlap", venueKey: "inside", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
-  let data, now, venue, map, ready = false, marker, grid = null, mesh = null, mask = null, gridLoading = null, hull = null;
+  const S = { scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
+  let data, now, venue, map, ready = false, liveReady = false, meshes = new Map(), tzCache = {}, marker, grid = null, mesh = null, mask = null, gridLoading = null, hull = null;
   const phone = () => matchMedia("(max-width: 760px)").matches;
   const light = () => document.documentElement.getAttribute("data-theme") === "light";
 
@@ -50,9 +49,26 @@
   // minutes since the last successful check before a source counts as stale (outlooks change a few times a day)
   const STALE_MIN = { alerts: 10, md: 15, day1: 60, day2: 60 };
   const SRC_NAME = { alerts: "NWS warnings and watches", md: "SPC Mesoscale Discussions", day1: "SPC Day 1 outlook", day2: "SPC Day 2 outlook" };
+  const isLive = () => S.scenario === "live";
+  /* live venues: the Forecast Ops point, its built-in places and Event Manager's saved venues */
+  function liveVenues() {
+    const L = O.location, split = (n) => { const i = n.indexOf(", "); return i > 0 ? [n.slice(0, i), n.slice(i + 2)] : [n, ""]; };
+    const list = [{ id: "fp", label: "Forecast point: " + L.name, name: split(L.name)[0], city: split(L.name)[1], lat: +L.lat, lon: +L.lon }];
+    (O.PRESETS || []).forEach((x, i) => list.push({ id: "p" + i, label: x[0], name: split(x[0])[0], city: split(x[0])[1], lat: x[1], lon: x[2] }));
+    try { (JSON.parse(localStorage.getItem("beta_venues_v1") || "[]") || []).forEach((v) => { if (v && isFinite(+v.lat) && isFinite(+v.lon) && v.lat !== null) list.push({ id: "ev-" + v.id, label: "Event venue: " + v.name, name: v.name, city: v.city || "", lat: +v.lat, lon: +v.lon, tz: v.tz }); }); } catch (e) { /* no storage */ }
+    return list;
+  }
+  function withTz(v) {
+    const k = v.lat.toFixed(3) + "," + v.lon.toFixed(3);
+    if (!v.tz && !tzCache[k]) { tzCache[k] = "pending"; O.zoneFor(v.lat, v.lon).then((z) => { tzCache[k] = z; load(); drawAll(); }).catch(() => { tzCache[k] = "America/New_York"; }); }
+    return { ...v, tz: v.tz || (tzCache[k] && tzCache[k] !== "pending" ? tzCache[k] : "America/New_York") };
+  }
   function load() {
-    data = Demo.scenario(S.scenario); now = Date.parse(data.clock); venue = S.entryVenue || data.venues[S.venueKey];
-    data.state = {}; for (const k of Object.keys(data.sources)) data.state[k] = T.sourceState(data.sources[k], now, STALE_MIN[k]);
+    if (isLive()) {
+      data = Live.snapshot(); data.loading = !liveReady; now = Date.parse(data.clock);
+      venue = withTz(S.entryVenue || liveVenues().find((v) => v.id === S.liveVenue) || liveVenues()[0]);
+    } else { data = Demo.scenario(S.scenario); now = Date.parse(data.clock); venue = S.entryVenue || data.venues[S.venueKey]; }
+    data.state = {}; for (const k of Object.keys(data.sources)) data.state[k] = data.loading ? { kind: "loading", text: "Loading" } : T.sourceState(data.sources[k], now, STALE_MIN[k]);
   }
   const tz = () => venue.tz;
   const t = (iso, day) => T.fmtTime(iso, tz(), { day });
@@ -70,6 +86,7 @@
   const venueCovers = () => T.sort(active().filter((p) => rel(p).kind === "covers"));
   const venueNear = () => T.sort(active().filter((p) => rel(p).kind === "near"));
   const activeKnown = () => ["alerts", "md"].every((k) => ["current", "empty"].includes(data.state[k].kind));
+  const SRC_LINK = { alerts: "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch", md: "https://www.spc.noaa.gov/products/md/", day1: "https://www.spc.noaa.gov/products/outlook/day1otlk.html", day2: "https://www.spc.noaa.gov/products/outlook/day2otlk.html" };
 
   /* ---------- map ---------- */
   async function getJSON(path) { const r = await fetch(path); if (!r.ok) throw Error(path + " " + r.status); return r.json(); }
@@ -189,22 +206,39 @@
     }).catch((e) => { gridLoading = null; throw e; });
     return gridLoading;
   }
+  /* the model field for a day: live = the Severe viewer's published, checksummed daily run; demo = invented values.
+     null values are "no guidance" (masked), never zero. */
+  function modelField(day) {
+    if (isLive()) {
+      const m = data.model;
+      if (!m || m.state === "never") return { reason: "Loading our research model…" };
+      if (m.state !== "ok") return { reason: "Research model unavailable (" + m.error + ")" };
+      const r = m.runs[day];
+      if (!r || !r.values) return { reason: r ? r.reason : "No Day " + day + " run" };
+      return { grid: m.grid, hull: m.hull, values: r.values[S.hazard], run: r.run, version: r.version };
+    }
+    if (!grid) return { reason: "Loading our research model…" };
+    return { grid, hull, values: Demo.modelValues(grid, day, S.hazard).map((v, i) => (mask.has(i) ? null : v)), demo: true };
+  }
+  const meshFor = (g) => { if (!meshes.has(g)) meshes.set(g, G.mesh(g)); return meshes.get(g); };
   function drawModel() {
     if (!ready) return;
-    const day = viewDay(), on = day && S.model && grid;
-    if (!on) { ["m-fill", "m-lines", "m-outside", "m-hull"].forEach((s) => map.getSource(s).setData(empty)); return; }
-    const values = Demo.modelValues(grid, day, S.hazard).map((v, i) => (mask.has(i) ? null : v));
-    map.getSource("m-fill").setData(G.contours(mesh, values));
-    map.getSource("m-lines").setData(G.isolines(mesh, values));
-    map.getSource("m-outside").setData({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [[[-140, 10], [-50, 10], [-50, 62], [-140, 62], [-140, 10]], hull.slice().reverse()] } });
-    map.getSource("m-hull").setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: hull } });
+    const day = viewDay(), f = day && S.model ? modelField(day) : null;
+    if (!f || !f.values) { ["m-fill", "m-lines", "m-outside", "m-hull"].forEach((s) => map.getSource(s).setData(empty)); return; }
+    const m = meshFor(f.grid);
+    map.getSource("m-fill").setData(G.contours(m, f.values));
+    map.getSource("m-lines").setData(G.isolines(m, f.values));
+    if (f.hull) {
+      map.getSource("m-outside").setData({ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [[[-140, 10], [-50, 10], [-50, 62], [-140, 62], [-140, 10]], f.hull.slice().reverse()] } });
+      map.getSource("m-hull").setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: f.hull } });
+    }
   }
   function modelAtVenue(day) {
-    if (!grid) return null;
+    const f = modelField(day); if (!f.values) return { reason: f.reason };
     let best = -1, bd = Infinity;
-    grid.forEach(([x, y], i) => { const d = Math.hypot((x - venue.lon) * Math.cos((venue.lat * Math.PI) / 180), y - venue.lat); if (d < bd) { bd = d; best = i; } });
-    if (bd * 111 > 20 || mask.has(best)) return { none: true };
-    return { p: Demo.modelValues([grid[best]], day, S.hazard)[0] };
+    f.grid.forEach(([x, y], i) => { const d = Math.hypot((x - venue.lon) * Math.cos((venue.lat * Math.PI) / 180), y - venue.lat); if (d < bd) { bd = d; best = i; } });
+    if (bd * 111 > 20 || f.values[best] == null) return { none: true, f };
+    return { p: f.values[best], f };
   }
 
   /* ---------- panel ---------- */
@@ -218,16 +252,20 @@
       + `<span class="tx-kind k-${p.kind}">${KIND_WORD[p.kind]}</span><b>${esc(title)}</b>`
       + `<span class="tx-meta">${esc(when)}</span>`
       + (showRel ? `<span class="tx-rel ${r.kind}">${esc(relText(p))}</span>` : "")
+      + (p.geometrySource === "counties" ? `<span class="tx-meta">${esc(countyText(p))}</span>` : "")
       + (u ? lastKnown(u) : "") + (opts.tag ? `<span class="tx-tag">${esc(opts.tag)}</span>` : "")
       + `</span></button>`;
   }
+  const countyText = (p) => !p.zoneInfo ? "Area: listed counties (shapes loading)" : p.geometryIncomplete ? "Area drawn from " + p.zoneInfo.resolved + " of " + p.zoneInfo.listed + " listed counties" : "Area drawn from " + p.zoneInfo.listed + " listed counties";
   function sources() {
     const rows = ["alerts", "md", "day1", "day2"].map((k) => {
       const s = data.state[k], src = data.sources[k];
-      const right = s.kind === "unavailable" ? "Not responding · status unknown" : s.kind === "stale" ? "Last confirmed " + t(src.lastOk) : "Checked " + t(src.lastOk) + (k.startsWith("day") ? "" : s.kind === "empty" ? " · none active" : "");
-      return `<div class="px-src ${s.kind}"><span><b>${esc(SRC_NAME[k])}</b></span><span>${esc(right)}</span></div>`;
+      const right = s.kind === "loading" ? "Loading…" : s.kind === "unavailable" ? "Not responding · status unknown" : s.kind === "stale" ? "Last confirmed " + t(src.lastOk) : "Checked " + t(src.lastOk) + (k.startsWith("day") ? (src.outlook === "expired" ? " · expired, awaiting next issuance" : "") : s.kind === "empty" ? " · none active" : "");
+      const name = isLive() ? `<a href="${esc(SRC_LINK[k])}" target="_blank" rel="noopener">${esc(SRC_NAME[k])}</a>` : esc(SRC_NAME[k]);
+      return `<div class="px-src ${s.kind}"${src.error ? ` title="${esc(src.error)}"` : ""}><span><b>${name}</b></span><span>${esc(right)}</span></div>`;
     }).join("");
-    return `<div class="px-sources" aria-label="Source status">${rows}<div class="lg-note">Demo clock ${esc(t(data.clock, true))}. A failed refresh never clears a product.</div></div>`;
+    const foot = isLive() ? `Live official feeds, fetched by your browser. Alerts and MDs refresh every minute, outlooks every 10 minutes. Times in ${esc(venue.tz)}. A failed refresh never clears a product.` : `Demo clock ${esc(t(data.clock, true))}. A failed refresh never clears a product.`;
+    return `<div class="px-sources" aria-label="Source status">${rows}<div class="lg-note">${foot}</div></div>`;
   }
   function notices() {
     const out = [];
@@ -236,6 +274,9 @@
       if (s.kind === "unavailable") out.push(`<div class="px-notice"><b>${esc(SRC_NAME[k])}: status unknown.</b> The source has not responded since this page opened, so we can't say whether any are active. Other sources are still shown.</div>`);
       else if (s.kind === "stale") out.push(`<div class="px-notice"><b>${esc(SRC_NAME[k])}: last confirmed ${esc(t(data.sources[k].lastOk))}.</b> The source is not responding. Products from the last good check stay on the map as "last known" until their published expiration.</div>`);
     }
+    for (const p of data.ended || []) { const r = rel(p); if (!["covers", "near"].includes(r.kind)) continue;
+      out.push(`<div class="px-notice info"><b>${esc(p.title)} ${p.endedBy === "cancelled" ? "cancelled by NWS" : p.endedBy === "no longer listed" ? "no longer listed by NWS" : p.endedBy === "upgraded" ? "replaced by a new product" : "ended"} at ${esc(t(p.ended || p.expires))}.</b> It ${r.kind === "covers" ? "covered" : "was near"} the venue.</div>`); }
+    for (const o of [1, 2]) if (data.sources["day" + o].outlook === "expired") out.push(`<div class="px-notice"><b>SPC Day ${o} outlook expired at ${esc(t(data.sources["day" + o].validEnd))}.</b> It is no longer drawn; waiting for SPC's next issuance.</div>`);
     for (const p of lapsed()) out.push(`<div class="px-notice"><b>${esc(p.title)} reached its published expiration (${esc(t(p.expires))}).</b> It is no longer shown as active. We could not confirm it with NWS after ${esc(t(data.sources[SRC_OF(p)].lastOk))}, so current status, including any new warning, is unknown.</div>`);
     return out.join("");
   }
@@ -317,7 +358,11 @@
       h += `<div class="px-brief"><div class="px-where">Day ${day} at ${esc(venue.name)} · highest SPC category</div><div class="px-big">${at ? esc(T.outlookLabel(at.category)) : "No severe risk area"}</div>`
         + `<div class="px-sub">${top ? "Valid " + esc(t(top.validStart, true)) + " → " + esc(t(top.validEnd, true)) : ""}</div>`;
       if (lower.length) h += `<div class="px-also">The venue is also inside the surrounding lower areas (${lower.map((o) => esc(T.OUTLOOK_NAME[o.category].toLowerCase())).join(", ")}). Details below.</div>`;
-      if (S.model) { const m = modelAtVenue(day); h += m ? `<div class="px-also">Our research model, ${esc(S.hazard === "wind" ? "severe wind" : S.hazard === "hail" ? "severe hail" : "tornado")} within 25 mi: <b style="color:var(--text)">${m.none ? "no guidance here" : (m.p * 100).toFixed(m.p < 0.1 ? 1 : 0) + "%"}</b> · experimental, demo values</div>` : `<div class="px-also">Loading research model…</div>`; }
+      if (S.model) {
+        const m = modelAtVenue(day), hz = S.hazard === "wind" ? "severe wind" : S.hazard === "hail" ? "severe hail" : "tornado";
+        h += m.reason ? `<div class="px-also">Our research model: ${esc(m.reason)}</div>`
+          : `<div class="px-also">Our research model, ${esc(hz)} within 25 mi: <b style="color:var(--text)">${m.none ? "no guidance here (outside its coverage)" : m.p < 0.001 ? "below 0.1%" : (m.p * 100).toFixed(m.p < 0.1 ? 1 : 0) + "%"}</b> · experimental${m.f.demo ? ", demo values" : ""}${m.f.run ? `<br>Model window ${esc(t(m.f.run.valid_start, true))} → ${esc(t(m.f.run.valid_end, true))} · run ${esc(T.fmtZ(m.f.run.model_init_time))} · ${esc(m.f.version || "")}` : ""}</div>`;
+      }
       h += `</div>`;
     } else {
       h += venueStrip();
@@ -350,6 +395,7 @@
     const rows = [];
     if (p.hazard) rows.push(["Hazard", esc(p.hazard)]);
     rows.push(["Area", esc(p.kind === "outlook" ? T.outlookLabel(p.category) + " area" : p.area)]);
+    if (p.geometrySource === "counties") rows.push(["Area shape", esc(countyText(p)) + (p.geometryIncomplete ? "<br>Venue relationship is unknown where counties are missing." : "")]);
     rows.push(["Issued", esc(t(p.issued, true)) + ` <span class="mono" style="color:var(--muted)">${esc(T.fmtZ(p.issued))}</span>`]);
     if (p.updated && p.updated !== p.issued) rows.push(["Updated", esc(t(p.updated, true))]);
     if (p.kind === "outlook" || p.kind === "md") rows.push(["Valid", esc(t(p.validStart, true)) + " → " + esc(t(endOf(p), true)) + ` <span class="mono" style="color:var(--muted)">${esc(T.fmtZ(p.validStart))}–${esc(T.fmtZ(endOf(p)))}</span>`]);
@@ -358,14 +404,14 @@
     if (ch) rows.push(["What changed", `<span style="color:var(--muted)">Since ${esc(t(ch.since))}:</span><ul>${ch.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>`]);
     if (u) rows.push(["Status", `${lastKnown(u)}<br>Shown as last known until its published expiration or a successful refresh.`]);
     rows.push(["Issued by", esc(p.office)]);
-    rows.push(["Source", esc(p.source.name) + ` <span style="color:var(--muted)">· demo product, no live link</span>`]);
-    const bulletin = p.bulletin || (p.kind === "outlook" ? "Day " + p.day + " Convective Outlook\nNWS Storm Prediction Center Norman OK\n\n(DEMO: the outlook discussion text appears here in the beta.)" : p.event + "\n" + p.office + "\n\n(DEMO: the full bulletin text appears here in the beta.)");
+    rows.push(["Source", isLive() ? `<a href="${esc(p.source.url)}" target="_blank" rel="noopener">${esc(p.source.name)}</a>` : esc(p.source.name) + ` <span style="color:var(--muted)">· demo product, no live link</span>`]);
+    const bulletin = p.bulletin || (isLive() && p.kind === "outlook" ? "SPC Day " + p.day + " Convective Outlook\nIssued " + T.fmtZ(p.issued) + " · valid " + T.fmtZ(p.validStart) + "–" + T.fmtZ(p.validEnd) + "\n\nRead the forecaster discussion: " + p.source.url : p.kind === "outlook" ? "Day " + p.day + " Convective Outlook\nNWS Storm Prediction Center Norman OK\n\n(DEMO: the outlook discussion text appears here in the beta.)" : p.event + "\n" + p.office + "\n\n(DEMO: the full bulletin text appears here in the beta.)");
     return `<button type="button" class="px-back" data-back>← Back</button>`
       + `<div style="--tx-c:${colorOf(p)}">${swatch(p, 40)} <span class="tx-kind k-${p.kind}">${KIND_WORD[p.kind]}</span></div>`
       + `<div class="px-title">${esc(p.kind === "outlook" ? "Day " + p.day + " outlook · " + T.outlookLabel(p.category) : p.title)}</div>`
       + (p.headline ? `<p class="px-headline">${esc(p.headline)}</p>` : "")
       + `<dl class="px-rows">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>`
-      + `<details class="px-bulletin"><summary>${p.kind === "outlook" ? "Read the outlook discussion" : "Read the official bulletin"}</summary><pre>${esc(bulletin)}</pre><div class="lg-note">${esc(Demo.BULLETIN_NOTE)}</div></details>`;
+      + `<details class="px-bulletin"><summary>${p.kind === "outlook" ? "Read the outlook discussion" : "Read the official bulletin"}</summary><pre>${esc(bulletin)}</pre><div class="lg-note">${isLive() ? (p.kind === "outlook" ? "Full discussion on the SPC page linked above." : "Official text as received from " + (p.kind === "md" ? "SPC" : "NWS") + ".") : esc(Demo.BULLETIN_NOTE)}</div></details>`;
   }
   /* collapsed phone sheet: two lines so a warning's expiration always survives */
   function peek() {
@@ -378,10 +424,12 @@
     return [a.head.replace("at the venue", "at " + venue.name), a.sub, b ? b.head + (b.at ? "" : " · venue outside it") : ""];
   }
   function renderPanel() {
-    const body = $("txPanelBody"), p = S.sel && byId(S.sel);
+    const body = $("txPanelBody"), p = S.sel && byId(S.sel), keep = body.scrollTop, focusId = document.activeElement && body.contains(document.activeElement) && document.activeElement.dataset ? document.activeElement.dataset.id : null;
+    if (data.loading) { body.innerHTML = `<p class="px-empty">Loading official feeds: NWS warnings and watches, SPC Mesoscale Discussions and SPC outlooks…</p>` + sources(); $("txPeek1").textContent = "Loading official feeds…"; $("txPeek2").textContent = ""; return; }
     body.innerHTML = (p ? detail(p) : S.point ? pointPanel() : viewDay() ? dayPanel(viewDay()) : S.scope === "venue" ? venueActive() : nationalActive()) + sources();
     document.querySelectorAll("[data-scope]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scope === S.scope)));
     $("scopeVenue").textContent = "Venue · " + venue.name;
+    body.scrollTop = keep; if (focusId) { const el = body.querySelector(`[data-id="${CSS.escape(focusId)}"]`); if (el) el.focus({ preventScroll: true }); }
     const [a, b, c] = peek(), L = !S.sel && !viewDay() ? statusLines() : [];
     $("txPeek1").textContent = a; $("txPeek2").textContent = b; $("txPeek3").textContent = c || ""; $("txPeek3").hidden = !c; { const nw = L.find((l, i) => i > 0 && l.p.kind === "warning"); $("txPeek3").style.setProperty("--tx-near", nw ? colorOf(nw.p) : "transparent"); }
     $("txPeek").style.setProperty("--peek-c", L[0] && L[0].p.kind === "warning" ? colorOf(L[0].p) : L[0] ? colorOf(L[0].p) : "transparent");
@@ -415,7 +463,7 @@
     else if (day === 1) h += `<div><div class="lg-h">Active now</div>${lgLine(fake("warning", "Tornado"), "Current warnings, dashed outline")}</div>`;
     if (day || S.ctx) h += `<div><div class="lg-h">SPC Day ${day || 1} outlook${day ? "" : " · outlines"}</div><div class="lg-bands">${T.OUTLOOK.map((c) => `<span class="lg-band" title="${esc(T.outlookLabel(c))}"><i style="background:${OUTLOOK_COLOR[c]}"></i>${c}${T.OUTLOOK_LEVEL[c] ? `<small>${T.OUTLOOK_LEVEL[c]}</small>` : ""}</span>`).join("")}</div><div class="lg-note">Risk level 1–5 · TSTM: thunderstorms, no severe risk</div></div>`;
     if (!day) h += `<label class="lg-toggle"><input type="checkbox" id="ctxChk"${S.ctx ? " checked" : ""}> Day 1 outlook outlines</label>`;
-    if (day && S.model) h += `<div><div class="lg-h">Our research model · ${esc(S.hazard)} within 25 mi</div><div class="lg-bands">${G.BANDS.map(([, c, l]) => `<span class="lg-band"><i style="background:${c}"></i>${l}</span>`).join("")}</div><div class="lg-note">Experimental Forecast Ops guidance, not an official forecast. Demo values. Light hatching: no model guidance here.</div></div>`;
+    if (day && S.model) h += `<div><div class="lg-h">Our research model · ${esc(S.hazard)} within 25 mi</div><div class="lg-bands">${G.BANDS.map(([, c, l]) => `<span class="lg-band"><i style="background:${c}"></i>${l}</span>`).join("")}</div><div class="lg-note">Experimental Forecast Ops guidance, not an official forecast${isLive() ? "" : ". Demo values"}. Uncolored: below 0.1% (low). Light hatching: no model guidance (outside its grid or over water), not a low value.</div>${(() => { const f = modelField(day); return f.values ? "" : `<div class="lg-note"><b>${esc(f.reason)}</b></div>`; })()}</div>`;
     if (S.scope === "venue") h += `<div class="lg-row"><svg width="28" height="10" aria-hidden="true"><line x1="1" y1="5" x2="27" y2="5" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3"/></svg><span>${Math.round(T.miles(T.NEAR_KM))}-mile "nearby" ring</span></div>`;
     $("txLegendBody").innerHTML = h;
     const cc = $("ctxChk"); if (cc) cc.addEventListener("change", () => { S.ctx = cc.checked; drawAll(); });
@@ -437,11 +485,12 @@
       else map.fitBounds(CONUS, { padding: pad(), duration: 600 });
     }
   }
-  function setView(v) {
-    S.view = v; S.sel = null; S.point = null;
-    if (viewDay() && S.model) loadGrid().then(drawAll).catch(() => {});
-    drawAll();
+  function startModel() {
+    if (!S.model || !viewDay()) return;
+    if (isLive()) Live.startModel().then(() => { load(); drawAll(); });
+    else loadGrid().then(drawAll).catch(() => { $("txValid").insertAdjacentHTML("beforeend", " · research model unavailable"); });
   }
+  function setView(v) { S.view = v; S.sel = null; S.point = null; startModel(); drawAll(); }
   function setSheet(state) {
     S.sheet = state; $("txPanel").dataset.sheet = state;
     $("txSheetBtn").setAttribute("aria-expanded", String(state === "open")); $("txSheetBtn").textContent = state === "open" ? "Close" : "Details";
@@ -464,13 +513,33 @@
   $("txPanel").addEventListener("mouseleave", () => { if (S.hover) { S.hover = null; drawMap(); } });
   document.querySelectorAll("[data-scope]").forEach((b) => b.addEventListener("click", () => setScope(b.dataset.scope, true)));
   document.querySelectorAll(".tx-tb").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
-  $("modelChk").addEventListener("change", () => { S.model = $("modelChk").checked; if (S.model) loadGrid().then(drawAll).catch(() => { $("txValid").insertAdjacentHTML("beforeend", " · research model unavailable"); }); drawAll(); });
+  $("modelChk").addEventListener("change", () => { S.model = $("modelChk").checked; startModel(); drawAll(); });
   document.querySelectorAll(".tx-hb").forEach((b) => b.addEventListener("click", () => { S.hazard = b.dataset.hz; drawAll(); }));
   $("txChips").addEventListener("click", (e) => { const v = e.target.closest("[data-view-go]"); if (v) setView(v.dataset.viewGo); if (e.target.closest("[data-sources]")) { S.sel = null; S.point = null; openSheet(); drawAll(); const s = document.querySelector(".px-sources"); if (s) s.scrollIntoView({ block: "nearest" }); } });
   $("txSheetBtn").addEventListener("click", () => setSheet(S.sheet === "open" ? "peek" : "open"));
   $("txPeek").addEventListener("click", () => setSheet("open"));
-  $("demoScenario").addEventListener("change", () => { S.scenario = $("demoScenario").value; S.sel = null; S.point = null; load(); drawAll(); });
-  $("demoVenue").addEventListener("change", () => { S.venueKey = $("demoVenue").value; S.entryVenue = null; S.sel = null; S.point = null; load(); drawAll(); if (S.scope === "venue" && map) map.easeTo({ center: [venue.lon, venue.lat], padding: pad(), duration: 400 }); });
+  /* top bar: live preview vs fictional demo, and the matching venue choices */
+  function renderBar() {
+    const live = isLive();
+    $("txBadge").textContent = live ? "LIVE PREVIEW" : "DEMO DATA"; $("txBadge").classList.toggle("live", live);
+    $("txDemo").classList.toggle("live", live);
+    $("txBarText").textContent = live ? "Branch preview of official NWS and SPC feeds. Not for operational decisions." : "Fictional products for layout review. Nothing here was issued by NWS or SPC.";
+    const opts = live ? [...(S.entryVenue ? [{ id: "entry", label: "Linked venue: " + S.entryVenue.name }] : []), ...liveVenues()] : [{ id: "inside", label: "Inside the warning" }, { id: "edge", label: "Near the warning edge" }, { id: "outside", label: "Outside the warning" }];
+    $("demoVenue").innerHTML = opts.map((o) => `<option value="${esc(o.id)}">${esc(o.label)}</option>`).join("");
+    $("demoVenue").value = live ? (S.entryVenue ? "entry" : S.liveVenue) : S.venueKey;
+    $("demoScenario").value = S.scenario;
+    O.setChip(live ? "LIVE PREVIEW" : "DEMO DATA", live ? "live" : "warn", live ? "Official feeds, branch preview" : "Fictional products for layout review");
+  }
+  $("demoScenario").addEventListener("change", () => {
+    S.scenario = $("demoScenario").value; S.sel = null; S.point = null;
+    if (isLive()) Live.start().then(() => { liveReady = true; load(); drawAll(); });
+    renderBar(); load(); startModel(); drawAll();
+  });
+  $("demoVenue").addEventListener("change", () => {
+    const v = $("demoVenue").value;
+    if (isLive()) { if (v !== "entry") { S.entryVenue = null; S.liveVenue = v; } } else { S.venueKey = v; S.entryVenue = null; }
+    S.sel = null; S.point = null; load(); renderBar(); drawAll(); if (S.scope === "venue" && map) map.easeTo({ center: [venue.lon, venue.lat], padding: pad(), duration: 400 });
+  });
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     if (S.sel || S.point) { S.sel = null; S.point = null; drawAll(); $("txPanelBody").focus({ preventScroll: true }); }
@@ -503,7 +572,7 @@
      ?lat=..&lon=..&name=..[&tz=..]) opens Venue centred there. Review links: ?scenario= ?venue= ?view= ?scope= ?model=1 ?sel= ?sheet= */
   try {
     const q = new URLSearchParams(location.search);
-    if (["overlap", "multi", "quiet", "unavailable", "outage-expired"].includes(q.get("scenario"))) S.scenario = q.get("scenario");
+    if (["live", "overlap", "multi", "quiet", "unavailable", "outage-expired"].includes(q.get("scenario"))) S.scenario = q.get("scenario");
     if (["inside", "edge", "outside"].includes(q.get("venue"))) S.venueKey = q.get("venue");
     const lat = parseFloat(q.get("lat")), lon = parseFloat(q.get("lon"));
     if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
@@ -517,11 +586,15 @@
     if (q.get("sel")) S.sel = q.get("sel");
     S.sheet = q.get("sheet") === "open" ? "open" : q.get("sheet") === "peek" ? "peek" : null;
   } catch (e) { /* no URL state */ }
-  $("demoScenario").value = S.scenario; $("demoVenue").value = S.venueKey;
+  renderBar();
   if (!phone()) $("txLegend").open = false; // desktop: legend starts collapsed so it never covers the map
   load(); measure(); renderTop(); renderPanel();
+  if (isLive()) Live.start().then(() => { liveReady = true; load(); drawAll(); });
+  // live: redraw on every feed update, and every 30 s so countdowns, expirations and staleness stay true
+  Live.onUpdate(() => { if (isLive() && liveReady) { load(); drawAll(); } });
+  setInterval(() => { if (isLive() && liveReady) { load(); drawAll(); } }, 30e3);
+  startModel();
   setSheet(phone() ? (S.sheet || "peek") : "open");
-  if (S.model && viewDay()) loadGrid().then(drawAll).catch(() => {});
   createMap().then(() => {
     map.once("load", () => {
       if (S.sel && byId(S.sel) && byId(S.sel).geometry) { const b = T.bbox(byId(S.sel).geometry); map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: pad(), maxZoom: 9, duration: 0 }); }
@@ -529,5 +602,5 @@
       else map.fitBounds(CONUS, { padding: pad(), duration: 0 });
     });
   }).catch((e) => { $("txMap").innerHTML = `<p class="msg" style="padding:20px">The map could not load (${esc(e.message)}). The threat list still works.</p>`; });
-  window.__threats = { S, drawAll, get map() { return map; }, get ready() { return ready; } };
+  window.__threats = { S, drawAll, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, diag: Live.diag };
 })();

@@ -7,6 +7,10 @@
 /* demo bar: unmistakably a demo, but small */
 .tx-demo { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; padding: 6px 10px; border: 1px dashed var(--monitor);
   border-radius: 10px; background: color-mix(in srgb, var(--monitor) 8%, var(--panel)); font-size: 12.5px; }
+.tx-demo.live { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, var(--panel)); }
+.tx-demo-badge.live { background: var(--accent); color: var(--bg); }
+.px-notice.info { border-color: var(--line); background: var(--raised); }
+.px-src a { color: var(--text); }
 .tx-demo-badge { font: 800 10.5px var(--font-body); letter-spacing: .8px; color: #111; background: var(--monitor); padding: 2px 7px; border-radius: 4px; }
 .tx-demo-text { color: var(--muted); flex: 1 1 260px; }
 .tx-demo-ctl { display: flex; gap: 10px; flex-wrap: wrap; }
