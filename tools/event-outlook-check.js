@@ -30,7 +30,7 @@ const facts = (p) => p.evaluate(() => {
   const o = document.getElementById('outlook'), t = (sel) => [...document.querySelectorAll(sel)].map((e) => (e.innerText ?? e.textContent).replace(/\s+/g, ' ').trim());
   return { readiness: document.body.dataset.readiness, outlook: document.body.dataset.outlook || null, shown: !o.hidden && !!o.innerText.trim(), text: o.innerText.replace(/\s+/g, ' '),
     days: t('#outlook .ev-ol-day'), pops: t('#outlook [data-ol-pop]'), types: [...document.querySelectorAll('#outlook [data-ol-type]')].map((e) => e.dataset.olType),
-    remind: !!document.querySelector('#outlook [data-remind], #coverage:not([hidden]) [data-remind]'), coverage: document.getElementById('coverage').hidden ? '' : document.getElementById('coverage').innerText.replace(/\s+/g, ' '),
+    remind: !!document.querySelector('#outlook [data-remind], #coverage:not([hidden]) [data-remind]'), reminders: document.querySelectorAll('[data-remind]').length, coverage: document.getElementById('coverage').hidden ? '' : document.getElementById('coverage').innerText.replace(/\s+/g, ' '),
     decision: document.getElementById('decision').innerText, charts: document.querySelectorAll('#evCharts .evc-card').length, beyondLabels: t('#evCharts [data-beyond]'),
     gaps: document.querySelectorAll('#evCharts .evc-gap').length, calls: window.__outlookCalls };
 });
@@ -45,6 +45,7 @@ const facts = (p) => p.evaluate(() => {
       check(f.readiness === 'pending' && f.outlook === 'outlook' && f.shown && f.days.length === 1 && /Thu, Nov 26/.test(f.days[0]), `${dev} none: pending briefing shows the early outlook for Thu, Nov 26 (${f.outlook})`);
       check(/A lot can change this far out/.test(f.text) && /High \/ low \d+° \/ \d+°/.test(f.days[0]) && /^\d+%$/.test(f.pops[0]) && /whole day, midnight to midnight/.test(f.text), `${dev} none: high/low and the day's precipitation chance, with the period labelled (${f.days[0].slice(0, 120)})`);
       check(f.types[0] === 'mix', `${dev} none: likely type from the day's own snowfall vs precipitation: ${f.types[0]}`);
+      check(f.reminders === 2, `${dev} none: one reminder (Google + .ics), not two (${f.reminders} links)`);
       check(/reach setup around Thu, Nov 19, about 2 AM EST/.test(f.text) && /whole event around Thu, Nov 19, about 9 AM EST/.test(f.text) && /whole event around/.test(f.text) && f.remind, `${dev} none: venue-local times for setup and the whole event; calendar reminder kept`);
       check(!/7:30/.test(f.text) && f.charts === 0, `${dev} none: nothing claims start-time weather; no hourly charts`);
       await p.screenshot({ path: path.join(out, `outlook-none-${dev}.png`), fullPage: dev === 'phone' });
