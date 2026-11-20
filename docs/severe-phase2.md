@@ -254,3 +254,82 @@ retried); scoring 44646079299. Scorecard: `research/severe/conus-v1/calibration-
   future version.
 - Note: the HURDAT2 file was the 2025 edition (hurdat2-1851-2025). Only track positions inside 2024
   windows were matched; no 2025 severe-report outcome was loaded.
+
+## 12. Development-fold diagnostic: why the regional correction cost hits
+Run 44647568988. Uses out-of-fold 2022-23 predictions only (96 development dates); no verification
+data and no fitting. Full tables: `research/severe/conus-v1/diagnostic/diagnose.md`.
+
+| Region | Report / no-report days | Day AUC, area >= 5% (logistic / trees) | Mean area >= 5%, report vs no-report day (logistic) | Share of all >= 5% area on no-report days | Hi-prob points: AUC report day vs not (logistic / trees) |
+|---|---|---|---|---|---|
+| original box | 56 / 40 | 0.99 / 0.98 | 507,000 vs 11,000 km^2 | 1-2% | 0.79 / 0.73 |
+| plains outside box | 43 / 53 | 0.94 / 0.94 | 219,000 vs 20,000 | 10% | 0.68 / 0.59 |
+| West | 34 / 62 | 0.91 / 0.93 | 136,000 vs 11,500 | 13-14% | 0.55 / 0.57 |
+| Northeast outside box | 19 / 77 | 0.90 / 0.92 | 53,000 vs 2,500 | 15-16% | 0.59 / 0.63 |
+| **Florida/Gulf** | **24 / 72** | 0.88 / 0.84 | 85,000 vs 22,000 | **43-44%** | **0.60 / 0.55** |
+
+**What this shows**
+- **At the day level, the models do partly know a Florida/Gulf report day.** Report days carry about
+  four times the >= 5% area of no-report days (day AUC 0.84-0.88). The problem is volume: no-report days
+  outnumber report days 3 to 1, so 44% of all >= 5% area falls on days with no qualifying report. In the
+  original box that share is 1-2%.
+- **Within the high-probability areas, the model's own probability barely separates the two kinds of
+  day.** The AUC for high-probability points on report days versus no-report days is 0.55-0.60 in
+  Florida/Gulf and the West, against 0.73-0.79 in the original box. Any correction that is a function
+  of the model's probability alone, regional or not, therefore removes report-day and no-report-day
+  area together. The committed correction would have cut development-period hits at >= 5% from 517 to
+  208 (logistic) and from 415 to 95 (trees) in Florida/Gulf. It is in-sample, but it predicts the
+  verification loss: the trade-off was visible before verification, and the test did not ask about it.
+- **The information is in the predictors, not in the probability.** Among Florida/Gulf high-probability
+  points, report days have higher 0-1 km storm-relative helicity (AUC 0.66-0.67), more 0-6 km shear,
+  and more convective inhibition (mean SBCIN AUC 0.33-0.35, i.e. stronger capping). That fits organized,
+  sheared storms against weakly capped sea-breeze pulse convection. No single predictor is decisive
+  (AUC up to 0.67), but the nationally fitted models weight CAPE and UH heavily and cannot reweight
+  kinematics for one region.
+- **The West lost hits for a different reason: sharpness, not bias.** West report points sit at low
+  forecast probabilities: only 38% of development events were >= 5% (1,367 of 3,590). A downward
+  shift (intercept -0.6) pushes many of them below 5% (1,367 to 816). The West's high-probability
+  points are also hard to separate by day (AUC 0.55-0.57). CIN, CAPE and reflectivity carry what
+  signal there is.
+- **The hard region boundary creates a seam** (see the 2024-07-20 map). Any regional step needs a
+  smooth transition.
+
+## 13. Proposed next test (not run; needs approval)
+**Change (one candidate per model, chosen on development folds only).**
+- A second-stage regional model on top of each frozen candidate's out-of-fold logit. Florida/Gulf and
+  the West get their own coefficients on a small, pre-named set of predictors chosen from this
+  diagnostic: 0-1 km SRH (max and neighborhood max), 0-6 km shear magnitude, mean SBCIN, the SRH x
+  shear interaction, and neighborhood-max SBCAPE.
+- Every other region keeps the frozen model unchanged.
+- The regional terms are blended in over a 150 km transition band at each region boundary, so there
+  is no seam.
+- Penalty chosen by the same month-grouped folds. Fit only on 2022-23 out-of-fold predictions.
+- Before any verification, report development out-of-fold hit retention and area reduction under the
+  rule below. If the development folds already fail the rule, stop there.
+
+**Pass rule (commit before fitting). On the verification dates, against the same frozen model without
+the change:**
+1. **Hit retention:** report points captured at >= 5% are at least 90% of the uncorrected count in
+   Florida/Gulf, the West and nationally, each separately. The whole-date bootstrap lower bound must be
+   at least 75% in Florida/Gulf and the West, and at least 90% nationally. Hits at >= 15% are also
+   reported, with the same 90% requirement nationally.
+2. **False alarms:** Florida/Gulf area >= 5% on no-report days falls by at least 40%.
+3. **National Day 2 wind Brier no worse** (point estimate), with the paired interval reported.
+4. **Reported, not gating:**
+   - the Florida/Gulf mean forecast / observed ratio (unstable: the last test's 95% interval ran
+     1.1-7.0x);
+   - the tropical sensitivity analysis;
+   - the largest step in mean probability across a region boundary.
+
+**Fresh verification dates.**
+- **Primary: 2021, the 1st/5th/8th/12th/15th/19th/22nd/26th of each month (96 dates).** Same HRRR
+  version (v4, operational from 2 December 2020); never loaded by any study. The archive serves all the
+  needed fields at 06Z and 12Z (spot-checked January, June and November 2021).
+- 96 rather than 48 dates, because Florida/Gulf had only 6 report days in the last 48-date set, too few
+  to measure hit retention. Cost about 4 h of extraction, about 25 GB of downloads and about 0.5 GB stored.
+- The 2021 Storm Events file would be fetched once in Actions, pinned by SHA-256 and archived to the
+  private replay-source release before any scoring.
+- Not used: the remaining 2024 dates (3rd/10th/17th/24th). Their windows sit directly against windows
+  already scored, so they are not independent.
+- The 48 calibration dates and the 36 follow-up dates stay diagnostic only. **2025 stays sealed.**
+
+Production stays on v0.7.
