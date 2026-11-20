@@ -144,7 +144,7 @@
     const canvas = draw(root.document.createElement("canvas"), d);
     const blob = await new Promise((ok, no) => canvas.toBlob((b) => (b ? ok(b) : no(new Error("This browser could not make the image."))), "image/png"));
     const a = root.document.createElement("a"), safe = String(d.title || "event").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "event";
-    a.href = URL.createObjectURL(blob); a.download = `${safe}-hourly-${d.theme === "dark" ? "dark" : "light"}-1920x1080.png`; root.document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60e3);
+    a.href = URL.createObjectURL(blob); a.download = `${safe}-hourly-${d.theme === "dark" ? "dark" : "light"}-1920x1080${d.stamp ? "-" + d.stamp : ""}.png`; root.document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60e3);
     return { blob, canvas, name: a.download };
   }
   const api = { draw, exportPng, lightningSummary, hoursOf, PALETTES, W, H: HGT };

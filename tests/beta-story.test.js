@@ -112,3 +112,16 @@ eq([s2.loc.name, s2.tz, C.event.validate(s2).length], ["Denver, CO", "America/De
   ok(new URL(rem.google).searchParams.get("dates").startsWith(new Date(rf.readyAt).toISOString().replace(/[-:]/g, "").slice(0, 13)), "Google Calendar reminder at the ready time");
 }
 console.log(`ok - ${n} beta story checks passed`);
+
+/* share links: exact times across a fall-back night; older links without "f" still open */
+{
+  const S2 = require("../assets/beta-story.js"), C2 = require("../assets/ops-core.js"), assert2 = require("assert");
+  const ev = { name: "Fall-back night", loc: { name: "TQL Stadium", lat: 39.11, lon: -84.52 }, tz: "America/New_York", times: { setup: "2027-11-07T00:30", start: "2027-11-07T01:30", end: "2027-11-07T03:00" }, fold: { start: 1 }, gust: 25 };
+  const back = S2.eventFromParam(S2.eventToParam(ev), C2), w = (e) => JSON.stringify(C2.event.windows(e).map((x) => [x.key, x.startMs, x.endMs]));
+  assert2.deepStrictEqual(Object.keys(JSON.parse(S2.eventToParam(ev))), ["n", "v", "z", "t", "g", "f"], "a link carries only the event, plus the fall-back choice");
+  assert2.strictEqual(w(back), w(ev), "the second 1:30 AM survives the link");
+  assert2.ok(!("f" in JSON.parse(S2.eventToParam({ ...ev, times: { start: "2027-11-20T19:30", end: "2027-11-20T21:30" }, fold: {} }))), "no fall-back field for an ordinary night");
+  assert2.ok(S2.eventFromParam(JSON.stringify({ n: "Old", v: ev.loc, z: ev.tz, t: { start: "2027-11-20T19:30", end: "2027-11-20T21:30" }, g: 25 }), C2), "a link made before the field existed still opens");
+  assert2.strictEqual(S2.eventFromParam(JSON.stringify({ n: "Bad", v: ev.loc, z: ev.tz, t: ev.times, g: 25, f: { start: 7, nope: 1 } }), C2), null, "an invalid fall-back value is ignored, and the ambiguous time is then refused as before");
+  console.log("ok - share link checks passed");
+}

@@ -27,7 +27,7 @@
   });
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/ops.css?v=2c02764827">
-<link rel="stylesheet" href="assets/beta.css?v=0e34da8827">
+<link rel="stylesheet" href="assets/beta.css?v=270b7be551">
 <link rel="stylesheet" href="assets/hourly-grid.css?v=befa3eb506">
 <link rel="stylesheet" href="assets/forecast-support.css?v=52766a62f7">
 </head>
@@ -40,7 +40,13 @@
   <div class="ev-head">
     <div class="ev-head-text"><span class="bx-label" id="sampleTag" hidden>Sample</span><h1 class="ev-name" id="evName">Loading event…</h1>
       <p class="ev-venue" id="evVenue"></p><p class="ev-when" id="evWhen"></p></div>
-    <div class="ev-head-actions"><button class="bx-btn" type="button" id="editBtn">Edit event</button><button class="bx-link ev-quiet" type="button" id="resetBtn" hidden>Use sample event</button></div>
+    <div class="ev-head-actions"><details class="ev-sharemenu" id="shareMenu"><summary class="bx-btn ev-sharebtn">Share</summary>
+      <div class="ev-sharepop" role="group" aria-label="Share this event">
+        <div class="ev-shareitem"><button class="bx-btn" type="button" id="shareEvent">Copy event link</button><p class="bx-note">Opens this event on any device, with no sign-in. The weather loads when the link is opened, and the other person's saved model weights can change the numbers.</p></div>
+        <div class="ev-shareitem"><button class="bx-btn" type="button" id="shareHourly">Copy hourly display link</button><p class="bx-note">The same link, opening straight to Hour by hour.</p></div>
+        <div class="ev-shareitem"><div class="ev-shareimg"><button class="bx-btn" type="button" id="shareImage" disabled>Export hourly image</button><select class="bx-select" id="shareTheme" aria-label="Image theme"><option value="match" selected>Match page theme</option><option value="light">Light PNG</option><option value="dark">Dark PNG</option></select></div>
+          <p class="bx-note" id="shareImageNote">A 1920 × 1080 picture of your forecast as it is now. Everyone sees exactly the same thing: use this for a TV.</p></div>
+        <p class="bx-note ev-sharemsg" id="shareMsg" role="status" aria-live="polite"></p></div></details><button class="bx-btn" type="button" id="editBtn">Edit event</button><button class="bx-link ev-quiet" type="button" id="resetBtn" hidden>Use sample event</button></div>
   </div>
   <div class="bx-alerts" id="alerts"></div>
   <div id="briefUpdate" hidden></div><div id="opsHandoff" hidden></div>
@@ -75,7 +81,7 @@
 <script src="assets/ops.js?v=aff82b64f5"></script>
 <script src="assets/forecast-clock.js?v=c6df9f20b7"></script>
 <script src="assets/model-trends.js?v=20f2fb637c"></script>
-<script src="assets/beta-story.js?v=de17835b04"></script>
+<script src="assets/beta-story.js?v=636e9d4621"></script>
 <script src="assets/beta-config.js?v=69b0bd8aed"></script>
 <script src="assets/beta-analytics.js?v=2fe1a4634a"></script>
 <script src="assets/beta-ui.js?v=9b6d6b39e2"></script>
@@ -90,9 +96,9 @@
 <script src="assets/event-ops-handoff.js?v=fa83113129"></script>
 <script src="assets/event-hourly-charts.js?v=e69682b936"></script>
 <script src="assets/event-outlook.js?v=e27cba4166"></script>
-<script src="assets/event-tv-export.js?v=ada82577c3"></script>
+<script src="assets/event-tv-export.js?v=05930ac0e4"></script>
 <script src="assets/event-briefing-ui.js?v=cb89db0426"></script>
-<script src="assets/beta-event.js?v=29bd21c367"></script>
+<script src="assets/beta-event.js?v=7df80bc993"></script>
 <script src="assets/table-pages.js?v=5852a434bf"></script>
 </body>
 </html>

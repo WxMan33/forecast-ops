@@ -41,7 +41,7 @@
   ctx.th = { at: (m) => "normal", perModel: () => null, ids: [] };
   const ev = { n: "FC Cincinnati evening match (winter sample)", v: { name: "TQL Stadium, Cincinnati, OH", lat: 39.1113, lon: -84.5222 }, z: tz,
     t: { setup: `${tomorrow}T13:00`, gates: `${tomorrow}T17:00`, start: `${tomorrow}T19:30`, end: `${tomorrow}T21:30`, teardown: `${tomorrow}T23:30` }, g: 25 };
-  if (!q.get("e")) { q.set("e", JSON.stringify(ev)); history.replaceState(null, "", location.pathname + "?" + q.toString()); }
+  if (!q.get("e") && !q.get("ev")) { q.set("e", JSON.stringify(ev)); history.replaceState(null, "", location.pathname + "?" + q.toString() + location.hash); } // a local ?ev= address is left as it is
   BetaUI.load = async () => ({ ctx, NW, RB: {}, problems: [], feeds: { used: ["GFS", "ECMWF IFS", "NBM", "HRRR", "NWS point forecast"], missing: [] }, market: { tuned: false }, recipe: "Default blend recipe", verified: "Design sample with synthetic weather: not a forecast." });
   BetaUI.alerts = async () => [];
   BetaUI.mapPanel = (el) => { el.innerHTML = '<p class="bx-note">Radar map omitted from this design sample.</p>'; };

@@ -44,6 +44,7 @@ jobs:
           node tools/event-dashboard-check.js /tmp/event-dashboard
           node tools/event-hourly-charts-check.js /tmp/event-hourly-charts
           node tests/event-outlook.test.js && node tools/event-outlook-check.js /tmp/event-outlook
+          node tools/event-share-check.js /tmp/event-share
       - name: Hourly grid fixtures (offline)
         run: |
           python3 -m http.server 8765 >/dev/null 2>&1 &

@@ -94,7 +94,7 @@ const facts = (p) => p.evaluate(() => {
           const f2 = path.join(out, `tv-${fixName}-${wx}-${choice}.png`); await d2.saveAs(f2);
           const px = await p.evaluate((t) => { const c = window.EventTvExport.draw(document.createElement('canvas'), { ...window.__lastHourly, theme: t }); return [...c.getContext('2d').getImageData(4, 4, 1, 1).data].slice(0, 3); }, want);
           const dark = px.reduce((a, b) => a + b, 0) / 3 < 40, png2 = fs.readFileSync(f2);
-          check(new RegExp(`-${want}-1920x1080\\.png$`).test(d2.suggestedFilename()) && png2.readUInt32BE(16) === 1920 && png2.readUInt32BE(20) === 1080 && dark === (want === 'dark'),
+          check(new RegExp(`-${want}-1920x1080-\\d{4}-\\d{2}-\\d{2}-\\d{4}\\.png$`).test(d2.suggestedFilename()) && png2.readUInt32BE(16) === 1920 && png2.readUInt32BE(20) === 1080 && dark === (want === 'dark'),
             `${L} "${choice}" exports a ${want} 1920 × 1080 PNG (${d2.suggestedFilename()}, background rgb(${px.join(',')}))`);
         }
         /* the hourly display link: a signed-out browser (fresh context, no storage) opens straight to the charts */
