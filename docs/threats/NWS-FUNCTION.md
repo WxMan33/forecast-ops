@@ -1,7 +1,21 @@
 # Weather Threats: NWS forwarding function (branch only)
 
-**Status:** built and tested on the preview branch. **Not deployed** to the shared beta (`forecast-ops-beta.pages.dev`) or to
-production. Deploying it is a review decision.
+**Status:** running on this branch's isolated Cloudflare Pages preview, `https://claude-beautiful-hawking-tnr.forecast-ops-beta.pages.dev`
+(created automatically by the existing Forecast Ops Pages project when the branch was pushed; Cloudflare shortens branch names to 28 characters).
+**Not** on the shared beta (`forecast-ops-beta.pages.dev`, where `/api/nws/*` returns the site's fallback page) or production.
+
+**Cloudflare verification (2026-11-20, code of commit `ebc67f2`):** `node tools/threats-cf-function-check.js <host>` → `cloudflare-check.json`.
+All 8 checks pass:
+- Every NWS request from the browser went to `<host>/api/nws`; none went straight to api.weather.gov.
+- The page's "last confirmed" equals the function's upstream time.
+- A refresh within 30 s was a cache HIT and kept that time (20:25:17.945Z); the next refresh after the cache window was a MISS and advanced it (20:25:53.259Z).
+- County (PAC101) and marine (ANZ430) shapes load through the function.
+- The function reports the identifying User-Agent on every answer.
+
+Desktop and phone smoke checks with `THREATS_QUERY=nws=function` (`screens/cloudflare/report.json`): 16 of 16 views pass, and 121 of 121 NWS requests went
+through the function with HTTP 200. On Cloudflare, the upstream User-Agent is evidenced by the deployed code, which is byte-identical to this
+commit, and by the function's own `X-Upstream-User-Agent` header. NWS does not echo back what it received, so the upstream request itself was
+observed only in the local harness.
 
 ## What it does
 

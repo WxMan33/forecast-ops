@@ -11,7 +11,7 @@ const { chromium } = require("playwright");
 const fs = require("fs"), path = require("path");
 const BASE = process.argv[2] || "https://raw.githack.com/WxMan33/forecast-ops/claude/beautiful-hawking-tnr183/threats.html";
 const OUT = path.resolve(process.argv[3] || "docs/threats/screens/live");
-const FEEDS = /api\.weather\.gov|spc\.noaa\.gov|mapservices\.weather\.noaa\.gov|raw\.githubusercontent\.com/;
+const FEEDS = /api\.weather\.gov|\/api\/nws\/|spc\.noaa\.gov|mapservices\.weather\.noaa\.gov|raw\.githubusercontent\.com/;
 fs.mkdirSync(OUT, { recursive: true });
 
 async function open(browser, query, opts = {}) {
@@ -19,9 +19,12 @@ async function open(browser, query, opts = {}) {
   const p = await ctx.newPage(), errors = [], requests = [];
   p.on("pageerror", (e) => errors.push(e.message));
   p.on("requestfinished", async (r) => { if (!FEEDS.test(r.url())) return; const h = await r.allHeaders(), res = await r.response(), rh = res ? await res.allHeaders() : {};
-    requests.push({ url: r.url(), status: res && res.status(), ua: h["user-agent"], origin: h.origin || null, acao: rh["access-control-allow-origin"] || null }); });
+    requests.push({ url: r.url(), status: res && res.status(), ua: h["user-agent"], origin: h.origin || null, acao: rh["access-control-allow-origin"] || null, cache: rh["x-forecast-ops-cache"] || null, upstreamAt: rh["x-upstream-fetched-at"] || null }); });
   p.on("requestfailed", (r) => { if (FEEDS.test(r.url())) requests.push({ url: r.url(), failed: r.failure().errorText }); });
-  await p.goto(BASE + (query || ""), { waitUntil: "domcontentloaded", timeout: 60000 });
+  // THREATS_QUERY (e.g. "nws=function") is added to every view's query string
+  const extra = process.env.THREATS_QUERY || "", q = query || "";
+  const full = extra ? (q ? "?" + extra + "&" + q.replace(/^\?/, "") : "?" + extra) : q;
+  await p.goto(BASE + full, { waitUntil: "domcontentloaded", timeout: 60000 });
   let notice = false;
   if (await p.getByText("Open the page", { exact: true }).count()) { notice = true; await Promise.all([p.waitForNavigation({ waitUntil: "domcontentloaded" }).catch(() => {}), p.getByText("Open the page", { exact: true }).first().click()]); }
   await p.waitForFunction(() => window.__threats && window.__threats.ready, null, { timeout: 45000 });
