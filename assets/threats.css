@@ -35,6 +35,10 @@
 .tx-tb { font: 700 13px var(--font-body); color: var(--muted); background: transparent; border: 0; border-radius: 7px; padding: 7px 14px; cursor: pointer; }
 .tx-tb:hover { color: var(--text); }
 .tx-tb[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+.tx-layers { display: inline-flex; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 2px; gap: 2px; }
+.tx-lb { font: 600 12px var(--font-body); color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 4px 9px; cursor: pointer; }
+.tx-lb[aria-pressed="true"] { color: var(--text); border-color: var(--text); }
+.tx-lb[aria-pressed="false"] { text-decoration: line-through; }
 .tx-valid { background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--line); border-radius: 8px; padding: 5px 9px; font-size: 12.5px; color: var(--text); max-width: 100%; }
 .tx-valid b { font-weight: 700; }
 .tx-valid .z { color: var(--muted); font-family: var(--font-mono); font-size: 11.5px; margin-left: 4px; }

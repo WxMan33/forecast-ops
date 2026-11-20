@@ -3,7 +3,7 @@
    Why: the NWS API asks every application to identify itself with a User-Agent, and browsers cannot set one. This
    forwards only the requests Weather Threats needs, adding the repo's identifying User-Agent (as assets/ops-data.js
    does for Node):
-     GET /api/nws/alerts/active?event=<Tornado Warning|Severe Thunderstorm Warning|Tornado Watch|Severe Thunderstorm Watch>[,…]
+     GET /api/nws/alerts/active?event=<Tornado Warning|Severe Thunderstorm Warning|Tornado Watch|Severe Thunderstorm Watch|Flash Flood Warning>[,…]
      GET /api/nws/alerts/<urn:oid:… alert id>         (the earlier message an update replaced, for "What changed")
      GET /api/nws/zones/county/<XXC###>, /api/nws/zones/forecast/<XXZ###>   (county and marine shapes for county-based alerts)
 
@@ -14,7 +14,7 @@
 
 const UPSTREAM = "https://api.weather.gov";
 export const USER_AGENT = "(forecast-ops, github.com/WxMan33/forecast-ops)";
-const EVENTS = new Set(["Tornado Warning", "Severe Thunderstorm Warning", "Tornado Watch", "Severe Thunderstorm Watch"]);
+const EVENTS = new Set(["Tornado Warning", "Severe Thunderstorm Warning", "Tornado Watch", "Severe Thunderstorm Watch", "Flash Flood Warning"]);
 const ORIGINS = [/^https:\/\/wxman33\.github\.io$/, /^https:\/\/([a-z0-9-]+\.)?forecast-ops-beta\.pages\.dev$/, /^https:\/\/raw\.githack\.com$/, /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
 const TTL_S = { alerts: 30, alert: 3600, zone: 86400 };
 const memory = new Map(); // per-isolate cache; the Cache API is used too where the platform provides it

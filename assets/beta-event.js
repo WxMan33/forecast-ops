@@ -150,6 +150,7 @@
     $("evName").textContent = ev.name.replace(/ \(sample\)$/, "");
     $("evVenue").textContent = ev.loc.name;
     $("evWhen").textContent = main ? `${BUI.dateSpan(main.startMs, main.endMs, tz)}${ph.setup ? ` · setup from ${fmt.clock(ph.setup.startMs, tz)}` : ""}` : "";
+    if (window.EventThreats) window.EventThreats.update(ev); // weather threats follow the venue and schedule on screen
   }
 
   /* the event schedule, once: each part with its venue-local times. The weather for these times is in the briefing above

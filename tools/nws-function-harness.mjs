@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/* Local stand-in for Cloudflare Pages: serves the site's static files and routes /api/nws/* to the same handler
-   the Pages Function exports (functions/api/nws/[[path]].js). Every request the function sends upstream is logged
+/* Local stand-in for Cloudflare Pages: serves the site's static files and routes /api/nws/* and /api/wpc/* to the same handlers
+   the Pages Functions export (functions/api/nws/[[path]].js, functions/api/wpc/[[path]].js). Every request the function sends upstream is logged
    with its headers, so the upstream identity is visible in the test evidence.
      node tools/nws-function-harness.mjs [port] [--upstream URL]
    Test controls (harness only): POST /__harness/clock?t=<ms|off>   GET /__harness/log */
@@ -10,6 +10,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fn = await import(pathToFileURL(path.join(ROOT, "functions/api/nws/[[path]].js")).href);
+const wpc = await import(pathToFileURL(path.join(ROOT, "functions/api/wpc/[[path]].js")).href);
 const port = +process.argv[2] || 8822, ui = process.argv.indexOf("--upstream"), upstream = ui > 0 ? process.argv[ui + 1] : undefined;
 let clock = null; const log = [];
 const realFetch = globalThis.fetch;
@@ -23,8 +24,8 @@ http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost:" + port);
   if (url.pathname === "/__harness/clock") { const t = url.searchParams.get("t"); clock = t === "off" ? null : +t; res.end(JSON.stringify({ clock })); return; }
   if (url.pathname === "/__harness/log") { res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify(log)); return; }
-  if (url.pathname.startsWith("/api/nws/")) {
-    const r = await fn.handle(new Request(url, { method: req.method, headers: req.headers }), env);
+  if (url.pathname.startsWith("/api/nws/") || url.pathname.startsWith("/api/wpc/")) {
+    const r = await (url.pathname.startsWith("/api/wpc/") ? wpc : fn).handle(new Request(url, { method: req.method, headers: req.headers }), env);
     res.writeHead(r.status, Object.fromEntries(r.headers)); res.end(Buffer.from(await r.arrayBuffer())); return;
   }
   const file = path.join(ROOT, decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname));

@@ -1,0 +1,18 @@
+/* Event Manager · Weather threats section */
+.ev-threats .ev-sched-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.et-summary { margin: 6px 0 8px; font-weight: 600; }
+.et-summary.warn { color: var(--monitor, #b58100); }
+.et-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.et-item { border: 1px solid var(--line, #d3d9e0); border-left: 5px solid var(--et-c, #2fd08a); border-radius: 8px; padding: 9px 11px; }
+.et-item[data-kind="outlook"] { border-left-style: dashed; }
+.et-main { display: grid; gap: 3px; }
+.et-head { font-size: 15px; }
+.et-line { font-size: 13.5px; }
+.et-actions { font-size: 13px; }
+.et-detail { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 4px 10px; margin: 8px 0 0; font-size: 13px; }
+.et-detail dt { opacity: .7; }
+.et-detail dd { margin: 0; overflow-wrap: anywhere; }
+.et-sources ul { margin: 6px 0; padding-left: 18px; font-size: 13px; }
+.et-sources li.et-warn { font-weight: 600; }
+.et-sample { font-size: 13px; margin: 4px 0; }
+@media (max-width: 600px) { .et-detail { grid-template-columns: minmax(0, 1fr); } .et-detail dt { margin-top: 4px; } }

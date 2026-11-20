@@ -17,7 +17,9 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function (T) {
   "use strict";
 
-  const EVENTS = ["Tornado Warning", "Severe Thunderstorm Warning", "Tornado Watch", "Severe Thunderstorm Watch"];
+  const EVENTS = ["Tornado Warning", "Severe Thunderstorm Warning", "Tornado Watch", "Severe Thunderstorm Watch", "Flash Flood Warning"];
+  /* hazard family per NWS VTEC phenomenon: the map's layers and Event Planner's sections group by this */
+  const HAZARD = { TO: "severe", SV: "severe", FF: "flood" };
   const ALERTS_URL = "https://api.weather.gov/alerts/active?event=" + EVENTS.map(encodeURIComponent).join(",");
   const OUTLOOK_URL = (day) => "https://www.spc.noaa.gov/products/outlook/day" + day + "otlk_cat.nolyr.geojson";
   const MD_LIST_URL = "https://www.spc.noaa.gov/products/md/";
@@ -38,7 +40,7 @@
   const KIND = { W: "warning", A: "watch" };
   function vtecFor(props) {
     const all = (props.parameters && props.parameters.VTEC || []).map(parseVTEC).filter(Boolean);
-    const want = /tornado/i.test(props.event) ? "TO" : "SV";
+    const want = /tornado/i.test(props.event) ? "TO" : /flash flood/i.test(props.event) ? "FF" : "SV";
     return all.find((v) => v.phen === want && KIND[v.sig]) || all[0] || null;
   }
   const keyOf = (v, sent) => v.office + "." + v.phen + "." + v.sig + "." + v.etn + "." + (v.begin || sent || "").slice(0, 4);
@@ -100,6 +102,8 @@
   /* ---------- NWS alert -> product ---------- */
   function hazardText(p) {
     const P = p.parameters || {}, out = [];
+    if (P.flashFloodDetection) out.push("Flash flooding " + first(P.flashFloodDetection).toLowerCase());
+    if (P.flashFloodDamageThreat) out.push("damage threat " + first(P.flashFloodDamageThreat).toLowerCase());
     if (P.tornadoDetection) out.push("Tornado " + first(P.tornadoDetection).toLowerCase());
     if (P.tornadoDamageThreat) out.push("tornado damage threat " + first(P.tornadoDamageThreat).toLowerCase());
     if (P.maxWindGust) out.push("wind " + first(P.maxWindGust).replace(/MPH/i, "mph"));
@@ -120,7 +124,7 @@
     const kind = KIND[v.sig], ends = p.ends || first((p.parameters || {}).eventEndingTime) || p.expires;
     const title = kind === "watch" ? p.event + " " + Number(v.etn) : p.event;
     return {
-      id: keyOf(v, p.sent), messageId: p.id, kind, event: p.event, title, action: v.action, vtec: v,
+      id: keyOf(v, p.sent), messageId: p.id, kind, family: HAZARD[v.phen] || "severe", sourceId: "nws-alerts", event: p.event, title, action: v.action, vtec: v,
       headline: plainHeadline(p), hazard: hazardText(p), area: p.areaDesc || "", office: p.senderName || "NWS",
       issued: iso(p.onset || p.effective || p.sent), sent: iso(p.sent), updated: iso(p.sent), expires: iso(ends), messageExpires: iso(p.expires),
       geometry: f.geometry || null, geometrySource: f.geometry ? "polygon" : "counties", zones: p.affectedZones || [], ugc: (p.geocode || {}).UGC || [],
@@ -146,7 +150,9 @@
         if (ACTIVE_ACTIONS.has(msg.action) && ACTIVE_ACTIONS.has(cur.action) && cur.geometry && msg.geometry) msg.geometry = mergeGeometries([cur.geometry, msg.geometry]);
       }
       const prev = cur && cur.sent !== msg.sent ? strip(cur) : cur ? cur.previous : null;
-      byKey.set(msg.id, { ...msg, previous: prev || null, ended: null, endedBy: null, zoneState: cur && !msg.geometry ? cur.zoneState : null, firstSeen: cur ? cur.firstSeen : msg.sent });
+      // an update keeps the event's original issue time; its own send time is the "updated" time
+      const issued = cur && cur.issued && Date.parse(cur.issued) < Date.parse(msg.issued) ? cur.issued : msg.issued;
+      byKey.set(msg.id, { ...msg, issued, previous: prev || null, ended: null, endedBy: null, zoneState: cur && !msg.geometry ? cur.zoneState : null, firstSeen: cur ? cur.firstSeen : msg.sent });
     }
     const strip = (p) => ({ id: p.id, messageId: p.messageId, event: p.event, issued: p.issued, updated: p.updated, expires: p.expires, hazard: p.hazard, geometry: p.geometry, action: p.action });
     function ingest(collection, fetchedAt) {
@@ -234,6 +240,66 @@
       description: text.trim(), affectedZones: ugc.map(zoneUrl), geocode: { UGC: ugc }, references: [], parameters: { VTEC: [v[0]] } } };
   }
 
+  /* ---------- WPC Excessive Rainfall Outlook ---------- */
+  /* WPC's own GeoJSON (Day N, latest issuance): one feature per category, nested; times in UTC ("2026-11-20 15:35:00").
+     The NOAA map service mirror has the same fields in lower case but was seen empty while WPC had areas, so an empty
+     mirror answer is never read as "no areas". */
+  const ERO_CATS = ["MRGL", "SLGT", "MDT", "HIGH"];
+  const ERO_NAME = { MRGL: "Marginal", SLGT: "Slight", MDT: "Moderate", HIGH: "High" };
+  const ERO_PCT = { MRGL: "at least 5%", SLGT: "at least 15%", MDT: "at least 40%", HIGH: "at least 70%" };
+  const WPC_ERO_URL = (day) => "https://www.wpc.ncep.noaa.gov/exper/eromap/geojson/Day" + day + "_Latest.geojson";
+  const MAPSVC_ERO_URL = (day) => "https://mapservices.weather.noaa.gov/vector/rest/services/hazards/wpc_precip_hazards/MapServer/" + (day - 1) + "/query?where=1%3D1&outFields=*&f=geojson";
+  const utc = (s) => (s && /^\d{4}-\d\d-\d\d \d\d:\d\d(:\d\d)?$/.test(s) ? new Date(s.replace(" ", "T") + (s.length === 16 ? ":00" : "") + "Z").toISOString() : null);
+  function eroCat(outlook) { const m = /^(Marginal|Slight|Moderate|High)\b/i.exec(outlook || ""); return m ? { marginal: "MRGL", slight: "SLGT", moderate: "MDT", high: "HIGH" }[m[1].toLowerCase()] : null; }
+  function parseERO(gj, day, via) {
+    if (!gj || !Array.isArray(gj.features)) throw Error("unrecognized excessive rainfall answer");
+    const out = []; let meta = null;
+    for (const f of gj.features) {
+      const P = {}; for (const [k, v] of Object.entries(f.properties || {})) P[k.toLowerCase()] = v;
+      const cat = eroCat(P.outlook);
+      if (!cat || !f.geometry) throw Error("unrecognized excessive rainfall category: " + (P.outlook || "none"));
+      const issued = utc(P.issue_time), start = utc(P.start_time), end = utc(P.end_time);
+      if (!issued || !start || !end) throw Error("excessive rainfall times missing");
+      meta = meta || { issued, validStart: start, validEnd: end };
+      out.push({ id: "wpc-ero-d" + day + "-" + cat + "-" + issued, kind: "outlook", family: "flood", sourceId: "wpc-ero", program: "ero", day, category: cat,
+        event: "Excessive Rainfall Outlook", title: "Day " + day + " Excessive Rainfall Outlook", issued, validStart: start, validEnd: end,
+        geometry: f.geometry, label: labelPoint(f.geometry), office: "NWS Weather Prediction Center",
+        headline: ERO_NAME[cat] + " risk of rainfall exceeding flash flood guidance (" + ERO_PCT[cat] + " within 25 miles of a point)",
+        source: { name: via === "mapservice" ? "WPC Excessive Rainfall Outlook (NOAA map service mirror)" : "WPC Excessive Rainfall Outlook", url: "https://www.wpc.ncep.noaa.gov/qpf/excessive_rainfall_outlook_ero.php" } });
+    }
+    return { products: out, issued: meta && meta.issued, validStart: meta && meta.validStart, validEnd: meta && meta.validEnd, empty: !out.length, via };
+  }
+  /* last good issuance per day. Empty from WPC itself = confirmed no areas; empty from the mirror = unconfirmed. */
+  function createEROStore(day) {
+    let good = null; const st = { state: "never", lastOk: null, lastTry: null, error: null, via: null, unconfirmedEmpty: false };
+    return {
+      ingest(gj, at, via) {
+        st.lastTry = at;
+        try {
+          const o = parseERO(gj, day, via);
+          if (o.empty && via === "mapservice") { st.state = "failed"; st.error = "the NOAA map service mirror answered with no areas, which it also does while WPC has areas"; st.unconfirmedEmpty = true; return; }
+          if (good && o.issued && good.issued && Date.parse(o.issued) < Date.parse(good.issued)) return; // never step back to an older issuance
+          good = o; st.state = "ok"; st.lastOk = at; st.error = null; st.via = via; st.unconfirmedEmpty = false;
+        } catch (e) { st.state = "failed"; st.error = e.message; }
+      },
+      fail(at, why) { st.lastTry = at; st.state = "failed"; st.error = why || "request failed"; },
+      current(now) { if (!good) return { products: [], status: "none" }; const expired = good.validEnd && Date.parse(good.validEnd) <= now; return { ...good, products: expired ? [] : good.products, status: expired ? "expired" : "current" }; },
+      sourceInfo: () => ({ state: st.state === "never" ? "failed" : st.state, lastOk: st.lastOk, lastTry: st.lastTry, error: st.error, via: st.via }),
+    };
+  }
+
+  /* ---------- source registry: who issues what, for which area ----------
+     Coverage is explicit so a venue outside a provider's area reads "not covered by this source", never "nothing".
+     New regions and providers are new entries here; Event Planner reads products and source states only. */
+  const BOX = { conus: [[-125, 24.3, -66.8, 49.5]], us: [[-125, 24.3, -66.8, 49.5], [-180, 51, -129, 71.5], [172, 51, 180, 53], [-160.5, 18.8, -154.5, 22.4], [-67.4, 17.6, -64.5, 18.6], [144.5, 13.1, 146.2, 20.6], [-171, -14.6, -168, -11]] };
+  const SOURCES = [
+    { id: "nws-alerts", name: "NWS warnings and watches", provider: "NOAA National Weather Service", region: "United States", boxes: BOX.us, hazards: ["severe", "flood"], url: "https://www.weather.gov/" },
+    { id: "spc-md", name: "SPC Mesoscale Discussions", provider: "NOAA Storm Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["severe"], url: "https://www.spc.noaa.gov/products/md/" },
+    { id: "spc-outlook", name: "SPC convective outlooks", provider: "NOAA Storm Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["severe"], url: "https://www.spc.noaa.gov/products/outlook/" },
+    { id: "wpc-ero", name: "WPC Excessive Rainfall Outlook", provider: "NOAA Weather Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["flood"], url: "https://www.wpc.ncep.noaa.gov/qpf/excessive_rainfall_outlook_ero.php" },
+  ];
+  const covers = (src, lat, lon) => src.boxes.some(([w, s, e, n]) => lon >= w && lon <= e && lat >= s && lat <= n);
+
   /* ---------- SPC outlooks ---------- */
   const CATS = ["TSTM", "MRGL", "SLGT", "ENH", "MDT", "HIGH"];
   function parseOutlook(gj, day) {
@@ -242,7 +308,7 @@
     for (const f of gj.features) {
       const p = f.properties || {}, cat = p.LABEL;
       if (!CATS.includes(cat) || !f.geometry) continue;
-      out.push({ id: "spc-d" + day + "-" + cat + "-" + p.ISSUE, kind: "outlook", day, category: cat, event: "Day " + day + " Convective Outlook", title: "Day " + day + " outlook",
+      out.push({ id: "spc-d" + day + "-" + cat + "-" + p.ISSUE, kind: "outlook", family: "severe", sourceId: "spc-outlook", program: "spc", day, category: cat, event: "Day " + day + " Convective Outlook", title: "Day " + day + " outlook",
         issued: iso(p.ISSUE_ISO), validStart: iso(p.VALID_ISO), validEnd: iso(p.EXPIRE_ISO), geometry: f.geometry, label: labelPoint(f.geometry),
         office: "NWS Storm Prediction Center" + (p.FORECASTER ? " · " + p.FORECASTER : ""), source: { name: "SPC convective outlook", url: "https://www.spc.noaa.gov/products/outlook/day" + day + "otlk.html" } });
     }
@@ -295,7 +361,7 @@
     const field = (re) => { const m = re.exec(text); return m ? m[1].replace(/\s+/g, " ").trim() : ""; };
     const concerning = field(/Concerning\.\.\.(.+?)\n\s*\n/s) || field(/Concerning\.\.\.([^\n]+)/);
     const summary = field(/SUMMARY\.\.\.(.+?)\n\s*\n/s);
-    return { id: "spc-md-" + n[1], kind: "md", event: "Mesoscale Discussion", title: "Mesoscale Discussion (MD) " + n[1], number: +n[1],
+    return { id: "spc-md-" + n[1], kind: "md", family: "severe", sourceId: "spc-md", event: "Mesoscale Discussion", title: "Mesoscale Discussion (MD) " + n[1], number: +n[1],
       headline: summary, hazard: "Concerning " + concerning.replace(/\.\.\./g, " · ").toLowerCase(), concerning,
       area: field(/Areas affected\.\.\.([^\n]+)/), office: "NWS Storm Prediction Center",
       issued: at(+valid[1], +valid[2], +valid[3]), updated: at(+valid[1], +valid[2], +valid[3]), validStart: at(+valid[1], +valid[2], +valid[3]), expires: at(+valid[4], +valid[5], +valid[6]),
@@ -319,12 +385,13 @@
     let start = null, end = null;
     if (valid) { const d = new Date(now), y = d.getUTCFullYear(), mo = d.getUTCMonth(), at = (dd, h, mi) => { let t = Date.UTC(y, mo, dd, h, mi); if (t - now > 15 * 86400e3) t = Date.UTC(y, mo - 1, dd, h, mi); return new Date(t).toISOString(); }; start = at(+valid[1], +valid[2], +valid[3]); end = at(+valid[4], +valid[5], +valid[6]); }
     const n = num ? +num[1] : null;
-    return { id: "spc-md-svc-" + (n || P.objectid || f.id), kind: "md", event: "Mesoscale Discussion", title: "Mesoscale Discussion (MD)" + (n ? " " + n : ""), number: n,
+    return { id: "spc-md-svc-" + (n || P.objectid || f.id), kind: "md", family: "severe", sourceId: "spc-md", event: "Mesoscale Discussion", title: "Mesoscale Discussion (MD)" + (n ? " " + n : ""), number: n,
       headline: "", hazard: "", area: "Unavailable from the map service", office: "NWS Storm Prediction Center", issued: start, updated: start, validStart: start, expires: end, validUnknown: !valid,
       geometry: f.geometry, label: labelPoint(f.geometry), detailsUnavailable: true, viaService: true,
       source: { name: "NOAA map service (SPC MDs)", url: n ? MD_URL(n) : MD_LIST_URL }, bulletin: "", severe: !/winter|snow|freezing|blizzard/i.test(text) };
   }
 
   return { EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
-    parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries, dissolve, zoneShape };
+    parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries, dissolve, zoneShape,
+    HAZARD, ERO_CATS, ERO_NAME, ERO_PCT, WPC_ERO_URL, MAPSVC_ERO_URL, parseERO, createEROStore, SOURCES, covers };
 });

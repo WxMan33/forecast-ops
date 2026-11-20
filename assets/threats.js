@@ -11,11 +11,15 @@
   const ST = { Cincinnati: "OH", Louisville: "KY", Dayton: "OH", Tupelo: "MS", Huntsville: "AL", Birmingham: "AL", Dallas: "TX", "Des Moines": "IA", Memphis: "TN", Nashville: "TN", "Oklahoma City": "OK" };
   const PLACES = CITIES.map(([name, lat, lon]) => ({ name: name + (ST[name] ? ", " + ST[name] : ""), lat, lon }));
   const CONUS = [[-124.8, 24.6], [-66.9, 49.4]];
+  const ERO_COLOR = { MRGL: "#8BD28B", SLGT: "#F2D45C", MDT: "#EE7466", HIGH: "#D36AD6" }; // WPC's own colour order
+  const FX = window.ThreatsFeeds;
+  /* outlook names: SPC "Enhanced risk (3 of 5)"; WPC "High excessive rainfall risk (4 of 4)" */
+  const olabel = (p) => p.program === "ero" ? FX.ERO_NAME[p.category] + " excessive rainfall risk (" + (FX.ERO_CATS.indexOf(p.category) + 1) + " of 4)" : T.outlookLabel(p.category);
   const OUTLOOK_COLOR = { TSTM: "#C1E9C1", MRGL: "#66A366", SLGT: "#F6E05E", ENH: "#FFA05C", MDT: "#E06666", HIGH: "#EE99EE" };
   const SCOPE_NOTE = "This page covers NWS tornado and severe thunderstorm warnings and watches, SPC Mesoscale Discussions and SPC severe outlooks in the contiguous U.S.";
   const empty = { type: "FeatureCollection", features: [] };
 
-  const S = { scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
+  const S = { layers: { severe: true, flood: true }, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
   let data, now, venue, map, ready = false, liveReady = false, meshes = new Map(), tzCache = {}, marker, grid = null, mesh = null, mask = null, gridLoading = null, hull = null;
   const phone = () => matchMedia("(max-width: 760px)").matches;
   const light = () => document.documentElement.getAttribute("data-theme") === "light";
@@ -24,12 +28,13 @@
   function pal() {
     const L = light();
     return { land: L ? "#f1f2ee" : "#151a22", line: L ? "#4a525e" : "#aeb6c2", water: L ? "#dfe9f5" : "#18293a", text: L ? "#172438" : "#e7ecf3", halo: L ? "#ffffff" : "#0d1117", muted: L ? "#5b6472" : "#8a94a6",
-      torW: L ? "#C8102E" : "#FF4040", svrW: L ? "#B85400" : "#FFA024", torA: L ? "#8F7200" : "#FFE14D", svrA: L ? "#A23A68" : "#F28DB8", md: L ? "#1D5FD1" : "#5FB0FF" };
+      ffw: L ? "#0B7A4B" : "#2FD08A", torW: L ? "#C8102E" : "#FF4040", svrW: L ? "#B85400" : "#FFA024", torA: L ? "#8F7200" : "#FFE14D", svrA: L ? "#A23A68" : "#F28DB8", md: L ? "#1D5FD1" : "#5FB0FF" };
   }
   const isTor = (p) => /tornado/i.test(p.event || "");
   function colorOf(p) {
     const c = pal();
-    if (p.kind === "warning") return isTor(p) ? c.torW : c.svrW;
+    if (p.kind === "warning") return p.family === "flood" ? c.ffw : isTor(p) ? c.torW : c.svrW;
+    if (p.kind === "outlook" && p.program === "ero") return ERO_COLOR[p.category];
     if (p.kind === "watch") return isTor(p) ? c.torA : c.svrA;
     if (p.kind === "md") return c.md;
     return OUTLOOK_COLOR[p.category];
@@ -45,10 +50,10 @@
   }
 
   /* ---------- data ---------- */
-  const SRC_OF = (p) => p.kind === "warning" || p.kind === "watch" ? "alerts" : p.kind === "md" ? "md" : "day" + p.day;
+  const SRC_OF = (p) => p.kind === "warning" || p.kind === "watch" ? "alerts" : p.kind === "md" ? "md" : (p.program === "ero" ? "ero" : "day") + p.day;
   // minutes since the last successful check before a source counts as stale (outlooks change a few times a day)
-  const STALE_MIN = { alerts: 10, md: 15, day1: 60, day2: 60 };
-  const SRC_NAME = { alerts: "NWS warnings and watches", md: "SPC Mesoscale Discussions", day1: "SPC Day 1 outlook", day2: "SPC Day 2 outlook" };
+  const STALE_MIN = { alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
+  const SRC_NAME = { alerts: "NWS warnings and watches", md: "SPC Mesoscale Discussions", day1: "SPC Day 1 outlook", day2: "SPC Day 2 outlook", day3: "SPC Day 3 outlook", ero1: "WPC excessive rainfall · Day 1", ero2: "WPC excessive rainfall · Day 2", ero3: "WPC excessive rainfall · Day 3" };
   const isLive = () => S.scenario === "live";
   const isArchive = () => /^archive-/.test(S.scenario);
   const official = () => isLive() || isArchive();
@@ -58,6 +63,8 @@
     "archive-mtr": [{ id: "boardwalk", name: "Santa Cruz Beach Boardwalk", city: "Santa Cruz, CA", lat: 36.9643, lon: -122.0177, tz: "America/Los_Angeles", label: "Santa Cruz Beach Boardwalk" }],
     "archive-ww705": [{ id: "linc", name: "Lincoln Financial Field", city: "Philadelphia, PA", lat: 39.9008, lon: -75.1675, tz: "America/New_York", label: "Lincoln Financial Field (inside)" }, { id: "cure", name: "CURE Insurance Arena", city: "Trenton, NJ", lat: 40.2207, lon: -74.7569, tz: "America/New_York", label: "CURE Insurance Arena, Trenton (inside)" }, { id: "metlife", name: "MetLife Stadium", city: "East Rutherford, NJ", lat: 40.8135, lon: -74.0745, tz: "America/New_York", label: "MetLife Stadium (outside the watch)" }],
   };
+  const FLOOD_VENUES = [{ id: "daytona", name: "Daytona International Speedway", city: "Daytona Beach, FL", lat: 29.1852, lon: -81.0705, tz: "America/New_York", label: "Daytona International Speedway" }, { id: "fairgrounds", name: "Flagler County Fairgrounds", city: "Bunnell, FL", lat: 29.4447, lon: -81.2896, tz: "America/New_York", label: "Flagler County Fairgrounds" }, { id: "atlanta", name: "Mercedes-Benz Stadium", city: "Atlanta, GA", lat: 33.7554, lon: -84.4008, tz: "America/New_York", label: "Mercedes-Benz Stadium, Atlanta (outside)" }];
+  ARCHIVE_VENUES["archive-flood-day"] = FLOOD_VENUES; ARCHIVE_VENUES["archive-flood-afternoon"] = FLOOD_VENUES; ARCHIVE_VENUES["archive-flood-night"] = FLOOD_VENUES;
   const archiveData = new Map();
   function loadArchive() {
     const key = S.scenario + "|" + S.step;
@@ -94,16 +101,18 @@
   }
   const tz = () => venue.tz;
   const t = (iso, day) => T.fmtTime(iso, tz(), { day });
-  const active = () => data.products.filter((p) => p.kind !== "outlook" && (Date.parse(p.expires) > now || (p.kind === "md" && p.expires == null)));
+  const shown = (p) => S.layers[p.family || "severe"] !== false;
+  const active = () => data.products.filter((p) => p.kind !== "outlook" && shown(p) && (Date.parse(p.expires) > now || (p.kind === "md" && p.expires == null)));
   // reached its published expiration while the source was down: not active, and not described as cleared
   const lapsed = () => data.products.filter((p) => p.kind !== "outlook" && T.expiredUnconfirmed(p, data.sources[SRC_OF(p)], now));
-  const outlooks = (day) => data.products.filter((p) => p.kind === "outlook" && p.day === day);
+  const outlooks = (day) => data.products.filter((p) => p.kind === "outlook" && p.program !== "ero" && p.day === day);
+  const eroOut = (day) => data.products.filter((p) => p.kind === "outlook" && p.program === "ero" && p.day === day);
   const byId = (id) => data.products.find((p) => p.id === id);
   const rel = (p) => T.relation(p, venue);
   const relText = (p) => T.relationText(rel(p), p);
   const unconfirmed = (p) => data.state[SRC_OF(p)].kind === "stale" ? data.sources[SRC_OF(p)].lastOk : null;
   const endOf = (p) => p.expires || p.validEnd;
-  const viewDay = () => (S.view === "day1" ? 1 : S.view === "day2" ? 2 : null);
+  const viewDay = () => ({ day1: 1, day2: 2, day3: 3 })[S.view] || null;
   const shortTitle = (p) => p.kind === "watch" ? p.event : p.kind === "md" ? "Mesoscale Discussion " + p.title.replace(/\D+/g, "") : p.title;
   const venueCovers = () => T.sort(active().filter((p) => rel(p).kind === "covers"));
   const venueNear = () => T.sort(active().filter((p) => rel(p).kind === "near"));
@@ -115,7 +124,7 @@
     if (known("alerts")) return { big: "No warning or watch at the venue", sub: "NWS checked " + t(data.sources.alerts.lastOk) + ". SPC Mesoscale Discussion status is unknown: that source is not responding." };
     return { big: "Venue status not confirmed", sub: "No product covers the venue in the data we have, but NWS warnings and watches are not confirmed (see below)." };
   }
-  const SRC_LINK = { alerts: "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch", md: "https://www.spc.noaa.gov/products/md/", day1: "https://www.spc.noaa.gov/products/outlook/day1otlk.html", day2: "https://www.spc.noaa.gov/products/outlook/day2otlk.html" };
+  const SRC_LINK = { ero1: FX.SOURCES.find((x) => x.id === "wpc-ero").url, ero2: FX.SOURCES.find((x) => x.id === "wpc-ero").url, ero3: FX.SOURCES.find((x) => x.id === "wpc-ero").url, day3: "https://www.spc.noaa.gov/products/outlook/day3otlk.html", alerts: "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch", md: "https://www.spc.noaa.gov/products/md/", day1: "https://www.spc.noaa.gov/products/outlook/day1otlk.html", day2: "https://www.spc.noaa.gov/products/outlook/day2otlk.html" };
 
   /* ---------- map ---------- */
   async function getJSON(path) { const r = await fetch(path); if (!r.ok) throw Error(path + " " + r.status); return r.json(); }
@@ -130,7 +139,7 @@
     map.on("load", () => {
       const src = (id, d) => map.addSource(id, { type: "geojson", data: d || empty });
       src("states", states); src("lakes", lakes);
-      ["outlook", "active", "hl", "labels", "ring", "m-fill", "m-lines", "m-outside", "m-hull", "cities", "pt"].forEach((id) => src(id));
+      ["outlook", "ero", "active", "hl", "labels", "ring", "m-fill", "m-lines", "m-outside", "m-hull", "cities", "pt"].forEach((id) => src(id));
       map.addImage("hatch", hatch(), { pixelRatio: 2 });
       const L = (o) => map.addLayer(o);
       L({ id: "lakes", type: "fill", source: "lakes", paint: { "fill-color": p.water } });
@@ -141,6 +150,8 @@
       L({ id: "m-hull", type: "line", source: "m-hull", paint: { "line-color": p.muted, "line-width": 1.2, "line-dasharray": [4, 3] } });
       L({ id: "states", type: "line", source: "states", paint: { "line-color": p.line, "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.6, 8, 1.4], "line-opacity": 0.8 } });
       L({ id: "outlook-line", type: "line", source: "outlook", paint: { "line-color": ["get", "edge"], "line-width": ["get", "w"], "line-opacity": 0.95 } });
+      L({ id: "ero-fill", type: "fill", source: "ero", paint: { "fill-color": ["get", "color"], "fill-opacity": ["get", "fill"] } });
+      L({ id: "ero-line", type: "line", source: "ero", paint: { "line-color": ["get", "edge"], "line-width": ["get", "w"], "line-dasharray": [2.5, 1.2], "line-opacity": 0.95 } });
       L({ id: "hl", type: "line", source: "hl", layout: { "line-join": "round" }, paint: { "line-color": p.text, "line-width": 9, "line-opacity": 0.55, "line-blur": 1 } });
       L({ id: "watch-fill", type: "fill", source: "active", filter: ["==", ["get", "kind"], "watch"], paint: { "fill-color": ["get", "color"], "fill-opacity": 0.08 } });
       L({ id: "watch-line", type: "line", source: "active", filter: ["==", ["get", "kind"], "watch"], paint: { "line-color": ["get", "color"], "line-width": 2.6, "line-dasharray": [3, 2], "line-opacity": ["get", "op"] } });
@@ -193,8 +204,11 @@
     const act = day === 2 ? [] : active().filter((p) => p.geometry && (!day || p.kind === "warning"));
     map.getSource("active").setData({ type: "FeatureCollection", features: act.map((p) => feature(p, { kind: p.kind, color: colorOf(p), op: unconfirmed(p) ? 0.6 : 1, fill: day ? 0 : unconfirmed(p) ? 0.16 : 0.3, day: day || 0, text: labelText(p), tc: c.text, hc: c.halo })) });
     // outlooks: filled in their own day view (outline only when our model is on); outlines as context in Active now
-    const ol = day ? outlooks(day) : S.ctx ? outlooks(1) : [];
-    const filled = day && !S.model;
+    const ol = !S.layers.severe ? [] : day ? outlooks(day) : S.ctx ? outlooks(1) : [];
+    // WPC excessive rainfall in the day views: filled when it is the only outlook layer on, dashed outlines over SPC otherwise
+    const el = day && S.layers.flood ? eroOut(day) : [], eroFill = !S.layers.severe && !S.model;
+    map.getSource("ero").setData({ type: "FeatureCollection", features: el.map((p) => feature(p, { color: ERO_COLOR[p.category], edge: eroFill ? shade(ERO_COLOR[p.category]) : ERO_COLOR[p.category], fill: eroFill ? 0.5 : 0, w: eroFill ? 1.2 : 2.8 })) });
+    const filled = day && !S.model && S.layers.severe;
     map.getSource("outlook").setData({ type: "FeatureCollection", features: ol.map((p) => feature(p, { color: OUTLOOK_COLOR[p.category], edge: filled ? shade(OUTLOOK_COLOR[p.category]) : OUTLOOK_COLOR[p.category], w: filled ? 1 : day ? 2.6 : 1.4 })) });
     map.setLayoutProperty("outlook-fill", "visibility", filled ? "visible" : "none");
     map.setPaintProperty("warn-line", "line-dasharray", day === 1 ? [2, 1] : [1, 0]); // Day 1: current warnings dashed, "Active now"
@@ -202,6 +216,7 @@
     const labels = [];
     for (const p of act) if (p.kind === "warning") labels.push({ p, text: (day ? "ACTIVE NOW · " : "") + labelText(p), size: 13, rank: isTor(p) ? 0 : 1, tc: c.halo, hc: colorOf(p) });
     for (const p of ol) if (p.category !== "TSTM" || day) labels.push({ p, text: p.category, size: day ? 12 : 10, rank: 5, tc: c.text, hc: c.halo });
+    for (const p of el) labels.push({ p, text: "ERO " + p.category, size: 11.5, rank: 4, tc: c.text, hc: c.halo });
     map.getSource("labels").setData({ type: "FeatureCollection", features: labels.filter((l) => l.p.label).map((l) => ({ type: "Feature", properties: { kind: l.p.kind, tor: isTor(l.p), color: colorOf(l.p), text: l.text, size: l.size, rank: l.rank, tc: l.tc, hc: l.hc }, geometry: { type: "Point", coordinates: l.p.label } })) });
     const fp = focus && byId(focus);
     map.getSource("hl").setData(fp && fp.geometry && !(day === 2 && fp.kind !== "outlook") ? { type: "FeatureCollection", features: [feature(fp, {})] } : empty);
@@ -275,7 +290,7 @@
   function item(p, opts = {}) {
     const r = rel(p), u = unconfirmed(p);
     const when = p.kind === "outlook" ? "Day " + p.day + " · until " + t(p.validEnd, true) : p.expires == null ? "Valid time unavailable (NOAA map service)" : (u ? "Published expiration " : "Until ") + t(p.expires) + (u ? "" : " · " + T.untilText(p.expires, now));
-    const title = p.kind === "outlook" ? T.outlookLabel(p.category) : p.title;
+    const title = p.kind === "outlook" ? olabel(p) : p.title;
     const showRel = opts.rel !== false && p.kind !== "outlook" && r.kind !== "none";
     return `<button type="button" class="tx-item${S.hover === p.id ? " hl" : ""}" data-id="${esc(p.id)}" style="--tx-c:${colorOf(p)}">${swatch(p)}<span>`
       + `<span class="tx-kind k-${p.kind}">${KIND_WORD[p.kind]}</span><b>${esc(title)}</b>`
@@ -292,7 +307,8 @@
   }
   const countyText = (p) => !p.zoneInfo || !p.zoneInfo.counties ? "Area: listed counties and marine zones (shapes loading)" : p.geometryIncomplete ? "Incomplete area: drawn from " + zoneCount(p.zoneInfo, true) : "Area drawn from " + zoneCount(p.zoneInfo, false);
   function sources() {
-    const rows = ["alerts", "md", "day1", "day2"].map((k) => {
+    const vd = viewDay() || 1;
+    const rows = ["alerts", "md", "day" + vd, "ero" + vd].filter((k) => data.sources[k] && data.state[k]).map((k) => {
       const s = data.state[k], src = data.sources[k];
       const right = s.kind === "na" ? "Not part of this archived sample" : isArchive() ? "Archived official messages, replayed" : k === "md" && src.via === "service" && s.kind !== "stale" ? "Checked " + t(src.lastOk) + " via NOAA map service" + (s.kind === "empty" ? " · none active" : "") : s.kind === "loading" ? "Loading…" : s.kind === "unavailable" ? "Not responding · status unknown" : s.kind === "stale" ? "Last confirmed " + t(src.lastOk) : "Checked " + t(src.lastOk) + (k.startsWith("day") ? (src.outlook === "expired" ? " · expired, awaiting next issuance" : "") : s.kind === "empty" ? " · none active" : "");
       const name = official() && s.kind !== "na" ? `<a href="${esc(SRC_LINK[k])}" target="_blank" rel="noopener">${esc(SRC_NAME[k])}</a>` : esc(SRC_NAME[k]);
@@ -388,7 +404,8 @@
     const ol = outlooks(day), top = T.highestOutlook(ol), st = data.state["day" + day];
     const at = T.outlookAt(ol, [venue.lon, venue.lat]), lower = nestedBelow(ol, at);
     let h = "";
-    if (S.scope === "venue") {
+    const sev = S.layers.severe;
+    if (S.scope === "venue" && sev) {
       h += `<div class="px-brief"><div class="px-where">Day ${day} at ${esc(venue.name)} · highest SPC category</div><div class="px-big">${at ? esc(T.outlookLabel(at.category)) : "No severe risk area"}</div>`
         + `<div class="px-sub">${top ? "Valid " + esc(t(top.validStart, true)) + " → " + esc(t(top.validEnd, true)) : ""}</div>`;
       if (lower.length) h += `<div class="px-also">The venue is also inside the surrounding lower areas (${lower.map((o) => esc(T.OUTLOOK_NAME[o.category].toLowerCase())).join(", ")}). Details below.</div>`;
@@ -398,13 +415,20 @@
           : `<div class="px-also">Our research model, ${esc(hz)} within 25 mi: <b style="color:var(--text)">${m.none ? "no guidance here (outside its coverage)" : m.p < 0.001 ? "below 0.1%" : (m.p * 100).toFixed(m.p < 0.1 ? 1 : 0) + "%"}</b> · experimental${m.f.demo ? ", demo values" : ""}${m.f.run ? `<br>Model window ${esc(t(m.f.run.valid_start, true))} → ${esc(t(m.f.run.valid_end, true))} · run ${esc(T.fmtZ(m.f.run.model_init_time))} · ${esc(m.f.version || "")}` : ""}</div>`;
       }
       h += `</div>`;
-    } else {
+    } else if (S.scope !== "venue") {
       h += venueStrip();
-      h += `<div class="px-brief"><div class="px-where">Day ${day} · national</div><div class="px-big">${top ? "Highest: " + esc(T.OUTLOOK_NAME[top.category]) : "No severe risk"}</div><div class="px-sub">${top && T.OUTLOOK_LEVEL[top.category] ? esc(T.outlookLabel(top.category)) + " · " + esc(T.placeName(top.label, PLACES)) : top ? "General thunderstorms only" : ""}</div></div>`;
+      if (sev) h += `<div class="px-brief"><div class="px-where">Day ${day} · national</div><div class="px-big">${top ? "Highest: " + esc(T.OUTLOOK_NAME[top.category]) : "No severe risk"}</div><div class="px-sub">${top && T.OUTLOOK_LEVEL[top.category] ? esc(T.outlookLabel(top.category)) + " · " + esc(T.placeName(top.label, PLACES)) : top ? "General thunderstorms only" : ""}</div></div>`;
     }
-    if (st.kind === "unavailable" || st.kind === "stale") h += `<div class="px-notice"><b>${esc(SRC_NAME["day" + day])}</b> ${st.kind === "stale" ? "last confirmed " + esc(t(data.sources["day" + day].lastOk)) : "not responding"}.</div>`;
+    if (sev && st && (st.kind === "unavailable" || st.kind === "stale")) h += `<div class="px-notice"><b>${esc(SRC_NAME["day" + day])}</b> ${st.kind === "stale" ? "last confirmed " + esc(t(data.sources["day" + day].lastOk)) : "not responding"}.</div>`;
     const sorted = ol.slice().sort((a, b) => T.OUTLOOK.indexOf(b.category) - T.OUTLOOK.indexOf(a.category));
-    h += `<div class="px-h">Outlook areas</div>` + (sorted.length ? sorted.map((p) => item(p, { tag: S.scope === "venue" && at && p.id === at.id ? "Highest category at the venue" : "" })).join("") : `<p class="px-empty">No outlook areas.</p>`);
+    if (S.layers.flood) {
+      const eo = eroOut(day), eat = T.outlookAt(eo, [venue.lon, venue.lat]), es = data.state["ero" + day];
+      h += `<div class="px-h"><span>Excessive rainfall · WPC</span><span>${eo[0] ? "issued " + esc(T.fmtZ(eo[0].issued)) : ""}</span></div>`;
+      if (S.scope === "venue") h += `<p class="px-empty" style="padding-top:0">${eat ? `At the venue: <b style="color:var(--text)">${esc(olabel(eat))}</b> for the period ${esc(t(eat.validStart, true))} → ${esc(t(eat.validEnd, true))}. A risk for the whole period, not timing within it.` : es && ["current", "empty"].includes(es.kind) ? "No excessive rainfall area at the venue." : "Not confirmed: the WPC source is unavailable or its answer could not be confirmed."}</p>`;
+      h += eo.length ? eo.slice().sort((a, b) => FX.ERO_CATS.indexOf(b.category) - FX.ERO_CATS.indexOf(a.category)).map((p) => item(p, { tag: S.scope === "venue" && eat && p.id === eat.id ? "Highest category at the venue" : "" })).join("") : `<p class="px-empty">${es && es.kind === "empty" ? "No excessive rainfall areas." : es && es.kind === "current" ? "" : "WPC outlook not confirmed (see sources below)."}</p>`;
+      if (sev) h += `<div class="px-h">Severe storms · SPC</div>`;
+    }
+    if (sev) h += `<div class="px-h">Outlook areas</div>` + (sorted.length ? sorted.map((p) => item(p, { tag: S.scope === "venue" && at && p.id === at.id ? "Highest category at the venue" : "" })).join("") : `<p class="px-empty">No outlook areas.</p>`);
     const actW = active().filter((p) => p.kind === "warning");
     if (actW.length) h += `<div class="px-h">Active now</div><button type="button" class="tx-item" data-view-go="active" style="--tx-c:${colorOf(actW[0])}">${swatch(actW[0])}<span><b>${actW.length} active warning${actW.length > 1 ? "s" : ""}</b><span class="tx-meta">${day === 1 ? "Shown as dashed outlines, labelled Active now · " : "Not drawn on the Day 2 map · "}open Active now →</span></span></button>`;
     h += `<a class="px-link" href="severe.html#severe-daily">Open the regional Severe viewer →</a>`;
@@ -412,23 +436,23 @@
   }
   function pointPanel() {
     const pt = S.point, day = viewDay();
-    const list = T.sort((day ? outlooks(day) : [...active(), ...outlooks(1)]).filter((p) => p.geometry && T.contains(p.geometry, pt)));
+    const list = T.sort((day ? [...(S.layers.severe ? outlooks(day) : []), ...(S.layers.flood ? eroOut(day) : [])] : [...active(), ...(S.layers.severe ? outlooks(1) : [])]).filter((p) => p.geometry && T.contains(p.geometry, pt)));
     let h = `<button type="button" class="px-back" data-back>← ${S.scope === "venue" ? "Venue" : "All threats"}</button>`;
     h += `<div class="px-h"><span>At this spot</span><span>${pt[1].toFixed(2)}°, ${pt[0].toFixed(2)}°</span></div>`;
     h += list.length ? list.map((p) => item(p, { rel: false })).join("") : `<p class="px-empty">No ${day ? "Day " + day + " outlook area" : "active product or Day 1 outlook area"} covers this spot.</p>`;
     return h;
   }
   function outlookVenueText(p) {
-    const ol = outlooks(p.day), at = T.outlookAt(ol, [venue.lon, venue.lat]);
+    const ol = (p.program === "ero" ? eroOut : outlooks)(p.day), at = T.outlookAt(ol, [venue.lon, venue.lat]);
     if (!T.contains(p.geometry, [venue.lon, venue.lat])) return relText(p);
     if (at && at.id === p.id) return "The venue is in this area; it is the highest category there";
-    return "The venue is in this area and in a higher category (" + T.OUTLOOK_NAME[at.category] + ")";
+    return "The venue is in a higher category of the same outlook (" + olabel(at) + ")";
   }
   function detail(p) {
     const ch = T.changes(p, (iso) => t(iso)), u = unconfirmed(p);
     const rows = [];
     if (p.hazard) rows.push(["Hazard", esc(p.hazard)]);
-    rows.push(["Area", esc(p.kind === "outlook" ? T.outlookLabel(p.category) + " area" : p.area)]);
+    rows.push(["Area", esc(p.kind === "outlook" ? olabel(p) + " area" : p.area)]);
     if (p.geometrySource === "counties") rows.push(["Area shape", esc(countyText(p)) + (p.geometryIncomplete ? "<br>Venue relationship is unknown where counties are missing." : "")]);
     rows.push(["Issued", esc(t(p.issued, true)) + ` <span class="mono" style="color:var(--muted)">${esc(T.fmtZ(p.issued))}</span>`]);
     if (p.updated && p.updated !== p.issued) rows.push(["Updated", esc(t(p.updated, true))]);
@@ -445,14 +469,14 @@
     const bulletin = p.bulletin || (isLive() && p.kind === "outlook" ? "SPC Day " + p.day + " Convective Outlook\nIssued " + T.fmtZ(p.issued) + " · valid " + T.fmtZ(p.validStart) + "–" + T.fmtZ(p.validEnd) + "\n\nRead the forecaster discussion: " + p.source.url : p.kind === "outlook" ? "Day " + p.day + " Convective Outlook\nNWS Storm Prediction Center Norman OK\n\n(DEMO: the outlook discussion text appears here in the beta.)" : p.event + "\n" + p.office + "\n\n(DEMO: the full bulletin text appears here in the beta.)");
     return `<button type="button" class="px-back" data-back>← Back</button>`
       + `<div style="--tx-c:${colorOf(p)}">${swatch(p, 40)} <span class="tx-kind k-${p.kind}">${KIND_WORD[p.kind]}</span></div>`
-      + `<div class="px-title">${esc(p.kind === "outlook" ? "Day " + p.day + " outlook · " + T.outlookLabel(p.category) : p.title)}</div>`
+      + `<div class="px-title">${esc(p.kind === "outlook" ? (p.program === "ero" ? "WPC Day " : "SPC Day ") + p.day + " · " + olabel(p) : p.title)}</div>`
       + (p.headline ? `<p class="px-headline">${esc(p.headline)}</p>` : "")
       + `<dl class="px-rows">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>`
       + (p.viaService ? "" : `<details class="px-bulletin"><summary>${p.kind === "outlook" ? "Read the outlook discussion" : "Read the official bulletin"}</summary><pre>${esc(bulletin)}</pre><div class="lg-note">${official() ? (p.kind === "outlook" ? "Full discussion on the SPC page linked above." : "Official text as received from " + (p.kind === "md" ? "SPC" : "NWS") + ".") : esc(Demo.BULLETIN_NOTE)}</div></details>`);
   }
   /* collapsed phone sheet: two lines so a warning's expiration always survives */
   function peek() {
-    if (S.sel) { const p = byId(S.sel); return p ? [p.kind === "outlook" ? "Day " + p.day + " · " + T.outlookLabel(p.category) : p.title, "Tap for details"] : ["", ""]; }
+    if (S.sel) { const p = byId(S.sel); return p ? [p.kind === "outlook" ? "Day " + p.day + " · " + olabel(p) : p.title, "Tap for details"] : ["", ""]; }
     if (viewDay()) { const o = T.outlookAt(outlooks(viewDay()), [venue.lon, venue.lat]); return ["Day " + viewDay() + " at " + venue.name, o ? "Highest: " + T.outlookLabel(o.category) : "No severe risk area"]; }
     const L = statusLines();
     if (!L.length) { const q = quietText(); return [q.big.replace("at the venue", "at " + venue.name), lapsed().length ? "A warning reached its expiration · NWS status unknown" : activeKnown() ? "NWS checked " + t(data.sources.alerts.lastOk) : known("alerts") ? "NWS checked " + t(data.sources.alerts.lastOk) + " · MD status unknown" : "NWS warnings not confirmed"]; }
@@ -476,10 +500,11 @@
   /* ---------- top-of-map: valid time, model control, chips; legend ---------- */
   function renderTop() {
     document.querySelectorAll(".tx-tb").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === S.view)));
+    document.querySelectorAll(".tx-lb").forEach((b) => b.setAttribute("aria-pressed", String(!!S.layers[b.dataset.layer])));
     const day = viewDay();
     if (!day) $("txValid").innerHTML = `<b>Active now</b> · as of ${esc(t(data.clock, true))}`;
     else {
-      const o = outlooks(day)[0];
+      const o = outlooks(day)[0] || eroOut(day)[0];
       $("txValid").innerHTML = o ? `<b>Day ${day}</b> · ${esc(t(o.validStart, true))} → ${esc(t(o.validEnd, true))}<span class="z">${esc(T.fmtZ(o.validStart))}–${esc(T.fmtZ(o.validEnd))} · issued ${esc(T.fmtZ(o.issued))}</span>` : `<b>Day ${day}</b> · no outlook loaded`;
     }
     $("txModel").hidden = !day; $("modelChk").checked = S.model; $("modelHz").hidden = !S.model;
@@ -500,6 +525,10 @@
     if (!day) h += `<div><div class="lg-h">Active now · most urgent first</div>${lgLine(fake("warning", "Tornado"), "<b>Warning</b> · solid, filled")}${lgLine(fake("watch", "Tornado"), "<b>Watch</b> · dashed")}${lgLine(fake("md", ""), "<b>Mesoscale Discussion (MD)</b> · dotted")}<div class="lg-row">${dot(true)}<span>Tornado warning, zoomed out</span></div><div class="lg-row">${dot(false)}<span>Severe thunderstorm warning, zoomed out</span></div><div class="lg-note">Red, yellow: tornado · orange, pink: severe thunderstorm</div></div>`;
     else if (day === 1) h += `<div><div class="lg-h">Active now</div>${lgLine(fake("warning", "Tornado"), "Current warnings, dashed outline")}</div>`;
     if (day || S.ctx) h += `<div><div class="lg-h">SPC Day ${day || 1} outlook${day ? "" : " · outlines"}</div><div class="lg-bands">${T.OUTLOOK.map((c) => `<span class="lg-band" title="${esc(T.outlookLabel(c))}"><i style="background:${OUTLOOK_COLOR[c]}"></i>${c}${T.OUTLOOK_LEVEL[c] ? `<small>${T.OUTLOOK_LEVEL[c]}</small>` : ""}</span>`).join("")}</div><div class="lg-note">Risk level 1–5 · TSTM: thunderstorms, no severe risk</div></div>`;
+    if (S.layers.flood) {
+      if (!day) h += `<div><div class="lg-h">Flooding · active now</div>${lgLine({ kind: "warning", family: "flood", event: "Flash Flood Warning" }, "<b>Flash Flood Warning</b> · solid, filled")}</div>`;
+      else h += `<div><div class="lg-h">WPC excessive rainfall · Day ${day}${S.layers.severe ? " · dashed" : ""}</div><div class="lg-bands">${FX.ERO_CATS.map((c, i) => `<span class="lg-band" title="${esc(FX.ERO_NAME[c])}"><i style="background:${ERO_COLOR[c]}"></i>${c}<small>${i + 1}</small></span>`).join("")}</div><div class="lg-note">Chance rainfall exceeds flash flood guidance within 25 mi: 1 at least 5% · 2 15% · 3 40% · 4 70%</div></div>`;
+    }
     if (!day) h += `<label class="lg-toggle"><input type="checkbox" id="ctxChk"${S.ctx ? " checked" : ""}> Day 1 outlook outlines</label>`;
     if (day && S.model) h += `<div><div class="lg-h">Our research model · ${esc(S.hazard)} within 25 mi</div><div class="lg-bands">${G.BANDS.map(([, c, l]) => `<span class="lg-band"><i style="background:${c}"></i>${l}</span>`).join("")}</div><div class="lg-note">Experimental Forecast Ops guidance, not an official forecast${isLive() ? "" : ". Demo values"}. Uncolored: below 0.1% (low). Light hatching: no model guidance (outside its grid or over water), not a low value.</div>${(() => { const f = modelField(day); return f.values ? "" : `<div class="lg-note"><b>${esc(f.reason)}</b></div>`; })()}</div>`;
     if (S.scope === "venue") h += `<div class="lg-row"><svg width="28" height="10" aria-hidden="true"><line x1="1" y1="5" x2="27" y2="5" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3"/></svg><span>${Math.round(T.miles(T.NEAR_KM))}-mile "nearby" ring</span></div>`;
@@ -551,6 +580,7 @@
   $("txPanel").addEventListener("mouseleave", () => { if (S.hover) { S.hover = null; drawMap(); } });
   document.querySelectorAll("[data-scope]").forEach((b) => b.addEventListener("click", () => setScope(b.dataset.scope, true)));
   document.querySelectorAll(".tx-tb").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
+  document.querySelectorAll(".tx-lb").forEach((b) => b.addEventListener("click", () => { S.layers[b.dataset.layer] = !S.layers[b.dataset.layer]; if (!S.layers.severe && !S.layers.flood) S.layers[b.dataset.layer === "severe" ? "flood" : "severe"] = true; S.sel = null; drawAll(); }));
   $("modelChk").addEventListener("change", () => { S.model = $("modelChk").checked; startModel(); drawAll(); });
   document.querySelectorAll(".tx-hb").forEach((b) => b.addEventListener("click", () => { S.hazard = b.dataset.hz; drawAll(); }));
   $("txChips").addEventListener("click", (e) => { const v = e.target.closest("[data-view-go]"); if (v) setView(v.dataset.viewGo); if (e.target.closest("[data-sources]")) { S.sel = null; S.point = null; openSheet(); drawAll(); const s = document.querySelector(".px-sources"); if (s) s.scrollIntoView({ block: "nearest" }); } });
@@ -562,7 +592,7 @@
     $("txBadge").textContent = live ? "LIVE PREVIEW" : arc ? "ARCHIVED SAMPLE" : "DEMO DATA"; $("txBadge").classList.toggle("live", live); $("txBadge").classList.toggle("arc", arc);
     $("txDemo").classList.toggle("live", live); $("txDemo").classList.toggle("arc", arc);
     $("txBarText").textContent = live ? "Branch preview of official NWS and SPC feeds. Not for operational decisions." : arc ? "Real official messages replayed through the live adapter, at their own time. Not a live observation." : "Fictional products for layout review. Nothing here was issued by NWS or SPC.";
-    $("stepField").hidden = !arc;
+    $("stepField").hidden = !arc || !(data && data.archive && data.archive.messages.length);
     if (arc && data && data.archive) { $("demoStep").innerHTML = data.archive.messages.map((m, i) => `<option value="${i + 1}">Msg ${i + 1}/${data.archive.steps} · ${esc(m.action || "")} · ${esc(T.fmtTime(m.sent, venue.tz))}</option>`).join(""); $("demoStep").value = String(data.archive.step); }
     const opts = arc ? ARCHIVE_VENUES[S.scenario].map((v) => ({ id: v.id, label: v.label })) : live ? [...(S.entryVenue ? [{ id: "entry", label: "Linked venue: " + S.entryVenue.name }] : []), ...liveVenues()] : [{ id: "inside", label: "Inside the warning" }, { id: "edge", label: "Near the warning edge" }, { id: "outside", label: "Outside the warning" }];
     $("demoVenue").innerHTML = opts.map((o) => `<option value="${esc(o.id)}">${esc(o.label)}</option>`).join("");
@@ -619,14 +649,15 @@
      ?lat=..&lon=..&name=..[&tz=..]) opens Venue centred there. Review links: ?scenario= ?venue= ?view= ?scope= ?model=1 ?sel= ?sheet= */
   try {
     const q = new URLSearchParams(location.search);
-    if (["live", "overlap", "multi", "quiet", "unavailable", "outage-expired", "archive-lox", "archive-mtr", "archive-ww705"].includes(q.get("scenario"))) S.scenario = q.get("scenario");
+    if (["live", "overlap", "multi", "quiet", "unavailable", "outage-expired", "archive-lox", "archive-mtr", "archive-ww705", "archive-flood-day", "archive-flood-afternoon", "archive-flood-night"].includes(q.get("scenario"))) S.scenario = q.get("scenario");
     if (["inside", "edge", "outside"].includes(q.get("venue"))) S.venueKey = q.get("venue");
     const lat = parseFloat(q.get("lat")), lon = parseFloat(q.get("lon"));
     if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
       S.entryVenue = { id: "entry", name: ((n) => n.length <= 80 ? n : n.slice(0, 79).replace(/\s+\S*$/, "") + "…")((q.get("name") || "Event venue").trim()), city: q.get("city") || "", lat, lon, tz: q.get("tz") || "America/New_York" };
       S.scope = "venue";
     }
-    if (["active", "day1", "day2"].includes(q.get("view"))) S.view = q.get("view");
+    if (["active", "day1", "day2", "day3"].includes(q.get("view"))) S.view = q.get("view");
+    if (q.get("layers")) { const L = q.get("layers").split(","); S.layers = { severe: L.includes("severe"), flood: L.includes("flood") }; }
     if (["national", "venue"].includes(q.get("scope"))) S.scope = q.get("scope");
     if (q.get("model") === "1") S.model = true;
     if (["tornado", "wind", "hail"].includes(q.get("hazard"))) S.hazard = q.get("hazard");

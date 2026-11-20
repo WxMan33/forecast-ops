@@ -6,7 +6,8 @@
   "use strict";
   const F = window.ThreatsFeeds, D = window.SevereDailyCore;
   const MODEL_BASE = "https://raw.githubusercontent.com/WxMan33/forecast-ops/main/assets/severe-daily/"; // the Severe viewer's published feed
-  const alerts = F.createAlertStore(), outlooks = { 1: F.createOutlookStore(1), 2: F.createOutlookStore(2) };
+  const alerts = F.createAlertStore(), outlooks = { 1: F.createOutlookStore(1), 2: F.createOutlookStore(2), 3: F.createOutlookStore(3) };
+  const ero = { 1: F.createEROStore(1), 2: F.createEROStore(2), 3: F.createEROStore(3) };
   const md = { state: "never", lastOk: null, lastTry: null, error: null, products: [], service: null, list: null };
   const model = { state: "never", error: null, index: null, registry: null, grid: null, hidden: null, hull: null, runs: {} };
   const zoneGeo = new Map(), zonePending = new Map(), refDone = new Set(), mdText = new Map();
@@ -14,8 +15,12 @@
   /* NWS route. Default: the browser calls api.weather.gov directly (no app identifier possible). ?nws=function sends
      NWS requests through the Forecast Ops Pages Function on the same host (identifying User-Agent, 30 s cache);
      ?nwsBase=<url> points at a function on another compatible host. */
-  const NWS = (() => { try { const q = new URLSearchParams(location.search); if (q.get("nwsBase")) return { mode: "function", base: q.get("nwsBase").replace(/\/$/, "") }; if (q.get("nws") === "function") return { mode: "function", base: new URL("api/nws", location.href).href }; } catch (e) { /* default */ } return { mode: "direct", base: "https://api.weather.gov" }; })();
+  /* Cloudflare Pages previews of this branch carry the functions, so they use them by default (?nws=direct overrides) */
+  const NWS = (() => { try { const q = new URLSearchParams(location.search); if (q.get("nwsBase")) return { mode: "function", base: q.get("nwsBase").replace(/\/$/, "") }; if (q.get("nws") === "function" || (q.get("nws") !== "direct" && /\.forecast-ops-beta\.pages\.dev$/.test(location.hostname))) return { mode: "function", base: new URL("api/nws", location.href).href }; } catch (e) { /* default */ } return { mode: "direct", base: "https://api.weather.gov" }; })();
   const nwsUrl = (u) => NWS.mode === "direct" ? u : u.replace(/^https:\/\/api\.weather\.gov/, NWS.base);
+  /* WPC has no CORS header: through the function, WPC's own file; directly, the NOAA map service mirror (whose empty
+     answers stay unconfirmed, see ThreatsFeeds.createEROStore) */
+  const wpcUrl = (day) => NWS.mode === "function" ? NWS.base.replace(/\/api\/nws$/, "/api/wpc") + "/ero/day" + day : F.MAPSVC_ERO_URL(day);
   const listeners = [];
   const nowIso = () => new Date().toISOString();
 
@@ -108,7 +113,19 @@
     emit();
   }
   async function refreshOutlooks() {
-    await Promise.all([1, 2].map(async (d) => { const at = nowIso(); try { outlooks[d].ingest(await get(F.OUTLOOK_URL(d), "json"), at); } catch (e) { outlooks[d].fail(at, e.message); } }));
+    await Promise.all([1, 2, 3].map(async (d) => { const at = nowIso(); try { outlooks[d].ingest(await get(F.OUTLOOK_URL(d), "json"), at); } catch (e) { outlooks[d].fail(at, e.message); } }));
+    emit();
+  }
+  async function refreshERO() {
+    await Promise.all([1, 2, 3].map(async (d) => {
+      const tried = nowIso(), meta = {};
+      try {
+        const body = await get(wpcUrl(d), "json", meta);
+        let at = tried;
+        if (NWS.mode === "function") { if (!meta.upstreamAt) throw Error("function answer without its upstream time"); at = new Date(meta.upstreamAt).toISOString(); }
+        ero[d].ingest(body, at, NWS.mode === "function" ? "wpc" : "mapservice");
+      } catch (e) { ero[d].fail(tried, e.message); }
+    }));
     emit();
   }
 
@@ -147,8 +164,9 @@
   function snapshot(now = Date.now()) {
     const ps = alerts.products(now), ai = alerts.sourceInfo();
     const mdList = md.products.filter((p) => p.expires == null || Date.parse(p.expires) > now);
-    const o = { 1: outlooks[1].current(now), 2: outlooks[2].current(now) };
-    const products = [...ps.filter((p) => p.status === "active" || p.status === "lapsed"), ...mdList, ...o[1].products, ...o[2].products];
+    const o = { 1: outlooks[1].current(now), 2: outlooks[2].current(now), 3: outlooks[3].current(now) };
+    const e = { 1: ero[1].current(now), 2: ero[2].current(now), 3: ero[3].current(now) };
+    const products = [...ps.filter((p) => p.status === "active" || p.status === "lapsed"), ...mdList, ...o[1].products, ...o[2].products, ...o[3].products, ...e[1].products, ...e[2].products, ...e[3].products];
     const src = (info, count, extra) => ({ state: info.state === "ok" ? "ok" : "failed", lastOk: info.lastOk, count, error: info.error, ...extra });
     return {
       live: true, clock: new Date(now).toISOString(), products,
@@ -158,17 +176,23 @@
         md: src({ state: md.state === "ok" ? "ok" : "failed", lastOk: md.lastOk, error: md.error }, mdList.length, { service: md.service, list: md.list, via: md.via }),
         day1: src(outlooks[1].sourceInfo(), o[1].products.length, { outlook: o[1].status, validEnd: o[1].validEnd }),
         day2: src(outlooks[2].sourceInfo(), o[2].products.length, { outlook: o[2].status, validEnd: o[2].validEnd }),
+        day3: src(outlooks[3].sourceInfo(), o[3].products.length, { outlook: o[3].status, validEnd: o[3].validEnd }),
+        ero1: src(ero[1].sourceInfo(), e[1].products.length, { outlook: e[1].status, validEnd: e[1].validEnd, issued: e[1].issued, via: ero[1].sourceInfo().via }),
+        ero2: src(ero[2].sourceInfo(), e[2].products.length, { outlook: e[2].status, validEnd: e[2].validEnd, issued: e[2].issued, via: ero[2].sourceInfo().via }),
+        ero3: src(ero[3].sourceInfo(), e[3].products.length, { outlook: e[3].status, validEnd: e[3].validEnd, issued: e[3].issued, via: ero[3].sourceInfo().via }),
       },
       model,
     };
   }
 
   let started = null;
-  function start() {
+  /* only: limit to some feeds (Event Manager asks for ["alerts", "ero"]) */
+  function start(opts = {}) {
     if (started) return started;
-    started = Promise.allSettled([refreshAlerts(), refreshMD(), refreshOutlooks()]);
-    setInterval(() => { if (!document.hidden) { refreshAlerts(); refreshMD(); } }, 60e3);
-    setInterval(() => { if (!document.hidden) refreshOutlooks(); }, 10 * 60e3);
+    const want = (k) => !opts.only || opts.only.includes(k);
+    started = Promise.allSettled([want("alerts") && refreshAlerts(), want("md") && refreshMD(), want("spc") && refreshOutlooks(), want("ero") && refreshERO()]);
+    setInterval(() => { if (!document.hidden) { if (want("alerts")) refreshAlerts(); if (want("md")) refreshMD(); } }, 60e3);
+    setInterval(() => { if (!document.hidden) { if (want("spc")) refreshOutlooks(); if (want("ero")) refreshERO(); } }, 10 * 60e3);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) { refreshAlerts(); refreshMD(); } });
     return started;
   }
@@ -180,6 +204,10 @@
     "archive-lox": { kind: "nws", file: "tests/fixtures/threats/nws-archive-klox-sv-w-0015.json", label: "NWS Los Angeles severe thunderstorm warning 0015, Nov 19, 2026" },
     "archive-mtr": { kind: "nws", file: "tests/fixtures/threats/nws-archive-kmtr-to-w-0003.json", label: "NWS San Francisco tornado warning 0003, Nov 16, 2026" },
     "archive-ww705": { kind: "wou", file: "tests/fixtures/threats/spc-wou0705.txt", label: "SPC Tornado Watch 705 (official WOU), Nov 12, 2026" },
+    // NWS Flash Flood Warnings and WPC Excessive Rainfall Outlooks from Nov 20, replayed at a fixed time
+    "archive-flood-day": { kind: "mix", clock: "2026-11-20T17:35:00Z", nws: ["tests/fixtures/threats/nws-archive-kmlb-ff-w-0036.json", "tests/fixtures/threats/nws-archive-kjax-ff-w-0054.json"], ero: [1, 2, 3].map((d) => "tests/fixtures/threats/wpc-ero-day" + d + "-20261120.geojson"), label: "NWS Flash Flood Warnings and WPC Excessive Rainfall Outlooks, Florida, Nov 20, 2026 at 12:35 p.m. EST" },
+    "archive-flood-afternoon": { kind: "mix", clock: "2026-11-20T19:20:00Z", nws: ["tests/fixtures/threats/nws-archive-kmlb-ff-w-0036.json", "tests/fixtures/threats/nws-archive-kjax-ff-w-0054.json"], ero: [1, 2, 3].map((d) => "tests/fixtures/threats/wpc-ero-day" + d + "-20261120.geojson"), label: "NWS Flash Flood Warnings and WPC Excessive Rainfall Outlooks, Florida, Nov 20, 2026 at 2:20 p.m. EST (after the Flagler warning was cut back)" },
+    "archive-flood-night": { kind: "mix", clock: "2026-11-20T20:30:00Z", nws: ["tests/fixtures/threats/nws-archive-kmlb-ff-w-0036.json", "tests/fixtures/threats/nws-archive-kjax-ff-w-0054.json"], ero: [1, 2, 3].map((d) => "tests/fixtures/threats/wpc-ero-day" + d + "-20261120.geojson"), label: "NWS Flash Flood Warnings and WPC Excessive Rainfall Outlooks, Florida, Nov 20, 2026 at 3:30 p.m. EST" },
   };
   const archiveCache = new Map();
   async function archiveMessages(name) {
@@ -191,10 +219,23 @@
     return archiveCache.get(name);
   }
   /* replay messages 1..step; the clock is one minute after the last message; county shapes come live from api.weather.gov */
+  async function mixSnapshot(name) {
+    const a = ARCHIVES[name], clock = Date.parse(a.clock), getJ = async (f) => { const r = await fetch(f, { cache: "no-store" }); if (!r.ok) throw Error("archive file " + r.status); return r.json(); };
+    const msgs = (await Promise.all(a.nws.map(getJ))).flatMap((j) => j.features).filter((f) => Date.parse(f.properties.sent) + 30e3 <= clock).sort((x, y) => Date.parse(x.properties.sent) - Date.parse(y.properties.sent));
+    const store = F.createAlertStore();
+    msgs.forEach((f, i) => store.ingest({ type: "FeatureCollection", features: msgs.slice(0, i + 1) }, new Date(Date.parse(f.properties.sent) + 30e3).toISOString()));
+    const eros = (await Promise.all(a.ero.map(getJ))).map((j, i) => F.parseERO(j, i + 1, "wpc")).filter((o) => Date.parse(o.issued) <= clock && Date.parse(o.validEnd) > clock);
+    const ps = store.products(clock), si = store.sourceInfo(), na = { state: "na", lastOk: null, count: 0 };
+    const eroSrc = (d) => { const o = eros.find((x) => x.products[0] && x.products[0].day === d); return o ? { state: "ok", lastOk: a.clock, count: o.products.length, outlook: "current", validEnd: o.validEnd, issued: o.issued, via: "wpc" } : na; };
+    return { live: false, archive: { name, label: a.label, step: 1, steps: 1, messages: [] }, clock: a.clock,
+      products: [...ps.filter((p) => p.status === "active"), ...eros.flatMap((o) => o.products)], ended: ps.filter((p) => p.status === "ended"),
+      sources: { alerts: { state: "ok", lastOk: si.lastOk, count: ps.filter((p) => p.status === "active").length }, md: na, day1: na, day2: na, day3: na, ero1: eroSrc(1), ero2: eroSrc(2), ero3: eroSrc(3) } };
+  }
   async function archiveSnapshot(name, step) {
+    if (ARCHIVES[name].kind === "mix") return mixSnapshot(name);
     const msgs = await archiveMessages(name), n = Math.max(1, Math.min(step || msgs.length, msgs.length));
     const store = F.createAlertStore();
-    for (let i = 0; i < n; i++) store.ingest({ type: "FeatureCollection", features: [msgs[i]] }, new Date(Date.parse(msgs[i].properties.sent) + 30e3).toISOString());
+    for (let i = 0; i < n; i++) store.ingest({ type: "FeatureCollection", features: msgs.slice(0, i + 1) }, new Date(Date.parse(msgs[i].properties.sent) + 30e3).toISOString()); // cumulative, like a real answer
     const clock = Date.parse(msgs[n - 1].properties.sent) + 60e3;
     const ps = store.products(clock);
     for (const p of ps) if (p.geometrySource === "counties") {
@@ -205,8 +246,18 @@
     const na = { state: "na", lastOk: null, count: 0 };
     return { live: false, archive: { name, label: ARCHIVES[name].label, step: n, steps: msgs.length, messages: msgs.map((m) => ({ sent: m.properties.sent, action: (F.parseVTEC((m.properties.parameters.VTEC || [])[0]) || {}).action })) },
       clock: new Date(clock).toISOString(), products: out.filter((p) => p.status === "active"), ended: out.filter((p) => p.status === "ended"),
-      sources: { alerts: { state: "ok", lastOk: si.lastOk, count: out.filter((p) => p.status === "active").length }, md: na, day1: na, day2: na } };
+      sources: { alerts: { state: "ok", lastOk: si.lastOk, count: out.filter((p) => p.status === "active").length }, md: na, day1: na, day2: na, day3: na, ero1: na, ero2: na, ero3: na } };
   }
 
-  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
+  /* the snapshot's per-feed states, keyed by the source registry (ThreatsFeeds.SOURCES) for the shared matcher */
+  const STALE = { alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
+  function registryState(d, now) {
+    const one = (k) => { const x = d.sources[k]; if (!x) return { kind: "unavailable" }; if (x.state === "na") return { kind: "na" }; if (d.loading) return { kind: "loading" }; return { ...window.ThreatsCore.sourceState(x, now, STALE[k]), lastOk: x.lastOk }; };
+    const worst = (keys) => { const s = keys.map(one).filter((x) => x.kind !== "na"); if (!s.length) return { kind: "na" }; const order = ["unavailable", "stale", "loading", "na", "empty", "current"]; const w = s.reduce((a, b) => (order.indexOf(b.kind) < order.indexOf(a.kind) ? b : a)); const oks = s.filter((x) => x.lastOk).map((x) => Date.parse(x.lastOk)); return { ...w, lastOk: oks.length ? new Date(Math.min(...oks)).toISOString() : w.lastOk }; };
+    const reach = (keys) => keys.map((k) => d.sources[k] && d.sources[k].validEnd).filter(Boolean).sort().pop() || null;
+    return { "nws-alerts": one("alerts"), "spc-md": one("md"), "spc-outlook": { ...worst(["day1", "day2", "day3"]), reachEnd: reach(["day1", "day2", "day3"]) },
+      "wpc-ero": { ...worst(["ero1", "ero2", "ero3"]), reachEnd: reach(["ero1", "ero2", "ero3"]), reach: ["ero1", "ero2", "ero3"].map((k, i) => d.sources[k] && d.sources[k].issued ? "Day " + (i + 1) + " issued " + window.ThreatsCore.fmtZ(d.sources[k].issued) : "").filter(Boolean).join(", ") } };
+  }
+
+  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
 })();

@@ -30,6 +30,7 @@
 <link rel="stylesheet" href="assets/beta.css?v=d7e144f9d8">
 <link rel="stylesheet" href="assets/hourly-grid.css?v=befa3eb506">
 <link rel="stylesheet" href="assets/forecast-support.css?v=52766a62f7">
+<link rel="stylesheet" href="assets/event-threats.css?v=c413a2f21b">
 </head>
 <body class="bx event-planner">
 <main class="bx-brief">
@@ -52,6 +53,7 @@
   <!-- 2. Event schedule: what time each part of the event is; the weather is in the briefing above and hour by hour below -->
   <section class="bx-sec ev-sched" id="secTimeline"><div class="ev-sched-h"><h2>Event schedule</h2><a class="bx-link ev-hourly-link" id="hourlyLink" href="#secHourly">View hourly forecast ↓</a></div><div id="schedule"></div></section>
   <!-- 3. Details on demand -->
+  <section class="bx-sec ev-threats" id="secThreats" aria-label="Weather threats"><div class="ev-sched-h"><h2>Weather threats</h2><span class="bx-note">official warnings and outlooks for this venue and schedule</span></div><div id="threats"><p class="bx-note">Checking official flood warnings and rainfall outlooks…</p></div></section>
   <section class="ev-details" id="secDetails" aria-label="Details"><h2 class="ev-details-h">Details</h2>
   <details class="bx-sec ev-group" id="secHourly"><summary><b>Hour by hour</b><span class="bx-note" id="hourlyValid"></span></summary><div id="evCharts"></div><details class="bx-more" id="hourlyTable"><summary>All hourly values · data table</summary><div id="evGrid" style="margin-top:6px"></div><div id="evGridLegend"></div></details><div id="evGridDetail" class="hg-detail" hidden aria-live="polite"></div>
     <details class="bx-more" id="chartMore"><summary>Combined overview · advanced</summary><div id="timeline"></div></details></details>
@@ -89,7 +91,12 @@
 <script src="assets/event-ops-handoff.js?v=fa83113129"></script>
 <script src="assets/event-hourly-charts.js?v=d2ac2eea42"></script>
 <script src="assets/event-briefing-ui.js?v=cb89db0426"></script>
-<script src="assets/beta-event.js?v=9bc86ebf43"></script>
+<script src="assets/threats-core.js?v=6c4e15aff3"></script>
+<script src="assets/threats-feeds.js?v=c5f2224f5c"></script>
+<script src="assets/threats-match.js?v=b8c4740f93"></script>
+<script src="assets/threats-live.js?v=c9fdd9956d"></script>
+<script src="assets/event-threats.js?v=40b46f433f"></script>
+<script src="assets/beta-event.js?v=c43f0b2271"></script>
 <script src="assets/table-pages.js?v=5852a434bf"></script>
 </body>
 </html>
