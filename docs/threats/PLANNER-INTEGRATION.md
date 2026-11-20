@@ -1,4 +1,6 @@
-# Weather Threats ↔ Event Planner: first integration (flooding)
+# Weather Threats ↔ Event Planner: flooding and winter weather
+
+Winter weather (NWS winter alerts and WPC WSSI-P) is described in `WINTER.md`; it uses the same records, matcher and checks.
 
 Branch `claude/threats-planner-flood` (from the Threats branch at `2fd03e7`). Isolated Cloudflare Pages preview:
 `https://claude-threats-planner-flood.forecast-ops-beta.pages.dev`. Shared beta, production and navigation are unchanged.
@@ -39,7 +41,7 @@ WPC also publishes Days 4–5. The map and Planner use Days 1–3 in this slice,
 - **Sources checked for this event:** each source's check time, or why it can't confirm (not responding, stale, outside its area, beyond the
   outlooks issued so far).
 
-## Verification (Cloudflare preview, `node tools/threats-planner-check.js <host>`, 16 of 16 pass)
+## Verification (Cloudflare preview, `node tools/threats-planner-check.js <host>`; flooding cases rerun with winter, see `planner-check/report.json`)
 
 The archived samples are official NWS and WPC products from 2026-11-20, replayed at fixed times. Planner links use
 `?threats=archive-flood-day|archive-flood-afternoon|archive-flood-night` and are labelled "Archived sample".

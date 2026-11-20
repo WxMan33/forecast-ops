@@ -160,7 +160,15 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
   check("LIVE winter: WSSI-P point queries answered and the source states its check time", ws.filter((f) => f.status === 200).length >= 4 && r.statuses.some((x) => /WSSI-P\): Checked/.test(x)), { ws, st: r.statuses });
   check("LIVE winter: NWS winter alerts reach Planner (any active at the venue are listed with their phases)", r.statuses.some((x) => /^NWS warnings, watches and advisories: Checked/.test(x)), r);
   fs.writeFileSync(path.join(OUT, "live-planner-winter.json"), JSON.stringify({ at: new Date().toISOString(), result: r, feeds: v.feeds }, null, 1));
-  await shot(v, "LIVE-planner-winter-snowbird"); await v.ctx.close();
+  await shot(v, "LIVE-planner-winter-snowbird"); const liveW = r.items.find((i) => /WSSI-P/.test(i.line)), liveWi = r.items.indexOf(liveW), liveMaps = r.maps; await v.ctx.close();
+  if (liveW) {
+    const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }), p = await ctx.newPage(); const errs = []; p.on("pageerror", (e) => errs.push(e.message));
+    await p.goto(liveMaps[liveWi].replace(/^https?:\/\/[^/]+/, HOST).replace("/threats.html", "/threats"), { waitUntil: "domcontentloaded" });
+    await p.waitForFunction(() => window.__threats && window.__threats.ready && window.__threats.map.getSource("wssi")._data.features.length > 0, null, { timeout: 90000 }).catch(() => {}); await p.waitForTimeout(2500);
+    const s2 = await p.evaluate(() => ({ view: window.__threats.S.view, wssi: window.__threats.map.getSource("wssi")._data.features.length, big: (document.querySelector(".px-big") || {}).textContent }));
+    check("LIVE winter View on map: WSSI-P areas drawn for the window, the venue's chance matches Planner", s2.view === "winter" && s2.wssi > 0 && new RegExp(liveW.headline.match(/(\d+)%/)[1] + "%").test(s2.big) && !errs.length, { s2, head: liveW.headline, errs });
+    await p.screenshot({ path: path.join(OUT, "LIVE-map-winter-from-planner.png") }); await ctx.close();
+  } else check("LIVE winter View on map: a WSSI-P item at the venue to open", false, r.items);
 
   /* 5. outage: NWS route blocked in this browser */
   v = await planner("e=" + E(...ATL, FRI), { blockNws: true, wait: 4000 }); r = await v.read();

@@ -1,6 +1,6 @@
 {
  "host": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev",
- "at": "2026-11-20T20:57:16.066Z",
+ "at": "2026-11-20T21:44:03.154Z",
  "results": [
   {
    "check": "archived Daytona: Flash Flood Warning and WPC Day 1 High are separate items",
@@ -71,7 +71,7 @@
   {
    "check": "More info: source, issued and updated, in effect until, last checked, venue, official link",
    "pass": true,
-   "detail": "Source\nNWS Melbourne FL · official product\nIssued\nFri, Nov 20, 10:04 AM EST · updated Fri, Nov 20, 12:23 PM EST\nIn effect\nuntil Fri, Nov 20, 2:30 PM EST\nLast checked\nFri, Nov 20, 12:31 PM EST\nVenue\nInside the warning area\nDetails\nAt 1223 PM EST, Doppler radar indicated thunderstorms producing heavy rain across the warned area."
+   "detail": "Source\nNWS Melbourne FL · official product\nIssued\nFri, Nov 20, 10:04 AM EST · updated Fri, Nov 20, 12:23 PM EST\nIn effect\nuntil Fri, Nov 20, 2:30 PM EST\nLast checked\nFri, Nov 20, 12:35 PM EST\nVenue\nInside the warning area\nDetails\nAt 1223 PM EST, Doppler radar indicated thunderstorms producing heavy rain across the warned area."
   },
   {
    "check": "More info: official product link points at the NWS alert record",
@@ -86,7 +86,8 @@
     "sel": "KMLB.FF.W.0036.2026",
     "layers": {
      "severe": false,
-     "flood": true
+     "flood": true,
+     "winter": false
     },
     "title": "Flash Flood Warning",
     "center": {
@@ -104,7 +105,8 @@
     "sel": "wpc-ero-d1-HIGH-2026-11-20T15:35:00.000Z",
     "layers": {
      "severe": false,
-     "flood": true
+     "flood": true,
+     "winter": false
     },
     "title": "WPC Day 1 · High excessive rainfall risk (4 of 4)",
     "center": {
@@ -126,7 +128,7 @@
     "confirmed": true,
     "items": [],
     "statuses": [
-     "NWS warnings and watches: Checked 12:31 p.m.",
+     "NWS warnings, watches and advisories: Checked 12:35 p.m.",
      "WPC Excessive Rainfall Outlook: Checked 12:35 p.m. · Day 1 issued 1535Z, Day 3 issued 0824Z"
     ],
     "maps": []
@@ -151,7 +153,7 @@
     "confirmed": false,
     "items": [],
     "statuses": [
-     "NWS warnings and watches: Checked 12:31 p.m.",
+     "NWS warnings, watches and advisories: Checked 12:35 p.m.",
      "WPC Excessive Rainfall Outlook: Checked 12:35 p.m. · Day 1 issued 1535Z, Day 3 issued 0824Z · Your event runs past the outlooks issued so far (they end Mon 7 a.m.)."
     ],
     "maps": []
@@ -235,33 +237,545 @@
    }
   },
   {
+   "check": "outage replay: the expired Flash Flood Warning is no longer an active item, a note says it reached its published expiration, NWS status stays unknown",
+   "pass": true,
+   "detail": {
+    "r": {
+     "summary": "1 weather threat for this event",
+     "confirmed": false,
+     "items": [
+      {
+       "kind": "outlook",
+       "headline": "Excessive rainfall risk Friday · High (at least 70%)",
+       "line": "The WPC Day 1 outlook includes the venue and its period (Fri 11 a.m. – Sat 7 a.m.) overlaps gates, the event and teardown. It is a risk for the whole period, not timing within it.",
+       "product": "wpc-ero-d1-HIGH-2026-11-20T15:35:00.000Z",
+       "category": "HIGH",
+       "day": 1,
+       "phases": [
+        "gates",
+        "event",
+        "teardown"
+       ]
+      }
+     ],
+     "statuses": [
+      "NWS warnings, watches and advisories: Not confirmed since 1 p.m. Showing last known products only.",
+      "WPC Excessive Rainfall Outlook: Checked 2:40 p.m. · Day 1 issued 1535Z, Day 3 issued 0824Z"
+     ],
+     "maps": [
+      "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=29.1852&lon=-81.0705&name=Daytona+International+Speedway&tz=America%2FNew_York&scope=venue&view=day1&layers=flood&sel=wpc-ero-d1-HIGH-2026-11-20T15%3A35%3A00.000Z&scenario=archive-flood-outage&nws=function"
+     ]
+    },
+    "notes": [
+     "Flash Flood Warning reached its published expiration (2:30 p.m.) while the source could not be reached. It is no longer shown as active; its current status is unknown."
+    ]
+   }
+  },
+  {
+   "check": "WINTER outlook 4 days ahead (Crystal Mountain, Tue): 'Minor winter impacts likely Tuesday · 60%', window and phases shown",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "outlook",
+     "headline": "Minor winter impacts likely Tuesday · 60% chance of at least Minor impacts",
+     "line": "WPC's winter storm severity outlook (WSSI-P) for the 24 hours Tue 4 a.m. – Wed 4 a.m. includes the venue and overlaps setup, gates, the event and teardown. Expect a few inconveniences to daily life; winter driving conditions. A chance for the whole 24 hours, not timing within it.",
+     "product": "wpc-wssip-MINOR-2026-11-24T12:00:00.000Z-60",
+     "category": "MINOR",
+     "day": null,
+     "phases": [
+      "setup",
+      "gates",
+      "event",
+      "teardown"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "WINTER More info: WPC file time, 24-hour window, chance per level, coverage end, official link",
+   "pass": true,
+   "detail": "Source\nNWS Weather Prediction Center · WSSI-P (official product)\nIssued\nWPC file Fri, Nov 20, 10:48 AM PST\nValid\n24 hours, Tue, Nov 24, 4:00 AM PST → Wed, Nov 25, 4:00 AM PST\nChances at the venue\nWinter weather (any) 95% · Minor 60% · Moderate 10% · Major under 5% · Extreme under 5%\nOverlaps\nsetup, gates, event, teardown\nLast checked\nFri, Nov 20, 1:30 PM PST\nCovers through\nFri, Nov 27, 4:00 PM PST (the last 24-hour window WPC has published)\nVenue\nInside WPC's 60% area for at least Minor impacts\nDetails\nExpect a few inconveniences to daily life; winter driving conditions. WSSI-P gives the chance of reaching each impact level somewhere in the 24 hours; it does not time anything within them."
+  },
+  {
+   "check": "WINTER View on map (outlook): Winter 7-day view at the venue, same window and level, areas drawn",
+   "pass": true,
+   "detail": {
+    "s": {
+     "view": "winter",
+     "sel": null,
+     "layers": {
+      "severe": false,
+      "flood": false,
+      "winter": true
+     },
+     "wlevel": "MINOR",
+     "wwin": "2026-11-24T12:00:00.000Z",
+     "venue": "Winter outlook at Crystal Mountain · WPC WSSI-P",
+     "title": "60% chance of at least Minor impacts",
+     "wssi": 8
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "WINTER event running past the last WSSI-P window: coverage end stated, never 'none'",
+   "pass": true,
+   "detail": {
+    "summary": "1 weather threat for this event",
+    "confirmed": false,
+    "items": [
+     {
+      "kind": "outlook",
+      "headline": "Minor winter impacts possible Thursday · 30% chance of at least Minor impacts",
+      "line": "WPC's winter storm severity outlook (WSSI-P) for the 24 hours Wed 4 p.m. – Thu 4 p.m. includes the venue and overlaps setup. Expect a few inconveniences to daily life; winter driving conditions. A chance for the whole 24 hours, not timing within it.",
+      "product": "wpc-wssip-MINOR-2026-11-26T00:00:00.000Z-30",
+      "category": "MINOR",
+      "day": null,
+      "phases": [
+       "setup"
+      ]
+     }
+    ],
+    "statuses": [
+     "NWS warnings, watches and advisories: Checked 1:30 p.m.",
+     "WPC winter storm severity outlook (WSSI-P): Checked 1:30 p.m. · file 1848Z · Your event runs past the outlooks issued so far (they end Fri 4 p.m.)."
+    ],
+    "maps": [
+     "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=46.935&lon=-121.475&name=Crystal+Mountain&tz=America%2FLos_Angeles&scope=venue&view=winter&wwin=2026-11-26T00%3A00%3A00.000Z&wlevel=MINOR&layers=winter&scenario=archive-winter-outlook&nws=function"
+    ]
+   }
+  },
+  {
+   "check": "WINTER replay Nov 18 4 p.m.: Winter Weather Advisory at Snowbird, from its forecast zone",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "advisory",
+     "headline": "Winter Weather Advisory during setup, gates, the event and teardown",
+     "line": "In effect at the venue until 11 a.m. Saturday (issued for the forecast zone that includes the venue).",
+     "product": "KSLC.WW.Y.0018.2026#UTZ110",
+     "category": null,
+     "day": null,
+     "phases": [
+      "setup",
+      "gates",
+      "event",
+      "teardown"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "WINTER More info (advisory): issued 3:49 PM, in effect from Thu 11 AM, zones listed",
+   "pass": true,
+   "detail": "Source\nNWS Salt Lake City UT · official product\nIssued\nWed, Nov 18, 3:49 PM MST\nIn effect\nfrom Thu, Nov 19, 11:00 AM MST until Sat, Nov 21, 11:00 AM MST\nLast checked\nWed, Nov 18, 4:00 PM MST\nVenue\nInside the advisory area (drawn from the NWS forecast zones it lists: UTZ110, UTZ111, UTZ112)\nDetails\nWinter weather advisory in effect from 11 am thursday to 11 am mst saturday"
+  },
+  {
+   "check": "WINTER replay Nov 19 10 a.m.: upgraded; 'Winter Storm Warning during setup, gates, the event and teardown'",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "warning",
+     "headline": "Winter Storm Warning during setup, gates, the event and teardown",
+     "line": "In effect at the venue until 11 a.m. Saturday (issued for the forecast zone that includes the venue).",
+     "product": "KSLC.WS.W.0003.2026",
+     "category": null,
+     "day": null,
+     "phases": [
+      "setup",
+      "gates",
+      "event",
+      "teardown"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "WINTER same page: Snowbird warning → Park City advisory → event after the warning ends (none) → setup overlaps the warning → back",
+   "pass": true,
+   "detail": [
+    "Winter Storm Warning during setup, gates, the event and teardown",
+    "Winter Weather Advisory during setup, gates, the event and teardown",
+    "none",
+    "Winter Storm Warning during setup, gates and the event",
+    "Winter Storm Warning during setup, gates, the event and teardown"
+   ]
+  },
+  {
+   "check": "WINTER View on map (warning): Active now at Snowbird, the warning selected, Winter layer only",
+   "pass": true,
+   "detail": {
+    "s": {
+     "view": "active",
+     "sel": "KSLC.WS.W.0003.2026",
+     "layers": {
+      "severe": false,
+      "flood": false,
+      "winter": true
+     },
+     "wlevel": "MINOR",
+     "wwin": null,
+     "title": "Winter Storm Warning",
+     "wssi": 0
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "WINTER phone: Planner section without horizontal scroll",
+   "pass": true,
+   "detail": []
+  },
+  {
+   "check": "WINTER phone map: winter view without horizontal scroll",
+   "pass": true
+  },
+  {
    "check": "live: NWS and WPC requests go through the same-origin functions with their upstream time",
    "pass": true,
    "detail": {
     "viaFn": [
      {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day3",
-      "status": 200,
-      "cache": "HIT",
-      "upstreamAt": "2026-11-20T20:56:22.535Z"
-     },
-     {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day1",
       "status": 200,
       "cache": "MISS",
-      "upstreamAt": "2026-11-20T20:57:06.210Z"
+      "upstreamAt": "2026-11-20T21:43:38.975Z"
      },
      {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch,Flash%20Flood%20Warning",
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch,Flash%20Flood%20Warning,Winter%20Storm%20Warning,Winter%20Storm%20Watch,Blizzard%20Warning,Ice%20Storm%20Warning,Lake%20Effect%20Snow%20Warning,Winter%20Weather%20Advisory",
       "status": 200,
       "cache": "MISS",
-      "upstreamAt": "2026-11-20T20:57:06.327Z"
+      "upstreamAt": "2026-11-20T21:43:39.011Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ056",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.125Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/UTZ023",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.142Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day3",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.156Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WYZ012",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.181Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WYZ014",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.196Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ057",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.209Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day2",
       "status": 200,
       "cache": "MISS",
-      "upstreamAt": "2026-11-20T20:57:06.411Z"
+      "upstreamAt": "2026-11-20T21:43:39.204Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ053",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.225Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ054",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.265Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ063",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.279Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ062",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.297Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ067",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.361Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ060",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.382Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ059",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.393Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ065",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.395Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ064",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.432Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ066",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.460Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ058",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.468Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ320",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.487Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ002",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.522Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ325",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.540Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ326",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.566Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ330",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.573Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ302",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.605Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ312",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.645Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ308",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.648Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ043",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.660Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ301",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.675Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ316",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.694Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ315",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.725Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ307",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.729Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ322",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.745Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ317",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.743Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/UTZ110",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.750Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/UTZ108",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.777Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ056",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.825Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/UTZ111",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.833Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/UTZ112",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.849Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WYZ199",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.849Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ809",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.857Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ066",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.865Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ812",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.911Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ832",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.930Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ831",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:39.952Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.f3af667d88ff63bf3807878a5cfcb05a4b69a1fa.001.1",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:40.170Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.a1cf67c65ab7f1c2dc4e6b45dcc80ec819aa34f6.001.1",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:40.387Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b8e355d92605352af1f4013ebe5e748447243f33.004.1",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:40.666Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b8e355d92605352af1f4013ebe5e748447243f33.003.1",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:40.909Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b8e355d92605352af1f4013ebe5e748447243f33.002.1",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:41.231Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.a40e58c11f1b79e42c843f0f09b248fec826dbc0.002.1",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:41.307Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.a40e58c11f1b79e42c843f0f09b248fec826dbc0.001.1",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:41.660Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.a40e58c11f1b79e42c843f0f09b248fec826dbc0.003.1",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:42.084Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.2d2f10dc7e8682329a1ae670192e82c3a8645591.001.1",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:42.506Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b812f31b2ec0bfa2c5d513f512d765fc7fedda31.002.1",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:42.750Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.7bce3953b6806e05c3b6bea054318ca5abb332dc.001.1",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T21:43:42.989Z"
      }
     ],
     "direct": []
@@ -271,20 +785,111 @@
    "check": "live: every source states its check time or its gap",
    "pass": true,
    "detail": [
-    "NWS warnings and watches: Checked 3:57 p.m.",
-    "WPC Excessive Rainfall Outlook: Checked 3:56 p.m. · Day 1 issued 1535Z, Day 2 issued 2012Z, Day 3 issued 0824Z"
+    "NWS warnings, watches and advisories: Checked 4:43 p.m.",
+    "WPC winter storm severity outlook (WSSI-P): Checked 4:43 p.m.",
+    "WPC Excessive Rainfall Outlook: Checked 4:43 p.m. · Day 1 issued 2045Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
    ]
+  },
+  {
+   "check": "LIVE winter: WSSI-P point queries answered and the source states its check time",
+   "pass": true,
+   "detail": {
+    "ws": [
+     {
+      "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi_p/MapServer/3/query?geometry=-111.6556,40.5813&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=false&f=json",
+      "status": 200,
+      "cache": null,
+      "upstreamAt": null
+     },
+     {
+      "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi_p/MapServer/4/query?geometry=-111.6556,40.5813&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=false&f=json",
+      "status": 200,
+      "cache": null,
+      "upstreamAt": null
+     },
+     {
+      "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi_p/MapServer/2/query?geometry=-111.6556,40.5813&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=false&f=json",
+      "status": 200,
+      "cache": null,
+      "upstreamAt": null
+     },
+     {
+      "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi_p/MapServer/1/query?geometry=-111.6556,40.5813&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=false&f=json",
+      "status": 200,
+      "cache": null,
+      "upstreamAt": null
+     },
+     {
+      "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi_p/MapServer/10/query?geometry=-111.6556,40.5813&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=false&f=json",
+      "status": 200,
+      "cache": null,
+      "upstreamAt": null
+     }
+    ],
+    "st": [
+     "NWS warnings, watches and advisories: Checked 2:43 p.m.",
+     "WPC winter storm severity outlook (WSSI-P): Checked 2:43 p.m. · file 1848Z",
+     "WPC Excessive Rainfall Outlook: Checked 2:43 p.m. · Day 1 issued 2045Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
+    ]
+   }
+  },
+  {
+   "check": "LIVE winter: NWS winter alerts reach Planner (any active at the venue are listed with their phases)",
+   "pass": true,
+   "detail": {
+    "summary": "2 weather threats for this event",
+    "confirmed": true,
+    "items": [
+     {
+      "kind": "warning",
+      "headline": "Winter Storm Warning during setup, gates and the event",
+      "line": "In effect at the venue until 11 a.m. Saturday (issued for the forecast zone that includes the venue).",
+      "product": "KSLC.WS.W.0003.2026",
+      "category": null,
+      "day": null,
+      "phases": [
+       "setup",
+       "gates",
+       "event"
+      ]
+     },
+     {
+      "kind": "outlook",
+      "headline": "Winter weather likely Saturday · 90% chance of at least winter weather",
+      "line": "WPC's winter storm severity outlook (WSSI-P) for the 24 hours Fri 5 p.m. – Sat 5 p.m. includes the venue and overlaps setup, gates, the event and teardown. Expect winter weather and winter driving conditions. A chance for the whole 24 hours, not timing within it.",
+      "product": "wpc-wssip-WWA-2026-11-21T00:00:00.000Z-90@-111.656,40.581",
+      "category": "WWA",
+      "day": null,
+      "phases": [
+       "setup",
+       "gates",
+       "event",
+       "teardown"
+      ]
+     }
+    ],
+    "statuses": [
+     "NWS warnings, watches and advisories: Checked 2:43 p.m.",
+     "WPC winter storm severity outlook (WSSI-P): Checked 2:43 p.m. · file 1848Z",
+     "WPC Excessive Rainfall Outlook: Checked 2:43 p.m. · Day 1 issued 2045Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
+    ],
+    "maps": [
+     "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=40.5813&lon=-111.6556&name=Snowbird&tz=America%2FDenver&scope=venue&view=active&layers=winter&sel=KSLC.WS.W.0003.2026&nws=function",
+     "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=40.5813&lon=-111.6556&name=Snowbird&tz=America%2FDenver&scope=venue&view=winter&wwin=2026-11-21T00%3A00%3A00.000Z&wlevel=WWA&layers=winter&nws=function"
+    ]
+   }
   },
   {
    "check": "NWS outage: status says not responding and the summary is not 'no threats'",
    "pass": true,
    "detail": {
-    "summary": "Not fully confirmed: no flooding threats found in the data we have, but a source is unavailable, stale or doesn't cover this venue or date.",
+    "summary": "Not fully confirmed: no flooding and winter weather threats found in the data we have, but a source is unavailable, stale or doesn't cover this venue or date.",
     "confirmed": false,
     "items": [],
     "statuses": [
-     "NWS warnings and watches: Not responding · status unknown. We can't rule anything out from this source.",
-     "WPC Excessive Rainfall Outlook: Checked 3:56 p.m. · Day 1 issued 1535Z, Day 2 issued 2012Z, Day 3 issued 0824Z"
+     "NWS warnings, watches and advisories: Not responding · status unknown. We can't rule anything out from this source.",
+     "WPC winter storm severity outlook (WSSI-P): Checked 4:43 p.m.",
+     "WPC Excessive Rainfall Outlook: Checked 4:43 p.m. · Day 1 issued 2045Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
     ],
     "maps": []
    }

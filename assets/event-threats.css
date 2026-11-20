@@ -5,6 +5,8 @@
 .et-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .et-item { border: 1px solid var(--line, #d3d9e0); border-left: 5px solid var(--et-c, #2fd08a); border-radius: 8px; padding: 9px 11px; }
 .et-item[data-kind="outlook"] { border-left-style: dashed; }
+.et-item[data-family="winter"] { --et-c: #ff69b4; }
+:root[data-theme="light"] .et-item[data-family="winter"] { --et-c: #c2187a; }
 .et-main { display: grid; gap: 3px; }
 .et-head { font-size: 15px; }
 .et-line { font-size: 13.5px; }
