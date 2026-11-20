@@ -87,6 +87,16 @@ const facts = (p) => p.evaluate(() => {
       check(info.lightning === expectLightning && info.type === expectType, `${L} lightning ${info.lightning}, precipitation type ${info.type}`);
       check(errors.length === 0, `${L} no script errors ${errors.join('; ')}`);
       if (wx === 'transition') {
+        /* theme choice: explicit Light / Dark, and Match page theme (this page is light) */
+        for (const [choice, want] of [['dark', 'dark'], ['light', 'light'], ['match', 'light']]) {
+          await p.selectOption('#tvTheme', choice);
+          const [d2] = await Promise.all([p.waitForEvent('download', { timeout: 30000 }), p.click('#tvExport')]);
+          const f2 = path.join(out, `tv-${fixName}-${wx}-${choice}.png`); await d2.saveAs(f2);
+          const px = await p.evaluate((t) => { const c = window.EventTvExport.draw(document.createElement('canvas'), { ...window.__lastHourly, theme: t }); return [...c.getContext('2d').getImageData(4, 4, 1, 1).data].slice(0, 3); }, want);
+          const dark = px.reduce((a, b) => a + b, 0) / 3 < 40, png2 = fs.readFileSync(f2);
+          check(new RegExp(`-${want}-1920x1080\\.png$`).test(d2.suggestedFilename()) && png2.readUInt32BE(16) === 1920 && png2.readUInt32BE(20) === 1080 && dark === (want === 'dark'),
+            `${L} "${choice}" exports a ${want} 1920 × 1080 PNG (${d2.suggestedFilename()}, background rgb(${px.join(',')}))`);
+        }
         /* the hourly display link: a signed-out browser (fresh context, no storage) opens straight to the charts */
         await ctx.grantPermissions(['clipboard-read', 'clipboard-write']); await p.click('#hourlyCopy');
         const url = await p.evaluate(() => navigator.clipboard.readText()); await ctx.close();

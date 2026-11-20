@@ -10,9 +10,17 @@
 (function (root) {
   "use strict";
   const W = 1920, HGT = 1080, fin = Number.isFinite, MAX_HOURS = 24;
-  const C = { bg: "#ffffff", text: "#0f172a", muted: "#475569", rule: "#d7dde5", ruleSoft: "#eef1f5", panel: "#f8fafc", border: "#cbd5e1",
-    pop: "#0b4f78", temp: "#d4553b", wind: "#127a6c", limit: "#334155", red: "#c62828", sel: "#0b6bcb",
-    band: { rain: "#3aa757", mix: "#e25ca4", snow: "#3b82f6" }, tier: ["", "#c9bfe6", "#9b87d6", "#5b3fb0"], gap: "#e2e8f0" };
+  /* two palettes; the layout and every value are the same in both. Dark: a solid background for TVs, brighter lines,
+     stronger type tints, and lightning blocks that brighten with the level. */
+  const PALETTES = {
+    light: { name: "light", bg: "#ffffff", text: "#0f172a", muted: "#475569", rule: "#d7dde5", ruleSoft: "#eef1f5", panel: "#f8fafc", border: "#cbd5e1",
+      pop: "#0b4f78", temp: "#d4553b", wind: "#127a6c", limit: "#334155", red: "#c62828", sel: "#0b6bcb", dotRing: "#ffffff", lowThroughout: "#3b2a7a",
+      band: { rain: "#3aa757", mix: "#e25ca4", snow: "#3b82f6" }, bandAlpha: 0.18, tier: ["", "#c9bfe6", "#9b87d6", "#5b3fb0"], tierText: ["", "#1e1b4b", "#1e1b4b", "#ffffff"], gap: "#e2e8f0" },
+    dark: { name: "dark", bg: "#0a0f1a", text: "#f1f5f9", muted: "#aab6c8", rule: "#2b3850", ruleSoft: "#1d2840", panel: "#111a2b", border: "#2e3c56",
+      pop: "#8fd6ff", temp: "#ff8f75", wind: "#45d6c2", limit: "#d5dde8", red: "#ff6b6b", sel: "#7cc4ff", dotRing: "#111a2b", lowThroughout: "#c9bbff",
+      band: { rain: "#4cc76c", mix: "#f06fb5", snow: "#5b9dff" }, bandAlpha: 0.3, tier: ["", "#4a427e", "#7262cc", "#c9bbff"], tierText: ["", "#ffffff", "#ffffff", "#1e1b4b"], gap: "#27334a" },
+  };
+  let C = PALETTES.light;
   const FONT = (w, px) => `${w} ${px}px Archivo, "Segoe UI", system-ui, sans-serif`;
   const SYM = { rain: "☂", mix: "✱", snow: "❄" };
 
@@ -27,6 +35,7 @@
   }
 
   function draw(canvas, d) {
+    C = PALETTES[d.theme === "dark" ? "dark" : "light"];
     canvas.width = W; canvas.height = HGT;
     const g = canvas.getContext("2d"), V = d.view, { ids, total, cut } = hoursOf(V), rows = Object.fromEntries(V.rows.map((r) => [r.key, r]));
     const types = root.EventHourlyCharts.precipTypes(V.hrs, d.nwsTypes || []), tsum = root.EventHourlyCharts.typeSummary(ids.map((i) => types[i]));
@@ -48,7 +57,7 @@
     panels.forEach(([k, cx, cy]) => panel(k, PAD + cx * (pw + gap), top0 + cy * (ph + gap), pw, ph));
     /* ---- footer ---- */
     text(`${cut ? `First ${ids.length} of ${total} event hours · ` : ""}Times are the venue's local time${d.zone ? ` (${d.zone})` : ""} · Forecast Ops · NOAA/NWS and Open-Meteo guidance`, PAD, HGT - 22, { font: FONT(500, 20), color: C.muted });
-    canvas.minFontPx = minFont; canvas.lightning = lightningSummary(V, ids).allLow ? "low-throughout" : "blocks"; canvas.typeMode = tsum.mode;
+    canvas.theme = C.name; canvas.minFontPx = minFont; canvas.lightning = lightningSummary(V, ids).allLow ? "low-throughout" : "blocks"; canvas.typeMode = tsum.mode;
     return canvas;
 
     function panel(key, x, y, w, h) {
@@ -66,7 +75,7 @@
       const series = (vals, lo, hi, color, { dash = false, width = 5, dots = false } = {}) => { const yy = (v) => B - ((v - lo) / (hi - lo)) * (B - T);
         g.strokeStyle = color; g.lineWidth = width; g.setLineDash(dash ? [16, 10] : []); g.lineJoin = "round"; g.lineCap = "round"; let open = false; g.beginPath();
         vals.forEach((v, j) => { if (v == null) { open = false; return; } if (open) g.lineTo(X(j), yy(v)); else g.moveTo(X(j), yy(v)); open = true; }); g.stroke(); g.setLineDash([]);
-        if (dots) vals.forEach((v, j) => { if (v == null) return; g.beginPath(); g.arc(X(j), yy(v), 9, 0, 2 * Math.PI); g.fillStyle = color; g.fill(); g.lineWidth = 3; g.strokeStyle = "#fff"; g.stroke(); }); };
+        if (dots) vals.forEach((v, j) => { if (v == null) return; g.beginPath(); g.arc(X(j), yy(v), 9, 0, 2 * Math.PI); g.fillStyle = color; g.fill(); g.lineWidth = 3; g.strokeStyle = C.dotRing; g.stroke(); }); };
       const keyItems = (items) => { let kx = x + 24; items.forEach(([kind, color, label]) => { const ky = y + 84;
         if (kind === "line" || kind === "dash" || kind === "dot") { g.strokeStyle = color; g.lineWidth = kind === "dot" ? 3 : 5; g.setLineDash(kind === "dash" ? [12, 8] : kind === "dot" ? [3, 6] : []); line(kx, ky - 8, kx + 40, ky - 8); g.setLineDash([]); kx += 50; }
         else if (kind === "box") { g.globalAlpha = 0.35; g.fillStyle = color; g.fillRect(kx, ky - 22, 26, 26); g.globalAlpha = 1; kx += 34; }
@@ -82,7 +91,7 @@
         keyItems([["line", C.pop, "Chance each hour"], ...(tsum.mode === "bands" ? [["box", C.band.rain, "☂ Rain"], ["box", C.band.mix, "✱ Mix"], ["box", C.band.snow, "❄ Snow"]] : []), ["gap", null, "No data"]]);
         if (tsum.mode !== "bands") text(tsum.text, R, y + 46, { font: FONT(700, 26), align: "right", color: C.text });
         if (tsum.mode === "bands") { let run = null; const out = []; ids.forEach((i, j) => { const t = types[i], k = ["dry", "missing"].includes(t.kind) ? null : `${t.kind}|${t.word}`; if (k && run && run.k === k && run.b === j - 1) run.b = j; else { if (run) out.push(run); run = k ? { k, a: j, b: j } : null; } }); if (run) out.push(run);
-          out.forEach((r) => { const [kind, word] = r.k.split("|"), x0 = L + r.a * bw, wd = (r.b - r.a + 1) * bw; if (C.band[kind]) { g.globalAlpha = 0.18; g.fillStyle = C.band[kind]; g.fillRect(x0, T, wd, B - T); g.globalAlpha = 1; }
+          out.forEach((r) => { const [kind, word] = r.k.split("|"), x0 = L + r.a * bw, wd = (r.b - r.a + 1) * bw; if (C.band[kind]) { g.globalAlpha = C.bandAlpha; g.fillStyle = C.band[kind]; g.fillRect(x0, T, wd, B - T); g.globalAlpha = 1; }
             const label = C.band[kind] ? `${SYM[kind]} ${word}` : `? ${word}`; g.font = FONT(800, 24); text(g.measureText(label).width + 12 <= wd ? label : C.band[kind] ? SYM[kind] : "?", x0 + 8, B - 12, { font: FONT(800, 24), color: C.band[kind] ? C.text : C.muted }); }); }
         grid(0, 100, [0, 50, 100], (v) => `${v}%`);
         const vals = ids.map((i) => (missing(i) || !fin(V.hrs[i].pop) ? null : V.hrs[i].pop)); gaps((i) => vals[ids.indexOf(i)]);
@@ -112,7 +121,7 @@
         const { levels, allLow } = lightningSummary(V, ids);
         text("Forecast potential, not detected lightning or a warning", R, y + 46, { font: FONT(600, 20), color: C.muted, align: "right" });
         if (allLow) {
-          text("Low throughout", x + w / 2, (T + B) / 2 + 10, { font: FONT(800, 64), align: "center", color: "#3b2a7a" });
+          text("Low throughout", x + w / 2, (T + B) / 2 + 10, { font: FONT(800, 64), align: "center", color: C.lowThroughout });
           text("Low is not zero · every event hour covered", x + w / 2, (T + B) / 2 + 60, { font: FONT(600, 26), color: C.muted, align: "center" });
           return;
         } else {
@@ -120,7 +129,7 @@
           const yy = (v) => B - (v / 3) * (B - T);
           [1, 2, 3].forEach((v) => { g.strokeStyle = C.ruleSoft; g.lineWidth = 1.5; line(L, yy(v), R, yy(v)); text(["", "Low", "Mod", "High"][v], L - 12, yy(v) + 8, { font: FONT(600, 22), color: C.muted, align: "right" }); });
           levels.forEach((v, j) => { if (v == null) { g.fillStyle = C.gap; g.fillRect(L + j * bw + 2, T, bw - 4, B - T); text(bw >= 70 ? "No data" : "—", X(j), (T + B) / 2 + 8, { font: FONT(700, 20), color: C.muted, align: "center" }); return; }
-            g.fillStyle = C.tier[v]; roundRect(X(j) - bw * 0.36, yy(v), bw * 0.72, B - yy(v), 4); g.fill(); text(bw >= 80 ? ["", "Low", "Mod", "High"][v] : ["", "L", "M", "H"][v], X(j), B - 12, { font: FONT(800, 20), color: v === 3 ? "#fff" : "#1e1b4b", align: "center" }); });
+            g.fillStyle = C.tier[v]; roundRect(X(j) - bw * 0.36, yy(v), bw * 0.72, B - yy(v), 4); g.fill(); text(bw >= 80 ? ["", "Low", "Mod", "High"][v] : ["", "L", "M", "H"][v], X(j), B - 12, { font: FONT(800, 20), color: C.tierText[v], align: "center" }); });
         }
       }
       hourLabels();
@@ -135,10 +144,10 @@
     const canvas = draw(root.document.createElement("canvas"), d);
     const blob = await new Promise((ok, no) => canvas.toBlob((b) => (b ? ok(b) : no(new Error("This browser could not make the image."))), "image/png"));
     const a = root.document.createElement("a"), safe = String(d.title || "event").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "event";
-    a.href = URL.createObjectURL(blob); a.download = `${safe}-hourly-1920x1080.png`; root.document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60e3);
+    a.href = URL.createObjectURL(blob); a.download = `${safe}-hourly-${d.theme === "dark" ? "dark" : "light"}-1920x1080.png`; root.document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60e3);
     return { blob, canvas, name: a.download };
   }
-  const api = { draw, exportPng, lightningSummary, hoursOf, W, H: HGT };
+  const api = { draw, exportPng, lightningSummary, hoursOf, PALETTES, W, H: HGT };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.EventTvExport = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

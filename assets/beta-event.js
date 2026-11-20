@@ -385,10 +385,12 @@
     const when = (ms) => (fin(ms) ? `${new Date(ms).toLocaleString("en-US", { timeZone: ev.tz, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} ${fmt.zone(ms, ev.tz)}` : "—");
     try {
       const data = { title: $("evName").textContent, venue: $("evVenue").textContent, when: $("evWhen").textContent, takeaway: $("decision").textContent,
-        updated: when(updatedMs), zone: fmt.zone(lastHourly.V.span[0], ev.tz), view: lastHourly.V, nwsTypes: lastHourly.nwsTypes, gustLimit: ev.gust || 25 };
+        updated: when(updatedMs), zone: fmt.zone(lastHourly.V.span[0], ev.tz), view: lastHourly.V, nwsTypes: lastHourly.nwsTypes, gustLimit: ev.gust || 25,
+        /* Match page theme (default), or an explicit Light / Dark PNG without switching the site */
+        theme: $("tvTheme").value === "match" ? (document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark") : $("tvTheme").value };
       window.__lastHourly = data; // read-only test hook
       const r = await window.EventTvExport.exportPng(data);
-      msg.textContent = `Saved ${r.name} (1920 × 1080).`;
+      msg.textContent = `Saved ${r.name} (1920 × 1080, ${data.theme}).`;
     } catch (e) { msg.textContent = `Couldn't make the image (${e.message}).`; }
   });
   $("hourlyCopy").addEventListener("click", async () => {

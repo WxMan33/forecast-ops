@@ -805,3 +805,4 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .evc-limittext{font-size:12.5px}
 @media(max-width:600px){.evc-val>b{font-size:23px}.evc-card h3{font-size:16px}.evc-legend{font-size:12.5px;gap:3px 10px}.evc-hour{font-size:15px}.evc-axis{font-size:13.5px}}
 .evc-share{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 0}.evc-share .bx-note{flex-basis:100%;margin:0}
+.evc-theme select{min-height:34px}
