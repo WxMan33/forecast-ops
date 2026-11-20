@@ -226,3 +226,31 @@ peninsula) and `followup-false-alarm-2024-10-08-day2.png` (Milton landfall, see 
      verification dates, and the area >= 5% on no-report days at least halved.
    - Guardrail: national Day 2 wind BSS not worse than the frozen model's, by the paired date bootstrap.
 5. Production stays on v0.7 throughout. 2025 stays sealed as the eventual untouched test.
+
+## 11. Day 2 wind regional calibration test (criterion 7): both candidates FAIL
+Runs: fit 44639186520 (out-of-fold predictions re-derived the frozen calibration exactly); extraction
+44639186383 + 44644925730 (48/48 dates; 2024-06-19 re-run after a transient short read, now
+retried); scoring 44646079299. Scorecard: `research/severe/conus-v1/calibration-study/scorecard.md`.
+
+| Florida/Gulf, Day 2 wind (original labels) | Logistic | Trees |
+|---|---|---|
+| Mean forecast / observed (target 0.5-2.0) | 8.44 -> **2.51** (95% 1.29-8.34) | 5.41 -> **2.04** (1.13-6.96) |
+| Area >= 5% per no-report day (42 of 48 days) | 23,523 -> 1,211 km^2 (ratio 0.05) | 8,245 -> 38 km^2 (ratio 0.00) |
+| National Brier, calibrated - uncalibrated | -1.7e-4 to +1.7e-4 | -9.6e-5 to +9.1e-5 |
+| Report points >= 5% (6 report days, 133 points) | 122 -> 57 | 130 -> 36 |
+| Report points >= 15% | 52 -> 9 | 29 -> 0 |
+
+- **Verdict: both FAIL the primary test.** The false-alarm area target and the national guardrail were
+  met, but neither brought the mean forecast within 2x. The trees reached 1.97x only in the tropical
+  sensitivity analysis (6 dates masked, 5,904 no-report samples), which does not decide pass or fail.
+- **The cost in hits is the bigger problem.** Florida/Gulf report points captured at >= 5% fell from
+  122 to 57 (logistic) and from 130 to 36 (trees). In the West they fell from 1,555 to 995 (logistic)
+  and from 1,146 to 689 (trees), out of 3,465 event points.
+  - Nationally, hits held because the original box gained: >= 5% hits rose from 8,857 to 9,629 for
+    the logistic and from 9,398 to 10,131 for the trees.
+- **Conclusion:** a single regional intercept/slope shifts every probability in the region, so it
+  cannot remove broad no-report areas without also removing the report-day signal.
+- v0.7 stays live. The 48 dates are now **diagnostic only** and will not be used to verify any
+  future version.
+- Note: the HURDAT2 file was the 2025 edition (hurdat2-1851-2025). Only track positions inside 2024
+  windows were matched; no 2025 severe-report outcome was loaded.
