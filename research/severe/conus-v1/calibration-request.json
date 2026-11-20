@@ -1,5 +1,6 @@
 {
- "stage": "fit",
- "extraction_run": 44577990940,
- "note": "fit uses only the 96 2022-23 dates of the 108-case extraction"
+ "stage": "score",
+ "extraction_run": 44639186383,
+ "extra_extraction_run": 44644925730,
+ "preconditions": "fit run 44639186520: out-of-fold predictions re-derive frozen calibration exactly (0.0), 96 dev dates; extraction 47/48 dates in 44639186383 plus 2024-06-19 in 44644925730, both leads"
 }
