@@ -65,6 +65,12 @@ const state = (p) => p.evaluate(() => { const g = (k) => localStorage.getItem(k)
       check(!/ope\.example|beta_analytics|fo_bid|token/i.test(X.text) && /Workspace exported: 2 events · 1 venue · 1 remembered calendar location · forecast preferences, theme/.test(X.note), `${dev} export: OPE address left out by default; note "${X.note.slice(0, 100)}"`);
       const Xo = await exportFile(S.p, true), Wo = JSON.parse(Xo.text);
       check(Wo.preferences.monitoring && Wo.preferences.monitoring.forecast_ops_monitoring_address_v1 === 'https://ope.example.test', `${dev} export: the OPE address only when "Include the OPE monitoring address" is ticked`);
+      /* the same browser imports its own file again: nothing new, no Import button, storage untouched */
+      { const before = (await state(S.p)).raw; await pick(S.p, X.text, 'again.json'); const d0 = await dialog(S.p);
+        const go = await S.p.evaluate(() => ({ hidden: document.getElementById('rsGo').hidden, prefs: document.querySelectorAll('[data-pref]').length }));
+        await S.p.screenshot({ path: path.join(out, `workspace-import-again-${dev}.png`) }); await S.p.evaluate(() => document.getElementById('editDlg').close());
+        check(/Everything in this file is already saved here/.test(d0) && /Events: 0 new · 2 already here/.test(d0) && go.hidden && go.prefs === 0 && (await state(S.p)).raw === before,
+          `${dev} repeat import in the same browser: duplicates skipped, "Everything in this file is already saved here", no Import button, no preference choices, storage unchanged`); }
       check(!S.errors.length, `${dev} sender: no script errors ${S.errors.join('; ')}`); await S.ctx.close();
 
       /* 2. a clean browser on another address: preview with counts, preferences unticked, nothing changed until Import */
@@ -77,6 +83,11 @@ const state = (p) => p.evaluate(() => { const g = (k) => localStorage.getItem(k)
       const n1 = await importNow(C.p), c1 = await state(C.p);
       check(/Workspace imported: 2 events and 1 venue added/.test(n1) && c1.events.length === 2 && c1.venues[0].aliases.join() === VENUE.aliases.join() && c1.events[0].venueId === VENUE.id && c1.preset === before.preset && c1.models === before.models && c1.theme === before.theme && !c1.ope,
         `${dev} clean browser: events, venue and its calendar location arrive with references intact; no preference applied unasked ("${n1.slice(0, 70)}")`);
+      /* the same file again in that browser: records already here; only the file's differing preferences are offered */
+      { const before = (await state(C.p)).raw; await pick(C.p, Xo.text, 'again.json'); const d0 = await dialog(C.p);
+        const g = await C.p.evaluate(() => [...document.querySelectorAll('[data-pref]')].map((c) => c.dataset.pref)); await C.p.evaluate(() => document.getElementById('editDlg').close());
+        check(/Every event and venue in this file is already saved here/.test(d0) && /Events: 0 new · 2 already here/.test(d0) && g.includes('forecast') && (await state(C.p)).raw === before,
+          `${dev} repeat import after a merge: no duplicates; "Every event and venue … already saved here"; differing preferences still offered (${g.join(', ')})`); }
       /* Bill's TV workflow: open the imported event, Export hourly image */
       await C.p.click(`text=${TV.name}`).catch(() => C.p.goto(`${Bo}/event-beta.html?ev=${TV.id}`));
       await C.p.waitForFunction(() => document.body.dataset.loaded && /\?ev=/.test(location.search), null, { timeout: 20000 });
