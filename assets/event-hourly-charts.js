@@ -30,6 +30,8 @@
     return hrs.map((h, i) => {
       const n = nws[i] || null, nk = n === "snow" ? "snow" : n === "rain" ? "rain" : n ? "mix" : null, nWord = n === "freezing" ? "Freezing rain" : n === "sleet" ? "Sleet" : null;
       if (!h || h.state !== "ok") return { kind: "missing", word: "No data", why: "No guidance for this hour" };
+      /* no chance for this hour and no measurable amount: the type is unknown, not "dry" */
+      if (!fin(h.pop) && !(fin(h.qpf) && h.qpf >= WET_QPF)) return { kind: "missing", word: "No data", why: "No precipitation guidance for this hour" };
       const wetQ = fin(h.qpf) && h.qpf >= WET_QPF, wetP = fin(h.pop) && h.pop >= WET_POP;
       if (!wetQ && !wetP) return { kind: "dry", word: "", why: "" };
       let mk = null;
@@ -43,7 +45,7 @@
   /* bands are shown only when the type is worth reading: any mix, snow or uncertain hour among the wet hours */
   function typeSummary(types) {
     const wet = types.filter((t) => !["dry", "missing"].includes(t.kind));
-    if (!wet.length) return { mode: "none", text: "No precipitation expected" };
+    if (!wet.length) return types.length && types.every((t) => t.kind === "missing") ? { mode: "none", text: "No precipitation data" } : { mode: "none", text: "No precipitation expected" };
     if (wet.every((t) => t.kind === "rain")) return { mode: "rain", text: "Type: rain" };
     return { mode: "bands", text: "Type changes: see the labelled bands" };
   }
