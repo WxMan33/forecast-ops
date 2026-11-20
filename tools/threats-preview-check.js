@@ -54,6 +54,9 @@ const state = (p) => p.evaluate(() => { const d = window.__threats.data; return 
   await shoot("ARCHIVED-watch705-national", "?scenario=archive-ww705", { dsf: 2, demo: true, wait: 8000 });
   await shoot("ARCHIVED-watch705-venue-lincoln", "?scenario=archive-ww705&scope=venue", { dsf: 2, demo: true, wait: 8000 });
   await shoot("ARCHIVED-watch705-phone", "?scenario=archive-ww705&scope=venue&sheet=open", { phone: true, dsf: 2, demo: true, wait: 8000 });
+  await shoot("ARCHIVED-watch705-phone-360-closed", "?scenario=archive-ww705&scope=venue", { phone: true, w: 360, h: 740, dsf: 2, demo: true, wait: 8000 });
+  await shoot("ARCHIVED-watch705-venue-trenton", "?scenario=archive-ww705&scope=venue&avenue=cure", { dsf: 2, demo: true, wait: 8000 });
+  await shoot("live-phone-390-long-venue-name", "?lat=39.0974&lon=-84.5066&name=Great%20American%20Ball%20Park%20Riverfront%20Club%20and%20Conference%20Center%20Main%20Concourse%20Entrance%20Gate", { phone: true, dsf: 2 });
   await shoot("FIXTURE-outage-before-expiration", "?scenario=unavailable&scope=venue", { dsf: 2, demo: true });
   await shoot("FIXTURE-outage-after-expiration", "?scenario=outage-expired&scope=venue", { dsf: 2, demo: true });
   // a custom User-Agent from page script: what Chromium actually sends

@@ -105,7 +105,10 @@ Malformed, failed and incomplete answers never produce "none active" and never c
 - **Cloudflare Pages beta origin (`forecast-ops-beta.pages.dev`):** it could, but only by adding a request-forwarding function. That is the collector option, on hold.
 - **GitHub Actions (the `verify/` pattern):** it can send the header, but runs every 5 minutes at best and often late. Too slow for warnings.
 
-**Status: unresolved for the browser path.** The page works today, and every request returned 200. It does not send the documented app identifier, and no existing infrastructure can add one without a new forwarding layer. The collector and any outreach to NWS remain on hold, as decided.
+**Update (this branch):** a branch-only Pages Function now forwards Threats' NWS requests with that identifier (see [NWS-FUNCTION.md](NWS-FUNCTION.md)).
+It is tested locally against real NWS (NWS received the identifier) and end to end. It is **not deployed**, so the hosted preview still calls NWS directly.
+
+**Status of the direct browser path, unchanged:** The page works today, and every request returned 200. It does not send the documented app identifier, and no existing infrastructure can add one without a new forwarding layer. The collector and any outreach to NWS remain on hold, as decided.
 
 ## Branch live preview: feed-by-feed status
 

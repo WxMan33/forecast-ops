@@ -110,6 +110,12 @@ ok("a confirmed empty answer ends products it no longer lists", () => {
   assert.strictEqual(p.status, "ended"); assert.strictEqual(p.endedBy, "no longer listed");
   assert.strictEqual(s.sourceInfo().state, "ok");
 });
+ok("an answer older than the last confirmed check (stale cache) cannot end products or move the confirmation back", () => {
+  const s = F.createAlertStore();
+  s.ingest(coll(msg({ sent: "2026-11-20T20:31:00Z", ends: "2026-11-20T21:15:00Z" })), "2026-11-20T20:40:00Z");
+  s.ingest(coll(), "2026-11-20T20:39:30Z");
+  assert.strictEqual(s.products(at("2026-11-20T20:41:00Z"))[0].status, "active"); assert.strictEqual(s.sourceInfo().lastOk, "2026-11-20T20:40:00Z");
+});
 ok("unrecognized response counts as a failure, not as empty", () => {
   const s = F.createAlertStore();
   s.ingest(coll(msg({ sent: "2026-11-20T20:31:00Z", ends: "2026-11-20T21:15:00Z" })), "2026-11-20T20:32:00Z");
@@ -149,6 +155,29 @@ const watchCases = [ok("ARCHIVED Watch 705 + real Philadelphia county shape: Lin
   assert.strictEqual(T.relation(q, { lat: 39.9008, lon: -75.1675 }).kind, "covers");
   assert.strictEqual(T.relation(q, { lat: 40.2207, lon: -74.7569 }).kind, "unknown");
 })];
+
+/* ---------- zone union (watch outline) ---------- */
+const sq = (x, y, w = 1, h = 1) => [[x, y], [x + w, y], [x + w, y + h], [x, y + h], [x, y]];
+ok("zone union: shared edges drop out; separate areas and holes are kept", () => {
+  const two = F.dissolve([{ type: "Polygon", coordinates: [sq(0, 0)] }, { type: "Polygon", coordinates: [sq(1, 0)] }]);
+  assert.strictEqual(two.coordinates.length, 1); assert.strictEqual(two.coordinates[0].length, 1); assert.strictEqual(Math.round(T.areaKm2(two)), Math.round(T.areaKm2({ type: "Polygon", coordinates: [sq(0, 0, 2, 1)] })));
+  const apart = F.dissolve([{ type: "Polygon", coordinates: [sq(0, 0)] }, { type: "Polygon", coordinates: [sq(5, 0)] }]);
+  assert.strictEqual(apart.coordinates.length, 2);
+  // a ring of 8 squares around an empty middle: the middle is a hole, not covered
+  const ring = []; for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) if (i !== 1 || j !== 1) ring.push({ type: "Polygon", coordinates: [sq(i, j)] });
+  const donut = F.dissolve(ring);
+  assert.strictEqual(donut.coordinates.length, 1); assert.strictEqual(donut.coordinates[0].length, 2);
+  assert.strictEqual(T.contains(donut, [1.5, 1.5]), false); assert.strictEqual(T.contains(donut, [0.5, 0.5]), true);
+});
+ok("zone shape: merged only when every listed zone is drawn; counties and marine zones counted separately", () => {
+  const urls = ["https://api.weather.gov/zones/county/AAC001", "https://api.weather.gov/zones/county/AAC003", "https://api.weather.gov/zones/forecast/ANZ430"];
+  const full = F.zoneShape(urls, [{ type: "Polygon", coordinates: [sq(0, 0)] }, { type: "Polygon", coordinates: [sq(1, 0)] }, { type: "Polygon", coordinates: [sq(2, 0)] }]);
+  assert.ok(full.dissolved && !full.incomplete); assert.deepStrictEqual([full.counties, full.marine], [{ listed: 2, drawn: 2 }, { listed: 1, drawn: 1 }]); assert.strictEqual(full.geometry.coordinates.length, 1);
+  const gap = F.zoneShape(urls, [{ type: "Polygon", coordinates: [sq(0, 0)] }, null, { type: "Polygon", coordinates: [sq(2, 0)] }]);
+  assert.ok(!gap.dissolved && gap.incomplete); assert.deepStrictEqual(gap.counties, { listed: 2, drawn: 1 }); assert.strictEqual(gap.geometry.coordinates.length, 2);
+  assert.strictEqual(T.relation({ geometry: gap.geometry, geometryIncomplete: true }, { lat: 0.5, lon: 1.5 }).kind, "unknown");
+  assert.strictEqual(T.relation({ geometry: gap.geometry, geometryIncomplete: true }, { lat: 0.5, lon: 0.5 }).kind, "covers");
+});
 
 /* ---------- incomplete, failed or malformed answers never mean "none active" ---------- */
 ok("a response with an unreadable severe message keeps the last known products and is not 'none active'", () => {

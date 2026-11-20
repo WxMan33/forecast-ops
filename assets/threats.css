@@ -153,17 +153,22 @@
 /* venue marker */
 .tx-pin { background: none; border: 0; padding: 0; font: inherit; display: flex; flex-direction: column; align-items: center; pointer-events: auto; cursor: pointer; }
 .tx-pin-dot { width: 18px; height: 18px; border-radius: 50%; background: var(--text); border: 3px solid var(--bg); box-shadow: 0 0 0 2px var(--text), 0 2px 6px rgba(0,0,0,.4); }
-.tx-pin-label { margin-top: 4px; font: 700 12px var(--font-body); background: var(--text); color: var(--bg); padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+.tx-pin-label { margin-top: 4px; font: 700 12px var(--font-body); background: var(--text); color: var(--bg); padding: 2px 6px; border-radius: 4px; white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 
 /* phone: map stays visible; the panel becomes a bottom sheet over it */
 @media (max-width: 760px) {
   .tx { padding: 0 0 0; gap: 0; height: calc(100dvh - var(--tx-top)); }
   .tx-demo { border-radius: 0; border-left: 0; border-right: 0; padding: 5px 10px; font-size: 12px; }
   .tx-demo-text { display: none; }
-  .tx-demo-ctl { flex: 1; gap: 6px; }
-  .tx-demo-field { flex: 1 1 0; min-width: 0; }
+  /* phone: badge + data source on the first row; venue (and the archived message step) on the second, full width */
+  .tx-demo { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "badge data data" "venue venue step"; gap: 5px 6px; align-items: center; }
+  .tx-demo:has(#stepField[hidden]) { grid-template-areas: "badge data data" "venue venue venue"; }
+  .tx-demo-badge { grid-area: badge; }
+  .tx-demo-ctl { display: contents; }
+  #dataField { grid-area: data; } #venueField { grid-area: venue; } #stepField { grid-area: step; }
+  .tx-demo-field { min-width: 0; }
   .tx-demo-field span { display: none; }
-  .tx-demo-field select.input.inline { margin: 0; width: 100%; font-size: 12px; }
+  .tx-demo-field select.input.inline { margin: 0; width: 100%; min-width: 0; font-size: 12.5px; text-overflow: ellipsis; }
   .tx-body { display: block; }
   .tx-mapwrap { position: absolute; inset: 0; border-radius: 0; border: 0; }
   .tx-top { right: 52px; top: 8px; left: 8px; }

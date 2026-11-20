@@ -60,6 +60,43 @@
     return polys.length ? { type: "MultiPolygon", coordinates: polys } : null;
   }
 
+  /* Union of zone shapes that share boundaries exactly (NWS county and marine zones do): every edge used by two
+     neighbouring shapes is interior and is dropped; the remaining edges are chained back into rings. Rings that run
+     the same way as the input outer rings are outer boundaries; the others are holes, each placed in the smallest outer
+     ring that contains it. Separate areas stay separate. Returns null if the edges do not close (then draw the zones
+     as they are). */
+  function dissolve(geoms) {
+    const P = (x) => x[0].toFixed(6) + "," + x[1].toFixed(6), count = new Map(), directed = [];
+    let outerSign = 0;
+    for (const g of geoms) for (const rings of T.polygonsOf(g)) rings.forEach((ring, k) => {
+      const a = ringArea(ring); if (!k) outerSign += Math.sign(a);
+      for (let i = 1; i < ring.length; i++) {
+        const s = P(ring[i - 1]), e = P(ring[i]); if (s === e) continue;
+        const key = s < e ? s + "|" + e : e + "|" + s; count.set(key, (count.get(key) || 0) + 1);
+        directed.push({ s, e, key, p: ring[i - 1] });
+      }
+    });
+    const keep = directed.filter((d) => count.get(d.key) === 1), from = new Map();
+    for (const d of keep) { if (!from.has(d.s)) from.set(d.s, []); from.get(d.s).push(d); }
+    const used = new Set(), rings = [];
+    for (const d0 of keep) {
+      if (used.has(d0)) continue;
+      const ring = []; let d = d0, guard = 0;
+      while (d && !used.has(d) && guard++ < 1e6) { used.add(d); ring.push(d.p); const next = (from.get(d.e) || []).find((x) => !used.has(x)); if (d.e === d0.s) { d = null; break; } d = next; }
+      if (d !== null || ring.length < 3) return null;   // an open chain: give up rather than draw a wrong outline
+      ring.push(ring[0]); rings.push(ring);
+    }
+    const sign = Math.sign(outerSign) || 1, outers = [], holes = [];
+    for (const r of rings) { const a = ringArea(r); if (Math.abs(a) < 1e-10) continue; (Math.sign(a) === sign ? outers : holes).push(r); }  // drop zero-area scraps
+    const polys = outers.map((r) => [r]);
+    for (const h of holes) {
+      const host = polys.filter((pp) => T.contains({ type: "Polygon", coordinates: [pp[0]] }, h[0])).sort((x, y) => Math.abs(ringArea(x[0])) - Math.abs(ringArea(y[0])))[0];
+      if (host) host.push(h); else return null;
+    }
+    return polys.length ? { type: "MultiPolygon", coordinates: polys } : null;
+  }
+  function ringArea(r) { let a = 0; for (let i = 1; i < r.length; i++) a += r[i - 1][0] * r[i][1] - r[i][0] * r[i - 1][1]; return a / 2; }
+
   /* ---------- NWS alert -> product ---------- */
   function hazardText(p) {
     const P = p.parameters || {}, out = [];
@@ -113,6 +150,8 @@
     }
     const strip = (p) => ({ id: p.id, messageId: p.messageId, event: p.event, issued: p.issued, updated: p.updated, expires: p.expires, hazard: p.hazard, geometry: p.geometry, action: p.action });
     function ingest(collection, fetchedAt) {
+      // an answer older than one already confirmed (e.g. a stale cached copy) adds nothing and confirms nothing
+      if (st.lastOk && Date.parse(fetchedAt) < Date.parse(st.lastOk)) { st.ignored.push({ id: "response at " + fetchedAt, why: "older than the last confirmed check" }); return st; }
       st.lastTry = fetchedAt;
       if (!collection || !Array.isArray(collection.features)) return fail(fetchedAt, "unrecognized response");
       // a severe message we cannot read, or a paged answer, means we do not have the complete active set
@@ -152,9 +191,16 @@
      so the venue relation can be "unknown" rather than "outside". */
   async function resolveZones(product, getZone) {
     const urls = product.zones || [];
-    const results = await Promise.all(urls.map((u) => getZone(u).then((g) => g, () => null)));
-    const ok = results.filter(Boolean);
-    return { geometry: mergeGeometries(ok), incomplete: ok.length < urls.length || !urls.length, resolved: ok.length, listed: urls.length };
+    return zoneShape(urls, await Promise.all(urls.map((u) => getZone(u).then((g) => g, () => null))));
+  }
+  /* the drawn area of a county-based alert from its listed zones (results[i] = shape of urls[i], or null) */
+  function zoneShape(urls, results) {
+    const ok = results.filter(Boolean), kinds = urls.map((u) => (/\/zones\/county\//.test(u) ? "county" : "marine"));
+    const tally = (k, only) => urls.filter((u, i) => kinds[i] === k && (!only || results[i])).length;
+    // one outline only when every listed zone is drawn; with gaps, the zones stay as they are so the gaps show
+    const complete = ok.length === urls.length && urls.length > 0, merged = complete ? dissolve(ok) : null;
+    return { geometry: merged || mergeGeometries(ok), dissolved: !!merged, incomplete: !complete, resolved: ok.length, listed: urls.length,
+      counties: { listed: tally("county"), drawn: tally("county", true) }, marine: { listed: tally("marine"), drawn: tally("marine", true) } };
   }
 
   /* ---------- UGC lists and SPC watch outline updates (WOU) ---------- */
@@ -280,5 +326,5 @@
   }
 
   return { EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
-    parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries };
+    parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries, dissolve, zoneShape };
 });

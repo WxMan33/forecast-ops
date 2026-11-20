@@ -11,15 +11,22 @@
   const model = { state: "never", error: null, index: null, registry: null, grid: null, hidden: null, hull: null, runs: {} };
   const zoneGeo = new Map(), zonePending = new Map(), refDone = new Set(), mdText = new Map();
   const diag = { requests: [] };
+  /* NWS route. Default: the browser calls api.weather.gov directly (no app identifier possible). ?nws=function sends
+     NWS requests through the Forecast Ops Pages Function on the same host (identifying User-Agent, 30 s cache);
+     ?nwsBase=<url> points at a function on another compatible host. */
+  const NWS = (() => { try { const q = new URLSearchParams(location.search); if (q.get("nwsBase")) return { mode: "function", base: q.get("nwsBase").replace(/\/$/, "") }; if (q.get("nws") === "function") return { mode: "function", base: new URL("api/nws", location.href).href }; } catch (e) { /* default */ } return { mode: "direct", base: "https://api.weather.gov" }; })();
+  const nwsUrl = (u) => NWS.mode === "direct" ? u : u.replace(/^https:\/\/api\.weather\.gov/, NWS.base);
   const listeners = [];
   const nowIso = () => new Date().toISOString();
 
-  async function get(url, as) {
+  async function get(url, as, meta) {
     const t0 = Date.now(), c = new AbortController(), timer = setTimeout(() => c.abort(), 20000);
     try {
       const r = await fetch(url, { signal: c.signal, cache: "no-store", headers: as === "json" ? { Accept: "application/geo+json, application/json" } : {} });
-      diag.requests.push({ url, status: r.status, ms: Date.now() - t0, at: nowIso() }); if (diag.requests.length > 200) diag.requests.shift();
+      const up = r.headers.get("X-Upstream-Fetched-At"), cache = r.headers.get("X-Forecast-Ops-Cache");
+      diag.requests.push({ url, status: r.status, ms: Date.now() - t0, at: nowIso(), upstreamAt: up, cache }); if (diag.requests.length > 200) diag.requests.shift();
       if (!r.ok) throw Error("HTTP " + r.status);
+      if (meta) { meta.upstreamAt = up; meta.cache = cache; }
       return as === "json" ? await r.json() : await r.text();
     } catch (e) {
       if (!/HTTP/.test(e.message)) diag.requests.push({ url, error: e.name === "AbortError" ? "timeout" : e.message, at: nowIso() });
@@ -30,15 +37,14 @@
   /* county-only alerts: shapes from the listed zones (cached for the session) */
   function zone(url) {
     if (zoneGeo.has(url)) return Promise.resolve(zoneGeo.get(url));
-    if (!zonePending.has(url)) zonePending.set(url, get(url, "json").then((z) => { if (!z.geometry) throw Error("zone has no shape"); zoneGeo.set(url, z.geometry); return z.geometry; }).finally(() => zonePending.delete(url)));
+    if (!zonePending.has(url)) zonePending.set(url, get(nwsUrl(url), "json").then((z) => { if (!z.geometry) throw Error("zone has no shape"); zoneGeo.set(url, z.geometry); return z.geometry; }).finally(() => zonePending.delete(url)));
     return zonePending.get(url);
   }
   function applyZones() {
     for (const p of alerts.products(Date.now())) {
       if (p.geometrySource !== "counties" || p.status !== "active") continue;
-      const rec = alerts.get(p.id), got = p.zones.map((u) => zoneGeo.get(u)).filter(Boolean);
-      rec.geometry = F.mergeGeometries(got); rec.geometryIncomplete = got.length < p.zones.length; rec.zoneInfo = { resolved: got.length, listed: p.zones.length };
-      rec.label = rec.geometry ? F.labelPoint(rec.geometry) : null;
+      const rec = alerts.get(p.id), z = F.zoneShape(p.zones, p.zones.map((u) => zoneGeo.get(u) || null));
+      Object.assign(rec, { geometry: z.geometry, geometryIncomplete: z.incomplete, zoneInfo: z, label: z.geometry ? F.labelPoint(z.geometry) : null });
     }
   }
   async function resolvePending() {
@@ -55,15 +61,22 @@
       refDone.add(p.messageId);
       const ref = p.references.slice().sort((a, b) => Date.parse(b.sent) - Date.parse(a.sent))[0];
       try {
-        const old = F.normalizeAlert(await get(ref.url, "json"));
+        const old = F.normalizeAlert(await get(nwsUrl(ref.url), "json"));
         if (old && old.id === p.id) { alerts.get(p.id).previous = { id: old.id, messageId: old.messageId, event: old.event, issued: old.issued, updated: old.updated, expires: old.expires, hazard: old.hazard, geometry: old.geometry }; changed = true; }
       } catch (e) { /* no comparison: the row stays hidden */ }
     }
     return changed;
   }
+  /* "last confirmed" is the time NWS actually answered: the browser's clock when it calls NWS directly, or the
+     function's X-Upstream-Fetched-At (a cache hit keeps the original time, so it is never a fresh confirmation) */
   async function refreshAlerts() {
-    const at = nowIso();
-    try { alerts.ingest(await get(F.ALERTS_URL, "json"), at); } catch (e) { alerts.fail(at, e.message); }
+    const tried = nowIso(), meta = {};
+    try {
+      const body = await get(nwsUrl(F.ALERTS_URL), "json", meta);
+      let at = tried;
+      if (NWS.mode === "function") { if (!meta.upstreamAt || !isFinite(Date.parse(meta.upstreamAt))) throw Error("function answer without its upstream time"); at = new Date(meta.upstreamAt).toISOString(); }
+      alerts.ingest(body, at);
+    } catch (e) { alerts.fail(tried, e.message); }
     applyZones(); emit();
     const a = await resolvePending(), b = await fetchPrevious(); if (a || b) emit();
   }
@@ -186,7 +199,7 @@
     const ps = store.products(clock);
     for (const p of ps) if (p.geometrySource === "counties") {
       const r = await F.resolveZones(p, zone), rec = store.get(p.id);
-      Object.assign(rec, { geometry: r.geometry, geometryIncomplete: r.incomplete, zoneInfo: { resolved: r.resolved, listed: r.listed }, label: r.geometry ? F.labelPoint(r.geometry) : null });
+      Object.assign(rec, { geometry: r.geometry, geometryIncomplete: r.incomplete, zoneInfo: r, label: r.geometry ? F.labelPoint(r.geometry) : null });
     }
     const out = store.products(clock), si = store.sourceInfo();
     const na = { state: "na", lastOk: null, count: 0 };
@@ -195,5 +208,5 @@
       sources: { alerts: { state: "ok", lastOk: si.lastOk, count: out.filter((p) => p.status === "active").length }, md: na, day1: na, day2: na } };
   }
 
-  window.ThreatsLive = { archiveSnapshot, ARCHIVES, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
+  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
 })();

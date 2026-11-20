@@ -1,0 +1,207 @@
+{
+ "note": "FIXTURE: synthetic tornado warning (built from a real NWS message) served by a mock api.weather.gov through the Pages Function harness; page clock and function clock moved together.",
+ "steps": [
+  {
+   "step": "1 normal refresh: fresh confirmation",
+   "pageClock": "2026-11-20T20:30:31.000Z",
+   "upstreamMode": "ok",
+   "upstreamCalls": 1,
+   "lastOk": "2026-11-20T20:30:31.000Z",
+   "shown": "current",
+   "active": 1,
+   "venue": [
+    "Tornado Warning in effect at the venue"
+   ],
+   "notices": [],
+   "functionStatus": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-20T20:30:31.000Z",
+   "pass": true,
+   "problems": []
+  },
+  {
+   "step": "2 cache hit within 30 s: not a new confirmation",
+   "pageClock": "2026-11-20T20:30:51.000Z",
+   "upstreamMode": "ok-changed",
+   "upstreamCalls": 0,
+   "lastOk": "2026-11-20T20:30:31.000Z",
+   "shown": "current",
+   "active": 1,
+   "venue": [
+    "Tornado Warning in effect at the venue"
+   ],
+   "notices": [],
+   "functionStatus": 200,
+   "cache": "HIT",
+   "upstreamAt": "2026-11-20T20:30:31.000Z",
+   "pass": true,
+   "problems": []
+  },
+  {
+   "step": "3 upstream HTTP 503: last known, not cleared",
+   "pageClock": "2026-11-20T20:35:00.000Z",
+   "upstreamMode": "error",
+   "upstreamCalls": 1,
+   "lastOk": "2026-11-20T20:30:31.000Z",
+   "shown": "stale",
+   "active": 1,
+   "venue": [
+    "Last known: Tornado Warning at the venue"
+   ],
+   "notices": [
+    "NWS warnings and watches: last confirmed 3:30 PM EST. The source is not responding. Products from the last good check st"
+   ],
+   "functionStatus": 502,
+   "cache": null,
+   "upstreamAt": null,
+   "pass": true,
+   "problems": []
+  },
+  {
+   "step": "4 upstream HTML (malformed): failure, not empty",
+   "pageClock": "2026-11-20T20:36:00.000Z",
+   "upstreamMode": "html",
+   "upstreamCalls": 1,
+   "lastOk": "2026-11-20T20:30:31.000Z",
+   "shown": "stale",
+   "active": 1,
+   "venue": [
+    "Last known: Tornado Warning at the venue"
+   ],
+   "notices": [
+    "NWS warnings and watches: last confirmed 3:30 PM EST. The source is not responding. Products from the last good check st"
+   ],
+   "functionStatus": 502,
+   "cache": null,
+   "upstreamAt": null,
+   "pass": true,
+   "problems": []
+  },
+  {
+   "step": "5 paged list (possibly incomplete): failure, not empty",
+   "pageClock": "2026-11-20T20:37:00.000Z",
+   "upstreamMode": "paged",
+   "upstreamCalls": 1,
+   "lastOk": "2026-11-20T20:30:31.000Z",
+   "shown": "stale",
+   "active": 1,
+   "venue": [
+    "Last known: Tornado Warning at the venue"
+   ],
+   "notices": [
+    "NWS warnings and watches: last confirmed 3:30 PM EST. The source is not responding. Products from the last good check st"
+   ],
+   "functionStatus": 502,
+   "cache": null,
+   "upstreamAt": null,
+   "pass": true,
+   "problems": []
+  },
+  {
+   "step": "6 upstream timeout: failure",
+   "pageClock": "2026-11-20T20:38:00.000Z",
+   "upstreamMode": "slow",
+   "upstreamCalls": 1,
+   "lastOk": "2026-11-20T20:30:31.000Z",
+   "shown": "stale",
+   "active": 1,
+   "venue": [
+    "Last known: Tornado Warning at the venue"
+   ],
+   "notices": [
+    "NWS warnings and watches: last confirmed 3:30 PM EST. The source is not responding. Products from the last good check st"
+   ],
+   "functionStatus": 502,
+   "cache": null,
+   "upstreamAt": null,
+   "pass": true,
+   "problems": []
+  },
+  {
+   "step": "7 recovery: fresh confirmation again",
+   "pageClock": "2026-11-20T20:39:00.000Z",
+   "upstreamMode": "ok",
+   "upstreamCalls": 1,
+   "lastOk": "2026-11-20T20:39:00.000Z",
+   "shown": "current",
+   "active": 1,
+   "venue": [
+    "Tornado Warning in effect at the venue"
+   ],
+   "notices": [],
+   "functionStatus": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-20T20:39:00.000Z",
+   "pass": true,
+   "problems": []
+  },
+  {
+   "step": "8a failure begins before the warning's end",
+   "pageClock": "2026-11-20T20:42:00.000Z",
+   "upstreamMode": "error",
+   "upstreamCalls": 1,
+   "lastOk": "2026-11-20T20:39:00.000Z",
+   "shown": "stale",
+   "active": 1,
+   "venue": [
+    "Last known: Tornado Warning at the venue"
+   ],
+   "notices": [
+    "NWS warnings and watches: last confirmed 3:39 PM EST. The source is not responding. Products from the last good check st"
+   ],
+   "functionStatus": 502,
+   "cache": null,
+   "upstreamAt": null,
+   "pass": true,
+   "problems": []
+  },
+  {
+   "step": "8b expiration during the failure: no longer active, status unknown",
+   "pageClock": "2026-11-20T20:55:00.000Z",
+   "upstreamMode": "error",
+   "upstreamCalls": 1,
+   "lastOk": "2026-11-20T20:39:00.000Z",
+   "shown": "stale",
+   "active": 0,
+   "venue": [
+    "Venue status not confirmed"
+   ],
+   "notices": [
+    "NWS warnings and watches: last confirmed 3:39 PM EST. The source is not responding. Products from the last good check st",
+    "SPC Mesoscale Discussions: last confirmed 3:30 PM EST. The source is not responding. Products from the last good check s",
+    "Tornado Warning reached its published expiration (3:50 PM EST). It is no longer shown as active. We could not confirm it"
+   ],
+   "functionStatus": 502,
+   "cache": null,
+   "upstreamAt": null,
+   "pass": true,
+   "problems": []
+  },
+  {
+   "step": "9 confirmed empty after recovery",
+   "pageClock": "2026-11-20T20:56:00.000Z",
+   "upstreamMode": "empty",
+   "upstreamCalls": 1,
+   "lastOk": "2026-11-20T20:56:00.000Z",
+   "shown": "empty",
+   "active": 0,
+   "venue": [
+    "No warning or watch at the venue"
+   ],
+   "notices": [
+    "SPC Mesoscale Discussions: last confirmed 3:30 PM EST. The source is not responding. Products from the last good check s",
+    "Tornado Warning no longer listed by NWS at 3:56 PM EST. It covered the venue."
+   ],
+   "functionStatus": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-20T20:56:00.000Z",
+   "pass": true,
+   "problems": []
+  }
+ ],
+ "upstreamIdentitySeenByMock": [
+  "(forecast-ops, github.com/WxMan33/forecast-ops)"
+ ],
+ "upstreamRequests": 10,
+ "pageErrors": []
+}

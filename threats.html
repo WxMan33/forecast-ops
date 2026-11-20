@@ -28,7 +28,7 @@
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
 <link rel="stylesheet" href="assets/ops.css?v=35098c1775">
-<link rel="stylesheet" href="assets/threats.css?v=b2e07d90c4">
+<link rel="stylesheet" href="assets/threats.css?v=70acda691a">
 </head>
 <body class="threats-page">
 <main class="tx" id="tx">
@@ -36,7 +36,7 @@
     <span class="tx-demo-badge" id="txBadge">LIVE PREVIEW</span>
     <span class="tx-demo-text" id="txBarText">Branch preview of official NWS and SPC feeds. Not for operational decisions.</span>
     <div class="tx-demo-ctl">
-      <label class="tx-demo-field"><span>Data</span>
+      <label class="tx-demo-field" id="dataField"><span>Data</span>
         <select class="input inline" id="demoScenario">
           <option value="live">Live official feeds</option>
           <optgroup label="Demo scenarios (fictional)">
@@ -52,7 +52,7 @@
           <option value="archive-ww705">SPC Tornado Watch 705, Nov 12</option>
           </optgroup>
         </select></label>
-      <label class="tx-demo-field"><span>Venue</span>
+      <label class="tx-demo-field" id="venueField"><span>Venue</span>
         <select class="input inline" id="demoVenue"></select></label>
       <label class="tx-demo-field" id="stepField" hidden><span>Message</span>
         <select class="input inline" id="demoStep"></select></label>
@@ -108,8 +108,8 @@
 <script src="assets/threats-core.js?v=6c4e15aff3"></script>
 <script src="assets/threats-demo.js?v=ecef6ab463"></script>
 <script src="assets/severe-daily-core.js?v=8b3bc7c800"></script>
-<script src="assets/threats-feeds.js?v=f6ea8a04dd"></script>
-<script src="assets/threats-live.js?v=8fd9619245"></script>
-<script src="assets/threats.js?v=766d2479d7"></script>
+<script src="assets/threats-feeds.js?v=174f49505b"></script>
+<script src="assets/threats-live.js?v=d4c28fd141"></script>
+<script src="assets/threats.js?v=00d4f19268"></script>
 </body>
 </html>

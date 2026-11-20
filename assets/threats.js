@@ -220,7 +220,7 @@
   }
   function shade(hex) { const n = parseInt(hex.slice(1), 16), f = 0.62; return "rgb(" + [n >> 16, (n >> 8) & 255, n & 255].map((v) => Math.round(v * f)).join(",") + ")"; }
   function labelText(p) {
-    const u = unconfirmed(p) ? " (last known)" : "";
+    const u = (unconfirmed(p) ? " (last known)" : "") + (p.geometryIncomplete && p.zoneInfo && p.zoneInfo.counties ? " (area incomplete)" : "");
     if (p.kind === "warning") return p.event.toUpperCase() + u;
     if (p.kind === "watch") return p.title.toUpperCase() + u;
     if (p.kind === "md") return "MD " + p.title.replace(/\D+/g, "") + u;
@@ -285,7 +285,12 @@
       + (u ? lastKnown(u) : "") + (opts.tag ? `<span class="tx-tag">${esc(opts.tag)}</span>` : "")
       + `</span></button>`;
   }
-  const countyText = (p) => !p.zoneInfo ? "Area: listed counties (shapes loading)" : p.geometryIncomplete ? "Area drawn from " + p.zoneInfo.resolved + " of " + p.zoneInfo.listed + " listed counties" : "Area drawn from " + p.zoneInfo.listed + " listed counties";
+  /* "20 counties and 3 marine zones"; with gaps, "18 of 20 counties and 3 of 3 marine zones" */
+  function zoneCount(z, drawn) {
+    const part = (n, d, one, many) => (n ? (drawn ? d + " of " : "") + n + " " + (n === 1 ? one : many) : "");
+    return [part(z.counties.listed, z.counties.drawn, "county", "counties"), part(z.marine.listed, z.marine.drawn, "marine zone", "marine zones")].filter(Boolean).join(" and ");
+  }
+  const countyText = (p) => !p.zoneInfo || !p.zoneInfo.counties ? "Area: listed counties and marine zones (shapes loading)" : p.geometryIncomplete ? "Incomplete area: drawn from " + zoneCount(p.zoneInfo, true) : "Area drawn from " + zoneCount(p.zoneInfo, false);
   function sources() {
     const rows = ["alerts", "md", "day1", "day2"].map((k) => {
       const s = data.state[k], src = data.sources[k];
@@ -558,7 +563,7 @@
     $("txDemo").classList.toggle("live", live); $("txDemo").classList.toggle("arc", arc);
     $("txBarText").textContent = live ? "Branch preview of official NWS and SPC feeds. Not for operational decisions." : arc ? "Real official messages replayed through the live adapter, at their own time. Not a live observation." : "Fictional products for layout review. Nothing here was issued by NWS or SPC.";
     $("stepField").hidden = !arc;
-    if (arc && data && data.archive) { $("demoStep").innerHTML = data.archive.messages.map((m, i) => `<option value="${i + 1}">Message ${i + 1} of ${data.archive.steps} · ${esc(m.action || "")} · ${esc(T.fmtTime(m.sent, venue.tz))}</option>`).join(""); $("demoStep").value = String(data.archive.step); }
+    if (arc && data && data.archive) { $("demoStep").innerHTML = data.archive.messages.map((m, i) => `<option value="${i + 1}">Msg ${i + 1}/${data.archive.steps} · ${esc(m.action || "")} · ${esc(T.fmtTime(m.sent, venue.tz))}</option>`).join(""); $("demoStep").value = String(data.archive.step); }
     const opts = arc ? ARCHIVE_VENUES[S.scenario].map((v) => ({ id: v.id, label: v.label })) : live ? [...(S.entryVenue ? [{ id: "entry", label: "Linked venue: " + S.entryVenue.name }] : []), ...liveVenues()] : [{ id: "inside", label: "Inside the warning" }, { id: "edge", label: "Near the warning edge" }, { id: "outside", label: "Outside the warning" }];
     $("demoVenue").innerHTML = opts.map((o) => `<option value="${esc(o.id)}">${esc(o.label)}</option>`).join("");
     $("demoVenue").value = arc ? (S.archiveVenue || ARCHIVE_VENUES[S.scenario][0].id) : live ? (S.entryVenue ? "entry" : S.liveVenue) : S.venueKey;
@@ -618,7 +623,7 @@
     if (["inside", "edge", "outside"].includes(q.get("venue"))) S.venueKey = q.get("venue");
     const lat = parseFloat(q.get("lat")), lon = parseFloat(q.get("lon"));
     if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
-      S.entryVenue = { id: "entry", name: (q.get("name") || "Event venue").slice(0, 60), city: q.get("city") || "", lat, lon, tz: q.get("tz") || "America/New_York" };
+      S.entryVenue = { id: "entry", name: ((n) => n.length <= 80 ? n : n.slice(0, 79).replace(/\s+\S*$/, "") + "…")((q.get("name") || "Event venue").trim()), city: q.get("city") || "", lat, lon, tz: q.get("tz") || "America/New_York" };
       S.scope = "venue";
     }
     if (["active", "day1", "day2"].includes(q.get("view"))) S.view = q.get("view");
