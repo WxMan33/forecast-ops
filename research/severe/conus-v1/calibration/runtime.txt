@@ -50,3 +50,5 @@
 2024-12-19 133s
 2024-12-26 131s
 157M	tests/out/conus
+2024-06-19 96s
+15M	tests/out/conus
