@@ -204,3 +204,69 @@ probability), with z entering as a fixed offset:
 experiment, and the failing requirement is reported.
 
 2025 stays sealed. The 48- and 36-date 2024 sets remain diagnostic only. v0.7 stays live.
+
+## 9. Downburst predictor experiment (locked before any extraction or fitting)
+**Inputs:** the field contract and 16 feature definitions are in
+`research/severe/conus-v1/downburst/field-contract.json`. They were verified on a real HRRR file
+(2023-06-15 12Z, f30/f31): units, instantaneous vs hourly-max type, accumulation window, and GRIB
+identity.
+- Hourly-max fields (MAXUW, MAXVW, MAXDVV, MAXREF) cover (H-1, H].
+- Wind speed is taken only from the MAXUW/MAXVW pair of the same hourly message.
+- Valid hour [H, H+1) uses instantaneous fields at fH and hourly-max fields at f(H+1), the existing UH
+  convention.
+- Day 2 only: 12Z f24-f48.
+- HGT at the LCL is excluded for missing values; the 2 m dewpoint depression replaces it.
+- The extractor rejects any message whose identity, time window or validity differs from the contract.
+
+**Dates:** the 96 development dates only (2022-23). 2021 stays sealed unless a candidate passes the
+full gate. 2025 stays sealed.
+
+**Meteorological set (primary), 14 features:**
+- wind10_max, wind10_nearby_max
+- gust_max, gust_nearby_max
+- downdraft_max, downdraft_nearby_max
+- dd2m_max, lapse_700_500_max, dd700_mean
+- pwat_max
+- maxref1km_max, maxref1km_nearby_max
+- ltng_max, ltng_nearby_max
+
+Each is transformed asinh(x / s), where s = the median |x| (x != 0) over the stage-2 training rows,
+then standardized per region as in criterion 8.
+
+**Population (sensitivity only):** log1p of 2020 Census tract population within 25 miles. It is never
+part of the screening decision or the verdict, and can never open 2021 on its own.
+
+**Screening stop rule (per candidate; decided before any stage-2 fit with the new features):**
+- Sets, on the regenerated held-out development predictions:
+  - **missed** = uncorrected (refit stage 1) hits at >= 5% that the criterion-8 two-stage model
+    dropped below 5%;
+  - **false alarms** = >= 5% points on no-report days in the same region and the same months.
+- Regimes:
+  - **West monsoon:** West, July-September.
+  - **Florida/Gulf spring:** March-May.
+  - **Florida/Gulf summer:** June-August.
+- **Continue** only if **both** the West-monsoon misses **and** the Florida/Gulf-summer misses have at
+  least one meteorological feature with |AUC(missed vs false alarm) - 0.5| >= 0.15. Otherwise
+  **stop** and report.
+- Florida/Gulf spring and population AUCs are reported but do not decide.
+
+**Gate (only for candidates that pass screening):**
+- The nested design is identical to criterion 8: 6 month-grouped outer folds, whole months held out
+  from both stages, stage-2 inputs from out-of-fold stage-1 predictions inside the training months.
+- The stage-2 structure, regions and 150 km blend are unchanged. The predictors are the 14
+  meteorological features.
+- **Pass requirements are unchanged from criterion 8:**
+  - hits >= 5% retained >= 0.90 in Florida/Gulf, the West and nationally, with bootstrap lower bounds
+    >= 0.75 regionally and >= 0.90 nationally;
+  - national >= 15% hits retained >= 0.90;
+  - Florida/Gulf no-report area >= 5% ratio <= 0.60;
+  - national Brier no worse.
+- Original labels decide.
+
+**Reported, not deciding:**
+- The same three regimes separately: hits retained and false-alarm area.
+- What each predictor group helps recover: drop-one-group stage-2 refits on the same stage-1 folds,
+  with groups wind, gust, downdraft, dryness (dd2m, dd700), lapse, pwat, reflectivity and lightning.
+- The meteorological + population sensitivity gate.
+
+**2021 opens only if a candidate's meteorological gate passes in full.** v0.7 stays live.

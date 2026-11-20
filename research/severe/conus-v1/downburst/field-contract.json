@@ -1,0 +1,244 @@
+{
+ "purpose": "Locked GRIB field contract for the downburst predictor experiment (criterion 9). Verified on HRRR 2023-06-15 12Z f30/f31.",
+ "window": "Day 2: 12Z HRRR f24-f48; valid hour [H,H+1) uses instantaneous fields at fH (H=24..47) and hourly-max fields at f(H+1), exactly like the existing UH convention",
+ "fields": {
+  "maxuw": {
+   "index": [
+    "MAXUW",
+    "10 m above ground"
+   ],
+   "id": [
+    0,
+    2,
+    222,
+    "heightAboveGround",
+    10
+   ],
+   "stepType": "max",
+   "window": "(H-1,H]",
+   "units": "m s-1 (NCEP local table 2-222: U of hourly max 10 m wind)"
+  },
+  "maxvw": {
+   "index": [
+    "MAXVW",
+    "10 m above ground"
+   ],
+   "id": [
+    0,
+    2,
+    223,
+    "heightAboveGround",
+    10
+   ],
+   "stepType": "max",
+   "window": "(H-1,H]",
+   "units": "m s-1 (NCEP local table 2-223: V of hourly max 10 m wind)"
+  },
+  "gust": {
+   "index": [
+    "GUST",
+    "surface"
+   ],
+   "id": [
+    0,
+    2,
+    22,
+    "surface",
+    0
+   ],
+   "stepType": "instant",
+   "units": "m s-1"
+  },
+  "maxdvv": {
+   "index": [
+    "MAXDVV",
+    "100-1000 mb above ground"
+   ],
+   "id": [
+    0,
+    2,
+    221,
+    "pressureFromGroundLayer",
+    10000
+   ],
+   "stepType": "max",
+   "window": "(H-1,H]",
+   "units": "m s-1, negative downward (NCEP local 2-221: hourly max downward vertical velocity)"
+  },
+  "tmp2m": {
+   "index": [
+    "TMP",
+    "2 m above ground"
+   ],
+   "id": [
+    0,
+    0,
+    0,
+    "heightAboveGround",
+    2
+   ],
+   "stepType": "instant",
+   "units": "K"
+  },
+  "dpt2m": {
+   "index": [
+    "DPT",
+    "2 m above ground"
+   ],
+   "id": [
+    0,
+    0,
+    6,
+    "heightAboveGround",
+    2
+   ],
+   "stepType": "instant",
+   "units": "K"
+  },
+  "tmp700": {
+   "index": [
+    "TMP",
+    "700 mb"
+   ],
+   "id": [
+    0,
+    0,
+    0,
+    "isobaricInhPa",
+    700
+   ],
+   "stepType": "instant",
+   "units": "K"
+  },
+  "dpt700": {
+   "index": [
+    "DPT",
+    "700 mb"
+   ],
+   "id": [
+    0,
+    0,
+    6,
+    "isobaricInhPa",
+    700
+   ],
+   "stepType": "instant",
+   "units": "K"
+  },
+  "tmp500": {
+   "index": [
+    "TMP",
+    "500 mb"
+   ],
+   "id": [
+    0,
+    0,
+    0,
+    "isobaricInhPa",
+    500
+   ],
+   "stepType": "instant",
+   "units": "K"
+  },
+  "hgt700": {
+   "index": [
+    "HGT",
+    "700 mb"
+   ],
+   "id": [
+    0,
+    3,
+    5,
+    "isobaricInhPa",
+    700
+   ],
+   "stepType": "instant",
+   "units": "gpm"
+  },
+  "hgt500": {
+   "index": [
+    "HGT",
+    "500 mb"
+   ],
+   "id": [
+    0,
+    3,
+    5,
+    "isobaricInhPa",
+    500
+   ],
+   "stepType": "instant",
+   "units": "gpm"
+  },
+  "pwat": {
+   "index": [
+    "PWAT",
+    "entire atmosphere (considered as a single layer)"
+   ],
+   "id": [
+    0,
+    1,
+    3,
+    "atmosphereSingleLayer",
+    0
+   ],
+   "stepType": "instant",
+   "units": "kg m-2"
+  },
+  "maxref1km": {
+   "index": [
+    "MAXREF",
+    "1000 m above ground"
+   ],
+   "id": [
+    0,
+    16,
+    198,
+    "heightAboveGround",
+    1000
+   ],
+   "stepType": "max",
+   "window": "(H-1,H]",
+   "units": "dBZ (NCEP local 16-198: hourly max 1 km reflectivity)"
+  },
+  "ltng": {
+   "index": [
+    "LTNG",
+    "entire atmosphere"
+   ],
+   "id": [
+    0,
+    17,
+    192,
+    "atmosphere",
+    0
+   ],
+   "stepType": "instant",
+   "units": "HRRR lightning threat (dimensionless)"
+  }
+ },
+ "excluded": {
+  "hgt_lcl": "HGT at LCL has missing values (5,712 points in one f30 message); replaced by 2 m dewpoint depression as the sub-cloud dryness measure"
+ },
+ "features": {
+  "wind10_max": "24-h max of hourly max 10 m wind speed = hypot(MAXUW, MAXVW) from the same hourly message, at the point",
+  "wind10_nearby_max": "24-h max of the 25-mile native-grid disk max of that hourly speed",
+  "gust_max": "24-h max of GUST at the point",
+  "gust_nearby_max": "24-h max of the 25-mile disk max of GUST",
+  "downdraft_max": "24-h max of -MAXDVV at the point",
+  "downdraft_nearby_max": "24-h max of the 25-mile disk max of -MAXDVV",
+  "dd2m_max": "24-h max of (TMP 2 m - DPT 2 m), K",
+  "lapse_700_500_max": "24-h max of (TMP700 - TMP500) / ((HGT500 - HGT700)/1000), K/km",
+  "dd700_mean": "24-h mean of (TMP700 - DPT700), K",
+  "pwat_max": "24-h max of PWAT, kg m-2",
+  "maxref1km_max": "24-h max of hourly max 1 km reflectivity at the point",
+  "maxref1km_nearby_max": "24-h max of its 25-mile disk max",
+  "ltng_max": "24-h max of LTNG at the point",
+  "ltng_nearby_max": "24-h max of its 25-mile disk max"
+ },
+ "population_sensitivity": {
+  "source": "US Census 2020 centers of population by tract (CenPop2020_Mean_TR.txt), fetched once in Actions and pinned by SHA-256",
+  "feature": "log1p(sum of tract populations whose population centroid lies within 40.2336 km of the sample)",
+  "role": "separate sensitivity test only"
+ }
+}
