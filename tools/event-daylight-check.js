@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Offline check of the Event Manager Daylight row: the Thanksgiving Day Race at TQL Stadium (review schedule) while
+/* Offline check of the Event Manager Daylight row: the Thanksgiving Day Race at TQL Stadium (public 9:00 AM start; setup, gates, end and teardown are sample inputs) while
    the forecast is pending or unavailable; an event that crosses sunset with a full briefing (row, page 1 of the
    two-page PDF, TV PNG); an overnight event; a daylight-saving change date. Synthetic weather
    (tests/fixtures/event-winter-data.js); real page; sun times from the Almanac's NOAA calculation.
@@ -18,7 +18,7 @@ const PHONE = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isM
 const NY = 'America/New_York', TQL = { name: 'TQL Stadium, Cincinnati, OH', lat: 39.1113, lon: -84.5222 };
 const dayNY = (d) => new Date(Date.now() + d * 864e5).toLocaleDateString('en-CA', { timeZone: NY });
 const ev = (id, name, times, extra = {}) => ({ id, name, venueId: null, loc: TQL, tz: NY, times, gust: 25, overrides: [], source: { kind: 'manual' }, created: 1, updated: 1, ...extra });
-const RACE = ev('ev_dl_race', 'Thanksgiving Day Race', { setup: '2026-11-26T05:00', gates: '2026-11-26T06:30', start: '2026-11-26T07:30', end: '2026-11-26T10:30', teardown: '2026-11-26T12:00' });
+const RACE = ev('ev_dl_race', 'Thanksgiving Day Race (sample crew times)', { setup: '2026-11-26T05:00', gates: '2026-11-26T06:30', start: '2026-11-26T09:00', end: '2026-11-26T10:30', teardown: '2026-11-26T12:00' });
 const t1 = dayNY(1), DUSK = ev('ev_dl_dusk', 'Synthetic Evening Match', { setup: `${t1}T13:00`, gates: `${t1}T15:30`, start: `${t1}T17:00`, end: `${t1}T19:00`, teardown: `${t1}T21:00` });
 const NIGHT = ev('ev_dl_night', 'Synthetic Overnight Shift', { setup: '2026-12-31T18:00', start: '2026-12-31T21:00', end: '2027-01-01T01:00', teardown: '2027-01-01T08:30' });
 const DST = ev('ev_dl_dst', 'Synthetic Spring Race', { setup: '2027-03-14T06:00', start: '2027-03-14T08:00', end: '2027-03-14T11:00', teardown: '2027-03-14T12:00' });

@@ -567,10 +567,10 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     await ctx.close();
   });
   /* ---------- 15. editing an imported fall-back event keeps which 1:30 AM it is ---------- */
-  /* ---------- 14b. Daylight row: the Thanksgiving Day Race at TQL Stadium against NOAA's own table at the venue ---------- */
+  /* ---------- 14b. Daylight row: the Thanksgiving Day Race at TQL Stadium (public 9:00 AM start, sample crew times) against NOAA's own table at the venue ---------- */
   await section('14b. daylight row vs NOAA (phone)', async () => {
-    const lat = 39.1113, lon = -84.5222, race = { id: "ev_dl_race", name: "Thanksgiving Day Race", venueId: null, loc: { name: "TQL Stadium, Cincinnati, OH", lat, lon }, tz: "America/New_York",
-      times: { setup: "2026-11-26T05:00", gates: "2026-11-26T06:30", start: "2026-11-26T07:30", end: "2026-11-26T10:30", teardown: "2026-11-26T12:00" }, gust: 25, overrides: [], source: { kind: "manual" }, created: 1, updated: 1 };
+    const lat = 39.1113, lon = -84.5222, race = { id: "ev_dl_race", name: "Thanksgiving Day Race (sample crew times)", venueId: null, loc: { name: "TQL Stadium, Cincinnati, OH", lat, lon }, tz: "America/New_York",
+      times: { setup: "2026-11-26T05:00", gates: "2026-11-26T06:30", start: "2026-11-26T09:00", end: "2026-11-26T10:30", teardown: "2026-11-26T12:00" }, gust: 25, overrides: [], source: { kind: "manual" }, created: 1, updated: 1 };
     /* NOAA GML's Solar Calculator table for these exact coordinates (fetched here, never by the page) */
     let noaa = null, why = "";
     try { const r = await fetch(`https://gml.noaa.gov/grad/solcalc/table.php?lat=${lat}&lon=${lon}&year=2026`, { signal: AbortSignal.timeout(30000) }); const html = await r.text();
