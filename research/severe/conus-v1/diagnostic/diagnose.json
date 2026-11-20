@@ -1,0 +1,919 @@
+{
+ "status": "diagnostic_out_of_fold_2022_2023_only",
+ "frozen_models_sha256": "a9ff6aa76b946c92a16d2148e3cdb1fb8920e6dd904789058edfddbde0af8d7a",
+ "dates": 96,
+ "protected_2025_outcomes_accessed": false,
+ "verification_dates_used": [],
+ "regions": {
+  "original_box": {
+   "rows": 1434240,
+   "event_points": 28847,
+   "report_days": 56,
+   "no_report_days": 40,
+   "models": {
+    "conus_logistic": {
+     "point_auc_all": 0.9354268967924931,
+     "hi_points": 128260,
+     "hi_event_points": 19997,
+     "hi_share_on_report_days": 0.9847887104319352,
+     "auc_hi_points_event_vs_not": 0.6493312635211235,
+     "auc_hi_points_report_day_vs_no_report_day": 0.7886246999991182,
+     "day_auc_area_ge5": 0.9879464285714286,
+     "day_auc_max_prob": 0.9888392857142857,
+     "mean_area_ge5_km2": {
+      "report_days": 507491.51785714284,
+      "no_report_days": 10974.375
+     },
+     "share_of_ge5_area_on_no_report_days": 0.015211289568064869,
+     "hits_ge5": 19997,
+     "event_points": 28847,
+     "in_sample_correction_hits_ge5": 22405,
+     "in_sample_correction_area_ge5_no_report_km2": 937125.0,
+     "top_predictors_report_day_vs_no_report_day_hi_points": [
+      {
+       "predictor": "x_sbcape_nearby_max_max",
+       "auc": 0.784
+      },
+      {
+       "predictor": "x_sbcape_max",
+       "auc": 0.762
+      },
+      {
+       "predictor": "x_shear06_v_mean",
+       "auc": 0.266
+      },
+      {
+       "predictor": "x_shear06_v_nearby_max_mean",
+       "auc": 0.268
+      },
+      {
+       "predictor": "x_reflectivity_nearby_max_max",
+       "auc": 0.729
+      },
+      {
+       "predictor": "x_sbcin_mean",
+       "auc": 0.281
+      },
+      {
+       "predictor": "x_sbcape_nearby_max_mean",
+       "auc": 0.713
+      },
+      {
+       "predictor": "x_sbcape_mean",
+       "auc": 0.709
+      }
+     ],
+     "top_predictors_event_vs_not_hi_points": [
+      {
+       "predictor": "x_uh25_nearby_max_max",
+       "auc": 0.618
+      },
+      {
+       "predictor": "x_uh25_nearby_max_mean",
+       "auc": 0.613
+      },
+      {
+       "predictor": "int_uh_shear",
+       "auc": 0.613
+      },
+      {
+       "predictor": "int_cape_shear",
+       "auc": 0.591
+      },
+      {
+       "predictor": "x_reflectivity_nearby_max_max",
+       "auc": 0.579
+      },
+      {
+       "predictor": "x_srh01_nearby_max_mean",
+       "auc": 0.577
+      },
+      {
+       "predictor": "x_uh25_mean",
+       "auc": 0.574
+      },
+      {
+       "predictor": "x_uh25_max",
+       "auc": 0.574
+      }
+     ]
+    },
+    "conus_gbt": {
+     "point_auc_all": 0.9338616902745215,
+     "hi_points": 143432,
+     "hi_event_points": 21231,
+     "hi_share_on_report_days": 0.9866208377488984,
+     "auc_hi_points_event_vs_not": 0.6348640400615309,
+     "auc_hi_points_report_day_vs_no_report_day": 0.7314166364960009,
+     "day_auc_area_ge5": 0.9839285714285714,
+     "day_auc_max_prob": 0.9660714285714286,
+     "mean_area_ge5_km2": {
+      "report_days": 568579.0178571428,
+      "no_report_days": 10794.375
+     },
+     "share_of_ge5_area_on_no_report_days": 0.013379162251101567,
+     "hits_ge5": 21231,
+     "event_points": 28847,
+     "in_sample_correction_hits_ge5": 23106,
+     "in_sample_correction_area_ge5_no_report_km2": 778950.0,
+     "top_predictors_report_day_vs_no_report_day_hi_points": [
+      {
+       "predictor": "x_sbcape_nearby_max_max",
+       "auc": 0.805
+      },
+      {
+       "predictor": "x_sbcape_nearby_max_mean",
+       "auc": 0.798
+      },
+      {
+       "predictor": "x_sbcape_max",
+       "auc": 0.792
+      },
+      {
+       "predictor": "x_sbcape_mean",
+       "auc": 0.78
+      },
+      {
+       "predictor": "x_reflectivity_nearby_max_max",
+       "auc": 0.725
+      },
+      {
+       "predictor": "x_shear06_v_mean",
+       "auc": 0.315
+      },
+      {
+       "predictor": "x_shear06_v_nearby_max_mean",
+       "auc": 0.322
+      },
+      {
+       "predictor": "x_sbcin_mean",
+       "auc": 0.324
+      }
+     ],
+     "top_predictors_event_vs_not_hi_points": [
+      {
+       "predictor": "x_uh25_nearby_max_mean",
+       "auc": 0.643
+      },
+      {
+       "predictor": "x_uh25_nearby_max_max",
+       "auc": 0.643
+      },
+      {
+       "predictor": "int_uh_shear",
+       "auc": 0.638
+      },
+      {
+       "predictor": "x_reflectivity_nearby_max_max",
+       "auc": 0.612
+      },
+      {
+       "predictor": "int_cape_shear",
+       "auc": 0.599
+      },
+      {
+       "predictor": "x_uh25_max",
+       "auc": 0.596
+      },
+      {
+       "predictor": "x_uh25_mean",
+       "auc": 0.596
+      },
+      {
+       "predictor": "x_shear06_v_nearby_max_max",
+       "auc": 0.596
+      }
+     ]
+    }
+   }
+  },
+  "west": {
+   "rows": 1391328,
+   "event_points": 3590,
+   "report_days": 34,
+   "no_report_days": 62,
+   "models": {
+    "conus_logistic": {
+     "point_auc_all": 0.9446833485715201,
+     "hi_points": 23759,
+     "hi_event_points": 1367,
+     "hi_share_on_report_days": 0.8663664295635338,
+     "auc_hi_points_event_vs_not": 0.6568115101720151,
+     "auc_hi_points_report_day_vs_no_report_day": 0.5452453400087524,
+     "day_auc_area_ge5": 0.9055977229601518,
+     "day_auc_max_prob": 0.9155597722960152,
+     "mean_area_ge5_km2": {
+      "report_days": 136217.64705882352,
+      "no_report_days": 11522.177419354839
+     },
+     "share_of_ge5_area_on_no_report_days": 0.13363357043646618,
+     "hits_ge5": 1367,
+     "event_points": 3590,
+     "in_sample_correction_hits_ge5": 816,
+     "in_sample_correction_area_ge5_no_report_km2": 250650.0,
+     "top_predictors_report_day_vs_no_report_day_hi_points": [
+      {
+       "predictor": "x_sbcin_mean",
+       "auc": 0.36
+      },
+      {
+       "predictor": "x_sbcin_nearby_max_mean",
+       "auc": 0.387
+      },
+      {
+       "predictor": "x_sbcape_nearby_max_max",
+       "auc": 0.605
+      },
+      {
+       "predictor": "x_sbcape_nearby_max_mean",
+       "auc": 0.591
+      },
+      {
+       "predictor": "x_shear06_u_mean",
+       "auc": 0.414
+      },
+      {
+       "predictor": "x_reflectivity_mean",
+       "auc": 0.574
+      },
+      {
+       "predictor": "int_cape_shear",
+       "auc": 0.572
+      },
+      {
+       "predictor": "x_uh25_nearby_max_max",
+       "auc": 0.435
+      }
+     ],
+     "top_predictors_event_vs_not_hi_points": [
+      {
+       "predictor": "x_sbcin_mean",
+       "auc": 0.31
+      },
+      {
+       "predictor": "x_sbcin_nearby_max_mean",
+       "auc": 0.333
+      },
+      {
+       "predictor": "x_sbcape_mean",
+       "auc": 0.658
+      },
+      {
+       "predictor": "x_dewpoint2m_mean",
+       "auc": 0.654
+      },
+      {
+       "predictor": "x_sbcape_nearby_max_mean",
+       "auc": 0.652
+      },
+      {
+       "predictor": "x_dewpoint2m_nearby_max_mean",
+       "auc": 0.647
+      },
+      {
+       "predictor": "x_dewpoint2m_max",
+       "auc": 0.644
+      },
+      {
+       "predictor": "int_cape_shear",
+       "auc": 0.634
+      }
+     ]
+    },
+    "conus_gbt": {
+     "point_auc_all": 0.9457840893690403,
+     "hi_points": 24033,
+     "hi_event_points": 1245,
+     "hi_share_on_report_days": 0.8550326634211293,
+     "auc_hi_points_event_vs_not": 0.6666067288286021,
+     "auc_hi_points_report_day_vs_no_report_day": 0.5660599885608475,
+     "day_auc_area_ge5": 0.9333491461100569,
+     "day_auc_max_prob": 0.9321631878557874,
+     "mean_area_ge5_km2": {
+      "report_days": 135986.0294117647,
+      "no_report_days": 12643.548387096775
+     },
+     "share_of_ge5_area_on_no_report_days": 0.14496733657887073,
+     "hits_ge5": 1245,
+     "event_points": 3590,
+     "in_sample_correction_hits_ge5": 845,
+     "in_sample_correction_area_ge5_no_report_km2": 269325.0,
+     "top_predictors_report_day_vs_no_report_day_hi_points": [
+      {
+       "predictor": "x_sbcin_mean",
+       "auc": 0.37
+      },
+      {
+       "predictor": "x_sbcape_nearby_max_max",
+       "auc": 0.621
+      },
+      {
+       "predictor": "x_sbcin_nearby_max_mean",
+       "auc": 0.384
+      },
+      {
+       "predictor": "x_reflectivity_mean",
+       "auc": 0.601
+      },
+      {
+       "predictor": "x_sbcape_nearby_max_mean",
+       "auc": 0.589
+      },
+      {
+       "predictor": "int_cape_shear",
+       "auc": 0.576
+      },
+      {
+       "predictor": "x_shear06_u_mean",
+       "auc": 0.425
+      },
+      {
+       "predictor": "x_reflectivity_max",
+       "auc": 0.562
+      }
+     ],
+     "top_predictors_event_vs_not_hi_points": [
+      {
+       "predictor": "x_sbcin_mean",
+       "auc": 0.291
+      },
+      {
+       "predictor": "x_sbcin_nearby_max_mean",
+       "auc": 0.311
+      },
+      {
+       "predictor": "x_sbcape_mean",
+       "auc": 0.666
+      },
+      {
+       "predictor": "int_cape_shear",
+       "auc": 0.664
+      },
+      {
+       "predictor": "x_sbcape_nearby_max_mean",
+       "auc": 0.652
+      },
+      {
+       "predictor": "x_srh01_nearby_max_max",
+       "auc": 0.648
+      },
+      {
+       "predictor": "x_dewpoint2m_mean",
+       "auc": 0.647
+      },
+      {
+       "predictor": "int_srh_shear",
+       "auc": 0.645
+      }
+     ]
+    }
+   }
+  },
+  "plains_outside_box": {
+   "rows": 590208,
+   "event_points": 6166,
+   "report_days": 43,
+   "no_report_days": 53,
+   "models": {
+    "conus_logistic": {
+     "point_auc_all": 0.9362293112091767,
+     "hi_points": 46495,
+     "hi_event_points": 4444,
+     "hi_share_on_report_days": 0.898419184858587,
+     "auc_hi_points_event_vs_not": 0.6784826838252064,
+     "auc_hi_points_report_day_vs_no_report_day": 0.6817254720274641,
+     "day_auc_area_ge5": 0.9433962264150944,
+     "day_auc_max_prob": 0.9412022817025011,
+     "mean_area_ge5_km2": {
+      "report_days": 218574.41860465117,
+      "no_report_days": 20050.471698113208
+     },
+     "share_of_ge5_area_on_no_report_days": 0.10158081514141305,
+     "hits_ge5": 4444,
+     "event_points": 6166,
+     "in_sample_correction_hits_ge5": 3751,
+     "in_sample_correction_area_ge5_no_report_km2": 516150.0,
+     "top_predictors_report_day_vs_no_report_day_hi_points": [
+      {
+       "predictor": "x_shear06_v_mean",
+       "auc": 0.27
+      },
+      {
+       "predictor": "x_shear06_v_nearby_max_mean",
+       "auc": 0.297
+      },
+      {
+       "predictor": "x_sbcape_nearby_max_max",
+       "auc": 0.698
+      },
+      {
+       "predictor": "x_sbcin_mean",
+       "auc": 0.332
+      },
+      {
+       "predictor": "x_sbcape_max",
+       "auc": 0.665
+      },
+      {
+       "predictor": "x_sbcape_nearby_max_mean",
+       "auc": 0.639
+      },
+      {
+       "predictor": "x_shear06_v_max",
+       "auc": 0.375
+      },
+      {
+       "predictor": "x_sbcin_nearby_max_mean",
+       "auc": 0.377
+      }
+     ],
+     "top_predictors_event_vs_not_hi_points": [
+      {
+       "predictor": "x_shear06_u_nearby_max_max",
+       "auc": 0.662
+      },
+      {
+       "predictor": "int_uh_shear",
+       "auc": 0.657
+      },
+      {
+       "predictor": "int_cape_shear",
+       "auc": 0.647
+      },
+      {
+       "predictor": "x_uh25_nearby_max_max",
+       "auc": 0.644
+      },
+      {
+       "predictor": "x_shear06_v_nearby_max_max",
+       "auc": 0.638
+      },
+      {
+       "predictor": "int_srh_shear",
+       "auc": 0.637
+      },
+      {
+       "predictor": "x_shear06_u_max",
+       "auc": 0.63
+      },
+      {
+       "predictor": "x_uh25_nearby_max_mean",
+       "auc": 0.625
+      }
+     ]
+    },
+    "conus_gbt": {
+     "point_auc_all": 0.9342612750959376,
+     "hi_points": 49652,
+     "hi_event_points": 4470,
+     "hi_share_on_report_days": 0.8953516474663659,
+     "auc_hi_points_event_vs_not": 0.6320001917177724,
+     "auc_hi_points_report_day_vs_no_report_day": 0.5886168831092369,
+     "day_auc_area_ge5": 0.9407634927599825,
+     "day_auc_max_prob": 0.8977621763931549,
+     "mean_area_ge5_km2": {
+      "report_days": 232618.60465116278,
+      "no_report_days": 22058.490566037737
+     },
+     "share_of_ge5_area_on_no_report_days": 0.1046483525336341,
+     "hits_ge5": 4470,
+     "event_points": 6166,
+     "in_sample_correction_hits_ge5": 3821,
+     "in_sample_correction_area_ge5_no_report_km2": 753750.0,
+     "top_predictors_report_day_vs_no_report_day_hi_points": [
+      {
+       "predictor": "x_shear06_v_mean",
+       "auc": 0.318
+      },
+      {
+       "predictor": "x_sbcin_mean",
+       "auc": 0.32
+      },
+      {
+       "predictor": "x_sbcape_nearby_max_max",
+       "auc": 0.654
+      },
+      {
+       "predictor": "x_shear06_v_nearby_max_mean",
+       "auc": 0.351
+      },
+      {
+       "predictor": "x_sbcin_nearby_max_mean",
+       "auc": 0.367
+      },
+      {
+       "predictor": "x_dewpoint2m_max",
+       "auc": 0.379
+      },
+      {
+       "predictor": "x_srh01_nearby_max_max",
+       "auc": 0.617
+      },
+      {
+       "predictor": "x_dewpoint2m_mean",
+       "auc": 0.388
+      }
+     ],
+     "top_predictors_event_vs_not_hi_points": [
+      {
+       "predictor": "int_uh_shear",
+       "auc": 0.685
+      },
+      {
+       "predictor": "x_shear06_u_nearby_max_max",
+       "auc": 0.674
+      },
+      {
+       "predictor": "x_uh25_nearby_max_max",
+       "auc": 0.674
+      },
+      {
+       "predictor": "x_shear06_v_nearby_max_max",
+       "auc": 0.666
+      },
+      {
+       "predictor": "x_uh25_nearby_max_mean",
+       "auc": 0.661
+      },
+      {
+       "predictor": "int_srh_shear",
+       "auc": 0.654
+      },
+      {
+       "predictor": "int_cape_shear",
+       "auc": 0.649
+      },
+      {
+       "predictor": "x_shear06_u_max",
+       "auc": 0.64
+      }
+     ]
+    }
+   }
+  },
+  "florida_gulf_south": {
+   "rows": 95232,
+   "event_points": 729,
+   "report_days": 24,
+   "no_report_days": 72,
+   "models": {
+    "conus_logistic": {
+     "point_auc_all": 0.881116278713298,
+     "hi_points": 16261,
+     "hi_event_points": 517,
+     "hi_share_on_report_days": 0.5595596826763422,
+     "auc_hi_points_event_vs_not": 0.7329416456338161,
+     "auc_hi_points_report_day_vs_no_report_day": 0.5976015972983152,
+     "day_auc_area_ge5": 0.8790509259259259,
+     "day_auc_max_prob": 0.8495370370370371,
+     "mean_area_ge5_km2": {
+      "report_days": 85303.125,
+      "no_report_days": 22381.25
+     },
+     "share_of_ge5_area_on_no_report_days": 0.44044031732365785,
+     "hits_ge5": 517,
+     "event_points": 729,
+     "in_sample_correction_hits_ge5": 208,
+     "in_sample_correction_area_ge5_no_report_km2": 158400.0,
+     "top_predictors_report_day_vs_no_report_day_hi_points": [
+      {
+       "predictor": "x_sbcin_mean",
+       "auc": 0.328
+      },
+      {
+       "predictor": "x_srh01_max",
+       "auc": 0.659
+      },
+      {
+       "predictor": "x_sbcin_nearby_max_mean",
+       "auc": 0.341
+      },
+      {
+       "predictor": "x_srh01_mean",
+       "auc": 0.643
+      },
+      {
+       "predictor": "x_srh01_nearby_max_mean",
+       "auc": 0.637
+      },
+      {
+       "predictor": "x_srh01_nearby_max_max",
+       "auc": 0.603
+      },
+      {
+       "predictor": "int_srh_shear",
+       "auc": 0.596
+      },
+      {
+       "predictor": "x_shear06_v_nearby_max_max",
+       "auc": 0.59
+      }
+     ],
+     "top_predictors_event_vs_not_hi_points": [
+      {
+       "predictor": "x_uh25_nearby_max_max",
+       "auc": 0.714
+      },
+      {
+       "predictor": "x_sbcin_mean",
+       "auc": 0.286
+      },
+      {
+       "predictor": "int_uh_shear",
+       "auc": 0.707
+      },
+      {
+       "predictor": "int_cape_shear",
+       "auc": 0.668
+      },
+      {
+       "predictor": "x_uh25_nearby_max_mean",
+       "auc": 0.658
+      },
+      {
+       "predictor": "x_shear06_v_nearby_max_max",
+       "auc": 0.65
+      },
+      {
+       "predictor": "x_shear06_u_nearby_max_max",
+       "auc": 0.643
+      },
+      {
+       "predictor": "x_srh01_max",
+       "auc": 0.639
+      }
+     ]
+    },
+    "conus_gbt": {
+     "point_auc_all": 0.8663205863925731,
+     "hi_points": 10602,
+     "hi_event_points": 415,
+     "hi_share_on_report_days": 0.5734767025089605,
+     "auc_hi_points_event_vs_not": 0.6006524970994216,
+     "auc_hi_points_report_day_vs_no_report_day": 0.5528883281151796,
+     "day_auc_area_ge5": 0.8382523148148148,
+     "day_auc_max_prob": 0.7991898148148148,
+     "mean_area_ge5_km2": {
+      "report_days": 57000.0,
+      "no_report_days": 14131.25
+     },
+     "share_of_ge5_area_on_no_report_days": 0.4265232974910394,
+     "hits_ge5": 415,
+     "event_points": 729,
+     "in_sample_correction_hits_ge5": 95,
+     "in_sample_correction_area_ge5_no_report_km2": 190125.0,
+     "top_predictors_report_day_vs_no_report_day_hi_points": [
+      {
+       "predictor": "x_srh01_max",
+       "auc": 0.666
+      },
+      {
+       "predictor": "x_sbcin_mean",
+       "auc": 0.35
+      },
+      {
+       "predictor": "int_srh_shear",
+       "auc": 0.64
+      },
+      {
+       "predictor": "x_sbcin_nearby_max_mean",
+       "auc": 0.364
+      },
+      {
+       "predictor": "x_srh01_nearby_max_max",
+       "auc": 0.632
+      },
+      {
+       "predictor": "x_srh01_nearby_max_mean",
+       "auc": 0.622
+      },
+      {
+       "predictor": "x_shear06_v_nearby_max_max",
+       "auc": 0.62
+      },
+      {
+       "predictor": "int_cape_shear",
+       "auc": 0.619
+      }
+     ],
+     "top_predictors_event_vs_not_hi_points": [
+      {
+       "predictor": "int_uh_shear",
+       "auc": 0.737
+      },
+      {
+       "predictor": "x_uh25_nearby_max_max",
+       "auc": 0.723
+      },
+      {
+       "predictor": "int_cape_shear",
+       "auc": 0.718
+      },
+      {
+       "predictor": "x_uh25_nearby_max_mean",
+       "auc": 0.696
+      },
+      {
+       "predictor": "x_reflectivity_mean",
+       "auc": 0.679
+      },
+      {
+       "predictor": "int_srh_shear",
+       "auc": 0.676
+      },
+      {
+       "predictor": "x_shear06_u_nearby_max_max",
+       "auc": 0.674
+      },
+      {
+       "predictor": "x_srh01_nearby_max_mean",
+       "auc": 0.666
+      }
+     ]
+    }
+   }
+  },
+  "northeast_outside_box": {
+   "rows": 217440,
+   "event_points": 2004,
+   "report_days": 19,
+   "no_report_days": 77,
+   "models": {
+    "conus_logistic": {
+     "point_auc_all": 0.9596197095031793,
+     "hi_points": 5333,
+     "hi_event_points": 969,
+     "hi_share_on_report_days": 0.8419276204762798,
+     "auc_hi_points_event_vs_not": 0.6148180677066041,
+     "auc_hi_points_report_day_vs_no_report_day": 0.5904765301566417,
+     "day_auc_area_ge5": 0.8967874231032126,
+     "day_auc_max_prob": 0.9172932330827067,
+     "mean_area_ge5_km2": {
+      "report_days": 53171.05263157895,
+      "no_report_days": 2463.311688311688
+     },
+     "share_of_ge5_area_on_no_report_days": 0.15807237952372022,
+     "hits_ge5": 969,
+     "event_points": 2004,
+     "in_sample_correction_hits_ge5": 1506,
+     "in_sample_correction_area_ge5_no_report_km2": 477900.0,
+     "top_predictors_report_day_vs_no_report_day_hi_points": [
+      {
+       "predictor": "x_sbcape_nearby_max_max",
+       "auc": 0.869
+      },
+      {
+       "predictor": "x_sbcape_nearby_max_mean",
+       "auc": 0.839
+      },
+      {
+       "predictor": "x_dewpoint2m_nearby_max_max",
+       "auc": 0.808
+      },
+      {
+       "predictor": "x_srh01_max",
+       "auc": 0.197
+      },
+      {
+       "predictor": "x_dewpoint2m_nearby_max_mean",
+       "auc": 0.789
+      },
+      {
+       "predictor": "x_dewpoint2m_mean",
+       "auc": 0.778
+      },
+      {
+       "predictor": "x_sbcape_mean",
+       "auc": 0.777
+      },
+      {
+       "predictor": "x_sbcape_max",
+       "auc": 0.776
+      }
+     ],
+     "top_predictors_event_vs_not_hi_points": [
+      {
+       "predictor": "x_shear06_v_nearby_max_mean",
+       "auc": 0.696
+      },
+      {
+       "predictor": "x_srh01_mean",
+       "auc": 0.306
+      },
+      {
+       "predictor": "int_cape_shear",
+       "auc": 0.688
+      },
+      {
+       "predictor": "x_reflectivity_nearby_max_max",
+       "auc": 0.679
+      },
+      {
+       "predictor": "x_shear06_v_mean",
+       "auc": 0.679
+      },
+      {
+       "predictor": "x_shear06_v_nearby_max_max",
+       "auc": 0.672
+      },
+      {
+       "predictor": "x_sbcape_nearby_max_max",
+       "auc": 0.672
+      },
+      {
+       "predictor": "x_uh25_nearby_max_mean",
+       "auc": 0.67
+      }
+     ]
+    },
+    "conus_gbt": {
+     "point_auc_all": 0.9542663533383668,
+     "hi_points": 7805,
+     "hi_event_points": 1186,
+     "hi_share_on_report_days": 0.8530429212043562,
+     "auc_hi_points_event_vs_not": 0.581003203257422,
+     "auc_hi_points_report_day_vs_no_report_day": 0.6301045762280851,
+     "day_auc_area_ge5": 0.9179767600820232,
+     "day_auc_max_prob": 0.9227614490772386,
+     "mean_area_ge5_km2": {
+      "report_days": 78844.73684210527,
+      "no_report_days": 3351.6233766233768
+     },
+     "share_of_ge5_area_on_no_report_days": 0.14695707879564382,
+     "hits_ge5": 1186,
+     "event_points": 2004,
+     "in_sample_correction_hits_ge5": 1496,
+     "in_sample_correction_area_ge5_no_report_km2": 488250.0,
+     "top_predictors_report_day_vs_no_report_day_hi_points": [
+      {
+       "predictor": "x_sbcape_nearby_max_max",
+       "auc": 0.798
+      },
+      {
+       "predictor": "x_sbcape_nearby_max_mean",
+       "auc": 0.789
+      },
+      {
+       "predictor": "x_dewpoint2m_nearby_max_max",
+       "auc": 0.77
+      },
+      {
+       "predictor": "x_dewpoint2m_nearby_max_mean",
+       "auc": 0.765
+      },
+      {
+       "predictor": "x_dewpoint2m_mean",
+       "auc": 0.757
+      },
+      {
+       "predictor": "x_srh01_max",
+       "auc": 0.25
+      },
+      {
+       "predictor": "x_sbcape_mean",
+       "auc": 0.746
+      },
+      {
+       "predictor": "x_dewpoint2m_max",
+       "auc": 0.743
+      }
+     ],
+     "top_predictors_event_vs_not_hi_points": [
+      {
+       "predictor": "int_cape_shear",
+       "auc": 0.704
+      },
+      {
+       "predictor": "x_uh25_nearby_max_mean",
+       "auc": 0.702
+      },
+      {
+       "predictor": "x_reflectivity_nearby_max_max",
+       "auc": 0.7
+      },
+      {
+       "predictor": "x_shear06_v_nearby_max_max",
+       "auc": 0.686
+      },
+      {
+       "predictor": "x_sbcape_nearby_max_max",
+       "auc": 0.682
+      },
+      {
+       "predictor": "x_uh25_nearby_max_max",
+       "auc": 0.681
+      },
+      {
+       "predictor": "int_uh_shear",
+       "auc": 0.679
+      },
+      {
+       "predictor": "x_shear06_v_nearby_max_mean",
+       "auc": 0.669
+      }
+     ]
+    }
+   }
+  }
+ }
+}
