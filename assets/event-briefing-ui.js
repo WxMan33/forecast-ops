@@ -294,6 +294,7 @@
       ${gap ? `<p class="pv-gap">${esc(gap)}</p>` : ''}
       <h2 class="pv-section">Event schedule</h2>
       ${scheduleHtml(b.phases, tz, 'pv-sched')}
+      ${view.daylight && root.EventDaylight ? root.EventDaylight.printLine(view.daylight) : ''}
       <p class="pv-nextcheck"><b>Next weather check:</b> ${nextCk ? `${esc(date(nextCk.at, tz))}, ${esc(clock(nextCk.at, tz))} ${esc(zone(nextCk.at, tz))} · ${esc(nextCk.what)}` : 'Now: use radar, lightning detection and official NWS warnings.'}</p>
       <h2 class="pv-section">Official NWS forecast</h2>
       ${per.length ? `<ul class="pv-nws">${per.map((p) => `<li data-nws-period><b>${esc(p.name)}:</b> ${esc(p.text)}${p.thunder ? ' Thunderstorms mentioned.' : ''}</li>`).join('')}</ul>` : '<p class="pv-note">The NWS forecast was unavailable when this was printed.</p>'}

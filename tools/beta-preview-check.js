@@ -567,6 +567,26 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     await ctx.close();
   });
   /* ---------- 15. editing an imported fall-back event keeps which 1:30 AM it is ---------- */
+  /* ---------- 14b. Daylight row: the Thanksgiving Day Race at TQL Stadium against NOAA's own table at the venue ---------- */
+  await section('14b. daylight row vs NOAA (phone)', async () => {
+    const lat = 39.1113, lon = -84.5222, race = { id: "ev_dl_race", name: "Thanksgiving Day Race", venueId: null, loc: { name: "TQL Stadium, Cincinnati, OH", lat, lon }, tz: "America/New_York",
+      times: { setup: "2026-11-26T05:00", gates: "2026-11-26T06:30", start: "2026-11-26T07:30", end: "2026-11-26T10:30", teardown: "2026-11-26T12:00" }, gust: 25, overrides: [], source: { kind: "manual" }, created: 1, updated: 1 };
+    /* NOAA GML's Solar Calculator table for these exact coordinates (fetched here, never by the page) */
+    let noaa = null, why = "";
+    try { const r = await fetch(`https://gml.noaa.gov/grad/solcalc/table.php?lat=${lat}&lon=${lon}&year=2026`, { signal: AbortSignal.timeout(30000) }); const html = await r.text();
+      const tables = html.split(/Sunrise Table|Sunset Table/).slice(1, 3).map((t) => t.split(/<tr/i).map((row) => [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((m) => m[1].replace(/<[^>]+>/g, "").trim())).filter((row) => row.length >= 13 && /^\d+$/.test(row[0])));
+      const at = (k) => tables[k].find((x) => +x[0] === 26)[11]; noaa = { rise: at(0), set: at(1) }; } catch (e) { why = String(e.message || e).split("\n")[0]; }
+    const { ctx, p, errors } = await go(PHONE, base + "event-beta.html?ev=" + race.id, `if (!sessionStorage.getItem("seeded")) { sessionStorage.setItem("seeded", "1"); localStorage.setItem("beta_events_v2", ${JSON.stringify(JSON.stringify([race]))}); }`);
+    await until(p, () => document.querySelector("#daylight .ev-daylight"), null, 30000);
+    const f = await p.evaluate(() => ({ rise: (document.querySelector("#daylight [data-sunrise]") || {}).textContent, set: (document.querySelector("#daylight [data-sunset]") || {}).textContent,
+      note: (document.querySelector("#daylight [data-daylight-note]") || {}).textContent, text: (document.querySelector("#daylight .ev-daylight") || {}).innerText }));
+    const h24 = (t) => { const m = /^(\d+):(\d\d) (AM|PM)$/.exec(t || ""); if (!m) return ""; let h = +m[1] % 12; if (m[3] === "PM") h += 12; return `${String(h).padStart(2, "0")}:${m[2]}`; };
+    await p.locator("#secTimeline").screenshot({ path: `${out}/event-daylight-race-phone.png` });
+    if (!noaa) report(false, "daylight: NOAA's table for TQL Stadium could be fetched for the comparison", `UNVERIFIED: ${why}; page shows ${f.rise} / ${f.set}`);
+    else report(h24(f.rise) === noaa.rise && h24(f.set) === noaa.set && f.note === `Setup starts before sunrise (${f.rise}).` && !errors.length, "daylight: Thanksgiving Day Race at TQL Stadium, sunrise and sunset equal NOAA's table for the venue; one schedule note",
+      `page ${f.rise} / ${f.set} · NOAA ${noaa.rise} / ${noaa.set} (EST, 39.1113, -84.5222, Nov 26 2026) · "${f.note}"${errors.length ? " · " + errors.join("; ") : ""}`);
+    await ctx.close();
+  });
   await section('15. fall-back event edit (phone)', async () => {
     const tqlV = { id: "vn_check", name: "TQL Stadium", city: "Cincinnati, OH", lat: 39.1111, lon: -84.5222, tz: "America/New_York", aliases: [], defaults: { setup: 270, gates: 90, teardown: 120, gust: 30 } };
     const { ctx, p, errors } = await go(PHONE, base + "event-beta.html#upcoming", `if (!sessionStorage.getItem("seeded")) { sessionStorage.setItem("seeded", "1"); localStorage.setItem("beta_venues_v1", ${JSON.stringify(JSON.stringify([tqlV]))}); }`);
