@@ -100,9 +100,13 @@
         /* the shown range's high and low, labelled, so the panel reads at a glance */
         /* the high (and, for temperature, the low) labelled inside the plot */
         const lab = (vals, pick) => { let best = -1; vals.forEach((v, j) => { if (v != null && (best < 0 || (pick === "max" ? v > vals[best] : v < vals[best]))) best = j; }); if (best < 0) return; const yy = B - ((vals[best] - lo) / (hi - lo)) * (B - T);
-          let ty = pick === "max" ? yy - 16 : yy + 34; if (ty > B - 6) ty = yy - 16; if (ty < T + 24) ty = yy + 34;
-          const tx = Math.min(R - 30, Math.max(L + 30, X(best)));
-          text(`${Math.round(vals[best])}${key === "temp" ? "°" : " mph"}`, tx, ty, { font: FONT(800, 26), color, align: "center" }); };
+          /* above a high / below a low; beside the point when that would leave the plot; a panel-coloured halo keeps it
+             readable over the other line */
+          let tx = X(best), ty = pick === "max" ? yy - 18 : yy + 36, align = "center";
+          if (ty < T + 22 || ty > B - 4) { const right = tx > (L + R) / 2; tx += right ? -18 : 18; align = right ? "right" : "left"; ty = yy + 9; }
+          else tx = Math.min(R - 34, Math.max(L + 34, tx));
+          const label = `${Math.round(vals[best])}${key === "temp" ? "°" : " mph"}`; g.font = FONT(800, 26); g.textAlign = align; g.lineJoin = "round"; g.lineWidth = 8; g.strokeStyle = C.panel; g.strokeText(label, tx, ty);
+          text(label, tx, ty, { font: FONT(800, 26), color, align }); };
         const real = v1.filter((v) => v != null); lab(v1, "max"); if (key === "temp" && real.length && Math.round(Math.min(...real)) !== Math.round(Math.max(...real))) lab(v1, "min");
       } else {
         const { levels, allLow } = lightningSummary(V, ids);
