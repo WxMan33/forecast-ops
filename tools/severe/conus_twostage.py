@@ -22,7 +22,7 @@ from scipy.optimize import minimize
 from scipy.special import expit, logit
 
 import phase2_study as S
-from conus_calibration import FL, REGIONS, check_frozen, oof_predictions, region_index
+from conus_calibration import FL, REGIONS, auc, check_frozen, oof_predictions, region_index
 from conus_followup import SAMPLE_KM2, predict
 from conus_study import load, regions
 from protocol import future_window
@@ -289,9 +289,115 @@ def gate(a):
                 "rule": "docs/severe-phase2-criteria.md section 8", "protected_2025_outcomes_accessed": False,
                 "verification_2021_loaded": False})
     a.output.mkdir(parents=True, exist_ok=True)
+    if a.analyze:
+        committed = json.loads(a.analyze.read_text())
+        fnames = list(names) + ["int_cape_shear", "int_srh_shear", "int_uh_shear"]
+        analyze(a.output, a.candidate, committed, y, p1, p2, d, p, reg_row, x, fnames, cases)
+        return
     (a.output / f"gate-{a.candidate}.json").write_text(json.dumps(res, indent=1, default=float) + "\n")
     draw(a.output, f"gate-{a.candidate}", cases, ck, y, p1, p2, d, p, reg_row)
     print(json.dumps({"candidate": a.candidate, "pass": res["pass"], "failed": res["failed"]}))
+
+
+# ---------------------------------------------------------------- trade-off and missed-setup analysis
+def tradeoff_curve(y, pr, d, region_rows, dates_n, A0, H0, thresholds):
+    """False-alarm area on the region's no-report days, and hits, at each threshold; both relative to
+    the uncorrected model at 5% (A0, H0)."""
+    rep = np.zeros(dates_n, bool)
+    rep[np.unique(d[region_rows & (y == 1)])] = True
+    present = np.zeros(dates_n, bool)
+    present[np.unique(d[region_rows])] = True
+    nr_rows = region_rows & ~rep[d]
+    n_nr = int((present & ~rep).sum())
+    out = []
+    for t in thresholds:
+        area = (nr_rows & (pr >= t)).sum() * SAMPLE_KM2 / max(n_nr, 1)
+        hits = int((region_rows & (y == 1) & (pr >= t)).sum())
+        out.append({"threshold": float(t), "area_km2_per_no_report_day": float(area),
+                     "area_rel": float(area / A0) if A0 else None, "hits": hits, "hits_rel": float(hits / H0) if H0 else None})
+    return out
+
+
+def analyze(out_dir, tag, committed, y, p1, p2, d, p, reg_row, x, fnames, cases):
+    res = {"candidate": tag, "status": "diagnostic_on_held_out_development_predictions"}
+    # 1. the regenerated predictions must reproduce the committed gate
+    regen = evaluate(y, p1, p2, d, reg_row, len(cases), float(y.mean()), np.random.default_rng(20261120))
+    keys = [("hits", s, t, k) for s in ("national", FL, "west") for t in ("ge_5pct", "ge_15pct") for k in ("uncorrected", "two_stage")]
+    diffs = [abs(regen["hits"][s][t][k] - committed["hits"][s][t][k]) for _, s, t, k in keys]
+    diffs.append(abs(regen["national_brier"]["two_stage"] - committed["national_brier"]["two_stage"]) * 1e6)
+    res["reproduces_committed_gate"] = bool(max(diffs) == 0 or max(diffs) < 1e-6)
+    thresholds = np.unique(np.r_[np.geomspace(0.003, 0.5, 60), 0.05])
+    res["regions"] = {}
+    for r in (FL, "west"):
+        rows = reg_row == REGIONS.index(r)
+        rep = np.zeros(len(cases), bool)
+        rep[np.unique(d[rows & (y == 1)])] = True
+        nr = rows & ~rep[d]
+        n_nr = max(int(len(set(d[rows].tolist())) - rep.sum()), 1)
+        A0 = (nr & (p1 >= 0.05)).sum() * SAMPLE_KM2 / n_nr
+        H0 = int((rows & (y == 1) & (p1 >= 0.05)).sum())
+        curves = {"uncorrected": tradeoff_curve(y, p1, d, rows, len(cases), A0, H0, thresholds),
+                  "two_stage": tradeoff_curve(y, p2, d, rows, len(cases), A0, H0, thresholds)}
+        ok = lambda c: c["area_rel"] is not None and c["hits_rel"] is not None
+        feas = {m: [c for c in cv if ok(c) and c["area_rel"] <= 0.60 and c["hits_rel"] >= 0.90]
+                for m, cv in curves.items()}
+        best_hits = {m: max((c["hits_rel"] for c in cv if ok(c) and c["area_rel"] <= 0.60), default=None)
+                     for m, cv in curves.items()}
+        best_area = {m: min((c["area_rel"] for c in cv if ok(c) and c["hits_rel"] >= 0.90), default=None)
+                     for m, cv in curves.items()}
+        # 2. missed setups: uncorrected hits the two-stage model dropped below 5%, versus false alarms
+        hit1 = rows & (y == 1) & (p1 >= 0.05)
+        missed, kept = hit1 & (p2 < 0.05), hit1 & (p2 >= 0.05)
+        fa = nr & (p1 >= 0.05)
+        feats = []
+        for j, n in enumerate(fnames):
+            col = x[:, j]
+            feats.append({"predictor": n,
+                          "auc_missed_vs_false_alarm": auc(np.r_[col[missed], col[fa]], np.r_[np.ones(missed.sum()), np.zeros(fa.sum())]),
+                          "auc_kept_vs_false_alarm": auc(np.r_[col[kept], col[fa]], np.r_[np.ones(kept.sum()), np.zeros(fa.sum())]),
+                          "auc_missed_vs_kept": auc(np.r_[col[missed], col[kept]], np.r_[np.ones(missed.sum()), np.zeros(kept.sum())])})
+        sep = [f for f in feats if f["auc_missed_vs_false_alarm"] is not None]
+        sep.sort(key=lambda f: -abs(f["auc_missed_vs_false_alarm"] - 0.5))
+        by_date = {}
+        for i in np.unique(d[missed]):
+            by_date[cases[i]] = int((missed & (d == i)).sum())
+        months = {}
+        for c, n in by_date.items():
+            months[c[5:7]] = months.get(c[5:7], 0) + n
+        res["regions"][r] = {
+            "uncorrected_at_5pct": {"area_km2_per_no_report_day": float(A0), "hits": H0},
+            "feasible_points": {m: len(v) for m, v in feas.items()},
+            "best_hits_rel_with_area_le_0.60": best_hits, "best_area_rel_with_hits_ge_0.90": best_area,
+            "curves": curves,
+            "missed": {"count": int(missed.sum()), "kept": int(kept.sum()), "false_alarm_points": int(fa.sum()),
+                       "missed_dates": len(by_date), "missed_by_date_top": sorted(by_date.items(), key=lambda t: -t[1])[:10],
+                       "missed_by_month": dict(sorted(months.items())),
+                       "share_missed_on_top3_dates": float(sum(sorted(by_date.values(), reverse=True)[:3]) / max(missed.sum(), 1)),
+                       "max_abs_auc_minus_half_missed_vs_false_alarm": float(abs(sep[0]["auc_missed_vs_false_alarm"] - 0.5)) if sep else None,
+                       "top_predictors_missed_vs_false_alarm": sep[:8]}}
+    (out_dir / f"analysis-{tag}.json").write_text(json.dumps(res, indent=1, default=float) + "\n")
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    for ax, r in zip(axes, (FL, "west")):
+        for m, col in (("uncorrected", "#636363"), ("two_stage", "#d95f02")):
+            cv = res["regions"][r]["curves"][m]
+            pts = [(c["area_rel"], c["hits_rel"]) for c in cv if c["area_rel"] is not None and c["hits_rel"] is not None]
+            if pts:
+                ax.plot(*zip(*pts), "-", color=col, label=m.replace("_", " "))
+            c5 = [c for c in cv if abs(c["threshold"] - 0.05) < 1e-9][0]
+            if c5["area_rel"] is not None and c5["hits_rel"] is not None:
+                ax.plot(c5["area_rel"], c5["hits_rel"], "o", color=col)
+        ax.axvline(0.60, color="k", ls=":", lw=0.8); ax.axhline(0.90, color="k", ls=":", lw=0.8)
+        ax.fill_between([0, 0.60], 0.90, 1.6, color="#1b9e77", alpha=0.12, label="target region")
+        ax.set_xlim(0, 1.6); ax.set_ylim(0, 1.6)
+        ax.set_xlabel("False-alarm area on no-report days (relative to uncorrected at 5%)")
+        ax.set_ylabel("Report points captured (relative to uncorrected at 5%)")
+        ax.set_title(f"{r}: threshold swept 0.3%-50%; dots = 5%", fontsize=9)
+        ax.legend(fontsize=8, loc="lower right")
+    fig.suptitle(f"{tag}: held-out development predictions (whole months unseen by both stages), Day 2 wind", fontsize=10)
+    fig.tight_layout(rect=(0, 0, 1, 0.94)); fig.savefig(out_dir / f"tradeoff-{tag}.png", dpi=110); plt.close(fig)
 
 
 # ---------------------------------------------------------------- freeze and verify
@@ -422,6 +528,7 @@ def main():
         s.add_argument("--output", type=Path, required=True)
         s.add_argument("--expected-fit-dates", type=int, default=96)
     sub.choices["gate"].add_argument("--candidate", choices=("conus_logistic", "conus_gbt"), required=True)
+    sub.choices["gate"].add_argument("--analyze", type=Path, help="Committed gate JSON: regenerate it exactly, then run the trade-off/missed-setup analysis")
     sub.choices["freeze"].add_argument("--candidates", nargs="+", required=True)
     v = sub.choices["verify"]
     v.add_argument("--stage2", type=Path, default=Path("research/severe/conus-v1/twostage-frozen/stage2.json"))
