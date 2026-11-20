@@ -1,0 +1,1737 @@
+{
+ "candidate": "conus_gbt",
+ "frozen_models_sha256": "a9ff6aa76b946c92a16d2148e3cdb1fb8920e6dd904789058edfddbde0af8d7a",
+ "dates": 96,
+ "rule": "docs/severe-phase2-criteria.md section 9",
+ "census": {
+  "tracts": 85395,
+  "total_population": 334735155.0
+ },
+ "reproduces_committed_criterion8_gate": true,
+ "protected_2025_outcomes_accessed": false,
+ "verification_2021_loaded": false,
+ "screening_pass": true,
+ "verdict": "FAIL",
+ "deciding_variant": "meteorological",
+ "gate": {
+  "pass": false,
+  "failed": [
+   "fl_hits5_ratio_ge_0.90",
+   "fl_hits5_lower_ge_0.75",
+   "west_hits5_lower_ge_0.75"
+  ],
+  "requirements": {
+   "fl_hits5_ratio_ge_0.90": false,
+   "fl_hits5_lower_ge_0.75": false,
+   "west_hits5_ratio_ge_0.90": true,
+   "west_hits5_lower_ge_0.75": false,
+   "national_hits5_ratio_ge_0.90": true,
+   "national_hits5_lower_ge_0.90": true,
+   "national_hits15_ratio_ge_0.90": true,
+   "fl_no_report_area_ratio_le_0.60": true,
+   "national_brier_no_worse": true
+  },
+  "hits": {
+   "national": {
+    "ge_5pct": {
+     "event_points": 41336,
+     "uncorrected": 28978,
+     "two_stage": 28763,
+     "ratio": 0.9925805783697977,
+     "ratio_95": [
+      0.9778921036868271,
+      1.0032046987093188
+     ]
+    },
+    "ge_15pct": {
+     "event_points": 41336,
+     "uncorrected": 9915,
+     "two_stage": 9962,
+     "ratio": 1.0047402924861322,
+     "ratio_95": [
+      0.9851202931144546,
+      1.0241459193266729
+     ]
+    }
+   },
+   "florida_gulf_south": {
+    "ge_5pct": {
+     "event_points": 729,
+     "uncorrected": 408,
+     "two_stage": 292,
+     "ratio": 0.7156862745098039,
+     "ratio_95": [
+      0.382337128399747,
+      0.864780898531129
+     ]
+    },
+    "ge_15pct": {
+     "event_points": 729,
+     "uncorrected": 153,
+     "two_stage": 119,
+     "ratio": 0.7777777777777778,
+     "ratio_95": [
+      0.0,
+      1.40625
+     ]
+    }
+   },
+   "west": {
+    "ge_5pct": {
+     "event_points": 3590,
+     "uncorrected": 1337,
+     "two_stage": 1280,
+     "ratio": 0.9573672400897532,
+     "ratio_95": [
+      0.7093874303898171,
+      1.241429894179894
+     ]
+    },
+    "ge_15pct": {
+     "event_points": 3590,
+     "uncorrected": 309,
+     "two_stage": 388,
+     "ratio": 1.255663430420712,
+     "ratio_95": [
+      0.6535843817295705,
+      1.7609018801410101
+     ]
+    }
+   }
+  },
+  "florida_no_report_area": {
+   "no_report_dates": 72,
+   "report_dates": 24,
+   "uncorrected_km2_per_day": 13068.75,
+   "two_stage_km2_per_day": 4653.125,
+   "ratio": 0.35604973696795794,
+   "ratio_95": [
+    0.17217791091518936,
+    0.5096450442636329
+   ]
+  },
+  "national_brier": {
+   "uncorrected": 0.009939903359226286,
+   "two_stage": 0.009895835875335896,
+   "diff_95": [
+    -6.282829399432026e-05,
+    -2.588199939857635e-05
+   ]
+  }
+ },
+ "population_sensitivity_not_deciding": {
+  "pass": false,
+  "failed": [
+   "fl_hits5_ratio_ge_0.90",
+   "fl_hits5_lower_ge_0.75"
+  ],
+  "requirements": {
+   "fl_hits5_ratio_ge_0.90": false,
+   "fl_hits5_lower_ge_0.75": false,
+   "west_hits5_ratio_ge_0.90": true,
+   "west_hits5_lower_ge_0.75": true,
+   "national_hits5_ratio_ge_0.90": true,
+   "national_hits5_lower_ge_0.90": true,
+   "national_hits15_ratio_ge_0.90": true,
+   "fl_no_report_area_ratio_le_0.60": true,
+   "national_brier_no_worse": true
+  },
+  "hits": {
+   "national": {
+    "ge_5pct": {
+     "event_points": 41336,
+     "uncorrected": 28978,
+     "two_stage": 28853,
+     "ratio": 0.9956863827731383,
+     "ratio_95": [
+      0.9816688168575474,
+      1.0068001327081566
+     ]
+    },
+    "ge_15pct": {
+     "event_points": 41336,
+     "uncorrected": 9915,
+     "two_stage": 9996,
+     "ratio": 1.0081694402420576,
+     "ratio_95": [
+      0.9907092570154968,
+      1.0277779808910987
+     ]
+    }
+   },
+   "florida_gulf_south": {
+    "ge_5pct": {
+     "event_points": 729,
+     "uncorrected": 408,
+     "two_stage": 298,
+     "ratio": 0.7303921568627451,
+     "ratio_95": [
+      0.3921355498721228,
+      0.8736853563516921
+     ]
+    },
+    "ge_15pct": {
+     "event_points": 729,
+     "uncorrected": 153,
+     "two_stage": 124,
+     "ratio": 0.8104575163398693,
+     "ratio_95": [
+      0.0,
+      1.328125
+     ]
+    }
+   },
+   "west": {
+    "ge_5pct": {
+     "event_points": 3590,
+     "uncorrected": 1337,
+     "two_stage": 1364,
+     "ratio": 1.0201944652206432,
+     "ratio_95": [
+      0.778971892095831,
+      1.3438226673966953
+     ]
+    },
+    "ge_15pct": {
+     "event_points": 3590,
+     "uncorrected": 309,
+     "two_stage": 419,
+     "ratio": 1.3559870550161812,
+     "ratio_95": [
+      0.8764113426928072,
+      2.389093137254899
+     ]
+    }
+   }
+  },
+  "florida_no_report_area": {
+   "no_report_dates": 72,
+   "report_dates": 24,
+   "uncorrected_km2_per_day": 13068.75,
+   "two_stage_km2_per_day": 4709.375,
+   "ratio": 0.3603538976566236,
+   "ratio_95": [
+    0.1861387466308099,
+    0.5048537847156623
+   ]
+  },
+  "national_brier": {
+   "uncorrected": 0.009939903359226286,
+   "two_stage": 0.009891073711924561,
+   "diff_95": [
+    -7.02026782519722e-05,
+    -2.859337833672465e-05
+   ]
+  }
+ },
+ "ablations_not_deciding": {
+  "drop_wind": {
+   "pass": false,
+   "failed": [
+    "fl_hits5_ratio_ge_0.90",
+    "fl_hits5_lower_ge_0.75",
+    "west_hits5_lower_ge_0.75"
+   ],
+   "requirements": {
+    "fl_hits5_ratio_ge_0.90": false,
+    "fl_hits5_lower_ge_0.75": false,
+    "west_hits5_ratio_ge_0.90": true,
+    "west_hits5_lower_ge_0.75": false,
+    "national_hits5_ratio_ge_0.90": true,
+    "national_hits5_lower_ge_0.90": true,
+    "national_hits15_ratio_ge_0.90": true,
+    "fl_no_report_area_ratio_le_0.60": true,
+    "national_brier_no_worse": true
+   },
+   "hits": {
+    "national": {
+     "ge_5pct": {
+      "event_points": 41336,
+      "uncorrected": 28978,
+      "two_stage": 28760,
+      "ratio": 0.9924770515563531,
+      "ratio_95": [
+       0.9774872004100928,
+       1.0034206465423825
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 41336,
+      "uncorrected": 9915,
+      "two_stage": 9989,
+      "ratio": 1.0074634392334847,
+      "ratio_95": [
+       0.9841517889961107,
+       1.0330390980047235
+      ]
+     }
+    },
+    "florida_gulf_south": {
+     "ge_5pct": {
+      "event_points": 729,
+      "uncorrected": 408,
+      "two_stage": 290,
+      "ratio": 0.7107843137254902,
+      "ratio_95": [
+       0.38416273735185424,
+       0.8637704476969436
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 729,
+      "uncorrected": 153,
+      "two_stage": 125,
+      "ratio": 0.8169934640522876,
+      "ratio_95": [
+       0.10175544794188864,
+       1.546875
+      ]
+     }
+    },
+    "west": {
+     "ge_5pct": {
+      "event_points": 3590,
+      "uncorrected": 1337,
+      "two_stage": 1282,
+      "ratio": 0.9588631264023935,
+      "ratio_95": [
+       0.6980991420017281,
+       1.2293356036996075
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 3590,
+      "uncorrected": 309,
+      "two_stage": 410,
+      "ratio": 1.3268608414239482,
+      "ratio_95": [
+       0.5967671194114318,
+       1.6894071529245946
+      ]
+     }
+    }
+   },
+   "florida_no_report_area": {
+    "no_report_dates": 72,
+    "report_dates": 24,
+    "uncorrected_km2_per_day": 13068.75,
+    "two_stage_km2_per_day": 4706.25,
+    "ratio": 0.3601147776183644,
+    "ratio_95": [
+     0.17020458567058538,
+     0.5193532970750708
+    ]
+   },
+   "national_brier": {
+    "uncorrected": 0.009939903359226286,
+    "two_stage": 0.009893649886777756,
+    "diff_95": [
+     -6.472220206357264e-05,
+     -2.8488522628782783e-05
+    ]
+   }
+  },
+  "drop_gust": {
+   "pass": false,
+   "failed": [
+    "fl_hits5_ratio_ge_0.90",
+    "fl_hits5_lower_ge_0.75",
+    "west_hits5_lower_ge_0.75"
+   ],
+   "requirements": {
+    "fl_hits5_ratio_ge_0.90": false,
+    "fl_hits5_lower_ge_0.75": false,
+    "west_hits5_ratio_ge_0.90": true,
+    "west_hits5_lower_ge_0.75": false,
+    "national_hits5_ratio_ge_0.90": true,
+    "national_hits5_lower_ge_0.90": true,
+    "national_hits15_ratio_ge_0.90": true,
+    "fl_no_report_area_ratio_le_0.60": true,
+    "national_brier_no_worse": true
+   },
+   "hits": {
+    "national": {
+     "ge_5pct": {
+      "event_points": 41336,
+      "uncorrected": 28978,
+      "two_stage": 28694,
+      "ratio": 0.99019946166057,
+      "ratio_95": [
+       0.9764109008126977,
+       0.9998817053556288
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 41336,
+      "uncorrected": 9915,
+      "two_stage": 9893,
+      "ratio": 0.9977811396873424,
+      "ratio_95": [
+       0.979985127353717,
+       1.0148257954118935
+      ]
+     }
+    },
+    "florida_gulf_south": {
+     "ge_5pct": {
+      "event_points": 729,
+      "uncorrected": 408,
+      "two_stage": 298,
+      "ratio": 0.7303921568627451,
+      "ratio_95": [
+       0.3910139484978541,
+       0.8760484011750399
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 729,
+      "uncorrected": 153,
+      "two_stage": 114,
+      "ratio": 0.7450980392156863,
+      "ratio_95": [
+       0.0,
+       1.375
+      ]
+     }
+    },
+    "west": {
+     "ge_5pct": {
+      "event_points": 3590,
+      "uncorrected": 1337,
+      "two_stage": 1207,
+      "ratio": 0.9027673896783844,
+      "ratio_95": [
+       0.6846906882088867,
+       1.137017791669171
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 3590,
+      "uncorrected": 309,
+      "two_stage": 338,
+      "ratio": 1.0938511326860842,
+      "ratio_95": [
+       0.6557788987688099,
+       1.7597766039930214
+      ]
+     }
+    }
+   },
+   "florida_no_report_area": {
+    "no_report_dates": 72,
+    "report_dates": 24,
+    "uncorrected_km2_per_day": 13068.75,
+    "two_stage_km2_per_day": 4734.375,
+    "ratio": 0.36226685796269725,
+    "ratio_95": [
+     0.16966734933559094,
+     0.5215444285301125
+    ]
+   },
+   "national_brier": {
+    "uncorrected": 0.009939903359226286,
+    "two_stage": 0.0098984134044134,
+    "diff_95": [
+     -6.057533553605757e-05,
+     -2.2815613823543644e-05
+    ]
+   }
+  },
+  "drop_downdraft": {
+   "pass": false,
+   "failed": [
+    "fl_hits5_ratio_ge_0.90",
+    "fl_hits5_lower_ge_0.75",
+    "west_hits5_lower_ge_0.75"
+   ],
+   "requirements": {
+    "fl_hits5_ratio_ge_0.90": false,
+    "fl_hits5_lower_ge_0.75": false,
+    "west_hits5_ratio_ge_0.90": true,
+    "west_hits5_lower_ge_0.75": false,
+    "national_hits5_ratio_ge_0.90": true,
+    "national_hits5_lower_ge_0.90": true,
+    "national_hits15_ratio_ge_0.90": true,
+    "fl_no_report_area_ratio_le_0.60": true,
+    "national_brier_no_worse": true
+   },
+   "hits": {
+    "national": {
+     "ge_5pct": {
+      "event_points": 41336,
+      "uncorrected": 28978,
+      "two_stage": 28764,
+      "ratio": 0.9926150873076127,
+      "ratio_95": [
+       0.9778136137530448,
+       1.0032725006332763
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 41336,
+      "uncorrected": 9915,
+      "two_stage": 9962,
+      "ratio": 1.0047402924861322,
+      "ratio_95": [
+       0.9848615458453682,
+       1.0242176508574734
+      ]
+     }
+    },
+    "florida_gulf_south": {
+     "ge_5pct": {
+      "event_points": 729,
+      "uncorrected": 408,
+      "two_stage": 290,
+      "ratio": 0.7107843137254902,
+      "ratio_95": [
+       0.3620689655172414,
+       0.8618222064393939
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 729,
+      "uncorrected": 153,
+      "two_stage": 118,
+      "ratio": 0.7712418300653595,
+      "ratio_95": [
+       0.0,
+       1.421875
+      ]
+     }
+    },
+    "west": {
+     "ge_5pct": {
+      "event_points": 3590,
+      "uncorrected": 1337,
+      "two_stage": 1286,
+      "ratio": 0.9618548990276738,
+      "ratio_95": [
+       0.7146154535625654,
+       1.24632839382271
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 3590,
+      "uncorrected": 309,
+      "two_stage": 393,
+      "ratio": 1.2718446601941749,
+      "ratio_95": [
+       0.6749854651162791,
+       1.7624952079739302
+      ]
+     }
+    }
+   },
+   "florida_no_report_area": {
+    "no_report_dates": 72,
+    "report_dates": 24,
+    "uncorrected_km2_per_day": 13068.75,
+    "two_stage_km2_per_day": 4659.375,
+    "ratio": 0.3565279770444763,
+    "ratio_95": [
+     0.17603015421141718,
+     0.5090911872279471
+    ]
+   },
+   "national_brier": {
+    "uncorrected": 0.009939903359226286,
+    "two_stage": 0.009895455230449239,
+    "diff_95": [
+     -6.364579783842135e-05,
+     -2.5865357110933104e-05
+    ]
+   }
+  },
+  "drop_dryness": {
+   "pass": false,
+   "failed": [
+    "fl_hits5_ratio_ge_0.90",
+    "fl_hits5_lower_ge_0.75",
+    "west_hits5_lower_ge_0.75"
+   ],
+   "requirements": {
+    "fl_hits5_ratio_ge_0.90": false,
+    "fl_hits5_lower_ge_0.75": false,
+    "west_hits5_ratio_ge_0.90": true,
+    "west_hits5_lower_ge_0.75": false,
+    "national_hits5_ratio_ge_0.90": true,
+    "national_hits5_lower_ge_0.90": true,
+    "national_hits15_ratio_ge_0.90": true,
+    "fl_no_report_area_ratio_le_0.60": true,
+    "national_brier_no_worse": true
+   },
+   "hits": {
+    "national": {
+     "ge_5pct": {
+      "event_points": 41336,
+      "uncorrected": 28978,
+      "two_stage": 28796,
+      "ratio": 0.9937193733176893,
+      "ratio_95": [
+       0.9784863102416779,
+       1.004850431190503
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 41336,
+      "uncorrected": 9915,
+      "two_stage": 10007,
+      "ratio": 1.0092788703983864,
+      "ratio_95": [
+       0.9870458577943808,
+       1.0335579093759872
+      ]
+     }
+    },
+    "florida_gulf_south": {
+     "ge_5pct": {
+      "event_points": 729,
+      "uncorrected": 408,
+      "two_stage": 300,
+      "ratio": 0.7352941176470589,
+      "ratio_95": [
+       0.4273717623158964,
+       0.875012351778656
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 729,
+      "uncorrected": 153,
+      "two_stage": 123,
+      "ratio": 0.803921568627451,
+      "ratio_95": [
+       0.16666666666666666,
+       1.4372672872340424
+      ]
+     }
+    },
+    "west": {
+     "ge_5pct": {
+      "event_points": 3590,
+      "uncorrected": 1337,
+      "two_stage": 1304,
+      "ratio": 0.975317875841436,
+      "ratio_95": [
+       0.7147998082574472,
+       1.2734855942376948
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 3590,
+      "uncorrected": 309,
+      "two_stage": 434,
+      "ratio": 1.4045307443365695,
+      "ratio_95": [
+       0.7040882825040129,
+       1.9111181434599156
+      ]
+     }
+    }
+   },
+   "florida_no_report_area": {
+    "no_report_dates": 72,
+    "report_dates": 24,
+    "uncorrected_km2_per_day": 13068.75,
+    "two_stage_km2_per_day": 4656.25,
+    "ratio": 0.3562888570062171,
+    "ratio_95": [
+     0.1728972647960843,
+     0.5072951372146004
+    ]
+   },
+   "national_brier": {
+    "uncorrected": 0.009939903359226286,
+    "two_stage": 0.009891900871126985,
+    "diff_95": [
+     -6.831666163491838e-05,
+     -2.7523607276669927e-05
+    ]
+   }
+  },
+  "drop_lapse": {
+   "pass": false,
+   "failed": [
+    "fl_hits5_ratio_ge_0.90",
+    "fl_hits5_lower_ge_0.75",
+    "west_hits5_lower_ge_0.75"
+   ],
+   "requirements": {
+    "fl_hits5_ratio_ge_0.90": false,
+    "fl_hits5_lower_ge_0.75": false,
+    "west_hits5_ratio_ge_0.90": true,
+    "west_hits5_lower_ge_0.75": false,
+    "national_hits5_ratio_ge_0.90": true,
+    "national_hits5_lower_ge_0.90": true,
+    "national_hits15_ratio_ge_0.90": true,
+    "fl_no_report_area_ratio_le_0.60": true,
+    "national_brier_no_worse": true
+   },
+   "hits": {
+    "national": {
+     "ge_5pct": {
+      "event_points": 41336,
+      "uncorrected": 28978,
+      "two_stage": 28736,
+      "ratio": 0.9916488370487956,
+      "ratio_95": [
+       0.9779502037449107,
+       1.0015890114501997
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 41336,
+      "uncorrected": 9915,
+      "two_stage": 9841,
+      "ratio": 0.9925365607665154,
+      "ratio_95": [
+       0.9772047548898283,
+       1.0064596523502685
+      ]
+     }
+    },
+    "florida_gulf_south": {
+     "ge_5pct": {
+      "event_points": 729,
+      "uncorrected": 408,
+      "two_stage": 293,
+      "ratio": 0.7181372549019608,
+      "ratio_95": [
+       0.4065709201830198,
+       0.8698653172799312
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 729,
+      "uncorrected": 153,
+      "two_stage": 70,
+      "ratio": 0.45751633986928103,
+      "ratio_95": [
+       0.0,
+       0.65625
+      ]
+     }
+    },
+    "west": {
+     "ge_5pct": {
+      "event_points": 3590,
+      "uncorrected": 1337,
+      "two_stage": 1250,
+      "ratio": 0.9349289454001496,
+      "ratio_95": [
+       0.7093594287131871,
+       1.1970485552576704
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 3590,
+      "uncorrected": 309,
+      "two_stage": 346,
+      "ratio": 1.1197411003236246,
+      "ratio_95": [
+       0.6551543599927785,
+       1.709720718770296
+      ]
+     }
+    }
+   },
+   "florida_no_report_area": {
+    "no_report_dates": 72,
+    "report_dates": 24,
+    "uncorrected_km2_per_day": 13068.75,
+    "two_stage_km2_per_day": 4643.75,
+    "ratio": 0.3553323768531803,
+    "ratio_95": [
+     0.1796488545598349,
+     0.5006497170697392
+    ]
+   },
+   "national_brier": {
+    "uncorrected": 0.009939903359226286,
+    "two_stage": 0.009897747225848736,
+    "diff_95": [
+     -6.190792633096959e-05,
+     -2.2906337314248118e-05
+    ]
+   }
+  },
+  "drop_pwat": {
+   "pass": false,
+   "failed": [
+    "fl_hits5_ratio_ge_0.90",
+    "fl_hits5_lower_ge_0.75",
+    "west_hits5_lower_ge_0.75"
+   ],
+   "requirements": {
+    "fl_hits5_ratio_ge_0.90": false,
+    "fl_hits5_lower_ge_0.75": false,
+    "west_hits5_ratio_ge_0.90": true,
+    "west_hits5_lower_ge_0.75": false,
+    "national_hits5_ratio_ge_0.90": true,
+    "national_hits5_lower_ge_0.90": true,
+    "national_hits15_ratio_ge_0.90": true,
+    "fl_no_report_area_ratio_le_0.60": true,
+    "national_brier_no_worse": true
+   },
+   "hits": {
+    "national": {
+     "ge_5pct": {
+      "event_points": 41336,
+      "uncorrected": 28978,
+      "two_stage": 28714,
+      "ratio": 0.990889640416868,
+      "ratio_95": [
+       0.9758584203768745,
+       1.0018604484173637
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 41336,
+      "uncorrected": 9915,
+      "two_stage": 9900,
+      "ratio": 0.9984871406959153,
+      "ratio_95": [
+       0.9813842321299783,
+       1.014239872482589
+      ]
+     }
+    },
+    "florida_gulf_south": {
+     "ge_5pct": {
+      "event_points": 729,
+      "uncorrected": 408,
+      "two_stage": 295,
+      "ratio": 0.7230392156862745,
+      "ratio_95": [
+       0.38613427132186906,
+       0.8691446758056948
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 729,
+      "uncorrected": 153,
+      "two_stage": 126,
+      "ratio": 0.8235294117647058,
+      "ratio_95": [
+       0.0,
+       1.40625
+      ]
+     }
+    },
+    "west": {
+     "ge_5pct": {
+      "event_points": 3590,
+      "uncorrected": 1337,
+      "two_stage": 1228,
+      "ratio": 0.9184741959611069,
+      "ratio_95": [
+       0.6733084045584046,
+       1.2072883792804057
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 3590,
+      "uncorrected": 309,
+      "two_stage": 325,
+      "ratio": 1.051779935275081,
+      "ratio_95": [
+       0.5816206325462122,
+       1.5555764411027566
+      ]
+     }
+    }
+   },
+   "florida_no_report_area": {
+    "no_report_dates": 72,
+    "report_dates": 24,
+    "uncorrected_km2_per_day": 13068.75,
+    "two_stage_km2_per_day": 4625.0,
+    "ratio": 0.35389765662362505,
+    "ratio_95": [
+     0.17141653464024978,
+     0.5074012745213412
+    ]
+   },
+   "national_brier": {
+    "uncorrected": 0.009939903359226286,
+    "two_stage": 0.00989848068028611,
+    "diff_95": [
+     -6.01885047560344e-05,
+     -2.308742177056919e-05
+    ]
+   }
+  },
+  "drop_reflectivity": {
+   "pass": false,
+   "failed": [
+    "fl_hits5_ratio_ge_0.90",
+    "fl_hits5_lower_ge_0.75",
+    "west_hits5_lower_ge_0.75"
+   ],
+   "requirements": {
+    "fl_hits5_ratio_ge_0.90": false,
+    "fl_hits5_lower_ge_0.75": false,
+    "west_hits5_ratio_ge_0.90": true,
+    "west_hits5_lower_ge_0.75": false,
+    "national_hits5_ratio_ge_0.90": true,
+    "national_hits5_lower_ge_0.90": true,
+    "national_hits15_ratio_ge_0.90": true,
+    "fl_no_report_area_ratio_le_0.60": true,
+    "national_brier_no_worse": true
+   },
+   "hits": {
+    "national": {
+     "ge_5pct": {
+      "event_points": 41336,
+      "uncorrected": 28978,
+      "two_stage": 28777,
+      "ratio": 0.9930637034992063,
+      "ratio_95": [
+       0.9780823584701207,
+       1.004651773025228
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 41336,
+      "uncorrected": 9915,
+      "two_stage": 9948,
+      "ratio": 1.0033282904689864,
+      "ratio_95": [
+       0.9833468001355246,
+       1.0234895004877027
+      ]
+     }
+    },
+    "florida_gulf_south": {
+     "ge_5pct": {
+      "event_points": 729,
+      "uncorrected": 408,
+      "two_stage": 295,
+      "ratio": 0.7230392156862745,
+      "ratio_95": [
+       0.394841628959276,
+       0.8704667114052063
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 729,
+      "uncorrected": 153,
+      "two_stage": 123,
+      "ratio": 0.803921568627451,
+      "ratio_95": [
+       0.1357280431432974,
+       1.46875
+      ]
+     }
+    },
+    "west": {
+     "ge_5pct": {
+      "event_points": 3590,
+      "uncorrected": 1337,
+      "two_stage": 1290,
+      "ratio": 0.9648466716529543,
+      "ratio_95": [
+       0.7071264514482583,
+       1.2839505545490695
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 3590,
+      "uncorrected": 309,
+      "two_stage": 370,
+      "ratio": 1.197411003236246,
+      "ratio_95": [
+       0.5648466921119594,
+       1.571448158788195
+      ]
+     }
+    }
+   },
+   "florida_no_report_area": {
+    "no_report_dates": 72,
+    "report_dates": 24,
+    "uncorrected_km2_per_day": 13068.75,
+    "two_stage_km2_per_day": 4803.125,
+    "ratio": 0.36752749880439983,
+    "ratio_95": [
+     0.18601841650793524,
+     0.5183805806755298
+    ]
+   },
+   "national_brier": {
+    "uncorrected": 0.009939903359226286,
+    "two_stage": 0.009893616549052676,
+    "diff_95": [
+     -6.591750443776245e-05,
+     -2.7785789913927145e-05
+    ]
+   }
+  },
+  "drop_lightning": {
+   "pass": false,
+   "failed": [
+    "fl_hits5_ratio_ge_0.90",
+    "fl_hits5_lower_ge_0.75",
+    "west_hits5_lower_ge_0.75"
+   ],
+   "requirements": {
+    "fl_hits5_ratio_ge_0.90": false,
+    "fl_hits5_lower_ge_0.75": false,
+    "west_hits5_ratio_ge_0.90": true,
+    "west_hits5_lower_ge_0.75": false,
+    "national_hits5_ratio_ge_0.90": true,
+    "national_hits5_lower_ge_0.90": true,
+    "national_hits15_ratio_ge_0.90": true,
+    "fl_no_report_area_ratio_le_0.60": true,
+    "national_brier_no_worse": true
+   },
+   "hits": {
+    "national": {
+     "ge_5pct": {
+      "event_points": 41336,
+      "uncorrected": 28978,
+      "two_stage": 28750,
+      "ratio": 0.9921319621782042,
+      "ratio_95": [
+       0.9785915489565423,
+       1.0015109990501985
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 41336,
+      "uncorrected": 9915,
+      "two_stage": 9955,
+      "ratio": 1.0040342914775593,
+      "ratio_95": [
+       0.9843715366322557,
+       1.023220445760047
+      ]
+     }
+    },
+    "florida_gulf_south": {
+     "ge_5pct": {
+      "event_points": 729,
+      "uncorrected": 408,
+      "two_stage": 295,
+      "ratio": 0.7230392156862745,
+      "ratio_95": [
+       0.38968045112781957,
+       0.8718850916182872
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 729,
+      "uncorrected": 153,
+      "two_stage": 112,
+      "ratio": 0.7320261437908496,
+      "ratio_95": [
+       0.09090909090909091,
+       1.359375
+      ]
+     }
+    },
+    "west": {
+     "ge_5pct": {
+      "event_points": 3590,
+      "uncorrected": 1337,
+      "two_stage": 1262,
+      "ratio": 0.943904263275991,
+      "ratio_95": [
+       0.7163333458759783,
+       1.1719620088472547
+      ]
+     },
+     "ge_15pct": {
+      "event_points": 3590,
+      "uncorrected": 309,
+      "two_stage": 384,
+      "ratio": 1.2427184466019416,
+      "ratio_95": [
+       0.6283355855855857,
+       1.5943631713037842
+      ]
+     }
+    }
+   },
+   "florida_no_report_area": {
+    "no_report_dates": 72,
+    "report_dates": 24,
+    "uncorrected_km2_per_day": 13068.75,
+    "two_stage_km2_per_day": 4731.25,
+    "ratio": 0.36202773792443804,
+    "ratio_95": [
+     0.17524403986097534,
+     0.519461636462104
+    ]
+   },
+   "national_brier": {
+    "uncorrected": 0.009939903359226286,
+    "two_stage": 0.0098968795349958,
+    "diff_95": [
+     -6.10236732312126e-05,
+     -2.5792939893199616e-05
+    ]
+   }
+  }
+ },
+ "regimes_not_deciding": {
+  "west_monsoon": {
+   "report_dates": 17,
+   "no_report_dates": 7,
+   "event_points": 2295,
+   "uncorrected": {
+    "hits_ge_5pct": 1144,
+    "false_alarm_km2_per_no_report_day": 67725.0
+   },
+   "criterion8_two_stage": {
+    "hits_ge_5pct": 768,
+    "hits_retained": 0.6713286713286714,
+    "false_alarm_km2_per_no_report_day": 25617.85714285714,
+    "false_alarm_ratio": 0.3782629330802088,
+    "recovered_of_old_misses": null
+   },
+   "meteorological": {
+    "hits_ge_5pct": 973,
+    "hits_retained": 0.8505244755244755,
+    "false_alarm_km2_per_no_report_day": 31339.285714285714,
+    "false_alarm_ratio": 0.46274323682961555,
+    "recovered_of_old_misses": 129
+   },
+   "meteorological_plus_population": {
+    "hits_ge_5pct": 1048,
+    "hits_retained": 0.916083916083916,
+    "false_alarm_km2_per_no_report_day": 30857.14285714286,
+    "false_alarm_ratio": 0.45562411010916,
+    "recovered_of_old_misses": 173
+   },
+   "drop_wind": {
+    "hits_ge_5pct": 983,
+    "hits_retained": 0.8592657342657343,
+    "false_alarm_km2_per_no_report_day": 29089.285714285714,
+    "false_alarm_ratio": 0.4295206454674893,
+    "recovered_of_old_misses": 123
+   },
+   "drop_gust": {
+    "hits_ge_5pct": 921,
+    "hits_retained": 0.8050699300699301,
+    "false_alarm_km2_per_no_report_day": 30728.571428571428,
+    "false_alarm_ratio": 0.4537256763170384,
+    "recovered_of_old_misses": 145
+   },
+   "drop_downdraft": {
+    "hits_ge_5pct": 979,
+    "hits_retained": 0.8557692307692307,
+    "false_alarm_km2_per_no_report_day": 31725.0,
+    "false_alarm_ratio": 0.4684385382059801,
+    "recovered_of_old_misses": 134
+   },
+   "drop_dryness": {
+    "hits_ge_5pct": 1000,
+    "hits_retained": 0.8741258741258742,
+    "false_alarm_km2_per_no_report_day": 34135.71428571428,
+    "false_alarm_ratio": 0.5040341718082582,
+    "recovered_of_old_misses": 133
+   },
+   "drop_lapse": {
+    "hits_ge_5pct": 962,
+    "hits_retained": 0.8409090909090909,
+    "false_alarm_km2_per_no_report_day": 28028.571428571428,
+    "false_alarm_ratio": 0.41385856668248694,
+    "recovered_of_old_misses": 142
+   },
+   "drop_pwat": {
+    "hits_ge_5pct": 905,
+    "hits_retained": 0.791083916083916,
+    "false_alarm_km2_per_no_report_day": 25585.714285714286,
+    "false_alarm_ratio": 0.3777883246321785,
+    "recovered_of_old_misses": 119
+   },
+   "drop_reflectivity": {
+    "hits_ge_5pct": 982,
+    "hits_retained": 0.8583916083916084,
+    "false_alarm_km2_per_no_report_day": 29378.571428571428,
+    "false_alarm_ratio": 0.4337921214997627,
+    "recovered_of_old_misses": 129
+   },
+   "drop_lightning": {
+    "hits_ge_5pct": 960,
+    "hits_retained": 0.8391608391608392,
+    "false_alarm_km2_per_no_report_day": 30246.428571428572,
+    "false_alarm_ratio": 0.44660654959658286,
+    "recovered_of_old_misses": 147
+   },
+   "criterion8_missed_points": 377
+  },
+  "florida_spring": {
+   "report_dates": 5,
+   "no_report_dates": 19,
+   "event_points": 214,
+   "uncorrected": {
+    "hits_ge_5pct": 188,
+    "false_alarm_km2_per_no_report_day": 20143.42105263158
+   },
+   "criterion8_two_stage": {
+    "hits_ge_5pct": 126,
+    "hits_retained": 0.6702127659574468,
+    "false_alarm_km2_per_no_report_day": 8230.263157894737,
+    "false_alarm_ratio": 0.4085831863609641,
+    "recovered_of_old_misses": null
+   },
+   "meteorological": {
+    "hits_ge_5pct": 145,
+    "hits_retained": 0.7712765957446809,
+    "false_alarm_km2_per_no_report_day": 8988.157894736842,
+    "false_alarm_ratio": 0.4462081128747795,
+    "recovered_of_old_misses": 21
+   },
+   "meteorological_plus_population": {
+    "hits_ge_5pct": 149,
+    "hits_retained": 0.7925531914893617,
+    "false_alarm_km2_per_no_report_day": 9213.157894736842,
+    "false_alarm_ratio": 0.45737801293356845,
+    "recovered_of_old_misses": 25
+   },
+   "drop_wind": {
+    "hits_ge_5pct": 140,
+    "hits_retained": 0.7446808510638298,
+    "false_alarm_km2_per_no_report_day": 9378.947368421053,
+    "false_alarm_ratio": 0.46560846560846564,
+    "recovered_of_old_misses": 16
+   },
+   "drop_gust": {
+    "hits_ge_5pct": 152,
+    "hits_retained": 0.8085106382978723,
+    "false_alarm_km2_per_no_report_day": 9438.157894736842,
+    "false_alarm_ratio": 0.4685479129923574,
+    "recovered_of_old_misses": 28
+   },
+   "drop_downdraft": {
+    "hits_ge_5pct": 145,
+    "hits_retained": 0.7712765957446809,
+    "false_alarm_km2_per_no_report_day": 8917.105263157895,
+    "false_alarm_ratio": 0.4426807760141093,
+    "recovered_of_old_misses": 22
+   },
+   "drop_dryness": {
+    "hits_ge_5pct": 147,
+    "hits_retained": 0.7819148936170213,
+    "false_alarm_km2_per_no_report_day": 9260.526315789473,
+    "false_alarm_ratio": 0.4597295708406819,
+    "recovered_of_old_misses": 23
+   },
+   "drop_lapse": {
+    "hits_ge_5pct": 138,
+    "hits_retained": 0.7340425531914894,
+    "false_alarm_km2_per_no_report_day": 8443.421052631578,
+    "false_alarm_ratio": 0.41916519694297466,
+    "recovered_of_old_misses": 16
+   },
+   "drop_pwat": {
+    "hits_ge_5pct": 148,
+    "hits_retained": 0.7872340425531915,
+    "false_alarm_km2_per_no_report_day": 8893.421052631578,
+    "false_alarm_ratio": 0.4415049970605526,
+    "recovered_of_old_misses": 24
+   },
+   "drop_reflectivity": {
+    "hits_ge_5pct": 147,
+    "hits_retained": 0.7819148936170213,
+    "false_alarm_km2_per_no_report_day": 9272.368421052632,
+    "false_alarm_ratio": 0.4603174603174603,
+    "recovered_of_old_misses": 22
+   },
+   "drop_lightning": {
+    "hits_ge_5pct": 148,
+    "hits_retained": 0.7872340425531915,
+    "false_alarm_km2_per_no_report_day": 9201.315789473685,
+    "false_alarm_ratio": 0.45679012345679015,
+    "recovered_of_old_misses": 24
+   },
+   "criterion8_missed_points": 62
+  },
+  "florida_summer": {
+   "report_dates": 14,
+   "no_report_dates": 10,
+   "event_points": 397,
+   "uncorrected": {
+    "hits_ge_5pct": 188,
+    "false_alarm_km2_per_no_report_day": 21060.0
+   },
+   "criterion8_two_stage": {
+    "hits_ge_5pct": 134,
+    "hits_retained": 0.7127659574468085,
+    "false_alarm_km2_per_no_report_day": 8730.0,
+    "false_alarm_ratio": 0.41452991452991456,
+    "recovered_of_old_misses": null
+   },
+   "meteorological": {
+    "hits_ge_5pct": 139,
+    "hits_retained": 0.7393617021276596,
+    "false_alarm_km2_per_no_report_day": 10597.5,
+    "false_alarm_ratio": 0.5032051282051282,
+    "recovered_of_old_misses": 5
+   },
+   "meteorological_plus_population": {
+    "hits_ge_5pct": 141,
+    "hits_retained": 0.75,
+    "false_alarm_km2_per_no_report_day": 10260.0,
+    "false_alarm_ratio": 0.48717948717948717,
+    "recovered_of_old_misses": 8
+   },
+   "drop_wind": {
+    "hits_ge_5pct": 142,
+    "hits_retained": 0.7553191489361702,
+    "false_alarm_km2_per_no_report_day": 10530.0,
+    "false_alarm_ratio": 0.5,
+    "recovered_of_old_misses": 7
+   },
+   "drop_gust": {
+    "hits_ge_5pct": 138,
+    "hits_retained": 0.7340425531914894,
+    "false_alarm_km2_per_no_report_day": 10530.0,
+    "false_alarm_ratio": 0.5,
+    "recovered_of_old_misses": 4
+   },
+   "drop_downdraft": {
+    "hits_ge_5pct": 137,
+    "hits_retained": 0.7287234042553191,
+    "false_alarm_km2_per_no_report_day": 10417.5,
+    "false_alarm_ratio": 0.4946581196581197,
+    "recovered_of_old_misses": 4
+   },
+   "drop_dryness": {
+    "hits_ge_5pct": 145,
+    "hits_retained": 0.7712765957446809,
+    "false_alarm_km2_per_no_report_day": 10395.0,
+    "false_alarm_ratio": 0.4935897435897436,
+    "recovered_of_old_misses": 11
+   },
+   "drop_lapse": {
+    "hits_ge_5pct": 146,
+    "hits_retained": 0.776595744680851,
+    "false_alarm_km2_per_no_report_day": 10237.5,
+    "false_alarm_ratio": 0.4861111111111111,
+    "recovered_of_old_misses": 8
+   },
+   "drop_pwat": {
+    "hits_ge_5pct": 139,
+    "hits_retained": 0.7393617021276596,
+    "false_alarm_km2_per_no_report_day": 10620.0,
+    "false_alarm_ratio": 0.5042735042735043,
+    "recovered_of_old_misses": 5
+   },
+   "drop_reflectivity": {
+    "hits_ge_5pct": 140,
+    "hits_retained": 0.7446808510638298,
+    "false_alarm_km2_per_no_report_day": 10687.5,
+    "false_alarm_ratio": 0.5074786324786325,
+    "recovered_of_old_misses": 7
+   },
+   "drop_lightning": {
+    "hits_ge_5pct": 139,
+    "hits_retained": 0.7393617021276596,
+    "false_alarm_km2_per_no_report_day": 10665.0,
+    "false_alarm_ratio": 0.5064102564102564,
+    "recovered_of_old_misses": 5
+   },
+   "criterion8_missed_points": 54
+  }
+ },
+ "per_fold_penalties": {
+  "meteorological": [
+   {
+    "fold": 0,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 1,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 2,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 3,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 4,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 5,
+    "stage2_penalty": 0.0001
+   }
+  ],
+  "meteorological_plus_population": [
+   {
+    "fold": 0,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 1,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 2,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 3,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 4,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 5,
+    "stage2_penalty": 0.0001
+   }
+  ],
+  "drop_wind": [
+   {
+    "fold": 0,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 1,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 2,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 3,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 4,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 5,
+    "stage2_penalty": 0.0001
+   }
+  ],
+  "drop_gust": [
+   {
+    "fold": 0,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 1,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 2,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 3,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 4,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 5,
+    "stage2_penalty": 0.0001
+   }
+  ],
+  "drop_downdraft": [
+   {
+    "fold": 0,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 1,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 2,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 3,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 4,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 5,
+    "stage2_penalty": 0.0001
+   }
+  ],
+  "drop_dryness": [
+   {
+    "fold": 0,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 1,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 2,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 3,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 4,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 5,
+    "stage2_penalty": 0.0001
+   }
+  ],
+  "drop_lapse": [
+   {
+    "fold": 0,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 1,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 2,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 3,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 4,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 5,
+    "stage2_penalty": 0.001
+   }
+  ],
+  "drop_pwat": [
+   {
+    "fold": 0,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 1,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 2,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 3,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 4,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 5,
+    "stage2_penalty": 0.0001
+   }
+  ],
+  "drop_reflectivity": [
+   {
+    "fold": 0,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 1,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 2,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 3,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 4,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 5,
+    "stage2_penalty": 0.0001
+   }
+  ],
+  "drop_lightning": [
+   {
+    "fold": 0,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 1,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 2,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 3,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 4,
+    "stage2_penalty": 0.0001
+   },
+   {
+    "fold": 5,
+    "stage2_penalty": 0.0001
+   }
+  ]
+ },
+ "boundary_steps": {
+  "florida_gulf_south": {
+   "uncorrected": {
+    "bins_km": [
+     -150,
+     -125,
+     -100,
+     -75,
+     -50,
+     -25,
+     0,
+     25,
+     50,
+     75,
+     100,
+     125,
+     150
+    ],
+    "mean_probability": [
+     0.022843664441262804,
+     0.023349668060479622,
+     0.02412742734261752,
+     0.02354391996347654,
+     0.022471763635876666,
+     0.02120884881648073,
+     0.019931207778722492,
+     0.018663647782291303,
+     0.019355153177107846,
+     0.020768847038804703,
+     0.02247684511916422,
+     0.025780343585091927
+    ],
+    "largest_step": 0.003303498465927708
+   },
+   "two_stage": {
+    "bins_km": [
+     -150,
+     -125,
+     -100,
+     -75,
+     -50,
+     -25,
+     0,
+     25,
+     50,
+     75,
+     100,
+     125,
+     150
+    ],
+    "mean_probability": [
+     0.022843664441262804,
+     0.023349668060479622,
+     0.02412742734261752,
+     0.02203906801083601,
+     0.018357502942713867,
+     0.015117605716324818,
+     0.012497543339032023,
+     0.010462318416938607,
+     0.009801305182681547,
+     0.010234018277390634,
+     0.011251061438758739,
+     0.012851156172515346
+    ],
+    "largest_step": 0.0036815650681221446
+   }
+  },
+  "west": {
+   "uncorrected": {
+    "bins_km": [
+     -150,
+     -125,
+     -100,
+     -75,
+     -50,
+     -25,
+     0,
+     25,
+     50,
+     75,
+     100,
+     125,
+     150
+    ],
+    "mean_probability": [
+     0.016524876466175085,
+     0.015528709608848782,
+     0.013967044478287139,
+     0.012712606789511076,
+     0.01154046975519017,
+     0.010638856626585874,
+     0.010242785279386745,
+     0.009575666774477748,
+     0.009208831917861711,
+     0.008350765013946583,
+     0.007487122941836658,
+     0.006429141278704012
+    ],
+    "largest_step": 0.0015616651305616434
+   },
+   "two_stage": {
+    "bins_km": [
+     -150,
+     -125,
+     -100,
+     -75,
+     -50,
+     -25,
+     0,
+     25,
+     50,
+     75,
+     100,
+     125,
+     150
+    ],
+    "mean_probability": [
+     0.016524876466175085,
+     0.015528709608848782,
+     0.013967044478287139,
+     0.012212293761196823,
+     0.010216547264863042,
+     0.008750382336114516,
+     0.008019774444199178,
+     0.007267618086489487,
+     0.006713303785632754,
+     0.005982862236845332,
+     0.005208872267947878,
+     0.0043246110130277845
+    ],
+    "largest_step": 0.001995746496333781
+   }
+  }
+ },
+ "may_open_2021": false
+}
