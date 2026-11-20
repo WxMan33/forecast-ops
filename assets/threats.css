@@ -65,6 +65,7 @@
 /* side panel (desktop) / bottom sheet (phone) */
 .tx-panel { min-height: 0; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-card, 12px); overflow: hidden; }
 .tx-handle { display: none; }
+.tx-menu { display: none !important; }
 .tx-scope { display: flex; gap: 4px; padding: 10px 12px 0; }
 .tx-sb { flex: 1; font: 700 12.5px var(--font-body); color: var(--muted); background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tx-sb[aria-pressed="true"] { color: var(--text); background: transparent; border-color: var(--text); }
@@ -117,6 +118,18 @@
 .px-strip-t { font-size: 14px; }
 .px-strip-go { font-size: 12.5px; color: var(--accent); white-space: nowrap; align-self: end; }
 
+/* venue status lines: what is in effect at the venue, then warnings nearby */
+.px-stat { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 8px; align-items: start; width: 100%; text-align: left; font: inherit; color: var(--text); cursor: pointer;
+  background: var(--panel); border: 1px solid var(--line); border-left: 6px solid var(--tx-c); border-radius: 8px; padding: 8px 10px; margin-top: 8px; }
+.px-stat.w { background: color-mix(in srgb, var(--tx-c) 16%, var(--panel)); border-color: var(--tx-c); }
+.px-stat.near { border-style: dashed; border-left-style: solid; }
+.px-stat .tx-sw { margin-top: 2px; }
+.px-stat-h { display: block; font-size: 16px; font-weight: 800; line-height: 1.25; }
+.px-stat.big .px-stat-h { font: 400 21px/1.15 var(--font-display); letter-spacing: .2px; }
+.px-stat-s { display: block; font-size: 13.5px; margin-top: 2px; }
+.px-stat.near .px-stat-s { font-weight: 700; }
+.tx-tag { display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 800; letter-spacing: .3px; padding: 1px 6px; border-radius: 4px; background: var(--text); color: var(--bg); }
+
 /* product detail */
 .px-back { font: 600 13px var(--font-body); color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; margin-bottom: 10px; }
 .px-title { font-size: 19px; font-weight: 800; margin: 4px 0 6px; line-height: 1.25; }
@@ -132,7 +145,7 @@
 .px-bulletin .lg-note { margin-top: 6px; }
 
 /* venue marker */
-.tx-pin { display: flex; flex-direction: column; align-items: center; pointer-events: auto; cursor: pointer; }
+.tx-pin { background: none; border: 0; padding: 0; font: inherit; display: flex; flex-direction: column; align-items: center; pointer-events: auto; cursor: pointer; }
 .tx-pin-dot { width: 18px; height: 18px; border-radius: 50%; background: var(--text); border: 3px solid var(--bg); box-shadow: 0 0 0 2px var(--text), 0 2px 6px rgba(0,0,0,.4); }
 .tx-pin-label { margin-top: 4px; font: 700 12px var(--font-body); background: var(--text); color: var(--bg); padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
 
@@ -156,11 +169,25 @@
   .tx-mapwrap .maplibregl-ctrl-bottom-left { display: none; }
   .tx-panel { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 14px 14px 0 0; border-bottom: 0; max-height: 56%; box-shadow: 0 -6px 24px rgba(0,0,0,.35); z-index: 3; }
   .tx-panel[data-sheet="peek"] { max-height: none; }
-  .tx-panel[data-sheet="peek"] .tx-scope, .tx-panel[data-sheet="peek"] .tx-panel-body { display: none; }
-  .tx-handle { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: auto auto; align-items: center; gap: 2px 10px; width: 100%; font: inherit; color: var(--text); background: var(--panel); border: 0; border-bottom: 1px solid var(--line); padding: 6px 14px 9px; cursor: pointer; text-align: left; }
+  .tx-panel[data-sheet="peek"] .tx-panel-body { display: none; }
+  .tx-handle { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 10px; background: var(--panel); padding: 6px 12px 4px; }
   .tx-grip { grid-column: 1 / -1; justify-self: center; width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin-bottom: 4px; }
-  .tx-peek { font-size: 13.5px; font-weight: 700; border-left: 5px solid var(--peek-c, transparent); padding-left: 7px; margin-left: -2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tx-handle-act { font-size: 12.5px; font-weight: 700; color: var(--accent); border: 1px solid var(--line); border-radius: 7px; padding: 4px 10px; }
+  .tx-peek { display: grid; gap: 1px; min-width: 0; font: inherit; color: var(--text); text-align: left; background: none; border: 0; border-left: 5px solid var(--peek-c, transparent); padding: 0 0 0 8px; cursor: pointer; }
+  .tx-peek1 { font-size: 14px; font-weight: 800; line-height: 1.25; overflow-wrap: anywhere; }
+  .tx-peek2 { font-size: 13px; font-weight: 600; color: var(--text); opacity: .85; line-height: 1.25; overflow-wrap: anywhere; }
+  .tx-peek3 { font-size: 13px; font-weight: 800; color: var(--text); line-height: 1.25; border-left: 4px solid var(--tx-near, var(--action)); padding-left: 6px; margin-top: 2px; overflow-wrap: anywhere; }
+  .tx-handle-act { font: 700 12.5px var(--font-body); color: var(--accent); background: none; border: 1px solid var(--line); border-radius: 7px; padding: 6px 10px; cursor: pointer; }
+  .tx-scope { padding: 6px 12px 8px; border-bottom: 1px solid var(--line); }
+  .tx-sb { padding: 6px 8px; }
+
+  /* compact shared header on this page only: title + utility chips on one row, tool navigation behind Menu */
+  .threats-page .statusbar { min-height: 0; padding: 6px 10px; gap: 8px; flex-wrap: nowrap; align-items: center; }
+  .threats-page .statusbar .headline { padding: 0; min-width: 0; }
+  .threats-page .statusbar .hl-word { font-size: 16px; }
+  .threats-page .statusbar .page-sub, .threats-page #printBtn, .threats-page #dataChip { display: none; }
+  .threats-page .navbar { display: none; }
+  .threats-page.tx-nav-open .navbar { display: flex; flex-wrap: wrap; }
+  .tx-menu { display: inline-flex !important; cursor: pointer; }
   .tx-panel-body { padding: 10px 12px 16px; }
   .px-big { font-size: 20px; }
 }

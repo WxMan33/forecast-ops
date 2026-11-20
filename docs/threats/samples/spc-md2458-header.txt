@@ -1,0 +1,13 @@
+# Real text, https://www.spc.noaa.gov/products/md/md2458.html (fetched 2026-11-20), header and polygon lines only
+   Mesoscale Discussion 2458
+   NWS Storm Prediction Center Norman OK
+   1241 PM CST Thu Nov 19 2026
+   Areas affected...central San Joaquin Valley and Sierra Foothills
+   Concerning...Severe potential...Watch unlikely
+   Valid 191841Z - 192145Z
+   Probability of Watch Issuance...20 percent
+...
+   ATTN...WFO...HNX...STO...MTR...
+   LAT...LON   37301946 36781887 36381851 36101848 36011863 36081920
+               36382061 36732113 37052131 37392092 37652066 38022043
+               37982021 37611983 37301946

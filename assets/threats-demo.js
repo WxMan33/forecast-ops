@@ -82,12 +82,46 @@
   const QUIET_DAY1 = [outlook(1, D1, "TSTM", poly([-83.5, 25.0], [-80.0, 25.0], [-79.8, 28.8], [-82.8, 29.6]), [-81.6, 27.4])];
   const QUIET_DAY2 = [outlook(2, D2, "TSTM", poly([-124.8, 46.0], [-122.0, 46.0], [-121.8, 48.6], [-124.6, 48.4]), [-123.4, 47.2])];
 
+  /* Several regions at once (marker visibility, label collisions, panel order vs map emphasis). A storm-shaped box
+     around a centre, pointing northeast. */
+  function box(lon, lat, len = 0.55, wid = 0.22, deg = 40) {
+    const a = (deg * Math.PI) / 180, k = Math.cos((lat * Math.PI) / 180);
+    const ux = Math.cos(a) / k, uy = Math.sin(a), vx = -Math.sin(a) / k, vy = Math.cos(a);
+    const c = (s, t) => [+(lon + s * ux * len / 2 + t * vx * wid / 2).toFixed(3), +(lat + s * uy * len / 2 + t * vy * wid / 2).toFixed(3)];
+    return poly(c(-1, -1), c(1, -1), c(1, 1), c(-1, 1));
+  }
+  const NWS = { name: "NWS alerts (api.weather.gov)", url: "https://api.weather.gov/alerts/active" };
+  const extraWarning = (id, event, office, area, lon, lat, issued, expires, headline, hazard) => ({
+    id, kind: "warning", event, title: event, headline, hazard, area, office, issued, updated: issued, expires,
+    geometry: box(lon, lat), label: [lon, lat], source: NWS });
+  const MULTI = [
+    extraWarning("demo-tor-meg-0044", "Tornado Warning", "NWS Memphis TN (MEG)", "Lee and Pontotoc Counties, MS", -88.75, 34.24, "2026-11-20T20:44:00Z", "2026-11-20T21:30:00Z", "Radar-indicated rotation near Tupelo moving northeast at 40 mph.", "Tornado, radar indicated"),
+    extraWarning("demo-tor-hun-0031", "Tornado Warning", "NWS Huntsville AL (HUN)", "Franklin and Colbert Counties, AL", -87.82, 34.55, "2026-11-20T20:50:00Z", "2026-11-20T21:45:00Z", "Radar-indicated rotation near Russellville moving northeast at 45 mph.", "Tornado, radar indicated"),
+    extraWarning("demo-svr-bmx-0118", "Severe Thunderstorm Warning", "NWS Birmingham AL (BMX)", "Jefferson and Blount Counties, AL", -86.75, 33.62, "2026-11-20T20:40:00Z", "2026-11-20T21:30:00Z", "Storm with 60 mph wind gusts and quarter-size hail moving northeast at 35 mph.", "60 mph wind gusts · 1 inch hail"),
+    extraWarning("demo-svr-fwd-0207", "Severe Thunderstorm Warning", "NWS Fort Worth TX (FWD)", "Collin and Denton Counties, TX", -96.80, 33.20, "2026-11-20T20:35:00Z", "2026-11-20T21:15:00Z", "Storm with 1.75 inch hail and 60 mph wind gusts moving east at 30 mph.", "1.75 inch hail · 60 mph wind gusts"),
+    extraWarning("demo-svr-dmx-0089", "Severe Thunderstorm Warning", "NWS Des Moines IA (DMX)", "Polk and Jasper Counties, IA", -93.40, 41.65, "2026-11-20T20:48:00Z", "2026-11-20T21:30:00Z", "Line of storms with 60 mph wind gusts moving east at 50 mph.", "60 mph wind gusts"),
+    { id: "demo-ww-0613", kind: "watch", event: "Tornado Watch", title: "Tornado Watch 613", headline: "Tornadoes and damaging winds possible across north Mississippi, north Alabama and southern middle Tennessee.",
+      hazard: "A few tornadoes likely · damaging winds to 70 mph", area: "38 counties in Mississippi, Alabama and Tennessee", office: "NWS Storm Prediction Center",
+      issued: "2026-11-20T19:30:00Z", updated: "2026-11-20T19:30:00Z", expires: "2026-11-21T03:00:00Z",
+      geometry: poly([-89.6, 33.4], [-86.3, 33.9], [-86.0, 35.6], [-89.3, 35.2]), label: [-88.0, 35.3], source: NWS },
+    { id: "demo-ww-0614", kind: "watch", event: "Severe Thunderstorm Watch", title: "Severe Thunderstorm Watch 614", headline: "Large hail and damaging winds possible across north Texas and southern Oklahoma.",
+      hazard: "Scattered large hail to 2 inches · damaging winds to 65 mph", area: "31 counties in Texas and Oklahoma", office: "NWS Storm Prediction Center",
+      issued: "2026-11-20T19:10:00Z", updated: "2026-11-20T19:10:00Z", expires: "2026-11-21T02:00:00Z",
+      geometry: poly([-98.4, 32.3], [-95.6, 32.3], [-95.8, 34.6], [-98.3, 34.6]), label: [-97.0, 34.4], source: NWS },
+  ];
+
   const ok = (count, ageMin = 2) => ({ state: "ok", lastOk: new Date(Date.parse(CLOCK) - ageMin * 60e3).toISOString(), count });
 
   function scenario(name) {
     const base = { clock: CLOCK, venues: VENUES };
     if (name === "quiet") return { ...base, name, products: [...QUIET_DAY1, ...QUIET_DAY2],
       sources: { alerts: ok(0), md: ok(0, 4), day1: ok(1, 3), day2: ok(1, 3) } };
+    if (name === "multi") return { ...base, name, products: [warning, watch, md, ...MULTI, ...DAY1, ...DAY2],
+      sources: { alerts: ok(9), md: ok(1, 4), day1: ok(4, 3), day2: ok(3, 3) } };
+    // the same outage 22 minutes later: the warning's published expiration (4:15 PM) has passed with no confirmed update
+    if (name === "outage-expired") return { ...base, clock: "2026-11-20T21:20:00Z", name, products: [warning, watch, ...DAY1, ...DAY2],
+      sources: { alerts: { state: "failed", lastOk: "2026-11-20T20:41:00Z", count: 2 }, md: { state: "failed", lastOk: null },
+        day1: { state: "ok", lastOk: "2026-11-20T21:17:00Z", count: 4 }, day2: { state: "ok", lastOk: "2026-11-20T21:17:00Z", count: 3 } } };
     if (name === "unavailable") return { ...base, name, products: [warning, watch, ...DAY1, ...DAY2],
       // NWS alerts: last good answer 17 minutes old, newer refreshes failed. The warning stays on the map, marked
       // unconfirmed; it is never treated as cleared. SPC MDs: no successful answer since the page opened.

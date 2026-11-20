@@ -13,7 +13,7 @@ ok("venue inside the warning is covered by warning, watch and MD", () => {
 ok("venue near the warning edge is 'near', not covered, with distance and direction", () => {
   const r = T.relation(W, D.VENUES.edge);
   assert.strictEqual(r.kind, "near"); assert.ok(r.km > 0 && r.km < T.NEAR_KM); assert.ok(/north/.test(r.dir));
-  assert.match(T.relationText(r), /does not cover it/);
+  assert.match(T.relationText(r, W), /^2 miles north\w* of the venue · the venue is outside the warning area$/);
 });
 ok("venue outside the warning stays inside the watch", () => {
   assert.strictEqual(T.relation(W, D.VENUES.outside).kind, "outside");
@@ -22,6 +22,23 @@ ok("venue outside the warning stays inside the watch", () => {
 ok("moving the venue never changes the products", () => {
   const before = JSON.stringify(s.products); for (const v of Object.values(D.VENUES)) s.products.forEach((p) => T.relation(p, v));
   assert.strictEqual(JSON.stringify(s.products), before);
+});
+ok("MD wording is a discussion area, not something in effect", () => {
+  assert.strictEqual(T.relationText(T.relation(M, D.VENUES.inside), M), "Discussion area includes the venue");
+  assert.strictEqual(T.relationText(T.relation(A, D.VENUES.inside), A), "In effect at the venue");
+  assert.match(T.relationText(T.relation(M, D.VENUES.outside), M), /^Discussion area 13 miles south of the venue$/);
+});
+ok("a warning that reaches its expiration during an outage is flagged, not cleared", () => {
+  const e = D.scenario("outage-expired"), w = e.products.find((p) => p.kind === "warning"), now = Date.parse(e.clock);
+  assert.ok(Date.parse(w.expires) <= now);
+  assert.strictEqual(T.expiredUnconfirmed(w, e.sources.alerts, now), true);
+  assert.strictEqual(T.expiredUnconfirmed(w, { state: "ok", lastOk: e.clock }, now), false);
+});
+ok("several-regions fixture: tornado warnings lead, groups stay separate by region", () => {
+  const m = D.scenario("multi"), g = T.group(m.products);
+  assert.ok(g.length >= 4, "regions " + g.length);
+  assert.ok(/Tornado Warning/.test(g[0].lead.event) && /Tornado Warning/.test(g[1].lead.event));
+  assert.ok(m.products.filter((p) => p.kind === "warning").length >= 6);
 });
 ok("a product without geometry is 'unknown', never 'outside'", () => {
   const r = T.relation({ ...W, geometry: null }, D.VENUES.inside);

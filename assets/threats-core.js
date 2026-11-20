@@ -105,14 +105,32 @@
     return { kind: "outside", km: e ? e.km : null, dir: e ? e.dir : null };
   }
   const miles = (km) => km / KM_PER_MI;
-  function relationText(rel) {
+  function distanceText(km) { const mi = Math.round(miles(km)); return miles(km) < 1 ? "less than 1 mile" : mi + (mi === 1 ? " mile" : " miles"); }
+  /* plain-language relationship. Warnings and watches are "in effect" at a venue; an MD is a discussion area,
+     not something in effect; an outlook is a forecast risk area. */
+  function relationText(rel, product) {
+    const kind = product ? product.kind : null;
+    const noun = kind === "warning" ? "warning" : kind === "watch" ? "watch" : kind === "md" ? "discussion" : kind === "outlook" ? "risk" : "product";
     switch (rel.kind) {
-      case "covers": return "Covers the venue";
-      case "near": { const mi = miles(rel.km); return (mi < 1 ? "Less than 1 mile" : Math.round(mi) + (Math.round(mi) === 1 ? " mile" : " miles")) + " " + rel.dir + " of the venue · does not cover it"; }
-      case "outside": return rel.km == null ? "Does not cover the venue" : "Does not cover the venue (" + Math.round(miles(rel.km)) + " mi " + rel.dir + ")";
+      case "covers":
+        if (kind === "md") return "Discussion area includes the venue";
+        if (kind === "outlook") return "The venue is in this risk area";
+        return kind ? "In effect at the venue" : "Covers the venue";
+      case "near":
+        if (kind === "md") return "Discussion area " + distanceText(rel.km) + " " + rel.dir + " of the venue";
+        return capital(distanceText(rel.km)) + " " + rel.dir + " of the venue · the venue is outside the " + noun + " area";
+      case "outside": return rel.km == null ? "Does not include the venue" : "Does not include the venue (" + Math.round(miles(rel.km)) + " mi " + rel.dir + ")";
       case "unknown": return "Area not drawn by the source · check the listed counties";
       default: return "No venue selected";
     }
+  }
+  const capital = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  /* A product whose published expiration passed while its source could not be confirmed: never shown as active,
+     and never described as cancelled or cleared either. */
+  function expiredUnconfirmed(p, src, now) {
+    if (!src || src.state !== "failed" || !p.expires) return false;
+    const end = Date.parse(p.expires);
+    return end <= now && (!src.lastOk || Date.parse(src.lastOk) < end);
   }
 
   /* ---------- ordering ---------- */
@@ -199,6 +217,6 @@
   }
 
   return { NEAR_KM, KM_PER_MI, OUTLOOK, OUTLOOK_NAME, OUTLOOK_LEVEL, outlookLabel, contains, nearestEdge, bbox, overlaps, areaKm2,
-    relation, relationText, miles, rank, compare, sort, group, placeName, outlookAt, highestOutlook, changes, sourceState,
+    relation, relationText, distanceText, expiredUnconfirmed, miles, rank, compare, sort, group, placeName, outlookAt, highestOutlook, changes, sourceState,
     fmtTime, fmtZ, untilText, polygonsOf };
 });

@@ -1,0 +1,280 @@
+{
+ "_note": "Trimmed real responses from https://api.weather.gov/alerts?event=Severe%20Thunderstorm%20Warning,Tornado%20Warning (fetched 2026-11-20). Polygons cut to 4 points.",
+ "features": [
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -119.63,
+       36.75
+      ],
+      [
+       -119.54,
+       36.91
+      ],
+      [
+       -119.5,
+       37.05
+      ],
+      [
+       -119.16,
+       37.07
+      ],
+      "\u2026"
+     ]
+    ]
+   },
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.539f31b25cea9bfb834fe6ec3d438e92408b94eb.001.1",
+    "sent": "2026-11-19T13:38:00-08:00",
+    "effective": "2026-11-19T13:38:00-08:00",
+    "onset": "2026-11-19T13:38:00-08:00",
+    "expires": "2026-11-19T14:30:00-08:00",
+    "ends": "2026-11-19T14:30:00-08:00",
+    "status": "Actual",
+    "messageType": "Alert",
+    "event": "Severe Thunderstorm Warning",
+    "senderName": "NWS Hanford CA",
+    "headline": "Severe Thunderstorm Warning issued November 19 at 1:38PM PST until November 19 at 2:30PM PST by NWS Hanford CA",
+    "areaDesc": "Fresno, CA",
+    "geocode": {
+     "SAME": [
+      "006019"
+     ],
+     "UGC": [
+      "CAC019"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/county/CAC019"
+    ],
+    "references": [],
+    "parameters": {
+     "AWIPSidentifier": [
+      "SVRHNX"
+     ],
+     "WMOidentifier": [
+      "WUUS56 KHNX 192138"
+     ],
+     "eventMotionDescription": [
+      "2026-11-19T21:37:00-00:00...storm...266DEG...22KT...36.99,-119.44 36.88,-119.47 36.79,-119.53"
+     ],
+     "windThreat": [
+      "RADAR INDICATED"
+     ],
+     "maxWindGust": [
+      "60 MPH"
+     ],
+     "hailThreat": [
+      "RADAR INDICATED"
+     ],
+     "maxHailSize": [
+      "1.00"
+     ],
+     "tornadoDetection": [
+      "POSSIBLE"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.NEW.KHNX.SV.W.0018.261119T2138Z-261119T2230Z/"
+     ],
+     "eventEndingTime": [
+      "2026-11-19T14:30:00-08:00"
+     ]
+    }
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -119.55,
+       36.75
+      ],
+      [
+       -119.45,
+       36.9
+      ],
+      [
+       -119.4,
+       37.05
+      ],
+      [
+       -119.16,
+       37.07
+      ],
+      "\u2026"
+     ]
+    ]
+   },
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.e32e136969fb5972c1fa57107228588a8bd634fd.001.1",
+    "sent": "2026-11-19T14:20:00-08:00",
+    "effective": "2026-11-19T14:20:00-08:00",
+    "onset": "2026-11-19T14:20:00-08:00",
+    "expires": "2026-11-19T14:30:00-08:00",
+    "ends": "2026-11-19T14:30:00-08:00",
+    "status": "Actual",
+    "messageType": "Update",
+    "event": "Severe Thunderstorm Warning",
+    "senderName": "NWS Hanford CA",
+    "headline": "Severe Thunderstorm Warning issued November 19 at 2:20PM PST until November 19 at 2:30PM PST by NWS Hanford CA",
+    "areaDesc": "Fresno, CA",
+    "geocode": {
+     "SAME": [
+      "006019"
+     ],
+     "UGC": [
+      "CAC019"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/county/CAC019"
+    ],
+    "references": [
+     {
+      "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.539f31b25cea9bfb834fe6ec3d438e92408b94eb.001.1",
+      "identifier": "urn:oid:2.49.0.1.840.0.539f31b25cea9bfb834fe6ec3d438e92408b94eb.001.1",
+      "sender": "w-nws.webmaster@noaa.gov",
+      "sent": "2026-11-19T13:38:00-08:00"
+     },
+     {
+      "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.2789fed1282362d6328810b01363431b5a0daf76.001.1",
+      "identifier": "urn:oid:2.49.0.1.840.0.2789fed1282362d6328810b01363431b5a0daf76.001.1",
+      "sender": "w-nws.webmaster@noaa.gov",
+      "sent": "2026-11-19T14:02:00-08:00"
+     }
+    ],
+    "parameters": {
+     "AWIPSidentifier": [
+      "SVSHNX"
+     ],
+     "WMOidentifier": [
+      "WWUS56 KHNX 192220"
+     ],
+     "NWSheadline": [
+      "SEVERE THUNDERSTORM WARNING WILL EXPIRE AT 230 PM PST FOR NORTHEASTERN FRESNO COUNTY"
+     ],
+     "eventMotionDescription": [
+      "2026-11-19T22:02:00-00:00...storm...266DEG...22KT...37.0,-119.25 36.89,-119.28 36.8,-119.34"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.EXP.KHNX.SV.W.0018.000000T0000Z-261119T2230Z/"
+     ],
+     "eventEndingTime": [
+      "2026-11-19T14:30:00-08:00"
+     ]
+    }
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -119.66,
+       36.83
+      ],
+      [
+       -119.72,
+       36.97
+      ],
+      [
+       -119.66,
+       37.01
+      ],
+      [
+       -119.64,
+       37.04
+      ],
+      "\u2026"
+     ]
+    ]
+   },
+   "properties": {
+    "id": "urn:oid:2.49.0.1.840.0.2b703067bdbc11bc9c7751573bcf4b17ff7a7639.001.1",
+    "sent": "2026-11-19T13:25:00-08:00",
+    "effective": "2026-11-19T13:25:00-08:00",
+    "onset": "2026-11-19T13:25:00-08:00",
+    "expires": "2026-11-19T13:40:31-08:00",
+    "ends": "2026-11-19T13:45:00-08:00",
+    "status": "Actual",
+    "messageType": "Cancel",
+    "event": "Severe Thunderstorm Warning",
+    "senderName": "NWS Hanford CA",
+    "headline": "The Severe Thunderstorm Warning has been cancelled.",
+    "areaDesc": "Madera, CA",
+    "geocode": {
+     "SAME": [
+      "006039"
+     ],
+     "UGC": [
+      "CAC039"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/county/CAC039"
+    ],
+    "references": [
+     {
+      "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.385daa0d001fe40e919b8bfaa7b30e8bdc66302e.001.1",
+      "identifier": "urn:oid:2.49.0.1.840.0.385daa0d001fe40e919b8bfaa7b30e8bdc66302e.001.1",
+      "sender": "w-nws.webmaster@noaa.gov",
+      "sent": "2026-11-19T12:58:00-08:00"
+     }
+    ],
+    "parameters": {
+     "AWIPSidentifier": [
+      "SVSHNX"
+     ],
+     "WMOidentifier": [
+      "WWUS56 KHNX 192125"
+     ],
+     "NWSheadline": [
+      "SEVERE THUNDERSTORM WARNING IS CANCELLED FOR SOUTH CENTRAL MADERA COUNTY"
+     ],
+     "eventMotionDescription": [
+      "2026-11-19T20:58:00-00:00...storm...227DEG...30KT...36.88,-119.74"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.CAN.KHNX.SV.W.0017.000000T0000Z-261119T2145Z/"
+     ],
+     "eventEndingTime": [
+      "2026-11-19T13:45:00-08:00"
+     ]
+    }
+   }
+  }
+ ]
+}
