@@ -58,6 +58,17 @@ jobs:
           PYTHONPATH=tools/severe python3 tools/severe/conus_calibration.py fit --conus tests/out/dev --output "$out"
           echo "run_id: $GITHUB_RUN_ID" > "$out/run.txt"
           echo "dest=$out" >> "$GITHUB_ENV"
+      - name: Development-fold diagnostic (out-of-fold 2022-23 only)
+        if: steps.req.outputs.stage == 'diagnose'
+        run: |
+          out=research/severe/conus-v1/diagnostic
+          mkdir -p tests/out/dev
+          for d in tests/out/x/conus/2022-* tests/out/x/conus/2023-*; do ln -s "$PWD/$d" tests/out/dev/; done
+          ls tests/out/dev | wc -l
+          PYTHONPATH=tools/severe python3 tools/severe/conus_calibration.py diagnose --conus tests/out/dev --output "$out"
+          echo "run_id: $GITHUB_RUN_ID" > "$out/run.txt"
+          cat "$out/diagnose.md" >> "$GITHUB_STEP_SUMMARY"
+          echo "dest=$out" >> "$GITHUB_ENV"
       - name: Fetch HURDAT2 best tracks (sensitivity analysis only)
         if: steps.req.outputs.stage == 'score'
         continue-on-error: true

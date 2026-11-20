@@ -50,18 +50,23 @@ def region_index(coords_kept, reg_all, keep):
     return out
 
 
-def fit(a):
+def oof_predictions(a):
+    """Out-of-fold 2022-23 predictions for the frozen candidates (Day 2 wind), checked against the
+    frozen calibration. Only the 2022-23 development dates are accepted."""
     fitted, sha = check_frozen(a.models, a.manifest)
     cases, X, Y, coords, names, _ = load(a.conus)
     keep = fitted["keep"]
     if not np.array_equal(coords, fitted["coords"]):
         raise ValueError("Grid differs from the frozen set")
-    idx = [i for i, c in enumerate(cases) if c.startswith(("2022", "2023"))]
+    if any(not c.startswith(("2022", "2023")) for c in cases):
+        raise ValueError("Only 2022-23 development dates may be loaded here")
+    idx = list(range(len(cases)))
     if len(idx) != a.expected_fit_dates:
         raise ValueError(f"Expected {a.expected_fit_dates} development dates, found {len(idx)}")
     fit_cases = [cases[i] for i in idx]
     e, _ = S.engineer(X[idx, DAY - 1][:, keep], names, fitted["scales"][DAY])
     x, y, d, p = S.rows(e, Y[idx, DAY - 1][:, keep], HAZ)
+    xr, _, _, _ = S.rows(X[idx, DAY - 1][:, keep], Y[idx, DAY - 1][:, keep], HAZ)
     folds = np.array([S.fold_of(c) for c in fit_cases])[d]
     reg_idx = region_index(None, regions(coords), keep)[p]
     frozen = fitted["products"][PRODUCT]
@@ -83,6 +88,13 @@ def fit(a):
     worst = max(max(abs(u - v) for u, v in zip(c["rederived"], c["frozen"])) for c in checks.values())
     if worst > 1e-6:
         raise SystemExit(f"Out-of-fold predictions do not re-derive the frozen calibration (worst {worst:.2e})")
+    return {"sha": sha, "fit_cases": fit_cases, "names": names, "x": x, "xr": xr, "y": y, "d": d, "p": p,
+            "reg_idx": reg_idx, "oof_logit": oof_logit, "checks": checks, "worst": worst}
+
+
+def fit(a):
+    o = oof_predictions(a)
+    sha, fit_cases, y, d, reg_idx, oof_logit, checks, worst = (o[k] for k in ("sha", "fit_cases", "y", "d", "reg_idx", "oof_logit", "checks", "worst"))
     corrections = {}
     for m in CANDIDATES:
         corrections[m] = {}
@@ -388,16 +400,112 @@ def draw(out, cases, coords, y_grid, preds, reg_idx):
         plt.close(fig)
 
 
+# ---------------------------------------------------------------- development-fold diagnostic
+def auc(score, label):
+    """Mann-Whitney AUC; None if one class is empty."""
+    from scipy.stats import rankdata
+    label = np.asarray(label, bool)
+    n1, n0 = int(label.sum()), int((~label).sum())
+    if n1 == 0 or n0 == 0:
+        return None
+    r = rankdata(score)
+    return float((r[label].sum() - n1 * (n1 + 1) / 2) / (n1 * n0))
+
+
+def diagnose(a):
+    """Can the frozen candidates (out-of-fold, 2022-23 only) tell report-day setups from the broad
+    high-probability areas on no-report days? Uses no verification data."""
+    o = oof_predictions(a)
+    y, d, reg_idx, names = o["y"], o["d"], o["reg_idx"], o["names"]
+    feats = np.column_stack([o["xr"], o["x"][:, -3:]])  # raw predictors + the three interaction terms (scaled)
+    fnames = names + ["int_cape_shear", "int_srh_shear", "int_uh_shear"]
+    corr = json.loads(Path(a.corrections).read_text())["corrections"] if a.corrections and Path(a.corrections).exists() else None
+    out = {"status": "diagnostic_out_of_fold_2022_2023_only", "frozen_models_sha256": o["sha"],
+           "dates": len(o["fit_cases"]), "protected_2025_outcomes_accessed": False,
+           "verification_dates_used": [], "regions": {}}
+    for i, r in enumerate(REGIONS):
+        s = reg_idx == i
+        ys, ds = y[s], d[s]
+        dates = np.unique(ds)
+        report_dates = set(np.unique(ds[ys == 1]).tolist())
+        rd_point = np.isin(ds, list(report_dates))
+        entry = {"rows": int(s.sum()), "event_points": int(ys.sum()), "report_days": len(report_dates),
+                 "no_report_days": int(len(dates) - len(report_dates)), "models": {}}
+        for m in CANDIDATES:
+            pr = expit(o["oof_logit"][m][s])
+            hi = pr >= 0.05
+            # day level: does the high-probability footprint differ on report days?
+            area = np.array([(pr[ds == dd] >= 0.05).sum() * SAMPLE_KM2 for dd in dates])
+            pmax = np.array([pr[ds == dd].max() for dd in dates])
+            is_rep = np.isin(dates, list(report_dates))
+            mm = {"point_auc_all": auc(pr, ys == 1),
+                  "hi_points": int(hi.sum()), "hi_event_points": int((hi & (ys == 1)).sum()),
+                  "hi_share_on_report_days": float(rd_point[hi].mean()) if hi.any() else None,
+                  "auc_hi_points_event_vs_not": auc(pr[hi], ys[hi] == 1),
+                  "auc_hi_points_report_day_vs_no_report_day": auc(pr[hi], rd_point[hi]),
+                  "day_auc_area_ge5": auc(area, is_rep), "day_auc_max_prob": auc(pmax, is_rep),
+                  "mean_area_ge5_km2": {"report_days": float(area[is_rep].mean()) if is_rep.any() else None,
+                                        "no_report_days": float(area[~is_rep].mean()) if (~is_rep).any() else None},
+                  "share_of_ge5_area_on_no_report_days": float(area[~is_rep].sum() / area.sum()) if area.sum() else None,
+                  "hits_ge5": int((hi & (ys == 1)).sum()), "event_points": int(ys.sum())}
+            if corr:
+                c = corr[m][r]
+                pc = expit(c["intercept"] + c["slope"] * o["oof_logit"][m][s])
+                mm["in_sample_correction_hits_ge5"] = int(((pc >= 0.05) & (ys == 1)).sum())
+                mm["in_sample_correction_area_ge5_no_report_km2"] = float(((pc >= 0.05) & ~rd_point).sum() * SAMPLE_KM2)
+            # which predictors separate report-day high-probability points from no-report-day ones?
+            if hi.any() and 0 < rd_point[hi].sum() < hi.sum():
+                fa = [(fnames[j], auc(feats[s][hi][:, j], rd_point[hi])) for j in range(feats.shape[1])]
+                fa = [(n, v) for n, v in fa if v is not None]
+                fa.sort(key=lambda t: -abs(t[1] - 0.5))
+                mm["top_predictors_report_day_vs_no_report_day_hi_points"] = [{"predictor": n, "auc": round(v, 3)} for n, v in fa[:8]]
+                fe = [(fnames[j], auc(feats[s][hi][:, j], ys[hi] == 1)) for j in range(feats.shape[1])]
+                fe = [(n, v) for n, v in fe if v is not None]
+                fe.sort(key=lambda t: -abs(t[1] - 0.5))
+                mm["top_predictors_event_vs_not_hi_points"] = [{"predictor": n, "auc": round(v, 3)} for n, v in fe[:8]]
+            entry["models"][m] = mm
+        out["regions"][r] = entry
+    a.output.mkdir(parents=True, exist_ok=True)
+    (a.output / "diagnose.json").write_text(json.dumps(out, indent=1) + "\n")
+    L = ["# Development-fold diagnostic: Day 2 wind (out-of-fold 2022-23 only; no verification data)", "",
+         "AUC 0.5 = no separation, 1.0 = perfect. 'High-probability points' = out-of-fold forecast >= 5%.", "",
+         "| Region | Model | Report / no-report days | Point AUC | Day AUC (area >=5%) | Day AUC (max prob) | Mean area >=5% report / no-report day (km^2) | Share of >=5% area on no-report days | Hi-prob points: AUC report-day vs not | Hi-prob points: AUC event vs not |",
+         "|---|---|---|---|---|---|---|---|---|---|"]
+    fmt = lambda v: "-" if v is None else f"{v:.2f}"
+    km = lambda v: "-" if v is None else f"{round(v):,}"
+    for r, e in out["regions"].items():
+        for m, mm in e["models"].items():
+            ar = mm["mean_area_ge5_km2"]
+            L.append(f"| {r} | {NAMES[m]} | {e['report_days']} / {e['no_report_days']} | {fmt(mm['point_auc_all'])} | {fmt(mm['day_auc_area_ge5'])} | "
+                     f"{fmt(mm['day_auc_max_prob'])} | {km(ar['report_days'])} / {km(ar['no_report_days'])} | "
+                     f"{fmt(mm['share_of_ge5_area_on_no_report_days'])} | {fmt(mm['auc_hi_points_report_day_vs_no_report_day'])} | {fmt(mm['auc_hi_points_event_vs_not'])} |")
+    L += ["", "## Predictors that separate report-day from no-report-day high-probability points", ""]
+    for r in (FL, "west"):
+        for m in CANDIDATES:
+            t = out["regions"][r]["models"][m].get("top_predictors_report_day_vs_no_report_day_hi_points", [])
+            L.append(f"- {r}, {NAMES[m]}: " + ", ".join(f"{x['predictor']} {x['auc']:.2f}" for x in t))
+    L += ["", "## Hits at >= 5% under the committed correction (in-sample on these folds; indicative only)", "",
+          "| Region | Model | Event points | Hits uncalibrated | Hits corrected |", "|---|---|---|---|---|"]
+    for r, e in out["regions"].items():
+        for m, mm in e["models"].items():
+            if "in_sample_correction_hits_ge5" in mm:
+                L.append(f"| {r} | {NAMES[m]} | {mm['event_points']} | {mm['hits_ge5']} | {mm['in_sample_correction_hits_ge5']} |")
+    (a.output / "diagnose.md").write_text("\n".join(L) + "\n")
+    print("\n".join(L))
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest="cmd", required=True)
-    for name in ("fit", "score"):
+    for name in ("fit", "score", "diagnose"):
         s = sub.add_parser(name)
         s.add_argument("--models", type=Path, default=Path("research/severe/conus-v1/frozen/models.pkl"))
         s.add_argument("--manifest", type=Path, default=Path("research/severe/conus-v1/frozen/manifest.json"))
         s.add_argument("--conus", type=Path, required=True)
         s.add_argument("--output", type=Path, required=True)
-    sub.choices["fit"].add_argument("--expected-fit-dates", type=int, default=96)
+    for name in ("fit", "diagnose"):
+        sub.choices[name].add_argument("--expected-fit-dates", type=int, default=96)
+    sub.choices["diagnose"].add_argument("--corrections", type=Path, default=Path("research/severe/conus-v1/calibration-fit/corrections.json"))
     sc = sub.choices["score"]
     sc.add_argument("--corrections", type=Path, default=Path("research/severe/conus-v1/calibration-fit/corrections.json"))
     sc.add_argument("--request", type=Path, default=Path("research/severe/conus-v1/calibration-cases.json"))
@@ -405,7 +513,7 @@ def main():
     sc.add_argument("--baseline", type=Path, default=Path("research/severe/baseline-v07/models.json"))
     sc.add_argument("--study-scorecard", type=Path, default=Path("research/severe/conus-v1/study/scorecard.json"))
     a = p.parse_args()
-    fit(a) if a.cmd == "fit" else score(a)
+    {"fit": fit, "score": score, "diagnose": diagnose}[a.cmd](a)
 
 
 if __name__ == "__main__":
