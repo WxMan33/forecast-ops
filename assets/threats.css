@@ -8,6 +8,8 @@
 .tx-demo { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; padding: 6px 10px; border: 1px dashed var(--monitor);
   border-radius: 10px; background: color-mix(in srgb, var(--monitor) 8%, var(--panel)); font-size: 12.5px; }
 .tx-demo.live { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, var(--panel)); }
+.tx-demo.arc { border-color: var(--line); border-style: solid; background: var(--raised); }
+.tx-demo-badge.arc { background: var(--text); color: var(--bg); }
 .tx-demo-badge.live { background: var(--accent); color: var(--bg); }
 .px-notice.info { border-color: var(--line); background: var(--raised); }
 .px-src a { color: var(--text); }

@@ -50,6 +50,23 @@
   const STALE_MIN = { alerts: 10, md: 15, day1: 60, day2: 60 };
   const SRC_NAME = { alerts: "NWS warnings and watches", md: "SPC Mesoscale Discussions", day1: "SPC Day 1 outlook", day2: "SPC Day 2 outlook" };
   const isLive = () => S.scenario === "live";
+  const isArchive = () => /^archive-/.test(S.scenario);
+  const official = () => isLive() || isArchive();
+  /* archived official samples: real venues chosen to show each sample's behaviour */
+  const ARCHIVE_VENUES = {
+    "archive-lox": [{ id: "sofi", name: "SoFi Stadium", city: "Inglewood, CA", lat: 33.9535, lon: -118.3392, tz: "America/Los_Angeles", label: "SoFi Stadium (the last update moves off it)" }, { id: "lbcc", name: "Long Beach Convention Center", city: "Long Beach, CA", lat: 33.7642, lon: -118.1893, tz: "America/Los_Angeles", label: "Long Beach Convention Center (stays covered)" }],
+    "archive-mtr": [{ id: "boardwalk", name: "Santa Cruz Beach Boardwalk", city: "Santa Cruz, CA", lat: 36.9643, lon: -122.0177, tz: "America/Los_Angeles", label: "Santa Cruz Beach Boardwalk" }],
+    "archive-ww705": [{ id: "linc", name: "Lincoln Financial Field", city: "Philadelphia, PA", lat: 39.9008, lon: -75.1675, tz: "America/New_York", label: "Lincoln Financial Field (inside)" }, { id: "cure", name: "CURE Insurance Arena", city: "Trenton, NJ", lat: 40.2207, lon: -74.7569, tz: "America/New_York", label: "CURE Insurance Arena, Trenton (inside)" }, { id: "metlife", name: "MetLife Stadium", city: "East Rutherford, NJ", lat: 40.8135, lon: -74.0745, tz: "America/New_York", label: "MetLife Stadium (outside the watch)" }],
+  };
+  const archiveData = new Map();
+  function loadArchive() {
+    const key = S.scenario + "|" + S.step;
+    if (archiveData.has(key)) return archiveData.get(key);
+    archiveData.set(key, null);
+    Live.archiveSnapshot(S.scenario, S.step).then((d) => { archiveData.set(key, d); if (S.scenario + "|" + S.step === key) { load(); renderBar(); drawAll(); fitArchive(); } })
+      .catch((e) => { archiveData.set(key, { error: e.message }); load(); drawAll(); });
+    return null;
+  }
   /* live venues: the Forecast Ops point, its built-in places and Event Manager's saved venues */
   function liveVenues() {
     const L = O.location, split = (n) => { const i = n.indexOf(", "); return i > 0 ? [n.slice(0, i), n.slice(i + 2)] : [n, ""]; };
@@ -64,15 +81,20 @@
     return { ...v, tz: v.tz || (tzCache[k] && tzCache[k] !== "pending" ? tzCache[k] : "America/New_York") };
   }
   function load() {
-    if (isLive()) {
+    if (isArchive()) {
+      const a = loadArchive(), list = ARCHIVE_VENUES[S.scenario];
+      venue = list.find((v) => v.id === S.archiveVenue) || list[0];
+      data = a && !a.error ? { ...a } : { clock: new Date().toISOString(), products: [], sources: { alerts: { state: "failed", lastOk: null }, md: { state: "na" }, day1: { state: "na" }, day2: { state: "na" } }, loading: !a, loadError: a && a.error };
+      now = Date.parse(data.clock);
+    } else if (isLive()) {
       data = Live.snapshot(); data.loading = !liveReady; now = Date.parse(data.clock);
       venue = withTz(S.entryVenue || liveVenues().find((v) => v.id === S.liveVenue) || liveVenues()[0]);
     } else { data = Demo.scenario(S.scenario); now = Date.parse(data.clock); venue = S.entryVenue || data.venues[S.venueKey]; }
-    data.state = {}; for (const k of Object.keys(data.sources)) data.state[k] = data.loading ? { kind: "loading", text: "Loading" } : T.sourceState(data.sources[k], now, STALE_MIN[k]);
+    data.state = {}; for (const k of Object.keys(data.sources)) data.state[k] = data.sources[k].state === "na" ? { kind: "na", text: "Not part of this sample" } : data.loading ? { kind: "loading", text: "Loading" } : isArchive() ? { kind: data.sources[k].count ? "current" : "empty", text: "Archived" } : T.sourceState(data.sources[k], now, STALE_MIN[k]);
   }
   const tz = () => venue.tz;
   const t = (iso, day) => T.fmtTime(iso, tz(), { day });
-  const active = () => data.products.filter((p) => p.kind !== "outlook" && Date.parse(p.expires) > now);
+  const active = () => data.products.filter((p) => p.kind !== "outlook" && (Date.parse(p.expires) > now || (p.kind === "md" && p.expires == null)));
   // reached its published expiration while the source was down: not active, and not described as cleared
   const lapsed = () => data.products.filter((p) => p.kind !== "outlook" && T.expiredUnconfirmed(p, data.sources[SRC_OF(p)], now));
   const outlooks = (day) => data.products.filter((p) => p.kind === "outlook" && p.day === day);
@@ -85,7 +107,7 @@
   const shortTitle = (p) => p.kind === "watch" ? p.event : p.kind === "md" ? "Mesoscale Discussion " + p.title.replace(/\D+/g, "") : p.title;
   const venueCovers = () => T.sort(active().filter((p) => rel(p).kind === "covers"));
   const venueNear = () => T.sort(active().filter((p) => rel(p).kind === "near"));
-  const known = (k) => ["current", "empty"].includes(data.state[k].kind);
+  const known = (k) => ["current", "empty", "na"].includes(data.state[k].kind);
   const activeKnown = () => known("alerts") && known("md");
   /* when only one source is unconfirmed, say exactly which part is known */
   function quietText() {
@@ -252,7 +274,7 @@
   const lastKnown = (u) => `<span class="tx-flag">LAST CONFIRMED ${esc(t(u).toUpperCase())} · SOURCE NOT RESPONDING</span>`;
   function item(p, opts = {}) {
     const r = rel(p), u = unconfirmed(p);
-    const when = p.kind === "outlook" ? "Day " + p.day + " · until " + t(p.validEnd, true) : (u ? "Published expiration " : "Until ") + t(p.expires) + (u ? "" : " · " + T.untilText(p.expires, now));
+    const when = p.kind === "outlook" ? "Day " + p.day + " · until " + t(p.validEnd, true) : p.expires == null ? "Valid time unavailable (NOAA map service)" : (u ? "Published expiration " : "Until ") + t(p.expires) + (u ? "" : " · " + T.untilText(p.expires, now));
     const title = p.kind === "outlook" ? T.outlookLabel(p.category) : p.title;
     const showRel = opts.rel !== false && p.kind !== "outlook" && r.kind !== "none";
     return `<button type="button" class="tx-item${S.hover === p.id ? " hl" : ""}" data-id="${esc(p.id)}" style="--tx-c:${colorOf(p)}">${swatch(p)}<span>`
@@ -267,11 +289,11 @@
   function sources() {
     const rows = ["alerts", "md", "day1", "day2"].map((k) => {
       const s = data.state[k], src = data.sources[k];
-      const right = s.kind === "loading" ? "Loading…" : s.kind === "unavailable" ? "Not responding · status unknown" : s.kind === "stale" ? "Last confirmed " + t(src.lastOk) : "Checked " + t(src.lastOk) + (k.startsWith("day") ? (src.outlook === "expired" ? " · expired, awaiting next issuance" : "") : s.kind === "empty" ? " · none active" : "");
-      const name = isLive() ? `<a href="${esc(SRC_LINK[k])}" target="_blank" rel="noopener">${esc(SRC_NAME[k])}</a>` : esc(SRC_NAME[k]);
+      const right = s.kind === "na" ? "Not part of this archived sample" : isArchive() ? "Archived official messages, replayed" : k === "md" && src.via === "service" && s.kind !== "stale" ? "Checked " + t(src.lastOk) + " via NOAA map service" + (s.kind === "empty" ? " · none active" : "") : s.kind === "loading" ? "Loading…" : s.kind === "unavailable" ? "Not responding · status unknown" : s.kind === "stale" ? "Last confirmed " + t(src.lastOk) : "Checked " + t(src.lastOk) + (k.startsWith("day") ? (src.outlook === "expired" ? " · expired, awaiting next issuance" : "") : s.kind === "empty" ? " · none active" : "");
+      const name = official() && s.kind !== "na" ? `<a href="${esc(SRC_LINK[k])}" target="_blank" rel="noopener">${esc(SRC_NAME[k])}</a>` : esc(SRC_NAME[k]);
       return `<div class="px-src ${s.kind}"${src.error ? ` title="${esc(src.error)}"` : ""}><span><b>${name}</b></span><span>${esc(right)}</span></div>`;
     }).join("");
-    const foot = isLive() ? `Live official feeds, fetched by your browser. Alerts and MDs refresh every minute, outlooks every 10 minutes. Times in ${esc(venue.tz)}. A failed refresh never clears a product.` : `Demo clock ${esc(t(data.clock, true))}. A failed refresh never clears a product.`;
+    const foot = isArchive() ? `Archived sample: ${esc(data.archive ? data.archive.label : "")}. Official messages replayed through the same adapter the live preview uses; the clock is set to the message time. Not a live observation. Times in ${esc(venue.tz)}.` : isLive() ? `Live official feeds, fetched by your browser. Alerts and MDs refresh every minute, outlooks every 10 minutes. Times in ${esc(venue.tz)}. A failed refresh never clears a product.` : `Demo clock ${esc(t(data.clock, true))}. A failed refresh never clears a product.`;
     return `<div class="px-sources" aria-label="Source status">${rows}<div class="lg-note">${foot}</div></div>`;
   }
   function notices() {
@@ -405,20 +427,23 @@
     if (p.geometrySource === "counties") rows.push(["Area shape", esc(countyText(p)) + (p.geometryIncomplete ? "<br>Venue relationship is unknown where counties are missing." : "")]);
     rows.push(["Issued", esc(t(p.issued, true)) + ` <span class="mono" style="color:var(--muted)">${esc(T.fmtZ(p.issued))}</span>`]);
     if (p.updated && p.updated !== p.issued) rows.push(["Updated", esc(t(p.updated, true))]);
-    if (p.kind === "outlook" || p.kind === "md") rows.push(["Valid", esc(t(p.validStart, true)) + " → " + esc(t(endOf(p), true)) + ` <span class="mono" style="color:var(--muted)">${esc(T.fmtZ(p.validStart))}–${esc(T.fmtZ(endOf(p)))}</span>`]);
+    if (p.detailsUnavailable) rows.push(["Details", "Unavailable: SPC's text page could not be reached, so this MD comes from the NOAA map service, which gives its outline" + (p.number ? " and number" : "") + " only. Use the SPC link below for the full discussion."]);
+    if (p.kind === "md" && p.expires == null) rows.push(["Valid", "Unavailable"]);
+    else if (p.kind === "outlook" || p.kind === "md") rows.push(["Valid", esc(t(p.validStart, true)) + " → " + esc(t(endOf(p), true)) + ` <span class="mono" style="color:var(--muted)">${esc(T.fmtZ(p.validStart))}–${esc(T.fmtZ(endOf(p)))}</span>`]);
     else rows.push([u ? "Published expiration" : "Expires", `<b>${esc(t(p.expires, true))}</b>${u ? "" : " · " + esc(T.untilText(p.expires, now))}`]);
     rows.push(["Venue", `<b>${esc(p.kind === "outlook" ? outlookVenueText(p) : relText(p))}</b> <span style="color:var(--muted)">(${esc(venue.name)})</span>`]);
     if (ch) rows.push(["What changed", `<span style="color:var(--muted)">Since ${esc(t(ch.since))}:</span><ul>${ch.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>`]);
+    if (p.viaService) rows.push(["Official bulletin", `<a href="${esc(p.source.url)}" target="_blank" rel="noopener">${p.number ? "SPC Mesoscale Discussion " + p.number : "SPC Mesoscale Discussions page"}</a>`]);
     if (u) rows.push(["Status", `${lastKnown(u)}<br>Shown as last known until its published expiration or a successful refresh.`]);
     rows.push(["Issued by", esc(p.office)]);
-    rows.push(["Source", isLive() ? `<a href="${esc(p.source.url)}" target="_blank" rel="noopener">${esc(p.source.name)}</a>` : esc(p.source.name) + ` <span style="color:var(--muted)">· demo product, no live link</span>`]);
+    rows.push(["Source", official() ? `<a href="${esc(p.source.url)}" target="_blank" rel="noopener">${esc(p.source.name)}</a>` : esc(p.source.name) + ` <span style="color:var(--muted)">· demo product, no live link</span>`]);
     const bulletin = p.bulletin || (isLive() && p.kind === "outlook" ? "SPC Day " + p.day + " Convective Outlook\nIssued " + T.fmtZ(p.issued) + " · valid " + T.fmtZ(p.validStart) + "–" + T.fmtZ(p.validEnd) + "\n\nRead the forecaster discussion: " + p.source.url : p.kind === "outlook" ? "Day " + p.day + " Convective Outlook\nNWS Storm Prediction Center Norman OK\n\n(DEMO: the outlook discussion text appears here in the beta.)" : p.event + "\n" + p.office + "\n\n(DEMO: the full bulletin text appears here in the beta.)");
     return `<button type="button" class="px-back" data-back>← Back</button>`
       + `<div style="--tx-c:${colorOf(p)}">${swatch(p, 40)} <span class="tx-kind k-${p.kind}">${KIND_WORD[p.kind]}</span></div>`
       + `<div class="px-title">${esc(p.kind === "outlook" ? "Day " + p.day + " outlook · " + T.outlookLabel(p.category) : p.title)}</div>`
       + (p.headline ? `<p class="px-headline">${esc(p.headline)}</p>` : "")
       + `<dl class="px-rows">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>`
-      + `<details class="px-bulletin"><summary>${p.kind === "outlook" ? "Read the outlook discussion" : "Read the official bulletin"}</summary><pre>${esc(bulletin)}</pre><div class="lg-note">${isLive() ? (p.kind === "outlook" ? "Full discussion on the SPC page linked above." : "Official text as received from " + (p.kind === "md" ? "SPC" : "NWS") + ".") : esc(Demo.BULLETIN_NOTE)}</div></details>`;
+      + (p.viaService ? "" : `<details class="px-bulletin"><summary>${p.kind === "outlook" ? "Read the outlook discussion" : "Read the official bulletin"}</summary><pre>${esc(bulletin)}</pre><div class="lg-note">${official() ? (p.kind === "outlook" ? "Full discussion on the SPC page linked above." : "Official text as received from " + (p.kind === "md" ? "SPC" : "NWS") + ".") : esc(Demo.BULLETIN_NOTE)}</div></details>`);
   }
   /* collapsed phone sheet: two lines so a warning's expiration always survives */
   function peek() {
@@ -432,6 +457,7 @@
   }
   function renderPanel() {
     const body = $("txPanelBody"), p = S.sel && byId(S.sel), keep = body.scrollTop, focusId = document.activeElement && body.contains(document.activeElement) && document.activeElement.dataset ? document.activeElement.dataset.id : null;
+    if (data.loadError) { body.innerHTML = `<p class="px-empty">Could not load this archived sample (${esc(data.loadError)}).</p>`; return; }
     if (data.loading) { body.innerHTML = `<p class="px-empty">Loading official feeds: NWS warnings and watches, SPC Mesoscale Discussions and SPC outlooks…</p>` + sources(); $("txPeek1").textContent = "Loading official feeds…"; $("txPeek2").textContent = ""; return; }
     body.innerHTML = (p ? detail(p) : S.point ? pointPanel() : viewDay() ? dayPanel(viewDay()) : S.scope === "venue" ? venueActive() : nationalActive()) + sources();
     document.querySelectorAll("[data-scope]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scope === S.scope)));
@@ -527,27 +553,35 @@
   $("txPeek").addEventListener("click", () => setSheet("open"));
   /* top bar: live preview vs fictional demo, and the matching venue choices */
   function renderBar() {
-    const live = isLive();
-    $("txBadge").textContent = live ? "LIVE PREVIEW" : "DEMO DATA"; $("txBadge").classList.toggle("live", live);
-    $("txDemo").classList.toggle("live", live);
-    $("txBarText").textContent = live ? "Branch preview of official NWS and SPC feeds. Not for operational decisions." : "Fictional products for layout review. Nothing here was issued by NWS or SPC.";
-    const opts = live ? [...(S.entryVenue ? [{ id: "entry", label: "Linked venue: " + S.entryVenue.name }] : []), ...liveVenues()] : [{ id: "inside", label: "Inside the warning" }, { id: "edge", label: "Near the warning edge" }, { id: "outside", label: "Outside the warning" }];
+    const live = isLive(), arc = isArchive();
+    $("txBadge").textContent = live ? "LIVE PREVIEW" : arc ? "ARCHIVED SAMPLE" : "DEMO DATA"; $("txBadge").classList.toggle("live", live); $("txBadge").classList.toggle("arc", arc);
+    $("txDemo").classList.toggle("live", live); $("txDemo").classList.toggle("arc", arc);
+    $("txBarText").textContent = live ? "Branch preview of official NWS and SPC feeds. Not for operational decisions." : arc ? "Real official messages replayed through the live adapter, at their own time. Not a live observation." : "Fictional products for layout review. Nothing here was issued by NWS or SPC.";
+    $("stepField").hidden = !arc;
+    if (arc && data && data.archive) { $("demoStep").innerHTML = data.archive.messages.map((m, i) => `<option value="${i + 1}">Message ${i + 1} of ${data.archive.steps} · ${esc(m.action || "")} · ${esc(T.fmtTime(m.sent, venue.tz))}</option>`).join(""); $("demoStep").value = String(data.archive.step); }
+    const opts = arc ? ARCHIVE_VENUES[S.scenario].map((v) => ({ id: v.id, label: v.label })) : live ? [...(S.entryVenue ? [{ id: "entry", label: "Linked venue: " + S.entryVenue.name }] : []), ...liveVenues()] : [{ id: "inside", label: "Inside the warning" }, { id: "edge", label: "Near the warning edge" }, { id: "outside", label: "Outside the warning" }];
     $("demoVenue").innerHTML = opts.map((o) => `<option value="${esc(o.id)}">${esc(o.label)}</option>`).join("");
-    $("demoVenue").value = live ? (S.entryVenue ? "entry" : S.liveVenue) : S.venueKey;
+    $("demoVenue").value = arc ? (S.archiveVenue || ARCHIVE_VENUES[S.scenario][0].id) : live ? (S.entryVenue ? "entry" : S.liveVenue) : S.venueKey;
     $("demoScenario").value = S.scenario;
-    const sub = document.querySelector(".statusbar .page-sub"); if (sub) sub.textContent = live ? "Preview · severe weather · live official feeds" : "Preview · severe weather · demo data";
-    O.setChip(live ? "LIVE PREVIEW" : "DEMO DATA", live ? "live" : "warn", live ? "Official feeds, branch preview" : "Fictional products for layout review");
+    const sub = document.querySelector(".statusbar .page-sub"); if (sub) sub.textContent = live ? "Preview · severe weather · live official feeds" : arc ? "Preview · severe weather · archived official sample" : "Preview · severe weather · demo data";
+    O.setChip(live ? "LIVE PREVIEW" : arc ? "ARCHIVED SAMPLE" : "DEMO DATA", live ? "live" : "warn", live ? "Official feeds, branch preview" : "Fictional products for layout review");
   }
   $("demoScenario").addEventListener("change", () => {
-    S.scenario = $("demoScenario").value; S.sel = null; S.point = null;
+    S.scenario = $("demoScenario").value; S.sel = null; S.point = null; S.step = null; S.archiveVenue = null;
     if (isLive()) Live.start().then(() => { liveReady = true; load(); drawAll(); });
     renderBar(); load(); startModel(); drawAll();
   });
   $("demoVenue").addEventListener("change", () => {
     const v = $("demoVenue").value;
-    if (isLive()) { if (v !== "entry") { S.entryVenue = null; S.liveVenue = v; } } else { S.venueKey = v; S.entryVenue = null; }
+    if (isArchive()) S.archiveVenue = v; else if (isLive()) { if (v !== "entry") { S.entryVenue = null; S.liveVenue = v; } } else { S.venueKey = v; S.entryVenue = null; }
     S.sel = null; S.point = null; load(); renderBar(); drawAll(); if (S.scope === "venue" && map) map.easeTo({ center: [venue.lon, venue.lat], padding: pad(), duration: 400 });
   });
+  $("demoStep").addEventListener("change", () => { S.step = +$("demoStep").value; S.sel = null; S.point = null; load(); renderBar(); drawAll(); });
+  function fitArchive() {
+    if (!map || !ready || !isArchive() || S.fitted === S.scenario) return; S.fitted = S.scenario;
+    if (S.scope === "venue") { map.jumpTo(venueCamera()); return; }
+    const p = data.products.find((x) => x.geometry); if (p) { const b = T.bbox(p.geometry); map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: pad(), maxZoom: 8.5, duration: 0 }); }
+  }
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     if (S.sel || S.point) { S.sel = null; S.point = null; drawAll(); $("txPanelBody").focus({ preventScroll: true }); }
@@ -580,7 +614,7 @@
      ?lat=..&lon=..&name=..[&tz=..]) opens Venue centred there. Review links: ?scenario= ?venue= ?view= ?scope= ?model=1 ?sel= ?sheet= */
   try {
     const q = new URLSearchParams(location.search);
-    if (["live", "overlap", "multi", "quiet", "unavailable", "outage-expired"].includes(q.get("scenario"))) S.scenario = q.get("scenario");
+    if (["live", "overlap", "multi", "quiet", "unavailable", "outage-expired", "archive-lox", "archive-mtr", "archive-ww705"].includes(q.get("scenario"))) S.scenario = q.get("scenario");
     if (["inside", "edge", "outside"].includes(q.get("venue"))) S.venueKey = q.get("venue");
     const lat = parseFloat(q.get("lat")), lon = parseFloat(q.get("lon"));
     if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
@@ -592,6 +626,8 @@
     if (q.get("model") === "1") S.model = true;
     if (["tornado", "wind", "hail"].includes(q.get("hazard"))) S.hazard = q.get("hazard");
     if (q.get("sel")) S.sel = q.get("sel");
+    if (q.get("step")) S.step = +q.get("step") || null;
+    if (q.get("avenue")) S.archiveVenue = q.get("avenue");
     S.sheet = q.get("sheet") === "open" ? "open" : q.get("sheet") === "peek" ? "peek" : null;
   } catch (e) { /* no URL state */ }
   renderBar();
@@ -606,6 +642,7 @@
   createMap().then(() => {
     map.once("load", () => {
       if (S.sel && byId(S.sel) && byId(S.sel).geometry) { const b = T.bbox(byId(S.sel).geometry); map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: pad(), maxZoom: 9, duration: 0 }); }
+      else if (isArchive()) fitArchive();
       else if (S.scope === "venue") map.jumpTo(venueCamera());
       else map.fitBounds(CONUS, { padding: pad(), duration: 0 });
     });

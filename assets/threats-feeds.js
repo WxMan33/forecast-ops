@@ -115,14 +115,19 @@
     function ingest(collection, fetchedAt) {
       st.lastTry = fetchedAt;
       if (!collection || !Array.isArray(collection.features)) return fail(fetchedAt, "unrecognized response");
-      const msgs = collection.features.map(normalizeAlert).filter(Boolean).sort((a, b) => Date.parse(a.sent) - Date.parse(b.sent));
+      // a severe message we cannot read, or a paged answer, means we do not have the complete active set
+      const ours = collection.features.filter((f) => f && f.properties && EVENTS.includes(f.properties.event));
+      const parsed = ours.map(normalizeAlert), bad = parsed.filter((m) => !m).length + collection.features.filter((f) => !f || !f.properties).length;
+      const paged = !!(collection.pagination && collection.pagination.next);
+      const msgs = parsed.filter(Boolean).sort((a, b) => Date.parse(a.sent) - Date.parse(b.sent));
       const listed = new Set(msgs.map((m) => m.id));
       msgs.forEach(take);
       for (const p of byKey.values()) {
         if (p.ended) continue;
         if (!ACTIVE_ACTIONS.has(p.action)) { p.ended = p.sent; p.endedBy = p.action === "CAN" ? "cancelled" : p.action === "UPG" ? "upgraded" : "expired"; }
-        else if (!listed.has(p.id)) { p.ended = fetchedAt; p.endedBy = "no longer listed"; }
+        else if (!listed.has(p.id) && !bad && !paged) { p.ended = fetchedAt; p.endedBy = "no longer listed"; }
       }
+      if (bad || paged) return fail(fetchedAt, bad ? bad + " unreadable alert message(s) in the response" : "response was paged; the active list may be incomplete");
       st.lastOk = fetchedAt; st.state = "ok"; st.lastError = null;
       return st;
     }
@@ -150,6 +155,37 @@
     const results = await Promise.all(urls.map((u) => getZone(u).then((g) => g, () => null)));
     const ok = results.filter(Boolean);
     return { geometry: mergeGeometries(ok), incomplete: ok.length < urls.length || !urls.length, resolved: ok.length, listed: urls.length };
+  }
+
+  /* ---------- UGC lists and SPC watch outline updates (WOU) ---------- */
+  /* "NJC005-007-015>019-130000-" -> NJC005, NJC007, NJC015 … NJC019 (the trailing DDHHMM is the purge time) */
+  function parseUGC(line) {
+    const out = []; let prefix = null;
+    for (const part of line.replace(/\s+/g, "").split("-")) {
+      let m;
+      if ((m = /^([A-Z]{2}[CZ])(\d{3})(?:>(\d{3}))?$/.exec(part))) prefix = m[1];
+      else if (!(m = /^()(\d{3})(?:>(\d{3}))?$/.exec(part)) || !prefix) continue;
+      const a = +m[2], b = m[3] ? +m[3] : a;
+      for (let n = a; n <= b; n++) out.push(prefix + String(n).padStart(3, "0"));
+    }
+    return out;
+  }
+  const zoneUrl = (u) => "https://api.weather.gov/zones/" + (u[2] === "C" ? "county" : "forecast") + "/" + u;
+  /* An official SPC WOU, converted to the NWS alert shape the adapter reads: county-based, no polygon. Used for archived
+     watches the NWS API no longer serves (it keeps about 7 days). */
+  function wouToAlert(text) {
+    const n = /(TORNADO|SEVERE THUNDERSTORM) WATCH (\d+) IS IN EFFECT/.exec(text), v = /\/O\.[A-Z]{3}\.KWNS\.(?:TO|SV)\.A\.\d{4}\.\d{6}T\d{4}Z-\d{6}T\d{4}Z\//.exec(text);
+    const hdr = /WOUS\d\d KWNS (\d{2})(\d{2})(\d{2})/.exec(text);
+    if (!n || !v || !hdr) throw Error("unrecognized WOU");
+    const vt = parseVTEC(v[0]), ugc = [];
+    for (const m of text.matchAll(/^\s*((?:[A-Z]{2}[CZ]\d{3}|\d{3}|>\d{3})(?:[->](?:[A-Z]{2}[CZ])?\d{3})*-\d{6}-)\s*$/gm)) ugc.push(...parseUGC(m[1]));
+    const begin = vt.begin, end = vt.end, sent = vt.begin;
+    const event = n[1] === "TORNADO" ? "Tornado Watch" : "Severe Thunderstorm Watch";
+    const areas = [...text.matchAll(/\.\s+([A-Z ]+?) (?:COUNTIES|PARISHES) INCLUDED ARE/g)].map((m) => m[1].toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()));
+    return { type: "Feature", geometry: null, properties: { id: "urn:spc:wou:" + n[2] + ":" + sent, "@id": "https://www.spc.noaa.gov/products/watch/ww" + n[2].padStart(4, "0") + ".html",
+      event, messageType: "Alert", sent, effective: begin, onset: begin, expires: end, ends: end, senderName: "NWS Storm Prediction Center",
+      headline: event + " " + n[2] + " in effect until " + end, areaDesc: ugc.filter((u) => u[2] === "C").length + " counties in " + areas.join(", ") + (ugc.some((u) => u[2] === "Z") ? ", plus adjacent coastal waters" : ""),
+      description: text.trim(), affectedZones: ugc.map(zoneUrl), geocode: { UGC: ugc }, references: [], parameters: { VTEC: [v[0]] } } };
   }
 
   /* ---------- SPC outlooks ---------- */
@@ -220,14 +256,29 @@
       geometry, label: labelPoint(geometry), source: { name: "SPC Mesoscale Discussions", url: MD_URL(n[1]) }, bulletin: text.trim(),
       severe: !/winter|snow|freezing|heavy rain|blizzard|ice/i.test(concerning) || /watch|severe|tornado/i.test(concerning) };
   }
-  /* NOAA map service cross-check: the known "NoArea" placeholder means none */
+  /* NOAA map service: the known "NoArea" placeholder means none */
   function parseMDService(gj) {
     if (!gj || !Array.isArray(gj.features)) return { state: "unrecognized", features: [] };
     const real = gj.features.filter((f) => !(f.properties && /^NoArea$/i.test(f.properties.name || "")));
     if (!real.length) return { state: "empty", features: [], placeholder: gj.features.length > 0 };
+    if (real.some((f) => !f.geometry || !T.polygonsOf(f.geometry).length)) return { state: "unrecognized", features: [] };
     return { state: "list", features: real };
+  }
+  /* MD products from the map service alone (used only when SPC's text pages are not reachable). The service's fields
+     while an MD is active have not been seen; anything not found is left unavailable, never guessed. */
+  function mdFromService(f, now) {
+    const P = f.properties || {}, text = [P.name, P.popupinfo, P.folderpath].filter(Boolean).join(" ");
+    const num = /(?:MD|MCD|Discussion)\D{0,3}(\d{3,4})/i.exec(text) || /\b(\d{4})\b/.exec(P.name || "");
+    const valid = /Valid (\d{2})(\d{2})(\d{2})Z\s*-\s*(\d{2})(\d{2})(\d{2})Z/.exec(text);
+    let start = null, end = null;
+    if (valid) { const d = new Date(now), y = d.getUTCFullYear(), mo = d.getUTCMonth(), at = (dd, h, mi) => { let t = Date.UTC(y, mo, dd, h, mi); if (t - now > 15 * 86400e3) t = Date.UTC(y, mo - 1, dd, h, mi); return new Date(t).toISOString(); }; start = at(+valid[1], +valid[2], +valid[3]); end = at(+valid[4], +valid[5], +valid[6]); }
+    const n = num ? +num[1] : null;
+    return { id: "spc-md-svc-" + (n || P.objectid || f.id), kind: "md", event: "Mesoscale Discussion", title: "Mesoscale Discussion (MD)" + (n ? " " + n : ""), number: n,
+      headline: "", hazard: "", area: "Unavailable from the map service", office: "NWS Storm Prediction Center", issued: start, updated: start, validStart: start, expires: end, validUnknown: !valid,
+      geometry: f.geometry, label: labelPoint(f.geometry), detailsUnavailable: true, viaService: true,
+      source: { name: "NOAA map service (SPC MDs)", url: n ? MD_URL(n) : MD_LIST_URL }, bulletin: "", severe: !/winter|snow|freezing|blizzard/i.test(text) };
   }
 
   return { EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
-    parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, labelPoint, mergeGeometries };
+    parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries };
 });

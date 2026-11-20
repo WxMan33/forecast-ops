@@ -1,7 +1,7 @@
 # Weather threats: live source inventory (2026-11-20)
 
 All endpoints below were fetched from this repository's Forecast Ops cloud environment on 2026-11-20 (about 19:00 UTC). Trimmed real
-responses are in [`samples/`](samples/). Nothing is wired into the page yet; this is the plan for Phase 2.
+responses are in [`samples/`](samples/). These feeds now drive the branch preview's live mode; status by feed is at the end.
 
 | Product | Endpoint (verified 200) | Format | Geometry | Identity and time fields | Browser CORS |
 |---|---|---|---|---|---|
@@ -57,45 +57,62 @@ opt-in on Day 1 and Day 2, labelled experimental, with "no guidance" outside the
   A server-side collector would be needed only if NWS throttles browser polling. That would be new infrastructure, so it's your call.
 - Alaska, Hawaii and Puerto Rico alerts exist in the feed, but the map and outlooks cover the contiguous U.S. The page says so.
 
-## Branch live preview: feed-by-feed status (2026-11-20, hosted preview on raw.githack.com)
+## Mesoscale Discussion source options (checked 2026-11-20)
 
-Evidence: `node tools/threats-preview-check.js` opens the hosted preview as a signed-out visitor (clicking through the host's
-one-time notice) and records every feed request the browser makes. Results are in `screens/live/report.json`. The tests are
-`node tests/threats-feeds.test.js` (21 checks on real captured responses and labelled fixtures) and `node tests/threats-core.test.js`.
+| Source | Official | Reaches the hosted page | Active list | Geometry | Validity | Bulletin |
+|---|---|---|---|---|---|---|
+| SPC list page `products/md/` + `md####.html` | Yes | **No for automated browsers** (HTTP 403 to the `HeadlessChrome` identity, with no CORS header). Ordinary requests get 200 with CORS `*`. | Image-map entries | `LAT...LON` | `Valid DDHHMMZ - DDHHMMZ` | the page itself |
+| SPC `products/md/ActiveMD.kmz` (listed on spc.noaa.gov/gis) | Yes | Same 403 to automated browsers (same `/products/md/` path); 200 with CORS `*` otherwise | KML placemarks; when none: "No Active MDs as of …" (seen) | KML (active form not seen) | not seen | link to SPC |
+| NOAA map service `outlooks/spc_mesoscale_discussion` | Yes (NOAA) | **Yes**: 200 with CORS echoing the origin, from the hosted preview | Features; when none: the `NoArea` placeholder (seen repeatedly) | Polygon | **Unknown**: fields are `name`, `folderpath`, `popupinfo`, `idp_filedate`; active contents never observed | not provided; we link to SPC |
+| SPC archive `products/md/2026/md####.html` | Yes | Same `/products/md/` path | n/a | `LAT...LON` | yes | yes |
 
-| Feed | Verified live from the hosted browser | Tested with fixtures | Still open |
-|---|---|---|---|
-| NWS warnings | Yes. HTTP 200, CORS `*`, a confirmed empty answer ("none active", none in effect nationally at check time) | New issuance, update shrinking the warning off the venue, extension, cancellation, duplicate and out-of-order messages, split CAN/CON statement, expiration during a failed refresh, empty answer ends unlisted products, unrecognized response counted as a failure. The real 44-message sample all normalizes. | An active warning has not been rendered live yet; none was in effect during the check |
-| NWS watches | Same request and answer as warnings | **Fixture-tested only.** County-only watch: titled by number, area drawn from real county shapes, venue relation "unknown" while a listed county is unresolved | No live watch sample yet; watch geometry is still unconfirmed |
-| SPC Day 1 / Day 2 outlooks | Yes. HTTP 200, CORS `*`, drawn with their own issue and valid times (Day 1 issued 1624Z, valid 1630Z–1200Z) | Real Day 1 file; rollover (past its valid end it is no longer drawn and the page says "awaiting next issuance"); a failed fetch keeps the last good issuance; an unrecognized answer counts as failed | No live rollover observed yet |
-| SPC MDs: list and MD pages | **No.** SPC answers HTTP 403 to automated (headless) browsers, with no CORS header, so the check sees "Not responding · status unknown", the intended failure display. The check does not disguise its browser identity. | Real "none in effect" list page (confirmed empty; the "most recently issued" link is ignored), real MD 2458 text (valid window, LAT...LON polygon), unrecognized pages | Verify in an ordinary browser: the MD source row should read "Checked … · none active". The active-list markup is fixture-only. |
-| NOAA MD map service (cross-check) | Yes. HTTP 200, CORS echoes the origin, the real `NoArea` placeholder read as empty | Placeholder filter; unrecognized answer | Fields while an MD is active |
-| Our research model | Yes. The Severe viewer's published files on `main` (`index.json`, `models.json`, `grid.json`, `display-mask.json`, `day1.json`, `day2.json`), all checksum-verified; all three hazards, Day 1 and Day 2 | Same validation code as the Severe viewer (`SevereDailyCore`) | Its 24-hour window (12Z–12Z) differs from SPC's Day 1; the page shows both windows |
+NOAA's service description: it covers SPC MDs (severe *and* winter) and updates "within 15 minutes" of issuance.
+
+**What the page does now.** It tries SPC's list and text first, which is complete. If SPC can't be reached, the NOAA service decides:
+- **`NoArea`:** "Checked … via NOAA map service · none active" (it may lag SPC by up to 15 minutes).
+- **Shapes:** drawn, with the MD number taken from the feature's name or popup text when present. Valid time, area and text are marked "Unavailable", and the official bulletin link goes to SPC's MD page, or SPC's MD list page when the number is unknown.
+- **Anything else** (an error, or a shape-less or malformed answer): MD status unknown.
+
+**Verified:** the quiet state from the hosted browser (service `NoArea`); the SPC text parser on official archived MD 2458.
+**Still unknown:** what the map service returns for an active MD (name format, whether `popupinfo` carries validity or text, how winter MDs can be told apart). No active MD has occurred during this work, and I found no official archived sample of the service's active response. The active path is fixture-tested only.
+
+## Archived official samples (replayed, not live observations)
+
+The NWS API keeps about 7 days of alerts; queries for Oct 1–Nov 15 return none. Samples used:
+
+| Sample | Source | What it exercises |
+|---|---|---|
+| `nws-archive-klox-sv-w-0015.json` | 3 unmodified CAP messages from api.weather.gov (NWS Los Angeles, Nov 19, NEW → CON → CON) | A real polygon and real updates. SoFi Stadium: "in effect at the venue" → after the last update "8 miles southeast · the venue is outside the warning area", "What changed: area reduced by about 47%". Long Beach Convention Center stays covered. |
+| `nws-archive-kmtr-to-w-0003.json` | 3 unmodified CAP messages (NWS San Francisco tornado warning, Nov 16, NEW → CON → CAN) | Cancellation by the source: "cancelled by NWS at 1:22 PM PST" |
+| `spc-wou0705.txt` | Official SPC watch outline update for Tornado Watch 705 (Nov 12), converted to the NWS alert shape (`geometry: null`, `affectedZones` from its UGC list, its VTEC) | A real county-based watch: 20 counties plus 3 marine zones. In the hosted page, all 23 shapes resolve live from api.weather.gov. Lincoln Financial Field is inside; MetLife Stadium is outside. |
+
+The WOU conversion is ours: the CAP watch messages for #705 are no longer served by the API. A live CAP watch may also list zones by forecast zone, and may come split by issuing office. Watch handling is therefore **archive- and fixture-tested, not yet observed live**.
+
+Malformed, failed and incomplete answers never produce "none active" and never clear the last known products. This covers an unreadable severe message, a paged response, null entries, an HTML error page, a network failure and a timeout. Each counts as a failed refresh. Tested in `tests/threats-feeds.test.js`.
 
 ## Identifying Forecast Ops to NWS
 
-**The requirement.** The API docs (weather.gov/documentation/services-web-api, "Authentication") say: "A User Agent is required to identify
-your application… If you include contact information (website or email), we can contact you… This will be replaced with an API key
-in the future." The same page says: "Proxies are more likely to reach the limit, whereas requests directly from clients are not likely."
+**The requirement** (weather.gov/documentation/services-web-api, "Authentication"): "A User Agent is required to identify your application… If you include contact information… This will be replaced with an API key in the future." The same page: "Proxies are more likely to reach the limit, whereas requests directly from clients are not likely."
 
-**What Forecast Ops does today.** Node tools and CI send `User-Agent: (forecast-ops, github.com/WxMan33/forecast-ops)` (`assets/ops-data.js`).
-Browser pages, including every existing tool page's NWS alerts and forecasts, call api.weather.gov directly and cannot set a User-Agent.
+**What identifies the app in the actual hosted request** (recorded by `tools/threats-preview-check.js`):
+- `User-Agent`: the browser's own. Chromium replaced the page's requested `(forecast-ops, github.com/WxMan33/forecast-ops)` with its own string; NWS still answered 200.
+- `Origin: https://raw.githack.com` and a `Referer` naming the page. On github.io or Pages this would be that domain.
+- No app identifier, and no contact.
 
-**What the hosted preview actually sends (verified).** The browser's own User-Agent, plus `Origin: https://raw.githack.com` and a `Referer`.
-A page script that asks for `User-Agent: (forecast-ops, github.com/WxMan33/forecast-ops)` is overridden: Chromium sent its own string, and NWS
-answered 200. From here, a request with an empty User-Agent gets 403 and a browser string gets 200.
+**Can existing Forecast Ops infrastructure supply the documented identifier?**
+- **Node tools and CI:** yes. They already send `(forecast-ops, github.com/WxMan33/forecast-ops)` (`assets/ops-data.js`).
+- **Browser pages (all existing tool pages, and this one):** no. A browser cannot set it.
+- **Cloudflare Pages beta origin (`forecast-ops-beta.pages.dev`):** it could, but only by adding a request-forwarding function. That is the collector option, on hold.
+- **GitHub Actions (the `verify/` pattern):** it can send the header, but runs every 5 minutes at best and often late. Too slow for warnings.
 
-**Path that meets the requirement, smallest first.**
-1. **Branch preview and beta: direct browser requests (no new infrastructure).** This is the client path the NWS docs describe as least likely
-   to be limited. The site is identified by `Origin`/`Referer` (the github.io or Pages domain), not by User-Agent. Any Node-side job keeps the identifying
-   User-Agent. Open question for NWS: whether browser apps identified by Origin are acceptable. Asking (API GitHub discussions or nco.ops@noaa.gov) is your call.
-2. **If NWS asks for a User-Agent with contact, or throttles browser polling:** a Cloudflare Pages Function on the existing
-   `forecast-ops-beta` Pages project (already used for the calendar beta). One route proxies `alerts/active?event=…` with the identifying
-   User-Agent and a 30-second edge cache. **Refresh latency:** up to 30 s added (cache) plus about 0.1–0.3 s. **Cost:** $0 on Cloudflare's free plan
-   (100,000 function requests a day, about 70 viewers polling every minute all day); the paid plan is $5 a month for 10 million; these figures are from Cloudflare's published pricing and were not re-checked in this session. It adds
-   one deployable function; it is not a server to run. Per the docs, it is *more* likely to meet rate limits than browsers, so it should cache.
-3. **Not suitable for warnings:** a GitHub Actions collector (the pattern `verify/` uses). Scheduled runs are at best every 5 minutes and often
-   run late, too slow for warnings. It would be fine for outlooks.
+**Status: unresolved for the browser path.** The page works today, and every request returned 200. It does not send the documented app identifier, and no existing infrastructure can add one without a new forwarding layer. The collector and any outreach to NWS remain on hold, as decided.
 
-**Evidence for a collector today:** none beyond the documented requirement. Every browser request in these checks returned 200. This
-preview stays on option 1, and option 2 is your decision.
+## Branch live preview: feed-by-feed status
+
+| Feed | Live (hosted browser) | Archived official sample | Fixture only | Open |
+|---|---|---|---|---|
+| NWS warnings | Request, CORS and a confirmed empty answer | Real polygon, updates moving off a venue, cancellation | Extension, duplicates, out-of-order messages, split CAN/CON, expiry during an outage, malformed and paged answers | A live active warning |
+| NWS watches | Same request | WOU 705 converted; real county shapes resolved live | County-only with unresolved counties → "unknown" | A live CAP watch (format and zone types) |
+| SPC outlooks | Drawn with SPC issue and valid times | n/a | Rollover; failed fetch keeps the last good copy | Rollover observed live |
+| SPC MDs | Quiet state via the NOAA service (SPC pages refuse automated browsers) | MD 2458 text | Active service response; active SPC list | The service's active fields |
+| Research model | Published Severe-viewer feed, checksummed | n/a | n/a | — |

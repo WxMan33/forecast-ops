@@ -28,7 +28,7 @@
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
 <link rel="stylesheet" href="assets/ops.css?v=35098c1775">
-<link rel="stylesheet" href="assets/threats.css?v=a79add1884">
+<link rel="stylesheet" href="assets/threats.css?v=b2e07d90c4">
 </head>
 <body class="threats-page">
 <main class="tx" id="tx">
@@ -46,9 +46,16 @@
           <option value="unavailable">Source outage</option>
           <option value="outage-expired">Outage, after warning expires</option>
           </optgroup>
+          <optgroup label="Archived official samples (replayed)">
+          <option value="archive-lox">NWS warning update, Los Angeles, Nov 19</option>
+          <option value="archive-mtr">NWS tornado warning cancelled, Santa Cruz, Nov 16</option>
+          <option value="archive-ww705">SPC Tornado Watch 705, Nov 12</option>
+          </optgroup>
         </select></label>
       <label class="tx-demo-field"><span>Venue</span>
         <select class="input inline" id="demoVenue"></select></label>
+      <label class="tx-demo-field" id="stepField" hidden><span>Message</span>
+        <select class="input inline" id="demoStep"></select></label>
     </div>
   </div>
   <div class="tx-body">
@@ -101,8 +108,8 @@
 <script src="assets/threats-core.js?v=6c4e15aff3"></script>
 <script src="assets/threats-demo.js?v=ecef6ab463"></script>
 <script src="assets/severe-daily-core.js?v=8b3bc7c800"></script>
-<script src="assets/threats-feeds.js?v=11808c5fe4"></script>
-<script src="assets/threats-live.js?v=bb28744752"></script>
-<script src="assets/threats.js?v=b99e75a974"></script>
+<script src="assets/threats-feeds.js?v=f6ea8a04dd"></script>
+<script src="assets/threats-live.js?v=8fd9619245"></script>
+<script src="assets/threats.js?v=766d2479d7"></script>
 </body>
 </html>

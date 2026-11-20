@@ -117,6 +117,68 @@ ok("unrecognized response counts as a failure, not as empty", () => {
   assert.strictEqual(s.sourceInfo().state, "failed"); assert.strictEqual(s.products(at("2026-11-20T20:41:00Z"))[0].status, "active");
 });
 
+/* ---------- ARCHIVED official payloads (not live observations) ---------- */
+const arch = (f) => JSON.parse(fs.readFileSync(FX(f), "utf8")).features;
+const SOFI = { name: "SoFi Stadium", lat: 33.9535, lon: -118.3392 }, LBCC = { name: "Long Beach Convention Center", lat: 33.7642, lon: -118.1893 };
+ok("ARCHIVED NWS LOX severe thunderstorm warning 0015 (NEW, CON, CON): the last update moves the polygon off SoFi Stadium", () => {
+  const ch = arch("nws-archive-klox-sv-w-0015.json"), s = F.createAlertStore(), seen = [];
+  ch.forEach((f) => { const t = new Date(Date.parse(f.properties.sent) + 30e3).toISOString(); s.ingest(coll(f), t); const [p] = s.products(Date.parse(t)); seen.push([p.status, T.relation(p, SOFI).kind, T.relation(p, LBCC).kind]); });
+  assert.deepStrictEqual(seen, [["active", "covers", "covers"], ["active", "covers", "covers"], ["active", "near", "covers"]]);
+  const [p] = s.products(Date.parse("2026-11-19T17:38:00Z")), r = T.relation(p, SOFI);
+  assert.strictEqual(p.id, "KLOX.SV.W.0015.2026"); assert.ok(r.km > 12 && r.km < 13, "7.7 mi: " + r.km);
+  assert.match(T.relationText(r, p), /^8 miles southeast of the venue · the venue is outside the warning area$/);
+  assert.ok(T.changes(p, (x) => x).lines.some((l) => /Area reduced by about 47%/.test(l)), JSON.stringify(T.changes(p, (x) => x)));
+});
+ok("ARCHIVED NWS MTR tornado warning 0003 (NEW, CON, CAN): ends as cancelled by the source", () => {
+  const ch = arch("nws-archive-kmtr-to-w-0003.json"), s = F.createAlertStore();
+  ch.forEach((f) => s.ingest(coll(f), new Date(Date.parse(f.properties.sent) + 30e3).toISOString()));
+  const [p] = s.products(Date.parse("2026-11-16T21:23:00Z"));
+  assert.strictEqual(p.status, "ended"); assert.strictEqual(p.endedBy, "cancelled"); assert.strictEqual(p.event, "Tornado Warning");
+});
+ok("ARCHIVED SPC Tornado Watch 705 (official WOU, converted to the alert shape): county-based, real county list", () => {
+  const p = F.normalizeAlert(F.wouToAlert(fs.readFileSync(FX("spc-wou0705.txt"), "utf8")));
+  assert.strictEqual(p.title, "Tornado Watch 705"); assert.strictEqual(p.id, "KWNS.TO.A.0705.2026"); assert.strictEqual(p.geometry, null);
+  assert.strictEqual(p.zones.length, 23); assert.ok(p.zones.includes("https://api.weather.gov/zones/county/PAC101") && p.zones.includes("https://api.weather.gov/zones/forecast/ANZ430"));
+  assert.strictEqual(p.issued, "2026-11-12T17:50:00.000Z"); assert.strictEqual(p.expires, "2026-11-13T00:00:00.000Z");
+});
+const watchCases = [ok("ARCHIVED Watch 705 + real Philadelphia county shape: Lincoln Financial Field covered; Trenton unknown while Mercer is unresolved", async () => {
+  const p = F.normalizeAlert(F.wouToAlert(fs.readFileSync(FX("spc-wou0705.txt"), "utf8")));
+  const phl = JSON.parse(fs.readFileSync(FX("nws-zone-PAC101.json"), "utf8")).geometry;
+  const r = await F.resolveZones(p, (u) => /PAC101/.test(u) ? Promise.resolve(phl) : Promise.reject(Error("not fetched in this test")));
+  const q = { ...p, geometry: r.geometry, geometryIncomplete: r.incomplete };
+  assert.strictEqual(T.relation(q, { lat: 39.9008, lon: -75.1675 }).kind, "covers");
+  assert.strictEqual(T.relation(q, { lat: 40.2207, lon: -74.7569 }).kind, "unknown");
+})];
+
+/* ---------- incomplete, failed or malformed answers never mean "none active" ---------- */
+ok("a response with an unreadable severe message keeps the last known products and is not 'none active'", () => {
+  const s = F.createAlertStore();
+  s.ingest(coll(msg({ sent: "2026-11-20T20:31:00Z", ends: "2026-11-20T21:15:00Z" })), "2026-11-20T20:32:00Z");
+  const broken = msg({ sent: "2026-11-20T20:40:00Z", ends: "2026-11-20T21:30:00Z", etn: "0072" }); broken.properties.parameters.VTEC = ["garbled"];
+  s.ingest(coll(broken), "2026-11-20T20:41:00Z");
+  assert.strictEqual(s.products(at("2026-11-20T20:42:00Z"))[0].status, "active");
+  assert.strictEqual(s.sourceInfo().state, "failed"); assert.strictEqual(s.sourceInfo().lastOk, "2026-11-20T20:32:00Z");
+});
+ok("a paged (possibly partial) response or null entries do not end products", () => {
+  const s = F.createAlertStore();
+  s.ingest(coll(msg({ sent: "2026-11-20T20:31:00Z", ends: "2026-11-20T21:15:00Z" })), "2026-11-20T20:32:00Z");
+  s.ingest({ type: "FeatureCollection", features: [], pagination: { next: "https://api.weather.gov/alerts?cursor=x" } }, "2026-11-20T20:40:00Z");
+  assert.strictEqual(s.products(at("2026-11-20T20:41:00Z"))[0].status, "active"); assert.strictEqual(s.sourceInfo().state, "failed");
+  s.ingest({ type: "FeatureCollection", features: [null] }, "2026-11-20T20:45:00Z");
+  assert.strictEqual(s.products(at("2026-11-20T20:46:00Z"))[0].status, "active");
+  s.ingest("<html>502 Bad Gateway</html>", "2026-11-20T20:50:00Z");
+  assert.strictEqual(s.products(at("2026-11-20T20:51:00Z"))[0].status, "active");
+});
+ok("NOAA MD service (FIXTURE: active field contents never observed): geometry drawn, missing validity left unavailable", () => {
+  const f = { type: "Feature", geometry: { type: "Polygon", coordinates: [[[-90, 35], [-88, 35], [-88, 37], [-90, 37], [-90, 35]]] }, properties: { objectid: 2, name: "MD 2459", popupinfo: null } };
+  const r = F.parseMDService({ features: [f] }); assert.strictEqual(r.state, "list");
+  const p = F.mdFromService(r.features[0], Date.parse("2026-11-20T20:00:00Z"));
+  assert.strictEqual(p.number, 2459); assert.strictEqual(p.expires, null); assert.strictEqual(p.validUnknown, true); assert.strictEqual(p.source.url, F.MD_URL(2459));
+  const q = F.mdFromService({ ...f, properties: { name: "x", popupinfo: "Valid 202022Z - 202215Z" } }, Date.parse("2026-11-20T21:00:00Z"));
+  assert.strictEqual(q.expires, "2026-11-20T22:15:00.000Z"); assert.strictEqual(q.number, null); assert.strictEqual(q.source.url, F.MD_LIST_URL);
+  assert.strictEqual(F.parseMDService({ features: [{ properties: { name: "MD 1" }, geometry: null }] }).state, "unrecognized");
+});
+
 /* ---------- watches and county-only coverage (FIXTURE-TESTED: no live watch sample yet) ---------- */
 const zoneShape = JSON.parse(fs.readFileSync(FX("nws-zone-OHC061.json"), "utf8")).geometry;  // real Hamilton County OH shape
 const watchFixture = () => msg({ event: "Tornado Watch", phen: "TO", sig: "A", etn: "0612", sent: "2026-11-20T18:55:00Z", ends: "2026-11-21T02:00:00Z", geometry: null,
@@ -189,4 +251,4 @@ ok("NOAA MD service: the real NoArea placeholder is empty; other shapes are unre
   assert.strictEqual(F.parseMDService({ error: { code: 500 } }).state, "unrecognized");
 });
 
-Promise.all(resolvedCases).then(() => console.log(n + " passed")).catch((e) => { console.error(e); process.exit(1); });
+Promise.all([...resolvedCases, ...watchCases]).then(() => console.log(n + " passed")).catch((e) => { console.error(e); process.exit(1); });

@@ -26,14 +26,15 @@ async function open(browser, query, opts = {}) {
   if (await p.getByText("Open the page", { exact: true }).count()) { notice = true; await Promise.all([p.waitForNavigation({ waitUntil: "domcontentloaded" }).catch(() => {}), p.getByText("Open the page", { exact: true }).first().click()]); }
   await p.waitForFunction(() => window.__threats && window.__threats.ready, null, { timeout: 45000 });
   if (!opts.demo) await p.waitForFunction(() => window.__threats.liveReady, null, { timeout: 45000 });
+  else await p.waitForFunction(() => !window.__threats.data.loading, null, { timeout: 45000 }).catch(() => errors.push("archive/demo data did not finish loading"));
   await p.waitForTimeout(opts.wait || 2500);
   return { p, ctx, errors, requests, notice };
 }
-const state = (p) => p.evaluate(() => { const d = window.__threats.data; return { clock: d.clock, live: !!d.live, products: d.products.map((x) => ({ kind: x.kind, title: x.category ? "Day " + x.day + " " + x.category : x.title, id: x.id, geometry: x.geometrySource || "polygon" })),
+const state = (p) => p.evaluate(() => { const d = window.__threats.data; return { clock: d.clock, live: !!d.live, archive: d.archive ? d.archive.label + " · message " + d.archive.step + " of " + d.archive.steps : null, venueStatus: [...document.querySelectorAll(".px-brief .px-big, .px-brief .px-stat-h")].map((e) => e.textContent), products: d.products.map((x) => ({ kind: x.kind, title: x.category ? "Day " + x.day + " " + x.category : x.title, id: x.id, geometry: x.geometrySource || "polygon" })),
   sources: Object.fromEntries(Object.entries(d.sources).map(([k, v]) => [k, { shown: d.state[k].kind, lastOk: v.lastOk, count: v.count, error: v.error || null, outlook: v.outlook, list: v.list, service: v.service }])) }; });
 
 (async () => {
-  const browser = await chromium.launch(), report = { base: BASE, at: new Date().toISOString(), views: {} };
+  const browser = await chromium.launch(), report = { base: BASE, commit: (/githack\.com\/[^/]+\/[^/]+\/([0-9a-f]{7,40})\//.exec(BASE) || [])[1] || "branch head", at: new Date().toISOString(), views: {} };
   const shoot = async (name, query, opts = {}) => {
     const v = await open(browser, query, opts);
     await v.p.screenshot({ path: path.join(OUT, name + ".png") });
@@ -47,6 +48,12 @@ const state = (p) => p.evaluate(() => { const d = window.__threats.data; return 
   await shoot("live-day1-model-desktop", "?view=day1&scope=venue&model=1", { dsf: 1.5, wait: 6000 });
   await shoot("live-national-phone", "", { phone: true, dsf: 2 });
   await shoot("live-venue-phone-open", "?scope=venue&sheet=open", { phone: true, dsf: 2 });
+  await shoot("ARCHIVED-lox-warning-msg1-venue-sofi", "?scenario=archive-lox&step=1&scope=venue", { dsf: 2, demo: true, wait: 5000 });
+  await shoot("ARCHIVED-lox-warning-final-venue-sofi", "?scenario=archive-lox&scope=venue", { dsf: 2, demo: true, wait: 5000 });
+  await shoot("ARCHIVED-mtr-tornado-warning-cancelled", "?scenario=archive-mtr&scope=venue", { dsf: 2, demo: true, wait: 5000 });
+  await shoot("ARCHIVED-watch705-national", "?scenario=archive-ww705", { dsf: 2, demo: true, wait: 8000 });
+  await shoot("ARCHIVED-watch705-venue-lincoln", "?scenario=archive-ww705&scope=venue", { dsf: 2, demo: true, wait: 8000 });
+  await shoot("ARCHIVED-watch705-phone", "?scenario=archive-ww705&scope=venue&sheet=open", { phone: true, dsf: 2, demo: true, wait: 8000 });
   await shoot("FIXTURE-outage-before-expiration", "?scenario=unavailable&scope=venue", { dsf: 2, demo: true });
   await shoot("FIXTURE-outage-after-expiration", "?scenario=outage-expired&scope=venue", { dsf: 2, demo: true });
   // a custom User-Agent from page script: what Chromium actually sends
