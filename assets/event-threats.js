@@ -8,7 +8,7 @@
   "use strict";
   const O = window.Ops, C = O.Core, T = window.ThreatsCore, M = window.ThreatsMatch, Live = window.ThreatsLive, esc = O.esc, $ = O.$;
   const Q = new URLSearchParams(location.search);
-  const ARCHIVE = /^archive-flood-(day|afternoon|night)$/.test(Q.get("threats") || "") ? Q.get("threats") : null;
+  const ARCHIVE = /^archive-flood-(day|afternoon|outage|night)$/.test(Q.get("threats") || "") ? Q.get("threats") : null;
   const FAMILIES = ["flood"];
   let ev = null, data = null, ready = false, open = new Set(), archived = null;
 
@@ -50,7 +50,8 @@
     }).join("");
     const statuses = r.statuses.map((s) => `<li class="${s.ok ? "" : "et-warn"}"><b>${esc(s.name)}</b> · ${esc(s.text)}</li>`).join("");
     const label = ARCHIVE ? `<p class="et-sample"><span class="bx-label">Archived sample</span> ${esc(data.archive ? data.archive.label : "")}. Real official products replayed at that time; not live.</p>` : "";
-    box.innerHTML = `${label}<p class="et-summary${r.items.length ? " has" : r.confirmed ? "" : " warn"}" data-confirmed="${r.confirmed}">${esc(r.summary)}</p>
+    const notes = (r.notes || []).map((n) => `<p class="et-note" data-note="${esc(n.id)}">${esc(n.text)}</p>`).join("");
+    box.innerHTML = `${label}${notes}<p class="et-summary${r.items.length ? " has" : r.confirmed ? "" : " warn"}" data-confirmed="${r.confirmed}">${esc(r.summary)}</p>
       ${items ? `<ul class="et-list">${items}</ul>` : ""}
       <details class="bx-more et-sources"><summary>Sources checked for this event</summary><ul>${statuses}</ul>
       <p class="bx-note">Matched to the venue pin and the event's own schedule (${esc(tz)}). Official warnings and outlooks only; daily outlooks flag a period and do not time anything within it. Delivery by email, text or push is not part of this preview.</p></details>`;

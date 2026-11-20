@@ -207,6 +207,7 @@
     // NWS Flash Flood Warnings and WPC Excessive Rainfall Outlooks from Nov 20, replayed at a fixed time
     "archive-flood-day": { kind: "mix", clock: "2026-11-20T17:35:00Z", nws: ["tests/fixtures/threats/nws-archive-kmlb-ff-w-0036.json", "tests/fixtures/threats/nws-archive-kjax-ff-w-0054.json"], ero: [1, 2, 3].map((d) => "tests/fixtures/threats/wpc-ero-day" + d + "-20261120.geojson"), label: "NWS Flash Flood Warnings and WPC Excessive Rainfall Outlooks, Florida, Nov 20, 2026 at 12:35 p.m. EST" },
     "archive-flood-afternoon": { kind: "mix", clock: "2026-11-20T19:20:00Z", nws: ["tests/fixtures/threats/nws-archive-kmlb-ff-w-0036.json", "tests/fixtures/threats/nws-archive-kjax-ff-w-0054.json"], ero: [1, 2, 3].map((d) => "tests/fixtures/threats/wpc-ero-day" + d + "-20261120.geojson"), label: "NWS Flash Flood Warnings and WPC Excessive Rainfall Outlooks, Florida, Nov 20, 2026 at 2:20 p.m. EST (after the Flagler warning was cut back)" },
+    "archive-flood-outage": { kind: "mix", clock: "2026-11-20T19:40:00Z", alertsFailAfter: "2026-11-20T18:00:00Z", nws: ["tests/fixtures/threats/nws-archive-kmlb-ff-w-0036.json", "tests/fixtures/threats/nws-archive-kjax-ff-w-0054.json"], ero: [1, 2, 3].map((d) => "tests/fixtures/threats/wpc-ero-day" + d + "-20261120.geojson"), label: "NWS Flash Flood Warnings and WPC outlooks, Florida, Nov 20, 2026: NWS answered until 1:00 p.m. EST, then not (outage replay); now 2:40 p.m." },
     "archive-flood-night": { kind: "mix", clock: "2026-11-20T20:30:00Z", nws: ["tests/fixtures/threats/nws-archive-kmlb-ff-w-0036.json", "tests/fixtures/threats/nws-archive-kjax-ff-w-0054.json"], ero: [1, 2, 3].map((d) => "tests/fixtures/threats/wpc-ero-day" + d + "-20261120.geojson"), label: "NWS Flash Flood Warnings and WPC Excessive Rainfall Outlooks, Florida, Nov 20, 2026 at 3:30 p.m. EST" },
   };
   const archiveCache = new Map();
@@ -221,15 +222,18 @@
   /* replay messages 1..step; the clock is one minute after the last message; county shapes come live from api.weather.gov */
   async function mixSnapshot(name) {
     const a = ARCHIVES[name], clock = Date.parse(a.clock), getJ = async (f) => { const r = await fetch(f, { cache: "no-store" }); if (!r.ok) throw Error("archive file " + r.status); return r.json(); };
-    const msgs = (await Promise.all(a.nws.map(getJ))).flatMap((j) => j.features).filter((f) => Date.parse(f.properties.sent) + 30e3 <= clock).sort((x, y) => Date.parse(x.properties.sent) - Date.parse(y.properties.sent));
+    // alertsFailAfter: NWS answered until then and not afterwards (an archived outage)
+    const lastAnswer = a.alertsFailAfter ? Date.parse(a.alertsFailAfter) : clock;
+    const msgs = (await Promise.all(a.nws.map(getJ))).flatMap((j) => j.features).filter((f) => Date.parse(f.properties.sent) + 30e3 <= lastAnswer).sort((x, y) => Date.parse(x.properties.sent) - Date.parse(y.properties.sent));
     const store = F.createAlertStore();
     msgs.forEach((f, i) => store.ingest({ type: "FeatureCollection", features: msgs.slice(0, i + 1) }, new Date(Date.parse(f.properties.sent) + 30e3).toISOString()));
+    if (a.alertsFailAfter) { store.ingest({ type: "FeatureCollection", features: msgs }, a.alertsFailAfter); store.fail(new Date(clock).toISOString(), "archived outage: NWS did not answer after " + a.alertsFailAfter); }
     const eros = (await Promise.all(a.ero.map(getJ))).map((j, i) => F.parseERO(j, i + 1, "wpc")).filter((o) => Date.parse(o.issued) <= clock && Date.parse(o.validEnd) > clock);
     const ps = store.products(clock), si = store.sourceInfo(), na = { state: "na", lastOk: null, count: 0 };
     const eroSrc = (d) => { const o = eros.find((x) => x.products[0] && x.products[0].day === d); return o ? { state: "ok", lastOk: a.clock, count: o.products.length, outlook: "current", validEnd: o.validEnd, issued: o.issued, via: "wpc" } : na; };
     return { live: false, archive: { name, label: a.label, step: 1, steps: 1, messages: [] }, clock: a.clock,
-      products: [...ps.filter((p) => p.status === "active"), ...eros.flatMap((o) => o.products)], ended: ps.filter((p) => p.status === "ended"),
-      sources: { alerts: { state: "ok", lastOk: si.lastOk, count: ps.filter((p) => p.status === "active").length }, md: na, day1: na, day2: na, day3: na, ero1: eroSrc(1), ero2: eroSrc(2), ero3: eroSrc(3) } };
+      products: [...ps.filter((p) => p.status === "active" || p.status === "lapsed"), ...eros.flatMap((o) => o.products)], ended: ps.filter((p) => p.status === "ended"),
+      sources: { alerts: { state: a.alertsFailAfter ? "failed" : "ok", lastOk: si.lastOk, count: ps.filter((p) => p.status === "active").length, error: si.error }, md: na, day1: na, day2: na, day3: na, ero1: eroSrc(1), ero2: eroSrc(2), ero3: eroSrc(3) } };
   }
   async function archiveSnapshot(name, step) {
     if (ARCHIVES[name].kind === "mix") return mixSnapshot(name);

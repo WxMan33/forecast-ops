@@ -112,4 +112,16 @@ ok("Flash Flood Warnings: real messages normalize as flood-family warnings with 
   assert.deepStrictEqual([p.kind, p.family, p.title, p.id], ["warning", "flood", "Flash Flood Warning", "KMLB.FF.W.0036.2026"]);
   assert.match(p.hazard, /Flash flooding radar indicated/);
 });
+ok("a warning that expires during an outage drops out of the items, gets a note, and the source stays unknown", () => {
+  const ev = event("Daytona", ...DAYTONA, FRI), clock = Date.parse("2026-11-20T19:40:00Z");
+  const s = F.createAlertStore(), msgs = ["nws-archive-kmlb-ff-w-0036.json", "nws-archive-kjax-ff-w-0054.json"].flatMap(chain).filter((f) => Date.parse(f.properties.sent) < Date.parse("2026-11-20T18:00:00Z"));
+  s.ingest({ type: "FeatureCollection", features: msgs }, "2026-11-20T18:00:00Z"); s.fail("2026-11-20T19:40:00Z", "outage");
+  const products = [...s.products(clock).filter((p) => p.status === "active" || p.status === "lapsed"), ...eroAt(clock)];
+  assert.ok(products.some((p) => p.id === "KMLB.FF.W.0036.2026" && p.status === "lapsed"));
+  const st = allOk(clock); st["nws-alerts"] = { kind: "stale", lastOk: "2026-11-20T18:00:00Z" };
+  const r = M.forEvent({ products, state: st, event: ev, now: clock, families: ["flood"] });
+  assert.ok(!r.items.some((i) => i.kind === "warning"), "no active warning item");
+  assert.strictEqual(r.notes.length, 1); assert.match(r.notes[0].text, /^Flash Flood Warning reached its published expiration \(2:30 p\.m\.\) while the source could not be reached/);
+  assert.match(r.statuses.find((x) => x.id === "nws-alerts").text, /^Not confirmed since 1 p\.m\./); assert.strictEqual(r.confirmed, false);
+});
 console.log(n + " passed");

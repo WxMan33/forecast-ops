@@ -86,6 +86,12 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
   check("real warning update moves coverage off the venue: Flagler warning item drops at 2:20 p.m.; the outlook stays", before.items.some((i) => i.product === "KJAX.FF.W.0054.2026") && !after.items.some((i) => i.kind === "warning") && after.items.some((i) => i.kind === "outlook" && i.category === "MDT"), { before: before.items, after: after.items });
   await shot(v, "ARCHIVED-planner-fairgrounds-after-update"); await v.ctx.close();
 
+  /* 3b. ARCHIVED outage: NWS answered until 1 p.m., the warning's published end (2:30 p.m.) passes, now 2:40 p.m. */
+  v = await planner("threats=archive-flood-outage&e=" + E(...DAYTONA, FRI), { dsf: 2 }); r = await v.read();
+  const notes = await v.p.evaluate(() => (window.EventThreatsLast.notes || []).map((n) => n.text));
+  check("outage replay: the expired Flash Flood Warning is no longer an active item, a note says it reached its published expiration, NWS status stays unknown", !r.items.some((i) => i.kind === "warning") && notes.length === 1 && /reached its published expiration \(2:30 p\.m\.\)/.test(notes[0]) && r.statuses.some((x) => /^NWS warnings and watches: Not confirmed since 1 p\.m\./.test(x)) && !r.confirmed && r.items.some((i) => i.kind === "outlook"), { r, notes });
+  await shot(v, "ARCHIVED-planner-outage-warning-expired"); await v.ctx.close();
+
   /* 4. LIVE feeds through the functions */
   v = await planner("e=" + E(...DAYTONA, { setup: "2026-11-21T09:00", gates: "2026-11-21T11:00", start: "2026-11-21T12:30", end: "2026-11-21T16:00", teardown: "2026-11-21T18:00" }), { dsf: 2, wait: 4000 }); r = await v.read();
   const viaFn = v.feeds.filter((f) => /\/api\/(nws|wpc)\//.test(f.url)), direct = v.feeds.filter((f) => /api\.weather\.gov\/alerts\/active\?event=|wpc\.ncep|wpc_precip_hazards/.test(f.url)); // the threats feeds only; Event Manager's own point forecast requests are separate

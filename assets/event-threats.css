@@ -16,3 +16,4 @@
 .et-sources li.et-warn { font-weight: 600; }
 .et-sample { font-size: 13px; margin: 4px 0; }
 @media (max-width: 600px) { .et-detail { grid-template-columns: minmax(0, 1fr); } .et-detail dt { margin-top: 4px; } }
+.et-note { font-size: 13.5px; border: 1px solid var(--monitor, #b58100); border-radius: 8px; padding: 7px 10px; margin: 6px 0; }

@@ -64,7 +64,7 @@
     "archive-ww705": [{ id: "linc", name: "Lincoln Financial Field", city: "Philadelphia, PA", lat: 39.9008, lon: -75.1675, tz: "America/New_York", label: "Lincoln Financial Field (inside)" }, { id: "cure", name: "CURE Insurance Arena", city: "Trenton, NJ", lat: 40.2207, lon: -74.7569, tz: "America/New_York", label: "CURE Insurance Arena, Trenton (inside)" }, { id: "metlife", name: "MetLife Stadium", city: "East Rutherford, NJ", lat: 40.8135, lon: -74.0745, tz: "America/New_York", label: "MetLife Stadium (outside the watch)" }],
   };
   const FLOOD_VENUES = [{ id: "daytona", name: "Daytona International Speedway", city: "Daytona Beach, FL", lat: 29.1852, lon: -81.0705, tz: "America/New_York", label: "Daytona International Speedway" }, { id: "fairgrounds", name: "Flagler County Fairgrounds", city: "Bunnell, FL", lat: 29.4447, lon: -81.2896, tz: "America/New_York", label: "Flagler County Fairgrounds" }, { id: "atlanta", name: "Mercedes-Benz Stadium", city: "Atlanta, GA", lat: 33.7554, lon: -84.4008, tz: "America/New_York", label: "Mercedes-Benz Stadium, Atlanta (outside)" }];
-  ARCHIVE_VENUES["archive-flood-day"] = FLOOD_VENUES; ARCHIVE_VENUES["archive-flood-afternoon"] = FLOOD_VENUES; ARCHIVE_VENUES["archive-flood-night"] = FLOOD_VENUES;
+  ARCHIVE_VENUES["archive-flood-day"] = FLOOD_VENUES; ARCHIVE_VENUES["archive-flood-afternoon"] = FLOOD_VENUES; ARCHIVE_VENUES["archive-flood-outage"] = FLOOD_VENUES; ARCHIVE_VENUES["archive-flood-night"] = FLOOD_VENUES;
   const archiveData = new Map();
   function loadArchive() {
     const key = S.scenario + "|" + S.step;
@@ -649,7 +649,7 @@
      ?lat=..&lon=..&name=..[&tz=..]) opens Venue centred there. Review links: ?scenario= ?venue= ?view= ?scope= ?model=1 ?sel= ?sheet= */
   try {
     const q = new URLSearchParams(location.search);
-    if (["live", "overlap", "multi", "quiet", "unavailable", "outage-expired", "archive-lox", "archive-mtr", "archive-ww705", "archive-flood-day", "archive-flood-afternoon", "archive-flood-night"].includes(q.get("scenario"))) S.scenario = q.get("scenario");
+    if (["live", "overlap", "multi", "quiet", "unavailable", "outage-expired", "archive-lox", "archive-mtr", "archive-ww705", "archive-flood-day", "archive-flood-afternoon", "archive-flood-outage", "archive-flood-night"].includes(q.get("scenario"))) S.scenario = q.get("scenario");
     if (["inside", "edge", "outside"].includes(q.get("venue"))) S.venueKey = q.get("venue");
     const lat = parseFloat(q.get("lat")), lon = parseFloat(q.get("lon"));
     if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {

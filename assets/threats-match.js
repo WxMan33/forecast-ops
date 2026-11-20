@@ -35,14 +35,20 @@
 
   function forEvent({ products, sources, state, event, now = Date.now(), families = ["flood"] }) {
     const venue = { lat: event.lat, lon: event.lon }, tz = event.tz, { phases, all } = eventPhases(event.windows);
-    const items = [], fam = (p) => families.includes(family(p));
+    const items = [], notes = [], fam = (p) => families.includes(family(p));
     if (!all) return { items, statuses: [], summary: "Add the event's times to check weather threats." };
 
     /* warnings (and any other product with its own expiry) */
     for (const p of products) {
       if (!fam(p) || p.kind !== "warning") continue;
       const end = Date.parse(p.expires), start = Date.parse(p.issued || p.sent);
-      if (!(end > now)) continue;                                  // ended or lapsed: never presented as in effect
+      if (!(end > now)) {                                          // ended or lapsed: never presented as in effect
+        // reached its published end while its source could not be confirmed: say so, without calling it cancelled
+        const st = state[p.sourceId] || {};
+        if ((st.kind === "stale" || st.kind === "unavailable") && T.expiredUnconfirmed(p, { state: "failed", lastOk: st.lastOk || null }, now) && overlaps(start, end, phases).length && ["covers", "unknown"].includes(T.relation(p, venue).kind))
+          notes.push({ id: p.id, product: p, text: p.event + " reached its published expiration (" + clock(end, tz) + ") while the source could not be reached. It is no longer shown as active; its current status is unknown." });
+        continue;
+      }
       const ph = overlaps(start, end, phases);
       if (!ph.length) continue;
       const rel = T.relation(p, venue);
@@ -100,7 +106,7 @@
     const summary = items.length ? items.length + " weather threat" + (items.length > 1 ? "s" : "") + " for this event"
       : confirmed ? "No " + fams + " threats apply to this event's location and times."
         : "Not fully confirmed: no " + fams + " threats found in the data we have, but a source is unavailable, stale or doesn't cover this venue or date.";
-    return { items, statuses, summary, confirmed, families };
+    return { items, notes, statuses, summary, confirmed, families };
   }
 
   return { forEvent, eventPhases, PHASE_WORD };
