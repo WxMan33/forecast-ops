@@ -353,3 +353,84 @@ labels. Results: `research/severe/conus-v1/twostage-gate/`.
   regional events are a small share of the national count.
 - Per the locked rule, no 2021 predictor or outcome was loaded. 2021 is preserved for the next
   experiment. 2025 stays sealed. v0.7 stays live.
+
+## 15. Trade-off and missed-setup analysis (diagnostic only; run 44673663574)
+- The run regenerated the gate's held-out predictions (whole months unseen by both stages) and
+  reproduced the committed gate exactly for both models.
+- It then swept the probability threshold from 0.3% to 50%. False-alarm area on no-report days and
+  hits are both measured relative to the uncorrected model at 5%.
+- Files: `research/severe/conus-v1/twostage-analyze/` (`tradeoff-*.png`, `analysis-*.json`).
+
+**Can either model cut false-alarm area by 40% while keeping 90% of hits? No, in neither region and at
+no threshold.**
+
+| Region | Model | Best hits retained with area <= 0.60 | Smallest area with hits >= 0.90 |
+|---|---|---|---|
+| Florida/Gulf | logistic, uncorrected / two-stage | 0.86 / 0.87 | 0.69 / 0.70 |
+| Florida/Gulf | trees, uncorrected / two-stage | 0.82 / 0.78 | 0.73 / 0.99 |
+| West | logistic, uncorrected / two-stage | 0.76 / 0.66 | 0.78 / 1.02 |
+| West | trees, uncorrected / two-stage | 0.82 / 0.77 | 0.77 / 0.83 |
+
+- **Stage 2 added no discrimination out of sample.** In Florida/Gulf its curve lies on the uncorrected
+  curve: it moved the operating point along the same curve (a threshold shift), not above it. In the
+  West its curve is below the uncorrected one, so the regional terms made the ranking worse.
+- **Florida/Gulf is near the target, the West is not.** The best uncorrected Florida/Gulf model keeps
+  86% of hits at a 40% area cut, against 90% required. The West reaches 76-82%.
+
+**What the missed setups are.** These are hits the uncorrected model had at >= 5% and the two-stage
+model dropped, compared with the false alarms (no-report days, >= 5%) on all 37 current inputs.
+- **West: weak-shear monsoon storms.**
+  - 570 logistic misses on 22 dates, 51% of them in August and 78% in July-September (e.g. 2023-08-01,
+    2022-08-08, 2022-08-22, 2022-09-01).
+  - Missed hits have *less* deep-layer shear and *less* updraft helicity than the false alarms
+    (u-shear mean AUC 0.24-0.25; UH x shear 0.27-0.31). The kept hits do not show this (0.54-0.69).
+  - The current inputs describe organized, sheared storms. The West's reports come from low-shear,
+    high-based monsoon storms producing dry microbursts, where those inputs point the wrong way.
+- **Florida/Gulf: two kinds of miss.**
+  - Spring (March-April) frontal and squall-line days.
+  - Summer (June-August) pulse-storm days that look like the false-alarm days: the logistic's
+    strongest separator is mean SBCIN (AUC 0.31); nothing else exceeds |AUC - 0.5| = 0.2.
+  - Trees misses carry somewhat more shear and SRH than false alarms (AUC 0.61-0.65), but less than
+    the kept hits (0.77-0.85). The current inputs only partly separate them.
+  - Misses are clustered: the top 3 dates hold 38-50% of the Florida/Gulf misses.
+- **No current input measures what drives a damaging downburst:**
+  - sub-cloud dryness and cloud-base height;
+  - mid-level lapse rate and dry air aloft;
+  - moisture loading;
+  - the model's own downdraft and surface-wind output.
+  Reports also depend on where people live, and nothing represents that.
+
+## 16. Proposed next predictor experiment (not run; needs approval)
+**Stage 1:** unchanged (frozen logistic and trees).
+
+**Stage 2:** the same structure, blend and regions as criterion 8, with one change: the six current
+predictors are replaced by a **pre-named set aimed at downbursts**. All are available in the HRRR
+wrfsfc files already used (checked in the 2023-06-15 index), plus one static term:
+
+| Predictor | HRRR field | Targets |
+|---|---|---|
+| 24-h max 10 m wind (+ 25-mile neighborhood max) | MAXUW, MAXVW (10 m, hourly max) | model's own damaging-wind signal |
+| 24-h max surface gust | GUST:surface | same |
+| 24-h max downdraft speed | MAXDVV 100-1000 mb | downburst strength |
+| Cloud-base height and 2 m dewpoint depression | HGT at LCL; TMP and DPT at 2 m | dry sub-cloud layer (West) |
+| 700-500 mb lapse rate and 700 mb dewpoint depression | TMP 700/500; DPT 700 | inverted-V, dry air aloft |
+| Precipitable water | PWAT | wet microbursts / water loading (Florida) |
+| Max 1 km reflectivity and lightning | MAXREF 1000 m; LTNG | convective intensity |
+| Report opportunity (static) | 2020 Census population within 25 miles, log scale | report bias in sparse areas |
+
+**Method:**
+1. Extract the added fields for the **96 development dates only**. No new dates; 2021 and 2025 stay
+   sealed.
+2. **Pre-check, development-fold diagnostic only:** before any model is fit, repeat the
+   missed-vs-false-alarm comparison with the new fields.
+3. **Stop rule (committed with the plan):** if no new field reaches |AUC - 0.5| >= 0.15 for the West
+   misses, or for the Florida/Gulf summer misses, report that and stop.
+4. Otherwise run the **same nested gate as criterion 8**: whole months held out from both stages,
+   with the **pass criteria unchanged**.
+5. If a candidate passes, verify once on the sealed 2021 dates.
+
+**Cost:** about 10-12 extra GRIB messages per forecast hour, roughly doubling the per-date download.
+Re-extracting 96 dates takes about 3-4 h in Actions. The population layer is fetched once in Actions
+and pinned by SHA-256.
+
+v0.7 stays live.
