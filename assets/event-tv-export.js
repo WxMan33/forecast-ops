@@ -98,9 +98,12 @@
         if (key === "wind") flags("hz-wind", "Wind");
         series(v2, lo, hi, color, { dash: true, width: 4 }); series(v1, lo, hi, color, { width: 6 });
         /* the shown range's high and low, labelled, so the panel reads at a glance */
+        /* the high (and, for temperature, the low) labelled inside the plot */
         const lab = (vals, pick) => { let best = -1; vals.forEach((v, j) => { if (v != null && (best < 0 || (pick === "max" ? v > vals[best] : v < vals[best]))) best = j; }); if (best < 0) return; const yy = B - ((vals[best] - lo) / (hi - lo)) * (B - T);
-          text(`${Math.round(vals[best])}${key === "temp" ? "°" : ""}`, X(best), pick === "max" ? yy - 16 : yy + 34, { font: FONT(800, 26), color, align: "center" }); };
-        const real = v1.filter((v) => v != null); lab(v1, "max"); if (real.length && Math.round(Math.min(...real)) !== Math.round(Math.max(...real))) lab(v1, "min");
+          let ty = pick === "max" ? yy - 16 : yy + 34; if (ty > B - 6) ty = yy - 16; if (ty < T + 24) ty = yy + 34;
+          const tx = Math.min(R - 30, Math.max(L + 30, X(best)));
+          text(`${Math.round(vals[best])}${key === "temp" ? "°" : " mph"}`, tx, ty, { font: FONT(800, 26), color, align: "center" }); };
+        const real = v1.filter((v) => v != null); lab(v1, "max"); if (key === "temp" && real.length && Math.round(Math.min(...real)) !== Math.round(Math.max(...real))) lab(v1, "min");
       } else {
         const { levels, allLow } = lightningSummary(V, ids);
         text("Forecast potential, not detected lightning or a warning", R, y + 46, { font: FONT(600, 20), color: C.muted, align: "right" });
