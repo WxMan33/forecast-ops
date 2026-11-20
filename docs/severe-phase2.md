@@ -333,3 +333,23 @@ the change:**
 - The 48 calibration dates and the 36 follow-up dates stay diagnostic only. **2025 stays sealed.**
 
 Production stays on v0.7.
+
+## 14. Two-stage development gate (criterion 8): both candidates FAIL; 2021 stays sealed
+Run 44666930430. 6 outer folds; whole months held out from both stages; 96 development dates; original
+labels. Results: `research/severe/conus-v1/twostage-gate/`.
+
+| Requirement | Logistic | Trees |
+|---|---|---|
+| Florida/Gulf hits >= 5% retained (>= 0.90; lower bound >= 0.75) | **0.58** (0.32-0.75), 517 -> 298 | **0.65** (0.32-0.83), 408 -> 267 |
+| West hits >= 5% retained (>= 0.90; lower bound >= 0.75) | **0.58** (0.29-0.79), 1,369 -> 799 | **0.69** (0.47-0.84), 1,337 -> 920 |
+| National hits >= 5% retained (>= 0.90; lower bound >= 0.90) | 0.97 (0.95-0.98) | 0.98 (0.97-0.99) |
+| National hits >= 15% retained (>= 0.90) | 0.97 | 0.97 |
+| Florida/Gulf area >= 5% on no-report days (<= 0.60) | 0.19 (0.06-0.31): 22,503 -> 4,353 km^2/day | 0.36 (0.22-0.48): 13,069 -> 4,741 |
+| National Brier no worse | yes (-5.3e-5 to -8.4e-6) | yes (-4.7e-5 to -1.4e-5) |
+
+- Not gating: the Florida/Gulf forecast/observed ratio moved from 3.4 to 1.3 (logistic) and from 2.7 to
+  1.2 (trees). The largest boundary step changed little: Florida/Gulf 0.0034 -> 0.0036, West 0.0013 -> 0.0019.
+- As with the calibration test, the national figures (97-98% retained) hide the regional loss: the
+  regional events are a small share of the national count.
+- Per the locked rule, no 2021 predictor or outcome was loaded. 2021 is preserved for the next
+  experiment. 2025 stays sealed. v0.7 stays live.
