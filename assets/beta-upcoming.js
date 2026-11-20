@@ -359,7 +359,11 @@
   }
   function restoreDialog(r, onDone) {
     const p = E.planRestore(r), S = p.summary, conflicts = [...p.events, ...p.venues].filter((x) => x.action === "conflict");
-    const hereEv = E.events().length, hereVn = E.venues().length, groups = Object.keys(r.preferences || {});
+    const hereEv = E.events().length, hereVn = E.venues().length, herePrefs = E.preferences({ forecast: true, display: true, monitoring: true });
+    /* a preference group is offered only when the file's values differ from this browser's; the same values are "already here" */
+    const canon = (x) => (Array.isArray(x) ? x.map(canon) : x && typeof x === "object" ? Object.keys(x).sort().reduce((o, k) => ((o[k] = canon(x[k])), o), {}) : x);
+    const differs = (g) => Object.keys(E.PREFS[g].keys).some((k) => JSON.stringify(canon((r.preferences[g] || {})[k] ?? null)) !== JSON.stringify(canon((herePrefs[g] || {})[k] ?? null)));
+    const filePrefs = Object.keys(r.preferences || {}), groups = filePrefs.filter(differs), samePrefs = filePrefs.length - groups.length;
     const line = (what, x, extra) => `<li><b>${esc(what)}:</b> ${x.add} new · ${x.same} already here${x.conflict ? ` · <b>${x.conflict} different from what's saved here</b>` : ""}${extra || ""}</li>`;
     const nothing = !S.events.add && !S.venues.add && !conflicts.length && !S.venues.aliases && !groups.length;
     const prefRow = (g) => { const v = r.preferences[g], txt = g === "forecast" ? `Use the file's forecast preferences (Model Blend recipe${v.ops_blend_preset ? ` "${v.ops_blend_preset}"` : ""} and weights, thunder weights). They change the numbers on this browser's briefings, Overview and Model Blend.`
@@ -373,7 +377,7 @@
       <div id="rsMergeBox"><ul class="bx-note" id="rsSummary" style="padding-left:18px">${line("Events", S.events)}${line("Venues", S.venues, S.venues.aliases ? ` · ${plural(S.venues.aliases, "venue gets", "venues get")} remembered calendar locations from the file` : "")}</ul>
       ${conflicts.length ? `<p class="bx-note">Different here: ${esc(conflicts.slice(0, 6).map((c) => c.name).join(", "))}${conflicts.length > 6 ? ` and ${conflicts.length - 6} more` : ""}. These keep the version saved in this browser unless you choose otherwise; remembered calendar locations from both are kept either way.</p>
         <label class="bx-check rs-opt"><input type="checkbox" id="rsReplace"><span>Replace ${plural(conflicts.length, "record", "records")} saved here with the file's version</span></label>` : ""}
-      ${nothing ? '<p class="bx-note"><b>Everything in this file is already saved here.</b></p>' : ""}</div>
+      ${nothing ? '<p class="bx-note"><b>Everything in this file is already saved here.</b> Nothing would change.</p>' : !S.events.add && !S.venues.add && !conflicts.length && !S.venues.aliases ? '<p class="bx-note"><b>Every event and venue in this file is already saved here.</b></p>' : ""}${samePrefs && !nothing ? `<p class="bx-note">${samePrefs === filePrefs.length ? "The file's preferences" : "The file's other preferences"} already match this browser's.</p>` : ""}</div>
       <div id="rsAllBox" hidden><p class="bx-note"><b>This removes the ${plural(hereEv, "event", "events")} and ${plural(hereVn, "venue", "venues")} saved in this browser</b> and puts the file's ${plural(r.events.length, "event", "events")} and ${plural(r.venues.length, "venue", "venues")} in their place.</p>
         ${hereEv || hereVn ? '<p><button class="bx-btn" type="button" id="rsSaveFirst">Save this browser\'s workspace first</button> <span class="bx-note" id="rsSaved"></span></p>' : ""}
         <label class="bx-check rs-opt"><input type="checkbox" id="rsConfirmAll"><span>I understand: replace everything saved here</span></label></div>
