@@ -1,0 +1,6 @@
+{
+  "url": "https://www2.census.gov/geo/docs/reference/cenpop2020/tract/CenPop2020_Mean_TR.txt",
+  "sha256": "137d5b7bc8139a385c2022f54a9aca00ea56bc5ad81c936cf8134e977d50d2c5",
+  "bytes": 3583604,
+  "use": "population sensitivity only (criterion 9)"
+}

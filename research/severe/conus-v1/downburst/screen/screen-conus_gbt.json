@@ -1,0 +1,303 @@
+{
+ "candidate": "conus_gbt",
+ "frozen_models_sha256": "a9ff6aa76b946c92a16d2148e3cdb1fb8920e6dd904789058edfddbde0af8d7a",
+ "dates": 96,
+ "rule": "docs/severe-phase2-criteria.md section 9",
+ "census": {
+  "tracts": 85395,
+  "total_population": 334735155.0
+ },
+ "reproduces_committed_criterion8_gate": true,
+ "protected_2025_outcomes_accessed": false,
+ "verification_2021_loaded": false,
+ "screening": {
+  "rule": "continue only if west_monsoon and florida_summer each have a meteorological feature with |AUC-0.5| >= 0.15",
+  "regimes": {
+   "west_monsoon": {
+    "region": "west",
+    "months": [
+     7,
+     8,
+     9
+    ],
+    "missed_points": 377,
+    "missed_dates": 15,
+    "false_alarm_points": 2107,
+    "false_alarm_dates": 7,
+    "features": [
+     {
+      "feature": "downdraft_nearby_max",
+      "auc_missed_vs_false_alarm": 0.7373199603695652,
+      "abs_minus_half": 0.23731996036956515
+     },
+     {
+      "feature": "dd2m_max",
+      "auc_missed_vs_false_alarm": 0.720359947075493,
+      "abs_minus_half": 0.220359947075493
+     },
+     {
+      "feature": "wind10_nearby_max",
+      "auc_missed_vs_false_alarm": 0.7067712903432917,
+      "abs_minus_half": 0.20677129034329167
+     },
+     {
+      "feature": "lapse_700_500_max",
+      "auc_missed_vs_false_alarm": 0.6979992169590061,
+      "abs_minus_half": 0.19799921695900613
+     },
+     {
+      "feature": "gust_nearby_max",
+      "auc_missed_vs_false_alarm": 0.6906673347273645,
+      "abs_minus_half": 0.19066733472736452
+     },
+     {
+      "feature": "downdraft_max",
+      "auc_missed_vs_false_alarm": 0.6782041420602539,
+      "abs_minus_half": 0.17820414206025392
+     },
+     {
+      "feature": "wind10_max",
+      "auc_missed_vs_false_alarm": 0.6646733951121624,
+      "abs_minus_half": 0.1646733951121624
+     },
+     {
+      "feature": "dd700_mean",
+      "auc_missed_vs_false_alarm": 0.6271856222595139,
+      "abs_minus_half": 0.1271856222595139
+     },
+     {
+      "feature": "gust_max",
+      "auc_missed_vs_false_alarm": 0.5919739557040508,
+      "abs_minus_half": 0.09197395570405076
+     },
+     {
+      "feature": "maxref1km_nearby_max",
+      "auc_missed_vs_false_alarm": 0.41365777080062793,
+      "abs_minus_half": 0.08634222919937207
+     },
+     {
+      "feature": "pwat_max",
+      "auc_missed_vs_false_alarm": 0.5796895280226704,
+      "abs_minus_half": 0.07968952802267038
+     },
+     {
+      "feature": "ltng_max",
+      "auc_missed_vs_false_alarm": 0.5729512210781543,
+      "abs_minus_half": 0.07295122107815433
+     },
+     {
+      "feature": "ltng_nearby_max",
+      "auc_missed_vs_false_alarm": 0.5625167592174122,
+      "abs_minus_half": 0.06251675921741218
+     },
+     {
+      "feature": "maxref1km_max",
+      "auc_missed_vs_false_alarm": 0.4683491557131149,
+      "abs_minus_half": 0.03165084428688508
+     }
+    ],
+    "best_abs_auc_minus_half": 0.23731996036956515,
+    "population_auc_reported_not_deciding": 0.7416380160107964,
+    "component_proxy_auc_reported_not_deciding": {
+     "wind10_component_proxy_max": 0.6646582882119599,
+     "wind10_component_proxy_nearby_max": 0.7069273949787181
+    },
+    "best_abs_auc_minus_half_without_wind_group_not_deciding": 0.23731996036956515,
+    "passes_without_wind_group_not_deciding": true,
+    "deciding": true,
+    "passes": true
+   },
+   "florida_spring": {
+    "region": "florida_gulf_south",
+    "months": [
+     3,
+     4,
+     5
+    ],
+    "missed_points": 62,
+    "missed_dates": 5,
+    "false_alarm_points": 1701,
+    "false_alarm_dates": 10,
+    "features": [
+     {
+      "feature": "lapse_700_500_max",
+      "auc_missed_vs_false_alarm": 0.8883863382071268,
+      "abs_minus_half": 0.38838633820712676
+     },
+     {
+      "feature": "maxref1km_max",
+      "auc_missed_vs_false_alarm": 0.6754138931558287,
+      "abs_minus_half": 0.17541389315582867
+     },
+     {
+      "feature": "dd2m_max",
+      "auc_missed_vs_false_alarm": 0.3286302175191064,
+      "abs_minus_half": 0.17136978248089357
+     },
+     {
+      "feature": "downdraft_max",
+      "auc_missed_vs_false_alarm": 0.6585499990517911,
+      "abs_minus_half": 0.15854999905179112
+     },
+     {
+      "feature": "ltng_max",
+      "auc_missed_vs_false_alarm": 0.6484515749748725,
+      "abs_minus_half": 0.1484515749748725
+     },
+     {
+      "feature": "ltng_nearby_max",
+      "auc_missed_vs_false_alarm": 0.6102245358517759,
+      "abs_minus_half": 0.11022453585177594
+     },
+     {
+      "feature": "dd700_mean",
+      "auc_missed_vs_false_alarm": 0.592763270182625,
+      "abs_minus_half": 0.09276327018262498
+     },
+     {
+      "feature": "downdraft_nearby_max",
+      "auc_missed_vs_false_alarm": 0.591777132995771,
+      "abs_minus_half": 0.09177713299577095
+     },
+     {
+      "feature": "wind10_max",
+      "auc_missed_vs_false_alarm": 0.4189660730879369,
+      "abs_minus_half": 0.08103392691206313
+     },
+     {
+      "feature": "gust_max",
+      "auc_missed_vs_false_alarm": 0.444833210066185,
+      "abs_minus_half": 0.05516678993381502
+     },
+     {
+      "feature": "gust_nearby_max",
+      "auc_missed_vs_false_alarm": 0.44528835030627145,
+      "abs_minus_half": 0.05471164969372855
+     },
+     {
+      "feature": "wind10_nearby_max",
+      "auc_missed_vs_false_alarm": 0.5423944169463882,
+      "abs_minus_half": 0.042394416946388236
+     },
+     {
+      "feature": "pwat_max",
+      "auc_missed_vs_false_alarm": 0.48782499857768674,
+      "abs_minus_half": 0.012175001422313259
+     },
+     {
+      "feature": "maxref1km_nearby_max",
+      "auc_missed_vs_false_alarm": 0.49891430088562705,
+      "abs_minus_half": 0.001085699114372951
+     }
+    ],
+    "best_abs_auc_minus_half": 0.38838633820712676,
+    "population_auc_reported_not_deciding": 0.5307314482941723,
+    "component_proxy_auc_reported_not_deciding": {
+     "wind10_component_proxy_max": 0.4192694999146612,
+     "wind10_component_proxy_nearby_max": 0.5437219093133072
+    },
+    "best_abs_auc_minus_half_without_wind_group_not_deciding": 0.38838633820712676,
+    "passes_without_wind_group_not_deciding": true,
+    "deciding": false,
+    "passes": true
+   },
+   "florida_summer": {
+    "region": "florida_gulf_south",
+    "months": [
+     6,
+     7,
+     8
+    ],
+    "missed_points": 54,
+    "missed_dates": 7,
+    "false_alarm_points": 936,
+    "false_alarm_dates": 9,
+    "features": [
+     {
+      "feature": "maxref1km_nearby_max",
+      "auc_missed_vs_false_alarm": 0.6661522633744856,
+      "abs_minus_half": 0.16615226337448563
+     },
+     {
+      "feature": "dd2m_max",
+      "auc_missed_vs_false_alarm": 0.660948876226654,
+      "abs_minus_half": 0.160948876226654
+     },
+     {
+      "feature": "downdraft_nearby_max",
+      "auc_missed_vs_false_alarm": 0.6172443811332701,
+      "abs_minus_half": 0.11724438113327007
+     },
+     {
+      "feature": "lapse_700_500_max",
+      "auc_missed_vs_false_alarm": 0.6057098765432098,
+      "abs_minus_half": 0.10570987654320985
+     },
+     {
+      "feature": "pwat_max",
+      "auc_missed_vs_false_alarm": 0.41065210509654954,
+      "abs_minus_half": 0.08934789490345046
+     },
+     {
+      "feature": "gust_max",
+      "auc_missed_vs_false_alarm": 0.5826210826210826,
+      "abs_minus_half": 0.08262108262108259
+     },
+     {
+      "feature": "ltng_max",
+      "auc_missed_vs_false_alarm": 0.5808701329534662,
+      "abs_minus_half": 0.08087013295346623
+     },
+     {
+      "feature": "ltng_nearby_max",
+      "auc_missed_vs_false_alarm": 0.5781991927825261,
+      "abs_minus_half": 0.07819919278252607
+     },
+     {
+      "feature": "dd700_mean",
+      "auc_missed_vs_false_alarm": 0.4351456157011713,
+      "abs_minus_half": 0.06485438429882873
+     },
+     {
+      "feature": "downdraft_max",
+      "auc_missed_vs_false_alarm": 0.5559116809116809,
+      "abs_minus_half": 0.05591168091168086
+     },
+     {
+      "feature": "gust_nearby_max",
+      "auc_missed_vs_false_alarm": 0.5501938904716682,
+      "abs_minus_half": 0.05019389047166822
+     },
+     {
+      "feature": "maxref1km_max",
+      "auc_missed_vs_false_alarm": 0.5294594808483697,
+      "abs_minus_half": 0.02945948084836969
+     },
+     {
+      "feature": "wind10_nearby_max",
+      "auc_missed_vs_false_alarm": 0.5208729028173472,
+      "abs_minus_half": 0.020872902817347216
+     },
+     {
+      "feature": "wind10_max",
+      "auc_missed_vs_false_alarm": 0.5020576131687243,
+      "abs_minus_half": 0.002057613168724326
+     }
+    ],
+    "best_abs_auc_minus_half": 0.16615226337448563,
+    "population_auc_reported_not_deciding": 0.6816437163659386,
+    "component_proxy_auc_reported_not_deciding": {
+     "wind10_component_proxy_max": 0.502809433364989,
+     "wind10_component_proxy_nearby_max": 0.521565368787591
+    },
+    "best_abs_auc_minus_half_without_wind_group_not_deciding": 0.16615226337448563,
+    "passes_without_wind_group_not_deciding": true,
+    "deciding": true,
+    "passes": true
+   }
+  },
+  "pass": true,
+  "pass_without_wind_group_not_deciding": true,
+  "wind_source": "direct HRRR hourly max 10 m wind speed (amendment 9a)"
+ }
+}

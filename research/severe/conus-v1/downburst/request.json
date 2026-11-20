@@ -1,0 +1,8 @@
+{
+  "purpose": "Criterion 9 screening (direct 10 m wind per amendment 9a); nested gate only if screening passes. 2022-23 development dates only.",
+  "stage": "screen",
+  "development_extraction_run": 44577990940,
+  "downburst_extraction_run": 44753916507,
+  "wind_extraction_run": 44755041793,
+  "request": 2
+}

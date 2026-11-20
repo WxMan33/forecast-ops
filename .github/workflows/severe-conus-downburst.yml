@@ -1,0 +1,214 @@
+name: Severe CONUS downburst predictors (research)
+# Research only (criterion 9). stage "extract": Day 2 downburst predictors for the 96 development
+# dates (2022-23) under the locked field contract, plus the 2020 Census tract file pinned by SHA-256
+# (population is a sensitivity input only). stage "screen": per candidate, regenerate the criterion-8
+# held-out predictions, apply the screening stop rule, and run the nested gate only if it passes. No 2021, 2024 or 2025 data is loaded. Never touches the
+# feed, publisher, registry, RRFS/NBM collector or any archive.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-v1/downburst/request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-downburst
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      batches: ${{ steps.plan.outputs.batches }}
+      stage: ${{ steps.plan.outputs.stage }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        run: |
+          echo "stage=$(jq -r .stage research/severe/conus-v1/downburst/request.json)" >> "$GITHUB_OUTPUT"
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          sys.path.insert(0, "tools/severe")
+          from cohort import calendar_cases
+          cases = [c for c in calendar_cases(json.load(open("research/severe/cohort-v07.json"))) if c.startswith(("2022", "2023"))]
+          if len(cases) != 96:
+              raise SystemExit(f"expected 96 development dates, found {len(cases)}")
+          months = {}
+          for c in cases:
+              months.setdefault(c[:7], []).append(c)
+          keys = sorted(months)
+          batches = [{"name": f"{keys[i]}_{keys[min(i+2, len(keys)-1)]}", "cases": " ".join(sum((months[k] for k in keys[i:i+3]), []))}
+                     for i in range(0, len(keys), 3)]
+          print("batches=" + json.dumps(batches))
+          PY
+  census:
+    needs: plan
+    if: needs.plan.outputs.stage == 'extract'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch and pin the 2020 Census tract centers of population
+        run: |
+          mkdir -p tests/out/census
+          url=https://www2.census.gov/geo/docs/reference/cenpop2020/tract/CenPop2020_Mean_TR.txt
+          curl -fsSL --retry 4 -o tests/out/census/CenPop2020_Mean_TR.txt "$url"
+          pin=research/severe/conus-v1/downburst/census-pin.json
+          sha=$(sha256sum tests/out/census/CenPop2020_Mean_TR.txt | cut -d' ' -f1)
+          size=$(stat -c %s tests/out/census/CenPop2020_Mean_TR.txt)
+          if [ -f "$pin" ]; then
+            [ "$(jq -r .sha256 "$pin")" = "$sha" ] || { echo "Census file differs from pin"; exit 1; }
+          fi
+          jq -n --arg url "$url" --arg sha "$sha" --argjson size "$size" \
+            '{url: $url, sha256: $sha, bytes: $size, use: "population sensitivity only (criterion 9)"}' > tests/out/census/census-pin.json
+          head -3 tests/out/census/CenPop2020_Mean_TR.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: downburst-census
+          path: tests/out/census
+          retention-days: 90
+  extract:
+    needs: plan
+    if: needs.plan.outputs.stage == 'extract'
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        batch: ${{ fromJSON(needs.plan.outputs.batches) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r tools/severe/requirements.txt
+      - name: Extract Day 2 downburst predictors for each development date
+        env:
+          CASES: ${{ matrix.batch.cases }}
+        run: |
+          mkdir -p tests/out/reports
+          status=0
+          for case in $CASES; do
+            start=$(date +%s)
+            if ! PYTHONPATH=tools/severe python3 tools/severe/extract_downburst.py --case "$case" \
+                 --output tests/out/downburst --cache tests/out/cache; then
+              echo "{\"case\": \"$case\", \"status\": \"failed\"}" > "tests/out/reports/$case.failed.json"; status=1
+            fi
+            rm -rf tests/out/cache/"$case"
+            echo "$case $(( $(date +%s) - start ))s" | tee -a tests/out/reports/runtime.txt
+          done
+          for f in tests/out/downburst/*/downburst-case.json; do
+            [ -f "$f" ] || continue
+            c=$(jq -r .case "$f"); cp "$f" "tests/out/reports/$c.json"
+          done
+          exit $status
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: downburst-${{ matrix.batch.name }}
+          path: |
+            tests/out/downburst
+            tests/out/reports
+          if-no-files-found: warn
+          retention-days: 90
+  commit:
+    needs: [plan, census, extract]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.stage == 'extract'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: downburst-*
+          path: tests/out/batches
+      - name: Commit manifests and the Census pin (not the predictor arrays)
+        run: |
+          dest=research/severe/conus-v1/downburst/extraction
+          mkdir -p "$dest"
+          find tests/out/batches -path '*/reports/*.json' -exec cp {} "$dest"/ \;
+          cat tests/out/batches/*/reports/runtime.txt > "$dest/runtime.txt" 2>/dev/null || true
+          [ -f tests/out/batches/downburst-census/census-pin.json ] && cp tests/out/batches/downburst-census/census-pin.json research/severe/conus-v1/downburst/
+          echo "run_id: $GITHUB_RUN_ID" > "$dest/run.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/severe/conus-v1/downburst
+          git commit -m "Downburst extraction (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3; do git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0; sleep 10; done
+          exit 1
+  screen:
+    needs: plan
+    if: needs.plan.outputs.stage == 'screen'
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        candidate: [conus_logistic, conus_gbt]
+    env:
+      OPENBLAS_NUM_THREADS: '4'
+      OMP_NUM_THREADS: '4'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 matplotlib==3.11.2 shapely==2.2.0
+      - id: req
+        run: |
+          echo "dev=$(jq -r .development_extraction_run research/severe/conus-v1/downburst/request.json)" >> "$GITHUB_OUTPUT"
+          echo "db=$(jq -r .downburst_extraction_run research/severe/conus-v1/downburst/request.json)" >> "$GITHUB_OUTPUT"
+          echo "wind=$(jq -r .wind_extraction_run research/severe/conus-v1/downburst/request.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: severe-conus-*
+          merge-multiple: true
+          path: tests/out/x
+          run-id: ${{ steps.req.outputs.dev }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: downburst-*
+          merge-multiple: true
+          path: tests/out/db
+          run-id: ${{ steps.req.outputs.db }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: wind10max-development
+          path: tests/out/wind
+          run-id: ${{ steps.req.outputs.wind }}
+          github-token: ${{ github.token }}
+      - name: Screening, then nested gate only if screening passes (2022-23 only)
+        run: |
+          mkdir -p tests/out/dev
+          for d in tests/out/x/conus/2022-* tests/out/x/conus/2023-*; do ln -s "$PWD/$d" tests/out/dev/; done
+          ls tests/out/dev | wc -l; ls tests/out/db/downburst | wc -l
+          PYTHONPATH=tools/severe python3 tools/severe/conus_downburst.py --candidate ${{ matrix.candidate }} \
+            --conus tests/out/dev --downburst tests/out/db/downburst --wind tests/out/wind/wind --census tests/out/db/CenPop2020_Mean_TR.txt \
+            --committed-gate research/severe/conus-v1/twostage-gate/gate-${{ matrix.candidate }}.json --output tests/out/screen
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: downburst-screen-${{ matrix.candidate }}
+          path: tests/out/screen
+          retention-days: 90
+  commit-screen:
+    needs: [plan, screen]
+    if: always() && needs.plan.outputs.stage == 'screen'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: downburst-screen-*
+          merge-multiple: true
+          path: research/severe/conus-v1/downburst/screen
+      - name: Commit results
+        run: |
+          dest=research/severe/conus-v1/downburst/screen
+          mkdir -p "$dest"; echo "run_id: $GITHUB_RUN_ID" > "$dest/run.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$dest"
+          git commit -m "Downburst screening/gate (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3; do git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0; sleep 10; done
+          exit 1

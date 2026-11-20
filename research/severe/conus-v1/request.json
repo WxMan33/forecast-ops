@@ -1,0 +1,8 @@
+{
+  "purpose": "Re-extract 2024-06-19 (transient truncated HRRR byte range in run 44639186383)",
+  "mode": "calibration",
+  "cases": [
+    "2024-06-19"
+  ],
+  "request": 6
+}

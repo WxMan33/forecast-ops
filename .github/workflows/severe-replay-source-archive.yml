@@ -1,0 +1,55 @@
+name: Severe replay-source archive (one-shot)
+# Copies the pinned 2022 and 2023 Storm Events files from the frozen-source checkpoint artifact
+# (run 43909210291) into the PRIVATE release severe-replay-sources-v1, then reads them back through
+# the normal restore path. Every copy must match the pinned size and SHA-256 in
+# research/severe/labels-v04/manifest.json. Never overwrites an existing asset. Never touches the
+# feed, publisher or registry.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/replay-source-archive-request.json']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+      TAG: severe-replay-sources-v1
+    steps:
+      - uses: actions/checkout@v4
+      - name: Stage each file from the checkpoint artifact (verified)
+        env:
+          ACTIONS_TOKEN: ${{ github.token }}
+        run: |
+          for name in $(jq -r '.files[]' research/severe/replay-source-archive-request.json); do
+            python3 tools/severe/stage_report_source.py --name "$name" --cache tests/out/upload --actions
+          done
+          ls -l tests/out/upload
+      - name: Upload to the private release (no overwrite)
+        env:
+          GH_TOKEN: ${{ secrets.SEVERE_GUIDANCE_ARCHIVE_WRITE_TOKEN }}
+        run: |
+          [ -n "$GH_TOKEN" ] && [ -n "$ARCHIVE_REPO" ] || { echo "::error::write token or archive repo missing"; exit 1; }
+          [ "$(gh repo view "$ARCHIVE_REPO" --json isPrivate --jq .isPrivate)" = "true" ] || { echo "::error::archive must be private"; exit 1; }
+          existing=$(gh release view "$TAG" --repo "$ARCHIVE_REPO" --json assets --jq '.assets[].name')
+          for name in $(jq -r '.files[]' research/severe/replay-source-archive-request.json); do
+            if grep -qxF "$name" <<<"$existing"; then
+              echo "$name already in $TAG; verifying instead of uploading"
+            else
+              gh release upload "$TAG" "tests/out/upload/$name" --repo "$ARCHIVE_REPO"
+              echo "uploaded $name"
+            fi
+          done
+      - name: Read back through the normal restore path (read-only token) and verify
+        env:
+          ARCHIVE_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
+        run: |
+          for name in $(jq -r '.files[]' research/severe/replay-source-archive-request.json); do
+            out=$(python3 tools/severe/stage_report_source.py --name "$name" --cache "tests/out/readback" --repository "$ARCHIVE_REPO")
+            echo "$out"
+            grep -q '"from": "private release"' <<<"$out" || { echo "::error::$name did not come from the private release"; exit 1; }
+            echo "- $name: read back from the private release, size and SHA-256 match the pin" >> "$GITHUB_STEP_SUMMARY"
+          done

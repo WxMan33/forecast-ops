@@ -1,0 +1,5 @@
+{
+ "stage": "analyze",
+ "development_extraction_run": 44577990940,
+ "note": "Regenerate the held-out gate predictions exactly (must reproduce run 44666930430), then trade-off curves and missed-setup analysis. Diagnostic only; pass criteria unchanged; 2021 and 2025 sealed."
+}

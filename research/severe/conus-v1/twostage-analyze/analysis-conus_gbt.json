@@ -1,0 +1,1981 @@
+{
+ "candidate": "conus_gbt",
+ "status": "diagnostic_on_held_out_development_predictions",
+ "reproduces_committed_gate": true,
+ "regions": {
+  "florida_gulf_south": {
+   "uncorrected_at_5pct": {
+    "area_km2_per_no_report_day": 13068.75,
+    "hits": 408
+   },
+   "feasible_points": {
+    "uncorrected": 0,
+    "two_stage": 0
+   },
+   "best_hits_rel_with_area_le_0.60": {
+    "uncorrected": 0.8161764705882353,
+    "two_stage": 0.7794117647058824
+   },
+   "best_area_rel_with_hits_ge_0.90": {
+    "uncorrected": 0.7305117168818747,
+    "two_stage": 0.9866092778574844
+   },
+   "curves": {
+    "uncorrected": [
+     {
+      "threshold": 0.003,
+      "area_km2_per_no_report_day": 120418.75,
+      "area_rel": 9.21425155428025,
+      "hits": 726,
+      "hits_rel": 1.7794117647058822
+     },
+     {
+      "threshold": 0.00327174696414563,
+      "area_km2_per_no_report_day": 116753.125,
+      "area_rel": 8.9337637494022,
+      "hits": 725,
+      "hits_rel": 1.7769607843137254
+     },
+     {
+      "threshold": 0.0035681093991320467,
+      "area_km2_per_no_report_day": 113271.875,
+      "area_rel": 8.667384026781445,
+      "hits": 725,
+      "hits_rel": 1.7769607843137254
+     },
+     {
+      "threshold": 0.003891317031449915,
+      "area_km2_per_no_report_day": 110021.875,
+      "area_rel": 8.41869918699187,
+      "hits": 724,
+      "hits_rel": 1.7745098039215685
+     },
+     {
+      "threshold": 0.0042438015613914795,
+      "area_km2_per_no_report_day": 106640.625,
+      "area_rel": 8.159971305595409,
+      "hits": 724,
+      "hits_rel": 1.7745098039215685
+     },
+     {
+      "threshold": 0.00462821495830635,
+      "area_km2_per_no_report_day": 103243.75,
+      "area_rel": 7.900047824007652,
+      "hits": 722,
+      "hits_rel": 1.7696078431372548
+     },
+     {
+      "threshold": 0.005047449413084058,
+      "area_km2_per_no_report_day": 99681.25,
+      "area_rel": 7.627450980392157,
+      "hits": 718,
+      "hits_rel": 1.7598039215686274
+     },
+     {
+      "threshold": 0.0055046590979788,
+      "area_km2_per_no_report_day": 96337.5,
+      "area_rel": 7.371592539454807,
+      "hits": 713,
+      "hits_rel": 1.7475490196078431
+     },
+     {
+      "threshold": 0.006003283897489584,
+      "area_km2_per_no_report_day": 92790.625,
+      "area_rel": 7.100191296030608,
+      "hits": 710,
+      "hits_rel": 1.7401960784313726
+     },
+     {
+      "threshold": 0.006547075288838628,
+      "area_km2_per_no_report_day": 89290.625,
+      "area_rel": 6.832376853180296,
+      "hits": 709,
+      "hits_rel": 1.7377450980392157
+     },
+     {
+      "threshold": 0.007140124566763549,
+      "area_km2_per_no_report_day": 85584.375,
+      "area_rel": 6.548780487804878,
+      "hits": 706,
+      "hits_rel": 1.7303921568627452
+     },
+     {
+      "threshold": 0.007786893624976745,
+      "area_km2_per_no_report_day": 81981.25,
+      "area_rel": 6.273075083692014,
+      "hits": 704,
+      "hits_rel": 1.7254901960784315
+     },
+     {
+      "threshold": 0.008492248525880873,
+      "area_km2_per_no_report_day": 78575.0,
+      "area_rel": 6.012434241989479,
+      "hits": 701,
+      "hits_rel": 1.7181372549019607
+     },
+     {
+      "threshold": 0.009261496111106977,
+      "area_km2_per_no_report_day": 74990.625,
+      "area_rel": 5.738163558106169,
+      "hits": 689,
+      "hits_rel": 1.6887254901960784
+     },
+     {
+      "threshold": 0.01010042392832026,
+      "area_km2_per_no_report_day": 71600.0,
+      "area_rel": 5.4787183165949305,
+      "hits": 677,
+      "hits_rel": 1.6593137254901962
+     },
+     {
+      "threshold": 0.011015343774688553,
+      "area_km2_per_no_report_day": 68200.0,
+      "area_rel": 5.218555714968915,
+      "hits": 668,
+      "hits_rel": 1.6372549019607843
+     },
+     {
+      "threshold": 0.01201313918461924,
+      "area_km2_per_no_report_day": 64840.625,
+      "area_rel": 4.961501673840268,
+      "hits": 661,
+      "hits_rel": 1.6200980392156863
+     },
+     {
+      "threshold": 0.01310131721904563,
+      "area_km2_per_no_report_day": 61203.125,
+      "area_rel": 4.683165949306552,
+      "hits": 646,
+      "hits_rel": 1.5833333333333333
+     },
+     {
+      "threshold": 0.014288064945907123,
+      "area_km2_per_no_report_day": 57375.0,
+      "area_rel": 4.390243902439025,
+      "hits": 634,
+      "hits_rel": 1.553921568627451
+     },
+     {
+      "threshold": 0.015582311036762393,
+      "area_km2_per_no_report_day": 53437.5,
+      "area_rel": 4.088952654232425,
+      "hits": 624,
+      "hits_rel": 1.5294117647058822
+     },
+     {
+      "threshold": 0.01699379294296676,
+      "area_km2_per_no_report_day": 49478.125,
+      "area_rel": 3.7859875657580107,
+      "hits": 616,
+      "hits_rel": 1.5098039215686274
+     },
+     {
+      "threshold": 0.018533130156823636,
+      "area_km2_per_no_report_day": 45418.75,
+      "area_rel": 3.475370636059302,
+      "hits": 609,
+      "hits_rel": 1.4926470588235294
+     },
+     {
+      "threshold": 0.020211904108901165,
+      "area_km2_per_no_report_day": 41659.375,
+      "area_rel": 3.1877092300334766,
+      "hits": 601,
+      "hits_rel": 1.4730392156862746
+     },
+     {
+      "threshold": 0.0220427453026333,
+      "area_km2_per_no_report_day": 38056.25,
+      "area_rel": 2.9120038259206122,
+      "hits": 590,
+      "hits_rel": 1.446078431372549
+     },
+     {
+      "threshold": 0.024039428341775273,
+      "area_km2_per_no_report_day": 34571.875,
+      "area_rel": 2.6453849832615974,
+      "hits": 577,
+      "hits_rel": 1.4142156862745099
+     },
+     {
+      "threshold": 0.02621697556566654,
+      "area_km2_per_no_report_day": 31203.125,
+      "area_rel": 2.387613582018173,
+      "hits": 565,
+      "hits_rel": 1.3848039215686274
+     },
+     {
+      "threshold": 0.028591770072016527,
+      "area_km2_per_no_report_day": 28115.625,
+      "area_rel": 2.1513629842180775,
+      "hits": 551,
+      "hits_rel": 1.3504901960784315
+     },
+     {
+      "threshold": 0.031181678977556623,
+      "area_km2_per_no_report_day": 25328.125,
+      "area_rel": 1.9380679100908655,
+      "hits": 532,
+      "hits_rel": 1.303921568627451
+     },
+     {
+      "threshold": 0.03400618784392815,
+      "area_km2_per_no_report_day": 22618.75,
+      "area_rel": 1.7307508369201339,
+      "hits": 516,
+      "hits_rel": 1.2647058823529411
+     },
+     {
+      "threshold": 0.0370865472801793,
+      "area_km2_per_no_report_day": 20087.5,
+      "area_rel": 1.537063605930177,
+      "hits": 497,
+      "hits_rel": 1.2181372549019607
+     },
+     {
+      "threshold": 0.040445932824856624,
+      "area_km2_per_no_report_day": 17759.375,
+      "area_rel": 1.3589191774270684,
+      "hits": 460,
+      "hits_rel": 1.1274509803921569
+     },
+     {
+      "threshold": 0.04410961931058754,
+      "area_km2_per_no_report_day": 15675.0,
+      "area_rel": 1.199426111908178,
+      "hits": 434,
+      "hits_rel": 1.0637254901960784
+     },
+     {
+      "threshold": 0.048105171023011394,
+      "area_km2_per_no_report_day": 13818.75,
+      "area_rel": 1.0573888091822095,
+      "hits": 416,
+      "hits_rel": 1.0196078431372548
+     },
+     {
+      "threshold": 0.05,
+      "area_km2_per_no_report_day": 13068.75,
+      "area_rel": 1.0,
+      "hits": 408,
+      "hits_rel": 1.0
+     },
+     {
+      "threshold": 0.052462649084747924,
+      "area_km2_per_no_report_day": 12309.375,
+      "area_rel": 0.9418938307030129,
+      "hits": 401,
+      "hits_rel": 0.9828431372549019
+     },
+     {
+      "threshold": 0.057214837624687126,
+      "area_km2_per_no_report_day": 10946.875,
+      "area_rel": 0.837637494021999,
+      "hits": 389,
+      "hits_rel": 0.9534313725490197
+     },
+     {
+      "threshold": 0.06239749043421836,
+      "area_km2_per_no_report_day": 9546.875,
+      "area_rel": 0.7305117168818747,
+      "hits": 371,
+      "hits_rel": 0.9093137254901961
+     },
+     {
+      "threshold": 0.06804959996615327,
+      "area_km2_per_no_report_day": 8478.125,
+      "area_rel": 0.6487326637972262,
+      "hits": 353,
+      "hits_rel": 0.8651960784313726
+     },
+     {
+      "threshold": 0.07421369070019548,
+      "area_km2_per_no_report_day": 7409.375,
+      "area_rel": 0.5669536107125777,
+      "hits": 333,
+      "hits_rel": 0.8161764705882353
+     },
+     {
+      "threshold": 0.0809361390821357,
+      "area_km2_per_no_report_day": 6468.75,
+      "area_rel": 0.4949784791965567,
+      "hits": 321,
+      "hits_rel": 0.7867647058823529
+     },
+     {
+      "threshold": 0.0882675224438819,
+      "area_km2_per_no_report_day": 5631.25,
+      "area_rel": 0.43089430894308944,
+      "hits": 308,
+      "hits_rel": 0.7549019607843137
+     },
+     {
+      "threshold": 0.09626299952947558,
+      "area_km2_per_no_report_day": 4890.625,
+      "area_rel": 0.37422285987565757,
+      "hits": 287,
+      "hits_rel": 0.7034313725490197
+     },
+     {
+      "threshold": 0.10498272549003793,
+      "area_km2_per_no_report_day": 4146.875,
+      "area_rel": 0.31731229076996653,
+      "hits": 267,
+      "hits_rel": 0.6544117647058824
+     },
+     {
+      "threshold": 0.11449230446992177,
+      "area_km2_per_no_report_day": 3518.75,
+      "area_rel": 0.26924916307986607,
+      "hits": 239,
+      "hits_rel": 0.5857843137254902
+     },
+     {
+      "threshold": 0.12486328318916778,
+      "area_km2_per_no_report_day": 2943.75,
+      "area_rel": 0.22525107604017217,
+      "hits": 216,
+      "hits_rel": 0.5294117647058824
+     },
+     {
+      "threshold": 0.1361736892358052,
+      "area_km2_per_no_report_day": 2412.5,
+      "area_rel": 0.18460066953610713,
+      "hits": 187,
+      "hits_rel": 0.4583333333333333
+     },
+     {
+      "threshold": 0.14850861811791863,
+      "area_km2_per_no_report_day": 2028.125,
+      "area_rel": 0.15518890483022477,
+      "hits": 156,
+      "hits_rel": 0.38235294117647056
+     },
+     {
+      "threshold": 0.16196087349225416,
+      "area_km2_per_no_report_day": 1643.75,
+      "area_rel": 0.1257771401243424,
+      "hits": 123,
+      "hits_rel": 0.3014705882352941
+     },
+     {
+      "threshold": 0.17663166538621883,
+      "area_km2_per_no_report_day": 1293.75,
+      "area_rel": 0.09899569583931134,
+      "hits": 100,
+      "hits_rel": 0.24509803921568626
+     },
+     {
+      "threshold": 0.19263137166644934,
+      "area_km2_per_no_report_day": 1056.25,
+      "area_rel": 0.08082257293161167,
+      "hits": 84,
+      "hits_rel": 0.20588235294117646
+     },
+     {
+      "threshold": 0.21008036848297126,
+      "area_km2_per_no_report_day": 859.375,
+      "area_rel": 0.06575801052128169,
+      "hits": 70,
+      "hits_rel": 0.1715686274509804
+     },
+     {
+      "threshold": 0.22910993593691864,
+      "area_km2_per_no_report_day": 640.625,
+      "area_rel": 0.049019607843137254,
+      "hits": 57,
+      "hits_rel": 0.13970588235294118
+     },
+     {
+      "threshold": 0.24986324578573751,
+      "area_km2_per_no_report_day": 415.625,
+      "area_rel": 0.03180296508847441,
+      "hits": 42,
+      "hits_rel": 0.10294117647058823
+     },
+     {
+      "threshold": 0.27249643861701994,
+      "area_km2_per_no_report_day": 240.625,
+      "area_rel": 0.018412242945958873,
+      "hits": 33,
+      "hits_rel": 0.08088235294117647
+     },
+     {
+      "threshold": 0.2971797985952435,
+      "area_km2_per_no_report_day": 93.75,
+      "area_rel": 0.007173601147776184,
+      "hits": 21,
+      "hits_rel": 0.051470588235294115
+     },
+     {
+      "threshold": 0.3240990346197988,
+      "area_km2_per_no_report_day": 12.5,
+      "area_rel": 0.0009564801530368245,
+      "hits": 16,
+      "hits_rel": 0.0392156862745098
+     },
+     {
+      "threshold": 0.3534566775332852,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 11,
+      "hits_rel": 0.02696078431372549
+     },
+     {
+      "threshold": 0.3854736038921754,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 6,
+      "hits_rel": 0.014705882352941176
+     },
+     {
+      "threshold": 0.42039069776416643,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 5,
+      "hits_rel": 0.012254901960784314
+     },
+     {
+      "threshold": 0.45847066305499135,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 2,
+      "hits_rel": 0.004901960784313725
+     },
+     {
+      "threshold": 0.5,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 0,
+      "hits_rel": 0.0
+     }
+    ],
+    "two_stage": [
+     {
+      "threshold": 0.003,
+      "area_km2_per_no_report_day": 68650.0,
+      "area_rel": 5.25298900047824,
+      "hits": 682,
+      "hits_rel": 1.6715686274509804
+     },
+     {
+      "threshold": 0.00327174696414563,
+      "area_km2_per_no_report_day": 65681.25,
+      "area_rel": 5.025824964131994,
+      "hits": 674,
+      "hits_rel": 1.6519607843137254
+     },
+     {
+      "threshold": 0.0035681093991320467,
+      "area_km2_per_no_report_day": 62603.125,
+      "area_rel": 4.790291726446676,
+      "hits": 669,
+      "hits_rel": 1.6397058823529411
+     },
+     {
+      "threshold": 0.003891317031449915,
+      "area_km2_per_no_report_day": 59600.0,
+      "area_rel": 4.560497369679579,
+      "hits": 657,
+      "hits_rel": 1.6102941176470589
+     },
+     {
+      "threshold": 0.0042438015613914795,
+      "area_km2_per_no_report_day": 56684.375,
+      "area_rel": 4.337398373983739,
+      "hits": 649,
+      "hits_rel": 1.5906862745098038
+     },
+     {
+      "threshold": 0.00462821495830635,
+      "area_km2_per_no_report_day": 53650.0,
+      "area_rel": 4.105212816834051,
+      "hits": 637,
+      "hits_rel": 1.5612745098039216
+     },
+     {
+      "threshold": 0.005047449413084058,
+      "area_km2_per_no_report_day": 50600.0,
+      "area_rel": 3.8718316594930657,
+      "hits": 630,
+      "hits_rel": 1.5441176470588236
+     },
+     {
+      "threshold": 0.0055046590979788,
+      "area_km2_per_no_report_day": 47678.125,
+      "area_rel": 3.648254423720708,
+      "hits": 618,
+      "hits_rel": 1.5147058823529411
+     },
+     {
+      "threshold": 0.006003283897489584,
+      "area_km2_per_no_report_day": 44771.875,
+      "area_rel": 3.425872788139646,
+      "hits": 613,
+      "hits_rel": 1.5024509803921569
+     },
+     {
+      "threshold": 0.006547075288838628,
+      "area_km2_per_no_report_day": 42034.375,
+      "area_rel": 3.2164036346245815,
+      "hits": 604,
+      "hits_rel": 1.4803921568627452
+     },
+     {
+      "threshold": 0.007140124566763549,
+      "area_km2_per_no_report_day": 39256.25,
+      "area_rel": 3.0038259206121474,
+      "hits": 595,
+      "hits_rel": 1.4583333333333333
+     },
+     {
+      "threshold": 0.007786893624976745,
+      "area_km2_per_no_report_day": 36496.875,
+      "area_rel": 2.792682926829268,
+      "hits": 585,
+      "hits_rel": 1.4338235294117647
+     },
+     {
+      "threshold": 0.008492248525880873,
+      "area_km2_per_no_report_day": 33796.875,
+      "area_rel": 2.586083213773314,
+      "hits": 579,
+      "hits_rel": 1.4191176470588236
+     },
+     {
+      "threshold": 0.009261496111106977,
+      "area_km2_per_no_report_day": 31328.125,
+      "area_rel": 2.397178383548541,
+      "hits": 573,
+      "hits_rel": 1.4044117647058822
+     },
+     {
+      "threshold": 0.01010042392832026,
+      "area_km2_per_no_report_day": 28896.875,
+      "area_rel": 2.211142993782879,
+      "hits": 566,
+      "hits_rel": 1.3872549019607843
+     },
+     {
+      "threshold": 0.011015343774688553,
+      "area_km2_per_no_report_day": 26690.625,
+      "area_rel": 2.0423242467718796,
+      "hits": 558,
+      "hits_rel": 1.3676470588235294
+     },
+     {
+      "threshold": 0.01201313918461924,
+      "area_km2_per_no_report_day": 24534.375,
+      "area_rel": 1.8773314203730274,
+      "hits": 540,
+      "hits_rel": 1.3235294117647058
+     },
+     {
+      "threshold": 0.01310131721904563,
+      "area_km2_per_no_report_day": 22781.25,
+      "area_rel": 1.7431850789096126,
+      "hits": 522,
+      "hits_rel": 1.2794117647058822
+     },
+     {
+      "threshold": 0.014288064945907123,
+      "area_km2_per_no_report_day": 21003.125,
+      "area_rel": 1.6071257771401244,
+      "hits": 503,
+      "hits_rel": 1.232843137254902
+     },
+     {
+      "threshold": 0.015582311036762393,
+      "area_km2_per_no_report_day": 19356.25,
+      "area_rel": 1.4811095169775228,
+      "hits": 487,
+      "hits_rel": 1.1936274509803921
+     },
+     {
+      "threshold": 0.01699379294296676,
+      "area_km2_per_no_report_day": 17743.75,
+      "area_rel": 1.3577235772357723,
+      "hits": 465,
+      "hits_rel": 1.1397058823529411
+     },
+     {
+      "threshold": 0.018533130156823636,
+      "area_km2_per_no_report_day": 16425.0,
+      "area_rel": 1.2568149210903874,
+      "hits": 448,
+      "hits_rel": 1.0980392156862746
+     },
+     {
+      "threshold": 0.020211904108901165,
+      "area_km2_per_no_report_day": 15159.375,
+      "area_rel": 1.1599713055954088,
+      "hits": 424,
+      "hits_rel": 1.0392156862745099
+     },
+     {
+      "threshold": 0.0220427453026333,
+      "area_km2_per_no_report_day": 13950.0,
+      "area_rel": 1.067431850789096,
+      "hits": 394,
+      "hits_rel": 0.9656862745098039
+     },
+     {
+      "threshold": 0.024039428341775273,
+      "area_km2_per_no_report_day": 12893.75,
+      "area_rel": 0.9866092778574844,
+      "hits": 380,
+      "hits_rel": 0.9313725490196079
+     },
+     {
+      "threshold": 0.02621697556566654,
+      "area_km2_per_no_report_day": 11850.0,
+      "area_rel": 0.9067431850789096,
+      "hits": 367,
+      "hits_rel": 0.8995098039215687
+     },
+     {
+      "threshold": 0.028591770072016527,
+      "area_km2_per_no_report_day": 10737.5,
+      "area_rel": 0.8216164514586323,
+      "hits": 357,
+      "hits_rel": 0.875
+     },
+     {
+      "threshold": 0.031181678977556623,
+      "area_km2_per_no_report_day": 9678.125,
+      "area_rel": 0.7405547584887614,
+      "hits": 346,
+      "hits_rel": 0.8480392156862745
+     },
+     {
+      "threshold": 0.03400618784392815,
+      "area_km2_per_no_report_day": 8659.375,
+      "area_rel": 0.6626016260162602,
+      "hits": 332,
+      "hits_rel": 0.8137254901960784
+     },
+     {
+      "threshold": 0.0370865472801793,
+      "area_km2_per_no_report_day": 7753.125,
+      "area_rel": 0.5932568149210904,
+      "hits": 318,
+      "hits_rel": 0.7794117647058824
+     },
+     {
+      "threshold": 0.040445932824856624,
+      "area_km2_per_no_report_day": 6737.5,
+      "area_rel": 0.5155428024868484,
+      "hits": 300,
+      "hits_rel": 0.7352941176470589
+     },
+     {
+      "threshold": 0.04410961931058754,
+      "area_km2_per_no_report_day": 5881.25,
+      "area_rel": 0.4500239120038259,
+      "hits": 286,
+      "hits_rel": 0.7009803921568627
+     },
+     {
+      "threshold": 0.048105171023011394,
+      "area_km2_per_no_report_day": 5068.75,
+      "area_rel": 0.38785270205643235,
+      "hits": 278,
+      "hits_rel": 0.6813725490196079
+     },
+     {
+      "threshold": 0.05,
+      "area_km2_per_no_report_day": 4740.625,
+      "area_rel": 0.3627450980392157,
+      "hits": 267,
+      "hits_rel": 0.6544117647058824
+     },
+     {
+      "threshold": 0.052462649084747924,
+      "area_km2_per_no_report_day": 4353.125,
+      "area_rel": 0.3330942132950741,
+      "hits": 261,
+      "hits_rel": 0.6397058823529411
+     },
+     {
+      "threshold": 0.057214837624687126,
+      "area_km2_per_no_report_day": 3725.0,
+      "area_rel": 0.2850310856049737,
+      "hits": 247,
+      "hits_rel": 0.6053921568627451
+     },
+     {
+      "threshold": 0.06239749043421836,
+      "area_km2_per_no_report_day": 3146.875,
+      "area_rel": 0.24079387852702056,
+      "hits": 228,
+      "hits_rel": 0.5588235294117647
+     },
+     {
+      "threshold": 0.06804959996615327,
+      "area_km2_per_no_report_day": 2656.25,
+      "area_rel": 0.2032520325203252,
+      "hits": 207,
+      "hits_rel": 0.5073529411764706
+     },
+     {
+      "threshold": 0.07421369070019548,
+      "area_km2_per_no_report_day": 2200.0,
+      "area_rel": 0.1683405069344811,
+      "hits": 187,
+      "hits_rel": 0.4583333333333333
+     },
+     {
+      "threshold": 0.0809361390821357,
+      "area_km2_per_no_report_day": 1725.0,
+      "area_rel": 0.13199426111908177,
+      "hits": 157,
+      "hits_rel": 0.38480392156862747
+     },
+     {
+      "threshold": 0.0882675224438819,
+      "area_km2_per_no_report_day": 1406.25,
+      "area_rel": 0.10760401721664276,
+      "hits": 141,
+      "hits_rel": 0.34558823529411764
+     },
+     {
+      "threshold": 0.09626299952947558,
+      "area_km2_per_no_report_day": 1137.5,
+      "area_rel": 0.08703969392635102,
+      "hits": 124,
+      "hits_rel": 0.30392156862745096
+     },
+     {
+      "threshold": 0.10498272549003793,
+      "area_km2_per_no_report_day": 943.75,
+      "area_rel": 0.07221425155428025,
+      "hits": 104,
+      "hits_rel": 0.2549019607843137
+     },
+     {
+      "threshold": 0.11449230446992177,
+      "area_km2_per_no_report_day": 765.625,
+      "area_rel": 0.0585844093735055,
+      "hits": 78,
+      "hits_rel": 0.19117647058823528
+     },
+     {
+      "threshold": 0.12486328318916778,
+      "area_km2_per_no_report_day": 637.5,
+      "area_rel": 0.04878048780487805,
+      "hits": 69,
+      "hits_rel": 0.16911764705882354
+     },
+     {
+      "threshold": 0.1361736892358052,
+      "area_km2_per_no_report_day": 506.25,
+      "area_rel": 0.03873744619799139,
+      "hits": 58,
+      "hits_rel": 0.14215686274509803
+     },
+     {
+      "threshold": 0.14850861811791863,
+      "area_km2_per_no_report_day": 362.5,
+      "area_rel": 0.02773792443806791,
+      "hits": 45,
+      "hits_rel": 0.11029411764705882
+     },
+     {
+      "threshold": 0.16196087349225416,
+      "area_km2_per_no_report_day": 231.25,
+      "area_rel": 0.017694882831181254,
+      "hits": 39,
+      "hits_rel": 0.09558823529411764
+     },
+     {
+      "threshold": 0.17663166538621883,
+      "area_km2_per_no_report_day": 150.0,
+      "area_rel": 0.011477761836441894,
+      "hits": 34,
+      "hits_rel": 0.08333333333333333
+     },
+     {
+      "threshold": 0.19263137166644934,
+      "area_km2_per_no_report_day": 71.875,
+      "area_rel": 0.005499760879961741,
+      "hits": 28,
+      "hits_rel": 0.06862745098039216
+     },
+     {
+      "threshold": 0.21008036848297126,
+      "area_km2_per_no_report_day": 34.375,
+      "area_rel": 0.0026303204208512673,
+      "hits": 19,
+      "hits_rel": 0.04656862745098039
+     },
+     {
+      "threshold": 0.22910993593691864,
+      "area_km2_per_no_report_day": 12.5,
+      "area_rel": 0.0009564801530368245,
+      "hits": 15,
+      "hits_rel": 0.03676470588235294
+     },
+     {
+      "threshold": 0.24986324578573751,
+      "area_km2_per_no_report_day": 3.125,
+      "area_rel": 0.00023912003825920613,
+      "hits": 11,
+      "hits_rel": 0.02696078431372549
+     },
+     {
+      "threshold": 0.27249643861701994,
+      "area_km2_per_no_report_day": 3.125,
+      "area_rel": 0.00023912003825920613,
+      "hits": 8,
+      "hits_rel": 0.0196078431372549
+     },
+     {
+      "threshold": 0.2971797985952435,
+      "area_km2_per_no_report_day": 3.125,
+      "area_rel": 0.00023912003825920613,
+      "hits": 6,
+      "hits_rel": 0.014705882352941176
+     },
+     {
+      "threshold": 0.3240990346197988,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 6,
+      "hits_rel": 0.014705882352941176
+     },
+     {
+      "threshold": 0.3534566775332852,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 5,
+      "hits_rel": 0.012254901960784314
+     },
+     {
+      "threshold": 0.3854736038921754,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 3,
+      "hits_rel": 0.007352941176470588
+     },
+     {
+      "threshold": 0.42039069776416643,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 2,
+      "hits_rel": 0.004901960784313725
+     },
+     {
+      "threshold": 0.45847066305499135,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 0,
+      "hits_rel": 0.0
+     },
+     {
+      "threshold": 0.5,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 0,
+      "hits_rel": 0.0
+     }
+    ]
+   },
+   "missed": {
+    "count": 141,
+    "kept": 267,
+    "false_alarm_points": 4182,
+    "missed_dates": 16,
+    "missed_by_date_top": [
+     [
+      "2023-04-15",
+      27
+     ],
+     [
+      "2022-01-15",
+      22
+     ],
+     [
+      "2022-04-01",
+      22
+     ],
+     [
+      "2023-08-15",
+      17
+     ],
+     [
+      "2022-06-22",
+      14
+     ],
+     [
+      "2023-06-01",
+      12
+     ],
+     [
+      "2022-03-15",
+      8
+     ],
+     [
+      "2023-07-22",
+      5
+     ],
+     [
+      "2022-03-08",
+      3
+     ],
+     [
+      "2023-06-08",
+      3
+     ]
+    ],
+    "missed_by_month": {
+     "01": 23,
+     "03": 13,
+     "04": 49,
+     "06": 29,
+     "07": 7,
+     "08": 18,
+     "09": 1,
+     "12": 1
+    },
+    "share_missed_on_top3_dates": 0.5035460992907801,
+    "max_abs_auc_minus_half_missed_vs_false_alarm": 0.14575807835675358,
+    "top_predictors_missed_vs_false_alarm": [
+     {
+      "predictor": "x_shear06_v_nearby_max_max",
+      "auc_missed_vs_false_alarm": 0.6457580783567536,
+      "auc_kept_vs_false_alarm": 0.7681207314386429,
+      "auc_missed_vs_kept": 0.34095678274497304
+     },
+     {
+      "predictor": "int_srh_shear",
+      "auc_missed_vs_false_alarm": 0.6419694672541219,
+      "auc_kept_vs_false_alarm": 0.8095296947681968,
+      "auc_missed_vs_kept": 0.25720508938295217
+     },
+     {
+      "predictor": "int_uh_shear",
+      "auc_missed_vs_false_alarm": 0.6276527909209004,
+      "auc_kept_vs_false_alarm": 0.8351540488306404,
+      "auc_missed_vs_kept": 0.2080112625175977
+     },
+     {
+      "predictor": "x_shear06_max",
+      "auc_missed_vs_false_alarm": 0.6185679253538467,
+      "auc_kept_vs_false_alarm": 0.7708361320229197,
+      "auc_missed_vs_kept": 0.3476771057454777
+     },
+     {
+      "predictor": "int_cape_shear",
+      "auc_missed_vs_false_alarm": 0.618498393995204,
+      "auc_kept_vs_false_alarm": 0.8506892388818138,
+      "auc_missed_vs_kept": 0.21961909315483305
+     },
+     {
+      "predictor": "x_srh01_max",
+      "auc_missed_vs_false_alarm": 0.6088114886155119,
+      "auc_kept_vs_false_alarm": 0.8129467828055676,
+      "auc_missed_vs_kept": 0.23062926660822908
+     },
+     {
+      "predictor": "x_shear06_mean",
+      "auc_missed_vs_false_alarm": 0.6045259826816041,
+      "auc_kept_vs_false_alarm": 0.7549122599619915,
+      "auc_missed_vs_kept": 0.4265944165537759
+     },
+     {
+      "predictor": "x_sbcin_nearby_max_mean",
+      "auc_missed_vs_false_alarm": 0.593706224922074,
+      "auc_kept_vs_false_alarm": 0.3711268375076348,
+      "auc_missed_vs_kept": 0.735304273912928
+     }
+    ]
+   }
+  },
+  "west": {
+   "uncorrected_at_5pct": {
+    "area_km2_per_no_report_day": 12302.41935483871,
+    "hits": 1337
+   },
+   "feasible_points": {
+    "uncorrected": 0,
+    "two_stage": 0
+   },
+   "best_hits_rel_with_area_le_0.60": {
+    "uncorrected": 0.8145100972326104,
+    "two_stage": 0.7696335078534031
+   },
+   "best_area_rel_with_hits_ge_0.90": {
+    "uncorrected": 0.7663716814159293,
+    "two_stage": 0.8333333333333333
+   },
+   "curves": {
+    "uncorrected": [
+     {
+      "threshold": 0.003,
+      "area_km2_per_no_report_day": 295947.5806451613,
+      "area_rel": 24.056047197640115,
+      "hits": 3443,
+      "hits_rel": 2.575168287210172
+     },
+     {
+      "threshold": 0.00327174696414563,
+      "area_km2_per_no_report_day": 278067.3387096774,
+      "area_rel": 22.602654867256636,
+      "hits": 3426,
+      "hits_rel": 2.56245325355273
+     },
+     {
+      "threshold": 0.0035681093991320467,
+      "area_km2_per_no_report_day": 261337.5,
+      "area_rel": 21.242772861356933,
+      "hits": 3407,
+      "hits_rel": 2.548242333582648
+     },
+     {
+      "threshold": 0.003891317031449915,
+      "area_km2_per_no_report_day": 245318.9516129032,
+      "area_rel": 19.940707964601767,
+      "hits": 3385,
+      "hits_rel": 2.531787584143605
+     },
+     {
+      "threshold": 0.0042438015613914795,
+      "area_km2_per_no_report_day": 230073.38709677418,
+      "area_rel": 18.701474926253685,
+      "hits": 3374,
+      "hits_rel": 2.5235602094240837
+     },
+     {
+      "threshold": 0.00462821495830635,
+      "area_km2_per_no_report_day": 215669.75806451612,
+      "area_rel": 17.530678466076694,
+      "hits": 3347,
+      "hits_rel": 2.5033657442034407
+     },
+     {
+      "threshold": 0.005047449413084058,
+      "area_km2_per_no_report_day": 201817.74193548388,
+      "area_rel": 16.404719764011798,
+      "hits": 3316,
+      "hits_rel": 2.480179506357517
+     },
+     {
+      "threshold": 0.0055046590979788,
+      "area_km2_per_no_report_day": 188484.67741935485,
+      "area_rel": 15.32094395280236,
+      "hits": 3286,
+      "hits_rel": 2.4577412116679134
+     },
+     {
+      "threshold": 0.006003283897489584,
+      "area_km2_per_no_report_day": 176145.96774193548,
+      "area_rel": 14.317994100294985,
+      "hits": 3268,
+      "hits_rel": 2.444278234854151
+     },
+     {
+      "threshold": 0.006547075288838628,
+      "area_km2_per_no_report_day": 164289.9193548387,
+      "area_rel": 13.35427728613569,
+      "hits": 3236,
+      "hits_rel": 2.4203440538519074
+     },
+     {
+      "threshold": 0.007140124566763549,
+      "area_km2_per_no_report_day": 152695.16129032258,
+      "area_rel": 12.411799410029497,
+      "hits": 3205,
+      "hits_rel": 2.3971578160059837
+     },
+     {
+      "threshold": 0.007786893624976745,
+      "area_km2_per_no_report_day": 141383.46774193548,
+      "area_rel": 11.492330383480825,
+      "hits": 3171,
+      "hits_rel": 2.3717277486910993
+     },
+     {
+      "threshold": 0.008492248525880873,
+      "area_km2_per_no_report_day": 130953.62903225806,
+      "area_rel": 10.644542772861357,
+      "hits": 3148,
+      "hits_rel": 2.3545250560957367
+     },
+     {
+      "threshold": 0.009261496111106977,
+      "area_km2_per_no_report_day": 120618.14516129032,
+      "area_rel": 9.804424778761062,
+      "hits": 3109,
+      "hits_rel": 2.325355272999252
+     },
+     {
+      "threshold": 0.01010042392832026,
+      "area_km2_per_no_report_day": 111385.8870967742,
+      "area_rel": 9.053982300884956,
+      "hits": 3072,
+      "hits_rel": 2.2976813762154076
+     },
+     {
+      "threshold": 0.011015343774688553,
+      "area_km2_per_no_report_day": 102523.79032258065,
+      "area_rel": 8.33362831858407,
+      "hits": 3031,
+      "hits_rel": 2.2670157068062826
+     },
+     {
+      "threshold": 0.01201313918461924,
+      "area_km2_per_no_report_day": 93981.04838709677,
+      "area_rel": 7.639233038348082,
+      "hits": 2969,
+      "hits_rel": 2.2206432311144355
+     },
+     {
+      "threshold": 0.01310131721904563,
+      "area_km2_per_no_report_day": 85917.33870967742,
+      "area_rel": 6.98377581120944,
+      "hits": 2909,
+      "hits_rel": 2.175766641735228
+     },
+     {
+      "threshold": 0.014288064945907123,
+      "area_km2_per_no_report_day": 78488.70967741935,
+      "area_rel": 6.379941002949852,
+      "hits": 2837,
+      "hits_rel": 2.1219147344801796
+     },
+     {
+      "threshold": 0.015582311036762393,
+      "area_km2_per_no_report_day": 71074.59677419355,
+      "area_rel": 5.777286135693215,
+      "hits": 2759,
+      "hits_rel": 2.06357516828721
+     },
+     {
+      "threshold": 0.01699379294296676,
+      "area_km2_per_no_report_day": 64339.1129032258,
+      "area_rel": 5.229793510324483,
+      "hits": 2676,
+      "hits_rel": 2.0014958863126404
+     },
+     {
+      "threshold": 0.018533130156823636,
+      "area_km2_per_no_report_day": 57785.08064516129,
+      "area_rel": 4.697050147492625,
+      "hits": 2592,
+      "hits_rel": 1.9386686611817503
+     },
+     {
+      "threshold": 0.020211904108901165,
+      "area_km2_per_no_report_day": 52112.903225806454,
+      "area_rel": 4.23598820058997,
+      "hits": 2529,
+      "hits_rel": 1.8915482423335825
+     },
+     {
+      "threshold": 0.0220427453026333,
+      "area_km2_per_no_report_day": 46495.16129032258,
+      "area_rel": 3.7793510324483774,
+      "hits": 2452,
+      "hits_rel": 1.8339566192969334
+     },
+     {
+      "threshold": 0.024039428341775273,
+      "area_km2_per_no_report_day": 41349.1935483871,
+      "area_rel": 3.361061946902655,
+      "hits": 2367,
+      "hits_rel": 1.7703814510097233
+     },
+     {
+      "threshold": 0.02621697556566654,
+      "area_km2_per_no_report_day": 36591.532258064515,
+      "area_rel": 2.9743362831858406,
+      "hits": 2256,
+      "hits_rel": 1.68735976065819
+     },
+     {
+      "threshold": 0.028591770072016527,
+      "area_km2_per_no_report_day": 32272.983870967742,
+      "area_rel": 2.6233038348082593,
+      "hits": 2126,
+      "hits_rel": 1.5901271503365744
+     },
+     {
+      "threshold": 0.031181678977556623,
+      "area_km2_per_no_report_day": 28255.645161290322,
+      "area_rel": 2.2967551622418876,
+      "hits": 1982,
+      "hits_rel": 1.4824233358264771
+     },
+     {
+      "threshold": 0.03400618784392815,
+      "area_km2_per_no_report_day": 24648.387096774193,
+      "area_rel": 2.0035398230088495,
+      "hits": 1837,
+      "hits_rel": 1.3739715781600599
+     },
+     {
+      "threshold": 0.0370865472801793,
+      "area_km2_per_no_report_day": 21077.41935483871,
+      "area_rel": 1.7132743362831857,
+      "hits": 1712,
+      "hits_rel": 1.2804786836200448
+     },
+     {
+      "threshold": 0.040445932824856624,
+      "area_km2_per_no_report_day": 18228.629032258064,
+      "area_rel": 1.4817109144542773,
+      "hits": 1587,
+      "hits_rel": 1.18698578908003
+     },
+     {
+      "threshold": 0.04410961931058754,
+      "area_km2_per_no_report_day": 15630.241935483871,
+      "area_rel": 1.2705014749262538,
+      "hits": 1474,
+      "hits_rel": 1.1024682124158565
+     },
+     {
+      "threshold": 0.048105171023011394,
+      "area_km2_per_no_report_day": 13289.516129032258,
+      "area_rel": 1.0802359882005899,
+      "hits": 1377,
+      "hits_rel": 1.0299177262528048
+     },
+     {
+      "threshold": 0.05,
+      "area_km2_per_no_report_day": 12302.41935483871,
+      "area_rel": 1.0,
+      "hits": 1337,
+      "hits_rel": 1.0
+     },
+     {
+      "threshold": 0.052462649084747924,
+      "area_km2_per_no_report_day": 11173.790322580646,
+      "area_rel": 0.908259587020649,
+      "hits": 1297,
+      "hits_rel": 0.9700822737471952
+     },
+     {
+      "threshold": 0.057214837624687126,
+      "area_km2_per_no_report_day": 9428.225806451614,
+      "area_rel": 0.7663716814159293,
+      "hits": 1227,
+      "hits_rel": 0.9177262528047868
+     },
+     {
+      "threshold": 0.06239749043421836,
+      "area_km2_per_no_report_day": 7965.725806451613,
+      "area_rel": 0.6474926253687315,
+      "hits": 1166,
+      "hits_rel": 0.8721017202692596
+     },
+     {
+      "threshold": 0.06804959996615327,
+      "area_km2_per_no_report_day": 6710.080645161291,
+      "area_rel": 0.5454277286135694,
+      "hits": 1089,
+      "hits_rel": 0.8145100972326104
+     },
+     {
+      "threshold": 0.07421369070019548,
+      "area_km2_per_no_report_day": 5661.290322580645,
+      "area_rel": 0.4601769911504424,
+      "hits": 1012,
+      "hits_rel": 0.7569184741959611
+     },
+     {
+      "threshold": 0.0809361390821357,
+      "area_km2_per_no_report_day": 4688.709677419355,
+      "area_rel": 0.3811209439528024,
+      "hits": 947,
+      "hits_rel": 0.7083021690351533
+     },
+     {
+      "threshold": 0.0882675224438819,
+      "area_km2_per_no_report_day": 3795.967741935484,
+      "area_rel": 0.30855457227138644,
+      "hits": 863,
+      "hits_rel": 0.6454749439042633
+     },
+     {
+      "threshold": 0.09626299952947558,
+      "area_km2_per_no_report_day": 3052.016129032258,
+      "area_rel": 0.24808259587020648,
+      "hits": 763,
+      "hits_rel": 0.5706806282722513
+     },
+     {
+      "threshold": 0.10498272549003793,
+      "area_km2_per_no_report_day": 2264.516129032258,
+      "area_rel": 0.184070796460177,
+      "hits": 662,
+      "hits_rel": 0.4951383694839192
+     },
+     {
+      "threshold": 0.11449230446992177,
+      "area_km2_per_no_report_day": 1760.0806451612902,
+      "area_rel": 0.1430678466076696,
+      "hits": 589,
+      "hits_rel": 0.4405385190725505
+     },
+     {
+      "threshold": 0.12486328318916778,
+      "area_km2_per_no_report_day": 1350.0,
+      "area_rel": 0.10973451327433628,
+      "hits": 499,
+      "hits_rel": 0.37322363500373973
+     },
+     {
+      "threshold": 0.1361736892358052,
+      "area_km2_per_no_report_day": 997.983870967742,
+      "area_rel": 0.08112094395280235,
+      "hits": 409,
+      "hits_rel": 0.3059087509349289
+     },
+     {
+      "threshold": 0.14850861811791863,
+      "area_km2_per_no_report_day": 740.3225806451613,
+      "area_rel": 0.06017699115044248,
+      "hits": 315,
+      "hits_rel": 0.2356020942408377
+     },
+     {
+      "threshold": 0.16196087349225416,
+      "area_km2_per_no_report_day": 500.80645161290323,
+      "area_rel": 0.04070796460176991,
+      "hits": 236,
+      "hits_rel": 0.17651458489154825
+     },
+     {
+      "threshold": 0.17663166538621883,
+      "area_km2_per_no_report_day": 330.241935483871,
+      "area_rel": 0.026843657817109144,
+      "hits": 191,
+      "hits_rel": 0.14285714285714285
+     },
+     {
+      "threshold": 0.19263137166644934,
+      "area_km2_per_no_report_day": 210.48387096774192,
+      "area_rel": 0.01710914454277286,
+      "hits": 150,
+      "hits_rel": 0.11219147344801796
+     },
+     {
+      "threshold": 0.21008036848297126,
+      "area_km2_per_no_report_day": 123.38709677419355,
+      "area_rel": 0.010029498525073746,
+      "hits": 120,
+      "hits_rel": 0.08975317875841436
+     },
+     {
+      "threshold": 0.22910993593691864,
+      "area_km2_per_no_report_day": 68.95161290322581,
+      "area_rel": 0.005604719764011799,
+      "hits": 83,
+      "hits_rel": 0.06207928197456993
+     },
+     {
+      "threshold": 0.24986324578573751,
+      "area_km2_per_no_report_day": 32.66129032258065,
+      "area_rel": 0.002654867256637168,
+      "hits": 44,
+      "hits_rel": 0.032909498878085267
+     },
+     {
+      "threshold": 0.27249643861701994,
+      "area_km2_per_no_report_day": 18.14516129032258,
+      "area_rel": 0.0014749262536873156,
+      "hits": 34,
+      "hits_rel": 0.025430067314884067
+     },
+     {
+      "threshold": 0.2971797985952435,
+      "area_km2_per_no_report_day": 7.258064516129032,
+      "area_rel": 0.0005899705014749262,
+      "hits": 23,
+      "hits_rel": 0.01720269259536275
+     },
+     {
+      "threshold": 0.3240990346197988,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 14,
+      "hits_rel": 0.010471204188481676
+     },
+     {
+      "threshold": 0.3534566775332852,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 9,
+      "hits_rel": 0.006731488406881077
+     },
+     {
+      "threshold": 0.3854736038921754,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 5,
+      "hits_rel": 0.0037397157816005983
+     },
+     {
+      "threshold": 0.42039069776416643,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 3,
+      "hits_rel": 0.002243829468960359
+     },
+     {
+      "threshold": 0.45847066305499135,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 3,
+      "hits_rel": 0.002243829468960359
+     },
+     {
+      "threshold": 0.5,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 0,
+      "hits_rel": 0.0
+     }
+    ],
+    "two_stage": [
+     {
+      "threshold": 0.003,
+      "area_km2_per_no_report_day": 193532.66129032258,
+      "area_rel": 15.73126843657817,
+      "hits": 3255,
+      "hits_rel": 2.4345549738219896
+     },
+     {
+      "threshold": 0.00327174696414563,
+      "area_km2_per_no_report_day": 180352.01612903227,
+      "area_rel": 14.659882005899705,
+      "hits": 3223,
+      "hits_rel": 2.4106207928197456
+     },
+     {
+      "threshold": 0.0035681093991320467,
+      "area_km2_per_no_report_day": 167487.09677419355,
+      "area_rel": 13.614159292035398,
+      "hits": 3191,
+      "hits_rel": 2.386686611817502
+     },
+     {
+      "threshold": 0.003891317031449915,
+      "area_km2_per_no_report_day": 155551.20967741936,
+      "area_rel": 12.643952802359882,
+      "hits": 3149,
+      "hits_rel": 2.355272999252057
+     },
+     {
+      "threshold": 0.0042438015613914795,
+      "area_km2_per_no_report_day": 144272.17741935485,
+      "area_rel": 11.727138643067846,
+      "hits": 3108,
+      "hits_rel": 2.324607329842932
+     },
+     {
+      "threshold": 0.00462821495830635,
+      "area_km2_per_no_report_day": 133559.2741935484,
+      "area_rel": 10.856342182890856,
+      "hits": 3075,
+      "hits_rel": 2.299925205684368
+     },
+     {
+      "threshold": 0.005047449413084058,
+      "area_km2_per_no_report_day": 123579.43548387097,
+      "area_rel": 10.045132743362831,
+      "hits": 3033,
+      "hits_rel": 2.268511593118923
+     },
+     {
+      "threshold": 0.0055046590979788,
+      "area_km2_per_no_report_day": 114343.54838709677,
+      "area_rel": 9.294395280235987,
+      "hits": 2989,
+      "hits_rel": 2.235602094240838
+     },
+     {
+      "threshold": 0.006003283897489584,
+      "area_km2_per_no_report_day": 105554.03225806452,
+      "area_rel": 8.579941002949852,
+      "hits": 2938,
+      "hits_rel": 2.1974569932685117
+     },
+     {
+      "threshold": 0.006547075288838628,
+      "area_km2_per_no_report_day": 97163.70967741935,
+      "area_rel": 7.897935103244837,
+      "hits": 2886,
+      "hits_rel": 2.1585639491398654
+     },
+     {
+      "threshold": 0.007140124566763549,
+      "area_km2_per_no_report_day": 89107.25806451614,
+      "area_rel": 7.24306784660767,
+      "hits": 2832,
+      "hits_rel": 2.118175018698579
+     },
+     {
+      "threshold": 0.007786893624976745,
+      "area_km2_per_no_report_day": 81203.2258064516,
+      "area_rel": 6.600589970501474,
+      "hits": 2785,
+      "hits_rel": 2.0830216903515333
+     },
+     {
+      "threshold": 0.008492248525880873,
+      "area_km2_per_no_report_day": 74021.37096774194,
+      "area_rel": 6.016814159292036,
+      "hits": 2710,
+      "hits_rel": 2.0269259536275244
+     },
+     {
+      "threshold": 0.009261496111106977,
+      "area_km2_per_no_report_day": 67245.96774193548,
+      "area_rel": 5.466076696165191,
+      "hits": 2647,
+      "hits_rel": 1.9798055347793568
+     },
+     {
+      "threshold": 0.01010042392832026,
+      "area_km2_per_no_report_day": 60902.41935483871,
+      "area_rel": 4.9504424778761065,
+      "hits": 2581,
+      "hits_rel": 1.930441286462229
+     },
+     {
+      "threshold": 0.011015343774688553,
+      "area_km2_per_no_report_day": 55019.75806451613,
+      "area_rel": 4.472271386430679,
+      "hits": 2500,
+      "hits_rel": 1.8698578908002992
+     },
+     {
+      "threshold": 0.01201313918461924,
+      "area_km2_per_no_report_day": 49648.790322580644,
+      "area_rel": 4.035693215339233,
+      "hits": 2425,
+      "hits_rel": 1.8137621540762903
+     },
+     {
+      "threshold": 0.01310131721904563,
+      "area_km2_per_no_report_day": 44811.290322580644,
+      "area_rel": 3.6424778761061942,
+      "hits": 2346,
+      "hits_rel": 1.7546746447270007
+     },
+     {
+      "threshold": 0.014288064945907123,
+      "area_km2_per_no_report_day": 40209.67741935484,
+      "area_rel": 3.2684365781710913,
+      "hits": 2246,
+      "hits_rel": 1.6798803290949889
+     },
+     {
+      "threshold": 0.015582311036762393,
+      "area_km2_per_no_report_day": 35978.22580645161,
+      "area_rel": 2.9244837758112094,
+      "hits": 2144,
+      "hits_rel": 1.6035901271503366
+     },
+     {
+      "threshold": 0.01699379294296676,
+      "area_km2_per_no_report_day": 32135.08064516129,
+      "area_rel": 2.612094395280236,
+      "hits": 2054,
+      "hits_rel": 1.5362752430815259
+     },
+     {
+      "threshold": 0.018533130156823636,
+      "area_km2_per_no_report_day": 28215.725806451614,
+      "area_rel": 2.293510324483776,
+      "hits": 1953,
+      "hits_rel": 1.4607329842931938
+     },
+     {
+      "threshold": 0.020211904108901165,
+      "area_km2_per_no_report_day": 24753.629032258064,
+      "area_rel": 2.012094395280236,
+      "hits": 1830,
+      "hits_rel": 1.368735976065819
+     },
+     {
+      "threshold": 0.0220427453026333,
+      "area_km2_per_no_report_day": 21603.629032258064,
+      "area_rel": 1.756047197640118,
+      "hits": 1718,
+      "hits_rel": 1.2849663425579656
+     },
+     {
+      "threshold": 0.024039428341775273,
+      "area_km2_per_no_report_day": 18787.5,
+      "area_rel": 1.5271386430678466,
+      "hits": 1605,
+      "hits_rel": 1.2004487658937921
+     },
+     {
+      "threshold": 0.02621697556566654,
+      "area_km2_per_no_report_day": 16221.774193548386,
+      "area_rel": 1.31858407079646,
+      "hits": 1516,
+      "hits_rel": 1.1338818249813014
+     },
+     {
+      "threshold": 0.028591770072016527,
+      "area_km2_per_no_report_day": 13910.08064516129,
+      "area_rel": 1.130678466076696,
+      "hits": 1428,
+      "hits_rel": 1.068062827225131
+     },
+     {
+      "threshold": 0.031181678977556623,
+      "area_km2_per_no_report_day": 11968.548387096775,
+      "area_rel": 0.9728613569321534,
+      "hits": 1346,
+      "hits_rel": 1.006731488406881
+     },
+     {
+      "threshold": 0.03400618784392815,
+      "area_km2_per_no_report_day": 10252.016129032258,
+      "area_rel": 0.8333333333333333,
+      "hits": 1252,
+      "hits_rel": 0.9364248317127898
+     },
+     {
+      "threshold": 0.0370865472801793,
+      "area_km2_per_no_report_day": 8745.967741935483,
+      "area_rel": 0.7109144542772861,
+      "hits": 1187,
+      "hits_rel": 0.8878085265519821
+     },
+     {
+      "threshold": 0.040445932824856624,
+      "area_km2_per_no_report_day": 7439.5161290322585,
+      "area_rel": 0.6047197640117994,
+      "hits": 1099,
+      "hits_rel": 0.8219895287958116
+     },
+     {
+      "threshold": 0.04410961931058754,
+      "area_km2_per_no_report_day": 6300.0,
+      "area_rel": 0.5120943952802359,
+      "hits": 1029,
+      "hits_rel": 0.7696335078534031
+     },
+     {
+      "threshold": 0.048105171023011394,
+      "area_km2_per_no_report_day": 5283.870967741936,
+      "area_rel": 0.4294985250737463,
+      "hits": 944,
+      "hits_rel": 0.706058339566193
+     },
+     {
+      "threshold": 0.05,
+      "area_km2_per_no_report_day": 4870.1612903225805,
+      "area_rel": 0.39587020648967547,
+      "hits": 920,
+      "hits_rel": 0.6881077038145101
+     },
+     {
+      "threshold": 0.052462649084747924,
+      "area_km2_per_no_report_day": 4405.645161290323,
+      "area_rel": 0.35811209439528024,
+      "hits": 870,
+      "hits_rel": 0.6507105459985041
+     },
+     {
+      "threshold": 0.057214837624687126,
+      "area_km2_per_no_report_day": 3694.3548387096776,
+      "area_rel": 0.30029498525073745,
+      "hits": 785,
+      "hits_rel": 0.587135377711294
+     },
+     {
+      "threshold": 0.06239749043421836,
+      "area_km2_per_no_report_day": 3073.7903225806454,
+      "area_rel": 0.24985250737463127,
+      "hits": 718,
+      "hits_rel": 0.537023186237846
+     },
+     {
+      "threshold": 0.06804959996615327,
+      "area_km2_per_no_report_day": 2522.1774193548385,
+      "area_rel": 0.20501474926253685,
+      "hits": 660,
+      "hits_rel": 0.49364248317127896
+     },
+     {
+      "threshold": 0.07421369070019548,
+      "area_km2_per_no_report_day": 2068.548387096774,
+      "area_rel": 0.16814159292035397,
+      "hits": 610,
+      "hits_rel": 0.456245325355273
+     },
+     {
+      "threshold": 0.0809361390821357,
+      "area_km2_per_no_report_day": 1633.0645161290322,
+      "area_rel": 0.1327433628318584,
+      "hits": 566,
+      "hits_rel": 0.42333582647718776
+     },
+     {
+      "threshold": 0.0882675224438819,
+      "area_km2_per_no_report_day": 1215.725806451613,
+      "area_rel": 0.09882005899705014,
+      "hits": 521,
+      "hits_rel": 0.38967838444278236
+     },
+     {
+      "threshold": 0.09626299952947558,
+      "area_km2_per_no_report_day": 918.1451612903226,
+      "area_rel": 0.07463126843657816,
+      "hits": 464,
+      "hits_rel": 0.3470456245325355
+     },
+     {
+      "threshold": 0.10498272549003793,
+      "area_km2_per_no_report_day": 645.9677419354839,
+      "area_rel": 0.052507374631268436,
+      "hits": 401,
+      "hits_rel": 0.299925205684368
+     },
+     {
+      "threshold": 0.11449230446992177,
+      "area_km2_per_no_report_day": 497.1774193548387,
+      "area_rel": 0.04041297935103245,
+      "hits": 341,
+      "hits_rel": 0.2550486163051608
+     },
+     {
+      "threshold": 0.12486328318916778,
+      "area_km2_per_no_report_day": 330.241935483871,
+      "area_rel": 0.026843657817109144,
+      "hits": 276,
+      "hits_rel": 0.20643231114435304
+     },
+     {
+      "threshold": 0.1361736892358052,
+      "area_km2_per_no_report_day": 210.48387096774192,
+      "area_rel": 0.01710914454277286,
+      "hits": 229,
+      "hits_rel": 0.1712789827973074
+     },
+     {
+      "threshold": 0.14850861811791863,
+      "area_km2_per_no_report_day": 108.87096774193549,
+      "area_rel": 0.008849557522123894,
+      "hits": 184,
+      "hits_rel": 0.137621540762902
+     },
+     {
+      "threshold": 0.16196087349225416,
+      "area_km2_per_no_report_day": 58.064516129032256,
+      "area_rel": 0.00471976401179941,
+      "hits": 147,
+      "hits_rel": 0.1099476439790576
+     },
+     {
+      "threshold": 0.17663166538621883,
+      "area_km2_per_no_report_day": 36.29032258064516,
+      "area_rel": 0.0029498525073746312,
+      "hits": 118,
+      "hits_rel": 0.08825729244577413
+     },
+     {
+      "threshold": 0.19263137166644934,
+      "area_km2_per_no_report_day": 21.774193548387096,
+      "area_rel": 0.0017699115044247787,
+      "hits": 100,
+      "hits_rel": 0.07479431563201197
+     },
+     {
+      "threshold": 0.21008036848297126,
+      "area_km2_per_no_report_day": 18.14516129032258,
+      "area_rel": 0.0014749262536873156,
+      "hits": 84,
+      "hits_rel": 0.06282722513089005
+     },
+     {
+      "threshold": 0.22910993593691864,
+      "area_km2_per_no_report_day": 10.887096774193548,
+      "area_rel": 0.0008849557522123894,
+      "hits": 71,
+      "hits_rel": 0.053103964098728494
+     },
+     {
+      "threshold": 0.24986324578573751,
+      "area_km2_per_no_report_day": 7.258064516129032,
+      "area_rel": 0.0005899705014749262,
+      "hits": 51,
+      "hits_rel": 0.0381451009723261
+     },
+     {
+      "threshold": 0.27249643861701994,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 27,
+      "hits_rel": 0.02019446522064323
+     },
+     {
+      "threshold": 0.2971797985952435,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 25,
+      "hits_rel": 0.018698578908002993
+     },
+     {
+      "threshold": 0.3240990346197988,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 19,
+      "hits_rel": 0.014210919970082274
+     },
+     {
+      "threshold": 0.3534566775332852,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 15,
+      "hits_rel": 0.011219147344801795
+     },
+     {
+      "threshold": 0.3854736038921754,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 11,
+      "hits_rel": 0.008227374719521317
+     },
+     {
+      "threshold": 0.42039069776416643,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 11,
+      "hits_rel": 0.008227374719521317
+     },
+     {
+      "threshold": 0.45847066305499135,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 11,
+      "hits_rel": 0.008227374719521317
+     },
+     {
+      "threshold": 0.5,
+      "area_km2_per_no_report_day": 0.0,
+      "area_rel": 0.0,
+      "hits": 8,
+      "hits_rel": 0.005983545250560957
+     }
+    ]
+   },
+   "missed": {
+    "count": 430,
+    "kept": 907,
+    "false_alarm_points": 3390,
+    "missed_dates": 22,
+    "missed_by_date_top": [
+     [
+      "2023-07-22",
+      67
+     ],
+     [
+      "2022-08-22",
+      57
+     ],
+     [
+      "2022-08-08",
+      55
+     ],
+     [
+      "2023-08-01",
+      55
+     ],
+     [
+      "2022-08-15",
+      34
+     ],
+     [
+      "2022-09-01",
+      30
+     ],
+     [
+      "2022-09-22",
+      24
+     ],
+     [
+      "2022-06-22",
+      21
+     ],
+     [
+      "2023-06-22",
+      20
+     ],
+     [
+      "2022-07-15",
+      16
+     ]
+    ],
+    "missed_by_month": {
+     "05": 8,
+     "06": 43,
+     "07": 103,
+     "08": 219,
+     "09": 55,
+     "10": 2
+    },
+    "share_missed_on_top3_dates": 0.41627906976744183,
+    "max_abs_auc_minus_half_missed_vs_false_alarm": 0.25159635041503736,
+    "top_predictors_missed_vs_false_alarm": [
+     {
+      "predictor": "x_shear06_u_mean",
+      "auc_missed_vs_false_alarm": 0.2484036495849626,
+      "auc_kept_vs_false_alarm": 0.5434483678241667,
+      "auc_missed_vs_kept": 0.33854003743493755
+     },
+     {
+      "predictor": "x_shear06_u_max",
+      "auc_missed_vs_false_alarm": 0.2789414831584002,
+      "auc_kept_vs_false_alarm": 0.5683438871055345,
+      "auc_missed_vs_kept": 0.31916489320786645
+     },
+     {
+      "predictor": "x_shear06_u_nearby_max_mean",
+      "auc_missed_vs_false_alarm": 0.2992810592028538,
+      "auc_kept_vs_false_alarm": 0.5521954773264645,
+      "auc_missed_vs_kept": 0.3319004640906643
+     },
+     {
+      "predictor": "x_sbcape_nearby_max_max",
+      "auc_missed_vs_false_alarm": 0.6993235919599369,
+      "auc_kept_vs_false_alarm": 0.7025548584753784,
+      "auc_missed_vs_kept": 0.5404079382579934
+     },
+     {
+      "predictor": "x_shear06_mean",
+      "auc_missed_vs_false_alarm": 0.3014382246003979,
+      "auc_kept_vs_false_alarm": 0.7033215924650295,
+      "auc_missed_vs_kept": 0.14835517038024665
+     },
+     {
+      "predictor": "int_uh_shear",
+      "auc_missed_vs_false_alarm": 0.311977087192152,
+      "auc_kept_vs_false_alarm": 0.6880252900254656,
+      "auc_missed_vs_kept": 0.1689084895259096
+     },
+     {
+      "predictor": "x_sbcape_nearby_max_mean",
+      "auc_missed_vs_false_alarm": 0.6832918295945668,
+      "auc_kept_vs_false_alarm": 0.7166263379223542,
+      "auc_missed_vs_kept": 0.5503294787313145
+     },
+     {
+      "predictor": "x_uh25_nearby_max_max",
+      "auc_missed_vs_false_alarm": 0.32163716814159293,
+      "auc_kept_vs_false_alarm": 0.6442019299255545,
+      "auc_missed_vs_kept": 0.22122253275557038
+     }
+    ]
+   }
+  }
+ }
+}

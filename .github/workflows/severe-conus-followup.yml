@@ -1,0 +1,94 @@
+name: Severe CONUS follow-up (research, frozen models)
+# Research only. stage "freeze": refit the four CONUS models exactly as scoring run 44589486745 did,
+# prove the saved models reproduce those predictions and scores, and commit them with a SHA-256
+# manifest. stage "score": score the committed frozen models, unchanged, on the follow-up dates.
+# Rule: docs/severe-phase2-criteria.md section 6. Never loads 2025; never touches feed/publisher.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-v1/followup-request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-followup
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    env:
+      OPENBLAS_NUM_THREADS: '4'
+      OMP_NUM_THREADS: '4'
+      REQ: research/severe/conus-v1/followup-request.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 matplotlib==3.11.2 shapely==2.2.0
+      - id: req
+        run: |
+          echo "stage=$(jq -r .stage "$REQ")" >> "$GITHUB_OUTPUT"
+          echo "source=$(jq -r .source_extraction_run "$REQ")" >> "$GITHUB_OUTPUT"
+          echo "followup=$(jq -r '.followup_extraction_run // empty' "$REQ")" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        if: steps.req.outputs.stage == 'freeze'
+        with:
+          pattern: severe-conus-*
+          merge-multiple: true
+          path: tests/out/source
+          run-id: ${{ steps.req.outputs.source }}
+          github-token: ${{ github.token }}
+      - name: Refit, save and prove the frozen models
+        if: steps.req.outputs.stage == 'freeze'
+        run: |
+          set -e
+          out=research/severe/conus-v1/frozen
+          PYTHONPATH=tools/severe python3 tools/severe/conus_study.py --conus tests/out/source/conus --output tests/out/refit \
+            --arrays tests/out/refit-arrays --save-models "$out/models.pkl"
+          python3 - <<'PY' | tee "$out/refit-check.json"
+          import json
+          a = json.load(open("research/severe/conus-v1/study/scorecard.json"))["products"]
+          b = json.load(open("tests/out/refit/scorecard.json"))["products"]
+          diffs = {f"{p}/{m}": abs(a[p]["all_supported"]["models"][m]["brier"] - b[p]["all_supported"]["models"][m]["brier"])
+                   for p in a for m in a[p]["all_supported"]["models"]}
+          worst = max(diffs.values())
+          print(json.dumps({"compared_to": "research/severe/conus-v1/study/scorecard.json (run 44589486745)",
+                            "worst_brier_difference": worst, "status": "same_models" if worst < 1e-9 else "DIFFERENT",
+                            "by_product_model": diffs}, indent=1))
+          if worst >= 1e-9:
+              raise SystemExit("Refit does not reproduce the scored models")
+          PY
+          PYTHONPATH=tools/severe python3 tools/severe/conus_followup.py freeze-verify --models "$out/models.pkl" \
+            --conus tests/out/source/conus --arrays tests/out/refit-arrays --output "$out" --source-run 44589486745
+          echo "run_id: $GITHUB_RUN_ID" > "$out/run.txt"
+          echo "dest=$out" >> "$GITHUB_ENV"
+      - uses: actions/download-artifact@v4
+        if: steps.req.outputs.stage == 'score'
+        with:
+          pattern: severe-conus-*
+          merge-multiple: true
+          path: tests/out/followup
+          run-id: ${{ steps.req.outputs.followup }}
+          github-token: ${{ github.token }}
+      - name: Score the frozen models on the follow-up dates
+        if: steps.req.outputs.stage == 'score'
+        run: |
+          set -e
+          out=research/severe/conus-v1/followup-study
+          ls tests/out/followup/conus | wc -l
+          PYTHONPATH=tools/severe python3 tools/severe/conus_followup.py score \
+            --models research/severe/conus-v1/frozen/models.pkl --manifest research/severe/conus-v1/frozen/manifest.json \
+            --conus tests/out/followup/conus --request research/severe/conus-v1/followup-cases.json --output "$out"
+          { echo "run_id: $GITHUB_RUN_ID"; echo "followup_extraction_run: ${{ steps.req.outputs.followup }}"; } > "$out/run.txt"
+          cat "$out/scorecard.md" >> "$GITHUB_STEP_SUMMARY"
+          echo "dest=$out" >> "$GITHUB_ENV"
+      - name: Commit to the research branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$dest"
+          git commit -m "CONUS follow-up ${{ steps.req.outputs.stage }} (run $GITHUB_RUN_ID)"
+          for i in 1 2 3; do git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0; sleep 10; done
+          exit 1

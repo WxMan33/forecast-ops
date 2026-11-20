@@ -1,0 +1,27 @@
+{
+ "grid": {
+  "source": "HRRR CONUS 3 km Lambert grid, every 5th point (15 km)",
+  "samples": 76320,
+  "regional_box": "100-75W, 30-45N",
+  "regional_samples": 16413
+ },
+ "counts": {
+  "regional_supported": 14940,
+  "regional_masked": 1473,
+  "gap_land": 23898,
+  "outside_coverage": 36009
+ },
+ "us_land_samples_within_25mi": 38838,
+ "share_of_us_land_supported": 0.3846748030279623,
+ "edge_truncated_neighborhood": {
+  "total": 3396,
+  "on_us_land": 0,
+  "rule": "within 14 native cells (25 mi) of the HRRR domain edge"
+ },
+ "coast_or_border_exposed": {
+  "us_land_total": 7582,
+  "inside_regional_grid": 1875,
+  "rule": "land sample whose 25-mile disk extends past the US outline; reports stop at the coast/border, so labels there are biased low"
+ },
+ "viewer_mask_hidden_in_regional_grid": 1473
+}

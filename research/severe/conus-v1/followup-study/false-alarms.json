@@ -1,0 +1,2470 @@
+{
+ "status": "research_only_frozen_followup",
+ "protected_2025_outcomes_accessed": false,
+ "frozen_models_sha256": "a9ff6aa76b946c92a16d2148e3cdb1fb8920e6dd904789058edfddbde0af8d7a",
+ "dates": [
+  "2024-01-01",
+  "2024-01-08",
+  "2024-01-22",
+  "2024-02-01",
+  "2024-02-08",
+  "2024-02-22",
+  "2024-03-01",
+  "2024-03-08",
+  "2024-03-22",
+  "2024-04-01",
+  "2024-04-08",
+  "2024-04-22",
+  "2024-05-01",
+  "2024-05-08",
+  "2024-05-22",
+  "2024-06-01",
+  "2024-06-08",
+  "2024-06-22",
+  "2024-07-01",
+  "2024-07-08",
+  "2024-07-22",
+  "2024-08-01",
+  "2024-08-08",
+  "2024-08-22",
+  "2024-09-01",
+  "2024-09-08",
+  "2024-09-22",
+  "2024-10-01",
+  "2024-10-08",
+  "2024-10-22",
+  "2024-11-01",
+  "2024-11-08",
+  "2024-11-22",
+  "2024-12-01",
+  "2024-12-08",
+  "2024-12-22"
+ ],
+ "reference": "conus_v07_recipe",
+ "artifact_sha256_by_case": {
+  "2024-01-01": "489735efd54094a8842b578d1c4490dfcd3f8020b63685e534dccdffbf2c637c",
+  "2024-01-08": "bf908e5342a338b66b09a8f6aa56a53590cfa3a5015c195bd78539f9e122f912",
+  "2024-01-22": "15ca3e7e4f6b715ae0872c56faa1ef71d97157d87466ab53e0d7818327d868d2",
+  "2024-02-01": "4588e01db73faf178d414c99f2eeec93473ab89ddfaafc868527e0066cc12583",
+  "2024-02-08": "6f96e2df1066db8befcac7409de9d9cf0b055154b039e5cc2d3945ec3edbfcb7",
+  "2024-02-22": "490d464786811ee02d8352a51a5b855c23c1c90d31832b6d8868e200c0d3da3a",
+  "2024-03-01": "a9c612c208f28af78db97e963e3d5e450f967c12c89ed779b39440f292f5cba7",
+  "2024-03-08": "b4efbc10d2a8e62c5ee76729ed37d3feb546be940626bd17d73be3ba84b758c8",
+  "2024-03-22": "4bb9bf9d45d7c91ee54d496dbeb73854e174ba05d4451bd5e95140fc0c8448fd",
+  "2024-04-01": "6b3aef3cd0375dd62a23a9f3a6e5df20a5855d672eb8f4dd9ee8685a9934c1bb",
+  "2024-04-08": "075bd5172fcec4362c452d02652b927fb06cc827705db9717b240dd7b5d4d592",
+  "2024-04-22": "5575db778a28d4d92835d986f18cc3ff0dd9b2ff93e8778c7fa83f871b2e8d92",
+  "2024-05-01": "2f606d58b11e1262081280b68fbf5bc677531f741ff5e3f7aa5a43942b1e3491",
+  "2024-05-08": "9c522826831f416476b1af5185333cf10ac602fdc5369ce378368f5dc3fa58f5",
+  "2024-05-22": "d5b5be1c7b4a6935b738537533f151cd0169499e489450fdb33b6c46c1ac220c",
+  "2024-06-01": "0bfbacf64f43adcdc848e4749c5b14c22e96d0644f4368d4a04086344a85a0b6",
+  "2024-06-08": "6c48c55043bfe7b8c4d93b4055a540d9f72e28e5a23fe2079f3ca64fdd47ab77",
+  "2024-06-22": "99c41f9648b097dc46a87a0a980cccd788db7dc4a34ade3b117fdb5ed867f517",
+  "2024-07-01": "3075f366129c1b15e7625d7114c90f1e881a88132f3c3c59ba95b1b0d19477d2",
+  "2024-07-08": "294979e7e5a0d6482a59e9512e28e02c94d8e1bd455ac77924d71233d6033f64",
+  "2024-07-22": "35cb84ab701f127c75b20452a719fb305abb847aded1f22df6948da1ba6d1482",
+  "2024-08-01": "6e8eb56a173b13c4fd1664931c49f0154960a918b0fc98968c8965ef209861aa",
+  "2024-08-08": "c085bc6c3ea2f998072129023efa0c3005df1fb79555c4a4caaa5fa143473c1b",
+  "2024-08-22": "39f6f1c9a3017e0f07b0b90a926ac77aa5e546db3d7e9af35ac31073d1d9c678",
+  "2024-09-01": "8bc3ed465bb46e64cfd05d5b4cb3eb126b3a4c0664368f29aa8a5df030395e10",
+  "2024-09-08": "8ad98cb74c36e9b991b050c708837e8607780e9acb857b911dc3b224ae1fafaa",
+  "2024-09-22": "e5d7a42c6e8e1a35c084801f7f9fffa67d26fc03420c1b523e8b8501a0bc5641",
+  "2024-10-01": "5a416e744e5cf9cc72b42cd61072b72d3b7bfbc01f775bc601160bea164b4fc5",
+  "2024-10-08": "0eea5eee006e7ed70eae0b338e0d3aba6880489bdd67714abf3ec5bce910204e",
+  "2024-10-22": "dc49fc4467b9042117b116efa327a3c7322df40106016d91eddef6ea8cfe493d",
+  "2024-11-01": "9c48b6194f6d1cfebbfdd942f66335ea91aff5b212e797e7ab8e11c4e8afd407",
+  "2024-11-08": "d2c84354537e0678f47a249ed0f3aab805e1e493d91d3f8d0f529f6319276789",
+  "2024-11-22": "d4cd06e30f2b110cf7af1970c07e4664a13412177ae349c9f05fd99a8e473c9d",
+  "2024-12-01": "bec66eefdeb3c6198e9e32e571756a6260a9fb203d3fc858b995d64c334409ef",
+  "2024-12-08": "b584ba4faa27dd9271394b033d1fc7c6c81db9fffba141c463a72f4c264d8d31",
+  "2024-12-22": "1bcebc1cd531393c469180a61a56e2444fba14ea60be491db2bed75c2d603153"
+ },
+ "samples": {
+  "supported": 38838,
+  "coast_border_exposed": 7582
+ },
+ "products": {
+  "day1_tornado": {
+   "florida_gulf_south": {
+    "dates": 36,
+    "no_report_dates": 34,
+    "observed_rate": 0.0015961021505376345,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.003653254366804153,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 1535.2941176470588,
+       "total": 52200.0,
+       "max_one_day": 45900.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 344.11764705882354,
+       "total": 11700.0,
+       "max_one_day": 11700.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 6.617647058823529,
+       "total": 225.0,
+       "max_one_day": 225.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.0038427185577828917,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 1654.4117647058824,
+       "total": 56250.0,
+       "max_one_day": 44325.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 397.05882352941177,
+       "total": 13500.0,
+       "max_one_day": 12600.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 13.235294117647058,
+       "total": 450.0,
+       "max_one_day": 450.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.003933648378120386,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 2038.235294117647,
+       "total": 69300.0,
+       "max_one_day": 51525.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 363.97058823529414,
+       "total": 12375.0,
+       "max_one_day": 12150.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.0028897095106957924,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 1118.3823529411766,
+       "total": 38025.0,
+       "max_one_day": 35100.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 13.235294117647058,
+       "total": 450.0,
+       "max_one_day": 450.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   },
+   "west": {
+    "dates": 36,
+    "no_report_dates": 34,
+    "observed_rate": 8.816516785881307e-05,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.0002951250333941352,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.0002869550885062524,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.00022649444312003423,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.0005040357492405547,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 218.38235294117646,
+       "total": 7425.0,
+       "max_one_day": 2700.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   },
+   "original_box": {
+    "dates": 36,
+    "no_report_dates": 24,
+    "observed_rate": 0.004177822400713967,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.0036494020305862435,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 6768.75,
+       "total": 162450.0,
+       "max_one_day": 78300.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 2859.375,
+       "total": 68625.0,
+       "max_one_day": 38025.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 665.625,
+       "total": 15975.0,
+       "max_one_day": 13050.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.00404390021542876,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 8446.875,
+       "total": 202725.0,
+       "max_one_day": 106650.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 3356.25,
+       "total": 80550.0,
+       "max_one_day": 48600.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 1415.625,
+       "total": 33975.0,
+       "max_one_day": 25875.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.0039390354736586475,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 14587.5,
+       "total": 350100.0,
+       "max_one_day": 184500.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 3637.5,
+       "total": 87300.0,
+       "max_one_day": 51975.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 628.125,
+       "total": 15075.0,
+       "max_one_day": 9225.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.0025871522976948914,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 7443.75,
+       "total": 178650.0,
+       "max_one_day": 82350.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 131.25,
+       "total": 3150.0,
+       "max_one_day": 2025.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   },
+   "plains_outside_box": {
+    "dates": 36,
+    "no_report_dates": 27,
+    "observed_rate": 0.001314790717848623,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.0016623075378223186,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 658.3333333333334,
+       "total": 17775.0,
+       "max_one_day": 9900.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.0018744282007312101,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 541.6666666666666,
+       "total": 14625.0,
+       "max_one_day": 8775.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.0019975750028604555,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 1791.6666666666667,
+       "total": 48375.0,
+       "max_one_day": 22500.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 50.0,
+       "total": 1350.0,
+       "max_one_day": 1350.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.0019812798940961373,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 1425.0,
+       "total": 38475.0,
+       "max_one_day": 15075.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 133.33333333333334,
+       "total": 3600.0,
+       "max_one_day": 3600.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   },
+   "northeast_outside_box": {
+    "dates": 36,
+    "no_report_dates": 35,
+    "observed_rate": 9.811135638950208e-05,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.0005808452584829309,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.0005552917772898753,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.00047535825945619036,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 257.14285714285717,
+       "total": 9000.0,
+       "max_one_day": 5850.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.0008191912232817693,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 51.42857142857143,
+       "total": 1800.0,
+       "max_one_day": 1125.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   }
+  },
+  "day1_wind": {
+   "florida_gulf_south": {
+    "dates": 36,
+    "no_report_dates": 32,
+    "observed_rate": 0.0023521505376344087,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.030817997871738122,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 34396.875,
+       "total": 1100700.0,
+       "max_one_day": 148050.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 3023.4375,
+       "total": 96750.0,
+       "max_one_day": 42975.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 998.4375,
+       "total": 31950.0,
+       "max_one_day": 16200.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.025957363170908524,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 25516.40625,
+       "total": 816525.0,
+       "max_one_day": 122175.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 2566.40625,
+       "total": 82125.0,
+       "max_one_day": 42750.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 1047.65625,
+       "total": 33525.0,
+       "max_one_day": 16875.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.022267399798702344,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 23449.21875,
+       "total": 750375.0,
+       "max_one_day": 111150.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 2700.0,
+       "total": 86400.0,
+       "max_one_day": 42525.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 274.21875,
+       "total": 8775.0,
+       "max_one_day": 8325.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.01476155208031041,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 11742.1875,
+       "total": 375750.0,
+       "max_one_day": 138825.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 1631.25,
+       "total": 52200.0,
+       "max_one_day": 27225.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 217.96875,
+       "total": 6975.0,
+       "max_one_day": 4500.0
+      }
+     }
+    }
+   },
+   "west": {
+    "dates": 36,
+    "no_report_dates": 26,
+    "observed_rate": 0.001872551499957834,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.004424666485073826,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 14538.461538461539,
+       "total": 378000.0,
+       "max_one_day": 237825.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 2128.846153846154,
+       "total": 55350.0,
+       "max_one_day": 27225.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 173.07692307692307,
+       "total": 4500.0,
+       "max_one_day": 4050.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.002733748718753889,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 7381.7307692307695,
+       "total": 191925.0,
+       "max_one_day": 100350.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 874.0384615384615,
+       "total": 22725.0,
+       "max_one_day": 14175.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 17.307692307692307,
+       "total": 450.0,
+       "max_one_day": 225.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.0027428722444442937,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 9424.038461538461,
+       "total": 245025.0,
+       "max_one_day": 98325.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 597.1153846153846,
+       "total": 15525.0,
+       "max_one_day": 6975.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.0032431514845153503,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 10921.153846153846,
+       "total": 283950.0,
+       "max_one_day": 80325.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 276.9230769230769,
+       "total": 7200.0,
+       "max_one_day": 2700.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 8.653846153846153,
+       "total": 225.0,
+       "max_one_day": 225.0
+      }
+     }
+    }
+   },
+   "original_box": {
+    "dates": 36,
+    "no_report_dates": 17,
+    "observed_rate": 0.017202141900937083,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.021929255847910674,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 27886.764705882353,
+       "total": 474075.0,
+       "max_one_day": 200025.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 2938.235294117647,
+       "total": 49950.0,
+       "max_one_day": 19350.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 238.23529411764707,
+       "total": 4050.0,
+       "max_one_day": 2475.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.020517015272675274,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 19958.823529411766,
+       "total": 339300.0,
+       "max_one_day": 149850.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 2117.6470588235293,
+       "total": 36000.0,
+       "max_one_day": 15075.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 79.41176470588235,
+       "total": 1350.0,
+       "max_one_day": 900.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.02026144456489818,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 22619.117647058825,
+       "total": 384525.0,
+       "max_one_day": 144900.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 1429.4117647058824,
+       "total": 24300.0,
+       "max_one_day": 12825.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.018606880997294902,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 30480.882352941175,
+       "total": 518175.0,
+       "max_one_day": 177750.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 582.3529411764706,
+       "total": 9900.0,
+       "max_one_day": 4950.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 13.235294117647058,
+       "total": 225.0,
+       "max_one_day": 225.0
+      }
+     }
+    }
+   },
+   "plains_outside_box": {
+    "dates": 36,
+    "no_report_dates": 22,
+    "observed_rate": 0.00799266247379455,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.0160949464247069,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 18746.590909090908,
+       "total": 412425.0,
+       "max_one_day": 133650.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 3068.181818181818,
+       "total": 67500.0,
+       "max_one_day": 56475.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 409.09090909090907,
+       "total": 9000.0,
+       "max_one_day": 8775.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.014671044650746385,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 14778.40909090909,
+       "total": 325125.0,
+       "max_one_day": 123075.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 2413.6363636363635,
+       "total": 53100.0,
+       "max_one_day": 42525.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 132.95454545454547,
+       "total": 2925.0,
+       "max_one_day": 2925.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.01600313766507692,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 20536.363636363636,
+       "total": 451800.0,
+       "max_one_day": 139050.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 4704.545454545455,
+       "total": 103500.0,
+       "max_one_day": 81675.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 51.13636363636363,
+       "total": 1125.0,
+       "max_one_day": 1125.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.01361109083438019,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 20290.909090909092,
+       "total": 446400.0,
+       "max_one_day": 156375.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 3057.9545454545455,
+       "total": 67275.0,
+       "max_one_day": 54450.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 10.227272727272727,
+       "total": 225.0,
+       "max_one_day": 225.0
+      }
+     }
+    }
+   },
+   "northeast_outside_box": {
+    "dates": 36,
+    "no_report_dates": 33,
+    "observed_rate": 0.0041206769683590876,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.007569774991383036,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 4943.181818181818,
+       "total": 163125.0,
+       "max_one_day": 65025.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 265.90909090909093,
+       "total": 8775.0,
+       "max_one_day": 6750.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 20.454545454545453,
+       "total": 675.0,
+       "max_one_day": 675.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.005871885989543585,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 3320.4545454545455,
+       "total": 109575.0,
+       "max_one_day": 49950.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 156.8181818181818,
+       "total": 5175.0,
+       "max_one_day": 4275.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.004974276294331169,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 4779.545454545455,
+       "total": 157725.0,
+       "max_one_day": 52425.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 238.63636363636363,
+       "total": 7875.0,
+       "max_one_day": 6750.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.006231769440885422,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 8011.363636363636,
+       "total": 264375.0,
+       "max_one_day": 93825.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 231.8181818181818,
+       "total": 7650.0,
+       "max_one_day": 3825.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 27.272727272727273,
+       "total": 900.0,
+       "max_one_day": 900.0
+      }
+     }
+    }
+   }
+  },
+  "day1_hail": {
+   "florida_gulf_south": {
+    "dates": 36,
+    "no_report_dates": 34,
+    "observed_rate": 0.00022401433691756272,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.009967807321051117,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 2428.676470588235,
+       "total": 82575.0,
+       "max_one_day": 42750.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 542.6470588235294,
+       "total": 18450.0,
+       "max_one_day": 11475.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 13.235294117647058,
+       "total": 450.0,
+       "max_one_day": 450.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.009956747818530513,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 2878.676470588235,
+       "total": 97875.0,
+       "max_one_day": 47250.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 926.4705882352941,
+       "total": 31500.0,
+       "max_one_day": 15750.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 138.97058823529412,
+       "total": 4725.0,
+       "max_one_day": 3600.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.0054595352278506235,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 2448.529411764706,
+       "total": 83250.0,
+       "max_one_day": 50400.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 92.6470588235294,
+       "total": 3150.0,
+       "max_one_day": 2250.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.0044091080968362215,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 2190.4411764705883,
+       "total": 74475.0,
+       "max_one_day": 45225.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 72.79411764705883,
+       "total": 2475.0,
+       "max_one_day": 2475.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   },
+   "west": {
+    "dates": 36,
+    "no_report_dates": 29,
+    "observed_rate": 0.00040057652353243326,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.002713073337896665,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 2637.9310344827586,
+       "total": 76500.0,
+       "max_one_day": 47250.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 364.6551724137931,
+       "total": 10575.0,
+       "max_one_day": 10575.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 7.758620689655173,
+       "total": 225.0,
+       "max_one_day": 225.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.0017384422540170739,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 2622.4137931034484,
+       "total": 76050.0,
+       "max_one_day": 47925.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 450.0,
+       "total": 13050.0,
+       "max_one_day": 13050.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.0015539785886763777,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 7921.551724137931,
+       "total": 229725.0,
+       "max_one_day": 119925.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 1606.0344827586207,
+       "total": 46575.0,
+       "max_one_day": 43425.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 124.13793103448276,
+       "total": 3600.0,
+       "max_one_day": 3600.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.0017972277969084364,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 13166.379310344828,
+       "total": 381825.0,
+       "max_one_day": 124425.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 962.0689655172414,
+       "total": 27900.0,
+       "max_one_day": 22500.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 333.62068965517244,
+       "total": 9675.0,
+       "max_one_day": 9000.0
+      }
+     }
+    }
+   },
+   "original_box": {
+    "dates": 36,
+    "no_report_dates": 16,
+    "observed_rate": 0.009943477614160345,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.010065364051083287,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 5835.9375,
+       "total": 93375.0,
+       "max_one_day": 58275.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 28.125,
+       "total": 450.0,
+       "max_one_day": 450.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.01150574377318101,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 5245.3125,
+       "total": 83925.0,
+       "max_one_day": 40050.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 295.3125,
+       "total": 4725.0,
+       "max_one_day": 2925.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.010218433690592197,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 3192.1875,
+       "total": 51075.0,
+       "max_one_day": 21150.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 126.5625,
+       "total": 2025.0,
+       "max_one_day": 1575.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.008989158652529765,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 2981.25,
+       "total": 47700.0,
+       "max_one_day": 23400.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 56.25,
+       "total": 900.0,
+       "max_one_day": 900.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   },
+   "plains_outside_box": {
+    "dates": 36,
+    "no_report_dates": 23,
+    "observed_rate": 0.007798380683871901,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.00868963447822355,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 4509.782608695652,
+       "total": 103725.0,
+       "max_one_day": 43425.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.009129716026520317,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 7884.782608695652,
+       "total": 181350.0,
+       "max_one_day": 108225.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 117.3913043478261,
+       "total": 2700.0,
+       "max_one_day": 2250.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.010763486439994491,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 10261.95652173913,
+       "total": 236025.0,
+       "max_one_day": 97650.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 381.5217391304348,
+       "total": 8775.0,
+       "max_one_day": 7875.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.011014716684064285,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 16111.95652173913,
+       "total": 370575.0,
+       "max_one_day": 146925.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 1506.5217391304348,
+       "total": 34650.0,
+       "max_one_day": 20025.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 283.69565217391306,
+       "total": 6525.0,
+       "max_one_day": 3600.0
+      }
+     }
+    }
+   },
+   "northeast_outside_box": {
+    "dates": 36,
+    "no_report_dates": 32,
+    "observed_rate": 0.003016924208977189,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.003400056328028642,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.002613920443498026,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.0015032476226651804,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 14.0625,
+       "total": 450.0,
+       "max_one_day": 450.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.0023438675294815033,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 379.6875,
+       "total": 12150.0,
+       "max_one_day": 10125.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   }
+  },
+  "day2_tornado": {
+   "florida_gulf_south": {
+    "dates": 36,
+    "no_report_dates": 32,
+    "observed_rate": 0.010444668458781363,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.005230373109194174,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.005366212746101364,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.004747204096684707,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 42.1875,
+       "total": 1350.0,
+       "max_one_day": 1350.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.004469552205950393,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 147.65625,
+       "total": 4725.0,
+       "max_one_day": 2475.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   },
+   "west": {
+    "dates": 36,
+    "no_report_dates": 31,
+    "observed_rate": 0.00021657965147925818,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.0003479168747520775,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.00030989110123707256,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.0002881535112019287,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 7.258064516129032,
+       "total": 225.0,
+       "max_one_day": 225.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.0005703436627134415,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 1662.0967741935483,
+       "total": 51525.0,
+       "max_one_day": 22500.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 7.258064516129032,
+       "total": 225.0,
+       "max_one_day": 225.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   },
+   "original_box": {
+    "dates": 36,
+    "no_report_dates": 23,
+    "observed_rate": 0.004668674698795181,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.0034563866434233646,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 1702.1739130434783,
+       "total": 39150.0,
+       "max_one_day": 33975.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.0032523904193959173,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 1369.5652173913043,
+       "total": 31500.0,
+       "max_one_day": 25875.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.0028096088936974996,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 1780.4347826086957,
+       "total": 40950.0,
+       "max_one_day": 33525.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.0026174571333710006,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 3502.1739130434785,
+       "total": 80550.0,
+       "max_one_day": 19800.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 19.565217391304348,
+       "total": 450.0,
+       "max_one_day": 225.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   },
+   "plains_outside_box": {
+    "dates": 36,
+    "no_report_dates": 29,
+    "observed_rate": 0.0020557724282512834,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.0014010700004922687,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 93.10344827586206,
+       "total": 2700.0,
+       "max_one_day": 1125.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.0014006420439175188,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 124.13793103448276,
+       "total": 3600.0,
+       "max_one_day": 2925.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.0014624147798084205,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 139.6551724137931,
+       "total": 4050.0,
+       "max_one_day": 2700.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.001665850462249297,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 690.5172413793103,
+       "total": 20025.0,
+       "max_one_day": 12825.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   },
+   "northeast_outside_box": {
+    "dates": 36,
+    "no_report_dates": 34,
+    "observed_rate": 0.0005886681383370125,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.002200632493193806,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 3394.8529411764707,
+       "total": 115425.0,
+       "max_one_day": 113175.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 231.61764705882354,
+       "total": 7875.0,
+       "max_one_day": 7875.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 6.617647058823529,
+       "total": 225.0,
+       "max_one_day": 225.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.001619565092642365,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 661.7647058823529,
+       "total": 22500.0,
+       "max_one_day": 22500.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 6.617647058823529,
+       "total": 225.0,
+       "max_one_day": 225.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.0010018001456800938,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.0011932293204609133,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 158.8235294117647,
+       "total": 5400.0,
+       "max_one_day": 3375.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 13.235294117647058,
+       "total": 450.0,
+       "max_one_day": 225.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   }
+  },
+  "day2_wind": {
+   "florida_gulf_south": {
+    "dates": 36,
+    "no_report_dates": 31,
+    "observed_rate": 0.007168458781362007,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.030041393385042813,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 35259.67741935484,
+       "total": 1093050.0,
+       "max_one_day": 182475.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 4681.451612903225,
+       "total": 145125.0,
+       "max_one_day": 109800.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 1894.3548387096773,
+       "total": 58725.0,
+       "max_one_day": 58725.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.026283042163617928,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 28357.25806451613,
+       "total": 879075.0,
+       "max_one_day": 170100.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 3672.5806451612902,
+       "total": 113850.0,
+       "max_one_day": 105975.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 1691.1290322580646,
+       "total": 52425.0,
+       "max_one_day": 52425.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.025372228867696883,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 26114.516129032258,
+       "total": 809550.0,
+       "max_one_day": 169200.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 4129.8387096774195,
+       "total": 128025.0,
+       "max_one_day": 112950.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 1596.774193548387,
+       "total": 49500.0,
+       "max_one_day": 49500.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.01870489841928879,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 15996.774193548386,
+       "total": 495900.0,
+       "max_one_day": 135000.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 3679.8387096774195,
+       "total": 114075.0,
+       "max_one_day": 58275.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 1284.6774193548388,
+       "total": 39825.0,
+       "max_one_day": 36900.0
+      }
+     }
+    }
+   },
+   "west": {
+    "dates": 36,
+    "no_report_dates": 21,
+    "observed_rate": 0.003802602022432285,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.0050779336734982,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 2839.285714285714,
+       "total": 59625.0,
+       "max_one_day": 28575.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 364.2857142857143,
+       "total": 7650.0,
+       "max_one_day": 3825.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 21.428571428571427,
+       "total": 450.0,
+       "max_one_day": 450.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.002944125454328318,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 964.2857142857143,
+       "total": 20250.0,
+       "max_one_day": 10575.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 32.142857142857146,
+       "total": 675.0,
+       "max_one_day": 450.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.003249362669280699,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 1832.142857142857,
+       "total": 38475.0,
+       "max_one_day": 23400.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 75.0,
+       "total": 1575.0,
+       "max_one_day": 1350.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.003703836014988682,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 2807.1428571428573,
+       "total": 58950.0,
+       "max_one_day": 35550.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 535.7142857142857,
+       "total": 11250.0,
+       "max_one_day": 6075.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   },
+   "original_box": {
+    "dates": 36,
+    "no_report_dates": 14,
+    "observed_rate": 0.020223486538747584,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.020981493042988394,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 29378.571428571428,
+       "total": 411300.0,
+       "max_one_day": 237600.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 417.85714285714283,
+       "total": 5850.0,
+       "max_one_day": 4500.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.019146395511381774,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 13805.357142857143,
+       "total": 193275.0,
+       "max_one_day": 97200.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 16.071428571428573,
+       "total": 225.0,
+       "max_one_day": 225.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.019521131228597156,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 25087.5,
+       "total": 351225.0,
+       "max_one_day": 123300.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 257.14285714285717,
+       "total": 3600.0,
+       "max_one_day": 3600.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.01992829363016796,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 24300.0,
+       "total": 340200.0,
+       "max_one_day": 92475.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 787.5,
+       "total": 11025.0,
+       "max_one_day": 9900.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   },
+   "plains_outside_box": {
+    "dates": 36,
+    "no_report_dates": 18,
+    "observed_rate": 0.009632762235234583,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.013846461640845511,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 17862.5,
+       "total": 321525.0,
+       "max_one_day": 99900.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 912.5,
+       "total": 16425.0,
+       "max_one_day": 16200.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 25.0,
+       "total": 450.0,
+       "max_one_day": 450.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.012050086131463881,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 8200.0,
+       "total": 147600.0,
+       "max_one_day": 64800.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 537.5,
+       "total": 9675.0,
+       "max_one_day": 9675.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 12.5,
+       "total": 225.0,
+       "max_one_day": 225.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.013684196849599255,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 8087.5,
+       "total": 145575.0,
+       "max_one_day": 70200.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 375.0,
+       "total": 6750.0,
+       "max_one_day": 6750.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.012636933552882857,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 6987.5,
+       "total": 125775.0,
+       "max_one_day": 44550.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 375.0,
+       "total": 6750.0,
+       "max_one_day": 4950.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   },
+   "northeast_outside_box": {
+    "dates": 36,
+    "no_report_dates": 31,
+    "observed_rate": 0.013723325974981604,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.00918549200858853,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 2068.548387096774,
+       "total": 64125.0,
+       "max_one_day": 42975.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 130.6451612903226,
+       "total": 4050.0,
+       "max_one_day": 4050.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.006885291665655335,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 1008.8709677419355,
+       "total": 31275.0,
+       "max_one_day": 29250.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.007118947152914943,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 1531.4516129032259,
+       "total": 47475.0,
+       "max_one_day": 45000.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 58.064516129032256,
+       "total": 1800.0,
+       "max_one_day": 1800.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.0091715027271402,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 1712.9032258064517,
+       "total": 53100.0,
+       "max_one_day": 48150.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 333.8709677419355,
+       "total": 10350.0,
+       "max_one_day": 10350.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   }
+  },
+  "day2_hail": {
+   "florida_gulf_south": {
+    "dates": 36,
+    "no_report_dates": 35,
+    "observed_rate": 0.00016801075268817206,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.012178512454122735,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 8035.714285714285,
+       "total": 281250.0,
+       "max_one_day": 104400.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 1414.2857142857142,
+       "total": 49500.0,
+       "max_one_day": 46350.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 456.42857142857144,
+       "total": 15975.0,
+       "max_one_day": 15975.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.011872040348740334,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 6910.714285714285,
+       "total": 241875.0,
+       "max_one_day": 99675.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 1401.4285714285713,
+       "total": 49050.0,
+       "max_one_day": 46125.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 469.2857142857143,
+       "total": 16425.0,
+       "max_one_day": 16425.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.006506628369325297,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 6190.714285714285,
+       "total": 216675.0,
+       "max_one_day": 96525.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 263.57142857142856,
+       "total": 9225.0,
+       "max_one_day": 6300.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.004720297120612882,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 3432.8571428571427,
+       "total": 120150.0,
+       "max_one_day": 63675.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   },
+   "west": {
+    "dates": 36,
+    "no_report_dates": 29,
+    "observed_rate": 0.0007417373904643621,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.0021879507947958816,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 3227.5862068965516,
+       "total": 93600.0,
+       "max_one_day": 30375.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 69.82758620689656,
+       "total": 2025.0,
+       "max_one_day": 1575.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.0016818919894753745,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 2110.344827586207,
+       "total": 61200.0,
+       "max_one_day": 28350.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 54.310344827586206,
+       "total": 1575.0,
+       "max_one_day": 1350.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.0015629858165812959,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 2862.9310344827586,
+       "total": 83025.0,
+       "max_one_day": 49725.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 62.06896551724138,
+       "total": 1800.0,
+       "max_one_day": 1800.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.0017076690237117066,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 6990.517241379311,
+       "total": 202725.0,
+       "max_one_day": 89325.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 162.93103448275863,
+       "total": 4725.0,
+       "max_one_day": 2925.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 46.55172413793103,
+       "total": 1350.0,
+       "max_one_day": 1350.0
+      }
+     }
+    }
+   },
+   "original_box": {
+    "dates": 36,
+    "no_report_dates": 21,
+    "observed_rate": 0.007169418414398334,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.011482888138171716,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 31789.285714285714,
+       "total": 667575.0,
+       "max_one_day": 261900.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 1028.5714285714287,
+       "total": 21600.0,
+       "max_one_day": 6750.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.011495161422502917,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 29528.571428571428,
+       "total": 620100.0,
+       "max_one_day": 242325.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 1125.0,
+       "total": 23625.0,
+       "max_one_day": 9000.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.009425753737044079,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 19082.14285714286,
+       "total": 400725.0,
+       "max_one_day": 195750.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 1221.4285714285713,
+       "total": 25650.0,
+       "max_one_day": 19800.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.008301403922821549,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 19221.428571428572,
+       "total": 403650.0,
+       "max_one_day": 217125.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 921.4285714285714,
+       "total": 19350.0,
+       "max_one_day": 14850.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 21.428571428571427,
+       "total": 450.0,
+       "max_one_day": 450.0
+      }
+     }
+    }
+   },
+   "plains_outside_box": {
+    "dates": 36,
+    "no_report_dates": 22,
+    "observed_rate": 0.007464035277958505,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.006956001798589644,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 3528.409090909091,
+       "total": 77625.0,
+       "max_one_day": 54225.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 347.72727272727275,
+       "total": 7650.0,
+       "max_one_day": 7650.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 10.227272727272727,
+       "total": 225.0,
+       "max_one_day": 225.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.007138392422302301,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 3405.681818181818,
+       "total": 74925.0,
+       "max_one_day": 49500.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 368.1818181818182,
+       "total": 8100.0,
+       "max_one_day": 8100.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.007787803380913638,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 3753.409090909091,
+       "total": 82575.0,
+       "max_one_day": 64125.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 409.09090909090907,
+       "total": 9000.0,
+       "max_one_day": 9000.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.008456769435527861,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 7496.590909090909,
+       "total": 164925.0,
+       "max_one_day": 58275.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 327.27272727272725,
+       "total": 7200.0,
+       "max_one_day": 5850.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 10.227272727272727,
+       "total": 225.0,
+       "max_one_day": 225.0
+      }
+     }
+    }
+   },
+   "northeast_outside_box": {
+    "dates": 36,
+    "no_report_dates": 32,
+    "observed_rate": 0.0033112582781456954,
+    "models": {
+     "v07_frozen": {
+      "mean_forecast": 0.004274958286290956,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 499.21875,
+       "total": 15975.0,
+       "max_one_day": 13500.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 7.03125,
+       "total": 225.0,
+       "max_one_day": 225.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_v07_recipe": {
+      "mean_forecast": 0.00354616718732684,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 91.40625,
+       "total": 2925.0,
+       "max_one_day": 1800.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_logistic": {
+      "mean_forecast": 0.002281533295470291,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 14.0625,
+       "total": 450.0,
+       "max_one_day": 450.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     },
+     "conus_gbt": {
+      "mean_forecast": 0.002855987040900656,
+      "no_report_days_area_km2_ge_5pct": {
+       "mean_per_day": 63.28125,
+       "total": 2025.0,
+       "max_one_day": 2025.0
+      },
+      "no_report_days_area_km2_ge_15pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      },
+      "no_report_days_area_km2_ge_30pct": {
+       "mean_per_day": 0.0,
+       "total": 0.0,
+       "max_one_day": 0.0
+      }
+     }
+    }
+   }
+  }
+ }
+}

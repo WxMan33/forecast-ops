@@ -1,0 +1,33 @@
+{
+  "case": "2023-02-08",
+  "day": 2,
+  "cycle": "12Z",
+  "forecast_hours": "24-48",
+  "samples": 40311,
+  "features": [
+    "wind10_max",
+    "wind10_nearby_max",
+    "gust_max",
+    "gust_nearby_max",
+    "downdraft_max",
+    "downdraft_nearby_max",
+    "dd2m_max",
+    "lapse_700_500_max",
+    "dd700_mean",
+    "pwat_max",
+    "maxref1km_max",
+    "maxref1km_nearby_max",
+    "ltng_max",
+    "ltng_nearby_max"
+  ],
+  "artifact": {
+    "file": "day2-downburst.npz",
+    "sha256": "f4e11506f1cdb77519b6f15d93e89842053ff96c7a2565efd8b224e810082f48"
+  },
+  "contract_sha256": "ef83321f5bf67770b38d038ae1d9d4bab8e2fedae64111b11f35ac16d2c54840",
+  "extra_samples_sha256": "9d9ab914ae84634d8db475c01639266427667cf58931ccf87f8f70c972d531a7",
+  "messages": 336,
+  "receipts_sha256": "eeb315f8332adbb4890406bb5c4044e8970b9e2236230c495ceaf369c2a32207",
+  "downloaded_mb": 292.5,
+  "protected_2025_outcomes_accessed": false
+}
