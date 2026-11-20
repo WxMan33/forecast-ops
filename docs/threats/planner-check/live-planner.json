@@ -1,0 +1,86 @@
+{
+ "at": "2026-11-20T20:57:10.445Z",
+ "result": {
+  "summary": "1 weather threat for this event",
+  "confirmed": true,
+  "items": [
+   {
+    "kind": "outlook",
+    "headline": "Excessive rainfall risk Saturday · Marginal (at least 5%)",
+    "line": "The WPC Day 2 outlook includes the venue and its period (Sat 7 a.m. – Sun 7 a.m.) overlaps setup, gates, the event and teardown. It is a risk for the whole period, not timing within it.",
+    "product": "wpc-ero-d2-MRGL-2026-11-20T20:12:00.000Z",
+    "category": "MRGL",
+    "day": 2,
+    "phases": [
+     "setup",
+     "gates",
+     "event",
+     "teardown"
+    ]
+   }
+  ],
+  "statuses": [
+   "NWS warnings and watches: Checked 3:57 p.m.",
+   "WPC Excessive Rainfall Outlook: Checked 3:56 p.m. · Day 1 issued 1535Z, Day 2 issued 2012Z, Day 3 issued 0824Z"
+  ],
+  "maps": [
+   "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=29.1852&lon=-81.0705&name=Daytona+International+Speedway&tz=America%2FNew_York&scope=venue&view=day2&layers=flood&sel=wpc-ero-d2-MRGL-2026-11-20T20%3A12%3A00.000Z&nws=function"
+  ]
+ },
+ "feeds": [
+  {
+   "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day3",
+   "status": 200,
+   "cache": "HIT",
+   "upstreamAt": "2026-11-20T20:56:22.535Z"
+  },
+  {
+   "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day1",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-20T20:57:06.210Z"
+  },
+  {
+   "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch,Flash%20Flood%20Warning",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-20T20:57:06.327Z"
+  },
+  {
+   "url": "https://api.weather.gov/alerts/active?point=29.1852,-81.0705",
+   "status": 200,
+   "cache": null,
+   "upstreamAt": null
+  },
+  {
+   "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day2",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-20T20:57:06.411Z"
+  },
+  {
+   "url": "https://api.weather.gov/points/29.1852,-81.0705",
+   "status": 200,
+   "cache": null,
+   "upstreamAt": null
+  },
+  {
+   "url": "https://api.weather.gov/gridpoints/MLB/35,98",
+   "status": 200,
+   "cache": null,
+   "upstreamAt": null
+  },
+  {
+   "url": "https://api.weather.gov/gridpoints/MLB/35,98/forecast?units=us",
+   "status": 200,
+   "cache": null,
+   "upstreamAt": null
+  },
+  {
+   "url": "https://api.weather.gov/gridpoints/MLB/35,98/forecast/hourly?units=us",
+   "status": 200,
+   "cache": null,
+   "upstreamAt": null
+  }
+ ]
+}

@@ -1,0 +1,293 @@
+{
+ "host": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev",
+ "at": "2026-11-20T20:57:16.066Z",
+ "results": [
+  {
+   "check": "archived Daytona: Flash Flood Warning and WPC Day 1 High are separate items",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "warning",
+     "headline": "Flash Flood Warning until 2:30 p.m.",
+     "line": "Covers the venue during setup, gates and the event.",
+     "product": "KMLB.FF.W.0036.2026",
+     "category": null,
+     "day": null,
+     "phases": [
+      "setup",
+      "gates",
+      "event"
+     ]
+    },
+    {
+     "kind": "outlook",
+     "headline": "Excessive rainfall risk Friday · High (at least 70%)",
+     "line": "The WPC Day 1 outlook includes the venue and its period (Fri 11 a.m. – Sat 7 a.m.) overlaps gates, the event and teardown. It is a risk for the whole period, not timing within it.",
+     "product": "wpc-ero-d1-HIGH-2026-11-20T15:35:00.000Z",
+     "category": "HIGH",
+     "day": 1,
+     "phases": [
+      "gates",
+      "event",
+      "teardown"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "archived Daytona: warning wording from the product and schedule",
+   "pass": true,
+   "detail": {
+    "kind": "warning",
+    "headline": "Flash Flood Warning until 2:30 p.m.",
+    "line": "Covers the venue during setup, gates and the event.",
+    "product": "KMLB.FF.W.0036.2026",
+    "category": null,
+    "day": null,
+    "phases": [
+     "setup",
+     "gates",
+     "event"
+    ]
+   }
+  },
+  {
+   "check": "archived Daytona: outlook wording says it is a period risk, not timing",
+   "pass": true,
+   "detail": {
+    "kind": "outlook",
+    "headline": "Excessive rainfall risk Friday · High (at least 70%)",
+    "line": "The WPC Day 1 outlook includes the venue and its period (Fri 11 a.m. – Sat 7 a.m.) overlaps gates, the event and teardown. It is a risk for the whole period, not timing within it.",
+    "product": "wpc-ero-d1-HIGH-2026-11-20T15:35:00.000Z",
+    "category": "HIGH",
+    "day": 1,
+    "phases": [
+     "gates",
+     "event",
+     "teardown"
+    ]
+   }
+  },
+  {
+   "check": "More info: source, issued and updated, in effect until, last checked, venue, official link",
+   "pass": true,
+   "detail": "Source\nNWS Melbourne FL · official product\nIssued\nFri, Nov 20, 10:04 AM EST · updated Fri, Nov 20, 12:23 PM EST\nIn effect\nuntil Fri, Nov 20, 2:30 PM EST\nLast checked\nFri, Nov 20, 12:31 PM EST\nVenue\nInside the warning area\nDetails\nAt 1223 PM EST, Doppler radar indicated thunderstorms producing heavy rain across the warned area."
+  },
+  {
+   "check": "More info: official product link points at the NWS alert record",
+   "pass": true
+  },
+  {
+   "check": "View on map (active): opens the map on the venue with the product selected and the flooding layer on",
+   "pass": true,
+   "detail": {
+    "view": "active",
+    "scope": "venue",
+    "sel": "KMLB.FF.W.0036.2026",
+    "layers": {
+     "severe": false,
+     "flood": true
+    },
+    "title": "Flash Flood Warning",
+    "center": {
+     "lng": -81.0705,
+     "lat": 29.1852
+    }
+   }
+  },
+  {
+   "check": "View on map (day1): opens the map on the venue with the product selected and the flooding layer on",
+   "pass": true,
+   "detail": {
+    "view": "day1",
+    "scope": "venue",
+    "sel": "wpc-ero-d1-HIGH-2026-11-20T15:35:00.000Z",
+    "layers": {
+     "severe": false,
+     "flood": true
+    },
+    "title": "WPC Day 1 · High excessive rainfall risk (4 of 4)",
+    "center": {
+     "lng": -81.0705,
+     "lat": 29.1852
+    }
+   }
+  },
+  {
+   "check": "phone: section renders without horizontal scroll",
+   "pass": true,
+   "detail": []
+  },
+  {
+   "check": "venue outside both footprints: no items, and 'none apply' only because sources are confirmed",
+   "pass": true,
+   "detail": {
+    "summary": "No flooding threats apply to this event's location and times.",
+    "confirmed": true,
+    "items": [],
+    "statuses": [
+     "NWS warnings and watches: Checked 12:31 p.m.",
+     "WPC Excessive Rainfall Outlook: Checked 12:35 p.m. · Day 1 issued 1535Z, Day 3 issued 0824Z"
+    ],
+    "maps": []
+   }
+  },
+  {
+   "check": "same page: venue moved out and back, hours moved before the products and back: 2 → 0 → 2 → 0 → 2",
+   "pass": true,
+   "detail": [
+    2,
+    0,
+    2,
+    0,
+    2
+   ]
+  },
+  {
+   "check": "event moved to Monday: items removed; outlook range stated, not 'none'",
+   "pass": true,
+   "detail": {
+    "summary": "Not fully confirmed: no flooding threats found in the data we have, but a source is unavailable, stale or doesn't cover this venue or date.",
+    "confirmed": false,
+    "items": [],
+    "statuses": [
+     "NWS warnings and watches: Checked 12:31 p.m.",
+     "WPC Excessive Rainfall Outlook: Checked 12:35 p.m. · Day 1 issued 1535Z, Day 3 issued 0824Z · Your event runs past the outlooks issued so far (they end Mon 7 a.m.)."
+    ],
+    "maps": []
+   }
+  },
+  {
+   "check": "overnight event across two outlook periods: Day 1 High and Day 2 Marginal, each with its own phases",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "outlook",
+     "headline": "Excessive rainfall risk Friday · High (at least 70%)",
+     "line": "The WPC Day 1 outlook includes the venue and its period (Fri 11 a.m. – Sat 7 a.m.) overlaps setup, gates and the event. It is a risk for the whole period, not timing within it.",
+     "product": "wpc-ero-d1-HIGH-2026-11-20T15:35:00.000Z",
+     "category": "HIGH",
+     "day": 1,
+     "phases": [
+      "setup",
+      "gates",
+      "event"
+     ]
+    },
+    {
+     "kind": "outlook",
+     "headline": "Excessive rainfall risk Saturday · Marginal (at least 5%)",
+     "line": "The WPC Day 2 outlook includes the venue and its period (Sat 7 a.m. – Sun 7 a.m.) overlaps the event and teardown. It is a risk for the whole period, not timing within it.",
+     "product": "wpc-ero-d2-MRGL-2026-11-20T20:12:00.000Z",
+     "category": "MRGL",
+     "day": 2,
+     "phases": [
+      "event",
+      "teardown"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "real warning update moves coverage off the venue: Flagler warning item drops at 2:20 p.m.; the outlook stays",
+   "pass": true,
+   "detail": {
+    "before": [
+     {
+      "kind": "warning",
+      "headline": "Flash Flood Warning until 3:30 p.m.",
+      "line": "Covers the venue during gates and the event.",
+      "product": "KJAX.FF.W.0054.2026",
+      "category": null,
+      "day": null,
+      "phases": [
+       "gates",
+       "event"
+      ]
+     },
+     {
+      "kind": "outlook",
+      "headline": "Excessive rainfall risk Friday · Moderate (at least 40%)",
+      "line": "The WPC Day 1 outlook includes the venue and its period (Fri 11 a.m. – Sat 7 a.m.) overlaps gates and the event. It is a risk for the whole period, not timing within it.",
+      "product": "wpc-ero-d1-MDT-2026-11-20T15:35:00.000Z",
+      "category": "MDT",
+      "day": 1,
+      "phases": [
+       "gates",
+       "event"
+      ]
+     }
+    ],
+    "after": [
+     {
+      "kind": "outlook",
+      "headline": "Excessive rainfall risk Friday · Moderate (at least 40%)",
+      "line": "The WPC Day 1 outlook includes the venue and its period (Fri 11 a.m. – Sat 7 a.m.) overlaps gates and the event. It is a risk for the whole period, not timing within it.",
+      "product": "wpc-ero-d1-MDT-2026-11-20T15:35:00.000Z",
+      "category": "MDT",
+      "day": 1,
+      "phases": [
+       "gates",
+       "event"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "check": "live: NWS and WPC requests go through the same-origin functions with their upstream time",
+   "pass": true,
+   "detail": {
+    "viaFn": [
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day3",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-20T20:56:22.535Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day1",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T20:57:06.210Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch,Flash%20Flood%20Warning",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T20:57:06.327Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day2",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-20T20:57:06.411Z"
+     }
+    ],
+    "direct": []
+   }
+  },
+  {
+   "check": "live: every source states its check time or its gap",
+   "pass": true,
+   "detail": [
+    "NWS warnings and watches: Checked 3:57 p.m.",
+    "WPC Excessive Rainfall Outlook: Checked 3:56 p.m. · Day 1 issued 1535Z, Day 2 issued 2012Z, Day 3 issued 0824Z"
+   ]
+  },
+  {
+   "check": "NWS outage: status says not responding and the summary is not 'no threats'",
+   "pass": true,
+   "detail": {
+    "summary": "Not fully confirmed: no flooding threats found in the data we have, but a source is unavailable, stale or doesn't cover this venue or date.",
+    "confirmed": false,
+    "items": [],
+    "statuses": [
+     "NWS warnings and watches: Not responding · status unknown. We can't rule anything out from this source.",
+     "WPC Excessive Rainfall Outlook: Checked 3:56 p.m. · Day 1 issued 1535Z, Day 2 issued 2012Z, Day 3 issued 0824Z"
+    ],
+    "maps": []
+   }
+  }
+ ]
+}
