@@ -89,20 +89,82 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
   /* 3b. ARCHIVED outage: NWS answered until 1 p.m., the warning's published end (2:30 p.m.) passes, now 2:40 p.m. */
   v = await planner("threats=archive-flood-outage&e=" + E(...DAYTONA, FRI), { dsf: 2 }); r = await v.read();
   const notes = await v.p.evaluate(() => (window.EventThreatsLast.notes || []).map((n) => n.text));
-  check("outage replay: the expired Flash Flood Warning is no longer an active item, a note says it reached its published expiration, NWS status stays unknown", !r.items.some((i) => i.kind === "warning") && notes.length === 1 && /reached its published expiration \(2:30 p\.m\.\)/.test(notes[0]) && r.statuses.some((x) => /^NWS warnings and watches: Not confirmed since 1 p\.m\./.test(x)) && !r.confirmed && r.items.some((i) => i.kind === "outlook"), { r, notes });
+  check("outage replay: the expired Flash Flood Warning is no longer an active item, a note says it reached its published expiration, NWS status stays unknown", !r.items.some((i) => i.kind === "warning") && notes.length === 1 && /reached its published expiration \(2:30 p\.m\.\)/.test(notes[0]) && r.statuses.some((x) => /^NWS warnings, watches and advisories: Not confirmed since 1 p\.m\./.test(x)) && !r.confirmed && r.items.some((i) => i.kind === "outlook"), { r, notes });
   await shot(v, "ARCHIVED-planner-outage-warning-expired"); await v.ctx.close();
 
+  /* 3c. WINTER (ARCHIVED official): NWS Salt Lake City advisory → warning (Nov 18–19) and WPC WSSI-P captured Nov 20 */
+  const EW = (name, lat, lon, t, z) => encodeURIComponent(JSON.stringify({ n: name, v: { name, lat, lon }, z, t, g: 25 }));
+  const SNOW = ["Snowbird", 40.5813, -111.6556], PARK = ["Park City Mountain", 40.6514, -111.508], CRYS = ["Crystal Mountain", 46.935, -121.475];
+  const FRI_UT = { setup: "2026-11-20T14:00", gates: "2026-11-20T16:00", start: "2026-11-20T17:00", end: "2026-11-20T21:00", teardown: "2026-11-20T23:00" };
+  const TUE_WA = { setup: "2026-11-24T06:00", gates: "2026-11-24T09:00", start: "2026-11-24T10:00", end: "2026-11-24T15:00", teardown: "2026-11-24T17:00" };
+  const LONG_WA = { setup: "2026-11-26T08:00", start: "2026-11-27T10:00", end: "2026-11-28T15:00", teardown: "2026-11-28T18:00" };
+  const openMap = async (href, name) => {
+    const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }), p = await ctx.newPage(); const errs = []; p.on("pageerror", (e) => errs.push(e.message));
+    await p.goto(href.replace(/^https?:\/\/[^/]+/, HOST).replace("/threats.html", "/threats"), { waitUntil: "domcontentloaded" });
+    await p.waitForFunction(() => window.__threats && window.__threats.ready && !window.__threats.data.loading, null, { timeout: 60000 }); await p.waitForTimeout(2500);
+    const s = await p.evaluate(() => ({ view: window.__threats.S.view, sel: window.__threats.S.sel, layers: window.__threats.S.layers, wlevel: window.__threats.S.wlevel, wwin: window.__threats.S.wwin, venue: (document.querySelector(".px-where") || {}).textContent, title: (document.querySelector(".px-title") || document.querySelector(".px-big") || {}).textContent, wssi: window.__threats.map.getSource("wssi")._data.features.length }));
+    await p.screenshot({ path: path.join(OUT, name + ".png") }); await ctx.close(); return { s, errs };
+  };
+  // several days out: the outlook
+  v = await planner("threats=archive-winter-outlook&e=" + EW(...CRYS, TUE_WA, "America/Los_Angeles"), { dsf: 2 }); r = await v.read();
+  check("WINTER outlook 4 days ahead (Crystal Mountain, Tue): 'Minor winter impacts likely Tuesday · 60%', window and phases shown", r.items.length === 1 && /^Minor winter impacts likely Tuesday · 60% chance of at least Minor impacts$/.test(r.items[0].headline) && /24 hours Tue 4 a\.m\. – Wed 4 a\.m\..*overlaps setup, gates, the event and teardown/.test(r.items[0].line), r.items);
+  await v.p.click(".et-more"); let wm = await v.p.evaluate(() => document.querySelector(".et-detail:not([hidden])").innerText);
+  check("WINTER More info: WPC file time, 24-hour window, chance per level, coverage end, official link", /WPC file Fri, Nov 20/.test(wm) && /Tue, Nov 24, 4:00 AM PST → Wed, Nov 25, 4:00 AM PST/.test(wm) && /Minor 60%/.test(wm) && /Covers through[\s\S]*Fri, Nov 27/.test(wm) && await v.p.evaluate(() => /prob_wssi/.test(document.querySelector(".et-detail:not([hidden]) a").href)), wm);
+  await shot(v, "ARCHIVED-planner-winter-outlook-crystal"); const wl = r.maps[0]; await v.ctx.close();
+  let m = await openMap(wl, "ARCHIVED-map-from-planner-winter-outlook");
+  check("WINTER View on map (outlook): Winter 7-day view at the venue, same window and level, areas drawn", m.s.view === "winter" && m.s.wlevel === "MINOR" && m.s.wwin === "2026-11-24T12:00:00.000Z" && m.s.layers.winter && /Crystal Mountain/.test(m.s.venue) && /60% chance of at least Minor/.test(m.s.title) && m.s.wssi > 0 && !m.errs.length, m);
+  // coverage end
+  v = await planner("threats=archive-winter-outlook&e=" + EW(...CRYS, LONG_WA, "America/Los_Angeles")); r = await v.read();
+  check("WINTER event running past the last WSSI-P window: coverage end stated, never 'none'", !r.confirmed && r.statuses.some((x) => /WSSI-P.*(runs past|beyond)/.test(x)), r); await v.ctx.close();
+  // a later replay: the official alerts
+  v = await planner("threats=archive-winter-advisory&e=" + EW(...SNOW, FRI_UT, "America/Denver"), { dsf: 2 }); r = await v.read();
+  check("WINTER replay Nov 18 4 p.m.: Winter Weather Advisory at Snowbird, from its forecast zone", r.items.length === 1 && r.items[0].headline === "Winter Weather Advisory during setup, gates, the event and teardown" && /forecast zone that includes the venue/.test(r.items[0].line), r.items);
+  await v.p.click(".et-more"); wm = await v.p.evaluate(() => document.querySelector(".et-detail:not([hidden])").innerText);
+  check("WINTER More info (advisory): issued 3:49 PM, in effect from Thu 11 AM, zones listed", /Issued\s*Wed, Nov 18, 3:49 PM MST/.test(wm) && /from Thu, Nov 19, 11:00 AM MST until Sat, Nov 21, 11:00 AM MST/.test(wm) && /UTZ110/.test(wm), wm);
+  await shot(v, "ARCHIVED-planner-winter-advisory-snowbird"); await v.ctx.close();
+  v = await planner("threats=archive-winter-warning&e=" + EW(...SNOW, FRI_UT, "America/Denver"), { dsf: 2 }); r = await v.read();
+  check("WINTER replay Nov 19 10 a.m.: upgraded; 'Winter Storm Warning during setup, gates, the event and teardown'", r.items.length === 1 && r.items[0].headline === "Winter Storm Warning during setup, gates, the event and teardown" && r.items[0].product === "KSLC.WS.W.0003.2026", r.items);
+  await shot(v, "ARCHIVED-planner-winter-warning-snowbird"); const wwl = r.maps[0];
+  const wsteps = await v.p.evaluate(() => {
+    const base = window.EventThreats.current(), h = () => window.EventThreatsLast.items.map((i) => i.headline).join(" | ") || "none", out = [h()];
+    window.EventThreats.update({ ...base, loc: { name: "Park City Mountain", lat: 40.6514, lon: -111.508 } }); out.push(h());
+    window.EventThreats.update({ ...base, times: { setup: "2026-11-21T14:00", start: "2026-11-21T16:00", end: "2026-11-21T20:00" } }); out.push(h());
+    window.EventThreats.update({ ...base, times: { setup: "2026-11-21T08:00", gates: "2026-11-21T09:00", start: "2026-11-21T10:00", end: "2026-11-21T14:00" } }); out.push(h());
+    window.EventThreats.update(base); out.push(h());
+    return out;
+  });
+  check("WINTER same page: Snowbird warning → Park City advisory → event after the warning ends (none) → setup overlaps the warning → back", /^Winter Storm Warning during/.test(wsteps[0]) && /^Winter Weather Advisory during/.test(wsteps[1]) && wsteps[2] === "none" && /^Winter Storm Warning during setup/.test(wsteps[3]) && wsteps[4] === wsteps[0], wsteps);
+  await v.ctx.close();
+  m = await openMap(wwl, "ARCHIVED-map-from-planner-winter-warning");
+  check("WINTER View on map (warning): Active now at Snowbird, the warning selected, Winter layer only", m.s.view === "active" && m.s.sel === "KSLC.WS.W.0003.2026" && m.s.layers.winter && !m.s.layers.flood && /Winter Storm Warning/.test(m.s.title) && !m.errs.length, m);
+  v = await planner("threats=archive-winter-outlook&e=" + EW(...CRYS, TUE_WA, "America/Los_Angeles"), { phone: true });
+  check("WINTER phone: Planner section without horizontal scroll", (await v.p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) <= 0 && !v.errors.length, v.errors);
+  await shot(v, "ARCHIVED-planner-winter-phone"); await v.ctx.close();
+  { const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }), p = await ctx.newPage();
+    await p.goto(wl.replace(/^https?:\/\/[^/]+/, HOST).replace("/threats.html", "/threats") + "&sheet=open"); await p.waitForFunction(() => window.__threats && window.__threats.ready && !window.__threats.data.loading, null, { timeout: 60000 }); await p.waitForTimeout(2500);
+    check("WINTER phone map: winter view without horizontal scroll", (await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) <= 0);
+    await p.screenshot({ path: path.join(OUT, "ARCHIVED-map-winter-phone.png") }); await ctx.close(); }
+
   /* 4. LIVE feeds through the functions */
-  v = await planner("e=" + E(...DAYTONA, { setup: "2026-11-21T09:00", gates: "2026-11-21T11:00", start: "2026-11-21T12:30", end: "2026-11-21T16:00", teardown: "2026-11-21T18:00" }), { dsf: 2, wait: 4000 }); r = await v.read();
+  v = await planner("e=" + E(...DAYTONA, { setup: "2026-11-21T09:00", gates: "2026-11-21T11:00", start: "2026-11-21T12:30", end: "2026-11-21T16:00", teardown: "2026-11-21T18:00" }), { dsf: 2, wait: 9000 }); r = await v.read();
   const viaFn = v.feeds.filter((f) => /\/api\/(nws|wpc)\//.test(f.url)), direct = v.feeds.filter((f) => /api\.weather\.gov\/alerts\/active\?event=|wpc\.ncep|wpc_precip_hazards/.test(f.url)); // the threats feeds only; Event Manager's own point forecast requests are separate
   check("live: NWS and WPC requests go through the same-origin functions with their upstream time", viaFn.length >= 4 && direct.length === 0 && viaFn.every((f) => f.status === 200 && f.upstreamAt), { viaFn, direct });
   check("live: every source states its check time or its gap", r.statuses.length >= 2 && r.statuses.every((s) => /Checked|Not confirmed|Not responding|outside/.test(s)), r.statuses);
   fs.writeFileSync(path.join(OUT, "live-planner.json"), JSON.stringify({ at: new Date().toISOString(), result: r, feeds: v.feeds }, null, 1));
   await shot(v, "LIVE-planner-daytona-saturday"); await v.ctx.close();
 
+  /* 4b. LIVE winter: a mountain venue this weekend; NWS winter alerts through the function, WSSI-P point values from the NOAA map service */
+  v = await planner("e=" + EW(...SNOW, { setup: "2026-11-21T08:00", gates: "2026-11-21T09:00", start: "2026-11-21T10:00", end: "2026-11-21T16:00", teardown: "2026-11-21T18:00" }, "America/Denver"), { dsf: 2, wait: 2000 });
+  await v.p.waitForFunction(() => !window.EventThreatsLast.statuses.some((x) => /Loading|Checking/.test(x.text)), null, { timeout: 90000 }).catch(() => {}); await v.p.waitForTimeout(500); r = await v.read();
+  const ws = v.feeds.filter((f) => /wpc_wssi_p/.test(f.url));
+  check("LIVE winter: WSSI-P point queries answered and the source states its check time", ws.filter((f) => f.status === 200).length >= 4 && r.statuses.some((x) => /WSSI-P\): Checked/.test(x)), { ws, st: r.statuses });
+  check("LIVE winter: NWS winter alerts reach Planner (any active at the venue are listed with their phases)", r.statuses.some((x) => /^NWS warnings, watches and advisories: Checked/.test(x)), r);
+  fs.writeFileSync(path.join(OUT, "live-planner-winter.json"), JSON.stringify({ at: new Date().toISOString(), result: r, feeds: v.feeds }, null, 1));
+  await shot(v, "LIVE-planner-winter-snowbird"); await v.ctx.close();
+
   /* 5. outage: NWS route blocked in this browser */
   v = await planner("e=" + E(...ATL, FRI), { blockNws: true, wait: 4000 }); r = await v.read();
-  check("NWS outage: status says not responding and the summary is not 'no threats'", !r.confirmed && /^Not fully confirmed/.test(r.summary) && r.statuses.some((s) => /^NWS warnings and watches: Not responding/.test(s)), r);
+  check("NWS outage: status says not responding and the summary is not 'no threats'", !r.confirmed && /^Not fully confirmed/.test(r.summary) && r.statuses.some((s) => /^NWS warnings, watches and advisories: Not responding/.test(s)), r);
   await shot(v, "LIVE-planner-nws-outage-simulated"); await v.ctx.close();
 
   fs.writeFileSync(path.join(OUT, "report.json"), JSON.stringify({ host: HOST, at: new Date().toISOString(), results }, null, 1));

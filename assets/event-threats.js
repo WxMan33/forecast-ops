@@ -10,7 +10,8 @@
   const O = window.Ops, C = O.Core, T = window.ThreatsCore, M = window.ThreatsMatch, Live = window.ThreatsLive, esc = O.esc, $ = O.$;
   const Q = new URLSearchParams(location.search);
   const ARCHIVE = /^archive-(flood-(day|afternoon|outage|night)|winter-(advisory|warning|outlook))$/.test(Q.get("threats") || "") ? Q.get("threats") : null;
-  const FAMILIES = ["flood", "winter"];
+  // live: every family in this slice; an archived sample only has its own hazard's products, so it is checked for that one
+  const FAMILIES = ARCHIVE ? [ARCHIVE.split("-")[1]] : ["flood", "winter"];
   const F = window.ThreatsFeeds, pct = (n) => (n >= 5 ? n + "%" : "under 5%");
   let ev = null, data = null, ready = false, open = new Set(), archived = null;
 
@@ -43,7 +44,7 @@
         ["Source", `${esc(p.office)} · <a href="${esc(p.source.url)}" target="_blank" rel="noopener">WSSI-P (official product)</a>`],
         ["Issued", p.issued ? "WPC file " + esc(fmt(p.issued, tz)) : "not stated by the source"],
         ["Valid", "24 hours, " + esc(fmt(p.validStart, tz)) + " → " + esc(fmt(p.validEnd, tz))],
-        ["Chances at the venue", it.levels.map(([L, v]) => esc((L === "WWA" ? "Winter weather (any)" : F.WSSI_NAME[L]) + " " + pct(v))).join(" · ")],
+        ["Chances at the venue", it.levels.map(([L, v]) => esc((L === "WWA" ? "Winter weather (any)" : F.WSSI_NAME[L]) + " " + pct(v) + ((src.inferred || []).includes(L) ? " (inferred: the service didn't answer for this level; the level below has no area here)" : ""))).join(" · ")],
         ["Overlaps", esc(it.phases.join(", "))],
         ["Last checked", src.lastOk ? esc(fmt(src.lastOk, tz)) + (src.kind === "stale" ? " · not confirmed since then" : "") : "not yet"],
         ["Covers through", src.reachEnd ? esc(fmt(src.reachEnd, tz)) + " (the last 24-hour window WPC has published)" : "unknown"],

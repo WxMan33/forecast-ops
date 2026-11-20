@@ -124,9 +124,15 @@
     const p = (async () => {
       const at = nowIso();
       try {
-        const parts = await Promise.all(F.WSSI_LEVELS.map(async (L) => { const j = await get(F.WSSIP_URL(L, q), "json"); if (j.error) throw Error("WSSI-P " + L + ": " + (j.error.message || "error")); return F.parseWSSIP(j, [+lon.toFixed(3), +lat.toFixed(3)], L); }));
-        const all = parts.flat();
-        Object.assign(wssi, { state: "ok", lastOk: at, error: null, products: all, key, reachEnd: all.map((x) => x.validEnd).sort().pop() || null, issued: all.map((x) => x.issued).filter(Boolean).sort().pop() || null });
+        const one = async (L) => { const j = await get(F.WSSIP_URL(L, q), "json"); if (j.error) throw Error("WSSI-P " + L + ": " + (j.error.message || "error")); return F.parseWSSIP(j, [+lon.toFixed(3), +lat.toFixed(3)], L); };
+        const res = await Promise.all(F.WSSI_LEVELS.map((L) => one(L).catch(() => one(L)).catch((e) => ({ failed: e.message })))); // one retry per level
+        /* A level that still fails is bounded by the level below it: the chance of at least Extreme can't exceed the chance
+           of at least Major. So when the lower level answered with no area at the venue, the failed level is under 5% there
+           too (marked as inferred). Otherwise the answer is incomplete and the source stays unconfirmed. */
+        const inferred = [];
+        res.forEach((r, i) => { if (!r.failed) return; const below = res[i - 1]; if (i > 0 && Array.isArray(below) && below.length === 0) { res[i] = []; inferred.push(F.WSSI_LEVELS[i]); } else throw Error(r.failed); });
+        const all = res.flat();
+        Object.assign(wssi, { state: "ok", lastOk: at, error: null, inferred, products: all, key, reachEnd: all.map((x) => x.validEnd).sort().pop() || null, issued: all.map((x) => x.issued).filter(Boolean).sort().pop() || null });
       } catch (e) { Object.assign(wssi, { state: "failed", error: e.message, key }); if (wssi.key !== key) wssi.products = []; }
       finally { wssiPending = null; emit(); }
     })();
@@ -223,7 +229,7 @@
         day3: src(outlooks[3].sourceInfo(), o[3].products.length, { outlook: o[3].status, validEnd: o[3].validEnd }),
         ero1: src(ero[1].sourceInfo(), e[1].products.length, { outlook: e[1].status, validEnd: e[1].validEnd, issued: e[1].issued, via: ero[1].sourceInfo().via }),
         ero2: src(ero[2].sourceInfo(), e[2].products.length, { outlook: e[2].status, validEnd: e[2].validEnd, issued: e[2].issued, via: ero[2].sourceInfo().via }),
-        wssip: wssi.state === "never" || (wssiPending && !wssi.lastOk) ? { state: "pending", lastOk: null, count: 0 } : src({ state: wssi.state === "ok" ? "ok" : "failed", lastOk: wssi.lastOk, error: wssi.error }, wsp.length, { validEnd: wssi.reachEnd, issued: wssi.issued }),
+        wssip: wssi.state === "never" || (wssiPending && !wssi.lastOk) ? { state: "pending", lastOk: null, count: 0 } : src({ state: wssi.state === "ok" ? "ok" : "failed", lastOk: wssi.lastOk, error: wssi.error }, wsp.length, { validEnd: wssi.reachEnd, issued: wssi.issued, inferred: wssi.inferred || [] }),
         ero3: src(ero[3].sourceInfo(), e[3].products.length, { outlook: e[3].status, validEnd: e[3].validEnd, issued: e[3].issued, via: ero[3].sourceInfo().via }),
       },
       model,
@@ -316,7 +322,7 @@
     const one = (k) => { const x = d.sources[k]; if (!x) return { kind: "unavailable" }; if (x.state === "na") return { kind: "na" }; if (d.loading || x.state === "pending") return { kind: "loading" }; return { ...window.ThreatsCore.sourceState(x, now, STALE[k]), lastOk: x.lastOk }; };
     const worst = (keys) => { const s = keys.map(one).filter((x) => x.kind !== "na"); if (!s.length) return { kind: "na" }; const order = ["unavailable", "stale", "loading", "na", "empty", "current"]; const w = s.reduce((a, b) => (order.indexOf(b.kind) < order.indexOf(a.kind) ? b : a)); const oks = s.filter((x) => x.lastOk).map((x) => Date.parse(x.lastOk)); return { ...w, lastOk: oks.length ? new Date(Math.min(...oks)).toISOString() : w.lastOk }; };
     const reach = (keys) => keys.map((k) => d.sources[k] && d.sources[k].validEnd).filter(Boolean).sort().pop() || null;
-    return { "nws-alerts": one("alerts"), "spc-md": one("md"), "wpc-wssi-p": d.sources.wssip ? { ...one("wssip"), reachEnd: d.sources.wssip.validEnd || null, reach: d.sources.wssip.issued ? "file " + window.ThreatsCore.fmtZ(d.sources.wssip.issued) : "" } : { kind: "unavailable" }, "spc-outlook": { ...worst(["day1", "day2", "day3"]), reachEnd: reach(["day1", "day2", "day3"]) },
+    return { "nws-alerts": one("alerts"), "spc-md": one("md"), "wpc-wssi-p": d.sources.wssip ? { ...one("wssip"), reachEnd: d.sources.wssip.validEnd || null, inferred: d.sources.wssip.inferred || [], reach: d.sources.wssip.issued ? "file " + window.ThreatsCore.fmtZ(d.sources.wssip.issued) : "" } : { kind: "unavailable" }, "spc-outlook": { ...worst(["day1", "day2", "day3"]), reachEnd: reach(["day1", "day2", "day3"]) },
       "wpc-ero": { ...worst(["ero1", "ero2", "ero3"]), reachEnd: reach(["ero1", "ero2", "ero3"]), reach: ["ero1", "ero2", "ero3"].map((k, i) => d.sources[k] && d.sources[k].issued ? "Day " + (i + 1) + " issued " + window.ThreatsCore.fmtZ(d.sources[k].issued) : "").filter(Boolean).join(", ") } };
   }
 
