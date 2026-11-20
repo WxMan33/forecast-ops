@@ -1,6 +1,7 @@
 /* Event Manager: "Export hourly image": a 1920 x 1080 PNG for TV rotations that show images.
-   Header: event, venue and local time, the briefing's one-line takeaway, and when the forecast was updated; a short
-   daylight note ("Setup starts before sunrise (7:33 AM).") only when it matters to the schedule and fits as is.
+   Header: event, venue and local time, then sunrise and sunset at the venue ("Sunrise 7:33 AM · Sunset 5:17 PM EST",
+   the same line as Hour by hour; the schedule note after it only when both fit), the briefing's one-line takeaway, and
+   when the forecast was updated. The four panels keep the same size and position with or without the daylight line.
    Below: four large panels in a 2 x 2 grid on one shared hour axis:
      precipitation chance (line + dot per hour, 0-100%, labelled type bands when the type changes),
      temperature (coral; dashed feels like), wind & gusts (teal; dashed gusts; dotted venue limit),
@@ -45,14 +46,20 @@
     const text = (s, x, y, { font = FONT(500, 24), color = C.text, align = "left", base = "alphabetic", max } = {}) => { if (String(s).trim()) minFont = Math.min(minFont, +font.match(/(\d+)px/)[1]); g.font = font; g.fillStyle = color; g.textAlign = align; g.textBaseline = base; if (max) { let t = String(s); while (t.length > 3 && g.measureText(t).width > max) t = t.slice(0, -2); if (t !== String(s)) t = t.trimEnd() + "…"; g.fillText(t, x, y); return; } g.fillText(String(s), x, y); };
     /* ---- header ---- */
     const PAD = 56;
-    text(d.title, PAD, 84, { font: FONT(800, 56), max: 1260 });
-    text([d.venue, d.when].filter(Boolean).join("  ·  "), PAD, 132, { font: FONT(500, 30), color: C.muted, max: 1260 });
-    text(d.takeaway || "", PAD, 190, { font: FONT(700, 36), max: W - 2 * PAD });
-    /* daylight: only when it matters to the schedule, and only where it fits beside the takeaway or in the footer;
-       nothing else is moved or made smaller to make room */
-    let daylightAt = d.daylight ? "omitted" : "none";
-    const dlFont = FONT(700, 26), widthOf = (t, f) => { g.font = f; return g.measureText(t).width; };
-    if (d.daylight && widthOf(d.takeaway || "", FONT(700, 36)) + 48 + widthOf(d.daylight, dlFont) <= W - 2 * PAD) { text(d.daylight, W - PAD, 190, { font: dlFont, color: C.text, align: "right" }); daylightAt = "header"; }
+    /* with a daylight line, the left column tightens (title 78, details 120, daylight 160, takeaway 202); the rule at
+       214 and the four panels below stay exactly where they are */
+    const dlLine = d.daylightLine || "", Y = dlLine ? { title: 78, details: 120, day: 160, take: 202 } : { title: 84, details: 132, take: 190 };
+    text(d.title, PAD, Y.title, { font: FONT(800, 56), max: 1260 });
+    text([d.venue, d.when].filter(Boolean).join("  ·  "), PAD, Y.details, { font: FONT(500, 30), color: C.muted, max: 1260 });
+    const widthOf = (t, f) => { g.font = f; return g.measureText(t).width; };
+    let daylightAt = "none";
+    if (dlLine) {
+      /* the sunrise / sunset line, readable across a room; the schedule note follows it only when both fit in the column */
+      const withNote = d.daylight ? `${dlLine}  ·  ${d.daylight}` : "", dlFont = FONT(700, 30);
+      const shown = withNote && widthOf(withNote, dlFont) <= 1260 ? withNote : dlLine;
+      text(shown, PAD, Y.day, { font: dlFont, color: C.text, max: 1260 }); daylightAt = shown === withNote ? "line+note" : "line";
+    }
+    text(d.takeaway || "", PAD, Y.take, { font: FONT(700, 36), max: W - 2 * PAD });
     text("Forecast updated", W - PAD, 70, { font: FONT(500, 24), color: C.muted, align: "right" });
     text(d.updated || "—", W - PAD, 108, { font: FONT(700, 32), align: "right" });
     text("Model guidance · not an official forecast", W - PAD, 140, { font: FONT(500, 20), color: C.muted, align: "right" });
@@ -64,7 +71,6 @@
     /* ---- footer ---- */
     const foot = `${cut ? `First ${ids.length} of ${total} event hours · ` : ""}Times are the venue's local time${d.zone ? ` (${d.zone})` : ""} · Forecast Ops · NOAA/NWS and Open-Meteo guidance`;
     text(foot, PAD, HGT - 22, { font: FONT(500, 20), color: C.muted });
-    if (daylightAt === "omitted" && widthOf(foot, FONT(500, 20)) + 48 + widthOf(d.daylight, FONT(700, 22)) <= W - 2 * PAD) { text(d.daylight, W - PAD, HGT - 22, { font: FONT(700, 22), color: C.text, align: "right" }); daylightAt = "footer"; }
     canvas.daylight = daylightAt;
     canvas.theme = C.name; canvas.minFontPx = minFont; canvas.lightning = lightningSummary(V, ids).allLow ? "low-throughout" : "blocks"; canvas.typeMode = tsum.mode;
     return canvas;

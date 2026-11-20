@@ -842,3 +842,9 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .ev-daylight .ev-dl-zone, .ev-daylight .ev-dl-more { font-size: 12.5px; }
 .ev-dl-note { margin: -4px 0 10px; font-size: 13.5px; font-weight: 600; }
 @media print { .pv .pv-daylight { margin: 6pt 0 0; font-size: 11pt; } .pv .pv-daylight b { margin-right: 4pt; } }
+/* Hour by hour: the sunrise / sunset line just above the charts */
+.ev-dl-line { margin: 10px 0 8px; font-size: 15px; line-height: 1.5; }
+.ev-dl-line b { font-family: var(--font-mono); font-weight: 800; font-variant-numeric: tabular-nums; }
+.ev-dl-line .ev-dl-date { font-weight: 700; }
+.ev-dl-line .ev-dl-zone { color: var(--muted); }
+.ev-dl-line .ev-dl-seg { white-space: nowrap; }

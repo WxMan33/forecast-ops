@@ -92,7 +92,7 @@
     if ($("map")._dispose) $("map")._dispose();
     ["alerts", "evCharts", "evGrid", "evGridDetail", "evGridLegend", "nwsEv", "blendLine", "hourlyValid", "map", "printView"].forEach((id) => { const el = $(id); if (el) el.innerHTML = ""; });
     head.setUpdated(null);
-    $("decision").textContent = "Reading the guidance…"; $("coverage").hidden = true; document.body.dataset.readiness = ""; ["sourceCoverage", "keys", "schedule", "daylight", "detailBody", "phases", "changes", "checks", "timeline"].forEach((id) => { $(id).innerHTML = ""; });
+    $("decision").textContent = "Reading the guidance…"; $("coverage").hidden = true; document.body.dataset.readiness = ""; ["sourceCoverage", "keys", "schedule", "daylight", "hourlyDaylight", "detailBody", "phases", "changes", "checks", "timeline"].forEach((id) => { $(id).innerHTML = ""; });
     /* the schedule and daylight need no forecast: shown now, while the briefing loads, is pending or fails */
     showSchedule(C.event.windows(ev).filter((w) => w.key !== "all"));
     const alertsPromise = U.alerts(where);
@@ -178,7 +178,7 @@
   function daylight() { return window.EventDaylight && window.AlmanacCore ? window.EventDaylight.compute({ A: window.AlmanacCore, C, windows: C.event.windows(ev), lat: ev.loc.lat, lon: ev.loc.lon, tz: ev.tz }) : null; }
   function showSchedule(phases) {
     if (!phases.length) return;
-    const D = daylight(); $("daylight").innerHTML = window.EventDaylight ? window.EventDaylight.rowHtml(D) : ""; document.body.dataset.daylight = D ? (D.note ? "note" : "times") : "";
+    const D = daylight(); $("daylight").innerHTML = window.EventDaylight ? window.EventDaylight.rowHtml(D) : ""; $("hourlyDaylight").innerHTML = window.EventDaylight ? window.EventDaylight.lineHtml(D) : ""; document.body.dataset.daylight = D ? (D.note ? "note" : "times") : "";
     $("schedule").innerHTML = BUI.scheduleHtml(phases, ev.tz); $("secTimeline").hidden = false;
   }
   function renderSupport(res,b,now=Date.now()) {
@@ -436,6 +436,7 @@
     try {
       const data = { title: $("evName").textContent, venue: $("evVenue").textContent, when: $("evWhen").textContent, takeaway: $("decision").textContent,
         daylight: lastView && lastView.daylight && lastView.daylight.note ? lastView.daylight.note : "",
+        daylightLine: lastView && lastView.daylight && window.EventDaylight ? window.EventDaylight.lineText(lastView.daylight) : "",
         updated: when(updatedMs), zone: fmt.zone(lastHourly.V.span[0], ev.tz), view: lastHourly.V, nwsTypes: lastHourly.nwsTypes, gustLimit: ev.gust || 25,
         stamp: `${l.slice(0, 10)}-${l.slice(11, 13)}${l.slice(14, 16)}`,
         /* Match page theme (default), or an explicit Light / Dark PNG without switching the site */
