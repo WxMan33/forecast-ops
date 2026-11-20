@@ -32,12 +32,21 @@ jobs:
         run: |
           echo "stage=$(jq -r .stage "$REQ")" >> "$GITHUB_OUTPUT"
           echo "artifacts=$(jq -r .extraction_run "$REQ")" >> "$GITHUB_OUTPUT"
+          echo "extra=$(jq -r '.extra_extraction_run // empty' "$REQ")" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
           pattern: severe-conus-*
           merge-multiple: true
           path: tests/out/x
           run-id: ${{ steps.req.outputs.artifacts }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        if: steps.req.outputs.extra != ''
+        with:
+          pattern: severe-conus-*
+          merge-multiple: true
+          path: tests/out/x
+          run-id: ${{ steps.req.outputs.extra }}
           github-token: ${{ github.token }}
       - name: Fit the regional correction on out-of-fold 2022-23 predictions
         if: steps.req.outputs.stage == 'fit'

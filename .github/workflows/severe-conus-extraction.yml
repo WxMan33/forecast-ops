@@ -132,8 +132,8 @@ jobs:
           mkdir -p "$dest"
           find tests/out/batches -path '*/reports/*.json' -exec cp {} "$dest"/ \;
           find tests/out/batches -path '*/maps/*.png' -exec cp {} "$dest"/ \;
-          cat tests/out/batches/*/reports/runtime.txt > "$dest/runtime.txt" 2>/dev/null || true
-          echo "run_id: $GITHUB_RUN_ID" > "$dest/run.txt"
+          cat tests/out/batches/*/reports/runtime.txt >> "$dest/runtime.txt" 2>/dev/null || true
+          echo "run_id: $GITHUB_RUN_ID" >> "$dest/run.txt"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$dest"

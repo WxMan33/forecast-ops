@@ -30,6 +30,10 @@ def write_json(path,value):
     tmp=path.with_suffix(path.suffix+'.tmp');tmp.write_text(json.dumps(value,indent=2,allow_nan=False)+'\n');tmp.replace(path)
 
 
+class ShortRead(ValueError):
+    """A byte-range response that came back truncated; transient, so it is retried."""
+
+
 class Client:
     def __init__(self,root,budget_mb):
         self.root=Path(root);self.limit=budget_mb*1000000;self.used=0;self.lock=threading.Lock()
@@ -52,10 +56,10 @@ class Client:
                     with self.lock:
                         self.used+=len(data)
                         if self.used>self.limit:raise ValueError('Download budget exhausted')
-                    if len(data)>limit or start is not None and len(data)!=limit:raise ValueError('Incorrect response length')
+                    if len(data)>limit or start is not None and len(data)!=limit:raise ShortRead('Incorrect response length')
                     etag=response.headers.get('ETag')
                 break
-            except (urllib.error.URLError,TimeoutError) as error:
+            except (urllib.error.URLError,TimeoutError,ShortRead) as error:
                 if isinstance(error,urllib.error.HTTPError) and error.code not in [429,500,502,503,504]:raise
                 if attempt==2:raise
                 time.sleep(2**attempt)
