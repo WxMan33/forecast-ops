@@ -99,7 +99,10 @@
         under += `<text x="${x0 + 5}" y="${base - 7}" class="evc-bandlabel${T ? "" : " evc-bandlabel-unc"}" data-type-label="${kind}">${esc(fit ? label : T ? T.sym : "?")}</text>`;
       });
       /* missing hours: a light gap, "No data" when there is room */
-      ids.forEach((i, j) => { if (value(s, i) === null) marks += `<rect x="${left + j * bw + 2}" y="${top}" width="${bw - 4}" height="${base - top}" class="evc-gap"/><text x="${x(j)}" y="${(top + base) / 2 + 5}" text-anchor="middle" class="evc-gaptext">${bw >= 58 ? "No data" : "—"}</text>`; });
+      ids.forEach((i, j) => { if (value(s, i) === null && V.hrs[i]?.state !== "beyond") marks += `<rect x="${left + j * bw + 2}" y="${top}" width="${bw - 4}" height="${base - top}" class="evc-gap"/><text x="${x(j)}" y="${(top + base) / 2 + 5}" text-anchor="middle" class="evc-gaptext">${bw >= 58 ? "No data" : "—"}</text>`; });
+      /* hours the hourly guidance doesn't reach yet: left blank, with one label over them */
+      runs(ids.map((i) => (V.hrs[i]?.state === "beyond" ? "b" : null))).forEach((r) => { const x0 = left + r.a * bw, wd = (r.b - r.a + 1) * bw;
+        marks += `<text x="${x0 + wd / 2}" y="${(top + base) / 2 + 5}" text-anchor="middle" class="evc-beyond" data-beyond="${r.b - r.a + 1}">${wd >= 150 ? "Not in hourly range yet" : wd >= 60 ? "Not yet" : ""}</text>`; });
       /* flagged hours: a labelled bracket over those hours; red only for the highest level */
       runs(flags).forEach((r) => { const [tier, word] = r.key.split("|"), x0 = left + r.a * bw + 3, x1 = left + (r.b + 1) * bw - 3, label = `${s.hazardWord}: ${word}`;
         over += `<g class="evc-flag evc-flag-${tier === "action" ? "high" : "watch"}" data-flag="${esc(tier)}"><path d="M${x0},${top - 6} V${top - 12} H${x1} V${top - 6}"/><text x="${x0}" y="${top - 16}">${esc(x1 - x0 >= label.length * 6.8 ? label : word)}</text></g>`; });

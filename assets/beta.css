@@ -806,3 +806,12 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 @media(max-width:600px){.evc-val>b{font-size:23px}.evc-card h3{font-size:16px}.evc-legend{font-size:12.5px;gap:3px 10px}.evc-hour{font-size:15px}.evc-axis{font-size:13.5px}}
 .evc-share{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 0}.evc-share .bx-note{flex-basis:100%;margin:0}
 .evc-theme select{min-height:34px}
+
+/* Early weather outlook: daily figures for events the hourly briefing doesn't reach yet */
+.ev-outlook{border:1px solid var(--bx-rule);border-radius:var(--bx-r);background:var(--panel);padding:14px 16px;margin:12px 0}
+.ev-outlook h3{font-size:17px;font-weight:700;margin:0 0 4px}.ev-ol-lead{margin:0 0 10px;font-weight:600}
+.ev-ol-days{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-bottom:10px}
+.ev-ol-day{border:1px solid var(--bx-rule);border-radius:8px;padding:10px 12px;background:var(--bx-quiet)}
+.ev-ol-date{font-weight:700;font-size:15px}.ev-ol-vals{display:flex;gap:18px;margin:8px 0 4px;flex-wrap:wrap}.ev-ol-vals dt{font-size:12.5px;color:var(--muted)}.ev-ol-vals dd{margin:2px 0 0;font-size:22px}
+.ev-ol-type{margin:2px 0;font-weight:600}.ev-ol-period{margin:2px 0 0}.ev-ol-out{opacity:.85}
+.evc-beyond{font:600 13px var(--bx-font);fill:var(--muted);font-style:italic}

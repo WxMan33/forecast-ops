@@ -217,11 +217,15 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     const ev = { n: "FC Cincinnati home match (test)", v: { name: "TQL Stadium, Cincinnati, OH", lat: 39.1111, lon: -84.5222 }, z: "America/New_York", t: { setup: `${day}T15:00`, gates: `${day}T18:00`, start: `${day}T19:30`, end: `${day}T21:30`, teardown: `${day}T23:30` }, g: 25 };
     const { ctx, p, errors } = await go(PHONE, base + "event-beta.html?e=" + encodeURIComponent(JSON.stringify(ev)));
     await until(p, () => document.body.dataset.readiness, null, 90000); await p.waitForTimeout(800);
-    const x = await p.evaluate(() => ({ state: document.body.dataset.readiness, dec: document.getElementById("decision").innerText, cov: document.getElementById("coverage").innerText,
+    await until(p, () => document.body.dataset.outlook, null, 30000);
+    /* the pending text now sits in the Early weather outlook (24 days out: past the 10-day outlook, so no numbers) */
+    const x = await p.evaluate(() => ({ state: document.body.dataset.readiness, dec: document.getElementById("decision").innerText, outlook: document.body.dataset.outlook,
+      cov: [document.getElementById("coverage"), document.getElementById("outlook")].filter((e) => !e.hidden).map((e) => e.innerText).join("\n"), pops: document.querySelectorAll("#outlook [data-ol-pop]").length,
       hidden: ["secPhases", "secMap", "secHourly", "secChanges", "secChecks"].every((i) => getComputedStyle(document.getElementById(i)).display === "none"), sched: !!document.querySelector(".sch-bar"),
       remind: [...document.querySelectorAll("[data-remind]")].map((a) => a.dataset.remind).join(","), threshold: /planning threshold/.test(document.body.innerText) }));
-    report(x.state === "pending" && /Weather briefing pending/.test(x.dec) && /come into range/.test(x.cov) && /whole event by/.test(x.cov) && x.hidden && x.sched && x.remind === "google,ics" && !x.threshold && !errors.length,
-      "event weeks out: pending briefing with schedule, coverage dates and a reminder; empty cards, chart and map collapsed", `${x.dec} · "${x.cov.split("\n")[1] || ""}" · reminders ${x.remind} · sections hidden ${x.hidden}`);
+    report(x.state === "pending" && x.outlook === "beyond" && /Weather briefing pending/.test(x.dec) && /A lot can change this far out/.test(x.cov) && /past the 10-day outlook/.test(x.cov) && !x.pops
+      && /daily outlook should start covering it around/.test(x.cov) && /reach setup around .+ and the whole event around/.test(x.cov) && x.hidden && x.sched && x.remind === "google,ics" && !x.threshold && !errors.length,
+      "event weeks out: pending briefing with schedule, outlook and coverage dates (venue time) and a reminder; no numbers past 10 days; chart and map collapsed", `${x.dec} · ${x.outlook} · "${(x.cov.match(/Hourly guidance[^\n]*/) || [""])[0]}" · reminders ${x.remind} · sections hidden ${x.hidden}`);
     await p.screenshot({ path: `${out}/event-pending-phone.png`, fullPage: true }); await ctx.close(); }
   });
 

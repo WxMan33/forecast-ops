@@ -68,6 +68,18 @@
     ]);
     return assemble(where, { B, NW, BE, TH, META, days });
   }
+  /* Early weather outlook: the daily Forecast Blend over 10 days (Model Blend's daily table: same models, ensembles, NWS
+     and recipe), for events the 7-day hourly briefing doesn't fully reach. Separate from the briefing's own load, so
+     the hourly briefing is unchanged. Returns { rows } (blend.dailyRows) or { empty } when the models did not load. */
+  async function outlook(where, { ws, rules, NW, days = 10 } = {}) {
+    const capped = (p, ms, late) => Promise.race([p, new Promise((ok) => setTimeout(() => ok(late), ms))]);
+    const [B, BE] = await Promise.all([O.Data.loadModels(CFG.blend, { ...where, days }),
+      capped(O.Data.loadEnsemble(CFG.blendEns, { ...where, days }).catch(() => ({ empty: true })), 20000, { empty: true })]);
+    if (!B || B.empty) return { empty: true };
+    C.blend.addSources(B, BE, NW && NW.ok ? C.nws.onAxis(NW, B.ms) : null);
+    const w = {}; Object.keys(ws || {}).forEach((id) => { if (B.models[id] && ws[id] > 0) w[id] = ws[id]; });
+    return { rows: C.blend.dailyRows(B, w, { rules }), tz: B.tz, days };
+  }
   /* the briefing's inputs → the briefing's result. Recovery re-runs this with the sources that have since answered. */
   function assemble(where, parts) {
     const { B, NW, BE, TH, META } = parts, mk = S.market(where.lat, where.lon), RB = recipeFor(mk);
@@ -321,5 +333,5 @@
     host.innerHTML = `<div class="bx-mapoff" role="note"><b>HRRR map available for Cincinnati Tri-State only</b><span>The regional map is in development and covers the Cincinnati Tri-State. ${esc(place.name.split(",")[0])} is outside it; the timeline, signals and briefing below are complete for this location.</span><span class="bx-dev">In development</span></div>`;
   }
 
-  root.BetaUI = { NAMES, fmt, vt, st, deg, inch, pct, mph, fin, timeBus, header, load, assemble, recover, rateLimited, RETRY, alerts, timeline, mapPanel, mapUnavailable, placePicker, blendLine, nwsBlock, recipeFor, track };
+  root.BetaUI = { NAMES, fmt, vt, st, deg, inch, pct, mph, fin, timeBus, header, load, outlook, assemble, recover, rateLimited, RETRY, alerts, timeline, mapPanel, mapUnavailable, placePicker, blendLine, nwsBlock, recipeFor, track };
 })(typeof globalThis !== "undefined" ? globalThis : this);
