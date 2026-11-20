@@ -1,0 +1,815 @@
+{
+ "base": "https://raw.githack.com/WxMan33/forecast-ops/claude/beautiful-hawking-tnr183/threats.html",
+ "at": "2026-11-20T19:26:30.538Z",
+ "views": {
+  "live-national-desktop": {
+   "query": "",
+   "notice": true,
+   "hscroll": 0,
+   "errors": [],
+   "state": {
+    "clock": "2026-11-20T19:26:38.484Z",
+    "live": true,
+    "products": [
+     {
+      "kind": "outlook",
+      "title": "Day 1 TSTM",
+      "id": "spc-d1-TSTM-202611201624",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 1 MRGL",
+      "id": "spc-d1-MRGL-202611201624",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 TSTM",
+      "id": "spc-d2-TSTM-202611201733",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 MRGL",
+      "id": "spc-d2-MRGL-202611201733",
+      "geometry": "polygon"
+     }
+    ],
+    "sources": {
+     "alerts": {
+      "shown": "empty",
+      "lastOk": "2026-11-20T19:26:37.909Z",
+      "count": 0,
+      "error": null
+     },
+     "md": {
+      "shown": "unavailable",
+      "lastOk": null,
+      "count": 0,
+      "error": "Failed to fetch",
+      "list": null,
+      "service": {
+       "state": "empty",
+       "count": 0,
+       "placeholder": true,
+       "at": "2026-11-20T19:26:37.910Z"
+      }
+     },
+     "day1": {
+      "shown": "current",
+      "lastOk": "2026-11-20T19:26:37.910Z",
+      "count": 2,
+      "error": null,
+      "outlook": "current"
+     },
+     "day2": {
+      "shown": "current",
+      "lastOk": "2026-11-20T19:26:37.910Z",
+      "count": 2,
+      "error": null,
+      "outlook": "current"
+     }
+    }
+   },
+   "requests": [
+    {
+     "url": "https://www.spc.noaa.gov/products/md/",
+     "failed": "net::ERR_FAILED"
+    },
+    {
+     "url": "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0/query?where=1%3D1&outFields=*&f=geoj…",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "https://raw.githack.com"
+    },
+    {
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/claude/beautiful-hawking-tnr183/assets/maps/fonts/open-sans-v1/Open%20Sans%20Semibold…",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    }
+   ]
+  },
+  "live-venue-desktop": {
+   "query": "?scope=venue",
+   "notice": true,
+   "hscroll": 0,
+   "errors": [],
+   "state": {
+    "clock": "2026-11-20T19:26:43.896Z",
+    "live": true,
+    "products": [
+     {
+      "kind": "outlook",
+      "title": "Day 1 TSTM",
+      "id": "spc-d1-TSTM-202611201624",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 1 MRGL",
+      "id": "spc-d1-MRGL-202611201624",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 TSTM",
+      "id": "spc-d2-TSTM-202611201733",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 MRGL",
+      "id": "spc-d2-MRGL-202611201733",
+      "geometry": "polygon"
+     }
+    ],
+    "sources": {
+     "alerts": {
+      "shown": "empty",
+      "lastOk": "2026-11-20T19:26:42.926Z",
+      "count": 0,
+      "error": null
+     },
+     "md": {
+      "shown": "unavailable",
+      "lastOk": null,
+      "count": 0,
+      "error": "Failed to fetch",
+      "list": null,
+      "service": {
+       "state": "empty",
+       "count": 0,
+       "placeholder": true,
+       "at": "2026-11-20T19:26:42.927Z"
+      }
+     },
+     "day1": {
+      "shown": "current",
+      "lastOk": "2026-11-20T19:26:42.927Z",
+      "count": 2,
+      "error": null,
+      "outlook": "current"
+     },
+     "day2": {
+      "shown": "current",
+      "lastOk": "2026-11-20T19:26:42.927Z",
+      "count": 2,
+      "error": null,
+      "outlook": "current"
+     }
+    }
+   },
+   "requests": [
+    {
+     "url": "https://www.spc.noaa.gov/products/md/",
+     "failed": "net::ERR_FAILED"
+    },
+    {
+     "url": "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0/query?where=1%3D1&outFields=*&f=geoj…",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "https://raw.githack.com"
+    },
+    {
+     "url": "https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/claude/beautiful-hawking-tnr183/assets/maps/fonts/open-sans-v1/Open%20Sans%20Semibold…",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    }
+   ]
+  },
+  "live-day1-model-desktop": {
+   "query": "?view=day1&scope=venue&model=1",
+   "notice": true,
+   "hscroll": 0,
+   "errors": [],
+   "state": {
+    "clock": "2026-11-20T19:26:50.499Z",
+    "live": true,
+    "products": [
+     {
+      "kind": "outlook",
+      "title": "Day 1 TSTM",
+      "id": "spc-d1-TSTM-202611201624",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 1 MRGL",
+      "id": "spc-d1-MRGL-202611201624",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 TSTM",
+      "id": "spc-d2-TSTM-202611201733",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 MRGL",
+      "id": "spc-d2-MRGL-202611201733",
+      "geometry": "polygon"
+     }
+    ],
+    "sources": {
+     "alerts": {
+      "shown": "empty",
+      "lastOk": "2026-11-20T19:26:48.234Z",
+      "count": 0,
+      "error": null
+     },
+     "md": {
+      "shown": "unavailable",
+      "lastOk": null,
+      "count": 0,
+      "error": "Failed to fetch",
+      "list": null,
+      "service": {
+       "state": "empty",
+       "count": 0,
+       "placeholder": true,
+       "at": "2026-11-20T19:26:48.235Z"
+      }
+     },
+     "day1": {
+      "shown": "current",
+      "lastOk": "2026-11-20T19:26:48.235Z",
+      "count": 2,
+      "error": null,
+      "outlook": "current"
+     },
+     "day2": {
+      "shown": "current",
+      "lastOk": "2026-11-20T19:26:48.235Z",
+      "count": 2,
+      "error": null,
+      "outlook": "current"
+     }
+    }
+   },
+   "requests": [
+    {
+     "url": "https://www.spc.noaa.gov/products/md/",
+     "failed": "net::ERR_FAILED"
+    },
+    {
+     "url": "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0/query?where=1%3D1&outFields=*&f=geoj…",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "https://raw.githack.com"
+    },
+    {
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/main/assets/severe-daily/index.json",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/main/assets/severe-daily/models.json",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/claude/beautiful-hawking-tnr183/assets/maps/fonts/open-sans-v1/Open%20Sans%20Semibold…",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/main/assets/severe-daily/grid.json?v=6088437e06",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/main/assets/severe-daily/display-mask.json",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/main/assets/severe-daily/day1.json?v=cb9dd1282b",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/main/assets/severe-daily/day2.json?v=cb53328976",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    }
+   ]
+  },
+  "live-national-phone": {
+   "query": "",
+   "notice": true,
+   "hscroll": 0,
+   "errors": [],
+   "state": {
+    "clock": "2026-11-20T19:26:57.161Z",
+    "live": true,
+    "products": [
+     {
+      "kind": "outlook",
+      "title": "Day 1 TSTM",
+      "id": "spc-d1-TSTM-202611201624",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 1 MRGL",
+      "id": "spc-d1-MRGL-202611201624",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 TSTM",
+      "id": "spc-d2-TSTM-202611201733",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 MRGL",
+      "id": "spc-d2-MRGL-202611201733",
+      "geometry": "polygon"
+     }
+    ],
+    "sources": {
+     "alerts": {
+      "shown": "empty",
+      "lastOk": "2026-11-20T19:26:56.506Z",
+      "count": 0,
+      "error": null
+     },
+     "md": {
+      "shown": "unavailable",
+      "lastOk": null,
+      "count": 0,
+      "error": "Failed to fetch",
+      "list": null,
+      "service": {
+       "state": "empty",
+       "count": 0,
+       "placeholder": true,
+       "at": "2026-11-20T19:26:56.506Z"
+      }
+     },
+     "day1": {
+      "shown": "current",
+      "lastOk": "2026-11-20T19:26:56.506Z",
+      "count": 2,
+      "error": null,
+      "outlook": "current"
+     },
+     "day2": {
+      "shown": "current",
+      "lastOk": "2026-11-20T19:26:56.506Z",
+      "count": 2,
+      "error": null,
+      "outlook": "current"
+     }
+    }
+   },
+   "requests": [
+    {
+     "url": "https://www.spc.noaa.gov/products/md/",
+     "failed": "net::ERR_FAILED"
+    },
+    {
+     "url": "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0/query?where=1%3D1&outFields=*&f=geoj…",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "https://raw.githack.com"
+    },
+    {
+     "url": "https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/claude/beautiful-hawking-tnr183/assets/maps/fonts/open-sans-v1/Open%20Sans%20Semibold…",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    }
+   ]
+  },
+  "live-venue-phone-open": {
+   "query": "?scope=venue&sheet=open",
+   "notice": true,
+   "hscroll": 0,
+   "errors": [],
+   "state": {
+    "clock": "2026-11-20T19:27:06.226Z",
+    "live": true,
+    "products": [
+     {
+      "kind": "outlook",
+      "title": "Day 1 TSTM",
+      "id": "spc-d1-TSTM-202611201624",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 1 MRGL",
+      "id": "spc-d1-MRGL-202611201624",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 TSTM",
+      "id": "spc-d2-TSTM-202611201733",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 MRGL",
+      "id": "spc-d2-MRGL-202611201733",
+      "geometry": "polygon"
+     }
+    ],
+    "sources": {
+     "alerts": {
+      "shown": "empty",
+      "lastOk": "2026-11-20T19:27:05.681Z",
+      "count": 0,
+      "error": null
+     },
+     "md": {
+      "shown": "unavailable",
+      "lastOk": null,
+      "count": 0,
+      "error": "Failed to fetch",
+      "list": null,
+      "service": {
+       "state": "empty",
+       "count": 0,
+       "placeholder": true,
+       "at": "2026-11-20T19:27:05.681Z"
+      }
+     },
+     "day1": {
+      "shown": "current",
+      "lastOk": "2026-11-20T19:27:05.681Z",
+      "count": 2,
+      "error": null,
+      "outlook": "current"
+     },
+     "day2": {
+      "shown": "current",
+      "lastOk": "2026-11-20T19:27:05.682Z",
+      "count": 2,
+      "error": null,
+      "outlook": "current"
+     }
+    }
+   },
+   "requests": [
+    {
+     "url": "https://www.spc.noaa.gov/products/md/",
+     "failed": "net::ERR_FAILED"
+    },
+    {
+     "url": "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0/query?where=1%3D1&outFields=*&f=geoj…",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "https://raw.githack.com"
+    },
+    {
+     "url": "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/claude/beautiful-hawking-tnr183/assets/maps/fonts/open-sans-v1/Open%20Sans%20Semibold…",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    }
+   ]
+  },
+  "FIXTURE-outage-before-expiration": {
+   "query": "?scenario=unavailable&scope=venue",
+   "notice": true,
+   "hscroll": 0,
+   "errors": [],
+   "state": {
+    "clock": "2026-11-20T20:58:00Z",
+    "live": false,
+    "products": [
+     {
+      "kind": "warning",
+      "title": "Tornado Warning",
+      "id": "demo-tor-iln-0071",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "watch",
+      "title": "Tornado Watch 612",
+      "id": "demo-ww-0612",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 1 TSTM",
+      "id": "demo-d1-TSTM",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 1 MRGL",
+      "id": "demo-d1-MRGL",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 1 SLGT",
+      "id": "demo-d1-SLGT",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 1 ENH",
+      "id": "demo-d1-ENH",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 TSTM",
+      "id": "demo-d2-TSTM",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 MRGL",
+      "id": "demo-d2-MRGL",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 SLGT",
+      "id": "demo-d2-SLGT",
+      "geometry": "polygon"
+     }
+    ],
+    "sources": {
+     "alerts": {
+      "shown": "stale",
+      "lastOk": "2026-11-20T20:41:00Z",
+      "count": 2,
+      "error": null
+     },
+     "md": {
+      "shown": "unavailable",
+      "lastOk": null,
+      "error": null
+     },
+     "day1": {
+      "shown": "current",
+      "lastOk": "2026-11-20T20:55:00.000Z",
+      "count": 4,
+      "error": null
+     },
+     "day2": {
+      "shown": "current",
+      "lastOk": "2026-11-20T20:55:00.000Z",
+      "count": 3,
+      "error": null
+     }
+    }
+   },
+   "requests": [
+    {
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/claude/beautiful-hawking-tnr183/assets/maps/fonts/open-sans-v1/Open%20Sans%20Semibold…",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    }
+   ]
+  },
+  "FIXTURE-outage-after-expiration": {
+   "query": "?scenario=outage-expired&scope=venue",
+   "notice": true,
+   "hscroll": 0,
+   "errors": [],
+   "state": {
+    "clock": "2026-11-20T21:20:00Z",
+    "live": false,
+    "products": [
+     {
+      "kind": "warning",
+      "title": "Tornado Warning",
+      "id": "demo-tor-iln-0071",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "watch",
+      "title": "Tornado Watch 612",
+      "id": "demo-ww-0612",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 1 TSTM",
+      "id": "demo-d1-TSTM",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 1 MRGL",
+      "id": "demo-d1-MRGL",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 1 SLGT",
+      "id": "demo-d1-SLGT",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 1 ENH",
+      "id": "demo-d1-ENH",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 TSTM",
+      "id": "demo-d2-TSTM",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 MRGL",
+      "id": "demo-d2-MRGL",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 SLGT",
+      "id": "demo-d2-SLGT",
+      "geometry": "polygon"
+     }
+    ],
+    "sources": {
+     "alerts": {
+      "shown": "stale",
+      "lastOk": "2026-11-20T20:41:00Z",
+      "count": 2,
+      "error": null
+     },
+     "md": {
+      "shown": "unavailable",
+      "lastOk": null,
+      "error": null
+     },
+     "day1": {
+      "shown": "current",
+      "lastOk": "2026-11-20T21:17:00Z",
+      "count": 4,
+      "error": null
+     },
+     "day2": {
+      "shown": "current",
+      "lastOk": "2026-11-20T21:17:00Z",
+      "count": 3,
+      "error": null
+     }
+    }
+   },
+   "requests": [
+    {
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/claude/beautiful-hawking-tnr183/assets/maps/fonts/open-sans-v1/Open%20Sans%20Semibold…",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    }
+   ]
+  }
+ },
+ "customUserAgentTest": [
+  {
+   "requested": "(forecast-ops, github.com/WxMan33/forecast-ops)",
+   "sent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+   "status": 200
+  }
+ ]
+}

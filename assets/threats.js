@@ -5,7 +5,7 @@
   "use strict";
   const O = window.Ops, T = window.ThreatsCore, Demo = window.ThreatsDemo, G = window.SevereResearchContours, Live = window.ThreatsLive;
   const $ = (id) => document.getElementById(id), esc = O.esc;
-  O.shell("threats", "Weather threats", { forecastPoint: false, subtitle: "Preview · severe weather · demo data" });
+  O.shell("threats", "Weather threats", { forecastPoint: false, subtitle: "Preview · severe weather" });
 
   const CITIES = [["Seattle", 47.61, -122.33], ["Portland", 45.52, -122.68], ["San Francisco", 37.77, -122.42], ["Los Angeles", 34.05, -118.24], ["Las Vegas", 36.17, -115.14], ["Phoenix", 33.45, -112.07], ["Salt Lake City", 40.76, -111.89], ["Denver", 39.74, -104.99], ["Albuquerque", 35.08, -106.65], ["Dallas", 32.78, -96.80], ["Houston", 29.76, -95.37], ["San Antonio", 29.42, -98.49], ["Oklahoma City", 35.47, -97.52], ["Kansas City", 39.10, -94.58], ["Omaha", 41.26, -95.93], ["Des Moines", 41.59, -93.62], ["Minneapolis", 44.98, -93.27], ["Chicago", 41.88, -87.63], ["St. Louis", 38.63, -90.20], ["Memphis", 35.15, -90.05], ["Tupelo", 34.26, -88.70], ["New Orleans", 29.95, -90.07], ["Nashville", 36.16, -86.78], ["Huntsville", 34.73, -86.59], ["Louisville", 38.25, -85.76], ["Indianapolis", 39.77, -86.16], ["Cincinnati", 39.10, -84.51], ["Columbus", 39.96, -83.00], ["Dayton", 39.76, -84.19], ["Lexington", 38.04, -84.50], ["Detroit", 42.33, -83.05], ["Cleveland", 41.50, -81.69], ["Pittsburgh", 40.44, -80.00], ["Charleston WV", 38.35, -81.63], ["Atlanta", 33.75, -84.39], ["Birmingham", 33.52, -86.80], ["Jackson", 32.30, -90.18], ["Charlotte", 35.23, -80.84], ["Raleigh", 35.78, -78.64], ["Washington", 38.90, -77.04], ["Philadelphia", 39.95, -75.17], ["New York", 40.71, -74.01], ["Boston", 42.36, -71.06], ["Jacksonville", 30.33, -81.66], ["Tampa", 27.95, -82.46], ["Miami", 25.76, -80.19]];
   const ST = { Cincinnati: "OH", Louisville: "KY", Dayton: "OH", Tupelo: "MS", Huntsville: "AL", Birmingham: "AL", Dallas: "TX", "Des Moines": "IA", Memphis: "TN", Nashville: "TN", "Oklahoma City": "OK" };
@@ -85,7 +85,14 @@
   const shortTitle = (p) => p.kind === "watch" ? p.event : p.kind === "md" ? "Mesoscale Discussion " + p.title.replace(/\D+/g, "") : p.title;
   const venueCovers = () => T.sort(active().filter((p) => rel(p).kind === "covers"));
   const venueNear = () => T.sort(active().filter((p) => rel(p).kind === "near"));
-  const activeKnown = () => ["alerts", "md"].every((k) => ["current", "empty"].includes(data.state[k].kind));
+  const known = (k) => ["current", "empty"].includes(data.state[k].kind);
+  const activeKnown = () => known("alerts") && known("md");
+  /* when only one source is unconfirmed, say exactly which part is known */
+  function quietText() {
+    if (activeKnown()) return { big: "Nothing active at the venue", sub: "No tornado or severe thunderstorm warning or watch is in effect at the venue." };
+    if (known("alerts")) return { big: "No warning or watch at the venue", sub: "NWS checked " + t(data.sources.alerts.lastOk) + ". SPC Mesoscale Discussion status is unknown: that source is not responding." };
+    return { big: "Venue status not confirmed", sub: "No product covers the venue in the data we have, but NWS warnings and watches are not confirmed (see below)." };
+  }
   const SRC_LINK = { alerts: "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch", md: "https://www.spc.noaa.gov/products/md/", day1: "https://www.spc.noaa.gov/products/outlook/day1otlk.html", day2: "https://www.spc.noaa.gov/products/outlook/day2otlk.html" };
 
   /* ---------- map ---------- */
@@ -97,7 +104,7 @@
       style: { version: 8, glyphs: new URL("assets/maps/fonts/open-sans-v1/{fontstack}/{range}.pbf", location.href).href.replace(/%7B/g, "{").replace(/%7D/g, "}"), sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": p.land } }] } });
     map.touchZoomRotate.disableRotation();
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-    map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: "DEMO products · US Census / us-atlas · Natural Earth" }), "bottom-left");
+    map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: "US Census / us-atlas · Natural Earth" }), "bottom-left");
     map.on("load", () => {
       const src = (id, d) => map.addSource(id, { type: "geojson", data: d || empty });
       src("states", states); src("lakes", lakes);
@@ -302,7 +309,7 @@
     const lead = lines[0], hot = lines.find((l) => l.p.kind === "warning");
     let h = `<div class="px-brief${hot ? " hot" : ""}" style="--tx-c:${hot ? colorOf(hot.p) : "var(--line)"}"><div class="px-where">At ${esc(venue.name)}${venue.city ? " · " + esc(venue.city) : ""}</div>`;
     if (!lines.length) {
-      h += `<div class="px-big">${activeKnown() ? "Nothing active at the venue" : "Venue status not confirmed"}</div><div class="px-sub">${activeKnown() ? "No tornado or severe thunderstorm warning or watch is in effect at the venue." : "No product covers the venue in the data we have, but a source is not responding (see below)."}</div>`;
+      const q = quietText(); h += `<div class="px-big">${esc(q.big)}</div><div class="px-sub">${esc(q.sub)}</div>`;
     }
     lines.forEach((l, i) => {
       const first = i === 0 && big && l.at && l.p.kind === "warning";
@@ -321,13 +328,13 @@
   }
   function venueStrip() {
     const l = statusLines()[0];
-    const text = l ? `<b>${esc(l.head)}</b> · ${esc(l.sub)}` : activeKnown() ? "Nothing active at the venue" : "Venue status not confirmed";
+    const text = l ? `<b>${esc(l.head)}</b> · ${esc(l.sub)}` : esc(quietText().big);
     return `<button type="button" class="px-strip${l && l.p.kind === "warning" ? " hot" : ""}" data-scope-go="venue" style="--tx-c:${l ? colorOf(l.p) : "var(--line)"}"><span class="px-where">At ${esc(venue.name)}</span><span class="px-strip-t">${text}</span><span class="px-strip-go">Venue view →</span></button>`;
   }
   function nationalActive() {
     const groups = T.group(active(), PLACES);
     let h = venueStrip() + notices() + `<div class="px-h"><span>Most urgent now</span><span>${groups.reduce((n, g) => n + g.items.length, 0)} active</span></div>`;
-    if (!groups.length) h += `<p class="px-empty">${activeKnown() ? "No active tornado or severe thunderstorm warnings or watches, and no SPC Mesoscale Discussions, in the contiguous U.S." : "None in the data we have, but at least one source is not responding (see below)."}</p><p class="lg-note">${esc(SCOPE_NOTE)} Flood, winter and other hazards are not shown here yet.</p>`;
+    if (!groups.length) h += `<p class="px-empty">${activeKnown() ? "No active tornado or severe thunderstorm warnings or watches, and no SPC Mesoscale Discussions, in the contiguous U.S." : (known("alerts") ? "No active tornado or severe thunderstorm warnings or watches in the contiguous U.S. (NWS checked " + esc(t(data.sources.alerts.lastOk)) + "). SPC Mesoscale Discussion status is unknown." : "None in the data we have, but NWS warnings and watches are not confirmed (see below).")}</p><p class="lg-note">${esc(SCOPE_NOTE)} Flood, winter and other hazards are not shown here yet.</p>`;
     for (const g of groups) {
       const o = T.outlookAt(outlooks(1), g.lead.label || g.centre);
       const counts = ["warning", "watch", "md"].map((k) => [k, g.items.filter((p) => p.kind === k).length]).filter(([, n]) => n).map(([k, n]) => n + " " + ({ warning: "warning", watch: "watch", md: "MD" }[k]) + (n > 1 ? (k === "watch" ? "es" : "s") : "")).join(" · ");
@@ -418,7 +425,7 @@
     if (S.sel) { const p = byId(S.sel); return p ? [p.kind === "outlook" ? "Day " + p.day + " · " + T.outlookLabel(p.category) : p.title, "Tap for details"] : ["", ""]; }
     if (viewDay()) { const o = T.outlookAt(outlooks(viewDay()), [venue.lon, venue.lat]); return ["Day " + viewDay() + " at " + venue.name, o ? "Highest: " + T.outlookLabel(o.category) : "No severe risk area"]; }
     const L = statusLines();
-    if (!L.length) return [(activeKnown() ? "Nothing active at " : "Not confirmed at ") + venue.name, lapsed().length ? "A warning reached its expiration · NWS status unknown" : activeKnown() ? "Checked " + t(data.sources.alerts.lastOk) : "A source is not responding"];
+    if (!L.length) { const q = quietText(); return [q.big.replace("at the venue", "at " + venue.name), lapsed().length ? "A warning reached its expiration · NWS status unknown" : activeKnown() ? "NWS checked " + t(data.sources.alerts.lastOk) : known("alerts") ? "NWS checked " + t(data.sources.alerts.lastOk) + " · MD status unknown" : "NWS warnings not confirmed"]; }
     // line 1: what applies at the venue; line 2: its expiration (always kept); line 3: a nearby warning, if any
     const a = L[0], b = L.find((l, i) => i > 0 && l.p.kind === "warning");
     return [a.head.replace("at the venue", "at " + venue.name), a.sub, b ? b.head + (b.at ? "" : " · venue outside it") : ""];
@@ -528,6 +535,7 @@
     $("demoVenue").innerHTML = opts.map((o) => `<option value="${esc(o.id)}">${esc(o.label)}</option>`).join("");
     $("demoVenue").value = live ? (S.entryVenue ? "entry" : S.liveVenue) : S.venueKey;
     $("demoScenario").value = S.scenario;
+    const sub = document.querySelector(".statusbar .page-sub"); if (sub) sub.textContent = live ? "Preview · severe weather · live official feeds" : "Preview · severe weather · demo data";
     O.setChip(live ? "LIVE PREVIEW" : "DEMO DATA", live ? "live" : "warn", live ? "Official feeds, branch preview" : "Fictional products for layout review");
   }
   $("demoScenario").addEventListener("change", () => {
