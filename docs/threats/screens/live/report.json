@@ -1,7 +1,7 @@
 {
- "base": "https://raw.githack.com/WxMan33/forecast-ops/fe4f7dac9fdc684c35c675b4b5347a0cb40861d5/threats.html",
- "commit": "fe4f7dac9fdc684c35c675b4b5347a0cb40861d5",
- "at": "2026-11-20T19:51:39.635Z",
+ "base": "https://raw.githack.com/WxMan33/forecast-ops/ebc67f22966f3a6227eddbd0f2e7f93ae656a30f/threats.html",
+ "commit": "ebc67f22966f3a6227eddbd0f2e7f93ae656a30f",
+ "at": "2026-11-20T20:04:33.431Z",
  "views": {
   "live-national-desktop": {
    "query": "",
@@ -9,7 +9,7 @@
    "hscroll": 0,
    "errors": [],
    "state": {
-    "clock": "2026-11-20T19:51:42.799Z",
+    "clock": "2026-11-20T20:04:36.590Z",
     "live": true,
     "archive": null,
     "venueStatus": [],
@@ -42,13 +42,13 @@
     "sources": {
      "alerts": {
       "shown": "empty",
-      "lastOk": "2026-11-20T19:51:42.246Z",
+      "lastOk": "2026-11-20T20:04:36.094Z",
       "count": 0,
       "error": null
      },
      "md": {
       "shown": "empty",
-      "lastOk": "2026-11-20T19:51:42.247Z",
+      "lastOk": "2026-11-20T20:04:36.094Z",
       "count": 0,
       "error": null,
       "list": null,
@@ -56,19 +56,19 @@
        "state": "empty",
        "count": 0,
        "placeholder": true,
-       "at": "2026-11-20T19:51:42.247Z"
+       "at": "2026-11-20T20:04:36.094Z"
       }
      },
      "day1": {
       "shown": "current",
-      "lastOk": "2026-11-20T19:51:42.247Z",
+      "lastOk": "2026-11-20T20:04:36.095Z",
       "count": 2,
       "error": null,
       "outlook": "current"
      },
      "day2": {
       "shown": "current",
-      "lastOk": "2026-11-20T19:51:42.247Z",
+      "lastOk": "2026-11-20T20:04:36.095Z",
       "count": 2,
       "error": null,
       "outlook": "current"
@@ -77,11 +77,8 @@
    },
    "requests": [
     {
-     "url": "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson",
-     "status": 200,
-     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
-     "origin": "https://raw.githack.com",
-     "acao": "*"
+     "url": "https://www.spc.noaa.gov/products/md/",
+     "failed": "net::ERR_FAILED"
     },
     {
      "url": "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
@@ -91,8 +88,11 @@
      "acao": "*"
     },
     {
-     "url": "https://www.spc.noaa.gov/products/md/",
-     "failed": "net::ERR_FAILED"
+     "url": "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
     },
     {
      "url": "https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson",
@@ -109,7 +109,7 @@
      "acao": "https://raw.githack.com"
     },
     {
-     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/fe4f7dac9fdc684c35c675b4b5347a0cb40861d5/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/ebc67f22966f3a6227eddbd0f2e7f93ae656a30f/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -123,7 +123,7 @@
    "hscroll": 0,
    "errors": [],
    "state": {
-    "clock": "2026-11-20T19:51:48.584Z",
+    "clock": "2026-11-20T20:04:43.441Z",
     "live": true,
     "archive": null,
     "venueStatus": [
@@ -158,13 +158,13 @@
     "sources": {
      "alerts": {
       "shown": "empty",
-      "lastOk": "2026-11-20T19:51:47.989Z",
+      "lastOk": "2026-11-20T20:04:43.118Z",
       "count": 0,
       "error": null
      },
      "md": {
       "shown": "empty",
-      "lastOk": "2026-11-20T19:51:47.990Z",
+      "lastOk": "2026-11-20T20:04:43.118Z",
       "count": 0,
       "error": null,
       "list": null,
@@ -172,19 +172,19 @@
        "state": "empty",
        "count": 0,
        "placeholder": true,
-       "at": "2026-11-20T19:51:47.990Z"
+       "at": "2026-11-20T20:04:43.118Z"
       }
      },
      "day1": {
       "shown": "current",
-      "lastOk": "2026-11-20T19:51:47.990Z",
+      "lastOk": "2026-11-20T20:04:43.119Z",
       "count": 2,
       "error": null,
       "outlook": "current"
      },
      "day2": {
       "shown": "current",
-      "lastOk": "2026-11-20T19:51:47.990Z",
+      "lastOk": "2026-11-20T20:04:43.119Z",
       "count": 2,
       "error": null,
       "outlook": "current"
@@ -225,7 +225,7 @@
      "acao": "*"
     },
     {
-     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/fe4f7dac9fdc684c35c675b4b5347a0cb40861d5/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/ebc67f22966f3a6227eddbd0f2e7f93ae656a30f/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -239,7 +239,7 @@
    "hscroll": 0,
    "errors": [],
    "state": {
-    "clock": "2026-11-20T19:51:55.063Z",
+    "clock": "2026-11-20T20:04:50.162Z",
     "live": true,
     "archive": null,
     "venueStatus": [
@@ -274,13 +274,13 @@
     "sources": {
      "alerts": {
       "shown": "empty",
-      "lastOk": "2026-11-20T19:51:52.889Z",
+      "lastOk": "2026-11-20T20:04:47.964Z",
       "count": 0,
       "error": null
      },
      "md": {
       "shown": "empty",
-      "lastOk": "2026-11-20T19:51:52.889Z",
+      "lastOk": "2026-11-20T20:04:47.964Z",
       "count": 0,
       "error": null,
       "list": null,
@@ -288,19 +288,19 @@
        "state": "empty",
        "count": 0,
        "placeholder": true,
-       "at": "2026-11-20T19:51:52.889Z"
+       "at": "2026-11-20T20:04:47.964Z"
       }
      },
      "day1": {
       "shown": "current",
-      "lastOk": "2026-11-20T19:51:52.889Z",
+      "lastOk": "2026-11-20T20:04:47.964Z",
       "count": 2,
       "error": null,
       "outlook": "current"
      },
      "day2": {
       "shown": "current",
-      "lastOk": "2026-11-20T19:51:52.889Z",
+      "lastOk": "2026-11-20T20:04:47.964Z",
       "count": 2,
       "error": null,
       "outlook": "current"
@@ -313,14 +313,14 @@
      "failed": "net::ERR_FAILED"
     },
     {
-     "url": "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
+     "url": "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
      "acao": "*"
     },
     {
-     "url": "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson",
+     "url": "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -355,14 +355,14 @@
      "acao": "*"
     },
     {
-     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/main/assets/severe-daily/grid.json?v=6088437e06",
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/ebc67f22966f3a6227eddbd0f2e7f93ae656a30f/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
      "acao": "*"
     },
     {
-     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/fe4f7dac9fdc684c35c675b4b5347a0cb40861d5/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/main/assets/severe-daily/grid.json?v=6088437e06",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -397,7 +397,7 @@
    "hscroll": 0,
    "errors": [],
    "state": {
-    "clock": "2026-11-20T19:52:01.599Z",
+    "clock": "2026-11-20T20:04:56.628Z",
     "live": true,
     "archive": null,
     "venueStatus": [],
@@ -430,13 +430,13 @@
     "sources": {
      "alerts": {
       "shown": "empty",
-      "lastOk": "2026-11-20T19:52:00.944Z",
+      "lastOk": "2026-11-20T20:04:56.031Z",
       "count": 0,
       "error": null
      },
      "md": {
       "shown": "empty",
-      "lastOk": "2026-11-20T19:52:00.944Z",
+      "lastOk": "2026-11-20T20:04:56.032Z",
       "count": 0,
       "error": null,
       "list": null,
@@ -444,19 +444,19 @@
        "state": "empty",
        "count": 0,
        "placeholder": true,
-       "at": "2026-11-20T19:52:00.944Z"
+       "at": "2026-11-20T20:04:56.032Z"
       }
      },
      "day1": {
       "shown": "current",
-      "lastOk": "2026-11-20T19:52:00.944Z",
+      "lastOk": "2026-11-20T20:04:56.032Z",
       "count": 2,
       "error": null,
       "outlook": "current"
      },
      "day2": {
       "shown": "current",
-      "lastOk": "2026-11-20T19:52:00.944Z",
+      "lastOk": "2026-11-20T20:04:56.032Z",
       "count": 2,
       "error": null,
       "outlook": "current"
@@ -467,6 +467,13 @@
     {
      "url": "https://www.spc.noaa.gov/products/md/",
      "failed": "net::ERR_FAILED"
+    },
+    {
+     "url": "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
     },
     {
      "url": "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson",
@@ -483,13 +490,6 @@
      "acao": "https://raw.githack.com"
     },
     {
-     "url": "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
-     "status": 200,
-     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
-     "origin": "https://raw.githack.com",
-     "acao": "*"
-    },
-    {
      "url": "https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
@@ -497,7 +497,7 @@
      "acao": "*"
     },
     {
-     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/fe4f7dac9fdc684c35c675b4b5347a0cb40861d5/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/ebc67f22966f3a6227eddbd0f2e7f93ae656a30f/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -511,7 +511,7 @@
    "hscroll": 0,
    "errors": [],
    "state": {
-    "clock": "2026-11-20T19:52:06.035Z",
+    "clock": "2026-11-20T20:05:00.883Z",
     "live": true,
     "archive": null,
     "venueStatus": [
@@ -546,13 +546,13 @@
     "sources": {
      "alerts": {
       "shown": "empty",
-      "lastOk": "2026-11-20T19:52:05.311Z",
+      "lastOk": "2026-11-20T20:05:00.510Z",
       "count": 0,
       "error": null
      },
      "md": {
       "shown": "empty",
-      "lastOk": "2026-11-20T19:52:05.312Z",
+      "lastOk": "2026-11-20T20:05:00.510Z",
       "count": 0,
       "error": null,
       "list": null,
@@ -560,19 +560,19 @@
        "state": "empty",
        "count": 0,
        "placeholder": true,
-       "at": "2026-11-20T19:52:05.312Z"
+       "at": "2026-11-20T20:05:00.510Z"
       }
      },
      "day1": {
       "shown": "current",
-      "lastOk": "2026-11-20T19:52:05.312Z",
+      "lastOk": "2026-11-20T20:05:00.511Z",
       "count": 2,
       "error": null,
       "outlook": "current"
      },
      "day2": {
       "shown": "current",
-      "lastOk": "2026-11-20T19:52:05.312Z",
+      "lastOk": "2026-11-20T20:05:00.511Z",
       "count": 2,
       "error": null,
       "outlook": "current"
@@ -613,7 +613,7 @@
      "acao": "*"
     },
     {
-     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/fe4f7dac9fdc684c35c675b4b5347a0cb40861d5/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/ebc67f22966f3a6227eddbd0f2e7f93ae656a30f/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -670,7 +670,7 @@
    },
    "requests": [
     {
-     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/fe4f7dac9fdc684c35c675b4b5347a0cb40861d5/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/ebc67f22966f3a6227eddbd0f2e7f93ae656a30f/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -727,7 +727,7 @@
    },
    "requests": [
     {
-     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/fe4f7dac9fdc684c35c675b4b5347a0cb40861d5/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/ebc67f22966f3a6227eddbd0f2e7f93ae656a30f/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -777,7 +777,7 @@
    },
    "requests": [
     {
-     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/fe4f7dac9fdc684c35c675b4b5347a0cb40861d5/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/ebc67f22966f3a6227eddbd0f2e7f93ae656a30f/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -832,21 +832,7 @@
    },
    "requests": [
     {
-     "url": "https://api.weather.gov/zones/county/NJC005",
-     "status": 200,
-     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
-     "origin": "https://raw.githack.com",
-     "acao": "*"
-    },
-    {
-     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/fe4f7dac9fdc684c35c675b4b5347a0cb40861d5/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
-     "status": 200,
-     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
-     "origin": "https://raw.githack.com",
-     "acao": "*"
-    },
-    {
-     "url": "https://api.weather.gov/zones/county/NJC007",
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/ebc67f22966f3a6227eddbd0f2e7f93ae656a30f/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -860,14 +846,7 @@
      "acao": "*"
     },
     {
-     "url": "https://api.weather.gov/zones/county/DEC003",
-     "status": 200,
-     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
-     "origin": "https://raw.githack.com",
-     "acao": "*"
-    },
-    {
-     "url": "https://api.weather.gov/zones/county/NJC019",
+     "url": "https://api.weather.gov/zones/county/NJC005",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -881,7 +860,14 @@
      "acao": "*"
     },
     {
-     "url": "https://api.weather.gov/zones/county/NJC023",
+     "url": "https://api.weather.gov/zones/county/NJC007",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/DEC003",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -895,7 +881,28 @@
      "acao": "*"
     },
     {
+     "url": "https://api.weather.gov/zones/county/NJC023",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
      "url": "https://api.weather.gov/zones/county/NJC029",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC019",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC033",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -923,28 +930,7 @@
      "acao": "*"
     },
     {
-     "url": "https://api.weather.gov/zones/county/PAC011",
-     "status": 200,
-     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
-     "origin": "https://raw.githack.com",
-     "acao": "*"
-    },
-    {
-     "url": "https://api.weather.gov/zones/county/NJC033",
-     "status": 200,
-     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
-     "origin": "https://raw.githack.com",
-     "acao": "*"
-    },
-    {
      "url": "https://api.weather.gov/zones/county/PAC029",
-     "status": 200,
-     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
-     "origin": "https://raw.githack.com",
-     "acao": "*"
-    },
-    {
-     "url": "https://api.weather.gov/zones/county/PAC091",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -958,7 +944,21 @@
      "acao": "*"
     },
     {
-     "url": "https://api.weather.gov/zones/county/PAC101",
+     "url": "https://api.weather.gov/zones/county/PAC077",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC091",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC011",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -972,7 +972,7 @@
      "acao": "*"
     },
     {
-     "url": "https://api.weather.gov/zones/county/PAC077",
+     "url": "https://api.weather.gov/zones/forecast/ANZ450",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -986,7 +986,7 @@
      "acao": "*"
     },
     {
-     "url": "https://api.weather.gov/zones/forecast/ANZ450",
+     "url": "https://api.weather.gov/zones/county/PAC101",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -1050,6 +1050,13 @@
    },
    "requests": [
     {
+     "url": "https://api.weather.gov/zones/county/NJC005",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
      "url": "https://api.weather.gov/zones/county/DEC003",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
@@ -1057,7 +1064,7 @@
      "acao": "*"
     },
     {
-     "url": "https://api.weather.gov/zones/county/NJC005",
+     "url": "https://api.weather.gov/zones/county/NJC019",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -1078,13 +1085,6 @@
      "acao": "*"
     },
     {
-     "url": "https://api.weather.gov/zones/county/NJC019",
-     "status": 200,
-     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
-     "origin": "https://raw.githack.com",
-     "acao": "*"
-    },
-    {
      "url": "https://api.weather.gov/zones/county/NJC021",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
@@ -1093,6 +1093,20 @@
     },
     {
      "url": "https://api.weather.gov/zones/county/NJC023",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC025",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC029",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -1113,20 +1127,6 @@
      "acao": "*"
     },
     {
-     "url": "https://api.weather.gov/zones/county/NJC029",
-     "status": 200,
-     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
-     "origin": "https://raw.githack.com",
-     "acao": "*"
-    },
-    {
-     "url": "https://api.weather.gov/zones/county/NJC025",
-     "status": 200,
-     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
-     "origin": "https://raw.githack.com",
-     "acao": "*"
-    },
-    {
      "url": "https://api.weather.gov/zones/county/NJC041",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
@@ -1134,14 +1134,7 @@
      "acao": "*"
     },
     {
-     "url": "https://api.weather.gov/zones/county/PAC011",
-     "status": 200,
-     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
-     "origin": "https://raw.githack.com",
-     "acao": "*"
-    },
-    {
-     "url": "https://api.weather.gov/zones/county/PAC017",
+     "url": "https://api.weather.gov/zones/county/PAC029",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -1155,6 +1148,13 @@
      "acao": "*"
     },
     {
+     "url": "https://api.weather.gov/zones/county/PAC077",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
      "url": "https://api.weather.gov/zones/county/PAC091",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
@@ -1162,7 +1162,14 @@
      "acao": "*"
     },
     {
-     "url": "https://api.weather.gov/zones/county/PAC101",
+     "url": "https://api.weather.gov/zones/county/PAC017",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC011",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -1190,7 +1197,7 @@
      "acao": "*"
     },
     {
-     "url": "https://api.weather.gov/zones/county/PAC029",
+     "url": "https://api.weather.gov/zones/county/PAC101",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -1204,14 +1211,7 @@
      "acao": "*"
     },
     {
-     "url": "https://api.weather.gov/zones/county/PAC077",
-     "status": 200,
-     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
-     "origin": "https://raw.githack.com",
-     "acao": "*"
-    },
-    {
-     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/fe4f7dac9fdc684c35c675b4b5347a0cb40861d5/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/ebc67f22966f3a6227eddbd0f2e7f93ae656a30f/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -1268,6 +1268,13 @@
    },
    "requests": [
     {
+     "url": "https://api.weather.gov/zones/county/DEC003",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
      "url": "https://api.weather.gov/zones/county/NJC005",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
@@ -1276,13 +1283,6 @@
     },
     {
      "url": "https://api.weather.gov/zones/county/NJC007",
-     "status": 200,
-     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
-     "origin": "https://raw.githack.com",
-     "acao": "*"
-    },
-    {
-     "url": "https://api.weather.gov/zones/county/DEC003",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -1303,7 +1303,218 @@
      "acao": "*"
     },
     {
+     "url": "https://api.weather.gov/zones/county/NJC021",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
      "url": "https://api.weather.gov/zones/county/NJC023",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC025",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC035",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC041",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC033",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC011",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC017",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC029",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC045",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC091",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC077",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC101",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/forecast/ANZ430",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC095",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/forecast/ANZ451",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/forecast/ANZ450",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC029",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/ebc67f22966f3a6227eddbd0f2e7f93ae656a30f/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    }
+   ]
+  },
+  "ARCHIVED-watch705-phone-360-closed": {
+   "query": "?scenario=archive-ww705&scope=venue",
+   "notice": true,
+   "hscroll": 0,
+   "errors": [],
+   "state": {
+    "clock": "2026-11-12T17:51:00.000Z",
+    "live": false,
+    "archive": "SPC Tornado Watch 705 (official WOU), Nov 12, 2026 · message 1 of 1",
+    "venueStatus": [
+     "Tornado Watch in effect at the venue"
+    ],
+    "products": [
+     {
+      "kind": "watch",
+      "title": "Tornado Watch 705",
+      "id": "KWNS.TO.A.0705.2026",
+      "geometry": "counties"
+     }
+    ],
+    "sources": {
+     "alerts": {
+      "shown": "current",
+      "lastOk": "2026-11-12T17:50:30.000Z",
+      "count": 1,
+      "error": null
+     },
+     "md": {
+      "shown": "na",
+      "lastOk": null,
+      "count": 0,
+      "error": null
+     },
+     "day1": {
+      "shown": "na",
+      "lastOk": null,
+      "count": 0,
+      "error": null
+     },
+     "day2": {
+      "shown": "na",
+      "lastOk": null,
+      "count": 0,
+      "error": null
+     }
+    }
+   },
+   "requests": [
+    {
+     "url": "https://api.weather.gov/zones/county/NJC005",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/DEC003",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC007",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC015",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC019",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -1317,7 +1528,7 @@
      "acao": "*"
     },
     {
-     "url": "https://api.weather.gov/zones/county/NJC033",
+     "url": "https://api.weather.gov/zones/county/NJC023",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -1332,6 +1543,231 @@
     },
     {
      "url": "https://api.weather.gov/zones/county/NJC029",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC033",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC041",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC035",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC017",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC011",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC095",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC101",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC029",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC091",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC045",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC077",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/forecast/ANZ430",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/forecast/ANZ450",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/forecast/ANZ451",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/ebc67f22966f3a6227eddbd0f2e7f93ae656a30f/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    }
+   ]
+  },
+  "ARCHIVED-watch705-venue-trenton": {
+   "query": "?scenario=archive-ww705&scope=venue&avenue=cure",
+   "notice": true,
+   "hscroll": 0,
+   "errors": [],
+   "state": {
+    "clock": "2026-11-12T17:51:00.000Z",
+    "live": false,
+    "archive": "SPC Tornado Watch 705 (official WOU), Nov 12, 2026 · message 1 of 1",
+    "venueStatus": [
+     "Tornado Watch in effect at the venue"
+    ],
+    "products": [
+     {
+      "kind": "watch",
+      "title": "Tornado Watch 705",
+      "id": "KWNS.TO.A.0705.2026",
+      "geometry": "counties"
+     }
+    ],
+    "sources": {
+     "alerts": {
+      "shown": "current",
+      "lastOk": "2026-11-12T17:50:30.000Z",
+      "count": 1,
+      "error": null
+     },
+     "md": {
+      "shown": "na",
+      "lastOk": null,
+      "count": 0,
+      "error": null
+     },
+     "day1": {
+      "shown": "na",
+      "lastOk": null,
+      "count": 0,
+      "error": null
+     },
+     "day2": {
+      "shown": "na",
+      "lastOk": null,
+      "count": 0,
+      "error": null
+     }
+    }
+   },
+   "requests": [
+    {
+     "url": "https://api.weather.gov/zones/county/NJC005",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/DEC003",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC007",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC015",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC021",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC023",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC019",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC025",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC029",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/NJC033",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -1380,21 +1816,14 @@
      "acao": "*"
     },
     {
-     "url": "https://api.weather.gov/zones/county/PAC095",
-     "status": 200,
-     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
-     "origin": "https://raw.githack.com",
-     "acao": "*"
-    },
-    {
-     "url": "https://api.weather.gov/zones/county/PAC101",
-     "status": 200,
-     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
-     "origin": "https://raw.githack.com",
-     "acao": "*"
-    },
-    {
      "url": "https://api.weather.gov/zones/county/PAC029",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/zones/county/PAC095",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -1415,6 +1844,13 @@
      "acao": "*"
     },
     {
+     "url": "https://api.weather.gov/zones/county/PAC101",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
      "url": "https://api.weather.gov/zones/forecast/ANZ450",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
@@ -1429,7 +1865,123 @@
      "acao": "*"
     },
     {
-     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/fe4f7dac9fdc684c35c675b4b5347a0cb40861d5/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/ebc67f22966f3a6227eddbd0f2e7f93ae656a30f/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    }
+   ]
+  },
+  "live-phone-390-long-venue-name": {
+   "query": "?lat=39.0974&lon=-84.5066&name=Great%20American%20Ball%20Park%20Riverfront%20Club%20and%20Conference%20Center%20Main%20Concourse%20Entrance%20Gate",
+   "notice": true,
+   "hscroll": 0,
+   "errors": [],
+   "state": {
+    "clock": "2026-11-20T20:06:17.171Z",
+    "live": true,
+    "archive": null,
+    "venueStatus": [
+     "Nothing active at the venue"
+    ],
+    "products": [
+     {
+      "kind": "outlook",
+      "title": "Day 1 TSTM",
+      "id": "spc-d1-TSTM-202611201938",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 1 MRGL",
+      "id": "spc-d1-MRGL-202611201938",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 TSTM",
+      "id": "spc-d2-TSTM-202611201733",
+      "geometry": "polygon"
+     },
+     {
+      "kind": "outlook",
+      "title": "Day 2 MRGL",
+      "id": "spc-d2-MRGL-202611201733",
+      "geometry": "polygon"
+     }
+    ],
+    "sources": {
+     "alerts": {
+      "shown": "empty",
+      "lastOk": "2026-11-20T20:06:16.571Z",
+      "count": 0,
+      "error": null
+     },
+     "md": {
+      "shown": "empty",
+      "lastOk": "2026-11-20T20:06:16.572Z",
+      "count": 0,
+      "error": null,
+      "list": null,
+      "service": {
+       "state": "empty",
+       "count": 0,
+       "placeholder": true,
+       "at": "2026-11-20T20:06:16.572Z"
+      }
+     },
+     "day1": {
+      "shown": "current",
+      "lastOk": "2026-11-20T20:06:16.572Z",
+      "count": 2,
+      "error": null,
+      "outlook": "current"
+     },
+     "day2": {
+      "shown": "current",
+      "lastOk": "2026-11-20T20:06:16.573Z",
+      "count": 2,
+      "error": null,
+      "outlook": "current"
+     }
+    }
+   },
+   "requests": [
+    {
+     "url": "https://www.spc.noaa.gov/products/md/",
+     "failed": "net::ERR_FAILED"
+    },
+    {
+     "url": "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "*"
+    },
+    {
+     "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0/query?where=1%3D1&outFields=*&f=geoj…",
+     "status": 200,
+     "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
+     "origin": "https://raw.githack.com",
+     "acao": "https://raw.githack.com"
+    },
+    {
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/ebc67f22966f3a6227eddbd0f2e7f93ae656a30f/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -1534,7 +2086,7 @@
    },
    "requests": [
     {
-     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/fe4f7dac9fdc684c35c675b4b5347a0cb40861d5/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/ebc67f22966f3a6227eddbd0f2e7f93ae656a30f/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
@@ -1638,7 +2190,7 @@
    },
    "requests": [
     {
-     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/fe4f7dac9fdc684c35c675b4b5347a0cb40861d5/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
+     "url": "https://raw.githubusercontent.com/WxMan33/forecast-ops/ebc67f22966f3a6227eddbd0f2e7f93ae656a30f/assets/maps/fonts/open-sans-v1/Open%20Sans%2…",
      "status": 200,
      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.8103.78 Safari/537.36",
      "origin": "https://raw.githack.com",
