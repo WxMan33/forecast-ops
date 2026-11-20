@@ -24,12 +24,12 @@ const NIGHT = ev('ev_dl_night', 'Synthetic Overnight Shift', { setup: '2026-12-3
 const DST = ev('ev_dl_dst', 'Synthetic Spring Race', { setup: '2027-03-14T06:00', start: '2027-03-14T08:00', end: '2027-03-14T11:00', teardown: '2027-03-14T12:00' });
 const expect = (e) => DL.compute({ A, C: Cc, windows: Cc.event.windows(e), lat: e.loc.lat, lon: e.loc.lon, tz: e.tz });
 
-async function open(browser, device, e, { fixture = false } = {}) {
+async function open(browser, device, e, { fixture = false, clock = null } = {}) {
   const ctx = await browser.newContext({ ...device, timezoneId: NY, acceptDownloads: true }), errors = [];
   await ctx.addInitScript((s) => { localStorage.setItem('beta_analytics_optout', '1'); localStorage.setItem('ops_theme', JSON.stringify('light')); localStorage.setItem('beta_events_v2', s); }, JSON.stringify([e]));
   await ctx.route('**/*', (r) => { const u = new URL(r.request().url()); if (u.hostname !== '127.0.0.1') return r.fulfill({ status: 503, body: '' });
     if (fixture && u.pathname === '/assets/beta-event.js') return r.fulfill({ contentType: 'application/javascript', body: FIX + '\n' + fs.readFileSync(path.join(root, 'assets/beta-event.js'), 'utf8') }); return r.continue(); });
-  const p = await ctx.newPage(); p.on('pageerror', (x) => errors.push(x.message));
+  const p = await ctx.newPage(); p.on('pageerror', (x) => errors.push(x.message)); if (clock) await p.clock.install({ time: new Date(clock) });
   return { ctx, p, errors };
 }
 const row = (p) => p.evaluate(() => { const el = document.querySelector('#daylight .ev-daylight'), sec = document.getElementById('secTimeline'), r = el && el.getBoundingClientRect();
@@ -52,19 +52,37 @@ const row = (p) => p.evaluate(() => { const el = document.querySelector('#daylig
       if (dev === 'phone') await p.screenshot({ path: path.join(out, 'daylight-race-phone-page.png') });
       check(!errors.length, `${dev} race: no script errors ${errors.join('; ')}`); await ctx.close();
     }
+    /* 1b. the race with its hourly forecast (synthetic weather, clock on the day before): the line above the charts,
+       the TV image in Light and Dark, and the Almanac for the same place and date */
+    { const want = DL.lineText(xr);
+      const { ctx, p, errors } = await open(browser, PHONE, RACE, { fixture: true, clock: '2026-11-25T15:00:00Z' });
+      await p.goto(`${base}/event-beta.html?ev=${RACE.id}#hourly`); await p.waitForFunction(() => document.body.dataset.loaded && document.querySelector('#evCharts .evc-card') && !document.getElementById('shareImage').disabled, null, { timeout: 30000 }); await p.waitForTimeout(800);
+      const h = await p.evaluate(() => { const el = document.querySelector('#hourlyDaylight [data-daylight-line]'), c = document.querySelector('#evCharts .evc-card'), r = el && el.getBoundingClientRect();
+        return { text: el ? el.innerText.replace(/\s+/g, ' ').trim() : '', above: !!el && r.bottom <= c.getBoundingClientRect().top + 1, fits: !!el && r.right <= innerWidth, open: document.getElementById('secHourly').open, top: r ? Math.round(r.top) : -1 }; });
+      check(h.text === want && want === 'Sunrise 7:33 AM · Sunset 5:17 PM EST' && h.above && h.fits && h.open, `race, Hour by hour (phone): "${h.text}" just above the charts, on screen at ${h.top}px`);
+      await p.evaluate(() => { const el = document.getElementById('hourlyDaylight'); window.scrollTo(0, el.getBoundingClientRect().top + scrollY - 150); }); await p.waitForTimeout(300);
+      await p.screenshot({ path: path.join(out, 'daylight-race-hourly-phone.png') });
+      for (const theme of ['light', 'dark']) {
+        await p.selectOption('#tvTheme', theme);
+        const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 20000 }), p.click('#tvExport')]); await dl.saveAs(path.join(out, `daylight-race-tv-${theme}.png`));
+        const tv = await p.evaluate(() => { const d = window.__lastHourly, a = window.EventTvExport.draw(document.createElement('canvas'), d), b = window.EventTvExport.draw(document.createElement('canvas'), { ...d, daylightLine: '', daylight: '' });
+          const px = (c) => c.getContext('2d').getImageData(0, 217, 1920, 1080 - 217 - 40).data; const A = px(a), B = px(b); let diff = 0; for (let i = 0; i < A.length; i++) if (A[i] !== B[i]) { diff++; }
+          return { line: d.daylightLine, at: a.daylight, min: a.minFontPx, minPlain: b.minFontPx, diff, w: a.width, h: a.height, theme: a.theme }; });
+        check(tv.line === want && /^line/.test(tv.at) && tv.diff === 0 && tv.min === tv.minPlain && tv.w === 1920 && tv.h === 1080 && tv.theme === theme,
+          `race, TV image (${theme}): "${tv.line}" under the event details (${tv.at}); the four charts are pixel-for-pixel the same as without it (${tv.diff} pixels differ); smallest text ${tv.min}px`);
+      }
+      check(!errors.length, `race hourly: no script errors ${errors.join('; ')}`); await ctx.close();
+      /* the Almanac page for the same place and date is compared in the live beta check: offline it has no time zone lookup */ }
     /* 2. crosses sunset, full synthetic briefing: row, PDF page 1, TV PNG */
-    { const xd = expect(DUSK), { ctx, p, errors } = await open(browser, DESK, DUSK, { fixture: true });
+    { const xd = expect(DUSK), DLline = DL.lineText(xd), { ctx, p, errors } = await open(browser, DESK, DUSK, { fixture: true });
       await p.goto(`${base}/event-beta.html?ev=${DUSK.id}`); await p.waitForFunction(() => document.body.dataset.loaded && !document.getElementById('shareImage').disabled, null, { timeout: 20000 }); await p.waitForTimeout(500);
       const f = await row(p);
       check(f.shown && /^Sunset during (setup|gates|the event)/.test(f.note) && f.note === xd.note && f.set.join() === xd.hm(xd.days[0].set), `crosses sunset: "${f.text}" · "${f.note}" (ready briefing)`);
       await p.locator('#secTimeline').screenshot({ path: path.join(out, 'daylight-dusk-desktop.png') });
       const [dl] = await Promise.all([p.waitForEvent('download', { timeout: 20000 }), p.click('#shareMenu > summary').then(() => p.click('#shareImage'))]);
       const png = path.join(out, 'daylight-dusk-tv.png'); await dl.saveAs(png);
-      const tv = await p.evaluate(() => { const c = window.EventTvExport.draw(document.createElement('canvas'), window.__lastHourly); return { at: c.daylight, min: c.minFontPx, w: c.width, h: c.height, note: window.__lastHourly.daylight }; });
-      const plain = await p.evaluate(() => { const c = window.EventTvExport.draw(document.createElement('canvas'), { ...window.__lastHourly, daylight: '' }); return { at: c.daylight, min: c.minFontPx }; });
-      check(tv.w === 1920 && tv.h === 1080 && tv.note === xd.note && ['header', 'footer'].includes(tv.at) && tv.min === plain.min && plain.at === 'none', `TV PNG: daylight note drawn in the ${tv.at}, smallest text ${tv.min}px as without it (${plain.min}px); 1920 × 1080`);
-      const long = await p.evaluate(() => window.EventTvExport.draw(document.createElement('canvas'), { ...window.__lastHourly, takeaway: 'W'.repeat(80), daylight: 'Sunset during the event (5:20 PM). '.repeat(4) }).daylight);
-      check(long === 'omitted', `TV PNG: a note that doesn't fit is left out rather than shrinking anything (${long})`);
+      const tv = await p.evaluate(() => { const c = window.EventTvExport.draw(document.createElement('canvas'), window.__lastHourly); return { at: c.daylight, line: window.__lastHourly.daylightLine, note: window.__lastHourly.daylight }; });
+      check(tv.line === DLline && tv.note === xd.note && tv.at === 'line+note', `TV PNG (crosses sunset): "${tv.line}" with the note "${tv.note}" under the event details (${tv.at})`);
       await p.emulateMedia({ media: 'print' }); await p.setViewportSize({ width: Math.round(7.4 * 96), height: 1056 }); await p.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
       const pdfPath = path.join(out, 'daylight-dusk-briefing.pdf'); await p.pdf({ path: pdfPath, preferCSSPageSize: true, printBackground: true });
       const pages = +execFileSync('pdfinfo', [pdfPath], { encoding: 'utf8' }).match(/Pages:\s+(\d+)/)[1], p1 = execFileSync('pdftotext', ['-layout', '-f', '1', '-l', '1', pdfPath, '-'], { encoding: 'utf8' }), p2 = execFileSync('pdftotext', ['-layout', '-f', '2', '-l', '2', pdfPath, '-'], { encoding: 'utf8' });

@@ -582,10 +582,17 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       note: (document.querySelector("#daylight [data-daylight-note]") || {}).textContent, text: (document.querySelector("#daylight .ev-daylight") || {}).innerText }));
     const h24 = (t) => { const m = /^(\d+):(\d\d) (AM|PM)$/.exec(t || ""); if (!m) return ""; let h = +m[1] % 12; if (m[3] === "PM") h += 12; return `${String(h).padStart(2, "0")}:${m[2]}`; };
     await p.locator("#secTimeline").screenshot({ path: `${out}/event-daylight-race-phone.png` });
-    if (!noaa) report(false, "daylight: NOAA's table for TQL Stadium could be fetched for the comparison", `UNVERIFIED: ${why}; page shows ${f.rise} / ${f.set}`);
+    if (!noaa) console.log(`  info · daylight: NOAA's table for TQL Stadium couldn't be fetched for an extra comparison (${why}); the Almanac comparison below is the check`);
     else report(h24(f.rise) === noaa.rise && h24(f.set) === noaa.set && f.note === `Setup starts before sunrise (${f.rise}).` && !errors.length, "daylight: Thanksgiving Day Race at TQL Stadium, sunrise and sunset equal NOAA's table for the venue; one schedule note",
       `page ${f.rise} / ${f.set} · NOAA ${noaa.rise} / ${noaa.set} (EST, 39.1113, -84.5222, Nov 26 2026) · "${f.note}"${errors.length ? " · " + errors.join("; ") : ""}`);
-    await ctx.close();
+    /* the same place and date on the Almanac, and the line above the hourly charts on the event page */
+    const hl = await p.evaluate(() => (document.querySelector("#hourlyDaylight [data-daylight-line]") || {}).textContent || "");
+    const al = await go(PHONE, base + "almanac.html?lat=39.1113&lon=-84.5222&name=TQL%20Stadium%2C%20Cincinnati%2C%20OH&date=2026-11-26");
+    await until(al.p, () => document.querySelectorAll("#sunCard .mtile .v").length >= 2 && /times E[SD]T/.test((document.querySelector("#sunCard .msg") || {}).textContent || ""), null, 60000);
+    const alm = await al.p.evaluate(() => ({ t: [...document.querySelectorAll("#sunCard .mtile .v")].map((x) => x.textContent.trim()), msg: (document.querySelector("#sunCard .msg") || {}).textContent }));
+    report(alm.t[0] === f.rise && alm.t[1] === f.set && hl.replace(/\s+/g, " ").trim() === `Sunrise ${f.rise} · Sunset ${f.set} EST`, "daylight: Event Manager (row and Hour by hour line) shows the Almanac's sunrise and sunset for the same place and date",
+      `Almanac ${alm.t.join(" / ")} (${alm.msg}) · event row ${f.rise} / ${f.set} · Hour by hour "${hl.replace(/\s+/g, " ").trim()}"`);
+    await al.ctx.close(); await ctx.close();
   });
   await section('15. fall-back event edit (phone)', async () => {
     const tqlV = { id: "vn_check", name: "TQL Stadium", city: "Cincinnati, OH", lat: 39.1111, lon: -84.5222, tz: "America/New_York", aliases: [], defaults: { setup: 270, gates: 90, teardown: 120, gust: 30 } };

@@ -66,7 +66,21 @@
     const many = D.zones.length > 1, days = D.shown.map((d) => `${dayLabel(d.date)}: Sunrise ${D.hm(d.rise)} · Sunset ${D.hm(d.set)}${many ? ` ${d.zone}` : ""}`).join(D.skipped ? " … " : "; ");
     return `<p class="pv-daylight" data-daylight><b>Daylight</b> ${esc(days)}${many ? "" : ` ${esc(D.zone)}`}${D.note ? `<span class="pv-daylight-note"> · ${esc(D.note)}</span>` : ""}</p>`;
   }
-  const API = { compute, rowHtml, printLine, sunOn, hm, dayLabel, MAX_DAYS };
+  /* one line for Hour by hour and the TV image: "Sunrise 7:33 AM · Sunset 5:17 PM EST"; dated when the event spans
+     more than one venue-local date (each date's zone when a daylight-saving change falls inside) */
+  function lineParts(D) {
+    if (!D) return [];
+    const many = D.zones.length > 1, dated = D.days.length > 1;
+    return D.shown.map((d, i) => ({ date: dated ? dayLabel(d.date) : "", rise: D.hm(d.rise), set: D.hm(d.set), zone: many || i === D.shown.length - 1 ? (many ? d.zone : D.zone) : "", gap: D.skipped && i === 0 ? `${D.skipped} more day${D.skipped > 1 ? "s" : ""}` : "" }));
+  }
+  function lineText(D) {
+    return lineParts(D).map((x) => `${x.date ? `${x.date}: ` : ""}Sunrise ${x.rise} · Sunset ${x.set}${x.zone ? ` ${x.zone}` : ""}${x.gap ? ` … ${x.gap} …` : ""}`).join(D && D.skipped ? " " : "; ");
+  }
+  function lineHtml(D) {
+    const parts = lineParts(D); if (!parts.length) return "";
+    return `<p class="ev-dl-line" data-daylight-line>${parts.map((x) => `<span class="ev-dl-seg">${x.date ? `<span class="ev-dl-date">${esc(x.date)}:</span> ` : ""}Sunrise <b>${esc(x.rise)}</b> · Sunset <b>${esc(x.set)}</b>${x.zone ? ` <span class="ev-dl-zone">${esc(x.zone)}</span>` : ""}</span>${x.gap ? `<span class="bx-note"> · ${esc(x.gap)} · </span>` : ""}`).join(D.skipped ? "" : '<span class="ev-dl-sep">; </span>')}</p>`;
+  }
+  const API = { compute, rowHtml, printLine, lineText, lineHtml, sunOn, hm, dayLabel, MAX_DAYS };
   if (typeof module !== "undefined" && module.exports) module.exports = API;
   root.EventDaylight = API;
 })(typeof self !== "undefined" ? self : globalThis);
