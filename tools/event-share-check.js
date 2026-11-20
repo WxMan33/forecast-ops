@@ -37,7 +37,7 @@ const windowsOf = (p) => p.evaluate(() => { const C = window.Ops.Core, q = new U
         const f = await p.evaluate(() => ({ dec: document.getElementById('decision').innerText, name: document.getElementById('evName').innerText, keys: document.getElementById('coverage').innerText.replace(/\s+/g, ' '),
           missing: document.body.dataset.missing, share: document.getElementById('shareMenu').hidden, edit: document.getElementById('editBtn').hidden, sample: /Riverfront|sample/i.test(document.getElementById('evName').innerText), url: location.search }));
         check(/This event isn’t saved in this browser/.test(f.dec) && f.missing === '1' && !f.sample && f.name === 'Event not found', `${dev}: an unknown ?ev= address says "${f.dec}", not a different event`);
-        check(/Share/.test(f.keys) && /Copy event link/.test(f.keys) && /Upcoming events/.test(f.keys) && /Restore backup/.test(f.keys), `${dev}: tells the viewer to ask for the Share link or import a workspace backup`);
+        check(/Share/.test(f.keys) && /Copy event link/.test(f.keys) && /Upcoming events/.test(f.keys) && /Workspace → Import workspace/.test(f.keys), `${dev}: tells the viewer to ask for the Share link or import a workspace backup`);
         check(f.share && f.edit && f.url === '?ev=ev_1732000000000_abc' && !external.some((h) => /open-meteo|weather\.gov/.test(h)), `${dev}: no Share or Edit for a missing event; no weather requested; address unchanged`);
         await p.screenshot({ path: path.join(out, `share-missing-${dev}.png`) });
         await p.click('#resetBtn'); await p.waitForTimeout(1500);

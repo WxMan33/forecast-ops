@@ -535,7 +535,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
 
     /* backup: export, empty the browser, restore, restore again (duplicates skipped), a damaged file (nothing changed) */
     const beforeEv = await saved(), beforeVn = await p.evaluate(() => JSON.parse(localStorage.getItem("beta_venues_v1") || "[]"));
-    const [dl] = await Promise.all([p.waitForEvent("download", { timeout: 15000 }), p.click("#upExport")]);
+    const [dl] = await Promise.all([p.waitForEvent("download", { timeout: 15000 }), p.click("#upWorkspace > summary").then(() => p.click("#upExport"))]);
     const file = `${out}/../backup-check.json`; await dl.saveAs(file); const text = require("fs").readFileSync(file, "utf8"); require("fs").unlinkSync(file);
     const B = JSON.parse(text), exportNote = await p.evaluate(() => document.getElementById("upNote").innerText.trim());
     await p.evaluate(() => { localStorage.removeItem("beta_events_v2"); localStorage.removeItem("beta_venues_v1"); });
@@ -558,11 +558,11 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     const bad = await p.evaluate(() => document.getElementById("upBackupErr").innerText.replace(/\s+/g, " "));
     const snap2 = await p.evaluate(() => localStorage.getItem("beta_events_v2") + localStorage.getItem("beta_venues_v1"));
     const canon = (x) => (Array.isArray(x) ? x.map(canon) : x && typeof x === "object" ? Object.keys(x).sort().reduce((o, k) => ((o[k] = canon(x[k])), o), {}) : x), same = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b)); // key order aside
-    report(B.kind === "forecast-ops-event-backup" && B.version === 1 && B.counts.events === 1 && B.counts.venues === 1 && B.counts.aliases === 1 && !/pk\.[0-9a-f]{20,}|access_token|fo_bid|token/i.test(text)
-      && /Backup exported: 1 event · 1 venue · 1 remembered calendar location/.test(exportNote) && emptied === 0 && /Events: 1 new/.test(summary) && /Venues: 1 new/.test(summary)
-      && same(afterEv, beforeEv) && same(afterVn, beforeVn) && /Backup restored: 1 event and 1 venue added/.test(restoredNote)
-      && /Everything in this backup is already saved here/.test(dup) && /can't be restored/.test(bad) && /valid JSON/.test(bad) && snap === snap2 && !errors.length,
-      "backup: export (no credentials), restore into an empty browser, restore again (duplicates skipped), damaged file refused with nothing changed",
+    report(B.kind === "forecast-ops-event-backup" && B.version === 2 && B.counts.events === 1 && B.counts.venues === 1 && B.counts.aliases === 1 && !/pk\.[0-9a-f]{20,}|access_token|fo_bid|token/i.test(text) && !(B.preferences && B.preferences.monitoring)
+      && /Workspace exported: 1 event · 1 venue · 1 remembered calendar location/.test(exportNote) && emptied === 0 && /Events: 1 new/.test(summary) && /Venues: 1 new/.test(summary)
+      && same(afterEv, beforeEv) && same(afterVn, beforeVn) && /Workspace imported: 1 event and 1 venue added/.test(restoredNote)
+      && /Everything in this file is already saved here/.test(dup) && /can't be imported/.test(bad) && /valid JSON/.test(bad) && snap === snap2 && !errors.length,
+      "workspace: export from the Workspace menu (no credentials, no OPE address), import into an empty browser, import again (duplicates skipped), damaged file refused with nothing changed",
       `file v${B.version}: ${B.counts.events} event, ${B.counts.venues} venue, ${B.counts.aliases} alias · "${exportNote.slice(0, 60)}" · emptied ${emptied} · restore "${summary.slice(0, 80)}" → "${restoredNote.slice(0, 70)}" · records identical ${same(afterEv, beforeEv) && same(afterVn, beforeVn)} (custom gates ${afterEv[0] && afterEv[0].times.gates.slice(11)}, venue gates ${afterVn[0] && afterVn[0].defaults.gates} min) · again: "${dup.match(/Everything[^.]*\./) || dup.slice(0, 60)}" · damaged: "${bad.slice(0, 70)}", storage unchanged ${snap === snap2}${errors.length ? " · " + errors.join("; ") : ""}`);
     await ctx.close();
   });

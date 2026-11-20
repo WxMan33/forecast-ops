@@ -244,13 +244,14 @@
   let gen = 0;
   function render(host, { onOpen } = {}) {
     const my = ++gen, now = Date.now(), list = E.events(), vns = E.venues();
-    host.innerHTML = `<div class="up-head"><h1 class="up-title">Upcoming events</h1><div class="up-act"><button class="bx-btn" type="button" id="upImport">Import from calendar</button><button class="bx-btn primary" type="button" id="upAdd">+ Add event</button></div></div><div id="upNote" class="bx-note" hidden></div>
+    host.innerHTML = `<div class="up-head"><h1 class="up-title">Upcoming events</h1><div class="up-act"><details class="up-wsmenu" id="upWorkspace"><summary class="bx-btn">Workspace</summary><div class="up-wspop" role="group" aria-label="Workspace">
+        <p class="bx-note" style="margin:0">Events and venues are stored only in this browser. A workspace file moves them to another browser, device or beta address: your events, saved venues, their schedules and the calendar locations you've matched, plus your forecast preferences (Model Blend and thunder weights) and theme. It never contains sign-ins, API keys or cached forecasts.</p>
+        <div class="up-wsrow"><button class="bx-btn" type="button" id="upExport">Export workspace</button><label class="bx-check rs-opt"><input type="checkbox" id="upExportOps"><span>Include the OPE monitoring address</span></label></div>
+        <div class="up-wsrow"><button class="bx-btn" type="button" id="upRestore">Import workspace</button><span class="bx-note">Shows what would change first. Merge keeps what's here.</span></div>
+        <input type="file" id="upRestoreFile" accept=".json,application/json" hidden></div></details><button class="bx-btn" type="button" id="upImport">Import from calendar</button><button class="bx-btn primary" type="button" id="upAdd">+ Add event</button></div></div><div id="upNote" class="bx-note" hidden></div>
       <div id="upList" class="up-list"></div><details id="upPast" class="up-past" hidden><summary></summary><div class="up-list"></div></details>
       <section class="bx-sec"><div class="bx-bh"><h2>Saved venues</h2><button class="bx-btn" type="button" id="vnAdd">+ Add venue</button></div><div id="vnList" class="up-list" style="margin-top:8px"></div></section>
-      <section class="bx-sec" id="upBackup"><div class="bx-bh"><h2>Backup</h2><div class="up-act"><button class="bx-btn" type="button" id="upExport">Export backup</button><button class="bx-btn" type="button" id="upRestore">Restore backup</button></div></div>
-        <input type="file" id="upRestoreFile" accept=".json,application/json" hidden>
-        <p class="bx-note" style="margin:6px 0 0">Events and venues are stored only in this browser. A backup file keeps your events, saved venues, their default schedules and the calendar locations you've matched, so you can restore them in another browser. It never contains sign-in or API credentials.</p>
-        <div class="err" id="upBackupErr" role="alert" hidden></div></section>
+      <div class="err" id="upBackupErr" role="alert" hidden></div>
       <p class="bx-note" style="margin-top:18px">Calendar imports land in this same list.</p>`;
     $("upAdd").addEventListener("click", () => editEvent(null, { onSaved: () => render(host, { onOpen }) }));
     $("upImport").addEventListener("click", () => window.CalendarImport.open({ onDone: (r) => { render(host, { onOpen }); const need = E.events().filter((x) => !fin(x.loc.lat)).length;
@@ -323,55 +324,82 @@
     })();
   }
 
-  /* ---------------- backup and restore ---------------- */
+  /* ---------------- workspace export and import (backup file, version 2) ---------------- */
   const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  const GROUP_WORD = { forecast: "forecast preferences", display: "theme", monitoring: "OPE monitoring address" };
+  const stampNow = () => { const d = new Date(), p2 = (x) => String(x).padStart(2, "0"); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}`; };
+  function download(b) {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(b, null, 2)], { type: "application/json" }));
+    const a = document.createElement("a"); a.href = url; a.download = `forecast-ops-workspace-${stampNow()}.json`; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000); return a.download;
+  }
   function backupControls(host, opts) {
     const errBox = $("upBackupErr"), note = $("upNote");
     const fail = (lines) => { errBox.innerHTML = [].concat(lines).map((l) => `<div>${esc(l)}</div>`).join(""); errBox.hidden = false; };
     const tell = (html) => { errBox.hidden = true; note.innerHTML = html; note.hidden = false; };
     $("upExport").addEventListener("click", () => {
       if (!E.storageOk()) return fail("This browser isn't letting the page use its storage (private browsing or storage turned off), so there is nothing saved here to export.");
-      const b = E.backup();
-      if (!b.counts.events && !b.counts.venues) return fail("Nothing is saved in this browser yet, so there is nothing to back up.");
-      try {
-        const url = URL.createObjectURL(new Blob([JSON.stringify(b, null, 2)], { type: "application/json" }));
-        const a = document.createElement("a"); a.href = url; a.download = `forecast-ops-events-${b.exportedAt.slice(0, 10)}.json`; document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
-      } catch (e) { return fail("The browser couldn't create the backup file. Try again, or try another browser."); }
-      tell(`<b>Backup exported:</b> ${plural(b.counts.events, "event", "events")} · ${plural(b.counts.venues, "venue", "venues")} · ${plural(b.counts.aliases, "remembered calendar location", "remembered calendar locations")}. Keep the file somewhere safe; Restore backup reads it back.`);
+      const b = E.backup(Date.now(), { forecast: true, display: true, monitoring: $("upExportOps").checked });
+      if (!b.counts.events && !b.counts.venues && !b.counts.preferences.length) return fail("Nothing is saved in this browser yet, so there is nothing to export.");
+      let name; try { name = download(b); } catch (e) { return fail("The browser couldn't create the workspace file. Try again, or try another browser."); }
+      $("upWorkspace").open = false;
+      tell(`<b>Workspace exported:</b> ${plural(b.counts.events, "event", "events")} · ${plural(b.counts.venues, "venue", "venues")} · ${plural(b.counts.aliases, "remembered calendar location", "remembered calendar locations")}${b.counts.preferences.length ? ` · ${esc(b.counts.preferences.map((g) => GROUP_WORD[g]).join(", "))}` : ""}. Saved as ${esc(name)}; Import workspace reads it in another browser.`);
     });
     const file = $("upRestoreFile");
     $("upRestore").addEventListener("click", () => { file.value = ""; file.click(); });
     file.addEventListener("change", async () => {
-      const f = file.files && file.files[0]; if (!f) return;
-      if (f.size > 5e6) return fail("That file is larger than 5 MB, so it isn't a Forecast Ops backup. Nothing was changed.");
+      const f = file.files && file.files[0]; if (!f) return; errBox.hidden = true;
+      $("upWorkspace").open = false;
+      if (f.size > 5e6) return fail("That file is larger than 5 MB, so it isn't a Forecast Ops workspace. Nothing was changed.");
       let text; try { text = await f.text(); } catch (e) { return fail("The file couldn't be read. Nothing was changed."); }
       const r = E.readBackup(text);
-      if (!r.ok) return fail(["This file can't be restored, so nothing was changed:", ...r.errors]);
+      if (!r.ok) return fail(["This file can't be imported, so nothing was changed:", ...r.errors]);
       restoreDialog(r, () => render(host, opts));
     });
   }
   function restoreDialog(r, onDone) {
     const p = E.planRestore(r), S = p.summary, conflicts = [...p.events, ...p.venues].filter((x) => x.action === "conflict");
+    const hereEv = E.events().length, hereVn = E.venues().length, groups = Object.keys(r.preferences || {});
     const line = (what, x, extra) => `<li><b>${esc(what)}:</b> ${x.add} new · ${x.same} already here${x.conflict ? ` · <b>${x.conflict} different from what's saved here</b>` : ""}${extra || ""}</li>`;
-    const nothing = !S.events.add && !S.venues.add && !conflicts.length && !S.venues.aliases;
-    $("editForm").innerHTML = `<h2>Restore backup</h2>
-      <p class="bx-note" style="margin-top:0">${r.exportedAt ? `Backup from ${esc(new Date(r.exportedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }))}. ` : ""}Nothing is changed until you choose Restore.</p>
-      <ul class="bx-note" id="rsSummary" style="padding-left:18px">${line("Events", S.events)}${line("Venues", S.venues, S.venues.aliases ? ` · ${plural(S.venues.aliases, "venue gets", "venues get")} remembered calendar locations from the backup` : "")}</ul>
+    const nothing = !S.events.add && !S.venues.add && !conflicts.length && !S.venues.aliases && !groups.length;
+    const prefRow = (g) => { const v = r.preferences[g], txt = g === "forecast" ? `Use the file's forecast preferences (Model Blend recipe${v.ops_blend_preset ? ` "${v.ops_blend_preset}"` : ""} and weights, thunder weights). They change the numbers on this browser's briefings, Overview and Model Blend.`
+        : g === "display" ? `Use the file's theme (${v.ops_theme || "default"}).` : `Use the file's OPE monitoring address (${v.forecast_ops_monitoring_address_v1}).`;
+      return `<label class="bx-check rs-opt"><input type="checkbox" data-pref="${g}" id="rsPref_${g}"><span>${esc(txt)}</span></label>`; };
+    $("editForm").innerHTML = `<h2>Import workspace</h2>
+      <p class="bx-note" style="margin-top:0">${r.exportedAt ? `File from ${esc(new Date(r.exportedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }))}${r.version < 2 ? " (an older backup: events and venues only)" : ""}. ` : ""}Nothing is changed until you choose Import.</p>
+      <fieldset class="rs-mode"><legend class="bx-note">How to bring it in</legend>
+        <label class="bx-check rs-opt"><input type="radio" name="rsMode" value="merge" id="rsModeMerge" checked><span><b>Merge</b> (recommended): add what's new and keep what's saved here</span></label>
+        <label class="bx-check rs-opt"><input type="radio" name="rsMode" value="all" id="rsModeAll"><span><b>Replace everything here</b> with the file's events and venues</span></label></fieldset>
+      <div id="rsMergeBox"><ul class="bx-note" id="rsSummary" style="padding-left:18px">${line("Events", S.events)}${line("Venues", S.venues, S.venues.aliases ? ` · ${plural(S.venues.aliases, "venue gets", "venues get")} remembered calendar locations from the file` : "")}</ul>
       ${conflicts.length ? `<p class="bx-note">Different here: ${esc(conflicts.slice(0, 6).map((c) => c.name).join(", "))}${conflicts.length > 6 ? ` and ${conflicts.length - 6} more` : ""}. These keep the version saved in this browser unless you choose otherwise; remembered calendar locations from both are kept either way.</p>
-        <label class="bx-check"><input type="checkbox" id="rsReplace"> Replace ${plural(conflicts.length, "record", "records")} saved here with the backup's version</label>` : ""}
-      ${nothing ? '<p class="bx-note"><b>Everything in this backup is already saved here.</b></p>' : ""}
+        <label class="bx-check rs-opt"><input type="checkbox" id="rsReplace"><span>Replace ${plural(conflicts.length, "record", "records")} saved here with the file's version</span></label>` : ""}
+      ${nothing ? '<p class="bx-note"><b>Everything in this file is already saved here.</b></p>' : ""}</div>
+      <div id="rsAllBox" hidden><p class="bx-note"><b>This removes the ${plural(hereEv, "event", "events")} and ${plural(hereVn, "venue", "venues")} saved in this browser</b> and puts the file's ${plural(r.events.length, "event", "events")} and ${plural(r.venues.length, "venue", "venues")} in their place.</p>
+        ${hereEv || hereVn ? '<p><button class="bx-btn" type="button" id="rsSaveFirst">Save this browser\'s workspace first</button> <span class="bx-note" id="rsSaved"></span></p>' : ""}
+        <label class="bx-check rs-opt"><input type="checkbox" id="rsConfirmAll"><span>I understand: replace everything saved here</span></label></div>
+      ${groups.length ? `<fieldset class="rs-prefs"><legend class="bx-note">Preferences in this file (not used unless you tick them)</legend>${groups.map(prefRow).join("")}</fieldset>` : ""}
       <p class="err" id="fErr" role="alert" hidden></p>
-      <div style="display:flex;gap:8px;justify-content:flex-end"><button class="bx-btn" value="cancel" formnovalidate>${nothing ? "Close" : "Cancel"}</button>${nothing ? "" : '<button class="bx-btn primary" id="rsGo" value="save">Restore</button>'}</div>`;
+      <div style="display:flex;gap:8px;justify-content:flex-end"><button class="bx-btn" value="cancel" formnovalidate>${nothing ? "Close" : "Cancel"}</button><button class="bx-btn primary" id="rsGo" value="save"${nothing ? " hidden" : ""}>Import</button></div>`;
     $("editDlg").showModal();
-    const go = $("rsGo"); if (!go) return;
+    const go = $("rsGo"), mode = () => ($("rsModeAll").checked ? "all" : "merge"), prefs = () => Object.fromEntries([...document.querySelectorAll("[data-pref]")].map((c) => [c.dataset.pref, c.checked]));
+    let savedFirst = !(hereEv || hereVn);
+    const sync = () => { const all = mode() === "all", anyPref = Object.values(prefs()).some(Boolean);
+      $("rsMergeBox").hidden = all; $("rsAllBox").hidden = !all;
+      go.hidden = !all && nothing && !anyPref; go.disabled = all && !(savedFirst && $("rsConfirmAll").checked); };
+    document.querySelectorAll('[name="rsMode"], #rsConfirmAll, [data-pref]').forEach((x) => x.addEventListener("change", sync));
+    if ($("rsSaveFirst")) $("rsSaveFirst").addEventListener("click", () => { try { const n = download(E.backup(Date.now(), { forecast: true, display: true, monitoring: true })); savedFirst = true; $("rsSaved").textContent = `Saved as ${n}.`; } catch (e) { $("rsSaved").textContent = "The browser couldn't save the file."; } sync(); });
+    sync();
     go.addEventListener("click", (ev) => {
-      ev.preventDefault();
-      const replace = !!($("rsReplace") && $("rsReplace").checked);
-      let res; try { res = E.applyRestore(p, { replace }); } catch (e) { $("fErr").textContent = e.message; $("fErr").hidden = false; return; }
+      ev.preventDefault(); if (go.disabled) return;
+      const all = mode() === "all", chosen = prefs();
+      let res; try { res = all ? E.applyRestore(E.planRestore(r, { events: [], venues: [] }), { replaceAll: true, prefs: chosen, preferences: r.preferences })
+        : E.applyRestore(p, { replace: !!($("rsReplace") && $("rsReplace").checked), prefs: chosen, preferences: r.preferences }); }
+      catch (e) { $("fErr").textContent = e.message; $("fErr").hidden = false; return; }
       $("editDlg").close(); onDone();
       const n = $("upNote"); n.hidden = false;
-      n.innerHTML = `<b>Backup restored:</b> ${plural(res.events.add, "event", "events")} and ${plural(res.venues.add, "venue", "venues")} added · ${res.events.same + res.venues.same} already here${conflicts.length ? ` · ${res.replaced ? `${res.replaced} replaced with the backup's version` : `${plural(conflicts.length, "record", "records")} that differed kept as saved here`}` : ""}.`;
+      const prefsTxt = res.preferences.length ? ` · ${esc(res.preferences.map((g) => GROUP_WORD[g]).join(", "))} applied${res.preferences.includes("display") ? " (the theme shows on the next page load)" : ""}` : "";
+      n.innerHTML = all ? `<b>Workspace imported, replacing this browser's:</b> ${plural(res.events.add, "event", "events")} and ${plural(res.venues.add, "venue", "venues")}${prefsTxt}.`
+        : `<b>Workspace imported:</b> ${plural(res.events.add, "event", "events")} and ${plural(res.venues.add, "venue", "venues")} added · ${res.events.same + res.venues.same} already here${conflicts.length ? ` · ${res.replaced ? `${res.replaced} replaced with the file's version` : `${plural(conflicts.length, "record", "records")} kept as saved here`}` : ""}${prefsTxt}.`;
     });
   }
 

@@ -61,7 +61,7 @@
     $("keys").innerHTML = ""; picker.setCurrent({ name: "No event open" }); const pc = $("picker").querySelector(".bx-ppcopy"); if (pc) pc.hidden = true;
     $("coverage").className = "bx-pending ev-missing"; $("coverage").hidden = false;
     $("coverage").innerHTML = `<p>Saved events live only in the browser where they were saved, so this address doesn't open them anywhere else.</p>
-      <p class="bx-note">Ask the person who sent it for the <b>Share</b> link (Share → Copy event link), which opens the event on any device, or import their workspace backup under <a href="#upcoming">Upcoming events</a> → Restore backup.</p>`;
+      <p class="bx-note">Ask the person who sent it for the <b>Share</b> link (Share → Copy event link), which opens the event on any device, or import their workspace file under <a href="#upcoming">Upcoming events</a> → Workspace → Import workspace.</p>`;
     $("secTimeline").hidden = true; $("secDetails") && ($("secDetails").hidden = true);
   }
   window.addEventListener("hashchange", view);
