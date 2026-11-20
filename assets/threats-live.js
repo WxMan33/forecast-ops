@@ -45,18 +45,18 @@
     if (!zonePending.has(url)) zonePending.set(url, get(nwsUrl(url), "json").then((z) => { if (!z.geometry) throw Error("zone has no shape"); zoneGeo.set(url, z.geometry); return z.geometry; }).finally(() => zonePending.delete(url)));
     return zonePending.get(url);
   }
-  function applyZones() {
-    for (const p of alerts.products(Date.now())) {
-      if (p.geometrySource !== "counties" || p.status !== "active") continue;
-      const rec = alerts.get(p.id), z = F.zoneShape(p.zones, p.zones.map((u) => zoneGeo.get(u) || null));
-      Object.assign(rec, { geometry: z.geometry, geometryIncomplete: z.incomplete, zoneInfo: z, label: z.geometry ? F.labelPoint(z.geometry) : null });
-    }
+  /* county/zone-based products get their drawn area from the zone shapes fetched so far (attached per snapshot) */
+  function withZones(p) {
+    if (p.geometrySource !== "counties" || !p.zones || !p.zones.length) return p;
+    const z = F.zoneShape(p.zones, p.zones.map((u) => zoneGeo.get(u) || null));
+    return { ...p, geometry: z.geometry, geometryIncomplete: z.incomplete, zoneInfo: z, label: z.geometry ? F.labelPoint(z.geometry) : null };
   }
+  function applyZones() { /* shapes are attached in snapshot(); kept for callers */ }
   async function resolvePending() {
     const want = [];
     for (const p of alerts.products(Date.now())) if (p.geometrySource === "counties" && p.status === "active") for (const u of p.zones) if (!zoneGeo.has(u)) want.push(u);
     if (!want.length) return false;
-    await Promise.allSettled([...new Set(want)].slice(0, 80).map(zone)); applyZones(); return true;
+    await Promise.allSettled([...new Set(want)].slice(0, 300).map(zone)); return true;
   }
   /* "What changed" on first load: fetch the message an update replaced (same VTEC event) */
   async function fetchPrevious() {
@@ -112,6 +112,49 @@
     }
     emit();
   }
+  /* WPC WSSI-P at one venue: one point query per impact level on the NOAA map service (attributes only). Kept per
+     venue for 10 minutes; a failed level makes the whole answer unconfirmed (status unknown), never "none". */
+  const wssi = { state: "never", lastOk: null, error: null, products: [], key: null, reachEnd: null, issued: null };
+  let wssiPending = null;
+  function wssiFor(lat, lon) {
+    const key = lat.toFixed(3) + "," + lon.toFixed(3);
+    if (wssi.key === key && wssi.lastOk && Date.now() - Date.parse(wssi.lastOk) < 10 * 60e3) return Promise.resolve();
+    if (wssiPending && wssiPending.key === key) return wssiPending.p;
+    const q = "geometry=" + lon + "," + lat + "&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=false&f=json";
+    const p = (async () => {
+      const at = nowIso();
+      try {
+        const parts = await Promise.all(F.WSSI_LEVELS.map(async (L) => { const j = await get(F.WSSIP_URL(L, q), "json"); if (j.error) throw Error("WSSI-P " + L + ": " + (j.error.message || "error")); return F.parseWSSIP(j, [+lon.toFixed(3), +lat.toFixed(3)], L); }));
+        const all = parts.flat();
+        Object.assign(wssi, { state: "ok", lastOk: at, error: null, products: all, key, reachEnd: all.map((x) => x.validEnd).sort().pop() || null, issued: all.map((x) => x.issued).filter(Boolean).sort().pop() || null });
+      } catch (e) { Object.assign(wssi, { state: "failed", error: e.message, key }); if (wssi.key !== key) wssi.products = []; }
+      finally { wssiPending = null; emit(); }
+    })();
+    wssiPending = { key, p }; return p;
+  }
+  /* the map's WSSI-P layer: the windows published now (one cheap distinct query), and the shapes of one level for one
+     window on demand. Kept for 10 minutes. */
+  const zOf = (iso) => { const d = new Date(iso), p = (n) => String(n).padStart(2, "0"); return p(d.getUTCHours()) + "Z " + d.getUTCFullYear() + "/" + p(d.getUTCMonth() + 1) + "/" + p(d.getUTCDate()); };
+  const wssiAreaCache = new Map();
+  function wssiArea(level, startIso) {
+    const k = level + "|" + startIso, c = wssiAreaCache.get(k);
+    if (c && (c.pending || Date.now() - c.at < 10 * 60e3)) return c.pending || Promise.resolve(c.products);
+    const q = "where=" + encodeURIComponent("validstart='" + zOf(startIso) + "'") + "&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=true&outSR=4326&maxAllowableOffset=0.02&f=geojson";
+    const pending = get(F.WSSIP_URL(level, q), "json").then((j) => { const ps = F.parseWSSIP(j, null, level); wssiAreaCache.set(k, { at: Date.now(), products: ps }); emit(); return ps; })
+      .catch((e) => { wssiAreaCache.delete(k); throw e; });
+    wssiAreaCache.set(k, { pending }); return pending;
+  }
+  let wssiWins = null;
+  function wssiWindows() {
+    if (wssiWins && (wssiWins.pending || Date.now() - wssiWins.at < 10 * 60e3)) return wssiWins.pending || Promise.resolve(wssiWins.list);
+    const q = "where=1%3D1&outFields=validstart,validend,idp_filedate&returnDistinctValues=true&returnGeometry=false&f=json";
+    const pending = get(F.WSSIP_URL("WWA", q), "json").then((j) => {
+      if (!j || !Array.isArray(j.features)) throw Error("unrecognized WSSI-P answer");
+      const seen = new Map(); for (const f of j.features) { const a = f.attributes || {}, s = F.zTime(a.validstart), e = F.zTime(a.validend); if (s && e) seen.set(s, { start: s, end: e, issued: a.idp_filedate ? new Date(a.idp_filedate).toISOString() : null }); }
+      const list = [...seen.values()].sort((x, y) => (x.start < y.start ? -1 : 1)); wssiWins = { at: Date.now(), list }; emit(); return list;
+    }).catch((e) => { wssiWins = null; throw e; });
+    wssiWins = { pending }; return pending;
+  }
   async function refreshOutlooks() {
     await Promise.all([1, 2, 3].map(async (d) => { const at = nowIso(); try { outlooks[d].ingest(await get(F.OUTLOOK_URL(d), "json"), at); } catch (e) { outlooks[d].fail(at, e.message); } }));
     emit();
@@ -166,7 +209,8 @@
     const mdList = md.products.filter((p) => p.expires == null || Date.parse(p.expires) > now);
     const o = { 1: outlooks[1].current(now), 2: outlooks[2].current(now), 3: outlooks[3].current(now) };
     const e = { 1: ero[1].current(now), 2: ero[2].current(now), 3: ero[3].current(now) };
-    const products = [...ps.filter((p) => p.status === "active" || p.status === "lapsed"), ...mdList, ...o[1].products, ...o[2].products, ...o[3].products, ...e[1].products, ...e[2].products, ...e[3].products];
+    const wsp = wssi.products.filter((p) => Date.parse(p.validEnd) > now);
+    const products = [...ps.filter((p) => p.status === "active" || p.status === "lapsed").map(withZones), ...wsp, ...mdList, ...o[1].products, ...o[2].products, ...o[3].products, ...e[1].products, ...e[2].products, ...e[3].products];
     const src = (info, count, extra) => ({ state: info.state === "ok" ? "ok" : "failed", lastOk: info.lastOk, count, error: info.error, ...extra });
     return {
       live: true, clock: new Date(now).toISOString(), products,
@@ -179,6 +223,7 @@
         day3: src(outlooks[3].sourceInfo(), o[3].products.length, { outlook: o[3].status, validEnd: o[3].validEnd }),
         ero1: src(ero[1].sourceInfo(), e[1].products.length, { outlook: e[1].status, validEnd: e[1].validEnd, issued: e[1].issued, via: ero[1].sourceInfo().via }),
         ero2: src(ero[2].sourceInfo(), e[2].products.length, { outlook: e[2].status, validEnd: e[2].validEnd, issued: e[2].issued, via: ero[2].sourceInfo().via }),
+        wssip: wssi.state === "never" || (wssiPending && !wssi.lastOk) ? { state: "pending", lastOk: null, count: 0 } : src({ state: wssi.state === "ok" ? "ok" : "failed", lastOk: wssi.lastOk, error: wssi.error }, wsp.length, { validEnd: wssi.reachEnd, issued: wssi.issued }),
         ero3: src(ero[3].sourceInfo(), e[3].products.length, { outlook: e[3].status, validEnd: e[3].validEnd, issued: e[3].issued, via: ero[3].sourceInfo().via }),
       },
       model,
@@ -208,6 +253,10 @@
     "archive-flood-day": { kind: "mix", clock: "2026-11-20T17:35:00Z", nws: ["tests/fixtures/threats/nws-archive-kmlb-ff-w-0036.json", "tests/fixtures/threats/nws-archive-kjax-ff-w-0054.json"], ero: [1, 2, 3].map((d) => "tests/fixtures/threats/wpc-ero-day" + d + "-20261120.geojson"), label: "NWS Flash Flood Warnings and WPC Excessive Rainfall Outlooks, Florida, Nov 20, 2026 at 12:35 p.m. EST" },
     "archive-flood-afternoon": { kind: "mix", clock: "2026-11-20T19:20:00Z", nws: ["tests/fixtures/threats/nws-archive-kmlb-ff-w-0036.json", "tests/fixtures/threats/nws-archive-kjax-ff-w-0054.json"], ero: [1, 2, 3].map((d) => "tests/fixtures/threats/wpc-ero-day" + d + "-20261120.geojson"), label: "NWS Flash Flood Warnings and WPC Excessive Rainfall Outlooks, Florida, Nov 20, 2026 at 2:20 p.m. EST (after the Flagler warning was cut back)" },
     "archive-flood-outage": { kind: "mix", clock: "2026-11-20T19:40:00Z", alertsFailAfter: "2026-11-20T18:00:00Z", nws: ["tests/fixtures/threats/nws-archive-kmlb-ff-w-0036.json", "tests/fixtures/threats/nws-archive-kjax-ff-w-0054.json"], ero: [1, 2, 3].map((d) => "tests/fixtures/threats/wpc-ero-day" + d + "-20261120.geojson"), label: "NWS Flash Flood Warnings and WPC outlooks, Florida, Nov 20, 2026: NWS answered until 1:00 p.m. EST, then not (outage replay); now 2:40 p.m." },
+    // NWS Salt Lake City winter alerts (Nov 18–20) and WPC WSSI-P captured from the NOAA map service on Nov 20, 21:23Z
+    "archive-winter-advisory": { kind: "mix", clock: "2026-11-18T23:00:00Z", nws: ["tests/fixtures/threats/nws-archive-kslc-ww-y-0018.json", "tests/fixtures/threats/nws-archive-kslc-ws-w-0003.json"], ero: [], wssip: ["tests/fixtures/threats/wpc-wssi-p-overall-wasatch-20261120.json", "tests/fixtures/threats/wpc-wssi-p-overall-cascades-20261120.json"], zones: "tests/fixtures/threats/nws-zones-utah-20261120.json", label: "NWS Salt Lake City winter alerts, Nov 18, 2026 at 4:00 p.m. MST" },
+    "archive-winter-warning": { kind: "mix", clock: "2026-11-19T17:00:00Z", nws: ["tests/fixtures/threats/nws-archive-kslc-ww-y-0018.json", "tests/fixtures/threats/nws-archive-kslc-ws-w-0003.json"], ero: [], wssip: ["tests/fixtures/threats/wpc-wssi-p-overall-wasatch-20261120.json", "tests/fixtures/threats/wpc-wssi-p-overall-cascades-20261120.json"], zones: "tests/fixtures/threats/nws-zones-utah-20261120.json", label: "NWS Salt Lake City winter alerts, Nov 19, 2026 at 10:00 a.m. MST (after the upgrade to a Winter Storm Warning)" },
+    "archive-winter-outlook": { kind: "mix", clock: "2026-11-20T21:30:00Z", nws: ["tests/fixtures/threats/nws-archive-kslc-ww-y-0018.json", "tests/fixtures/threats/nws-archive-kslc-ws-w-0003.json"], ero: [], wssip: ["tests/fixtures/threats/wpc-wssi-p-overall-wasatch-20261120.json", "tests/fixtures/threats/wpc-wssi-p-overall-cascades-20261120.json"], zones: "tests/fixtures/threats/nws-zones-utah-20261120.json", label: "WPC WSSI-P (captured Nov 20, 2026 21:23Z, Wasatch and Cascades) with NWS Salt Lake City alerts at 2:30 p.m. MST" },
     "archive-flood-night": { kind: "mix", clock: "2026-11-20T20:30:00Z", nws: ["tests/fixtures/threats/nws-archive-kmlb-ff-w-0036.json", "tests/fixtures/threats/nws-archive-kjax-ff-w-0054.json"], ero: [1, 2, 3].map((d) => "tests/fixtures/threats/wpc-ero-day" + d + "-20261120.geojson"), label: "NWS Flash Flood Warnings and WPC Excessive Rainfall Outlooks, Florida, Nov 20, 2026 at 3:30 p.m. EST" },
   };
   const archiveCache = new Map();
@@ -227,13 +276,21 @@
     const msgs = (await Promise.all(a.nws.map(getJ))).flatMap((j) => j.features).filter((f) => Date.parse(f.properties.sent) + 30e3 <= lastAnswer).sort((x, y) => Date.parse(x.properties.sent) - Date.parse(y.properties.sent));
     const store = F.createAlertStore();
     msgs.forEach((f, i) => store.ingest({ type: "FeatureCollection", features: msgs.slice(0, i + 1) }, new Date(Date.parse(f.properties.sent) + 30e3).toISOString()));
+    if (!a.alertsFailAfter && msgs.length) store.ingest({ type: "FeatureCollection", features: msgs }, new Date(clock).toISOString()); // NWS answered at the replay time
     if (a.alertsFailAfter) { store.ingest({ type: "FeatureCollection", features: msgs }, a.alertsFailAfter); store.fail(new Date(clock).toISOString(), "archived outage: NWS did not answer after " + a.alertsFailAfter); }
     const eros = (await Promise.all(a.ero.map(getJ))).map((j, i) => F.parseERO(j, i + 1, "wpc")).filter((o) => Date.parse(o.issued) <= clock && Date.parse(o.validEnd) > clock);
-    const ps = store.products(clock), si = store.sourceInfo(), na = { state: "na", lastOk: null, count: 0 };
+    // zone-based alerts: draw them from their forecast zones (fetched from NWS, through the function on Pages previews)
+    const rawPs = store.products(clock), want = [...new Set(rawPs.filter((p) => p.geometrySource === "counties").flatMap((p) => p.zones))];
+    // archived zone shapes (captured from api.weather.gov) keep the replay independent of today's NWS answers
+    if (a.zones) { const zf = (await getJ(a.zones)).zones; for (const [u, z] of Object.entries(zf)) if (z && z.geometry && !zoneGeo.has(u)) zoneGeo.set(u, z.geometry); }
+    await Promise.allSettled(want.map(zone));
+    const ps = rawPs.map(withZones), si = store.sourceInfo(), na = { state: "na", lastOk: null, count: 0 };
+    const wsp = (await Promise.all((a.wssip || []).map(getJ))).flatMap((j) => F.parseWSSIP(j)).filter((p) => (!p.issued || Date.parse(p.issued) <= clock) && Date.parse(p.validEnd) > clock);
     const eroSrc = (d) => { const o = eros.find((x) => x.products[0] && x.products[0].day === d); return o ? { state: "ok", lastOk: a.clock, count: o.products.length, outlook: "current", validEnd: o.validEnd, issued: o.issued, via: "wpc" } : na; };
     return { live: false, archive: { name, label: a.label, step: 1, steps: 1, messages: [] }, clock: a.clock,
-      products: [...ps.filter((p) => p.status === "active" || p.status === "lapsed"), ...eros.flatMap((o) => o.products)], ended: ps.filter((p) => p.status === "ended"),
-      sources: { alerts: { state: a.alertsFailAfter ? "failed" : "ok", lastOk: si.lastOk, count: ps.filter((p) => p.status === "active").length, error: si.error }, md: na, day1: na, day2: na, day3: na, ero1: eroSrc(1), ero2: eroSrc(2), ero3: eroSrc(3) } };
+      products: [...ps.filter((p) => p.status === "active" || p.status === "lapsed"), ...eros.flatMap((o) => o.products), ...wsp], ended: ps.filter((p) => p.status === "ended"),
+      sources: { alerts: { state: a.alertsFailAfter ? "failed" : "ok", lastOk: si.lastOk, count: ps.filter((p) => p.status === "active").length, error: si.error }, md: na, day1: na, day2: na, day3: na, ero1: eroSrc(1), ero2: eroSrc(2), ero3: eroSrc(3),
+        wssip: (a.wssip || []).length ? (wsp.length ? { state: "ok", lastOk: a.clock, count: wsp.length, validEnd: wsp.map((x) => x.validEnd).sort().pop(), issued: wsp[0].issued } : { state: "na" }) : { state: "na" } } };
   }
   async function archiveSnapshot(name, step) {
     if (ARCHIVES[name].kind === "mix") return mixSnapshot(name);
@@ -254,14 +311,14 @@
   }
 
   /* the snapshot's per-feed states, keyed by the source registry (ThreatsFeeds.SOURCES) for the shared matcher */
-  const STALE = { alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
+  const STALE = { wssip: 60, alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
   function registryState(d, now) {
-    const one = (k) => { const x = d.sources[k]; if (!x) return { kind: "unavailable" }; if (x.state === "na") return { kind: "na" }; if (d.loading) return { kind: "loading" }; return { ...window.ThreatsCore.sourceState(x, now, STALE[k]), lastOk: x.lastOk }; };
+    const one = (k) => { const x = d.sources[k]; if (!x) return { kind: "unavailable" }; if (x.state === "na") return { kind: "na" }; if (d.loading || x.state === "pending") return { kind: "loading" }; return { ...window.ThreatsCore.sourceState(x, now, STALE[k]), lastOk: x.lastOk }; };
     const worst = (keys) => { const s = keys.map(one).filter((x) => x.kind !== "na"); if (!s.length) return { kind: "na" }; const order = ["unavailable", "stale", "loading", "na", "empty", "current"]; const w = s.reduce((a, b) => (order.indexOf(b.kind) < order.indexOf(a.kind) ? b : a)); const oks = s.filter((x) => x.lastOk).map((x) => Date.parse(x.lastOk)); return { ...w, lastOk: oks.length ? new Date(Math.min(...oks)).toISOString() : w.lastOk }; };
     const reach = (keys) => keys.map((k) => d.sources[k] && d.sources[k].validEnd).filter(Boolean).sort().pop() || null;
-    return { "nws-alerts": one("alerts"), "spc-md": one("md"), "spc-outlook": { ...worst(["day1", "day2", "day3"]), reachEnd: reach(["day1", "day2", "day3"]) },
+    return { "nws-alerts": one("alerts"), "spc-md": one("md"), "wpc-wssi-p": d.sources.wssip ? { ...one("wssip"), reachEnd: d.sources.wssip.validEnd || null, reach: d.sources.wssip.issued ? "file " + window.ThreatsCore.fmtZ(d.sources.wssip.issued) : "" } : { kind: "unavailable" }, "spc-outlook": { ...worst(["day1", "day2", "day3"]), reachEnd: reach(["day1", "day2", "day3"]) },
       "wpc-ero": { ...worst(["ero1", "ero2", "ero3"]), reachEnd: reach(["ero1", "ero2", "ero3"]), reach: ["ero1", "ero2", "ero3"].map((k, i) => d.sources[k] && d.sources[k].issued ? "Day " + (i + 1) + " issued " + window.ThreatsCore.fmtZ(d.sources[k].issued) : "").filter(Boolean).join(", ") } };
   }
 
-  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
+  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
 })();

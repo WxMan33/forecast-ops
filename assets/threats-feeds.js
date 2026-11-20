@@ -17,9 +17,12 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function (T) {
   "use strict";
 
-  const EVENTS = ["Tornado Warning", "Severe Thunderstorm Warning", "Tornado Watch", "Severe Thunderstorm Watch", "Flash Flood Warning"];
+  const WINTER_EVENTS = ["Winter Storm Warning", "Winter Storm Watch", "Blizzard Warning", "Ice Storm Warning", "Lake Effect Snow Warning", "Winter Weather Advisory"];
+  const EVENTS = ["Tornado Warning", "Severe Thunderstorm Warning", "Tornado Watch", "Severe Thunderstorm Watch", "Flash Flood Warning", ...WINTER_EVENTS];
   /* hazard family per NWS VTEC phenomenon: the map's layers and Event Planner's sections group by this */
-  const HAZARD = { TO: "severe", SV: "severe", FF: "flood" };
+  const HAZARD = { TO: "severe", SV: "severe", FF: "flood", WS: "winter", BZ: "winter", IS: "winter", LE: "winter", WW: "winter" };
+  const EVENT_PHEN = { "Tornado Warning": "TO", "Tornado Watch": "TO", "Severe Thunderstorm Warning": "SV", "Severe Thunderstorm Watch": "SV", "Flash Flood Warning": "FF",
+    "Winter Storm Warning": "WS", "Winter Storm Watch": "WS", "Blizzard Warning": "BZ", "Ice Storm Warning": "IS", "Lake Effect Snow Warning": "LE", "Winter Weather Advisory": "WW" };
   const ALERTS_URL = "https://api.weather.gov/alerts/active?event=" + EVENTS.map(encodeURIComponent).join(",");
   const OUTLOOK_URL = (day) => "https://www.spc.noaa.gov/products/outlook/day" + day + "otlk_cat.nolyr.geojson";
   const MD_LIST_URL = "https://www.spc.noaa.gov/products/md/";
@@ -37,11 +40,11 @@
     const t = (x) => (x === "000000T0000Z" ? null : "20" + x.slice(0, 2) + "-" + x.slice(2, 4) + "-" + x.slice(4, 6) + "T" + x.slice(7, 9) + ":" + x.slice(9, 11) + ":00Z");
     return { product: m[1], action: m[2], office: m[3], phen: m[4], sig: m[5], etn: m[6], begin: t(m[7]), end: t(m[8]) };
   }
-  const KIND = { W: "warning", A: "watch" };
+  const KIND = { W: "warning", A: "watch", Y: "advisory" };
   function vtecFor(props) {
     const all = (props.parameters && props.parameters.VTEC || []).map(parseVTEC).filter(Boolean);
-    const want = /tornado/i.test(props.event) ? "TO" : /flash flood/i.test(props.event) ? "FF" : "SV";
-    return all.find((v) => v.phen === want && KIND[v.sig]) || all[0] || null;
+    const want = EVENT_PHEN[props.event];
+    return all.find((v) => v.phen === want && KIND[v.sig]) || null;
   }
   const keyOf = (v, sent) => v.office + "." + v.phen + "." + v.sig + "." + v.etn + "." + (v.begin || sent || "").slice(0, 4);
 
@@ -122,7 +125,7 @@
     const p = f.properties || {}, v = vtecFor(p);
     if (!v || !KIND[v.sig]) return null;
     const kind = KIND[v.sig], ends = p.ends || first((p.parameters || {}).eventEndingTime) || p.expires;
-    const title = kind === "watch" ? p.event + " " + Number(v.etn) : p.event;
+    const title = kind === "watch" && (v.phen === "TO" || v.phen === "SV") ? p.event + " " + Number(v.etn) : p.event; // SPC-numbered convective watches only
     return {
       id: keyOf(v, p.sent), messageId: p.id, kind, family: HAZARD[v.phen] || "severe", sourceId: "nws-alerts", event: p.event, title, action: v.action, vtec: v,
       headline: plainHeadline(p), hazard: hazardText(p), area: p.areaDesc || "", office: p.senderName || "NWS",
@@ -139,6 +142,9 @@
   function createAlertStore() {
     const byKey = new Map(), seen = new Set();
     const st = { lastOk: null, lastTry: null, lastError: null, state: "never", ignored: [] };
+    /* zone-based alerts (no polygon): one record per zone, so segments of one event with different zones, end times or
+       actions (e.g. UPG for two zones, CON for the rest) are each kept; products() groups them back for display */
+    const explode = (msg) => (!msg.geometry && msg.zones && msg.zones.length ? msg.zones.map((z) => ({ ...msg, id: msg.id + "|" + z.split("/").pop(), baseId: msg.id, zones: [z], messageId: msg.messageId + "|" + z.split("/").pop() })) : [{ ...msg, baseId: msg.id }]);
     function take(msg) {
       if (seen.has(msg.messageId)) { st.ignored.push({ id: msg.messageId, why: "duplicate" }); return; }
       seen.add(msg.messageId);
@@ -164,7 +170,7 @@
       const ours = collection.features.filter((f) => f && f.properties && EVENTS.includes(f.properties.event));
       const parsed = ours.map(normalizeAlert), bad = parsed.filter((m) => !m).length + collection.features.filter((f) => !f || !f.properties).length;
       const paged = !!(collection.pagination && collection.pagination.next);
-      const msgs = parsed.filter(Boolean).sort((a, b) => Date.parse(a.sent) - Date.parse(b.sent));
+      const msgs = parsed.filter(Boolean).flatMap(explode).sort((a, b) => Date.parse(a.sent) - Date.parse(b.sent));
       const listed = new Set(msgs.map((m) => m.id));
       msgs.forEach(take);
       for (const p of byKey.values()) {
@@ -179,6 +185,19 @@
     function fail(at, why) { st.lastTry = at; st.lastError = why || "request failed"; st.state = st.lastOk ? "failed" : "failed"; return st; }
     /* status of each product at `now`: active, ended (by the source, with how), or lapsed (end time passed while unconfirmed) */
     function products(now) {
+      const out = [];
+      for (const p of records(now)) out.push(p);
+      // regroup per-zone records: same event, same message and end time, same status → one product
+      const groups = new Map(), single = [];
+      for (const p of out) { if (!p.baseId || p.baseId === p.id) { single.push(p); continue; } const k = p.baseId + "|" + p.messageId.split("|")[0] + "|" + p.expires + "|" + p.status; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(p); }
+      const perBase = {}; for (const g of groups.values()) perBase[g[0].baseId] = (perBase[g[0].baseId] || 0) + 1;
+      for (const g of groups.values()) {
+        const a = g[0], zones = g.map((x) => x.zones[0]).sort();
+        single.push({ ...a, id: perBase[a.baseId] > 1 ? a.baseId + "#" + zones[0].split("/").pop() : a.baseId, zones, ugc: zones.map((z) => z.split("/").pop()), messageId: a.messageId.split("|")[0], geometry: null, geometrySource: "counties" });
+      }
+      return single;
+    }
+    function records(now) {
       const out = [];
       for (const p of byKey.values()) {
         const end = Date.parse(p.expires), endedOK = p.ended && Date.parse(p.ended) <= Date.parse(st.lastOk || 0);
@@ -200,13 +219,16 @@
     return zoneShape(urls, await Promise.all(urls.map((u) => getZone(u).then((g) => g, () => null))));
   }
   /* the drawn area of a county-based alert from its listed zones (results[i] = shape of urls[i], or null) */
+  /* land forecast zones start with a state or territory code (UTZ110); marine zones do not (AMZ550, PZZ135, LMZ740) */
+  const STATES = new Set("AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY PR VI GU AS MP".split(" "));
+  const zoneKind = (u) => (/\/zones\/county\//.test(u) ? "county" : STATES.has(u.split("/").pop().slice(0, 2)) ? "zone" : "marine");
   function zoneShape(urls, results) {
-    const ok = results.filter(Boolean), kinds = urls.map((u) => (/\/zones\/county\//.test(u) ? "county" : "marine"));
+    const ok = results.filter(Boolean), kinds = urls.map(zoneKind);
     const tally = (k, only) => urls.filter((u, i) => kinds[i] === k && (!only || results[i])).length;
     // one outline only when every listed zone is drawn; with gaps, the zones stay as they are so the gaps show
     const complete = ok.length === urls.length && urls.length > 0, merged = complete ? dissolve(ok) : null;
     return { geometry: merged || mergeGeometries(ok), dissolved: !!merged, incomplete: !complete, resolved: ok.length, listed: urls.length,
-      counties: { listed: tally("county"), drawn: tally("county", true) }, marine: { listed: tally("marine"), drawn: tally("marine", true) } };
+      counties: { listed: tally("county"), drawn: tally("county", true) }, zones: { listed: tally("zone"), drawn: tally("zone", true) }, marine: { listed: tally("marine"), drawn: tally("marine", true) } };
   }
 
   /* ---------- UGC lists and SPC watch outline updates (WOU) ---------- */
@@ -288,14 +310,44 @@
     };
   }
 
+  /* ---------- WPC probabilistic Winter Storm Severity Index (WSSI-P), Overall index ----------
+     NOAA map service outlooks/wpc_wssi_p: one layer per impact level, each feature one probability band (5..95%) for one
+     rolling 24-hour window (validstart/validend, every 6 hours out to hour 168). At every point checked the levels are
+     cumulative (P(winter weather area) >= P(minor) >= P(moderate) ...), so a level's probability reads "at least this level".
+     The service's inittime field does not line up with fcsthr, so only validstart/validend and the file time are used. */
+  const WSSI_LEVELS = ["WWA", "MINOR", "MODERATE", "MAJOR", "EXTREME"];
+  const WSSI_LAYER = { WWA: 10, MINOR: 1, MODERATE: 2, MAJOR: 3, EXTREME: 4 };
+  const WSSI_NAME = { WWA: "winter weather", MINOR: "Minor", MODERATE: "Moderate", MAJOR: "Major", EXTREME: "Extreme" };
+  // WPC's own definitions of the levels (service description)
+  const WSSI_MEANING = { WWA: "Expect winter weather and winter driving conditions.", MINOR: "Expect a few inconveniences to daily life; winter driving conditions.", MODERATE: "Expect disruptions to daily life; hazardous driving conditions; closures and disruptions to infrastructure may occur.", MAJOR: "Expect considerable disruptions to daily life; dangerous or impossible driving conditions; widespread closures may occur.", EXTREME: "Expect substantial disruptions to daily life; extremely dangerous or impossible driving; extensive closures; life-saving actions may be needed." };
+  const WSSIP_URL = (level, query) => "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi_p/MapServer/" + WSSI_LAYER[level] + "/query?" + query;
+  const zTime = (s) => { const m = /^(\d\d)Z (\d{4})\/(\d\d)\/(\d\d)$/.exec(s || ""); return m ? new Date(Date.UTC(+m[2], +m[3] - 1, +m[4], +m[1])).toISOString() : null; };
+  const levelOf = (x) => ({ wwa: "WWA", minor: "MINOR", moderate: "MODERATE", major: "MAJOR", extreme: "EXTREME" })[String(x || "").toLowerCase()] || (WSSI_LEVELS.includes(x) ? x : null);
+  /* features from a geojson answer (with shapes) or a json point answer (attributes only; `point` is the venue the
+     service matched) */
+  function parseWSSIP(answer, point, levelHint) {
+    if (!answer || !Array.isArray(answer.features)) throw Error("unrecognized WSSI-P answer");
+    return answer.features.map((f) => {
+      const P = f.properties || f.attributes || {}, level = levelOf(P.level) || levelOf(P.impact) || levelHint, start = zTime(P.validstart), end = zTime(P.validend), prob = Number(P.prob);
+      if (!level || !start || !end || !(prob > 0 && prob <= 100)) throw Error("unrecognized WSSI-P feature");
+      const issued = P.idp_filedate ? new Date(P.idp_filedate).toISOString() : null;
+      return { id: "wpc-wssip-" + level + "-" + start + "-" + prob + (point ? "@" + point.map((v) => v.toFixed(3)).join(",") : ""), kind: "outlook", program: "wssip", family: "winter", sourceId: "wpc-wssi-p",
+        category: level, prob, validStart: start, validEnd: end, issued, fcsthr: P.fcsthr, geometry: f.geometry || null, pointHit: point || null,
+        event: "Winter Storm Severity Index (probabilistic)", title: "WPC WSSI-P", office: "NWS Weather Prediction Center",
+        headline: prob + "% chance of at least " + WSSI_NAME[level] + (level === "WWA" ? "" : " winter storm impacts") + " in the 24 hours",
+        source: { name: "WPC probabilistic Winter Storm Severity Index (WSSI-P)", url: "https://www.wpc.ncep.noaa.gov/wwd/wssi/prob_wssi.php" } };
+    });
+  }
+
   /* ---------- source registry: who issues what, for which area ----------
      Coverage is explicit so a venue outside a provider's area reads "not covered by this source", never "nothing".
      New regions and providers are new entries here; Event Planner reads products and source states only. */
   const BOX = { conus: [[-125, 24.3, -66.8, 49.5]], us: [[-125, 24.3, -66.8, 49.5], [-180, 51, -129, 71.5], [172, 51, 180, 53], [-160.5, 18.8, -154.5, 22.4], [-67.4, 17.6, -64.5, 18.6], [144.5, 13.1, 146.2, 20.6], [-171, -14.6, -168, -11]] };
   const SOURCES = [
-    { id: "nws-alerts", name: "NWS warnings and watches", provider: "NOAA National Weather Service", region: "United States", boxes: BOX.us, hazards: ["severe", "flood"], url: "https://www.weather.gov/" },
+    { id: "nws-alerts", name: "NWS warnings, watches and advisories", provider: "NOAA National Weather Service", region: "United States", boxes: BOX.us, hazards: ["severe", "flood", "winter"], url: "https://www.weather.gov/" },
     { id: "spc-md", name: "SPC Mesoscale Discussions", provider: "NOAA Storm Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["severe"], url: "https://www.spc.noaa.gov/products/md/" },
     { id: "spc-outlook", name: "SPC convective outlooks", provider: "NOAA Storm Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["severe"], url: "https://www.spc.noaa.gov/products/outlook/" },
+    { id: "wpc-wssi-p", name: "WPC winter storm severity outlook (WSSI-P)", provider: "NOAA Weather Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["winter"], url: "https://www.wpc.ncep.noaa.gov/wwd/wssi/prob_wssi.php" },
     { id: "wpc-ero", name: "WPC Excessive Rainfall Outlook", provider: "NOAA Weather Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["flood"], url: "https://www.wpc.ncep.noaa.gov/qpf/excessive_rainfall_outlook_ero.php" },
   ];
   const covers = (src, lat, lon) => src.boxes.some(([w, s, e, n]) => lon >= w && lon <= e && lat >= s && lat <= n);
@@ -393,5 +445,5 @@
 
   return { EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
     parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries, dissolve, zoneShape,
-    HAZARD, ERO_CATS, ERO_NAME, ERO_PCT, WPC_ERO_URL, MAPSVC_ERO_URL, parseERO, createEROStore, SOURCES, covers };
+    HAZARD, WINTER_EVENTS, zTime, WSSI_LEVELS, WSSI_NAME, WSSI_MEANING, WSSIP_URL, parseWSSIP, ERO_CATS, ERO_NAME, ERO_PCT, WPC_ERO_URL, MAPSVC_ERO_URL, parseERO, createEROStore, SOURCES, covers };
 });

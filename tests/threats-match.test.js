@@ -125,3 +125,68 @@ ok("a warning that expires during an outage drops out of the items, gets a note,
   assert.match(r.statuses.find((x) => x.id === "nws-alerts").text, /^Not confirmed since 1 p\.m\./); assert.strictEqual(r.confirmed, false);
 });
 console.log(n + " passed");
+
+/* ---------------- WINTER: NWS winter alerts (ARCHIVED official, NWS Salt Lake City, Nov 18–20) and WPC WSSI-P
+   (official, captured from the NOAA map service 2026-11-20 21:23Z) ---------------- */
+{
+  const zones = JSON.parse(fs.readFileSync(FX("nws-zones-utah-20261120.json"), "utf8")).zones;
+  const wssi = (f) => F.parseWSSIP(JSON.parse(fs.readFileSync(FX(f), "utf8")));
+  const CASCADES = wssi("wpc-wssi-p-overall-cascades-20261120.json"), WASATCH = wssi("wpc-wssi-p-overall-wasatch-20261120.json");
+  /* replay the Utah chains like the page does: cumulative answers, then zone shapes for county/zone-based products */
+  function winter(clock) {
+    const s = F.createAlertStore(), msgs = ["nws-archive-kslc-ww-y-0018.json", "nws-archive-kslc-ws-w-0003.json"].flatMap(chain).sort((a, b) => (a.properties.sent < b.properties.sent ? -1 : 1));
+    msgs.forEach((f, i) => { const at = Date.parse(f.properties.sent) + 30e3; if (at <= clock) s.ingest({ type: "FeatureCollection", features: msgs.slice(0, i + 1) }, new Date(at).toISOString()); });
+    return s.products(clock).filter((p) => p.status === "active").map((p) => { const z = F.zoneShape(p.zones, p.zones.map((u) => (zones[u] ? zones[u].geometry : null))); return { ...p, geometry: z.geometry, geometryIncomplete: z.incomplete, zoneInfo: z }; });
+  }
+  const evW = (name, lat, lon, times, tz) => { const ev = { id: "w", name, loc: { name, lat, lon }, tz, times }; assert.deepStrictEqual(C.event.validate(ev), []); return { name, lat, lon, tz, windows: C.event.windows(ev) }; };
+  const SNOWBIRD = [40.5813, -111.6556], PARKCITY = [40.6514, -111.508], CRYSTAL = [46.935, -121.475];
+  const FRI_UT = { setup: "2026-11-20T14:00", gates: "2026-11-20T16:00", start: "2026-11-20T17:00", end: "2026-11-20T21:00", teardown: "2026-11-20T23:00" };
+  const wstate = (clock) => ({ "nws-alerts": OK(clock), "wpc-wssi-p": { ...OK(clock), reachEnd: "2026-11-27T00:00:00.000Z" } });
+  const runW = (ev, clock, outlook = []) => M.forEvent({ products: [...winter(clock), ...outlook], state: wstate(clock), event: ev, now: clock, families: ["winter"] });
+
+  ok("WINTER several days out: WSSI-P at Crystal Mountain for Tuesday, wording from the probability, window and phases shown", () => {
+    const tue = { setup: "2026-11-24T07:00", gates: "2026-11-24T09:00", start: "2026-11-24T10:00", end: "2026-11-24T15:00", teardown: "2026-11-24T17:00" };
+    const r = M.forEvent({ products: CASCADES, state: wstate(Date.parse("2026-11-20T21:30:00Z")), event: evW("Crystal Mountain", ...CRYSTAL, tue, "America/Los_Angeles"), now: Date.parse("2026-11-20T21:30:00Z"), families: ["winter"] });
+    assert.strictEqual(r.items.length, 1); const it = r.items[0];
+    assert.match(it.headline, /^Minor winter impacts (likely|possible) Tuesday · \d+% chance of at least Minor impacts$/);
+    const pct = +/(\d+)% chance/.exec(it.headline)[1]; assert.strictEqual(/likely/.test(it.headline), pct >= 60);
+    assert.match(it.line, /^WPC's winter storm severity outlook \(WSSI-P\) for the 24 hours .+ includes the venue and overlaps setup, gates, the event and teardown\. Expect a few inconveniences/);
+    assert.ok(it.levels.find(([L]) => L === "WWA")[1] >= pct, "cumulative levels");
+  });
+  ok("WINTER replay 1 (Nov 18, 4:00 p.m. MST): Winter Weather Advisory at Snowbird, drawn from its forecast zone", () => {
+    const r = runW(evW("Snowbird", ...SNOWBIRD, FRI_UT, "America/Denver"), Date.parse("2026-11-18T23:00:00Z"));
+    assert.deepStrictEqual(r.items.map((i) => [i.kind, i.headline]), [["advisory", "Winter Weather Advisory during setup, gates, the event and teardown"]]);
+    assert.match(r.items[0].line, /^In effect at the venue until 11 a\.m\. Saturday \(issued for the forecast zone that includes the venue\)\.$/);
+  });
+  ok("WINTER replay 2 (Nov 19, 10:00 a.m. MST): the advisory was upgraded; a Winter Storm Warning applies at Snowbird", () => {
+    const r = runW(evW("Snowbird", ...SNOWBIRD, FRI_UT, "America/Denver"), Date.parse("2026-11-19T17:00:00Z"));
+    assert.deepStrictEqual(r.items.map((i) => [i.kind, i.headline]), [["warning", "Winter Storm Warning during setup, gates, the event and teardown"]]);
+  });
+  ok("WINTER: changing the venue to Park City (Wasatch Back zone) gives the advisory, not the warning", () => {
+    const r = runW(evW("Park City Mountain", ...PARKCITY, FRI_UT, "America/Denver"), Date.parse("2026-11-19T17:00:00Z"));
+    assert.deepStrictEqual(r.items.map((i) => i.kind), ["advisory"]); assert.match(r.items[0].line, /until 5 a\.m\. Saturday/);
+  });
+  ok("WINTER: moving the event after the warning ends removes it; a two-day event lists only the phases it overlaps", () => {
+    const sat = { setup: "2026-11-21T12:00", start: "2026-11-21T13:00", end: "2026-11-21T17:00" };
+    assert.strictEqual(runW(evW("Snowbird", ...SNOWBIRD, sat, "America/Denver"), Date.parse("2026-11-19T17:00:00Z")).items.length, 0);
+    const span2 = { setup: "2026-11-21T08:00", gates: "2026-11-21T10:00", start: "2026-11-21T12:00", end: "2026-11-21T16:00" };
+    const r = runW(evW("Snowbird", ...SNOWBIRD, span2, "America/Denver"), Date.parse("2026-11-19T17:00:00Z"));
+    assert.strictEqual(r.items[0].headline, "Winter Storm Warning during setup and gates"); // ends 11 a.m. Saturday
+  });
+  ok("WINTER now (Nov 20, 2:30 p.m. MST): Winter Storm Warning and the WSSI-P outlook for the same Snowbird event", () => {
+    const clock = Date.parse("2026-11-20T21:30:00Z"), r = runW(evW("Snowbird", ...SNOWBIRD, FRI_UT, "America/Denver"), clock, WASATCH);
+    assert.deepStrictEqual(r.items.map((i) => i.kind), ["warning", "outlook"]);
+    assert.match(r.items[1].headline, /(likely|possible) Friday · \d+% chance of at least/);
+  });
+  ok("WINTER coverage: an event past the last WSSI-P window says where the outlook ends", () => {
+    const later = { start: "2026-11-28T10:00", end: "2026-11-28T15:00" };
+    const r = M.forEvent({ products: CASCADES, state: wstate(Date.parse("2026-11-20T21:30:00Z")), event: evW("Crystal Mountain", ...CRYSTAL, later, "America/Los_Angeles"), now: Date.parse("2026-11-20T21:30:00Z"), families: ["winter"] });
+    assert.strictEqual(r.items.length, 0); assert.strictEqual(r.confirmed, false);
+    assert.match(r.statuses.find((s) => s.id === "wpc-wssi-p").text, /runs past the outlooks issued so far \(they end Thu 4 p\.m\.\)/);
+  });
+  ok("WINTER: flooding items are untouched by the winter family and vice versa", () => {
+    const r = run(event("Daytona", ...DAYTONA, FRI), NOON);
+    assert.deepStrictEqual(r.items.map((i) => i.family), ["flood", "flood"]);
+  });
+}
+console.log(n + " passed (with winter)");

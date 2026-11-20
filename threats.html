@@ -28,7 +28,7 @@
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
 <link rel="stylesheet" href="assets/ops.css?v=35098c1775">
-<link rel="stylesheet" href="assets/threats.css?v=81dabf250b">
+<link rel="stylesheet" href="assets/threats.css?v=76794d3a9f">
 </head>
 <body class="threats-page">
 <main class="tx" id="tx">
@@ -54,6 +54,9 @@
           <option value="archive-flood-afternoon">Flash flood warning cut back, Florida, Nov 20 2:20 p.m.</option>
           <option value="archive-flood-outage">NWS outage while a flash flood warning expires, Nov 20</option>
           <option value="archive-flood-night">WPC rainfall Days 1–3, Florida, Nov 20 afternoon</option>
+          <option value="archive-winter-advisory">Winter Weather Advisory, Utah, Nov 18 4 p.m.</option>
+          <option value="archive-winter-warning">Upgrade to Winter Storm Warning, Utah, Nov 19 10 a.m.</option>
+          <option value="archive-winter-outlook">WPC WSSI-P 7-day + Utah alerts, Nov 20 2:30 p.m.</option>
           </optgroup>
         </select></label>
       <label class="tx-demo-field" id="venueField"><span>Venue</span>
@@ -71,10 +74,12 @@
           <button type="button" class="tx-tb" data-view="day1" aria-pressed="false">Day 1</button>
           <button type="button" class="tx-tb" data-view="day2" aria-pressed="false">Day 2</button>
           <button type="button" class="tx-tb" data-view="day3" aria-pressed="false">Day 3</button>
+          <button type="button" class="tx-tb" data-view="winter" aria-pressed="false">Winter · 7 days</button>
         </div>
         <div class="tx-layers" role="group" aria-label="Layers">
           <button type="button" class="tx-lb" data-layer="severe" aria-pressed="true">Severe storms</button>
           <button type="button" class="tx-lb" data-layer="flood" aria-pressed="true">Flooding</button>
+          <button type="button" class="tx-lb" data-layer="winter" aria-pressed="true">Winter</button>
         </div>
         <div class="tx-valid" id="txValid" aria-live="polite"></div>
         <div class="tx-model" id="txModel" hidden>
@@ -117,8 +122,8 @@
 <script src="assets/threats-core.js?v=6c4e15aff3"></script>
 <script src="assets/threats-demo.js?v=ecef6ab463"></script>
 <script src="assets/severe-daily-core.js?v=8b3bc7c800"></script>
-<script src="assets/threats-feeds.js?v=c5f2224f5c"></script>
-<script src="assets/threats-live.js?v=c1dbac43e0"></script>
-<script src="assets/threats.js?v=0f902f9316"></script>
+<script src="assets/threats-feeds.js?v=10feb49c25"></script>
+<script src="assets/threats-live.js?v=46e067c9dd"></script>
+<script src="assets/threats.js?v=afb012a7cb"></script>
 </body>
 </html>

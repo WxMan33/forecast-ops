@@ -3,20 +3,23 @@
    This file knows nothing about any one feed: it lists what the matcher returns for the event's location and schedule.
      update(ev)  re-match for the event on screen (venue, date or schedule changed)
    Data: live official feeds (NWS through the same-origin function on Pages previews), or an archived official sample with
-   ?threats=archive-flood-day | archive-flood-night (labelled as such). Families shown in this slice: flooding. */
+   ?threats=archive-flood-day | archive-flood-night | archive-winter-advisory | archive-winter-warning | archive-winter-outlook
+   (labelled as such). Families shown: flooding and winter weather. */
 (function () {
   "use strict";
   const O = window.Ops, C = O.Core, T = window.ThreatsCore, M = window.ThreatsMatch, Live = window.ThreatsLive, esc = O.esc, $ = O.$;
   const Q = new URLSearchParams(location.search);
-  const ARCHIVE = /^archive-flood-(day|afternoon|outage|night)$/.test(Q.get("threats") || "") ? Q.get("threats") : null;
-  const FAMILIES = ["flood"];
+  const ARCHIVE = /^archive-(flood-(day|afternoon|outage|night)|winter-(advisory|warning|outlook))$/.test(Q.get("threats") || "") ? Q.get("threats") : null;
+  const FAMILIES = ["flood", "winter"];
+  const F = window.ThreatsFeeds, pct = (n) => (n >= 5 ? n + "%" : "under 5%");
   let ev = null, data = null, ready = false, open = new Set(), archived = null;
 
   const fmt = (iso, tz) => new Date(iso).toLocaleString("en-US", { timeZone: tz, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
   const mapLink = (it) => {
     const p = it.product, u = new URL("threats.html", location.href), q = u.searchParams;
     q.set("lat", ev.loc.lat); q.set("lon", ev.loc.lon); q.set("name", ev.loc.name); q.set("tz", ev.tz); q.set("scope", "venue");
-    q.set("view", p.kind === "outlook" ? "day" + p.day : "active"); q.set("layers", it.family); q.set("sel", p.id);
+    if (p.program === "wssip") { q.set("view", "winter"); q.set("wwin", p.validStart); q.set("wlevel", p.category); q.set("layers", it.family); }
+    else { q.set("view", p.kind === "outlook" ? "day" + p.day : "active"); q.set("layers", it.family); q.set("sel", p.id); }
     if (ARCHIVE) q.set("scenario", ARCHIVE);
     if (Live.NWS.mode === "function" && !Q.get("nwsBase")) q.set("nws", "function");
     return u.toString();
@@ -29,18 +32,29 @@
     const box = $("threats"); if (!box || !ev) return;
     if (!ev.loc || !Number.isFinite(+ev.loc.lat)) { box.innerHTML = '<p class="bx-note">Pick the venue to check weather threats.</p>'; return; }
     data = snapshot(); const now = Date.parse(data.clock);
-    if (data.loading || !ready) { box.innerHTML = '<p class="bx-note">Checking official flood warnings and rainfall outlooks…</p>'; return; }
+    if (data.loading || !ready) { box.innerHTML = '<p class="bx-note">Checking official flood and winter alerts and outlooks…</p>'; return; }
     const state = Live.registryState(data, now);
     const r = M.forEvent({ products: data.products, state, event: { lat: +ev.loc.lat, lon: +ev.loc.lon, name: ev.loc.name, tz: ev.tz, windows: C.event.windows(ev) }, now, families: FAMILIES });
     const tz = ev.tz;
     const items = r.items.map((it) => {
       const p = it.product, id = esc(it.id), isOpen = open.has(it.id), src = state[p.sourceId] || {};
-      const rows = [
-        ["Source", `${esc(p.office || "")}${p.source && p.source.url ? ` · <a href="${esc(p.source.url)}" target="_blank" rel="noopener">official product</a>` : ""}`],
-        ["Issued", esc(fmt(p.issued, tz)) + (p.updated && p.updated !== p.issued && p.kind !== "outlook" ? " · updated " + esc(fmt(p.updated, tz)) : "")],
-        [p.kind === "outlook" ? "Valid" : "In effect", p.kind === "outlook" ? esc(fmt(p.validStart, tz)) + " → " + esc(fmt(p.validEnd, tz)) : "until " + esc(fmt(p.expires, tz))],
+      const wsp = p.program === "wssip", started = p.kind !== "outlook" && Date.parse(p.issued) > now;
+      const rows = wsp ? [
+        ["Source", `${esc(p.office)} · <a href="${esc(p.source.url)}" target="_blank" rel="noopener">WSSI-P (official product)</a>`],
+        ["Issued", p.issued ? "WPC file " + esc(fmt(p.issued, tz)) : "not stated by the source"],
+        ["Valid", "24 hours, " + esc(fmt(p.validStart, tz)) + " → " + esc(fmt(p.validEnd, tz))],
+        ["Chances at the venue", it.levels.map(([L, v]) => esc((L === "WWA" ? "Winter weather (any)" : F.WSSI_NAME[L]) + " " + pct(v))).join(" · ")],
+        ["Overlaps", esc(it.phases.join(", "))],
         ["Last checked", src.lastOk ? esc(fmt(src.lastOk, tz)) + (src.kind === "stale" ? " · not confirmed since then" : "") : "not yet"],
-        ["Venue", esc(it.relation.kind === "unknown" ? "Unknown: the area isn't fully drawn" : p.kind === "outlook" ? "Inside the highest category that reaches the venue (" + (window.ThreatsFeeds.ERO_NAME[p.category] || p.category) + ")" : "Inside the warning area")],
+        ["Covers through", src.reachEnd ? esc(fmt(src.reachEnd, tz)) + " (the last 24-hour window WPC has published)" : "unknown"],
+        ["Venue", esc(p.pointHit ? "Probabilities at the venue pin (WPC map service point query)" : "Inside WPC's " + p.prob + "% area for at least " + F.WSSI_NAME[p.category] + (p.category === "WWA" ? "" : " impacts"))],
+        ["Details", esc(F.WSSI_MEANING[p.category] + " WSSI-P gives the chance of reaching each impact level somewhere in the 24 hours; it does not time anything within them.")],
+      ] : [
+        ["Source", `${esc(p.office || "")}${p.source && p.source.url ? ` · <a href="${esc(p.source.url)}" target="_blank" rel="noopener">official product</a>` : ""}`],
+        ["Issued", esc(fmt(p.kind === "outlook" ? p.issued : p.firstSeen || p.issued, tz)) + (p.updated && p.updated !== (p.firstSeen || p.issued) && p.kind !== "outlook" ? " · updated " + esc(fmt(p.updated, tz)) : "")],
+        [p.kind === "outlook" ? "Valid" : "In effect", p.kind === "outlook" ? esc(fmt(p.validStart, tz)) + " → " + esc(fmt(p.validEnd, tz)) : (started ? "from " + esc(fmt(p.issued, tz)) + " " : "") + "until " + esc(fmt(p.expires, tz))],
+        ["Last checked", src.lastOk ? esc(fmt(src.lastOk, tz)) + (src.kind === "stale" ? " · not confirmed since then" : "") : "not yet"],
+        ["Venue", esc(it.relation.kind === "unknown" ? "Unknown: the area isn't fully drawn" : p.kind === "outlook" ? "Inside the highest category that reaches the venue (" + (F.ERO_NAME[p.category] || p.category) + ")" : "Inside the " + p.kind + " area" + (p.geometrySource === "counties" ? " (drawn from the NWS forecast zones it lists: " + (p.zones || []).map((u) => u.split("/").pop()).join(", ") + ")" : ""))],
         ["Details", esc(p.headline || p.hazard || "")],
       ];
       return `<li class="et-item" data-family="${esc(it.family)}" data-kind="${esc(it.kind)}">
@@ -58,7 +72,8 @@
     box.dataset.items = String(r.items.length); box.dataset.confirmed = String(r.confirmed);
     window.EventThreatsLast = r; // read by the preview checks
   }
-  function update(next) { ev = next; render(); }
+  function wssiCheck() { if (!ARCHIVE && ready && ev && ev.loc && Number.isFinite(+ev.loc.lat)) Live.wssiFor(+ev.loc.lat, +ev.loc.lon); }
+  function update(next) { ev = next; wssiCheck(); render(); }
   document.addEventListener("click", (e) => {
     const b = e.target.closest(".et-more"); if (!b) return;
     const id = b.dataset.id; if (open.has(id)) open.delete(id); else open.add(id); render();
@@ -66,7 +81,7 @@
 
   async function start() {
     if (ARCHIVE) { try { archived = await Live.archiveSnapshot(ARCHIVE); } catch (e) { archived = { products: [], sources: {}, clock: new Date().toISOString(), loadError: e.message }; } ready = true; render(); return; }
-    await Live.start({ only: ["alerts", "ero"] }); ready = true; render();
+    await Live.start({ only: ["alerts", "ero"] }); ready = true; wssiCheck(); render();
     Live.onUpdate(() => render());
     setInterval(() => { if (!document.hidden) render(); }, 30e3);
   }

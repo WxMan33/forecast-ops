@@ -5,7 +5,7 @@
   "use strict";
   const O = window.Ops, T = window.ThreatsCore, Demo = window.ThreatsDemo, G = window.SevereResearchContours, Live = window.ThreatsLive;
   const $ = (id) => document.getElementById(id), esc = O.esc;
-  O.shell("threats", "Weather threats", { forecastPoint: false, subtitle: "Preview · severe weather" });
+  O.shell("threats", "Weather threats", { forecastPoint: false, subtitle: "Preview · weather threats" });
 
   const CITIES = [["Seattle", 47.61, -122.33], ["Portland", 45.52, -122.68], ["San Francisco", 37.77, -122.42], ["Los Angeles", 34.05, -118.24], ["Las Vegas", 36.17, -115.14], ["Phoenix", 33.45, -112.07], ["Salt Lake City", 40.76, -111.89], ["Denver", 39.74, -104.99], ["Albuquerque", 35.08, -106.65], ["Dallas", 32.78, -96.80], ["Houston", 29.76, -95.37], ["San Antonio", 29.42, -98.49], ["Oklahoma City", 35.47, -97.52], ["Kansas City", 39.10, -94.58], ["Omaha", 41.26, -95.93], ["Des Moines", 41.59, -93.62], ["Minneapolis", 44.98, -93.27], ["Chicago", 41.88, -87.63], ["St. Louis", 38.63, -90.20], ["Memphis", 35.15, -90.05], ["Tupelo", 34.26, -88.70], ["New Orleans", 29.95, -90.07], ["Nashville", 36.16, -86.78], ["Huntsville", 34.73, -86.59], ["Louisville", 38.25, -85.76], ["Indianapolis", 39.77, -86.16], ["Cincinnati", 39.10, -84.51], ["Columbus", 39.96, -83.00], ["Dayton", 39.76, -84.19], ["Lexington", 38.04, -84.50], ["Detroit", 42.33, -83.05], ["Cleveland", 41.50, -81.69], ["Pittsburgh", 40.44, -80.00], ["Charleston WV", 38.35, -81.63], ["Atlanta", 33.75, -84.39], ["Birmingham", 33.52, -86.80], ["Jackson", 32.30, -90.18], ["Charlotte", 35.23, -80.84], ["Raleigh", 35.78, -78.64], ["Washington", 38.90, -77.04], ["Philadelphia", 39.95, -75.17], ["New York", 40.71, -74.01], ["Boston", 42.36, -71.06], ["Jacksonville", 30.33, -81.66], ["Tampa", 27.95, -82.46], ["Miami", 25.76, -80.19]];
   const ST = { Cincinnati: "OH", Louisville: "KY", Dayton: "OH", Tupelo: "MS", Huntsville: "AL", Birmingham: "AL", Dallas: "TX", "Des Moines": "IA", Memphis: "TN", Nashville: "TN", "Oklahoma City": "OK" };
@@ -16,10 +16,15 @@
   /* outlook names: SPC "Enhanced risk (3 of 5)"; WPC "High excessive rainfall risk (4 of 4)" */
   const olabel = (p) => p.program === "ero" ? FX.ERO_NAME[p.category] + " excessive rainfall risk (" + (FX.ERO_CATS.indexOf(p.category) + 1) + " of 4)" : T.outlookLabel(p.category);
   const OUTLOOK_COLOR = { TSTM: "#C1E9C1", MRGL: "#66A366", SLGT: "#F6E05E", ENH: "#FFA05C", MDT: "#E06666", HIGH: "#EE99EE" };
-  const SCOPE_NOTE = "This page covers NWS tornado and severe thunderstorm warnings and watches, SPC Mesoscale Discussions and SPC severe outlooks in the contiguous U.S.";
+  const SCOPE_NOTE = "This page covers NWS tornado and severe thunderstorm warnings and watches, flash flood warnings and winter storm alerts, SPC Mesoscale Discussions and outlooks, and WPC rainfall and winter outlooks, in the contiguous U.S.";
+  /* WPC WSSI-P: probability of at least the chosen impact level in a 24-hour window (5–95%) */
+  const WSSI_PROBS = [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95];
+  const WSSI_COLOR = { 5: "#E3EEF9", 10: "#C6DBEF", 20: "#9ECAE1", 30: "#6BAED6", 40: "#4292C6", 50: "#2171B5", 60: "#6A51A3", 70: "#807DBA", 80: "#9E3E9E", 90: "#C51B8A", 95: "#7A0177" };
+  const wssiColor = (p) => WSSI_COLOR[WSSI_PROBS.filter((x) => x <= p).pop() || 5];
+  const WLEVEL_LABEL = { WWA: "Any winter weather", MINOR: "Minor", MODERATE: "Moderate", MAJOR: "Major", EXTREME: "Extreme" };
   const empty = { type: "FeatureCollection", features: [] };
 
-  const S = { layers: { severe: true, flood: true }, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
+  const S = { layers: { severe: true, flood: true, winter: true }, wlevel: "MINOR", wwin: null, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
   let data, now, venue, map, ready = false, liveReady = false, meshes = new Map(), tzCache = {}, marker, grid = null, mesh = null, mask = null, gridLoading = null, hull = null;
   const phone = () => matchMedia("(max-width: 760px)").matches;
   const light = () => document.documentElement.getAttribute("data-theme") === "light";
@@ -28,32 +33,34 @@
   function pal() {
     const L = light();
     return { land: L ? "#f1f2ee" : "#151a22", line: L ? "#4a525e" : "#aeb6c2", water: L ? "#dfe9f5" : "#18293a", text: L ? "#172438" : "#e7ecf3", halo: L ? "#ffffff" : "#0d1117", muted: L ? "#5b6472" : "#8a94a6",
-      ffw: L ? "#0B7A4B" : "#2FD08A", torW: L ? "#C8102E" : "#FF4040", svrW: L ? "#B85400" : "#FFA024", torA: L ? "#8F7200" : "#FFE14D", svrA: L ? "#A23A68" : "#F28DB8", md: L ? "#1D5FD1" : "#5FB0FF" };
+      ffw: L ? "#0B7A4B" : "#2FD08A", wsw: L ? "#C2187A" : "#FF69B4", bzw: L ? "#C23A00" : "#FF6A33", isw: L ? "#7A0F86" : "#D36AE0", lew: L ? "#00706F" : "#22C7C7", wsa: L ? "#2F5F9E" : "#7FB2E5", wwy: L ? "#5141B8" : "#A497FF", torW: L ? "#C8102E" : "#FF4040", svrW: L ? "#B85400" : "#FFA024", torA: L ? "#8F7200" : "#FFE14D", svrA: L ? "#A23A68" : "#F28DB8", md: L ? "#1D5FD1" : "#5FB0FF" };
   }
   const isTor = (p) => /tornado/i.test(p.event || "");
   function colorOf(p) {
     const c = pal();
+    if (p.family === "winter") return /blizzard/i.test(p.event) ? c.bzw : /ice storm/i.test(p.event) ? c.isw : /lake effect/i.test(p.event) ? c.lew : p.kind === "watch" ? c.wsa : p.kind === "advisory" ? c.wwy : c.wsw;
     if (p.kind === "warning") return p.family === "flood" ? c.ffw : isTor(p) ? c.torW : c.svrW;
     if (p.kind === "outlook" && p.program === "ero") return ERO_COLOR[p.category];
     if (p.kind === "watch") return isTor(p) ? c.torA : c.svrA;
     if (p.kind === "md") return c.md;
     return OUTLOOK_COLOR[p.category];
   }
-  const KIND_WORD = { warning: "WARNING", watch: "WATCH", md: "MD", outlook: "OUTLOOK" };
+  const KIND_WORD = { warning: "WARNING", watch: "WATCH", advisory: "ADVISORY", md: "MD", outlook: "OUTLOOK" };
   /* a small line sample matching the map style, so the list and the map read the same way without color */
   function swatch(p, w = 30) {
     const c = colorOf(p);
     if (p.kind === "warning") return `<svg class="tx-sw" width="${w}" height="16" aria-hidden="true"><rect x="2" y="2" width="${w - 4}" height="12" rx="2" fill="${c}" fill-opacity=".35" stroke="${c}" stroke-width="3"/></svg>`;
+    if (p.kind === "advisory") return `<svg class="tx-sw" width="${w}" height="16" aria-hidden="true"><rect x="2" y="2" width="${w - 4}" height="12" rx="2" fill="${c}" fill-opacity=".18" stroke="${c}" stroke-width="2"/></svg>`;
     if (p.kind === "watch") return `<svg class="tx-sw" width="${w}" height="16" aria-hidden="true"><rect x="2" y="2" width="${w - 4}" height="12" rx="2" fill="${c}" fill-opacity=".1" stroke="${c}" stroke-width="2.2" stroke-dasharray="5 3"/></svg>`;
     if (p.kind === "md") return `<svg class="tx-sw" width="${w}" height="16" aria-hidden="true"><rect x="2" y="2" width="${w - 4}" height="12" rx="2" fill="none" stroke="${c}" stroke-width="2.6" stroke-dasharray=".1 4.2" stroke-linecap="round"/></svg>`;
     return `<svg class="tx-sw" width="${w}" height="16" aria-hidden="true"><rect x="2" y="2" width="${w - 4}" height="12" rx="2" fill="${c}" fill-opacity=".75" stroke="${c}" stroke-width="1"/></svg>`;
   }
 
   /* ---------- data ---------- */
-  const SRC_OF = (p) => p.kind === "warning" || p.kind === "watch" ? "alerts" : p.kind === "md" ? "md" : (p.program === "ero" ? "ero" : "day") + p.day;
+  const SRC_OF = (p) => ["warning", "watch", "advisory"].includes(p.kind) ? "alerts" : p.kind === "md" ? "md" : p.program === "wssip" ? "wssip" : (p.program === "ero" ? "ero" : "day") + p.day;
   // minutes since the last successful check before a source counts as stale (outlooks change a few times a day)
-  const STALE_MIN = { alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
-  const SRC_NAME = { alerts: "NWS warnings and watches", md: "SPC Mesoscale Discussions", day1: "SPC Day 1 outlook", day2: "SPC Day 2 outlook", day3: "SPC Day 3 outlook", ero1: "WPC excessive rainfall · Day 1", ero2: "WPC excessive rainfall · Day 2", ero3: "WPC excessive rainfall · Day 3" };
+  const STALE_MIN = { wssip: 60, alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
+  const SRC_NAME = { wssip: "WPC winter storm severity (WSSI-P)", alerts: "NWS warnings, watches and advisories", md: "SPC Mesoscale Discussions", day1: "SPC Day 1 outlook", day2: "SPC Day 2 outlook", day3: "SPC Day 3 outlook", ero1: "WPC excessive rainfall · Day 1", ero2: "WPC excessive rainfall · Day 2", ero3: "WPC excessive rainfall · Day 3" };
   const isLive = () => S.scenario === "live";
   const isArchive = () => /^archive-/.test(S.scenario);
   const official = () => isLive() || isArchive();
@@ -64,6 +71,8 @@
     "archive-ww705": [{ id: "linc", name: "Lincoln Financial Field", city: "Philadelphia, PA", lat: 39.9008, lon: -75.1675, tz: "America/New_York", label: "Lincoln Financial Field (inside)" }, { id: "cure", name: "CURE Insurance Arena", city: "Trenton, NJ", lat: 40.2207, lon: -74.7569, tz: "America/New_York", label: "CURE Insurance Arena, Trenton (inside)" }, { id: "metlife", name: "MetLife Stadium", city: "East Rutherford, NJ", lat: 40.8135, lon: -74.0745, tz: "America/New_York", label: "MetLife Stadium (outside the watch)" }],
   };
   const FLOOD_VENUES = [{ id: "daytona", name: "Daytona International Speedway", city: "Daytona Beach, FL", lat: 29.1852, lon: -81.0705, tz: "America/New_York", label: "Daytona International Speedway" }, { id: "fairgrounds", name: "Flagler County Fairgrounds", city: "Bunnell, FL", lat: 29.4447, lon: -81.2896, tz: "America/New_York", label: "Flagler County Fairgrounds" }, { id: "atlanta", name: "Mercedes-Benz Stadium", city: "Atlanta, GA", lat: 33.7554, lon: -84.4008, tz: "America/New_York", label: "Mercedes-Benz Stadium, Atlanta (outside)" }];
+  const WINTER_VENUES = [{ id: "snowbird", name: "Snowbird", city: "Little Cottonwood Canyon, UT", lat: 40.5813, lon: -111.6556, tz: "America/Denver", label: "Snowbird (Wasatch Mountains zone)" }, { id: "parkcity", name: "Park City Mountain", city: "Park City, UT", lat: 40.6514, lon: -111.508, tz: "America/Denver", label: "Park City Mountain (Wasatch Back zone)" }, { id: "crystal", name: "Crystal Mountain", city: "Enumclaw, WA", lat: 46.935, lon: -121.475, tz: "America/Los_Angeles", label: "Crystal Mountain, WA (Cascades)" }];
+  ["archive-winter-advisory", "archive-winter-warning", "archive-winter-outlook"].forEach((k) => { ARCHIVE_VENUES[k] = WINTER_VENUES; });
   ARCHIVE_VENUES["archive-flood-day"] = FLOOD_VENUES; ARCHIVE_VENUES["archive-flood-afternoon"] = FLOOD_VENUES; ARCHIVE_VENUES["archive-flood-outage"] = FLOOD_VENUES; ARCHIVE_VENUES["archive-flood-night"] = FLOOD_VENUES;
   const archiveData = new Map();
   function loadArchive() {
@@ -90,14 +99,16 @@
   function load() {
     if (isArchive()) {
       const a = loadArchive(), list = ARCHIVE_VENUES[S.scenario];
-      venue = list.find((v) => v.id === S.archiveVenue) || list[0];
+      // a link from Event Planner names its venue: use the matching sample venue, or that venue itself
+      const ent = S.entryVenue && !S.archiveVenue ? list.find((v) => Math.hypot(v.lat - S.entryVenue.lat, v.lon - S.entryVenue.lon) < 0.01) : null;
+      venue = ent || list.find((v) => v.id === S.archiveVenue) || (S.entryVenue && !S.archiveVenue ? S.entryVenue : list[0]);
       data = a && !a.error ? { ...a } : { clock: new Date().toISOString(), products: [], sources: { alerts: { state: "failed", lastOk: null }, md: { state: "na" }, day1: { state: "na" }, day2: { state: "na" } }, loading: !a, loadError: a && a.error };
       now = Date.parse(data.clock);
     } else if (isLive()) {
       data = Live.snapshot(); data.loading = !liveReady; now = Date.parse(data.clock);
       venue = withTz(S.entryVenue || liveVenues().find((v) => v.id === S.liveVenue) || liveVenues()[0]);
     } else { data = Demo.scenario(S.scenario); now = Date.parse(data.clock); venue = S.entryVenue || data.venues[S.venueKey]; }
-    data.state = {}; for (const k of Object.keys(data.sources)) data.state[k] = data.sources[k].state === "na" ? { kind: "na", text: "Not part of this sample" } : data.loading ? { kind: "loading", text: "Loading" } : isArchive() ? { kind: data.sources[k].count ? "current" : "empty", text: "Archived" } : T.sourceState(data.sources[k], now, STALE_MIN[k]);
+    data.state = {}; for (const k of Object.keys(data.sources)) data.state[k] = data.sources[k].state === "pending" ? { kind: "loading", text: "Loading" } : data.sources[k].state === "na" ? { kind: "na", text: "Not part of this sample" } : data.loading ? { kind: "loading", text: "Loading" } : isArchive() ? { kind: data.sources[k].count ? "current" : "empty", text: "Archived" } : T.sourceState(data.sources[k], now, STALE_MIN[k]);
   }
   const tz = () => venue.tz;
   const t = (iso, day) => T.fmtTime(iso, tz(), { day });
@@ -105,7 +116,7 @@
   const active = () => data.products.filter((p) => p.kind !== "outlook" && shown(p) && (Date.parse(p.expires) > now || (p.kind === "md" && p.expires == null)));
   // reached its published expiration while the source was down: not active, and not described as cleared
   const lapsed = () => data.products.filter((p) => p.kind !== "outlook" && T.expiredUnconfirmed(p, data.sources[SRC_OF(p)], now));
-  const outlooks = (day) => data.products.filter((p) => p.kind === "outlook" && p.program !== "ero" && p.day === day);
+  const outlooks = (day) => data.products.filter((p) => p.kind === "outlook" && p.program !== "ero" && p.program !== "wssip" && p.day === day);
   const eroOut = (day) => data.products.filter((p) => p.kind === "outlook" && p.program === "ero" && p.day === day);
   const byId = (id) => data.products.find((p) => p.id === id);
   const rel = (p) => T.relation(p, venue);
@@ -113,6 +124,67 @@
   const unconfirmed = (p) => data.state[SRC_OF(p)].kind === "stale" ? data.sources[SRC_OF(p)].lastOk : null;
   const endOf = (p) => p.expires || p.validEnd;
   const viewDay = () => ({ day1: 1, day2: 2, day3: 3 })[S.view] || null;
+  const winterView = () => S.view === "winter";
+
+  /* ---------- WPC WSSI-P (winter view): windows, the chosen level's areas, and the chances at the venue ----------
+     Archived samples carry the shapes; live, the windows, one level's shapes and the venue's point values come from the
+     NOAA map service on demand (ThreatsLive.wssiWindows / wssiArea / wssiFor). */
+  const W = { wins: null, area: new Map(), err: null, asked: new Set() };
+  const wssiProducts = () => data.products.filter((p) => p.program === "wssip");
+  function wssiWins() {
+    if (!isLive()) { const m = new Map(); for (const p of wssiProducts()) m.set(p.validStart, { start: p.validStart, end: p.validEnd, issued: p.issued }); return [...m.values()].sort((a, b) => (a.start < b.start ? -1 : 1)); }
+    return (W.wins || []).filter((w) => Date.parse(w.end) > now);
+  }
+  const curWin = () => { const ws = wssiWins(); return ws.find((w) => w.start === S.wwin) || ws[0] || null; };
+  function wssiAreas() {
+    const w = curWin(); if (!w) return [];
+    if (!isLive()) return wssiProducts().filter((p) => p.geometry && p.category === S.wlevel && p.validStart === w.start);
+    return W.area.get(S.wlevel + "|" + w.start) || [];
+  }
+  /* chances at the venue for every window: {start: {WWA: 95, MINOR: 60, ...}} */
+  function venueWssi() {
+    const out = new Map(), pt = [venue.lon, venue.lat];
+    for (const p of wssiProducts()) {
+      const hit = p.pointHit ? Math.abs(p.pointHit[0] - venue.lon) < 1e-3 && Math.abs(p.pointHit[1] - venue.lat) < 1e-3 : p.geometry && T.contains(p.geometry, pt);
+      if (!hit) continue;
+      if (!out.has(p.validStart)) out.set(p.validStart, {}); const o = out.get(p.validStart); o[p.category] = Math.max(o[p.category] || 0, p.prob);
+    }
+    return out;
+  }
+  function ensureWssi() {
+    if (!isLive() || !winterView()) return;
+    const once = (k, fn) => { if (W.asked.has(k)) return; W.asked.add(k); fn().then(() => { load(); drawAll(); }).catch((e) => { W.err = e.message; W.asked.delete(k); drawAll(); }); };
+    once("wins", () => Live.wssiWindows().then((l) => { W.wins = l; W.err = null; }));
+    const w = curWin(); if (w) once(S.wlevel + "|" + w.start, () => Live.wssiArea(S.wlevel, w.start).then((ps) => { W.area.set(S.wlevel + "|" + w.start, ps); }));
+    once("pt|" + venue.lat.toFixed(3) + "," + venue.lon.toFixed(3), () => Live.wssiFor(venue.lat, venue.lon));
+  }
+  const pctTxt = (v) => (v >= 5 ? v + "%" : "under 5%");
+  const winSpan = (w) => t(w.start, true) + " → " + t(w.end, true);
+  const winShort = (w) => new Date(w.start).toLocaleString("en-US", { timeZone: tz(), weekday: "short", hour: "numeric" }) + " → " + new Date(w.end).toLocaleString("en-US", { timeZone: tz(), weekday: "short", hour: "numeric" });
+  function topLevel(o) { let lv = null; for (const L of FX.WSSI_LEVELS) if (o && o[L] >= 30) lv = L; return lv; }
+  function winterPanel() {
+    const ws = wssiWins(), w = curWin(), vw = venueWssi(), st = data.state.wssip;
+    let h = S.scope !== "venue" ? venueStrip() : "";
+    if (!ws.length) {
+      h += `<div class="px-brief"><div class="px-where">Winter outlook · WPC WSSI-P</div><div class="px-big">${st && st.kind === "loading" || (isLive() && !W.wins && !W.err) ? "Loading…" : W.err || (st && ["unavailable", "stale"].includes(st.kind)) ? "Not confirmed" : "No winter outlook in this sample"}</div><div class="px-sub">${esc(W.err ? "The NOAA map service did not answer (" + W.err + ")." : isArchive() && !wssiProducts().length ? "WSSI-P was not captured for this time; it is shown in the Nov 20 archived sample." : "")}</div></div>`;
+      return h;
+    }
+    const o = vw.get(w.start) || {}, lv = topLevel(o);
+    h += `<div class="px-brief"><div class="px-where">Winter outlook at ${esc(venue.name)} · WPC WSSI-P</div>`
+      + `<div class="px-big">${lv ? esc(pctTxt(o[lv]) + " chance of at least " + (lv === "WWA" ? "winter weather" : WLEVEL_LABEL[lv] + " impacts")) : o.WWA ? esc(pctTxt(o.WWA) + " chance of winter weather") : "Under 5% for winter weather"}</div>`
+      + `<div class="px-sub">24 hours ${esc(winSpan(w))}</div>`
+      + `<div class="px-wlv">${FX.WSSI_LEVELS.map((L) => `<span><b>${esc(L === "WWA" ? "Winter weather" : WLEVEL_LABEL[L])}</b> ${esc(pctTxt(o[L] || 0))}</span>`).join("")}</div></div>`;
+    h += `<label class="px-wsel"><span>24-hour window</span><select id="wssiWin">${ws.map((x) => `<option value="${esc(x.start)}"${x.start === w.start ? " selected" : ""}>${esc(winShort(x))}</option>`).join("")}</select></label>`;
+    h += `<div class="px-wlevels" role="group" aria-label="Impact level drawn on the map">${FX.WSSI_LEVELS.map((L) => `<button type="button" data-wlevel="${L}" aria-pressed="${L === S.wlevel}">${esc(L === "WWA" ? "Any" : WLEVEL_LABEL[L])}</button>`).join("")}</div>`;
+    h += `<p class="lg-note">Map: chance of at least <b>${esc(S.wlevel === "WWA" ? "winter weather" : WLEVEL_LABEL[S.wlevel] + " impacts")}</b> in this window. ${esc(FX.WSSI_MEANING[S.wlevel])}</p>`;
+    h += `<div class="px-h"><span>Next 7 days at the venue</span><span>highest level with at least a 30% chance</span></div><div class="px-wdays">`
+      + ws.filter((x) => +new Date(x.start).getUTCHours() % 12 === 0).map((x) => { const v = vw.get(x.start) || {}, l = topLevel(v); return `<button type="button" data-wwin="${esc(x.start)}" aria-pressed="${x.start === w.start}"><span>${esc(winShort(x))}</span><b>${l ? esc((l === "WWA" ? "Winter weather" : WLEVEL_LABEL[l]) + " " + v[l] + "%") : v.WWA ? "Winter weather " + esc(pctTxt(v.WWA)) : "Under 30%"}</b></button>`; }).join("") + `</div>`;
+    const last = ws[ws.length - 1];
+    h += `<p class="lg-note">WPC publishes rolling 24-hour windows every 6 hours out to Day 7; the last one ends ${esc(t(last.end, true))}. Issued ${esc(T.fmtZ(w.issued || ""))}. A chance for the whole 24 hours, not timing within it. <a href="${esc(SRC_LINK.wssip)}" target="_blank" rel="noopener">WPC WSSI-P</a></p>`;
+    const wa = active().filter((p) => p.family === "winter" && rel(p).kind === "covers");
+    if (wa.length) h += `<div class="px-h">Winter alerts in effect at the venue</div>` + wa.map((p) => item(p)).join("");
+    return h;
+  }
   const shortTitle = (p) => p.kind === "watch" ? p.event : p.kind === "md" ? "Mesoscale Discussion " + p.title.replace(/\D+/g, "") : p.title;
   const venueCovers = () => T.sort(active().filter((p) => rel(p).kind === "covers"));
   const venueNear = () => T.sort(active().filter((p) => rel(p).kind === "near"));
@@ -124,7 +196,7 @@
     if (known("alerts")) return { big: "No warning or watch at the venue", sub: "NWS checked " + t(data.sources.alerts.lastOk) + ". SPC Mesoscale Discussion status is unknown: that source is not responding." };
     return { big: "Venue status not confirmed", sub: "No product covers the venue in the data we have, but NWS warnings and watches are not confirmed (see below)." };
   }
-  const SRC_LINK = { ero1: FX.SOURCES.find((x) => x.id === "wpc-ero").url, ero2: FX.SOURCES.find((x) => x.id === "wpc-ero").url, ero3: FX.SOURCES.find((x) => x.id === "wpc-ero").url, day3: "https://www.spc.noaa.gov/products/outlook/day3otlk.html", alerts: "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch", md: "https://www.spc.noaa.gov/products/md/", day1: "https://www.spc.noaa.gov/products/outlook/day1otlk.html", day2: "https://www.spc.noaa.gov/products/outlook/day2otlk.html" };
+  const SRC_LINK = { wssip: "https://www.wpc.ncep.noaa.gov/wwd/wssi/prob_wssi.php", ero1: FX.SOURCES.find((x) => x.id === "wpc-ero").url, ero2: FX.SOURCES.find((x) => x.id === "wpc-ero").url, ero3: FX.SOURCES.find((x) => x.id === "wpc-ero").url, day3: "https://www.spc.noaa.gov/products/outlook/day3otlk.html", alerts: "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch", md: "https://www.spc.noaa.gov/products/md/", day1: "https://www.spc.noaa.gov/products/outlook/day1otlk.html", day2: "https://www.spc.noaa.gov/products/outlook/day2otlk.html" };
 
   /* ---------- map ---------- */
   async function getJSON(path) { const r = await fetch(path); if (!r.ok) throw Error(path + " " + r.status); return r.json(); }
@@ -139,7 +211,7 @@
     map.on("load", () => {
       const src = (id, d) => map.addSource(id, { type: "geojson", data: d || empty });
       src("states", states); src("lakes", lakes);
-      ["outlook", "ero", "active", "hl", "labels", "ring", "m-fill", "m-lines", "m-outside", "m-hull", "cities", "pt"].forEach((id) => src(id));
+      ["outlook", "ero", "wssi", "active", "hl", "labels", "ring", "m-fill", "m-lines", "m-outside", "m-hull", "cities", "pt"].forEach((id) => src(id));
       map.addImage("hatch", hatch(), { pixelRatio: 2 });
       const L = (o) => map.addLayer(o);
       L({ id: "lakes", type: "fill", source: "lakes", paint: { "fill-color": p.water } });
@@ -152,10 +224,14 @@
       L({ id: "outlook-line", type: "line", source: "outlook", paint: { "line-color": ["get", "edge"], "line-width": ["get", "w"], "line-opacity": 0.95 } });
       L({ id: "ero-fill", type: "fill", source: "ero", paint: { "fill-color": ["get", "color"], "fill-opacity": ["get", "fill"] } });
       L({ id: "ero-line", type: "line", source: "ero", paint: { "line-color": ["get", "edge"], "line-width": ["get", "w"], "line-dasharray": [2.5, 1.2], "line-opacity": 0.95 } });
+      L({ id: "wssi-fill", type: "fill", source: "wssi", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.62 } });
+      L({ id: "wssi-line", type: "line", source: "wssi", paint: { "line-color": ["get", "color"], "line-width": 0.8, "line-opacity": 0.9 } });
       L({ id: "hl", type: "line", source: "hl", layout: { "line-join": "round" }, paint: { "line-color": p.text, "line-width": 9, "line-opacity": 0.55, "line-blur": 1 } });
       L({ id: "watch-fill", type: "fill", source: "active", filter: ["==", ["get", "kind"], "watch"], paint: { "fill-color": ["get", "color"], "fill-opacity": 0.08 } });
       L({ id: "watch-line", type: "line", source: "active", filter: ["==", ["get", "kind"], "watch"], paint: { "line-color": ["get", "color"], "line-width": 2.6, "line-dasharray": [3, 2], "line-opacity": ["get", "op"] } });
       L({ id: "md-line", type: "line", source: "active", filter: ["==", ["get", "kind"], "md"], layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 3.2, "line-dasharray": [0.1, 2.2], "line-opacity": ["get", "op"] } });
+      L({ id: "adv-fill", type: "fill", source: "active", filter: ["==", ["get", "kind"], "advisory"], paint: { "fill-color": ["get", "color"], "fill-opacity": ["*", ["get", "fill"], 0.6] } });
+      L({ id: "adv-line", type: "line", source: "active", filter: ["==", ["get", "kind"], "advisory"], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 2, "line-opacity": ["get", "op"] } });
       L({ id: "warn-fill", type: "fill", source: "active", filter: ["==", ["get", "kind"], "warning"], paint: { "fill-color": ["get", "color"], "fill-opacity": ["get", "fill"] } });
       L({ id: "warn-case", type: "line", source: "active", filter: ["==", ["get", "kind"], "warning"], layout: { "line-join": "round" }, paint: { "line-color": p.halo, "line-width": 6, "line-opacity": 0.85 } });
       L({ id: "warn-line", type: "line", source: "active", filter: ["==", ["get", "kind"], "warning"], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 3.4 } });
@@ -177,7 +253,7 @@
       ready = true; drawAll();
     });
     map.on("click", (e) => { S.point = [e.lngLat.lng, e.lngLat.lat]; S.sel = null; openSheet(); drawAll(); });
-    const hits = ["warn-fill", "watch-fill", "outlook-fill", "warn-dot"];
+    const hits = ["warn-fill", "adv-fill", "watch-fill", "outlook-fill", "wssi-fill", "warn-dot"];
     map.on("mousemove", (e) => { if (!ready) return; const f = map.queryRenderedFeatures(e.point, { layers: hits.filter((l) => map.getLayer(l)) }); map.getCanvas().style.cursor = f.length ? "pointer" : ""; });
   }
   function hatch() {
@@ -199,22 +275,25 @@
 
   function drawMap() {
     if (!ready) return;
-    const c = pal(), day = viewDay(), focus = S.sel || S.hover;
+    const c = pal(), wv = winterView(), day = wv ? 1 : viewDay(), focus = S.sel || S.hover;
     // Active now: everything. Day 1: current warnings as outlines, labelled Active now. Day 2: no current geometry.
-    const act = day === 2 ? [] : active().filter((p) => p.geometry && (!day || p.kind === "warning"));
+    // Winter outlook: current winter warnings and advisories as outlines over the WSSI-P areas.
+    const act = day === 2 || day === 3 ? [] : active().filter((p) => p.geometry && (!day || p.kind === "warning" || (wv && p.family === "winter")) && (!wv || p.family === "winter"));
     map.getSource("active").setData({ type: "FeatureCollection", features: act.map((p) => feature(p, { kind: p.kind, color: colorOf(p), op: unconfirmed(p) ? 0.6 : 1, fill: day ? 0 : unconfirmed(p) ? 0.16 : 0.3, day: day || 0, text: labelText(p), tc: c.text, hc: c.halo })) });
+    const wa = wv ? wssiAreas() : [];
+    map.getSource("wssi").setData({ type: "FeatureCollection", features: wa.filter((p) => p.geometry).sort((a, b) => a.prob - b.prob).map((p) => feature(p, { color: wssiColor(p.prob) })) });
     // outlooks: filled in their own day view (outline only when our model is on); outlines as context in Active now
-    const ol = !S.layers.severe ? [] : day ? outlooks(day) : S.ctx ? outlooks(1) : [];
+    const ol = !S.layers.severe || wv ? [] : day ? outlooks(day) : S.ctx ? outlooks(1) : [];
     // WPC excessive rainfall in the day views: filled when it is the only outlook layer on, dashed outlines over SPC otherwise
-    const el = day && S.layers.flood ? eroOut(day) : [], eroFill = !S.layers.severe && !S.model;
+    const el = day && !wv && S.layers.flood ? eroOut(day) : [], eroFill = !S.layers.severe && !S.model;
     map.getSource("ero").setData({ type: "FeatureCollection", features: el.map((p) => feature(p, { color: ERO_COLOR[p.category], edge: eroFill ? shade(ERO_COLOR[p.category]) : ERO_COLOR[p.category], fill: eroFill ? 0.5 : 0, w: eroFill ? 1.2 : 2.8 })) });
-    const filled = day && !S.model && S.layers.severe;
+    const filled = day && !wv && !S.model && S.layers.severe;
     map.getSource("outlook").setData({ type: "FeatureCollection", features: ol.map((p) => feature(p, { color: OUTLOOK_COLOR[p.category], edge: filled ? shade(OUTLOOK_COLOR[p.category]) : OUTLOOK_COLOR[p.category], w: filled ? 1 : day ? 2.6 : 1.4 })) });
     map.setLayoutProperty("outlook-fill", "visibility", filled ? "visible" : "none");
     map.setPaintProperty("warn-line", "line-dasharray", day === 1 ? [2, 1] : [1, 0]); // Day 1: current warnings dashed, "Active now"
     map.setPaintProperty("outlook-line", "line-opacity", day ? 0.95 : 0.7);
     const labels = [];
-    for (const p of act) if (p.kind === "warning") labels.push({ p, text: (day ? "ACTIVE NOW · " : "") + labelText(p), size: 13, rank: isTor(p) ? 0 : 1, tc: c.halo, hc: colorOf(p) });
+    for (const p of act) if (p.kind === "warning" || p.kind === "advisory") labels.push({ p, text: (day ? "ACTIVE NOW · " : "") + labelText(p), size: 13, rank: isTor(p) ? 0 : 1, tc: c.halo, hc: colorOf(p) });
     for (const p of ol) if (p.category !== "TSTM" || day) labels.push({ p, text: p.category, size: day ? 12 : 10, rank: 5, tc: c.text, hc: c.halo });
     for (const p of el) labels.push({ p, text: "ERO " + p.category, size: 11.5, rank: 4, tc: c.text, hc: c.halo });
     map.getSource("labels").setData({ type: "FeatureCollection", features: labels.filter((l) => l.p.label).map((l) => ({ type: "Feature", properties: { kind: l.p.kind, tor: isTor(l.p), color: colorOf(l.p), text: l.text, size: l.size, rank: l.rank, tc: l.tc, hc: l.hc }, geometry: { type: "Point", coordinates: l.p.label } })) });
@@ -237,7 +316,7 @@
   function labelText(p) {
     const u = (unconfirmed(p) ? " (last known)" : "") + (p.geometryIncomplete && p.zoneInfo && p.zoneInfo.counties ? " (area incomplete)" : "");
     if (p.kind === "warning") return p.event.toUpperCase() + u;
-    if (p.kind === "watch") return p.title.toUpperCase() + u;
+    if (p.kind === "watch" || p.kind === "advisory") return (p.kind === "advisory" ? p.event : p.title).toUpperCase() + u;
     if (p.kind === "md") return "MD " + p.title.replace(/\D+/g, "") + u;
     return p.category;
   }
@@ -303,12 +382,12 @@
   /* "20 counties and 3 marine zones"; with gaps, "18 of 20 counties and 3 of 3 marine zones" */
   function zoneCount(z, drawn) {
     const part = (n, d, one, many) => (n ? (drawn ? d + " of " : "") + n + " " + (n === 1 ? one : many) : "");
-    return [part(z.counties.listed, z.counties.drawn, "county", "counties"), part(z.marine.listed, z.marine.drawn, "marine zone", "marine zones")].filter(Boolean).join(" and ");
+    return [part(z.counties.listed, z.counties.drawn, "county", "counties"), part((z.zones || {}).listed, (z.zones || {}).drawn, "NWS forecast zone", "NWS forecast zones"), part(z.marine.listed, z.marine.drawn, "marine zone", "marine zones")].filter(Boolean).join(" and ");
   }
   const countyText = (p) => !p.zoneInfo || !p.zoneInfo.counties ? "Area: listed counties and marine zones (shapes loading)" : p.geometryIncomplete ? "Incomplete area: drawn from " + zoneCount(p.zoneInfo, true) : "Area drawn from " + zoneCount(p.zoneInfo, false);
   function sources() {
     const vd = viewDay() || 1;
-    const rows = ["alerts", "md", "day" + vd, "ero" + vd].filter((k) => data.sources[k] && data.state[k]).map((k) => {
+    const rows = (winterView() ? ["alerts", "wssip"] : ["alerts", "md", "day" + vd, "ero" + vd]).filter((k) => data.sources[k] && data.state[k]).map((k) => {
       const s = data.state[k], src = data.sources[k];
       const right = s.kind === "na" ? "Not part of this archived sample" : isArchive() ? "Archived official messages, replayed" : k === "md" && src.via === "service" && s.kind !== "stale" ? "Checked " + t(src.lastOk) + " via NOAA map service" + (s.kind === "empty" ? " · none active" : "") : s.kind === "loading" ? "Loading…" : s.kind === "unavailable" ? "Not responding · status unknown" : s.kind === "stale" ? "Last confirmed " + t(src.lastOk) : "Checked " + t(src.lastOk) + (k.startsWith("day") ? (src.outlook === "expired" ? " · expired, awaiting next issuance" : "") : s.kind === "empty" ? " · none active" : "");
       const name = official() && s.kind !== "na" ? `<a href="${esc(SRC_LINK[k])}" target="_blank" rel="noopener">${esc(SRC_NAME[k])}</a>` : esc(SRC_NAME[k]);
@@ -335,7 +414,7 @@
      direction and an explicit "the venue is outside"). MDs are mentioned, never presented as in effect. */
   function statusLines() {
     const covers = venueCovers(), near = venueNear().filter((p) => p.kind === "warning"), lines = [];
-    for (const p of covers.filter((x) => x.kind === "warning" || x.kind === "watch")) {
+    for (const p of covers.filter((x) => ["warning", "watch", "advisory"].includes(x.kind))) {
       const u = unconfirmed(p);
       lines.push({ p, at: true, head: u ? `Last known: ${p.event} at the venue` : `${p.event} in effect at the venue`,
         sub: u ? `Last confirmed ${t(u)} · published expiration ${t(p.expires)}` : `Until ${t(p.expires)} · ${T.untilText(p.expires, now)}` });
@@ -477,6 +556,7 @@
   /* collapsed phone sheet: two lines so a warning's expiration always survives */
   function peek() {
     if (S.sel) { const p = byId(S.sel); return p ? [p.kind === "outlook" ? "Day " + p.day + " · " + olabel(p) : p.title, "Tap for details"] : ["", ""]; }
+    if (winterView()) { const w = curWin(), o = w ? venueWssi().get(w.start) || {} : {}, lv = topLevel(o); return ["Winter outlook at " + venue.name, w ? winShort(w) + " · " + (lv ? pctTxt(o[lv]) + " at least " + (lv === "WWA" ? "winter weather" : WLEVEL_LABEL[lv]) : "under 30% for any level") : "Loading"]; }
     if (viewDay()) { const o = T.outlookAt(outlooks(viewDay()), [venue.lon, venue.lat]); return ["Day " + viewDay() + " at " + venue.name, o ? "Highest: " + T.outlookLabel(o.category) : "No severe risk area"]; }
     const L = statusLines();
     if (!L.length) { const q = quietText(); return [q.big.replace("at the venue", "at " + venue.name), lapsed().length ? "A warning reached its expiration · NWS status unknown" : activeKnown() ? "NWS checked " + t(data.sources.alerts.lastOk) : known("alerts") ? "NWS checked " + t(data.sources.alerts.lastOk) + " · MD status unknown" : "NWS warnings not confirmed"]; }
@@ -488,7 +568,7 @@
     const body = $("txPanelBody"), p = S.sel && byId(S.sel), keep = body.scrollTop, focusId = document.activeElement && body.contains(document.activeElement) && document.activeElement.dataset ? document.activeElement.dataset.id : null;
     if (data.loadError) { body.innerHTML = `<p class="px-empty">Could not load this archived sample (${esc(data.loadError)}).</p>`; return; }
     if (data.loading) { body.innerHTML = `<p class="px-empty">Loading official feeds: NWS warnings and watches, SPC Mesoscale Discussions and SPC outlooks…</p>` + sources(); $("txPeek1").textContent = "Loading official feeds…"; $("txPeek2").textContent = ""; return; }
-    body.innerHTML = (p ? detail(p) : S.point ? pointPanel() : viewDay() ? dayPanel(viewDay()) : S.scope === "venue" ? venueActive() : nationalActive()) + sources();
+    body.innerHTML = (p ? detail(p) : S.point && !winterView() ? pointPanel() : winterView() ? winterPanel() : viewDay() ? dayPanel(viewDay()) : S.scope === "venue" ? venueActive() : nationalActive()) + sources();
     document.querySelectorAll("[data-scope]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scope === S.scope)));
     $("scopeVenue").textContent = "Venue · " + venue.name;
     body.scrollTop = keep; if (focusId) { const el = body.querySelector(`[data-id="${CSS.escape(focusId)}"]`); if (el) el.focus({ preventScroll: true }); }
@@ -502,12 +582,14 @@
     document.querySelectorAll(".tx-tb").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === S.view)));
     document.querySelectorAll(".tx-lb").forEach((b) => b.setAttribute("aria-pressed", String(!!S.layers[b.dataset.layer])));
     const day = viewDay();
-    if (!day) $("txValid").innerHTML = `<b>Active now</b> · as of ${esc(t(data.clock, true))}`;
+    document.querySelectorAll('.tx-tb[data-view="winter"]').forEach((b) => { b.hidden = !S.layers.winter; });
+    if (winterView()) { const w = curWin(); $("txValid").innerHTML = w ? `<b>Winter · WPC WSSI-P</b> · ${esc(winSpan(w))}<span class="z">${esc(T.fmtZ(w.start))}–${esc(T.fmtZ(w.end))}${w.issued ? " · issued " + esc(T.fmtZ(w.issued)) : ""}</span>` : `<b>Winter · WPC WSSI-P</b> · no outlook loaded`; }
+    else if (!day) $("txValid").innerHTML = `<b>Active now</b> · as of ${esc(t(data.clock, true))}`;
     else {
       const o = outlooks(day)[0] || eroOut(day)[0];
       $("txValid").innerHTML = o ? `<b>Day ${day}</b> · ${esc(t(o.validStart, true))} → ${esc(t(o.validEnd, true))}<span class="z">${esc(T.fmtZ(o.validStart))}–${esc(T.fmtZ(o.validEnd))} · issued ${esc(T.fmtZ(o.issued))}</span>` : `<b>Day ${day}</b> · no outlook loaded`;
     }
-    $("txModel").hidden = !day; $("modelChk").checked = S.model; $("modelHz").hidden = !S.model;
+    $("txModel").hidden = !day || winterView(); $("modelChk").checked = S.model; $("modelHz").hidden = !S.model;
     document.querySelectorAll(".tx-hb").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hz === S.hazard)));
     const chips = [];
     const actW = active().filter((p) => p.kind === "warning");
@@ -529,14 +611,16 @@
       if (!day) h += `<div><div class="lg-h">Flooding · active now</div>${lgLine({ kind: "warning", family: "flood", event: "Flash Flood Warning" }, "<b>Flash Flood Warning</b> · solid, filled")}</div>`;
       else h += `<div><div class="lg-h">WPC excessive rainfall · Day ${day}${S.layers.severe ? " · dashed" : ""}</div><div class="lg-bands">${FX.ERO_CATS.map((c, i) => `<span class="lg-band" title="${esc(FX.ERO_NAME[c])}"><i style="background:${ERO_COLOR[c]}"></i>${c}<small>${i + 1}</small></span>`).join("")}</div><div class="lg-note">Chance rainfall exceeds flash flood guidance within 25 mi: 1 at least 5% · 2 15% · 3 40% · 4 70%</div></div>`;
     }
-    if (!day) h += `<label class="lg-toggle"><input type="checkbox" id="ctxChk"${S.ctx ? " checked" : ""}> Day 1 outlook outlines</label>`;
+    if (S.layers.winter && !winterView() && !day) h += `<div><div class="lg-h">Winter · active now</div>${lgLine({ kind: "warning", family: "winter", event: "Winter Storm Warning" }, "<b>Winter Storm Warning</b>")}${lgLine({ kind: "warning", family: "winter", event: "Blizzard Warning" }, "Blizzard · ice storm · lake-effect snow warnings")}${lgLine({ kind: "watch", family: "winter", event: "Winter Storm Watch" }, "<b>Winter Storm Watch</b> · dashed")}${lgLine({ kind: "advisory", family: "winter", event: "Winter Weather Advisory" }, "<b>Winter Weather Advisory</b> · thin outline")}<div class="lg-note">Most winter alerts are issued for NWS forecast zones; the area is drawn from those zones.</div></div>`;
+    if (winterView()) h += `<div><div class="lg-h">WPC WSSI-P · chance of at least ${esc(S.wlevel === "WWA" ? "winter weather" : WLEVEL_LABEL[S.wlevel])}</div><div class="lg-bands">${WSSI_PROBS.map((v) => `<span class="lg-band"><i style="background:${WSSI_COLOR[v]}"></i>${v}%</span>`).join("")}</div><div class="lg-note">24-hour window. Levels: Minor, Moderate, Major, Extreme winter storm impacts (WPC definitions).</div></div>`;
+    if (!day && !winterView()) h += `<label class="lg-toggle"><input type="checkbox" id="ctxChk"${S.ctx ? " checked" : ""}> Day 1 outlook outlines</label>`;
     if (day && S.model) h += `<div><div class="lg-h">Our research model · ${esc(S.hazard)} within 25 mi</div><div class="lg-bands">${G.BANDS.map(([, c, l]) => `<span class="lg-band"><i style="background:${c}"></i>${l}</span>`).join("")}</div><div class="lg-note">Experimental Forecast Ops guidance, not an official forecast${isLive() ? "" : ". Demo values"}. Uncolored: below 0.1% (low). Light hatching: no model guidance (outside its grid or over water), not a low value.</div>${(() => { const f = modelField(day); return f.values ? "" : `<div class="lg-note"><b>${esc(f.reason)}</b></div>`; })()}</div>`;
     if (S.scope === "venue") h += `<div class="lg-row"><svg width="28" height="10" aria-hidden="true"><line x1="1" y1="5" x2="27" y2="5" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3"/></svg><span>${Math.round(T.miles(T.NEAR_KM))}-mile "nearby" ring</span></div>`;
     $("txLegendBody").innerHTML = h;
     const cc = $("ctxChk"); if (cc) cc.addEventListener("change", () => { S.ctx = cc.checked; drawAll(); });
   }
 
-  function drawAll() { renderTop(); renderPanel(); drawMap(); sheetVar(); }
+  function drawAll() { ensureWssi(); renderTop(); renderPanel(); drawMap(); sheetVar(); }
 
   /* ---------- actions ---------- */
   function fitProduct(p) {
@@ -569,6 +653,9 @@
   function sheetVar() { const h = phone() ? $("txPanel").getBoundingClientRect().height : 0; $("tx").style.setProperty("--sheet-h", h + "px"); }
 
   $("txPanel").addEventListener("click", (e) => {
+    const wl = e.target.closest("[data-wlevel]"), ww = e.target.closest("[data-wwin]");
+    if (wl) { S.wlevel = wl.dataset.wlevel; drawAll(); return; }
+    if (ww) { S.wwin = ww.dataset.wwin; drawAll(); return; }
     const it = e.target.closest("[data-id]"), sg = e.target.closest("[data-scope-go]"), vg = e.target.closest("[data-view-go]"), back = e.target.closest("[data-back]");
     if (it) { S.sel = it.dataset.id; S.hover = null; openSheet(); drawAll(); fitProduct(byId(S.sel)); $("txPanelBody").scrollTop = 0; $("txPanelBody").focus({ preventScroll: true }); return; }
     if (sg) { openSheet(); return setScope(sg.dataset.scopeGo, true); }
@@ -576,11 +663,12 @@
     if (back) { if (S.sel) S.sel = null; else S.point = null; drawAll(); }
   });
   const hoverOn = (e) => { const it = e.target.closest("[data-id]"); const id = it ? it.dataset.id : null; if (id !== S.hover) { S.hover = id; drawMap(); } };
+  $("txPanel").addEventListener("change", (e) => { if (e.target.id === "wssiWin") { S.wwin = e.target.value; drawAll(); } });
   $("txPanel").addEventListener("mouseover", hoverOn); $("txPanel").addEventListener("focusin", hoverOn);
   $("txPanel").addEventListener("mouseleave", () => { if (S.hover) { S.hover = null; drawMap(); } });
   document.querySelectorAll("[data-scope]").forEach((b) => b.addEventListener("click", () => setScope(b.dataset.scope, true)));
   document.querySelectorAll(".tx-tb").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
-  document.querySelectorAll(".tx-lb").forEach((b) => b.addEventListener("click", () => { S.layers[b.dataset.layer] = !S.layers[b.dataset.layer]; if (!S.layers.severe && !S.layers.flood) S.layers[b.dataset.layer === "severe" ? "flood" : "severe"] = true; S.sel = null; drawAll(); }));
+  document.querySelectorAll(".tx-lb").forEach((b) => b.addEventListener("click", () => { S.layers[b.dataset.layer] = !S.layers[b.dataset.layer]; if (!S.layers.severe && !S.layers.flood && !S.layers.winter) S.layers[b.dataset.layer] = true; if (!S.layers.winter && winterView()) S.view = "active"; S.sel = null; drawAll(); }));
   $("modelChk").addEventListener("change", () => { S.model = $("modelChk").checked; startModel(); drawAll(); });
   document.querySelectorAll(".tx-hb").forEach((b) => b.addEventListener("click", () => { S.hazard = b.dataset.hz; drawAll(); }));
   $("txChips").addEventListener("click", (e) => { const v = e.target.closest("[data-view-go]"); if (v) setView(v.dataset.viewGo); if (e.target.closest("[data-sources]")) { S.sel = null; S.point = null; openSheet(); drawAll(); const s = document.querySelector(".px-sources"); if (s) s.scrollIntoView({ block: "nearest" }); } });
@@ -596,9 +684,9 @@
     if (arc && data && data.archive) { $("demoStep").innerHTML = data.archive.messages.map((m, i) => `<option value="${i + 1}">Msg ${i + 1}/${data.archive.steps} · ${esc(m.action || "")} · ${esc(T.fmtTime(m.sent, venue.tz))}</option>`).join(""); $("demoStep").value = String(data.archive.step); }
     const opts = arc ? ARCHIVE_VENUES[S.scenario].map((v) => ({ id: v.id, label: v.label })) : live ? [...(S.entryVenue ? [{ id: "entry", label: "Linked venue: " + S.entryVenue.name }] : []), ...liveVenues()] : [{ id: "inside", label: "Inside the warning" }, { id: "edge", label: "Near the warning edge" }, { id: "outside", label: "Outside the warning" }];
     $("demoVenue").innerHTML = opts.map((o) => `<option value="${esc(o.id)}">${esc(o.label)}</option>`).join("");
-    $("demoVenue").value = arc ? (S.archiveVenue || ARCHIVE_VENUES[S.scenario][0].id) : live ? (S.entryVenue ? "entry" : S.liveVenue) : S.venueKey;
+    $("demoVenue").value = arc ? (S.archiveVenue || (venue && ARCHIVE_VENUES[S.scenario].some((x) => x.id === venue.id) ? venue.id : ARCHIVE_VENUES[S.scenario][0].id)) : live ? (S.entryVenue ? "entry" : S.liveVenue) : S.venueKey;
     $("demoScenario").value = S.scenario;
-    const sub = document.querySelector(".statusbar .page-sub"); if (sub) sub.textContent = live ? "Preview · severe weather · live official feeds" : arc ? "Preview · severe weather · archived official sample" : "Preview · severe weather · demo data";
+    const sub = document.querySelector(".statusbar .page-sub"); if (sub) sub.textContent = live ? "Preview · weather threats · live official feeds" : arc ? "Preview · weather threats · archived official sample" : "Preview · weather threats · demo data";
     O.setChip(live ? "LIVE PREVIEW" : arc ? "ARCHIVED SAMPLE" : "DEMO DATA", live ? "live" : "warn", live ? "Official feeds, branch preview" : "Fictional products for layout review");
   }
   $("demoScenario").addEventListener("change", () => {
@@ -649,15 +737,18 @@
      ?lat=..&lon=..&name=..[&tz=..]) opens Venue centred there. Review links: ?scenario= ?venue= ?view= ?scope= ?model=1 ?sel= ?sheet= */
   try {
     const q = new URLSearchParams(location.search);
-    if (["live", "overlap", "multi", "quiet", "unavailable", "outage-expired", "archive-lox", "archive-mtr", "archive-ww705", "archive-flood-day", "archive-flood-afternoon", "archive-flood-outage", "archive-flood-night"].includes(q.get("scenario"))) S.scenario = q.get("scenario");
+    if (["live", "overlap", "multi", "quiet", "unavailable", "outage-expired", "archive-lox", "archive-mtr", "archive-ww705", "archive-flood-day", "archive-flood-afternoon", "archive-flood-outage", "archive-flood-night", "archive-winter-advisory", "archive-winter-warning", "archive-winter-outlook"].includes(q.get("scenario"))) S.scenario = q.get("scenario");
     if (["inside", "edge", "outside"].includes(q.get("venue"))) S.venueKey = q.get("venue");
     const lat = parseFloat(q.get("lat")), lon = parseFloat(q.get("lon"));
     if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
       S.entryVenue = { id: "entry", name: ((n) => n.length <= 80 ? n : n.slice(0, 79).replace(/\s+\S*$/, "") + "…")((q.get("name") || "Event venue").trim()), city: q.get("city") || "", lat, lon, tz: q.get("tz") || "America/New_York" };
       S.scope = "venue";
     }
-    if (["active", "day1", "day2", "day3"].includes(q.get("view"))) S.view = q.get("view");
-    if (q.get("layers")) { const L = q.get("layers").split(","); S.layers = { severe: L.includes("severe"), flood: L.includes("flood") }; }
+    if (["active", "day1", "day2", "day3", "winter"].includes(q.get("view"))) S.view = q.get("view");
+    if (q.get("layers")) { const L = q.get("layers").split(","); S.layers = { severe: L.includes("severe"), flood: L.includes("flood"), winter: L.includes("winter") }; if (!S.layers.severe && !S.layers.flood && !S.layers.winter) S.layers.severe = true; }
+    if (S.view === "winter") S.layers.winter = true;
+    if (FX.WSSI_LEVELS.includes(q.get("wlevel"))) S.wlevel = q.get("wlevel");
+    if (q.get("wwin") && !isNaN(Date.parse(q.get("wwin")))) S.wwin = new Date(q.get("wwin")).toISOString();
     if (["national", "venue"].includes(q.get("scope"))) S.scope = q.get("scope");
     if (q.get("model") === "1") S.model = true;
     if (["tornado", "wind", "hail"].includes(q.get("hazard"))) S.hazard = q.get("hazard");

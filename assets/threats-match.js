@@ -18,7 +18,8 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function (T, F) {
   "use strict";
   const PHASE_WORD = { setup: "setup", gates: "gates", event: "the event", teardown: "teardown" };
-  const FAMILY_WORD = { flood: "flooding", severe: "severe storms" };
+  const FAMILY_WORD = { flood: "flooding", severe: "severe storms", winter: "winter weather" };
+  const ALERT_RANK = { warning: 0, watch: 0.3, advisory: 0.4 };
   const list = (a) => (a.length <= 1 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]);
   const day = (ms, tz) => new Date(ms).toLocaleDateString("en-US", { timeZone: tz, weekday: "long" });
   const clock = (ms, tz) => new Date(ms).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).replace(":00", "").replace("AM", "a.m.").replace("PM", "p.m.");
@@ -40,7 +41,7 @@
 
     /* warnings (and any other product with its own expiry) */
     for (const p of products) {
-      if (!fam(p) || p.kind !== "warning") continue;
+      if (!fam(p) || !(p.kind in ALERT_RANK)) continue;
       const end = Date.parse(p.expires), start = Date.parse(p.issued || p.sent);
       if (!(end > now)) {                                          // ended or lapsed: never presented as in effect
         // reached its published end while its source could not be confirmed: say so, without calling it cancelled
@@ -54,16 +55,49 @@
       const rel = T.relation(p, venue);
       if (rel.kind !== "covers" && rel.kind !== "unknown") continue;
       const words = ph.map((x) => PHASE_WORD[x.key] || x.label.toLowerCase());
-      items.push({ id: p.id, productId: p.id, family: family(p), kind: "warning", rank: 0, product: p, phases: ph.map((x) => x.key),
-        headline: p.event + " until " + clock(end, tz) + (day(end, tz) !== day(now, tz) ? " " + day(end, tz) : ""),
-        line: rel.kind === "covers" ? "Covers the venue during " + list(words) + "." : "Area not fully drawn: the warning lists counties that could include the venue during " + list(words) + ".",
+      const until = clock(end, tz) + (day(end, tz) !== day(now, tz) ? " " + day(end, tz) : "");
+      const winter = family(p) === "winter";
+      items.push({ id: p.id, productId: p.id, family: family(p), kind: p.kind, rank: ALERT_RANK[p.kind], product: p, phases: ph.map((x) => x.key),
+        headline: winter ? p.event + " during " + list(words) : p.event + " until " + until,
+        line: rel.kind !== "covers" ? "Area not fully drawn: the " + p.kind + " lists zones that could include the venue during " + list(words) + "."
+          : winter ? "In effect at the venue until " + until + (p.geometrySource === "counties" ? " (issued for the forecast zone that includes the venue)." : ".") : "Covers the venue during " + list(words) + ".",
         relation: rel, window: { startMs: start, endMs: end } });
+    }
+
+    /* WPC WSSI-P (winter, probabilistic): per rolling 24-hour window, the probability at the venue of at least each impact
+       level. One item: the most significant window overlapping the event. "Likely" only at 60% or more. */
+    const wss = products.filter((p) => fam(p) && p.program === "wssip");
+    if (wss.length) {
+      const at = (p) => (p.pointHit ? Math.abs(p.pointHit[0] - venue.lon) < 1e-3 && Math.abs(p.pointHit[1] - venue.lat) < 1e-3 : p.geometry && T.contains(p.geometry, [venue.lon, venue.lat]));
+      const wins = new Map();
+      for (const p of wss) { if (!at(p)) continue; const k = p.validStart; if (!wins.has(k)) wins.set(k, {}); const w = wins.get(k); if (!w[p.category] || p.prob > w[p.category].prob) w[p.category] = p; }
+      let best = null;
+      for (const [k, w] of wins) {
+        const any = Object.values(w)[0], s = Date.parse(any.validStart), e = Date.parse(any.validEnd), ph = overlaps(s, e, phases);
+        if (!ph.length) continue;
+        let lv = null;
+        for (const L of F.WSSI_LEVELS) if (w[L] && w[L].prob >= 30) lv = L;            // most severe level with at least a 30% chance
+        if (!lv && w.WWA && w.WWA.prob >= 10) lv = "WWA";
+        if (!lv) continue;
+        const score = F.WSSI_LEVELS.indexOf(lv) * 1000 + w[lv].prob;
+        if (!best || score > best.score) best = { score, lv, w, s, e, ph };
+      }
+      if (best) {
+        const p = best.w[best.lv], words = best.ph.map((x) => PHASE_WORD[x.key] || x.label.toLowerCase());
+        const phrase = { WWA: "Winter weather", MINOR: "Minor winter impacts", MODERATE: "Moderate winter impacts", MAJOR: "Major winter impacts", EXTREME: "Extreme winter impacts" }[best.lv];
+        const word = p.prob >= 60 ? "likely" : p.prob >= 30 ? "possible" : null, dname = day(Math.max(best.s, all.startMs), tz);
+        items.push({ id: p.id, productId: p.id, family: "winter", kind: "outlook", rank: 1 + (5 - F.WSSI_LEVELS.indexOf(best.lv)) / 10, product: p, phases: best.ph.map((x) => x.key),
+          levels: F.WSSI_LEVELS.map((L) => [L, best.w[L] ? best.w[L].prob : 0]),
+          headline: (word ? phrase + " " + word + " " + dname : "Low chance of " + phrase.toLowerCase() + " " + dname) + " · " + p.prob + "% chance of at least " + F.WSSI_NAME[best.lv] + (best.lv === "WWA" ? "" : " impacts"),
+          line: "WPC's winter storm severity outlook (WSSI-P) for the 24 hours " + span(best.s, best.e, tz) + " includes the venue and overlaps " + list(words) + ". " + F.WSSI_MEANING[best.lv] + " A chance for the whole 24 hours, not timing within it.",
+          relation: { kind: "covers" }, window: { startMs: best.s, endMs: best.e } });
+      }
     }
 
     /* outlooks: one item per program, day and issuance, at the highest category containing the venue */
     const groups = new Map();
     for (const p of products) {
-      if (!fam(p) || p.kind !== "outlook") continue;
+      if (!fam(p) || p.kind !== "outlook" || p.program === "wssip") continue;
       const k = (p.program || p.sourceId) + "|" + p.day + "|" + p.issued;
       if (!groups.has(k)) groups.set(k, []);
       groups.get(k).push(p);
@@ -96,7 +130,7 @@
       else if (!st || st.kind === "loading") text = "Loading…";
       else if (st.kind === "na") text = "Not part of this sample.";
       else if (st.kind === "unavailable") text = "Not responding · status unknown. We can't rule anything out from this source.";
-      else if (st.kind === "stale") text = "Not confirmed since " + (st.lastOk ? clock(Date.parse(st.lastOk), tz) : "this page opened") + ". Showing last known products only.";
+      else if (st.kind === "stale") text = ("Not confirmed since " + (st.lastOk ? clock(Date.parse(st.lastOk), tz) : "this page opened") + ".").replace(/\.\.$/, ".") + " Showing last known products only.";
       else { ok = true; text = "Checked " + clock(Date.parse(st.lastOk), tz) + (st.reach ? " · " + st.reach : ""); }
       if (ok && st.reachEnd && Date.parse(st.reachEnd) < all.endMs) { ok = false; { const r = Date.parse(st.reachEnd); text += " · Your event runs past the outlooks issued so far (they end " + day(r, tz).slice(0, 3) + " " + clock(r, tz) + ")."; } }
       statuses.push({ id: src.id, name: src.name, provider: src.provider, ok, covered, text, lastOk: st && st.lastOk, url: src.url });

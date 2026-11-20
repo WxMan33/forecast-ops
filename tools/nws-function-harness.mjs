@@ -28,7 +28,8 @@ http.createServer(async (req, res) => {
     const r = await (url.pathname.startsWith("/api/wpc/") ? wpc : fn).handle(new Request(url, { method: req.method, headers: req.headers }), env);
     res.writeHead(r.status, Object.fromEntries(r.headers)); res.end(Buffer.from(await r.arrayBuffer())); return;
   }
-  const file = path.join(ROOT, decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname));
+  let file = path.join(ROOT, decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname));
+  if (!path.extname(file) && fs.existsSync(file + ".html")) file += ".html"; // Pages-style clean URLs
   if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); res.end("not found"); return; }
   res.writeHead(200, { "Content-Type": TYPES[path.extname(file)] || "application/octet-stream" }); fs.createReadStream(file).pipe(res);
 }).listen(port, () => console.log("harness on http://localhost:" + port + (upstream ? " (upstream " + upstream + ")" : " (upstream api.weather.gov)")));
