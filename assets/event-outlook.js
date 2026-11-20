@@ -22,7 +22,9 @@
     if (!likely) return { kind: "unlikely", text: "Precipitation unlikely" };
     if (!(fin(r.qpf) && r.qpf >= 0.01) || !fin(r.sn)) return { kind: "unclear", text: "Precipitation type: not clear yet" };
     const f = Math.min(1, Math.max(0, r.sn / (7 * r.qpf)));
-    return f >= 0.8 ? { kind: "snow", text: "If precipitation falls: most likely snow" } : f <= 0.2 ? { kind: "rain", text: "If precipitation falls: most likely rain" } : { kind: "mix", text: "If precipitation falls: rain/snow mix possible" };
+    /* worded by the day's chance: "possible" below 60%, "likely" from 60% */
+    const word = fin(r.pop) && r.pop >= 60 ? "likely" : "possible";
+    return f >= 0.8 ? { kind: "snow", text: `Snow ${word}` } : f <= 0.2 ? { kind: "rain", text: `Rain ${word}` } : { kind: "mix", text: `Rain/snow mix ${word}` };
   }
 
   /* The model for the page. windows: C.event.windows(ev); rows: blend.dailyRows on the 10-day load (or null when it
@@ -62,7 +64,7 @@
       <p class="bx-note">The daily outlook could not be loaded just now. ${timing}</p>${remind}</div>`;
     const cards = m.days.map((d) => d.covered ? `<div class="ev-ol-day" data-day="${esc(d.k)}"><div class="ev-ol-date">${esc(f.dayName(d.k))}<span class="bx-note"> · ${esc(d.parts.join(", "))}</span></div>
         <dl class="ev-ol-vals"><div><dt>High / low</dt><dd><b>${d.hi == null ? "—" : d.hi + "°"}</b> / <b>${d.lo == null ? "—" : d.lo + "°"}</b></dd></div>
-        <div><dt>Chance of precipitation</dt><dd><b data-ol-pop>${d.pop == null ? "—" : d.pop + "%"}</b></dd></div></dl>
+        <div><dt>Chance of precipitation, whole day</dt><dd><b data-ol-pop>${d.pop == null ? "—" : d.pop + "%"}</b></dd></div></dl>
         <p class="ev-ol-type" data-ol-type="${d.type.kind}">${esc(d.type.text)}</p>
         <p class="bx-note ev-ol-period">For the whole day, midnight to midnight venue time, not the event hours.</p></div>`
       : `<div class="ev-ol-day ev-ol-out" data-day="${esc(d.k)}"><div class="ev-ol-date">${esc(f.dayName(d.k))}<span class="bx-note"> · ${esc(d.parts.join(", "))}</span></div><p class="bx-note">Past the 10-day outlook: no numbers yet.</p></div>`).join("");

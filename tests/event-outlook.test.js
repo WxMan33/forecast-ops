@@ -15,6 +15,7 @@ eq(O.dayType({ pop: 60, qpf: 0.4, sn: 1.4 }).kind, "mix", "half snow: rain/snow 
 eq(O.dayType({ pop: 15, qpf: 0, sn: 0 }).kind, "unlikely", "low chance and no amount: no type");
 eq(O.dayType({ pop: 50, qpf: 0.005, sn: 0 }).kind, "unclear", "a chance but no measurable amount: type not clear yet");
 eq(O.dayType({ pop: null, qpf: null }).kind, "unknown", "no guidance: not available");
+eq([O.dayType({ pop: 22, qpf: 0.11, sn: 0.1 }).text, O.dayType({ pop: 65, qpf: 0.3, sn: 0 }).text, O.dayType({ pop: 62, qpf: 0.4, sn: 1.4 }).text], ["Rain possible", "Rain likely", "Rain/snow mix likely"], "wording follows the chance: possible below 60%, likely from 60%");
 /* no hourly coverage: the race day gets daily figures */
 let m = O.build({ windows: [...W, all], rows, hourlyEndMs: T0 - 6 * H, R: R("pending"), day, now: T0 - 7.5 * D });
 eq([m.state, m.days.length, m.days[0].k, m.days[0].hi, m.days[0].lo, m.days[0].pop, m.days[0].type.kind], ["outlook", 1, "2026-11-26", 38, 27, 60, "mix"], "pending: one day, rounded, chance to 5%");
