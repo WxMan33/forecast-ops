@@ -434,3 +434,78 @@ Re-extracting 96 dates takes about 3-4 h in Actions. The population layer is fet
 and pinned by SHA-256.
 
 v0.7 stays live.
+
+## 17. Downburst predictor experiment (criterion 9 + amendment 9a): both candidates FAIL; 2021 stays sealed
+Runs:
+- extraction 44753916507 (96 development dates, 336 contract-checked messages per date);
+- direct 10 m wind 44755041793;
+- screening and gate 44760788790.
+
+Results are in `research/severe/conus-v1/downburst/screen/`. Wind features use HRRR's direct hourly
+max 10 m wind speed. The hypot(MAXUW, MAXVW) proxy is reported only.
+
+**Reproduction:** both candidates' regenerated criterion-8 held-out predictions matched the committed
+gate exactly.
+
+**Screening: both PASS.** Best |AUC-0.5|, missed hits vs false alarms (the margin is 0.15):
+
+| Regime | Logistic | Trees | Deciding |
+|---|---|---|---|
+| West monsoon (Jul-Sep) | 0.230 (dd2m_max) | 0.237 (downdraft_nearby_max) | yes |
+| Florida/Gulf summer (Jun-Aug) | 0.190 (downdraft_nearby_max) | 0.166 (maxref1km_nearby_max) | yes |
+| Florida/Gulf spring (Mar-May) | 0.430 (lapse_700_500_max) | 0.388 (lapse_700_500_max) | no |
+
+- Without the wind group, screening still passes with the same best values: wind is never the top
+  feature in a deciding regime.
+- Population AUC was 0.68-0.78 in the West monsoon and Florida/Gulf summer cases (reported only).
+- Component-proxy AUCs were 0.67-0.71 in the West monsoon and 0.45-0.55 in Florida/Gulf summer
+  (reported only).
+
+**Development gate (meteorological, deciding): both FAIL.** Hits >= 5% retained, with 95% intervals:
+
+| | Logistic | Trees | Need |
+|---|---|---|---|
+| Florida/Gulf | 0.51 [0.27, 0.70] | 0.72 [0.38, 0.87] | >= 0.90, lower >= 0.75 |
+| West | 0.79 [0.48, 1.04] | 0.96 [0.71, 1.24] | >= 0.90, lower >= 0.75 |
+| National | 0.98 [0.96, 0.99] | 0.99 [0.98, 1.00] | >= 0.90, lower >= 0.90 |
+| National >= 15% | 0.99 | 1.01 | >= 0.90 |
+| Florida/Gulf no-report area | 0.17 | 0.36 | <= 0.60 |
+| National Brier | 0.009785 vs 0.009820 | 0.009896 vs 0.009940 | no worse |
+
+Failed requirements:
+- **Logistic:** Florida/Gulf ratio and lower bound; West ratio and lower bound.
+- **Trees:** Florida/Gulf ratio and lower bound; West lower bound. The West point estimate passes.
+
+For comparison, criterion 8 retained Florida/Gulf 0.58 / 0.65 and West 0.58 / 0.69 (logistic / trees).
+
+**Regimes (reported, not deciding).** Hits retained, false-alarm area ratio, and how many criterion-8
+misses were recovered:
+- **West monsoon:** clear gain.
+  - Logistic: 0.59 → 0.78 retained, false alarms 0.33 → 0.48, 130 of 449 misses recovered.
+  - Trees: 0.67 → 0.85 retained, false alarms 0.38 → 0.46, 129 of 377 misses recovered.
+- **Florida/Gulf summer:** no real gain.
+  - Logistic: 0.56 → 0.50 retained, 3 of 139 misses recovered.
+  - Trees: 0.71 → 0.74 retained, 5 of 54 misses recovered.
+
+  The screening separation did not turn into recovered hits.
+- **Florida/Gulf spring:** lapse rate separates strongly (AUC 0.89-0.93), but the misses sit on only
+  5 dates.
+  - Logistic: 0.61 → 0.53 retained.
+  - Trees: 0.67 → 0.77 retained.
+
+**Ablations (drop one group, reported):**
+- No single group carries the result. Dropping wind changes the West by ≤0.05 and Florida/Gulf by
+  ≤0.03.
+- For trees, the largest West losses came from dropping gust (0.96 → 0.90) and PWAT (→ 0.92).
+
+**Population sensitivity (reported, not deciding):**
+- Trees: West 1.02, Florida/Gulf 0.73. It would still fail Florida/Gulf.
+- Logistic: West 0.89, Florida/Gulf 0.53.
+
+**Reading:**
+- The new fields fix much of the West monsoon gap. The trees candidate now meets the West point
+  target, but the 15 West monsoon dates leave the lower bound at 0.71.
+- Florida/Gulf summer pulse storms are still not separable in a way the stage-2 correction can use.
+  Florida/Gulf hits sit on few dates (408-517 points), so the intervals are wide.
+- Per criterion 9, no candidate cleared the meteorological gate. **The 2021 verification dates stay
+  sealed.** 2025 stays sealed, and v0.7 stays live.
