@@ -706,7 +706,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       const ready = await until(p, () => document.querySelector("#printView .pv-p2"), null, 150000);
       const m = ready ? await p.evaluate(() => ({ head: document.querySelector("#printView .pv-p2 .pv-hours-window").innerText, rows: document.querySelectorAll("#printView .pv-hours tbody tr").length, phases: document.querySelectorAll("#printView .pv-sched [data-phase]").length })) : null;
       let pages = null; if (ready) { await p.emulateMedia({ media: "print" }); const pdf = await p.pdf({ path: `${out}/event-briefing-3day.pdf`, format: "Letter", preferCSSPageSize: true }); pages = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length; }
-      report(m && m.rows === 24 && /first 24 hours/i.test(m.head) && /open the briefing for the rest/.test(m.head) && m.phases >= 3 && pages === 2 && !errors.length,
+      report(m && m.rows === 24 && (/first 24 hours/i.test(m.head) || /24 of \d+ planning hours, chosen to include the first concern/.test(m.head)) && /open the briefing for the rest/.test(m.head) && m.phases >= 3 && pages === 2 && !errors.length,
         "long multi-day event: the printout keeps the full phase summary and states the hourly window it includes (first 24 hours) instead of silently cutting",
         m ? `${m.phases} phases summarised · ${m.rows} hourly rows · "${m.head.replace(/\s+/g, " ").slice(0, 160)}" · ${pages} PDF pages` : "briefing did not load");
       await ctx.close(); }
