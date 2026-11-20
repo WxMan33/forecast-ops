@@ -24,8 +24,8 @@ const times = (r) => r.shown.map((d) => [d.date, r.hm(d.rise), r.hm(d.set)]);
   eq([hhmm(t.rise), hhmm(t.set)], [noaa(0, "2026-11-26"), noaa(1, "2026-11-26")], "TQL Stadium, Nov 26: the same minute as NOAA's downtown table");
 }
 
-/* ---- Thanksgiving Day Race at TQL Stadium (review schedule) ---- */
-const race = day({ setup: "2026-11-26T05:00", gates: "2026-11-26T06:30", start: "2026-11-26T07:30", end: "2026-11-26T10:30", teardown: "2026-11-26T12:00" });
+/* ---- Thanksgiving Day Race at TQL Stadium: the public 10K start (9:00 AM) with SAMPLE crew times (setup 5:00, gates 6:30, end 10:30, teardown 12:00 are placeholders, not confirmed race-day times) ---- */
+const race = day({ setup: "2026-11-26T05:00", gates: "2026-11-26T06:30", start: "2026-11-26T09:00", end: "2026-11-26T10:30", teardown: "2026-11-26T12:00" });
 eq(times(race), [["2026-11-26", "7:33 AM", "5:17 PM"]], "race: Thu Nov 26 sunrise 7:33 AM, sunset 5:17 PM");
 eq([race.zone, race.note], ["EST", "Setup starts before sunrise (7:33 AM)."], "race: EST; setup starts before sunrise");
 ok(/Daylight/.test(D.rowHtml(race)) && /Thu, Nov 26/.test(D.rowHtml(race)) && /data-sunrise="2026-11-26">7:33 AM/.test(D.rowHtml(race)) && /times EST/.test(D.rowHtml(race)), "race: the row has the Almanac's labels, the date, the times and the zone once");
