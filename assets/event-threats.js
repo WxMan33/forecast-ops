@@ -69,6 +69,6 @@
     Live.onUpdate(() => render());
     setInterval(() => { if (!document.hidden) render(); }, 30e3);
   }
-  window.EventThreats = { update, render };
+  window.EventThreats = { update, render, current: () => ev };
   start();
 })();
