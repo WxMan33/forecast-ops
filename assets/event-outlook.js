@@ -22,7 +22,7 @@
     if (!likely) return { kind: "unlikely", text: "Precipitation unlikely" };
     if (!(fin(r.qpf) && r.qpf >= 0.01) || !fin(r.sn)) return { kind: "unclear", text: "Precipitation type: not clear yet" };
     const f = Math.min(1, Math.max(0, r.sn / (7 * r.qpf)));
-    return f >= 0.8 ? { kind: "snow", text: "Likely type: snow" } : f <= 0.2 ? { kind: "rain", text: "Likely type: rain" } : { kind: "mix", text: "Likely type: rain/snow mix possible" };
+    return f >= 0.8 ? { kind: "snow", text: "If precipitation falls: most likely snow" } : f <= 0.2 ? { kind: "rain", text: "If precipitation falls: most likely rain" } : { kind: "mix", text: "If precipitation falls: rain/snow mix possible" };
   }
 
   /* The model for the page. windows: C.event.windows(ev); rows: blend.dailyRows on the 10-day load (or null when it
