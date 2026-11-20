@@ -92,7 +92,9 @@
     if ($("map")._dispose) $("map")._dispose();
     ["alerts", "evCharts", "evGrid", "evGridDetail", "evGridLegend", "nwsEv", "blendLine", "hourlyValid", "map", "printView"].forEach((id) => { const el = $(id); if (el) el.innerHTML = ""; });
     head.setUpdated(null);
-    $("decision").textContent = "Reading the guidance…"; $("coverage").hidden = true; document.body.dataset.readiness = ""; ["sourceCoverage", "keys", "schedule", "detailBody", "phases", "changes", "checks", "timeline"].forEach((id) => { $(id).innerHTML = ""; });
+    $("decision").textContent = "Reading the guidance…"; $("coverage").hidden = true; document.body.dataset.readiness = ""; ["sourceCoverage", "keys", "schedule", "daylight", "detailBody", "phases", "changes", "checks", "timeline"].forEach((id) => { $(id).innerHTML = ""; });
+    /* the schedule and daylight need no forecast: shown now, while the briefing loads, is pending or fails */
+    showSchedule(C.event.windows(ev).filter((w) => w.key !== "all"));
     const alertsPromise = U.alerts(where);
     alertsPromise.then((a) => { if (g !== gen) return; $("alerts").innerHTML = a.available === false ? `<div class="bx-alert-off" role="status" data-alerts="unavailable">NWS alerts could not be checked just now. No alert shown here does not mean none is in effect; check <a href="https://www.weather.gov/" target="_blank" rel="noopener">weather.gov</a>.</div>` : a.slice(0, 2).map((x) => `<div class="bx-alert" role="alert">${st("action", x.event + " in effect")}${x.ends ? `<span class="bx-note">until ${esc(fmt.time(Date.parse(x.ends), ev.tz))}</span>` : ""}<a href="https://forecast.weather.gov/MapClick.php?lat=${ev.loc.lat}&lon=${ev.loc.lon}" target="_blank" rel="noopener">NWS ↗</a></div>`).join(""); });
     const endMs = Math.max(...C.event.windows(ev).map((w) => w.endMs)), days = 7; // the same forecast length Overview and Model Blend request, so this tab's answers for them are reused (briefing values are identical)
@@ -172,6 +174,13 @@
   /* the event schedule, once: each part with its venue-local times. The weather for these times is in the briefing above
      and hour by hour under Forecast details. */
   function schedule(b) { return BUI.scheduleHtml(b.phases, ev.tz); }
+  /* sunrise and sunset at the venue (the Almanac's NOAA calculation), with one note when daylight matters */
+  function daylight() { return window.EventDaylight && window.AlmanacCore ? window.EventDaylight.compute({ A: window.AlmanacCore, C, windows: C.event.windows(ev), lat: ev.loc.lat, lon: ev.loc.lon, tz: ev.tz }) : null; }
+  function showSchedule(phases) {
+    if (!phases.length) return;
+    const D = daylight(); $("daylight").innerHTML = window.EventDaylight ? window.EventDaylight.rowHtml(D) : ""; document.body.dataset.daylight = D ? (D.note ? "note" : "times") : "";
+    $("schedule").innerHTML = BUI.scheduleHtml(phases, ev.tz); $("secTimeline").hidden = false;
+  }
   function renderSupport(res,b,now=Date.now()) {
     const open=$("sourceCoverage").querySelector('details')?.open;
     res.support=window.ForecastSupport.analyze({C,B:res.ctx.B,requested:res.RB?.ws||res.ctx.ws,rules:res.ctx.rules,
@@ -200,7 +209,7 @@
     const peak = live.filter((p) => p.peakPop).reduce((a, p) => (!a || p.peakPop.v > a.v ? p.peakPop : a), null);
     const lightAll = lightningOf(PS), nwsTh = window.HourlyModel.nwsThunder(ctx.nws, b.all.startMs, b.all.endMs);
     const A = BUI.attention({ b, V, S, thr }); // the same hourly values and venue limit feed the screen tracks and the printout
-    lastView = { b, V, PS, peak, lightAll, nwsTh, R: null, checks, top, A };
+    lastView = { b, V, PS, peak, lightAll, nwsTh, R: null, checks, top, A, daylight: daylight() };
     /* ---- the decision, then the three facts that support it ---- */
     /* ---- how much of the event the guidance reaches: pending, partly covered or ready ---- */
     const R = S.readiness(b, ctx); document.body.dataset.readiness = R.state; lastView.R = R;
@@ -231,7 +240,7 @@
     monitoringHandoff(ev, b, now);
     gapFlag(res);
     $("secTimeline").hidden = false;
-    $("schedule").innerHTML = schedule(b);
+    showSchedule(b.phases);
     if (R.state === "pending") { detail(b, ctx, thr); return; } // nothing at event time yet: schedule and sources only
     /* ---- phases: from the same hours as the grid ---- */
     $("phases").innerHTML = b.phases.map((p, i) => {
@@ -426,6 +435,7 @@
     const now = Date.now(), l = C.time.toLocal(now, ev.tz); // file name: the export time, venue-local
     try {
       const data = { title: $("evName").textContent, venue: $("evVenue").textContent, when: $("evWhen").textContent, takeaway: $("decision").textContent,
+        daylight: lastView && lastView.daylight && lastView.daylight.note ? lastView.daylight.note : "",
         updated: when(updatedMs), zone: fmt.zone(lastHourly.V.span[0], ev.tz), view: lastHourly.V, nwsTypes: lastHourly.nwsTypes, gustLimit: ev.gust || 25,
         stamp: `${l.slice(0, 10)}-${l.slice(11, 13)}${l.slice(14, 16)}`,
         /* Match page theme (default), or an explicit Light / Dark PNG without switching the site */

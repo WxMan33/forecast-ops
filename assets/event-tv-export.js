@@ -1,5 +1,6 @@
 /* Event Manager: "Export hourly image": a 1920 x 1080 PNG for TV rotations that show images.
-   Header: event, venue and local time, the briefing's one-line takeaway, and when the forecast was updated.
+   Header: event, venue and local time, the briefing's one-line takeaway, and when the forecast was updated; a short
+   daylight note ("Setup starts before sunrise (7:33 AM).") only when it matters to the schedule and fits as is.
    Below: four large panels in a 2 x 2 grid on one shared hour axis:
      precipitation chance (line + dot per hour, 0-100%, labelled type bands when the type changes),
      temperature (coral; dashed feels like), wind & gusts (teal; dashed gusts; dotted venue limit),
@@ -47,6 +48,11 @@
     text(d.title, PAD, 84, { font: FONT(800, 56), max: 1260 });
     text([d.venue, d.when].filter(Boolean).join("  ·  "), PAD, 132, { font: FONT(500, 30), color: C.muted, max: 1260 });
     text(d.takeaway || "", PAD, 190, { font: FONT(700, 36), max: W - 2 * PAD });
+    /* daylight: only when it matters to the schedule, and only where it fits beside the takeaway or in the footer;
+       nothing else is moved or made smaller to make room */
+    let daylightAt = d.daylight ? "omitted" : "none";
+    const dlFont = FONT(700, 26), widthOf = (t, f) => { g.font = f; return g.measureText(t).width; };
+    if (d.daylight && widthOf(d.takeaway || "", FONT(700, 36)) + 48 + widthOf(d.daylight, dlFont) <= W - 2 * PAD) { text(d.daylight, W - PAD, 190, { font: dlFont, color: C.text, align: "right" }); daylightAt = "header"; }
     text("Forecast updated", W - PAD, 70, { font: FONT(500, 24), color: C.muted, align: "right" });
     text(d.updated || "—", W - PAD, 108, { font: FONT(700, 32), align: "right" });
     text("Model guidance · not an official forecast", W - PAD, 140, { font: FONT(500, 20), color: C.muted, align: "right" });
@@ -56,7 +62,10 @@
     const panels = [["pop", 0, 0], ["temp", 1, 0], ["wind", 0, 1], ["lightning", 1, 1]];
     panels.forEach(([k, cx, cy]) => panel(k, PAD + cx * (pw + gap), top0 + cy * (ph + gap), pw, ph));
     /* ---- footer ---- */
-    text(`${cut ? `First ${ids.length} of ${total} event hours · ` : ""}Times are the venue's local time${d.zone ? ` (${d.zone})` : ""} · Forecast Ops · NOAA/NWS and Open-Meteo guidance`, PAD, HGT - 22, { font: FONT(500, 20), color: C.muted });
+    const foot = `${cut ? `First ${ids.length} of ${total} event hours · ` : ""}Times are the venue's local time${d.zone ? ` (${d.zone})` : ""} · Forecast Ops · NOAA/NWS and Open-Meteo guidance`;
+    text(foot, PAD, HGT - 22, { font: FONT(500, 20), color: C.muted });
+    if (daylightAt === "omitted" && widthOf(foot, FONT(500, 20)) + 48 + widthOf(d.daylight, FONT(700, 22)) <= W - 2 * PAD) { text(d.daylight, W - PAD, HGT - 22, { font: FONT(700, 22), color: C.text, align: "right" }); daylightAt = "footer"; }
+    canvas.daylight = daylightAt;
     canvas.theme = C.name; canvas.minFontPx = minFont; canvas.lightning = lightningSummary(V, ids).allLow ? "low-throughout" : "blocks"; canvas.typeMode = tsum.mode;
     return canvas;
 
