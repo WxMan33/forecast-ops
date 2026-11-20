@@ -1,0 +1,22 @@
+{
+  "case": "2022-03-15",
+  "day": 2,
+  "cycle": "12Z",
+  "forecast_hours": "25-48",
+  "samples": 40311,
+  "features": [
+    "wind10_max",
+    "wind10_nearby_max"
+  ],
+  "amendment": "9a",
+  "artifact": {
+    "file": "day2-wind10max.npz",
+    "sha256": "680e6a78d044ec19d48c05a0b0584bb81935e4afbbaf7e8152c0d38bb2886ef5"
+  },
+  "contract_sha256": "03c95c304f64c0258912bc9d349cf3770293148e925000652f26522b653f0d21",
+  "extra_samples_sha256": "9d9ab914ae84634d8db475c01639266427667cf58931ccf87f8f70c972d531a7",
+  "messages": 24,
+  "receipts_sha256": "935103dc9410d20ce9e4311281d50266fe604c52e82e94c9cb4e5b7d6d183b59",
+  "downloaded_mb": 30.2,
+  "protected_2025_outcomes_accessed": false
+}
