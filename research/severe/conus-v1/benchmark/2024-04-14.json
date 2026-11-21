@@ -102,11 +102,11 @@
   ],
   "timing": {
     "day1": {
-      "seconds": 34.1,
+      "seconds": 64.8,
       "downloaded_mb": 230.7
     },
     "day2": {
-      "seconds": 33.5,
+      "seconds": 64.0,
       "downloaded_mb": 233.6
     }
   },
