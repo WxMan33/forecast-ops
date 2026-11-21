@@ -1,0 +1,43 @@
+{
+ "at": "2026-11-21T01:16:16.412Z",
+ "result": {
+  "summary": "2 weather threats for this event",
+  "confirmed": true,
+  "items": [
+   {
+    "kind": "outlook",
+    "headline": "Elevated fire weather risk Friday",
+    "line": "The SPC Day 1 fire weather outlook includes the venue and its period (Fri 10 a.m. – Sat 5 a.m.) overlaps the event. Elevated fire weather risk from wind and low relative humidity. It rates the weather and fuels for the whole period, not timing within it, and not whether a fire starts.",
+    "product": "spc-fire-d1-windrh-ELEV-2026-11-20T16:14:00.000Z",
+    "category": "ELEV",
+    "day": 1,
+    "phases": [
+     "event"
+    ]
+   },
+   {
+    "kind": "outlook",
+    "headline": "Low chance of winter weather Friday · 10% chance of at least winter weather",
+    "line": "WPC's winter storm severity outlook (WSSI-P) for the 24 hours Fri 5 p.m. – Sat 5 p.m. includes the venue and overlaps the event. Expect winter weather and winter driving conditions. A chance for the whole 24 hours, not timing within it.",
+    "product": "wpc-wssip-WWA-2026-11-21T00:00:00.000Z-10@-104.830,41.151",
+    "category": "WWA",
+    "day": null,
+    "phases": [
+     "event"
+    ]
+   }
+  ],
+  "statuses": [
+   "NWS warnings, watches and advisories: Checked 6:15 p.m.",
+   "SPC fire weather outlooks: Checked 6:16 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NIFC wildfire incidents (WFIGS): Checked 6:16 p.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 6:16 p.m. · file 1848Z",
+   "WPC Excessive Rainfall Outlook: Checked 6:15 p.m. · Day 1 issued 0052Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
+  ],
+  "maps": [
+   "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=41.1505&lon=-104.8301&name=Cheyenne+Frontier+Days+Arena&tz=America%2FDenver&scope=venue&view=fire&fday=1&layers=fire&sel=spc-fire-d1-windrh-ELEV-2026-11-20T16%3A14%3A00.000Z&nws=function",
+   "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=41.1505&lon=-104.8301&name=Cheyenne+Frontier+Days+Arena&tz=America%2FDenver&scope=venue&view=winter&wwin=2026-11-21T00%3A00%3A00.000Z&wlevel=WWA&layers=winter&nws=function"
+  ]
+ },
+ "feeds": []
+}

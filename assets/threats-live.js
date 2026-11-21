@@ -204,6 +204,7 @@
     for (const d of FIRE_DAYS) {
       const a = fire[d].windrh, b = fire[d].dryt, ia = a.sourceInfo(), ib = b.sourceInfo(), ca = a.current(now), cb = b.current(now);
       const ok = ia.state === "ok" && ib.state === "ok";
+      if (ia.pending || ib.pending) { out["fire" + d] = { state: "pending", lastOk: null, count: 0 }; continue; }
       out["fire" + d] = { state: ok ? "ok" : "failed", lastOk: ok ? [ia.lastOk, ib.lastOk].sort()[0] : (ia.lastOk && ib.lastOk ? [ia.lastOk, ib.lastOk].sort()[0] : null), count: ca.products.length + cb.products.length,
         error: ia.error || ib.error, outlook: ca.status === "expired" || cb.status === "expired" ? "expired" : ca.status, validEnd: ca.validEnd || cb.validEnd, issued: ca.issued || cb.issued, phrase: ca.phrase || null };
     }
@@ -276,7 +277,9 @@
   function start(opts = {}) {
     if (started) return started;
     const want = (k) => !opts.only || opts.only.includes(k);
-    started = Promise.allSettled([want("alerts") && refreshAlerts(), want("md") && refreshMD(), want("spc") && refreshOutlooks(), want("ero") && refreshERO(), want("fire") && refreshFire(), want("nifc") && refreshNIFC()]);
+    // fire outlooks (16 files) and NIFC (a large answer) load in the background: their sources read "Loading" until then
+    if (want("fire")) refreshFire(); if (want("nifc")) refreshNIFC();
+    started = Promise.allSettled([want("alerts") && refreshAlerts(), want("md") && refreshMD(), want("spc") && refreshOutlooks(), want("ero") && refreshERO()]);
     setInterval(() => { if (!document.hidden && want("nifc")) refreshNIFC(); }, 5 * 60e3); // NIFC refreshes from IRWIN every 5 minutes
     setInterval(() => { if (!document.hidden) { if (want("alerts")) refreshAlerts(); if (want("md")) refreshMD(); } }, 60e3);
     setInterval(() => { if (!document.hidden) { if (want("spc")) refreshOutlooks(); if (want("ero")) refreshERO(); if (want("fire")) refreshFire(); } }, 10 * 60e3);

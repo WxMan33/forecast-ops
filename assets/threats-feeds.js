@@ -396,7 +396,7 @@
       },
       fail(at, why) { st.lastTry = at; st.state = "failed"; st.error = why || "request failed"; },
       current(now) { if (!good) return { products: [], status: "none" }; const expired = good.validEnd && Date.parse(good.validEnd) <= now; return { ...good, products: expired ? [] : good.products, status: expired ? "expired" : "current" }; },
-      sourceInfo: () => ({ state: st.state === "never" ? "failed" : st.state, lastOk: st.lastOk, lastTry: st.lastTry, error: st.error }),
+      sourceInfo: () => ({ state: st.state === "never" ? "failed" : st.state, pending: st.state === "never", lastOk: st.lastOk, lastTry: st.lastTry, error: st.error }),
     };
   }
 

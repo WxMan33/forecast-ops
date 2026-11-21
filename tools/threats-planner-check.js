@@ -27,7 +27,7 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     const ctx = await b.newContext(opts.phone ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : { viewport: { width: 1280, height: 1000 }, deviceScaleFactor: opts.dsf || 1 });
     const p = await ctx.newPage(), errors = [], feeds = [];
     p.on("pageerror", (e) => errors.push(e.message));
-    p.on("requestfinished", async (r) => { const u = r.url(); if (!/\/api\/(nws|wpc)\/|api\.weather\.gov|wpc\.ncep|mapservices/.test(u)) return; const res = await r.response(), h = res ? await res.allHeaders() : {}; feeds.push({ url: u, status: res && res.status(), cache: h["x-forecast-ops-cache"] || null, upstreamAt: h["x-upstream-fetched-at"] || null }); });
+    p.on("requestfinished", async (r) => { const u = r.url(); if (!/\/api\/(nws|wpc)\/|api\.weather\.gov|wpc\.ncep|mapservices|spc\.noaa\.gov\/products\/(exper\/)?fire_wx|services3\.arcgis\.com/.test(u)) return; const res = await r.response(), h = res ? await res.allHeaders() : {}; feeds.push({ url: u, status: res && res.status(), cache: h["x-forecast-ops-cache"] || null, upstreamAt: h["x-upstream-fetched-at"] || null }); });
     if (opts.blockNws) await p.route("**/api/nws/**", (route) => route.abort());
     await p.goto(HOST + "/event-beta?" + query, { waitUntil: "domcontentloaded", timeout: 60000 });
     await p.waitForFunction(() => window.EventThreatsLast, null, { timeout: 60000 });
@@ -198,7 +198,8 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     await p.screenshot({ path: path.join(OUT, "ARCHIVED-map-fire-phone.png") }); await ctx.close(); }
 
   /* 4. LIVE feeds through the functions */
-  v = await planner("e=" + E(...DAYTONA, { setup: "2026-11-21T09:00", gates: "2026-11-21T11:00", start: "2026-11-21T12:30", end: "2026-11-21T16:00", teardown: "2026-11-21T18:00" }), { dsf: 2, wait: 9000 }); r = await v.read();
+  v = await planner("e=" + E(...DAYTONA, { setup: "2026-11-21T09:00", gates: "2026-11-21T11:00", start: "2026-11-21T12:30", end: "2026-11-21T16:00", teardown: "2026-11-21T18:00" }), { dsf: 2, wait: 2000 });
+  await v.p.waitForFunction(() => !window.EventThreatsLast.statuses.some((x) => /Loading/.test(x.text)), null, { timeout: 90000 }).catch(() => {}); await v.p.waitForTimeout(500); r = await v.read();
   const viaFn = v.feeds.filter((f) => /\/api\/(nws|wpc)\//.test(f.url)), direct = v.feeds.filter((f) => /api\.weather\.gov\/alerts\/active\?event=|wpc\.ncep|wpc_precip_hazards/.test(f.url)); // the threats feeds only; Event Manager's own point forecast requests are separate
   check("live: NWS and WPC requests go through the same-origin functions with their upstream time", viaFn.length >= 4 && direct.length === 0 && viaFn.every((f) => f.status === 200 && f.upstreamAt), { viaFn, direct });
   check("live: every source states its check time or its gap", r.statuses.length >= 2 && r.statuses.every((s) => /Checked|Not confirmed|Not responding|outside/.test(s)), r.statuses);
