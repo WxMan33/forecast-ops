@@ -1,6 +1,6 @@
 # Weather Threats ↔ Event Planner: flooding and winter weather
 
-Winter weather is described in `WINTER.md`, fire weather and wildfire in `FIRE.md`, smoke and air quality in `SMOKE.md`; all use the same records, matcher and checks.
+Winter weather is described in `WINTER.md`, fire weather and wildfire in `FIRE.md`, smoke and air quality in `SMOKE.md`, tropical and coastal in `TROPICAL-COASTAL.md`; all use the same records, matcher and checks.
 
 Branch `claude/threats-planner-flood` (from the Threats branch at `2fd03e7`). Isolated Cloudflare Pages preview:
 `https://claude-threats-planner-flood.forecast-ops-beta.pages.dev`. Shared beta, production and navigation are unchanged.
