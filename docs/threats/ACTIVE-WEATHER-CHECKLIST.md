@@ -54,9 +54,7 @@ When SPC has an active Mesoscale Discussion:
 | Check | Status |
 |---|---|
 | Live tornado or severe thunderstorm **warning** drawn from the feed (section 1) | Pending: none active in a usable spot during the checks |
-| Live **Flash Flood Warning** reaching Event Planner through `/api/nws` | **Done 2026-11-21 04:24Z (live):** KJAX FF.W.0055 (Gilchrist County, FL; 10:26 p.m.–12:30 a.m. EST). For a test point inside the polygon (29.67, -82.865) and an event inside the window, Planner showed "Flash Flood Warning until 12:30 a.m. Saturday · Covers the venue during the event", via `/api/nws` with its upstream time. Evidence: `live-checks/2026-11-21/live-planner-ffw-kjax-0055.json` and `.png`; official payload `tests/fixtures/threats/nws-live-kjax-ff-w-0055.json` |
-| Live **wildfire within 15 miles** reaching Planner, and a live **smoke item** at a test venue | See below |
-| Live NWS **watch** message (section 2) | Pending |
+| Live **Flash Flood Warning** reaching Event Planner through `/api/nws` | **Done 2026-11-21 04:24Z (live):** KJAX FF.W.0055 (Gilchrist County, FL; 10:26 p.m.–12:30 a.m. EST). For a test point inside the polygon (29.67, -82.865) and an event inside the window, Planner showed "Flash Flood Warning until 12:30 a.m. Saturday · Covers the venue during the event", via `/api/nws` with its upstream time. Evidence: `live-checks/2026-11-21/live-planner-ffw-kjax-0055.json` and `.png`; official payload `tests/fixtures/threats/nws-live-kjax-ff-w-0055.json` || Live NWS **watch** message (section 2) | Pending |
 | NOAA map service with an **active MD** (section 3) | Pending |
 | **Same storm**: WSSI-P in Planner several days before an event, then the NWS alert for that storm | Pending: WPC's WSSI-P shapes are not archived (ftp-wpc keeps images only), so it needs captures days apart. Capture with `python3 tools/capture-wssi-p.py NAME W S E N OUT.json` |
 | Live **Red Flag Warning / Fire Weather Watch** reaching Planner through `/api/nws` | Pending: none active on Nov 20–21; proven on archived NWS Denver/Boulder messages |
