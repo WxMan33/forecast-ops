@@ -93,7 +93,7 @@ All pipeline checks passed.
 - The footprint has 14,940 points (100% of the supported box). The nearest NadoCast point is at most
   10.6 km away (median 6.0 km).
 - 323 of 330 dates were scored. Seven were dropped because the primary NadoCast file was written
-  after 09Z on D: 2024-02-14, 02-21, 04-30, 07-17, 07-24 and two more, all listed in the scorecard.
+  after 09Z on D: 2024-02-14, 02-21, 04-30, 07-17, 07-24, 11-24 and 12-22.
 - 2024-05-31 failed once with a transient error and was re-extracted.
 
 ### Primary sample: 240 fresh 2024 days, 103 with tornado reports
