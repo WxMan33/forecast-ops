@@ -1,0 +1,49 @@
+name: Severe NadoCast benchmark (research)
+# Research only. stage "inventory": read-only crawl of the public data.nadocast.com archive for
+# 2022-2024 and 2026 (2021 and 2025 are never requested), with a few sample GRIB2 downloads to
+# record grid, variable, time range and units. No outcomes are read; nothing touches the live
+# feed, publisher, registry or RRFS/NBM collector.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/nadocast/request.json']
+permissions:
+  contents: write
+concurrency:
+  group: severe-nadocast
+  cancel-in-progress: false
+jobs:
+  inventory:
+    if: ${{ !contains(github.event.head_commit.message, '[skip nadocast]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r tools/severe/requirements.txt
+      - id: req
+        run: echo "stage=$(jq -r .stage research/severe/nadocast/request.json)" >> "$GITHUB_OUTPUT"
+      - name: Inventory the NadoCast archive (2022-2024, 2026)
+        if: steps.req.outputs.stage == 'inventory'
+        run: python3 tools/severe/nadocast_inventory.py --output tests/out/nadocast
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nadocast-${{ steps.req.outputs.stage }}
+          path: tests/out/nadocast
+          retention-days: 90
+      - name: Commit the inventory (not the GRIB samples)
+        if: steps.req.outputs.stage == 'inventory'
+        run: |
+          dest=research/severe/nadocast/inventory
+          mkdir -p "$dest"
+          cp tests/out/nadocast/inventory.json tests/out/nadocast/tornado-wind-grib2.json "$dest"/
+          echo "run_id: $GITHUB_RUN_ID" > "$dest/run.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$dest"
+          git commit -m "NadoCast archive inventory (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3; do git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0; sleep 10; done
+          exit 1
