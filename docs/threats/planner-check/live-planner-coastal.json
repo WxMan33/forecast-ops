@@ -1,0 +1,76 @@
+{
+ "at": "2026-11-21T20:03:48.372Z",
+ "nwsActiveForZone": [
+  "Coastal Flood Warning",
+  "High Surf Advisory",
+  "Rip Current Statement"
+ ],
+ "result": {
+  "summary": "4 weather threats for this event",
+  "confirmed": false,
+  "items": [
+   {
+    "kind": "warning",
+    "headline": "Coastal Flood Warning during the event",
+    "line": "In effect at the venue until 5 a.m. Monday (issued for the forecast zone whose shoreline the venue is on).",
+    "product": "KJAX.CF.W.0004.2026#FLZ138",
+    "category": null,
+    "day": null,
+    "phases": [
+     "event"
+    ]
+   },
+   {
+    "kind": "advisory",
+    "headline": "High Surf Advisory during the event",
+    "line": "Area not fully drawn: the advisory lists zones that could include the venue during the event.",
+    "product": "KILM.SU.Y.0008.2026",
+    "category": null,
+    "day": null,
+    "phases": [
+     "event"
+    ]
+   },
+   {
+    "kind": "advisory",
+    "headline": "High Surf Advisory during the event",
+    "line": "In effect at the venue until 10 p.m. (issued for the forecast zone whose shoreline the venue is on).",
+    "product": "KJAX.SU.Y.0012.2026#FLZ138",
+    "category": null,
+    "day": null,
+    "phases": [
+     "event"
+    ]
+   },
+   {
+    "kind": "statement",
+    "headline": "Rip Current Statement during the event",
+    "line": "In effect at the venue until 7 a.m. Sunday (issued for the forecast zone whose shoreline the venue is on).",
+    "product": "KJAX.RP.S.0035.2026#FLZ138",
+    "category": null,
+    "day": null,
+    "phases": [
+     "event"
+    ]
+   }
+  ],
+  "statuses": [
+   "NWS warnings, watches and advisories: Checked 3:03 p.m.",
+   "SPC fire weather outlooks: Not responding · status unknown. We can't rule anything out from this source.",
+   "NOAA satellite smoke analysis (HMS): Checked 3:03 p.m.",
+   "AirNow air quality observations: Checked 3:03 p.m. · nearest monitor Flagler County (10 miles west): AQI 28 Good (Ozone) for 2 p.m.",
+   "AirNow air quality forecasts: No AirNow forecast area for this venue.",
+   "NOAA smoke forecast guidance (NAQFC): Checked 3:03 p.m.",
+   "NHC tropical outlooks and storm products: Checked 3:03 p.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 3:03 p.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 3:03 p.m.",
+   "WPC Excessive Rainfall Outlook: Not responding · status unknown. We can't rule anything out from this source."
+  ],
+  "maps": [
+   "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=29.4802&lon=-81.1065&name=Flagler+Beach+Pier&tz=America%2FNew_York&scope=venue&view=active&layers=coastal&sel=KJAX.CF.W.0004.2026%23FLZ138&nws=function",
+   "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=29.4802&lon=-81.1065&name=Flagler+Beach+Pier&tz=America%2FNew_York&scope=venue&view=active&layers=coastal&sel=KILM.SU.Y.0008.2026&nws=function",
+   "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=29.4802&lon=-81.1065&name=Flagler+Beach+Pier&tz=America%2FNew_York&scope=venue&view=active&layers=coastal&sel=KJAX.SU.Y.0012.2026%23FLZ138&nws=function",
+   "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=29.4802&lon=-81.1065&name=Flagler+Beach+Pier&tz=America%2FNew_York&scope=venue&view=active&layers=coastal&sel=KJAX.RP.S.0035.2026%23FLZ138&nws=function"
+  ]
+ }
+}
