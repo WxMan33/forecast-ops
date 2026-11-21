@@ -54,7 +54,8 @@ When SPC has an active Mesoscale Discussion:
 | Check | Status |
 |---|---|
 | Live tornado or severe thunderstorm **warning** drawn from the feed (section 1) | Pending: none active in a usable spot during the checks |
-| Live **Flash Flood Warning** reaching Event Planner through `/api/nws` | Pending: the flood path is proven on archived KMLB/KJAX messages; the live run had no FFW at a test venue |
+| Live **Flash Flood Warning** reaching Event Planner through `/api/nws` | **Done 2026-11-21 04:24Z (live):** KJAX FF.W.0055 (Gilchrist County, FL; 10:26 p.m.–12:30 a.m. EST). For a test point inside the polygon (29.67, -82.865) and an event inside the window, Planner showed "Flash Flood Warning until 12:30 a.m. Saturday · Covers the venue during the event", via `/api/nws` with its upstream time. Evidence: `live-checks/2026-11-21/live-planner-ffw-kjax-0055.json` and `.png`; official payload `tests/fixtures/threats/nws-live-kjax-ff-w-0055.json` |
+| Live **wildfire within 15 miles** reaching Planner, and a live **smoke item** at a test venue | See below |
 | Live NWS **watch** message (section 2) | Pending |
 | NOAA map service with an **active MD** (section 3) | Pending |
 | **Same storm**: WSSI-P in Planner several days before an event, then the NWS alert for that storm | Pending: WPC's WSSI-P shapes are not archived (ftp-wpc keeps images only), so it needs captures days apart. Capture with `python3 tools/capture-wssi-p.py NAME W S E N OUT.json` |
@@ -65,6 +66,17 @@ When SPC has an active Mesoscale Discussion:
 | Live **smoke item** at a test venue (HMS plume over it, or an AirNow monitor at USG or worse within 15 mi) | Pending as a live Planner item; live HMS (function), AirNow and NAQFC answers verified (`planner-check/live-planner-smoke.json`) |
 | **WSSI-P failed-level fallback** (retry, then "inferred" from the level below) | Shipped (`0a80946`, present in the deployed file). Not triggered live yet: every hosted run since had all five levels answer |
 | Live **Winter Storm Warning** in Planner and on the map | **Done 2026-11-20 21:43Z**: KSLC.WS.W.0003 at Snowbird through `/api/nws`, with live WSSI-P (5 point queries) on the same event. `docs/threats/planner-check/live-planner-winter.json` |
+
+## Map crash fixed 2026-11-21
+
+`TypeError: Cannot read properties of undefined (reading 'slice')` at `shade` ← `drawMap` ← `setView`. Deployed file `threats.js?v=d9b6aff3cd` (app files of `9599215`).
+- **When it fired:** a live SPC fire weather Day 1 area existed and Day 1 was opened.
+- **Cause:** fire outlooks were taken for convective outlooks.
+- **Fix:** `2a5eddc`.
+- **Regression checks** (`tools/threats-planner-check.js`, section 4f):
+  - an archived replay that fails before the fix;
+  - a live walk-through with 75 s of background refreshes;
+  - partial feeds.
 
 ## Each time
 
