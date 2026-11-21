@@ -87,3 +87,73 @@ A file that fails the check is treated as unavailable for that variant only.
 Why: in the pilot, the 2024_preliminary file for 2024-04-14 was written on 2024-07-24, so it was
 regenerated later and is not a real-time forecast. The primary files were written at 15:28Z on D-1.
 Nothing else changed.
+
+## Result (score run 44961880902; extraction runs 44942885255 and 44961446546)
+All pipeline checks passed.
+- The footprint has 14,940 points (100% of the supported box). The nearest NadoCast point is at most
+  10.6 km away (median 6.0 km).
+- 323 of 330 dates were scored. Seven were dropped because the primary NadoCast file was written
+  after 09Z on D: 2024-02-14, 02-21, 04-30, 07-17, 07-24 and two more, all listed in the scorecard.
+- 2024-05-31 failed once with a transient error and was re-extracted.
+
+### Primary sample: 240 fresh 2024 days, 103 with tornado reports
+| | Ours (v0.7) | NadoCast (2022, abs. calibrated, D-1 12Z) |
+|---|---|---|
+| Brier score | 0.003529 | **0.003228** |
+| Brier skill vs base rate | 0.026 | **0.109** |
+| ROC AUC | 0.954 | **0.973** |
+| Mean forecast (observed 0.0036) | 0.0024 | 0.0036 |
+
+The difference (ours minus NadoCast) is +0.00030 [0.00013, 0.00051], so **NadoCast is clearly better**.
+
+| Threshold | Ours: hits / POD / FA km²/day / report days caught | NadoCast: hits / POD / FA km²/day / report days caught |
+|---|---|---|
+| 2% | 6,144 / 0.47 / 50,000 / 61 | 10,172 / 0.78 / 117,500 / 81 |
+| 5% | 3,220 / 0.25 / 17,800 / 38 | 7,729 / 0.59 / 51,700 / 56 |
+| 10% | 1,892 / 0.15 / 8,200 / 25 | 5,624 / 0.43 / 25,700 / 41 |
+| 15% | 1,396 / 0.11 / 5,300 / 21 | 3,704 / 0.28 / 11,300 / 27 |
+| 30% | 702 / 0.05 / 2,400 / 18 | 1,157 / 0.09 / 1,700 / 9 |
+
+Out of 13,039 report points in total.
+
+**Reliability (observed frequency for a forecast in the bin):**
+- NadoCast tracks the diagonal: 2-5% → 3.4%; 5-10% → 7.0%; 10-15% → 11.2%; 15-30% → 19.9%;
+  ≥30% → 38.8%.
+- Ours is under-confident at low and middle values: 2-5% → 7.9%; 5-10% → 11.4%.
+- Ours is over-confident at the top: 15-30% → 18.4%; ≥30% (mean 50%) → 21.7%.
+
+### Reported only
+- **Exploratory (83 previously inspected days):** the same ranking. Brier 0.00432 vs 0.00391, with
+  difference [0.00013, 0.00074].
+- **NadoCast SPC-calibrated:** slightly worse than its absolutely calibrated field, with a fresh-day
+  difference of [-0.00001, 0.00015].
+- **NadoCast 2024_preliminary:** 195 of its files failed the availability check (regenerated later).
+  On the 103 days that passed it matches the 2022 models.
+- **NadoCast later-cutoff Day 1 (12Z f02-23 on D):** better again than its D-1 run, by
+  [-0.00021, -0.00007]. That is expected from fresher data, but the window starts at about 13:30Z.
+
+### Maps (preselected by rule)
+- **Active day: 2024-12-28** (896 report points in the footprint, Louisiana to Georgia).
+  - Ours focused on Louisiana and Mississippi, peaking at 46%. It hit 246 of 896 report points at
+    ≥5% and missed the Alabama/Georgia corridor.
+  - NadoCast covered the whole corridor, peaking at 59%, and hit 857 of 896. It also had 374,000 km²
+    at ≥5% with no report, against 79,000 km² for ours.
+- **Quiet / false-alarm day: 2024-09-11** (Hurricane Francine landfall, no tornado report points in
+  the footprint).
+  - Both models flagged the coast, ours at up to 30% and NadoCast at up to 35%.
+  - Ours flagged 35,100 km² at ≥5%; NadoCast flagged 114,750 km².
+
+### What this means on shift
+**NadoCast was the better guide.** Its probabilities mean what they say. It caught more than twice
+as many report points at every threshold from 2% to 15%, and it outlined whole outbreak corridors
+that ours missed (2024-12-28).
+
+**Where ours helped:**
+- It drew much smaller areas. At 5% that was 17,800 vs 51,700 km² per day of false-alarm area, and
+  2,900 vs 9,000 km² per day on days with no reports.
+- At ≥30% it flagged 18 report days versus NadoCast's 9.
+
+**Ours is not ready to replace NadoCast:**
+- About three-quarters of its tornado report points fall below 5%.
+- Its high values verify at about 22%, not 50%.
+- It covers only the regional box.
