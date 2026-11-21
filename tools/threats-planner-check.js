@@ -301,6 +301,34 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     check("SMOKE slow feed (HMS held 25 s): the map is ready before it answers; HMS reads 'Loading' meanwhile", st.live && ms < 20000 && st.hms === "loading", { ms, st });
     await ctx.close(); }
 
+  /* 4f. MAP CRASH REGRESSION (2026-11-21: "Cannot read properties of undefined (reading 'slice')" at shade <- drawMap <- setView
+     when an SPC fire weather Day 1 area existed: fire outlooks were taken for convective outlooks). Drives the map through
+     scopes, every layer and every view; asserts no page error, no load-guard banner and no failed draw stage. */
+  async function mapStress(query, name, opts = {}) {
+    const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } }), p = await ctx.newPage(), errs = [];
+    p.on("pageerror", (e) => errs.push(e.message + " @ " + (e.stack || "").split("\n")[1]));
+    if (opts.block) await p.route(opts.block, (route) => route.abort());
+    await p.goto(HOST + "/threats" + query, { waitUntil: "domcontentloaded" });
+    await p.waitForFunction((live) => window.__threats && window.__threats.ready && !window.__threats.data.loading && (!live || window.__threats.liveReady), !!opts.live, { timeout: 90000 }).catch(() => {});
+    await p.waitForTimeout(1500);
+    const click = async (sel) => { const el = p.locator(sel).first(); if (await el.count() && await el.isVisible()) { await el.click(); await p.waitForTimeout(600); } };
+    for (const sc of ["national", "venue", "national"]) await click(`[data-scope="${sc}"]`);
+    for (const L of ["severe", "flood", "winter", "fire", "smoke"]) { await click(`.tx-lb[data-layer="${L}"]`); await click(`.tx-lb[data-layer="${L}"]`); }
+    for (const vw of ["day1", "day2", "day3", "winter", "fire", "active"]) { await click(`.tx-tb[data-view="${vw}"]`); await click('[data-scope="venue"]'); await click('[data-scope="national"]'); }
+    for (const d of [1, 2, 4]) { await click('.tx-tb[data-view="fire"]'); await click(`[data-fday="${d}"]`); }
+    await click('.tx-tb[data-view="active"]');
+    if (opts.refreshWait) await p.waitForTimeout(opts.refreshWait); // background refreshes (alerts every minute)
+    const st = await p.evaluate(() => ({ banner: !!document.getElementById("loadGuard"), stageErrors: window.__threats.errors.map((e) => e.stage + ": " + e.message), convectiveHasFire: window.__threats.data.products.some((x) => /^spcfire-/.test(x.program || "") && x.kind === "outlook") ? window.__threats.map.getSource("outlook")._data.features.some((f) => /^spc-fire-/.test(f.properties.id)) : false, rows: [...document.querySelectorAll(".px-src")].map((r) => r.innerText.replace(/\s+/g, " ")) }));
+    await p.screenshot({ path: path.join(OUT, name + ".png") }); await ctx.close();
+    return { errs, ...st };
+  }
+  let ms2 = await mapStress("?scenario=archive-fire-day1&layers=severe,flood,winter,fire,smoke", "ARCHIVED-map-crash-regression-fire-day1");
+  check("CRASH REGRESSION (replay of the failing state: a Day 1 fire weather area with every layer on): scopes, layers and views, including Day 1, give no page error, no banner, no failed draw stage; fire areas never reach the convective outlook layer", !ms2.errs.length && !ms2.banner && !ms2.stageErrors.length && !ms2.convectiveHasFire, ms2);
+  ms2 = await mapStress("", "LIVE-map-crash-regression", { live: true, refreshWait: 75000 });
+  check("CRASH REGRESSION (live, CVG default, all layers): the same walk-through plus 75 s of background refreshes: no page error, no banner, no failed draw stage", !ms2.errs.length && !ms2.banner && !ms2.stageErrors.length && !ms2.convectiveHasFire, ms2);
+  ms2 = await mapStress("", "LIVE-map-partial-feeds", { live: true, block: /spc\.noaa\.gov\/products\/(exper\/)?fire_wx|services3\.arcgis\.com|\/api\/smoke\//, refreshWait: 5000 });
+  check("PARTIAL FEEDS (SPC fire outlooks, NIFC and HMS blocked): the other layers and every control still work with no error; the blocked sources say so", !ms2.errs.length && !ms2.banner && !ms2.stageErrors.length && ms2.rows.some((x) => /NIFC wildfire incidents \(WFIGS\) Not responding/.test(x)), ms2);
+
   /* 5. outage: NWS route blocked in this browser */
   v = await planner("e=" + E(...ATL, FRI), { blockNws: true, wait: 4000 }); r = await v.read();
   check("NWS outage: status says not responding and the summary is not 'no threats'", !r.confirmed && /^Not fully confirmed/.test(r.summary) && r.statuses.some((s) => /^NWS warnings, watches and advisories: Not responding/.test(s)), r);

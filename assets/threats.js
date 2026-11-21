@@ -137,7 +137,10 @@
   const active = () => data.products.filter((p) => p.kind !== "outlook" && shown(p) && (Date.parse(p.expires) > now || (p.kind === "md" && p.expires == null)));
   // reached its published expiration while the source was down: not active, and not described as cleared
   const lapsed = () => data.products.filter((p) => p.kind !== "outlook" && T.expiredUnconfirmed(p, data.sources[SRC_OF(p)], now));
-  const outlooks = (day) => data.products.filter((p) => p.kind === "outlook" && p.program !== "ero" && p.program !== "wssip" && p.day === day);
+  /* SPC convective outlooks only (live program "spc"; demo fixtures carry no program). Every other outlook program (WPC
+     rainfall, WSSI-P, SPC fire weather) has its own selector: a fire weather area here once broke the Day 1 map. */
+  const isConvective = (p) => p.kind === "outlook" && (!p.program || p.program === "spc");
+  const outlooks = (day) => data.products.filter((p) => isConvective(p) && p.day === day);
   const eroOut = (day) => data.products.filter((p) => p.kind === "outlook" && p.program === "ero" && p.day === day);
   const byId = (id) => data.products.find((p) => p.id === id);
   const rel = (p) => T.relation(p, venue);
@@ -419,7 +422,7 @@
     marker.getElement().setAttribute("aria-label", "Open venue view: " + venue.name);
     drawModel();
   }
-  function shade(hex) { const n = parseInt(hex.slice(1), 16), f = 0.62; return "rgb(" + [n >> 16, (n >> 8) & 255, n & 255].map((v) => Math.round(v * f)).join(",") + ")"; }
+  function shade(hex) { if (typeof hex !== "string" || !/^#[0-9a-f]{6}$/i.test(hex)) return "#888888"; const n = parseInt(hex.slice(1), 16), f = 0.62; return "rgb(" + [n >> 16, (n >> 8) & 255, n & 255].map((v) => Math.round(v * f)).join(",") + ")"; }
   function labelText(p) {
     const u = (unconfirmed(p) ? " (last known)" : "") + (p.geometryIncomplete && p.zoneInfo && p.zoneInfo.counties ? " (area incomplete)" : "");
     if (p.kind === "warning") return p.event.toUpperCase() + u;
@@ -740,7 +743,11 @@
 
   const aqAsked = new Set();
   function ensureAq() { if (!isLive() || !S.layers.smoke || !Live.aqFor || !venue) return; const k = venue.lat.toFixed(3) + "," + venue.lon.toFixed(3); if (aqAsked.has(k)) return; aqAsked.add(k); Live.aqFor(venue.lat, venue.lon).then(() => { load(); drawAll(); }); }
-  function drawAll() { ensureWssi(); ensureAq(); renderTop(); renderPanel(); drawMap(); sheetVar(); }
+  /* each stage on its own: a record one stage can't handle is reported (window.__threats.errors, console) and the other
+     stages, layers and controls keep working, instead of one exception freezing the whole page */
+  const drawErrors = [];
+  function stage(name, fn) { try { fn(); } catch (e) { drawErrors.push({ stage: name, message: e.message, stack: e.stack, at: new Date().toISOString() }); if (drawErrors.length > 50) drawErrors.shift(); console.error("Weather threats: " + name + " failed", e); } }
+  function drawAll() { stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); }
 
   /* ---------- actions ---------- */
   function fitProduct(p) {
@@ -783,10 +790,10 @@
     if (vg) return setView(vg.dataset.viewGo);
     if (back) { if (S.sel) S.sel = null; else S.point = null; drawAll(); }
   });
-  const hoverOn = (e) => { const it = e.target.closest("[data-id]"); const id = it ? it.dataset.id : null; if (id !== S.hover) { S.hover = id; drawMap(); } };
+  const hoverOn = (e) => { const it = e.target.closest("[data-id]"); const id = it ? it.dataset.id : null; if (id !== S.hover) { S.hover = id; stage("map", drawMap); } };
   $("txPanel").addEventListener("change", (e) => { if (e.target.id === "wssiWin") { S.wwin = e.target.value; drawAll(); } });
   $("txPanel").addEventListener("mouseover", hoverOn); $("txPanel").addEventListener("focusin", hoverOn);
-  $("txPanel").addEventListener("mouseleave", () => { if (S.hover) { S.hover = null; drawMap(); } });
+  $("txPanel").addEventListener("mouseleave", () => { if (S.hover) { S.hover = null; stage("map", drawMap); } });
   document.querySelectorAll("[data-scope]").forEach((b) => b.addEventListener("click", () => setScope(b.dataset.scope, true)));
   document.querySelectorAll(".tx-tb").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
   document.querySelectorAll(".tx-lb").forEach((b) => b.addEventListener("click", () => { S.layers[b.dataset.layer] = !S.layers[b.dataset.layer]; if (!Object.values(S.layers).some(Boolean)) S.layers[b.dataset.layer] = true; if ((!S.layers.winter && winterView()) || (!S.layers.fire && fireView())) S.view = "active"; S.sel = null; drawAll(); }));
@@ -883,7 +890,7 @@
   } catch (e) { /* no URL state */ }
   renderBar();
   if (!phone()) $("txLegend").open = false; // desktop: legend starts collapsed so it never covers the map
-  load(); measure(); renderTop(); renderPanel();
+  load(); measure(); stage("top bar", renderTop); stage("panel", renderPanel);
   if (isLive()) Live.start().then(() => { liveReady = true; load(); drawAll(); });
   // live: redraw on every feed update, and every 30 s so countdowns, expirations and staleness stay true
   Live.onUpdate(() => { if (isLive() && liveReady) { load(); drawAll(); } });
@@ -898,5 +905,5 @@
       else map.fitBounds(CONUS, { padding: pad(), duration: 0 });
     });
   }).catch((e) => { $("txMap").innerHTML = `<p class="msg" style="padding:20px">The map could not load (${esc(e.message)}). The threat list still works.</p>`; });
-  window.__threats = { S, drawAll, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, diag: Live.diag };
+  window.__threats = { S, drawAll, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
 })();

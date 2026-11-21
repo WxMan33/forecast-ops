@@ -1,0 +1,50 @@
+{
+ "at": "2026-11-21T04:24:36.983Z",
+ "event": {
+  "start": "2026-11-20T23:34",
+  "end": "2026-11-21T00:14"
+ },
+ "venue": [
+  29.67,
+  -82.865
+ ],
+ "summary": "2 weather threats for this event",
+ "items": [
+  {
+   "id": "KJAX.FF.W.0055.2026",
+   "kind": "warning",
+   "headline": "Flash Flood Warning until 12:30 a.m. Saturday",
+   "line": "Covers the venue during the event."
+  },
+  {
+   "id": "wpc-ero-d1-MRGL-2026-11-21T00:52:00.000Z",
+   "kind": "outlook",
+   "headline": "Excessive rainfall risk Friday · Marginal (at least 5%)",
+   "line": "The WPC Day 1 outlook includes the venue and its period (Fri 8 p.m. – Sat 7 a.m.) overlaps the event. It is a risk for the whole period, not timing within it."
+  }
+ ],
+ "statuses": [
+  "NWS warnings, watches and advisories: Checked 11:24 p.m.",
+  "SPC fire weather outlooks: Checked 11:24 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+  "NOAA satellite smoke analysis (HMS): Checked 11:24 p.m.",
+  "AirNow air quality observations: No AirNow monitor reading within 15 miles in the last 3 hours: surface air quality isn't reported for this venue.",
+  "AirNow air quality forecasts: Checked 11:24 p.m. · Gainesville reporting area",
+  "NOAA smoke forecast guidance (NAQFC): Checked 11:24 p.m.",
+  "NIFC wildfire incidents (WFIGS): Checked 11:24 p.m.",
+  "WPC winter storm severity outlook (WSSI-P): Checked 11:24 p.m.",
+  "WPC Excessive Rainfall Outlook: Checked 11:24 p.m. · Day 1 issued 0052Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
+ ],
+ "maps": [
+  "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=29.67&lon=-82.865&name=Test+point+inside+the+warning+%28Gilchrist+County%2C+FL%29&tz=America%2FNew_York&scope=venue&view=active&layers=flood&sel=KJAX.FF.W.0055.2026&nws=function",
+  "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=29.67&lon=-82.865&name=Test+point+inside+the+warning+%28Gilchrist+County%2C+FL%29&tz=America%2FNew_York&scope=venue&view=day1&layers=flood&sel=wpc-ero-d1-MRGL-2026-11-21T00%3A52%3A00.000Z&nws=function"
+ ],
+ "more": "Source\nNWS Jacksonville FL · official product\nIssued\nFri, Nov 20, 10:26 PM EST\nIn effect\nuntil Sat, Nov 21, 12:30 AM EST\nLast checked\nFri, Nov 20, 11:24 PM EST\nVenue\nInside the warning area\nDetails\nAt 1026 PM EST, Doppler radar indicated thunderstorms producing heavy rain across the warned area.",
+ "feeds": [
+  {
+   "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch,Flash%20Flood%20Warning,Winter%20Storm%20Warning,Winter%20Storm%20Watch,Blizzard%20Warning,Ice%20Storm%20Warning,Lake%20Effect%20Snow%20Warning,Winter%20Weather%20Advisory,Red%20Flag%20Warning,Fire%20Weather%20Watch",
+   "status": 200,
+   "upstreamAt": "2026-11-21T04:24:32.946Z"
+  }
+ ],
+ "errs": []
+}
