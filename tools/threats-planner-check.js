@@ -341,7 +341,7 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
   check("TROPICAL More info: NWS Mobile, issued 11:09 AM CDT, 'until further notice · next NWS update due by', wind timing, the archived product link", /NWS Mobile AL/.test(tm) && /Issued\s*Wed, Oct 7, 11:09 AM CDT/.test(tm) && /until further notice · next NWS update due by/.test(tm) && /Wind timing\s*NWS window for tropical-storm-force winds: Friday afternoon until early Saturday morning/.test(tm) && await v.p.evaluate(() => /mesonet\.agron\.iastate\.edu\/p\.php\?pid=/.test(document.querySelector(".et-detail:not([hidden]) a").href)), tm);
   await shot(v, "ARCHIVED-planner-tropical-watch-orangebeach"); await v.ctx.close();
   v = await planner("threats=archive-tropical-warning&e=" + EW(...WHARF, FRI_OCT9, "America/Chicago"), { dsf: 2 }); r = await v.read();
-  check("TROPICAL Oct 8 midnight (advisory 6): upgraded to Hurricane Warning and Storm Surge Warning", JSON.stringify(r.items.map((i) => i.product.event).sort()) === JSON.stringify(["Hurricane Warning", "Storm Surge Warning"]), r.items);
+  check("TROPICAL Oct 8 midnight (advisory 6): upgraded to Hurricane Warning and Storm Surge Warning", JSON.stringify(r.items.map((i) => i.headline.split(" during ")[0]).sort()) === JSON.stringify(["Hurricane Warning", "Storm Surge Warning"]), r.items);
   const tsteps = await v.p.evaluate(() => {
     const base = window.EventThreats.current(), k = () => window.EventThreatsLast.items.map((i) => i.product.event).sort().join("+") || "none", out = [k()];
     window.EventThreats.update({ ...base, loc: { name: "Bay Minette", lat: 30.8829, lon: -87.7731 } }); out.push(k());
@@ -361,7 +361,7 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
   /* 4h. COASTAL, standalone (no tropical system): NWS Jacksonville coastal products, captured live 2026-11-21 */
   const FLAGP = ["Flagler Beach Pier", 29.4802, -81.1065];
   v = await planner("threats=archive-coastal-flagler&e=" + EW(...FLAGP, { start: "2026-11-21T14:00", end: "2026-11-21T18:00" }, "America/New_York"), { dsf: 2 }); r = await v.read();
-  check("COASTAL replay (pier at Coastal Flagler's shoreline): Coastal Flood Warning, High Surf Advisory and Rip Current Statement, each with its end time", JSON.stringify(r.items.map((i) => i.product.event)) === JSON.stringify(["Coastal Flood Warning", "High Surf Advisory", "Rip Current Statement"]) && /until 5 a\.m\. Monday \(issued for the forecast zone whose shoreline the venue is on\)/.test(r.items[0].line), r.items);
+  check("COASTAL replay (pier at Coastal Flagler's shoreline): Coastal Flood Warning, High Surf Advisory and Rip Current Statement, each with its end time", JSON.stringify(r.items.map((i) => i.headline.split(" during ")[0])) === JSON.stringify(["Coastal Flood Warning", "High Surf Advisory", "Rip Current Statement"]) && /until 5 a\.m\. Monday \(issued for the forecast zone whose shoreline the venue is on\)/.test(r.items[0].line), r.items);
   const csteps = await v.p.evaluate(() => {
     const base = window.EventThreats.current(), k = () => window.EventThreatsLast.items.map((i) => i.product.event).join("+") || "none", out = [k()];
     window.EventThreats.update({ ...base, loc: { name: "Jacksonville Beach Pier", lat: 30.2858, lon: -81.3889 } }); out.push(k());

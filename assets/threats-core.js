@@ -28,6 +28,7 @@
     return inside;
   }
   function contains(geometry, pt) {
+    if (!pt || !Number.isFinite(pt[0]) || !Number.isFinite(pt[1])) return false; // no location (e.g. zone shapes not loaded yet): not inside
     return polygonsOf(geometry).some((rings) => rings.length && inRing(pt, rings[0]) && !rings.slice(1).some((h) => inRing(pt, h)));
   }
   function project(origin) {

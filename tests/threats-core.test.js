@@ -93,4 +93,8 @@ ok("times show in the venue zone, with UTC for SPC products", () => {
   assert.strictEqual(T.fmtZ("2026-11-20T16:30:00Z"), "1630Z");
   assert.strictEqual(T.untilText(W.expires, Date.parse(D.CLOCK)), "17 min left");
 });
+ok("contains(): a missing or non-numeric point is never inside (live zone-based alerts can lack a location until their zone shapes load)", () => {
+  const sq = { type: "Polygon", coordinates: [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]] };
+  assert.strictEqual(T.contains(sq, null), false); assert.strictEqual(T.contains(sq, undefined), false); assert.strictEqual(T.contains(sq, [NaN, 0.5]), false); assert.strictEqual(T.contains(sq, [0.5, 0.5]), true);
+});
 console.log(n + " passed");
