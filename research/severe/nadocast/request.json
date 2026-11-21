@@ -1,5 +1,6 @@
 {
-  "purpose": "Head-to-head NadoCast benchmark, step 1: read-only inventory of data.nadocast.com for 2022-2024 and 2026 (2021 and 2025 not requested)",
-  "stage": "inventory",
-  "request": 2
+  "purpose": "NadoCast Day 1 tornado benchmark pilot on the two locked pilot dates (2024-04-14, 2024-10-14)",
+  "stage": "pilot",
+  "extraction_run": 44941735978,
+  "request": 3
 }
