@@ -228,6 +228,13 @@ console.log(n + " passed (with winter)");
     assert.strictEqual(r.confirmed, false); assert.match(r.statuses.find((s) => s.id === "spc-fire").text, /runs past the outlooks issued so far/);
   });
 
+  ok("FIRE day label follows the event's own local date inside the outlook window (Cheyenne, Day 1 valid Wed 10 a.m. - Thu 5 a.m. MST)", () => {
+    const d1 = fire("spc-fire-day1-20261118-1700-windrh.geojson", 1, "windrh"), clock = Date.parse("2026-11-19T01:00:00Z"), CHY = [41.1505, -104.8301]; // Wed 6 p.m. MST
+    const h = (t) => runF(evF("Cheyenne Frontier Days Arena", ...CHY, t, "America/Denver"), clock, d1).items.map((i) => i.headline);
+    assert.deepStrictEqual(h({ start: "2026-11-18T20:00", end: "2026-11-18T23:00" }), ["Elevated fire weather risk Wednesday"]);
+    assert.deepStrictEqual(h({ start: "2026-11-19T00:30", end: "2026-11-19T03:00" }), ["Elevated fire weather risk Thursday"]); // after local midnight, still inside the window
+    assert.deepStrictEqual(h({ start: "2026-11-19T06:00", end: "2026-11-19T09:00" }), []); // after the window ends (5 a.m. MST)
+  });
   /* NWS Denver/Boulder: Fire Weather Watch 0044 (Nov 17 12:46 MST) upgraded to Red Flag Warning 0057 for COZ238/239 (23:11) */
   function rfw(clock) {
     const s = F.createAlertStore(), msgs = ["nws-archive-kbou-fw-a-0044.json", "nws-archive-kbou-fw-w-0057.json"].flatMap(chain).sort((a, b) => (a.properties.sent < b.properties.sent ? -1 : 1));

@@ -27,8 +27,10 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     const ctx = await b.newContext(opts.phone ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : { viewport: { width: 1280, height: 1000 }, deviceScaleFactor: opts.dsf || 1 });
     const p = await ctx.newPage(), errors = [], feeds = [];
     p.on("pageerror", (e) => errors.push(e.message));
-    p.on("requestfinished", async (r) => { const u = r.url(); if (!/\/api\/(nws|wpc)\/|api\.weather\.gov|wpc\.ncep|mapservices|spc\.noaa\.gov\/products\/(exper\/)?fire_wx|services3\.arcgis\.com/.test(u)) return; const res = await r.response(), h = res ? await res.allHeaders() : {}; feeds.push({ url: u, status: res && res.status(), cache: h["x-forecast-ops-cache"] || null, upstreamAt: h["x-upstream-fetched-at"] || null }); });
+    p.on("requestfinished", async (r) => { const u = r.url(); if (!/\/api\/(nws|wpc|smoke)\/|services\.arcgis\.com\/cJ9YHowT8TU7DUyn|api\.weather\.gov|wpc\.ncep|mapservices|spc\.noaa\.gov\/products\/(exper\/)?fire_wx|services3\.arcgis\.com/.test(u)) return; const res = await r.response(), h = res ? await res.allHeaders() : {}; feeds.push({ url: u, status: res && res.status(), cache: h["x-forecast-ops-cache"] || null, upstreamAt: h["x-upstream-fetched-at"] || null }); });
     if (opts.blockNws) await p.route("**/api/nws/**", (route) => route.abort());
+    if (opts.blockSmoke) { await p.route("**/api/smoke/**", (route) => route.abort()); await p.route(/services\.arcgis\.com\/cJ9YHowT8TU7DUyn|air_quality\/ndgd_smoke/, (route) => route.abort()); }
+    if (opts.slowSmoke) await p.route("**/api/smoke/**", async (route) => { await new Promise((r) => setTimeout(r, 25000)); route.continue(); });
     await p.goto(HOST + "/event-beta?" + query, { waitUntil: "domcontentloaded", timeout: 60000 });
     await p.waitForFunction(() => window.EventThreatsLast, null, { timeout: 60000 });
     await p.waitForTimeout(opts.wait || 1200);
@@ -102,7 +104,7 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }), p = await ctx.newPage(); const errs = []; p.on("pageerror", (e) => errs.push(e.message));
     await p.goto(href.replace(/^https?:\/\/[^/]+/, HOST).replace("/threats.html", "/threats"), { waitUntil: "domcontentloaded" });
     await p.waitForFunction(() => window.__threats && window.__threats.ready && !window.__threats.data.loading, null, { timeout: 60000 }); await p.waitForTimeout(2500);
-    const s = await p.evaluate(() => ({ view: window.__threats.S.view, sel: window.__threats.S.sel, layers: window.__threats.S.layers, wlevel: window.__threats.S.wlevel, wwin: window.__threats.S.wwin, venue: (document.querySelector(".px-where") || {}).textContent, title: (document.querySelector(".px-title") || document.querySelector(".px-big") || {}).textContent, wssi: window.__threats.map.getSource("wssi")._data.features.length }));
+    const s = await p.evaluate(() => ({ view: window.__threats.S.view, sel: window.__threats.S.sel, layers: window.__threats.S.layers, wlevel: window.__threats.S.wlevel, wwin: window.__threats.S.wwin, venue: (document.querySelector(".px-where") || {}).textContent, title: (document.querySelector(".px-title") || document.querySelector(".px-big") || {}).textContent, wssi: window.__threats.map.getSource("wssi")._data.features.length, mon: window.__threats.map.getSource("aqmon")._data.features.length }));
     await p.screenshot({ path: path.join(OUT, name + ".png") }); await ctx.close(); return { s, errs };
   };
   // several days out: the outlook
@@ -202,7 +204,7 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
   await v.p.waitForFunction(() => !window.EventThreatsLast.statuses.some((x) => /Loading/.test(x.text)), null, { timeout: 90000 }).catch(() => {}); await v.p.waitForTimeout(500); r = await v.read();
   const viaFn = v.feeds.filter((f) => /\/api\/(nws|wpc)\//.test(f.url)), direct = v.feeds.filter((f) => /api\.weather\.gov\/alerts\/active\?event=|wpc\.ncep|wpc_precip_hazards/.test(f.url)); // the threats feeds only; Event Manager's own point forecast requests are separate
   check("live: NWS and WPC requests go through the same-origin functions with their upstream time", viaFn.length >= 4 && direct.length === 0 && viaFn.every((f) => f.status === 200 && f.upstreamAt), { viaFn, direct });
-  check("live: every source states its check time or its gap", r.statuses.length >= 2 && r.statuses.every((s) => /Checked|Not confirmed|Not responding|outside/.test(s)), r.statuses);
+  check("live: every source states its check time or its gap", r.statuses.length >= 2 && r.statuses.every((s) => /Checked|Not confirmed|Not responding|outside|No AirNow/.test(s)), r.statuses);
   fs.writeFileSync(path.join(OUT, "live-planner.json"), JSON.stringify({ at: new Date().toISOString(), result: r, feeds: v.feeds }, null, 1));
   await shot(v, "LIVE-planner-daytona-saturday"); await v.ctx.close();
 
@@ -236,6 +238,68 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     const s2 = await p.evaluate(() => ({ inc: window.__threats.map.getSource("inc-pt")._data.features.length, per: window.__threats.map.getSource("inc")._data.features.length, valid: document.getElementById("txValid").textContent }));
     check("LIVE fire map: NIFC incidents and perimeters drawn; Day 1 outlook window stated", s2.inc > 50 && s2.per > 10 && /SPC Day 1/.test(s2.valid) && !errs.length, { s2, errs });
     await p.screenshot({ path: path.join(OUT, "LIVE-map-fire-national.png") }); await ctx.close(); }
+
+  /* 4d. SMOKE AND AIR QUALITY (ARCHIVED official): NOAA HMS daily KML and AirNow archived HourlyAQObs / reportingarea.dat */
+  const SOLD = ["Soldier Field", 41.8623, -87.6167], METL = ["MetLife Stadium", 40.8135, -74.0745], LINCF = ["Lincoln Financial Field", 39.9008, -75.1675];
+  const THU_CHI = { gates: "2026-07-16T18:00", start: "2026-07-16T19:00", end: "2026-07-16T22:00" }, TUE_NY = { gates: "2026-07-14T18:00", start: "2026-07-14T19:00", end: "2026-07-14T22:00" }, THU_PHL = { start: "2026-07-16T13:00", end: "2026-07-16T17:00" };
+  v = await planner("threats=archive-smoke-chicago&e=" + EW(...SOLD, THU_CHI, "America/Chicago"), { dsf: 2 }); r = await v.read();
+  check("SMOKE Chicago Jul 16 (no wildfire within 15 mi): surface reading, satellite smoke and the day's forecast are separate items, each with its own time; no wildfire attribution",
+    JSON.stringify(r.items.map((i) => i.kind)) === JSON.stringify(["aqobs", "smoke", "aqfcst"]) && /^Air quality now: Hazardous \(AQI \d+, PM2\.5\) at .+, \d+ miles \w+$/.test(r.items[0].headline) && /AirNow monitor reading for 5 p\.m\./.test(r.items[0].line)
+    && /^Smoke detected over the area · Medium \(satellite, 12 p\.m\.–3 p\.m\.\)$/.test(r.items[1].headline) && r.items[2].headline === "Air quality forecast Thursday: Hazardous (PM2.5)" && !r.items.some((i) => /wildfire/i.test(i.headline + i.line)), r.items);
+  await v.p.locator(".et-more").nth(0).click(); await v.p.locator(".et-more").nth(1).click();
+  let sm = await v.p.evaluate(() => [...document.querySelectorAll(".et-detail:not([hidden])")].map((d) => d.innerText).join("\n---\n"));
+  check("SMOKE More info: monitor, reporting area, observed hour, preliminary-data note; satellite window, satellite, density and 'not a ground reading'", /Monitor\s*CHI_\w+ · Chicago reporting area/.test(sm) && /Observed\s*Thu, Jul 16, 5:00 PM CDT \(hourly reading\)/.test(sm) && /Preliminary data/.test(sm) && /Thu, Jul 16, 12:00 PM CDT → Thu, Jul 16, 3:00 PM CDT \(GOES-WEST imagery\)/.test(sm) && /does not measure air quality at the ground/.test(sm), sm);
+  const ssteps = await v.p.evaluate(() => {
+    const base = window.EventThreats.current(), k = () => window.EventThreatsLast.items.map((i) => i.kind).join("+") || "none", out = [k()];
+    window.EventThreats.update({ ...base, times: { start: "2026-07-18T19:00", end: "2026-07-18T22:00" } }); out.push(k());
+    window.EventThreats.update({ ...base, times: { start: "2026-07-15T19:00", end: "2026-07-15T22:00" } }); out.push(k());
+    window.EventThreats.update({ ...base, loc: { name: "MetLife Stadium", lat: 40.8135, lon: -74.0745 } }); out.push(k());
+    window.EventThreats.update(base); out.push(k()); return out;
+  });
+  check("SMOKE same page: Thursday all three → Saturday keeps current conditions only → past event none → venue moved away none → back", JSON.stringify(ssteps) === JSON.stringify(["aqobs+smoke+aqfcst", "aqobs+smoke", "none", "none", "aqobs+smoke+aqfcst"]), ssteps);
+  await shot(v, "ARCHIVED-planner-smoke-chicago"); const smLinks = r.maps; await v.ctx.close();
+  m = await openMap(smLinks[0], "ARCHIVED-map-from-planner-smoke-monitor");
+  check("SMOKE View on map (monitor): Smoke & air layer only, the monitor selected", m.s.view === "active" && /^airnow-/.test(m.s.sel || "") && m.s.layers.smoke && !m.s.layers.fire && /^CHI_/.test(m.s.title || "") && !m.errs.length, m);
+  m = await openMap(smLinks[1], "ARCHIVED-map-from-planner-smoke-plume");
+  check("SMOKE View on map (plume): the HMS polygon selected", /^hms-/.test(m.s.sel || "") && m.s.title === "Medium smoke detected" && !m.errs.length, m);
+  v = await planner("threats=archive-smoke-metlife&e=" + EW(...METL, TUE_NY, "America/New_York"), { dsf: 2 }); r = await v.read();
+  check("SMOKE MetLife Jul 14: 'Smoke detected over the area · Heavy'; the surface reading is reported separately (Moderate, not an item); the ozone forecast is labelled ozone",
+    r.items[0] && /^Smoke detected over the area · Heavy \(satellite, 1 p\.m\.–4 p\.m\.\)$/.test(r.items[0].headline) && !r.items.some((i) => i.kind === "aqobs") && r.statuses.some((x) => /^AirNow air quality observations: Checked .* nearest monitor Union City High School \(4 miles southeast\): AQI 53 Moderate \(PM2\.5\) for 5 p\.m\.$/.test(x)) && r.items.some((i) => i.kind === "aqfcst" && /Ozone/.test(i.headline)), { items: r.items, st: r.statuses });
+  await shot(v, "ARCHIVED-planner-smoke-metlife"); const ml = r.maps[0]; await v.ctx.close();
+  m = await openMap(ml, "ARCHIVED-map-from-planner-smoke-metlife");
+  check("SMOKE View on map (MetLife plume): Heavy plume selected; monitors drawn", m.s.title === "Heavy smoke detected" && m.s.mon > 0 && !m.errs.length, m);
+  const f14 = await planner("threats=archive-smoke-forecast-0714&e=" + EW(...LINCF, THU_PHL, "America/New_York")); const r14 = await f14.read(); await f14.ctx.close();
+  v = await planner("threats=archive-smoke-forecast-0715&e=" + EW(...LINCF, THU_PHL, "America/New_York"), { dsf: 2 }); r = await v.read();
+  check("SMOKE days ahead, Philadelphia: Jul 14's forecast for Thursday is Moderate (no item); Jul 15's is 'Air quality forecast Thursday: Unhealthy (AQI 180, PM2.5)'", r14.items.length === 0 && r.items.length === 1 && r.items[0].headline === "Air quality forecast Thursday: Unhealthy (AQI 180, PM2.5)", { r14: r14.items, r: r.items });
+  await shot(v, "ARCHIVED-planner-smoke-forecast-philadelphia"); await v.ctx.close();
+  v = await planner("threats=archive-smoke-chicago&e=" + EW(...SOLD, THU_CHI, "America/Chicago"), { phone: true });
+  check("SMOKE phone: Planner section without horizontal scroll", (await v.p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) <= 0 && !v.errors.length, v.errors);
+  await shot(v, "ARCHIVED-planner-smoke-phone"); await v.ctx.close();
+  { const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }), p = await ctx.newPage();
+    await p.goto(smLinks[1].replace(/^https?:\/\/[^/]+/, HOST).replace("/threats.html", "/threats") + "&sheet=open"); await p.waitForFunction(() => window.__threats && window.__threats.ready && !window.__threats.data.loading, null, { timeout: 60000 }); await p.waitForTimeout(2500);
+    check("SMOKE phone map: plume detail without horizontal scroll", (await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) <= 0);
+    await p.screenshot({ path: path.join(OUT, "ARCHIVED-map-smoke-phone.png") }); await ctx.close(); }
+
+  /* 4e. LIVE smoke and air quality: HMS through the function, AirNow and NOAA guidance direct; a venue with a current reading */
+  v = await planner("e=" + EW("Ford Field", 42.34, -83.0456, { start: new Date(Date.now() + 2 * 3600e3).toLocaleString("sv-SE", { timeZone: "America/Detroit" }).slice(0, 16).replace(" ", "T"), end: new Date(Date.now() + 5 * 3600e3).toLocaleString("sv-SE", { timeZone: "America/Detroit" }).slice(0, 16).replace(" ", "T") }, "America/Detroit"), { dsf: 2, wait: 2000 });
+  await v.p.waitForFunction(() => !window.EventThreatsLast.statuses.some((x) => /Loading/.test(x.text)), null, { timeout: 90000 }).catch(() => {}); await v.p.waitForTimeout(500); r = await v.read();
+  const sf = v.feeds.filter((f) => /\/api\/smoke\/|cJ9YHowT8TU7DUyn|ndgd_smoke/.test(f.url));
+  check("LIVE smoke: HMS via the function (upstream time), AirNow monitors + forecast area, NOAA smoke guidance all answered; each source states its check time and the nearest monitor reading",
+    sf.some((f) => /\/api\/smoke\/hms\//.test(f.url) && f.status === 200 && f.upstreamAt) && sf.some((f) => /Air%20Now%20Current/.test(f.url) && f.status === 200) && sf.some((f) => /\/api\/smoke\/airnow-area/.test(f.url) && f.status === 200) && sf.some((f) => /ndgd_smoke/.test(f.url) && f.status === 200)
+    && r.statuses.some((x) => /^NOAA satellite smoke analysis \(HMS\): Checked/.test(x)) && r.statuses.some((x) => /^AirNow air quality observations: Checked .* nearest monitor .+ AQI \d+/.test(x)) && r.statuses.some((x) => /^AirNow air quality forecasts: Checked .* reporting area/.test(x)), { st: r.statuses, feeds: sf.map((f) => [f.url.slice(0, 90), f.status]) });
+  fs.writeFileSync(path.join(OUT, "live-planner-smoke.json"), JSON.stringify({ at: new Date().toISOString(), result: r, feeds: sf }, null, 1));
+  await shot(v, "LIVE-planner-smoke-detroit"); await v.ctx.close();
+  v = await planner("e=" + EW(...ATL, { start: new Date(Date.now() + 2 * 3600e3).toLocaleString("sv-SE", { timeZone: "America/New_York" }).slice(0, 16).replace(" ", "T"), end: new Date(Date.now() + 5 * 3600e3).toLocaleString("sv-SE", { timeZone: "America/New_York" }).slice(0, 16).replace(" ", "T") }), { blockSmoke: true, wait: 2000 });
+  await v.p.waitForFunction(() => !window.EventThreatsLast.statuses.some((x) => /^NWS.*Loading|^WPC Excessive.*Loading/.test(x.name + ": " + x.text)), null, { timeout: 60000 }).catch(() => {}); await v.p.waitForTimeout(3000); r = await v.read();
+  check("SMOKE feeds failed (blocked in this browser): the other sources still answer; smoke sources say not responding; nothing claims 'no smoke'", r.statuses.some((x) => /^NWS warnings, watches and advisories: Checked/.test(x)) && r.statuses.some((x) => /^NOAA satellite smoke analysis \(HMS\): Not responding/.test(x)) && r.statuses.some((x) => /^AirNow air quality observations: Not responding/.test(x)) && !r.confirmed, r);
+  await shot(v, "LIVE-planner-smoke-feeds-blocked"); await v.ctx.close();
+  { const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } }), p = await ctx.newPage(); const t0 = Date.now();
+    await p.route("**/api/smoke/**", async (route) => { await new Promise((res) => setTimeout(res, 25000)); route.continue().catch(() => {}); });
+    await p.goto(HOST + "/threats", { waitUntil: "domcontentloaded" });
+    await p.waitForFunction(() => window.__threats && window.__threats.ready && window.__threats.liveReady, null, { timeout: 60000 }).catch(() => {});
+    const ms = Date.now() - t0, st = await p.evaluate(() => ({ live: window.__threats.liveReady, hms: window.__threats.data.state.hms && window.__threats.data.state.hms.kind }));
+    check("SMOKE slow feed (HMS held 25 s): the map is ready before it answers; HMS reads 'Loading' meanwhile", st.live && ms < 20000 && st.hms === "loading", { ms, st });
+    await ctx.close(); }
 
   /* 5. outage: NWS route blocked in this browser */
   v = await planner("e=" + E(...ATL, FRI), { blockNws: true, wait: 4000 }); r = await v.read();
