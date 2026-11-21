@@ -821,3 +821,13 @@ body.embed .mapstage .maplibregl-ctrl-bottom-right { bottom: 4px; }
   body.maps-conus #fieldSel, body.maps-conus #runSel { min-width: 0; flex: 1 1 0; }
 }
 body.maps-conus .mapctl2 [hidden], body.maps-conus .mapctl2 .ctlrow[hidden] { display: none !important; }
+/* CONUS model maps: stepped / categorical legends, missing-hour marks, field notes */
+.maplegend2 .lgsteps { display: flex; flex-wrap: wrap; gap: 2px 8px; font-size: 12px; align-items: center; }
+.maplegend2 .lgsteps span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.maplegend2 .lgsteps i { width: 16px; height: 11px; border-radius: 2px; display: inline-block; border: 1px solid color-mix(in srgb, var(--text) 20%, transparent); }
+.maplegend2 .lgsteps.cat i { width: 13px; height: 13px; }
+.timeline .tlticks i.gap { position: absolute; bottom: -2px; width: 4px; height: 9px; margin-left: -2px; border-radius: 1px; }
+.timeline .tlticks i.gap.missing { background: #d64545; }
+.timeline .tlticks i.gap.na, .timeline .tlticks i.gap.absent { background: #8a94a3; }
+.mapinfo .unit { font-weight: 600; opacity: .85; }
+.mapinfo .fnote { font-style: italic; }
