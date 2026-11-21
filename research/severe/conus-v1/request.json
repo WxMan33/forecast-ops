@@ -1,8 +1,6 @@
 {
-  "purpose": "Re-extract 2024-06-19 (transient truncated HRRR byte range in run 44639186383)",
-  "mode": "calibration",
-  "cases": [
-    "2024-06-19"
-  ],
-  "request": 6
+  "purpose": "NadoCast benchmark pilot: extract our features and Storm Events labels for the two locked pilot dates (2024 only)",
+  "mode": "benchmark",
+  "cases": ["2024-04-14", "2024-10-14"],
+  "request": 7
 }

@@ -1,14 +1,17 @@
 name: Severe NadoCast benchmark (research)
 # Research only. stage "inventory": read-only crawl of the public data.nadocast.com archive for
 # 2022-2024 and 2026 (2021 and 2025 are never requested), with a few sample GRIB2 downloads to
-# record grid, variable, time range and units. No outcomes are read; nothing touches the live
-# feed, publisher, registry or RRFS/NBM collector.
+# record grid, variable, time range and units. stage "pilot"/"score": the locked Day 1 tornado
+# head-to-head (docs/severe-nadocast-benchmark.md) on 2024 dates, using our CONUS extraction
+# artifacts from the run named in the request. Nothing touches the live feed, publisher, registry
+# or RRFS/NBM collector.
 on:
   push:
     branches: [claude/severe-phase2-training]
     paths: ['research/severe/nadocast/request.json']
 permissions:
   contents: write
+  actions: read
 concurrency:
   group: severe-nadocast
   cancel-in-progress: false
@@ -22,9 +25,39 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install -r tools/severe/requirements.txt
+      - run: pip install -r tools/severe/requirements.txt scikit-learn==1.9.1 matplotlib==3.11.2 shapely==2.2.0
       - id: req
-        run: echo "stage=$(jq -r .stage research/severe/nadocast/request.json)" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "stage=$(jq -r .stage research/severe/nadocast/request.json)" >> "$GITHUB_OUTPUT"
+          echo "run=$(jq -r '.extraction_run // empty' research/severe/nadocast/request.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        if: steps.req.outputs.stage == 'pilot' || steps.req.outputs.stage == 'score'
+        with:
+          pattern: severe-conus-*
+          merge-multiple: true
+          path: tests/out/x
+          run-id: ${{ steps.req.outputs.run }}
+          github-token: ${{ github.token }}
+      - name: Head-to-head Day 1 tornado (${{ steps.req.outputs.stage }})
+        if: steps.req.outputs.stage == 'pilot' || steps.req.outputs.stage == 'score'
+        run: |
+          ls tests/out/x/conus | wc -l
+          PYTHONPATH=tools/severe python3 tools/severe/nadocast_benchmark.py --stage ${{ steps.req.outputs.stage }} \
+            --conus tests/out/x/conus --cache tests/out/nccache --output tests/out/nadocast
+      - name: Commit the scorecard and maps (not the arrays)
+        if: steps.req.outputs.stage == 'pilot' || steps.req.outputs.stage == 'score'
+        run: |
+          dest=research/severe/nadocast/${{ steps.req.outputs.stage }}
+          mkdir -p "$dest"
+          cp tests/out/nadocast/*-scorecard.json "$dest"/
+          cp tests/out/nadocast/*.png "$dest"/ 2>/dev/null || true
+          echo "run_id: $GITHUB_RUN_ID" > "$dest/run.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$dest"
+          git commit -m "NadoCast benchmark ${{ steps.req.outputs.stage }} (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3; do git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0; sleep 10; done
+          exit 1
       - name: Connectivity probe
         if: steps.req.outputs.stage == 'inventory'
         run: |

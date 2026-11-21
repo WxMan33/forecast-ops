@@ -3,6 +3,7 @@ name: Severe CONUS extraction (research)
 # dates (2022-2024 only; 2025 is never loaded), proves the regional overlap reproduces the
 # archived v07 predictors and labels exactly, and commits small JSON/PNG results to the research
 # branch. Never touches the live feed, publisher, registry, RRFS/NBM collector or any archive.
+# mode "benchmark": listed 2024 dates for the NadoCast benchmark (like "calibration").
 # mode "pilot": the listed cases in one job. mode "batch": all 108 cohort cases in month batches;
 # a failed batch is restartable with "Re-run failed jobs" (finished batches keep their artifacts).
 on:
@@ -30,7 +31,7 @@ jobs:
           sys.path.insert(0, "tools/severe")
           from cohort import calendar_cases
           req = json.load(open("research/severe/conus-v1/request.json"))
-          cases = req["cases"] if req["mode"] in ("pilot", "followup", "calibration") else calendar_cases(json.load(open("research/severe/cohort-v07.json")))
+          cases = req["cases"] if req["mode"] in ("pilot", "followup", "calibration", "benchmark") else calendar_cases(json.load(open("research/severe/cohort-v07.json")))
           if any(not c.startswith(("2022", "2023", "2024")) for c in cases):
               raise SystemExit("2025 is sealed")
           if req["mode"] == "pilot":
@@ -89,7 +90,7 @@ jobs:
           for case in $CASES; do
             start=$(date +%s)
             regional=()
-            if [ "$MODE" != followup ] && [ "$MODE" != calibration ]; then  # no archived regional case for these dates
+            if [ "$MODE" != followup ] && [ "$MODE" != calibration ] && [ "$MODE" != benchmark ]; then  # no archived regional case for these dates
               bash tools/severe/restore_inputs.sh --source v07 --case "$case" --output "tests/out/regional/$case"
               regional=(--regional "$(dirname "$(find "tests/out/regional/$case" -name joined.npz | head -1)")")
             fi
