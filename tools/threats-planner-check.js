@@ -382,7 +382,6 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     const st = new Date(Date.now() + 30 * 60e3).toLocaleString("sv-SE", { timeZone: "America/New_York" }).slice(0, 16).replace(" ", "T"), en = new Date(Date.now() + 150 * 60e3).toLocaleString("sv-SE", { timeZone: "America/New_York" }).slice(0, 16).replace(" ", "T");
     v = await planner("e=" + EW(...FLAGP, { start: st, end: en }, "America/New_York"), { dsf: 2, wait: 2000 });
     await v.p.waitForFunction(() => !window.EventThreatsLast.statuses.some((x) => /Loading/.test(x.text)), null, { timeout: 90000 }).catch(() => {}); await v.p.waitForTimeout(500); r = await v.read();
-    const got = [...new Set(r.items.filter((i) => i.kind !== "outlook" && /Coastal Flood|High Surf|Rip Current|Beach Hazards/.test(i.headline)).map((i) => i.product.id.split("#")[0]))];
     const gotEv = [...new Set(r.items.map((i) => i.headline.split(" during ")[0]).filter((e) => /Coastal Flood|High Surf|Rip Current|Beach Hazards/.test(e)))].sort();
     check("LIVE coastal at Flagler Beach Pier: Planner lists exactly the coastal products NWS has active for Coastal Flagler now (" + (liveEv.join(", ") || "none") + ")", JSON.stringify(gotEv) === JSON.stringify(liveEv.filter((e) => r.items.length || true)) || (liveEv.length === 0 && gotEv.length === 0), { liveEv, gotEv, items: r.items.map((i) => i.headline), st: r.statuses });
     fs.writeFileSync(path.join(OUT, "live-planner-coastal.json"), JSON.stringify({ at: new Date().toISOString(), nwsActiveForZone: liveEv, result: r }, null, 1));
