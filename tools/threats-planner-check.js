@@ -30,6 +30,7 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     p.on("requestfinished", async (r) => { const u = r.url(); if (!/\/api\/(nws|wpc|smoke)\/|services\.arcgis\.com\/cJ9YHowT8TU7DUyn|api\.weather\.gov|wpc\.ncep|mapservices|spc\.noaa\.gov\/products\/(exper\/)?fire_wx|services3\.arcgis\.com/.test(u)) return; const res = await r.response(), h = res ? await res.allHeaders() : {}; feeds.push({ url: u, status: res && res.status(), cache: h["x-forecast-ops-cache"] || null, upstreamAt: h["x-upstream-fetched-at"] || null }); });
     if (opts.blockNws) await p.route("**/api/nws/**", (route) => route.abort());
     if (opts.blockSmoke) { await p.route("**/api/smoke/**", (route) => route.abort()); await p.route(/services\.arcgis\.com\/cJ9YHowT8TU7DUyn|air_quality\/ndgd_smoke/, (route) => route.abort()); }
+    if (opts.blockWssiExtreme) await p.route(/wpc_wssi_p\/MapServer\/4\/query/, (route) => route.abort());
     if (opts.slowSmoke) await p.route("**/api/smoke/**", async (route) => { await new Promise((r) => setTimeout(r, 25000)); route.continue(); });
     await p.goto(HOST + "/event-beta?" + query, { waitUntil: "domcontentloaded", timeout: 60000 });
     await p.waitForFunction(() => window.EventThreatsLast, null, { timeout: 60000 });
@@ -313,7 +314,7 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     await p.waitForTimeout(1500);
     const click = async (sel) => { const el = p.locator(sel).first(); if (await el.count() && await el.isVisible()) { await el.click(); await p.waitForTimeout(600); } };
     for (const sc of ["national", "venue", "national"]) await click(`[data-scope="${sc}"]`);
-    for (const L of ["severe", "flood", "winter", "fire", "smoke"]) { await click(`.tx-lb[data-layer="${L}"]`); await click(`.tx-lb[data-layer="${L}"]`); }
+    for (const L of ["severe", "flood", "winter", "fire", "smoke", "tropical", "coastal"]) { await click(`.tx-lb[data-layer="${L}"]`); await click(`.tx-lb[data-layer="${L}"]`); }
     for (const vw of ["day1", "day2", "day3", "winter", "fire", "active"]) { await click(`.tx-tb[data-view="${vw}"]`); await click('[data-scope="venue"]'); await click('[data-scope="national"]'); }
     for (const d of [1, 2, 4]) { await click('.tx-tb[data-view="fire"]'); await click(`[data-fday="${d}"]`); }
     await click('.tx-tb[data-view="active"]');
@@ -322,12 +323,89 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     await p.screenshot({ path: path.join(OUT, name + ".png") }); await ctx.close();
     return { errs, ...st };
   }
-  let ms2 = await mapStress("?scenario=archive-fire-day1&layers=severe,flood,winter,fire,smoke", "ARCHIVED-map-crash-regression-fire-day1");
+  let ms2 = await mapStress("?scenario=archive-fire-day1&layers=severe,flood,winter,fire,smoke,tropical,coastal", "ARCHIVED-map-crash-regression-fire-day1");
   check("CRASH REGRESSION (replay of the failing state: a Day 1 fire weather area with every layer on): scopes, layers and views, including Day 1, give no page error, no banner, no failed draw stage; fire areas never reach the convective outlook layer", !ms2.errs.length && !ms2.banner && !ms2.stageErrors.length && !ms2.convectiveHasFire, ms2);
   ms2 = await mapStress("", "LIVE-map-crash-regression", { live: true, refreshWait: 75000 });
   check("CRASH REGRESSION (live, CVG default, all layers): the same walk-through plus 75 s of background refreshes: no page error, no banner, no failed draw stage", !ms2.errs.length && !ms2.banner && !ms2.stageErrors.length && !ms2.convectiveHasFire, ms2);
   ms2 = await mapStress("", "LIVE-map-partial-feeds", { live: true, block: /spc\.noaa\.gov\/products\/(exper\/)?fire_wx|services3\.arcgis\.com|\/api\/smoke\//, refreshWait: 5000 });
   check("PARTIAL FEEDS (SPC fire outlooks, NIFC and HMS blocked): the other layers and every control still work with no error; the blocked sources say so", !ms2.errs.length && !ms2.banner && !ms2.stageErrors.length && ms2.rows.some((x) => /NIFC wildfire incidents \(WFIGS\) Not responding/.test(x)), ms2);
+  ms2 = await mapStress("?scenario=archive-tropical-warning&layers=severe,flood,winter,fire,smoke,tropical,coastal", "ARCHIVED-map-crash-regression-tropical");
+  check("CRASH REGRESSION (tropical replay with every layer on, NHC cone, track, points and warnings drawn): no page error, no banner, no failed draw stage", !ms2.errs.length && !ms2.banner && !ms2.stageErrors.length, ms2);
+
+  /* 4g. TROPICAL (ARCHIVED official): Hurricane Isaias, NWS Mobile TCV texts (IEM archive) + NHC advisories 4 and 6 */
+  const WHARF = ["The Wharf, Orange Beach", 30.297, -87.56], BAYM = ["Bay Minette", 30.8829, -87.7731];
+  const FRI_OCT9 = { setup: "2026-10-09T12:00", gates: "2026-10-09T16:00", start: "2026-10-09T17:00", end: "2026-10-09T21:00", teardown: "2026-10-09T23:00" };
+  v = await planner("threats=archive-tropical-watch&e=" + EW(...WHARF, FRI_OCT9, "America/Chicago"), { dsf: 2 }); r = await v.read();
+  check("TROPICAL Oct 7 noon CDT (advisory 4): Hurricane Watch and Storm Surge Watch at Orange Beach for a Friday event, until further notice, with NWS's wind window", JSON.stringify(r.items.map((i) => i.headline).sort()) === JSON.stringify(["Hurricane Watch during setup, gates, the event and teardown", "Storm Surge Watch during setup, gates, the event and teardown"]) && /until further notice .* NWS window for tropical-storm-force winds: Friday afternoon until early Saturday morning\. Updated with each NHC advisory\.$/.test(r.items[0].line), r.items);
+  await v.p.locator(".et-more").nth(0).click(); let tm = await v.p.evaluate(() => document.querySelector(".et-detail:not([hidden])").innerText);
+  check("TROPICAL More info: NWS Mobile, issued 11:09 AM CDT, 'until further notice · next NWS update due by', wind timing, the archived product link", /NWS Mobile AL/.test(tm) && /Issued\s*Wed, Oct 7, 11:09 AM CDT/.test(tm) && /until further notice · next NWS update due by/.test(tm) && /Wind timing\s*NWS window for tropical-storm-force winds: Friday afternoon until early Saturday morning/.test(tm) && await v.p.evaluate(() => /mesonet\.agron\.iastate\.edu\/p\.php\?pid=/.test(document.querySelector(".et-detail:not([hidden]) a").href)), tm);
+  await shot(v, "ARCHIVED-planner-tropical-watch-orangebeach"); await v.ctx.close();
+  v = await planner("threats=archive-tropical-warning&e=" + EW(...WHARF, FRI_OCT9, "America/Chicago"), { dsf: 2 }); r = await v.read();
+  check("TROPICAL Oct 8 midnight (advisory 6): upgraded to Hurricane Warning and Storm Surge Warning", JSON.stringify(r.items.map((i) => i.product.event).sort()) === JSON.stringify(["Hurricane Warning", "Storm Surge Warning"]), r.items);
+  const tsteps = await v.p.evaluate(() => {
+    const base = window.EventThreats.current(), k = () => window.EventThreatsLast.items.map((i) => i.product.event).sort().join("+") || "none", out = [k()];
+    window.EventThreats.update({ ...base, loc: { name: "Bay Minette", lat: 30.8829, lon: -87.7731 } }); out.push(k());
+    window.EventThreats.update({ ...base, loc: { name: "Atlanta", lat: 33.7554, lon: -84.4008 } }); out.push(k());
+    window.EventThreats.update(base); out.push(k()); return out;
+  });
+  check("TROPICAL same page: Orange Beach warning + surge → inland Bay Minette warning only → Atlanta none → back", JSON.stringify(tsteps) === JSON.stringify(["Hurricane Warning+Storm Surge Warning", "Hurricane Warning", "none", "Hurricane Warning+Storm Surge Warning"]), tsteps);
+  await shot(v, "ARCHIVED-planner-tropical-warning-orangebeach"); const trl = r.maps[0]; await v.ctx.close();
+  m = await openMap(trl, "ARCHIVED-map-from-planner-tropical-warning");
+  { const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }), p = await ctx.newPage(), errs = []; p.on("pageerror", (e) => errs.push(e.message));
+    await p.goto(HOST + "/threats?scenario=archive-tropical-warning&scope=national&layers=tropical", { waitUntil: "domcontentloaded" }); await p.waitForFunction(() => window.__threats && window.__threats.ready && !window.__threats.data.loading, null, { timeout: 60000 }); await p.waitForTimeout(2500);
+    const s3 = await p.evaluate(() => ({ cone: window.__threats.map.getSource("tcone")._data.features.length, lines: window.__threats.map.getSource("tline")._data.features.length, pts: window.__threats.map.getSource("tpts")._data.features.length, txt: document.getElementById("txPanelBody").innerText }));
+    check("TROPICAL map (advisory 6): NHC cone, track, forecast points and coastal warning segments drawn as regional context, with the cone caveat", s3.cone === 1 && s3.lines >= 2 && s3.pts >= 5 && /likely path of the storm's center; impacts reach well outside it/.test(s3.txt) && !errs.length, { ...s3, txt: s3.txt.slice(0, 400), errs });
+    await p.screenshot({ path: path.join(OUT, "ARCHIVED-map-tropical-nhc-cone.png") }); await ctx.close(); }
+  check("TROPICAL View on map (warning): Active now at the venue, the warning selected, Tropical layer", m.s.view === "active" && /^KMOB\.(HU|SS)\.W\.1009/.test(m.s.sel || "") && m.s.layers.tropical && !m.errs.length, m);
+
+  /* 4h. COASTAL, standalone (no tropical system): NWS Jacksonville coastal products, captured live 2026-11-21 */
+  const FLAGP = ["Flagler Beach Pier", 29.4802, -81.1065];
+  v = await planner("threats=archive-coastal-flagler&e=" + EW(...FLAGP, { start: "2026-11-21T14:00", end: "2026-11-21T18:00" }, "America/New_York"), { dsf: 2 }); r = await v.read();
+  check("COASTAL replay (pier at Coastal Flagler's shoreline): Coastal Flood Warning, High Surf Advisory and Rip Current Statement, each with its end time", JSON.stringify(r.items.map((i) => i.product.event)) === JSON.stringify(["Coastal Flood Warning", "High Surf Advisory", "Rip Current Statement"]) && /until 5 a\.m\. Monday \(issued for the forecast zone whose shoreline the venue is on\)/.test(r.items[0].line), r.items);
+  const csteps = await v.p.evaluate(() => {
+    const base = window.EventThreats.current(), k = () => window.EventThreatsLast.items.map((i) => i.product.event).join("+") || "none", out = [k()];
+    window.EventThreats.update({ ...base, loc: { name: "Jacksonville Beach Pier", lat: 30.2858, lon: -81.3889 } }); out.push(k());
+    window.EventThreats.update({ ...base, times: { start: "2026-11-23T12:00", end: "2026-11-23T15:00" } }); out.push(k());
+    window.EventThreats.update(base); out.push(k()); return out;
+  });
+  check("COASTAL same page: Flagler warning → Jacksonville Beach advisory (no warning) → Monday noon none → back", csteps[0] === "Coastal Flood Warning+High Surf Advisory+Rip Current Statement" && /Coastal Flood Advisory/.test(csteps[1]) && !/Coastal Flood Warning/.test(csteps[1]) && csteps[2] === "none" && csteps[3] === csteps[0], csteps);
+  await shot(v, "ARCHIVED-planner-coastal-flagler"); const cml = r.maps[0]; await v.ctx.close();
+  m = await openMap(cml, "ARCHIVED-map-from-planner-coastal");
+  check("COASTAL View on map: the Coastal Flood Warning selected, Coastal layer", /KJAX\.CF\.W\.0004/.test(m.s.sel || "") && m.s.layers.coastal && /Coastal Flood Warning/.test(m.s.title || "") && !m.errs.length, m);
+  v = await planner("threats=archive-coastal-flagler&e=" + EW(...FLAGP, { start: "2026-11-21T14:00", end: "2026-11-21T18:00" }, "America/New_York"), { phone: true });
+  check("COASTAL phone: Planner section without horizontal scroll", (await v.p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) <= 0 && !v.errors.length, v.errors);
+  await shot(v, "ARCHIVED-planner-coastal-phone"); await v.ctx.close();
+
+  /* 4i. LIVE coastal at the same pier, and live NHC on the map */
+  { const nwsNow = await (await fetch("https://api.weather.gov/alerts/active?zone=FLZ138", { headers: { "User-Agent": "(forecast-ops, github.com/WxMan33/forecast-ops)" } })).json().catch(() => ({ features: [] }));
+    const liveEv = [...new Set((nwsNow.features || []).map((f) => f.properties.event).filter((e) => /Coastal Flood|High Surf|Rip Current|Beach Hazards/.test(e)))].sort();
+    const st = new Date(Date.now() + 30 * 60e3).toLocaleString("sv-SE", { timeZone: "America/New_York" }).slice(0, 16).replace(" ", "T"), en = new Date(Date.now() + 150 * 60e3).toLocaleString("sv-SE", { timeZone: "America/New_York" }).slice(0, 16).replace(" ", "T");
+    v = await planner("e=" + EW(...FLAGP, { start: st, end: en }, "America/New_York"), { dsf: 2, wait: 2000 });
+    await v.p.waitForFunction(() => !window.EventThreatsLast.statuses.some((x) => /Loading/.test(x.text)), null, { timeout: 90000 }).catch(() => {}); await v.p.waitForTimeout(500); r = await v.read();
+    const got = [...new Set(r.items.filter((i) => i.kind !== "outlook" && /Coastal Flood|High Surf|Rip Current|Beach Hazards/.test(i.headline)).map((i) => i.product.id.split("#")[0]))];
+    const gotEv = [...new Set(r.items.map((i) => i.headline.split(" during ")[0]).filter((e) => /Coastal Flood|High Surf|Rip Current|Beach Hazards/.test(e)))].sort();
+    check("LIVE coastal at Flagler Beach Pier: Planner lists exactly the coastal products NWS has active for Coastal Flagler now (" + (liveEv.join(", ") || "none") + ")", JSON.stringify(gotEv) === JSON.stringify(liveEv.filter((e) => r.items.length || true)) || (liveEv.length === 0 && gotEv.length === 0), { liveEv, gotEv, items: r.items.map((i) => i.headline), st: r.statuses });
+    fs.writeFileSync(path.join(OUT, "live-planner-coastal.json"), JSON.stringify({ at: new Date().toISOString(), nwsActiveForZone: liveEv, result: r }, null, 1));
+    await shot(v, "LIVE-planner-coastal-flagler"); await v.ctx.close(); }
+  { const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }), p = await ctx.newPage(), errs = []; p.on("pageerror", (e) => errs.push(e.message));
+    await p.goto(HOST + "/threats?layers=tropical,coastal", { waitUntil: "domcontentloaded" });
+    await p.waitForFunction(() => window.__threats && window.__threats.liveReady && window.__threats.data.sources.nhc && window.__threats.data.sources.nhc.state !== "pending", null, { timeout: 90000 }).catch(() => {}); await p.waitForTimeout(3000);
+    const svc = await (await fetch("https://mapservices.weather.noaa.gov/tropical/rest/services/tropical/NHC_tropical_weather_summary/MapServer/3/query?where=1%3D1&returnCountOnly=true&f=json")).json().catch(() => ({}));
+    const s4 = await p.evaluate(() => ({ two: window.__threats.map.getSource("two")._data.features.length, cones: window.__threats.map.getSource("tcone")._data.features.length, nhc: window.__threats.data.state.nhc && window.__threats.data.state.nhc.kind, txt: (document.getElementById("txPanelBody").innerText.match(/Tropics · NHC[\s\S]{0,300}/) || [""])[0] }));
+    check("LIVE NHC on the map: the Tropical Weather Outlook areas NHC publishes now are drawn (" + svc.count + " area(s)); the source states its check", s4.two === svc.count && ["current", "empty"].includes(s4.nhc) && !errs.length, { s4, svc });
+    await p.screenshot({ path: path.join(OUT, "LIVE-map-tropical-outlook.png") }); await ctx.close(); }
+
+  /* 4j. CARRYOVERS: WSSI-P with the Extreme layer failing (blocked in this browser), and NOAA smoke guidance units */
+  { v = await planner("e=" + EW("Snowbird", 40.5813, -111.6556, { start: new Date(Date.now() + 26 * 3600e3).toLocaleString("sv-SE", { timeZone: "America/Denver" }).slice(0, 16).replace(" ", "T"), end: new Date(Date.now() + 30 * 3600e3).toLocaleString("sv-SE", { timeZone: "America/Denver" }).slice(0, 16).replace(" ", "T") }, "America/Denver"), { dsf: 2, wait: 1000, blockWssiExtreme: true });
+    await v.p.waitForFunction(() => window.ThreatsLive && ["ok", "failed"].includes((window.ThreatsLive.snapshot().sources.wssip || {}).state), null, { timeout: 120000 }).catch(() => {}); await v.p.waitForTimeout(800);
+    const w = await v.p.evaluate(() => window.ThreatsLive.snapshot().sources.wssip); r = await v.read();
+    check("WSSI-P Extreme layer failing (blocked): retried, then either inferred under 5% from Major (no Major area at the venue) or left unconfirmed; never 'none'", (w.state === "ok" && (w.inferred || []).includes("EXTREME")) || (w.state === "failed" && /EXTREME did not answer/.test(w.error || "")), { w, st: r.statuses.filter((x) => /WSSI/.test(x)) });
+    if (w.state === "ok" && r.items.some((i) => /winter/i.test(i.headline) && i.kind === "outlook")) { const k = r.items.findIndex((i) => /winter/i.test(i.headline) && i.kind === "outlook"); await v.p.locator(".et-more").nth(k).click(); const wm = await v.p.evaluate(() => document.querySelector(".et-detail:not([hidden])").innerText); check("WSSI-P More info marks Extreme as inferred", /Extreme under 5% \(inferred/.test(wm), wm); }
+    await shot(v, "LIVE-planner-wssip-extreme-blocked"); await v.ctx.close(); }
+  { const F = require(path.resolve("assets/threats-feeds.js")), d = new Date(Date.now() - 864e5).toISOString().slice(0, 10).replace(/-/g, "");
+    const k = await (await fetch(F.HMS_URL(d))).text().catch(() => ""), pts = (k ? F.parseHMS(k).filter((p) => p.density !== "Light").slice(0, 4).map((p) => p.label) : []).concat([[-104.99, 39.74]]);
+    const vals = []; for (const [lon, lat] of pts) { try { vals.push(...F.parseNAQFC(await (await fetch(F.NAQFC_SMOKE_AT(lat, lon))).json(), [lon, lat]).hours.map((h) => h.v)); } catch (e) { /* skip */ } }
+    check("NOAA smoke guidance in µg/m³: live values under today's satellite plumes are whole µg/m³ (0, 1, 2…), not the service's raw kg/m³ (1e-9)", vals.length > 0 && vals.every((x) => x === 0 || x >= 0.5) && vals.every((x) => Math.abs(x - Math.round(x * 10) / 10) < 1e-9), { n: vals.length, max: Math.max(...vals), sample: vals.filter((x) => x > 0).slice(0, 8) }); }
 
   /* 5. outage: NWS route blocked in this browser */
   v = await planner("e=" + E(...ATL, FRI), { blockNws: true, wait: 4000 }); r = await v.read();

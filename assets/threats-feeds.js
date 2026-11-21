@@ -19,10 +19,15 @@
 
   const WINTER_EVENTS = ["Winter Storm Warning", "Winter Storm Watch", "Blizzard Warning", "Ice Storm Warning", "Lake Effect Snow Warning", "Winter Weather Advisory"];
   const FIRE_EVENTS = ["Red Flag Warning", "Fire Weather Watch"];
-  const EVENTS = ["Tornado Warning", "Severe Thunderstorm Warning", "Tornado Watch", "Severe Thunderstorm Watch", "Flash Flood Warning", ...WINTER_EVENTS, ...FIRE_EVENTS];
+  /* tropical (issued in NWS Tropical Cyclone Watch/Warning products, coordinated with NHC) and coastal hazards */
+  const TROPICAL_EVENTS = ["Hurricane Warning", "Hurricane Watch", "Tropical Storm Warning", "Tropical Storm Watch", "Storm Surge Warning", "Storm Surge Watch"];
+  const COASTAL_EVENTS = ["Coastal Flood Warning", "Coastal Flood Watch", "Coastal Flood Advisory", "High Surf Warning", "High Surf Advisory", "Rip Current Statement", "Beach Hazards Statement"];
+  const EVENTS = ["Tornado Warning", "Severe Thunderstorm Warning", "Tornado Watch", "Severe Thunderstorm Watch", "Flash Flood Warning", ...WINTER_EVENTS, ...FIRE_EVENTS, ...TROPICAL_EVENTS, ...COASTAL_EVENTS];
   /* hazard family per NWS VTEC phenomenon: the map's layers and Event Planner's sections group by this */
-  const HAZARD = { FW: "fire", TO: "severe", SV: "severe", FF: "flood", WS: "winter", BZ: "winter", IS: "winter", LE: "winter", WW: "winter" };
-  const EVENT_PHEN = { "Red Flag Warning": "FW", "Fire Weather Watch": "FW", "Tornado Warning": "TO", "Tornado Watch": "TO", "Severe Thunderstorm Warning": "SV", "Severe Thunderstorm Watch": "SV", "Flash Flood Warning": "FF",
+  const HAZARD = { HU: "tropical", TR: "tropical", SS: "tropical", CF: "coastal", SU: "coastal", RP: "coastal", BH: "coastal", FW: "fire", TO: "severe", SV: "severe", FF: "flood", WS: "winter", BZ: "winter", IS: "winter", LE: "winter", WW: "winter" };
+  const EVENT_PHEN = { "Hurricane Warning": "HU", "Hurricane Watch": "HU", "Tropical Storm Warning": "TR", "Tropical Storm Watch": "TR", "Storm Surge Warning": "SS", "Storm Surge Watch": "SS",
+    "Coastal Flood Warning": "CF", "Coastal Flood Watch": "CF", "Coastal Flood Advisory": "CF", "High Surf Warning": "SU", "High Surf Advisory": "SU", "Rip Current Statement": "RP", "Beach Hazards Statement": "BH",
+    "Red Flag Warning": "FW", "Fire Weather Watch": "FW", "Tornado Warning": "TO", "Tornado Watch": "TO", "Severe Thunderstorm Warning": "SV", "Severe Thunderstorm Watch": "SV", "Flash Flood Warning": "FF",
     "Winter Storm Warning": "WS", "Winter Storm Watch": "WS", "Blizzard Warning": "BZ", "Ice Storm Warning": "IS", "Lake Effect Snow Warning": "LE", "Winter Weather Advisory": "WW" };
   const ALERTS_URL = "https://api.weather.gov/alerts/active?event=" + EVENTS.map(encodeURIComponent).join(",");
   const OUTLOOK_URL = (day) => "https://www.spc.noaa.gov/products/outlook/day" + day + "otlk_cat.nolyr.geojson";
@@ -41,7 +46,9 @@
     const t = (x) => (x === "000000T0000Z" ? null : "20" + x.slice(0, 2) + "-" + x.slice(2, 4) + "-" + x.slice(4, 6) + "T" + x.slice(7, 9) + ":" + x.slice(9, 11) + ":00Z");
     return { product: m[1], action: m[2], office: m[3], phen: m[4], sig: m[5], etn: m[6], begin: t(m[7]), end: t(m[8]) };
   }
-  const KIND = { W: "warning", A: "watch", Y: "advisory" };
+  const KIND = { W: "warning", A: "watch", Y: "advisory", S: "statement" };
+  const EVENT_NAME = { "HU.W": "Hurricane Warning", "HU.A": "Hurricane Watch", "TR.W": "Tropical Storm Warning", "TR.A": "Tropical Storm Watch", "SS.W": "Storm Surge Warning", "SS.A": "Storm Surge Watch",
+    "CF.W": "Coastal Flood Warning", "CF.A": "Coastal Flood Watch", "CF.Y": "Coastal Flood Advisory", "SU.W": "High Surf Warning", "SU.Y": "High Surf Advisory", "RP.S": "Rip Current Statement", "BH.S": "Beach Hazards Statement"};
   function vtecFor(props) {
     const all = (props.parameters && props.parameters.VTEC || []).map(parseVTEC).filter(Boolean);
     const want = EVENT_PHEN[props.event];
@@ -136,7 +143,41 @@
       source: { name: "NWS alerts (api.weather.gov)", url: p["@id"] || "https://api.weather.gov/alerts/" + encodeURIComponent(p.id || "") },
       bulletin: [p.headline, p.description, p.instruction ? "PRECAUTIONARY/PREPAREDNESS ACTIONS...\n" + p.instruction : ""].filter(Boolean).join("\n\n"),
       label: f.geometry ? labelPoint(f.geometry) : null, messageType: p.messageType,
+      // tropical watches and warnings run "until further notice" (VTEC end 000000T0000Z); the message expiry is only when the
+      // next update is due, so it is not presented as the end of the hazard
+      openEnded: !v.end && !p.ends && !first((p.parameters || {}).eventEndingTime), windWindow: windWindow(p.description),
     };
+  }
+  function windWindow(d) { const m = /Window for Tropical Storm force winds:\s*([\s\S]*?)(?:\n\s*\n|\n\s*-\s|$)/.exec(d || ""); return m ? m[1].replace(/\s+/g, " ").trim() : null; }
+
+  /* ---------- NWS Tropical Cyclone Watch/Warning product (TCV), as archived text -> NWS alert shape ----------
+     The NWS API keeps about 7 days; archived tropical watches and warnings come from the official TCV texts (as kept by
+     the Iowa Environmental Mesonet's NWS text archive). Each segment: UGC line (zones + purge time), VTEC lines, area
+     name, headline, details. One alert feature per segment and VTEC line, as CAP would carry them. */
+  function tcvToAlerts(text, productId) {
+    const sentM = /^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)-/.exec(productId || ""), office = /National Weather Service ([^\n]+?)\s{2,}[A-Z]{2}\d{6}/.exec(text) || /National Weather Service ([^\n]+)/.exec(text);
+    if (!sentM || !/TCV[A-Z]{3}/.test(text)) throw Error("unrecognized TCV product");
+    const sent = new Date(Date.UTC(+sentM[1], +sentM[2] - 1, +sentM[3], +sentM[4], +sentM[5])).toISOString(), storm = (/^\s*(.+?) Local Watch\/Warning Statement/m.exec(text) || [])[1] || null;
+    const out = [];
+    for (const seg of text.split(/\n\$\$/)) {
+      const u = /^\s*((?:[A-Z]{2}[CZ]\d{3}|\d{3})(?:[->](?:[A-Z]{2}[CZ])?\d{3})*-(\d{2})(\d{2})(\d{2})-)\s*$/m.exec(seg);
+      if (!u) continue;
+      const ugc = parseUGC(u[1]).filter((z) => z[2] === "Z" && !/^(AM|AN|GM|PZ|PK|PH|PM|PS|LM|LE|LH|LO|LS|SL)Z/.test(z)); // land zones only
+      if (!ugc.length) continue;
+      let pd = new Date(Date.UTC(+sentM[1], +sentM[2] - 1, +u[2], +u[3], +u[4])); if (pd < new Date(sent) - 864e5 * 2) pd = new Date(Date.UTC(+sentM[1], +sentM[2], +u[2], +u[3], +u[4]));
+      const vtecs = seg.match(/\/[OTEX]\.[A-Z]{3}\.[A-Z]{4}\.[A-Z]{2}\.[A-Z]\.\d{4}\.\d{6}T\d{4}Z-\d{6}T\d{4}Z\//g) || [];
+      const area = ((/\d{4}Z\/\s*\n([^\n]+?)-?\s*\n/.exec(seg.slice(seg.lastIndexOf("Z/") - 30)) || [])[1] || "").replace(/-$/, "");
+      const heads = (seg.match(/^\.\.\.[^\n]+\.\.\.$/gm) || []).join(" ");
+      for (const line of vtecs) {
+        const v = parseVTEC(line), name = EVENT_NAME[v.phen + "." + v.sig]; if (!name || !TROPICAL_EVENTS.includes(name)) continue;
+        const ended = ["CAN", "EXP", "UPG"].includes(v.action);
+        out.push({ type: "Feature", geometry: null, properties: { id: "urn:tcv:" + productId + ":" + ugc[0] + ":" + v.phen + v.sig, "@id": "https://mesonet.agron.iastate.edu/p.php?pid=" + productId,
+          event: name, messageType: ended ? "Cancel" : v.action === "NEW" ? "Alert" : "Update", status: "Actual", sent, effective: sent, onset: v.begin || sent, ends: v.end, expires: ended ? sent : pd.toISOString(),
+          senderName: "NWS " + (office ? office[1].trim() : ""), headline: (storm ? storm + " " : "") + heads.replace(/\.\.\./g, " ").replace(/\s+/g, " ").trim(), areaDesc: area,
+          description: seg.trim().slice(0, 4000), affectedZones: ugc.map(zoneUrl), geocode: { UGC: ugc }, references: [], parameters: { VTEC: [line] } } });
+      }
+    }
+    return out;
   }
 
   /* ---------- NWS alert store ---------- */
@@ -537,12 +578,15 @@
   const AIRNOW_AREA_URL = "https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/AirNow_National_Air_Quality_Index_(AQI)_Forecast/FeatureServer/0/query";
   const AIRNOW_AREA_AT = (lat, lon) => AIRNOW_AREA_URL + "?geometry=" + lon + "," + lat + "&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=RAName,RACode,RAAgency&returnGeometry=false&f=json";
 
-  /* NOAA NAQFC near-surface smoke guidance at a point: hourly samples (getSamples) from the time-enabled image service */
+  /* NOAA NAQFC near-surface smoke guidance at a point: hourly samples (getSamples) from the time-enabled image service.
+     Unit: the service answers in kg/m³ (GRIB's unit for mass density). Its description says "micrograms per cubic feet",
+     but every value is an exact multiple of 1e-9 (1 µg/m³), its legend has classes 1..150, and its stated maximum is
+     1.06e-7 (106 µg/m³): ×1e9 gives µg/m³ (checked 2026-11-21 under live HMS plumes: 1-4 µg/m³). */
   const NAQFC_SMOKE = "https://mapservices.weather.noaa.gov/raster/rest/services/air_quality/ndgd_smoke_sfc_1hr_avg_time/ImageServer";
   const NAQFC_SMOKE_AT = (lat, lon) => NAQFC_SMOKE + "/getSamples?geometry=" + encodeURIComponent(JSON.stringify({ x: lon, y: lat, spatialReference: { wkid: 4326 } })) + "&geometryType=esriGeometryPoint&returnFirstValueOnly=false&outFields=*&f=json";
   function parseNAQFC(j, point) {
     if (!j || !Array.isArray(j.samples)) throw Error("unrecognized NOAA smoke forecast answer");
-    const hours = j.samples.map((s) => ({ t: new Date(+s.attributes.idp_validtime).toISOString(), v: Math.max(0, +s.value || 0), run: new Date(+s.attributes.idp_issueddate).toISOString(), fh: +s.attributes.idp_fcst_hour }))
+    const hours = j.samples.map((s) => ({ t: new Date(+s.attributes.idp_validtime).toISOString(), v: Math.max(0, Math.round((+s.value || 0) * 1e9 * 10) / 10), run: new Date(+s.attributes.idp_issueddate).toISOString(), fh: +s.attributes.idp_fcst_hour }))
       .filter((h) => Number.isFinite(Date.parse(h.t))).sort((a, b) => (a.t < b.t ? -1 : 1));
     if (!hours.length) throw Error("NOAA smoke forecast has no hours");
     const run = hours.map((h) => h.run).sort().pop(), mine = hours.filter((h) => h.run === run);
@@ -552,17 +596,77 @@
       source: { name: "NOAA NAQFC smoke guidance (model)", url: "https://airquality.weather.gov/" } };
   }
 
+  /* WSSI-P point answers per level, combined. A level that failed (after its retry) is bounded by the level below it: the
+     chance of at least Extreme can't exceed the chance of at least Major. When the level below answered with no area at
+     the venue in any window, the failed level is under 5% there too (returned as inferred). Otherwise the answer is
+     incomplete and this throws, so the source stays unconfirmed rather than reading "none". */
+  function combineWSSI(results) {
+    const out = results.slice(), inferred = [];
+    out.forEach((r, i) => {
+      if (Array.isArray(r)) return;
+      const below = out[i - 1];
+      if (i > 0 && Array.isArray(below) && below.length === 0) { out[i] = []; inferred.push(WSSI_LEVELS[i]); }
+      else throw Error("WSSI-P " + WSSI_LEVELS[i] + " did not answer" + (r && r.failed ? " (" + r.failed + ")" : "") + (i > 0 ? " and the level below has an area at the venue" : ""));
+    });
+    return { products: out.flat(), inferred };
+  }
+
+  /* ---------- NHC / CPHC (NOAA map service tropical/NHC_tropical_weather_summary) ----------
+     Regional context on the map, never a venue item by itself:
+       layer 3  Seven-Day Potential Development Region (Graphical Tropical Weather Outlook): prob2day/prob7day, risk Low/Medium/High
+       layer 5  Forecast Points, 6 Forecast Track, 7 Forecast Cone, 8 Watch-Warning (coastal segments, TCWW HWR/HWA/TWR/TWA)
+     The cone is NHC's probable track of the storm's CENTER (about two-thirds of the time); impacts reach well outside it.
+     Venue-specific: layers 30/31/32 Probabilistic Winds (34/50/64 kt): the chance of sustained winds of at least that
+     speed at a point during the 5-day forecast period (cumulative). */
+  const NHC = "https://mapservices.weather.noaa.gov/tropical/rest/services/tropical/NHC_tropical_weather_summary/MapServer/";
+  const NHC_LAYER = { two: 3, points: 5, track: 6, cone: 7, watchwarning: 8 }, NHC_WSP = { 34: 30, 50: 31, 64: 32 };
+  const NHC_URL = (layer) => NHC + NHC_LAYER[layer] + "/query?where=1%3D1&outFields=*&outSR=4326&maxAllowableOffset=0.01&f=geojson";
+  const NHC_WSP_AT = (kt, lat, lon) => NHC + NHC_WSP[kt] + "/query?geometry=" + lon + "," + lat + "&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=percentage,idp_source,idp_filedate&returnGeometry=false&f=json";
+  const TCWW = { HWR: "Hurricane Warning", HWA: "Hurricane Watch", TWR: "Tropical Storm Warning", TWA: "Tropical Storm Watch" };
+  const advTime = (s) => { const m = /(\d{3,4}) (AM|PM) ([A-Z]{3}) \w{3} (\w{3}) (\d{1,2}) (\d{4})/.exec(s || ""); if (!m) return null; const off = { EDT: 4, EST: 5, CDT: 5, CST: 6, MDT: 6, MST: 7, PDT: 7, PST: 8, HST: 10, AST: 4, ADT: 3 }[m[3]]; if (off == null) return null; const hm = m[1].padStart(4, "0"), h = (+hm.slice(0, 2) % 12) + (m[2] === "PM" ? 12 : 0); return new Date(Date.parse(m[6] + " " + m[4] + " " + m[5] + " 00:00:00 UTC") + ((h + off) * 60 + +hm.slice(2)) * 60e3).toISOString(); };
+  function parseNHC(gj, layerHint) {
+    if (!gj || !Array.isArray(gj.features)) throw Error("unrecognized NHC answer");
+    const out = [];
+    gj.features.forEach((f, i) => {
+      const P = {}; for (const [k, v] of Object.entries(f.properties || f.attributes || {})) P[k.toLowerCase()] = v;
+      const layer = P.layer || layerHint, g = f.geometry; if (!g) return;
+      const issued = advTime(P.advdate) || (P.idp_filedate ? new Date(+P.idp_filedate).toISOString() : null);
+      const storm = P.stormname ? String(P.stormname).replace(/^(Tropical Storm|Hurricane|Tropical Depression|Potential Tropical Cyclone|Post-Tropical Cyclone) /i, "") : null;
+      const base = { family: "tropical", sourceId: "nhc", office: "NOAA National Hurricane Center", issued, storm, advisory: P.advisnum || null, stormType: P.stormtype || null, geometry: g, label: g.type === "Point" ? g.coordinates : g.type === "Polygon" || g.type === "MultiPolygon" ? labelPoint(g) : null,
+        source: { name: "NHC (NOAA map service)", url: "https://www.nhc.noaa.gov/" } };
+      if (layer === "two") out.push({ ...base, id: "nhc-two-" + i + "-" + (P.idp_source || ""), kind: "tcoutlook", program: "nhc-two", category: String(P.risk7day || "").replace(/^\w/, (c) => c.toUpperCase()), prob2: P.prob2day, prob7: P.prob7day, basin: P.basin, event: "Tropical Weather Outlook area", title: "7-day formation chance " + (P.prob7day || "?") });
+      else if (["cone", "track", "points", "watchwarning"].includes(layer)) out.push({ ...base, id: "nhc-" + layer + "-" + (P.stormnum || storm) + "-" + (P.advisnum || "") + "-" + i, kind: "tctrack", program: "nhc-" + layer, part: layer, category: layer === "watchwarning" ? TCWW[P.tcww] || P.tcww : P.stormtype,
+        tau: P.tau, validLabel: P.fldatelbl || P.datelbl || null, maxwind: P.maxwind, event: layer === "cone" ? "Forecast cone" : layer === "watchwarning" ? (TCWW[P.tcww] || "Watch/warning") + " (coastal segment)" : "Forecast " + layer, title: (storm || "Storm") + " · advisory " + (P.advisnum || "") });
+    });
+    return out;
+  }
+  /* wind speed probabilities at a point: the highest band containing the venue, per threshold */
+  function parseNHCWsp(answers, point) {
+    const out = [];
+    for (const [kt, j] of Object.entries(answers)) {
+      if (!j || !Array.isArray(j.features)) throw Error("unrecognized NHC wind probability answer");
+      // bands as published: "5-10%", "20-30%", ">90%" -> the band's lower bound ("at least"), band text kept for display
+      const vals = j.features.map((f) => { const raw = String((f.attributes || f.properties || {}).percentage || "").trim(), m = /^(?:<|>)?\s*(\d+(?:\.\d+)?)/.exec(raw); return { pct: m ? +m[1] : NaN, band: raw, src: (f.attributes || {}).idp_source, at: (f.attributes || {}).idp_filedate }; }).filter((x) => x.pct >= 0);
+      if (!vals.length) continue;
+      const top = vals.reduce((a, b) => (b.pct > a.pct ? b : a));
+      out.push({ id: "nhc-wsp-" + kt + "@" + point.join(","), kind: "tcwind", program: "nhc-wsp", family: "tropical", sourceId: "nhc", kt: +kt, pct: top.pct, band: top.band, pointHit: point, geometry: null,
+        issued: top.at ? new Date(+top.at).toISOString() : null, event: "Wind speed probability", title: kt + " kt winds", office: "NOAA National Hurricane Center", source: { name: "NHC wind speed probabilities", url: "https://www.nhc.noaa.gov/" } });
+    }
+    return out;
+  }
+
   /* ---------- source registry: who issues what, for which area ----------
      Coverage is explicit so a venue outside a provider's area reads "not covered by this source", never "nothing".
      New regions and providers are new entries here; Event Planner reads products and source states only. */
   const BOX = { conus: [[-125, 24.3, -66.8, 49.5]], us: [[-125, 24.3, -66.8, 49.5], [-180, 51, -129, 71.5], [172, 51, 180, 53], [-160.5, 18.8, -154.5, 22.4], [-67.4, 17.6, -64.5, 18.6], [144.5, 13.1, 146.2, 20.6], [-171, -14.6, -168, -11]] };
   const SOURCES = [
-    { id: "nws-alerts", name: "NWS warnings, watches and advisories", provider: "NOAA National Weather Service", region: "United States", boxes: BOX.us, hazards: ["severe", "flood", "winter", "fire"], url: "https://www.weather.gov/" },
+    { id: "nws-alerts", name: "NWS warnings, watches and advisories", provider: "NOAA National Weather Service", region: "United States", boxes: BOX.us, hazards: ["severe", "flood", "winter", "fire", "tropical", "coastal"], url: "https://www.weather.gov/" },
     { id: "spc-fire", name: "SPC fire weather outlooks", provider: "NOAA Storm Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["fire"], url: "https://www.spc.noaa.gov/products/fire_wx/" },
     { id: "noaa-hms", name: "NOAA satellite smoke analysis (HMS)", provider: "NOAA NESDIS", region: "North America", boxes: [[-170, 14, -50, 72]], hazards: ["smoke"], url: "https://www.ospo.noaa.gov/products/land/hms.html" },
     { id: "airnow-obs", name: "AirNow air quality observations", provider: "EPA AirNow and state/local agencies", region: "United States", boxes: BOX.us, hazards: ["smoke"], url: "https://www.airnow.gov/" },
     { id: "airnow-fcst", name: "AirNow air quality forecasts", provider: "State and local air agencies via AirNow", region: "United States", boxes: BOX.us, hazards: ["smoke"], url: "https://www.airnow.gov/" },
     { id: "noaa-naqfc-smoke", name: "NOAA smoke forecast guidance (NAQFC)", provider: "NOAA National Weather Service", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["smoke"], url: "https://airquality.weather.gov/" },
+    { id: "nhc", name: "NHC tropical outlooks and storm products", provider: "NOAA National Hurricane Center", region: "Atlantic and Pacific basins", boxes: [[-180, 0, -10, 60]], hazards: ["tropical"], url: "https://www.nhc.noaa.gov/" },
     { id: "nifc-wfigs", name: "NIFC wildfire incidents (WFIGS)", provider: "National Interagency Fire Center", region: "United States", boxes: BOX.us, hazards: ["fire"], url: "https://data-nifc.opendata.arcgis.com/" },
     { id: "spc-md", name: "SPC Mesoscale Discussions", provider: "NOAA Storm Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["severe"], url: "https://www.spc.noaa.gov/products/md/" },
     { id: "spc-outlook", name: "SPC convective outlooks", provider: "NOAA Storm Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["severe"], url: "https://www.spc.noaa.gov/products/outlook/" },
@@ -664,7 +768,7 @@
 
   return { EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
     parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries, dissolve, zoneShape,
-    HAZARD, WINTER_EVENTS, FIRE_EVENTS, FIRE_CATS, DRYT_CATS, FIRE38_CATS, FIRE_NAME, FIRE_MEANING, SPC_FIRE_URL, parseFireOutlook, createFireStore,
+    HAZARD, WINTER_EVENTS, FIRE_EVENTS, TROPICAL_EVENTS, COASTAL_EVENTS, EVENT_NAME, tcvToAlerts, NHC_URL, NHC_WSP_AT, parseNHC, parseNHCWsp, TCWW, FIRE_CATS, DRYT_CATS, FIRE38_CATS, FIRE_NAME, FIRE_MEANING, SPC_FIRE_URL, parseFireOutlook, createFireStore,
     NIFC_INC_URL, NIFC_PER_URL, INCIDENT_TYPE, parseNIFC, zTime,
-    HMS_DENSITY, HMS_URL, parseHMS, AQI_CATS, AQI_CAT_ORDER, aqiCat, AIRNOW_MON_URL, AIRNOW_MON_ALL_URL, parseAirNowMonitors, parseReportingArea, aqForecastProducts, AIRNOW_AREA_AT, NAQFC_SMOKE_AT, parseNAQFC, WSSI_LEVELS, WSSI_NAME, WSSI_MEANING, WSSIP_URL, parseWSSIP, ERO_CATS, ERO_NAME, ERO_PCT, WPC_ERO_URL, MAPSVC_ERO_URL, parseERO, createEROStore, SOURCES, covers };
+    HMS_DENSITY, HMS_URL, parseHMS, AQI_CATS, AQI_CAT_ORDER, aqiCat, AIRNOW_MON_URL, AIRNOW_MON_ALL_URL, parseAirNowMonitors, parseReportingArea, aqForecastProducts, AIRNOW_AREA_AT, NAQFC_SMOKE_AT, parseNAQFC, WSSI_LEVELS, WSSI_NAME, WSSI_MEANING, WSSIP_URL, parseWSSIP, combineWSSI, ERO_CATS, ERO_NAME, ERO_PCT, WPC_ERO_URL, MAPSVC_ERO_URL, parseERO, createEROStore, SOURCES, covers };
 });

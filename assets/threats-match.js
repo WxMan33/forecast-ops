@@ -18,11 +18,11 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function (T, F) {
   "use strict";
   const PHASE_WORD = { setup: "setup", gates: "gates", event: "the event", teardown: "teardown" };
-  const FAMILY_WORD = { flood: "flooding", severe: "severe storms", winter: "winter weather", fire: "fire weather or wildfire", smoke: "smoke or air quality" };
+  const FAMILY_WORD = { flood: "flooding", severe: "severe storms", winter: "winter weather", fire: "fire weather or wildfire", smoke: "smoke or air quality", tropical: "tropical", coastal: "coastal" };
   const AQ_KM = 15 * T.KM_PER_MI, AQ_ITEM = 2;               // monitors within 15 miles; items from "Unhealthy for Sensitive Groups" up
-  const HMS_RANK = { Light: 0, Medium: 1, Heavy: 2 }, NAQFC_MIN = 1; // NAQFC: the lowest value NOAA's legend draws
+  const HMS_RANK = { Light: 0, Medium: 1, Heavy: 2 }, NAQFC_MIN = 9; // NAQFC µg/m³: smoke alone above the top of the EPA "Good" PM2.5 range (9.0 µg/m³, 2024 standard)
   const INCIDENT_KM = 15 * T.KM_PER_MI; // a wildfire is listed when its perimeter, or its reported point, is within 15 miles
-  const ALERT_RANK = { warning: 0, watch: 0.3, advisory: 0.4 };
+  const ALERT_RANK = { warning: 0, watch: 0.3, advisory: 0.4, statement: 0.45 };
   const list = (a) => (a.length <= 1 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]);
   const day = (ms, tz) => new Date(ms).toLocaleDateString("en-US", { timeZone: tz, weekday: "long" });
   const clock = (ms, tz) => new Date(ms).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).replace(":00", "").replace("AM", "a.m.").replace("PM", "p.m.");
@@ -53,19 +53,23 @@
           notes.push({ id: p.id, product: p, text: p.event + " reached its published expiration (" + clock(end, tz) + ") while the source could not be reached. It is no longer shown as active; its current status is unknown." });
         continue;
       }
-      const ph = overlaps(start, end, phases);
+      // tropical watches/warnings run until further notice: they cover every phase from their start on
+      const ph = overlaps(start, p.openEnded ? Infinity : end, phases);
       if (!ph.length) continue;
-      const rel = T.relation(p, venue);
+      let rel = T.relation(p, venue), shore = false;
+      // NWS zones stop at the coastline; a pier, beach or waterfront venue just outside a coastal or tropical alert's zone
+      // (within 1.5 miles: zone outlines are simplified at the coast) is at that zone's shoreline, where surf, rip currents and surge happen
+      if (rel.kind === "near" && rel.km <= 1.5 * T.KM_PER_MI && ["coastal", "tropical"].includes(family(p)) && p.geometrySource === "counties") { rel = { kind: "covers", shoreline: true, km: rel.km }; shore = true; }
       if (rel.kind !== "covers" && rel.kind !== "unknown") continue;
       const words = ph.map((x) => PHASE_WORD[x.key] || x.label.toLowerCase());
-      const until = clock(end, tz) + (day(end, tz) !== day(now, tz) ? " " + day(end, tz) : "");
-      const winter = family(p) === "winter" || family(p) === "fire", fire = family(p) === "fire";
+      const until = p.openEnded ? "further notice" : clock(end, tz) + (day(end, tz) !== day(now, tz) ? " " + day(end, tz) : "");
+      const winter = ["winter", "fire", "tropical", "coastal"].includes(family(p)), fire = ["fire", "tropical", "coastal"].includes(family(p));
       const from = fire && start > now ? "from " + clock(start, tz) + (day(start, tz) !== day(now, tz) ? " " + day(start, tz) : "") + " " : "";
       items.push({ id: p.id, productId: p.id, family: family(p), kind: p.kind, rank: ALERT_RANK[p.kind], product: p, phases: ph.map((x) => x.key),
         headline: winter ? p.event + " during " + list(words) : p.event + " until " + until,
         line: rel.kind !== "covers" ? "Area not fully drawn: the " + p.kind + " lists zones that could include the venue during " + list(words) + "."
-          : winter ? "In effect at the venue " + from + "until " + until + (p.geometrySource === "counties" ? " (issued for the " + (fire ? "fire weather" : "forecast") + " zone that includes the venue)." : ".") : "Covers the venue during " + list(words) + ".",
-        relation: rel, window: { startMs: start, endMs: end } });
+          : winter ? "In effect at the venue " + from + "until " + until + (p.geometrySource === "counties" ? " (issued for the " + ((p.zones || []).some((u) => /\/zones\/fire\//.test(u)) ? "fire weather" : "forecast") + " zone " + (shore ? "whose shoreline the venue is on" : "that includes the venue") + ")." : ".") + (p.windWindow ? " NWS window for tropical-storm-force winds: " + p.windWindow + "." : "") + (p.openEnded ? " Updated with each NHC advisory." : "") : "Covers the venue during " + list(words) + ".",
+        relation: rel, window: { startMs: start, endMs: p.openEnded ? Math.max(end, all.endMs) : end } });
     }
 
     /* WPC WSSI-P (winter, probabilistic): per rolling 24-hour window, the probability at the venue of at least each impact
@@ -169,9 +173,24 @@
           const hrs = hit.flatMap((y) => y.hrs).filter((h) => h.v >= NAQFC_MIN), peak = hrs.reduce((a, b) => (b.v > a.v ? b : a));
           items.push({ id: nq.id, productId: nq.id, family: "smoke", kind: "smokefcst", rank: 1.2, product: nq, phases: hit.map((y) => y.x.key), peak,
             headline: "Smoke in NOAA's forecast during " + list(hit.map((y) => PHASE_WORD[y.x.key] || y.x.label.toLowerCase())),
-            line: "NOAA's near-surface smoke guidance (model run " + new Date(nq.run).toISOString().slice(11, 13) + "Z " + day(Date.parse(nq.run), "UTC").slice(0, 3) + ") shows smoke at the venue in " + hrs.length + " hour" + (hrs.length > 1 ? "s" : "") + " of those phases, highest at " + clock(Date.parse(peak.t) - 3600e3, tz) + ". Model guidance, not an air quality reading.",
+            line: "NOAA's near-surface smoke guidance (model run " + new Date(nq.run).toISOString().slice(11, 13) + "Z " + day(Date.parse(nq.run), "UTC").slice(0, 3) + ") shows near-surface smoke of 9 µg/m³ or more at the venue in " + hrs.length + " hour" + (hrs.length > 1 ? "s" : "") + " of those phases, up to " + Math.round(peak.v) + " µg/m³ around " + clock(Date.parse(peak.t) - 3600e3, tz) + ". Model guidance, not an air quality reading.",
             relation: { kind: "covers" }, window: { startMs: Date.parse(hrs[0].t) - 3600e3, endMs: Date.parse(hrs[hrs.length - 1].t) } });
         }
+      }
+    }
+
+    /* NHC wind speed probabilities at the venue: cumulative chance over the 5 days after the advisory. Listed from 10% for
+       tropical-storm-force (34 kt) winds when the event starts inside those 5 days; no phase wording (not timing). */
+    if (families.includes("tropical")) {
+      const ws = products.filter((p) => p.kind === "tcwind" && p.pointHit && Math.abs(p.pointHit[0] - venue.lon) < 1e-3 && Math.abs(p.pointHit[1] - venue.lat) < 1e-3);
+      const by = Object.fromEntries(ws.map((p) => [p.kt, p])), t34 = by[34];
+      const issued = t34 && t34.issued ? Date.parse(t34.issued) : null, until = issued ? issued + 120 * 3600e3 : null;
+      if (t34 && t34.pct >= 10 && all.endMs > now && (!until || all.startMs < until)) {
+        const pc = (kt) => (by[kt] ? (by[kt].band && /-/.test(by[kt].band) ? by[kt].band : by[kt].pct < 5 ? "under 5%" : Math.round(by[kt].pct) + "%") : "under 5%");
+        items.push({ id: t34.id, productId: t34.id, family: "tropical", kind: "tcwind", rank: 0.35, product: t34, phases: [], levels: [[34, pc(34)], [50, pc(50)], [64, pc(64)]],
+          headline: (t34.band && /-/.test(t34.band) ? t34.band : Math.round(t34.pct) + "%") + " chance of tropical-storm-force winds at the venue" + (until ? " through " + day(until, tz) : ""),
+          line: "NHC wind speed probabilities" + (issued ? " (advisory " + clock(issued, tz) + " " + day(issued, tz).slice(0, 3) + ")" : "") + ": 39+ mph " + pc(34) + ", 58+ mph " + pc(50) + ", hurricane-force " + pc(64) + ". A chance over the whole 5 days, not timing; NWS watches and warnings for the venue give the timing.",
+          relation: { kind: "covers" }, window: { startMs: now, endMs: until || all.endMs } });
       }
     }
 

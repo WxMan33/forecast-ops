@@ -347,12 +347,81 @@ console.log(n + " passed (with winter and fire)");
     assert.strictEqual(M.forEvent({ products: chiProducts(), state: allOk(CHI), event: evS("Soldier Field", ...SOLDIER, CHI_EV, "America/Chicago"), now: CHI, families: ["fire", "flood"] }).items.length, 0);
   });
   ok("SMOKE NAQFC: hourly smoke guidance names only the phases its hours cover", () => {
-    const clock = Date.parse("2026-11-21T03:00:00Z"), hours = []; for (let h = 4; h <= 50; h++) hours.push({ t: new Date(clock + (h - 3) * 3600e3).toISOString(), v: h >= 15 && h <= 17 ? 6 : 0, run: "2026-11-20T06:00:00.000Z", fh: h });
+    const clock = Date.parse("2026-11-21T03:00:00Z"), hours = []; for (let h = 4; h <= 50; h++) hours.push({ t: new Date(clock + (h - 3) * 3600e3).toISOString(), v: h >= 15 && h <= 17 ? 14 : h === 18 ? 5 : 0, run: "2026-11-20T06:00:00.000Z", fh: h });
     const nq = { id: "nq", kind: "smokefcst", program: "naqfc", family: "smoke", sourceId: "noaa-naqfc-smoke", run: "2026-11-20T06:00:00.000Z", hours, validStart: hours[0].t, validEnd: hours[hours.length - 1].t, pointHit: [-104.99, 39.74] };
     const ev = evS("v", 39.74, -104.99, { setup: "2026-11-21T07:00", gates: "2026-11-21T09:00", start: "2026-11-21T10:00", end: "2026-11-21T15:00" }, "America/Denver"); // setup 14Z-16Z, gates 16Z-17Z
     const r = runS(ev, clock, [nq], sstate(clock));
     assert.deepStrictEqual(r.items.map((i) => i.headline), ["Smoke in NOAA's forecast during setup and gates"]);
-    assert.match(r.items[0].line, /Model guidance, not an air quality reading\.$/);
+    assert.match(r.items[0].line, /9 µg\/m³ or more at the venue in 3 hours of those phases, up to 14 µg\/m³ around .* Model guidance, not an air quality reading\.$/);
   });
 }
 console.log(n + " passed (with winter, fire and smoke)");
+
+/* ---------------- TROPICAL (ARCHIVED official): NWS Mobile Tropical Cyclone Watch/Warning products for Hurricane Isaias
+   (AL092026, Oct 7-10, 2026, text as archived by the Iowa Environmental Mesonet) and NHC advisory GIS. COASTAL (LIVE
+   payload captured 2026-11-21): NWS Jacksonville coastal flood, high surf and rip current products. ---------------- */
+{
+  const DIR = FX("tcv-kmob-al092026"), tcvs = fs.readdirSync(DIR).sort().flatMap((f) => F.tcvToAlerts(fs.readFileSync(path.join(DIR, f), "utf8"), f.replace(".txt", "")));
+  const zonesG = JSON.parse(fs.readFileSync(FX("nws-zones-gulf-al092026.json"), "utf8")).zones, zonesJ = JSON.parse(fs.readFileSync(FX("nws-zones-kjax-coastal-20261121.json"), "utf8")).zones;
+  const replay = (msgs, clock, zones) => {
+    const s = F.createAlertStore(), m = msgs.filter((f) => Date.parse(f.properties.sent) + 30e3 <= clock).sort((a, b) => (a.properties.sent < b.properties.sent ? -1 : 1));
+    m.forEach((f, i) => { if (i === m.length - 1 || m[i + 1].properties.sent !== f.properties.sent) s.ingest({ type: "FeatureCollection", features: m.slice(0, i + 1) }, new Date(Date.parse(f.properties.sent) + 30e3).toISOString()); });
+    if (m.length) s.ingest({ type: "FeatureCollection", features: m }, new Date(clock).toISOString());
+    return s.products(clock).filter((p) => p.status === "active").map((p) => { const z = F.zoneShape(p.zones, p.zones.map((u) => (zones[u] ? zones[u].geometry : null))); return { ...p, geometry: z.geometry, geometryIncomplete: z.incomplete, zoneInfo: z }; });
+  };
+  const evT = (name, lat, lon, times, tz) => { const ev = { id: "t", name, loc: { name, lat, lon }, tz, times }; assert.deepStrictEqual(C.event.validate(ev), []); return { name, lat, lon, tz, windows: C.event.windows(ev) }; };
+  const tstate = (clock) => ({ "nws-alerts": OK(clock), nhc: OK(clock) });
+  const runT = (ev, clock, fams = ["tropical"]) => M.forEvent({ products: replay(tcvs, clock, zonesG), state: tstate(clock), event: ev, now: clock, families: fams });
+  const GULF_SHORES = [30.2970, -87.5600] /* The Wharf, Orange Beach (Baldwin Coastal) */, MOBILE = [30.8829, -87.7731] /* Bay Minette (Baldwin Inland) */;
+  const FRI_OCT9 = { setup: "2026-10-09T12:00", gates: "2026-10-09T16:00", start: "2026-10-09T17:00", end: "2026-10-09T21:00", teardown: "2026-10-09T23:00" };
+
+  ok("TROPICAL replay Oct 7 noon CDT (advisory 4): Hurricane Watch and Storm Surge Watch at Orange Beach for a Friday event, until further notice, with NWS's wind window", () => {
+    const r = runT(evT("The Wharf, Orange Beach", ...GULF_SHORES, FRI_OCT9, "America/Chicago"), Date.parse("2026-10-07T17:00:00Z"));
+    assert.deepStrictEqual(r.items.map((i) => i.headline).sort(), ["Hurricane Watch during setup, gates, the event and teardown", "Storm Surge Watch during setup, gates, the event and teardown"]);
+    assert.match(r.items[0].line, /^In effect at the venue until further notice \(issued for the forecast zone that includes the venue\)\. NWS window for tropical-storm-force winds: Friday afternoon until early Saturday morning\. Updated with each NHC advisory\.$/);
+  });
+  ok("TROPICAL replay Oct 8 midnight: upgraded to Hurricane Warning and Storm Surge Warning; inland Bay Minette (Baldwin Inland) gets the Hurricane Warning without storm surge", () => {
+    const clock = Date.parse("2026-10-08T05:00:00Z");
+    assert.deepStrictEqual(runT(evT("The Wharf, Orange Beach", ...GULF_SHORES, FRI_OCT9, "America/Chicago"), clock).items.map((i) => i.product.event).sort(), ["Hurricane Warning", "Storm Surge Warning"]);
+    const mob = runT(evT("Bay Minette", ...MOBILE, FRI_OCT9, "America/Chicago"), clock).items.map((i) => i.product.event);
+    assert.ok(mob.includes("Hurricane Warning") && !mob.some((e) => /Storm Surge/.test(e)), JSON.stringify(mob));
+  });
+  ok("TROPICAL replay Oct 10 2 a.m. CDT: the warnings were cancelled, so a Saturday evening event has none; tropical items stay out of other families", () => {
+    const clock = Date.parse("2026-10-10T07:00:00Z"), sat = { start: "2026-10-10T17:00", end: "2026-10-10T21:00" };
+    assert.strictEqual(runT(evT("The Wharf, Orange Beach", ...GULF_SHORES, sat, "America/Chicago"), clock).items.length, 0);
+    assert.strictEqual(runT(evT("The Wharf, Orange Beach", ...GULF_SHORES, FRI_OCT9, "America/Chicago"), Date.parse("2026-10-08T05:00:00Z"), ["flood", "coastal"]).items.length, 0);
+  });
+  ok("TROPICAL: NHC advisory GIS parses to cone, track, points and coastal watch/warning segments (map context only, never a Planner item)", () => {
+    const g = F.parseNHC(JSON.parse(fs.readFileSync(FX("nhc-al092026-adv006.geojson"), "utf8")));
+    assert.deepStrictEqual([...new Set(g.map((p) => p.part))].sort(), ["cone", "points", "track", "watchwarning"]);
+    assert.ok(g.every((p) => p.issued === "2026-10-08T03:00:00.000Z" && p.storm === "Isaias"));
+    const r = M.forEvent({ products: g, state: tstate(Date.parse("2026-10-08T05:00:00Z")), event: evT("The Wharf, Orange Beach", ...GULF_SHORES, FRI_OCT9, "America/Chicago"), now: Date.parse("2026-10-08T05:00:00Z"), families: ["tropical"] });
+    assert.strictEqual(r.items.length, 0);
+  });
+  ok("TROPICAL wind speed probabilities: listed from 10% for 34 kt, as a 5-day chance without phase timing", () => {
+    const clock = Date.parse("2026-10-08T05:00:00Z"), pt = [GULF_SHORES[1], GULF_SHORES[0]], q = (kt, pct) => ({ id: "w" + kt, kind: "tcwind", family: "tropical", sourceId: "nhc", kt, pct, pointHit: pt, issued: "2026-10-08T03:00:00.000Z" });
+    const r = M.forEvent({ products: [q(34, 70), q(50, 35), q(64, 3)], state: tstate(clock), event: evT("The Wharf, Orange Beach", ...GULF_SHORES, FRI_OCT9, "America/Chicago"), now: clock, families: ["tropical"] });
+    assert.deepStrictEqual(r.items.map((i) => i.headline), ["70% chance of tropical-storm-force winds at the venue through Monday"]);
+    assert.match(r.items[0].line, /39\+ mph 70%, 58\+ mph 35%, hurricane-force under 5%\. A chance over the whole 5 days, not timing/);
+    assert.strictEqual(M.forEvent({ products: [q(34, 5)], state: tstate(clock), event: evT("v", ...GULF_SHORES, FRI_OCT9, "America/Chicago"), now: clock, families: ["tropical"] }).items.length, 0);
+  });
+
+  const coastal = JSON.parse(fs.readFileSync(FX("nws-live-kjax-coastal-20261121.json"), "utf8")).features, CL = Date.parse("2026-11-21T18:30:00Z");
+  const runC = (ev, clock = CL) => M.forEvent({ products: replay(coastal, clock, zonesJ), state: { "nws-alerts": OK(clock) }, event: ev, now: clock, families: ["coastal"] });
+  const FLAGLER = [29.4802, -81.1065], JAXBEACH = [30.2858, -81.3889];
+  ok("COASTAL (no tropical system): Flagler Beach Pier (over the water, at Coastal Flagler's shoreline), Saturday afternoon: Coastal Flood Warning, High Surf Advisory and Rip Current Statement, with their end times", () => {
+    const r = runC(evT("Flagler Beach Pier", ...FLAGLER, { start: "2026-11-21T14:00", end: "2026-11-21T18:00" }, "America/New_York"));
+    assert.deepStrictEqual(r.items.map((i) => i.product.event), ["Coastal Flood Warning", "High Surf Advisory", "Rip Current Statement"]);
+    assert.strictEqual(r.items[0].headline, "Coastal Flood Warning during the event");
+    assert.match(r.items[0].line, /^In effect at the venue until 5 a\.m\. Monday \(issued for the forecast zone whose shoreline the venue is on\)\.$/);
+    const inland = M.forEvent({ products: replay(coastal, CL, zonesJ), state: { "nws-alerts": OK(CL) }, event: evT("Flagler Beach City Hall", 29.4747, -81.1271, { start: "2026-11-21T14:00", end: "2026-11-21T18:00" }, "America/New_York"), now: CL, families: ["coastal"] });
+    assert.match(inland.items[0].line, /forecast zone that includes the venue/);
+  });
+  ok("COASTAL: Jacksonville Beach gets the advisory, not the warning; a Monday-noon event gets nothing; coastal items stay out of tropical", () => {
+    const r = runC(evT("Jacksonville Beach Pier", ...JAXBEACH, { start: "2026-11-21T14:00", end: "2026-11-21T18:00" }, "America/New_York"));
+    assert.ok(r.items.some((i) => i.product.event === "Coastal Flood Advisory") && !r.items.some((i) => i.product.event === "Coastal Flood Warning"), JSON.stringify(r.items.map((i) => i.product.event)));
+    assert.strictEqual(runC(evT("Flagler Beach Pier", ...FLAGLER, { start: "2026-11-23T12:00", end: "2026-11-23T15:00" }, "America/New_York")).items.length, 0);
+    assert.strictEqual(M.forEvent({ products: replay(coastal, CL, zonesJ), state: { "nws-alerts": OK(CL), nhc: OK(CL) }, event: evT("Flagler Beach Pier", ...FLAGLER, { start: "2026-11-21T14:00", end: "2026-11-21T18:00" }, "America/New_York"), now: CL, families: ["tropical"] }).items.length, 0);
+  });
+}
+console.log(n + " passed (with winter, fire, smoke, tropical and coastal)");

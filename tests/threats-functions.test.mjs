@@ -21,6 +21,7 @@ await ok("NWS: Flash Flood Warning, winter and fire weather alerts and fire weat
   assert.strictEqual((await get(nws, "/api/nws/points/29,-81")).status, 404);
   for (const ev of ["Winter Storm Warning", "Winter Storm Watch", "Blizzard Warning", "Ice Storm Warning", "Lake Effect Snow Warning", "Winter Weather Advisory"]) assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=" + encodeURIComponent(ev))).status, 200, ev);
   assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=Wind%20Chill%20Advisory")).status, 404);
+  for (const ev of ["Hurricane Warning", "Storm Surge Watch", "Coastal Flood Advisory", "Rip Current Statement", "Beach Hazards Statement", "High Surf Warning"]) assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=" + encodeURIComponent(ev))).status, 200, ev);
   for (const ev of ["Red Flag Warning", "Fire Weather Watch"]) assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=" + encodeURIComponent(ev))).status, 200, ev);
   answer = () => new Response(JSON.stringify({ type: "Feature", geometry: { type: "Polygon", coordinates: [] }, properties: {} }));
   assert.strictEqual((await get(nws, "/api/nws/zones/fire/COZ238")).status, 200); assert.strictEqual((await get(nws, "/api/nws/zones/fire/COC038")).status, 404);

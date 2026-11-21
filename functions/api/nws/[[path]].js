@@ -17,7 +17,9 @@ const UPSTREAM = "https://api.weather.gov";
 export const USER_AGENT = "(forecast-ops, github.com/WxMan33/forecast-ops)";
 const EVENTS = new Set(["Tornado Warning", "Severe Thunderstorm Warning", "Tornado Watch", "Severe Thunderstorm Watch", "Flash Flood Warning",
   "Winter Storm Warning", "Winter Storm Watch", "Blizzard Warning", "Ice Storm Warning", "Lake Effect Snow Warning", "Winter Weather Advisory",
-  "Red Flag Warning", "Fire Weather Watch"]);
+  "Red Flag Warning", "Fire Weather Watch",
+  "Hurricane Warning", "Hurricane Watch", "Tropical Storm Warning", "Tropical Storm Watch", "Storm Surge Warning", "Storm Surge Watch",
+  "Coastal Flood Warning", "Coastal Flood Watch", "Coastal Flood Advisory", "High Surf Warning", "High Surf Advisory", "Rip Current Statement", "Beach Hazards Statement"]);
 const ORIGINS = [/^https:\/\/wxman33\.github\.io$/, /^https:\/\/([a-z0-9-]+\.)?forecast-ops-beta\.pages\.dev$/, /^https:\/\/raw\.githack\.com$/, /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
 const TTL_S = { alerts: 30, alert: 3600, zone: 86400 };
 const memory = new Map(); // per-isolate cache; the Cache API is used too where the platform provides it

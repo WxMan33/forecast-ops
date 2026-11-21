@@ -335,9 +335,40 @@ ok("AirNow monitors: the highest pollutant AQI per site with its hour; inactive 
 });
 ok("NAQFC smoke: samples from the latest model run, sorted by valid hour", () => {
   const s = (t, run, v) => ({ value: String(v), attributes: { idp_validtime: Date.parse(t), idp_issueddate: Date.parse(run), idp_fcst_hour: 1 } });
-  const p = F.parseNAQFC({ samples: [s("2026-11-21T05:00:00Z", "2026-11-20T06:00:00Z", 2), s("2026-11-21T04:00:00Z", "2026-11-20T12:00:00Z", 1), s("2026-11-21T05:00:00Z", "2026-11-20T12:00:00Z", 3)] }, [-104.99, 39.74]);
-  assert.strictEqual(p.run, "2026-11-20T12:00:00.000Z"); assert.deepStrictEqual(p.hours.map((h) => h.v), [1, 3]);
+  const p = F.parseNAQFC({ samples: [s("2026-11-21T05:00:00Z", "2026-11-20T06:00:00Z", 2e-9), s("2026-11-21T04:00:00Z", "2026-11-20T12:00:00Z", 1e-9), s("2026-11-21T05:00:00Z", "2026-11-20T12:00:00Z", 3e-9)] }, [-104.99, 39.74]);
+  assert.strictEqual(p.run, "2026-11-20T12:00:00.000Z"); assert.deepStrictEqual(p.hours.map((h) => h.v), [1, 3]); // service kg/m³ -> µg/m³
   assert.throws(() => F.parseNAQFC({ error: {} }, [0, 0]), /unrecognized NOAA smoke/);
+});
+
+ok("WSSI-P levels: a failed level is inferred under 5% only when the level below has no area at the venue; otherwise the answer is unconfirmed", () => {
+  const area = [{ id: "x", category: "MAJOR", prob: 10 }];
+  const r = F.combineWSSI([[{ id: "a" }], [], [], [], { failed: "timeout" }]); assert.deepStrictEqual(r.inferred, ["EXTREME"]); assert.strictEqual(r.products.length, 1);
+  assert.throws(() => F.combineWSSI([[{ id: "a" }], [], [], area, { failed: "timeout" }]), /EXTREME did not answer \(timeout\) and the level below has an area/);
+  assert.throws(() => F.combineWSSI([{ failed: "HTTP 504" }, [], [], [], []]), /WWA did not answer/);
+  assert.deepStrictEqual(F.combineWSSI([[], [], { failed: "x" }, { failed: "y" }, []]).inferred, ["MODERATE", "MAJOR"]); // Minor has no area, so every higher level is bounded too
+});
+
+/* ---------- TROPICAL AND COASTAL adapters ---------- */
+ok("TCV (archived NWS Mobile, Isaias): one alert per land-zone segment and VTEC line, open-ended, purge time as message expiry, wind window kept; marine zones left out", () => {
+  const f = "202610071609-KMOB-WTUS84-TCVMOB", a = F.tcvToAlerts(fs.readFileSync(FX("tcv-kmob-al092026/" + f + ".txt"), "utf8"), f);
+  assert.ok(a.length > 5 && a.every((x) => x.properties.geocode.UGC.every((u) => !/^GMZ/.test(u))));
+  const p = a.find((x) => x.properties.geocode.UGC[0] === "ALZ266" && x.properties.event === "Hurricane Watch").properties;
+  assert.deepStrictEqual([p.sent, p.ends, p.expires, p.areaDesc, p.messageType], ["2026-10-07T16:09:00.000Z", null, "2026-10-08T00:15:00.000Z", "Baldwin Coastal", "Alert"]);
+  const n = F.normalizeAlert({ geometry: null, properties: p }); assert.deepStrictEqual([n.family, n.kind, n.openEnded, n.windWindow], ["tropical", "watch", true, "Friday afternoon until early Saturday morning"]);
+  assert.throws(() => F.tcvToAlerts("not a product", f), /unrecognized TCV/);
+});
+ok("Coastal alerts: Rip Current Statement is a coastal 'statement'; Coastal Flood Warning keeps its real end time (not open-ended)", () => {
+  const fsr = JSON.parse(fs.readFileSync(FX("nws-live-kjax-coastal-20261121.json"), "utf8")).features;
+  const rp = F.normalizeAlert(fsr.find((x) => x.properties.event === "Rip Current Statement")), cf = F.normalizeAlert(fsr.find((x) => x.properties.event === "Coastal Flood Warning"));
+  assert.deepStrictEqual([rp.family, rp.kind, cf.family, cf.kind, cf.openEnded, cf.expires], ["coastal", "statement", "coastal", "warning", false, "2026-11-23T10:00:00.000Z"]);
+});
+ok("NHC: advisory time from ADVDATE; outlook areas and wind probabilities in the live service's shape", () => {
+  const two = F.parseNHC({ features: [{ geometry: { type: "Polygon", coordinates: [[[-60, 20], [-55, 20], [-55, 25], [-60, 20]]] }, properties: { basin: "Atlantic", prob2day: "10%", risk2day: "Low", prob7day: "10%", risk7day: "Low", idp_filedate: 1795283273000 } }] }, "two");
+  assert.deepStrictEqual([two[0].kind, two[0].category, two[0].prob7], ["tcoutlook", "Low", "10%"]);
+  const w = F.parseNHCWsp({ 34: { features: [{ attributes: { percentage: "20-30%", idp_filedate: 1795283273000 } }, { attributes: { percentage: "10-20%" } }] }, 50: { features: [] } }, [-87.56, 30.297]);
+  assert.deepStrictEqual(w.map((x) => [x.kt, x.pct, x.band]), [[34, 20, "20-30%"]]); // 50 kt: no band at the venue
+  assert.strictEqual(F.parseNHCWsp({ 64: { features: [{ attributes: { percentage: ">90%" } }] } }, [0, 0])[0].pct, 90);
+  assert.throws(() => F.parseNHC({ error: {} }), /unrecognized NHC/);
 });
 
 Promise.all([...resolvedCases, ...watchCases]).then(() => console.log(n + " passed")).catch((e) => { console.error(e); process.exit(1); });
