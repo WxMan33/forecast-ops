@@ -145,6 +145,58 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     check("WINTER phone map: winter view without horizontal scroll", (await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) <= 0);
     await p.screenshot({ path: path.join(OUT, "ARCHIVED-map-winter-phone.png") }); await ctx.close(); }
 
+  /* 3d. FIRE (ARCHIVED official): SPC fire weather outlooks Jul 29-Aug 1, NWS Denver/Boulder watch -> Red Flag Warning
+     Nov 17-18, NIFC WFIGS snapshot 2026-11-21 */
+  const MOSES = ["Grant County Fairgrounds", 47.1166, -119.2783], CANVAS = ["Canvas Stadium", 40.5718, -105.0897], LAKEP = ["Lake Pueblo State Park", 38.2655, -104.7246];
+  const SAT_AUG1 = { setup: "2026-08-01T08:00", gates: "2026-08-01T11:00", start: "2026-08-01T12:00", end: "2026-08-01T20:00", teardown: "2026-08-01T22:00" };
+  const WED_CO = { setup: "2026-11-18T07:00", gates: "2026-11-18T10:00", start: "2026-11-18T11:00", end: "2026-11-18T15:00", teardown: "2026-11-18T18:00" };
+  const SAT_CO = { setup: "2026-11-21T08:00", start: "2026-11-21T10:00", end: "2026-11-21T16:00" };
+  v = await planner("threats=archive-fire-day4&e=" + EW(...MOSES, SAT_AUG1, "America/Los_Angeles"), { dsf: 2 }); r = await v.read();
+  check("FIRE days ahead (Jul 29): 'Critical fire weather area Saturday (Day 4 outlook)' at Moses Lake, with window and phases", r.items.length === 1 && r.items[0].headline === "Critical fire weather area Saturday (Day 4 outlook)" && /Sat 5 a\.m\. – Sun 5 a\.m\.\) overlaps setup, gates, the event and teardown/.test(r.items[0].line), r.items);
+  await shot(v, "ARCHIVED-planner-fire-day4-moseslake"); const f4 = r.maps[0]; await v.ctx.close();
+  m = await openMap(f4, "ARCHIVED-map-from-planner-fire-day4");
+  check("FIRE View on map (Day 4): Fire view, Day 4, the Critical area selected", m.s.view === "fire" && m.s.sel && /d4-windrh-CRIT/.test(m.s.sel) && m.s.layers.fire && /Critical fire weather area/.test(m.s.title) && !m.errs.length, m);
+  v = await planner("threats=archive-fire-day2&e=" + EW(...MOSES, SAT_AUG1, "America/Los_Angeles"), { dsf: 2 }); r = await v.read();
+  check("FIRE two days out (Jul 31): 'Extremely Critical fire weather risk Saturday'", r.items.length === 1 && r.items[0].headline === "Extremely Critical fire weather risk Saturday", r.items);
+  await v.p.click(".et-more"); let fm = await v.p.evaluate(() => document.querySelector(".et-detail:not([hidden])").innerText);
+  check("FIRE More info (outlook): SPC Day 2, issued, valid window, category and SPC's meaning, official link", /SPC Day 2 fire weather outlook/.test(fm) && /Issued\s*Fri, Jul 31, 1:02 PM PDT/.test(fm) && /Sat, Aug 1, 5:00 AM PDT → Sun, Aug 2, 5:00 AM PDT/.test(fm) && /Extremely Critical \(wind and relative humidity\)/.test(fm) && /not by whether fires start/.test(fm), fm);
+  const fsteps = await v.p.evaluate(() => {
+    const base = window.EventThreats.current(), h = () => window.EventThreatsLast.items.map((i) => i.headline).join(" | ") || "none", out = [h()];
+    window.EventThreats.update({ ...base, loc: { name: "Spokane Arena", lat: 47.665, lon: -117.4235 } }); out.push(h());
+    window.EventThreats.update({ ...base, times: { start: "2026-08-02T10:00", end: "2026-08-02T16:00" } }); out.push(h());
+    window.EventThreats.update(base); out.push(h()); return out;
+  });
+  check("FIRE same page: Moses Lake Extremely Critical → Spokane Critical → event moved to Sunday (none) → back", fsteps[0] === "Extremely Critical fire weather risk Saturday" && fsteps[1] === "Critical fire weather risk Saturday" && fsteps[2] === "none" && fsteps[3] === fsteps[0], fsteps);
+  await shot(v, "ARCHIVED-planner-fire-day2-moseslake"); await v.ctx.close();
+  v = await planner("threats=archive-fire-watch&e=" + EW(...CANVAS, WED_CO, "America/Denver"), { dsf: 2 }); r = await v.read();
+  check("FIRE replay Nov 17 1 p.m.: Fire Weather Watch at Fort Collins from its fire weather zone, with its start", r.items.length === 1 && r.items[0].headline === "Fire Weather Watch during setup, gates, the event and teardown" && /from 8 a\.m\. Wednesday until 4 p\.m\. Wednesday \(issued for the fire weather zone/.test(r.items[0].line), r.items);
+  await shot(v, "ARCHIVED-planner-fire-watch-fortcollins"); await v.ctx.close();
+  v = await planner("threats=archive-fire-warning&e=" + EW(...CANVAS, WED_CO, "America/Denver"), { dsf: 2 }); r = await v.read();
+  check("FIRE replay Nov 18 midnight: upgraded to 'Red Flag Warning during setup, gates, the event and teardown'", r.items.length === 1 && r.items[0].headline === "Red Flag Warning during setup, gates, the event and teardown", r.items);
+  await v.p.click(".et-more"); fm = await v.p.evaluate(() => document.querySelector(".et-detail:not([hidden])").innerText);
+  check("FIRE More info (Red Flag): issued 11:11 PM, in effect 8 AM-4 PM, fire weather zones listed", /Issued\s*Tue, Nov 17, 11:11 PM MST/.test(fm) && /from Wed, Nov 18, 8:00 AM MST until Wed, Nov 18, 4:00 PM MST/.test(fm) && /fire weather zones it lists: COZ238, COZ239/.test(fm), fm);
+  const den = await v.p.evaluate(() => { const base = window.EventThreats.current(); window.EventThreats.update({ ...base, loc: { name: "Empower Field", lat: 39.7439, lon: -105.0201 } }); const n = window.EventThreatsLast.items.length; window.EventThreats.update(base); return n; });
+  check("FIRE: Denver (watch cancelled, not upgraded) has no fire weather alert", den === 0, den);
+  await shot(v, "ARCHIVED-planner-fire-redflag-fortcollins"); const rfl = r.maps[0]; await v.ctx.close();
+  m = await openMap(rfl, "ARCHIVED-map-from-planner-fire-redflag");
+  check("FIRE View on map (Red Flag): Active now, the warning selected, Fire layer only", m.s.view === "active" && /KBOU\.FW\.W\.0057/.test(m.s.sel || "") && m.s.layers.fire && !m.s.layers.winter && /Red Flag Warning/.test(m.s.title) && !m.errs.length, m);
+  v = await planner("threats=archive-fire-incidents&e=" + EW(...LAKEP, SAT_CO, "America/Denver"), { dsf: 2 }); r = await v.read();
+  check("FIRE incidents (NIFC snapshot): 'Wildfire 12 miles southwest: Aspen Acres · 102,007 acres · 96% contained'", r.items.length === 1 && r.items[0].headline === "Wildfire 12 miles southwest: Aspen Acres · 102,007 acres · 96% contained" && /updated Nov 19, 3:29 PM/.test(r.items[0].line), r.items);
+  await v.p.click(".et-more"); fm = await v.p.evaluate(() => document.querySelector(".et-detail:not([hidden])").innerText);
+  check("FIRE More info (incident): size, containment, discovered, NIFC update, perimeter date, distance, incident ID", /102,007 acres/.test(fm) && /96%/.test(fm) && /Discovered\s*Mon, Jun 29/.test(fm) && /Thu, Nov 19, 3:29 PM MST \(NIFC incident record\)/.test(fm) && /Mapped Mon, Aug 10/.test(fm) && /12 miles southwest of the venue to the perimeter edge/.test(fm) && /2026-COCUX-001160/.test(fm), fm);
+  const far = await v.p.evaluate(() => { const base = window.EventThreats.current(); window.EventThreats.update({ ...base, loc: { name: "Colorado State Fairgrounds", lat: 38.2611, lon: -104.6189 } }); const n = window.EventThreatsLast.items.length; window.EventThreats.update(base); return n; });
+  check("FIRE incidents: the State Fairgrounds (17.5 mi) does not list it", far === 0, far);
+  await shot(v, "ARCHIVED-planner-fire-incident-lakepueblo"); const incl = r.maps[0]; await v.ctx.close();
+  m = await openMap(incl, "ARCHIVED-map-from-planner-fire-incident");
+  check("FIRE View on map (incident): Active now, Aspen Acres selected with its perimeter", m.s.view === "active" && /^nifc-/.test(m.s.sel || "") && m.s.title === "Aspen Acres" && !m.errs.length, m);
+  v = await planner("threats=archive-fire-day2&e=" + EW(...MOSES, SAT_AUG1, "America/Los_Angeles"), { phone: true });
+  check("FIRE phone: Planner section without horizontal scroll", (await v.p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) <= 0 && !v.errors.length, v.errors);
+  await shot(v, "ARCHIVED-planner-fire-phone"); await v.ctx.close();
+  { const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }), p = await ctx.newPage();
+    await p.goto(f4.replace(/^https?:\/\/[^/]+/, HOST).replace("/threats.html", "/threats").replace(/&sel=[^&]*/, "") + "&sheet=open"); await p.waitForFunction(() => window.__threats && window.__threats.ready && !window.__threats.data.loading, null, { timeout: 60000 }); await p.waitForTimeout(2500);
+    check("FIRE phone map: Fire view without horizontal scroll", (await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) <= 0);
+    await p.screenshot({ path: path.join(OUT, "ARCHIVED-map-fire-phone.png") }); await ctx.close(); }
+
   /* 4. LIVE feeds through the functions */
   v = await planner("e=" + E(...DAYTONA, { setup: "2026-11-21T09:00", gates: "2026-11-21T11:00", start: "2026-11-21T12:30", end: "2026-11-21T16:00", teardown: "2026-11-21T18:00" }), { dsf: 2, wait: 9000 }); r = await v.read();
   const viaFn = v.feeds.filter((f) => /\/api\/(nws|wpc)\//.test(f.url)), direct = v.feeds.filter((f) => /api\.weather\.gov\/alerts\/active\?event=|wpc\.ncep|wpc_precip_hazards/.test(f.url)); // the threats feeds only; Event Manager's own point forecast requests are separate
@@ -169,6 +221,20 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     check("LIVE winter View on map: WSSI-P areas drawn for the window, the venue's chance matches Planner", s2.view === "winter" && s2.wssi > 0 && new RegExp(liveW.headline.match(/(\d+)%/)[1] + "%").test(s2.big) && !errs.length, { s2, head: liveW.headline, errs });
     await p.screenshot({ path: path.join(OUT, "LIVE-map-winter-from-planner.png") }); await ctx.close();
   } else check("LIVE winter View on map: a WSSI-P item at the venue to open", false, r.items);
+
+  /* 4c. LIVE fire: SPC fire outlooks Days 1-8 and NIFC incidents answer; the venue's matching is stated per source */
+  v = await planner("e=" + EW("Cheyenne Frontier Days Arena", 41.1505, -104.8301, { start: new Date(Date.now() + 2 * 3600e3).toLocaleString("sv-SE", { timeZone: "America/Denver" }).slice(0, 16).replace(" ", "T"), end: new Date(Date.now() + 5 * 3600e3).toLocaleString("sv-SE", { timeZone: "America/Denver" }).slice(0, 16).replace(" ", "T") }, "America/Denver"), { dsf: 2, wait: 2000 });
+  await v.p.waitForFunction(() => !window.EventThreatsLast.statuses.some((x) => /Loading/.test(x.text)), null, { timeout: 90000 }).catch(() => {}); await v.p.waitForTimeout(500); r = await v.read();
+  const fireFeeds = v.feeds.filter((f) => /spc\.noaa\.gov\/products\/(exper\/)?fire_wx|services3\.arcgis\.com/.test(f.url));
+  check("LIVE fire: SPC fire outlooks (16 files, Days 1-8) and NIFC incidents + perimeters answered; both sources state their check time", fireFeeds.filter((f) => /fire_wx/.test(f.url) && f.status === 200).length >= 16 && fireFeeds.filter((f) => /arcgis/.test(f.url) && f.status === 200).length >= 2 && r.statuses.some((x) => /^SPC fire weather outlooks: Checked .* Days 1, 2, 3, 4, 5, 6, 7, 8/.test(x)) && r.statuses.some((x) => /^NIFC wildfire incidents \(WFIGS\): Checked/.test(x)), { st: r.statuses, n: fireFeeds.length });
+  fs.writeFileSync(path.join(OUT, "live-planner-fire.json"), JSON.stringify({ at: new Date().toISOString(), result: r, feeds: fireFeeds }, null, 1));
+  await shot(v, "LIVE-planner-fire-cheyenne"); await v.ctx.close();
+  { const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }), p = await ctx.newPage(); const errs = []; p.on("pageerror", (e) => errs.push(e.message));
+    await p.goto(HOST + "/threats?view=fire&fday=1&layers=fire", { waitUntil: "domcontentloaded" });
+    await p.waitForFunction(() => window.__threats && window.__threats.ready && window.__threats.liveReady && window.__threats.map.getSource("inc-pt")._data.features.length > 0, null, { timeout: 90000 }).catch(() => {}); await p.waitForTimeout(3000);
+    const s2 = await p.evaluate(() => ({ inc: window.__threats.map.getSource("inc-pt")._data.features.length, per: window.__threats.map.getSource("inc")._data.features.length, valid: document.getElementById("txValid").textContent }));
+    check("LIVE fire map: NIFC incidents and perimeters drawn; Day 1 outlook window stated", s2.inc > 50 && s2.per > 10 && /SPC Day 1/.test(s2.valid) && !errs.length, { s2, errs });
+    await p.screenshot({ path: path.join(OUT, "LIVE-map-fire-national.png") }); await ctx.close(); }
 
   /* 5. outage: NWS route blocked in this browser */
   v = await planner("e=" + E(...ATL, FRI), { blockNws: true, wait: 4000 }); r = await v.read();
