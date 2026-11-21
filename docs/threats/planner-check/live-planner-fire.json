@@ -1,5 +1,5 @@
 {
- "at": "2026-11-21T03:23:03.620Z",
+ "at": "2026-11-21T03:26:50.363Z",
  "result": {
   "summary": "2 weather threats for this event",
   "confirmed": false,
@@ -28,15 +28,15 @@
    }
   ],
   "statuses": [
-   "NWS warnings, watches and advisories: Checked 8:22 p.m.",
-   "SPC fire weather outlooks: Checked 8:22 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
-   "NOAA satellite smoke analysis (HMS): Checked 8:22 p.m.",
-   "AirNow air quality observations: Checked 8:23 p.m. · nearest monitor Cheyenne NCore (3 miles northeast): AQI 40 Good (Ozone) for 8 p.m.",
+   "NWS warnings, watches and advisories: Checked 8:26 p.m.",
+   "SPC fire weather outlooks: Checked 8:26 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NOAA satellite smoke analysis (HMS): Checked 8:26 p.m.",
+   "AirNow air quality observations: Checked 8:26 p.m. · nearest monitor Cheyenne NCore (3 miles northeast): AQI 40 Good (Ozone) for 8 p.m.",
    "AirNow air quality forecasts: No AirNow forecast area for this venue.",
-   "NOAA smoke forecast guidance (NAQFC): Checked 8:23 p.m.",
-   "NIFC wildfire incidents (WFIGS): Checked 8:22 p.m.",
-   "WPC winter storm severity outlook (WSSI-P): Checked 8:23 p.m. · file 0218Z",
-   "WPC Excessive Rainfall Outlook: Checked 8:22 p.m. · Day 1 issued 0052Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
+   "NOAA smoke forecast guidance (NAQFC): Checked 8:26 p.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 8:26 p.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 8:26 p.m. · file 0218Z",
+   "WPC Excessive Rainfall Outlook: Checked 8:26 p.m. · Day 1 issued 0052Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
   ],
   "maps": [
    "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=41.1505&lon=-104.8301&name=Cheyenne+Frontier+Days+Arena&tz=America%2FDenver&scope=venue&view=fire&fday=1&layers=fire&sel=spc-fire-d1-windrh-ELEV-2026-11-20T16%3A14%3A00.000Z&nws=function",
@@ -45,7 +45,7 @@
  },
  "feeds": [
   {
-   "url": "https://www.spc.noaa.gov/products/fire_wx/day2fw_windrh.lyr.geojson",
+   "url": "https://www.spc.noaa.gov/products/fire_wx/day1fw_windrh.lyr.geojson",
    "status": 200,
    "cache": null,
    "upstreamAt": null
@@ -57,7 +57,19 @@
    "upstreamAt": null
   },
   {
+   "url": "https://www.spc.noaa.gov/products/fire_wx/day2fw_windrh.lyr.geojson",
+   "status": 200,
+   "cache": null,
+   "upstreamAt": null
+  },
+  {
    "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day3fw_windrhprob.lyr.geojson",
+   "status": 200,
+   "cache": null,
+   "upstreamAt": null
+  },
+  {
+   "url": "https://www.spc.noaa.gov/products/fire_wx/day2fw_dryt.lyr.geojson",
    "status": 200,
    "cache": null,
    "upstreamAt": null
@@ -75,31 +87,13 @@
    "upstreamAt": null
   },
   {
-   "url": "https://www.spc.noaa.gov/products/fire_wx/day2fw_dryt.lyr.geojson",
-   "status": 200,
-   "cache": null,
-   "upstreamAt": null
-  },
-  {
-   "url": "https://www.spc.noaa.gov/products/fire_wx/day1fw_windrh.lyr.geojson",
-   "status": 200,
-   "cache": null,
-   "upstreamAt": null
-  },
-  {
    "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day5fw_windrhprob.lyr.geojson",
    "status": 200,
    "cache": null,
    "upstreamAt": null
   },
   {
-   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day6fw_windrhprob.lyr.geojson",
-   "status": 200,
-   "cache": null,
-   "upstreamAt": null
-  },
-  {
-   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day7fw_windrhprob.lyr.geojson",
+   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day4fw_drytprob.lyr.geojson",
    "status": 200,
    "cache": null,
    "upstreamAt": null
@@ -117,31 +111,37 @@
    "upstreamAt": null
   },
   {
-   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day8fw_windrhprob.lyr.geojson",
-   "status": 200,
-   "cache": null,
-   "upstreamAt": null
-  },
-  {
-   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day4fw_drytprob.lyr.geojson",
-   "status": 200,
-   "cache": null,
-   "upstreamAt": null
-  },
-  {
    "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day7fw_drytprob.lyr.geojson",
    "status": 200,
    "cache": null,
    "upstreamAt": null
   },
   {
-   "url": "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query?where=IncidentTypeCategory%20IN%20(%27WF%27%2C%27CX%27%2C%27RX%27)&outFields=IrwinID,UniqueFireIdentifier,IncidentName,IncidentTypeCategory,IncidentSize,PercentContained,FireDiscoveryDateTime,ModifiedOnDateTime_dt,ContainmentDateTime,ControlDateTime,FireOutDateTime,POOState,POOCounty,POOProtectingUnit,IncidentManagementOrganization,TotalIncidentPersonnel,FireCause&outSR=4326&resultRecordCount=4000&f=geojson",
+   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day6fw_windrhprob.lyr.geojson",
+   "status": 200,
+   "cache": null,
+   "upstreamAt": null
+  },
+  {
+   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day7fw_windrhprob.lyr.geojson",
+   "status": 200,
+   "cache": null,
+   "upstreamAt": null
+  },
+  {
+   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day8fw_windrhprob.lyr.geojson",
    "status": 200,
    "cache": null,
    "upstreamAt": null
   },
   {
    "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day8fw_drytprob.lyr.geojson",
+   "status": 200,
+   "cache": null,
+   "upstreamAt": null
+  },
+  {
+   "url": "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query?where=IncidentTypeCategory%20IN%20(%27WF%27%2C%27CX%27%2C%27RX%27)&outFields=IrwinID,UniqueFireIdentifier,IncidentName,IncidentTypeCategory,IncidentSize,PercentContained,FireDiscoveryDateTime,ModifiedOnDateTime_dt,ContainmentDateTime,ControlDateTime,FireOutDateTime,POOState,POOCounty,POOProtectingUnit,IncidentManagementOrganization,TotalIncidentPersonnel,FireCause&outSR=4326&resultRecordCount=4000&f=geojson",
    "status": 200,
    "cache": null,
    "upstreamAt": null
