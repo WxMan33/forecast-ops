@@ -18,7 +18,8 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function (T, F) {
   "use strict";
   const PHASE_WORD = { setup: "setup", gates: "gates", event: "the event", teardown: "teardown" };
-  const FAMILY_WORD = { flood: "flooding", severe: "severe storms", winter: "winter weather" };
+  const FAMILY_WORD = { flood: "flooding", severe: "severe storms", winter: "winter weather", fire: "fire weather or wildfire" };
+  const INCIDENT_KM = 15 * T.KM_PER_MI; // a wildfire is listed when its perimeter, or its reported point, is within 15 miles
   const ALERT_RANK = { warning: 0, watch: 0.3, advisory: 0.4 };
   const list = (a) => (a.length <= 1 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]);
   const day = (ms, tz) => new Date(ms).toLocaleDateString("en-US", { timeZone: tz, weekday: "long" });
@@ -56,11 +57,12 @@
       if (rel.kind !== "covers" && rel.kind !== "unknown") continue;
       const words = ph.map((x) => PHASE_WORD[x.key] || x.label.toLowerCase());
       const until = clock(end, tz) + (day(end, tz) !== day(now, tz) ? " " + day(end, tz) : "");
-      const winter = family(p) === "winter";
+      const winter = family(p) === "winter" || family(p) === "fire", fire = family(p) === "fire";
+      const from = fire && start > now ? "from " + clock(start, tz) + (day(start, tz) !== day(now, tz) ? " " + day(start, tz) : "") + " " : "";
       items.push({ id: p.id, productId: p.id, family: family(p), kind: p.kind, rank: ALERT_RANK[p.kind], product: p, phases: ph.map((x) => x.key),
         headline: winter ? p.event + " during " + list(words) : p.event + " until " + until,
         line: rel.kind !== "covers" ? "Area not fully drawn: the " + p.kind + " lists zones that could include the venue during " + list(words) + "."
-          : winter ? "In effect at the venue until " + until + (p.geometrySource === "counties" ? " (issued for the forecast zone that includes the venue)." : ".") : "Covers the venue during " + list(words) + ".",
+          : winter ? "In effect at the venue " + from + "until " + until + (p.geometrySource === "counties" ? " (issued for the " + (fire ? "fire weather" : "forecast") + " zone that includes the venue)." : ".") : "Covers the venue during " + list(words) + ".",
         relation: rel, window: { startMs: start, endMs: end } });
     }
 
@@ -94,6 +96,25 @@
       }
     }
 
+    /* wildfire incidents (NIFC): no valid window, so they apply while the event is still ahead or under way. Listed when
+       the perimeter includes the venue or is within 15 miles, or, without a perimeter, the reported point is within 15
+       miles. Prescribed fires are left out of Planner. */
+    if (all.endMs > now) for (const p of products) {
+      if (!fam(p) || p.kind !== "incident" || p.category === "RX") continue;
+      let at = null;
+      if (p.geometry) { const r = T.relation(p, venue, INCIDENT_KM); if (r.kind === "covers") at = { km: 0, inside: true }; else if (r.kind === "near") at = { km: r.km, dir: r.dir }; }
+      else { const d = T.pointDistance([venue.lon, venue.lat], p.point); if (d.km <= INCIDENT_KM) at = { km: d.km, dir: d.dir, pointOnly: true }; }
+      if (!at) continue;
+      const facts = [p.acres != null ? Math.round(p.acres).toLocaleString("en-US") + " acres" : "size not reported", p.contained != null ? p.contained + "% contained" : "containment not reported"].join(" · ");
+      const where = at.inside ? "Wildfire perimeter includes the venue" : (p.category === "CX" ? "Wildfire complex " : "Wildfire ") + T.distanceText(at.km) + " " + at.dir + (at.pointOnly ? " (reported location; no mapped perimeter)" : "");
+      const upd = p.updated ? new Date(p.updated).toLocaleString("en-US", { timeZone: tz, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "unknown";
+      items.push({ id: p.id, productId: p.id, family: "fire", kind: "incident", rank: at.inside ? 0.2 : 0.5 + Math.min(at.km, 30) / 100, product: p, phases: phases.filter((x) => x.endMs > now).map((x) => x.key),
+        distanceKm: at.km, inside: !!at.inside, pointOnly: !!at.pointOnly,
+        headline: where + ": " + p.name + " · " + facts,
+        line: "Active incident reported to NIFC (updated " + upd + "). Incidents have no end time; size, containment and spread can change before the event.",
+        relation: at.inside ? { kind: "covers" } : { kind: "near", km: at.km, dir: at.dir }, window: { startMs: now, endMs: all.endMs } });
+    }
+
     /* outlooks: one item per program, day and issuance, at the highest category containing the venue */
     const groups = new Map();
     for (const p of products) {
@@ -106,13 +127,24 @@
       const a = g[0], s = Date.parse(a.validStart), e = Date.parse(a.validEnd);
       const ph = overlaps(s, e, phases);
       if (!ph.length) continue;
-      const order = a.program === "ero" ? F.ERO_CATS : T.OUTLOOK, inside = g.filter((p) => T.contains(p.geometry, [venue.lon, venue.lat]));
+      const fireO = /^spcfire-/.test(a.program || ""), dryt = a.part === "dryt";
+      const order = a.program === "ero" ? F.ERO_CATS : fireO ? (a.day >= 3 ? F.FIRE38_CATS : dryt ? F.DRYT_CATS : F.FIRE_CATS) : T.OUTLOOK, inside = g.filter((p) => T.contains(p.geometry, [venue.lon, venue.lat]));
       if (a.program === "spc") { const i = inside.filter((p) => p.category !== "TSTM"); if (!i.length) continue; inside.splice(0, inside.length, ...i); }
       if (!inside.length) continue;
       const top = inside.reduce((x, y) => (order.indexOf(y.category) > order.indexOf(x.category) ? y : x));
       const words = ph.map((x) => PHASE_WORD[x.key] || x.label.toLowerCase());
       const name = a.program === "ero" ? F.ERO_NAME[top.category] + " (" + F.ERO_PCT[top.category] + ")" : T.outlookLabel(top.category);
-      const what = a.program === "ero" ? "Excessive rainfall risk" : "Severe storm risk";
+      const what = a.program === "ero" ? "Excessive rainfall risk" : "Severe storm risk", dname = day(Math.max(s, all.startMs), tz);
+      if (fireO) {
+        const c = top.category, p38 = c === "P40" || c === "P70";
+        const head = a.day >= 3 ? (p38 ? c.slice(1) + "% chance of critical " + (dryt ? "dry thunderstorms " : "fire weather ") + dname : "Critical " + (dryt ? "dry thunderstorm" : "fire weather") + " area " + dname + " (Day " + a.day + " outlook)")
+          : dryt ? "Dry thunderstorm risk " + dname + " · " + F.FIRE_NAME[c] : F.FIRE_NAME[c] + " fire weather risk " + dname;
+        items.push({ id: top.id, productId: top.id, family: "fire", kind: "outlook", rank: 1 + (order.length - order.indexOf(c)) / 10, product: top, phases: ph.map((x) => x.key), lower: [],
+          headline: head,
+          line: "The SPC Day " + a.day + " fire weather outlook includes the venue and its period (" + span(s, e, tz) + ") overlaps " + list(words) + ". " + (p38 ? F.FIRE_MEANING[c] : F.FIRE_MEANING[c] || "") + " It rates the weather and fuels for the whole period, not timing within it, and not whether a fire starts.",
+          relation: { kind: "covers" }, window: { startMs: s, endMs: e } });
+        continue;
+      }
       items.push({ id: top.id, productId: top.id, family: family(top), kind: "outlook", rank: 1 + (order.length - order.indexOf(top.category)) / 10, product: top, phases: ph.map((x) => x.key),
         lower: inside.filter((p) => p !== top).map((p) => p.category),
         headline: what + " " + day(Math.max(s, all.startMs), tz) + " · " + name,

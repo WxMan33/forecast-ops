@@ -13,13 +13,17 @@ globalThis.fetch = async (url, init) => { sent.push({ url: String(url), ua: new 
 const env = { __harness: true, NOW: () => clock, UPSTREAM: "https://upstream.test", TIMEOUT_MS: 500 };
 const get = (h, p, origin = "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev") => h.handle(new Request("https://x.test" + p, { headers: { Origin: origin } }), env);
 
-await ok("NWS: Flash Flood Warning and the winter alerts are allowed; other events and paths are not forwarded", async () => {
+await ok("NWS: Flash Flood Warning, winter and fire weather alerts and fire weather zones are allowed; other events and paths are not forwarded", async () => {
   assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=Flash%20Flood%20Warning")).status, 200);
   assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=Flood%20Warning")).status, 404);
   assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=Flash%20Flood%20Warning&area=FL")).status, 404);
   assert.strictEqual((await get(nws, "/api/nws/points/29,-81")).status, 404);
   for (const ev of ["Winter Storm Warning", "Winter Storm Watch", "Blizzard Warning", "Ice Storm Warning", "Lake Effect Snow Warning", "Winter Weather Advisory"]) assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=" + encodeURIComponent(ev))).status, 200, ev);
   assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=Wind%20Chill%20Advisory")).status, 404);
+  for (const ev of ["Red Flag Warning", "Fire Weather Watch"]) assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=" + encodeURIComponent(ev))).status, 200, ev);
+  answer = () => new Response(JSON.stringify({ type: "Feature", geometry: { type: "Polygon", coordinates: [] }, properties: {} }));
+  assert.strictEqual((await get(nws, "/api/nws/zones/fire/COZ238")).status, 200); assert.strictEqual((await get(nws, "/api/nws/zones/fire/COC038")).status, 404);
+  answer = () => new Response(JSON.stringify({ type: "FeatureCollection", features: [] }), { status: 200 });
   assert.ok(sent.every((s) => s.ua === "(forecast-ops, github.com/WxMan33/forecast-ops)"));
 });
 await ok("WPC: only day 1–5 ERO files; identifying User-Agent; CORS for the preview origin only", async () => {

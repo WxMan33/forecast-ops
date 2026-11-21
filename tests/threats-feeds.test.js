@@ -280,4 +280,37 @@ ok("NOAA MD service: the real NoArea placeholder is empty; other shapes are unre
   assert.strictEqual(F.parseMDService({ error: { code: 500 } }).state, "unrecognized");
 });
 
+/* ---------- FIRE adapters ---------- */
+ok("SPC fire outlook: archived Day 2 bands parse to ELEV/CRIT/EXTM with SPC's times; 'No Areas' is a confirmed empty answer; unknown labels are rejected", () => {
+  const j = (f) => JSON.parse(fs.readFileSync(FX(f), "utf8"));
+  const o = F.parseFireOutlook(j("spc-fire-day2-20260731-2000-windrh.geojson"), 2, "windrh");
+  assert.deepStrictEqual(o.products.map((p) => p.category), ["ELEV", "CRIT", "EXTM"]);
+  assert.strictEqual(o.validStart, "2026-08-01T12:00:00.000Z"); assert.strictEqual(o.issued, "2026-07-31T20:02:00.000Z");
+  const e = F.parseFireOutlook(j("spc-fire-day2-20260730-2000-dryt.geojson"), 2, "dryt"); assert.ok(e.empty); assert.strictEqual(e.phrase, "No Areas");
+  const bad = j("spc-fire-day2-20260731-2000-windrh.geojson"); bad.features[0].properties.LABEL = "MDT";
+  assert.throws(() => F.parseFireOutlook(bad, 2, "windrh"), /unrecognized SPC fire outlook category: MDT/);
+  const prob = { type: "FeatureCollection", features: [{ type: "Feature", geometry: bad.features[1].geometry, properties: { LABEL: "0.40", VALID: "202608031200", EXPIRE: "202608041200", ISSUE: "202607312150" } }] };
+  assert.deepStrictEqual(F.parseFireOutlook(prob, 3, "windrh").products.map((p) => [p.day, p.category]), [[3, "P40"]]);
+});
+ok("SPC fire store: an older issuance never replaces a newer one; a failure keeps the last good answer", () => {
+  const j = (f) => JSON.parse(fs.readFileSync(FX(f), "utf8")), s = F.createFireStore(1, "windrh");
+  s.ingest(j("spc-fire-day1-20260801-1700-windrh.geojson"), "2026-08-01T17:10:00Z"); s.ingest(j("spc-fire-day1-20260801-1200-windrh.geojson"), "2026-08-01T17:20:00Z");
+  assert.strictEqual(s.current(Date.parse("2026-08-01T18:00:00Z")).issued, "2026-08-01T17:00:00.000Z");
+  s.fail("2026-08-01T17:30:00Z", "HTTP 503"); assert.strictEqual(s.current(Date.parse("2026-08-01T18:00:00Z")).products.length, 3); assert.strictEqual(s.sourceInfo().state, "failed");
+});
+ok("NIFC: incidents joined to perimeters by IRWIN ID; declared-out records dropped; a truncated answer is an error", () => {
+  const j = (f) => JSON.parse(fs.readFileSync(FX(f), "utf8")), inc = j("nifc-wfigs-20261121-incidents.geojson"), per = j("nifc-wfigs-20261121-perimeters.geojson");
+  const all = F.parseNIFC(inc, per); assert.strictEqual(all.length, inc.features.length); assert.strictEqual(all.filter((p) => p.geometry).length, 57);
+  const out = JSON.parse(JSON.stringify(inc)); out.features[0].properties.FireOutDateTime = 1795000000000; assert.strictEqual(F.parseNIFC(out, null).length, inc.features.length - 1);
+  assert.throws(() => F.parseNIFC({ ...inc, properties: { exceededTransferLimit: true } }, per), /incomplete/);
+  assert.throws(() => F.parseNIFC({ error: { code: 400 } }, per), /unrecognized/);
+});
+ok("NWS fire weather alerts: Red Flag Warning and Fire Weather Watch are fire-family products from fire weather zones", () => {
+  const msgs = JSON.parse(fs.readFileSync(FX("nws-archive-kbou-fw-w-0057.json"), "utf8")).features, s = F.createAlertStore();
+  s.ingest({ type: "FeatureCollection", features: msgs.slice(0, 1) }, "2026-11-17T19:47:00Z");
+  const p = s.products(Date.parse("2026-11-17T20:00:00Z"))[0];
+  assert.deepStrictEqual([p.family, p.kind, p.event, p.geometrySource, p.zones[0]], ["fire", "warning", "Red Flag Warning", "counties", "https://api.weather.gov/zones/fire/COZ216"]);
+  assert.strictEqual(F.zoneShape(["https://api.weather.gov/zones/fire/COZ216"], [null]).fire.listed, 1);
+});
+
 Promise.all([...resolvedCases, ...watchCases]).then(() => console.log(n + " passed")).catch((e) => { console.error(e); process.exit(1); });

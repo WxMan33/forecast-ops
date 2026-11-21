@@ -190,3 +190,96 @@ console.log(n + " passed");
   });
 }
 console.log(n + " passed (with winter)");
+
+/* ---------------- FIRE: SPC Fire Weather Outlooks (ARCHIVED, SPC's archive: Jul 29 Day 3-8, Jul 31 Day 2, Aug 1 Day 1),
+   NWS Red Flag Warning / Fire Weather Watch (ARCHIVED, NWS Denver/Boulder, Nov 17-18) and NIFC WFIGS incidents
+   (official snapshot captured 2026-11-21) ---------------- */
+{
+  const fj = (f) => JSON.parse(fs.readFileSync(FX(f), "utf8"));
+  const fire = (f, day, part) => F.parseFireOutlook(fj(f), day, part).products;
+  const D38_0729 = fire("spc-fire-day38-20260729.geojson", 3, "windrh"), D2_0731 = fire("spc-fire-day2-20260731-2000-windrh.geojson", 2, "windrh"), D1_0801 = fire("spc-fire-day1-20260801-1700-windrh.geojson", 1, "windrh");
+  const NIFC = F.parseNIFC(fj("nifc-wfigs-20261121-incidents.geojson"), fj("nifc-wfigs-20261121-perimeters.geojson"));
+  const zonesCO = fj("nws-zones-colorado-fire-20261121.json").zones;
+  const evF = (name, lat, lon, times, tz) => { const ev = { id: "f", name, loc: { name, lat, lon }, tz, times }; assert.deepStrictEqual(C.event.validate(ev), []); return { name, lat, lon, tz, windows: C.event.windows(ev) }; };
+  const fstate = (clock, extra = {}) => ({ "nws-alerts": OK(clock), "spc-fire": { ...OK(clock), reachEnd: "2026-08-08T12:00:00Z" }, "nifc-wfigs": OK(clock), ...extra });
+  const MOSES = [47.1166, -119.2783] /* Grant County Fairgrounds, Moses Lake */, SPOKANE = [47.665, -117.4235], MISSOULA = [46.8721, -113.994];
+  const SAT_AUG1 = { setup: "2026-08-01T08:00", gates: "2026-08-01T11:00", start: "2026-08-01T12:00", end: "2026-08-01T20:00", teardown: "2026-08-01T22:00" };
+  const runF = (ev, clock, products, state = fstate(clock)) => M.forEvent({ products, state, event: ev, now: clock, families: ["fire"] });
+
+  ok("FIRE days ahead (Jul 29): SPC Day 3-8 marks a Critical fire weather area for Saturday Aug 1 at Moses Lake", () => {
+    const r = runF(evF("Grant County Fairgrounds", ...MOSES, SAT_AUG1, "America/Los_Angeles"), Date.parse("2026-07-29T22:30:00Z"), D38_0729);
+    assert.deepStrictEqual(r.items.map((i) => i.headline), ["Critical fire weather area Saturday (Day 4 outlook)"]);
+    assert.match(r.items[0].line, /^The SPC Day 4 fire weather outlook includes the venue and its period \(Sat 5 a\.m\. – Sun 5 a\.m\.\) overlaps setup, gates, the event and teardown\. .*not whether a fire starts\.$/);
+  });
+  ok("FIRE two days out (Jul 31): Day 2 Extremely Critical at Moses Lake; moving the venue to Spokane gives Critical, Missoula Elevated", () => {
+    const at = Date.parse("2026-07-31T21:00:00Z"), h = (v) => runF(evF("v", ...v, SAT_AUG1, "America/Los_Angeles"), at, D2_0731).items.map((i) => i.headline);
+    assert.deepStrictEqual(h(MOSES), ["Extremely Critical fire weather risk Saturday"]);
+    assert.deepStrictEqual(h(SPOKANE), ["Critical fire weather risk Saturday"]);
+    assert.deepStrictEqual(runF(evF("v", ...MISSOULA, SAT_AUG1, "America/Denver"), at, D2_0731).items.map((i) => i.headline), ["Elevated fire weather risk Saturday"]);
+  });
+  ok("FIRE day of (Aug 1, 11 a.m. MDT): the Day 1 update raises Missoula from Elevated to Critical", () => {
+    const r = runF(evF("v", ...MISSOULA, SAT_AUG1, "America/Denver"), Date.parse("2026-08-01T17:30:00Z"), D1_0801);
+    assert.deepStrictEqual(r.items.map((i) => [i.headline, i.phases.join("+")]), [["Critical fire weather risk Saturday", "gates+event+teardown"]]);
+  });
+  ok("FIRE: an event after the outlook period is not matched; the Day 3-8 range is stated when the event runs past it", () => {
+    const sun = { start: "2026-08-02T14:00", end: "2026-08-02T18:00" };
+    assert.strictEqual(runF(evF("v", ...MOSES, sun, "America/Los_Angeles"), Date.parse("2026-07-31T21:00:00Z"), D2_0731).items.length, 0);
+    const late = { start: "2026-08-09T10:00", end: "2026-08-09T14:00" }, r = runF(evF("v", ...MOSES, late, "America/Los_Angeles"), Date.parse("2026-07-31T21:00:00Z"), D2_0731);
+    assert.strictEqual(r.confirmed, false); assert.match(r.statuses.find((s) => s.id === "spc-fire").text, /runs past the outlooks issued so far/);
+  });
+
+  /* NWS Denver/Boulder: Fire Weather Watch 0044 (Nov 17 12:46 MST) upgraded to Red Flag Warning 0057 for COZ238/239 (23:11) */
+  function rfw(clock) {
+    const s = F.createAlertStore(), msgs = ["nws-archive-kbou-fw-a-0044.json", "nws-archive-kbou-fw-w-0057.json"].flatMap(chain).sort((a, b) => (a.properties.sent < b.properties.sent ? -1 : 1));
+    msgs.forEach((f, i) => { const at = Date.parse(f.properties.sent) + 30e3; if (at <= clock) s.ingest({ type: "FeatureCollection", features: msgs.slice(0, i + 1) }, new Date(at).toISOString()); });
+    return s.products(clock).filter((p) => p.status === "active").map((p) => { const z = F.zoneShape(p.zones, p.zones.map((u) => (zonesCO[u] ? zonesCO[u].geometry : null))); return { ...p, geometry: z.geometry, geometryIncomplete: z.incomplete, zoneInfo: z }; });
+  }
+  const FTC = [40.5718, -105.0897], DEN = [39.7439, -105.0201];
+  const WED = { setup: "2026-11-18T07:00", gates: "2026-11-18T10:00", start: "2026-11-18T11:00", end: "2026-11-18T15:00", teardown: "2026-11-18T18:00" };
+  ok("FIRE replay Nov 17 1 p.m. MST: Fire Weather Watch at Fort Collins from its fire weather zone, with its start time", () => {
+    const clock = Date.parse("2026-11-17T20:00:00Z"), r = runF(evF("Canvas Stadium", ...FTC, WED, "America/Denver"), clock, rfw(clock));
+    assert.deepStrictEqual(r.items.map((i) => [i.kind, i.headline]), [["watch", "Fire Weather Watch during setup, gates, the event and teardown"]]);
+    assert.match(r.items[0].line, /^In effect at the venue from 8 a\.m\. Wednesday until 4 p\.m\. Wednesday \(issued for the fire weather zone that includes the venue\)\.$/);
+  });
+  ok("FIRE replay Nov 18 midnight: upgraded to a Red Flag Warning at Fort Collins; Denver's watch was cancelled, so nothing there", () => {
+    const clock = Date.parse("2026-11-18T07:00:00Z");
+    assert.deepStrictEqual(runF(evF("Canvas Stadium", ...FTC, WED, "America/Denver"), clock, rfw(clock)).items.map((i) => [i.kind, i.headline]), [["warning", "Red Flag Warning during setup, gates, the event and teardown"]]);
+    assert.strictEqual(runF(evF("Empower Field", ...DEN, WED, "America/Denver"), clock, rfw(clock)).items.length, 0);
+  });
+  ok("FIRE replay Nov 18 4:30 p.m. MST: the Red Flag Warning has expired and is gone", () => {
+    const clock = Date.parse("2026-11-18T23:30:00Z");
+    assert.strictEqual(runF(evF("Canvas Stadium", ...FTC, { start: "2026-11-18T16:30", end: "2026-11-18T19:00" }, "America/Denver"), clock, rfw(clock)).items.length, 0);
+  });
+
+  /* NIFC WFIGS snapshot (2026-11-21) */
+  const PUEBLO = [38.2655, -104.7246] /* Lake Pueblo State Park */, FAIRGROUNDS_CO = [38.2611, -104.6189], NOW_NIFC = Date.parse("2026-11-21T01:30:00Z");
+  const SAT_CO = { setup: "2026-11-21T08:00", start: "2026-11-21T10:00", end: "2026-11-21T16:00" };
+  ok("FIRE incidents: Lake Pueblo State Park lists the Aspen Acres perimeter (12.5 mi) with distance, size, containment and NIFC's update time; the State Fairgrounds (17.5 mi) does not", () => {
+    assert.ok(!runF(evF("Colorado State Fairgrounds", ...FAIRGROUNDS_CO, SAT_CO, "America/Denver"), NOW_NIFC, NIFC).items.some((i) => /Aspen Acres/.test(i.headline)));
+    const r = runF(evF("Lake Pueblo State Park", ...PUEBLO, SAT_CO, "America/Denver"), NOW_NIFC, NIFC);
+    const it = r.items.find((i) => i.kind === "incident" && /Aspen Acres/.test(i.headline));
+    assert.ok(it, JSON.stringify(r.items.map((i) => i.headline)));
+    assert.match(it.headline, /^Wildfire 1[23] miles southwest: Aspen Acres · 102,007 acres · 96% contained$/);
+    assert.match(it.line, /^Active incident reported to NIFC \(updated Nov 19, 3:29 PM\)\. Incidents have no end time/);
+    assert.ok(r.items.every((i) => i.product.category !== "RX"), "prescribed fires are not listed");
+  });
+  ok("FIRE incidents: a venue far from any incident gets none; an event already over gets none", () => {
+    assert.strictEqual(runF(evF("v", 39.0997, -94.5786, SAT_CO, "America/Chicago"), NOW_NIFC, NIFC).items.filter((i) => i.kind === "incident").length, 0);
+    assert.strictEqual(runF(evF("v", ...PUEBLO, { start: "2026-11-19T10:00", end: "2026-11-19T16:00" }, "America/Denver"), NOW_NIFC, NIFC).items.length, 0);
+  });
+  ok("FIRE incidents: a perimeter that includes the venue is said so; a point-only fire says it has no mapped perimeter", () => {
+    const withPer = NIFC.find((p) => p.geometry && p.category === "WF"), c = T.bbox(withPer.geometry);
+    const inside = (() => { for (let i = 0; i < 400; i++) { const pt = [c[0] + ((i % 20) + 0.5) * (c[2] - c[0]) / 20, c[1] + (Math.floor(i / 20) + 0.5) * (c[3] - c[1]) / 20]; if (T.contains(withPer.geometry, pt)) return pt; } })();
+    const r = runF(evF("v", inside[1], inside[0], SAT_CO, "America/Denver"), NOW_NIFC, [withPer]);
+    assert.match(r.items[0].headline, new RegExp("^Wildfire perimeter includes the venue: "));
+    const pointOnly = NIFC.find((p) => !p.geometry && p.category === "WF" && p.acres > 1);
+    const r2 = runF(evF("v", pointOnly.point[1] + 0.05, pointOnly.point[0], SAT_CO, "America/Denver"), NOW_NIFC, [pointOnly]);
+    assert.match(r2.items[0].headline, /^Wildfire (3|4) miles south \(reported location; no mapped perimeter\): /);
+  });
+  ok("FIRE: an NIFC outage keeps the summary unconfirmed; fire items don't leak into other families", () => {
+    const r = runF(evF("v", 39.0997, -94.5786, SAT_CO, "America/Chicago"), NOW_NIFC, NIFC, fstate(NOW_NIFC, { "nifc-wfigs": { kind: "unavailable" } }));
+    assert.strictEqual(r.confirmed, false); assert.match(r.statuses.find((s) => s.id === "nifc-wfigs").text, /^Not responding/);
+    assert.strictEqual(M.forEvent({ products: NIFC, state: allOk(NOW_NIFC), event: evF("v", ...PUEBLO, SAT_CO, "America/Denver"), now: NOW_NIFC, families: ["flood"] }).items.length, 0);
+  });
+}
+console.log(n + " passed (with winter and fire)");

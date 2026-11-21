@@ -18,10 +18,11 @@
   "use strict";
 
   const WINTER_EVENTS = ["Winter Storm Warning", "Winter Storm Watch", "Blizzard Warning", "Ice Storm Warning", "Lake Effect Snow Warning", "Winter Weather Advisory"];
-  const EVENTS = ["Tornado Warning", "Severe Thunderstorm Warning", "Tornado Watch", "Severe Thunderstorm Watch", "Flash Flood Warning", ...WINTER_EVENTS];
+  const FIRE_EVENTS = ["Red Flag Warning", "Fire Weather Watch"];
+  const EVENTS = ["Tornado Warning", "Severe Thunderstorm Warning", "Tornado Watch", "Severe Thunderstorm Watch", "Flash Flood Warning", ...WINTER_EVENTS, ...FIRE_EVENTS];
   /* hazard family per NWS VTEC phenomenon: the map's layers and Event Planner's sections group by this */
-  const HAZARD = { TO: "severe", SV: "severe", FF: "flood", WS: "winter", BZ: "winter", IS: "winter", LE: "winter", WW: "winter" };
-  const EVENT_PHEN = { "Tornado Warning": "TO", "Tornado Watch": "TO", "Severe Thunderstorm Warning": "SV", "Severe Thunderstorm Watch": "SV", "Flash Flood Warning": "FF",
+  const HAZARD = { FW: "fire", TO: "severe", SV: "severe", FF: "flood", WS: "winter", BZ: "winter", IS: "winter", LE: "winter", WW: "winter" };
+  const EVENT_PHEN = { "Red Flag Warning": "FW", "Fire Weather Watch": "FW", "Tornado Warning": "TO", "Tornado Watch": "TO", "Severe Thunderstorm Warning": "SV", "Severe Thunderstorm Watch": "SV", "Flash Flood Warning": "FF",
     "Winter Storm Warning": "WS", "Winter Storm Watch": "WS", "Blizzard Warning": "BZ", "Ice Storm Warning": "IS", "Lake Effect Snow Warning": "LE", "Winter Weather Advisory": "WW" };
   const ALERTS_URL = "https://api.weather.gov/alerts/active?event=" + EVENTS.map(encodeURIComponent).join(",");
   const OUTLOOK_URL = (day) => "https://www.spc.noaa.gov/products/outlook/day" + day + "otlk_cat.nolyr.geojson";
@@ -221,14 +222,14 @@
   /* the drawn area of a county-based alert from its listed zones (results[i] = shape of urls[i], or null) */
   /* land forecast zones start with a state or territory code (UTZ110); marine zones do not (AMZ550, PZZ135, LMZ740) */
   const STATES = new Set("AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY PR VI GU AS MP".split(" "));
-  const zoneKind = (u) => (/\/zones\/county\//.test(u) ? "county" : STATES.has(u.split("/").pop().slice(0, 2)) ? "zone" : "marine");
+  const zoneKind = (u) => (/\/zones\/county\//.test(u) ? "county" : /\/zones\/fire\//.test(u) ? "fire" : STATES.has(u.split("/").pop().slice(0, 2)) ? "zone" : "marine");
   function zoneShape(urls, results) {
     const ok = results.filter(Boolean), kinds = urls.map(zoneKind);
     const tally = (k, only) => urls.filter((u, i) => kinds[i] === k && (!only || results[i])).length;
     // one outline only when every listed zone is drawn; with gaps, the zones stay as they are so the gaps show
     const complete = ok.length === urls.length && urls.length > 0, merged = complete ? dissolve(ok) : null;
     return { geometry: merged || mergeGeometries(ok), dissolved: !!merged, incomplete: !complete, resolved: ok.length, listed: urls.length,
-      counties: { listed: tally("county"), drawn: tally("county", true) }, zones: { listed: tally("zone"), drawn: tally("zone", true) }, marine: { listed: tally("marine"), drawn: tally("marine", true) } };
+      counties: { listed: tally("county"), drawn: tally("county", true) }, zones: { listed: tally("zone"), drawn: tally("zone", true) }, fire: { listed: tally("fire"), drawn: tally("fire", true) }, marine: { listed: tally("marine"), drawn: tally("marine", true) } };
   }
 
   /* ---------- UGC lists and SPC watch outline updates (WOU) ---------- */
@@ -339,12 +340,113 @@
     });
   }
 
+  /* ---------- SPC Fire Weather Outlooks ----------
+     Days 1-2 (products/fire_wx/dayNfw_{windrh,dryt}.lyr.geojson): categories, which are bands (a point is in one):
+       wind/RH  ELEV Elevated, CRIT Critical, EXTM Extremely Critical; dry thunderstorms  IDRT isolated (elevated risk),
+       SDRT scattered (critical risk). SPC: "verified based on meteorological conditions (e.g., dry thunderstorm occurrence,
+       wind speed, RH), not whether wildfire ignitions occur"; receptive fuels must be present for any area.
+     Days 3-8 (products/exper/fire_wx/dayNfw_{windrh,dryt}prob.lyr.geojson, issued ~22Z, each 12Z-12Z): the forecaster's
+       probability of critical fire weather conditions (or dry thunderstorms) within 12 miles of a point (40%, 70%).
+       SPC's archive keeps Days 3-8 only as categorical Critical areas (points text), captured as LABEL "CRIT".
+     "No Areas", "Predictability Too Low" and "Potential Too Low" are confirmed answers with no area (kept as the phrase). */
+  const FIRE_CATS = ["ELEV", "CRIT", "EXTM"], DRYT_CATS = ["IDRT", "SDRT"], FIRE38_CATS = ["P40", "CRIT", "P70"];
+  const FIRE_NAME = { ELEV: "Elevated", CRIT: "Critical", EXTM: "Extremely Critical", IDRT: "Isolated dry thunderstorms", SDRT: "Scattered dry thunderstorms", P40: "40%", P70: "70%" };
+  const FIRE_MEANING = { ELEV: "Elevated fire weather risk from wind and low relative humidity.", CRIT: "Critical fire weather risk from wind and low relative humidity.", EXTM: "Extremely critical fire weather risk from wind and low relative humidity.",
+    IDRT: "Elevated risk from isolated dry thunderstorms (lightning with little rain).", SDRT: "Critical risk from scattered dry thunderstorms (lightning with little rain).",
+    P40: "SPC's probability of critical fire weather conditions within 12 miles of a point during the period.", P70: "SPC's probability of critical fire weather conditions within 12 miles of a point during the period." };
+  const NO_AREA = /^(no areas|probability too low|predictability too low|potential too low)$/i;
+  const SPC_FIRE_URL = (day, part) => day <= 2 ? "https://www.spc.noaa.gov/products/fire_wx/day" + day + "fw_" + part + ".lyr.geojson" : "https://www.spc.noaa.gov/products/exper/fire_wx/day" + day + "fw_" + part + "prob.lyr.geojson";
+  const spcTime = (iso, raw) => { if (iso) { const d = new Date(iso); if (!isNaN(d)) return d.toISOString(); } const m = /^(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)$/.exec(raw || ""); return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5])).toISOString() : null; };
+  function fireCategory(label, day, part) {
+    const L = String(label || "").trim().toUpperCase();
+    if (day <= 2) return (part === "dryt" ? DRYT_CATS : FIRE_CATS).includes(L) ? L : null;
+    if (L === "CRIT") return "CRIT";
+    const m = /^(0?\.\d+|\d+)\s*%?$/.exec(L); if (!m) return null;
+    const v = +m[1] < 1 ? Math.round(+m[1] * 100) : +m[1];
+    return v === 40 || v === 70 ? "P" + v : null;
+  }
+  function parseFireOutlook(gj, day, part) {
+    if (!gj || !Array.isArray(gj.features)) throw Error("unrecognized SPC fire outlook answer");
+    const out = []; let meta = null, phrase = null;
+    for (const f of gj.features) {
+      const P = f.properties || {}, d = +P.DAY || day, label = String(P.LABEL || "").trim();
+      const issued = spcTime(P.ISSUE_ISO, P.ISSUE), start = spcTime(P.VALID_ISO, P.VALID), end = spcTime(P.EXPIRE_ISO, P.EXPIRE);
+      if (!start || !end) throw Error("SPC fire outlook times missing");
+      meta = meta || { issued, validStart: start, validEnd: end };
+      const hasShape = f.geometry && (f.geometry.type === "Polygon" || f.geometry.type === "MultiPolygon");
+      if (NO_AREA.test(label) || !hasShape) { phrase = phrase || label || "No Areas"; continue; }
+      const cat = fireCategory(label, d, part);
+      if (!cat) throw Error("unrecognized SPC fire outlook category: " + label);
+      const prog = "spcfire-" + part;
+      out.push({ id: "spc-fire-d" + d + "-" + part + "-" + cat + "-" + issued, kind: "outlook", family: "fire", sourceId: "spc-fire", program: prog, part, day: d, category: cat,
+        event: "Fire Weather Outlook", title: "Day " + d + " Fire Weather Outlook", issued, validStart: start, validEnd: end, geometry: f.geometry, label: labelPoint(f.geometry),
+        office: "NWS Storm Prediction Center", headline: P.LABEL2 || FIRE_NAME[cat], forecaster: P.FORECASTER || null,
+        source: { name: "SPC Fire Weather Outlook", url: d <= 2 ? "https://www.spc.noaa.gov/products/fire_wx/fwdy" + d + ".html" : "https://www.spc.noaa.gov/products/exper/fire_wx/" } });
+    }
+    return { products: out, issued: meta && meta.issued, validStart: meta && meta.validStart, validEnd: meta && meta.validEnd, empty: !out.length, phrase };
+  }
+  /* last good issuance per day and part; an empty answer from SPC itself is a confirmed "no areas" */
+  function createFireStore(day, part) {
+    let good = null; const st = { state: "never", lastOk: null, lastTry: null, error: null };
+    return {
+      ingest(gj, at) {
+        st.lastTry = at;
+        try { const o = parseFireOutlook(gj, day, part); if (good && o.issued && good.issued && Date.parse(o.issued) < Date.parse(good.issued)) return; good = o; st.state = "ok"; st.lastOk = at; st.error = null; }
+        catch (e) { st.state = "failed"; st.error = e.message; }
+      },
+      fail(at, why) { st.lastTry = at; st.state = "failed"; st.error = why || "request failed"; },
+      current(now) { if (!good) return { products: [], status: "none" }; const expired = good.validEnd && Date.parse(good.validEnd) <= now; return { ...good, products: expired ? [] : good.products, status: expired ? "expired" : "current" }; },
+      sourceInfo: () => ({ state: st.state === "never" ? "failed" : st.state, lastOk: st.lastOk, lastTry: st.lastTry, error: st.error }),
+    };
+  }
+
+  /* ---------- NIFC WFIGS: current wildland fire incidents and perimeters ----------
+     Incident Locations Current: IRWIN records categorized Wildfire (WF), Incident Complex (CX) or Prescribed Fire (RX) that
+     have "not been declared contained, controlled, nor out"; records fall off after 3 days without an update (under 10
+     acres), 8 days (10-100) or 14 days (over 100). Perimeters Current: the subset with an approved public perimeter.
+     Data refresh every 5 minutes. Size and containment are as reported for the incident; a perimeter can be older than
+     the incident record, so both times are kept. NIFC: these data "are not legal documents". */
+  const NIFC = "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/";
+  const NIFC_INC_FIELDS = "IrwinID,UniqueFireIdentifier,IncidentName,IncidentTypeCategory,IncidentSize,PercentContained,FireDiscoveryDateTime,ModifiedOnDateTime_dt,ContainmentDateTime,ControlDateTime,FireOutDateTime,POOState,POOCounty,POOProtectingUnit,IncidentManagementOrganization,TotalIncidentPersonnel,FireCause";
+  const NIFC_PER_FIELDS = "attr_IrwinID,poly_IncidentName,poly_GISAcres,poly_PolygonDateTime,poly_DateCurrent,poly_MapMethod,attr_IncidentTypeCategory,attr_PercentContained,attr_ModifiedOnDateTime_dt";
+  const NIFC_INC_URL = NIFC + "WFIGS_Incident_Locations_Current/FeatureServer/0/query?where=" + encodeURIComponent("IncidentTypeCategory IN ('WF','CX','RX')") + "&outFields=" + NIFC_INC_FIELDS + "&outSR=4326&resultRecordCount=4000&f=geojson";
+  const NIFC_PER_URL = NIFC + "WFIGS_Interagency_Perimeters_Current/FeatureServer/0/query?where=1%3D1&outFields=" + NIFC_PER_FIELDS + "&outSR=4326&maxAllowableOffset=0.002&geometryPrecision=4&resultRecordCount=2000&f=geojson";
+  const INCIDENT_TYPE = { WF: "Wildfire", CX: "Wildfire complex", RX: "Prescribed fire" };
+  const msIso = (v) => (v == null || v === "" ? null : new Date(typeof v === "number" ? v : Date.parse(v)).toISOString());
+  const guid = (s) => String(s || "").replace(/[{}]/g, "").toUpperCase();
+  function parseNIFC(incidents, perimeters) {
+    if (!incidents || !Array.isArray(incidents.features)) throw Error("unrecognized NIFC incident answer");
+    if (incidents.properties && incidents.properties.exceededTransferLimit) throw Error("NIFC incident answer is incomplete (transfer limit)");
+    const per = new Map();
+    if (perimeters) {
+      if (!Array.isArray(perimeters.features)) throw Error("unrecognized NIFC perimeter answer");
+      if (perimeters.properties && perimeters.properties.exceededTransferLimit) throw Error("NIFC perimeter answer is incomplete (transfer limit)");
+      for (const f of perimeters.features) { const P = f.properties || {}; if (f.geometry && P.attr_IrwinID) per.set(guid(P.attr_IrwinID), { geometry: f.geometry, acres: P.poly_GISAcres, date: msIso(P.poly_DateCurrent || P.poly_PolygonDateTime), method: P.poly_MapMethod }); }
+    }
+    const out = [];
+    for (const f of incidents.features) {
+      const P = f.properties || {}, cat = P.IncidentTypeCategory, c = f.geometry && f.geometry.coordinates;
+      if (!INCIDENT_TYPE[cat] || !c || !Number.isFinite(c[0]) || P.FireOutDateTime) continue;
+      const id = guid(P.IrwinID), pr = per.get(id), name = String(P.IncidentName || "Unnamed").trim();
+      out.push({ id: "nifc-" + id, irwinId: id, kind: "incident", family: "fire", sourceId: "nifc-wfigs", program: "wfigs", category: cat,
+        event: INCIDENT_TYPE[cat], title: name, name, acres: P.IncidentSize == null ? null : +P.IncidentSize, contained: P.PercentContained == null ? null : +P.PercentContained,
+        discovered: msIso(P.FireDiscoveryDateTime), updated: msIso(P.ModifiedOnDateTime_dt), issued: msIso(P.FireDiscoveryDateTime), uniqueId: P.UniqueFireIdentifier || null,
+        state: String(P.POOState || "").replace(/^US-/, ""), county: P.POOCounty || null, unit: P.POOProtectingUnit || null, imt: P.IncidentManagementOrganization || null,
+        point: [c[0], c[1]], geometry: pr ? pr.geometry : null, perimeter: pr ? { acres: pr.acres, date: pr.date, method: pr.method } : null,
+        label: pr ? labelPoint(pr.geometry) : [c[0], c[1]], office: "National Interagency Fire Center (WFIGS)",
+        source: { name: "NIFC WFIGS current incidents", url: "https://data-nifc.opendata.arcgis.com/datasets/nifc::wfigs-current-incident-locations/about" } });
+    }
+    return out;
+  }
+
   /* ---------- source registry: who issues what, for which area ----------
      Coverage is explicit so a venue outside a provider's area reads "not covered by this source", never "nothing".
      New regions and providers are new entries here; Event Planner reads products and source states only. */
   const BOX = { conus: [[-125, 24.3, -66.8, 49.5]], us: [[-125, 24.3, -66.8, 49.5], [-180, 51, -129, 71.5], [172, 51, 180, 53], [-160.5, 18.8, -154.5, 22.4], [-67.4, 17.6, -64.5, 18.6], [144.5, 13.1, 146.2, 20.6], [-171, -14.6, -168, -11]] };
   const SOURCES = [
-    { id: "nws-alerts", name: "NWS warnings, watches and advisories", provider: "NOAA National Weather Service", region: "United States", boxes: BOX.us, hazards: ["severe", "flood", "winter"], url: "https://www.weather.gov/" },
+    { id: "nws-alerts", name: "NWS warnings, watches and advisories", provider: "NOAA National Weather Service", region: "United States", boxes: BOX.us, hazards: ["severe", "flood", "winter", "fire"], url: "https://www.weather.gov/" },
+    { id: "spc-fire", name: "SPC fire weather outlooks", provider: "NOAA Storm Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["fire"], url: "https://www.spc.noaa.gov/products/fire_wx/" },
+    { id: "nifc-wfigs", name: "NIFC wildfire incidents (WFIGS)", provider: "National Interagency Fire Center", region: "United States", boxes: BOX.us, hazards: ["fire"], url: "https://data-nifc.opendata.arcgis.com/" },
     { id: "spc-md", name: "SPC Mesoscale Discussions", provider: "NOAA Storm Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["severe"], url: "https://www.spc.noaa.gov/products/md/" },
     { id: "spc-outlook", name: "SPC convective outlooks", provider: "NOAA Storm Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["severe"], url: "https://www.spc.noaa.gov/products/outlook/" },
     { id: "wpc-wssi-p", name: "WPC winter storm severity outlook (WSSI-P)", provider: "NOAA Weather Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["winter"], url: "https://www.wpc.ncep.noaa.gov/wwd/wssi/prob_wssi.php" },
@@ -445,5 +547,6 @@
 
   return { EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
     parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries, dissolve, zoneShape,
-    HAZARD, WINTER_EVENTS, zTime, WSSI_LEVELS, WSSI_NAME, WSSI_MEANING, WSSIP_URL, parseWSSIP, ERO_CATS, ERO_NAME, ERO_PCT, WPC_ERO_URL, MAPSVC_ERO_URL, parseERO, createEROStore, SOURCES, covers };
+    HAZARD, WINTER_EVENTS, FIRE_EVENTS, FIRE_CATS, DRYT_CATS, FIRE38_CATS, FIRE_NAME, FIRE_MEANING, SPC_FIRE_URL, parseFireOutlook, createFireStore,
+    NIFC_INC_URL, NIFC_PER_URL, INCIDENT_TYPE, parseNIFC, zTime, WSSI_LEVELS, WSSI_NAME, WSSI_MEANING, WSSIP_URL, parseWSSIP, ERO_CATS, ERO_NAME, ERO_PCT, WPC_ERO_URL, MAPSVC_ERO_URL, parseERO, createEROStore, SOURCES, covers };
 });

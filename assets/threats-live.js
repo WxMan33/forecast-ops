@@ -8,6 +8,11 @@
   const MODEL_BASE = "https://raw.githubusercontent.com/WxMan33/forecast-ops/main/assets/severe-daily/"; // the Severe viewer's published feed
   const alerts = F.createAlertStore(), outlooks = { 1: F.createOutlookStore(1), 2: F.createOutlookStore(2), 3: F.createOutlookStore(3) };
   const ero = { 1: F.createEROStore(1), 2: F.createEROStore(2), 3: F.createEROStore(3) };
+  /* SPC fire weather outlooks: wind/RH and dry thunderstorm parts for Days 1-8 (Days 3-8 probabilistic) */
+  const FIRE_DAYS = [1, 2, 3, 4, 5, 6, 7, 8], FIRE_PARTS = ["windrh", "dryt"];
+  const fire = {}; for (const d of FIRE_DAYS) fire[d] = { windrh: F.createFireStore(d, "windrh"), dryt: F.createFireStore(d, "dryt") };
+  /* NIFC WFIGS current incidents (with perimeters where published) */
+  const nifc = { state: "never", lastOk: null, error: null, products: [] };
   const md = { state: "never", lastOk: null, lastTry: null, error: null, products: [], service: null, list: null };
   const model = { state: "never", error: null, index: null, registry: null, grid: null, hidden: null, hull: null, runs: {} };
   const zoneGeo = new Map(), zonePending = new Map(), refDone = new Set(), mdText = new Map();
@@ -178,6 +183,33 @@
     emit();
   }
 
+  async function refreshFire() {
+    await Promise.all(FIRE_DAYS.flatMap((d) => FIRE_PARTS.map(async (part) => {
+      const at = nowIso();
+      try { fire[d][part].ingest(await get(F.SPC_FIRE_URL(d, part), "json"), at); } catch (e) { fire[d][part].fail(at, e.message); }
+    })));
+    emit();
+  }
+  async function refreshNIFC() {
+    const at = nowIso();
+    try {
+      const [inc, per] = await Promise.all([get(F.NIFC_INC_URL, "json"), get(F.NIFC_PER_URL, "json")]);
+      nifc.products = F.parseNIFC(inc, per); Object.assign(nifc, { state: "ok", lastOk: at, error: null });
+    } catch (e) { Object.assign(nifc, { state: "failed", error: e.message }); }
+    emit();
+  }
+  /* one source state per fire outlook day: worst of its two parts; reach = the end of the latest day answered */
+  function fireSources(now) {
+    const out = {};
+    for (const d of FIRE_DAYS) {
+      const a = fire[d].windrh, b = fire[d].dryt, ia = a.sourceInfo(), ib = b.sourceInfo(), ca = a.current(now), cb = b.current(now);
+      const ok = ia.state === "ok" && ib.state === "ok";
+      out["fire" + d] = { state: ok ? "ok" : "failed", lastOk: ok ? [ia.lastOk, ib.lastOk].sort()[0] : (ia.lastOk && ib.lastOk ? [ia.lastOk, ib.lastOk].sort()[0] : null), count: ca.products.length + cb.products.length,
+        error: ia.error || ib.error, outlook: ca.status === "expired" || cb.status === "expired" ? "expired" : ca.status, validEnd: ca.validEnd || cb.validEnd, issued: ca.issued || cb.issued, phrase: ca.phrase || null };
+    }
+    return out;
+  }
+
   /* our research model: the same published files and validation as the Severe viewer */
   async function sha256(text) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)); return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, "0")).join(""); }
   async function checked(path, hash) { const t = await get(MODEL_BASE + path + (hash ? "?v=" + hash.slice(0, 10) : ""), "text"); if (hash && (await sha256(t)) !== hash) throw Error("checksum changed for " + path); return JSON.parse(t); }
@@ -216,7 +248,8 @@
     const o = { 1: outlooks[1].current(now), 2: outlooks[2].current(now), 3: outlooks[3].current(now) };
     const e = { 1: ero[1].current(now), 2: ero[2].current(now), 3: ero[3].current(now) };
     const wsp = wssi.products.filter((p) => Date.parse(p.validEnd) > now);
-    const products = [...ps.filter((p) => p.status === "active" || p.status === "lapsed").map(withZones), ...wsp, ...mdList, ...o[1].products, ...o[2].products, ...o[3].products, ...e[1].products, ...e[2].products, ...e[3].products];
+    const fireP = FIRE_DAYS.flatMap((d) => FIRE_PARTS.flatMap((part) => fire[d][part].current(now).products));
+    const products = [...ps.filter((p) => p.status === "active" || p.status === "lapsed").map(withZones), ...wsp, ...mdList, ...o[1].products, ...o[2].products, ...o[3].products, ...e[1].products, ...e[2].products, ...e[3].products, ...fireP, ...nifc.products];
     const src = (info, count, extra) => ({ state: info.state === "ok" ? "ok" : "failed", lastOk: info.lastOk, count, error: info.error, ...extra });
     return {
       live: true, clock: new Date(now).toISOString(), products,
@@ -230,6 +263,8 @@
         ero1: src(ero[1].sourceInfo(), e[1].products.length, { outlook: e[1].status, validEnd: e[1].validEnd, issued: e[1].issued, via: ero[1].sourceInfo().via }),
         ero2: src(ero[2].sourceInfo(), e[2].products.length, { outlook: e[2].status, validEnd: e[2].validEnd, issued: e[2].issued, via: ero[2].sourceInfo().via }),
         wssip: wssi.state === "never" || (wssiPending && !wssi.lastOk) ? { state: "pending", lastOk: null, count: 0 } : src({ state: wssi.state === "ok" ? "ok" : "failed", lastOk: wssi.lastOk, error: wssi.error }, wsp.length, { validEnd: wssi.reachEnd, issued: wssi.issued, inferred: wssi.inferred || [] }),
+        ...fireSources(now),
+        nifc: nifc.state === "never" ? { state: "pending", lastOk: null, count: 0 } : src({ state: nifc.state, lastOk: nifc.lastOk, error: nifc.error }, nifc.products.length),
         ero3: src(ero[3].sourceInfo(), e[3].products.length, { outlook: e[3].status, validEnd: e[3].validEnd, issued: e[3].issued, via: ero[3].sourceInfo().via }),
       },
       model,
@@ -241,9 +276,10 @@
   function start(opts = {}) {
     if (started) return started;
     const want = (k) => !opts.only || opts.only.includes(k);
-    started = Promise.allSettled([want("alerts") && refreshAlerts(), want("md") && refreshMD(), want("spc") && refreshOutlooks(), want("ero") && refreshERO()]);
+    started = Promise.allSettled([want("alerts") && refreshAlerts(), want("md") && refreshMD(), want("spc") && refreshOutlooks(), want("ero") && refreshERO(), want("fire") && refreshFire(), want("nifc") && refreshNIFC()]);
+    setInterval(() => { if (!document.hidden && want("nifc")) refreshNIFC(); }, 5 * 60e3); // NIFC refreshes from IRWIN every 5 minutes
     setInterval(() => { if (!document.hidden) { if (want("alerts")) refreshAlerts(); if (want("md")) refreshMD(); } }, 60e3);
-    setInterval(() => { if (!document.hidden) { if (want("spc")) refreshOutlooks(); if (want("ero")) refreshERO(); } }, 10 * 60e3);
+    setInterval(() => { if (!document.hidden) { if (want("spc")) refreshOutlooks(); if (want("ero")) refreshERO(); if (want("fire")) refreshFire(); } }, 10 * 60e3);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) { refreshAlerts(); refreshMD(); } });
     return started;
   }
@@ -263,6 +299,14 @@
     "archive-winter-advisory": { kind: "mix", clock: "2026-11-18T23:00:00Z", nws: ["tests/fixtures/threats/nws-archive-kslc-ww-y-0018.json", "tests/fixtures/threats/nws-archive-kslc-ws-w-0003.json"], ero: [], wssip: ["tests/fixtures/threats/wpc-wssi-p-overall-wasatch-20261120.json", "tests/fixtures/threats/wpc-wssi-p-overall-cascades-20261120.json"], zones: "tests/fixtures/threats/nws-zones-utah-20261120.json", label: "NWS Salt Lake City winter alerts, Nov 18, 2026 at 4:00 p.m. MST" },
     "archive-winter-warning": { kind: "mix", clock: "2026-11-19T17:00:00Z", nws: ["tests/fixtures/threats/nws-archive-kslc-ww-y-0018.json", "tests/fixtures/threats/nws-archive-kslc-ws-w-0003.json"], ero: [], wssip: ["tests/fixtures/threats/wpc-wssi-p-overall-wasatch-20261120.json", "tests/fixtures/threats/wpc-wssi-p-overall-cascades-20261120.json"], zones: "tests/fixtures/threats/nws-zones-utah-20261120.json", label: "NWS Salt Lake City winter alerts, Nov 19, 2026 at 10:00 a.m. MST (after the upgrade to a Winter Storm Warning)" },
     "archive-winter-outlook": { kind: "mix", clock: "2026-11-20T21:30:00Z", nws: ["tests/fixtures/threats/nws-archive-kslc-ww-y-0018.json", "tests/fixtures/threats/nws-archive-kslc-ws-w-0003.json"], ero: [], wssip: ["tests/fixtures/threats/wpc-wssi-p-overall-wasatch-20261120.json", "tests/fixtures/threats/wpc-wssi-p-overall-cascades-20261120.json"], zones: "tests/fixtures/threats/nws-zones-utah-20261120.json", label: "WPC WSSI-P (captured Nov 20, 2026 21:23Z, Wasatch and Cascades) with NWS Salt Lake City alerts at 2:30 p.m. MST" },
+    // SPC Fire Weather Outlooks from SPC's archive (Day 1-2 shapefiles, Day 3-8 points) and NWS Denver/Boulder fire weather
+    // alerts (Nov 17-18); NIFC WFIGS incidents as captured 2026-11-21 01:0xZ
+    "archive-fire-day4": { kind: "mix", clock: "2026-07-29T22:30:00Z", nws: [], ero: [], fire: [["spc-fire-day38-20260729.geojson", 3, "windrh"]], label: "SPC Day 3-8 fire weather outlook issued Jul 29, 2026 (Day 4 = Sat Aug 1)" },
+    "archive-fire-day2": { kind: "mix", clock: "2026-07-31T21:00:00Z", nws: [], ero: [], fire: [["spc-fire-day2-20260731-2000-windrh.geojson", 2, "windrh"], ["spc-fire-day2-20260731-2000-dryt.geojson", 2, "dryt"], ["spc-fire-day38-20260731.geojson", 3, "windrh"]], label: "SPC Day 2 and Day 3-8 fire weather outlooks issued Jul 31, 2026" },
+    "archive-fire-day1": { kind: "mix", clock: "2026-08-01T17:30:00Z", nws: [], ero: [], fire: [["spc-fire-day1-20260801-1700-windrh.geojson", 1, "windrh"], ["spc-fire-day1-20260801-1700-dryt.geojson", 1, "dryt"]], label: "SPC Day 1 fire weather outlook, Aug 1, 2026 1700Z update" },
+    "archive-fire-watch": { kind: "mix", clock: "2026-11-17T20:00:00Z", nws: ["tests/fixtures/threats/nws-archive-kbou-fw-a-0044.json", "tests/fixtures/threats/nws-archive-kbou-fw-w-0057.json"], zones: "tests/fixtures/threats/nws-zones-colorado-fire-20261121.json", ero: [], fire: [["spc-fire-day1-20261117-1700-windrh.geojson", 1, "windrh"], ["spc-fire-day2-20261117-2000-windrh.geojson", 2, "windrh"], ["spc-fire-day2-20261117-2000-dryt.geojson", 2, "dryt"]], label: "NWS Denver/Boulder fire weather alerts, Nov 17, 2026 at 1:00 p.m. MST" },
+    "archive-fire-warning": { kind: "mix", clock: "2026-11-18T07:00:00Z", nws: ["tests/fixtures/threats/nws-archive-kbou-fw-a-0044.json", "tests/fixtures/threats/nws-archive-kbou-fw-w-0057.json"], zones: "tests/fixtures/threats/nws-zones-colorado-fire-20261121.json", ero: [], fire: [["spc-fire-day2-20261117-2000-windrh.geojson", 2, "windrh"], ["spc-fire-day2-20261117-2000-dryt.geojson", 2, "dryt"]], label: "NWS Denver/Boulder, Nov 18, 2026 at midnight MST (after the upgrade to a Red Flag Warning)" },
+    "archive-fire-incidents": { kind: "mix", clock: "2026-11-21T01:30:00Z", nws: [], ero: [], nifc: ["tests/fixtures/threats/nifc-wfigs-20261121-incidents.geojson", "tests/fixtures/threats/nifc-wfigs-20261121-perimeters.geojson"], label: "NIFC WFIGS current wildfire incidents and perimeters, captured Nov 21, 2026 01:0x UTC" },
     "archive-flood-night": { kind: "mix", clock: "2026-11-20T20:30:00Z", nws: ["tests/fixtures/threats/nws-archive-kmlb-ff-w-0036.json", "tests/fixtures/threats/nws-archive-kjax-ff-w-0054.json"], ero: [1, 2, 3].map((d) => "tests/fixtures/threats/wpc-ero-day" + d + "-20261120.geojson"), label: "NWS Flash Flood Warnings and WPC Excessive Rainfall Outlooks, Florida, Nov 20, 2026 at 3:30 p.m. EST" },
   };
   const archiveCache = new Map();
@@ -291,11 +335,17 @@
     if (a.zones) { const zf = (await getJ(a.zones)).zones; for (const [u, z] of Object.entries(zf)) if (z && z.geometry && !zoneGeo.has(u)) zoneGeo.set(u, z.geometry); }
     await Promise.allSettled(want.map(zone));
     const ps = rawPs.map(withZones), si = store.sourceInfo(), na = { state: "na", lastOk: null, count: 0 };
+    const fireOs = await Promise.all((a.fire || []).map(async ([f, d, part]) => F.parseFireOutlook(await getJ("tests/fixtures/threats/" + f), d, part)));
+    const fireP = fireOs.flatMap((o) => o.products).filter((p) => Date.parse(p.issued) <= clock && Date.parse(p.validEnd) > clock);
+    const fireSrc = {}; for (const [i, [, d]] of (a.fire || []).entries()) { const o = fireOs[i]; for (const dd of new Set([d, ...o.products.map((p) => p.day)])) { if (!(Date.parse(o.issued) <= clock)) continue; const k = "fire" + dd, n = fireP.filter((p) => p.day === dd).length; fireSrc[k] = { state: "ok", lastOk: a.clock, count: n, outlook: "current", validEnd: o.products.filter((p) => p.day === dd).map((p) => p.validEnd)[0] || (dd === d ? o.validEnd : null), issued: o.issued }; } }
+    if (fireSrc.fire3 && (a.fire || []).some(([, d]) => d === 3)) for (let dd = 4; dd <= 8; dd++) if (!fireSrc["fire" + dd]) { const o = fireOs[(a.fire || []).findIndex(([, d]) => d === 3)]; fireSrc["fire" + dd] = { state: "ok", lastOk: a.clock, count: 0, outlook: "current", validEnd: new Date(Date.parse(o.validStart) + (dd - 2) * 864e5).toISOString(), issued: o.issued }; }
+    const nifcP = a.nifc ? F.parseNIFC(await getJ(a.nifc[0]), await getJ(a.nifc[1])) : [];
     const wsp = (await Promise.all((a.wssip || []).map(getJ))).flatMap((j) => F.parseWSSIP(j)).filter((p) => (!p.issued || Date.parse(p.issued) <= clock) && Date.parse(p.validEnd) > clock);
     const eroSrc = (d) => { const o = eros.find((x) => x.products[0] && x.products[0].day === d); return o ? { state: "ok", lastOk: a.clock, count: o.products.length, outlook: "current", validEnd: o.validEnd, issued: o.issued, via: "wpc" } : na; };
     return { live: false, archive: { name, label: a.label, step: 1, steps: 1, messages: [] }, clock: a.clock,
-      products: [...ps.filter((p) => p.status === "active" || p.status === "lapsed"), ...eros.flatMap((o) => o.products), ...wsp], ended: ps.filter((p) => p.status === "ended"),
-      sources: { alerts: { state: a.alertsFailAfter ? "failed" : "ok", lastOk: si.lastOk, count: ps.filter((p) => p.status === "active").length, error: si.error }, md: na, day1: na, day2: na, day3: na, ero1: eroSrc(1), ero2: eroSrc(2), ero3: eroSrc(3),
+      products: [...ps.filter((p) => p.status === "active" || p.status === "lapsed"), ...eros.flatMap((o) => o.products), ...wsp, ...fireP, ...nifcP], ended: ps.filter((p) => p.status === "ended"),
+      sources: { alerts: !a.nws.length ? { state: "na" } : { state: a.alertsFailAfter ? "failed" : "ok", lastOk: si.lastOk, count: ps.filter((p) => p.status === "active").length, error: si.error }, md: na, day1: na, day2: na, day3: na, ero1: eroSrc(1), ero2: eroSrc(2), ero3: eroSrc(3),
+        ...fireSrc, nifc: a.nifc ? { state: "ok", lastOk: a.clock, count: nifcP.length } : { state: "na" },
         wssip: (a.wssip || []).length ? (wsp.length ? { state: "ok", lastOk: a.clock, count: wsp.length, validEnd: wsp.map((x) => x.validEnd).sort().pop(), issued: wsp[0].issued } : { state: "na" }) : { state: "na" } } };
   }
   async function archiveSnapshot(name, step) {
@@ -317,12 +367,15 @@
   }
 
   /* the snapshot's per-feed states, keyed by the source registry (ThreatsFeeds.SOURCES) for the shared matcher */
-  const STALE = { wssip: 60, alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
+  const STALE = { nifc: 20, fire1: 60, fire2: 60, fire3: 180, fire4: 180, fire5: 180, fire6: 180, fire7: 180, fire8: 180, wssip: 60, alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
   function registryState(d, now) {
     const one = (k) => { const x = d.sources[k]; if (!x) return { kind: "unavailable" }; if (x.state === "na") return { kind: "na" }; if (d.loading || x.state === "pending") return { kind: "loading" }; return { ...window.ThreatsCore.sourceState(x, now, STALE[k]), lastOk: x.lastOk }; };
     const worst = (keys) => { const s = keys.map(one).filter((x) => x.kind !== "na"); if (!s.length) return { kind: "na" }; const order = ["unavailable", "stale", "loading", "na", "empty", "current"]; const w = s.reduce((a, b) => (order.indexOf(b.kind) < order.indexOf(a.kind) ? b : a)); const oks = s.filter((x) => x.lastOk).map((x) => Date.parse(x.lastOk)); return { ...w, lastOk: oks.length ? new Date(Math.min(...oks)).toISOString() : w.lastOk }; };
     const reach = (keys) => keys.map((k) => d.sources[k] && d.sources[k].validEnd).filter(Boolean).sort().pop() || null;
-    return { "nws-alerts": one("alerts"), "spc-md": one("md"), "wpc-wssi-p": d.sources.wssip ? { ...one("wssip"), reachEnd: d.sources.wssip.validEnd || null, inferred: d.sources.wssip.inferred || [], reach: d.sources.wssip.issued ? "file " + window.ThreatsCore.fmtZ(d.sources.wssip.issued) : "" } : { kind: "unavailable" }, "spc-outlook": { ...worst(["day1", "day2", "day3"]), reachEnd: reach(["day1", "day2", "day3"]) },
+    const fireKeys = Object.keys(d.sources).filter((k) => /^fire\d$/.test(k));
+    return { "spc-fire": fireKeys.length ? { ...worst(fireKeys), reachEnd: reach(fireKeys), reach: ((ks) => ks.length ? (ks.length === 1 ? "Day " : "Days ") + ks.map((k) => k.slice(4)).join(", ") : "")(fireKeys.filter((k) => d.sources[k].issued && d.sources[k].state !== "na")) } : d.live ? { kind: "unavailable" } : { kind: "na" },
+      "nifc-wfigs": d.sources.nifc ? one("nifc") : d.live ? { kind: "unavailable" } : { kind: "na" },
+      "nws-alerts": one("alerts"), "spc-md": one("md"), "wpc-wssi-p": d.sources.wssip ? { ...one("wssip"), reachEnd: d.sources.wssip.validEnd || null, inferred: d.sources.wssip.inferred || [], reach: d.sources.wssip.issued ? "file " + window.ThreatsCore.fmtZ(d.sources.wssip.issued) : "" } : { kind: "unavailable" }, "spc-outlook": { ...worst(["day1", "day2", "day3"]), reachEnd: reach(["day1", "day2", "day3"]) },
       "wpc-ero": { ...worst(["ero1", "ero2", "ero3"]), reachEnd: reach(["ero1", "ero2", "ero3"]), reach: ["ero1", "ero2", "ero3"].map((k, i) => d.sources[k] && d.sources[k].issued ? "Day " + (i + 1) + " issued " + window.ThreatsCore.fmtZ(d.sources[k].issued) : "").filter(Boolean).join(", ") } };
   }
 

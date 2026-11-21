@@ -5,7 +5,8 @@
    does for Node):
      GET /api/nws/alerts/active?event=<Tornado Warning|Severe Thunderstorm Warning|Tornado Watch|Severe Thunderstorm Watch|Flash Flood Warning>[,…]
      GET /api/nws/alerts/<urn:oid:… alert id>         (the earlier message an update replaced, for "What changed")
-     GET /api/nws/zones/county/<XXC###>, /api/nws/zones/forecast/<XXZ###>   (county and marine shapes for county-based alerts)
+     GET /api/nws/zones/county/<XXC###>, /api/nws/zones/forecast/<XXZ###>, /api/nws/zones/fire/<XXZ###>   (county, forecast,
+         marine and fire weather zone shapes for zone-based alerts)
 
    Freshness: active alerts are cached for 30 s, zone shapes for 24 h. Every answer carries X-Upstream-Fetched-At, the
    time NWS actually answered (a cache hit keeps the original time), so the page never treats a cached copy as a new check.
@@ -15,7 +16,8 @@
 const UPSTREAM = "https://api.weather.gov";
 export const USER_AGENT = "(forecast-ops, github.com/WxMan33/forecast-ops)";
 const EVENTS = new Set(["Tornado Warning", "Severe Thunderstorm Warning", "Tornado Watch", "Severe Thunderstorm Watch", "Flash Flood Warning",
-  "Winter Storm Warning", "Winter Storm Watch", "Blizzard Warning", "Ice Storm Warning", "Lake Effect Snow Warning", "Winter Weather Advisory"]);
+  "Winter Storm Warning", "Winter Storm Watch", "Blizzard Warning", "Ice Storm Warning", "Lake Effect Snow Warning", "Winter Weather Advisory",
+  "Red Flag Warning", "Fire Weather Watch"]);
 const ORIGINS = [/^https:\/\/wxman33\.github\.io$/, /^https:\/\/([a-z0-9-]+\.)?forecast-ops-beta\.pages\.dev$/, /^https:\/\/raw\.githack\.com$/, /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
 const TTL_S = { alerts: 30, alert: 3600, zone: 86400 };
 const memory = new Map(); // per-isolate cache; the Cache API is used too where the platform provides it
@@ -29,7 +31,7 @@ function route(url) {
   }
   let m = /^\/alerts\/(urn:oid:[0-9a-zA-Z.]+)$/.exec(decodeURIComponent(p));
   if (m) return { kind: "alert", path: "/alerts/" + m[1] };
-  m = /^\/zones\/(county|forecast)\/([A-Z]{2}[CZ]\d{3})$/.exec(p);
+  m = /^\/zones\/(county|forecast|fire)\/([A-Z]{2}[CZ]\d{3})$/.exec(p);
   if (m && (m[1] === "county") === (m[2][2] === "C")) return { kind: "zone", path: "/zones/" + m[1] + "/" + m[2] };
   return null;
 }

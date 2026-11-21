@@ -28,7 +28,7 @@
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
 <link rel="stylesheet" href="assets/ops.css?v=35098c1775">
-<link rel="stylesheet" href="assets/threats.css?v=76794d3a9f">
+<link rel="stylesheet" href="assets/threats.css?v=b1e622d423">
 </head>
 <body class="threats-page">
 <main class="tx" id="tx">
@@ -57,6 +57,12 @@
           <option value="archive-winter-advisory">Winter Weather Advisory, Utah, Nov 18 4 p.m.</option>
           <option value="archive-winter-warning">Upgrade to Winter Storm Warning, Utah, Nov 19 10 a.m.</option>
           <option value="archive-winter-outlook">WPC WSSI-P 7-day + Utah alerts, Nov 20 2:30 p.m.</option>
+          <option value="archive-fire-day4">SPC fire outlook Day 4 (Critical), Northwest, Jul 29</option>
+          <option value="archive-fire-day2">SPC fire outlook Day 2 (Extremely Critical), Jul 31</option>
+          <option value="archive-fire-day1">SPC fire outlook Day 1, Aug 1</option>
+          <option value="archive-fire-watch">Fire Weather Watch, Colorado, Nov 17 1 p.m.</option>
+          <option value="archive-fire-warning">Upgrade to Red Flag Warning, Colorado, Nov 18</option>
+          <option value="archive-fire-incidents">NIFC wildfire incidents (snapshot Nov 21)</option>
           </optgroup>
         </select></label>
       <label class="tx-demo-field" id="venueField"><span>Venue</span>
@@ -75,11 +81,13 @@
           <button type="button" class="tx-tb" data-view="day2" aria-pressed="false">Day 2</button>
           <button type="button" class="tx-tb" data-view="day3" aria-pressed="false">Day 3</button>
           <button type="button" class="tx-tb" data-view="winter" aria-pressed="false">Winter · 7 days</button>
+          <button type="button" class="tx-tb" data-view="fire" aria-pressed="false">Fire · 8 days</button>
         </div>
         <div class="tx-layers" role="group" aria-label="Layers">
           <button type="button" class="tx-lb" data-layer="severe" aria-pressed="true">Severe storms</button>
           <button type="button" class="tx-lb" data-layer="flood" aria-pressed="true">Flooding</button>
           <button type="button" class="tx-lb" data-layer="winter" aria-pressed="true">Winter</button>
+          <button type="button" class="tx-lb" data-layer="fire" aria-pressed="true">Fire</button>
         </div>
         <div class="tx-valid" id="txValid" aria-live="polite"></div>
         <div class="tx-model" id="txModel" hidden>
@@ -119,11 +127,11 @@
 <script src="assets/vendor/d3-contour-4.0.2.js?v=78e1d80350"></script>
 <script src="assets/vendor/d3-delaunay-6.0.4.js?v=efc726aa8a"></script>
 <script src="assets/severe-research-contours.js?v=2f0dc34948"></script>
-<script src="assets/threats-core.js?v=6c4e15aff3"></script>
+<script src="assets/threats-core.js?v=14821f86c0"></script>
 <script src="assets/threats-demo.js?v=ecef6ab463"></script>
 <script src="assets/severe-daily-core.js?v=8b3bc7c800"></script>
-<script src="assets/threats-feeds.js?v=10feb49c25"></script>
-<script src="assets/threats-live.js?v=1ead95e006"></script>
-<script src="assets/threats.js?v=afb012a7cb"></script>
+<script src="assets/threats-feeds.js?v=0ed6ef32f9"></script>
+<script src="assets/threats-live.js?v=e2d1434206"></script>
+<script src="assets/threats.js?v=11fae6c329"></script>
 </body>
 </html>

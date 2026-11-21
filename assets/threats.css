@@ -219,3 +219,5 @@
 .px-wdays button { display: flex; justify-content: space-between; gap: 10px; border-radius: 8px; text-align: left; width: 100%; }
 .px-wdays button span { color: var(--muted); white-space: nowrap; }
 .px-wdays button b { font-weight: 600; text-align: right; }
+/* fire */
+.tx-kind.k-incident { background: #FF5A1F; color: #fff; }

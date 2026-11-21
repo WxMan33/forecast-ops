@@ -51,6 +51,8 @@
     if (!best) return null;
     return { km: best.d, dir: compass(Math.atan2(best.q[0], best.q[1])) };
   }
+  /* distance (km) and compass direction from the venue to a point (a reported fire location) */
+  function pointDistance(venuePt, pt) { const q = project(venuePt)(pt); return { km: Math.hypot(q[0], q[1]), dir: compass(Math.atan2(q[0], q[1])) }; }
   function compass(rad) {
     const names = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
     return names[((Math.round(((rad * 180) / Math.PI) / 45) % 8) + 8) % 8];
@@ -219,7 +221,7 @@
     return m < 60 ? m + " min left" : Math.floor(m / 60) + " h " + String(m % 60).padStart(2, "0") + " min left";
   }
 
-  return { NEAR_KM, KM_PER_MI, OUTLOOK, OUTLOOK_NAME, OUTLOOK_LEVEL, outlookLabel, contains, nearestEdge, bbox, overlaps, areaKm2,
+  return { NEAR_KM, KM_PER_MI, OUTLOOK, OUTLOOK_NAME, OUTLOOK_LEVEL, outlookLabel, contains, nearestEdge, pointDistance, bbox, overlaps, areaKm2,
     relation, relationText, distanceText, expiredUnconfirmed, miles, rank, compare, sort, group, placeName, outlookAt, highestOutlook, changes, sourceState,
     fmtTime, fmtZ, untilText, polygonsOf };
 });
