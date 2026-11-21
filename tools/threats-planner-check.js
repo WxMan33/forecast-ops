@@ -219,7 +219,7 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
   if (liveW) {
     const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }), p = await ctx.newPage(); const errs = []; p.on("pageerror", (e) => errs.push(e.message));
     await p.goto(liveMaps[liveWi].replace(/^https?:\/\/[^/]+/, HOST).replace("/threats.html", "/threats"), { waitUntil: "domcontentloaded" });
-    await p.waitForFunction(() => window.__threats && window.__threats.ready && window.__threats.map.getSource("wssi")._data.features.length > 0, null, { timeout: 90000 }).catch(() => {}); await p.waitForTimeout(2500);
+    await p.waitForFunction(() => window.__threats && window.__threats.ready && window.__threats.liveReady && window.__threats.map.getSource("wssi")._data.features.length > 0, null, { timeout: 90000 }).catch(() => {}); await p.waitForTimeout(2500);
     const s2 = await p.evaluate(() => ({ view: window.__threats.S.view, wssi: window.__threats.map.getSource("wssi")._data.features.length, big: (document.querySelector(".px-big") || {}).textContent }));
     check("LIVE winter View on map: WSSI-P areas drawn for the window, the venue's chance matches Planner", s2.view === "winter" && s2.wssi > 0 && new RegExp(liveW.headline.match(/(\d+)%/)[1] + "%").test(s2.big) && !errs.length, { s2, head: liveW.headline, errs });
     await p.screenshot({ path: path.join(OUT, "LIVE-map-winter-from-planner.png") }); await ctx.close();
@@ -253,10 +253,10 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     const base = window.EventThreats.current(), k = () => window.EventThreatsLast.items.map((i) => i.kind).join("+") || "none", out = [k()];
     window.EventThreats.update({ ...base, times: { start: "2026-07-18T19:00", end: "2026-07-18T22:00" } }); out.push(k());
     window.EventThreats.update({ ...base, times: { start: "2026-07-15T19:00", end: "2026-07-15T22:00" } }); out.push(k());
-    window.EventThreats.update({ ...base, loc: { name: "MetLife Stadium", lat: 40.8135, lon: -74.0745 } }); out.push(k());
+    window.EventThreats.update({ ...base, loc: { name: "MetLife Stadium", lat: 40.8135, lon: -74.0745 } }); out.push(k() + "@" + (window.EventThreatsLast.items.find((i) => i.kind === "aqfcst") || { line: "" }).line.split(" reporting area")[0]);
     window.EventThreats.update(base); out.push(k()); return out;
   });
-  check("SMOKE same page: Thursday all three → Saturday keeps current conditions only → past event none → venue moved away none → back", JSON.stringify(ssteps) === JSON.stringify(["aqobs+smoke+aqfcst", "aqobs+smoke", "none", "none", "aqobs+smoke+aqfcst"]), ssteps);
+  check("SMOKE same page: Thursday all three → Saturday keeps current conditions only → past event none → moved to MetLife: no Chicago monitors, that day's smoke over New Jersey and the New York City Region forecast → back", JSON.stringify(ssteps) === JSON.stringify(["aqobs+smoke+aqfcst", "aqobs+smoke", "none", "smoke+aqfcst@New York City Region", "aqobs+smoke+aqfcst"]), ssteps);
   await shot(v, "ARCHIVED-planner-smoke-chicago"); const smLinks = r.maps; await v.ctx.close();
   m = await openMap(smLinks[0], "ARCHIVED-map-from-planner-smoke-monitor");
   check("SMOKE View on map (monitor): Smoke & air layer only, the monitor selected", m.s.view === "active" && /^airnow-/.test(m.s.sel || "") && m.s.layers.smoke && !m.s.layers.fire && /^CHI_/.test(m.s.title || "") && !m.errs.length, m);

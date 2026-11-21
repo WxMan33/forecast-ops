@@ -61,6 +61,9 @@ When SPC has an active Mesoscale Discussion:
 | Live **Red Flag Warning / Fire Weather Watch** reaching Planner through `/api/nws` | Pending: none active on Nov 20–21; proven on archived NWS Denver/Boulder messages |
 | Live **SPC Day 1–2 Critical** fire area or a **Days 3–8 probability** (40/70%) at a venue | Pending. Live Elevated verified Nov 21 01:19Z (Cheyenne, `planner-check/live-planner-fire.json`). The 40/70% label format will be confirmed when SPC first draws one: the parser accepts "40", "40%" and "0.40" and rejects anything else (the source then reads not confirmed) |
 | Live **wildfire within 15 miles** of a test venue | Pending as a live Planner item; live NIFC feeds (225+ incidents, perimeters) verified on the map |
+| NOAA **NAQFC smoke unit** (service text says "micrograms per cubic feet") | Pending: confirm with NOAA. Until then Planner names phases only and More info shows the raw value with that note |
+| Live **smoke item** at a test venue (HMS plume over it, or an AirNow monitor at USG or worse within 15 mi) | Pending as a live Planner item; live HMS (function), AirNow and NAQFC answers verified (`planner-check/live-planner-smoke.json`) |
+| **WSSI-P failed-level fallback** (retry, then "inferred" from the level below) | Shipped (`0a80946`, present in the deployed file). Not triggered live yet: every hosted run since had all five levels answer |
 | Live **Winter Storm Warning** in Planner and on the map | **Done 2026-11-20 21:43Z**: KSLC.WS.W.0003 at Snowbird through `/api/nws`, with live WSSI-P (5 point queries) on the same event. `docs/threats/planner-check/live-planner-winter.json` |
 
 ## Each time
