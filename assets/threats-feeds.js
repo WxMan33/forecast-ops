@@ -439,6 +439,119 @@
     return out;
   }
 
+  /* ---------- smoke and air quality ----------
+     Three kinds, kept apart:
+     - OBSERVED SMOKE ALOFT: NOAA NESDIS Hazard Mapping System (HMS) smoke analysis. Analysts outline smoke seen in
+       satellite imagery (GOES-East/West, polar orbiters) with a density (Light, Medium, Heavy) and the satellite window
+       ("Start Time: 2026195 1500UTC"). It is smoke anywhere in the air column: it says nothing about the ground.
+     - SURFACE OBSERVATIONS: EPA AirNow, latest hourly AQI per monitor (preliminary, not validated) and per reporting area.
+     - FORECASTS: AirNow reporting-area AQI forecasts by state/local agencies (a calendar day, category and sometimes a
+       value); NOAA NAQFC near-surface smoke guidance (model, hourly, 48 h).
+     Only HMS and NAQFC "smoke" name smoke; AirNow PM2.5 is fine particles, whatever the cause. */
+  const HMS_DENSITY = ["Light", "Medium", "Heavy"];
+  const jdayIso = (s) => { const m = /^(\d{4})(\d{3}) (\d\d)(\d\d)UTC$/.exec(String(s || "").trim()); if (!m) return null; const d = new Date(Date.UTC(+m[1], 0, 1, +m[3], +m[4])); d.setUTCDate(+m[2]); return d.toISOString(); };
+  /* HMS smoke KML -> one product per polygon. Placemarks carry "Start Time", "End Time", "Density", "Satellite". */
+  function parseHMS(kml, dayIso) {
+    if (typeof kml !== "string" || !/<kml[\s>]/.test(kml)) throw Error("unrecognized HMS smoke answer");
+    const out = [];
+    (kml.match(/<Placemark>[\s\S]*?<\/Placemark>/g) || []).forEach((pm, i) => {
+      const get = (k) => { const m = new RegExp(k + ":\\s*([^<]+)").exec(pm); return m ? m[1].trim() : null; };
+      const start = jdayIso(get("Start Time")), end = jdayIso(get("End Time")), density = get("Density"), sat = get("Satellite");
+      if (!start || !end || !HMS_DENSITY.includes(density)) throw Error("unrecognized HMS smoke polygon");
+      const polys = (pm.match(/<coordinates>([\s\S]*?)<\/coordinates>/g) || []).map((c) => [c.replace(/<\/?coordinates>/g, "").trim().split(/\s+/).map((t) => t.split(",").slice(0, 2).map(Number))]).filter((r) => r[0].length >= 4);
+      if (!polys.length) return;
+      const geometry = polys.length === 1 ? { type: "Polygon", coordinates: polys[0] } : { type: "MultiPolygon", coordinates: polys };
+      out.push({ id: "hms-" + (dayIso || start.slice(0, 10)) + "-" + i, kind: "smoke", program: "hms", family: "smoke", sourceId: "noaa-hms", category: density, density,
+        satellite: sat, obsStart: start, obsEnd: end, issued: end, validStart: start, validEnd: end, geometry, label: labelPoint(geometry),
+        event: "Smoke detected by satellite", title: density + " smoke (satellite)", office: "NOAA NESDIS Hazard Mapping System",
+        source: { name: "NOAA HMS smoke analysis", url: "https://www.ospo.noaa.gov/products/land/hms.html" } });
+    });
+    return out;
+  }
+  const HMS_URL = (ymd) => "https://satepsanone.nesdis.noaa.gov/pub/FIRE/web/HMS/Smoke_Polygons/KML/" + ymd.slice(0, 4) + "/" + ymd.slice(4, 6) + "/hms_smoke" + ymd + ".kml";
+
+  /* AQI categories (EPA). AirNow's monitor layer gives the AQI per pollutant for the latest hour. */
+  const AQI_CATS = [[50, "Good"], [100, "Moderate"], [150, "Unhealthy for Sensitive Groups"], [200, "Unhealthy"], [300, "Very Unhealthy"], [Infinity, "Hazardous"]];
+  const aqiCat = (v) => (v == null || !(v >= 0) ? null : AQI_CATS.find(([hi]) => v <= hi)[1]);
+  const AQI_CAT_ORDER = ["Good", "Moderate", "Unhealthy for Sensitive Groups", "Unhealthy", "Very Unhealthy", "Hazardous"];
+  const AIRNOW_MON = "https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/Air%20Now%20Current%20Monitor%20Data%20Public/FeatureServer/0/query";
+  const AIRNOW_MON_FIELDS = "AQSID,SiteName,StateName,DataSource,ReportingArea_PipeDelimited,ValidTime,LocalTimeString,GMTOffset,PM25,PM25_AQI,PM10_AQI,OZONE_AQI,Status,MonitorType";
+  const AIRNOW_MON_URL = (lat, lon, miles) => AIRNOW_MON + "?geometry=" + lon + "," + lat + "&geometryType=esriGeometryPoint&inSR=4326&distance=" + miles + "&units=esriSRUnit_StatuteMile&spatialRel=esriSpatialRelIntersects&outFields=" + AIRNOW_MON_FIELDS + "&outSR=4326&f=geojson";
+  const AIRNOW_MON_ALL_URL = AIRNOW_MON + "?where=" + encodeURIComponent("CountryCode='US' AND Status='Active'") + "&outFields=" + AIRNOW_MON_FIELDS + "&outSR=4326&resultRecordCount=5000&f=geojson";
+  function parseAirNowMonitors(gj) {
+    if (!gj || !Array.isArray(gj.features)) throw Error("unrecognized AirNow monitor answer");
+    if (gj.properties && gj.properties.exceededTransferLimit) throw Error("AirNow monitor answer is incomplete (transfer limit)");
+    const out = [];
+    for (const f of gj.features) {
+      const P = f.properties || f.attributes || {}, c = f.geometry && f.geometry.coordinates;
+      if (!c || P.Status === "Inactive") continue;
+      const vals = [["PM2.5", P.PM25_AQI], ["PM10", P.PM10_AQI], ["Ozone", P.OZONE_AQI]].filter(([, v]) => v != null && v !== "" && +v >= 0).map(([k, v]) => [k, +v]);
+      if (!vals.length) continue;
+      const top = vals.reduce((a, b) => (b[1] > a[1] ? b : a)), at = P.ValidTime ? new Date(+P.ValidTime).toISOString() : null;
+      if (!at) continue;
+      out.push({ id: "airnow-" + P.AQSID, kind: "aqobs", program: "airnow", family: "smoke", sourceId: "airnow-obs", site: P.SiteName, aqsid: P.AQSID, state: P.StateName,
+        area: P.ReportingArea_PipeDelimited || null, agency: P.DataSource || null, observed: at, issued: at, aqi: top[1], pollutant: top[0], category: aqiCat(top[1]),
+        values: Object.fromEntries(vals), pm25: P.PM25 == null || P.PM25 === "" ? null : +P.PM25, point: [c[0], c[1]], geometry: null, label: [c[0], c[1]],
+        event: "Air quality observation", title: P.SiteName, office: P.DataSource || "AirNow",
+        source: { name: "EPA AirNow (preliminary data)", url: "https://www.airnow.gov/" } });
+    }
+    return out;
+  }
+
+  /* AirNow reportingarea.dat: IssueDate|ValidDate|ValidTime|TimeZone|Sequence|DataType|Primary|ReportingArea|State|Lat|Lon|
+     Parameter|AQIValue|AQICategory|ActionDay|Discussion|ForecastSource. DataType F = forecast for ValidDate, O = latest
+     hourly observation (ValidTime, local), Y = yesterday's daily value. */
+  const TZ_OFF = { EST: -5, EDT: -4, CST: -6, CDT: -5, MST: -7, MDT: -6, PST: -8, PDT: -7, AKST: -9, AKDT: -8, HST: -10, AST: -4, ADT: -3, GMT: 0, UTC: 0 };
+  const mdy = (s) => { const m = /^(\d\d)\/(\d\d)\/(\d\d)$/.exec(String(s || "").trim()); return m ? "20" + m[3] + "-" + m[1] + "-" + m[2] : null; };
+  function parseReportingArea(text) {
+    if (typeof text !== "string") throw Error("unrecognized AirNow reporting area answer");
+    const rows = [];
+    for (const line of text.split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      const c = line.split("|"); if (c.length < 15) throw Error("unrecognized AirNow reporting area row");
+      const [issue, valid, vtime, tz, , type, primary, area, st, lat, lon, param, aqi, cat, action, disc, src] = c;
+      if (!["F", "O", "Y"].includes(type)) continue;
+      const vd = mdy(valid), off = TZ_OFF[(tz || "").trim()];
+      let observed = null;
+      if (type === "O" && vd && vtime && off != null) { const [h, mi] = vtime.split(":").map(Number); observed = new Date(Date.parse(vd + "T00:00:00Z") + ((h - off) * 60 + (mi || 0)) * 60e3).toISOString(); }
+      rows.push({ issueDate: mdy(issue), validDate: vd, type, primary: primary === "Y", area: area.trim(), state: st.trim(), lat: +lat, lon: +lon, tz: (tz || "").trim(), tzOffset: off,
+        parameter: param.trim(), aqi: aqi === "" ? null : +aqi, category: (cat || "").trim() || null, actionDay: /^yes$/i.test((action || "").trim()), discussion: (disc || "").trim() || null, agency: (src || "").trim() || null, observed });
+    }
+    return rows;
+  }
+  /* forecast rows for one reporting area -> one product per valid date (the most severe pollutant) */
+  function aqForecastProducts(rows) {
+    const byDay = new Map();
+    for (const r of rows.filter((x) => x.type === "F" && x.validDate && x.category && AQI_CAT_ORDER.includes(x.category))) {
+      const k = r.area + "|" + r.state + "|" + r.validDate, cur = byDay.get(k);
+      if (!cur || AQI_CAT_ORDER.indexOf(r.category) > AQI_CAT_ORDER.indexOf(cur.category) || (r.category === cur.category && (r.aqi || 0) > (cur.aqi || 0))) byDay.set(k, r);
+    }
+    return [...byDay.values()].map((r) => {
+      const off = r.tzOffset == null ? 0 : r.tzOffset, start = new Date(Date.parse(r.validDate + "T00:00:00Z") - off * 3600e3).toISOString(), end = new Date(Date.parse(start) + 864e5).toISOString();
+      return { id: "aqf-" + r.state + "-" + r.area.replace(/\W+/g, "") + "-" + r.validDate, kind: "aqfcst", program: "airnow-forecast", family: "smoke", sourceId: "airnow-fcst",
+        area: r.area, state: r.state, validDate: r.validDate, validStart: start, validEnd: end, issued: r.issueDate, category: r.category, aqi: r.aqi, pollutant: r.parameter.replace("OZONE", "Ozone"),
+        actionDay: r.actionDay, discussion: r.discussion, agency: r.agency, point: [r.lon, r.lat], geometry: null, event: "Air quality forecast", title: r.area + " AQI forecast", office: r.agency || "AirNow",
+        source: { name: "AirNow reporting area forecast", url: "https://www.airnow.gov/" } };
+    });
+  }
+  const AIRNOW_AREA_URL = "https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/AirNow_National_Air_Quality_Index_(AQI)_Forecast/FeatureServer/0/query";
+  const AIRNOW_AREA_AT = (lat, lon) => AIRNOW_AREA_URL + "?geometry=" + lon + "," + lat + "&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=RAName,RACode,RAAgency&returnGeometry=false&f=json";
+
+  /* NOAA NAQFC near-surface smoke guidance at a point: hourly samples (getSamples) from the time-enabled image service */
+  const NAQFC_SMOKE = "https://mapservices.weather.noaa.gov/raster/rest/services/air_quality/ndgd_smoke_sfc_1hr_avg_time/ImageServer";
+  const NAQFC_SMOKE_AT = (lat, lon) => NAQFC_SMOKE + "/getSamples?geometry=" + encodeURIComponent(JSON.stringify({ x: lon, y: lat, spatialReference: { wkid: 4326 } })) + "&geometryType=esriGeometryPoint&returnFirstValueOnly=false&outFields=*&f=json";
+  function parseNAQFC(j, point) {
+    if (!j || !Array.isArray(j.samples)) throw Error("unrecognized NOAA smoke forecast answer");
+    const hours = j.samples.map((s) => ({ t: new Date(+s.attributes.idp_validtime).toISOString(), v: Math.max(0, +s.value || 0), run: new Date(+s.attributes.idp_issueddate).toISOString(), fh: +s.attributes.idp_fcst_hour }))
+      .filter((h) => Number.isFinite(Date.parse(h.t))).sort((a, b) => (a.t < b.t ? -1 : 1));
+    if (!hours.length) throw Error("NOAA smoke forecast has no hours");
+    const run = hours.map((h) => h.run).sort().pop(), mine = hours.filter((h) => h.run === run);
+    return { id: "naqfc-smoke-" + run + "@" + point.join(","), kind: "smokefcst", program: "naqfc", family: "smoke", sourceId: "noaa-naqfc-smoke", run, issued: run, hours: mine,
+      validStart: new Date(Date.parse(mine[0].t) - 3600e3).toISOString(), validEnd: mine[mine.length - 1].t, point, pointHit: point, geometry: null,
+      event: "Near-surface smoke forecast", title: "NOAA smoke forecast", office: "NOAA National Air Quality Forecast Capability",
+      source: { name: "NOAA NAQFC smoke guidance (model)", url: "https://airquality.weather.gov/" } };
+  }
+
   /* ---------- source registry: who issues what, for which area ----------
      Coverage is explicit so a venue outside a provider's area reads "not covered by this source", never "nothing".
      New regions and providers are new entries here; Event Planner reads products and source states only. */
@@ -446,6 +559,10 @@
   const SOURCES = [
     { id: "nws-alerts", name: "NWS warnings, watches and advisories", provider: "NOAA National Weather Service", region: "United States", boxes: BOX.us, hazards: ["severe", "flood", "winter", "fire"], url: "https://www.weather.gov/" },
     { id: "spc-fire", name: "SPC fire weather outlooks", provider: "NOAA Storm Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["fire"], url: "https://www.spc.noaa.gov/products/fire_wx/" },
+    { id: "noaa-hms", name: "NOAA satellite smoke analysis (HMS)", provider: "NOAA NESDIS", region: "North America", boxes: [[-170, 14, -50, 72]], hazards: ["smoke"], url: "https://www.ospo.noaa.gov/products/land/hms.html" },
+    { id: "airnow-obs", name: "AirNow air quality observations", provider: "EPA AirNow and state/local agencies", region: "United States", boxes: BOX.us, hazards: ["smoke"], url: "https://www.airnow.gov/" },
+    { id: "airnow-fcst", name: "AirNow air quality forecasts", provider: "State and local air agencies via AirNow", region: "United States", boxes: BOX.us, hazards: ["smoke"], url: "https://www.airnow.gov/" },
+    { id: "noaa-naqfc-smoke", name: "NOAA smoke forecast guidance (NAQFC)", provider: "NOAA National Weather Service", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["smoke"], url: "https://airquality.weather.gov/" },
     { id: "nifc-wfigs", name: "NIFC wildfire incidents (WFIGS)", provider: "National Interagency Fire Center", region: "United States", boxes: BOX.us, hazards: ["fire"], url: "https://data-nifc.opendata.arcgis.com/" },
     { id: "spc-md", name: "SPC Mesoscale Discussions", provider: "NOAA Storm Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["severe"], url: "https://www.spc.noaa.gov/products/md/" },
     { id: "spc-outlook", name: "SPC convective outlooks", provider: "NOAA Storm Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["severe"], url: "https://www.spc.noaa.gov/products/outlook/" },
@@ -548,5 +665,6 @@
   return { EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
     parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries, dissolve, zoneShape,
     HAZARD, WINTER_EVENTS, FIRE_EVENTS, FIRE_CATS, DRYT_CATS, FIRE38_CATS, FIRE_NAME, FIRE_MEANING, SPC_FIRE_URL, parseFireOutlook, createFireStore,
-    NIFC_INC_URL, NIFC_PER_URL, INCIDENT_TYPE, parseNIFC, zTime, WSSI_LEVELS, WSSI_NAME, WSSI_MEANING, WSSIP_URL, parseWSSIP, ERO_CATS, ERO_NAME, ERO_PCT, WPC_ERO_URL, MAPSVC_ERO_URL, parseERO, createEROStore, SOURCES, covers };
+    NIFC_INC_URL, NIFC_PER_URL, INCIDENT_TYPE, parseNIFC, zTime,
+    HMS_DENSITY, HMS_URL, parseHMS, AQI_CATS, AQI_CAT_ORDER, aqiCat, AIRNOW_MON_URL, AIRNOW_MON_ALL_URL, parseAirNowMonitors, parseReportingArea, aqForecastProducts, AIRNOW_AREA_AT, NAQFC_SMOKE_AT, parseNAQFC, WSSI_LEVELS, WSSI_NAME, WSSI_MEANING, WSSIP_URL, parseWSSIP, ERO_CATS, ERO_NAME, ERO_PCT, WPC_ERO_URL, MAPSVC_ERO_URL, parseERO, createEROStore, SOURCES, covers };
 });

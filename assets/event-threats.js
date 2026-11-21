@@ -9,9 +9,9 @@
   "use strict";
   const O = window.Ops, C = O.Core, T = window.ThreatsCore, M = window.ThreatsMatch, Live = window.ThreatsLive, esc = O.esc, $ = O.$;
   const Q = new URLSearchParams(location.search);
-  const ARCHIVE = /^archive-(flood-(day|afternoon|outage|night)|winter-(advisory|warning|outlook)|fire-(day4|day2|day1|watch|warning|incidents))$/.test(Q.get("threats") || "") ? Q.get("threats") : null;
+  const ARCHIVE = /^archive-(flood-(day|afternoon|outage|night)|winter-(advisory|warning|outlook)|fire-(day4|day2|day1|watch|warning|incidents)|smoke-(chicago|metlife|forecast-0714|forecast-0715))$/.test(Q.get("threats") || "") ? Q.get("threats") : null;
   // live: every family in this slice; an archived sample only has its own hazard's products, so it is checked for that one
-  const FAMILIES = ARCHIVE ? [ARCHIVE.split("-")[1]] : ["flood", "winter", "fire"];
+  const FAMILIES = ARCHIVE ? [ARCHIVE.split("-")[1]] : ["flood", "winter", "fire", "smoke"];
   const F = window.ThreatsFeeds, pct = (n) => (n >= 5 ? n + "%" : "under 5%");
   let ev = null, data = null, ready = false, open = new Set(), archived = null;
 
@@ -19,7 +19,8 @@
   const mapLink = (it) => {
     const p = it.product, u = new URL("threats.html", location.href), q = u.searchParams;
     q.set("lat", ev.loc.lat); q.set("lon", ev.loc.lon); q.set("name", ev.loc.name); q.set("tz", ev.tz); q.set("scope", "venue");
-    if (p.kind === "incident") { q.set("view", "active"); q.set("layers", "fire"); q.set("sel", p.id); }
+    if (it.family === "smoke") { q.set("view", "active"); q.set("layers", "smoke"); if (p.kind === "smoke" || p.kind === "aqobs") q.set("sel", p.id); }
+    else if (p.kind === "incident") { q.set("view", "active"); q.set("layers", "fire"); q.set("sel", p.id); }
     else if (/^spcfire-/.test(p.program || "")) { q.set("view", "fire"); q.set("fday", p.day); q.set("layers", "fire"); q.set("sel", p.id); }
     else if (p.program === "wssip") { q.set("view", "winter"); q.set("wwin", p.validStart); q.set("wlevel", p.category); q.set("layers", it.family); }
     else { q.set("view", p.kind === "outlook" ? "day" + p.day : "active"); q.set("layers", it.family); q.set("sel", p.id); }
@@ -35,7 +36,7 @@
     const box = $("threats"); if (!box || !ev) return;
     if (!ev.loc || !Number.isFinite(+ev.loc.lat)) { box.innerHTML = '<p class="bx-note">Pick the venue to check weather threats.</p>'; return; }
     data = snapshot(); const now = Date.parse(data.clock);
-    if (data.loading || !ready) { box.innerHTML = '<p class="bx-note">Checking official flood, winter and fire weather alerts and outlooks, and wildfire incidents…</p>'; return; }
+    if (data.loading || !ready) { box.innerHTML = '<p class="bx-note">Checking official flood, winter and fire weather alerts and outlooks, wildfire incidents, smoke and air quality…</p>'; return; }
     const state = Live.registryState(data, now);
     const r = M.forEvent({ products: data.products, state, event: { lat: +ev.loc.lat, lon: +ev.loc.lon, name: ev.loc.name, tz: ev.tz, windows: C.event.windows(ev) }, now, families: FAMILIES });
     const tz = ev.tz;
@@ -43,7 +44,37 @@
       const p = it.product, id = esc(it.id), isOpen = open.has(it.id), src = state[p.sourceId] || {};
       const wsp = p.program === "wssip", started = p.kind !== "outlook" && Date.parse(p.issued) > now;
       const inc = p.kind === "incident", fo = /^spcfire-/.test(p.program || ""), acres = (v) => Math.round(v).toLocaleString("en-US") + " acres";
-      const rows = inc ? [
+      const sm = it.family === "smoke", obsT = (iso) => esc(fmt(iso, tz));
+      const rows = sm && p.kind === "smoke" ? [
+        ["Source", `${esc(p.office)} · <a href="${esc(p.source.url)}" target="_blank" rel="noopener">HMS smoke analysis</a>`],
+        ["Observed", obsT(p.obsStart) + " → " + obsT(p.obsEnd) + " (" + esc(p.satellite || "satellite") + " imagery)"],
+        ["Density", esc(p.density) + " (analyst's estimate of how thick the smoke looks from space)"],
+        ["Last checked", src.lastOk ? esc(fmt(src.lastOk, tz)) + (src.kind === "stale" ? " · not confirmed since then" : "") : "not yet"],
+        ["Venue", "Inside the outlined smoke area"],
+        ["What it means", "Smoke somewhere in the air column above the venue. Satellite smoke does not measure air quality at the ground; see the AirNow reading for that. A current observation, not a forecast."],
+      ] : sm && p.kind === "aqobs" ? [
+        ["Source", `EPA AirNow · ${esc(p.agency || "")} · <a href="${esc(p.source.url)}" target="_blank" rel="noopener">AirNow</a>`],
+        ["Monitor", esc(p.site + (p.area ? " · " + p.area.split("|")[0] + " reporting area" : "") + " · " + window.ThreatsCore.distanceText(it.distanceKm) + " from the venue")],
+        ["Observed", obsT(p.observed) + " (hourly reading)"],
+        ["Reading", esc("AQI " + p.aqi + " " + p.category + " (" + p.pollutant + ")") + (p.pm25 != null ? esc(" · PM2.5 " + p.pm25 + " µg/m³") : "") + esc(" · all: " + Object.entries(p.values).map(([k, v]) => k + " " + v).join(", "))],
+        ["Monitors within 15 mi", esc(String(it.monitors))],
+        ["Last checked", src.lastOk ? esc(fmt(src.lastOk, tz)) + (src.kind === "stale" ? " · not confirmed since then" : "") : "not yet"],
+        ["Note", "Preliminary data, not fully validated (AirNow). Fine particles (PM2.5) have many sources; this reading alone does not say the cause."],
+      ] : sm && p.kind === "aqfcst" ? [
+        ["Source", `${esc(p.agency || "State or local air agency")} via <a href="${esc(p.source.url)}" target="_blank" rel="noopener">AirNow</a>`],
+        ["Forecast for", esc(p.validDate + " (" + p.area + ", " + p.state + " reporting area)")],
+        ["Issued", esc(p.issued || "not stated")],
+        ["Forecast", esc(p.category + (p.aqi != null ? " · AQI " + p.aqi : " (category only)") + " · " + p.pollutant + (p.actionDay ? " · Air quality action day" : ""))],
+        ["Last checked", src.lastOk ? esc(fmt(src.lastOk, tz)) : "not yet"],
+        ["Details", esc(p.discussion || "A forecast for the whole day; it does not time anything within it.")],
+      ] : sm && p.kind === "smokefcst" ? [
+        ["Source", `${esc(p.office)} · <a href="${esc(p.source.url)}" target="_blank" rel="noopener">NOAA air quality guidance</a>`],
+        ["Model run", esc(new Date(p.run).toISOString().slice(0, 16).replace("T", " ") + "Z")],
+        ["Hours with smoke", esc(it.phases.join(", ") + " · highest " + it.peak.v.toFixed(1) + " at " + fmt(new Date(Date.parse(it.peak.t) - 3600e3).toISOString(), tz))],
+        ["Units", "As published by NOAA's service, which labels the values \u201cmicrograms per cubic feet\u201d; being confirmed with NOAA. Shown here only to compare hours."],
+        ["Covers through", esc(fmt(p.validEnd, tz)) + " (48-hour guidance)"],
+        ["What it means", "Model guidance for smoke from fires near the ground, not an official forecast or a measurement."],
+      ] : inc ? [
         ["Source", `${esc(p.office)} · <a href="${esc(p.source.url)}" target="_blank" rel="noopener">WFIGS current incidents</a>${p.uniqueId ? " · " + esc(p.uniqueId) : ""}`],
         ["Type", esc(p.event + (p.imt ? " · " + p.imt : ""))],
         ["Size", p.acres != null ? esc(acres(p.acres)) + " (as reported for the incident)" : "not reported"],
@@ -97,7 +128,8 @@
     window.EventThreatsLast = r; // read by the preview checks
   }
   function wssiCheck() { if (!ARCHIVE && ready && ev && ev.loc && Number.isFinite(+ev.loc.lat)) Live.wssiFor(+ev.loc.lat, +ev.loc.lon); }
-  function update(next) { ev = next; wssiCheck(); render(); }
+  function aqCheck() { if (!ARCHIVE && ready && ev && ev.loc && Number.isFinite(+ev.loc.lat) && Live.aqFor) Live.aqFor(+ev.loc.lat, +ev.loc.lon); }
+  function update(next) { ev = next; wssiCheck(); aqCheck(); render(); }
   document.addEventListener("click", (e) => {
     const b = e.target.closest(".et-more"); if (!b) return;
     const id = b.dataset.id; if (open.has(id)) open.delete(id); else open.add(id); render();
@@ -105,7 +137,7 @@
 
   async function start() {
     if (ARCHIVE) { try { archived = await Live.archiveSnapshot(ARCHIVE); } catch (e) { archived = { products: [], sources: {}, clock: new Date().toISOString(), loadError: e.message }; } ready = true; render(); return; }
-    await Live.start({ only: ["alerts", "ero", "fire", "nifc"] }); ready = true; wssiCheck(); render();
+    await Live.start({ only: ["alerts", "ero", "fire", "nifc", "hms"] }); ready = true; wssiCheck(); aqCheck(); render();
     Live.onUpdate(() => render());
     setInterval(() => { if (!document.hidden) render(); }, 30e3);
   }

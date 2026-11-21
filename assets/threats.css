@@ -221,3 +221,4 @@
 .px-wdays button b { font-weight: 600; text-align: right; }
 /* fire */
 .tx-kind.k-incident { background: #FF5A1F; color: #fff; }
+.tx-kind.k-aq { background: #6b7280; color: #fff; border-color: #6b7280; }

@@ -28,7 +28,7 @@
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
 <link rel="stylesheet" href="assets/ops.css?v=35098c1775">
-<link rel="stylesheet" href="assets/threats.css?v=b1e622d423">
+<link rel="stylesheet" href="assets/threats.css?v=585a1b1ee6">
 </head>
 <body class="threats-page">
 <main class="tx" id="tx">
@@ -63,6 +63,10 @@
           <option value="archive-fire-watch">Fire Weather Watch, Colorado, Nov 17 1 p.m.</option>
           <option value="archive-fire-warning">Upgrade to Red Flag Warning, Colorado, Nov 18</option>
           <option value="archive-fire-incidents">NIFC wildfire incidents (snapshot Nov 21)</option>
+          <option value="archive-smoke-chicago">Smoke and Hazardous air, Chicago, Jul 16</option>
+          <option value="archive-smoke-metlife">Smoke overhead, New York area, Jul 14</option>
+          <option value="archive-smoke-forecast-0714">AirNow forecasts issued Jul 14</option>
+          <option value="archive-smoke-forecast-0715">AirNow forecasts issued Jul 15</option>
           </optgroup>
         </select></label>
       <label class="tx-demo-field" id="venueField"><span>Venue</span>
@@ -88,6 +92,7 @@
           <button type="button" class="tx-lb" data-layer="flood" aria-pressed="true">Flooding</button>
           <button type="button" class="tx-lb" data-layer="winter" aria-pressed="true">Winter</button>
           <button type="button" class="tx-lb" data-layer="fire" aria-pressed="true">Fire</button>
+          <button type="button" class="tx-lb" data-layer="smoke" aria-pressed="true">Smoke &amp; air</button>
         </div>
         <div class="tx-valid" id="txValid" aria-live="polite"></div>
         <div class="tx-model" id="txModel" hidden>
@@ -130,8 +135,8 @@
 <script src="assets/threats-core.js?v=14821f86c0"></script>
 <script src="assets/threats-demo.js?v=ecef6ab463"></script>
 <script src="assets/severe-daily-core.js?v=8b3bc7c800"></script>
-<script src="assets/threats-feeds.js?v=fd82d9eaa4"></script>
-<script src="assets/threats-live.js?v=0a2d61fb2b"></script>
-<script src="assets/threats.js?v=11fae6c329"></script>
+<script src="assets/threats-feeds.js?v=f1e8ff50f8"></script>
+<script src="assets/threats-live.js?v=3c6f17e70a"></script>
+<script src="assets/threats.js?v=d9b6aff3cd"></script>
 </body>
 </html>

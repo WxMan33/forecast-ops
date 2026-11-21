@@ -18,7 +18,9 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function (T, F) {
   "use strict";
   const PHASE_WORD = { setup: "setup", gates: "gates", event: "the event", teardown: "teardown" };
-  const FAMILY_WORD = { flood: "flooding", severe: "severe storms", winter: "winter weather", fire: "fire weather or wildfire" };
+  const FAMILY_WORD = { flood: "flooding", severe: "severe storms", winter: "winter weather", fire: "fire weather or wildfire", smoke: "smoke or air quality" };
+  const AQ_KM = 15 * T.KM_PER_MI, AQ_ITEM = 2;               // monitors within 15 miles; items from "Unhealthy for Sensitive Groups" up
+  const HMS_RANK = { Light: 0, Medium: 1, Heavy: 2 }, NAQFC_MIN = 1; // NAQFC: the lowest value NOAA's legend draws
   const INCIDENT_KM = 15 * T.KM_PER_MI; // a wildfire is listed when its perimeter, or its reported point, is within 15 miles
   const ALERT_RANK = { warning: 0, watch: 0.3, advisory: 0.4 };
   const list = (a) => (a.length <= 1 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]);
@@ -115,6 +117,64 @@
         relation: at.inside ? { kind: "covers" } : { kind: "near", km: at.km, dir: at.dir }, window: { startMs: now, endMs: all.endMs } });
     }
 
+    /* SMOKE AND AIR QUALITY. Current observations (satellite smoke, monitors) are conditions now, shown beside an event
+       that is still ahead or under way, with their own time. Forecasts are matched to the event's own days or hours. */
+    const smokeNotes = {};
+    if (families.includes("smoke") && all.endMs > now) {
+      const tnow = (iso) => clock(Date.parse(iso), tz) + (day(Date.parse(iso), tz) !== day(now, tz) ? " " + day(Date.parse(iso), tz) : "");
+      const ahead = all.startMs > now ? (" Your event starts " + day(all.startMs, tz) + " " + clock(all.startMs, tz) + ".").replace(/\.\.$/, ".") : "";
+      // satellite smoke: the latest analysis window (ended within 24 h) whose polygon includes the venue, densest first
+      const hms = products.filter((p) => p.kind === "smoke" && Date.parse(p.obsEnd) <= now && now - Date.parse(p.obsEnd) < 24 * 3600e3 && T.contains(p.geometry, [venue.lon, venue.lat]));
+      if (hms.length) {
+        const latest = hms.map((p) => p.obsEnd).sort().pop(), win = hms.filter((p) => p.obsEnd === latest), top = win.reduce((a, b) => (HMS_RANK[b.density] > HMS_RANK[a.density] ? b : a));
+        items.push({ id: top.id, productId: top.id, family: "smoke", kind: "smoke", rank: 0.6 + (2 - HMS_RANK[top.density]) / 100, product: top, phases: [],
+          headline: "Smoke detected over the area · " + top.density + " (satellite, " + tnow(top.obsStart) + "–" + clock(Date.parse(top.obsEnd), tz) + ")",
+          line: "NOAA's satellite smoke analysis outlined " + top.density.toLowerCase() + " smoke over the venue in " + (top.satellite || "satellite") + " imagery. It is smoke in the air column overhead; it does not say what the air is like at the ground." + ahead,
+          relation: { kind: "covers" }, window: { startMs: Date.parse(top.obsStart), endMs: Date.parse(top.obsEnd) } });
+      }
+      // surface monitors within 15 miles, latest reading no older than 3 hours
+      const mons = products.filter((p) => p.kind === "aqobs" && now - Date.parse(p.observed) <= 3 * 3600e3 && Date.parse(p.observed) <= now + 3600e3).map((p) => ({ p, d: T.pointDistance([venue.lon, venue.lat], p.point) })).filter((x) => x.d.km <= AQ_KM).sort((a, b) => a.d.km - b.d.km);
+      const near = mons[0], worst = mons.slice().sort((a, b) => b.p.aqi - a.p.aqi)[0];
+      smokeNotes["airnow-obs"] = near ? "nearest monitor " + near.p.site + " (" + T.distanceText(near.d.km) + " " + near.d.dir + "): AQI " + near.p.aqi + " " + near.p.category + " (" + near.p.pollutant + ") for " + tnow(near.p.observed) : null;
+      smokeNotes.noMonitor = !near;
+      if (worst && F.AQI_CAT_ORDER.indexOf(worst.p.category) >= AQ_ITEM) {
+        const w = worst.p;
+        items.push({ id: w.id, productId: w.id, family: "smoke", kind: "aqobs", rank: 0.55 - F.AQI_CAT_ORDER.indexOf(w.category) / 100, product: w, phases: [], distanceKm: worst.d.km, monitors: mons.length,
+          headline: "Air quality now: " + w.category + " (AQI " + w.aqi + ", " + w.pollutant + ") at " + w.site + ", " + T.distanceText(worst.d.km) + " " + worst.d.dir,
+          line: "AirNow monitor reading for " + tnow(w.observed) + (w.area ? " (" + w.area.split("|")[0] + " reporting area" + (w.agency ? ", " + w.agency : "") + ")" : "") + ". Preliminary data; current conditions, not a forecast." + ahead,
+          relation: { kind: "near", km: worst.d.km, dir: worst.d.dir }, window: { startMs: Date.parse(w.observed) - 3600e3, endMs: Date.parse(w.observed) } });
+      }
+    }
+    if (families.includes("smoke")) {
+      // AirNow reporting-area forecasts: the venue's area (from the live area lookup) or the nearest area point within 50 miles
+      const fc = products.filter((p) => p.kind === "aqfcst");
+      const areaOf = fc.some((p) => p.forVenue) ? fc.filter((p) => p.forVenue) : (() => { const ds = fc.map((p) => ({ p, km: T.pointDistance([venue.lon, venue.lat], p.point).km })).filter((x) => x.km <= 50 * T.KM_PER_MI).sort((a, b) => a.km - b.km); return ds.length ? fc.filter((p) => p.area === ds[0].p.area && p.state === ds[0].p.state) : []; })();
+      smokeNotes.fcArea = areaOf[0] ? areaOf[0].area : null;
+      smokeNotes.fcReach = areaOf.map((p) => p.validEnd).sort().pop() || null;
+      for (const p of areaOf) {
+        const s = Date.parse(p.validStart), e = Date.parse(p.validEnd), ph = overlaps(s, e, phases);
+        if (!ph.length || e <= now || F.AQI_CAT_ORDER.indexOf(p.category) < AQ_ITEM) continue;
+        const words = ph.map((x) => PHASE_WORD[x.key] || x.label.toLowerCase());
+        items.push({ id: p.id, productId: p.id, family: "smoke", kind: "aqfcst", rank: 1.05 - F.AQI_CAT_ORDER.indexOf(p.category) / 100, product: p, phases: ph.map((x) => x.key),
+          headline: "Air quality forecast " + day(s + 12 * 3600e3, tz) + ": " + p.category + " (" + (p.aqi != null ? "AQI " + p.aqi + ", " : "") + p.pollutant + ")",
+          line: p.area + " reporting area forecast" + (p.agency ? " by " + p.agency : "") + ", issued " + new Date(p.issued + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric" }) + ". A forecast for the whole day (" + list(words) + (words.length > 1 ? " fall" : " falls") + " on it), not timing within it." + (p.actionDay ? " Air quality action day." : ""),
+          relation: { kind: "covers" }, window: { startMs: s, endMs: e } });
+      }
+      // NOAA NAQFC near-surface smoke: hours that fall in the event's phases
+      const nq = products.find((p) => p.kind === "smokefcst" && p.pointHit && Math.abs(p.pointHit[0] - venue.lon) < 1e-3 && Math.abs(p.pointHit[1] - venue.lat) < 1e-3);
+      if (nq) {
+        smokeNotes.nqReach = nq.validEnd;
+        const hit = phases.map((x) => ({ x, hrs: nq.hours.filter((h) => { const t = Date.parse(h.t); return t > x.startMs && t - 3600e3 < x.endMs && t > now; }) })).filter((y) => y.hrs.some((h) => h.v >= NAQFC_MIN));
+        if (hit.length) {
+          const hrs = hit.flatMap((y) => y.hrs).filter((h) => h.v >= NAQFC_MIN), peak = hrs.reduce((a, b) => (b.v > a.v ? b : a));
+          items.push({ id: nq.id, productId: nq.id, family: "smoke", kind: "smokefcst", rank: 1.2, product: nq, phases: hit.map((y) => y.x.key), peak,
+            headline: "Smoke in NOAA's forecast during " + list(hit.map((y) => PHASE_WORD[y.x.key] || y.x.label.toLowerCase())),
+            line: "NOAA's near-surface smoke guidance (model run " + new Date(nq.run).toISOString().slice(11, 13) + "Z " + day(Date.parse(nq.run), "UTC").slice(0, 3) + ") shows smoke at the venue in " + hrs.length + " hour" + (hrs.length > 1 ? "s" : "") + " of those phases, highest at " + clock(Date.parse(peak.t) - 3600e3, tz) + ". Model guidance, not an air quality reading.",
+            relation: { kind: "covers" }, window: { startMs: Date.parse(hrs[0].t) - 3600e3, endMs: Date.parse(hrs[hrs.length - 1].t) } });
+        }
+      }
+    }
+
     /* outlooks: one item per program, day and issuance, at the highest category containing the venue */
     const groups = new Map();
     for (const p of products) {
@@ -156,7 +216,7 @@
     /* what each source could say about this event */
     const statuses = [];
     for (const src of (F.SOURCES || []).filter((x) => x.hazards.some((h) => families.includes(h)))) {
-      const covered = F.covers(src, venue.lat, venue.lon), st = state[src.id];
+      const covered = F.covers(src, venue.lat, venue.lon), st = state[src.id] ? { ...state[src.id] } : undefined;
       let text, ok = false;
       if (!covered) text = "The venue is outside this source's area (" + src.region + "). Not covered here yet.";
       else if (!st || st.kind === "loading") text = "Loading…";
@@ -164,6 +224,9 @@
       else if (st.kind === "unavailable") text = "Not responding · status unknown. We can't rule anything out from this source.";
       else if (st.kind === "stale") text = ("Not confirmed since " + (st.lastOk ? clock(Date.parse(st.lastOk), tz) : "this page opened") + ".").replace(/\.\.$/, ".") + " Showing last known products only.";
       else { ok = true; text = "Checked " + clock(Date.parse(st.lastOk), tz) + (st.reach ? " · " + st.reach : ""); }
+      if (src.id === "airnow-obs" && ok) { if (smokeNotes.noMonitor) { ok = false; text = "No AirNow monitor reading within 15 miles in the last 3 hours: surface air quality isn't reported for this venue."; } else if (smokeNotes["airnow-obs"]) text += " · " + smokeNotes["airnow-obs"]; }
+      if (src.id === "airnow-fcst" && ok) { if (!smokeNotes.fcArea) { ok = false; text = "No AirNow forecast area for this venue."; } else { text += " · " + smokeNotes.fcArea + " reporting area"; st.reachEnd = smokeNotes.fcReach; } }
+      if (src.id === "noaa-naqfc-smoke" && ok && smokeNotes.nqReach) st.reachEnd = smokeNotes.nqReach;
       if (ok && st.reachEnd && Date.parse(st.reachEnd) < all.endMs) { ok = false; { const r = Date.parse(st.reachEnd); text += " · Your event runs past the outlooks issued so far (they end " + day(r, tz).slice(0, 3) + " " + clock(r, tz) + ")."; } }
       statuses.push({ id: src.id, name: src.name, provider: src.provider, ok, covered, text, lastOk: st && st.lastOk, url: src.url });
     }

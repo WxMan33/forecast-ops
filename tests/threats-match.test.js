@@ -283,3 +283,69 @@ console.log(n + " passed (with winter)");
   });
 }
 console.log(n + " passed (with winter and fire)");
+
+/* ---------------- SMOKE AND AIR QUALITY (ARCHIVED official): NOAA HMS smoke (Jul 14 and 16, 2026), AirNow hourly monitor
+   AQI (HourlyAQObs) and reporting-area forecasts (reportingarea.dat, Jul 14-16) ---------------- */
+{
+  const txt = (f) => fs.readFileSync(FX(f), "utf8");
+  const hms = (f, clock) => F.parseHMS(txt(f)).filter((p) => Date.parse(p.obsEnd) <= clock);
+  const mons = (f) => F.parseAirNowMonitors(JSON.parse(txt(f)));
+  const fcst = (f, clock) => F.aqForecastProducts(F.parseReportingArea(txt(f)).filter((r) => r.issueDate <= new Date(clock).toISOString().slice(0, 10)));
+  const evS = (name, lat, lon, times, tz) => { const ev = { id: "s", name, loc: { name, lat, lon }, tz, times }; assert.deepStrictEqual(C.event.validate(ev), []); return { name, lat, lon, tz, windows: C.event.windows(ev) }; };
+  const sstate = (clock, extra = {}) => ({ "noaa-hms": OK(clock), "airnow-obs": OK(clock), "airnow-fcst": OK(clock), "noaa-naqfc-smoke": OK(clock), ...extra });
+  const runS = (ev, clock, products, state = sstate(clock)) => M.forEvent({ products, state, event: ev, now: clock, families: ["smoke"] });
+  const SOLDIER = [41.8623, -87.6167], METLIFE = [40.8135, -74.0745], LINC = [39.9008, -75.1675];
+  const CHI = Date.parse("2026-07-16T22:30:00Z"), CHI_EV = { gates: "2026-07-16T18:00", start: "2026-07-16T19:00", end: "2026-07-16T22:00" };
+  const chiProducts = () => [...hms("hms-smoke-20260716-east.kml", CHI), ...mons("airnow-monitors-2026071622-chicago.geojson"), ...fcst("airnow-ra-20260716.dat", CHI)];
+
+  ok("SMOKE Chicago, Jul 16 5:30 p.m. CDT (no wildfire within 15 miles): smoke overhead, Hazardous air at a nearby monitor and a Hazardous forecast, as separate items", () => {
+    const r = runS(evS("Soldier Field", ...SOLDIER, CHI_EV, "America/Chicago"), CHI, chiProducts());
+    assert.deepStrictEqual(r.items.map((i) => i.kind), ["aqobs", "smoke", "aqfcst"], JSON.stringify(r.items.map((i) => i.headline)));
+    assert.match(r.items[1].headline, /^Smoke detected over the area · (Light|Medium|Heavy) \(satellite, \d+(:\d\d)? (a|p)\.m\.–\d+(:\d\d)? (a|p)\.m\.\)$/);
+    assert.match(r.items[1].line, /does not say what the air is like at the ground/);
+    assert.match(r.items[0].headline, /^Air quality now: Hazardous \(AQI \d+, PM2\.5\) at .+, \d+ miles? \w+$/);
+    assert.match(r.items[0].line, /^AirNow monitor reading for 5 p\.m\. \(Chicago reporting area, Illinois EPA\)\. Preliminary data; current conditions, not a forecast\./);
+    assert.strictEqual(r.items[2].headline, "Air quality forecast Thursday: Hazardous (PM2.5)");
+    assert.ok(!r.items.some((i) => /wildfire/i.test(i.headline + i.line)), "no wildfire attribution");
+    assert.match(r.statuses.find((s) => s.id === "airnow-obs").text, /nearest monitor .+ AQI \d+ /);
+  });
+  ok("SMOKE MetLife, Jul 14 5:30 p.m. EDT: a mapped plume overhead while the nearest surface reading is reported separately (no 'unhealthy' surface item)", () => {
+    const clock = Date.parse("2026-07-14T21:30:00Z"), ev = evS("MetLife Stadium", ...METLIFE, { gates: "2026-07-14T18:00", start: "2026-07-14T19:00", end: "2026-07-14T22:00" }, "America/New_York");
+    const r = runS(ev, clock, [...hms("hms-smoke-20260714-east.kml", clock), ...mons("airnow-monitors-2026071421-nyc.geojson")], sstate(clock, { "airnow-fcst": { kind: "na" } }));
+    const smoke = r.items.find((i) => i.kind === "smoke");
+    assert.ok(smoke && /^Smoke detected over the area · Heavy/.test(smoke.headline), JSON.stringify(r.items.map((i) => i.headline)));
+    assert.ok(!r.items.some((i) => i.kind === "aqobs"), "surface was below Unhealthy for Sensitive Groups");
+    assert.match(r.statuses.find((s) => s.id === "airnow-obs").text, /^Checked .* · nearest monitor .+: AQI \d+ (Good|Moderate) \((PM2\.5|Ozone|PM10)\) for 5 p\.m\.$/);
+  });
+  ok("SMOKE days ahead, Philadelphia: the Jul 14 forecast for Thursday is Moderate (no item); the Jul 15 forecast raises it to Unhealthy 180", () => {
+    const ev = evS("Lincoln Financial Field", ...LINC, { start: "2026-07-16T13:00", end: "2026-07-16T17:00" }, "America/New_York");
+    const c14 = Date.parse("2026-07-14T22:00:00Z"), c15 = Date.parse("2026-07-15T22:00:00Z");
+    assert.deepStrictEqual(runS(ev, c14, fcst("airnow-ra-20260714.dat", c14), sstate(c14, { "noaa-hms": { kind: "na" }, "airnow-obs": { kind: "na" } })).items.map((i) => i.headline), []);
+    const r = runS(ev, c15, fcst("airnow-ra-20260715.dat", c15), sstate(c15, { "noaa-hms": { kind: "na" }, "airnow-obs": { kind: "na" } }));
+    assert.deepStrictEqual(r.items.map((i) => i.headline), ["Air quality forecast Thursday: Unhealthy (AQI 180, PM2.5)"]);
+    assert.match(r.items[0].line, /^Philadelphia reporting area forecast by .+, issued Jul 15\. A forecast for the whole day \(the event falls on it\), not timing within it\./);
+  });
+  ok("SMOKE: moving the Chicago event to Saturday keeps current conditions (with their time) but drops the Thursday forecast; moving the venue to Philadelphia changes the area", () => {
+    const sat = runS(evS("Soldier Field", ...SOLDIER, { start: "2026-07-18T19:00", end: "2026-07-18T22:00" }, "America/Chicago"), CHI, chiProducts());
+    assert.deepStrictEqual(sat.items.map((i) => i.kind), ["aqobs", "smoke"]); assert.match(sat.items[0].line, /Your event starts Saturday 7 p\.m\./);
+    const phl = runS(evS("Lincoln Financial Field", ...LINC, CHI_EV, "America/New_York"), CHI, [...chiProducts(), ...fcst("airnow-ra-20260716.dat", CHI)]);
+    assert.ok(!phl.items.some((i) => i.kind === "aqobs"), "Chicago monitors are far from Philadelphia");
+    assert.match(phl.statuses.find((s) => s.id === "airnow-obs").text, /^No AirNow monitor reading within 15 miles/);
+    assert.ok(phl.items.some((i) => i.kind === "aqfcst" && /Philadelphia/.test(i.line)));
+  });
+  ok("SMOKE: a past event gets no current-condition items; a source outage keeps 'not fully confirmed'; smoke never enters other families", () => {
+    assert.strictEqual(runS(evS("Soldier Field", ...SOLDIER, { start: "2026-07-15T19:00", end: "2026-07-15T22:00" }, "America/Chicago"), CHI, chiProducts()).items.length, 0);
+    const r = runS(evS("v", 39.0997, -94.5786, { start: "2026-07-17T19:00", end: "2026-07-17T22:00" }, "America/Chicago"), CHI, [], sstate(CHI, { "noaa-hms": { kind: "unavailable" } }));
+    assert.strictEqual(r.confirmed, false); assert.match(r.statuses.find((s) => s.id === "noaa-hms").text, /^Not responding/);
+    assert.strictEqual(M.forEvent({ products: chiProducts(), state: allOk(CHI), event: evS("Soldier Field", ...SOLDIER, CHI_EV, "America/Chicago"), now: CHI, families: ["fire", "flood"] }).items.length, 0);
+  });
+  ok("SMOKE NAQFC: hourly smoke guidance names only the phases its hours cover", () => {
+    const clock = Date.parse("2026-11-21T03:00:00Z"), hours = []; for (let h = 4; h <= 50; h++) hours.push({ t: new Date(clock + (h - 3) * 3600e3).toISOString(), v: h >= 15 && h <= 17 ? 6 : 0, run: "2026-11-20T06:00:00.000Z", fh: h });
+    const nq = { id: "nq", kind: "smokefcst", program: "naqfc", family: "smoke", sourceId: "noaa-naqfc-smoke", run: "2026-11-20T06:00:00.000Z", hours, validStart: hours[0].t, validEnd: hours[hours.length - 1].t, pointHit: [-104.99, 39.74] };
+    const ev = evS("v", 39.74, -104.99, { setup: "2026-11-21T07:00", gates: "2026-11-21T09:00", start: "2026-11-21T10:00", end: "2026-11-21T15:00" }, "America/Denver"); // setup 14Z-16Z, gates 16Z-17Z
+    const r = runS(ev, clock, [nq], sstate(clock));
+    assert.deepStrictEqual(r.items.map((i) => i.headline), ["Smoke in NOAA's forecast during setup and gates"]);
+    assert.match(r.items[0].line, /Model guidance, not an air quality reading\.$/);
+  });
+}
+console.log(n + " passed (with winter, fire and smoke)");

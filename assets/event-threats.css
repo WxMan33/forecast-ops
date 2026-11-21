@@ -9,6 +9,8 @@
 :root[data-theme="light"] .et-item[data-family="winter"] { --et-c: #c2187a; }
 .et-item[data-family="fire"] { --et-c: #ff7a33; }
 :root[data-theme="light"] .et-item[data-family="fire"] { --et-c: #b8460b; }
+.et-item[data-family="smoke"] { --et-c: #9aa3ad; }
+:root[data-theme="light"] .et-item[data-family="smoke"] { --et-c: #5b6470; }
 .et-main { display: grid; gap: 3px; }
 .et-head { font-size: 15px; }
 .et-line { font-size: 13.5px; }

@@ -313,4 +313,31 @@ ok("NWS fire weather alerts: Red Flag Warning and Fire Weather Watch are fire-fa
   assert.strictEqual(F.zoneShape(["https://api.weather.gov/zones/fire/COZ216"], [null]).fire.listed, 1);
 });
 
+/* ---------- SMOKE AND AIR QUALITY adapters ---------- */
+ok("HMS: polygons with density, satellite and the satellite window (Julian day + UTC); non-KML or bad density is an error", () => {
+  const ps = F.parseHMS(fs.readFileSync(FX("hms-smoke-20260716-east.kml"), "utf8"));
+  assert.ok(ps.length > 0 && ps.every((p) => ["Light", "Medium", "Heavy"].includes(p.density) && /^2026-07-16T/.test(p.obsStart) && p.geometry));
+  assert.throws(() => F.parseHMS("<html>busy</html>"), /unrecognized HMS/);
+  assert.throws(() => F.parseHMS("<kml><Placemark><description>Start Time: 2026197 1200UTC<br>End Time: 2026197 1500UTC<br>Density: Thick</description><coordinates>0,0 1,0 1,1 0,0</coordinates></Placemark></kml>"), /unrecognized HMS smoke polygon/);
+});
+ok("AirNow reporting areas: forecast rows become one product per valid day (local midnight to midnight); hourly observations carry their UTC time", () => {
+  const rows = F.parseReportingArea(fs.readFileSync(FX("airnow-ra-20260716.dat"), "utf8"));
+  const o = rows.find((r) => r.area === "Chicago" && r.type === "O"); assert.strictEqual(o.observed, "2026-07-17T04:00:00.000Z"); assert.strictEqual(o.category, "Hazardous");
+  const f = F.aqForecastProducts(rows.filter((r) => r.area === "Philadelphia"));
+  assert.deepStrictEqual(f.slice(0, 2).map((p) => [p.validDate, p.validStart, p.category, p.aqi]), [["2026-07-16", "2026-07-16T04:00:00.000Z", "Unhealthy", 180], ["2026-07-17", "2026-07-17T04:00:00.000Z", "Very Unhealthy", 210]]);
+  assert.throws(() => F.parseReportingArea("a|b|c"), /unrecognized AirNow reporting area row/);
+});
+ok("AirNow monitors: the highest pollutant AQI per site with its hour; inactive sites and sites without readings are skipped; truncated answers are errors", () => {
+  const gj = JSON.parse(fs.readFileSync(FX("airnow-monitors-2026071622-chicago.geojson"), "utf8")), ps = F.parseAirNowMonitors(gj);
+  assert.ok(ps.length > 5 && ps.every((p) => p.observed === "2026-07-16T22:00:00.000Z" && p.category === F.aqiCat(p.aqi)));
+  assert.ok(ps.some((p) => p.category === "Hazardous" && p.pollutant === "PM2.5"));
+  assert.throws(() => F.parseAirNowMonitors({ ...gj, properties: { exceededTransferLimit: true } }), /incomplete/);
+});
+ok("NAQFC smoke: samples from the latest model run, sorted by valid hour", () => {
+  const s = (t, run, v) => ({ value: String(v), attributes: { idp_validtime: Date.parse(t), idp_issueddate: Date.parse(run), idp_fcst_hour: 1 } });
+  const p = F.parseNAQFC({ samples: [s("2026-11-21T05:00:00Z", "2026-11-20T06:00:00Z", 2), s("2026-11-21T04:00:00Z", "2026-11-20T12:00:00Z", 1), s("2026-11-21T05:00:00Z", "2026-11-20T12:00:00Z", 3)] }, [-104.99, 39.74]);
+  assert.strictEqual(p.run, "2026-11-20T12:00:00.000Z"); assert.deepStrictEqual(p.hours.map((h) => h.v), [1, 3]);
+  assert.throws(() => F.parseNAQFC({ error: {} }, [0, 0]), /unrecognized NOAA smoke/);
+});
+
 Promise.all([...resolvedCases, ...watchCases]).then(() => console.log(n + " passed")).catch((e) => { console.error(e); process.exit(1); });

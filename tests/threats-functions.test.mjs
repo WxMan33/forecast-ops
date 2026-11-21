@@ -7,6 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const nws = await import(pathToFileURL(path.join(ROOT, "functions/api/nws/[[path]].js")).href);
 const wpc = await import(pathToFileURL(path.join(ROOT, "functions/api/wpc/[[path]].js")).href);
+const smoke = await import(pathToFileURL(path.join(ROOT, "functions/api/smoke/[[path]].js")).href);
 let n = 0; const ok = async (name, fn) => { await fn(); n++; console.log("ok -", name); };
 let clock = Date.parse("2026-11-20T20:00:00Z"), answer = () => new Response(JSON.stringify({ type: "FeatureCollection", features: [] }), { status: 200 }); const sent = [];
 globalThis.fetch = async (url, init) => { sent.push({ url: String(url), ua: new Headers(init.headers).get("user-agent") }); return answer(String(url)); };
@@ -59,5 +60,19 @@ await ok("test hooks are ignored without the harness flag", async () => {
   sent.length = 0;
   await wpc.handle(new Request("https://x.test/api/wpc/ero/day4"), { UPSTREAM: "https://evil.example", NOW: () => 0 });
   assert.strictEqual(sent[0].url, "https://www.wpc.ncep.noaa.gov/exper/eromap/geojson/Day4_Latest.geojson");
+});
+await ok("SMOKE: HMS KML for recent UTC days only; AirNow reporting area rows for one area; identifying User-Agent; bad bodies are 502 and not cached", async () => {
+  clock = Date.parse("2026-11-21T03:00:00Z"); sent.length = 0;
+  const env2 = { ...env, UPSTREAM_HMS: "https://hms.test", UPSTREAM_AIRNOW: "https://airnow.test" }, g = (p) => smoke.handle(new Request("https://x.test" + p, { headers: { Origin: "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev" } }), env2);
+  answer = (u) => /hms/.test(u) ? new Response("<?xml version='1.0'?><kml><Document></Document></kml>", { headers: { "Last-Modified": "Sat, 21 Nov 2026 01:12:22 GMT" } }) : new Response("11/20/26|11/21/26||CST|0|F|Y|Chicago|IL|41.8|-87.6|PM2.5||Good|No||Illinois EPA\n11/20/26|11/21/26||EST|0|F|Y|Albany|NY|42.6|-73.7|PM2.5||Good|No||NYSDEC\n");
+  const h = await g("/api/smoke/hms/20261120");
+  assert.strictEqual(h.status, 200); assert.strictEqual(sent[0].url, "https://hms.test/pub/FIRE/web/HMS/Smoke_Polygons/KML/2026/11/hms_smoke20261120.kml"); assert.strictEqual(sent[0].ua, "(forecast-ops, github.com/WxMan33/forecast-ops)");
+  assert.strictEqual(h.headers.get("X-Upstream-Last-Modified"), "Sat, 21 Nov 2026 01:12:22 GMT");
+  assert.strictEqual((await g("/api/smoke/hms/20261101")).status, 404);
+  const a = await g("/api/smoke/airnow-area?area=Chicago&state=IL"); assert.strictEqual(a.status, 200); assert.strictEqual((await a.text()).trim().split("\n").length, 1);
+  for (const bad of ["/api/smoke/airnow-area?area=Chicago", "/api/smoke/airnow-area?area=%3Cx%3E&state=IL", "/api/smoke/other"]) assert.strictEqual((await g(bad)).status, 404, bad);
+  clock += 700e3; answer = () => new Response("<html>busy</html>");
+  assert.strictEqual((await g("/api/smoke/hms/20261121")).status, 502);
+  answer = () => new Response("nope", { status: 404 }); assert.strictEqual((await g("/api/smoke/hms/20261121")).status, 404);
 });
 console.log(n + " passed");

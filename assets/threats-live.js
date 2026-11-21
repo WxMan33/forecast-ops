@@ -13,6 +13,12 @@
   const fire = {}; for (const d of FIRE_DAYS) fire[d] = { windrh: F.createFireStore(d, "windrh"), dryt: F.createFireStore(d, "dryt") };
   /* NIFC WFIGS current incidents (with perimeters where published) */
   const nifc = { state: "never", lastOk: null, error: null, products: [] };
+  /* smoke and air quality: HMS for everyone (map and Planner); the venue's monitors, forecast area and NOAA smoke guidance
+     per venue (like WSSI-P); all monitors for the map */
+  const hms = { state: "never", lastOk: null, error: null, products: [], days: [] };
+  const aq = { key: null, obs: { state: "never" }, fcst: { state: "never" }, naqfc: { state: "never" }, products: [] };
+  const monAll = { state: "never", lastOk: null, error: null, products: [] };
+  const smokeUrl = (p) => NWS.base.replace(/\/api\/nws$/, "/api/smoke") + p;
   const md = { state: "never", lastOk: null, lastTry: null, error: null, products: [], service: null, list: null };
   const model = { state: "never", error: null, index: null, registry: null, grid: null, hidden: null, hull: null, runs: {} };
   const zoneGeo = new Map(), zonePending = new Map(), refDone = new Set(), mdText = new Map();
@@ -198,6 +204,49 @@
     } catch (e) { Object.assign(nifc, { state: "failed", error: e.message }); }
     emit();
   }
+  /* HMS: today's and yesterday's UTC files (the matcher keeps windows that ended within 24 hours). Only through the
+     same-origin function: NOAA's file has no CORS header. */
+  async function refreshHMS() {
+    const at = nowIso();
+    if (NWS.mode !== "function") { Object.assign(hms, { state: "failed", error: "needs the preview's same-origin function (NOAA's HMS file has no CORS header)" }); emit(); return; }
+    try {
+      const days = [0, 1].map((k) => new Date(Date.now() - k * 864e5).toISOString().slice(0, 10).replace(/-/g, ""));
+      const got = await Promise.all(days.map(async (d) => { try { return F.parseHMS(await get(smokeUrl("/hms/" + d), "text"), d.slice(0, 4) + "-" + d.slice(4, 6) + "-" + d.slice(6)); } catch (e) { if (/HTTP 404/.test(e.message) && d === days[0]) return []; throw e; } }));
+      Object.assign(hms, { state: "ok", lastOk: at, error: null, products: got.flat(), days });
+    } catch (e) { Object.assign(hms, { state: "failed", error: e.message }); }
+    emit();
+  }
+  async function refreshMonitorsAll() {
+    const at = nowIso();
+    try { monAll.products = F.parseAirNowMonitors(await get(F.AIRNOW_MON_ALL_URL, "json")); Object.assign(monAll, { state: "ok", lastOk: at, error: null }); }
+    catch (e) { Object.assign(monAll, { state: "failed", error: e.message }); }
+    emit();
+  }
+  /* the venue: monitors within 25 miles, its AirNow forecast area (polygon lookup, then that area's rows), NOAA smoke
+     guidance at the point. Each part has its own state; a slow part never holds up the others. Kept 10 minutes. */
+  let aqPending = null;
+  function aqFor(lat, lon) {
+    const key = lat.toFixed(3) + "," + lon.toFixed(3);
+    if (aq.key === key && aq.at && Date.now() - aq.at < 10 * 60e3) return Promise.resolve();
+    if (aqPending && aqPending.key === key) return aqPending.p;
+    if (aq.key !== key) Object.assign(aq, { key, obs: { state: "never" }, fcst: { state: "never" }, naqfc: { state: "never" }, products: [], at: null });
+    const parts = { obs: [], fcst: [], naqfc: [] }, done = () => { aq.products = [...parts.obs, ...parts.fcst, ...parts.naqfc]; emit(); };
+    const run = async (name, fn) => { const at = nowIso(); try { parts[name] = await fn(); aq[name] = { state: "ok", lastOk: at, error: null }; } catch (e) { aq[name] = { state: "failed", lastOk: aq[name].lastOk || null, error: e.message }; } done(); };
+    const p = Promise.allSettled([
+      run("obs", async () => F.parseAirNowMonitors(await get(F.AIRNOW_MON_URL(lat, lon, 25), "json"))),
+      run("fcst", async () => {
+        const a = await get(F.AIRNOW_AREA_AT(lat, lon), "json"); if (!a || !Array.isArray(a.features)) throw Error("unrecognized AirNow area answer");
+        const ra = a.features[0] && a.features[0].attributes; if (!ra) return []; // outside every AirNow forecast area
+        const area = ra.RAName, st = String(ra.RACode || "").slice(0, 2).toUpperCase();
+        const text = NWS.mode === "function" ? await get(smokeUrl("/airnow-area?area=" + encodeURIComponent(area) + "&state=" + st), "text") : (await get("https://files.airnowtech.org/airnow/today/reportingarea.dat", "text")).split("\n").filter((l) => { const c = l.split("|"); return c[7] === area && c[8] === st; }).join("\n");
+        return F.aqForecastProducts(F.parseReportingArea(text)).map((x) => ({ ...x, forVenue: true }));
+      }),
+      run("naqfc", async () => [F.parseNAQFC(await get(F.NAQFC_SMOKE_AT(lat, lon), "json"), [+lon.toFixed(3), +lat.toFixed(3)])]),
+    ]).then(() => { aq.at = Date.now(); aqPending = null; });
+    aqPending = { key, p }; return p;
+  }
+  const aqSrc = (s, n) => s.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: s.state === "ok" ? "ok" : "failed", lastOk: s.lastOk || null, count: n, error: s.error };
+
   /* one source state per fire outlook day: worst of its two parts; reach = the end of the latest day answered */
   function fireSources(now) {
     const out = {};
@@ -250,7 +299,7 @@
     const e = { 1: ero[1].current(now), 2: ero[2].current(now), 3: ero[3].current(now) };
     const wsp = wssi.products.filter((p) => Date.parse(p.validEnd) > now);
     const fireP = FIRE_DAYS.flatMap((d) => FIRE_PARTS.flatMap((part) => fire[d][part].current(now).products));
-    const products = [...ps.filter((p) => p.status === "active" || p.status === "lapsed").map(withZones), ...wsp, ...mdList, ...o[1].products, ...o[2].products, ...o[3].products, ...e[1].products, ...e[2].products, ...e[3].products, ...fireP, ...nifc.products];
+    const products = [...ps.filter((p) => p.status === "active" || p.status === "lapsed").map(withZones), ...wsp, ...mdList, ...o[1].products, ...o[2].products, ...o[3].products, ...e[1].products, ...e[2].products, ...e[3].products, ...fireP, ...nifc.products, ...hms.products, ...aq.products];
     const src = (info, count, extra) => ({ state: info.state === "ok" ? "ok" : "failed", lastOk: info.lastOk, count, error: info.error, ...extra });
     return {
       live: true, clock: new Date(now).toISOString(), products,
@@ -265,6 +314,9 @@
         ero2: src(ero[2].sourceInfo(), e[2].products.length, { outlook: e[2].status, validEnd: e[2].validEnd, issued: e[2].issued, via: ero[2].sourceInfo().via }),
         wssip: wssi.state === "never" || (wssiPending && !wssi.lastOk) ? { state: "pending", lastOk: null, count: 0 } : src({ state: wssi.state === "ok" ? "ok" : "failed", lastOk: wssi.lastOk, error: wssi.error }, wsp.length, { validEnd: wssi.reachEnd, issued: wssi.issued, inferred: wssi.inferred || [] }),
         ...fireSources(now),
+        hms: hms.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: hms.state, lastOk: hms.lastOk, count: hms.products.length, error: hms.error },
+        aqobs: aqSrc(aq.obs, aq.products.filter((p) => p.kind === "aqobs").length), aqfcst: aqSrc(aq.fcst, aq.products.filter((p) => p.kind === "aqfcst").length), naqfc: aqSrc(aq.naqfc, aq.products.filter((p) => p.kind === "smokefcst").length),
+        monitors: monAll.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: monAll.state, lastOk: monAll.lastOk, count: monAll.products.length, error: monAll.error },
         nifc: nifc.state === "never" ? { state: "pending", lastOk: null, count: 0 } : src({ state: nifc.state, lastOk: nifc.lastOk, error: nifc.error }, nifc.products.length),
         ero3: src(ero[3].sourceInfo(), e[3].products.length, { outlook: e[3].status, validEnd: e[3].validEnd, issued: e[3].issued, via: ero[3].sourceInfo().via }),
       },
@@ -278,7 +330,8 @@
     if (started) return started;
     const want = (k) => !opts.only || opts.only.includes(k);
     // fire outlooks (16 files) and NIFC (a large answer) load in the background: their sources read "Loading" until then
-    if (want("fire")) refreshFire(); if (want("nifc")) refreshNIFC();
+    if (want("fire")) refreshFire(); if (want("nifc")) refreshNIFC(); if (want("hms")) refreshHMS(); if (want("monitors")) refreshMonitorsAll();
+    setInterval(() => { if (!document.hidden) { if (want("hms")) refreshHMS(); if (want("monitors")) refreshMonitorsAll(); } }, 10 * 60e3);
     started = Promise.allSettled([want("alerts") && refreshAlerts(), want("md") && refreshMD(), want("spc") && refreshOutlooks(), want("ero") && refreshERO()]);
     setInterval(() => { if (!document.hidden && want("nifc")) refreshNIFC(); }, 5 * 60e3); // NIFC refreshes from IRWIN every 5 minutes
     setInterval(() => { if (!document.hidden) { if (want("alerts")) refreshAlerts(); if (want("md")) refreshMD(); } }, 60e3);
@@ -310,6 +363,11 @@
     "archive-fire-watch": { kind: "mix", clock: "2026-11-17T20:00:00Z", nws: ["tests/fixtures/threats/nws-archive-kbou-fw-a-0044.json", "tests/fixtures/threats/nws-archive-kbou-fw-w-0057.json"], zones: "tests/fixtures/threats/nws-zones-colorado-fire-20261121.json", ero: [], fire: [["spc-fire-day1-20261117-1700-windrh.geojson", 1, "windrh"], ["spc-fire-day2-20261117-2000-windrh.geojson", 2, "windrh"], ["spc-fire-day2-20261117-2000-dryt.geojson", 2, "dryt"]], label: "NWS Denver/Boulder fire weather alerts, Nov 17, 2026 at 1:00 p.m. MST" },
     "archive-fire-warning": { kind: "mix", clock: "2026-11-18T07:00:00Z", nws: ["tests/fixtures/threats/nws-archive-kbou-fw-a-0044.json", "tests/fixtures/threats/nws-archive-kbou-fw-w-0057.json"], zones: "tests/fixtures/threats/nws-zones-colorado-fire-20261121.json", ero: [], fire: [["spc-fire-day2-20261117-2000-windrh.geojson", 2, "windrh"], ["spc-fire-day2-20261117-2000-dryt.geojson", 2, "dryt"]], label: "NWS Denver/Boulder, Nov 18, 2026 at midnight MST (after the upgrade to a Red Flag Warning)" },
     "archive-fire-incidents": { kind: "mix", clock: "2026-11-21T01:30:00Z", nws: [], ero: [], nifc: ["tests/fixtures/threats/nifc-wfigs-20261121-incidents.geojson", "tests/fixtures/threats/nifc-wfigs-20261121-perimeters.geojson"], label: "NIFC WFIGS current wildfire incidents and perimeters, captured Nov 21, 2026 01:0x UTC" },
+    // NOAA HMS smoke (archived daily KML) and AirNow archived hourly monitor AQI (HourlyAQObs) and reporting-area files
+    "archive-smoke-chicago": { kind: "mix", clock: "2026-07-16T22:30:00Z", nws: [], ero: [], hms: ["tests/fixtures/threats/hms-smoke-20260716-east.kml"], mons: ["tests/fixtures/threats/airnow-monitors-2026071622-chicago.geojson"], ra: ["tests/fixtures/threats/airnow-ra-20260716.dat"], label: "Smoke and air quality, Chicago, Jul 16, 2026 at 5:30 p.m. CDT (NOAA HMS and AirNow archives)" },
+    "archive-smoke-metlife": { kind: "mix", clock: "2026-07-14T21:30:00Z", nws: [], ero: [], hms: ["tests/fixtures/threats/hms-smoke-20260714-east.kml"], mons: ["tests/fixtures/threats/airnow-monitors-2026071421-nyc.geojson"], ra: ["tests/fixtures/threats/airnow-ra-20260714.dat"], label: "Smoke overhead, New York area, Jul 14, 2026 at 5:30 p.m. EDT (NOAA HMS and AirNow archives)" },
+    "archive-smoke-forecast-0714": { kind: "mix", clock: "2026-07-14T22:00:00Z", nws: [], ero: [], ra: ["tests/fixtures/threats/airnow-ra-20260714.dat"], label: "AirNow forecasts issued Jul 14, 2026 (Philadelphia, New York, Chicago)" },
+    "archive-smoke-forecast-0715": { kind: "mix", clock: "2026-07-15T22:00:00Z", nws: [], ero: [], ra: ["tests/fixtures/threats/airnow-ra-20260715.dat"], label: "AirNow forecasts issued Jul 15, 2026 (Philadelphia, New York, Chicago)" },
     "archive-flood-night": { kind: "mix", clock: "2026-11-20T20:30:00Z", nws: ["tests/fixtures/threats/nws-archive-kmlb-ff-w-0036.json", "tests/fixtures/threats/nws-archive-kjax-ff-w-0054.json"], ero: [1, 2, 3].map((d) => "tests/fixtures/threats/wpc-ero-day" + d + "-20261120.geojson"), label: "NWS Flash Flood Warnings and WPC Excessive Rainfall Outlooks, Florida, Nov 20, 2026 at 3:30 p.m. EST" },
   };
   const archiveCache = new Map();
@@ -342,12 +400,18 @@
     const fireP = fireOs.flatMap((o) => o.products).filter((p) => Date.parse(p.issued) <= clock && Date.parse(p.validEnd) > clock);
     const fireSrc = {}; for (const [i, [, d]] of (a.fire || []).entries()) { const o = fireOs[i]; for (const dd of new Set([d, ...o.products.map((p) => p.day)])) { if (!(Date.parse(o.issued) <= clock)) continue; const k = "fire" + dd, n = fireP.filter((p) => p.day === dd).length; fireSrc[k] = { state: "ok", lastOk: a.clock, count: n, outlook: "current", validEnd: o.products.filter((p) => p.day === dd).map((p) => p.validEnd)[0] || (dd === d ? o.validEnd : null), issued: o.issued }; } }
     if (fireSrc.fire3 && (a.fire || []).some(([, d]) => d === 3)) for (let dd = 4; dd <= 8; dd++) if (!fireSrc["fire" + dd]) { const o = fireOs[(a.fire || []).findIndex(([, d]) => d === 3)]; fireSrc["fire" + dd] = { state: "ok", lastOk: a.clock, count: 0, outlook: "current", validEnd: new Date(Date.parse(o.validStart) + (dd - 2) * 864e5).toISOString(), issued: o.issued }; }
+    const getT = async (f) => { const r = await fetch(f, { cache: "no-store" }); if (!r.ok) throw Error("archive file " + r.status); return r.text(); };
+    const hmsP = (await Promise.all((a.hms || []).map(async (f) => F.parseHMS(await getT(f))))).flat().filter((p) => Date.parse(p.obsEnd) <= clock);
+    const monP = (await Promise.all((a.mons || []).map(async (f) => F.parseAirNowMonitors(await getJ(f))))).flat().filter((p) => Date.parse(p.observed) <= clock);
+    const raP = (await Promise.all((a.ra || []).map(async (f) => F.aqForecastProducts(F.parseReportingArea(await getT(f)).filter((r) => r.issueDate <= a.clock.slice(0, 10)))))).flat();
     const nifcP = a.nifc ? F.parseNIFC(await getJ(a.nifc[0]), await getJ(a.nifc[1])) : [];
     const wsp = (await Promise.all((a.wssip || []).map(getJ))).flatMap((j) => F.parseWSSIP(j)).filter((p) => (!p.issued || Date.parse(p.issued) <= clock) && Date.parse(p.validEnd) > clock);
     const eroSrc = (d) => { const o = eros.find((x) => x.products[0] && x.products[0].day === d); return o ? { state: "ok", lastOk: a.clock, count: o.products.length, outlook: "current", validEnd: o.validEnd, issued: o.issued, via: "wpc" } : na; };
     return { live: false, archive: { name, label: a.label, step: 1, steps: 1, messages: [] }, clock: a.clock,
-      products: [...ps.filter((p) => p.status === "active" || p.status === "lapsed"), ...eros.flatMap((o) => o.products), ...wsp, ...fireP, ...nifcP], ended: ps.filter((p) => p.status === "ended"),
+      products: [...ps.filter((p) => p.status === "active" || p.status === "lapsed"), ...eros.flatMap((o) => o.products), ...wsp, ...fireP, ...nifcP, ...hmsP, ...monP, ...raP], ended: ps.filter((p) => p.status === "ended"),
       sources: { alerts: !a.nws.length ? { state: "na" } : { state: a.alertsFailAfter ? "failed" : "ok", lastOk: si.lastOk, count: ps.filter((p) => p.status === "active").length, error: si.error }, md: na, day1: na, day2: na, day3: na, ero1: eroSrc(1), ero2: eroSrc(2), ero3: eroSrc(3),
+        hms: a.hms ? { state: "ok", lastOk: a.clock, count: hmsP.length } : { state: "na" }, aqobs: a.mons ? { state: "ok", lastOk: a.clock, count: monP.length } : { state: "na" },
+        aqfcst: a.ra ? { state: "ok", lastOk: a.clock, count: raP.length } : { state: "na" }, naqfc: { state: "na" }, monitors: a.mons ? { state: "ok", lastOk: a.clock, count: monP.length } : { state: "na" },
         ...fireSrc, nifc: a.nifc ? { state: "ok", lastOk: a.clock, count: nifcP.length } : { state: "na" },
         wssip: (a.wssip || []).length ? (wsp.length ? { state: "ok", lastOk: a.clock, count: wsp.length, validEnd: wsp.map((x) => x.validEnd).sort().pop(), issued: wsp[0].issued } : { state: "na" }) : { state: "na" } } };
   }
@@ -370,7 +434,7 @@
   }
 
   /* the snapshot's per-feed states, keyed by the source registry (ThreatsFeeds.SOURCES) for the shared matcher */
-  const STALE = { nifc: 20, fire1: 60, fire2: 60, fire3: 180, fire4: 180, fire5: 180, fire6: 180, fire7: 180, fire8: 180, wssip: 60, alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
+  const STALE = { hms: 180, aqobs: 120, aqfcst: 180, naqfc: 360, monitors: 120, nifc: 20, fire1: 60, fire2: 60, fire3: 180, fire4: 180, fire5: 180, fire6: 180, fire7: 180, fire8: 180, wssip: 60, alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
   function registryState(d, now) {
     const one = (k) => { const x = d.sources[k]; if (!x) return { kind: "unavailable" }; if (x.state === "na") return { kind: "na" }; if (d.loading || x.state === "pending") return { kind: "loading" }; return { ...window.ThreatsCore.sourceState(x, now, STALE[k]), lastOk: x.lastOk }; };
     const worst = (keys) => { const s = keys.map(one).filter((x) => x.kind !== "na"); if (!s.length) return { kind: "na" }; const order = ["unavailable", "stale", "loading", "na", "empty", "current"]; const w = s.reduce((a, b) => (order.indexOf(b.kind) < order.indexOf(a.kind) ? b : a)); const oks = s.filter((x) => x.lastOk).map((x) => Date.parse(x.lastOk)); return { ...w, lastOk: oks.length ? new Date(Math.min(...oks)).toISOString() : w.lastOk }; };
@@ -378,9 +442,13 @@
     const fireKeys = Object.keys(d.sources).filter((k) => /^fire\d$/.test(k));
     return { "spc-fire": fireKeys.length ? { ...worst(fireKeys), reachEnd: reach(fireKeys), reach: ((ks) => ks.length ? (ks.length === 1 ? "Day " : "Days ") + ks.map((k) => k.slice(4)).join(", ") : "")(fireKeys.filter((k) => d.sources[k].issued && d.sources[k].state !== "na")) } : d.live ? { kind: "unavailable" } : { kind: "na" },
       "nifc-wfigs": d.sources.nifc ? one("nifc") : d.live ? { kind: "unavailable" } : { kind: "na" },
+      "noaa-hms": d.sources.hms ? one("hms") : d.live ? { kind: "unavailable" } : { kind: "na" },
+      "airnow-obs": d.sources.aqobs ? one("aqobs") : d.live ? { kind: "unavailable" } : { kind: "na" },
+      "airnow-fcst": d.sources.aqfcst ? one("aqfcst") : d.live ? { kind: "unavailable" } : { kind: "na" },
+      "noaa-naqfc-smoke": d.sources.naqfc ? one("naqfc") : d.live ? { kind: "unavailable" } : { kind: "na" },
       "nws-alerts": one("alerts"), "spc-md": one("md"), "wpc-wssi-p": d.sources.wssip ? { ...one("wssip"), reachEnd: d.sources.wssip.validEnd || null, inferred: d.sources.wssip.inferred || [], reach: d.sources.wssip.issued ? "file " + window.ThreatsCore.fmtZ(d.sources.wssip.issued) : "" } : { kind: "unavailable" }, "spc-outlook": { ...worst(["day1", "day2", "day3"]), reachEnd: reach(["day1", "day2", "day3"]) },
       "wpc-ero": { ...worst(["ero1", "ero2", "ero3"]), reachEnd: reach(["ero1", "ero2", "ero3"]), reach: ["ero1", "ero2", "ero3"].map((k, i) => d.sources[k] && d.sources[k].issued ? "Day " + (i + 1) + " issued " + window.ThreatsCore.fmtZ(d.sources[k].issued) : "").filter(Boolean).join(", ") } };
   }
 
-  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
+  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
 })();
