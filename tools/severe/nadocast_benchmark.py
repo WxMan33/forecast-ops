@@ -189,6 +189,11 @@ def run(a):
             meta_all.setdefault(c, {})[v] = meta
             if path is None:
                 continue
+            lm_v = meta.get("last_modified")
+            v_cut = cutoff if VARIANTS[v][2] == "d1" else cutoff.replace(hour=18)
+            if v != "nadocast" and (not lm_v or datetime.fromisoformat(lm_v) > v_cut):
+                meta["excluded"] = f"Last-Modified {lm_v} after {v_cut.isoformat()} (amendment 1)"
+                continue
             vals, glat, glon = decode(path, VARIANTS[v][3])
             if grid is None:
                 grid = (glat, glon)

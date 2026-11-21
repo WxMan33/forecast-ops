@@ -409,5 +409,15 @@
   "selected_after_labels_before_scoring": true
  },
  "day2_wind_inventory": "NadoCast 2022 models wind (and wind_adj), absolutely and SPC-calibrated, 12Z f24-47 exist for 330 valid days of 2024: same cycle and window as our Day 2 (12Z HRRR f24-48). A fair Day 2 wind comparison is supported; not scored in this run.",
- "sealed": "2021 and 2025 are never requested from NadoCast or Storm Events; v0.7 and the collector schedule are unchanged"
+ "sealed": "2021 and 2025 are never requested from NadoCast or Storm Events; v0.7 and the collector schedule are unchanged",
+ "amendments": [
+  {
+   "id": "1",
+   "date": "2026-11-21",
+   "before_full_scoring": true,
+   "change": "Reported-only NadoCast variants get the same availability check as the primary: SPC-calibrated and 2024_preliminary D-1 12Z f24-47 files must have Last-Modified at or before 09Z D; the later-cutoff Day 1 (12Z f02-23 on D) at or before 18Z D. A file that fails is treated as unavailable for that variant only.",
+   "evidence": "Pilot run 44942469814: the 2024_preliminary file for 2024-04-14 was last modified 2024-07-24 (regenerated later, not real time); primary files were written 15:28Z on D-1.",
+   "unchanged": "primary pairing, footprint, labels, dates, metrics, map rules"
+  }
+ ]
 }

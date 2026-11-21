@@ -76,3 +76,14 @@ The archive supports a fair Day 2 wind comparison. NadoCast's 12Z f24-47 wind ru
 absolutely and SPC-calibrated, plus `wind_adj`) cover 330 valid days of 2024. They have the same
 cycle and valid window as our Day 2, which uses 12Z HRRR f24-48. That comparison is not scored in
 this run.
+
+## Amendment 1 (2026-11-21, after the pilot, before full scoring)
+The reported-only variants now get the same availability check as the primary product:
+- the SPC-calibrated and 2024_preliminary D-1 files must be written by 09Z on D;
+- the later-cutoff Day 1 must be written by 18Z on D.
+
+A file that fails the check is treated as unavailable for that variant only.
+
+Why: in the pilot, the 2024_preliminary file for 2024-04-14 was written on 2024-07-24, so it was
+regenerated later and is not a real-time forecast. The primary files were written at 15:28Z on D-1.
+Nothing else changed.
