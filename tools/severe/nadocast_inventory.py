@@ -18,7 +18,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-ROOT = "https://data.nadocast.com/"
+ROOT = "http://data.nadocast.com/"  # the archive is served over plain HTTP (port 443 refuses)
 UA = "forecast-ops-research-benchmark/0.1"
 SEALED_YEARS = ("2021", "2025")
 NAME = re.compile(r"^nadocast(?:_(?P<model>\d{4}(?:_preliminary)?)_models)?_conus_(?P<hazard>[a-z_]+?)"

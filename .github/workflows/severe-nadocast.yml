@@ -25,6 +25,13 @@ jobs:
       - run: pip install -r tools/severe/requirements.txt
       - id: req
         run: echo "stage=$(jq -r .stage research/severe/nadocast/request.json)" >> "$GITHUB_OUTPUT"
+      - name: Connectivity probe
+        if: steps.req.outputs.stage == 'inventory'
+        run: |
+          for u in http://data.nadocast.com/ https://data.nadocast.com/ http://nadocast.com/; do
+            echo "$u -> $(curl -s -o /dev/null -m 30 -w '%{http_code} %{size_download}B' "$u" || echo failed)"
+          done
+          curl -s -m 30 http://data.nadocast.com/ | head -c 1500 || true
       - name: Inventory the NadoCast archive (2022-2024, 2026)
         if: steps.req.outputs.stage == 'inventory'
         run: python3 tools/severe/nadocast_inventory.py --output tests/out/nadocast
