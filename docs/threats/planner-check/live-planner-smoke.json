@@ -1,13 +1,13 @@
 {
- "at": "2026-11-21T03:27:27.578Z",
+ "at": "2026-11-21T04:28:09.765Z",
  "result": {
   "summary": "1 weather threat for this event",
   "confirmed": true,
   "items": [
    {
     "kind": "aqobs",
-    "headline": "Air quality now: Unhealthy (AQI 159, PM2.5) at Detroit-Trinity, 5 miles southwest",
-    "line": "AirNow monitor reading for 10 p.m. (Southeast reporting area, Michigan Department of Environment, Great Lakes, and Energy). Preliminary data; current conditions, not a forecast. Your event starts Saturday 12:27 a.m.",
+    "headline": "Air quality now: Unhealthy (AQI 167, PM2.5) at Detroit-Trinity, 5 miles southwest",
+    "line": "AirNow monitor reading for 11 p.m. (Southeast reporting area, Michigan Department of Environment, Great Lakes, and Energy). Preliminary data; current conditions, not a forecast. Your event starts Saturday 1:28 a.m.",
     "product": "airnow-261630099",
     "category": "Unhealthy",
     "day": null,
@@ -15,15 +15,15 @@
    }
   ],
   "statuses": [
-   "NWS warnings, watches and advisories: Checked 10:27 p.m.",
-   "SPC fire weather outlooks: Checked 10:27 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
-   "NOAA satellite smoke analysis (HMS): Checked 10:27 p.m.",
-   "AirNow air quality observations: Checked 10:27 p.m. · nearest monitor Windsor Downtown (2 miles south): AQI 73 Moderate (PM2.5) for 10 p.m.",
-   "AirNow air quality forecasts: Checked 10:27 p.m. · Southeast reporting area",
-   "NOAA smoke forecast guidance (NAQFC): Checked 10:27 p.m.",
-   "NIFC wildfire incidents (WFIGS): Checked 10:27 p.m.",
-   "WPC winter storm severity outlook (WSSI-P): Checked 10:27 p.m. · file 0218Z",
-   "WPC Excessive Rainfall Outlook: Checked 10:26 p.m. · Day 1 issued 0052Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
+   "NWS warnings, watches and advisories: Checked 11:28 p.m.",
+   "SPC fire weather outlooks: Checked 11:28 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NOAA satellite smoke analysis (HMS): Checked 11:28 p.m.",
+   "AirNow air quality observations: Checked 11:28 p.m. · nearest monitor Windsor Downtown (2 miles south): AQI 74 Moderate (PM2.5) for 11 p.m.",
+   "AirNow air quality forecasts: Checked 11:28 p.m. · Southeast reporting area",
+   "NOAA smoke forecast guidance (NAQFC): Checked 11:28 p.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 11:28 p.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 11:28 p.m. · file 0218Z",
+   "WPC Excessive Rainfall Outlook: Checked 11:27 p.m. · Day 1 issued 0052Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
   ],
   "maps": [
    "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=42.34&lon=-83.0456&name=Ford+Field&tz=America%2FDetroit&scope=venue&view=active&layers=smoke&sel=airnow-261630099&nws=function"
@@ -33,8 +33,8 @@
   {
    "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/smoke/hms/20261120",
    "status": 200,
-   "cache": "MISS",
-   "upstreamAt": "2026-11-21T03:27:23.485Z"
+   "cache": "HIT",
+   "upstreamAt": "2026-11-21T04:27:08.681Z"
   },
   {
    "url": "https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/Air%20Now%20Current%20Monitor%20Data%20Public/FeatureServer/0/query?geometry=-83.0456,42.34&geometryType=esriGeometryPoint&inSR=4326&distance=25&units=esriSRUnit_StatuteMile&spatialRel=esriSpatialRelIntersects&outFields=AQSID,SiteName,StateName,DataSource,ReportingArea_PipeDelimited,ValidTime,LocalTimeString,GMTOffset,PM25,PM25_AQI,PM10_AQI,OZONE_AQI,Status,MonitorType&outSR=4326&f=geojson",
@@ -51,8 +51,8 @@
   {
    "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/smoke/airnow-area?area=Southeast&state=MI",
    "status": 200,
-   "cache": "HIT",
-   "upstreamAt": "2026-11-21T03:26:34.455Z"
+   "cache": "MISS",
+   "upstreamAt": "2026-11-21T04:28:07.697Z"
   },
   {
    "url": "https://mapservices.weather.noaa.gov/raster/rest/services/air_quality/ndgd_smoke_sfc_1hr_avg_time/ImageServer/getSamples?geometry=%7B%22x%22%3A-83.0456%2C%22y%22%3A42.34%2C%22spatialReference%22%3A%7B%22wkid%22%3A4326%7D%7D&geometryType=esriGeometryPoint&returnFirstValueOnly=false&outFields=*&f=json",
