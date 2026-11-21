@@ -1,6 +1,6 @@
 # Weather Threats ↔ Event Planner: flooding and winter weather
 
-Winter weather (NWS winter alerts and WPC WSSI-P) is described in `WINTER.md`; it uses the same records, matcher and checks.
+Winter weather is described in `WINTER.md`, fire weather and wildfire in `FIRE.md`; both use the same records, matcher and checks.
 
 Branch `claude/threats-planner-flood` (from the Threats branch at `2fd03e7`). Isolated Cloudflare Pages preview:
 `https://claude-threats-planner-flood.forecast-ops-beta.pages.dev`. Shared beta, production and navigation are unchanged.
@@ -70,3 +70,12 @@ Unit tests: `tests/threats-match.test.js` (12, on the archived products), `tests
 - Matching uses the venue pin only. Alternate sites (parking, arrival airport) are the next step: the matcher already takes a location per call.
 - Nearby flash flood warnings (within a few miles, not covering the pin) are shown on the map but not yet listed in Planner.
 - Email, text, push and export are outside this slice.
+
+## Combining with the Event Manager beta (notes from the Event Manager session, 2026-11-21)
+
+This branch is based on `main`. The Event Manager beta (`beta-previews`, working branch `claude/event-dashboard`) has since changed the files Weather Threats hooks into:
+- **`event-beta.html`:** beta adds a Share menu, `#outlook`, `#daylight` inside `#secTimeline` and `#hourlyDaylight` in `#secHourly`, plus two scripts before `event-briefing-ui.js`. Expect a text conflict around `#secThreats` (right after `#secTimeline`) and in the script list. Rerun `node tools/stamp-assets.js` after merging.
+- **`assets/beta-event.js`:** the one-line `window.EventThreats.update(ev)` call in `context()` should apply cleanly. The schedule now renders at load start via `showSchedule()`.
+- **Untouched here:** `event-store.js`, `beta-upcoming.js`, `event-tv-export.js`, `event-outlook.js` and the beta check sections 14 and 14b.
+
+The user decides when, and whether, the two are combined.

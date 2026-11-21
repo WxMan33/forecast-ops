@@ -1,6 +1,6 @@
 {
  "host": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev",
- "at": "2026-11-21T01:16:28.381Z",
+ "at": "2026-11-21T01:19:38.038Z",
  "results": [
   {
    "check": "archived Daytona: Flash Flood Warning and WPC Day 1 High are separate items",
@@ -92,8 +92,8 @@
     },
     "title": "Flash Flood Warning",
     "center": {
-     "lng": -81.02499999999999,
-     "lat": 29.282127512466516
+     "lng": -81.0705,
+     "lat": 29.1852
     }
    }
   },
@@ -645,28 +645,28 @@
    "detail": {
     "viaFn": [
      {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch,Flash%20Flood%20Warning,Winter%20Storm%20Warning,Winter%20Storm%20Watch,Blizzard%20Warning,Ice%20Storm%20Warning,Lake%20Effect%20Snow%20Warning,Winter%20Weather%20Advisory,Red%20Flag%20Warning,Fire%20Weather%20Watch",
-      "status": 200,
-      "cache": "MISS",
-      "upstreamAt": "2026-11-21T01:15:47.135Z"
-     },
-     {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day1",
       "status": 200,
       "cache": "MISS",
-      "upstreamAt": "2026-11-21T01:15:47.178Z"
+      "upstreamAt": "2026-11-21T01:19:04.803Z"
      },
      {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WYZ014",
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day2",
       "status": 200,
-      "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.196Z"
+      "cache": "MISS",
+      "upstreamAt": "2026-11-21T01:19:04.901Z"
      },
      {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WYZ012",
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day3",
       "status": 200,
-      "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.181Z"
+      "cache": "MISS",
+      "upstreamAt": "2026-11-21T01:19:04.912Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch,Flash%20Flood%20Warning,Winter%20Storm%20Warning,Winter%20Storm%20Watch,Blizzard%20Warning,Ice%20Storm%20Warning,Lake%20Effect%20Snow%20Warning,Winter%20Weather%20Advisory,Red%20Flag%20Warning,Fire%20Weather%20Watch",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-21T01:19:05.765Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ053",
@@ -675,10 +675,28 @@
       "upstreamAt": "2026-11-20T21:43:39.225Z"
      },
      {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ054",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-20T21:43:39.265Z"
+     },
+     {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ058",
       "status": 200,
       "cache": "HIT",
       "upstreamAt": "2026-11-20T21:43:39.468Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WYZ012",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-20T21:43:39.181Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WYZ014",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-20T21:43:39.196Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ059",
@@ -687,34 +705,34 @@
       "upstreamAt": "2026-11-20T21:43:39.393Z"
      },
      {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ054",
-      "status": 200,
-      "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.265Z"
-     },
-     {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ062",
       "status": 200,
       "cache": "HIT",
       "upstreamAt": "2026-11-20T21:43:39.297Z"
      },
      {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day2",
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ063",
       "status": 200,
-      "cache": "MISS",
-      "upstreamAt": "2026-11-21T01:15:47.312Z"
+      "cache": "HIT",
+      "upstreamAt": "2026-11-20T21:43:39.279Z"
      },
      {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day3",
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ065",
       "status": 200,
-      "cache": "MISS",
-      "upstreamAt": "2026-11-21T01:15:47.313Z"
+      "cache": "HIT",
+      "upstreamAt": "2026-11-20T21:43:39.395Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ066",
       "status": 200,
       "cache": "HIT",
       "upstreamAt": "2026-11-20T21:43:39.460Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ067",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-20T21:43:39.361Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ060",
@@ -729,10 +747,10 @@
       "upstreamAt": "2026-11-20T21:43:39.432Z"
      },
      {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ065",
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ043",
       "status": 200,
       "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.395Z"
+      "upstreamAt": "2026-11-20T21:43:39.660Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ056",
@@ -741,16 +759,16 @@
       "upstreamAt": "2026-11-20T21:43:39.125Z"
      },
      {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ063",
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/UTZ108",
       "status": 200,
       "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.279Z"
+      "upstreamAt": "2026-11-20T21:43:39.777Z"
      },
      {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ067",
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ002",
       "status": 200,
       "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.361Z"
+      "upstreamAt": "2026-11-20T21:43:39.522Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/IDZ057",
@@ -759,16 +777,10 @@
       "upstreamAt": "2026-11-20T21:43:39.209Z"
      },
      {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/UTZ108",
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/UTZ111",
       "status": 200,
       "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.777Z"
-     },
-     {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ043",
-      "status": 200,
-      "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.660Z"
+      "upstreamAt": "2026-11-20T21:43:39.833Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/UTZ110",
@@ -789,34 +801,10 @@
       "upstreamAt": "2026-11-20T21:43:39.849Z"
      },
      {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ002",
-      "status": 200,
-      "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.522Z"
-     },
-     {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ809",
-      "status": 200,
-      "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.857Z"
-     },
-     {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ066",
       "status": 200,
       "cache": "HIT",
       "upstreamAt": "2026-11-20T21:43:39.865Z"
-     },
-     {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/UTZ111",
-      "status": 200,
-      "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.833Z"
-     },
-     {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ056",
-      "status": 200,
-      "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.825Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ812",
@@ -825,16 +813,22 @@
       "upstreamAt": "2026-11-20T21:43:39.911Z"
      },
      {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ809",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-20T21:43:39.857Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ056",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-20T21:43:39.825Z"
+     },
+     {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ832",
       "status": 200,
       "cache": "HIT",
       "upstreamAt": "2026-11-20T21:43:39.930Z"
-     },
-     {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ831",
-      "status": 200,
-      "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.952Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ301",
@@ -843,10 +837,10 @@
       "upstreamAt": "2026-11-20T21:43:39.675Z"
      },
      {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ307",
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ831",
       "status": 200,
       "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.729Z"
+      "upstreamAt": "2026-11-20T21:43:39.952Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ315",
@@ -855,28 +849,10 @@
       "upstreamAt": "2026-11-20T21:43:39.725Z"
      },
      {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ310",
-      "status": 200,
-      "cache": "MISS",
-      "upstreamAt": "2026-11-21T01:15:47.676Z"
-     },
-     {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ302",
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ307",
       "status": 200,
       "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.605Z"
-     },
-     {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ313",
-      "status": 200,
-      "cache": "MISS",
-      "upstreamAt": "2026-11-21T01:15:47.684Z"
-     },
-     {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ317",
-      "status": 200,
-      "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.743Z"
+      "upstreamAt": "2026-11-20T21:43:39.729Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ322",
@@ -887,8 +863,26 @@
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ309",
       "status": 200,
-      "cache": "MISS",
+      "cache": "HIT",
       "upstreamAt": "2026-11-21T01:15:47.701Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ317",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-20T21:43:39.743Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ313",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T01:15:47.684Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ310",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T01:15:47.676Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ308",
@@ -897,22 +891,22 @@
       "upstreamAt": "2026-11-20T21:43:39.648Z"
      },
      {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ312",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-20T21:43:39.645Z"
+     },
+     {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ316",
       "status": 200,
       "cache": "HIT",
       "upstreamAt": "2026-11-20T21:43:39.694Z"
      },
      {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ325",
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ302",
       "status": 200,
       "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.540Z"
-     },
-     {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ320",
-      "status": 200,
-      "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.487Z"
+      "upstreamAt": "2026-11-20T21:43:39.605Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ326",
@@ -921,10 +915,10 @@
       "upstreamAt": "2026-11-20T21:43:39.566Z"
      },
      {
-      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ312",
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ325",
       "status": 200,
       "cache": "HIT",
-      "upstreamAt": "2026-11-20T21:43:39.645Z"
+      "upstreamAt": "2026-11-20T21:43:39.540Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ330",
@@ -933,87 +927,93 @@
       "upstreamAt": "2026-11-20T21:43:39.573Z"
      },
      {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ320",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-20T21:43:39.487Z"
+     },
+     {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.a1cf67c65ab7f1c2dc4e6b45dcc80ec819aa34f6.001.1",
       "status": 200,
-      "cache": "MISS",
+      "cache": "HIT",
       "upstreamAt": "2026-11-21T01:15:48.100Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b8e355d92605352af1f4013ebe5e748447243f33.003.1",
       "status": 200,
-      "cache": "MISS",
+      "cache": "HIT",
       "upstreamAt": "2026-11-21T01:15:48.482Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b8e355d92605352af1f4013ebe5e748447243f33.002.1",
       "status": 200,
-      "cache": "MISS",
+      "cache": "HIT",
       "upstreamAt": "2026-11-21T01:15:48.594Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b8e355d92605352af1f4013ebe5e748447243f33.004.1",
       "status": 200,
-      "cache": "MISS",
+      "cache": "HIT",
       "upstreamAt": "2026-11-21T01:15:48.760Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.a40e58c11f1b79e42c843f0f09b248fec826dbc0.002.1",
       "status": 200,
-      "cache": "MISS",
+      "cache": "HIT",
       "upstreamAt": "2026-11-21T01:15:48.988Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.a40e58c11f1b79e42c843f0f09b248fec826dbc0.001.1",
       "status": 200,
-      "cache": "MISS",
+      "cache": "HIT",
       "upstreamAt": "2026-11-21T01:15:49.192Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.a40e58c11f1b79e42c843f0f09b248fec826dbc0.003.1",
       "status": 200,
-      "cache": "MISS",
+      "cache": "HIT",
       "upstreamAt": "2026-11-21T01:15:49.369Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.2d2f10dc7e8682329a1ae670192e82c3a8645591.001.1",
       "status": 200,
-      "cache": "MISS",
+      "cache": "HIT",
       "upstreamAt": "2026-11-21T01:15:49.536Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b812f31b2ec0bfa2c5d513f512d765fc7fedda31.002.1",
       "status": 200,
-      "cache": "MISS",
+      "cache": "HIT",
       "upstreamAt": "2026-11-21T01:15:49.758Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.7bce3953b6806e05c3b6bea054318ca5abb332dc.001.1",
       "status": 200,
-      "cache": "MISS",
+      "cache": "HIT",
       "upstreamAt": "2026-11-21T01:15:49.945Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.342812fddb661354277bad70cc4127e672b3a1ad.001.1",
       "status": 200,
-      "cache": "MISS",
+      "cache": "HIT",
       "upstreamAt": "2026-11-21T01:15:50.127Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.342812fddb661354277bad70cc4127e672b3a1ad.002.1",
       "status": 200,
-      "cache": "MISS",
+      "cache": "HIT",
       "upstreamAt": "2026-11-21T01:15:50.317Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.342812fddb661354277bad70cc4127e672b3a1ad.004.1",
       "status": 200,
-      "cache": "MISS",
+      "cache": "HIT",
       "upstreamAt": "2026-11-21T01:15:50.564Z"
      },
      {
       "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.342812fddb661354277bad70cc4127e672b3a1ad.003.1",
       "status": 200,
-      "cache": "MISS",
+      "cache": "HIT",
       "upstreamAt": "2026-11-21T01:15:50.796Z"
      }
     ],
@@ -1024,11 +1024,11 @@
    "check": "live: every source states its check time or its gap",
    "pass": true,
    "detail": [
-    "NWS warnings, watches and advisories: Checked 8:15 p.m.",
-    "SPC fire weather outlooks: Checked 8:15 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
-    "NIFC wildfire incidents (WFIGS): Checked 8:15 p.m.",
-    "WPC winter storm severity outlook (WSSI-P): Checked 8:15 p.m.",
-    "WPC Excessive Rainfall Outlook: Checked 8:15 p.m. · Day 1 issued 0052Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
+    "NWS warnings, watches and advisories: Checked 8:19 p.m.",
+    "SPC fire weather outlooks: Checked 8:19 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+    "NIFC wildfire incidents (WFIGS): Checked 8:19 p.m.",
+    "WPC winter storm severity outlook (WSSI-P): Checked 8:19 p.m.",
+    "WPC Excessive Rainfall Outlook: Checked 8:19 p.m. · Day 1 issued 0052Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
    ]
   },
   {
@@ -1037,25 +1037,25 @@
    "detail": {
     "ws": [
      {
-      "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi_p/MapServer/3/query?geometry=-111.6556,40.5813&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=false&f=json",
-      "status": 200,
-      "cache": null,
-      "upstreamAt": null
-     },
-     {
       "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi_p/MapServer/2/query?geometry=-111.6556,40.5813&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=false&f=json",
       "status": 200,
       "cache": null,
       "upstreamAt": null
      },
      {
-      "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi_p/MapServer/4/query?geometry=-111.6556,40.5813&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=false&f=json",
+      "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi_p/MapServer/3/query?geometry=-111.6556,40.5813&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=false&f=json",
       "status": 200,
       "cache": null,
       "upstreamAt": null
      },
      {
       "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi_p/MapServer/1/query?geometry=-111.6556,40.5813&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=false&f=json",
+      "status": 200,
+      "cache": null,
+      "upstreamAt": null
+     },
+     {
+      "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi_p/MapServer/4/query?geometry=-111.6556,40.5813&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=false&f=json",
       "status": 200,
       "cache": null,
       "upstreamAt": null
@@ -1068,11 +1068,11 @@
      }
     ],
     "st": [
-     "NWS warnings, watches and advisories: Checked 6:15 p.m.",
-     "SPC fire weather outlooks: Checked 6:16 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
-     "NIFC wildfire incidents (WFIGS): Checked 6:16 p.m.",
-     "WPC winter storm severity outlook (WSSI-P): Checked 6:16 p.m. · file 1848Z",
-     "WPC Excessive Rainfall Outlook: Checked 6:16 p.m. · Day 1 issued 0052Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
+     "NWS warnings, watches and advisories: Checked 6:19 p.m.",
+     "SPC fire weather outlooks: Checked 6:19 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+     "NIFC wildfire incidents (WFIGS): Checked 6:19 p.m.",
+     "WPC winter storm severity outlook (WSSI-P): Checked 6:19 p.m. · file 1848Z",
+     "WPC Excessive Rainfall Outlook: Checked 6:19 p.m. · Day 1 issued 0052Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
     ]
    }
   },
@@ -1112,11 +1112,11 @@
      }
     ],
     "statuses": [
-     "NWS warnings, watches and advisories: Checked 6:15 p.m.",
-     "SPC fire weather outlooks: Checked 6:16 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
-     "NIFC wildfire incidents (WFIGS): Checked 6:16 p.m.",
-     "WPC winter storm severity outlook (WSSI-P): Checked 6:16 p.m. · file 1848Z",
-     "WPC Excessive Rainfall Outlook: Checked 6:16 p.m. · Day 1 issued 0052Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
+     "NWS warnings, watches and advisories: Checked 6:19 p.m.",
+     "SPC fire weather outlooks: Checked 6:19 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+     "NIFC wildfire incidents (WFIGS): Checked 6:19 p.m.",
+     "WPC winter storm severity outlook (WSSI-P): Checked 6:19 p.m. · file 1848Z",
+     "WPC Excessive Rainfall Outlook: Checked 6:19 p.m. · Day 1 issued 0052Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
     ],
     "maps": [
      "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=40.5813&lon=-111.6556&name=Snowbird&tz=America%2FDenver&scope=venue&view=active&layers=winter&sel=KSLC.WS.W.0003.2026&nws=function",
@@ -1126,11 +1126,12 @@
   },
   {
    "check": "LIVE winter View on map: WSSI-P areas drawn for the window, the venue's chance matches Planner",
-   "pass": false,
+   "pass": true,
    "detail": {
     "s2": {
      "view": "winter",
-     "wssi": 11
+     "wssi": 11,
+     "big": "90% chance of at least winter weather"
     },
     "head": "Winter weather likely Saturday · 90% chance of at least winter weather",
     "errs": []
@@ -1138,16 +1139,16 @@
   },
   {
    "check": "LIVE fire: SPC fire outlooks (16 files, Days 1-8) and NIFC incidents + perimeters answered; both sources state their check time",
-   "pass": false,
+   "pass": true,
    "detail": {
     "st": [
-     "NWS warnings, watches and advisories: Checked 6:15 p.m.",
-     "SPC fire weather outlooks: Checked 6:16 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
-     "NIFC wildfire incidents (WFIGS): Checked 6:16 p.m.",
-     "WPC winter storm severity outlook (WSSI-P): Checked 6:16 p.m. · file 1848Z",
-     "WPC Excessive Rainfall Outlook: Checked 6:15 p.m. · Day 1 issued 0052Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
+     "NWS warnings, watches and advisories: Checked 6:19 p.m.",
+     "SPC fire weather outlooks: Checked 6:19 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+     "NIFC wildfire incidents (WFIGS): Checked 6:19 p.m.",
+     "WPC winter storm severity outlook (WSSI-P): Checked 6:19 p.m. · file 1848Z",
+     "WPC Excessive Rainfall Outlook: Checked 6:19 p.m. · Day 1 issued 0052Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
     ],
-    "n": 0
+    "n": 18
    }
   },
   {
@@ -1171,10 +1172,10 @@
     "items": [],
     "statuses": [
      "NWS warnings, watches and advisories: Not responding · status unknown. We can't rule anything out from this source.",
-     "SPC fire weather outlooks: Checked 8:16 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
-     "NIFC wildfire incidents (WFIGS): Checked 8:16 p.m.",
-     "WPC winter storm severity outlook (WSSI-P): Checked 8:16 p.m.",
-     "WPC Excessive Rainfall Outlook: Checked 8:15 p.m. · Day 1 issued 0052Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
+     "SPC fire weather outlooks: Checked 8:19 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+     "NIFC wildfire incidents (WFIGS): Checked 8:19 p.m.",
+     "WPC winter storm severity outlook (WSSI-P): Checked 8:19 p.m.",
+     "WPC Excessive Rainfall Outlook: Checked 8:19 p.m. · Day 1 issued 0052Z, Day 2 issued 2012Z, Day 3 issued 2012Z"
     ],
     "maps": []
    }

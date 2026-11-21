@@ -58,6 +58,9 @@ When SPC has an active Mesoscale Discussion:
 | Live NWS **watch** message (section 2) | Pending |
 | NOAA map service with an **active MD** (section 3) | Pending |
 | **Same storm**: WSSI-P in Planner several days before an event, then the NWS alert for that storm | Pending: WPC's WSSI-P shapes are not archived (ftp-wpc keeps images only), so it needs captures days apart. Capture with `python3 tools/capture-wssi-p.py NAME W S E N OUT.json` |
+| Live **Red Flag Warning / Fire Weather Watch** reaching Planner through `/api/nws` | Pending: none active on Nov 20–21; proven on archived NWS Denver/Boulder messages |
+| Live **SPC Day 1–2 Critical** fire area or a **Days 3–8 probability** (40/70%) at a venue | Pending. Live Elevated verified Nov 21 01:19Z (Cheyenne, `planner-check/live-planner-fire.json`). The 40/70% label format will be confirmed when SPC first draws one: the parser accepts "40", "40%" and "0.40" and rejects anything else (the source then reads not confirmed) |
+| Live **wildfire within 15 miles** of a test venue | Pending as a live Planner item; live NIFC feeds (225+ incidents, perimeters) verified on the map |
 | Live **Winter Storm Warning** in Planner and on the map | **Done 2026-11-20 21:43Z**: KSLC.WS.W.0003 at Snowbird through `/api/nws`, with live WSSI-P (5 point queries) on the same event. `docs/threats/planner-check/live-planner-winter.json` |
 
 ## Each time
