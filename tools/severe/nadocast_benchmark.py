@@ -22,7 +22,8 @@ from scipy.spatial import cKDTree
 from scipy.special import expit
 
 from conus_followup import SAMPLE_KM2
-from conus_study import BOX, geography, load
+from conus_study import BOX, geography
+from extract import digest
 
 ROOT = "http://data.nadocast.com/"
 UA = "forecast-ops-research-benchmark/0.1"
@@ -104,6 +105,33 @@ def unit(lon, lat):
     return np.column_stack((np.cos(la) * np.cos(lo), np.cos(la) * np.sin(lo), np.sin(la)))
 
 
+def load_box(root, wanted):
+    """Day 1 features and tornado labels on the regional-box samples only (memory-light), with the
+    same hash and grid checks as conus_study.load."""
+    cases, xs, ys, coords, names, box = [], [], [], None, None, None
+    for meta_path in sorted(Path(root).glob("*/conus-case.json")):
+        meta = json.loads(meta_path.read_text())
+        c = meta["case"]
+        if not c.startswith("2024"):
+            raise ValueError("Benchmark loads 2024 only (2021/2025 sealed)")
+        if c not in wanted:
+            continue
+        path = meta_path.parent / meta["artifact"]["file"]
+        if digest(path) != meta["artifact"]["sha256"]:
+            raise ValueError(f"{c}: artifact hash mismatch")
+        with np.load(path, allow_pickle=False) as d:
+            if coords is None:
+                coords, names = d["coordinates"], d["feature_names"].tolist()
+                lon, lat = coords[:, 0], coords[:, 1]
+                box = (lon >= BOX[0]) & (lon <= BOX[1]) & (lat >= BOX[2]) & (lat <= BOX[3])
+            if not np.array_equal(d["coordinates"], coords) or d["feature_names"].tolist() != names:
+                raise ValueError(f"{c}: grid or predictors differ")
+            xs.append(d["features"][0][box])
+            ys.append(d["labels"][0][box][:, 0])
+        cases.append(c)
+    return cases, np.stack(xs), np.stack(ys), coords[box], names
+
+
 def v07(x, m):
     z = (x - np.array(m["feature_mean"])) / np.array(m["feature_scale"])
     return expit(m["calibration_intercept"] + m["calibration_slope"] * (m["intercept"] + z @ np.array(m["coefficients"])))
@@ -168,8 +196,7 @@ def run(a):
         rules["dates"]["primary_fresh_2024"] + rules["dates"]["exploratory_previously_inspected_2024"]
     if any(not d.startswith("2024") for d in dates):
         raise ValueError("Benchmark dates are 2024 only (2021/2025 sealed)")
-    cases, X, Y, coords, names, hashes = load(a.conus)
-    cases = list(cases)
+    cases, X, Y, coords, names = load_box(a.conus, set(dates))
     missing = sorted(set(dates) - set(cases))
     use = [c for c in cases if c in set(dates)]
     idx = np.array([cases.index(c) for c in use])
@@ -177,9 +204,8 @@ def run(a):
     if frozen["feature_names"] != names:
         raise ValueError("Frozen v0.7 feature order differs")
     lon, lat = coords[:, 0], coords[:, 1]
-    box = (lon >= BOX[0]) & (lon <= BOX[1]) & (lat >= BOX[2]) & (lat <= BOX[3])
     supported, _ = geography(coords)
-    cand = box & supported
+    cand = supported  # coords are already the box samples
     fetched, meta_all, dropped = {}, {}, {}
     grid = None
     for c in use:
@@ -225,13 +251,13 @@ def run(a):
     rows["pt"] = []
     for j, c in enumerate(scored):
         i = cases.index(c)
-        lab = Y[i, 0][fi, 0]
+        lab = Y[i][fi]
         known = lab != 255  # 255 = label unknown; dropped for both forecasts
         unknown += int((~known).sum())
         rows["y"].append(lab[known].astype(float))
         rows["d"].append(np.full(int(known.sum()), j))
         rows["pt"].append(np.where(known)[0])
-        probs["ours"].append(v07(X[i, 0][fi][known].astype(float), m))
+        probs["ours"].append(v07(X[i][fi][known].astype(float), m))
         for v in VARIANTS:
             ok = v in fetched.get(c, {})
             have[v].append(ok)
