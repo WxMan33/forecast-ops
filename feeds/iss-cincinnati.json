@@ -4,48 +4,14 @@
     "name": "Cincinnati, Ohio",
     "timeZone": "America/New_York"
   },
-  "retrievedAt": "2026-11-20T18:46:29.119Z",
-  "sourceLastModified": "Wed, 18 Nov 2026 22:01:11 GMT",
+  "retrievedAt": "2026-11-21T00:52:02.100Z",
+  "sourceLastModified": "Fri, 20 Nov 2026 22:01:11 GMT",
   "source": "https://iss-sts.hqmce.nasa.gov/iss-sts-cities-html/United_States-Ohio-Cincinnati.html",
-  "sourceHash": "aa56eccdb76d8a6dbd2d00fb786eceff88360cf93edd0221211bf562a0192e41",
+  "sourceHash": "4be75308516de16cdef50b08090b8dccca074beb47d2e599c21d7376c86dbc43",
   "dateYearInferred": true,
-  "from": "2026-11-18",
-  "through": "2026-12-02",
+  "from": "2026-11-20",
+  "through": "2026-12-04",
   "passes": [
-    {
-      "id": "iss-cincinnati-1795042740000",
-      "date": "2026-11-18",
-      "start": "2026-11-18T22:59:00.000Z",
-      "duration": "5 min",
-      "durationMinutes": 5,
-      "durationLessThan": false,
-      "maxElevation": 17,
-      "appears": {
-        "elevation": 10,
-        "direction": "WNW"
-      },
-      "disappears": {
-        "elevation": 10,
-        "direction": "NNE"
-      }
-    },
-    {
-      "id": "iss-cincinnati-1795132260000",
-      "date": "2026-11-19",
-      "start": "2026-11-19T23:51:00.000Z",
-      "duration": "1 min",
-      "durationMinutes": 1,
-      "durationLessThan": false,
-      "maxElevation": 10,
-      "appears": {
-        "elevation": 10,
-        "direction": "NNW"
-      },
-      "disappears": {
-        "elevation": 10,
-        "direction": "N"
-      }
-    },
     {
       "id": "iss-cincinnati-1795215720000",
       "date": "2026-11-20",
@@ -183,9 +149,9 @@
       }
     },
     {
-      "id": "iss-cincinnati-1795912920000",
+      "id": "iss-cincinnati-1795912860000",
       "date": "2026-11-28",
-      "start": "2026-11-29T00:42:00.000Z",
+      "start": "2026-11-29T00:41:00.000Z",
       "duration": "1 min",
       "durationMinutes": 1,
       "durationLessThan": false,
@@ -282,6 +248,23 @@
       "disappears": {
         "elevation": 10,
         "direction": "SSE"
+      }
+    },
+    {
+      "id": "iss-cincinnati-1796425680000",
+      "date": "2026-12-04",
+      "start": "2026-12-04T23:08:00.000Z",
+      "duration": "2 min",
+      "durationMinutes": 2,
+      "durationLessThan": false,
+      "maxElevation": 12,
+      "appears": {
+        "elevation": 10,
+        "direction": "WSW"
+      },
+      "disappears": {
+        "elevation": 10,
+        "direction": "SSW"
       }
     }
   ]
