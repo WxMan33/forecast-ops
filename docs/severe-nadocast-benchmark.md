@@ -157,3 +157,43 @@ that ours missed (2024-12-28).
 - About three-quarters of its tornado report points fall below 5%.
 - Its high values verify at about 22%, not 50%.
 - It covers only the regional box.
+
+# Day 2 damaging wind benchmark (rules locked 2026-11-22, before scoring)
+The full rules and date lists are in `research/severe/nadocast/day2-wind-rules.json`. In brief:
+
+**Event:** a Thunderstorm Wind report of at least 50 kt within 25 miles during convective day D+1
+(12Z D+1 to 12Z D+2).
+- Our labels use NCEI Storm Events. Points near reports with no magnitude are marked unknown and
+  dropped for every model.
+- NadoCast's `wind` target is the same Storm Data definition.
+- `wind_adj`, which re-weights estimated reports, is reported only.
+
+**Pairing:** both forecasts come from the same 12Z cycle on D.
+- Ours is 12Z HRRR f24-48, issued about 15Z.
+- NadoCast's is 12Z f24-47, written about 15:30Z.
+- The decision cutoff is 18Z on D. NadoCast files written after it are dropped.
+
+**Models:**
+- live v0.7 (regional box only);
+- the frozen CONUS v0.7 refit;
+- the frozen logistic and boosted-tree candidates;
+- NadoCast 2022 models, absolutely calibrated.
+
+**Footprints:**
+- **Regional box:** all five models.
+- **CONUS:** the four national models, with Florida/Gulf, the West and the other regions broken out.
+
+**Dates:** 315 matched 2024 issue dates, all reusing the existing extraction outputs.
+- 234 fresh dates form the primary sample.
+- 81 dates already scored for Day 2 wind are kept separate as exploratory.
+- 2024-12-30 and 12-31 are excluded because their window reaches 2025.
+- 13 dates have no NadoCast wind file.
+- **Pilot:** the fresh dates nearest 2024-05-15 and 2024-08-15.
+
+**Metrics:**
+- Brier score, with paired date-bootstrap intervals against NadoCast (and against live v0.7 in the box);
+- reliability;
+- hits, misses, POD and false-alarm area at 5% and 15%;
+- hits at NadoCast's false-alarm area.
+
+**Maps:** chosen by the rules in the JSON file.
