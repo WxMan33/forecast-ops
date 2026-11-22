@@ -35,7 +35,7 @@
   const WLEVEL_LABEL = { WWA: "Any winter weather", MINOR: "Minor", MODERATE: "Moderate", MAJOR: "Major", EXTREME: "Extreme" };
   const empty = { type: "FeatureCollection", features: [] };
 
-  const S = { air: [], ap: null, layers: { severe: true, flood: true, winter: true, fire: true, smoke: true, tropical: true, coastal: true, aviation: true }, rx: false, fday: 1, wlevel: "MINOR", wwin: null, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
+  const S = { air: [], ap: null, layers: { severe: true, flood: true, winter: true, fire: true, smoke: true, tropical: true, coastal: true, aviation: true }, en: { on: false, at: 0, alt: null, age: 2 }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
   let framedAp = false, mapLoaded = false; // Planner airport "View on map": framed once
   let data, now, venue, map, ready = false, liveReady = false, meshes = new Map(), tzCache = {}, marker, grid = null, mesh = null, mask = null, gridLoading = null, hull = null;
   const phone = () => matchMedia("(max-width: 760px)").matches;
@@ -84,7 +84,7 @@
   const SRC_OF = (p) => ["warning", "watch", "advisory", "statement"].includes(p.kind) ? "alerts" : ["tcoutlook", "tctrack", "tcwind"].includes(p.kind) ? "nhc" : p.kind === "metar" || p.kind === "taf" ? "awc" : p.kind === "incident" ? "nifc" : p.kind === "smoke" ? "hms" : p.kind === "aqobs" ? "aqobs" : p.kind === "aqfcst" ? "aqfcst" : p.kind === "smokefcst" ? "naqfc" : p.kind === "md" ? "md" : p.program === "wssip" ? "wssip" : /^spcfire-/.test(p.program || "") ? "fire" + p.day : (p.program === "ero" ? "ero" : "day") + p.day;
   // minutes since the last successful check before a source counts as stale (outlooks change a few times a day)
   const STALE_MIN = { awc: 20, nhc: 60, hms: 180, aqobs: 120, aqfcst: 180, naqfc: 360, monitors: 120, nifc: 20, fire1: 60, fire2: 60, fire3: 180, fire4: 180, fire5: 180, fire6: 180, fire7: 180, fire8: 180, wssip: 60, alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
-  const SRC_NAME = { awc: "Aviation Weather Center (METAR, TAF)", nhc: "NHC tropical outlooks and storms", hms: "NOAA satellite smoke (HMS)", aqobs: "AirNow observations near the venue", aqfcst: "AirNow forecast (venue's area)", naqfc: "NOAA smoke guidance (NAQFC)", monitors: "AirNow monitors (map)", nifc: "NIFC wildfire incidents (WFIGS)", fire1: "SPC fire weather · Day 1", fire2: "SPC fire weather · Day 2", fire3: "SPC fire weather · Day 3", fire4: "SPC fire weather · Day 4", fire5: "SPC fire weather · Day 5", fire6: "SPC fire weather · Day 6", fire7: "SPC fire weather · Day 7", fire8: "SPC fire weather · Day 8", wssip: "WPC winter storm severity (WSSI-P)", alerts: "NWS warnings, watches and advisories", md: "SPC Mesoscale Discussions", day1: "SPC Day 1 outlook", day2: "SPC Day 2 outlook", day3: "SPC Day 3 outlook", ero1: "WPC excessive rainfall · Day 1", ero2: "WPC excessive rainfall · Day 2", ero3: "WPC excessive rainfall · Day 3" };
+  const SRC_NAME = { enroute: "Aviation Weather Center en route (pilot reports, SIGMETs, G-AIRMETs, CWAs)", faa: "FAA airport status", awc: "Aviation Weather Center (METAR, TAF)", nhc: "NHC tropical outlooks and storms", hms: "NOAA satellite smoke (HMS)", aqobs: "AirNow observations near the venue", aqfcst: "AirNow forecast (venue's area)", naqfc: "NOAA smoke guidance (NAQFC)", monitors: "AirNow monitors (map)", nifc: "NIFC wildfire incidents (WFIGS)", fire1: "SPC fire weather · Day 1", fire2: "SPC fire weather · Day 2", fire3: "SPC fire weather · Day 3", fire4: "SPC fire weather · Day 4", fire5: "SPC fire weather · Day 5", fire6: "SPC fire weather · Day 6", fire7: "SPC fire weather · Day 7", fire8: "SPC fire weather · Day 8", wssip: "WPC winter storm severity (WSSI-P)", alerts: "NWS warnings, watches and advisories", md: "SPC Mesoscale Discussions", day1: "SPC Day 1 outlook", day2: "SPC Day 2 outlook", day3: "SPC Day 3 outlook", ero1: "WPC excessive rainfall · Day 1", ero2: "WPC excessive rainfall · Day 2", ero3: "WPC excessive rainfall · Day 3" };
   const isLive = () => S.scenario === "live";
   const isArchive = () => /^archive-/.test(S.scenario);
   const official = () => isLive() || isArchive();
@@ -105,6 +105,7 @@
   const SMOKE_VENUES = [{ id: "soldier", name: "Soldier Field", city: "Chicago, IL", lat: 41.8623, lon: -87.6167, tz: "America/Chicago", label: "Soldier Field, Chicago" }, { id: "metlife", name: "MetLife Stadium", city: "East Rutherford, NJ", lat: 40.8135, lon: -74.0745, tz: "America/New_York", label: "MetLife Stadium, New York area" }, { id: "linc", name: "Lincoln Financial Field", city: "Philadelphia, PA", lat: 39.9008, lon: -75.1675, tz: "America/New_York", label: "Lincoln Financial Field, Philadelphia" }];
   const TROP_VENUES = [{ id: "wharf", name: "The Wharf, Orange Beach", city: "Orange Beach, AL", lat: 30.297, lon: -87.56, tz: "America/Chicago", label: "The Wharf, Orange Beach (Baldwin Coastal)" }, { id: "bayminette", name: "Bay Minette", city: "Bay Minette, AL", lat: 30.8829, lon: -87.7731, tz: "America/Chicago", label: "Bay Minette (Baldwin Inland)" }];
   ["archive-tropical-watch", "archive-tropical-warning"].forEach((k) => { ARCHIVE_VENUES[k] = TROP_VENUES; });
+  ARCHIVE_VENUES["archive-aviation-enroute"] = [{ id: "ml", name: "MetLife Stadium", city: "East Rutherford, NJ", lat: 40.8135, lon: -74.0745, tz: "America/New_York", label: "MetLife Stadium, East Rutherford" }];
   ARCHIVE_VENUES["archive-aviation-chicago"] = [{ id: "uc", name: "United Center", city: "Chicago, IL", lat: 41.8807, lon: -87.6742, tz: "America/Chicago", label: "United Center, Chicago" }];
   ARCHIVE_VENUES["archive-coastal-flagler"] = [{ id: "flaglerpier", name: "Flagler Beach Pier", city: "Flagler Beach, FL", lat: 29.4802, lon: -81.1065, tz: "America/New_York", label: "Flagler Beach Pier (Coastal Flagler shoreline)" }, { id: "jaxbeach", name: "Jacksonville Beach Pier", city: "Jacksonville Beach, FL", lat: 30.2858, lon: -81.3889, tz: "America/New_York", label: "Jacksonville Beach Pier (Coastal Duval)" }];
   ["archive-smoke-chicago", "archive-smoke-metlife", "archive-smoke-forecast-0714", "archive-smoke-forecast-0715"].forEach((k) => { ARCHIVE_VENUES[k] = SMOKE_VENUES; });
@@ -210,6 +211,59 @@
     const rows = p.kind === "metar" ? [["Observed", esc(t(p.observed, true)) + ` <span class="mono">${esc(zt(p.observed))}</span>`], ["Flight category", esc(p.category)], ["Conditions", esc((p.ceiling != null ? "ceiling " + p.ceiling + " ft · " : "") + (p.visText ? "visibility " + p.visText + " mi · " : "") + (p.wind != null ? "wind " + p.wind + (p.gust ? "G" + p.gust : "") + " kt" : "") + (p.wx ? " · " + p.wx : ""))], ["Raw", `<span class="mono">${esc(p.raw)}</span>`]]
       : [["Issued", esc(t(p.issued, true)) + ` <span class="mono">${esc(zt(p.issued))}${p.amended ? " AMD" : ""}</span>`], ["Valid", esc(t(p.validStart, true) + " → " + t(p.validEnd, true))], ["Periods", p.periods.map((pd) => esc((pd.change === "BASE" ? "Base" : pd.change) + (pd.prob ? " " + pd.prob + "%" : "") + " " + t0(pd.from) + "–" + t0(pd.to) + ": " + (pd.category || "") + (pd.ceiling != null ? ", ceiling " + pd.ceiling + " ft" : "") + (pd.wind ? ", wind " + pd.wind + (pd.gust ? "G" + pd.gust : "") + " kt" : "") + (pd.wx ? ", " + pd.wx : ""))).join("<br>")], ["Raw", `<span class="mono">${esc(p.raw)}</span>`]];
     return `<button type="button" class="px-back" data-back>← Back</button><div style="--tx-c:${colorOf(p)}"><span class="tx-kind k-av">${esc(p.airport)} ${esc(p.kind.toUpperCase())}</span></div><div class="px-title">${esc(p.airportName || p.airport)}</div><dl class="px-rows">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}<dt>Source</dt><dd><a href="${esc(p.source.url)}" target="_blank" rel="noopener">${esc(p.source.name)}</a></dd></dl><p class="lg-note">Airport weather, not the venue. Flight category from ceiling and visibility (FAA definitions).</p>`;
+  }
+
+  /* ---------- aviation en route: pilot reports (observations), advisories (SIGMET, CWA, G-AIRMET), FAA airport status ---------- */
+  const EN = window.ThreatsEnroute;
+  const EN_COLOR = { turbulence: "#E07B00", icing: "#2B7BD6", convective: "#D62728", low: "#8C8C8C", wind: "#8E44AD", ash: "#6B4F2A", other: "#777777" };
+  const PIREP_COLOR = (r) => (r >= 3 ? "#7A0F0F" : r >= 2.5 ? "#B42318" : r >= 2 ? "#E5484D" : r >= 1.5 ? "#F2994A" : "#F2C94C");
+  const EN_ALT = [[null, "All altitudes"], [[0, 10000], "Below 10,000 ft"], [[10000, 18000], "10,000 ft–FL180"], [[18000, 29000], "FL180–FL290"], [[29000, 60000], "Above FL290"]];
+  const enOn = () => !!(EN && S.layers.aviation && (S.en.on || S.air.length || S.route || /^archive-aviation/.test(S.scenario)));
+  const enTime = () => { const c = Date.parse(data.clock); if (S.en.atIso && !S.en.atFixed) { S.en.at = Math.max(0, Math.min(12, Math.round((Date.parse(S.en.atIso) - c) / 3 / 3600e3) * 3)); S.en.atFixed = true; } return c + S.en.at * 3600e3; };
+  const enAll = () => (data.products || []).filter((x) => x.kind === "pirep" || x.kind === "sigmet" || x.kind === "gairmet" || x.kind === "cwa");
+  function enShown() {
+    if (!enOn()) return [];
+    const tMs = enTime(), c = Date.parse(data.clock), [lo, hi] = S.en.alt || [null, null];
+    return enAll().filter((x) => (x.kind === "pirep" ? S.en.at === 0 && c - Date.parse(x.observed) <= S.en.age * 3600e3 && c >= Date.parse(x.observed) : EN.validAt(x, tMs)) && EN.inBand(x, lo, hi));
+  }
+  const routeEnds = () => { if (!S.route) return null; const pt = (id) => { const x = (data.products || []).find((q) => (q.kind === "metar" || q.kind === "taf") && q.airport === id && Array.isArray(q.point)); return x ? x.point : null; }; const o = pt(S.route.o), d = pt(S.route.d); return o && d ? { o, d } : null; };
+  const faaShown = () => { const ids = S.air.map((x) => EN.faaId(x)); return (data.products || []).filter((x) => x.kind === "faa" && ids.includes(x.airportFaa) && !(x.end && Date.parse(x.end) <= Date.parse(data.clock))); };
+  function enrouteSection() {
+    if (!S.layers.aviation || !EN) return "";
+    if (!enOn()) return `<div class="px-h"><span>Aviation en route</span></div><button type="button" class="px-link" data-en-on="1">Show pilot reports and en-route advisories (SIGMETs, G-AIRMETs, CWAs) →</button>`;
+    const st = data.state.enroute, list = enShown(), adv = list.filter((x) => x.kind !== "pirep"), rp = list.filter((x) => x.kind === "pirep"), strong = rp.filter((x) => x.rank >= 2).sort((a, b) => b.rank - a.rank);
+    const tMs = enTime(), btn = (attr, val, on, label) => `<button type="button" class="tx-fb" data-${attr}="${esc(String(val))}" aria-pressed="${on}">${esc(label)}</button>`;
+    let h = `<div class="px-h"><span>${S.route ? "En route · approximate route " + esc(S.route.o + " → " + S.route.d) : "En route · regional context"}</span><span>${esc(t(new Date(tMs).toISOString()))}</span></div>`;
+    if (st && ["unavailable", "stale"].includes(st.kind)) h += `<p class="px-empty">En-route advisories and pilot reports not confirmed${data.sources.enroute && data.sources.enroute.error ? " (" + esc(data.sources.enroute.error) + ")" : ""}.</p>`;
+    else if (!st || st.kind === "loading") h += `<p class="px-empty">Loading pilot reports and advisories…</p>`;
+    h += `<div class="tx-filters" role="group" aria-label="Time"><span class="tx-fl">Time</span>${[0, 3, 6, 9, 12].map((n) => btn("en-at", n, S.en.at === n, n ? "+" + n + " h" : "Now")).join("")}</div>`;
+    h += `<div class="tx-filters" role="group" aria-label="Altitude"><span class="tx-fl">Altitude</span>${EN_ALT.map(([b, label]) => btn("en-alt", b ? b.join("-") : "all", JSON.stringify(S.en.alt) === JSON.stringify(b), label)).join("")}${S.route ? btn("en-alt", S.route.lo + "-" + S.route.hi, JSON.stringify(S.en.alt) === JSON.stringify([S.route.lo, S.route.hi]), "Your band " + EN.bandText(S.route.lo, S.route.hi)) : ""}</div>`;
+    h += `<div class="tx-filters" role="group" aria-label="Report age"><span class="tx-fl">Pilot reports</span>${(isArchive() ? [1, 2, 3] : [1, 2]).map((n) => btn("en-age", n, S.en.age === n, "last " + n + " h")).join("")}</div>`;
+    h += `<p class="lg-note" data-en-counts>${S.en.at ? "Pilot reports are past observations and show at Now only. " : esc(rp.length + " pilot report" + (rp.length === 1 ? "" : "s") + " of turbulence or icing (" + strong.length + " moderate or worse). ")}${esc(adv.length + " advisor" + (adv.length === 1 ? "y" : "ies") + " in effect at that time.")}</p>`;
+    const advItem = (x) => `<button type="button" class="tx-item" data-id="${esc(x.id)}" style="--tx-c:${EN_COLOR[x.hazardFamily] || EN_COLOR.other}"><svg class="tx-sw" width="30" height="16" aria-hidden="true"><rect x="3" y="3" width="24" height="10" fill="${EN_COLOR[x.hazardFamily] || EN_COLOR.other}" fill-opacity=".25" stroke="${EN_COLOR[x.hazardFamily] || EN_COLOR.other}" stroke-width="2"${x.kind === "gairmet" ? ' stroke-dasharray="4 2"' : ""}/></svg><span><span class="tx-kind k-av">${esc(x.kind === "gairmet" ? "G-AIRMET" : x.kind === "cwa" ? "CWA" : "SIGMET")}</span><b>${esc((x.severity === "MOD" ? "Moderate " : x.severity === "SEV" ? "Severe " : "") + x.hazardWord)}</b><span class="tx-meta">${esc(x.baseFt == null && x.topFt == null ? (x.surface ? "near the surface" : "altitude not stated") : EN.bandText(x.baseFt, x.topFt))} · ${esc(x.kind === "gairmet" ? "snapshot " + t(x.validTime) : "until " + t(x.validEnd))}</span></span></button>`;
+    const order = { convective: 0, turbulence: 1, icing: 2, ash: 3, wind: 4, low: 5, other: 6 };
+    if (adv.length) h += adv.slice().sort((a, b) => (order[a.hazardFamily] ?? 9) - (order[b.hazardFamily] ?? 9)).slice(0, 10).map(advItem).join("") + (adv.length > 10 ? `<p class="lg-note">${adv.length - 10} more on the map.</p>` : "");
+    if (strong.length && S.en.at === 0) h += strong.slice(0, 6).map((x) => `<button type="button" class="tx-item" data-id="${esc(x.id)}" style="--tx-c:${PIREP_COLOR(x.rank)}"><svg class="tx-sw" width="30" height="16" aria-hidden="true"><circle cx="15" cy="8" r="6" fill="${x.turb.length ? PIREP_COLOR(x.rank) : "none"}" stroke="${x.turb.length ? "#111" : PIREP_COLOR(x.rank)}" stroke-width="${x.turb.length ? 1 : 3}"/></svg><span><span class="tx-kind k-av">PILOT REPORT</span><b>${esc(EN.pirepText(x))}</b><span class="tx-meta">${esc(t(x.observed) + (x.acType ? " · " + x.acType : ""))}</span></span></button>`).join("");
+    h += `<div class="lg-note en-legend"><b>Pilot reports</b> are observations (dots: turbulence; rings: icing; darker is stronger). <b>Advisories</b> are official: SIGMETs and CWAs solid, G-AIRMETs dashed (a forecast snapshot every 3 hours). <b>Model guidance</b>: none shown; gridded turbulence guidance is not included because no supported source was verified for this build.${S.route ? " The route is a straight line between the airports, not a flight plan." : ""}</div>`;
+    const fs = faaShown();
+    if (S.air.length) {
+      h += `<div class="px-h"><span>Flight disruptions · FAA</span><span>${esc(S.air.join(", "))}</span></div>`;
+      const fst = data.state.faa;
+      if (!fst || fst.kind === "loading") h += `<p class="px-empty">Checking FAA airport status…</p>`;
+      else if (["unavailable", "stale"].includes(fst.kind)) h += `<p class="px-empty">FAA airport status not confirmed.</p>`;
+      else if (!fs.length) h += `<p class="px-empty">No FAA-reported delays, ground stops or closures at ${esc(S.air.join(", "))}.</p>`;
+      h += fs.map((x) => `<button type="button" class="tx-item" data-id="${esc(x.id)}" style="--tx-c:${x.weather ? "#D62728" : "#9aa3ad"}"><span><span class="tx-kind k-av">FAA ${esc(x.airportFaa)}${x.planned ? " · PLANNED" : ""}</span><b>${esc(x.typeWord)}</b><span class="tx-meta">${esc(x.notice ? x.text.slice(0, 90) : EN.faaText(x))}</span><span class="tx-meta">${esc((x.weather ? "Weather-related · " : "") + (x.planned && x.start ? "from " + t(x.start) : "active") + (x.end ? " until " + t(x.end) : ""))}</span></span></button>`).join("");
+    }
+    return h;
+  }
+  function enDetail(p) {
+    const rows = p.kind === "pirep" ? [["Report", esc(EN.pirepText(p) + (p.urgent ? " · urgent" : ""))], ["Observed", esc(t(p.observed, true)) + ` <span class="mono">${esc(zt(p.observed))}</span>`], ["Aircraft", esc(p.acType || "not given")], ["Raw", `<span class="mono">${esc(p.raw)}</span>`]]
+      : p.kind === "faa" ? [["Airport", esc(p.airportName + " (" + p.airportFaa + ")")], ["Status", esc(p.notice ? "Notice" : p.planned ? "Planned" : "Active")], ["FAA's stated cause", esc((p.cause || "not stated") + (p.weather ? " · weather-related" : ""))], ["Times", esc((p.start ? t(p.start, true) : "start not given") + " → " + (p.end ? t(p.end, true) : "no end time given"))], ...(p.notice ? [["Notice", `<span class="mono">${esc(p.text)}</span>`]] : [["Delays", esc(EN.faaText(p))]]), ["Updated", p.updated ? esc(t(p.updated, true)) : "not stated"], ...(p.advisoryUrl ? [["FAA advisory", `<a href="${esc(p.advisoryUrl)}" target="_blank" rel="noopener">ATCSCC advisory</a>`]] : [])]
+      : [["Hazard", esc((p.severity ? p.severity + " " : "") + p.hazardWord + (p.dueTo ? " · " + p.dueTo : "") + (p.qualifier ? " · " + p.qualifier : ""))], ["Altitude", esc(p.baseFt == null && p.topFt == null ? (p.surface ? "near the surface" : "not stated") : EN.bandText(p.baseFt, p.topFt) + (p.freezingLevel ? " (from the freezing level)" : ""))],
+        [p.kind === "gairmet" ? "Snapshot" : "Valid", esc(p.kind === "gairmet" ? t(p.validTime, true) + " (+" + p.forecastHour + " h; read as 90 minutes either side)" : t(p.validStart, true) + " → " + t(p.validEnd, true))], ["Issued", p.issued ? esc(t(p.issued, true)) : "not stated"], ...(p.raw ? [["Raw", `<span class="mono">${esc(p.raw)}</span>`]] : [])];
+    const kindLabel = p.kind === "pirep" ? "PILOT REPORT · OBSERVATION" : p.kind === "faa" ? "FAA AIRPORT STATUS" : p.kind === "gairmet" ? "G-AIRMET · FORECAST ADVISORY" : p.kind === "cwa" ? "CENTER WEATHER ADVISORY" : (p.outlook ? "CONVECTIVE SIGMET OUTLOOK" : "SIGMET · ADVISORY");
+    const note = p.kind === "pirep" ? "A pilot's observation at that place, altitude and time; turbulence depends on the aircraft. Not a forecast." : p.kind === "faa" ? "As reported by the FAA; check with the airline for a specific flight." : "An official advisory for an area of airspace, not a forecast for any one flight.";
+    return `<button type="button" class="px-back" data-back>← Back</button><div><span class="tx-kind k-av">${esc(kindLabel)}</span></div><div class="px-title">${esc(p.kind === "faa" ? p.typeWord + " · " + p.airportFaa : p.title)}</div><dl class="px-rows">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}<dt>Source</dt><dd><a href="${esc(p.source.url)}" target="_blank" rel="noopener">${esc(p.source.name)}</a> · ${esc(p.office)}</dd></dl><p class="lg-note">${esc(note)}</p>`;
   }
 
   /* ---------- tropical (NHC context) ---------- */
@@ -347,7 +401,7 @@
     if (known("alerts")) return { big: "No warning or watch at the venue", sub: "NWS checked " + t(data.sources.alerts.lastOk) + ". SPC Mesoscale Discussion status is unknown: that source is not responding." };
     return { big: "Venue status not confirmed", sub: "No product covers the venue in the data we have, but NWS warnings and watches are not confirmed (see below)." };
   }
-  const SRC_LINK = { awc: "https://aviationweather.gov/", nhc: "https://www.nhc.noaa.gov/", hms: "https://www.ospo.noaa.gov/products/land/hms.html", aqobs: "https://www.airnow.gov/", aqfcst: "https://www.airnow.gov/", naqfc: "https://airquality.weather.gov/", monitors: "https://www.airnow.gov/", nifc: "https://data-nifc.opendata.arcgis.com/datasets/nifc::wfigs-current-incident-locations/about", fire1: "https://www.spc.noaa.gov/products/fire_wx/fwdy1.html", fire2: "https://www.spc.noaa.gov/products/fire_wx/fwdy2.html", fire3: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire4: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire5: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire6: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire7: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire8: "https://www.spc.noaa.gov/products/exper/fire_wx/", wssip: "https://www.wpc.ncep.noaa.gov/wwd/wssi/prob_wssi.php", ero1: FX.SOURCES.find((x) => x.id === "wpc-ero").url, ero2: FX.SOURCES.find((x) => x.id === "wpc-ero").url, ero3: FX.SOURCES.find((x) => x.id === "wpc-ero").url, day3: "https://www.spc.noaa.gov/products/outlook/day3otlk.html", alerts: "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch", md: "https://www.spc.noaa.gov/products/md/", day1: "https://www.spc.noaa.gov/products/outlook/day1otlk.html", day2: "https://www.spc.noaa.gov/products/outlook/day2otlk.html" };
+  const SRC_LINK = { enroute: "https://aviationweather.gov/gfa/", faa: "https://nasstatus.faa.gov/", awc: "https://aviationweather.gov/", nhc: "https://www.nhc.noaa.gov/", hms: "https://www.ospo.noaa.gov/products/land/hms.html", aqobs: "https://www.airnow.gov/", aqfcst: "https://www.airnow.gov/", naqfc: "https://airquality.weather.gov/", monitors: "https://www.airnow.gov/", nifc: "https://data-nifc.opendata.arcgis.com/datasets/nifc::wfigs-current-incident-locations/about", fire1: "https://www.spc.noaa.gov/products/fire_wx/fwdy1.html", fire2: "https://www.spc.noaa.gov/products/fire_wx/fwdy2.html", fire3: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire4: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire5: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire6: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire7: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire8: "https://www.spc.noaa.gov/products/exper/fire_wx/", wssip: "https://www.wpc.ncep.noaa.gov/wwd/wssi/prob_wssi.php", ero1: FX.SOURCES.find((x) => x.id === "wpc-ero").url, ero2: FX.SOURCES.find((x) => x.id === "wpc-ero").url, ero3: FX.SOURCES.find((x) => x.id === "wpc-ero").url, day3: "https://www.spc.noaa.gov/products/outlook/day3otlk.html", alerts: "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch", md: "https://www.spc.noaa.gov/products/md/", day1: "https://www.spc.noaa.gov/products/outlook/day1otlk.html", day2: "https://www.spc.noaa.gov/products/outlook/day2otlk.html" };
 
   /* ---------- map ---------- */
   async function getJSON(path) { const r = await fetch(path); if (!r.ok) throw Error(path + " " + r.status); return r.json(); }
@@ -362,7 +416,7 @@
     map.on("load", () => {
       const src = (id, d) => map.addSource(id, { type: "geojson", data: d || empty });
       src("states", states); src("lakes", lakes);
-      ["outlook", "ero", "wssi", "apt", "two", "tcone", "tline", "tpts", "hms", "aqmon", "fireo", "inc", "inc-pt", "active", "hl", "labels", "ring", "m-fill", "m-lines", "m-outside", "m-hull", "cities", "pt"].forEach((id) => src(id));
+      ["outlook", "ero", "wssi", "enr", "route", "pirep", "apt", "two", "tcone", "tline", "tpts", "hms", "aqmon", "fireo", "inc", "inc-pt", "active", "hl", "labels", "ring", "m-fill", "m-lines", "m-outside", "m-hull", "cities", "pt"].forEach((id) => src(id));
       map.addImage("hatch", hatch(), { pixelRatio: 2 });
       const L = (o) => map.addLayer(o);
       L({ id: "lakes", type: "fill", source: "lakes", paint: { "fill-color": p.water } });
@@ -389,6 +443,14 @@
       L({ id: "fireo-line", type: "line", source: "fireo", paint: { "line-color": ["get", "color"], "line-width": 2.2, "line-opacity": 0.95 } });
       L({ id: "inc-fill", type: "fill", source: "inc", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.28 } });
       L({ id: "inc-line", type: "line", source: "inc", paint: { "line-color": ["get", "color"], "line-width": 1.6 } });
+      // aviation en route: advisories (SIGMET and CWA solid, G-AIRMET dashed: a forecast snapshot), the approximate route, pilot reports
+      L({ id: "enr-fill", type: "fill", source: "enr", paint: { "fill-color": ["get", "color"], "fill-opacity": ["get", "fill"] } });
+      L({ id: "enr-line", type: "line", source: "enr", filter: ["!=", ["get", "kind"], "gairmet"], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 2.2, "line-opacity": 0.95 } });
+      L({ id: "enr-line-fc", type: "line", source: "enr", filter: ["==", ["get", "kind"], "gairmet"], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 1.8, "line-dasharray": [3, 2], "line-opacity": 0.95 } });
+      L({ id: "route-line", type: "line", source: "route", filter: ["==", ["geometry-type"], "LineString"], layout: { "line-cap": "round" }, paint: { "line-color": p.text, "line-width": 2.4, "line-dasharray": [1, 2.2], "line-opacity": 0.9 } });
+      L({ id: "route-label", type: "symbol", source: "route", filter: ["==", ["geometry-type"], "LineString"], layout: { "symbol-placement": "line-center", "text-field": ["get", "label"], "text-font": ["Open Sans Semibold"], "text-size": 11.5, "text-offset": [0, -0.9] }, paint: { "text-color": p.text, "text-halo-color": p.halo, "text-halo-width": 2 } });
+      L({ id: "pirep-turb", type: "circle", source: "pirep", filter: ["==", ["get", "ice"], false], paint: { "circle-radius": ["get", "r"], "circle-color": ["get", "color"], "circle-stroke-color": "#111", "circle-stroke-width": 1 } });
+      L({ id: "pirep-ice", type: "circle", source: "pirep", filter: ["==", ["get", "ice"], true], paint: { "circle-radius": ["get", "r"], "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": ["get", "color"], "circle-stroke-width": 3 } });
       L({ id: "hl", type: "line", source: "hl", layout: { "line-join": "round" }, paint: { "line-color": p.text, "line-width": 9, "line-opacity": 0.55, "line-blur": 1 } });
       L({ id: "watch-fill", type: "fill", source: "active", filter: ["==", ["get", "kind"], "watch"], paint: { "fill-color": ["get", "color"], "fill-opacity": 0.08 } });
       L({ id: "watch-line", type: "line", source: "active", filter: ["==", ["get", "kind"], "watch"], paint: { "line-color": ["get", "color"], "line-width": 2.6, "line-dasharray": [3, 2], "line-opacity": ["get", "op"] } });
@@ -419,8 +481,11 @@
         paint: { "text-color": ["get", "tc"], "text-halo-color": ["get", "hc"], "text-halo-width": 2.4 } });
       ready = true; drawAll();
     });
-    map.on("click", (e) => { S.point = [e.lngLat.lng, e.lngLat.lat]; S.sel = null; openSheet(); drawAll(); });
-    const hits = ["apt", "tpts", "tcone-fill", "two-fill", "aqmon", "hms-fill", "inc-pt", "inc-fill", "fireo-fill", "warn-fill", "adv-fill", "watch-fill", "outlook-fill", "wssi-fill", "warn-dot"];
+    map.on("click", (e) => {
+      const en = ["pirep-turb", "pirep-ice", "enr-fill"].filter((l) => map.getLayer(l)), f = en.length ? map.queryRenderedFeatures(e.point, { layers: en }) : [];
+      if (f.length) { S.sel = f[0].properties.id; S.point = null; openSheet(); drawAll(); return; } // a pilot report or an advisory: its own detail
+      S.point = [e.lngLat.lng, e.lngLat.lat]; S.sel = null; openSheet(); drawAll(); });
+    const hits = ["pirep-turb", "pirep-ice", "enr-fill", "apt", "tpts", "tcone-fill", "two-fill", "aqmon", "hms-fill", "inc-pt", "inc-fill", "fireo-fill", "warn-fill", "adv-fill", "watch-fill", "outlook-fill", "wssi-fill", "warn-dot"];
     map.on("mousemove", (e) => { if (!ready) return; const f = map.queryRenderedFeatures(e.point, { layers: hits.filter((l) => map.getLayer(l)) }); map.getCanvas().style.cursor = f.length ? "pointer" : ""; });
   }
   function hatch() {
@@ -449,6 +514,10 @@
     map.getSource("active").setData({ type: "FeatureCollection", features: act.map((p) => feature(p, { kind: p.kind, color: colorOf(p), op: unconfirmed(p) ? 0.6 : 1, fill: day ? 0 : unconfirmed(p) ? 0.16 : 0.3, day: day || 0, text: labelText(p), tc: c.text, hc: c.halo })) });
     { const ap = avProducts(), ids = [...new Set(ap.map((p) => p.airport))];
       map.getSource("apt").setData({ type: "FeatureCollection", features: ids.map((id) => { const m = ap.filter((p) => p.kind === "metar" && p.airport === id).sort((a, b) => (a.observed < b.observed ? 1 : -1))[0], any = m || ap.find((p) => p.airport === id); return { type: "Feature", properties: { id: (m || any).id, color: m ? FLT_COLOR[m.category] : "#9aa3ad", label: id + (m ? " · " + m.category : "") }, geometry: { type: "Point", coordinates: any.point } }; }) }); }
+    { const en = day === 2 || day === 3 || wv || fv ? [] : enShown(), adv = en.filter((x) => x.kind !== "pirep"), rp = en.filter((x) => x.kind === "pirep");
+      map.getSource("enr").setData({ type: "FeatureCollection", features: adv.map((x) => feature(x, { kind: x.kind, color: EN_COLOR[x.hazardFamily] || EN_COLOR.other, fill: focus === x.id ? 0.32 : 0.12 })) });
+      map.getSource("pirep").setData({ type: "FeatureCollection", features: rp.map((x) => ({ type: "Feature", properties: { id: x.id, color: PIREP_COLOR(x.rank), r: x.rank >= 2 ? 6.5 : 4.5, ice: !x.turb.length }, geometry: { type: "Point", coordinates: x.point } })) });
+      const rr = routeEnds(); map.getSource("route").setData({ type: "FeatureCollection", features: rr ? [{ type: "Feature", properties: { label: "Approximate route " + S.route.o + " → " + S.route.d }, geometry: { type: "LineString", coordinates: [rr.o, rr.d] } }] : [] }); }
     const ns = day === 2 || day === 3 || wv || fv ? [] : nhcShown(), tcol = light() ? "#333" : "#f2f2f2";
     map.getSource("two").setData({ type: "FeatureCollection", features: ns.filter((p) => p.kind === "tcoutlook" && p.geometry).map((p) => feature(p, { color: colorOf(p) })) });
     map.getSource("tcone").setData({ type: "FeatureCollection", features: ns.filter((p) => p.part === "cone").map((p) => feature(p, { color: tcol })) });
@@ -571,7 +640,7 @@
   const countyText = (p) => !p.zoneInfo || !p.zoneInfo.counties ? "Area: listed counties and marine zones (shapes loading)" : p.geometryIncomplete ? "Incomplete area: drawn from " + zoneCount(p.zoneInfo, true) : "Area drawn from " + zoneCount(p.zoneInfo, false);
   function sources() {
     const vd = viewDay() || 1;
-    const rows = (winterView() ? ["alerts", "wssip"] : fireView() ? ["alerts", "fire" + S.fday, "nifc"] : ["alerts", ...(S.layers.severe ? ["md", "day" + vd] : []), ...(S.layers.flood ? ["ero" + vd] : []), ...(S.layers.fire ? ["nifc"] : []), ...(S.layers.smoke ? ["hms", "aqobs", "aqfcst", ...(FX.NAQFC_ENABLED ? ["naqfc"] : []), ...(isLive() ? ["monitors"] : [])] : []), ...(S.layers.tropical ? ["nhc"] : []), ...(S.layers.aviation && (S.air.length || avProducts().length) ? ["awc"] : [])]).filter((k) => data.sources[k] && data.state[k]).map((k) => {
+    const rows = (winterView() ? ["alerts", "wssip"] : fireView() ? ["alerts", "fire" + S.fday, "nifc"] : ["alerts", ...(S.layers.severe ? ["md", "day" + vd] : []), ...(S.layers.flood ? ["ero" + vd] : []), ...(S.layers.fire ? ["nifc"] : []), ...(S.layers.smoke ? ["hms", "aqobs", "aqfcst", ...(FX.NAQFC_ENABLED ? ["naqfc"] : []), ...(isLive() ? ["monitors"] : [])] : []), ...(S.layers.tropical ? ["nhc"] : []), ...(S.layers.aviation && (S.air.length || avProducts().length) ? ["awc"] : []), ...(enOn() ? ["enroute"] : []), ...(S.layers.aviation && (S.air.length || S.route) ? ["faa"] : [])]).filter((k) => data.sources[k] && data.state[k]).map((k) => {
       const s = data.state[k], src = data.sources[k];
       const right = s.kind === "na" ? "Not part of this archived sample" : isArchive() ? "Archived official messages, replayed" : k === "md" && src.via === "service" && s.kind !== "stale" ? "Checked " + t(src.lastOk) + " via NOAA map service" + (s.kind === "empty" ? " · none active" : "") : s.kind === "loading" ? "Loading…" : s.kind === "unavailable" ? "Not responding · status unknown" : s.kind === "stale" ? "Last confirmed " + t(src.lastOk) : "Checked " + t(src.lastOk) + (k.startsWith("day") ? (src.outlook === "expired" ? " · expired, awaiting next issuance" : "") : s.kind === "empty" ? " · none active" : "");
       const name = official() && s.kind !== "na" ? `<a href="${esc(SRC_LINK[k])}" target="_blank" rel="noopener">${esc(SRC_NAME[k])}</a>` : esc(SRC_NAME[k]);
@@ -646,7 +715,7 @@
       const counts = ["warning", "watch", "md"].map((k) => [k, g.items.filter((p) => p.kind === k).length]).filter(([, n]) => n).map(([k, n]) => n + " " + ({ warning: "warning", watch: "watch", md: "MD" }[k]) + (n > 1 ? (k === "watch" ? "es" : "s") : "")).join(" · ");
       h += `<div class="px-group"><div class="px-group-h">${esc(g.name)}<span>${esc(counts)}</span></div>${g.items.map((p) => item(p, { rel: false })).join("")}${o ? `<div class="px-group-f">Inside the Day 1 ${esc(T.outlookLabel(o.category).toLowerCase())} area</div>` : ""}</div>`;
     }
-    h += tropicsSection();
+    h += airportsSection() + enrouteSection() + tropicsSection();
     if (S.layers.smoke) { const bad = monitorsShown().filter((p) => FX.AQI_CAT_ORDER.indexOf(p.category) >= 2).sort((a, b) => b.aqi - a.aqi); h += `<div class="px-h"><span>Air quality now · AirNow</span><span>${bad.length} monitor${bad.length === 1 ? "" : "s"} at USG or worse</span></div>` + (bad.length ? bad.slice(0, 5).map((p) => aqItem(p, null)).join("") : `<p class="px-empty">${data.state.monitors && ["current", "empty"].includes(data.state.monitors.kind) ? "No U.S. monitor at Unhealthy for Sensitive Groups or worse in the last 3 hours." : "AirNow monitors not confirmed."}</p>`) + `<p class="lg-note">${hmsShown().length} smoke areas in NOAA's satellite analysis (last 24 h). Satellite smoke is overhead smoke, not a ground reading.</p>`; }
     if (S.layers.fire) { const wf = incidents().filter((p) => p.category !== "RX"); if (wf.length) h += `<div class="px-h"><span>Largest active wildfires · NIFC</span><span>${wf.length} current</span></div>` + wf.slice().sort((a, b) => (b.acres || 0) - (a.acres || 0)).slice(0, 5).map((p) => incItem(p, null)).join(""); }
     h += `<div class="px-h">Forecast for later</div>` + laterButtons(null);
@@ -659,7 +728,7 @@
     if (near.length) h += `<div class="px-h"><span>Nearby · the venue is outside these</span><span>within ${Math.round(T.miles(T.NEAR_KM))} mi</span></div>` + near.map((p) => item(p)).join("");
     if (unknown.length) h += `<div class="px-h">Area not drawn</div>` + unknown.map((p) => item(p)).join("");
     if (!covers.length && !near.length && activeKnown()) h += `<p class="lg-note">${esc(SCOPE_NOTE)}</p>`;
-    h += airportsSection() + smokeSection(true) + tropicsSection();
+    h += airportsSection() + enrouteSection() + smokeSection(true) + tropicsSection();
     if (S.layers.fire) { const near = nearbyIncidents(); if (near.length) h += `<div class="px-h"><span>Wildfires near the venue · NIFC</span><span>within ${Math.round(T.miles(T.NEAR_KM))} mi</span></div>` + near.map((x) => incItem(x.p, x.r)).join(""); }
     h += `<div class="px-h">Later at the venue</div>` + laterButtons([venue.lon, venue.lat]);
     const elsewhere = list.filter((p) => !["covers", "near"].includes(rel(p).kind)).length;
@@ -759,7 +828,7 @@
     const body = $("txPanelBody"), p = S.sel && byId(S.sel), keep = body.scrollTop, focusId = document.activeElement && body.contains(document.activeElement) && document.activeElement.dataset ? document.activeElement.dataset.id : null;
     if (data.loadError) { body.innerHTML = `<p class="px-empty">Could not load this archived sample (${esc(data.loadError)}).</p>`; return; }
     if (data.loading) { body.innerHTML = `<p class="px-empty">Loading official feeds: NWS warnings and watches, SPC Mesoscale Discussions and SPC outlooks…</p>` + sources(); $("txPeek1").textContent = "Loading official feeds…"; $("txPeek2").textContent = ""; return; }
-    body.innerHTML = (p ? (p.kind === "incident" ? incidentDetail(p) : p.kind === "smoke" || p.kind === "aqobs" ? smokeDetail(p) : p.kind === "tcoutlook" || p.kind === "tctrack" ? nhcDetail(p) : p.kind === "metar" || p.kind === "taf" ? avDetail(p) : detail(p)) : S.point && !winterView() && !fireView() ? pointPanel() : winterView() ? winterPanel() : fireView() ? firePanel() : viewDay() ? dayPanel(viewDay()) : S.scope === "venue" ? venueActive() : nationalActive()) + sources();
+    body.innerHTML = (p ? (p.kind === "incident" ? incidentDetail(p) : p.kind === "smoke" || p.kind === "aqobs" ? smokeDetail(p) : p.kind === "tcoutlook" || p.kind === "tctrack" ? nhcDetail(p) : p.kind === "metar" || p.kind === "taf" ? avDetail(p) : ["pirep", "sigmet", "gairmet", "cwa", "faa"].includes(p.kind) ? enDetail(p) : detail(p)) : S.point && !winterView() && !fireView() ? pointPanel() : winterView() ? winterPanel() : fireView() ? firePanel() : viewDay() ? dayPanel(viewDay()) : S.scope === "venue" ? venueActive() : nationalActive()) + sources();
     document.querySelectorAll("[data-scope]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scope === S.scope)));
     $("scopeVenue").textContent = "Venue · " + venue.name;
     body.scrollTop = keep; if (focusId) { const el = body.querySelector(`[data-id="${CSS.escape(focusId)}"]`); if (el) el.focus({ preventScroll: true }); }
@@ -820,13 +889,15 @@
   const aqAsked = new Set();
   function ensureAq() { if (!isLive() || !S.layers.smoke || !Live.aqFor || !venue) return; const k = venue.lat.toFixed(3) + "," + venue.lon.toFixed(3); if (aqAsked.has(k)) return; aqAsked.add(k); Live.aqFor(venue.lat, venue.lon).then(() => { load(); drawAll(); }); }
   let avAsked = "";
+  const EN_BOXES = [[24, -126, 50, -104], [24, -104, 50, -87], [24, -87, 50, -66]]; // CONUS in three boxes (AWC returns at most 400 reports per box)
+  function ensureEn() { if (!isLive() || !enOn()) return; if (Live.enrouteFor) Live.enrouteFor(EN_BOXES); if (Live.faaFor && (S.air.length || S.route)) Live.faaFor(); }
   function ensureAv() { if (!isLive() || !S.layers.aviation || !Live.airportsFor || !S.air.length) return; const k = S.air.join(","), st = (Live.snapshot().sources || {}).awc; if (avAsked === k && !(st && st.state === "failed")) return; /* a failed answer is asked again on the next redraw (about every 30 s) */ avAsked = k; Live.airportsFor(S.air).then(() => { load(); drawAll(); }); }
   function ensureTc() { if (isLive() && S.layers.tropical && Live.tropicalFor && venue && data.sources.nhc && data.sources.nhc.state === "ok") Live.tropicalFor(venue.lat, venue.lon); }
   /* each stage on its own: a record one stage can't handle is reported (window.__threats.errors, console) and the other
      stages, layers and controls keep working, instead of one exception freezing the whole page */
   const drawErrors = [];
   function stage(name, fn) { try { fn(); } catch (e) { drawErrors.push({ stage: name, message: e.message, stack: e.stack, at: new Date().toISOString() }); if (drawErrors.length > 50) drawErrors.shift(); console.error("Weather threats: " + name + " failed", e); } }
-  function drawAll() { stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); if (S.ap && !framedAp && map && mapLoaded) stage("airport view", () => frameAirport(0)); }
+  function drawAll() { stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("en route", ensureEn); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); if ((S.ap || S.fit === "route") && !framedAp && map && mapLoaded) stage("airport view", () => frameAirport(0)); }
 
   /* ---------- actions ---------- */
   function fitProduct(p) {
@@ -863,6 +934,11 @@
     if (wl) { S.wlevel = wl.dataset.wlevel; drawAll(); return; }
     const fd = e.target.closest("[data-fday]"); if (fd) { S.fday = +fd.dataset.fday; S.sel = null; drawAll(); return; }
     if (ww) { S.wwin = ww.dataset.wwin; drawAll(); return; }
+    const ea = e.target.closest("[data-en-at]"), el = e.target.closest("[data-en-alt]"), eg = e.target.closest("[data-en-age]"), eo = e.target.closest("[data-en-on]");
+    if (ea) { S.en.at = +ea.dataset.enAt; S.en.atFixed = true; drawAll(); return; }
+    if (el) { const v = el.dataset.enAlt; S.en.alt = v === "all" ? null : v.split("-").map(Number); drawAll(); return; }
+    if (eg) { S.en.age = +eg.dataset.enAge; drawAll(); return; }
+    if (eo) { S.en.on = true; drawAll(); return; }
     const it = e.target.closest("[data-id]"), sg = e.target.closest("[data-scope-go]"), vg = e.target.closest("[data-view-go]"), back = e.target.closest("[data-back]");
     if (it) { S.sel = it.dataset.id; S.hover = null; openSheet(); drawAll(); fitProduct(byId(S.sel)); $("txPanelBody").scrollTop = 0; $("txPanelBody").focus({ preventScroll: true }); return; }
     if (sg) { openSheet(); return setScope(sg.dataset.scopeGo, true); }
@@ -944,7 +1020,7 @@
      ?lat=..&lon=..&name=..[&tz=..]) opens Venue centred there. Review links: ?scenario= ?venue= ?view= ?scope= ?model=1 ?sel= ?sheet= */
   try {
     const q = new URLSearchParams(location.search);
-    if (["live", "overlap", "multi", "quiet", "unavailable", "outage-expired", "archive-lox", "archive-mtr", "archive-ww705", "archive-flood-day", "archive-flood-afternoon", "archive-flood-outage", "archive-flood-night", "archive-winter-advisory", "archive-winter-warning", "archive-winter-outlook", "archive-fire-day4", "archive-fire-day2", "archive-fire-day1", "archive-fire-watch", "archive-fire-warning", "archive-fire-incidents", "archive-smoke-chicago", "archive-smoke-metlife", "archive-smoke-forecast-0714", "archive-smoke-forecast-0715", "archive-tropical-watch", "archive-tropical-warning", "archive-coastal-flagler", "archive-aviation-chicago"].includes(q.get("scenario"))) S.scenario = q.get("scenario");
+    if (["live", "overlap", "multi", "quiet", "unavailable", "outage-expired", "archive-lox", "archive-mtr", "archive-ww705", "archive-flood-day", "archive-flood-afternoon", "archive-flood-outage", "archive-flood-night", "archive-winter-advisory", "archive-winter-warning", "archive-winter-outlook", "archive-fire-day4", "archive-fire-day2", "archive-fire-day1", "archive-fire-watch", "archive-fire-warning", "archive-fire-incidents", "archive-smoke-chicago", "archive-smoke-metlife", "archive-smoke-forecast-0714", "archive-smoke-forecast-0715", "archive-tropical-watch", "archive-tropical-warning", "archive-coastal-flagler", "archive-aviation-chicago", "archive-aviation-enroute"].includes(q.get("scenario"))) S.scenario = q.get("scenario");
     if (["inside", "edge", "outside"].includes(q.get("venue"))) S.venueKey = q.get("venue");
     const lat = parseFloat(q.get("lat")), lon = parseFloat(q.get("lon"));
     if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
@@ -954,9 +1030,15 @@
     if (["active", "day1", "day2", "day3", "winter", "fire"].includes(q.get("view"))) S.view = q.get("view");
     if (q.get("air")) S.air = q.get("air").toUpperCase().split(",").filter((x) => /^[A-Z][A-Z0-9]{3}$/.test(x)).slice(0, 4);
     if (/^[A-Z][A-Z0-9]{3}$/i.test(q.get("ap") || "")) S.ap = q.get("ap").toUpperCase();
+    try { const r = JSON.parse(q.get("rt") || "null"); if (r && /^[A-Z][A-Z0-9]{3}$/i.test(r.o || "") && /^[A-Z][A-Z0-9]{3}$/i.test(r.d || "") && Number.isInteger(r.lo) && Number.isInteger(r.hi) && r.hi > r.lo) S.route = { o: r.o.toUpperCase(), d: r.d.toUpperCase(), lo: r.lo, hi: r.hi }; } catch (x) { /* ignored */ }
+    { const m = /^(\d{1,5})-(\d{1,5})$/.exec(q.get("alt") || ""); if (m && +m[2] > +m[1]) S.en.alt = [+m[1], +m[2]]; }
+    if (q.get("at") && !isNaN(Date.parse(q.get("at")))) S.en.atIso = new Date(q.get("at")).toISOString();
+    if (["1", "2", "3"].includes(q.get("age"))) S.en.age = +q.get("age");
+    if (q.get("fit") === "route") S.fit = "route";
+    if (S.route) S.air = [...new Set([...S.air, S.route.o, S.route.d])].slice(0, 4);
     if (+q.get("fday") >= 1 && +q.get("fday") <= 8) S.fday = +q.get("fday");
     if (q.get("rx") === "1") S.rx = true;
-    if (q.get("layers")) { const L = q.get("layers").split(","); S.layers = { severe: L.includes("severe"), flood: L.includes("flood"), winter: L.includes("winter"), fire: L.includes("fire"), smoke: L.includes("smoke"), tropical: L.includes("tropical"), coastal: L.includes("coastal"), aviation: L.includes("aviation") }; if (!Object.values(S.layers).some(Boolean)) S.layers.severe = true; }
+    if (q.get("layers")) { const L = q.get("layers").split(","); if (L.includes("aviation")) S.en.on = true; S.layers = { severe: L.includes("severe"), flood: L.includes("flood"), winter: L.includes("winter"), fire: L.includes("fire"), smoke: L.includes("smoke"), tropical: L.includes("tropical"), coastal: L.includes("coastal"), aviation: L.includes("aviation") }; if (!Object.values(S.layers).some(Boolean)) S.layers.severe = true; }
     if (S.view === "winter") S.layers.winter = true;
     if (S.view === "fire") S.layers.fire = true;
     if (FX.WSSI_LEVELS.includes(q.get("wlevel"))) S.wlevel = q.get("wlevel");
@@ -981,6 +1063,7 @@
   /* Planner's airport "View on map": frame the selected airport together with the venue (both stay in view) */
 
   function frameAirport(duration) {
+    if (map && S.fit === "route") { const rr = routeEnds(); if (!rr) return false; const xs = [rr.o[0], rr.d[0]], ys = [rr.o[1], rr.d[1]]; map.fitBounds([[Math.min(...xs) - 0.3, Math.min(...ys) - 0.3], [Math.max(...xs) + 0.3, Math.max(...ys) + 0.3]], { padding: pad(), maxZoom: 9, duration }); framedAp = true; return true; }
     if (!map || !S.ap) return false;
     const p = (data.products || []).find((x) => x.family === "aviation" && x.airport === S.ap && Array.isArray(x.point)); if (!p) return false;
     const pts = [p.point]; if (S.scope === "venue" && venue && Number.isFinite(+venue.lon)) pts.push([+venue.lon, +venue.lat]);
@@ -991,7 +1074,7 @@
   createMap().then(() => {
     map.once("load", () => {
       mapLoaded = true;
-      if (S.ap && frameAirport(0)) return; // otherwise drawAll frames it once the airport's report has loaded
+      if ((S.ap || S.fit === "route") && frameAirport(0)) return; // otherwise drawAll frames it once the airport's report has loaded
       if (S.sel && byId(S.sel) && byId(S.sel).geometry) { const b = T.bbox(byId(S.sel).geometry); map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: pad(), maxZoom: 9, duration: 0 }); }
       else if (isArchive()) fitArchive();
       else if (S.scope === "venue") map.jumpTo(venueCamera());

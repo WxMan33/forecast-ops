@@ -13,9 +13,9 @@
    - Sources: a source that failed, is stale or has not answered can never contribute "nothing applies".
    Adding a hazard or provider means new products/sources with a `family`; this file and Event Planner stay unchanged. */
 (function (root, factory) {
-  if (typeof module === "object" && module.exports) module.exports = factory(require("./threats-core.js"), require("./threats-feeds.js"));
-  else root.ThreatsMatch = factory(root.ThreatsCore, root.ThreatsFeeds);
-})(typeof globalThis !== "undefined" ? globalThis : this, function (T, F) {
+  if (typeof module === "object" && module.exports) module.exports = factory(require("./threats-core.js"), require("./threats-feeds.js"), require("./threats-enroute.js"));
+  else root.ThreatsMatch = factory(root.ThreatsCore, root.ThreatsFeeds, root.ThreatsEnroute);
+})(typeof globalThis !== "undefined" ? globalThis : this, function (T, F, E) {
   "use strict";
   const PHASE_WORD = { setup: "setup", gates: "gates", event: "the event", teardown: "teardown" };
   const FAMILY_WORD = { flood: "flooding", severe: "severe storms", winter: "winter weather", fire: "fire weather or wildfire", smoke: "smoke or air quality", tropical: "tropical", coastal: "coastal", aviation: "airport weather" };
@@ -282,6 +282,76 @@
       }
     }
 
+    /* FLIGHT DISRUPTIONS (FAA airport status) at the event's airports and the route's ends, against their own windows,
+       and EN ROUTE advisories and pilot reports that may meet the approximate route (a straight line, labelled so). */
+    const faaSummary = [], routeSummary = { set: false };
+    const route = event.route && event.route.o && event.route.d ? event.route : null;
+    if (families.includes("aviation") && E && ((Array.isArray(event.airports) && event.airports.length) || route)) {
+      const nm = (icao) => { const p = products.find((x) => (x.kind === "metar" || x.kind === "taf") && x.airport === icao); const n0 = String((p && p.airportName) || "").split(",")[0], n1 = n0.includes("/") ? n0.split("/").slice(1).join("/") : n0; const n = n1.replace(/\s+(Intl|International|Rgnl|Regional|Arpt|Airport)$/i, "").trim(); return n && n !== icao ? n : icao; };
+      const lab = (icao) => (nm(icao) === icao ? icao : nm(icao) + " (" + icao + ")");
+      const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1), dc = (ms) => day(ms, tz).slice(0, 3) + " " + clock(ms, tz);
+      const fmtW = (w) => day(w.startMs, tz).slice(0, 3) + " " + clock(w.startMs, tz) + "–" + clock(w.endMs, tz);
+      const fk = (state["faa-nas"] || {}).kind, faaOk = fk === "current" || fk === "empty", faaChecking = fk === "loading" || fk === undefined;
+      const ends = [...(event.airports || []).map((a) => ({ icao: a.icao, role: a.role === "alternate" ? "alternate" : "primary", arrive: a.arrive, depart: a.depart }))];
+      if (route) for (const [icao, role, key] of [[route.o, "route origin", "depart"], [route.d, "route destination", "arrive"]]) if (!ends.some((x) => x.icao === icao)) ends.push({ icao, role, [key]: route.startMs ? { startMs: route.startMs, endMs: route.endMs } : null });
+      const AFFECTS = { groundStop: ["arrival"], groundDelay: ["arrival"], arrivalDelay: ["arrival"], departureDelay: ["departure"] };
+      for (const ap of ends) {
+        const fid = E.faaId(ap.icao), at = lab(ap.icao), sum = { icao: ap.icao, name: nm(ap.icao), role: ap.role, faa: fid, lines: [] };
+        const ds = products.filter((p) => p.kind === "faa" && p.airportFaa === fid && !(p.end && Date.parse(p.end) <= now));
+        for (const d of ds) {
+          if (d.notice) { sum.lines.push({ concern: false, text: at + ": " + E.faaText(d) }); continue; }
+          const s0 = d.start ? Date.parse(d.start) : null, e0 = d.end ? Date.parse(d.end) : null, status = d.possible ? "possible" : d.planned ? "planned" : "active";
+          const wins = [["arrival", ap.arrive], ["departure", ap.depart]].filter(([k, w]) => w && w.endMs > now && (AFFECTS[d.type] || ["arrival", "departure"]).includes(k));
+          // no end time: counts for a window that starts within 6 hours; later windows read "no end time given" without an item
+          const hit = wins.filter(([, w]) => (s0 == null ? now : s0) < w.endMs && (e0 == null ? w.startMs - now < 6 * 3600e3 : e0 > w.startMs));
+          const when = status === "active" ? "active now" + (e0 ? ", until " + dc(e0) : "; the FAA gives no end time") : (status === "possible" ? "possible" : "planned") + (s0 ? ", from " + dc(s0) : "") + (e0 ? " until " + dc(e0) : "");
+          const headline = cap(E.faaText(d)) + " at " + at + " · " + when;
+          const rel = hit.length ? (e0 == null && status === "active" ? "In effect now with no end time given; your " + hit.map(([k, w]) => k + " window is " + fmtW(w)).join(" and your ") + "." : "Overlaps your " + hit.map(([k, w]) => k + " window, " + fmtW(w)).join(", and your ") + ".")
+            : wins.length && e0 == null ? "The FAA gives no end time; your " + wins.map(([k, w]) => k + " window is " + fmtW(w)).join(" and your ") + ", more than 6 hours away." : wins.length ? "Ends before your " + wins.map(([k]) => k).join(" and ") + " window." : (ap.arrive || ap.depart) ? "Does not affect your " + [ap.arrive ? "arrival" : null, ap.depart ? "departure" : null].filter(Boolean).join(" or ") + " window." : "No flight times set for this airport.";
+          const line = (cap(ap.role) + " airport. FAA " + (d.updated ? "status updated " + dc(Date.parse(d.updated)) : "status") + ". " + (d.weather ? "Weather-related" : "Not weather-related") + " (FAA: " + (d.cause || "cause not stated") + "). " + rel).replace(/\.\.+/g, ".");
+          const concern = hit.length > 0 || (!(ap.arrive || ap.depart) && status === "active");
+          if (!concern) { sum.lines.push({ concern: false, text: (headline + ". " + rel).replace(/\.\.+/g, ".") }); continue; }
+          const id = d.id + "|" + ap.icao;
+          items.push({ id, productId: d.id, family: "aviation", kind: "faa", rank: 0.6 + (d.weather ? 0 : 0.02) + (status === "active" ? 0 : 0.01), product: d, phases: [], airport: ap.icao, airportName: nm(ap.icao), role: ap.role, status, weather: d.weather, windows: hit,
+            headline, line, relation: { kind: "airport" }, window: { startMs: s0 == null ? now : s0, endMs: e0 == null ? Math.max(now, ...hit.map(([, w]) => w.endMs)) : e0 } });
+          sum.lines.push({ concern: true, itemId: id, text: headline });
+        }
+        if (!ds.length) sum.lines.push({ concern: false, unknown: !faaOk, text: faaOk ? "No FAA-reported delays, ground stops or closures at " + at + " right now." : faaChecking ? "Checking FAA airport status for " + at + "…" : "FAA airport status isn't answering, so disruptions at " + at + " are unknown." });
+        faaSummary.push(sum);
+      }
+      if (route) {
+        const ptOf = (icao) => { const p = products.find((x) => (x.kind === "metar" || x.kind === "taf") && x.airport === icao && Array.isArray(x.point) && Number.isFinite(x.point[0])); return p ? p.point : null; };
+        const r = { ...route, oPt: route.oPt || ptOf(route.o), dPt: route.dPt || ptOf(route.d) }, ek = (state["awc-enroute"] || {}).kind, enrOk = ek === "current" || ek === "empty";
+        const band = E.bandText(r.lowFt, r.highFt), label = nm(r.o) + " → " + nm(r.d);
+        Object.assign(routeSummary, { set: true, o: r.o, d: r.d, label, band, oPt: r.oPt, dPt: r.dPt, lowFt: r.lowFt, highFt: r.highFt, startMs: r.startMs, endMs: r.endMs, timeSource: r.timeSource || null,
+          window: r.startMs ? span(r.startMs, r.endMs, tz) : null, lines: [], corridorMi: E.ROUTE_MI });
+        if (!r.startMs || !(r.endMs > r.startMs)) routeSummary.lines.push({ concern: false, unknown: true, text: "Add the time in the air (or flight times at the route's airports) to check the route." });
+        else if (!(r.endMs > now)) routeSummary.lines.push({ concern: false, text: "Your time in the air, " + span(r.startMs, r.endMs, tz) + ", is already past." });
+        else if (!r.oPt || !r.dPt) routeSummary.lines.push({ concern: false, unknown: true, text: "Can't place " + [!r.oPt ? r.o : null, !r.dPt ? r.d : null].filter(Boolean).join(" and ") + " yet (no airport report), so the route isn't drawn." });
+        else if (!enrOk) routeSummary.lines.push({ concern: false, unknown: true, text: ek === "loading" || ek === undefined ? "Checking advisories and pilot reports along the route…" : "The Aviation Weather Center's advisories aren't answering, so hazards along the route are unknown." });
+        else {
+          const ov = E.routeOverlap(r, products, now), kindWord = (p) => (p.kind === "gairmet" ? "G-AIRMET" : p.kind === "cwa" ? "Center Weather Advisory" : p.name);
+          for (const x of ov.advisories) {
+            const p = x.p, sevW = p.severity === "MOD" ? "moderate " : p.severity === "SEV" ? "severe " : "", what = sevW + p.hazardWord, fc = p.kind === "gairmet" ? "forecast" : "advisory";
+            const alt = x.altStated ? E.bandText(x.lowFt, x.highFt === Infinity ? null : x.highFt) : "altitude not stated", id = (p.group || p.id) + "|route";
+            const headline = cap(what) + " " + fc + " may overlap your approximate route, " + alt + ", " + span(Math.max(x.startMs, r.startMs), Math.min(x.endMs, r.endMs), tz) + " · " + kindWord(p);
+            const line = "Potential overlap. The straight-line route " + label + " passes " + (x.km === 0 ? "through the area" : "within " + Math.max(1, Math.round(T.miles(x.km))) + " miles of it") + "; the " + fc + "'s time and altitude overlap your time in the air (" + span(r.startMs, r.endMs, tz) + ") and band (" + band + ")."
+              + (x.altStated ? "" : " The advisory states no altitude.") + " An approximate route, not a flight plan.";
+            items.push({ id, productId: p.id, family: "aviation", kind: "enroute", rank: 0.68 + (p.hazardFamily === "convective" ? 0 : 0.01), product: p, snapshots: x.snapshots, phases: [], potential: true, km: x.km, headline, line, relation: { kind: "route" }, window: { startMs: Math.max(x.startMs, r.startMs), endMs: Math.min(x.endMs, r.endMs) } });
+            routeSummary.lines.push({ concern: true, itemId: id, text: headline });
+          }
+          for (const x of ov.reports) {
+            const p = x.p, id = p.id + "|route";
+            const headline = "Pilot reported " + E.pirepText(p) + " near your approximate route, " + (x.ageMin < 60 ? x.ageMin + " min" : Math.round(x.ageMin / 6) / 10 + " hr") + " ago · pilot report";
+            const line = "An observation by a pilot" + (p.acType ? " (" + p.acType + ")" : "") + " " + Math.max(1, Math.round(T.miles(x.km))) + " miles from the straight-line route " + label + ", at " + clock(Date.parse(p.observed), tz) + ". Conditions at that place and time, not a forecast for your flight.";
+            items.push({ id, productId: p.id, family: "aviation", kind: "pirep", rank: 0.69, product: p, phases: [], potential: true, km: x.km, headline, line, relation: { kind: "route" }, window: { startMs: Date.parse(p.observed), endMs: Date.parse(p.observed) } });
+            routeSummary.lines.push({ concern: true, itemId: id, text: headline });
+          }
+          if (!ov.advisories.length && !ov.reports.length) routeSummary.lines.push({ concern: false, text: "No SIGMET, G-AIRMET or Center Weather Advisory for turbulence, icing or thunderstorms meets your approximate route in your time and band, and no moderate or worse pilot report near it in the last " + E.PIREP_ROUTE_MIN + " minutes." });
+        }
+      }
+    }
+
     /* outlooks: one item per program, day and issuance, at the highest category containing the venue */
     const groups = new Map();
     for (const p of products) {
@@ -331,6 +401,9 @@
       else if (st.kind === "unavailable") text = "Not responding · status unknown. We can't rule anything out from this source.";
       else if (st.kind === "stale") text = ("Not confirmed since " + (st.lastOk ? clock(Date.parse(st.lastOk), tz) : "this page opened") + ".").replace(/\.\.$/, ".") + " Showing last known products only.";
       else { ok = true; text = "Checked " + clock(Date.parse(st.lastOk), tz) + (st.reach ? " · " + st.reach : ""); }
+      if (src.id === "awc-enroute" && !routeSummary.set) continue;
+      if (src.id === "faa-nas" && !faaSummary.length) continue;
+      if (src.id === "awc-enroute" && ok && (st.partial || []).length) { ok = false; text += " · not answered: " + st.partial.join("; "); }
       if (src.id === "awc") { if (!avNotes.length) continue; if (ok) { text += " · " + avNotes.map((x) => x.text).join(" | "); if (avNotes.some((x) => !x.ok)) ok = false; } }
       if (src.id === "wpc-wssi-p" && ok && (st.unavailable || []).length) text += " · " + st.unavailable.map((L) => F.WSSI_NAME[L] === "winter weather" ? "Winter weather" : F.WSSI_NAME[L]).join(", ") + " unavailable";
       if (src.id === "airnow-obs" && ok) { if (smokeNotes.noMonitor) { ok = false; text = "No AirNow monitor reading within 15 miles in the last 3 hours: surface air quality isn't reported for this venue."; } else if (smokeNotes["airnow-obs"]) text += " · " + smokeNotes["airnow-obs"]; }
@@ -345,12 +418,12 @@
       : confirmed ? "No " + fams + " threats apply to this event's location and times."
         : "Not fully confirmed: no " + fams + " threats found in the data we have, but a source is unavailable, stale or doesn't cover this venue or date.";
     /* the venue on its own (Planner shows airport weather under its own heading) */
-    const vItems = items.filter((i) => i.family !== "aviation"), vStat = statuses.filter((x) => x.id !== "awc"), vFams = families.filter((f) => f !== "aviation");
+    const vItems = items.filter((i) => i.family !== "aviation"), vStat = statuses.filter((x) => !["awc", "awc-enroute", "faa-nas"].includes(x.id)), vFams = families.filter((f) => f !== "aviation");
     const vConfirmed = vStat.length > 0 && vStat.every((x) => x.ok), vf = list(vFams.map((f) => FAMILY_WORD[f] || f));
     const venueSummary = !vFams.length ? "" : vItems.length ? vItems.length + " weather threat" + (vItems.length > 1 ? "s" : "") + " at the venue"
       : vConfirmed ? "No " + vf + " threats apply to the venue and event times."
         : "Not fully confirmed: no " + vf + " threats found at the venue in the data we have, but a source is unavailable, stale or doesn't cover this venue or date.";
-    return { items, notes, statuses, summary, confirmed, families, venueSummary, venueConfirmed: vConfirmed, airports: avSummary };
+    return { items, notes, statuses, summary, confirmed, families, venueSummary, venueConfirmed: vConfirmed, airports: avSummary, disruptions: faaSummary, route: routeSummary };
   }
 
   return { forEvent, eventPhases, PHASE_WORD };

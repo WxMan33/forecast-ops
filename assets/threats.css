@@ -224,3 +224,9 @@
 .tx-kind.k-aq { background: #6b7280; color: #fff; border-color: #6b7280; }
 .tx-kind.k-nhc { background: #374151; color: #fff; border-color: #374151; }
 .tx-kind.k-av { background: #3b4f9e; color: #fff; border-color: #3b4f9e; }
+/* aviation en route: time, altitude and report-age filters */
+.tx-filters { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 6px 0; }
+.tx-fl { font: 600 11px var(--font-body); color: var(--muted); text-transform: uppercase; letter-spacing: .04em; min-width: 76px; }
+.tx-fb { font: 600 12px var(--font-body); color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
+.tx-fb[aria-pressed="true"] { background: var(--accent-dim); color: var(--text); border-color: var(--text); }
+.en-legend { margin-top: 8px; }

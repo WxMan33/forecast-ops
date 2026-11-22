@@ -9,6 +9,7 @@ const nws = await import(pathToFileURL(path.join(ROOT, "functions/api/nws/[[path
 const wpc = await import(pathToFileURL(path.join(ROOT, "functions/api/wpc/[[path]].js")).href);
 const smoke = await import(pathToFileURL(path.join(ROOT, "functions/api/smoke/[[path]].js")).href);
 const awc = await import(pathToFileURL(path.join(ROOT, "functions/api/awc/[[path]].js")).href);
+const faa = await import(pathToFileURL(path.join(ROOT, "functions/api/faa/[[path]].js")).href);
 let n = 0; const ok = async (name, fn) => { await fn(); n++; console.log("ok -", name); };
 let clock = Date.parse("2026-11-20T20:00:00Z"), answer = () => new Response(JSON.stringify({ type: "FeatureCollection", features: [] }), { status: 200 }); const sent = [];
 globalThis.fetch = async (url, init) => { sent.push({ url: String(url), ua: new Headers(init.headers).get("user-agent") }); return answer(String(url)); };
@@ -87,5 +88,25 @@ await ok("AVIATION: METAR/TAF for 1-4 ICAO ids only; identifying User-Agent; cac
   clock += 60e3; const b2 = await g("/api/awc/taf?ids=KMDW,KORD"); assert.strictEqual(b2.headers.get("X-Forecast-Ops-Cache"), "HIT"); assert.strictEqual(b2.headers.get("X-Upstream-Fetched-At"), a.headers.get("X-Upstream-Fetched-At"));
   for (const bad of ["/api/awc/metar", "/api/awc/metar?ids=K1,K2,K3,K4,K5", "/api/awc/metar?ids=KORD&format=xml", "/api/awc/pirep?ids=KORD", "/api/awc/metar?ids=KO%20RD"]) assert.strictEqual((await g(bad)).status, 404, bad);
   answer = () => new Response("{\"error\":1}"); assert.strictEqual((await g("/api/awc/metar?ids=KJFK")).status, 502);
+});
+await ok("AVIATION en route: pilot reports (bbox and age 1-3 h), SIGMETs, G-AIRMET forecast hours 0-12 and CWAs only; AWC's 204 becomes an empty list", async () => {
+  clock = Date.parse("2026-11-22T21:00:00Z"); sent.length = 0; answer = () => new Response("[]");
+  const e2 = { ...env, UPSTREAM: "https://awc.test/" }, g = (p) => awc.handle(new Request("https://x.test" + p, { headers: { Origin: "https://claude-threats-em-combined.forecast-ops-beta.pages.dev" } }), e2);
+  const a = await g("/api/awc/pirep?bbox=24,-126,50,-66&age=3"); assert.strictEqual(a.status, 200); assert.strictEqual(sent[0].url, "https://awc.test/pirep?format=json&age=3&bbox=24,-126,50,-66");
+  assert.strictEqual(a.headers.get("Access-Control-Allow-Origin"), "https://claude-threats-em-combined.forecast-ops-beta.pages.dev");
+  for (const f of ["0", "3", "6", "9", "12"]) assert.strictEqual((await g("/api/awc/gairmet?fore=" + f)).status, 200, f);
+  assert.strictEqual((await g("/api/awc/airsigmet")).status, 200);
+  answer = () => new Response(null, { status: 204 }); const c = await g("/api/awc/cwa"); assert.strictEqual(c.status, 200); assert.strictEqual(await c.text(), "[]");
+  for (const bad of ["/api/awc/pirep", "/api/awc/pirep?bbox=24,-126,50&age=2", "/api/awc/pirep?bbox=50,-126,24,-66&age=2", "/api/awc/pirep?bbox=24,-126,50,-66&age=12", "/api/awc/pirep?bbox=24,-126,50,-66&id=KORD", "/api/awc/gairmet?fore=4", "/api/awc/airsigmet?hazard=turb", "/api/awc/cwa?date=20261120_2000", "/api/awc/isigmet"]) assert.strictEqual((await g(bad)).status, 404, bad);
+});
+await ok("FAA: airport events (a list) and the operations plan (an object) only; identifying User-Agent; cache keeps the FAA's time; wrong shapes are 502", async () => {
+  clock = Date.parse("2026-11-22T21:00:00Z"); sent.length = 0; answer = (u) => new Response(/operations-plan/.test(u) ? "{\"terminalPlanned\":[]}" : "[]");
+  const e2 = { ...env, UPSTREAM: "https://faa.test/" }, g = (p) => faa.handle(new Request("https://x.test" + p, { headers: { Origin: "https://claude-threats-em-combined.forecast-ops-beta.pages.dev" } }), e2);
+  const a = await g("/api/faa/airport-events"); assert.strictEqual(a.status, 200); assert.strictEqual(sent[0].url, "https://faa.test/airport-events"); assert.strictEqual(sent[0].ua, "(forecast-ops, github.com/WxMan33/forecast-ops)");
+  clock += 30e3; const b = await g("/api/faa/airport-events"); assert.strictEqual(b.headers.get("X-Forecast-Ops-Cache"), "HIT"); assert.strictEqual(b.headers.get("X-Upstream-Fetched-At"), a.headers.get("X-Upstream-Fetched-At"));
+  assert.strictEqual((await g("/api/faa/operations-plan")).status, 200);
+  for (const bad of ["/api/faa/airport-status-information", "/api/faa/airport-events?airport=EWR", "/api/faa/"]) assert.strictEqual((await g(bad)).status, 404, bad);
+  clock += 120e3; answer = () => new Response("{}"); assert.strictEqual((await g("/api/faa/airport-events")).status, 502);
+  answer = () => new Response("down", { status: 503 }); assert.strictEqual((await g("/api/faa/operations-plan?x=1")).status, 404); clock += 120e3; assert.strictEqual((await g("/api/faa/operations-plan")).status, 502);
 });
 console.log(n + " passed");

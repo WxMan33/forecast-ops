@@ -42,3 +42,8 @@
 .et-sharenote { margin-top: 4px; }
 .et-apmap { font-weight: 400; font-size: .85rem; margin-left: 6px; }
 .et-sharetoggle { display: block; margin-top: 4px; font-size: .9rem; }
+/* flight disruptions (FAA) and the approximate route: their own blocks, apart from venue hazards and airport weather */
+.et-faa .et-aph, .et-route .et-aph { border-left: 3px solid var(--line, #888); padding-left: 6px; }
+.et-route .et-aph { border-left-style: dashed; }
+.et-rtfs .bx-note { flex-basis: 100%; }
+.et-rterr { color: var(--danger, #b42318); }
