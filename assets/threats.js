@@ -820,7 +820,7 @@
   const aqAsked = new Set();
   function ensureAq() { if (!isLive() || !S.layers.smoke || !Live.aqFor || !venue) return; const k = venue.lat.toFixed(3) + "," + venue.lon.toFixed(3); if (aqAsked.has(k)) return; aqAsked.add(k); Live.aqFor(venue.lat, venue.lon).then(() => { load(); drawAll(); }); }
   let avAsked = "";
-  function ensureAv() { if (!isLive() || !S.layers.aviation || !Live.airportsFor || !S.air.length) return; const k = S.air.join(","), st = (Live.snapshot().sources || {}).awc; if (avAsked === k && !(st && st.state === "failed")) return; // a failed answer is asked again on the next redraw (about every 30 s) avAsked = k; Live.airportsFor(S.air).then(() => { load(); drawAll(); }); }
+  function ensureAv() { if (!isLive() || !S.layers.aviation || !Live.airportsFor || !S.air.length) return; const k = S.air.join(","), st = (Live.snapshot().sources || {}).awc; if (avAsked === k && !(st && st.state === "failed")) return; /* a failed answer is asked again on the next redraw (about every 30 s) */ avAsked = k; Live.airportsFor(S.air).then(() => { load(); drawAll(); }); }
   function ensureTc() { if (isLive() && S.layers.tropical && Live.tropicalFor && venue && data.sources.nhc && data.sources.nhc.state === "ok") Live.tropicalFor(venue.lat, venue.lon); }
   /* each stage on its own: a record one stage can't handle is reported (window.__threats.errors, console) and the other
      stages, layers and controls keep working, instead of one exception freezing the whole page */
