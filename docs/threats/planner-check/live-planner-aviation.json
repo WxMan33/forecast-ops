@@ -1,0 +1,77 @@
+{
+ "at": "2026-11-22T17:27:17.199Z",
+ "result": {
+  "summary": "4 weather threats for this event",
+  "confirmed": true,
+  "items": [
+   {
+    "kind": "smoke",
+    "headline": "Smoke detected over the area · Light (satellite, 7 a.m.–10 a.m.)",
+    "line": "NOAA's satellite smoke analysis outlined light smoke over the venue in GOES-WEST imagery. It is smoke in the air column overhead; it does not say what the air is like at the ground. Your event starts Sunday 1:27 p.m.",
+    "product": "hms-2026-11-22-4",
+    "category": "Light",
+    "day": null,
+    "phases": []
+   },
+   {
+    "kind": "metar",
+    "headline": "KMDW now: IFR (observed 11:12 a.m.)",
+    "line": "Alternate airport Chicago/Midway Intl, IL, US METAR 1712Z: SPECI KMDW 221712Z 25010KT 10SM -RA OVC009 13/12 A2985 RMK AO2 P0000 T01330117 $. Current conditions, not a forecast for your flight window.",
+    "product": "metar-KMDW-2026-11-22T17:12:00.000Z",
+    "category": "IFR",
+    "day": null,
+    "phases": []
+   },
+   {
+    "kind": "taf",
+    "headline": "KORD arrival (Sun 11:42 a.m.–12:42 p.m.): IFR forecast",
+    "line": "Primary airport Chicago/O'Hare Intl. TAF issued 1706Z (amended); the forecast (ceiling 800 ft, -SHRA) overlaps your arrival window. Terminal forecast for the airport, not the venue.",
+    "product": "taf-KORD-2026-11-22T17:06:00.000Z",
+    "category": null,
+    "day": null,
+    "phases": []
+   },
+   {
+    "kind": "taf",
+    "headline": "KMDW arrival (Sun 11:42 a.m.–12:42 p.m.): temporarily IFR forecast",
+    "line": "Alternate airport Chicago/Midway Intl. TAF issued 1708Z (amended); the TEMPO 11 a.m.–1 p.m. period (ceiling 700 ft, visibility 2 mi, -RA -DZ BR) overlaps your arrival window. Terminal forecast for the airport, not the venue.",
+    "product": "taf-KMDW-2026-11-22T17:08:00.000Z",
+    "category": null,
+    "day": null,
+    "phases": []
+   }
+  ],
+  "statuses": [
+   "NWS warnings, watches and advisories: Checked 11:27 a.m.",
+   "SPC fire weather outlooks: Checked 11:27 a.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NOAA satellite smoke analysis (HMS): Checked 11:27 a.m.",
+   "AirNow air quality observations: Checked 11:27 a.m. · nearest monitor CHI_SP (3 miles northwest): AQI 34 Good (PM2.5) for 11 a.m.",
+   "AirNow air quality forecasts: Checked 11:27 a.m. · Chicago reporting area",
+   "Aviation Weather Center (METAR and TAF): Checked 11:27 a.m. · KORD METAR 1719Z MVFR · TAF 1706Z AMD valid to Mon 12 p.m. | KMDW METAR 1712Z IFR · TAF 1708Z AMD valid to Mon 12 p.m.",
+   "NHC tropical outlooks and storm products: Checked 11:27 a.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 11:27 a.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 11:27 a.m. · file 1418Z",
+   "WPC Excessive Rainfall Outlook: Checked 11:26 a.m. · Day 1 issued 1542Z, Day 2 issued 0729Z, Day 3 issued 0729Z"
+  ],
+  "maps": [
+   "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=41.8807&lon=-87.6742&name=United+Center&tz=America%2FChicago&scope=venue&view=active&layers=smoke&sel=hms-2026-11-22-4&nws=function",
+   "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=41.8807&lon=-87.6742&name=United+Center&tz=America%2FChicago&scope=venue&view=active&layers=aviation&air=KORD%2CKMDW&ap=KMDW&sel=metar-KMDW-2026-11-22T17%3A12%3A00.000Z&nws=function",
+   "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=41.8807&lon=-87.6742&name=United+Center&tz=America%2FChicago&scope=venue&view=active&layers=aviation&air=KORD%2CKMDW&ap=KORD&sel=taf-KORD-2026-11-22T17%3A06%3A00.000Z&nws=function",
+   "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=41.8807&lon=-87.6742&name=United+Center&tz=America%2FChicago&scope=venue&view=active&layers=aviation&air=KORD%2CKMDW&ap=KMDW&sel=taf-KMDW-2026-11-22T17%3A08%3A00.000Z&nws=function"
+  ]
+ },
+ "feeds": [
+  {
+   "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/awc/taf?ids=KMDW,KORD",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-22T17:27:14.217Z"
+  },
+  {
+   "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/awc/metar?ids=KMDW,KORD",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-22T17:27:15.077Z"
+  }
+ ]
+}

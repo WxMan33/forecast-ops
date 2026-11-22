@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Weather threats</title>
+<meta name="description" content="Preview: official severe warnings, watches, SPC Mesoscale Discussions and Day 1–2 outlooks on one map, with a venue view.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/icon.svg?v=05c4bd5103" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap">
+<!--load-guard--><script>/* Load guard (managed by tools/stamp-assets.js). Shown only if a page script fails to download or throws. */
+(function () { var shown = false;
+  function show(msg) { if (shown) return; shown = true;
+    var go = function () { var b = document.createElement("div"); b.setAttribute("role", "alert"); b.id = "loadGuard";
+      b.style.cssText = "position:sticky;top:0;z-index:9999;margin:0;padding:10px 16px;background:#7a1f12;color:#fff;font:600 14px/1.4 system-ui,sans-serif;display:flex;gap:12px;align-items:center;flex-wrap:wrap";
+      b.innerHTML = '<span>This page didn\u2019t finish loading. <span style="font-weight:400"></span></span><button type="button" style="font:inherit;padding:4px 12px;border-radius:6px;border:1px solid #fff;background:#fff;color:#7a1f12;cursor:pointer">Reload</button>';
+      b.querySelector("span span").textContent = msg; b.querySelector("button").onclick = function () { location.reload(); };
+      document.body.insertBefore(b, document.body.firstChild); };
+    if (document.body) go(); else document.addEventListener("DOMContentLoaded", go); }
+  window.addEventListener("error", function (e) { var t = e.target;
+    if (t && (t.tagName === "SCRIPT" || (t.tagName === "LINK" && t.rel === "stylesheet")) && (t.src || t.href || "").indexOf(location.origin) === 0) show("A site file (" + (t.src || t.href).split("/").pop().split("?")[0] + ") could not be downloaded.");
+    else if (e.filename && e.filename.indexOf(location.origin) === 0) show("A script error stopped it (" + e.message + ").");
+  }, true);
+  window.addEventListener("unhandledrejection", function (e) { var r = e.reason, st = (r && r.stack) || "";
+    if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
+  });
+})();</script><!--/load-guard-->
+<link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
+<link rel="stylesheet" href="assets/ops.css?v=2c02764827">
+<link rel="stylesheet" href="assets/threats.css?v=587f5b2ae5">
+</head>
+<body class="threats-page">
+<main class="tx" id="tx">
+  <div class="tx-demo noprint" id="txDemo" role="region" aria-label="Demo controls">
+    <span class="tx-demo-badge" id="txBadge">LIVE PREVIEW</span>
+    <span class="tx-demo-text" id="txBarText">Branch preview of official NWS and SPC feeds. Not for operational decisions.</span>
+    <div class="tx-demo-ctl">
+      <label class="tx-demo-field" id="dataField"><span>Data</span>
+        <select class="input inline" id="demoScenario">
+          <option value="live">Live official feeds</option>
+          <optgroup label="Demo scenarios (fictional)">
+          <option value="overlap">Overlapping threats</option>
+          <option value="multi">Warnings in several regions</option>
+          <option value="quiet">Quiet day</option>
+          <option value="unavailable">Source outage</option>
+          <option value="outage-expired">Outage, after warning expires</option>
+          </optgroup>
+          <optgroup label="Archived official samples (replayed)">
+          <option value="archive-lox">NWS warning update, Los Angeles, Nov 19</option>
+          <option value="archive-mtr">NWS tornado warning cancelled, Santa Cruz, Nov 16</option>
+          <option value="archive-ww705">SPC Tornado Watch 705, Nov 12</option>
+          <option value="archive-flood-day">Flash flood warning + WPC rainfall, Florida, Nov 20 midday</option>
+          <option value="archive-flood-afternoon">Flash flood warning cut back, Florida, Nov 20 2:20 p.m.</option>
+          <option value="archive-flood-outage">NWS outage while a flash flood warning expires, Nov 20</option>
+          <option value="archive-flood-night">WPC rainfall Days 1–3, Florida, Nov 20 afternoon</option>
+          <option value="archive-winter-advisory">Winter Weather Advisory, Utah, Nov 18 4 p.m.</option>
+          <option value="archive-winter-warning">Upgrade to Winter Storm Warning, Utah, Nov 19 10 a.m.</option>
+          <option value="archive-winter-outlook">WPC WSSI-P 7-day + Utah alerts, Nov 20 2:30 p.m.</option>
+          <option value="archive-fire-day4">SPC fire outlook Day 4 (Critical), Northwest, Jul 29</option>
+          <option value="archive-fire-day2">SPC fire outlook Day 2 (Extremely Critical), Jul 31</option>
+          <option value="archive-fire-day1">SPC fire outlook Day 1, Aug 1</option>
+          <option value="archive-fire-watch">Fire Weather Watch, Colorado, Nov 17 1 p.m.</option>
+          <option value="archive-fire-warning">Upgrade to Red Flag Warning, Colorado, Nov 18</option>
+          <option value="archive-fire-incidents">NIFC wildfire incidents (snapshot Nov 21)</option>
+          <option value="archive-smoke-chicago">Smoke and Hazardous air, Chicago, Jul 16</option>
+          <option value="archive-smoke-metlife">Smoke overhead, New York area, Jul 14</option>
+          <option value="archive-smoke-forecast-0714">AirNow forecasts issued Jul 14</option>
+          <option value="archive-smoke-forecast-0715">AirNow forecasts issued Jul 15</option>
+          <option value="archive-tropical-watch">Hurricane Isaias watches, Alabama, Oct 7</option>
+          <option value="archive-tropical-warning">Hurricane Isaias warnings, Alabama, Oct 8</option>
+          <option value="archive-coastal-flagler">Coastal flood, surf and rip currents, NE Florida, Nov 21</option>
+          <option value="archive-aviation-chicago">Airport weather (METAR/TAF), Chicago airports, Nov 22</option>
+          </optgroup>
+        </select></label>
+      <label class="tx-demo-field" id="venueField"><span>Venue</span>
+        <select class="input inline" id="demoVenue"></select></label>
+      <label class="tx-demo-field" id="stepField" hidden><span>Message</span>
+        <select class="input inline" id="demoStep"></select></label>
+    </div>
+  </div>
+  <div class="tx-body">
+    <section class="tx-mapwrap" aria-label="Threat map">
+      <div id="txMap" class="tx-map"></div>
+      <div class="tx-top" id="txTop">
+        <div class="tx-time" role="group" aria-label="Time">
+          <button type="button" class="tx-tb" data-view="active" aria-pressed="true">Active now</button>
+          <button type="button" class="tx-tb" data-view="day1" aria-pressed="false">Day 1</button>
+          <button type="button" class="tx-tb" data-view="day2" aria-pressed="false">Day 2</button>
+          <button type="button" class="tx-tb" data-view="day3" aria-pressed="false">Day 3</button>
+          <button type="button" class="tx-tb" data-view="winter" aria-pressed="false">Winter · 7 days</button>
+          <button type="button" class="tx-tb" data-view="fire" aria-pressed="false">Fire · 8 days</button>
+        </div>
+        <div class="tx-layers" role="group" aria-label="Layers">
+          <button type="button" class="tx-lb" data-layer="severe" aria-pressed="true">Severe storms</button>
+          <button type="button" class="tx-lb" data-layer="flood" aria-pressed="true">Flooding</button>
+          <button type="button" class="tx-lb" data-layer="winter" aria-pressed="true">Winter</button>
+          <button type="button" class="tx-lb" data-layer="fire" aria-pressed="true">Fire</button>
+          <button type="button" class="tx-lb" data-layer="smoke" aria-pressed="true">Smoke &amp; air</button>
+          <button type="button" class="tx-lb" data-layer="tropical" aria-pressed="true">Tropical</button>
+          <button type="button" class="tx-lb" data-layer="coastal" aria-pressed="true">Coastal</button>
+          <button type="button" class="tx-lb" data-layer="aviation" aria-pressed="true">Aviation</button>
+        </div>
+        <div class="tx-valid" id="txValid" aria-live="polite"></div>
+        <div class="tx-model" id="txModel" hidden>
+          <label class="tx-check"><input type="checkbox" id="modelChk"> Our research model</label>
+          <div class="tx-hz" role="group" aria-label="Model hazard" id="modelHz" hidden>
+            <button type="button" class="tx-hb" data-hz="tornado" aria-pressed="true">Tornado</button>
+            <button type="button" class="tx-hb" data-hz="wind" aria-pressed="false">Wind</button>
+            <button type="button" class="tx-hb" data-hz="hail" aria-pressed="false">Hail</button>
+          </div>
+        </div>
+      </div>
+      <div class="tx-mapchips" id="txChips"></div>
+      <details class="tx-legend" id="txLegend">
+        <summary>Legend</summary>
+        <div id="txLegendBody"></div>
+      </details>
+    </section>
+    <aside class="tx-panel" id="txPanel" data-sheet="open" aria-label="Threat details">
+      <div class="tx-handle" id="txHandle">
+        <span class="tx-grip" aria-hidden="true"></span>
+        <button type="button" class="tx-peek" id="txPeek" aria-controls="txPanelBody"><span class="tx-peek1" id="txPeek1"></span><span class="tx-peek2" id="txPeek2"></span><span class="tx-peek3" id="txPeek3" hidden></span></button>
+        <button type="button" class="tx-handle-act" id="txSheetBtn" aria-expanded="true" aria-controls="txPanelBody">Close</button>
+      </div>
+      <div class="tx-scope" role="group" aria-label="View">
+        <button type="button" class="tx-sb" data-scope="national" aria-pressed="false">National</button>
+        <button type="button" class="tx-sb" data-scope="venue" aria-pressed="true" id="scopeVenue">Venue</button>
+      </div>
+      <div class="tx-panel-body" id="txPanelBody" tabindex="-1"></div>
+    </aside>
+  </div>
+</main>
+<script src="assets/ops-core.js?v=c9a243d88e"></script>
+<script src="assets/ops-data.js?v=68a540c59e"></script>
+<script src="assets/ops.js?v=aff82b64f5"></script>
+<script src="assets/vendor/maplibre-gl-4.7.1.js?v=be9633c4d8"></script>
+<script src="assets/vendor/d3-array-3.2.4.js?v=80aa70d0cd"></script>
+<script src="assets/vendor/d3-contour-4.0.2.js?v=78e1d80350"></script>
+<script src="assets/vendor/d3-delaunay-6.0.4.js?v=efc726aa8a"></script>
+<script src="assets/threats-contours.js?v=2f0dc34948"></script>
+<script src="assets/threats-core.js?v=e7cc4e00aa"></script>
+<script src="assets/threats-demo.js?v=ecef6ab463"></script>
+<script src="assets/severe-daily-core.js?v=8b3bc7c800"></script>
+<script src="assets/threats-feeds.js?v=cfc605961e"></script>
+<script src="assets/threats-live.js?v=093f40979a"></script>
+<script src="assets/threats.js?v=dd473e5ba9"></script>
+</body>
+</html>

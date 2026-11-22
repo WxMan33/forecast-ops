@@ -1,0 +1,23 @@
+{
+ "_source": "api.weather.gov/points/{lat},{lon} (retrieved 2026-11-22)",
+ "points": {
+  "29.4802,-81.1065": {
+   "forecastZone": "https://api.weather.gov/zones/forecast/AMZ454",
+   "county": null,
+   "fireWeatherZone": null,
+   "city": "Flagler Beach"
+  },
+  "29.42,-81.17": {
+   "forecastZone": "https://api.weather.gov/zones/forecast/FLZ038",
+   "county": "https://api.weather.gov/zones/county/FLC035",
+   "fireWeatherZone": "https://api.weather.gov/zones/fire/FLZ038",
+   "city": "Palm Coast"
+  },
+  "30.2858,-81.3889": {
+   "forecastZone": "https://api.weather.gov/zones/forecast/FLZ125",
+   "county": "https://api.weather.gov/zones/county/FLC031",
+   "fireWeatherZone": "https://api.weather.gov/zones/fire/FLZ125",
+   "city": "Jacksonville Beach"
+  }
+ }
+}

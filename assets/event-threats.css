@@ -1,0 +1,34 @@
+/* Event Manager · Weather threats section */
+.ev-threats .ev-sched-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.et-summary { margin: 6px 0 8px; font-weight: 600; }
+.et-summary.warn { color: var(--monitor, #b58100); }
+.et-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.et-item { border: 1px solid var(--line, #d3d9e0); border-left: 5px solid var(--et-c, #2fd08a); border-radius: 8px; padding: 9px 11px; }
+.et-item[data-kind="outlook"] { border-left-style: dashed; }
+.et-item[data-family="winter"] { --et-c: #ff69b4; }
+:root[data-theme="light"] .et-item[data-family="winter"] { --et-c: #c2187a; }
+.et-item[data-family="fire"] { --et-c: #ff7a33; }
+:root[data-theme="light"] .et-item[data-family="fire"] { --et-c: #b8460b; }
+.et-item[data-family="smoke"] { --et-c: #9aa3ad; }
+:root[data-theme="light"] .et-item[data-family="smoke"] { --et-c: #5b6470; }
+.et-item[data-family="tropical"] { --et-c: #e0457b; }
+.et-item[data-family="coastal"] { --et-c: #2bb7c9; }
+:root[data-theme="light"] .et-item[data-family="coastal"] { --et-c: #0e7f8c; }
+.et-main { display: grid; gap: 3px; }
+.et-head { font-size: 15px; }
+.et-line { font-size: 13.5px; }
+.et-actions { font-size: 13px; }
+.et-detail { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 4px 10px; margin: 8px 0 0; font-size: 13px; }
+.et-detail dt { opacity: .7; }
+.et-detail dd { margin: 0; overflow-wrap: anywhere; }
+.et-sources ul { margin: 6px 0; padding-left: 18px; font-size: 13px; }
+.et-sources li.et-warn { font-weight: 600; }
+.et-sample { font-size: 13px; margin: 4px 0; }
+@media (max-width: 600px) { .et-detail { grid-template-columns: minmax(0, 1fr); } .et-detail dt { margin-top: 4px; } }
+.et-note { font-size: 13.5px; border: 1px solid var(--monitor, #b58100); border-radius: 8px; padding: 7px 10px; margin: 6px 0; }
+.et-item[data-family="aviation"] { --et-c: #6c8cff; }
+.et-air form { display: grid; gap: 8px; margin-top: 8px; }
+.et-airfs { border: 1px solid var(--line, #d3d9e0); border-radius: 8px; padding: 6px 10px 10px; display: flex; flex-wrap: wrap; gap: 6px 12px; min-width: 0; }
+.et-airfs label { display: grid; gap: 2px; font-size: 12.5px; min-width: 0; }
+.et-airfs input { max-width: 100%; }
+.et-airfs input[name$="i"] { width: 6em; text-transform: uppercase; }

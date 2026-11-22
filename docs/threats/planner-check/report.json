@@ -1,0 +1,2335 @@
+{
+ "host": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev",
+ "at": "2026-11-22T17:27:23.012Z",
+ "results": [
+  {
+   "check": "archived Daytona: Flash Flood Warning and WPC Day 1 High are separate items",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "warning",
+     "headline": "Flash Flood Warning until 2:30 p.m.",
+     "line": "Covers the venue during setup, gates and the event.",
+     "product": "KMLB.FF.W.0036.2026",
+     "category": null,
+     "day": null,
+     "phases": [
+      "setup",
+      "gates",
+      "event"
+     ]
+    },
+    {
+     "kind": "outlook",
+     "headline": "Excessive rainfall risk Friday · High (at least 70%)",
+     "line": "The WPC Day 1 outlook includes the venue and its period (Fri 11 a.m. – Sat 7 a.m.) overlaps gates, the event and teardown. It is a risk for the whole period, not timing within it.",
+     "product": "wpc-ero-d1-HIGH-2026-11-20T15:35:00.000Z",
+     "category": "HIGH",
+     "day": 1,
+     "phases": [
+      "gates",
+      "event",
+      "teardown"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "archived Daytona: warning wording from the product and schedule",
+   "pass": true,
+   "detail": {
+    "kind": "warning",
+    "headline": "Flash Flood Warning until 2:30 p.m.",
+    "line": "Covers the venue during setup, gates and the event.",
+    "product": "KMLB.FF.W.0036.2026",
+    "category": null,
+    "day": null,
+    "phases": [
+     "setup",
+     "gates",
+     "event"
+    ]
+   }
+  },
+  {
+   "check": "archived Daytona: outlook wording says it is a period risk, not timing",
+   "pass": true,
+   "detail": {
+    "kind": "outlook",
+    "headline": "Excessive rainfall risk Friday · High (at least 70%)",
+    "line": "The WPC Day 1 outlook includes the venue and its period (Fri 11 a.m. – Sat 7 a.m.) overlaps gates, the event and teardown. It is a risk for the whole period, not timing within it.",
+    "product": "wpc-ero-d1-HIGH-2026-11-20T15:35:00.000Z",
+    "category": "HIGH",
+    "day": 1,
+    "phases": [
+     "gates",
+     "event",
+     "teardown"
+    ]
+   }
+  },
+  {
+   "check": "More info: source, issued and updated, in effect until, last checked, venue, official link",
+   "pass": true,
+   "detail": "Source\nNWS Melbourne FL · official product\nIssued\nFri, Nov 20, 10:04 AM EST · updated Fri, Nov 20, 12:23 PM EST\nIn effect\nuntil Fri, Nov 20, 2:30 PM EST\nLast checked\nFri, Nov 20, 12:35 PM EST\nVenue\nInside the warning area\nDetails\nAt 1223 PM EST, Doppler radar indicated thunderstorms producing heavy rain across the warned area."
+  },
+  {
+   "check": "More info: official product link points at the NWS alert record",
+   "pass": true
+  },
+  {
+   "check": "View on map (active): opens the map on the venue with the product selected and the flooding layer on",
+   "pass": true,
+   "detail": {
+    "view": "active",
+    "scope": "venue",
+    "sel": "KMLB.FF.W.0036.2026",
+    "layers": {
+     "severe": false,
+     "flood": true,
+     "winter": false,
+     "fire": false,
+     "smoke": false,
+     "tropical": false,
+     "coastal": false,
+     "aviation": false
+    },
+    "title": "Flash Flood Warning",
+    "center": {
+     "lng": -81.0705,
+     "lat": 29.1852
+    }
+   }
+  },
+  {
+   "check": "View on map (day1): opens the map on the venue with the product selected and the flooding layer on",
+   "pass": true,
+   "detail": {
+    "view": "day1",
+    "scope": "venue",
+    "sel": "wpc-ero-d1-HIGH-2026-11-20T15:35:00.000Z",
+    "layers": {
+     "severe": false,
+     "flood": true,
+     "winter": false,
+     "fire": false,
+     "smoke": false,
+     "tropical": false,
+     "coastal": false,
+     "aviation": false
+    },
+    "title": "WPC Day 1 · High excessive rainfall risk (4 of 4)",
+    "center": {
+     "lng": -81.0705,
+     "lat": 29.1852
+    }
+   }
+  },
+  {
+   "check": "phone: section renders without horizontal scroll",
+   "pass": true,
+   "detail": []
+  },
+  {
+   "check": "venue outside both footprints: no items, and 'none apply' only because sources are confirmed",
+   "pass": true,
+   "detail": {
+    "summary": "No flooding threats apply to this event's location and times.",
+    "confirmed": true,
+    "items": [],
+    "statuses": [
+     "NWS warnings, watches and advisories: Checked 12:35 p.m.",
+     "WPC Excessive Rainfall Outlook: Checked 12:35 p.m. · Day 1 issued 1535Z, Day 3 issued 0824Z"
+    ],
+    "maps": []
+   }
+  },
+  {
+   "check": "same page: venue moved out and back, hours moved before the products and back: 2 → 0 → 2 → 0 → 2",
+   "pass": true,
+   "detail": [
+    2,
+    0,
+    2,
+    0,
+    2
+   ]
+  },
+  {
+   "check": "event moved to Monday: items removed; outlook range stated, not 'none'",
+   "pass": true,
+   "detail": {
+    "summary": "Not fully confirmed: no flooding threats found in the data we have, but a source is unavailable, stale or doesn't cover this venue or date.",
+    "confirmed": false,
+    "items": [],
+    "statuses": [
+     "NWS warnings, watches and advisories: Checked 12:35 p.m.",
+     "WPC Excessive Rainfall Outlook: Checked 12:35 p.m. · Day 1 issued 1535Z, Day 3 issued 0824Z · Your event runs past the outlooks issued so far (they end Mon 7 a.m.)."
+    ],
+    "maps": []
+   }
+  },
+  {
+   "check": "overnight event across two outlook periods: Day 1 High and Day 2 Marginal, each with its own phases",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "outlook",
+     "headline": "Excessive rainfall risk Friday · High (at least 70%)",
+     "line": "The WPC Day 1 outlook includes the venue and its period (Fri 11 a.m. – Sat 7 a.m.) overlaps setup, gates and the event. It is a risk for the whole period, not timing within it.",
+     "product": "wpc-ero-d1-HIGH-2026-11-20T15:35:00.000Z",
+     "category": "HIGH",
+     "day": 1,
+     "phases": [
+      "setup",
+      "gates",
+      "event"
+     ]
+    },
+    {
+     "kind": "outlook",
+     "headline": "Excessive rainfall risk Saturday · Marginal (at least 5%)",
+     "line": "The WPC Day 2 outlook includes the venue and its period (Sat 7 a.m. – Sun 7 a.m.) overlaps the event and teardown. It is a risk for the whole period, not timing within it.",
+     "product": "wpc-ero-d2-MRGL-2026-11-20T20:12:00.000Z",
+     "category": "MRGL",
+     "day": 2,
+     "phases": [
+      "event",
+      "teardown"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "real warning update moves coverage off the venue: Flagler warning item drops at 2:20 p.m.; the outlook stays",
+   "pass": true,
+   "detail": {
+    "before": [
+     {
+      "kind": "warning",
+      "headline": "Flash Flood Warning until 3:30 p.m.",
+      "line": "Covers the venue during gates and the event.",
+      "product": "KJAX.FF.W.0054.2026",
+      "category": null,
+      "day": null,
+      "phases": [
+       "gates",
+       "event"
+      ]
+     },
+     {
+      "kind": "outlook",
+      "headline": "Excessive rainfall risk Friday · Moderate (at least 40%)",
+      "line": "The WPC Day 1 outlook includes the venue and its period (Fri 11 a.m. – Sat 7 a.m.) overlaps gates and the event. It is a risk for the whole period, not timing within it.",
+      "product": "wpc-ero-d1-MDT-2026-11-20T15:35:00.000Z",
+      "category": "MDT",
+      "day": 1,
+      "phases": [
+       "gates",
+       "event"
+      ]
+     }
+    ],
+    "after": [
+     {
+      "kind": "outlook",
+      "headline": "Excessive rainfall risk Friday · Moderate (at least 40%)",
+      "line": "The WPC Day 1 outlook includes the venue and its period (Fri 11 a.m. – Sat 7 a.m.) overlaps gates and the event. It is a risk for the whole period, not timing within it.",
+      "product": "wpc-ero-d1-MDT-2026-11-20T15:35:00.000Z",
+      "category": "MDT",
+      "day": 1,
+      "phases": [
+       "gates",
+       "event"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "check": "outage replay: the expired Flash Flood Warning is no longer an active item, a note says it reached its published expiration, NWS status stays unknown",
+   "pass": true,
+   "detail": {
+    "r": {
+     "summary": "1 weather threat for this event",
+     "confirmed": false,
+     "items": [
+      {
+       "kind": "outlook",
+       "headline": "Excessive rainfall risk Friday · High (at least 70%)",
+       "line": "The WPC Day 1 outlook includes the venue and its period (Fri 11 a.m. – Sat 7 a.m.) overlaps gates, the event and teardown. It is a risk for the whole period, not timing within it.",
+       "product": "wpc-ero-d1-HIGH-2026-11-20T15:35:00.000Z",
+       "category": "HIGH",
+       "day": 1,
+       "phases": [
+        "gates",
+        "event",
+        "teardown"
+       ]
+      }
+     ],
+     "statuses": [
+      "NWS warnings, watches and advisories: Not confirmed since 1 p.m. Showing last known products only.",
+      "WPC Excessive Rainfall Outlook: Checked 2:40 p.m. · Day 1 issued 1535Z, Day 3 issued 0824Z"
+     ],
+     "maps": [
+      "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=29.1852&lon=-81.0705&name=Daytona+International+Speedway&tz=America%2FNew_York&scope=venue&view=day1&layers=flood&sel=wpc-ero-d1-HIGH-2026-11-20T15%3A35%3A00.000Z&scenario=archive-flood-outage&nws=function"
+     ]
+    },
+    "notes": [
+     "Flash Flood Warning reached its published expiration (2:30 p.m.) while the source could not be reached. It is no longer shown as active; its current status is unknown."
+    ]
+   }
+  },
+  {
+   "check": "WINTER outlook 4 days ahead (Crystal Mountain, Tue): 'Minor winter impacts likely Tuesday · 60%', window and phases shown",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "outlook",
+     "headline": "Minor winter impacts likely Tuesday · 60% chance of at least Minor impacts",
+     "line": "WPC's winter storm severity outlook (WSSI-P) for the 24 hours Tue 4 a.m. – Wed 4 a.m. includes the venue and overlaps setup, gates, the event and teardown. Expect a few inconveniences to daily life; winter driving conditions. A chance for the whole 24 hours, not timing within it.",
+     "product": "wpc-wssip-MINOR-2026-11-24T12:00:00.000Z-60",
+     "category": "MINOR",
+     "day": null,
+     "phases": [
+      "setup",
+      "gates",
+      "event",
+      "teardown"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "WINTER More info: WPC file time, 24-hour window, chance per level, coverage end, official link",
+   "pass": true,
+   "detail": "Source\nNWS Weather Prediction Center · WSSI-P (official product)\nIssued\nWPC file Fri, Nov 20, 10:48 AM PST\nValid\n24 hours, Tue, Nov 24, 4:00 AM PST → Wed, Nov 25, 4:00 AM PST\nChances at the venue\nWinter weather (any) 95% · Minor 60% · Moderate 10% · Major under 5% · Extreme under 5%\nOverlaps\nsetup, gates, event, teardown\nLast checked\nFri, Nov 20, 1:30 PM PST\nCovers through\nFri, Nov 27, 4:00 PM PST (the last 24-hour window WPC has published)\nVenue\nInside WPC's 60% area for at least Minor impacts\nDetails\nExpect a few inconveniences to daily life; winter driving conditions. WSSI-P gives the chance of reaching each impact level somewhere in the 24 hours; it does not time anything within them."
+  },
+  {
+   "check": "WINTER View on map (outlook): Winter 7-day view at the venue, same window and level, areas drawn",
+   "pass": true,
+   "detail": {
+    "s": {
+     "view": "winter",
+     "sel": null,
+     "layers": {
+      "severe": false,
+      "flood": false,
+      "winter": true,
+      "fire": false,
+      "smoke": false,
+      "tropical": false,
+      "coastal": false,
+      "aviation": false
+     },
+     "wlevel": "MINOR",
+     "wwin": "2026-11-24T12:00:00.000Z",
+     "venue": "Winter outlook at Crystal Mountain · WPC WSSI-P",
+     "title": "60% chance of at least Minor impacts",
+     "wssi": 8,
+     "mon": 0
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "WINTER event running past the last WSSI-P window: coverage end stated, never 'none'",
+   "pass": true,
+   "detail": {
+    "summary": "1 weather threat for this event",
+    "confirmed": false,
+    "items": [
+     {
+      "kind": "outlook",
+      "headline": "Minor winter impacts possible Thursday · 30% chance of at least Minor impacts",
+      "line": "WPC's winter storm severity outlook (WSSI-P) for the 24 hours Wed 4 p.m. – Thu 4 p.m. includes the venue and overlaps setup. Expect a few inconveniences to daily life; winter driving conditions. A chance for the whole 24 hours, not timing within it.",
+      "product": "wpc-wssip-MINOR-2026-11-26T00:00:00.000Z-30",
+      "category": "MINOR",
+      "day": null,
+      "phases": [
+       "setup"
+      ]
+     }
+    ],
+    "statuses": [
+     "NWS warnings, watches and advisories: Checked 1:30 p.m.",
+     "WPC winter storm severity outlook (WSSI-P): Checked 1:30 p.m. · file 1848Z · Your event runs past the outlooks issued so far (they end Fri 4 p.m.)."
+    ],
+    "maps": [
+     "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=46.935&lon=-121.475&name=Crystal+Mountain&tz=America%2FLos_Angeles&scope=venue&view=winter&wwin=2026-11-26T00%3A00%3A00.000Z&wlevel=MINOR&layers=winter&scenario=archive-winter-outlook&nws=function"
+    ]
+   }
+  },
+  {
+   "check": "WINTER replay Nov 18 4 p.m.: Winter Weather Advisory at Snowbird, from its forecast zone",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "advisory",
+     "headline": "Winter Weather Advisory during setup, gates, the event and teardown",
+     "line": "In effect at the venue until 11 a.m. Saturday (issued for the forecast zone that includes the venue).",
+     "product": "KSLC.WW.Y.0018.2026#UTZ110",
+     "category": null,
+     "day": null,
+     "phases": [
+      "setup",
+      "gates",
+      "event",
+      "teardown"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "WINTER More info (advisory): issued 3:49 PM, in effect from Thu 11 AM, zones listed",
+   "pass": true,
+   "detail": "Source\nNWS Salt Lake City UT · official product\nIssued\nWed, Nov 18, 3:49 PM MST\nIn effect\nfrom Thu, Nov 19, 11:00 AM MST until Sat, Nov 21, 11:00 AM MST\nLast checked\nWed, Nov 18, 4:00 PM MST\nVenue\nInside the advisory area (drawn from the NWS forecast zones it lists: UTZ110, UTZ111, UTZ112)\nDetails\nWinter weather advisory in effect from 11 am thursday to 11 am mst saturday"
+  },
+  {
+   "check": "WINTER replay Nov 19 10 a.m.: upgraded; 'Winter Storm Warning during setup, gates, the event and teardown'",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "warning",
+     "headline": "Winter Storm Warning during setup, gates, the event and teardown",
+     "line": "In effect at the venue until 11 a.m. Saturday (issued for the forecast zone that includes the venue).",
+     "product": "KSLC.WS.W.0003.2026",
+     "category": null,
+     "day": null,
+     "phases": [
+      "setup",
+      "gates",
+      "event",
+      "teardown"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "WINTER same page: Snowbird warning → Park City advisory → event after the warning ends (none) → setup overlaps the warning → back",
+   "pass": true,
+   "detail": [
+    "Winter Storm Warning during setup, gates, the event and teardown",
+    "Winter Weather Advisory during setup, gates, the event and teardown",
+    "none",
+    "Winter Storm Warning during setup, gates and the event",
+    "Winter Storm Warning during setup, gates, the event and teardown"
+   ]
+  },
+  {
+   "check": "WINTER View on map (warning): Active now at Snowbird, the warning selected, Winter layer only",
+   "pass": true,
+   "detail": {
+    "s": {
+     "view": "active",
+     "sel": "KSLC.WS.W.0003.2026",
+     "layers": {
+      "severe": false,
+      "flood": false,
+      "winter": true,
+      "fire": false,
+      "smoke": false,
+      "tropical": false,
+      "coastal": false,
+      "aviation": false
+     },
+     "wlevel": "MINOR",
+     "wwin": null,
+     "title": "Winter Storm Warning",
+     "wssi": 0,
+     "mon": 0
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "WINTER phone: Planner section without horizontal scroll",
+   "pass": true,
+   "detail": []
+  },
+  {
+   "check": "WINTER phone map: winter view without horizontal scroll",
+   "pass": true
+  },
+  {
+   "check": "FIRE days ahead (Jul 29): 'Critical fire weather area Saturday (Day 4 outlook)' at Moses Lake, with window and phases",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "outlook",
+     "headline": "Critical fire weather area Saturday (Day 4 outlook)",
+     "line": "The SPC Day 4 fire weather outlook includes the venue and its period (Sat 5 a.m. – Sun 5 a.m.) overlaps setup, gates, the event and teardown. Critical fire weather risk from wind and low relative humidity. It rates the weather and fuels for the whole period, not timing within it, and not whether a fire starts.",
+     "product": "spc-fire-d4-windrh-CRIT-2026-07-29T21:46:00.000Z",
+     "category": "CRIT",
+     "day": 4,
+     "phases": [
+      "setup",
+      "gates",
+      "event",
+      "teardown"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "FIRE View on map (Day 4): Fire view, Day 4, the Critical area selected",
+   "pass": true,
+   "detail": {
+    "s": {
+     "view": "fire",
+     "sel": "spc-fire-d4-windrh-CRIT-2026-07-29T21:46:00.000Z",
+     "layers": {
+      "severe": false,
+      "flood": false,
+      "winter": false,
+      "fire": true,
+      "smoke": false,
+      "tropical": false,
+      "coastal": false,
+      "aviation": false
+     },
+     "wlevel": "MINOR",
+     "wwin": null,
+     "title": "SPC Day 4 · Critical fire weather area",
+     "wssi": 0,
+     "mon": 0
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "FIRE two days out (Jul 31): 'Extremely Critical fire weather risk Saturday'",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "outlook",
+     "headline": "Extremely Critical fire weather risk Saturday",
+     "line": "The SPC Day 2 fire weather outlook includes the venue and its period (Sat 5 a.m. – Sun 5 a.m.) overlaps setup, gates, the event and teardown. Extremely critical fire weather risk from wind and low relative humidity. It rates the weather and fuels for the whole period, not timing within it, and not whether a fire starts.",
+     "product": "spc-fire-d2-windrh-EXTM-2026-07-31T20:02:00.000Z",
+     "category": "EXTM",
+     "day": 2,
+     "phases": [
+      "setup",
+      "gates",
+      "event",
+      "teardown"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "FIRE More info (outlook): SPC Day 2, issued, valid window, category and SPC's meaning, official link",
+   "pass": true,
+   "detail": "Source\nNWS Storm Prediction Center · SPC Day 2 fire weather outlook · forecaster Elizalde-Garcia\nIssued\nFri, Jul 31, 1:02 PM PDT\nValid\nSat, Aug 1, 5:00 AM PDT → Sun, Aug 2, 5:00 AM PDT\nCategory\nExtremely Critical (wind and relative humidity)\nLast checked\nFri, Jul 31, 2:00 PM PDT\nVenue\nInside the highest fire weather category that reaches the venue\nDetails\nExtremely critical fire weather risk from wind and low relative humidity. SPC verifies these by the weather (wind, humidity, dry thunderstorms), not by whether fires start; receptive fuels must be present."
+  },
+  {
+   "check": "FIRE same page: Moses Lake Extremely Critical → Spokane Critical → event moved to Sunday (none) → back",
+   "pass": true,
+   "detail": [
+    "Extremely Critical fire weather risk Saturday",
+    "Critical fire weather risk Saturday",
+    "none",
+    "Extremely Critical fire weather risk Saturday"
+   ]
+  },
+  {
+   "check": "FIRE replay Nov 17 1 p.m.: Fire Weather Watch at Fort Collins from its fire weather zone, with its start",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "watch",
+     "headline": "Fire Weather Watch during setup, gates, the event and teardown",
+     "line": "In effect at the venue from 8 a.m. Wednesday until 4 p.m. Wednesday (issued for the fire weather zone that includes the venue).",
+     "product": "KBOU.FW.A.0044.2026",
+     "category": null,
+     "day": null,
+     "phases": [
+      "setup",
+      "gates",
+      "event",
+      "teardown"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "FIRE replay Nov 18 midnight: upgraded to 'Red Flag Warning during setup, gates, the event and teardown'",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "warning",
+     "headline": "Red Flag Warning during setup, gates, the event and teardown",
+     "line": "In effect at the venue from 8 a.m. until 4 p.m. (issued for the fire weather zone that includes the venue).",
+     "product": "KBOU.FW.W.0057.2026#COZ238",
+     "category": null,
+     "day": null,
+     "phases": [
+      "setup",
+      "gates",
+      "event",
+      "teardown"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "FIRE More info (Red Flag): issued 11:11 PM, in effect 8 AM-4 PM, fire weather zones listed",
+   "pass": true,
+   "detail": "Source\nNWS Denver CO · official product\nIssued\nTue, Nov 17, 11:11 PM MST\nIn effect\nfrom Wed, Nov 18, 8:00 AM MST until Wed, Nov 18, 4:00 PM MST\nLast checked\nWed, Nov 18, 12:00 AM MST\nVenue\nInside the warning area (drawn from the NWS fire weather zones it lists: COZ238, COZ239)\nDetails\nRed flag warning in effect from 8 am to 4 pm mst wednesday due to wind and low relative humidity for the western denver metro and western i-25 corridor including boulder, loveland, and fort collins"
+  },
+  {
+   "check": "FIRE: Denver (watch cancelled, not upgraded) has no fire weather alert",
+   "pass": true,
+   "detail": 0
+  },
+  {
+   "check": "FIRE View on map (Red Flag): Active now, the warning selected, Fire layer only",
+   "pass": true,
+   "detail": {
+    "s": {
+     "view": "active",
+     "sel": "KBOU.FW.W.0057.2026#COZ238",
+     "layers": {
+      "severe": false,
+      "flood": false,
+      "winter": false,
+      "fire": true,
+      "smoke": false,
+      "tropical": false,
+      "coastal": false,
+      "aviation": false
+     },
+     "wlevel": "MINOR",
+     "wwin": null,
+     "title": "Red Flag Warning",
+     "wssi": 0,
+     "mon": 0
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "FIRE incidents (NIFC snapshot): 'Wildfire 12 miles southwest: Aspen Acres · 102,007 acres · 96% contained'",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "incident",
+     "headline": "Wildfire 12 miles southwest: Aspen Acres · 102,007 acres · 96% contained",
+     "line": "Active incident reported to NIFC (updated Nov 19, 3:29 PM). Incidents have no end time; size, containment and spread can change before the event.",
+     "product": "nifc-1CDF5E5A-F22E-4352-A582-C2A47663B93D",
+     "category": "WF",
+     "day": null,
+     "phases": [
+      "setup",
+      "event"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "FIRE More info (incident): size, containment, discovered, NIFC update, perimeter date, distance, incident ID",
+   "pass": true,
+   "detail": "Source\nNational Interagency Fire Center (WFIGS) · WFIGS current incidents · 2026-COCUX-001160\nType\nWildfire · Type 5 IC\nSize\n102,007 acres (as reported for the incident)\nContainment\n96%\nDiscovered\nMon, Jun 29, 6:04 AM MDT\nUpdated\nThu, Nov 19, 3:29 PM MST (NIFC incident record)\nPerimeter\nMapped Mon, Aug 10, 8:04 AM MDT · 102,003 acres · Mixed Methods\nVenue\n12 miles southwest of the venue to the perimeter edge\nLocation\nCuster, CO · COCUX\nLast checked\nFri, Nov 20, 6:30 PM MST\nDetails\nIncidents stay in NIFC's current list until declared contained, controlled or out, or until they go 3 to 14 days without an update (by size). NIFC: the data “are not legal documents”. Follow local officials for evacuations and closures."
+  },
+  {
+   "check": "FIRE incidents: the State Fairgrounds (17.5 mi) does not list it",
+   "pass": true,
+   "detail": 0
+  },
+  {
+   "check": "FIRE View on map (incident): Active now, Aspen Acres selected with its perimeter",
+   "pass": true,
+   "detail": {
+    "s": {
+     "view": "active",
+     "sel": "nifc-1CDF5E5A-F22E-4352-A582-C2A47663B93D",
+     "layers": {
+      "severe": false,
+      "flood": false,
+      "winter": false,
+      "fire": true,
+      "smoke": false,
+      "tropical": false,
+      "coastal": false,
+      "aviation": false
+     },
+     "wlevel": "MINOR",
+     "wwin": null,
+     "title": "Aspen Acres",
+     "wssi": 0,
+     "mon": 0
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "FIRE phone: Planner section without horizontal scroll",
+   "pass": true,
+   "detail": []
+  },
+  {
+   "check": "FIRE phone map: Fire view without horizontal scroll",
+   "pass": true
+  },
+  {
+   "check": "live: NWS and WPC requests go through the same-origin functions with their upstream time",
+   "pass": true,
+   "detail": {
+    "viaFn": [
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day1",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-22T17:09:59.100Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day2",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-22T17:09:59.226Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/wpc/ero/day3",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-22T17:09:59.230Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch,Flash%20Flood%20Warning,Winter%20Storm%20Warning,Winter%20Storm%20Watch,Blizzard%20Warning,Ice%20Storm%20Warning,Lake%20Effect%20Snow%20Warning,Winter%20Weather%20Advisory,Red%20Flag%20Warning,Fire%20Weather%20Watch,Hurricane%20Warning,Hurricane%20Watch,Tropical%20Storm%20Warning,Tropical%20Storm%20Watch,Storm%20Surge%20Warning,Storm%20Surge%20Watch,Coastal%20Flood%20Warning,Coastal%20Flood%20Watch,Coastal%20Flood%20Advisory,High%20Surf%20Warning,High%20Surf%20Advisory,Rip%20Current%20Statement,Beach%20Hazards%20Statement",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-22T17:09:59.309Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ141",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:34.639Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ159",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:34.650Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ154",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:34.623Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ647",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:34.744Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ164",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:34.741Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ347",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:34.710Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ447",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:34.749Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ006",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.648Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ506",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.654Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ508",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.685Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ505",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.581Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ747",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:34.773Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ509",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.626Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ530",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.645Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ529",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.632Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ346",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.259Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ354",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.346Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ340",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.274Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ087",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.179Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ041",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:38:47.167Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ350",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.208Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ362",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.294Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ366",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.299Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ049",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:38:47.210Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ349",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.205Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ044",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:38:47.199Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ047",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:38:47.265Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/GUZ001",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:50:59.421Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ001",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:50:59.431Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ048",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:38:47.323Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ003",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:50:59.469Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ138",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.503Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ002",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:50:59.490Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ124",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.304Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ125",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.486Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ233",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.358Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ333",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.354Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ132",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.463Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/GAZ154",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.365Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ038",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.404Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/GAZ166",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.396Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ137",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.425Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ325",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.464Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/TXZ245",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.703Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/TXZ342",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.764Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ633",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.440Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/TXZ344",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.729Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/TXZ345",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.720Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/TXZ442",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.785Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/TXZ343",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.718Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/TXZ346",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.757Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/TXZ347",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.780Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/TXZ447",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.847Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ101",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:50:39.269Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ102",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:50:39.228Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ103",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:50:39.241Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ022",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:38:47.113Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ021",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:38:47.047Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ328",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:50:59.833Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ330",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:50:59.866Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ201",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:50:39.250Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ755",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:34.829Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/TXZ443",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.825Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ331",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:50:59.879Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ821",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:50:59.915Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ824",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:50:59.949Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ818",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:50:59.916Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ822",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:34.936Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ204",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.556Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ043",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:34.921Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ552",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:34.922Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ103",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.179Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ196",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.540Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ205",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.617Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ203",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:50:59.975Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ104",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.134Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ101",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.112Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FMZ001",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.038Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ109",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-21T19:14:35.160Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.76cb0111f6d24455929e38a6e0ca23b9d9d09e96.001.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:00.511Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.e21c61fe3368f215cbe1c511ddf2bf36428689dd.001.2",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:00.599Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.e21c61fe3368f215cbe1c511ddf2bf36428689dd.002.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:00.851Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.e21c61fe3368f215cbe1c511ddf2bf36428689dd.001.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:00.933Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.c407114ff6233fb7681175efefec462e7f4cef49.001.2",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:01.141Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.c407114ff6233fb7681175efefec462e7f4cef49.003.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:01.367Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.c407114ff6233fb7681175efefec462e7f4cef49.004.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:01.533Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.c407114ff6233fb7681175efefec462e7f4cef49.002.2",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:01.740Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.c407114ff6233fb7681175efefec462e7f4cef49.001.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:01.986Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.c407114ff6233fb7681175efefec462e7f4cef49.001.3",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:02.151Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.c407114ff6233fb7681175efefec462e7f4cef49.003.2",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:02.590Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.c407114ff6233fb7681175efefec462e7f4cef49.002.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:02.735Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.93788bcdb14d18017d15310a8441eda3b113ffe6.001.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:03.134Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.93788bcdb14d18017d15310a8441eda3b113ffe6.003.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:03.476Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.93788bcdb14d18017d15310a8441eda3b113ffe6.002.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:03.701Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.3ece3c3fc50fa88bbfdfbfe78426fd43970db789.002.3",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:03.943Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.3ece3c3fc50fa88bbfdfbfe78426fd43970db789.001.3",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:04.114Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.3ece3c3fc50fa88bbfdfbfe78426fd43970db789.003.2",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:04.355Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.3ece3c3fc50fa88bbfdfbfe78426fd43970db789.002.2",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:04.581Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.3ece3c3fc50fa88bbfdfbfe78426fd43970db789.001.2",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:04.799Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.3ece3c3fc50fa88bbfdfbfe78426fd43970db789.004.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:04.873Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.f56ad5c17e1802870b33066fdb03194087fc4ecf.001.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:05.103Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.8b9c1a4084b7ce8318dcde2a8c4b07f9b09e4ad2.001.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:05.499Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.8b9c1a4084b7ce8318dcde2a8c4b07f9b09e4ad2.001.2",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:05.279Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.4f656e801c8d5876859715ad9f4140e444a03568.001.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:05.664Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.057112e7021679df1b0c7e351cbfd24871843104.001.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:05.817Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.d03fa811d109435798711a9caff4c3e8a529c704.001.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:05.885Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b83d260666992f61f05f0932b46e6bb27517c0ea.001.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:06.093Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.9e7003e0ac58f05c6fffb18fce691212b353c892.001.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:06.301Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.9e7003e0ac58f05c6fffb18fce691212b353c892.002.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:06.505Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.9e7003e0ac58f05c6fffb18fce691212b353c892.003.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:06.726Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.9ccba90718cf9fa8a55806263f20bba4885b1c04.001.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:06.956Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.9ccba90718cf9fa8a55806263f20bba4885b1c04.003.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:07.195Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.9ccba90718cf9fa8a55806263f20bba4885b1c04.002.2",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:07.277Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.30595d27213a98c94d21ecc830bd5f1e0e51fcb4.001.2",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:07.428Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.30595d27213a98c94d21ecc830bd5f1e0e51fcb4.001.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:07.608Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.fba98b43074467375f0819f938bdfe4c3be26e50.001.2",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T17:06:05.286Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.fba98b43074467375f0819f938bdfe4c3be26e50.001.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T17:06:05.790Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.fba98b43074467375f0819f938bdfe4c3be26e50.002.1",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T17:06:05.948Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.0de5458108fb9a34ad6c3dc9e7edc2c96a203826.001.2",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T17:06:06.092Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/nws/points/29.1852,-81.0705",
+      "status": 200,
+      "cache": "HIT",
+      "upstreamAt": "2026-11-22T16:51:08.484Z"
+     }
+    ],
+    "direct": []
+   }
+  },
+  {
+   "check": "live: every source states its check time or its gap",
+   "pass": true,
+   "detail": [
+    "NWS warnings, watches and advisories: Checked 12:09 p.m.",
+    "SPC fire weather outlooks: Checked 12:09 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+    "NOAA satellite smoke analysis (HMS): Checked 12:09 p.m.",
+    "AirNow air quality observations: Checked 12:10 p.m.",
+    "AirNow air quality forecasts: Checked 12:10 p.m. · Daytona Beach reporting area",
+    "NHC tropical outlooks and storm products: Checked 12:09 p.m.",
+    "NIFC wildfire incidents (WFIGS): Checked 12:09 p.m.",
+    "WPC winter storm severity outlook (WSSI-P): Checked 12:10 p.m.",
+    "WPC Excessive Rainfall Outlook: Checked 12:09 p.m. · Day 1 issued 1542Z, Day 2 issued 0729Z, Day 3 issued 0729Z"
+   ]
+  },
+  {
+   "check": "LIVE winter: WSSI-P point queries answered and the source states its check time",
+   "pass": true,
+   "detail": {
+    "ws": [
+     {
+      "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi_p/MapServer/2/query?geometry=-111.6556,40.5813&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=false&f=json",
+      "status": 200,
+      "cache": null,
+      "upstreamAt": null
+     },
+     {
+      "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi_p/MapServer/3/query?geometry=-111.6556,40.5813&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=false&f=json",
+      "status": 200,
+      "cache": null,
+      "upstreamAt": null
+     },
+     {
+      "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi_p/MapServer/4/query?geometry=-111.6556,40.5813&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=false&f=json",
+      "status": 200,
+      "cache": null,
+      "upstreamAt": null
+     },
+     {
+      "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi_p/MapServer/1/query?geometry=-111.6556,40.5813&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=false&f=json",
+      "status": 200,
+      "cache": null,
+      "upstreamAt": null
+     },
+     {
+      "url": "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/wpc_wssi_p/MapServer/10/query?geometry=-111.6556,40.5813&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=prob,impact,fcsthr,validstart,validend,idp_filedate&returnGeometry=false&f=json",
+      "status": 200,
+      "cache": null,
+      "upstreamAt": null
+     }
+    ],
+    "st": [
+     "NWS warnings, watches and advisories: Checked 10:09 a.m.",
+     "SPC fire weather outlooks: Checked 10:10 a.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+     "NOAA satellite smoke analysis (HMS): Checked 10:10 a.m.",
+     "AirNow air quality observations: Checked 10:10 a.m.",
+     "AirNow air quality forecasts: Checked 10:10 a.m. · Salt Lake City reporting area",
+     "NHC tropical outlooks and storm products: Checked 10:10 a.m.",
+     "NIFC wildfire incidents (WFIGS): Checked 10:10 a.m.",
+     "WPC winter storm severity outlook (WSSI-P): Checked 10:10 a.m. · file 1418Z",
+     "WPC Excessive Rainfall Outlook: Checked 10:09 a.m. · Day 1 issued 1542Z, Day 2 issued 0729Z, Day 3 issued 0729Z"
+    ]
+   }
+  },
+  {
+   "check": "LIVE winter: NWS winter alerts reach Planner (any active at the venue are listed with their phases)",
+   "pass": true,
+   "detail": {
+    "summary": "No flooding, winter weather, fire weather or wildfire, smoke or air quality, tropical, coastal and airport weather threats apply to this event's location and times.",
+    "confirmed": true,
+    "items": [],
+    "statuses": [
+     "NWS warnings, watches and advisories: Checked 10:09 a.m.",
+     "SPC fire weather outlooks: Checked 10:10 a.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+     "NOAA satellite smoke analysis (HMS): Checked 10:10 a.m.",
+     "AirNow air quality observations: Checked 10:10 a.m.",
+     "AirNow air quality forecasts: Checked 10:10 a.m. · Salt Lake City reporting area",
+     "NHC tropical outlooks and storm products: Checked 10:10 a.m.",
+     "NIFC wildfire incidents (WFIGS): Checked 10:10 a.m.",
+     "WPC winter storm severity outlook (WSSI-P): Checked 10:10 a.m. · file 1418Z",
+     "WPC Excessive Rainfall Outlook: Checked 10:09 a.m. · Day 1 issued 1542Z, Day 2 issued 0729Z, Day 3 issued 0729Z"
+    ],
+    "maps": []
+   }
+  },
+  {
+   "check": "LIVE winter View on map: no live WSSI-P item at the test venue right now, so there is nothing to open (recorded, not a failure; the archived winter map link is checked above)",
+   "pass": true,
+   "detail": []
+  },
+  {
+   "check": "LIVE fire: SPC fire outlooks (16 files, Days 1-8) and NIFC incidents + perimeters answered; both sources state their check time",
+   "pass": true,
+   "detail": {
+    "st": [
+     "NWS warnings, watches and advisories: Checked 10:09 a.m.",
+     "SPC fire weather outlooks: Checked 10:10 a.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+     "NOAA satellite smoke analysis (HMS): Checked 10:10 a.m.",
+     "AirNow air quality observations: Checked 10:10 a.m. · nearest monitor Cheyenne NCore (3 miles northeast): AQI 21 Good (Ozone) for 9 a.m.",
+     "AirNow air quality forecasts: No AirNow forecast area for this venue.",
+     "NHC tropical outlooks and storm products: Checked 10:10 a.m.",
+     "NIFC wildfire incidents (WFIGS): Checked 10:10 a.m.",
+     "WPC winter storm severity outlook (WSSI-P): Checked 10:10 a.m. · file 1418Z",
+     "WPC Excessive Rainfall Outlook: Checked 10:10 a.m. · Day 1 issued 1542Z, Day 2 issued 0729Z, Day 3 issued 0729Z"
+    ],
+    "n": 18
+   }
+  },
+  {
+   "check": "LIVE fire map: NIFC incidents and perimeters drawn; Day 1 outlook window stated",
+   "pass": true,
+   "detail": {
+    "s2": {
+     "inc": 196,
+     "per": 54,
+     "valid": "Fire · SPC Day 1 · no areas (No Areas)"
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "SMOKE Chicago Jul 16 (no wildfire within 15 mi): surface reading, satellite smoke and the day's forecast are separate items, each with its own time; no wildfire attribution",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "aqobs",
+     "headline": "Air quality now: Hazardous (AQI 689, PM2.5) at CHI_MAYFAIR, 10 miles northwest",
+     "line": "AirNow monitor reading for 5 p.m. (Chicago reporting area, Illinois EPA). Preliminary data; current conditions, not a forecast. Your event starts Thursday 6 p.m.",
+     "product": "airnow-840170310052",
+     "category": "Hazardous",
+     "day": null,
+     "phases": []
+    },
+    {
+     "kind": "smoke",
+     "headline": "Smoke detected over the area · Medium (satellite, 12 p.m.–3 p.m.)",
+     "line": "NOAA's satellite smoke analysis outlined medium smoke over the venue in GOES-WEST imagery. It is smoke in the air column overhead; it does not say what the air is like at the ground. Your event starts Thursday 6 p.m.",
+     "product": "hms-2026-07-16-3",
+     "category": "Medium",
+     "day": null,
+     "phases": []
+    },
+    {
+     "kind": "aqfcst",
+     "headline": "Air quality forecast Thursday: Hazardous (PM2.5)",
+     "line": "Chicago reporting area forecast by Illinois EPA, issued Jul 16. A forecast for the whole day (gates and the event fall on it), not timing within it. Air quality action day.",
+     "product": "aqf-IL-Chicago-2026-07-16",
+     "category": "Hazardous",
+     "day": null,
+     "phases": [
+      "gates",
+      "event"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "SMOKE More info: monitor, reporting area, observed hour, preliminary-data note; satellite window, satellite, density and 'not a ground reading'",
+   "pass": true,
+   "detail": "Source\nEPA AirNow · Illinois EPA · AirNow\nMonitor\nCHI_MAYFAIR · Chicago reporting area · 10 miles from the venue\nObserved\nThu, Jul 16, 5:00 PM CDT (hourly reading)\nReading\nAQI 689 Hazardous (PM2.5) · PM2.5 466.4 µg/m³ · all: PM2.5 689\nMonitors within 15 mi\n12\nLast checked\nThu, Jul 16, 5:30 PM CDT\nNote\nPreliminary data, not fully validated (AirNow). Fine particles (PM2.5) have many sources; this reading alone does not say the cause.\n---\nSource\nNOAA NESDIS Hazard Mapping System · HMS smoke analysis\nObserved\nThu, Jul 16, 12:00 PM CDT → Thu, Jul 16, 3:00 PM CDT (GOES-WEST imagery)\nDensity\nMedium (analyst's estimate of how thick the smoke looks from space)\nLast checked\nThu, Jul 16, 5:30 PM CDT\nVenue\nInside the outlined smoke area\nWhat it means\nSmoke somewhere in the air column above the venue. Satellite smoke does not measure air quality at the ground; see the AirNow reading for that. A current observation, not a forecast."
+  },
+  {
+   "check": "SMOKE same page: Thursday all three → Saturday keeps current conditions only → past event none → moved to MetLife: no Chicago monitors, that day's smoke over New Jersey and the New York City Region forecast → back",
+   "pass": true,
+   "detail": [
+    "aqobs+smoke+aqfcst",
+    "aqobs+smoke",
+    "none",
+    "smoke+aqfcst@New York City Region",
+    "aqobs+smoke+aqfcst"
+   ]
+  },
+  {
+   "check": "SMOKE View on map (monitor): Smoke & air layer only, the monitor selected",
+   "pass": true,
+   "detail": {
+    "s": {
+     "view": "active",
+     "sel": "airnow-840170310052",
+     "layers": {
+      "severe": false,
+      "flood": false,
+      "winter": false,
+      "fire": false,
+      "smoke": true,
+      "tropical": false,
+      "coastal": false,
+      "aviation": false
+     },
+     "wlevel": "MINOR",
+     "wwin": null,
+     "title": "CHI_MAYFAIR",
+     "wssi": 0,
+     "mon": 30
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "SMOKE View on map (plume): the HMS polygon selected",
+   "pass": true,
+   "detail": {
+    "s": {
+     "view": "active",
+     "sel": "hms-2026-07-16-3",
+     "layers": {
+      "severe": false,
+      "flood": false,
+      "winter": false,
+      "fire": false,
+      "smoke": true,
+      "tropical": false,
+      "coastal": false,
+      "aviation": false
+     },
+     "wlevel": "MINOR",
+     "wwin": null,
+     "title": "Medium smoke detected",
+     "wssi": 0,
+     "mon": 30
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "SMOKE MetLife Jul 14: 'Smoke detected over the area · Heavy'; the surface reading is reported separately (Moderate, not an item); the ozone forecast is labelled ozone",
+   "pass": true,
+   "detail": {
+    "items": [
+     {
+      "kind": "smoke",
+      "headline": "Smoke detected over the area · Heavy (satellite, 1 p.m.–4 p.m.)",
+      "line": "NOAA's satellite smoke analysis outlined heavy smoke over the venue in GOES-EAST imagery. It is smoke in the air column overhead; it does not say what the air is like at the ground. Your event starts Tuesday 6 p.m.",
+      "product": "hms-2026-07-14-10",
+      "category": "Heavy",
+      "day": null,
+      "phases": []
+     },
+     {
+      "kind": "aqfcst",
+      "headline": "Air quality forecast Tuesday: Unhealthy for Sensitive Groups (AQI 105, Ozone)",
+      "line": "New York City Region reporting area forecast by New York Dept. of Environmental Conservation, issued Jul 14. A forecast for the whole day (gates and the event fall on it), not timing within it. Air quality action day.",
+      "product": "aqf-NY-NewYorkCityRegion-2026-07-14",
+      "category": "Unhealthy for Sensitive Groups",
+      "day": null,
+      "phases": [
+       "gates",
+       "event"
+      ]
+     }
+    ],
+    "st": [
+     "NOAA satellite smoke analysis (HMS): Checked 5:30 p.m.",
+     "AirNow air quality observations: Checked 5:30 p.m. · nearest monitor Union City High School (4 miles southeast): AQI 53 Moderate (PM2.5) for 5 p.m.",
+     "AirNow air quality forecasts: Checked 5:30 p.m. · New York City Region reporting area"
+    ]
+   }
+  },
+  {
+   "check": "SMOKE View on map (MetLife plume): Heavy plume selected; monitors drawn",
+   "pass": true,
+   "detail": {
+    "s": {
+     "view": "active",
+     "sel": "hms-2026-07-14-10",
+     "layers": {
+      "severe": false,
+      "flood": false,
+      "winter": false,
+      "fire": false,
+      "smoke": true,
+      "tropical": false,
+      "coastal": false,
+      "aviation": false
+     },
+     "wlevel": "MINOR",
+     "wwin": null,
+     "title": "Heavy smoke detected",
+     "wssi": 0,
+     "mon": 24
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "SMOKE days ahead, Philadelphia: Jul 14's forecast for Thursday is Moderate (no item); Jul 15's is 'Air quality forecast Thursday: Unhealthy (AQI 180, PM2.5)'",
+   "pass": true,
+   "detail": {
+    "r14": [],
+    "r": [
+     {
+      "kind": "aqfcst",
+      "headline": "Air quality forecast Thursday: Unhealthy (AQI 180, PM2.5)",
+      "line": "Philadelphia reporting area forecast by Pennsylvania Dept. of Environmental Protection, issued Jul 15. A forecast for the whole day (the event falls on it), not timing within it. Air quality action day.",
+      "product": "aqf-PA-Philadelphia-2026-07-16",
+      "category": "Unhealthy",
+      "day": null,
+      "phases": [
+       "event"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "check": "SMOKE phone: Planner section without horizontal scroll",
+   "pass": true,
+   "detail": []
+  },
+  {
+   "check": "SMOKE phone map: plume detail without horizontal scroll",
+   "pass": true
+  },
+  {
+   "check": "LIVE smoke: HMS via the function (upstream time), AirNow monitors + forecast area answered; NOAA smoke guidance is not requested (off until NOAA documents its unit); each source states its check time and the nearest monitor reading",
+   "pass": true,
+   "detail": {
+    "st": [
+     "NWS warnings, watches and advisories: Checked 12:10 p.m.",
+     "SPC fire weather outlooks: Checked 12:10 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+     "NOAA satellite smoke analysis (HMS): Checked 12:10 p.m.",
+     "AirNow air quality observations: Checked 12:11 p.m. · nearest monitor Windsor Downtown (2 miles south): AQI 34 Good (PM2.5) for 11 a.m.",
+     "AirNow air quality forecasts: Checked 12:11 p.m. · Southeast reporting area",
+     "NHC tropical outlooks and storm products: Checked 12:10 p.m.",
+     "NIFC wildfire incidents (WFIGS): Checked 12:10 p.m.",
+     "WPC winter storm severity outlook (WSSI-P): Checked 12:11 p.m. · file 1418Z",
+     "WPC Excessive Rainfall Outlook: Checked 12:10 p.m. · Day 1 issued 1542Z, Day 2 issued 0729Z, Day 3 issued 0729Z"
+    ],
+    "feeds": [
+     [
+      "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/smoke/hms/20261121",
+      200
+     ],
+     [
+      "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/smoke/hms/20261122",
+      200
+     ],
+     [
+      "https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/Air%20Now%20Current%20Mo",
+      200
+     ],
+     [
+      "https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/AirNow_National_Air_Qual",
+      200
+     ],
+     [
+      "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/smoke/airnow-area?are",
+      200
+     ]
+    ]
+   }
+  },
+  {
+   "check": "SMOKE feeds failed (blocked in this browser): the other sources still answer; smoke sources say not responding; nothing claims 'no smoke'",
+   "pass": true,
+   "detail": {
+    "summary": "Not fully confirmed: no flooding, winter weather, fire weather or wildfire, smoke or air quality, tropical, coastal and airport weather threats found in the data we have, but a source is unavailable, stale or doesn't cover this venue or date.",
+    "confirmed": false,
+    "items": [],
+    "statuses": [
+     "NWS warnings, watches and advisories: Checked 12:11 p.m.",
+     "SPC fire weather outlooks: Checked 12:11 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+     "NOAA satellite smoke analysis (HMS): Not responding · status unknown. We can't rule anything out from this source.",
+     "AirNow air quality observations: Not responding · status unknown. We can't rule anything out from this source.",
+     "AirNow air quality forecasts: Not responding · status unknown. We can't rule anything out from this source.",
+     "NHC tropical outlooks and storm products: Checked 12:11 p.m.",
+     "NIFC wildfire incidents (WFIGS): Checked 12:11 p.m.",
+     "WPC winter storm severity outlook (WSSI-P): Checked 12:11 p.m. · file 1418Z",
+     "WPC Excessive Rainfall Outlook: Checked 12:09 p.m. · Day 1 issued 1542Z, Day 2 issued 0729Z, Day 3 issued 0729Z"
+    ],
+    "maps": []
+   }
+  },
+  {
+   "check": "SMOKE slow feed (HMS held 25 s): the map is ready before it answers; HMS reads 'Loading' meanwhile",
+   "pass": true,
+   "detail": {
+    "ms": 13140,
+    "st": {
+     "live": true,
+     "hms": "loading"
+    }
+   }
+  },
+  {
+   "check": "CRASH REGRESSION (replay of the failing state: a Day 1 fire weather area with every layer on): scopes, layers and views, including Day 1, give no page error, no banner, no failed draw stage; fire areas never reach the convective outlook layer",
+   "pass": true,
+   "detail": {
+    "errs": [],
+    "banner": false,
+    "stageErrors": [],
+    "convectiveHasFire": false,
+    "rows": [
+     "NWS warnings, watches and advisories Not part of this archived sample",
+     "SPC Mesoscale Discussions Not part of this archived sample",
+     "SPC Day 1 outlook Not part of this archived sample",
+     "WPC excessive rainfall · Day 1 Not part of this archived sample",
+     "NIFC wildfire incidents (WFIGS) Not part of this archived sample",
+     "NOAA satellite smoke (HMS) Not part of this archived sample",
+     "AirNow observations near the venue Not part of this archived sample",
+     "AirNow forecast (venue's area) Not part of this archived sample",
+     "NHC tropical outlooks and storms Not part of this archived sample"
+    ]
+   }
+  },
+  {
+   "check": "CRASH REGRESSION (live, CVG default, all layers): the same walk-through plus 75 s of background refreshes: no page error, no banner, no failed draw stage",
+   "pass": true,
+   "detail": {
+    "errs": [],
+    "banner": false,
+    "stageErrors": [],
+    "convectiveHasFire": false,
+    "rows": [
+     "NWS warnings, watches and advisories Checked 12:17 PM EST",
+     "SPC Mesoscale Discussions Checked 12:17 PM EST via NOAA map service · none active",
+     "SPC Day 1 outlook Checked 12:12 PM EST",
+     "WPC excessive rainfall · Day 1 Checked 12:12 PM EST",
+     "NIFC wildfire incidents (WFIGS) Checked 12:17 PM EST",
+     "NOAA satellite smoke (HMS) Checked 12:12 PM EST",
+     "AirNow observations near the venue Checked 12:12 PM EST",
+     "AirNow forecast (venue's area) Checked 12:12 PM EST · none active",
+     "AirNow monitors (map) Checked 12:12 PM EST",
+     "NHC tropical outlooks and storms Checked 12:12 PM EST"
+    ]
+   }
+  },
+  {
+   "check": "PARTIAL FEEDS (SPC fire outlooks, NIFC and HMS blocked): the other layers and every control still work with no error; the blocked sources say so",
+   "pass": true,
+   "detail": {
+    "errs": [],
+    "banner": false,
+    "stageErrors": [],
+    "convectiveHasFire": false,
+    "rows": [
+     "NWS warnings, watches and advisories Checked 12:23 PM EST",
+     "SPC Mesoscale Discussions Checked 12:23 PM EST via NOAA map service · none active",
+     "SPC Day 1 outlook Checked 12:18 PM EST",
+     "WPC excessive rainfall · Day 1 Checked 12:18 PM EST",
+     "NIFC wildfire incidents (WFIGS) Not responding · status unknown",
+     "NOAA satellite smoke (HMS) Not responding · status unknown",
+     "AirNow observations near the venue Checked 12:18 PM EST",
+     "AirNow forecast (venue's area) Checked 12:18 PM EST · none active",
+     "AirNow monitors (map) Checked 12:18 PM EST",
+     "NHC tropical outlooks and storms Checked 12:18 PM EST"
+    ]
+   }
+  },
+  {
+   "check": "CRASH REGRESSION (tropical replay with every layer on, NHC cone, track, points and warnings drawn): no page error, no banner, no failed draw stage",
+   "pass": true,
+   "detail": {
+    "errs": [],
+    "banner": false,
+    "stageErrors": [],
+    "convectiveHasFire": false,
+    "rows": [
+     "NWS warnings, watches and advisories Archived official messages, replayed",
+     "SPC Mesoscale Discussions Not part of this archived sample",
+     "SPC Day 1 outlook Not part of this archived sample",
+     "WPC excessive rainfall · Day 1 Not part of this archived sample",
+     "NIFC wildfire incidents (WFIGS) Not part of this archived sample",
+     "NOAA satellite smoke (HMS) Not part of this archived sample",
+     "AirNow observations near the venue Not part of this archived sample",
+     "AirNow forecast (venue's area) Not part of this archived sample",
+     "NHC tropical outlooks and storms Archived official messages, replayed"
+    ]
+   }
+  },
+  {
+   "check": "TROPICAL Oct 7 noon CDT (advisory 4): Hurricane Watch and Storm Surge Watch at Orange Beach for a Friday event, until further notice, with NWS's wind window",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "watch",
+     "headline": "Hurricane Watch during setup, gates, the event and teardown",
+     "line": "In effect at the venue until further notice (issued for the forecast zone that includes the venue). NWS window for tropical-storm-force winds: Friday afternoon until early Saturday morning. Updated with each NHC advisory.",
+     "product": "KMOB.HU.A.1009.2026#ALZ266",
+     "category": null,
+     "day": null,
+     "phases": [
+      "setup",
+      "gates",
+      "event",
+      "teardown"
+     ]
+    },
+    {
+     "kind": "watch",
+     "headline": "Storm Surge Watch during setup, gates, the event and teardown",
+     "line": "In effect at the venue until further notice (issued for the forecast zone that includes the venue). NWS window for tropical-storm-force winds: Friday afternoon until early Saturday morning. Updated with each NHC advisory.",
+     "product": "KMOB.SS.A.1009.2026#ALZ266",
+     "category": null,
+     "day": null,
+     "phases": [
+      "setup",
+      "gates",
+      "event",
+      "teardown"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "TROPICAL More info: NWS Mobile, issued 11:09 AM CDT, 'until further notice · next NWS update due by', wind timing, the archived product link",
+   "pass": true,
+   "detail": "Source\nNWS Mobile AL · official product\nIssued\nWed, Oct 7, 11:09 AM CDT\nIn effect\nuntil further notice · next NWS update due by Wed, Oct 7, 7:15 PM CDT\nWind timing\nNWS window for tropical-storm-force winds: Friday afternoon until early Saturday morning\nLast checked\nWed, Oct 7, 12:00 PM CDT\nVenue\nInside the watch area (drawn from the NWS forecast zones it lists: ALZ266)\nDetails\nIsaias HURRICANE WATCH IN EFFECT STORM SURGE WATCH IN EFFECT"
+  },
+  {
+   "check": "TROPICAL Oct 8 midnight (advisory 6): upgraded to Hurricane Warning and Storm Surge Warning",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "warning",
+     "headline": "Hurricane Warning during setup, gates, the event and teardown",
+     "line": "In effect at the venue until further notice (issued for the forecast zone that includes the venue). NWS window for tropical-storm-force winds: Friday afternoon until early Saturday morning. Updated with each NHC advisory.",
+     "product": "KMOB.HU.W.1009.2026#ALZ266",
+     "category": null,
+     "day": null,
+     "phases": [
+      "setup",
+      "gates",
+      "event",
+      "teardown"
+     ]
+    },
+    {
+     "kind": "warning",
+     "headline": "Storm Surge Warning during setup, gates, the event and teardown",
+     "line": "In effect at the venue until further notice (issued for the forecast zone that includes the venue). NWS window for tropical-storm-force winds: Friday afternoon until early Saturday morning. Updated with each NHC advisory.",
+     "product": "KMOB.SS.W.1009.2026#ALZ266",
+     "category": null,
+     "day": null,
+     "phases": [
+      "setup",
+      "gates",
+      "event",
+      "teardown"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "TROPICAL same page: Orange Beach warning + surge → inland Bay Minette warning only → Atlanta none → back",
+   "pass": true,
+   "detail": [
+    "Hurricane Warning+Storm Surge Warning",
+    "Hurricane Warning",
+    "none",
+    "Hurricane Warning+Storm Surge Warning"
+   ]
+  },
+  {
+   "check": "TROPICAL map (advisory 6): NHC cone, track, forecast points and coastal warning segments drawn as regional context, with the cone caveat",
+   "pass": true,
+   "detail": {
+    "cone": 1,
+    "lines": 4,
+    "pts": 7,
+    "txt": "AT THE WHARF, ORANGE BEACH\nHurricane Warning in effect at the venue · Until 6:00 AM CDT · 6 h 00 min left\nVenue view →\nHurricane Watch replaced by a new product at 9:53 PM CDT. It covered the venue.\nStorm Surge Watch replaced by a new product at 9:53 PM CDT. It covered the venue.\nHurricane Watch replaced by a new product at 9:53 PM CDT. It was near the venue.\nStorm Surge Watch replaced by a new pr",
+    "errs": []
+   }
+  },
+  {
+   "check": "TROPICAL View on map (warning): Active now at the venue, the warning selected, Tropical layer",
+   "pass": true,
+   "detail": {
+    "s": {
+     "view": "active",
+     "sel": "KMOB.HU.W.1009.2026#ALZ266",
+     "layers": {
+      "severe": false,
+      "flood": false,
+      "winter": false,
+      "fire": false,
+      "smoke": false,
+      "tropical": true,
+      "coastal": false,
+      "aviation": false
+     },
+     "wlevel": "MINOR",
+     "wwin": null,
+     "title": "Hurricane Warning",
+     "wssi": 0,
+     "mon": 0
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "COASTAL replay, Flagler Beach Pier (NWS places it in marine zone AMZ454, no land zone): flagged 'Coastal alert for the adjacent shoreline' for the Coastal Flagler products, with their end times",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "warning",
+     "headline": "Coastal alert for the adjacent shoreline: Coastal Flood Warning",
+     "line": "Issued for Coastal Flagler; NWS places the venue in no land forecast zone (AMZ454), 1 mile from that zone. It covers the shoreline next to the venue, not the venue's own zone. In effect until 5 a.m. Monday during the event.",
+     "product": "KJAX.CF.W.0004.2026#FLZ138",
+     "category": null,
+     "day": null,
+     "phases": [
+      "event"
+     ]
+    },
+    {
+     "kind": "advisory",
+     "headline": "Coastal alert for the adjacent shoreline: High Surf Advisory",
+     "line": "Issued for Coastal Flagler; NWS places the venue in no land forecast zone (AMZ454), 1 mile from that zone. It covers the shoreline next to the venue, not the venue's own zone. In effect until 10 p.m. during the event.",
+     "product": "KJAX.SU.Y.0012.2026#FLZ138",
+     "category": null,
+     "day": null,
+     "phases": [
+      "event"
+     ]
+    },
+    {
+     "kind": "statement",
+     "headline": "Coastal alert for the adjacent shoreline: Rip Current Statement",
+     "line": "Issued for Coastal Flagler; NWS places the venue in no land forecast zone (AMZ454), 1 mile from that zone. It covers the shoreline next to the venue, not the venue's own zone. In effect until 7 a.m. Sunday during the event.",
+     "product": "KJAX.RP.S.0035.2026#FLZ138",
+     "category": null,
+     "day": null,
+     "phases": [
+      "event"
+     ]
+    }
+   ]
+  },
+  {
+   "check": "COASTAL More info (adjacent shoreline): says the venue is in no land zone (AMZ454) and how far the alert's zone is",
+   "pass": true,
+   "detail": "Source\nNWS Jacksonville FL · official product\nIssued\nSat, Nov 21, 1:11 PM EST\nIn effect\nuntil Mon, Nov 23, 5:00 AM EST\nLast checked\nSat, Nov 21, 1:30 PM EST\nVenue\nCoastal alert for the adjacent shoreline: NWS places the venue in no land forecast zone (AMZ454); the alert was issued for the coastal zone 1 mile away\nDetails\nCoastal flood warning now in effect until 5 am est monday... ...high surf advisory now in effect until 10 pm est this evening... ...high rip current risk remains in effect through sunday morning"
+  },
+  {
+   "check": "COASTAL inland point 0.6 mi from Coastal Flagler (NWS: Inland Flagler): only the Coastal Flood Warning issued for its own zone; no surf or rip current flag",
+   "pass": true,
+   "detail": [
+    "Coastal Flood Warning during the event"
+   ]
+  },
+  {
+   "check": "COASTAL same page: Flagler warning → Jacksonville Beach advisory (no warning) → Monday noon none → back",
+   "pass": true,
+   "detail": [
+    "Coastal Flood Warning+High Surf Advisory+Rip Current Statement",
+    "Coastal Flood Advisory+High Surf Advisory+Rip Current Statement",
+    "none",
+    "Coastal Flood Warning+High Surf Advisory+Rip Current Statement"
+   ]
+  },
+  {
+   "check": "COASTAL View on map: the Coastal Flood Warning selected, Coastal layer",
+   "pass": true,
+   "detail": {
+    "s": {
+     "view": "active",
+     "sel": "KJAX.CF.W.0004.2026#FLZ138",
+     "layers": {
+      "severe": false,
+      "flood": false,
+      "winter": false,
+      "fire": false,
+      "smoke": false,
+      "tropical": false,
+      "coastal": true,
+      "aviation": false
+     },
+     "wlevel": "MINOR",
+     "wwin": null,
+     "title": "Coastal Flood Warning",
+     "wssi": 0,
+     "mon": 0
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "COASTAL phone: Planner section without horizontal scroll",
+   "pass": true,
+   "detail": []
+  },
+  {
+   "check": "LIVE coastal at Flagler Beach Pier: Planner lists exactly the coastal products NWS has active for Coastal Flagler now (Coastal Flood Warning, Rip Current Statement)",
+   "pass": true,
+   "detail": {
+    "liveEv": [
+     "Coastal Flood Warning",
+     "Rip Current Statement"
+    ],
+    "gotEv": [
+     "Coastal Flood Warning",
+     "Rip Current Statement"
+    ],
+    "items": [
+     "Coastal alert for the adjacent shoreline: Coastal Flood Warning",
+     "Coastal alert for the adjacent shoreline: Rip Current Statement"
+    ],
+    "st": [
+     "NWS warnings, watches and advisories: Checked 12:26 p.m.",
+     "SPC fire weather outlooks: Checked 12:26 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+     "NOAA satellite smoke analysis (HMS): Checked 12:26 p.m.",
+     "AirNow air quality observations: Checked 12:26 p.m. · nearest monitor Flagler County (10 miles west): AQI 22 Good (Ozone) for 12 p.m.",
+     "AirNow air quality forecasts: No AirNow forecast area for this venue.",
+     "NHC tropical outlooks and storm products: Checked 12:26 p.m.",
+     "NIFC wildfire incidents (WFIGS): Checked 12:26 p.m.",
+     "WPC winter storm severity outlook (WSSI-P): Checked 12:26 p.m.",
+     "WPC Excessive Rainfall Outlook: Checked 12:26 p.m. · Day 1 issued 1542Z, Day 2 issued 0729Z, Day 3 issued 0729Z"
+    ]
+   }
+  },
+  {
+   "check": "LIVE NHC on the map: the Tropical Weather Outlook areas NHC publishes now are drawn (0 area(s)); the source states its check",
+   "pass": true,
+   "detail": {
+    "s4": {
+     "two": 0,
+     "cones": 0,
+     "nhc": "empty",
+     "txt": ""
+    },
+    "svc": {
+     "count": 0
+    }
+   }
+  },
+  {
+   "check": "WSSI-P Extreme layer failing (blocked): after the retry, Extreme is unavailable, the other levels are kept, and Planner's source line says 'Extreme unavailable'",
+   "pass": true,
+   "detail": {
+    "w": {
+     "state": "ok",
+     "lastOk": "2026-11-22T17:26:33.808Z",
+     "count": 30,
+     "error": null,
+     "validEnd": "2026-11-29T12:00:00.000Z",
+     "issued": "2026-11-22T14:18:34.000Z",
+     "unavailable": [
+      "EXTREME"
+     ]
+    },
+    "st": [
+     "WPC winter storm severity outlook (WSSI-P): Checked 10:26 a.m. · file 1418Z · Extreme unavailable"
+    ]
+   }
+  },
+  {
+   "check": "WSSI-P More info: Extreme unavailable, the answered levels listed with their chances",
+   "pass": true,
+   "detail": "Source\nNWS Weather Prediction Center · WSSI-P (official product)\nIssued\nWPC file Sun, Nov 22, 7:18 AM MST\nValid\n24 hours, Sun, Nov 22, 11:00 PM MST → Mon, Nov 23, 11:00 PM MST\nChances at the venue\nWinter weather (any) 60% · Minor under 5% · Moderate under 5% · Major under 5% · Extreme unavailable (NOAA's service did not answer for this level)\nOverlaps\nevent\nLast checked\nSun, Nov 22, 10:26 AM MST\nCovers through\nSun, Nov 29, 5:00 AM MST (the last 24-hour window WPC has published)\nVenue\nProbabilities at the venue pin (WPC map service point query)\nDetails\nExpect winter weather and winter driving conditions. WSSI-P gives the chance of reaching each impact level somewhere in the 24 hours; it does not time anything within them."
+  },
+  {
+   "check": "WSSI-P on the map with the Extreme layer failing: the winter panel shows 'Extreme unavailable' and keeps the other levels",
+   "pass": true,
+   "detail": {
+    "wtxt": "Winter weather 50%\nMinor under 5%\nModerate under 5%\nMajor under 5%\nExtreme unavailable",
+    "errs": []
+   }
+  },
+  {
+   "check": "NOAA smoke guidance off on the map too: no request to NOAA's smoke raster, no NAQFC row, no concentration shown",
+   "pass": true,
+   "detail": {
+    "n": 0,
+    "rows": [
+     "NWS warnings, watches and advisories\nChecked 12:26 PM EST",
+     "NOAA satellite smoke (HMS)\nChecked 12:26 PM EST",
+     "AirNow observations near the venue\nChecked 12:26 PM EST",
+     "AirNow forecast (venue's area)\nChecked 12:26 PM EST · none active",
+     "AirNow monitors (map)\nChecked 12:26 PM EST"
+    ]
+   }
+  },
+  {
+   "check": "AVIATION archived: O'Hare (primary) has IFR in its TAF during the arrival window and IFR now; Midway (alternate) named separately; each item names the airport, window and issue/observation time",
+   "pass": true,
+   "detail": [
+    {
+     "kind": "metar",
+     "headline": "KORD now: IFR (observed 10:31 a.m.)",
+     "line": "Primary airport Chicago/O'Hare Intl, IL, US METAR 1631Z: SPECI KORD 221631Z 24009KT 10SM BKN009 BKN049 OVC070 13/11 A2983 RMK AO2 RAE09 P0002 T01280111 $. Current conditions, not a forecast for your flight window.",
+     "product": "metar-KORD-2026-11-22T16:31:00.000Z",
+     "category": "IFR",
+     "day": null,
+     "phases": []
+    },
+    {
+     "kind": "taf",
+     "headline": "KORD arrival (Sun 10:45 a.m.–11:30 a.m.): temporarily IFR forecast",
+     "line": "Primary airport Chicago/O'Hare Intl. TAF issued 1627Z (amended); the TEMPO 10 a.m.–11 a.m. period (ceiling 700 ft, visibility 5 mi, -RA -DZ BR) overlaps your arrival window. Terminal forecast for the airport, not the venue.",
+     "product": "taf-KORD-2026-11-22T16:27:00.000Z",
+     "category": null,
+     "day": null,
+     "phases": []
+    },
+    {
+     "kind": "taf",
+     "headline": "KMDW arrival (Sun 10:45 a.m.–11:30 a.m.): temporarily IFR forecast",
+     "line": "Alternate airport Chicago/Midway Intl. TAF issued 1631Z (amended); the TEMPO 11 a.m.–12 p.m. period (ceiling 900 ft, visibility 5 mi, -RA -DZ BR) overlaps your arrival window. Terminal forecast for the airport, not the venue.",
+     "product": "taf-KMDW-2026-11-22T16:31:00.000Z",
+     "category": null,
+     "day": null,
+     "phases": []
+    }
+   ]
+  },
+  {
+   "check": "AVIATION: the venue itself has no hazard item (venue looks fine) while the arrival airport has the concern",
+   "pass": true,
+   "detail": 0
+  },
+  {
+   "check": "AVIATION More info: airport and role, TAF issue (amended), valid window, your arrival window, the overlapping TEMPO period, the raw TAF",
+   "pass": true,
+   "detail": "Airport\nKORD · Chicago/O'Hare Intl · primary airport\nSource\nNOAA Aviation Weather Center · TAF\nIssued\nSun, Nov 22, 10:27 AM CST (1627Z, amended)\nValid\nSun, Nov 22, 10:00 AM CST → Mon, Nov 23, 12:00 PM CST\nYour arrival window\nSun, Nov 22, 10:45 AM CST → Sun, Nov 22, 11:30 AM CST\nOverlapping periods\nTEMPO Sun, Nov 22, 10:00 AM CST → Sun, Nov 22, 11:00 AM CST: IFR, ceiling 700 ft, visibility 5 mi, -RA -DZ BR\nFlight category\nFrom the TAF's ceiling and visibility, FAA definitions (IFR: ceiling 500 to under 1,000 ft or visibility 1 to under 3 mi)\nRaw TAF\nTAF KORD 221627Z 2216/2318 23010KT P6SM -SHRA SCT007 BKN013 TEMPO 2216/2217 5SM -RADZ BR BKN007 FM221730 30015G25KT P6SM BKN015 FM230000 30015G28KT P6SM FEW025 FM231400 31012G21KT P6SM SCT025\nLast checked\nSun, Nov 22, 10:35 AM CST"
+  },
+  {
+   "check": "AVIATION: airport items follow their own windows, not the event hours (moving the event leaves the arrival items)",
+   "pass": true,
+   "detail": [
+    2,
+    2,
+    2
+   ]
+  },
+  {
+   "check": "AVIATION View on map: Aviation layer, the event's airports drawn with their flight category, O'Hare's TAF selected",
+   "pass": true,
+   "detail": {
+    "view": "active",
+    "sel": "taf-KORD-2026-11-22T16:27:00.000Z",
+    "layers": {
+     "severe": false,
+     "flood": false,
+     "winter": false,
+     "fire": false,
+     "smoke": false,
+     "tropical": false,
+     "coastal": false,
+     "aviation": true
+    },
+    "air": [
+     "KORD",
+     "KMDW"
+    ],
+    "apt": [
+     "KMDW · MVFR",
+     "KORD · IFR"
+    ],
+    "title": "Chicago/O'Hare Intl"
+   }
+  },
+  {
+   "check": "AVIATION phone: Planner section and airports form without horizontal scroll",
+   "pass": true,
+   "detail": []
+  },
+  {
+   "check": "LIVE aviation: METAR and TAF for KORD and KMDW through the same-origin function with their upstream time; the source line names each airport's METAR and TAF times",
+   "pass": true,
+   "detail": {
+    "af": [
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/awc/taf?ids=KMDW,KORD",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-22T17:27:14.217Z"
+     },
+     {
+      "url": "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/api/awc/metar?ids=KMDW,KORD",
+      "status": 200,
+      "cache": "MISS",
+      "upstreamAt": "2026-11-22T17:27:15.077Z"
+     }
+    ],
+    "st": [
+     "Aviation Weather Center (METAR and TAF): Checked 11:27 a.m. · KORD METAR 1719Z MVFR · TAF 1706Z AMD valid to Mon 12 p.m. | KMDW METAR 1712Z IFR · TAF 1708Z AMD valid to Mon 12 p.m."
+    ],
+    "items": [
+     "KMDW now: IFR (observed 11:12 a.m.)",
+     "KORD arrival (Sun 11:42 a.m.–12:42 p.m.): IFR forecast",
+     "KMDW arrival (Sun 11:42 a.m.–12:42 p.m.): temporarily IFR forecast"
+    ]
+   }
+  },
+  {
+   "check": "NWS outage: status says not responding and the summary is not 'no threats'",
+   "pass": true,
+   "detail": {
+    "summary": "Not fully confirmed: no flooding, winter weather, fire weather or wildfire, smoke or air quality, tropical, coastal and airport weather threats found in the data we have, but a source is unavailable, stale or doesn't cover this venue or date.",
+    "confirmed": false,
+    "items": [],
+    "statuses": [
+     "NWS warnings, watches and advisories: Not responding · status unknown. We can't rule anything out from this source.",
+     "SPC fire weather outlooks: Checked 12:27 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+     "NOAA satellite smoke analysis (HMS): Checked 12:27 p.m.",
+     "AirNow air quality observations: Checked 12:27 p.m.",
+     "AirNow air quality forecasts: Checked 12:27 p.m. · Atlanta reporting area",
+     "NHC tropical outlooks and storm products: Checked 12:27 p.m.",
+     "NIFC wildfire incidents (WFIGS): Checked 12:27 p.m.",
+     "WPC winter storm severity outlook (WSSI-P): Checked 12:27 p.m.",
+     "WPC Excessive Rainfall Outlook: Checked 12:26 p.m. · Day 1 issued 1542Z, Day 2 issued 0729Z, Day 3 issued 0729Z"
+    ],
+    "maps": []
+   }
+  }
+ ]
+}

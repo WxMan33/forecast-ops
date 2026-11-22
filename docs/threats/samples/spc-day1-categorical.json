@@ -1,0 +1,39 @@
+{
+ "_note": "Real response from https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson (fetched 2026-11-20). Geometry omitted.",
+ "features": [
+  {
+   "properties": {
+    "DN": 2,
+    "VALID": "202611201630",
+    "EXPIRE": "202611211200",
+    "ISSUE": "202611201624",
+    "VALID_ISO": "2026-11-20T16:30:00+00:00",
+    "EXPIRE_ISO": "2026-11-21T12:00:00+00:00",
+    "ISSUE_ISO": "2026-11-20T16:24:00+00:00",
+    "FORECASTER": "Gleason/Weinman",
+    "LABEL": "TSTM",
+    "LABEL2": "General Thunderstorms Risk",
+    "stroke": "#55BB55",
+    "fill": "#C1E9C1"
+   },
+   "geometry_type": "MultiPolygon"
+  },
+  {
+   "properties": {
+    "DN": 3,
+    "VALID": "202611201630",
+    "EXPIRE": "202611211200",
+    "ISSUE": "202611201624",
+    "VALID_ISO": "2026-11-20T16:30:00+00:00",
+    "EXPIRE_ISO": "2026-11-21T12:00:00+00:00",
+    "ISSUE_ISO": "2026-11-20T16:24:00+00:00",
+    "FORECASTER": "Gleason/Weinman",
+    "LABEL": "MRGL",
+    "LABEL2": "Marginal Risk",
+    "stroke": "#005500",
+    "fill": "#66A366"
+   },
+   "geometry_type": "Polygon"
+  }
+ ]
+}
