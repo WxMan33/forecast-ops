@@ -26,7 +26,9 @@
   /* a saved event opened again in a later session (approximate, per browser) */
   if (!linkEvent && !linkCity && !isSample()) { const last = O.store.get(SEEN, null); let sess = null; try { sess = sessionStorage.getItem("beta_sess_seen"); sessionStorage.setItem("beta_sess_seen", "1"); } catch (e) { /* no storage */ }
     if (last && !sess) U.track("event_revisited"); }
-  const link = () => { const u = new URL(location.href); u.hash = ""; u.search = isSample() ? new URLSearchParams({ lat: ev.loc.lat, lon: ev.loc.lon, name: ev.loc.name, tz: ev.tz }) : new URLSearchParams({ e: S.eventToParam(ev) }); return u.toString(); };
+  const link = () => { const u = new URL(location.href); u.hash = ""; u.search = isSample() ? new URLSearchParams({ lat: ev.loc.lat, lon: ev.loc.lon, name: ev.loc.name, tz: ev.tz }) : new URLSearchParams({ e: S.eventToParam(ev) });
+    const x = !isSample() && window.EventThreats && window.EventThreats.shareParams ? window.EventThreats.shareParams(ev) : null; if (x) Object.entries(x).forEach(([k, v]) => u.searchParams.set(k, v)); // weather threats: airports travel beside the event, never inside e
+    return u.toString(); };
   /* Print / PDF sits in the toolbar with the other page controls (before Feedback); live once a briefing is ready */
   const PRINT_ICON = '<svg class="bx-ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 6V1.5h8V6M4 12H2.5A1 1 0 0 1 1.5 11V7a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H12M4 9.5h8v5H4z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
   const head = U.header({ audience: "Event", other: { self: "event-beta.html", href: "meteorologist-beta.html", label: "Met" }, ctx: `<div id="picker" class="bx-ctx" style="flex:1 1 auto"></div>`,

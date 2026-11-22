@@ -17,8 +17,11 @@
      ?air=[{"i":"KORD","r":"p","a":["2026-11-22T10:45","2026-11-22T11:30"],"d":[...]}, …]. */
   const AIR_KEY = "threats_airports_v1";
   const evKey = (e) => (e.id && e.id !== "link" ? e.id : "link:" + (e.loc && e.loc.name) + "@" + (e.times && e.times.start));
+  /* airports that arrived in a shared link (?air=) apply until the person saves their own; they are also kept with the
+     event in this browser, so they survive a reload or saving the shared event to this browser's list */
+  let linkAir = (() => { try { const a = JSON.parse(Q.get("air") || "null"); return Array.isArray(a) && a.length ? a.slice(0, 2) : null; } catch (x) { return null; } })();
   function airportsRaw(e) {
-    if (Q.get("air")) { try { const a = JSON.parse(Q.get("air")); if (Array.isArray(a)) return a; } catch (x) { /* ignore */ } }
+    if (linkAir) return linkAir;
     try { return (JSON.parse(localStorage.getItem(AIR_KEY) || "{}") || {})[evKey(e)] || []; } catch (x) { return []; }
   }
   function saveAirports(e, list) { try { const all = JSON.parse(localStorage.getItem(AIR_KEY) || "{}") || {}; all[evKey(e)] = list; localStorage.setItem(AIR_KEY, JSON.stringify(all)); } catch (x) { /* no storage */ } }
@@ -56,7 +59,7 @@
     const airports = airportsOf(ev);
     const r = M.forEvent({ products: data.products, state, event: { lat: +ev.loc.lat, lon: +ev.loc.lon, name: ev.loc.name, tz: ev.tz, windows: C.event.windows(ev), zones, airports }, now, families: FAMILIES });
     const tz = ev.tz;
-    const items = r.items.map((it) => {
+    const renderItem = (it) => {
       const p = it.product, id = esc(it.id), isOpen = open.has(it.id), src = state[p.sourceId] || {};
       const wsp = p.program === "wssip", started = p.kind !== "outlook" && Date.parse(p.issued) > now;
       const inc = p.kind === "incident", fo = /^spcfire-/.test(p.program || ""), acres = (v) => Math.round(v).toLocaleString("en-US") + " acres";
@@ -157,7 +160,14 @@
         <div class="et-main"><b class="et-head">${esc(it.headline)}</b><span class="et-line">${esc(it.line)}</span>
           <span class="et-actions"><button type="button" class="bx-link et-more" data-id="${id}" aria-expanded="${isOpen}">More info</button> · <a class="bx-link" href="${esc(mapLink(it))}" data-map="${id}">View on map</a></span></div>
         <dl class="et-detail" ${isOpen ? "" : "hidden"}>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></li>`;
-    }).join("");
+    };
+    const venueItems = r.items.filter((it) => it.family !== "aviation").map(renderItem).join("");
+    const byId = new Map(r.items.map((it) => [it.id, it]));
+    const okLine = (x) => `<li class="et-ok${x.unknown ? " et-unk" : ""}" data-kind="airport-plain">${esc(x.text)}</li>`;
+    const apBlocks = (r.airports || []).map((a) => `<div class="et-ap" data-icao="${esc(a.icao)}"><h4 class="et-aph">${esc(a.name + " (" + a.icao + ")")} · ${esc(a.role)} airport</h4><ul class="et-list">${
+      [...a.windows, ...(a.now ? [a.now] : [])].map((x) => (x.concern && byId.get(x.itemId) ? renderItem(byId.get(x.itemId)) : okLine(x))).join("")}</ul></div>`).join("");
+    const hasAir = FAMILIES.includes("aviation");
+    const airSec = !hasAir ? "" : `<h3 class="et-h" id="etAirHead">Airport weather</h3>${apBlocks || '<p class="bx-note et-noair">No airports set for this event. Add a primary and an optional alternate airport with your flight times below.</p>'}${apBlocks && linkAir ? '<p class="bx-note et-linkair">Airports and flight times came with the shared link. Change them below to keep your own in this browser.</p>' : ""}${apBlocks ? '<p class="bx-note">Airport forecasts and observations from the NOAA Aviation Weather Center, for the airport, not the venue. Codes and the raw reports are under More info.</p>' : ""}`;
     const statuses = r.statuses.map((s) => `<li class="${s.ok ? "" : "et-warn"}"><b>${esc(s.name)}</b> · ${esc(s.text)}</li>`).join("");
     const label = ARCHIVE ? `<p class="et-sample"><span class="bx-label">Archived sample</span> ${esc(data.archive ? data.archive.label : "")}. Real official products replayed at that time; not live.</p>` : "";
     const notes = (r.notes || []).map((n) => `<p class="et-note" data-note="${esc(n.id)}">${esc(n.text)}</p>`).join("");
@@ -166,8 +176,10 @@
         <label>Arrive from <input type="datetime-local" name="${k}a0" value="${esc((x.a || [])[0] || "")}" class="input"></label><label>to <input type="datetime-local" name="${k}a1" value="${esc((x.a || [])[1] || "")}" class="input"></label>
         <label>Depart from <input type="datetime-local" name="${k}d0" value="${esc((x.d || [])[0] || "")}" class="input"></label><label>to <input type="datetime-local" name="${k}d1" value="${esc((x.d || [])[1] || "")}" class="input"></label></fieldset>`; };
     const airForm = `<details class="bx-more et-air"${ap.length ? "" : ""}><summary>Airports for this event${ap.length ? ": " + esc(ap.map((x) => x.i.toUpperCase()).join(", ")) : " (optional)"}</summary><form class="et-airform">${slot("p", "p")}${slot("a", "a")}<button type="submit" class="btn">Save airports</button><p class="bx-note">Times in ${esc(tz)}. Checked against each airport's own METAR and TAF from the NOAA Aviation Weather Center.</p></form></details>`;
-    box.innerHTML = `${label}${notes}<p class="et-summary${r.items.length ? " has" : r.confirmed ? "" : " warn"}" data-confirmed="${r.confirmed}">${esc(r.summary)}</p>
-      ${items ? `<ul class="et-list">${items}</ul>` : ""}
+    const vCount = r.items.filter((it) => it.family !== "aviation").length, venueOnly = FAMILIES.some((f) => f !== "aviation");
+    box.innerHTML = `${label}${notes}${venueOnly ? `<h3 class="et-h" id="etVenueHead">Venue hazards</h3><p class="et-summary${vCount ? " has" : r.venueConfirmed ? "" : " warn"}" data-confirmed="${r.venueConfirmed}">${esc(r.venueSummary)}</p>
+      ${venueItems ? `<ul class="et-list">${venueItems}</ul>` : ""}` : `<p class="et-summary${r.items.length ? " has" : r.confirmed ? "" : " warn"}" data-confirmed="${r.confirmed}">${esc(r.summary)}</p>`}
+      ${airSec}
       <details class="bx-more et-sources"><summary>Sources checked for this event</summary><ul>${statuses}</ul>
       <p class="bx-note">Matched to the venue pin and the event's own schedule (${esc(tz)}). Official warnings and outlooks only; daily outlooks flag a period and do not time anything within it. Delivery by email, text or push is not part of this preview.</p></details>`;
     // the airports form lives beside the list and is drawn only when the event changes (typing is never interrupted)
@@ -180,12 +192,23 @@
   function aqCheck() { if (!ARCHIVE && ready && ev && ev.loc && Number.isFinite(+ev.loc.lat) && Live.aqFor) Live.aqFor(+ev.loc.lat, +ev.loc.lon); }
   function tcCheck() { if (!ARCHIVE && ready && ev && ev.loc && Number.isFinite(+ev.loc.lat) && Live.tropicalFor) Live.tropicalFor(+ev.loc.lat, +ev.loc.lon); }
   function avCheck() { if (!ARCHIVE && ready && ev && Live.airportsFor) { const ids = airportsOf(ev).map((a) => a.icao); if (ids.length) Live.airportsFor(ids); } }
-  function update(next) { ev = next; wssiCheck(); aqCheck(); tcCheck(); avCheck(); render(); }
+  function update(next) { ev = next; if (linkAir) saveAirports(ev, linkAir); wssiCheck(); aqCheck(); tcCheck(); avCheck(); render(); shareNote(); }
+  /* sharing: Event Manager's link() asks for extra params; the airports (ICAO, role and flight windows) travel as ?air=,
+     outside the event payload. The Share menu says what the link carries. */
+  function shareParams(e) { const list = airportsRaw(e || ev).filter((x) => x && x.i); return list.length ? { air: JSON.stringify(list) } : null; }
+  function shareNote() {
+    const btn = document.getElementById("shareEvent"); if (!btn || !ev) return;
+    let n = document.getElementById("shareAirNote"); if (!n) { n = document.createElement("p"); n.id = "shareAirNote"; n.className = "bx-note et-sharenote"; btn.parentElement.appendChild(n); }
+    const list = airportsRaw(ev).filter((x) => x && x.i), wk = (x) => [x.a ? "arrival" : null, x.d ? "departure" : null].filter(Boolean);
+    n.textContent = ev.sample ? "Weather threats: the sample event's link carries the city only, not airports." : list.length ? "Weather threats: this link includes " + list.map((x) => x.i.toUpperCase() + " (" + (x.r === "a" ? "alternate" : "primary") + (wk(x).length ? ", " + wk(x).join(" and ") + " times" : ", no flight times") + ")").join(" and ") + ", so the airport weather opens with it. Venue hazards are checked again when the link is opened."
+      : "Weather threats: no airports are set for this event, so the link carries none. Venue hazards are checked again when the link is opened.";
+    n.dataset.airports = String(list.length);
+  }
   document.addEventListener("submit", (e) => {
     const f = e.target.closest(".et-airform"); if (!f || !ev) return; e.preventDefault();
     const v = (n) => (f.elements[n] && f.elements[n].value || "").trim(), list = [];
     for (const [k, r] of [["p", "p"], ["a", "a"]]) if (v(k + "i")) list.push({ i: v(k + "i").toUpperCase(), r, a: v(k + "a0") && v(k + "a1") ? [v(k + "a0"), v(k + "a1")] : null, d: v(k + "d0") && v(k + "d1") ? [v(k + "d0"), v(k + "d1")] : null });
-    saveAirports(ev, list); avCheck(); render();
+    linkAir = null; saveAirports(ev, list); avCheck(); render(); shareNote();
   });
   document.addEventListener("click", (e) => {
     const b = e.target.closest(".et-more"); if (!b) return;
@@ -198,6 +221,6 @@
     Live.onUpdate(() => { tcCheck(); render(); }); // tcCheck: once NHC has answered, the venue's wind probabilities (cached)
     setInterval(() => { if (!document.hidden) render(); }, 30e3);
   }
-  window.EventThreats = { update, render, current: () => ev };
+  window.EventThreats = { update, render, shareParams, current: () => ev };
   start();
 })();

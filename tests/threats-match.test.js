@@ -467,17 +467,28 @@ console.log(n + " passed (with winter, fire, smoke, tropical and coastal)");
   ok("AVIATION: the venue has no official hazard, but the primary arrival airport (O'Hare) has IFR in its TAF during the arrival window, and IFR now; the alternate (Midway) is named separately", () => {
     const ev = evA(SUN, airports);
     assert.strictEqual(M.forEvent({ products: AV, state: { "nws-alerts": OK(CLK) }, event: ev, now: CLK, families: ["severe", "flood", "winter"] }).items.length, 0, "venue looks fine");
-    const r = runA(ev), h = r.items.map((i) => i.headline);
-    assert.ok(h.includes("KORD arrival (Sun 10:45 a.m.–11:30 a.m.): temporarily IFR forecast"), JSON.stringify(h));
-    assert.ok(h.includes("KORD now: IFR (observed 10:31 a.m.)"), JSON.stringify(h));
-    assert.ok(h.includes("KMDW arrival (Sun 10:45 a.m.–11:30 a.m.): temporarily IFR forecast"), JSON.stringify(h));
-    const ord = r.items.find((i) => i.headline.startsWith("KORD arrival"));
-    assert.match(ord.line, /^Primary airport Chicago\/O'Hare Intl\. TAF issued 1627Z \(amended\); the TEMPO 10 a\.m\.–11 a\.m\. period \(ceiling 700 ft, visibility 5 mi, -RA -DZ BR\) overlaps your arrival window\. Terminal forecast for the airport, not the venue\.$/);
+    const r = runA(ev), c = r.items.map((i) => i.code), h = r.items.map((i) => i.headline);
+    assert.ok(c.includes("KORD arrival (Sun 10:45 a.m.–11:30 a.m.): temporarily IFR forecast"), JSON.stringify(c));
+    assert.ok(c.includes("KORD now: IFR (observed 10:31 a.m.)"), JSON.stringify(c));
+    assert.ok(c.includes("KMDW arrival (Sun 10:45 a.m.–11:30 a.m.): temporarily IFR forecast"), JSON.stringify(c));
+    // plain language leads; no raw report or code group in the headline or the line
+    assert.ok(h.includes("Low clouds (ceiling 700 ft) at times during your arrival, Sun 10:45 a.m.–11:30 a.m. at O'Hare (KORD) · IFR"), JSON.stringify(h));
+    assert.ok(h.some((x) => /^Right now at O'Hare \(KORD\): low clouds \(ceiling \d[\d,]* ft\).* · IFR, observed 10:31 a\.m\.$/.test(x)), JSON.stringify(h));
+    const ord = r.items.find((i) => i.code.startsWith("KORD arrival"));
+    assert.strictEqual(ord.line, "Primary airport. From the airport's forecast issued 10:27 a.m. (amended); a forecast for the airport, not the venue.");
+    assert.ok(r.items.filter((i) => i.family === "aviation").every((i) => !/METAR|TAF|\d{4}Z|KORD \d/.test(i.headline + " " + i.line)), "no raw codes up front");
     assert.match(r.items.find((i) => i.airport === "KMDW").line, /^Alternate airport/);
+    // per-airport summary: every window gets a plain line, concerns or not
+    const so = r.airports.find((x) => x.icao === "KORD");
+    assert.deepStrictEqual([so.name, so.role, so.windows.map((w) => w.kind + ":" + w.concern)], ["O'Hare", "primary", ["arrival:true", "departure:false"]]);
+    assert.match(so.windows[1].text, /^Your departure, Mon 10 a\.m\.–11 a\.m\. at O'Hare \(KORD\): good flying conditions forecast \(VFR\)\.$/);
+    assert.ok(so.now.concern && r.airports.find((x) => x.icao === "KMDW").windows.length === 1);
+    assert.strictEqual(r.venueSummary, ""); // aviation-only run
     assert.match(r.statuses.find((x) => x.id === "awc").text, /KORD METAR 1631Z IFR · TAF 1627Z AMD valid to Mon 12 p\.m\./);
   });
   ok("AVIATION: the Monday departure window falls in O'Hare's VFR period (no item); moving the arrival to the afternoon drops the IFR item; a window past the TAF says so", () => {
     const r = runA(evA(SUN, airports)); assert.ok(!r.items.some((i) => /departure/.test(i.headline)));
+    const rv = runA(evA(SUN, airports), ["flood", "aviation"]); assert.match(rv.venueSummary, /^Not fully confirmed: no flooding threats found at the venue/); assert.ok(!/airport/.test(rv.venueSummary)); assert.ok(/weather threats? for this event/.test(rv.summary));
     const later = [{ icao: "KORD", role: "primary", arrive: W("2026-11-22T20:00:00Z", "2026-11-22T21:00:00Z"), depart: null }];
     assert.ok(!runA(evA(SUN, later)).items.some((i) => i.kind === "taf"));
     const past = [{ icao: "KORD", role: "primary", arrive: null, depart: W("2026-11-23T20:00:00Z", "2026-11-23T21:00:00Z") }];

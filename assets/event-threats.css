@@ -32,3 +32,11 @@
 .et-airfs label { display: grid; gap: 2px; font-size: 12.5px; min-width: 0; }
 .et-airfs input { max-width: 100%; }
 .et-airfs input[name$="i"] { width: 6em; text-transform: uppercase; }
+/* venue hazards and airport weather under their own headings */
+.et-h { font-size: 1rem; margin: 12px 0 2px; }
+.et-h:first-of-type { margin-top: 4px; }
+.et-ap { margin: 6px 0 10px; }
+.et-aph { font-size: .92rem; margin: 6px 0 2px; font-weight: 600; }
+.et-ok { list-style: none; padding: 4px 0; color: var(--muted, inherit); }
+.et-ok.et-unk { color: var(--monitor, #b58100); }
+.et-sharenote { margin-top: 4px; }

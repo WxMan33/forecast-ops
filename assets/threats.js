@@ -977,13 +977,25 @@
   setInterval(() => { if (isLive() && liveReady) { load(); drawAll(); } }, 30e3);
   startModel();
   setSheet(phone() ? (S.sheet || "peek") : "open");
+  /* Planner's airport "View on map": frame the selected airport together with the venue (both stay in view) */
+  let framedAp = false;
+  function frameAirport(duration) {
+    if (!map || !S.ap) return false;
+    const p = (data.products || []).find((x) => x.family === "aviation" && x.airport === S.ap && Array.isArray(x.point)); if (!p) return false;
+    const pts = [p.point]; if (S.scope === "venue" && venue && Number.isFinite(+venue.lon)) pts.push([+venue.lon, +venue.lat]);
+    const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]), m = 0.05;
+    map.fitBounds([[Math.min(...xs) - m, Math.min(...ys) - m], [Math.max(...xs) + m, Math.max(...ys) + m]], { padding: pad(), maxZoom: 10, duration });
+    framedAp = true; return true;
+  }
   createMap().then(() => {
     map.once("load", () => {
+      if (S.ap && frameAirport(0)) return;
+      if (S.ap) { const off = Live.onUpdate(() => { if (!framedAp && frameAirport(500) && typeof off === "function") off(); }); } // live: the airport's report may still be on its way
       if (S.sel && byId(S.sel) && byId(S.sel).geometry) { const b = T.bbox(byId(S.sel).geometry); map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: pad(), maxZoom: 9, duration: 0 }); }
       else if (isArchive()) fitArchive();
       else if (S.scope === "venue") map.jumpTo(venueCamera());
       else map.fitBounds(CONUS, { padding: pad(), duration: 0 });
     });
   }).catch((e) => { $("txMap").innerHTML = `<p class="msg" style="padding:20px">The map could not load (${esc(e.message)}). The threat list still works.</p>`; });
-  window.__threats = { S, drawAll, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
+  window.__threats = { S, drawAll, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
 })();
