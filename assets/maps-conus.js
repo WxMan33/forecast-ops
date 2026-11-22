@@ -216,6 +216,15 @@
     const base = [">=", ["get", "pop"], ["interpolate", ["linear"], ["zoom"], 3, 2500000, 5, 600000, 7, 100000]];
     try { st.map.setFilter("places", names.length ? ["all", base, ["!", ["in", ["get", "name"], ["literal", names]]]] : base); } catch (e) { /* style not ready */ }
   }
+  /* Shading opacity: fades only the coloured forecast layer (it is drawn under boundaries, names and numbers); 100% is the
+     standard look, 0% leaves the numbers on the plain basemap. A uniform in the draw call: nothing is fetched or re-decoded. */
+  const SHADE_FULL = 0.85;
+  st.shade = (() => { const v = Number(Q.get("shade")); return Q.get("shade") != null && Number.isFinite(v) ? Math.max(0, Math.min(100, Math.round(v))) : 100; })();
+  function setShade(v) {
+    st.shade = Math.max(0, Math.min(100, Math.round(Number(v)))); if (!Number.isFinite(st.shade)) st.shade = 100;
+    const sl = $("shadeSl"); if (sl) { sl.value = String(st.shade); sl.setAttribute("aria-valuetext", `${st.shade}%`); $("shadeOut").textContent = `${st.shade}%`; $("shadeReset").disabled = st.shade === 100; }
+    if (st.map) st.map.triggerRepaint(); share();
+  }
   function setValues(on) {
     st.values = !!on; try { localStorage.setItem("conus_values", on ? "1" : "0"); } catch (e) { /* private mode */ }
     const b = $("valBtn"); if (b) { b.setAttribute("aria-pressed", String(st.values)); b.textContent = st.values ? "VALUES ON" : "VALUES OFF"; }
@@ -225,10 +234,13 @@
   /* ---------- GPU layer ---------- */
   const VS = `attribute vec2 a_pos; attribute vec2 a_g; uniform mat4 u_matrix; varying vec2 v_g;
     void main(){ v_g=a_g; gl_Position=u_matrix*vec4(a_pos,0.0,1.0); }`;
-  const FS = `precision highp float; uniform sampler2D u_tex; uniform sampler2D u_cmap; uniform vec2 u_size; uniform float u_every; uniform float u_scale; uniform vec2 u_lut; uniform float u_op; varying vec2 v_g;
+  const FS = `precision highp float; uniform sampler2D u_tex; uniform sampler2D u_cmap; uniform vec2 u_size; uniform float u_every; uniform float u_scale; uniform vec2 u_lut; uniform float u_op; uniform sampler2D u_mask; uniform vec2 u_msize; uniform float u_mevery; uniform float u_hasmask; varying vec2 v_g;
     void main(){
       vec2 t = floor(v_g / u_every);
       if (t.x < 0.0 || t.y < 0.0 || t.x >= u_size.x || t.y >= u_size.y) discard;
+      if (u_hasmask > 0.5) {   /* a finer level is drawn over this one: leave its cells to it, so no cell is blended twice */
+        vec2 tm = floor(v_g / u_mevery); vec4 m = texture2D(u_mask, (tm + 0.5) / u_msize);
+        if (!(m.a > 0.498 && m.a < 0.504 && m.r < 0.002)) discard; }   /* the mask cell holds a value unless it is the -32768 sentinel */
       vec4 s = texture2D(u_tex, (t + 0.5) / u_size);
       float st = floor(s.r * 255.0 + 0.5) + 256.0 * floor(s.a * 255.0 + 0.5);
       if (st >= 32768.0) st -= 65536.0;
@@ -242,7 +254,7 @@
     onAdd(map, gl) {
       this.gl = gl; const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
       const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(p); this.p = p;
-      this.loc = Object.fromEntries(["a_pos", "a_g"].map((n) => [n, gl.getAttribLocation(p, n)]).concat(["u_matrix", "u_tex", "u_cmap", "u_size", "u_every", "u_scale", "u_lut", "u_op"].map((n) => [n, gl.getUniformLocation(p, n)])));
+      this.loc = Object.fromEntries(["a_pos", "a_g"].map((n) => [n, gl.getAttribLocation(p, n)]).concat(["u_matrix", "u_tex", "u_cmap", "u_size", "u_every", "u_scale", "u_lut", "u_op", "u_mask", "u_msize", "u_mevery", "u_hasmask"].map((n) => [n, gl.getUniformLocation(p, n)])));
       this.buf = { pos: gl.createBuffer(), g: gl.createBuffer(), idx: gl.createBuffer() }; this.cmap = gl.createTexture(); this.tex = {}; this.count = 0;
       this.uint = !!(gl instanceof WebGL2RenderingContext || gl.getExtension("OES_element_index_uint"));
     },
@@ -273,13 +285,16 @@
     },
     render(gl, matrix) {
       if (!this.count || !st.draw) return; const F = FIELDS[st.field], spec = st.man.fields[st.field];
-      gl.useProgram(this.p); gl.uniformMatrix4fv(this.loc.u_matrix, false, matrix); gl.uniform1f(this.loc.u_op, 0.85);
+      gl.useProgram(this.p); gl.uniformMatrix4fv(this.loc.u_matrix, false, matrix); /* full strength as the layer always looked: 0.85 with one level, and the two-level stack's 1 - 0.15² when zoomed in */
+      const full = st.draw.length > 1 ? 1 - (1 - SHADE_FULL) ** 2 : SHADE_FULL; gl.uniform1f(this.loc.u_op, full * st.shade / 100);
       gl.uniform2f(this.loc.u_lut, F.range[0], F.range[1]);
       const at = (b, l) => { gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, 2, gl.FLOAT, false, 0, 0); };
       at(this.buf.pos, this.loc.a_pos); at(this.buf.g, this.loc.a_g); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buf.idx);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.cmap); gl.uniform1i(this.loc.u_cmap, 1);
       gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      st.draw.forEach((L) => { const T = this.tex[L]; if (!T) return;
+      st.draw.forEach((L, n) => { const T = this.tex[L]; if (!T) return; const Mk = n + 1 < st.draw.length ? this.tex[st.draw[n + 1]] : null;
+        gl.uniform1f(this.loc.u_hasmask, Mk ? 1 : 0);
+        if (Mk) { gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, Mk.t); gl.uniform1i(this.loc.u_mask, 2); gl.uniform2f(this.loc.u_msize, Mk.lv.nx, Mk.lv.ny); gl.uniform1f(this.loc.u_mevery, 2 ** st.draw[n + 1]); }
         gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, T.t); gl.uniform1i(this.loc.u_tex, 0);
         gl.uniform2f(this.loc.u_size, T.lv.nx, T.lv.ny); gl.uniform1f(this.loc.u_every, 2 ** L); gl.uniform1f(this.loc.u_scale, K.scaleOf(spec, L));
         gl.drawElements(gl.TRIANGLES, this.count, this.uint ? gl.UNSIGNED_INT : gl.UNSIGNED_SHORT, 0); });
@@ -414,7 +429,7 @@
     g.fillStyle = bg; g.fillRect(0, 0, W, H);
     g.fillStyle = fg; g.font = font(800, 40); g.fillText(`${M.label} · ${F.label}${F.units ? ` (${F.units})` : ""}`, 32, 56);
     g.font = font(600, 26); g.fillText(`Init ${fmtUTC(init)} · ${f2} · Valid ${fmtLocal(valid)} (${fmtUTC(valid)})`, 32, 96);
-    g.fillStyle = mute; g.font = font(500, 22); g.fillText([F.window ? windowText(F, fh) : "", F.note || ""].filter(Boolean).join("  ·  ").slice(0, 150), 32, 130);
+    g.fillStyle = mute; g.font = font(500, 22); g.fillText([F.window ? windowText(F, fh) : "", F.note || "", st.shade !== 100 ? `Shading ${st.shade}%` : ""].filter(Boolean).join("  ·  ").slice(0, 150), 32, 130);
     g.drawImage(map, 0, HEAD, W, mapH);
     if (hs !== "ok") { g.fillStyle = dark ? "rgba(13,17,23,.78)" : "rgba(255,255,255,.82)"; g.fillRect(0, HEAD + mapH / 2 - 40, W, 80); g.fillStyle = fg; g.font = font(700, 28); g.textAlign = "center"; g.fillText(gapText(fh, hs).slice(0, 110), W / 2, HEAD + mapH / 2 + 10); g.textAlign = "left"; }
     /* legend */
@@ -430,7 +445,7 @@
     const blob = await new Promise((ok, no) => c.toBlob((b) => (b ? ok(b) : no(new Error("no image"))), "image/png"));
     const a = document.createElement("a"), name = `forecast-ops-${M.key}-${st.field}-${st.run.id}z-${f2.toLowerCase()}.png`;
     a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-    window.__lastPng = { name, width: W, height: H, field: st.field, run: st.run.id, fh, mapH, head: HEAD, labels: drawn.map((o) => ({ ...o, y: o.y + HEAD })) };   // test hook
+    window.__lastPng = { shade: st.shade, name, width: W, height: H, field: st.field, run: st.run.id, fh, mapH, head: HEAD, labels: drawn.map((o) => ({ ...o, y: o.y + HEAD })) };   // test hook
     note(`Saved ${name} (${W} × ${H}).`);
   }
   /* ---------- cycle comparison: the embedded panel's controls, and the way in from the single-run view ---------- */
@@ -445,21 +460,22 @@
     resize: () => { st.map.resize(); redraw(); },
     exportPng: () => exportPng(),
     setValues: (on) => setValues(on),
+    setShade: (v) => setShade(v),
     labels: () => ({ tier: st.labelSet && st.labelSet.tier, chosen: st.labelSet ? st.labelSet.list.map((o) => o.k) : [], shown: st.labelsShown || [] }),
-    state: () => (st.man ? { run: st.run.id, cycle: st.man.cycle, field: st.field, fh: st.gapValid != null ? null : fhNow(), gapValid: st.gapValid, hours: st.man.hours, valid: st.man.valid, status: st.man.status,
+    state: () => (st.man ? { shade: st.shade, run: st.run.id, cycle: st.man.cycle, field: st.field, fh: st.gapValid != null ? null : fhNow(), gapValid: st.gapValid, hours: st.man.hours, valid: st.man.valid, status: st.man.status,
       hourState: st.gapValid != null ? "no-valid" : hourState(fhNow()), shown: st.shown, draw: (st.draw || []).length, point: $("inspect").innerText } : null),
   };
   function compareLink() {
     const runs = st.index.runs.slice().sort((a, b) => Date.parse(b.cycle) - Date.parse(a.cycle)), i = runs.findIndex((r) => r.id === st.run.id), b = runs[i + 1] || runs[i - 1];
     const q = new URLSearchParams({ domain: "conus", compare: "1", a: st.run.id, b: b ? b.id : st.run.id, field: st.field, valid: st.man.valid[fhNow()] });
-    if (M.key !== "hrrr") q.set("model", M.key); if (Q.get("data")) q.set("data", Q.get("data")); const c = st.map.getCenter(); q.set("map", `${c.lat.toFixed(3)},${c.lng.toFixed(3)},${st.map.getZoom().toFixed(2)}`);
+    if (M.key !== "hrrr") q.set("model", M.key); if (st.shade !== 100) q.set("shade", String(st.shade)); if (!st.values) q.set("values", "0"); if (Q.get("data")) q.set("data", Q.get("data")); const c = st.map.getCenter(); q.set("map", `${c.lat.toFixed(3)},${c.lng.toFixed(3)},${st.map.getZoom().toFixed(2)}`);
     return `${location.pathname}?${q.toString()}`;
   }
   /* ---------- shareable link ---------- */
   function share() {
     if (!st.man || !st.map || EMBED) return; const c = st.map.getCenter(), q = new URLSearchParams();
     q.set("domain", "conus"); if (M.key !== "hrrr") q.set("model", M.key); if (Q.get("data")) q.set("data", Q.get("data"));
-    q.set("run", st.run.id); q.set("fh", String(fhNow())); q.set("field", st.field); if (!st.values) q.set("values", "0");
+    q.set("run", st.run.id); q.set("fh", String(fhNow())); q.set("field", st.field); if (!st.values) q.set("values", "0"); if (st.shade !== 100) q.set("shade", String(st.shade));
     q.set("map", `${c.lat.toFixed(3)},${c.lng.toFixed(3)},${st.map.getZoom().toFixed(2)}`);
     if (st.selPt) q.set("pt", `${st.selPt[0].toFixed(4)},${st.selPt[1].toFixed(4)}`);
     try { history.replaceState(null, "", `${location.pathname}?${q.toString()}`); } catch (e) { /* file:// */ }
@@ -553,7 +569,7 @@
     const ins = $("inspect"); if (ins) { ins.classList.add("panel-read"); $("stage").appendChild(ins); ins.innerHTML = ""; }
   }
   function adaptPage() {
-    document.body.classList.add("maps-conus"); ["pngBtn", "cmpBtn", "valBtn", "modelSel"].forEach((id) => { if ($(id)) $(id).hidden = false; });
+    document.body.classList.add("maps-conus"); ["pngBtn", "cmpBtn", "valBtn", "modelSel", "shadeCtl"].forEach((id) => { if ($(id)) $(id).hidden = false; });
     ["winSel", "smoothChk"].forEach((id) => { const e = $(id); if (e) (e.closest("label") || e).hidden = true; });
     const seg = document.querySelector('[aria-label="Map view"]'); if (seg) seg.hidden = true;
     const ps = $("placeSel"); if (ps) ps.closest("div").hidden = true;
@@ -598,6 +614,7 @@
     let mv = null; st.map.on("moveend", () => { clearTimeout(mv); mv = setTimeout(() => { chooseLabels(); redraw(); share(); }, 120); });
     st.map.on("resize", () => { st.labelSet = null; });
     $("valBtn").addEventListener("click", () => setValues(!st.values)); setValues(st.values);
+    $("shadeSl").addEventListener("input", () => setShade($("shadeSl").value)); $("shadeReset").addEventListener("click", () => setShade(100)); setShade(st.shade);
     st.map.on("click", (e) => select(e.lngLat.lat, e.lngLat.lng));
     $("fieldSel").addEventListener("change", () => setField($("fieldSel").value));
     $("pngBtn").addEventListener("click", () => exportPng().catch((e) => note(`Couldn't make the image (${e.message}).`)));

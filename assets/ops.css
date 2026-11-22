@@ -899,3 +899,11 @@ body.conus-embed .maplibregl-ctrl-attrib { display: none !important; }   /* the 
 .cmp-status { font-size: 13.5px; padding: 6px 10px; border-radius: 8px; border-left: 4px solid #8a94a3; background: color-mix(in srgb, #8a94a3 12%, transparent); }
 .cmp-status p { margin: 2px 0; }
 .cmp button:disabled, .cmp select:disabled, .cmp input:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Model maps: shading opacity slider (single view and comparison) */
+.shadectl { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.shadectl input[type="range"] { width: 110px; accent-color: var(--accent, #3aa0ff); }
+.shadectl output { min-width: 3.2em; font-variant-numeric: tabular-nums; text-align: right; }
+.shadectl[hidden] { display: none; }
+@media (max-width: 699px) { .shadectl { flex: 1 1 100%; } .shadectl input[type="range"] { flex: 1 1 auto; width: auto; min-width: 0; } .cmp-ctl .shadectl { grid-column: 1 / -1; display: flex; } }
+@media (max-width: 699px) { body.maps-conus #mapCtl .ctlrow:has(#shadeCtl) { flex-wrap: wrap; } }

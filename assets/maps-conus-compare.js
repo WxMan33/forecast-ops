@@ -11,7 +11,7 @@
   const fmtLocal = (ms) => new Date(ms).toLocaleString("en-US", { timeZone: TZ, weekday: "short", month: "short", day: "numeric", hour: "numeric", timeZoneName: "short" });
   const fmtUTC = (ms) => { const d = new Date(ms).toISOString(); return `${d.slice(11, 13)}Z ${new Date(ms).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" })}`; };
   const getJSON = async (u) => { const r = await fetch(u + (u.includes("?") ? "&" : "?") + "t=" + Math.floor(Date.now() / 60000)); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); };
-  const st = { values: (() => { try { return Q.get("values") === "0" ? false : localStorage.getItem("conus_values") !== "0"; } catch (e) { return Q.get("values") !== "0"; } })(), index: null, man: {}, run: { A: null, B: null }, field: Q.get("field") || "asnow_run", valid: null, times: [], view: null, active: "A", frames: {}, play: null };
+  const st = { shade: (() => { const v = Number(Q.get("shade")); return Q.get("shade") != null && Number.isFinite(v) ? Math.max(0, Math.min(100, Math.round(v))) : 100; })(), values: (() => { try { return Q.get("values") === "0" ? false : localStorage.getItem("conus_values") !== "0"; } catch (e) { return Q.get("values") !== "0"; } })(), index: null, man: {}, run: { A: null, B: null }, field: Q.get("field") || "asnow_run", valid: null, times: [], view: null, active: "A", frames: {}, play: null };
 
   const FIELDS = () => window.MapsConus.FIELDS, MOD = () => window.MapsConus.MODEL;
   const withModel = (q) => { if (MOD().key !== "hrrr") q.set("model", MOD().key); return q; };
@@ -27,6 +27,7 @@
         <label><span><b class="panel">A</b> run</span><select class="input inline" id="cmpA"></select></label>
         <label><span><b class="panel b">B</b> run</span><select class="input inline" id="cmpB"></select></label>
         <button type="button" class="btn ghost sm" id="cmpVals" aria-pressed="true">VALUES ON</button>
+        <div class="shadectl" id="cmpShadeCtl"><label for="cmpShade">Shading</label><input type="range" id="cmpShade" min="0" max="100" step="5" value="100" aria-valuetext="100%" title="Fade the forecast colours in both panels; numbers, names, boundaries and legend stay as they are"><output id="cmpShadeOut" for="cmpShade">100%</output><button type="button" class="btn ghost sm" id="cmpShadeReset" title="Back to full shading" disabled>RESET</button></div>
         <a class="btn ghost sm" id="cmpSingle" href="#">SINGLE RUN</a>
       </div>
       <div class="cmp-time">
@@ -49,7 +50,7 @@
     st.frames = { A: $("frA"), B: $("frB") };
   }
   function frameSrc(k) {
-    const q = new URLSearchParams({ domain: "conus", embed: "1", panel: k, run: st.run[k].id, field: st.field, ...(st.values ? {} : { values: "0" }) });
+    const q = new URLSearchParams({ domain: "conus", embed: "1", panel: k, run: st.run[k].id, field: st.field, ...(st.values ? {} : { values: "0" }), ...(st.shade !== 100 ? { shade: String(st.shade) } : {}) });
     withModel(q); if (Q.get("data")) q.set("data", Q.get("data"));
     if (st.view) q.set("map", `${st.view[1].toFixed(4)},${st.view[0].toFixed(4)},${st.view[2].toFixed(2)}`);
     if (st.valid != null) q.set("valid", new Date(st.valid).toISOString());
@@ -96,10 +97,10 @@
   }
   function share() {
     const q = new URLSearchParams({ domain: "conus", compare: "1", a: st.run.A.id, ...(st.run.B ? { b: st.run.B.id } : {}), field: st.field, valid: new Date(st.valid).toISOString() });
-    withModel(q); if (Q.get("data")) q.set("data", Q.get("data")); if (st.view) q.set("map", `${st.view[1].toFixed(3)},${st.view[0].toFixed(3)},${st.view[2].toFixed(2)}`); if (!st.values) q.set("values", "0");
+    withModel(q); if (Q.get("data")) q.set("data", Q.get("data")); if (st.view) q.set("map", `${st.view[1].toFixed(3)},${st.view[0].toFixed(3)},${st.view[2].toFixed(2)}`); if (!st.values) q.set("values", "0"); if (st.shade !== 100) q.set("shade", String(st.shade));
     try { history.replaceState(null, "", `${location.pathname}?${q.toString()}`); } catch (e) { /* file:// */ }
     const s = withModel(new URLSearchParams({ domain: "conus", run: st.run.A.id, field: st.field })); if (Q.get("data")) s.set("data", Q.get("data"));
-    const hA = fhAt("A", st.valid); if (hA != null) s.set("fh", String(hA)); if (st.view) s.set("map", q.get("map"));
+    const hA = fhAt("A", st.valid); if (hA != null) s.set("fh", String(hA)); if (st.view) s.set("map", q.get("map")); if (st.shade !== 100) s.set("shade", String(st.shade)); if (!st.values) s.set("values", "0");
     $("cmpSingle").href = `maps.html?${s.toString()}`;
   }
   const ready = (k) => new Promise((ok, no) => { const t0 = Date.now(); const tick = () => { const a = panel(k); if (a && a.ready()) return ok(a); if (Date.now() - t0 > 90000) return no(new Error(`panel ${k} did not load`)); setTimeout(tick, 150); }; tick(); });
@@ -115,7 +116,7 @@
   /* nothing to show (no runs, or the run list failed): say why, and switch every control off */
   function unavailable(msg) {
     st.mode = "none"; $("cmpStatus").innerHTML = `<p><b>${esc(msg)}</b></p>`; $("cmpStatus").hidden = false; $("cmpNote").textContent = "";
-    ["cmpField", "cmpA", "cmpB", "cmpPlay", "cmpPrev", "cmpNext", "cmpSl", "cmpVals"].forEach((id) => { $(id).disabled = true; $(id).setAttribute("aria-disabled", "true"); });
+    ["cmpField", "cmpA", "cmpB", "cmpPlay", "cmpPrev", "cmpNext", "cmpSl", "cmpVals", "cmpShade", "cmpShadeReset"].forEach((id) => { $(id).disabled = true; $(id).setAttribute("aria-disabled", "true"); });
     $("cmpValid").textContent = "—"; $("cmpPanels").hidden = true; document.querySelector(".cmp-ab").hidden = true;
     window.__cmp = { st, panel };
   }
@@ -171,6 +172,10 @@
     ["A", "B"].forEach((k) => $(`ab${k}`).addEventListener("click", () => setActive(k)));
     const vals = (on) => { st.values = on; $("cmpVals").setAttribute("aria-pressed", String(on)); $("cmpVals").textContent = on ? "VALUES ON" : "VALUES OFF"; ["A", "B"].forEach((k) => panel(k) && panel(k).setValues(on)); share(); };
     $("cmpVals").addEventListener("click", () => vals(!st.values)); vals(st.values);
+    /* one shading slider for both panels, so A and B always look alike */
+    const shade = (v) => { st.shade = Math.max(0, Math.min(100, Math.round(+v))); $("cmpShade").value = String(st.shade); $("cmpShade").setAttribute("aria-valuetext", `${st.shade}%`);
+      $("cmpShadeOut").textContent = `${st.shade}%`; $("cmpShadeReset").disabled = st.shade === 100; ["A", "B"].forEach((k) => panel(k) && panel(k).setShade(st.shade)); share(); };
+    $("cmpShade").addEventListener("input", () => shade($("cmpShade").value)); $("cmpShadeReset").addEventListener("click", () => shade(100)); shade(st.shade);
     window.__cmp = { st, panel };   // test hook
   }
   window.MapsConusCompare = { start };
