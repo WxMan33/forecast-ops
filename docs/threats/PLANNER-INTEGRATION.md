@@ -95,3 +95,5 @@ What a shared link carries (verified desktop and phone, `tools/event-share-check
 - **Recomputed when opened:** every threat item and airport line. Official products, METARs and TAFs are fetched fresh in the recipient's browser, so the recipient sees the same items only while the same products are in effect.
 - **Not carried:** which More info rows were open, map selections and anything else in the sender's browser. In the recipient's browser the airports are kept with that event in local storage, so they survive a reload, until the recipient saves airports of their own.
 - The Share menu says which airports the link includes, or that it carries none.
+
+Before pushing, syntax-check every script: `for f in assets/*.js; do node --check "$f" || echo "BROKEN $f"; done`. A line comment inside a one-line function (f942a37) once stopped `/threats` from loading on the preview; a676fc7 fixed it.
