@@ -275,7 +275,7 @@
             line: cap(role) + " airport. Latest observation; current conditions, not a forecast for your flight window.",
             relation: { kind: "airport" }, window: { startMs: Date.parse(met.observed) - 3600e3, endMs: Date.parse(met.observed) } });
           sum.now = { concern: true, itemId: met.id + "|" + role, text: headline };
-        } else if (met) sum.now = { concern: false, text: "Right now at " + at + ": " + (CAT_OK[met.category] || (plainWx(met) || "no concerns")) + " (" + met.category + "), observed " + clock(Date.parse(met.observed), tz) + (fresh ? "." : " · this observation is more than 3 hours old.") };
+        } else if (met) sum.now = { concern: false, text: "Right now at " + at + ": " + (CAT_OK[met.category] || (plainWx(met) || "no concerns")) + " (" + met.category + "), observed " + clock(Date.parse(met.observed), tz) + (fresh ? "" : " · more than 3 hours old") };
         else sum.now = { concern: false, unknown: true, text: checking ? "Checking the latest observation at " + at + "…" : "No current observation for " + at + "." };
         avNotes.push({ icao: ap.icao, text: notes.join(" · "), ok: !gap && !!met });
         avSummary.push(sum);
