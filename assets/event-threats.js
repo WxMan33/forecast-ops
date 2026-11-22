@@ -192,7 +192,7 @@
   function aqCheck() { if (!ARCHIVE && ready && ev && ev.loc && Number.isFinite(+ev.loc.lat) && Live.aqFor) Live.aqFor(+ev.loc.lat, +ev.loc.lon); }
   function tcCheck() { if (!ARCHIVE && ready && ev && ev.loc && Number.isFinite(+ev.loc.lat) && Live.tropicalFor) Live.tropicalFor(+ev.loc.lat, +ev.loc.lon); }
   function avCheck() { if (!ARCHIVE && ready && ev && Live.airportsFor) { const ids = airportsOf(ev).map((a) => a.icao); if (ids.length) Live.airportsFor(ids); } }
-  function update(next) { ev = next; if (linkAir) saveAirports(ev, linkAir); wssiCheck(); aqCheck(); tcCheck(); avCheck(); render(); shareNote(); }
+  function update(next) { ev = next; if (!started) { started = true; start(); } if (linkAir) saveAirports(ev, linkAir); wssiCheck(); aqCheck(); tcCheck(); avCheck(); render(); shareNote(); }
   /* sharing: Event Manager's link() asks for extra params; the airports (ICAO, role and flight windows) travel as ?air=,
      outside the event payload. The Share menu says what the link carries. */
   function shareParams(e) { const list = airportsRaw(e || ev).filter((x) => x && x.i); return list.length ? { air: JSON.stringify(list) } : null; }
@@ -221,6 +221,7 @@
     Live.onUpdate(() => { tcCheck(); render(); }); // tcCheck: once NHC has answered, the venue's wind probabilities (cached)
     setInterval(() => { if (!document.hidden) render(); }, 30e3);
   }
+  /* started by the first event on screen: an event address this browser doesn't have ("Event not found") requests nothing */
+  let started = false;
   window.EventThreats = { update, render, shareParams, current: () => ev };
-  start();
 })();

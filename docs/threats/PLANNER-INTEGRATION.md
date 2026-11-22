@@ -79,3 +79,19 @@ This branch is based on `main`. The Event Manager beta (`beta-previews`, working
 - **Untouched here:** `event-store.js`, `beta-upcoming.js`, `event-tv-export.js`, `event-outlook.js` and the beta check sections 14 and 14b.
 
 The user decides when, and whether, the two are combined.
+
+## Combined preview (branch `claude/threats-em-combined`, 2026-11-22)
+
+Built from `beta-previews` (dbec837, the latest tested Event Manager work; confirmed by the Event Manager session) with the Weather Threats files copied over. `claude/conus-model-maps` is deliberately not included. Preview: `https://claude-threats-em-combined.forecast-ops-beta.pages.dev` (`/event-beta`, `/threats`). Shared beta, production and navigation are unchanged.
+
+Overlap resolved in Event Manager's files, and nothing else changed there:
+- **`event-beta.html`:** `event-threats.css`, the `#secThreats` section right after `#secTimeline`, and the five Weather Threats scripts before `beta-event.js`. `docs/beta/event-sample.html` is regenerated from it (`node tools/build-event-sample.js`).
+- **`assets/beta-event.js`:** the `EventThreats.update(ev)` call in `context()`, plus one hook in `link()`. When Weather Threats has airports for the event, `EventThreats.shareParams(ev)` adds `?air=` beside `?e=`; the `e` payload stays exactly `f,g,n,t,v,z`. The sample event's link (`lat/lon/name/tz`) carries no airports.
+- **Map contours:** `threats.html` loads its own `assets/threats-contours.js`; the beta's `severe-research-contours.js` is untouched.
+- Weather Threats starts with the first event on screen, so an event address this browser doesn't have ("Event not found") still requests no weather.
+
+What a shared link carries (verified desktop and phone, `tools/event-share-check.js` section 5 and the workflow below):
+- **Carries over:** event name, venue (name and pin), time zone, all schedule times and gust limit (Event Manager), plus each airport's ICAO code, role (primary or alternate) and arrival and departure windows in the event's local time (`?air=`).
+- **Recomputed when opened:** every threat item and airport line. Official products, METARs and TAFs are fetched fresh in the recipient's browser, so the recipient sees the same items only while the same products are in effect.
+- **Not carried:** which More info rows were open, map selections and anything else in the sender's browser. In the recipient's browser the airports are kept with that event in local storage, so they survive a reload, until the recipient saves airports of their own.
+- The Share menu says which airports the link includes, or that it carries none.

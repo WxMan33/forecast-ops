@@ -88,6 +88,29 @@ const windowsOf = (p) => p.evaluate(() => { const C = window.Ops.Core, q = new U
     { const r = await browserCtx(browser, DESK), q = await r.ctx.newPage(); const old = { n: 'Older link', v: { name: 'TQL Stadium, Cincinnati, OH', lat: 39.1113, lon: -84.5222 }, z: 'America/New_York', t: { start: '2026-11-21T19:30', end: '2026-11-21T21:30' }, g: 25 };
       await q.goto(`${base}/event-beta.html?e=${encodeURIComponent(JSON.stringify(old))}`); await q.waitForFunction(() => document.body.dataset.loaded, null, { timeout: 20000 });
       check(await q.locator('#evName').innerText() === 'Older link', 'a share link made before this change still opens its event'); await r.ctx.close(); }
+    /* 5. Weather threats airports (kept with the event in the sender's browser) travel beside the event as ?air=, outside e;
+       the Share menu says so; a clean browser gets the same airports and flight windows; the same link without air opens unchanged */
+    for (const [dev, device] of [['phone', PHONE], ['desktop', DESK]]) {
+      const AIRS = [{ i: 'KCVG', r: 'p', a: ['2027-11-06T22:00', '2027-11-06T23:00'], d: ['2027-11-07T10:00', '2027-11-07T11:00'] }, { i: 'KLUK', r: 'a', a: ['2027-11-06T22:30', '2027-11-06T23:30'], d: null }];
+      const s = await browserCtx(browser, device, { seed: SAVED }); await s.ctx.addInitScript((a) => { if (!localStorage.getItem('threats_airports_v1')) localStorage.setItem('threats_airports_v1', JSON.stringify({ ev_share_test: a })); }, AIRS);
+      const p = await s.ctx.newPage(); p.on('pageerror', (e) => s.errors.push(e.message));
+      await p.goto(`${base}/event-beta.html?ev=${SAVED.id}`); await p.waitForFunction(() => document.body.dataset.loaded, null, { timeout: 20000 }); await p.waitForTimeout(500);
+      await p.click('#shareMenu > summary'); await p.waitForTimeout(200);
+      const note = await p.locator('#shareAirNote').innerText().catch(() => '');
+      check(/this link includes KCVG \(primary, arrival and departure times\) and KLUK \(alternate, arrival times\)/.test(note), `${dev}: the Share menu says the link includes the airports (${note.slice(0, 90)}…)`);
+      await p.click('#shareEvent'); const url = await p.evaluate(() => navigator.clipboard.readText()), u = new URL(url), ep = JSON.parse(u.searchParams.get('e'));
+      check(JSON.stringify(JSON.parse(u.searchParams.get('air'))) === JSON.stringify(AIRS) && Object.keys(ep).sort().join(',') === 'f,g,n,t,v,z' && [...u.searchParams.keys()].join(',') === 'e,air', `${dev}: the event link carries the airports as ?air=, and e keeps exactly f,g,n,t,v,z`);
+      check(!s.errors.length, `${dev} sender with airports: no script errors ${s.errors.join('; ')}`); await s.ctx.close();
+      let withGot = null; for (const [kind, link] of [['with air', url], ['without air', (() => { const b = new URL(url); b.searchParams.delete('air'); return b.toString(); })()]]) {
+        const r = await browserCtx(browser, device), q = await r.ctx.newPage(); q.on('pageerror', (e) => r.errors.push(e.message));
+        await q.goto(link); await q.waitForFunction(() => document.body.dataset.loaded && document.querySelector('#threatsAir form'), null, { timeout: 20000 }); await q.waitForTimeout(400);
+        const g = await q.evaluate(() => { const f = document.querySelector('#threatsAir form'), v = (n) => f.elements[n].value; return { name: document.getElementById('evName').innerText, form: [v('pi'), v('pa0'), v('pa1'), v('pd0'), v('pd1'), v('ai'), v('aa0'), v('aa1'), v('ad0')].join('|'), linkNote: !!document.querySelector('.et-linkair'), noAir: !!document.querySelector('.et-noair'), saved: localStorage.getItem('beta_events_v2') }; });
+        const got = await windowsOf(q); if (kind === 'with air') withGot = got;
+        if (kind === 'with air') check(g.name === SAVED.name && g.form === 'KCVG|2027-11-06T22:00|2027-11-06T23:00|2027-11-07T10:00|2027-11-07T11:00|KLUK|2027-11-06T22:30|2027-11-06T23:30|' && !g.saved, `${dev} recipient: the same primary and alternate airports and flight windows arrive in a clean browser (${g.form})`);
+        else check(g.name === SAVED.name && g.form.startsWith('|') && g.noAir && !!got && JSON.stringify(got) === JSON.stringify(withGot), `${dev} recipient: the same link without ?air= opens the event unchanged, with no airports`);
+        check(!r.errors.length, `${dev} recipient ${kind}: no script errors ${r.errors.join('; ')}`); await r.ctx.close();
+      }
+    }
   } finally { await browser.close(); server.close(); }
   console.log(failed ? `${failed} check(s) failed` : 'all sharing checks passed'); process.exit(failed ? 1 : 0);
 })();
