@@ -135,6 +135,37 @@ const windowsOf = (p) => p.evaluate(() => { const C = window.Ops.Core, q = new U
         check(!r.errors.length, `${dev} recipient ${kind}: no script errors ${r.errors.join('; ')}`); await r.ctx.close();
       }
     }
+    /* 6. the optional route (origin, destination, altitude band, time in the air) travels beside the airports as ?rt=, outside e;
+       the Share menu names it; unticking the box drops it from both links; a clean browser gets it; malformed routes are ignored */
+    for (const [dev, device] of [['phone', PHONE], ['desktop', DESK]]) {
+      const AIRS = [{ i: 'KCVG', r: 'p', a: ['2027-11-06T22:00', '2027-11-06T23:00'], d: null }], RT = { o: 'KORD', d: 'KCVG', lo: 10000, hi: 16000, w: ['2027-11-06T20:30', '2027-11-06T21:45'] };
+      const s = await browserCtx(browser, device, { seed: SAVED }); await s.ctx.addInitScript(([a, r]) => { if (!localStorage.getItem('threats_route_v1')) { localStorage.setItem('threats_airports_v1', JSON.stringify({ ev_share_test: a })); localStorage.setItem('threats_route_v1', JSON.stringify({ ev_share_test: r })); } }, [AIRS, RT]);
+      const p = await s.ctx.newPage(); p.on('pageerror', (e) => s.errors.push(e.message));
+      await p.goto(`${base}/event-beta.html?ev=${SAVED.id}`); await p.waitForFunction(() => document.body.dataset.loaded, null, { timeout: 20000 }); await p.waitForTimeout(500);
+      await p.click('#shareMenu > summary'); await p.waitForTimeout(200);
+      const note = await p.locator('#shareAirNote').innerText().catch(() => '');
+      check(/include KCVG \(primary, arrival times\), and the approximate route KORD → KCVG \(10,000–16,000 ft, with its time in the air\)/.test(note), `${dev}: the Share menu names the route the links include (${note.slice(0, 120)}…)`);
+      await p.click('#shareEvent'); const url = await p.evaluate(() => navigator.clipboard.readText()), u = new URL(url), ep = JSON.parse(u.searchParams.get('e'));
+      check(JSON.stringify(JSON.parse(u.searchParams.get('rt'))) === JSON.stringify(RT) && Object.keys(ep).sort().join(',') === 'f,g,n,t,v,z' && [...u.searchParams.keys()].join(',') === 'e,air,rt', `${dev}: the event link carries the route as ?rt=, and e keeps exactly f,g,n,t,v,z`);
+      if (!(await p.evaluate(() => document.getElementById('shareMenu').open))) await p.click('#shareMenu > summary');
+      await p.click('#shareHourly'); const hu = new URL(await p.evaluate(() => navigator.clipboard.readText()));
+      check(JSON.stringify(JSON.parse(hu.searchParams.get('rt'))) === JSON.stringify(RT), `${dev}: the hourly display link carries the same route`);
+      await p.uncheck('#shareAirInclude'); await p.click('#shareEvent'); const offE = new URL(await p.evaluate(() => navigator.clipboard.readText()));
+      if (!(await p.evaluate(() => document.getElementById('shareMenu').open))) await p.click('#shareMenu > summary');
+      await p.click('#shareHourly'); const offH = new URL(await p.evaluate(() => navigator.clipboard.readText()));
+      check([...offE.searchParams.keys()].join(',') === 'e' && [...offH.searchParams.keys()].join(',') === 'e', `${dev}: unticking the box drops the airports and the route from both links`);
+      await p.check('#shareAirInclude'); check(!s.errors.length, `${dev} sender with a route: no script errors ${s.errors.join('; ')}`); await s.ctx.close();
+      const routeForm = (q) => q.evaluate(() => { const f = document.querySelector('#threatsAir form'), v = (n) => f.elements[n].value; return { name: document.getElementById('evName').innerText, rt: [v('ro'), v('rd'), v('rlo'), v('rhi'), v('rw0'), v('rw1')].join('|'), pi: v('pi') }; });
+      { const r = await browserCtx(browser, device), q = await r.ctx.newPage(); q.on('pageerror', (e) => r.errors.push(e.message));
+        await q.goto(url); await q.waitForFunction(() => document.body.dataset.loaded && document.querySelector('#threatsAir form'), null, { timeout: 20000 }); await q.waitForTimeout(400);
+        const g = await routeForm(q); check(g.rt === 'KORD|KCVG|10000|16000|2027-11-06T20:30|2027-11-06T21:45' && g.pi === 'KCVG' && !r.errors.length, `${dev} recipient: the same route arrives in a clean browser (${g.rt}) ${r.errors.join('; ')}`); await r.ctx.close(); }
+      for (const [kind, bad] of [['malformed JSON', '{oops'], ['the same airport twice', JSON.stringify({ ...RT, d: 'KORD' })], ['highest below lowest', JSON.stringify({ ...RT, lo: 20000, hi: 10000 })], ['an invalid ID', JSON.stringify({ ...RT, o: '<b>' })], ['bad times', JSON.stringify({ ...RT, w: ['soon', 'later'] })]]) {
+        const b = new URL(url); b.searchParams.set('rt', bad);
+        const r = await browserCtx(browser, device), q = await r.ctx.newPage(); q.on('pageerror', (e) => r.errors.push(e.message));
+        await q.goto(b.toString()); await q.waitForFunction(() => document.body.dataset.loaded && document.querySelector('#threatsAir form'), null, { timeout: 20000 }); await q.waitForTimeout(400);
+        const g = await routeForm(q); check(g.name === SAVED.name && g.rt === '|||||' && g.pi === 'KCVG' && !r.errors.length, `${dev} recipient, ${kind} in ?rt=: ignored; the event and its airports open without a route ${r.errors.join('; ')}`); await r.ctx.close();
+      }
+    }
   } finally { await browser.close(); server.close(); }
   console.log(failed ? `${failed} check(s) failed` : 'all sharing checks passed'); process.exit(failed ? 1 : 0);
 })();

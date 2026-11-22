@@ -27,7 +27,7 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     const ctx = await b.newContext(opts.phone ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : { viewport: { width: 1280, height: 1000 }, deviceScaleFactor: opts.dsf || 1 });
     const p = await ctx.newPage(), errors = [], feeds = [];
     p.on("pageerror", (e) => errors.push(e.message));
-    p.on("requestfinished", async (r) => { const u = r.url(); if (!/\/api\/(nws|wpc|smoke|awc)\/|services\.arcgis\.com\/cJ9YHowT8TU7DUyn|api\.weather\.gov|wpc\.ncep|mapservices|spc\.noaa\.gov\/products\/(exper\/)?fire_wx|services3\.arcgis\.com/.test(u)) return; const res = await r.response(), h = res ? await res.allHeaders() : {}; feeds.push({ url: u, status: res && res.status(), cache: h["x-forecast-ops-cache"] || null, upstreamAt: h["x-upstream-fetched-at"] || null }); });
+    p.on("requestfinished", async (r) => { const u = r.url(); if (!/\/api\/(nws|wpc|smoke|awc|faa)\/|services\.arcgis\.com\/cJ9YHowT8TU7DUyn|api\.weather\.gov|wpc\.ncep|mapservices|spc\.noaa\.gov\/products\/(exper\/)?fire_wx|services3\.arcgis\.com/.test(u)) return; const res = await r.response(), h = res ? await res.allHeaders() : {}; feeds.push({ url: u, status: res && res.status(), cache: h["x-forecast-ops-cache"] || null, upstreamAt: h["x-upstream-fetched-at"] || null }); });
     if (opts.blockNws) await p.route("**/api/nws/**", (route) => route.abort());
     if (opts.blockSmoke) { await p.route("**/api/smoke/**", (route) => route.abort()); await p.route(/services\.arcgis\.com\/cJ9YHowT8TU7DUyn|air_quality\/ndgd_smoke/, (route) => route.abort()); }
     if (opts.blockWssiExtreme) await p.route(/wpc_wssi_p\/MapServer\/4\/query/, (route) => route.abort());
@@ -450,6 +450,46 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     check("LIVE aviation: METAR and TAF for KORD and KMDW through the same-origin function with their upstream time; the source line names each airport's METAR and TAF times", af.length >= 2 && af.every((f) => f.status === 200 && f.upstreamAt) && r.statuses.some((x) => /KORD METAR \d{4}Z \w+ · TAF \d{4}Z/.test(x) && /KMDW METAR/.test(x)), { af, st: r.statuses.filter((x) => /Aviation/.test(x)), items: r.items.filter((i) => /^K(ORD|MDW)/.test(i.headline)).map((i) => i.headline) });
     fs.writeFileSync(path.join(OUT, "live-planner-aviation.json"), JSON.stringify({ at: new Date().toISOString(), result: r, feeds: af }, null, 1));
     await shot(v, "LIVE-planner-aviation-chicago"); await v.ctx.close(); }
+
+  /* 4l. AVIATION PHASE 2 (pilot reports, SIGMETs, G-AIRMETs, CWAs, FAA airport status): official capture of Nov 22 21:19Z, then live */
+  { const ML = ["MetLife Stadium", 40.8135, -74.0745], T22 = { gates: "2026-11-22T18:45", start: "2026-11-22T20:15", end: "2026-11-22T23:30" };
+    const AIR2 = encodeURIComponent(JSON.stringify([{ i: "KEWR", r: "p", a: ["2026-11-22T18:15", "2026-11-22T19:00"], d: ["2026-11-23T09:00", "2026-11-23T10:00"] }, { i: "KLGA", r: "a", a: ["2026-11-22T18:15", "2026-11-22T19:00"] }]));
+    const RT2 = encodeURIComponent(JSON.stringify({ o: "KORD", d: "KEWR", lo: 10000, hi: 16000, w: ["2026-11-22T16:30", "2026-11-22T18:30"] }));
+    for (const phone of [false, true]) {
+      v = await planner("threats=archive-aviation-enroute&air=" + AIR2 + "&rt=" + RT2 + "&e=" + EW(...ML, T22, "America/New_York"), { phone, dsf: phone ? 2 : 1 }); r = await v.read();
+      const lay = await v.p.evaluate(() => { const box = document.getElementById("threats"); return { heads: [...box.querySelectorAll(".et-h")].map((h) => h.textContent), faa: [...box.querySelectorAll(".et-faa .et-head")].map((h) => h.textContent), route: [...box.querySelectorAll(".et-route .et-head")].map((h) => h.textContent), approx: (box.querySelector(".et-approx") || {}).textContent || "", hs: document.documentElement.scrollWidth > window.innerWidth + 1 }; });
+      const tag = phone ? "phone" : "desktop";
+      check("AVIATION 2 (" + tag + "): Airport weather, Flight disruptions and Along the route are separate headings, without horizontal scroll", JSON.stringify(lay.heads) === JSON.stringify(["Airport weather", "Flight disruptions", "Along the route"]) && !lay.hs, lay);
+      check("AVIATION 2 (" + tag + "): FAA weather disruption: Newark's ground delay program for low ceilings, active, overlapping the arrival window", lay.faa[0] === "Ground delay program for low ceilings, average delay 1 hr 45 min (up to 5 hr 55 min) at Newark (KEWR) · active now, until Sun 11:59 p.m." && r.items.some((i) => i.kind === "faa" && /Weather-related \(FAA: low ceilings\)\. Overlaps your arrival window/.test(i.line)), lay.faa);
+      check("AVIATION 2 (" + tag + "): advisory overlapping the approximate route in time and altitude, worded as a potential overlap", lay.route.includes("Moderate icing forecast may overlap your approximate route, 6,000 ft to FL210, Sun 4:30 p.m. – 6:30 p.m. · G-AIRMET") && /^A straight line between the airports, not your flight plan: matches are potential overlaps/.test(lay.approx), lay.route);
+      if (!phone) { await shot(v, "ARCHIVED-planner-aviation-enroute");
+        const enHref = await v.p.evaluate(() => document.querySelector(".et-route [data-map]").href);
+        const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } }), q = await ctx.newPage(), errs = []; q.on("pageerror", (e) => errs.push(e.message));
+        await q.goto(enHref.replace(/^https?:\/\/[^/]+/, HOST).replace("/threats.html", "/threats"), { waitUntil: "domcontentloaded" }); await q.waitForFunction(() => window.__threats && window.__threats.ready && !window.__threats.data.loading, null, { timeout: 60000 }); await q.waitForTimeout(2500);
+        const s6 = await q.evaluate(() => { const T0 = window.__threats, m = T0.map, sel = T0.data.products.find((x) => x.id === T0.S.sel), c = sel && sel.geometry.coordinates[0]; return { sel: T0.S.sel, kind: (document.querySelector("#txPanelBody .tx-kind") || {}).textContent, inView: !!c && m.getBounds().contains([c.reduce((a, x) => a + x[0], 0) / c.length, c.reduce((a, x) => a + x[1], 0) / c.length]), route: m.queryRenderedFeatures({ layers: ["route-line"] }).length, alt: T0.S.en.alt }; });
+        check("AVIATION 2 View on map: the advisory selected and in view, labelled a forecast advisory, the approximate route drawn, the map filtered to the route's band", /^gairmet-/.test(s6.sel || "") && s6.kind === "G-AIRMET · FORECAST ADVISORY" && s6.inView && s6.route > 0 && JSON.stringify(s6.alt) === "[10000,16000]" && !errs.length, { s6, errs });
+        /* turbulence report at one altitude: the 6,000 ft JFK report shows below 10,000 ft and not at FL180-FL290 */
+        await q.goto(HOST + "/threats?scenario=archive-aviation-enroute&scope=venue&layers=aviation&view=active", { waitUntil: "domcontentloaded" }); await q.waitForFunction(() => window.__threats && window.__threats.ready && !window.__threats.data.loading, null, { timeout: 60000 }); await q.waitForTimeout(2000);
+        const jid = await q.evaluate(() => window.__threats.data.products.find((x) => x.kind === "pirep" && /^JFK UA \/OV JFK 220005/.test(x.raw)).id), has = () => q.evaluate((id) => window.__threats.map.getSource("pirep")._data.features.some((f) => f.properties.id === id), jid);
+        await q.locator('[data-en-alt="0-10000"]').click(); await q.waitForTimeout(300); const low = await has();
+        await q.locator('[data-en-alt="18000-29000"]').click(); await q.waitForTimeout(300); const mid = await has();
+        await q.locator('[data-en-alt="0-10000"]').click(); await q.evaluate((id) => { window.__threats.S.sel = id; window.__threats.drawAll(); }, jid); await q.waitForTimeout(300);
+        const det = await q.evaluate(() => document.getElementById("txPanelBody").innerText);
+        check("AVIATION 2 turbulence report at one altitude: JFK moderate-to-severe at 6,000 ft shows below 10,000 ft, not at FL180-FL290; its detail is a pilot observation", low && !mid && /PILOT REPORT · OBSERVATION/.test(det) && /moderate to severe turbulence at 6,000 ft/.test(det) && /M20P/.test(det), { low, mid, det: det.slice(0, 200) });
+        await q.screenshot({ path: path.join(OUT, "ARCHIVED-map-aviation-enroute.png") }); await ctx.close(); }
+      await v.ctx.close();
+    }
+    /* live: the same-origin functions answer with upstream times; the Planner says what it found (whatever it is today) */
+    { const loc = (ms) => new Date(ms).toLocaleString("sv-SE", { timeZone: "America/New_York" }).slice(0, 16).replace(" ", "T");
+      const LA = encodeURIComponent(JSON.stringify([{ i: "KEWR", r: "p", a: [loc(Date.now() + 2 * 3600e3), loc(Date.now() + 3 * 3600e3)] }]));
+      const LR = encodeURIComponent(JSON.stringify({ o: "KORD", d: "KEWR", lo: 10000, hi: 16000, w: [loc(Date.now() + 30 * 60e3), loc(Date.now() + 2 * 3600e3)] }));
+      v = await planner("air=" + LA + "&rt=" + LR + "&e=" + EW(...ML, { start: loc(Date.now() + 4 * 3600e3), end: loc(Date.now() + 6 * 3600e3) }, "America/New_York"), { wait: 2000 });
+      await v.p.waitForFunction(() => { const s = window.EventThreatsLast.statuses; return ["en route", "FAA"].every((k) => s.some((x) => x.name.includes(k) && !/Loading/.test(x.text))); }, null, { timeout: 120000 }).catch(() => {}); await v.p.waitForTimeout(800); r = await v.read();
+      const ef = v.feeds.filter((f) => /\/api\/(awc\/(pirep|airsigmet|gairmet|cwa)|faa\/)/.test(f.url)), lr = await v.p.evaluate(() => ({ route: window.EventThreatsLast.route, faa: window.EventThreatsLast.disruptions.map((d) => d.lines.map((l) => l.text)) }));
+      check("LIVE aviation 2: pilot reports, SIGMETs, G-AIRMETs (5 hours), CWAs and FAA status through the same-origin functions with upstream times; route and disruptions confirmed or stated", ["pirep", "airsigmet", "gairmet", "cwa", "faa/airport-events"].every((k) => ef.some((f) => f.url.includes(k) && f.status === 200 && f.upstreamAt)) && ef.filter((f) => /gairmet/.test(f.url)).length === 5 && r.statuses.some((x) => /en route.*: Checked/.test(x)) && r.statuses.some((x) => /FAA airport status.*: Checked/.test(x)) && lr.route.set && lr.route.lines.length > 0 && lr.faa.length >= 2, { ef: ef.map((f) => f.url.split("/api/")[1] + " " + f.status + " " + f.upstreamAt), st: r.statuses.filter((x) => /en route|FAA/.test(x)), lr });
+      fs.writeFileSync(path.join(OUT, "live-planner-aviation-enroute.json"), JSON.stringify({ at: new Date().toISOString(), result: r, feeds: ef, route: lr }, null, 1));
+      await shot(v, "LIVE-planner-aviation-enroute"); await v.ctx.close(); }
+  }
 
   /* 5. outage: NWS route blocked in this browser */
   v = await planner("e=" + E(...ATL, FRI), { blockNws: true, wait: 4000 }); r = await v.read();

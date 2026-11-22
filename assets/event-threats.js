@@ -107,7 +107,7 @@
         ["Last checked", src.lastOk ? esc(fmt(src.lastOk, tz)) : "not yet"],
       ] : it.kind === "enroute" ? [
         ["Product", esc(p.kind === "gairmet" ? p.name + " (forecast advisory, snapshots every 3 hours)" : p.kind === "cwa" ? p.name + " (" + p.office + ")" : p.name)],
-        ["Hazard", esc((p.severity ? p.severity + " " : "") + p.hazardWord + (p.dueTo ? " · " + p.dueTo : "") + (p.qualifier ? " · " + p.qualifier : ""))],
+        ["Hazard", esc(((({ LGT: "light ", MOD: "moderate ", SEV: "severe " })[p.severity] || "") + p.hazardWord).replace(/^./, (c) => c.toUpperCase()) + (p.dueTo && p.dueTo !== p.hazard ? " · " + p.dueTo : "") + (p.qualifier ? " · " + p.qualifier : ""))],
         ["Altitude", esc(p.baseFt == null && p.topFt == null ? "not stated" : EN.bandText(p.baseFt, p.topFt) + (p.freezingLevel ? " (from the freezing level)" : ""))],
         ["Valid", p.kind === "gairmet" ? (it.snapshots || [p]).map((x) => esc("snapshot " + fmt(x.validTime, tz) + " (+" + x.forecastHour + " h)")).join("<br>") + "<br>Each snapshot is read as 90 minutes either side of its time." : esc(fmt(p.validStart, tz) + " → " + fmt(p.validEnd, tz))],
         ["Issued", p.issued ? esc(fmt(p.issued, tz)) : "not stated"],

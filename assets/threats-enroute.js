@@ -52,7 +52,7 @@
       if (lowFt == null) lowFt = highFt; if (highFt == null) highFt = lowFt; // one bound given: the report is at that altitude
       const observed = iso(r.obsTime), rank = Math.max(...all.map((x) => x.rank));
       const hazard = turb.length && ice.length ? "turbulence and icing" : turb.length ? "turbulence" : "icing";
-      out.push({ id: "pirep-" + r.obsTime + "-" + (+r.lat).toFixed(3) + "-" + (+r.lon).toFixed(3) + "-" + (r.acType || ""), kind: "pirep", family: "aviation", sourceId: "enroute", layerKind: "observation",
+      out.push({ id: "pirep-" + r.obsTime + "-" + (+r.lat).toFixed(3) + "-" + (+r.lon).toFixed(3) + "-" + (r.acType || ""), kind: "pirep", family: "aviation", sourceId: "awc-enroute", layerKind: "observation",
         observed, issued: observed, point: [+r.lon, +r.lat], geometry: null, altFt, during, lowFt, highFt,
         turb, ice, hazard, rank, urgent: /urgent|UUA/i.test(r.pirepType || "") || / UUA /.test(" " + (r.rawOb || "") + " "), acType: r.acType || null, raw: r.rawOb || "",
         office: "Pilot report via NOAA Aviation Weather Center", event: "Pilot report", title: "Pilot report: " + (INTEN_WORD[rank] || "") + " " + hazard,
@@ -85,7 +85,7 @@
       const r = ring(s.coords), outlook = /OUTLOOK/i.test(s.airSigmetType || ""), [fam, word] = hazOf(s.hazard);
       const type = String(s.airSigmetType || "SIGMET").toUpperCase(), conv = String(s.hazard).toUpperCase() === "CONVECTIVE";
       const name = (conv ? "Convective SIGMET" : type === "AIRMET" ? "AIRMET" : "SIGMET") + (outlook ? " outlook" : "") + (s.seriesId ? " " + s.seriesId : "");
-      return { id: "sigmet-" + (s.icaoId || "") + "-" + (s.seriesId || "") + "-" + s.validTimeFrom + "-" + s.hazard, kind: "sigmet", family: "aviation", sourceId: "enroute", layerKind: outlook ? "outlook" : "advisory",
+      return { id: "sigmet-" + (s.icaoId || "") + "-" + (s.seriesId || "") + "-" + s.validTimeFrom + "-" + s.hazard, kind: "sigmet", family: "aviation", sourceId: "awc-enroute", layerKind: outlook ? "outlook" : "advisory",
         hazard: String(s.hazard || "").toUpperCase(), hazardFamily: fam, hazardWord: word, severity: s.severity || null, name, outlook,
         issued: iso(s.creationTime || s.receiptTime), validStart: iso(s.validTimeFrom), validEnd: iso(s.validTimeTo), baseFt: num(s.altitudeLow1) != null ? num(s.altitudeLow1) : 0, topFt: num(s.altitudeHi1),
         surface: SURFACE.has(String(s.hazard).toUpperCase()), geometry: r.length >= 4 ? { type: "Polygon", coordinates: [r] } : null, raw: s.rawAirSigmet || "", movement: s.movementDir != null ? { dir: s.movementDir, kt: s.movementSpd } : null,
@@ -101,9 +101,9 @@
         const r = ring(g.coords); if (r.length < 4) continue;
         const [fam, word] = hazOf(hz), at = Date.parse(g.validTime), issued = iso(g.issueTime), expires = iso(g.expireTime);
         const base = String(g.base || "").toUpperCase() === "FZL" ? hund(g.fzlbase) : hund(g.base), top = hund(g.top);
-        out.push({ id: "gairmet-" + g.product + "-" + g.tag + "-" + hz + "-" + g.forecastHour + "-" + g.issueTime, group: "gairmet-" + g.product + "-" + g.tag + "-" + hz + "-" + g.issueTime, kind: "gairmet", family: "aviation", sourceId: "enroute", layerKind: "advisory",
+        out.push({ id: "gairmet-" + g.product + "-" + g.tag + "-" + hz + "-" + g.forecastHour + "-" + g.issueTime, group: "gairmet-" + g.product + "-" + g.tag + "-" + hz + "-" + g.issueTime, kind: "gairmet", family: "aviation", sourceId: "awc-enroute", layerKind: "advisory",
           hazard: hz, hazardFamily: fam, hazardWord: word, severity: g.severity || null, product: String(g.product || "").toUpperCase(), tag: g.tag, forecastHour: +g.forecastHour || 0, dueTo: g.due_to || null,
-          issued, validTime: new Date(at).toISOString(), validStart: new Date(Math.max(at - GAIRMET_HALF_MS, Date.parse(issued) || -Infinity)).toISOString(), validEnd: new Date(at + GAIRMET_HALF_MS).toISOString(), expires, // expireTime is when the next issuance replaces this one; each snapshot keeps its own time
+          issued, validTime: new Date(at).toISOString(), validStart: new Date(Math.max(at - GAIRMET_HALF_MS, Date.parse(issued) || -Infinity)).toISOString(), validEnd: new Date(at + GAIRMET_HALF_MS).toISOString(), packageExpires: expires, // expireTime is when the next issuance replaces this one; each snapshot keeps its own time
           baseFt: SURFACE.has(hz) ? 0 : base, topFt: SURFACE.has(hz) ? null : top, freezingLevel: String(g.base || "").toUpperCase() === "FZL", surface: SURFACE.has(hz),
           geometry: { type: "Polygon", coordinates: [r] }, office: "NOAA Aviation Weather Center", event: "G-AIRMET", name: "G-AIRMET " + String(g.product || "").charAt(0) + String(g.product || "").slice(1).toLowerCase() + " " + g.tag,
           title: "G-AIRMET: " + (g.severity === "MOD" ? "moderate " : "") + word, source: { name: "Aviation Weather Center G-AIRMETs", url: "https://aviationweather.gov/gfa/#gairmet" } });
@@ -127,7 +127,7 @@
     if (!Array.isArray(list)) throw Error("unrecognized CWA answer");
     return list.map((c) => {
       const r = ring(c.coords), hz = String(c.hazard || "").toUpperCase(), [fam, word] = hazOf(hz), a = cwaAlt(c);
-      return { id: "cwa-" + c.cwsu + "-" + c.seriesId + "-" + c.validTimeFrom, kind: "cwa", family: "aviation", sourceId: "enroute", layerKind: "advisory", hazard: hz, hazardFamily: fam, hazardWord: word, qualifier: c.qualifier || null,
+      return { id: "cwa-" + c.cwsu + "-" + c.seriesId + "-" + c.validTimeFrom, kind: "cwa", family: "aviation", sourceId: "awc-enroute", layerKind: "advisory", hazard: hz, hazardFamily: fam, hazardWord: word, qualifier: c.qualifier || null,
         issued: iso(c.receiptTime), validStart: iso(c.validTimeFrom), validEnd: iso(c.validTimeTo), baseFt: a.lo, topFt: a.hi, surface: SURFACE.has(hz),
         geometry: r.length >= 4 ? { type: "Polygon", coordinates: [r] } : null, raw: c.rawText || "", name: "Center Weather Advisory " + c.cwsu + " " + c.seriesId, office: "NWS Center Weather Service Unit, " + (c.name || c.cwsu),
         event: "Center Weather Advisory", title: "Center Weather Advisory: " + word, source: { name: "Aviation Weather Center CWAs", url: "https://aviationweather.gov/gfa/#cwa" } };
@@ -162,7 +162,7 @@
         const start = iso(x.startTime || null), end = iso(x.endTime || x.programExpirationTime || null), updated = iso(x.updatedAt || x.updateTime || x.sourceTimeStamp || x.createdAt || null);
         const avg = minutes(x.avgDelay != null ? x.avgDelay : x.averageDelay), max = minutes(x.maxDelay != null ? x.maxDelay : ad.max), min = minutes(ad.min);
         const notice = type === "freeForm", closure = type === "airportClosure" || (notice && /\bAD AP CLSD\b(?! TO )/.test(x.simpleText || ""));
-        out.push({ id: "faa-" + type + "-" + id + "-" + (x.id || start || updated || ""), kind: "faa", family: "aviation", sourceId: "faa", type: closure && notice ? "airportClosure" : type, typeWord: TYPE_WORD[closure && notice ? "airportClosure" : type],
+        out.push({ id: "faa-" + type + "-" + id + "-" + (x.id || start || updated || ""), kind: "faa", family: "aviation", sourceId: "faa-nas", type: closure && notice ? "airportClosure" : type, typeWord: TYPE_WORD[closure && notice ? "airportClosure" : type],
           airportFaa: id, airportName: a.airportLongName || id, point: pt, geometry: null, cause: cause || null, causeText: notice ? "FAA notice (NOTAM)" : plainCause(cause), weather: !notice && WX_RE.test(String(cause || "")),
           start, end, updated, issued: updated || fetchedAt, avgMin: avg, maxMin: max, minMin: min, trend: ad.trend || x.trend || null, scope: ad.type || null,
           notice: notice && !closure, text: notice ? x.simpleText || x.text || "" : null, advisoryUrl: x.advisoryUrl || null, planned: !!(start && Date.parse(start) > at),
@@ -173,7 +173,7 @@
     for (const it of (plan && Array.isArray(plan.terminalPlanned) ? plan.terminalPlanned : [])) {
       const txt = typeof it === "string" ? it : Object.values(it || {}).filter((v) => typeof v === "string").join(" ");
       const ids = [...new Set((txt.toUpperCase().match(/\b[A-Z][A-Z0-9]{2}\b/g) || []))];
-      for (const id of ids) out.push({ id: "faa-planned-" + id + "-" + txt.length + "-" + txt.slice(0, 20), kind: "faa", family: "aviation", sourceId: "faa", type: "planned", typeWord: TYPE_WORD.planned, airportFaa: id, airportName: id, point: null, geometry: null,
+      for (const id of ids) out.push({ id: "faa-planned-" + id + "-" + txt.length + "-" + txt.slice(0, 20), kind: "faa", family: "aviation", sourceId: "faa-nas", type: "planned", typeWord: TYPE_WORD.planned, airportFaa: id, airportName: id, point: null, geometry: null,
         cause: txt, causeText: plainCause(txt), weather: WX_RE.test(txt), start: null, end: null, updated: fetchedAt, issued: fetchedAt, planned: true, possible: true, text: txt, advisoryUrl: plan.link || null,
         office: "FAA Air Traffic Control System Command Center", event: "Operations plan", title: "Planned at " + id, source: { name: "FAA operations plan", url: plan.link || "https://nasstatus.faa.gov/" } });
     }

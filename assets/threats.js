@@ -36,7 +36,7 @@
   const empty = { type: "FeatureCollection", features: [] };
 
   const S = { air: [], ap: null, layers: { severe: true, flood: true, winter: true, fire: true, smoke: true, tropical: true, coastal: true, aviation: true }, en: { on: false, at: 0, alt: null, age: 2 }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
-  let framedAp = false, mapLoaded = false; // Planner airport "View on map": framed once
+  let framedAp = false, framedSel = false, mapLoaded = false; // Planner airport "View on map": framed once
   let data, now, venue, map, ready = false, liveReady = false, meshes = new Map(), tzCache = {}, marker, grid = null, mesh = null, mask = null, gridLoading = null, hull = null;
   const phone = () => matchMedia("(max-width: 760px)").matches;
   const light = () => document.documentElement.getAttribute("data-theme") === "light";
@@ -81,7 +81,7 @@
   }
 
   /* ---------- data ---------- */
-  const SRC_OF = (p) => ["warning", "watch", "advisory", "statement"].includes(p.kind) ? "alerts" : ["tcoutlook", "tctrack", "tcwind"].includes(p.kind) ? "nhc" : p.kind === "metar" || p.kind === "taf" ? "awc" : p.kind === "incident" ? "nifc" : p.kind === "smoke" ? "hms" : p.kind === "aqobs" ? "aqobs" : p.kind === "aqfcst" ? "aqfcst" : p.kind === "smokefcst" ? "naqfc" : p.kind === "md" ? "md" : p.program === "wssip" ? "wssip" : /^spcfire-/.test(p.program || "") ? "fire" + p.day : (p.program === "ero" ? "ero" : "day") + p.day;
+  const SRC_OF = (p) => ["warning", "watch", "advisory", "statement"].includes(p.kind) ? "alerts" : ["tcoutlook", "tctrack", "tcwind"].includes(p.kind) ? "nhc" : p.kind === "metar" || p.kind === "taf" ? "awc" : ["pirep", "sigmet", "gairmet", "cwa"].includes(p.kind) ? "enroute" : p.kind === "faa" ? "faa" : p.kind === "incident" ? "nifc" : p.kind === "smoke" ? "hms" : p.kind === "aqobs" ? "aqobs" : p.kind === "aqfcst" ? "aqfcst" : p.kind === "smokefcst" ? "naqfc" : p.kind === "md" ? "md" : p.program === "wssip" ? "wssip" : /^spcfire-/.test(p.program || "") ? "fire" + p.day : (p.program === "ero" ? "ero" : "day") + p.day;
   // minutes since the last successful check before a source counts as stale (outlooks change a few times a day)
   const STALE_MIN = { awc: 20, nhc: 60, hms: 180, aqobs: 120, aqfcst: 180, naqfc: 360, monitors: 120, nifc: 20, fire1: 60, fire2: 60, fire3: 180, fire4: 180, fire5: 180, fire6: 180, fire7: 180, fire8: 180, wssip: 60, alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
   const SRC_NAME = { enroute: "Aviation Weather Center en route (pilot reports, SIGMETs, G-AIRMETs, CWAs)", faa: "FAA airport status", awc: "Aviation Weather Center (METAR, TAF)", nhc: "NHC tropical outlooks and storms", hms: "NOAA satellite smoke (HMS)", aqobs: "AirNow observations near the venue", aqfcst: "AirNow forecast (venue's area)", naqfc: "NOAA smoke guidance (NAQFC)", monitors: "AirNow monitors (map)", nifc: "NIFC wildfire incidents (WFIGS)", fire1: "SPC fire weather · Day 1", fire2: "SPC fire weather · Day 2", fire3: "SPC fire weather · Day 3", fire4: "SPC fire weather · Day 4", fire5: "SPC fire weather · Day 5", fire6: "SPC fire weather · Day 6", fire7: "SPC fire weather · Day 7", fire8: "SPC fire weather · Day 8", wssip: "WPC winter storm severity (WSSI-P)", alerts: "NWS warnings, watches and advisories", md: "SPC Mesoscale Discussions", day1: "SPC Day 1 outlook", day2: "SPC Day 2 outlook", day3: "SPC Day 3 outlook", ero1: "WPC excessive rainfall · Day 1", ero2: "WPC excessive rainfall · Day 2", ero3: "WPC excessive rainfall · Day 3" };
@@ -150,7 +150,7 @@
   const tz = () => venue.tz;
   const t = (iso, day) => T.fmtTime(iso, tz(), { day });
   const shown = (p) => S.layers[p.family || "severe"] !== false;
-  const active = () => data.products.filter((p) => p.kind !== "outlook" && shown(p) && (Date.parse(p.expires) > now || (p.kind === "md" && p.expires == null)));
+  const active = () => data.products.filter((p) => p.kind !== "outlook" && p.family !== "aviation" && shown(p) && (Date.parse(p.expires) > now || (p.kind === "md" && p.expires == null)));
   // reached its published expiration while the source was down: not active, and not described as cleared
   const lapsed = () => data.products.filter((p) => p.kind !== "outlook" && T.expiredUnconfirmed(p, data.sources[SRC_OF(p)], now));
   /* SPC convective outlooks only (live program "spc"; demo fixtures carry no program). Every other outlook program (WPC
@@ -416,7 +416,7 @@
     map.on("load", () => {
       const src = (id, d) => map.addSource(id, { type: "geojson", data: d || empty });
       src("states", states); src("lakes", lakes);
-      ["outlook", "ero", "wssi", "enr", "route", "pirep", "apt", "two", "tcone", "tline", "tpts", "hms", "aqmon", "fireo", "inc", "inc-pt", "active", "hl", "labels", "ring", "m-fill", "m-lines", "m-outside", "m-hull", "cities", "pt"].forEach((id) => src(id));
+      ["outlook", "ero", "wssi", "enr", "avroute", "pirep", "apt", "two", "tcone", "tline", "tpts", "hms", "aqmon", "fireo", "inc", "inc-pt", "active", "hl", "labels", "ring", "m-fill", "m-lines", "m-outside", "m-hull", "cities", "pt"].forEach((id) => src(id));
       map.addImage("hatch", hatch(), { pixelRatio: 2 });
       const L = (o) => map.addLayer(o);
       L({ id: "lakes", type: "fill", source: "lakes", paint: { "fill-color": p.water } });
@@ -447,8 +447,9 @@
       L({ id: "enr-fill", type: "fill", source: "enr", paint: { "fill-color": ["get", "color"], "fill-opacity": ["get", "fill"] } });
       L({ id: "enr-line", type: "line", source: "enr", filter: ["!=", ["get", "kind"], "gairmet"], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 2.2, "line-opacity": 0.95 } });
       L({ id: "enr-line-fc", type: "line", source: "enr", filter: ["==", ["get", "kind"], "gairmet"], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 1.8, "line-dasharray": [3, 2], "line-opacity": 0.95 } });
-      L({ id: "route-line", type: "line", source: "route", filter: ["==", ["geometry-type"], "LineString"], layout: { "line-cap": "round" }, paint: { "line-color": p.text, "line-width": 2.4, "line-dasharray": [1, 2.2], "line-opacity": 0.9 } });
-      L({ id: "route-label", type: "symbol", source: "route", filter: ["==", ["geometry-type"], "LineString"], layout: { "symbol-placement": "line-center", "text-field": ["get", "label"], "text-font": ["Open Sans Semibold"], "text-size": 11.5, "text-offset": [0, -0.9] }, paint: { "text-color": p.text, "text-halo-color": p.halo, "text-halo-width": 2 } });
+      L({ id: "route-case", type: "line", source: "avroute", filter: ["==", ["geometry-type"], "LineString"], layout: { "line-cap": "round" }, paint: { "line-color": p.halo, "line-width": 6, "line-opacity": 0.8 } });
+      L({ id: "route-line", type: "line", source: "avroute", filter: ["==", ["geometry-type"], "LineString"], layout: { "line-cap": "butt" }, paint: { "line-color": p.text, "line-width": 3, "line-dasharray": [3, 2], "line-opacity": 1 } });
+      L({ id: "route-label", type: "symbol", source: "avroute", filter: ["==", ["geometry-type"], "LineString"], layout: { "symbol-placement": "line-center", "text-field": ["get", "label"], "text-font": ["Open Sans Semibold"], "text-size": 11.5, "text-offset": [0, -0.9] }, paint: { "text-color": p.text, "text-halo-color": p.halo, "text-halo-width": 2 } });
       L({ id: "pirep-turb", type: "circle", source: "pirep", filter: ["==", ["get", "ice"], false], paint: { "circle-radius": ["get", "r"], "circle-color": ["get", "color"], "circle-stroke-color": "#111", "circle-stroke-width": 1 } });
       L({ id: "pirep-ice", type: "circle", source: "pirep", filter: ["==", ["get", "ice"], true], paint: { "circle-radius": ["get", "r"], "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": ["get", "color"], "circle-stroke-width": 3 } });
       L({ id: "hl", type: "line", source: "hl", layout: { "line-join": "round" }, paint: { "line-color": p.text, "line-width": 9, "line-opacity": 0.55, "line-blur": 1 } });
@@ -517,7 +518,7 @@
     { const en = day === 2 || day === 3 || wv || fv ? [] : enShown(), adv = en.filter((x) => x.kind !== "pirep"), rp = en.filter((x) => x.kind === "pirep");
       map.getSource("enr").setData({ type: "FeatureCollection", features: adv.map((x) => feature(x, { kind: x.kind, color: EN_COLOR[x.hazardFamily] || EN_COLOR.other, fill: focus === x.id ? 0.32 : 0.12 })) });
       map.getSource("pirep").setData({ type: "FeatureCollection", features: rp.map((x) => ({ type: "Feature", properties: { id: x.id, color: PIREP_COLOR(x.rank), r: x.rank >= 2 ? 6.5 : 4.5, ice: !x.turb.length }, geometry: { type: "Point", coordinates: x.point } })) });
-      const rr = routeEnds(); map.getSource("route").setData({ type: "FeatureCollection", features: rr ? [{ type: "Feature", properties: { label: "Approximate route " + S.route.o + " → " + S.route.d }, geometry: { type: "LineString", coordinates: [rr.o, rr.d] } }] : [] }); }
+      const rr = routeEnds(); map.getSource("avroute").setData({ type: "FeatureCollection", features: rr ? [{ type: "Feature", properties: { label: "Approximate route " + S.route.o + " to " + S.route.d }, geometry: { type: "LineString", coordinates: [rr.o, rr.d] } }] : [] }); }
     const ns = day === 2 || day === 3 || wv || fv ? [] : nhcShown(), tcol = light() ? "#333" : "#f2f2f2";
     map.getSource("two").setData({ type: "FeatureCollection", features: ns.filter((p) => p.kind === "tcoutlook" && p.geometry).map((p) => feature(p, { color: colorOf(p) })) });
     map.getSource("tcone").setData({ type: "FeatureCollection", features: ns.filter((p) => p.part === "cone").map((p) => feature(p, { color: tcol })) });
@@ -897,7 +898,13 @@
      stages, layers and controls keep working, instead of one exception freezing the whole page */
   const drawErrors = [];
   function stage(name, fn) { try { fn(); } catch (e) { drawErrors.push({ stage: name, message: e.message, stack: e.stack, at: new Date().toISOString() }); if (drawErrors.length > 50) drawErrors.shift(); console.error("Weather threats: " + name + " failed", e); } }
-  function drawAll() { stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("en route", ensureEn); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); if ((S.ap || S.fit === "route") && !framedAp && map && mapLoaded) stage("airport view", () => frameAirport(0)); }
+  function drawAll() { stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("en route", ensureEn); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); if ((S.ap || S.fit === "route") && !framedAp && map && mapLoaded) stage("airport view", () => frameAirport(0)); if (S.sel && !framedSel && map && mapLoaded) stage("selection view", frameSelection); }
+  /* a Planner "View on map" for an advisory or a pilot report: frame it once its data has loaded */
+  function frameSelection() {
+    const p = byId(S.sel); if (!p || !["pirep", "sigmet", "gairmet", "cwa"].includes(p.kind)) return;
+    if (p.geometry) { const b = T.bbox(p.geometry); map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: pad(), maxZoom: 8, duration: 0 }); } else if (p.point) map.jumpTo({ center: p.point, zoom: 7.5 });
+    framedSel = true; framedAp = true; S.fitted = S.scenario;
+  }
 
   /* ---------- actions ---------- */
   function fitProduct(p) {
