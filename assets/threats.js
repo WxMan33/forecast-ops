@@ -36,6 +36,7 @@
   const empty = { type: "FeatureCollection", features: [] };
 
   const S = { air: [], ap: null, layers: { severe: true, flood: true, winter: true, fire: true, smoke: true, tropical: true, coastal: true, aviation: true }, rx: false, fday: 1, wlevel: "MINOR", wwin: null, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
+  let framedAp = false, mapLoaded = false; // Planner airport "View on map": framed once
   let data, now, venue, map, ready = false, liveReady = false, meshes = new Map(), tzCache = {}, marker, grid = null, mesh = null, mask = null, gridLoading = null, hull = null;
   const phone = () => matchMedia("(max-width: 760px)").matches;
   const light = () => document.documentElement.getAttribute("data-theme") === "light";
@@ -825,7 +826,7 @@
      stages, layers and controls keep working, instead of one exception freezing the whole page */
   const drawErrors = [];
   function stage(name, fn) { try { fn(); } catch (e) { drawErrors.push({ stage: name, message: e.message, stack: e.stack, at: new Date().toISOString() }); if (drawErrors.length > 50) drawErrors.shift(); console.error("Weather threats: " + name + " failed", e); } }
-  function drawAll() { stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); }
+  function drawAll() { stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); if (S.ap && !framedAp && map && mapLoaded) stage("airport view", () => frameAirport(0)); }
 
   /* ---------- actions ---------- */
   function fitProduct(p) {
@@ -978,7 +979,7 @@
   startModel();
   setSheet(phone() ? (S.sheet || "peek") : "open");
   /* Planner's airport "View on map": frame the selected airport together with the venue (both stay in view) */
-  let framedAp = false;
+
   function frameAirport(duration) {
     if (!map || !S.ap) return false;
     const p = (data.products || []).find((x) => x.family === "aviation" && x.airport === S.ap && Array.isArray(x.point)); if (!p) return false;
@@ -989,8 +990,8 @@
   }
   createMap().then(() => {
     map.once("load", () => {
-      if (S.ap && frameAirport(0)) return;
-      if (S.ap) { const off = Live.onUpdate(() => { if (!framedAp && frameAirport(500) && typeof off === "function") off(); }); } // live: the airport's report may still be on its way
+      mapLoaded = true;
+      if (S.ap && frameAirport(0)) return; // otherwise drawAll frames it once the airport's report has loaded
       if (S.sel && byId(S.sel) && byId(S.sel).geometry) { const b = T.bbox(byId(S.sel).geometry); map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: pad(), maxZoom: 9, duration: 0 }); }
       else if (isArchive()) fitArchive();
       else if (S.scope === "venue") map.jumpTo(venueCamera());
