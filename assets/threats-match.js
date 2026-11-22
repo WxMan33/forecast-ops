@@ -234,7 +234,8 @@
       for (const ap of event.airports) {
         const taf = products.filter((p) => p.kind === "taf" && p.airport === ap.icao).sort((a, b) => (a.issued < b.issued ? 1 : -1))[0];
         const met = products.filter((p) => p.kind === "metar" && p.airport === ap.icao).sort((a, b) => (a.observed < b.observed ? 1 : -1))[0];
-        const role = ap.role === "alternate" ? "alternate" : "primary", name = apName((taf || met || {}).airportName, ap.icao), at = name + " (" + ap.icao + ")";
+        const role = ap.role === "alternate" ? "alternate" : "primary", name = apName((taf || met || {}).airportName, ap.icao), at = name === ap.icao ? ap.icao : name + " (" + ap.icao + ")";
+        const avKind = (state.awc || {}).kind, checking = !taf && !met && (avKind === "loading" || avKind === undefined);
         const notes = [], sum = { icao: ap.icao, name, role, windows: [], now: null };
         if (met) notes.push(ap.icao + " METAR " + z(met.observed) + " " + met.category); else notes.push(ap.icao + " METAR not available");
         if (taf) notes.push("TAF " + z(taf.issued) + (taf.amended ? " AMD" : "") + " valid to " + day(Date.parse(taf.validEnd), tz).slice(0, 3) + " " + clock(Date.parse(taf.validEnd), tz)); else notes.push("no TAF (" + ap.icao + " may not issue one)");
@@ -243,7 +244,7 @@
           if (!w) continue;
           const when = "your " + wk + ", " + fmtW(w);
           if (!(w.endMs > now)) { sum.windows.push({ kind: wk, concern: false, text: cap(when) + ": already past." }); continue; }
-          if (!taf) { sum.windows.push({ kind: wk, concern: false, unknown: true, text: cap(when) + ": no airport forecast available for " + at + "." }); continue; }
+          if (!taf) { sum.windows.push({ kind: wk, concern: false, unknown: true, text: cap(when) + ": " + (checking ? "checking the forecast for " + at + "…" : avKind === "unavailable" || avKind === "stale" ? "the Aviation Weather Center isn't answering, so " + at + "'s forecast is unknown." : "no airport forecast available for " + at + ".") }); continue; }
           const past = Date.parse(taf.validEnd) < w.endMs;
           if (past) { gap = true; notes.push("the " + wk + " window runs past the TAF (ends " + clock(Date.parse(taf.validEnd), tz) + ")"); }
           const over = taf.periods.filter((pd) => Date.parse(pd.from) < w.endMs && Date.parse(pd.to) > w.startMs);
@@ -275,7 +276,7 @@
             relation: { kind: "airport" }, window: { startMs: Date.parse(met.observed) - 3600e3, endMs: Date.parse(met.observed) } });
           sum.now = { concern: true, itemId: met.id + "|" + role, text: headline };
         } else if (met) sum.now = { concern: false, text: "Right now at " + at + ": " + (CAT_OK[met.category] || (plainWx(met) || "no concerns")) + " (" + met.category + "), observed " + clock(Date.parse(met.observed), tz) + (fresh ? "." : " · this observation is more than 3 hours old.") };
-        else sum.now = { concern: false, unknown: true, text: "No current observation for " + at + "." };
+        else sum.now = { concern: false, unknown: true, text: checking ? "Checking the latest observation at " + at + "…" : "No current observation for " + at + "." };
         avNotes.push({ icao: ap.icao, text: notes.join(" · "), ok: !gap && !!met });
         avSummary.push(sum);
       }

@@ -40,3 +40,4 @@
 .et-ok { list-style: none; padding: 4px 0; color: var(--muted, inherit); }
 .et-ok.et-unk { color: var(--monitor, #b58100); }
 .et-sharenote { margin-top: 4px; }
+.et-apmap { font-weight: 400; font-size: .85rem; margin-left: 6px; }

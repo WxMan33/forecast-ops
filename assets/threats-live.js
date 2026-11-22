@@ -238,6 +238,7 @@
     if (!list.length) { Object.assign(av, { key: "", state: "never", products: [] }); return Promise.resolve(); }
     if (av.key === key && av.lastOk && Date.now() - Date.parse(av.lastOk) < 2 * 60e3) return Promise.resolve();
     if (avPending && avPending.key === key) return avPending.p;
+    if (av.state === "never" || av.key !== key) Object.assign(av, { key, state: av.key === key ? av.state : "pending" }); // "checking", not "not part of this sample"
     if (NWS.mode !== "function") { Object.assign(av, { key, state: "failed", error: "needs the preview's same-origin function (the Aviation Weather Center sends no CORS header)", products: [] }); emit(); return Promise.resolve(); }
     const base = NWS.base.replace(/\/api\/nws$/, "/api/awc"), at = nowIso();
     const p = Promise.all([get(base + "/metar?ids=" + key, "json"), get(base + "/taf?ids=" + key, "json")])

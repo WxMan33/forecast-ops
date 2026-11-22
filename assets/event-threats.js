@@ -34,7 +34,7 @@
   const mapLink = (it) => {
     const p = it.product, u = new URL("threats.html", location.href), q = u.searchParams;
     q.set("lat", ev.loc.lat); q.set("lon", ev.loc.lon); q.set("name", ev.loc.name); q.set("tz", ev.tz); q.set("scope", "venue");
-    if (it.family === "aviation") { q.set("view", "active"); q.set("layers", "aviation"); q.set("air", (airportsOf(ev).map((a) => a.icao)).join(",")); q.set("ap", it.airport); q.set("sel", p.id); }
+    if (it.family === "aviation") { q.set("view", "active"); q.set("layers", "aviation"); q.set("air", (airportsOf(ev).map((a) => a.icao)).join(",")); q.set("ap", it.airport); if (p.id) q.set("sel", p.id); }
     else if (p.kind === "tcwind") { q.set("view", "active"); q.set("layers", "tropical"); }
     else if (it.family === "smoke") { q.set("view", "active"); q.set("layers", "smoke"); if (p.kind === "smoke" || p.kind === "aqobs") q.set("sel", p.id); }
     else if (p.kind === "incident") { q.set("view", "active"); q.set("layers", "fire"); q.set("sel", p.id); }
@@ -164,7 +164,7 @@
     const venueItems = r.items.filter((it) => it.family !== "aviation").map(renderItem).join("");
     const byId = new Map(r.items.map((it) => [it.id, it]));
     const okLine = (x) => `<li class="et-ok${x.unknown ? " et-unk" : ""}" data-kind="airport-plain">${esc(x.text)}</li>`;
-    const apBlocks = (r.airports || []).map((a) => `<div class="et-ap" data-icao="${esc(a.icao)}"><h4 class="et-aph">${esc(a.name + " (" + a.icao + ")")} · ${esc(a.role)} airport</h4><ul class="et-list">${
+    const apBlocks = (r.airports || []).map((a) => `<div class="et-ap" data-icao="${esc(a.icao)}"><h4 class="et-aph">${esc(a.name === a.icao ? a.icao : a.name + " (" + a.icao + ")")} · ${esc(a.role)} airport <a class="bx-link et-apmap" data-map-ap="${esc(a.icao)}" href="${esc(mapLink({ family: "aviation", airport: a.icao, product: {} }))}">View on map</a></h4><ul class="et-list">${
       [...a.windows, ...(a.now ? [a.now] : [])].map((x) => (x.concern && byId.get(x.itemId) ? renderItem(byId.get(x.itemId)) : okLine(x))).join("")}</ul></div>`).join("");
     const hasAir = FAMILIES.includes("aviation");
     const airSec = !hasAir ? "" : `<h3 class="et-h" id="etAirHead">Airport weather</h3>${apBlocks || '<p class="bx-note et-noair">No airports set for this event. Add a primary and an optional alternate airport with your flight times below.</p>'}${apBlocks && linkAir ? '<p class="bx-note et-linkair">Airports and flight times came with the shared link. Change them below to keep your own in this browser.</p>' : ""}${apBlocks ? '<p class="bx-note">Airport forecasts and observations from the NOAA Aviation Weather Center, for the airport, not the venue. Codes and the raw reports are under More info.</p>' : ""}`;
