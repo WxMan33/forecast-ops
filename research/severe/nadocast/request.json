@@ -1,7 +1,7 @@
 {
-  "purpose": "NadoCast Day 2 wind benchmark pilot on the two locked pilot issue dates (2024-05-14, 2024-08-14), reusing existing extraction outputs",
-  "stage": "wind_pilot",
+  "purpose": "NadoCast Day 2 wind benchmark: full locked score (234 fresh + 81 exploratory 2024 issue dates) and the two preselected maps",
+  "stage": "wind_score",
   "extraction_run": 44942885255,
   "extraction_run_supplement": 44961446546,
-  "request": 5
+  "request": 6
 }
