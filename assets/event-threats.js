@@ -227,7 +227,7 @@
     if (ARCHIVE) { try { archived = await Live.archiveSnapshot(ARCHIVE); } catch (e) { archived = { products: [], sources: {}, clock: new Date().toISOString(), loadError: e.message }; } ready = true; render(); return; }
     await Live.start({ only: ["alerts", "ero", "fire", "nifc", "hms", "nhc"] }); ready = true; wssiCheck(); aqCheck(); avCheck(); render();
     Live.onUpdate(() => { tcCheck(); render(); }); // tcCheck: once NHC has answered, the venue's wind probabilities (cached)
-    setInterval(() => { if (!document.hidden) render(); }, 30e3);
+    setInterval(() => { if (!document.hidden) { avCheck(); render(); } }, 30e3); // avCheck: refreshes airports older than 2 min, and retries a failed answer
   }
   /* started by the first event on screen: an event address this browser doesn't have ("Event not found") requests nothing */
   let started = false;
