@@ -65,7 +65,8 @@
   /* default valid time: the one asked for, else the first both runs share where the field exists in both (F06 of A if possible) */
   function defaultValid() {
     const want = Q.get("valid") ? Date.parse(Q.get("valid")) : null; if (want != null && st.times.includes(want)) return want;
-    const both = st.times.filter((t) => ["A", "B"].every((k) => { const h = fhAt(k, t), rec = h == null ? null : st.man[k].fields[st.field] && st.man[k].fields[st.field].hours[String(h)]; return rec && !rec.notApplicable; }));
+    const shown = st.mode === "single" ? ["A"] : ["A", "B"];
+    const both = st.times.filter((t) => shown.every((k) => { const h = fhAt(k, t), rec = h == null ? null : st.man[k].fields[st.field] && st.man[k].fields[st.field].hours[String(h)]; return rec && !rec.notApplicable; }));
     const a6 = both.find((t) => fhAt("A", t) === 6); return a6 != null ? a6 : both.length ? both[Math.min(both.length - 1, 5)] : st.times[0];
   }
   /* what each panel shows, and whether the two are like for like */
