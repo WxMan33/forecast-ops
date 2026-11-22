@@ -87,3 +87,28 @@ misses fall from 175 to 78. These days were already inspected, so this cannot de
   intervals).
 - Isotonic calibration on that set overfits the top tail, which is what fails Brier and reliability.
 - Under the locked rules this is a fail. Nothing is frozen, and 2021 stays sealed.
+
+# Follow-up (v2), approved 2026-11-22. Roster, folds, extraction plan and rules locked before fitting
+Files:
+- `research/severe/corridor/v2/roster.json`
+- `research/severe/corridor/v2/rules.json`
+
+**Roster:** the original 96 dates plus every March-July day of 2022 and 2023, deduplicated: 362 dates.
+- 266 dates are new and need extraction.
+- The folds are the same whole-month folds as v1. They hold 70, 16, 70, 68, 70 and 68 dates. The
+  16-date fold contains only February and August months.
+
+**What changed from v1:**
+- Arms b and c both use **beta calibration**: a logistic fit on ln p and −ln(1−p) with slopes
+  constrained to ≥ 0. It is fitted inside each training fold on inner out-of-fold scores, and its
+  smooth, monotone shape cannot form a top step.
+- Arm a keeps the v0.7 Platt step.
+
+**What is unchanged:** the features, edge handling, arms, nesting, all five pass criteria, 2024 as
+diagnostic only, 2021 opened once only on a full pass, and 2025 sealed.
+
+**Added reporting:**
+- matched-area results before and after calibration;
+- the original-96 subset alongside the full sample;
+- event dates behind each reliability bin;
+- a gap-filled map and a spread-along-front map, chosen by rule.
