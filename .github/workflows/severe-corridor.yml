@@ -17,7 +17,7 @@ concurrency:
 jobs:
   gate:
     runs-on: ubuntu-latest
-    timeout-minutes: 330
+    timeout-minutes: 350
     env:
       OPENBLAS_NUM_THREADS: '4'
       OMP_NUM_THREADS: '4'
@@ -27,6 +27,10 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r tools/severe/requirements.txt scikit-learn==1.9.1 matplotlib==3.11.2 shapely==2.2.0
+      - id: req
+        run: |
+          echo "stage=$(jq -r .stage research/severe/corridor/request.json)" >> "$GITHUB_OUTPUT"
+          echo "new=$(jq -r '.new_extraction_run // empty' research/severe/corridor/request.json)" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
         with:
           pattern: severe-conus-*
@@ -34,12 +38,26 @@ jobs:
           path: tests/out/x
           run-id: 44577990940
           github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        if: steps.req.outputs.new != ''
+        with:
+          pattern: severe-conus-*
+          merge-multiple: true
+          path: tests/out/x2
+          run-id: ${{ steps.req.outputs.new }}
+          github-token: ${{ github.token }}
       - name: Nested gate (2022-23 only)
         run: |
           mkdir -p tests/out/dev
           for d in tests/out/x/conus/2022-* tests/out/x/conus/2023-*; do ln -s "$PWD/$d" tests/out/dev/; done
           ls tests/out/dev | wc -l
-          PYTHONPATH=tools/severe python3 tools/severe/corridor.py gate --conus tests/out/dev --output tests/out/corridor
+          if [ "${{ steps.req.outputs.stage }}" = gate_v2 ]; then
+            ls tests/out/x2/conus | wc -l
+            PYTHONPATH=tools/severe python3 tools/severe/corridor_v2.py gate --conus tests/out/dev tests/out/x2/conus --output tests/out/corridor
+            cp tests/out/corridor/fits-roster.json tests/out/corridor/fits-all96.json  # diag2024 input name
+          else
+            PYTHONPATH=tools/severe python3 tools/severe/corridor.py gate --conus tests/out/dev --output tests/out/corridor
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -104,8 +122,10 @@ jobs:
       - name: Commit scorecards, fits and maps (not the arrays)
         run: |
           dest=research/severe/corridor/gate
+          [ "$(jq -r .stage research/severe/corridor/request.json)" = gate_v2 ] && dest=research/severe/corridor/v2/gate
           mkdir -p "$dest"
-          find tests/out/a -name '*.json' -exec cp {} "$dest"/ \;
+          find tests/out/a -name '*.json' ! -name 'fits-all96.json' -exec cp {} "$dest"/ \;
+          [ "$dest" = research/severe/corridor/gate ] && find tests/out/a -name 'fits-all96.json' -exec cp {} "$dest"/ \;
           find tests/out/a -name '*.png' -exec cp {} "$dest"/ \;
           echo "run_id: $GITHUB_RUN_ID" > "$dest/run.txt"
           git config user.name "github-actions[bot]"

@@ -88,6 +88,8 @@ class Arm:
         self.w = fit_logistic(self.z(x), y, self.penalty)
         if self.cal == "platt":
             self.c = fit_logistic(oof[:, None], y, penalty=0.0001, monotone=True)
+        elif self.cal == "beta":
+            self.c = fit_beta(oof, y)
         else:
             from sklearn.isotonic import IsotonicRegression
             iso = IsotonicRegression(y_min=0, y_max=1, out_of_bounds="clip").fit(oof, y)
@@ -100,6 +102,8 @@ class Arm:
     def calibrate(self, logit):
         if self.cal == "platt":
             return expit(self.c[0] + self.c[1] * logit)
+        if self.cal == "beta":
+            return expit(self.c[0] + beta_design(logit) @ self.c[1:])
         return np.interp(logit, self.c[0], self.c[1])
 
     def predict(self, x):
@@ -109,6 +113,10 @@ class Arm:
         return {"calibration": self.cal, "penalty": self.penalty, "mean": self.z.mean.tolist(),
                 "scale": self.z.scale.tolist(), "w": self.w.tolist(),
                 "c": [np.asarray(v).tolist() for v in self.c] if self.cal == "isotonic" else np.asarray(self.c).tolist()}
+
+    def raw(self, x):
+        """Uncalibrated logistic score (for before/after-calibration comparisons)."""
+        return expit(self.w[0] + self.z(x) @ self.w[1:])
 
     @classmethod
     def from_dict(cls, d):
@@ -121,13 +129,39 @@ class Arm:
         return a
 
 
-def recalibrated(ab, y):
-    """Arm b: arm a's fitted logistic with isotonic recalibration on arm a's inner out-of-fold logits."""
-    from sklearn.isotonic import IsotonicRegression
-    bb = Arm("isotonic")
+def beta_design(logit):
+    """Beta-calibration inputs [ln p, -ln(1-p)] from a logit, computed stably."""
+    return np.column_stack((-np.logaddexp(0, -logit), np.logaddexp(0, logit)))
+
+
+def fit_beta(logit, y, penalty=1e-4):
+    """Beta calibration (v2 rules): logistic on [ln p, -ln(1-p)], both slopes >= 0, intercept free."""
+    from scipy.optimize import minimize
+    F = beta_design(logit)
+    rate = y.mean()
+
+    def obj(b):
+        t = b[0] + F @ b[1:]
+        r = expit(t) - y
+        return (np.mean(np.logaddexp(0, t) - y * t) + penalty * (b[1:] @ b[1:]) / 2,
+                np.r_[r.mean(), F.T @ r / len(y) + penalty * b[1:]])
+    res = minimize(obj, np.array([np.log(rate / (1 - rate)), 1.0, 0.0]), jac=True, method="L-BFGS-B",
+                   bounds=[(None, None), (0, None), (0, None)], options={"maxiter": 600, "ftol": 1e-13, "gtol": 1e-8})
+    if not np.isfinite(res.x).all():
+        raise RuntimeError("beta calibration failed")
+    return res.x
+
+
+def recalibrated(ab, y, cal="isotonic"):
+    """Arm b: arm a's fitted logistic, recalibrated on arm a's inner out-of-fold logits (isotonic in v1, beta in v2)."""
+    bb = Arm(cal)
     bb.penalty, bb.z, bb.w, bb.loss, bb.oof_raw = ab.penalty, ab.z, ab.w, ab.loss, ab.oof_raw
-    iso = IsotonicRegression(y_min=0, y_max=1, out_of_bounds="clip").fit(ab.oof_raw, y)
-    bb.c = (iso.X_thresholds_.astype(float), iso.y_thresholds_.astype(float))
+    if cal == "beta":
+        bb.c = fit_beta(ab.oof_raw, y)
+    else:
+        from sklearn.isotonic import IsotonicRegression
+        iso = IsotonicRegression(y_min=0, y_max=1, out_of_bounds="clip").fit(ab.oof_raw, y)
+        bb.c = (iso.X_thresholds_.astype(float), iso.y_thresholds_.astype(float))
     bb.oof_p = bb.calibrate(ab.oof_raw)
     return bb
 
