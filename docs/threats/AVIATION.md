@@ -1,4 +1,4 @@
-# Weather Threats: aviation (airport METAR and TAF)
+# Weather Threats: aviation (airport METAR and TAF; en route and FAA status)
 
 Branch `claude/threats-planner-flood`, isolated Cloudflare Pages preview. Shared beta, production and navigation are unchanged.
 
@@ -46,6 +46,68 @@ MVFR is shown in More info, not as an item.
 | Archived capture (`archive-aviation-chicago`, Nov 22 16:35Z) | Official KORD, KMDW and KMKE METARs and TAFs, captured live | United Center has no hazard item (the venue looks fine). O'Hare (primary): "temporarily IFR" in the TEMPO period overlapping the 10:45–11:30 a.m. arrival, and "IFR now" (BKN009 at 10:31 a.m.). Midway (alternate) is named separately. The Monday departure falls in VFR: no item. |
 | Live (hosted, Nov 22 17:27Z) | The same airports through `/api/awc` | "KORD arrival (Sun 11:42 a.m.–12:42 p.m.): IFR forecast" (TAF 1706Z AMD), "KMDW now: IFR (observed 11:12 a.m.)", and "KMDW arrival: temporarily IFR". |
 
+## Phase 2: en route and flight disruptions (branch `claude/threats-em-combined`, 2026-11-22)
+
+Built on the combined preview. Airport METARs, TAFs and Planner flight windows are unchanged.
+
+### Sources (verified 2026-11-22)
+
+| Product | Source | Kind |
+|---|---|---|
+| **Pilot reports (PIREPs)** | AWC Data API `/api/data/pirep?bbox=…&age=…`, through `/api/awc/pirep` (bbox and age 1–3 h only; AWC returns at most 400 per request, so the map asks for CONUS in three boxes). Cached 2 min. | Observation. Turbulence and icing of light or more, with intensity, altitude or layer, time and aircraft type. "Smooth" reports are left out. |
+| **SIGMETs** | `/api/data/airsigmet`, through `/api/awc/airsigmet`. Cached 2 min. | Official advisory: convective, turbulence, icing, with valid time and altitudes. |
+| **G-AIRMETs** | `/api/data/gairmet?fore=0,3,6,9,12`, through `/api/awc/gairmet?fore=…` (five requests). Cached 5 min. | Official forecast advisory, as snapshots every 3 hours. Each snapshot is read as 90 minutes either side of its time. Freezing-level contours are left out. An icing base of "FZL" uses the freezing level's own range. |
+| **CWAs** | `/api/data/cwa`, through `/api/awc/cwa` (AWC's 204 becomes an empty list). Cached 2 min. | Official advisory from the Center Weather Service Units. Altitudes come from the fields, or from the text ("FL290 TO FL390", "TOPS EST TO FL370"). |
+| **FAA airport status** | `nasstatus.faa.gov/api/airport-events` and `/api/operations-plan`, through `/api/faa/…`. Cached 1 min. | Ground stops, ground delay programs, arrival and departure delays, closures and NOTAM notices, each with the FAA's stated cause and times. A start time in the future means **planned**. The operations plan's terminal items are **possible**. |
+| **Gridded turbulence guidance (GTG)** | Not used. | AWC's Data API (its OpenAPI spec, checked 2026-11-22) does not publish GTG, and no other supported machine-readable source was verified. The map says model guidance is not shown. |
+
+**Weather-related.** The FAA's cause mentions ceilings, visibility, fog, wind, thunderstorms, snow, ice, rain or "WX" (for example, "TM Initiatives: Metering: WX"). Volume, staffing, equipment and airspace causes are not weather-related.
+
+### Map (Aviation layer)
+
+- **Pilot reports.** Dots for turbulence, rings for icing; darker means stronger. Shown at "Now" only, filtered by report age (last 1 or 2 hours live, up to 3 in the replay).
+- **Advisories.**
+  - SIGMETs and CWAs have solid outlines.
+  - G-AIRMETs have dashed outlines (a forecast snapshot).
+  - Colors by hazard: turbulence orange, icing blue, thunderstorms red, low clouds or obscured mountains grey, wind purple.
+- **Filters:**
+  - Time: Now, +3, +6, +9 or +12 h, matching the G-AIRMET snapshots.
+  - Altitude: all; below 10,000 ft; 10,000 ft to FL180; FL180 to FL290; above FL290; or the route's own band.
+  - Report age.
+- **When it appears.** En-route context appears when the Aviation layer is asked for (`layers=aviation`, an event's airports or route, or a button in the panel), so the default map requests nothing new.
+- **FAA status.** Listed for the event's airports under "Flight disruptions · FAA".
+- **Approximate route.** Drawn as a dashed straight line labelled "Approximate route KORD to KEWR".
+
+### Planner
+
+Four separate headings: **Venue hazards**, **Airport weather**, **Flight disruptions** and **Along the route**.
+
+- **Flight disruptions.**
+  - Shown per airport (primary, alternate, and the route's origin or destination when different).
+  - Each lists the FAA's disruption, the stated cause, whether it is weather-related, and whether it is active or planned with its times.
+  - It also gives the relation to the arrival or departure window. Ground stops, ground delay programs and arrival delays concern the arrival; departure delays concern the departure.
+  - A disruption with no end time counts for a window starting within 6 hours. Later windows get a plain line.
+  - An airport with none says so. A source that isn't answering is never "none".
+- **Along the route.** Optional: origin, destination, altitude band, and the time in the air. With no time given, it uses the arrival window at the destination, or else the departure window at the origin.
+  - Advisories within 25 miles of the straight line, overlapping in time and altitude, are listed as **potential overlap** with the "approximate route" wording.
+  - Pilot reports of moderate or worse near the line in the last 90 minutes, in the band, are listed as observations.
+  - Surface-based advisories (IFR, obscured mountains, surface wind, low-level wind shear) are not matched to a cruise band. The airports' TAFs and the map cover them.
+- **Without a route.** En-route hazards stay on the map as regional context, and a note links there.
+- **Links.** The route travels as `?rt={"o":"KORD","d":"KEWR","lo":10000,"hi":16000,"w":[from,to]}` beside `?air=`, never inside `e`.
+  - The Share menu names it.
+  - "Include the airports and route in links" drops both.
+  - Malformed routes are ignored.
+
+### Cases (official replay `archive-aviation-enroute`, captured 2026-11-22 21:19Z)
+
+| Case | Result |
+|---|---|
+| **Turbulence report at one altitude** | JFK, Mooney M20P, moderate to severe turbulence at 6,000 ft, 3:12 p.m. EST. Shown with the "Below 10,000 ft" filter; hidden at "FL180–FL290". Its detail reads "Pilot report · observation". |
+| **Advisory overlapping the approximate route** | O'Hare → Newark, 10,000–16,000 ft, in the air 4:30–6:30 p.m. EST. Four G-AIRMETs: Zulu 3C icing (6,000 ft to FL210), Zulu 4C icing (10,000 ft to FL240), Tango 3W and 1W low-altitude turbulence. All are worded "may overlap your approximate route". Above them (25,000–26,000 ft) none apply. |
+| **FAA weather-related disruption** | Newark ground delay program for low ceilings, average 1 hr 45 min (up to 5 hr 55 min), 1 p.m.–11:59 p.m. EST, overlapping the 6:15–7 p.m. arrival. It shows while Newark's METAR was VFR. LaGuardia (the alternate) had a ground delay for low visibility. Newark's departure delay ("airspace sharing with N90") is marked not weather-related. |
+
+Tests: `tests/threats-enroute.test.js` (11), `tests/threats-functions.test.mjs` (en route and FAA routes), `tools/event-share-check.js` section 6 (route links), `tools/threats-planner-check.js` section 4l (replay cases on phone and desktop, plus the live functions).
+
 ## Not included
 
-PIREPs, SIGMETs and AIRMETs, airport delay programs (FAA), and the alternate-airport legality rules (2-1-2) for flight planning.
+The alternate-airport legality rules (2-1-2) for flight planning, airways or filed routes (the route is a straight line), gridded turbulence guidance, international SIGMETs, and airport delays outside the event's airports on the Planner.
