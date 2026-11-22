@@ -34,6 +34,7 @@
         <button type="button" class="btn ghost sm" id="cmpNext" aria-label="Next valid time">▶</button>
         <div class="cmp-valid mono" id="cmpValid"></div>
       </div>
+      <div class="cmp-status" id="cmpStatus" role="status" hidden></div>
       <div class="cmp-note" id="cmpNote" role="status"></div>
       <div class="cmp-ab" role="tablist" aria-label="Show run"><button type="button" role="tab" id="abA" aria-selected="true"></button><button type="button" role="tab" id="abB" aria-selected="false"></button></div>
       <div class="cmp-panels" id="cmpPanels">
@@ -72,6 +73,11 @@
     const F = FIELDS()[st.field], v = st.valid, h = { A: fhAt("A", v), B: fhAt("B", v) }, init = (k) => Date.parse(st.man[k].cycle);
     const f2 = (x) => `F${String(x).padStart(2, "0")}`;
     const lines = [];
+    if (st.mode === "single") {
+      const f2s = (x) => `F${String(x).padStart(2, "0")}`;
+      $("cmpNote").innerHTML = h.A == null ? `This run has no forecast hour valid at ${esc(fmtLocal(v))}.` : `${esc(fmtLocal(v))} (${f2s(h.A)}).`; $("cmpNote").dataset.likeForLike = "true";
+      $("cmpValid").textContent = `${fmtLocal(v)} · A ${h.A == null ? "—" : f2s(h.A)}`; $("cmpSl").value = String(st.times.indexOf(v)); return;
+    }
     ["A", "B"].forEach((k) => { if (h[k] == null) lines.push(`<b>${k}</b> (${esc(fmtUTC(init(k)))} run) has no forecast hour valid at ${esc(fmtLocal(v))}.`); });
     if (h.A != null && h.B != null) {
       if (F.window === "run") lines.push(h.A === h.B ? `Both run totals cover ${h.A} h.` :
@@ -86,7 +92,7 @@
     ["A", "B"].forEach((k) => { $(`ab${k}`).innerHTML = `<b class="panel${k === "B" ? " b" : ""}">${k}</b> ${esc(fmtUTC(init(k)).slice(0, 3))} ${h[k] == null ? "no hour" : f2(h[k])}`; });
   }
   function share() {
-    const q = new URLSearchParams({ domain: "conus", compare: "1", a: st.run.A.id, b: st.run.B.id, field: st.field, valid: new Date(st.valid).toISOString() });
+    const q = new URLSearchParams({ domain: "conus", compare: "1", a: st.run.A.id, ...(st.run.B ? { b: st.run.B.id } : {}), field: st.field, valid: new Date(st.valid).toISOString() });
     if (Q.get("data")) q.set("data", Q.get("data")); if (st.view) q.set("map", `${st.view[1].toFixed(3)},${st.view[0].toFixed(3)},${st.view[2].toFixed(2)}`);
     try { history.replaceState(null, "", `${location.pathname}?${q.toString()}`); } catch (e) { /* file:// */ }
     const s = new URLSearchParams({ domain: "conus", run: st.run.A.id, field: st.field }); if (Q.get("data")) s.set("data", Q.get("data"));
@@ -103,24 +109,48 @@
   }
   function stop() { if (st.play) clearInterval(st.play); st.play = null; $("cmpPlay").textContent = "PLAY"; $("cmpPlay").setAttribute("aria-pressed", "false"); }
 
+  /* nothing to show (no runs, or the run list failed): say why, and switch every control off */
+  function unavailable(msg) {
+    st.mode = "none"; $("cmpStatus").innerHTML = `<p><b>${esc(msg)}</b></p>`; $("cmpStatus").hidden = false; $("cmpNote").textContent = "";
+    ["cmpField", "cmpA", "cmpB", "cmpPlay", "cmpPrev", "cmpNext", "cmpSl"].forEach((id) => { $(id).disabled = true; $(id).setAttribute("aria-disabled", "true"); });
+    $("cmpValid").textContent = "—"; $("cmpPanels").hidden = true; document.querySelector(".cmp-ab").hidden = true;
+    window.__cmp = { st, panel };
+  }
   async function start() {
     O.shell("maps", "Model maps", { forecastPoint: false, subtitle: "Beta · HRRR 3 km · cycle comparison" });
     document.body.classList.add("maps-conus", "conus-compare"); layout();
     const bar = document.querySelector("header.statusbar"); if (bar) document.documentElement.style.setProperty("--statusbar-h", `${Math.ceil(bar.getBoundingClientRect().height)}px`);
-    try { st.index = await getJSON(`${DATA}/conus/index.json`); } catch (e) { $("cmpNote").textContent = `CONUS map data unavailable (${e.message}).`; return; }
-    const runs = st.index.runs.slice().sort((a, b) => Date.parse(b.cycle) - Date.parse(a.cycle)); st.index.runs = runs;
-    if (runs.length < 2) { $("cmpNote").textContent = "Only one HRRR run is published right now, so there is nothing to compare yet."; return; }
+    /* what the index actually says: no runs, one run, or a pair; and why a run is missing, when the build recorded it */
+    let idx;
+    try { idx = await getJSON(`${DATA}/conus/index.json`); }
+    catch (e) { return unavailable(`The HRRR run list could not be loaded (${e.message}), so there is nothing to show. Try again in a few minutes.`); }
+    const runs = (idx.runs || []).slice().sort((a, b) => Date.parse(b.cycle) - Date.parse(a.cycle)); st.index = { ...idx, runs };
+    const failed = (idx.failures || []).map((f) => `the ${fmtUTC(Date.UTC(+f.id.slice(0, 4), +f.id.slice(4, 6) - 1, +f.id.slice(6, 8), +f.id.slice(8, 10)))} run didn't publish in the latest build (${String(f.error || "").replace(/: Unknown Error$/, "")})`);
+    if (!runs.length) return unavailable(`No HRRR runs are published right now${failed.length ? `: ${failed.join("; ")}` : ""}.`);
     const published = new Set(runs.flatMap((r) => r.fields || [])), F = FIELDS();
     if (!F[st.field] || (published.size && !published.has(st.field))) st.field = "asnow_run";
     $("cmpField").innerHTML = Object.entries(F).filter(([k]) => !published.size || published.has(k)).map(([k, f]) => `<option value="${k}">${esc(f.label)}</option>`).join(""); $("cmpField").value = st.field;
     ["A", "B"].forEach((k) => { $(`cmp${k}`).innerHTML = runs.map((r, i) => `<option value="${esc(r.id)}">${esc(runLabel(r, i))}</option>`).join(""); });
-    const a = Q.get("a") || runs[0].id, b = Q.get("b") || (runs.find((r) => r.id !== a) || runs[1]).id;
-    await Promise.all([loadRun("A", a), loadRun("B", b)]); $("cmpA").value = st.run.A.id; $("cmpB").value = st.run.B.id;
+    /* a shared link whose run has rotated out: say so and use the nearest published runs, never the same run twice */
+    const want = { A: Q.get("a"), B: Q.get("b") }, has = (id) => runs.some((r) => r.id === id), notes = [];
+    let a = has(want.A) ? want.A : null, b = has(want.B) && want.B !== a ? want.B : null;
+    if (!a) a = (runs.find((r) => r.id !== b) || runs[0]).id;
+    if (!b) b = (runs.find((r) => r.id !== a) || {}).id || null;
+    ["A", "B"].forEach((k) => { const got = k === "A" ? a : b; if (want[k] && want[k] !== got) notes.push(`The ${fmtUTC(Date.UTC(+want[k].slice(0, 4), +want[k].slice(4, 6) - 1, +want[k].slice(6, 8), +want[k].slice(8, 10)))} run in this link is no longer published (HRRR runs rotate out)${got ? `; ${k} shows the ${fmtUTC(Date.parse(runs.find((r) => r.id === got).cycle))} run instead` : ""}.`); });
+    if (!b) {   /* one run: show it, and explain why there is no comparison */
+      st.mode = "single"; await loadRun("A", a); $("cmpA").value = st.run.A.id;
+      $("cmpB").innerHTML = '<option value="">No second run</option>'; $("cmpB").disabled = true;
+      notes.push(`Comparison needs two runs. Only the ${fmtUTC(Date.parse(st.run.A.cycle))} run is published right now${failed.length ? `; ${failed.join("; ")}` : ""}. It is shown on its own; this page compares side by side once a second run is published.`);
+      document.querySelector(".cmp").classList.add("single"); st.frames.B.closest(".cmp-p").hidden = true; document.querySelector(".cmp-ab").hidden = true;
+    } else { st.mode = "pair"; await Promise.all([loadRun("A", a), loadRun("B", b)]); $("cmpA").value = st.run.A.id; $("cmpB").value = st.run.B.id; }
+    $("cmpStatus").innerHTML = notes.map((n) => `<p>${esc(n)}</p>`).join(""); $("cmpStatus").hidden = !notes.length;
     const mv = (Q.get("map") || "").split(",").map(Number); st.view = mv.length === 3 && mv.every(Number.isFinite) ? [mv[1], mv[0], mv[2]] : null;
     times(); st.valid = defaultValid(); compareNote(); share();
     setActive("A");
+    if (st.mode === "single") { await openPanel("A"); }
+    else
     await Promise.all([openPanel("A"), openPanel("B")]);
-    if (!st.view) { const s = panel("A").state(); const c = st.frames.A.contentWindow.__conus.map; const cc = c.getCenter(); st.view = [cc.lng, cc.lat, c.getZoom()]; panel("B").view([cc.lng, cc.lat], c.getZoom()); }
+    if (!st.view) { const c = st.frames.A.contentWindow.__conus.map, cc = c.getCenter(); st.view = [cc.lng, cc.lat, c.getZoom()]; if (st.mode === "pair") panel("B").view([cc.lng, cc.lat], c.getZoom()); }
     compareNote(); share();
     /* keep the two panels in step */
     window.addEventListener("message", (e) => {
