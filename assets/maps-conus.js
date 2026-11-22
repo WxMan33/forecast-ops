@@ -62,13 +62,41 @@
     pop1h: { group: "Precip & Snow", vfmt: pct, vmin: lt(1), label: "1-h chance of precipitation (NBM)", short: "1-h PoP", units: "%", dec: 0, color: stepped(POP), range: [0, 100], steps: POP, window: 1,
       note: "NBM's chance of at least 0.01 in during the hour." },
     pop6h: { group: "Precip & Snow", vfmt: pct, vmin: lt(1), label: "6-h chance of precipitation (NBM)", short: "6-h PoP", units: "%", dec: 0, color: stepped(POP), range: [0, 100], steps: POP, window: 6,
-      note: "NBM's chance of at least 0.01 in during the 6 hours; posted for windows ending 00, 06, 12 and 18Z." },
+      note: "NBM's chance of at least 0.01 in during the 6 hours; posted for windows ending 00, 06, 12 and 18Z.", ends: "00, 06, 12 and 18Z" },
+    apcp6: { group: "Precip & Snow", vfmt: inch, vmin: lt(0.01), label: "6-h precipitation (same window across runs)", short: "6-h precipitation", units: "in", dec: 2, color: stepped(PRECIP), range: [0, 20], steps: PRECIP, window: 6, ends: "00, 06, 12 and 18Z",
+      note: "Run total at the end of the window minus the run total at its start, cell by cell." },
+    apcp12: { group: "Precip & Snow", vfmt: inch, vmin: lt(0.01), label: "12-h precipitation (same window across runs)", short: "12-h precipitation", units: "in", dec: 2, color: stepped(PRECIP), range: [0, 25], steps: PRECIP, window: 12, ends: "00 and 12Z",
+      note: "Run total at the end of the window minus the run total at its start, cell by cell." },
+    asnow6: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: "6-h snowfall (HRRR, same window across runs)", short: "6-h snowfall", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: 6, ends: "00, 06, 12 and 18Z",
+      note: "HRRR's own snowfall (variable density, not 10:1): run total at the end of the window minus the run total at its start." },
+    asnow12: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: "12-h snowfall (HRRR, same window across runs)", short: "12-h snowfall", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: 12, ends: "00 and 12Z",
+      note: "HRRR's own snowfall (variable density, not 10:1): run total at the end of the window minus the run total at its start." },
     asnow_run: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: "Total snowfall since run start (HRRR)", short: "Run-total snowfall", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: "run",
       note: "HRRR's own snowfall (variable snow density), not 10:1." },
   };
+  /* Same-window fields, derived in the browser from a run's own run totals: window total = total(end) - total(start), at
+     native resolution, then the display levels rebuilt with the pipeline's own rule. Windows end at fixed UTC hours so
+     two runs can be compared over exactly the same hours. tol: decreases treated as packing noise (stored units). */
+  const WIN = { apcp6: { base: "apcp_run", w: 6, tol: 5 }, apcp12: { base: "apcp_run", w: 12, tol: 5 }, asnow6: { base: "asnow_run", w: 6, tol: 5 }, asnow12: { base: "asnow_run", w: 12, tol: 5 } };
+  const publishes = (published, k) => published.has(k) || (WIN[k] && published.has(WIN[k].base));
+  function derive(man) {
+    if (!man || !man.fields) return man; const c = Date.parse(man.cycle);
+    Object.entries(WIN).forEach(([id, D]) => { const B = man.fields[D.base]; if (!B || man.fields[id]) return; const hours = {};
+      man.hours.forEach((h) => { const end = c + h * H, start = end - D.w * H, rb = B.hours[String(h)];
+        if (new Date(end).getUTCHours() % D.w) { hours[h] = { notApplicable: `${D.w}-h windows end at ${FIELDS[id].ends}` }; return; }
+        if (h - D.w < 0) { hours[h] = { notApplicable: `this run starts at ${fmtUTC(c)}, after the window began (${fmtUTC(start)}), so it has no total for the whole window` }; return; }
+        const ra = h - D.w === 0 ? {} : B.hours[String(h - D.w)];
+        if (!rb || rb.notApplicable || !ra || ra.notApplicable) return;   /* an end or start hour not published: missing */
+        hours[h] = { derived: [h - D.w, h], points: rb.points && (h - D.w === 0 || ra.points) ? true : undefined }; });
+      const { hours: _h, ...spec } = B;
+      man.fields[id] = { ...spec, label: FIELDS[id].label, window: `${D.w} h ending ${FIELDS[id].ends}`, coarse: B.coarse, derivedFrom: D.base,
+        derivation: `computed in the viewer: ${D.base}(window end) - ${D.base}(window start) of the same run, per native cell; decreases up to ${D.tol} stored units set to 0, larger ones left missing; display levels by the pipeline's rule (${B.coarse}, rounded half to even)`, hours };
+    });
+    return man;
+  }
   /* the field menu, grouped the way it's used on shift; groups with nothing published yet say so */
   function fieldOptions(published) {
-    const ok = ([k]) => !published.size || published.has(k);
+    const ok = ([k]) => !published.size || publishes(published, k);
     return GROUPS.map((g) => { const fs = Object.entries(FIELDS).filter(([, f]) => f.group === g).filter(ok);
       return `<optgroup label="${esc(g)}">${fs.length ? fs.map(([k, f]) => `<option value="${k}">${esc(f.label)}</option>`).join("") : '<option disabled>Queued: not published yet</option>'}</optgroup>`; }).join("");
   }
@@ -90,7 +118,7 @@
 
   /* ---------- tiles: fetch, decode, cache (least recently used, by decoded bytes) ---------- */
   const CACHE_LIMIT = () => (PHONE() ? 48e6 : 160e6);
-  const key = (fh, L, tx, ty) => `${st.run.id}|${st.field}|${fh}|${K.tileName(L, tx, ty)}`;
+  const key = (fh, L, tx, ty, f = st.field) => `${st.run.id}|${f}|${fh}|${K.tileName(L, tx, ty)}`;
   st.requests = 0;
   function remember(k, e) {
     st.tiles.set(k, e); st.bytes += e.size;
@@ -98,14 +126,15 @@
   }
   const gunzipBytes = async (u8) => new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer());
   /* the tiles of one level and hour; packed runs fetch neighbouring tiles with one HTTP range request */
-  function tiles(fh, L, list) {
-    const out = list.map(([tx, ty]) => { const k = key(fh, L, tx, ty); if (st.tiles.has(k)) { const e = st.tiles.get(k); st.tiles.delete(k); st.tiles.set(k, e); return null; } return [tx, ty, k]; }).filter(Boolean);
+  function tiles(fh, L, list, f = st.field) {
+    if (WIN[f]) return list.map(([tx, ty]) => windowTile(fh, L, tx, ty, f));
+    const out = list.map(([tx, ty]) => { const k = key(fh, L, tx, ty, f); if (st.tiles.has(k)) { const e = st.tiles.get(k); st.tiles.delete(k); st.tiles.set(k, e); return null; } return [tx, ty, k]; }).filter(Boolean);
     if (out.length) {
       if (st.man.layout !== "packed") out.forEach(([tx, ty, k]) => {
-        const d = K.tileDims(st.man, L, tx, ty), url = `${SITE}/${st.run.path}/${st.field}/f${String(fh).padStart(2, "0")}/${K.tileName(L, tx, ty)}`, e = { t: null, size: d.nx * d.ny * 2 };
+        const d = K.tileDims(st.man, L, tx, ty), url = `${SITE}/${st.run.path}/${f}/f${String(fh).padStart(2, "0")}/${K.tileName(L, tx, ty)}`, e = { t: null, size: d.nx * d.ny * 2 };
         st.requests++; e.p = gunzip(url).then((raw) => (e.t = K.decodeTile(raw, d.ny, d.nx))); e.p.catch(() => st.tiles.get(k) === e && st.tiles.delete(k)); remember(k, e); });
       else {
-        const rec = st.man.fields[st.field].hours[String(fh)], ix = rec ? (rec.ix || (rec.ix = K.packIndex(st.man, rec))) : null, byName = {};
+        const rec = st.man.fields[f].hours[String(fh)], ix = rec ? (rec.ix || (rec.ix = K.packIndex(st.man, rec))) : null, byName = {};
         out.forEach(([tx, ty, k]) => { const d = K.tileDims(st.man, L, tx, ty), e = { t: null, size: d.nx * d.ny * 2 }; e.p = new Promise((ok, no) => { e.ok = ok; e.no = no; });
           e.p.catch(() => st.tiles.get(k) === e && st.tiles.delete(k)); remember(k, e); byName[K.tileName(L, tx, ty)] = { e, d }; });
         if (!ix) Object.values(byName).forEach(({ e }) => e.no(new Error("hour not published")));
@@ -121,9 +150,24 @@
         });
       }
     }
-    return list.map(([tx, ty]) => st.tiles.get(key(fh, L, tx, ty)).p);
+    return list.map(([tx, ty]) => st.tiles.get(key(fh, L, tx, ty, f)).p);
   }
-  const tile = (fh, L, tx, ty) => tiles(fh, L, [[tx, ty]])[0];
+  /* one display tile of a same-window field: the native end and start tiles of the run total under it, differenced, then
+     coarsened to level L exactly as the pipeline builds its levels */
+  function windowTile(fh, L, tx, ty, f) {
+    const k = key(fh, L, tx, ty, f);
+    if (st.tiles.has(k)) { const e = st.tiles.get(k); st.tiles.delete(k); st.tiles.set(k, e); return e.p; }
+    const D = WIN[f], spec = st.man.fields[f], T = st.man.tile, g = st.man.grid, s = 2 ** L, i0 = tx * T * s, j0 = ty * T * s, W = Math.min(T * s, g.nx - i0), Hh = Math.min(T * s, g.ny - j0);
+    const l0 = []; for (let b = j0 / T; b <= Math.floor((j0 + Hh - 1) / T); b++) for (let a = i0 / T; a <= Math.floor((i0 + W - 1) / T); a++) l0.push([a, b]);
+    const region = (ts) => { const q = new Int16Array(W * Hh); l0.forEach(([a, b], n) => { const t = ts[n], oi = a * T - i0, oj = b * T - j0;
+      for (let j = 0; j < t.ny; j++) q.set(t.values.subarray(j * t.nx, (j + 1) * t.nx), (oj + j) * W + oi); }); return q; };
+    const d = K.tileDims(st.man, L, tx, ty), e = { t: null, size: d.nx * d.ny * 2 }, h0 = fh - D.w;
+    e.p = Promise.all([Promise.all(tiles(fh, 0, l0, D.base)), h0 > 0 ? Promise.all(tiles(h0, 0, l0, D.base)) : null]).then(([end, start]) => {
+      const c = K.coarsenRegion(K.windowDiff(region(end), start ? region(start) : null, D.tol), W, Hh, L, spec.coarse, spec.displayStep);
+      return (e.t = { values: c.values, bytes: new Uint8Array(c.values.buffer), nx: c.nx, ny: c.ny }); });
+    e.p.catch(() => st.tiles.get(k) === e && st.tiles.delete(k)); remember(k, e); return e.p;
+  }
+  const tile = (fh, L, tx, ty) => tiles(fh, L, [[tx, ty]])[0];  // eslint-disable-line no-unused-vars
   const ready = (fh, L, tx, ty) => { const e = st.tiles.get(key(fh, L, tx, ty)); return e && e.t; };
 
   /* ---------- what the view needs ---------- */
@@ -156,11 +200,15 @@
      values or the hour, so labels stay put while the loop plays and both comparison panels label the same points. */
   st.values = (() => { try { return Q.get("values") === "0" ? false : localStorage.getItem("conus_values") !== "0"; } catch (e) { return Q.get("values") !== "0"; } })();
   st.points = new Map(); st.labelSet = null;
-  const ptsKey = (fh) => `${st.run.id}|${st.field}|${fh}`;
-  function points(fh) {   /* Int16Array of stored values for this field-hour, or null when the hour has none */
-    const r = hourRec(fh); if (!r || !r.points || r.notApplicable) return Promise.resolve(null);
-    const k = ptsKey(fh); if (st.points.has(k)) return st.points.get(k).p;
-    const e = { v: null }; e.p = gunzip(`${SITE}/${st.run.path}/${st.field}/p${String(fh).padStart(2, "0")}.bin.gz`).then((u8) => (e.v = new Int16Array(u8.buffer, u8.byteOffset, u8.byteLength >> 1)));
+  const ptsKey = (fh, f = st.field) => `${st.run.id}|${f}|${fh}`;
+  function points(fh, f = st.field) {   /* Int16Array of stored values for this field-hour, or null when the hour has none */
+    const r = st.man.fields[f] && st.man.fields[f].hours[String(fh)]; if (!r || !r.points || r.notApplicable) return Promise.resolve(null);
+    const k = ptsKey(fh, f); if (st.points.has(k)) return st.points.get(k).p;
+    const e = { v: null };
+    if (WIN[f]) { const D = WIN[f];   /* label values of a same-window field: the same difference at the label points */
+      e.p = Promise.all([points(fh, D.base), fh - D.w > 0 ? points(fh - D.w, D.base) : null]).then(([a, b]) => { if (!a || (fh - D.w > 0 && !b)) throw new Error("label points missing"); return (e.v = K.windowDiff(a, b, D.tol)); });
+      e.p.catch(() => st.points.get(k) === e && st.points.delete(k)); st.points.set(k, e); return e.p; }
+    e.p = gunzip(`${SITE}/${st.run.path}/${f}/p${String(fh).padStart(2, "0")}.bin.gz`).then((u8) => (e.v = new Int16Array(u8.buffer, u8.byteOffset, u8.byteLength >> 1)));
     e.p.catch(() => st.points.get(k) === e && st.points.delete(k)); st.points.set(k, e); st.requests++;
     if (st.points.size > 400) st.points.delete(st.points.keys().next().value);
     return e.p;
@@ -461,6 +509,9 @@
     exportPng: () => exportPng(),
     setValues: (on) => setValues(on),
     setShade: (v) => setShade(v),
+    /* test hook: SHA-256 of a display tile's stored int16 values for the current field (read only) */
+    tileHash: async (fh, L, tx, ty) => { const t = await tiles(fh, L, [[tx, ty]])[0]; const b = new Uint8Array(t.values.buffer, t.values.byteOffset, t.values.byteLength);
+      return { hash: [...new Uint8Array(await crypto.subtle.digest("SHA-256", b))].map((x) => x.toString(16).padStart(2, "0")).join(""), nx: t.nx, ny: t.ny }; },
     labels: () => ({ tier: st.labelSet && st.labelSet.tier, chosen: st.labelSet ? st.labelSet.list.map((o) => o.k) : [], shown: st.labelsShown || [] }),
     state: () => (st.man ? { shade: st.shade, run: st.run.id, cycle: st.man.cycle, field: st.field, fh: st.gapValid != null ? null : fhNow(), gapValid: st.gapValid, hours: st.man.hours, valid: st.man.valid, status: st.man.status,
       hourState: st.gapValid != null ? "no-valid" : hourState(fhNow()), shown: st.shown, draw: (st.draw || []).length, point: $("inspect").innerText } : null),
@@ -487,7 +538,7 @@
     stop(); const r = st.index.runs.find((x) => x.id === id) || st.index.runs[0];
     const prevValid = keepValid && st.man ? Date.parse(st.man.valid[fhNow()]) : null;
     $("mapInfo").textContent = `Loading ${fmtUTC(Date.parse(r.cycle))} run…`;
-    const man = await getJSON(`${SITE}/${r.path}/manifest.json`);
+    const man = derive(await getJSON(`${SITE}/${r.path}/manifest.json`));
     const sameGrid = st.man && JSON.stringify(st.man.grid) === JSON.stringify(man.grid);
     st.run = r; st.man = man; st.P = MC.projector(man.grid);
     if (!sameGrid) { st.mesh = K.gridMesh(st.P, man.grid.nx, man.grid.ny, MC.merc, 8); layer.setMesh(st.mesh); footprint(); }
@@ -506,9 +557,9 @@
   /* switch field: same run, hour and view; the colour scale, legend and timeline follow */
   async function setField(f) {
     if (!FIELDS[f] || f === st.field) return; stop(); st.field = f; $("fieldSel").value = f; let moved = null;
-    if (st.man && st.gapValid == null && hourState(fhNow()) === "na") {   /* e.g. 6-h PoP from an hour between windows: the window that contains this time */
+    if (!EMBED && st.man && st.gapValid == null && hourState(fhNow()) === "na") {   /* the comparison page moves its panels itself */   /* e.g. 6-h PoP from an hour between windows: the window that contains this time */
       const k = st.man.hours.findIndex((h, i) => i >= st.h && hourState(h) === "ok"), j = k >= 0 ? k : st.man.hours.findIndex((h) => hourState(h) === "ok");
-      if (j >= 0) { const from = fhNow(); st.h = j; moved = `${FIELDS[f].short || FIELDS[f].label} is posted for 6-h windows ending 00, 06, 12 and 18Z: showing F${String(fhNow()).padStart(2, "0")}, the window that includes F${String(from).padStart(2, "0")}.`; } }
+      if (j >= 0) { const from = fhNow(); st.h = j; moved = `${FIELDS[f].short || FIELDS[f].label} is for ${FIELDS[f].window}-h windows ending ${FIELDS[f].ends || "at fixed hours"}: showing F${String(fhNow()).padStart(2, "0")}, the window that includes F${String(from).padStart(2, "0")}.`; } }
     layer.setColors(K.lut(FIELDS[f].color, ...FIELDS[f].range, 4096)); legend(); timeline(); note(null); paintLabels(fhNow()); await redraw(); reselect(); if (moved) note(moved);
   }
   function go(h) { st.h = (h + st.man.hours.length) % st.man.hours.length; redraw(); reselect(); }
@@ -588,7 +639,7 @@
     if (!st.index.runs.length) { $("mapInfo").textContent = `No ${M.name} runs published yet.`; return; }
     if (FIELDS[Q.get("field")]) st.field = Q.get("field");
     const published = new Set(st.index.runs.flatMap((r) => r.fields || []));
-    if (published.size && !published.has(st.field)) st.field = published.has("t2m") ? "t2m" : [...published][0];   /* a field this model does not publish: its temperature map instead */
+    if (published.size && !publishes(published, st.field)) st.field = published.has("t2m") ? "t2m" : [...published][0];   /* a field this model does not publish: its temperature map instead */
     $("fieldSel").innerHTML = fieldOptions(published); $("fieldSel").value = st.field;
     if ($("modelSel")) {   /* switching model keeps the view, the valid time when the other model has it, and the field when it publishes it */
       $("modelSel").innerHTML = Object.values(MODELS).map((m) => `<option value="${m.key}">${esc(m.label)}</option>`).join(""); $("modelSel").value = M.key;
@@ -643,5 +694,5 @@
     d.innerHTML = `<a class="segb" href="maps.html" aria-pressed="${active === "tristate"}">Tri-State</a><a class="segb" href="maps.html?domain=conus" aria-pressed="${active === "conus"}">CONUS <small class="wide-only">beta</small></a>`;
     row.prepend(d);
   }
-  window.MapsConus = { start, regionToggle, api, FIELDS, MODEL: M, fieldOptions: (pub) => fieldOptions(pub) };
+  window.MapsConus = { start, regionToggle, api, FIELDS, MODEL: M, derive, publishes, fieldOptions: (pub) => fieldOptions(pub) };
 })();

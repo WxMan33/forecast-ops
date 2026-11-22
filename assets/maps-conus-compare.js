@@ -58,7 +58,7 @@
   }
   async function loadRun(k, id) {
     const r = st.index.runs.find((x) => x.id === id) || st.index.runs[k === "A" ? 0 : 1] || st.index.runs[0];
-    st.run[k] = r; st.man[k] = await getJSON(`${SITE}/${r.path}/manifest.json`);
+    st.run[k] = r; st.man[k] = window.MapsConus.derive(await getJSON(`${SITE}/${r.path}/manifest.json`));   /* adds the same-window fields */
   }
   function times() {
     const set = new Set(); ["A", "B"].forEach((k) => { const m = st.man[k]; if (m) m.hours.forEach((h) => set.add(Date.parse(m.valid[h]))); });
@@ -132,7 +132,7 @@
     const failed = (idx.failures || []).map((f) => `the ${fmtUTC(Date.UTC(+f.id.slice(0, 4), +f.id.slice(4, 6) - 1, +f.id.slice(6, 8), +f.id.slice(8, 10)))} run didn't publish in the latest build (${String(f.error || "").replace(/: Unknown Error$/, "")})`);
     if (!runs.length) return unavailable(`No ${MOD().name} runs are published right now${failed.length ? `: ${failed.join("; ")}` : ""}.`);
     const published = new Set(runs.flatMap((r) => r.fields || [])), F = FIELDS();
-    if (!F[st.field] || (published.size && !published.has(st.field))) st.field = ["asnow_run", "pop6h", "t2m"].find((f) => published.has(f)) || [...published][0];
+    if (!F[st.field] || (published.size && !window.MapsConus.publishes(published, st.field))) st.field = ["asnow_run", "pop6h", "t2m"].find((f) => published.has(f)) || [...published][0];
     $("cmpField").innerHTML = window.MapsConus.fieldOptions(published); $("cmpField").value = st.field;
     ["A", "B"].forEach((k) => { $(`cmp${k}`).innerHTML = runs.map((r, i) => `<option value="${esc(r.id)}">${esc(runLabel(r, i))}</option>`).join(""); });
     /* a shared link whose run has rotated out: say so and use the nearest published runs, never the same run twice */
@@ -162,13 +162,18 @@
       if (e.data.conus === "view") { st.view = [e.data.center[0], e.data.center[1], e.data.zoom]; if (o) o.view(e.data.center, e.data.zoom); share(); }
       if (e.data.conus === "point" && o) o.point(e.data.lat, e.data.lon);
     });
-    $("cmpField").addEventListener("change", () => { stop(); st.field = $("cmpField").value; ["A", "B"].forEach((k) => panel(k) && panel(k).setField(st.field)); compareNote(); share(); });
+    $("cmpField").addEventListener("change", () => { stop(); st.field = $("cmpField").value; ["A", "B"].forEach((k) => panel(k) && panel(k).setField(st.field));
+      if (!usable(st.valid)) { const i = st.times.indexOf(st.valid), j = nextUsable(i, 1) >= 0 ? nextUsable(i, 1) : nextUsable(i, -1); if (j >= 0) setValid(st.times[j]); }   /* e.g. a 6-h window: the window that ends next */
+      compareNote(); share(); });
     ["A", "B"].forEach((k) => $(`cmp${k}`).addEventListener("change", async () => { stop(); await loadRun(k, $(`cmp${k}`).value); times(); if (!st.times.includes(st.valid)) st.valid = defaultValid(); compareNote(); share(); await openPanel(k); compareNote(); }));
-    const step = (d) => { const i = st.times.indexOf(st.valid), j = Math.min(st.times.length - 1, Math.max(0, i + d)); if (j !== i) setValid(st.times[j]); };
+    /* a valid time worth stopping at for this field: at least one shown panel has it (window fields exist only at window ends) */
+    const usable = (t) => (st.mode === "single" ? ["A"] : ["A", "B"]).some((k) => { const h = fhAt(k, t), f = st.man[k] && st.man[k].fields[st.field], rec = h == null || !f ? null : f.hours[String(h)]; return rec && !rec.notApplicable; });
+    const nextUsable = (from, d) => { for (let j = from + d; j >= 0 && j < st.times.length; j += d) if (usable(st.times[j])) return j; return -1; };
+    const step = (d) => { const i = st.times.indexOf(st.valid), j = nextUsable(i, d); if (j >= 0) setValid(st.times[j]); };
     $("cmpSl").addEventListener("input", () => { stop(); setValid(st.times[+$("cmpSl").value]); });
     $("cmpPrev").addEventListener("click", () => { stop(); step(-1); }); $("cmpNext").addEventListener("click", () => { stop(); step(1); });
     $("cmpPlay").addEventListener("click", () => { if (st.play) { stop(); return; } $("cmpPlay").textContent = "PAUSE"; $("cmpPlay").setAttribute("aria-pressed", "true");
-      st.play = setInterval(() => { const i = st.times.indexOf(st.valid); setValid(st.times[(i + 1) % st.times.length]); }, PHONE() ? 1100 : 900); });
+      st.play = setInterval(() => { const i = st.times.indexOf(st.valid); let j = nextUsable(i, 1); if (j < 0) j = nextUsable(-1, 1); if (j >= 0) setValid(st.times[j]); }, PHONE() ? 1100 : 900); });
     ["A", "B"].forEach((k) => $(`ab${k}`).addEventListener("click", () => setActive(k)));
     const vals = (on) => { st.values = on; $("cmpVals").setAttribute("aria-pressed", String(on)); $("cmpVals").textContent = on ? "VALUES ON" : "VALUES OFF"; ["A", "B"].forEach((k) => panel(k) && panel(k).setValues(on)); share(); };
     $("cmpVals").addEventListener("click", () => vals(!st.values)); vals(st.values);
