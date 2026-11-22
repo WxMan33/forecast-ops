@@ -37,13 +37,14 @@
       <div class="mapinfo" id="mapInfo" aria-live="polite">Loading…</div>
       <div class="mapctl2 noprint" id="mapCtl">
         <div class="ctlrow">
-          <label class="sr-only" for="fieldSel">Field</label><select class="input inline" id="fieldSel"></select>
+          <label class="sr-only" for="modelSel">Model</label><select class="input inline" id="modelSel" hidden></select><label class="sr-only" for="fieldSel">Field</label><select class="input inline" id="fieldSel"></select>
           <label class="sr-only" for="winSel">Precipitation window</label><select class="input inline" id="winSel"><option value="1">1 h</option><option value="6">6 h</option><option value="24">24 h</option><option value="run">Since run start</option></select>
           <label class="sr-only" for="runSel">Run</label><select class="input inline" id="runSel"></select>
         </div>
         <div class="ctlrow">
           <div class="seg" role="group" aria-label="Map view"><button type="button" class="segb" data-view="tristate">Tri-State</button><button type="button" class="segb" data-view="dma" title="Closer regional view; keeps the existing model zoom limit">Cincinnati area</button><button type="button" class="segb" data-view="venue" id="venueBtn">Venue</button></div>
           <label class="chk smoothchk"><input type="checkbox" id="smoothChk"> Smooth<span class="wide-only"> display</span></label>
+          <button type="button" class="btn ghost sm" id="valBtn" hidden aria-pressed="true" title="Forecast values at cities and a sparse grid, from the model's own grid cells">VALUES ON</button>
           <button type="button" class="btn ghost sm" id="cmpBtn" hidden title="Compare this run with the previous HRRR cycle, side by side at the same valid time">COMPARE</button>
           <button type="button" class="btn ghost sm" id="pngBtn" hidden title="Save this view as a PNG with its run, valid time, units and source credit">PNG</button>
           <button type="button" class="btn ghost sm" id="fsBtn" aria-pressed="false">FULLSCREEN</button>
@@ -78,8 +79,8 @@
 <script src="assets/maps-core.js?v=1b83c79b60"></script>
 <script src="assets/maps-loader.js?v=21d2de8d6c"></script>
 <script src="assets/maps-conus-core.js?v=201e107891"></script>
-<script src="assets/maps-conus.js?v=566b8069d5"></script>
-<script src="assets/maps-conus-compare.js?v=b6b497a519"></script>
+<script src="assets/maps-conus.js?v=fa807e5db8"></script>
+<script src="assets/maps-conus-compare.js?v=167e4c76cb"></script>
 <script src="assets/maps.js?v=742cca2ab0"></script>
 <script src="assets/table-pages.js?v=5852a434bf"></script>
 </body>
