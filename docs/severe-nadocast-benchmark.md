@@ -274,3 +274,107 @@ Hits, out of 67,689 report points:
     this map shows false-alarm footprint on a busy day.
   - The boosted trees spread the most area (2.06 million km² with no report).
   - NadoCast hit 2,200 at 15%; ours hit 1,218-1,605.
+
+# Day 1 tornado gap diagnosis (diagnostic; run 45052427014)
+**Inputs:** the saved benchmark predictions (score run 44961880902) and v0.7's own inputs, taken from
+the same extraction outputs.
+- All 323 scored 2024 days are treated as diagnostic: 139 report days, 18,770 report points.
+- 2021 and 2025 stay sealed. No training was done.
+- Results: `research/severe/nadocast/diagnose_day1/`.
+
+## Fixed threshold vs matched area vs matched detection (95% paired date bootstrap)
+| | Ours / NadoCast hits | Ours FA area vs NadoCast |
+|---|---|---|
+| Fixed 2% | 9,272 vs 14,711 (diff [-7,036, -3,867]) | 54,000 vs 122,000 km²/day |
+| **Matched FA area** (NadoCast 2%; ours ≥0.88%) | 12,698 vs 14,711; ratio **0.86 [0.80, 0.92]** | equal |
+| Matched detection (NadoCast 2%; ours ≥0.51%) | equal | **1.75× [1.59, 1.93]** |
+| Fixed 5% | 5,100 vs 11,456 (diff [-8,734, -4,246]) | 19,800 vs 54,700 km²/day |
+| **Matched FA area** (NadoCast 5%; ours ≥1.99%) | 9,303 vs 11,456; ratio **0.81 [0.73, 0.89]** | equal |
+| Matched detection (NadoCast 5%; ours ≥1.21%) | equal | **1.63× [1.41, 1.90]** |
+
+## How much is the probability scale
+- **Hit gap:** about two-thirds is scale. At 5%, the gap goes from -6,356 at the fixed threshold to
+  -2,153 at matched area.
+  - Month-held-out isotonic recalibration of v0.7 puts its 5% contour at 56,000 km²/day, catching
+    9,169 report points. That is close to the matched-area result.
+  - After recalibration our reliability is on the diagonal up to 30%.
+- **Brier gap:** recalibration closes 34%. The gap goes from +0.00033 [0.00018, 0.00051] to
+  +0.00022 [0.00011, 0.00035]. With both models recalibrated it is +0.00019 [0.00009, 0.00032].
+- **The rest is ranking or placement, which a scale change cannot fix:** AUC is 0.954 vs 0.973.
+
+## Where the remaining misses come from (both at NadoCast's 5% false-alarm area)
+| Report points | Ours | NadoCast | Ours minus NadoCast [95%] |
+|---|---|---|---|
+| Hit | 49.6% | 61.0% | [-3,355, -1,041] |
+| **Left out of the model's own flagged corridor** (within 100 km) | **23.7%** | 13.8% | **+[989, 2,887]** |
+| **Wrong place** (flagged elsewhere that day) | **20.4%** | 12.7% | **+[505, 2,459]** |
+| No signal (under 2,250 km² flagged that day) | 6.4% | 12.5% | [-2,129, -308] (**ours better**) |
+
+- **Report days with at least 20 report points (131):**
+
+  | Pattern | Ours | NadoCast |
+  |---|---|---|
+  | Corridor captured | 23 | 37 |
+  | Right corridor, parts left out | **47** | 31 |
+  | Wrong place | 30 | 16 |
+  | No signal | 27 | 44 |
+
+- **Location of our left-out misses relative to our flagged area:** south 39%, east 24%, north 21%,
+  west 16%.
+
+**Why (v0.7's own inputs):**
+- At our left-out misses, HRRR had storms nearby: median 25-mile UH max 43 m²/s², and only 25% are
+  below 25. But the UH, 0-6 km shear and 0-1 km SRH terms contribute about half of what they do at
+  hits (logit +0.56, +0.59, +0.67 vs +1.71, +1.11, +1.13).
+- At wrong-place misses, 60% had UH max below 25 m²/s²: HRRR simply had no storms there.
+- Our false alarms look like our hits (median UH 89 m²/s²).
+
+**Reading:** v0.7 tracks individual HRRR storm swaths from one run. Its flagged area is patchy and
+drops off sharply away from the strongest HRRR UH, so it misses reports in the gaps and along the
+southern and eastern flanks. NadoCast's ensemble-based, multi-scale features draw a smooth,
+continuous corridor.
+
+## Outbreaks
+The same pattern recurs.
+- **December 28:**
+  - Ours hit 59% of 896 report points; 32% were left out (the Alabama gaps and the southern flank)
+    and 9% were in the wrong place.
+  - NadoCast hit 96%.
+- **Top 10 report days:**
+  - Ours left parts of the right corridor out on 6 of them (12-28, 05-06, 04-02, 04-26, 03-14, 05-23).
+  - Ours had the wrong place once (05-25).
+  - Ours captured the corridor on 3 (05-26, 04-27, 05-08).
+  - NadoCast captured 7 of the 10.
+- **Days where ours was better:** 34 of 139 report days by Brier, including 2024-05-26 (808 report
+  points) and 2024-04-10, where ours was sharper on the reports.
+- **Days where NadoCast was better:** 105 of 139.
+
+## Recommended experiment (not started; awaiting approval)
+**Question:** do corridor-scale HRRR features plus monotone recalibration recover the left-out
+misses?
+
+**What it tests:** the v0.7 Day 1 tornado logistic recipe, plus:
+- 50- and 100-mile neighbourhood mean and max of the existing per-sample UH25, 0-1 km SRH, 0-6 km
+  shear, SBCAPE and reflectivity, computed on our 15 km sample grid;
+- month-held-out isotonic calibration.
+
+Two control arms separate the effects:
+- (a) v0.7 recipe refit, no new features;
+- (b) (a) plus isotonic recalibration only.
+
+**Data:**
+- Existing extraction outputs only: the 96 development dates of 2022-23 (run 44577990940), regional
+  box. No new HRRR downloads.
+- 2024 benchmark days: reported as a diagnostic, never deciding.
+- 2021 is opened once, and only if the development test passes. 2025 stays sealed.
+
+**Advance only if, in the nested month-held-out development test on 2022-23** (whole months held out;
+paired date bootstrap; compared with arm (b)):
+1. Hits at matched false-alarm area (arm (b)'s 5% area) rise by at least 10%, with a lower bound
+   above 0.
+2. Left-out misses fall by at least 25%, with a lower bound above 0.
+3. Brier score improves, with the interval excluding 0.
+4. Wrong-place and no-signal misses do not rise by more than 5%.
+5. Reliability above 2% stays within ±30% of the observed rate.
+
+**If it passes:** a one-time check on sealed 2021 against v0.7, then a decision on any live change.
