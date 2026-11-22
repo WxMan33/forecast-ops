@@ -39,3 +39,51 @@ corridors v0.7 leaves patchy?
 - 2024 is diagnostic only.
 - If the candidate passes, it is frozen and verified once on the sealed 2021 list.
 - If it fails, 2021 stays sealed.
+
+## Result: FAIL (gate run 45056423427). 2021 stays sealed.
+**Held-out development sample:** 96 dates, 31 report days, 2,796 report points in the box.
+- Every outer fold chose penalty 0.001 for both feature sets.
+- Neighbourhood coverage matched the pre-fit measurement: 0.5% (50 mi) and 1.5% (100 mi) of points
+  have less than 80% of a full disk.
+
+| Criterion (c vs b) | Needed | Result | Shortfall |
+|---|---|---|---|
+| 1. Hits at matched false-alarm area | ≥ 1.10×, lower bound > 0 | **0.93×** (843 vs 907); c−b [−342, +210] | −17 points from the target ratio |
+| 2. Left-out reduction | ≥ 25%, lower bound > 0 | **23.8%** (494 vs 648); b−c [−39, +374] | 1.2 points short; interval includes 0 |
+| 3. Brier | interval < 0 | **+0.00024** (0.00210 vs 0.00186); [−0.00001, +0.00072] | worse |
+| 4. Wrong place / no signal | ≤ 1.05× | **1.08× / 1.33×** (840 vs 776; 619 vs 465) | both above the limit |
+| 5. Reliability above 2% | within ±30% | 2-5%, 5-10%, 10-15% and 15-30% pass; **≥30% fails** (mean forecast 89% vs observed 20%, 135 report points) | top bin |
+
+**Other held-out results:**
+- Arm (a): Brier 0.001862, AUC 0.948.
+- Arm (b): Brier 0.001863, AUC 0.943.
+- Arm (c): Brier 0.002101, AUC 0.953. Its ranking is the best of the three, but the isotonic
+  calibration fitted on so few events produces a top step near 90%.
+- Proposed live thresholds for (c), chosen in training folds:
+  - calibrated 5%: 944 hits, 20,900 km²/day;
+  - training-fold matched-area threshold (4.3-5.5%): 823 hits, 16,600 km²/day.
+- Neither proposal is adopted because (c) failed.
+
+**Maps (rule-selected):**
+- 2022-03-22, the most-reports day: left-out 99 → 40 and hits 318 → 377.
+- 2023-06-15, the day with the most left-out points under (b): (c) smeared probability along a long
+  front; hits 140 → 81 and left-out 123 → 160.
+
+## 2024 diagnostic (never deciding; 323 benchmark days; NadoCast's 5% false-alarm area)
+| | Brier | Hits | Left out | Wrong place | No signal |
+|---|---|---|---|---|---|
+| Arm b | 0.003654 | 8,851 | 4,684 | 3,941 | 1,294 |
+| Arm c | 0.003512 | **10,283** | **3,303** | **3,387** | 1,797 |
+| NadoCast | 0.003403 | 11,456 | 2,597 | 2,376 | 2,341 |
+
+On 2024, (c) gains 16% in hits, cuts left-out reports by 29% and cuts wrong-place misses by 14%. That
+closes about 55% of the hit gap to NadoCast. On 2024-12-28, hits rise from 505 to 655 and wrong-place
+misses fall from 175 to 78. These days were already inspected, so this cannot decide anything.
+
+## Reading
+- The corridor idea shows up where there is enough tornado data: 139 report days in 2024, and the
+  biggest development outbreak.
+- The 2022-23 development set has only 31 report days. That makes the gate underpowered (wide
+  intervals).
+- Isotonic calibration on that set overfits the top tail, which is what fails Brier and reliability.
+- Under the locked rules this is a fail. Nothing is frozen, and 2021 stays sealed.
