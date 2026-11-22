@@ -51,6 +51,11 @@ def nc_name(valid, v):
 
 def fetch(valid, v, cache):
     issue, name = nc_name(valid, v)
+    return fetch_file(issue, name, cache)
+
+
+def fetch_file(issue, name, cache):
+    """Fetch one daily NadoCast file from the 12Z directory of its issue date (hash + Last-Modified)."""
     url = f"{ROOT}{issue:%Y%m}/{issue:%Y%m%d}/t12z/{name}"
     path = Path(cache) / name
     meta_path = path.with_suffix(".json")
@@ -79,14 +84,14 @@ def fetch(valid, v, cache):
     return path, meta
 
 
-def decode(path, period):
+def decode(path, period, short="torprob"):
     import eccodes as ec
     with open(path, "rb") as f:
         g = ec.codes_grib_new_from_file(f)
         try:
             meta = {k: ec.codes_get(g, k) for k in ("shortName", "units", "stepRange", "Nx", "Ny", "numberOfMissing")}
             a_, b_ = period.split("-")
-            if meta["shortName"] != "torprob" or meta["units"] != "%" or meta["stepRange"] != f"{int(a_)}-{int(b_)}":
+            if meta["shortName"] != short or meta["units"] != "%" or meta["stepRange"] != f"{int(a_)}-{int(b_)}":
                 raise ValueError(f"{path.name}: unexpected field {meta}")
             if (meta["Nx"], meta["Ny"]) != (387, 226) or meta["numberOfMissing"]:
                 raise ValueError(f"{path.name}: unexpected grid {meta}")

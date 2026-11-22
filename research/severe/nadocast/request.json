@@ -1,7 +1,7 @@
 {
-  "purpose": "NadoCast Day 1 tornado benchmark: full locked score (246 fresh + 84 exploratory 2024 dates) and the two preselected maps",
-  "stage": "score",
+  "purpose": "NadoCast Day 2 wind benchmark pilot on the two locked pilot issue dates (2024-05-14, 2024-08-14), reusing existing extraction outputs",
+  "stage": "wind_pilot",
   "extraction_run": 44942885255,
   "extraction_run_supplement": 44961446546,
-  "request": 4
+  "request": 5
 }
