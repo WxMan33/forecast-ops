@@ -831,3 +831,58 @@ body.maps-conus .mapctl2 [hidden], body.maps-conus .mapctl2 .ctlrow[hidden] { di
 .timeline .tlticks i.gap.na, .timeline .tlticks i.gap.absent { background: #8a94a3; }
 .mapinfo .unit { font-weight: 600; opacity: .85; }
 .mapinfo .fnote { font-style: italic; }
+/* CONUS model maps: cycle comparison page and its embedded panels */
+body.conus-embed { background: transparent; }
+body.conus-embed > *:not(main), body.conus-embed main .main > *:not(.mapstage), body.conus-embed #mapCtl, body.conus-embed #timeline { display: none !important; }
+body.conus-embed main, body.conus-embed .main { margin: 0 !important; padding: 0 !important; max-width: none !important; }
+body.conus-embed .mapstage { height: 100vh !important; min-height: 0 !important; margin: 0; border-radius: 0; border: 0; }
+body.conus-embed .mapinfo { top: 6px !important; }
+body.conus-embed .panel-read { position: absolute; left: 8px; right: 8px; bottom: 6px; z-index: 5; padding: 6px 9px; border-radius: 8px; font-size: 12.5px; background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--line); max-height: 34%; overflow: auto; }
+body.conus-embed .panel-read:empty { display: none; }
+body.conus-embed .maplegend2 { bottom: 8px; }
+.mapinfo b.panel, .cmp b.panel { display: inline-block; min-width: 1.5em; text-align: center; padding: 0 5px; border-radius: 5px; background: #2f7fd6; color: #fff; font-weight: 800; }
+.mapinfo b.panel:only-child, .cmp b.panel.b { background: #c4602c; }
+.cmp { display: grid; gap: 8px; }
+.cmp-ctl, .cmp-time { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cmp-ctl label { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; }
+.cmp-time input[type=range] { flex: 1 1 200px; }
+.cmp-valid { font-size: 13px; }
+.cmp-note { font-size: 13.5px; min-height: 1.2em; }
+.cmp-note[data-like-for-like="false"] { padding: 6px 9px; border-radius: 8px; border-left: 4px solid #d08a1e; background: color-mix(in srgb, #d08a1e 12%, transparent); }
+.cmp-ab { display: none; gap: 6px; }
+.cmp-ab button { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--text); font-weight: 700; }
+.cmp-ab button[aria-selected="true"] { outline: 2px solid var(--accent); }
+.cmp-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; height: max(460px, calc(100vh - 260px)); }
+.cmp-p { position: relative; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.cmp-p iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.cmp-help { font-size: 12.5px; }
+@media (max-width: 699px) {
+  .cmp-ab { display: flex; }
+  .cmp-panels { display: block; position: relative; height: 72vh; }
+  .cmp-p { position: absolute; inset: 0; }
+  .cmp-p[data-active="0"] { visibility: hidden; }
+}
+@media (max-width: 699px) {
+  .cmp { gap: 6px; }
+  .cmp-ctl { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .cmp-ctl label:first-child { grid-column: 1 / -1; }
+  .cmp-ctl label span { display: none; }
+  .cmp-ctl label { display: block; }
+  .cmp-ctl select { width: 100%; }
+  .cmp-ctl #cmpSingle { grid-column: 1 / -1; justify-self: start; }
+  .cmp-help { display: none; }
+  .cmp-note { font-size: 12.5px; }
+  .cmp-ab button { padding: 6px; }
+}
+/* compare controls never scroll in under the sticky status bar */
+.cmp button, .cmp select, .cmp input, .cmp a { scroll-margin-top: calc(var(--statusbar-h, 120px) + 12px); }
+@media (max-width: 699px) {
+  .cmp-time { display: grid; grid-template-columns: auto auto 1fr auto; gap: 6px; }
+  .cmp-time input[type=range] { min-width: 0; width: 100%; }
+  .cmp-time .cmp-valid { grid-column: 1 / -1; }
+  .cmp, .cmp-ctl, .cmp-time, .cmp-note { min-width: 0; max-width: 100%; }
+}
+@media (max-width: 699px) {
+  .cmp-ctl { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .cmp-ctl label, .cmp-ctl select { min-width: 0; max-width: 100%; }
+}

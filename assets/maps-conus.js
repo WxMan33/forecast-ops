@@ -11,6 +11,7 @@
   const DATA = (Q.get("data") || "https://wxman33.github.io/forecast-ops-maps/data").replace(/\/$/, "");
   const SITE = DATA.replace(/\/data$/, "");
   const PHONE = () => innerWidth < 700;
+  const EMBED = Q.get("embed") === "1", PANEL = EMBED ? (Q.get("panel") || "") : "";   // a panel of the cycle comparison (compare=1 page)
   /* Fields: labels, units and Forecast Ops' own stepped colour scales. Below the lowest step nothing is drawn. */
   const stepped = (stops, alpha = 215) => (v) => { if (v == null || !Number.isFinite(v) || v < stops[0][0]) return null; let c = stops[0][1]; for (const [t, rgb] of stops) if (v >= t) c = rgb; return [...c, alpha]; };
   const SNOW1H = [[0.1, [196, 222, 240]], [0.25, [140, 190, 228]], [0.5, [86, 150, 214]], [1, [52, 102, 190]], [1.5, [92, 72, 172]], [2, [146, 64, 168]], [3, [204, 78, 160]], [4, [236, 140, 190]]];
@@ -183,6 +184,7 @@
   async function redraw() {
     if (!st.man || !layer.gl) return; const token = ++drawToken, fh = fhNow(), w = wanted(); st.want = w;
     const hs = hourState(fh);
+    if (st.gapValid != null) { st.draw = []; st.map.triggerRepaint(); info(); note(validGapText()); return; }
     if (hs !== "ok") { st.draw = []; st.map.triggerRepaint(); info(); note(gapText(fh, hs)); return; }
     const paint = () => { if (token !== drawToken) return;
       const nCoarse = layer.show(w.coarse, fh, w.all), nFine = w.L !== w.coarse ? layer.show(w.L, fh, w.tiles) : 0;
@@ -201,6 +203,11 @@
     for (let k = 1; k < hrs.length; k++) { if (p !== prefetching) return; const h = hrs[(start + k) % hrs.length]; if (hourState(h) === "ok") await need(h, w); }
     if (p === prefetching) info();
   }
+  /* compare mode: the chosen valid time is outside this run */
+  function validGapText() {
+    const m = st.man, a = Date.parse(m.valid[m.hours[0]]), b = Date.parse(m.valid[m.hours[m.hours.length - 1]]);
+    return `This run has no forecast hour valid at ${fmtLocal(st.gapValid)}. It covers ${fmtLocal(a)} to ${fmtLocal(b)} (F${String(m.hours[0]).padStart(2, "0")}–F${String(m.hours[m.hours.length - 1]).padStart(2, "0")}).`;
+  }
   /* why an hour shows no map: said on the map, never drawn as zero */
   function gapText(fh, hs) {
     const F = FIELDS[st.field], f2 = `F${String(fh).padStart(2, "0")}`, r = hourRec(fh);
@@ -214,7 +221,8 @@
   function info() {
     if (!st.man) return; const m = st.man, F = FIELDS[st.field], fh = fhNow(), valid = Date.parse(m.valid[fh]), init = Date.parse(m.cycle);
     const w = st.want || wanted(), every = 2 ** w.L, loopReady = m.hours.filter((h) => frameReady(h, w)).length;
-    $("mapInfo").innerHTML = `<b class="fld">HRRR 3 km<span class="wide-only"> CONUS</span> · ${esc(F.label)}${F.units ? ` <span class="unit">(${esc(F.units)})</span>` : ""}</b><div>Init <b>${esc(fmtUTC(init))}</b> · F${String(fh).padStart(2, "0")} · valid <b>${esc(fmtLocal(valid))}</b><span class="wide-only"> (${esc(fmtUTC(valid))})</span></div>` +
+    if (st.gapValid != null) { $("mapInfo").innerHTML = `${PANEL ? `<b class="panel">${esc(PANEL)}</b> ` : ""}<b class="fld">HRRR ${esc(fmtUTC(init))} run · ${esc(F.label)}</b><div class="msg"><b>No forecast hour at ${esc(fmtLocal(st.gapValid))}</b></div>`; share(); return; }
+    $("mapInfo").innerHTML = `${PANEL ? `<b class="panel">${esc(PANEL)}</b> ` : ""}<b class="fld">HRRR 3 km<span class="wide-only"> CONUS</span> · ${esc(F.label)}${F.units ? ` <span class="unit">(${esc(F.units)})</span>` : ""}</b><div>Init <b>${esc(fmtUTC(init))}</b> · F${String(fh).padStart(2, "0")} · valid <b>${esc(fmtLocal(valid))}</b><span class="wide-only"> (${esc(fmtUTC(valid))})</span></div>` +
       (F.window ? `<div class="msg">${esc(windowText(F, fh))}</div>` : "") + (F.note ? `<div class="msg fnote">${esc(F.note)}</div>` : "") +
       `<div class="msg">${every === 1 ? "Every native 3 km cell at this zoom" : `Every ${every === 2 ? "2nd" : "4th"} native cell<span class="wide-only"> at this zoom</span>; zoom in for every cell`}<span class="wide-only"> · click for the cell's own value</span></div>`;
     $("tlValid").textContent = `${fmtLocal(valid)} · F${String(fh).padStart(2, "0")}`; $("hourSl").value = String(st.h);
@@ -250,6 +258,7 @@
     st.selPt = [lat, lon]; const c = st.P.nearest(lat, lon);
     if (!c) { st.sel = null; outline(); $("inspect").innerHTML = '<p class="msg">That point is outside the HRRR grid (nothing is drawn there).</p>'; share(); return; }
     st.sel = c; outline(); const [i, j] = c, fh = fhNow(), T = st.man.tile, tx = Math.floor(i / T), ty = Math.floor(j / T), F = FIELDS[st.field];
+    if (st.gapValid != null) { $("inspect").innerHTML = `<p class="msg">${esc(validGapText())}</p>`; return; }
     if (hourState(fh) !== "ok") { $("inspect").innerHTML = `<p class="msg">${esc(gapText(fh, hourState(fh)))}</p>`; share(); return; }
     $("inspect").innerHTML = '<p class="msg">Reading the native cell…</p>';
     try { await tile(fh, 0, tx, ty); } catch (e) { $("inspect").innerHTML = `<p class="msg">Could not load that cell (${esc(e.message)}).</p>`; return; }
@@ -311,9 +320,29 @@
     window.__lastPng = { name, width: W, height: H, field: st.field, run: st.run.id, fh, mapH };   // test hook
     note(`Saved ${name} (${W} × ${H}).`);
   }
+  /* ---------- cycle comparison: the embedded panel's controls, and the way in from the single-run view ---------- */
+  const api = {
+    ready: () => !!(st.man && st.map && st.map.loaded()),
+    setField: (f) => setField(f),
+    /* show the hour valid at ms; if this run has none, say so and draw nothing */
+    setValid: (ms) => { if (!st.man) return; stop(); const i = st.man.hours.findIndex((h) => Date.parse(st.man.valid[h]) === ms);
+      st.gapValid = i < 0 ? ms : null; if (i >= 0) st.h = i; note(null); redraw(); reselect(); },
+    view: (center, zoom) => { const c = st.map.getCenter(); if (Math.abs(c.lng - center[0]) < 1e-6 && Math.abs(c.lat - center[1]) < 1e-6 && Math.abs(st.map.getZoom() - zoom) < 1e-4) return; st.syncing = true; st.map.jumpTo({ center, zoom }); },
+    point: (lat, lon) => select(lat, lon),
+    resize: () => { st.map.resize(); redraw(); },
+    exportPng: () => exportPng(),
+    state: () => (st.man ? { run: st.run.id, cycle: st.man.cycle, field: st.field, fh: st.gapValid != null ? null : fhNow(), gapValid: st.gapValid, hours: st.man.hours, valid: st.man.valid, status: st.man.status,
+      hourState: st.gapValid != null ? "no-valid" : hourState(fhNow()), shown: st.shown, draw: (st.draw || []).length, point: $("inspect").innerText } : null),
+  };
+  function compareLink() {
+    const runs = st.index.runs.slice().sort((a, b) => Date.parse(b.cycle) - Date.parse(a.cycle)), i = runs.findIndex((r) => r.id === st.run.id), b = runs[i + 1] || runs[i - 1];
+    const q = new URLSearchParams({ domain: "conus", compare: "1", a: st.run.id, b: b ? b.id : st.run.id, field: st.field, valid: st.man.valid[fhNow()] });
+    if (Q.get("data")) q.set("data", Q.get("data")); const c = st.map.getCenter(); q.set("map", `${c.lat.toFixed(3)},${c.lng.toFixed(3)},${st.map.getZoom().toFixed(2)}`);
+    return `${location.pathname}?${q.toString()}`;
+  }
   /* ---------- shareable link ---------- */
   function share() {
-    if (!st.man || !st.map) return; const c = st.map.getCenter(), q = new URLSearchParams();
+    if (!st.man || !st.map || EMBED) return; const c = st.map.getCenter(), q = new URLSearchParams();
     q.set("domain", "conus"); if (Q.get("data")) q.set("data", Q.get("data"));
     q.set("run", st.run.id); q.set("fh", String(fhNow())); q.set("field", st.field);
     q.set("map", `${c.lat.toFixed(3)},${c.lng.toFixed(3)},${st.map.getZoom().toFixed(2)}`);
@@ -393,8 +422,12 @@
   }
 
   /* ---------- page ---------- */
+  function adaptEmbed() {
+    document.body.classList.add("conus-embed");
+    const ins = $("inspect"); if (ins) { ins.classList.add("panel-read"); $("stage").appendChild(ins); ins.innerHTML = ""; }
+  }
   function adaptPage() {
-    document.body.classList.add("maps-conus"); if ($("pngBtn")) $("pngBtn").hidden = false;
+    document.body.classList.add("maps-conus"); ["pngBtn", "cmpBtn"].forEach((id) => { if ($(id)) $(id).hidden = false; });
     ["winSel", "smoothChk"].forEach((id) => { const e = $(id); if (e) (e.closest("label") || e).hidden = true; });
     const seg = document.querySelector('[aria-label="Map view"]'); if (seg) seg.hidden = true;
     const ps = $("placeSel"); if (ps) ps.closest("div").hidden = true;
@@ -403,8 +436,9 @@
     if (about) about.textContent = "Beta: NOAA HRRR, full CONUS 3 km grid (1799 × 1059 cells) on the model's own Lambert conformal projection; areas outside the model grid are left blank. Zoomed out, the map draws every 2nd or 4th native cell (each drawn over the block it stands for) so a loop stays light on a phone; zoom in for every cell. Clicking always reads the native cell at full precision. Only the tiles in view are downloaded. Runs appear hour by hour as NOAA posts them; the 00, 06, 12 and 18 UTC runs go to 48 hours, the others to 18. Geography: US Census boundaries (us-atlas) and Natural Earth (public domain). Model guidance only, not an official forecast.";
   }
   async function start() {
+    if (Q.get("compare") === "1" && window.MapsConusCompare) { window.MapsConusCompare.start(); return; }   // it sets up its own page shell
     O.shell("maps", "Model maps", { forecastPoint: false, subtitle: "Beta · HRRR 3 km, full CONUS" });
-    regionToggle("conus"); adaptPage();
+    regionToggle("conus"); adaptPage(); if (EMBED) adaptEmbed();
     if (!ML || !(() => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch (e) { return false; } })()) { $("mapInfo").innerHTML = '<span class="state err">This browser cannot draw the interactive map (WebGL unavailable).</span>'; return; }
     let base;
     try { [base, st.index] = await Promise.all([getJSON("assets/maps/basemap-conus.json"), getJSON(`${DATA}/conus/index.json`)]); }
@@ -437,6 +471,12 @@
     const place = () => { $("mapInfo").style.top = PHONE() ? `${$("mapCtl").offsetTop + $("mapCtl").offsetHeight + 4}px` : ""; };
     if (window.ResizeObserver) new ResizeObserver(place).observe($("mapCtl")); place();
     window.__conus = st; // test hook (read-only use)
+    if (EMBED) {   /* a panel of the cycle comparison: the page drives field, valid time, view and point; user moves are reported */
+      st.map.on("moveend", () => { if (st.syncing) { st.syncing = false; return; } const c = st.map.getCenter(); parent.postMessage({ conus: "view", panel: PANEL, center: [c.lng, c.lat], zoom: st.map.getZoom() }, location.origin); });
+      st.map.on("click", (e) => parent.postMessage({ conus: "point", panel: PANEL, lat: e.lngLat.lat, lon: e.lngLat.lng }, location.origin));
+    }
+    if (Q.get("valid")) api.setValid(Date.parse(Q.get("valid")));
+    $("cmpBtn").addEventListener("click", () => { location.href = compareLink(); });
   }
   /* Tri-State | CONUS switch, shared by both viewers */
   function regionToggle(active) {
@@ -445,5 +485,5 @@
     d.innerHTML = `<a class="segb" href="maps.html" aria-pressed="${active === "tristate"}">Tri-State</a><a class="segb" href="maps.html?domain=conus" aria-pressed="${active === "conus"}">CONUS <small class="wide-only">beta</small></a>`;
     row.prepend(d);
   }
-  window.MapsConus = { start, regionToggle };
+  window.MapsConus = { start, regionToggle, api, FIELDS };
 })();

@@ -26,7 +26,7 @@
   });
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
-<link rel="stylesheet" href="assets/ops.css?v=81cf57f2b4">
+<link rel="stylesheet" href="assets/ops.css?v=0848f1a485">
 </head>
 <body class="maps-page">
 <main class="workspace single maps2">
@@ -44,6 +44,7 @@
         <div class="ctlrow">
           <div class="seg" role="group" aria-label="Map view"><button type="button" class="segb" data-view="tristate">Tri-State</button><button type="button" class="segb" data-view="dma" title="Closer regional view; keeps the existing model zoom limit">Cincinnati area</button><button type="button" class="segb" data-view="venue" id="venueBtn">Venue</button></div>
           <label class="chk smoothchk"><input type="checkbox" id="smoothChk"> Smooth<span class="wide-only"> display</span></label>
+          <button type="button" class="btn ghost sm" id="cmpBtn" hidden title="Compare this run with the previous HRRR cycle, side by side at the same valid time">COMPARE</button>
           <button type="button" class="btn ghost sm" id="pngBtn" hidden title="Save this view as a PNG with its run, valid time, units and source credit">PNG</button>
           <button type="button" class="btn ghost sm" id="fsBtn" aria-pressed="false">FULLSCREEN</button>
         </div>
@@ -77,7 +78,8 @@
 <script src="assets/maps-core.js?v=1b83c79b60"></script>
 <script src="assets/maps-loader.js?v=21d2de8d6c"></script>
 <script src="assets/maps-conus-core.js?v=201e107891"></script>
-<script src="assets/maps-conus.js?v=fadbeebcb2"></script>
+<script src="assets/maps-conus.js?v=7903fe4930"></script>
+<script src="assets/maps-conus-compare.js?v=e311782e7b"></script>
 <script src="assets/maps.js?v=742cca2ab0"></script>
 <script src="assets/table-pages.js?v=5852a434bf"></script>
 </body>
