@@ -59,7 +59,7 @@ Built on the combined preview. Airport METARs, TAFs and Planner flight windows a
 | **G-AIRMETs** | `/api/data/gairmet?fore=0,3,6,9,12`, through `/api/awc/gairmet?fore=…` (five requests). Cached 5 min. | Official forecast advisory, as snapshots every 3 hours. Each snapshot is read as 90 minutes either side of its time. Freezing-level contours are left out. An icing base of "FZL" uses the freezing level's own range. |
 | **CWAs** | `/api/data/cwa`, through `/api/awc/cwa` (AWC's 204 becomes an empty list). Cached 2 min. | Official advisory from the Center Weather Service Units. Altitudes come from the fields, or from the text ("FL290 TO FL390", "TOPS EST TO FL370"). |
 | **FAA airport status** | `nasstatus.faa.gov/api/airport-events` and `/api/operations-plan`, through `/api/faa/…`. Cached 1 min. | Ground stops, ground delay programs, arrival and departure delays, closures and NOTAM notices, each with the FAA's stated cause and times. A start time in the future means **planned**. The operations plan's terminal items are **possible**. |
-| **Gridded turbulence guidance (GTG)** | Not used. | AWC's Data API (its OpenAPI spec, checked 2026-11-22) does not publish GTG, and no other supported machine-readable source was verified. The map says model guidance is not shown. |
+| **Gridded turbulence guidance (GTG)** | Not in AWC's Data API. Delivered by NCEP instead: see "Model guidance: GTG" below. | Model guidance. |
 
 **Weather-related.** The FAA's cause mentions ceilings, visibility, fog, wind, thunderstorms, snow, ice, rain or "WX" (for example, "TM Initiatives: Metering: WX"). Volume, staffing, equipment and airspace causes are not weather-related.
 
@@ -107,6 +107,66 @@ Four separate headings: **Venue hazards**, **Airport weather**, **Flight disrupt
 | **FAA weather-related disruption** | Newark ground delay program for low ceilings, average 1 hr 45 min (up to 5 hr 55 min), 1 p.m.–11:59 p.m. EST, overlapping the 6:15–7 p.m. arrival. It shows while Newark's METAR was VFR. LaGuardia (the alternate) had a ground delay for low visibility. Newark's departure delay ("airspace sharing with N90") is marked not weather-related. |
 
 Tests: `tests/threats-enroute.test.js` (11), `tests/threats-functions.test.mjs` (en route and FAA routes), `tools/event-share-check.js` section 6 (route links), `tools/threats-planner-check.js` section 4l (replay cases on phone and desktop, plus the live functions).
+
+## Model guidance: GTG (map only; not in Planner yet)
+
+### Source verification (2026-11-22)
+
+- **Inventory.** NCEP Products Inventory, Domestic Aviation Forecast System (DAFS).
+  - File: `dafs.tCCz.gtg.3km.conus.fFFF.grib2`, forecast hours 000–018, "Available in GRIB2 via HTTPS", from NOMADS `pub/data/nccf/com/dafs/prod/dafs.YYYYMMDD/`.
+  - Inventory page: 205 records.
+- **Sample.** `dafs.t22z.gtg.3km.conus.f000.grib2`, Nov 22.
+  - 152,440,498 bytes, matching the listing's "145M". Its `.idx` has 205 lines.
+  - Decoded with ECMWF ecCodes 2.50.0.
+- **Records:**
+
+| Records | GRIB2 code | What | Heights |
+|---|---|---|---|
+| 1 | 0/19/31 MXEDPRM | Maximum EDR in the column | entire atmosphere |
+| 51 | **0/19/30 EDPARM** | **Eddy dissipation parameter: the combined turbulence; used here** | 30 m, then every 1,000 ft (304.8 m, labelled 304, 609 … 15,240 m) |
+| 51 | 0/19/29 CATEDR | Clear-air turbulence EDR | same |
+| 51 | 0/19/28 MWTURB | Mountain-wave turbulence EDR | same |
+| 51 | 0/19/50 | Not in the WMO tables used by ecCodes; probably convective turbulence | same |
+
+- **Inventory discrepancy.** The inventory lists 102 MWTURB records. The file has 51 MWTURB and 51 of 0/19/50. The inventory notes that actual parameters may differ.
+- **Units.** m^(2/3) s⁻¹ (EDR, the cube root of the dissipation rate).
+- **Grid.** Lambert conformal, 1799 × 1059, 3 km, true at 38.5° N, LoV 262.5° E, spherical earth.
+- **Packing.** Template 5.3 (complex packing with spatial differencing), with a bitmap.
+- **Timing.** Cycles are **hourly**, each with forecast hours 0–18. Files are about 145–166 MB each; a cycle's f000–f018 appear over roughly 25–90 minutes.
+- **Our decoder** (`assets/threats-gtg.js`) matches ecCodes on every point of three full levels (largest difference 1.5×10⁻⁸, float32 rounding; same bitmap). Its Lambert projection returns ecCodes' own latitude and longitude for each cell.
+
+### Delivery
+
+- **Function.** `/api/gtg/latest` reads the NOMADS listing (today, else yesterday) and returns the newest cycle with all 19 hours and their `.idx`. Cached 5 minutes.
+- **Records.** `/api/gtg/record?cycle=&fh=&m=` reads the file's `.idx`, then the one EDPARM record by HTTP byte range: about 1–1.3 MB of a 145–166 MB file. The bytes are checked as one whole record (GRIB … 7777, exact length). Cached 30 minutes.
+- **Decoding.** The browser decodes the record (about 100 ms) and draws a Web Mercator image.
+
+### Map
+
+- **Toggle.** "Model guidance · NOAA GTG" in the en-route section; off until asked (`gtg=1`).
+- **Controls:**
+  - Altitude: 1,000 ft to FL500 MSL, every 1,000 ft (`gft=`).
+  - Valid time: +0 to +18 h from the latest complete cycle (`gfh=`).
+  - Aircraft class: light, medium or heavy (`gcls=`).
+- **Look.** A violet fill under the advisory outlines and pilot-report dots. Categories use AWC's EDR thresholds by class (×100: light 13/16/36/64, medium 15/20/44/79, heavy 17/24/54/96).
+- **Readouts.** The status line gives the cycle, valid time, height in feet and metres, and the record and file sizes. The value at the venue is shown, and tapping the map gives the value at a spot.
+- **Replays.** Not shown in archived replays: GTG is live only.
+
+### Checks
+
+- `tests/threats-gtg.test.js` (8): a real record against ecCodes at 16 cells, plus the field statistics, projection and thresholds.
+- `tests/threats-functions.test.mjs`: the latest-cycle listing and the byte-range read.
+- `tools/threats-gtg-check.js` on the preview: switches FL300 → 10,000 ft → +6 h and aircraft class, on desktop and phone, and saves the records the page drew.
+- `tools/threats-gtg-verify.py` reads those records with ecCodes: same field, height, cycle, hour and grid, and the same value and location at the sample cell.
+
+### Limitations
+
+- **Size.** One height and hour per view, about 1–1.3 MB each.
+- **Timing.** The newest cycle may be incomplete; the map uses the newest complete one (the "newest" cycle is listed beside it).
+- **Etiquette.** NOMADS is a shared NOAA server; the function caches, and the map fetches only when a control changes.
+- **Delivery.** NOMADS sends no CORS header, so only the preview's function can read it; GitHub Pages and raw.githack copies of the map can't show GTG.
+- **Meaning.** Guidance is EDR at a 3 km cell: atmospheric turbulence, not what a given aircraft will feel.
+- **Not yet used:** CAT, MWT and the 0/19/50 field separately, and In-Flight Icing (IFI, `dafs.tCCz.ifi.3km.conus`).
 
 ## Not included
 
