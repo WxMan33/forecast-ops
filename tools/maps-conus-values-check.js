@@ -15,7 +15,7 @@ const serve = (dir, cors) => http.createServer((req, res) => {
   res.writeHead(200, { ...h, 'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream', 'Content-Length': fs.statSync(file).size }); fs.createReadStream(file).pipe(res);
 });
 let failed = 0; const check = (ok, name) => { console.log((ok ? 'PASS ' : 'FAIL ') + name); if (!ok) failed++; };
-const PHONE = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, DESK = { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 };
+const PHONE = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, DESK = { viewport: { width: 1440, height: 900 }, deviceScaleFactor: Number(process.env.DESK_DPR || 1) };
 const FMT = { t2m: (v) => String(Math.round(v)), d2m: (v) => String(Math.round(v)), gust: (v) => String(Math.round(v)), apcp1h: (v) => (v < 1 ? v.toFixed(2) : v < 10 ? v.toFixed(1) : String(Math.round(v))),
   apcp_run: (v) => (v < 1 ? v.toFixed(2) : v < 10 ? v.toFixed(1) : String(Math.round(v))), asnow1h: (v) => (v < 10 ? v.toFixed(1) : String(Math.round(v))), asnow_run: (v) => (v < 10 ? v.toFixed(1) : String(Math.round(v))), frzr_run: (v) => v.toFixed(2) };
 const MIN = { apcp1h: 0.01, apcp_run: 0.01, asnow1h: 0.1, asnow_run: 0.1, frzr_run: 0.01 };

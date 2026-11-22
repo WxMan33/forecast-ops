@@ -120,7 +120,7 @@
   }
   function cellPx() {
     const m = st.map, c = m.getCenter(), mpp = (156543.03392 * Math.cos((c.lat * Math.PI) / 180)) / 2 ** m.getZoom();
-    return (st.man.grid.DxInMetres / mpp) * (window.devicePixelRatio || 1);
+    return (st.man.grid.DxInMetres / mpp) * st.map.getPixelRatio();
   }
   function wanted() {
     const L = K.levelFor(cellPx(), st.man.levels), coarse = Math.max(...st.man.levels.map((l) => l.level)), [i0, i1, j0, j1] = viewCells();
@@ -175,7 +175,7 @@
     P.places.map((p, k) => ({ k, name: p[0], lat: p[1], lon: p[2], pop: p[3] })).filter((p) => p.pop >= cfg.pop).sort((a, b) => b.pop - a.pop || (a.name < b.name ? -1 : 1))
       .forEach((p) => { if (out.length >= cfg.cap) return; const s = m.project([p.lon, p.lat]); if (onScreen(s.x, s.y, true) && !inBlock(s.x, s.y, true) && far(s.x, s.y, cfg.sep)) out.push({ k: p.k, x: s.x, y: s.y, lon: p.lon, lat: p.lat, name: p.name }); });
     if (cfg.grid) {
-      const L = P.lattice, cpx = cellPx() / (window.devicePixelRatio || 1), sepG = cfg.grid * 0.75, step = Math.max(1, Math.floor(cfg.grid * 0.8 / (cpx * L.every))), nPl = P.places.length;   /* a finer lattice step thinned by distance packs a staggered pattern, not a sparse square one */
+      const L = P.lattice, cpx = cellPx() / st.map.getPixelRatio(), sepG = cfg.grid * 0.75, step = Math.max(1, Math.floor(cfg.grid * 0.8 / (cpx * L.every))), nPl = P.places.length;   /* a finer lattice step thinned by distance packs a staggered pattern, not a sparse square one */
       for (let b = 0; b < L.ny; b += step) for (let a = 0; a < L.nx; a += step) {
         const i = L.i0 + a * L.every, j = L.j0 + b * L.every, [lat, lon] = st.P.fromCell(i, j), s = m.project([lon, lat]);
         if (onScreen(s.x, s.y, false) && !inBlock(s.x, s.y, false) && far(s.x, s.y, sepG)) out.push({ k: nPl + b * L.nx + a, x: s.x, y: s.y, lon, lat });
@@ -384,10 +384,11 @@
     const el = $("map"), saved = el.getAttribute("style") || "", bounds = st.map.getBounds(), dpr = window.devicePixelRatio || 1;
     let map, drawn = [];
     try {
-      el.setAttribute("style", `${saved};position:fixed;left:0;top:0;width:${Math.round(1600 / dpr)}px;height:${Math.round(1000 / dpr)}px;z-index:-1`);
-      st.exporting = true; st.map.resize(); st.map.fitBounds(bounds, { duration: 0, padding: 0 }); chooseLabels(); await redraw(); map = await grabMap();
+      /* a fixed 1000 × 625 CSS frame drawn at 1.6× on every screen, so a retina laptop and a desk monitor export the same labels at the same size */
+      el.setAttribute("style", `${saved};position:fixed;left:0;top:0;width:1000px;height:625px;z-index:-1`);
+      st.exporting = true; st.map.setPixelRatio(1.6); st.map.resize(); st.map.fitBounds(bounds, { duration: 0, padding: 0 }); chooseLabels(); await redraw(); map = await grabMap();
       const k = 1600 / el.clientWidth; drawn = (st.labelsShown || []).map((o) => ({ text: o.text, name: o.name, x: Math.round(o.x * k), y: Math.round(o.y * k) }));   /* positions in the PNG's map area */
-    } finally { st.exporting = false; el.setAttribute("style", saved); st.map.resize(); st.map.fitBounds(bounds, { duration: 0, padding: 0 }); chooseLabels(); redraw(); }
+    } finally { st.exporting = false; st.map.setPixelRatio(dpr); el.setAttribute("style", saved); st.map.resize(); st.map.fitBounds(bounds, { duration: 0, padding: 0 }); chooseLabels(); redraw(); }
     const F = FIELDS[st.field], m = st.man, fh = fhNow(), valid = Date.parse(m.valid[fh]), init = Date.parse(m.cycle), hs = hourState(fh);
     const W = 1600, mapH = Math.round((W * map.height) / map.width), HEAD = 150, FOOT = 150, H = HEAD + mapH + FOOT;
     const c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d");
