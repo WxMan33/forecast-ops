@@ -153,6 +153,7 @@
   const pointsReady = (fh) => { const r = hourRec(fh); if (!st.values || !FIELDS[st.field].vfmt || !r || !r.points) return true; const e = st.points.get(ptsKey(fh)); return !!(e && e.v); };
   /* screen rectangles the labels must stay clear of: the info box, legend, controls and readouts over the map */
   function blockedRects() {
+    if (st.exporting) return [];   /* the export frame has no controls over it: its legend and credits are drawn below the map */
     const box = st.map.getContainer().getBoundingClientRect(), pad = 6;
     return ["#mapInfo", "#legend", "#mapCtl", ".maplibregl-ctrl-bottom-right", ".maplibregl-ctrl-bottom-left", "#inspect.panel-read", "#mapNote", "#timeline"].map((q) => document.querySelector(q))
       .filter((e) => e && !e.hidden && e.offsetParent !== null && getComputedStyle(e).display !== "none")
@@ -369,7 +370,9 @@
   async function reselect() { if (st.selPt) await select(st.selPt[0], st.selPt[1]); }
 
   /* ---------- PNG export: the current view with the same metadata and source credit ---------- */
-  function grabMap() {   /* WebGL buffers are cleared after compositing: copy inside the frame that draws them */
+  async function grabMap() {   /* WebGL buffers are cleared after compositing: copy inside the frame that draws them */
+    /* first let the label source finish parsing and placing, so the copy never catches a half-placed set of labels */
+    await new Promise((ok) => { const t = setTimeout(ok, 6000); st.map.once("idle", () => { clearTimeout(t); ok(); }); st.map.triggerRepaint(); });
     return new Promise((ok, no) => { const m = st.map; const t = setTimeout(() => no(new Error("the map did not redraw")), 8000);
       m.once("render", () => { clearTimeout(t); try { const c = m.getCanvas(), o = document.createElement("canvas"); o.width = c.width; o.height = c.height;
         const g = o.getContext("2d"); g.drawImage(c, 0, 0); const lab = $("labels"); if (lab && lab.width) g.drawImage(lab, 0, 0, o.width, o.height); ok(o); } catch (e) { no(e); } });
@@ -379,13 +382,14 @@
     if (!st.man) return;
     /* the same area at a fixed 16:10 frame on every device: the map is resized off screen, drawn, copied, restored */
     const el = $("map"), saved = el.getAttribute("style") || "", bounds = st.map.getBounds(), dpr = window.devicePixelRatio || 1;
-    let map;
+    let map, drawn = [];
     try {
       el.setAttribute("style", `${saved};position:fixed;left:0;top:0;width:${Math.round(1600 / dpr)}px;height:${Math.round(1000 / dpr)}px;z-index:-1`);
-      st.map.resize(); st.map.fitBounds(bounds, { duration: 0, padding: 0 }); chooseLabels(); await redraw(); map = await grabMap();
-    } finally { el.setAttribute("style", saved); st.map.resize(); st.map.fitBounds(bounds, { duration: 0, padding: 0 }); chooseLabels(); redraw(); }
+      st.exporting = true; st.map.resize(); st.map.fitBounds(bounds, { duration: 0, padding: 0 }); chooseLabels(); await redraw(); map = await grabMap();
+      const k = 1600 / el.clientWidth; drawn = (st.labelsShown || []).map((o) => ({ text: o.text, name: o.name, x: Math.round(o.x * k), y: Math.round(o.y * k) }));   /* positions in the PNG's map area */
+    } finally { st.exporting = false; el.setAttribute("style", saved); st.map.resize(); st.map.fitBounds(bounds, { duration: 0, padding: 0 }); chooseLabels(); redraw(); }
     const F = FIELDS[st.field], m = st.man, fh = fhNow(), valid = Date.parse(m.valid[fh]), init = Date.parse(m.cycle), hs = hourState(fh);
-    const W = 1600, mapH = Math.round((W * map.height) / map.width), HEAD = 150, FOOT = 116, H = HEAD + mapH + FOOT;
+    const W = 1600, mapH = Math.round((W * map.height) / map.width), HEAD = 150, FOOT = 150, H = HEAD + mapH + FOOT;
     const c = document.createElement("canvas"); c.width = W; c.height = H; const g = c.getContext("2d");
     const dark = document.documentElement.getAttribute("data-theme") !== "light", fg = dark ? "#eef1f5" : "#14181f", mute = dark ? "#a9b2bf" : "#4b5563", bg = dark ? "#0d1117" : "#ffffff";
     const font = (w, px) => `${w} ${px}px "Archivo", "Helvetica Neue", Arial, sans-serif`, f2 = `F${String(fh).padStart(2, "0")}`;
@@ -403,12 +407,12 @@
     else { const t = F.legend.ticks, lo = t[0], hi = t[t.length - 1], bw = 900; for (let k = 0; k < bw; k++) { const col = F.color(lo + (k / bw) * (hi - lo)); if (col) { g.fillStyle = `rgb(${col.slice(0, 3).join(",")})`; g.fillRect(x + k, y, 1, 22); } }
       g.fillStyle = fg; t.forEach((v) => g.fillText(String(v), x + ((v - lo) / (hi - lo)) * bw - 8, y + 46)); }
     g.fillStyle = mute; g.font = font(500, 19);
-    g.fillText("Forecast Ops output · Data: NOAA/NCEP HRRR (NOAA Open Data Dissemination) · Model guidance, not an official forecast · Not endorsed by NOAA", 32, H - 42);
-    g.fillText("Basemap: U.S. Census Bureau boundaries via us-atlas, Natural Earth · Colors and rendering: Forecast Ops", 32, H - 16);
+    g.fillText("Forecast Ops output · Data: NOAA/NCEP HRRR (NOAA Open Data Dissemination) · Model guidance, not an official forecast · Not endorsed by NOAA", 32, H - 48);
+    g.fillText("Basemap: U.S. Census Bureau boundaries via us-atlas, Natural Earth · Colors and rendering: Forecast Ops", 32, H - 20);
     const blob = await new Promise((ok, no) => c.toBlob((b) => (b ? ok(b) : no(new Error("no image"))), "image/png"));
     const a = document.createElement("a"), name = `forecast-ops-hrrr-${st.field}-${st.run.id}z-${f2.toLowerCase()}.png`;
     a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-    window.__lastPng = { name, width: W, height: H, field: st.field, run: st.run.id, fh, mapH };   // test hook
+    window.__lastPng = { name, width: W, height: H, field: st.field, run: st.run.id, fh, mapH, head: HEAD, labels: drawn.map((o) => ({ ...o, y: o.y + HEAD })) };   // test hook
     note(`Saved ${name} (${W} × ${H}).`);
   }
   /* ---------- cycle comparison: the embedded panel's controls, and the way in from the single-run view ---------- */
@@ -488,7 +492,7 @@
   function footprint() { const s = st.map && st.map.getSource("footprint"); if (s && st.mesh) s.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: st.mesh.ring } }); }
   function initMap(base) {
     const C = palette(), view = (Q.get("map") || "").split(",").map(Number), hasView = view.length === 3 && view.every(Number.isFinite);
-    const map = new ML.Map({ container: "map", style: { version: 8, glyphs: new URL("assets/maps/fonts/open-sans-v1/{fontstack}/{range}.pbf", location.href).href.replace(/%7B/g, "{").replace(/%7D/g, "}"), sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": C.land } }] },
+    const map = new ML.Map({ container: "map", fadeDuration: 0, style: { version: 8, glyphs: new URL("assets/maps/fonts/open-sans-v1/{fontstack}/{range}.pbf", location.href).href.replace(/%7B/g, "{").replace(/%7D/g, "}"), sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": C.land } }] },
       center: hasView ? [view[1], view[0]] : [-97.5, 38.6], zoom: hasView ? view[2] : PHONE() ? 2.6 : 3.7, minZoom: 1.5, maxZoom: 10.5, attributionControl: false, dragRotate: false, pitchWithRotate: false, renderWorldCopies: false,
       maxBounds: [[-175, -5], [-25, 72]] });
     map.touchZoomRotate.disableRotation(); map.addControl(new ML.NavigationControl({ showCompass: false }), "bottom-right");

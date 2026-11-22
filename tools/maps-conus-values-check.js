@@ -72,6 +72,16 @@ const MIN = { apcp1h: 0.01, apcp_run: 0.01, asnow1h: 0.1, asnow_run: 0.1, frzr_r
       await p.click('#valBtn'); await p.waitForTimeout(1200);
       const [dl2] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), p.click('#pngBtn')]); const pngOn = path.join(out, `values-on-${dev}.png`); await dl2.saveAs(pngOn);
       check(fs.statSync(pngOn).size > fs.statSync(pngOff).size, `${dev}: the PNG carries the labels when Values is on (${Math.round(fs.statSync(pngOn).size / 1024)} KB vs ${Math.round(fs.statSync(pngOff).size / 1024)} KB without)`);
+      /* every label the export placed is really in the image: the area around it differs from the Values-off PNG */
+      const meta = await p.evaluate(() => window.__lastPng), uri = (f) => 'data:image/png;base64,' + fs.readFileSync(f).toString('base64');
+      const diffs = await p.evaluate(async ([a, b, labs]) => {
+        const img = async (u) => { const i = new Image(); i.src = u; await i.decode(); const c = document.createElement('canvas'); c.width = i.width; c.height = i.height; const g = c.getContext('2d'); g.drawImage(i, 0, 0); return g; };
+        const ga = await img(a), gb = await img(b);
+        return labs.map((o) => { const x0 = Math.max(0, o.x - 24), y0 = Math.max(0, o.y - 6), w = 48, h = 26, A = ga.getImageData(x0, y0, w, h).data, B = gb.getImageData(x0, y0, w, h).data;
+          let n = 0; for (let q = 0; q < A.length; q += 4) if (Math.abs(A[q] - B[q]) + Math.abs(A[q + 1] - B[q + 1]) + Math.abs(A[q + 2] - B[q + 2]) > 90) n++; return n; });
+      }, [uri(pngOn), uri(pngOff), meta.labels]);
+      const missing = meta.labels.filter((o, k) => diffs[k] < 12);
+      check(meta.labels.length >= 3 && meta.labels.some((o) => o.name) && !missing.length, `${dev}: the PNG shows all ${meta.labels.length} labels the export placed (${meta.labels.filter((o) => o.name).length} cities)${missing.length ? `; not visible: ${missing.map((o) => (o.name || '') + ' ' + o.text).join(', ')}` : ''}`);
       check(!errors.length, `${dev}: no script errors ${errors.join('; ')}`); await ctx.close();
     }
     /* comparison: both panels label the same points */
