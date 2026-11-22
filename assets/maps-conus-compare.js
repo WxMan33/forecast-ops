@@ -40,6 +40,7 @@
         <div class="cmp-p" data-p="A" data-active="1"><iframe id="frA" title="Run A"></iframe></div>
         <div class="cmp-p" data-p="B"><iframe id="frB" title="Run B"></iframe></div>
       </div>
+      <p class="cmp-credit">Data: NOAA/NCEP HRRR (NOAA Open Data Dissemination) · Forecast Ops output · Model guidance, not an official forecast · Not endorsed by NOAA · Basemap: U.S. Census Bureau via us-atlas, Natural Earth</p>
       <p class="msg cmp-help">Both panels are the full-precision single-run viewer: pan, zoom or tap a point in either and the other follows. Each panel states its own run, forecast hour and accumulation window.</p>
     </section>`;
     st.frames = { A: $("frA"), B: $("frB") };

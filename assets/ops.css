@@ -886,3 +886,7 @@ body.conus-embed .maplegend2 { bottom: 8px; }
   .cmp-ctl { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .cmp-ctl label, .cmp-ctl select { min-width: 0; max-width: 100%; }
 }
+/* comparison panels: their header (run, init, forecast hour, window) must show; the old Tri-State embed mode hides it */
+body.conus-embed #mapInfo { display: block !important; }
+body.conus-embed .maplibregl-ctrl-attrib { display: none !important; }   /* the compare page carries the credit line */
+.cmp-credit { font-size: 12px; color: var(--muted); }
