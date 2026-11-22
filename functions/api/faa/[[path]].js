@@ -28,7 +28,7 @@ export async function handle(request, env = {}) {
   try { res = await fetch(key, { headers: { "User-Agent": USER_AGENT, Accept: "application/json" }, signal: ctl.signal }); body = await res.text(); }
   catch (e) { return json(502, { error: ctl.signal.aborted ? "FAA did not answer in time" : "FAA request failed" }, head); }
   finally { clearTimeout(timer); }
-  if (!res.ok) return json(502, { error: "FAA answered HTTP " + res.status }, { ...head, "X-Upstream-Status": String(res.status) });
+  if (!res.ok) return json(502, { error: "FAA answered HTTP " + res.status, upstreamServer: res.headers.get("server") || null, upstreamSays: String(body || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160) }, { ...head, "X-Upstream-Status": String(res.status) }); // what refused, briefly (no cookies, no headers echoed)
   let j; try { j = JSON.parse(body); } catch (e) { return json(502, { error: "FAA answer was not JSON" }, head); }
   if (!SHAPE[kind](j)) return json(502, { error: "FAA answer was not the expected shape" }, head);
   const rec = { body, at: t.NOW ? t.NOW() : Date.now() }; memory.set(key, rec);
