@@ -96,7 +96,7 @@
   }
   /* the value at a lon/lat: the nearest grid point (no interpolation: what the model says at that 3 km cell) */
   function valueAt(dec, lon, lat, P) {
-    const [fi, fj] = (P || projection(dec.grid)).ij(lon, lat), i = Math.round(fi), j = Math.round(fj);
+    const [fi, fj] = (P || projection(dec.grid)).ij(lon, lat), i = Math.round(fi) + 0, j = Math.round(fj) + 0; // + 0: no negative zero at the edge
     if (i < 0 || j < 0 || i >= dec.grid.nx || j >= dec.grid.ny) return { inside: false, value: null, i, j };
     const v = dec.field[j * dec.grid.nx + i]; return { inside: true, value: Number.isFinite(v) ? v : null, i, j };
   }
