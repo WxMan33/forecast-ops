@@ -8,6 +8,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const nws = await import(pathToFileURL(path.join(ROOT, "functions/api/nws/[[path]].js")).href);
 const wpc = await import(pathToFileURL(path.join(ROOT, "functions/api/wpc/[[path]].js")).href);
 const smoke = await import(pathToFileURL(path.join(ROOT, "functions/api/smoke/[[path]].js")).href);
+const awc = await import(pathToFileURL(path.join(ROOT, "functions/api/awc/[[path]].js")).href);
 let n = 0; const ok = async (name, fn) => { await fn(); n++; console.log("ok -", name); };
 let clock = Date.parse("2026-11-20T20:00:00Z"), answer = () => new Response(JSON.stringify({ type: "FeatureCollection", features: [] }), { status: 200 }); const sent = [];
 globalThis.fetch = async (url, init) => { sent.push({ url: String(url), ua: new Headers(init.headers).get("user-agent") }); return answer(String(url)); };
@@ -78,5 +79,13 @@ await ok("SMOKE: HMS KML for recent UTC days only; AirNow reporting area rows fo
   clock += 700e3; answer = () => new Response("<html>busy</html>");
   assert.strictEqual((await g("/api/smoke/hms/20261121")).status, 502);
   answer = () => new Response("nope", { status: 404 }); assert.strictEqual((await g("/api/smoke/hms/20261121")).status, 404);
+});
+await ok("AVIATION: METAR/TAF for 1-4 ICAO ids only; identifying User-Agent; cache keeps the upstream time; non-list answers are 502", async () => {
+  clock = Date.parse("2026-11-22T16:00:00Z"); sent.length = 0; answer = () => new Response("[]");
+  const e2 = { ...env, UPSTREAM: "https://awc.test/" }, g = (p) => awc.handle(new Request("https://x.test" + p, { headers: { Origin: "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev" } }), e2);
+  const a = await g("/api/awc/taf?ids=kord,KMDW"); assert.strictEqual(a.status, 200); assert.strictEqual(sent[0].url, "https://awc.test/taf?ids=KMDW,KORD&format=json"); assert.strictEqual(sent[0].ua, "(forecast-ops, github.com/WxMan33/forecast-ops)");
+  clock += 60e3; const b2 = await g("/api/awc/taf?ids=KMDW,KORD"); assert.strictEqual(b2.headers.get("X-Forecast-Ops-Cache"), "HIT"); assert.strictEqual(b2.headers.get("X-Upstream-Fetched-At"), a.headers.get("X-Upstream-Fetched-At"));
+  for (const bad of ["/api/awc/metar", "/api/awc/metar?ids=K1,K2,K3,K4,K5", "/api/awc/metar?ids=KORD&format=xml", "/api/awc/pirep?ids=KORD", "/api/awc/metar?ids=KO%20RD"]) assert.strictEqual((await g(bad)).status, 404, bad);
+  answer = () => new Response("{\"error\":1}"); assert.strictEqual((await g("/api/awc/metar?ids=KJFK")).status, 502);
 });
 console.log(n + " passed");

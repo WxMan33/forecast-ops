@@ -12,6 +12,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fn = await import(pathToFileURL(path.join(ROOT, "functions/api/nws/[[path]].js")).href);
 const wpc = await import(pathToFileURL(path.join(ROOT, "functions/api/wpc/[[path]].js")).href);
 const smoke = await import(pathToFileURL(path.join(ROOT, "functions/api/smoke/[[path]].js")).href);
+const awc = await import(pathToFileURL(path.join(ROOT, "functions/api/awc/[[path]].js")).href);
 const port = +process.argv[2] || 8822, ui = process.argv.indexOf("--upstream"), upstream = ui > 0 ? process.argv[ui + 1] : undefined;
 let clock = null; const log = [];
 const realFetch = globalThis.fetch;
@@ -25,8 +26,8 @@ http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost:" + port);
   if (url.pathname === "/__harness/clock") { const t = url.searchParams.get("t"); clock = t === "off" ? null : +t; res.end(JSON.stringify({ clock })); return; }
   if (url.pathname === "/__harness/log") { res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify(log)); return; }
-  if (url.pathname.startsWith("/api/nws/") || url.pathname.startsWith("/api/wpc/") || url.pathname.startsWith("/api/smoke/")) {
-    const r = await (url.pathname.startsWith("/api/wpc/") ? wpc : url.pathname.startsWith("/api/smoke/") ? smoke : fn).handle(new Request(url, { method: req.method, headers: req.headers }), env);
+  if (url.pathname.startsWith("/api/nws/") || url.pathname.startsWith("/api/wpc/") || url.pathname.startsWith("/api/smoke/") || url.pathname.startsWith("/api/awc/")) {
+    const r = await (url.pathname.startsWith("/api/wpc/") ? wpc : url.pathname.startsWith("/api/smoke/") ? smoke : url.pathname.startsWith("/api/awc/") ? awc : fn).handle(new Request(url, { method: req.method, headers: req.headers }), env);
     res.writeHead(r.status, Object.fromEntries(r.headers)); res.end(Buffer.from(await r.arrayBuffer())); return;
   }
   let file = path.join(ROOT, decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname));

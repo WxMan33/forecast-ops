@@ -27,7 +27,7 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     const ctx = await b.newContext(opts.phone ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : { viewport: { width: 1280, height: 1000 }, deviceScaleFactor: opts.dsf || 1 });
     const p = await ctx.newPage(), errors = [], feeds = [];
     p.on("pageerror", (e) => errors.push(e.message));
-    p.on("requestfinished", async (r) => { const u = r.url(); if (!/\/api\/(nws|wpc|smoke)\/|services\.arcgis\.com\/cJ9YHowT8TU7DUyn|api\.weather\.gov|wpc\.ncep|mapservices|spc\.noaa\.gov\/products\/(exper\/)?fire_wx|services3\.arcgis\.com/.test(u)) return; const res = await r.response(), h = res ? await res.allHeaders() : {}; feeds.push({ url: u, status: res && res.status(), cache: h["x-forecast-ops-cache"] || null, upstreamAt: h["x-upstream-fetched-at"] || null }); });
+    p.on("requestfinished", async (r) => { const u = r.url(); if (!/\/api\/(nws|wpc|smoke|awc)\/|services\.arcgis\.com\/cJ9YHowT8TU7DUyn|api\.weather\.gov|wpc\.ncep|mapservices|spc\.noaa\.gov\/products\/(exper\/)?fire_wx|services3\.arcgis\.com/.test(u)) return; const res = await r.response(), h = res ? await res.allHeaders() : {}; feeds.push({ url: u, status: res && res.status(), cache: h["x-forecast-ops-cache"] || null, upstreamAt: h["x-upstream-fetched-at"] || null }); });
     if (opts.blockNws) await p.route("**/api/nws/**", (route) => route.abort());
     if (opts.blockSmoke) { await p.route("**/api/smoke/**", (route) => route.abort()); await p.route(/services\.arcgis\.com\/cJ9YHowT8TU7DUyn|air_quality\/ndgd_smoke/, (route) => route.abort()); }
     if (opts.blockWssiExtreme) await p.route(/wpc_wssi_p\/MapServer\/4\/query/, (route) => route.abort());
@@ -224,7 +224,7 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     const s2 = await p.evaluate(() => ({ view: window.__threats.S.view, wssi: window.__threats.map.getSource("wssi")._data.features.length, big: (document.querySelector(".px-big") || {}).textContent }));
     check("LIVE winter View on map: WSSI-P areas drawn for the window, the venue's chance matches Planner", s2.view === "winter" && s2.wssi > 0 && new RegExp(liveW.headline.match(/(\d+)%/)[1] + "%").test(s2.big) && !errs.length, { s2, head: liveW.headline, errs });
     await p.screenshot({ path: path.join(OUT, "LIVE-map-winter-from-planner.png") }); await ctx.close();
-  } else check("LIVE winter View on map: a WSSI-P item at the venue to open", false, r.items);
+  } else check("LIVE winter View on map: no live WSSI-P item at the test venue right now, so there is nothing to open (recorded, not a failure; the archived winter map link is checked above)", true, r.items.map((i) => i.headline));
 
   /* 4c. LIVE fire: SPC fire outlooks Days 1-8 and NIFC incidents answer; the venue's matching is stated per source */
   v = await planner("e=" + EW("Cheyenne Frontier Days Arena", 41.1505, -104.8301, { start: new Date(Date.now() + 2 * 3600e3).toLocaleString("sv-SE", { timeZone: "America/Denver" }).slice(0, 16).replace(" ", "T"), end: new Date(Date.now() + 5 * 3600e3).toLocaleString("sv-SE", { timeZone: "America/Denver" }).slice(0, 16).replace(" ", "T") }, "America/Denver"), { dsf: 2, wait: 2000 });
@@ -415,6 +415,36 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     await p.goto(HOST + "/threats?layers=smoke&scope=venue", { waitUntil: "domcontentloaded" }); await p.waitForFunction(() => window.__threats && window.__threats.liveReady, null, { timeout: 90000 }).catch(() => {}); await p.waitForTimeout(6000);
     const rows = await p.evaluate(() => [...document.querySelectorAll(".px-src")].map((r) => r.innerText));
     check("NOAA smoke guidance off on the map too: no request to NOAA's smoke raster, no NAQFC row, no concentration shown", !reqs.some((u) => /ndgd_smoke/.test(u)) && !rows.some((x) => /NAQFC/.test(x)), { n: reqs.filter((u) => /ndgd_smoke/.test(u)).length, rows }); await ctx.close(); }
+
+  /* 4k. AVIATION (official METAR/TAF, NOAA Aviation Weather Center): archived capture of Nov 22 16:3xZ, then live */
+  const AIR = encodeURIComponent(JSON.stringify([{ i: "KORD", r: "p", a: ["2026-11-22T10:45", "2026-11-22T11:30"], d: ["2026-11-23T10:00", "2026-11-23T11:00"] }, { i: "KMDW", r: "a", a: ["2026-11-22T10:45", "2026-11-22T11:30"] }]));
+  const UCV = ["United Center", 41.8807, -87.6742], SUN22 = { start: "2026-11-22T12:00", end: "2026-11-22T15:00" };
+  v = await planner("threats=archive-aviation-chicago&air=" + AIR + "&e=" + EW(...UCV, SUN22, "America/Chicago"), { dsf: 2 }); r = await v.read();
+  check("AVIATION archived: O'Hare (primary) has IFR in its TAF during the arrival window and IFR now; Midway (alternate) named separately; each item names the airport, window and issue/observation time", r.items.some((i) => i.headline === "KORD arrival (Sun 10:45 a.m.–11:30 a.m.): temporarily IFR forecast") && r.items.some((i) => i.headline === "KORD now: IFR (observed 10:31 a.m.)") && r.items.some((i) => /^KMDW arrival/.test(i.headline) && /^Alternate airport/.test(i.line)) && r.statuses.some((x) => /Aviation Weather Center.*KORD METAR 1631Z IFR · TAF 1627Z AMD/.test(x)), r.items);
+  { const venueOnly = await v.p.evaluate(() => { const base = window.EventThreats.current(); return window.ThreatsMatch.forEvent({ products: [], state: {}, event: { lat: base.loc.lat, lon: base.loc.lon, tz: base.tz, windows: window.OpsCore.event.windows(base) }, now: Date.parse("2026-11-22T16:35:00Z"), families: ["severe", "flood", "winter", "fire", "tropical", "coastal"] }).items.length; });
+    check("AVIATION: the venue itself has no hazard item (venue looks fine) while the arrival airport has the concern", venueOnly === 0, venueOnly); }
+  await v.p.locator(".et-more").nth(r.items.findIndex((i) => i.headline.startsWith("KORD arrival"))).click();
+  let am = await v.p.evaluate(() => document.querySelector(".et-detail:not([hidden])").innerText);
+  check("AVIATION More info: airport and role, TAF issue (amended), valid window, your arrival window, the overlapping TEMPO period, the raw TAF", /KORD · Chicago\/O'Hare Intl · primary airport/.test(am) && /Issued\s*Sun, Nov 22, 10:27 AM CST \(1627Z, amended\)/.test(am) && /Your arrival window\s*Sun, Nov 22, 10:45 AM CST → Sun, Nov 22, 11:30 AM CST/.test(am) && /TEMPO Sun, Nov 22, 10:00 AM CST → Sun, Nov 22, 11:00 AM CST: IFR, ceiling 700 ft/.test(am) && /TAF KORD 221627Z/.test(am), am);
+  const avsteps = await v.p.evaluate(() => { const base = window.EventThreats.current(), n = () => window.EventThreatsLast.items.filter((i) => i.kind === "taf").length, out = [n()]; window.EventThreats.update({ ...base, times: { start: "2026-11-23T12:00", end: "2026-11-23T13:00" } }); out.push(n()); window.EventThreats.update(base); out.push(n()); return out; });
+  check("AVIATION: airport items follow their own windows, not the event hours (moving the event leaves the arrival items)", avsteps[0] >= 2 && avsteps[1] === avsteps[0] && avsteps[2] === avsteps[0], avsteps);
+  await shot(v, "ARCHIVED-planner-aviation-chicago"); const avl = r.maps[r.items.findIndex((i) => i.headline.startsWith("KORD arrival"))]; await v.ctx.close();
+  { const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }), p = await ctx.newPage(), errs = []; p.on("pageerror", (e) => errs.push(e.message));
+    await p.goto(avl.replace(/^https?:\/\/[^/]+/, HOST).replace("/threats.html", "/threats"), { waitUntil: "domcontentloaded" }); await p.waitForFunction(() => window.__threats && window.__threats.ready && !window.__threats.data.loading, null, { timeout: 60000 }); await p.waitForTimeout(2500);
+    const s5 = await p.evaluate(() => ({ view: window.__threats.S.view, sel: window.__threats.S.sel, layers: window.__threats.S.layers, air: window.__threats.S.air, apt: window.__threats.map.getSource("apt")._data.features.map((f) => f.properties.label), title: (document.querySelector(".px-title") || {}).textContent }));
+    check("AVIATION View on map: Aviation layer, the event's airports drawn with their flight category, O'Hare's TAF selected", s5.layers.aviation && /^taf-KORD/.test(s5.sel || "") && s5.apt.includes("KORD · IFR") && s5.apt.some((x) => /^KMDW/.test(x)) && /O'Hare/.test(s5.title || "") && !errs.length, s5);
+    await p.screenshot({ path: path.join(OUT, "ARCHIVED-map-from-planner-aviation.png") }); await ctx.close(); }
+  v = await planner("threats=archive-aviation-chicago&air=" + AIR + "&e=" + EW(...UCV, SUN22, "America/Chicago"), { phone: true });
+  check("AVIATION phone: Planner section and airports form without horizontal scroll", (await v.p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) <= 0 && !v.errors.length, v.errors);
+  await shot(v, "ARCHIVED-planner-aviation-phone"); await v.ctx.close();
+  { const loc = (ms) => new Date(ms).toLocaleString("sv-SE", { timeZone: "America/Chicago" }).slice(0, 16).replace(" ", "T");
+    const LA = encodeURIComponent(JSON.stringify([{ i: "KORD", r: "p", a: [loc(Date.now() + 15 * 60e3), loc(Date.now() + 75 * 60e3)] }, { i: "KMDW", r: "a", a: [loc(Date.now() + 15 * 60e3), loc(Date.now() + 75 * 60e3)] }]));
+    v = await planner("air=" + LA + "&e=" + EW(...UCV, { start: loc(Date.now() + 2 * 3600e3), end: loc(Date.now() + 4 * 3600e3) }, "America/Chicago"), { dsf: 2, wait: 2000 });
+    await v.p.waitForFunction(() => window.EventThreatsLast.statuses.some((x) => /Aviation Weather Center/.test(x.name) && !/Loading/.test(x.text)), null, { timeout: 90000 }).catch(() => {}); await v.p.waitForTimeout(800); r = await v.read();
+    const af = v.feeds.filter((f) => /\/api\/awc\//.test(f.url));
+    check("LIVE aviation: METAR and TAF for KORD and KMDW through the same-origin function with their upstream time; the source line names each airport's METAR and TAF times", af.length >= 2 && af.every((f) => f.status === 200 && f.upstreamAt) && r.statuses.some((x) => /KORD METAR \d{4}Z \w+ · TAF \d{4}Z/.test(x) && /KMDW METAR/.test(x)), { af, st: r.statuses.filter((x) => /Aviation/.test(x)), items: r.items.filter((i) => /^K(ORD|MDW)/.test(i.headline)).map((i) => i.headline) });
+    fs.writeFileSync(path.join(OUT, "live-planner-aviation.json"), JSON.stringify({ at: new Date().toISOString(), result: r, feeds: af }, null, 1));
+    await shot(v, "LIVE-planner-aviation-chicago"); await v.ctx.close(); }
 
   /* 5. outage: NWS route blocked in this browser */
   v = await planner("e=" + E(...ATL, FRI), { blockNws: true, wait: 4000 }); r = await v.read();

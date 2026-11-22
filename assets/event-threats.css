@@ -26,3 +26,9 @@
 .et-sample { font-size: 13px; margin: 4px 0; }
 @media (max-width: 600px) { .et-detail { grid-template-columns: minmax(0, 1fr); } .et-detail dt { margin-top: 4px; } }
 .et-note { font-size: 13.5px; border: 1px solid var(--monitor, #b58100); border-radius: 8px; padding: 7px 10px; margin: 6px 0; }
+.et-item[data-family="aviation"] { --et-c: #6c8cff; }
+.et-air form { display: grid; gap: 8px; margin-top: 8px; }
+.et-airfs { border: 1px solid var(--line, #d3d9e0); border-radius: 8px; padding: 6px 10px 10px; display: flex; flex-wrap: wrap; gap: 6px 12px; min-width: 0; }
+.et-airfs label { display: grid; gap: 2px; font-size: 12.5px; min-width: 0; }
+.et-airfs input { max-width: 100%; }
+.et-airfs input[name$="i"] { width: 6em; text-transform: uppercase; }

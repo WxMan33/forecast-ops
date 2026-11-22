@@ -230,6 +230,22 @@
     catch (e) { Object.assign(tcw, { key, state: "failed", error: e.message }); }
     emit();
   }
+  /* aviation: METAR and TAF for the airports an event uses, through the same-origin function (AWC has no CORS header) */
+  const av = { key: null, state: "never", lastOk: null, error: null, products: [] };
+  let avPending = null;
+  function airportsFor(ids) {
+    const list = [...new Set((ids || []).map((x) => String(x).toUpperCase()).filter((x) => /^[A-Z][A-Z0-9]{3}$/.test(x)))].sort().slice(0, 4), key = list.join(",");
+    if (!list.length) { Object.assign(av, { key: "", state: "never", products: [] }); return Promise.resolve(); }
+    if (av.key === key && av.lastOk && Date.now() - Date.parse(av.lastOk) < 2 * 60e3) return Promise.resolve();
+    if (avPending && avPending.key === key) return avPending.p;
+    if (NWS.mode !== "function") { Object.assign(av, { key, state: "failed", error: "needs the preview's same-origin function (the Aviation Weather Center sends no CORS header)", products: [] }); emit(); return Promise.resolve(); }
+    const base = NWS.base.replace(/\/api\/nws$/, "/api/awc"), at = nowIso();
+    const p = Promise.all([get(base + "/metar?ids=" + key, "json"), get(base + "/taf?ids=" + key, "json")])
+      .then(([m, t]) => { Object.assign(av, { key, state: "ok", lastOk: at, error: null, products: [...F.parseMETAR(m), ...F.parseTAF(t)] }); })
+      .catch((e) => { Object.assign(av, { key, state: "failed", error: e.message }); if (av.key !== key) av.products = []; })
+      .finally(() => { avPending = null; emit(); });
+    avPending = { key, p }; return p;
+  }
   /* NWS's own placement of a venue (forecast zone, county, fire weather zone; over the water only a marine zone).
      Cached per venue; a failed lookup leaves the venue without placement (the drawn zone outlines then decide). */
   const points = new Map();
@@ -323,7 +339,7 @@
     const e = { 1: ero[1].current(now), 2: ero[2].current(now), 3: ero[3].current(now) };
     const wsp = wssi.products.filter((p) => Date.parse(p.validEnd) > now);
     const fireP = FIRE_DAYS.flatMap((d) => FIRE_PARTS.flatMap((part) => fire[d][part].current(now).products));
-    const products = [...ps.filter((p) => p.status === "active" || p.status === "lapsed").map(withZones), ...wsp, ...mdList, ...o[1].products, ...o[2].products, ...o[3].products, ...e[1].products, ...e[2].products, ...e[3].products, ...fireP, ...nifc.products, ...hms.products, ...aq.products, ...nhc.products, ...tcw.products];
+    const products = [...ps.filter((p) => p.status === "active" || p.status === "lapsed").map(withZones), ...wsp, ...mdList, ...o[1].products, ...o[2].products, ...o[3].products, ...e[1].products, ...e[2].products, ...e[3].products, ...fireP, ...nifc.products, ...hms.products, ...aq.products, ...nhc.products, ...tcw.products, ...av.products];
     const src = (info, count, extra) => ({ state: info.state === "ok" ? "ok" : "failed", lastOk: info.lastOk, count, error: info.error, ...extra });
     return {
       live: true, clock: new Date(now).toISOString(), products,
@@ -338,6 +354,7 @@
         ero2: src(ero[2].sourceInfo(), e[2].products.length, { outlook: e[2].status, validEnd: e[2].validEnd, issued: e[2].issued, via: ero[2].sourceInfo().via }),
         wssip: wssi.state === "never" || (wssiPending && !wssi.lastOk) ? { state: "pending", lastOk: null, count: 0 } : src({ state: wssi.state === "ok" ? "ok" : "failed", lastOk: wssi.lastOk, error: wssi.error }, wsp.length, { validEnd: wssi.reachEnd, issued: wssi.issued, unavailable: wssi.unavailable || [] }),
         ...fireSources(now),
+        awc: av.state === "never" ? { state: av.key ? "pending" : "na", lastOk: null, count: 0 } : { state: av.state, lastOk: av.lastOk, count: av.products.length, error: av.error },
         nhc: nhc.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: nhc.state, lastOk: nhc.lastOk, count: nhc.products.length, error: nhc.error || tcw.error, storms: nhc.products.filter((p) => p.part === "cone").length },
         hms: hms.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: hms.state, lastOk: hms.lastOk, count: hms.products.length, error: hms.error },
         aqobs: aqSrc(aq.obs, aq.products.filter((p) => p.kind === "aqobs").length), aqfcst: aqSrc(aq.fcst, aq.products.filter((p) => p.kind === "aqfcst").length), naqfc: F.NAQFC_ENABLED ? aqSrc(aq.naqfc, aq.products.filter((p) => p.kind === "smokefcst").length) : { state: "na" },
@@ -399,6 +416,8 @@
     "archive-tropical-watch": { kind: "mix", clock: "2026-10-07T17:00:00Z", nws: [], tcv: ["tests/fixtures/threats/tcv-kmob-al092026/202610071609-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610072103-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610080253-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610081156-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610090257-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610091500-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610091802-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610092353-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610100602-KMOB-WTUS84-TCVMOB.txt"], zones: "tests/fixtures/threats/nws-zones-gulf-al092026.json", nhc: ["tests/fixtures/threats/nhc-al092026-adv004.geojson"], ero: [], label: "Hurricane Isaias, NWS Mobile and NHC, Oct 7, 2026 at noon CDT (advisory 4)" },
     "archive-tropical-warning": { kind: "mix", clock: "2026-10-08T05:00:00Z", nws: [], tcv: ["tests/fixtures/threats/tcv-kmob-al092026/202610071609-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610072103-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610080253-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610081156-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610090257-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610091500-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610091802-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610092353-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610100602-KMOB-WTUS84-TCVMOB.txt"], zones: "tests/fixtures/threats/nws-zones-gulf-al092026.json", nhc: ["tests/fixtures/threats/nhc-al092026-adv006.geojson"], ero: [], label: "Hurricane Isaias, Oct 8, 2026 at midnight CDT (after the upgrade to warnings; advisory 6)" },
     "archive-coastal-flagler": { kind: "mix", clock: "2026-11-21T18:30:00Z", points: "tests/fixtures/threats/nws-points-coastal-20261122.json", nws: ["tests/fixtures/threats/nws-live-kjax-coastal-20261121.json"], zones: "tests/fixtures/threats/nws-zones-kjax-coastal-20261121.json", ero: [], label: "NWS Jacksonville coastal flood, high surf and rip current products, Nov 21, 2026 at 1:30 p.m. EST (captured live)" },
+    // NOAA Aviation Weather Center METARs and TAFs for O'Hare, Midway and Milwaukee, captured live 2026-11-22 16:3xZ
+    "archive-aviation-chicago": { kind: "mix", clock: "2026-11-22T16:35:00Z", nws: [], ero: [], awc: ["tests/fixtures/threats/awc-metar-kord-kmke-kmdw-20261122.json", "tests/fixtures/threats/awc-taf-kord-kmke-kmdw-20261122.json"], label: "Aviation Weather Center METARs and TAFs for KORD, KMDW and KMKE, Nov 22, 2026 at 10:35 a.m. CST (captured live)" },
     "archive-flood-night": { kind: "mix", clock: "2026-11-20T20:30:00Z", nws: ["tests/fixtures/threats/nws-archive-kmlb-ff-w-0036.json", "tests/fixtures/threats/nws-archive-kjax-ff-w-0054.json"], ero: [1, 2, 3].map((d) => "tests/fixtures/threats/wpc-ero-day" + d + "-20261120.geojson"), label: "NWS Flash Flood Warnings and WPC Excessive Rainfall Outlooks, Florida, Nov 20, 2026 at 3:30 p.m. EST" },
   };
   const archiveCache = new Map();
@@ -436,15 +455,16 @@
     const hmsP = (await Promise.all((a.hms || []).map(async (f) => F.parseHMS(await getT(f))))).flat().filter((p) => Date.parse(p.obsEnd) <= clock);
     const monP = (await Promise.all((a.mons || []).map(async (f) => F.parseAirNowMonitors(await getJ(f))))).flat().filter((p) => Date.parse(p.observed) <= clock);
     const raP = (await Promise.all((a.ra || []).map(async (f) => F.aqForecastProducts(F.parseReportingArea(await getT(f)).filter((r) => r.issueDate <= a.clock.slice(0, 10)))))).flat();
+    const awcP = a.awc ? [...F.parseMETAR(await getJ(a.awc[0])), ...F.parseTAF(await getJ(a.awc[1]))].filter((p) => Date.parse(p.issued) <= clock) : [];
     const nhcP = (await Promise.all((a.nhc || []).map(async (f) => F.parseNHC(await getJ(f))))).flat().filter((p) => !p.issued || Date.parse(p.issued) <= clock);
     const nifcP = a.nifc ? F.parseNIFC(await getJ(a.nifc[0]), await getJ(a.nifc[1])) : [];
     const wsp = (await Promise.all((a.wssip || []).map(getJ))).flatMap((j) => F.parseWSSIP(j)).filter((p) => (!p.issued || Date.parse(p.issued) <= clock) && Date.parse(p.validEnd) > clock);
     const eroSrc = (d) => { const o = eros.find((x) => x.products[0] && x.products[0].day === d); return o ? { state: "ok", lastOk: a.clock, count: o.products.length, outlook: "current", validEnd: o.validEnd, issued: o.issued, via: "wpc" } : na; };
     const pointsA = a.points ? Object.fromEntries(Object.entries((await getJ(a.points)).points).map(([k, v]) => { const [la, lo] = k.split(",").map(Number); return [la.toFixed(4) + "," + lo.toFixed(4), F.pointZones({ properties: v })]; })) : null;
     return { live: false, points: pointsA, archive: { name, label: a.label, step: 1, steps: 1, messages: [] }, clock: a.clock,
-      products: [...ps.filter((p) => p.status === "active" || p.status === "lapsed"), ...eros.flatMap((o) => o.products), ...wsp, ...fireP, ...nifcP, ...hmsP, ...monP, ...raP, ...nhcP], ended: ps.filter((p) => p.status === "ended"),
+      products: [...ps.filter((p) => p.status === "active" || p.status === "lapsed"), ...eros.flatMap((o) => o.products), ...wsp, ...fireP, ...nifcP, ...hmsP, ...monP, ...raP, ...nhcP, ...awcP], ended: ps.filter((p) => p.status === "ended"),
       sources: { alerts: !a.nws.length && !(a.tcv || []).length ? { state: "na" } : { state: a.alertsFailAfter ? "failed" : "ok", lastOk: si.lastOk, count: ps.filter((p) => p.status === "active").length, error: si.error }, md: na, day1: na, day2: na, day3: na, ero1: eroSrc(1), ero2: eroSrc(2), ero3: eroSrc(3),
-        hms: a.hms ? { state: "ok", lastOk: a.clock, count: hmsP.length } : { state: "na" }, nhc: a.nhc ? { state: "ok", lastOk: a.clock, count: nhcP.length } : { state: "na" }, aqobs: a.mons ? { state: "ok", lastOk: a.clock, count: monP.length } : { state: "na" },
+        hms: a.hms ? { state: "ok", lastOk: a.clock, count: hmsP.length } : { state: "na" }, nhc: a.nhc ? { state: "ok", lastOk: a.clock, count: nhcP.length } : { state: "na" }, awc: a.awc ? { state: "ok", lastOk: a.clock, count: awcP.length } : { state: "na" }, aqobs: a.mons ? { state: "ok", lastOk: a.clock, count: monP.length } : { state: "na" },
         aqfcst: a.ra ? { state: "ok", lastOk: a.clock, count: raP.length } : { state: "na" }, naqfc: { state: "na" }, monitors: a.mons ? { state: "ok", lastOk: a.clock, count: monP.length } : { state: "na" },
         ...fireSrc, nifc: a.nifc ? { state: "ok", lastOk: a.clock, count: nifcP.length } : { state: "na" },
         wssip: (a.wssip || []).length ? (wsp.length ? { state: "ok", lastOk: a.clock, count: wsp.length, validEnd: wsp.map((x) => x.validEnd).sort().pop(), issued: wsp[0].issued } : { state: "na" }) : { state: "na" } } };
@@ -468,7 +488,7 @@
   }
 
   /* the snapshot's per-feed states, keyed by the source registry (ThreatsFeeds.SOURCES) for the shared matcher */
-  const STALE = { nhc: 60, hms: 180, aqobs: 120, aqfcst: 180, naqfc: 360, monitors: 120, nifc: 20, fire1: 60, fire2: 60, fire3: 180, fire4: 180, fire5: 180, fire6: 180, fire7: 180, fire8: 180, wssip: 60, alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
+  const STALE = { awc: 20, nhc: 60, hms: 180, aqobs: 120, aqfcst: 180, naqfc: 360, monitors: 120, nifc: 20, fire1: 60, fire2: 60, fire3: 180, fire4: 180, fire5: 180, fire6: 180, fire7: 180, fire8: 180, wssip: 60, alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
   function registryState(d, now) {
     const one = (k) => { const x = d.sources[k]; if (!x) return { kind: "unavailable" }; if (x.state === "na") return { kind: "na" }; if (d.loading || x.state === "pending") return { kind: "loading" }; return { ...window.ThreatsCore.sourceState(x, now, STALE[k]), lastOk: x.lastOk }; };
     const worst = (keys) => { const s = keys.map(one).filter((x) => x.kind !== "na"); if (!s.length) return { kind: "na" }; const order = ["unavailable", "stale", "loading", "na", "empty", "current"]; const w = s.reduce((a, b) => (order.indexOf(b.kind) < order.indexOf(a.kind) ? b : a)); const oks = s.filter((x) => x.lastOk).map((x) => Date.parse(x.lastOk)); return { ...w, lastOk: oks.length ? new Date(Math.min(...oks)).toISOString() : w.lastOk }; };
@@ -476,6 +496,7 @@
     const fireKeys = Object.keys(d.sources).filter((k) => /^fire\d$/.test(k));
     return { "spc-fire": fireKeys.length ? { ...worst(fireKeys), reachEnd: reach(fireKeys), reach: ((ks) => ks.length ? (ks.length === 1 ? "Day " : "Days ") + ks.map((k) => k.slice(4)).join(", ") : "")(fireKeys.filter((k) => d.sources[k].issued && d.sources[k].state !== "na")) } : d.live ? { kind: "unavailable" } : { kind: "na" },
       "nifc-wfigs": d.sources.nifc ? one("nifc") : d.live ? { kind: "unavailable" } : { kind: "na" },
+      "awc": d.sources.awc ? one("awc") : d.live ? { kind: "unavailable" } : { kind: "na" },
       "nhc": d.sources.nhc ? one("nhc") : d.live ? { kind: "unavailable" } : { kind: "na" },
       "noaa-hms": d.sources.hms ? one("hms") : d.live ? { kind: "unavailable" } : { kind: "na" },
       "airnow-obs": d.sources.aqobs ? one("aqobs") : d.live ? { kind: "unavailable" } : { kind: "na" },
@@ -485,5 +506,5 @@
       "wpc-ero": { ...worst(["ero1", "ero2", "ero3"]), reachEnd: reach(["ero1", "ero2", "ero3"]), reach: ["ero1", "ero2", "ero3"].map((k, i) => d.sources[k] && d.sources[k].issued ? "Day " + (i + 1) + " issued " + window.ThreatsCore.fmtZ(d.sources[k].issued) : "").filter(Boolean).join(", ") } };
   }
 
-  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
+  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
 })();

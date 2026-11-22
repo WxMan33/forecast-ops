@@ -18,7 +18,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function (T, F) {
   "use strict";
   const PHASE_WORD = { setup: "setup", gates: "gates", event: "the event", teardown: "teardown" };
-  const FAMILY_WORD = { flood: "flooding", severe: "severe storms", winter: "winter weather", fire: "fire weather or wildfire", smoke: "smoke or air quality", tropical: "tropical", coastal: "coastal" };
+  const FAMILY_WORD = { flood: "flooding", severe: "severe storms", winter: "winter weather", fire: "fire weather or wildfire", smoke: "smoke or air quality", tropical: "tropical", coastal: "coastal", aviation: "airport weather" };
   const AQ_KM = 15 * T.KM_PER_MI, AQ_ITEM = 2;               // monitors within 15 miles; items from "Unhealthy for Sensitive Groups" up
   const HMS_RANK = { Light: 0, Medium: 1, Heavy: 2 }, NAQFC_MIN = 9; // NAQFC µg/m³: smoke alone above the top of the EPA "Good" PM2.5 range (9.0 µg/m³, 2024 standard)
   const INCIDENT_KM = 15 * T.KM_PER_MI; // a wildfire is listed when its perimeter, or its reported point, is within 15 miles
@@ -207,6 +207,48 @@
       }
     }
 
+    /* AVIATION: each airport the event uses (event.airports: icao, role primary/alternate, arrive/depart windows as instants)
+       against its own TAF periods (base, FM, TEMPO, PROB, each with its own times) and its latest METAR. A concern is IFR or
+       LIFR, gusts of 30 kt or more (or 25 kt sustained), thunderstorms or freezing/frozen precipitation. Each item names the
+       airport, the window and when the product was issued or observed. */
+    const avNotes = [];
+    if (families.includes("aviation") && Array.isArray(event.airports) && event.airports.length) {
+      const fmtW = (w) => day(w.startMs, tz).slice(0, 3) + " " + clock(w.startMs, tz) + "–" + clock(w.endMs, tz);
+      const z = (iso) => { const d = new Date(iso); return String(d.getUTCHours()).padStart(2, "0") + String(d.getUTCMinutes()).padStart(2, "0") + "Z"; };
+      for (const ap of event.airports) {
+        const taf = products.filter((p) => p.kind === "taf" && p.airport === ap.icao).sort((a, b) => (a.issued < b.issued ? 1 : -1))[0];
+        const met = products.filter((p) => p.kind === "metar" && p.airport === ap.icao).sort((a, b) => (a.observed < b.observed ? 1 : -1))[0];
+        const role = ap.role === "alternate" ? "alternate" : "primary";
+        const notes = [];
+        if (met) notes.push(ap.icao + " METAR " + z(met.observed) + " " + met.category); else notes.push(ap.icao + " METAR not available");
+        if (taf) notes.push("TAF " + z(taf.issued) + (taf.amended ? " AMD" : "") + " valid to " + day(Date.parse(taf.validEnd), tz).slice(0, 3) + " " + clock(Date.parse(taf.validEnd), tz)); else notes.push("no TAF (" + ap.icao + " may not issue one)");
+        let gap = !taf;
+        for (const [wk, w] of [["arrival", ap.arrive], ["departure", ap.depart]]) {
+          if (!w || !(w.endMs > now)) continue;
+          if (taf && Date.parse(taf.validEnd) < w.endMs) { gap = true; notes.push("the " + wk + " window runs past the TAF (ends " + clock(Date.parse(taf.validEnd), tz) + ")"); }
+          if (!taf) continue;
+          const hits = taf.periods.filter((pd) => Date.parse(pd.from) < w.endMs && Date.parse(pd.to) > w.startMs && pd.concerns.length);
+          if (!hits.length) continue;
+          const sev = (pd) => (pd.category === "LIFR" ? 3 : pd.category === "IFR" ? 2 : 1) + (pd.change === "TEMPO" || pd.prob ? 0 : 0.5);
+          const top = hits.reduce((a, b) => (sev(b) > sev(a) ? b : a));
+          const how = top.prob ? top.prob + "% chance of " : top.change === "TEMPO" ? "temporarily " : "";
+          const what = top.concerns.join(", ");
+          const detail = [top.ceiling != null ? "ceiling " + top.ceiling.toLocaleString("en-US") + " ft" : null, top.visibility != null && top.visibility < 6 ? "visibility " + top.visText + " mi" : null, top.wx].filter(Boolean).join(", ");
+          items.push({ id: taf.id + "|" + wk + "|" + role, productId: taf.id, family: "aviation", kind: "taf", rank: 0.7 + (3 - sev(top)) / 100, product: taf, phases: [], airport: ap.icao, role, windowKind: wk, period: top, periods: hits,
+            headline: ap.icao + " " + wk + " (" + fmtW(w) + "): " + how + what + " forecast",
+            line: (role === "alternate" ? "Alternate" : "Primary") + " airport " + (taf.airportName || ap.icao) + ". TAF issued " + z(taf.issued) + (taf.amended ? " (amended)" : "") + "; the " + (top.change === "BASE" ? "forecast" : top.change === "FM" ? "FM " + clock(Date.parse(top.from), tz) + " period" : top.change + " " + clock(Date.parse(top.from), tz) + "–" + clock(Date.parse(top.to), tz) + " period") + " (" + detail + ") overlaps your " + wk + " window. Terminal forecast for the airport, not the venue.",
+            relation: { kind: "airport" }, window: { startMs: Math.max(w.startMs, Date.parse(top.from)), endMs: Math.min(w.endMs, Date.parse(top.to)) } });
+        }
+        const lastWin = Math.max(ap.arrive ? ap.arrive.endMs : 0, ap.depart ? ap.depart.endMs : 0);
+        if (met && met.concerns.length && lastWin > now && now - Date.parse(met.observed) < 3 * 3600e3)
+          items.push({ id: met.id + "|" + role, productId: met.id, family: "aviation", kind: "metar", rank: 0.65, product: met, phases: [], airport: ap.icao, role,
+            headline: ap.icao + " now: " + met.concerns.join(", ") + " (observed " + clock(Date.parse(met.observed), tz) + ")",
+            line: (role === "alternate" ? "Alternate" : "Primary") + " airport " + (met.airportName || ap.icao) + " METAR " + z(met.observed) + ": " + met.raw + ". Current conditions, not a forecast for your flight window.",
+            relation: { kind: "airport" }, window: { startMs: Date.parse(met.observed) - 3600e3, endMs: Date.parse(met.observed) } });
+        avNotes.push({ icao: ap.icao, text: notes.join(" · "), ok: !gap && !!met });
+      }
+    }
+
     /* outlooks: one item per program, day and issuance, at the highest category containing the venue */
     const groups = new Map();
     for (const p of products) {
@@ -256,6 +298,7 @@
       else if (st.kind === "unavailable") text = "Not responding · status unknown. We can't rule anything out from this source.";
       else if (st.kind === "stale") text = ("Not confirmed since " + (st.lastOk ? clock(Date.parse(st.lastOk), tz) : "this page opened") + ".").replace(/\.\.$/, ".") + " Showing last known products only.";
       else { ok = true; text = "Checked " + clock(Date.parse(st.lastOk), tz) + (st.reach ? " · " + st.reach : ""); }
+      if (src.id === "awc") { if (!avNotes.length) continue; if (ok) { text += " · " + avNotes.map((x) => x.text).join(" | "); if (avNotes.some((x) => !x.ok)) ok = false; } }
       if (src.id === "wpc-wssi-p" && ok && (st.unavailable || []).length) text += " · " + st.unavailable.map((L) => F.WSSI_NAME[L] === "winter weather" ? "Winter weather" : F.WSSI_NAME[L]).join(", ") + " unavailable";
       if (src.id === "airnow-obs" && ok) { if (smokeNotes.noMonitor) { ok = false; text = "No AirNow monitor reading within 15 miles in the last 3 hours: surface air quality isn't reported for this venue."; } else if (smokeNotes["airnow-obs"]) text += " · " + smokeNotes["airnow-obs"]; }
       if (src.id === "airnow-fcst" && ok) { if (!smokeNotes.fcArea) { ok = false; text = "No AirNow forecast area for this venue."; } else { text += " · " + smokeNotes.fcArea + " reporting area"; st.reachEnd = smokeNotes.fcReach; } }

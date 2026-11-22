@@ -9,9 +9,21 @@
   "use strict";
   const O = window.Ops, C = O.Core, T = window.ThreatsCore, M = window.ThreatsMatch, Live = window.ThreatsLive, esc = O.esc, $ = O.$;
   const Q = new URLSearchParams(location.search);
-  const ARCHIVE = /^archive-(flood-(day|afternoon|outage|night)|winter-(advisory|warning|outlook)|fire-(day4|day2|day1|watch|warning|incidents)|smoke-(chicago|metlife|forecast-0714|forecast-0715)|tropical-(watch|warning)|coastal-flagler)$/.test(Q.get("threats") || "") ? Q.get("threats") : null;
+  const ARCHIVE = /^archive-(flood-(day|afternoon|outage|night)|winter-(advisory|warning|outlook)|fire-(day4|day2|day1|watch|warning|incidents)|smoke-(chicago|metlife|forecast-0714|forecast-0715)|tropical-(watch|warning)|coastal-flagler|aviation-chicago)$/.test(Q.get("threats") || "") ? Q.get("threats") : null;
   // live: every family in this slice; an archived sample only has its own hazard's products, so it is checked for that one
-  const FAMILIES = ARCHIVE ? [ARCHIVE.split("-")[1]] : ["flood", "winter", "fire", "smoke", "tropical", "coastal"];
+  const FAMILIES = ARCHIVE ? [ARCHIVE.split("-")[1]] : ["flood", "winter", "fire", "smoke", "tropical", "coastal", "aviation"];
+  /* Airports for the event (primary and optional alternate, each with its own arrival and departure window, in the event's
+     local time). Kept with Weather Threats, not in Event Manager's event record: per event in this browser, or in a link as
+     ?air=[{"i":"KORD","r":"p","a":["2026-11-22T10:45","2026-11-22T11:30"],"d":[...]}, …]. */
+  const AIR_KEY = "threats_airports_v1";
+  const evKey = (e) => (e.id && e.id !== "link" ? e.id : "link:" + (e.loc && e.loc.name) + "@" + (e.times && e.times.start));
+  function airportsRaw(e) {
+    if (Q.get("air")) { try { const a = JSON.parse(Q.get("air")); if (Array.isArray(a)) return a; } catch (x) { /* ignore */ } }
+    try { return (JSON.parse(localStorage.getItem(AIR_KEY) || "{}") || {})[evKey(e)] || []; } catch (x) { return []; }
+  }
+  function saveAirports(e, list) { try { const all = JSON.parse(localStorage.getItem(AIR_KEY) || "{}") || {}; all[evKey(e)] = list; localStorage.setItem(AIR_KEY, JSON.stringify(all)); } catch (x) { /* no storage */ } }
+  const win = (pair, tz) => { if (!pair || !pair[0] || !pair[1]) return null; const s = C.time.toUtc(pair[0], tz), en = C.time.toUtc(pair[1], tz); return Number.isFinite(s) && Number.isFinite(en) && en > s ? { startMs: s, endMs: en, local: pair } : null; };
+  const airportsOf = (e) => airportsRaw(e).filter((x) => x && /^[A-Za-z][A-Za-z0-9]{3}$/.test(x.i || "")).slice(0, 2).map((x) => ({ icao: x.i.toUpperCase(), role: x.r === "a" ? "alternate" : "primary", arrive: win(x.a, e.tz), depart: win(x.d, e.tz), raw: x }));
   const F = window.ThreatsFeeds, pct = (n) => (n >= 5 ? n + "%" : "under 5%");
   let ev = null, data = null, ready = false, open = new Set(), archived = null;
 
@@ -19,7 +31,8 @@
   const mapLink = (it) => {
     const p = it.product, u = new URL("threats.html", location.href), q = u.searchParams;
     q.set("lat", ev.loc.lat); q.set("lon", ev.loc.lon); q.set("name", ev.loc.name); q.set("tz", ev.tz); q.set("scope", "venue");
-    if (p.kind === "tcwind") { q.set("view", "active"); q.set("layers", "tropical"); }
+    if (it.family === "aviation") { q.set("view", "active"); q.set("layers", "aviation"); q.set("air", (airportsOf(ev).map((a) => a.icao)).join(",")); q.set("ap", it.airport); q.set("sel", p.id); }
+    else if (p.kind === "tcwind") { q.set("view", "active"); q.set("layers", "tropical"); }
     else if (it.family === "smoke") { q.set("view", "active"); q.set("layers", "smoke"); if (p.kind === "smoke" || p.kind === "aqobs") q.set("sel", p.id); }
     else if (p.kind === "incident") { q.set("view", "active"); q.set("layers", "fire"); q.set("sel", p.id); }
     else if (/^spcfire-/.test(p.program || "")) { q.set("view", "fire"); q.set("fday", p.day); q.set("layers", "fire"); q.set("sel", p.id); }
@@ -40,14 +53,32 @@
     if (data.loading || !ready) { box.innerHTML = '<p class="bx-note">Checking official flood, winter, fire weather, tropical and coastal alerts and outlooks, wildfire incidents, smoke and air quality…</p>'; return; }
     const state = Live.registryState(data, now);
     const pk = (+ev.loc.lat).toFixed(4) + "," + (+ev.loc.lon).toFixed(4), zones = ARCHIVE ? (data.points && data.points[pk]) || null : Live.pointZones ? Live.pointZones(+ev.loc.lat, +ev.loc.lon) : null;
-    const r = M.forEvent({ products: data.products, state, event: { lat: +ev.loc.lat, lon: +ev.loc.lon, name: ev.loc.name, tz: ev.tz, windows: C.event.windows(ev), zones }, now, families: FAMILIES });
+    const airports = airportsOf(ev);
+    const r = M.forEvent({ products: data.products, state, event: { lat: +ev.loc.lat, lon: +ev.loc.lon, name: ev.loc.name, tz: ev.tz, windows: C.event.windows(ev), zones, airports }, now, families: FAMILIES });
     const tz = ev.tz;
     const items = r.items.map((it) => {
       const p = it.product, id = esc(it.id), isOpen = open.has(it.id), src = state[p.sourceId] || {};
       const wsp = p.program === "wssip", started = p.kind !== "outlook" && Date.parse(p.issued) > now;
       const inc = p.kind === "incident", fo = /^spcfire-/.test(p.program || ""), acres = (v) => Math.round(v).toLocaleString("en-US") + " acres";
       const sm = it.family === "smoke", obsT = (iso) => esc(fmt(iso, tz));
-      const rows = p.kind === "tcwind" ? [
+      const zt = (iso) => { const d = new Date(iso); return String(d.getUTCHours()).padStart(2, "0") + String(d.getUTCMinutes()).padStart(2, "0") + "Z"; };
+      const rows = it.family === "aviation" && p.kind === "taf" ? [
+        ["Airport", esc(it.airport + " · " + (p.airportName || "") + " · " + it.role + " airport")],
+        ["Source", `${esc(p.office)} · <a href="${esc(p.source.url)}" target="_blank" rel="noopener">TAF</a>`],
+        ["Issued", esc(fmt(p.issued, tz) + " (" + zt(p.issued) + (p.amended ? ", amended" : "") + ")")],
+        ["Valid", esc(fmt(p.validStart, tz) + " → " + fmt(p.validEnd, tz))],
+        ["Your " + it.windowKind + " window", esc(airportsOf(ev).filter((a) => a.icao === it.airport).map((a) => a[it.windowKind === "arrival" ? "arrive" : "depart"]).filter(Boolean).map((w) => fmt(new Date(w.startMs).toISOString(), tz) + " → " + fmt(new Date(w.endMs).toISOString(), tz))[0] || "")],
+        ["Overlapping periods", it.periods.map((pd) => esc((pd.change === "BASE" ? "Base" : pd.change) + (pd.prob ? " " + pd.prob + "%" : "") + " " + fmt(pd.from, tz) + " → " + fmt(pd.to, tz) + ": " + (pd.category || "") + (pd.ceiling != null ? ", ceiling " + pd.ceiling + " ft" : "") + (pd.visText ? ", visibility " + pd.visText + " mi" : "") + (pd.wind ? ", wind " + pd.wind + (pd.gust ? "G" + pd.gust : "") + " kt" : "") + (pd.wx ? ", " + pd.wx : ""))).join("<br>")],
+        ["Flight category", "From the TAF's ceiling and visibility, FAA definitions (IFR: ceiling 500 to under 1,000 ft or visibility 1 to under 3 mi)"],
+        ["Raw TAF", `<span class="mono">${esc(p.raw)}</span>`],
+        ["Last checked", src.lastOk ? esc(fmt(src.lastOk, tz)) : "not yet"],
+      ] : it.family === "aviation" && p.kind === "metar" ? [
+        ["Airport", esc(it.airport + " · " + (p.airportName || "") + " · " + it.role + " airport")],
+        ["Observed", esc(fmt(p.observed, tz) + " (" + zt(p.observed) + ")")],
+        ["Conditions", esc(p.category + (p.ceiling != null ? " · ceiling " + p.ceiling + " ft" : "") + (p.visText ? " · visibility " + p.visText + " mi" : "") + (p.wind != null ? " · wind " + p.wind + (p.gust ? "G" + p.gust : "") + " kt" : "") + (p.wx ? " · " + p.wx : ""))],
+        ["Raw METAR", `<span class="mono">${esc(p.raw)}</span>`],
+        ["Source", `${esc(p.office)} · <a href="${esc(p.source.url)}" target="_blank" rel="noopener">METAR</a>`],
+      ] : p.kind === "tcwind" ? [
         ["Source", `${esc(p.office)} · <a href="${esc(p.source.url)}" target="_blank" rel="noopener">wind speed probabilities</a>`],
         ["Advisory", p.issued ? esc(fmt(p.issued, tz)) : "not stated"],
         ["Chances at the venue", it.levels.map(([kt, v]) => esc((kt === 34 ? "39+ mph (34 kt)" : kt === 50 ? "58+ mph (50 kt)" : "74+ mph (64 kt)") + " " + v)).join(" · ")],
@@ -130,17 +161,32 @@
     const statuses = r.statuses.map((s) => `<li class="${s.ok ? "" : "et-warn"}"><b>${esc(s.name)}</b> · ${esc(s.text)}</li>`).join("");
     const label = ARCHIVE ? `<p class="et-sample"><span class="bx-label">Archived sample</span> ${esc(data.archive ? data.archive.label : "")}. Real official products replayed at that time; not live.</p>` : "";
     const notes = (r.notes || []).map((n) => `<p class="et-note" data-note="${esc(n.id)}">${esc(n.text)}</p>`).join("");
+    const ap = airportsRaw(ev), slot = (k, r) => { const x = ap.find((y) => y.r === r) || {}; return `<fieldset class="et-airfs"><legend>${r === "p" ? "Primary airport" : "Alternate airport (optional)"}</legend>
+        <label>ICAO <input name="${k}i" value="${esc(x.i || "")}" maxlength="4" placeholder="${r === "p" ? "KORD" : ""}" class="input"></label>
+        <label>Arrive from <input type="datetime-local" name="${k}a0" value="${esc((x.a || [])[0] || "")}" class="input"></label><label>to <input type="datetime-local" name="${k}a1" value="${esc((x.a || [])[1] || "")}" class="input"></label>
+        <label>Depart from <input type="datetime-local" name="${k}d0" value="${esc((x.d || [])[0] || "")}" class="input"></label><label>to <input type="datetime-local" name="${k}d1" value="${esc((x.d || [])[1] || "")}" class="input"></label></fieldset>`; };
+    const airForm = `<details class="bx-more et-air"${ap.length ? "" : ""}><summary>Airports for this event${ap.length ? ": " + esc(ap.map((x) => x.i.toUpperCase()).join(", ")) : " (optional)"}</summary><form class="et-airform">${slot("p", "p")}${slot("a", "a")}<button type="submit" class="btn">Save airports</button><p class="bx-note">Times in ${esc(tz)}. Checked against each airport's own METAR and TAF from the NOAA Aviation Weather Center.</p></form></details>`;
     box.innerHTML = `${label}${notes}<p class="et-summary${r.items.length ? " has" : r.confirmed ? "" : " warn"}" data-confirmed="${r.confirmed}">${esc(r.summary)}</p>
       ${items ? `<ul class="et-list">${items}</ul>` : ""}
       <details class="bx-more et-sources"><summary>Sources checked for this event</summary><ul>${statuses}</ul>
       <p class="bx-note">Matched to the venue pin and the event's own schedule (${esc(tz)}). Official warnings and outlooks only; daily outlooks flag a period and do not time anything within it. Delivery by email, text or push is not part of this preview.</p></details>`;
+    // the airports form lives beside the list and is drawn only when the event changes (typing is never interrupted)
+    let air = document.getElementById("threatsAir"); if (!air) { air = document.createElement("div"); air.id = "threatsAir"; box.after(air); }
+    if (air.dataset.key !== evKey(ev) + "|" + JSON.stringify(ap)) { air.dataset.key = evKey(ev) + "|" + JSON.stringify(ap); air.innerHTML = airForm; }
     box.dataset.items = String(r.items.length); box.dataset.confirmed = String(r.confirmed);
     window.EventThreatsLast = r; // read by the preview checks
   }
   function wssiCheck() { if (!ARCHIVE && ready && ev && ev.loc && Number.isFinite(+ev.loc.lat)) Live.wssiFor(+ev.loc.lat, +ev.loc.lon); }
   function aqCheck() { if (!ARCHIVE && ready && ev && ev.loc && Number.isFinite(+ev.loc.lat) && Live.aqFor) Live.aqFor(+ev.loc.lat, +ev.loc.lon); }
   function tcCheck() { if (!ARCHIVE && ready && ev && ev.loc && Number.isFinite(+ev.loc.lat) && Live.tropicalFor) Live.tropicalFor(+ev.loc.lat, +ev.loc.lon); }
-  function update(next) { ev = next; wssiCheck(); aqCheck(); tcCheck(); render(); }
+  function avCheck() { if (!ARCHIVE && ready && ev && Live.airportsFor) { const ids = airportsOf(ev).map((a) => a.icao); if (ids.length) Live.airportsFor(ids); } }
+  function update(next) { ev = next; wssiCheck(); aqCheck(); tcCheck(); avCheck(); render(); }
+  document.addEventListener("submit", (e) => {
+    const f = e.target.closest(".et-airform"); if (!f || !ev) return; e.preventDefault();
+    const v = (n) => (f.elements[n] && f.elements[n].value || "").trim(), list = [];
+    for (const [k, r] of [["p", "p"], ["a", "a"]]) if (v(k + "i")) list.push({ i: v(k + "i").toUpperCase(), r, a: v(k + "a0") && v(k + "a1") ? [v(k + "a0"), v(k + "a1")] : null, d: v(k + "d0") && v(k + "d1") ? [v(k + "d0"), v(k + "d1")] : null });
+    saveAirports(ev, list); avCheck(); render();
+  });
   document.addEventListener("click", (e) => {
     const b = e.target.closest(".et-more"); if (!b) return;
     const id = b.dataset.id; if (open.has(id)) open.delete(id); else open.add(id); render();
@@ -148,7 +194,7 @@
 
   async function start() {
     if (ARCHIVE) { try { archived = await Live.archiveSnapshot(ARCHIVE); } catch (e) { archived = { products: [], sources: {}, clock: new Date().toISOString(), loadError: e.message }; } ready = true; render(); return; }
-    await Live.start({ only: ["alerts", "ero", "fire", "nifc", "hms", "nhc"] }); ready = true; wssiCheck(); aqCheck(); render();
+    await Live.start({ only: ["alerts", "ero", "fire", "nifc", "hms", "nhc"] }); ready = true; wssiCheck(); aqCheck(); avCheck(); render();
     Live.onUpdate(() => { tcCheck(); render(); }); // tcCheck: once NHC has answered, the venue's wind probabilities (cached)
     setInterval(() => { if (!document.hidden) render(); }, 30e3);
   }

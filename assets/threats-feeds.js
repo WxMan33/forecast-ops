@@ -663,6 +663,59 @@
     return out;
   }
 
+  /* ---------- aviation: NOAA Aviation Weather Center (aviationweather.gov Data API) ----------
+     METAR: the airport's latest routine/special observation (report time, wind, visibility, ceiling, weather, AWC's flight
+     category). TAF: the terminal forecast for 5 statute miles around the airport, normally 24 or 30 hours, issued at
+     00/06/12/18Z and amended as needed; base period and FM/BECMG/TEMPO/PROB change groups, each with its own times.
+     Flight category from ceiling (lowest BKN/OVC layer or vertical visibility) and visibility, FAA definitions:
+       LIFR ceiling < 500 ft or visibility < 1 mi; IFR 500 to < 1,000 ft or 1 to < 3 mi; MVFR 1,000-3,000 ft or 3-5 mi; VFR above. */
+  const AWC = "https://aviationweather.gov/api/data/";
+  const AWC_URL = (kind, ids) => AWC + kind + "?ids=" + ids.join(",") + "&format=json";
+  const FLT_ORDER = ["VFR", "MVFR", "IFR", "LIFR"];
+  const visNum = (v) => (v == null || v === "" ? null : typeof v === "number" ? v : /\+$/.test(String(v)) ? parseFloat(v) + 0.01 : parseFloat(String(v).replace(/[^\d.\/ ]/g, "")));
+  function ceilingOf(clouds, vertVis) {
+    const layers = (clouds || []).filter((c) => /^(BKN|OVC|OVX)$/.test(c.cover) && c.base != null).map((c) => +c.base);
+    if (vertVis != null && vertVis !== "") layers.push(+vertVis);
+    return layers.length ? Math.min(...layers) : null;
+  }
+  function fltCat(ceil, vis) {
+    const c = ceil == null ? Infinity : ceil, v = vis == null ? Infinity : vis;
+    if (c < 500 || v < 1) return "LIFR"; if (c < 1000 || v < 3) return "IFR"; if (c <= 3000 || v <= 5) return "MVFR"; return "VFR";
+  }
+  const CONCERN_WX = /(^|\s|[-+])(TS|FZ|SN|PL|GR|FC|SS|DS|\+RA|\+SHRA)/;
+  function concernOf(cat, gust, wind, wx) {
+    const out = [];
+    if (cat === "IFR" || cat === "LIFR") out.push(cat);
+    if (gust >= 30 || wind >= 25) out.push("wind " + (wind || "") + (gust ? "G" + gust : "") + " kt");
+    if (wx && CONCERN_WX.test(" " + wx)) out.push(wx);
+    return out;
+  }
+  function parseMETAR(list) {
+    if (!Array.isArray(list)) throw Error("unrecognized METAR answer");
+    return list.map((m) => {
+      const ceil = ceilingOf(m.clouds, m.vertVis), vis = visNum(m.visib), cat = FLT_ORDER.includes(m.fltCat) ? m.fltCat : fltCat(ceil, vis);
+      const observed = m.obsTime ? new Date(m.obsTime * 1000).toISOString() : m.reportTime ? new Date(m.reportTime).toISOString() : null;
+      return { id: "metar-" + m.icaoId + "-" + observed, kind: "metar", family: "aviation", sourceId: "awc", airport: m.icaoId, airportName: m.name || m.icaoId, observed, issued: observed,
+        category: cat, ceiling: ceil, visibility: vis, visText: m.visib, wind: m.wspd, gust: m.wgst || null, wdir: m.wdir, wx: m.wxString || null, raw: m.rawOb, point: [m.lon, m.lat], geometry: null,
+        concerns: concernOf(cat, m.wgst || 0, m.wspd || 0, m.wxString), office: "NOAA Aviation Weather Center", event: "METAR", title: m.icaoId + " observation",
+        source: { name: "Aviation Weather Center METAR", url: "https://aviationweather.gov/data/metar/?ids=" + m.icaoId } };
+    });
+  }
+  function parseTAF(list) {
+    if (!Array.isArray(list)) throw Error("unrecognized TAF answer");
+    return list.map((t) => {
+      const periods = (t.fcsts || []).map((f) => {
+        const ceil = ceilingOf(f.clouds, f.vertVis), vis = visNum(f.visib), cat = ceil == null && vis == null ? null : fltCat(ceil, vis);
+        return { from: new Date(f.timeFrom * 1000).toISOString(), to: new Date(f.timeTo * 1000).toISOString(), change: f.fcstChange || "BASE", prob: f.probability || null,
+          category: cat, ceiling: ceil, visibility: vis, visText: f.visib, wind: f.wspd, gust: f.wgst || null, wdir: f.wdir, wx: f.wxString || null, concerns: concernOf(cat, f.wgst || 0, f.wspd || 0, f.wxString) };
+      });
+      const issued = t.issueTime ? new Date(t.issueTime).toISOString() : null;
+      return { id: "taf-" + t.icaoId + "-" + issued, kind: "taf", family: "aviation", sourceId: "awc", airport: t.icaoId, airportName: t.name || t.icaoId, issued, amended: /AMD/.test(t.remarks || t.rawTAF || ""),
+        validStart: new Date(t.validTimeFrom * 1000).toISOString(), validEnd: new Date(t.validTimeTo * 1000).toISOString(), periods, raw: t.rawTAF, point: [t.lon, t.lat], geometry: null,
+        office: "NOAA Aviation Weather Center", event: "TAF", title: t.icaoId + " terminal forecast", source: { name: "Aviation Weather Center TAF", url: "https://aviationweather.gov/data/taf/?ids=" + t.icaoId } };
+    });
+  }
+
   /* ---------- source registry: who issues what, for which area ----------
      Coverage is explicit so a venue outside a provider's area reads "not covered by this source", never "nothing".
      New regions and providers are new entries here; Event Planner reads products and source states only. */
@@ -674,6 +727,7 @@
     { id: "airnow-obs", name: "AirNow air quality observations", provider: "EPA AirNow and state/local agencies", region: "United States", boxes: BOX.us, hazards: ["smoke"], url: "https://www.airnow.gov/" },
     { id: "airnow-fcst", name: "AirNow air quality forecasts", provider: "State and local air agencies via AirNow", region: "United States", boxes: BOX.us, hazards: ["smoke"], url: "https://www.airnow.gov/" },
     NAQFC_ENABLED && { id: "noaa-naqfc-smoke", name: "NOAA smoke forecast guidance (NAQFC)", provider: "NOAA National Weather Service", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["smoke"], url: "https://airquality.weather.gov/" },
+    { id: "awc", name: "Aviation Weather Center (METAR and TAF)", provider: "NOAA Aviation Weather Center", region: "Airports with METAR/TAF", boxes: [[-180, -90, 180, 90]], hazards: ["aviation"], url: "https://aviationweather.gov/" },
     { id: "nhc", name: "NHC tropical outlooks and storm products", provider: "NOAA National Hurricane Center", region: "Atlantic and Pacific basins", boxes: [[-180, 0, -10, 60]], hazards: ["tropical"], url: "https://www.nhc.noaa.gov/" },
     { id: "nifc-wfigs", name: "NIFC wildfire incidents (WFIGS)", provider: "National Interagency Fire Center", region: "United States", boxes: BOX.us, hazards: ["fire"], url: "https://data-nifc.opendata.arcgis.com/" },
     { id: "spc-md", name: "SPC Mesoscale Discussions", provider: "NOAA Storm Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["severe"], url: "https://www.spc.noaa.gov/products/md/" },
@@ -776,7 +830,7 @@
 
   return { EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
     parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries, dissolve, zoneShape,
-    HAZARD, WINTER_EVENTS, FIRE_EVENTS, TROPICAL_EVENTS, COASTAL_EVENTS, EVENT_NAME, tcvToAlerts, pointZones, NAQFC_ENABLED, NHC_URL, NHC_WSP_AT, parseNHC, parseNHCWsp, TCWW, FIRE_CATS, DRYT_CATS, FIRE38_CATS, FIRE_NAME, FIRE_MEANING, SPC_FIRE_URL, parseFireOutlook, createFireStore,
+    HAZARD, WINTER_EVENTS, FIRE_EVENTS, TROPICAL_EVENTS, COASTAL_EVENTS, EVENT_NAME, tcvToAlerts, pointZones, NAQFC_ENABLED, AWC_URL, FLT_ORDER, fltCat, parseMETAR, parseTAF, NHC_URL, NHC_WSP_AT, parseNHC, parseNHCWsp, TCWW, FIRE_CATS, DRYT_CATS, FIRE38_CATS, FIRE_NAME, FIRE_MEANING, SPC_FIRE_URL, parseFireOutlook, createFireStore,
     NIFC_INC_URL, NIFC_PER_URL, INCIDENT_TYPE, parseNIFC, zTime,
     HMS_DENSITY, HMS_URL, parseHMS, AQI_CATS, AQI_CAT_ORDER, aqiCat, AIRNOW_MON_URL, AIRNOW_MON_ALL_URL, parseAirNowMonitors, parseReportingArea, aqForecastProducts, AIRNOW_AREA_AT, NAQFC_SMOKE_AT, parseNAQFC, WSSI_LEVELS, WSSI_NAME, WSSI_MEANING, WSSIP_URL, parseWSSIP, combineWSSI, ERO_CATS, ERO_NAME, ERO_PCT, WPC_ERO_URL, MAPSVC_ERO_URL, parseERO, createEROStore, SOURCES, covers };
 });

@@ -453,3 +453,40 @@ console.log(n + " passed (with winter, fire and smoke)");
   });
 }
 console.log(n + " passed (with winter, fire, smoke, tropical and coastal)");
+
+/* ---------------- AVIATION (official, captured live 2026-11-22 16:3xZ): NOAA Aviation Weather Center METARs and TAFs
+   for KORD, KMDW and KMKE ---------------- */
+{
+  const met = F.parseMETAR(JSON.parse(fs.readFileSync(FX("awc-metar-kord-kmke-kmdw-20261122.json"), "utf8"))), taf = F.parseTAF(JSON.parse(fs.readFileSync(FX("awc-taf-kord-kmke-kmdw-20261122.json"), "utf8")));
+  const AV = [...met, ...taf], CLK = Date.parse("2026-11-22T16:35:00Z"), UC = [41.8807, -87.6742];
+  const evA = (times, airports) => { const ev = { id: "a", name: "United Center", loc: { name: "United Center", lat: UC[0], lon: UC[1] }, tz: "America/Chicago", times }; assert.deepStrictEqual(C.event.validate(ev), []); return { name: ev.name, lat: UC[0], lon: UC[1], tz: ev.tz, windows: C.event.windows(ev), airports }; };
+  const W = (a, b) => ({ startMs: Date.parse(a), endMs: Date.parse(b) });
+  const SUN = { start: "2026-11-22T12:00", end: "2026-11-22T15:00" };
+  const airports = [{ icao: "KORD", role: "primary", arrive: W("2026-11-22T16:45:00Z", "2026-11-22T17:30:00Z"), depart: W("2026-11-23T16:00:00Z", "2026-11-23T17:00:00Z") }, { icao: "KMDW", role: "alternate", arrive: W("2026-11-22T16:45:00Z", "2026-11-22T17:30:00Z"), depart: null }];
+  const runA = (ev, fams = ["aviation"]) => M.forEvent({ products: AV, state: { awc: OK(CLK), "nws-alerts": OK(CLK) }, event: ev, now: CLK, families: fams });
+  ok("AVIATION: the venue has no official hazard, but the primary arrival airport (O'Hare) has IFR in its TAF during the arrival window, and IFR now; the alternate (Midway) is named separately", () => {
+    const ev = evA(SUN, airports);
+    assert.strictEqual(M.forEvent({ products: AV, state: { "nws-alerts": OK(CLK) }, event: ev, now: CLK, families: ["severe", "flood", "winter"] }).items.length, 0, "venue looks fine");
+    const r = runA(ev), h = r.items.map((i) => i.headline);
+    assert.ok(h.includes("KORD arrival (Sun 10:45 a.m.–11:30 a.m.): temporarily IFR forecast"), JSON.stringify(h));
+    assert.ok(h.includes("KORD now: IFR (observed 10:31 a.m.)"), JSON.stringify(h));
+    assert.ok(h.includes("KMDW arrival (Sun 10:45 a.m.–11:30 a.m.): temporarily IFR forecast"), JSON.stringify(h));
+    const ord = r.items.find((i) => i.headline.startsWith("KORD arrival"));
+    assert.match(ord.line, /^Primary airport Chicago\/O'Hare Intl\. TAF issued 1627Z \(amended\); the TEMPO 10 a\.m\.–11 a\.m\. period \(ceiling 700 ft, visibility 5 mi, -RA -DZ BR\) overlaps your arrival window\. Terminal forecast for the airport, not the venue\.$/);
+    assert.match(r.items.find((i) => i.airport === "KMDW").line, /^Alternate airport/);
+    assert.match(r.statuses.find((x) => x.id === "awc").text, /KORD METAR 1631Z IFR · TAF 1627Z AMD valid to Mon 12 p\.m\./);
+  });
+  ok("AVIATION: the Monday departure window falls in O'Hare's VFR period (no item); moving the arrival to the afternoon drops the IFR item; a window past the TAF says so", () => {
+    const r = runA(evA(SUN, airports)); assert.ok(!r.items.some((i) => /departure/.test(i.headline)));
+    const later = [{ icao: "KORD", role: "primary", arrive: W("2026-11-22T20:00:00Z", "2026-11-22T21:00:00Z"), depart: null }];
+    assert.ok(!runA(evA(SUN, later)).items.some((i) => i.kind === "taf"));
+    const past = [{ icao: "KORD", role: "primary", arrive: null, depart: W("2026-11-23T20:00:00Z", "2026-11-23T21:00:00Z") }];
+    const rp = runA(evA({ start: "2026-11-23T12:00", end: "2026-11-23T13:00" }, past)); const st = rp.statuses.find((x) => x.id === "awc");
+    assert.ok(!st.ok && /the departure window runs past the TAF \(ends 12 p\.m\.\)/.test(st.text), st.text);
+  });
+  ok("AVIATION: no airports set means no aviation source line; flight category follows the FAA definitions", () => {
+    assert.ok(!runA(evA(SUN, [])).statuses.some((x) => x.id === "awc"));
+    assert.deepStrictEqual([F.fltCat(400, 10), F.fltCat(900, 10), F.fltCat(2000, 10), F.fltCat(null, 2), F.fltCat(5000, 10)], ["LIFR", "IFR", "MVFR", "IFR", "VFR"]);
+  });
+}
+console.log(n + " passed (with aviation)");
