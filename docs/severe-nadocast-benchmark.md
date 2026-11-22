@@ -197,3 +197,80 @@ The full rules and date lists are in `research/severe/nadocast/day2-wind-rules.j
 - hits at NadoCast's false-alarm area.
 
 **Maps:** chosen by the rules in the JSON file.
+
+## Day 2 wind result (score run 45046549803; pilot 45045882278)
+All locked checks passed.
+- Footprints: 38,838 CONUS points and 14,940 box points, all kept. The nearest NadoCast point is
+  at most 10.6 km away (median 6.0 km).
+- All models produced finite probabilities. No label points were unknown.
+
+**Exclusions** (all listed in the scorecard):
+- 28 issue dates: NadoCast's file was written after the 18Z cutoff on the issue date, mostly
+  overnight or the next day, so those runs are not treated as real time.
+- 2 dates whose window reaches 2025.
+- 13 dates with no NadoCast wind file.
+
+**Scored:** 287 issue dates (213 fresh primary, 74 previously inspected and kept separate).
+
+### Primary: 213 fresh days, regional box (all five models; observed rate 2.13%)
+| Model | Brier | BSS | AUC | Minus NadoCast [95% paired] | Minus live v0.7 [95% paired] |
+|---|---|---|---|---|---|
+| Live v0.7 | 0.01911 | 0.082 | 0.925 | +0.00318 [0.00223, 0.00425] | — |
+| CONUS v0.7 refit | 0.01898 | 0.088 | 0.927 | +0.00305 [0.00208, 0.00418] | -0.00013 [-0.00028, 0.00002] |
+| Logistic | 0.01833 | 0.119 | 0.933 | +0.00241 [0.00160, 0.00335] | **-0.00077 [-0.00113, -0.00045]** |
+| Boosted trees | 0.01820 | 0.126 | 0.934 | +0.00227 [0.00146, 0.00323] | **-0.00091 [-0.00141, -0.00047]** |
+| **NadoCast** | **0.01593** | **0.235** | **0.963** | — | **-0.00318** |
+
+Hits, out of 67,689 report points:
+
+| Model | 5%: hits / misses / FA km²/day | 15%: hits / misses / FA km²/day | Hits at NadoCast's 5% / 15% FA area |
+|---|---|---|---|
+| Live v0.7 | 47,974 / 19,715 / 298,000 | 24,671 / 43,018 / 82,000 | 45,666 / 29,333 |
+| CONUS refit | 43,299 / 24,390 / 241,000 | 22,037 / 45,652 / 67,000 | 45,237 / 29,442 |
+| Logistic | 49,524 / 18,165 / 293,000 | 26,702 / 40,987 / 86,000 | 47,418 / 30,502 |
+| Boosted trees | 53,601 / 14,088 / 343,000 | 28,258 / 39,431 / 99,000 | 48,310 / 30,329 |
+| **NadoCast** | **59,229 / 8,460** / 266,000 | **44,079 / 23,610** / 110,000 | **59,229 / 44,079** |
+
+### Primary: CONUS footprint (four national models; observed rate 1.18%)
+| Model | Brier | BSS | Minus NadoCast | 5% POD | 15% POD | Hits at NadoCast's 5% / 15% FA area |
+|---|---|---|---|---|---|---|
+| CONUS refit | 0.01095 | 0.063 | +0.00166 [0.00122, 0.00214] | 0.59 | 0.28 | 56,761 / 34,205 |
+| Logistic | 0.01062 | 0.091 | +0.00133 [0.00096, 0.00174] | 0.67 | 0.34 | 59,750 / 35,460 |
+| Boosted trees | 0.01051 | 0.101 | +0.00121 [0.00087, 0.00163] | 0.71 | 0.35 | 60,803 / 35,171 |
+| **NadoCast** | **0.00929** | **0.204** | — | **0.81** | **0.56** | **78,891 / 54,901** |
+
+### Regional breakouts (primary, CONUS models)
+- **West** (11,249 report points, 83 report days): NadoCast is better than every model, and every
+  interval excludes zero.
+  - NadoCast POD is 0.43 at 5% and 0.16 at 15%; ours is 0.23-0.32 and 0.05-0.07.
+  - At NadoCast's 5% FA area, NadoCast hits 4,791 points; ours hit at most 3,258.
+- **Florida/Gulf** (906 report points, 33 report days): every model is worse than the base rate.
+  - BSS: NadoCast -0.06; boosted trees -0.09; logistic and refit -0.20.
+  - None of the Brier differences is clear (all intervals include 0).
+  - Ours over-forecasts badly. Our 5-10% forecasts verify at 1.4-2.4%, and our 5% FA area is
+    14,000-31,000 km²/day against NadoCast's 5,600.
+  - At NadoCast's FA area, ours catch 286-323 hits against NadoCast's 446.
+- **Plains outside the box:** NadoCast is clearly better. The CONUS refit and logistic have negative
+  skill there.
+- **Northeast:** NadoCast is better, but not clearly (the intervals include 0).
+
+### Reliability (primary, box)
+- NadoCast follows the diagonal up to 45%+: forecasts of 58% verify at 53%.
+- All of ours over-forecast above 30%: forecasts of 52-64% verify at 33-38%.
+- Live v0.7 and the refit under-forecast at 2-10%.
+
+### Reported only
+- **Exploratory 74 days:** the same ranking in every footprint.
+- **NadoCast SPC-calibrated:** slightly worse than its absolutely calibrated field.
+- **`wind_adj`:** worse on our raw Storm Data labels, as expected for a different target.
+
+### Maps (chosen by the locked rules)
+- **Active day: issued 2024-05-25, valid 2024-05-26** (Ohio Valley to Mid-Atlantic, 3,455 report
+  points).
+  - NadoCast hit 3,048 at 15%.
+  - Our models hit 1,585-2,164 at 15%, with high values scattered over a wider area.
+- **False-alarm rule day: issued 2024-07-14, valid 2024-07-15** (2,995 report points).
+  - The symmetric "largest no-report area at 5%" rule picked a broad active day, not a quiet one, so
+    this map shows false-alarm footprint on a busy day.
+  - The boosted trees spread the most area (2.06 million km² with no report).
+  - NadoCast hit 2,200 at 15%; ours hit 1,218-1,605.
