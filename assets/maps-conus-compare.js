@@ -13,14 +13,15 @@
   const getJSON = async (u) => { const r = await fetch(u + (u.includes("?") ? "&" : "?") + "t=" + Math.floor(Date.now() / 60000)); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); };
   const st = { values: (() => { try { return Q.get("values") === "0" ? false : localStorage.getItem("conus_values") !== "0"; } catch (e) { return Q.get("values") !== "0"; } })(), index: null, man: {}, run: { A: null, B: null }, field: Q.get("field") || "asnow_run", valid: null, times: [], view: null, active: "A", frames: {}, play: null };
 
-  const FIELDS = () => window.MapsConus.FIELDS;
+  const FIELDS = () => window.MapsConus.FIELDS, MOD = () => window.MapsConus.MODEL;
+  const withModel = (q) => { if (MOD().key !== "hrrr") q.set("model", MOD().key); return q; };
   const panel = (k) => st.frames[k] && st.frames[k].contentWindow && st.frames[k].contentWindow.MapsConus && st.frames[k].contentWindow.MapsConus.api;
   const fhAt = (k, ms) => { const m = st.man[k]; if (!m) return null; const h = m.hours.find((x) => Date.parse(m.valid[x]) === ms); return h == null ? null : h; };
   const runLabel = (r, i) => `${fmtUTC(Date.parse(r.cycle))}${r.status === "in progress" ? " · in progress" : ""}${i === 0 ? " · newest" : ""}`;
 
   function layout() {
     const main = document.querySelector(".main");
-    main.innerHTML = `<section class="cmp" aria-label="HRRR cycle comparison">
+    main.innerHTML = `<section class="cmp" aria-label="${esc(MOD().name)} cycle comparison">
       <div class="cmp-ctl">
         <label><span>Field</span><select class="input inline" id="cmpField"></select></label>
         <label><span><b class="panel">A</b> run</span><select class="input inline" id="cmpA"></select></label>
@@ -42,14 +43,14 @@
         <div class="cmp-p" data-p="A" data-active="1"><iframe id="frA" title="Run A"></iframe></div>
         <div class="cmp-p" data-p="B"><iframe id="frB" title="Run B"></iframe></div>
       </div>
-      <p class="cmp-credit">Data: NOAA/NCEP HRRR (NOAA Open Data Dissemination) · Forecast Ops output · Model guidance, not an official forecast · Not endorsed by NOAA · Basemap: U.S. Census Bureau via us-atlas, Natural Earth</p>
+      <p class="cmp-credit">Data: ${esc(MOD().source)} · Forecast Ops output · Model guidance, not an official forecast · Not endorsed by NOAA · Basemap: U.S. Census Bureau via us-atlas, Natural Earth</p>
       <p class="msg cmp-help">Both panels are the full-precision single-run viewer: pan, zoom or tap a point in either and the other follows. Each panel states its own run, forecast hour and accumulation window.</p>
     </section>`;
     st.frames = { A: $("frA"), B: $("frB") };
   }
   function frameSrc(k) {
     const q = new URLSearchParams({ domain: "conus", embed: "1", panel: k, run: st.run[k].id, field: st.field, ...(st.values ? {} : { values: "0" }) });
-    if (Q.get("data")) q.set("data", Q.get("data"));
+    withModel(q); if (Q.get("data")) q.set("data", Q.get("data"));
     if (st.view) q.set("map", `${st.view[1].toFixed(4)},${st.view[0].toFixed(4)},${st.view[2].toFixed(2)}`);
     if (st.valid != null) q.set("valid", new Date(st.valid).toISOString());
     return `maps.html?${q.toString()}`;
@@ -85,7 +86,7 @@
       if (F.window === "run") lines.push(h.A === h.B ? `Both run totals cover ${h.A} h.` :
         `<b>Not like for like:</b> A totals ${h.A} h (${esc(fmtLocal(init("A")))} to ${esc(fmtLocal(v))}, ${f2(0)}–${f2(h.A)}); B totals ${h.B} h (${esc(fmtLocal(init("B")))} to ${esc(fmtLocal(v))}, ${f2(0)}–${f2(h.B)}). ` +
           `The ${h.B > h.A ? "B" : "A"} total includes ${Math.abs(h.B - h.A)} more hour${Math.abs(h.B - h.A) === 1 ? "" : "s"}; compare the 1-h field for the same hour, or allow for the extra time.`);
-      else if (F.window === 1) lines.push(`Like for like: both panels show the hour ending ${esc(fmtLocal(v))} (A ${f2(h.A)}, B ${f2(h.B)}).`);
+      else if (typeof F.window === "number") lines.push(`Like for like: both panels show the ${F.window === 1 ? "hour" : `${F.window} h`} ending ${esc(fmtLocal(v))} (A ${f2(h.A)}, B ${f2(h.B)}).`);
       else lines.push(`Same valid time: ${esc(fmtLocal(v))} (A ${f2(h.A)}, B ${f2(h.B)}).`);
     }
     $("cmpNote").innerHTML = lines.join(" "); $("cmpNote").dataset.likeForLike = String(!(F.window === "run" && h.A != null && h.B != null && h.A !== h.B));
@@ -95,9 +96,9 @@
   }
   function share() {
     const q = new URLSearchParams({ domain: "conus", compare: "1", a: st.run.A.id, ...(st.run.B ? { b: st.run.B.id } : {}), field: st.field, valid: new Date(st.valid).toISOString() });
-    if (Q.get("data")) q.set("data", Q.get("data")); if (st.view) q.set("map", `${st.view[1].toFixed(3)},${st.view[0].toFixed(3)},${st.view[2].toFixed(2)}`); if (!st.values) q.set("values", "0");
+    withModel(q); if (Q.get("data")) q.set("data", Q.get("data")); if (st.view) q.set("map", `${st.view[1].toFixed(3)},${st.view[0].toFixed(3)},${st.view[2].toFixed(2)}`); if (!st.values) q.set("values", "0");
     try { history.replaceState(null, "", `${location.pathname}?${q.toString()}`); } catch (e) { /* file:// */ }
-    const s = new URLSearchParams({ domain: "conus", run: st.run.A.id, field: st.field }); if (Q.get("data")) s.set("data", Q.get("data"));
+    const s = withModel(new URLSearchParams({ domain: "conus", run: st.run.A.id, field: st.field })); if (Q.get("data")) s.set("data", Q.get("data"));
     const hA = fhAt("A", st.valid); if (hA != null) s.set("fh", String(hA)); if (st.view) s.set("map", q.get("map"));
     $("cmpSingle").href = `maps.html?${s.toString()}`;
   }
@@ -119,18 +120,18 @@
     window.__cmp = { st, panel };
   }
   async function start() {
-    O.shell("maps", "Model maps", { forecastPoint: false, subtitle: "Beta · HRRR 3 km · cycle comparison" });
+    O.shell("maps", "Model maps", { forecastPoint: false, subtitle: `Beta · ${MOD().label} · cycle comparison` });
     document.body.classList.add("maps-conus", "conus-compare"); layout();
     const bar = document.querySelector("header.statusbar"); if (bar) document.documentElement.style.setProperty("--statusbar-h", `${Math.ceil(bar.getBoundingClientRect().height)}px`);
     /* what the index actually says: no runs, one run, or a pair; and why a run is missing, when the build recorded it */
     let idx;
-    try { idx = await getJSON(`${DATA}/conus/index.json`); }
-    catch (e) { return unavailable(`The HRRR run list could not be loaded (${e.message}), so there is nothing to show. Try again in a few minutes.`); }
+    try { idx = await getJSON(`${DATA}/${MOD().index}`); }
+    catch (e) { return unavailable(`The ${MOD().name} run list could not be loaded (${e.message}), so there is nothing to show. Try again in a few minutes.`); }
     const runs = (idx.runs || []).slice().sort((a, b) => Date.parse(b.cycle) - Date.parse(a.cycle)); st.index = { ...idx, runs };
     const failed = (idx.failures || []).map((f) => `the ${fmtUTC(Date.UTC(+f.id.slice(0, 4), +f.id.slice(4, 6) - 1, +f.id.slice(6, 8), +f.id.slice(8, 10)))} run didn't publish in the latest build (${String(f.error || "").replace(/: Unknown Error$/, "")})`);
-    if (!runs.length) return unavailable(`No HRRR runs are published right now${failed.length ? `: ${failed.join("; ")}` : ""}.`);
+    if (!runs.length) return unavailable(`No ${MOD().name} runs are published right now${failed.length ? `: ${failed.join("; ")}` : ""}.`);
     const published = new Set(runs.flatMap((r) => r.fields || [])), F = FIELDS();
-    if (!F[st.field] || (published.size && !published.has(st.field))) st.field = "asnow_run";
+    if (!F[st.field] || (published.size && !published.has(st.field))) st.field = ["asnow_run", "pop6h", "t2m"].find((f) => published.has(f)) || [...published][0];
     $("cmpField").innerHTML = window.MapsConus.fieldOptions(published); $("cmpField").value = st.field;
     ["A", "B"].forEach((k) => { $(`cmp${k}`).innerHTML = runs.map((r, i) => `<option value="${esc(r.id)}">${esc(runLabel(r, i))}</option>`).join(""); });
     /* a shared link whose run has rotated out: say so and use the nearest published runs, never the same run twice */
@@ -138,7 +139,7 @@
     let a = has(want.A) ? want.A : null, b = has(want.B) && want.B !== a ? want.B : null;
     if (!a) a = (runs.find((r) => r.id !== b) || runs[0]).id;
     if (!b) b = (runs.find((r) => r.id !== a) || {}).id || null;
-    ["A", "B"].forEach((k) => { const got = k === "A" ? a : b; if (want[k] && want[k] !== got) notes.push(`The ${fmtUTC(Date.UTC(+want[k].slice(0, 4), +want[k].slice(4, 6) - 1, +want[k].slice(6, 8), +want[k].slice(8, 10)))} run in this link is no longer published (HRRR runs rotate out)${got ? `; ${k} shows the ${fmtUTC(Date.parse(runs.find((r) => r.id === got).cycle))} run instead` : ""}.`); });
+    ["A", "B"].forEach((k) => { const got = k === "A" ? a : b; if (want[k] && want[k] !== got) notes.push(`The ${fmtUTC(Date.UTC(+want[k].slice(0, 4), +want[k].slice(4, 6) - 1, +want[k].slice(6, 8), +want[k].slice(8, 10)))} run in this link is no longer published (${MOD().name} runs rotate out)${got ? `; ${k} shows the ${fmtUTC(Date.parse(runs.find((r) => r.id === got).cycle))} run instead` : ""}.`); });
     if (!b) {   /* one run: show it, and explain why there is no comparison */
       st.mode = "single"; await loadRun("A", a); $("cmpA").value = st.run.A.id;
       $("cmpB").innerHTML = '<option value="">No second run</option>'; $("cmpB").disabled = true;

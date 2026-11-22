@@ -1,4 +1,4 @@
-/* Model maps: full-CONUS HRRR beta (maps.html?domain=conus). A separate viewer from the Tri-State maps.
+/* Model maps: full-CONUS HRRR and NBM beta (maps.html?domain=conus[&model=nbm]). A separate viewer from the Tri-State maps.
    Data: forecast-ops-maps conus-v1 tiles (see maps-conus-core.js). Drawing: a custom MapLibre WebGL layer
    samples the native grid from a texture with nearest-cell lookup, on a mesh whose nodes sit at exact
    projected cell edges, so every model cell is drawn where HRRR put it; outside the grid nothing is drawn.
@@ -11,6 +11,14 @@
   const DATA = (Q.get("data") || "https://wxman33.github.io/forecast-ops-maps/data").replace(/\/$/, "");
   const SITE = DATA.replace(/\/data$/, "");
   const PHONE = () => innerWidth < 700;
+  /* the models this viewer can show; each is published in the same conus-v1 format under its own run list */
+  const MODELS = {
+    hrrr: { key: "hrrr", name: "HRRR", res: "3 km", label: "HRRR 3 km", index: "conus/index.json", credit: "NOAA/NCEP HRRR", source: "NOAA/NCEP HRRR (NOAA Open Data Dissemination)",
+      about: "NOAA HRRR, full CONUS 3 km grid (1799 × 1059 cells)" },
+    nbm: { key: "nbm", name: "NBM", res: "2.5 km", label: "NBM 2.5 km", index: "conus/nbm/index.json", credit: "NOAA/NWS National Blend of Models", source: "NOAA/NWS National Blend of Models (NOAA Open Data Dissemination)",
+      about: "NOAA/NWS National Blend of Models (NBM), full CONUS 2.5 km grid (2345 × 1597 cells)" },
+  };
+  const M = MODELS[Q.get("model")] || MODELS.hrrr;
   const EMBED = Q.get("embed") === "1", PANEL = EMBED ? (Q.get("panel") || "") : "";   // a panel of the cycle comparison (compare=1 page)
   /* Fields: labels, units and Forecast Ops' own stepped colour scales. Below the lowest step nothing is drawn. */
   const stepped = (stops, alpha = 215) => (v) => { if (v == null || !Number.isFinite(v) || v < stops[0][0]) return null; let c = stops[0][1]; for (const [t, rgb] of stops) if (v >= t) c = rgb; return [...c, alpha]; };
@@ -29,6 +37,9 @@
   const snowIn = (v) => (v < 10 ? v.toFixed(1) : String(Math.round(v)));
   const GUST = [[10, [178, 214, 226]], [20, [116, 186, 196]], [30, [82, 160, 120]], [40, [214, 196, 72]], [50, [226, 140, 52]], [60, [204, 70, 52]], [75, [156, 54, 120]], [90, [212, 150, 220]]];
   const FRZR = [[0.01, [244, 200, 226]], [0.05, [232, 152, 200]], [0.1, [214, 104, 176]], [0.25, [176, 64, 156]], [0.5, [128, 40, 140]], [0.75, [92, 30, 120]], [1, [60, 20, 96]]];
+  const POP = [[5, [222, 236, 214]], [10, [190, 222, 178]], [20, [142, 198, 140]], [30, [92, 172, 120]], [40, [52, 146, 116]], [50, [40, 120, 150]], [60, [44, 94, 170]],
+    [70, [70, 70, 170]], [80, [112, 56, 160]], [90, [160, 48, 140]]];
+  const pct = (v) => `${Math.round(v)}%`;
   const GROUPS = ["Surface", "Precip & Snow", "Severe", "Upper Air"];
   const FIELDS = {
     t2m: { group: "Surface", vfmt: whole, label: "2-m temperature", units: "°F", dec: 1, color: (v) => MC.color("t2m", v), range: [-20, 120],
@@ -48,6 +59,10 @@
       note: "HRRR's own snowfall (variable snow density), not 10:1. Hourly values are the difference of the run totals." },
     frzr_run: { group: "Precip & Snow", vfmt: (v) => v.toFixed(2), vmin: lt(0.01), label: "Freezing rain since run start", short: "Run-total freezing rain", units: "in", dec: 2, color: stepped(FRZR), range: [0, 3], steps: FRZR, window: "run",
       note: "Liquid equivalent of freezing rain, not ice thickness on surfaces." },
+    pop1h: { group: "Precip & Snow", vfmt: pct, vmin: lt(1), label: "1-h chance of precipitation (NBM)", short: "1-h PoP", units: "%", dec: 0, color: stepped(POP), range: [0, 100], steps: POP, window: 1,
+      note: "NBM's chance of at least 0.01 in during the hour." },
+    pop6h: { group: "Precip & Snow", vfmt: pct, vmin: lt(1), label: "6-h chance of precipitation (NBM)", short: "6-h PoP", units: "%", dec: 0, color: stepped(POP), range: [0, 100], steps: POP, window: 6,
+      note: "NBM's chance of at least 0.01 in during the 6 hours; posted for windows ending 00, 06, 12 and 18Z." },
     asnow_run: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: "Total snowfall since run start (HRRR)", short: "Run-total snowfall", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: "run",
       note: "HRRR's own snowfall (variable snow density), not 10:1." },
   };
@@ -313,10 +328,10 @@
   function info() {
     if (!st.man) return; const m = st.man, F = FIELDS[st.field], fh = fhNow(), valid = Date.parse(m.valid[fh]), init = Date.parse(m.cycle);
     const w = st.want || wanted(), every = 2 ** w.L, loopReady = m.hours.filter((h) => frameReady(h, w)).length;
-    if (st.gapValid != null) { $("mapInfo").innerHTML = `${PANEL ? `<b class="panel${PANEL === "B" ? " b" : ""}">${esc(PANEL)}</b> ` : ""}<b class="fld">HRRR ${esc(fmtUTC(init))} run · ${esc(F.label)}</b><div class="msg"><b>No forecast hour at ${esc(fmtLocal(st.gapValid))}</b></div>`; share(); return; }
-    $("mapInfo").innerHTML = `${PANEL ? `<b class="panel${PANEL === "B" ? " b" : ""}">${esc(PANEL)}</b> ` : ""}<b class="fld">HRRR 3 km<span class="wide-only"> CONUS</span> · ${esc(F.label)}${F.units ? ` <span class="unit">(${esc(F.units)})</span>` : ""}</b><div>Init <b>${esc(fmtUTC(init))}</b> · F${String(fh).padStart(2, "0")} · valid <b>${esc(fmtLocal(valid))}</b><span class="wide-only"> (${esc(fmtUTC(valid))})</span></div>` +
+    if (st.gapValid != null) { $("mapInfo").innerHTML = `${PANEL ? `<b class="panel${PANEL === "B" ? " b" : ""}">${esc(PANEL)}</b> ` : ""}<b class="fld">${M.name} ${esc(fmtUTC(init))} run · ${esc(F.label)}</b><div class="msg"><b>No forecast hour at ${esc(fmtLocal(st.gapValid))}</b></div>`; share(); return; }
+    $("mapInfo").innerHTML = `${PANEL ? `<b class="panel${PANEL === "B" ? " b" : ""}">${esc(PANEL)}</b> ` : ""}<b class="fld">${M.label}<span class="wide-only"> CONUS</span> · ${esc(F.label)}${F.units ? ` <span class="unit">(${esc(F.units)})</span>` : ""}</b><div>Init <b>${esc(fmtUTC(init))}</b> · F${String(fh).padStart(2, "0")} · valid <b>${esc(fmtLocal(valid))}</b><span class="wide-only"> (${esc(fmtUTC(valid))})</span></div>` +
       (F.window ? `<div class="msg">${esc(windowText(F, fh))}</div>` : "") + (F.note ? `<div class="msg fnote">${esc(F.note)}</div>` : "") +
-      `<div class="msg">${every === 1 ? "Every native 3 km cell at this zoom" : `Every ${every === 2 ? "2nd" : "4th"} native cell<span class="wide-only"> at this zoom</span>; zoom in for every cell`}<span class="wide-only"> · click for the cell's own value</span></div>`;
+      `<div class="msg">${every === 1 ? `Every native ${M.res} cell at this zoom` : `Every ${every === 2 ? "2nd" : "4th"} native cell<span class="wide-only"> at this zoom</span>; zoom in for every cell`}<span class="wide-only"> · click for the cell's own value</span></div>`;
     $("tlValid").textContent = `${fmtLocal(valid)} · F${String(fh).padStart(2, "0")}`; $("hourSl").value = String(st.h);
     $("runInfo").innerHTML = `Run ${esc(fmtUTC(init))}: ${m.status === "in progress" ? `<b>in progress</b>, ${m.hours.length} of ${m.hoursExpected + 1} hours posted by NOAA so far` : `${m.hours.length} forecast hours (${esc(m.status)})`}. ` +
       `Loop ready for this view: ${loopReady} of ${m.hours.length} hours. Downloaded this visit: <b>${MB(st.loadedBytes)}</b> compressed in ${st.requests} map-data requests; decoded tiles in memory: ${MB(st.bytes)}. ` +
@@ -326,7 +341,9 @@
   /* accumulation window in words, ending at the valid time */
   function windowText(F, fh) {
     const v = Date.parse(st.man.valid[fh]), c = Date.parse(st.man.cycle);
-    if (F.window === 1) return `Accumulated in the hour ending ${fmtLocal(v)}`;
+    const prob = F.units === "%";   /* a chance over the window, not an amount */
+    if (F.window === 1) return `${prob ? "For" : "Accumulated in"} the hour ending ${fmtLocal(v)}`;
+    if (typeof F.window === "number") return `${prob ? "For" : "Accumulated over"} the ${F.window} h from ${fmtLocal(v - F.window * H)} to ${fmtLocal(v)}`;
     return `Accumulated from the run start (${fmtLocal(c)}) to ${fmtLocal(v)}, ${fh} h`;
   }
   function legend() {
@@ -348,7 +365,7 @@
   /* ---------- click-to-read: the native cell, full precision ---------- */
   async function select(lat, lon) {
     st.selPt = [lat, lon]; const c = st.P.nearest(lat, lon);
-    if (!c) { st.sel = null; outline(); $("inspect").innerHTML = '<p class="msg">That point is outside the HRRR grid (nothing is drawn there).</p>'; share(); return; }
+    if (!c) { st.sel = null; outline(); $("inspect").innerHTML = `<p class="msg">That point is outside the ${M.name} grid (nothing is drawn there).</p>`; share(); return; }
     st.sel = c; outline(); const [i, j] = c, fh = fhNow(), T = st.man.tile, tx = Math.floor(i / T), ty = Math.floor(j / T), F = FIELDS[st.field];
     if (st.gapValid != null) { $("inspect").innerHTML = `<p class="msg">${esc(validGapText())}</p>`; return; }
     if (hourState(fh) !== "ok") { $("inspect").innerHTML = `<p class="msg">${esc(gapText(fh, hourState(fh)))}</p>`; share(); return; }
@@ -358,7 +375,7 @@
     const v = K.valueAt(st.man, st.field, { [K.tileName(0, tx, ty)]: ready(fh, 0, tx, ty) }, i, j), [la, lo] = st.P.fromCell(i, j), valid = Date.parse(st.man.valid[fh]);
     const shown = v == null ? '<span class="unavail">no data in this cell</span>' : F.cat ? `<b>${v === 0 ? "none (not precipitating)" : esc((F.cat[Math.round(v)] || ["?"])[0])}</b>` : `<b>${v.toFixed(F.dec)} ${esc(F.units)}</b>`;
     $("inspect").innerHTML = `<div class="inspect-v">${esc(F.label)}: ${shown}</div>${F.window ? `<div class="msg">${esc(windowText(F, fh))}</div>` : ""}` +
-      `<div class="msg">HRRR native cell ${i}, ${j} (3 km), centred at ${la.toFixed(4)}, ${lo.toFixed(4)} · F${String(fh).padStart(2, "0")}, valid ${esc(fmtLocal(valid))} · stored to ${st.man.fields[st.field].scale} ${esc(F.units)} from GRIB, never from the display</div>`;
+      `<div class="msg">${M.name} native cell ${i}, ${j} (${M.res}), centred at ${la.toFixed(4)}, ${lo.toFixed(4)} · F${String(fh).padStart(2, "0")}, valid ${esc(fmtLocal(valid))} · stored to ${st.man.fields[st.field].scale} ${esc(F.units)} from GRIB, never from the display</div>`;
     share();
   }
   function outline() {
@@ -395,7 +412,7 @@
     const dark = document.documentElement.getAttribute("data-theme") !== "light", fg = dark ? "#eef1f5" : "#14181f", mute = dark ? "#a9b2bf" : "#4b5563", bg = dark ? "#0d1117" : "#ffffff";
     const font = (w, px) => `${w} ${px}px "Archivo", "Helvetica Neue", Arial, sans-serif`, f2 = `F${String(fh).padStart(2, "0")}`;
     g.fillStyle = bg; g.fillRect(0, 0, W, H);
-    g.fillStyle = fg; g.font = font(800, 40); g.fillText(`HRRR 3 km · ${F.label}${F.units ? ` (${F.units})` : ""}`, 32, 56);
+    g.fillStyle = fg; g.font = font(800, 40); g.fillText(`${M.label} · ${F.label}${F.units ? ` (${F.units})` : ""}`, 32, 56);
     g.font = font(600, 26); g.fillText(`Init ${fmtUTC(init)} · ${f2} · Valid ${fmtLocal(valid)} (${fmtUTC(valid)})`, 32, 96);
     g.fillStyle = mute; g.font = font(500, 22); g.fillText([F.window ? windowText(F, fh) : "", F.note || ""].filter(Boolean).join("  ·  ").slice(0, 150), 32, 130);
     g.drawImage(map, 0, HEAD, W, mapH);
@@ -408,10 +425,10 @@
     else { const t = F.legend.ticks, lo = t[0], hi = t[t.length - 1], bw = 900; for (let k = 0; k < bw; k++) { const col = F.color(lo + (k / bw) * (hi - lo)); if (col) { g.fillStyle = `rgb(${col.slice(0, 3).join(",")})`; g.fillRect(x + k, y, 1, 22); } }
       g.fillStyle = fg; t.forEach((v) => g.fillText(String(v), x + ((v - lo) / (hi - lo)) * bw - 8, y + 46)); }
     g.fillStyle = mute; g.font = font(500, 19);
-    g.fillText("Forecast Ops output · Data: NOAA/NCEP HRRR (NOAA Open Data Dissemination) · Model guidance, not an official forecast · Not endorsed by NOAA", 32, H - 48);
+    g.fillText(`Forecast Ops output · Data: ${M.source} · Model guidance, not an official forecast · Not endorsed by NOAA`, 32, H - 48);
     g.fillText("Basemap: U.S. Census Bureau boundaries via us-atlas, Natural Earth · Colors and rendering: Forecast Ops", 32, H - 20);
     const blob = await new Promise((ok, no) => c.toBlob((b) => (b ? ok(b) : no(new Error("no image"))), "image/png"));
-    const a = document.createElement("a"), name = `forecast-ops-hrrr-${st.field}-${st.run.id}z-${f2.toLowerCase()}.png`;
+    const a = document.createElement("a"), name = `forecast-ops-${M.key}-${st.field}-${st.run.id}z-${f2.toLowerCase()}.png`;
     a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);
     window.__lastPng = { name, width: W, height: H, field: st.field, run: st.run.id, fh, mapH, head: HEAD, labels: drawn.map((o) => ({ ...o, y: o.y + HEAD })) };   // test hook
     note(`Saved ${name} (${W} × ${H}).`);
@@ -435,13 +452,13 @@
   function compareLink() {
     const runs = st.index.runs.slice().sort((a, b) => Date.parse(b.cycle) - Date.parse(a.cycle)), i = runs.findIndex((r) => r.id === st.run.id), b = runs[i + 1] || runs[i - 1];
     const q = new URLSearchParams({ domain: "conus", compare: "1", a: st.run.id, b: b ? b.id : st.run.id, field: st.field, valid: st.man.valid[fhNow()] });
-    if (Q.get("data")) q.set("data", Q.get("data")); const c = st.map.getCenter(); q.set("map", `${c.lat.toFixed(3)},${c.lng.toFixed(3)},${st.map.getZoom().toFixed(2)}`);
+    if (M.key !== "hrrr") q.set("model", M.key); if (Q.get("data")) q.set("data", Q.get("data")); const c = st.map.getCenter(); q.set("map", `${c.lat.toFixed(3)},${c.lng.toFixed(3)},${st.map.getZoom().toFixed(2)}`);
     return `${location.pathname}?${q.toString()}`;
   }
   /* ---------- shareable link ---------- */
   function share() {
     if (!st.man || !st.map || EMBED) return; const c = st.map.getCenter(), q = new URLSearchParams();
-    q.set("domain", "conus"); if (Q.get("data")) q.set("data", Q.get("data"));
+    q.set("domain", "conus"); if (M.key !== "hrrr") q.set("model", M.key); if (Q.get("data")) q.set("data", Q.get("data"));
     q.set("run", st.run.id); q.set("fh", String(fhNow())); q.set("field", st.field); if (!st.values) q.set("values", "0");
     q.set("map", `${c.lat.toFixed(3)},${c.lng.toFixed(3)},${st.map.getZoom().toFixed(2)}`);
     if (st.selPt) q.set("pt", `${st.selPt[0].toFixed(4)},${st.selPt[1].toFixed(4)}`);
@@ -472,8 +489,11 @@
   }
   /* switch field: same run, hour and view; the colour scale, legend and timeline follow */
   async function setField(f) {
-    if (!FIELDS[f] || f === st.field) return; stop(); st.field = f; $("fieldSel").value = f;
-    layer.setColors(K.lut(FIELDS[f].color, ...FIELDS[f].range, 4096)); legend(); timeline(); note(null); paintLabels(fhNow()); await redraw(); reselect();
+    if (!FIELDS[f] || f === st.field) return; stop(); st.field = f; $("fieldSel").value = f; let moved = null;
+    if (st.man && st.gapValid == null && hourState(fhNow()) === "na") {   /* e.g. 6-h PoP from an hour between windows: the window that contains this time */
+      const k = st.man.hours.findIndex((h, i) => i >= st.h && hourState(h) === "ok"), j = k >= 0 ? k : st.man.hours.findIndex((h) => hourState(h) === "ok");
+      if (j >= 0) { const from = fhNow(); st.h = j; moved = `${FIELDS[f].short || FIELDS[f].label} is posted for 6-h windows ending 00, 06, 12 and 18Z: showing F${String(fhNow()).padStart(2, "0")}, the window that includes F${String(from).padStart(2, "0")}.`; } }
+    layer.setColors(K.lut(FIELDS[f].color, ...FIELDS[f].range, 4096)); legend(); timeline(); note(null); paintLabels(fhNow()); await redraw(); reselect(); if (moved) note(moved);
   }
   function go(h) { st.h = (h + st.man.hours.length) % st.man.hours.length; redraw(); reselect(); }
   function stop() { if (st.play) clearTimeout(st.play); st.play = null; $("playBtn").textContent = "PLAY"; $("playBtn").setAttribute("aria-pressed", "false"); }
@@ -481,7 +501,8 @@
   function play() {
     if (st.play) { stop(); return; }
     $("playBtn").textContent = "PAUSE"; $("playBtn").setAttribute("aria-pressed", "true"); prefetch(st.want || wanted());
-    const tick = () => { const w = st.want || wanted(), nxt = (st.h + 1) % st.man.hours.length;
+    const tick = () => { const w = st.want || wanted(), n = st.man.hours.length, has = st.man.hours.some((h) => hourState(h) === "ok");
+      let nxt = (st.h + 1) % n; while (has && nxt !== st.h && hourState(st.man.hours[nxt]) === "na") nxt = (nxt + 1) % n;   /* e.g. 6-h PoP: step window to window */
       if (frameReady(st.man.hours[nxt], w)) go(nxt); st.play = setTimeout(tick, PHONE() ? 650 : 500); };
     st.play = setTimeout(tick, 300);
   }
@@ -497,7 +518,7 @@
       center: hasView ? [view[1], view[0]] : [-97.5, 38.6], zoom: hasView ? view[2] : PHONE() ? 2.6 : 3.7, minZoom: 1.5, maxZoom: 10.5, attributionControl: false, dragRotate: false, pitchWithRotate: false, renderWorldCopies: false,
       maxBounds: [[-175, -5], [-25, 72]] });
     map.touchZoomRotate.disableRotation(); map.addControl(new ML.NavigationControl({ showCompass: false }), "bottom-right");
-    map.addControl(new ML.AttributionControl({ compact: true, customAttribution: "Data: NOAA/NCEP HRRR · Forecast Ops output · US Census (us-atlas) · Natural Earth" }), "bottom-right");
+    map.addControl(new ML.AttributionControl({ compact: true, customAttribution: `Data: ${M.credit} · Forecast Ops output · US Census (us-atlas) · Natural Earth` }), "bottom-right");
     st.map = map;
     return new Promise((res) => map.on("load", () => {
       const L = base.layers; Object.entries(L).forEach(([k, v]) => map.addSource(k, { type: "geojson", data: v }));
@@ -536,27 +557,39 @@
     ["winSel", "smoothChk"].forEach((id) => { const e = $(id); if (e) (e.closest("label") || e).hidden = true; });
     const seg = document.querySelector('[aria-label="Map view"]'); if (seg) seg.hidden = true;
     const ps = $("placeSel"); if (ps) ps.closest("div").hidden = true;
-    $("inspect").innerHTML = '<p class="msg">Click or tap the map to read the HRRR value in that native 3 km cell. Values come from the full-precision grid, never from the display.</p>';
+    $("inspect").innerHTML = `<p class="msg">Click or tap the map to read the ${M.name} value in that native ${M.res} cell. Values come from the full-precision grid, never from the display.</p>`;
     const about = document.querySelector("#runInfo") && document.querySelector("#runInfo").previousElementSibling;
-    if (about) about.textContent = "Beta: NOAA HRRR, full CONUS 3 km grid (1799 × 1059 cells) on the model's own Lambert conformal projection; areas outside the model grid are left blank. Zoomed out, the map draws every 2nd or 4th native cell (each drawn over the block it stands for) so a loop stays light on a phone; zoom in for every cell. Clicking always reads the native cell at full precision. Only the tiles in view are downloaded. Runs appear hour by hour as NOAA posts them; the 00, 06, 12 and 18 UTC runs go to 48 hours, the others to 18. Geography: US Census boundaries (us-atlas) and Natural Earth (public domain). Model guidance only, not an official forecast.";
+    if (about) about.textContent = "Beta: " + M.about + " on the model's own Lambert conformal projection; areas outside the model grid are left blank. Zoomed out, the map draws every 2nd or 4th native cell (each drawn over the block it stands for) so a loop stays light on a phone; zoom in for every cell. Clicking always reads the native cell at full precision. Only the tiles in view are downloaded. Runs appear hour by hour as NOAA posts them; the 00, 06, 12 and 18 UTC runs go to 48 hours, the others to 18. Geography: US Census boundaries (us-atlas) and Natural Earth (public domain). Model guidance only, not an official forecast.";
   }
   async function start() {
     if (Q.get("compare") === "1" && window.MapsConusCompare) { window.MapsConusCompare.start(); return; }   // it sets up its own page shell
-    O.shell("maps", "Model maps", { forecastPoint: false, subtitle: "Beta · HRRR 3 km, full CONUS" });
+    O.shell("maps", "Model maps", { forecastPoint: false, subtitle: `Beta · ${M.label}, full CONUS` });
     regionToggle("conus"); adaptPage(); if (EMBED) adaptEmbed();
     if (!ML || !(() => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch (e) { return false; } })()) { $("mapInfo").innerHTML = '<span class="state err">This browser cannot draw the interactive map (WebGL unavailable).</span>'; return; }
     let base;
-    try { [base, st.index] = await Promise.all([getJSON("assets/maps/basemap-conus.json"), getJSON(`${DATA}/conus/index.json`)]); }
+    try { [base, st.index] = await Promise.all([getJSON("assets/maps/basemap-conus.json"), getJSON(`${DATA}/${M.index}`)]); }
     catch (e) { $("mapInfo").innerHTML = `<span class="state err">CONUS map data unavailable (${esc(e.message)}).</span>`; return; }
-    if (!st.index.runs.length) { $("mapInfo").textContent = "No CONUS runs published yet."; return; }
+    if (!st.index.runs.length) { $("mapInfo").textContent = `No ${M.name} runs published yet.`; return; }
     if (FIELDS[Q.get("field")]) st.field = Q.get("field");
     const published = new Set(st.index.runs.flatMap((r) => r.fields || []));
+    if (published.size && !published.has(st.field)) st.field = published.has("t2m") ? "t2m" : [...published][0];   /* a field this model does not publish: its temperature map instead */
     $("fieldSel").innerHTML = fieldOptions(published); $("fieldSel").value = st.field;
-    if ($("modelSel")) $("modelSel").innerHTML = '<option value="hrrr">HRRR 3 km</option><option value="nbm" disabled>NBM 2.5 km (queued)</option>';
+    if ($("modelSel")) {   /* switching model keeps the view, the valid time when the other model has it, and the field when it publishes it */
+      $("modelSel").innerHTML = Object.values(MODELS).map((m) => `<option value="${m.key}">${esc(m.label)}</option>`).join(""); $("modelSel").value = M.key;
+      $("modelSel").addEventListener("change", () => { const q = new URLSearchParams(location.search); q.set("model", $("modelSel").value); q.delete("run"); q.delete("fh");
+        if (st.man) q.set("valid", st.man.valid[fhNow()]); location.href = `${location.pathname}?${q.toString()}`; }); }
     $("runSel").innerHTML = st.index.runs.map((r) => `<option value="${esc(r.id)}">${esc(runLabel(r))}</option>`).join("");
     await initMap(base);
     const pt = (Q.get("pt") || "").split(",").map(Number); if (pt.length === 2 && pt.every(Number.isFinite)) st.selPt = pt;
-    try { await openRun(Q.get("run") || st.index.runs[0].id, false, Q.get("fh")); }
+    /* opened for a valid time (e.g. from the model menu): the newest run that has that hour, or the nearest hour of the newest run */
+    let runWanted = Q.get("run"), fhWanted = Q.get("fh"), validNote = null; const vq = !EMBED && !runWanted && Q.get("valid") ? Date.parse(Q.get("valid")) : NaN;
+    if (Number.isFinite(vq)) {
+      const has = st.index.runs.slice().sort((a, b) => Date.parse(b.cycle) - Date.parse(a.cycle)).find((r) => r.hours.some((h) => Date.parse(r.cycle) + h * H === vq));
+      if (has) { runWanted = has.id; fhWanted = String((vq - Date.parse(has.cycle)) / H); }
+      else { const r0 = st.index.runs[0], near = r0.hours.reduce((b, h) => (Math.abs(Date.parse(r0.cycle) + h * H - vq) < Math.abs(Date.parse(r0.cycle) + b * H - vq) ? h : b), r0.hours[0]);
+        runWanted = r0.id; fhWanted = String(near); validNote = `${M.name} has no published hour at ${fmtLocal(vq)}; showing the nearest, F${String(near).padStart(2, "0")}.`; }
+    }
+    try { await openRun(runWanted || st.index.runs[0].id, false, fhWanted); if (validNote) note(validNote); }
     catch (e) { $("mapInfo").innerHTML = `<span class="state err">This run could not be loaded (${esc(e.message)}).</span>`; return; }
     if (!Q.get("map")) { /* open on the whole model footprint, clear of the overlays */
       const xs = st.mesh.ring.map((p) => p[0]), ys = st.mesh.ring.map((p) => p[1]);
@@ -583,7 +616,7 @@
       st.map.on("moveend", () => { if (st.syncing) { st.syncing = false; return; } const c = st.map.getCenter(); parent.postMessage({ conus: "view", panel: PANEL, center: [c.lng, c.lat], zoom: st.map.getZoom() }, location.origin); });
       st.map.on("click", (e) => parent.postMessage({ conus: "point", panel: PANEL, lat: e.lngLat.lat, lon: e.lngLat.lng }, location.origin));
     }
-    if (Q.get("valid")) api.setValid(Date.parse(Q.get("valid")));
+    if (Q.get("valid") && EMBED) api.setValid(Date.parse(Q.get("valid")));   /* comparison panels: show that valid time or say this run has none */
     $("cmpBtn").addEventListener("click", () => { location.href = compareLink(); });
   }
   /* Tri-State | CONUS switch, shared by both viewers */
@@ -593,5 +626,5 @@
     d.innerHTML = `<a class="segb" href="maps.html" aria-pressed="${active === "tristate"}">Tri-State</a><a class="segb" href="maps.html?domain=conus" aria-pressed="${active === "conus"}">CONUS <small class="wide-only">beta</small></a>`;
     row.prepend(d);
   }
-  window.MapsConus = { start, regionToggle, api, FIELDS, fieldOptions: (pub) => fieldOptions(pub) };
+  window.MapsConus = { start, regionToggle, api, FIELDS, MODEL: M, fieldOptions: (pub) => fieldOptions(pub) };
 })();
