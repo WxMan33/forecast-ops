@@ -43,6 +43,8 @@ const fr = (p, k) => p.frame({ url: new RegExp(`panel=${k}`) });
       check(vA === vB && s.A.fh !== s.B.fh, `${dev}: both panels at the same valid time ${vA} (A F${String(s.A.fh).padStart(2, '0')}, B F${String(s.B.fh).padStart(2, '0')})`);
       const shownHead = await Promise.all(['A', 'B'].map((k) => fr(p, k).evaluate(() => { const r = document.getElementById('mapInfo').getBoundingClientRect(); return r.width > 50 && r.height > 20; })));
       check(shownHead.every(Boolean) && /Data: NOAA\/NCEP HRRR/.test(await p.locator('.cmp-credit').innerText()), `${dev}: both panel headers are visible on the map, and the page carries the source credit`);
+      const badge = await Promise.all(['A', 'B'].map((k) => fr(p, k).evaluate(() => getComputedStyle(document.querySelector('#mapInfo b.panel')).backgroundColor)));
+      check(badge[0] !== badge[1] && /196, 96, 44/.test(badge[1]), `${dev}: panel labels match their controls (A ${badge[0]}, B ${badge[1]})`);
       const hA = await head(p, 'A'), hB = await head(p, 'B');
       check(/^A /.test(hA) && /Init \d\dZ/.test(hA) && /F\d\d/.test(hA) && /^B /.test(hB) && /Init \d\dZ/.test(hB) && hA.match(/Init (\d\dZ)/)[1] !== hB.match(/Init (\d\dZ)/)[1], `${dev}: each panel names its run and forecast hour ("${hA.slice(0, 70)}" | "${hB.slice(0, 70)}")`);
       check(s.like === 'false' && /Not like for like/.test(s.note) && /A totals \d+ h/.test(s.note) && /B totals \d+ h/.test(s.note) && /Accumulated from the run start/.test(hA) && /Accumulated from the run start/.test(hB), `${dev}: run totals flagged with both windows: "${s.note.slice(0, 150)}…"`);
