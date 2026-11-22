@@ -139,11 +139,9 @@
       try {
         const one = async (L) => { const j = await get(F.WSSIP_URL(L, q), "json"); if (j.error) throw Error("WSSI-P " + L + ": " + (j.error.message || "error")); return F.parseWSSIP(j, [+lon.toFixed(3), +lat.toFixed(3)], L); };
         const res = await Promise.all(F.WSSI_LEVELS.map((L) => one(L).catch(() => one(L)).catch((e) => ({ failed: e.message })))); // one retry per level
-        /* A level that still fails is bounded by the level below it: the chance of at least Extreme can't exceed the chance
-           of at least Major. So when the lower level answered with no area at the venue, the failed level is under 5% there
-           too (marked as inferred). Otherwise the answer is incomplete and the source stays unconfirmed. */
-        const { products: all, inferred } = F.combineWSSI(res);
-        Object.assign(wssi, { state: "ok", lastOk: at, error: null, inferred, products: all, key, reachEnd: all.map((x) => x.validEnd).sort().pop() || null, issued: all.map((x) => x.issued).filter(Boolean).sort().pop() || null });
+        /* A level that still fails after its retry is reported as unavailable; the levels that answered are kept. */
+        const { products: all, unavailable } = F.combineWSSI(res);
+        Object.assign(wssi, { state: "ok", lastOk: at, error: null, unavailable, products: all, key, reachEnd: all.map((x) => x.validEnd).sort().pop() || null, issued: all.map((x) => x.issued).filter(Boolean).sort().pop() || null });
       } catch (e) { Object.assign(wssi, { state: "failed", error: e.message, key }); if (wssi.key !== key) wssi.products = []; }
       finally { wssiPending = null; emit(); }
     })();
@@ -232,6 +230,16 @@
     catch (e) { Object.assign(tcw, { key, state: "failed", error: e.message }); }
     emit();
   }
+  /* NWS's own placement of a venue (forecast zone, county, fire weather zone; over the water only a marine zone).
+     Cached per venue; a failed lookup leaves the venue without placement (the drawn zone outlines then decide). */
+  const points = new Map();
+  function pointZones(lat, lon) {
+    const key = (+lat).toFixed(4) + "," + (+lon).toFixed(4), c = points.get(key);
+    if (c) return c.zones || null;
+    points.set(key, { pending: true });
+    get(nwsUrl("https://api.weather.gov/points/" + key), "json").then((j) => { points.set(key, { zones: F.pointZones(j) }); emit(); }).catch(() => points.set(key, { failed: true }));
+    return null;
+  }
   async function refreshMonitorsAll() {
     const at = nowIso();
     try { monAll.products = F.parseAirNowMonitors(await get(F.AIRNOW_MON_ALL_URL, "json")); Object.assign(monAll, { state: "ok", lastOk: at, error: null }); }
@@ -257,7 +265,7 @@
         const text = NWS.mode === "function" ? await get(smokeUrl("/airnow-area?area=" + encodeURIComponent(area) + "&state=" + st), "text") : (await get("https://files.airnowtech.org/airnow/today/reportingarea.dat", "text")).split("\n").filter((l) => { const c = l.split("|"); return c[7] === area && c[8] === st; }).join("\n");
         return F.aqForecastProducts(F.parseReportingArea(text)).map((x) => ({ ...x, forVenue: true }));
       }),
-      run("naqfc", async () => [F.parseNAQFC(await get(F.NAQFC_SMOKE_AT(lat, lon), "json"), [+lon.toFixed(3), +lat.toFixed(3)])]),
+      F.NAQFC_ENABLED && run("naqfc", async () => [F.parseNAQFC(await get(F.NAQFC_SMOKE_AT(lat, lon), "json"), [+lon.toFixed(3), +lat.toFixed(3)])]),
     ]).then(() => { aq.at = Date.now(); aqPending = null; });
     aqPending = { key, p }; return p;
   }
@@ -328,11 +336,11 @@
         day3: src(outlooks[3].sourceInfo(), o[3].products.length, { outlook: o[3].status, validEnd: o[3].validEnd }),
         ero1: src(ero[1].sourceInfo(), e[1].products.length, { outlook: e[1].status, validEnd: e[1].validEnd, issued: e[1].issued, via: ero[1].sourceInfo().via }),
         ero2: src(ero[2].sourceInfo(), e[2].products.length, { outlook: e[2].status, validEnd: e[2].validEnd, issued: e[2].issued, via: ero[2].sourceInfo().via }),
-        wssip: wssi.state === "never" || (wssiPending && !wssi.lastOk) ? { state: "pending", lastOk: null, count: 0 } : src({ state: wssi.state === "ok" ? "ok" : "failed", lastOk: wssi.lastOk, error: wssi.error }, wsp.length, { validEnd: wssi.reachEnd, issued: wssi.issued, inferred: wssi.inferred || [] }),
+        wssip: wssi.state === "never" || (wssiPending && !wssi.lastOk) ? { state: "pending", lastOk: null, count: 0 } : src({ state: wssi.state === "ok" ? "ok" : "failed", lastOk: wssi.lastOk, error: wssi.error }, wsp.length, { validEnd: wssi.reachEnd, issued: wssi.issued, unavailable: wssi.unavailable || [] }),
         ...fireSources(now),
         nhc: nhc.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: nhc.state, lastOk: nhc.lastOk, count: nhc.products.length, error: nhc.error || tcw.error, storms: nhc.products.filter((p) => p.part === "cone").length },
         hms: hms.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: hms.state, lastOk: hms.lastOk, count: hms.products.length, error: hms.error },
-        aqobs: aqSrc(aq.obs, aq.products.filter((p) => p.kind === "aqobs").length), aqfcst: aqSrc(aq.fcst, aq.products.filter((p) => p.kind === "aqfcst").length), naqfc: aqSrc(aq.naqfc, aq.products.filter((p) => p.kind === "smokefcst").length),
+        aqobs: aqSrc(aq.obs, aq.products.filter((p) => p.kind === "aqobs").length), aqfcst: aqSrc(aq.fcst, aq.products.filter((p) => p.kind === "aqfcst").length), naqfc: F.NAQFC_ENABLED ? aqSrc(aq.naqfc, aq.products.filter((p) => p.kind === "smokefcst").length) : { state: "na" },
         monitors: monAll.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: monAll.state, lastOk: monAll.lastOk, count: monAll.products.length, error: monAll.error },
         nifc: nifc.state === "never" ? { state: "pending", lastOk: null, count: 0 } : src({ state: nifc.state, lastOk: nifc.lastOk, error: nifc.error }, nifc.products.length),
         ero3: src(ero[3].sourceInfo(), e[3].products.length, { outlook: e[3].status, validEnd: e[3].validEnd, issued: e[3].issued, via: ero[3].sourceInfo().via }),
@@ -390,7 +398,7 @@
     // Jacksonville coastal products captured live on 2026-11-21
     "archive-tropical-watch": { kind: "mix", clock: "2026-10-07T17:00:00Z", nws: [], tcv: ["tests/fixtures/threats/tcv-kmob-al092026/202610071609-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610072103-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610080253-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610081156-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610090257-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610091500-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610091802-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610092353-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610100602-KMOB-WTUS84-TCVMOB.txt"], zones: "tests/fixtures/threats/nws-zones-gulf-al092026.json", nhc: ["tests/fixtures/threats/nhc-al092026-adv004.geojson"], ero: [], label: "Hurricane Isaias, NWS Mobile and NHC, Oct 7, 2026 at noon CDT (advisory 4)" },
     "archive-tropical-warning": { kind: "mix", clock: "2026-10-08T05:00:00Z", nws: [], tcv: ["tests/fixtures/threats/tcv-kmob-al092026/202610071609-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610072103-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610080253-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610081156-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610090257-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610091500-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610091802-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610092353-KMOB-WTUS84-TCVMOB.txt", "tests/fixtures/threats/tcv-kmob-al092026/202610100602-KMOB-WTUS84-TCVMOB.txt"], zones: "tests/fixtures/threats/nws-zones-gulf-al092026.json", nhc: ["tests/fixtures/threats/nhc-al092026-adv006.geojson"], ero: [], label: "Hurricane Isaias, Oct 8, 2026 at midnight CDT (after the upgrade to warnings; advisory 6)" },
-    "archive-coastal-flagler": { kind: "mix", clock: "2026-11-21T18:30:00Z", nws: ["tests/fixtures/threats/nws-live-kjax-coastal-20261121.json"], zones: "tests/fixtures/threats/nws-zones-kjax-coastal-20261121.json", ero: [], label: "NWS Jacksonville coastal flood, high surf and rip current products, Nov 21, 2026 at 1:30 p.m. EST (captured live)" },
+    "archive-coastal-flagler": { kind: "mix", clock: "2026-11-21T18:30:00Z", points: "tests/fixtures/threats/nws-points-coastal-20261122.json", nws: ["tests/fixtures/threats/nws-live-kjax-coastal-20261121.json"], zones: "tests/fixtures/threats/nws-zones-kjax-coastal-20261121.json", ero: [], label: "NWS Jacksonville coastal flood, high surf and rip current products, Nov 21, 2026 at 1:30 p.m. EST (captured live)" },
     "archive-flood-night": { kind: "mix", clock: "2026-11-20T20:30:00Z", nws: ["tests/fixtures/threats/nws-archive-kmlb-ff-w-0036.json", "tests/fixtures/threats/nws-archive-kjax-ff-w-0054.json"], ero: [1, 2, 3].map((d) => "tests/fixtures/threats/wpc-ero-day" + d + "-20261120.geojson"), label: "NWS Flash Flood Warnings and WPC Excessive Rainfall Outlooks, Florida, Nov 20, 2026 at 3:30 p.m. EST" },
   };
   const archiveCache = new Map();
@@ -432,7 +440,8 @@
     const nifcP = a.nifc ? F.parseNIFC(await getJ(a.nifc[0]), await getJ(a.nifc[1])) : [];
     const wsp = (await Promise.all((a.wssip || []).map(getJ))).flatMap((j) => F.parseWSSIP(j)).filter((p) => (!p.issued || Date.parse(p.issued) <= clock) && Date.parse(p.validEnd) > clock);
     const eroSrc = (d) => { const o = eros.find((x) => x.products[0] && x.products[0].day === d); return o ? { state: "ok", lastOk: a.clock, count: o.products.length, outlook: "current", validEnd: o.validEnd, issued: o.issued, via: "wpc" } : na; };
-    return { live: false, archive: { name, label: a.label, step: 1, steps: 1, messages: [] }, clock: a.clock,
+    const pointsA = a.points ? Object.fromEntries(Object.entries((await getJ(a.points)).points).map(([k, v]) => { const [la, lo] = k.split(",").map(Number); return [la.toFixed(4) + "," + lo.toFixed(4), F.pointZones({ properties: v })]; })) : null;
+    return { live: false, points: pointsA, archive: { name, label: a.label, step: 1, steps: 1, messages: [] }, clock: a.clock,
       products: [...ps.filter((p) => p.status === "active" || p.status === "lapsed"), ...eros.flatMap((o) => o.products), ...wsp, ...fireP, ...nifcP, ...hmsP, ...monP, ...raP, ...nhcP], ended: ps.filter((p) => p.status === "ended"),
       sources: { alerts: !a.nws.length && !(a.tcv || []).length ? { state: "na" } : { state: a.alertsFailAfter ? "failed" : "ok", lastOk: si.lastOk, count: ps.filter((p) => p.status === "active").length, error: si.error }, md: na, day1: na, day2: na, day3: na, ero1: eroSrc(1), ero2: eroSrc(2), ero3: eroSrc(3),
         hms: a.hms ? { state: "ok", lastOk: a.clock, count: hmsP.length } : { state: "na" }, nhc: a.nhc ? { state: "ok", lastOk: a.clock, count: nhcP.length } : { state: "na" }, aqobs: a.mons ? { state: "ok", lastOk: a.clock, count: monP.length } : { state: "na" },
@@ -471,10 +480,10 @@
       "noaa-hms": d.sources.hms ? one("hms") : d.live ? { kind: "unavailable" } : { kind: "na" },
       "airnow-obs": d.sources.aqobs ? one("aqobs") : d.live ? { kind: "unavailable" } : { kind: "na" },
       "airnow-fcst": d.sources.aqfcst ? one("aqfcst") : d.live ? { kind: "unavailable" } : { kind: "na" },
-      "noaa-naqfc-smoke": d.sources.naqfc ? one("naqfc") : d.live ? { kind: "unavailable" } : { kind: "na" },
-      "nws-alerts": one("alerts"), "spc-md": one("md"), "wpc-wssi-p": d.sources.wssip ? { ...one("wssip"), reachEnd: d.sources.wssip.validEnd || null, inferred: d.sources.wssip.inferred || [], reach: d.sources.wssip.issued ? "file " + window.ThreatsCore.fmtZ(d.sources.wssip.issued) : "" } : { kind: "unavailable" }, "spc-outlook": { ...worst(["day1", "day2", "day3"]), reachEnd: reach(["day1", "day2", "day3"]) },
+      "noaa-naqfc-smoke": { kind: "na" }, // not used until NOAA documents the field and unit
+      "nws-alerts": one("alerts"), "spc-md": one("md"), "wpc-wssi-p": d.sources.wssip ? { ...one("wssip"), reachEnd: d.sources.wssip.validEnd || null, unavailable: d.sources.wssip.unavailable || [], reach: d.sources.wssip.issued ? "file " + window.ThreatsCore.fmtZ(d.sources.wssip.issued) : "" } : { kind: "unavailable" }, "spc-outlook": { ...worst(["day1", "day2", "day3"]), reachEnd: reach(["day1", "day2", "day3"]) },
       "wpc-ero": { ...worst(["ero1", "ero2", "ero3"]), reachEnd: reach(["ero1", "ero2", "ero3"]), reach: ["ero1", "ero2", "ero3"].map((k, i) => d.sources[k] && d.sources[k].issued ? "Day " + (i + 1) + " issued " + window.ThreatsCore.fmtZ(d.sources[k].issued) : "").filter(Boolean).join(", ") } };
   }
 
-  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
+  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
 })();

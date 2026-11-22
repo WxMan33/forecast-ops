@@ -5,6 +5,7 @@
    does for Node):
      GET /api/nws/alerts/active?event=<Tornado Warning|Severe Thunderstorm Warning|Tornado Watch|Severe Thunderstorm Watch|Flash Flood Warning>[,…]
      GET /api/nws/alerts/<urn:oid:… alert id>         (the earlier message an update replaced, for "What changed")
+     GET /api/nws/points/<lat>,<lon>   (NWS's own zones for a venue: forecast zone, county, fire weather zone)
      GET /api/nws/zones/county/<XXC###>, /api/nws/zones/forecast/<XXZ###>, /api/nws/zones/fire/<XXZ###>   (county, forecast,
          marine and fire weather zone shapes for zone-based alerts)
 
@@ -21,7 +22,7 @@ const EVENTS = new Set(["Tornado Warning", "Severe Thunderstorm Warning", "Torna
   "Hurricane Warning", "Hurricane Watch", "Tropical Storm Warning", "Tropical Storm Watch", "Storm Surge Warning", "Storm Surge Watch",
   "Coastal Flood Warning", "Coastal Flood Watch", "Coastal Flood Advisory", "High Surf Warning", "High Surf Advisory", "Rip Current Statement", "Beach Hazards Statement"]);
 const ORIGINS = [/^https:\/\/wxman33\.github\.io$/, /^https:\/\/([a-z0-9-]+\.)?forecast-ops-beta\.pages\.dev$/, /^https:\/\/raw\.githack\.com$/, /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
-const TTL_S = { alerts: 30, alert: 3600, zone: 86400 };
+const TTL_S = { alerts: 30, alert: 3600, zone: 86400, point: 86400 };
 const memory = new Map(); // per-isolate cache; the Cache API is used too where the platform provides it
 
 function route(url) {
@@ -33,6 +34,8 @@ function route(url) {
   }
   let m = /^\/alerts\/(urn:oid:[0-9a-zA-Z.]+)$/.exec(decodeURIComponent(p));
   if (m) return { kind: "alert", path: "/alerts/" + m[1] };
+  m = /^\/points\/(-?\d{1,2}\.\d{1,4}),(-?\d{1,3}\.\d{1,4})$/.exec(p);
+  if (m && [...url.searchParams.keys()].length === 0) return { kind: "point", path: "/points/" + m[1] + "," + m[2] };
   m = /^\/zones\/(county|forecast|fire)\/([A-Z]{2}[CZ]\d{3})$/.exec(p);
   if (m && (m[1] === "county") === (m[2][2] === "C")) return { kind: "zone", path: "/zones/" + m[1] + "/" + m[2] };
   return null;
@@ -42,6 +45,7 @@ function check(kind, j) {
   if (kind === "alerts") { if (!Array.isArray(j.features)) return "alert list without features"; if (j.pagination && j.pagination.next) return "alert list is paged; it may be incomplete"; }
   if (kind === "alert" && !(j.properties && j.properties.id)) return "alert without properties";
   if (kind === "zone" && !(j.geometry && j.geometry.type)) return "zone without a shape";
+  if (kind === "point" && !(j.properties && j.properties.forecastZone)) return "point without a forecast zone";
   return null;
 }
 function cors(request) {

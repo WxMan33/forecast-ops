@@ -346,14 +346,14 @@ console.log(n + " passed (with winter and fire)");
     assert.strictEqual(r.confirmed, false); assert.match(r.statuses.find((s) => s.id === "noaa-hms").text, /^Not responding/);
     assert.strictEqual(M.forEvent({ products: chiProducts(), state: allOk(CHI), event: evS("Soldier Field", ...SOLDIER, CHI_EV, "America/Chicago"), now: CHI, families: ["fire", "flood"] }).items.length, 0);
   });
-  ok("SMOKE NAQFC: hourly smoke guidance names only the phases its hours cover", () => {
-    const clock = Date.parse("2026-11-21T03:00:00Z"), hours = []; for (let h = 4; h <= 50; h++) hours.push({ t: new Date(clock + (h - 3) * 3600e3).toISOString(), v: h >= 15 && h <= 17 ? 14 : h === 18 ? 5 : 0, run: "2026-11-20T06:00:00.000Z", fh: h });
+  ok("SMOKE NAQFC is switched off until NOAA documents the field and unit: no Planner item and no source line, even with smoke in the guidance", () => {
+    const clock = Date.parse("2026-11-21T03:00:00Z"), hours = []; for (let h = 4; h <= 50; h++) hours.push({ t: new Date(clock + (h - 3) * 3600e3).toISOString(), v: h >= 15 && h <= 17 ? 40 : 0, run: "2026-11-20T06:00:00.000Z", fh: h });
     const nq = { id: "nq", kind: "smokefcst", program: "naqfc", family: "smoke", sourceId: "noaa-naqfc-smoke", run: "2026-11-20T06:00:00.000Z", hours, validStart: hours[0].t, validEnd: hours[hours.length - 1].t, pointHit: [-104.99, 39.74] };
-    const ev = evS("v", 39.74, -104.99, { setup: "2026-11-21T07:00", gates: "2026-11-21T09:00", start: "2026-11-21T10:00", end: "2026-11-21T15:00" }, "America/Denver"); // setup 14Z-16Z, gates 16Z-17Z
+    const ev = evS("v", 39.74, -104.99, { setup: "2026-11-21T07:00", gates: "2026-11-21T09:00", start: "2026-11-21T10:00", end: "2026-11-21T15:00" }, "America/Denver");
     const r = runS(ev, clock, [nq], sstate(clock));
-    assert.deepStrictEqual(r.items.map((i) => i.headline), ["Smoke in NOAA's forecast during setup and gates"]);
-    assert.match(r.items[0].line, /9 µg\/m³ or more at the venue in 3 hours of those phases, up to 14 µg\/m³ around .* Model guidance, not an air quality reading\.$/);
+    assert.strictEqual(F.NAQFC_ENABLED, false); assert.strictEqual(r.items.length, 0); assert.ok(!r.statuses.some((x) => /NAQFC/.test(x.name)));
   });
+
 }
 console.log(n + " passed (with winter, fire and smoke)");
 
@@ -398,30 +398,58 @@ console.log(n + " passed (with winter, fire and smoke)");
     const r = M.forEvent({ products: g, state: tstate(Date.parse("2026-10-08T05:00:00Z")), event: evT("The Wharf, Orange Beach", ...GULF_SHORES, FRI_OCT9, "America/Chicago"), now: Date.parse("2026-10-08T05:00:00Z"), families: ["tropical"] });
     assert.strictEqual(r.items.length, 0);
   });
+  ok("TROPICAL wind speed probabilities outside the cone: a Panama City test point is outside NHC's advisory-6 cone, and its official probability (a band, as published) is still listed with the threshold and full window; the cone stays map context", () => {
+    const clock = Date.parse("2026-10-08T05:00:00Z"), cone = F.parseNHC(JSON.parse(fs.readFileSync(FX("nhc-al092026-adv006.geojson"), "utf8"))).find((p) => p.part === "cone");
+    const PNS = [30.16, -85.66]; // Panama City, FL (test point) assert.ok(!T.contains(cone.geometry, [PNS[1], PNS[0]]), "outside the cone");
+    const w = F.parseNHCWsp({ 34: { features: [{ attributes: { percentage: "40-50%", idp_filedate: Date.parse("2026-10-08T03:00:00Z") } }] }, 50: { features: [{ attributes: { percentage: "10-20%" } }] }, 64: { features: [] } }, [PNS[1], PNS[0]]);
+    const r = M.forEvent({ products: [cone, ...w], state: tstate(clock), event: evT("Panama City test point", ...PNS, FRI_OCT9, "America/Chicago"), now: clock, families: ["tropical"] });
+    assert.deepStrictEqual(r.items.map((i) => i.headline), ["40-50% chance of tropical-storm-force winds (39+ mph, 34 kt) at the venue through Monday"]);
+    assert.match(r.items[0].line, /forecast window Oct 7, 10 PM CDT – Oct 12, 10 PM CDT: 39\+ mph \(34 kt\) 40-50%, 58\+ mph \(50 kt\) 10-20%, 74\+ mph \(64 kt\) under 5%/);
+  });
   ok("TROPICAL wind speed probabilities: listed from 10% for 34 kt, as a 5-day chance without phase timing", () => {
     const clock = Date.parse("2026-10-08T05:00:00Z"), pt = [GULF_SHORES[1], GULF_SHORES[0]], q = (kt, pct) => ({ id: "w" + kt, kind: "tcwind", family: "tropical", sourceId: "nhc", kt, pct, pointHit: pt, issued: "2026-10-08T03:00:00.000Z" });
     const r = M.forEvent({ products: [q(34, 70), q(50, 35), q(64, 3)], state: tstate(clock), event: evT("The Wharf, Orange Beach", ...GULF_SHORES, FRI_OCT9, "America/Chicago"), now: clock, families: ["tropical"] });
-    assert.deepStrictEqual(r.items.map((i) => i.headline), ["70% chance of tropical-storm-force winds at the venue through Monday"]);
-    assert.match(r.items[0].line, /39\+ mph 70%, 58\+ mph 35%, hurricane-force under 5%\. A chance over the whole 5 days, not timing/);
+    assert.deepStrictEqual(r.items.map((i) => i.headline), ["70% chance of tropical-storm-force winds (39+ mph, 34 kt) at the venue through Monday"]);
+    assert.match(r.items[0].line, /^NHC wind speed probabilities, forecast window Oct 7, 10 PM CDT – Oct 12, 10 PM CDT: 39\+ mph \(34 kt\) 70%, 58\+ mph \(50 kt\) 35%, 74\+ mph \(64 kt\) under 5%\. The chance of those winds at some time in that window, not timing; it applies whether or not the venue is inside the forecast cone\./);
     assert.strictEqual(M.forEvent({ products: [q(34, 5)], state: tstate(clock), event: evT("v", ...GULF_SHORES, FRI_OCT9, "America/Chicago"), now: clock, families: ["tropical"] }).items.length, 0);
   });
 
   const coastal = JSON.parse(fs.readFileSync(FX("nws-live-kjax-coastal-20261121.json"), "utf8")).features, CL = Date.parse("2026-11-21T18:30:00Z");
   const runC = (ev, clock = CL) => M.forEvent({ products: replay(coastal, clock, zonesJ), state: { "nws-alerts": OK(clock) }, event: ev, now: clock, families: ["coastal"] });
-  const FLAGLER = [29.4802, -81.1065], JAXBEACH = [30.2858, -81.3889];
-  ok("COASTAL (no tropical system): Flagler Beach Pier (over the water, at Coastal Flagler's shoreline), Saturday afternoon: Coastal Flood Warning, High Surf Advisory and Rip Current Statement, with their end times", () => {
-    const r = runC(evT("Flagler Beach Pier", ...FLAGLER, { start: "2026-11-21T14:00", end: "2026-11-21T18:00" }, "America/New_York"));
-    assert.deepStrictEqual(r.items.map((i) => i.product.event), ["Coastal Flood Warning", "High Surf Advisory", "Rip Current Statement"]);
-    assert.strictEqual(r.items[0].headline, "Coastal Flood Warning during the event");
-    assert.match(r.items[0].line, /^In effect at the venue until 5 a\.m\. Monday \(issued for the forecast zone whose shoreline the venue is on\)\.$/);
-    const inland = M.forEvent({ products: replay(coastal, CL, zonesJ), state: { "nws-alerts": OK(CL) }, event: evT("Flagler Beach City Hall", 29.4747, -81.1271, { start: "2026-11-21T14:00", end: "2026-11-21T18:00" }, "America/New_York"), now: CL, families: ["coastal"] });
-    assert.match(inland.items[0].line, /forecast zone that includes the venue/);
+  const FLAGLER = [29.4802, -81.1065], JAXBEACH = [30.2858, -81.3889], INLAND = [29.42, -81.17];
+  const pts = JSON.parse(fs.readFileSync(FX("nws-points-coastal-20261122.json"), "utf8")).points;
+  const placed = (ev, key) => ({ ...ev, zones: F.pointZones({ properties: pts[key] }) }); // NWS's own placement of the venue
+  const SAT_PM = { start: "2026-11-21T14:00", end: "2026-11-21T18:00" };
+  ok("COASTAL (no tropical system): Flagler Beach Pier, which NWS places in marine zone AMZ454 (no land zone): the Coastal Flagler products are flagged 'for the adjacent shoreline', with their end times", () => {
+    const r = runC(placed(evT("Flagler Beach Pier", ...FLAGLER, SAT_PM, "America/New_York"), "29.4802,-81.1065"));
+    assert.deepStrictEqual(r.items.map((i) => i.headline), ["Coastal alert for the adjacent shoreline: Coastal Flood Warning", "Coastal alert for the adjacent shoreline: High Surf Advisory", "Coastal alert for the adjacent shoreline: Rip Current Statement"]);
+    assert.ok(r.items.every((i) => i.adjacent && !i.officialPlacement));
+    assert.match(r.items[0].line, /^Issued for .*Coastal Flagler.*; NWS places the venue in no land forecast zone \(AMZ454\), 1 mile from that zone\. It covers the shoreline next to the venue, not the venue's own zone\. In effect until 5 a\.m\. Monday during the event\.$/);
   });
-  ok("COASTAL: Jacksonville Beach gets the advisory, not the warning; a Monday-noon event gets nothing; coastal items stay out of tropical", () => {
-    const r = runC(evT("Jacksonville Beach Pier", ...JAXBEACH, { start: "2026-11-21T14:00", end: "2026-11-21T18:00" }, "America/New_York"));
-    assert.ok(r.items.some((i) => i.product.event === "Coastal Flood Advisory") && !r.items.some((i) => i.product.event === "Coastal Flood Warning"), JSON.stringify(r.items.map((i) => i.product.event)));
-    assert.strictEqual(runC(evT("Flagler Beach Pier", ...FLAGLER, { start: "2026-11-23T12:00", end: "2026-11-23T15:00" }, "America/New_York")).items.length, 0);
-    assert.strictEqual(M.forEvent({ products: replay(coastal, CL, zonesJ), state: { "nws-alerts": OK(CL), nhc: OK(CL) }, event: evT("Flagler Beach Pier", ...FLAGLER, { start: "2026-11-21T14:00", end: "2026-11-21T18:00" }, "America/New_York"), now: CL, families: ["tropical"] }).items.length, 0);
+  ok("COASTAL: an inland point 0.6 mi from Coastal Flagler, which NWS places in Inland Flagler, gets only the Coastal Flood Warning issued for its own zone; no surf or rip current flag", () => {
+    const r = runC(placed(evT("Inland point near Palm Coast", ...INLAND, SAT_PM, "America/New_York"), "29.42,-81.17"));
+    assert.deepStrictEqual(r.items.map((i) => i.headline), ["Coastal Flood Warning during the event"]);
+    assert.ok(r.items[0].officialPlacement && !r.items[0].adjacent); assert.match(r.items[0].line, /that includes the venue, as NWS places it\)/);
+    const z138 = zonesJ["https://api.weather.gov/zones/forecast/FLZ138"].geometry; assert.ok(!T.contains(z138, [INLAND[1], INLAND[0]]) && T.nearestEdge(z138, [INLAND[1], INLAND[0]]).km < 1.5 * T.KM_PER_MI, "within 1.5 mi and outside the alert area");
+  });
+  ok("COASTAL: Jacksonville Beach Pier, which NWS places in Coastal Duval: the advisory 'covers the venue' (official placement), not the Flagler warning; a Monday-noon event gets nothing; coastal stays out of tropical", () => {
+    const r = runC(placed(evT("Jacksonville Beach Pier", ...JAXBEACH, SAT_PM, "America/New_York"), "30.2858,-81.3889"));
+    const ev = r.items.map((i) => i.headline.split(" during ")[0]);
+    assert.ok(ev.includes("Coastal Flood Advisory") && !ev.some((e) => /Coastal Flood Warning/.test(e)) && r.items.every((i) => i.officialPlacement), JSON.stringify(ev));
+    assert.strictEqual(runC(placed(evT("Flagler Beach Pier", ...FLAGLER, { start: "2026-11-23T12:00", end: "2026-11-23T15:00" }, "America/New_York"), "29.4802,-81.1065")).items.length, 0);
+    assert.strictEqual(M.forEvent({ products: replay(coastal, CL, zonesJ), state: { "nws-alerts": OK(CL), nhc: OK(CL) }, event: placed(evT("Flagler Beach Pier", ...FLAGLER, SAT_PM, "America/New_York"), "29.4802,-81.1065"), now: CL, families: ["tropical"] }).items.length, 0);
+  });
+  ok("WINTER-style WSSI-P with a level unavailable (Extreme failed after retry): the answered levels are kept, Extreme reads unavailable in the item and the status", () => {
+    const clock = Date.parse("2026-11-20T21:30:00Z"), CR = [46.935, -121.475], tue = { start: "2026-11-24T10:00", end: "2026-11-24T15:00" };
+    const prods = F.parseWSSIP(JSON.parse(fs.readFileSync(FX("wpc-wssi-p-overall-cascades-20261120.json"), "utf8"))).filter((p) => p.category !== "EXTREME");
+    const st = { "nws-alerts": OK(clock), "wpc-wssi-p": { ...OK(clock), reachEnd: "2026-11-27T00:00:00.000Z", unavailable: ["EXTREME"] } };
+    const r = M.forEvent({ products: prods, state: st, event: evT("Crystal Mountain", ...CR, tue, "America/Los_Angeles"), now: clock, families: ["winter"] });
+    assert.strictEqual(r.items.length, 1); assert.deepStrictEqual(r.items[0].levels.find(([L]) => L === "EXTREME"), ["EXTREME", null]);
+    assert.ok(r.items[0].levels.find(([L]) => L === "MINOR")[1] > 0, "answered levels kept");
+    assert.match(r.statuses.find((x) => x.id === "wpc-wssi-p").text, /· Extreme unavailable$/);
+  });
+  ok("COASTAL without NWS's placement (points lookup unavailable): the drawn outline decides; the pier, outside it, gets nothing (no flag without official placement)", () => {
+    assert.strictEqual(runC(evT("Flagler Beach Pier", ...FLAGLER, SAT_PM, "America/New_York")).items.length, 0);
   });
 }
 console.log(n + " passed (with winter, fire, smoke, tropical and coastal)");

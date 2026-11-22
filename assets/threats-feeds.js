@@ -150,6 +150,15 @@
   }
   function windWindow(d) { const m = /Window for Tropical Storm force winds:\s*([\s\S]*?)(?:\n\s*\n|\n\s*-\s|$)/.exec(d || ""); return m ? m[1].replace(/\s+/g, " ").trim() : null; }
 
+  /* NWS's own placement of a point (api.weather.gov/points/{lat},{lon}): its land forecast zone, county and fire weather
+     zone. Over the water NWS gives only a marine zone (e.g. AMZ454) and no county: then `land` is empty. */
+  const MARINE_ZONE = /^(AM|AN|GM|PZ|PK|PH|PM|PS|LM|LE|LH|LO|LS|SL)Z\d{3}$/;
+  function pointZones(j) {
+    const P = j && j.properties; if (!P) throw Error("unrecognized NWS points answer");
+    const all = [P.forecastZone, P.county, P.fireWeatherZone].filter(Boolean), code = (u) => u.split("/").pop();
+    return { land: all.filter((u) => !MARINE_ZONE.test(code(u))), marine: all.map(code).find((c) => MARINE_ZONE.test(c)) || null, city: (P.relativeLocation && P.relativeLocation.properties || {}).city || null };
+  }
+
   /* ---------- NWS Tropical Cyclone Watch/Warning product (TCV), as archived text -> NWS alert shape ----------
      The NWS API keeps about 7 days; archived tropical watches and warnings come from the official TCV texts (as kept by
      the Iowa Environmental Mesonet's NWS text archive). Each segment: UGC line (zones + purge time), VTEC lines, area
@@ -578,6 +587,10 @@
   const AIRNOW_AREA_URL = "https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/AirNow_National_Air_Quality_Index_(AQI)_Forecast/FeatureServer/0/query";
   const AIRNOW_AREA_AT = (lat, lon) => AIRNOW_AREA_URL + "?geometry=" + lon + "," + lat + "&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=RAName,RACode,RAAgency&returnGeometry=false&f=json";
 
+  /* NOAA NAQFC near-surface smoke guidance: NOT USED (NAQFC_ENABLED false) until NOAA's documentation confirms the field and
+     unit. The service text says "micrograms per cubic feet"; sample magnitudes (multiples of 1e-9) suggest kg/m³, but that is
+     not verified. Kept here, off: no fetch, no Planner item, no concentration shown, no source line. */
+  const NAQFC_ENABLED = false;
   /* NOAA NAQFC near-surface smoke guidance at a point: hourly samples (getSamples) from the time-enabled image service.
      Unit: the service answers in kg/m³ (GRIB's unit for mass density). Its description says "micrograms per cubic feet",
      but every value is an exact multiple of 1e-9 (1 µg/m³), its legend has classes 1..150, and its stated maximum is
@@ -596,19 +609,14 @@
       source: { name: "NOAA NAQFC smoke guidance (model)", url: "https://airquality.weather.gov/" } };
   }
 
-  /* WSSI-P point answers per level, combined. A level that failed (after its retry) is bounded by the level below it: the
-     chance of at least Extreme can't exceed the chance of at least Major. When the level below answered with no area at
-     the venue in any window, the failed level is under 5% there too (returned as inferred). Otherwise the answer is
-     incomplete and this throws, so the source stays unconfirmed rather than reading "none". */
+  /* WSSI-P point answers per level, combined. A level that still fails after its retry is reported as unavailable; the
+     levels that answered are kept as published. Nothing is inferred for a missing level. If no level answered, this throws
+     (the source stays unconfirmed). */
   function combineWSSI(results) {
-    const out = results.slice(), inferred = [];
-    out.forEach((r, i) => {
-      if (Array.isArray(r)) return;
-      const below = out[i - 1];
-      if (i > 0 && Array.isArray(below) && below.length === 0) { out[i] = []; inferred.push(WSSI_LEVELS[i]); }
-      else throw Error("WSSI-P " + WSSI_LEVELS[i] + " did not answer" + (r && r.failed ? " (" + r.failed + ")" : "") + (i > 0 ? " and the level below has an area at the venue" : ""));
-    });
-    return { products: out.flat(), inferred };
+    const unavailable = [], got = [];
+    results.forEach((r, i) => { if (Array.isArray(r)) got.push(...r); else unavailable.push(WSSI_LEVELS[i]); });
+    if (unavailable.length === results.length) throw Error("WSSI-P: no level answered");
+    return { products: got, unavailable };
   }
 
   /* ---------- NHC / CPHC (NOAA map service tropical/NHC_tropical_weather_summary) ----------
@@ -665,14 +673,14 @@
     { id: "noaa-hms", name: "NOAA satellite smoke analysis (HMS)", provider: "NOAA NESDIS", region: "North America", boxes: [[-170, 14, -50, 72]], hazards: ["smoke"], url: "https://www.ospo.noaa.gov/products/land/hms.html" },
     { id: "airnow-obs", name: "AirNow air quality observations", provider: "EPA AirNow and state/local agencies", region: "United States", boxes: BOX.us, hazards: ["smoke"], url: "https://www.airnow.gov/" },
     { id: "airnow-fcst", name: "AirNow air quality forecasts", provider: "State and local air agencies via AirNow", region: "United States", boxes: BOX.us, hazards: ["smoke"], url: "https://www.airnow.gov/" },
-    { id: "noaa-naqfc-smoke", name: "NOAA smoke forecast guidance (NAQFC)", provider: "NOAA National Weather Service", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["smoke"], url: "https://airquality.weather.gov/" },
+    NAQFC_ENABLED && { id: "noaa-naqfc-smoke", name: "NOAA smoke forecast guidance (NAQFC)", provider: "NOAA National Weather Service", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["smoke"], url: "https://airquality.weather.gov/" },
     { id: "nhc", name: "NHC tropical outlooks and storm products", provider: "NOAA National Hurricane Center", region: "Atlantic and Pacific basins", boxes: [[-180, 0, -10, 60]], hazards: ["tropical"], url: "https://www.nhc.noaa.gov/" },
     { id: "nifc-wfigs", name: "NIFC wildfire incidents (WFIGS)", provider: "National Interagency Fire Center", region: "United States", boxes: BOX.us, hazards: ["fire"], url: "https://data-nifc.opendata.arcgis.com/" },
     { id: "spc-md", name: "SPC Mesoscale Discussions", provider: "NOAA Storm Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["severe"], url: "https://www.spc.noaa.gov/products/md/" },
     { id: "spc-outlook", name: "SPC convective outlooks", provider: "NOAA Storm Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["severe"], url: "https://www.spc.noaa.gov/products/outlook/" },
     { id: "wpc-wssi-p", name: "WPC winter storm severity outlook (WSSI-P)", provider: "NOAA Weather Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["winter"], url: "https://www.wpc.ncep.noaa.gov/wwd/wssi/prob_wssi.php" },
     { id: "wpc-ero", name: "WPC Excessive Rainfall Outlook", provider: "NOAA Weather Prediction Center", region: "Contiguous U.S.", boxes: BOX.conus, hazards: ["flood"], url: "https://www.wpc.ncep.noaa.gov/qpf/excessive_rainfall_outlook_ero.php" },
-  ];
+  ].filter(Boolean);
   const covers = (src, lat, lon) => src.boxes.some(([w, s, e, n]) => lon >= w && lon <= e && lat >= s && lat <= n);
 
   /* ---------- SPC outlooks ---------- */
@@ -768,7 +776,7 @@
 
   return { EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
     parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries, dissolve, zoneShape,
-    HAZARD, WINTER_EVENTS, FIRE_EVENTS, TROPICAL_EVENTS, COASTAL_EVENTS, EVENT_NAME, tcvToAlerts, NHC_URL, NHC_WSP_AT, parseNHC, parseNHCWsp, TCWW, FIRE_CATS, DRYT_CATS, FIRE38_CATS, FIRE_NAME, FIRE_MEANING, SPC_FIRE_URL, parseFireOutlook, createFireStore,
+    HAZARD, WINTER_EVENTS, FIRE_EVENTS, TROPICAL_EVENTS, COASTAL_EVENTS, EVENT_NAME, tcvToAlerts, pointZones, NAQFC_ENABLED, NHC_URL, NHC_WSP_AT, parseNHC, parseNHCWsp, TCWW, FIRE_CATS, DRYT_CATS, FIRE38_CATS, FIRE_NAME, FIRE_MEANING, SPC_FIRE_URL, parseFireOutlook, createFireStore,
     NIFC_INC_URL, NIFC_PER_URL, INCIDENT_TYPE, parseNIFC, zTime,
     HMS_DENSITY, HMS_URL, parseHMS, AQI_CATS, AQI_CAT_ORDER, aqiCat, AIRNOW_MON_URL, AIRNOW_MON_ALL_URL, parseAirNowMonitors, parseReportingArea, aqForecastProducts, AIRNOW_AREA_AT, NAQFC_SMOKE_AT, parseNAQFC, WSSI_LEVELS, WSSI_NAME, WSSI_MEANING, WSSIP_URL, parseWSSIP, combineWSSI, ERO_CATS, ERO_NAME, ERO_PCT, WPC_ERO_URL, MAPSVC_ERO_URL, parseERO, createEROStore, SOURCES, covers };
 });

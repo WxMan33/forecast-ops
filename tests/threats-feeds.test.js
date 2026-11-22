@@ -340,12 +340,10 @@ ok("NAQFC smoke: samples from the latest model run, sorted by valid hour", () =>
   assert.throws(() => F.parseNAQFC({ error: {} }, [0, 0]), /unrecognized NOAA smoke/);
 });
 
-ok("WSSI-P levels: a failed level is inferred under 5% only when the level below has no area at the venue; otherwise the answer is unconfirmed", () => {
-  const area = [{ id: "x", category: "MAJOR", prob: 10 }];
-  const r = F.combineWSSI([[{ id: "a" }], [], [], [], { failed: "timeout" }]); assert.deepStrictEqual(r.inferred, ["EXTREME"]); assert.strictEqual(r.products.length, 1);
-  assert.throws(() => F.combineWSSI([[{ id: "a" }], [], [], area, { failed: "timeout" }]), /EXTREME did not answer \(timeout\) and the level below has an area/);
-  assert.throws(() => F.combineWSSI([{ failed: "HTTP 504" }, [], [], [], []]), /WWA did not answer/);
-  assert.deepStrictEqual(F.combineWSSI([[], [], { failed: "x" }, { failed: "y" }, []]).inferred, ["MODERATE", "MAJOR"]); // Minor has no area, so every higher level is bounded too
+ok("WSSI-P levels: a level that still fails is reported unavailable and the answered levels are kept; nothing is inferred; no level at all is an error", () => {
+  const r = F.combineWSSI([[{ id: "a" }], [{ id: "b" }], [], [], { failed: "timeout" }]); assert.deepStrictEqual(r.unavailable, ["EXTREME"]); assert.deepStrictEqual(r.products.map((p) => p.id), ["a", "b"]);
+  assert.deepStrictEqual(F.combineWSSI([[], [], { failed: "x" }, { failed: "y" }, []]).unavailable, ["MODERATE", "MAJOR"]);
+  assert.throws(() => F.combineWSSI([1, 2, 3, 4, 5].map(() => ({ failed: "HTTP 504" }))), /no level answered/);
 });
 
 /* ---------- TROPICAL AND COASTAL adapters ---------- */

@@ -39,7 +39,8 @@
     data = snapshot(); const now = Date.parse(data.clock);
     if (data.loading || !ready) { box.innerHTML = '<p class="bx-note">Checking official flood, winter, fire weather, tropical and coastal alerts and outlooks, wildfire incidents, smoke and air quality…</p>'; return; }
     const state = Live.registryState(data, now);
-    const r = M.forEvent({ products: data.products, state, event: { lat: +ev.loc.lat, lon: +ev.loc.lon, name: ev.loc.name, tz: ev.tz, windows: C.event.windows(ev) }, now, families: FAMILIES });
+    const pk = (+ev.loc.lat).toFixed(4) + "," + (+ev.loc.lon).toFixed(4), zones = ARCHIVE ? (data.points && data.points[pk]) || null : Live.pointZones ? Live.pointZones(+ev.loc.lat, +ev.loc.lon) : null;
+    const r = M.forEvent({ products: data.products, state, event: { lat: +ev.loc.lat, lon: +ev.loc.lon, name: ev.loc.name, tz: ev.tz, windows: C.event.windows(ev), zones }, now, families: FAMILIES });
     const tz = ev.tz;
     const items = r.items.map((it) => {
       const p = it.product, id = esc(it.id), isOpen = open.has(it.id), src = state[p.sourceId] || {};
@@ -50,7 +51,8 @@
         ["Source", `${esc(p.office)} · <a href="${esc(p.source.url)}" target="_blank" rel="noopener">wind speed probabilities</a>`],
         ["Advisory", p.issued ? esc(fmt(p.issued, tz)) : "not stated"],
         ["Chances at the venue", it.levels.map(([kt, v]) => esc((kt === 34 ? "39+ mph (34 kt)" : kt === 50 ? "58+ mph (50 kt)" : "74+ mph (64 kt)") + " " + v)).join(" · ")],
-        ["Period", "The 5 days after the advisory, cumulative: the chance it happens at some time in that period, not when"],
+        ["Forecast window", it.window5 ? esc(fmt(new Date(it.window5.from).toISOString(), tz) + " → " + fmt(new Date(it.window5.to).toISOString(), tz)) + " (5 days from the advisory; cumulative, not timing)" : "the 5 days after the advisory"],
+        ["Forecast cone", "Regional context on the map only. These probabilities apply at the venue whether or not it is inside the cone."],
         ["Last checked", src.lastOk ? esc(fmt(src.lastOk, tz)) : "not yet"],
       ] : sm && p.kind === "smoke" ? [
         ["Source", `${esc(p.office)} · <a href="${esc(p.source.url)}" target="_blank" rel="noopener">HMS smoke analysis</a>`],
@@ -105,7 +107,7 @@
         ["Source", `${esc(p.office)} · <a href="${esc(p.source.url)}" target="_blank" rel="noopener">WSSI-P (official product)</a>`],
         ["Issued", p.issued ? "WPC file " + esc(fmt(p.issued, tz)) : "not stated by the source"],
         ["Valid", "24 hours, " + esc(fmt(p.validStart, tz)) + " → " + esc(fmt(p.validEnd, tz))],
-        ["Chances at the venue", it.levels.map(([L, v]) => esc((L === "WWA" ? "Winter weather (any)" : F.WSSI_NAME[L]) + " " + pct(v) + ((src.inferred || []).includes(L) ? " (inferred: the service didn't answer for this level; the level below has no area here)" : ""))).join(" · ")],
+        ["Chances at the venue", it.levels.map(([L, v]) => esc((L === "WWA" ? "Winter weather (any)" : F.WSSI_NAME[L]) + (v == null ? " unavailable (NOAA's service did not answer for this level)" : " " + pct(v)))).join(" · ")],
         ["Overlaps", esc(it.phases.join(", "))],
         ["Last checked", src.lastOk ? esc(fmt(src.lastOk, tz)) + (src.kind === "stale" ? " · not confirmed since then" : "") : "not yet"],
         ["Covers through", src.reachEnd ? esc(fmt(src.reachEnd, tz)) + " (the last 24-hour window WPC has published)" : "unknown"],
@@ -117,7 +119,7 @@
         [p.kind === "outlook" ? "Valid" : "In effect", p.kind === "outlook" ? esc(fmt(p.validStart, tz)) + " → " + esc(fmt(p.validEnd, tz)) : (started ? "from " + esc(fmt(p.issued, tz)) + " " : "") + (p.openEnded ? "until further notice · next NWS update due by " + esc(fmt(p.expires, tz)) : "until " + esc(fmt(p.expires, tz)))],
         ...(p.windWindow ? [["Wind timing", esc("NWS window for tropical-storm-force winds: " + p.windWindow)]] : []),
         ["Last checked", src.lastOk ? esc(fmt(src.lastOk, tz)) + (src.kind === "stale" ? " · not confirmed since then" : "") : "not yet"],
-        ["Venue", esc(it.relation.kind === "unknown" ? "Unknown: the area isn't fully drawn" : p.kind === "outlook" ? "Inside the highest category that reaches the venue (" + (F.ERO_NAME[p.category] || p.category) + ")" : "Inside the " + p.kind + " area" + (p.geometrySource === "counties" ? " (drawn from the NWS " + ((p.zones || []).some((u) => /\/zones\/fire\//.test(u)) ? "fire weather" : "forecast") + " zones it lists: " + (p.zones || []).map((u) => u.split("/").pop()).join(", ") + ")" : ""))],
+        ["Venue", it.adjacent ? esc("Coastal alert for the adjacent shoreline: NWS places the venue in no land forecast zone (" + (zones && zones.marine || "over the water") + "); the alert was issued for the coastal zone " + window.ThreatsCore.distanceText(it.relation.km || 0) + " away") : esc(it.relation.kind === "unknown" ? "Unknown: the area isn't fully drawn" : p.kind === "outlook" ? "Inside the highest category that reaches the venue (" + (F.ERO_NAME[p.category] || p.category) + ")" : "Inside the " + p.kind + " area" + (p.geometrySource === "counties" ? " (drawn from the NWS " + ((p.zones || []).some((u) => /\/zones\/fire\//.test(u)) ? "fire weather" : "forecast") + " zones it lists: " + (p.zones || []).map((u) => u.split("/").pop()).join(", ") + ")" : ""))],
         ["Details", esc(p.headline || p.hazard || "")],
       ];
       return `<li class="et-item" data-family="${esc(it.family)}" data-kind="${esc(it.kind)}">

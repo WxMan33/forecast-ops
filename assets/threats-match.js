@@ -24,6 +24,7 @@
   const INCIDENT_KM = 15 * T.KM_PER_MI; // a wildfire is listed when its perimeter, or its reported point, is within 15 miles
   const ALERT_RANK = { warning: 0, watch: 0.3, advisory: 0.4, statement: 0.45 };
   const list = (a) => (a.length <= 1 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]);
+  const when = (ms, tz0) => new Date(ms).toLocaleString("en-US", { timeZone: tz0, month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" }).replace(":00", "");
   const day = (ms, tz) => new Date(ms).toLocaleDateString("en-US", { timeZone: tz, weekday: "long" });
   const clock = (ms, tz) => new Date(ms).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).replace(":00", "").replace("AM", "a.m.").replace("PM", "p.m.");
   const span = (a, b, tz) => { const sameDay = day(a, tz) === day(b, tz); return day(a, tz).slice(0, 3) + " " + clock(a, tz) + " – " + (sameDay ? "" : day(b, tz).slice(0, 3) + " ") + clock(b, tz); };
@@ -56,25 +57,36 @@
       // tropical watches/warnings run until further notice: they cover every phase from their start on
       const ph = overlaps(start, p.openEnded ? Infinity : end, phases);
       if (!ph.length) continue;
-      let rel = T.relation(p, venue), shore = false;
-      // NWS zones stop at the coastline; a pier, beach or waterfront venue just outside a coastal or tropical alert's zone
-      // (within 1.5 miles: zone outlines are simplified at the coast) is at that zone's shoreline, where surf, rip currents and surge happen
-      if (rel.kind === "near" && rel.km <= 1.5 * T.KM_PER_MI && ["coastal", "tropical"].includes(family(p)) && p.geometrySource === "counties") { rel = { kind: "covers", shoreline: true, km: rel.km }; shore = true; }
-      if (rel.kind !== "covers" && rel.kind !== "unknown") continue;
+      /* Zone-based alerts use NWS's own placement of the venue when known (event.zones: the forecast, county and fire
+         weather zones api.weather.gov/points gives for the venue): the alert covers the venue when it lists one of them.
+         A venue NWS places in no land zone (over the water, e.g. a pier: marine zone only) within 1.5 miles of a coastal or
+         tropical alert's zone is flagged "for the adjacent shoreline"; a venue NWS places in a different land zone is not
+         covered, however close. Without NWS's placement, the drawn zone outline decides. */
+      let rel = T.relation(p, venue), shore = false, official = false;
+      const vz = event.zones && Array.isArray(event.zones.land) ? event.zones : null;
+      if (vz && p.geometrySource === "counties" && (p.zones || []).length) {
+        if ((p.zones || []).some((u) => vz.land.includes(u))) { rel = { kind: "covers" }; official = true; }
+        else if (!vz.land.length && rel.kind !== "unknown" && (rel.kind === "covers" || (rel.kind === "near" && rel.km <= 1.5 * T.KM_PER_MI)) && ["coastal", "tropical"].includes(family(p))) { rel = { kind: "adjacent", km: rel.km || 0, dir: rel.dir }; shore = true; }
+        else continue;
+      }
+      if (rel.kind !== "covers" && rel.kind !== "unknown" && !shore) continue;
       const words = ph.map((x) => PHASE_WORD[x.key] || x.label.toLowerCase());
       const until = p.openEnded ? "further notice" : clock(end, tz) + (day(end, tz) !== day(now, tz) ? " " + day(end, tz) : "");
       const winter = ["winter", "fire", "tropical", "coastal"].includes(family(p)), fire = ["fire", "tropical", "coastal"].includes(family(p));
       const from = fire && start > now ? "from " + clock(start, tz) + (day(start, tz) !== day(now, tz) ? " " + day(start, tz) : "") + " " : "";
       items.push({ id: p.id, productId: p.id, family: family(p), kind: p.kind, rank: ALERT_RANK[p.kind], product: p, phases: ph.map((x) => x.key),
-        headline: winter ? p.event + " during " + list(words) : p.event + " until " + until,
-        line: rel.kind !== "covers" ? "Area not fully drawn: the " + p.kind + " lists zones that could include the venue during " + list(words) + "."
-          : winter ? "In effect at the venue " + from + "until " + until + (p.geometrySource === "counties" ? " (issued for the " + ((p.zones || []).some((u) => /\/zones\/fire\//.test(u)) ? "fire weather" : "forecast") + " zone " + (shore ? "whose shoreline the venue is on" : "that includes the venue") + ")." : ".") + (p.windWindow ? " NWS window for tropical-storm-force winds: " + p.windWindow + "." : "") + (p.openEnded ? " Updated with each NHC advisory." : "") : "Covers the venue during " + list(words) + ".",
+        headline: shore ? "Coastal alert for the adjacent shoreline: " + p.event : winter ? p.event + " during " + list(words) : p.event + " until " + until,
+        adjacent: shore, officialPlacement: official,
+        line: shore ? "Issued for " + (p.area || "the coastal zone") + "; NWS places the venue in no land forecast zone (" + (vz.marine || "over the water") + "), " + (rel.km ? T.distanceText(rel.km) + " from that zone" : "at its edge") + ". It covers the shoreline next to the venue, not the venue's own zone. In effect " + from + "until " + until + " during " + list(words) + "." + (p.windWindow ? " NWS window for tropical-storm-force winds: " + p.windWindow + "." : "")
+          : rel.kind !== "covers" ? "Area not fully drawn: the " + p.kind + " lists zones that could include the venue during " + list(words) + "."
+          : winter ? "In effect at the venue " + from + "until " + until + (p.geometrySource === "counties" ? " (issued for the " + ((p.zones || []).some((u) => /\/zones\/fire\//.test(u)) ? "fire weather" : "forecast") + " zone that includes the venue" + (official ? ", as NWS places it" : "") + ")." : ".") + (p.windWindow ? " NWS window for tropical-storm-force winds: " + p.windWindow + "." : "") + (p.openEnded ? " Updated with each NHC advisory." : "") : "Covers the venue during " + list(words) + ".",
         relation: rel, window: { startMs: start, endMs: p.openEnded ? Math.max(end, all.endMs) : end } });
     }
 
     /* WPC WSSI-P (winter, probabilistic): per rolling 24-hour window, the probability at the venue of at least each impact
        level. One item: the most significant window overlapping the event. "Likely" only at 60% or more. */
     const wss = products.filter((p) => fam(p) && p.program === "wssip");
+    const wUnavail = ((state["wpc-wssi-p"] || {}).unavailable) || []; // levels NOAA's service did not answer for (after a retry)
     if (wss.length) {
       const at = (p) => (p.pointHit ? Math.abs(p.pointHit[0] - venue.lon) < 1e-3 && Math.abs(p.pointHit[1] - venue.lat) < 1e-3 : p.geometry && T.contains(p.geometry, [venue.lon, venue.lat]));
       const wins = new Map();
@@ -95,7 +107,7 @@
         const phrase = { WWA: "Winter weather", MINOR: "Minor winter impacts", MODERATE: "Moderate winter impacts", MAJOR: "Major winter impacts", EXTREME: "Extreme winter impacts" }[best.lv];
         const word = p.prob >= 60 ? "likely" : p.prob >= 30 ? "possible" : null, dname = day(Math.max(best.s, all.startMs), tz);
         items.push({ id: p.id, productId: p.id, family: "winter", kind: "outlook", rank: 1 + (5 - F.WSSI_LEVELS.indexOf(best.lv)) / 10, product: p, phases: best.ph.map((x) => x.key),
-          levels: F.WSSI_LEVELS.map((L) => [L, best.w[L] ? best.w[L].prob : 0]),
+          levels: F.WSSI_LEVELS.map((L) => [L, wUnavail.includes(L) ? null : best.w[L] ? best.w[L].prob : 0]), unavailable: wUnavail,
           headline: (word ? phrase + " " + word + " " + dname : "Low chance of " + phrase.toLowerCase() + " " + dname) + " · " + p.prob + "% chance of at least " + F.WSSI_NAME[best.lv] + (best.lv === "WWA" ? "" : " impacts"),
           line: "WPC's winter storm severity outlook (WSSI-P) for the 24 hours " + span(best.s, best.e, tz) + " includes the venue and overlaps " + list(words) + ". " + F.WSSI_MEANING[best.lv] + " A chance for the whole 24 hours, not timing within it.",
           relation: { kind: "covers" }, window: { startMs: best.s, endMs: best.e } });
@@ -165,7 +177,7 @@
           relation: { kind: "covers" }, window: { startMs: s, endMs: e } });
       }
       // NOAA NAQFC near-surface smoke: hours that fall in the event's phases
-      const nq = products.find((p) => p.kind === "smokefcst" && p.pointHit && Math.abs(p.pointHit[0] - venue.lon) < 1e-3 && Math.abs(p.pointHit[1] - venue.lat) < 1e-3);
+      const nq = F.NAQFC_ENABLED && products.find((p) => p.kind === "smokefcst" && p.pointHit && Math.abs(p.pointHit[0] - venue.lon) < 1e-3 && Math.abs(p.pointHit[1] - venue.lat) < 1e-3);
       if (nq) {
         smokeNotes.nqReach = nq.validEnd;
         const hit = phases.map((x) => ({ x, hrs: nq.hours.filter((h) => { const t = Date.parse(h.t); return t > x.startMs && t - 3600e3 < x.endMs && t > now; }) })).filter((y) => y.hrs.some((h) => h.v >= NAQFC_MIN));
@@ -188,8 +200,9 @@
       if (t34 && t34.pct >= 10 && all.endMs > now && (!until || all.startMs < until)) {
         const pc = (kt) => (by[kt] ? (by[kt].band && /-/.test(by[kt].band) ? by[kt].band : by[kt].pct < 5 ? "under 5%" : Math.round(by[kt].pct) + "%") : "under 5%");
         items.push({ id: t34.id, productId: t34.id, family: "tropical", kind: "tcwind", rank: 0.35, product: t34, phases: [], levels: [[34, pc(34)], [50, pc(50)], [64, pc(64)]],
-          headline: (t34.band && /-/.test(t34.band) ? t34.band : Math.round(t34.pct) + "%") + " chance of tropical-storm-force winds at the venue" + (until ? " through " + day(until, tz) : ""),
-          line: "NHC wind speed probabilities" + (issued ? " (advisory " + clock(issued, tz) + " " + day(issued, tz).slice(0, 3) + ")" : "") + ": 39+ mph " + pc(34) + ", 58+ mph " + pc(50) + ", hurricane-force " + pc(64) + ". A chance over the whole 5 days, not timing; NWS watches and warnings for the venue give the timing.",
+          headline: (t34.band && /-/.test(t34.band) ? t34.band : Math.round(t34.pct) + "%") + " chance of tropical-storm-force winds (39+ mph, 34 kt) at the venue" + (until ? " through " + day(until, tz) : ""),
+          window5: issued ? { from: issued, to: until } : null,
+          line: "NHC wind speed probabilities, forecast window " + (issued ? when(issued, tz) + " – " + when(until, tz) : "the 5 days after the advisory") + ": 39+ mph (34 kt) " + pc(34) + ", 58+ mph (50 kt) " + pc(50) + ", 74+ mph (64 kt) " + pc(64) + ". The chance of those winds at some time in that window, not timing; it applies whether or not the venue is inside the forecast cone. NWS watches and warnings for the venue give the timing.",
           relation: { kind: "covers" }, window: { startMs: now, endMs: until || all.endMs } });
       }
     }
@@ -243,6 +256,7 @@
       else if (st.kind === "unavailable") text = "Not responding · status unknown. We can't rule anything out from this source.";
       else if (st.kind === "stale") text = ("Not confirmed since " + (st.lastOk ? clock(Date.parse(st.lastOk), tz) : "this page opened") + ".").replace(/\.\.$/, ".") + " Showing last known products only.";
       else { ok = true; text = "Checked " + clock(Date.parse(st.lastOk), tz) + (st.reach ? " · " + st.reach : ""); }
+      if (src.id === "wpc-wssi-p" && ok && (st.unavailable || []).length) text += " · " + st.unavailable.map((L) => F.WSSI_NAME[L] === "winter weather" ? "Winter weather" : F.WSSI_NAME[L]).join(", ") + " unavailable";
       if (src.id === "airnow-obs" && ok) { if (smokeNotes.noMonitor) { ok = false; text = "No AirNow monitor reading within 15 miles in the last 3 hours: surface air quality isn't reported for this venue."; } else if (smokeNotes["airnow-obs"]) text += " · " + smokeNotes["airnow-obs"]; }
       if (src.id === "airnow-fcst" && ok) { if (!smokeNotes.fcArea) { ok = false; text = "No AirNow forecast area for this venue."; } else { text += " · " + smokeNotes.fcArea + " reporting area"; st.reachEnd = smokeNotes.fcReach; } }
       if (src.id === "noaa-naqfc-smoke" && ok && smokeNotes.nqReach) st.reachEnd = smokeNotes.nqReach;
