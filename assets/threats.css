@@ -230,3 +230,7 @@
 .tx-fb { font: 600 12px var(--font-body); color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; cursor: pointer; }
 .tx-fb[aria-pressed="true"] { background: var(--accent-dim); color: var(--text); border-color: var(--text); }
 .en-legend { margin-top: 8px; }
+/* GTG model guidance controls and legend */
+.tx-sel { font: 600 12px var(--font-body); padding: 3px 6px; max-width: 100%; }
+.gtg-legend { flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: 12px; }
+.gtg-sw { display: inline-block; width: 18px; height: 10px; border-radius: 2px; border: 1px solid var(--line); }

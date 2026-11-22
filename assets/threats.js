@@ -35,7 +35,7 @@
   const WLEVEL_LABEL = { WWA: "Any winter weather", MINOR: "Minor", MODERATE: "Moderate", MAJOR: "Major", EXTREME: "Extreme" };
   const empty = { type: "FeatureCollection", features: [] };
 
-  const S = { air: [], ap: null, layers: { severe: true, flood: true, winter: true, fire: true, smoke: true, tropical: true, coastal: true, aviation: true }, en: { on: false, at: 0, alt: null, age: 2 }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
+  const S = { air: [], ap: null, layers: { severe: true, flood: true, winter: true, fire: true, smoke: true, tropical: true, coastal: true, aviation: true }, en: { on: false, at: 0, alt: null, age: 2 }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
   let framedAp = false, framedSel = false, mapLoaded = false; // Planner airport "View on map": framed once
   let data, now, venue, map, ready = false, liveReady = false, meshes = new Map(), tzCache = {}, marker, grid = null, mesh = null, mask = null, gridLoading = null, hull = null;
   const phone = () => matchMedia("(max-width: 760px)").matches;
@@ -245,6 +245,7 @@
     if (adv.length) h += adv.slice().sort((a, b) => (order[a.hazardFamily] ?? 9) - (order[b.hazardFamily] ?? 9)).slice(0, 10).map(advItem).join("") + (adv.length > 10 ? `<p class="lg-note">${adv.length - 10} more on the map.</p>` : "");
     if (strong.length && S.en.at === 0) h += strong.slice(0, 6).map((x) => `<button type="button" class="tx-item" data-id="${esc(x.id)}" style="--tx-c:${PIREP_COLOR(x.rank)}"><svg class="tx-sw" width="30" height="16" aria-hidden="true"><circle cx="15" cy="8" r="6" fill="${x.turb.length ? PIREP_COLOR(x.rank) : "none"}" stroke="${x.turb.length ? "#111" : PIREP_COLOR(x.rank)}" stroke-width="${x.turb.length ? 1 : 3}"/></svg><span><span class="tx-kind k-av">PILOT REPORT</span><b>${esc(EN.pirepText(x))}</b><span class="tx-meta">${esc(t(x.observed) + (x.acType ? " · " + x.acType : ""))}</span></span></button>`).join("");
     h += `<div class="lg-note en-legend"><b>Pilot reports</b> are observations (dots: turbulence; rings: icing; darker is stronger). <b>Advisories</b> are official: SIGMETs and CWAs solid, G-AIRMETs dashed (a forecast snapshot every 3 hours). <b>Model guidance</b>: none shown; gridded turbulence guidance is not included because no supported source was verified for this build.${S.route ? " The route is a straight line between the airports, not a flight plan." : ""}</div>`;
+    h += gtgSection();
     const fs = faaShown();
     if (S.air.length) {
       h += `<div class="px-h"><span>Flight disruptions · FAA</span><span>${esc(S.air.join(", "))}</span></div>`;
@@ -265,6 +266,57 @@
     const note = p.kind === "pirep" ? "A pilot's observation at that place, altitude and time; turbulence depends on the aircraft. Not a forecast." : p.kind === "faa" ? "As reported by the FAA; check with the airline for a specific flight." : "An official advisory for an area of airspace, not a forecast for any one flight.";
     return `<button type="button" class="px-back" data-back>← Back</button><div><span class="tx-kind k-av">${esc(kindLabel)}</span></div><div class="px-title">${esc(p.kind === "faa" ? p.typeWord + " · " + p.airportFaa : p.title)}</div><dl class="px-rows">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}<dt>Source</dt><dd><a href="${esc(p.source.url)}" target="_blank" rel="noopener">${esc(p.source.name)}</a> · ${esc(p.office)}</dd></dl><p class="lg-note">${esc(note)}</p>`;
   }
+
+  /* ---------- aviation model guidance: NOAA NCEP Graphical Turbulence Guidance (GTG), one height and forecast hour ---------- */
+  const GT = window.ThreatsGTG, BLANK_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+  const gtg = { latest: null, latestAt: 0, state: "off", error: null, key: null, dec: null, P: null, cache: new Map(), drawn: null, pending: null };
+  const gtgBase = () => (Live.NWS.base || "").replace(/\/api\/nws$/, "/api/gtg");
+  const gtgHeight = () => GT.HEIGHTS.find((h) => h.ft === S.gtg.ft) || GT.HEIGHTS.find((h) => h.ft === 30000);
+  async function gtgGet(u, as) { const r = await fetch(u, { cache: "no-store" }); if (!r.ok) { let m = "HTTP " + r.status; try { m = (await r.json()).error || m; } catch (x) { /* not JSON */ } throw Error(m); } return { body: as === "json" ? await r.json() : new Uint8Array(await r.arrayBuffer()), headers: r.headers }; }
+  function ensureGtg() {
+    if (!GT || !map || !ready) return;
+    const on = S.gtg.on && enOn() && !isArchive() && Live.NWS.mode === "function";
+    map.setLayoutProperty("gtg-img", "visibility", on && gtg.state === "ok" ? "visible" : "none");
+    if (!S.gtg.on || !enOn()) return;
+    if (isArchive() || Live.NWS.mode !== "function") { gtg.state = "na"; return; }
+    const h = gtgHeight(), want = S.gtg.fh + "|" + h.m + "|" + S.gtg.cls;
+    if (gtg.pending === want || (gtg.drawn === want + "|" + (gtg.latest && gtg.latest.cycle) && Date.now() - gtg.latestAt < 15 * 60e3)) return;
+    gtg.pending = want; gtg.state = "loading"; gtg.error = null;
+    (async () => {
+      if (!gtg.latest || Date.now() - gtg.latestAt > 15 * 60e3) { gtg.latest = (await gtgGet(gtgBase() + "/latest", "json")).body; gtg.latestAt = Date.now(); }
+      const cyc = gtg.latest.cycle, rk = cyc + "|" + S.gtg.fh + "|" + h.m; let dec = gtg.cache.get(rk);
+      if (!dec) { const r = await gtgGet(gtgBase() + "/record?cycle=" + cyc + "&fh=" + S.gtg.fh + "&m=" + h.m, "bin"); dec = GT.decode(r.body); dec.bytes = r.body.length; dec.record = r.headers.get("X-GTG-Record"); dec.fileBytes = +r.headers.get("X-GTG-File-Bytes") || null; dec.fetchedAt = r.headers.get("X-Upstream-Fetched-At");
+        if (dec.product.category !== 19 || dec.product.number !== 30 || Math.round(dec.product.level) !== h.m) throw Error("unexpected record (" + dec.product.category + "/" + dec.product.number + " at " + dec.product.level + " m)");
+        gtg.cache.set(rk, dec); if (gtg.cache.size > 6) gtg.cache.delete(gtg.cache.keys().next().value); }
+      const img = GT.render(dec, { width: 1100, cls: S.gtg.cls }), cv = document.createElement("canvas"); cv.width = img.width; cv.height = img.height; cv.getContext("2d").putImageData(new ImageData(img.rgba, img.width, img.height), 0, 0);
+      map.getSource("gtg").updateImage({ url: cv.toDataURL("image/png"), coordinates: img.coordinates });
+      Object.assign(gtg, { dec, P: GT.projection(dec.grid), key: rk, state: "ok", drawn: want + "|" + cyc });
+    })().catch((e) => { gtg.state = "failed"; gtg.error = e.message; }).finally(() => { gtg.pending = null; stage("panel", renderPanel); if (map) map.setLayoutProperty("gtg-img", "visibility", S.gtg.on && gtg.state === "ok" ? "visible" : "none"); });
+  }
+  const gtgAt = (pt) => { if (!gtg.dec || !pt) return null; const v = GT.valueAt(gtg.dec, pt[0], pt[1], gtg.P); return v.inside ? { ...v, cat: GT.category(v.value, S.gtg.cls) } : null; };
+  const gtgWord = (x) => (!x ? "outside the GTG grid" : x.value == null ? "no value (masked)" : "EDR " + x.value.toFixed(2) + " · " + (x.cat ? GT.CAT_WORD[x.cat] : "below light") + " for " + S.gtg.cls + " aircraft");
+  function gtgSection() {
+    if (!GT || !enOn()) return "";
+    let h = `<div class="px-h"><span>Model guidance · NOAA GTG</span><span>turbulence forecast</span></div>`;
+    if (isArchive()) return h + `<p class="px-empty">Live only: GTG guidance is not part of this archived replay.</p>`;
+    if (!S.gtg.on) return h + `<button type="button" class="px-link" data-gtg-on="1">Show forecast turbulence guidance (one height and hour, about 1 MB) →</button>`;
+    const L = gtg.latest, hh = gtgHeight();
+    h += `<div class="tx-filters"><span class="tx-fl">Altitude</span><select class="input tx-sel" data-gtg-ft aria-label="GTG altitude">${GT.HEIGHTS.filter((x) => x.ft >= 1000).map((x) => `<option value="${x.ft}"${x.ft === hh.ft ? " selected" : ""}>${esc(GT.levelLabel(x.ft))} MSL</option>`).join("")}</select></div>`;
+    h += `<div class="tx-filters"><span class="tx-fl">Valid</span><select class="input tx-sel" data-gtg-fh aria-label="GTG forecast hour">${Array.from({ length: 19 }, (_, f) => `<option value="${f}"${f === S.gtg.fh ? " selected" : ""}>${L ? esc(t(new Date(gtgCycleMs(L.cycle) + f * 3600e3).toISOString())) + " · " : ""}+${f} h</option>`).join("")}</select></div>`;
+    h += `<div class="tx-filters"><span class="tx-fl">Aircraft</span>${["light", "medium", "heavy"].map((c) => `<button type="button" class="tx-fb" data-gtg-cls="${c}" aria-pressed="${S.gtg.cls === c}">${c}</button>`).join("")}</div>`;
+    const th = GT.CLASSES[S.gtg.cls].t;
+    h += `<div class="lg-row gtg-legend">${[1, 2, 3, 4].map((c) => `<span class="gtg-sw" style="background:rgba(${GT.PALETTE[c].slice(0, 3).join(",")},${(GT.PALETTE[c][3] / 255).toFixed(2)})"></span><span>${esc(GT.CAT_WORD[c])} ≥ ${th[c - 1].toFixed(2)}</span>`).join("")}</div>`;
+    if (gtg.state === "loading") h += `<p class="px-empty">Loading GTG ${esc(GT.levelLabel(hh.ft))}, +${S.gtg.fh} h…</p>`;
+    else if (gtg.state === "failed") h += `<p class="px-empty">GTG guidance not available (${esc(gtg.error || "unknown")}). Nothing is shown rather than an old field.</p>`;
+    else if (gtg.state === "ok" && gtg.dec) {
+      const d = gtg.dec, at = gtgAt([venue.lon, venue.lat]);
+      h += `<p class="lg-note" data-gtg-status>Cycle ${esc(T.fmtZ(d.refTime))}, valid ${esc(t(d.validTime, true))} (+${d.product.forecast} h) · EDR at ${esc(GT.levelLabel(hh.ft))} (${d.product.level.toLocaleString("en-US")} m MSL) · record ${(d.bytes / 1048576).toFixed(1)} MB of a ${d.fileBytes ? (d.fileBytes / 1048576).toFixed(0) + " MB" : ""} file</p>`;
+      h += `<p class="lg-note" data-gtg-venue>At ${esc(venue.name)}: ${esc(gtgWord(at))}.</p>`;
+    }
+    h += `<div class="lg-note"><b>Model guidance</b>, not an observation or an advisory: GTG forecasts eddy dissipation rate (EDR, m<sup>2/3</sup> s<sup>-1</sup>) on a 3 km grid. Categories use AWC's EDR thresholds for the chosen aircraft class; what a flight feels depends on the aircraft. Tap the map for the value at a spot.</div>`;
+    return h;
+  }
+  const gtgCycleMs = (c) => Date.UTC(+c.slice(0, 4), +c.slice(4, 6) - 1, +c.slice(6, 8), +c.slice(8, 10));
 
   /* ---------- tropical (NHC context) ---------- */
   const nhcShown = () => !S.layers.tropical ? [] : data.products.filter((p) => p.kind === "tcoutlook" || p.kind === "tctrack");
@@ -444,6 +496,9 @@
       L({ id: "inc-fill", type: "fill", source: "inc", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.28 } });
       L({ id: "inc-line", type: "line", source: "inc", paint: { "line-color": ["get", "color"], "line-width": 1.6 } });
       // aviation en route: advisories (SIGMET and CWA solid, G-AIRMET dashed: a forecast snapshot), the approximate route, pilot reports
+      // GTG model guidance: a raster under everything aviation (advisories are outlines, pilot reports dots and rings)
+      map.addSource("gtg", { type: "image", url: BLANK_PNG, coordinates: [[-125, 50], [-66, 50], [-66, 24], [-125, 24]] });
+      L({ id: "gtg-img", type: "raster", source: "gtg", layout: { visibility: "none" }, paint: { "raster-opacity": 0.85, "raster-resampling": "nearest", "raster-fade-duration": 0 } });
       L({ id: "enr-fill", type: "fill", source: "enr", paint: { "fill-color": ["get", "color"], "fill-opacity": ["get", "fill"] } });
       L({ id: "enr-line", type: "line", source: "enr", filter: ["!=", ["get", "kind"], "gairmet"], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 2.2, "line-opacity": 0.95 } });
       L({ id: "enr-line-fc", type: "line", source: "enr", filter: ["==", ["get", "kind"], "gairmet"], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 1.8, "line-dasharray": [3, 2], "line-opacity": 0.95 } });
@@ -777,6 +832,7 @@
     const list = T.sort((day ? [...(S.layers.severe ? outlooks(day) : []), ...(S.layers.flood ? eroOut(day) : [])] : [...active(), ...(S.layers.severe ? outlooks(1) : [])]).filter((p) => p.geometry && T.contains(p.geometry, pt)));
     let h = `<button type="button" class="px-back" data-back>← ${S.scope === "venue" ? "Venue" : "All threats"}</button>`;
     h += `<div class="px-h"><span>At this spot</span><span>${pt[1].toFixed(2)}°, ${pt[0].toFixed(2)}°</span></div>`;
+    if (S.gtg.on && gtg.state === "ok") h += `<p class="lg-note" data-gtg-point>GTG model guidance at ${esc(GT.levelLabel(gtgHeight().ft))}, valid ${esc(t(gtg.dec.validTime))}: ${esc(gtgWord(gtgAt(pt)))}.</p>`;
     h += list.length ? list.map((p) => item(p, { rel: false })).join("") : `<p class="px-empty">No ${day ? "Day " + day + " outlook area" : "active product or Day 1 outlook area"} covers this spot.</p>`;
     return h;
   }
@@ -898,7 +954,7 @@
      stages, layers and controls keep working, instead of one exception freezing the whole page */
   const drawErrors = [];
   function stage(name, fn) { try { fn(); } catch (e) { drawErrors.push({ stage: name, message: e.message, stack: e.stack, at: new Date().toISOString() }); if (drawErrors.length > 50) drawErrors.shift(); console.error("Weather threats: " + name + " failed", e); } }
-  function drawAll() { stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("en route", ensureEn); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); if ((S.ap || S.fit === "route") && !framedAp && map && mapLoaded) stage("airport view", () => frameAirport(0)); if (S.sel && !framedSel && map && mapLoaded) stage("selection view", frameSelection); }
+  function drawAll() { stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("en route", ensureEn); stage("gtg", ensureGtg); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); if ((S.ap || S.fit === "route") && !framedAp && map && mapLoaded) stage("airport view", () => frameAirport(0)); if (S.sel && !framedSel && map && mapLoaded) stage("selection view", frameSelection); }
   /* a Planner "View on map" for an advisory or a pilot report: frame it once its data has loaded */
   function frameSelection() {
     const p = byId(S.sel); if (!p || !["pirep", "sigmet", "gairmet", "cwa"].includes(p.kind)) return;
@@ -946,6 +1002,9 @@
     if (el) { const v = el.dataset.enAlt; S.en.alt = v === "all" ? null : v.split("-").map(Number); drawAll(); return; }
     if (eg) { S.en.age = +eg.dataset.enAge; drawAll(); return; }
     if (eo) { S.en.on = true; drawAll(); return; }
+    const go = e.target.closest("[data-gtg-on]"), gc = e.target.closest("[data-gtg-cls]");
+    if (go) { S.gtg.on = true; drawAll(); return; }
+    if (gc) { S.gtg.cls = gc.dataset.gtgCls; drawAll(); return; }
     const it = e.target.closest("[data-id]"), sg = e.target.closest("[data-scope-go]"), vg = e.target.closest("[data-view-go]"), back = e.target.closest("[data-back]");
     if (it) { S.sel = it.dataset.id; S.hover = null; openSheet(); drawAll(); fitProduct(byId(S.sel)); $("txPanelBody").scrollTop = 0; $("txPanelBody").focus({ preventScroll: true }); return; }
     if (sg) { openSheet(); return setScope(sg.dataset.scopeGo, true); }
@@ -953,7 +1012,7 @@
     if (back) { if (S.sel) S.sel = null; else S.point = null; drawAll(); }
   });
   const hoverOn = (e) => { const it = e.target.closest("[data-id]"); const id = it ? it.dataset.id : null; if (id !== S.hover) { S.hover = id; stage("map", drawMap); } };
-  $("txPanel").addEventListener("change", (e) => { if (e.target.id === "wssiWin") { S.wwin = e.target.value; drawAll(); } });
+  $("txPanel").addEventListener("change", (e) => { if (e.target.id === "wssiWin") { S.wwin = e.target.value; drawAll(); } if (e.target.matches("[data-gtg-ft]")) { S.gtg.ft = +e.target.value; drawAll(); } if (e.target.matches("[data-gtg-fh]")) { S.gtg.fh = +e.target.value; drawAll(); } });
   $("txPanel").addEventListener("mouseover", hoverOn); $("txPanel").addEventListener("focusin", hoverOn);
   $("txPanel").addEventListener("mouseleave", () => { if (S.hover) { S.hover = null; stage("map", drawMap); } });
   document.querySelectorAll("[data-scope]").forEach((b) => b.addEventListener("click", () => setScope(b.dataset.scope, true)));
@@ -1042,6 +1101,10 @@
     if (q.get("at") && !isNaN(Date.parse(q.get("at")))) S.en.atIso = new Date(q.get("at")).toISOString();
     if (["1", "2", "3"].includes(q.get("age"))) S.en.age = +q.get("age");
     if (q.get("fit") === "route") S.fit = "route";
+    if (q.get("gtg") === "1") { S.gtg.on = true; S.en.on = true; }
+    if (/^\d{1,2}$/.test(q.get("gfh") || "") && +q.get("gfh") <= 18) S.gtg.fh = +q.get("gfh");
+    if (/^\d{3,5}$/.test(q.get("gft") || "") && window.ThreatsGTG && window.ThreatsGTG.HEIGHTS.some((h) => h.ft === +q.get("gft"))) S.gtg.ft = +q.get("gft");
+    if (["light", "medium", "heavy"].includes(q.get("gcls"))) S.gtg.cls = q.get("gcls");
     if (S.route) S.air = [...new Set([...S.air, S.route.o, S.route.d])].slice(0, 4);
     if (+q.get("fday") >= 1 && +q.get("fday") <= 8) S.fday = +q.get("fday");
     if (q.get("rx") === "1") S.rx = true;
@@ -1088,5 +1151,5 @@
       else map.fitBounds(CONUS, { padding: pad(), duration: 0 });
     });
   }).catch((e) => { $("txMap").innerHTML = `<p class="msg" style="padding:20px">The map could not load (${esc(e.message)}). The threat list still works.</p>`; });
-  window.__threats = { S, drawAll, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
+  window.__threats = { S, drawAll, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
 })();
