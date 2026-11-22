@@ -132,7 +132,7 @@ Tests: `tests/threats-enroute.test.js` (11), `tests/threats-functions.test.mjs` 
 - **Units.** m^(2/3) s⁻¹ (EDR, the cube root of the dissipation rate).
 - **Grid.** Lambert conformal, 1799 × 1059, 3 km, true at 38.5° N, LoV 262.5° E, spherical earth.
 - **Packing.** Template 5.3 (complex packing with spatial differencing), with a bitmap.
-- **Timing.** Cycles are **hourly**, each with forecast hours 0–18. Files are about 145–166 MB each; a cycle's f000–f018 appear over roughly 25–90 minutes.
+- **Timing.** Cycles are **hourly**, each with forecast hours 0–18. Files are about 145–166 MB each; on Nov 22 a cycle's f000 appeared about 55 minutes after the cycle hour and f018 about 1.5 hours after (22Z: f000 at 22:53Z; 21Z: f018 at 22:27Z).
 - **Our decoder** (`assets/threats-gtg.js`) matches ecCodes on every point of three full levels (largest difference 1.5×10⁻⁸, float32 rounding; same bitmap). Its Lambert projection returns ecCodes' own latitude and longitude for each cell.
 
 ### Delivery
