@@ -97,10 +97,34 @@ const windowsOf = (p) => p.evaluate(() => { const C = window.Ops.Core, q = new U
       await p.goto(`${base}/event-beta.html?ev=${SAVED.id}`); await p.waitForFunction(() => document.body.dataset.loaded, null, { timeout: 20000 }); await p.waitForTimeout(500);
       await p.click('#shareMenu > summary'); await p.waitForTimeout(200);
       const note = await p.locator('#shareAirNote').innerText().catch(() => '');
-      check(/this link includes KCVG \(primary, arrival and departure times\) and KLUK \(alternate, arrival times\)/.test(note), `${dev}: the Share menu says the link includes the airports (${note.slice(0, 90)}…)`);
+      check(/the event link and the hourly display link include KCVG \(primary, arrival and departure times\) and KLUK \(alternate, arrival times\)/.test(note), `${dev}: the Share menu says the link includes the airports (${note.slice(0, 90)}…)`);
       await p.click('#shareEvent'); const url = await p.evaluate(() => navigator.clipboard.readText()), u = new URL(url), ep = JSON.parse(u.searchParams.get('e'));
       check(JSON.stringify(JSON.parse(u.searchParams.get('air'))) === JSON.stringify(AIRS) && Object.keys(ep).sort().join(',') === 'f,g,n,t,v,z' && [...u.searchParams.keys()].join(',') === 'e,air', `${dev}: the event link carries the airports as ?air=, and e keeps exactly f,g,n,t,v,z`);
+      if (!(await p.evaluate(() => document.getElementById('shareMenu').open))) await p.click('#shareMenu > summary');
+      await p.click('#shareHourly'); const hurl = await p.evaluate(() => navigator.clipboard.readText()), hu = new URL(hurl);
+      check(/#hourly$/.test(hurl) && JSON.stringify(JSON.parse(hu.searchParams.get('air'))) === JSON.stringify(AIRS) && Object.keys(JSON.parse(hu.searchParams.get('e'))).sort().join(',') === 'f,g,n,t,v,z', `${dev}: the hourly display link carries the same airports`);
+      /* the sender leaves the airports out: both links drop air; the menu says so */
+      await p.uncheck('#shareAirInclude'); const offNote = await p.locator('#shareAirNote').innerText();
+      await p.click('#shareEvent'); const offE = new URL(await p.evaluate(() => navigator.clipboard.readText()));
+      if (!(await p.evaluate(() => document.getElementById('shareMenu').open))) await p.click('#shareMenu > summary');
+      await p.click('#shareHourly'); const offH = new URL(await p.evaluate(() => navigator.clipboard.readText()));
+      check(/airports left out/.test(offNote) && [...offE.searchParams.keys()].join(',') === 'e' && [...offH.searchParams.keys()].join(',') === 'e', `${dev}: unticking "Include the airports in links" drops them from both links (${offNote.slice(0, 60)}…)`);
+      await p.check('#shareAirInclude');
       check(!s.errors.length, `${dev} sender with airports: no script errors ${s.errors.join('; ')}`); await s.ctx.close();
+      /* the hourly display link with airports in a clean browser */
+      { const r = await browserCtx(browser, device), q = await r.ctx.newPage(); q.on('pageerror', (e) => r.errors.push(e.message));
+        await q.goto(hurl); await q.waitForFunction(() => document.body.dataset.loaded && document.querySelector('#threatsAir form'), null, { timeout: 20000 }); await q.waitForTimeout(400);
+        const f = await q.evaluate(() => { const f = document.querySelector('#threatsAir form'); return [f.elements.pi.value, f.elements.ai.value].join('|'); });
+        check(f === 'KCVG|KLUK' && !r.errors.length, `${dev} recipient, hourly display link: the airports arrive too (${f}) ${r.errors.join('; ')}`); await r.ctx.close(); }
+      /* invalid or unknown airport IDs in a link: ignored, the event opens with the defaults */
+      for (const [kind, bad] of [['malformed JSON', '{oops'], ['invalid IDs and roles', JSON.stringify([{ i: 'K1', r: 'p' }, { i: '<b>x', r: 'a' }, { i: 'KCVG', r: 'z' }, { i: 'KCVG', r: 'p', a: ['tomorrow', 'later'] }])], ['not a list', '42']]) {
+        const b = new URL(url); b.searchParams.set('air', bad);
+        const r = await browserCtx(browser, device), q = await r.ctx.newPage(); q.on('pageerror', (e) => r.errors.push(e.message));
+        await q.goto(b.toString()); await q.waitForFunction(() => document.body.dataset.loaded && document.querySelector('#threatsAir form'), null, { timeout: 20000 }); await q.waitForTimeout(400);
+        const g = await q.evaluate(() => ({ name: document.getElementById('evName').innerText, pi: document.querySelector('#threatsAir form').elements.pi.value, noAir: !!document.querySelector('.et-noair'), missing: document.body.dataset.missing }));
+        check(g.name === SAVED.name && g.pi === '' && g.noAir && !g.missing && !r.errors.length, `${dev} recipient, ${kind} in ?air=: ignored; the event opens with no airports ${r.errors.join('; ')}`); await r.ctx.close();
+      }
+      /* a well-formed but unknown ID is kept and simply finds no airport reports (checked live on the preview) */
       let withGot = null; for (const [kind, link] of [['with air', url], ['without air', (() => { const b = new URL(url); b.searchParams.delete('air'); return b.toString(); })()]]) {
         const r = await browserCtx(browser, device), q = await r.ctx.newPage(); q.on('pageerror', (e) => r.errors.push(e.message));
         await q.goto(link); await q.waitForFunction(() => document.body.dataset.loaded && document.querySelector('#threatsAir form'), null, { timeout: 20000 }); await q.waitForTimeout(400);

@@ -19,7 +19,13 @@
   const evKey = (e) => (e.id && e.id !== "link" ? e.id : "link:" + (e.loc && e.loc.name) + "@" + (e.times && e.times.start));
   /* airports that arrived in a shared link (?air=) apply until the person saves their own; they are also kept with the
      event in this browser, so they survive a reload or saving the shared event to this browser's list */
-  let linkAir = (() => { try { const a = JSON.parse(Q.get("air") || "null"); return Array.isArray(a) && a.length ? a.slice(0, 2) : null; } catch (x) { return null; } })();
+  /* only well-formed entries count: a valid ICAO-style ID, role p or a, and windows as two local date-times; anything else
+     in a link is ignored and the event opens with its defaults */
+  const DT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, okWin = (w) => w == null || (Array.isArray(w) && w.length === 2 && w.every((x) => typeof x === "string" && DT.test(x)));
+  const cleanAir = (a) => (Array.isArray(a) ? a : []).filter((x) => x && typeof x.i === "string" && /^[A-Za-z][A-Za-z0-9]{3}$/.test(x.i) && (x.r === "p" || x.r === "a") && okWin(x.a) && okWin(x.d))
+    .map((x) => ({ i: x.i.toUpperCase(), r: x.r, a: x.a || null, d: x.d || null })).filter((x, k, all) => all.findIndex((y) => y.r === x.r) === k).slice(0, 2);
+  let linkAir = (() => { try { const a = cleanAir(JSON.parse(Q.get("air") || "null")); return a.length ? a : null; } catch (x) { return null; } })();
+  let shareAir = true; // the sender can leave the airports out of the links (Share menu)
   function airportsRaw(e) {
     if (linkAir) return linkAir;
     try { return (JSON.parse(localStorage.getItem(AIR_KEY) || "{}") || {})[evKey(e)] || []; } catch (x) { return []; }
@@ -195,13 +201,15 @@
   function update(next) { ev = next; if (!started) { started = true; start(); } if (linkAir) saveAirports(ev, linkAir); wssiCheck(); aqCheck(); tcCheck(); avCheck(); render(); shareNote(); }
   /* sharing: Event Manager's link() asks for extra params; the airports (ICAO, role and flight windows) travel as ?air=,
      outside the event payload. The Share menu says what the link carries. */
-  function shareParams(e) { const list = airportsRaw(e || ev).filter((x) => x && x.i); return list.length ? { air: JSON.stringify(list) } : null; }
+  function shareParams(e) { const list = cleanAir(airportsRaw(e || ev)); return list.length && shareAir ? { air: JSON.stringify(list) } : null; }
   function shareNote() {
     const btn = document.getElementById("shareEvent"); if (!btn || !ev) return;
     let n = document.getElementById("shareAirNote"); if (!n) { n = document.createElement("p"); n.id = "shareAirNote"; n.className = "bx-note et-sharenote"; btn.parentElement.appendChild(n); }
-    const list = airportsRaw(ev).filter((x) => x && x.i), wk = (x) => [x.a ? "arrival" : null, x.d ? "departure" : null].filter(Boolean);
-    n.textContent = ev.sample ? "Weather threats: the sample event's link carries the city only, not airports." : list.length ? "Weather threats: this link includes " + list.map((x) => x.i.toUpperCase() + " (" + (x.r === "a" ? "alternate" : "primary") + (wk(x).length ? ", " + wk(x).join(" and ") + " times" : ", no flight times") + ")").join(" and ") + ", so the airport weather opens with it. Venue hazards are checked again when the link is opened."
-      : "Weather threats: no airports are set for this event, so the link carries none. Venue hazards are checked again when the link is opened.";
+    let t = document.getElementById("shareAirToggle"); if (!t) { t = document.createElement("label"); t.id = "shareAirToggle"; t.className = "bx-check et-sharetoggle"; t.innerHTML = '<input type="checkbox" id="shareAirInclude" checked> Include the airports in links'; n.after(t); t.querySelector("input").addEventListener("change", (e) => { shareAir = e.target.checked; shareNote(); }); }
+    const list = cleanAir(airportsRaw(ev)), wk = (x) => [x.a ? "arrival" : null, x.d ? "departure" : null].filter(Boolean);
+    t.hidden = ev.sample || !list.length; t.querySelector("input").checked = shareAir;
+    n.textContent = ev.sample ? "Weather threats: the sample event's link carries the city only, not airports." : list.length && !shareAir ? "Weather threats: airports left out. The event link and the hourly display link carry no airports, so the recipient sees no airport weather unless they add their own. Venue hazards are checked again when the link is opened." : list.length ? "Weather threats: the event link and the hourly display link include " + list.map((x) => x.i.toUpperCase() + " (" + (x.r === "a" ? "alternate" : "primary") + (wk(x).length ? ", " + wk(x).join(" and ") + " times" : ", no flight times") + ")").join(" and ") + ", so the airport weather opens with them. Venue hazards are checked again when the link is opened."
+      : "Weather threats: no airports are set for this event, so the links carry none. Venue hazards are checked again when the link is opened.";
     n.dataset.airports = String(list.length);
   }
   document.addEventListener("submit", (e) => {
