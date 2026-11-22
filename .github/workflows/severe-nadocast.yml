@@ -31,8 +31,16 @@ jobs:
           echo "stage=$(jq -r .stage research/severe/nadocast/request.json)" >> "$GITHUB_OUTPUT"
           echo "run=$(jq -r '.extraction_run // empty' research/severe/nadocast/request.json)" >> "$GITHUB_OUTPUT"
           echo "run2=$(jq -r '.extraction_run_supplement // empty' research/severe/nadocast/request.json)" >> "$GITHUB_OUTPUT"
+          echo "arrays=$(jq -r '.arrays_run // empty' research/severe/nadocast/request.json)" >> "$GITHUB_OUTPUT"
       - uses: actions/download-artifact@v4
-        if: steps.req.outputs.stage == 'pilot' || steps.req.outputs.stage == 'score' || steps.req.outputs.stage == 'wind_pilot' || steps.req.outputs.stage == 'wind_score'
+        if: steps.req.outputs.stage == 'diagnose_day1'
+        with:
+          name: nadocast-score
+          path: tests/out/prev
+          run-id: ${{ steps.req.outputs.arrays }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        if: steps.req.outputs.stage == 'pilot' || steps.req.outputs.stage == 'score' || steps.req.outputs.stage == 'wind_pilot' || steps.req.outputs.stage == 'wind_score' || steps.req.outputs.stage == 'diagnose_day1'
         with:
           pattern: severe-conus-*
           merge-multiple: true
@@ -40,7 +48,7 @@ jobs:
           run-id: ${{ steps.req.outputs.run }}
           github-token: ${{ github.token }}
       - uses: actions/download-artifact@v4
-        if: (steps.req.outputs.stage == 'pilot' || steps.req.outputs.stage == 'score' || steps.req.outputs.stage == 'wind_pilot' || steps.req.outputs.stage == 'wind_score') && steps.req.outputs.run2 != ''
+        if: (steps.req.outputs.stage == 'pilot' || steps.req.outputs.stage == 'score' || steps.req.outputs.stage == 'wind_pilot' || steps.req.outputs.stage == 'wind_score' || steps.req.outputs.stage == 'diagnose_day1') && steps.req.outputs.run2 != ''
         with:
           pattern: severe-conus-*
           merge-multiple: true
@@ -48,14 +56,17 @@ jobs:
           run-id: ${{ steps.req.outputs.run2 }}
           github-token: ${{ github.token }}
       - name: Head-to-head (${{ steps.req.outputs.stage }})
-        if: steps.req.outputs.stage == 'pilot' || steps.req.outputs.stage == 'score' || steps.req.outputs.stage == 'wind_pilot' || steps.req.outputs.stage == 'wind_score'
+        if: steps.req.outputs.stage == 'pilot' || steps.req.outputs.stage == 'score' || steps.req.outputs.stage == 'wind_pilot' || steps.req.outputs.stage == 'wind_score' || steps.req.outputs.stage == 'diagnose_day1'
         run: |
           if [ -d tests/out/x2/conus ]; then  # supplement: re-extracted dates override failed ones
             for d in tests/out/x2/conus/*/; do rm -rf "tests/out/x/conus/$(basename "$d")"; cp -r "$d" tests/out/x/conus/; done
           fi
           ls tests/out/x/conus | wc -l
           stage="${{ steps.req.outputs.stage }}"
-          if [ "${stage#wind_}" != "$stage" ]; then
+          if [ "$stage" = diagnose_day1 ]; then
+            PYTHONPATH=tools/severe python3 tools/severe/nadocast_diagnose.py --arrays tests/out/prev/score-arrays.npz \
+              --conus tests/out/x/conus --output tests/out/nadocast
+          elif [ "${stage#wind_}" != "$stage" ]; then
             PYTHONPATH=tools/severe python3 tools/severe/nadocast_wind.py --stage "${stage#wind_}" \
               --conus tests/out/x/conus --cache tests/out/nccache --output tests/out/nadocast
           else
@@ -63,11 +74,11 @@ jobs:
               --conus tests/out/x/conus --cache tests/out/nccache --output tests/out/nadocast
           fi
       - name: Commit the scorecard and maps (not the arrays)
-        if: steps.req.outputs.stage == 'pilot' || steps.req.outputs.stage == 'score' || steps.req.outputs.stage == 'wind_pilot' || steps.req.outputs.stage == 'wind_score'
+        if: steps.req.outputs.stage == 'pilot' || steps.req.outputs.stage == 'score' || steps.req.outputs.stage == 'wind_pilot' || steps.req.outputs.stage == 'wind_score' || steps.req.outputs.stage == 'diagnose_day1'
         run: |
           dest=research/severe/nadocast/${{ steps.req.outputs.stage }}
           mkdir -p "$dest"
-          cp tests/out/nadocast/*-scorecard.json "$dest"/
+          cp tests/out/nadocast/*-scorecard.json tests/out/nadocast/diagnosis.json "$dest"/ 2>/dev/null || true
           cp tests/out/nadocast/*.png "$dest"/ 2>/dev/null || true
           echo "run_id: $GITHUB_RUN_ID" > "$dest/run.txt"
           git config user.name "github-actions[bot]"

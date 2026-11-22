@@ -1,7 +1,8 @@
 {
-  "purpose": "NadoCast Day 2 wind benchmark: full locked score (234 fresh + 81 exploratory 2024 issue dates) and the two preselected maps",
-  "stage": "wind_score",
+  "purpose": "Diagnose the Day 1 tornado gap (v0.7 vs NadoCast) from the saved benchmark predictions; all 323 scored 2024 dates are diagnostic; no training",
+  "stage": "diagnose_day1",
+  "arrays_run": 44961880902,
   "extraction_run": 44942885255,
   "extraction_run_supplement": 44961446546,
-  "request": 6
+  "request": 7
 }
