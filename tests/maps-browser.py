@@ -1,5 +1,5 @@
 """On-demand field downloads and recovery using the captured NOAA HRRR grid."""
-import functools,http.server,json,threading,math
+import functools,gzip,http.server,json,struct,threading,math
 from pathlib import Path
 from urllib.parse import urlsplit
 from playwright.sync_api import sync_playwright
@@ -13,6 +13,20 @@ threading.Thread(target=server.serve_forever,daemon=True).start()
 origin=f'http://127.0.0.1:{server.server_port}'
 requests=[];glyph_requests=[];fail={'refc':True};errors=[]
 index={'generatedAt':'2026-11-05T01:00:00Z','runs':[{'id':'a','cycle':manifest['cycle'],'path':'qa-map/a','hoursExpected':3,'role':'latest-extended'},{'id':'b','cycle':'2026-11-04T17:00:00Z','path':'qa-map/b','hoursExpected':3,'role':'extended'},{'id':'surface','cycle':new_manifest['cycle'],'path':'qa-map/surface','hoursExpected':3,'role':'extended'}]}
+# One synthetic CONUS hour on HRRR's projection, cropped to the Ohio Valley.
+# Native tiles hold 0.24 in, while the packed Cincinnati label is dry.
+conus_cycle='2026-11-04T18:00:00Z'
+conus_run={'id':'conus','cycle':conus_cycle,'path':'qa-map/conus/run','hours':[1],'hoursExpected':1,'status':'complete','fields':['apcp_run']}
+conus_manifest={
+ 'cycle':conus_cycle,'hours':[1],'hoursExpected':1,'status':'complete',
+ 'valid':{'1':'2026-11-04T19:00:00Z'},'layout':'tiles','tile':128,
+ 'grid':{'radius':6371229,'Latin1InDegrees':38.5,'Latin2InDegrees':38.5,'LaDInDegrees':38.5,'LoVInDegrees':-97.5,
+         'DxInMetres':3000,'DyInMetres':3000,'i0':0,'j0':0,'x0':928241,'y0':-91566,'nx':128,'ny':128},
+ 'levels':[{'level':0,'every':1,'nx':128,'ny':128,'tilesX':1,'tilesY':1}],
+ 'points':{'places':[['Cincinnati',39.136,-84.504,1640000]],'lattice':{'i0':0,'j0':0,'every':16,'nx':0,'ny':0}},
+ 'fields':{'apcp_run':{'scale':0.01,'displayStep':1,'hours':{'1':{'points':True}}}},
+}
+conus_tile=gzip.compress((bytes([48])+bytes(127))*128+bytes(128*128))
 def route(r):
  url=r.request.url
  if '/fonts/open-sans-v1/' in urlsplit(url).path:glyph_requests.append(url)
@@ -22,6 +36,13 @@ def route(r):
   return
  requests.append(url)
  name=urlsplit(url).path.split('/')[-1]
+ if '/qa-map/conus/' in urlsplit(url).path or '/qa-map/data/conus/' in urlsplit(url).path:
+  if name=='index.json':r.fulfill(json={'runs':[conus_run]})
+  elif name=='manifest.json':r.fulfill(json=conus_manifest)
+  elif name=='p01.bin.gz':r.fulfill(body=gzip.compress(struct.pack('<h',0)))
+  elif name=='L0_0_0.bin.gz':r.fulfill(body=conus_tile)
+  else:r.fulfill(status=404,body='')
+  return
  if name=='index.json':r.fulfill(content_type='application/json',body=json.dumps(index));return
  if name=='manifest.json':
   m=json.loads(json.dumps(new_manifest if '/surface/' in url else manifest))
@@ -110,6 +131,18 @@ with sync_playwright() as p:
   page.set_viewport_size({'width':width,'height':1000});page.wait_for_timeout(600)
   assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1')
   page.screenshot(path=str(out/f'maps-demand-surface-{width}.png'),full_page=True)
+ # County geography and town forecasts stay distinct from the Values toggle.
+ page.goto(origin+'/maps.html?domain=conus&data='+origin+'/qa-map/data&field=apcp_run&map=39.1,-84.5,8.1')
+ page.wait_for_function("window.__conus?.map.queryRenderedFeatures({layers:['counties']}).length > 0")
+ page.wait_for_function("window.__conus?.labelsShown?.some(x => String(x.k).startsWith('town:') && x.name && x.text === '0.24')")
+ page.wait_for_function("window.__conus?.map.queryRenderedFeatures({layers:['places']}).some(f => f.properties.name === 'Cincinnati')")
+ page.locator('#valBtn').click()
+ page.wait_for_function("window.__conus?.labelsShown?.length === 0")
+ assert page.evaluate("__conus.map.queryRenderedFeatures({layers:['counties']}).length > 0")
+ assert page.evaluate("__conus.map.queryRenderedFeatures({layers:['places']}).some(f => f.properties.name === 'Cincinnati')")
+ page.evaluate("__conus.map.jumpTo({zoom:4})")
+ page.wait_for_function("window.__conus?.map.queryRenderedFeatures({layers:['counties']}).length === 0")
+ print('CONUS browser: county lines at local zoom, native named plots, dry city name and Values Off pass')
  assert not errors,errors
  print('Map browser: new surface fields against GRIB checkpoints, native labels, local glyphs, no DMA outline, selected-field requests, outage/retry, cached switches, original-cell inspection, precip dependencies, valid-time matching and three widths pass')
  browser.close()
