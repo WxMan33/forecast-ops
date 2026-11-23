@@ -764,3 +764,6 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 }
 /* boxed blocks stop just inside the right margin so their right border prints */
 @media print { .pv .pv-sched, .pv .pv-nextcheck, .pv .pv-alerts { box-sizing: border-box; width: calc(100% - 1.5pt); } }
+
+/* event totals strip above the hourly charts */
+.evc-totals{display:grid;gap:4px;margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:13px;line-height:1.45}.evc-totals .evc-tnote{color:var(--muted);font-size:12px}
