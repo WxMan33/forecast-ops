@@ -62,10 +62,15 @@
       { key: "lightning", name: "Lightning potential", unit: "", color: "lightning", type: "tier", max: 3 },
     ];
     const text = (key, i) => rows[key]?.cells[i]?.text ?? "—";
-    /* event total: the hourly blend amounts these charts draw, added up from setup through teardown (whole hours);
-       with any hour missing it is a lower bound */
-    const qHrs = V.hrs.filter((h) => h.state === "ok" && fin(h.qpf)), qGap = V.hrs.length - qHrs.length, qTot = qHrs.reduce((t, h) => t + h.qpf, 0);
-    const totalText = qHrs.length ? `${qGap ? "at least " : ""}${qTot.toFixed(2)} in.` : "—";
+ /* event totals strip: whole-event blend totals with the spread across sources, the heaviest hour, snow when present, type sequence */
+ const totalsHtml=(()=>{const T=V.totals;if(!T)return'';const f2=v=>fin(v)?v.toFixed(2):'—',f1=v=>fin(v)?v.toFixed(1):'—',lb=T.gap?'at least ':'';
+  const at=ms=>{const a=V.axis.find(x=>x.ms===ms);return a?a.hourText:''};
+  const rng=(r,f)=>r&&fin(r[0])&&fin(r[1])&&r[1]-r[0]>=0.01?` <span class="evc-tnote">(models ${f(r[0])}–${f(r[1])} in.)</span>`:'';
+  const lines=[];
+  lines.push(`<div data-total="qpf"><b>Rain</b> event total <b>${lb}${f2(T.qpf)} in.</b>${rng(T.qpfR,f2)}${T.peakQ?` · heaviest hour <b>${f2(T.peakQ.v)} in.</b> <span class="evc-tnote">${esc(at(T.peakQ.ms))}</span>`:''}</div>`);
+  if((fin(T.sn)&&T.sn>=0.05)||(T.peakSn&&T.peakSn.v>=0.02))lines.push(`<div data-total="sn"><b>Snow</b> event total <b>${lb}${f1(T.sn)} in.</b>${rng(T.snR,f1)}${T.peakSn?` · heaviest hour <b>${f1(T.peakSn.v)} in.</b> <span class="evc-tnote">${esc(at(T.peakSn.ms))}</span>`:''} <span class="evc-tnote">modeled snowfall (7:1), before melting</span></div>`);
+  if(T.types&&T.types.some(k=>k!=='rain'))lines.push(`<div data-total="type"><b>Type</b> ${T.types.map(k=>({rain:'Rain',mix:'Mix',snow:'Snow'})[k]).join(' → ')}</div>`);
+  return `<div class="evc-totals" title="Blend over setup through teardown (whole hours). Ranges are the 10th–90th percentile of the contributing sources' event totals.${T.gap?` ${T.gap} hour${T.gap>1?'s':''} without guidance, so totals are lower bounds.`:''}">${lines.join('')}</div>`})();
     const value = (spec, i) => {
       if (!V.hrs[i] || V.hrs[i].state !== "ok") return null;
       if (spec.type === "tier") { const c = rows.lightning?.cells[i]; return !c || c.state === "missing" ? null : { Low: 1, Moderate: 2, High: 3 }[c.text] ?? null; }
@@ -77,7 +82,7 @@
       start = Math.max(0, Math.min(start, endMax)); first = false; width = w;
       const ids = V.axis.map((_, i) => i).slice(start, start + count), a = V.axis[start], z = V.axis[ids[ids.length - 1]]; if (!a) return;
       const iSel = V.span.indexOf(sel), dayLabel = (d) => new Date(d + "T12:00Z").toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" });
-      host.innerHTML = `<div class="evc-tools"><div><b>One timeline. Four clear views.</b><span class="bx-note">Choose an hour in any chart to compare the conditions.</span></div><div class="evc-nav"><button class="bx-btn" data-move="-1" aria-label="Earlier forecast hours" ${start === 0 ? "disabled" : ""}>← Earlier</button><button class="bx-btn" data-move="1" aria-label="Later forecast hours" ${start === endMax ? "disabled" : ""}>Later →</button></div></div>` +
+      host.innerHTML = `${totalsHtml}<div class="evc-tools"><div><b>One timeline. Four clear views.</b><span class="bx-note">Choose an hour in any chart to compare the conditions.</span></div><div class="evc-nav"><button class="bx-btn" data-move="-1" aria-label="Earlier forecast hours" ${start === 0 ? "disabled" : ""}>← Earlier</button><button class="bx-btn" data-move="1" aria-label="Later forecast hours" ${start === endMax ? "disabled" : ""}>Later →</button></div></div>` +
         `<p class="evc-window">${esc(root.EventBriefingUI.dateSpan(a.ms, z.ms + H, tz))}</p>` +
         `<p class="evc-selected">Selected <b>${esc(dayLabel(V.axis[iSel]?.date))} · ${esc(V.axis[iSel]?.hourText)} ${esc(V.axis[iSel]?.zone)}</b><span> · ${esc(text("phase", iSel))}</span></p>` +
         `<div class="evc-stack">${specs.map((s) => card(s, ids, w, iSel, phone)).join("")}</div>`;
@@ -127,7 +132,7 @@
       const buttons = ids.map((i, j) => { const a = V.axis[i], on = V.span[i] === sel, show = j % every === 0 || on;
         return `<g role="button" tabindex="0" aria-label="${esc(`${a.date} ${a.hourText} ${a.zone}, ${s.name}: ${text(s.key, i)}`)}" aria-pressed="${on}" data-hour="${a.ms}"><rect x="${left + j * bw}" y="${top - 4}" width="${bw}" height="${base - top + 36}" fill="transparent"/>${on ? `<rect x="${left + j * bw + 1}" y="${top}" width="${bw - 2}" height="${base - top}" class="evc-selcol"/>` : ""}${show ? `<text x="${x(j)}" y="${base + 22}" text-anchor="middle" class="evc-hour${on ? " evc-hour-sel" : ""}">${esc(a.hourText)}${a.repeated || a.zoneChange ? `<tspan x="${x(j)}" dy="14" class="evc-zone">${esc(a.zone)}</tspan>` : ""}</text>` : ""}</g>`; }).join("");
       /* the header: the selected hour's value, large; amount separate from chance */
-      const amount = s.key === "pop" ? `<span>This hour <b data-amount>${esc(text("qpf", iSel))}${text("qpf", iSel) === "—" ? "" : " in."}</b>${tsum.mode !== "none" && types[iSel] && !["dry"].includes(types[iSel].kind) ? ` · <b data-sel-type>${esc(types[iSel].word || "")}</b>` : ""}</span><span data-total="qpf" title="The hourly blend amounts added up from setup through teardown${qGap ? `; ${qGap} hour${qGap > 1 ? "s" : ""} without guidance, so this is a lower bound` : ""}">Event total <b>${esc(totalText)}</b></span>` : "";
+      const amount = s.key === "pop" ? `<span>This hour <b data-amount>${esc(text("qpf", iSel))}${text("qpf", iSel) === "—" ? "" : " in."}</b>${tsum.mode !== "none" && types[iSel] && !["dry"].includes(types[iSel].kind) ? ` · <b data-sel-type>${esc(types[iSel].word || "")}</b>` : ""}</span>` : "";
       const head = s.type === "tier" ? `<b data-value="${s.key}">${esc(text(s.key, iSel))}</b><span>Forecast potential, not detected lightning or a warning</span>`
         : `<b data-value="${s.key}">${esc(text(s.key, iSel))}${s.unit === "°F" ? "F" : s.unit && s.unit !== "%" ? " " + esc(s.unit) : ""}</b>${s.second ? `<span>${esc(s.secondLabel)} <b>${esc(text(s.second, iSel))}${s.unit === "mph" ? " mph" : s.unit === "°F" ? "F" : ""}</b></span>` : amount}`;
       return `<section class="evc-card evc-${s.color}" data-variable="${s.key}"><header><h3>${esc(s.name)}</h3><div class="evc-val">${head}</div></header>${legend(s)}<svg viewBox="0 0 ${w} ${height}" role="group" aria-label="${esc(s.name)} by hour">${under}${axes}${marks}${over}${buttons}</svg></section>`;

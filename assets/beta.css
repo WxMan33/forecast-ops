@@ -848,3 +848,22 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .ev-dl-line .ev-dl-date { font-weight: 700; }
 .ev-dl-line .ev-dl-zone { color: var(--muted); }
 .ev-dl-line .ev-dl-seg { white-space: nowrap; }
+
+/* event totals strip above the hourly charts */
+.evc-totals{display:grid;gap:4px;margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:13px;line-height:1.45}.evc-totals .evc-tnote{color:var(--muted);font-size:12px}
+
+/* printable briefing: threats first, readable columns, marked concern hours */
+.pv-amounts{margin:4px 0 8px;padding-left:18px;font-size:12px}.pv-amounts li{margin:2px 0}
+.pv-watch{border:1.5px solid #b45309;border-radius:6px;padding:7px 10px;margin:6px 0 8px;font-size:12px;break-inside:avoid}.pv-watch>b{display:block;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;color:#92400e}
+.pv-watch ul{margin:3px 0 0;padding-left:18px}.pv-watch li{margin:2px 0}.pv-watch p{margin:3px 0 0}.pv-watch .pv-amounts{margin:4px 0 0}
+.pv-hours th,.pv .pv-hours th{white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none;line-height:1.15}
+.pv-hours td:first-child,.pv-dense .pv-hours td:first-child{width:15%}
+.pv-hours td,.pv .pv-hours td{padding:3pt 4pt}.pv-hours{font-size:9.5pt}.pv-dense .pv-hours{font-size:9pt}
+.pv-hours td.pv-over small{display:block;white-space:normal;line-height:1.1}
+.pv-dense .pv-hours td:first-child small{display:block;margin-left:0}
+.pv-watch{padding:5px 9px;margin:4px 0 6px;font-size:10pt;line-height:1.3}.pv-watch li{margin:1px 0}.pv-dense .pv-watch{font-size:9pt}
+.pv-hours tr.pv-watchrow td:first-child{box-shadow:inset 3px 0 0 #d97706}.pv-hours td.pv-hit{font-weight:700}
+/* seven or eight columns on a 7.4in page: fixed layout, every cell wraps at spaces, never past the page edge */
+.pv-hours{table-layout:fixed;width:100%}
+.pv-hours th,.pv-hours td,.pv-hours th:not(:first-child),.pv-hours td:not(:first-child),.pv .pv-hours th{white-space:normal !important;overflow-wrap:normal;word-break:normal}
+.pv-hours td.pv-time{white-space:normal !important}

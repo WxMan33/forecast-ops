@@ -81,7 +81,7 @@ const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - 
       check(/^Moderate lightning potential during event \(7–9 PM\)\. This is a forecast, not detected lightning\./.test(line('lightning')), L + ' lightning line says when, and that it is a forecast: ' + line('lightning'));
     }
     if (sc === 'gaps') {
-      check(await p.locator('.pv-hours tr[data-ms="' + Date.parse('2026-11-12T19:00Z') + '"] .pv-nd').count() === 4, L + ' a missing hour reads "no data" in every value column');
+      check(await p.locator('.pv-hours tr[data-ms="' + Date.parse('2026-11-12T19:00Z') + '"] .pv-nd').count() === 5, L + ' a missing hour reads "no data" in every value column (temp, rain chance, rain amount, gusts, lightning)');
     }
     if (sc === 'overnight') {
       check(/Thu, Nov 12/.test(p2) && /Fri, Nov 13/.test(p2), L + ' page 2 labels both dates');
