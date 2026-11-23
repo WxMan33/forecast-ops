@@ -33,6 +33,12 @@ await ok("NWS: Flash Flood Warning, winter and fire weather alerts and fire weat
   answer = () => new Response(JSON.stringify({ properties: { forecastZone: "https://api.weather.gov/zones/forecast/AMZ454" } }));
   assert.strictEqual((await get(nws, "/api/nws/points/29.4802,-81.1065")).status, 200);
   for (const bad of ["/api/nws/points/29.48021,-81.1", "/api/nws/points/abc,1", "/api/nws/points/29.4,-81.1?x=1"]) assert.strictEqual((await get(nws, bad)).status, 404, bad);
+  // the venue's forecast grid: one office and cell, no query; a grid without wind gusts is refused
+  answer = () => new Response(JSON.stringify({ properties: { updateTime: "2026-11-23T20:00:00+00:00", windGust: { uom: "wmoUnit:km_h-1", values: [] } } }));
+  assert.strictEqual((await get(nws, "/api/nws/gridpoints/ILN/30,40")).status, 200);
+  for (const bad of ["/api/nws/gridpoints/ILN/30,40/forecast", "/api/nws/gridpoints/iln/30,40", "/api/nws/gridpoints/ILN/30,40?units=si", "/api/nws/gridpoints/ILNX/1,2"]) assert.strictEqual((await get(nws, bad)).status, 404, bad);
+  answer = () => new Response(JSON.stringify({ properties: { updateTime: "2026-11-23T20:00:00+00:00" } }));
+  assert.strictEqual((await get(nws, "/api/nws/gridpoints/ILN/31,40")).status, 502);
   answer = () => new Response(JSON.stringify({ type: "FeatureCollection", features: [] }), { status: 200 });
   assert.ok(sent.every((s) => s.ua === "(forecast-ops, github.com/WxMan33/forecast-ops)"));
 });

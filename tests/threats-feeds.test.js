@@ -376,4 +376,23 @@ ok("ERO: a quiet day's 'None Expected' placeholder (WPC Day 1, 2026-11-23) is co
   assert.throws(() => F.parseERO({ features: [{ properties: { OUTLOOK: "Extreme" }, geometry: null }] }, 1, "wpc"), /unrecognized excessive rainfall category/);
 });
 
+ok("VENUE FORECAST: the NWS grid for TQL Stadium (ILN 35,38, updated 2026-11-23 21:00Z) gives 12 hourly rows in mph, °F and %; heat index stays null when not forecast", () => {
+  const g = JSON.parse(fs.readFileSync(FX("nws-gridpoints-ILN-35-38.json"), "utf8")), r = F.parseGrid(g, Date.parse("2026-11-23T21:20:00Z"), 12);
+  assert.strictEqual(r.updated, "2026-11-23T21:00:36.000Z"); assert.strictEqual(r.rows.length, 12); assert.strictEqual(r.rows[0].t, "2026-11-23T21:00:00.000Z"); assert.strictEqual(r.covered, 12);
+  const raw = (el, t) => { const x = g.properties[el].values.find((v) => { const [s, d] = v.validTime.split("/"); const h = /PT?(?:(\d+)D)?T?(?:(\d+)H)?/.exec(d); const t0 = Date.parse(s); return Date.parse(t) >= t0 && Date.parse(t) < t0 + ((+h[1] || 0) * 24 + (+h[2] || 0)) * 3600e3; }); return x && x.value; };
+  for (const row of [r.rows[0], r.rows[5], r.rows[11]]) {
+    assert.strictEqual(row.gust, Math.round(raw("windGust", row.t) * 0.621371), "gust " + row.t);
+    assert.strictEqual(row.temp, Math.round(raw("temperature", row.t) * 9 / 5 + 32), "temp " + row.t);
+    assert.strictEqual(row.pop, Math.round(raw("probabilityOfPrecipitation", row.t)), "pop " + row.t);
+  }
+  assert.ok(r.rows.every((x) => x.heat === null)); assert.strictEqual(r.peakHeat, null); assert.ok(r.peakGust && r.peakGust.gust >= r.rows[0].gust);
+  assert.throws(() => F.parseGrid({ properties: { updateTime: "x" } }, Date.now()), /unrecognized NWS forecast grid/);
+});
+ok("RADAR: the newest CONUS MRMS image time from the map service's footprint layer", () => {
+  const j = JSON.parse(fs.readFileSync(FX("radar-mrms-footprint.json"), "utf8")), iso = F.parseRadarTime(j);
+  assert.ok(/^2026-11-23T2\d:\d\d:\d\d\.000Z$/.test(iso), iso);
+  assert.throws(() => F.parseRadarTime({ error: { code: 500 } }), /unrecognized radar answer/); assert.throws(() => F.parseRadarTime({ features: [] }), /no CONUS radar image/);
+  assert.ok(F.RADAR_TILE_URL.includes("{bbox-epsg-3857}") && F.RADAR_TILE_URL.startsWith("https://mapservices.weather.noaa.gov/"));
+});
+
 Promise.all([...resolvedCases, ...watchCases]).then(() => console.log(n + " passed")).catch((e) => { console.error(e); process.exit(1); });

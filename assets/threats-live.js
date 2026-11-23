@@ -112,6 +112,22 @@
   /* MDs: SPC's list and text pages are the full source. When they cannot be reached (SPC refuses automated browsers,
      for example), the NOAA map service decides: its NoArea placeholder confirms none; shapes are drawn with details
      marked unavailable; anything else leaves MD status unknown. The service may lag SPC by up to 15 minutes (NOAA's own note). */
+  /* the venue's next hours (on request): NWS point -> forecast grid, through the identifying forwarder; kept 15 minutes */
+  const fcCache = new Map();
+  async function venueForecast(lat, lon) {
+    const k = (+lat).toFixed(4) + "," + (+lon).toFixed(4), c = fcCache.get(k);
+    if (c && (c.pending || Date.now() - c.at < 15 * 60e3)) return c.pending || c.data;
+    const pending = (async () => {
+      const pt = await get(nwsUrl("https://api.weather.gov/points/" + k), "json"), P = pt && pt.properties;
+      if (!P || !P.gridId) throw Error("NWS has no forecast grid for this spot");
+      const meta = {}, g = await get(nwsUrl("https://api.weather.gov/gridpoints/" + P.gridId + "/" + P.gridX + "," + P.gridY), "json", meta);
+      return { ...F.parseGrid(g, Date.now(), 12), office: P.gridId, grid: P.gridX + "," + P.gridY, fetched: meta.upstreamAt ? new Date(meta.upstreamAt).toISOString() : nowIso() };
+    })();
+    fcCache.set(k, { pending });
+    try { const data = await pending; fcCache.set(k, { at: Date.now(), data }); return data; } catch (e) { fcCache.delete(k); throw e; }
+  }
+  /* the newest CONUS radar image time (NOAA MRMS via the NOAA map service) */
+  const radarTime = () => get(F.RADAR_TIME_URL, "json").then(F.parseRadarTime);
   let mdPageBlocked = false;
   async function refreshMD() {
     const at = nowIso(); md.lastTry = at; let spcError = null;
@@ -592,5 +608,5 @@
       "wpc-ero": { ...worst(["ero1", "ero2", "ero3"]), reachEnd: reach(["ero1", "ero2", "ero3"]), reach: ["ero1", "ero2", "ero3"].map((k, i) => d.sources[k] && d.sources[k].issued ? "Day " + (i + 1) + " issued " + window.ThreatsCore.fmtZ(d.sources[k].issued) : "").filter(Boolean).join(", ") } };
   }
 
-  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, setFeeds, previousFor: (id) => fetchPrevious(id).then((c) => { if (c) emit(); return c; }), mapFeeds: () => (mapFeeds ? [...mapFeeds] : null), monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
+  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, setFeeds, venueForecast, radarTime, RADAR_TILE_URL: F.RADAR_TILE_URL, previousFor: (id) => fetchPrevious(id).then((c) => { if (c) emit(); return c; }), mapFeeds: () => (mapFeeds ? [...mapFeeds] : null), monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
 })();

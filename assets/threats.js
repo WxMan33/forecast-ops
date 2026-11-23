@@ -35,7 +35,7 @@
   const WLEVEL_LABEL = { WWA: "Any winter weather", MINOR: "Minor", MODERATE: "Moderate", MAJOR: "Major", EXTREME: "Extreme" };
   const empty = { type: "FeatureCollection", features: [] };
 
-  const S = { air: [], ap: null, layers: { severe: false, flood: false, winter: false, fire: false, smoke: false, tropical: false, coastal: false, aviation: false }, en: { on: false, at: 0, alt: null, age: 2 }, av: { apt: true, pireps: true, adv: true }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, ifi: { on: false, field: "prob", src: null, cyc: null }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
+  const S = { air: [], ap: null, layers: { severe: false, flood: false, winter: false, fire: false, smoke: false, tropical: false, coastal: false, aviation: false }, en: { on: false, at: 0, alt: null, age: 2 }, av: { apt: true, pireps: true, adv: true }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, ifi: { on: false, field: "prob", src: null, cyc: null }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, radar: false, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
   let framedAp = false, framedSel = false, mapLoaded = false; // Planner airport "View on map": framed once
   let data, now, venue, map, ready = false, liveReady = false, meshes = new Map(), tzCache = {}, marker, grid = null, mesh = null, mask = null, gridLoading = null, hull = null;
   const phone = () => matchMedia("(max-width: 760px)").matches;
@@ -783,7 +783,7 @@
       return `<div class="px-src ${s.kind}"${src.error ? ` title="${esc(src.error)}"` : ""}><span><b>${name}</b></span><span>${esc(right)}</span></div>`;
     }).join("");
     const foot = isArchive() ? `Archived sample: ${esc(data.archive ? data.archive.label : "")}. Official messages replayed through the same adapter the live preview uses; the clock is set to the message time. Not a live observation. Times in ${esc(venue.tz)}.` : isLive() ? `Live official feeds, fetched by your browser. Alerts and MDs refresh every minute, outlooks every 10 minutes. Times in ${esc(venue.tz)}. A failed refresh never clears a product.` : `Demo clock ${esc(t(data.clock, true))}. A failed refresh never clears a product.`;
-    return `<div class="px-sources" aria-label="Source status">${rows}<div class="lg-note">${foot}</div></div>`;
+    return `<div class="px-sources" aria-label="Source status">${rows}${radarRow()}<div class="lg-note">${foot}</div></div>`;
   }
   function notices() {
     const out = [];
@@ -886,7 +886,7 @@
   function venueActive() {
     if (avOnly()) return avSummaryCard() + notices() + avControls() + airportsSection() + enrouteSection() + avOnlyNote();
     const list = T.sort(active()), covers = venueCovers(), near = venueNear(), unknown = list.filter((p) => rel(p).kind === "unknown");
-    let h = statusHTML(true) + notices();
+    let h = statusHTML(true) + notices() + venueFcSection();
     if (covers.length) h += `<div class="px-h">At the venue</div>` + covers.map((p) => item(p)).join("");
     if (near.length) h += `<div class="px-h"><span>Nearby · the venue is outside these</span><span>within ${Math.round(T.miles(T.NEAR_KM))} mi</span></div>` + near.map((p) => item(p)).join("");
     if (unknown.length) h += `<div class="px-h">Area not drawn</div>` + unknown.map((p) => item(p)).join("");
@@ -1003,7 +1003,9 @@
     const body = $("txPanelBody"), p = S.sel && byId(S.sel), keep = body.scrollTop, focusId = document.activeElement && body.contains(document.activeElement) && document.activeElement.dataset ? document.activeElement.dataset.id : null;
     if (data.loadError) { body.innerHTML = `<p class="px-empty">Could not load this archived sample (${esc(data.loadError)}).</p>`; return; }
     if (!anyLayer() && !p) { // nothing selected: the basemap and venue only, and nothing downloaded
-      body.innerHTML = `<div class="px-nolayer" data-kind="no-layers"><p class="px-empty"><b>No threat layers selected.</b> Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.</p><button type="button" class="tx-fb tx-done" data-open-layers>Select a layer</button></div>`;
+      body.innerHTML = `<div class="px-nolayer" data-kind="no-layers"><p class="px-empty"><b>No threat layers selected.</b> Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.</p>`
+        + `<div class="px-presets"><button type="button" class="tx-fb tx-done" data-preset="venue">Warnings at my venue</button><button type="button" class="tx-fb" data-preset="all">Everything</button><button type="button" class="tx-fb" data-open-layers>Choose layers</button></div>`
+        + `<p class="lg-note">Warnings at my venue: severe storms, flooding, winter and coastal warnings and outlooks, centred on ${esc(venue.name)}. Everything: all 8 hazards (more to download).</p></div>` + venueFcSection() + (S.radar && isLive() ? `<div class="px-sources">${radarRow()}</div>` : "");
       $("scopeVenue").innerHTML = `Venue<span class="tx-sbv"> · ${esc(venue.name)}</span>`; $("scopeVenue").setAttribute("aria-label", "Venue: " + venue.name); $("scopeVenue").title = "Venue: " + venue.name;
       document.querySelectorAll("[data-scope]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scope === S.scope)));
       $("txPeek1").textContent = "No threat layers selected"; $("txPeek2").textContent = "Open Layers to select one"; $("txPeek3").textContent = ""; $("txPeek3").hidden = true; $("txPeek").style.setProperty("--peek-c", "transparent"); return;
@@ -1057,6 +1059,7 @@
     if (S.layers.winter && !winterView() && !day) h += `<div><div class="lg-h">Winter · active now</div>${lgLine({ kind: "warning", family: "winter", event: "Winter Storm Warning" }, "<b>Winter Storm Warning</b>")}${lgLine({ kind: "warning", family: "winter", event: "Blizzard Warning" }, "Blizzard · ice storm · lake-effect snow warnings")}${lgLine({ kind: "watch", family: "winter", event: "Winter Storm Watch" }, "<b>Winter Storm Watch</b> · dashed")}${lgLine({ kind: "advisory", family: "winter", event: "Winter Weather Advisory" }, "<b>Winter Weather Advisory</b> · thin outline")}<div class="lg-note">Most winter alerts are issued for NWS forecast zones; the area is drawn from those zones.</div></div>`;
     if ((S.layers.tropical || S.layers.coastal) && !winterView() && !fireView() && !viewDay()) h += `<div><div class="lg-h">Tropical and coastal</div>${S.layers.tropical ? lgLine({ kind: "warning", family: "tropical", event: "Hurricane Warning" }, "<b>Hurricane / Tropical Storm / Storm Surge</b> warnings and watches (NWS)") + `<div class="lg-row"><svg width="28" height="16" aria-hidden="true"><rect x="2" y="2" width="24" height="12" fill="#f2f2f2" fill-opacity=".2" stroke="#f2f2f2"/></svg><span>NHC forecast cone: likely path of the center, not the impact area</span></div><div class="lg-bands">${Object.entries(TWO_COLOR).map(([k, c]) => `<span class="lg-band"><i style="background:${c}"></i>${k}</span>`).join("")}</div><div class="lg-note">NHC outlook areas: chance of formation (7 days)</div>` : ""}${S.layers.coastal ? lgLine({ kind: "warning", family: "coastal", event: "Coastal Flood Warning" }, "<b>Coastal flood, high surf, rip current</b> (NWS zones)") : ""}</div>`;
     if (S.layers.smoke && !winterView() && !fireView() && !viewDay()) h += `<div><div class="lg-h">Smoke and air quality</div><div class="lg-bands">${FX.HMS_DENSITY.map((d) => `<span class="lg-band"><i style="background:${HMS_FILL[d][0]};opacity:${0.4 + HMS_FILL[d][1]}"></i>${d}</span>`).join("")}</div><div class="lg-note">NOAA satellite smoke (overhead, not at the ground), last 24 hours.</div><div class="lg-bands">${Object.entries(AQI_COLOR).map(([k, c]) => `<span class="lg-band" title="${esc(k)}"><i style="background:${c}"></i>${esc(k === "Unhealthy for Sensitive Groups" ? "USG" : k)}</span>`).join("")}</div><div class="lg-note">AirNow monitors: latest hourly AQI (preliminary).</div></div>`;
+    if (S.radar && isLive()) h += `<div><div class="lg-h">Radar · NOAA MRMS</div><div class="lg-radar" aria-hidden="true"></div><div class="lg-note">Light rain or snow → heavy rain and hail (base reflectivity), under the hazards${radar.valid ? " · image " + esc(t(radar.valid)) : ""}</div></div>`;
     if (S.layers.fire && !winterView()) h += `<div><div class="lg-h">Fire</div>${lgLine({ kind: "warning", family: "fire", event: "Red Flag Warning" }, "<b>Red Flag Warning</b>")}${lgLine({ kind: "watch", family: "fire", event: "Fire Weather Watch" }, "<b>Fire Weather Watch</b> · dashed")}${lgLine({ kind: "incident", category: "WF" }, "<b>Wildfire</b> (NIFC): perimeter where mapped, dot sized by acres")}<label class="lg-toggle"><input type="checkbox" id="rxChk"${S.rx ? " checked" : ""}> Prescribed fires</label><label class="lg-toggle"><input type="checkbox" id="ctnChk"${S.ctn ? " checked" : ""}> Fully contained fires</label>${fireView() ? `<div class="lg-bands">${(S.fday >= 3 ? ["P40", "P70"] : ["ELEV", "CRIT", "EXTM", "IDRT", "SDRT"]).map((c) => `<span class="lg-band" title="${esc(FX.FIRE_NAME[c])}"><i style="background:${FIRE_COLOR[c]}"></i>${c === "P40" ? "40%" : c === "P70" ? "70%" : c}</span>`).join("")}</div><div class="lg-note">${S.fday >= 3 ? "Probability of critical fire weather within 12 miles of a point." : "ELEV elevated · CRIT critical · EXTM extremely critical (wind and humidity) · IDRT/SDRT isolated/scattered dry thunderstorms."}</div>` : ""}</div>`;
     if (winterView()) h += `<div><div class="lg-h">WPC WSSI-P · chance of at least ${esc(S.wlevel === "WWA" ? "winter weather" : WLEVEL_LABEL[S.wlevel])}</div><div class="lg-bands">${WSSI_PROBS.map((v) => `<span class="lg-band"><i style="background:${WSSI_COLOR[v]}"></i>${v}%</span>`).join("")}</div><div class="lg-note">24-hour window. Levels: Minor, Moderate, Major, Extreme winter storm impacts (WPC definitions).</div></div>`;
     if (!day && !winterView()) h += `<label class="lg-toggle"><input type="checkbox" id="ctxChk"${S.ctx ? " checked" : ""}> Day 1 outlook outlines</label>`;
@@ -1099,7 +1102,60 @@
     const p = Live.setFeeds(keys); if (isLive()) load();
     p.then(() => { if (feedKey === k && isLive()) { liveReady = true; load(); drawAll(); } });
   }
-  function drawAll() { stage("layer feeds", syncFeeds); stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("en route", ensureEn); stage("gtg", ensureGtg); stage("ifi", ensureIfi); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); if ((S.ap || S.fit === "route") && !framedAp && map && mapLoaded) stage("airport view", () => frameAirport(0)); if (S.sel && !framedSel && map && mapLoaded) stage("selection view", frameSelection); }
+  /* ---------- radar (live only, off by default): NOAA MRMS base reflectivity under the hazards; the image time is read from the
+     service every 5 minutes while radar is on, and the tiles are re-requested only when a newer image is listed ---------- */
+  const radar = { state: "off", valid: null, lastOk: null, error: null, timer: null, tiles: null };
+  const radarAgeMin = () => (radar.valid ? Math.round((Date.now() - Date.parse(radar.valid)) / 60e3) : null);
+  const radarText = () => "NOAA MRMS radar image " + t(radar.valid) + " (" + radarAgeMin() + " min old" + (radarAgeMin() > 20 ? ", delayed" : "") + ")";
+  function radarTick() {
+    if (document.hidden && radar.lastOk) return;
+    Live.radarTime().then((v) => { radar.valid = v; radar.lastOk = new Date().toISOString(); radar.state = "ok"; radar.error = null; })
+      .catch((e) => { radar.state = radar.lastOk ? "stale" : "failed"; radar.error = e.message; })
+      .finally(() => { if (S.radar) drawAll(); });
+  }
+  function ensureRadar() {
+    if (!map || !mapLoaded) return;
+    const on = S.radar && isLive() && !!Live.radarTime;
+    if (!on) { if (radar.timer) { clearInterval(radar.timer); radar.timer = null; } radar.state = "off"; if (map.getLayer("radar")) map.setLayoutProperty("radar", "visibility", "none"); return; }
+    if (!radar.timer) { radar.state = radar.lastOk ? radar.state : "loading"; radarTick(); radar.timer = setInterval(radarTick, 5 * 60e3); }
+    if (!radar.valid) return;
+    const url = Live.RADAR_TILE_URL + "&t=" + Date.parse(radar.valid); // a new image time is a new URL; the same one is reused from the cache
+    if (!map.getSource("radar")) { map.addSource("radar", { type: "raster", tiles: [url], tileSize: 256, attribution: "NOAA MRMS radar" }); map.addLayer({ id: "radar", type: "raster", source: "radar", paint: { "raster-opacity": 0.6, "raster-fade-duration": 0 } }, map.getLayer("outlook-fill") ? "outlook-fill" : undefined); }
+    else if (radar.tiles !== url) map.getSource("radar").setTiles([url]);
+    radar.tiles = url; map.setLayoutProperty("radar", "visibility", "visible");
+  }
+  const radarRow = () => !(S.radar && isLive()) ? "" : `<div class="px-src ${radar.state === "ok" ? (radarAgeMin() > 20 ? "stale" : "current") : radar.state === "stale" ? "stale" : radar.state === "failed" ? "unavailable" : "loading"}" data-src="radar"><span><b><a href="https://mrms.nssl.noaa.gov/" target="_blank" rel="noopener">NOAA MRMS radar</a></b></span><span>${radar.state === "ok" ? esc("Image " + t(radar.valid) + " · " + radarAgeMin() + " min old" + (radarAgeMin() > 20 ? " (delayed)" : "")) : radar.state === "stale" ? esc("Last image " + t(radar.valid) + " · not responding") : radar.state === "failed" ? "Not responding" : "Loading…"}</span></div>`;
+
+  /* ---------- the venue's next 12 hours (NWS forecast grid), on request: gusts, heat index or feels-like, rain chance ---------- */
+  let vfc = { key: null, state: "idle" };
+  function venueFcSection() {
+    if (!isLive() || !venue) return "";
+    const k = (+venue.lat).toFixed(4) + "," + (+venue.lon).toFixed(4); if (vfc.key !== k) vfc = { key: k, state: "idle" };
+    let h = `<div class="px-h" data-vfc-sec><span>Next 12 hours at ${esc(venue.name)}</span><span>NWS forecast</span></div>`;
+    if (vfc.state === "idle") return h + `<button type="button" class="tx-fb" data-vfc>Show wind gusts, heat and rain chance</button>`;
+    if (vfc.state === "loading") return h + `<p class="px-empty">Loading the NWS hourly forecast…</p>`;
+    if (vfc.state === "failed") return h + `<p class="px-empty" data-vfc-state="failed">The NWS forecast didn't answer (${esc(vfc.err)}). <button type="button" class="tx-fb" data-vfc>Try again</button></p>`;
+    const d = vfc.data, hr = (r) => T.fmtTime(r.t, tz()).replace(/:00(?= )/, "").replace(/ [A-Z]{2,4}T$/, "");
+    const lines = [d.peakGust ? "Peak gust " + d.peakGust.gust + " mph around " + hr(d.peakGust) : null,
+      d.peakPop ? (d.peakPop.pop ? "Highest rain chance " + d.peakPop.pop + "% around " + hr(d.peakPop) : "No rain chance above 0%") : null,
+      d.peakHeat ? "Heat index up to " + d.peakHeat.heat + "°F around " + hr(d.peakHeat) : d.lowFeels && d.lowFeels.feels <= 40 ? "Feels like as low as " + d.lowFeels.feels + "°F around " + hr(d.lowFeels) : null].filter(Boolean);
+    h += `<div class="px-vfc" data-vfc-state="ok"><p class="px-vfcsum">${lines.map(esc).join(" · ")}</p><div class="px-vfcgrid" role="table" aria-label="Hourly forecast at ${esc(venue.name)}"><div role="row" class="px-vfch"><span role="columnheader">Time</span><span role="columnheader">Gust</span><span role="columnheader">${d.peakHeat ? "Heat index" : "Feels like"}</span><span role="columnheader">Rain</span></div>`
+      + d.rows.map((r) => `<div role="row"><span role="cell">${esc(hr(r))}</span><span role="cell">${r.gust == null ? "–" : r.gust + " mph"}</span><span role="cell">${(d.peakHeat ? r.heat : r.feels) == null ? "–" : (d.peakHeat ? r.heat : r.feels) + "°F"}</span><span role="cell">${r.pop == null ? "–" : r.pop + "%"}</span></div>`).join("") + `</div>`;
+    h += `<p class="lg-note">NWS forecast grid ${esc(d.office)} ${esc(d.grid)}, updated ${esc(t(d.updated))}${d.covered < d.rows.length ? "; " + (d.rows.length - d.covered) + " hours not in the grid" : ""}. A forecast, not an observation; a gust is the highest expected in that hour.</p></div>`;
+    return h;
+  }
+  function loadVfc() {
+    if (!Live.venueForecast || vfc.state === "loading") return; vfc.state = "loading"; renderPanel(); const k = vfc.key;
+    Live.venueForecast(venue.lat, venue.lon).then((d) => { if (vfc.key === k) { vfc.state = "ok"; vfc.data = d; } }).catch((e) => { if (vfc.key === k) { vfc.state = "failed"; vfc.err = e.message; } }).finally(() => renderPanel());
+  }
+  /* one-tap starting points in the no-layers prompt */
+  const PRESETS = { venue: { layers: ["severe", "flood", "winter", "coastal"], scope: "venue" }, all: { layers: Object.keys(LAYER_FEEDS) } };
+  function applyPreset(k) {
+    const pr = PRESETS[k]; if (!pr) return; Object.keys(S.layers).forEach((x) => (S.layers[x] = pr.layers.includes(x)));
+    S.sel = null; S.point = null; if (pr.scope) setScope(pr.scope, true); drawAll();
+  }
+
+  function drawAll() { stage("layer feeds", syncFeeds); stage("radar", ensureRadar); stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("en route", ensureEn); stage("gtg", ensureGtg); stage("ifi", ensureIfi); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); if ((S.ap || S.fit === "route") && !framedAp && map && mapLoaded) stage("airport view", () => frameAirport(0)); if (S.sel && !framedSel && map && mapLoaded) stage("selection view", frameSelection); }
   /* a Planner "View on map" for an advisory or a pilot report: frame it once its data has loaded */
   function frameSelection() {
     const p = byId(S.sel); if (!p || !["pirep", "sigmet", "gairmet", "cwa"].includes(p.kind)) return;
@@ -1185,7 +1241,8 @@
     }
     return null;
   }
-  const layersSummary = () => { const on = LAYER_KEYS.filter((k) => S.layers[k]); return !on.length ? "None selected" : on.length === LAYER_KEYS.length ? "All 8" : on.length <= 2 ? on.map((k) => LAYER_NAME[k]).join(", ") : LAYER_NAME[on[0]] + ", " + LAYER_NAME[on[1]] + " +" + (on.length - 2); };
+  const layersSummary = () => { const r = S.radar && isLive(), h = hazardSummary(); return h === "None selected" ? (r ? "Radar only" : h) : h + (r ? " + Radar" : ""); };
+  const hazardSummary = () => { const on = LAYER_KEYS.filter((k) => S.layers[k]); return !on.length ? "None selected" : on.length === LAYER_KEYS.length ? "All 8" : on.length <= 2 ? on.map((k) => LAYER_NAME[k]).join(", ") : LAYER_NAME[on[0]] + ", " + LAYER_NAME[on[1]] + " +" + (on.length - 2); };
   const viewName = () => (winterView() ? "Winter · 7 days" : fireView() ? "Fire · 8 days" : viewDay() ? "Day " + viewDay() : "Active now");
   function syncLayers() {
     const pop = $("txLayersPop"); if (!pop) return;
@@ -1193,6 +1250,8 @@
     const av = { apt: S.av.apt, pireps: S.av.pireps && enOn(), adv: S.av.adv && enOn(), gtg: S.gtg.on, ifi: S.ifi.on };
     pop.querySelectorAll("input[data-av]").forEach((i) => { i.checked = !!av[i.dataset.av]; i.disabled = !S.layers.aviation; });
     $("txAvSub").classList.toggle("off", !S.layers.aviation);
+    { const ri = pop.querySelector("input[data-radar]"); ri.checked = !!S.radar && isLive(); ri.disabled = !isLive();
+      $("txRadarNote").textContent = !isLive() ? "Live only: current radar doesn't belong on a demo or a replay" : S.radar && radar.valid ? radarText() : "NOAA MRMS base reflectivity · refreshed every 5 minutes while on · about 0.3 MB per view"; }
     $("txLayersSum").textContent = layersSummary(); $("txLayersBtn").setAttribute("aria-label", "Layers: " + layersSummary() + " on. Open to change");
     // the panel's state line: time and layers stay in view while the details scroll; layers not drawn now, briefly why
     const missing = LAYER_KEYS.filter((k) => S.layers[k] && layerNote(k) && !(k === "aviation" && viewDay())) /* aviation is partly drawn in Day 2/3: the picker says which part */, cur = missing.filter((k) => ["smoke", "tropical", "coastal"].includes(k)), own = missing.filter((k) => !["smoke", "tropical", "coastal"].includes(k));
@@ -1206,10 +1265,13 @@
   $("txLayersPop").addEventListener("focusin", (e) => { const l = e.target.closest(".tx-lt"); if (l) l.scrollIntoView({ block: "nearest" }); popMore(); });
   const popOpen = (open) => { const pop = $("txLayersPop"), btn = $("txLayersBtn"); pop.hidden = !open; btn.setAttribute("aria-expanded", String(open)); if (open) { syncLayers(); pop.scrollTop = 0; const f = pop.querySelector("input:not([disabled])"); if (f) f.focus(); requestAnimationFrame(popMore); } };
   $("txLayersBtn").addEventListener("click", () => popOpen($("txLayersPop").hidden));
-  $("txPanelBody").addEventListener("click", (e) => { if (e.target.closest("[data-open-layers]")) { e.stopPropagation(); popOpen(true); } });
+  $("txPanelBody").addEventListener("click", (e) => { if (e.target.closest("[data-open-layers]")) { e.stopPropagation(); popOpen(true); }
+    const pr = e.target.closest("[data-preset]"); if (pr) applyPreset(pr.dataset.preset);
+    if (e.target.closest("[data-vfc]")) loadVfc(); });
   $("txLayersPop").addEventListener("change", (e) => {
     const i = e.target; if (!i.matches("input")) return;
     if (i.dataset.layer) { S.layers[i.dataset.layer] = i.checked; if ((!S.layers.winter && winterView()) || (!S.layers.fire && fireView())) S.view = "active"; }
+    else if (i.hasAttribute("data-radar")) S.radar = i.checked;
     else if (i.dataset.av === "apt") S.av.apt = i.checked;
     else if (i.dataset.av === "pireps" || i.dataset.av === "adv") { S.av[i.dataset.av] = i.checked; if (i.checked) S.en.on = true; }
     else if (i.dataset.av === "gtg") { S.gtg.on = i.checked; if (i.checked) S.en.on = true; }
@@ -1219,7 +1281,7 @@
   $("txLayersPop").addEventListener("click", (e) => {
     if (e.target.closest("[data-layers-close]")) { popOpen(false); $("txLayersBtn").focus(); return; }
     if (e.target.closest("[data-layers-all]")) { LAYER_KEYS.forEach((k) => (S.layers[k] = true)); Object.assign(S.av, { apt: true, pireps: true, adv: true }); S.sel = null; drawAll(); return; }
-    if (e.target.closest("[data-layers-reset]")) { LAYER_KEYS.forEach((k) => (S.layers[k] = false)); Object.assign(S.av, { apt: true, pireps: true, adv: true }); S.gtg.on = false; S.ifi.on = false; if (winterView() || fireView()) S.view = "active"; renderBar(); S.sel = null; drawAll(); }
+    if (e.target.closest("[data-layers-reset]")) { LAYER_KEYS.forEach((k) => (S.layers[k] = false)); S.radar = false; Object.assign(S.av, { apt: true, pireps: true, adv: true }); S.gtg.on = false; S.ifi.on = false; if (winterView() || fireView()) S.view = "active"; renderBar(); S.sel = null; drawAll(); }
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("txLayersPop").hidden) { popOpen(false); $("txLayersBtn").focus(); e.preventDefault(); } }, true);
   document.addEventListener("pointerdown", (e) => { if (!$("txLayersPop").hidden && !$("txLyr").contains(e.target)) popOpen(false); });
@@ -1323,6 +1385,7 @@
     if (+q.get("fday") >= 1 && +q.get("fday") <= 8) S.fday = +q.get("fday");
     if (q.get("rx") === "1") S.rx = true;
     if (q.get("ctn") === "1") S.ctn = true;
+    if (q.get("radar") === "1") S.radar = true;
     if (q.get("layers")) { const L = q.get("layers").split(","); if (L.includes("aviation")) S.en.on = true; S.layers = { severe: L.includes("severe"), flood: L.includes("flood"), winter: L.includes("winter"), fire: L.includes("fire"), smoke: L.includes("smoke"), tropical: L.includes("tropical"), coastal: L.includes("coastal"), aviation: L.includes("aviation") }; }
     else if (S.scenario !== "live") Object.keys(S.layers).forEach((k) => (S.layers[k] = true)); // demo and archived samples: their shared selection is every layer
     else if (S.gtg.on || S.ifi.on || q.get("air") || q.get("rt") || q.get("alt")) S.layers.aviation = true; // a live link naming aviation content and no layers
@@ -1369,5 +1432,5 @@
       else map.fitBounds(CONUS, { padding: pad(), duration: 0 });
     });
   }).catch((e) => { $("txMap").innerHTML = `<p class="msg" style="padding:20px">The map could not load (${esc(e.message)}). The threat list still works.</p>`; });
-  window.__threats = { S, drawAll, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
+  window.__threats = { S, drawAll, radar, get vfc() { return vfc; }, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
 })();

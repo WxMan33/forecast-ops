@@ -28,7 +28,7 @@
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
 <link rel="stylesheet" href="assets/ops.css?v=2c02764827">
-<link rel="stylesheet" href="assets/threats.css?v=f44ada7e7a">
+<link rel="stylesheet" href="assets/threats.css?v=d12a327d22">
 </head>
 <body class="threats-page">
 <main class="tx" id="tx">
@@ -113,6 +113,9 @@
                 <label class="tx-lt"><input type="checkbox" data-av="ifi"><span class="tx-ltn">Icing guidance</span><span class="tx-ltnote">NOAA IFI model, about 0.5 MB per view</span></label>
               </fieldset>
             </fieldset>
+            <fieldset class="tx-lyrfs"><legend>Under the hazards</legend>
+              <label class="tx-lt"><input type="checkbox" data-radar><span class="tx-ltn">Radar</span><span class="tx-ltnote" id="txRadarNote">NOAA MRMS base reflectivity · refreshed every 5 minutes while on · about 0.3 MB per view</span></label>
+            </fieldset>
             <div class="tx-lyrmore" id="txLyrMore" aria-hidden="true">More below ▾ scroll for Aviation's parts</div>
             <div class="tx-lyract"><button type="button" class="tx-fb" data-layers-all>Show all</button><button type="button" class="tx-fb" data-layers-reset>Clear all</button><button type="button" class="tx-fb tx-done" data-layers-close>Done</button></div>
           </div>
@@ -160,11 +163,11 @@
 <script src="assets/threats-core.js?v=861065c469"></script>
 <script src="assets/threats-demo.js?v=ecef6ab463"></script>
 <script src="assets/severe-daily-core.js?v=8b3bc7c800"></script>
-<script src="assets/threats-feeds.js?v=00dfdff83d"></script>
+<script src="assets/threats-feeds.js?v=1e80564e88"></script>
 <script src="assets/threats-enroute.js?v=aa01a5cebb"></script>
 <script src="assets/threats-gtg.js?v=90a6946eed"></script>
 <script src="assets/threats-ifi.js?v=1a8301f4fa"></script>
-<script src="assets/threats-live.js?v=c94d83eefd"></script>
-<script src="assets/threats.js?v=85118f983c"></script>
+<script src="assets/threats-live.js?v=990919b1a4"></script>
+<script src="assets/threats.js?v=d631fcb777"></script>
 </body>
 </html>

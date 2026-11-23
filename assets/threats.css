@@ -277,3 +277,13 @@
 /* no layers selected: a prompt instead of an empty threat list */
 .px-nolayer { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 4px 0 8px; }
 .px-nolayer .px-empty { margin: 0; }
+/* no-layers prompt: one-tap starting points */
+.px-presets { display: flex; flex-wrap: wrap; gap: 8px; }
+/* the venue's next 12 hours (NWS forecast grid) */
+.px-vfc { margin: 2px 0 10px; }
+.px-vfcsum { margin: 0 0 8px; font-weight: 600; color: var(--text); }
+.px-vfcgrid { display: grid; grid-template-columns: auto auto auto auto; gap: 2px 14px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.px-vfcgrid > div { display: contents; }
+.px-vfch span { color: var(--muted, #8a93a0); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+/* radar legend: NWS reflectivity colours, light to heavy */
+.lg-radar { height: 8px; border-radius: 4px; margin: 4px 0; background: linear-gradient(90deg, #04e9e7, #019ff4, #0300f4, #02fd02, #01c501, #008e00, #fdf802, #e5bc00, #fd9500, #fd0000, #d40000, #bc0000, #f800fd, #9854c6); }

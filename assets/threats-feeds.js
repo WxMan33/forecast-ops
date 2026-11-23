@@ -832,7 +832,36 @@
       source: { name: "NOAA map service (SPC MDs)", url: n ? MD_URL(n) : MD_LIST_URL }, bulletin: "", severe: !/winter|snow|freezing|blizzard/i.test(text) };
   }
 
-  return { EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
+  /* ---------- the venue's next hours: the NWS forecast grid (api.weather.gov /gridpoints) ----------
+     Each element is a list of { validTime: "start/ISO-duration", value } in its own unit (uom). Hourly rows from the current
+     hour: wind and gusts in mph, temperature, heat index and feels-like in °F, rain chance in %. A missing value stays null
+     (heat index is only forecast when warm), never zero. */
+  const RADAR_SVC = "https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/radar_base_reflectivity/MapServer";
+  const RADAR_TIME_URL = RADAR_SVC + "/2/query?where=" + encodeURIComponent("name LIKE 'CONUS%'") + "&outFields=name,idp_validtime&returnGeometry=false&f=json";
+  const RADAR_TILE_URL = RADAR_SVC + "/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=256,256&format=png32&transparent=true&f=image";
+  function parseRadarTime(j) {
+    const f = j && Array.isArray(j.features) ? j.features.map((x) => x.attributes || {}).filter((a) => /^CONUS/.test(a.name || "") && a.idp_validtime) : null;
+    if (!f) throw Error("unrecognized radar answer"); if (!f.length) throw Error("no CONUS radar image listed");
+    return new Date(Math.max(...f.map((a) => +a.idp_validtime))).toISOString();
+  }
+  const durMs = (d) => { const m = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?)?$/.exec(d || ""); return m ? ((+m[1] || 0) * 24 + (+m[2] || 0)) * 3600e3 + (+m[3] || 0) * 60e3 : 0; };
+  const CONV = { "wmoUnit:km_h-1": (v) => v * 0.621371, "wmoUnit:m_s-1": (v) => v * 2.23694, "wmoUnit:degC": (v) => v * 9 / 5 + 32, "wmoUnit:degF": (v) => v, "wmoUnit:percent": (v) => v };
+  function gridSeries(el) {
+    if (!el || !Array.isArray(el.values)) return null; const cv = CONV[el.uom] || ((v) => v);
+    return el.values.map((x) => { const [s, d] = String(x.validTime).split("/"), t0 = Date.parse(s); return { t0, t1: t0 + durMs(d), v: x.value == null ? null : cv(x.value) }; }).filter((x) => isFinite(x.t0) && x.t1 > x.t0);
+  }
+  function parseGrid(gj, nowMs, hours = 12) {
+    const P = gj && gj.properties; if (!P || !P.updateTime || !P.windGust) throw Error("unrecognized NWS forecast grid");
+    const el = { gust: gridSeries(P.windGust), wind: gridSeries(P.windSpeed), temp: gridSeries(P.temperature), heat: gridSeries(P.heatIndex), feels: gridSeries(P.apparentTemperature), pop: gridSeries(P.probabilityOfPrecipitation) };
+    const at = (k, t) => { const l = el[k]; if (!l) return null; const x = l.find((y) => t >= y.t0 && t < y.t1); return x && x.v != null ? Math.round(x.v) : null; };
+    const h0 = Math.floor(nowMs / 3600e3) * 3600e3, rows = [];
+    for (let i = 0; i < hours; i++) { const t = h0 + i * 3600e3; rows.push({ t: new Date(t).toISOString(), gust: at("gust", t), wind: at("wind", t), temp: at("temp", t), heat: at("heat", t), feels: at("feels", t), pop: at("pop", t) }); }
+    const peak = (k) => rows.reduce((b, r) => (r[k] != null && (!b || r[k] > b[k]) ? r : b), null);
+    const covered = rows.filter((r) => r.gust != null || r.temp != null).length;
+    return { updated: new Date(P.updateTime).toISOString(), rows, covered, peakGust: peak("gust"), peakHeat: peak("heat"), peakFeels: peak("feels"), peakPop: peak("pop"), lowFeels: rows.reduce((b, r) => (r.feels != null && (!b || r.feels < b.feels) ? r : b), null) };
+  }
+
+  return { RADAR_TIME_URL, RADAR_TILE_URL, parseRadarTime, parseGrid, EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
     parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries, dissolve, zoneShape,
     HAZARD, WINTER_EVENTS, FIRE_EVENTS, TROPICAL_EVENTS, COASTAL_EVENTS, EVENT_NAME, tcvToAlerts, pointZones, NAQFC_ENABLED, AWC_URL, FLT_ORDER, fltCat, parseMETAR, parseTAF, NHC_URL, NHC_WSP_AT, parseNHC, parseNHCWsp, TCWW, FIRE_CATS, DRYT_CATS, FIRE38_CATS, FIRE_NAME, FIRE_MEANING, SPC_FIRE_URL, parseFireOutlook, createFireStore,
     NIFC_INC_URL, NIFC_PER_URL, INCIDENT_TYPE, parseNIFC, zTime,
