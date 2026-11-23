@@ -850,7 +850,7 @@
       ["Turbulence guidance", mg(S.gtg.on, gtg.state, gtg.error, gtg.dec ? GT.levelLabel(gtgHeight().ft) + ", valid " + t(gtg.dec.validTime) : "")],
       ["Icing guidance", mg(S.ifi.on, ifi.state, ifi.reason, ifi.dec ? IF.levelLabel(S.gtg.ft) + ", valid " + t(ifi.dec.validTime) : "")],
     ];
-    const head = "Aviation at " + venue.name, n = [ids.length && S.av.apt ? ids.length + " airport" + (ids.length > 1 ? "s" : "") : null, S.av.pireps && enOn() && !early ? rp.length + " pilot report" + (rp.length === 1 ? "" : "s") : null, S.av.adv && enOn() && !early ? ad.length + " advisor" + (ad.length === 1 ? "y" : "ies") : null, S.gtg.on ? "turbulence " + (gtg.state === "ok" ? "on" : gtg.state) : null, S.ifi.on ? "icing " + (ifi.state === "ok" ? "on" : ifi.state) : null].filter(Boolean);
+    const head = "Aviation at " + venue.name, n = [ids.length && S.av.apt ? ids.length + " airport" + (ids.length > 1 ? "s" : "") : null, S.av.pireps && enOn() && !early ? (enWhy() ? "pilot reports " + enWhy().replace(/…$/, "") : rp.length + " pilot report" + (rp.length === 1 ? "" : "s")) : null, S.av.adv && enOn() && !early ? (enWhy() ? "advisories " + enWhy().replace(/…$/, "") : ad.length + " advisor" + (ad.length === 1 ? "y" : "ies")) : null, S.gtg.on ? "turbulence " + (gtg.state === "ok" ? "on" : gtg.state) : null, S.ifi.on ? "icing " + (ifi.state === "ok" ? "on" : ifi.state) : null].filter(Boolean);
     return { head, sub: n.join(" · ") || "nothing turned on yet: choose in Aviation shows", rows };
   }
   function avSummaryCard() {
