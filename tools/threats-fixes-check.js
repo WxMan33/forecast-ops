@@ -30,7 +30,8 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
       await p.waitForFunction(() => window.__threats && window.__threats.ready && (window.__threats.S.scenario !== "live" || window.__threats.liveReady) && !window.__threats.data.loading, null, { timeout: 90000 });
       return { p, reqs, errs }; };
     const since = (reqs, t0) => reqs.filter((r) => r.t >= t0);
-    const tap = async (p, sel) => { await p.locator(sel).first().click(); };
+    /* a control in the panel: on a phone the sheet may be collapsed, so open it first, as a person would by tapping it */
+    const tap = async (p, sel) => { const l = p.locator(sel).first(); if (!(await l.isVisible()) && (await p.locator("#txPeek").isVisible())) { await p.locator("#txPeek").click(); await p.waitForTimeout(500); } await l.click(); };
     /* clicking the map at a lon/lat with the real pointer */
     const mapClick = async (p, pt) => { const xy = await p.evaluate((pt) => { const m = window.__threats.map; m.jumpTo({ center: pt, zoom: Math.max(m.getZoom(), 9) }); const r = m.getCanvas().getBoundingClientRect(), q = m.project(pt); return [r.left + q.x, r.top + q.y]; }, pt); await p.waitForTimeout(900);
       if (o.hasTouch) await p.touchscreen.tap(xy[0], xy[1]); else await p.mouse.click(xy[0], xy[1]); await p.waitForTimeout(900); };
