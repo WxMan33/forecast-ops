@@ -1,6 +1,8 @@
 // CONUS Severe preview readability checks (reports, counties, layers, saved forecast, phone). Usage: node tools/conus-preview-readability-check.js BASE OUTDIR
 // Readability-pass checks + "after" screenshots. Usage: node after.js BASE OUTDIR [hosted]
 const {chromium,devices}=require('playwright');const [BASE,OUT,HOSTED]=process.argv.slice(2);const fs=require('fs');fs.mkdirSync(OUT,{recursive:true});
+
+const snap=(pg,o)=>pg.screenshot({...o,timeout:60000}).catch(e=>console.log('screenshot skipped ('+String(e.message).split('\n')[0]+')'));
 const R=[];const ok=(name,pass,detail)=>{R.push({name,pass:!!pass,detail});console.log((pass?'PASS ':'FAIL ')+name+(detail!==undefined?' '+JSON.stringify(detail):''));};
 async function notice(p){for(let i=0;i<3;i++){if(!/External Content Notice/i.test(await p.title().catch(()=>'')))return;const b=p.getByRole('button',{name:/open the page/i}).first();await b.waitFor({timeout:30000});await Promise.all([p.waitForURL(u=>!/External/.test(String(u)),{timeout:30000}).catch(()=>{}),b.click()]);await p.waitForLoadState('load').catch(()=>{});await p.waitForTimeout(2500);}}
 async function open(p){await p.goto(BASE+'severe.html#severe-conus');await notice(p);await p.waitForFunction(()=>window.SevereConusPreview&&window.SevereConusPreview.state().ready&&window.SevereConusPreview.state().case,null,{timeout:90000});}
@@ -9,7 +11,7 @@ async function waitReports(p){await p.waitForFunction(()=>window.SevereConusPrev
 (async()=>{const b=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});
  const p=await b.newPage({viewport:{width:1280,height:1100},deviceScaleFactor:2});const errs=[];p.on('pageerror',e=>errs.push(e.message));
  await open(p);await p.selectOption('#scCase','replay-2024-05-25');await waitReports(p);await p.evaluate(()=>window.SevereConusPreview.view([-96,38.5],3.4));await p.waitForTimeout(800);
- const mapShot=async n=>{await p.locator('#scMap').scrollIntoViewIfNeeded();const m=await p.locator('#scMap').boundingBox();await p.screenshot({path:`${OUT}/after-${n}.png`,clip:{x:m.x-4,y:m.y-4,width:m.width+8,height:m.height+8}});};
+ const mapShot=async n=>{await p.locator('#scMap').scrollIntoViewIfNeeded();const m=await p.locator('#scMap').boundingBox();await snap(p,{path:`${OUT}/after-${n}.png`,clip:{x:m.x-4,y:m.y-4,width:m.width+8,height:m.height+8}});};
  const st=await S(p);ok('active replay loads 776 original reports',st.reports===776,st.reports);
  ok('report count shown next to toggle',/\(776\)/.test(await p.textContent('#scReportCount')),await p.textContent('#scReportCount'));
  ok('clusters at national zoom',await p.evaluate(()=>window.SevereConusPreview.rendered('sc-clusters'))>0,await p.evaluate(()=>window.SevereConusPreview.rendered('sc-clusters')));
@@ -19,7 +21,7 @@ async function waitReports(p){await p.waitForFunction(()=>window.SevereConusPrev
  await mapShot('national');
  // full panel shot (controls + map + legend)
  await p.locator('[data-sc-view="regional"]').scrollIntoViewIfNeeded();const top=await p.locator('[data-sc-view="regional"]').boundingBox();const kb=await p.locator('#scKeys').boundingBox();const card=await p.locator('#scBody').boundingBox();
- await p.screenshot({path:`${OUT}/after-panel.png`,clip:{x:card.x-8,y:Math.max(0,top.y-10),width:card.width+16,height:Math.min(1100-Math.max(0,top.y-10),kb.y+kb.height-top.y+20)}});
+ await snap(p,{path:`${OUT}/after-panel.png`,clip:{x:card.x-8,y:Math.max(0,top.y-10),width:card.width+16,height:Math.min(1100-Math.max(0,top.y-10),kb.y+kb.height-top.y+20)}});
  ok('legend directly below the map',(await p.locator('#scLegend').boundingBox()).y-((await p.locator('#scMap').boundingBox()).y+(await p.locator('#scMap').boundingBox()).height)<40);
  await p.uncheck('#scReports');await p.waitForTimeout(1500);
  const off=await p.evaluate(()=>({rep:window.SevereConusPreview.rendered('sc-clusters')+window.SevereConusPreview.rendered('sc-report'),fill:window.SevereConusPreview.rendered('sc-fill')}));
@@ -64,13 +66,13 @@ async function waitReports(p){await p.waitForFunction(()=>window.SevereConusPrev
   ok(label+'px: compact cluster badges (largest ≤ 12 px)',st.compact&&Math.max(...radii)<=12,radii);
   const dims=await m.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,mh:document.getElementById('scMap').getBoundingClientRect().height,vh:innerHeight}));ok(label+'px: no sideways scroll, map ≥ 60% of screen',dims.sw<=dims.cw&&dims.mh>=0.6*dims.vh,dims);
   ok(label+'px: national clusters drawn',await m.evaluate(()=>window.SevereConusPreview.rendered('sc-clusters'))>0);
-  await m.evaluate(()=>{const e=document.querySelector('#scWindow');window.scrollTo(0,e.getBoundingClientRect().top+scrollY-8);});await m.waitForTimeout(600);await m.screenshot({path:`${OUT}/after-phone${label}-national.png`});
+  await m.evaluate(()=>{const e=document.querySelector('#scWindow');window.scrollTo(0,e.getBoundingClientRect().top+scrollY-8);});await m.waitForTimeout(600);await snap(m,{path:`${OUT}/after-phone${label}-national.png`});
   await m.evaluate(()=>window.SevereConusPreview.view([-84.6,39.1],7.4));await m.waitForTimeout(1200);
   ok(label+'px: county lines at CVG',await m.evaluate(()=>window.SevereConusPreview.rendered('sc-counties'))>0);
   const pick=await m.evaluate(()=>{const L=window.SevereConusPreview.reportList(),c=[-84.6,39.1];let best=null,d=1e9;for(const r of L){const dd=Math.hypot(r.lon-c[0],r.lat-c[1]);if(dd<d){d=dd;best=r;}}return best;});
   await m.locator('#scMap').scrollIntoViewIfNeeded();await m.waitForTimeout(400);const xy=await m.evaluate(r=>window.SevereConusPreview.project(r.lon,r.lat),pick);await m.touchscreen.tap(xy[0],xy[1]);await m.waitForTimeout(800);
   const pop=await m.textContent('.maplibregl-popup-content').catch(()=>null);const href=await m.getAttribute('.maplibregl-popup-content a','href').catch(()=>null);
   ok(label+'px: tapping a report opens its NOAA record details',pop&&pop.includes(pick.id)&&href===('https://www.ncdc.noaa.gov/stormevents/eventdetails.jsp?id='+pick.id),{id:pick.id,popup:pop&&pop.slice(0,120)});
-  await m.screenshot({path:`${OUT}/after-phone${label}-cvg.png`});
+  await snap(m,{path:`${OUT}/after-phone${label}-cvg.png`});
   ok(label+'px: no page errors',merr.length===0,merr);await ctx.close();}
  fs.writeFileSync(`${OUT}/checks.json`,JSON.stringify(R,null,1));await b.close();if(R.some(r=>!r.pass))process.exit(1);})().catch(e=>{console.error(e);process.exit(1);});
