@@ -6,7 +6,7 @@
 (function () {
   "use strict";
   const O = window.Ops, $ = O.$, esc = O.esc, Q = new URLSearchParams(location.search), TZ = "America/New_York";
-  const DATA = (Q.get("data") || "https://wxman33.github.io/forecast-ops-maps/data").replace(/\/$/, ""), SITE = DATA.replace(/\/data$/, "");
+  const DATA = window.MapsConus.DATA, SITE = DATA.replace(/\/data$/, "");   /* the same data host as the single-run viewer (assets/maps-conus.js) */
   const PHONE = () => innerWidth < 700;
   const fmtLocal = (ms) => new Date(ms).toLocaleString("en-US", { timeZone: TZ, weekday: "short", month: "short", day: "numeric", hour: "numeric", timeZoneName: "short" });
   const fmtUTC = (ms) => { const d = new Date(ms).toISOString(); return `${d.slice(11, 13)}Z ${new Date(ms).toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" })}`; };

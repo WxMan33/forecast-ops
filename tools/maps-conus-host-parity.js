@@ -3,7 +3,8 @@
    layout read with HTTP range requests), must show the same numbers. For one run both hosts publish it compares the
    SHA-256 of display tiles (all three levels, several fields and hours), the Values labels, the click readout, the loop,
    and a same-window cycle comparison; and it records requests, bytes and HTTP status per host.
-   Usage: node tools/maps-conus-host-parity.js VIEWER_URL HOST_A_DATA HOST_B_DATA RUN COMPARE_A COMPARE_B [out-dir]
+   Usage: [PARITY_VALID=ISO] node tools/maps-conus-host-parity.js VIEWER_URL HOST_A_DATA HOST_B_DATA RUN COMPARE_A COMPARE_B [out-dir]
+   (PARITY_VALID: the valid time of the same-window comparison, a 6-h window end both compare runs cover)
    e.g.   node tools/maps-conus-host-parity.js https://raw.githack.com/WxMan33/forecast-ops/claude/conus-model-maps/maps.html \
             https://wxman33.github.io/forecast-ops-maps/data https://pub-….r2.dev/data 2026112218 2026112222 2026112218 */
 'use strict';
@@ -45,7 +46,7 @@ const FIELDS = ['t2m', 'apcp_run', 'asnow_run', 'refc'], HOURS = [6, 30];
   }
   async function compare(host, tag) {
     const ctx = await browser.newContext(DESK), p = await ctx.newPage(), errs = []; p.on('pageerror', (e) => errs.push(e.message));
-    await go(p, `${VIEWER}?domain=conus&compare=1&a=${CA}&b=${CB}&field=asnow6&valid=2026-11-23T06:00:00Z&data=${encodeURIComponent(host)}&map=47.40,-117.60,6.10`);
+    await go(p, `${VIEWER}?domain=conus&compare=1&a=${CA}&b=${CB}&field=asnow6&valid=${process.env.PARITY_VALID || '2026-11-23T06:00:00Z'}&data=${encodeURIComponent(host)}&map=47.40,-117.60,6.10`);
     const frames = () => p.frames().filter((f) => f.url().includes('embed=1'));
     for (let k = 0; k < 200; k++) { const fs2 = frames(); if (fs2.length === 2 && (await Promise.all(fs2.map((f) => f.evaluate(() => !!(window.MapsConus && window.MapsConus.api.ready() && window.MapsConus.api.labels().chosen.length)).catch(() => false)))).every(Boolean)) break; await p.waitForTimeout(500); }
     await p.waitForTimeout(4000);
@@ -69,7 +70,7 @@ const FIELDS = ['t2m', 'apcp_run', 'asnow_run', 'refc'], HOURS = [6, 30];
     }
     const ca = await compare(HA, 'compare-A'), cb = await compare(HB, 'compare-B');
     check(ca.res.length === 2 && JSON.stringify(ca.res) === JSON.stringify(cb.res) && ca.note === cb.note && /Like for like/.test(cb.note),
-      `same-window snowfall compare (${CA} vs ${CB}, 6 h ending 06Z): both panels identical on both hosts — "${cb.note.slice(0, 70)}…"`);
+      `same-window snowfall compare (${CA} vs ${CB}, 6 h ending ${process.env.PARITY_VALID || '06Z'}): both panels identical on both hosts — "${cb.note.slice(0, 70)}…"`);
     check(!ca.errs.length && !cb.errs.length, `compare: no script errors ${[...ca.errs, ...cb.errs].join('; ')}`);
   } catch (e) { check(false, 'crashed: ' + (e.stack || e.message)); }
   await browser.close();

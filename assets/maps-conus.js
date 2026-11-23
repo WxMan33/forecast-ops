@@ -8,7 +8,10 @@
   "use strict";
   const O = window.Ops, $ = O.$, esc = O.esc, MC = window.MapsCore, K = window.MapsConusCore, ML = window.maplibregl;
   const TZ = "America/New_York", H = 3600e3, Q = new URLSearchParams(location.search);
-  const DATA = (Q.get("data") || "https://wxman33.github.io/forecast-ops-maps/data").replace(/\/$/, "");
+  /* Data host: the isolated Model Maps preview (raw.githack.com) reads the R2 bucket, refreshed alongside the GitHub Pages
+     build and the only host with RRFS and NBM through Day 3; everywhere else keeps GitHub Pages. ?data= overrides both. */
+  const DATA_HOSTS = { r2: "https://pub-d40aeef98e1146a78125908fd1f9c48f.r2.dev/data", pages: "https://wxman33.github.io/forecast-ops-maps/data" };
+  const DATA = (Q.get("data") || (location.hostname === "raw.githack.com" ? DATA_HOSTS.r2 : DATA_HOSTS.pages)).replace(/\/$/, "");
   const SITE = DATA.replace(/\/data$/, "");
   const PHONE = () => innerWidth < 700;
   /* the models this viewer can show; each is published in the same conus-v1 format under its own run list */
@@ -696,5 +699,5 @@
     d.innerHTML = `<a class="segb" href="maps.html" aria-pressed="${active === "tristate"}">Tri-State</a><a class="segb" href="maps.html?domain=conus" aria-pressed="${active === "conus"}">CONUS <small class="wide-only">beta</small></a>`;
     row.prepend(d);
   }
-  window.MapsConus = { start, regionToggle, api, FIELDS, MODEL: M, derive, publishes, fieldOptions: (pub) => fieldOptions(pub) };
+  window.MapsConus = { start, regionToggle, api, FIELDS, MODEL: M, DATA, derive, publishes, fieldOptions: (pub) => fieldOptions(pub) };
 })();
