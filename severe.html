@@ -27,7 +27,7 @@
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/ops.css?v=35098c1775">
 <link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
-<link rel="stylesheet" href="assets/severe-research.css?v=06d3aa9393">
+<link rel="stylesheet" href="assets/severe-research.css?v=ebda997bd1">
 </head>
 <body>
 <main class="workspace">
@@ -65,6 +65,11 @@
       <summary><span class="sr-title">Daily severe probability research</span><span class="sr-badge">CURRENT MODEL INPUTS</span></summary>
       <p class="sr-intro">Inspect experimental Day 1 and Day 2 tornado, wind and hail probabilities from audited HRRR inputs.</p>
       <div class="sr-body">
+        <div class="sc-switch-row"><span class="field-label" id="scViewLabel">View</span><div class="sc-switch" role="group" aria-labelledby="scViewLabel">
+          <button class="btn ghost sm" type="button" data-sc-view="regional" aria-pressed="true">REGIONAL</button>
+          <button class="btn ghost sm" type="button" data-sc-view="conus" aria-pressed="false">CONUS RESEARCH <span class="sc-beta">PREVIEW</span></button>
+        </div></div>
+        <div class="sd-regional">
         <div class="sr-warning"><b>Experimental research model.</b> Skill and reliability differ by hazard and lead day. The selected product&rsquo;s own development results appear with the map; some products show no skill at all. Read the initialization, preparation time and valid window before use.</div>
         <div class="sr-controls">
           <div><label class="field-label" for="sdRun">Lead day</label><select class="input" id="sdRun" disabled><option>Loading daily research…</option></select></div>
@@ -109,6 +114,46 @@
         <button class="btn ghost sm" type="button" id="sdRetry" hidden>REFRESH DAILY DATA</button>
         <p class="sr-caption">Targets are tornado reports, wind reports of at least 50 kt and hail reports of at least 1 inch. Expired or incomplete products are withheld. Regional coverage is approximately 100°W–75°W, 30°N–45°N. Samples more than 25 miles from US land (Gulf and Atlantic waters, Great Lakes interiors, Canada, Mexico) are hidden because reports are essentially never made there; this is a display mask, and the model is unchanged.</p>
         <p class="sr-caption"><a href="docs/severe-product.md">Daily research method and data contract</a></p>
+        </div>
+        <div class="sc-body" id="scBody" hidden>
+          <div class="sr-warning"><b>CONUS research preview. Not a forecast product.</b> Day 2 damaging wind from the frozen CONUS boosted-tree research candidate. It beat live v0.7 inside the old regional box, but it trails NadoCast nationally and has no skill in Florida/Gulf. Replays are labeled with their dates.</div>
+          <div class="sr-controls sc-controls">
+            <div><label class="field-label" for="scDay">Day</label><select class="input" id="scDay"><option value="1">Day 1</option><option value="2" selected>Day 2</option></select></div>
+            <div><span class="field-label" id="scHazardLabel">Hazard</span><div class="sr-hazards" role="group" aria-labelledby="scHazardLabel">
+              <button class="btn ghost sm" type="button" data-sc-hazard="tornado" aria-pressed="false">TORNADO</button>
+              <button class="btn ghost sm" type="button" data-sc-hazard="wind" aria-pressed="true">WIND</button>
+              <button class="btn ghost sm" type="button" data-sc-hazard="hail" aria-pressed="false">HAIL</button>
+            </div></div>
+            <div class="sc-case"><label class="field-label" for="scCase">Case</label><select class="input" id="scCase" disabled><option>Loading CONUS preview…</option></select></div>
+            <label class="sc-toggle" id="scReportsWrap"><input type="checkbox" id="scReports" checked> Observed reports</label>
+          </div>
+          <div class="sr-meta"><strong id="scWindow">Loading…</strong><span id="scCycle"></span></div>
+          <p class="sr-caption" id="scCaseNote"></p>
+          <div class="sr-layout">
+            <div class="sc-mapwrap"><div class="sr-map sc-map" id="scMap" role="region" aria-label="CONUS research Day 2 damaging wind probability map"></div>
+              <div class="sc-unavailable" id="scUnavailable" hidden><p></p><div class="sc-actions"><button class="btn sm" type="button" id="scWind">SHOW DAY 2 WIND</button><button class="btn ghost sm" type="button" id="scBack">BACK TO REGIONAL</button></div></div></div>
+            <div class="sr-readout" aria-live="polite" aria-atomic="true">
+              <div class="sr-sample-name" id="scSample">Saved location</div>
+              <div><div class="sr-value" id="scValue">—</div><div class="sr-caption" id="scState"></div></div>
+              <div class="sr-coordinates" id="scCoords"></div>
+              <div class="sr-caption">Dashed circle: the 25-mile area assessed around the selected sample.</div>
+            </div>
+          </div>
+          <div class="sr-map-actions">
+            <button class="btn ghost sm" id="scLocation" type="button">INSPECT SAVED LOCATION</button>
+            <button class="btn ghost sm" id="scPeak" type="button">HIGHEST SAMPLE</button>
+            <button class="btn ghost sm" id="scWhole" type="button">WHOLE CONUS</button>
+          </div>
+          <div class="sc-legend-block">
+            <div class="sr-scale" id="scLegend" aria-label="Probability color scale and coverage key"></div>
+            <p class="sr-caption" id="scDefinition"></p>
+            <p class="sr-caption" id="scCoverage"></p>
+          </div>
+          <p class="sr-status" id="scStatus" role="status">Choose CONUS research to load the preview.</p>
+          <details class="sr-evidence"><summary>Where this candidate helps and where it struggles (Day 2 wind benchmark)</summary><div class="tablewrap"><table id="scBench"></table></div><p class="sr-caption" id="scBenchNote"></p></details>
+          <p class="sr-caption">Observed reports (replays only): grid samples with a Storm Events thunderstorm wind report of at least 50 kt within 25 miles during the valid window. Current runs have no observed layer yet.</p>
+          <p class="sr-caption"><a href="docs/severe-conus-preview.md">CONUS preview method, checks and limits</a></p>
+        </div>
       </div>
     </details>
 
@@ -248,7 +293,8 @@
 <script src="assets/severe-research-contours.js?v=2f0dc34948"></script>
 <script src="assets/severe-research-canvas.js?v=264023e357"></script>
 <script src="assets/severe-daily-core.js?v=8b3bc7c800"></script>
-<script src="assets/severe-research.js?v=cbbccb4c45"></script>
+<script src="assets/severe-research.js?v=f50242f10f"></script>
+<script src="assets/severe-conus.js?v=69a83a7212"></script>
 <script src="assets/table-pages.js?v=5852a434bf"></script>
 </body>
 </html>
