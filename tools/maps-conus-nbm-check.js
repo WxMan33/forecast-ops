@@ -28,7 +28,10 @@ const f2 = (h) => String(h).padStart(2, '0');
   const run = runs[0], mans = new Map(runs.map((r) => [r.id, JSON.parse(fs.readFileSync(path.join(dataRoot, r.path, 'manifest.json'), 'utf8'))])), man = mans.get(run.id), tiles = new Map();
   let cur = run;   /* the run the page shows; labels are checked against its own files */
   const native = (field, fh, i, j) => { const man = mans.get(cur.id), T = man.tile, tx = Math.floor(i / T), ty = Math.floor(j / T), k = `${cur.id}|${field}|${fh}|${tx}|${ty}`;
-    if (!tiles.has(k)) { const d = K.tileDims(man, 0, tx, ty), raw = zlib.gunzipSync(fs.readFileSync(path.join(dataRoot, cur.path, field, `f${f2(fh)}`, `L0_${tx}_${ty}.bin.gz`))); tiles.set(k, K.decodeTile(new Uint8Array(raw), d.ny, d.nx)); }
+    if (!tiles.has(k)) { const d = K.tileDims(man, 0, tx, ty), rec = man.fields[field].hours[String(fh)], name = `L0_${tx}_${ty}.bin.gz`;   /* tiles or the packed layout (R2) */
+      let gz; if (rec.pack) { const [off, len] = K.packIndex(man, rec)[name], fd = fs.openSync(path.join(dataRoot, cur.path, rec.pack.file), 'r'); gz = Buffer.alloc(len); fs.readSync(fd, gz, 0, len, off); fs.closeSync(fd); }
+      else gz = fs.readFileSync(path.join(dataRoot, cur.path, field, `f${f2(fh)}`, name));
+      const raw = zlib.gunzipSync(gz); tiles.set(k, K.decodeTile(new Uint8Array(raw), d.ny, d.nx)); }
     const t = tiles.get(k), v = t.values[(j - ty * T) * t.nx + (i - tx * T)]; return v === K.MISS ? null : v * man.fields[field].scale; };
   const cellOf = (k) => { const P = man.points, n = P.places.length; if (k < n) return [P.places[k][4], P.places[k][5]]; const q = k - n; return [P.lattice.i0 + (q % P.lattice.nx) * P.lattice.every, P.lattice.j0 + Math.floor(q / P.lattice.nx) * P.lattice.every]; };
   const verify = (field, fh, L, id) => { cur = runs.find((r) => r.id === (id || run.id)); return L.shown.filter((x) => { const [i, j] = cellOf(x.k), v = native(field, fh, i, j); return v == null || FMT[field](v) !== x.text || (MIN[field] && v < MIN[field]); }); };
@@ -46,8 +49,12 @@ const f2 = (h) => String(h).padStart(2, '0');
       await Promise.all([p.waitForNavigation(), p.selectOption('#modelSel', 'nbm')]); await settled(p);
       const ns = await S(p), info = await p.evaluate(() => document.querySelector('#mapInfo').innerText), q = new URL(p.url()).searchParams, view = (q.get('map') || '').split(',').map(Number);
       const expect = runs.find((r) => r.hours.some((h) => Date.parse(r.cycle) + h * 3600e3 === Date.parse(hValid)));
-      check(expect && ns.run === expect.id && ns.field === 't2m' && ns.valid[ns.fh] === hValid && /NBM 2\.5 km/.test(info) && Math.abs(view[0] - 39.1) < 0.05 && Math.abs(view[1] + 84.51) < 0.05 && q.get('model') === 'nbm',
-        `${dev}: model menu HRRR -> NBM keeps the view and valid time (${hValid} = NBM ${ns.run} F${f2(ns.fh)}, the newest NBM run with that hour), header "${info.split('\n')[0]}", link has model=nbm`);
+      /* the newest NBM run with that valid time; if none has it, the nearest hour of the newest run, said on the map */
+      const note0 = await p.evaluate(() => (document.querySelector('#mapNote') || {}).innerText || ''), newest = runs[0];
+      const nearest = newest.hours.reduce((b, h) => (Math.abs(Date.parse(newest.cycle) + h * 3600e3 - Date.parse(hValid)) < Math.abs(Date.parse(newest.cycle) + b * 3600e3 - Date.parse(hValid)) ? h : b), newest.hours[0]);
+      const timeOk = expect ? ns.run === expect.id && ns.valid[ns.fh] === hValid : ns.run === newest.id && ns.fh === nearest && /has no published hour at .+ showing the nearest/.test(note0);
+      check(timeOk && ns.field === 't2m' && /NBM 2\.5 km/.test(info) && Math.abs(view[0] - 39.1) < 0.05 && Math.abs(view[1] + 84.51) < 0.05 && q.get('model') === 'nbm',
+        `${dev}: model menu HRRR -> NBM keeps the view and the valid time (${hValid} → NBM ${ns.run} F${f2(ns.fh)}: ${expect ? 'the newest NBM run with that hour' : `no NBM run has it, nearest hour, said on the map ("${note0.slice(0, 70)}…")`}), header "${info.split('\n')[0]}", link has model=nbm`);
       /* the field menu lists only NBM's fields; others are queued */
       const menu = await p.evaluate(() => [...document.querySelectorAll('#fieldSel option')].map((o) => o.value || o.textContent));
       check(menu.filter((x) => !/Queued/.test(x)).sort().join() === 'pop1h,pop6h,t2m', `${dev}: field menu for NBM: ${menu.filter((x) => !/Queued/.test(x)).join(', ')} (the rest marked queued)`);
