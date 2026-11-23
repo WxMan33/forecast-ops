@@ -18,6 +18,8 @@ jobs:
   gate:
     runs-on: ubuntu-latest
     timeout-minutes: 350
+    outputs:
+      stage: ${{ steps.req.outputs.stage }}
     env:
       OPENBLAS_NUM_THREADS: '4'
       OMP_NUM_THREADS: '4'
@@ -51,7 +53,10 @@ jobs:
           mkdir -p tests/out/dev
           for d in tests/out/x/conus/2022-* tests/out/x/conus/2023-*; do ln -s "$PWD/$d" tests/out/dev/; done
           ls tests/out/dev | wc -l
-          if [ "${{ steps.req.outputs.stage }}" = gate_v2 ]; then
+          if [ "${{ steps.req.outputs.stage }}" = blend ]; then
+            ls tests/out/x2/conus | wc -l
+            PYTHONPATH=tools/severe python3 tools/severe/corridor_blend.py regen --conus tests/out/dev tests/out/x2/conus --output tests/out/corridor
+          elif [ "${{ steps.req.outputs.stage }}" = gate_v2 ]; then
             ls tests/out/x2/conus | wc -l
             PYTHONPATH=tools/severe python3 tools/severe/corridor_v2.py gate --conus tests/out/dev tests/out/x2/conus --output tests/out/corridor
             cp tests/out/corridor/fits-roster.json tests/out/corridor/fits-all96.json  # diag2024 input name
@@ -64,8 +69,38 @@ jobs:
           name: corridor-gate
           path: tests/out/corridor
           retention-days: 90
-  diag2024:
+  blend:
     needs: gate
+    if: ${{ needs.gate.outputs.stage == 'blend' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      OPENBLAS_NUM_THREADS: '4'
+      OMP_NUM_THREADS: '4'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r tools/severe/requirements.txt scikit-learn==1.9.1 matplotlib==3.11.2 shapely==2.2.0
+      - uses: actions/download-artifact@v4
+        with:
+          name: corridor-gate
+          path: tests/out/gate
+      - name: Blend candidate (weights, calibration and thresholds chosen inside training folds)
+        run: |
+          PYTHONPATH=tools/severe python3 tools/severe/corridor_blend.py blend --arrays tests/out/gate/regen-arrays.npz \
+            --breakdown tests/out/gate/breakdown.json --fits tests/out/gate/fits-roster-regen.json --output tests/out/blend
+          cp tests/out/blend/fits-blend.json tests/out/blend/fits-all96.json  # diag2024 input name
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: corridor-blend
+          path: tests/out/blend
+          retention-days: 90
+  diag2024:
+    needs: [gate, blend]
+    if: ${{ always() && needs.gate.result == 'success' && needs.blend.result != 'failure' && needs.blend.result != 'cancelled' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -77,6 +112,11 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: corridor-gate
+          path: tests/out/gate
+      - uses: actions/download-artifact@v4
+        if: ${{ needs.gate.outputs.stage == 'blend' }}
+        with:
+          name: corridor-blend
           path: tests/out/gate
       - uses: actions/download-artifact@v4
         with:
@@ -110,7 +150,7 @@ jobs:
           path: tests/out/diag
           retention-days: 90
   commit:
-    needs: [gate, diag2024]
+    needs: [gate, blend, diag2024]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -123,6 +163,7 @@ jobs:
         run: |
           dest=research/severe/corridor/gate
           [ "$(jq -r .stage research/severe/corridor/request.json)" = gate_v2 ] && dest=research/severe/corridor/v2/gate
+          [ "$(jq -r .stage research/severe/corridor/request.json)" = blend ] && dest=research/severe/corridor/blend/result
           mkdir -p "$dest"
           find tests/out/a -name '*.json' ! -name 'fits-all96.json' -exec cp {} "$dest"/ \;
           [ "$dest" = research/severe/corridor/gate ] && find tests/out/a -name 'fits-all96.json' -exec cp {} "$dest"/ \;

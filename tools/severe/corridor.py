@@ -380,6 +380,8 @@ def diag2024(a):
     pn = arr["p_nadocast"]
     coords = names = nb = tgt = None
     P = {"b": np.empty(len(y)), "c": np.empty(len(y))}
+    if "blend" in fits:
+        P["blend"] = np.empty(len(y))
     fb, fc = Arm.from_dict(fits["b"]), Arm.from_dict(fits["c"])
     for j, case in enumerate(dates):
         meta = json.loads((Path(a.conus) / case / "conus-case.json").read_text())
@@ -400,13 +402,20 @@ def diag2024(a):
         xb = x0[tgt][pt[s]].astype(np.float64)
         xw = wider(x0, names, nb)[pt[s]]
         P["b"][s], P["c"][s] = fb.predict(xb), fc.predict(np.hstack([xb, xw]))
+        if "blend" in fits:
+            wbl, cbl = fits["blend"]["weight"], np.array(fits["blend"]["beta"])
+            if wbl == 0:
+                P["blend"][s] = P["b"][s]
+            else:
+                pm = np.clip((1 - wbl) * P["b"][s] + wbl * P["c"][s], 1e-9, 1 - 1e-9)
+                P["blend"][s] = expit(cbl[0] + beta_design(np.log(pm / (1 - pm))) @ cbl[1:])
     nd = len(dates)
     xyz = B.unit(xy[pt, 0], xy[pt, 1])
     fa_n = int(((y == 0) & (pn >= 0.05)).sum())
     flags = {"nadocast": pn >= 0.05}
     out = {"status": "2024 diagnostic only (323 benchmark days); never deciding", "reference": "NadoCast 5% false-alarm area",
            "by_model": {}}
-    for k in ("b", "c"):
+    for k in P:
         t = D.thresholds_for_count(P[k][y == 0], fa_n)
         flags[k] = P[k] > t
     allp = {**P, "nadocast": pn}
@@ -424,13 +433,16 @@ def diag2024(a):
         rings = states()
         j = dates.index("2024-12-28")
         s = d == j
-        fig, axes = plt.subplots(1, 3, figsize=(21, 6))
-        for ax, k, t in zip(axes, ("b", "c", "nadocast"), ("Arm b (refit + recalibration)", "Arm c (+ corridor features)",
-                                                          "NadoCast (D-1 12Z, abs. calibrated)")):
+        panels = [("b", "Arm b (refit + recalibration)"), ("c", "Arm c (+ corridor features)")]
+        if "blend" in P:
+            panels.append(("blend", f"Blend (weight {fits['blend']['weight']})"))
+        panels.append(("nadocast", "NadoCast (D-1 12Z, abs. calibrated)"))
+        fig, axes = plt.subplots(1, len(panels), figsize=(7 * len(panels), 6))
+        for ax, (k, t) in zip(axes, panels):
             lab = D.miss_classes(xyz[s], y[s], np.zeros(int(s.sum()), int), flags[k][s], 1)[1]
             colors = flag_panels(ax, xy[pt[s]], allp[k][s], flags[k][s], lab, t, rings)
         save_fig(fig, colors, a.output / "corridor-2024-12-28.png",
-                 "2024-12-28 (diagnostic): arms b and c fitted on all 96 development dates vs NadoCast, each flagged at NadoCast's "
+                 f"2024-12-28 (diagnostic): arms b and c fitted on all {len(fits['fit_dates'])} development dates vs NadoCast, each flagged at NadoCast's "
                  "5% false-alarm area. Research only.")
     print(json.dumps(out))
 

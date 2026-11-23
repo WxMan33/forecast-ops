@@ -1,6 +1,6 @@
 {
-  "purpose": "Corridor experiment v2: nested month-held-out gate on the locked 362-date roster (beta calibration for arms b and c), then the 2024 diagnostic. Rules: research/severe/corridor/v2/rules.json (commit 848ff1c).",
-  "stage": "gate_v2",
+  "purpose": "Corridor blend follow-up (protocol research/severe/corridor/blend/rules.json, commit bdbeba0): regenerate v2 exactly, break down the no-signal failure, then one blended candidate; 2024 diagnostic; 2021 sealed unless the blend passes all five criteria.",
+  "stage": "blend",
   "new_extraction_run": 45065678907,
-  "request": 2
+  "request": 3
 }
