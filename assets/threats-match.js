@@ -347,7 +347,9 @@
             items.push({ id, productId: p.id, family: "aviation", kind: "pirep", rank: 0.69, product: p, phases: [], potential: true, km: x.km, headline, line, relation: { kind: "route" }, window: { startMs: Date.parse(p.observed), endMs: Date.parse(p.observed) } });
             routeSummary.lines.push({ concern: true, itemId: id, text: headline });
           }
-          if (!ov.advisories.length && !ov.reports.length) routeSummary.lines.push({ concern: false, text: "No SIGMET, G-AIRMET or Center Weather Advisory for turbulence, icing or thunderstorms meets your approximate route in your time and band, and no moderate or worse pilot report near it in the last " + E.PIREP_ROUTE_MIN + " minutes." });
+          const missing = ((state["awc-enroute"] || {}).partial || []).map((x) => String(x).split(":")[0]);
+          if (missing.length) routeSummary.lines.push({ concern: false, unknown: true, text: "Not fully checked: the Aviation Weather Center didn't answer for " + list(missing) + ", so " + (ov.advisories.length || ov.reports.length ? "other " : "") + "hazards from " + (missing.length > 1 ? "them" : "it") + " along the route are unknown." });
+          else if (!ov.advisories.length && !ov.reports.length) routeSummary.lines.push({ concern: false, text: "No SIGMET, G-AIRMET or Center Weather Advisory for turbulence, icing or thunderstorms meets your approximate route in your time and band, and no moderate or worse pilot report near it in the last " + E.PIREP_ROUTE_MIN + " minutes." });
         }
       }
     }

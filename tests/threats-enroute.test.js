@@ -104,5 +104,7 @@ ok("SEPARATION: venue hazards, airport weather, flight disruptions and route ite
 ok("AWC partial answer: a route checked with one product family missing is not confirmed", () => {
   const r = match({ route: ROUTE }, ALL, { ...STATE, "awc-enroute": { kind: "current", lastOk: CLOCK, partial: ["pilot reports: timeout"] } });
   const s = r.statuses.find((x) => x.id === "awc-enroute"); assert(!s.ok && /not answered: pilot reports: timeout/.test(s.text));
+  const q = match({ route: { ...ROUTE, lowFt: 25000, highFt: 26000 } }, ALL, { ...STATE, "awc-enroute": { kind: "current", lastOk: CLOCK, partial: ["SIGMETs: HTTP 502", "G-AIRMETs: HTTP 502"] } });
+  assert.deepStrictEqual(q.route.lines.map((l) => [l.unknown, l.text]), [[true, "Not fully checked: the Aviation Weather Center didn't answer for SIGMETs and G-AIRMETs, so hazards from them along the route are unknown."]], "never 'none' when a product family is missing");
 });
 console.log(n + " passed");
