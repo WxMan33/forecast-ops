@@ -102,7 +102,12 @@
   }
   /* a Web Mercator image of the field (RGBA), with its lon/lat corners for a map image source */
   function render(dec, opts = {}) {
-    const P = projection(dec.grid), W = opts.width || 1100, cls = opts.cls || "medium", colors = opts.colors || PALETTE;
+    const cls = opts.cls || "medium", colors = opts.colors || PALETTE;
+    return renderWith(dec, (v) => { const c = category(v, cls); return c ? colors[c] : null; }, opts);
+  }
+  /* any field: color(value, cellIndex) gives [r, g, b, a] or null (transparent); cells without a value are never coloured */
+  function renderWith(dec, color, opts = {}) {
+    const P = projection(dec.grid), W = opts.width || 1100;
     let w = Infinity, e = -Infinity, s = Infinity, nn = -Infinity;
     for (const [i, j] of [[0, 0], [dec.grid.nx - 1, 0], [0, dec.grid.ny - 1], [dec.grid.nx - 1, dec.grid.ny - 1], [(dec.grid.nx - 1) / 2, 0], [(dec.grid.nx - 1) / 2, dec.grid.ny - 1]]) { const [lo, la] = P.inv(i, j); w = Math.min(w, lo); e = Math.max(e, lo); s = Math.min(s, la); nn = Math.max(nn, la); }
     const my = (la) => Math.log(Math.tan(Math.PI / 4 + (la * Math.PI) / 360)), yN = my(nn), yS = my(s), H = Math.round((W * (yN - yS)) / ((e - w) * Math.PI / 180));
@@ -111,8 +116,8 @@
       const lat = (2 * Math.atan(Math.exp(yN - ((py + 0.5) / H) * (yN - yS))) - Math.PI / 2) * 180 / Math.PI;
       for (let px = 0; px < W; px++) {
         const lon = w + ((px + 0.5) / W) * (e - w), [fi, fj] = P.ij(lon, lat), i = Math.round(fi), j = Math.round(fj);
-        if (i < 0 || j < 0 || i >= nx || j >= ny) continue; const v = f[j * nx + i]; if (!Number.isFinite(v)) continue;
-        const c = category(v, cls); if (!c) continue; const col = colors[c], o = (py * W + px) * 4; out[o] = col[0]; out[o + 1] = col[1]; out[o + 2] = col[2]; out[o + 3] = col[3];
+        if (i < 0 || j < 0 || i >= nx || j >= ny) continue; const k = j * nx + i, v = f[k]; if (!Number.isFinite(v)) continue;
+        const col = color(v, k); if (!col) continue; const o = (py * W + px) * 4; out[o] = col[0]; out[o + 1] = col[1]; out[o + 2] = col[2]; out[o + 3] = col[3];
       }
     }
     return { width: W, height: H, rgba: out, coordinates: [[w, nn], [e, nn], [e, s], [w, s]] };
@@ -166,5 +171,5 @@
     const complete = !gaps.length && !failed.length && !windowBeyond && !stale && hourList.length > 0;
     return { timed, lengthMi: Math.round(L / MI), samples: n, checked, light, findings, gaps, failed, windowBeyond, reachMs, stale, cycleMs, complete, levels: plan.levels.map((l) => l.ft), hours: hourList, cls };
   }
-  return { HEIGHTS, CLASSES, CAT_WORD, PALETTE, category, decode, projection, valueAt, render, levelLabel, sections, routePlan, routeTurbulence, MAX_LEVELS, MAX_HOURS, REACH_H, STALE_H };
+  return { HEIGHTS, CLASSES, CAT_WORD, PALETTE, category, decode, projection, valueAt, render, renderWith, levelLabel, sections, routePlan, routeTurbulence, MAX_LEVELS, MAX_HOURS, REACH_H, STALE_H };
 });

@@ -35,7 +35,7 @@
   const WLEVEL_LABEL = { WWA: "Any winter weather", MINOR: "Minor", MODERATE: "Moderate", MAJOR: "Major", EXTREME: "Extreme" };
   const empty = { type: "FeatureCollection", features: [] };
 
-  const S = { air: [], ap: null, layers: { severe: true, flood: true, winter: true, fire: true, smoke: true, tropical: true, coastal: true, aviation: true }, en: { on: false, at: 0, alt: null, age: 2 }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
+  const S = { air: [], ap: null, layers: { severe: true, flood: true, winter: true, fire: true, smoke: true, tropical: true, coastal: true, aviation: true }, en: { on: false, at: 0, alt: null, age: 2 }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, ifi: { on: false, field: "prob", src: null, cyc: null }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
   let framedAp = false, framedSel = false, mapLoaded = false; // Planner airport "View on map": framed once
   let data, now, venue, map, ready = false, liveReady = false, meshes = new Map(), tzCache = {}, marker, grid = null, mesh = null, mask = null, gridLoading = null, hull = null;
   const phone = () => matchMedia("(max-width: 760px)").matches;
@@ -296,14 +296,79 @@
   }
   const gtgAt = (pt) => { if (!gtg.dec || !pt) return null; const v = GT.valueAt(gtg.dec, pt[0], pt[1], gtg.P); return v.inside ? { ...v, cat: GT.category(v.value, S.gtg.cls) } : null; };
   const gtgWord = (x) => (!x ? "outside the GTG grid" : x.value == null ? "no value (masked)" : "EDR " + x.value.toFixed(2) + " · " + (x.cat ? GT.CAT_WORD[x.cat] : "below light") + " for " + S.gtg.cls + " aircraft");
+  /* ---------- modeled icing: NOAA NCEP In-Flight Icing (IFI), probability or severity, one height and hour ----------
+     The altitude and valid-time controls are shared with GTG: the valid time is the base cycle (GTG's when turbulence is
+     on, else IFI's) plus the hour chosen; IFI then reads its own forecast hour for that time, which may not exist (IFI starts
+     at +1 h and stops at 30,000 ft): then nothing is drawn and the panel says why. */
+  const IF = window.ThreatsIFI, IFI_FIX = "tests/fixtures/threats/ifi/";
+  const ifi = { latest: null, latestAt: 0, state: "off", error: null, key: null, dec: null, mask: null, P: null, cache: new Map(), drawn: null, pending: null, reason: null };
+  const mgBaseCycle = () => (S.gtg.on && gtg.latest ? gtg.latest.cycle : ifi.latest ? ifi.latest.cycle : gtg.latest ? gtg.latest.cycle : null);
+  const mgValidMs = () => { const c = mgBaseCycle(); return c ? gtgCycleMs(c) + S.gtg.fh * 3600e3 : null; };
+  async function ifiRecord(cyc, fh, ft, field) {
+    const k = cyc + "|" + fh + "|" + ft + "|" + field; if (ifi.cache.has(k)) return ifi.cache.get(k);
+    let body, headers = new Headers();
+    if (S.ifi.src === "fixture") { const f = ifi.latest.records[fh + "|" + ft + "|" + field]; if (!f) throw Error("not in this replay (it has " + Object.keys(ifi.latest.records).map((x) => { const [a, b, c] = x.split("|"); return c + " " + IF.levelLabel(+b) + " +" + a + " h"; }).join(", ") + ")"); const r = await fetch(IFI_FIX + f, { cache: "no-store" }); if (!r.ok) throw Error("fixture HTTP " + r.status); body = new Uint8Array(await r.arrayBuffer()); }
+    else { const r = await gtgGet(gtgBase().replace(/\/api\/gtg$/, "/api/ifi") + "/record?cycle=" + cyc + "&fh=" + fh + "&ft=" + ft + "&field=" + field, "bin"); body = r.body; headers = r.headers; }
+    const dec = GT.decode(body); IF.check(dec, field, ft, fh); dec.bytes = body.length; dec.fileBytes = +headers.get("X-IFI-File-Bytes") || null;
+    ifi.cache.set(k, dec); if (ifi.cache.size > 8) ifi.cache.delete(ifi.cache.keys().next().value); return dec;
+  }
+  function ensureIfi() {
+    if (!IF || !GT || !map || !ready) return;
+    const live = !isArchive() && Live.NWS.mode === "function", usable = S.ifi.on && enOn() && (S.ifi.src === "fixture" || live);
+    map.setLayoutProperty("ifi-img", "visibility", usable && ifi.state === "ok" ? "visible" : "none");
+    if (!S.ifi.on || !enOn()) return;
+    if (!usable) { ifi.state = "na"; return; }
+    const before = ifi.state + "|" + ifi.key + "|" + ifi.reason;
+    (async () => {
+      if (S.ifi.src === "fixture") { if (!ifi.latest) { const r = await fetch(IFI_FIX + "manifest.json", { cache: "no-store" }); if (!r.ok) throw Error("fixture manifest HTTP " + r.status); const m = await r.json(); ifi.latest = { cycle: m.cycle, records: m.records, label: m.label, pinned: true, fixture: true }; ifi.latestAt = Date.now(); } }
+      else if (S.ifi.cyc) { if (!ifi.latest) ifi.latest = { cycle: S.ifi.cyc, pinned: true }; }
+      else if (!ifi.latest || Date.now() - ifi.latestAt > 15 * 60e3) { ifi.latest = (await gtgGet(gtgBase().replace(/\/api\/gtg$/, "/api/ifi") + "/latest", "json")).body; ifi.latestAt = Date.now(); }
+      const v = mgValidMs(), cyc = ifi.latest.cycle, fh = Math.round((v - gtgCycleMs(cyc)) / 3600e3), ft = S.gtg.ft, field = S.ifi.field, want = cyc + "|" + fh + "|" + ft + "|" + field;
+      if (ifi.pending === want || ifi.drawn === want) return;
+      if (ft > IF.TOP_FT || fh < IF.FIRST_FH || fh > IF.LAST_FH || Math.abs(v - gtgCycleMs(cyc) - fh * 3600e3) > 60e3) {
+        Object.assign(ifi, { state: "unavailable", drawn: null, key: want, dec: null, reason: ft > IF.TOP_FT ? "IFI stops at 30,000 ft (FL300)" : "IFI cycle " + T.fmtZ(new Date(gtgCycleMs(cyc)).toISOString()) + " has no forecast for that time (it covers +1 to +18 h)" });
+        return; }
+      ifi.pending = want; ifi.state = "loading"; ifi.error = null;
+      try {
+        const dec = await ifiRecord(cyc, fh, ft, field), mask = field === "sev" ? await ifiRecord(cyc, fh, ft, "prob") : null;
+        const img = IF.render(dec, field, { width: 1100, mask }), cv = document.createElement("canvas"); cv.width = img.width; cv.height = img.height; cv.getContext("2d").putImageData(new ImageData(img.rgba, img.width, img.height), 0, 0);
+        map.getSource("ifi").updateImage({ url: cv.toDataURL("image/png"), coordinates: img.coordinates });
+        Object.assign(ifi, { dec, mask, P: GT.projection(dec.grid), key: want, state: "ok", drawn: want, reason: null });
+      } catch (e) { Object.assign(ifi, { state: "unavailable", error: e.message, reason: e.message, dec: null, drawn: null, key: want }); }
+      finally { ifi.pending = null; }
+    })().catch((e) => { Object.assign(ifi, { state: "unavailable", reason: e.message, dec: null, drawn: null }); })
+      .finally(() => { if (map) map.setLayoutProperty("ifi-img", "visibility", S.ifi.on && ifi.state === "ok" ? "visible" : "none"); if (ifi.state + "|" + ifi.key + "|" + ifi.reason !== before) stage("panel", renderPanel); });
+  }
+  const ifiAt = (pt) => (ifi.dec && pt ? IF.valueAt(ifi.dec, S.ifi.field, pt[0], pt[1], ifi.mask, ifi.P) : null);
+  function ifiBlock() {
+    let h = `<div class="px-h"><span>Model guidance · NOAA IFI</span><span>icing forecast</span></div>`;
+    if (isArchive()) return h + `<p class="px-empty">Live only: IFI guidance is not part of this archived replay.</p>`;
+    if (!S.ifi.on) return h + `<button type="button" class="px-link" data-ifi-on="1">Show forecast icing guidance (one height and hour, about 0.5 MB) →</button>`;
+    h += `<div class="tx-filters"><span class="tx-fl">Icing field</span>${Object.entries(IF.FIELDS).map(([k, f]) => `<button type="button" class="tx-fb" data-ifi-field="${k}" aria-pressed="${S.ifi.field === k}">${esc(f.label)}</button>`).join("")}</div>`;
+    const sw = (c) => `<span class="gtg-sw" style="background:rgba(${c.slice(0, 3).join(",")},${(c[3] / 255).toFixed(2)})"></span>`;
+    h += `<div class="lg-row gtg-legend ifi-legend">${S.ifi.field === "prob" ? IF.PROB_BINS.map(([, l], i) => sw(IF.PROB_COLORS[i]) + `<span>${esc(l)}</span>`).join("") : [1, 2, 3, 4].map((c) => sw(IF.SEV_COLORS[c]) + `<span>${esc(IF.SEV_WORD[c])}</span>`).join("")}</div>`;
+    if (ifi.state === "loading") h += `<p class="px-empty">Loading IFI ${esc(IF.FIELDS[S.ifi.field].label.toLowerCase())}…</p>`;
+    else if (ifi.state === "unavailable" || ifi.state === "na") h += `<p class="px-empty" data-ifi-unavailable>Icing guidance not shown: ${esc(ifi.state === "na" ? "needs the preview's same-origin function" : ifi.reason || "record unavailable")}. Nothing is drawn rather than another height, hour or an old field.</p>`;
+    else if (ifi.state === "ok" && ifi.dec) {
+      const d = ifi.dec, L = ifi.latest, at = ifiAt([venue.lon, venue.lat]);
+      h += `<p class="lg-note" data-ifi-status>${esc(IF.FIELDS[S.ifi.field].label)} (${esc(IF.FIELDS[S.ifi.field].grib)}) · cycle ${esc(T.fmtZ(d.refTime))}${L.fixture ? " (saved official records)" : L.pinned ? " (pinned)" : ""}, valid ${esc(t(d.validTime, true))} (+${d.product.forecast} h) · ${esc(IF.levelLabel(S.gtg.ft))} (${d.product.level.toLocaleString("en-US")} m MSL) · record ${(d.bytes / 1048576).toFixed(2)} MB${d.fileBytes ? " of a " + (d.fileBytes / 1048576).toFixed(0) + " MB file" : ""}</p>`;
+      h += `<p class="lg-note" data-ifi-venue>At ${esc(venue.name)}: ${esc(!at || !at.inside ? "outside the IFI grid" : at.text)}.</p>`;
+    }
+    h += `<div class="lg-note"><b>Model guidance</b>: NOAA's In-Flight Icing forecast, ${S.ifi.field === "prob" ? "icing probability as NOAA publishes it (0–1, non-dimensional)" : "icing severity in NOAA's categories (Table 4.228: none, trace, light, moderate, severe); cells below the ground have no value"}. Cyan fill, apart from turbulence guidance (violet), icing advisories (blue outlines) and pilot reports (rings).</div>`;
+    return h;
+  }
   function gtgSection() {
     if (!GT || !enOn()) return "";
-    let h = `<div class="px-h"><span>Model guidance · NOAA GTG</span><span>turbulence forecast</span></div>`;
-    if (isArchive()) return h + `<p class="px-empty">Live only: GTG guidance is not part of this archived replay.</p>`;
-    if (!S.gtg.on) return h + `<button type="button" class="px-link" data-gtg-on="1">Show forecast turbulence guidance (one height and hour, about 1 MB) →</button>`;
-    const L = gtg.latest, hh = gtgHeight();
-    h += `<div class="tx-filters"><span class="tx-fl">Altitude</span><select class="input tx-sel" data-gtg-ft aria-label="GTG altitude">${GT.HEIGHTS.filter((x) => x.ft >= 1000).map((x) => `<option value="${x.ft}"${x.ft === hh.ft ? " selected" : ""}>${esc(GT.levelLabel(x.ft))} MSL</option>`).join("")}</select></div>`;
-    h += `<div class="tx-filters"><span class="tx-fl">Valid</span><select class="input tx-sel" data-gtg-fh aria-label="GTG forecast hour">${Array.from({ length: 19 }, (_, f) => `<option value="${f}"${f === S.gtg.fh ? " selected" : ""}>${L ? esc(t(new Date(gtgCycleMs(L.cycle) + f * 3600e3).toISOString())) + " · " : ""}+${f} h</option>`).join("")}</select></div>`;
+    const L = gtg.latest, hh = gtgHeight(), base = mgBaseCycle();
+    let h = "";
+    if (!isArchive() && (S.gtg.on || S.ifi.on)) { // shared by turbulence and icing
+      h += `<div class="px-h"><span>Model guidance · height and time</span><span>${base ? "base cycle " + esc(T.fmtZ(new Date(gtgCycleMs(base)).toISOString())) : ""}</span></div>`;
+      h += `<div class="tx-filters"><span class="tx-fl">Altitude</span><select class="input tx-sel" data-gtg-ft aria-label="Model guidance altitude">${GT.HEIGHTS.filter((x) => x.ft >= 1000).map((x) => `<option value="${x.ft}"${x.ft === hh.ft ? " selected" : ""}>${esc(GT.levelLabel(x.ft))} MSL</option>`).join("")}</select></div>`;
+      h += `<div class="tx-filters"><span class="tx-fl">Valid</span><select class="input tx-sel" data-gtg-fh aria-label="Model guidance valid time">${Array.from({ length: 19 }, (_, f) => `<option value="${f}"${f === S.gtg.fh ? " selected" : ""}>${base ? esc(t(new Date(gtgCycleMs(base) + f * 3600e3).toISOString())) + " · " : ""}+${f} h</option>`).join("")}</select></div>`;
+    }
+    h += `<div class="px-h"><span>Model guidance · NOAA GTG</span><span>turbulence forecast</span></div>`;
+    if (isArchive()) return h + `<p class="px-empty">Live only: GTG guidance is not part of this archived replay.</p>` + (IF ? ifiBlock() : "");
+    if (!S.gtg.on) return h + `<button type="button" class="px-link" data-gtg-on="1">Show forecast turbulence guidance (one height and hour, about 1 MB) →</button>` + (IF ? ifiBlock() : "");
     h += `<div class="tx-filters"><span class="tx-fl">Aircraft</span>${["light", "medium", "heavy"].map((c) => `<button type="button" class="tx-fb" data-gtg-cls="${c}" aria-pressed="${S.gtg.cls === c}">${c}</button>`).join("")}</div>`;
     const th = GT.CLASSES[S.gtg.cls].t;
     h += `<div class="lg-row gtg-legend">${[1, 2, 3, 4].map((c) => `<span class="gtg-sw" style="background:rgba(${GT.PALETTE[c].slice(0, 3).join(",")},${(GT.PALETTE[c][3] / 255).toFixed(2)})"></span><span>${esc(GT.CAT_WORD[c])} ≥ ${th[c - 1].toFixed(2)}</span>`).join("")}</div>`;
@@ -315,7 +380,7 @@
       h += `<p class="lg-note" data-gtg-venue>At ${esc(venue.name)}: ${esc(gtgWord(at))}.</p>`;
     }
     h += `<div class="lg-note"><b>Model guidance</b>, not an observation or an advisory: GTG forecasts eddy dissipation rate (EDR, m<sup>2/3</sup> s<sup>-1</sup>) on a 3 km grid. Categories use AWC's EDR thresholds for the chosen aircraft class; what a flight feels depends on the aircraft. Tap the map for the value at a spot.</div>`;
-    return h;
+    return h + (IF ? ifiBlock() : "");
   }
   const gtgCycleMs = (c) => Date.UTC(+c.slice(0, 4), +c.slice(4, 6) - 1, +c.slice(6, 8), +c.slice(8, 10));
 
@@ -500,6 +565,8 @@
       // GTG model guidance: a raster under everything aviation (advisories are outlines, pilot reports dots and rings)
       map.addSource("gtg", { type: "image", url: BLANK_PNG, coordinates: [[-125, 50], [-66, 50], [-66, 24], [-125, 24]] });
       L({ id: "gtg-img", type: "raster", source: "gtg", layout: { visibility: "none" }, paint: { "raster-opacity": 0.85, "raster-resampling": "nearest", "raster-fade-duration": 0 } });
+      map.addSource("ifi", { type: "image", url: BLANK_PNG, coordinates: [[-125, 50], [-66, 50], [-66, 24], [-125, 24]] });
+      L({ id: "ifi-img", type: "raster", source: "ifi", layout: { visibility: "none" }, paint: { "raster-opacity": 0.85, "raster-resampling": "nearest", "raster-fade-duration": 0 } });
       L({ id: "enr-fill", type: "fill", source: "enr", paint: { "fill-color": ["get", "color"], "fill-opacity": ["get", "fill"] } });
       L({ id: "enr-line", type: "line", source: "enr", filter: ["!=", ["get", "kind"], "gairmet"], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 2.2, "line-opacity": 0.95 } });
       L({ id: "enr-line-fc", type: "line", source: "enr", filter: ["==", ["get", "kind"], "gairmet"], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 1.8, "line-dasharray": [3, 2], "line-opacity": 0.95 } });
@@ -833,6 +900,7 @@
     const list = T.sort((day ? [...(S.layers.severe ? outlooks(day) : []), ...(S.layers.flood ? eroOut(day) : [])] : [...active(), ...(S.layers.severe ? outlooks(1) : [])]).filter((p) => p.geometry && T.contains(p.geometry, pt)));
     let h = `<button type="button" class="px-back" data-back>← ${S.scope === "venue" ? "Venue" : "All threats"}</button>`;
     h += `<div class="px-h"><span>At this spot</span><span>${pt[1].toFixed(2)}°, ${pt[0].toFixed(2)}°</span></div>`;
+    if (S.ifi.on && ifi.state === "ok") { const a = ifiAt(pt); h += `<p class="lg-note" data-ifi-point>IFI model guidance at ${esc(IF.levelLabel(S.gtg.ft))}, valid ${esc(t(ifi.dec.validTime))}: ${esc(!a || !a.inside ? "outside the IFI grid" : a.text)}.</p>`; }
     if (S.gtg.on && gtg.state === "ok") h += `<p class="lg-note" data-gtg-point>GTG model guidance at ${esc(GT.levelLabel(gtgHeight().ft))}, valid ${esc(t(gtg.dec.validTime))}: ${esc(gtgWord(gtgAt(pt)))}.</p>`;
     h += list.length ? list.map((p) => item(p, { rel: false })).join("") : `<p class="px-empty">No ${day ? "Day " + day + " outlook area" : "active product or Day 1 outlook area"} covers this spot.</p>`;
     return h;
@@ -955,7 +1023,7 @@
      stages, layers and controls keep working, instead of one exception freezing the whole page */
   const drawErrors = [];
   function stage(name, fn) { try { fn(); } catch (e) { drawErrors.push({ stage: name, message: e.message, stack: e.stack, at: new Date().toISOString() }); if (drawErrors.length > 50) drawErrors.shift(); console.error("Weather threats: " + name + " failed", e); } }
-  function drawAll() { stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("en route", ensureEn); stage("gtg", ensureGtg); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); if ((S.ap || S.fit === "route") && !framedAp && map && mapLoaded) stage("airport view", () => frameAirport(0)); if (S.sel && !framedSel && map && mapLoaded) stage("selection view", frameSelection); }
+  function drawAll() { stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("en route", ensureEn); stage("gtg", ensureGtg); stage("ifi", ensureIfi); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); if ((S.ap || S.fit === "route") && !framedAp && map && mapLoaded) stage("airport view", () => frameAirport(0)); if (S.sel && !framedSel && map && mapLoaded) stage("selection view", frameSelection); }
   /* a Planner "View on map" for an advisory or a pilot report: frame it once its data has loaded */
   function frameSelection() {
     const p = byId(S.sel); if (!p || !["pirep", "sigmet", "gairmet", "cwa"].includes(p.kind)) return;
@@ -1005,6 +1073,9 @@
     if (eo) { S.en.on = true; drawAll(); return; }
     const go = e.target.closest("[data-gtg-on]"), gc = e.target.closest("[data-gtg-cls]");
     if (go) { S.gtg.on = true; drawAll(); return; }
+    const io = e.target.closest("[data-ifi-on]"), ifd = e.target.closest("[data-ifi-field]");
+    if (io) { S.ifi.on = true; drawAll(); return; }
+    if (ifd) { S.ifi.field = ifd.dataset.ifiField; drawAll(); return; }
     if (gc) { S.gtg.cls = gc.dataset.gtgCls; drawAll(); return; }
     const it = e.target.closest("[data-id]"), sg = e.target.closest("[data-scope-go]"), vg = e.target.closest("[data-view-go]"), back = e.target.closest("[data-back]");
     if (it) { S.sel = it.dataset.id; S.hover = null; openSheet(); drawAll(); fitProduct(byId(S.sel)); $("txPanelBody").scrollTop = 0; $("txPanelBody").focus({ preventScroll: true }); return; }
@@ -1106,6 +1177,10 @@
     if (/^\d{1,2}$/.test(q.get("gfh") || "") && +q.get("gfh") <= 18) S.gtg.fh = +q.get("gfh");
     if (/^\d{3,5}$/.test(q.get("gft") || "") && window.ThreatsGTG && window.ThreatsGTG.HEIGHTS.some((h) => h.ft === +q.get("gft"))) S.gtg.ft = +q.get("gft");
     if (["light", "medium", "heavy"].includes(q.get("gcls"))) S.gtg.cls = q.get("gcls");
+    if (q.get("ifi") === "1") { S.ifi.on = true; S.en.on = true; }
+    if (["prob", "sev"].includes(q.get("ifield"))) S.ifi.field = q.get("ifield");
+    if (q.get("ifisrc") === "fixture") S.ifi.src = "fixture"; // the official records saved in tests/fixtures/threats/ifi (labelled replay)
+    if (/^\d{10}$/.test(q.get("icyc") || "")) S.ifi.cyc = q.get("icyc");
     if (/^\d{10}$/.test(q.get("gcyc") || "")) S.gtg.cyc = q.get("gcyc"); // a pinned cycle (Planner findings link to the cycle they used)
     { const f = (q.get("focus") || "").split(",").map(Number); if (f.length === 2 && f.every(Number.isFinite) && Math.abs(f[0]) <= 180 && Math.abs(f[1]) <= 90) S.focus = f; }
     if (S.route) S.air = [...new Set([...S.air, S.route.o, S.route.d])].slice(0, 4);
@@ -1155,5 +1230,5 @@
       else map.fitBounds(CONUS, { padding: pad(), duration: 0 });
     });
   }).catch((e) => { $("txMap").innerHTML = `<p class="msg" style="padding:20px">The map could not load (${esc(e.message)}). The threat list still works.</p>`; });
-  window.__threats = { S, drawAll, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
+  window.__threats = { S, drawAll, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
 })();

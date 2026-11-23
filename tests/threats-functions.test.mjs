@@ -10,6 +10,7 @@ const wpc = await import(pathToFileURL(path.join(ROOT, "functions/api/wpc/[[path
 const smoke = await import(pathToFileURL(path.join(ROOT, "functions/api/smoke/[[path]].js")).href);
 const awc = await import(pathToFileURL(path.join(ROOT, "functions/api/awc/[[path]].js")).href);
 const faa = await import(pathToFileURL(path.join(ROOT, "functions/api/faa/[[path]].js")).href);
+const ifif = await import(pathToFileURL(path.join(ROOT, "functions/api/ifi/[[path]].js")).href);
 const gtgf = await import(pathToFileURL(path.join(ROOT, "functions/api/gtg/[[path]].js")).href);
 import fs from "node:fs";
 let n = 0; const ok = async (name, fn) => { await fn(); n++; console.log("ok -", name); };
@@ -125,5 +126,19 @@ await ok("GTG: the latest complete cycle from the NOMADS listing; one EDPARM rec
   assert.strictEqual(r.headers.get("X-GTG-File-Bytes"), String(file.length)); assert(/EDPARM:10668 m above mean sea level/.test(r.headers.get("X-GTG-Record")));
   for (const bad of ["/api/gtg/record?cycle=2026112221&fh=19&m=10668", "/api/gtg/record?cycle=2026112221&fh=0&m=10000", "/api/gtg/record?cycle=2026111021&fh=0&m=10668", "/api/gtg/record?cycle=2026112221&fh=0", "/api/gtg/latest?x=1", "/api/gtg/file"]) assert.strictEqual((await g(bad)).status, 404, bad);
   assert.strictEqual((await g("/api/gtg/record?cycle=2026112221&fh=1&m=10972")).status, 502, "a range that is not one whole record");
+});
+await ok("IFI: the latest cycle with hours 1-18; probability and severity records by byte range (the file's last record too); other fields, heights and hours refused", async () => {
+  clock = Date.parse("2026-11-23T03:20:00Z"); sent.length = 0;
+  const p = fs.readFileSync(path.join(ROOT, "tests/fixtures/threats/ifi/ifi-2026112301-f003-prob-5000ft.grib2")), v = fs.readFileSync(path.join(ROOT, "tests/fixtures/threats/ifi/ifi-2026112301-f003-sev-5000ft.grib2")), pad = 500, file = Buffer.concat([Buffer.alloc(pad), p, v]);
+  const listing = Array.from({ length: 18 }, (_, k) => `<a href="dafs.t01z.ifi.3km.conus.f${String(k + 1).padStart(3, "0")}.grib2">x</a> 23-Nov-2026 01:58  33M \n<a href="dafs.t01z.ifi.3km.conus.f${String(k + 1).padStart(3, "0")}.grib2.idx">x</a>\n`).join("");
+  const idx = `9:0:d=2026112301:ICPRB:1219.2 m above mean sea level:3 hour fcst:\n10:${pad}:d=2026112301:ICPRB:1524 m above mean sea level:3 hour fcst:\n130:${pad + p.length}:d=2026112301:var discipline=0 master_table=2 parmcat=19 parm=37:1524 m above mean sea level:3 hour fcst:\n`;
+  globalThis.fetch = async (url, init) => { const u = String(url), h = new Headers(init.headers); sent.push({ url: u, ua: h.get("user-agent"), range: h.get("range") });
+    if (/dafs\.20261123\/$/.test(u)) return new Response(listing); if (/\/$/.test(u)) return new Response("", { status: 404 }); if (/\.idx$/.test(u)) return new Response(idx);
+    const [a, b0] = h.get("range").slice(6).split("-"), b = b0 === "" ? file.length - 1 : +b0; return new Response(file.subarray(+a, b + 1), { status: 206, headers: { "Content-Range": `bytes ${a}-${b}/${file.length}` } }); };
+  const e2 = { ...env, UPSTREAM: "https://nomads.test/" }, g = (q) => ifif.handle(new Request("https://x.test" + q), e2);
+  const l = await (await g("/api/ifi/latest")).json(); assert.strictEqual(l.cycle, "2026112301"); assert.deepStrictEqual(l.hours, Array.from({ length: 18 }, (_, k) => k + 1));
+  const rp = await g("/api/ifi/record?cycle=2026112301&fh=3&ft=5000&field=prob"); assert.strictEqual(rp.status, 200); assert(Buffer.from(await rp.arrayBuffer()).equals(p)); assert.strictEqual(sent.at(-1).range, `bytes=${pad}-${pad + p.length - 1}`);
+  const rs = await g("/api/ifi/record?cycle=2026112301&fh=3&ft=5000&field=sev"); assert.strictEqual(rs.status, 200); assert(Buffer.from(await rs.arrayBuffer()).equals(v)); assert.strictEqual(sent.at(-1).range, `bytes=${pad + p.length}-`, "the last record: read to the end, checked by its GRIB length");
+  for (const bad of ["/api/ifi/record?cycle=2026112301&fh=0&ft=5000&field=prob", "/api/ifi/record?cycle=2026112301&fh=3&ft=5250&field=prob", "/api/ifi/record?cycle=2026112301&fh=3&ft=31000&field=prob", "/api/ifi/record?cycle=2026112301&fh=3&ft=5000&field=sld", "/api/ifi/record?cycle=2026112301&fh=3&ft=5000&field=toString", "/api/ifi/latest?x=1"]) assert.strictEqual((await g(bad)).status, 404, bad);
 });
 console.log(n + " passed");

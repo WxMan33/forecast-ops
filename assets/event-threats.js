@@ -297,7 +297,9 @@
       if (!R.timed && R.windowBeyond) gaps.push("Your time in the air runs past " + cl(R.reachMs) + ", the end of cycle " + cz(R.cycle) + ": later hours aren't checked.");
       if (R.failed.length) gaps.push("Couldn't read " + R.failed.map((x) => ft(x.ft) + " at " + cl(x.validMs)).join(", ") + " (" + R.failed[0].error + "): those heights and hours are unknown.");
       if (R.stale) gaps.push("Cycle " + cz(R.cycle) + " is " + Math.round((Date.now() - R.cycleMs) / 3600e3) + " hours old" + (R.pinned ? " (pinned for this check)" : "") + "; newer cycles exist.");
-      const none = !R.findings.length && R.checked ? [`No moderate or worse turbulence modeled along the route at the checked heights and times${R.light ? "; light along about " + Math.round((100 * R.light) / R.checked) + "% of it" : ""}.`] : [];
+      const andList = (a) => (a.length <= 1 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]);
+      const sampled = andList(R.levels.map(ft)) + " at " + andList(R.hours.map(cl));
+      const none = !R.findings.length && R.checked ? [`No modeled turbulence found at the sampled heights and times${R.complete ? "" : " that could be checked"} (moderate or worse for ${rr.cls} aircraft): ${sampled}.${R.light ? " Light turbulence along about " + Math.round((100 * R.light) / R.checked) + "% of the route." : ""}`] : [];
       return `<div class="et-gtg" data-gtg-complete="${R.complete}">${hd}<p class="bx-note et-gtgmeta">${meta}</p><ul class="et-list">${items.join("")}${none.map((t) => `<li class="et-ok" data-kind="gtg-none">${esc(t)}</li>`).join("")}${gaps.map((t) => `<li class="et-ok et-unk" data-kind="gtg-gap">${esc(t.replace(/\.\.+/g, "."))}</li>`).join("")}</ul></div>`;
     };
     const rs = r.route || {}, rtMap = rs.set ? mapLink({ family: "aviation", kind: "route", airport: rs.d, product: {}, window: null }) : mapLink({ family: "aviation", kind: "route", airport: (airports[0] || {}).icao, product: {} });
