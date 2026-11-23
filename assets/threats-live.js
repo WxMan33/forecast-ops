@@ -53,9 +53,17 @@
   }
 
   /* county-only alerts: shapes from the listed zones (cached for the session) */
+  /* zone outlines change rarely: kept in the browser's Cache Storage for 7 days, so a new visit doesn't download them again */
+  const ZONE_CACHE = "forecast-ops-zones-v1", ZONE_TTL = 7 * 864e5;
+  async function zoneCached(url) {
+    try { if (!self.caches) return null; const c = await caches.open(ZONE_CACHE), r = await c.match(url); if (!r) return null; const at = +r.headers.get("X-Cached-At") || 0;
+      if (Date.now() - at > ZONE_TTL) { c.delete(url); return null; } return (await r.json()).geometry || null; } catch (e) { return null; }
+  }
+  function zoneStore(url, geometry) { try { if (self.caches) caches.open(ZONE_CACHE).then((c) => c.put(url, new Response(JSON.stringify({ geometry }), { headers: { "Content-Type": "application/json", "X-Cached-At": String(Date.now()) } }))).catch(() => {}); } catch (e) { /* no cache: fetch next time */ } }
   function zone(url) {
     if (zoneGeo.has(url)) return Promise.resolve(zoneGeo.get(url));
-    if (!zonePending.has(url)) zonePending.set(url, get(nwsUrl(url), "json").then((z) => { if (!z.geometry) throw Error("zone has no shape"); zoneGeo.set(url, z.geometry); return z.geometry; }).finally(() => zonePending.delete(url)));
+    if (!zonePending.has(url)) zonePending.set(url, zoneCached(url).then((g) => g || get(nwsUrl(url), "json").then((z) => { if (!z.geometry) throw Error("zone has no shape"); zoneStore(url, z.geometry); return z.geometry; }))
+      .then((g) => { zoneGeo.set(url, g); return g; }).finally(() => zonePending.delete(url)));
     return zonePending.get(url);
   }
   /* county/zone-based products get their drawn area from the zone shapes fetched so far (attached per snapshot) */
@@ -71,10 +79,12 @@
     if (!want.length) return false;
     await Promise.allSettled([...new Set(want)].slice(0, 300).map(zone)); return true;
   }
-  /* "What changed" on first load: fetch the message an update replaced (same VTEC event) */
-  async function fetchPrevious() {
+  /* "What changed": the message an update replaced (same VTEC event), fetched only when someone opens that alert's details
+     (once per message), not for every alert on load */
+  async function fetchPrevious(onlyId) {
     let changed = false;
     for (const p of alerts.products(Date.now())) {
+      if (p.id !== onlyId) continue;
       if (p.status !== "active" || p.previous || !p.references.length || refDone.has(p.messageId)) continue;
       refDone.add(p.messageId);
       const ref = p.references.slice().sort((a, b) => Date.parse(b.sent) - Date.parse(a.sent))[0];
@@ -96,16 +106,21 @@
       alerts.ingest(body, at);
     } catch (e) { alerts.fail(tried, e.message); }
     applyZones(); emit();
-    const a = await resolvePending(), b = await fetchPrevious(); if (a || b) emit();
+    const a = await resolvePending(); if (a) emit();
   }
 
   /* MDs: SPC's list and text pages are the full source. When they cannot be reached (SPC refuses automated browsers,
      for example), the NOAA map service decides: its NoArea placeholder confirms none; shapes are drawn with details
      marked unavailable; anything else leaves MD status unknown. The service may lag SPC by up to 15 minutes (NOAA's own note). */
+  let mdPageBlocked = false;
   async function refreshMD() {
     const at = nowIso(); md.lastTry = at; let spcError = null;
     try {
-      const list = F.parseMDList(await get(F.MD_LIST_URL, "text")); md.list = list.state;
+      /* SPC's MD pages send no CORS header, so a browser can't read them: after the first refusal this session goes straight to
+         the NOAA map service instead of repeating a request that can't succeed */
+      if (mdPageBlocked) throw Error("SPC MD pages are not readable from the browser (no CORS)");
+      let page; try { page = await get(F.MD_LIST_URL, "text"); } catch (e) { if (/Failed to fetch|NetworkError|Load failed|fetch/i.test(e.message)) mdPageBlocked = true; throw e; }
+      const list = F.parseMDList(page); md.list = list.state;
       if (list.state === "unrecognized") throw Error("unrecognized MD list page");
       const products = [];
       for (const n of list.numbers) {
@@ -543,12 +558,13 @@
     const store = F.createAlertStore();
     for (let i = 0; i < n; i++) store.ingest({ type: "FeatureCollection", features: msgs.slice(0, i + 1) }, new Date(Date.parse(msgs[i].properties.sent) + 30e3).toISOString()); // cumulative, like a real answer
     const clock = Date.parse(msgs[n - 1].properties.sent) + 60e3;
-    const ps = store.products(clock);
-    for (const p of ps) if (p.geometrySource === "counties") {
-      const r = await F.resolveZones(p, zone), rec = store.get(p.id);
-      Object.assign(rec, { geometry: r.geometry, geometryIncomplete: r.incomplete, zoneInfo: r, label: r.geometry ? F.labelPoint(r.geometry) : null });
+    /* zone-listed alerts (a watch's counties) are stored per zone and regrouped for display, so their outlines are attached to
+       the grouped product here, as the live snapshot does, not written back to a store record */
+    const shapes = new Map();
+    for (const p of store.products(clock)) if (p.geometrySource === "counties") {
+      const r = await F.resolveZones(p, zone); shapes.set(p.id, { geometry: r.geometry, geometryIncomplete: r.incomplete, zoneInfo: r, label: r.geometry ? F.labelPoint(r.geometry) : null });
     }
-    const out = store.products(clock), si = store.sourceInfo();
+    const out = store.products(clock).map((p) => (shapes.has(p.id) ? { ...p, ...shapes.get(p.id) } : p)), si = store.sourceInfo();
     const na = { state: "na", lastOk: null, count: 0 };
     return { live: false, archive: { name, label: ARCHIVES[name].label, step: n, steps: msgs.length, messages: msgs.map((m) => ({ sent: m.properties.sent, action: (F.parseVTEC((m.properties.parameters.VTEC || [])[0]) || {}).action })) },
       clock: new Date(clock).toISOString(), products: out.filter((p) => p.status === "active"), ended: out.filter((p) => p.status === "ended"),
@@ -576,5 +592,5 @@
       "wpc-ero": { ...worst(["ero1", "ero2", "ero3"]), reachEnd: reach(["ero1", "ero2", "ero3"]), reach: ["ero1", "ero2", "ero3"].map((k, i) => d.sources[k] && d.sources[k].issued ? "Day " + (i + 1) + " issued " + window.ThreatsCore.fmtZ(d.sources[k].issued) : "").filter(Boolean).join(", ") } };
   }
 
-  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, setFeeds, mapFeeds: () => (mapFeeds ? [...mapFeeds] : null), monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
+  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, setFeeds, previousFor: (id) => fetchPrevious(id).then((c) => { if (c) emit(); return c; }), mapFeeds: () => (mapFeeds ? [...mapFeeds] : null), monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
 })();

@@ -369,4 +369,11 @@ ok("NHC: advisory time from ADVDATE; outlook areas and wind probabilities in the
   assert.throws(() => F.parseNHC({ error: {} }), /unrecognized NHC/);
 });
 
+ok("ERO: a quiet day's 'None Expected' placeholder (WPC Day 1, 2026-11-23) is confirmed none, with its issue and valid times", () => {
+  const r = F.parseERO(JSON.parse(fs.readFileSync(FX("wpc-ero-day1-none-expected.json"), "utf8")), 1, "wpc");
+  assert.strictEqual(r.products.length, 0); assert.strictEqual(r.empty, true);
+  assert.strictEqual(r.issued, "2026-11-23T15:50:00.000Z"); assert.strictEqual(r.validStart, "2026-11-23T16:00:00.000Z"); assert.strictEqual(r.validEnd, "2026-11-24T12:00:00.000Z");
+  assert.throws(() => F.parseERO({ features: [{ properties: { OUTLOOK: "Extreme" }, geometry: null }] }, 1, "wpc"), /unrecognized excessive rainfall category/);
+});
+
 Promise.all([...resolvedCases, ...watchCases]).then(() => console.log(n + " passed")).catch((e) => { console.error(e); process.exit(1); });

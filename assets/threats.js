@@ -167,7 +167,8 @@
   const winterView = () => S.view === "winter";
   const fireView = () => S.view === "fire";
   /* NIFC incidents (prescribed fires only when asked for) and SPC fire outlook areas for one day */
-  const incidents = () => !S.layers.fire ? [] : data.products.filter((p) => p.kind === "incident" && (p.category !== "RX" || S.rx));
+  /* fully contained fires (100%, still listed by NIFC until declared out) are hidden unless asked for, or linked to */
+  const incidents = () => !S.layers.fire ? [] : data.products.filter((p) => p.kind === "incident" && (p.category !== "RX" || S.rx) && (p.contained !== 100 || S.ctn || p.id === S.sel));
   const fireOut = (d) => data.products.filter((p) => p.kind === "outlook" && /^spcfire-/.test(p.program || "") && p.day === d);
   const incRel = (p) => p.geometry ? T.relation(p, venue) : (() => { const d = T.pointDistance([venue.lon, venue.lat], p.point); return d.km <= T.NEAR_KM ? { kind: "near", km: d.km, dir: d.dir, point: true } : { kind: "outside", km: d.km, dir: d.dir, point: true }; })();
   const acresTxt = (v) => (v == null ? "size not reported" : Math.round(v).toLocaleString("en-US") + " acres");
@@ -613,8 +614,12 @@
       ready = true; drawAll();
     });
     map.on("click", (e) => {
-      const en = ["pirep-turb", "pirep-ice", "enr-fill"].filter((l) => map.getLayer(l)), f = en.length ? map.queryRenderedFeatures(e.point, { layers: en }) : [];
-      if (f.length) { S.sel = f[0].properties.id; S.point = null; openSheet(); drawAll(); return; } // a pilot report or an advisory: its own detail
+      /* a dot (fire incident, air-quality monitor, airport, storm point, pilot report) or an advisory: its own detail. Dots are
+         small, so the hit area is padded (a finger on a phone); areas go to "At this spot", which lists everything covering it */
+      const dots = ["pirep-turb", "pirep-ice", "inc-pt", "aqmon", "apt", "tpts"].filter((l) => map.getLayer(l)), r = phone() ? 12 : 6;
+      const f = dots.length ? map.queryRenderedFeatures([[e.point.x - r, e.point.y - r], [e.point.x + r, e.point.y + r]], { layers: dots }) : [], g = !f.length && map.getLayer("enr-fill") ? map.queryRenderedFeatures(e.point, { layers: ["enr-fill"] }) : [];
+      const hit = (f.length ? f.slice().sort((a, b) => { const d = (x) => { const q = map.project(x.geometry.coordinates); return Math.hypot(q.x - e.point.x, q.y - e.point.y); }; return d(a) - d(b); })[0] : g[0]);
+      if (hit && byId(hit.properties.id)) { S.sel = hit.properties.id; S.point = null; openSheet(); drawAll(); return; }
       S.point = [e.lngLat.lng, e.lngLat.lat]; S.sel = null; openSheet(); drawAll(); });
     const hits = ["pirep-turb", "pirep-ice", "enr-fill", "apt", "tpts", "tcone-fill", "two-fill", "aqmon", "hms-fill", "inc-pt", "inc-fill", "fireo-fill", "warn-fill", "adv-fill", "watch-fill", "outlook-fill", "wssi-fill", "warn-dot"];
     map.on("mousemove", (e) => { if (!ready) return; const f = map.queryRenderedFeatures(e.point, { layers: hits.filter((l) => map.getLayer(l)) }); map.getCanvas().style.cursor = f.length ? "pointer" : ""; });
@@ -895,13 +900,16 @@
   }
   /* outlook categories nest: the venue's headline is its highest category; lower ones sit in the details */
   const nestedBelow = (ol, at) => at ? ol.filter((o) => T.OUTLOOK.indexOf(o.category) < T.OUTLOOK.indexOf(at.category) && T.contains(o.geometry, [venue.lon, venue.lat])) : [];
+  /* an SPC day with no confirmed answer: never "no risk" (null when the outlook is confirmed) */
+  const olUnknown = (day) => { const st = data.state["day" + day]; if (!st || ["current", "empty", "na"].includes(st.kind) || (st.kind === "stale" && outlooks(day).length)) return null;
+    return st.kind === "loading" ? "Loading the SPC Day " + day + " outlook…" : st.kind === "stale" ? "Risk unknown · SPC Day " + day + " outlook last confirmed " + t(data.sources["day" + day].lastOk) : "Risk unknown · SPC Day " + day + " outlook not responding"; };
   function dayPanel(day) {
-    const ol = outlooks(day), top = T.highestOutlook(ol), st = data.state["day" + day];
+    const ol = outlooks(day), top = T.highestOutlook(ol), st = data.state["day" + day], unk = olUnknown(day);
     const at = T.outlookAt(ol, [venue.lon, venue.lat]), lower = nestedBelow(ol, at);
     let h = "";
     const sev = S.layers.severe;
     if (S.scope === "venue" && sev) {
-      h += `<div class="px-brief"><div class="px-where">Day ${day} at ${esc(venue.name)} · highest SPC category</div><div class="px-big">${at ? esc(T.outlookLabel(at.category)) : "No severe risk area"}</div>`
+      h += `<div class="px-brief"><div class="px-where">Day ${day} at ${esc(venue.name)} · highest SPC category</div><div class="px-big">${at ? esc(T.outlookLabel(at.category)) : unk ? esc(unk) : "No severe risk area"}</div>`
         + `<div class="px-sub">${top ? "Valid " + esc(t(top.validStart, true)) + " → " + esc(t(top.validEnd, true)) : ""}</div>`;
       if (lower.length) h += `<div class="px-also">The venue is also inside the surrounding lower areas (${lower.map((o) => esc(T.OUTLOOK_NAME[o.category].toLowerCase())).join(", ")}). Details below.</div>`;
       if (S.model) {
@@ -912,7 +920,7 @@
       h += `</div>`;
     } else if (S.scope !== "venue") {
       h += venueStrip();
-      if (sev) h += `<div class="px-brief"><div class="px-where">Day ${day} · national</div><div class="px-big">${top ? "Highest: " + esc(T.OUTLOOK_NAME[top.category]) : "No severe risk"}</div><div class="px-sub">${top && T.OUTLOOK_LEVEL[top.category] ? esc(T.outlookLabel(top.category)) + " · " + esc(T.placeName(top.label, PLACES)) : top ? "General thunderstorms only" : ""}</div></div>`;
+      if (sev) h += `<div class="px-brief"><div class="px-where">Day ${day} · national</div><div class="px-big">${top ? "Highest: " + esc(T.OUTLOOK_NAME[top.category]) : unk ? esc(unk) : "No severe risk"}</div><div class="px-sub">${top && T.OUTLOOK_LEVEL[top.category] ? esc(T.outlookLabel(top.category)) + " · " + esc(T.placeName(top.label, PLACES)) : top ? "General thunderstorms only" : ""}</div></div>`;
     }
     if (sev && st && (st.kind === "unavailable" || st.kind === "stale")) h += `<div class="px-notice"><b>${esc(SRC_NAME["day" + day])}</b> ${st.kind === "stale" ? "last confirmed " + esc(t(data.sources["day" + day].lastOk)) : "not responding"}.</div>`;
     const sorted = ol.slice().sort((a, b) => T.OUTLOOK.indexOf(b.category) - T.OUTLOOK.indexOf(a.category));
@@ -923,7 +931,7 @@
       h += eo.length ? eo.slice().sort((a, b) => FX.ERO_CATS.indexOf(b.category) - FX.ERO_CATS.indexOf(a.category)).map((p) => item(p, { tag: S.scope === "venue" && eat && p.id === eat.id ? "Highest category at the venue" : "" })).join("") : `<p class="px-empty">${es && es.kind === "empty" ? "No excessive rainfall areas." : es && es.kind === "current" ? "" : "WPC outlook not confirmed (see sources below)."}</p>`;
       if (sev) h += `<div class="px-h">Severe storms · SPC</div>`;
     }
-    if (sev) h += `<div class="px-h">Outlook areas</div>` + (sorted.length ? sorted.map((p) => item(p, { tag: S.scope === "venue" && at && p.id === at.id ? "Highest category at the venue" : "" })).join("") : `<p class="px-empty">No outlook areas.</p>`);
+    if (sev) h += `<div class="px-h">Outlook areas</div>` + (sorted.length ? sorted.map((p) => item(p, { tag: S.scope === "venue" && at && p.id === at.id ? "Highest category at the venue" : "" })).join("") : `<p class="px-empty">${unk ? esc(unk) + "." : "No outlook areas."}</p>`);
     const actW = active().filter((p) => p.kind === "warning");
     if (actW.length) h += `<div class="px-h">Active now</div><button type="button" class="tx-item" data-view-go="active" style="--tx-c:${colorOf(actW[0])}">${swatch(actW[0])}<span><b>${actW.length} active warning${actW.length > 1 ? "s" : ""}</b><span class="tx-meta">${day === 1 ? "Shown as dashed outlines, labelled Active now · " : "Not drawn on the Day 2 map · "}open Active now →</span></span></button>`;
     h += `<a class="px-link" href="severe.html#severe-daily">Open the regional Severe viewer →</a>`;
@@ -933,7 +941,8 @@
     const pt = S.point, day = viewDay();
     // SPC severe-weather outlooks nest (each category inside the lower ones): only the highest covering the spot, once per day shown
     const spcTop = (d) => { const o = S.layers.severe ? T.outlookAt(outlooks(d), pt) : null; return o ? [o] : []; };
-    const list = T.sort([...(day ? [...spcTop(day), ...(S.layers.flood ? eroOut(day) : [])] : [...active(), ...spcTop(1)]).filter((p) => p.geometry && T.contains(p.geometry, pt))]);
+    const areas = day === 2 || day === 3 ? [] : [...(S.layers.smoke ? hmsShown() : []), ...incidents().filter((p) => p.geometry)];
+    const list = T.sort([...(day ? [...spcTop(day), ...(S.layers.flood ? eroOut(day) : [])] : [...active(), ...spcTop(1)]), ...areas].filter((p) => p.geometry && T.contains(p.geometry, pt)));
     let h = `<button type="button" class="px-back" data-back>← ${S.scope === "venue" ? "Venue" : "All threats"}</button>`;
     h += `<div class="px-h"><span>At this spot</span><span>${pt[1].toFixed(2)}°, ${pt[0].toFixed(2)}°</span></div>`;
     if (S.ifi.on && ifi.state === "ok") { const a = ifiAt(pt); h += `<p class="lg-note" data-ifi-point>IFI model guidance at ${esc(IF.levelLabel(S.gtg.ft))}, valid ${esc(t(ifi.dec.validTime))}: ${esc(!a || !a.inside ? "outside the IFI grid" : a.text)}.</p>`; }
@@ -948,7 +957,10 @@
     if (at && at.id === p.id) return "The venue is in this area; it is the highest category there";
     return "The venue is in a higher category of the same outlook (" + olabel(at) + ")";
   }
+  const prevAsked = new Set();
   function detail(p) {
+    // "what changed" needs the message this update replaced: fetched once, now that someone is reading this alert
+    if (isLive() && Live.previousFor && !p.previous && (p.references || []).length && !prevAsked.has(p.id)) { prevAsked.add(p.id); Live.previousFor(p.id); }
     const ch = T.changes(p, (iso) => t(iso)), u = unconfirmed(p);
     const rows = [];
     if (p.hazard) rows.push(["Hazard", esc(p.hazard)]);
@@ -980,7 +992,7 @@
     if (S.sel) { const p = byId(S.sel); return p ? [p.kind === "outlook" ? "Day " + p.day + " · " + olabel(p) : p.title, "Tap for details"] : ["", ""]; }
     if (fireView()) { const a = fireAt(S.fday), top = a.windrh || a.dryt; return ["Fire weather at " + venue.name + " · " + FDAY_NAME(S.fday), top ? fireCatText(top) : "No fire weather area at the venue"]; }
     if (winterView()) { const w = curWin(), o = w ? venueWssi().get(w.start) || {} : {}, lv = topLevel(o); return ["Winter outlook at " + venue.name, w ? winShort(w) + " · " + (lv ? pctTxt(o[lv]) + " at least " + (lv === "WWA" ? "winter weather" : WLEVEL_LABEL[lv]) : "under 30% for any level") : "Loading"]; }
-    if (viewDay()) { const o = T.outlookAt(outlooks(viewDay()), [venue.lon, venue.lat]); return ["Day " + viewDay() + " at " + venue.name, o ? "Highest: " + T.outlookLabel(o.category) : "No severe risk area"]; }
+    if (viewDay()) { const o = T.outlookAt(outlooks(viewDay()), [venue.lon, venue.lat]); return ["Day " + viewDay() + " at " + venue.name, o ? "Highest: " + T.outlookLabel(o.category) : olUnknown(viewDay()) || "No severe risk area"]; }
     const L = statusLines();
     if (!L.length) { const q = quietText(); return [q.big.replace("at the venue", "at " + venue.name), lapsed().length ? "A warning reached its expiration · NWS status unknown" : activeKnown() ? "NWS checked " + t(data.sources.alerts.lastOk) : known("alerts") ? "NWS checked " + t(data.sources.alerts.lastOk) + " · MD status unknown" : "NWS warnings not confirmed"]; }
     // line 1: what applies at the venue; line 2: its expiration (always kept); line 3: a nearby warning, if any
@@ -1045,7 +1057,7 @@
     if (S.layers.winter && !winterView() && !day) h += `<div><div class="lg-h">Winter · active now</div>${lgLine({ kind: "warning", family: "winter", event: "Winter Storm Warning" }, "<b>Winter Storm Warning</b>")}${lgLine({ kind: "warning", family: "winter", event: "Blizzard Warning" }, "Blizzard · ice storm · lake-effect snow warnings")}${lgLine({ kind: "watch", family: "winter", event: "Winter Storm Watch" }, "<b>Winter Storm Watch</b> · dashed")}${lgLine({ kind: "advisory", family: "winter", event: "Winter Weather Advisory" }, "<b>Winter Weather Advisory</b> · thin outline")}<div class="lg-note">Most winter alerts are issued for NWS forecast zones; the area is drawn from those zones.</div></div>`;
     if ((S.layers.tropical || S.layers.coastal) && !winterView() && !fireView() && !viewDay()) h += `<div><div class="lg-h">Tropical and coastal</div>${S.layers.tropical ? lgLine({ kind: "warning", family: "tropical", event: "Hurricane Warning" }, "<b>Hurricane / Tropical Storm / Storm Surge</b> warnings and watches (NWS)") + `<div class="lg-row"><svg width="28" height="16" aria-hidden="true"><rect x="2" y="2" width="24" height="12" fill="#f2f2f2" fill-opacity=".2" stroke="#f2f2f2"/></svg><span>NHC forecast cone: likely path of the center, not the impact area</span></div><div class="lg-bands">${Object.entries(TWO_COLOR).map(([k, c]) => `<span class="lg-band"><i style="background:${c}"></i>${k}</span>`).join("")}</div><div class="lg-note">NHC outlook areas: chance of formation (7 days)</div>` : ""}${S.layers.coastal ? lgLine({ kind: "warning", family: "coastal", event: "Coastal Flood Warning" }, "<b>Coastal flood, high surf, rip current</b> (NWS zones)") : ""}</div>`;
     if (S.layers.smoke && !winterView() && !fireView() && !viewDay()) h += `<div><div class="lg-h">Smoke and air quality</div><div class="lg-bands">${FX.HMS_DENSITY.map((d) => `<span class="lg-band"><i style="background:${HMS_FILL[d][0]};opacity:${0.4 + HMS_FILL[d][1]}"></i>${d}</span>`).join("")}</div><div class="lg-note">NOAA satellite smoke (overhead, not at the ground), last 24 hours.</div><div class="lg-bands">${Object.entries(AQI_COLOR).map(([k, c]) => `<span class="lg-band" title="${esc(k)}"><i style="background:${c}"></i>${esc(k === "Unhealthy for Sensitive Groups" ? "USG" : k)}</span>`).join("")}</div><div class="lg-note">AirNow monitors: latest hourly AQI (preliminary).</div></div>`;
-    if (S.layers.fire && !winterView()) h += `<div><div class="lg-h">Fire</div>${lgLine({ kind: "warning", family: "fire", event: "Red Flag Warning" }, "<b>Red Flag Warning</b>")}${lgLine({ kind: "watch", family: "fire", event: "Fire Weather Watch" }, "<b>Fire Weather Watch</b> · dashed")}${lgLine({ kind: "incident", category: "WF" }, "<b>Wildfire</b> (NIFC): perimeter where mapped, dot sized by acres")}<label class="lg-toggle"><input type="checkbox" id="rxChk"${S.rx ? " checked" : ""}> Prescribed fires</label>${fireView() ? `<div class="lg-bands">${(S.fday >= 3 ? ["P40", "P70"] : ["ELEV", "CRIT", "EXTM", "IDRT", "SDRT"]).map((c) => `<span class="lg-band" title="${esc(FX.FIRE_NAME[c])}"><i style="background:${FIRE_COLOR[c]}"></i>${c === "P40" ? "40%" : c === "P70" ? "70%" : c}</span>`).join("")}</div><div class="lg-note">${S.fday >= 3 ? "Probability of critical fire weather within 12 miles of a point." : "ELEV elevated · CRIT critical · EXTM extremely critical (wind and humidity) · IDRT/SDRT isolated/scattered dry thunderstorms."}</div>` : ""}</div>`;
+    if (S.layers.fire && !winterView()) h += `<div><div class="lg-h">Fire</div>${lgLine({ kind: "warning", family: "fire", event: "Red Flag Warning" }, "<b>Red Flag Warning</b>")}${lgLine({ kind: "watch", family: "fire", event: "Fire Weather Watch" }, "<b>Fire Weather Watch</b> · dashed")}${lgLine({ kind: "incident", category: "WF" }, "<b>Wildfire</b> (NIFC): perimeter where mapped, dot sized by acres")}<label class="lg-toggle"><input type="checkbox" id="rxChk"${S.rx ? " checked" : ""}> Prescribed fires</label><label class="lg-toggle"><input type="checkbox" id="ctnChk"${S.ctn ? " checked" : ""}> Fully contained fires</label>${fireView() ? `<div class="lg-bands">${(S.fday >= 3 ? ["P40", "P70"] : ["ELEV", "CRIT", "EXTM", "IDRT", "SDRT"]).map((c) => `<span class="lg-band" title="${esc(FX.FIRE_NAME[c])}"><i style="background:${FIRE_COLOR[c]}"></i>${c === "P40" ? "40%" : c === "P70" ? "70%" : c}</span>`).join("")}</div><div class="lg-note">${S.fday >= 3 ? "Probability of critical fire weather within 12 miles of a point." : "ELEV elevated · CRIT critical · EXTM extremely critical (wind and humidity) · IDRT/SDRT isolated/scattered dry thunderstorms."}</div>` : ""}</div>`;
     if (winterView()) h += `<div><div class="lg-h">WPC WSSI-P · chance of at least ${esc(S.wlevel === "WWA" ? "winter weather" : WLEVEL_LABEL[S.wlevel])}</div><div class="lg-bands">${WSSI_PROBS.map((v) => `<span class="lg-band"><i style="background:${WSSI_COLOR[v]}"></i>${v}%</span>`).join("")}</div><div class="lg-note">24-hour window. Levels: Minor, Moderate, Major, Extreme winter storm impacts (WPC definitions).</div></div>`;
     if (!day && !winterView()) h += `<label class="lg-toggle"><input type="checkbox" id="ctxChk"${S.ctx ? " checked" : ""}> Day 1 outlook outlines</label>`;
     if (day && S.model) h += `<div><div class="lg-h">Our research model · ${esc(S.hazard)} within 25 mi</div><div class="lg-bands">${G.BANDS.map(([, c, l]) => `<span class="lg-band"><i style="background:${c}"></i>${l}</span>`).join("")}</div><div class="lg-note">Experimental Forecast Ops guidance, not an official forecast${isLive() ? "" : ". Demo values"}. Uncolored: below 0.1% (low). Light hatching: no model guidance (outside its grid or over water), not a low value.</div>${(() => { const f = modelField(day); return f.values ? "" : `<div class="lg-note"><b>${esc(f.reason)}</b></div>`; })()}</div>`;
@@ -1062,6 +1074,7 @@
     if (S.scope === "venue") h += `<div class="lg-row"><svg width="28" height="10" aria-hidden="true"><line x1="1" y1="5" x2="27" y2="5" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3"/></svg><span>${Math.round(T.miles(T.NEAR_KM))}-mile "nearby" ring</span></div>`;
     $("txLegendBody").innerHTML = h;
     const rx = $("rxChk"); if (rx) rx.addEventListener("change", () => { S.rx = rx.checked; drawAll(); });
+    const ctn = $("ctnChk"); if (ctn) ctn.addEventListener("change", () => { S.ctn = ctn.checked; drawAll(); });
     const cc = $("ctxChk"); if (cc) cc.addEventListener("change", () => { S.ctx = cc.checked; drawAll(); });
   }
 
@@ -1309,6 +1322,7 @@
     if (S.route) S.air = [...new Set([...S.air, S.route.o, S.route.d])].slice(0, 4);
     if (+q.get("fday") >= 1 && +q.get("fday") <= 8) S.fday = +q.get("fday");
     if (q.get("rx") === "1") S.rx = true;
+    if (q.get("ctn") === "1") S.ctn = true;
     if (q.get("layers")) { const L = q.get("layers").split(","); if (L.includes("aviation")) S.en.on = true; S.layers = { severe: L.includes("severe"), flood: L.includes("flood"), winter: L.includes("winter"), fire: L.includes("fire"), smoke: L.includes("smoke"), tropical: L.includes("tropical"), coastal: L.includes("coastal"), aviation: L.includes("aviation") }; }
     else if (S.scenario !== "live") Object.keys(S.layers).forEach((k) => (S.layers[k] = true)); // demo and archived samples: their shared selection is every layer
     else if (S.gtg.on || S.ifi.on || q.get("air") || q.get("rt") || q.get("alt")) S.layers.aviation = true; // a live link naming aviation content and no layers

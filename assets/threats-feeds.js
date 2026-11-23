@@ -330,6 +330,8 @@
     for (const f of gj.features) {
       const P = {}; for (const [k, v] of Object.entries(f.properties || {})) P[k.toLowerCase()] = v;
       const cat = eroCat(P.outlook);
+      /* a quiet day: WPC sends one placeholder ("None Expected", a point) with the issue and valid times: confirmed no areas */
+      if (/^none\b/i.test(P.outlook || "")) { const issued = utc(P.issue_time), start = utc(P.start_time), end = utc(P.end_time); if (!issued || !start || !end) throw Error("excessive rainfall times missing"); meta = meta || { issued, validStart: start, validEnd: end }; continue; }
       if (!cat || !f.geometry) throw Error("unrecognized excessive rainfall category: " + (P.outlook || "none"));
       const issued = utc(P.issue_time), start = utc(P.start_time), end = utc(P.end_time);
       if (!issued || !start || !end) throw Error("excessive rainfall times missing");
