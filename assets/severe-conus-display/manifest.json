@@ -1,0 +1,46 @@
+{
+ "description": "Prebuilt, land-clipped display contours for the CONUS preview (see tools/build-conus-display.py).",
+ "land_sha256": "db6227b78f564ddbb65d7cc63a43588ab8e0821d300b7716b4d42d6503e37292",
+ "cases": {
+  "current-2026-11-22": {
+   "file": "current-2026-11-22.json",
+   "sha256": "64058fdb9a7a47145d1280295c6b3d365dbce5473d94c820c50446a78624aa61",
+   "case_sha256": "784c2da6c5e34f860d78d1145f3662a24ac4a30a7298e7c39e8c8f09f2b18921",
+   "bytes": 145738,
+   "raw_polygons": 12582,
+   "raw_vertices": 51746,
+   "polygons": 190,
+   "vertices": 4435
+  },
+  "replay-2024-05-25": {
+   "file": "replay-2024-05-25.json",
+   "sha256": "a7528158ae5b5016ff9daf41fc125cecf3b82da6f0745f1a3d48047a9d49be33",
+   "case_sha256": "96ba9e2e864e28ca9ca99f70142601cdb8b038fc36b79b6885a35a46ec06e715",
+   "bytes": 774711,
+   "raw_polygons": 165196,
+   "raw_vertices": 670362,
+   "polygons": 410,
+   "vertices": 21615
+  },
+  "replay-2024-09-27": {
+   "file": "replay-2024-09-27.json",
+   "sha256": "ada0a9cd914dfdc0d626d69b44f6d5a12e26b3c3f622a98782c4b03804b27aab",
+   "case_sha256": "276e2224f8fbb2d4c2dd4938248f77d864ac4823f80ff4b7651cc68c2c999129",
+   "bytes": 164181,
+   "raw_polygons": 14614,
+   "raw_vertices": 60256,
+   "polygons": 140,
+   "vertices": 4685
+  },
+  "replay-2024-05-14": {
+   "file": "replay-2024-05-14.json",
+   "sha256": "c8a229da7ca55e6c0d4a925f7417f8425ca09eea1c8726e0d373dffc0492465b",
+   "case_sha256": "d32d239e6912fa68f363b0b9ffb94b3c5015915e490896b4becba5da316df16b",
+   "bytes": 828839,
+   "raw_polygons": 129413,
+   "raw_vertices": 527550,
+   "polygons": 493,
+   "vertices": 22477
+  }
+ }
+}

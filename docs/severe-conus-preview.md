@@ -159,3 +159,32 @@ Florida/Gulf.
 ![Active replay on a phone](img/severe-conus-preview/03-active-mobile.png)
 ![Current run, 2026-11-22 12Z](img/severe-conus-preview/04-current-desktop.png)
 ![Regional view after switching back](img/severe-conus-preview/05-regional-desktop.png)
+
+## Mobile memory (iPhone crash fix)
+
+The map used to build its shading in the browser as one small polygon per mesh triangle per band. For the
+May 26 replay that was 165,196 polygons and 670,362 points (15.7 MB), copied into the map worker and GPU.
+On an iPhone-sized page (Chromium, iPhone 13 emulation) the browser's whole process tree reached 2.3 GB at
+first draw and 3.0–3.4 GB after Whole CONUS or switching cases, enough for iOS Safari to reload the tab.
+
+Isolated on the new build:
+- county lines cost about 13–58 MB;
+- the land mask costs about 6–15 MB;
+- browser-built contours cost about 2.4–3.4 GB.
+
+The shading is now prebuilt by `tools/build-conus-display.py`:
+- It runs the viewer's own contour code (`tools/conus-contours-raw.js`), merges each band into whole areas,
+  clips them to the land mask and simplifies them by 0.003° (about 300 m).
+- The output goes to `assets/severe-conus-display/`. May 26 is now 410 polygons and 21,615 points
+  (0.77 MB).
+- The viewer keeps only the active case in memory.
+
+On the same emulated phone the whole browser now peaks at about 0.9 GB (the page without the CONUS map is
+about 0.45 GB), and the first draw takes about 2 s instead of about 9–11 s.
+
+Each prebuilt file records the case file it was built from. If they don't match, desktops compute contours
+in the browser as before, while phones and low-memory devices show the map without shading rather than
+risk a crash.
+
+`tools/conus-preview-memory-check.js` enforces a 1.5 GB budget in CI. This is Chromium emulation, not
+iOS Safari.

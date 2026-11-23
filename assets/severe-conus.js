@@ -10,7 +10,7 @@ const BASE='assets/severe-conus/',none=()=>({type:'FeatureCollection',features:[
 const HZ={tornado:'Tornado',wind:'Damaging wind',hail:'Severe hail'};
 const SEL='#22d3ee';
 const NCEI_EVENT='https://www.ncdc.noaa.gov/stormevents/eventdetails.jsp?id=';
-let offDisplay=false,landPolys=null,onLand=null,offGrid=false,mode='regional',day=2,hazard='wind',index,grid,supported,mesh,outsideFill=none(),map,ready=false,values=null,active=null,reports=null,selected=null,focusName='',
+let display=null,displayNote='',offDisplay=false,landPolys=null,onLand=null,offGrid=false,mode='regional',day=2,hazard='wind',index,grid,supported,mesh,map,ready=false,values=null,active=null,reports=null,selected=null,focusName='',
  showReports=true,showCounties=true,showNear=false,request=0,loaded=false,lastView=null,popup=null;
 const cache=new Map(),contourCache=new Map(),reportCache=new Map();
 const esc=s=>O&&O.esc?O.esc(s):String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -22,6 +22,7 @@ const utc=t=>new Date(t).toISOString().slice(0,16).replace('T',' ')+'Z';
 const n=x=>Number(x).toLocaleString('en-US');
 async function fetchBytes(url,ms=30000){const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),ms);try{const r=await fetch(url,{signal:ctl.signal,cache:'no-cache'});if(!r.ok)throw Error('request failed ('+r.status+')');return new Uint8Array(await r.arrayBuffer());}finally{clearTimeout(timer);}}
 async function sha256(bytes){return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');}
+async function fetchJsonAt(url,hash){const bytes=await fetchBytes(url);if(hash&&crypto.subtle&&await sha256(bytes)!==hash)throw Error('display file checksum changed');return JSON.parse(new TextDecoder().decode(bytes));}
 async function fetchJson(file,hash){let bytes;try{bytes=await fetchBytes(BASE+file);}catch(e){throw Error('CONUS preview data '+e.message);}
  if(hash&&crypto.subtle&&await sha256(bytes)!==hash)throw Error('CONUS preview file checksum changed; refresh');return JSON.parse(new TextDecoder().decode(bytes));}
 /* County lines for all of CONUS (us-atlas, same file as the Maps page). Some hosts already decompress .gz. */
@@ -33,10 +34,6 @@ async function counties(){try{let b=await fetchBytes('assets/maps/conus-detail.g
 /* ---------- state per point ---------- */
 function state(i){if(i===null||i===undefined)return offDisplay?{kind:'offdisplay',text:'Outside display area'}:offGrid?{kind:'outside',text:'Outside coverage'}:{kind:'none',text:'—'};if(!supported[i])return{kind:'outside',text:'Outside coverage'};const p=values?values[i]:null;if(p===null||!C.available(p))return{kind:'unavailable',text:'Data unavailable'};if(p<.001)return{kind:'below',text:'<0.1%',note:'Below the lowest displayed contour (0.1%)'};return{kind:'value',text:C.percent(p)};}
 function nearest(lon,lat){if(!grid)return null;let best=-1,d=Infinity;for(let i=0;i<grid.length;i++){const g=grid[i];if(Math.abs(g[1]-lat)>0.4||Math.abs(g[0]-lon)>0.6)continue;const v=C.distance(g,[lon,lat]);if(v<d){d=v;best=i;}}return best>=0&&d<=12?best:null;}
-/* Mesh triangles that touch a sample outside coverage: one quiet neutral tint instead of dots. */
-function outsideArea(){const T=mesh.triangles,polys=[];for(let t=0;t<T.length;t+=3){const ids=[T[t],T[t+1],T[t+2]];if(ids.every(i=>supported[i]))continue;const r=ids.map(i=>grid[i]);
-  const a=(r[1][0]-r[0][0])*(r[2][1]-r[0][1])-(r[2][0]-r[0][0])*(r[1][1]-r[0][1]);if(a<0)r.reverse();r.push(r[0]);polys.push([r]);}
- return{type:'FeatureCollection',features:[{type:'Feature',properties:{},geometry:{type:'MultiPolygon',coordinates:polys}}]};}
 
 /* ---------- land-only display (render-time clip; values, reports and the 25-mile definition are unchanged) ---------- */
 const ringArea=r=>{let a=0;for(let i=0,n=r.length;i<n;i++){const p=r[i],q=r[(i+1)%n];a+=p[0]*q[1]-q[0]*p[1];}return a/2;};
@@ -69,11 +66,10 @@ async function createMap(view){const [states,lakes,cty,land]=await Promise.all([
  map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:'CONUS research preview · NOAA HRRR / NCEI Storm Events · US Census / us-atlas · Natural Earth'}),'bottom-left');
  await new Promise(res=>map.on('load',res));
  const attrib=map.getContainer().querySelector('.maplibregl-ctrl-attrib');if(attrib)attrib.classList.remove('maplibregl-compact-show');
- for(const [id,data] of [['sc-states',states],['sc-water',waterMask()],['sc-outside',outsideFill],['sc-fill',none()],['sc-lines',none()],['sc-unavail',none()],['sc-near',none()],['sc-ring',none()],['sc-sel',none()]])map.addSource(id,{type:'geojson',data});
+ for(const [id,data] of [['sc-states',states],['sc-water',waterMask()],['sc-fill',none()],['sc-lines',none()],['sc-unavail',none()],['sc-near',none()],['sc-ring',none()],['sc-sel',none()]])map.addSource(id,{type:'geojson',data,maxzoom:10});
  map.addSource('sc-reports',{type:'geojson',data:none(),cluster:true,clusterRadius:26,clusterMaxZoom:6});
  if(cty)map.addSource('sc-counties',{type:'geojson',data:cty});
  // Layer order: neutral outside tint, probability fill, water, thin band outlines, counties, states, labels, footprint, reports, selection.
- map.addLayer({id:'sc-outside',type:'fill',source:'sc-outside',paint:{'fill-color':p.outside,'fill-opacity':.7,'fill-antialias':false}});
  map.addLayer({id:'sc-fill',type:'fill',source:'sc-fill',paint:{'fill-color':['get','color'],'fill-opacity':['case',['<',['get','threshold'],.02],.42,.66],'fill-antialias':false}});
  map.addLayer({id:'sc-lines',type:'line',source:'sc-lines',paint:{'line-color':'#1f2329','line-width':['case',['<',['get','threshold'],.02],.3,.55],'line-opacity':['case',['<',['get','threshold'],.02],.25,.45]}});
  // Land-only: water, Canada/Mexico and inland lakes are plain background above the shading, contours and tint.
@@ -127,7 +123,7 @@ const caseLabel=c=>c.kind==='current'?'SAVED FORECAST · valid '+new Date(c.vali
 async function init(){if(loaded)return;loaded=true;host.setAttribute('aria-busy','true');status('Loading CONUS research preview…');try{
  index=await fetchJson('index.json');if(index.schema_version!==1||index.status!=='research_preview'||index.operational_forecast_eligible!==false)throw Error('Unsupported CONUS preview feed');
  const g=await fetchJson(index.grid.file,index.grid.sha256);grid=g.coordinates;supported=g.supported.map(Boolean);if(grid.length!==index.coverage.samples||supported.length!==grid.length)throw Error('CONUS grid size mismatch');
- mesh=G.mesh(grid);outsideFill=outsideArea();
+ try{display=await fetch('assets/severe-conus-display/manifest.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null);}catch(e){display=null;}
  $('scCase').innerHTML=index.cases.map(c=>'<option value="'+esc(c.id)+'">'+esc(caseLabel(c))+'</option>').join('');$('scCase').disabled=false;
  const replay=index.cases.find(c=>c.case_type==='active')||index.cases[0];$('scCase').value=replay.id;
  benchmark();coverageNote();
@@ -143,17 +139,32 @@ function meta(){const c=active,d=c.data;
  $('scWindow').innerHTML=(c.kind==='current'?'<span class="sc-kind sc-kind-saved">SAVED FORECAST</span>':'<span class="sc-kind">REPLAY</span>')+' Valid '+esc(eastern(d.valid_start))+' → '+esc(eastern(d.valid_end));
  $('scCycle').textContent='HRRR '+utc(d.model_init_time)+' run (f24–48) · Day 2 · '+utc(d.valid_start)+' – '+utc(d.valid_end)+(c.kind==='current'?' · fixed snapshot, does not update':'');
  $('scCaseNote').textContent=c.description;reportUi();}
-function coverageNote(){const v=index.coverage;$('scCoverage').textContent='Coverage: '+n(v.supported)+' of '+n(v.samples)+' grid points (within 25 miles of US land). The neutral tint marks grid points beyond that; areas off the grid have no forecast. Blank inside coverage means below 0.1%.';$('scDefinition').textContent='Chance of a ≥50 kt thunderstorm wind report within 25 miles of a point during the 24-hour window. Unshaded inside the US: below 0.1%. Water and areas outside the lower 48 are not shaded.';}
+function coverageNote(){const v=index.coverage;$('scCoverage').textContent='Coverage: '+n(v.supported)+' of '+n(v.samples)+' grid points (within 25 miles of US land). The map shades lower-48 land only; water and areas outside the US are plain background. Blank inside coverage means below 0.1%.';$('scDefinition').textContent='Chance of a ≥50 kt thunderstorm wind report within 25 miles of a point during the 24-hour window. Unshaded inside the US: below 0.1%. Water and areas outside the lower 48 are not shaded.';}
 function benchmark(){const b=index.benchmark,names={conus:'All CONUS',original_box:'Old regional box',plains_outside_box:'Plains (outside box)',northeast_outside_box:'Northeast (outside box)',west:'West',florida_gulf_south:'Florida / Gulf'};const f=x=>x==null?'—':(x*100).toFixed(1)+'%',s=x=>x==null?'—':(x>=0?'+':'')+x.toFixed(3);
  $('scBench').innerHTML='<thead><tr><th>Region</th><th>Report days</th><th>Skill vs base rate: candidate / NadoCast</th><th>Reports caught at 5%: candidate / NadoCast</th></tr></thead><tbody>'+Object.keys(names).filter(k=>b.regions[k]).map(k=>{const r=b.regions[k];return '<tr><th>'+names[k]+'</th><td>'+r.report_days+'</td><td>'+s(r.candidate.bss)+' / '+s(r.nadocast.bss)+'</td><td>'+f(r.candidate.pod_5pct)+' / '+f(r.nadocast.pod_5pct)+'</td></tr>';}).join('')+'</tbody>';
  const box=b.regional_box_vs_live_v07;$('scBenchNote').textContent='Source: '+b.source+'. Inside the old regional box the candidate beat live v0.7 (Brier '+box.candidate_minus_live_brier.toFixed(5)+', 95% '+box.candidate_minus_live_brier_95.map(x=>x.toFixed(5)).join(' to ')+'). It trails NadoCast nationally and in the West; Florida/Gulf has no skill for any model and the candidate paints far too much area there.';}
 
+/* ---------- display contours ----------
+   Mobile-safe: prebuilt, band-merged, land-clipped contours (assets/severe-conus-display/, built by
+   tools/build-conus-display.py from the viewer's own contour code) replace ~165k per-triangle pieces with a few
+   hundred polygons. Used only when the manifest entry was built from this exact case file; otherwise the
+   contours are computed in the browser as before. Only the active case is kept in memory. */
+const contourLoads=new Map();
+const phoneLike=()=>{try{return matchMedia('(pointer: coarse)').matches||innerWidth<760||(navigator.deviceMemory&&navigator.deviceMemory<=4);}catch(e){return true;}};
+function loadContours(c){if(contourLoads.has(c.id))return;const e=display&&display.cases&&display.cases[c.id];
+ const job=(async()=>{let s=null;
+  if(e&&e.case_sha256===c.sha256){try{const d=await fetchJsonAt('assets/severe-conus-display/'+e.file,e.sha256);if(d.case_id===c.id&&d.case_sha256===c.sha256){s={fills:d.fills,lines:d.lines,source:'prebuilt'};}}catch(err){s=null;}}
+  // Browser-built contours need ~2-3 GB on a phone-sized page (measured): never on phones or low-memory devices.
+  if(!s&&phoneLike()){s={fills:none(),lines:none(),source:'withheld'};status('Map shading for this case is being rebuilt; values still read on tap. Open on a desktop to see shading now.',true);}
+  if(!s){if(!mesh)mesh=G.mesh(grid);const v=(cache.has(c.id)?(await cache.get(c.id)).probabilities.wind:values);s={fills:G.contours(mesh,v),lines:G.isolines(mesh,v),source:'browser'};}
+  contourCache.clear();contourCache.set(c.id,s);contourLoads.delete(c.id);if(active&&active.id===c.id)draw();})();
+ contourLoads.set(c.id,job);}
+
 /* ---------- drawing ---------- */
 function draw(){if(!ready)return;showUnavailable();const ok=available()&&values;
- if(ok){const key=active.id;if(!contourCache.has(key))contourCache.set(key,{fills:G.contours(mesh,values),lines:G.isolines(mesh,values)});const s=contourCache.get(key);map.getSource('sc-fill').setData(s.fills);map.getSource('sc-lines').setData(s.lines);}
+ if(ok){const s=contourCache.get(active.id);if(s){map.getSource('sc-fill').setData(s.fills);map.getSource('sc-lines').setData(s.lines);}else{map.getSource('sc-fill').setData(none());map.getSource('sc-lines').setData(none());loadContours(active);}}
  else{map.getSource('sc-fill').setData(none());map.getSource('sc-lines').setData(none());}
  const pts=(f)=>({type:'FeatureCollection',features:grid.map((c,i)=>f(i)?{type:'Feature',properties:{},geometry:{type:'Point',coordinates:c}}:null).filter(Boolean)});
- map.getSource('sc-outside').setData(grid?outsideFill:none());
  map.getSource('sc-unavail').setData(ok?pts(i=>supported[i]&&(values[i]===null)):none());
  const replay=ok&&active.kind==='replay';
  const near=replay&&active.data.observed?active.data.observed.report_sample_indices:[];
@@ -180,7 +191,7 @@ function setMode(next,opts={}){if(next===mode&&!opts.force)return;const bridge=w
  try{history.replaceState(null,'',mode==='conus'?'#severe-conus':'#severe-daily');}catch(e){}}
 
 $('scLegend').innerHTML='<span class="sr-legend-band sr-legend-none"><i title="Below 0.1%: not colored"></i>&lt;0.1%</span>'+G.BANDS.map(([,color,label])=>'<span class="sr-legend-band"><i style="background:'+color+';opacity:.75"></i>'+label+'</span>').join('');
-$('scLegend').insertAdjacentHTML('afterend','<div class="sc-keys" id="scKeys"><span class="sc-key"><i class="sc-k-rep"></i>Storm report (numbers: grouped reports)</span><span class="sc-key"><i class="sc-k-sel"></i>Selected point (dashed: 25-mile area)</span><span class="sc-key"><i class="sc-k-out"></i>Outside coverage</span><span class="sc-key"><i class="sc-k-na"></i>Data unavailable</span></div>');
+$('scLegend').insertAdjacentHTML('afterend','<div class="sc-keys" id="scKeys"><span class="sc-key"><i class="sc-k-rep"></i>Storm report (numbers: grouped reports)</span><span class="sc-key"><i class="sc-k-sel"></i>Selected point (dashed: 25-mile area)</span><span class="sc-key"><i class="sc-k-na"></i>Data unavailable</span></div>');
 host.querySelectorAll('[data-sc-view]').forEach(b=>b.addEventListener('click',()=>{host.open=true;setMode(b.dataset.scView);}));
 host.querySelectorAll('[data-sc-hazard]').forEach(b=>b.addEventListener('click',()=>{hazard=b.dataset.scHazard;syncButtons();draw();}));
 $('scDay').addEventListener('change',()=>{day=+$('scDay').value;syncButtons();draw();});
@@ -202,6 +213,6 @@ window.SevereConusPreview={state:()=>({mode,day,hazard,selected,case:active&&act
  select:(lon,lat)=>select([lon,lat],'Test point'),setMode,
  view:(center,zoom)=>new Promise(res=>{if(!map)return res(false);map.once('idle',()=>res(true));map.jumpTo({center,zoom});}),
  project:(lon,lat)=>{const p=map.project([lon,lat]),r=map.getCanvas().getBoundingClientRect();return[r.left+p.x,r.top+p.y];},
- debug:()=>({showReports,src:map&&map.getSource('sc-reports')?(map.getSource('sc-reports').serialize().data.features||[]).length:null}),style:()=>({compact:$('scMap').clientWidth<560,clusterRadius:map.getPaintProperty('sc-clusters','circle-radius'),selColor:map.getPaintProperty('sc-sel','circle-stroke-color'),selFill:map.getPaintProperty('sc-sel','circle-color'),reportColor:map.getPaintProperty('sc-report','circle-color'),attribOpen:!!map.getContainer().querySelector('.maplibregl-compact-show')}),inLand:(x,y)=>inLand(x,y),gridPoint:i=>grid&&i!=null?grid[i]:null,landReady:()=>!!landPolys,bounds:()=>map.getBounds().toArray(),rendered:(layer)=>map&&map.getLayer(layer)?map.queryRenderedFeatures({layers:[layer]}).length:-1,
+ debug:()=>({showReports,src:map&&map.getSource('sc-reports')?(map.getSource('sc-reports').serialize().data.features||[]).length:null}),style:()=>({compact:$('scMap').clientWidth<560,clusterRadius:map.getPaintProperty('sc-clusters','circle-radius'),selColor:map.getPaintProperty('sc-sel','circle-stroke-color'),selFill:map.getPaintProperty('sc-sel','circle-color'),reportColor:map.getPaintProperty('sc-report','circle-color'),attribOpen:!!map.getContainer().querySelector('.maplibregl-compact-show')}),inLand:(x,y)=>inLand(x,y),gridPoint:i=>grid&&i!=null?grid[i]:null,landReady:()=>!!landPolys,bounds:()=>map.getBounds().toArray(),contourSource:()=>{const s=active&&contourCache.get(active.id);return s?s.source:null;},meshBuilt:()=>!!mesh,rendered:(layer)=>map&&map.getLayer(layer)?map.queryRenderedFeatures({layers:[layer]}).length:-1,
  report:(id)=>reports&&reports.byId.get(String(id))||null,reportList:()=>reports?reports.list:null};
 })();

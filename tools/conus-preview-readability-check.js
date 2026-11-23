@@ -16,7 +16,7 @@ async function waitReports(p){await p.waitForFunction(()=>window.SevereConusPrev
  ok('report count shown next to toggle',/\(776\)/.test(await p.textContent('#scReportCount')),await p.textContent('#scReportCount'));
  ok('clusters at national zoom',await p.evaluate(()=>window.SevereConusPreview.rendered('sc-clusters'))>0,await p.evaluate(()=>window.SevereConusPreview.rendered('sc-clusters')));
  ok('grid-point footprint layer off by default',!(await p.isChecked('#scNear'))&&await p.evaluate(()=>window.SevereConusPreview.rendered('sc-near'))===0);
- ok('outside-coverage grey dots removed (tint instead)',await p.evaluate(()=>window.SevereConusPreview.rendered('sc-outside'))>0);
+ ok('shading comes from prebuilt land-clipped contours (no grey dots, no in-browser mesh)',await p.evaluate(()=>window.SevereConusPreview.rendered('sc-outside')===-1&&window.SevereConusPreview.contourSource()==='prebuilt'&&!window.SevereConusPreview.meshBuilt()));
  const fillOn=await p.evaluate(()=>window.SevereConusPreview.rendered('sc-fill'));
  await mapShot('national');
  // full panel shot (controls + map + legend)
