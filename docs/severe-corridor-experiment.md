@@ -173,3 +173,27 @@ comes from placement.
 - On 2024-12-28: hits 629 → 763 and wrong place 70 → 19 (NadoCast hits 857).
 - The map title on `corridor-2024-12-28.png` still says "all 96 development dates" (v1 wording). The
   fit actually used the full 362-date roster.
+
+# Status: corridor v2 is a research candidate (passed 3 of 5)
+Decision recorded 2026-11-23: corridor v2 is kept as a research candidate. It passed matched-area
+hits, left-out and Brier, and failed no-signal and top-bin reliability. It is not frozen, and 2021
+stays sealed.
+
+# Blend follow-up (protocol locked 2026-11-23, before fitting): `research/severe/corridor/blend/rules.json`
+1. **Regenerate v2 exactly.** It must reproduce the committed scorecard, or the run stops.
+2. **Break down v2's no-signal failure.** Report days and report points; the top-5 share of the
+   increase; and whether each date flagged a little area, narrowly missed the threshold, or was low
+   across the board.
+3. **Build one blend candidate:**
+   - Surface: beta calibration of the probability blend (1−w)·p_b + w·p_c, with w in
+     {0, .25, .5, .75, 1}.
+   - Weight selection, inside the training folds only: eligible weights keep inner no-signal and
+     wrong-place within 5% and inner Brier no worse than arm b. Among those, take the one with the
+     most inner matched-area hits.
+   - One threshold per fold, chosen in the training months to match arm b's 5% area. Held-out area
+     must stay within 5% of arm b's.
+   - The original five criteria decide, using report points.
+   - Per-day no-signal, top-band reliability and top-band tornado days are reported against both
+     arms.
+4. **Outcome:** a full pass leads to freezing and one 2021 check. Anything else is posted and stops
+   for review.

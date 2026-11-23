@@ -1,0 +1,46 @@
+{
+ "name": "day1-tornado-corridor-blend-v1",
+ "locked_before_fitting": true,
+ "approved_by_user": "2026-11-23 (PR #31: keep v2 as research candidate; one focused blend follow-up)",
+ "status_of_v2": "research candidate; passed 3 of 5 locked criteria (matched-area hits, left-out, Brier); failed no-signal (2.32x) and top-bin reliability (35.5% vs 26.7%, 15 event dates)",
+ "data": "the locked 362-date roster and six whole-month folds (research/severe/corridor/v2/roster.json); 2024 diagnostic only; 2021 sealed; 2025 never",
+ "step_1_regenerate": "re-run the locked v2 nested fit exactly (same code, roster, folds, penalties, beta calibration). It must reproduce the committed v2 matched-area counts for arms a/b/c exactly and their Brier scores within 1e-9, or the run stops. Byte equality of the refit fit file is reported. Save held-out and inner out-of-fold logits for arms b and c.",
+ "step_2_no_signal_breakdown": {
+  "at": "v2 matched area (arm b 5%; arm c at the pooled threshold that matches arm b's false-alarm area)",
+  "reports": [
+   "affected tornado days and report points for b and c (per day and per point)",
+   "share of the increase from the five largest contributing dates",
+   "for each date with arm-c no-signal points: 'flagged_1_to_9_samples' (some area under the 2,250 km2 minimum), 'narrow_miss' (nothing flagged; max probability >= 75% of the threshold) or 'low_across_board' (max below 75% of the threshold)"
+  ]
+ },
+ "step_3_blend_candidate": {
+  "surface": "p_blend = beta_calibration( logit( (1-w) * p_b + w * p_c ) ), where p_b and p_c are the beta-calibrated arm b and arm c probabilities; one forecast surface per outer fold",
+  "weights": [
+   0.0,
+   0.25,
+   0.5,
+   0.75,
+   1.0
+  ],
+  "weight_selection_inside_training_folds_only": "inner month folds: cross-fitted beta-calibrated p_b and p_c; for each weight, cross-fitted beta recalibration of the blend; inner matched-area metrics against arm b's inner 5% false-alarm area. Eligible if inner no-signal <= 1.05x, inner wrong-place <= 1.05x and inner Brier <= arm b's. Choose the eligible weight with the most inner matched-area hits (ties: the smaller weight). If no weight is eligible, choose the smallest no-signal ratio (ties: more hits). Weight 0 is arm b, so if only weight 0 qualifies the blend equals arm b and fails criteria 1-3 by construction; that outcome answers the question 'no'.",
+  "calibration": "beta calibration of the blend, fitted on the training months' inner predictions only",
+  "threshold": "one threshold per outer fold, chosen in the training months: the blend threshold whose inner false-alarm count equals arm b's inner 5% count (weight 0: 5%)",
+  "primary_matched_area_comparison": "held-out months: the blend flagged at its training-fold thresholds vs arm b at 5%. The pooled held-out false-alarm area of the blend must be within 5% of arm b's (<= 1.05x), otherwise criteria 1, 2 and 4 fail.",
+  "secondary": "the blend at the exact pooled held-out match (reported only)"
+ },
+ "deciding_criteria_blend_vs_b": "the original five, unchanged: (1) hits >= 1.10x with paired lower bound > 0; (2) report points left outside an otherwise correctly placed corridor reduced >= 25% with paired lower bound > 0; (3) Brier interval < 0; (4) wrong-place and no-signal REPORT POINTS <= 1.05x; (5) reliability within +-30% of observed in every bin above 2% with >= 20 report points. Paired date bootstrap, 5000 draws, seed 20261124.",
+ "reported_not_deciding": [
+  "blend vs arm b and vs arm c (corridor v2): hits, left-out, wrong-place, no-signal report points AND no-signal tornado days, Brier with paired intervals",
+  "top-band (>=30%) reliability and the number of tornado days in that band, for b, c and the blend",
+  "the per-fold weights, thresholds and inner metrics",
+  "2024 diagnostic: all-roster blend (weight chosen by the same rule on the all-roster inner predictions) vs NadoCast"
+ ],
+ "maps": [
+  "the date with the largest v2 no-signal increase (b, c, blend)",
+  "2023-03-31, v2's gap-filled day (b, c, blend)",
+  "2024-12-28 diagnostic (b, c, blend, NadoCast), titled with the 362-date roster"
+ ],
+ "if_pass": "freeze the blend (fits hash committed) and run the single sealed 2021 verification under the existing protocol",
+ "if_fail": "post the exact misses and maps to PR #31 and stop for review; 2021 stays sealed",
+ "unchanged": "live v0.7 map, RRFS/NBM collector, 2025 sealed"
+}
