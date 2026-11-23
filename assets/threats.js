@@ -931,7 +931,9 @@
   }
   function pointPanel() {
     const pt = S.point, day = viewDay();
-    const list = T.sort((day ? [...(S.layers.severe ? outlooks(day) : []), ...(S.layers.flood ? eroOut(day) : [])] : [...active(), ...(S.layers.severe ? outlooks(1) : [])]).filter((p) => p.geometry && T.contains(p.geometry, pt)));
+    // SPC severe-weather outlooks nest (each category inside the lower ones): only the highest covering the spot, once per day shown
+    const spcTop = (d) => { const o = S.layers.severe ? T.outlookAt(outlooks(d), pt) : null; return o ? [o] : []; };
+    const list = T.sort([...(day ? [...spcTop(day), ...(S.layers.flood ? eroOut(day) : [])] : [...active(), ...spcTop(1)]).filter((p) => p.geometry && T.contains(p.geometry, pt))]);
     let h = `<button type="button" class="px-back" data-back>← ${S.scope === "venue" ? "Venue" : "All threats"}</button>`;
     h += `<div class="px-h"><span>At this spot</span><span>${pt[1].toFixed(2)}°, ${pt[0].toFixed(2)}°</span></div>`;
     if (S.ifi.on && ifi.state === "ok") { const a = ifiAt(pt); h += `<p class="lg-note" data-ifi-point>IFI model guidance at ${esc(IF.levelLabel(S.gtg.ft))}, valid ${esc(t(ifi.dec.validTime))}: ${esc(!a || !a.inside ? "outside the IFI grid" : a.text)}.</p>`; }
