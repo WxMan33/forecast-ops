@@ -62,6 +62,10 @@
       { key: "lightning", name: "Lightning potential", unit: "", color: "lightning", type: "tier", max: 3 },
     ];
     const text = (key, i) => rows[key]?.cells[i]?.text ?? "—";
+    /* event total: the hourly blend amounts these charts draw, added up from setup through teardown (whole hours);
+       with any hour missing it is a lower bound */
+    const qHrs = V.hrs.filter((h) => h.state === "ok" && fin(h.qpf)), qGap = V.hrs.length - qHrs.length, qTot = qHrs.reduce((t, h) => t + h.qpf, 0);
+    const totalText = qHrs.length ? `${qGap ? "at least " : ""}${qTot.toFixed(2)} in.` : "—";
     const value = (spec, i) => {
       if (!V.hrs[i] || V.hrs[i].state !== "ok") return null;
       if (spec.type === "tier") { const c = rows.lightning?.cells[i]; return !c || c.state === "missing" ? null : { Low: 1, Moderate: 2, High: 3 }[c.text] ?? null; }
@@ -123,7 +127,7 @@
       const buttons = ids.map((i, j) => { const a = V.axis[i], on = V.span[i] === sel, show = j % every === 0 || on;
         return `<g role="button" tabindex="0" aria-label="${esc(`${a.date} ${a.hourText} ${a.zone}, ${s.name}: ${text(s.key, i)}`)}" aria-pressed="${on}" data-hour="${a.ms}"><rect x="${left + j * bw}" y="${top - 4}" width="${bw}" height="${base - top + 36}" fill="transparent"/>${on ? `<rect x="${left + j * bw + 1}" y="${top}" width="${bw - 2}" height="${base - top}" class="evc-selcol"/>` : ""}${show ? `<text x="${x(j)}" y="${base + 22}" text-anchor="middle" class="evc-hour${on ? " evc-hour-sel" : ""}">${esc(a.hourText)}${a.repeated || a.zoneChange ? `<tspan x="${x(j)}" dy="14" class="evc-zone">${esc(a.zone)}</tspan>` : ""}</text>` : ""}</g>`; }).join("");
       /* the header: the selected hour's value, large; amount separate from chance */
-      const amount = s.key === "pop" ? `<span>Amount <b data-amount>${esc(text("qpf", iSel))}${text("qpf", iSel) === "—" ? "" : " in."}</b>${tsum.mode !== "none" && types[iSel] && !["dry"].includes(types[iSel].kind) ? ` · <b data-sel-type>${esc(types[iSel].word || "")}</b>` : ""}</span>` : "";
+      const amount = s.key === "pop" ? `<span>This hour <b data-amount>${esc(text("qpf", iSel))}${text("qpf", iSel) === "—" ? "" : " in."}</b>${tsum.mode !== "none" && types[iSel] && !["dry"].includes(types[iSel].kind) ? ` · <b data-sel-type>${esc(types[iSel].word || "")}</b>` : ""}</span><span data-total="qpf" title="The hourly blend amounts added up from setup through teardown${qGap ? `; ${qGap} hour${qGap > 1 ? "s" : ""} without guidance, so this is a lower bound` : ""}">Event total <b>${esc(totalText)}</b></span>` : "";
       const head = s.type === "tier" ? `<b data-value="${s.key}">${esc(text(s.key, iSel))}</b><span>Forecast potential, not detected lightning or a warning</span>`
         : `<b data-value="${s.key}">${esc(text(s.key, iSel))}${s.unit === "°F" ? "F" : s.unit && s.unit !== "%" ? " " + esc(s.unit) : ""}</b>${s.second ? `<span>${esc(s.secondLabel)} <b>${esc(text(s.second, iSel))}${s.unit === "mph" ? " mph" : s.unit === "°F" ? "F" : ""}</b></span>` : amount}`;
       return `<section class="evc-card evc-${s.color}" data-variable="${s.key}"><header><h3>${esc(s.name)}</h3><div class="evc-val">${head}</div></header>${legend(s)}<svg viewBox="0 0 ${w} ${height}" role="group" aria-label="${esc(s.name)} by hour">${under}${axes}${marks}${over}${buttons}</svg></section>`;
