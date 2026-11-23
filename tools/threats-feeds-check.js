@@ -19,7 +19,10 @@ fs.mkdirSync(OUT, { recursive: true });
 const results = [], check = (name, cond, detail) => { results.push({ check: name, pass: !!cond, detail }); console.log((cond ? "pass " : "FAIL ") + name + (cond ? "" : " :: " + JSON.stringify(detail).slice(0, 700))); };
 /* threat feeds by the layer family they serve (first match wins) */
 const FEEDS = [
-  ["alerts", /\/alerts\/active|api\.weather\.gov\/zones|\/api\/nws\/zones/],
+  /* the NWS alerts feed: the active list, the outlines of alerts issued by zone, and the earlier messages an alert references */
+  ["alerts", /\/alerts\/active/],
+  ["alerts-zones", /api\.weather\.gov\/zones|\/api\/nws\/zones/],
+  ["alerts-refs", /(api\.weather\.gov|\/api\/nws)\/alerts\/urn/],
   ["md", /spc\.noaa\.gov\/products\/md|spc_mesoscale_discussion|\/api\/nws\/spc\/md|\/api\/spc\/md/],
   ["spc", /spc\.noaa\.gov\/products\/outlook|\/api\/(nws\/)?spc\/outlook/],
   ["fire", /fire_wx/],
@@ -72,7 +75,7 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
       const sev = since(reqs, t0), ss = await state(p), by = tally(sev); rec.severeOnly = { requests: sev.length, byFeed: by, urls: sev.map((r) => r.url), state: ss };
       await p.click("#txLayersPop [data-layers-close]").catch(() => {}); await p.waitForTimeout(500); await p.screenshot({ path: path.join(OUT, `severe-only-${d}.png`) });
       check(`(${d}) SEVERE STORMS ALONE: only its feeds (${Object.entries(by).map(([k, v]) => k + " " + v).join(", ")}): NWS alerts, SPC MDs and SPC outlooks each requested, nothing else`,
-        Object.keys(by).every((k) => ["alerts", "md", "spc"].includes(k)) && by.alerts >= 1 && by.md >= 1 && by.spc >= 1 && ss.sum === "Severe storms" && JSON.stringify(ss.feeds) === JSON.stringify(["alerts", "md", "spc"]) && !ss.prompt && !errs.length, { by, ss, errs });
+        Object.keys(by).every((k) => ["alerts", "alerts-zones", "alerts-refs", "md", "spc"].includes(k)) && by.alerts >= 1 && by.md >= 1 && by.spc >= 1 && ss.sum === "Severe storms" && JSON.stringify(ss.feeds) === JSON.stringify(["alerts", "md", "spc"]) && !ss.prompt && !errs.length, { by, ss, errs });
       await p.click("#txLayersBtn"); await p.click('#txLayersPop input[data-layer="severe"]'); t0 = Date.now(); await p.waitForTimeout(70000);
       const off = since(reqs, t0), so = await state(p); rec.severeOff70s = { requests: off.length, byFeed: tally(off), state: so };
       check(`(${d}) SEVERE STORMS OFF AGAIN: its refreshes stop: zero threat-feed requests in 70 s (${off.length}); the prompt returns`, off.length === 0 && !so.layers.length && so.sum === "None selected" && so.prompt && !so.feeds.length && !errs.length, { off: off.map((r) => r.url), so, errs });
@@ -83,7 +86,7 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
       await p.goto(HOST + PAGE + "?layers=flood&scope=national&view=active", { waitUntil: "domcontentloaded" }); await ready(p); await p.waitForTimeout(8000);
       const s = await state(p), by = tally(reqs); rec.floodLink = { requests: reqs.length, byFeed: by, state: s };
       check(`(${d}) SHARED LINK layers=flood keeps its selection and requests only alerts and the WPC rainfall outlook (${Object.entries(by).map(([k, v]) => k + " " + v).join(", ")})`,
-        JSON.stringify(s.layers) === '["flood"]' && s.sum === "Flooding" && Object.keys(by).every((k) => ["alerts", "ero"].includes(k)) && by.alerts >= 1 && by.ero >= 1 && !errs.length, { s, by, errs });
+        JSON.stringify(s.layers) === '["flood"]' && s.sum === "Flooding" && Object.keys(by).every((k) => ["alerts", "alerts-zones", "alerts-refs", "ero"].includes(k)) && by.alerts >= 1 && by.ero >= 1 && !errs.length, { s, by, errs });
       await ctx.close(); }
 
     /* 6: a Planner-style "View on map" link, and a demo link */
@@ -91,7 +94,7 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
       await p.goto(HOST + PAGE + "?lat=39.1113&lon=-84.5222&name=TQL%20Stadium&tz=America%2FNew_York&scope=venue&view=day1&layers=severe,smoke", { waitUntil: "domcontentloaded" }); await ready(p); await p.waitForTimeout(8000);
       const s = await state(p), by = tally(reqs); rec.plannerLink = { requests: reqs.length, byFeed: by, state: s };
       check(`(${d}) PLANNER LINK (venue, Day 1, layers=severe,smoke) keeps its selection and requests only those layers' feeds (${Object.entries(by).map(([k, v]) => k + " " + v).join(", ")})`,
-        JSON.stringify(s.layers) === '["severe","smoke"]' && s.sum === "Severe storms, Smoke & air" && Object.keys(by).every((k) => ["alerts", "md", "spc", "hms", "airnow"].includes(k)) && by.alerts >= 1 && by.hms >= 1 && s.marker && !errs.length, { s, by, errs });
+        JSON.stringify(s.layers) === '["severe","smoke"]' && s.sum === "Severe storms, Smoke & air" && Object.keys(by).every((k) => ["alerts", "alerts-zones", "alerts-refs", "md", "spc", "hms", "airnow"].includes(k)) && by.alerts >= 1 && by.hms >= 1 && s.marker && !errs.length, { s, by, errs });
       await ctx.close(); }
     { const { ctx, p, reqs, errs } = await page();
       await p.goto(HOST + PAGE + "?scenario=overlap&scope=venue&view=active", { waitUntil: "domcontentloaded" });

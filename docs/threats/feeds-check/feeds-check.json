@@ -1,0 +1,904 @@
+{
+ "host": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev",
+ "at": "2026-11-23T18:29:52.707Z",
+ "devices": {
+  "desktop": {
+   "fresh": {
+    "requests": 0,
+    "byFeed": {},
+    "other": {
+     "claude-threats-em-combined.forecast-ops-beta.pages.dev": 24,
+     "fonts.googleapis.com": 1,
+     "api.open-meteo.com": 1,
+     "fonts.gstatic.com": 1,
+     "blob:https://claude-": 1
+    },
+    "state": {
+     "layers": [],
+     "sum": "None selected",
+     "btn": "LAYERS None selected ▾",
+     "prompt": true,
+     "promptText": "No threat layers selected. Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.\n\nSelect a layer",
+     "peek": "No threat layers selected",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 0
+    }
+   },
+   "pickerOpen": {
+    "requests": 0,
+    "byFeed": {}
+   },
+   "severeOnly": {
+    "requests": 100,
+    "byFeed": {
+     "alerts": 1,
+     "md": 2,
+     "spc": 3,
+     "alerts-zones": 65,
+     "alerts-refs": 29
+    },
+    "urls": [
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch,Flash%20Flood%20Warning,Winter%20Storm%20Warning,Winter%20Storm%20Watch,Blizzard%20Warning,Ice%20Storm%20Warning,Lake%20Effect%20Snow%20Warning,Winter%20Weather%20Advisory,Red%20Flag%20Warning,Fire%20Weather%20Watch,Hurricane%20Warning,Hurricane%20Watch,Tropical%20Storm%20Warning,Tropical%20Storm%20Watch,Storm%20Surge%20Warning,Storm%20Surge%20Watch,Coastal%20Flood%20Warning,Coastal%20Flood%20Watch,Coastal%20Flood%20Advisory,High%20Surf%20Warning,High%20Surf%20Advisory,Rip%20Current%20Statement,Beach%20Hazards%20Statement",
+     "https://www.spc.noaa.gov/products/md/",
+     "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson",
+     "https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson",
+     "https://www.spc.noaa.gov/products/outlook/day3otlk_cat.nolyr.geojson",
+     "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0/query?where=1%3D1&outFields=*&f=geojson",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ362",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ366",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ354",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ340",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ346",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ087",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ349",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ350",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ049",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/GUZ001",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ001",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ002",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ003",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ101",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ102",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ103",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ201",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ103",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ101",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ104",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ109",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ328",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ301",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ325",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ326",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ330",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ331",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ043",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ552",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ021",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ022",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ506",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ508",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ006",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ505",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ509",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ529",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ530",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ818",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ821",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ822",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ824",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ301",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ302",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FMZ001",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ018",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ019",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ038",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ137",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ138",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ124",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ233",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ333",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/GAZ154",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/GAZ166",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ125",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ132",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ325",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ633",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ107",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/SCZ054",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/SCZ056",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ106",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ108",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ110",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.002.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.003.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.001.3",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.004.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.003.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.002.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.001.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.9b53fb0e9e5d8ecd37557e73aceb7eabbffc8a70.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b3538a28f85029b5fd2779e2438e1c38deba11a3.001.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b3538a28f85029b5fd2779e2438e1c38deba11a3.001.3",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.2943e74ef61ecc39f9d9b7af6c89f6ad42f4fe9e.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.c93cc1bc311c9e9beef2ad0c48e1b9875782954e.002.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.c93cc1bc311c9e9beef2ad0c48e1b9875782954e.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.7edb8e57faa8b9c8e59e896d5484a84f351b37ae.001.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.7edb8e57faa8b9c8e59e896d5484a84f351b37ae.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.bd9ea6481983b966a3a508dc657b26fa07a10703.001.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.bd9ea6481983b966a3a508dc657b26fa07a10703.001.3",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.003.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.001.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.002.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.002.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1aaa3ee0806c7de6442f59fe1edb7847724f7764.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1aaa3ee0806c7de6442f59fe1edb7847724f7764.002.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1aaa3ee0806c7de6442f59fe1edb7847724f7764.003.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.e3b0b9af6fbe8973570bf4ad5f4ad7160873d360.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.d2115dccfa6c4a6f7576fa0af08419ee89a80ee9.002.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.d2115dccfa6c4a6f7576fa0af08419ee89a80ee9.001.2"
+    ],
+    "state": {
+     "layers": [
+      "severe"
+     ],
+     "sum": "Severe storms",
+     "btn": "LAYERS Severe storms ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Nothing active at CVG airport",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "md",
+      "spc"
+     ],
+     "products": 46
+    }
+   },
+   "severeOff70s": {
+    "requests": 0,
+    "byFeed": {},
+    "state": {
+     "layers": [],
+     "sum": "None selected",
+     "btn": "LAYERS None selected ▾",
+     "prompt": true,
+     "promptText": "No threat layers selected. Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.\n\nSelect a layer",
+     "peek": "No threat layers selected",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 46
+    }
+   },
+   "total": {
+    "requests": 100,
+    "byFeed": {
+     "alerts": 1,
+     "md": 2,
+     "spc": 3,
+     "alerts-zones": 65,
+     "alerts-refs": 29
+    }
+   },
+   "floodLink": {
+    "requests": 98,
+    "byFeed": {
+     "alerts": 1,
+     "ero": 3,
+     "alerts-zones": 65,
+     "alerts-refs": 29
+    },
+    "state": {
+     "layers": [
+      "flood"
+     ],
+     "sum": "Flooding",
+     "btn": "LAYERS Flooding ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "No warning or watch at CVG airport",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "ero"
+     ],
+     "products": 49
+    }
+   },
+   "plannerLink": {
+    "requests": 106,
+    "byFeed": {
+     "alerts": 1,
+     "md": 2,
+     "spc": 3,
+     "hms": 3,
+     "airnow": 3,
+     "alerts-zones": 65,
+     "alerts-refs": 29
+    },
+    "state": {
+     "layers": [
+      "severe",
+      "smoke"
+     ],
+     "sum": "Severe storms, Smoke & air",
+     "btn": "LAYERS Severe storms, Smoke & air ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Day 1 at TQL Stadium",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "hms",
+      "md",
+      "monitors",
+      "spc"
+     ],
+     "products": 97
+    }
+   },
+   "demoLink": {
+    "requests": 0,
+    "byFeed": {},
+    "state": {
+     "layers": [
+      "severe",
+      "flood",
+      "winter",
+      "fire",
+      "smoke",
+      "tropical",
+      "coastal",
+      "aviation"
+     ],
+     "sum": "All 8"
+    }
+   }
+  },
+  "phone": {
+   "fresh": {
+    "requests": 0,
+    "byFeed": {},
+    "other": {
+     "claude-threats-em-combined.forecast-ops-beta.pages.dev": 24,
+     "fonts.googleapis.com": 1,
+     "api.open-meteo.com": 1,
+     "fonts.gstatic.com": 1,
+     "blob:https://claude-": 1
+    },
+    "state": {
+     "layers": [],
+     "sum": "None selected",
+     "btn": "LAYERS None selected ▾",
+     "prompt": true,
+     "promptText": "No threat layers selected. Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.Select a layer",
+     "peek": "No threat layers selected",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 0
+    }
+   },
+   "pickerOpen": {
+    "requests": 0,
+    "byFeed": {}
+   },
+   "severeOnly": {
+    "requests": 100,
+    "byFeed": {
+     "alerts": 1,
+     "md": 2,
+     "spc": 3,
+     "alerts-zones": 65,
+     "alerts-refs": 29
+    },
+    "urls": [
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch,Flash%20Flood%20Warning,Winter%20Storm%20Warning,Winter%20Storm%20Watch,Blizzard%20Warning,Ice%20Storm%20Warning,Lake%20Effect%20Snow%20Warning,Winter%20Weather%20Advisory,Red%20Flag%20Warning,Fire%20Weather%20Watch,Hurricane%20Warning,Hurricane%20Watch,Tropical%20Storm%20Warning,Tropical%20Storm%20Watch,Storm%20Surge%20Warning,Storm%20Surge%20Watch,Coastal%20Flood%20Warning,Coastal%20Flood%20Watch,Coastal%20Flood%20Advisory,High%20Surf%20Warning,High%20Surf%20Advisory,Rip%20Current%20Statement,Beach%20Hazards%20Statement",
+     "https://www.spc.noaa.gov/products/md/",
+     "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson",
+     "https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson",
+     "https://www.spc.noaa.gov/products/outlook/day3otlk_cat.nolyr.geojson",
+     "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0/query?where=1%3D1&outFields=*&f=geojson",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ362",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ366",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ354",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ340",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ346",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ087",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ349",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ350",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ049",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/GUZ001",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ001",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ002",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ003",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ101",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ102",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ103",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ201",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ103",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ101",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ104",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ109",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ328",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ301",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ325",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ326",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ330",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ331",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ043",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ552",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ021",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ022",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ506",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ508",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ006",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ505",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ509",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ529",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ530",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ818",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ821",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ822",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ824",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ301",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MTZ302",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FMZ001",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ018",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ019",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ038",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ137",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ138",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ124",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ233",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ333",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/GAZ154",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/GAZ166",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ125",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ132",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ325",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ633",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ107",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/SCZ054",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/SCZ056",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ106",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ108",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ110",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.002.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.003.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.001.3",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.004.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.003.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.002.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.001.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.9b53fb0e9e5d8ecd37557e73aceb7eabbffc8a70.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b3538a28f85029b5fd2779e2438e1c38deba11a3.001.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b3538a28f85029b5fd2779e2438e1c38deba11a3.001.3",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.2943e74ef61ecc39f9d9b7af6c89f6ad42f4fe9e.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.c93cc1bc311c9e9beef2ad0c48e1b9875782954e.002.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.c93cc1bc311c9e9beef2ad0c48e1b9875782954e.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.7edb8e57faa8b9c8e59e896d5484a84f351b37ae.001.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.7edb8e57faa8b9c8e59e896d5484a84f351b37ae.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.bd9ea6481983b966a3a508dc657b26fa07a10703.001.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.bd9ea6481983b966a3a508dc657b26fa07a10703.001.3",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.003.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.001.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.002.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.002.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1aaa3ee0806c7de6442f59fe1edb7847724f7764.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1aaa3ee0806c7de6442f59fe1edb7847724f7764.002.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1aaa3ee0806c7de6442f59fe1edb7847724f7764.003.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.e3b0b9af6fbe8973570bf4ad5f4ad7160873d360.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.d2115dccfa6c4a6f7576fa0af08419ee89a80ee9.002.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.d2115dccfa6c4a6f7576fa0af08419ee89a80ee9.001.2"
+    ],
+    "state": {
+     "layers": [
+      "severe"
+     ],
+     "sum": "Severe storms",
+     "btn": "LAYERS Severe storms ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Nothing active at CVG airport",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "md",
+      "spc"
+     ],
+     "products": 46
+    }
+   },
+   "severeOff70s": {
+    "requests": 0,
+    "byFeed": {},
+    "state": {
+     "layers": [],
+     "sum": "None selected",
+     "btn": "LAYERS None selected ▾",
+     "prompt": true,
+     "promptText": "No threat layers selected. Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.Select a layer",
+     "peek": "No threat layers selected",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 46
+    }
+   },
+   "total": {
+    "requests": 100,
+    "byFeed": {
+     "alerts": 1,
+     "md": 2,
+     "spc": 3,
+     "alerts-zones": 65,
+     "alerts-refs": 29
+    }
+   },
+   "floodLink": {
+    "requests": 98,
+    "byFeed": {
+     "alerts": 1,
+     "ero": 3,
+     "alerts-zones": 65,
+     "alerts-refs": 29
+    },
+    "state": {
+     "layers": [
+      "flood"
+     ],
+     "sum": "Flooding",
+     "btn": "LAYERS Flooding ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "No warning or watch at CVG airport",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "ero"
+     ],
+     "products": 49
+    }
+   },
+   "plannerLink": {
+    "requests": 106,
+    "byFeed": {
+     "alerts": 1,
+     "md": 2,
+     "spc": 3,
+     "hms": 3,
+     "airnow": 3,
+     "alerts-zones": 65,
+     "alerts-refs": 29
+    },
+    "state": {
+     "layers": [
+      "severe",
+      "smoke"
+     ],
+     "sum": "Severe storms, Smoke & air",
+     "btn": "LAYERS Severe storms, Smoke & air ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Day 1 at TQL Stadium",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "hms",
+      "md",
+      "monitors",
+      "spc"
+     ],
+     "products": 97
+    }
+   },
+   "demoLink": {
+    "requests": 0,
+    "byFeed": {},
+    "state": {
+     "layers": [
+      "severe",
+      "flood",
+      "winter",
+      "fire",
+      "smoke",
+      "tropical",
+      "coastal",
+      "aviation"
+     ],
+     "sum": "All 8"
+    }
+   }
+  }
+ },
+ "results": [
+  {
+   "check": "(desktop) FRESH VISIT: basemap and venue marker drawn, every layer off, \"Layers · None selected\", a prompt to select a layer; zero threat-feed requests (0)",
+   "pass": true,
+   "detail": {
+    "s0": {
+     "layers": [],
+     "sum": "None selected",
+     "btn": "LAYERS None selected ▾",
+     "prompt": true,
+     "promptText": "No threat layers selected. Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.\n\nSelect a layer",
+     "peek": "No threat layers selected",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 0
+    },
+    "reqs": [],
+    "errs": []
+   }
+  },
+  {
+   "check": "(desktop) OPENING THE LAYER PICKER: zero threat-feed requests (0)",
+   "pass": true,
+   "detail": {
+    "sp": true,
+    "pick": []
+   }
+  },
+  {
+   "check": "(desktop) SEVERE STORMS ALONE: only its feeds (alerts 1, md 2, spc 3, alerts-zones 65, alerts-refs 29): NWS alerts, SPC MDs and SPC outlooks each requested, nothing else",
+   "pass": true,
+   "detail": {
+    "by": {
+     "alerts": 1,
+     "md": 2,
+     "spc": 3,
+     "alerts-zones": 65,
+     "alerts-refs": 29
+    },
+    "ss": {
+     "layers": [
+      "severe"
+     ],
+     "sum": "Severe storms",
+     "btn": "LAYERS Severe storms ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Nothing active at CVG airport",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "md",
+      "spc"
+     ],
+     "products": 46
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(desktop) SEVERE STORMS OFF AGAIN: its refreshes stop: zero threat-feed requests in 70 s (0); the prompt returns",
+   "pass": true,
+   "detail": {
+    "off": [],
+    "so": {
+     "layers": [],
+     "sum": "None selected",
+     "btn": "LAYERS None selected ▾",
+     "prompt": true,
+     "promptText": "No threat layers selected. Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.\n\nSelect a layer",
+     "peek": "No threat layers selected",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 46
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(desktop) SHARED LINK layers=flood keeps its selection and requests only alerts and the WPC rainfall outlook (alerts 1, ero 3, alerts-zones 65, alerts-refs 29)",
+   "pass": true,
+   "detail": {
+    "s": {
+     "layers": [
+      "flood"
+     ],
+     "sum": "Flooding",
+     "btn": "LAYERS Flooding ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "No warning or watch at CVG airport",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "ero"
+     ],
+     "products": 49
+    },
+    "by": {
+     "alerts": 1,
+     "ero": 3,
+     "alerts-zones": 65,
+     "alerts-refs": 29
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(desktop) PLANNER LINK (venue, Day 1, layers=severe,smoke) keeps its selection and requests only those layers' feeds (alerts 1, md 2, spc 3, hms 3, airnow 3, alerts-zones 65, alerts-refs 29)",
+   "pass": true,
+   "detail": {
+    "s": {
+     "layers": [
+      "severe",
+      "smoke"
+     ],
+     "sum": "Severe storms, Smoke & air",
+     "btn": "LAYERS Severe storms, Smoke & air ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Day 1 at TQL Stadium",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "hms",
+      "md",
+      "monitors",
+      "spc"
+     ],
+     "products": 97
+    },
+    "by": {
+     "alerts": 1,
+     "md": 2,
+     "spc": 3,
+     "hms": 3,
+     "airnow": 3,
+     "alerts-zones": 65,
+     "alerts-refs": 29
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(desktop) DEMO LINK keeps every layer on (its shared selection) and requests no live feed (0)",
+   "pass": true,
+   "detail": {
+    "s": {
+     "layers": [
+      "severe",
+      "flood",
+      "winter",
+      "fire",
+      "smoke",
+      "tropical",
+      "coastal",
+      "aviation"
+     ],
+     "sum": "All 8",
+     "btn": "LAYERS All 8 ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Tornado Warning in effect at TQL Stadium",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 10
+    },
+    "reqs": [],
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) FRESH VISIT: basemap and venue marker drawn, every layer off, \"Layers · None selected\", a prompt to select a layer; zero threat-feed requests (0)",
+   "pass": true,
+   "detail": {
+    "s0": {
+     "layers": [],
+     "sum": "None selected",
+     "btn": "LAYERS None selected ▾",
+     "prompt": true,
+     "promptText": "No threat layers selected. Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.Select a layer",
+     "peek": "No threat layers selected",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 0
+    },
+    "reqs": [],
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) OPENING THE LAYER PICKER: zero threat-feed requests (0)",
+   "pass": true,
+   "detail": {
+    "sp": true,
+    "pick": []
+   }
+  },
+  {
+   "check": "(phone) SEVERE STORMS ALONE: only its feeds (alerts 1, md 2, spc 3, alerts-zones 65, alerts-refs 29): NWS alerts, SPC MDs and SPC outlooks each requested, nothing else",
+   "pass": true,
+   "detail": {
+    "by": {
+     "alerts": 1,
+     "md": 2,
+     "spc": 3,
+     "alerts-zones": 65,
+     "alerts-refs": 29
+    },
+    "ss": {
+     "layers": [
+      "severe"
+     ],
+     "sum": "Severe storms",
+     "btn": "LAYERS Severe storms ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Nothing active at CVG airport",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "md",
+      "spc"
+     ],
+     "products": 46
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) SEVERE STORMS OFF AGAIN: its refreshes stop: zero threat-feed requests in 70 s (0); the prompt returns",
+   "pass": true,
+   "detail": {
+    "off": [],
+    "so": {
+     "layers": [],
+     "sum": "None selected",
+     "btn": "LAYERS None selected ▾",
+     "prompt": true,
+     "promptText": "No threat layers selected. Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.Select a layer",
+     "peek": "No threat layers selected",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 46
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) SHARED LINK layers=flood keeps its selection and requests only alerts and the WPC rainfall outlook (alerts 1, ero 3, alerts-zones 65, alerts-refs 29)",
+   "pass": true,
+   "detail": {
+    "s": {
+     "layers": [
+      "flood"
+     ],
+     "sum": "Flooding",
+     "btn": "LAYERS Flooding ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "No warning or watch at CVG airport",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "ero"
+     ],
+     "products": 49
+    },
+    "by": {
+     "alerts": 1,
+     "ero": 3,
+     "alerts-zones": 65,
+     "alerts-refs": 29
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) PLANNER LINK (venue, Day 1, layers=severe,smoke) keeps its selection and requests only those layers' feeds (alerts 1, md 2, spc 3, hms 3, airnow 3, alerts-zones 65, alerts-refs 29)",
+   "pass": true,
+   "detail": {
+    "s": {
+     "layers": [
+      "severe",
+      "smoke"
+     ],
+     "sum": "Severe storms, Smoke & air",
+     "btn": "LAYERS Severe storms, Smoke & air ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Day 1 at TQL Stadium",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "hms",
+      "md",
+      "monitors",
+      "spc"
+     ],
+     "products": 97
+    },
+    "by": {
+     "alerts": 1,
+     "md": 2,
+     "spc": 3,
+     "hms": 3,
+     "airnow": 3,
+     "alerts-zones": 65,
+     "alerts-refs": 29
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) DEMO LINK keeps every layer on (its shared selection) and requests no live feed (0)",
+   "pass": true,
+   "detail": {
+    "s": {
+     "layers": [
+      "severe",
+      "flood",
+      "winter",
+      "fire",
+      "smoke",
+      "tropical",
+      "coastal",
+      "aviation"
+     ],
+     "sum": "All 8",
+     "btn": "LAYERS All 8 ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Tornado Warning in effect at TQL Stadium",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 10
+    },
+    "reqs": [],
+    "errs": []
+   }
+  }
+ ]
+}
