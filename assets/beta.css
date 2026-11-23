@@ -867,3 +867,5 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .pv-hours{table-layout:fixed;width:100%}
 .pv-hours th,.pv-hours td,.pv-hours th:not(:first-child),.pv-hours td:not(:first-child),.pv .pv-hours th{white-space:normal !important;overflow-wrap:normal;word-break:normal}
 .pv-hours td.pv-time{white-space:normal !important}
+/* phones: the workspace panel spans the screen (with a margin) wherever the Workspace button lands in the header */
+@media (max-width:600px){.up-head{position:relative}.up-wsmenu{position:static}.up-wspop{left:0;right:0;width:auto;top:calc(100% + 6px);max-height:75vh;overflow:auto}}
