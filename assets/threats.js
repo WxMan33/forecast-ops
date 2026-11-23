@@ -538,20 +538,41 @@
 
   /* ---------- map ---------- */
   async function getJSON(path) { const r = await fetch(path); if (!r.ok) throw Error(path + " " + r.status); return r.json(); }
+  /* ---------- basemap: CARTO Voyager (light) or Dark Matter (dark), the vector street map Heads-Up uses (OpenStreetMap data:
+     streets, towns, counties, water). If CARTO doesn't answer in 6 s, the simple outline map (states, lakes, major cities). ---------- */
+  const CARTO = { light: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json", dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json" };
+  let carto = false, FONT = ["Open Sans Semibold"], OUR = [];
+  async function cartoStyle(theme) {
+    const c = new AbortController(), timer = setTimeout(() => c.abort(), 6000);
+    try { const r = await fetch(CARTO[theme], { signal: c.signal }); if (!r.ok) throw Error("HTTP " + r.status); const j = await r.json(); if (!j.layers || !j.sources) throw Error("not a style"); return j; }
+    catch (e) { return null; } finally { clearTimeout(timer); }
+  }
+  /* our hazard fills and lines go under the basemap's labels (towns and streets stay readable); our own labels stay on top */
+  function orderOverBase() {
+    const st = map.getStyle(), ours = new Set(OUR), firstLabel = st.layers.find((l) => l.type === "symbol" && !ours.has(l.id));
+    if (!firstLabel) return; for (const l of st.layers) if (ours.has(l.id) && l.type !== "symbol" && l.id !== "hu-county" && l.id !== "hu-state") map.moveLayer(l.id, firstLabel.id);
+  }
+  /* clearer state lines and county lines from zoom 6 (the basemap's own county lines start at zoom 9) */
+  function baseLines() {
+    const src = Object.keys(map.getStyle().sources).find((k) => map.getStyle().sources[k].type === "vector"); if (!src) return;
+    const lt = light(), first = map.getStyle().layers.find((l) => l.type === "symbol");
+    for (const [id, kd, mz, col, w] of [["hu-county", 6, 6, lt ? "rgba(90,98,110,.45)" : "rgba(170,178,190,.35)", [6, 0.5, 10, 1.1]], ["hu-state", 4, 3, lt ? "rgba(70,78,90,.75)" : "rgba(200,206,216,.6)", [3, 0.8, 8, 1.8]]])
+      if (!map.getLayer(id)) map.addLayer({ id, type: "line", source: src, "source-layer": "boundaries", minzoom: mz, filter: ["==", ["get", "kind_detail"], kd], paint: { "line-color": col, "line-width": ["interpolate", ["linear"], ["zoom"], w[0], w[1], w[2], w[3]] } }, first && first.id);
+  }
   async function createMap() {
-    const [states, lakes] = await Promise.all([getJSON("assets/severe-research/states.json"), getJSON("assets/severe-research/lakes.json")]);
-    const p = pal();
-    map = new maplibregl.Map({ container: "txMap", bounds: CONUS, fitBoundsOptions: { padding: pad() }, minZoom: 1.5, maxZoom: 11, renderWorldCopies: false, dragRotate: false, pitchWithRotate: false, attributionControl: false,
-      style: { version: 8, glyphs: new URL("assets/maps/fonts/open-sans-v1/{fontstack}/{range}.pbf", location.href).href.replace(/%7B/g, "{").replace(/%7D/g, "}"), sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": p.land } }] } });
+    const [states, lakes, base] = await Promise.all([getJSON("assets/severe-research/states.json"), getJSON("assets/severe-research/lakes.json"), cartoStyle(light() ? "light" : "dark")]);
+    const p = pal(); carto = !!base; if (carto) FONT = ["Montserrat SemiBold"];
+    map = new maplibregl.Map({ container: "txMap", bounds: CONUS, fitBoundsOptions: { padding: pad() }, minZoom: 1.5, maxZoom: carto ? 14 : 11, renderWorldCopies: false, dragRotate: false, pitchWithRotate: false, attributionControl: false,
+      style: base || { version: 8, glyphs: new URL("assets/maps/fonts/open-sans-v1/{fontstack}/{range}.pbf", location.href).href.replace(/%7B/g, "{").replace(/%7D/g, "}"), sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": p.land } }] } });
     map.touchZoomRotate.disableRotation();
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-    map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: "US Census / us-atlas · Natural Earth" }), "bottom-left");
+    map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: carto ? "" : "US Census / us-atlas · Natural Earth" }), "bottom-left");
     map.on("load", () => {
       const src = (id, d) => map.addSource(id, { type: "geojson", data: d || empty });
       src("states", states); src("lakes", lakes);
       ["outlook", "ero", "wssi", "enr", "avroute", "pirep", "apt", "two", "tcone", "tline", "tpts", "hms", "aqmon", "fireo", "inc", "inc-pt", "active", "hl", "labels", "ring", "m-fill", "m-lines", "m-outside", "m-hull", "cities", "pt"].forEach((id) => src(id));
       map.addImage("hatch", hatch(), { pixelRatio: 2 });
-      const L = (o) => map.addLayer(o);
+      const L = (o) => { OUR.push(o.id); map.addLayer(o); };
       L({ id: "lakes", type: "fill", source: "lakes", paint: { "fill-color": p.water } });
       L({ id: "outlook-fill", type: "fill", source: "outlook", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.55 } });
       L({ id: "m-fill", type: "fill", source: "m-fill", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.62 } });
@@ -587,7 +608,7 @@
       L({ id: "enr-line-fc", type: "line", source: "enr", filter: ["==", ["get", "kind"], "gairmet"], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 1.8, "line-dasharray": [3, 2], "line-opacity": 0.95 } });
       L({ id: "route-case", type: "line", source: "avroute", filter: ["==", ["geometry-type"], "LineString"], layout: { "line-cap": "round" }, paint: { "line-color": p.halo, "line-width": 6, "line-opacity": 0.8 } });
       L({ id: "route-line", type: "line", source: "avroute", filter: ["==", ["geometry-type"], "LineString"], layout: { "line-cap": "butt" }, paint: { "line-color": p.text, "line-width": 3, "line-dasharray": [3, 2], "line-opacity": 1 } });
-      L({ id: "route-label", type: "symbol", source: "avroute", filter: ["==", ["geometry-type"], "LineString"], layout: { "symbol-placement": "line-center", "text-field": ["get", "label"], "text-font": ["Open Sans Semibold"], "text-size": 11.5, "text-offset": [0, -0.9] }, paint: { "text-color": p.text, "text-halo-color": p.halo, "text-halo-width": 2 } });
+      L({ id: "route-label", type: "symbol", source: "avroute", filter: ["==", ["geometry-type"], "LineString"], layout: { "symbol-placement": "line-center", "text-field": ["get", "label"], "text-font": FONT, "text-size": 11.5, "text-offset": [0, -0.9] }, paint: { "text-color": p.text, "text-halo-color": p.halo, "text-halo-width": 2 } });
       L({ id: "pirep-turb", type: "circle", source: "pirep", filter: ["==", ["get", "ice"], false], paint: { "circle-radius": ["get", "r"], "circle-color": ["get", "color"], "circle-stroke-color": "#111", "circle-stroke-width": 1 } });
       L({ id: "pirep-ice", type: "circle", source: "pirep", filter: ["==", ["get", "ice"], true], paint: { "circle-radius": ["get", "r"], "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": ["get", "color"], "circle-stroke-width": 3 } });
       L({ id: "hl", type: "line", source: "hl", layout: { "line-join": "round" }, paint: { "line-color": p.text, "line-width": 9, "line-opacity": 0.55, "line-blur": 1 } });
@@ -602,22 +623,23 @@
       L({ id: "aqmon", type: "circle", source: "aqmon", paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 3.2, 8, 6.5], "circle-color": ["get", "color"], "circle-stroke-color": "#222", "circle-stroke-width": 0.8, "circle-opacity": 0.95 } });
       L({ id: "inc-pt", type: "circle", source: "inc-pt", paint: { "circle-radius": ["get", "r"], "circle-color": ["get", "color"], "circle-stroke-color": p.halo, "circle-stroke-width": 1.4, "circle-opacity": 0.92 } });
       L({ id: "apt", type: "circle", source: "apt", paint: { "circle-radius": 9, "circle-color": ["get", "color"], "circle-stroke-color": "#111", "circle-stroke-width": 2 } });
-      L({ id: "apt-label", type: "symbol", source: "apt", layout: { "text-field": ["get", "label"], "text-font": ["Open Sans Semibold"], "text-size": 12, "text-offset": [0, 1.4], "text-anchor": "top" }, paint: { "text-color": p.text, "text-halo-color": p.halo, "text-halo-width": 2 } });
+      L({ id: "apt-label", type: "symbol", source: "apt", layout: { "text-field": ["get", "label"], "text-font": FONT, "text-size": 12, "text-offset": [0, 1.4], "text-anchor": "top" }, paint: { "text-color": p.text, "text-halo-color": p.halo, "text-halo-width": 2 } });
       L({ id: "ring", type: "line", source: "ring", paint: { "line-color": p.text, "line-width": 1.2, "line-dasharray": [2, 3], "line-opacity": 0.7 } });
       L({ id: "pt", type: "circle", source: "pt", paint: { "circle-radius": 6, "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": p.text, "circle-stroke-width": 2 } });
-      L({ id: "cities", type: "symbol", source: "cities", layout: { "text-field": ["get", "name"], "text-font": ["Open Sans Semibold"], "text-size": ["interpolate", ["linear"], ["zoom"], 3, 10, 8, 13], "text-padding": 6, "symbol-sort-key": ["get", "rank"] }, paint: { "text-color": p.muted, "text-halo-color": p.halo, "text-halo-width": 1.4 } });
+      L({ id: "cities", type: "symbol", source: "cities", layout: { "text-field": ["get", "name"], "text-font": FONT, "text-size": ["interpolate", ["linear"], ["zoom"], 3, 10, 8, 13], "text-padding": 6, "symbol-sort-key": ["get", "rank"] }, paint: { "text-color": p.muted, "text-halo-color": p.halo, "text-halo-width": 1.4 } });
       // at national zoom a county-sized warning is a few pixels wide: a marker keeps it findable.
       // Tornado: larger, with a ring; severe thunderstorm: smaller, solid. The shape differs, not only the color.
       L({ id: "warn-dot", type: "circle", source: "labels", maxzoom: 6.5, filter: ["==", ["get", "kind"], "warning"], paint: { "circle-radius": ["case", ["get", "tor"], 9.5, 6.5], "circle-color": ["get", "color"], "circle-stroke-color": p.halo, "circle-stroke-width": 2.5 } });
       L({ id: "warn-dot-core", type: "circle", source: "labels", maxzoom: 6.5, filter: ["all", ["==", ["get", "kind"], "warning"], ["get", "tor"]], paint: { "circle-radius": 3.2, "circle-color": p.halo } });
       // watch and MD names repeat along their own edges, so they stay readable at any zoom
-      L({ id: "edge-labels", type: "symbol", source: "active", filter: ["in", ["get", "kind"], ["literal", ["watch", "md"]]], layout: { "symbol-placement": "line", "symbol-spacing": 340, "text-field": ["get", "text"], "text-font": ["Open Sans Semibold"], "text-size": 11.5, "text-offset": [0, -0.9], "text-letter-spacing": 0.05 },
+      L({ id: "edge-labels", type: "symbol", source: "active", filter: ["in", ["get", "kind"], ["literal", ["watch", "md"]]], layout: { "symbol-placement": "line", "symbol-spacing": 340, "text-field": ["get", "text"], "text-font": FONT, "text-size": 11.5, "text-offset": [0, -0.9], "text-letter-spacing": 0.05 },
         paint: { "text-color": ["get", "tc"], "text-halo-color": ["get", "hc"], "text-halo-width": 2 } });
-      L({ id: "labels", type: "symbol", source: "labels", filter: ["!=", ["get", "kind"], "warning"], layout: { "text-field": ["get", "text"], "text-font": ["Open Sans Semibold"], "text-size": ["get", "size"], "text-padding": 4, "symbol-sort-key": ["get", "rank"], "text-max-width": 9 },
+      L({ id: "labels", type: "symbol", source: "labels", filter: ["!=", ["get", "kind"], "warning"], layout: { "text-field": ["get", "text"], "text-font": FONT, "text-size": ["get", "size"], "text-padding": 4, "symbol-sort-key": ["get", "rank"], "text-max-width": 9 },
         paint: { "text-color": ["get", "tc"], "text-halo-color": ["get", "hc"], "text-halo-width": 2 } });
       // warning labels avoid each other; tornado warnings win the space. Markers above are always drawn.
-      L({ id: "warn-labels", type: "symbol", source: "labels", minzoom: 3.2, filter: ["==", ["get", "kind"], "warning"], layout: { "text-field": ["get", "text"], "text-font": ["Open Sans Semibold"], "text-size": ["interpolate", ["linear"], ["zoom"], 3, 11, 7, 13], "text-padding": 3, "symbol-sort-key": ["get", "rank"], "text-variable-anchor": ["bottom", "left", "right", "top"], "text-radial-offset": 1.15, "text-max-width": 20, "text-letter-spacing": 0.04 },
+      L({ id: "warn-labels", type: "symbol", source: "labels", minzoom: 3.2, filter: ["==", ["get", "kind"], "warning"], layout: { "text-field": ["get", "text"], "text-font": FONT, "text-size": ["interpolate", ["linear"], ["zoom"], 3, 11, 7, 13], "text-padding": 3, "symbol-sort-key": ["get", "rank"], "text-variable-anchor": ["bottom", "left", "right", "top"], "text-radial-offset": 1.15, "text-max-width": 20, "text-letter-spacing": 0.04 },
         paint: { "text-color": ["get", "tc"], "text-halo-color": ["get", "hc"], "text-halo-width": 2.4 } });
+      if (carto) { for (const id of ["lakes", "states", "cities"]) map.setLayoutProperty(id, "visibility", "none"); baseLines(); orderOverBase(); } // the street map has its own water, borders and places
       ready = true; drawAll();
     });
     map.on("click", (e) => {
@@ -1371,14 +1393,24 @@
     if (S.sel || S.point) { S.sel = null; S.point = null; drawAll(); $("txPanelBody").focus({ preventScroll: true }); }
     else if (phone() && S.sheet === "open") setSheet("peek");
   });
-  window.addEventListener("ops:theme", () => {
+  /* our own lines and dots follow the page theme (both basemaps) */
+  function themePaints(c) {
+    const set = (id, k, v) => { if (map.getLayer(id)) map.setPaintProperty(id, k, v); };
+    set("warn-case", "line-color", c.halo); set("ring", "line-color", c.text); set("hl", "line-color", c.text); set("m-hull", "line-color", c.muted); set("pt", "circle-stroke-color", c.text);
+    set("warn-dot", "circle-stroke-color", c.halo); set("warn-dot-core", "circle-color", c.halo);
+    if (map.hasImage("hatch")) map.removeImage("hatch"); map.addImage("hatch", hatch(), { pixelRatio: 2 });
+  }
+  window.addEventListener("ops:theme", async () => {
     if (!ready) return; const c = pal();
+    if (carto) { // swap the street map's light/dark style, keeping our sources and layers
+      const next = await cartoStyle(light() ? "light" : "dark"); if (!next) { themePaints(c); drawAll(); return; }
+      const prev = map.getStyle(), ours = prev.layers.filter((l) => OUR.includes(l.id) || l.id === "radar"), keepSrc = Object.fromEntries(Object.entries(prev.sources).filter(([k]) => !next.sources[k]));
+      map.once("style.load", () => { baseLines(); orderOverBase(); themePaints(pal()); radar.tiles = null; drawAll(); });
+      map.setStyle(next, { transformStyle: () => ({ ...next, sources: { ...next.sources, ...keepSrc }, layers: [...next.layers, ...ours] }) });
+      return; }
     map.setPaintProperty("bg", "background-color", c.land); map.setPaintProperty("lakes", "fill-color", c.water); map.setPaintProperty("states", "line-color", c.line);
-    map.setPaintProperty("cities", "text-color", c.muted); map.setPaintProperty("cities", "text-halo-color", c.halo); map.setPaintProperty("warn-case", "line-color", c.halo);
-    map.setPaintProperty("ring", "line-color", c.text); map.setPaintProperty("hl", "line-color", c.text); map.setPaintProperty("m-hull", "line-color", c.muted); map.setPaintProperty("pt", "circle-stroke-color", c.text);
-    map.setPaintProperty("warn-dot", "circle-stroke-color", c.halo); map.setPaintProperty("warn-dot-core", "circle-color", c.halo);
-    map.removeImage("hatch"); map.addImage("hatch", hatch(), { pixelRatio: 2 });
-    drawAll();
+    map.setPaintProperty("cities", "text-color", c.muted); map.setPaintProperty("cities", "text-halo-color", c.halo);
+    themePaints(c); drawAll();
   });
 
   /* phone: this page only gets a compact header; the tool navigation sits behind a Menu button */

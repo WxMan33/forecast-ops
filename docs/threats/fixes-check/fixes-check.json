@@ -1,6 +1,6 @@
 {
  "host": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev",
- "at": "2026-11-23T21:33:47.971Z",
+ "at": "2026-11-23T21:39:02.650Z",
  "devices": {
   "desktop": {
    "presetVenue": {
@@ -33,7 +33,7 @@
     "st": "empty",
     "src": {
      "state": "ok",
-     "lastOk": "2026-11-23T21:33:52.823Z",
+     "lastOk": "2026-11-23T21:39:07.325Z",
      "count": 0,
      "error": null,
      "outlook": "current",
@@ -42,12 +42,12 @@
      "via": "wpc"
     },
     "rows": [
-     "WPC excessive rainfall · Day 1 Checked 4:33 PM EST · none active"
+     "WPC excessive rainfall · Day 1 Checked 4:39 PM EST · none active"
     ],
-    "panel": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY No severe risk area Valid Mon, Nov 23, 3:00 PM EST → Tue, Nov 24, 7:00 AM EST EXCESSIVE RAINFALL · WPC No excessive rainfall area at the venue. No excessive rainfall areas. SEVERE STORMS · SPC OUTLOOK AREAS OUTLOOKGeneral thunderstorms Day 1 · until Tue, Nov 24, 7:00 AM EST ACTIVE NOW 15 active warnings Shown as dashed outlines, labelled Active now · ope"
+    "panel": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY No severe risk area Valid Mon, Nov 23, 3:00 PM EST → Tue, Nov 24, 7:00 AM EST EXCESSIVE RAINFALL · WPC No excessive rainfall area at the venue. No excessive rainfall areas. SEVERE STORMS · SPC OUTLOOK AREAS OUTLOOKGeneral thunderstorms Day 1 · until Tue, Nov 24, 7:00 AM EST ACTIVE NOW 14 active warnings Shown as dashed outlines, labelled Active now · ope"
    },
    "refsOnOpen": {
-    "opened": "KPQR.CF.Y.0005.2026",
+    "opened": "KSEW.CF.W.0005.2026",
     "refs": 1
    },
    "zones": {
@@ -58,7 +58,7 @@
    "spcUnknown": {
     "peek": "Risk unknown · SPC Day 1 outlook not responding",
     "big": "Risk unknown · SPC Day 1 outlook not responding",
-    "body": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY\nRisk unknown · SPC Day 1 outlook not responding\nSPC Day 1 outlook not responding.\nOUTLOOK AREAS\n\nRisk unknown · SPC Day 1 outlook not responding.\n\nOpen the regional Severe viewer →\nNWS warnings, watches and advisories\nChecked 4:34 PM EST\nSPC Mesoscale Discussions\nChecked 4:34 PM EST via NOAA map service · none active\nSPC Day 1 outlook\nNot responding · status unknown\nLive official feeds, fetched by your browser. Alerts and MDs refresh every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
+    "body": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY\nRisk unknown · SPC Day 1 outlook not responding\nSPC Day 1 outlook not responding.\nOUTLOOK AREAS\n\nRisk unknown · SPC Day 1 outlook not responding.\n\nOpen the regional Severe viewer →\nNWS warnings, watches and advisories\nChecked 4:39 PM EST\nSPC Mesoscale Discussions\nChecked 4:39 PM EST via NOAA map service · none active\nSPC Day 1 outlook\nNot responding · status unknown\nLive official feeds, fetched by your browser. Alerts and MDs refresh every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
    },
    "clicks": {
     "pick": {
@@ -98,34 +98,52 @@
      "body": "← Back\nAIR QUALITY\nSycamore\nReading\nAQI 3 Good (PM2.5) · PM2.5 -2 µg/m³\nAll pollutants\nPM2.5 3\nObserved\nMon, Nov 23, 4:00 PM EST (hourly)\nMonitor\nSycamore · 390610006\nReporting area\nCincinnati\nVenue\n2",
      "how": "direct"
     },
-    "hms": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST NWS warnings, watches and advisories Checked 4:34 PM EST NIFC wildfire incidents (WFIGS) "
+    "hms": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST NWS warnings, watches and advisories Checked 4:39 PM EST NIFC wildfire incidents (WFIGS) "
    },
    "overlap": {
     "pick": {
-     "pirep": "pirep-1795469100-41.793--112.010-E75L",
+     "pirep": "pirep-1795469460-46.853--122.295-B39M",
      "pt": [
-      -112.0098,
-      41.7929
+      -122.2947,
+      46.8532
      ],
      "advs": [
-      "gairmet-ZULU-4C-ICE-0-1795466700",
-      "gairmet-TANGO-1W-TURB-HI-0-1795466700"
+      "gairmet-ZULU-5C-ICE-0-1795466700",
+      "gairmet-TANGO-1W-TURB-LO-0-1795466700"
      ]
     },
     "L": {
      "under": true,
      "ids": [
-      "pirep-1795469100-41.793--112.010-E75L",
-      "gairmet-TANGO-1W-TURB-HI-0-1795466700",
-      "gairmet-ZULU-4C-ICE-0-1795466700"
+      "pirep-1795469460-46.853--122.295-B39M",
+      "gairmet-TANGO-1W-TURB-LO-0-1795466700",
+      "gairmet-ZULU-5C-ICE-0-1795466700"
      ],
      "rows": [
-      "PILOT REPORTlight to moderate turbulence between FL240 and FL280 4:25 PM EST · E75L",
-      "G-AIRMETModerate high-altitude turbulence FL180 to FL400 · snapshot 4:00 PM EST",
-      "G-AIRMETModerate icing 5,000 ft to 16,000 ft · snapshot 4:00 PM EST"
+      "PILOT REPORTlight turbulence and light icing (rime) between 15,000 ft and FL180 4:31 PM ES",
+      "G-AIRMETModerate low-altitude turbulence surface to 15,000 ft · snapshot 4:00 PM EST",
+      "G-AIRMETModerate icing 4,000 ft to FL210 · snapshot 4:00 PM EST"
      ]
     },
     "opened": 3
+   },
+   "pin": {
+    "off": {
+     "pin": false,
+     "scope": "national",
+     "marker": "none",
+     "ring": 0,
+     "strip": false,
+     "peek": "National map"
+    },
+    "kept": {
+     "pin": false,
+     "marker": "none"
+    },
+    "back": {
+     "pin": true,
+     "marker": "flex"
+    }
    },
    "ww705": {
     "n": 1,
@@ -142,11 +160,11 @@
     },
     "st": {
      "state": "ok",
-     "valid": "2026-11-23T21:22:07.000Z",
+     "valid": "2026-11-23T21:28:12.000Z",
      "vis": "visible",
      "below": true,
      "sum": "Radar only",
-     "row": "NOAA MRMS radar\nImage 4:22 PM EST · 13 min old",
+     "row": "NOAA MRMS radar\nImage 4:28 PM EST · 12 min old",
      "feeds": []
     }
    },
@@ -217,7 +235,7 @@
     "st": "empty",
     "src": {
      "state": "ok",
-     "lastOk": "2026-11-23T21:35:40.293Z",
+     "lastOk": "2026-11-23T21:41:05.735Z",
      "count": 0,
      "error": null,
      "outlook": "current",
@@ -226,7 +244,7 @@
      "via": "wpc"
     },
     "rows": [
-     "WPC excessive rainfall · Day 1 Checked 4:35 PM EST · none active"
+     "WPC excessive rainfall · Day 1 Checked 4:41 PM EST · none active"
     ],
     "panel": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY No severe risk area Valid Mon, Nov 23, 3:00 PM EST → Tue, Nov 24, 7:00 AM EST EXCESSIVE RAINFALL · WPC No excessive rainfall area at the venue. No excessive rainfall areas. SEVERE STORMS · SPC OUTLOOK AREAS OUTLOOKGeneral thunderstorms Day 1 · until Tue, Nov 24, 7:00 AM EST ACTIVE NOW 14 active warnings Shown as dashed outlines, labelled Active now · ope"
    },
@@ -242,7 +260,7 @@
    "spcUnknown": {
     "peek": "Risk unknown · SPC Day 1 outlook not responding",
     "big": "Risk unknown · SPC Day 1 outlook not responding",
-    "body": "Day 1 at CVG airport · highest SPC categoryRisk unknown · SPC Day 1 outlook not respondingSPC Day 1 outlook not responding.Outlook areasRisk unknown · SPC Day 1 outlook not responding.Open the regional Severe viewer →NWS warnings, watches and advisoriesChecked 4:36 PM ESTSPC Mesoscale DiscussionsChecked 4:36 PM EST via NOAA map service · none activeSPC Day 1 outlookNot responding · status unknownLive official feeds, fetched by your browser. Alerts and MDs refresh every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
+    "body": "Day 1 at CVG airport · highest SPC categoryRisk unknown · SPC Day 1 outlook not respondingSPC Day 1 outlook not responding.Outlook areasRisk unknown · SPC Day 1 outlook not responding.Open the regional Severe viewer →NWS warnings, watches and advisoriesChecked 4:41 PM ESTSPC Mesoscale DiscussionsChecked 4:41 PM EST via NOAA map service · none activeSPC Day 1 outlookNot responding · status unknownLive official feeds, fetched by your browser. Alerts and MDs refresh every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
    },
    "clicks": {
     "pick": {
@@ -278,18 +296,18 @@
      "how": "direct"
     },
     "mon": {
-     "sel": null,
-     "body": "AT CVG AIRPORT\nNothing active at the venue\nVenue view →\nMOST URGENT NOW\n0 ACTIVE\n\nNo active fire weather warnings, watches or advisories in the U.S.\n\nThis page covers NWS tornado and severe thundersto",
-     "how": "missing"
+     "sel": "airnow-390610006",
+     "body": "← Back\nAIR QUALITY\nSycamore\nReading\nAQI 3 Good (PM2.5) · PM2.5 -2 µg/m³\nAll pollutants\nPM2.5 3\nObserved\nMon, Nov 23, 4:00 PM EST (hourly)\nMonitor\nSycamore · 390610006\nReporting area\nCincinnati\nVenue\n2",
+     "how": "direct"
     },
-    "hms": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST NWS warnings, watches and advisories Checked 4:36 PM EST NIFC wildfire incidents (WFIGS) "
+    "hms": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST NWS warnings, watches and advisories Checked 4:41 PM EST NIFC wildfire incidents (WFIGS) "
    },
    "overlap": {
     "pick": {
-     "pirep": "pirep-1795469220-44.989--122.693-B190",
+     "pirep": "pirep-1795469460-46.853--122.295-B39M",
      "pt": [
-      -122.693,
-      44.9891
+      -122.2947,
+      46.8532
      ],
      "advs": [
       "gairmet-ZULU-5C-ICE-0-1795466700",
@@ -299,17 +317,35 @@
     "L": {
      "under": true,
      "ids": [
-      "pirep-1795469220-44.989--122.693-B190",
+      "pirep-1795469460-46.853--122.295-B39M",
       "gairmet-TANGO-1W-TURB-LO-0-1795466700",
       "gairmet-ZULU-5C-ICE-0-1795466700"
      ],
      "rows": [
-      "PILOT REPORTlight icing (rime) at 14,500 ft 4:27 PM EST · B190",
+      "PILOT REPORTlight turbulence and light icing (rime) between 15,000 ft and FL180 4:31 PM ES",
       "G-AIRMETModerate low-altitude turbulence surface to 15,000 ft · snapshot 4:00 PM EST",
       "G-AIRMETModerate icing 4,000 ft to FL210 · snapshot 4:00 PM EST"
      ]
     },
     "opened": 3
+   },
+   "pin": {
+    "off": {
+     "pin": false,
+     "scope": "national",
+     "marker": "none",
+     "ring": 0,
+     "strip": false,
+     "peek": "National map"
+    },
+    "kept": {
+     "pin": false,
+     "marker": "none"
+    },
+    "back": {
+     "pin": true,
+     "marker": "flex"
+    }
    },
    "ww705": {
     "n": 1,
@@ -326,11 +362,11 @@
     },
     "st": {
      "state": "ok",
-     "valid": "2026-11-23T21:28:12.000Z",
+     "valid": "2026-11-23T21:36:15.000Z",
      "vis": "visible",
      "below": true,
      "sum": "Radar only",
-     "row": "NOAA MRMS radarImage 4:28 PM EST · 9 min old",
+     "row": "NOAA MRMS radarImage 4:36 PM EST · 6 min old",
      "feeds": []
     }
    },
@@ -410,7 +446,7 @@
     "st": "empty",
     "src": {
      "state": "ok",
-     "lastOk": "2026-11-23T21:33:52.823Z",
+     "lastOk": "2026-11-23T21:39:07.325Z",
      "count": 0,
      "error": null,
      "outlook": "current",
@@ -419,16 +455,16 @@
      "via": "wpc"
     },
     "rows": [
-     "WPC excessive rainfall · Day 1 Checked 4:33 PM EST · none active"
+     "WPC excessive rainfall · Day 1 Checked 4:39 PM EST · none active"
     ],
-    "panel": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY No severe risk area Valid Mon, Nov 23, 3:00 PM EST → Tue, Nov 24, 7:00 AM EST EXCESSIVE RAINFALL · WPC No excessive rainfall area at the venue. No excessive rainfall areas. SEVERE STORMS · SPC OUTLOOK AREAS OUTLOOKGeneral thunderstorms Day 1 · until Tue, Nov 24, 7:00 AM EST ACTIVE NOW 15 active warnings Shown as dashed outlines, labelled Active now · ope"
+    "panel": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY No severe risk area Valid Mon, Nov 23, 3:00 PM EST → Tue, Nov 24, 7:00 AM EST EXCESSIVE RAINFALL · WPC No excessive rainfall area at the venue. No excessive rainfall areas. SEVERE STORMS · SPC OUTLOOK AREAS OUTLOOKGeneral thunderstorms Day 1 · until Tue, Nov 24, 7:00 AM EST ACTIVE NOW 14 active warnings Shown as dashed outlines, labelled Active now · ope"
    }
   },
   {
-   "check": "(desktop) WHAT CHANGED: the earlier message is fetched when its alert is opened (1 request for KPQR.CF.Y.0005.2026)",
+   "check": "(desktop) WHAT CHANGED: the earlier message is fetched when its alert is opened (1 request for KSEW.CF.W.0005.2026)",
    "pass": true,
    "detail": {
-    "opened": "KPQR.CF.Y.0005.2026",
+    "opened": "KSEW.CF.W.0005.2026",
     "refs": 1
    }
   },
@@ -447,7 +483,7 @@
    "detail": {
     "peek": "Risk unknown · SPC Day 1 outlook not responding",
     "big": "Risk unknown · SPC Day 1 outlook not responding",
-    "body": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY\nRisk unknown · SPC Day 1 outlook not responding\nSPC Day 1 outlook not responding.\nOUTLOOK AREAS\n\nRisk unknown · SPC Day 1 outlook not responding.\n\nOpen the regional Severe viewer →\nNWS warnings, watches and advisories\nChecked 4:34 PM EST\nSPC Mesoscale Discussions\nChecked 4:34 PM EST via NOAA map service · none active\nSPC Day 1 outlook\nNot responding · status unknown\nLive official feeds, fetched by your browser. Alerts and MDs refresh every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
+    "body": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY\nRisk unknown · SPC Day 1 outlook not responding\nSPC Day 1 outlook not responding.\nOUTLOOK AREAS\n\nRisk unknown · SPC Day 1 outlook not responding.\n\nOpen the regional Severe viewer →\nNWS warnings, watches and advisories\nChecked 4:39 PM EST\nSPC Mesoscale Discussions\nChecked 4:39 PM EST via NOAA map service · none active\nSPC Day 1 outlook\nNot responding · status unknown\nLive official feeds, fetched by your browser. Alerts and MDs refresh every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
    }
   },
   {
@@ -471,7 +507,7 @@
   {
    "check": "(desktop) CLICK inside a satellite smoke area: At this spot lists it",
    "pass": true,
-   "detail": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST NWS warnings, watches and advisories Checked 4:34 PM EST NIFC wildfire incidents (WFIGS) "
+   "detail": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST NWS warnings, watches and advisories Checked 4:39 PM EST NIFC wildfire incidents (WFIGS) "
   },
   {
    "check": "(desktop) FULLY CONTAINED FIRES hidden by default (52 listed by NIFC, 0 drawn)",
@@ -521,31 +557,54 @@
    "pass": true,
    "detail": {
     "pick": {
-     "pirep": "pirep-1795469100-41.793--112.010-E75L",
+     "pirep": "pirep-1795469460-46.853--122.295-B39M",
      "pt": [
-      -112.0098,
-      41.7929
+      -122.2947,
+      46.8532
      ],
      "advs": [
-      "gairmet-ZULU-4C-ICE-0-1795466700",
-      "gairmet-TANGO-1W-TURB-HI-0-1795466700"
+      "gairmet-ZULU-5C-ICE-0-1795466700",
+      "gairmet-TANGO-1W-TURB-LO-0-1795466700"
      ]
     },
     "L": {
      "under": true,
      "ids": [
-      "pirep-1795469100-41.793--112.010-E75L",
-      "gairmet-TANGO-1W-TURB-HI-0-1795466700",
-      "gairmet-ZULU-4C-ICE-0-1795466700"
+      "pirep-1795469460-46.853--122.295-B39M",
+      "gairmet-TANGO-1W-TURB-LO-0-1795466700",
+      "gairmet-ZULU-5C-ICE-0-1795466700"
      ],
      "rows": [
-      "PILOT REPORTlight to moderate turbulence between FL240 and FL280 4:25 PM EST · E75L",
-      "G-AIRMETModerate high-altitude turbulence FL180 to FL400 · snapshot 4:00 PM EST",
-      "G-AIRMETModerate icing 5,000 ft to 16,000 ft · snapshot 4:00 PM EST"
+      "PILOT REPORTlight turbulence and light icing (rime) between 15,000 ft and FL180 4:31 PM ES",
+      "G-AIRMETModerate low-altitude turbulence surface to 15,000 ft · snapshot 4:00 PM EST",
+      "G-AIRMETModerate icing 4,000 ft to FL210 · snapshot 4:00 PM EST"
      ]
     },
     "opened": 3,
     "back": true,
+    "errs": []
+   }
+  },
+  {
+   "check": "(desktop) VENUE MARKER off: pin, label and ring hidden, national map, no venue strip (summary 'National map'); remembered on the next visit; choosing Venue shows it again",
+   "pass": true,
+   "detail": {
+    "off": {
+     "pin": false,
+     "scope": "national",
+     "marker": "none",
+     "ring": 0,
+     "strip": false,
+     "peek": "National map"
+    },
+    "kept": {
+     "pin": false,
+     "marker": "none"
+    },
+    "back": {
+     "pin": true,
+     "marker": "flex"
+    },
     "errs": []
    }
   },
@@ -565,7 +624,7 @@
    }
   },
   {
-   "check": "(desktop) RADAR on, with no hazard layer: 'Radar only'; image time read once (1), 28 tiles; drawn under the hazards; status row 'NOAA MRMS radar\nImage 4:22 PM EST · 13 min old'; no threat feed requested",
+   "check": "(desktop) RADAR on, with no hazard layer: 'Radar only'; image time read once (1), 28 tiles; drawn under the hazards; status row 'NOAA MRMS radar\nImage 4:28 PM EST · 12 min old'; no threat feed requested",
    "pass": true,
    "detail": {
     "by": {
@@ -574,11 +633,11 @@
     },
     "st": {
      "state": "ok",
-     "valid": "2026-11-23T21:22:07.000Z",
+     "valid": "2026-11-23T21:28:12.000Z",
      "vis": "visible",
      "below": true,
      "sum": "Radar only",
-     "row": "NOAA MRMS radar\nImage 4:22 PM EST · 13 min old",
+     "row": "NOAA MRMS radar\nImage 4:28 PM EST · 12 min old",
      "feeds": []
     },
     "errs": []
@@ -678,7 +737,7 @@
     "st": "empty",
     "src": {
      "state": "ok",
-     "lastOk": "2026-11-23T21:35:40.293Z",
+     "lastOk": "2026-11-23T21:41:05.735Z",
      "count": 0,
      "error": null,
      "outlook": "current",
@@ -687,7 +746,7 @@
      "via": "wpc"
     },
     "rows": [
-     "WPC excessive rainfall · Day 1 Checked 4:35 PM EST · none active"
+     "WPC excessive rainfall · Day 1 Checked 4:41 PM EST · none active"
     ],
     "panel": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY No severe risk area Valid Mon, Nov 23, 3:00 PM EST → Tue, Nov 24, 7:00 AM EST EXCESSIVE RAINFALL · WPC No excessive rainfall area at the venue. No excessive rainfall areas. SEVERE STORMS · SPC OUTLOOK AREAS OUTLOOKGeneral thunderstorms Day 1 · until Tue, Nov 24, 7:00 AM EST ACTIVE NOW 14 active warnings Shown as dashed outlines, labelled Active now · ope"
    }
@@ -715,7 +774,7 @@
    "detail": {
     "peek": "Risk unknown · SPC Day 1 outlook not responding",
     "big": "Risk unknown · SPC Day 1 outlook not responding",
-    "body": "Day 1 at CVG airport · highest SPC categoryRisk unknown · SPC Day 1 outlook not respondingSPC Day 1 outlook not responding.Outlook areasRisk unknown · SPC Day 1 outlook not responding.Open the regional Severe viewer →NWS warnings, watches and advisoriesChecked 4:36 PM ESTSPC Mesoscale DiscussionsChecked 4:36 PM EST via NOAA map service · none activeSPC Day 1 outlookNot responding · status unknownLive official feeds, fetched by your browser. Alerts and MDs refresh every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
+    "body": "Day 1 at CVG airport · highest SPC categoryRisk unknown · SPC Day 1 outlook not respondingSPC Day 1 outlook not responding.Outlook areasRisk unknown · SPC Day 1 outlook not responding.Open the regional Severe viewer →NWS warnings, watches and advisoriesChecked 4:41 PM ESTSPC Mesoscale DiscussionsChecked 4:41 PM EST via NOAA map service · none activeSPC Day 1 outlookNot responding · status unknownLive official feeds, fetched by your browser. Alerts and MDs refresh every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
    }
   },
   {
@@ -728,18 +787,18 @@
    }
   },
   {
-   "check": "(phone) CLICK an AirNow monitor dot (Sycamore): its own details open (missing)",
-   "pass": false,
+   "check": "(phone) CLICK an AirNow monitor dot (Sycamore): its own details open (direct)",
+   "pass": true,
    "detail": {
-    "sel": null,
-    "body": "AT CVG AIRPORT\nNothing active at the venue\nVenue view →\nMOST URGENT NOW\n0 ACTIVE\n\nNo active fire weather warnings, watches or advisories in the U.S.\n\nThis page covers NWS tornado and severe thundersto",
-    "how": "missing"
+    "sel": "airnow-390610006",
+    "body": "← Back\nAIR QUALITY\nSycamore\nReading\nAQI 3 Good (PM2.5) · PM2.5 -2 µg/m³\nAll pollutants\nPM2.5 3\nObserved\nMon, Nov 23, 4:00 PM EST (hourly)\nMonitor\nSycamore · 390610006\nReporting area\nCincinnati\nVenue\n2",
+    "how": "direct"
    }
   },
   {
    "check": "(phone) CLICK inside a satellite smoke area: At this spot lists it",
    "pass": true,
-   "detail": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST NWS warnings, watches and advisories Checked 4:36 PM EST NIFC wildfire incidents (WFIGS) "
+   "detail": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST NWS warnings, watches and advisories Checked 4:41 PM EST NIFC wildfire incidents (WFIGS) "
   },
   {
    "check": "(phone) FULLY CONTAINED FIRES hidden by default (52 listed by NIFC, 0 drawn)",
@@ -789,10 +848,10 @@
    "pass": true,
    "detail": {
     "pick": {
-     "pirep": "pirep-1795469220-44.989--122.693-B190",
+     "pirep": "pirep-1795469460-46.853--122.295-B39M",
      "pt": [
-      -122.693,
-      44.9891
+      -122.2947,
+      46.8532
      ],
      "advs": [
       "gairmet-ZULU-5C-ICE-0-1795466700",
@@ -802,18 +861,41 @@
     "L": {
      "under": true,
      "ids": [
-      "pirep-1795469220-44.989--122.693-B190",
+      "pirep-1795469460-46.853--122.295-B39M",
       "gairmet-TANGO-1W-TURB-LO-0-1795466700",
       "gairmet-ZULU-5C-ICE-0-1795466700"
      ],
      "rows": [
-      "PILOT REPORTlight icing (rime) at 14,500 ft 4:27 PM EST · B190",
+      "PILOT REPORTlight turbulence and light icing (rime) between 15,000 ft and FL180 4:31 PM ES",
       "G-AIRMETModerate low-altitude turbulence surface to 15,000 ft · snapshot 4:00 PM EST",
       "G-AIRMETModerate icing 4,000 ft to FL210 · snapshot 4:00 PM EST"
      ]
     },
     "opened": 3,
     "back": true,
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) VENUE MARKER off: pin, label and ring hidden, national map, no venue strip (summary 'National map'); remembered on the next visit; choosing Venue shows it again",
+   "pass": true,
+   "detail": {
+    "off": {
+     "pin": false,
+     "scope": "national",
+     "marker": "none",
+     "ring": 0,
+     "strip": false,
+     "peek": "National map"
+    },
+    "kept": {
+     "pin": false,
+     "marker": "none"
+    },
+    "back": {
+     "pin": true,
+     "marker": "flex"
+    },
     "errs": []
    }
   },
@@ -833,7 +915,7 @@
    }
   },
   {
-   "check": "(phone) RADAR on, with no hazard layer: 'Radar only'; image time read once (1), 8 tiles; drawn under the hazards; status row 'NOAA MRMS radarImage 4:28 PM EST · 9 min old'; no threat feed requested",
+   "check": "(phone) RADAR on, with no hazard layer: 'Radar only'; image time read once (1), 8 tiles; drawn under the hazards; status row 'NOAA MRMS radarImage 4:36 PM EST · 6 min old'; no threat feed requested",
    "pass": true,
    "detail": {
     "by": {
@@ -842,11 +924,11 @@
     },
     "st": {
      "state": "ok",
-     "valid": "2026-11-23T21:28:12.000Z",
+     "valid": "2026-11-23T21:36:15.000Z",
      "vis": "visible",
      "below": true,
      "sum": "Radar only",
-     "row": "NOAA MRMS radarImage 4:28 PM EST · 9 min old",
+     "row": "NOAA MRMS radarImage 4:36 PM EST · 6 min old",
      "feeds": []
     },
     "errs": []
