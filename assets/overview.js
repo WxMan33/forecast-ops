@@ -6,6 +6,20 @@
   O.shell("home", "Overview");
   document.title = O.BRAND.name;
 
+  /* core-tool tiles and the quieter links: icons, and links that carry the forecast point like the nav does (Maps and
+     Events stay plain, as in the nav: the map has its own area and events carry their own venue) */
+  const carry = (href) => { const u = new URL(href, location.href), out = new URL(O.shareUrl(u.pathname.split("/").pop() + u.hash), location.href); u.searchParams.forEach((v, k) => out.searchParams.set(k, v)); return out.toString(); };
+  const tileLinks = () => document.querySelectorAll("[data-tool]").forEach((a) => {
+    if (!a.dataset.base) a.dataset.base = a.getAttribute("href");
+    a.href = a.dataset.tool === "maps" || a.dataset.tool === "events" ? a.dataset.base : carry(a.dataset.base);
+  });
+  document.querySelectorAll("[data-icon]").forEach((el) => { el.innerHTML = O.icon(el.dataset.icon, 20); el.setAttribute("aria-hidden", "true"); });
+  tileLinks(); O.onLocation(tileLinks);
+  const tileStatus = (key, html, tier) => { const el = document.querySelector(`[data-status="${key}"]`); if (!el) return; el.innerHTML = html;
+    const tile = el.closest(".tooltile"); if (tile) { tile.classList.toggle("attn", !!tier && O.TIER[tier].rank >= 1); tile.style.setProperty("--tier", tier ? O.TIER[tier].color : ""); } };
+  const clearStatus = () => ["blend", "severe", "winter"].forEach((k) => tileStatus(k, '<span class="msg">Loading…</span>'));
+  clearStatus();
+
   O.locationCard($("locCard"), () => run());
   O.eventCard($("evCard"));
   O.onEvent(() => run());
@@ -17,6 +31,7 @@
   function showUnavailable() {
     O.setChip("NO DATA", "err");
     O.headline({ tier: "nodata", word: "NO DATA" });
+    ["blend", "severe", "winter"].forEach((k) => tileStatus(k, '<span class="msg">Guidance unavailable</span>'));
     $("days").innerHTML = '<div class="state err">Forecast guidance is unavailable for this location. <button type="button" class="btn ghost sm" id="retryOverview">Retry forecast</button></div>';
     $("retryOverview").addEventListener("click", run);
   }
@@ -25,7 +40,7 @@
     const request = ++runGen, { lat, lon, name } = O.location;
     const where = { lat, lon };
     viewState = null;
-    O.beginLoad();
+    O.beginLoad(); clearStatus();
     restorePanels();
     for (const id of ["remainingToday", "changes", "eventCard"]) $(id).hidden = true;
     $("overviewPoint").textContent = name;
@@ -119,6 +134,13 @@
         { num: O.TIER[worst].word, unit: "thunder signal", color: O.TIER[worst].rank >= 1 ? O.TIER[worst].color : undefined },
       ],
     });
+    /* tile status lines: the same numbers as the snapshot below, so the tiles never say something the panel doesn't */
+    { const hi = rows.filter((r) => r.period.kind === "high").map((r) => r.hi).filter((x) => x != null), lo = rows.filter((r) => r.period.kind === "low").map((r) => r.lo).filter((x) => x != null),   /* the same high/low the period cards show */
+      hotAll = cards.flatMap((c) => c.hot);
+      tileStatus("blend", `48 h: <b>${f(qpf, 2, '"')}</b> precip${hi.length ? ` · high <b>${Math.round(Math.max(...hi))}°</b>` : ""}${lo.length ? ` · low <b>${Math.round(Math.min(...lo))}°</b>` : ""}`);
+      tileStatus("severe", `Thunder signal ${O.badge(worst)}${hotAll.length && TH ? ` <span class="msg">${O.fmtDay(O.dayOf(T.times[hotAll[0]])).slice(0, 3)} ${O.fmtHour(O.hourOf(T.times[hotAll[0]]))}</span>` : ""}`, worst);
+      const wt = p1 == null ? null : p1 >= 0.4 ? "prepare" : p1 >= 0.1 ? "monitor" : "normal";
+      tileStatus("winter", p1 == null ? '<span class="msg">Snow odds unavailable</span>' : `1"+ snow in 48 h: <b>${pctTxt(p1)}</b>`, wt); }
     O.dataStatus([...(nwsOk ? (NW.errors || []).map((x) => `NWS ${x}`) : [`NWS: ${NW ? NW.reason : "unavailable"}`]), ...B.problems.map((p) => `Blend · ${p}`), ...T.problems.map((p) => `Thunder · ${p}`), ...W.problems.map((p) => `Winter · ${p}`)]);
     $("sumMsg").textContent = `${Object.keys(wsB).length} blend sources (${O.esc(C.blend.PRESETS[RB.preset].label)}) · ${TH ? TH.ids.length : 0} thunder models · ${mem.length} ensemble members · ${O.tzShort(B.tz)}`;
 

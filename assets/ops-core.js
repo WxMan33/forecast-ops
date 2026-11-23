@@ -777,6 +777,92 @@
       if (p1 >= 0.1 || p01 >= 0.3) return "monitor";
       return "normal";
     },
+    /* ---------- interpreted read: how much, what could stick, and when ----------
+       A qualitative assessment from the guidance the page already loads. There is no pavement temperature, no bridge-deck
+       guidance and no observed snow depth here, so nothing below is a pavement accumulation amount; surfaces get a level
+       (unlikely / possible / favored) with the reasons. The rules combine air temperature, wet-bulb, snowfall rate, how
+       long it has been at or below freezing, and modeled ground (0 cm soil) temperature where a model provides it. They
+       are documented rules of thumb, not a calibrated model; STICK holds every threshold so the page can show them.
+       hours: [{ms, inWin, snow50, snow90, t50, det: [{type, t2F, twF, soilC, snowIn}]}] in time order (hours before the
+       window feed the "cold for how long" count). st: windowStats for the window (or null when ensembles are missing). */
+    STICK: { snowyRate: 0.02, burstRate: 0.5, heavyRate: 1.0, grassMildT: 34, grassWarmT: 36, pavedColdT: 30, pavedSoakH: 6, pavedShortSoakH: 3, warmSoilC: 2 },
+    stickRead(hours, st) {
+      const K = winter.STICK, mean = (a) => { const v = a.filter((x) => x != null); return v.length ? v.reduce((x, y) => x + y, 0) / v.length : null; };
+      const win = hours.filter((h) => h.inWin), missing = [];
+      const amount = st && st.used ? (() => {
+        const pAny = st.P[0.1] || 0, agree = Math.max(pAny, 1 - pAny), share = st.used / st.total, spread = st.p90 - st.p10;
+        const conf = share < 0.6 || agree < 0.6 ? "low" : agree >= 0.8 && spread <= Math.max(1, st.p50) ? "high" : "moderate";
+        const why = share < 0.6 ? `only ${st.used} of ${st.total} members cover the whole window` : agree < 0.6 ? "members split on whether any measurable snow falls"
+          : spread > Math.max(1, st.p50) ? `wide spread between members (${st.p10.toFixed(1)}" to ${st.p90.toFixed(1)}")` : agree >= 0.8 ? "members largely agree" : "members partly agree";
+        return { p50: st.p50, p90: st.p90, p10: st.p10, pAny, p1: st.P[1] || 0, used: st.used, total: st.total, conf, why };
+      })() : null;
+      if (!amount) missing.push("ensemble snowfall");
+      const hasDet = win.some((h) => h.det && h.det.length), hasTw = win.some((h) => h.det && h.det.some((d) => d.twF != null)), hasSoil = win.some((h) => h.det && h.det.some((d) => d.soilC != null));
+      if (!hasDet) missing.push("model precipitation type, wet-bulb and ground temperature");
+      else { if (!hasTw) missing.push("wet-bulb temperature"); if (!hasSoil) missing.push("modeled ground temperature"); }
+      /* per hour: consensus snowfall rate, temperature, wet-bulb, ground, model type shares, and hours at or below 32 so far */
+      let cold = 0;
+      const H = hours.map((h) => {
+        const d = h.det || [], wet = d.filter((x) => x.type && x.type !== "none");
+        const T = h.t50 != null ? h.t50 : mean(d.map((x) => x.t2F)), r = h.snow50 != null ? h.snow50 : mean(d.map((x) => x.snowIn));
+        cold = T != null && T <= 32 ? cold + 1 : 0;
+        const snowShare = wet.length ? wet.filter((x) => x.type === "snow" || x.type === "mix").length / wet.length : null, rainShare = wet.length ? wet.filter((x) => x.type === "rain" || x.type === "freezing").length / wet.length : null;
+        const snowy = r != null && r >= K.snowyRate;
+        return { ms: h.ms, inWin: h.inWin, T, r, Tw: mean(d.map((x) => x.twF)), soil: mean(d.map((x) => x.soilC)), snowShare, rainShare, wetModels: wet.length, coldH: cold, snowy,
+          type: !wet.length ? null : snowShare >= 0.5 ? "snow" : "rain" };
+      });
+      const W2 = H.filter((h) => h.inWin), snowyH = W2.filter((h) => h.snowy && h.T != null);
+      const grassAt = (h) => {
+        if (h.T > K.grassWarmT || (h.T > K.grassMildT && h.r < 0.2 && (h.Tw == null || h.Tw > 32))) return 0;
+        let lv = (h.T <= 32 && (h.Tw == null || h.Tw <= 32)) || (h.T <= K.grassMildT && h.r >= K.burstRate) ? 2 : 1;
+        if (lv === 2 && h.soil != null && h.soil > K.warmSoilC && h.r < 0.3) lv = 1;   // mild ground melts light snow
+        return lv;
+      };
+      const pavedAt = (h) => {
+        const groundOk = h.soil == null || h.soil <= 0;
+        if ((h.T <= K.pavedColdT && h.coldH >= K.pavedSoakH && groundOk) || (h.T <= 32 && h.r >= K.heavyRate && h.coldH >= K.pavedShortSoakH)) return 2;
+        if ((h.T <= 32 && (h.r >= K.burstRate || h.coldH >= K.pavedSoakH)) || (h.T <= 33 && h.r >= K.heavyRate)) return 1;
+        return 0;
+      };
+      const LV = ["unlikely", "possible", "favored"];
+      const surface = (fn) => {
+        if (!snowyH.length) return { level: "none", hours: 0, snow: 0 };
+        const lv = snowyH.map(fn), fav = snowyH.filter((h, i) => lv[i] === 2), pos = snowyH.filter((h, i) => lv[i] >= 1);
+        const sum = (a) => a.reduce((t, h) => t + h.r, 0);
+        const level = fav.length >= 2 || sum(fav) >= 0.3 ? "favored" : pos.length && sum(pos) >= 0.1 ? "possible" : "unlikely";
+        return { level, hours: pos.length, favHours: fav.length, snow: sum(pos), byHour: lv };
+      };
+      const grass = surface(grassAt), paved = surface(pavedAt);
+      /* drivers: plain-language reasons, in order of importance */
+      const drivers = [];
+      if (snowyH.length) {
+        const Ts = snowyH.map((h) => h.T), tMin = Math.min(...Ts), tMax = Math.max(...Ts), rMax = Math.max(...snowyH.map((h) => h.r));
+        const rg = (a, b) => (Math.round(a) === Math.round(b) ? `${Math.round(a)}` : `${Math.round(a)}–${Math.round(b)}`);
+        drivers.push(`Air temperature during the snow: ${rg(tMin, tMax)}°F`);
+        const tws = snowyH.map((h) => h.Tw).filter((x) => x != null); if (tws.length) drivers.push(`Wet-bulb ${rg(Math.min(...tws), Math.max(...tws))}°F (at or below 32°F helps snow reach the ground and stick)`);
+        drivers.push(`Heaviest hourly rate about ${rMax.toFixed(rMax < 0.1 ? 2 : 1)}" per hour${rMax >= K.burstRate ? " (heavy enough to overcome some melting)" : rMax < 0.1 ? " (light: melts quickly on anything above freezing)" : ""}`);
+        const maxCold = Math.max(...snowyH.map((h) => h.coldH)); drivers.push(maxCold ? `Up to ${maxCold} hour${maxCold > 1 ? "s" : ""} in a row at or below 32°F by the time snow falls` : "No stretch at or below 32°F while snow falls");
+        const soils = snowyH.map((h) => h.soil).filter((x) => x != null); if (soils.length) drivers.push(`Modeled ground surface ${rg(Math.min(...soils) * 9 / 5 + 32, Math.max(...soils) * 9 / 5 + 32)}°F (ECMWF, ICON, UKMO only)`);
+      }
+      /* when: snowy hours where grass sticking is at least possible, grouped into ranges */
+      const ranges = []; snowyH.forEach((h, i) => { if (grass.byHour[i] < 1) return; const last = ranges[ranges.length - 1]; if (last && h.ms - last.e <= 2 * 3600e3) { last.e = h.ms; last.snow += h.r; } else ranges.push({ s: h.ms, e: h.ms, snow: h.r }); });
+      /* call-outs: a rain-to-snow change, a drop through freezing during precipitation, a heavy burst, mild ground at the start */
+      const callouts = [];
+      const typed = W2.filter((h) => h.type); for (let i = 1; i < typed.length; i++) if (typed[i - 1].type === "rain" && typed[i].type === "snow") { callouts.push({ kind: "transition", ms: typed[i].ms, text: "Models change rain to snow" }); break; }
+      for (let i = 1; i < W2.length; i++) { const a = W2[i - 1], b = W2[i]; if (a.T != null && b.T != null && a.T > 32 && b.T <= 32 && W2.slice(Math.max(0, i - 3), i + 4).some((h) => h.snowy || h.wetModels)) { callouts.push({ kind: "cooling", ms: b.ms, text: "Temperature falls to 32°F during the precipitation" }); break; } }
+      if (snowyH.length) { const pk = snowyH.reduce((a, h) => (h.r > a.r ? h : a)); if (pk.r >= K.burstRate) callouts.push({ kind: "burst", ms: pk.ms, text: `Heaviest burst, about ${pk.r.toFixed(1)}" per hour: rates like this can overcome melting` }); }
+      if (snowyH.length && snowyH[0].soil != null && snowyH[0].soil > K.warmSoilC) callouts.push({ kind: "warmground", ms: snowyH[0].ms, text: `Ground still mild (about ${Math.round(snowyH[0].soil * 9 / 5 + 32)}°F modeled) when snow starts: early snow melts on contact` });
+      callouts.sort((a, b) => a.ms - b.ms);
+      /* conflicting guidance: models split on type during the snowy hours, or ensemble snow with every model raining */
+      const split = snowyH.filter((h) => h.wetModels >= 2 && h.snowShare >= 0.34 && h.rainShare >= 0.34).length;
+      const conflict = !snowyH.length ? null : split >= Math.max(2, snowyH.length / 3) ? "Models split between rain and snow for much of the snow window"
+        : hasDet && snowyH.every((h) => h.wetModels && h.snowShare === 0) ? "Ensemble members show snow but every deterministic model shows rain" : null;
+      const dry = amount ? amount.pAny < 0.1 && (amount.p90 == null || amount.p90 < 0.1) : !snowyH.length;
+      /* without ensemble amounts, "no snow" needs the deterministic models' own snowfall; temperatures alone can't say it stays dry */
+      const status = !amount && (!hasDet || !W2.some((h) => h.T != null)) ? "nodata" : dry ? "dry" : "snow";
+      return { status, amount, grass: { ...grass, word: LV[["unlikely", "possible", "favored"].indexOf(grass.level)] || grass.level }, paved: { ...paved, word: paved.level },
+        drivers, ranges, callouts, conflict, missing, snowyHours: snowyH.length };
+    },
     /* Per calendar day stats (full days in the data, or clipped to [s, e) when given). */
     dayRows(times, members, s = 0, e = times.length) {
       return time.dayGroups(times, s, e).map((d) => ({ k: d.k, idx: d.idx, win: time.windowKey(times, d.idx), hours: d.idx.length, st: winter.windowStats(members, d.idx[0], d.idx[d.idx.length - 1] + 1) }));

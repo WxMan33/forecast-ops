@@ -75,18 +75,19 @@
 
   /* ---------- shell ---------- */
   const PAGES = [
+    /* the four core tools after Overview, then Maps (supporting analysis), then Events (a separate workflow). Thunder lives
+       under Severe: its page keeps its own address and the Severe tab is marked current there. */
     { href: "index.html", id: "home", label: "OVERVIEW", icon: "grid" },
-    { href: "event-beta.html#upcoming", id: "events", label: "EVENTS", icon: "calendar" },
     { href: "blend.html", id: "blend", label: "MODEL BLEND", icon: "layers" },
-    { href: "thunder.html", id: "thunder", label: "THUNDER", icon: "zap" },
-    { href: "severe.html", id: "severe", label: "SEVERE", icon: "tornado" },
+    { href: "severe.html", id: "severe", label: "SEVERE", icon: "tornado", also: ["thunder"] },
     { href: "winter.html", id: "winter", label: "WINTER", icon: "snow" },
     { href: "almanac.html", id: "almanac", label: "ALMANAC", icon: "sun" },
     { href: "maps.html", id: "maps", label: "MAPS", icon: "map" },
+    { href: "event-beta.html#upcoming", id: "events", label: "EVENTS", icon: "calendar" },
   ];
 
   /* opts: { subtitle, forecastPoint (default true): show the forecast point and its NWS alerts } */
-  const SUBTITLES = { betamenu: "Meteorologist beta · choose a tool", home: "Next three days at a glance", blend: "Weighted guidance from models, ensembles and NWS", thunder: "Hour-by-hour thunder signal", severe: "Severe-weather environment by hour", winter: "Snow odds, precipitation type and profiles", almanac: "Sun, moon and daily climate for the selected point", maps: "In development · HRRR 3 km, Cincinnati Tri-State only" };
+  const SUBTITLES = { betamenu: "Meteorologist beta · choose a tool", home: "Start of shift: what needs attention, and where to work", blend: "Weighted guidance from models, ensembles and NWS", thunder: "Severe · when storms might happen: thunder signal hour by hour", severe: "Severe · what could make storms severe: shear, helicity, soundings", winter: "Snow odds, precipitation type and profiles", almanac: "Sun, moon and daily climate for the selected point", maps: "In development · HRRR 3 km, Cincinnati Tri-State only" };
   function shell(pageId, title, opts = {}) {
     const fp = opts.forecastPoint !== false, sub = opts.subtitle || SUBTITLES[pageId] || "";
     document.title = `${title} · ${BRAND.name}`;
@@ -118,7 +119,7 @@
     const menuLink = () => shareUrl("meteorologist-beta.html");
     const navHref = (p) => (p.id === "maps" || p.id === "events" ? p.href : shareUrl(p.href)); // the HRRR map is Tri-State only and events carry their own venue: no point to carry
     nav.innerHTML = (betaMenu ? `<a href="${esc(menuLink())}" id="betaMenuLink"${pageId === "betamenu" ? ' aria-current="page"' : ""}>${icon("grid")}MENU</a>` : "") + PAGES.filter((p) => !betaMenu || p.id !== "home").map((p) =>
-      `<a href="${esc(navHref(p))}" data-nav="${p.id}"${p.id === pageId ? ' aria-current="page"' : ""}>${icon(p.icon)}${p.label}</a>`).join("");
+      `<a href="${esc(navHref(p))}" data-nav="${p.id}"${p.id === pageId || (p.also || []).includes(pageId) ? ' aria-current="page"' : ""}>${icon(p.icon)}${p.label}</a>`).join("");
     /* every way into a tool carries the selected point, so a copied nav link opens the same place for anyone */
     locListeners.push(() => {
       const a = document.getElementById("betaMenuLink"); if (a) a.href = menuLink();
@@ -849,9 +850,23 @@
     draw();
   }
 
+  /* Severe tab: two views of one question each, plus the experimental products. Storm timing is the thunder page (its own
+     address, location and settings unchanged); severe ingredients is the severe page. Links carry the forecast point. */
+  function severeViews(host, active) {
+    if (!host) return;
+    const V = [
+      { id: "thunder", href: "thunder.html", q: "When might storms happen?", label: "Storm timing", sub: "Thunder signal hour by hour, instability, NWS thunder chance" },
+      { id: "severe", href: "severe.html", q: "What could make them severe?", label: "Severe ingredients", sub: "Shear, helicity, composite parameters, soundings" },
+    ];
+    const draw = () => {
+      host.innerHTML = `<nav class="viewtabs" aria-label="Severe views">${V.map((v) => `<a class="viewtab" href="${esc(shareUrl(v.href))}"${v.id === active ? ' aria-current="page"' : ""}><span class="vt-q">${esc(v.q)}</span><span class="vt-l">${esc(v.label)}</span><span class="vt-s">${esc(v.sub)}</span></a>`).join("")}</nav>
+        <p class="viewtabs-x"><span class="flag">EXPERIMENTAL</span> <a href="${esc(shareUrl("severe.html#severe-daily"))}">Daily severe probability research and historical replays</a> sit under Severe ingredients.</p>`;
+    };
+    draw(); locListeners.push(draw);
+  }
   window.Ops = {
     pct5, Core, BRAND, PRESETS, TIER, maxTier, badge, $, esc, store, css, icon,
-    shell, beginLoad, pristine, onAlerts, searchPlaces, zoneFor, stateAbbr, onLocation: (f) => locListeners.push(f), get alertState(){return alertState;}, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
+    shell, severeViews, beginLoad, pristine, onAlerts, searchPlaces, zoneFor, stateAbbr, onLocation: (f) => locListeners.push(f), get alertState(){return alertState;}, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
     Data, getJSON, hasData, savedWeights, savedDays, align: Core.stats.align,
     nowIndex, hourOf, dayOf, fmtDay, fmtHour, fmtWhen, tzShort, hourLabels, dayGroups,
     blendSeries: Core.stats.blendSeries, weightedQuantile: Core.stats.weightedQuantile,

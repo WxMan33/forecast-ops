@@ -25,13 +25,13 @@
     if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
   });
 })();</script><!--/load-guard-->
-<link rel="stylesheet" href="assets/ops.css?v=35098c1775">
+<link rel="stylesheet" href="assets/ops.css?v=b3e4017ccd">
 </head>
-<body>
+<body class="winter-page">
 <main class="workspace">
   <aside class="side">
     <section class="card tight" id="locCard"></section>
-    <section class="card tight">
+    <section class="card tight" id="winCard">
       <div class="section-title">Event window</div>
       <div class="row">
         <div><label class="field-label" for="win">From now</label>
@@ -44,6 +44,10 @@
 
   <div class="main">
 
+    <section class="card wread" id="winterRead" aria-labelledby="wrTitle">
+      <div class="section-title" id="wrTitle">How much could stick, and when</div>
+      <p class="msg" id="wrBody">Loading guidance…</p>
+    </section>
     <section class="card" id="changes" hidden></section>
     <h2 class="group-title">Accumulation guidance</h2>
     <section class="card">
@@ -110,10 +114,10 @@
 </main>
 
 <script src="assets/vendor/chart.umd-4.4.1.js?v=74401d738d"></script>
-<script src="assets/ops-core.js?v=c9a243d88e"></script>
+<script src="assets/ops-core.js?v=e8cacffda6"></script>
 <script src="assets/ops-data.js?v=68a540c59e"></script>
-<script src="assets/ops.js?v=aff82b64f5"></script>
-<script src="assets/winter.js?v=b41b9290ce"></script>
+<script src="assets/ops.js?v=3544ea12ce"></script>
+<script src="assets/winter.js?v=0c54c80832"></script>
 <script src="assets/table-pages.js?v=5852a434bf"></script>
 </body>
 </html>

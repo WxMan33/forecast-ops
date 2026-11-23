@@ -84,7 +84,7 @@
     if (!data) {
       $("odds").innerHTML = '<tbody><tr><td class="msg">No ensemble loaded yet.</td></tr></tbody>';
       $("daily").innerHTML = ""; if (chart) { chart.destroy(); chart = null; } $("legend").innerHTML = "";
-      $("ptCard").innerHTML = '<div class="section-title">Precipitation type &amp; transitions</div><p class="msg unavail">Needs the ensemble window; nothing loaded yet. Use FETCH ENSEMBLES to try again.</p>'; $("amtCard").innerHTML = ""; return;
+      $("ptCard").innerHTML = '<div class="section-title">Precipitation type &amp; transitions</div><p class="msg unavail">Needs the ensemble window; nothing loaded yet. Use FETCH ENSEMBLES to try again.</p>'; $("amtCard").innerHTML = ""; renderRead(null); return;
     }
     data.ctx = O.eventContext(data);
     const mem = pool("snow"), { s, e } = windowIdx();
@@ -110,8 +110,9 @@
         return `${r(C.nws.totalOver(A.snow, w.startMs, w.endMs), 1)} · ${r(C.nws.totalOver(A.ice, w.startMs, w.endMs), 2)}`;
       } },
     ], { note: "Snow that falls during each phase, from members covering every hour of it." });
-    if (!mem.length) { $("odds").innerHTML = '<tbody><tr><td class="msg">Check at least one ensemble.</td></tr></tbody>'; O.headline({ tier: "nodata" }); renderChart(); return; }
+    if (!mem.length) { $("odds").innerHTML = '<tbody><tr><td class="msg">Check at least one ensemble.</td></tr></tbody>'; O.headline({ tier: "nodata" }); renderRead(null, s, e); renderChart(); return; }
     const st = W.windowStats(mem, s, e);
+    renderRead(st, s, e);
     const tier = W.tier(st);
     const problems = [...data.problems];
     if (st.used < st.total) problems.push(`${st.total - st.used} of ${st.total} members don't cover every hour of the window and were left out of the odds`);
@@ -168,6 +169,72 @@
     ], NAMES);
     renderChart();
     renderDiag(data.ms[s], data.ms[e - 1]);
+  }
+
+  /* ===================== interpreted read (top of page) =====================
+     Snowfall potential from the ensemble window stats; what could stick and when from W.stickRead, which combines the
+     ensemble median hourly snow and temperature with each deterministic model's type, wet-bulb and ground temperature. */
+  const LEAD_H = 12;   // hours before the window that feed "how long has it been at or below 32°F"
+  function readHours(s, e) {
+    const a = Math.max(0, s - LEAD_H), snow = pool("snow"), temp = pool("temp");
+    const sn = snow.length ? quantileSeries(snow, snow.map((m) => m.a.slice(a, e)), e - a, [0.5, 0.9]) : [[], []];
+    const tp = temp.length ? quantileSeries(temp, temp.map((m) => m.a.slice(a, e)), e - a, [0.5])[0] : [];
+    const detIdx = det ? new Map(det.ms.map((m, i) => [m, i])) : null, ids = det ? DET.map((m) => m.id).filter((id) => det.rows[id]) : [];
+    const out = [];
+    for (let i = a; i < e; i++) {
+      const k = i - a, j = detIdx ? detIdx.get(data.ms[i]) : undefined;
+      out.push({ ms: data.ms[i], inWin: i >= s, snow50: sn[0][k] ?? null, snow90: sn[1][k] ?? null, t50: tp[k] ?? null,
+        det: j == null ? [] : ids.map((id) => { const r = det.rows[id][j]; return { type: r.wet ? r.codeType || r.split : "none", t2F: r.t2F, twF: r.twF, soilC: r.soilC, snowIn: r.snowIn }; }) });
+    }
+    return out;
+  }
+  const LVL = { favored: ["Favored", "var(--prepare)"], possible: ["Possible", "var(--monitor)"], unlikely: ["Unlikely", "var(--normal)"], none: ["No snow", "var(--nodata)"] };
+  function renderRead(st, s, e) {
+    const box = $("wrBody").parentNode;
+    if (!data || s == null) { box.innerHTML = `<div class="section-title" id="wrTitle">How much could stick, and when</div><p class="msg">${data ? "Check at least one ensemble to build the read." : "No guidance loaded yet. Use FETCH ENSEMBLES to try again."}</p><p id="wrBody" hidden></p>`; return; }
+    const R = W.stickRead(readHours(s, e), st && st.used ? st : null), A = R.amount, tz = O.tzShort(data.tz);
+    const at = (ms) => { const i = data.ms.indexOf(ms); return i < 0 ? "" : O.fmtWhen(data.times[i]); };
+    const span = (r) => { if (r.s === r.e) return at(r.s); const a = at(r.s), b = at(r.e + 3600e3) || at(r.e), d = a.split(" ")[0]; return `${a}–${b.startsWith(d + " ") ? b.slice(d.length + 1) : b}`; };
+    const winLbl = `${O.fmtWhen(data.times[s])} to ${O.fmtWhen(data.times[e - 1])} ${tz}`;
+    const lvl = (k) => `<span class="badge" style="--b:${LVL[k][1]}">${LVL[k][0].toUpperCase()}</span>`;
+    const CONF = { high: "var(--normal)", moderate: "var(--monitor)", low: "var(--prepare)" };
+    let amt;
+    if (!A) amt = `<p class="msg">Ensemble snowfall is unavailable, so there is no amount to show.</p>`;
+    else amt = `<div class="wr-nums"><div><b>${inch(A.p50)}</b><span>typical (median)</span></div><div><b>${inch(A.p90)}</b><span>higher outcome (1 in 10)</span></div></div>
+      <p class="wr-line">${pct(A.pAny)} of members give measurable snow (0.1"+), ${pct(A.p1)} give 1"+.</p>
+      <p class="wr-line"><span class="badge" style="--b:${CONF[A.conf]}">${A.conf.toUpperCase()} CONFIDENCE</span> ${O.esc(A.why)} · ${A.used}/${A.total} members.</p>`;
+    const snowfallNote = `<p class="wr-note">Modeled snowfall, at a 7:1 ratio, before melting. Not snow depth.</p>`;
+    let stick, when;
+    if (R.status === "nodata") {
+      stick = `<p class="wr-line">Not enough guidance to judge what could stick. Missing: ${O.esc(R.missing.join(", ") || "temperatures")}.</p>`; when = `<p class="wr-line">Can't tell without snowfall guidance.</p>`;
+    } else if (R.status === "dry" || !R.snowyHours) {
+      stick = `<div class="wr-surf"><div><span>Grass &amp; elevated</span>${lvl("none")}</div><div><span>Paved roads</span>${lvl("none")}</div></div><p class="wr-line">Little or no snow in the guidance for this window, so there is nothing to stick.${A ? "" : " Only part of the guidance loaded (no ensemble snowfall), so treat this as low confidence."}</p>`;
+      when = `<p class="wr-line">No snow window.</p>`;
+    } else {
+      stick = `<div class="wr-surf"><div><span>Grass &amp; elevated surfaces</span>${lvl(R.grass.level)}</div><div><span>Paved roads &amp; sidewalks</span>${lvl(R.paved.level)}</div></div>
+        <p class="wr-note">Bridges and untreated roads: not assessed (no pavement or bridge-deck temperature guidance).</p>
+        <details class="wr-why"${matchMedia("(min-width: 901px)").matches ? " open" : ""}><summary>What's driving it</summary><ul class="wr-drivers">${R.drivers.map((d) => `<li>${O.esc(d)}</li>`).join("")}</ul></details>`;
+      when = (R.ranges.length ? `<p class="wr-line"><b>${R.ranges.map(span).join(", ")}</b> ${tz}</p><p class="wr-note">Hours with snow falling where sticking on grass is at least possible.</p>` : `<p class="wr-line">Snow falls ${O.esc(at(R.snowyHours ? R.ranges[0]?.s : null) || "in the window")} but sticking looks unlikely in every hour.</p>`) +
+        (R.callouts.length ? `<ul class="wr-call">${R.callouts.map((c) => `<li><b>${O.esc(at(c.ms))}</b> · ${O.esc(c.text)}</li>`).join("")}</ul>` : "");
+    }
+    const warn = [R.conflict ? `<b>Conflicting guidance.</b> ${O.esc(R.conflict)}. Treat the sticking read as low confidence.` : "", R.missing.length ? `<b>Missing:</b> ${O.esc(R.missing.join(", "))}. The read uses what remains.` : ""].filter(Boolean);
+    const K = W.STICK;
+    box.innerHTML = `<div class="section-title" id="wrTitle">How much could stick, and when</div>
+      <p class="section-sub">${winLbl} · selected window<span class="wr-disc"> · an interpretation of the guidance below, not an official forecast</span></p>
+      ${warn.length ? `<div class="wr-warn" role="note">${warn.map((w) => `<p>${w}</p>`).join("")}</div>` : ""}
+      <div class="wr-grid">
+        <div class="wr-cell"><div class="wr-h">Snowfall potential</div>${amt}${snowfallNote}</div>
+        <div class="wr-cell"><div class="wr-h">What could stick</div>${stick}</div>
+        <div class="wr-cell"><div class="wr-h">When it could stick</div>${when}</div>
+      </div>
+      <details class="wr-how"><summary>How this read is made</summary><div class="stack">
+        <div><b>Amounts</b> are the weighted median and 90th percentile of ensemble members that cover every hour of the window. Confidence is low when fewer than 60% of members cover the window or members split on whether any snow falls; high when 80%+ agree and the 10–90% spread is no wider than the median (or 1").</div>
+        <div><b>Grass and elevated surfaces</b> hour by hour: favored when air and wet-bulb are at or below 32°F, or air is ${K.grassMildT}°F or colder with ${K.burstRate}"+ per hour; unlikely above ${K.grassWarmT}°F, or above ${K.grassMildT}°F in light snow with wet-bulb above 32°F; possible between. Modeled ground above ${Math.round(K.warmSoilC * 9 / 5 + 32)}°F knocks light snow (under 0.3"/h) down a level.</div>
+        <div><b>Paved surfaces</b> need longer cold or heavier rates: favored at ${K.pavedColdT}°F or colder after ${K.pavedSoakH}+ hours at or below 32°F (ground not above freezing), or at 32°F or colder with ${K.heavyRate}"+ per hour after ${K.pavedShortSoakH}+ cold hours; possible at 32°F or colder with ${K.burstRate}"+ per hour or ${K.pavedSoakH}+ cold hours. No amount is given for pavement.</div>
+        <div>A surface is <i>favored</i> when 2+ snowy hours (${K.snowyRate}"+/h) or 0.3"+ of snow fall in favored hours; <i>possible</i> when 0.1"+ falls in possible-or-better hours. Hourly snow and temperature are ensemble medians; type, wet-bulb and ground come from the deterministic models (ground: ECMWF, ICON, UKMO only).</div>
+        <div><b>Limits.</b> These are rules of thumb, not a calibrated model. There are no observations, pavement or bridge temperatures, treatment or snow-depth data here. Modeled snowfall, snow depth and what sticks are different things.</div>
+      </div></details>
+      <p id="wrBody" hidden></p>`;
   }
 
   function quantileSeries(mem, arrs, n, qs) {
