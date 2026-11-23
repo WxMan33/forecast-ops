@@ -31,7 +31,8 @@ const items = [
   { id: "old", startMs: 50, status: st({ endMs: 1, now: 2 }) },
 ];
 const o = E.order(items);
-eq([o.live.map((x) => x.id), o.past.map((x) => x.id)], [["rain", "soon", "late"], ["old"]], "needs a weather decision first, then by start time; past separately");
+eq([o.live.map((x) => x.id), o.past.map((x) => x.id)], [["soon", "rain", "late"], ["old"]], "upcoming events in start order whatever their status; past separately");
+eq(o.live.find((x) => x.id === "rain").status.key, "concern", "the weather concern keeps its status for highlighting");
 
 /* storage: two matches at one venue, defaults reused, one per-event override, both back after a reload */
 const v = E.saveVenue({ name: "TQL Stadium", city: "Cincinnati, OH", lat: 39.1111, lon: -84.5222, tz: "America/New_York", defaults: tql });
