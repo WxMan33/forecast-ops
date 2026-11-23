@@ -43,7 +43,11 @@
    "model_init_time": "2026-11-22T12:00:00+00:00",
    "valid_start": "2026-11-23T12:00:00+00:00",
    "valid_end": "2026-11-24T12:00:00+00:00",
-   "report_points": null
+   "report_points": null,
+   "reports": {
+    "status": "not_applicable",
+    "note": "Saved forecast: its valid window has no verified reports in this preview."
+   }
   },
   {
    "id": "replay-2024-05-25",
@@ -57,7 +61,14 @@
    "model_init_time": "2024-05-25T12:00:00+00:00",
    "valid_start": "2024-05-26T12:00:00+00:00",
    "valid_end": "2024-05-27T12:00:00+00:00",
-   "report_points": 3455
+   "report_points": 3455,
+   "reports": {
+    "status": "available",
+    "file": "reports-2024-05-25.json",
+    "sha256": "30d05a31509c82620ddbec41d0c1bbe082b882b80da0f03bca353445ac006a41",
+    "count": 776,
+    "uncertain": 0
+   }
   },
   {
    "id": "replay-2024-09-27",
@@ -71,7 +82,14 @@
    "model_init_time": "2024-09-27T12:00:00+00:00",
    "valid_start": "2024-09-28T12:00:00+00:00",
    "valid_end": "2024-09-29T12:00:00+00:00",
-   "report_points": 0
+   "report_points": 0,
+   "reports": {
+    "status": "available",
+    "file": "reports-2024-09-27.json",
+    "sha256": "6f77a0497fec47489c6077b261ffec26fdbe5211d5d1dc0fcd6674b14ed072ce",
+    "count": 0,
+    "uncertain": 0
+   }
   },
   {
    "id": "replay-2024-05-14",
@@ -85,7 +103,14 @@
    "model_init_time": "2024-05-14T12:00:00+00:00",
    "valid_start": "2024-05-15T12:00:00+00:00",
    "valid_end": "2024-05-16T12:00:00+00:00",
-   "report_points": 466
+   "report_points": 466,
+   "reports": {
+    "status": "available",
+    "file": "reports-2024-05-14.json",
+    "sha256": "6d1cb70abc3b4c5cf221efe8e5170df6f81ef676e7212337745182ed78acb2c7",
+    "count": 36,
+    "uncertain": 0
+   }
   }
  ],
  "current_run": {
@@ -259,5 +284,9 @@
   }
  },
  "built_at": "2026-11-23T04:25:50.735399+00:00",
- "protected_2025_outcomes_accessed": false
+ "protected_2025_outcomes_accessed": false,
+ "reports_source": {
+  "file": "StormEvents_details-ftp_v1.0_d2024_c20260728.csv.gz",
+  "sha256": "2070b83eccab041b36360ab73645b9a249c3eefc5b92b5b3fc0cbba4d9fcc09c"
+ }
 }
