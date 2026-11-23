@@ -869,3 +869,8 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .pv-hours td.pv-time{white-space:normal !important}
 /* phones: the workspace panel spans the screen (with a margin) wherever the Workspace button lands in the header */
 @media (max-width:600px){.up-head{position:relative}.up-wsmenu{position:static}.up-wspop{left:0;right:0;width:auto;top:calc(100% + 6px);max-height:75vh;overflow:auto}}
+
+/* totals strip: a total whose hazard has a concern is marked in the concern's colour, like the hourly rows */
+.evc-totals>.evc-tconcern{border-left:4px solid var(--tier);background:color-mix(in srgb,var(--tier) 14%,transparent);margin:0 -12px;padding:4px 12px 4px 8px}
+.evc-tbadge{display:inline-block;font-weight:800;font-size:11px;letter-spacing:.03em;text-transform:uppercase;color:var(--tier);border:1px solid var(--tier);border-radius:5px;padding:0 5px}
+.evc-thours{font-weight:700}

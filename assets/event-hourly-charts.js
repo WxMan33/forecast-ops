@@ -63,12 +63,21 @@
     ];
     const text = (key, i) => rows[key]?.cells[i]?.text ?? "—";
  /* event totals strip: whole-event blend totals with the spread across sources, the heaviest hour, snow when present, type sequence */
+ /* a total whose hazard has a concern in these hours (the briefing engine's tiers, as in the hourly rows) is marked in
+    that colour, with the level word and the hours it covers */
+ const RANKT={monitor:1,prepare:2,action:3};
+ const concernOf=key=>{const r=rows[key];if(!r)return null;const cs=r.cells.map((c,i)=>({c,i})).filter(x=>x.c&&x.c.state==='concern');if(!cs.length)return null;
+  const top=cs.reduce((a,x)=>(RANKT[x.c.tier]||0)>(RANKT[a.c.tier]||0)?x:a),f=V.axis[cs[0].i],l=V.axis[cs[cs.length-1].i],nx=V.axis[cs[cs.length-1].i+1];
+  return {tier:top.c.tier||'monitor',word:top.c.text||'Concern',why:top.c.why||'',hours:`${f.hourText}–${nx?nx.hourText:l.hourText}`}};
+ const flag=(c,kind)=>c?` data-concern="${esc(c.tier)}" class="evc-tconcern" style="--tier:var(--${esc(c.tier)})" title="${esc(c.why||`${kind} concern`)}"`:'';
+ const badge=(c,kind)=>c?`<span class="evc-tbadge">${esc(kind)}: ${esc(c.word)}</span> <span class="evc-thours">${esc(c.hours)}</span> · `:'';
  const totalsHtml=(()=>{const T=V.totals;if(!T)return'';const f2=v=>fin(v)?v.toFixed(2):'—',f1=v=>fin(v)?v.toFixed(1):'—',lb=T.gap?'at least ':'';
   const at=ms=>{const a=V.axis.find(x=>x.ms===ms);return a?a.hourText:''};
   const rng=(r,f)=>r&&fin(r[0])&&fin(r[1])&&r[1]-r[0]>=0.01?` <span class="evc-tnote">(models ${f(r[0])}–${f(r[1])} in.)</span>`:'';
   const lines=[];
-  lines.push(`<div data-total="qpf"><b>Rain</b> event total <b>${lb}${f2(T.qpf)} in.</b>${rng(T.qpfR,f2)}${T.peakQ?` · heaviest hour <b>${f2(T.peakQ.v)} in.</b> <span class="evc-tnote">${esc(at(T.peakQ.ms))}</span>`:''}</div>`);
-  if((fin(T.sn)&&T.sn>=0.05)||(T.peakSn&&T.peakSn.v>=0.02))lines.push(`<div data-total="sn"><b>Snow</b> event total <b>${lb}${f1(T.sn)} in.</b>${rng(T.snR,f1)}${T.peakSn?` · heaviest hour <b>${f1(T.peakSn.v)} in.</b> <span class="evc-tnote">${esc(at(T.peakSn.ms))}</span>`:''} <span class="evc-tnote">modeled snowfall (7:1), before melting</span></div>`);
+  const rc=concernOf('hz-rain'),sc=concernOf('hz-snow');
+  lines.push(`<div data-total="qpf"${flag(rc,'Rain')}>${badge(rc,'Rain')}<b>Rain</b> event total <b>${lb}${f2(T.qpf)} in.</b>${rng(T.qpfR,f2)}${T.peakQ?` · heaviest hour <b>${f2(T.peakQ.v)} in.</b> <span class="evc-tnote">${esc(at(T.peakQ.ms))}</span>`:''}</div>`);
+  if((fin(T.sn)&&T.sn>=0.05)||(T.peakSn&&T.peakSn.v>=0.02))lines.push(`<div data-total="sn"${flag(sc,'Snow')}>${badge(sc,'Snow')}<b>Snow</b> event total <b>${lb}${f1(T.sn)} in.</b>${rng(T.snR,f1)}${T.peakSn?` · heaviest hour <b>${f1(T.peakSn.v)} in.</b> <span class="evc-tnote">${esc(at(T.peakSn.ms))}</span>`:''} <span class="evc-tnote">modeled snowfall (7:1), before melting</span></div>`);
   if(T.types&&T.types.some(k=>k!=='rain'))lines.push(`<div data-total="type"><b>Type</b> ${T.types.map(k=>({rain:'Rain',mix:'Mix',snow:'Snow'})[k]).join(' → ')}</div>`);
   return `<div class="evc-totals" title="Blend over setup through teardown (whole hours). Ranges are the 10th–90th percentile of the contributing sources' event totals.${T.gap?` ${T.gap} hour${T.gap>1?'s':''} without guidance, so totals are lower bounds.`:''}">${lines.join('')}</div>`})();
     const value = (spec, i) => {
