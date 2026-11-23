@@ -902,9 +902,16 @@
     return `<div class="px-status av-status" data-av-summary><div class="px-status-l">${esc(viewName())} · ${esc(S.scope === "venue" ? "venue" : "national map")}</div><div class="px-status-h">${esc(a.head)}</div><dl class="px-rows av-rows">${a.rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd class="${un(v) ? "av-un" : ""}">${esc(v)}</dd>`).join("")}</dl></div>`;
   }
   const avOnlyNote = () => `<div class="px-h">Other hazards</div><p class="px-empty">Only Aviation is on. Turn on warnings and other hazards in Layers.</p>`;
+  /* the national grouping only changes when the active products (or their drawn outlines) change: reuse it between redraws */
+  let groupMemo = { key: null, groups: null };
+  function groupsNow() {
+    const list = active(), key = list.map((p) => p.id + "|" + (p.updated || p.issued || "") + "|" + (p.geometry ? p.geometry.type + (p.geometry.coordinates || []).length + ":" + ((p.geometry.coordinates || [])[0] || []).length + (p.geometryIncomplete ? "i" : "") : 0)).join(",");
+    if (groupMemo.key !== key) groupMemo = { key, groups: T.group(list, PLACES) };
+    return groupMemo.groups;
+  }
   function nationalActive() {
     if (avOnly()) return avSummaryCard() + notices() + avControls() + airportsSection() + enrouteSection() + avOnlyNote();
-    const groups = T.group(active(), PLACES);
+    const groups = groupsNow();
     let h = venueStrip() + notices() + `<div class="px-h"><span>Most urgent now</span><span>${groups.reduce((n, g) => n + g.items.length, 0)} active</span></div>`;
     if (!groups.length) h += `<p class="px-empty">${!srcOn("alerts") ? "The layers on now don't include NWS warnings and watches." : activeKnown() ? "No active " + alertWords() + " warnings, watches or advisories" + (srcOn("md") ? ", and no SPC Mesoscale Discussions," : "") + " in the U.S." : (known("alerts") ? "No active " + alertWords() + " warnings, watches or advisories in the U.S. (NWS checked " + esc(t(data.sources.alerts.lastOk)) + "). SPC Mesoscale Discussion status is unknown." : "None in the data we have, but NWS warnings and watches are not confirmed (see below).")}</p><p class="lg-note">${esc(SCOPE_NOTE)}</p>`;
     for (const g of groups) {

@@ -82,8 +82,15 @@
     for (const r1 of P1) for (const r2 of P2) {
       const a = r1[0], b = r2[0];
       if (!a || !b || !bboxOverlap(ringBox(a), ringBox(b))) continue; // these two rings can't share ground
-      if (a.some((p) => inRing(p, b)) || b.some((p) => inRing(p, a))) return true;
-      for (let i = 1; i < a.length; i++) for (let j = 1; j < b.length; j++) if (segmentsCross(a[i - 1], a[i], b[j - 1], b[j])) return true;
+      /* any shared ground lies inside both rings' boxes: only points and edges inside that common box can count (the same answer
+         as testing every one, much less work for large detailed outlines that only meet at an edge) */
+      const ba = ringBox(a), bb = ringBox(b), x = [Math.max(ba[0], bb[0]), Math.max(ba[1], bb[1]), Math.min(ba[2], bb[2]), Math.min(ba[3], bb[3])];
+      const inX = (p) => p[0] >= x[0] && p[0] <= x[2] && p[1] >= x[1] && p[1] <= x[3];
+      if (a.some((p) => inX(p) && inRing(p, b)) || b.some((p) => inX(p) && inRing(p, a))) return true;
+      const segs = (r) => { const out = []; for (let i = 1; i < r.length; i++) { const p = r[i - 1], q = r[i]; if (Math.max(p[0], q[0]) >= x[0] && Math.min(p[0], q[0]) <= x[2] && Math.max(p[1], q[1]) >= x[1] && Math.min(p[1], q[1]) <= x[3]) out.push([p, q]); } return out; };
+      const sa = segs(a), sb = segs(b);
+      for (const [p, q] of sa) { const w = Math.min(p[0], q[0]), e = Math.max(p[0], q[0]), s = Math.min(p[1], q[1]), n = Math.max(p[1], q[1]);
+        for (const [r, t] of sb) if (Math.max(r[0], t[0]) >= w && Math.min(r[0], t[0]) <= e && Math.max(r[1], t[1]) >= s && Math.min(r[1], t[1]) <= n && segmentsCross(p, q, r, t)) return true; }
     }
     return false;
   }
