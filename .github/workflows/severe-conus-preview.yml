@@ -1,0 +1,107 @@
+name: Severe CONUS research preview feed (research)
+# Builds the static CONUS Day 2 damaging-wind preview feed from the frozen CONUS boosted-tree
+# candidate and pushes it to the preview branch named in the request. Replays use archived 2024
+# extraction outputs; the current run (optional) is a fresh audited HRRR extraction without labels.
+# Never touches main, the live Severe feed, the publisher, the registry or the RRFS/NBM collector.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-preview/request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-preview
+  cancel-in-progress: false
+jobs:
+  current:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r tools/severe/requirements.txt scikit-learn==1.9.1 shapely==2.2.0
+      - name: Current audited HRRR extraction + frozen model (no labels)
+        run: |
+          mkdir -p tests/out/current
+          day=$(jq -r .current_issue_date research/severe/conus-preview/request.json)
+          if ! PYTHONPATH=tools/severe python3 tools/severe/conus_preview_build.py current --issue-date "$day" \
+               --work tests/out/cwork --output "tests/out/current/current-$day.json" > tests/out/current/log.txt 2>&1; then
+            tail -c 1500 tests/out/current/log.txt > tests/out/current/blocker.txt; cat tests/out/current/blocker.txt
+          fi
+          tail -5 tests/out/current/log.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preview-current
+          path: tests/out/current
+          retention-days: 30
+  build:
+    needs: current
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r tools/severe/requirements.txt scikit-learn==1.9.1 shapely==2.2.0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: severe-conus-*
+          merge-multiple: true
+          path: tests/out/cohort
+          run-id: 44577990940
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: severe-conus-*
+          merge-multiple: true
+          path: tests/out/x
+          run-id: 44942885255
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: severe-conus-*
+          merge-multiple: true
+          path: tests/out/x2
+          run-id: 44961446546
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: preview-current
+          path: tests/out/current
+      - name: Build the preview feed
+        run: |
+          for d in tests/out/x2/conus/*/; do rm -rf "tests/out/x/conus/$(basename "$d")"; cp -r "$d" tests/out/x/conus/; done
+          cur=$(ls tests/out/current/current-*.json 2>/dev/null | head -1 || true)
+          PYTHONPATH=tools/severe python3 tools/severe/conus_preview_build.py build --conus tests/out/x/conus \
+            --cohort tests/out/cohort/conus ${cur:+--current "$cur"} --current-blocker tests/out/current/blocker.txt \
+            --output tests/out/feed
+          ls -la tests/out/feed
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preview-feed
+          path: tests/out/feed
+          retention-days: 30
+      - name: Push the feed to the preview branch
+        run: |
+          branch=$(jq -r .preview_branch research/severe/conus-preview/request.json)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch -q origin "$branch"
+          git worktree add -q ../preview "origin/$branch"
+          mkdir -p ../preview/assets/severe-conus
+          rm -f ../preview/assets/severe-conus/*.json
+          cp tests/out/feed/*.json ../preview/assets/severe-conus/
+          cd ../preview
+          git add assets/severe-conus
+          git commit -q -m "CONUS research preview feed (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3; do git push origin "HEAD:$branch" && exit 0; git pull -q --rebase origin "$branch"; sleep 5; done
+          exit 1
