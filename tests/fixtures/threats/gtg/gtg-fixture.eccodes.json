@@ -96,7 +96,15 @@
      "lon": -107.665847,
      "value": 0.108
     }
-   ]
+   ],
+   "routePeak": {
+    "note": "the Cincinnati-Newark replay case's peak cell (10,000 ft, +12 h), read by ecCodes",
+    "i": 1401,
+    "j": 626,
+    "lat": 39.806137,
+    "lon": -79.771709,
+    "value": 0.23700000000000002
+   }
   },
   "12|9753": {
    "file": "gtg-2026112300-f012-edparm-32000ft.grib2",
