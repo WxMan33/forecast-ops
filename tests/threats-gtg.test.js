@@ -43,4 +43,52 @@ ok("bad input is refused, never drawn: not GRIB, truncated, or another edition",
   assert.throws(() => G.decode(Buffer.from("nope")), /not a GRIB/); assert.throws(() => G.decode(b.subarray(0, 5000)), /truncated/);
   const c = Buffer.from(b); c[7] = 1; assert.throws(() => G.decode(c), /edition 2/);
 });
+/* ---------- Planner: modeled turbulence along a route (synthetic fields on the real GTG grid) ---------- */
+{
+  const cyc = Date.parse("2026-11-23T00:00:00Z"), now = Date.parse("2026-11-23T02:00:00Z"), CVG = [-84.67, 39.05], EWR = [-74.17, 40.69];
+  const blank = () => ({ grid: d.grid, field: new Float32Array(d.field.length).fill(0.05), product: d.product });
+  // a moderate patch (EDR 0.30) around 40.0N 79.0W: on the CVG-EWR line, about 280 miles from CVG
+  const patch = (dec, lon, lat, km, v) => { const P = G.projection(dec.grid); const [ci, cj] = P.ij(lon, lat), r = km / 3; for (let j = Math.floor(cj - r); j <= cj + r; j++) for (let i = Math.floor(ci - r); i <= ci + r; i++) if ((i - ci) ** 2 + (j - cj) ** 2 <= r * r) dec.field[j * dec.grid.nx + i] = v; return dec; };
+  const lowPatch = patch(blank(), -79.0, 40.05, 30, 0.30), calm = blank();
+  const run = (route, fieldsFor, extra = {}) => { const plan = G.routePlan(route, cyc, now), fields = [], failed = [];
+    for (const h of plan.hours) for (const l of plan.levels) { const dec = fieldsFor(l.ft, h.fh); if (dec === "fail") failed.push({ ft: l.ft, fh: h.fh, validMs: h.validMs, error: "HTTP 502" }); else fields.push({ ft: l.ft, fh: h.fh, validMs: h.validMs, dec }); }
+    return G.routeTurbulence({ route, cls: "medium", fields, failed, cycleMs: cyc, now: extra.now || now, plan }); };
+  // the model: the patch only at or below 12,000 ft, and only at 12Z and 13Z
+  const model = (ft, fh) => (ft <= 12000 && fh >= 12 && fh <= 13 ? lowPatch : calm);
+  const R = (o) => ({ oPt: CVG, dPt: EWR, lowFt: 6000, highFt: 12000, startMs: cyc + 12 * 3600e3, endMs: cyc + 13 * 3600e3, timed: true, ...o });
+  ok("plan: up to 4 heights spread over the band (its lowest and highest always), model hours inside the time in the air, limited to the cycle's 18 hours", () => {
+    const p = G.routePlan(R({ lowFt: 6000, highFt: 12000 }), cyc, now); assert.deepStrictEqual(p.levels.map((l) => l.ft), [6000, 8000, 10000, 12000]); assert.deepStrictEqual(p.hours.map((h) => h.fh), [12, 13]);
+    assert.deepStrictEqual(G.routePlan(R({ lowFt: 24000, highFt: 36000 }), cyc, now).levels.map((l) => l.ft), [24000, 28000, 32000, 36000]);
+    const long = G.routePlan(R({ startMs: cyc + 10 * 3600e3, endMs: cyc + 17 * 3600e3 }), cyc, now); assert(long.hours.length === 3 && long.hours[0].fh === 10 && long.hours[2].fh === 17);
+    assert.deepStrictEqual(G.routePlan(R({ startMs: cyc + 17 * 3600e3, endMs: cyc + 20 * 3600e3 }), cyc, now).hours.map((h) => h.fh), [17, 18]);
+  });
+  ok("ALTITUDE changes the result: the patch is met in a 6,000-12,000 ft band, not in FL240-FL360", () => {
+    const low = run(R({}), model), high = run(R({ lowFt: 24000, highFt: 36000 }), model);
+    assert.strictEqual(low.findings.length, 1); assert.strictEqual(high.findings.length, 0); assert(high.complete && low.complete);
+    const f = low.findings[0]; assert.strictEqual(G.CAT_WORD[f.cat], "moderate"); assert(f.fromMi > 230 && f.toMi < 330, JSON.stringify(f)); assert(Math.abs(f.peak.edr - 0.3) < 1e-6);
+  });
+  ok("TIMED: with its own time in the air, the finding gets an estimated time from steady progress along the line", () => {
+    const f = run(R({}), model).findings[0], frac = (f.fromMi + f.toMi) / 2 / run(R({}), model).lengthMi, est = cyc + 12 * 3600e3 + frac * 3600e3;
+    assert(f.encounter && Math.abs((f.encounter.fromMs + f.encounter.toMs) / 2 - est) < 5 * 60e3, JSON.stringify(f.encounter));
+    const u = run(R({ timed: false }), model); assert.strictEqual(u.findings[0].encounter, null, "no time in the air of its own: no encounter time");
+  });
+  ok("FLIGHT WINDOW changes the result: flying 15-16Z misses the patch that exists at 12-13Z", () => {
+    const later = run(R({ startMs: cyc + 15 * 3600e3, endMs: cyc + 16 * 3600e3 }), model); assert.strictEqual(later.findings.length, 0); assert(later.complete);
+    // timed: the patch at 12Z only; a 12:00-14:00 flight reaches mile ~280 around 13:00, when the model has no patch -> nothing
+    const m12 = (ft, fh) => (ft <= 12000 && fh === 12 ? lowPatch : calm);
+    assert.strictEqual(run(R({ endMs: cyc + 14 * 3600e3 }), m12).findings.length, 0); assert.strictEqual(run(R({ endMs: cyc + 14 * 3600e3, timed: false }), m12).findings.length, 1, "untimed: any checked hour counts (potential overlap)");
+  });
+  ok("INCOMPLETE COVERAGE: a flight past the cycle's reach, a route leaving the grid, a record that fails, an old cycle: each said, never complete", () => {
+    const beyond = run(R({ startMs: cyc + 17 * 3600e3, endMs: cyc + 20 * 3600e3 }), model); assert(!beyond.complete); assert(beyond.gaps.some((g) => g.kind === "noForecast"), JSON.stringify(beyond.gaps));
+    const sju = run(R({ dPt: [-66.0, 18.44] }), model); assert(!sju.complete && sju.gaps.some((g) => g.kind === "outside"), "San Juan is outside the 3 km CONUS grid");
+    const fail = run(R({}), (ft, fh) => (ft === 8000 ? "fail" : model(ft, fh))); assert(!fail.complete && fail.failed.length === 2);
+    const old = run(R({}), model, { now: cyc + 6 * 3600e3 }); assert(old.stale && !old.complete);
+    const untimedBeyond = run(R({ startMs: cyc + 17 * 3600e3, endMs: cyc + 20 * 3600e3, timed: false }), model); assert(untimedBeyond.windowBeyond && !untimedBeyond.complete);
+  });
+  ok("aircraft class: an EDR 0.18 patch is moderate for light aircraft and below light for heavy aircraft", () => {
+    const weak = patch(blank(), -79.0, 40.05, 30, 0.18), w = (ft, fh) => (ft <= 12000 && fh <= 13 ? weak : calm), plan = G.routePlan(R({}), cyc, now);
+    const go = (cls) => G.routeTurbulence({ route: R({}), cls, fields: plan.hours.flatMap((h) => plan.levels.map((l) => ({ ft: l.ft, fh: h.fh, validMs: h.validMs, dec: w(l.ft, h.fh) }))), failed: [], cycleMs: cyc, now, plan });
+    assert.strictEqual(go("heavy").findings.length, 0); assert.strictEqual(go("light").findings.length, 1); assert.strictEqual(go("light").findings[0].cat, 2);
+  });
+}
 console.log(n + " passed");

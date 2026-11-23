@@ -283,7 +283,8 @@
     if (gtg.pending === want || (gtg.drawn === want + "|" + (gtg.latest && gtg.latest.cycle) && Date.now() - gtg.latestAt < 15 * 60e3)) return;
     gtg.pending = want; gtg.state = "loading"; gtg.error = null;
     (async () => {
-      if (!gtg.latest || Date.now() - gtg.latestAt > 15 * 60e3) { gtg.latest = (await gtgGet(gtgBase() + "/latest", "json")).body; gtg.latestAt = Date.now(); }
+      if (S.gtg.cyc) { gtg.latest = { cycle: S.gtg.cyc, hours: Array.from({ length: 19 }, (_, k) => k), pinned: true }; gtg.latestAt = Date.now(); }
+      else if (!gtg.latest || Date.now() - gtg.latestAt > 15 * 60e3) { gtg.latest = (await gtgGet(gtgBase() + "/latest", "json")).body; gtg.latestAt = Date.now(); }
       const cyc = gtg.latest.cycle, rk = cyc + "|" + S.gtg.fh + "|" + h.m; let dec = gtg.cache.get(rk);
       if (!dec) { const r = await gtgGet(gtgBase() + "/record?cycle=" + cyc + "&fh=" + S.gtg.fh + "&m=" + h.m, "bin"); dec = GT.decode(r.body); dec.bytes = r.body.length; dec.record = r.headers.get("X-GTG-Record"); dec.fileBytes = +r.headers.get("X-GTG-File-Bytes") || null; dec.fetchedAt = r.headers.get("X-Upstream-Fetched-At");
         if (dec.product.category !== 19 || dec.product.number !== 30 || Math.round(dec.product.level) !== h.m) throw Error("unexpected record (" + dec.product.category + "/" + dec.product.number + " at " + dec.product.level + " m)");
@@ -310,7 +311,7 @@
     else if (gtg.state === "failed") h += `<p class="px-empty">GTG guidance not available (${esc(gtg.error || "unknown")}). Nothing is shown rather than an old field.</p>`;
     else if (gtg.state === "ok" && gtg.dec) {
       const d = gtg.dec, at = gtgAt([venue.lon, venue.lat]);
-      h += `<p class="lg-note" data-gtg-status>Cycle ${esc(T.fmtZ(d.refTime))}, valid ${esc(t(d.validTime, true))} (+${d.product.forecast} h) · EDR at ${esc(GT.levelLabel(hh.ft))} (${d.product.level.toLocaleString("en-US")} m MSL) · record ${(d.bytes / 1048576).toFixed(1)} MB of a ${d.fileBytes ? (d.fileBytes / 1048576).toFixed(0) + " MB" : ""} file</p>`;
+      h += `<p class="lg-note" data-gtg-status>Cycle ${esc(T.fmtZ(d.refTime))}${L && L.pinned ? " (pinned)" : ""}, valid ${esc(t(d.validTime, true))} (+${d.product.forecast} h) · EDR at ${esc(GT.levelLabel(hh.ft))} (${d.product.level.toLocaleString("en-US")} m MSL) · record ${(d.bytes / 1048576).toFixed(1)} MB of a ${d.fileBytes ? (d.fileBytes / 1048576).toFixed(0) + " MB" : ""} file</p>`;
       h += `<p class="lg-note" data-gtg-venue>At ${esc(venue.name)}: ${esc(gtgWord(at))}.</p>`;
     }
     h += `<div class="lg-note"><b>Model guidance</b>, not an observation or an advisory: GTG forecasts eddy dissipation rate (EDR, m<sup>2/3</sup> s<sup>-1</sup>) on a 3 km grid. Categories use AWC's EDR thresholds for the chosen aircraft class; what a flight feels depends on the aircraft. Tap the map for the value at a spot.</div>`;
@@ -1105,6 +1106,8 @@
     if (/^\d{1,2}$/.test(q.get("gfh") || "") && +q.get("gfh") <= 18) S.gtg.fh = +q.get("gfh");
     if (/^\d{3,5}$/.test(q.get("gft") || "") && window.ThreatsGTG && window.ThreatsGTG.HEIGHTS.some((h) => h.ft === +q.get("gft"))) S.gtg.ft = +q.get("gft");
     if (["light", "medium", "heavy"].includes(q.get("gcls"))) S.gtg.cls = q.get("gcls");
+    if (/^\d{10}$/.test(q.get("gcyc") || "")) S.gtg.cyc = q.get("gcyc"); // a pinned cycle (Planner findings link to the cycle they used)
+    { const f = (q.get("focus") || "").split(",").map(Number); if (f.length === 2 && f.every(Number.isFinite) && Math.abs(f[0]) <= 180 && Math.abs(f[1]) <= 90) S.focus = f; }
     if (S.route) S.air = [...new Set([...S.air, S.route.o, S.route.d])].slice(0, 4);
     if (+q.get("fday") >= 1 && +q.get("fday") <= 8) S.fday = +q.get("fday");
     if (q.get("rx") === "1") S.rx = true;
@@ -1144,6 +1147,7 @@
   createMap().then(() => {
     map.once("load", () => {
       mapLoaded = true;
+      if (S.focus) { map.jumpTo({ center: S.focus, zoom: 6.5 }); framedAp = true; framedSel = true; S.fitted = S.scenario; return; } // a Planner GTG finding: its spot
       if ((S.ap || S.fit === "route") && frameAirport(0)) return; // otherwise drawAll frames it once the airport's report has loaded
       if (S.sel && byId(S.sel) && byId(S.sel).geometry) { const b = T.bbox(byId(S.sel).geometry); map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: pad(), maxZoom: 9, duration: 0 }); }
       else if (isArchive()) fitArchive();

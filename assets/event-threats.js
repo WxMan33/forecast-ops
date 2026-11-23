@@ -31,7 +31,7 @@
      It is drawn as a straight line between the two airports and labelled an approximate route. */
   const RT_KEY = "threats_route_v1";
   const cleanRoute = (x) => { if (!x || typeof x !== "object") return null; const id = (v) => typeof v === "string" && /^[A-Za-z][A-Za-z0-9]{3}$/.test(v); const ft = (v) => Number.isInteger(v) && v >= 0 && v <= 60000;
-    if (!id(x.o) || !id(x.d) || x.o.toUpperCase() === x.d.toUpperCase() || !ft(x.lo) || !ft(x.hi) || !(x.hi > x.lo) || !okWin(x.w)) return null; return { o: x.o.toUpperCase(), d: x.d.toUpperCase(), lo: x.lo, hi: x.hi, w: x.w || null }; };
+    if (!id(x.o) || !id(x.d) || x.o.toUpperCase() === x.d.toUpperCase() || !ft(x.lo) || !ft(x.hi) || !(x.hi > x.lo) || !okWin(x.w)) return null; const r = { o: x.o.toUpperCase(), d: x.d.toUpperCase(), lo: x.lo, hi: x.hi, w: x.w || null }; if (["light", "medium", "heavy"].includes(x.c)) r.c = x.c; return r; }; // c: aircraft class for modeled turbulence (optional)
   let linkRt = (() => { try { return cleanRoute(JSON.parse(Q.get("rt") || "null")); } catch (x) { return null; } })();
   function routeRaw(e) { if (linkRt) return linkRt; try { return cleanRoute((JSON.parse(localStorage.getItem(RT_KEY) || "{}") || {})[evKey(e)]); } catch (x) { return null; } }
   function saveRoute(e, r) { try { const all = JSON.parse(localStorage.getItem(RT_KEY) || "{}") || {}; if (r) all[evKey(e)] = r; else delete all[evKey(e)]; localStorage.setItem(RT_KEY, JSON.stringify(all)); } catch (x) { /* no storage */ } }
@@ -40,7 +40,7 @@
     const r = routeRaw(e); if (!r) return null;
     const own = win(r.w, e.tz), aps = airportsOf(e), toAp = aps.find((a) => a.icao === r.d && a.arrive), fromAp = aps.find((a) => a.icao === r.o && a.depart);
     const w = own || (toAp && toAp.arrive) || (fromAp && fromAp.depart) || null;
-    return { o: r.o, d: r.d, lowFt: r.lo, highFt: r.hi, startMs: w ? w.startMs : null, endMs: w ? w.endMs : null, timeSource: own ? "own" : toAp ? "arrival at " + r.d : fromAp ? "departure from " + r.o : null, raw: r };
+    return { o: r.o, d: r.d, lowFt: r.lo, highFt: r.hi, startMs: w ? w.startMs : null, endMs: w ? w.endMs : null, timeSource: own ? "own" : toAp ? "arrival at " + r.d : fromAp ? "departure from " + r.o : null, cls: r.c || "medium", raw: r };
   }
   function airportsRaw(e) {
     if (linkAir) return linkAir;
@@ -75,6 +75,42 @@
   function snapshot() {
     if (ARCHIVE) return archived ? { ...archived } : { products: [], sources: {}, loading: true, clock: new Date().toISOString() };
     return Live.snapshot();
+  }
+  /* ---------- modeled turbulence along the route: NOAA GTG (model guidance), on request ----------
+     Reads only the records the route needs (GT.routePlan: up to 4 heights in the band x 3 model hours in the time in the
+     air, about 1-1.3 MB each) through the preview's /api/gtg, decodes them here and runs GT.routeTurbulence. ?gtgcyc=
+     pins a recent cycle (checks); otherwise the newest complete cycle. */
+  const GT = window.ThreatsGTG, GTG_CYC = /^\d{10}$/.test(Q.get("gtgcyc") || "") ? Q.get("gtgcyc") : null;
+  const gtgRun = { want: false, key: null, state: "idle", result: null, error: null, latest: null, latestAt: 0, decoded: new Map(), bytes: 0 };
+  const cycMs = (c) => Date.UTC(+c.slice(0, 4), +c.slice(4, 6) - 1, +c.slice(6, 8), +c.slice(8, 10));
+  const gtgBase = () => (Live.NWS && Live.NWS.base ? Live.NWS.base.replace(/\/api\/nws$/, "/api/gtg") : "/api/gtg");
+  async function gtgJson(u) { const r = await fetch(u, { cache: "no-store" }); if (!r.ok) { let m = "HTTP " + r.status; try { m = (await r.json()).error || m; } catch (x) { /* not JSON */ } throw Error(m); } return r.json(); }
+  function gtgEstimate(rr) { if (!GT || !rr || !rr.startMs) return null; const p = GT.routePlan(rr, Date.now() - 2 * 3600e3, Date.now()); return Math.max(1, p.levels.length * Math.max(1, p.hours.length)); }
+  async function gtgCheck(rr) {
+    const key = JSON.stringify([rr.o, rr.d, rr.lowFt, rr.highFt, rr.startMs, rr.endMs, rr.timed, rr.cls, rr.oPt, rr.dPt]);
+    if (gtgRun.state === "loading" && gtgRun.key === key) return;
+    if (gtgRun.key === key && gtgRun.state === "done" && Date.now() - gtgRun.latestAt < 15 * 60e3) return;
+    Object.assign(gtgRun, { key, state: "loading", error: null });
+    try {
+      if (GTG_CYC) gtgRun.latest = { cycle: GTG_CYC, hours: Array.from({ length: 19 }, (_, k) => k), pinned: true };
+      else if (!gtgRun.latest || Date.now() - gtgRun.latestAt > 15 * 60e3) gtgRun.latest = await gtgJson(gtgBase() + "/latest");
+      gtgRun.latestAt = Date.now();
+      const cyc = gtgRun.latest.cycle, cms = cycMs(cyc), now = Date.now(), plan = GT.routePlan(rr, cms, now), fields = [], failed = [];
+      await Promise.all(plan.hours.flatMap((h) => plan.levels.map(async (l) => {
+        const k = cyc + "|" + h.fh + "|" + l.m;
+        try { let dec = gtgRun.decoded.get(k);
+          if (!dec) { const r = await fetch(gtgBase() + "/record?cycle=" + cyc + "&fh=" + h.fh + "&m=" + l.m, { cache: "no-store" }); if (!r.ok) { let m = "HTTP " + r.status; try { m = (await r.json()).error || m; } catch (x) { /* not JSON */ } throw Error(m); }
+            const b = new Uint8Array(await r.arrayBuffer()); gtgRun.bytes += b.length; dec = GT.decode(b);
+            if (dec.product.category !== 19 || dec.product.number !== 30 || Math.round(dec.product.level) !== l.m || dec.product.forecast !== h.fh) throw Error("unexpected record");
+            gtgRun.decoded.set(k, dec); if (gtgRun.decoded.size > 16) gtgRun.decoded.delete(gtgRun.decoded.keys().next().value); }
+          fields.push({ ft: l.ft, fh: h.fh, validMs: h.validMs, dec });
+        } catch (e) { failed.push({ ft: l.ft, fh: h.fh, validMs: h.validMs, error: e.message }); }
+      })));
+      gtgRun.result = GT.routeTurbulence({ route: rr, cls: rr.cls, fields, failed, cycleMs: cms, now, plan });
+      Object.assign(gtgRun.result, { cycle: cyc, pinned: !!gtgRun.latest.pinned, planHours: plan.hours, planLevels: plan.levels });
+      gtgRun.state = "done";
+    } catch (e) { Object.assign(gtgRun, { state: "failed", error: e.message, result: null }); }
+    render();
   }
   function render() {
     const box = $("threats"); if (!box || !ev) return;
@@ -228,8 +264,44 @@
     /* flight disruptions (FAA) and the route: their own headings, apart from venue hazards and airport weather */
     const faaBlocks = (r.disruptions || []).map((a) => `<div class="et-ap et-faa" data-icao="${esc(a.icao)}"><h4 class="et-aph">${esc(a.name === a.icao ? a.icao : a.name + " (" + a.icao + ")")} · ${esc(a.role)}${/route/.test(a.role) ? "" : " airport"}</h4><ul class="et-list">${a.lines.map((x) => (x.concern && byId.get(x.itemId) ? renderItem(byId.get(x.itemId)) : okLine(x))).join("")}</ul></div>`).join("");
     const faaSec = !hasAir || !faaBlocks ? "" : `<h3 class="et-h" id="etFaaHead">Flight disruptions</h3>${faaBlocks}<p class="bx-note">FAA-reported ground stops, ground delay programs, delays and closures, with the FAA's stated cause. Active now unless marked planned.</p>`;
+    const gtgBlock = (rs) => {
+      if (!GT) return "";
+      const hd = `<h4 class="et-aph et-gtgh">Modeled turbulence along your route <span class="et-badge">Model guidance · NOAA GTG</span></h4>`;
+      if (ARCHIVE) return `<div class="et-gtg">${hd}<p class="bx-note et-unk">Live only: GTG guidance is not part of this archived replay.</p></div>`;
+      const ro = routeOf(ev) || {}, rr = rs.oPt && rs.dPt && rs.startMs ? { o: rs.o, d: rs.d, oPt: rs.oPt, dPt: rs.dPt, lowFt: rs.lowFt, highFt: rs.highFt, startMs: rs.startMs, endMs: rs.endMs, timed: rs.timeSource === "own", cls: ro.cls || "medium" } : null;
+      if (!rr) return `<div class="et-gtg">${hd}<p class="bx-note et-unk">${rs.oPt && rs.dPt ? "Add the time in the air (or flight times at the route's airports) to check modeled turbulence." : "Waiting for both airports to be placed before modeled turbulence can be checked."}</p></div>`;
+      if (!gtgRun.want) return `<div class="et-gtg">${hd}<button type="button" class="btn et-gtgbtn" data-gtg-check>Check modeled turbulence (about ${gtgEstimate(rr)} MB)</button><p class="bx-note">Reads NOAA's Graphical Turbulence Guidance for your altitude band and time in the air, for ${esc(GT.CLASSES[rr.cls].label.toLowerCase())}.</p></div>`;
+      gtgCheck(rr);
+      const R = gtgRun.result, cur = gtgRun.state === "done" && gtgRun.key === JSON.stringify([rr.o, rr.d, rr.lowFt, rr.highFt, rr.startMs, rr.endMs, rr.timed, rr.cls, rr.oPt, rr.dPt]);
+      if (gtgRun.state === "failed") return `<div class="et-gtg">${hd}<p class="bx-note et-unk" data-gtg-state="failed">GTG guidance isn't available right now (${esc(gtgRun.error || "unknown")}), so modeled turbulence along the route is unknown.</p></div>`;
+      if (!cur) return `<div class="et-gtg">${hd}<p class="bx-note" data-gtg-state="loading">Reading GTG for ${esc(EN ? EN.bandText(rr.lowFt, rr.highFt) : "")}…</p></div>`;
+      const cl = (ms) => new Date(ms).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).replace(":00", "").replace("AM", "a.m.").replace("PM", "p.m."), ft = (x) => GT.levelLabel(x);
+      const cz = (c) => c.slice(8, 10) + "Z " + new Date(cycMs(c)).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" }), oName = rs.label.split(" → ")[0];
+      const meta = `Cycle ${esc(cz(R.cycle))}${R.pinned ? " (pinned for this check)" : ""} · model hours ${esc(R.hours.map(cl).join(", ") || "none")} · heights checked ${esc(R.levels.map(ft).join(", "))} · ${esc(rr.cls)} aircraft · ${R.timed ? "times from your time in the air, assuming steady progress along the straight line" : "no times in the air given, so findings are potential overlaps during your " + esc(rs.timeSource || "window") + " window"}`;
+      const items = R.findings.map((f, i) => {
+        const id = "gtg|" + i + "|" + f.fromMi + "-" + f.toMi + "|" + R.cycle, cat = GT.CAT_WORD[f.cat], where = f.fromMi === f.toMi ? "about " + f.fromMi + " miles from " + oName : f.fromMi + "–" + f.toMi + " miles from " + oName, lv = f.levels.map(ft).join(", ");
+        const head = R.timed ? `${cat.charAt(0).toUpperCase() + cat.slice(1)} turbulence modeled ${where}, around ${cl(f.encounter.fromMs)}${f.encounter.toMs - f.encounter.fromMs >= 60e3 ? "–" + cl(f.encounter.toMs) : ""}, at ${lv} · GTG model guidance`
+          : `Potential overlap: ${cat} turbulence modeled ${where} at ${lv}, valid ${f.validTimes.map(cl).join(" and ")} · GTG model guidance`;
+        const line = `Model guidance, not an observation or an advisory. NOAA GTG cycle ${cz(R.cycle)}, valid ${f.validTimes.map(cl).join(", ")}: peak EDR ${f.peak.edr.toFixed(2)} at ${ft(f.peak.ft)} (${cat} for ${rr.cls} aircraft at ${GT.CLASSES[rr.cls].t[f.cat - 1].toFixed(2)} or more).` + (R.timed ? " The time assumes steady progress from your departure to your arrival along the straight line." : " When you would be there isn't known: no times in the air were given.");
+        const u = new URL(mapLink({ family: "aviation", kind: "route", airport: rs.d, product: {} })); u.searchParams.delete("fit"); u.searchParams.delete("alt"); u.searchParams.delete("at");
+        Object.entries({ gtg: "1", gft: String(f.peak.ft), gfh: String(f.peak.fh), gcls: rr.cls, gcyc: R.cycle, focus: f.midPt.map((x) => x.toFixed(3)).join(",") }).forEach(([k, v]) => u.searchParams.set(k, v));
+        const isOpen = open.has(id), rows = [["Model", "NOAA NCEP Graphical Turbulence Guidance (DAFS), eddy dissipation rate (EDPARM), 3 km grid"], ["Cycle", esc(cz(R.cycle)) + (R.pinned ? " (pinned)" : "")], ["Valid", esc(f.validTimes.map((t) => fmt(new Date(t).toISOString(), tz)).join("; "))],
+          ["Peak", esc("EDR " + f.peak.edr.toFixed(3) + " m^(2/3)/s at " + ft(f.peak.ft) + " MSL")], ["Category", esc(cat + " for " + GT.CLASSES[rr.cls].label + "; AWC thresholds " + GT.CLASSES[rr.cls].t.map((x) => x.toFixed(2)).join(" / "))],
+          ["Where", esc(where + " along the straight line to " + rs.label.split(" → ")[1] + "; peak near " + f.midPt[1].toFixed(2) + "°, " + f.midPt[0].toFixed(2) + "°")], ["When", esc(R.timed ? "about " + cl(f.encounter.fromMs) + (f.encounter.toMs > f.encounter.fromMs ? "–" + cl(f.encounter.toMs) : "") + ", from your time in the air" : "not estimated (no times in the air)")],
+          ["Heights checked", esc(R.levels.map(ft).join(", ") + " (up to " + GT.MAX_LEVELS + " in your band)")]];
+        return `<li class="et-item et-gtgitem" data-kind="gtg" data-family="aviation"><div class="et-main"><b class="et-head">${esc(head)}</b><span class="et-line">${esc(line)}</span><span class="et-actions"><button type="button" class="bx-link et-more" data-id="${esc(id)}" aria-expanded="${isOpen}">More info</button> · <a class="bx-link" href="${esc(u.toString())}" data-gtg-map="${i}">View on map</a></span></div><dl class="et-detail" ${isOpen ? "" : "hidden"}>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></li>`;
+      });
+      const gapText = { outside: (g) => "No model coverage for " + g.fromMi + "–" + g.toMi + " miles from " + oName + ": outside the GTG grid.", masked: (g) => "No model value for " + g.fromMi + "–" + g.toMi + " miles from " + oName + " at the checked heights.",
+        noForecast: (g) => (R.timed ? "No GTG forecast for " + g.fromMi + "–" + g.toMi + " miles from " + oName + " (about " + cl(g.fromMs) + " on): cycle " + cz(R.cycle) + " reaches " + cl(R.reachMs) + "." : "No GTG forecast for your time in the air."), past: (g) => "Already flown by now: " + g.fromMi + "–" + g.toMi + " miles from " + oName + "." };
+      const gaps = R.gaps.flatMap((g) => g.runs.map((x) => gapText[g.kind](x)));
+      if (!R.timed && R.windowBeyond) gaps.push("Your time in the air runs past " + cl(R.reachMs) + ", the end of cycle " + cz(R.cycle) + ": later hours aren't checked.");
+      if (R.failed.length) gaps.push("Couldn't read " + R.failed.map((x) => ft(x.ft) + " at " + cl(x.validMs)).join(", ") + " (" + R.failed[0].error + "): those heights and hours are unknown.");
+      if (R.stale) gaps.push("Cycle " + cz(R.cycle) + " is " + Math.round((Date.now() - R.cycleMs) / 3600e3) + " hours old" + (R.pinned ? " (pinned for this check)" : "") + "; newer cycles exist.");
+      const none = !R.findings.length && R.checked ? [`No moderate or worse turbulence modeled along the route at the checked heights and times${R.light ? "; light along about " + Math.round((100 * R.light) / R.checked) + "% of it" : ""}.`] : [];
+      return `<div class="et-gtg" data-gtg-complete="${R.complete}">${hd}<p class="bx-note et-gtgmeta">${meta}</p><ul class="et-list">${items.join("")}${none.map((t) => `<li class="et-ok" data-kind="gtg-none">${esc(t)}</li>`).join("")}${gaps.map((t) => `<li class="et-ok et-unk" data-kind="gtg-gap">${esc(t)}</li>`).join("")}</ul></div>`;
+    };
     const rs = r.route || {}, rtMap = rs.set ? mapLink({ family: "aviation", kind: "route", airport: rs.d, product: {}, window: null }) : mapLink({ family: "aviation", kind: "route", airport: (airports[0] || {}).icao, product: {} });
-    const routeSec = !hasAir || (!rs.set && !apBlocks) ? "" : `<h3 class="et-h" id="etRouteHead">Along the route</h3>${rs.set ? `<div class="et-ap et-route" data-route="${esc(rs.o + "-" + rs.d)}"><h4 class="et-aph">Approximate route ${esc(rs.label)} · ${esc(rs.band)}${rs.window ? " · " + esc(rs.window) : ""} <a class="bx-link et-apmap" data-map-route="1" href="${esc(rtMap)}">View on map</a></h4><ul class="et-list">${rs.lines.map((x) => (x.concern && byId.get(x.itemId) ? renderItem(byId.get(x.itemId)) : okLine(x))).join("")}</ul></div><p class="bx-note et-approx">A straight line between the airports, not your flight plan: matches are potential overlaps within ${esc(String(rs.corridorMi))} miles of it, in your time${rs.timeSource && rs.timeSource !== "own" ? " (from your " + esc(rs.timeSource) + ")" : ""} and altitude band. Pilot reports are observations; SIGMETs, G-AIRMETs and CWAs are official advisories.</p>`
+    const routeSec = !hasAir || (!rs.set && !apBlocks) ? "" : `<h3 class="et-h" id="etRouteHead">Along the route</h3>${rs.set ? `<div class="et-ap et-route" data-route="${esc(rs.o + "-" + rs.d)}"><h4 class="et-aph">Approximate route ${esc(rs.label)} · ${esc(rs.band)}${rs.window ? " · " + esc(rs.window) : ""} <a class="bx-link et-apmap" data-map-route="1" href="${esc(rtMap)}">View on map</a></h4><ul class="et-list">${rs.lines.map((x) => (x.concern && byId.get(x.itemId) ? renderItem(byId.get(x.itemId)) : okLine(x))).join("")}</ul>${gtgBlock(rs)}</div><p class="bx-note et-approx">A straight line between the airports, not your flight plan: matches are potential overlaps within ${esc(String(rs.corridorMi))} miles of it, in your time${rs.timeSource && rs.timeSource !== "own" ? " (from your " + esc(rs.timeSource) + ")" : ""} and altitude band. Pilot reports are observations; SIGMETs, G-AIRMETs and CWAs are official advisories.</p>`
       : `<p class="bx-note et-noroute">No route set. En-route advisories and pilot reports are on the <a class="bx-link" data-map-route="0" href="${esc(rtMap)}">map</a> as regional context; add an origin, destination and altitude band below to check them along an approximate route.</p>`}`;
     const airSec = !hasAir ? "" : `<h3 class="et-h" id="etAirHead">Airport weather</h3>${apBlocks || '<p class="bx-note et-noair">No airports set for this event. Add a primary and an optional alternate airport with your flight times below.</p>'}${apBlocks && linkAir ? '<p class="bx-note et-linkair">Airports and flight times came with the shared link. Change them below to keep your own in this browser.</p>' : ""}${apBlocks ? '<p class="bx-note">Airport forecasts and observations from the NOAA Aviation Weather Center, for the airport, not the venue. Codes and the raw reports are under More info.</p>' : ""}`;
     const statuses = r.statuses.map((s) => `<li class="${s.ok ? "" : "et-warn"}"><b>${esc(s.name)}</b> · ${esc(s.text)}</li>`).join("");
@@ -243,7 +315,8 @@
         <label>From <input name="ro" value="${esc(rt.o || "")}" maxlength="4" placeholder="KORD" class="input"></label><label>To <input name="rd" value="${esc(rt.d || "")}" maxlength="4" placeholder="KEWR" class="input"></label>
         <label>Lowest altitude (ft) <input type="number" name="rlo" value="${rt.lo != null ? esc(String(rt.lo)) : ""}" min="0" max="60000" step="500" placeholder="10000" class="input"></label><label>Highest (ft) <input type="number" name="rhi" value="${rt.hi != null ? esc(String(rt.hi)) : ""}" min="0" max="60000" step="500" placeholder="16000" class="input"></label>
         <label>In the air from <input type="datetime-local" name="rw0" value="${esc((rt.w || [])[0] || "")}" class="input"></label><label>to <input type="datetime-local" name="rw1" value="${esc((rt.w || [])[1] || "")}" class="input"></label>
-        <p class="bx-note">Drawn as a straight line between the airports (an approximate route). Leave the times blank to use your arrival window at the destination.</p></fieldset>`;
+        <label>Aircraft class <select name="rc" class="input">${[["medium", "Medium (A320, B737)"], ["light", "Light (under 15,500 lb)"], ["heavy", "Heavy (B777, A350)"]].map(([k, l]) => `<option value="${k}"${(rt.c || "medium") === k ? " selected" : ""}>${l}</option>`).join("")}</select></label>
+        <p class="bx-note">Drawn as a straight line between the airports (an approximate route). Leave the times blank to use your arrival window at the destination. Times in the air are needed for when modeled turbulence would be met along the way; the aircraft class sets its categories.</p></fieldset>`;
     const airForm = `<details class="bx-more et-air"${ap.length ? "" : ""}><summary>Airports for this event${ap.length ? ": " + esc(ap.map((x) => x.i.toUpperCase()).join(", ")) : " (optional)"}${rt.o ? " · route " + esc(rt.o + " → " + rt.d) : ""}</summary><form class="et-airform">${slot("p", "p")}${slot("a", "a")}${rtSlot}<p class="et-rterr bx-note" hidden></p><button type="submit" class="btn">Save airports</button><p class="bx-note">Times in ${esc(tz)}. Checked against each airport's own METAR and TAF from the NOAA Aviation Weather Center.</p></form></details>`;
     const vCount = r.items.filter((it) => it.family !== "aviation").length, venueOnly = FAMILIES.some((f) => f !== "aviation");
     box.innerHTML = `${label}${notes}${venueOnly ? `<h3 class="et-h" id="etVenueHead">Venue hazards</h3><p class="et-summary${vCount ? " has" : r.venueConfirmed ? "" : " warn"}" data-confirmed="${r.venueConfirmed}">${esc(r.venueSummary)}</p>
@@ -282,12 +355,13 @@
     for (const [k, r] of [["p", "p"], ["a", "a"]]) if (v(k + "i")) list.push({ i: v(k + "i").toUpperCase(), r, a: v(k + "a0") && v(k + "a1") ? [v(k + "a0"), v(k + "a1")] : null, d: v(k + "d0") && v(k + "d1") ? [v(k + "d0"), v(k + "d1")] : null });
     const ro = v("ro").toUpperCase(), rd = v("rd").toUpperCase(), err = f.querySelector(".et-rterr");
     let rtNew = null;
-    if (ro || rd) { rtNew = cleanRoute({ o: ro, d: rd, lo: v("rlo") === "" ? NaN : +v("rlo"), hi: v("rhi") === "" ? NaN : +v("rhi"), w: v("rw0") && v("rw1") ? [v("rw0"), v("rw1")] : null });
+    if (ro || rd) { rtNew = cleanRoute({ o: ro, d: rd, lo: v("rlo") === "" ? NaN : +v("rlo"), hi: v("rhi") === "" ? NaN : +v("rhi"), w: v("rw0") && v("rw1") ? [v("rw0"), v("rw1")] : null, c: v("rc") && v("rc") !== "medium" ? v("rc") : undefined });
       if (!rtNew) { if (err) { err.hidden = false; err.textContent = "Route not saved: it needs two different airport codes and a lowest and highest altitude (0–60,000 ft, highest above lowest)."; } } }
     if (err && (rtNew || !(ro || rd))) err.hidden = true;
     linkAir = null; linkRt = null; saveAirports(ev, list); if (rtNew || !(ro || rd)) saveRoute(ev, rtNew); avCheck(); render(); shareNote();
   });
   document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-gtg-check]")) { gtgRun.want = true; render(); return; }
     const b = e.target.closest(".et-more"); if (!b) return;
     const id = b.dataset.id; if (open.has(id)) open.delete(id); else open.add(id); render();
   });

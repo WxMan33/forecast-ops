@@ -120,5 +120,51 @@
   /* model guidance is drawn as a violet fill, apart from advisories (outlined areas) and pilot reports (dots and rings) */
   const PALETTE = { 1: [196, 181, 253, 120], 2: [139, 92, 246, 170], 3: [91, 33, 182, 210], 4: [46, 16, 101, 235] };
   const levelLabel = (ft) => (ft >= 18000 ? "FL" + String(ft / 100).padStart(3, "0") : ft.toLocaleString("en-US") + " ft");
-  return { HEIGHTS, CLASSES, CAT_WORD, PALETTE, category, decode, projection, valueAt, render, levelLabel, sections };
+  /* ---------- Planner: modeled turbulence along an approximate route ----------
+     Which records to read for a route: the GTG heights inside the altitude band (at most MAX_LEVELS, spread evenly, always
+     the band's lowest and highest) and the model's whole-hour valid times inside the time in the air (at most MAX_HOURS:
+     first, last and the middle), limited to what the cycle reaches (cycle + 18 h). */
+  const MAX_LEVELS = 4, MAX_HOURS = 3, SAMPLE_KM = 10, MI = 1.609344, REACH_H = 18, STALE_H = 4;
+  function routePlan(route, cycleMs, now) {
+    const inBand = HEIGHTS.filter((h) => h.ft >= 1000 && h.ft >= route.lowFt && h.ft <= route.highFt);
+    const pick = (a, n) => (a.length <= n ? a : Array.from({ length: n }, (_, k) => a[Math.round((k * (a.length - 1)) / (n - 1))]).filter((x, k, all) => all.indexOf(x) === k));
+    let levels = pick(inBand, MAX_LEVELS);
+    if (!levels.length) { const mid = (route.lowFt + route.highFt) / 2; levels = [HEIGHTS.filter((h) => h.ft >= 1000).reduce((a, b) => (Math.abs(b.ft - mid) < Math.abs(a.ft - mid) ? b : a))]; }
+    const reachMs = cycleMs + REACH_H * 3600e3, from = Math.max(route.startMs, now - 30 * 60e3);
+    const hrs = []; for (let t = Math.ceil((route.startMs - 30 * 60e3) / 3600e3) * 3600e3; t <= route.endMs + 30 * 60e3; t += 3600e3) if (t >= cycleMs && t <= reachMs && t >= from - 30 * 60e3) hrs.push(t);
+    const hours = pick(hrs, MAX_HOURS).map((t) => ({ validMs: t, fh: Math.round((t - cycleMs) / 3600e3) }));
+    return { levels: levels.map((h) => ({ ft: h.ft, m: h.m })), hours, reachMs };
+  }
+  const kmBetween = (a, b) => { const kx = 111.32 * Math.cos(((a[1] + b[1]) / 2) * Math.PI / 180); return Math.hypot((b[0] - a[0]) * kx, (b[1] - a[1]) * 110.574); };
+  /* fields: [{ ft, fh, validMs, dec }] read for the plan; failed: [{ ft, fh, error }]. Timed: the route has its own time in
+     the air, so each point's time is estimated by steady progress along the straight line; otherwise every checked hour counts
+     for every point (a potential overlap, no encounter time). Findings: stretches of moderate or worse for the aircraft class. */
+  function routeTurbulence({ route, cls, fields, failed = [], cycleMs, now, plan }) {
+    const P = fields.length ? projection(fields[0].dec.grid) : null, L = kmBetween(route.oPt, route.dPt), n = Math.max(2, Math.ceil(L / SAMPLE_KM) + 1);
+    const timed = !!route.timed, span = route.endMs - route.startMs, reachMs = plan.reachMs;
+    const byHour = new Map(); for (const f of fields) { if (!byHour.has(f.validMs)) byHour.set(f.validMs, []); byHour.get(f.validMs).push(f); }
+    const hourList = [...byHour.keys()].sort((a, b) => a - b), pts = [];
+    for (let k = 0; k < n; k++) {
+      const fr = k / (n - 1), pt = [route.oPt[0] + (route.dPt[0] - route.oPt[0]) * fr, route.oPt[1] + (route.dPt[1] - route.oPt[1]) * fr], mi = (fr * L) / MI;
+      const t = timed ? route.startMs + fr * span : null;
+      if (timed && t > reachMs + 30 * 60e3) { pts.push({ k, pt, mi, t, gap: "noForecast" }); continue; }
+      if (timed && t < now - 30 * 60e3) { pts.push({ k, pt, mi, t, gap: "past" }); continue; }
+      const hs = timed ? (hourList.length ? [hourList.reduce((a, b) => (Math.abs(b - t) < Math.abs(a - t) ? b : a))] : []) : hourList;
+      let best = null, inside = false, any = false;
+      for (const h of hs) for (const f of byHour.get(h)) { const v = valueAt(f.dec, pt[0], pt[1], P); if (v.inside) inside = true; if (v.value == null) continue; any = true; if (!best || v.value > best.edr) best = { edr: v.value, ft: f.ft, validMs: f.validMs, fh: f.fh }; }
+      pts.push({ k, pt, mi, t, gap: !hs.length ? "noForecast" : !inside ? "outside" : !any ? "masked" : null, best, cat: best ? category(best.edr, cls) : null });
+    }
+    const runs = (pred) => { const out = []; let cur = null; for (const p of pts) { if (pred(p)) { if (!cur) out.push((cur = [])); cur.push(p); } else cur = null; } return out; };
+    const findings = runs((p) => !p.gap && p.cat >= 2).map((r) => {
+      const peak = r.reduce((a, b) => (b.best.edr > a.best.edr ? b : a)), mid = r[Math.floor(r.length / 2)];
+      return { fromMi: Math.round(r[0].mi), toMi: Math.round(r[r.length - 1].mi), midPt: peak.pt, cat: Math.max(...r.map((p) => p.cat)), peak: peak.best, levels: [...new Set(r.map((p) => p.best.ft))].sort((a, b) => a - b),
+        validTimes: [...new Set(r.map((p) => p.best.validMs))].sort((a, b) => a - b), encounter: timed ? { fromMs: r[0].t, toMs: r[r.length - 1].t } : null, midMi: Math.round(mid.mi) };
+    });
+    const gaps = ["outside", "masked", "noForecast", "past"].map((g) => ({ kind: g, runs: runs((p) => p.gap === g).map((r) => ({ fromMi: Math.round(r[0].mi), toMi: Math.round(r[r.length - 1].mi), fromMs: r[0].t, toMs: r[r.length - 1].t })) })).filter((g) => g.runs.length);
+    const light = pts.filter((p) => !p.gap && p.cat === 1).length, checked = pts.filter((p) => !p.gap).length;
+    const windowBeyond = route.endMs > reachMs + 30 * 60e3, stale = now - cycleMs > STALE_H * 3600e3;
+    const complete = !gaps.length && !failed.length && !windowBeyond && !stale && hourList.length > 0;
+    return { timed, lengthMi: Math.round(L / MI), samples: n, checked, light, findings, gaps, failed, windowBeyond, reachMs, stale, cycleMs, complete, levels: plan.levels.map((l) => l.ft), hours: hourList, cls };
+  }
+  return { HEIGHTS, CLASSES, CAT_WORD, PALETTE, category, decode, projection, valueAt, render, levelLabel, sections, routePlan, routeTurbulence, MAX_LEVELS, MAX_HOURS, REACH_H, STALE_H };
 });
