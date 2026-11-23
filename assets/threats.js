@@ -35,7 +35,7 @@
   const WLEVEL_LABEL = { WWA: "Any winter weather", MINOR: "Minor", MODERATE: "Moderate", MAJOR: "Major", EXTREME: "Extreme" };
   const empty = { type: "FeatureCollection", features: [] };
 
-  const S = { air: [], ap: null, layers: { severe: true, flood: true, winter: true, fire: true, smoke: true, tropical: true, coastal: true, aviation: true }, en: { on: false, at: 0, alt: null, age: 2 }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, ifi: { on: false, field: "prob", src: null, cyc: null }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
+  const S = { air: [], ap: null, layers: { severe: true, flood: true, winter: true, fire: true, smoke: true, tropical: true, coastal: true, aviation: true }, en: { on: false, at: 0, alt: null, age: 2 }, av: { apt: true, pireps: true, adv: true }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, ifi: { on: false, field: "prob", src: null, cyc: null }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
   let framedAp = false, framedSel = false, mapLoaded = false; // Planner airport "View on map": framed once
   let data, now, venue, map, ready = false, liveReady = false, meshes = new Map(), tzCache = {}, marker, grid = null, mesh = null, mask = null, gridLoading = null, hull = null;
   const phone = () => matchMedia("(max-width: 760px)").matches;
@@ -190,7 +190,7 @@
       + `<p class="lg-note">Incidents stay in NIFC's current list until declared contained, controlled or out, or until they go 3 to 14 days without an update (by size). Follow local officials for evacuations and closures.</p>`;
   }
   /* ---------- aviation: the event's airports (from ?air=, or every airport in an archived sample) ---------- */
-  const avProducts = () => !S.layers.aviation ? [] : data.products.filter((p) => (p.kind === "metar" || p.kind === "taf") && (!S.air.length || S.air.includes(p.airport)));
+  const avProducts = () => !S.layers.aviation || !S.av.apt ? [] : data.products.filter((p) => (p.kind === "metar" || p.kind === "taf") && (!S.air.length || S.air.includes(p.airport)));
   const zt = (iso) => { const d = new Date(iso); return String(d.getUTCHours()).padStart(2, "0") + String(d.getUTCMinutes()).padStart(2, "0") + "Z"; };
   function airportsSection() {
     if (!S.layers.aviation) return "";
@@ -224,10 +224,15 @@
   function enShown() {
     if (!enOn()) return [];
     const tMs = enTime(), c = Date.parse(data.clock), [lo, hi] = S.en.alt || [null, null];
-    return enAll().filter((x) => (x.kind === "pirep" ? S.en.at === 0 && c - Date.parse(x.observed) <= S.en.age * 3600e3 && c >= Date.parse(x.observed) : EN.validAt(x, tMs)) && EN.inBand(x, lo, hi));
+    return enAll().filter((x) => (x.kind === "pirep" ? S.av.pireps : S.av.adv)).filter((x) => (x.kind === "pirep" ? S.en.at === 0 && c - Date.parse(x.observed) <= S.en.age * 3600e3 && c >= Date.parse(x.observed) : EN.validAt(x, tMs)) && EN.inBand(x, lo, hi));
   }
   const routeEnds = () => { if (!S.route) return null; const pt = (id) => { const x = (data.products || []).find((q) => (q.kind === "metar" || q.kind === "taf") && q.airport === id && Array.isArray(q.point)); return x ? x.point : null; }; const o = pt(S.route.o), d = pt(S.route.d); return o && d ? { o, d } : null; };
   const faaShown = () => { const ids = S.air.map((x) => EN.faaId(x)); return (data.products || []).filter((x) => x.kind === "faa" && ids.includes(x.airportFaa) && !(x.end && Date.parse(x.end) <= Date.parse(data.clock))); };
+  /* Aviation's own controls, one row: what it shows (the same switches as in Layers) */
+  function avControls() {
+    const on = { apt: S.av.apt, pireps: S.av.pireps && enOn(), adv: S.av.adv && enOn(), gtg: S.gtg.on, ifi: S.ifi.on }, L = { apt: "Airport weather", pireps: "Pilot reports", adv: "Advisories", gtg: "Turbulence guidance", ifi: "Icing guidance" };
+    return `<div class="px-h"><span>Aviation shows</span><span>also in Layers</span></div><div class="tx-filters tx-avctl" role="group" aria-label="What Aviation shows">${Object.keys(L).map((k) => `<button type="button" class="tx-fb" data-avt="${k}" aria-pressed="${!!on[k]}">${on[k] ? "✓ " : ""}${esc(L[k])}</button>`).join("")}</div>`;
+  }
   function enrouteSection() {
     if (!S.layers.aviation || !EN) return "";
     if (!enOn()) return `<div class="px-h"><span>Aviation en route</span></div><button type="button" class="px-link" data-en-on="1">Show pilot reports and en-route advisories (SIGMETs, G-AIRMETs, CWAs) →</button>`;
@@ -292,7 +297,7 @@
       const img = GT.render(dec, { width: 1100, cls: S.gtg.cls }), cv = document.createElement("canvas"); cv.width = img.width; cv.height = img.height; cv.getContext("2d").putImageData(new ImageData(img.rgba, img.width, img.height), 0, 0);
       map.getSource("gtg").updateImage({ url: cv.toDataURL("image/png"), coordinates: img.coordinates });
       Object.assign(gtg, { dec, P: GT.projection(dec.grid), key: rk, state: "ok", drawn: want + "|" + cyc });
-    })().catch((e) => { gtg.state = "failed"; gtg.error = e.message; }).finally(() => { gtg.pending = null; stage("panel", renderPanel); if (map) map.setLayoutProperty("gtg-img", "visibility", S.gtg.on && gtg.state === "ok" ? "visible" : "none"); });
+    })().catch((e) => { gtg.state = "failed"; gtg.error = e.message; }).finally(() => { gtg.pending = null; stage("panel", renderPanel); stage("legend", renderLegend); if (map) map.setLayoutProperty("gtg-img", "visibility", S.gtg.on && gtg.state === "ok" ? "visible" : "none"); });
   }
   const gtgAt = (pt) => { if (!gtg.dec || !pt) return null; const v = GT.valueAt(gtg.dec, pt[0], pt[1], gtg.P); return v.inside ? { ...v, cat: GT.category(v.value, S.gtg.cls) } : null; };
   const gtgWord = (x) => (!x ? "outside the GTG grid" : x.value == null ? "no value (masked)" : "EDR " + x.value.toFixed(2) + " · " + (x.cat ? GT.CAT_WORD[x.cat] : "below light") + " for " + S.gtg.cls + " aircraft");
@@ -337,7 +342,7 @@
       } catch (e) { Object.assign(ifi, { state: "unavailable", error: e.message, reason: e.message, dec: null, drawn: null, key: want }); }
       finally { ifi.pending = null; }
     })().catch((e) => { Object.assign(ifi, { state: "unavailable", reason: e.message, dec: null, drawn: null }); })
-      .finally(() => { if (map) map.setLayoutProperty("ifi-img", "visibility", S.ifi.on && ifi.state === "ok" ? "visible" : "none"); if (ifi.state + "|" + ifi.key + "|" + ifi.reason !== before) stage("panel", renderPanel); });
+      .finally(() => { if (map) map.setLayoutProperty("ifi-img", "visibility", S.ifi.on && ifi.state === "ok" ? "visible" : "none"); if (ifi.state + "|" + ifi.key + "|" + ifi.reason !== before) { stage("panel", renderPanel); stage("legend", renderLegend); } });
   }
   const ifiAt = (pt) => (ifi.dec && pt ? IF.valueAt(ifi.dec, S.ifi.field, pt[0], pt[1], ifi.mask, ifi.P) : null);
   function ifiBlock() {
@@ -839,7 +844,7 @@
       const counts = ["warning", "watch", "md"].map((k) => [k, g.items.filter((p) => p.kind === k).length]).filter(([, n]) => n).map(([k, n]) => n + " " + ({ warning: "warning", watch: "watch", md: "MD" }[k]) + (n > 1 ? (k === "watch" ? "es" : "s") : "")).join(" · ");
       h += `<div class="px-group"><div class="px-group-h">${esc(g.name)}<span>${esc(counts)}</span></div>${g.items.map((p) => item(p, { rel: false })).join("")}${o ? `<div class="px-group-f">Inside the Day 1 ${esc(T.outlookLabel(o.category).toLowerCase())} area</div>` : ""}</div>`;
     }
-    h += airportsSection() + enrouteSection() + tropicsSection();
+    h += (S.layers.aviation ? avControls() : "") + airportsSection() + enrouteSection() + tropicsSection();
     if (S.layers.smoke) { const bad = monitorsShown().filter((p) => FX.AQI_CAT_ORDER.indexOf(p.category) >= 2).sort((a, b) => b.aqi - a.aqi); h += `<div class="px-h"><span>Air quality now · AirNow</span><span>${bad.length} monitor${bad.length === 1 ? "" : "s"} at USG or worse</span></div>` + (bad.length ? bad.slice(0, 5).map((p) => aqItem(p, null)).join("") : `<p class="px-empty">${data.state.monitors && ["current", "empty"].includes(data.state.monitors.kind) ? "No U.S. monitor at Unhealthy for Sensitive Groups or worse in the last 3 hours." : "AirNow monitors not confirmed."}</p>`) + `<p class="lg-note">${hmsShown().length} smoke areas in NOAA's satellite analysis (last 24 h). Satellite smoke is overhead smoke, not a ground reading.</p>`; }
     if (S.layers.fire) { const wf = incidents().filter((p) => p.category !== "RX"); if (wf.length) h += `<div class="px-h"><span>Largest active wildfires · NIFC</span><span>${wf.length} current</span></div>` + wf.slice().sort((a, b) => (b.acres || 0) - (a.acres || 0)).slice(0, 5).map((p) => incItem(p, null)).join(""); }
     h += `<div class="px-h">Forecast for later</div>` + laterButtons(null);
@@ -852,7 +857,7 @@
     if (near.length) h += `<div class="px-h"><span>Nearby · the venue is outside these</span><span>within ${Math.round(T.miles(T.NEAR_KM))} mi</span></div>` + near.map((p) => item(p)).join("");
     if (unknown.length) h += `<div class="px-h">Area not drawn</div>` + unknown.map((p) => item(p)).join("");
     if (!covers.length && !near.length && activeKnown()) h += `<p class="lg-note">${esc(SCOPE_NOTE)}</p>`;
-    h += airportsSection() + enrouteSection() + smokeSection(true) + tropicsSection();
+    h += (S.layers.aviation ? avControls() : "") + airportsSection() + enrouteSection() + smokeSection(true) + tropicsSection();
     if (S.layers.fire) { const near = nearbyIncidents(); if (near.length) h += `<div class="px-h"><span>Wildfires near the venue · NIFC</span><span>within ${Math.round(T.miles(T.NEAR_KM))} mi</span></div>` + near.map((x) => incItem(x.p, x.r)).join(""); }
     h += `<div class="px-h">Later at the venue</div>` + laterButtons([venue.lon, venue.lat]);
     const elsewhere = list.filter((p) => !["covers", "near"].includes(rel(p).kind)).length;
@@ -966,7 +971,7 @@
   /* ---------- top-of-map: valid time, model control, chips; legend ---------- */
   function renderTop() {
     document.querySelectorAll(".tx-tb").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === S.view)));
-    document.querySelectorAll(".tx-lb").forEach((b) => b.setAttribute("aria-pressed", String(!!S.layers[b.dataset.layer])));
+    syncLayers();
     const day = viewDay();
     document.querySelectorAll('.tx-tb[data-view="winter"]').forEach((b) => { b.hidden = !S.layers.winter; });
     document.querySelectorAll('.tx-tb[data-view="fire"]').forEach((b) => { b.hidden = !S.layers.fire; });
@@ -1006,6 +1011,16 @@
     if (winterView()) h += `<div><div class="lg-h">WPC WSSI-P · chance of at least ${esc(S.wlevel === "WWA" ? "winter weather" : WLEVEL_LABEL[S.wlevel])}</div><div class="lg-bands">${WSSI_PROBS.map((v) => `<span class="lg-band"><i style="background:${WSSI_COLOR[v]}"></i>${v}%</span>`).join("")}</div><div class="lg-note">24-hour window. Levels: Minor, Moderate, Major, Extreme winter storm impacts (WPC definitions).</div></div>`;
     if (!day && !winterView()) h += `<label class="lg-toggle"><input type="checkbox" id="ctxChk"${S.ctx ? " checked" : ""}> Day 1 outlook outlines</label>`;
     if (day && S.model) h += `<div><div class="lg-h">Our research model · ${esc(S.hazard)} within 25 mi</div><div class="lg-bands">${G.BANDS.map(([, c, l]) => `<span class="lg-band"><i style="background:${c}"></i>${l}</span>`).join("")}</div><div class="lg-note">Experimental Forecast Ops guidance, not an official forecast${isLive() ? "" : ". Demo values"}. Uncolored: below 0.1% (low). Light hatching: no model guidance (outside its grid or over water), not a low value.</div>${(() => { const f = modelField(day); return f.values ? "" : `<div class="lg-note"><b>${esc(f.reason)}</b></div>`; })()}</div>`;
+    // aviation: only the parts actually drawn
+    if (S.layers.aviation) {
+      const ap = avProducts().length, en = enShown(), rp = en.some((x) => x.kind === "pirep"), ad = en.some((x) => x.kind !== "pirep"), gt = S.gtg.on && gtg.state === "ok", ic = S.ifi.on && ifi.state === "ok";
+      const dotc = (c, ring) => `<svg width="18" height="14" aria-hidden="true"><circle cx="9" cy="7" r="5" fill="${ring ? "none" : c}" stroke="${ring ? c : "#111"}" stroke-width="${ring ? 2.5 : 1}"/></svg>`;
+      const sw = (c) => `<span class="gtg-sw" style="background:rgba(${c.slice(0, 3).join(",")},${(c[3] / 255).toFixed(2)})"></span>`;
+      const rows = [ap ? `<div class="lg-row lg-tight">${["VFR", "MVFR", "IFR", "LIFR"].map((k) => dotc(FLT_COLOR[k]) + `<span>${k}</span>`).join("")}</div>` : "", rp ? `<div class="lg-row lg-tight">${dotc("#E5484D")}<span>pilot report, turbulence</span>${dotc("#E5484D", true)}<span>icing</span></div>` : "",
+        ad ? `<div class="lg-row lg-tight"><svg width="24" height="12" aria-hidden="true"><rect x="2" y="2" width="20" height="8" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>SIGMET, CWA</span><svg width="24" height="12" aria-hidden="true"><rect x="2" y="2" width="20" height="8" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="4 2"/></svg><span>G-AIRMET</span></div>` : "",
+        gt ? `<div class="lg-row lg-tight">${[1, 2, 3, 4].map((c) => sw(GT.PALETTE[c])).join("")}<span>turbulence guidance (GTG), light to extreme</span></div>` : "", ic ? `<div class="lg-row lg-tight">${(S.ifi.field === "prob" ? IF.PROB_COLORS : [1, 2, 3, 4].map((c) => IF.SEV_COLORS[c])).map(sw).join("")}<span>icing guidance (IFI), ${S.ifi.field === "prob" ? "probability 5% to 60%+" : "trace to severe"}</span></div>` : ""].filter(Boolean).join("");
+      if (rows) h += `<div><div class="lg-h">Aviation</div>${rows}</div>`;
+    }
     if (S.scope === "venue") h += `<div class="lg-row"><svg width="28" height="10" aria-hidden="true"><line x1="1" y1="5" x2="27" y2="5" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3"/></svg><span>${Math.round(T.miles(T.NEAR_KM))}-mile "nearby" ring</span></div>`;
     $("txLegendBody").innerHTML = h;
     const rx = $("rxChk"); if (rx) rx.addEventListener("change", () => { S.rx = rx.checked; drawAll(); });
@@ -1071,6 +1086,10 @@
     if (el) { const v = el.dataset.enAlt; S.en.alt = v === "all" ? null : v.split("-").map(Number); drawAll(); return; }
     if (eg) { S.en.age = +eg.dataset.enAge; drawAll(); return; }
     if (eo) { S.en.on = true; drawAll(); return; }
+    const avt = e.target.closest("[data-avt]");
+    if (avt) { const k = avt.dataset.avt, v = avt.getAttribute("aria-pressed") !== "true";
+      if (k === "gtg") S.gtg.on = v; else if (k === "ifi") { S.ifi.on = v; renderBar(); } else S.av[k] = v;
+      if (v && k !== "apt") S.en.on = true; S.sel = null; drawAll(); const nb = document.querySelector(`[data-avt="${k}"]`); if (nb) nb.focus(); return; }
     const go = e.target.closest("[data-gtg-on]"), gc = e.target.closest("[data-gtg-cls]");
     if (go) { S.gtg.on = true; drawAll(); return; }
     const io = e.target.closest("[data-ifi-on]"), ifd = e.target.closest("[data-ifi-field]");
@@ -1089,7 +1108,54 @@
   $("txPanel").addEventListener("mouseleave", () => { if (S.hover) { S.hover = null; stage("map", drawMap); } });
   document.querySelectorAll("[data-scope]").forEach((b) => b.addEventListener("click", () => setScope(b.dataset.scope, true)));
   document.querySelectorAll(".tx-tb").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
-  document.querySelectorAll(".tx-lb").forEach((b) => b.addEventListener("click", () => { S.layers[b.dataset.layer] = !S.layers[b.dataset.layer]; if (!Object.values(S.layers).some(Boolean)) S.layers[b.dataset.layer] = true; if ((!S.layers.winter && winterView()) || (!S.layers.fire && fireView())) S.view = "active"; S.sel = null; drawAll(); }));
+  /* ---------- Layers picker: hazards (several at once) and what Aviation shows; opening it downloads nothing ---------- */
+  const LAYER_NAME = { severe: "Severe storms", flood: "Flooding", winter: "Winter", fire: "Fire", smoke: "Smoke & air", tropical: "Tropical", coastal: "Coastal", aviation: "Aviation" };
+  const LAYER_KEYS = Object.keys(LAYER_NAME);
+  /* why a layer isn't drawn at the selected time (null: it is) */
+  function layerNote(k) {
+    const d = viewDay(), wv = winterView(), fv = fireView();
+    if (wv && k !== "winter") return "not in the Winter view (winter only)";
+    if (fv && k !== "fire") return "not in the Fire view (fire only)";
+    if (d === 2 || d === 3) {
+      if (k === "smoke" || k === "tropical" || k === "coastal") return "current conditions only: shown on Active now and Day 1";
+      if (k === "winter") return "Day " + d + " has no winter layer: use Winter · 7 days";
+      if (k === "fire") return "Day " + d + " has no fire layer: use Fire · 8 days";
+      if (k === "aviation") return "reports and advisories show on Active now and Day 1; airport weather and model guidance stay";
+    }
+    return null;
+  }
+  const layersSummary = () => { const on = LAYER_KEYS.filter((k) => S.layers[k]); return on.length === LAYER_KEYS.length ? "All 8" : on.length <= 2 ? on.map((k) => LAYER_NAME[k]).join(", ") : LAYER_NAME[on[0]] + ", " + LAYER_NAME[on[1]] + " +" + (on.length - 2); };
+  const viewName = () => (winterView() ? "Winter · 7 days" : fireView() ? "Fire · 8 days" : viewDay() ? "Day " + viewDay() : "Active now");
+  function syncLayers() {
+    const pop = $("txLayersPop"); if (!pop) return;
+    pop.querySelectorAll("input[data-layer]").forEach((i) => { i.checked = !!S.layers[i.dataset.layer]; const n = pop.querySelector(`[data-note="${i.dataset.layer}"]`), why = S.layers[i.dataset.layer] && layerNote(i.dataset.layer); n.textContent = why ? "Not drawn now: " + why : ""; n.hidden = !why; });
+    const av = { apt: S.av.apt, pireps: S.av.pireps && enOn(), adv: S.av.adv && enOn(), gtg: S.gtg.on, ifi: S.ifi.on };
+    pop.querySelectorAll("input[data-av]").forEach((i) => { i.checked = !!av[i.dataset.av]; i.disabled = !S.layers.aviation; });
+    $("txAvSub").classList.toggle("off", !S.layers.aviation);
+    $("txLayersSum").textContent = layersSummary(); $("txLayersBtn").setAttribute("aria-label", "Layers: " + layersSummary() + " on. Open to change");
+    // the panel's state line: time and layers stay in view while the details scroll; layers not drawn now, briefly why
+    const missing = LAYER_KEYS.filter((k) => S.layers[k] && layerNote(k) && !(k === "aviation" && viewDay())) /* aviation is partly drawn in Day 2/3: the picker says which part */, cur = missing.filter((k) => ["smoke", "tropical", "coastal"].includes(k)), own = missing.filter((k) => !["smoke", "tropical", "coastal"].includes(k));
+    const why = missing.length ? `<span class="tx-psnote">Not drawn in ${esc(viewName())}: ${[cur.length ? cur.map((k) => LAYER_NAME[k]).join(", ") + " (current only)" : "", own.length ? own.map((k) => LAYER_NAME[k]).join(", ") + (winterView() || fireView() ? " (this view shows " + (winterView() ? "winter" : "fire") + " only)" : " (see Layers)") : ""].filter(Boolean).map(esc).join("; ")}</span>` : "";
+    $("txPState").innerHTML = `<span class="tx-psv"><b>${esc(viewName())}</b>${data && data.clock && !viewDay() && !winterView() && !fireView() ? " · as of " + esc(t(data.clock)) : ""}</span><span class="tx-psl">Layers: ${esc(layersSummary())}</span>${why}`;
+  }
+  const popOpen = (open) => { const pop = $("txLayersPop"), btn = $("txLayersBtn"); pop.hidden = !open; btn.setAttribute("aria-expanded", String(open)); if (open) { syncLayers(); const f = pop.querySelector("input:not([disabled])"); if (f) f.focus(); } };
+  $("txLayersBtn").addEventListener("click", () => popOpen($("txLayersPop").hidden));
+  $("txLayersPop").addEventListener("change", (e) => {
+    const i = e.target; if (!i.matches("input")) return;
+    if (i.dataset.layer) { S.layers[i.dataset.layer] = i.checked; if (!LAYER_KEYS.some((k) => S.layers[k])) { S.layers[i.dataset.layer] = true; i.checked = true; } if ((!S.layers.winter && winterView()) || (!S.layers.fire && fireView())) S.view = "active"; }
+    else if (i.dataset.av === "apt") S.av.apt = i.checked;
+    else if (i.dataset.av === "pireps" || i.dataset.av === "adv") { S.av[i.dataset.av] = i.checked; if (i.checked) S.en.on = true; }
+    else if (i.dataset.av === "gtg") { S.gtg.on = i.checked; if (i.checked) S.en.on = true; }
+    else if (i.dataset.av === "ifi") { S.ifi.on = i.checked; if (i.checked) S.en.on = true; renderBar(); }
+    S.sel = null; drawAll();
+  });
+  $("txLayersPop").addEventListener("click", (e) => {
+    if (e.target.closest("[data-layers-close]")) { popOpen(false); $("txLayersBtn").focus(); return; }
+    if (e.target.closest("[data-layers-all]")) { LAYER_KEYS.forEach((k) => (S.layers[k] = true)); Object.assign(S.av, { apt: true, pireps: true, adv: true }); S.sel = null; drawAll(); return; }
+    if (e.target.closest("[data-layers-reset]")) { LAYER_KEYS.forEach((k) => (S.layers[k] = true)); Object.assign(S.av, { apt: true, pireps: true, adv: true }); S.gtg.on = false; S.ifi.on = false; renderBar(); S.sel = null; drawAll(); }
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("txLayersPop").hidden) { popOpen(false); $("txLayersBtn").focus(); e.preventDefault(); } }, true);
+  document.addEventListener("pointerdown", (e) => { if (!$("txLayersPop").hidden && !$("txLyr").contains(e.target)) popOpen(false); });
   $("modelChk").addEventListener("change", () => { S.model = $("modelChk").checked; startModel(); drawAll(); });
   document.querySelectorAll(".tx-hb").forEach((b) => b.addEventListener("click", () => { S.hazard = b.dataset.hz; drawAll(); }));
   $("txChips").addEventListener("click", (e) => { const v = e.target.closest("[data-view-go]"); if (v) setView(v.dataset.viewGo); if (e.target.closest("[data-sources]")) { S.sel = null; S.point = null; openSheet(); drawAll(); const s = document.querySelector(".px-sources"); if (s) s.scrollIntoView({ block: "nearest" }); } });
@@ -1129,7 +1195,7 @@
     const p = data.products.find((x) => x.geometry); if (p) { const b = T.bbox(p.geometry); map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding: pad(), maxZoom: 8.5, duration: 0 }); }
   }
   document.addEventListener("keydown", (e) => {
-    if (e.key !== "Escape") return;
+    if (e.key !== "Escape" || e.defaultPrevented) return; // the Layers picker handled it
     if (S.sel || S.point) { S.sel = null; S.point = null; drawAll(); $("txPanelBody").focus({ preventScroll: true }); }
     else if (phone() && S.sheet === "open") setSheet("peek");
   });

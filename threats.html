@@ -28,7 +28,7 @@
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
 <link rel="stylesheet" href="assets/ops.css?v=2c02764827">
-<link rel="stylesheet" href="assets/threats.css?v=09ab6510fd">
+<link rel="stylesheet" href="assets/threats.css?v=046eb04c6e">
 </head>
 <body class="threats-page">
 <main class="tx" id="tx">
@@ -84,7 +84,8 @@
     <section class="tx-mapwrap" aria-label="Threat map">
       <div id="txMap" class="tx-map"></div>
       <div class="tx-top" id="txTop">
-        <div class="tx-time" role="group" aria-label="Time">
+        <div class="tx-time" role="group" aria-label="Forecast time: changes what time the map shows">
+          <span class="tx-gl" aria-hidden="true">Time</span>
           <button type="button" class="tx-tb" data-view="active" aria-pressed="true">Active now</button>
           <button type="button" class="tx-tb" data-view="day1" aria-pressed="false">Day 1</button>
           <button type="button" class="tx-tb" data-view="day2" aria-pressed="false">Day 2</button>
@@ -92,15 +93,28 @@
           <button type="button" class="tx-tb" data-view="winter" aria-pressed="false">Winter · 7 days</button>
           <button type="button" class="tx-tb" data-view="fire" aria-pressed="false">Fire · 8 days</button>
         </div>
-        <div class="tx-layers" role="group" aria-label="Layers">
-          <button type="button" class="tx-lb" data-layer="severe" aria-pressed="true">Severe storms</button>
-          <button type="button" class="tx-lb" data-layer="flood" aria-pressed="true">Flooding</button>
-          <button type="button" class="tx-lb" data-layer="winter" aria-pressed="true">Winter</button>
-          <button type="button" class="tx-lb" data-layer="fire" aria-pressed="true">Fire</button>
-          <button type="button" class="tx-lb" data-layer="smoke" aria-pressed="true">Smoke &amp; air</button>
-          <button type="button" class="tx-lb" data-layer="tropical" aria-pressed="true">Tropical</button>
-          <button type="button" class="tx-lb" data-layer="coastal" aria-pressed="true">Coastal</button>
-          <button type="button" class="tx-lb" data-layer="aviation" aria-pressed="true">Aviation</button>
+        <div class="tx-lyr" id="txLyr">
+          <button type="button" class="tx-lyrbtn" id="txLayersBtn" aria-expanded="false" aria-controls="txLayersPop" aria-haspopup="true"><span class="tx-gl">Layers</span><span class="tx-lyrsum" id="txLayersSum">All 8</span><span class="tx-caret" aria-hidden="true">▾</span></button>
+          <div class="tx-lyrpop" id="txLayersPop" hidden role="group" aria-label="Layers: turn hazards on or off (several can be on together)">
+            <fieldset class="tx-lyrfs"><legend>Hazards on the map <span class="tx-lyrhint">several can be on together</span></legend>
+              <label class="tx-lt"><input type="checkbox" data-layer="severe"><span class="tx-ltn">Severe storms</span><span class="tx-ltnote" data-note="severe"></span></label>
+              <label class="tx-lt"><input type="checkbox" data-layer="flood"><span class="tx-ltn">Flooding</span><span class="tx-ltnote" data-note="flood"></span></label>
+              <label class="tx-lt"><input type="checkbox" data-layer="winter"><span class="tx-ltn">Winter</span><span class="tx-ltnote" data-note="winter"></span></label>
+              <label class="tx-lt"><input type="checkbox" data-layer="fire"><span class="tx-ltn">Fire</span><span class="tx-ltnote" data-note="fire"></span></label>
+              <label class="tx-lt"><input type="checkbox" data-layer="smoke"><span class="tx-ltn">Smoke &amp; air</span><span class="tx-ltnote" data-note="smoke"></span></label>
+              <label class="tx-lt"><input type="checkbox" data-layer="tropical"><span class="tx-ltn">Tropical</span><span class="tx-ltnote" data-note="tropical"></span></label>
+              <label class="tx-lt"><input type="checkbox" data-layer="coastal"><span class="tx-ltn">Coastal</span><span class="tx-ltnote" data-note="coastal"></span></label>
+              <label class="tx-lt"><input type="checkbox" data-layer="aviation"><span class="tx-ltn">Aviation</span><span class="tx-ltnote" data-note="aviation"></span></label>
+              <fieldset class="tx-lyrsub" id="txAvSub"><legend>Aviation shows</legend>
+                <label class="tx-lt"><input type="checkbox" data-av="apt"><span class="tx-ltn">Airport weather</span><span class="tx-ltnote">METAR and TAF at the event's airports</span></label>
+                <label class="tx-lt"><input type="checkbox" data-av="pireps"><span class="tx-ltn">Pilot reports</span><span class="tx-ltnote">observations: turbulence and icing</span></label>
+                <label class="tx-lt"><input type="checkbox" data-av="adv"><span class="tx-ltn">Advisories</span><span class="tx-ltnote">SIGMETs, G-AIRMETs, CWAs</span></label>
+                <label class="tx-lt"><input type="checkbox" data-av="gtg"><span class="tx-ltn">Turbulence guidance</span><span class="tx-ltnote">NOAA GTG model, about 1 MB per view</span></label>
+                <label class="tx-lt"><input type="checkbox" data-av="ifi"><span class="tx-ltn">Icing guidance</span><span class="tx-ltnote">NOAA IFI model, about 0.5 MB per view</span></label>
+              </fieldset>
+            </fieldset>
+            <div class="tx-lyract"><button type="button" class="tx-fb" data-layers-all>Show all</button><button type="button" class="tx-fb" data-layers-reset>Reset to default</button><button type="button" class="tx-fb tx-done" data-layers-close>Done</button></div>
+          </div>
         </div>
         <div class="tx-valid" id="txValid" aria-live="polite"></div>
         <div class="tx-model" id="txModel" hidden>
@@ -124,10 +138,12 @@
         <button type="button" class="tx-peek" id="txPeek" aria-controls="txPanelBody"><span class="tx-peek1" id="txPeek1"></span><span class="tx-peek2" id="txPeek2"></span><span class="tx-peek3" id="txPeek3" hidden></span></button>
         <button type="button" class="tx-handle-act" id="txSheetBtn" aria-expanded="true" aria-controls="txPanelBody">Close</button>
       </div>
-      <div class="tx-scope" role="group" aria-label="View">
+      <div class="tx-scope" role="group" aria-label="Map area: the whole country or the venue">
+        <span class="tx-gl tx-gl-scope" aria-hidden="true">Map area</span>
         <button type="button" class="tx-sb" data-scope="national" aria-pressed="false">National</button>
         <button type="button" class="tx-sb" data-scope="venue" aria-pressed="true" id="scopeVenue">Venue</button>
       </div>
+      <div class="tx-pstate" id="txPState" aria-live="polite"></div>
       <div class="tx-panel-body" id="txPanelBody" tabindex="-1"></div>
     </aside>
   </div>
@@ -148,6 +164,6 @@
 <script src="assets/threats-gtg.js?v=90a6946eed"></script>
 <script src="assets/threats-ifi.js?v=1a8301f4fa"></script>
 <script src="assets/threats-live.js?v=52d2af1cf0"></script>
-<script src="assets/threats.js?v=2de32b883c"></script>
+<script src="assets/threats.js?v=63b8b2976d"></script>
 </body>
 </html>

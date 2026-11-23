@@ -314,7 +314,9 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
     await p.waitForTimeout(1500);
     const click = async (sel) => { const el = p.locator(sel).first(); if (await el.count() && await el.isVisible()) { await el.click(); await p.waitForTimeout(600); } };
     for (const sc of ["national", "venue", "national"]) await click(`[data-scope="${sc}"]`);
-    for (const L of ["severe", "flood", "winter", "fire", "smoke", "tropical", "coastal"]) { await click(`.tx-lb[data-layer="${L}"]`); await click(`.tx-lb[data-layer="${L}"]`); }
+    await click("#txLayersBtn"); // the Layers picker: every hazard off and on again
+    for (const L of ["severe", "flood", "winter", "fire", "smoke", "tropical", "coastal"]) { await click(`#txLayersPop input[data-layer="${L}"]`); await click(`#txLayersPop input[data-layer="${L}"]`); }
+    await click("#txLayersPop [data-layers-close]");
     for (const vw of ["day1", "day2", "day3", "winter", "fire", "active"]) { await click(`.tx-tb[data-view="${vw}"]`); await click('[data-scope="venue"]'); await click('[data-scope="national"]'); }
     for (const d of [1, 2, 4]) { await click('.tx-tb[data-view="fire"]'); await click(`[data-fday="${d}"]`); }
     await click('.tx-tb[data-view="active"]');

@@ -307,10 +307,9 @@
     const gtgBlock = (rs) => {
       if (!GT) return "";
       const hd = `<h4 class="et-aph et-gtgh">Modeled turbulence along your route <span class="et-badge">Model guidance · NOAA GTG</span></h4>`;
-      if (ARCHIVE) return `<div class="et-gtg">${hd}<p class="bx-note et-unk">Live only: GTG guidance is not part of this archived replay.</p></div>`;
+      if (ARCHIVE) return "";
       const ro = routeOf(ev) || {}, rr = rs.oPt && rs.dPt && rs.startMs ? { o: rs.o, d: rs.d, oPt: rs.oPt, dPt: rs.dPt, lowFt: rs.lowFt, highFt: rs.highFt, startMs: rs.startMs, endMs: rs.endMs, timed: rs.timeSource === "own", cls: ro.cls || "medium" } : null;
-      if (!rr) return `<div class="et-gtg">${hd}<p class="bx-note et-unk">${rs.oPt && rs.dPt ? "Add the time in the air (or flight times at the route's airports) to check modeled turbulence." : "Waiting for both airports to be placed before modeled turbulence can be checked."}</p></div>`;
-      if (!gtgRun.want) return `<div class="et-gtg">${hd}<button type="button" class="btn et-gtgbtn" data-gtg-check>Check modeled turbulence (about ${gtgEstimate(rr)} MB)</button><p class="bx-note">Reads NOAA's Graphical Turbulence Guidance for your altitude band and time in the air, for ${esc(GT.CLASSES[rr.cls].label.toLowerCase())}.</p></div>`;
+      if (!rr || !gtgRun.want) return "";
       gtgCheck(rr);
       const R = gtgRun.result, cur = gtgRun.state === "done" && gtgRun.key === JSON.stringify([rr.o, rr.d, rr.lowFt, rr.highFt, rr.startMs, rr.endMs, rr.timed, rr.cls, rr.oPt, rr.dPt]);
       if (gtgRun.state === "failed") return `<div class="et-gtg">${hd}<p class="bx-note et-unk" data-gtg-state="failed">GTG guidance isn't available right now (${esc(gtgRun.error || "unknown")}), so modeled turbulence along the route is unknown.</p></div>`;
@@ -345,10 +344,9 @@
     const ifiBlock = (rs) => {
       if (!IFM || !GT) return "";
       const hd = `<h4 class="et-aph et-ifih">Modeled icing along your route <span class="et-badge et-badge-ifi">Model guidance · NOAA IFI</span></h4>`;
-      if (ARCHIVE) return `<div class="et-ifi">${hd}<p class="bx-note et-unk">Live only: IFI guidance is not part of this archived replay.</p></div>`;
+      if (ARCHIVE) return "";
       const rr = rs.oPt && rs.dPt && rs.startMs ? { o: rs.o, d: rs.d, oPt: rs.oPt, dPt: rs.dPt, lowFt: rs.lowFt, highFt: rs.highFt, startMs: rs.startMs, endMs: rs.endMs, timed: rs.timeSource === "own" } : null;
-      if (!rr) return `<div class="et-ifi">${hd}<p class="bx-note et-unk">${rs.oPt && rs.dPt ? "Add the time in the air (or flight times at the route's airports) to check modeled icing." : "Waiting for both airports to be placed before modeled icing can be checked."}</p></div>`;
-      if (!ifiRun.want) return `<div class="et-ifi">${hd}<button type="button" class="btn et-gtgbtn" data-ifi-check>Check modeled icing (about ${ifiEstimate(rr)} MB)</button><p class="bx-note">Reads NOAA's In-Flight Icing guidance (icing probability and modeled severity) for your altitude band and time in the air.${IFI_FIXTURE ? " This page uses saved official NOAA records (replay)." : ""}</p></div>`;
+      if (!rr || !ifiRun.want) return "";
       ifiCheck(rr);
       const R = ifiRun.result, cur = ifiRun.state === "done" && ifiRun.key === JSON.stringify([rr.o, rr.d, rr.lowFt, rr.highFt, rr.startMs, rr.endMs, rr.timed, rr.oPt, rr.dPt]);
       if (ifiRun.state === "failed") return `<div class="et-ifi">${hd}<p class="bx-note et-unk" data-ifi-state="failed">IFI guidance isn't available right now (${esc(ifiRun.error || "unknown")}), so modeled icing along the route is unknown.</p></div>`;
@@ -393,8 +391,19 @@
         <h5 class="et-ifisub">Modeled severity</h5><ul class="et-list" data-ifi-list="sev">${R.sevFindings.map((f, i) => item("sev", f, i)).join("")}${quietS ? ok(quietS, "none") : ""}</ul>
         ${gaps.length ? `<ul class="et-list" data-ifi-list="gaps">${gaps.map((t) => ok(t, "gap")).join("")}</ul>` : ""}</div>`;
     };
+    /* the route's model checks: one compact area, two on-demand actions, each result (and its gaps) under its own heading */
+    const modelChecks = (rs) => {
+      if (!GT) return "";
+      const hd = `<h4 class="et-aph et-mch">Model checks along the route <span class="et-badge">Model guidance · NOAA</span></h4>`;
+      if (ARCHIVE) return `<div class="et-mc">${hd}<p class="bx-note et-unk">Live only: model guidance is not part of this archived replay.</p></div>`;
+      const ro = routeOf(ev) || {}, rr = rs.oPt && rs.dPt && rs.startMs ? { o: rs.o, d: rs.d, oPt: rs.oPt, dPt: rs.dPt, lowFt: rs.lowFt, highFt: rs.highFt, startMs: rs.startMs, endMs: rs.endMs, timed: rs.timeSource === "own", cls: ro.cls || "medium" } : null;
+      if (!rr) return `<div class="et-mc">${hd}<p class="bx-note et-unk">${rs.oPt && rs.dPt ? "Add the time in the air (or flight times at the route's airports) to check modeled turbulence and icing." : "Waiting for both airports to be placed before the model checks can run."}</p></div>`;
+      const btn = (attr, label, mb, done) => done ? `<span class="et-mcdone" aria-label="${esc(label)} requested">✓ ${esc(label.replace(/^Check /, "").replace(/^./, (c) => c.toUpperCase()))} checked below</span>` : `<button type="button" class="btn et-gtgbtn" ${attr}>${esc(label)} <span class="et-mb">(about ${mb} MB)</span></button>`;
+      return `<div class="et-mc">${hd}<div class="et-mcact">${btn("data-gtg-check", "Check turbulence", gtgEstimate(rr), gtgRun.want)}${IFM ? btn("data-ifi-check", "Check icing", ifiEstimate(rr), ifiRun.want) : ""}</div>
+        <p class="bx-note">On demand: each reads NOAA model records for your altitude band (${esc(EN ? EN.bandText(rr.lowFt, rr.highFt) : "")}) and time in the air. Turbulence uses ${esc(GT.CLASSES[rr.cls].label.toLowerCase())}; icing reads probability and modeled severity.${IFI_FIXTURE ? " Icing here uses saved official NOAA records (replay)." : ""}</p>${gtgBlock(rs)}${IFM ? ifiBlock(rs) : ""}</div>`;
+    };
     const rs = r.route || {}, rtMap = rs.set ? mapLink({ family: "aviation", kind: "route", airport: rs.d, product: {}, window: null }) : mapLink({ family: "aviation", kind: "route", airport: (airports[0] || {}).icao, product: {} });
-    const routeSec = !hasAir || (!rs.set && !apBlocks) ? "" : `<h3 class="et-h" id="etRouteHead">Along the route</h3>${rs.set ? `<div class="et-ap et-route" data-route="${esc(rs.o + "-" + rs.d)}"><h4 class="et-aph">Approximate route ${esc(rs.label)} · ${esc(rs.band)}${rs.window ? " · " + esc(rs.window) : ""} <a class="bx-link et-apmap" data-map-route="1" href="${esc(rtMap)}">View on map</a></h4><ul class="et-list">${rs.lines.map((x) => (x.concern && byId.get(x.itemId) ? renderItem(byId.get(x.itemId)) : okLine(x))).join("")}</ul></div><p class="bx-note et-approx">A straight line between the airports, not your flight plan: matches are potential overlaps within ${esc(String(rs.corridorMi))} miles of it, in your time${rs.timeSource && rs.timeSource !== "own" ? " (from your " + esc(rs.timeSource) + ")" : ""} and altitude band. Pilot reports are observations; SIGMETs, G-AIRMETs and CWAs are official advisories.</p>${gtgBlock(rs)}${ifiBlock(rs)}`
+    const routeSec = !hasAir || (!rs.set && !apBlocks) ? "" : `<h3 class="et-h" id="etRouteHead">Along the route</h3>${rs.set ? `<div class="et-ap et-route" data-route="${esc(rs.o + "-" + rs.d)}"><h4 class="et-aph">Approximate route ${esc(rs.label)} · ${esc(rs.band)}${rs.window ? " · " + esc(rs.window) : ""} <a class="bx-link et-apmap" data-map-route="1" href="${esc(rtMap)}">View on map</a></h4><ul class="et-list">${rs.lines.map((x) => (x.concern && byId.get(x.itemId) ? renderItem(byId.get(x.itemId)) : okLine(x))).join("")}</ul></div><p class="bx-note et-approx">A straight line between the airports, not your flight plan: matches are potential overlaps within ${esc(String(rs.corridorMi))} miles of it, in your time${rs.timeSource && rs.timeSource !== "own" ? " (from your " + esc(rs.timeSource) + ")" : ""} and altitude band. Pilot reports are observations; SIGMETs, G-AIRMETs and CWAs are official advisories.</p>${modelChecks(rs)}`
       : `<p class="bx-note et-noroute">No route set. En-route advisories and pilot reports are on the <a class="bx-link" data-map-route="0" href="${esc(rtMap)}">map</a> as regional context; add an origin, destination and altitude band below to check them along an approximate route.</p>`}`;
     const airSec = !hasAir ? "" : `<h3 class="et-h" id="etAirHead">Airport weather</h3>${apBlocks || '<p class="bx-note et-noair">No airports set for this event. Add a primary and an optional alternate airport with your flight times below.</p>'}${apBlocks && linkAir ? '<p class="bx-note et-linkair">Airports and flight times came with the shared link. Change them below to keep your own in this browser.</p>' : ""}${apBlocks ? '<p class="bx-note">Airport forecasts and observations from the NOAA Aviation Weather Center, for the airport, not the venue. Codes and the raw reports are under More info.</p>' : ""}`;
     const statuses = r.statuses.map((s) => `<li class="${s.ok ? "" : "et-warn"}"><b>${esc(s.name)}</b> · ${esc(s.text)}</li>`).join("");
