@@ -31,6 +31,8 @@ jobs:
       - run: |
           npm install --no-save playwright@1.48.2
           npx playwright install --with-deps chromium || npx playwright install chromium
+      - name: Response headers for the viewer files
+        run: for f in severe.html assets/severe-conus.js assets/severe-research.js assets/severe-conus/index.json; do echo "== $f"; curl -sSI "${BASE}$f" | grep -iE '^(HTTP|content-type|location|x-content-type)'; done
       - name: Hosted CONUS / Regional check (desktop and phone)
         run: mkdir -p out && node tools/conus-preview-host-check.js "$BASE" out
       - uses: actions/upload-artifact@v4
