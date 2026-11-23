@@ -3,7 +3,7 @@
 (function () {
   "use strict";
   const O = window.Ops, $ = O.$, C = O.Core, S = C.severe;
-  O.shell("severe", "Severe");
+  O.shell("severe", "Severe ingredients"); O.severeViews($("severeViews"), "severe");
 
   /* Models, variables and request settings: OpsCore.config.severe */
   const SPEC = C.config.severe, MODELS = SPEC.models;
