@@ -1270,6 +1270,7 @@
      between press and release and the click was lost (the last rows: Radar, Icing guidance). Hold the position while pressed;
      a touch drag cancels the press, so scrolling by finger still works */
   { const pop = $("txLayersPop"); let pressTop = null;
+    pop.addEventListener("mousedown", (e) => { if (e.target.closest(".tx-lt")) e.preventDefault(); }); // no focus scroll from a press; the click still toggles
     pop.addEventListener("pointerdown", () => { pressTop = pop.scrollTop; }, true);
     pop.addEventListener("scroll", () => { if (pressTop != null && pop.scrollTop !== pressTop) pop.scrollTop = pressTop; });
     for (const ev of ["pointerup", "pointercancel"]) document.addEventListener(ev, () => { setTimeout(() => { pressTop = null; }, 0); }, true); } window.addEventListener("resize", popMore);
