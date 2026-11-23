@@ -64,8 +64,11 @@ async function createMap(view){const [states,lakes,cty]=await Promise.all([fetch
  map.addLayer({id:'sc-fill',type:'fill',source:'sc-fill',paint:{'fill-color':['get','color'],'fill-opacity':['case',['<',['get','threshold'],.02],.42,.66],'fill-antialias':false}});
  map.addLayer({id:'sc-lakes',type:'fill',source:'sc-lakes',paint:{'fill-color':p.water}});
  map.addLayer({id:'sc-lines',type:'line',source:'sc-lines',paint:{'line-color':'#1f2329','line-width':['case',['<',['get','threshold'],.02],.3,.55],'line-opacity':['case',['<',['get','threshold'],.02],.25,.45]}});
- if(cty)map.addLayer({id:'sc-counties',type:'line',source:'sc-counties',minzoom:4.8,layout:{visibility:showCounties?'visible':'none'},paint:{'line-color':p.county,'line-width':['interpolate',['linear'],['zoom'],5,.3,8,.8],'line-opacity':['interpolate',['linear'],['zoom'],4.8,0,5.8,.55,8,.75]}});
- map.addLayer({id:'sc-states',type:'line',source:'sc-states',paint:{'line-color':p.line,'line-width':['interpolate',['linear'],['zoom'],3,.9,8,1.8],'line-opacity':.9}});
+ // County lines: a light core over a faint dark edge, so they read on the dark basemap and on the gray low-probability bands.
+ // Always thinner than state borders (core 0.45-1.0 px vs states 0.9-1.8 px); same zoom fade-in as before.
+ if(cty){map.addLayer({id:'sc-counties-edge',type:'line',source:'sc-counties',minzoom:4.8,layout:{visibility:showCounties?'visible':'none'},paint:{'line-color':'#0b0f14','line-width':['interpolate',['linear'],['zoom'],5,1.2,8,2],'line-opacity':['interpolate',['linear'],['zoom'],4.8,0,5.8,.28,8,.35]}});
+  map.addLayer({id:'sc-counties',type:'line',source:'sc-counties',minzoom:4.8,layout:{visibility:showCounties?'visible':'none'},paint:{'line-color':'#dfe5ee','line-width':['interpolate',['linear'],['zoom'],5,.45,8,1],'line-opacity':['interpolate',['linear'],['zoom'],4.8,0,5.8,.6,8,.78]}});}
+ map.addLayer({id:'sc-states',type:'line',source:'sc-states',paint:{'line-color':'#f3f6fa','line-width':['interpolate',['linear'],['zoom'],3,.9,8,1.8],'line-opacity':.95}});
  map.addLayer({id:'sc-labels',type:'symbol',source:'sc-lines',filter:['>=',['get','threshold'],.05],layout:{'symbol-placement':'line','symbol-spacing':300,'text-field':['concat',['to-string',['*',['get','threshold'],100]],'%'],'text-font':['Open Sans Semibold'],'text-size':10,'text-padding':12},paint:{'text-color':'#171717','text-halo-color':'#fff','text-halo-width':1.5}});
  map.addLayer({id:'sc-unavail',type:'circle',source:'sc-unavail',paint:{'circle-radius':['interpolate',['linear'],['zoom'],3,1.5,7,3.5],'circle-color':'rgba(0,0,0,0)','circle-stroke-color':'#7a2a8c','circle-stroke-width':1}});
  map.addLayer({id:'sc-near',type:'circle',source:'sc-near',layout:{visibility:'none'},paint:{'circle-radius':['interpolate',['linear'],['zoom'],3,1.2,7,3],'circle-color':'#ffffff','circle-stroke-color':'#3b4250','circle-stroke-width':.5,'circle-opacity':.8}});
@@ -143,7 +146,7 @@ function draw(){if(!ready)return;showUnavailable();const ok=available()&&values;
  map.setLayoutProperty('sc-near','visibility',replay&&showNear?'visible':'none');
  map.getSource('sc-reports').setData(replay?reportFeatures():none());
  for(const id of ['sc-clusters','sc-cluster-count','sc-report'])map.setLayoutProperty(id,'visibility',replay&&showReports?'visible':'none');
- if(map.getLayer('sc-counties'))map.setLayoutProperty('sc-counties','visibility',showCounties?'visible':'none');
+ for(const id of ['sc-counties','sc-counties-edge'])if(map.getLayer(id))map.setLayoutProperty(id,'visibility',showCounties?'visible':'none');
  map.triggerRepaint();showSample();}
 function select(coord,name){const i=nearest(...coord);selected=i;offGrid=i===null;focusName=i===null?'Outside coverage (no grid point within 12 km)':name;showSample();}
 function inspectLocation(move){const l=O&&O.location;if(!l)return;select([+l.lon,+l.lat],'Nearest point to '+l.name);if(move&&selected!==null&&map)map.easeTo({center:grid[selected],zoom:7,duration:400});}
