@@ -47,7 +47,7 @@ async function createMap(view){const [states,lakes,detail]=await Promise.all([fe
  map.addLayer({id:'sc-lines',type:'line',source:'sc-lines',paint:{'line-color':'#222','line-width':['case',['<',['get','threshold'],.01],.5,.9],'line-opacity':.7}});
  map.addLayer({id:'sc-states',type:'line',source:'sc-states',paint:{'line-color':p.line,'line-width':.9,'line-opacity':.85}});
  map.addLayer({id:'sc-labels',type:'symbol',source:'sc-lines',filter:['>=',['get','threshold'],.05],layout:{'symbol-placement':'line','symbol-spacing':260,'text-field':['concat',['to-string',['*',['get','threshold'],100]],'%'],'text-font':['Open Sans Semibold'],'text-size':10,'text-padding':12},paint:{'text-color':'#171717','text-halo-color':'#fff','text-halo-width':1.5}});
- map.addLayer({id:'sc-reports',type:'circle',source:'sc-reports',paint:{'circle-radius':['interpolate',['linear'],['zoom'],3,1.4,7,3.6],'circle-color':'#08306b','circle-opacity':.85}});
+ map.addLayer({id:'sc-reports',type:'circle',source:'sc-reports',paint:{'circle-radius':['interpolate',['linear'],['zoom'],3,1.5,7,3.8],'circle-color':'#ffffff','circle-stroke-color':'#0b0f14','circle-stroke-width':0.6,'circle-opacity':.9}});
  map.addLayer({id:'sc-ring',type:'line',source:'sc-ring',paint:{'line-color':p.text,'line-width':2,'line-dasharray':[3,2]}});
  map.addLayer({id:'sc-sel',type:'circle',source:'sc-sel',paint:{'circle-color':p.land,'circle-radius':5,'circle-stroke-color':p.text,'circle-stroke-width':2}});
  map.on('click',e=>select([e.lngLat.lng,e.lngLat.lat],'Selected map sample'));
@@ -65,7 +65,7 @@ async function init(){if(loaded)return;loaded=true;host.setAttribute('aria-busy'
 }catch(e){loaded=false;status('CONUS research preview unavailable: '+e.message,true);}finally{host.setAttribute('aria-busy','false');}}
 async function loadCase(){const seq=++request,c=index.cases.find(x=>x.id===$('scCase').value);values=null;active=null;draw();try{
  if(!cache.has(c.id))cache.set(c.id,fetchJson(c.file,c.sha256).catch(e=>{cache.delete(c.id);throw e;}));const data=await cache.get(c.id);if(seq!==request)return;
- const w=data.probabilities&&data.probabilities.wind;if(!Array.isArray(w)||w.length!==grid.length||data.id!==c.id||data.day!==2)throw Error('Case identity or size mismatch');
+ const w=data.probabilities&&data.probabilities.wind;if(!Array.isArray(w)||w.length!==grid.length||data.id!==c.id||Number(data.day)!==2)throw Error('Case identity or size mismatch');
  values=w;active={...c,data};meta();draw();restore();status((c.kind==='current'?'Current research run':'Replay of '+c.issue_date)+' · click any sample, or inspect your saved location.');
 }catch(e){if(seq!==request)return;status('Could not load this CONUS case: '+e.message+'. No probability is shown.',true);}}
 function meta(){const c=active,d=c.data;$('scWindow').textContent=(c.kind==='current'?'CURRENT RUN · ':'REPLAY · '+c.issue_date+' · ')+eastern(d.valid_start)+' → '+eastern(d.valid_end);
@@ -103,7 +103,8 @@ function setMode(next,opts={}){if(next===mode&&!opts.force)return;const bridge=w
   if(bridge&&bridge.set&&map&&ready){const c=map.getCenter();bridge.set({center:[c.lng,c.lat],zoom:map.getZoom(),coord:selected!==null?grid[selected]:null,hazard});}}
  try{history.replaceState(null,'',mode==='conus'?'#severe-conus':'#severe-daily');}catch(e){}}
 
-$('scLegend').innerHTML='<span class="sr-legend-band sr-legend-none"><i title="Below 0.1%: not colored"></i>Below 0.1%: no color</span>'+G.BANDS.map(([,color,label])=>'<span class="sr-legend-band"><i style="background:'+color+'"></i>'+label+'</span>').join('')+'<span class="sc-key"><i class="sc-k-out"></i>Outside coverage (grey dots, or no samples)</span><span class="sc-key"><i class="sc-k-na"></i>Data unavailable</span><span class="sc-key"><i class="sc-k-rep"></i>Observed report within 25 mi (replay)</span>';
+$('scLegend').innerHTML='<span class="sr-legend-band sr-legend-none"><i title="Below 0.1%: not colored"></i>Below 0.1%: no color</span>'+G.BANDS.map(([,color,label])=>'<span class="sr-legend-band"><i style="background:'+color+'"></i>'+label+'</span>').join('');
+$('scLegend').insertAdjacentHTML('afterend','<div class="sc-keys" id="scKeys"><span class="sc-key"><i class="sc-k-out"></i>Outside coverage (grey dots, or no samples)</span><span class="sc-key"><i class="sc-k-na"></i>Data unavailable</span><span class="sc-key"><i class="sc-k-rep"></i>Observed report within 25 mi (replay)</span></div>');
 host.querySelectorAll('[data-sc-view]').forEach(b=>b.addEventListener('click',()=>{host.open=true;setMode(b.dataset.scView);}));
 host.querySelectorAll('[data-sc-hazard]').forEach(b=>b.addEventListener('click',()=>{hazard=b.dataset.scHazard;syncButtons();draw();}));
 $('scDay').addEventListener('change',()=>{day=+$('scDay').value;syncButtons();draw();});
