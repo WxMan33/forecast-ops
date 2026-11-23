@@ -428,13 +428,17 @@
     return started;
   }
   /* the map: each layer's feeds load when it is turned on and stop refreshing when it is off (Event Manager keeps start()) */
-  let mapFeeds = null; const feedTimers = {};
+  let mapFeeds = null; const feedTimers = {}, feedAt = {}, QUICK = new Set(["alerts", "md", "spc", "ero"]);
   const FEEDS = { alerts: [() => refreshAlerts(), 60e3], md: [() => refreshMD(), 60e3], spc: [() => refreshOutlooks(), 10 * 60e3], ero: [() => refreshERO(), 10 * 60e3], fire: [() => refreshFire(), 10 * 60e3], nifc: [() => refreshNIFC(), 5 * 60e3], hms: [() => refreshHMS(), 10 * 60e3], monitors: [() => refreshMonitorsAll(), 10 * 60e3], nhc: [() => refreshNHC(), 10 * 60e3] };
   function setFeeds(keys) {
     const want = new Set((keys || []).filter((k) => FEEDS[k])), first = [];
     if (!mapFeeds) { mapFeeds = new Set(); document.addEventListener("visibilitychange", () => { if (!document.hidden) { if (mapFeeds.has("alerts")) refreshAlerts(); if (mapFeeds.has("md")) refreshMD(); } }); }
     for (const k of Object.keys(FEEDS)) {
-      if (want.has(k) && !mapFeeds.has(k)) { first.push(FEEDS[k][0]()); feedTimers[k] = setInterval(() => { if (!document.hidden) FEEDS[k][0](); }, FEEDS[k][1]); }
+      /* turned on: fetch now unless fetched within its refresh interval (a quick off-and-on doesn't download again); the map waits
+         only for the quick feeds; fire outlooks, NIFC, HMS, monitors and NHC load in the background and read "Loading" meanwhile */
+      if (want.has(k) && !mapFeeds.has(k)) { const run = () => { feedAt[k] = Date.now(); return FEEDS[k][0](); };
+        if (!(Date.now() - (feedAt[k] || 0) < FEEDS[k][1])) { const r = run(); if (QUICK.has(k)) first.push(r); }
+        feedTimers[k] = setInterval(() => { if (!document.hidden) run(); }, FEEDS[k][1]); }
       if (!want.has(k) && mapFeeds.has(k)) { clearInterval(feedTimers[k]); delete feedTimers[k]; }
     }
     mapFeeds = want; return Promise.allSettled(first);
