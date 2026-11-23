@@ -1265,7 +1265,14 @@
   }
   /* the picker scrolls on small screens: show "More below" until its end is in view */
   const popMore = () => { const pop = $("txLayersPop"); if (!pop || pop.hidden) return; pop.classList.toggle("more", pop.scrollTop + pop.clientHeight < pop.scrollHeight - 8); };
-  $("txLayersPop").addEventListener("scroll", popMore, { passive: true }); window.addEventListener("resize", popMore);
+  $("txLayersPop").addEventListener("scroll", popMore, { passive: true });
+  /* a press on a row focuses it, and the browser then scrolls it clear of the pinned buttons (scroll-padding): the row moved
+     between press and release and the click was lost (the last rows: Radar, Icing guidance). Hold the position while pressed;
+     a touch drag cancels the press, so scrolling by finger still works */
+  { const pop = $("txLayersPop"); let pressTop = null;
+    pop.addEventListener("pointerdown", () => { pressTop = pop.scrollTop; }, true);
+    pop.addEventListener("scroll", () => { if (pressTop != null && pop.scrollTop !== pressTop) pop.scrollTop = pressTop; });
+    for (const ev of ["pointerup", "pointercancel"]) document.addEventListener(ev, () => { setTimeout(() => { pressTop = null; }, 0); }, true); } window.addEventListener("resize", popMore);
   // keyboard: a focused control is scrolled clear of the pinned actions
   $("txLayersPop").addEventListener("focusin", (e) => { const l = e.target.closest(".tx-lt"); if (l && e.target.matches(":focus-visible")) l.scrollIntoView({ block: "nearest" }); popMore(); }); // keyboard only: a pointer press must not move the row it is pressing
   const popOpen = (open) => { const pop = $("txLayersPop"), btn = $("txLayersBtn"); pop.hidden = !open; btn.setAttribute("aria-expanded", String(open)); if (open) { syncLayers(); pop.scrollTop = 0; const f = pop.querySelector("input:not([disabled])"); if (f) f.focus(); requestAnimationFrame(popMore); } };
