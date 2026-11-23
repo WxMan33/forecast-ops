@@ -2,8 +2,15 @@
 // loads the expected cases, the unavailable panel works, and the Regional view returns. Writes two screenshots.
 const {chromium,devices}=require('playwright');
 const [BASE,OUT]=process.argv.slice(2);
+// raw.githack.com now shows an "External Content Notice" before HTML pages; a visitor clicks through once.
+async function passNotice(pg,label){for(let i=0;i<3;i++){const t=await pg.title().catch(()=>'');if(!/External Content Notice/i.test(t))return;
+ const opts=await pg.evaluate(()=>[...document.querySelectorAll('a,button,input[type=submit]')].map(e=>({tag:e.tagName,text:(e.innerText||e.value||'').trim().slice(0,60),href:e.href||''})));console.log('NOTICE '+label,JSON.stringify(opts.filter(o=>o.text||/severe/.test(o.href))));
+ const target=pg.locator('a[href*="severe.html"], a:has-text("Open"), button:has-text("Open"), a:has-text("Continue"), button:has-text("Continue"), a:has-text("Proceed"), button:has-text("Proceed")').first();
+ await Promise.all([pg.waitForLoadState('load').catch(()=>{}),target.click({timeout:15000})]);await pg.waitForTimeout(3000);}
+ if(/External Content Notice/i.test(await pg.title()))throw Error('could not pass the beta host notice page');}
+
 (async()=>{const b=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});const p=await b.newPage({viewport:{width:1280,height:1000}});const errs=[],logs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>logs.push(m.type()+': '+m.text().slice(0,200)));p.on('requestfailed',r=>logs.push('FAILED '+r.url().slice(0,160)));const resp=[];p.on('response',r=>{const u=r.url();if(/severe|assets\//.test(u))resp.push([r.status(),(r.headers()['content-type']||''),u.split('/').slice(-2).join('/').slice(0,80)]);});
- await p.goto(BASE+'severe.html#severe-conus');
+ await p.goto(BASE+'severe.html#severe-conus');await passNotice(p,'desktop');console.log('desktop page',p.url(),await p.title());
  try{await p.waitForFunction(()=>window.SevereConusPreview&&window.SevereConusPreview.state().ready&&window.SevereConusPreview.state().case,null,{timeout:90000});}
  catch(e){console.log('DIAG',JSON.stringify(await p.evaluate(()=>({href:location.href,title:document.title,api:!!window.SevereConusPreview,contours:!!window.SevereResearchContours,core:!!window.SevereResearchCore,ops:!!window.Ops,bridge:!!window.SevereDailyBridge,ml:typeof maplibregl,host:!!document.getElementById('severe-daily'),scBody:!!document.getElementById('scBody'),scripts:[...document.scripts].map(x=>x.src.split('/').pop()).filter(Boolean),body:document.body.innerText.slice(0,300),st:window.SevereConusPreview&&window.SevereConusPreview.state(),status:(document.getElementById('scStatus')||{}).textContent,webgl:!!document.createElement('canvas').getContext('webgl')})),null,1));console.log('RESP',JSON.stringify(resp.slice(0,40),null,0));console.log(logs.slice(-30).join('\n'));console.log('pageerrors',errs);await p.screenshot({path:OUT+'/hosted-timeout.png',fullPage:false});throw e;}await p.waitForTimeout(3000);
  const st=await p.evaluate(()=>({s:window.SevereConusPreview.state(),cases:[...document.querySelectorAll('#scCase option')].map(o=>o.value),win:document.getElementById('scWindow').textContent}));
@@ -12,7 +19,7 @@ const [BASE,OUT]=process.argv.slice(2);
  await p.click('[data-sc-hazard="tornado"]');if(await p.isHidden('#scUnavailable'))throw Error('unavailable panel not shown');
  await p.click('#scWind');await p.waitForTimeout(1500);await p.locator('#scMap').screenshot({path:OUT+'/hosted-conus.png'});
  await p.click('[data-sc-view="regional"]');await p.waitForTimeout(2000);if(!(await p.isVisible('.sd-regional')))throw Error('Regional view not visible');
- const m=await (await b.newContext({...devices['iPhone 13']})).newPage();await m.goto(BASE+'severe.html#severe-conus');await m.waitForFunction(()=>window.SevereConusPreview&&window.SevereConusPreview.state().ready,null,{timeout:90000});
+ const m=await (await b.newContext({...devices['iPhone 13']})).newPage();await m.goto(BASE+'severe.html#severe-conus');await passNotice(m,'phone');await m.waitForFunction(()=>window.SevereConusPreview&&window.SevereConusPreview.state().ready,null,{timeout:90000});
  const w=await m.evaluate(()=>[document.documentElement.scrollWidth,document.documentElement.clientWidth]);console.log('mobile widths',w);if(w[0]>w[1])throw Error('horizontal scroll on phone');
  await m.locator('#scMap').screenshot({path:OUT+'/hosted-conus-mobile.png'});
  if(errs.length)throw Error('page errors: '+errs.join(' | '));console.log('hosted check passed');await b.close();})().catch(e=>{console.error(e);process.exit(1);});
