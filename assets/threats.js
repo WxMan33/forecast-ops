@@ -16,7 +16,7 @@
   /* outlook names: SPC "Enhanced risk (3 of 5)"; WPC "High excessive rainfall risk (4 of 4)" */
   const olabel = (p) => /^spcfire-/.test(p.program || "") ? (p.day >= 3 ? (p.category === "CRIT" ? "Critical fire weather area" : FX.FIRE_NAME[p.category] + " chance of critical " + (p.part === "dryt" ? "dry thunderstorms" : "fire weather")) : FX.FIRE_NAME[p.category] + (p.part === "dryt" ? "" : " fire weather")) : p.program === "ero" ? FX.ERO_NAME[p.category] + " excessive rainfall risk (" + (FX.ERO_CATS.indexOf(p.category) + 1) + " of 4)" : T.outlookLabel(p.category);
   const OUTLOOK_COLOR = { TSTM: "#C1E9C1", MRGL: "#66A366", SLGT: "#F6E05E", ENH: "#FFA05C", MDT: "#E06666", HIGH: "#EE99EE" };
-  const SCOPE_NOTE = "This page covers NWS tornado and severe thunderstorm warnings and watches, flash flood warnings and winter storm alerts, SPC Mesoscale Discussions and outlooks, and WPC rainfall and winter outlooks, in the contiguous U.S.";
+  const SCOPE_NOTE = "This page covers NWS warnings, watches and advisories for the hazards on in Layers, with SPC and WPC outlooks and the other sources listed below.";
   /* WPC WSSI-P: probability of at least the chosen impact level in a 24-hour window (5–95%) */
   const WSSI_PROBS = [5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95];
   const WSSI_COLOR = { 5: "#E3EEF9", 10: "#C6DBEF", 20: "#9ECAE1", 30: "#6BAED6", 40: "#4292C6", 50: "#2171B5", 60: "#6A51A3", 70: "#807DBA", 80: "#9E3E9E", 90: "#C51B8A", 95: "#7A0177" };
@@ -35,7 +35,7 @@
   const WLEVEL_LABEL = { WWA: "Any winter weather", MINOR: "Minor", MODERATE: "Moderate", MAJOR: "Major", EXTREME: "Extreme" };
   const empty = { type: "FeatureCollection", features: [] };
 
-  const S = { air: [], ap: null, layers: { severe: false, flood: false, winter: false, fire: false, smoke: false, tropical: false, coastal: false, aviation: false }, en: { on: false, at: 0, alt: null, age: 2 }, av: { apt: true, pireps: true, adv: true }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, ifi: { on: false, field: "prob", src: null, cyc: null }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, radar: false, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
+  const S = { air: [], ap: null, layers: { severe: false, flood: false, winter: false, fire: false, smoke: false, tropical: false, coastal: false, aviation: false }, en: { on: false, at: 0, alt: null, age: 2 }, av: { apt: true, pireps: true, adv: true }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, ifi: { on: false, field: "prob", src: null, cyc: null }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, radar: false, pin: true, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
   let framedAp = false, framedSel = false, mapLoaded = false; // Planner airport "View on map": framed once
   let data, now, venue, map, ready = false, liveReady = false, meshes = new Map(), tzCache = {}, marker, grid = null, mesh = null, mask = null, gridLoading = null, hull = null;
   const phone = () => matchMedia("(max-width: 760px)").matches;
@@ -699,7 +699,7 @@
     map.getSource("labels").setData({ type: "FeatureCollection", features: labels.filter((l) => l.p.label).map((l) => ({ type: "Feature", properties: { kind: l.p.kind === "incident" ? "inc" : l.p.kind, tor: isTor(l.p), color: colorOf(l.p), text: l.text, size: l.size, rank: l.rank, tc: l.tc, hc: l.hc }, geometry: { type: "Point", coordinates: l.p.label } })) });
     const fp = focus && byId(focus);
     map.getSource("hl").setData(fp && fp.geometry && !(day === 2 && fp.kind !== "outlook") ? { type: "FeatureCollection", features: [feature(fp, {})] } : empty);
-    map.getSource("ring").setData(S.scope === "venue" ? { type: "FeatureCollection", features: [ring([venue.lon, venue.lat], T.NEAR_KM)] } : empty);
+    map.getSource("ring").setData(S.scope === "venue" && S.pin ? { type: "FeatureCollection", features: [ring([venue.lon, venue.lat], T.NEAR_KM)] } : empty);
     map.getSource("pt").setData(S.point ? { type: "Feature", properties: {}, geometry: { type: "Point", coordinates: S.point } } : empty);
     if (!marker) {
       const el = document.createElement("button"); el.type = "button"; el.className = "tx-pin"; el.innerHTML = '<span class="tx-pin-dot"></span><span class="tx-pin-label"></span>';
@@ -710,6 +710,7 @@
     map.getSource("cities").setData({ type: "FeatureCollection", features: CITIES.filter(([, lat, lon]) => Math.hypot((lon - venue.lon) * 85, (lat - venue.lat) * 111) > 12).map(([name, lat, lon], i) => ({ type: "Feature", properties: { name, rank: i }, geometry: { type: "Point", coordinates: [lon, lat] } })) });
     marker.setLngLat([venue.lon, venue.lat]); marker.getElement().querySelector(".tx-pin-label").textContent = venue.name;
     marker.getElement().setAttribute("aria-label", "Open venue view: " + venue.name);
+    marker.getElement().style.display = S.pin ? "" : "none"; // "Venue marker" off in Layers: just the map
     drawModel();
   }
   function shade(hex) { if (typeof hex !== "string" || !/^#[0-9a-f]{6}$/i.test(hex)) return "#888888"; const n = parseInt(hex.slice(1), 16), f = 0.62; return "rgb(" + [n >> 16, (n >> 8) & 255, n & 255].map((v) => Math.round(v * f)).join(",") + ")"; }
@@ -849,6 +850,7 @@
     }).join("") + `</div>`;
   }
   function venueStrip() {
+    if (!S.pin) return "";
     const l = statusLines()[0];
     const text = l ? `<b>${esc(l.head)}</b> · ${esc(l.sub)}` : esc(quietText().big);
     return `<button type="button" class="px-strip${l && l.p.kind === "warning" ? " hot" : ""}" data-scope-go="venue" style="--tx-c:${l ? colorOf(l.p) : "var(--line)"}"><span class="px-where">At ${esc(venue.name)}</span><span class="px-strip-t">${text}</span><span class="px-strip-go">Venue view →</span></button>`;
@@ -1019,6 +1021,7 @@
   /* collapsed phone sheet: two lines so a warning's expiration always survives */
   function peek() {
     if (avOnly() && !S.sel && !S.point) { const a = avSummary(); return [a.head, a.sub]; }
+    if (!S.pin && !S.sel && !S.point && !viewDay() && !winterView() && !fireView()) { const n = active().length; return ["National map", n ? n + " active · tap for the list" : srcOn("alerts") ? "Nothing active for the layers on" : "Open Layers to add warnings"]; }
     if (S.sel) { const p = byId(S.sel); return p ? [p.kind === "outlook" ? "Day " + p.day + " · " + olabel(p) : p.title, "Tap for details"] : ["", ""]; }
     if (fireView()) { const a = fireAt(S.fday), top = a.windrh || a.dryt; return ["Fire weather at " + venue.name + " · " + FDAY_NAME(S.fday), top ? fireCatText(top) : "No fire weather area at the venue"]; }
     if (winterView()) { const w = curWin(), o = w ? venueWssi().get(w.start) || {} : {}, lv = topLevel(o); return ["Winter outlook at " + venue.name, w ? winShort(w) + " · " + (lv ? pctTxt(o[lv]) + " at least " + (lv === "WWA" ? "winter weather" : WLEVEL_LABEL[lv]) : "under 30% for any level") : "Loading"]; }
@@ -1200,7 +1203,7 @@
   }
   const venueCamera = () => ({ center: [venue.lon, venue.lat], zoom: phone() ? 7.4 : 8, padding: pad() });
   function setScope(scope, move) {
-    S.scope = scope; S.sel = null; S.point = null;
+    S.scope = scope; S.sel = null; S.point = null; if (scope === "venue") S.pin = true; // the venue view is about the venue: show it
     drawAll();
     if (move && map) {
       if (scope === "venue") map.flyTo({ ...venueCamera(), duration: 600 });
@@ -1280,6 +1283,7 @@
     const av = { apt: S.av.apt, pireps: S.av.pireps && enOn(), adv: S.av.adv && enOn(), gtg: S.gtg.on, ifi: S.ifi.on };
     pop.querySelectorAll("input[data-av]").forEach((i) => { i.checked = !!av[i.dataset.av]; i.disabled = !S.layers.aviation; });
     $("txAvSub").classList.toggle("off", !S.layers.aviation);
+    { const pi = pop.querySelector("input[data-pin]"); if (pi) pi.checked = !!S.pin; }
     { const ri = pop.querySelector("input[data-radar]"); ri.checked = !!S.radar && isLive(); ri.disabled = !isLive();
       $("txRadarNote").textContent = !isLive() ? "Live only: current radar doesn't belong on a demo or a replay" : S.radar && radar.valid ? radarText() : "NOAA MRMS base reflectivity · refreshed every 5 minutes while on · about 0.3 MB per view"; }
     $("txLayersSum").textContent = layersSummary(); $("txLayersBtn").setAttribute("aria-label", "Layers: " + layersSummary() + " on. Open to change");
@@ -1310,6 +1314,7 @@
     const i = e.target; if (!i.matches("input")) return;
     if (i.dataset.layer) { S.layers[i.dataset.layer] = i.checked; if ((!S.layers.winter && winterView()) || (!S.layers.fire && fireView())) S.view = "active"; }
     else if (i.hasAttribute("data-radar")) S.radar = i.checked;
+    else if (i.hasAttribute("data-pin")) { S.pin = i.checked; try { localStorage.setItem("threats_pin", S.pin ? "1" : "0"); } catch (e) { /* not remembered */ } if (!S.pin && S.scope === "venue") { S.scope = "national"; renderTop(); } }
     else if (i.dataset.av === "apt") S.av.apt = i.checked;
     else if (i.dataset.av === "pireps" || i.dataset.av === "adv") { S.av[i.dataset.av] = i.checked; if (i.checked) S.en.on = true; }
     else if (i.dataset.av === "gtg") { S.gtg.on = i.checked; if (i.checked) S.en.on = true; }
@@ -1424,6 +1429,8 @@
     if (q.get("rx") === "1") S.rx = true;
     if (q.get("ctn") === "1") S.ctn = true;
     if (q.get("radar") === "1") S.radar = true;
+    try { if (localStorage.getItem("threats_pin") === "0") S.pin = false; } catch (e) { /* no storage: marker shown */ }
+    if (q.get("pin") === "0") S.pin = false; else if (q.get("pin") === "1" || q.get("scope") === "venue") S.pin = true;
     if (q.get("layers")) { const L = q.get("layers").split(","); if (L.includes("aviation")) S.en.on = true; S.layers = { severe: L.includes("severe"), flood: L.includes("flood"), winter: L.includes("winter"), fire: L.includes("fire"), smoke: L.includes("smoke"), tropical: L.includes("tropical"), coastal: L.includes("coastal"), aviation: L.includes("aviation") }; }
     else if (S.scenario !== "live") Object.keys(S.layers).forEach((k) => (S.layers[k] = true)); // demo and archived samples: their shared selection is every layer
     else if (S.gtg.on || S.ifi.on || q.get("air") || q.get("rt") || q.get("alt")) S.layers.aviation = true; // a live link naming aviation content and no layers

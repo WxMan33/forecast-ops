@@ -1,0 +1,912 @@
+{
+ "host": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev",
+ "at": "2026-11-23T21:33:47.971Z",
+ "devices": {
+  "desktop": {
+   "presetVenue": {
+    "st": {
+     "layers": [
+      "severe",
+      "flood",
+      "winter",
+      "coastal"
+     ],
+     "scope": "venue",
+     "feeds": [
+      "alerts",
+      "ero",
+      "md",
+      "spc"
+     ],
+     "sum": "Severe storms, Flooding +2"
+    },
+    "by": {
+     "alerts": 1,
+     "md-page": 1,
+     "spc": 3,
+     "ero": 3,
+     "md": 1,
+     "alerts-zones": 107
+    }
+   },
+   "ero1": {
+    "st": "empty",
+    "src": {
+     "state": "ok",
+     "lastOk": "2026-11-23T21:33:52.823Z",
+     "count": 0,
+     "error": null,
+     "outlook": "current",
+     "validEnd": "2026-11-24T12:00:00.000Z",
+     "issued": "2026-11-23T15:50:00.000Z",
+     "via": "wpc"
+    },
+    "rows": [
+     "WPC excessive rainfall · Day 1 Checked 4:33 PM EST · none active"
+    ],
+    "panel": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY No severe risk area Valid Mon, Nov 23, 3:00 PM EST → Tue, Nov 24, 7:00 AM EST EXCESSIVE RAINFALL · WPC No excessive rainfall area at the venue. No excessive rainfall areas. SEVERE STORMS · SPC OUTLOOK AREAS OUTLOOKGeneral thunderstorms Day 1 · until Tue, Nov 24, 7:00 AM EST ACTIVE NOW 15 active warnings Shown as dashed outlines, labelled Active now · ope"
+   },
+   "refsOnOpen": {
+    "opened": "KPQR.CF.Y.0005.2026",
+    "refs": 1
+   },
+   "zones": {
+    "first": 0,
+    "cached": 107,
+    "second": 0
+   },
+   "spcUnknown": {
+    "peek": "Risk unknown · SPC Day 1 outlook not responding",
+    "big": "Risk unknown · SPC Day 1 outlook not responding",
+    "body": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY\nRisk unknown · SPC Day 1 outlook not responding\nSPC Day 1 outlook not responding.\nOUTLOOK AREAS\n\nRisk unknown · SPC Day 1 outlook not responding.\n\nOpen the regional Severe viewer →\nNWS warnings, watches and advisories\nChecked 4:34 PM EST\nSPC Mesoscale Discussions\nChecked 4:34 PM EST via NOAA map service · none active\nSPC Day 1 outlook\nNot responding · status unknown\nLive official feeds, fetched by your browser. Alerts and MDs refresh every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
+   },
+   "clicks": {
+    "pick": {
+     "fire": {
+      "id": "nifc-1CDF5E5A-F22E-4352-A582-C2A47663B93D",
+      "name": "Aspen Acres",
+      "pt": [
+       -105.0712779393,
+       38.0193211711361
+      ]
+     },
+     "mon": {
+      "id": "airnow-390610006",
+      "site": "Sycamore",
+      "pt": [
+       -84.36612,
+       39.2787
+      ]
+     },
+     "contained": 52,
+     "drawnContained": 0,
+     "hms": {
+      "id": "hms-2026-11-23-0",
+      "pt": [
+       -111.57914124,
+       14.21998712
+      ]
+     }
+    },
+    "fire": {
+     "sel": "nifc-1CDF5E5A-F22E-4352-A582-C2A47663B93D",
+     "body": "← Back\n WILDFIRE\nAspen Acres\n\n102,007 acres · 96% contained\n\nType\nWildfire · Type 5 IC\nSize\n102,007 acres (as reported for the incident)\nContainment\n96%\nDiscove",
+     "how": "direct"
+    },
+    "mon": {
+     "sel": "airnow-390610006",
+     "body": "← Back\nAIR QUALITY\nSycamore\nReading\nAQI 3 Good (PM2.5) · PM2.5 -2 µg/m³\nAll pollutants\nPM2.5 3\nObserved\nMon, Nov 23, 4:00 PM EST (hourly)\nMonitor\nSycamore · 390610006\nReporting area\nCincinnati\nVenue\n2",
+     "how": "direct"
+    },
+    "hms": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST NWS warnings, watches and advisories Checked 4:34 PM EST NIFC wildfire incidents (WFIGS) "
+   },
+   "overlap": {
+    "pick": {
+     "pirep": "pirep-1795469100-41.793--112.010-E75L",
+     "pt": [
+      -112.0098,
+      41.7929
+     ],
+     "advs": [
+      "gairmet-ZULU-4C-ICE-0-1795466700",
+      "gairmet-TANGO-1W-TURB-HI-0-1795466700"
+     ]
+    },
+    "L": {
+     "under": true,
+     "ids": [
+      "pirep-1795469100-41.793--112.010-E75L",
+      "gairmet-TANGO-1W-TURB-HI-0-1795466700",
+      "gairmet-ZULU-4C-ICE-0-1795466700"
+     ],
+     "rows": [
+      "PILOT REPORTlight to moderate turbulence between FL240 and FL280 4:25 PM EST · E75L",
+      "G-AIRMETModerate high-altitude turbulence FL180 to FL400 · snapshot 4:00 PM EST",
+      "G-AIRMETModerate icing 5,000 ft to 16,000 ft · snapshot 4:00 PM EST"
+     ]
+    },
+    "opened": 3
+   },
+   "ww705": {
+    "n": 1,
+    "watch": [
+     "Tornado Watch"
+    ],
+    "drawn": 1,
+    "panel": "AT LINCOLN FINANCIAL FIELD · PHILADELPHIA, PA\nTornado Watch in effect at the venue\nUntil 7:00 PM EST · 6 h 09 min left\nAT THE VENUE\nWATCHTornado Watch 705\nUntil"
+   },
+   "radarOn": {
+    "by": {
+     "radar-time": 1,
+     "radar-tile": 28
+    },
+    "st": {
+     "state": "ok",
+     "valid": "2026-11-23T21:22:07.000Z",
+     "vis": "visible",
+     "below": true,
+     "sum": "Radar only",
+     "row": "NOAA MRMS radar\nImage 4:22 PM EST · 13 min old",
+     "feeds": []
+    }
+   },
+   "radarOff": {
+    "off": {},
+    "so": {
+     "state": "off",
+     "timer": false,
+     "vis": "none",
+     "sum": "None selected"
+    }
+   },
+   "vfc": {
+    "r": {
+     "state": "ok",
+     "sum": "Peak gust 14 mph around 4 PM · No rain chance above 0% · Feels like as low as 30°F around 3 AM",
+     "rows": 12,
+     "foot": "NWS forecast grid ILN 35,38, updated 4:00 PM EST. A forecast, not an observation; a gust is the highest expected in that hour.",
+     "hs": false,
+     "data": {
+      "office": "ILN",
+      "peakGust": {
+       "t": "2026-11-23T21:00:00.000Z",
+       "gust": 14,
+       "wind": 8,
+       "temp": 49,
+       "heat": null,
+       "feels": 46,
+       "pop": 0
+      }
+     }
+    },
+    "by": {
+     "nws-point": 1,
+     "nws-grid": 1
+    },
+    "before": 0
+   }
+  },
+  "phone": {
+   "presetVenue": {
+    "st": {
+     "layers": [
+      "severe",
+      "flood",
+      "winter",
+      "coastal"
+     ],
+     "scope": "venue",
+     "feeds": [
+      "alerts",
+      "ero",
+      "md",
+      "spc"
+     ],
+     "sum": "Severe storms, Flooding +2"
+    },
+    "by": {
+     "alerts": 1,
+     "md-page": 1,
+     "spc": 3,
+     "ero": 3,
+     "md": 1,
+     "alerts-zones": 107
+    }
+   },
+   "ero1": {
+    "st": "empty",
+    "src": {
+     "state": "ok",
+     "lastOk": "2026-11-23T21:35:40.293Z",
+     "count": 0,
+     "error": null,
+     "outlook": "current",
+     "validEnd": "2026-11-24T12:00:00.000Z",
+     "issued": "2026-11-23T15:50:00.000Z",
+     "via": "wpc"
+    },
+    "rows": [
+     "WPC excessive rainfall · Day 1 Checked 4:35 PM EST · none active"
+    ],
+    "panel": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY No severe risk area Valid Mon, Nov 23, 3:00 PM EST → Tue, Nov 24, 7:00 AM EST EXCESSIVE RAINFALL · WPC No excessive rainfall area at the venue. No excessive rainfall areas. SEVERE STORMS · SPC OUTLOOK AREAS OUTLOOKGeneral thunderstorms Day 1 · until Tue, Nov 24, 7:00 AM EST ACTIVE NOW 14 active warnings Shown as dashed outlines, labelled Active now · ope"
+   },
+   "refsOnOpen": {
+    "opened": "KSEW.CF.W.0005.2026",
+    "refs": 1
+   },
+   "zones": {
+    "first": 0,
+    "cached": 107,
+    "second": 0
+   },
+   "spcUnknown": {
+    "peek": "Risk unknown · SPC Day 1 outlook not responding",
+    "big": "Risk unknown · SPC Day 1 outlook not responding",
+    "body": "Day 1 at CVG airport · highest SPC categoryRisk unknown · SPC Day 1 outlook not respondingSPC Day 1 outlook not responding.Outlook areasRisk unknown · SPC Day 1 outlook not responding.Open the regional Severe viewer →NWS warnings, watches and advisoriesChecked 4:36 PM ESTSPC Mesoscale DiscussionsChecked 4:36 PM EST via NOAA map service · none activeSPC Day 1 outlookNot responding · status unknownLive official feeds, fetched by your browser. Alerts and MDs refresh every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
+   },
+   "clicks": {
+    "pick": {
+     "fire": {
+      "id": "nifc-1CDF5E5A-F22E-4352-A582-C2A47663B93D",
+      "name": "Aspen Acres",
+      "pt": [
+       -105.0712779393,
+       38.0193211711361
+      ]
+     },
+     "mon": {
+      "id": "airnow-390610006",
+      "site": "Sycamore",
+      "pt": [
+       -84.36612,
+       39.2787
+      ]
+     },
+     "contained": 52,
+     "drawnContained": 0,
+     "hms": {
+      "id": "hms-2026-11-23-0",
+      "pt": [
+       -111.57914124,
+       14.21998712
+      ]
+     }
+    },
+    "fire": {
+     "sel": "nifc-1CDF5E5A-F22E-4352-A582-C2A47663B93D",
+     "body": "← Back\n WILDFIRE\nAspen Acres\n\n102,007 acres · 96% contained\n\nType\nWildfire · Type 5 IC\nSize\n102,007 acres (as reported for the incident)\nContainment\n96%\nDiscove",
+     "how": "direct"
+    },
+    "mon": {
+     "sel": null,
+     "body": "AT CVG AIRPORT\nNothing active at the venue\nVenue view →\nMOST URGENT NOW\n0 ACTIVE\n\nNo active fire weather warnings, watches or advisories in the U.S.\n\nThis page covers NWS tornado and severe thundersto",
+     "how": "missing"
+    },
+    "hms": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST NWS warnings, watches and advisories Checked 4:36 PM EST NIFC wildfire incidents (WFIGS) "
+   },
+   "overlap": {
+    "pick": {
+     "pirep": "pirep-1795469220-44.989--122.693-B190",
+     "pt": [
+      -122.693,
+      44.9891
+     ],
+     "advs": [
+      "gairmet-ZULU-5C-ICE-0-1795466700",
+      "gairmet-TANGO-1W-TURB-LO-0-1795466700"
+     ]
+    },
+    "L": {
+     "under": true,
+     "ids": [
+      "pirep-1795469220-44.989--122.693-B190",
+      "gairmet-TANGO-1W-TURB-LO-0-1795466700",
+      "gairmet-ZULU-5C-ICE-0-1795466700"
+     ],
+     "rows": [
+      "PILOT REPORTlight icing (rime) at 14,500 ft 4:27 PM EST · B190",
+      "G-AIRMETModerate low-altitude turbulence surface to 15,000 ft · snapshot 4:00 PM EST",
+      "G-AIRMETModerate icing 4,000 ft to FL210 · snapshot 4:00 PM EST"
+     ]
+    },
+    "opened": 3
+   },
+   "ww705": {
+    "n": 1,
+    "watch": [
+     "Tornado Watch"
+    ],
+    "drawn": 1,
+    "panel": "At Lincoln Financial Field · Philadelphia, PATornado Watch in effect at the venueUntil 7:00 PM EST · 6 h 09 min leftAt the venueWATCHTornado Watch 705Until 7:00"
+   },
+   "radarOn": {
+    "by": {
+     "radar-time": 1,
+     "radar-tile": 8
+    },
+    "st": {
+     "state": "ok",
+     "valid": "2026-11-23T21:28:12.000Z",
+     "vis": "visible",
+     "below": true,
+     "sum": "Radar only",
+     "row": "NOAA MRMS radarImage 4:28 PM EST · 9 min old",
+     "feeds": []
+    }
+   },
+   "radarOff": {
+    "off": {},
+    "so": {
+     "state": "off",
+     "timer": false,
+     "vis": "none",
+     "sum": "None selected"
+    }
+   },
+   "vfc": {
+    "r": {
+     "state": "ok",
+     "sum": "Peak gust 14 mph around 4 PM · No rain chance above 0% · Feels like as low as 30°F around 3 AM",
+     "rows": 12,
+     "foot": "NWS forecast grid ILN 35,38, updated 4:00 PM EST. A forecast, not an observation; a gust is the highest expected in that hour.",
+     "hs": false,
+     "data": {
+      "office": "ILN",
+      "peakGust": {
+       "t": "2026-11-23T21:00:00.000Z",
+       "gust": 14,
+       "wind": 8,
+       "temp": 49,
+       "heat": null,
+       "feels": 46,
+       "pop": 0
+      }
+     }
+    },
+    "by": {
+     "nws-point": 1,
+     "nws-grid": 1
+    },
+    "before": 0
+   }
+  }
+ },
+ "results": [
+  {
+   "check": "(desktop) PRESET \"Warnings at my venue\": severe, flood, winter, coastal; venue view; only alerts, MDs, SPC and WPC outlooks requested ({\"alerts\":1,\"md-page\":1,\"spc\":3,\"ero\":3,\"md\":1,\"alerts-zones\":107}); no earlier-message lookups on load",
+   "pass": true,
+   "detail": {
+    "st": {
+     "layers": [
+      "severe",
+      "flood",
+      "winter",
+      "coastal"
+     ],
+     "scope": "venue",
+     "feeds": [
+      "alerts",
+      "ero",
+      "md",
+      "spc"
+     ],
+     "sum": "Severe storms, Flooding +2"
+    },
+    "by": {
+     "alerts": 1,
+     "md-page": 1,
+     "spc": 3,
+     "ero": 3,
+     "md": 1,
+     "alerts-zones": 107
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(desktop) WPC RAINFALL Day 1 (ok; today empty): a confirmed answer reads current or none, not 'Not responding'",
+   "pass": true,
+   "detail": {
+    "st": "empty",
+    "src": {
+     "state": "ok",
+     "lastOk": "2026-11-23T21:33:52.823Z",
+     "count": 0,
+     "error": null,
+     "outlook": "current",
+     "validEnd": "2026-11-24T12:00:00.000Z",
+     "issued": "2026-11-23T15:50:00.000Z",
+     "via": "wpc"
+    },
+    "rows": [
+     "WPC excessive rainfall · Day 1 Checked 4:33 PM EST · none active"
+    ],
+    "panel": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY No severe risk area Valid Mon, Nov 23, 3:00 PM EST → Tue, Nov 24, 7:00 AM EST EXCESSIVE RAINFALL · WPC No excessive rainfall area at the venue. No excessive rainfall areas. SEVERE STORMS · SPC OUTLOOK AREAS OUTLOOKGeneral thunderstorms Day 1 · until Tue, Nov 24, 7:00 AM EST ACTIVE NOW 15 active warnings Shown as dashed outlines, labelled Active now · ope"
+   }
+  },
+  {
+   "check": "(desktop) WHAT CHANGED: the earlier message is fetched when its alert is opened (1 request for KPQR.CF.Y.0005.2026)",
+   "pass": true,
+   "detail": {
+    "opened": "KPQR.CF.Y.0005.2026",
+    "refs": 1
+   }
+  },
+  {
+   "check": "(desktop) ZONE OUTLINES: first visit 0 downloads, 107 kept in Cache Storage; next visit 0",
+   "pass": true,
+   "detail": {
+    "first": 0,
+    "cached": 107,
+    "second": 0
+   }
+  },
+  {
+   "check": "(desktop) SPC OUTLOOK NOT RESPONDING: the venue brief and summary say 'Risk unknown' ('Risk unknown · SPC Day 1 outlook not responding'), never 'No severe risk area'",
+   "pass": true,
+   "detail": {
+    "peek": "Risk unknown · SPC Day 1 outlook not responding",
+    "big": "Risk unknown · SPC Day 1 outlook not responding",
+    "body": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY\nRisk unknown · SPC Day 1 outlook not responding\nSPC Day 1 outlook not responding.\nOUTLOOK AREAS\n\nRisk unknown · SPC Day 1 outlook not responding.\n\nOpen the regional Severe viewer →\nNWS warnings, watches and advisories\nChecked 4:34 PM EST\nSPC Mesoscale Discussions\nChecked 4:34 PM EST via NOAA map service · none active\nSPC Day 1 outlook\nNot responding · status unknown\nLive official feeds, fetched by your browser. Alerts and MDs refresh every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
+   }
+  },
+  {
+   "check": "(desktop) CLICK a fire incident dot (Aspen Acres): its own details open (direct)",
+   "pass": true,
+   "detail": {
+    "sel": "nifc-1CDF5E5A-F22E-4352-A582-C2A47663B93D",
+    "body": "← Back\n WILDFIRE\nAspen Acres\n\n102,007 acres · 96% contained\n\nType\nWildfire · Type 5 IC\nSize\n102,007 acres (as reported for the incident)\nContainment\n96%\nDiscove",
+    "how": "direct"
+   }
+  },
+  {
+   "check": "(desktop) CLICK an AirNow monitor dot (Sycamore): its own details open (direct)",
+   "pass": true,
+   "detail": {
+    "sel": "airnow-390610006",
+    "body": "← Back\nAIR QUALITY\nSycamore\nReading\nAQI 3 Good (PM2.5) · PM2.5 -2 µg/m³\nAll pollutants\nPM2.5 3\nObserved\nMon, Nov 23, 4:00 PM EST (hourly)\nMonitor\nSycamore · 390610006\nReporting area\nCincinnati\nVenue\n2",
+    "how": "direct"
+   }
+  },
+  {
+   "check": "(desktop) CLICK inside a satellite smoke area: At this spot lists it",
+   "pass": true,
+   "detail": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST NWS warnings, watches and advisories Checked 4:34 PM EST NIFC wildfire incidents (WFIGS) "
+  },
+  {
+   "check": "(desktop) FULLY CONTAINED FIRES hidden by default (52 listed by NIFC, 0 drawn)",
+   "pass": true,
+   "detail": {
+    "fire": {
+     "id": "nifc-1CDF5E5A-F22E-4352-A582-C2A47663B93D",
+     "name": "Aspen Acres",
+     "pt": [
+      -105.0712779393,
+      38.0193211711361
+     ]
+    },
+    "mon": {
+     "id": "airnow-390610006",
+     "site": "Sycamore",
+     "pt": [
+      -84.36612,
+      39.2787
+     ]
+    },
+    "contained": 52,
+    "drawnContained": 0,
+    "hms": {
+     "id": "hms-2026-11-23-0",
+     "pt": [
+      -111.57914124,
+      14.21998712
+     ]
+    }
+   }
+  },
+  {
+   "check": "(desktop) \"Fully contained fires\" in the legend shows them (52 drawn)",
+   "pass": true,
+   "detail": {
+    "n": 52
+   }
+  },
+  {
+   "check": "(desktop) no script errors on the fire and smoke map",
+   "pass": true,
+   "detail": []
+  },
+  {
+   "check": "(desktop) OVERLAPPING AVIATION (a pilot report inside 2 advisories): the click lists all 3 under it; each row opens its own details and Back returns to the list",
+   "pass": true,
+   "detail": {
+    "pick": {
+     "pirep": "pirep-1795469100-41.793--112.010-E75L",
+     "pt": [
+      -112.0098,
+      41.7929
+     ],
+     "advs": [
+      "gairmet-ZULU-4C-ICE-0-1795466700",
+      "gairmet-TANGO-1W-TURB-HI-0-1795466700"
+     ]
+    },
+    "L": {
+     "under": true,
+     "ids": [
+      "pirep-1795469100-41.793--112.010-E75L",
+      "gairmet-TANGO-1W-TURB-HI-0-1795466700",
+      "gairmet-ZULU-4C-ICE-0-1795466700"
+     ],
+     "rows": [
+      "PILOT REPORTlight to moderate turbulence between FL240 and FL280 4:25 PM EST · E75L",
+      "G-AIRMETModerate high-altitude turbulence FL180 to FL400 · snapshot 4:00 PM EST",
+      "G-AIRMETModerate icing 5,000 ft to 16,000 ft · snapshot 4:00 PM EST"
+     ]
+    },
+    "opened": 3,
+    "back": true,
+    "errs": []
+   }
+  },
+  {
+   "check": "(desktop) REPLAY SPC Tornado Watch 705 loads and draws (Tornado Watch)",
+   "pass": true,
+   "detail": {
+    "r": {
+     "n": 1,
+     "watch": [
+      "Tornado Watch"
+     ],
+     "drawn": 1,
+     "panel": "AT LINCOLN FINANCIAL FIELD · PHILADELPHIA, PA\nTornado Watch in effect at the venue\nUntil 7:00 PM EST · 6 h 09 min left\nAT THE VENUE\nWATCHTornado Watch 705\nUntil"
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(desktop) RADAR on, with no hazard layer: 'Radar only'; image time read once (1), 28 tiles; drawn under the hazards; status row 'NOAA MRMS radar\nImage 4:22 PM EST · 13 min old'; no threat feed requested",
+   "pass": true,
+   "detail": {
+    "by": {
+     "radar-time": 1,
+     "radar-tile": 28
+    },
+    "st": {
+     "state": "ok",
+     "valid": "2026-11-23T21:22:07.000Z",
+     "vis": "visible",
+     "below": true,
+     "sum": "Radar only",
+     "row": "NOAA MRMS radar\nImage 4:22 PM EST · 13 min old",
+     "feeds": []
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(desktop) RADAR off: hidden, its 5-minute refresh stopped, nothing more requested",
+   "pass": true,
+   "detail": {
+    "off": [],
+    "so": {
+     "state": "off",
+     "timer": false,
+     "vis": "none",
+     "sum": "None selected"
+    }
+   }
+  },
+  {
+   "check": "(desktop) RADAR is live only: unavailable on a demo or replay (summary 'All 8')",
+   "pass": true,
+   "detail": {
+    "dis": true,
+    "layer": false,
+    "sum": "All 8"
+   }
+  },
+  {
+   "check": "(desktop) VENUE FORECAST: nothing requested until asked (0); then the NWS point and grid once each ({\"nws-point\":1,\"nws-grid\":1}); 12 hourly rows; summary 'Peak gust 14 mph around 4 PM · No rain chance above 0% · Feels like as low as 30°F around 3 AM'; forecast office and update time named; no horizontal scroll",
+   "pass": true,
+   "detail": {
+    "r": {
+     "state": "ok",
+     "sum": "Peak gust 14 mph around 4 PM · No rain chance above 0% · Feels like as low as 30°F around 3 AM",
+     "rows": 12,
+     "foot": "NWS forecast grid ILN 35,38, updated 4:00 PM EST. A forecast, not an observation; a gust is the highest expected in that hour.",
+     "hs": false,
+     "data": {
+      "office": "ILN",
+      "peakGust": {
+       "t": "2026-11-23T21:00:00.000Z",
+       "gust": 14,
+       "wind": 8,
+       "temp": 49,
+       "heat": null,
+       "feels": 46,
+       "pop": 0
+      }
+     }
+    },
+    "by": {
+     "nws-point": 1,
+     "nws-grid": 1
+    },
+    "again": {
+     "nws-point": 1,
+     "nws-grid": 1
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) PRESET \"Warnings at my venue\": severe, flood, winter, coastal; venue view; only alerts, MDs, SPC and WPC outlooks requested ({\"alerts\":1,\"md-page\":1,\"spc\":3,\"ero\":3,\"md\":1,\"alerts-zones\":107}); no earlier-message lookups on load",
+   "pass": true,
+   "detail": {
+    "st": {
+     "layers": [
+      "severe",
+      "flood",
+      "winter",
+      "coastal"
+     ],
+     "scope": "venue",
+     "feeds": [
+      "alerts",
+      "ero",
+      "md",
+      "spc"
+     ],
+     "sum": "Severe storms, Flooding +2"
+    },
+    "by": {
+     "alerts": 1,
+     "md-page": 1,
+     "spc": 3,
+     "ero": 3,
+     "md": 1,
+     "alerts-zones": 107
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) WPC RAINFALL Day 1 (ok; today empty): a confirmed answer reads current or none, not 'Not responding'",
+   "pass": true,
+   "detail": {
+    "st": "empty",
+    "src": {
+     "state": "ok",
+     "lastOk": "2026-11-23T21:35:40.293Z",
+     "count": 0,
+     "error": null,
+     "outlook": "current",
+     "validEnd": "2026-11-24T12:00:00.000Z",
+     "issued": "2026-11-23T15:50:00.000Z",
+     "via": "wpc"
+    },
+    "rows": [
+     "WPC excessive rainfall · Day 1 Checked 4:35 PM EST · none active"
+    ],
+    "panel": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY No severe risk area Valid Mon, Nov 23, 3:00 PM EST → Tue, Nov 24, 7:00 AM EST EXCESSIVE RAINFALL · WPC No excessive rainfall area at the venue. No excessive rainfall areas. SEVERE STORMS · SPC OUTLOOK AREAS OUTLOOKGeneral thunderstorms Day 1 · until Tue, Nov 24, 7:00 AM EST ACTIVE NOW 14 active warnings Shown as dashed outlines, labelled Active now · ope"
+   }
+  },
+  {
+   "check": "(phone) WHAT CHANGED: the earlier message is fetched when its alert is opened (1 request for KSEW.CF.W.0005.2026)",
+   "pass": true,
+   "detail": {
+    "opened": "KSEW.CF.W.0005.2026",
+    "refs": 1
+   }
+  },
+  {
+   "check": "(phone) ZONE OUTLINES: first visit 0 downloads, 107 kept in Cache Storage; next visit 0",
+   "pass": true,
+   "detail": {
+    "first": 0,
+    "cached": 107,
+    "second": 0
+   }
+  },
+  {
+   "check": "(phone) SPC OUTLOOK NOT RESPONDING: the venue brief and summary say 'Risk unknown' ('Risk unknown · SPC Day 1 outlook not responding'), never 'No severe risk area'",
+   "pass": true,
+   "detail": {
+    "peek": "Risk unknown · SPC Day 1 outlook not responding",
+    "big": "Risk unknown · SPC Day 1 outlook not responding",
+    "body": "Day 1 at CVG airport · highest SPC categoryRisk unknown · SPC Day 1 outlook not respondingSPC Day 1 outlook not responding.Outlook areasRisk unknown · SPC Day 1 outlook not responding.Open the regional Severe viewer →NWS warnings, watches and advisoriesChecked 4:36 PM ESTSPC Mesoscale DiscussionsChecked 4:36 PM EST via NOAA map service · none activeSPC Day 1 outlookNot responding · status unknownLive official feeds, fetched by your browser. Alerts and MDs refresh every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
+   }
+  },
+  {
+   "check": "(phone) CLICK a fire incident dot (Aspen Acres): its own details open (direct)",
+   "pass": true,
+   "detail": {
+    "sel": "nifc-1CDF5E5A-F22E-4352-A582-C2A47663B93D",
+    "body": "← Back\n WILDFIRE\nAspen Acres\n\n102,007 acres · 96% contained\n\nType\nWildfire · Type 5 IC\nSize\n102,007 acres (as reported for the incident)\nContainment\n96%\nDiscove",
+    "how": "direct"
+   }
+  },
+  {
+   "check": "(phone) CLICK an AirNow monitor dot (Sycamore): its own details open (missing)",
+   "pass": false,
+   "detail": {
+    "sel": null,
+    "body": "AT CVG AIRPORT\nNothing active at the venue\nVenue view →\nMOST URGENT NOW\n0 ACTIVE\n\nNo active fire weather warnings, watches or advisories in the U.S.\n\nThis page covers NWS tornado and severe thundersto",
+    "how": "missing"
+   }
+  },
+  {
+   "check": "(phone) CLICK inside a satellite smoke area: At this spot lists it",
+   "pass": true,
+   "detail": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST NWS warnings, watches and advisories Checked 4:36 PM EST NIFC wildfire incidents (WFIGS) "
+  },
+  {
+   "check": "(phone) FULLY CONTAINED FIRES hidden by default (52 listed by NIFC, 0 drawn)",
+   "pass": true,
+   "detail": {
+    "fire": {
+     "id": "nifc-1CDF5E5A-F22E-4352-A582-C2A47663B93D",
+     "name": "Aspen Acres",
+     "pt": [
+      -105.0712779393,
+      38.0193211711361
+     ]
+    },
+    "mon": {
+     "id": "airnow-390610006",
+     "site": "Sycamore",
+     "pt": [
+      -84.36612,
+      39.2787
+     ]
+    },
+    "contained": 52,
+    "drawnContained": 0,
+    "hms": {
+     "id": "hms-2026-11-23-0",
+     "pt": [
+      -111.57914124,
+      14.21998712
+     ]
+    }
+   }
+  },
+  {
+   "check": "(phone) \"Fully contained fires\" in the legend shows them (52 drawn)",
+   "pass": true,
+   "detail": {
+    "n": 52
+   }
+  },
+  {
+   "check": "(phone) no script errors on the fire and smoke map",
+   "pass": true,
+   "detail": []
+  },
+  {
+   "check": "(phone) OVERLAPPING AVIATION (a pilot report inside 2 advisories): the click lists all 3 under it; each row opens its own details and Back returns to the list",
+   "pass": true,
+   "detail": {
+    "pick": {
+     "pirep": "pirep-1795469220-44.989--122.693-B190",
+     "pt": [
+      -122.693,
+      44.9891
+     ],
+     "advs": [
+      "gairmet-ZULU-5C-ICE-0-1795466700",
+      "gairmet-TANGO-1W-TURB-LO-0-1795466700"
+     ]
+    },
+    "L": {
+     "under": true,
+     "ids": [
+      "pirep-1795469220-44.989--122.693-B190",
+      "gairmet-TANGO-1W-TURB-LO-0-1795466700",
+      "gairmet-ZULU-5C-ICE-0-1795466700"
+     ],
+     "rows": [
+      "PILOT REPORTlight icing (rime) at 14,500 ft 4:27 PM EST · B190",
+      "G-AIRMETModerate low-altitude turbulence surface to 15,000 ft · snapshot 4:00 PM EST",
+      "G-AIRMETModerate icing 4,000 ft to FL210 · snapshot 4:00 PM EST"
+     ]
+    },
+    "opened": 3,
+    "back": true,
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) REPLAY SPC Tornado Watch 705 loads and draws (Tornado Watch)",
+   "pass": true,
+   "detail": {
+    "r": {
+     "n": 1,
+     "watch": [
+      "Tornado Watch"
+     ],
+     "drawn": 1,
+     "panel": "At Lincoln Financial Field · Philadelphia, PATornado Watch in effect at the venueUntil 7:00 PM EST · 6 h 09 min leftAt the venueWATCHTornado Watch 705Until 7:00"
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) RADAR on, with no hazard layer: 'Radar only'; image time read once (1), 8 tiles; drawn under the hazards; status row 'NOAA MRMS radarImage 4:28 PM EST · 9 min old'; no threat feed requested",
+   "pass": true,
+   "detail": {
+    "by": {
+     "radar-time": 1,
+     "radar-tile": 8
+    },
+    "st": {
+     "state": "ok",
+     "valid": "2026-11-23T21:28:12.000Z",
+     "vis": "visible",
+     "below": true,
+     "sum": "Radar only",
+     "row": "NOAA MRMS radarImage 4:28 PM EST · 9 min old",
+     "feeds": []
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) RADAR off: hidden, its 5-minute refresh stopped, nothing more requested",
+   "pass": true,
+   "detail": {
+    "off": [],
+    "so": {
+     "state": "off",
+     "timer": false,
+     "vis": "none",
+     "sum": "None selected"
+    }
+   }
+  },
+  {
+   "check": "(phone) RADAR is live only: unavailable on a demo or replay (summary 'All 8')",
+   "pass": true,
+   "detail": {
+    "dis": true,
+    "layer": false,
+    "sum": "All 8"
+   }
+  },
+  {
+   "check": "(phone) VENUE FORECAST: nothing requested until asked (0); then the NWS point and grid once each ({\"nws-point\":1,\"nws-grid\":1}); 12 hourly rows; summary 'Peak gust 14 mph around 4 PM · No rain chance above 0% · Feels like as low as 30°F around 3 AM'; forecast office and update time named; no horizontal scroll",
+   "pass": true,
+   "detail": {
+    "r": {
+     "state": "ok",
+     "sum": "Peak gust 14 mph around 4 PM · No rain chance above 0% · Feels like as low as 30°F around 3 AM",
+     "rows": 12,
+     "foot": "NWS forecast grid ILN 35,38, updated 4:00 PM EST. A forecast, not an observation; a gust is the highest expected in that hour.",
+     "hs": false,
+     "data": {
+      "office": "ILN",
+      "peakGust": {
+       "t": "2026-11-23T21:00:00.000Z",
+       "gust": 14,
+       "wind": 8,
+       "temp": 49,
+       "heat": null,
+       "feels": 46,
+       "pop": 0
+      }
+     }
+    },
+    "by": {
+     "nws-point": 1,
+     "nws-grid": 1
+    },
+    "again": {
+     "nws-point": 1,
+     "nws-grid": 1
+    },
+    "errs": []
+   }
+  }
+ ]
+}

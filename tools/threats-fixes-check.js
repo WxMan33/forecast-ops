@@ -34,6 +34,8 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
     const tap = async (p, sel) => { const l = p.locator(sel).first(); if (!(await l.isVisible()) && (await p.locator("#txPeek").isVisible())) { await p.locator("#txPeek").click(); await p.waitForTimeout(500); } await l.click(); };
     /* clicking the map at a lon/lat with the real pointer */
     const mapClick = async (p, pt) => { const xy = await p.evaluate((pt) => { const m = window.__threats.map; m.jumpTo({ center: pt, zoom: Math.max(m.getZoom(), 9) }); const r = m.getCanvas().getBoundingClientRect(), q = m.project(pt); return [r.left + q.x, r.top + q.y]; }, pt); await p.waitForTimeout(900);
+      // on a phone the open sheet can cover the spot: collapse it first, as a person would
+      if (!(await p.evaluate(([x, y]) => (document.elementFromPoint(x, y) || {}).tagName === "CANVAS", xy))) { if (await p.locator("#txSheetBtn").isVisible()) { await p.locator("#txSheetBtn").click(); await p.waitForTimeout(700); } }
       if (o.hasTouch) await p.touchscreen.tap(xy[0], xy[1]); else await p.mouse.click(xy[0], xy[1]); await p.waitForTimeout(900); };
     /* a dot opens directly when it is the only thing there; with something overlapping, it is listed under the click and its row opens it */
     const openDot = async (p, id, pt) => { await mapClick(p, pt); let how = "direct";
@@ -109,6 +111,16 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
         await mapClick(p, pick.pt); await p.screenshot({ path: path.join(OUT, `overlap-aviation-${d}.png`) }); }
       else check(`(${d}) OVERLAPPING AVIATION: no pilot report inside an advisory and no overlapping advisories right now (not tested)`, true, null);
       await p.close(); }
+    /* VENUE MARKER off: just the map; remembered; the venue view brings it back */
+    { const { p, errs } = await page("?layers=severe&scope=venue"); await tap(p, "#txLayersBtn"); await p.locator("#txLayersPop input[data-pin]").uncheck(); await tap(p, "#txLayersPop [data-layers-close]"); await p.waitForTimeout(800);
+      const off = await p.evaluate(() => ({ pin: window.__threats.S.pin, scope: window.__threats.S.scope, marker: getComputedStyle(document.querySelector(".tx-pin")).display, ring: window.__threats.map.getSource("ring")._data.features ? window.__threats.map.getSource("ring")._data.features.length : 0, strip: !!document.querySelector(".px-strip"), peek: document.getElementById("txPeek1").textContent }));
+      await p.screenshot({ path: path.join(OUT, `venue-marker-off-${d}.png`) }); await p.close();
+      const again = await page("?layers=severe"); await again.p.waitForTimeout(800); const kept = await again.p.evaluate(() => ({ pin: window.__threats.S.pin, marker: getComputedStyle(document.querySelector(".tx-pin")).display }));
+      await again.p.locator('[data-scope="venue"]').first().click(); await again.p.waitForTimeout(800); const back = await again.p.evaluate(() => ({ pin: window.__threats.S.pin, marker: getComputedStyle(document.querySelector(".tx-pin")).display }));
+      await again.p.evaluate(() => { try { localStorage.removeItem("threats_pin"); } catch (e) {} }); await again.p.close();
+      R.pin = { off, kept, back };
+      check(`(${d}) VENUE MARKER off: pin, label and ring hidden, national map, no venue strip (summary '${off.peek}'); remembered on the next visit; choosing Venue shows it again`,
+        off.pin === false && off.scope === "national" && off.marker === "none" && off.ring === 0 && !off.strip && off.peek === "National map" && kept.pin === false && kept.marker === "none" && back.pin === true && back.marker !== "none" && !errs.length, { ...R.pin, errs }); }
     /* the SPC Watch 705 replay */
     { const { p, errs } = await page("?scenario=archive-ww705&scope=venue"); await p.waitForTimeout(3000);
       const r = await p.evaluate(() => ({ n: window.__threats.data.products.length, watch: window.__threats.data.products.filter((x) => x.kind === "watch").map((x) => x.event), drawn: window.__threats.map.getSource("active")._data.features.length, err: window.__threats.data.loadError, panel: document.getElementById("txPanelBody").innerText.slice(0, 160) }));
