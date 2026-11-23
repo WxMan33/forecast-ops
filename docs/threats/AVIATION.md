@@ -108,7 +108,7 @@ Four separate headings: **Venue hazards**, **Airport weather**, **Flight disrupt
 
 Tests: `tests/threats-enroute.test.js` (11), `tests/threats-functions.test.mjs` (en route and FAA routes), `tools/event-share-check.js` section 6 (route links), `tools/threats-planner-check.js` section 4l (replay cases on phone and desktop, plus the live functions).
 
-## Model guidance: GTG (map only; not in Planner yet)
+## Model guidance: GTG (map, and Planner along the route)
 
 ### Source verification (2026-11-22)
 
@@ -167,6 +167,57 @@ Tests: `tests/threats-enroute.test.js` (11), `tests/threats-functions.test.mjs` 
 - **Delivery.** NOMADS sends no CORS header, so only the preview's function can read it; GitHub Pages and raw.githack copies of the map can't show GTG.
 - **Meaning.** Guidance is EDR at a 3 km cell: atmospheric turbulence, not what a given aircraft will feel.
 - **Not yet used:** CAT, MWT and the 0/19/50 field separately, and In-Flight Icing (IFI, `dafs.tCCz.ifi.3km.conus`).
+
+### Planner: "Modeled turbulence along your route" (2026-11-23)
+
+- **Where.** Under "Along the route", after the advisories and pilot reports, with its own sub-heading and a "Model guidance · NOAA GTG" badge. Items have a violet dotted edge.
+- **On request.** The button says how much it will read ("about 8 MB"). Records are fetched only after the click.
+- **Inputs.** The saved approximate route (origin, destination), its altitude band, the time in the air, and an optional aircraft class.
+  - The aircraft class is new; it is stored as `c` in `?rt=` and the saved route, and is optional, so older links stay valid.
+  - With no time in the air of its own, the route uses the arrival window at its destination (or the departure window at its origin).
+- **What is read.**
+  - Heights: up to 4 GTG heights spread over the band (always its lowest and highest).
+  - Hours: the model's whole-hour valid times in the time in the air, up to 3 (first, middle, last), limited to the cycle's 18 hours.
+  - The newest complete cycle; `?gtgcyc=YYYYMMDDHH` pins a recent cycle for checks and says so.
+- **How it reads the route.** Points every 10 km along the straight line. At each point the value is the highest EDR over the checked heights. Stretches of moderate or worse for the aircraft class are findings. Light turbulence is summed up in one line.
+  - **Timed** (the route has its own time in the air): each point's time comes from steady progress from departure to arrival along the line, and the nearest checked hour is used. A finding gives "around 7:27 a.m.". This is an estimate: the real path, speed and climb are unknown.
+  - **Not timed** (window from an airport): every checked hour counts at every point. A finding reads "Potential overlap: … valid 7 a.m. and 8 a.m." and More info says when isn't known.
+- **Each finding gives:**
+  - where (miles from the origin, and the peak's latitude and longitude);
+  - the cycle, valid times, and peak EDR and its height;
+  - the category for the aircraft class, with AWC's thresholds;
+  - for timed routes, the estimated time.
+  - Its "View on map" opens the map at that height, hour, pinned cycle and spot (`gft`, `gfh`, `gcls`, `gcyc`, `focus`).
+- **Coverage stated, never "none":**
+  - outside the GTG grid (for example, toward San Juan);
+  - no model value;
+  - past the cycle's last hour ("No GTG forecast for 291–569 miles … (about 1:31 p.m. on): cycle 00Z Nov 23 reaches 1 p.m.");
+  - already flown;
+  - a record that couldn't be read;
+  - a cycle more than 4 hours old.
+  - Any of these makes the result incomplete (`data-gtg-complete="false"`).
+
+**Verified** (`tools/threats-gtg-planner-check.js` on the preview, desktop and phone, 12 of 12). Pinned cycle 00Z Nov 23; Cincinnati (KCVG) to Newark (KEWR), 569 miles; medium aircraft.
+
+| Case | Result |
+|---|---|
+| 6,000–12,000 ft, in the air 7–8 a.m. EST | "Moderate turbulence modeled 260–272 miles from Cincinnati, around 7:27–7:28 a.m., at 6,000 ft, 10,000 ft". Peak EDR 0.24 at 10,000 ft, valid 7 a.m. ecCodes reads 0.237 at that cell from the same NOAA record. |
+| **Altitude changed** to FL240–FL360 | None ("No moderate or worse turbulence modeled…"; heights checked FL240, FL280, FL320, FL360). |
+| **Flight window changed** to 10–11 a.m. | None. |
+| **Incomplete coverage**: noon–3 p.m. | The part past 1 p.m. (the cycle's last hour) is named as having no forecast. Not complete. |
+| No time in the air of its own (arrival window 7–8 a.m.) | "Potential overlap: moderate turbulence modeled …, valid 7 a.m. and 8 a.m.". No encounter time. |
+| View on map | Opens GTG at the finding's height, hour and pinned cycle, centred on the spot, reading the same value there. |
+
+Unit tests (`tests/threats-gtg.test.js`, synthetic fields on the real grid) cover:
+- the plan;
+- altitude, window and timed or not;
+- the grid edge, a failed record and an old cycle;
+- aircraft class.
+
+**Limits:**
+- The straight line, the band treated as flown throughout, and steady progress are assumptions, stated on the page.
+- At most 4 heights and 3 hours are checked, named in the summary.
+- About 1–1.3 MB per record, so up to about 15 MB for a long flight.
 
 ## Not included
 
