@@ -218,6 +218,83 @@ def current(a):
     print("current run written", w["model_init_time"], w["valid_start"], w["valid_end"])
 
 
+REPORT_MANIFEST = ROOT / "research/severe/labels-v04/manifest.json"
+MAG_TYPES = {"MG": ("measured", "gust"), "MS": ("measured", "sustained"), "EG": ("estimated", "gust"), "ES": ("estimated", "sustained")}
+
+
+def reports(a):
+    """Original qualifying Storm Events wind records for each replay, from the same pinned source, window and
+    >=50 kt filter used for scoring. Refuses to write unless the records reproduce each replay's stored
+    report samples (within 25 miles) and unknown-label samples exactly."""
+    import csv
+    import gzip
+    from labels import label_window, normalize
+    index_path = a.feed / "index.json"
+    index = json.loads(index_path.read_text())
+    spec = [s for s in json.loads(REPORT_MANIFEST.read_text())["sources"] if "_d2024_" in s["file"]]
+    assert len(spec) == 1, "one pinned 2024 source expected"
+    spec = spec[0]
+    path = a.source / spec["file"]
+    assert digest(path) == spec["sha256"], "pinned Storm Events source checksum differs"
+    with gzip.open(path, "rt", newline="") as f:
+        rows = list(csv.DictReader(f))
+    events, stats = normalize(rows)
+    raw = {r["EVENT_ID"]: r for r in rows}
+    coords = np.asarray(check_frozen(MODELS, MANIFEST)[0]["coords"], dtype=float)
+    out = []
+    for case in index["cases"]:
+        if case["kind"] != "replay":
+            case["reports"] = {"status": "not_applicable", "note": "Saved forecast: its valid window has no verified reports in this preview."}
+            continue
+        data = json.loads((a.feed / case["file"]).read_text())
+        start, end = datetime.fromisoformat(data["valid_start"]), datetime.fromisoformat(data["valid_end"])
+        assert start.year == 2024 and end <= datetime(2025, 1, 1, tzinfo=timezone.utc), "only 2024 replays"
+        labels, counts = label_window(coords, events, start, end)
+        wind = labels[:, 1]
+        got_pos = sorted(np.where(wind == 1)[0].tolist())
+        got_unk = sorted(np.where(wind == 255)[0].tolist())
+        want_pos = sorted(data["observed"]["report_sample_indices"])
+        want_unk = sorted(data["observed"]["unknown_label_indices"])
+        assert got_pos == want_pos, f"{case['id']}: report samples differ ({len(got_pos)} vs stored {len(want_pos)})"
+        assert got_unk == want_unk, f"{case['id']}: unknown samples differ ({len(got_unk)} vs stored {len(want_unk)})"
+        chosen = [e for e in events if e["hazard"] == "wind" and start <= e["start"] < end]
+        recs, excluded = [], []
+        for e in sorted(chosen, key=lambda e: (e["start"], e["id"])):
+            r = raw[e["id"]]
+            mt = (r.get("MAGNITUDE_TYPE") or "").strip().upper()
+            how, kind = MAG_TYPES.get(mt, (None, None))
+            try:
+                lat, lon = round(float(r["BEGIN_LAT"]), 4), round(float(r["BEGIN_LON"]), 4)
+            except (TypeError, ValueError):
+                lat = lon = None
+            rec = {"id": e["id"], "time_utc": e["start"].isoformat().replace("+00:00", "Z"),
+                   "source_local_time": r["BEGIN_DATE_TIME"], "source_timezone": r["CZ_TIMEZONE"],
+                   "lat": lat, "lon": lon, "state": r["STATE"].title(), "county_zone": r["CZ_NAME"].title(),
+                   "location": " ".join(x for x in [(r.get("BEGIN_RANGE") or "").strip() and r["BEGIN_RANGE"].strip() + " mi", (r.get("BEGIN_AZIMUTH") or "").strip(), (r.get("BEGIN_LOCATION") or "").strip().title()] if x),
+                   "magnitude_kt": float(r["MAGNITUDE"]) if (r.get("MAGNITUDE") or "").strip() else None,
+                   "magnitude_type": mt or None, "measured": None if how is None else how == "measured", "gust": None if kind is None else kind == "gust",
+                   "episode_id": r.get("EPISODE_ID")}
+            if e["uncertainty"]:
+                rec["reason"] = e["uncertainty"]
+                excluded.append(rec)
+            else:
+                recs.append(rec)
+        assert len(recs) == counts["wind"]["report_records"], f"{case['id']}: record count differs"
+        body = {"case_id": case["id"], "issue_date": case["issue_date"], "valid_start": data["valid_start"], "valid_end": data["valid_end"],
+                "definition": "NOAA NCEI Storm Events 'Thunderstorm Wind' records with magnitude >= 50 kt, begin time inside the 24-hour valid window; Alaska, Hawaii and territories excluded (the scoring rule).",
+                "source": {"file": spec["file"], "sha256": spec["sha256"], "normalization": stats},
+                "check": {"report_samples_reproduced": len(got_pos), "unknown_samples_reproduced": len(got_unk)},
+                "count": len(recs), "reports": recs, "uncertain": excluded}
+        blob = json.dumps(body, separators=(",", ":")).encode()
+        name = "reports-" + case["issue_date"] + ".json"
+        (a.feed / name).write_bytes(blob)
+        case["reports"] = {"status": "available", "file": name, "sha256": sha(blob), "count": len(recs), "uncertain": len(excluded)}
+        out.append((case["id"], len(recs), len(excluded), len(got_pos)))
+    index["reports_source"] = {"file": spec["file"], "sha256": spec["sha256"]}
+    index_path.write_text(json.dumps(index, indent=1) + "\n")
+    print(json.dumps(out))
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -231,8 +308,11 @@ def main():
     c.add_argument("--issue-date", required=True)
     c.add_argument("--work", type=Path, required=True)
     c.add_argument("--output", type=Path, required=True)
+    r = sub.add_parser("reports")
+    r.add_argument("--feed", type=Path, required=True, help="directory holding the published index.json and case files")
+    r.add_argument("--source", type=Path, required=True, help="directory holding the staged pinned Storm Events file")
     a = p.parse_args()
-    {"build": build, "current": current}[a.cmd](a)
+    {"build": build, "current": current, "reports": reports}[a.cmd](a)
 
 
 if __name__ == "__main__":
