@@ -58,6 +58,28 @@ const ready = (p) => p.waitForFunction(() => window.__threats && window.__threat
     check(`(${d}) Aviation with both overlays: one shared altitude and valid-time control (10,000 ft, +3 h), Aviation's own switches show what is on, legend lists turbulence and icing guidance`, av.gtg === "ok" && av.ifi === "ok" && av.ft === 1 && av.fh === 1 && av.ftVal === "10000" && av.fhVal === "3" && /gtg:true/.test(av.avctl) && /ifi:true/.test(av.avctl) && /turbulence guidance \(GTG\)/.test(av.legend) && /icing guidance \(IFI\)/.test(av.legend) && !av.overflow, av);
     if (d === "desktop") await p.evaluate(() => { const l = document.getElementById("txLegend"); if (l) l.open = true; });
     await p.screenshot({ path: path.join(OUT, `aviation-${d}.png`) }); await p.close();
+    /* 3b. the picker's end: a cue while more is below; Icing guidance reachable by touch and by keyboard, clear of the pinned actions */
+    { const q = await open("scenario=overlap&scope=venue&view=active");
+      await q.click("#txLayersBtn"); await q.waitForTimeout(400);
+      const st = await q.evaluate(() => { const pop = document.getElementById("txLayersPop"); return { scrolls: pop.scrollHeight > pop.clientHeight + 8, more: pop.classList.contains("more"), cue: getComputedStyle(document.getElementById("txLyrMore")).display !== "none" }; });
+      // keyboard: Tab from the first box until Icing guidance has focus; it must be inside the picker's visible area, above the pinned actions
+      let tabs = 0; while (tabs < 20 && !(await q.evaluate(() => document.activeElement && document.activeElement.dataset.av === "ifi"))) { await q.keyboard.press("Tab"); tabs++; }
+      const kv = await q.evaluate(() => { const pop = document.getElementById("txLayersPop"), pr = pop.getBoundingClientRect(), a = document.querySelector("#txLayersPop .tx-lyract").getBoundingClientRect(), l = document.activeElement.closest("label").getBoundingClientRect(); return { focus: document.activeElement.dataset.av, visible: l.top >= pr.top - 1 && l.bottom <= a.top + 1, more: pop.classList.contains("more") }; });
+      // touch: close and reopen, scroll to the end, tap Icing guidance
+      await q.keyboard.press("Escape"); await q.click("#txLayersBtn"); await q.waitForTimeout(300);
+      await q.evaluate(() => { const pop = document.getElementById("txLayersPop"); pop.scrollTop = pop.scrollHeight; pop.dispatchEvent(new Event("scroll")); }); await q.waitForTimeout(300);
+      const endMore = await q.evaluate(() => document.getElementById("txLayersPop").classList.contains("more"));
+      await q.locator('#txLayersPop label:has(input[data-av="ifi"])').tap(); await q.waitForTimeout(500);
+      const tapped = await q.evaluate(() => window.__threats.S.ifi.on);
+      await q.screenshot({ path: path.join(OUT, `picker-end-${d}.png`) });
+      check(`(${d}) picker end: ${st.scrolls ? "it scrolls, a 'More below' cue shows until the end, " : "everything fits, "}Icing guidance reached by keyboard (${tabs} Tabs) and visible above the pinned actions, and by touch at the end`, (!st.scrolls || (st.more && st.cue && !endMore)) && kv.focus === "ifi" && kv.visible && tapped, { st, tabs, kv, endMore, tapped });
+      await q.close(); }
+    /* 3c. Aviation only: the panel and the phone header lead with "Aviation at <venue>" and what is available or not */
+    { const q = await open("layers=aviation&scope=national&view=active&sheet=" + (d === "desktop" ? "open" : "peek"));
+      await q.waitForTimeout(1500);
+      const a = await q.evaluate(() => { const body = document.getElementById("txPanelBody"), first = body.firstElementChild; return { first: first && first.dataset.avSummary !== undefined, head: (document.querySelector("[data-av-summary] .px-status-h") || {}).textContent, rows: [...document.querySelectorAll("[data-av-summary] dt")].map((x) => x.textContent), peek: document.getElementById("txPeek1").textContent, peek2: document.getElementById("txPeek2").textContent, nothing: /Nothing active/.test(document.getElementById("txPeek1").textContent + (first ? first.textContent : "")) }; });
+      check(`(${d}) Aviation only: the panel${d === "desktop" ? "" : " and the phone's sheet header"} lead with "Aviation at <venue>" and list airport weather, pilot reports, advisories, turbulence and icing guidance as available or not`, a.first && /^Aviation at /.test(a.head) && /^Aviation at /.test(a.peek) && !a.nothing && a.rows.join("|") === "Airport weather|Pilot reports|Advisories|Turbulence guidance|Icing guidance" && a.peek2.length > 0, a);
+      await q.screenshot({ path: path.join(OUT, `aviation-only-${d}.png`) }); await q.close(); }
     /* 4. links restore: venue, airport, altitude and time, replay */
     p = await open("lat=39.1113&lon=-84.5222&name=TQL%20Stadium&tz=America%2FNew_York&scope=venue&layers=flood,smoke");
     const v = await p.evaluate(() => ({ scope: window.__threats.S.scope, venue: document.getElementById("scopeVenue").textContent, sum: document.getElementById("txLayersSum").textContent })); await p.close();

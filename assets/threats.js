@@ -837,9 +837,29 @@
   }
   /* only Aviation on: lead with it, and say the other hazards are off (instead of an empty warnings list) */
   const avOnly = () => S.layers.aviation && !["severe", "flood", "winter", "fire", "smoke", "tropical", "coastal"].some((k) => S.layers[k]);
+  /* Aviation-only view: lead with what Aviation shows at the venue, part by part, available or not (and why) */
+  function avSummary() {
+    const d = viewDay(), early = d === 2 || d === 3 || winterView() || fireView(), en = enShown(), rp = en.filter((x) => x.kind === "pirep"), ad = en.filter((x) => x.kind !== "pirep"), est = data.state.enroute;
+    const ids = S.air.length ? S.air : [...new Set(avProducts().map((x) => x.airport))], awc = data.state.awc;
+    const enWhy = () => (early ? "shown on Active now and Day 1 only" : !enOn() ? "off" : !est || est.kind === "loading" ? "loading…" : ["unavailable", "stale"].includes(est.kind) ? "not available (Aviation Weather Center not answering)" : null);
+    const mg = (on, st, err, what) => (!on ? "off" : st === "loading" ? "loading…" : st === "ok" ? what : "not available" + (err ? ": " + err : ""));
+    const rows = [
+      ["Airport weather", !S.av.apt ? "off" : !ids.length ? "no airports on this map (they come from an event's airports or a shared link)" : awc && ["unavailable", "stale"].includes(awc.kind) ? ids.join(", ") + ": not confirmed (Aviation Weather Center not answering)" : ids.join(", ") + ": METAR and TAF"],
+      ["Pilot reports", !S.av.pireps ? "off" : enWhy() || (S.en.at ? "past observations: shown at Now only" : rp.length + " in the last " + S.en.age + " h (" + rp.filter((x) => x.rank >= 2).length + " moderate or worse)")],
+      ["Advisories", !S.av.adv ? "off" : enWhy() || ad.length + " in effect" + (S.en.at ? " at +" + S.en.at + " h" : " now")],
+      ["Turbulence guidance", mg(S.gtg.on, gtg.state, gtg.error, gtg.dec ? GT.levelLabel(gtgHeight().ft) + ", valid " + t(gtg.dec.validTime) : "")],
+      ["Icing guidance", mg(S.ifi.on, ifi.state, ifi.reason, ifi.dec ? IF.levelLabel(S.gtg.ft) + ", valid " + t(ifi.dec.validTime) : "")],
+    ];
+    const head = "Aviation at " + venue.name, n = [ids.length && S.av.apt ? ids.length + " airport" + (ids.length > 1 ? "s" : "") : null, S.av.pireps && enOn() && !early ? rp.length + " pilot report" + (rp.length === 1 ? "" : "s") : null, S.av.adv && enOn() && !early ? ad.length + " advisor" + (ad.length === 1 ? "y" : "ies") : null, S.gtg.on ? "turbulence " + (gtg.state === "ok" ? "on" : gtg.state) : null, S.ifi.on ? "icing " + (ifi.state === "ok" ? "on" : ifi.state) : null].filter(Boolean);
+    return { head, sub: n.join(" · ") || "nothing turned on yet: choose in Aviation shows", rows };
+  }
+  function avSummaryCard() {
+    const a = avSummary(), un = (v) => /^(off|loading|not |no airports|shown on|past obs)/.test(v);
+    return `<div class="px-status av-status" data-av-summary><div class="px-status-l">${esc(viewName())} · ${esc(S.scope === "venue" ? "venue" : "national map")}</div><div class="px-status-h">${esc(a.head)}</div><dl class="px-rows av-rows">${a.rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd class="${un(v) ? "av-un" : ""}">${esc(v)}</dd>`).join("")}</dl></div>`;
+  }
   const avOnlyNote = () => `<div class="px-h">Other hazards</div><p class="px-empty">Only Aviation is on. Turn on warnings and other hazards in Layers.</p>`;
   function nationalActive() {
-    if (avOnly()) return venueStrip() + notices() + avControls() + airportsSection() + enrouteSection() + avOnlyNote();
+    if (avOnly()) return avSummaryCard() + notices() + avControls() + airportsSection() + enrouteSection() + avOnlyNote();
     const groups = T.group(active(), PLACES);
     let h = venueStrip() + notices() + `<div class="px-h"><span>Most urgent now</span><span>${groups.reduce((n, g) => n + g.items.length, 0)} active</span></div>`;
     if (!groups.length) h += `<p class="px-empty">${activeKnown() ? "No active tornado or severe thunderstorm warnings or watches, and no SPC Mesoscale Discussions, in the contiguous U.S." : (known("alerts") ? "No active tornado or severe thunderstorm warnings or watches in the contiguous U.S. (NWS checked " + esc(t(data.sources.alerts.lastOk)) + "). SPC Mesoscale Discussion status is unknown." : "None in the data we have, but NWS warnings and watches are not confirmed (see below).")}</p><p class="lg-note">${esc(SCOPE_NOTE)} Flood, winter and other hazards are not shown here yet.</p>`;
@@ -855,7 +875,7 @@
     return h;
   }
   function venueActive() {
-    if (avOnly()) return statusHTML(true) + notices() + avControls() + airportsSection() + enrouteSection() + avOnlyNote();
+    if (avOnly()) return avSummaryCard() + notices() + avControls() + airportsSection() + enrouteSection() + avOnlyNote();
     const list = T.sort(active()), covers = venueCovers(), near = venueNear(), unknown = list.filter((p) => rel(p).kind === "unknown");
     let h = statusHTML(true) + notices();
     if (covers.length) h += `<div class="px-h">At the venue</div>` + covers.map((p) => item(p)).join("");
@@ -950,6 +970,7 @@
   }
   /* collapsed phone sheet: two lines so a warning's expiration always survives */
   function peek() {
+    if (avOnly() && !S.sel && !S.point) { const a = avSummary(); return [a.head, a.sub]; }
     if (S.sel) { const p = byId(S.sel); return p ? [p.kind === "outlook" ? "Day " + p.day + " · " + olabel(p) : p.title, "Tap for details"] : ["", ""]; }
     if (fireView()) { const a = fireAt(S.fday), top = a.windrh || a.dryt; return ["Fire weather at " + venue.name + " · " + FDAY_NAME(S.fday), top ? fireCatText(top) : "No fire weather area at the venue"]; }
     if (winterView()) { const w = curWin(), o = w ? venueWssi().get(w.start) || {} : {}, lv = topLevel(o); return ["Winter outlook at " + venue.name, w ? winShort(w) + " · " + (lv ? pctTxt(o[lv]) + " at least " + (lv === "WWA" ? "winter weather" : WLEVEL_LABEL[lv]) : "under 30% for any level") : "Loading"]; }
@@ -1143,7 +1164,12 @@
     const why = missing.length ? `<span class="tx-psnote">Not drawn in ${esc(viewName())}: ${[cur.length ? cur.map((k) => LAYER_NAME[k]).join(", ") + " (current only)" : "", own.length ? own.map((k) => LAYER_NAME[k]).join(", ") + (winterView() || fireView() ? " (this view shows " + (winterView() ? "winter" : "fire") + " only)" : " (see Layers)") : ""].filter(Boolean).map(esc).join("; ")}</span>` : "";
     $("txPState").innerHTML = `<span class="tx-psv"><b>${esc(viewName())}</b>${data && data.clock && !viewDay() && !winterView() && !fireView() ? " · as of " + esc(t(data.clock)) : ""}</span><span class="tx-psl">Layers: ${esc(layersSummary())}</span>${why}`;
   }
-  const popOpen = (open) => { const pop = $("txLayersPop"), btn = $("txLayersBtn"); pop.hidden = !open; btn.setAttribute("aria-expanded", String(open)); if (open) { syncLayers(); const f = pop.querySelector("input:not([disabled])"); if (f) f.focus(); } };
+  /* the picker scrolls on small screens: show "More below" until its end is in view */
+  const popMore = () => { const pop = $("txLayersPop"); if (!pop || pop.hidden) return; pop.classList.toggle("more", pop.scrollTop + pop.clientHeight < pop.scrollHeight - 8); };
+  $("txLayersPop").addEventListener("scroll", popMore, { passive: true }); window.addEventListener("resize", popMore);
+  // keyboard: a focused control is scrolled clear of the pinned actions
+  $("txLayersPop").addEventListener("focusin", (e) => { const l = e.target.closest(".tx-lt"); if (l) l.scrollIntoView({ block: "nearest" }); popMore(); });
+  const popOpen = (open) => { const pop = $("txLayersPop"), btn = $("txLayersBtn"); pop.hidden = !open; btn.setAttribute("aria-expanded", String(open)); if (open) { syncLayers(); pop.scrollTop = 0; const f = pop.querySelector("input:not([disabled])"); if (f) f.focus(); requestAnimationFrame(popMore); } };
   $("txLayersBtn").addEventListener("click", () => popOpen($("txLayersPop").hidden));
   $("txLayersPop").addEventListener("change", (e) => {
     const i = e.target; if (!i.matches("input")) return;
