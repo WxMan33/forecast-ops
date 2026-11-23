@@ -203,7 +203,13 @@
      Points and values come from the pipeline's p{FF}.bin.gz (the stored native values at the basemap places and every 16th
      cell). Which points are labelled depends only on the view (zoom, map size, the controls over the map), never on the
      values or the hour, so labels stay put while the loop plays and both comparison panels label the same points. */
-  st.values = (() => { try { return Q.get("values") === "0" ? false : localStorage.getItem("conus_values") !== "0"; } catch (e) { return Q.get("values") !== "0"; } })();
+  /* Values: "places" (default: named towns and cities with their own native value), "grid" (places plus the sparse model
+     grid) or "off". A link's values= wins; otherwise this viewer's last choice; older links/settings with values=0 mean off. */
+  const VMODES = ["places", "grid", "off"];
+  st.vmode = (() => { const q = Q.get("values"); if (q === "0" || q === "off") return "off"; if (VMODES.includes(q)) return q;
+    try { const m = localStorage.getItem("conus_vmode"); if (VMODES.includes(m)) return m; if (localStorage.getItem("conus_values") === "0") return "off"; } catch (e) { /* private mode */ }
+    return "places"; })();
+  st.values = st.vmode !== "off";
   st.points = new Map(); st.labelSet = null;
   const ptsKey = (fh, f = st.field) => `${st.run.id}|${f}|${fh}`;
   function points(fh, f = st.field) {   /* Int16Array of stored values for this field-hour, or null when the hour has none */
@@ -223,7 +229,8 @@
   function blockedRects() {
     if (st.exporting) return [];   /* the export frame has no controls over it: its legend and credits are drawn below the map */
     const box = st.map.getContainer().getBoundingClientRect(), pad = 6;
-    return ["#mapInfo", "#legend", "#mapCtl", ".maplibregl-ctrl-bottom-right", ".maplibregl-ctrl-bottom-left", "#inspect.panel-read", "#mapNote", "#timeline"].map((q) => document.querySelector(q))
+    /* each control row on its own: the rows differ in width, and the corner beside a shorter row is open map */
+    return ["#mapInfo", "#legend", "#mapCtl .ctlrow", ".maplibregl-ctrl-bottom-right", ".maplibregl-ctrl-bottom-left", "#inspect.panel-read", "#mapNote", "#timeline"].flatMap((q) => [...document.querySelectorAll(q)])
       .filter((e) => e && !e.hidden && e.offsetParent !== null && getComputedStyle(e).display !== "none")
       .map((e) => { const r = e.getBoundingClientRect(); return [r.left - box.left - pad, r.top - box.top - pad, r.right - box.left + pad, r.bottom - box.top + pad]; })
       .filter(([x0, y0, x1, y1]) => x1 > 0 && y1 > 0 && x0 < box.width && y0 < box.height);
@@ -232,39 +239,54 @@
   /* which points to label for this view: ranked cities and towns, then a sub-lattice anchored to the model grid */
   function chooseLabels() {
     const P = st.man.points; if (!P) return (st.labelSet = { list: [], why: "no label points published for this run" });
-    const m = st.map, z = m.getZoom(), c = m.getContainer(), W = c.clientWidth, H = c.clientHeight, phone = PHONE() || W < 560;
+    const m = st.map, z = m.getZoom(), c = m.getContainer(), W = c.clientWidth, H = c.clientHeight, phone = PHONE() || W < 560, grid = st.vmode === "grid";
     const tier = z < 4.6 ? "national" : z < 6.5 ? "regional" : "local";
-    const cfg = { national: { pop: phone ? 1.0e6 : 2.0e6, sep: phone ? 78 : 125, cap: phone ? 8 : 14, grid: 0 }, regional: { pop: 3.0e5, sep: phone ? 82 : 100, cap: phone ? 10 : 24, grid: phone ? 118 : 150 },
-      local: { pop: 6.0e4, sep: phone ? 74 : 82, cap: phone ? 14 : 34, grid: phone ? 114 : 142 } }[tier];
-    /* a label is a box around its point (a city carries its name too): the whole box must clear the controls and the edges */
-    const blocked = blockedRects(), half = (city) => (city ? [46, 26] : [20, 12]);
-    const inBlock = (x, y, city) => { const [hw, hh] = half(city); return blocked.some(([a, b, c2, d]) => x + hw >= a && x - hw <= c2 && y + hh >= b && y - hh <= d); };
-    const onScreen = (x, y, city) => { const [hw, hh] = half(city); return x - hw > 4 && y - hh > 4 && x + hw < W - 4 && y + hh < H - 4; };
-    const out = [], far = (x, y, d) => out.every((o) => (o.x - x) ** 2 + (o.y - y) ** 2 >= d * d);
-    const addPlace = (p) => {
-      const s = m.project([p.lon, p.lat]);
-      if (onScreen(s.x, s.y, true) && !inBlock(s.x, s.y, true) && far(s.x, s.y, cfg.sep)) out.push({ ...p, x: s.x, y: s.y });
+    /* Places mode spends the room the grid would use on more named towns; Places + grid keeps the sparse grid as before */
+    const cfg = { national: { pop: phone ? 1.0e6 : 2.0e6, sep: phone ? 78 : 125, cap: phone ? 8 : 14, grid: 0 }, regional: { pop: grid ? 3.0e5 : 1.5e5, sep: phone ? 82 : 100, cap: phone ? (grid ? 10 : 12) : (grid ? 24 : 30), grid: phone ? 118 : 150 },
+      local: { pop: 6.0e4, sep: phone ? 74 : 82, cap: phone ? (grid ? 14 : 18) : (grid ? 34 : 48), grid: phone ? 114 : 142 } }[tier];
+    /* A plot is a box: a named one carries the name over its value, so its width follows the name. It is tried centred on the
+       town, then below it, then above it, so a town next to a control or the timeline still gets its value. Boxes may not
+       overlap each other, the controls or the edges. */
+    const size = m.getZoom() <= 3 ? 12 : m.getZoom() >= 8 ? 14.5 : 12 + (m.getZoom() - 3) * 0.5, blocked = blockedRects(), placed = [];
+    const boxOf = (o) => { if (!o.name) return [size * 1.4, size * 0.75]; return [Math.max(o.name.length * size * 0.78 * 0.31, size * 1.3) + 4, size * 1.12 + 4]; };
+    /* the box for each text anchor (MapLibre's sense: "top" puts the label below the town, "right" puts it to the left) */
+    const rectAt = (x, y, [hw, hh], a) => {
+      const X = a.endsWith("left") ? [x + 2, x + 2 + 2 * hw] : a.endsWith("right") ? [x - 2 - 2 * hw, x - 2] : [x - hw, x + hw];
+      const Y = a.startsWith("top") ? [y + 2, y + 2 + 2 * hh] : a.startsWith("bottom") ? [y - 2 - 2 * hh, y - 2] : [y - hh, y + hh];
+      return [X[0], Y[0], X[1], Y[1]];
     };
+    const hits = (r, q, pad) => r[0] - pad < q[2] && r[2] + pad > q[0] && r[1] - pad < q[3] && r[3] + pad > q[1];
+    const fits = (r) => r[0] > 4 && r[1] > 4 && r[2] < W - 4 && r[3] < H - 4 && !blocked.some((q) => hits(r, q, 0)) && !placed.some((q) => hits(r, q, 6));
+    const out = [], far = (x, y, d) => out.every((o) => (o.x - x) ** 2 + (o.y - y) ** 2 >= d * d);
+    const add = (o, anchors, sep) => {
+      const s = m.project([o.lon, o.lat]); if (!far(s.x, s.y, sep)) return false;
+      const half = boxOf(o);
+      for (const a of anchors) { const r = rectAt(s.x, s.y, half, a); if (fits(r)) { placed.push(r); out.push({ ...o, x: s.x, y: s.y, anchor: a }); return true; } }
+      return false;
+    };
+    const named = ["center", "top", "bottom", "left", "right", "top-left", "top-right", "bottom-left", "bottom-right"];
     const places = P.places.map(([name, lat, lon, pop], k) => ({ k, name, lat, lon, pop }))
       .filter((p) => p.pop >= cfg.pop).sort((a, b) => b.pop - a.pop || a.name.localeCompare(b.name));
-    places.forEach((p) => { if (out.length < cfg.cap) addPlace(p); });
+    places.forEach((p) => { if (out.length < cfg.cap) add(p, named, cfg.sep * 0.55); });
     if (tier === "local" && K.levelFor(cellPx(), st.man.levels) === 0) {
       // The native tiles already cover these towns, so a plot uses the value at the town itself.
-      const minPop = z >= 8.5 ? 5000 : z >= 7.5 ? 12000 : 25000;
+      const minPop = grid ? (z >= 8.5 ? 5000 : z >= 7.5 ? 12000 : 25000) : (z >= 8.5 ? 2500 : z >= 7.5 ? 6000 : 12000);
+      const have = new Set(out.map((o) => o.name));
       st.towns.forEach(({ properties, geometry }, i) => {
-        if (out.length >= cfg.cap || properties.pop < minPop) return;
+        if (out.length >= cfg.cap || properties.pop < minPop || have.has(properties.name)) return;
         const [lon, lat] = geometry.coordinates, cell = st.P.nearest(lat, lon);
-        if (cell) addPlace({ k: `town:${i}`, lon, lat, name: properties.name, cell });
+        if (cell) add({ k: `town:${i}`, lon, lat, name: properties.name, cell }, named, cfg.sep * 0.55);
       });
     }
-    if (cfg.grid) {
+    if (grid && cfg.grid) {
       const L = P.lattice, cpx = cellPx() / st.map.getPixelRatio(), sepG = cfg.grid * 0.75, step = Math.max(1, Math.floor(cfg.grid * 0.8 / (cpx * L.every))), nPl = P.places.length;   /* a finer lattice step thinned by distance packs a staggered pattern, not a sparse square one */
       for (let b = 0; b < L.ny; b += step) for (let a = 0; a < L.nx; a += step) {
-        const i = L.i0 + a * L.every, j = L.j0 + b * L.every, [lat, lon] = st.P.fromCell(i, j), s = m.project([lon, lat]);
-        if (onScreen(s.x, s.y, false) && !inBlock(s.x, s.y, false) && far(s.x, s.y, sepG)) out.push({ k: nPl + b * L.nx + a, x: s.x, y: s.y, lon, lat });
+        const i = L.i0 + a * L.every, j = L.j0 + b * L.every, [lat, lon] = st.P.fromCell(i, j);
+        add({ k: nPl + b * L.nx + a, lon, lat }, ["center"], sepG);
       }
     }
-    return (st.labelSet = { list: out, tier, cities: out.filter((o) => o.name).length });
+    st.blockKey = JSON.stringify(blocked.map((r) => r.map(Math.round)));
+    return (st.labelSet = { list: out, tier, mode: st.vmode, cities: out.filter((o) => o.name).length });
   }
   /* write this hour's numbers at the chosen points; missing cells and dry zeros are left blank */
   function paintLabels(fh) {
@@ -280,12 +302,12 @@
         v = K.valueAt(st.man, st.field, { [K.tileName(0, tx, ty)]: ready(fh, 0, tx, ty) }, i, j);
       } else {
         const raw = e.v[o.k];
-        if (raw === undefined || raw === K.MISS) return;
-        v = raw * spec.scale;
+        v = raw === undefined || raw === K.MISS ? null : raw * spec.scale;
       }
-      if (v == null || (F.vmin && !F.vmin(v))) return;
-      const t = F.vfmt(v); shown.push({ k: o.k, name: o.name || null, value: v, text: t, lon: o.lon, lat: o.lat, x: o.x, y: o.y });
-      feats.push({ type: "Feature", properties: { t, n: o.name || "", city: o.name ? 1 : 0 }, geometry: { type: "Point", coordinates: [o.lon, o.lat] } }); });
+      const blank = v == null || (F.vmin && !F.vmin(v));   /* missing cell, or a dry zero that is not written */
+      if (blank && !o.name) return;   /* a bare grid point with nothing to say is left off */
+      const t = blank ? "" : F.vfmt(v); shown.push({ k: o.k, name: o.name || null, value: blank ? null : v, text: t, blank, anchor: o.anchor || "center", lon: o.lon, lat: o.lat, x: o.x, y: o.y });
+      feats.push({ type: "Feature", properties: { t, n: o.name || "", city: o.name ? (blank ? 2 : 1) : 0, a: o.anchor || "center" }, geometry: { type: "Point", coordinates: [o.lon, o.lat] } }); });
     src.setData({ type: "FeatureCollection", features: feats }); st.labelsShown = shown;
     setPlaceFilter(shown.filter((o) => o.name).map((o) => o.name));
   }
@@ -302,9 +324,10 @@
     const sl = $("shadeSl"); if (sl) { sl.value = String(st.shade); sl.setAttribute("aria-valuetext", `${st.shade}%`); $("shadeOut").textContent = `${st.shade}%`; $("shadeReset").disabled = st.shade === 100; }
     if (st.map) st.map.triggerRepaint(); share();
   }
-  function setValues(on) {
-    st.values = !!on; try { localStorage.setItem("conus_values", on ? "1" : "0"); } catch (e) { /* private mode */ }
-    const b = $("valBtn"); if (b) { b.setAttribute("aria-pressed", String(st.values)); b.textContent = st.values ? "VALUES ON" : "VALUES OFF"; }
+  function setValues(mode) {
+    st.vmode = mode === true ? "places" : mode === false ? "off" : VMODES.includes(mode) ? mode : "places"; st.values = st.vmode !== "off";
+    try { localStorage.setItem("conus_vmode", st.vmode); } catch (e) { /* private mode */ }
+    const sel = $("valSel"); if (sel) sel.value = st.vmode;
     st.labelSet = null; chooseLabels(); paintLabels(fhNow()); if (st.values) points(fhNow()).then(() => paintLabels(fhNow())).catch(() => {}); share();
   }
 
@@ -548,14 +571,14 @@
   function compareLink() {
     const runs = st.index.runs.slice().sort((a, b) => Date.parse(b.cycle) - Date.parse(a.cycle)), i = runs.findIndex((r) => r.id === st.run.id), b = runs[i + 1] || runs[i - 1];
     const q = new URLSearchParams({ domain: "conus", compare: "1", a: st.run.id, b: b ? b.id : st.run.id, field: st.field, valid: st.man.valid[fhNow()] });
-    if (M.key !== "hrrr") q.set("model", M.key); if (st.shade !== 100) q.set("shade", String(st.shade)); if (!st.values) q.set("values", "0"); if (Q.get("data")) q.set("data", Q.get("data")); const c = st.map.getCenter(); q.set("map", `${c.lat.toFixed(3)},${c.lng.toFixed(3)},${st.map.getZoom().toFixed(2)}`);
+    if (M.key !== "hrrr") q.set("model", M.key); if (st.shade !== 100) q.set("shade", String(st.shade)); if (st.vmode !== "places") q.set("values", st.vmode === "off" ? "0" : "grid"); if (Q.get("data")) q.set("data", Q.get("data")); const c = st.map.getCenter(); q.set("map", `${c.lat.toFixed(3)},${c.lng.toFixed(3)},${st.map.getZoom().toFixed(2)}`);
     return `${location.pathname}?${q.toString()}`;
   }
   /* ---------- shareable link ---------- */
   function share() {
     if (!st.man || !st.map || EMBED) return; const c = st.map.getCenter(), q = new URLSearchParams();
     q.set("domain", "conus"); if (M.key !== "hrrr") q.set("model", M.key); if (Q.get("data")) q.set("data", Q.get("data"));
-    q.set("run", st.run.id); q.set("fh", String(fhNow())); q.set("field", st.field); if (!st.values) q.set("values", "0"); if (st.shade !== 100) q.set("shade", String(st.shade));
+    q.set("run", st.run.id); q.set("fh", String(fhNow())); q.set("field", st.field); if (st.vmode !== "places") q.set("values", st.vmode === "off" ? "0" : "grid"); if (st.shade !== 100) q.set("shade", String(st.shade));
     q.set("map", `${c.lat.toFixed(3)},${c.lng.toFixed(3)},${st.map.getZoom().toFixed(2)}`);
     if (st.selPt) q.set("pt", `${st.selPt[0].toFixed(4)},${st.selPt[1].toFixed(4)}`);
     try { history.replaceState(null, "", `${location.pathname}?${q.toString()}`); } catch (e) { /* file:// */ }
@@ -642,7 +665,8 @@
       /* Values overlay on top: always drawn (allow-overlap) and placed first, so city names give way to it */
       map.addSource("vals", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({ id: "vals", type: "symbol", source: "vals",
-        layout: { "text-field": ["case", ["==", ["get", "city"], 1], ["format", ["get", "n"], { "font-scale": 0.78 }, "\n", {}, ["get", "t"], { "font-scale": 1.12 }], ["get", "t"]],
+        layout: { "text-field": ["case", ["==", ["get", "city"], 1], ["format", ["get", "n"], { "font-scale": 0.78 }, "\n", {}, ["get", "t"], { "font-scale": 1.12 }], ["==", ["get", "city"], 2], ["format", ["get", "n"], { "font-scale": 0.85 }], ["get", "t"]],
+          "text-anchor": ["coalesce", ["get", "a"], "center"],
           "text-font": ["Open Sans Semibold"], "text-size": ["interpolate", ["linear"], ["zoom"], 3, 12, 8, 14.5], "text-allow-overlap": true, "text-ignore-placement": false, "text-line-height": 1.05, "text-max-width": 14 },
         paint: { "text-color": getComputedStyle(document.body).getPropertyValue("--text").trim() || "#e8eaee", "text-halo-color": getComputedStyle(document.body).getPropertyValue("--bg").trim() || "#0b0d12", "text-halo-width": 1.8 } });
       const repaint = () => { const P = palette(); [["bg", "background-color", "land"], ["footprint", "line-color", "edge"], ["lakes", "line-color", "lake"], ["coast", "line-color", "coast"], ["counties", "line-color", "county"], ["states", "line-color", "state"], ["borders", "line-color", "border"]].forEach(([id, p, k]) => map.setPaintProperty(id, p, P[k])); };
@@ -658,7 +682,7 @@
     const ins = $("inspect"); if (ins) { ins.classList.add("panel-read"); $("stage").appendChild(ins); ins.innerHTML = ""; }
   }
   function adaptPage() {
-    document.body.classList.add("maps-conus"); ["pngBtn", "cmpBtn", "valBtn", "modelSel", "shadeCtl"].forEach((id) => { if ($(id)) $(id).hidden = false; });
+    document.body.classList.add("maps-conus"); ["pngBtn", "cmpBtn", "valCtl", "modelSel", "shadeCtl"].forEach((id) => { if ($(id)) $(id).hidden = false; });
     ["winSel", "smoothChk"].forEach((id) => { const e = $(id); if (e) (e.closest("label") || e).hidden = true; });
     const seg = document.querySelector('[aria-label="Map view"]'); if (seg) seg.hidden = true;
     const ps = $("placeSel"); if (ps) ps.closest("div").hidden = true;
@@ -710,7 +734,7 @@
       redraw(); }
     let mv = null; st.map.on("moveend", () => { clearTimeout(mv); mv = setTimeout(() => { chooseLabels(); redraw(); share(); }, 120); });
     st.map.on("resize", () => { st.labelSet = null; });
-    $("valBtn").addEventListener("click", () => setValues(!st.values)); setValues(st.values);
+    $("valSel").addEventListener("change", () => setValues($("valSel").value)); setValues(st.vmode);
     $("shadeSl").addEventListener("input", () => setShade($("shadeSl").value)); $("shadeReset").addEventListener("click", () => setShade(100)); setShade(st.shade);
     st.map.on("click", (e) => select(e.lngLat.lat, e.lngLat.lng));
     $("fieldSel").addEventListener("change", () => setField($("fieldSel").value));
@@ -725,6 +749,10 @@
     $("stage").addEventListener("keydown", (e) => { if (e.target.tagName === "SELECT" || e.target.tagName === "INPUT") return; if (e.key === "ArrowRight") { e.preventDefault(); stop(); go(st.h + 1); } else if (e.key === "ArrowLeft") { e.preventDefault(); stop(); go(st.h - 1); } else if (e.key === " ") { e.preventDefault(); play(); } });
     const place = () => { $("mapInfo").style.top = PHONE() ? `${$("mapCtl").offsetTop + $("mapCtl").offsetHeight + 4}px` : ""; };
     if (window.ResizeObserver) new ResizeObserver(place).observe($("mapCtl")); place();
+    /* the plots stay clear of the info box, controls, legend and timeline: when one of those moves or changes size (the
+       phone layout settles after the first draw), choose again; an unchanged layout keeps every plot where it is */
+    const rechoose = () => { if (!st.man || !st.map) return; const k = JSON.stringify(blockedRects().map((r) => r.map(Math.round))); if (k === st.blockKey) return; st.blockKey = k; st.labelSet = null; chooseLabels(); paintLabels(fhNow()); };
+    if (window.ResizeObserver) { const ro = new ResizeObserver(() => requestAnimationFrame(rechoose)); ["mapInfo", "mapCtl", "legend", "timeline"].forEach((id) => $(id) && ro.observe($(id))); }
     window.__conus = st; // test hook (read-only use)
     if (EMBED) {   /* a panel of the cycle comparison: the page drives field, valid time, view and point; user moves are reported */
       st.map.on("moveend", () => { if (st.syncing) { st.syncing = false; return; } const c = st.map.getCenter(); parent.postMessage({ conus: "view", panel: PANEL, center: [c.lng, c.lat], zoom: st.map.getZoom() }, location.origin); });
