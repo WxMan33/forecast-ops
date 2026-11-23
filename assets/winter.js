@@ -212,15 +212,15 @@
       when = `<p class="wr-line">No snow window.</p>`;
     } else {
       stick = `<div class="wr-surf"><div><span>Grass &amp; elevated surfaces</span>${lvl(R.grass.level)}</div><div><span>Paved roads &amp; sidewalks</span>${lvl(R.paved.level)}</div></div>
-        <ul class="wr-drivers">${R.drivers.map((d) => `<li>${O.esc(d)}</li>`).join("")}</ul>
-        <p class="wr-note">Bridges and untreated roads: not assessed. There is no pavement or bridge-deck temperature guidance here.</p>`;
+        <p class="wr-note">Bridges and untreated roads: not assessed (no pavement or bridge-deck temperature guidance).</p>
+        <details class="wr-why"${matchMedia("(min-width: 901px)").matches ? " open" : ""}><summary>What's driving it</summary><ul class="wr-drivers">${R.drivers.map((d) => `<li>${O.esc(d)}</li>`).join("")}</ul></details>`;
       when = (R.ranges.length ? `<p class="wr-line"><b>${R.ranges.map(span).join(", ")}</b> ${tz}</p><p class="wr-note">Hours with snow falling where sticking on grass is at least possible.</p>` : `<p class="wr-line">Snow falls ${O.esc(at(R.snowyHours ? R.ranges[0]?.s : null) || "in the window")} but sticking looks unlikely in every hour.</p>`) +
         (R.callouts.length ? `<ul class="wr-call">${R.callouts.map((c) => `<li><b>${O.esc(at(c.ms))}</b> · ${O.esc(c.text)}</li>`).join("")}</ul>` : "");
     }
     const warn = [R.conflict ? `<b>Conflicting guidance.</b> ${O.esc(R.conflict)}. Treat the sticking read as low confidence.` : "", R.missing.length ? `<b>Missing:</b> ${O.esc(R.missing.join(", "))}. The read uses what remains.` : ""].filter(Boolean);
     const K = W.STICK;
     box.innerHTML = `<div class="section-title" id="wrTitle">How much could stick, and when</div>
-      <p class="section-sub">${winLbl} · the selected window. An interpretation of the guidance below, not an official forecast.</p>
+      <p class="section-sub">${winLbl} · selected window<span class="wr-disc"> · an interpretation of the guidance below, not an official forecast</span></p>
       ${warn.length ? `<div class="wr-warn" role="note">${warn.map((w) => `<p>${w}</p>`).join("")}</div>` : ""}
       <div class="wr-grid">
         <div class="wr-cell"><div class="wr-h">Snowfall potential</div>${amt}${snowfallNote}</div>
