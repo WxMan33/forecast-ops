@@ -1,0 +1,2779 @@
+{
+ "host": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev",
+ "at": "2026-11-23T19:35:45.211Z",
+ "devices": {
+  "desktop": {
+   "layers": {
+    "severe": {
+     "clickMs": 245,
+     "requests": {
+      "spc": 3,
+      "md failed": 1,
+      "alerts": 1,
+      "alerts-zones": 96,
+      "md": 1,
+      "alerts-refs": 35
+     },
+     "failed": [
+      "https://www.spc.noaa.gov/products/md/ net::ERR_FAILED"
+     ],
+     "info": {
+      "products": 4,
+      "kinds": {
+       "outlook": 4
+      },
+      "drawn": 1,
+      "drawnBy": {
+       "outlook": 1
+      },
+      "newest": {
+       "issued": "2026-11-23T19:24:00.000Z",
+       "start": "2026-11-25T12:00:00.000Z",
+       "end": "2026-11-26T12:00:00.000Z"
+      },
+      "rows": [
+       "NWS warnings, watches and advisories Checked 2:35 PM EST",
+       "SPC Mesoscale Discussions Checked 2:35 PM EST via NOAA map service · none active",
+       "SPC Day 1 outlook Checked 2:35 PM EST"
+      ],
+      "clock": "2026-11-23T19:36:00.553Z",
+      "sources": {
+       "alerts": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:35:56.719Z",
+        "count": 55,
+        "error": null
+       },
+       "md": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:35:56.368Z",
+        "count": 0,
+        "error": null
+       },
+       "day1": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:35:56.368Z",
+        "count": 1,
+        "error": null
+       },
+       "day2": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:35:56.368Z",
+        "count": 1,
+        "error": null
+       },
+       "day3": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:35:56.368Z",
+        "count": 2,
+        "error": null
+       },
+       "wssip": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "awc": {
+        "state": "na",
+        "kind": "na",
+        "lastOk": null,
+        "count": 0
+       },
+       "enroute": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "faa": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqobs": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqfcst": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "naqfc": {
+        "state": "na",
+        "kind": "na"
+       }
+      }
+     },
+     "click": {
+      "id": "spc-d1-TSTM-202611231622",
+      "kind": "outlook",
+      "name": "Day 1 outlook",
+      "point": [
+       -107.9015,
+       35.20895
+      ],
+      "spotListsIt": true,
+      "detailNamesIt": true,
+      "detail": "← Back OUTLOOK SPC Day 1 · General thunderstorms Area General thunderstorms area Issued Mon, Nov 23, 11:22 AM EST 1622Z Valid Mon, Nov 23, 11:30 AM EST → Tue, Nov 24, 7:00 AM EST 1630Z–1200Z Venue Does not include the venue (510 mi south) (CVG airport) Issued ",
+      "keys": [
+       "spc-d1-TSTM-202611231622",
+       "spc-d1-TSTM-202611231622"
+      ],
+      "fields": {
+       "issued": "2026-11-23T16:22:00.000Z",
+       "expires": "2026-11-24T12:00:00.000Z",
+       "category": "TSTM"
+      },
+      "inSource": null
+     },
+     "inView": {
+      "view": "day1",
+      "info": {
+       "products": 4,
+       "kinds": {
+        "outlook": 4
+       },
+       "drawn": 1,
+       "drawnBy": {
+        "outlook": 1
+       },
+       "newest": {
+        "issued": "2026-11-23T19:24:00.000Z",
+        "start": "2026-11-25T12:00:00.000Z",
+        "end": "2026-11-26T12:00:00.000Z"
+       },
+       "rows": [
+        "NWS warnings, watches and advisories Checked 2:35 PM EST",
+        "SPC Mesoscale Discussions Checked 2:35 PM EST via NOAA map service · none active",
+        "SPC Day 1 outlook Checked 2:35 PM EST"
+       ],
+       "clock": "2026-11-23T19:36:00.553Z",
+       "sources": {
+        "alerts": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:35:56.719Z",
+         "count": 55,
+         "error": null
+        },
+        "md": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:35:56.368Z",
+         "count": 0,
+         "error": null
+        },
+        "day1": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:35:56.368Z",
+         "count": 1,
+         "error": null
+        },
+        "day2": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:35:56.368Z",
+         "count": 1,
+         "error": null
+        },
+        "day3": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:35:56.368Z",
+         "count": 2,
+         "error": null
+        },
+        "wssip": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "awc": {
+         "state": "na",
+         "kind": "na",
+         "lastOk": null,
+         "count": 0
+        },
+        "enroute": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "faa": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "aqobs": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "aqfcst": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "naqfc": {
+         "state": "na",
+         "kind": "na"
+        }
+       }
+      },
+      "click": {
+       "id": "spc-d1-TSTM-202611231622",
+       "kind": "outlook",
+       "name": "Day 1 outlook",
+       "point": [
+        -107.9015,
+        35.20895
+       ],
+       "spotListsIt": true,
+       "detailNamesIt": true,
+       "detail": "← Back OUTLOOK SPC Day 1 · General thunderstorms Area General thunderstorms area Issued Mon, Nov 23, 11:22 AM EST 1622Z Valid Mon, Nov 23, 11:30 AM EST → Tue, Nov 24, 7:00 AM EST 1630Z–1200Z Venue Does not include the venue (510 mi south) (CVG airport) Issued ",
+       "keys": [
+        "spc-d1-TSTM-202611231622",
+        "spc-d1-TSTM-202611231622"
+       ],
+       "fields": {
+        "issued": "2026-11-23T16:22:00.000Z",
+        "expires": "2026-11-24T12:00:00.000Z",
+        "category": "TSTM"
+       },
+       "inSource": null
+      }
+     },
+     "feedsAfterOff": [],
+     "reRequestsOnReenable": {}
+    },
+    "flood": {
+     "clickMs": 405,
+     "requests": {
+      "ero": 3
+     },
+     "failed": [],
+     "info": {
+      "products": 7,
+      "kinds": {
+       "outlook": 7
+      },
+      "drawn": 0,
+      "drawnBy": {},
+      "newest": {
+       "issued": "2026-11-23T08:08:00.000Z",
+       "start": "2026-11-25T12:00:00.000Z",
+       "end": "2026-11-26T12:00:00.000Z"
+      },
+      "rows": [
+       "NWS warnings, watches and advisories Checked 2:35 PM EST",
+       "WPC excessive rainfall · Day 1 Not responding · status unknown"
+      ],
+      "clock": "2026-11-23T19:36:20.539Z",
+      "sources": {
+       "alerts": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:35:56.719Z",
+        "count": 55,
+        "error": null
+       },
+       "ero1": {
+        "state": "failed",
+        "kind": "unavailable",
+        "lastOk": null,
+        "count": 0,
+        "error": "unrecognized excessive rainfall category: None Expected"
+       },
+       "ero2": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:36:20.232Z",
+        "count": 3,
+        "error": null
+       },
+       "wssip": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "awc": {
+        "state": "na",
+        "kind": "na",
+        "lastOk": null,
+        "count": 0
+       },
+       "enroute": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "faa": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqobs": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqfcst": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "naqfc": {
+        "state": "na",
+        "kind": "na"
+       },
+       "ero3": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:36:20.168Z",
+        "count": 4,
+        "error": null
+       }
+      }
+     },
+     "click": null,
+     "inView": {
+      "view": "day1",
+      "info": {
+       "products": 7,
+       "kinds": {
+        "outlook": 7
+       },
+       "drawn": 0,
+       "drawnBy": {},
+       "newest": {
+        "issued": "2026-11-23T08:08:00.000Z",
+        "start": "2026-11-25T12:00:00.000Z",
+        "end": "2026-11-26T12:00:00.000Z"
+       },
+       "rows": [
+        "NWS warnings, watches and advisories Checked 2:35 PM EST",
+        "WPC excessive rainfall · Day 1 Not responding · status unknown"
+       ],
+       "clock": "2026-11-23T19:36:20.539Z",
+       "sources": {
+        "alerts": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:35:56.719Z",
+         "count": 55,
+         "error": null
+        },
+        "ero1": {
+         "state": "failed",
+         "kind": "unavailable",
+         "lastOk": null,
+         "count": 0,
+         "error": "unrecognized excessive rainfall category: None Expected"
+        },
+        "ero2": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:36:20.232Z",
+         "count": 3,
+         "error": null
+        },
+        "wssip": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "awc": {
+         "state": "na",
+         "kind": "na",
+         "lastOk": null,
+         "count": 0
+        },
+        "enroute": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "faa": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "aqobs": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "aqfcst": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "naqfc": {
+         "state": "na",
+         "kind": "na"
+        },
+        "ero3": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:36:20.168Z",
+         "count": 4,
+         "error": null
+        }
+       }
+      },
+      "click": null
+     },
+     "feedsAfterOff": [],
+     "reRequestsOnReenable": {}
+    },
+    "winter": {
+     "clickMs": 800,
+     "requests": {},
+     "failed": [],
+     "info": {
+      "products": 12,
+      "kinds": {
+       "advisory": 12
+      },
+      "drawn": 12,
+      "drawnBy": {
+       "active": 12
+      },
+      "newest": {
+       "issued": "2026-11-24T04:00:00.000Z",
+       "start": null,
+       "end": "2026-11-25T06:00:00.000Z"
+      },
+      "rows": [
+       "NWS warnings, watches and advisories Checked 2:35 PM EST"
+      ],
+      "clock": "2026-11-23T19:36:46.008Z",
+      "sources": {
+       "alerts": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:35:56.719Z",
+        "count": 55,
+        "error": null
+       },
+       "wssip": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "awc": {
+        "state": "na",
+        "kind": "na",
+        "lastOk": null,
+        "count": 0
+       },
+       "enroute": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "faa": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqobs": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqfcst": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "naqfc": {
+        "state": "na",
+        "kind": "na"
+       }
+      }
+     },
+     "click": {
+      "id": "KOTX.WW.Y.0024.2026",
+      "kind": "advisory",
+      "name": "Winter Weather Advisory",
+      "point": [
+       -120.81992005000001,
+       48.95063015
+      ],
+      "spotListsIt": true,
+      "detailNamesIt": true,
+      "detail": "← Back ADVISORY Winter Weather Advisory Winter weather advisory in effect from 8 pm monday to 10 pm pst tuesday Area Western Okanogan County Area shape Area drawn from 1 NWS forecast zone Issued Mon, Nov 23, 11:00 PM EST 0400Z Updated Mon, Nov 23, 12:38 AM EST",
+      "keys": [
+       "KOTX.WW.Y.0024.2026",
+       "KOTX.WW.Y.0024.2026"
+      ],
+      "fields": {
+       "issued": "2026-11-24T04:00:00.000Z",
+       "expires": "2026-11-25T06:00:00.000Z",
+       "category": null
+      },
+      "inSource": null
+     },
+     "inView": null,
+     "feedsAfterOff": [],
+     "reRequestsOnReenable": {}
+    },
+    "fire": {
+     "clickMs": 362,
+     "requests": {
+      "fire": 16,
+      "alerts": 1,
+      "nifc": 2
+     },
+     "failed": [],
+     "info": {
+      "products": 442,
+      "kinds": {
+       "incident": 442
+      },
+      "drawn": 165,
+      "drawnBy": {
+       "inc-pt": 165
+      },
+      "newest": {
+       "issued": "2026-11-23T18:06:27.000Z",
+       "start": null,
+       "end": null
+      },
+      "rows": [
+       "NWS warnings, watches and advisories Checked 2:37 PM EST",
+       "NIFC wildfire incidents (WFIGS) Checked 2:37 PM EST"
+      ],
+      "clock": "2026-11-23T19:37:16.008Z",
+      "sources": {
+       "alerts": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:37:02.935Z",
+        "count": 55,
+        "error": null
+       },
+       "wssip": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "fire1": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:37:02.413Z",
+        "count": 0,
+        "error": null
+       },
+       "fire2": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:37:02.416Z",
+        "count": 0,
+        "error": null
+       },
+       "fire3": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:37:02.417Z",
+        "count": 0,
+        "error": null
+       },
+       "fire4": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:37:02.417Z",
+        "count": 0,
+        "error": null
+       },
+       "fire5": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:37:02.417Z",
+        "count": 0,
+        "error": null
+       },
+       "fire6": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:37:02.417Z",
+        "count": 0,
+        "error": null
+       },
+       "fire7": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:37:02.418Z",
+        "count": 0,
+        "error": null
+       },
+       "fire8": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:37:02.418Z",
+        "count": 0,
+        "error": null
+       },
+       "awc": {
+        "state": "na",
+        "kind": "na",
+        "lastOk": null,
+        "count": 0
+       },
+       "enroute": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "faa": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqobs": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqfcst": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "naqfc": {
+        "state": "na",
+        "kind": "na"
+       },
+       "nifc": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:37:02.418Z",
+        "count": 442,
+        "error": null
+       }
+      }
+     },
+     "click": {
+      "id": "nifc-7AB6021D-6FC2-420F-BFC5-43752F86749F",
+      "kind": "incident",
+      "name": "Qury",
+      "point": [
+       -103.566737305631,
+       43.7481260536149
+      ],
+      "spotListsIt": false,
+      "detailNamesIt": true,
+      "detail": "← Back WILDFIRE Qury 9,168 acres · 100% contained Type Wildfire · Type 5 IC Size 9,168 acres (as reported for the incident) Containment 100% Discovered Thu, Mar 12, 3:16 PM EDT Updated Fri, Nov 13, 12:28 PM EST (NIFC incident record) Perimeter No mapped perime",
+      "keys": [
+       "nifc-7AB6021D-6FC2-420F-BFC5-43752F86749F",
+       "nifc-7AB6021D-6FC2-420F-BFC5-43752F86749F",
+       "Qury",
+       "7AB6021D-6FC2-420F-BFC5-43752F86749F"
+      ],
+      "fields": {
+       "issued": "2026-03-12T19:16:00.000Z",
+       "expires": null,
+       "category": "WF"
+      },
+      "inSource": "Qury"
+     },
+     "inView": {
+      "view": "fire",
+      "info": {
+       "products": 442,
+       "kinds": {
+        "incident": 442
+       },
+       "drawn": 165,
+       "drawnBy": {
+        "inc-pt": 165
+       },
+       "newest": {
+        "issued": "2026-11-23T18:06:27.000Z",
+        "start": null,
+        "end": null
+       },
+       "rows": [
+        "NWS warnings, watches and advisories Checked 2:37 PM EST",
+        "SPC fire weather · Day 1 Checked 2:37 PM EST · none active",
+        "NIFC wildfire incidents (WFIGS) Checked 2:37 PM EST"
+       ],
+       "clock": "2026-11-23T19:37:16.008Z",
+       "sources": {
+        "alerts": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:37:02.935Z",
+         "count": 55,
+         "error": null
+        },
+        "wssip": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "fire1": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:37:02.413Z",
+         "count": 0,
+         "error": null
+        },
+        "fire2": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:37:02.416Z",
+         "count": 0,
+         "error": null
+        },
+        "fire3": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:37:02.417Z",
+         "count": 0,
+         "error": null
+        },
+        "fire4": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:37:02.417Z",
+         "count": 0,
+         "error": null
+        },
+        "fire5": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:37:02.417Z",
+         "count": 0,
+         "error": null
+        },
+        "fire6": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:37:02.417Z",
+         "count": 0,
+         "error": null
+        },
+        "fire7": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:37:02.418Z",
+         "count": 0,
+         "error": null
+        },
+        "fire8": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:37:02.418Z",
+         "count": 0,
+         "error": null
+        },
+        "awc": {
+         "state": "na",
+         "kind": "na",
+         "lastOk": null,
+         "count": 0
+        },
+        "enroute": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "faa": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "aqobs": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "aqfcst": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "naqfc": {
+         "state": "na",
+         "kind": "na"
+        },
+        "nifc": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:37:02.418Z",
+         "count": 442,
+         "error": null
+        }
+       }
+      },
+      "click": null
+     },
+     "feedsAfterOff": [],
+     "reRequestsOnReenable": {}
+    },
+    "smoke": {
+     "clickMs": 628,
+     "requests": {
+      "airnow": 3,
+      "hms": 2
+     },
+     "failed": [],
+     "info": {
+      "products": 60,
+      "kinds": {
+       "smoke": 54,
+       "aqobs": 6
+      },
+      "drawn": 50,
+      "drawnBy": {
+       "hms": 44,
+       "aqmon": 6
+      },
+      "newest": {
+       "issued": "2026-11-23T19:00:00.000Z",
+       "start": null,
+       "end": null
+      },
+      "rows": [
+       "NOAA satellite smoke (HMS) Checked 2:37 PM EST",
+       "AirNow observations near the venue Checked 2:37 PM EST",
+       "AirNow forecast (venue's area) Checked 2:37 PM EST · none active",
+       "AirNow monitors (map) Checked 2:37 PM EST"
+      ],
+      "clock": "2026-11-23T19:37:46.008Z",
+      "sources": {
+       "wssip": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "awc": {
+        "state": "na",
+        "kind": "na",
+        "lastOk": null,
+        "count": 0
+       },
+       "enroute": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "faa": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "hms": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:37:35.578Z",
+        "count": 54,
+        "error": null
+       },
+       "aqobs": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:37:35.789Z",
+        "count": 6,
+        "error": null
+       },
+       "aqfcst": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:37:35.789Z",
+        "count": 0,
+        "error": null
+       },
+       "naqfc": {
+        "state": "na",
+        "kind": "na"
+       },
+       "monitors": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:37:35.578Z",
+        "count": 1527,
+        "error": null
+       }
+      },
+      "naqfcEnabled": false
+     },
+     "click": {
+      "hms": {
+       "id": "hms-2026-11-23-0",
+       "kind": "smoke",
+       "name": "Light smoke (satellite)",
+       "point": [
+        -111.29256155,
+        14.7691348
+       ],
+       "spotListsIt": false,
+       "detailNamesIt": false,
+       "detail": "← Back SATELLITE SMOKE Light smoke detected Observed Mon, Nov 23, 8:00 AM EST → Mon, Nov 23, 11:00 AM EST 1300Z–1600Z Satellite GOES-EAST Density Light Venue Does not include the venue (1108 mi south) What it means Smoke anywhere in the air column, outlined by",
+       "keys": [
+        "hms-2026-11-23-0",
+        "hms-2026-11-23-0"
+       ],
+       "fields": {
+        "issued": "2026-11-23T16:00:00.000Z",
+        "expires": "2026-11-23T16:00:00.000Z",
+        "category": "Light"
+       },
+       "inSource": null
+      },
+      "monitors": {
+       "id": "airnow-390610010",
+       "kind": "aqobs",
+       "name": "Colerain",
+       "point": [
+        -84.69086,
+        39.21494
+       ],
+       "spotListsIt": false,
+       "detailNamesIt": true,
+       "detail": "← Back AIR QUALITY Colerain Reading AQI 30 Good (PM2.5) · PM2.5 5.7 µg/m³ All pollutants PM2.5 30 Observed Mon, Nov 23, 2:00 PM EST (hourly) Monitor Colerain · 390610010 Reporting area Cincinnati Venue 12 miles north of the venue Agency Ohio EPA-DAPC Note Prel",
+       "keys": [
+        "airnow-390610010",
+        "airnow-390610010",
+        "390610010",
+        "Colerain"
+       ],
+       "fields": {
+        "issued": "2026-11-23T19:00:00.000Z",
+        "expires": null,
+        "category": "Good"
+       },
+       "inSource": "390610010"
+      }
+     },
+     "inView": null,
+     "feedsAfterOff": [],
+     "reRequestsOnReenable": {}
+    },
+    "tropical": {
+     "clickMs": 422,
+     "requests": {
+      "nhc": 5,
+      "alerts": 1
+     },
+     "failed": [],
+     "info": {
+      "products": 0,
+      "kinds": {},
+      "drawn": 0,
+      "drawnBy": {},
+      "newest": null,
+      "rows": [
+       "NWS warnings, watches and advisories Checked 2:38 PM EST",
+       "NHC tropical outlooks and storms Checked 2:38 PM EST · none active"
+      ],
+      "clock": "2026-11-23T19:38:16.008Z",
+      "sources": {
+       "alerts": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:38:14.625Z",
+        "count": 55,
+        "error": null
+       },
+       "wssip": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "awc": {
+        "state": "na",
+        "kind": "na",
+        "lastOk": null,
+        "count": 0
+       },
+       "enroute": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "faa": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "nhc": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:38:14.044Z",
+        "count": 0,
+        "error": null
+       },
+       "aqobs": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:37:35.789Z",
+        "count": 6,
+        "error": null
+       },
+       "aqfcst": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:37:35.789Z",
+        "count": 0,
+        "error": null
+       },
+       "naqfc": {
+        "state": "na",
+        "kind": "na"
+       }
+      }
+     },
+     "click": null,
+     "inView": null,
+     "feedsAfterOff": [],
+     "reRequestsOnReenable": {}
+    },
+    "coastal": {
+     "clickMs": 14370,
+     "requests": {},
+     "failed": [],
+     "info": {
+      "products": 43,
+      "kinds": {
+       "advisory": 20,
+       "watch": 11,
+       "warning": 11,
+       "statement": 1
+      },
+      "drawn": 41,
+      "drawnBy": {
+       "active": 41
+      },
+      "newest": {
+       "issued": "2026-11-26T11:00:00.000Z",
+       "start": null,
+       "end": "2026-11-27T08:00:00.000Z"
+      },
+      "rows": [
+       "NWS warnings, watches and advisories Checked 2:38 PM EST"
+      ],
+      "clock": "2026-11-23T19:38:51.469Z",
+      "sources": {
+       "alerts": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:38:14.625Z",
+        "count": 55,
+        "error": null
+       },
+       "wssip": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "awc": {
+        "state": "na",
+        "kind": "na",
+        "lastOk": null,
+        "count": 0
+       },
+       "enroute": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "faa": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqobs": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:37:35.789Z",
+        "count": 6,
+        "error": null
+       },
+       "aqfcst": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:37:35.789Z",
+        "count": 0,
+        "error": null
+       },
+       "naqfc": {
+        "state": "na",
+        "kind": "na"
+       }
+      }
+     },
+     "click": {
+      "id": "KPQR.CF.W.0001.2026",
+      "kind": "warning",
+      "name": "Coastal Flood Warning",
+      "point": [
+       -124.12238495,
+       44.0085007
+      ],
+      "spotListsIt": true,
+      "detailNamesIt": true,
+      "detail": "← Back WARNING Coastal Flood Warning Coastal flood advisory remains in effect until 4 am pst tuesday... ...coastal flood warning remains in effect from 4 am tuesday to 4 am pst friday Area Clatsop County Coast; Tillamook County Coast; Central Coast of Oregon; ",
+      "keys": [
+       "KPQR.CF.W.0001.2026",
+       "KPQR.CF.W.0001.2026"
+      ],
+      "fields": {
+       "issued": "2026-11-24T12:00:00.000Z",
+       "expires": "2026-11-27T12:00:00.000Z",
+       "category": null
+      },
+      "inSource": null
+     },
+     "inView": null,
+     "feedsAfterOff": [],
+     "reRequestsOnReenable": {
+      "alerts": 1
+     }
+    },
+    "aviation": {
+     "clickMs": 26,
+     "requests": {},
+     "failed": [],
+     "info": {
+      "products": 0,
+      "kinds": {},
+      "drawn": 0,
+      "drawnBy": {},
+      "newest": null,
+      "rows": [],
+      "clock": "2026-11-23T19:39:46.008Z",
+      "sources": {
+       "wssip": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "awc": {
+        "state": "na",
+        "kind": "na",
+        "lastOk": null,
+        "count": 0
+       },
+       "enroute": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "faa": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqobs": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:37:35.789Z",
+        "count": 6,
+        "error": null
+       },
+       "aqfcst": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:37:35.789Z",
+        "count": 0,
+        "error": null
+       },
+       "naqfc": {
+        "state": "na",
+        "kind": "na"
+       }
+      }
+     },
+     "click": null,
+     "inView": null,
+     "feedsAfterOff": [],
+     "reRequestsOnReenable": {}
+    }
+   },
+   "fresh": {
+    "requests": 0
+   },
+   "picker": {
+    "requests": 0
+   },
+   "allOffQuiet": {
+    "requests": {},
+    "feeds": []
+   },
+   "errors": []
+  },
+  "phone": {
+   "layers": {
+    "severe": {
+     "clickMs": 250,
+     "requests": {
+      "md failed": 1,
+      "alerts": 1,
+      "spc": 3,
+      "alerts-zones": 96,
+      "md": 1,
+      "alerts-refs": 35
+     },
+     "failed": [
+      "https://www.spc.noaa.gov/products/md/ net::ERR_FAILED"
+     ],
+     "info": {
+      "products": 4,
+      "kinds": {
+       "outlook": 4
+      },
+      "drawn": 1,
+      "drawnBy": {
+       "outlook": 1
+      },
+      "newest": {
+       "issued": "2026-11-23T19:34:00.000Z",
+       "start": "2026-11-23T20:00:00.000Z",
+       "end": "2026-11-24T12:00:00.000Z"
+      },
+      "rows": [
+       "NWS warnings, watches and advisoriesChecked 2:41 PM EST",
+       "SPC Mesoscale DiscussionsChecked 2:41 PM EST via NOAA map service · none active",
+       "SPC Day 1 outlookChecked 2:41 PM EST"
+      ],
+      "clock": "2026-11-23T19:41:53.596Z",
+      "sources": {
+       "alerts": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:41:49.648Z",
+        "count": 55,
+        "error": null
+       },
+       "md": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:41:49.305Z",
+        "count": 0,
+        "error": null
+       },
+       "day1": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:41:49.306Z",
+        "count": 1,
+        "error": null
+       },
+       "day2": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:41:49.306Z",
+        "count": 1,
+        "error": null
+       },
+       "day3": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:41:49.307Z",
+        "count": 2,
+        "error": null
+       },
+       "wssip": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "awc": {
+        "state": "na",
+        "kind": "na",
+        "lastOk": null,
+        "count": 0
+       },
+       "enroute": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "faa": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqobs": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqfcst": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "naqfc": {
+        "state": "na",
+        "kind": "na"
+       }
+      }
+     },
+     "click": {
+      "id": "spc-d1-TSTM-202611231934",
+      "kind": "outlook",
+      "name": "Day 1 outlook",
+      "point": [
+       -107.11699999999999,
+       34.597950000000004
+      ],
+      "spotListsIt": true,
+      "detailNamesIt": true,
+      "detail": "← Back OUTLOOK SPC Day 1 · General thunderstorms Area General thunderstorms area Issued Mon, Nov 23, 2:34 PM EST 1934Z Valid Mon, Nov 23, 3:00 PM EST → Tue, Nov 24, 7:00 AM EST 2000Z–1200Z Venue Does not include the venue (487 mi south) (CVG airport) Issued by",
+      "keys": [
+       "spc-d1-TSTM-202611231934",
+       "spc-d1-TSTM-202611231934"
+      ],
+      "fields": {
+       "issued": "2026-11-23T19:34:00.000Z",
+       "expires": "2026-11-24T12:00:00.000Z",
+       "category": "TSTM"
+      },
+      "inSource": null
+     },
+     "inView": {
+      "view": "day1",
+      "info": {
+       "products": 4,
+       "kinds": {
+        "outlook": 4
+       },
+       "drawn": 1,
+       "drawnBy": {
+        "outlook": 1
+       },
+       "newest": {
+        "issued": "2026-11-23T19:34:00.000Z",
+        "start": "2026-11-23T20:00:00.000Z",
+        "end": "2026-11-24T12:00:00.000Z"
+       },
+       "rows": [
+        "NWS warnings, watches and advisories Checked 2:41 PM EST",
+        "SPC Mesoscale Discussions Checked 2:41 PM EST via NOAA map service · none active",
+        "SPC Day 1 outlook Checked 2:41 PM EST"
+       ],
+       "clock": "2026-11-23T19:41:53.596Z",
+       "sources": {
+        "alerts": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:41:49.648Z",
+         "count": 55,
+         "error": null
+        },
+        "md": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:41:49.305Z",
+         "count": 0,
+         "error": null
+        },
+        "day1": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:41:49.306Z",
+         "count": 1,
+         "error": null
+        },
+        "day2": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:41:49.306Z",
+         "count": 1,
+         "error": null
+        },
+        "day3": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:41:49.307Z",
+         "count": 2,
+         "error": null
+        },
+        "wssip": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "awc": {
+         "state": "na",
+         "kind": "na",
+         "lastOk": null,
+         "count": 0
+        },
+        "enroute": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "faa": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "aqobs": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "aqfcst": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "naqfc": {
+         "state": "na",
+         "kind": "na"
+        }
+       }
+      },
+      "click": {
+       "id": "spc-d1-TSTM-202611231934",
+       "kind": "outlook",
+       "name": "Day 1 outlook",
+       "point": [
+        -107.11699999999999,
+        34.597950000000004
+       ],
+       "spotListsIt": true,
+       "detailNamesIt": true,
+       "detail": "← Back OUTLOOK SPC Day 1 · General thunderstorms Area General thunderstorms area Issued Mon, Nov 23, 2:34 PM EST 1934Z Valid Mon, Nov 23, 3:00 PM EST → Tue, Nov 24, 7:00 AM EST 2000Z–1200Z Venue Does not include the venue (487 mi south) (CVG airport) Issued by",
+       "keys": [
+        "spc-d1-TSTM-202611231934",
+        "spc-d1-TSTM-202611231934"
+       ],
+       "fields": {
+        "issued": "2026-11-23T19:34:00.000Z",
+        "expires": "2026-11-24T12:00:00.000Z",
+        "category": "TSTM"
+       },
+       "inSource": null
+      }
+     },
+     "feedsAfterOff": [],
+     "reRequestsOnReenable": {}
+    },
+    "flood": {
+     "clickMs": 426,
+     "requests": {
+      "ero": 3
+     },
+     "failed": [],
+     "info": {
+      "products": 7,
+      "kinds": {
+       "outlook": 7
+      },
+      "drawn": 0,
+      "drawnBy": {},
+      "newest": {
+       "issued": "2026-11-23T08:08:00.000Z",
+       "start": "2026-11-25T12:00:00.000Z",
+       "end": "2026-11-26T12:00:00.000Z"
+      },
+      "rows": [
+       "NWS warnings, watches and advisories Checked 2:41 PM EST",
+       "WPC excessive rainfall · Day 1 Not responding · status unknown"
+      ],
+      "clock": "2026-11-23T19:42:14.351Z",
+      "sources": {
+       "alerts": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:41:49.648Z",
+        "count": 55,
+        "error": null
+       },
+       "ero1": {
+        "state": "failed",
+        "kind": "unavailable",
+        "lastOk": null,
+        "count": 0,
+        "error": "unrecognized excessive rainfall category: None Expected"
+       },
+       "ero2": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:42:13.915Z",
+        "count": 3,
+        "error": null
+       },
+       "wssip": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "awc": {
+        "state": "na",
+        "kind": "na",
+        "lastOk": null,
+        "count": 0
+       },
+       "enroute": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "faa": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqobs": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqfcst": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "naqfc": {
+        "state": "na",
+        "kind": "na"
+       },
+       "ero3": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:42:13.896Z",
+        "count": 4,
+        "error": null
+       }
+      }
+     },
+     "click": null,
+     "inView": {
+      "view": "day1",
+      "info": {
+       "products": 7,
+       "kinds": {
+        "outlook": 7
+       },
+       "drawn": 0,
+       "drawnBy": {},
+       "newest": {
+        "issued": "2026-11-23T08:08:00.000Z",
+        "start": "2026-11-25T12:00:00.000Z",
+        "end": "2026-11-26T12:00:00.000Z"
+       },
+       "rows": [
+        "NWS warnings, watches and advisories Checked 2:41 PM EST",
+        "WPC excessive rainfall · Day 1 Not responding · status unknown"
+       ],
+       "clock": "2026-11-23T19:42:14.351Z",
+       "sources": {
+        "alerts": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:41:49.648Z",
+         "count": 55,
+         "error": null
+        },
+        "ero1": {
+         "state": "failed",
+         "kind": "unavailable",
+         "lastOk": null,
+         "count": 0,
+         "error": "unrecognized excessive rainfall category: None Expected"
+        },
+        "ero2": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:42:13.915Z",
+         "count": 3,
+         "error": null
+        },
+        "wssip": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "awc": {
+         "state": "na",
+         "kind": "na",
+         "lastOk": null,
+         "count": 0
+        },
+        "enroute": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "faa": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "aqobs": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "aqfcst": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "naqfc": {
+         "state": "na",
+         "kind": "na"
+        },
+        "ero3": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:42:13.896Z",
+         "count": 4,
+         "error": null
+        }
+       }
+      },
+      "click": null
+     },
+     "feedsAfterOff": [],
+     "reRequestsOnReenable": {}
+    },
+    "winter": {
+     "clickMs": 852,
+     "requests": {},
+     "failed": [],
+     "info": {
+      "products": 12,
+      "kinds": {
+       "advisory": 12
+      },
+      "drawn": 12,
+      "drawnBy": {
+       "active": 12
+      },
+      "newest": {
+       "issued": "2026-11-24T04:00:00.000Z",
+       "start": null,
+       "end": "2026-11-25T06:00:00.000Z"
+      },
+      "rows": [
+       "NWS warnings, watches and advisories Checked 2:41 PM EST"
+      ],
+      "clock": "2026-11-23T19:42:38.990Z",
+      "sources": {
+       "alerts": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:41:49.648Z",
+        "count": 55,
+        "error": null
+       },
+       "wssip": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "awc": {
+        "state": "na",
+        "kind": "na",
+        "lastOk": null,
+        "count": 0
+       },
+       "enroute": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "faa": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqobs": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqfcst": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "naqfc": {
+        "state": "na",
+        "kind": "na"
+       }
+      }
+     },
+     "click": {
+      "id": "KOTX.WW.Y.0024.2026",
+      "kind": "advisory",
+      "name": "Winter Weather Advisory",
+      "point": [
+       -120.81992005000001,
+       48.95063015
+      ],
+      "spotListsIt": true,
+      "detailNamesIt": true,
+      "detail": "← Back ADVISORY Winter Weather Advisory Winter weather advisory in effect from 8 pm monday to 10 pm pst tuesday Area Western Okanogan County Area shape Area drawn from 1 NWS forecast zone Issued Mon, Nov 23, 11:00 PM EST 0400Z Updated Mon, Nov 23, 12:38 AM EST",
+      "keys": [
+       "KOTX.WW.Y.0024.2026",
+       "KOTX.WW.Y.0024.2026"
+      ],
+      "fields": {
+       "issued": "2026-11-24T04:00:00.000Z",
+       "expires": "2026-11-25T06:00:00.000Z",
+       "category": null
+      },
+      "inSource": null
+     },
+     "inView": null,
+     "feedsAfterOff": [],
+     "reRequestsOnReenable": {
+      "alerts": 1
+     }
+    },
+    "fire": {
+     "clickMs": 740,
+     "requests": {
+      "fire": 16,
+      "nifc": 2
+     },
+     "failed": [],
+     "info": {
+      "products": 442,
+      "kinds": {
+       "incident": 442
+      },
+      "drawn": 165,
+      "drawnBy": {
+       "inc-pt": 165
+      },
+      "newest": {
+       "issued": "2026-11-23T19:19:33.000Z",
+       "start": null,
+       "end": null
+      },
+      "rows": [
+       "NWS warnings, watches and advisories Checked 2:42 PM EST",
+       "NIFC wildfire incidents (WFIGS) Checked 2:42 PM EST"
+      ],
+      "clock": "2026-11-23T19:43:08.990Z",
+      "sources": {
+       "alerts": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:42:51.437Z",
+        "count": 55,
+        "error": null
+       },
+       "wssip": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "fire1": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:42:56.649Z",
+        "count": 0,
+        "error": null
+       },
+       "fire2": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:42:56.650Z",
+        "count": 0,
+        "error": null
+       },
+       "fire3": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:42:56.650Z",
+        "count": 0,
+        "error": null
+       },
+       "fire4": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:42:56.650Z",
+        "count": 0,
+        "error": null
+       },
+       "fire5": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:42:56.650Z",
+        "count": 0,
+        "error": null
+       },
+       "fire6": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:42:56.651Z",
+        "count": 0,
+        "error": null
+       },
+       "fire7": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:42:56.651Z",
+        "count": 0,
+        "error": null
+       },
+       "fire8": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:42:56.651Z",
+        "count": 0,
+        "error": null
+       },
+       "awc": {
+        "state": "na",
+        "kind": "na",
+        "lastOk": null,
+        "count": 0
+       },
+       "enroute": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "faa": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqobs": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqfcst": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "naqfc": {
+        "state": "na",
+        "kind": "na"
+       },
+       "nifc": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:42:56.652Z",
+        "count": 442,
+        "error": null
+       }
+      }
+     },
+     "click": {
+      "id": "nifc-7AB6021D-6FC2-420F-BFC5-43752F86749F",
+      "kind": "incident",
+      "name": "Qury",
+      "point": [
+       -103.566737305631,
+       43.7481260536149
+      ],
+      "spotListsIt": false,
+      "detailNamesIt": true,
+      "detail": "← Back WILDFIRE Qury 9,168 acres · 100% contained Type Wildfire · Type 5 IC Size 9,168 acres (as reported for the incident) Containment 100% Discovered Thu, Mar 12, 3:16 PM EDT Updated Fri, Nov 13, 12:28 PM EST (NIFC incident record) Perimeter No mapped perime",
+      "keys": [
+       "nifc-7AB6021D-6FC2-420F-BFC5-43752F86749F",
+       "nifc-7AB6021D-6FC2-420F-BFC5-43752F86749F",
+       "Qury",
+       "7AB6021D-6FC2-420F-BFC5-43752F86749F"
+      ],
+      "fields": {
+       "issued": "2026-03-12T19:16:00.000Z",
+       "expires": null,
+       "category": "WF"
+      },
+      "inSource": "Qury"
+     },
+     "inView": {
+      "view": "fire",
+      "info": {
+       "products": 442,
+       "kinds": {
+        "incident": 442
+       },
+       "drawn": 165,
+       "drawnBy": {
+        "inc-pt": 165
+       },
+       "newest": {
+        "issued": "2026-11-23T19:19:33.000Z",
+        "start": null,
+        "end": null
+       },
+       "rows": [
+        "NWS warnings, watches and advisories Checked 2:42 PM EST",
+        "SPC fire weather · Day 1 Checked 2:42 PM EST · none active",
+        "NIFC wildfire incidents (WFIGS) Checked 2:42 PM EST"
+       ],
+       "clock": "2026-11-23T19:43:08.990Z",
+       "sources": {
+        "alerts": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:42:51.437Z",
+         "count": 55,
+         "error": null
+        },
+        "wssip": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "fire1": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:42:56.649Z",
+         "count": 0,
+         "error": null
+        },
+        "fire2": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:42:56.650Z",
+         "count": 0,
+         "error": null
+        },
+        "fire3": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:42:56.650Z",
+         "count": 0,
+         "error": null
+        },
+        "fire4": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:42:56.650Z",
+         "count": 0,
+         "error": null
+        },
+        "fire5": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:42:56.650Z",
+         "count": 0,
+         "error": null
+        },
+        "fire6": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:42:56.651Z",
+         "count": 0,
+         "error": null
+        },
+        "fire7": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:42:56.651Z",
+         "count": 0,
+         "error": null
+        },
+        "fire8": {
+         "state": "ok",
+         "kind": "empty",
+         "lastOk": "2026-11-23T19:42:56.651Z",
+         "count": 0,
+         "error": null
+        },
+        "awc": {
+         "state": "na",
+         "kind": "na",
+         "lastOk": null,
+         "count": 0
+        },
+        "enroute": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "faa": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "aqobs": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "aqfcst": {
+         "state": "pending",
+         "kind": "loading",
+         "lastOk": null,
+         "count": 0
+        },
+        "naqfc": {
+         "state": "na",
+         "kind": "na"
+        },
+        "nifc": {
+         "state": "ok",
+         "kind": "current",
+         "lastOk": "2026-11-23T19:42:56.652Z",
+         "count": 442,
+         "error": null
+        }
+       }
+      },
+      "click": null
+     },
+     "feedsAfterOff": [],
+     "reRequestsOnReenable": {}
+    },
+    "smoke": {
+     "clickMs": 778,
+     "requests": {
+      "airnow": 3,
+      "hms": 2
+     },
+     "failed": [],
+     "info": {
+      "products": 60,
+      "kinds": {
+       "smoke": 54,
+       "aqobs": 6
+      },
+      "drawn": 50,
+      "drawnBy": {
+       "hms": 44,
+       "aqmon": 6
+      },
+      "newest": {
+       "issued": "2026-11-23T19:00:00.000Z",
+       "start": null,
+       "end": null
+      },
+      "rows": [
+       "NOAA satellite smoke (HMS) Checked 2:43 PM EST",
+       "AirNow observations near the venue Checked 2:43 PM EST",
+       "AirNow forecast (venue's area) Checked 2:43 PM EST · none active",
+       "AirNow monitors (map) Checked 2:43 PM EST"
+      ],
+      "clock": "2026-11-23T19:43:38.990Z",
+      "sources": {
+       "wssip": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "awc": {
+        "state": "na",
+        "kind": "na",
+        "lastOk": null,
+        "count": 0
+       },
+       "enroute": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "faa": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "hms": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:43:30.721Z",
+        "count": 54,
+        "error": null
+       },
+       "aqobs": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:43:30.969Z",
+        "count": 6,
+        "error": null
+       },
+       "aqfcst": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:43:30.969Z",
+        "count": 0,
+        "error": null
+       },
+       "naqfc": {
+        "state": "na",
+        "kind": "na"
+       },
+       "monitors": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:43:30.721Z",
+        "count": 1533,
+        "error": null
+       }
+      },
+      "naqfcEnabled": false
+     },
+     "click": {
+      "hms": {
+       "id": "hms-2026-11-23-0",
+       "kind": "smoke",
+       "name": "Light smoke (satellite)",
+       "point": [
+        -111.29256155,
+        14.7691348
+       ],
+       "spotListsIt": false,
+       "detailNamesIt": false,
+       "detail": "← Back SATELLITE SMOKE Light smoke detected Observed Mon, Nov 23, 8:00 AM EST → Mon, Nov 23, 11:00 AM EST 1300Z–1600Z Satellite GOES-EAST Density Light Venue Does not include the venue (1108 mi south) What it means Smoke anywhere in the air column, outlined by",
+       "keys": [
+        "hms-2026-11-23-0",
+        "hms-2026-11-23-0"
+       ],
+       "fields": {
+        "issued": "2026-11-23T16:00:00.000Z",
+        "expires": "2026-11-23T16:00:00.000Z",
+        "category": "Light"
+       },
+       "inSource": null
+      },
+      "monitors": {
+       "id": "airnow-390610010",
+       "kind": "aqobs",
+       "name": "Colerain",
+       "point": [
+        -84.69086,
+        39.21494
+       ],
+       "spotListsIt": false,
+       "detailNamesIt": true,
+       "detail": "← Back AIR QUALITY Colerain Reading AQI 30 Good (PM2.5) · PM2.5 5.7 µg/m³ All pollutants PM2.5 30 Observed Mon, Nov 23, 2:00 PM EST (hourly) Monitor Colerain · 390610010 Reporting area Cincinnati Venue 12 miles north of the venue Agency Ohio EPA-DAPC Note Prel",
+       "keys": [
+        "airnow-390610010",
+        "airnow-390610010",
+        "390610010",
+        "Colerain"
+       ],
+       "fields": {
+        "issued": "2026-11-23T19:00:00.000Z",
+        "expires": null,
+        "category": "Good"
+       },
+       "inSource": "390610010"
+      }
+     },
+     "inView": null,
+     "feedsAfterOff": [],
+     "reRequestsOnReenable": {}
+    },
+    "tropical": {
+     "clickMs": 464,
+     "requests": {
+      "nhc": 5,
+      "alerts": 1
+     },
+     "failed": [],
+     "info": {
+      "products": 0,
+      "kinds": {},
+      "drawn": 0,
+      "drawnBy": {},
+      "newest": null,
+      "rows": [
+       "NWS warnings, watches and advisories Checked 2:44 PM EST",
+       "NHC tropical outlooks and storms Checked 2:44 PM EST · none active"
+      ],
+      "clock": "2026-11-23T19:44:11.361Z",
+      "sources": {
+       "alerts": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:44:10.813Z",
+        "count": 55,
+        "error": null
+       },
+       "wssip": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "awc": {
+        "state": "na",
+        "kind": "na",
+        "lastOk": null,
+        "count": 0
+       },
+       "enroute": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "faa": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "nhc": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:44:10.197Z",
+        "count": 0,
+        "error": null
+       },
+       "aqobs": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:43:30.969Z",
+        "count": 6,
+        "error": null
+       },
+       "aqfcst": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:43:30.969Z",
+        "count": 0,
+        "error": null
+       },
+       "naqfc": {
+        "state": "na",
+        "kind": "na"
+       }
+      }
+     },
+     "click": null,
+     "inView": null,
+     "feedsAfterOff": [],
+     "reRequestsOnReenable": {}
+    },
+    "coastal": {
+     "clickMs": 8505,
+     "requests": {},
+     "failed": [],
+     "info": {
+      "products": 43,
+      "kinds": {
+       "advisory": 20,
+       "watch": 11,
+       "warning": 11,
+       "statement": 1
+      },
+      "drawn": 41,
+      "drawnBy": {
+       "active": 41
+      },
+      "newest": {
+       "issued": "2026-11-26T11:00:00.000Z",
+       "start": null,
+       "end": "2026-11-27T08:00:00.000Z"
+      },
+      "rows": [
+       "NWS warnings, watches and advisories Checked 2:44 PM EST"
+      ],
+      "clock": "2026-11-23T19:44:42.533Z",
+      "sources": {
+       "alerts": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:44:10.813Z",
+        "count": 55,
+        "error": null
+       },
+       "wssip": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "awc": {
+        "state": "na",
+        "kind": "na",
+        "lastOk": null,
+        "count": 0
+       },
+       "enroute": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "faa": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqobs": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:43:30.969Z",
+        "count": 6,
+        "error": null
+       },
+       "aqfcst": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:43:30.969Z",
+        "count": 0,
+        "error": null
+       },
+       "naqfc": {
+        "state": "na",
+        "kind": "na"
+       }
+      }
+     },
+     "click": {
+      "id": "KPQR.CF.W.0001.2026",
+      "kind": "warning",
+      "name": "Coastal Flood Warning",
+      "point": [
+       -124.12238495,
+       44.0085007
+      ],
+      "spotListsIt": true,
+      "detailNamesIt": true,
+      "detail": "← Back WARNING Coastal Flood Warning Coastal flood advisory remains in effect until 4 am pst tuesday... ...coastal flood warning remains in effect from 4 am tuesday to 4 am pst friday Area Clatsop County Coast; Tillamook County Coast; Central Coast of Oregon; ",
+      "keys": [
+       "KPQR.CF.W.0001.2026",
+       "KPQR.CF.W.0001.2026"
+      ],
+      "fields": {
+       "issued": "2026-11-24T12:00:00.000Z",
+       "expires": "2026-11-27T12:00:00.000Z",
+       "category": null
+      },
+      "inSource": null
+     },
+     "inView": null,
+     "feedsAfterOff": [],
+     "reRequestsOnReenable": {}
+    },
+    "aviation": {
+     "clickMs": 33,
+     "requests": {},
+     "failed": [],
+     "info": {
+      "products": 0,
+      "kinds": {},
+      "drawn": 0,
+      "drawnBy": {},
+      "newest": null,
+      "rows": [],
+      "clock": "2026-11-23T19:45:38.990Z",
+      "sources": {
+       "wssip": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "awc": {
+        "state": "na",
+        "kind": "na",
+        "lastOk": null,
+        "count": 0
+       },
+       "enroute": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "faa": {
+        "state": "pending",
+        "kind": "loading",
+        "lastOk": null,
+        "count": 0
+       },
+       "aqobs": {
+        "state": "ok",
+        "kind": "current",
+        "lastOk": "2026-11-23T19:43:30.969Z",
+        "count": 6,
+        "error": null
+       },
+       "aqfcst": {
+        "state": "ok",
+        "kind": "empty",
+        "lastOk": "2026-11-23T19:43:30.969Z",
+        "count": 0,
+        "error": null
+       },
+       "naqfc": {
+        "state": "na",
+        "kind": "na"
+       }
+      }
+     },
+     "click": null,
+     "inView": null,
+     "feedsAfterOff": [],
+     "reRequestsOnReenable": {}
+    }
+   },
+   "fresh": {
+    "requests": 0
+   },
+   "picker": {
+    "requests": 0
+   },
+   "allOffQuiet": {
+    "requests": {},
+    "feeds": []
+   },
+   "errors": []
+  }
+ },
+ "degraded": {
+  "slowAlerts": {
+   "usableClickMs": 97,
+   "rows": [
+    "NWS warnings, watches and advisories Loading…",
+    "WPC excessive rainfall · Day 1 Loading…"
+   ],
+   "panel": "Loading official feeds for the selected layers…\n\nNWS warnings, watches and advisories\nLoading…\nWPC excessive rainfall · Day 1\nLoading…\nLive official feeds, fetched by your browser. Alerts and MDs refr"
+  },
+  "spcFailing": {
+   "usableClickMs": 361,
+   "rows": [
+    "NWS warnings, watches and advisories Checked 2:47 PM EST",
+    "SPC Mesoscale Discussions Checked 2:47 PM EST via NOAA map service · none active",
+    "SPC Day 1 outlook Not responding · status unknown",
+    "NOAA satellite smoke (HMS) Checked 2:47 PM EST",
+    "AirNow observations near the venue Checked 2:47 PM EST",
+    "AirNow forecast (venue's area) Checked 2:47 PM EST · none active",
+    "AirNow monitors (map) Checked 2:47 PM EST"
+   ],
+   "peek": "Day 1 at CVG airport / No severe risk area"
+  },
+  "alertsStale": {
+   "before": [
+    "NWS warnings, watches and advisories Checked 2:47 PM EST",
+    "SPC Mesoscale Discussions Checked 2:48 PM EST via NOAA map service · none active",
+    "SPC Day 1 outlook Checked 2:48 PM EST"
+   ],
+   "usableClickMs": 2169,
+   "rows": [
+    "NWS warnings, watches and advisories Last confirmed 2:47 PM EST",
+    "SPC Mesoscale Discussions Checked 2:49 PM EST via NOAA map service · none active",
+    "SPC Day 1 outlook Checked 2:48 PM EST"
+   ],
+   "notice": "NWS warnings, watches and advisories: last confirmed 2:47 PM EST. The source is not responding. Products from the last good check stay on the map as \"last known\" until their published expiration.",
+   "productsKept": 22
+  }
+ },
+ "replay": {
+  "severe": {
+   "scenario": "archive-ww705",
+   "badge": "ARCHIVED SAMPLE",
+   "products": 0,
+   "drawn": 0,
+   "newest": null,
+   "click": null,
+   "errs": []
+  },
+  "flood": {
+   "scenario": "archive-flood-day",
+   "badge": "ARCHIVED SAMPLE",
+   "products": 7,
+   "drawn": 2,
+   "newest": {
+    "issued": "2026-11-20T17:31:00.000Z",
+    "start": null,
+    "end": "2026-11-20T20:30:00.000Z"
+   },
+   "click": {
+    "name": "Flash Flood Warning",
+    "spot": true,
+    "detail": true
+   },
+   "errs": []
+  },
+  "winter": {
+   "scenario": "archive-winter-warning",
+   "badge": "ARCHIVED SAMPLE",
+   "products": 4,
+   "drawn": 4,
+   "newest": {
+    "issued": "2026-11-19T18:00:00.000Z",
+    "start": null,
+    "end": "2026-11-21T00:00:00.000Z"
+   },
+   "click": {
+    "name": "Winter Storm Warning",
+    "spot": true,
+    "detail": true
+   },
+   "errs": []
+  },
+  "fire": {
+   "scenario": "archive-fire-incidents",
+   "badge": "ARCHIVED SAMPLE",
+   "products": 567,
+   "drawn": 231,
+   "newest": {
+    "issued": "2026-11-20T22:57:09.000Z",
+    "start": null,
+    "end": null
+   },
+   "click": {
+    "name": "Moonlight Farm",
+    "spot": false,
+    "detail": true
+   },
+   "errs": []
+  },
+  "smoke": {
+   "scenario": "archive-smoke-chicago",
+   "badge": "ARCHIVED SAMPLE",
+   "products": 45,
+   "drawn": 36,
+   "newest": {
+    "issued": "2026-07-16T22:00:00.000Z",
+    "start": null,
+    "end": null
+   },
+   "click": {
+    "name": "ALSIP",
+    "spot": false,
+    "detail": true
+   },
+   "errs": []
+  },
+  "tropical": {
+   "scenario": "archive-tropical-warning",
+   "badge": "ARCHIVED SAMPLE",
+   "products": 42,
+   "drawn": 42,
+   "newest": {
+    "issued": "2026-10-08T03:00:00.000Z",
+    "start": null,
+    "end": null
+   },
+   "click": {
+    "name": "Hurricane Warning",
+    "spot": true,
+    "detail": true
+   },
+   "errs": []
+  },
+  "coastal": {
+   "scenario": "archive-coastal-flagler",
+   "badge": "ARCHIVED SAMPLE",
+   "products": 9,
+   "drawn": 9,
+   "newest": {
+    "issued": "2026-11-21T18:11:00.000Z",
+    "start": null,
+    "end": "2026-11-22T03:00:00.000Z"
+   },
+   "click": {
+    "name": "Coastal Flood Warning",
+    "spot": true,
+    "detail": true
+   },
+   "errs": []
+  },
+  "aviation": {
+   "scenario": "archive-aviation-chicago",
+   "badge": "ARCHIVED SAMPLE",
+   "products": 6,
+   "drawn": 3,
+   "newest": {
+    "issued": "2026-11-22T16:31:00.000Z",
+    "start": "2026-11-22T17:00:00.000Z",
+    "end": "2026-11-23T18:00:00.000Z"
+   },
+   "click": {
+    "name": "KMDW observation",
+    "spot": true,
+    "detail": false
+   },
+   "errs": []
+  }
+ },
+ "links": {
+  "planner aviation": {
+   "layers": [
+    "aviation"
+   ],
+   "view": "active",
+   "scope": "venue",
+   "sum": "Aviation",
+   "feeds": [],
+   "want": "aviation"
+  },
+  "planner tropical": {
+   "layers": [
+    "tropical"
+   ],
+   "view": "active",
+   "scope": "venue",
+   "sum": "Tropical",
+   "feeds": [
+    "alerts",
+    "nhc"
+   ],
+   "want": "tropical"
+  },
+  "planner smoke": {
+   "layers": [
+    "smoke"
+   ],
+   "view": "active",
+   "scope": "venue",
+   "sum": "Smoke & air",
+   "feeds": [
+    "hms",
+    "monitors"
+   ],
+   "want": "smoke"
+  },
+  "planner fire view": {
+   "layers": [
+    "fire"
+   ],
+   "view": "fire",
+   "scope": "venue",
+   "sum": "Fire",
+   "feeds": [
+    "alerts",
+    "fire",
+    "nifc"
+   ],
+   "want": "fire"
+  },
+  "planner winter view": {
+   "layers": [
+    "winter"
+   ],
+   "view": "winter",
+   "scope": "venue",
+   "sum": "Winter",
+   "feeds": [
+    "alerts"
+   ],
+   "want": "winter"
+  },
+  "planner flood day 1": {
+   "layers": [
+    "flood"
+   ],
+   "view": "day1",
+   "scope": "venue",
+   "sum": "Flooding",
+   "feeds": [
+    "alerts",
+    "ero"
+   ],
+   "want": "flood"
+  },
+  "shared two layers": {
+   "layers": [
+    "severe",
+    "coastal"
+   ],
+   "view": "active",
+   "scope": "national",
+   "sum": "Severe storms, Coastal",
+   "feeds": [
+    "alerts",
+    "md",
+    "spc"
+   ],
+   "want": "severe,coastal"
+  }
+ }
+}
