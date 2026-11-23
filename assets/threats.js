@@ -234,6 +234,9 @@
     const on = { apt: S.av.apt, pireps: S.av.pireps && enOn(), adv: S.av.adv && enOn(), gtg: S.gtg.on, ifi: S.ifi.on }, L = { apt: "Airport weather", pireps: "Pilot reports", adv: "Advisories", gtg: "Turbulence guidance", ifi: "Icing guidance" };
     return `<div class="px-h"><span>Aviation shows</span><span>also in Layers</span></div><div class="tx-filters tx-avctl" role="group" aria-label="What Aviation shows">${Object.keys(L).map((k) => `<button type="button" class="tx-fb" data-avt="${k}" aria-pressed="${!!on[k]}">${on[k] ? "✓ " : ""}${esc(L[k])}</button>`).join("")}</div>`;
   }
+  /* list rows for aviation reports and advisories (the En route section and At this spot) */
+  const advItem = (x) => `<button type="button" class="tx-item" data-id="${esc(x.id)}" style="--tx-c:${EN_COLOR[x.hazardFamily] || EN_COLOR.other}"><svg class="tx-sw" width="30" height="16" aria-hidden="true"><rect x="3" y="3" width="24" height="10" fill="${EN_COLOR[x.hazardFamily] || EN_COLOR.other}" fill-opacity=".25" stroke="${EN_COLOR[x.hazardFamily] || EN_COLOR.other}" stroke-width="2"${x.kind === "gairmet" ? ' stroke-dasharray="4 2"' : ""}/></svg><span><span class="tx-kind k-av">${esc(x.kind === "gairmet" ? "G-AIRMET" : x.kind === "cwa" ? "CWA" : "SIGMET")}</span><b>${esc((x.severity === "MOD" ? "Moderate " : x.severity === "SEV" ? "Severe " : "") + x.hazardWord)}</b><span class="tx-meta">${esc(x.baseFt == null && x.topFt == null ? (x.surface ? "near the surface" : "altitude not stated") : EN.bandText(x.baseFt, x.topFt))} · ${esc(x.kind === "gairmet" ? "snapshot " + t(x.validTime) : "until " + t(x.validEnd))}</span></span></button>`;
+  const pirepItem = (x) => `<button type="button" class="tx-item" data-id="${esc(x.id)}" style="--tx-c:${PIREP_COLOR(x.rank)}"><svg class="tx-sw" width="30" height="16" aria-hidden="true"><circle cx="15" cy="8" r="6" fill="${x.turb.length ? PIREP_COLOR(x.rank) : "none"}" stroke="${x.turb.length ? "#111" : PIREP_COLOR(x.rank)}" stroke-width="${x.turb.length ? 1 : 3}"/></svg><span><span class="tx-kind k-av">PILOT REPORT</span><b>${esc(EN.pirepText(x))}</b><span class="tx-meta">${esc(t(x.observed) + (x.acType ? " · " + x.acType : ""))}</span></span></button>`;
   function enrouteSection() {
     if (!S.layers.aviation || !EN) return "";
     if (!enOn()) return `<div class="px-h"><span>Aviation en route</span></div><button type="button" class="px-link" data-en-on="1">Show pilot reports and en-route advisories (SIGMETs, G-AIRMETs, CWAs) →</button>`;
@@ -246,10 +249,9 @@
     h += `<div class="tx-filters" role="group" aria-label="Altitude"><span class="tx-fl">Altitude</span>${EN_ALT.map(([b, label]) => btn("en-alt", b ? b.join("-") : "all", JSON.stringify(S.en.alt) === JSON.stringify(b), label)).join("")}${S.route ? btn("en-alt", S.route.lo + "-" + S.route.hi, JSON.stringify(S.en.alt) === JSON.stringify([S.route.lo, S.route.hi]), "Your band " + EN.bandText(S.route.lo, S.route.hi)) : ""}</div>`;
     h += `<div class="tx-filters" role="group" aria-label="Report age"><span class="tx-fl">Pilot reports</span>${(isArchive() ? [1, 2, 3] : [1, 2]).map((n) => btn("en-age", n, S.en.age === n, "last " + n + " h")).join("")}</div>`;
     h += `<p class="lg-note" data-en-counts>${S.en.at ? "Pilot reports are past observations and show at Now only. " : esc(rp.length + " pilot report" + (rp.length === 1 ? "" : "s") + " of turbulence or icing (" + strong.length + " moderate or worse). ")}${esc(adv.length + " advisor" + (adv.length === 1 ? "y" : "ies") + " in effect at that time.")}</p>`;
-    const advItem = (x) => `<button type="button" class="tx-item" data-id="${esc(x.id)}" style="--tx-c:${EN_COLOR[x.hazardFamily] || EN_COLOR.other}"><svg class="tx-sw" width="30" height="16" aria-hidden="true"><rect x="3" y="3" width="24" height="10" fill="${EN_COLOR[x.hazardFamily] || EN_COLOR.other}" fill-opacity=".25" stroke="${EN_COLOR[x.hazardFamily] || EN_COLOR.other}" stroke-width="2"${x.kind === "gairmet" ? ' stroke-dasharray="4 2"' : ""}/></svg><span><span class="tx-kind k-av">${esc(x.kind === "gairmet" ? "G-AIRMET" : x.kind === "cwa" ? "CWA" : "SIGMET")}</span><b>${esc((x.severity === "MOD" ? "Moderate " : x.severity === "SEV" ? "Severe " : "") + x.hazardWord)}</b><span class="tx-meta">${esc(x.baseFt == null && x.topFt == null ? (x.surface ? "near the surface" : "altitude not stated") : EN.bandText(x.baseFt, x.topFt))} · ${esc(x.kind === "gairmet" ? "snapshot " + t(x.validTime) : "until " + t(x.validEnd))}</span></span></button>`;
     const order = { convective: 0, turbulence: 1, icing: 2, ash: 3, wind: 4, low: 5, other: 6 };
     if (adv.length) h += adv.slice().sort((a, b) => (order[a.hazardFamily] ?? 9) - (order[b.hazardFamily] ?? 9)).slice(0, 10).map(advItem).join("") + (adv.length > 10 ? `<p class="lg-note">${adv.length - 10} more on the map.</p>` : "");
-    if (strong.length && S.en.at === 0) h += strong.slice(0, 6).map((x) => `<button type="button" class="tx-item" data-id="${esc(x.id)}" style="--tx-c:${PIREP_COLOR(x.rank)}"><svg class="tx-sw" width="30" height="16" aria-hidden="true"><circle cx="15" cy="8" r="6" fill="${x.turb.length ? PIREP_COLOR(x.rank) : "none"}" stroke="${x.turb.length ? "#111" : PIREP_COLOR(x.rank)}" stroke-width="${x.turb.length ? 1 : 3}"/></svg><span><span class="tx-kind k-av">PILOT REPORT</span><b>${esc(EN.pirepText(x))}</b><span class="tx-meta">${esc(t(x.observed) + (x.acType ? " · " + x.acType : ""))}</span></span></button>`).join("");
+    if (strong.length && S.en.at === 0) h += strong.slice(0, 6).map(pirepItem).join("");
     h += `<div class="lg-note en-legend"><b>Pilot reports</b> are observations (dots: turbulence; rings: icing; darker is stronger). <b>Advisories</b> are official: SIGMETs and CWAs solid, G-AIRMETs dashed (a forecast snapshot every 3 hours). <b>Model guidance</b>: NOAA's Graphical Turbulence Guidance (GTG), a violet fill, below when turned on; never mixed with the reports or advisories.${S.route ? " The route is a straight line between the airports, not a flight plan." : ""}</div>`;
     h += gtgSection();
     const fs = faaShown();
@@ -622,10 +624,14 @@
       /* a dot (fire incident, air-quality monitor, airport, storm point, pilot report) or an advisory: its own detail. Dots are
          small, so the hit area is padded (a finger on a phone); areas go to "At this spot", which lists everything covering it */
       const dots = ["pirep-turb", "pirep-ice", "inc-pt", "aqmon", "apt", "tpts"].filter((l) => map.getLayer(l)), r = phone() ? 12 : 6;
-      const f = dots.length ? map.queryRenderedFeatures([[e.point.x - r, e.point.y - r], [e.point.x + r, e.point.y + r]], { layers: dots }) : [], g = !f.length && map.getLayer("enr-fill") ? map.queryRenderedFeatures(e.point, { layers: ["enr-fill"] }) : [];
-      const hit = (f.length ? f.slice().sort((a, b) => { const d = (x) => { const q = map.project(x.geometry.coordinates); return Math.hypot(q.x - e.point.x, q.y - e.point.y); }; return d(a) - d(b); })[0] : g[0]);
-      if (hit && byId(hit.properties.id)) { S.sel = hit.properties.id; S.point = null; openSheet(); drawAll(); return; }
-      S.point = [e.lngLat.lng, e.lngLat.lat]; S.sel = null; openSheet(); drawAll(); });
+      const f = dots.length ? map.queryRenderedFeatures([[e.point.x - r, e.point.y - r], [e.point.x + r, e.point.y + r]], { layers: dots }) : [], g = map.getLayer("enr-fill") ? map.queryRenderedFeatures(e.point, { layers: ["enr-fill"] }) : [];
+      const dist = (x) => { const q = map.project(x.geometry.coordinates); return Math.hypot(q.x - e.point.x, q.y - e.point.y); };
+      const ids = [...new Set([...f.slice().sort((a, b) => dist(a) - dist(b)), ...g].map((x) => x.properties.id))].filter((id) => byId(id)), pt = [e.lngLat.lng, e.lngLat.lat];
+      /* exactly one thing here (one dot or one advisory, and no other area): open it. Several overlap (reports on top of
+         advisories, advisories on top of each other, a dot inside a warning): list them all to choose from */
+      const areas = spotAreas(pt).filter((p) => !ids.includes(p.id));
+      if (ids.length === 1 && !areas.length) { S.sel = ids[0]; S.point = null; S.pointHits = null; openSheet(); drawAll(); return; }
+      S.point = pt; S.pointHits = ids; S.sel = null; openSheet(); drawAll(); });
     const hits = ["pirep-turb", "pirep-ice", "enr-fill", "apt", "tpts", "tcone-fill", "two-fill", "aqmon", "hms-fill", "inc-pt", "inc-fill", "fireo-fill", "warn-fill", "adv-fill", "watch-fill", "outlook-fill", "wssi-fill", "warn-dot"];
     map.on("mousemove", (e) => { if (!ready) return; const f = map.queryRenderedFeatures(e.point, { layers: hits.filter((l) => map.getLayer(l)) }); map.getCanvas().style.cursor = f.length ? "pointer" : ""; });
   }
@@ -942,17 +948,36 @@
     h += `<a class="px-link" href="severe.html#severe-daily">Open the regional Severe viewer →</a>`;
     return h;
   }
-  function pointPanel() {
-    const pt = S.point, day = viewDay();
+  /* At this spot: a row for each kind, with the facts that kind has (not an expiration it doesn't have) */
+  function spotItem(p) {
+    if (["sigmet", "gairmet", "cwa"].includes(p.kind)) return advItem(p);
+    if (p.kind === "pirep") return pirepItem(p);
+    const row = (kind, title, meta) => `<button type="button" class="tx-item" data-id="${esc(p.id)}" style="--tx-c:${colorOf(p)}">${swatch(p)}<span><span class="tx-kind">${esc(kind)}</span><b>${esc(title)}</b><span class="tx-meta">${esc(meta)}</span></span></button>`;
+    if (p.kind === "incident") return row(p.category === "RX" ? "PRESCRIBED FIRE" : "WILDFIRE", p.name || p.title, incFacts(p));
+    if (p.kind === "smoke") return row("SATELLITE SMOKE", (p.category || "") + " smoke detected", "Observed " + t(p.obsStart) + " → " + t(p.obsEnd) + (p.satellite ? " · " + p.satellite : ""));
+    if (p.kind === "aqobs") return row("AIR QUALITY", p.site || "AirNow monitor", "AQI " + p.aqi + " · " + (p.category || "") + " · observed " + t(p.observed));
+    if (p.kind === "metar" || p.kind === "taf") return row(p.kind === "metar" ? "METAR" : "TAF", (p.airport || "") + (p.category ? " · " + p.category : ""), (p.kind === "metar" ? "Observed " : "Issued ") + t(p.observed || p.issued));
+    return item(p, { rel: false });
+  }
+  function spotAreas(pt) {
+    const day = viewDay();
     // SPC severe-weather outlooks nest (each category inside the lower ones): only the highest covering the spot, once per day shown
     const spcTop = (d) => { const o = S.layers.severe ? T.outlookAt(outlooks(d), pt) : null; return o ? [o] : []; };
     const areas = day === 2 || day === 3 ? [] : [...(S.layers.smoke ? hmsShown() : []), ...incidents().filter((p) => p.geometry)];
-    const list = T.sort([...(day ? [...spcTop(day), ...(S.layers.flood ? eroOut(day) : [])] : [...active(), ...spcTop(1)]), ...areas].filter((p) => p.geometry && T.contains(p.geometry, pt)));
+    return T.sort([...(day ? [...spcTop(day), ...(S.layers.flood ? eroOut(day) : [])] : [...active(), ...spcTop(1)]), ...areas].filter((p) => p.geometry && T.contains(p.geometry, pt)));
+  }
+  function pointPanel() {
+    const pt = S.point, day = viewDay();
+    // SPC severe-weather outlooks nest (each category inside the lower ones): only the highest covering the spot, once per day shown
+    const list = spotAreas(pt);
     let h = `<button type="button" class="px-back" data-back>← ${S.scope === "venue" ? "Venue" : "All threats"}</button>`;
     h += `<div class="px-h"><span>At this spot</span><span>${pt[1].toFixed(2)}°, ${pt[0].toFixed(2)}°</span></div>`;
     if (S.ifi.on && ifi.state === "ok") { const a = ifiAt(pt); h += `<p class="lg-note" data-ifi-point>IFI model guidance at ${esc(IF.levelLabel(S.gtg.ft))}, valid ${esc(t(ifi.dec.validTime))}: ${esc(!a || !a.inside ? "outside the IFI grid" : a.text)}.</p>`; }
     if (S.gtg.on && gtg.state === "ok") h += `<p class="lg-note" data-gtg-point>GTG model guidance at ${esc(GT.levelLabel(gtgHeight().ft))}, valid ${esc(t(gtg.dec.validTime))}: ${esc(gtgWord(gtgAt(pt)))}.</p>`;
-    h += list.length ? list.map((p) => item(p, { rel: false })).join("") : `<p class="px-empty">No ${day ? "Day " + day + " outlook area" : "active product or Day 1 outlook area"} covers this spot.</p>`;
+    const under = (S.pointHits || []).map(byId).filter(Boolean), seen = new Set(under.map((p) => p.id)), rest = list.filter((p) => !seen.has(p.id));
+    if (under.length) h += `<div class="px-h" data-spot="under"><span>Under your ${phone() ? "tap" : "click"}</span><span>${under.length}</span></div>` + under.map(spotItem).join("");
+    if (under.length && rest.length) h += `<div class="px-h"><span>Areas covering this spot</span><span>${rest.length}</span></div>`;
+    h += rest.length ? rest.map(spotItem).join("") : under.length ? "" : `<p class="px-empty">No ${day ? "Day " + day + " outlook area" : "active product or Day 1 outlook area"} covers this spot.</p>`;
     return h;
   }
   function outlookVenueText(p) {

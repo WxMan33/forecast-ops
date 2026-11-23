@@ -35,6 +35,10 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
     /* clicking the map at a lon/lat with the real pointer */
     const mapClick = async (p, pt) => { const xy = await p.evaluate((pt) => { const m = window.__threats.map; m.jumpTo({ center: pt, zoom: Math.max(m.getZoom(), 9) }); const r = m.getCanvas().getBoundingClientRect(), q = m.project(pt); return [r.left + q.x, r.top + q.y]; }, pt); await p.waitForTimeout(900);
       if (o.hasTouch) await p.touchscreen.tap(xy[0], xy[1]); else await p.mouse.click(xy[0], xy[1]); await p.waitForTimeout(900); };
+    /* a dot opens directly when it is the only thing there; with something overlapping, it is listed under the click and its row opens it */
+    const openDot = async (p, id, pt) => { await mapClick(p, pt); let how = "direct";
+      if ((await p.evaluate(() => window.__threats.S.sel)) !== id) { const row = p.locator(`#txPanelBody [data-spot="under"] ~ [data-id="${id}"]`).first(); if (await row.count()) { await row.click(); await p.waitForTimeout(600); how = "listed"; } else how = "missing"; }
+      return how; };
 
     /* PRESETS, from a fresh visit */
     { const { p, reqs, errs } = await page("", null); await p.waitForTimeout(3000);
@@ -75,11 +79,11 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
         if (hms) { const bb = window.ThreatsCore.bbox(hms.geometry); for (let i = 1; i < 25 && !inside; i++) for (let j = 1; j < 25 && !inside; j++) { const q = [bb[0] + (bb[2] - bb[0]) * i / 25, bb[1] + (bb[3] - bb[1]) * j / 25]; if (window.ThreatsCore.contains(hms.geometry, q)) inside = q; } }
         return { fire: fire && { id: fire.id, name: fire.name, pt: fire.point }, mon: m && { id: m.id, site: m.site, pt: m.point }, contained: hidden.length, drawnContained, hms: hms && { id: hms.id, pt: inside } }; });
       R.clicks = { pick };
-      if (pick.fire) { await mapClick(p, pick.fire.pt); const s = await p.evaluate(() => ({ sel: window.__threats.S.sel, body: document.getElementById("txPanelBody").innerText.slice(0, 160) })); R.clicks.fire = s;
-        check(`(${d}) CLICK a fire incident dot (${pick.fire.name}): its own details open`, s.sel === pick.fire.id && s.body.includes(pick.fire.name), s); await p.screenshot({ path: path.join(OUT, `click-fire-${d}.png`) }); }
+      if (pick.fire) { const how = await openDot(p, pick.fire.id, pick.fire.pt); const s = await p.evaluate(() => ({ sel: window.__threats.S.sel, body: document.getElementById("txPanelBody").innerText.slice(0, 160) })); R.clicks.fire = s;
+        s.how = how; check(`(${d}) CLICK a fire incident dot (${pick.fire.name}): its own details open (${how})`, s.sel === pick.fire.id && s.body.includes(pick.fire.name), s); await p.screenshot({ path: path.join(OUT, `click-fire-${d}.png`) }); }
       await p.evaluate(() => { window.__threats.S.sel = null; window.__threats.drawAll(); });
-      if (pick.mon) { await mapClick(p, pick.mon.pt); const s = await p.evaluate(() => ({ sel: window.__threats.S.sel, body: document.getElementById("txPanelBody").innerText.slice(0, 200) })); R.clicks.mon = s;
-        check(`(${d}) CLICK an AirNow monitor dot (${pick.mon.site}): its own details open`, s.sel === pick.mon.id, s); }
+      if (pick.mon) { const how = await openDot(p, pick.mon.id, pick.mon.pt); const s = await p.evaluate(() => ({ sel: window.__threats.S.sel, body: document.getElementById("txPanelBody").innerText.slice(0, 200) })); R.clicks.mon = s;
+        s.how = how; check(`(${d}) CLICK an AirNow monitor dot (${pick.mon.site}): its own details open (${how})`, s.sel === pick.mon.id, s); }
       await p.evaluate(() => { window.__threats.S.sel = null; window.__threats.drawAll(); });
       if (pick.hms && pick.hms.pt) { await p.evaluate((pt) => { const m = window.__threats.map; m.jumpTo({ center: pt }); m.fire("click", { lngLat: { lng: pt[0], lat: pt[1] }, point: m.project(pt), originalEvent: {} }); }, pick.hms.pt); await p.waitForTimeout(700);
         const s = await p.evaluate(() => document.getElementById("txPanelBody").innerText.replace(/\s+/g, " ").slice(0, 300)); R.clicks.hms = s;
@@ -89,6 +93,22 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
         const n = await p.evaluate(() => { const T = window.__threats, inc = new Set(T.map.getSource("inc-pt")._data.features.map((f) => f.properties.id)); return T.data.products.filter((x) => x.kind === "incident" && x.contained === 100 && inc.has(x.id)).length; });
         check(`(${d}) "Fully contained fires" in the legend shows them (${n} drawn)`, n > 0, { n }); }
       check(`(${d}) no script errors on the fire and smoke map`, !errs.length, errs); await p.close(); }
+    /* overlapping aviation (pilot reports and advisories): a click lists everything there; each row opens its own details */
+    { const { p, errs } = await page("?layers=aviation&scope=national"); await tap(p, "#txLayersBtn"); for (const k of ["pireps", "adv"]) await p.locator(`#txLayersPop input[data-av="${k}"]`).check(); await tap(p, "#txLayersPop [data-layers-close]");
+      await p.waitForFunction(() => (window.__threats.map.getSource("pirep")._data.features || []).length > 5 && (window.__threats.map.getSource("enr")._data.features || []).length > 1, null, { timeout: 90000 }).catch(() => {}); await p.waitForTimeout(3000);
+      const pick = await p.evaluate(() => { const T = window.__threats, C = window.ThreatsCore, adv = T.map.getSource("enr")._data.features.map((f) => T.data.products.find((x) => x.id === f.properties.id)).filter((x) => x && x.geometry);
+        for (const f of T.map.getSource("pirep")._data.features) { const inside = adv.filter((a) => C.contains(a.geometry, f.geometry.coordinates)); if (inside.length) return { pirep: f.properties.id, pt: f.geometry.coordinates, advs: inside.map((a) => a.id) }; }
+        for (const a of adv) { const bb = C.bbox(a.geometry); for (let i = 1; i < 20; i++) for (let j = 1; j < 20; j++) { const q = [bb[0] + (bb[2] - bb[0]) * i / 20, bb[1] + (bb[3] - bb[1]) * j / 20]; const inside = adv.filter((x) => C.contains(x.geometry, q)); if (inside.length > 1) return { pirep: null, pt: q, advs: inside.map((x) => x.id) }; } } return null; });
+      R.overlap = { pick };
+      if (pick) { await mapClick(p, pick.pt); const want = [pick.pirep, ...pick.advs].filter(Boolean);
+        const L = await p.evaluate(() => ({ under: !!document.querySelector('#txPanelBody [data-spot="under"]'), ids: [...document.querySelectorAll("#txPanelBody .tx-item[data-id]")].map((x) => x.dataset.id), rows: [...document.querySelectorAll("#txPanelBody .tx-item")].map((x) => x.innerText.replace(/\s+/g, " ").slice(0, 90)) }));
+        let opened = 0; for (const id of want.slice(0, 3)) { await p.locator(`#txPanelBody [data-id="${id}"]`).first().click(); await p.waitForTimeout(500); if ((await p.evaluate(() => window.__threats.S.sel)) === id) opened++; await p.locator("#txPanelBody [data-back]").first().click(); await p.waitForTimeout(500); }
+        const back = await p.evaluate(() => !!document.querySelector('#txPanelBody [data-spot="under"]')); R.overlap.L = L; R.overlap.opened = opened;
+        check(`(${d}) OVERLAPPING AVIATION (${pick.pirep ? "a pilot report inside " : ""}${pick.advs.length} advisor${pick.advs.length > 1 ? "ies" : "y"}): the click lists all ${want.length} under it; each row opens its own details and Back returns to the list`,
+          L.under && want.every((id) => L.ids.includes(id)) && opened === Math.min(3, want.length) && back && !errs.length, { pick, L, opened, back, errs });
+        await mapClick(p, pick.pt); await p.screenshot({ path: path.join(OUT, `overlap-aviation-${d}.png`) }); }
+      else check(`(${d}) OVERLAPPING AVIATION: no pilot report inside an advisory and no overlapping advisories right now (not tested)`, true, null);
+      await p.close(); }
     /* the SPC Watch 705 replay */
     { const { p, errs } = await page("?scenario=archive-ww705&scope=venue"); await p.waitForTimeout(3000);
       const r = await p.evaluate(() => ({ n: window.__threats.data.products.length, watch: window.__threats.data.products.filter((x) => x.kind === "watch").map((x) => x.event), drawn: window.__threats.map.getSource("active")._data.features.length, err: window.__threats.data.loadError, panel: document.getElementById("txPanelBody").innerText.slice(0, 160) }));
