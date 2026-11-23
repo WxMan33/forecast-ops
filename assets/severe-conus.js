@@ -54,6 +54,7 @@ async function createMap(view){const [states,lakes,cty]=await Promise.all([fetch
  map.touchZoomRotate.disableRotation();map.addControl(new maplibregl.NavigationControl({showCompass:false}),'bottom-right');
  map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:'CONUS research preview · NOAA HRRR / NCEI Storm Events · US Census / us-atlas · Natural Earth'}),'bottom-left');
  await new Promise(res=>map.on('load',res));
+ const attrib=map.getContainer().querySelector('.maplibregl-ctrl-attrib');if(attrib)attrib.classList.remove('maplibregl-compact-show');
  for(const [id,data] of [['sc-states',states],['sc-lakes',lakes],['sc-outside',outsideFill],['sc-fill',none()],['sc-lines',none()],['sc-unavail',none()],['sc-near',none()],['sc-ring',none()],['sc-sel',none()]])map.addSource(id,{type:'geojson',data});
  map.addSource('sc-reports',{type:'geojson',data:none(),cluster:true,clusterRadius:26,clusterMaxZoom:6});
  if(cty)map.addSource('sc-counties',{type:'geojson',data:cty});
