@@ -197,3 +197,43 @@ stays sealed.
      arms.
 4. **Outcome:** a full pass leads to freezing and one 2021 check. Anything else is posted and stops
    for review.
+
+## Blend result (run 45094383941): FAIL. The blend collapsed to arm b in every fold; 2021 stays sealed; stopped for review
+**Reproduction:** the regenerated v2 run matched the committed scorecard exactly (counts equal; Brier
+difference 0.0). The refit fits file is byte-identical (sha 69e02247…).
+
+**v2 no-signal breakdown** (v2 matched area; arm c threshold 6.36%):
+- No-signal report points rose from 1,042 to 2,416 (+1,374).
+- No-signal tornado days rose from 30 to 52. 25 days were arm-c only; 3 were arm-b only.
+- The five largest contributors account for **60%** of the increase:
+
+  | Date | Report points | b no-signal | c no-signal | c flagged samples | c max / threshold | Kind |
+  |---|---|---|---|---|---|---|
+  | 2022-05-27 | 205 | 0 | 204 | 3 | 1.12 | flagged 1-9 samples |
+  | 2022-06-08 | 204 | 0 | 203 | 3 | 1.04 | flagged 1-9 samples |
+  | 2023-05-13 | 154 | 0 | 154 | 1 | 1.09 | flagged 1-9 samples |
+  | 2022-03-29 | 141 | 0 | 141 | 0 | 0.88 | narrow miss |
+  | 2023-04-22 | 122 | 0 | 122 | 6 | 1.22 | flagged 1-9 samples |
+
+- Arm c's no-signal points by kind:
+
+  | Kind | Days | Points |
+  |---|---|---|
+  | Flagged 1-9 samples (under the 2,250 km² minimum) | 12 | 986 |
+  | Narrow miss (max ≥ 75% of the threshold) | 11 | 494 |
+  | Low across the board | 29 | 936 |
+
+- **Reading:** most of the failure is arm c flagging the right spot too small (below the 10-sample
+  area floor) or just under the threshold. It is not an absence of signal.
+
+**Blend:**
+- Inside the training folds, no weight above 0 kept inner no-signal and wrong-place within 5%, so
+  every fold (and the all-roster fit) selected **weight 0**. The blend is therefore arm b.
+- Results: hits 1.00× (8,070); left-out 0%; Brier difference 0. Criteria 1, 2, 3 and 5 fail
+  (arm b's ≥30% bin is forecast 37.3% vs observed 20.8%, on 30 tornado days). Criterion 4 passes
+  trivially.
+- Blend vs arm c: Brier worse by [+0.000067, +0.000184]; hits [−2,977, −754].
+- The 2024 diagnostic is identical to arm b.
+
+**Status:** v2 remains a research candidate (3 of 5). Nothing is frozen. 2021 is sealed and 2025 is
+sealed. Stopped for review.
