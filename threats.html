@@ -28,7 +28,7 @@
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
 <link rel="stylesheet" href="assets/ops.css?v=2c02764827">
-<link rel="stylesheet" href="assets/threats.css?v=323156e6fb">
+<link rel="stylesheet" href="assets/threats.css?v=f44ada7e7a">
 </head>
 <body class="threats-page">
 <main class="tx" id="tx">
@@ -94,7 +94,7 @@
           <button type="button" class="tx-tb" data-view="fire" aria-pressed="false">Fire · 8 days</button>
         </div>
         <div class="tx-lyr" id="txLyr">
-          <button type="button" class="tx-lyrbtn" id="txLayersBtn" aria-expanded="false" aria-controls="txLayersPop" aria-haspopup="true"><span class="tx-gl">Layers</span><span class="tx-lyrsum" id="txLayersSum">All 8</span><span class="tx-caret" aria-hidden="true">▾</span></button>
+          <button type="button" class="tx-lyrbtn" id="txLayersBtn" aria-expanded="false" aria-controls="txLayersPop" aria-haspopup="true"><span class="tx-gl">Layers</span><span class="tx-lyrsum" id="txLayersSum">None selected</span><span class="tx-caret" aria-hidden="true">▾</span></button>
           <div class="tx-lyrpop" id="txLayersPop" hidden role="group" aria-label="Layers: turn hazards on or off (several can be on together)">
             <fieldset class="tx-lyrfs"><legend>Hazards on the map <span class="tx-lyrhint">several can be on together</span></legend>
               <label class="tx-lt"><input type="checkbox" data-layer="severe"><span class="tx-ltn">Severe storms</span><span class="tx-ltnote" data-note="severe"></span></label>
@@ -114,7 +114,7 @@
               </fieldset>
             </fieldset>
             <div class="tx-lyrmore" id="txLyrMore" aria-hidden="true">More below ▾ scroll for Aviation's parts</div>
-            <div class="tx-lyract"><button type="button" class="tx-fb" data-layers-all>Show all</button><button type="button" class="tx-fb" data-layers-reset>Reset to default</button><button type="button" class="tx-fb tx-done" data-layers-close>Done</button></div>
+            <div class="tx-lyract"><button type="button" class="tx-fb" data-layers-all>Show all</button><button type="button" class="tx-fb" data-layers-reset>Clear all</button><button type="button" class="tx-fb tx-done" data-layers-close>Done</button></div>
           </div>
         </div>
         <div class="tx-valid" id="txValid" aria-live="polite"></div>
@@ -164,7 +164,7 @@
 <script src="assets/threats-enroute.js?v=aa01a5cebb"></script>
 <script src="assets/threats-gtg.js?v=90a6946eed"></script>
 <script src="assets/threats-ifi.js?v=1a8301f4fa"></script>
-<script src="assets/threats-live.js?v=52d2af1cf0"></script>
-<script src="assets/threats.js?v=c3ebaaaf85"></script>
+<script src="assets/threats-live.js?v=f217eca875"></script>
+<script src="assets/threats.js?v=6f58bb7f39"></script>
 </body>
 </html>

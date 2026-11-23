@@ -296,7 +296,7 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
   await shot(v, "LIVE-planner-smoke-feeds-blocked"); await v.ctx.close();
   { const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } }), p = await ctx.newPage(); const t0 = Date.now();
     await p.route("**/api/smoke/**", async (route) => { await new Promise((res) => setTimeout(res, 25000)); route.continue().catch(() => {}); });
-    await p.goto(HOST + "/threats", { waitUntil: "domcontentloaded" });
+    await p.goto(HOST + "/threats?layers=smoke", { waitUntil: "domcontentloaded" });
     await p.waitForFunction(() => window.__threats && window.__threats.ready && window.__threats.liveReady, null, { timeout: 60000 }).catch(() => {});
     const ms = Date.now() - t0, st = await p.evaluate(() => ({ live: window.__threats.liveReady, hms: window.__threats.data.state.hms && window.__threats.data.state.hms.kind }));
     check("SMOKE slow feed (HMS held 25 s): the map is ready before it answers; HMS reads 'Loading' meanwhile", st.live && ms < 20000 && st.hms === "loading", { ms, st });
@@ -327,9 +327,9 @@ const check = (name, cond, detail) => { results.push({ check: name, pass: !!cond
   }
   let ms2 = await mapStress("?scenario=archive-fire-day1&layers=severe,flood,winter,fire,smoke,tropical,coastal", "ARCHIVED-map-crash-regression-fire-day1");
   check("CRASH REGRESSION (replay of the failing state: a Day 1 fire weather area with every layer on): scopes, layers and views, including Day 1, give no page error, no banner, no failed draw stage; fire areas never reach the convective outlook layer", !ms2.errs.length && !ms2.banner && !ms2.stageErrors.length && !ms2.convectiveHasFire, ms2);
-  ms2 = await mapStress("", "LIVE-map-crash-regression", { live: true, refreshWait: 75000 });
+  ms2 = await mapStress("?layers=severe,flood,winter,fire,smoke,tropical,coastal,aviation", "LIVE-map-crash-regression", { live: true, refreshWait: 75000 });
   check("CRASH REGRESSION (live, CVG default, all layers): the same walk-through plus 75 s of background refreshes: no page error, no banner, no failed draw stage", !ms2.errs.length && !ms2.banner && !ms2.stageErrors.length && !ms2.convectiveHasFire, ms2);
-  ms2 = await mapStress("", "LIVE-map-partial-feeds", { live: true, block: /spc\.noaa\.gov\/products\/(exper\/)?fire_wx|services3\.arcgis\.com|\/api\/smoke\//, refreshWait: 5000 });
+  ms2 = await mapStress("?layers=severe,flood,winter,fire,smoke,tropical,coastal,aviation", "LIVE-map-partial-feeds", { live: true, block: /spc\.noaa\.gov\/products\/(exper\/)?fire_wx|services3\.arcgis\.com|\/api\/smoke\//, refreshWait: 5000 });
   check("PARTIAL FEEDS (SPC fire outlooks, NIFC and HMS blocked): the other layers and every control still work with no error; the blocked sources say so", !ms2.errs.length && !ms2.banner && !ms2.stageErrors.length && ms2.rows.some((x) => /NIFC wildfire incidents \(WFIGS\) Not responding/.test(x)), ms2);
   ms2 = await mapStress("?scenario=archive-tropical-warning&layers=severe,flood,winter,fire,smoke,tropical,coastal", "ARCHIVED-map-crash-regression-tropical");
   check("CRASH REGRESSION (tropical replay with every layer on, NHC cone, track, points and warnings drawn): no page error, no banner, no failed draw stage", !ms2.errs.length && !ms2.banner && !ms2.stageErrors.length, ms2);

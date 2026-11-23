@@ -16,7 +16,7 @@ if (!HOST) { console.error("usage: threats-cf-function-check.js https://<host>")
   p.on("pageerror", (e) => errors.push(e.message));
   p.on("requestfinished", async (r) => { const u = r.url(); if (!/api\.weather\.gov|\/api\/nws\//.test(u)) return; const res = await r.response(), h = res ? await res.allHeaders() : {};
     nws.push({ url: u, viaFunction: u.startsWith(HOST + "/api/nws/"), status: res && res.status(), cache: h["x-forecast-ops-cache"] || null, upstreamAt: h["x-upstream-fetched-at"] || null, upstreamUserAgent: h["x-upstream-user-agent"] || null }); });
-  await p.goto(HOST + "/threats?nws=function&scope=venue", { waitUntil: "domcontentloaded" });
+  await p.goto(HOST + "/threats?nws=function&scope=venue&layers=severe", { waitUntil: "domcontentloaded" });
   await p.waitForFunction(() => window.__threats && window.__threats.liveReady, null, { timeout: 45000 });
   await p.waitForTimeout(1500);
   const read = () => p.evaluate(() => ({ lastOk: window.__threats.data.sources.alerts.lastOk, shown: window.__threats.data.state.alerts.kind, mode: window.ThreatsLive.NWS.mode, base: window.ThreatsLive.NWS.base,

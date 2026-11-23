@@ -38,8 +38,10 @@ const ready = (p) => p.waitForFunction(() => window.__threats && window.__threat
     const kb = await p.evaluate(() => ({ severe: window.__threats.S.layers.severe, flood: window.__threats.S.layers.flood, sum: document.getElementById("txLayersSum").textContent }));
     await p.keyboard.press("Escape"); await p.waitForTimeout(200); const ec = await p.evaluate(() => ({ open: !document.getElementById("txLayersPop").hidden, focus: document.activeElement.id }));
     check(`(${d}) keyboard: Space turns layers off, the summary names what is still on; Escape closes and returns focus to Layers`, kb.severe === false && kb.flood === false && kb.sum === "Winter, Fire +4" && !ec.open && ec.focus === "txLayersBtn", { kb, ec });
-    await p.click("#txLayersBtn"); await p.click("[data-layers-reset]"); await p.waitForTimeout(300); const rs = await p.evaluate(() => ({ all: Object.values(window.__threats.S.layers).every(Boolean), sum: document.getElementById("txLayersSum").textContent, gtg: window.__threats.S.gtg.on, ifi: window.__threats.S.ifi.on }));
-    check(`(${d}) Reset to default: all 8 hazards on, model overlays off`, rs.all && rs.sum === "All 8" && !rs.gtg && !rs.ifi, rs);
+    await p.click("#txLayersBtn"); await p.click("[data-layers-reset]"); await p.waitForTimeout(300); const rd = () => p.evaluate(() => ({ none: !Object.values(window.__threats.S.layers).some(Boolean), all: Object.values(window.__threats.S.layers).every(Boolean), sum: document.getElementById("txLayersSum").textContent, gtg: window.__threats.S.gtg.on, ifi: window.__threats.S.ifi.on, prompt: !!document.querySelector("[data-kind=no-layers] [data-open-layers]") })), rs = await rd();
+    check(`(${d}) Clear all: no layers, "None selected", model overlays off, the panel prompts to select a layer`, rs.none && rs.sum === "None selected" && !rs.gtg && !rs.ifi && rs.prompt, rs);
+    await p.click("[data-layers-all]"); await p.waitForTimeout(300); const ra = await rd();
+    check(`(${d}) Show all: all 8 hazards on`, ra.all && ra.sum === "All 8", ra);
     await p.click("[data-layers-close]"); await p.click('.tx-tb[data-view="day2"]'); await p.waitForTimeout(500);
     const d2 = await p.evaluate(() => document.getElementById("txPState").textContent);
     check(`(${d}) a layer not drawn at the selected time says why in one short line`, /^Day 2.*Not drawn in Day 2: Smoke & air, Tropical, Coastal \(current only\); Winter, Fire \(see Layers\)$/.test(d2), d2);

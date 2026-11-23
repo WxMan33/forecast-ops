@@ -274,3 +274,6 @@
 .av-rows dd.av-un { color: var(--muted); }
 /* the map-area button names the venue where it fits; narrow phones show "Venue" (the name is in the state line) */
 @media (max-width: 400px) { .tx-sbv { display: none; } }
+/* no layers selected: a prompt instead of an empty threat list */
+.px-nolayer { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 4px 0 8px; }
+.px-nolayer .px-empty { margin: 0; }

@@ -35,7 +35,7 @@
   const WLEVEL_LABEL = { WWA: "Any winter weather", MINOR: "Minor", MODERATE: "Moderate", MAJOR: "Major", EXTREME: "Extreme" };
   const empty = { type: "FeatureCollection", features: [] };
 
-  const S = { air: [], ap: null, layers: { severe: true, flood: true, winter: true, fire: true, smoke: true, tropical: true, coastal: true, aviation: true }, en: { on: false, at: 0, alt: null, age: 2 }, av: { apt: true, pireps: true, adv: true }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, ifi: { on: false, field: "prob", src: null, cyc: null }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
+  const S = { air: [], ap: null, layers: { severe: false, flood: false, winter: false, fire: false, smoke: false, tropical: false, coastal: false, aviation: false }, en: { on: false, at: 0, alt: null, age: 2 }, av: { apt: true, pireps: true, adv: true }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, ifi: { on: false, field: "prob", src: null, cyc: null }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
   let framedAp = false, framedSel = false, mapLoaded = false; // Planner airport "View on map": framed once
   let data, now, venue, map, ready = false, liveReady = false, meshes = new Map(), tzCache = {}, marker, grid = null, mesh = null, mask = null, gridLoading = null, hull = null;
   const phone = () => matchMedia("(max-width: 760px)").matches;
@@ -145,7 +145,7 @@
       data = Live.snapshot(); data.loading = !liveReady; now = Date.parse(data.clock);
       venue = withTz(S.entryVenue || liveVenues().find((v) => v.id === S.liveVenue) || liveVenues()[0]);
     } else { data = Demo.scenario(S.scenario); now = Date.parse(data.clock); venue = S.entryVenue || data.venues[S.venueKey]; }
-    data.state = {}; for (const k of Object.keys(data.sources)) data.state[k] = data.sources[k].state === "pending" ? { kind: "loading", text: "Loading" } : data.sources[k].state === "na" ? { kind: "na", text: "Not part of this sample" } : data.loading ? { kind: "loading", text: "Loading" } : isArchive() ? { kind: data.sources[k].count ? "current" : "empty", text: "Archived" } : T.sourceState(data.sources[k], now, STALE_MIN[k]);
+    data.state = {}; for (const k of Object.keys(data.sources)) data.state[k] = data.sources[k].state === "off" ? { kind: "off", text: "Layer off" } : data.sources[k].state === "pending" ? { kind: "loading", text: "Loading" } : data.sources[k].state === "na" ? { kind: "na", text: "Not part of this sample" } : data.loading ? { kind: "loading", text: "Loading" } : isArchive() ? { kind: data.sources[k].count ? "current" : "empty", text: "Archived" } : T.sourceState(data.sources[k], now, STALE_MIN[k]);
   }
   const tz = () => venue.tz;
   const t = (iso, day) => T.fmtTime(iso, tz(), { day });
@@ -771,7 +771,7 @@
   const countyText = (p) => !p.zoneInfo || !p.zoneInfo.counties ? "Area: listed counties and marine zones (shapes loading)" : p.geometryIncomplete ? "Incomplete area: drawn from " + zoneCount(p.zoneInfo, true) : "Area drawn from " + zoneCount(p.zoneInfo, false);
   function sources() {
     const vd = viewDay() || 1;
-    const rows = (winterView() ? ["alerts", "wssip"] : fireView() ? ["alerts", "fire" + S.fday, "nifc"] : ["alerts", ...(S.layers.severe ? ["md", "day" + vd] : []), ...(S.layers.flood ? ["ero" + vd] : []), ...(S.layers.fire ? ["nifc"] : []), ...(S.layers.smoke ? ["hms", "aqobs", "aqfcst", ...(FX.NAQFC_ENABLED ? ["naqfc"] : []), ...(isLive() ? ["monitors"] : [])] : []), ...(S.layers.tropical ? ["nhc"] : []), ...(S.layers.aviation && (S.air.length || avProducts().length) ? ["awc"] : []), ...(enOn() ? ["enroute"] : []), ...(S.layers.aviation && (S.air.length || S.route) ? ["faa"] : [])]).filter((k) => data.sources[k] && data.state[k]).map((k) => {
+    const rows = (winterView() ? ["alerts", "wssip"] : fireView() ? ["alerts", "fire" + S.fday, "nifc"] : ["alerts", ...(S.layers.severe ? ["md", "day" + vd] : []), ...(S.layers.flood ? ["ero" + vd] : []), ...(S.layers.fire ? ["nifc"] : []), ...(S.layers.smoke ? ["hms", "aqobs", "aqfcst", ...(FX.NAQFC_ENABLED ? ["naqfc"] : []), ...(isLive() ? ["monitors"] : [])] : []), ...(S.layers.tropical ? ["nhc"] : []), ...(S.layers.aviation && (S.air.length || avProducts().length) ? ["awc"] : []), ...(enOn() ? ["enroute"] : []), ...(S.layers.aviation && (S.air.length || S.route) ? ["faa"] : [])]).filter((k) => data.sources[k] && data.state[k] && data.state[k].kind !== "off").map((k) => {
       const s = data.state[k], src = data.sources[k];
       const right = s.kind === "na" ? "Not part of this archived sample" : isArchive() ? "Archived official messages, replayed" : k === "md" && src.via === "service" && s.kind !== "stale" ? "Checked " + t(src.lastOk) + " via NOAA map service" + (s.kind === "empty" ? " · none active" : "") : s.kind === "loading" ? "Loading…" : s.kind === "unavailable" ? "Not responding · status unknown" : s.kind === "stale" ? "Last confirmed " + t(src.lastOk) : "Checked " + t(src.lastOk) + (k.startsWith("day") ? (src.outlook === "expired" ? " · expired, awaiting next issuance" : "") : s.kind === "empty" ? " · none active" : "");
       const name = official() && s.kind !== "na" ? `<a href="${esc(SRC_LINK[k])}" target="_blank" rel="noopener">${esc(SRC_NAME[k])}</a>` : esc(SRC_NAME[k]);
@@ -990,7 +990,13 @@
   function renderPanel() {
     const body = $("txPanelBody"), p = S.sel && byId(S.sel), keep = body.scrollTop, focusId = document.activeElement && body.contains(document.activeElement) && document.activeElement.dataset ? document.activeElement.dataset.id : null;
     if (data.loadError) { body.innerHTML = `<p class="px-empty">Could not load this archived sample (${esc(data.loadError)}).</p>`; return; }
-    if (data.loading) { body.innerHTML = `<p class="px-empty">Loading official feeds: NWS warnings and watches, SPC Mesoscale Discussions and SPC outlooks…</p>` + sources(); $("txPeek1").textContent = "Loading official feeds…"; $("txPeek2").textContent = ""; return; }
+    if (!anyLayer() && !p) { // nothing selected: the basemap and venue only, and nothing downloaded
+      body.innerHTML = `<div class="px-nolayer" data-kind="no-layers"><p class="px-empty"><b>No threat layers selected.</b> Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.</p><button type="button" class="tx-fb tx-done" data-open-layers>Select a layer</button></div>`;
+      $("scopeVenue").innerHTML = `Venue<span class="tx-sbv"> · ${esc(venue.name)}</span>`; $("scopeVenue").setAttribute("aria-label", "Venue: " + venue.name); $("scopeVenue").title = "Venue: " + venue.name;
+      document.querySelectorAll("[data-scope]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scope === S.scope)));
+      $("txPeek1").textContent = "No threat layers selected"; $("txPeek2").textContent = "Open Layers to select one"; $("txPeek3").textContent = ""; $("txPeek3").hidden = true; $("txPeek").style.setProperty("--peek-c", "transparent"); return;
+    }
+    if (data.loading) { body.innerHTML = `<p class="px-empty">Loading official feeds for the selected layers…</p>` + sources(); $("txPeek1").textContent = "Loading official feeds…"; $("txPeek2").textContent = ""; return; }
     body.innerHTML = (p ? (p.kind === "incident" ? incidentDetail(p) : p.kind === "smoke" || p.kind === "aqobs" ? smokeDetail(p) : p.kind === "tcoutlook" || p.kind === "tctrack" ? nhcDetail(p) : p.kind === "metar" || p.kind === "taf" ? avDetail(p) : ["pirep", "sigmet", "gairmet", "cwa", "faa"].includes(p.kind) ? enDetail(p) : detail(p)) : S.point && !winterView() && !fireView() ? pointPanel() : winterView() ? winterPanel() : fireView() ? firePanel() : viewDay() ? dayPanel(viewDay()) : S.scope === "venue" ? venueActive() : nationalActive()) + sources();
     document.querySelectorAll("[data-scope]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scope === S.scope)));
     $("scopeVenue").innerHTML = `Venue<span class="tx-sbv"> · ${esc(venue.name)}</span>`; $("scopeVenue").setAttribute("aria-label", "Venue: " + venue.name); $("scopeVenue").title = "Venue: " + venue.name;
@@ -1070,7 +1076,17 @@
      stages, layers and controls keep working, instead of one exception freezing the whole page */
   const drawErrors = [];
   function stage(name, fn) { try { fn(); } catch (e) { drawErrors.push({ stage: name, message: e.message, stack: e.stack, at: new Date().toISOString() }); if (drawErrors.length > 50) drawErrors.shift(); console.error("Weather threats: " + name + " failed", e); } }
-  function drawAll() { stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("en route", ensureEn); stage("gtg", ensureGtg); stage("ifi", ensureIfi); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); if ((S.ap || S.fit === "route") && !framedAp && map && mapLoaded) stage("airport view", () => frameAirport(0)); if (S.sel && !framedSel && map && mapLoaded) stage("selection view", frameSelection); }
+  /* each layer's official feeds: loaded when the layer is turned on, no longer refreshed when it is off (nothing loads with none) */
+  const LAYER_FEEDS = { severe: ["alerts", "md", "spc"], flood: ["alerts", "ero"], winter: ["alerts"], fire: ["alerts", "fire", "nifc"], smoke: ["hms", "monitors"], tropical: ["alerts", "nhc"], coastal: ["alerts"], aviation: [] };
+  let feedKey = null;
+  const anyLayer = () => Object.keys(LAYER_FEEDS).some((k) => S.layers[k]);
+  function syncFeeds() {
+    const keys = isLive() ? [...new Set(Object.keys(LAYER_FEEDS).filter((k) => S.layers[k]).flatMap((k) => LAYER_FEEDS[k]))].sort() : [], k = keys.join(",");
+    if (k === feedKey || !Live.setFeeds) return; feedKey = k;
+    const p = Live.setFeeds(keys); if (isLive()) load();
+    p.then(() => { if (feedKey === k && isLive()) { liveReady = true; load(); drawAll(); } });
+  }
+  function drawAll() { stage("layer feeds", syncFeeds); stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("en route", ensureEn); stage("gtg", ensureGtg); stage("ifi", ensureIfi); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); if ((S.ap || S.fit === "route") && !framedAp && map && mapLoaded) stage("airport view", () => frameAirport(0)); if (S.sel && !framedSel && map && mapLoaded) stage("selection view", frameSelection); }
   /* a Planner "View on map" for an advisory or a pilot report: frame it once its data has loaded */
   function frameSelection() {
     const p = byId(S.sel); if (!p || !["pirep", "sigmet", "gairmet", "cwa"].includes(p.kind)) return;
@@ -1156,7 +1172,7 @@
     }
     return null;
   }
-  const layersSummary = () => { const on = LAYER_KEYS.filter((k) => S.layers[k]); return on.length === LAYER_KEYS.length ? "All 8" : on.length <= 2 ? on.map((k) => LAYER_NAME[k]).join(", ") : LAYER_NAME[on[0]] + ", " + LAYER_NAME[on[1]] + " +" + (on.length - 2); };
+  const layersSummary = () => { const on = LAYER_KEYS.filter((k) => S.layers[k]); return !on.length ? "None selected" : on.length === LAYER_KEYS.length ? "All 8" : on.length <= 2 ? on.map((k) => LAYER_NAME[k]).join(", ") : LAYER_NAME[on[0]] + ", " + LAYER_NAME[on[1]] + " +" + (on.length - 2); };
   const viewName = () => (winterView() ? "Winter · 7 days" : fireView() ? "Fire · 8 days" : viewDay() ? "Day " + viewDay() : "Active now");
   function syncLayers() {
     const pop = $("txLayersPop"); if (!pop) return;
@@ -1177,9 +1193,10 @@
   $("txLayersPop").addEventListener("focusin", (e) => { const l = e.target.closest(".tx-lt"); if (l) l.scrollIntoView({ block: "nearest" }); popMore(); });
   const popOpen = (open) => { const pop = $("txLayersPop"), btn = $("txLayersBtn"); pop.hidden = !open; btn.setAttribute("aria-expanded", String(open)); if (open) { syncLayers(); pop.scrollTop = 0; const f = pop.querySelector("input:not([disabled])"); if (f) f.focus(); requestAnimationFrame(popMore); } };
   $("txLayersBtn").addEventListener("click", () => popOpen($("txLayersPop").hidden));
+  $("txPanelBody").addEventListener("click", (e) => { if (e.target.closest("[data-open-layers]")) { e.stopPropagation(); popOpen(true); } });
   $("txLayersPop").addEventListener("change", (e) => {
     const i = e.target; if (!i.matches("input")) return;
-    if (i.dataset.layer) { S.layers[i.dataset.layer] = i.checked; if (!LAYER_KEYS.some((k) => S.layers[k])) { S.layers[i.dataset.layer] = true; i.checked = true; } if ((!S.layers.winter && winterView()) || (!S.layers.fire && fireView())) S.view = "active"; }
+    if (i.dataset.layer) { S.layers[i.dataset.layer] = i.checked; if ((!S.layers.winter && winterView()) || (!S.layers.fire && fireView())) S.view = "active"; }
     else if (i.dataset.av === "apt") S.av.apt = i.checked;
     else if (i.dataset.av === "pireps" || i.dataset.av === "adv") { S.av[i.dataset.av] = i.checked; if (i.checked) S.en.on = true; }
     else if (i.dataset.av === "gtg") { S.gtg.on = i.checked; if (i.checked) S.en.on = true; }
@@ -1189,7 +1206,7 @@
   $("txLayersPop").addEventListener("click", (e) => {
     if (e.target.closest("[data-layers-close]")) { popOpen(false); $("txLayersBtn").focus(); return; }
     if (e.target.closest("[data-layers-all]")) { LAYER_KEYS.forEach((k) => (S.layers[k] = true)); Object.assign(S.av, { apt: true, pireps: true, adv: true }); S.sel = null; drawAll(); return; }
-    if (e.target.closest("[data-layers-reset]")) { LAYER_KEYS.forEach((k) => (S.layers[k] = true)); Object.assign(S.av, { apt: true, pireps: true, adv: true }); S.gtg.on = false; S.ifi.on = false; renderBar(); S.sel = null; drawAll(); }
+    if (e.target.closest("[data-layers-reset]")) { LAYER_KEYS.forEach((k) => (S.layers[k] = false)); Object.assign(S.av, { apt: true, pireps: true, adv: true }); S.gtg.on = false; S.ifi.on = false; if (winterView() || fireView()) S.view = "active"; renderBar(); S.sel = null; drawAll(); }
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("txLayersPop").hidden) { popOpen(false); $("txLayersBtn").focus(); e.preventDefault(); } }, true);
   document.addEventListener("pointerdown", (e) => { if (!$("txLayersPop").hidden && !$("txLyr").contains(e.target)) popOpen(false); });
@@ -1218,7 +1235,6 @@
   }
   $("demoScenario").addEventListener("change", () => {
     S.scenario = $("demoScenario").value; S.sel = null; S.point = null; S.step = null; S.archiveVenue = null;
-    if (isLive()) Live.start().then(() => { liveReady = true; load(); drawAll(); });
     renderBar(); load(); startModel(); drawAll();
   });
   $("demoVenue").addEventListener("change", () => {
@@ -1293,7 +1309,9 @@
     if (S.route) S.air = [...new Set([...S.air, S.route.o, S.route.d])].slice(0, 4);
     if (+q.get("fday") >= 1 && +q.get("fday") <= 8) S.fday = +q.get("fday");
     if (q.get("rx") === "1") S.rx = true;
-    if (q.get("layers")) { const L = q.get("layers").split(","); if (L.includes("aviation")) S.en.on = true; S.layers = { severe: L.includes("severe"), flood: L.includes("flood"), winter: L.includes("winter"), fire: L.includes("fire"), smoke: L.includes("smoke"), tropical: L.includes("tropical"), coastal: L.includes("coastal"), aviation: L.includes("aviation") }; if (!Object.values(S.layers).some(Boolean)) S.layers.severe = true; }
+    if (q.get("layers")) { const L = q.get("layers").split(","); if (L.includes("aviation")) S.en.on = true; S.layers = { severe: L.includes("severe"), flood: L.includes("flood"), winter: L.includes("winter"), fire: L.includes("fire"), smoke: L.includes("smoke"), tropical: L.includes("tropical"), coastal: L.includes("coastal"), aviation: L.includes("aviation") }; }
+    else if (S.scenario !== "live") Object.keys(S.layers).forEach((k) => (S.layers[k] = true)); // demo and archived samples: their shared selection is every layer
+    else if (S.gtg.on || S.ifi.on || q.get("air") || q.get("rt") || q.get("alt")) S.layers.aviation = true; // a live link naming aviation content and no layers
     if (S.view === "winter") S.layers.winter = true;
     if (S.view === "fire") S.layers.fire = true;
     if (FX.WSSI_LEVELS.includes(q.get("wlevel"))) S.wlevel = q.get("wlevel");
@@ -1309,7 +1327,7 @@
   renderBar();
   if (!phone()) $("txLegend").open = false; // desktop: legend starts collapsed so it never covers the map
   load(); measure(); stage("top bar", renderTop); stage("panel", renderPanel);
-  if (isLive()) Live.start().then(() => { liveReady = true; load(); drawAll(); });
+  stage("layer feeds", syncFeeds); // live: only the selected layers' feeds (none on a fresh visit)
   // live: redraw on every feed update, and every 30 s so countdowns, expirations and staleness stay true
   Live.onUpdate(() => { if (isLive() && liveReady) { load(); drawAll(); } });
   setInterval(() => { if (isLive() && liveReady) { load(); drawAll(); } }, 30e3);

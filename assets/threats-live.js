@@ -374,7 +374,7 @@
   function emit() { clearTimeout(emitTimer); emitTimer = setTimeout(() => listeners.forEach((f) => f()), 50); }
 
   /* what the page draws, at `now` */
-  function snapshot(now = Date.now()) {
+  function snapshotRaw(now = Date.now()) {
     const ps = alerts.products(now), ai = alerts.sourceInfo();
     const mdList = md.products.filter((p) => p.expires == null || Date.parse(p.expires) > now);
     const o = { 1: outlooks[1].current(now), 2: outlooks[2].current(now), 3: outlooks[3].current(now) };
@@ -409,6 +409,7 @@
       model,
     };
   }
+  function snapshot(now = Date.now()) { const d = snapshotRaw(now); if (mapFeeds) for (const k of Object.keys(d.sources)) { const f = SRC_FEED(k); if (FEEDS[f] && !mapFeeds.has(f)) d.sources[k] = { state: "off", lastOk: null, count: 0 }; } return d; }
 
   let started = null;
   /* only: limit to some feeds (Event Manager asks for ["alerts", "ero"]) */
@@ -426,6 +427,19 @@
     document.addEventListener("visibilitychange", () => { if (!document.hidden) { refreshAlerts(); refreshMD(); } });
     return started;
   }
+  /* the map: each layer's feeds load when it is turned on and stop refreshing when it is off (Event Manager keeps start()) */
+  let mapFeeds = null; const feedTimers = {};
+  const FEEDS = { alerts: [() => refreshAlerts(), 60e3], md: [() => refreshMD(), 60e3], spc: [() => refreshOutlooks(), 10 * 60e3], ero: [() => refreshERO(), 10 * 60e3], fire: [() => refreshFire(), 10 * 60e3], nifc: [() => refreshNIFC(), 5 * 60e3], hms: [() => refreshHMS(), 10 * 60e3], monitors: [() => refreshMonitorsAll(), 10 * 60e3], nhc: [() => refreshNHC(), 10 * 60e3] };
+  function setFeeds(keys) {
+    const want = new Set((keys || []).filter((k) => FEEDS[k])), first = [];
+    if (!mapFeeds) { mapFeeds = new Set(); document.addEventListener("visibilitychange", () => { if (!document.hidden) { if (mapFeeds.has("alerts")) refreshAlerts(); if (mapFeeds.has("md")) refreshMD(); } }); }
+    for (const k of Object.keys(FEEDS)) {
+      if (want.has(k) && !mapFeeds.has(k)) { first.push(FEEDS[k][0]()); feedTimers[k] = setInterval(() => { if (!document.hidden) FEEDS[k][0](); }, FEEDS[k][1]); }
+      if (!want.has(k) && mapFeeds.has(k)) { clearInterval(feedTimers[k]); delete feedTimers[k]; }
+    }
+    mapFeeds = want; return Promise.allSettled(first);
+  }
+  const SRC_FEED = (k) => (/^day\d$/.test(k) ? "spc" : /^ero\d$/.test(k) ? "ero" : /^fire\d$/.test(k) ? "fire" : k);
   let modelStarted = null;
   function startModel() { if (!modelStarted) { modelStarted = refreshModel(); setInterval(refreshModel, 10 * 60e3); } return modelStarted; }
 
@@ -558,5 +572,5 @@
       "wpc-ero": { ...worst(["ero1", "ero2", "ero3"]), reachEnd: reach(["ero1", "ero2", "ero3"]), reach: ["ero1", "ero2", "ero3"].map((k, i) => d.sources[k] && d.sources[k].issued ? "Day " + (i + 1) + " issued " + window.ThreatsCore.fmtZ(d.sources[k].issued) : "").filter(Boolean).join(", ") } };
   }
 
-  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
+  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, setFeeds, mapFeeds: () => (mapFeeds ? [...mapFeeds] : null), monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
 })();
