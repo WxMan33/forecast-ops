@@ -40,7 +40,7 @@
      has no value (below the ground) */
   function valueAt(dec, field, lon, lat, mask, P) {
     const v = G.valueAt(dec, lon, lat, P); if (!v.inside) return { inside: false };
-    if (field === "prob") return { inside: true, i: v.i, j: v.j, value: v.value, text: v.value == null ? "no value (below the ground)" : "icing probability " + v.value.toFixed(2) };
+    if (field === "prob") return { inside: true, i: v.i, j: v.j, value: v.value, text: v.value == null ? "no value (below the ground)" : "icing probability " + Math.round(v.value * 100) + "%" };
     const m = mask ? mask.field[v.j * dec.grid.nx + v.i] : 0; if (!Number.isFinite(m)) return { inside: true, i: v.i, j: v.j, value: null, text: "no value (below the ground)" };
     const c = sevCode(v.value); return { inside: true, i: v.i, j: v.j, value: v.value, code: c, text: c == null ? "missing (255)" : Number.isNaN(c) ? "not a Table 4.228 code (" + v.value + ")" : "icing severity " + SEV_WORD[c] + " (code " + c + ")" };
   }
@@ -49,5 +49,55 @@
     return G.renderWith(dec, field === "prob" ? (v) => { const b = probBin(v); return b < 0 ? null : PROB_COLORS[b]; } : (v, k) => { if (mask && !Number.isFinite(mask[k])) return null; const c = sevCode(v); return c >= 1 ? SEV_COLORS[c] : null; }, opts);
   }
   const levelLabel = (ft) => (ft >= 18000 ? "FL" + String(ft / 100).padStart(3, "0") : ft.toLocaleString("en-US") + " ft");
-  return { HEIGHTS, FIELDS, SEV_WORD, PROB_BINS, PROB_COLORS, SEV_COLORS, check, valueAt, render, levelLabel, sevCode, TOP_FT: 30000, FIRST_FH: 1, LAST_FH: 18 };
+  /* ---------- Planner: modeled icing along an approximate route ----------
+     Heights: IFI heights in the band on whole thousands of feet (the map's control), at most MAX_LEVELS spread evenly (always
+     the band's lowest and highest); heights above 30,000 ft are out of range and said so. Hours: the model's whole hours in the
+     time in the air, at most MAX_HOURS, inside the cycle's +1 to +18 h. Findings: stretches with icing probability at or above
+     PROB_MIN, and, separately, modeled severity at or above SEV_MIN. Each names the other field at the same cell, height and
+     valid time. Cells below the ground have no value and are never "no icing". */
+  const MAX_LEVELS = 4, MAX_HOURS = 3, SAMPLE_KM = 10, MI = 1.609344, STALE_H = 4, PROB_MIN = 0.4, SEV_MIN = 3;
+  function routePlan(route, cycleMs, now) {
+    const all = HEIGHTS.filter((h) => h.ft % 1000 === 0 && h.ft >= route.lowFt && h.ft <= route.highFt);
+    const pick = (a, n) => (a.length <= n ? a : Array.from({ length: n }, (_, k) => a[Math.round((k * (a.length - 1)) / (n - 1))]).filter((x, k, l) => l.indexOf(x) === k));
+    const levels = pick(all, MAX_LEVELS), aboveTop = route.highFt > 30000;
+    const first = cycleMs + 3600e3, reachMs = cycleMs + 18 * 3600e3, from = Math.max(route.startMs, now - 30 * 60e3), hrs = [];
+    for (let t = Math.ceil((route.startMs - 30 * 60e3) / 3600e3) * 3600e3; t <= route.endMs + 30 * 60e3; t += 3600e3) if (t >= first && t <= reachMs && t >= from - 30 * 60e3) hrs.push(t);
+    return { levels: levels.map((h) => ({ ft: h.ft, m: h.m })), hours: pick(hrs, MAX_HOURS).map((t) => ({ validMs: t, fh: Math.round((t - cycleMs) / 3600e3) })), firstMs: first, reachMs, aboveTop, noLevels: !levels.length };
+  }
+  const kmBetween = (a, b) => { const kx = 111.32 * Math.cos(((a[1] + b[1]) / 2) * Math.PI / 180); return Math.hypot((b[0] - a[0]) * kx, (b[1] - a[1]) * 110.574); };
+  /* fields: [{ ft, fh, validMs, prob: dec, sev: dec }]; failed: [{ ft, fh, validMs, field, error }] */
+  function routeIcing({ route, fields, failed = [], cycleMs, now, plan }) {
+    const P = fields.length ? G.projection(fields[0].prob.grid) : null, L = kmBetween(route.oPt, route.dPt), n = Math.max(2, Math.ceil(L / SAMPLE_KM) + 1);
+    const timed = !!route.timed, span = route.endMs - route.startMs, byHour = new Map();
+    for (const f of fields) { if (!byHour.has(f.validMs)) byHour.set(f.validMs, []); byHour.get(f.validMs).push(f); }
+    const hourList = [...byHour.keys()].sort((a, b) => a - b), pts = [];
+    for (let k = 0; k < n; k++) {
+      const fr = k / (n - 1), pt = [route.oPt[0] + (route.dPt[0] - route.oPt[0]) * fr, route.oPt[1] + (route.dPt[1] - route.oPt[1]) * fr], mi = (fr * L) / MI, t = timed ? route.startMs + fr * span : null;
+      if (timed && t > plan.reachMs + 30 * 60e3) { pts.push({ k, pt, mi, t, gap: "noForecast" }); continue; }
+      if (timed && t < plan.firstMs - 30 * 60e3) { pts.push({ k, pt, mi, t, gap: "beforeFirst" }); continue; }
+      if (timed && t < now - 30 * 60e3) { pts.push({ k, pt, mi, t, gap: "past" }); continue; }
+      const hs = timed ? (hourList.length ? [hourList.reduce((a, b) => (Math.abs(b - t) < Math.abs(a - t) ? b : a))] : []) : hourList;
+      let inside = false, below = 0, levelsSeen = 0, prob = null, sev = null;
+      for (const h of hs) for (const f of byHour.get(h)) {
+        const v = G.valueAt(f.prob, pt[0], pt[1], P); if (!v.inside) continue; inside = true; levelsSeen++;
+        if (v.value == null) { below++; continue; } // no probability value: below the ground (severity says 0 there)
+        const sv = sevCode(f.sev.field[v.j * f.prob.grid.nx + v.i]), cell = { ft: f.ft, fh: f.fh, validMs: f.validMs, i: v.i, j: v.j };
+        if (!prob || v.value > prob.v) prob = { v: v.value, sevSame: Number.isInteger(sv) ? sv : null, ...cell };
+        if (Number.isInteger(sv) && (!sev || sv > sev.v)) sev = { v: sv, probSame: v.value, ...cell };
+      }
+      pts.push({ k, pt, mi, t, gap: !hs.length ? "noForecast" : !inside ? "outside" : levelsSeen && below === levelsSeen ? "belowGround" : null, prob, sev, partBelow: below > 0 && below < levelsSeen });
+    }
+    const runs = (pred) => { const out = []; let cur = null; for (const p of pts) { if (pred(p)) { if (!cur) out.push((cur = [])); cur.push(p); } else cur = null; } return out; };
+    const finding = (r, key) => { const peak = r.reduce((a, b) => (b[key].v > a[key].v ? b : a)), x = peak[key];
+      return { fromMi: Math.round(r[0].mi), toMi: Math.round(r[r.length - 1].mi), midPt: peak.pt, peak: x, levels: [...new Set(r.map((p) => p[key].ft))].sort((a, b) => a - b), validTimes: [...new Set(r.map((p) => p[key].validMs))].sort((a, b) => a - b), encounter: timed ? { fromMs: r[0].t, toMs: r[r.length - 1].t } : null }; };
+    const probFindings = runs((p) => !p.gap && p.prob && p.prob.v >= PROB_MIN).map((r) => finding(r, "prob"));
+    const sevFindings = runs((p) => !p.gap && p.sev && p.sev.v >= SEV_MIN).map((r) => finding(r, "sev"));
+    const gaps = ["outside", "belowGround", "noForecast", "beforeFirst", "past"].map((g) => ({ kind: g, runs: runs((p) => p.gap === g).map((r) => ({ fromMi: Math.round(r[0].mi), toMi: Math.round(r[r.length - 1].mi), fromMs: r[0].t, toMs: r[r.length - 1].t })) })).filter((g) => g.runs.length);
+    const partBelow = runs((p) => !p.gap && p.partBelow).map((r) => ({ fromMi: Math.round(r[0].mi), toMi: Math.round(r[r.length - 1].mi) }));
+    const checked = pts.filter((p) => !p.gap).length, windowBeyond = route.endMs > plan.reachMs + 30 * 60e3, windowBefore = route.startMs < plan.firstMs - 30 * 60e3, stale = now - cycleMs > STALE_H * 3600e3;
+    const complete = !gaps.length && !failed.length && !windowBeyond && !windowBefore && !stale && !plan.aboveTop && !plan.noLevels && hourList.length > 0;
+    return { timed, lengthMi: Math.round(L / MI), samples: n, checked, probFindings, sevFindings, gaps, partBelow, failed, windowBeyond, windowBefore, aboveTop: plan.aboveTop, noLevels: plan.noLevels, firstMs: plan.firstMs, reachMs: plan.reachMs, stale, cycleMs, complete,
+      levels: plan.levels.map((l) => l.ft), hours: hourList, probMin: PROB_MIN, sevMin: SEV_MIN, maxProb: Math.max(0, ...pts.filter((p) => p.prob).map((p) => p.prob.v)), maxSev: Math.max(0, ...pts.filter((p) => p.sev).map((p) => p.sev.v)) };
+  }
+  return { HEIGHTS, FIELDS, SEV_WORD, PROB_BINS, PROB_COLORS, SEV_COLORS, check, valueAt, render, levelLabel, sevCode, TOP_FT: 30000, FIRST_FH: 1, LAST_FH: 18, routePlan, routeIcing, PROB_MIN, SEV_MIN, MAX_LEVELS, MAX_HOURS };
 });

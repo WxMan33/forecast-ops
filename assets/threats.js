@@ -1074,7 +1074,7 @@
     const go = e.target.closest("[data-gtg-on]"), gc = e.target.closest("[data-gtg-cls]");
     if (go) { S.gtg.on = true; drawAll(); return; }
     const io = e.target.closest("[data-ifi-on]"), ifd = e.target.closest("[data-ifi-field]");
-    if (io) { S.ifi.on = true; drawAll(); return; }
+    if (io) { S.ifi.on = true; renderBar(); drawAll(); return; }
     if (ifd) { S.ifi.field = ifd.dataset.ifiField; drawAll(); return; }
     if (gc) { S.gtg.cls = gc.dataset.gtgCls; drawAll(); return; }
     const it = e.target.closest("[data-id]"), sg = e.target.closest("[data-scope-go]"), vg = e.target.closest("[data-view-go]"), back = e.target.closest("[data-back]");
@@ -1100,7 +1100,9 @@
     const live = isLive(), arc = isArchive();
     $("txBadge").textContent = live ? "LIVE PREVIEW" : arc ? "ARCHIVED SAMPLE" : "DEMO DATA"; $("txBadge").classList.toggle("live", live); $("txBadge").classList.toggle("arc", arc);
     $("txDemo").classList.toggle("live", live); $("txDemo").classList.toggle("arc", arc);
-    $("txBarText").textContent = live ? "Branch preview of official NWS and SPC feeds. Not for operational decisions." : arc ? "Real official messages replayed through the live adapter, at their own time. Not a live observation." : "Fictional products for layout review. Nothing here was issued by NWS or SPC.";
+    // the icing overlay's saved records are official NOAA guidance even on a demo page: say so in the banner
+    const ifiNote = S.ifi.on && S.ifi.src === "fixture" ? " The icing overlay is different: saved official NOAA In-Flight Icing guidance (its cycle is on the icing status line), not demo data." : "";
+    $("txBarText").textContent = (live ? "Branch preview of official NWS and SPC feeds. Not for operational decisions." : arc ? "Real official messages replayed through the live adapter, at their own time. Not a live observation." : "Fictional products for layout review. Nothing here was issued by NWS or SPC.") + ifiNote;
     $("stepField").hidden = !arc || !(data && data.archive && data.archive.messages.length);
     if (arc && data && data.archive) { $("demoStep").innerHTML = data.archive.messages.map((m, i) => `<option value="${i + 1}">Msg ${i + 1}/${data.archive.steps} · ${esc(m.action || "")} · ${esc(T.fmtTime(m.sent, venue.tz))}</option>`).join(""); $("demoStep").value = String(data.archive.step); }
     const opts = arc ? ARCHIVE_VENUES[S.scenario].map((v) => ({ id: v.id, label: v.label })) : live ? [...(S.entryVenue ? [{ id: "entry", label: "Linked venue: " + S.entryVenue.name }] : []), ...liveVenues()] : [{ id: "inside", label: "Inside the warning" }, { id: "edge", label: "Near the warning edge" }, { id: "outside", label: "Outside the warning" }];

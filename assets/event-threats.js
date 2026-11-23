@@ -112,6 +112,46 @@
     } catch (e) { Object.assign(gtgRun, { state: "failed", error: e.message, result: null }); }
     render();
   }
+  /* ---------- modeled icing along the route: NOAA IFI (model guidance), on request ----------
+     Probability (ICPRB) and severity (ICESEV) records for up to 4 heights x 3 model hours, through /api/ifi, or the saved
+     official records with ?ifisrc=fixture (their own replay clock); ?ificyc= pins a recent cycle. SLD is left out (its published
+     codes don't match the files). */
+  const IFM = window.ThreatsIFI, IFI_FIXTURE = Q.get("ifisrc") === "fixture", IFI_CYC = /^\d{10}$/.test(Q.get("ificyc") || "") ? Q.get("ificyc") : null;
+  const ifiRun = { want: false, key: null, state: "idle", result: null, error: null, latest: null, latestAt: 0, decoded: new Map() };
+  const ifiBase = () => gtgBase().replace(/\/api\/gtg$/, "/api/ifi");
+  async function ifiLatest() {
+    if (IFI_FIXTURE) { if (!ifiRun.latest) { const r = await fetch("tests/fixtures/threats/ifi/manifest.json", { cache: "no-store" }); if (!r.ok) throw Error("saved records: HTTP " + r.status); const m = await r.json(); ifiRun.latest = { cycle: m.cycle, records: m.records, clock: m.clock, fixture: true, pinned: true }; } return ifiRun.latest; }
+    if (IFI_CYC) return (ifiRun.latest = ifiRun.latest || { cycle: IFI_CYC, pinned: true });
+    if (!ifiRun.latest || Date.now() - ifiRun.latestAt > 15 * 60e3) { ifiRun.latest = await gtgJson(ifiBase() + "/latest"); ifiRun.latestAt = Date.now(); }
+    return ifiRun.latest;
+  }
+  async function ifiRecord(L, fh, ft, field) {
+    const k = L.cycle + "|" + fh + "|" + ft + "|" + field; if (ifiRun.decoded.has(k)) return ifiRun.decoded.get(k);
+    let b;
+    if (L.fixture) { const f = L.records[fh + "|" + ft + "|" + field]; if (!f) throw Error("not in the saved records"); const r = await fetch("tests/fixtures/threats/ifi/" + f, { cache: "no-store" }); if (!r.ok) throw Error("saved record HTTP " + r.status); b = new Uint8Array(await r.arrayBuffer()); }
+    else { const r = await fetch(ifiBase() + "/record?cycle=" + L.cycle + "&fh=" + fh + "&ft=" + ft + "&field=" + field, { cache: "no-store" }); if (!r.ok) { let m = "HTTP " + r.status; try { m = (await r.json()).error || m; } catch (x) { /* not JSON */ } throw Error(m); } b = new Uint8Array(await r.arrayBuffer()); }
+    const dec = GT.decode(b); IFM.check(dec, field, ft, fh); ifiRun.decoded.set(k, dec); if (ifiRun.decoded.size > 24) ifiRun.decoded.delete(ifiRun.decoded.keys().next().value); return dec;
+  }
+  const ifiNow = (L) => (L && L.fixture && L.clock ? Date.parse(L.clock) : Date.now());
+  function ifiEstimate(rr) { if (!IFM || !rr || !rr.startMs) return null; const p = IFM.routePlan(rr, Date.now() - 2 * 3600e3, Date.now()); return Math.max(1, Math.round(p.levels.length * Math.max(1, p.hours.length) * 0.7)); }
+  async function ifiCheck(rr) {
+    const key = JSON.stringify([rr.o, rr.d, rr.lowFt, rr.highFt, rr.startMs, rr.endMs, rr.timed, rr.oPt, rr.dPt]);
+    if (ifiRun.state === "loading" && ifiRun.key === key) return;
+    if (ifiRun.key === key && ifiRun.state === "done") return;
+    Object.assign(ifiRun, { key, state: "loading", error: null });
+    try {
+      const L = await ifiLatest(), cms = cycMs(L.cycle), now = ifiNow(L), plan = IFM.routePlan(rr, cms, now), fields = [], failed = [];
+      await Promise.all(plan.hours.flatMap((h) => plan.levels.map(async (l) => {
+        const got = {};
+        for (const field of ["prob", "sev"]) { try { got[field] = await ifiRecord(L, h.fh, l.ft, field); } catch (e) { failed.push({ ft: l.ft, fh: h.fh, validMs: h.validMs, field, error: e.message }); } }
+        if (got.prob && got.sev) fields.push({ ft: l.ft, fh: h.fh, validMs: h.validMs, prob: got.prob, sev: got.sev });
+      })));
+      ifiRun.result = IFM.routeIcing({ route: rr, fields, failed, cycleMs: cms, now, plan });
+      Object.assign(ifiRun.result, { cycle: L.cycle, pinned: !!L.pinned, fixture: !!L.fixture, clock: L.clock || null });
+      ifiRun.state = "done";
+    } catch (e) { Object.assign(ifiRun, { state: "failed", error: e.message, result: null }); }
+    render();
+  }
   function render() {
     const box = $("threats"); if (!box || !ev) return;
     if (!ev.loc || !Number.isFinite(+ev.loc.lat)) { box.innerHTML = '<p class="bx-note">Pick the venue to check weather threats.</p>'; return; }
@@ -302,8 +342,59 @@
       const none = !R.findings.length && R.checked ? [`No modeled turbulence found at the sampled heights and times${R.complete ? "" : " that could be checked"} (moderate or worse for ${rr.cls} aircraft): ${sampled}.${R.light ? " Light turbulence along about " + Math.round((100 * R.light) / R.checked) + "% of the route." : ""}`] : [];
       return `<div class="et-gtg" data-gtg-complete="${R.complete}">${hd}<p class="bx-note et-gtgmeta">${meta}</p><ul class="et-list">${items.join("")}${none.map((t) => `<li class="et-ok" data-kind="gtg-none">${esc(t.replace(/\.\.+/g, "."))}</li>`).join("")}${gaps.map((t) => `<li class="et-ok et-unk" data-kind="gtg-gap">${esc(t.replace(/\.\.+/g, "."))}</li>`).join("")}</ul></div>`;
     };
+    const ifiBlock = (rs) => {
+      if (!IFM || !GT) return "";
+      const hd = `<h4 class="et-aph et-ifih">Modeled icing along your route <span class="et-badge et-badge-ifi">Model guidance · NOAA IFI</span></h4>`;
+      if (ARCHIVE) return `<div class="et-ifi">${hd}<p class="bx-note et-unk">Live only: IFI guidance is not part of this archived replay.</p></div>`;
+      const rr = rs.oPt && rs.dPt && rs.startMs ? { o: rs.o, d: rs.d, oPt: rs.oPt, dPt: rs.dPt, lowFt: rs.lowFt, highFt: rs.highFt, startMs: rs.startMs, endMs: rs.endMs, timed: rs.timeSource === "own" } : null;
+      if (!rr) return `<div class="et-ifi">${hd}<p class="bx-note et-unk">${rs.oPt && rs.dPt ? "Add the time in the air (or flight times at the route's airports) to check modeled icing." : "Waiting for both airports to be placed before modeled icing can be checked."}</p></div>`;
+      if (!ifiRun.want) return `<div class="et-ifi">${hd}<button type="button" class="btn et-gtgbtn" data-ifi-check>Check modeled icing (about ${ifiEstimate(rr)} MB)</button><p class="bx-note">Reads NOAA's In-Flight Icing guidance (icing probability and modeled severity) for your altitude band and time in the air.${IFI_FIXTURE ? " This page uses saved official NOAA records (replay)." : ""}</p></div>`;
+      ifiCheck(rr);
+      const R = ifiRun.result, cur = ifiRun.state === "done" && ifiRun.key === JSON.stringify([rr.o, rr.d, rr.lowFt, rr.highFt, rr.startMs, rr.endMs, rr.timed, rr.oPt, rr.dPt]);
+      if (ifiRun.state === "failed") return `<div class="et-ifi">${hd}<p class="bx-note et-unk" data-ifi-state="failed">IFI guidance isn't available right now (${esc(ifiRun.error || "unknown")}), so modeled icing along the route is unknown.</p></div>`;
+      if (!cur) return `<div class="et-ifi">${hd}<p class="bx-note" data-ifi-state="loading">Reading IFI for ${esc(EN ? EN.bandText(rr.lowFt, rr.highFt) : "")}…</p></div>`;
+      const cl = (ms) => new Date(ms).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).replace(":00", "").replace("AM", "a.m.").replace("PM", "p.m."), ft = (x) => IFM.levelLabel(x), pc = (v) => Math.round(v * 100) + "%";
+      const cz = (c) => c.slice(8, 10) + "Z " + new Date(cycMs(c)).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" }), oName = rs.label.split(" → ")[0];
+      const andList = (a) => (a.length <= 1 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]), sampled = andList(R.levels.map(ft)) + " at " + andList(R.hours.map(cl));
+      const meta = `Cycle ${esc(cz(R.cycle))}${R.fixture ? " (saved official NOAA records; replay clock " + esc(fmt(R.clock, tz)) + ")" : R.pinned ? " (pinned for this check)" : ""} · model hours ${esc(R.hours.map(cl).join(", ") || "none")} · heights checked ${esc(R.levels.map(ft).join(", ") || "none")} · thresholds: icing probability ${pc(R.probMin)} or more; modeled severity ${IFM.SEV_WORD[R.sevMin]} or worse · ${R.timed ? "times are approximate, from your time in the air and steady progress along the straight line" : "no times in the air given, so findings are potential overlaps during your " + esc(rs.timeSource || "window") + " window"}`;
+      const mapFor = (field, f) => { const u = new URL(mapLink({ family: "aviation", kind: "route", airport: rs.d, product: {} })); ["fit", "alt", "at", "gtg", "gft", "gfh", "gcyc", "gcls"].forEach((k) => u.searchParams.delete(k));
+        Object.entries({ ifi: "1", ifield: field, gft: String(f.peak.ft), gfh: String(f.peak.fh), focus: f.midPt.map((x) => x.toFixed(3)).join(","), ...(R.fixture ? { ifisrc: "fixture" } : { icyc: R.cycle }) }).forEach(([k, v]) => u.searchParams.set(k, v)); return u.toString(); };
+      const item = (field, f, i) => {
+        const id = "ifi|" + field + "|" + i + "|" + f.fromMi + "-" + f.toMi + "|" + R.cycle, where = f.fromMi === f.toMi ? "about " + f.fromMi + " miles from " + oName : f.fromMi + "–" + f.toMi + " miles from " + oName, lv = f.levels.map(ft).join(", ");
+        const what = field === "prob" ? "Icing probability up to " + pc(f.peak.v) : "Modeled " + IFM.SEV_WORD[f.peak.v] + " icing";
+        const when = R.timed ? ", around " + cl(f.encounter.fromMs) + (f.encounter.toMs - f.encounter.fromMs >= 60e3 ? "–" + cl(f.encounter.toMs) : "") + " (approximate)" : "";
+        const head = R.timed ? `${what} ${where}${when}, at ${lv} · IFI model guidance` : `Potential overlap: ${what.charAt(0).toLowerCase() + what.slice(1)} ${where} at ${lv}, valid ${f.validTimes.map(cl).join(" and ")} · IFI model guidance`;
+        const same = field === "prob" ? (f.peak.sevSame == null ? "Modeled severity at the same spot, height and valid time is not a published code." : "At the same spot, height and valid time, modeled severity is " + IFM.SEV_WORD[f.peak.sevSame] + " (code " + f.peak.sevSame + ").")
+          : "At the same spot, height and valid time, icing probability is " + pc(f.peak.probSame) + ".";
+        const line = `Model guidance, not an observation or an advisory. NOAA IFI cycle ${cz(R.cycle)}, valid ${f.validTimes.map(cl).join(", ")}: peak ${field === "prob" ? "icing probability " + pc(f.peak.v) : "severity " + IFM.SEV_WORD[f.peak.v] + " (code " + f.peak.v + ")"} at ${ft(f.peak.ft)}. ${same}` + (R.timed ? " The time is approximate: steady progress from your departure to your arrival along the straight line." : " When you would be there isn't known: no times in the air were given.");
+        const isOpen = open.has(id), rows = [["Model", "NOAA NCEP In-Flight Icing (DAFS), 3 km grid"], ["Field", esc(field === "prob" ? "Icing probability (GRIB2 0/19/233, ICPRB), as published 0–1, shown as a percentage" : "Icing Severity (GRIB2 0/19/37, ICESEV), NCEP Table 4.228 (0 none, 1 trace, 2 light, 3 moderate, 4 severe)")], ["Cycle", esc(cz(R.cycle)) + (R.fixture ? " (saved official records)" : R.pinned ? " (pinned)" : "")],
+          ["Valid", esc(f.validTimes.map((t) => fmt(new Date(t).toISOString(), tz)).join("; "))], ["Peak", esc((field === "prob" ? pc(f.peak.v) : IFM.SEV_WORD[f.peak.v] + " (code " + f.peak.v + ")") + " at " + ft(f.peak.ft) + " MSL, near " + f.midPt[1].toFixed(2) + "°, " + f.midPt[0].toFixed(2) + "°")],
+          ["Same spot, height and time", esc(same.replace(/^At the same spot, height and valid time, /, "").replace(/^Modeled severity at the same spot, height and valid time /, "severity "))], ["Where", esc(where + " along the straight line to " + rs.label.split(" → ")[1])],
+          ["When", esc(R.timed ? "about " + cl(f.encounter.fromMs) + (f.encounter.toMs > f.encounter.fromMs ? "–" + cl(f.encounter.toMs) : "") + " (approximate)" : "not estimated (no times in the air)")], ["Threshold", esc(field === "prob" ? "icing probability " + pc(R.probMin) + " or more" : "modeled severity " + IFM.SEV_WORD[R.sevMin] + " or worse")]];
+        return `<li class="et-item et-ifiitem" data-kind="ifi-${field}" data-family="aviation"><div class="et-main"><b class="et-head">${esc(head)}</b><span class="et-line">${esc(line)}</span><span class="et-actions"><button type="button" class="bx-link et-more" data-id="${esc(id)}" aria-expanded="${isOpen}">More info</button> · <a class="bx-link" href="${esc(mapFor(field, f))}" data-ifi-map="${field}-${i}">View on map</a></span></div><dl class="et-detail" ${isOpen ? "" : "hidden"}>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl></li>`;
+      };
+      const that = R.complete ? "" : " that could be checked";
+      const quietP = !R.probFindings.length && R.checked ? `No icing probability of ${pc(R.probMin)} or more found at the sampled heights and times${that}: ${sampled} (highest ${pc(R.maxProb)}).` : null;
+      const quietS = !R.sevFindings.length && R.checked ? `No modeled ${IFM.SEV_WORD[R.sevMin]} or worse icing found at the sampled heights and times${that}: ${sampled} (highest: ${IFM.SEV_WORD[R.maxSev]}).` : null;
+      const gapText = { outside: (g) => "No model coverage for " + g.fromMi + "–" + g.toMi + " miles from " + oName + ": outside the IFI grid.", belowGround: (g) => "Below the ground at every checked height for " + g.fromMi + "–" + g.toMi + " miles from " + oName + ": no icing value there (not 'no icing').",
+        noForecast: (g) => (R.timed ? "No IFI forecast for " + g.fromMi + "–" + g.toMi + " miles from " + oName + " (about " + cl(g.fromMs) + " on): cycle " + cz(R.cycle) + " reaches " + cl(R.reachMs) + "." : "No IFI forecast for your time in the air."), beforeFirst: (g) => "No IFI forecast for " + g.fromMi + "–" + g.toMi + " miles from " + oName + " (before " + cl(R.firstMs) + "): IFI starts 1 hour after its cycle.", past: (g) => "Already flown by now: " + g.fromMi + "–" + g.toMi + " miles from " + oName + "." };
+      const gaps = R.gaps.flatMap((g) => g.runs.map((x) => gapText[g.kind](x)));
+      R.partBelow.forEach((x) => gaps.push("The lowest checked heights are below the ground for " + x.fromMi + "–" + x.toMi + " miles from " + oName + "; only the heights above the ground were read there."));
+      if (R.aboveTop) gaps.push("Heights above 30,000 ft in your band aren't covered: IFI stops at 30,000 ft (FL300).");
+      if (R.noLevels) gaps.push("No IFI height in your band: the check reads whole thousands of feet from 1,000 to 30,000 ft.");
+      if (!R.timed && R.windowBeyond) gaps.push("Your time in the air runs past " + cl(R.reachMs) + ", the end of cycle " + cz(R.cycle) + ": later hours aren't checked.");
+      if (!R.timed && R.windowBefore) gaps.push("Your time in the air starts before " + cl(R.firstMs) + ", IFI's first hour for cycle " + cz(R.cycle) + ": earlier hours aren't checked.");
+      if (R.failed.length) { const by = new Map(); R.failed.forEach((x) => { const k = ft(x.ft) + " at " + cl(x.validMs); by.set(k, [...(by.get(k) || []), x.field === "prob" ? "icing probability" : "severity"]); });
+        gaps.push("Couldn't read IFI " + [...by.entries()].map(([k, f]) => andList(f) + " for " + k).join("; ") + " (" + R.failed[0].error + "): those heights and hours are unknown."); }
+      if (R.stale && !R.fixture) gaps.push("Cycle " + cz(R.cycle) + " is " + Math.round((Date.now() - R.cycleMs) / 3600e3) + " hours old" + (R.pinned ? " (pinned for this check)" : "") + "; newer cycles exist.");
+      const ok = (t, kind) => `<li class="et-ok${kind === "gap" ? " et-unk" : ""}" data-kind="ifi-${kind}">${esc(t.replace(/\.\.+/g, "."))}</li>`;
+      return `<div class="et-ifi" data-ifi-complete="${R.complete}">${hd}<p class="bx-note et-gtgmeta et-ifimeta">${meta}</p>
+        <h5 class="et-ifisub">Icing probability</h5><ul class="et-list" data-ifi-list="prob">${R.probFindings.map((f, i) => item("prob", f, i)).join("")}${quietP ? ok(quietP, "none") : ""}</ul>
+        <h5 class="et-ifisub">Modeled severity</h5><ul class="et-list" data-ifi-list="sev">${R.sevFindings.map((f, i) => item("sev", f, i)).join("")}${quietS ? ok(quietS, "none") : ""}</ul>
+        ${gaps.length ? `<ul class="et-list" data-ifi-list="gaps">${gaps.map((t) => ok(t, "gap")).join("")}</ul>` : ""}</div>`;
+    };
     const rs = r.route || {}, rtMap = rs.set ? mapLink({ family: "aviation", kind: "route", airport: rs.d, product: {}, window: null }) : mapLink({ family: "aviation", kind: "route", airport: (airports[0] || {}).icao, product: {} });
-    const routeSec = !hasAir || (!rs.set && !apBlocks) ? "" : `<h3 class="et-h" id="etRouteHead">Along the route</h3>${rs.set ? `<div class="et-ap et-route" data-route="${esc(rs.o + "-" + rs.d)}"><h4 class="et-aph">Approximate route ${esc(rs.label)} · ${esc(rs.band)}${rs.window ? " · " + esc(rs.window) : ""} <a class="bx-link et-apmap" data-map-route="1" href="${esc(rtMap)}">View on map</a></h4><ul class="et-list">${rs.lines.map((x) => (x.concern && byId.get(x.itemId) ? renderItem(byId.get(x.itemId)) : okLine(x))).join("")}</ul></div><p class="bx-note et-approx">A straight line between the airports, not your flight plan: matches are potential overlaps within ${esc(String(rs.corridorMi))} miles of it, in your time${rs.timeSource && rs.timeSource !== "own" ? " (from your " + esc(rs.timeSource) + ")" : ""} and altitude band. Pilot reports are observations; SIGMETs, G-AIRMETs and CWAs are official advisories.</p>${gtgBlock(rs)}`
+    const routeSec = !hasAir || (!rs.set && !apBlocks) ? "" : `<h3 class="et-h" id="etRouteHead">Along the route</h3>${rs.set ? `<div class="et-ap et-route" data-route="${esc(rs.o + "-" + rs.d)}"><h4 class="et-aph">Approximate route ${esc(rs.label)} · ${esc(rs.band)}${rs.window ? " · " + esc(rs.window) : ""} <a class="bx-link et-apmap" data-map-route="1" href="${esc(rtMap)}">View on map</a></h4><ul class="et-list">${rs.lines.map((x) => (x.concern && byId.get(x.itemId) ? renderItem(byId.get(x.itemId)) : okLine(x))).join("")}</ul></div><p class="bx-note et-approx">A straight line between the airports, not your flight plan: matches are potential overlaps within ${esc(String(rs.corridorMi))} miles of it, in your time${rs.timeSource && rs.timeSource !== "own" ? " (from your " + esc(rs.timeSource) + ")" : ""} and altitude band. Pilot reports are observations; SIGMETs, G-AIRMETs and CWAs are official advisories.</p>${gtgBlock(rs)}${ifiBlock(rs)}`
       : `<p class="bx-note et-noroute">No route set. En-route advisories and pilot reports are on the <a class="bx-link" data-map-route="0" href="${esc(rtMap)}">map</a> as regional context; add an origin, destination and altitude band below to check them along an approximate route.</p>`}`;
     const airSec = !hasAir ? "" : `<h3 class="et-h" id="etAirHead">Airport weather</h3>${apBlocks || '<p class="bx-note et-noair">No airports set for this event. Add a primary and an optional alternate airport with your flight times below.</p>'}${apBlocks && linkAir ? '<p class="bx-note et-linkair">Airports and flight times came with the shared link. Change them below to keep your own in this browser.</p>' : ""}${apBlocks ? '<p class="bx-note">Airport forecasts and observations from the NOAA Aviation Weather Center, for the airport, not the venue. Codes and the raw reports are under More info.</p>' : ""}`;
     const statuses = r.statuses.map((s) => `<li class="${s.ok ? "" : "et-warn"}"><b>${esc(s.name)}</b> · ${esc(s.text)}</li>`).join("");
@@ -364,6 +455,7 @@
   });
   document.addEventListener("click", (e) => {
     if (e.target.closest("[data-gtg-check]")) { gtgRun.want = true; render(); return; }
+    if (e.target.closest("[data-ifi-check]")) { ifiRun.want = true; render(); return; }
     const b = e.target.closest(".et-more"); if (!b) return;
     const id = b.dataset.id; if (open.has(id)) open.delete(id); else open.add(id); render();
   });
