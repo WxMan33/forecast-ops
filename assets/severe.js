@@ -4,6 +4,11 @@
   "use strict";
   const O = window.Ops, $ = O.$, C = O.Core, S = C.severe;
   O.shell("severe", "Severe ingredients"); O.severeViews($("severeViews"), "severe");
+  /* beta has the historical replays but not the daily research section: a link to #severe-daily lands on the replays */
+  if (location.hash === "#severe-daily" && !$("severe-daily") && $("severe-research")) {
+    const r = $("severe-research"); r.open = true; history.replaceState(null, "", location.pathname + location.search + "#severe-research");
+    requestAnimationFrame(() => r.scrollIntoView());
+  }
 
   /* Models, variables and request settings: OpsCore.config.severe */
   const SPEC = C.config.severe, MODELS = SPEC.models;
