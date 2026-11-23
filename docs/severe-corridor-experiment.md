@@ -112,3 +112,64 @@ diagnostic only, 2021 opened once only on a full pass, and 2025 sealed.
 - the original-96 subset alongside the full sample;
 - event dates behind each reliability bin;
 - a gap-filled map and a spread-along-front map, chosen by rule.
+
+## v2 result: FAIL on criteria 4 and 5; passes 1-3 (run 45080256842). 2021 stays sealed; stopped for review
+**Held-out sample:** the 362-date roster, with no dates missing: 175 report days and 19,741 report
+points.
+- Every fold chose penalty 1e-4 for both feature sets.
+- The arm-c beta-calibration slopes on ln p are 1.00 to 1.05 in every fold.
+
+| Criterion (c vs b) | Needed | Result | Verdict |
+|---|---|---|---|
+| 1. Hits at matched false-alarm area | ≥ 1.10×, lower bound > 0 | **1.22×** (9,834 vs 8,070); c−b [+720, +2,973] | pass |
+| 2. Left-out reduction | ≥ 25%, lower bound > 0 | **44.4%** (3,826 vs 6,880); b−c [+1,882, +4,496] | pass |
+| 3. Brier | interval < 0 | **−0.000120** (0.003323 vs 0.003443); [−0.000185, −0.000064] | pass |
+| 4a. Wrong place | ≤ 1.05× | 0.98× (3,665 vs 3,749) | pass |
+| **4b. No signal** | ≤ 1.05× | **2.32×** (2,416 vs 1,042 report points) | **FAIL** |
+| **5. Reliability, ≥30% bin** | \|forecast − observed\| ≤ 0.30 × observed (8.0 points) | forecast **35.5%** vs observed **26.7%**: 8.9 points, supported by **15 event dates** and 543 report points | **FAIL (by 0.9 points)** |
+
+The other bins pass: 2-5% → 3.2/2.9; 5-10% → 7.0/6.5; 10-15% → 12.1/13.7; 15-30% → 19.9/22.2.
+
+**Event dates per bin (arm c):** 111, 100, 70, 51 and 15 event dates for 2-5%, 5-10%, 10-15%,
+15-30% and ≥30%.
+- Arm b has 30 event dates in its ≥30% bin, forecast 37.3% vs 20.8% observed.
+- Arm a has 35, forecast 43.5% vs 20.0%.
+- So arm c's top band is the best calibrated of the three, but it is still outside the tolerance.
+
+**Calibration is not what drives the gain.** At matched area, c/b hits were 1.229 before calibration
+and 1.219 after. Left-out reports were 3,837 vs 6,950 before and 3,826 vs 6,880 after. The gain
+comes from placement.
+
+**Why no-signal misses rose:**
+- At matched area arm c's threshold is 6.4%, against arm b's 5.0%.
+- Arm c spends its false-alarm budget on continuous corridors on active days. On marginal days it
+  flags less than 2,250 km² anywhere, while arm b flagged scattered spots.
+- So arm c reallocates area from marginal days to outbreak days.
+
+**Original 96-date subset (same held-out predictions; not deciding):**
+- Hits 1.04× [−273, +338].
+- Left-out −27.8% [−153, +653].
+- Brier −0.000026 [−0.000070, +0.000007].
+- That is the same direction as the full sample but unresolved on 31 report days, consistent with
+  v1's underpowered result.
+
+**Proposed live thresholds (arm c; chosen in training folds; not adopted):**
+- calibrated 5%: 11,130 hits at 56,700 km²/day;
+- training-fold matched-area threshold (6.0-6.5%): 9,890 hits at 42,600 km²/day.
+
+**Maps (by the locked rules):**
+- **Fills a gap, 2023-03-31:** hits 980 → 1,312; left out 583 → 184; wrong place 50 → 117.
+- **Spreads along a front, 2023-04-26:** both hit all 25 points; arm c's flagged area covers much of
+  Texas.
+
+**2024 diagnostic (never deciding; at NadoCast's 5% false-alarm area):**
+| | Brier | Hits | Left out | Wrong place | No signal |
+|---|---|---|---|---|---|
+| Arm b | 0.003598 | 9,695 | 4,638 | 3,335 | 1,102 |
+| **Arm c** | **0.003422** | **11,679** | 2,880 | 2,459 | 1,752 |
+| NadoCast | 0.003403 | 11,456 | 2,597 | 2,376 | 2,341 |
+
+- On 2024, arm c roughly matches NadoCast: 2% more hits at equal area, with Brier within 0.00002.
+- On 2024-12-28: hits 629 → 763 and wrong place 70 → 19 (NadoCast hits 857).
+- The map title on `corridor-2024-12-28.png` still says "all 96 development dates" (v1 wording). The
+  fit actually used the full 362-date roster.
