@@ -166,7 +166,7 @@ Tests: `tests/threats-enroute.test.js` (11), `tests/threats-functions.test.mjs` 
 - **Etiquette.** NOMADS is a shared NOAA server; the function caches, and the map fetches only when a control changes.
 - **Delivery.** NOMADS sends no CORS header, so only the preview's function can read it; GitHub Pages and raw.githack copies of the map can't show GTG.
 - **Meaning.** Guidance is EDR at a 3 km cell: atmospheric turbulence, not what a given aircraft will feel.
-- **Not yet used:** CAT, MWT and the 0/19/50 field separately, and In-Flight Icing (IFI, `dafs.tCCz.ifi.3km.conus`).
+- **Not yet used:** the CAT, MWT and 0/19/50 fields separately.
 
 ### Planner: "Modeled turbulence along your route" (2026-11-23)
 
@@ -218,6 +218,63 @@ Unit tests (`tests/threats-gtg.test.js`, synthetic fields on the real grid) cove
 - The straight line, the band treated as flown throughout, and steady progress are assumptions, stated on the page.
 - At most 4 heights and 3 hours are checked, named in the summary.
 - About 1–1.3 MB per record, so up to about 15 MB for a long flight.
+
+## Model guidance: In-Flight Icing (IFI) (map only; not in Planner yet)
+
+### Source verification (2026-11-23)
+
+- **Inventory.** NCEP Products Inventory, DAFS: `dafs.tCCz.ifi.3km.conus.fFFF.grib2`, forecast hours **001–018** (no analysis hour), "Available in GRIB2 via HTTPS", on NOMADS `dafs.YYYYMMDD/`.
+- **Sample.** `dafs.t01z.ifi.3km.conus.f003.grib2`, Nov 23.
+  - 35,020,764 bytes, matching the listing's "33M". Its `.idx` has 180 lines, the same as the inventory's 180 records.
+  - Decoded with ecCodes 2.50.
+- **Grid.** The same 1799 × 1059 Lambert grid as GTG (3 km).
+- **Packing.** Template 5.3.
+- **Our decoder** matches ecCodes on every point of five records (largest difference 3×10⁻⁸; the same bitmaps).
+- **Heights.** **60**, every 500 ft from 152.4 m (500 ft) to 9,144 m (30,000 ft) MSL. The levels are written with one decimal ("152.4 m", "762 m").
+- **Timing.** Cycles are hourly, with 18 forecast hours. On Nov 23 the 01Z cycle's f003 appeared at 01:58Z, and the 02Z cycle reached f007 by 03:06Z.
+
+**The three fields, named as NCEP's GRIB2 table publishes them** (`grib2_table4-2-0-19`). ecCodes names only SIPD; the index prints 0/19/37 as `var discipline=0 master_table=2 parmcat=19 parm=37`.
+
+| Code | NCEP name | Units / values in the files | Missing data | On the map |
+|---|---|---|---|---|
+| 0/19/233 **ICPRB** | Icing probability | non-dim; 0 to 0.74 seen, steps of 0.01 | **bitmap**: no value below the ground | Drawn: four bins from 5% |
+| 0/19/37 **ICESEV** | Icing Severity | **Table 4.228**: 0 None, 1 Trace, 2 Light, 3 Moderate, 4 Severe (5–254 reserved, 255 Missing); only 0–4 seen | **no bitmap**: cells below the ground carry **0 ("None")**. The map takes the ground mask from ICPRB at the same height and hour, and reads those cells as "no value", never "none". | Drawn: trace to severe |
+| 0/19/217 **SIPD** | Supercooled Large Droplet (SLD) Icing (Note 2: SLD are droplets over 50 microns) | The table says Table 4.207 codes (0 None, 1 Light, 2 Moderate, 3 Severe, 4 Trace, 5 Heavy); the files hold **-0.1 and 0 to 1 in steps of 0.1** | bitmap below the ground; **-0.1** is not defined anywhere we found (it appears mostly where icing probability is above 0) | **Not drawn** until NOAA documents the values |
+
+**Inventory discrepancy.** The inventory page lists 60 ICPRB and **120 SIPD** ("see Note 2", but the note's text isn't on the page). The file has 60 SIPD and 60 ICESEV (0/19/37). The page warns that actual parameters may differ.
+
+### Delivery
+
+`/api/ifi/latest` returns the newest cycle with all 18 hours and their `.idx`. `/api/ifi/record?cycle=&fh=1-18&ft=500-30000 (500 ft steps)&field=prob|sev` reads one record by byte range:
+- **Sizes:** probability about 0.24–0.5 MB; severity about 0.1–0.2 MB, and 449 bytes when it's all zero.
+- **The file's last record** (severity at 30,000 ft) has no next index offset. It is read to the end of the file and checked against its GRIB length field.
+
+### Map
+
+- **Layout.** "Model guidance · NOAA IFI" in the en-route section. Off until asked (`ifi=1`); `ifield=prob|sev`.
+- **Shared controls.** The **altitude and valid-time controls are shared with GTG** ("Model guidance · height and time"; `gft`, `gfh`).
+  - The valid time is the base cycle (GTG's while turbulence is on, else IFI's) plus the chosen hour. IFI reads its own cycle's hour for that time, so the two layers always show the same valid time.
+  - The altitude control goes in 1,000 ft steps. IFI also has the 500 ft heights in between, which the shared control doesn't offer.
+- **Look.** A cyan-to-teal fill, apart from GTG's violet fill, the blue outlines of icing advisories, and the rings of icing pilot reports. Its own legend: probability bins, or the severity categories.
+- **Readouts.** The status line gives the field name and GRIB2 code, cycle, valid time, height in feet and metres, and the record size. The value at the venue is shown, and tapping the map gives the value at a spot.
+- **Unavailable records** draw nothing (never another height, hour or an old field) and say why:
+  - above 30,000 ft: "IFI stops at 30,000 ft (FL300)";
+  - +0 h, or past +18 h for IFI's cycle: "has no forecast for that time (it covers +1 to +18 h)";
+  - a record the function couldn't read: its error;
+  - in the fixture replay, a record it doesn't hold: "not in this replay (it has …)".
+- **Fixture replay.** `ifisrc=fixture` reads `tests/fixtures/threats/ifi/` (four official records of cycle 01Z Nov 23: probability at 5,000 ft +3 h and +6 h, and 15,000 ft +3 h; severity at 5,000 ft +3 h; 1.5 MB), with `ifi-fixture.eccodes.json` as the answer key.
+
+### Checks
+
+- `tests/threats-ifi.test.js` (5): the fixture against ecCodes, field checks, the ground mask and the colours.
+- `tests/threats-functions.test.mjs`: the IFI routes.
+- `tools/threats-ifi-check.js`, desktop and phone, on the fixture (local or deployed):
+  - altitude 5,000 → 15,000 ft and hour +3 → +6 h each change the drawn image;
+  - the map's values at 9 cells per record equal ecCodes';
+  - severity uses Table 4.228 words, and a below-ground cell reads "no value";
+  - unavailable records (not in the replay, above 30,000 ft, +0 h) draw nothing and say why;
+  - returning to an available record draws the same image again.
+- `--live` runs on the preview's newest cycle; `tools/threats-ifi-verify.py` checks the records it drew with ecCodes.
 
 ## Not included
 
