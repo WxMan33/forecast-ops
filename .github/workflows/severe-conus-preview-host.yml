@@ -21,7 +21,7 @@ jobs:
       - name: Wait until the beta host serves this commit (every file severe.html and the CONUS viewer load)
         run: |
           echo "commit $GITHUB_SHA"
-          FILES="severe.html $(grep -ho '\(src\|href\)="assets/[^"?]*' severe.html | sed 's/^[a-z]*="//') assets/maps/basemap.json assets/maps/conus-detail.geojson.gz $(ls assets/severe-conus/*.json)"
+          FILES="severe.html $(grep -ho '\(src\|href\)="assets/[^"?]*' severe.html | sed 's/^[a-z]*="//') assets/maps/basemap.json assets/maps/conus-detail.geojson.gz assets/severe-conus-land.json $(ls assets/severe-conus/*.json)"
           FILES="$(printf '%s\n' $FILES | sort -u | tr '\n' ' ')"; echo "checking $(echo $FILES | wc -w) files"
           for i in $(seq 1 40); do stale=""
             for f in $FILES; do [ "$(curl -fsSL "${BASE}$f" | sha256sum | cut -c1-16)" = "$(sha256sum "$f" | cut -c1-16)" ] || stale="$stale $f"; done

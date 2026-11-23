@@ -51,6 +51,7 @@ The map distinguishes four states:
 | Below the lowest contour | Not colored | "<0.1%: Below the lowest displayed contour" |
 | Outside coverage | A quiet neutral tint over mesh triangles touching an unsupported sample; nothing off the grid | "Outside coverage", explicitly not zero risk |
 | Data unavailable | Hollow purple circles (a missing value at a supported sample) | "Data unavailable" |
+| Water, Canada, Mexico, Great Lakes | Plain background: shading, contour lines and the outside-coverage tint are clipped at render time to a lower-48 land mask (`assets/severe-conus-land.json`, built by `tools/build-conus-land-mask.py` from the drawn state outlines minus Lake Okeechobee and the Great Salt Lake). Forecast values, storm reports and the 25-mile definition are unchanged. | "Outside display area" |
 
 Contours come from a triangle mesh with a maximum edge of 25 km, built over supported samples
 only. Bands therefore stop at the coverage edge and do not bridge water or gaps.

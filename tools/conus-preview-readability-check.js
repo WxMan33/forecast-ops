@@ -51,6 +51,15 @@ async function waitReports(p){await p.waitForFunction(()=>window.SevereConusPrev
  ok('case picker says Saved forecast',/SAVED FORECAST/.test(await p.evaluate(()=>[...document.querySelectorAll('#scCase option')].map(o=>o.textContent).join('|'))));
  // weakness replay national
  await p.selectOption('#scCase','replay-2024-05-14');await waitReports(p);await p.evaluate(()=>window.SevereConusPreview.view([-90,33],4.3));await p.waitForTimeout(1000);ok('weakness replay 36 reports',(await S(p)).reports===36);await mapShot('weakness');
+ // land-only display
+ await p.selectOption('#scCase','current-2026-11-22');await p.waitForTimeout(2000);await p.evaluate(()=>window.SevereConusPreview.view([-83.6,31.2],5.0));await p.waitForTimeout(800);
+ ok('land mask loaded and water drawn as plain background',await p.evaluate(()=>window.SevereConusPreview.landReady()&&window.SevereConusPreview.rendered('sc-water')>0));
+ for(const [name,x,y] of [['Atlantic off SC',-78.5,32.5],['Gulf of Mexico',-87,28.5],['Lake Michigan',-87,43.5]]){await p.evaluate(([x,y])=>window.SevereConusPreview.select(x,y),[x,y]);
+  const t=await p.evaluate(()=>({k:window.SevereConusPreview.state().kind,v:document.getElementById('scValue').textContent}));ok('click '+name+' → Outside display area',t.k==='offdisplay'&&/Outside display area/.test(t.v),t);}
+ ok('Florida Keys and Outer Banks count as land',await p.evaluate(()=>window.SevereConusPreview.inLand(-81.78,24.555)&&window.SevereConusPreview.inLand(-75.53,35.25)));
+ await p.selectOption('#scCase','replay-2024-05-25');await waitReports(p);
+ for(const [name,x,y,kind] of [['Kentucky (value)',-84.5,38.0,'value'],['Denver (below 0.1%)',-104.99,39.74,'below']]){await p.evaluate(([x,y])=>window.SevereConusPreview.select(x,y),[x,y]);const k=(await S(p)).kind;ok('land click '+name,k===kind,k);}
+ await p.click('#scPeak');await p.waitForTimeout(600);const pk=await S(p);const g=await p.evaluate(i=>{const c=window.SevereConusPreview.gridPoint(i);return c&&window.SevereConusPreview.inLand(c[0],c[1]);},pk.selected);ok('highest sample is on land',pk.kind==='value'&&g,pk.value);
  // regional still fine
  await p.click('[data-sc-view="regional"]');await p.waitForTimeout(1500);ok('regional view visible',await p.isVisible('.sd-regional'));
  ok('no page errors',errs.length===0,errs);

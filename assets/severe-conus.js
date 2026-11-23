@@ -10,7 +10,7 @@ const BASE='assets/severe-conus/',none=()=>({type:'FeatureCollection',features:[
 const HZ={tornado:'Tornado',wind:'Damaging wind',hail:'Severe hail'};
 const SEL='#22d3ee';
 const NCEI_EVENT='https://www.ncdc.noaa.gov/stormevents/eventdetails.jsp?id=';
-let offGrid=false,mode='regional',day=2,hazard='wind',index,grid,supported,mesh,outsideFill=none(),map,ready=false,values=null,active=null,reports=null,selected=null,focusName='',
+let offDisplay=false,landPolys=null,onLand=null,offGrid=false,mode='regional',day=2,hazard='wind',index,grid,supported,mesh,outsideFill=none(),map,ready=false,values=null,active=null,reports=null,selected=null,focusName='',
  showReports=true,showCounties=true,showNear=false,request=0,loaded=false,lastView=null,popup=null;
 const cache=new Map(),contourCache=new Map(),reportCache=new Map();
 const esc=s=>O&&O.esc?O.esc(s):String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -31,11 +31,23 @@ async function counties(){try{let b=await fetchBytes('assets/maps/conus-detail.g
  try{const d=await fetch('assets/maps/basemap.json').then(r=>r.json());return d.layers.counties||null;}catch(e){return null;}}
 
 /* ---------- state per point ---------- */
-function state(i){if(i===null||i===undefined)return offGrid?{kind:'outside',text:'Outside coverage'}:{kind:'none',text:'—'};if(!supported[i])return{kind:'outside',text:'Outside coverage'};const p=values?values[i]:null;if(p===null||!C.available(p))return{kind:'unavailable',text:'Data unavailable'};if(p<.001)return{kind:'below',text:'<0.1%',note:'Below the lowest displayed contour (0.1%)'};return{kind:'value',text:C.percent(p)};}
+function state(i){if(i===null||i===undefined)return offDisplay?{kind:'offdisplay',text:'Outside display area'}:offGrid?{kind:'outside',text:'Outside coverage'}:{kind:'none',text:'—'};if(!supported[i])return{kind:'outside',text:'Outside coverage'};const p=values?values[i]:null;if(p===null||!C.available(p))return{kind:'unavailable',text:'Data unavailable'};if(p<.001)return{kind:'below',text:'<0.1%',note:'Below the lowest displayed contour (0.1%)'};return{kind:'value',text:C.percent(p)};}
 function nearest(lon,lat){if(!grid)return null;let best=-1,d=Infinity;for(let i=0;i<grid.length;i++){const g=grid[i];if(Math.abs(g[1]-lat)>0.4||Math.abs(g[0]-lon)>0.6)continue;const v=C.distance(g,[lon,lat]);if(v<d){d=v;best=i;}}return best>=0&&d<=12?best:null;}
 /* Mesh triangles that touch a sample outside coverage: one quiet neutral tint instead of dots. */
 function outsideArea(){const T=mesh.triangles,polys=[];for(let t=0;t<T.length;t+=3){const ids=[T[t],T[t+1],T[t+2]];if(ids.every(i=>supported[i]))continue;const r=ids.map(i=>grid[i]);
   const a=(r[1][0]-r[0][0])*(r[2][1]-r[0][1])-(r[2][0]-r[0][0])*(r[1][1]-r[0][1]);if(a<0)r.reverse();r.push(r[0]);polys.push([r]);}
+ return{type:'FeatureCollection',features:[{type:'Feature',properties:{},geometry:{type:'MultiPolygon',coordinates:polys}}]};}
+
+/* ---------- land-only display (render-time clip; values, reports and the 25-mile definition are unchanged) ---------- */
+const ringArea=r=>{let a=0;for(let i=0,n=r.length;i<n;i++){const p=r[i],q=r[(i+1)%n];a+=p[0]*q[1]-q[0]*p[1];}return a/2;};
+const orient=(r,ccw)=>(ringArea(r)>0)===ccw?r:r.slice().reverse();
+function setLand(mask){const polys=mask.land.coordinates;landPolys=polys.map(rings=>{let x0=180,y0=90,x1=-180,y1=-90;for(const [x,y] of rings[0]){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}return{rings,box:[x0,y0,x1,y1]};});
+ onLand=new Uint8Array(grid.length);for(const i of mask.grid_on_land)onLand[i]=1;}
+function inRing(r,x,y){let c=false;for(let i=0,j=r.length-1;i<r.length;j=i++){const a=r[i],b=r[j];if((a[1]>y)!==(b[1]>y)&&x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])c=!c;}return c;}
+function inLand(x,y){if(!landPolys)return true;for(const {rings,box} of landPolys){if(x<box[0]||x>box[2]||y<box[1]||y>box[3])continue;if(inRing(rings[0],x,y)&&!rings.slice(1).some(h=>inRing(h,x,y)))return true;}return false;}
+/* Everything that is not lower-48 land, as one plain-background polygon drawn above the shading. */
+function waterMask(){if(!landPolys)return none();const outer=orient([[-179.9,-85],[179.9,-85],[179.9,85],[-179.9,85],[-179.9,-85]],true);
+ const polys=[[outer,...landPolys.map(p=>orient(p.rings[0],false))]];for(const p of landPolys)for(const h of p.rings.slice(1))polys.push([orient(h,true)]);
  return{type:'FeatureCollection',features:[{type:'Feature',properties:{},geometry:{type:'MultiPolygon',coordinates:polys}}]};}
 
 /* ---------- availability ---------- */
@@ -49,21 +61,23 @@ function showUnavailable(){const box=$('scUnavailable');box.hidden=available();i
 
 /* ---------- map ---------- */
 function palette(){const light=document.documentElement.dataset.theme!=='dark';return{land:light?'#f4f5f2':'#151a22',line:light?'#3d4450':'#c9d0da',county:light?'#8d949e':'#6c7583',water:light?'#e2ebf5':'#192b3b',text:light?'#172438':'#e7ecf3',outside:light?'#dde1e6':'#262d37',report:'#0b0f14',reportEdge:'#ffffff'};}
-async function createMap(view){const [states,lakes,cty]=await Promise.all([fetch('assets/severe-research/states.json').then(r=>r.json()),fetch('assets/severe-research/lakes.json').then(r=>r.json()),counties()]);
+async function createMap(view){const [states,lakes,cty,land]=await Promise.all([fetch('assets/severe-research/states.json').then(r=>r.json()),fetch('assets/severe-research/lakes.json').then(r=>r.json()),counties(),fetch('assets/severe-conus-land.json').then(r=>r.ok?r.json():null).catch(()=>null)]);
+ if(land&&Array.isArray(land.grid_on_land))setLand(land);
  const p=palette(),compact=$('scMap').clientWidth<560;
  map=new maplibregl.Map({container:'scMap',center:view?.center||[-96,38.5],zoom:view?.zoom??3.4,minZoom:2.5,maxZoom:10,renderWorldCopies:false,dragRotate:false,pitchWithRotate:false,attributionControl:false,style:{version:8,glyphs:new URL('assets/maps/fonts/open-sans-v1/{fontstack}/{range}.pbf',location.href).href.replace(/%7B/g,'{').replace(/%7D/g,'}'),sources:{},layers:[{id:'sc-bg',type:'background',paint:{'background-color':p.land}}]}});
  map.touchZoomRotate.disableRotation();map.addControl(new maplibregl.NavigationControl({showCompass:false}),'bottom-right');
  map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:'CONUS research preview · NOAA HRRR / NCEI Storm Events · US Census / us-atlas · Natural Earth'}),'bottom-left');
  await new Promise(res=>map.on('load',res));
  const attrib=map.getContainer().querySelector('.maplibregl-ctrl-attrib');if(attrib)attrib.classList.remove('maplibregl-compact-show');
- for(const [id,data] of [['sc-states',states],['sc-lakes',lakes],['sc-outside',outsideFill],['sc-fill',none()],['sc-lines',none()],['sc-unavail',none()],['sc-near',none()],['sc-ring',none()],['sc-sel',none()]])map.addSource(id,{type:'geojson',data});
+ for(const [id,data] of [['sc-states',states],['sc-water',waterMask()],['sc-outside',outsideFill],['sc-fill',none()],['sc-lines',none()],['sc-unavail',none()],['sc-near',none()],['sc-ring',none()],['sc-sel',none()]])map.addSource(id,{type:'geojson',data});
  map.addSource('sc-reports',{type:'geojson',data:none(),cluster:true,clusterRadius:26,clusterMaxZoom:6});
  if(cty)map.addSource('sc-counties',{type:'geojson',data:cty});
  // Layer order: neutral outside tint, probability fill, water, thin band outlines, counties, states, labels, footprint, reports, selection.
  map.addLayer({id:'sc-outside',type:'fill',source:'sc-outside',paint:{'fill-color':p.outside,'fill-opacity':.7,'fill-antialias':false}});
  map.addLayer({id:'sc-fill',type:'fill',source:'sc-fill',paint:{'fill-color':['get','color'],'fill-opacity':['case',['<',['get','threshold'],.02],.42,.66],'fill-antialias':false}});
- map.addLayer({id:'sc-lakes',type:'fill',source:'sc-lakes',paint:{'fill-color':p.water}});
  map.addLayer({id:'sc-lines',type:'line',source:'sc-lines',paint:{'line-color':'#1f2329','line-width':['case',['<',['get','threshold'],.02],.3,.55],'line-opacity':['case',['<',['get','threshold'],.02],.25,.45]}});
+ // Land-only: water, Canada/Mexico and inland lakes are plain background above the shading, contours and tint.
+ map.addLayer({id:'sc-water',type:'fill',source:'sc-water',paint:{'fill-color':p.land,'fill-opacity':1}});
  // County lines: a light core over a faint dark edge, so they read on the dark basemap and on the gray low-probability bands.
  // Always thinner than state borders (core 0.45-1.0 px vs states 0.9-1.8 px); same zoom fade-in as before.
  if(cty){map.addLayer({id:'sc-counties-edge',type:'line',source:'sc-counties',minzoom:4.8,layout:{visibility:showCounties?'visible':'none'},paint:{'line-color':'#0b0f14','line-width':['interpolate',['linear'],['zoom'],5,1.2,8,2],'line-opacity':['interpolate',['linear'],['zoom'],4.8,0,5.8,.28,8,.35]}});
@@ -79,6 +93,7 @@ async function createMap(view){const [states,lakes,cty]=await Promise.all([fetch
  // Selected forecast point: a hollow cyan target (reports are filled dark dots with a white ring).
  map.addLayer({id:'sc-sel',type:'circle',source:'sc-sel',paint:{'circle-color':'rgba(0,0,0,0)','circle-radius':9,'circle-stroke-color':SEL,'circle-stroke-width':2.5}});
  map.addLayer({id:'sc-sel-dot',type:'circle',source:'sc-sel',paint:{'circle-color':SEL,'circle-radius':2.5,'circle-stroke-color':'#0b0f14','circle-stroke-width':1}});
+ map.moveLayer('sc-labels','sc-water');
  for(const id of ['sc-report','sc-clusters']){map.on('mouseenter',id,()=>{map.getCanvas().style.cursor='pointer';});map.on('mouseleave',id,()=>{map.getCanvas().style.cursor='';});}
  map.on('click',e=>{const hit=map.queryRenderedFeatures(e.point,{layers:['sc-report','sc-clusters']})[0];
   if(hit&&hit.layer.id==='sc-clusters'){map.getSource('sc-reports').getClusterExpansionZoom(hit.properties.cluster_id).then(z=>map.easeTo({center:hit.geometry.coordinates,zoom:Math.min(z+0.3,10),duration:400})).catch(()=>{});return;}
@@ -128,7 +143,7 @@ function meta(){const c=active,d=c.data;
  $('scWindow').innerHTML=(c.kind==='current'?'<span class="sc-kind sc-kind-saved">SAVED FORECAST</span>':'<span class="sc-kind">REPLAY</span>')+' Valid '+esc(eastern(d.valid_start))+' → '+esc(eastern(d.valid_end));
  $('scCycle').textContent='HRRR '+utc(d.model_init_time)+' run (f24–48) · Day 2 · '+utc(d.valid_start)+' – '+utc(d.valid_end)+(c.kind==='current'?' · fixed snapshot, does not update':'');
  $('scCaseNote').textContent=c.description;reportUi();}
-function coverageNote(){const v=index.coverage;$('scCoverage').textContent='Coverage: '+n(v.supported)+' of '+n(v.samples)+' grid points (within 25 miles of US land). The neutral tint marks grid points beyond that; areas off the grid have no forecast. Blank inside coverage means below 0.1%.';$('scDefinition').textContent='Chance of a ≥50 kt thunderstorm wind report within 25 miles of a point during the 24-hour window. Unshaded inside the US: below 0.1%.';}
+function coverageNote(){const v=index.coverage;$('scCoverage').textContent='Coverage: '+n(v.supported)+' of '+n(v.samples)+' grid points (within 25 miles of US land). The neutral tint marks grid points beyond that; areas off the grid have no forecast. Blank inside coverage means below 0.1%.';$('scDefinition').textContent='Chance of a ≥50 kt thunderstorm wind report within 25 miles of a point during the 24-hour window. Unshaded inside the US: below 0.1%. Water and areas outside the lower 48 are not shaded.';}
 function benchmark(){const b=index.benchmark,names={conus:'All CONUS',original_box:'Old regional box',plains_outside_box:'Plains (outside box)',northeast_outside_box:'Northeast (outside box)',west:'West',florida_gulf_south:'Florida / Gulf'};const f=x=>x==null?'—':(x*100).toFixed(1)+'%',s=x=>x==null?'—':(x>=0?'+':'')+x.toFixed(3);
  $('scBench').innerHTML='<thead><tr><th>Region</th><th>Report days</th><th>Skill vs base rate: candidate / NadoCast</th><th>Reports caught at 5%: candidate / NadoCast</th></tr></thead><tbody>'+Object.keys(names).filter(k=>b.regions[k]).map(k=>{const r=b.regions[k];return '<tr><th>'+names[k]+'</th><td>'+r.report_days+'</td><td>'+s(r.candidate.bss)+' / '+s(r.nadocast.bss)+'</td><td>'+f(r.candidate.pod_5pct)+' / '+f(r.nadocast.pod_5pct)+'</td></tr>';}).join('')+'</tbody>';
  const box=b.regional_box_vs_live_v07;$('scBenchNote').textContent='Source: '+b.source+'. Inside the old regional box the candidate beat live v0.7 (Brier '+box.candidate_minus_live_brier.toFixed(5)+', 95% '+box.candidate_minus_live_brier_95.map(x=>x.toFixed(5)).join(' to ')+'). It trails NadoCast nationally and in the West; Florida/Gulf has no skill for any model and the candidate paints far too much area there.';}
@@ -148,10 +163,10 @@ function draw(){if(!ready)return;showUnavailable();const ok=available()&&values;
  for(const id of ['sc-clusters','sc-cluster-count','sc-report'])map.setLayoutProperty(id,'visibility',replay&&showReports?'visible':'none');
  for(const id of ['sc-counties','sc-counties-edge'])if(map.getLayer(id))map.setLayoutProperty(id,'visibility',showCounties?'visible':'none');
  map.triggerRepaint();showSample();}
-function select(coord,name){const i=nearest(...coord);selected=i;offGrid=i===null;focusName=i===null?'Outside coverage (no grid point within 12 km)':name;showSample();}
+function select(coord,name){if(!inLand(coord[0],coord[1])){selected=null;offGrid=false;offDisplay=true;focusName='Outside display area';showSample();return;}offDisplay=false;const i=nearest(...coord);selected=i;offGrid=i===null;focusName=i===null?'Outside coverage (no grid point within 12 km)':name;showSample();}
 function inspectLocation(move){const l=O&&O.location;if(!l)return;select([+l.lon,+l.lat],'Nearest point to '+l.name);if(move&&selected!==null&&map)map.easeTo({center:grid[selected],zoom:7,duration:400});}
 function restore(){if(selected===null&&!focusName)inspectLocation(false);else showSample();}
-function showSample(){$('scSample').textContent=focusName||'Saved location';if(!available()){$('scValue').textContent='—';$('scState').textContent='Not available: switch to Day 2 damaging wind, or go back to Regional.';}else{const s=state(selected);$('scValue').textContent=values?s.text:'—';$('scState').textContent=s.kind==='outside'?'Outside coverage: more than 25 miles from US land or off the grid. Not a zero-risk result.':s.kind==='unavailable'?'Data unavailable for this point in this run.':s.kind==='below'?s.note+'.':s.kind==='value'?'Damaging wind chance within 25 miles':'';}
+function showSample(){$('scSample').textContent=focusName||'Saved location';if(!available()){$('scValue').textContent='—';$('scState').textContent='Not available: switch to Day 2 damaging wind, or go back to Regional.';}else{const s=state(selected);$('scValue').textContent=values?s.text:'—';$('scState').textContent=s.kind==='offdisplay'?'Water or outside the lower 48. The preview shades US land only; forecast values and storm reports are unchanged.':s.kind==='outside'?'Outside coverage: more than 25 miles from US land or off the grid. Not a zero-risk result.':s.kind==='unavailable'?'Data unavailable for this point in this run.':s.kind==='below'?s.note+'.':s.kind==='value'?'Damaging wind chance within 25 miles':'';}
  $('scCoords').textContent=selected!==null?grid[selected][1].toFixed(3)+'°, '+grid[selected][0].toFixed(3)+'° · sampled grid center':'No grid point selected.';
  if(!ready)return;const c=selected!==null?grid[selected]:null;map.getSource('sc-ring').setData(c?C.ring(...c):none());map.getSource('sc-sel').setData(c?{type:'Feature',properties:{},geometry:{type:'Point',coordinates:c}}:none());}
 
@@ -177,7 +192,7 @@ $('scBack').addEventListener('click',()=>setMode('regional'));
 $('scWind').addEventListener('click',()=>{day=2;hazard='wind';syncButtons();draw();});
 $('scLocation').addEventListener('click',()=>inspectLocation(true));
 $('scWhole').addEventListener('click',()=>{if(map)map.fitBounds([[-125,24],[-66.5,49.5]],{padding:16,duration:400});});
-$('scPeak').addEventListener('click',()=>{if(!values||!available())return;let b=null;values.forEach((p,i)=>{if(supported[i]&&C.available(p)&&(b===null||p>values[b]))b=i;});if(b!==null){selected=b;focusName='Highest point in this case';showSample();map.easeTo({center:grid[b],zoom:6,duration:400});}});
+$('scPeak').addEventListener('click',()=>{if(!values||!available())return;let b=null;values.forEach((p,i)=>{if(supported[i]&&(!onLand||onLand[i])&&C.available(p)&&(b===null||p>values[b]))b=i;});if(b!==null){offDisplay=false;selected=b;focusName='Highest point in this case';showSample();map.easeTo({center:grid[b],zoom:6,duration:400});}});
 $('scAboutLink').addEventListener('click',e=>{e.preventDefault();$('scAbout').open=true;$('scAbout').scrollIntoView({block:'start',behavior:'smooth'});});
 window.addEventListener('ops:research-location',()=>{if(mode==='conus')inspectLocation(false);});
 function anchor(){if(location.hash==='#severe-conus'){host.open=true;setMode('conus',{force:true,direct:true});host.scrollIntoView({block:'start'});}}
@@ -187,6 +202,6 @@ window.SevereConusPreview={state:()=>({mode,day,hazard,selected,case:active&&act
  select:(lon,lat)=>select([lon,lat],'Test point'),setMode,
  view:(center,zoom)=>new Promise(res=>{if(!map)return res(false);map.once('idle',()=>res(true));map.jumpTo({center,zoom});}),
  project:(lon,lat)=>{const p=map.project([lon,lat]),r=map.getCanvas().getBoundingClientRect();return[r.left+p.x,r.top+p.y];},
- debug:()=>({showReports,src:map&&map.getSource('sc-reports')?(map.getSource('sc-reports').serialize().data.features||[]).length:null}),style:()=>({compact:$('scMap').clientWidth<560,clusterRadius:map.getPaintProperty('sc-clusters','circle-radius'),selColor:map.getPaintProperty('sc-sel','circle-stroke-color'),selFill:map.getPaintProperty('sc-sel','circle-color'),reportColor:map.getPaintProperty('sc-report','circle-color'),attribOpen:!!map.getContainer().querySelector('.maplibregl-compact-show')}),rendered:(layer)=>map&&map.getLayer(layer)?map.queryRenderedFeatures({layers:[layer]}).length:-1,
+ debug:()=>({showReports,src:map&&map.getSource('sc-reports')?(map.getSource('sc-reports').serialize().data.features||[]).length:null}),style:()=>({compact:$('scMap').clientWidth<560,clusterRadius:map.getPaintProperty('sc-clusters','circle-radius'),selColor:map.getPaintProperty('sc-sel','circle-stroke-color'),selFill:map.getPaintProperty('sc-sel','circle-color'),reportColor:map.getPaintProperty('sc-report','circle-color'),attribOpen:!!map.getContainer().querySelector('.maplibregl-compact-show')}),inLand:(x,y)=>inLand(x,y),gridPoint:i=>grid&&i!=null?grid[i]:null,landReady:()=>!!landPolys,rendered:(layer)=>map&&map.getLayer(layer)?map.queryRenderedFeatures({layers:[layer]}).length:-1,
  report:(id)=>reports&&reports.byId.get(String(id))||null,reportList:()=>reports?reports.list:null};
 })();
