@@ -1405,8 +1405,8 @@
     if (carto) { // swap the street map's light/dark style, keeping our sources and layers
       const next = await cartoStyle(light() ? "light" : "dark"); if (!next) { themePaints(c); drawAll(); return; }
       const prev = map.getStyle(), ours = prev.layers.filter((l) => OUR.includes(l.id) || l.id === "radar"), keepSrc = Object.fromEntries(Object.entries(prev.sources).filter(([k]) => !next.sources[k]));
-      map.once("style.load", () => { baseLines(); orderOverBase(); themePaints(pal()); radar.tiles = null; drawAll(); });
-      map.setStyle(next, { transformStyle: () => ({ ...next, sources: { ...next.sources, ...keepSrc }, layers: [...next.layers, ...ours] }) });
+      map.once("style.load", () => { baseLines(); orderOverBase(); themePaints(pal()); radar.tiles = null; drawAll(); }); // hatch is re-added in themePaints
+      map.setStyle(next, { diff: false, transformStyle: () => ({ ...next, sources: { ...next.sources, ...keepSrc }, layers: [...next.layers, ...ours] }) }); // a full reload, so style.load runs
       return; }
     map.setPaintProperty("bg", "background-color", c.land); map.setPaintProperty("lakes", "fill-color", c.water); map.setPaintProperty("states", "line-color", c.line);
     map.setPaintProperty("cities", "text-color", c.muted); map.setPaintProperty("cities", "text-halo-color", c.halo);
