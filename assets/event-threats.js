@@ -361,7 +361,7 @@
         Object.entries({ ifi: "1", ifield: field, gft: String(f.peak.ft), gfh: String(f.peak.fh), focus: f.midPt.map((x) => x.toFixed(3)).join(","), ...(R.fixture ? { ifisrc: "fixture" } : { icyc: R.cycle }) }).forEach(([k, v]) => u.searchParams.set(k, v)); return u.toString(); };
       const item = (field, f, i) => {
         const id = "ifi|" + field + "|" + i + "|" + f.fromMi + "-" + f.toMi + "|" + R.cycle, where = f.fromMi === f.toMi ? "about " + f.fromMi + " miles from " + oName : f.fromMi + "–" + f.toMi + " miles from " + oName, lv = f.levels.map(ft).join(", ");
-        const what = field === "prob" ? "Icing probability up to " + pc(f.peak.v) : "Modeled " + IFM.SEV_WORD[f.peak.v] + " icing";
+        const what = field === "prob" ? "Icing probability up to " + pc(f.peak.v) + " modeled" : "Modeled " + IFM.SEV_WORD[f.peak.v] + " icing";
         const when = R.timed ? ", around " + cl(f.encounter.fromMs) + (f.encounter.toMs - f.encounter.fromMs >= 60e3 ? "–" + cl(f.encounter.toMs) : "") + " (approximate)" : "";
         const head = R.timed ? `${what} ${where}${when}, at ${lv} · IFI model guidance` : `Potential overlap: ${what.charAt(0).toLowerCase() + what.slice(1)} ${where} at ${lv}, valid ${f.validTimes.map(cl).join(" and ")} · IFI model guidance`;
         const same = field === "prob" ? (f.peak.sevSame == null ? "Modeled severity at the same spot, height and valid time is not a published code." : "At the same spot, height and valid time, modeled severity is " + IFM.SEV_WORD[f.peak.sevSame] + " (code " + f.peak.sevSame + ").")
