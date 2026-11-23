@@ -2,7 +2,7 @@
 (function () {
   "use strict";
   const O = window.Ops, $ = O.$, C = O.Core;
-  O.shell("thunder", "Thunder");
+  O.shell("thunder", "Storm timing"); O.severeViews($("severeViews"), "thunder");
 
   /* Models, variables and request settings are shared with the overview: OpsCore.config.thunder */
   const SPEC = C.config.thunder, MODELS = SPEC.models;

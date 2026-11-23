@@ -322,5 +322,37 @@ eq(C.verify.record({ kind: "daily", source: "nws", values: { hi: 60 } }).schema,
   eq([e.id, e.minMembers, e.optional], ["ncep_rrfs_conus_ensemble", 5, true], "RRFS ensemble is the five-member product, not full REFS");
   eq(C.config.blend.extra.find(m => m.id === "rrfs_ens").w, 1.25, "RRFS ensemble has the explicitly selected default weight");
 }
+
+/* winter.stickRead: an interpreted read from the guidance on the page; synthetic cases */
+{
+  const SR = C.winter.stickRead, H0 = Date.UTC(2026, 11, 10, 0);
+  const hrs = (n, f) => Array.from({ length: n }, (_, i) => ({ ms: H0 + i * 3600e3, inWin: i >= 6, ...f(i) }));
+  const det = (type, t2F, twF, soilC, snowIn) => ({ type, t2F, twF, soilC, snowIn });
+  const stOf = (p50, p90, pAny, p10 = 0) => ({ used: 50, total: 52, p10, p50, p90, P: { 0.1: pAny, 1: p50 >= 1 ? 0.6 : 0.1 } });
+  /* dry: nothing falls, members agree */
+  let r = SR(hrs(30, () => ({ snow50: 0, t50: 25, det: [det("none", 25, 22, -2, 0)] })), stOf(0, 0, 0.02));
+  eq([r.status, r.grass.level, r.paved.level, r.ranges.length], ["dry", "none", "none", 0], "stick: dry case is dry, no surfaces, no window");
+  /* marginal: 33-34F light snow on mild ground -> grass possible at most, pavement unlikely */
+  r = SR(hrs(30, (i) => ({ snow50: i >= 10 && i < 18 ? 0.08 : 0, t50: 34, det: [det(i >= 10 && i < 18 ? "snow" : "none", 34, 32, 3, 0.08)] })), stOf(0.6, 1.4, 0.8));
+  eq([r.status, r.grass.level, r.paved.level], ["snow", "possible", "unlikely"], "stick: marginal light snow near 34F may stick on grass, not pavement");
+  eq(r.ranges.length > 0 && r.callouts.some((c) => c.kind === "warmground"), true, "stick: marginal case gives a window and flags mild ground");
+  /* transition: rain then colder accumulating snow with a heavy burst after a long sub-freezing stretch */
+  r = SR(hrs(36, (i) => { const T = i < 14 ? 36 - i * 0.2 : 31 - (i - 14) * 0.3; const snow = i >= 16 && i < 30, rain = i >= 8 && i < 16;
+    return { snow50: snow ? (i === 22 ? 1.2 : 0.35) : 0, t50: T, det: [det(rain ? "rain" : snow ? "snow" : "none", T, T - 1.5, -0.5, snow ? 0.35 : 0), det(rain ? "rain" : snow ? "snow" : "none", T, T - 1, -0.3, snow ? 0.3 : 0)] }; }), stOf(4.5, 7.5, 0.97, 2.5));
+  eq([r.status, r.grass.level, r.paved.level], ["snow", "favored", "favored"], "stick: colder accumulating snow is favored on grass and pavement");
+  const kinds = r.callouts.map((c) => c.kind);
+  eq(["transition", "cooling", "burst"].every((k) => kinds.includes(k)), true, "stick: transition case calls out rain-to-snow, drop below freezing and the heavy burst");
+  eq(r.amount.conf, "moderate", "stick: transition case amount confidence reflects the spread");
+  /* missing: no ensembles and no deterministic models -> no data */
+  r = SR(hrs(30, () => ({ snow50: null, t50: null, det: [] })), null);
+  eq([r.status, r.amount, r.missing.includes("ensemble snowfall")], ["nodata", null, true], "stick: missing guidance is reported, not guessed");
+  /* ensembles down but some temperatures remain, no deterministic models: can't call it dry */
+  r = SR(hrs(30, () => ({ snow50: null, t50: 30, det: [] })), null);
+  eq(r.status, "nodata", "stick: temperatures alone never produce a dry or no-snow verdict");
+  /* conflicting: ensemble snow while models split rain/snow -> conflict named */
+  r = SR(hrs(30, (i) => ({ snow50: i >= 8 && i < 20 ? 0.2 : 0, t50: 33, det: i >= 8 && i < 20 ? [det("snow", 33, 31, 0, 0.2), det("rain", 34, 33, 1, 0), det("snow", 33, 31, 0, 0.2), det("rain", 35, 33, 1, 0)] : [] })), stOf(1.5, 3, 0.7));
+  eq(typeof r.conflict === "string" && /split/.test(r.conflict), true, "stick: models split on type is named as conflicting guidance");
+  eq(r.missing.includes("modeled ground temperature"), false, "stick: ground temperature counted when any model has it");
+}
 console.log(`ok - ${n} checks passed`);
 
