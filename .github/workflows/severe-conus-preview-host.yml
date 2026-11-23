@@ -1,0 +1,38 @@
+# CONUS Severe research preview: confirm the public beta host serves this exact commit, then drive it headlessly.
+# Runs only for the preview branch. Read-only: commits nothing, touches no live feed, publisher or collector.
+name: CONUS research preview host check
+on:
+  push:
+    branches: [claude/severe-conus-preview]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency: { group: conus-preview-host, cancel-in-progress: true }
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      BASE: https://raw.githack.com/${{ github.repository }}/${{ github.ref_name }}/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Wait until the beta host serves this commit (every file severe.html and the CONUS viewer load)
+        run: |
+          echo "commit $GITHUB_SHA"
+          FILES="severe.html $(grep -ho '\(src\|href\)="assets/[^"?]*' severe.html | sed 's/^[a-z]*="//') assets/maps/basemap.json $(ls assets/severe-conus/*.json)"
+          FILES="$(printf '%s\n' $FILES | sort -u | tr '\n' ' ')"; echo "checking $(echo $FILES | wc -w) files"
+          for i in $(seq 1 40); do stale=""
+            for f in $FILES; do [ "$(curl -fsSL "${BASE}$f" | sha256sum | cut -c1-16)" = "$(sha256sum "$f" | cut -c1-16)" ] || stale="$stale $f"; done
+            if [ -z "$stale" ]; then echo "host serves commit $GITHUB_SHA for all files"; exit 0; fi
+            echo "waiting for:$stale"; sleep 30; done
+          echo "::error::beta host still stale after 20 minutes:$stale"; exit 1
+      - run: |
+          npm install --no-save playwright@1.48.2
+          npx playwright install --with-deps chromium || npx playwright install chromium
+      - name: Hosted CONUS / Regional check (desktop and phone)
+        run: mkdir -p out && node tools/conus-preview-host-check.js "$BASE" out
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: conus-preview-host, path: out, retention-days: 30 }
