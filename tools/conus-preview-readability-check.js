@@ -52,9 +52,25 @@ async function waitReports(p){await p.waitForFunction(()=>window.SevereConusPrev
  // regional still fine
  await p.click('[data-sc-view="regional"]');await p.waitForTimeout(1500);ok('regional view visible',await p.isVisible('.sd-regional'));
  ok('no page errors',errs.length===0,errs);
- // phone
- const m=await (await b.newContext({...devices['iPhone 13']})).newPage();await open(m);await m.selectOption('#scCase','replay-2024-05-25');await waitReports(m);await m.evaluate(()=>window.SevereConusPreview.view([-88,37.5],3.3));await m.waitForTimeout(800);
- const dims=await m.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,mh:document.getElementById('scMap').getBoundingClientRect().height,vh:innerHeight}));ok('phone: no sideways scroll, map ≥65% of screen',dims.sw<=dims.cw&&dims.mh>=0.65*dims.vh,dims);
- await m.evaluate(()=>{const e=document.querySelector('#scWindow');window.scrollTo(0,e.getBoundingClientRect().top+scrollY-8);});await m.waitForTimeout(800);await m.screenshot({path:`${OUT}/after-phone.png`});
- await m.evaluate(()=>window.SevereConusPreview.view([-84.6,39.1],7.4));await m.waitForTimeout(1500);await m.locator('#scMap').scrollIntoViewIfNeeded();await m.screenshot({path:`${OUT}/after-phone-cvg.png`});
+ // selected point vs storm report (desktop)
+ const sty=await p.evaluate(()=>window.SevereConusPreview.style());ok('selected point uses a distinct symbol from a storm report',sty.selFill==='rgba(0,0,0,0)'&&sty.selColor!==sty.reportColor,{sel:sty.selColor,report:sty.reportColor});
+ // phones: 360 and 390 px, May 26 replay, national and CVG
+ for(const [w,h,label] of [[360,740,'360'],[390,844,'390']]){
+  const ctx=await b.newContext({viewport:{width:w,height:h},deviceScaleFactor:3,isMobile:true,hasTouch:true,userAgent:devices['iPhone 13'].userAgent});const m=await ctx.newPage();const merr=[];m.on('pageerror',e=>merr.push(e.message));
+  await open(m);await m.selectOption('#scCase','replay-2024-05-25');await waitReports(m);await m.evaluate(()=>window.SevereConusPreview.view([-88,37.5],3.2));await m.waitForTimeout(800);
+  const st=await m.evaluate(()=>window.SevereConusPreview.style());
+  const radii=st.clusterRadius.slice(2).filter((x,i)=>i%2===0);
+  ok(label+'px: attribution starts collapsed',!st.attribOpen);
+  ok(label+'px: compact cluster badges (largest ≤ 12 px)',st.compact&&Math.max(...radii)<=12,radii);
+  const dims=await m.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,mh:document.getElementById('scMap').getBoundingClientRect().height,vh:innerHeight}));ok(label+'px: no sideways scroll, map ≥ 60% of screen',dims.sw<=dims.cw&&dims.mh>=0.6*dims.vh,dims);
+  ok(label+'px: national clusters drawn',await m.evaluate(()=>window.SevereConusPreview.rendered('sc-clusters'))>0);
+  await m.evaluate(()=>{const e=document.querySelector('#scWindow');window.scrollTo(0,e.getBoundingClientRect().top+scrollY-8);});await m.waitForTimeout(600);await m.screenshot({path:`${OUT}/after-phone${label}-national.png`});
+  await m.evaluate(()=>window.SevereConusPreview.view([-84.6,39.1],7.4));await m.waitForTimeout(1200);
+  ok(label+'px: county lines at CVG',await m.evaluate(()=>window.SevereConusPreview.rendered('sc-counties'))>0);
+  const pick=await m.evaluate(()=>{const L=window.SevereConusPreview.reportList(),c=[-84.6,39.1];let best=null,d=1e9;for(const r of L){const dd=Math.hypot(r.lon-c[0],r.lat-c[1]);if(dd<d){d=dd;best=r;}}return best;});
+  await m.locator('#scMap').scrollIntoViewIfNeeded();await m.waitForTimeout(400);const xy=await m.evaluate(r=>window.SevereConusPreview.project(r.lon,r.lat),pick);await m.touchscreen.tap(xy[0],xy[1]);await m.waitForTimeout(800);
+  const pop=await m.textContent('.maplibregl-popup-content').catch(()=>null);const href=await m.getAttribute('.maplibregl-popup-content a','href').catch(()=>null);
+  ok(label+'px: tapping a report opens its NOAA record details',pop&&pop.includes(pick.id)&&href===('https://www.ncdc.noaa.gov/stormevents/eventdetails.jsp?id='+pick.id),{id:pick.id,popup:pop&&pop.slice(0,120)});
+  await m.screenshot({path:`${OUT}/after-phone${label}-cvg.png`});
+  ok(label+'px: no page errors',merr.length===0,merr);await ctx.close();}
  fs.writeFileSync(`${OUT}/checks.json`,JSON.stringify(R,null,1));await b.close();if(R.some(r=>!r.pass))process.exit(1);})().catch(e=>{console.error(e);process.exit(1);});

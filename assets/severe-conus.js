@@ -8,6 +8,7 @@ const host=document.getElementById('severe-daily');if(!host)return;
 const O=window.Ops,C=window.SevereResearchCore,G=window.SevereResearchContours,$=id=>document.getElementById(id);
 const BASE='assets/severe-conus/',none=()=>({type:'FeatureCollection',features:[]});let empty=none();
 const HZ={tornado:'Tornado',wind:'Damaging wind',hail:'Severe hail'};
+const SEL='#22d3ee';
 const NCEI_EVENT='https://www.ncdc.noaa.gov/stormevents/eventdetails.jsp?id=';
 let offGrid=false,mode='regional',day=2,hazard='wind',index,grid,supported,mesh,outsideFill=none(),map,ready=false,values=null,active=null,reports=null,selected=null,focusName='',
  showReports=true,showCounties=true,showNear=false,request=0,loaded=false,lastView=null,popup=null;
@@ -49,7 +50,7 @@ function showUnavailable(){const box=$('scUnavailable');box.hidden=available();i
 /* ---------- map ---------- */
 function palette(){const light=document.documentElement.dataset.theme!=='dark';return{land:light?'#f4f5f2':'#151a22',line:light?'#3d4450':'#c9d0da',county:light?'#8d949e':'#6c7583',water:light?'#e2ebf5':'#192b3b',text:light?'#172438':'#e7ecf3',outside:light?'#dde1e6':'#262d37',report:'#0b0f14',reportEdge:'#ffffff'};}
 async function createMap(view){const [states,lakes,cty]=await Promise.all([fetch('assets/severe-research/states.json').then(r=>r.json()),fetch('assets/severe-research/lakes.json').then(r=>r.json()),counties()]);
- const p=palette();
+ const p=palette(),compact=$('scMap').clientWidth<560;
  map=new maplibregl.Map({container:'scMap',center:view?.center||[-96,38.5],zoom:view?.zoom??3.4,minZoom:2.5,maxZoom:10,renderWorldCopies:false,dragRotate:false,pitchWithRotate:false,attributionControl:false,style:{version:8,glyphs:new URL('assets/maps/fonts/open-sans-v1/{fontstack}/{range}.pbf',location.href).href.replace(/%7B/g,'{').replace(/%7D/g,'}'),sources:{},layers:[{id:'sc-bg',type:'background',paint:{'background-color':p.land}}]}});
  map.touchZoomRotate.disableRotation();map.addControl(new maplibregl.NavigationControl({showCompass:false}),'bottom-right');
  map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:'CONUS research preview · NOAA HRRR / NCEI Storm Events · US Census / us-atlas · Natural Earth'}),'bottom-left');
@@ -68,11 +69,13 @@ async function createMap(view){const [states,lakes,cty]=await Promise.all([fetch
  map.addLayer({id:'sc-labels',type:'symbol',source:'sc-lines',filter:['>=',['get','threshold'],.05],layout:{'symbol-placement':'line','symbol-spacing':300,'text-field':['concat',['to-string',['*',['get','threshold'],100]],'%'],'text-font':['Open Sans Semibold'],'text-size':10,'text-padding':12},paint:{'text-color':'#171717','text-halo-color':'#fff','text-halo-width':1.5}});
  map.addLayer({id:'sc-unavail',type:'circle',source:'sc-unavail',paint:{'circle-radius':['interpolate',['linear'],['zoom'],3,1.5,7,3.5],'circle-color':'rgba(0,0,0,0)','circle-stroke-color':'#7a2a8c','circle-stroke-width':1}});
  map.addLayer({id:'sc-near',type:'circle',source:'sc-near',layout:{visibility:'none'},paint:{'circle-radius':['interpolate',['linear'],['zoom'],3,1.2,7,3],'circle-color':'#ffffff','circle-stroke-color':'#3b4250','circle-stroke-width':.5,'circle-opacity':.8}});
- map.addLayer({id:'sc-clusters',type:'circle',source:'sc-reports',filter:['has','point_count'],paint:{'circle-color':p.report,'circle-opacity':.88,'circle-stroke-color':p.reportEdge,'circle-stroke-width':1.5,'circle-radius':['step',['get','point_count'],9,10,12,50,15,200,19]}});
- map.addLayer({id:'sc-cluster-count',type:'symbol',source:'sc-reports',filter:['has','point_count'],layout:{'text-field':['get','point_count_abbreviated'],'text-font':['Open Sans Semibold'],'text-size':10,'text-allow-overlap':true},paint:{'text-color':p.reportEdge}});
- map.addLayer({id:'sc-report',type:'circle',source:'sc-reports',filter:['!',['has','point_count']],paint:{'circle-color':p.report,'circle-radius':['interpolate',['linear'],['zoom'],4,3.5,8,6],'circle-stroke-color':p.reportEdge,'circle-stroke-width':2}});
- map.addLayer({id:'sc-ring',type:'line',source:'sc-ring',paint:{'line-color':p.text,'line-width':2,'line-dasharray':[3,2]}});
- map.addLayer({id:'sc-sel',type:'circle',source:'sc-sel',paint:{'circle-color':p.land,'circle-radius':5,'circle-stroke-color':p.text,'circle-stroke-width':2}});
+ map.addLayer({id:'sc-clusters',type:'circle',source:'sc-reports',filter:['has','point_count'],paint:{'circle-color':p.report,'circle-opacity':.82,'circle-stroke-color':p.reportEdge,'circle-stroke-width':compact?1.2:1.5,'circle-radius':['step',['get','point_count']].concat(compact?[6,10,8,50,10,200,12]:[8,10,10,50,13,200,16])}});
+ map.addLayer({id:'sc-cluster-count',type:'symbol',source:'sc-reports',filter:['has','point_count'],layout:{'text-field':['get','point_count_abbreviated'],'text-font':['Open Sans Semibold'],'text-size':compact?8.5:10,'text-allow-overlap':true},paint:{'text-color':p.reportEdge}});
+ map.addLayer({id:'sc-report',type:'circle',source:'sc-reports',filter:['!',['has','point_count']],paint:{'circle-color':p.report,'circle-radius':['interpolate',['linear'],['zoom'],4,compact?3:3.5,8,compact?5:6],'circle-stroke-color':p.reportEdge,'circle-stroke-width':compact?1.5:2}});
+ map.addLayer({id:'sc-ring',type:'line',source:'sc-ring',paint:{'line-color':SEL,'line-width':2,'line-dasharray':[3,2]}});
+ // Selected forecast point: a hollow cyan target (reports are filled dark dots with a white ring).
+ map.addLayer({id:'sc-sel',type:'circle',source:'sc-sel',paint:{'circle-color':'rgba(0,0,0,0)','circle-radius':9,'circle-stroke-color':SEL,'circle-stroke-width':2.5}});
+ map.addLayer({id:'sc-sel-dot',type:'circle',source:'sc-sel',paint:{'circle-color':SEL,'circle-radius':2.5,'circle-stroke-color':'#0b0f14','circle-stroke-width':1}});
  for(const id of ['sc-report','sc-clusters']){map.on('mouseenter',id,()=>{map.getCanvas().style.cursor='pointer';});map.on('mouseleave',id,()=>{map.getCanvas().style.cursor='';});}
  map.on('click',e=>{const hit=map.queryRenderedFeatures(e.point,{layers:['sc-report','sc-clusters']})[0];
   if(hit&&hit.layer.id==='sc-clusters'){map.getSource('sc-reports').getClusterExpansionZoom(hit.properties.cluster_id).then(z=>map.easeTo({center:hit.geometry.coordinates,zoom:Math.min(z+0.3,10),duration:400})).catch(()=>{});return;}
@@ -159,7 +162,7 @@ function setMode(next,opts={}){if(next===mode&&!opts.force)return;const bridge=w
  try{history.replaceState(null,'',mode==='conus'?'#severe-conus':'#severe-daily');}catch(e){}}
 
 $('scLegend').innerHTML='<span class="sr-legend-band sr-legend-none"><i title="Below 0.1%: not colored"></i>&lt;0.1%</span>'+G.BANDS.map(([,color,label])=>'<span class="sr-legend-band"><i style="background:'+color+';opacity:.75"></i>'+label+'</span>').join('');
-$('scLegend').insertAdjacentHTML('afterend','<div class="sc-keys" id="scKeys"><span class="sc-key"><i class="sc-k-rep"></i>Storm report (numbers: grouped reports)</span><span class="sc-key"><i class="sc-k-out"></i>Outside coverage</span><span class="sc-key"><i class="sc-k-na"></i>Data unavailable</span></div>');
+$('scLegend').insertAdjacentHTML('afterend','<div class="sc-keys" id="scKeys"><span class="sc-key"><i class="sc-k-rep"></i>Storm report (numbers: grouped reports)</span><span class="sc-key"><i class="sc-k-sel"></i>Selected point (dashed: 25-mile area)</span><span class="sc-key"><i class="sc-k-out"></i>Outside coverage</span><span class="sc-key"><i class="sc-k-na"></i>Data unavailable</span></div>');
 host.querySelectorAll('[data-sc-view]').forEach(b=>b.addEventListener('click',()=>{host.open=true;setMode(b.dataset.scView);}));
 host.querySelectorAll('[data-sc-hazard]').forEach(b=>b.addEventListener('click',()=>{hazard=b.dataset.scHazard;syncButtons();draw();}));
 $('scDay').addEventListener('change',()=>{day=+$('scDay').value;syncButtons();draw();});
@@ -181,6 +184,6 @@ window.SevereConusPreview={state:()=>({mode,day,hazard,selected,case:active&&act
  select:(lon,lat)=>select([lon,lat],'Test point'),setMode,
  view:(center,zoom)=>new Promise(res=>{if(!map)return res(false);map.once('idle',()=>res(true));map.jumpTo({center,zoom});}),
  project:(lon,lat)=>{const p=map.project([lon,lat]),r=map.getCanvas().getBoundingClientRect();return[r.left+p.x,r.top+p.y];},
- debug:()=>({showReports,src:map&&map.getSource('sc-reports')?(map.getSource('sc-reports').serialize().data.features||[]).length:null}),rendered:(layer)=>map&&map.getLayer(layer)?map.queryRenderedFeatures({layers:[layer]}).length:-1,
+ debug:()=>({showReports,src:map&&map.getSource('sc-reports')?(map.getSource('sc-reports').serialize().data.features||[]).length:null}),style:()=>({compact:$('scMap').clientWidth<560,clusterRadius:map.getPaintProperty('sc-clusters','circle-radius'),selColor:map.getPaintProperty('sc-sel','circle-stroke-color'),selFill:map.getPaintProperty('sc-sel','circle-color'),reportColor:map.getPaintProperty('sc-report','circle-color'),attribOpen:!!map.getContainer().querySelector('.maplibregl-compact-show')}),rendered:(layer)=>map&&map.getLayer(layer)?map.queryRenderedFeatures({layers:[layer]}).length:-1,
  report:(id)=>reports&&reports.byId.get(String(id))||null,reportList:()=>reports?reports.list:null};
 })();
