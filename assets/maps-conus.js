@@ -518,7 +518,7 @@
       g.fillStyle = fg; t.forEach((v) => g.fillText(String(v), x + ((v - lo) / (hi - lo)) * bw - 8, y + 46)); }
     g.fillStyle = mute; g.font = font(500, 19);
     g.fillText(`Forecast Ops output · Data: ${M.source} · Model guidance, not an official forecast · Not endorsed by NOAA`, 32, H - 48);
-    g.fillText("Basemap: U.S. Census Bureau boundaries via us-atlas, Natural Earth · Colors and rendering: Forecast Ops", 32, H - 20);
+    g.fillText("Basemap: U.S. Census Bureau boundaries via us-atlas, Natural Earth · GeoNames (CC BY 4.0) · Colors and rendering: Forecast Ops", 32, H - 20);
     const blob = await new Promise((ok, no) => c.toBlob((b) => (b ? ok(b) : no(new Error("no image"))), "image/png"));
     const a = document.createElement("a"), name = `forecast-ops-${M.key}-${st.field}-${st.run.id}z-${f2.toLowerCase()}.png`;
     a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);
@@ -614,7 +614,7 @@
       center: hasView ? [view[1], view[0]] : [-97.5, 38.6], zoom: hasView ? view[2] : PHONE() ? 2.6 : 3.7, minZoom: 1.5, maxZoom: 10.5, attributionControl: false, dragRotate: false, pitchWithRotate: false, renderWorldCopies: false,
       maxBounds: [[-175, -5], [-25, 72]] });
     map.touchZoomRotate.disableRotation(); map.addControl(new ML.NavigationControl({ showCompass: false }), "bottom-right");
-    map.addControl(new ML.AttributionControl({ compact: true, customAttribution: `Data: ${M.credit} · Forecast Ops output · US Census (us-atlas) · Natural Earth` }), "bottom-right");
+    map.addControl(new ML.AttributionControl({ compact: true, customAttribution: `Data: ${M.credit} · Forecast Ops output · US Census (us-atlas) · Natural Earth · GeoNames (CC BY 4.0)` }), "bottom-right");
     st.map = map;
     return new Promise((res) => map.on("load", () => {
       Object.entries(base.layers).forEach(([k, v]) => {
@@ -664,7 +664,7 @@
     const ps = $("placeSel"); if (ps) ps.closest("div").hidden = true;
     $("inspect").innerHTML = `<p class="msg">Click or tap the map to read the ${M.name} value in that native ${M.res} cell. Values come from the full-precision grid, never from the display.</p>`;
     const about = document.querySelector("#runInfo") && document.querySelector("#runInfo").previousElementSibling;
-    if (about) about.textContent = "Beta: " + M.about + " on the model's own Lambert conformal projection; areas outside the model grid are left blank. Zoomed out, the map draws every 2nd or 4th native cell (each drawn over the block it stands for) so a loop stays light on a phone; zoom in for every cell. Clicking always reads the native cell at full precision. Only the tiles in view are downloaded. Runs appear hour by hour as NOAA posts them; the 00, 06, 12 and 18 UTC runs go to 48 hours, the others to 18. U.S. county boundaries appear as you zoom in. Geography: US Census boundaries (us-atlas) and Natural Earth (public domain). Model guidance only, not an official forecast.";
+    if (about) about.textContent = "Beta: " + M.about + " on the model's own Lambert conformal projection; areas outside the model grid are left blank. Zoomed out, the map draws every 2nd or 4th native cell (each drawn over the block it stands for) so a loop stays light on a phone; zoom in for every cell. Clicking always reads the native cell at full precision. Only the tiles in view are downloaded. Runs appear hour by hour as NOAA posts them; the 00, 06, 12 and 18 UTC runs go to 48 hours, the others to 18. U.S. county boundaries appear as you zoom in. Geography: US Census boundaries (us-atlas), Natural Earth (public domain) and GeoNames (CC BY 4.0). Model guidance only, not an official forecast.";
   }
   async function start() {
     if (Q.get("compare") === "1" && window.MapsConusCompare) { window.MapsConusCompare.start(); return; }   // it sets up its own page shell

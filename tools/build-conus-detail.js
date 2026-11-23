@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* Generate CONUS county lines (us-atlas 3.0.1, US Census 1:10m) and local place names
-   (Natural Earth 10m populated places v5.1.2, public domain).
+   (Natural Earth 10m populated places v5.1.2 and the existing Tri-State basemap).
    Usage: node tools/build-conus-detail.js path/to/counties-10m.json path/to/ne_10m_populated_places_simple.geojson
    Requires topojson-client (3.1.0). */
 "use strict";
@@ -28,7 +28,7 @@ const lines = counties.coordinates.map((line) => {
   return rounded;
 }).filter((line) => line.length > 1);
 
-const places = JSON.parse(fs.readFileSync(process.argv[3], "utf8")).features
+const naturalEarth = JSON.parse(fs.readFileSync(process.argv[3], "utf8")).features
   .filter(({ geometry, properties }) => {
     if (geometry?.type !== "Point") return false;
     const [lon, lat] = geometry.coordinates;
@@ -40,8 +40,20 @@ const places = JSON.parse(fs.readFileSync(process.argv[3], "utf8")).features
     type: "Feature",
     properties: { name: properties.name, pop: properties.pop_max },
     geometry: { type: "Point", coordinates: geometry.coordinates.map((coord) => Math.round(coord * 1000) / 1000) },
-  }))
-  .sort((a, b) => b.properties.pop - a.properties.pop);
+  }));
+
+const triState = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../assets/maps/basemap.json"), "utf8"));
+const towns = triState.layers.places.features.filter(({ properties, geometry }) =>
+  properties.src === "geonames" && properties.pop < 100000 &&
+  !naturalEarth.some((f) => f.properties.name === properties.name &&
+    Math.abs(f.geometry.coordinates[0] - geometry.coordinates[0]) < 0.15 &&
+    Math.abs(f.geometry.coordinates[1] - geometry.coordinates[1]) < 0.12))
+  .map(({ properties, geometry }) => ({
+    type: "Feature",
+    properties: { name: properties.name, pop: properties.pop },
+    geometry,
+  }));
+const places = [...naturalEarth, ...towns].sort((a, b) => b.properties.pop - a.properties.pop);
 
 const countiesFeature = {
   type: "Feature",
