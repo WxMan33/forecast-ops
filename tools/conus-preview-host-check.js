@@ -5,8 +5,9 @@ const [BASE,OUT]=process.argv.slice(2);
 // raw.githack.com now shows an "External Content Notice" before HTML pages; a visitor clicks through once.
 async function passNotice(pg,label){for(let i=0;i<3;i++){const t=await pg.title().catch(()=>'');if(!/External Content Notice/i.test(t))return;
  const opts=await pg.evaluate(()=>[...document.querySelectorAll('a,button,input[type=submit]')].map(e=>({tag:e.tagName,text:(e.innerText||e.value||'').trim().slice(0,60),href:e.href||''})));console.log('NOTICE '+label,JSON.stringify(opts.filter(o=>o.text||/severe/.test(o.href))));
- const target=pg.locator('a[href*="severe.html"], a:has-text("Open"), button:has-text("Open"), a:has-text("Continue"), button:has-text("Continue"), a:has-text("Proceed"), button:has-text("Proceed")').first();
- await Promise.all([pg.waitForLoadState('load').catch(()=>{}),target.click({timeout:15000})]);await pg.waitForTimeout(3000);}
+ const target=pg.getByRole('button',{name:/open the page/i}).first();
+ await target.waitFor({state:'visible',timeout:30000});for(let k=0;k<30&&await target.isDisabled().catch(()=>false);k++)await pg.waitForTimeout(1000);
+ await Promise.all([pg.waitForURL(u=>!/External/i.test(u.toString()),{timeout:30000}).catch(()=>{}),target.click({timeout:30000})]);await pg.waitForLoadState('load').catch(()=>{});await pg.waitForTimeout(3000);}
  if(/External Content Notice/i.test(await pg.title()))throw Error('could not pass the beta host notice page');}
 
 (async()=>{const b=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});const p=await b.newPage({viewport:{width:1280,height:1000}});const errs=[],logs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>logs.push(m.type()+': '+m.text().slice(0,200)));p.on('requestfailed',r=>logs.push('FAILED '+r.url().slice(0,160)));const resp=[];p.on('response',r=>{const u=r.url();if(/severe|assets\//.test(u))resp.push([r.status(),(r.headers()['content-type']||''),u.split('/').slice(-2).join('/').slice(0,80)]);});
