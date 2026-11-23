@@ -219,7 +219,7 @@ Unit tests (`tests/threats-gtg.test.js`, synthetic fields on the real grid) cove
 - At most 4 heights and 3 hours are checked, named in the summary.
 - About 1–1.3 MB per record, so up to about 15 MB for a long flight.
 
-## Model guidance: In-Flight Icing (IFI) (map only; not in Planner yet)
+## Model guidance: In-Flight Icing (IFI) (map, and Planner along the route)
 
 ### Source verification (2026-11-23)
 
@@ -262,11 +262,12 @@ Unit tests (`tests/threats-gtg.test.js`, synthetic fields on the real grid) cove
   - +0 h, or past +18 h for IFI's cycle: "has no forecast for that time (it covers +1 to +18 h)";
   - a record the function couldn't read: its error;
   - in the fixture replay, a record it doesn't hold: "not in this replay (it has …)".
-- **Fixture replay.** `ifisrc=fixture` reads `tests/fixtures/threats/ifi/` (four official records of cycle 01Z Nov 23: probability at 5,000 ft +3 h and +6 h, and 15,000 ft +3 h; severity at 5,000 ft +3 h; 1.5 MB), with `ifi-fixture.eccodes.json` as the answer key.
+- **Fixture replay.** `ifisrc=fixture` reads `tests/fixtures/threats/ifi/`: eight official records of cycle 01Z Nov 23 (probability and severity at 5,000 and 15,000 ft, +3 h and +6 h; 2.4 MB), with `ifi-fixture.eccodes.json` as the answer key and a replay clock of 02Z. On a demo page the banner says the icing overlay is saved official NOAA guidance, not demo data.
+- **Readouts.** Probability readouts are percentages, like the legend ("icing probability 42%").
 
 ### Checks
 
-- `tests/threats-ifi.test.js` (5): the fixture against ecCodes, field checks, the ground mask and the colours.
+- `tests/threats-ifi.test.js` (12): the fixture against ecCodes, field checks, the ground mask, the colours, and the route analysis.
 - `tests/threats-functions.test.mjs`: the IFI routes.
 - `tools/threats-ifi-check.js`, desktop and phone, on the fixture (local or deployed):
   - altitude 5,000 → 15,000 ft and hour +3 → +6 h each change the drawn image;
@@ -275,6 +276,58 @@ Unit tests (`tests/threats-gtg.test.js`, synthetic fields on the real grid) cove
   - unavailable records (not in the replay, above 30,000 ft, +0 h) draw nothing and say why;
   - returning to an available record draws the same image again.
 - `--live` runs on the preview's newest cycle; `tools/threats-ifi-verify.py` checks the records it drew with ecCodes.
+
+### Planner: "Modeled icing along your route" (2026-11-23)
+
+- **Where.** Below "Modeled turbulence along your route", with its own heading, a cyan "Model guidance · NOAA IFI" badge, and dotted cyan edges. There are separate lists for **icing probability** and **modeled severity**.
+- **On request** ("Check modeled icing (about N MB)"). It uses the same saved route, time in the air and altitude band as turbulence.
+- **What is read.**
+  - Heights: IFI heights on whole thousands of feet in the band (the map's control), up to 4, always the band's lowest and highest.
+  - Hours: whole hours in the time in the air, up to 3, within the cycle's **+1 to +18 h**.
+  - For each height and hour, **both** the probability (0/19/233) and severity (0/19/37) records are read.
+  - SLD is not read.
+- **Thresholds**, named in the summary:
+  - icing probability **40% or more** (the legend's 40–60% bin and up);
+  - modeled severity **moderate or worse** (Table 4.228 code 3 or 4).
+- **Each finding gives** where (miles from the origin and the peak's position), the cycle and valid times, the peak and its height, and **the other field at the very same cell, height and valid time**. For example: "At the same spot, height and valid time, modeled severity is moderate (code 3)" or "… icing probability is 58%".
+- **Times.** With the route's own time in the air, findings give an approximate time ("around 9:55 p.m. (approximate)", from steady progress along the straight line). Otherwise they read "Potential overlap: … valid 10 p.m.".
+- **View on map** opens the map with that field, height, valid time (pinned cycle, or the saved records) and spot (`ifi=1`, `ifield`, `gft`, `gfh`, `icyc` or `ifisrc=fixture`, `focus`).
+- **Quiet lines name what was sampled and the threshold:**
+  - "No icing probability of 40% or more found at the sampled heights and times: 5,000 ft at 10 p.m. (highest 12%)."
+  - "No modeled moderate or worse icing found at the sampled heights and times: … (highest: light)."
+  - When something is missing they add "that could be checked".
+- **Coverage gaps stay visible:**
+  - a record that couldn't be read ("Couldn't read IFI icing probability and severity for 10,000 ft at 10 p.m. (not in the saved records)…");
+  - stretches below the ground at every checked height ("… no icing value there (not 'no icing')");
+  - the lowest heights below the ground for part of the route;
+  - outside the grid;
+  - before +1 h or past +18 h;
+  - a band reaching above 30,000 ft;
+  - an old cycle.
+  - Any of these makes the result incomplete (`data-ifi-complete="false"`).
+- **Sources.** Live, through `/api/ifi` (newest complete cycle, or `?ificyc=` pinned). `?ifisrc=fixture` uses the saved official records on their own replay clock.
+
+**Verified** (`tools/threats-ifi-planner-check.js` on the preview, desktop and phone, 16 of 16). The saved records, cycle 01Z Nov 23; Atlanta (KATL) to St. Louis (KSTL), 483 miles.
+
+| Case | Result |
+|---|---|
+| 15,000 ft, in the air 9:45–10:15 p.m. CST | Probability findings (up to 72%) and moderate or severe findings, with approximate times. Each names the other field at the same cell. |
+| **Altitude changed** to 5,000 ft | None. Both quiet lines name 5,000 ft at 10 p.m. and their thresholds. |
+| **Flight time changed** to 12:45–1:15 a.m. | No probability finding; different severity stretches. |
+| **Unavailable record**: 10,000 ft (not saved) | Shown as a coverage gap naming both fields. Not complete; no quiet "none". |
+| No time in the air of its own | Potential overlaps with valid times; no encounter time. |
+| View on map, probability and severity | The same field, 15,000 ft, valid 04Z, centred on the spot; the same value there (58%; code 3). The readout is in percent; the banner names the saved NOAA guidance. |
+
+Unit tests (`tests/threats-ifi.test.js`, on the saved records) cover:
+- the plan (heights, +1..+18 h, above 30,000 ft);
+- the base case, with the same-cell cross-reference checked against the records;
+- altitude, flight time, and an unavailable record;
+- below the ground (Denver toward Minneapolis at 5,000 ft starts below the ground);
+- a flight before the first hour.
+
+**Limits:**
+- The same assumptions as turbulence: a straight line, the band treated as flown throughout, steady progress.
+- At most 4 heights and 3 hours, each needing two records (about 0.6–0.7 MB per height and hour).
 
 ## Not included
 
