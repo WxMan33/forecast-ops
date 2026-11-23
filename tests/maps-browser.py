@@ -135,14 +135,16 @@ with sync_playwright() as p:
  page.goto(origin+'/maps.html?domain=conus&data='+origin+'/qa-map/data&field=apcp_run&map=39.1,-84.5,8.1')
  page.wait_for_function("window.__conus?.map.queryRenderedFeatures({layers:['counties']}).length > 0")
  page.wait_for_function("window.__conus?.labelsShown?.some(x => String(x.k).startsWith('town:') && x.name && x.text === '0.24')")
- page.wait_for_function("window.__conus?.map.queryRenderedFeatures({layers:['places']}).some(f => f.properties.name === 'Cincinnati')")
- page.locator('#valBtn').click()
+ # A dry place keeps its name: Places plots the name alone, or the basemap name shows it.
+ page.wait_for_function("window.__conus?.map.queryRenderedFeatures({layers:['places','vals']}).some(f => (f.properties.name || f.properties.n) === 'Cincinnati')")
+ assert page.evaluate("__conus.vmode") == 'places', 'Places is the CONUS default'
+ page.select_option('#valSel','off')
  page.wait_for_function("window.__conus?.labelsShown?.length === 0")
  assert page.evaluate("__conus.map.queryRenderedFeatures({layers:['counties']}).length > 0")
  assert page.evaluate("__conus.map.queryRenderedFeatures({layers:['places']}).some(f => f.properties.name === 'Cincinnati')")
  page.evaluate("__conus.map.jumpTo({zoom:4})")
  page.wait_for_function("window.__conus?.map.queryRenderedFeatures({layers:['counties']}).length === 0")
- print('CONUS browser: county lines at local zoom, native named plots, dry city name and Values Off pass')
+ print('CONUS browser: county lines at local zoom, native named plots, Places default, dry city name and Values off pass')
  assert not errors,errors
  print('Map browser: new surface fields against GRIB checkpoints, native labels, local glyphs, no DMA outline, selected-field requests, outage/retry, cached switches, original-cell inspection, precip dependencies, valid-time matching and three widths pass')
  browser.close()
