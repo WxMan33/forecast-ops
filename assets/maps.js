@@ -6,8 +6,10 @@
   "use strict";
   const O = window.Ops, $ = O.$, MC = window.MapsCore, esc = O.esc, ML = window.maplibregl;
   const Q = new URLSearchParams(location.search);
+  if (Q.get("domain") === "conus" && window.MapsConus) { window.MapsConus.start(); return; } // full-CONUS beta: a separate viewer (maps-conus.js)
   const DATA = (Q.get("data") || "https://wxman33.github.io/forecast-ops-maps/data").replace(/\/$/, ""); // read before the shell rewrites the URL
   O.shell("maps", "Model maps", { forecastPoint: false });
+  if (window.MapsConus && Q.get("embed") !== "1") window.MapsConus.regionToggle("tristate");
   const TZ = "America/New_York", H = 3600e3;
   const FIELDS = {
     t2m: { label: "2-m temperature", scale: "t2m", units: "°F", dec: 0, smooth: true },

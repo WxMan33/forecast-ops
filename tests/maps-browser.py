@@ -85,7 +85,7 @@ with sync_playwright() as p:
   page.wait_for_function('window.__maps && __maps.map.areTilesLoaded()')
   assert page.evaluate('Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)<=innerWidth+1')
   assert page.locator('#venueBtn').evaluate('(e)=>e.scrollWidth<=e.clientWidth+1'),'saved-location text stays inside its button'
-  assert page.locator('#mapCtl .seg').evaluate('(e)=>Array.from(e.children).every(b=>b.getBoundingClientRect().right<=e.getBoundingClientRect().right+1)'),'view shortcuts stay inside their group'
+  assert page.locator('#mapCtl .seg[aria-label="Map view"]').evaluate('(e)=>Array.from(e.children).every(b=>b.getBoundingClientRect().right<=e.getBoundingClientRect().right+1)'),'view shortcuts stay inside their group'
   if width==1440:
    names=page.evaluate('__maps.map.getSource("map-labels").serialize().data.features.map(f=>f.properties.name)')
    assert len(names)>=5,('regional cities remain available after phone-to-desktop resize',names)
