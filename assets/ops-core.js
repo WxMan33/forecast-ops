@@ -363,7 +363,7 @@
       const srcHighs = hi.parts.map((p) => p.v);
       return {
         hi: hi.v, lo: lo.v, qpf: qpf.v, sn: sn.v, pop: pop.v, gust: gust.v, feel: feel.v, wind: wind.v, windDir: windDir.deg, windCalm: windDir.calm, windVariable: windDir.variable,
-        hiR: [hi.p10, hi.p90], loR: [lo.p10, lo.p90], qpfR: [qpf.p10, qpf.p90],
+        hiR: [hi.p10, hi.p90], loR: [lo.p10, lo.p90], qpfR: [qpf.p10, qpf.p90], snR: [sn.p10, sn.p90],
         ensR: { hi: eq("temperature_2m", "max", idx), lo: eq("temperature_2m", "min", idx), qpf: eq("precipitation", "sum", A) },
         qpfBounds: qpf.bounds, snBounds: sn.bounds,
         chance: blend.ensChance(data, ids, (id) => blend.w(ws, accRules, id, "precipitation"), A, 0.01),

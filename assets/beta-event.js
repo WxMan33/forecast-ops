@@ -17,8 +17,10 @@
   const linkCity = (() => { const lat = parseFloat(Q.get("lat")), lon = parseFloat(Q.get("lon")); return fin(lat) && fin(lon) ? { name: Q.get("name") || `${lat.toFixed(3)}, ${lon.toFixed(3)}`, lat, lon, tz: Q.get("tz") || null } : null; })();
   const sampleAt = (city) => S.sampleEvent(C, Date.now(), (city && city.tz) || "America/New_York", 1, city || null);
   let retried = false;
-  let lastView = null, chartController = null;
-  let ev = storedOk(Q.get("ev")) || linkEvent || (linkCity ? null : storedOk(E.last())) || null, tzFromPick = false, pickSeq = 0, gen = 0, lastRes = null, bus = null, pendingCity = linkCity;
+  let lastView = null, chartController = null, updatedMs = null, lastHourly = null, hourlyJumped = false;
+  /* a local event address (?ev=…) opened in a browser that doesn't have that event: say so; never show another event */
+  let missingId = Q.get("ev") && !storedOk(Q.get("ev")) && !linkEvent ? Q.get("ev") : null;
+  let ev = storedOk(Q.get("ev")) || linkEvent || (linkCity || missingId ? null : storedOk(E.last())) || null, tzFromPick = false, pickSeq = 0, gen = 0, lastRes = null, bus = null, pendingCity = linkCity;
   if (!ev) ev = sampleAt(linkCity && linkCity.tz ? linkCity : null);
   const isSample = () => !!ev.sample, isStored = () => !!(ev.id && E.getEvent(ev.id));
   /* a saved event opened again in a later session (approximate, per browser) */
@@ -38,15 +40,29 @@
       if (isSample()) ev = sampleAt({ ...p, tz }); else ev = { ...ev, loc: { name: p.name, lat: p.lat, lon: p.lon }, tz };
       run(); } });
   head.onRefresh(() => run());
+  { const pc = $("picker").querySelector(".bx-ppcopy"); if (pc) pc.title = "Copy a link to this event (also under Share)"; }
   $("editBtn").addEventListener("click", () => UP.editEvent(ev, { title: isStored() ? "Edit event" : "Save as your event", onSaved: (rec) => { ev = rec; E.setLast(rec.id); O.store.set(SEEN, Date.now()); history.replaceState(null, "", `?ev=${encodeURIComponent(rec.id)}`); upCount(); run(); } }));
-  $("resetBtn").addEventListener("click", () => { E.setLast(null); history.replaceState(null, "", location.pathname); ev = sampleAt(null); run(); });
+  $("resetBtn").addEventListener("click", () => { E.setLast(null); history.replaceState(null, "", location.pathname); ev = sampleAt(null);
+    if (missingId) { missingId = null; delete document.body.dataset.missing; const pc = $("picker").querySelector(".bx-ppcopy"); if (pc) pc.hidden = false; $("editBtn").hidden = false; $("shareMenu").hidden = false; $("resetBtn").textContent = "Use sample event"; $("secDetails") && ($("secDetails").hidden = false); briefStarted = true; }
+    run(); });
   /* two views on one page: the briefing (main screen) and Upcoming events (#upcoming) */
   let briefStarted = false;
   function upCount() { const n = E.events().length; $("upLink").textContent = n ? `Upcoming events (${n})` : "Upcoming events"; }
   function view() {
     const up = location.hash === "#upcoming"; document.body.dataset.view = up ? "upcoming" : "brief"; $("briefView").hidden = up; $("upView").hidden = !up;
     if (up) { U.track("upcoming_opened"); UP.render($("upView"), { onOpen: (id) => { location.href = `${location.pathname}?ev=${encodeURIComponent(id)}`; } }); window.scrollTo(0, 0); }
-    else { upCount(); if (!briefStarted) { briefStarted = true; run(); } }
+    else { upCount(); if (missingId) { notSaved(); return; } if (!briefStarted) { briefStarted = true; run(); } }
+  }
+  function notSaved() {
+    document.body.dataset.missing = "1"; document.body.dataset.readiness = "missing";
+    $("sampleTag").hidden = true; $("editBtn").hidden = true; $("shareMenu").hidden = true; $("resetBtn").hidden = false; $("resetBtn").textContent = "Open the sample event instead";
+    $("evName").textContent = "Event not found"; $("evVenue").textContent = ""; $("evWhen").textContent = "";
+    $("decision").textContent = "This event isn’t saved in this browser";
+    $("keys").innerHTML = ""; picker.setCurrent({ name: "No event open" }); const pc = $("picker").querySelector(".bx-ppcopy"); if (pc) pc.hidden = true;
+    $("coverage").className = "bx-pending ev-missing"; $("coverage").hidden = false;
+    $("coverage").innerHTML = `<p>Saved events live only in the browser where they were saved, so this address doesn't open them anywhere else.</p>
+      <p class="bx-note">Ask the person who sent it for the <b>Share</b> link (Share → Copy event link), which opens the event on any device, or import their workspace file under <a href="#upcoming">Upcoming events</a> → Workspace → Import workspace.</p>`;
+    $("secTimeline").hidden = true; $("secDetails") && ($("secDetails").hidden = true);
   }
   window.addEventListener("hashchange", view);
   if (isSample()) U.track("sample_opened");
@@ -72,10 +88,13 @@
     /* nothing from the previous briefing (another venue, or guidance that has since failed) may stay on screen or in print */
     lastRes = null; lastView = null;
     if (chartController) { chartController.destroy(); chartController = null; }
+    lastHourly = null; ["shareImage", "tvExport"].forEach((id) => { $(id).disabled = true; $(id).title = "Available once the hourly forecast covers this event"; });
     if ($("map")._dispose) $("map")._dispose();
     ["alerts", "evCharts", "evGrid", "evGridDetail", "evGridLegend", "nwsEv", "blendLine", "hourlyValid", "map", "printView"].forEach((id) => { const el = $(id); if (el) el.innerHTML = ""; });
     head.setUpdated(null);
-    $("decision").textContent = "Reading the guidance…"; $("coverage").hidden = true; document.body.dataset.readiness = ""; ["sourceCoverage", "keys", "schedule", "detailBody", "phases", "changes", "checks", "timeline"].forEach((id) => { $(id).innerHTML = ""; });
+    $("decision").textContent = "Reading the guidance…"; $("coverage").hidden = true; document.body.dataset.readiness = ""; ["sourceCoverage", "keys", "schedule", "daylight", "hourlyDaylight", "detailBody", "phases", "changes", "checks", "timeline"].forEach((id) => { $(id).innerHTML = ""; });
+    /* the schedule and daylight need no forecast: shown now, while the briefing loads, is pending or fails */
+    showSchedule(C.event.windows(ev).filter((w) => w.key !== "all"));
     const alertsPromise = U.alerts(where);
     alertsPromise.then((a) => { if (g !== gen) return; $("alerts").innerHTML = a.available === false ? `<div class="bx-alert-off" role="status" data-alerts="unavailable">NWS alerts could not be checked just now. No alert shown here does not mean none is in effect; check <a href="https://www.weather.gov/" target="_blank" rel="noopener">weather.gov</a>.</div>` : a.slice(0, 2).map((x) => `<div class="bx-alert" role="alert">${st("action", x.event + " in effect")}${x.ends ? `<span class="bx-note">until ${esc(fmt.time(Date.parse(x.ends), ev.tz))}</span>` : ""}<a href="https://forecast.weather.gov/MapClick.php?lat=${ev.loc.lat}&lon=${ev.loc.lon}" target="_blank" rel="noopener">NWS ↗</a></div>`).join(""); });
     const endMs = Math.max(...C.event.windows(ev).map((w) => w.endMs)), days = 7; // the same forecast length Overview and Model Blend request, so this tab's answers for them are reused (briefing values are identical)
@@ -155,6 +174,13 @@
   /* the event schedule, once: each part with its venue-local times. The weather for these times is in the briefing above
      and hour by hour under Forecast details. */
   function schedule(b) { return BUI.scheduleHtml(b.phases, ev.tz); }
+  /* sunrise and sunset at the venue (the Almanac's NOAA calculation), with one note when daylight matters */
+  function daylight() { return window.EventDaylight && window.AlmanacCore ? window.EventDaylight.compute({ A: window.AlmanacCore, C, windows: C.event.windows(ev), lat: ev.loc.lat, lon: ev.loc.lon, tz: ev.tz }) : null; }
+  function showSchedule(phases) {
+    if (!phases.length) return;
+    const D = daylight(); $("daylight").innerHTML = window.EventDaylight ? window.EventDaylight.rowHtml(D) : ""; $("hourlyDaylight").innerHTML = window.EventDaylight ? window.EventDaylight.lineHtml(D) : ""; document.body.dataset.daylight = D ? (D.note ? "note" : "times") : "";
+    $("schedule").innerHTML = BUI.scheduleHtml(phases, ev.tz); $("secTimeline").hidden = false;
+  }
   function renderSupport(res,b,now=Date.now()) {
     const open=$("sourceCoverage").querySelector('details')?.open;
     res.support=window.ForecastSupport.analyze({C,B:res.ctx.B,requested:res.RB?.ws||res.ctx.ws,rules:res.ctx.rules,
@@ -173,7 +199,7 @@
        (a copy under a minute old is simply current) */
     const got = Object.keys(ctx.ws).map((id) => ctx.B.models[id]).filter(Boolean), oldest = Math.min(...got.map((m) => Date.parse(m.retrievedAt)).filter(fin));
     const saved = got.some((m) => m.fromCache && ctx.B.viewedAt - Date.parse(m.retrievedAt) > 60e3);
-    head.setUpdated(saved && fin(oldest) ? oldest : ctx.B.viewedAt, { saved: saved && fin(oldest) });
+    head.setUpdated(saved && fin(oldest) ? oldest : ctx.B.viewedAt, { saved: saved && fin(oldest) }); updatedMs = saved && fin(oldest) ? oldest : ctx.B.viewedAt;
     const b = S.eventBrief(ctx, ev, thr);
     if (b.error) { $("decision").textContent = b.error; return; }
     const top = b.top, checks = S.checkAgain(ctx, b, U.NAMES), next = checks[0];
@@ -183,7 +209,7 @@
     const peak = live.filter((p) => p.peakPop).reduce((a, p) => (!a || p.peakPop.v > a.v ? p.peakPop : a), null);
     const lightAll = lightningOf(PS), nwsTh = window.HourlyModel.nwsThunder(ctx.nws, b.all.startMs, b.all.endMs);
     const A = BUI.attention({ b, V, S, thr }); // the same hourly values and venue limit feed the screen tracks and the printout
-    lastView = { b, V, PS, peak, lightAll, nwsTh, R: null, checks, top, A };
+    lastView = { b, V, PS, peak, lightAll, nwsTh, R: null, checks, top, A, daylight: daylight() };
     /* ---- the decision, then the three facts that support it ---- */
     /* ---- how much of the event the guidance reaches: pending, partly covered or ready ---- */
     const R = S.readiness(b, ctx); document.body.dataset.readiness = R.state; lastView.R = R;
@@ -206,6 +232,7 @@
       $("keys").innerHTML = callouts({ A, PS, live, peak, lightAll, next, R, tz, now });
     }
     $("coverage").querySelectorAll("[data-remind]").forEach((a) => a.addEventListener("click", () => U.track("reminder_exported", { via: a.dataset.remind })));
+    earlyOutlook(res, R, around);
     /* counted for this event's hours: a source whose forecast ends before the event is named, not counted */
     res.eventFeeds = BUI.eventFeeds(res.feeds, ctx.B, b.all.startMs, b.all.endMs);
     renderSupport(res,b,now);
@@ -213,7 +240,7 @@
     monitoringHandoff(ev, b, now);
     gapFlag(res);
     $("secTimeline").hidden = false;
-    $("schedule").innerHTML = schedule(b);
+    showSchedule(b.phases);
     if (R.state === "pending") { detail(b, ctx, thr); return; } // nothing at event time yet: schedule and sources only
     /* ---- phases: from the same hours as the grid ---- */
     $("phases").innerHTML = b.phases.map((p, i) => {
@@ -241,7 +268,7 @@
     $("hourlyValid").innerHTML = `${esc(fmt.span(V.span[0], V.span[V.span.length - 1] + H, tz))} ${esc(fmt.zone(V.span[0], tz))} · tap an hour`;
     U.timeline($("timeline"), hours, { tz, now, bus, gustLine: thr.gust, mark: top && top.from != null ? { s: top.from, e: top.to, tier: top.tier } : null,
       bands: b.phases.map((p) => ({ s: p.startMs, e: p.endMs, label: p.label.toUpperCase(), fill: p.key === "event" ? "color-mix(in srgb, var(--text) 7%, transparent)" : "transparent" })) });
-    hourGrid(V, now);
+    hourGrid(V, now, res);
     detail(b, ctx, thr);
     printView(res);
   }
@@ -296,8 +323,10 @@
     return `<div class="bx-thunder" data-nws-thunder>${nwsTh.length ? `<b>NWS thunderstorm wording:</b> ${esc(words)} <span class="bx-note">(${esc(span)})</span>` : "<b>NWS:</b> no thunderstorms in the hourly wording for the event."}${diff ? `<span class="bx-note" style="display:block">${esc(diff)}</span>` : ""}</div>`;
   }
   /* ---- hour-by-hour grid: setup through teardown, the briefing engine's concerns per hour, the blend's values ---- */
-  function hourGrid(V, now) {
+  function hourGrid(V, now, res) {
     const G = window.HourlyGrid;
+    /* NWS hourly weather wording by hour, as a second opinion on precipitation type in the chart */
+    let nwsTypes = []; try { const ax = res && res.NW && res.NW.ok ? window.OpsCore.nws.onAxis(res.NW, V.span) : null; nwsTypes = (ax && ax.ptype) || []; } catch (e) { nwsTypes = []; }
     if (chartController) chartController.destroy();
     const showHour = (ms) => { const i = V.span.indexOf(ms), d = $("evGridDetail"); if (i < 0) { d.hidden = true; return; } d.hidden = false; d.innerHTML = V.detail(i); };
     const pick = (ms) => (fin(ms) ? Math.min(V.span[V.span.length - 1], Math.max(V.span[0], Math.floor(ms / H) * H)) : V.span[0]);
@@ -305,8 +334,14 @@
     const grid = G.render($("evGrid"), { axis: V.axis, rows: V.rows, selected: sel0, now, label: "Event hour by hour", caption: "Event weather hour by hour, setup through teardown",
       onSelect: (ms) => { if (bus) bus.set(ms, "grid"); showHour(ms); } });
     $("evGridLegend").innerHTML = `<p class="bx-note">Swipe for more hours · tap an hour for details.</p><details class="bx-more"><summary>How to read these hours</summary>${G.legend(V.legend)}<p class="bx-note">${esc(V.note)}</p><p class="bx-note">Follow NWS warnings and your venue's lightning policy for live decisions.</p></details>`;
-    chartController = window.EventHourlyCharts.render($("evCharts"), { view: V, selected: sel0, tz: ev.tz, gustLimit: ev.gust || 25, onSelect: ms => { if (bus) bus.set(ms, "variable-charts"); showHour(ms); } });
+    chartController = window.EventHourlyCharts.render($("evCharts"), { view: V, selected: sel0, tz: ev.tz, gustLimit: ev.gust || 25, nwsTypes, onSelect: ms => { if (bus) bus.set(ms, "variable-charts"); showHour(ms); } });
     showHour(sel0);
+    lastHourly = { V, nwsTypes }; ["shareImage", "tvExport"].forEach((id) => { $(id).disabled = false; $(id).title = "Save a 1920 × 1080 image of these hours for a TV display"; });
+    /* a display link (…#hourly) opens straight to these charts */
+    if (location.hash === "#hourly" && !hourlyJumped) { hourlyJumped = true; const d = $("secHourly"); d.open = true;
+      /* alerts, the map and late sources can still grow the page above; keep the section in place until the viewer acts */
+      let user = false; const stop = () => { user = true; }; ["wheel", "touchstart", "keydown", "mousedown"].forEach((t) => addEventListener(t, stop, { once: true, passive: true }));
+      [0, 400, 1200, 2500, 5000].forEach((ms) => setTimeout(() => { if (!user) d.scrollIntoView({ block: "start" }); }, ms)); }
     if (bus) bus.on((ms) => { const hm = Math.floor(ms / H) * H; if (V.span.includes(hm)) { grid.setSelected(hm); chartController.setSelected(hm); showHour(hm); } });
   }
   function briefingUpdate(event, b, V, res) {
@@ -338,6 +373,27 @@
     if (!day) { const sec = $("secChecks"); sec.append(host); } else { $("briefUpdate").after(host); }
     host.querySelector("[data-save-ops]").onclick = () => { const v = K.baseAddress(host.querySelector("[data-ops-address]").value); const note = host.querySelector("[data-ops-note]"); if (!v) { note.textContent = "Use an HTTPS address, or HTTP localhost for your local OPE. Do not include a token, query string or password."; return; } try { localStorage.setItem(K.KEY,v); monitoringHandoff(event,b,now); } catch { note.textContent = "This browser could not save the address."; } };
     host.querySelector("[data-copy-venue]").onclick = async () => { const text = K.venueText(data), button = host.querySelector("[data-copy-venue]"); try { await navigator.clipboard.writeText(text); button.textContent = "Venue copied"; } catch { const box = host.querySelector("[data-copy-fallback]"); box.hidden = false; box.value = text; box.select(); } };
+  }
+  /* Early weather outlook (event-outlook.js): the daily Forecast Blend for the event dates the hourly briefing doesn't
+     reach yet. Loaded only then, separately from the briefing; nothing hourly is inferred from it. */
+  function earlyOutlook(res, R, around) {
+    const host = $("outlook"), my = gen; host.innerHTML = ""; host.hidden = true; delete document.body.dataset.outlook;
+    if (!R || (R.state !== "pending" && R.state !== "partial")) return;
+    const ctx = res.ctx, tz = ev.tz, now = ctx.now, ms = ctx.B.ms, hourlyEndMs = ms.length ? ms[ms.length - 1] + H : now, windows = C.event.windows(ev);
+    const f = { dayName: (k) => new Date(k + "T12:00Z").toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" }), when: (t) => `${around(t)} ${fmt.zone(t, tz)}` };
+    const remind = R.state === "pending" && R.readyAt ? remindHtml(R.readyAt, "Add a calendar reminder") : "";
+    const show = (rows) => {
+      if (my !== gen) return;
+      const m = window.EventOutlook.build({ windows, rows, hourlyEndMs, R, day: (t) => C.time.toLocal(t, tz).slice(0, 10), now });
+      host.innerHTML = window.EventOutlook.html(m, f, remind); host.hidden = !host.innerHTML; document.body.dataset.outlook = m.state;
+      if (R.state === "pending" && host.innerHTML) { $("coverage").hidden = true; $("coverage").innerHTML = ""; } // the outlook carries the timing and the one reminder
+      host.querySelectorAll("[data-remind]").forEach((a) => a.addEventListener("click", () => U.track("reminder_exported", { via: a.dataset.remind })));
+    };
+    const start = Math.min(...windows.map((w) => w.startMs));
+    if (start >= now + (window.EventOutlook.OUTLOOK_DAYS - 1) * 864e5) { show([]); return; } // past the daily outlook: no request
+    host.hidden = false; host.innerHTML = '<p class="bx-note">Loading the early outlook…</p>';
+    U.outlook({ lat: ev.loc.lat, lon: ev.loc.lon }, { ws: (res.RB || {}).ws || ctx.ws, rules: (res.RB || {}).rules || ctx.rules, NW: res.NW })
+      .then((r) => show(r.empty ? null : r.rows), () => show(null));
   }
   function remindHtml(atMs, label) {
     const r = S.reminder(ev, atMs, link()), ics = "data:text/calendar;charset=utf-8," + encodeURIComponent(r.ics);
@@ -371,6 +427,39 @@
   }
   /* the top Print button is live only once a full briefing exists to print */
   function printReady(on) { const b = $("printTop"); if (!b) return; b.disabled = !on; b.title = on ? "Print or save the two-page briefing" : "Available once the briefing loads"; }
+  /* TV displays: a 1920 x 1080 image of the hourly charts, or a link that opens them (no sign-in; the event is in the link) */
+  /* ---- sharing: one set of actions, from the Share menu or from Hour by hour ---- */
+  async function exportImage(themeSel, msg) {
+    if (!lastHourly) { msg.textContent = "The image is available once the hourly forecast covers this event."; return; }
+    const when = (ms) => (fin(ms) ? `${new Date(ms).toLocaleString("en-US", { timeZone: ev.tz, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} ${fmt.zone(ms, ev.tz)}` : "—");
+    const now = Date.now(), l = C.time.toLocal(now, ev.tz); // file name: the export time, venue-local
+    try {
+      const data = { title: $("evName").textContent, venue: $("evVenue").textContent, when: $("evWhen").textContent, takeaway: $("decision").textContent,
+        daylight: lastView && lastView.daylight && lastView.daylight.note ? lastView.daylight.note : "",
+        daylightLine: lastView && lastView.daylight && window.EventDaylight ? window.EventDaylight.lineText(lastView.daylight) : "",
+        updated: when(updatedMs), zone: fmt.zone(lastHourly.V.span[0], ev.tz), view: lastHourly.V, nwsTypes: lastHourly.nwsTypes, gustLimit: ev.gust || 25,
+        stamp: `${l.slice(0, 10)}-${l.slice(11, 13)}${l.slice(14, 16)}`,
+        /* Match page theme (default), or an explicit Light / Dark PNG without switching the site */
+        theme: themeSel.value === "match" ? (document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark") : themeSel.value };
+      window.__lastHourly = data; // read-only test hook
+      const r = await window.EventTvExport.exportPng(data);
+      msg.textContent = `Saved ${r.name} (1920 × 1080, ${data.theme}): the forecast as of ${data.updated}.`;
+    } catch (e) { msg.textContent = `Couldn't make the image (${e.message}).`; }
+  }
+  async function copyLink(kind, msg) {
+    const url = link() + (kind === "hourly" ? "#hourly" : "");
+    const said = kind === "hourly" ? "Hourly display link copied. It opens Hour by hour on any device, with the forecast loaded when it's opened." : "Event link copied. It opens this event on any device, with the forecast loaded when it's opened.";
+    try { await navigator.clipboard.writeText(url); msg.textContent = said; } catch (e) { msg.textContent = "Copy this link: " + url; }
+    U.track("link_copied");
+  }
+  $("shareEvent").addEventListener("click", () => copyLink("event", $("shareMsg")));
+  $("shareHourly").addEventListener("click", () => copyLink("hourly", $("shareMsg")));
+  $("shareImage").addEventListener("click", () => exportImage($("shareTheme"), $("shareMsg")));
+  $("tvExport").addEventListener("click", () => exportImage($("tvTheme"), $("hourlyShareMsg")));
+  $("hourlyCopy").addEventListener("click", () => copyLink("hourly", $("hourlyShareMsg")));
+  $("shareMenu").addEventListener("toggle", () => { if ($("shareMenu").open) $("shareMsg").textContent = ""; });
+  /* a tap outside closes the menu; the page's own clicks (the image download) don't */
+  document.addEventListener("click", (e) => { if (e.isTrusted && $("shareMenu").open && !$("shareMenu").contains(e.target)) $("shareMenu").open = false; });
   $("hourlyLink").addEventListener("click", (e) => { e.preventDefault(); const d = $("secHourly"); d.open = true; d.scrollIntoView({ behavior: "smooth", block: "start" }); d.querySelector("summary").focus({ preventScroll: true }); });
   $("printTop").addEventListener("click", () => { if (!lastRes) return; printView(lastRes); window.print(); });
   window.addEventListener("beforeprint", () => printView(lastRes));

@@ -29,7 +29,7 @@
   });
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/ops.css?v=b3e4017ccd">
-<link rel="stylesheet" href="assets/beta.css?v=d7e144f9d8">
+<link rel="stylesheet" href="assets/beta.css?v=713776db17">
 <link rel="stylesheet" href="assets/hourly-grid.css?v=befa3eb506">
 <link rel="stylesheet" href="assets/forecast-support.css?v=52766a62f7">
 </head>
@@ -42,20 +42,27 @@
   <div class="ev-head">
     <div class="ev-head-text"><span class="bx-label" id="sampleTag" hidden>Sample</span><h1 class="ev-name" id="evName">Loading event…</h1>
       <p class="ev-venue" id="evVenue"></p><p class="ev-when" id="evWhen"></p></div>
-    <div class="ev-head-actions"><button class="bx-btn" type="button" id="editBtn">Edit event</button><button class="bx-link ev-quiet" type="button" id="resetBtn" hidden>Use sample event</button></div>
+    <div class="ev-head-actions"><details class="ev-sharemenu" id="shareMenu"><summary class="bx-btn ev-sharebtn">Share</summary>
+      <div class="ev-sharepop" role="group" aria-label="Share this event">
+        <div class="ev-shareitem"><button class="bx-btn" type="button" id="shareEvent">Copy event link</button><p class="bx-note">Opens this event on any device, with no sign-in. The weather loads when the link is opened, and the other person's saved model weights can change the numbers.</p></div>
+        <div class="ev-shareitem"><button class="bx-btn" type="button" id="shareHourly">Copy hourly display link</button><p class="bx-note">The same link, opening straight to Hour by hour.</p></div>
+        <div class="ev-shareitem"><div class="ev-shareimg"><button class="bx-btn" type="button" id="shareImage" disabled>Export hourly image</button><select class="bx-select" id="shareTheme" aria-label="Image theme"><option value="match" selected>Match page theme</option><option value="light">Light PNG</option><option value="dark">Dark PNG</option></select></div>
+          <p class="bx-note" id="shareImageNote">A 1920 × 1080 picture of your forecast as it is now. Everyone sees exactly the same thing: use this for a TV.</p></div>
+        <p class="bx-note ev-sharemsg" id="shareMsg" role="status" aria-live="polite"></p></div></details><button class="bx-btn" type="button" id="editBtn">Edit event</button><button class="bx-link ev-quiet" type="button" id="resetBtn" hidden>Use sample event</button></div>
   </div>
   <div class="bx-alerts" id="alerts"></div>
   <div id="briefUpdate" hidden></div><div id="opsHandoff" hidden></div>
   <h2 class="bx-decision" id="decision" aria-live="polite">Reading the guidance…</h2>
   <div class="bx-cover" id="coverage" hidden></div>
+  <div id="outlook" hidden></div>
   <dl class="bx-keys ev-callouts" id="keys"></dl>
   <p class="bx-cov-update" id="coverageUpdate" role="status" hidden></p><p class="ev-gap" id="gapFlag" role="status" hidden></p>
   </section>
   <!-- 2. Event schedule: what time each part of the event is; the weather is in the briefing above and hour by hour below -->
-  <section class="bx-sec ev-sched" id="secTimeline"><div class="ev-sched-h"><h2>Event schedule</h2><a class="bx-link ev-hourly-link" id="hourlyLink" href="#secHourly">View hourly forecast ↓</a></div><div id="schedule"></div></section>
+  <section class="bx-sec ev-sched" id="secTimeline"><div class="ev-sched-h"><h2>Event schedule</h2><a class="bx-link ev-hourly-link" id="hourlyLink" href="#secHourly">View hourly forecast ↓</a></div><div id="daylight" class="ev-dl-wrap"></div><div id="schedule"></div></section>
   <!-- 3. Details on demand -->
   <section class="ev-details" id="secDetails" aria-label="Details"><h2 class="ev-details-h">Details</h2>
-  <details class="bx-sec ev-group" id="secHourly"><summary><b>Hour by hour</b><span class="bx-note" id="hourlyValid"></span></summary><div id="evCharts"></div><details class="bx-more" id="hourlyTable"><summary>All hourly values · data table</summary><div id="evGrid" style="margin-top:6px"></div><div id="evGridLegend"></div></details><div id="evGridDetail" class="hg-detail" hidden aria-live="polite"></div>
+  <details class="bx-sec ev-group" id="secHourly"><summary><b>Hour by hour</b><span class="bx-note" id="hourlyValid"></span></summary><div class="evc-share"><button class="bx-btn" type="button" id="tvExport" disabled title="Available once the briefing loads">Export hourly image</button><label class="evc-theme"><span class="sr-only">Image theme</span><select class="bx-select" id="tvTheme" aria-label="Image theme"><option value="match" selected>Match page theme</option><option value="light">Light PNG</option><option value="dark">Dark PNG</option></select></label><button class="bx-btn" type="button" id="hourlyCopy">Copy hourly display link</button><span class="bx-note" id="hourlyShareMsg" role="status" aria-live="polite"></span></div><div id="hourlyDaylight"></div><div id="evCharts"></div><details class="bx-more" id="hourlyTable"><summary>All hourly values · data table</summary><div id="evGrid" style="margin-top:6px"></div><div id="evGridLegend"></div></details><div id="evGridDetail" class="hg-detail" hidden aria-live="polite"></div>
     <details class="bx-more" id="chartMore"><summary>Combined overview · advanced</summary><div id="timeline"></div></details></details>
   <details class="bx-sec ev-group" id="secPhases"><summary><b>By phase</b><span class="bx-note">setup, gates, event, teardown</span></summary><div class="bx-phases" id="phases"></div>
     <div id="secChanges"><h3>What could change the plan</h3><ul class="bx-list" id="changes"></ul></div></details>
@@ -71,28 +78,32 @@
 <div id="printView" class="pv" aria-hidden="true"></div>
 <dialog id="editDlg" aria-labelledby="editTitle"><form class="bx-form" id="editForm" method="dialog"></form></dialog>
 <script src="assets/forecast-support.js?v=8e562569c6"></script>
-<script src="assets/ops-core.js?v=e8cacffda6"></script>
+<script src="assets/ops-core.js?v=c53cbc377e"></script>
 <script src="assets/ops-data.js?v=68a540c59e"></script>
 <script src="assets/ops.js?v=3544ea12ce"></script>
 <script src="assets/forecast-clock.js?v=c6df9f20b7"></script>
 <script src="assets/model-trends.js?v=20f2fb637c"></script>
-<script src="assets/beta-story.js?v=de17835b04"></script>
+<script src="assets/beta-story.js?v=636e9d4621"></script>
 <script src="assets/beta-config.js?v=69b0bd8aed"></script>
 <script src="assets/beta-analytics.js?v=2fe1a4634a"></script>
-<script src="assets/beta-ui.js?v=32b3d160c0"></script>
-<script src="assets/event-store.js?v=c56dda033e"></script>
+<script src="assets/beta-ui.js?v=9b6d6b39e2"></script>
+<script src="assets/event-store.js?v=a051a0562c"></script>
 <script src="assets/venue-search.js?v=307f9ceb2a"></script>
 <script src="assets/calendar-import.js?v=15af4d2829"></script>
-<script src="assets/beta-upcoming.js?v=2b935be611"></script>
+<script src="assets/beta-upcoming.js?v=45d0d4c8b1"></script>
 <script src="assets/hourly-model.js?v=c684f8a23f"></script>
-<script src="assets/hourly-views.js?v=0f8e001266"></script>
+<script src="assets/hourly-views.js?v=3d6236a039"></script>
 <script src="assets/hourly-grid.js?v=9f52f47fec"></script>
 <script src="assets/event-briefing-history.js?v=51fe1f9804"></script>
 <script src="assets/event-ops-handoff.js?v=fa83113129"></script>
-<script src="assets/event-hourly-charts.js?v=d2ac2eea42"></script>
-<script src="assets/event-briefing-ui.js?v=cb89db0426"></script>
+<script src="assets/event-hourly-charts.js?v=69ecd5ad9b"></script>
+<script src="assets/event-outlook.js?v=e27cba4166"></script>
+<script src="assets/event-tv-export.js?v=758147d3c1"></script>
+<script src="assets/almanac-core.js?v=715a4bf1f5"></script>
+<script src="assets/event-daylight.js?v=26abf7022f"></script>
+<script src="assets/event-briefing-ui.js?v=4e0af479b3"></script>
 <script src="tests/fixtures/event-orlando-data.js"></script>
-<script src="assets/beta-event.js?v=9bc86ebf43"></script>
+<script src="assets/beta-event.js?v=a80b750e8d"></script>
 <script src="assets/table-pages.js?v=5852a434bf"></script>
 </body>
 </html>
