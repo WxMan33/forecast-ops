@@ -835,7 +835,11 @@
     const text = l ? `<b>${esc(l.head)}</b> · ${esc(l.sub)}` : esc(quietText().big);
     return `<button type="button" class="px-strip${l && l.p.kind === "warning" ? " hot" : ""}" data-scope-go="venue" style="--tx-c:${l ? colorOf(l.p) : "var(--line)"}"><span class="px-where">At ${esc(venue.name)}</span><span class="px-strip-t">${text}</span><span class="px-strip-go">Venue view →</span></button>`;
   }
+  /* only Aviation on: lead with it, and say the other hazards are off (instead of an empty warnings list) */
+  const avOnly = () => S.layers.aviation && !["severe", "flood", "winter", "fire", "smoke", "tropical", "coastal"].some((k) => S.layers[k]);
+  const avOnlyNote = () => `<div class="px-h">Other hazards</div><p class="px-empty">Only Aviation is on. Turn on warnings and other hazards in Layers.</p>`;
   function nationalActive() {
+    if (avOnly()) return venueStrip() + notices() + avControls() + airportsSection() + enrouteSection() + avOnlyNote();
     const groups = T.group(active(), PLACES);
     let h = venueStrip() + notices() + `<div class="px-h"><span>Most urgent now</span><span>${groups.reduce((n, g) => n + g.items.length, 0)} active</span></div>`;
     if (!groups.length) h += `<p class="px-empty">${activeKnown() ? "No active tornado or severe thunderstorm warnings or watches, and no SPC Mesoscale Discussions, in the contiguous U.S." : (known("alerts") ? "No active tornado or severe thunderstorm warnings or watches in the contiguous U.S. (NWS checked " + esc(t(data.sources.alerts.lastOk)) + "). SPC Mesoscale Discussion status is unknown." : "None in the data we have, but NWS warnings and watches are not confirmed (see below).")}</p><p class="lg-note">${esc(SCOPE_NOTE)} Flood, winter and other hazards are not shown here yet.</p>`;
@@ -851,6 +855,7 @@
     return h;
   }
   function venueActive() {
+    if (avOnly()) return statusHTML(true) + notices() + avControls() + airportsSection() + enrouteSection() + avOnlyNote();
     const list = T.sort(active()), covers = venueCovers(), near = venueNear(), unknown = list.filter((p) => rel(p).kind === "unknown");
     let h = statusHTML(true) + notices();
     if (covers.length) h += `<div class="px-h">At the venue</div>` + covers.map((p) => item(p)).join("");

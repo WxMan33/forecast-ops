@@ -329,6 +329,28 @@ Unit tests (`tests/threats-ifi.test.js`, on the saved records) cover:
 - The same assumptions as turbulence: a straight line, the band treated as flown throughout, steady progress.
 - At most 4 heights and 3 hours, each needing two records (about 0.6–0.7 MB per height and hour).
 
+## Map and Planner usability (2026-11-23)
+
+- **Layers.** The struck-through hazard row is now a **Layers** button that names what's on ("All 8", "Severe storms, Flooding +2").
+  - It opens labelled checkboxes for the 8 hazards (several can be on together), with Aviation's parts nested under it: airport weather, pilot reports, advisories, turbulence guidance and icing guidance.
+  - Actions: **Show all**, **Reset to default** (all 8 hazards; model overlays off) and **Done**.
+  - Opening it downloads nothing; turning a model overlay on is the request. Escape closes it and returns focus.
+  - On phones it fits the screen and scrolls inside itself.
+- **Labelled controls.** The control groups are labelled **Time** (Active now, Day 1–3, Winter, Fire), **Layers** and **Map area** (National or Venue).
+- **State line.** A line under Map area shows the view time and the layers, and stays in sight while the details scroll. When a selected layer isn't drawn at that time it says why in one line, for example "Not drawn in Day 2: Smoke & air, Tropical, Coastal (current only); Winter, Fire (see Layers)". The picker gives each layer's own reason.
+- **Legend.** It adds an Aviation part only for what is drawn: airport categories, pilot reports, advisories, and each model overlay.
+- **Aviation panel.**
+  - It starts with "Aviation shows", the same switches as in Layers; pressed ones are marked ✓.
+  - The shared altitude and valid-time controls stay together whenever turbulence or icing is on.
+  - With only Aviation on, the panel leads with it and says the other hazards are off.
+- **Planner.** "Model checks along the route" is one area with **Check turbulence** and **Check icing** side by side (each still on demand, with its size). Each result and its coverage gaps are under their own heading.
+- **Check.** `tools/threats-ux-check.js` covers desktop, 390 and 360 px:
+  - a busy national view, a venue view with several hazards, and Aviation with both overlays;
+  - the picker: reachable layers, no downloads on opening, keyboard;
+  - the state line staying in view;
+  - links restoring venue, layers, airports, altitude, valid time and replays;
+  - the Planner area.
+
 ## Not included
 
 The alternate-airport legality rules (2-1-2) for flight planning, airways or filed routes (the route is a straight line), gridded turbulence guidance, international SIGMETs, and airport delays outside the event's airports on the Planner.
