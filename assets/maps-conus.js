@@ -228,20 +228,35 @@
       .map((e) => { const r = e.getBoundingClientRect(); return [r.left - box.left - pad, r.top - box.top - pad, r.right - box.left + pad, r.bottom - box.top + pad]; })
       .filter(([x0, y0, x1, y1]) => x1 > 0 && y1 > 0 && x0 < box.width && y0 < box.height);
   }
-  /* which points to label for this view: ranked cities, then a sub-lattice anchored to the model grid */
+  const placeFilter = [">=", ["get", "pop"], ["interpolate", ["linear"], ["zoom"], 3, 2500000, 5, 500000, 6.5, 100000, 8, 12000, 9.5, 5000]];
+  /* which points to label for this view: ranked cities and towns, then a sub-lattice anchored to the model grid */
   function chooseLabels() {
     const P = st.man.points; if (!P) return (st.labelSet = { list: [], why: "no label points published for this run" });
     const m = st.map, z = m.getZoom(), c = m.getContainer(), W = c.clientWidth, H = c.clientHeight, phone = PHONE() || W < 560;
     const tier = z < 4.6 ? "national" : z < 6.5 ? "regional" : "local";
     const cfg = { national: { pop: phone ? 1.0e6 : 2.0e6, sep: phone ? 78 : 125, cap: phone ? 8 : 14, grid: 0 }, regional: { pop: 3.0e5, sep: phone ? 82 : 100, cap: phone ? 10 : 24, grid: phone ? 118 : 150 },
-      local: { pop: 6.0e4, sep: phone ? 78 : 90, cap: phone ? 12 : 30, grid: phone ? 100 : 115 } }[tier];
+      local: { pop: 6.0e4, sep: phone ? 74 : 82, cap: phone ? 14 : 34, grid: phone ? 114 : 142 } }[tier];
     /* a label is a box around its point (a city carries its name too): the whole box must clear the controls and the edges */
     const blocked = blockedRects(), half = (city) => (city ? [46, 26] : [20, 12]);
     const inBlock = (x, y, city) => { const [hw, hh] = half(city); return blocked.some(([a, b, c2, d]) => x + hw >= a && x - hw <= c2 && y + hh >= b && y - hh <= d); };
     const onScreen = (x, y, city) => { const [hw, hh] = half(city); return x - hw > 4 && y - hh > 4 && x + hw < W - 4 && y + hh < H - 4; };
     const out = [], far = (x, y, d) => out.every((o) => (o.x - x) ** 2 + (o.y - y) ** 2 >= d * d);
-    P.places.map((p, k) => ({ k, name: p[0], lat: p[1], lon: p[2], pop: p[3] })).filter((p) => p.pop >= cfg.pop).sort((a, b) => b.pop - a.pop || (a.name < b.name ? -1 : 1))
-      .forEach((p) => { if (out.length >= cfg.cap) return; const s = m.project([p.lon, p.lat]); if (onScreen(s.x, s.y, true) && !inBlock(s.x, s.y, true) && far(s.x, s.y, cfg.sep)) out.push({ k: p.k, x: s.x, y: s.y, lon: p.lon, lat: p.lat, name: p.name }); });
+    const addPlace = (p) => {
+      const s = m.project([p.lon, p.lat]);
+      if (onScreen(s.x, s.y, true) && !inBlock(s.x, s.y, true) && far(s.x, s.y, cfg.sep)) out.push({ ...p, x: s.x, y: s.y });
+    };
+    const places = P.places.map(([name, lat, lon, pop], k) => ({ k, name, lat, lon, pop }))
+      .filter((p) => p.pop >= cfg.pop).sort((a, b) => b.pop - a.pop || a.name.localeCompare(b.name));
+    places.forEach((p) => { if (out.length < cfg.cap) addPlace(p); });
+    if (tier === "local" && K.levelFor(cellPx(), st.man.levels) === 0) {
+      // The native tiles already cover these towns, so a plot uses the value at the town itself.
+      const minPop = z >= 8.5 ? 5000 : z >= 7.5 ? 12000 : 25000;
+      st.towns.forEach(({ properties, geometry }, i) => {
+        if (out.length >= cfg.cap || properties.pop < minPop) return;
+        const [lon, lat] = geometry.coordinates, cell = st.P.nearest(lat, lon);
+        if (cell) addPlace({ k: `town:${i}`, lon, lat, name: properties.name, cell });
+      });
+    }
     if (cfg.grid) {
       const L = P.lattice, cpx = cellPx() / st.map.getPixelRatio(), sepG = cfg.grid * 0.75, step = Math.max(1, Math.floor(cfg.grid * 0.8 / (cpx * L.every))), nPl = P.places.length;   /* a finer lattice step thinned by distance packs a staggered pattern, not a sparse square one */
       for (let b = 0; b < L.ny; b += step) for (let a = 0; a < L.nx; a += step) {
@@ -258,16 +273,25 @@
     if (!st.values || !F.vfmt || st.gapValid != null || hourState(fh) !== "ok") return none();
     const e = st.points.get(ptsKey(fh)); if (!e || !e.v) return;   /* not loaded yet: keep the last frame's labels rather than flash */
     const set = st.labelSet || chooseLabels(), feats = [], shown = [];
-    set.list.forEach((o) => { const raw = e.v[o.k]; if (raw === undefined || raw === -32768) return; const v = raw * spec.scale; if (F.vmin && !F.vmin(v)) return;
+    set.list.forEach((o) => {
+      let v;
+      if (o.cell) {
+        const [i, j] = o.cell, tx = Math.floor(i / st.man.tile), ty = Math.floor(j / st.man.tile);
+        v = K.valueAt(st.man, st.field, { [K.tileName(0, tx, ty)]: ready(fh, 0, tx, ty) }, i, j);
+      } else {
+        const raw = e.v[o.k];
+        if (raw === undefined || raw === K.MISS) return;
+        v = raw * spec.scale;
+      }
+      if (v == null || (F.vmin && !F.vmin(v))) return;
       const t = F.vfmt(v); shown.push({ k: o.k, name: o.name || null, value: v, text: t, lon: o.lon, lat: o.lat, x: o.x, y: o.y });
       feats.push({ type: "Feature", properties: { t, n: o.name || "", city: o.name ? 1 : 0 }, geometry: { type: "Point", coordinates: [o.lon, o.lat] } }); });
     src.setData({ type: "FeatureCollection", features: feats }); st.labelsShown = shown;
-    setPlaceFilter(set.list.filter((o) => o.name).map((o) => o.name));
+    setPlaceFilter(shown.filter((o) => o.name).map((o) => o.name));
   }
   /* a city that carries a value shows its name with the number, so the plain name label is hidden for it */
   function setPlaceFilter(names) {
-    const base = [">=", ["get", "pop"], ["interpolate", ["linear"], ["zoom"], 3, 2500000, 5, 600000, 7, 100000]];
-    try { st.map.setFilter("places", names.length ? ["all", base, ["!", ["in", ["get", "name"], ["literal", names]]]] : base); } catch (e) { /* style not ready */ }
+    try { st.map.setFilter("places", names.length ? ["all", placeFilter, ["!", ["in", ["get", "name"], ["literal", names]]]] : placeFilter); } catch (e) { /* style not ready */ }
   }
   /* Shading opacity: fades only the coloured forecast layer (it is drawn under boundaries, names and numbers); 100% is the
      standard look, 0% leaves the numbers on the plain basemap. A uniform in the draw call: nothing is fetched or re-decoded. */
@@ -581,10 +605,10 @@
 
   /* ---------- map ---------- */
   const palette = () => (document.documentElement.getAttribute("data-theme") !== "light"
-    ? { land: "#151a22", state: "#cfd5de", border: "#e6eaf0", coast: "#8fa3b8", lake: "#6f8fae", edge: "#9aa4b2" }
-    : { land: "#f1f2ee", state: "#353c47", border: "#1d232b", coast: "#4b6b8a", lake: "#5f8db8", edge: "#55606e" });
+    ? { land: "#151a22", county: "#748294", state: "#cfd5de", border: "#e6eaf0", coast: "#8fa3b8", lake: "#6f8fae", edge: "#9aa4b2" }
+    : { land: "#f1f2ee", county: "#525e6b", state: "#353c47", border: "#1d232b", coast: "#4b6b8a", lake: "#5f8db8", edge: "#55606e" });
   function footprint() { const s = st.map && st.map.getSource("footprint"); if (s && st.mesh) s.setData({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates: st.mesh.ring } }); }
-  function initMap(base) {
+  function initMap(base, countyLines) {
     const C = palette(), view = (Q.get("map") || "").split(",").map(Number), hasView = view.length === 3 && view.every(Number.isFinite);
     const map = new ML.Map({ container: "map", fadeDuration: 0, style: { version: 8, glyphs: new URL("assets/maps/fonts/open-sans-v1/{fontstack}/{range}.pbf", location.href).href.replace(/%7B/g, "{").replace(/%7D/g, "}"), sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": C.land } }] },
       center: hasView ? [view[1], view[0]] : [-97.5, 38.6], zoom: hasView ? view[2] : PHONE() ? 2.6 : 3.7, minZoom: 1.5, maxZoom: 10.5, attributionControl: false, dragRotate: false, pitchWithRotate: false, renderWorldCopies: false,
@@ -593,17 +617,26 @@
     map.addControl(new ML.AttributionControl({ compact: true, customAttribution: `Data: ${M.credit} · Forecast Ops output · US Census (us-atlas) · Natural Earth` }), "bottom-right");
     st.map = map;
     return new Promise((res) => map.on("load", () => {
-      const L = base.layers; Object.entries(L).forEach(([k, v]) => map.addSource(k, { type: "geojson", data: v }));
+      Object.entries(base.layers).forEach(([k, v]) => {
+        const data = k === "places" ? { ...v, features: [...v.features, ...st.towns] } : v;
+        map.addSource(k, { type: "geojson", data });
+      });
       map.addLayer(layer);
       map.addSource("footprint", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({ id: "footprint", type: "line", source: "footprint", paint: { "line-color": C.edge, "line-width": 1, "line-dasharray": [3, 2], "line-opacity": 0.8 } });
       map.addLayer({ id: "lakes", type: "line", source: "lakes", paint: { "line-color": C.lake, "line-width": 0.8 } });
       map.addLayer({ id: "coast", type: "line", source: "coast", paint: { "line-color": C.coast, "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.6, 8, 1.4] } });
+      map.addSource("counties", { type: "geojson", data: countyLines });
+      map.addLayer({ id: "counties", type: "line", source: "counties", minzoom: 4.5, paint: {
+        "line-color": C.county,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 4.5, 0.5, 9, 1.05],
+        "line-opacity": ["interpolate", ["linear"], ["zoom"], 4.5, 0, 6, 0.78],
+      } });
       map.addLayer({ id: "states", type: "line", source: "states", paint: { "line-color": C.state, "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.5, 8, 1.6], "line-opacity": 0.85 } });
       map.addLayer({ id: "borders", type: "line", source: "borders", paint: { "line-color": C.border, "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.9, 8, 2] } });
       map.addSource("sel", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({ id: "sel", type: "line", source: "sel", paint: { "line-color": "#ffffff", "line-width": 2 } });
-      map.addLayer({ id: "places", type: "symbol", source: "places", filter: [">=", ["get", "pop"], ["interpolate", ["linear"], ["zoom"], 3, 2500000, 5, 600000, 7, 100000]],
+      map.addLayer({ id: "places", type: "symbol", source: "places", filter: placeFilter,
         layout: { "text-field": ["get", "name"], "text-font": ["Open Sans Semibold"], "text-size": ["interpolate", ["linear"], ["zoom"], 3, 10.5, 8, 13], "symbol-sort-key": ["-", 0, ["get", "pop"]], "text-padding": 6, "text-max-width": 10 },
         paint: { "text-color": getComputedStyle(document.body).getPropertyValue("--text").trim() || "#e8eaee", "text-halo-color": getComputedStyle(document.body).getPropertyValue("--bg").trim() || "#0b0d12", "text-halo-width": 1.4 } });
       /* Values overlay on top: always drawn (allow-overlap) and placed first, so city names give way to it */
@@ -612,7 +645,7 @@
         layout: { "text-field": ["case", ["==", ["get", "city"], 1], ["format", ["get", "n"], { "font-scale": 0.78 }, "\n", {}, ["get", "t"], { "font-scale": 1.12 }], ["get", "t"]],
           "text-font": ["Open Sans Semibold"], "text-size": ["interpolate", ["linear"], ["zoom"], 3, 12, 8, 14.5], "text-allow-overlap": true, "text-ignore-placement": false, "text-line-height": 1.05, "text-max-width": 14 },
         paint: { "text-color": getComputedStyle(document.body).getPropertyValue("--text").trim() || "#e8eaee", "text-halo-color": getComputedStyle(document.body).getPropertyValue("--bg").trim() || "#0b0d12", "text-halo-width": 1.8 } });
-      const repaint = () => { const P = palette(); [["bg", "background-color", "land"], ["footprint", "line-color", "edge"], ["lakes", "line-color", "lake"], ["coast", "line-color", "coast"], ["states", "line-color", "state"], ["borders", "line-color", "border"]].forEach(([id, p, k]) => map.setPaintProperty(id, p, P[k])); };
+      const repaint = () => { const P = palette(); [["bg", "background-color", "land"], ["footprint", "line-color", "edge"], ["lakes", "line-color", "lake"], ["coast", "line-color", "coast"], ["counties", "line-color", "county"], ["states", "line-color", "state"], ["borders", "line-color", "border"]].forEach(([id, p, k]) => map.setPaintProperty(id, p, P[k])); };
       window.addEventListener("ops:theme", repaint);
       if (window.ResizeObserver) { let t = null; new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => map.resize(), 60); }).observe(map.getContainer()); }
       res();
@@ -631,15 +664,21 @@
     const ps = $("placeSel"); if (ps) ps.closest("div").hidden = true;
     $("inspect").innerHTML = `<p class="msg">Click or tap the map to read the ${M.name} value in that native ${M.res} cell. Values come from the full-precision grid, never from the display.</p>`;
     const about = document.querySelector("#runInfo") && document.querySelector("#runInfo").previousElementSibling;
-    if (about) about.textContent = "Beta: " + M.about + " on the model's own Lambert conformal projection; areas outside the model grid are left blank. Zoomed out, the map draws every 2nd or 4th native cell (each drawn over the block it stands for) so a loop stays light on a phone; zoom in for every cell. Clicking always reads the native cell at full precision. Only the tiles in view are downloaded. Runs appear hour by hour as NOAA posts them; the 00, 06, 12 and 18 UTC runs go to 48 hours, the others to 18. Geography: US Census boundaries (us-atlas) and Natural Earth (public domain). Model guidance only, not an official forecast.";
+    if (about) about.textContent = "Beta: " + M.about + " on the model's own Lambert conformal projection; areas outside the model grid are left blank. Zoomed out, the map draws every 2nd or 4th native cell (each drawn over the block it stands for) so a loop stays light on a phone; zoom in for every cell. Clicking always reads the native cell at full precision. Only the tiles in view are downloaded. Runs appear hour by hour as NOAA posts them; the 00, 06, 12 and 18 UTC runs go to 48 hours, the others to 18. U.S. county boundaries appear as you zoom in. Geography: US Census boundaries (us-atlas) and Natural Earth (public domain). Model guidance only, not an official forecast.";
   }
   async function start() {
     if (Q.get("compare") === "1" && window.MapsConusCompare) { window.MapsConusCompare.start(); return; }   // it sets up its own page shell
     O.shell("maps", "Model maps", { forecastPoint: false, subtitle: `Beta · ${M.label}, full CONUS` });
     regionToggle("conus"); adaptPage(); if (EMBED) adaptEmbed();
     if (!ML || !(() => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch (e) { return false; } })()) { $("mapInfo").innerHTML = '<span class="state err">This browser cannot draw the interactive map (WebGL unavailable).</span>'; return; }
-    let base;
-    try { [base, st.index] = await Promise.all([getJSON("assets/maps/basemap-conus.json"), getJSON(`${DATA}/${M.index}`)]); }
+    let base, detail;
+    // A geography asset outage should still leave a usable forecast map.
+    const geo = fetchT("assets/maps/conus-detail.geojson.gz", 8000).then(async (r) => {
+      if (!r.ok) return null;
+      const bytes = await gunzipBytes(new Uint8Array(await r.arrayBuffer()));
+      return JSON.parse(new TextDecoder().decode(bytes));
+    }).catch(() => null);
+    try { [base, st.index, detail] = await Promise.all([getJSON("assets/maps/basemap-conus.json"), getJSON(`${DATA}/${M.index}`), geo]); }
     catch (e) { $("mapInfo").innerHTML = `<span class="state err">${esc(M.name)} map data is not available from this data host (${esc(e.message)}).${/404/.test(e.message) && M.key !== "hrrr" ? ` ${esc(M.name)} may be published on the other data host only.` : ""}</span>`; return; }
     if (!st.index.runs.length) { $("mapInfo").textContent = `No ${M.name} runs published yet.`; return; }
     if (FIELDS[Q.get("field")]) st.field = Q.get("field");
@@ -651,7 +690,9 @@
       $("modelSel").addEventListener("change", () => { const q = new URLSearchParams(location.search); q.set("model", $("modelSel").value); q.delete("run"); q.delete("fh");
         if (st.man) q.set("valid", st.man.valid[fhNow()]); location.href = `${location.pathname}?${q.toString()}`; }); }
     $("runSel").innerHTML = st.index.runs.map((r) => `<option value="${esc(r.id)}">${esc(runLabel(r))}</option>`).join("");
-    await initMap(base);
+    const features = detail?.features || [];
+    st.towns = features.filter((f) => f.geometry.type === "Point");
+    await initMap(base, { type: "FeatureCollection", features: features.filter((f) => f.geometry.type === "MultiLineString") });
     const pt = (Q.get("pt") || "").split(",").map(Number); if (pt.length === 2 && pt.every(Number.isFinite)) st.selPt = pt;
     /* opened for a valid time (e.g. from the model menu): the newest run that has that hour, or the nearest hour of the newest run */
     let runWanted = Q.get("run"), fhWanted = Q.get("fh"), validNote = null; const vq = !EMBED && !runWanted && Q.get("valid") ? Date.parse(Q.get("valid")) : NaN;
