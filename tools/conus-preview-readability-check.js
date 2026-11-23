@@ -74,6 +74,9 @@ async function waitReports(p){await p.waitForFunction(()=>window.SevereConusPrev
   ok(label+'px: attribution starts collapsed',!st.attribOpen);
   ok(label+'px: compact cluster badges (largest ≤ 12 px)',st.compact&&Math.max(...radii)<=12,radii);
   const dims=await m.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,mh:document.getElementById('scMap').getBoundingClientRect().height,vh:innerHeight}));ok(label+'px: no sideways scroll, map ≥ 60% of screen',dims.sw<=dims.cw&&dims.mh>=0.6*dims.vh,dims);
+  await m.click('#scWhole');await m.waitForTimeout(1200);const bb=await m.evaluate(()=>window.SevereConusPreview.bounds());
+  ok(label+'px: Whole CONUS fits the lower 48 (124.5°W–67°W, 25°N–49°N)',bb[0][0]<=-124.5&&bb[1][0]>=-67&&bb[0][1]<=25&&bb[1][1]>=49,bb.map(c=>c.map(v=>+v.toFixed(1))));
+  await m.evaluate(()=>window.SevereConusPreview.view([-88,37.5],3.2));await m.waitForTimeout(600);
   ok(label+'px: national clusters drawn',await m.evaluate(()=>window.SevereConusPreview.rendered('sc-clusters'))>0);
   await m.evaluate(()=>{const e=document.querySelector('#scWindow');window.scrollTo(0,e.getBoundingClientRect().top+scrollY-8);});await m.waitForTimeout(600);await snap(m,{path:`${OUT}/after-phone${label}-national.png`});
   await m.evaluate(()=>window.SevereConusPreview.view([-84.6,39.1],7.4));await m.waitForTimeout(1200);
