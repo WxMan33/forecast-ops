@@ -5,11 +5,15 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 function windowFor(axis,selected,count){const i=Math.max(0,axis.findIndex(a=>a.ms===selected));return Math.min(Math.max(0,axis.length-count),Math.max(0,i-Math.floor(count/2)))}
 function render(host,{view:V,selected,onSelect,gustLimit=25,tz}){
  let sel=selected,start=0,width=0,first=true;const rows=Object.fromEntries(V.rows.map(r=>[r.key,r]));
- const specs=[{key:'pop',name:'Rain chance',unit:'%',color:'rain',type:'bar',hazard:'hz-rain',extra:'qpf',extraLabel:'Rain amount',max:100},
+ const specs=[{key:'pop',name:'Rain chance',unit:'%',color:'rain',type:'bar',hazard:'hz-rain',extra:'qpf',extraLabel:'Rain this hour',max:100},
  {key:'temp',name:'Temperature',unit:'°F',color:'temp',second:'feel',secondLabel:'Feels like'},
  {key:'wind',name:'Wind & gusts',unit:'mph',color:'wind',second:'gust',secondLabel:'Gusts',hazard:'hz-wind',limit:gustLimit},
  {key:'lightning',name:'Lightning potential',unit:'',color:'lightning',type:'tier',hazard:'lightning',max:3}];
  const text=(key,i)=>rows[key]?.cells[i]?.text??'—';
+ /* event total: the hourly blend amounts shown in these charts, added up from setup through teardown (whole hours);
+    with any hour missing it is a lower bound */
+ const qHrs=V.hrs.filter(h=>h.state==='ok'&&fin(h.qpf)),qGap=V.hrs.length-qHrs.length,qTot=qHrs.reduce((t,h)=>t+h.qpf,0);
+ const totalText=qHrs.length?`${qGap?'at least ':''}${qTot.toFixed(2)} in.`:'—';
  const value=(spec,i)=>{if(V.hrs[i].state!=='ok')return null;if(spec.type==='tier'){const c=rows.lightning.cells[i];return c.state==='missing'?null:{Low:1,Moderate:2,High:3}[c.text]??null}return fin(V.hrs[i][spec.key])?V.hrs[i][spec.key]:null};
  function draw(recenter=false){
  const count=host.clientWidth<600?6:12,w=Math.max(280,host.clientWidth),endMax=Math.max(0,V.axis.length-count);
@@ -32,7 +36,7 @@ function render(host,{view:V,selected,onSelect,gustLimit=25,tz}){
  if(!s.type)marks+=line(s.key,false)+(s.second?line(s.second,true):'');
  if(s.limit&&s.limit<=hi)marks+=`<line x1="${left}" x2="${w-right}" y1="${y(s.limit)}" y2="${y(s.limit)}" class="evc-limit"/><text x="${w-right}" y="${y(s.limit)-5}" text-anchor="end" class="evc-axis">${s.limit} mph venue limit</text>`;
  const buttons=ids.map((i,j)=>{const a=V.axis[i],label=a.hourText,show=ids.length<=6||j%2===0||j===ids.length-1;return `<g role="button" tabindex="0" aria-label="${esc(a.date+' '+a.hourText+' '+a.zone+', '+s.name+': '+text(s.key,i))}" aria-pressed="${V.span[i]===sel}" data-hour="${a.ms}"><rect x="${left+j*bw}" y="${top-5}" width="${bw}" height="${base-top+28}" fill="transparent"/>${V.span[i]===sel?`<line x1="${x(j)}" x2="${x(j)}" y1="${top-5}" y2="${base}" class="evc-cursor"/>`:''}${show?`<text x="${x(j)}" y="${base+21}" text-anchor="middle" class="evc-axis">${esc(label)}${a.repeated||a.zoneChange?`<tspan x="${x(j)}" dy="12">${esc(a.zone)}</tspan>`:''}</text>`:''}</g>`}).join('');
- return `<section class="evc-card evc-${s.color}" data-variable="${s.key}"><header><h3>${esc(s.name)}</h3><div><b data-value="${s.key}">${esc(text(s.key,iSel))}${s.unit==='°F'?'F':s.unit&&s.unit!=='%'?' '+esc(s.unit):''}</b>${s.second?`<span>${esc(s.secondLabel)} ${esc(text(s.second,iSel))}${s.unit==='mph'?' mph':''}</span>`:s.extra?`<span>${esc(s.extraLabel)} ${esc(text(s.extra,iSel))} in.</span>`:'<span>Forecast potential, not detected lightning</span>'}</div></header><svg viewBox="0 0 ${w} ${height}" role="group" aria-label="${esc(s.name)} by hour">${axes}${marks}${buttons}</svg></section>`;
+ return `<section class="evc-card evc-${s.color}" data-variable="${s.key}"><header><h3>${esc(s.name)}</h3><div><b data-value="${s.key}">${esc(text(s.key,iSel))}${s.unit==='°F'?'F':s.unit&&s.unit!=='%'?' '+esc(s.unit):''}</b>${s.second?`<span>${esc(s.secondLabel)} ${esc(text(s.second,iSel))}${s.unit==='mph'?' mph':''}</span>`:s.extra?`<span>${esc(s.extraLabel)} ${esc(text(s.extra,iSel))} in.</span><span data-total="${s.extra}" title="The hourly blend amounts added up from setup through teardown${qGap?`; ${qGap} hour${qGap>1?'s':''} without guidance, so this is a lower bound`:''}">Event total ${esc(totalText)}</span>`:'<span>Forecast potential, not detected lightning</span>'}</div></header><svg viewBox="0 0 ${w} ${height}" role="group" aria-label="${esc(s.name)} by hour">${axes}${marks}${buttons}</svg></section>`;
  }
  draw();let frame=null;const observer=new ResizeObserver(()=>{const next=host.clientWidth;if(next>0&&Math.abs(width-next)>1){if(frame!==null)cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{frame=null;if(host.clientWidth>0)draw(true)})}});observer.observe(host);
  return {setSelected(ms){if(sel===ms)return;sel=ms;const i=V.span.indexOf(ms),count=host.clientWidth<600?6:12;draw(i<start||i>=start+count)},destroy(){observer.disconnect();if(frame!==null)cancelAnimationFrame(frame)}};
