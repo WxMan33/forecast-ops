@@ -21,7 +21,7 @@ jobs:
       - name: Wait until the beta host serves this commit (every file severe.html and the CONUS viewer load)
         run: |
           echo "commit $GITHUB_SHA"
-          FILES="severe.html $(grep -ho '\(src\|href\)="assets/[^"?]*' severe.html | sed 's/^[a-z]*="//') assets/maps/basemap.json $(ls assets/severe-conus/*.json)"
+          FILES="severe.html $(grep -ho '\(src\|href\)="assets/[^"?]*' severe.html | sed 's/^[a-z]*="//') assets/maps/basemap.json assets/maps/conus-detail.geojson.gz $(ls assets/severe-conus/*.json)"
           FILES="$(printf '%s\n' $FILES | sort -u | tr '\n' ' ')"; echo "checking $(echo $FILES | wc -w) files"
           for i in $(seq 1 40); do stale=""
             for f in $FILES; do [ "$(curl -fsSL "${BASE}$f" | sha256sum | cut -c1-16)" = "$(sha256sum "$f" | cut -c1-16)" ] || stale="$stale $f"; done
@@ -35,6 +35,8 @@ jobs:
         run: for f in severe.html assets/severe-conus.js assets/severe-research.js assets/severe-conus/index.json; do echo "== $f"; curl -sSI "${BASE}$f" | grep -iE '^(HTTP|content-type|location|x-content-type)'; done
       - name: Hosted CONUS / Regional check (desktop and phone)
         run: mkdir -p out && node tools/conus-preview-host-check.js "$BASE" out
+      - name: Hosted readability checks (reports, county lines, layers, saved forecast, phone)
+        run: node tools/conus-preview-readability-check.js "$BASE" out/readability
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: conus-preview-host, path: out, retention-days: 30 }

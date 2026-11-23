@@ -49,7 +49,7 @@ The map distinguishes four states:
 |---|---|---|
 | Value ≥ 0.1% | Filled contour bands, same scale as Regional | Percent |
 | Below the lowest contour | Not colored | "<0.1%: Below the lowest displayed contour" |
-| Outside coverage | Grey dots on unsupported samples; no color off the grid | "Outside coverage", explicitly not zero risk |
+| Outside coverage | A quiet neutral tint over mesh triangles touching an unsupported sample; nothing off the grid | "Outside coverage", explicitly not zero risk |
 | Data unavailable | Hollow purple circles (a missing value at a supported sample) | "Data unavailable" |
 
 Contours come from a triangle mesh with a maximum edge of 25 km, built over supported samples
@@ -69,10 +69,25 @@ cycle sit next to the legend.
 | Active | 2024-05-25 | 05-26 12Z – 05-27 12Z | The requested May 26, 2024 wind case; 3,455 report samples |
 | Quiet | 2024-09-27 | 09-28 12Z – 09-29 12Z | Fresh May–Sep benchmark day with the fewest report samples (0) |
 | Florida/Gulf weakness | 2024-05-14 | 05-15 12Z – 05-16 12Z | Day with the largest Florida/Gulf area at 5%+ and no Florida/Gulf report |
-| Current run | 2026-11-22 | 11-23 12Z – 11-24 12Z | Fresh audited HRRR extraction plus the frozen model; no labels |
+| Saved forecast | 2026-11-22 | 11-23 12Z – 11-24 12Z | Fresh audited HRRR extraction plus the frozen model; no labels |
 
-- **Observed reports** is a toggle that draws white dots on samples with a qualifying report
-  within 25 miles. It is hidden for the current run, which has no reports yet.
+- **Storm reports** (on by default) draws one marker per original qualifying record at its
+  reported begin location, with the count beside the toggle. Markers cluster at national zoom and
+  separate as you zoom in. Clicking one shows its time (ET and UTC, plus the source's local time),
+  place, county and state, magnitude, and whether the gust was measured or estimated, with a link
+  to the NCEI Storm Events record.
+  - Source: the pinned `StormEvents_details-ftp_v1.0_d2024_c20260728.csv.gz` (SHA-256 checked),
+    selected with the scoring code's own `labels.normalize` (Thunderstorm Wind, ≥50 kt, begin
+    time inside the valid window).
+  - The build refuses to write the file unless those records reproduce the replay's stored scored
+    grid points and unknown points exactly. May 26: 776 reports → 3,455 grid points. Sep 28:
+    0 → 0. May 15: 36 → 466.
+  - An empty replay says "No qualifying reports in this window"; a missing or failed file says
+    "Reports unavailable". The saved forecast has no reports.
+- **Grid points within 25 miles of a report** (off by default) is the scored footprint: the
+  white dots the first version labelled "Observed reports".
+- **County lines** (on by default) fade in from about state zoom, using the CONUS us-atlas county
+  file the Maps page uses. They sit above the probability fill and below the report markers.
 - Replays reuse the archived CONUS extractions:
   - cohort run 44577990940;
   - benchmark run 44942885255, plus supplement 44961446546.
