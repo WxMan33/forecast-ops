@@ -329,6 +329,28 @@ Unit tests (`tests/threats-ifi.test.js`, on the saved records) cover:
 - The same assumptions as turbulence: a straight line, the band treated as flown throughout, steady progress.
 - At most 4 heights and 3 hours, each needing two records (about 0.6–0.7 MB per height and hour).
 
+### Saved turbulence replay for Planner (2026-11-23)
+
+- **The records.** `tests/fixtures/threats/gtg/` holds three official EDPARM records of cycle 00Z Nov 23 (10,000 ft at +12 h and +15 h; FL320 at +12 h; 3.7 MB). A manifest gives the replay clock (02Z), and an ecCodes answer key sits beside it.
+- **Using it.** `?gtgsrc=fixture` on Event Planner, and on the map, reads those records instead of NOMADS, on the replay clock, so a case never ages out. The page says "saved official NOAA records; replay clock …", and on a demo page the banner names the saved GTG guidance.
+- **Missing records.** A height or hour not saved is a stated coverage gap.
+- **Checks.** `tools/threats-gtg-planner-check.js` runs on the replay by default, on Cincinnati (KCVG) to Newark (KEWR):
+
+| Case | Result |
+|---|---|
+| 10,000 ft, 6:45–7:25 a.m. | Moderate finding 260–272 miles out, with an approximate time |
+| FL320, same flight | None (altitude changes it) |
+| 10,000 ft, 9:45–10:25 a.m. | Different findings (the flight window changes it) |
+| 12,000 ft (not saved) | A stated gap |
+| A flight after the cycle's last hour | "No GTG forecast for 0–569 miles…" |
+| No times in the air | A potential overlap |
+
+  View on map opens the same saved record and reads the record's maximum, 0.237, at the spot.
+- **Live check.** `--live` keeps a separate check on the newest live cycle, for a flight starting soon.
+- **Labels.**
+  - The Aviation-only summary and phone header label the pilot-report and advisory counts **National**, apart from the venue's airport weather.
+  - At 400 px and narrower the Map area button reads **Venue**; the full name is in its label and in the state line ("Venue: TQL Stadium").
+
 ## Map and Planner usability (2026-11-23)
 
 - **Layers.** The struck-through hazard row is now a **Layers** button that names what's on ("All 8", "Severe storms, Flooding +2").

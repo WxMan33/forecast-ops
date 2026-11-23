@@ -272,3 +272,5 @@
 .av-status .px-status-h { font-weight: 800; font-size: 17px; margin: 2px 0 6px; }
 .av-rows { margin: 0; }
 .av-rows dd.av-un { color: var(--muted); }
+/* the map-area button names the venue where it fits; narrow phones show "Venue" (the name is in the state line) */
+@media (max-width: 400px) { .tx-sbv { display: none; } }

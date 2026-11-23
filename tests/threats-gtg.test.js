@@ -91,4 +91,12 @@ ok("bad input is refused, never drawn: not GRIB, truncated, or another edition",
     assert.strictEqual(go("heavy").findings.length, 0); assert.strictEqual(go("light").findings.length, 1); assert.strictEqual(go("light").findings[0].cat, 2);
   });
 }
+ok("the saved replay records (tests/fixtures/threats/gtg): EDPARM at the heights and hours the manifest names, equal to ecCodes", () => {
+  const GX = path.join(__dirname, "fixtures/threats/gtg"), man = JSON.parse(fs.readFileSync(path.join(GX, "manifest.json"), "utf8")), key = JSON.parse(fs.readFileSync(path.join(GX, "gtg-fixture.eccodes.json"), "utf8"));
+  assert.strictEqual(man.cycle, "2026112300"); assert.strictEqual(man.clock, "2026-11-23T02:00:00Z");
+  for (const [k, f] of Object.entries(man.records)) { const [fh, m] = k.split("|").map(Number), dd = G.decode(fs.readFileSync(path.join(GX, f))), r = key.records[k];
+    assert.deepStrictEqual([dd.product.category, dd.product.number, dd.product.level, dd.product.forecast, dd.refTime], [19, 30, m, fh, "2026-11-23T00:00:00.000Z"], k);
+    let cnt = 0, mx = -1; for (const v of dd.field) if (Number.isFinite(v)) { cnt++; if (v > mx) mx = v; } assert.strictEqual(cnt, r.points_with_values, k); assert(Math.abs(mx - r.max) < 1e-6, k);
+    for (const c of r.cells) { const v = dd.field[c.j * dd.grid.nx + c.i]; if (c.value == null) assert(!Number.isFinite(v)); else assert(Math.abs(v - c.value) < 1e-6, k + JSON.stringify(c)); } }
+});
 console.log(n + " passed");

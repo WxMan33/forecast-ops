@@ -46,7 +46,7 @@ const A1 = ["2026-11-22T21:45", "2026-11-22T22:15"], A2 = ["2026-11-23T00:45", "
       const lines = k.startsWith("prob") ? base.r.probLines : base.r.sevLines, want = k.startsWith("prob") ? Number(/peak icing probability (\d+)%/.exec(lines[0])[1]) : /peak severity (\w+) \(code (\d)\)/.exec(lines[0])[2];
       const got = k.startsWith("prob") ? m.at && Math.round(m.at.value * 100) : m.at && String(m.at.code);
       check(`(${tag}) View on map (${k.startsWith("prob") ? "probability" : "severity"}): the same field, 15,000 ft, valid 04Z, centred on the spot, reading the finding's value there (${k.startsWith("prob") ? want + "%" : "code " + want}); readout in percent; banner names the saved NOAA guidance`,
-        m.state === "ok" && m.field === u.searchParams.get("ifield") && m.level === 4572 && m.valid === "2026-11-23T04:00:00.000Z" && m.inView && String(got) === String(want) && (k.startsWith("sev") || /^icing probability \d+%$/.test(m.at.text)) && /saved official NOAA In-Flight Icing guidance/.test(m.banner) && !errs.length, { m, want, got, errs });
+        m.state === "ok" && m.field === u.searchParams.get("ifield") && m.level === 4572 && m.valid === "2026-11-23T04:00:00.000Z" && m.inView && String(got) === String(want) && (k.startsWith("sev") || /^icing probability \d+%$/.test(m.at.text)) && /saved official NOAA guidance \((GTG, )?IFI/.test(m.banner) && !errs.length, { m, want, got, errs });
       if (k === "prob-0") await q.screenshot({ path: path.join(OUT, `map-icing-finding-${tag}.png`) }); await q.close();
     }
     await base.p.locator(".et-ifi").scrollIntoViewIfNeeded(); await base.p.locator(".et-ifi .et-more").first().click().catch(() => {});

@@ -1,0 +1,10 @@
+{
+ "label": "NOAA NCEP Graphical Turbulence Guidance (DAFS), cycle 2026-11-23 00Z: three official EDPARM records read by byte range from dafs.t00z.gtg.3km.conus.f012 and f015 on NOMADS (captured 2026-11-23)",
+ "cycle": "2026112300",
+ "clock": "2026-11-23T02:00:00Z",
+ "records": {
+  "12|3048": "gtg-2026112300-f012-edparm-10000ft.grib2",
+  "12|9753": "gtg-2026112300-f012-edparm-32000ft.grib2",
+  "15|3048": "gtg-2026112300-f015-edparm-10000ft.grib2"
+ }
+}

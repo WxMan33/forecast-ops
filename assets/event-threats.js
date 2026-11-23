@@ -81,6 +81,8 @@
      air, about 1-1.3 MB each) through the preview's /api/gtg, decodes them here and runs GT.routeTurbulence. ?gtgcyc=
      pins a recent cycle (checks); otherwise the newest complete cycle. */
   const GT = window.ThreatsGTG, GTG_CYC = /^\d{10}$/.test(Q.get("gtgcyc") || "") ? Q.get("gtgcyc") : null;
+  // ?gtgsrc=fixture: the saved official GTG records (tests/fixtures/threats/gtg) on their own replay clock, so a case repeats
+  const GTG_FIXTURE = Q.get("gtgsrc") === "fixture", GTG_FIX = "tests/fixtures/threats/gtg/";
   const gtgRun = { want: false, key: null, state: "idle", result: null, error: null, latest: null, latestAt: 0, decoded: new Map(), bytes: 0 };
   const cycMs = (c) => Date.UTC(+c.slice(0, 4), +c.slice(4, 6) - 1, +c.slice(6, 8), +c.slice(8, 10));
   const gtgBase = () => (Live.NWS && Live.NWS.base ? Live.NWS.base.replace(/\/api\/nws$/, "/api/gtg") : "/api/gtg");
@@ -92,14 +94,16 @@
     if (gtgRun.key === key && gtgRun.state === "done" && Date.now() - gtgRun.latestAt < 15 * 60e3) return;
     Object.assign(gtgRun, { key, state: "loading", error: null });
     try {
-      if (GTG_CYC) gtgRun.latest = { cycle: GTG_CYC, hours: Array.from({ length: 19 }, (_, k) => k), pinned: true };
+      if (GTG_FIXTURE) { if (!gtgRun.latest || !gtgRun.latest.fixture) { const r = await fetch(GTG_FIX + "manifest.json", { cache: "no-store" }); if (!r.ok) throw Error("saved records: HTTP " + r.status); const m = await r.json(); gtgRun.latest = { cycle: m.cycle, records: m.records, clock: m.clock, fixture: true, pinned: true }; } }
+      else if (GTG_CYC) gtgRun.latest = { cycle: GTG_CYC, hours: Array.from({ length: 19 }, (_, k) => k), pinned: true };
       else if (!gtgRun.latest || Date.now() - gtgRun.latestAt > 15 * 60e3) gtgRun.latest = await gtgJson(gtgBase() + "/latest");
       gtgRun.latestAt = Date.now();
-      const cyc = gtgRun.latest.cycle, cms = cycMs(cyc), now = Date.now(), plan = GT.routePlan(rr, cms, now), fields = [], failed = [];
+      const L = gtgRun.latest, cyc = L.cycle, cms = cycMs(cyc), now = L.fixture ? Date.parse(L.clock) : Date.now(), plan = GT.routePlan(rr, cms, now), fields = [], failed = [];
       await Promise.all(plan.hours.flatMap((h) => plan.levels.map(async (l) => {
         const k = cyc + "|" + h.fh + "|" + l.m;
         try { let dec = gtgRun.decoded.get(k);
-          if (!dec) { const r = await fetch(gtgBase() + "/record?cycle=" + cyc + "&fh=" + h.fh + "&m=" + l.m, { cache: "no-store" }); if (!r.ok) { let m = "HTTP " + r.status; try { m = (await r.json()).error || m; } catch (x) { /* not JSON */ } throw Error(m); }
+          if (!dec) { if (L.fixture && !L.records[h.fh + "|" + l.m]) throw Error("not in the saved records");
+            const r = await fetch(L.fixture ? GTG_FIX + L.records[h.fh + "|" + l.m] : gtgBase() + "/record?cycle=" + cyc + "&fh=" + h.fh + "&m=" + l.m, { cache: "no-store" }); if (!r.ok) { let m = "HTTP " + r.status; try { m = (await r.json()).error || m; } catch (x) { /* not JSON */ } throw Error(m); }
             const b = new Uint8Array(await r.arrayBuffer()); gtgRun.bytes += b.length; dec = GT.decode(b);
             if (dec.product.category !== 19 || dec.product.number !== 30 || Math.round(dec.product.level) !== l.m || dec.product.forecast !== h.fh) throw Error("unexpected record");
             gtgRun.decoded.set(k, dec); if (gtgRun.decoded.size > 16) gtgRun.decoded.delete(gtgRun.decoded.keys().next().value); }
@@ -107,7 +111,7 @@
         } catch (e) { failed.push({ ft: l.ft, fh: h.fh, validMs: h.validMs, error: e.message }); }
       })));
       gtgRun.result = GT.routeTurbulence({ route: rr, cls: rr.cls, fields, failed, cycleMs: cms, now, plan });
-      Object.assign(gtgRun.result, { cycle: cyc, pinned: !!gtgRun.latest.pinned, planHours: plan.hours, planLevels: plan.levels });
+      Object.assign(gtgRun.result, { cycle: cyc, pinned: !!L.pinned, fixture: !!L.fixture, clock: L.clock || null, planHours: plan.hours, planLevels: plan.levels });
       gtgRun.state = "done";
     } catch (e) { Object.assign(gtgRun, { state: "failed", error: e.message, result: null }); }
     render();
@@ -316,15 +320,15 @@
       if (!cur) return `<div class="et-gtg">${hd}<p class="bx-note" data-gtg-state="loading">Reading GTG for ${esc(EN ? EN.bandText(rr.lowFt, rr.highFt) : "")}…</p></div>`;
       const cl = (ms) => new Date(ms).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).replace(":00", "").replace("AM", "a.m.").replace("PM", "p.m."), ft = (x) => GT.levelLabel(x);
       const cz = (c) => c.slice(8, 10) + "Z " + new Date(cycMs(c)).toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" }), oName = rs.label.split(" → ")[0];
-      const meta = `Cycle ${esc(cz(R.cycle))}${R.pinned ? " (pinned for this check)" : ""} · model hours ${esc(R.hours.map(cl).join(", ") || "none")} · heights checked ${esc(R.levels.map(ft).join(", "))} · ${esc(rr.cls)} aircraft · ${R.timed ? "times from your time in the air, assuming steady progress along the straight line" : "no times in the air given, so findings are potential overlaps during your " + esc(rs.timeSource || "window") + " window"}`;
+      const meta = `Cycle ${esc(cz(R.cycle))}${R.fixture ? " (saved official NOAA records; replay clock " + esc(fmt(R.clock, tz)) + ")" : R.pinned ? " (pinned for this check)" : ""} · model hours ${esc(R.hours.map(cl).join(", ") || "none")} · heights checked ${esc(R.levels.map(ft).join(", "))} · ${esc(rr.cls)} aircraft · ${R.timed ? "times from your time in the air, assuming steady progress along the straight line" : "no times in the air given, so findings are potential overlaps during your " + esc(rs.timeSource || "window") + " window"}`;
       const items = R.findings.map((f, i) => {
         const id = "gtg|" + i + "|" + f.fromMi + "-" + f.toMi + "|" + R.cycle, cat = GT.CAT_WORD[f.cat], where = f.fromMi === f.toMi ? "about " + f.fromMi + " miles from " + oName : f.fromMi + "–" + f.toMi + " miles from " + oName, lv = f.levels.map(ft).join(", ");
         const head = R.timed ? `${cat.charAt(0).toUpperCase() + cat.slice(1)} turbulence modeled ${where}, around ${cl(f.encounter.fromMs)}${f.encounter.toMs - f.encounter.fromMs >= 60e3 ? "–" + cl(f.encounter.toMs) : ""}, at ${lv} · GTG model guidance`
           : `Potential overlap: ${cat} turbulence modeled ${where} at ${lv}, valid ${f.validTimes.map(cl).join(" and ")} · GTG model guidance`;
         const line = `Model guidance, not an observation or an advisory. NOAA GTG cycle ${cz(R.cycle)}, valid ${f.validTimes.map(cl).join(", ")}: peak EDR ${f.peak.edr.toFixed(2)} at ${ft(f.peak.ft)} (${cat} for ${rr.cls} aircraft at ${GT.CLASSES[rr.cls].t[f.cat - 1].toFixed(2)} or more).` + (R.timed ? " The time assumes steady progress from your departure to your arrival along the straight line." : " When you would be there isn't known: no times in the air were given.");
         const u = new URL(mapLink({ family: "aviation", kind: "route", airport: rs.d, product: {} })); u.searchParams.delete("fit"); u.searchParams.delete("alt"); u.searchParams.delete("at");
-        Object.entries({ gtg: "1", gft: String(f.peak.ft), gfh: String(f.peak.fh), gcls: rr.cls, gcyc: R.cycle, focus: f.midPt.map((x) => x.toFixed(3)).join(",") }).forEach(([k, v]) => u.searchParams.set(k, v));
-        const isOpen = open.has(id), rows = [["Model", "NOAA NCEP Graphical Turbulence Guidance (DAFS), eddy dissipation rate (EDPARM), 3 km grid"], ["Cycle", esc(cz(R.cycle)) + (R.pinned ? " (pinned)" : "")], ["Valid", esc(f.validTimes.map((t) => fmt(new Date(t).toISOString(), tz)).join("; "))],
+        Object.entries({ gtg: "1", gft: String(f.peak.ft), gfh: String(f.peak.fh), gcls: rr.cls, ...(R.fixture ? { gtgsrc: "fixture" } : { gcyc: R.cycle }), focus: f.midPt.map((x) => x.toFixed(3)).join(",") }).forEach(([k, v]) => u.searchParams.set(k, v));
+        const isOpen = open.has(id), rows = [["Model", "NOAA NCEP Graphical Turbulence Guidance (DAFS), eddy dissipation rate (EDPARM), 3 km grid"], ["Cycle", esc(cz(R.cycle)) + (R.fixture ? " (saved official records)" : R.pinned ? " (pinned)" : "")], ["Valid", esc(f.validTimes.map((t) => fmt(new Date(t).toISOString(), tz)).join("; "))],
           ["Peak", esc("EDR " + f.peak.edr.toFixed(3) + " m^(2/3)/s at " + ft(f.peak.ft) + " MSL")], ["Category", esc(cat + " for " + GT.CLASSES[rr.cls].label + "; AWC thresholds " + GT.CLASSES[rr.cls].t.map((x) => x.toFixed(2)).join(" / "))],
           ["Where", esc(where + " along the straight line to " + rs.label.split(" → ")[1] + "; peak near " + f.midPt[1].toFixed(2) + "°, " + f.midPt[0].toFixed(2) + "°")], ["When", esc(R.timed ? "about " + cl(f.encounter.fromMs) + (cl(f.encounter.toMs) !== cl(f.encounter.fromMs) ? "–" + cl(f.encounter.toMs) : "") + ", from your time in the air" : "not estimated (no times in the air)")],
           ["Heights checked", esc(R.levels.map(ft).join(", ") + " (up to " + GT.MAX_LEVELS + " in your band)")]];
@@ -335,7 +339,7 @@
       const gaps = R.gaps.flatMap((g) => g.runs.map((x) => gapText[g.kind](x)));
       if (!R.timed && R.windowBeyond) gaps.push("Your time in the air runs past " + cl(R.reachMs) + ", the end of cycle " + cz(R.cycle) + ": later hours aren't checked.");
       if (R.failed.length) gaps.push("Couldn't read " + R.failed.map((x) => ft(x.ft) + " at " + cl(x.validMs)).join(", ") + " (" + R.failed[0].error + "): those heights and hours are unknown.");
-      if (R.stale) gaps.push("Cycle " + cz(R.cycle) + " is " + Math.round((Date.now() - R.cycleMs) / 3600e3) + " hours old" + (R.pinned ? " (pinned for this check)" : "") + "; newer cycles exist.");
+      if (R.stale && !R.fixture) gaps.push("Cycle " + cz(R.cycle) + " is " + Math.round((Date.now() - R.cycleMs) / 3600e3) + " hours old" + (R.pinned ? " (pinned for this check)" : "") + "; newer cycles exist.");
       const andList = (a) => (a.length <= 1 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]);
       const sampled = andList(R.levels.map(ft)) + " at " + andList(R.hours.map(cl));
       const none = !R.findings.length && R.checked ? [`No modeled turbulence found at the sampled heights and times${R.complete ? "" : " that could be checked"} (moderate or worse for ${rr.cls} aircraft): ${sampled}.${R.light ? " Light turbulence along about " + Math.round((100 * R.light) / R.checked) + "% of the route." : ""}`] : [];
