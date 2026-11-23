@@ -26,9 +26,9 @@ const savedEvents = E.events().map((e) => { const { access_token, apiKey, ...res
 /* ---- export ---- */
 const B = E.backup(Date.parse("2026-11-11T12:00:00Z"));
 const text = JSON.stringify(B);
-eq([B.kind, B.version, B.exportedAt, B.counts], ["forecast-ops-event-backup", 1, "2026-11-11T12:00:00.000Z", { events: 2, venues: 1, aliases: 1 }], "export: versioned, dated, counted");
+eq([B.kind, B.version, B.exportedAt, B.counts], ["forecast-ops-event-backup", 2, "2026-11-11T12:00:00.000Z", { events: 2, venues: 1, aliases: 1, preferences: [] }], "export: versioned (workspace v2), dated, counted; no preference group when none is set here");
 ok(!/token|secret|apiKey|access_token|pk\.[0-9a-f]{20,}|synthetic-browser-id|example\.org\/collect/i.test(text), "export: no tokens, API keys, analytics IDs or endpoints");
-eq(Object.keys(B).sort(), ["app", "counts", "events", "exportedAt", "kind", "venues", "version"], "export: only the documented top-level fields");
+eq(Object.keys(B).sort(), ["app", "counts", "events", "exportedAt", "kind", "preferences", "venues", "version"], "export: only the documented top-level fields (preferences added in version 2)");
 const fair = B.events.find((e) => e.source.eventId === "multi");
 eq([fair.times.end, fair.source.start, fair.source.end, fair.source.calendarId], ["2026-12-12T18:00", "2026-12-10T14:00:00Z", "2026-12-12T23:00:00Z", "cal-synthetic"], "export: multi-day times and the calendar's instants and IDs are kept");
 eq(B.venues[0].defaults, { setup: 300, gates: 75, teardown: 150, gust: 28 }, "export: venue defaults");
@@ -77,7 +77,7 @@ eq([P.summary.events.add, P.events[0].rec.id], [1, `${manual.id}_r1`], "a differ
 const snap = JSON.stringify(mem);
 const bad = [
   ["{not json", /valid JSON/], [JSON.stringify([1, 2]), /isn't a Forecast Ops backup/], [JSON.stringify({ kind: "other", version: 1, events: [], venues: [] }), /isn't a Forecast Ops event backup/],
-  [JSON.stringify({ ...B, version: 2 }), /newer Forecast Ops/], [JSON.stringify({ ...B, version: "1" }), /valid version/], [JSON.stringify({ ...B, events: null }), /missing its events/],
+  [JSON.stringify({ ...B, version: 3 }), /newer Forecast Ops/], [JSON.stringify({ ...B, version: "1" }), /valid version/], [JSON.stringify({ ...B, events: null }), /missing its events/],
   [JSON.stringify({ ...B, events: [{ ...B.events[0], times: { start: "2026-12-05 19:00", end: "2026-12-05T21:00" } }] }), /valid date and time/],
   [JSON.stringify({ ...B, events: [{ ...B.events[0], times: { start: "2026-12-05T21:00", end: "2026-12-05T19:00" }, source: { kind: "manual" } }] }), /ends before it starts/],
   [JSON.stringify({ ...B, venues: [{ ...B.venues[0], lat: 120 }] }), /valid coordinates/], [JSON.stringify({ ...B, venues: [{ ...B.venues[0], tz: "Mars/Olympus" }] }), /valid time zone/],
@@ -91,5 +91,45 @@ failWrites = true;
 assert.throws(() => E.applyRestore(E.planRestore(E.readBackup(JSON.stringify({ ...B, events: [{ ...B.events[0], id: "ev_synthetic_extra", source: { kind: "manual" } }] })))), /ran out of storage space/); n++;
 failWrites = false; eq(JSON.stringify(mem), snap, "a failed write leaves events and venues unchanged");
 blocked = true; assert.throws(() => E.applyRestore(P), /isn't letting the page save/); n++; ok(E.storageOk() === false, "blocked storage is detected"); blocked = false;
+
+/* ---- workspace v2: preferences travel by group; importing them is opt-in; replace-all; all or nothing ---- */
+{
+  const J = (v) => JSON.stringify(v);
+  const MODELS = { gfs_seamless: { on: true, w: 0.5 }, ecmwf_ifs025: { on: false, w: 1.25 } }, PROF = { near: MODELS, far: { gfs_seamless: { on: true, w: 1 } }, nearTemp: MODELS };
+  const sender = { ops_blend_preset: J("custom"), ops_blend_models: J(MODELS), ops_blend_period_weights_v1: J(PROF), ops_blend_weight_scope: J("nearTemp"), ops_thunder_models: J(MODELS),
+    ops_near48_default_v1: "true", ops_scoped_default_version: J("scoped-2026-11"), ops_blend_cfg_v: "3", ops_theme: J("dark"), forecast_ops_monitoring_address_v1: "https://ope.example.test" };
+  const keep = { ...mem }; Object.assign(mem, sender);
+  const W = E.backup(Date.parse("2026-11-20T15:00:00Z")), Wops = E.backup(Date.now(), { forecast: true, display: true, monitoring: true });
+  eq(W.counts.preferences, ["forecast", "display"], "workspace: forecast preferences and theme travel by default");
+  ok(!("monitoring" in W.preferences) && !/ope\.example/.test(JSON.stringify(W)), "workspace: the OPE monitoring address is left out by default");
+  eq(Wops.preferences.monitoring, { forecast_ops_monitoring_address_v1: "https://ope.example.test" }, "workspace: the OPE address only when the exporter includes it");
+  eq([W.preferences.forecast.ops_blend_preset, W.preferences.forecast.ops_blend_period_weights_v1.near, W.preferences.display.ops_theme], ["custom", MODELS, "dark"], "workspace: values as the sender stores them");
+  ok(!/token|secret|apiKey|synthetic-browser-id/.test(JSON.stringify(W)), "workspace: still no tokens, keys or browser IDs");
+  /* the recipient: a different browser with its own settings and one overlapping event */
+  mem = { ops_theme: J("light"), ops_blend_preset: J("near48") };
+  const R = E.readBackup(JSON.stringify(Wops)); ok(R.ok && R.version === 2 && Object.keys(R.preferences).join() === "forecast,display,monitoring", "v2 file reads, with its preference groups");
+  let res = E.applyRestore(E.planRestore(R), { preferences: R.preferences });
+  eq([res.events.add, res.preferences, JSON.parse(mem.ops_theme), JSON.parse(mem.ops_blend_preset), mem.ops_blend_models], [2, [], "light", "near48", undefined], "merge: records added; preferences untouched unless chosen");
+  mem = { ops_theme: J("light"), ops_blend_preset: J("near48"), ops_blend_weight_scope: J("far") };
+  res = E.applyRestore(E.planRestore(R), { preferences: R.preferences, prefs: { forecast: true } });
+  eq([res.preferences, JSON.parse(mem.ops_blend_preset), JSON.parse(mem.ops_blend_weight_scope), JSON.parse(mem.ops_scoped_default_version), JSON.parse(mem.ops_theme), mem.forecast_ops_monitoring_address_v1],
+    [["forecast"], "custom", "nearTemp", "scoped-2026-11", "light", undefined], "opt in to forecast only: recipe, weights and markers as the sender's; theme and OPE address unchanged");
+  /* a v1 file still imports (no preferences); newer versions and bad preference values are refused whole */
+  const V1 = { ...W, version: 1 }; delete V1.preferences; const r1 = E.readBackup(JSON.stringify(V1));
+  eq([r1.ok, r1.version, r1.preferences], [true, 1, {}], "a version 1 backup still imports, with no preferences");
+  eq(E.readBackup(JSON.stringify({ ...W, version: 3 })).ok, false, "a newer version is refused");
+  const bad = E.readBackup(JSON.stringify({ ...W, preferences: { forecast: { ops_blend_models: { x: { on: "yes", w: 1 } } } } }));
+  ok(!bad.ok && /Forecast preferences/.test(bad.errors.join(" ")), "a bad preference value refuses the whole file: " + bad.errors[0]);
+  ok(E.readBackup(JSON.stringify({ ...W, preferences: { forecast: { unknown_key: 1 }, other: { x: 1 } } })).ok, "unknown preference keys and groups are ignored, not written");
+  /* replace everything: the file's records take the place of what's here */
+  mem = {}; E.saveEvent({ name: "Only here", loc: { name: "X", lat: 39, lon: -84 }, tz: NY, times: { start: "2026-12-20T19:00", end: "2026-12-20T21:00" } });
+  const all = E.applyRestore(E.planRestore(R, { events: [], venues: [] }), { replaceAll: true, preferences: R.preferences });
+  eq([E.events().length, E.events().some((e) => e.name === "Only here"), all.replaceAll], [2, false, true], "replace all: only the file's events remain");
+  /* a refused write puts every key back, preferences included */
+  mem = { ops_theme: J("light"), ops_blend_preset: J("near48") }; const before = JSON.stringify(mem); failWrites = true;
+  assert.throws(() => E.applyRestore(E.planRestore(R), { preferences: R.preferences, prefs: { forecast: true, display: true } }), /nothing was changed/); n++;
+  failWrites = false; eq(JSON.stringify(mem), before, "a refused write leaves events, venues and preferences exactly as they were");
+  mem = keep;
+}
 
 console.log(`ok - ${n} backup and restore checks passed`);

@@ -285,7 +285,46 @@
      cached lookups) can ride along. Restoring validates the whole file first, then merges: new records are added,
      identical ones skipped, and a record that differs from one saved here is kept as it is unless the planner chooses
      to replace it. */
-  const BACKUP_KIND = "forecast-ops-event-backup", BACKUP_VERSION = 1;
+  const BACKUP_KIND = "forecast-ops-event-backup", BACKUP_VERSION = 2;
+  /* Workspace preferences (version 2): browser settings that travel with a workspace file, by group. Values are
+     stored as this browser stores them (JSON, or the raw string for the monitoring address); null = not set here, so
+     importing a group reproduces the sender's setup exactly, defaults included. Never in the file: sign-in tokens,
+     API keys, cached forecasts or lookups, briefing history, the last-opened event, analytics or session flags.
+       forecast    Model Blend recipe and weights, thunder weights, and the one-time migration markers that go with
+                   them (so a browser's first-run defaults don't overwrite imported weights)
+       display     theme
+       monitoring  the local OPE monitoring address (only when the exporter includes it) */
+  const PREFS = {
+    forecast: { label: "Forecast preferences (Model Blend recipe and weights, thunder weights)", keys: { ops_blend_preset: "name", ops_blend_models: "models", ops_blend_period_weights_v1: "profiles",
+      ops_blend_weight_scope: "name", ops_thunder_models: "models", ops_near48_default_v1: "bool", ops_scoped_default_version: "name", ops_blend_cfg_v: "int" } },
+    display: { label: "Display (theme)", keys: { ops_theme: "theme" } },
+    monitoring: { label: "OPE monitoring address", keys: { forecast_ops_monitoring_address_v1: "url" } },
+  };
+  const PREF_KEYS = Object.values(PREFS).flatMap((g) => Object.keys(g.keys));
+  const cleanModels = (m) => (m && typeof m === "object" && !Array.isArray(m) && Object.keys(m).length <= 80 ? Object.fromEntries(Object.entries(m)
+    .filter(([k, x]) => /^[\w.-]{1,80}$/.test(k) && x && typeof x === "object" && typeof x.on === "boolean" && fin(x.w) && x.w >= 0 && x.w <= 1000).map(([k, x]) => [k, { on: x.on, w: x.w }])) : undefined);
+  /* one preference value: the cleaned value, null for "not set", or undefined when it is invalid */
+  function cleanPref(kind, v) {
+    if (v === null) return null;
+    if (kind === "name") return typeof v === "string" && /^[\w.-]{1,40}$/.test(v) ? v : undefined;
+    if (kind === "bool") return typeof v === "boolean" ? v : undefined;
+    if (kind === "int") return Number.isInteger(v) && v >= 0 && v <= 1000 ? v : undefined;
+    if (kind === "theme") return v === "light" || v === "dark" ? v : undefined;
+    if (kind === "url") return typeof v === "string" && v.length <= 300 && /^(https:\/\/[^\s?#]+|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?[^\s?#]*)$/.test(v) ? v : undefined;
+    if (kind === "models") { const m = cleanModels(v); return m && Object.keys(m).length === Object.keys(v).length ? m : undefined; }
+    if (kind === "profiles") { if (!v || typeof v !== "object" || Array.isArray(v) || Object.keys(v).length > 8) return undefined;
+      const out = {}; for (const [k, x] of Object.entries(v)) { if (!/^[A-Za-z]{1,20}$/.test(k)) return undefined; const m = cleanModels(x); if (!m || Object.keys(m).length !== Object.keys(x).length) return undefined; out[k] = m; } return out; }
+    return undefined;
+  }
+  const readPref = (s, k, kind) => { const raw = s.getItem(k); if (raw == null) return null; if (kind === "url") return raw; try { return JSON.parse(raw); } catch (e) { return undefined; } };
+  /* this browser's preferences for the chosen groups (invalid stored values are left out) */
+  function preferences(groups = { forecast: true, display: true, monitoring: false }) {
+    const s = ls(), out = {}; if (!s) return out;
+    Object.entries(PREFS).forEach(([g, def]) => { if (!groups[g]) return; const vals = {};
+      Object.entries(def.keys).forEach(([k, kind]) => { const v = cleanPref(kind, readPref(s, k, kind)); if (v !== undefined) vals[k] = v; });
+      if (Object.values(vals).some((v) => v !== null)) out[g] = vals; }); // a group travels only when something in it is set here
+    return out;
+  }
   const LOCAL = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, ISO = (x) => typeof x === "string" && x.length <= 40 && isFinite(Date.parse(x));
   const str = (x, max = 200) => (typeof x === "string" ? x.slice(0, max) : null);
   const num = (x) => (fin(x) ? x : null);
@@ -313,10 +352,11 @@
     return out;
   }
   const storageOk = () => { try { const s = ls(); if (!s) return false; s.setItem("beta_storage_probe", "1"); s.removeItem("beta_storage_probe"); return true; } catch (e) { return false; } };
-  function backup(now = Date.now()) {
-    const vs = venues().map(cleanVenue), es = events().map(cleanEvent);
+  /* the workspace file: events and venues, plus the chosen preference groups (OPE address only when asked for) */
+  function backup(now = Date.now(), groups = { forecast: true, display: true, monitoring: false }) {
+    const vs = venues().map(cleanVenue), es = events().map(cleanEvent), prefs = preferences(groups);
     return { kind: BACKUP_KIND, version: BACKUP_VERSION, exportedAt: new Date(now).toISOString(), app: "Forecast Ops Event Manager beta",
-      counts: { events: es.length, venues: vs.length, aliases: vs.reduce((n, v) => n + v.aliases.length, 0) }, venues: vs, events: es };
+      counts: { events: es.length, venues: vs.length, aliases: vs.reduce((n, v) => n + v.aliases.length, 0), preferences: Object.keys(prefs) }, venues: vs, events: es, preferences: prefs };
   }
   const validZone = (tz) => { try { new Intl.DateTimeFormat("en-US", { timeZone: tz }); return true; } catch (e) { return false; } };
   /* every problem in the file, or the cleaned records; nothing is written here */
@@ -356,8 +396,17 @@
       if (e.source.kind === "calendar" && (!e.source.calendarId || !e.source.eventId)) errors.push(`${where} is a calendar event without its calendar and event IDs.`);
       eIds.add(e.id); es.push(e);
     });
+    /* preferences (version 2; a version 1 file has none): known groups and keys only, every value checked */
+    const prefs = {};
+    if (j.version >= 2 && j.preferences != null) {
+      if (typeof j.preferences !== "object" || Array.isArray(j.preferences)) errors.push("The preferences in the file aren't readable.");
+      else Object.entries(PREFS).forEach(([g, def]) => { const raw = j.preferences[g]; if (raw == null) return;
+        if (typeof raw !== "object" || Array.isArray(raw)) return errors.push(`${def.label} aren't readable.`);
+        const vals = {}; for (const [k, kind] of Object.entries(def.keys)) { if (!(k in raw)) continue; const v = cleanPref(kind, raw[k]); if (v === undefined) { errors.push(`${def.label}: ${k} has a value this page can't use.`); return; } vals[k] = v; }
+        if (Object.keys(vals).length) prefs[g] = vals; });
+    }
     if (errors.length) return { ok: false, errors: errors.slice(0, 8).concat(errors.length > 8 ? [`…and ${errors.length - 8} more problems.`] : []) };
-    return { ok: true, errors: [], version: j.version, exportedAt: ISO(j.exportedAt) ? j.exportedAt : null, venues: vs, events: es };
+    return { ok: true, errors: [], version: j.version, exportedAt: ISO(j.exportedAt) ? j.exportedAt : null, venues: vs, events: es, preferences: prefs };
   }
   /* what restoring would do, against what is saved here now (pure) */
   function planRestore(file, cur = { events: events(), venues: venues() }) {
@@ -389,12 +438,14 @@
     return { venues: venuesPlan, events: eventsPlan, summary: { events: { add: count(eventsPlan, "add"), same: count(eventsPlan, "same"), conflict: count(eventsPlan, "conflict") },
       venues: { add: count(venuesPlan, "add"), same: count(venuesPlan, "same") + count(venuesPlan, "aliases"), conflict: count(venuesPlan, "conflict"), aliases: count(venuesPlan, "aliases") } } };
   }
-  /* write the plan: replace=false keeps every record that differs from the backup. All or nothing: if storage refuses
-     either list, the earlier lists are put back and the error is raised. */
-  function applyRestore(plan, { replace = false } = {}) {
-    const s = ls(); if (!s || !storageOk()) throw new Error("This browser isn't letting the page save (private browsing or storage turned off), so nothing was restored.");
-    const before = { ev: s.getItem(EV_KEY), vn: s.getItem(VN_KEY) };
-    const vs = venues().slice(), es = events().slice(), now = Date.now(); let replaced = 0;
+  /* write the plan. Merge (default): replace=false keeps every record that differs from the file. replaceAll: the
+     file's events and venues take the place of everything saved here (plan it against an empty workspace). prefs:
+     the preference groups to apply from `preferences` (none unless chosen). All or nothing: every key is read first,
+     and if the browser refuses any write, all of them are put back as they were and the error is raised. */
+  function applyRestore(plan, { replace = false, replaceAll = false, prefs = {}, preferences: P = {} } = {}) {
+    const s = ls(); if (!s || !storageOk()) throw new Error("This browser isn't letting the page save (private browsing or storage turned off), so nothing was imported.");
+    const touched = [EV_KEY, VN_KEY, ...PREF_KEYS], before = Object.fromEntries(touched.map((k) => [k, s.getItem(k)]));
+    const vs = replaceAll ? [] : venues().slice(), es = replaceAll ? [] : events().slice(), now = Date.now(); let replaced = 0;
     plan.venues.forEach((p) => {
       const i = vs.findIndex((x) => x.id === p.rec.id);
       if (p.action === "add") vs.push({ ...p.rec, defaults: { ...STD, ...p.rec.defaults } });
@@ -406,15 +457,20 @@
       if (p.action === "add") es.push({ ...p.rec, created: p.rec.created || now, updated: p.rec.updated || now });
       else if (p.action === "conflict" && replace && i >= 0) { es[i] = { ...p.rec, updated: now }; replaced++; }
     });
-    const ok = write(VN_KEY, vs) && write(EV_KEY, es);
-    if (!ok) {
-      try { before.vn == null ? s.removeItem(VN_KEY) : s.setItem(VN_KEY, before.vn); before.ev == null ? s.removeItem(EV_KEY) : s.setItem(EV_KEY, before.ev); } catch (e) { /* nothing more to do */ }
-      throw new Error("The browser ran out of storage space while restoring, so nothing was changed.");
+    const applied = Object.keys(PREFS).filter((g) => prefs[g] && P[g]);
+    let ok = write(VN_KEY, vs) && write(EV_KEY, es);
+    for (const g of applied) for (const [k, kind] of Object.entries(PREFS[g].keys)) {
+      if (!ok || !(k in P[g])) continue; const v = P[g][k];
+      try { if (v === null) s.removeItem(k); else s.setItem(k, kind === "url" ? v : JSON.stringify(v)); } catch (e) { ok = false; }
     }
-    return { ...plan.summary, replaced };
+    if (!ok) {
+      touched.forEach((k) => { try { before[k] == null ? s.removeItem(k) : s.setItem(k, before[k]); } catch (e) { /* nothing more to do */ } });
+      throw new Error("The browser ran out of storage space while importing, so nothing was changed.");
+    }
+    return { ...plan.summary, replaced, replaceAll, preferences: applied };
   }
 
-  const api = { presetsOf, defsFor, newPresetId, BACKUP_KIND, BACKUP_VERSION, backup, readBackup, planRestore, applyRestore, storageOk, wallAt, wallMs, localMs, instantsOf, foldsFor, schedule, scheduleAt, msOf, BUILTIN, matchVenue, rememberAlias, norm, mergeImported, confirmVenue, importEvents, STD, STATUS, applyDefaults, offsetsOf, overridesOf, statusOf, order, fromCalendar, addMin, diffMin,
+  const api = { presetsOf, defsFor, newPresetId, BACKUP_KIND, BACKUP_VERSION, PREFS, PREF_KEYS, preferences, backup, readBackup, planRestore, applyRestore, storageOk, wallAt, wallMs, localMs, instantsOf, foldsFor, schedule, scheduleAt, msOf, BUILTIN, matchVenue, rememberAlias, norm, mergeImported, confirmVenue, importEvents, STD, STATUS, applyDefaults, offsetsOf, overridesOf, statusOf, order, fromCalendar, addMin, diffMin,
     events, venues, saveEvent, getEvent, removeEvent, saveVenue, getVenue, removeVenue, last, setLast, migrate, EV_KEY, VN_KEY };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.EventStore = api;

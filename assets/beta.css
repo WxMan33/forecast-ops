@@ -764,3 +764,106 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 }
 /* boxed blocks stop just inside the right margin so their right border prints */
 @media print { .pv .pv-sched, .pv .pv-nextcheck, .pv .pv-alerts { box-sizing: border-box; width: calc(100% - 1.5pt); } }
+
+/* ---------- Hour by hour charts: readable across a room; each chart carries its own key ---------- */
+.evc-selected{font-size:15px;margin:10px 0}.evc-selected b{font-size:17px}
+.evc-card h3{font-size:17px}
+.evc-val{display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right}
+.evc-val>b{font-size:26px;line-height:1.1;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+.evc-val span{font-size:14px;color:var(--muted)}.evc-val span b{color:var(--text);font-weight:700}
+.evc-legend{display:flex;flex-wrap:wrap;gap:4px 14px;margin:6px 0 0;font-size:13px;color:var(--muted)}
+.evc-key{display:inline-flex;align-items:center;gap:6px}.evc-key i{display:inline-block;flex:none}
+.evc-key .k-line{width:22px;height:0;border-top:3px solid var(--series)}.evc-key .k-dash{border-top-style:dashed;opacity:.8}
+.evc-key .k-dots{position:relative}.evc-key .k-dots::after{content:"";position:absolute;left:7px;top:-6px;width:9px;height:9px;border-radius:50%;background:var(--series)}
+.evc-key .k-limit{width:22px;height:0;border-top:2px dotted var(--muted)}
+.evc-key .k-gap{width:14px;height:14px;background:color-mix(in srgb,var(--muted) 18%,transparent);border-radius:2px}
+.evc-key .k-band{width:14px;height:14px;border-radius:2px}
+.evc-key .k-unc{border:1px dashed var(--muted)}
+.evc-type{color:var(--text);font-weight:600}
+.evc-axis{font:13px var(--bx-font);fill:var(--muted)}
+.evc-hour{font:600 14px var(--bx-font);fill:var(--text)}.evc-hour-sel{font-weight:800;fill:var(--accent)}.evc-zone{font-weight:500;font-size:11px;fill:var(--muted)}
+.evc-rule-minor{opacity:.45}
+.evc-line{stroke-width:3}.evc-second{stroke-width:2.4;opacity:.85}
+.evc-rain{--series:#0b4f78}[data-theme="dark"] .evc-rain,:root:not([data-theme="light"]) .evc-rain{--series:#8fd6ff}
+[data-theme="light"] .evc-rain{--series:#0b4f78}
+.evc-temp{--series:#f08a72}[data-theme="light"] .evc-temp{--series:#d4553b}
+.evc-wind{--series:#3fbfae}[data-theme="light"] .evc-wind{--series:#127a6c}
+.evc-dot{fill:var(--series);stroke:var(--panel);stroke-width:2}.evc-dot-sel{stroke:var(--text);stroke-width:2.5}
+.evc-selcol{fill:var(--accent);opacity:.12}
+.evc-gap{fill:var(--muted);opacity:.12}.evc-gaptext{font:600 12px var(--bx-font);fill:var(--muted)}
+/* precipitation type: light tints, always labelled */
+.evc-band-rain,.evc-key .k-rain{fill:#3aa757;background:#3aa757}.evc-band-mix,.evc-key .k-mix{fill:#e25ca4;background:#e25ca4}.evc-band-snow,.evc-key .k-snow{fill:#3b82f6;background:#3b82f6}
+.evc-band{opacity:.16}.evc-key .k-band:not(.k-unc){opacity:.45}
+.evc-bandlabel{font:700 13px var(--bx-font);fill:var(--text)}.evc-bandlabel-unc{fill:var(--muted);font-style:italic}
+/* flagged hours: labelled brackets; red only for the highest level */
+.evc-flag path{fill:none;stroke:var(--text);stroke-width:1.6}.evc-flag text{font:700 12.5px var(--bx-font);fill:var(--text)}
+.evc-flag-high path{stroke:#d12f2f;stroke-width:2.2}.evc-flag-high text{fill:#d12f2f}
+/* lightning potential: discrete blocks in violet steps, labelled (not alert colours) */
+.evc-tier{stroke:none}.evc-tier-1{fill:#c9bfe6}.evc-tier-2{fill:#9b87d6}.evc-tier-3{fill:#5b3fb0}
+.evc-key .k-tier{width:14px;height:14px;border-radius:2px}.evc-key .k-t1{background:#c9bfe6}.evc-key .k-t2{background:#9b87d6}.evc-key .k-t3{background:#5b3fb0}
+.evc-tiertext{font:700 12px var(--bx-font);fill:#fff;paint-order:stroke;stroke:#2b1f55;stroke-width:2.5px}
+.evc-limittext{font-size:12.5px}
+@media(max-width:600px){.evc-val>b{font-size:23px}.evc-card h3{font-size:16px}.evc-legend{font-size:12.5px;gap:3px 10px}.evc-hour{font-size:15px}.evc-axis{font-size:13.5px}}
+.evc-share{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 0}.evc-share .bx-note{flex-basis:100%;margin:0}
+.evc-theme select{min-height:34px}
+
+/* Early weather outlook: daily figures for events the hourly briefing doesn't reach yet */
+.ev-outlook{border:1px solid var(--bx-rule);border-radius:var(--bx-r);background:var(--panel);padding:14px 16px;margin:12px 0}
+.ev-outlook h3{font-size:17px;font-weight:700;margin:0 0 4px}.ev-ol-lead{margin:0 0 10px;font-weight:600}
+.ev-ol-days{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-bottom:10px}
+.ev-ol-day{border:1px solid var(--bx-rule);border-radius:8px;padding:10px 12px;background:var(--bx-quiet)}
+.ev-ol-date{font-weight:700;font-size:15px}.ev-ol-vals{display:flex;gap:18px;margin:8px 0 4px;flex-wrap:wrap}.ev-ol-vals dt{font-size:12.5px;color:var(--muted)}.ev-ol-vals dd{margin:2px 0 0;font-size:22px}
+.ev-ol-type{margin:2px 0;font-weight:600}.ev-ol-period{margin:2px 0 0}.ev-ol-out{opacity:.85}
+.evc-beyond{font:600 13px var(--bx-font);fill:var(--muted);font-style:italic}
+
+/* Share menu on the event header */
+.ev-sharemenu{position:relative;display:inline-block}.ev-sharemenu>summary{list-style:none;cursor:pointer}.ev-sharemenu>summary::-webkit-details-marker{display:none}
+.ev-sharebtn{font-weight:700}
+.ev-sharepop{position:absolute;right:0;top:calc(100% + 6px);z-index:30;width:min(360px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--bx-rule);border-radius:var(--bx-r);box-shadow:0 10px 30px rgba(0,0,0,.25);padding:12px;display:grid;gap:10px;text-align:left}
+.ev-shareitem .bx-note{margin:4px 0 0}.ev-shareimg{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.ev-sharemsg:empty{display:none}
+.ev-missing p{margin:0 0 6px}.ev-missing p:first-child{font-size:16px}
+
+/* Workspace menu (Upcoming events) */
+.up-wsmenu{position:relative;display:flex}.up-wsmenu>summary{list-style:none;cursor:pointer;display:flex;align-items:center}.up-wsmenu>summary::-webkit-details-marker{display:none}
+.up-wspop{position:absolute;left:0;top:calc(100% + 6px);z-index:30;width:min(380px,calc(100vw - 32px));background:var(--panel);border:1px solid var(--bx-rule);border-radius:var(--bx-r);box-shadow:0 10px 30px rgba(0,0,0,.25);padding:12px;display:grid;gap:10px;text-align:left}
+@media (min-width:760px){.up-wspop{left:auto;right:0}}
+.up-wsrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rs-mode,.rs-prefs{border:1px solid var(--bx-rule);border-radius:8px;padding:8px 10px;margin:8px 0;display:grid;gap:6px}.rs-mode legend,.rs-prefs legend{padding:0 4px}
+.rs-opt{align-items:flex-start!important}.rs-opt input{flex:none;margin-top:3px}.up-wsmenu>summary{height:100%;box-sizing:border-box}
+.bx details.up-wsmenu{border-top:0;padding:0}
+
+/* Event schedule: Daylight row (the Almanac's Sunrise / Sunset labels, venue-local) */
+.ev-daylight { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin: 2px 0 10px; font-size: 14px; }
+.ev-daylight .ev-dl-kick, .ev-daylight .k { font-size: 11px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); }
+.ev-daylight .ev-dl-kick { color: var(--text); }
+.ev-daylight .ev-dl-day { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.ev-daylight .ev-dl-date { font-weight: 700; }
+.ev-daylight .ev-dl-t b { font-family: var(--font-mono); font-weight: 800; font-variant-numeric: tabular-nums; }
+.ev-daylight .ev-dl-zone, .ev-daylight .ev-dl-more { font-size: 12.5px; }
+.ev-dl-note { margin: -4px 0 10px; font-size: 13.5px; font-weight: 600; }
+@media print { .pv .pv-daylight { margin: 6pt 0 0; font-size: 11pt; } .pv .pv-daylight b { margin-right: 4pt; } }
+/* Hour by hour: the sunrise / sunset line just above the charts */
+.ev-dl-line { margin: 10px 0 8px; font-size: 15px; line-height: 1.5; }
+.ev-dl-line b { font-family: var(--font-mono); font-weight: 800; font-variant-numeric: tabular-nums; }
+.ev-dl-line .ev-dl-date { font-weight: 700; }
+.ev-dl-line .ev-dl-zone { color: var(--muted); }
+.ev-dl-line .ev-dl-seg { white-space: nowrap; }
+
+/* event totals strip above the hourly charts */
+.evc-totals{display:grid;gap:4px;margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:13px;line-height:1.45}.evc-totals .evc-tnote{color:var(--muted);font-size:12px}
+
+/* printable briefing: threats first, readable columns, marked concern hours */
+.pv-amounts{margin:4px 0 8px;padding-left:18px;font-size:12px}.pv-amounts li{margin:2px 0}
+.pv-watch{border:1.5px solid #b45309;border-radius:6px;padding:7px 10px;margin:6px 0 8px;font-size:12px;break-inside:avoid}.pv-watch>b{display:block;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;color:#92400e}
+.pv-watch ul{margin:3px 0 0;padding-left:18px}.pv-watch li{margin:2px 0}.pv-watch p{margin:3px 0 0}.pv-watch .pv-amounts{margin:4px 0 0}
+.pv-hours th,.pv .pv-hours th{white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none;line-height:1.15}
+.pv-hours td:first-child,.pv-dense .pv-hours td:first-child{width:15%}
+.pv-hours td,.pv .pv-hours td{padding:3pt 4pt}.pv-hours{font-size:9.5pt}.pv-dense .pv-hours{font-size:9pt}
+.pv-hours td.pv-over small{display:block;white-space:normal;line-height:1.1}
+.pv-dense .pv-hours td:first-child small{display:block;margin-left:0}
+.pv-watch{padding:5px 9px;margin:4px 0 6px;font-size:10pt;line-height:1.3}.pv-watch li{margin:1px 0}.pv-dense .pv-watch{font-size:9pt}
+.pv-hours tr.pv-watchrow td:first-child{box-shadow:inset 3px 0 0 #d97706}.pv-hours td.pv-hit{font-weight:700}
+/* seven or eight columns on a 7.4in page: fixed layout, every cell wraps at spaces, never past the page edge */
+.pv-hours{table-layout:fixed;width:100%}
+.pv-hours th,.pv-hours td,.pv-hours th:not(:first-child),.pv-hours td:not(:first-child),.pv .pv-hours th{white-space:normal !important;overflow-wrap:normal;word-break:normal}
+.pv-hours td.pv-time{white-space:normal !important}

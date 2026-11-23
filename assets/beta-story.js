@@ -241,10 +241,17 @@
   function market(lat, lon) { return { tuned: inBox(CINCY_DMA, +lat, +lon), map: inBox(HRRR_BOX, +lat, +lon) }; }
 
   /* event <-> link: an event can travel in a URL so a colleague opens the same briefing */
-  function eventToParam(ev) { return JSON.stringify({ n: ev.name, v: ev.loc, z: ev.tz, t: ev.times, g: ev.gust || 25 }); }
+  /* A share link carries the event only: name, venue name and point, time zone, its times, the gust limit, and (when a
+     time happens twice on a fall-back night) which occurrence is meant, so the link keeps the exact times. Nothing else
+     from the workspace travels. Links made before "f" existed still open (first occurrence, as before). */
+  function eventToParam(ev) {
+    const f = Object.fromEntries(Object.entries(ev.fold || {}).filter(([k, x]) => ev.times && ev.times[k] && (x === 0 || x === 1)));
+    return JSON.stringify({ n: ev.name, v: ev.loc, z: ev.tz, t: ev.times, g: ev.gust || 25, ...(Object.keys(f).length ? { f } : {}) });
+  }
   function eventFromParam(str, C) {
     try { const x = JSON.parse(str); const ev = { id: "link", name: String(x.n || "Shared event").slice(0, 80), loc: { name: String(x.v.name || "Venue").slice(0, 80), lat: +x.v.lat, lon: +x.v.lon }, tz: x.z, times: x.t, gust: +x.g || 25 };
       if (x.v.approximate === true) ev.loc.approximate = true;
+      if (x.f && typeof x.f === "object") { const f = Object.fromEntries(Object.entries(x.f).filter(([k, v]) => ev.times && ev.times[k] && (v === 0 || v === 1))); if (Object.keys(f).length) ev.fold = f; }
       return C.event.validate(ev).length ? null : ev; } catch (e) { return null; }
   }
 

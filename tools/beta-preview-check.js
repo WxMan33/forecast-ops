@@ -217,11 +217,15 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     const ev = { n: "FC Cincinnati home match (test)", v: { name: "TQL Stadium, Cincinnati, OH", lat: 39.1111, lon: -84.5222 }, z: "America/New_York", t: { setup: `${day}T15:00`, gates: `${day}T18:00`, start: `${day}T19:30`, end: `${day}T21:30`, teardown: `${day}T23:30` }, g: 25 };
     const { ctx, p, errors } = await go(PHONE, base + "event-beta.html?e=" + encodeURIComponent(JSON.stringify(ev)));
     await until(p, () => document.body.dataset.readiness, null, 90000); await p.waitForTimeout(800);
-    const x = await p.evaluate(() => ({ state: document.body.dataset.readiness, dec: document.getElementById("decision").innerText, cov: document.getElementById("coverage").innerText,
+    await until(p, () => document.body.dataset.outlook, null, 30000);
+    /* the pending text now sits in the Early weather outlook (24 days out: past the 10-day outlook, so no numbers) */
+    const x = await p.evaluate(() => ({ state: document.body.dataset.readiness, dec: document.getElementById("decision").innerText, outlook: document.body.dataset.outlook,
+      cov: [document.getElementById("coverage"), document.getElementById("outlook")].filter((e) => !e.hidden).map((e) => e.innerText).join("\n"), pops: document.querySelectorAll("#outlook [data-ol-pop]").length,
       hidden: ["secPhases", "secMap", "secHourly", "secChanges", "secChecks"].every((i) => getComputedStyle(document.getElementById(i)).display === "none"), sched: !!document.querySelector(".sch-bar"),
       remind: [...document.querySelectorAll("[data-remind]")].map((a) => a.dataset.remind).join(","), threshold: /planning threshold/.test(document.body.innerText) }));
-    report(x.state === "pending" && /Weather briefing pending/.test(x.dec) && /come into range/.test(x.cov) && /whole event by/.test(x.cov) && x.hidden && x.sched && x.remind === "google,ics" && !x.threshold && !errors.length,
-      "event weeks out: pending briefing with schedule, coverage dates and a reminder; empty cards, chart and map collapsed", `${x.dec} · "${x.cov.split("\n")[1] || ""}" · reminders ${x.remind} · sections hidden ${x.hidden}`);
+    report(x.state === "pending" && x.outlook === "beyond" && /Weather briefing pending/.test(x.dec) && /A lot can change this far out/.test(x.cov) && /past the 10-day outlook/.test(x.cov) && !x.pops
+      && /daily outlook should start covering it around/.test(x.cov) && /reach setup around .+ and the whole event around/.test(x.cov) && x.hidden && x.sched && x.remind === "google,ics" && !x.threshold && !errors.length,
+      "event weeks out: pending briefing with schedule, outlook and coverage dates (venue time) and a reminder; no numbers past 10 days; chart and map collapsed", `${x.dec} · ${x.outlook} · "${(x.cov.match(/Hourly guidance[^\n]*/) || [""])[0]}" · reminders ${x.remind} · sections hidden ${x.hidden}`);
     await p.screenshot({ path: `${out}/event-pending-phone.png`, fullPage: true }); await ctx.close(); }
   });
 
@@ -531,7 +535,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
 
     /* backup: export, empty the browser, restore, restore again (duplicates skipped), a damaged file (nothing changed) */
     const beforeEv = await saved(), beforeVn = await p.evaluate(() => JSON.parse(localStorage.getItem("beta_venues_v1") || "[]"));
-    const [dl] = await Promise.all([p.waitForEvent("download", { timeout: 15000 }), p.click("#upExport")]);
+    const [dl] = await Promise.all([p.waitForEvent("download", { timeout: 15000 }), p.click("#upWorkspace > summary").then(() => p.click("#upExport"))]);
     const file = `${out}/../backup-check.json`; await dl.saveAs(file); const text = require("fs").readFileSync(file, "utf8"); require("fs").unlinkSync(file);
     const B = JSON.parse(text), exportNote = await p.evaluate(() => document.getElementById("upNote").innerText.trim());
     await p.evaluate(() => { localStorage.removeItem("beta_events_v2"); localStorage.removeItem("beta_venues_v1"); });
@@ -554,15 +558,42 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     const bad = await p.evaluate(() => document.getElementById("upBackupErr").innerText.replace(/\s+/g, " "));
     const snap2 = await p.evaluate(() => localStorage.getItem("beta_events_v2") + localStorage.getItem("beta_venues_v1"));
     const canon = (x) => (Array.isArray(x) ? x.map(canon) : x && typeof x === "object" ? Object.keys(x).sort().reduce((o, k) => ((o[k] = canon(x[k])), o), {}) : x), same = (a, b) => JSON.stringify(canon(a)) === JSON.stringify(canon(b)); // key order aside
-    report(B.kind === "forecast-ops-event-backup" && B.version === 1 && B.counts.events === 1 && B.counts.venues === 1 && B.counts.aliases === 1 && !/pk\.[0-9a-f]{20,}|access_token|fo_bid|token/i.test(text)
-      && /Backup exported: 1 event · 1 venue · 1 remembered calendar location/.test(exportNote) && emptied === 0 && /Events: 1 new/.test(summary) && /Venues: 1 new/.test(summary)
-      && same(afterEv, beforeEv) && same(afterVn, beforeVn) && /Backup restored: 1 event and 1 venue added/.test(restoredNote)
-      && /Everything in this backup is already saved here/.test(dup) && /can't be restored/.test(bad) && /valid JSON/.test(bad) && snap === snap2 && !errors.length,
-      "backup: export (no credentials), restore into an empty browser, restore again (duplicates skipped), damaged file refused with nothing changed",
+    report(B.kind === "forecast-ops-event-backup" && B.version === 2 && B.counts.events === 1 && B.counts.venues === 1 && B.counts.aliases === 1 && !/pk\.[0-9a-f]{20,}|access_token|fo_bid|token/i.test(text) && !(B.preferences && B.preferences.monitoring)
+      && /Workspace exported: 1 event · 1 venue · 1 remembered calendar location/.test(exportNote) && emptied === 0 && /Events: 1 new/.test(summary) && /Venues: 1 new/.test(summary)
+      && same(afterEv, beforeEv) && same(afterVn, beforeVn) && /Workspace imported: 1 event and 1 venue added/.test(restoredNote)
+      && /Everything in this file is already saved here/.test(dup) && /can't be imported/.test(bad) && /valid JSON/.test(bad) && snap === snap2 && !errors.length,
+      "workspace: export from the Workspace menu (no credentials, no OPE address), import into an empty browser, import again (duplicates skipped), damaged file refused with nothing changed",
       `file v${B.version}: ${B.counts.events} event, ${B.counts.venues} venue, ${B.counts.aliases} alias · "${exportNote.slice(0, 60)}" · emptied ${emptied} · restore "${summary.slice(0, 80)}" → "${restoredNote.slice(0, 70)}" · records identical ${same(afterEv, beforeEv) && same(afterVn, beforeVn)} (custom gates ${afterEv[0] && afterEv[0].times.gates.slice(11)}, venue gates ${afterVn[0] && afterVn[0].defaults.gates} min) · again: "${dup.match(/Everything[^.]*\./) || dup.slice(0, 60)}" · damaged: "${bad.slice(0, 70)}", storage unchanged ${snap === snap2}${errors.length ? " · " + errors.join("; ") : ""}`);
     await ctx.close();
   });
   /* ---------- 15. editing an imported fall-back event keeps which 1:30 AM it is ---------- */
+  /* ---------- 14b. Daylight row: the Thanksgiving Day Race at TQL Stadium (public 9:00 AM start, sample crew times) against NOAA's own table at the venue ---------- */
+  await section('14b. daylight row vs NOAA (phone)', async () => {
+    const lat = 39.1113, lon = -84.5222, race = { id: "ev_dl_race", name: "Thanksgiving Day Race (sample crew times)", venueId: null, loc: { name: "TQL Stadium, Cincinnati, OH", lat, lon }, tz: "America/New_York",
+      times: { setup: "2026-11-26T05:00", gates: "2026-11-26T06:30", start: "2026-11-26T09:00", end: "2026-11-26T10:30", teardown: "2026-11-26T12:00" }, gust: 25, overrides: [], source: { kind: "manual" }, created: 1, updated: 1 };
+    /* NOAA GML's Solar Calculator table for these exact coordinates (fetched here, never by the page) */
+    let noaa = null, why = "";
+    try { const r = await fetch(`https://gml.noaa.gov/grad/solcalc/table.php?lat=${lat}&lon=${lon}&year=2026`, { signal: AbortSignal.timeout(30000) }); const html = await r.text();
+      const tables = html.split(/Sunrise Table|Sunset Table/).slice(1, 3).map((t) => t.split(/<tr/i).map((row) => [...row.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((m) => m[1].replace(/<[^>]+>/g, "").trim())).filter((row) => row.length >= 13 && /^\d+$/.test(row[0])));
+      const at = (k) => tables[k].find((x) => +x[0] === 26)[11]; noaa = { rise: at(0), set: at(1) }; } catch (e) { why = String(e.message || e).split("\n")[0]; }
+    const { ctx, p, errors } = await go(PHONE, base + "event-beta.html?ev=" + race.id, `if (!sessionStorage.getItem("seeded")) { sessionStorage.setItem("seeded", "1"); localStorage.setItem("beta_events_v2", ${JSON.stringify(JSON.stringify([race]))}); }`);
+    await until(p, () => document.querySelector("#daylight .ev-daylight"), null, 30000);
+    const f = await p.evaluate(() => ({ rise: (document.querySelector("#daylight [data-sunrise]") || {}).textContent, set: (document.querySelector("#daylight [data-sunset]") || {}).textContent,
+      note: (document.querySelector("#daylight [data-daylight-note]") || {}).textContent, text: (document.querySelector("#daylight .ev-daylight") || {}).innerText }));
+    const h24 = (t) => { const m = /^(\d+):(\d\d) (AM|PM)$/.exec(t || ""); if (!m) return ""; let h = +m[1] % 12; if (m[3] === "PM") h += 12; return `${String(h).padStart(2, "0")}:${m[2]}`; };
+    await p.locator("#secTimeline").screenshot({ path: `${out}/event-daylight-race-phone.png` });
+    if (!noaa) console.log(`  info · daylight: NOAA's table for TQL Stadium couldn't be fetched for an extra comparison (${why}); the Almanac comparison below is the check`);
+    else report(h24(f.rise) === noaa.rise && h24(f.set) === noaa.set && f.note === `Setup starts before sunrise (${f.rise}).` && !errors.length, "daylight: Thanksgiving Day Race at TQL Stadium, sunrise and sunset equal NOAA's table for the venue; one schedule note",
+      `page ${f.rise} / ${f.set} · NOAA ${noaa.rise} / ${noaa.set} (EST, 39.1113, -84.5222, Nov 26 2026) · "${f.note}"${errors.length ? " · " + errors.join("; ") : ""}`);
+    /* the same place and date on the Almanac, and the line above the hourly charts on the event page */
+    const hl = await p.evaluate(() => (document.querySelector("#hourlyDaylight [data-daylight-line]") || {}).textContent || "");
+    const al = await go(PHONE, base + "almanac.html?lat=39.1113&lon=-84.5222&name=TQL%20Stadium%2C%20Cincinnati%2C%20OH&date=2026-11-26");
+    await until(al.p, () => document.querySelectorAll("#sunCard .mtile .v").length >= 2 && /times E[SD]T/.test((document.querySelector("#sunCard .msg") || {}).textContent || ""), null, 60000);
+    const alm = await al.p.evaluate(() => ({ t: [...document.querySelectorAll("#sunCard .mtile .v")].map((x) => x.textContent.trim()), msg: (document.querySelector("#sunCard .msg") || {}).textContent }));
+    report(alm.t[0] === f.rise && alm.t[1] === f.set && hl.replace(/\s+/g, " ").trim() === `Sunrise ${f.rise} · Sunset ${f.set} EST`, "daylight: Event Manager (row and Hour by hour line) shows the Almanac's sunrise and sunset for the same place and date",
+      `Almanac ${alm.t.join(" / ")} (${alm.msg}) · event row ${f.rise} / ${f.set} · Hour by hour "${hl.replace(/\s+/g, " ").trim()}"`);
+    await al.ctx.close(); await ctx.close();
+  });
   await section('15. fall-back event edit (phone)', async () => {
     const tqlV = { id: "vn_check", name: "TQL Stadium", city: "Cincinnati, OH", lat: 39.1111, lon: -84.5222, tz: "America/New_York", aliases: [], defaults: { setup: 270, gates: 90, teardown: 120, gust: 30 } };
     const { ctx, p, errors } = await go(PHONE, base + "event-beta.html#upcoming", `if (!sessionStorage.getItem("seeded")) { sessionStorage.setItem("seeded", "1"); localStorage.setItem("beta_venues_v1", ${JSON.stringify(JSON.stringify([tqlV]))}); }`);
@@ -702,7 +733,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       const ready = await until(p, () => document.querySelector("#printView .pv-p2"), null, 150000);
       const m = ready ? await p.evaluate(() => ({ head: document.querySelector("#printView .pv-p2 .pv-hours-window").innerText, rows: document.querySelectorAll("#printView .pv-hours tbody tr").length, phases: document.querySelectorAll("#printView .pv-sched [data-phase]").length })) : null;
       let pages = null; if (ready) { await p.emulateMedia({ media: "print" }); const pdf = await p.pdf({ path: `${out}/event-briefing-3day.pdf`, format: "Letter", preferCSSPageSize: true }); pages = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length; }
-      report(m && m.rows === 24 && /first 24 hours/i.test(m.head) && /open the briefing for the rest/.test(m.head) && m.phases >= 3 && pages === 2 && !errors.length,
+      report(m && m.rows === 24 && (/first 24 hours/i.test(m.head) || /24 of \d+ planning hours, chosen to include the first concern/.test(m.head)) && /open the briefing for the rest/.test(m.head) && m.phases >= 3 && pages === 2 && !errors.length,
         "long multi-day event: the printout keeps the full phase summary and states the hourly window it includes (first 24 hours) instead of silently cutting",
         m ? `${m.phases} phases summarised · ${m.rows} hourly rows · "${m.head.replace(/\s+/g, " ").slice(0, 160)}" · ${pages} PDF pages` : "briefing did not load");
       await ctx.close(); }
