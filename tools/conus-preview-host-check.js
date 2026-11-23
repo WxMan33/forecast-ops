@@ -2,8 +2,10 @@
 // loads the expected cases, the unavailable panel works, and the Regional view returns. Writes two screenshots.
 const {chromium,devices}=require('playwright');
 const [BASE,OUT]=process.argv.slice(2);
-(async()=>{const b=await chromium.launch();const p=await b.newPage({viewport:{width:1280,height:1000}});const errs=[];p.on('pageerror',e=>errs.push(e.message));
- await p.goto(BASE+'severe.html#severe-conus');await p.waitForFunction(()=>window.SevereConusPreview&&window.SevereConusPreview.state().ready&&window.SevereConusPreview.state().case,null,{timeout:90000});await p.waitForTimeout(3000);
+(async()=>{const b=await chromium.launch({args:['--use-angle=swiftshader','--enable-unsafe-swiftshader']});const p=await b.newPage({viewport:{width:1280,height:1000}});const errs=[],logs=[];p.on('pageerror',e=>errs.push(e.message));p.on('console',m=>logs.push(m.type()+': '+m.text().slice(0,200)));p.on('requestfailed',r=>logs.push('FAILED '+r.url().slice(0,160)));
+ await p.goto(BASE+'severe.html#severe-conus');
+ try{await p.waitForFunction(()=>window.SevereConusPreview&&window.SevereConusPreview.state().ready&&window.SevereConusPreview.state().case,null,{timeout:90000});}
+ catch(e){console.log('DIAG',JSON.stringify(await p.evaluate(()=>({api:!!window.SevereConusPreview,st:window.SevereConusPreview&&window.SevereConusPreview.state(),status:(document.getElementById('scStatus')||{}).textContent,webgl:!!document.createElement('canvas').getContext('webgl')}))));console.log(logs.slice(-30).join('\n'));console.log('pageerrors',errs);await p.screenshot({path:OUT+'/hosted-timeout.png',fullPage:false});throw e;}await p.waitForTimeout(3000);
  const st=await p.evaluate(()=>({s:window.SevereConusPreview.state(),cases:[...document.querySelectorAll('#scCase option')].map(o=>o.value),win:document.getElementById('scWindow').textContent}));
  console.log(JSON.stringify(st));if(st.cases.length<4||st.s.day!==2||st.s.hazard!=='wind')throw Error('CONUS view did not load the expected cases');
  await p.evaluate(()=>window.SevereConusPreview.select(-84.5,38.0));const v=await p.evaluate(()=>window.SevereConusPreview.state());console.log('KY sample',v.kind,v.value);if(v.kind!=='value')throw Error('inside-box sample not a value');
