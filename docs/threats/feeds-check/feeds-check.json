@@ -1,6 +1,6 @@
 {
  "host": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev",
- "at": "2026-11-23T18:29:52.707Z",
+ "at": "2026-11-23T18:46:22.198Z",
  "devices": {
   "desktop": {
    "fresh": {
@@ -32,12 +32,12 @@
     "byFeed": {}
    },
    "severeOnly": {
-    "requests": 100,
+    "requests": 126,
     "byFeed": {
      "alerts": 1,
      "md": 2,
      "spc": 3,
-     "alerts-zones": 65,
+     "alerts-zones": 91,
      "alerts-refs": 29
     },
     "urls": [
@@ -56,10 +56,6 @@
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ349",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ350",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ049",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/GUZ001",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ001",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ002",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ003",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ101",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ102",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ103",
@@ -78,13 +74,13 @@
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ552",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ021",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ022",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ506",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ508",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ006",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ505",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ509",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ529",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ530",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ006",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ506",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ508",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ818",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ821",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ822",
@@ -97,30 +93,59 @@
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ038",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ137",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ138",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ125",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ132",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ325",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ633",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ124",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ233",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ333",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/GAZ154",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/GAZ166",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ125",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ132",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ325",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ633",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ107",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/SCZ054",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/SCZ056",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ106",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ108",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ110",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.002.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/SCZ054",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/SCZ056",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ107",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ066",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ068",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ058",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ059",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ060",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ061",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ062",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ063",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ072",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ073",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ074",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ075",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/GUZ001",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ001",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ002",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ003",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ020",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ022",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ025",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ026",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ027",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/DEZ002",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/DEZ003",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/DEZ004",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ021",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ023",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ024",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ012",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ013",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ014",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.002.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.003.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.001.2",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.003.2",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.001.1",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.001.3",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.002.2",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.004.1",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.003.1",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.002.1",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.001.2",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.9b53fb0e9e5d8ecd37557e73aceb7eabbffc8a70.001.1",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b3538a28f85029b5fd2779e2438e1c38deba11a3.001.2",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b3538a28f85029b5fd2779e2438e1c38deba11a3.001.3",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.2943e74ef61ecc39f9d9b7af6c89f6ad42f4fe9e.001.1",
@@ -128,19 +153,20 @@
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.c93cc1bc311c9e9beef2ad0c48e1b9875782954e.001.1",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.7edb8e57faa8b9c8e59e896d5484a84f351b37ae.001.2",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.7edb8e57faa8b9c8e59e896d5484a84f351b37ae.001.1",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.bd9ea6481983b966a3a508dc657b26fa07a10703.001.2",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.bd9ea6481983b966a3a508dc657b26fa07a10703.001.3",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.003.1",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.001.2",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.bd9ea6481983b966a3a508dc657b26fa07a10703.001.2",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.002.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.001.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.003.1",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.002.2",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1aaa3ee0806c7de6442f59fe1edb7847724f7764.001.1",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1aaa3ee0806c7de6442f59fe1edb7847724f7764.002.1",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1aaa3ee0806c7de6442f59fe1edb7847724f7764.003.1",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.e3b0b9af6fbe8973570bf4ad5f4ad7160873d360.001.1",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.d2115dccfa6c4a6f7576fa0af08419ee89a80ee9.002.1",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.d2115dccfa6c4a6f7576fa0af08419ee89a80ee9.001.2"
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.d2115dccfa6c4a6f7576fa0af08419ee89a80ee9.001.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.9f92898e3ddbe686e507795c31a36a8675412559.001.1"
     ],
     "state": {
      "layers": [
@@ -159,7 +185,7 @@
       "md",
       "spc"
      ],
-     "products": 46
+     "products": 53
     }
    },
    "severeOff70s": {
@@ -176,25 +202,25 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 46
+     "products": 53
     }
    },
    "total": {
-    "requests": 100,
+    "requests": 126,
     "byFeed": {
      "alerts": 1,
      "md": 2,
      "spc": 3,
-     "alerts-zones": 65,
+     "alerts-zones": 91,
      "alerts-refs": 29
     }
    },
    "floodLink": {
-    "requests": 98,
+    "requests": 124,
     "byFeed": {
      "alerts": 1,
      "ero": 3,
-     "alerts-zones": 65,
+     "alerts-zones": 91,
      "alerts-refs": 29
     },
     "state": {
@@ -213,18 +239,18 @@
       "alerts",
       "ero"
      ],
-     "products": 49
+     "products": 56
     }
    },
    "plannerLink": {
-    "requests": 106,
+    "requests": 132,
     "byFeed": {
      "alerts": 1,
      "md": 2,
      "spc": 3,
      "hms": 3,
      "airnow": 3,
-     "alerts-zones": 65,
+     "alerts-zones": 91,
      "alerts-refs": 29
     },
     "state": {
@@ -247,7 +273,7 @@
       "monitors",
       "spc"
      ],
-     "products": 97
+     "products": 104
     }
    },
    "demoLink": {
@@ -298,12 +324,12 @@
     "byFeed": {}
    },
    "severeOnly": {
-    "requests": 100,
+    "requests": 126,
     "byFeed": {
      "alerts": 1,
      "md": 2,
      "spc": 3,
-     "alerts-zones": 65,
+     "alerts-zones": 91,
      "alerts-refs": 29
     },
     "urls": [
@@ -322,10 +348,6 @@
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ349",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ350",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/WAZ049",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/GUZ001",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ001",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ002",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ003",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ101",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ102",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ103",
@@ -344,13 +366,13 @@
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ552",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ021",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ORZ022",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ506",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ508",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ006",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ505",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ509",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ529",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ530",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ006",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ506",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/CAZ508",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ818",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ821",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/AKZ822",
@@ -363,30 +385,59 @@
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ038",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ137",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ138",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ125",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ132",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ325",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ633",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ124",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ233",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ333",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/GAZ154",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/GAZ166",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ125",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ132",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ325",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/FLZ633",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ107",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/SCZ054",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/SCZ056",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ106",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ108",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ110",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.002.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/SCZ054",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/SCZ056",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NCZ107",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ066",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ068",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ058",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ059",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ060",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ061",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ062",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ063",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ072",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ073",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ074",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/COZ075",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/GUZ001",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ001",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ002",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/MPZ003",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ020",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ022",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ025",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ026",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ027",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/DEZ002",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/DEZ003",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/DEZ004",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ021",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ023",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ024",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ012",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ013",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/zones/forecast/NJZ014",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.002.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.003.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.001.2",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.003.2",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.001.1",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.001.3",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.002.2",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.004.1",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.003.1",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.002.1",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1637a5914e4562415ccb9e8d4976fc7d48c17d46.001.2",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.9b53fb0e9e5d8ecd37557e73aceb7eabbffc8a70.001.1",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b3538a28f85029b5fd2779e2438e1c38deba11a3.001.2",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b3538a28f85029b5fd2779e2438e1c38deba11a3.001.3",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.2943e74ef61ecc39f9d9b7af6c89f6ad42f4fe9e.001.1",
@@ -394,19 +445,20 @@
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.c93cc1bc311c9e9beef2ad0c48e1b9875782954e.001.1",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.7edb8e57faa8b9c8e59e896d5484a84f351b37ae.001.2",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.7edb8e57faa8b9c8e59e896d5484a84f351b37ae.001.1",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.bd9ea6481983b966a3a508dc657b26fa07a10703.001.2",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.bd9ea6481983b966a3a508dc657b26fa07a10703.001.3",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.003.1",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.001.2",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.bd9ea6481983b966a3a508dc657b26fa07a10703.001.2",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.002.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.001.1",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.001.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.003.1",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.b84cf11840784f167fb647326eb3bcd853d4cfa1.002.2",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1aaa3ee0806c7de6442f59fe1edb7847724f7764.001.1",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1aaa3ee0806c7de6442f59fe1edb7847724f7764.002.1",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.1aaa3ee0806c7de6442f59fe1edb7847724f7764.003.1",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.e3b0b9af6fbe8973570bf4ad5f4ad7160873d360.001.1",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.d2115dccfa6c4a6f7576fa0af08419ee89a80ee9.002.1",
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.d2115dccfa6c4a6f7576fa0af08419ee89a80ee9.001.2"
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.d2115dccfa6c4a6f7576fa0af08419ee89a80ee9.001.2",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/urn:oid:2.49.0.1.840.0.9f92898e3ddbe686e507795c31a36a8675412559.001.1"
     ],
     "state": {
      "layers": [
@@ -425,7 +477,7 @@
       "md",
       "spc"
      ],
-     "products": 46
+     "products": 53
     }
    },
    "severeOff70s": {
@@ -442,25 +494,25 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 46
+     "products": 53
     }
    },
    "total": {
-    "requests": 100,
+    "requests": 126,
     "byFeed": {
      "alerts": 1,
      "md": 2,
      "spc": 3,
-     "alerts-zones": 65,
+     "alerts-zones": 91,
      "alerts-refs": 29
     }
    },
    "floodLink": {
-    "requests": 98,
+    "requests": 124,
     "byFeed": {
      "alerts": 1,
      "ero": 3,
-     "alerts-zones": 65,
+     "alerts-zones": 91,
      "alerts-refs": 29
     },
     "state": {
@@ -479,18 +531,18 @@
       "alerts",
       "ero"
      ],
-     "products": 49
+     "products": 56
     }
    },
    "plannerLink": {
-    "requests": 106,
+    "requests": 132,
     "byFeed": {
      "alerts": 1,
      "md": 2,
      "spc": 3,
      "hms": 3,
      "airnow": 3,
-     "alerts-zones": 65,
+     "alerts-zones": 91,
      "alerts-refs": 29
     },
     "state": {
@@ -513,7 +565,7 @@
       "monitors",
       "spc"
      ],
-     "products": 97
+     "products": 104
     }
    },
    "demoLink": {
@@ -566,14 +618,14 @@
    }
   },
   {
-   "check": "(desktop) SEVERE STORMS ALONE: only its feeds (alerts 1, md 2, spc 3, alerts-zones 65, alerts-refs 29): NWS alerts, SPC MDs and SPC outlooks each requested, nothing else",
+   "check": "(desktop) SEVERE STORMS ALONE: only its feeds (alerts 1, md 2, spc 3, alerts-zones 91, alerts-refs 29): NWS alerts, SPC MDs and SPC outlooks each requested, nothing else",
    "pass": true,
    "detail": {
     "by": {
      "alerts": 1,
      "md": 2,
      "spc": 3,
-     "alerts-zones": 65,
+     "alerts-zones": 91,
      "alerts-refs": 29
     },
     "ss": {
@@ -593,7 +645,7 @@
       "md",
       "spc"
      ],
-     "products": 46
+     "products": 53
     },
     "errs": []
    }
@@ -614,13 +666,13 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 46
+     "products": 53
     },
     "errs": []
    }
   },
   {
-   "check": "(desktop) SHARED LINK layers=flood keeps its selection and requests only alerts and the WPC rainfall outlook (alerts 1, ero 3, alerts-zones 65, alerts-refs 29)",
+   "check": "(desktop) SHARED LINK layers=flood keeps its selection and requests only alerts and the WPC rainfall outlook (alerts 1, ero 3, alerts-zones 91, alerts-refs 29)",
    "pass": true,
    "detail": {
     "s": {
@@ -639,19 +691,19 @@
       "alerts",
       "ero"
      ],
-     "products": 49
+     "products": 56
     },
     "by": {
      "alerts": 1,
      "ero": 3,
-     "alerts-zones": 65,
+     "alerts-zones": 91,
      "alerts-refs": 29
     },
     "errs": []
    }
   },
   {
-   "check": "(desktop) PLANNER LINK (venue, Day 1, layers=severe,smoke) keeps its selection and requests only those layers' feeds (alerts 1, md 2, spc 3, hms 3, airnow 3, alerts-zones 65, alerts-refs 29)",
+   "check": "(desktop) PLANNER LINK (venue, Day 1, layers=severe,smoke) keeps its selection and requests only those layers' feeds (alerts 1, md 2, spc 3, hms 3, airnow 3, alerts-zones 91, alerts-refs 29)",
    "pass": true,
    "detail": {
     "s": {
@@ -674,7 +726,7 @@
       "monitors",
       "spc"
      ],
-     "products": 97
+     "products": 104
     },
     "by": {
      "alerts": 1,
@@ -682,7 +734,7 @@
      "spc": 3,
      "hms": 3,
      "airnow": 3,
-     "alerts-zones": 65,
+     "alerts-zones": 91,
      "alerts-refs": 29
     },
     "errs": []
@@ -748,14 +800,14 @@
    }
   },
   {
-   "check": "(phone) SEVERE STORMS ALONE: only its feeds (alerts 1, md 2, spc 3, alerts-zones 65, alerts-refs 29): NWS alerts, SPC MDs and SPC outlooks each requested, nothing else",
+   "check": "(phone) SEVERE STORMS ALONE: only its feeds (alerts 1, md 2, spc 3, alerts-zones 91, alerts-refs 29): NWS alerts, SPC MDs and SPC outlooks each requested, nothing else",
    "pass": true,
    "detail": {
     "by": {
      "alerts": 1,
      "md": 2,
      "spc": 3,
-     "alerts-zones": 65,
+     "alerts-zones": 91,
      "alerts-refs": 29
     },
     "ss": {
@@ -775,7 +827,7 @@
       "md",
       "spc"
      ],
-     "products": 46
+     "products": 53
     },
     "errs": []
    }
@@ -796,13 +848,13 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 46
+     "products": 53
     },
     "errs": []
    }
   },
   {
-   "check": "(phone) SHARED LINK layers=flood keeps its selection and requests only alerts and the WPC rainfall outlook (alerts 1, ero 3, alerts-zones 65, alerts-refs 29)",
+   "check": "(phone) SHARED LINK layers=flood keeps its selection and requests only alerts and the WPC rainfall outlook (alerts 1, ero 3, alerts-zones 91, alerts-refs 29)",
    "pass": true,
    "detail": {
     "s": {
@@ -821,19 +873,19 @@
       "alerts",
       "ero"
      ],
-     "products": 49
+     "products": 56
     },
     "by": {
      "alerts": 1,
      "ero": 3,
-     "alerts-zones": 65,
+     "alerts-zones": 91,
      "alerts-refs": 29
     },
     "errs": []
    }
   },
   {
-   "check": "(phone) PLANNER LINK (venue, Day 1, layers=severe,smoke) keeps its selection and requests only those layers' feeds (alerts 1, md 2, spc 3, hms 3, airnow 3, alerts-zones 65, alerts-refs 29)",
+   "check": "(phone) PLANNER LINK (venue, Day 1, layers=severe,smoke) keeps its selection and requests only those layers' feeds (alerts 1, md 2, spc 3, hms 3, airnow 3, alerts-zones 91, alerts-refs 29)",
    "pass": true,
    "detail": {
     "s": {
@@ -856,7 +908,7 @@
       "monitors",
       "spc"
      ],
-     "products": 97
+     "products": 104
     },
     "by": {
      "alerts": 1,
@@ -864,7 +916,7 @@
      "spc": 3,
      "hms": 3,
      "airnow": 3,
-     "alerts-zones": 65,
+     "alerts-zones": 91,
      "alerts-refs": 29
     },
     "errs": []

@@ -58,7 +58,14 @@
     const names = ["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"];
     return names[((Math.round(((rad * 180) / Math.PI) / 45) % 8) + 8) % 8];
   }
+  /* bounding boxes are cached per geometry and per ring: the national grouping compares every pair of areas */
+  const bbCache = new WeakMap();
+  function ringBox(ring) { let b = bbCache.get(ring); if (b) return b; let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity; for (const [x, y] of ring) { if (x < w) w = x; if (x > e) e = x; if (y < s) s = y; if (y > n) n = y; } b = [w, s, e, n]; bbCache.set(ring, b); return b; }
   function bbox(geometry) {
+    if (geometry && typeof geometry === "object" && bbCache.has(geometry)) return bbCache.get(geometry);
+    const r = bboxRaw(geometry); if (geometry && typeof geometry === "object") bbCache.set(geometry, r); return r;
+  }
+  function bboxRaw(geometry) {
     let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity;
     for (const rings of polygonsOf(geometry)) for (const [x, y] of rings[0] || []) { w = Math.min(w, x); e = Math.max(e, x); s = Math.min(s, y); n = Math.max(n, y); }
     return isFinite(w) ? [w, s, e, n] : null;
@@ -74,6 +81,7 @@
     const P1 = polygonsOf(g1), P2 = polygonsOf(g2);
     for (const r1 of P1) for (const r2 of P2) {
       const a = r1[0], b = r2[0];
+      if (!a || !b || !bboxOverlap(ringBox(a), ringBox(b))) continue; // these two rings can't share ground
       if (a.some((p) => inRing(p, b)) || b.some((p) => inRing(p, a))) return true;
       for (let i = 1; i < a.length; i++) for (let j = 1; j < b.length; j++) if (segmentsCross(a[i - 1], a[i], b[j - 1], b[j])) return true;
     }
@@ -158,7 +166,7 @@
     const list = sort(products.filter((p) => p.kind !== "outlook"));
     const parent = list.map((_, i) => i), find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
     for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
-      if (list[i].geometry && list[j].geometry && overlaps(list[i].geometry, list[j].geometry)) parent[find(j)] = find(i);
+      if (find(i) !== find(j) && list[i].geometry && list[j].geometry && overlaps(list[i].geometry, list[j].geometry)) parent[find(j)] = find(i);
     }
     const groups = new Map();
     list.forEach((p, i) => { const r = find(i); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(p); });
