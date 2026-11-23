@@ -519,11 +519,16 @@
   const shortTitle = (p) => p.kind === "watch" ? p.event : p.kind === "md" ? "Mesoscale Discussion " + p.title.replace(/\D+/g, "") : p.title;
   const venueCovers = () => T.sort(active().filter((p) => rel(p).kind === "covers"));
   const venueNear = () => T.sort(active().filter((p) => rel(p).kind === "near"));
-  const known = (k) => ["current", "empty", "na"].includes(data.state[k].kind);
+  const known = (k) => ["current", "empty", "na", "off"].includes(data.state[k].kind);
+  const srcOn = (k) => data.state[k] && data.state[k].kind !== "off";
+  /* the hazards whose NWS warnings, watches and advisories are loaded now, in words ("severe storm and winter") */
+  const ALERT_WORD = { severe: "severe storm", flood: "flood", winter: "winter", fire: "fire weather", tropical: "tropical", coastal: "coastal" };
+  const alertWords = () => { const w = Object.keys(ALERT_WORD).filter((k) => S.layers[k]).map((k) => ALERT_WORD[k]); return w.length <= 2 ? w.join(" or ") : w.slice(0, -1).join(", ") + " or " + w[w.length - 1]; };
   const activeKnown = () => known("alerts") && known("md");
   /* when only one source is unconfirmed, say exactly which part is known */
   function quietText() {
-    if (activeKnown()) return { big: "Nothing active at the venue", sub: "No tornado or severe thunderstorm warning or watch is in effect at the venue." };
+    if (!srcOn("alerts")) return { big: "No warning layer on", sub: "The layers on now don't include NWS warnings and watches. Turn on Severe storms, Flooding, Winter, Fire, Tropical or Coastal to check the venue." };
+    if (activeKnown()) return { big: "Nothing active at the venue", sub: "No " + alertWords() + " warning, watch or advisory is in effect at the venue" + (srcOn("md") ? ", and no SPC Mesoscale Discussion covers it." : ".") };
     if (known("alerts")) return { big: "No warning or watch at the venue", sub: "NWS checked " + t(data.sources.alerts.lastOk) + ". SPC Mesoscale Discussion status is unknown: that source is not responding." };
     return { big: "Venue status not confirmed", sub: "No product covers the venue in the data we have, but NWS warnings and watches are not confirmed (see below)." };
   }
@@ -871,7 +876,7 @@
     if (avOnly()) return avSummaryCard() + notices() + avControls() + airportsSection() + enrouteSection() + avOnlyNote();
     const groups = T.group(active(), PLACES);
     let h = venueStrip() + notices() + `<div class="px-h"><span>Most urgent now</span><span>${groups.reduce((n, g) => n + g.items.length, 0)} active</span></div>`;
-    if (!groups.length) h += `<p class="px-empty">${activeKnown() ? "No active tornado or severe thunderstorm warnings or watches, and no SPC Mesoscale Discussions, in the contiguous U.S." : (known("alerts") ? "No active tornado or severe thunderstorm warnings or watches in the contiguous U.S. (NWS checked " + esc(t(data.sources.alerts.lastOk)) + "). SPC Mesoscale Discussion status is unknown." : "None in the data we have, but NWS warnings and watches are not confirmed (see below).")}</p><p class="lg-note">${esc(SCOPE_NOTE)} Flood, winter and other hazards are not shown here yet.</p>`;
+    if (!groups.length) h += `<p class="px-empty">${!srcOn("alerts") ? "The layers on now don't include NWS warnings and watches." : activeKnown() ? "No active " + alertWords() + " warnings, watches or advisories" + (srcOn("md") ? ", and no SPC Mesoscale Discussions," : "") + " in the U.S." : (known("alerts") ? "No active " + alertWords() + " warnings, watches or advisories in the U.S. (NWS checked " + esc(t(data.sources.alerts.lastOk)) + "). SPC Mesoscale Discussion status is unknown." : "None in the data we have, but NWS warnings and watches are not confirmed (see below).")}</p><p class="lg-note">${esc(SCOPE_NOTE)}</p>`;
     for (const g of groups) {
       const gp = g.lead.label || g.centre, o = gp ? T.outlookAt(outlooks(1), gp) : null; // zone-based alerts have no location until their zone shapes load
       const counts = ["warning", "watch", "md"].map((k) => [k, g.items.filter((p) => p.kind === k).length]).filter(([, n]) => n).map(([k, n]) => n + " " + ({ warning: "warning", watch: "watch", md: "MD" }[k]) + (n > 1 ? (k === "watch" ? "es" : "s") : "")).join(" · ");
@@ -994,7 +999,7 @@
     if (winterView()) { const w = curWin(), o = w ? venueWssi().get(w.start) || {} : {}, lv = topLevel(o); return ["Winter outlook at " + venue.name, w ? winShort(w) + " · " + (lv ? pctTxt(o[lv]) + " at least " + (lv === "WWA" ? "winter weather" : WLEVEL_LABEL[lv]) : "under 30% for any level") : "Loading"]; }
     if (viewDay()) { const o = T.outlookAt(outlooks(viewDay()), [venue.lon, venue.lat]); return ["Day " + viewDay() + " at " + venue.name, o ? "Highest: " + T.outlookLabel(o.category) : olUnknown(viewDay()) || "No severe risk area"]; }
     const L = statusLines();
-    if (!L.length) { const q = quietText(); return [q.big.replace("at the venue", "at " + venue.name), lapsed().length ? "A warning reached its expiration · NWS status unknown" : activeKnown() ? "NWS checked " + t(data.sources.alerts.lastOk) : known("alerts") ? "NWS checked " + t(data.sources.alerts.lastOk) + " · MD status unknown" : "NWS warnings not confirmed"]; }
+    if (!L.length) { const q = quietText(); return [q.big.replace("at the venue", "at " + venue.name), lapsed().length ? "A warning reached its expiration · NWS status unknown" : !srcOn("alerts") ? "Open Layers to add warnings" : activeKnown() ? "NWS checked " + t(data.sources.alerts.lastOk) : known("alerts") ? "NWS checked " + t(data.sources.alerts.lastOk) + " · MD status unknown" : "NWS warnings not confirmed"]; }
     // line 1: what applies at the venue; line 2: its expiration (always kept); line 3: a nearby warning, if any
     const a = L[0], b = L.find((l, i) => i > 0 && l.p.kind === "warning");
     return [a.head.replace("at the venue", "at " + venue.name), a.sub, b ? b.head + (b.at ? "" : " · venue outside it") : ""];
@@ -1262,7 +1267,7 @@
   const popMore = () => { const pop = $("txLayersPop"); if (!pop || pop.hidden) return; pop.classList.toggle("more", pop.scrollTop + pop.clientHeight < pop.scrollHeight - 8); };
   $("txLayersPop").addEventListener("scroll", popMore, { passive: true }); window.addEventListener("resize", popMore);
   // keyboard: a focused control is scrolled clear of the pinned actions
-  $("txLayersPop").addEventListener("focusin", (e) => { const l = e.target.closest(".tx-lt"); if (l) l.scrollIntoView({ block: "nearest" }); popMore(); });
+  $("txLayersPop").addEventListener("focusin", (e) => { const l = e.target.closest(".tx-lt"); if (l && e.target.matches(":focus-visible")) l.scrollIntoView({ block: "nearest" }); popMore(); }); // keyboard only: a pointer press must not move the row it is pressing
   const popOpen = (open) => { const pop = $("txLayersPop"), btn = $("txLayersBtn"); pop.hidden = !open; btn.setAttribute("aria-expanded", String(open)); if (open) { syncLayers(); pop.scrollTop = 0; const f = pop.querySelector("input:not([disabled])"); if (f) f.focus(); requestAnimationFrame(popMore); } };
   $("txLayersBtn").addEventListener("click", () => popOpen($("txLayersPop").hidden));
   $("txPanelBody").addEventListener("click", (e) => { if (e.target.closest("[data-open-layers]")) { e.stopPropagation(); popOpen(true); }
@@ -1432,5 +1437,5 @@
       else map.fitBounds(CONUS, { padding: pad(), duration: 0 });
     });
   }).catch((e) => { $("txMap").innerHTML = `<p class="msg" style="padding:20px">The map could not load (${esc(e.message)}). The threat list still works.</p>`; });
-  window.__threats = { S, drawAll, radar, get vfc() { return vfc; }, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
+  window.__threats = { S, drawAll, radar, get venue() { return venue; }, get vfc() { return vfc; }, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
 })();

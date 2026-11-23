@@ -32,7 +32,7 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
     const since = (reqs, t0) => reqs.filter((r) => r.t >= t0);
     const tap = async (p, sel) => { await p.locator(sel).first().click(); };
     /* clicking the map at a lon/lat with the real pointer */
-    const mapClick = async (p, pt) => { const xy = await p.evaluate((pt) => { const m = window.__threats.map; m.jumpTo({ center: pt, zoom: Math.max(m.getZoom(), 6) }); const r = m.getCanvas().getBoundingClientRect(), q = m.project(pt); return [r.left + q.x, r.top + q.y]; }, pt); await p.waitForTimeout(900);
+    const mapClick = async (p, pt) => { const xy = await p.evaluate((pt) => { const m = window.__threats.map; m.jumpTo({ center: pt, zoom: Math.max(m.getZoom(), 9) }); const r = m.getCanvas().getBoundingClientRect(), q = m.project(pt); return [r.left + q.x, r.top + q.y]; }, pt); await p.waitForTimeout(900);
       if (o.hasTouch) await p.touchscreen.tap(xy[0], xy[1]); else await p.mouse.click(xy[0], xy[1]); await p.waitForTimeout(900); };
 
     /* PRESETS, from a fresh visit */
@@ -67,7 +67,8 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
     /* map clicks: fire incident dot, AirNow monitor dot, a smoke area; contained fires */
     { const { p, errs } = await page("?layers=fire,smoke&scope=national"); await p.waitForTimeout(15000);
       const pick = await p.evaluate(() => { const T = window.__threats, ids = (s) => new Set((T.map.getSource(s)._data.features || []).map((f) => f.properties.id)), inc = ids("inc-pt"), mon = ids("aqmon"), ps = T.data.products;
-        const fire = ps.filter((x) => x.kind === "incident" && inc.has(x.id) && x.point).sort((a, b) => (b.acres || 0) - (a.acres || 0))[0], m = ps.find((x) => x.kind === "aqobs" && mon.has(x.id) && x.point);
+        const fire = ps.filter((x) => x.kind === "incident" && inc.has(x.id) && x.point).sort((a, b) => (b.acres || 0) - (a.acres || 0))[0], vt = window.__threats.venue, dist = (pt) => Math.hypot(pt[0] - vt.lon, pt[1] - vt.lat),
+          m = ps.filter((x) => x.kind === "aqobs" && mon.has(x.id) && x.point).sort((a, b) => dist(b.point) - dist(a.point))[0]; // away from the venue marker
         const hidden = ps.filter((x) => x.kind === "incident" && x.contained === 100 && x.category !== "RX"), drawnContained = hidden.filter((x) => inc.has(x.id)).length;
         const hms = ps.find((x) => x.kind === "smoke" && x.geometry && Date.parse(x.obsEnd) <= Date.now()); let inside = null;
         if (hms) { const bb = window.ThreatsCore.bbox(hms.geometry); for (let i = 1; i < 25 && !inside; i++) for (let j = 1; j < 25 && !inside; j++) { const q = [bb[0] + (bb[2] - bb[0]) * i / 25, bb[1] + (bb[3] - bb[1]) * j / 25]; if (window.ThreatsCore.contains(hms.geometry, q)) inside = q; } }
