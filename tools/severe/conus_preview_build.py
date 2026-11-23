@@ -185,7 +185,7 @@ def build(a):
              "benchmark": benchmark_context(), "checks": checks,
              "built_at": datetime.now(timezone.utc).isoformat(), "protected_2025_outcomes_accessed": False}
     (out / "index.json").write_text(json.dumps(index, indent=1) + "\n")
-    print(json.dumps({"cases": [(c["case_type"], c["issue_date"]) for c in cases], "reproduction": checks["reproduction"]}, default=float))
+    print(json.dumps({"cases": [(c.get("case_type", c.get("kind")), c["issue_date"]) for c in cases], "reproduction": checks["reproduction"]}, default=float))
 
 
 def current(a):

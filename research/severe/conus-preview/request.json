@@ -2,5 +2,5 @@
   "purpose": "Build the CONUS Severe research preview feed (Day 2 damaging wind; frozen CONUS boosted-tree candidate) and push it to the preview branch",
   "preview_branch": "claude/severe-conus-preview",
   "current_issue_date": "2026-11-22",
-  "request": 1
+  "request": 2
 }
