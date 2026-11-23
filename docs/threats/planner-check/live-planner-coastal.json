@@ -1,29 +1,19 @@
 {
- "at": "2026-11-22T17:26:08.957Z",
+ "at": "2026-11-23T19:28:59.032Z",
  "nwsActiveForZone": [
-  "Coastal Flood Warning",
-  "Rip Current Statement"
+  "Coastal Flood Warning"
  ],
  "result": {
-  "summary": "2 weather threats for this event",
+  "summary": "1 weather threat for this event",
   "confirmed": false,
   "items": [
    {
+    "id": "KJAX.CF.W.0004.2026",
     "kind": "warning",
     "headline": "Coastal alert for the adjacent shoreline: Coastal Flood Warning",
-    "line": "Issued for Coastal Flagler; NWS places the venue in no land forecast zone (AMZ454), 1 mile from that zone. It covers the shoreline next to the venue, not the venue's own zone. In effect until 5 a.m. Monday during the event.",
-    "product": "KJAX.CF.W.0004.2026#FLZ138",
-    "category": null,
-    "day": null,
-    "phases": [
-     "event"
-    ]
-   },
-   {
-    "kind": "statement",
-    "headline": "Coastal alert for the adjacent shoreline: Rip Current Statement",
-    "line": "Issued for Coastal Flagler; NWS places the venue in no land forecast zone (AMZ454), 1 mile from that zone. It covers the shoreline next to the venue, not the venue's own zone. In effect until 8 p.m. during the event.",
-    "product": "KJAX.RP.S.0035.2026#FLZ138",
+    "code": null,
+    "line": "Issued for Inland Flagler; Eastern Putnam; Coastal Flagler; NWS places the venue in no land forecast zone (AMZ454), 1 mile from that zone. It covers the shoreline next to the venue, not the venue's own zone. In effect until 7 p.m. Wednesday during the event.",
+    "product": "KJAX.CF.W.0004.2026",
     "category": null,
     "day": null,
     "phases": [
@@ -32,19 +22,18 @@
    }
   ],
   "statuses": [
-   "NWS warnings, watches and advisories: Checked 12:26 p.m.",
-   "SPC fire weather outlooks: Checked 12:26 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
-   "NOAA satellite smoke analysis (HMS): Checked 12:26 p.m.",
-   "AirNow air quality observations: Checked 12:26 p.m. · nearest monitor Flagler County (10 miles west): AQI 22 Good (Ozone) for 12 p.m.",
+   "NWS warnings, watches and advisories: Checked 2:28 p.m.",
+   "SPC fire weather outlooks: Checked 2:28 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NOAA satellite smoke analysis (HMS): Checked 2:28 p.m.",
+   "AirNow air quality observations: Checked 2:28 p.m. · nearest monitor Flagler County (10 miles west): AQI 18 Good (Ozone) for 2 p.m.",
    "AirNow air quality forecasts: No AirNow forecast area for this venue.",
-   "NHC tropical outlooks and storm products: Checked 12:26 p.m.",
-   "NIFC wildfire incidents (WFIGS): Checked 12:26 p.m.",
-   "WPC winter storm severity outlook (WSSI-P): Checked 12:26 p.m.",
-   "WPC Excessive Rainfall Outlook: Checked 12:26 p.m. · Day 1 issued 1542Z, Day 2 issued 0729Z, Day 3 issued 0729Z"
+   "NHC tropical outlooks and storm products: Checked 2:28 p.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 2:28 p.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 2:28 p.m.",
+   "WPC Excessive Rainfall Outlook: Not responding · status unknown. We can't rule anything out from this source."
   ],
   "maps": [
-   "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=29.4802&lon=-81.1065&name=Flagler+Beach+Pier&tz=America%2FNew_York&scope=venue&view=active&layers=coastal&sel=KJAX.CF.W.0004.2026%23FLZ138&nws=function",
-   "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev/threats.html?lat=29.4802&lon=-81.1065&name=Flagler+Beach+Pier&tz=America%2FNew_York&scope=venue&view=active&layers=coastal&sel=KJAX.RP.S.0035.2026%23FLZ138&nws=function"
+   "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats.html?lat=29.4802&lon=-81.1065&name=Flagler+Beach+Pier&tz=America%2FNew_York&scope=venue&view=active&layers=coastal&sel=KJAX.CF.W.0004.2026&nws=function"
   ]
  }
 }

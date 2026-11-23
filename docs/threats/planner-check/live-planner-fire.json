@@ -1,37 +1,41 @@
 {
- "at": "2026-11-23T18:55:08.826Z",
+ "at": "2026-11-23T19:19:48.639Z",
  "result": {
-  "summary": "Not fully confirmed: no flooding, winter weather, fire weather or wildfire, smoke or air quality, tropical, coastal and airport weather threats found in the data we have, but a source is unavailable, stale or doesn't cover this venue or date.",
+  "summary": "1 weather threat for this event",
   "confirmed": false,
-  "items": [],
+  "items": [
+   {
+    "id": "wpc-wssip-WWA-2026-11-24T00:00:00.000Z-10@-104.830,41.151",
+    "kind": "outlook",
+    "headline": "Low chance of winter weather Monday · 10% chance of at least winter weather",
+    "code": null,
+    "line": "WPC's winter storm severity outlook (WSSI-P) for the 24 hours Mon 5 p.m. – Tue 5 p.m. includes the venue and overlaps the event. Expect winter weather and winter driving conditions. A chance for the whole 24 hours, not timing within it.",
+    "product": "wpc-wssip-WWA-2026-11-24T00:00:00.000Z-10@-104.830,41.151",
+    "category": "WWA",
+    "day": null,
+    "phases": [
+     "event"
+    ]
+   }
+  ],
   "statuses": [
-   "NWS warnings, watches and advisories: Checked 11:55 a.m.",
-   "SPC fire weather outlooks: Checked 11:55 a.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
-   "NOAA satellite smoke analysis (HMS): Checked 11:55 a.m.",
-   "AirNow air quality observations: Checked 11:55 a.m. · nearest monitor Cheyenne NCore (3 miles northeast): AQI 17 Good (Ozone) for 11 a.m.",
+   "NWS warnings, watches and advisories: Checked 12:19 p.m.",
+   "SPC fire weather outlooks: Checked 12:19 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NOAA satellite smoke analysis (HMS): Checked 12:19 p.m.",
+   "AirNow air quality observations: Checked 12:19 p.m. · nearest monitor Cheyenne NCore (3 miles northeast): AQI 17 Good (Ozone) for 12 p.m.",
    "AirNow air quality forecasts: No AirNow forecast area for this venue.",
-   "NHC tropical outlooks and storm products: Checked 11:55 a.m.",
-   "NIFC wildfire incidents (WFIGS): Checked 11:55 a.m.",
-   "WPC winter storm severity outlook (WSSI-P): Checked 11:55 a.m. · file 1848Z",
+   "NHC tropical outlooks and storm products: Checked 12:19 p.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 12:19 p.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 12:19 p.m. · file 1848Z",
    "WPC Excessive Rainfall Outlook: Not responding · status unknown. We can't rule anything out from this source."
   ],
-  "maps": []
+  "maps": [
+   "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats.html?lat=41.1505&lon=-104.8301&name=Cheyenne+Frontier+Days+Arena&tz=America%2FDenver&scope=venue&view=winter&wwin=2026-11-24T00%3A00%3A00.000Z&wlevel=WWA&layers=winter&nws=function"
+  ]
  },
  "feeds": [
   {
-   "url": "https://www.spc.noaa.gov/products/fire_wx/day1fw_windrh.lyr.geojson",
-   "status": 200,
-   "cache": null,
-   "upstreamAt": null
-  },
-  {
    "url": "https://www.spc.noaa.gov/products/fire_wx/day2fw_windrh.lyr.geojson",
-   "status": 200,
-   "cache": null,
-   "upstreamAt": null
-  },
-  {
-   "url": "https://www.spc.noaa.gov/products/fire_wx/day1fw_dryt.lyr.geojson",
    "status": 200,
    "cache": null,
    "upstreamAt": null
@@ -43,19 +47,19 @@
    "upstreamAt": null
   },
   {
-   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day3fw_windrhprob.lyr.geojson",
-   "status": 200,
-   "cache": null,
-   "upstreamAt": null
-  },
-  {
-   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day4fw_windrhprob.lyr.geojson",
+   "url": "https://www.spc.noaa.gov/products/fire_wx/day1fw_windrh.lyr.geojson",
    "status": 200,
    "cache": null,
    "upstreamAt": null
   },
   {
    "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day3fw_drytprob.lyr.geojson",
+   "status": 200,
+   "cache": null,
+   "upstreamAt": null
+  },
+  {
+   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day4fw_windrhprob.lyr.geojson",
    "status": 200,
    "cache": null,
    "upstreamAt": null
@@ -73,13 +77,25 @@
    "upstreamAt": null
   },
   {
+   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day3fw_windrhprob.lyr.geojson",
+   "status": 200,
+   "cache": null,
+   "upstreamAt": null
+  },
+  {
    "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day5fw_drytprob.lyr.geojson",
    "status": 200,
    "cache": null,
    "upstreamAt": null
   },
   {
-   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day7fw_windrhprob.lyr.geojson",
+   "url": "https://www.spc.noaa.gov/products/fire_wx/day1fw_dryt.lyr.geojson",
+   "status": 200,
+   "cache": null,
+   "upstreamAt": null
+  },
+  {
+   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day6fw_windrhprob.lyr.geojson",
    "status": 200,
    "cache": null,
    "upstreamAt": null
@@ -91,19 +107,25 @@
    "upstreamAt": null
   },
   {
-   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day8fw_windrhprob.lyr.geojson",
-   "status": 200,
-   "cache": null,
-   "upstreamAt": null
-  },
-  {
    "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day7fw_drytprob.lyr.geojson",
    "status": 200,
    "cache": null,
    "upstreamAt": null
   },
   {
+   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day8fw_windrhprob.lyr.geojson",
+   "status": 200,
+   "cache": null,
+   "upstreamAt": null
+  },
+  {
    "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day8fw_drytprob.lyr.geojson",
+   "status": 200,
+   "cache": null,
+   "upstreamAt": null
+  },
+  {
+   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day7fw_windrhprob.lyr.geojson",
    "status": 200,
    "cache": null,
    "upstreamAt": null
@@ -116,12 +138,6 @@
   },
   {
    "url": "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Interagency_Perimeters_Current/FeatureServer/0/query?where=1%3D1&outFields=attr_IrwinID,poly_IncidentName,poly_GISAcres,poly_PolygonDateTime,poly_DateCurrent,poly_MapMethod,attr_IncidentTypeCategory,attr_PercentContained,attr_ModifiedOnDateTime_dt&outSR=4326&maxAllowableOffset=0.002&geometryPrecision=4&resultRecordCount=2000&f=geojson",
-   "status": 200,
-   "cache": null,
-   "upstreamAt": null
-  },
-  {
-   "url": "https://www.spc.noaa.gov/products/exper/fire_wx/day6fw_windrhprob.lyr.geojson",
    "status": 200,
    "cache": null,
    "upstreamAt": null

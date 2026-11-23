@@ -1,0 +1,143 @@
+{
+ "at": "2026-11-23T19:30:27.562Z",
+ "result": {
+  "summary": "2 weather threats for this event",
+  "confirmed": false,
+  "items": [
+   {
+    "id": "gairmet-ZULU-7C-ICE-1795445100|route",
+    "kind": "enroute",
+    "headline": "Moderate icing forecast may overlap your approximate route, 10,000 ft to 16,000 ft, Mon 3 p.m. – 4:30 p.m. · G-AIRMET",
+    "code": null,
+    "line": "Potential overlap. The straight-line route O'Hare → Newark passes within 1 miles of it; the forecast's time and altitude overlap your time in the air (Mon 3 p.m. – 4:30 p.m.) and band (10,000 ft to 16,000 ft). An approximate route, not a flight plan.",
+    "product": "gairmet-ZULU-7C-ICE-6-1795445100",
+    "category": null,
+    "day": null,
+    "phases": []
+   },
+   {
+    "id": "gairmet-ZULU-1C-ICE-1795445100|route",
+    "kind": "enroute",
+    "headline": "Moderate icing forecast may overlap your approximate route, surface to 10,000 ft, Mon 3 p.m. – 4:30 p.m. · G-AIRMET",
+    "code": null,
+    "line": "Potential overlap. The straight-line route O'Hare → Newark passes through the area; the forecast's time and altitude overlap your time in the air (Mon 3 p.m. – 4:30 p.m.) and band (10,000 ft to 16,000 ft). An approximate route, not a flight plan.",
+    "product": "gairmet-ZULU-1C-ICE-6-1795445100",
+    "category": null,
+    "day": null,
+    "phases": []
+   }
+  ],
+  "statuses": [
+   "NWS warnings, watches and advisories: Checked 2:29 p.m.",
+   "SPC fire weather outlooks: Checked 2:30 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NOAA satellite smoke analysis (HMS): Checked 2:30 p.m.",
+   "AirNow air quality observations: Checked 2:30 p.m. · nearest monitor Union City High School (4 miles southeast): AQI 52 Moderate (PM2.5) for 2 p.m.",
+   "AirNow air quality forecasts: Checked 2:30 p.m. · Northeast Urban reporting area",
+   "Aviation Weather Center (METAR and TAF): Checked 2:30 p.m. · KEWR METAR 1851Z VFR · TAF 1720Z valid to Tue 7 p.m.",
+   "Aviation Weather Center en route (pilot reports, SIGMETs, G-AIRMETs, CWAs): Checked 2:30 p.m.",
+   "FAA airport status (delays, ground stops, closures): Not responding · status unknown. We can't rule anything out from this source.",
+   "NHC tropical outlooks and storm products: Checked 2:30 p.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 2:30 p.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 2:30 p.m.",
+   "WPC Excessive Rainfall Outlook: Not responding · status unknown. We can't rule anything out from this source."
+  ],
+  "maps": [
+   "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats.html?lat=40.8135&lon=-74.0745&name=MetLife+Stadium&tz=America%2FNew_York&scope=venue&view=active&layers=aviation&air=KEWR%2CKORD&sel=gairmet-ZULU-7C-ICE-6-1795445100&rt=%7B%22o%22%3A%22KORD%22%2C%22d%22%3A%22KEWR%22%2C%22lo%22%3A10000%2C%22hi%22%3A16000%2C%22w%22%3A%5B%222026-11-23T15%3A00%22%2C%222026-11-23T16%3A30%22%5D%7D&alt=10000-16000&at=2026-11-23T20%3A00%3A00.000Z&nws=function",
+   "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats.html?lat=40.8135&lon=-74.0745&name=MetLife+Stadium&tz=America%2FNew_York&scope=venue&view=active&layers=aviation&air=KEWR%2CKORD&sel=gairmet-ZULU-1C-ICE-6-1795445100&rt=%7B%22o%22%3A%22KORD%22%2C%22d%22%3A%22KEWR%22%2C%22lo%22%3A10000%2C%22hi%22%3A16000%2C%22w%22%3A%5B%222026-11-23T15%3A00%22%2C%222026-11-23T16%3A30%22%5D%7D&alt=10000-16000&at=2026-11-23T20%3A00%3A00.000Z&nws=function"
+  ]
+ },
+ "feeds": [
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=9",
+   "status": 200,
+   "cache": "HIT",
+   "upstreamAt": "2026-11-23T19:27:13.592Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=3",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-23T19:30:20.970Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=12",
+   "status": 200,
+   "cache": "HIT",
+   "upstreamAt": "2026-11-23T19:27:13.553Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=0",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-23T19:30:20.994Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/cwa",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-23T19:30:21.021Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=6",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-23T19:30:21.033Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/pirep?bbox=39.2,-89.4,43.5,-72.7&age=2",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-23T19:30:23.048Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/airsigmet",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-23T19:30:26.373Z"
+  }
+ ],
+ "route": {
+  "route": {
+   "set": true,
+   "o": "KORD",
+   "d": "KEWR",
+   "label": "O'Hare → Newark",
+   "band": "10,000 ft to 16,000 ft",
+   "oPt": [
+    -87.9316,
+    41.9602
+   ],
+   "dPt": [
+    -74.1692,
+    40.6828
+   ],
+   "lowFt": 10000,
+   "highFt": 16000,
+   "startMs": 1795464000000,
+   "endMs": 1795469400000,
+   "timeSource": "own",
+   "window": "Mon 3 p.m. – 4:30 p.m.",
+   "lines": [
+    {
+     "concern": true,
+     "itemId": "gairmet-ZULU-7C-ICE-1795445100|route",
+     "text": "Moderate icing forecast may overlap your approximate route, 10,000 ft to 16,000 ft, Mon 3 p.m. – 4:30 p.m. · G-AIRMET"
+    },
+    {
+     "concern": true,
+     "itemId": "gairmet-ZULU-1C-ICE-1795445100|route",
+     "text": "Moderate icing forecast may overlap your approximate route, surface to 10,000 ft, Mon 3 p.m. – 4:30 p.m. · G-AIRMET"
+    }
+   ],
+   "corridorMi": 25
+  },
+  "faa": [
+   [
+    "FAA airport status isn't answering, so disruptions at Newark (KEWR) are unknown."
+   ],
+   [
+    "FAA airport status isn't answering, so disruptions at O'Hare (KORD) are unknown."
+   ]
+  ]
+ }
+}
