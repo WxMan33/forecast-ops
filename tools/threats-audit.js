@@ -80,17 +80,22 @@ const INSPECT = ([fam, sub]) => {
       await closePop(p);
       const click = L === "smoke" ? { hms: await clickOne(p, L, bodies, "^smoke$"), monitors: await clickOne(p, L, bodies, "aqobs|monitor") } : await clickOne(p, L, bodies);
       await p.screenshot({ path: path.join(OUT, `${dev}-${L}.png`) });
+      /* outlooks draw in their own views: Day 1 for SPC and WPC rainfall, Fire for SPC fire weather */
+      const vw = { severe: "day1", flood: "day1", fire: "fire" }[L]; let inView = null;
+      if (vw) { await p.evaluate((v) => { const T = window.__threats; T.S.sel = null; T.S.point = null; T.S.view = v; T.drawAll(); }, vw); await p.waitForTimeout(3000);
+        inView = { view: vw, info: await p.evaluate(INSPECT, [L]), click: await clickOne(p, L, bodies, "outlook") }; await p.screenshot({ path: path.join(OUT, `${dev}-${L}-${vw}.png`) });
+        await p.evaluate(() => { const T = window.__threats; T.S.sel = null; T.S.point = null; T.S.view = "active"; T.drawAll(); }); }
       if (L === "smoke") { info.naqfcEnabled = await p.evaluate(() => !!(window.ThreatsFeeds || {}).NAQFC_ENABLED); await p.evaluate(() => { window.__threats.S.scope = "national"; window.__threats.S.sel = null; window.__threats.S.point = null; window.__threats.drawAll(); }); }
       await p.evaluate(() => { window.__threats.S.sel = null; window.__threats.S.point = null; window.__threats.drawAll(); });
       // off: no feeds left; back on at once: quick feeds reused
       await toggle(p, L); await p.waitForTimeout(1500); const feedsOff = await p.evaluate(() => window.ThreatsLive.mapFeeds());
       const t1 = Date.now(); await toggle(p, L); await p.waitForTimeout(4000); const again = reqs.filter((r) => r.t >= t1 && ["alerts", "md", "spc", "ero", "fire", "nifc", "hms", "nhc"].includes(r.feed));
       await toggle(p, L); await p.waitForTimeout(800);
-      R.layers[L] = { clickMs, requests: tally(on), info, click, feedsAfterOff: feedsOff, reRequestsOnReenable: tally(again) };
-      log(dev, L, JSON.stringify({ req: R.layers[L].requests, products: info.products, drawn: info.drawn, newest: info.newest, click: click && (click.hms ? { hms: click.hms && [click.hms.spotListsIt, click.hms.detailNamesIt, click.hms.inSource], mon: click.monitors && [click.monitors.spotListsIt, click.monitors.detailNamesIt, click.monitors.inSource] } : [click.spotListsIt, click.detailNamesIt, click.inSource]), off: feedsOff, again: R.layers[L].reRequestsOnReenable }).slice(0, 900));
+      R.layers[L] = { clickMs, requests: tally(on), failed: on.filter((r) => !r.status || r.status >= 400).map((r) => r.url.slice(0, 140) + " " + (r.failure || r.status)), info, click, inView, feedsAfterOff: feedsOff, reRequestsOnReenable: tally(again) };
+      log(dev, L, JSON.stringify({ req: R.layers[L].requests, failed: R.layers[L].failed, products: info.products, drawn: info.drawn, newest: info.newest, click, inView: inView && { products: inView.info.products, drawn: inView.info.drawn, click: inView.click }, off: feedsOff, again: R.layers[L].reRequestsOnReenable }).slice(0, 900));
     }
     // C: everything on, then off: 70 s without a threat-feed request
-    await p.click("#txLayersBtn").catch(() => {}); await p.click("[data-layers-all]"); await ready(p).catch(() => {}); await p.waitForTimeout(15000);
+    if (await p.evaluate(() => document.getElementById("txLayersPop").hidden)) await p.click("#txLayersBtn"); await p.click("[data-layers-all]"); await ready(p).catch(() => {}); await p.waitForTimeout(15000);
     await p.click("[data-layers-reset]"); const t2 = Date.now(); await p.waitForTimeout(70000);
     R.allOffQuiet = { requests: tally(reqs.filter((r) => r.t >= t2)), feeds: await p.evaluate(() => window.ThreatsLive.mapFeeds()) }; log(dev, "all off 70 s", JSON.stringify(R.allOffQuiet));
     R.errors = errs; await ctx.close();
