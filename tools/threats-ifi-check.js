@@ -56,7 +56,7 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/cs
       check(`IFI (${tag}): back to an available record: drawn again, the same image as before`, s4.state === "ok" && s4.visible === "visible" && s4.img === s0.img, { img: [s4.img, s0.img] });
     } else {
       await p.goto(HOST + page("layers=aviation&ifi=1&ifield=prob&gft=10000&gfh=3&scope=national&view=active&sheet=open"), { waitUntil: "domcontentloaded" });
-      await p.waitForFunction(() => window.__threats && window.__threats.ready, null, { timeout: 60000 }); await settle("\\|10000\\|prob$"); await p.waitForTimeout(700); const s0 = await state();
+      await p.waitForFunction(() => window.__threats && window.__threats.ready, null, { timeout: 60000 }); await settle("\\|10000\\|prob$"); await p.waitForSelector("[data-ifi-status]", { timeout: 120000 }).catch(() => {}); await p.waitForTimeout(700); const s0 = await state();
       check(`IFI LIVE (${tag}): the newest complete cycle through /api/ifi: probability at 10,000 ft drawn`, s0.state === "ok" && s0.param === "19/233" && s0.level === 3048 && s0.visible === "visible" && /^Icing probability/.test(s0.status), s0);
       await p.selectOption("[data-gtg-ft]", "6000"); await settle("\\|6000\\|prob$"); await p.waitForTimeout(400); const s1 = await state();
       await p.selectOption("[data-gtg-fh]", "6"); await settle("\\|6000\\|prob$"); await p.waitForTimeout(400); const s2 = await state();
