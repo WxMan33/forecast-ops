@@ -1,4 +1,4 @@
-/* Model maps: full-CONUS HRRR and NBM beta (maps.html?domain=conus[&model=nbm]). A separate viewer from the Tri-State maps.
+/* Model maps: full-CONUS HRRR, NBM and RRFS beta (maps.html?domain=conus[&model=nbm|rrfs]). A separate viewer from the Tri-State maps.
    Data: forecast-ops-maps conus-v1 tiles (see maps-conus-core.js). Drawing: a custom MapLibre WebGL layer
    samples the native grid from a texture with nearest-cell lookup, on a mesh whose nodes sit at exact
    projected cell edges, so every model cell is drawn where HRRR put it; outside the grid nothing is drawn.
@@ -15,6 +15,8 @@
   const MODELS = {
     hrrr: { key: "hrrr", name: "HRRR", res: "3 km", label: "HRRR 3 km", index: "conus/index.json", credit: "NOAA/NCEP HRRR", source: "NOAA/NCEP HRRR (NOAA Open Data Dissemination)",
       about: "NOAA HRRR, full CONUS 3 km grid (1799 × 1059 cells)" },
+    rrfs: { key: "rrfs", name: "RRFS", res: "3 km", label: "RRFS 3 km", index: "conus/rrfs/index.json", credit: "NOAA/NCEP RRFS", source: "NOAA/NCEP RRFS (NOAA Open Data Dissemination)",
+      about: "NOAA/NCEP RRFS (Rapid Refresh Forecast System), full CONUS 3 km grid (1799 × 1059 cells, the HRRR grid)" },
     nbm: { key: "nbm", name: "NBM", res: "2.5 km", label: "NBM 2.5 km", index: "conus/nbm/index.json", credit: "NOAA/NWS National Blend of Models", source: "NOAA/NWS National Blend of Models (NOAA Open Data Dissemination)",
       about: "NOAA/NWS National Blend of Models (NBM), full CONUS 2.5 km grid (2345 × 1597 cells)" },
   };
@@ -47,7 +49,7 @@
     d2m: { group: "Surface", vfmt: whole, label: "2-m dew point", units: "°F", dec: 1, color: (v) => MC.color("d2m", v), range: [-30, 90],
       legend: { stops: MC.SCALES.d2m.stops, ticks: [-20, 0, 20, 35, 45, 55, 60, 65, 70, 75, 80] } },
     gust: { group: "Surface", vfmt: whole, label: "Surface wind gust", units: "mph", dec: 0, color: stepped(GUST), range: [0, 120], steps: GUST,
-      note: "HRRR's instantaneous gust diagnostic at the valid time, not an hourly maximum." },
+      note: `${M.name}'s instantaneous gust diagnostic at the valid time, not an hourly maximum.` },
     refc: { group: "Severe", label: "Composite reflectivity (simulated)", short: "Sim. composite reflectivity", units: "dBZ", dec: 1, color: stepped(REFC), range: [-20, 80], steps: REFC,
       note: "Model-simulated reflectivity, not radar." },
     ptype: { group: "Precip & Snow", label: "Precipitation type", units: "", dec: 0, cat: PTYPE, range: [0, 5],
@@ -55,8 +57,8 @@
       note: "Where the model is precipitating at the valid time. Several types at once: freezing rain > ice pellets > snow > rain." },
     apcp1h: { group: "Precip & Snow", vfmt: inch, vmin: lt(0.01), label: "1-h precipitation", units: "in", dec: 2, color: stepped(PRECIP), range: [0, 8], steps: PRECIP, window: 1 },
     apcp_run: { group: "Precip & Snow", vfmt: inch, vmin: lt(0.01), label: "Total precipitation since run start", short: "Run-total precipitation", units: "in", dec: 2, color: stepped(PRECIP), range: [0, 30], steps: PRECIP, window: "run" },
-    asnow1h: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: "1-h snowfall (HRRR)", units: "in", dec: 1, color: stepped(SNOW1H), range: [0, 8], steps: SNOW1H, window: 1,
-      note: "HRRR's own snowfall (variable snow density), not 10:1. Hourly values are the difference of the run totals." },
+    asnow1h: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: `1-h snowfall (${M.name})`, units: "in", dec: 1, color: stepped(SNOW1H), range: [0, 8], steps: SNOW1H, window: 1,
+      note: `${M.name}'s own snowfall (variable snow density), not 10:1. Hourly values are the difference of the run totals.` },
     frzr_run: { group: "Precip & Snow", vfmt: (v) => v.toFixed(2), vmin: lt(0.01), label: "Freezing rain since run start", short: "Run-total freezing rain", units: "in", dec: 2, color: stepped(FRZR), range: [0, 3], steps: FRZR, window: "run",
       note: "Liquid equivalent of freezing rain, not ice thickness on surfaces." },
     pop1h: { group: "Precip & Snow", vfmt: pct, vmin: lt(1), label: "1-h chance of precipitation (NBM)", short: "1-h PoP", units: "%", dec: 0, color: stepped(POP), range: [0, 100], steps: POP, window: 1,
@@ -67,12 +69,12 @@
       note: "Run total at the end of the window minus the run total at its start, cell by cell." },
     apcp12: { group: "Precip & Snow", vfmt: inch, vmin: lt(0.01), label: "12-h precipitation (same window across runs)", short: "12-h precipitation", units: "in", dec: 2, color: stepped(PRECIP), range: [0, 25], steps: PRECIP, window: 12, ends: "00 and 12Z",
       note: "Run total at the end of the window minus the run total at its start, cell by cell." },
-    asnow6: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: "6-h snowfall (HRRR, same window across runs)", short: "6-h snowfall", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: 6, ends: "00, 06, 12 and 18Z",
-      note: "HRRR's own snowfall (variable density, not 10:1): run total at the end of the window minus the run total at its start." },
-    asnow12: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: "12-h snowfall (HRRR, same window across runs)", short: "12-h snowfall", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: 12, ends: "00 and 12Z",
-      note: "HRRR's own snowfall (variable density, not 10:1): run total at the end of the window minus the run total at its start." },
-    asnow_run: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: "Total snowfall since run start (HRRR)", short: "Run-total snowfall", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: "run",
-      note: "HRRR's own snowfall (variable snow density), not 10:1." },
+    asnow6: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: `6-h snowfall (${M.name}, same window across runs)`, short: "6-h snowfall", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: 6, ends: "00, 06, 12 and 18Z",
+      note: `${M.name}'s own snowfall (variable density, not 10:1): run total at the end of the window minus the run total at its start.` },
+    asnow12: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: `12-h snowfall (${M.name}, same window across runs)`, short: "12-h snowfall", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: 12, ends: "00 and 12Z",
+      note: `${M.name}'s own snowfall (variable density, not 10:1): run total at the end of the window minus the run total at its start.` },
+    asnow_run: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: `Total snowfall since run start (${M.name})`, short: "Run-total snowfall", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: "run",
+      note: `${M.name}'s own snowfall (variable snow density), not 10:1.` },
   };
   /* Same-window fields, derived in the browser from a run's own run totals: window total = total(end) - total(start), at
      native resolution, then the display levels rebuilt with the pipeline's own rule. Windows end at fixed UTC hours so
@@ -635,7 +637,7 @@
     if (!ML || !(() => { try { const c = document.createElement("canvas"); return !!(c.getContext("webgl2") || c.getContext("webgl")); } catch (e) { return false; } })()) { $("mapInfo").innerHTML = '<span class="state err">This browser cannot draw the interactive map (WebGL unavailable).</span>'; return; }
     let base;
     try { [base, st.index] = await Promise.all([getJSON("assets/maps/basemap-conus.json"), getJSON(`${DATA}/${M.index}`)]); }
-    catch (e) { $("mapInfo").innerHTML = `<span class="state err">CONUS map data unavailable (${esc(e.message)}).</span>`; return; }
+    catch (e) { $("mapInfo").innerHTML = `<span class="state err">${esc(M.name)} map data is not available from this data host (${esc(e.message)}).${/404/.test(e.message) && M.key !== "hrrr" ? ` ${esc(M.name)} may be published on the other data host only.` : ""}</span>`; return; }
     if (!st.index.runs.length) { $("mapInfo").textContent = `No ${M.name} runs published yet.`; return; }
     if (FIELDS[Q.get("field")]) st.field = Q.get("field");
     const published = new Set(st.index.runs.flatMap((r) => r.fields || []));
