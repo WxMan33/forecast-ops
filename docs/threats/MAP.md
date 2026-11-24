@@ -19,7 +19,7 @@ what it has. Opening the picker downloads nothing.
 
 | Layer | Feeds |
 |---|---|
-| Severe storms | NWS alerts, SPC MDs (NOAA map service), SPC Day 1–3 outlooks |
+| Severe storms | NWS alerts, SPC MDs (NOAA map service), SPC Day 1–3 outlooks, SPC storm reports (preliminary, last 24 h) |
 | Flooding | NWS alerts, WPC excessive rainfall Days 1–3 |
 | Winter | NWS alerts (WSSI-P in the Winter view) |
 | Fire | NWS alerts, SPC fire outlooks Days 1–8, NIFC incidents |
@@ -34,6 +34,13 @@ what it has. Opening the picker downloads nothing.
 - **Fully contained fires** are hidden unless **Fully contained fires** is ticked in the legend (or a link points to one).
 - **Radar** (Layers › Under the hazards; live only, off by default): NOAA MRMS base reflectivity under the hazards at 60%, with the image
   time and age in the source list; refreshed every 5 minutes only while on.
+- **Storm reports** (with Severe storms, Active now and Day 1): SPC's preliminary tornado (red), wind damage (blue) and hail (green)
+  reports from the last 24 hours, refreshed every 5 minutes. The national panel counts them and lists the strongest few; the venue view
+  lists those within 25 miles; each opens its report (time, place, magnitude, comments, reporting office), marked preliminary.
+  Replay: `?scenario=archive-reports-delaware` (Nov 12, Delaware Valley tornadoes and hail).
+- **County lines** (Layers › On the map, on by default, remembered): US Census county lines inside each state from regional zoom
+  (4.5), county names from zoom 7.5 (below the basemap's town names). Our own files (`assets/geo/`, about 200 KB compressed, built from
+  us-atlas 10m), fetched on the first zoom-in, so the national first visit doesn't download them.
 - **Venue marker** (Layers › On the map): off hides the pin, label and 15-mile ring and the venue strip, for just the map; remembered on
   this device; choosing the Venue view turns it back on.
 
@@ -53,7 +60,7 @@ what it has. Opening the picker downloads nothing.
 ## Basemap
 
 CARTO Voyager (light) and Dark Matter (dark), the vector street maps Heads-Up uses: streets, towns, water and place names from
-OpenStreetMap, zoom to 14. County lines from zoom 8 (where the tiles carry them), clearer state lines; hazards draw under the basemap's
+OpenStreetMap, zoom to 14. Clearer state lines (county lines come from our own Census file, above); hazards draw under the basemap's
 labels and our labels on top. Switching the page theme swaps the style and keeps the layers. If CARTO doesn't answer in 6 s, the built-in
 outline map (states, lakes, major cities, locally drawn labels), and CARTO is retried every 5 minutes; when it answers, the map switches
 to it and keeps every overlay. This matches the OPE lightning program's basemap setup (same styles, no API key, same 6 s failover and
