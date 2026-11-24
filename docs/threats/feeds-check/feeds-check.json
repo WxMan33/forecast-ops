@@ -1,6 +1,6 @@
 {
  "host": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev",
- "at": "2026-11-24T16:04:54.262Z",
+ "at": "2026-11-24T16:33:33.987Z",
  "devices": {
   "desktop": {
    "fresh": {
@@ -56,7 +56,7 @@
       "reports",
       "spc"
      ],
-     "products": 199
+     "products": 201
     },
     "dash": {
      "view": "outlook",
@@ -107,7 +107,7 @@
       "reports",
       "spc"
      ],
-     "products": 145
+     "products": 147
     }
    },
    "severeOff70s": {
@@ -124,7 +124,7 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 145
+     "products": 147
     }
    },
    "total": {
@@ -159,7 +159,7 @@
       "alerts",
       "ero"
      ],
-     "products": 150
+     "products": 152
     }
    },
    "plannerLink": {
@@ -193,7 +193,7 @@
       "reports",
       "spc"
      ],
-     "products": 241
+     "products": 243
     }
    },
    "demoLink": {
@@ -270,7 +270,7 @@
       "reports",
       "spc"
      ],
-     "products": 199
+     "products": 201
     },
     "dash": {
      "view": "outlook",
@@ -321,7 +321,7 @@
       "reports",
       "spc"
      ],
-     "products": 145
+     "products": 147
     }
    },
    "severeOff70s": {
@@ -338,7 +338,7 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 145
+     "products": 147
     }
    },
    "total": {
@@ -373,13 +373,13 @@
       "alerts",
       "ero"
      ],
-     "products": 150
+     "products": 152
     }
    },
    "plannerLink": {
-    "requests": 14,
+    "requests": 13,
     "byFeed": {
-     "reports": 2,
+     "reports": 1,
      "alerts": 1,
      "md": 2,
      "spc": 3,
@@ -407,7 +407,7 @@
       "reports",
       "spc"
      ],
-     "products": 241
+     "products": 243
     }
    },
    "demoLink": {
@@ -484,7 +484,7 @@
       "reports",
       "spc"
      ],
-     "products": 199
+     "products": 201
     },
     "errs": []
    }
@@ -546,7 +546,7 @@
       "reports",
       "spc"
      ],
-     "products": 145
+     "products": 147
     },
     "errs": []
    }
@@ -567,7 +567,7 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 145
+     "products": 147
     },
     "errs": []
    }
@@ -592,7 +592,7 @@
       "alerts",
       "ero"
      ],
-     "products": 150
+     "products": 152
     },
     "by": {
      "alerts": 1,
@@ -627,7 +627,7 @@
       "reports",
       "spc"
      ],
-     "products": 241
+     "products": 243
     },
     "by": {
      "reports": 2,
@@ -724,7 +724,7 @@
       "reports",
       "spc"
      ],
-     "products": 199
+     "products": 201
     },
     "errs": []
    }
@@ -786,7 +786,7 @@
       "reports",
       "spc"
      ],
-     "products": 145
+     "products": 147
     },
     "errs": []
    }
@@ -807,7 +807,7 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 145
+     "products": 147
     },
     "errs": []
    }
@@ -832,7 +832,7 @@
       "alerts",
       "ero"
      ],
-     "products": 150
+     "products": 152
     },
     "by": {
      "alerts": 1,
@@ -843,7 +843,7 @@
    }
   },
   {
-   "check": "(phone) PLANNER LINK (venue, Day 1, layers=severe,smoke) keeps its selection and requests only those layers' feeds (reports 2, alerts 1, md 2, spc 3, hms 3, airnow 3)",
+   "check": "(phone) PLANNER LINK (venue, Day 1, layers=severe,smoke) keeps its selection and requests only those layers' feeds (reports 1, alerts 1, md 2, spc 3, hms 3, airnow 3)",
    "pass": true,
    "detail": {
     "s": {
@@ -867,10 +867,10 @@
       "reports",
       "spc"
      ],
-     "products": 241
+     "products": 243
     },
     "by": {
-     "reports": 2,
+     "reports": 1,
      "alerts": 1,
      "md": 2,
      "spc": 3,

@@ -1,6 +1,6 @@
 {
  "host": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev",
- "at": "2026-11-24T16:12:06.077Z",
+ "at": "2026-11-24T16:33:33.676Z",
  "results": [
   {
    "check": "(desktop) busy national view: Time, Layers, Map area and the state line in view, no page overflow; after scrolling the details, Map area and the state line still in view",
@@ -29,8 +29,8 @@
    }
   },
   {
-   "check": "(desktop) Layers picker: opens from the keyboard, all 8 hazards and 5 Aviation parts within the screen, focus moves in, and opening downloads nothing",
-   "pass": false,
+   "check": "(desktop) Layers picker: opens from the keyboard, all 10 hazards and 5 Aviation parts within the screen, focus moves in, and opening downloads nothing",
+   "pass": true,
    "detail": {
     "pk": {
      "open": true,
@@ -199,8 +199,8 @@
      "Icing guidance"
     ],
     "peek": "Aviation at CVG airport",
-    "peek2": "National · 288 pilot reports · 29 advisories",
-    "ready": true,
+    "peek2": "National · pilot reports loading · advisories loading",
+    "ready": false,
     "natRows": true,
     "nothing": false
    }
@@ -288,8 +288,8 @@
    }
   },
   {
-   "check": "(p390) Layers picker: opens from the keyboard, all 8 hazards and 5 Aviation parts within the screen, focus moves in, and opening downloads nothing",
-   "pass": false,
+   "check": "(p390) Layers picker: opens from the keyboard, all 10 hazards and 5 Aviation parts within the screen, focus moves in, and opening downloads nothing",
+   "pass": true,
    "detail": {
     "pk": {
      "open": true,
@@ -458,7 +458,7 @@
      "Icing guidance"
     ],
     "peek": "Aviation at CVG airport",
-    "peek2": "National · 0 pilot reports · 29 advisories",
+    "peek2": "National · 302 pilot reports · 24 advisories",
     "ready": true,
     "natRows": true,
     "nothing": false
@@ -547,8 +547,8 @@
    }
   },
   {
-   "check": "(p360) Layers picker: opens from the keyboard, all 8 hazards and 5 Aviation parts within the screen, focus moves in, and opening downloads nothing",
-   "pass": false,
+   "check": "(p360) Layers picker: opens from the keyboard, all 10 hazards and 5 Aviation parts within the screen, focus moves in, and opening downloads nothing",
+   "pass": true,
    "detail": {
     "pk": {
      "open": true,
@@ -717,8 +717,8 @@
      "Icing guidance"
     ],
     "peek": "Aviation at CVG airport",
-    "peek2": "National · pilot reports loading · advisories loading",
-    "ready": false,
+    "peek2": "National · 302 pilot reports · 24 advisories",
+    "ready": true,
     "natRows": true,
     "nothing": false
    }
