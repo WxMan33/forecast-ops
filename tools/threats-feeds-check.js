@@ -19,7 +19,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const results = [], check = (name, cond, detail) => { results.push({ check: name, pass: !!cond, detail }); console.log((cond ? "pass " : "FAIL ") + name + (cond ? "" : " :: " + JSON.stringify(detail).slice(0, 700))); };
 /* threat feeds by the layer family they serve (first match wins) */
 const FEEDS = [
-  ["reports", /climo\/reports/],
+  ["reports", /climo\/reports|\/api\/spc\/reports/],
   /* the NWS alerts feed: the active list, the outlines of alerts issued by zone, and the earlier messages an alert references */
   ["alerts", /\/alerts\/active/],
   ["alerts-zones", /api\.weather\.gov\/zones|\/api\/nws\/zones/],

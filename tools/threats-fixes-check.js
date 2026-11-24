@@ -14,7 +14,7 @@ if (!HOST) { console.error("usage: threats-fixes-check.js https://<host> [OUT_DI
 fs.mkdirSync(OUT, { recursive: true });
 const results = [], check = (name, cond, detail) => { results.push({ check: name, pass: !!cond, detail }); console.log((cond ? "pass " : "FAIL ") + name + (cond ? "" : " :: " + JSON.stringify(detail).slice(0, 700))); };
 const FEEDS = [
-  ["reports", /climo\/reports/],["alerts", /\/alerts\/active/], ["alerts-zones", /api\.weather\.gov\/zones|\/api\/nws\/zones/], ["alerts-refs", /(api\.weather\.gov|\/api\/nws)\/alerts\/urn/],
+  ["reports", /climo\/reports|\/api\/spc\/reports/],["alerts", /\/alerts\/active/], ["alerts-zones", /api\.weather\.gov\/zones|\/api\/nws\/zones/], ["alerts-refs", /(api\.weather\.gov|\/api\/nws)\/alerts\/urn/],
   ["md-page", /spc\.noaa\.gov\/products\/md/], ["md", /spc_mesoscale_discussion/], ["spc", /spc\.noaa\.gov\/products\/outlook/], ["fire", /fire_wx/], ["ero", /eromap|wpc_precip_hazards|\/api\/wpc\/ero/],
   ["nifc", /WFIGS|services3\.arcgis\.com/], ["hms", /satepsanone|\/api\/smoke/], ["airnow", /AirNow|airnowtech|Air%20Now/i], ["nhc", /tropical\/rest/], ["radar-time", /radar_base_reflectivity\/MapServer\/2\/query/],
   ["radar-tile", /radar_base_reflectivity\/MapServer\/export/], ["nws-point", /\/points\//], ["nws-grid", /\/gridpoints\//], ["awc", /aviationweather\.gov|\/api\/awc\//], ["nws-other", /api\.weather\.gov|\/api\/nws\//]];
