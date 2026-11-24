@@ -1,6 +1,6 @@
 {
  "host": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev",
- "at": "2026-11-24T18:16:41.022Z",
+ "at": "2026-11-24T19:11:20.469Z",
  "devices": {
   "desktop": {
    "fresh": {
@@ -55,7 +55,7 @@
       "reports",
       "spc"
      ],
-     "products": 221
+     "products": 233
     },
     "dash": {
      "view": "outlook",
@@ -106,7 +106,7 @@
       "reports",
       "spc"
      ],
-     "products": 167
+     "products": 179
     }
    },
    "severeOff70s": {
@@ -123,7 +123,7 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 167
+     "products": 179
     }
    },
    "total": {
@@ -136,11 +136,11 @@
     }
    },
    "floodLink": {
-    "requests": 24,
+    "requests": 40,
     "byFeed": {
      "alerts": 1,
      "ero": 3,
-     "alerts-zones": 20
+     "alerts-zones": 36
     },
     "state": {
      "layers": [
@@ -158,7 +158,7 @@
       "alerts",
       "ero"
      ],
-     "products": 172
+     "products": 184
     }
    },
    "plannerLink": {
@@ -192,7 +192,7 @@
       "reports",
       "spc"
      ],
-     "products": 266
+     "products": 279
     }
    },
    "demoLink": {
@@ -268,7 +268,7 @@
       "reports",
       "spc"
      ],
-     "products": 221
+     "products": 233
     },
     "dash": {
      "view": "outlook",
@@ -319,7 +319,7 @@
       "reports",
       "spc"
      ],
-     "products": 167
+     "products": 179
     }
    },
    "severeOff70s": {
@@ -336,7 +336,7 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 167
+     "products": 179
     }
    },
    "total": {
@@ -349,11 +349,11 @@
     }
    },
    "floodLink": {
-    "requests": 24,
+    "requests": 40,
     "byFeed": {
      "alerts": 1,
      "ero": 3,
-     "alerts-zones": 20
+     "alerts-zones": 36
     },
     "state": {
      "layers": [
@@ -371,7 +371,7 @@
       "alerts",
       "ero"
      ],
-     "products": 172
+     "products": 184
     }
    },
    "plannerLink": {
@@ -405,7 +405,7 @@
       "reports",
       "spc"
      ],
-     "products": 266
+     "products": 279
     }
    },
    "demoLink": {
@@ -482,7 +482,7 @@
       "reports",
       "spc"
      ],
-     "products": 221
+     "products": 233
     },
     "errs": []
    }
@@ -544,7 +544,7 @@
       "reports",
       "spc"
      ],
-     "products": 167
+     "products": 179
     },
     "errs": []
    }
@@ -565,13 +565,13 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 167
+     "products": 179
     },
     "errs": []
    }
   },
   {
-   "check": "(desktop) SHARED LINK layers=flood keeps its selection and requests only alerts and the WPC rainfall outlook (alerts 1, ero 3, alerts-zones 20)",
+   "check": "(desktop) SHARED LINK layers=flood keeps its selection and requests only alerts and the WPC rainfall outlook (alerts 1, ero 3, alerts-zones 36)",
    "pass": true,
    "detail": {
     "s": {
@@ -590,12 +590,12 @@
       "alerts",
       "ero"
      ],
-     "products": 172
+     "products": 184
     },
     "by": {
      "alerts": 1,
      "ero": 3,
-     "alerts-zones": 20
+     "alerts-zones": 36
     },
     "errs": []
    }
@@ -625,7 +625,7 @@
       "reports",
       "spc"
      ],
-     "products": 266
+     "products": 279
     },
     "by": {
      "reports": 2,
@@ -722,7 +722,7 @@
       "reports",
       "spc"
      ],
-     "products": 221
+     "products": 233
     },
     "errs": []
    }
@@ -784,7 +784,7 @@
       "reports",
       "spc"
      ],
-     "products": 167
+     "products": 179
     },
     "errs": []
    }
@@ -805,13 +805,13 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 167
+     "products": 179
     },
     "errs": []
    }
   },
   {
-   "check": "(phone) SHARED LINK layers=flood keeps its selection and requests only alerts and the WPC rainfall outlook (alerts 1, ero 3, alerts-zones 20)",
+   "check": "(phone) SHARED LINK layers=flood keeps its selection and requests only alerts and the WPC rainfall outlook (alerts 1, ero 3, alerts-zones 36)",
    "pass": true,
    "detail": {
     "s": {
@@ -830,12 +830,12 @@
       "alerts",
       "ero"
      ],
-     "products": 172
+     "products": 184
     },
     "by": {
      "alerts": 1,
      "ero": 3,
-     "alerts-zones": 20
+     "alerts-zones": 36
     },
     "errs": []
    }
@@ -865,7 +865,7 @@
       "reports",
       "spc"
      ],
-     "products": 266
+     "products": 279
     },
     "by": {
      "reports": 2,
