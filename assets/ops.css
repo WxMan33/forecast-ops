@@ -939,8 +939,6 @@ body.embed .mapstage .maplibregl-ctrl-bottom-right { bottom: 4px; }
 /* narrowest phones (iPhone SE): the name and its live status; the status is never cut off */
 @media (max-width: 360px) { .tt-what { display: none; } .tt-name { font-size: 14.5px; } }
 /* Overview: the embedded Weather threats map and 7-day panel */
-.ov-txvenue { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 10px; }
-.ov-txvenue .results { position: relative; z-index: 2; }
 .ov-threats { position: relative; height: 620px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
 .ov-threats iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 @media (max-width: 700px) { .ov-threats { height: 640px; } }

@@ -22,29 +22,13 @@
 
   O.locationCard($("locCard"), () => run());
 
-  /* Weather threats card: the map follows the forecast point (and a chosen event's venue, which moves the point); a venue can
-     also be picked or searched here, for the map only. Moves the embedded map without reloading it once it is up. */
-  const TXV = (() => {
-    const frame = $("txFrame"); if (!frame) return null;
-    const read = (k, d) => { try { return JSON.parse(localStorage.getItem(k) || "null") || d; } catch (e) { return d; } };
-    let pick = O.store.get("ops_tx_venue", null); // null: follow the forecast point
-    const recent = () => O.store.get("ops_tx_recent", []);
-    const emVenues = () => read("beta_venues_v1", []).filter((v) => v && v.lat !== null && isFinite(+v.lat) && isFinite(+v.lon));
-    const current = () => pick || { name: O.location.name, lat: +O.location.lat, lon: +O.location.lon };
-    const params = (v) => { const q = new URLSearchParams({ lat: (+v.lat).toFixed(4), lon: (+v.lon).toFixed(4), name: v.name }); if (v.tz) q.set("tz", v.tz); return q; };
-    const fill = () => {
-      const evs = O.events(), em = emVenues(), rc = recent(), ev = O.activeEvent();
-      const opt = (val, label) => `<option value="${O.esc(val)}">${O.esc(label)}</option>`;
-      $("txVenueSel").innerHTML = opt("fp", "Forecast point: " + O.location.name + (ev ? " (" + ev.name + ")" : "")) +
-        (evs.length ? `<optgroup label="Events">${evs.map((e) => opt("e:" + e.id, e.name + " · " + e.loc.name)).join("")}</optgroup>` : "") +
-        (em.length ? `<optgroup label="Event Manager venues">${em.map((v) => opt("m:" + v.id, v.name + (v.city ? " · " + v.city : ""))).join("")}</optgroup>` : "") +
-        (rc.length ? `<optgroup label="Searched">${rc.map((v) => opt("r:" + v.lat + "," + v.lon, v.name)).join("")}</optgroup>` : "") +
-        `<optgroup label="Built in">${O.PRESETS.map((p, i) => opt("p:" + i, p[0])).join("")}</optgroup>`;
-      $("txVenueSel").value = pick ? (pick.key || "") : "fp";
-      if (!$("txVenueSel").value) { const o = document.createElement("option"); o.value = "x"; o.textContent = pick.name; $("txVenueSel").prepend(o); $("txVenueSel").value = "x"; }
-    };
+  /* Weather threats card: the map shows the forecast point. The Location panel (search, Quick pick, coordinates) and the
+     Event panel move it; the embedded map moves in place once it is up, keeping its layers and time. */
+  (() => {
+    const frame = $("txFrame"); if (!frame) return;
+    try { localStorage.removeItem("ops_tx_venue"); localStorage.removeItem("ops_tx_recent"); } catch (e) { /* storage off */ }
     const apply = () => {
-      const v = current(), q = params(v);
+      const L = O.location, v = { name: L.name, lat: +L.lat, lon: +L.lon }, q = new URLSearchParams({ lat: v.lat.toFixed(4), lon: v.lon.toFixed(4), name: v.name });
       $("txFor").textContent = "Official warnings, watches, outlooks and radar at " + v.name;
       $("txOpen").href = "threats.html?" + q.toString();
       let w = null; try { w = frame.contentWindow && frame.contentWindow.__threats; } catch (e) { /* not ready */ }
@@ -53,38 +37,7 @@
       if (frame.getAttribute("src") !== src) { frame.dataset.loaded = ""; frame.setAttribute("src", src); }
     };
     frame.addEventListener("load", () => { frame.dataset.loaded = "1"; });
-    const choose = (v) => { pick = v; O.store.set("ops_tx_venue", v); fill(); apply(); };
-    $("txVenueSel").addEventListener("change", (e) => {
-      const val = e.target.value, [k, id] = [val.slice(0, 1), val.slice(2)];
-      if (val === "fp") return choose(null);
-      if (k === "e") { const ev = O.events().find((x) => x.id === id); if (ev) choose({ key: val, name: ev.loc.name, lat: ev.loc.lat, lon: ev.loc.lon, tz: ev.tz || null }); }
-      else if (k === "m") { const v = emVenues().find((x) => String(x.id) === id); if (v) choose({ key: val, name: v.name + (v.city ? ", " + v.city : ""), lat: +v.lat, lon: +v.lon, tz: v.tz || null }); }
-      else if (k === "r") { const v = recent().find((y) => y.lat + "," + y.lon === id); if (v) choose({ ...v, key: val }); }
-      else if (k === "p") { const p = O.PRESETS[+id]; if (p) choose({ key: val, name: p[0], lat: p[1], lon: p[2] }); }
-    });
-    let st = null, gen = 0;
-    $("txVenueSearch").addEventListener("input", (e) => {
-      clearTimeout(st); const q = e.target.value.trim(), box = $("txVenueResults");
-      if (q.length < 2) { box.innerHTML = ""; return; }
-      st = setTimeout(async () => {
-        const g = ++gen;
-        try {
-          const r = await O.searchPlaces(q); if (g !== gen) return;
-          box.innerHTML = r.length ? r.map((x, i) => `<button type="button" data-i="${i}">${O.esc(x.name)} <small>${O.esc([x.county, x.country].filter(Boolean).join(" · "))}</small></button>`).join("") : '<p class="msg">No matches.</p>';
-          box.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
-            const x = r[+b.dataset.i], v = { name: x.name, lat: +(+x.lat).toFixed(4), lon: +(+x.lon).toFixed(4), tz: x.tz || null };
-            const rc = [v, ...recent().filter((y) => y.lat !== v.lat || y.lon !== v.lon)].slice(0, 6); O.store.set("ops_tx_recent", rc);
-            box.innerHTML = ""; $("txVenueSearch").value = "";
-            choose({ ...v, key: "r:" + v.lat + "," + v.lon });
-          }));
-        } catch (err) { if (g === gen) box.innerHTML = '<p class="msg err">Place search is unavailable right now.</p>'; }
-      }, 300);
-    });
-    // a new forecast point or event on this page moves the map back to the forecast point
-    O.onLocation(() => { pick = null; O.store.set("ops_tx_venue", null); fill(); apply(); });
-    O.onEvent(() => { fill(); });
-    fill(); apply();
-    return { get venue() { return current(); } };
+    O.onLocation(apply); apply();
   })();
   O.eventCard($("evCard"));
   O.onEvent(() => run());
