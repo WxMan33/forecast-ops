@@ -395,4 +395,15 @@ ok("RADAR: the newest CONUS MRMS image time from the map service's footprint lay
   assert.ok(F.RADAR_TILE_URL.includes("{bbox-epsg-3857}") && F.RADAR_TILE_URL.startsWith("https://mapservices.weather.noaa.gov/"));
 });
 
+ok("STORM REPORTS: SPC's filtered reports for Nov 12, 2026 (Delaware tornadoes): three sections, UTC times, magnitudes in their units, comments with commas kept", () => {
+  const r = F.parseStormReports(fs.readFileSync(FX("spc-reports-261112-filtered.csv"), "utf8"), "2026-11-12");
+  const by = r.reduce((o, x) => ((o[x.type] = (o[x.type] || 0) + 1), o), {}); assert.deepStrictEqual(by, { tornado: 3, wind: 2, hail: 22 });
+  const t = r.find((x) => x.type === "tornado"); assert.strictEqual(t.observed, "2026-11-12T18:05:00.000Z"); assert.deepStrictEqual(t.point, [-75.7, 39.64]); assert.strictEqual(t.magText, "rating not given"); assert.strictEqual(t.office, "PHI");
+  assert.ok(t.comments.startsWith("On the afternoon of November 12th... an EF-1 tornado"), t.comments);
+  const h = r.find((x) => x.location === "1 NE Burlington Twp"); assert.strictEqual(h.magnitude, 1.75); assert.strictEqual(h.title, "Hail · 1.75 in · 1 NE Burlington Twp, NJ");
+  assert.strictEqual(F.parseStormReports("Time,F_Scale,Location,County,State,Lat,Lon,Comments\n0130,EF2,Somewhere,Some,KS,38.1,-97.2,(ICT)\n", "2026-11-12")[0].observed, "2026-11-13T01:30:00.000Z"); // before 12Z: the next date
+  assert.deepStrictEqual(F.parseStormReports("Time,F_Scale,Location,County,State,Lat,Lon,Comments\nTime,Speed,Location,County,State,Lat,Lon,Comments\nTime,Size,Location,County,State,Lat,Lon,Comments\n", "2026-11-23"), []); // a quiet day
+  assert.throws(() => F.parseStormReports("<html>not found</html>", "2026-11-12"), /unrecognized SPC storm report file/);
+});
+
 Promise.all([...resolvedCases, ...watchCases]).then(() => console.log(n + " passed")).catch((e) => { console.error(e); process.exit(1); });

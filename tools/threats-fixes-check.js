@@ -13,7 +13,8 @@ const HOST = (process.argv[2] || "").replace(/\/$/, ""), OUT = path.resolve(proc
 if (!HOST) { console.error("usage: threats-fixes-check.js https://<host> [OUT_DIR]"); process.exit(2); }
 fs.mkdirSync(OUT, { recursive: true });
 const results = [], check = (name, cond, detail) => { results.push({ check: name, pass: !!cond, detail }); console.log((cond ? "pass " : "FAIL ") + name + (cond ? "" : " :: " + JSON.stringify(detail).slice(0, 700))); };
-const FEEDS = [["alerts", /\/alerts\/active/], ["alerts-zones", /api\.weather\.gov\/zones|\/api\/nws\/zones/], ["alerts-refs", /(api\.weather\.gov|\/api\/nws)\/alerts\/urn/],
+const FEEDS = [
+  ["reports", /climo\/reports/],["alerts", /\/alerts\/active/], ["alerts-zones", /api\.weather\.gov\/zones|\/api\/nws\/zones/], ["alerts-refs", /(api\.weather\.gov|\/api\/nws)\/alerts\/urn/],
   ["md-page", /spc\.noaa\.gov\/products\/md/], ["md", /spc_mesoscale_discussion/], ["spc", /spc\.noaa\.gov\/products\/outlook/], ["fire", /fire_wx/], ["ero", /eromap|wpc_precip_hazards|\/api\/wpc\/ero/],
   ["nifc", /WFIGS|services3\.arcgis\.com/], ["hms", /satepsanone|\/api\/smoke/], ["airnow", /AirNow|airnowtech|Air%20Now/i], ["nhc", /tropical\/rest/], ["radar-time", /radar_base_reflectivity\/MapServer\/2\/query/],
   ["radar-tile", /radar_base_reflectivity\/MapServer\/export/], ["nws-point", /\/points\//], ["nws-grid", /\/gridpoints\//], ["awc", /aviationweather\.gov|\/api\/awc\//], ["nws-other", /api\.weather\.gov|\/api\/nws\//]];
@@ -47,8 +48,8 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
       const t0 = Date.now(); await tap(p, '[data-preset="venue"]'); await p.waitForFunction(() => window.__threats.liveReady && !window.__threats.data.loading, null, { timeout: 60000 }); await p.waitForTimeout(6000);
       const st = await p.evaluate(() => ({ layers: Object.keys(window.__threats.S.layers).filter((k) => window.__threats.S.layers[k]), scope: window.__threats.S.scope, feeds: window.ThreatsLive.mapFeeds(), sum: document.getElementById("txLayersSum").textContent }));
       const by = tally(since(reqs, t0)); R.presetVenue = { st, by };
-      check(`(${d}) PRESET "Warnings at my venue": severe, flood, winter, coastal; venue view; only alerts, MDs, SPC and WPC outlooks requested (${JSON.stringify(by)}); no earlier-message lookups on load`,
-        JSON.stringify(st.layers) === '["severe","flood","winter","coastal"]' && st.scope === "venue" && JSON.stringify(st.feeds) === '["alerts","ero","md","spc"]' && Object.keys(by).every((k) => ["alerts", "alerts-zones", "md-page", "md", "spc", "ero"].includes(k)) && !by["alerts-refs"] && (by["md-page"] || 0) <= 1 && !errs.length, { st, by, errs });
+      check(`(${d}) PRESET "Warnings at my venue": severe, flood, winter, coastal; venue view; only alerts, MDs, SPC and WPC outlooks and SPC storm reports requested (${JSON.stringify(by)}); no earlier-message lookups on load`,
+        JSON.stringify(st.layers) === '["severe","flood","winter","coastal"]' && st.scope === "venue" && JSON.stringify(st.feeds) === '["alerts","ero","md","reports","spc"]' && Object.keys(by).every((k) => ["alerts", "alerts-zones", "md-page", "md", "spc", "ero", "reports"].includes(k)) && !by["alerts-refs"] && (by["md-page"] || 0) <= 1 && !errs.length, { st, by, errs });
       await p.screenshot({ path: path.join(OUT, `preset-venue-${d}.png`) });
       // WPC rainfall: confirmed (current or none), never "Not responding" when WPC answered
       const ero = await p.evaluate(() => { const T = window.__threats; T.S.view = "day1"; T.drawAll(); return { st: T.data.state.ero1 && T.data.state.ero1.kind, src: T.data.sources.ero1, rows: [...document.querySelectorAll(".px-src")].map((r) => r.innerText.replace(/\s+/g, " ")).filter((x) => /rainfall/i.test(x)), panel: document.getElementById("txPanelBody").innerText.replace(/\s+/g, " ").slice(0, 400) }; });
@@ -129,11 +130,37 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
       await p.screenshot({ path: path.join(OUT, `basemap-fallback-${d}.png`) });
       block = false; await p.evaluate(() => window.__threats.retryCarto()); await p.waitForFunction(() => window.__threats.basemap === "carto" && window.__threats.map.isStyleLoaded(), null, { timeout: 30000 }).catch(() => {}); await p.waitForTimeout(4000);
       const up = await p.evaluate(() => { const m = window.__threats.map, L = m.getStyle().layers, i = (id) => L.findIndex((l) => l.id === id), firstCarto = L.findIndex((l) => l.type === "symbol" && !["route-label", "apt-label", "edge-labels", "labels", "warn-labels"].includes(l.id));
-        return { basemap: window.__threats.basemap, vector: Object.values(m.getStyle().sources).some((s) => s.type === "vector"), warnBelowLabels: i("warn-fill") > -1 && i("warn-fill") < firstCarto, labelsOnTop: i("warn-labels") > firstCarto, font: m.getLayoutProperty("labels", "text-font"), county: !!m.getLayer("hu-county"), radar: !!m.getLayer("radar"), noOldBase: !m.getLayer("cities") && !m.getLayer("bg"), maxZoom: m.getMaxZoom(), active: (m.getSource("active")._data.features || []).length, errors: window.__threats.errors }; });
+        return { basemap: window.__threats.basemap, vector: Object.values(m.getStyle().sources).some((s) => s.type === "vector"), warnBelowLabels: i("warn-fill") > -1 && i("warn-fill") < firstCarto, labelsOnTop: i("warn-labels") > firstCarto, font: m.getLayoutProperty("labels", "text-font"), county: !!m.getLayer("cnty-lines") && !!m.getLayer("hu-state"), radar: !!m.getLayer("radar"), noOldBase: !m.getLayer("cities") && !m.getLayer("bg"), maxZoom: m.getMaxZoom(), active: (m.getSource("active")._data.features || []).length, errors: window.__threats.errors }; });
       await p.screenshot({ path: path.join(OUT, `basemap-retried-${d}.png`) }); R.basemap = { fb, up };
       check(`(${d}) BASEMAP FAILOVER: CARTO blocked -> the built-in map with its own labels (${fb.cities} city labels), overlays work; CARTO back -> the retry swaps to it with every overlay kept (${up.active} warning/advisory shapes, radar ${up.radar}), hazards under its labels, our labels on top in its font, county lines, zoom 14`,
         fb.basemap === "fallback" && fb.cities > 0 && fb.states && fb.warnLayers && fb.maxZoom === 11 && up.basemap === "carto" && up.vector && up.warnBelowLabels && up.labelsOnTop && JSON.stringify(up.font) === '["Montserrat SemiBold"]' && up.county && up.radar && up.noOldBase && up.maxZoom === 14 && up.active > 0 && !up.errors.length && !errs.length, { ...R.basemap, errs });
       await p.close(); }
+    /* COUNTY LINES (US Census, our own file): none downloaded at national zoom; lines from regional zoom, names zoomed in; the switch hides them */
+    { const reqs = []; const { p, errs } = await page("?layers=severe", (p) => p.on("request", (r) => { if (/assets\/geo\/county-/.test(r.url())) reqs.push(r.url()); }));
+      await p.waitForTimeout(2000); const national = reqs.length;
+      await p.evaluate(() => window.__threats.map.jumpTo({ center: [-84.5, 39.2], zoom: 6 })); await p.waitForTimeout(4000);
+      const z6 = await p.evaluate(() => ({ lines: window.__threats.map.queryRenderedFeatures({ layers: ["cnty-lines"] }).length, names: window.__threats.map.queryRenderedFeatures({ layers: ["cnty-labels"] }).length }));
+      await p.evaluate(() => window.__threats.map.jumpTo({ center: [-84.5, 39.2], zoom: 9 })); await p.waitForTimeout(4000);
+      const z9 = await p.evaluate(() => ({ lines: window.__threats.map.queryRenderedFeatures({ layers: ["cnty-lines"] }).length, names: window.__threats.map.queryRenderedFeatures({ layers: ["cnty-labels"] }).map((f) => f.properties.n) }));
+      await p.screenshot({ path: path.join(OUT, `counties-z9-${d}.png`) });
+      await tap(p, "#txLayersBtn"); await p.locator("#txLayersPop input[data-counties]").uncheck(); await tap(p, "#txLayersPop [data-layers-close]"); await p.waitForTimeout(800);
+      const off = await p.evaluate(() => window.__threats.map.getLayoutProperty("cnty-lines", "visibility")); await p.evaluate(() => { try { localStorage.removeItem("threats_counties"); } catch (e) {} });
+      R.counties = { national, z6, z9: { lines: z9.lines, names: z9.names.slice(0, 8) }, off, files: reqs.length };
+      check(`(${d}) COUNTY LINES: nothing downloaded at national zoom (${national}); lines from regional zoom (zoom 6: ${z6.lines} segments, no names); names zoomed in (zoom 9: ${z9.names.slice(0, 4).join(", ")}…); off hides them`,
+        national === 0 && z6.lines > 0 && z6.names === 0 && z9.lines > 0 && z9.names.includes("Hamilton") && off === "none" && reqs.length === 2 && !errs.length, { ...R.counties, errs }); await p.close(); }
+    /* STORM REPORTS (replay of SPC's Nov 12 reports): drawn by type, a national count, near-venue list, a click opens the report */
+    { const { p, errs } = await page("?scenario=archive-reports-delaware&layers=severe&scope=national"); await p.waitForTimeout(2500);
+      const nat = await p.evaluate(() => ({ drawn: window.__threats.map.getSource("lsr")._data.features.length, types: window.__threats.map.getSource("lsr")._data.features.reduce((o, f) => ((o[f.properties.type] = (o[f.properties.type] || 0) + 1), o), {}), head: (document.querySelector('[data-reports="national"]') || {}).innerText, legend: /Storm reports · last 24 h/.test(document.getElementById("txLegend").innerText) }));
+      const tor = await p.evaluate(() => window.__threats.data.products.find((x) => x.kind === "lsr" && x.type === "tornado" && /Woodshade/.test(x.location)));
+      await mapClick(p, tor.point); let sel = await p.evaluate(() => window.__threats.S.sel); if (sel !== tor.id) { const row = p.locator(`#txPanelBody [data-id="${tor.id}"]`).first(); if (await row.count()) { await row.click(); await p.waitForTimeout(500); } sel = await p.evaluate(() => window.__threats.S.sel); }
+      const det = await p.evaluate(() => document.getElementById("txPanelBody").innerText.replace(/\s+/g, " ").slice(0, 400));
+      await p.screenshot({ path: path.join(OUT, `reports-detail-${d}.png`) }); await p.close();
+      const v = await page("?scenario=archive-reports-delaware&layers=severe&scope=venue&avenue=nwk"); await v.p.waitForTimeout(2500);
+      const ven = await v.p.evaluate(() => [...document.querySelectorAll('[data-reports="venue"] ~ .tx-item')].slice(0, 6).map((x) => x.innerText.replace(/\s+/g, " ").slice(0, 80)));
+      await v.p.screenshot({ path: path.join(OUT, `reports-venue-${d}.png`) }); await v.p.close();
+      R.reports = { nat, sel, det: det.slice(0, 200), ven };
+      check(`(${d}) STORM REPORTS (replay, SPC Nov 12): ${nat.drawn} drawn (${JSON.stringify(nat.types)}); '${nat.head}'; legend; a tornado dot opens its report (time, place, comments, preliminary); Delaware Stadium lists reports within 25 mi`,
+        nat.drawn === 29 && nat.types.tornado === 3 && /3 tornado · 2 wind · 22 hail/.test(nat.head || "") && nat.legend && sel === tor.id && /Tornado · 1 SW Woodshade, DE/.test(det) && /1:05 PM EST/.test(det) && /EF-1 tornado/.test(det) && /preliminary report/i.test(det) && ven.length > 0 && ven.some((x) => /Tornado/.test(x)) && !errs.length && !v.errs.length, { ...R.reports, errs, verrs: v.errs }); }
     /* the SPC Watch 705 replay */
     { const { p, errs } = await page("?scenario=archive-ww705&scope=venue"); await p.waitForTimeout(3000);
       const r = await p.evaluate(() => ({ n: window.__threats.data.products.length, watch: window.__threats.data.products.filter((x) => x.kind === "watch").map((x) => x.event), drawn: window.__threats.map.getSource("active")._data.features.length, err: window.__threats.data.loadError, panel: document.getElementById("txPanelBody").innerText.slice(0, 160) }));

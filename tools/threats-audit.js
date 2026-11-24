@@ -16,7 +16,8 @@ const { chromium } = require("playwright"), fs = require("fs"), path = require("
 const HOST = (process.argv[2] || "").replace(/\/$/, ""), OUT = path.resolve(process.argv[3] || "docs/threats/audit");
 if (!HOST) { console.error("usage: threats-audit.js https://<host> [OUT_DIR]"); process.exit(2); }
 fs.mkdirSync(OUT, { recursive: true });
-const FEEDS = [["alerts", /\/alerts\/active/], ["alerts-zones", /api\.weather\.gov\/zones|\/api\/nws\/zones/], ["alerts-refs", /(api\.weather\.gov|\/api\/nws)\/alerts\/urn/],
+const FEEDS = [
+  ["reports", /climo\/reports/],["alerts", /\/alerts\/active/], ["alerts-zones", /api\.weather\.gov\/zones|\/api\/nws\/zones/], ["alerts-refs", /(api\.weather\.gov|\/api\/nws)\/alerts\/urn/],
   ["md", /spc\.noaa\.gov\/products\/md|spc_mesoscale_discussion/], ["spc", /spc\.noaa\.gov\/products\/outlook/], ["fire", /fire_wx/], ["ero", /eromap|wpc_precip_hazards|\/api\/wpc\/ero/],
   ["wssi", /wpc_wssi_p|\/api\/wpc\/wssi/], ["nifc", /WFIGS|services3\.arcgis\.com/], ["hms", /satepsanone|\/api\/smoke/], ["airnow", /AirNow|airnowtech|Air%20Now/i], ["nhc", /tropical\/rest|nhc\.noaa\.gov/],
   ["awc", /aviationweather\.gov|\/api\/awc\//], ["faa", /\/api\/faa\//], ["gtg", /\/api\/gtg\//], ["ifi", /\/api\/ifi\//], ["model", /raw\.githubusercontent\.com/], ["nws-other", /api\.weather\.gov|\/api\/nws\//]];

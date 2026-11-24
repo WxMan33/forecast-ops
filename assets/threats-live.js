@@ -16,6 +16,7 @@
   /* smoke and air quality: HMS for everyone (map and Planner); the venue's monitors, forecast area and NOAA smoke guidance
      per venue (like WSSI-P); all monitors for the map */
   const hms = { state: "never", lastOk: null, error: null, products: [], days: [] };
+  const lsr = { state: "never", lastOk: null, error: null, products: [] };
   const aq = { key: null, obs: { state: "never" }, fcst: { state: "never" }, naqfc: { state: "never" }, products: [] };
   const monAll = { state: "never", lastOk: null, error: null, products: [] };
   /* NHC (regional context) and the venue's NHC wind speed probabilities */
@@ -255,6 +256,16 @@
     } catch (e) { Object.assign(hms, { state: "failed", error: e.message }); }
     emit();
   }
+  /* SPC storm reports, the last 24 hours: today's convective day (from 12Z) and yesterday's; yesterday's file is optional */
+  async function refreshReports() {
+    const at = nowIso(), now = Date.now(), d0 = new Date(now - (new Date(now).getUTCHours() < 12 ? 864e5 : 0)).toISOString().slice(0, 10), d1 = new Date(Date.parse(d0) - 864e5).toISOString().slice(0, 10);
+    try {
+      const today = F.parseStormReports(await get(F.REPORTS_URL("today"), "text"), d0);
+      const yest = await get(F.REPORTS_URL("yesterday"), "text").then((t) => F.parseStormReports(t, d1), () => []);
+      Object.assign(lsr, { state: "ok", lastOk: at, error: null, products: [...today, ...yest] });
+    } catch (e) { Object.assign(lsr, { state: "failed", error: e.message }); }
+    emit();
+  }
   async function refreshNHC() {
     const at = nowIso();
     try { const parts = await Promise.all(["two", "cone", "track", "points", "watchwarning"].map(async (L) => F.parseNHC(await get(F.NHC_URL(L), "json"), L))); Object.assign(nhc, { state: "ok", lastOk: at, error: null, products: parts.flat() }); }
@@ -422,7 +433,8 @@
     const e = { 1: ero[1].current(now), 2: ero[2].current(now), 3: ero[3].current(now) };
     const wsp = wssi.products.filter((p) => Date.parse(p.validEnd) > now);
     const fireP = FIRE_DAYS.flatMap((d) => FIRE_PARTS.flatMap((part) => fire[d][part].current(now).products));
-    const products = [...ps.filter((p) => p.status === "active" || p.status === "lapsed").map(withZones), ...wsp, ...mdList, ...o[1].products, ...o[2].products, ...o[3].products, ...e[1].products, ...e[2].products, ...e[3].products, ...fireP, ...nifc.products, ...hms.products, ...aq.products, ...nhc.products, ...tcw.products, ...av.products, ...enr.products, ...faa.products];
+    const lsrP = lsr.products.filter((p) => now - Date.parse(p.observed) < 24 * 3600e3 && Date.parse(p.observed) <= now + 5 * 60e3);
+    const products = [...lsrP, ...ps.filter((p) => p.status === "active" || p.status === "lapsed").map(withZones), ...wsp, ...mdList, ...o[1].products, ...o[2].products, ...o[3].products, ...e[1].products, ...e[2].products, ...e[3].products, ...fireP, ...nifc.products, ...hms.products, ...aq.products, ...nhc.products, ...tcw.products, ...av.products, ...enr.products, ...faa.products];
     const src = (info, count, extra) => ({ state: info.state === "ok" ? "ok" : "failed", lastOk: info.lastOk, count, error: info.error, ...extra });
     return {
       live: true, clock: new Date(now).toISOString(), products,
@@ -442,6 +454,7 @@
         faa: faa.state === "never" || faa.state === "pending" ? { state: "pending", lastOk: null, count: 0 } : { state: faa.state, lastOk: faa.lastOk, count: faa.products.length, error: faa.error },
         nhc: nhc.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: nhc.state, lastOk: nhc.lastOk, count: nhc.products.length, error: nhc.error || tcw.error, storms: nhc.products.filter((p) => p.part === "cone").length },
         hms: hms.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: hms.state, lastOk: hms.lastOk, count: hms.products.length, error: hms.error },
+        reports: lsr.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: lsr.state, lastOk: lsr.lastOk, count: lsrP.length, error: lsr.error },
         aqobs: aqSrc(aq.obs, aq.products.filter((p) => p.kind === "aqobs").length), aqfcst: aqSrc(aq.fcst, aq.products.filter((p) => p.kind === "aqfcst").length), naqfc: F.NAQFC_ENABLED ? aqSrc(aq.naqfc, aq.products.filter((p) => p.kind === "smokefcst").length) : { state: "na" },
         monitors: monAll.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: monAll.state, lastOk: monAll.lastOk, count: monAll.products.length, error: monAll.error },
         nifc: nifc.state === "never" ? { state: "pending", lastOk: null, count: 0 } : src({ state: nifc.state, lastOk: nifc.lastOk, error: nifc.error }, nifc.products.length),
@@ -470,7 +483,7 @@
   }
   /* the map: each layer's feeds load when it is turned on and stop refreshing when it is off (Event Manager keeps start()) */
   let mapFeeds = null; const feedTimers = {}, feedAt = {}, QUICK = new Set(["alerts", "md", "spc", "ero"]);
-  const FEEDS = { alerts: [() => refreshAlerts(), 60e3], md: [() => refreshMD(), 60e3], spc: [() => refreshOutlooks(), 10 * 60e3], ero: [() => refreshERO(), 10 * 60e3], fire: [() => refreshFire(), 10 * 60e3], nifc: [() => refreshNIFC(), 5 * 60e3], hms: [() => refreshHMS(), 10 * 60e3], monitors: [() => refreshMonitorsAll(), 10 * 60e3], nhc: [() => refreshNHC(), 10 * 60e3] };
+  const FEEDS = { reports: [() => refreshReports(), 5 * 60e3], alerts: [() => refreshAlerts(), 60e3], md: [() => refreshMD(), 60e3], spc: [() => refreshOutlooks(), 10 * 60e3], ero: [() => refreshERO(), 10 * 60e3], fire: [() => refreshFire(), 10 * 60e3], nifc: [() => refreshNIFC(), 5 * 60e3], hms: [() => refreshHMS(), 10 * 60e3], monitors: [() => refreshMonitorsAll(), 10 * 60e3], nhc: [() => refreshNHC(), 10 * 60e3] };
   function setFeeds(keys) {
     const want = new Set((keys || []).filter((k) => FEEDS[k])), first = [];
     if (!mapFeeds) { mapFeeds = new Set(); document.addEventListener("visibilitychange", () => { if (!document.hidden) { if (mapFeeds.has("alerts")) refreshAlerts(); if (mapFeeds.has("md")) refreshMD(); } }); }
@@ -490,6 +503,7 @@
 
   /* ---------- archived official samples, replayed through the same adapter (not live observations) ---------- */
   const ARCHIVES = {
+    "archive-reports-delaware": { kind: "mix", clock: "2026-11-12T23:00:00Z", nws: [], ero: [], lsr: ["tests/fixtures/threats/spc-reports-261112-filtered.csv", "2026-11-12"], label: "SPC storm reports, Delaware Valley tornadoes and hail, Nov 12, 2026 (preliminary)" },
     "archive-lox": { kind: "nws", file: "tests/fixtures/threats/nws-archive-klox-sv-w-0015.json", label: "NWS Los Angeles severe thunderstorm warning 0015, Nov 19, 2026" },
     "archive-mtr": { kind: "nws", file: "tests/fixtures/threats/nws-archive-kmtr-to-w-0003.json", label: "NWS San Francisco tornado warning 0003, Nov 16, 2026" },
     "archive-ww705": { kind: "wou", file: "tests/fixtures/threats/spc-wou0705.txt", label: "SPC Tornado Watch 705 (official WOU), Nov 12, 2026" },
@@ -567,15 +581,16 @@
     const faaP = a.faa && EN ? EN.parseFAA(await getJ(a.faa[0]), await getJ(a.faa[1]), a.clock) : [];
     const nhcP = (await Promise.all((a.nhc || []).map(async (f) => F.parseNHC(await getJ(f))))).flat().filter((p) => !p.issued || Date.parse(p.issued) <= clock);
     const nifcP = a.nifc ? F.parseNIFC(await getJ(a.nifc[0]), await getJ(a.nifc[1])) : [];
+    const lsrP = a.lsr ? F.parseStormReports(await getT(a.lsr[0]), a.lsr[1]).filter((p) => Date.parse(p.observed) <= clock && clock - Date.parse(p.observed) < 24 * 3600e3) : [];
     const wsp = (await Promise.all((a.wssip || []).map(getJ))).flatMap((j) => F.parseWSSIP(j)).filter((p) => (!p.issued || Date.parse(p.issued) <= clock) && Date.parse(p.validEnd) > clock);
     const eroSrc = (d) => { const o = eros.find((x) => x.products[0] && x.products[0].day === d); return o ? { state: "ok", lastOk: a.clock, count: o.products.length, outlook: "current", validEnd: o.validEnd, issued: o.issued, via: "wpc" } : na; };
     const pointsA = a.points ? Object.fromEntries(Object.entries((await getJ(a.points)).points).map(([k, v]) => { const [la, lo] = k.split(",").map(Number); return [la.toFixed(4) + "," + lo.toFixed(4), F.pointZones({ properties: v })]; })) : null;
     return { live: false, points: pointsA, archive: { name, label: a.label, step: 1, steps: 1, messages: [] }, clock: a.clock,
-      products: [...ps.filter((p) => p.status === "active" || p.status === "lapsed"), ...eros.flatMap((o) => o.products), ...wsp, ...fireP, ...nifcP, ...hmsP, ...monP, ...raP, ...nhcP, ...awcP, ...enP, ...faaP], ended: ps.filter((p) => p.status === "ended"),
+      products: [...ps.filter((p) => p.status === "active" || p.status === "lapsed"), ...eros.flatMap((o) => o.products), ...wsp, ...fireP, ...nifcP, ...hmsP, ...monP, ...raP, ...nhcP, ...awcP, ...enP, ...faaP, ...lsrP], ended: ps.filter((p) => p.status === "ended"),
       sources: { alerts: !a.nws.length && !(a.tcv || []).length ? { state: "na" } : { state: a.alertsFailAfter ? "failed" : "ok", lastOk: si.lastOk, count: ps.filter((p) => p.status === "active").length, error: si.error }, md: na, day1: na, day2: na, day3: na, ero1: eroSrc(1), ero2: eroSrc(2), ero3: eroSrc(3),
         hms: a.hms ? { state: "ok", lastOk: a.clock, count: hmsP.length } : { state: "na" }, nhc: a.nhc ? { state: "ok", lastOk: a.clock, count: nhcP.length } : { state: "na" }, awc: a.awc ? { state: "ok", lastOk: a.clock, count: awcP.length } : { state: "na" }, enroute: a.enroute ? { state: "ok", lastOk: a.clock, count: enP.length } : { state: "na" }, faa: a.faa ? { state: "ok", lastOk: a.clock, count: faaP.length } : { state: "na" }, aqobs: a.mons ? { state: "ok", lastOk: a.clock, count: monP.length } : { state: "na" },
         aqfcst: a.ra ? { state: "ok", lastOk: a.clock, count: raP.length } : { state: "na" }, naqfc: { state: "na" }, monitors: a.mons ? { state: "ok", lastOk: a.clock, count: monP.length } : { state: "na" },
-        ...fireSrc, nifc: a.nifc ? { state: "ok", lastOk: a.clock, count: nifcP.length } : { state: "na" },
+        ...fireSrc, nifc: a.nifc ? { state: "ok", lastOk: a.clock, count: nifcP.length } : { state: "na" }, reports: a.lsr ? { state: "ok", lastOk: a.clock, count: lsrP.length } : { state: "na" },
         wssip: (a.wssip || []).length ? (wsp.length ? { state: "ok", lastOk: a.clock, count: wsp.length, validEnd: wsp.map((x) => x.validEnd).sort().pop(), issued: wsp[0].issued } : { state: "na" }) : { state: "na" } } };
   }
   async function archiveSnapshot(name, step) {
@@ -598,7 +613,7 @@
   }
 
   /* the snapshot's per-feed states, keyed by the source registry (ThreatsFeeds.SOURCES) for the shared matcher */
-  const STALE = { enroute: 20, faa: 10, awc: 20, nhc: 60, hms: 180, aqobs: 120, aqfcst: 180, naqfc: 360, monitors: 120, nifc: 20, fire1: 60, fire2: 60, fire3: 180, fire4: 180, fire5: 180, fire6: 180, fire7: 180, fire8: 180, wssip: 60, alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
+  const STALE = { reports: 20, enroute: 20, faa: 10, awc: 20, nhc: 60, hms: 180, aqobs: 120, aqfcst: 180, naqfc: 360, monitors: 120, nifc: 20, fire1: 60, fire2: 60, fire3: 180, fire4: 180, fire5: 180, fire6: 180, fire7: 180, fire8: 180, wssip: 60, alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
   function registryState(d, now) {
     const one = (k) => { const x = d.sources[k]; if (!x) return { kind: "unavailable" }; if (x.state === "na") return { kind: "na" }; if (d.loading || x.state === "pending") return { kind: "loading" }; return { ...window.ThreatsCore.sourceState(x, now, STALE[k]), lastOk: x.lastOk }; };
     const worst = (keys) => { const s = keys.map(one).filter((x) => x.kind !== "na"); if (!s.length) return { kind: "na" }; const order = ["unavailable", "stale", "loading", "na", "empty", "current"]; const w = s.reduce((a, b) => (order.indexOf(b.kind) < order.indexOf(a.kind) ? b : a)); const oks = s.filter((x) => x.lastOk).map((x) => Date.parse(x.lastOk)); return { ...w, lastOk: oks.length ? new Date(Math.min(...oks)).toISOString() : w.lastOk }; };

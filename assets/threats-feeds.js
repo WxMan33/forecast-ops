@@ -832,6 +832,34 @@
       source: { name: "NOAA map service (SPC MDs)", url: n ? MD_URL(n) : MD_LIST_URL }, bulletin: "", severe: !/winter|snow|freezing|blizzard/i.test(text) };
   }
 
+  /* ---------- SPC storm reports (preliminary, filtered): tornado, wind and hail reports for a convective day (12Z to 12Z) ----------
+     One CSV with three sections, each led by its own header (Time,F_Scale / Time,Speed / Time,Size,...). Time is HHMM UTC: from
+     1200 it is on the day's date, before 1200 on the next. Speed in mph, Size in hundredths of an inch, "UNK" when not given.
+     Comments are not quoted and may hold commas: the first seven fields, then the rest of the line. */
+  const REPORTS_URL = (which) => "https://www.spc.noaa.gov/climo/reports/" + which + "_filtered.csv"; // which: today | yesterday | YYMMDD_rpts
+  function parseStormReports(csv, dayIso) {
+    if (typeof csv !== "string" || !/^Time,/.test(csv.trim())) throw Error("unrecognized SPC storm report file");
+    const d0 = Date.parse(dayIso.slice(0, 10) + "T00:00:00Z"); if (!isFinite(d0)) throw Error("bad report day");
+    const out = []; let type = null;
+    for (const line of csv.split(/\r?\n/)) {
+      if (!line.trim()) continue;
+      const h = /^Time,(F_Scale|Speed|Size),/.exec(line); if (h) { type = { F_Scale: "tornado", Speed: "wind", Size: "hail" }[h[1]]; continue; }
+      if (!type) throw Error("storm report before a section header");
+      const f = line.split(","), [tm, mag, loc, county, st, la, lo] = f, comments = f.slice(7).join(",").trim();
+      const lat = +la, lon = +lo, hh = +String(tm).slice(0, 2), mm = +String(tm).slice(2, 4);
+      if (!/^\d{4}$/.test(tm) || !isFinite(lat) || !isFinite(lon) || hh > 23 || mm > 59) continue; // a malformed line is skipped, never guessed
+      const t = new Date(d0 + (hh < 12 ? 864e5 : 0) + hh * 3600e3 + mm * 60e3).toISOString();
+      const m = mag === "UNK" || mag === "" ? null : type === "hail" ? +mag / 100 : type === "wind" ? +mag : mag;
+      const magText = type === "tornado" ? (m ? m : "rating not given") : type === "hail" ? (m ? m.toFixed(2) + " in" : "size not given") : (m ? m + " mph" : "speed not given");
+      const office = (/\(([A-Z]{3})\)\s*$/.exec(comments) || [])[1] || null;
+      out.push({ id: "lsr-" + type + "-" + t + "-" + lat + "," + lon, kind: "lsr", family: "severe", sourceId: "spc-reports", program: "spc-reports", type, magnitude: m, magText,
+        event: { tornado: "Tornado report", wind: "Wind damage report", hail: "Hail report" }[type], title: { tornado: "Tornado", wind: "Wind damage", hail: "Hail" }[type] + (type === "tornado" ? "" : " · " + magText) + " · " + loc + ", " + st,
+        observed: t, issued: t, location: loc, county, state: st, comments, office, point: [lon, lat], geometry: null, label: [lon, lat],
+        source: { name: "SPC storm reports (preliminary)", url: "https://www.spc.noaa.gov/climo/reports/" } });
+    }
+    return out;
+  }
+
   /* ---------- the venue's next hours: the NWS forecast grid (api.weather.gov /gridpoints) ----------
      Each element is a list of { validTime: "start/ISO-duration", value } in its own unit (uom). Hourly rows from the current
      hour: wind and gusts in mph, temperature, heat index and feels-like in °F, rain chance in %. A missing value stays null
@@ -861,7 +889,7 @@
     return { updated: new Date(P.updateTime).toISOString(), rows, covered, peakGust: peak("gust"), peakHeat: peak("heat"), peakFeels: peak("feels"), peakPop: peak("pop"), lowFeels: rows.reduce((b, r) => (r.feels != null && (!b || r.feels < b.feels) ? r : b), null) };
   }
 
-  return { RADAR_TIME_URL, RADAR_TILE_URL, parseRadarTime, parseGrid, EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
+  return { REPORTS_URL, parseStormReports, RADAR_TIME_URL, RADAR_TILE_URL, parseRadarTime, parseGrid, EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
     parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries, dissolve, zoneShape,
     HAZARD, WINTER_EVENTS, FIRE_EVENTS, TROPICAL_EVENTS, COASTAL_EVENTS, EVENT_NAME, tcvToAlerts, pointZones, NAQFC_ENABLED, AWC_URL, FLT_ORDER, fltCat, parseMETAR, parseTAF, NHC_URL, NHC_WSP_AT, parseNHC, parseNHCWsp, TCWW, FIRE_CATS, DRYT_CATS, FIRE38_CATS, FIRE_NAME, FIRE_MEANING, SPC_FIRE_URL, parseFireOutlook, createFireStore,
     NIFC_INC_URL, NIFC_PER_URL, INCIDENT_TYPE, parseNIFC, zTime,

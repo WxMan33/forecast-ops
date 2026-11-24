@@ -35,7 +35,7 @@
   const WLEVEL_LABEL = { WWA: "Any winter weather", MINOR: "Minor", MODERATE: "Moderate", MAJOR: "Major", EXTREME: "Extreme" };
   const empty = { type: "FeatureCollection", features: [] };
 
-  const S = { air: [], ap: null, layers: { severe: false, flood: false, winter: false, fire: false, smoke: false, tropical: false, coastal: false, aviation: false }, en: { on: false, at: 0, alt: null, age: 2 }, av: { apt: true, pireps: true, adv: true }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, ifi: { on: false, field: "prob", src: null, cyc: null }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, radar: false, pin: true, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
+  const S = { air: [], ap: null, layers: { severe: false, flood: false, winter: false, fire: false, smoke: false, tropical: false, coastal: false, aviation: false }, en: { on: false, at: 0, alt: null, age: 2 }, av: { apt: true, pireps: true, adv: true }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, ifi: { on: false, field: "prob", src: null, cyc: null }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, radar: false, pin: true, counties: true, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
   let framedAp = false, framedSel = false, mapLoaded = false; // Planner airport "View on map": framed once
   let data, now, venue, map, ready = false, liveReady = false, meshes = new Map(), tzCache = {}, marker, grid = null, mesh = null, mask = null, gridLoading = null, hull = null;
   const phone = () => matchMedia("(max-width: 760px)").matches;
@@ -48,8 +48,10 @@
       ffw: L ? "#0B7A4B" : "#2FD08A", wsw: L ? "#C2187A" : "#FF69B4", bzw: L ? "#C23A00" : "#FF6A33", isw: L ? "#7A0F86" : "#D36AE0", lew: L ? "#00706F" : "#22C7C7", wsa: L ? "#2F5F9E" : "#7FB2E5", wwy: L ? "#5141B8" : "#A497FF", rfw: L ? "#C2186B" : "#FF3D9A", fww: L ? "#8A5A00" : "#F5C97A", torW: L ? "#C8102E" : "#FF4040", svrW: L ? "#B85400" : "#FFA024", torA: L ? "#8F7200" : "#FFE14D", svrA: L ? "#A23A68" : "#F28DB8", md: L ? "#1D5FD1" : "#5FB0FF" };
   }
   const isTor = (p) => /tornado/i.test(p.event || "");
+  const LSR_COLOR = { tornado: "#e0262b", wind: "#2f6fe0", hail: "#2fa84f" };
   function colorOf(p) {
     const c = pal();
+    if (p.kind === "lsr") return LSR_COLOR[p.type] || "#888";
     if (p.family === "tropical" && TROP_COLOR[p.event]) return TROP_COLOR[p.event];
     if (p.family === "coastal" && COAST_COLOR[p.event]) return COAST_COLOR[p.event];
     if (p.kind === "metar" || p.kind === "taf") return FLT_COLOR[p.category || (p.periods && p.periods[0] && p.periods[0].category)] || "#9aa3ad";
@@ -72,6 +74,7 @@
   /* a small line sample matching the map style, so the list and the map read the same way without color */
   function swatch(p, w = 30) {
     const c = colorOf(p);
+    if (p.kind === "lsr") return `<svg class="tx-sw" width="${w}" height="16" aria-hidden="true">${p.type === "tornado" ? `<path d="M${w / 2} 2 L${w / 2 + 6} 14 L${w / 2 - 6} 14 Z" fill="${c}" stroke="#111" stroke-width="1"/>` : `<circle cx="${w / 2}" cy="8" r="5" fill="${c}" stroke="#111" stroke-width="1"/>`}</svg>`;
     if (p.kind === "warning") return `<svg class="tx-sw" width="${w}" height="16" aria-hidden="true"><rect x="2" y="2" width="${w - 4}" height="12" rx="2" fill="${c}" fill-opacity=".35" stroke="${c}" stroke-width="3"/></svg>`;
     if (p.kind === "incident") return `<svg class="tx-sw" width="${w}" height="16" aria-hidden="true"><rect x="2" y="2" width="${w - 4}" height="12" rx="2" fill="${c}" fill-opacity=".3" stroke="${c}" stroke-width="2"/><circle cx="${w / 2}" cy="8" r="3.4" fill="${c}" stroke="${pal().halo}" stroke-width="1.2"/></svg>`;
     if (p.kind === "advisory" || p.kind === "statement") return `<svg class="tx-sw" width="${w}" height="16" aria-hidden="true"><rect x="2" y="2" width="${w - 4}" height="12" rx="2" fill="${c}" fill-opacity=".18" stroke="${c}" stroke-width="2"/></svg>`;
@@ -81,10 +84,10 @@
   }
 
   /* ---------- data ---------- */
-  const SRC_OF = (p) => ["warning", "watch", "advisory", "statement"].includes(p.kind) ? "alerts" : ["tcoutlook", "tctrack", "tcwind"].includes(p.kind) ? "nhc" : p.kind === "metar" || p.kind === "taf" ? "awc" : ["pirep", "sigmet", "gairmet", "cwa"].includes(p.kind) ? "enroute" : p.kind === "faa" ? "faa" : p.kind === "incident" ? "nifc" : p.kind === "smoke" ? "hms" : p.kind === "aqobs" ? "aqobs" : p.kind === "aqfcst" ? "aqfcst" : p.kind === "smokefcst" ? "naqfc" : p.kind === "md" ? "md" : p.program === "wssip" ? "wssip" : /^spcfire-/.test(p.program || "") ? "fire" + p.day : (p.program === "ero" ? "ero" : "day") + p.day;
+  const SRC_OF = (p) => p.kind === "lsr" ? "reports" : ["warning", "watch", "advisory", "statement"].includes(p.kind) ? "alerts" : ["tcoutlook", "tctrack", "tcwind"].includes(p.kind) ? "nhc" : p.kind === "metar" || p.kind === "taf" ? "awc" : ["pirep", "sigmet", "gairmet", "cwa"].includes(p.kind) ? "enroute" : p.kind === "faa" ? "faa" : p.kind === "incident" ? "nifc" : p.kind === "smoke" ? "hms" : p.kind === "aqobs" ? "aqobs" : p.kind === "aqfcst" ? "aqfcst" : p.kind === "smokefcst" ? "naqfc" : p.kind === "md" ? "md" : p.program === "wssip" ? "wssip" : /^spcfire-/.test(p.program || "") ? "fire" + p.day : (p.program === "ero" ? "ero" : "day") + p.day;
   // minutes since the last successful check before a source counts as stale (outlooks change a few times a day)
-  const STALE_MIN = { awc: 20, nhc: 60, hms: 180, aqobs: 120, aqfcst: 180, naqfc: 360, monitors: 120, nifc: 20, fire1: 60, fire2: 60, fire3: 180, fire4: 180, fire5: 180, fire6: 180, fire7: 180, fire8: 180, wssip: 60, alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
-  const SRC_NAME = { enroute: "Aviation Weather Center en route (pilot reports, SIGMETs, G-AIRMETs, CWAs)", faa: "FAA airport status", awc: "Aviation Weather Center (METAR, TAF)", nhc: "NHC tropical outlooks and storms", hms: "NOAA satellite smoke (HMS)", aqobs: "AirNow observations near the venue", aqfcst: "AirNow forecast (venue's area)", naqfc: "NOAA smoke guidance (NAQFC)", monitors: "AirNow monitors (map)", nifc: "NIFC wildfire incidents (WFIGS)", fire1: "SPC fire weather · Day 1", fire2: "SPC fire weather · Day 2", fire3: "SPC fire weather · Day 3", fire4: "SPC fire weather · Day 4", fire5: "SPC fire weather · Day 5", fire6: "SPC fire weather · Day 6", fire7: "SPC fire weather · Day 7", fire8: "SPC fire weather · Day 8", wssip: "WPC winter storm severity (WSSI-P)", alerts: "NWS warnings, watches and advisories", md: "SPC Mesoscale Discussions", day1: "SPC Day 1 outlook", day2: "SPC Day 2 outlook", day3: "SPC Day 3 outlook", ero1: "WPC excessive rainfall · Day 1", ero2: "WPC excessive rainfall · Day 2", ero3: "WPC excessive rainfall · Day 3" };
+  const STALE_MIN = { reports: 20, awc: 20, nhc: 60, hms: 180, aqobs: 120, aqfcst: 180, naqfc: 360, monitors: 120, nifc: 20, fire1: 60, fire2: 60, fire3: 180, fire4: 180, fire5: 180, fire6: 180, fire7: 180, fire8: 180, wssip: 60, alerts: 10, md: 15, day1: 60, day2: 60, day3: 60, ero1: 60, ero2: 60, ero3: 60 };
+  const SRC_NAME = { reports: "SPC storm reports (preliminary, last 24 h)", enroute: "Aviation Weather Center en route (pilot reports, SIGMETs, G-AIRMETs, CWAs)", faa: "FAA airport status", awc: "Aviation Weather Center (METAR, TAF)", nhc: "NHC tropical outlooks and storms", hms: "NOAA satellite smoke (HMS)", aqobs: "AirNow observations near the venue", aqfcst: "AirNow forecast (venue's area)", naqfc: "NOAA smoke guidance (NAQFC)", monitors: "AirNow monitors (map)", nifc: "NIFC wildfire incidents (WFIGS)", fire1: "SPC fire weather · Day 1", fire2: "SPC fire weather · Day 2", fire3: "SPC fire weather · Day 3", fire4: "SPC fire weather · Day 4", fire5: "SPC fire weather · Day 5", fire6: "SPC fire weather · Day 6", fire7: "SPC fire weather · Day 7", fire8: "SPC fire weather · Day 8", wssip: "WPC winter storm severity (WSSI-P)", alerts: "NWS warnings, watches and advisories", md: "SPC Mesoscale Discussions", day1: "SPC Day 1 outlook", day2: "SPC Day 2 outlook", day3: "SPC Day 3 outlook", ero1: "WPC excessive rainfall · Day 1", ero2: "WPC excessive rainfall · Day 2", ero3: "WPC excessive rainfall · Day 3" };
   const isLive = () => S.scenario === "live";
   const isArchive = () => /^archive-/.test(S.scenario);
   const official = () => isLive() || isArchive();
@@ -105,6 +108,7 @@
   const SMOKE_VENUES = [{ id: "soldier", name: "Soldier Field", city: "Chicago, IL", lat: 41.8623, lon: -87.6167, tz: "America/Chicago", label: "Soldier Field, Chicago" }, { id: "metlife", name: "MetLife Stadium", city: "East Rutherford, NJ", lat: 40.8135, lon: -74.0745, tz: "America/New_York", label: "MetLife Stadium, New York area" }, { id: "linc", name: "Lincoln Financial Field", city: "Philadelphia, PA", lat: 39.9008, lon: -75.1675, tz: "America/New_York", label: "Lincoln Financial Field, Philadelphia" }];
   const TROP_VENUES = [{ id: "wharf", name: "The Wharf, Orange Beach", city: "Orange Beach, AL", lat: 30.297, lon: -87.56, tz: "America/Chicago", label: "The Wharf, Orange Beach (Baldwin Coastal)" }, { id: "bayminette", name: "Bay Minette", city: "Bay Minette, AL", lat: 30.8829, lon: -87.7731, tz: "America/Chicago", label: "Bay Minette (Baldwin Inland)" }];
   ["archive-tropical-watch", "archive-tropical-warning"].forEach((k) => { ARCHIVE_VENUES[k] = TROP_VENUES; });
+  ARCHIVE_VENUES["archive-reports-delaware"] = [{ id: "linc", name: "Lincoln Financial Field", city: "Philadelphia, PA", lat: 39.9008, lon: -75.1675, tz: "America/New_York", label: "Lincoln Financial Field (reports nearby)" }, { id: "nwk", name: "Delaware Stadium", city: "Newark, DE", lat: 39.6618, lon: -75.7474, tz: "America/New_York", label: "Delaware Stadium, Newark (a tornado 2 mi away)" }];
   ARCHIVE_VENUES["archive-aviation-enroute"] = [{ id: "ml", name: "MetLife Stadium", city: "East Rutherford, NJ", lat: 40.8135, lon: -74.0745, tz: "America/New_York", label: "MetLife Stadium, East Rutherford" }];
   ARCHIVE_VENUES["archive-aviation-chicago"] = [{ id: "uc", name: "United Center", city: "Chicago, IL", lat: 41.8807, lon: -87.6742, tz: "America/Chicago", label: "United Center, Chicago" }];
   ARCHIVE_VENUES["archive-coastal-flagler"] = [{ id: "flaglerpier", name: "Flagler Beach Pier", city: "Flagler Beach, FL", lat: 29.4802, lon: -81.1065, tz: "America/New_York", label: "Flagler Beach Pier (Coastal Flagler shoreline)" }, { id: "jaxbeach", name: "Jacksonville Beach Pier", city: "Jacksonville Beach, FL", lat: 30.2858, lon: -81.3889, tz: "America/New_York", label: "Jacksonville Beach Pier (Coastal Duval)" }];
@@ -181,6 +185,14 @@
     const where = r ? (r.kind === "covers" ? "Perimeter includes the venue" : T.distanceText(r.km) + " " + r.dir + " of the venue" + (r.point ? " (reported location)" : " (perimeter edge)")) : (p.county ? p.county + ", " : "") + p.state;
     return `<button type="button" class="tx-item${S.hover === p.id ? " hl" : ""}" data-id="${esc(p.id)}" style="--tx-c:${colorOf(p)}">${swatch(p)}<span><span class="tx-kind k-incident">${esc(p.category === "RX" ? "PRESCRIBED" : "WILDFIRE")}</span><b>${esc(p.name)}</b>`
       + `<span class="tx-meta">${esc(incFacts(p))}</span><span class="tx-rel ${r ? r.kind : ""}">${esc(where)}</span><span class="tx-meta">NIFC updated ${esc(p.updated ? t(p.updated, true) : "unknown")}${p.geometry ? "" : " · no mapped perimeter"}</span></span></button>`;
+  }
+  function lsrDetail(p) {
+    const d = T.pointDistance([venue.lon, venue.lat], p.point), rows = [["Report", esc(p.event + (p.type === "tornado" ? "" : " · " + p.magText))], ["Time", esc(t(p.observed, true)) + ` <span style="color:var(--muted)">(${esc(T.fmtZ(p.observed))})</span>`],
+      ["Where", esc(p.location + " · " + p.county + " County, " + p.state)], ["Venue", `<b>${esc(T.distanceText(d.km) + " " + d.dir)}</b> <span style="color:var(--muted)">of ${esc(venue.name)}</span>`],
+      ["Reported via", esc(p.office ? "NWS " + p.office : "NWS")], ["Source", official() ? `<a href="${esc(p.source.url)}" target="_blank" rel="noopener">${esc(p.source.name)}</a>` : esc(p.source.name)]];
+    return `<button type="button" class="px-back" data-back>← Back</button><div style="--tx-c:${colorOf(p)}">${swatch(p, 40)} <span class="tx-kind">STORM REPORT</span></div><div class="px-title">${esc(p.title)}</div>`
+      + `<dl class="px-rows">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>` + (p.comments ? `<p class="px-headline">${esc(p.comments)}</p>` : "")
+      + `<p class="lg-note">A preliminary report, not a confirmed survey: it can be revised, and a single storm can produce several reports.</p>`;
   }
   function incidentDetail(p) {
     const r = incRel(p), rows = [["Type", esc(p.event + (p.imt ? " · " + p.imt : ""))], ["Size", esc(acresTxt(p.acres)) + " (as reported for the incident)"], ["Containment", esc(p.contained != null ? p.contained + "%" : "not reported")],
@@ -537,7 +549,7 @@
     if (known("alerts")) return { big: "No warning or watch at the venue", sub: "NWS checked " + t(data.sources.alerts.lastOk) + ". SPC Mesoscale Discussion status is unknown: that source is not responding." };
     return { big: "Venue status not confirmed", sub: "No product covers the venue in the data we have, but NWS warnings and watches are not confirmed (see below)." };
   }
-  const SRC_LINK = { enroute: "https://aviationweather.gov/gfa/", faa: "https://nasstatus.faa.gov/", awc: "https://aviationweather.gov/", nhc: "https://www.nhc.noaa.gov/", hms: "https://www.ospo.noaa.gov/products/land/hms.html", aqobs: "https://www.airnow.gov/", aqfcst: "https://www.airnow.gov/", naqfc: "https://airquality.weather.gov/", monitors: "https://www.airnow.gov/", nifc: "https://data-nifc.opendata.arcgis.com/datasets/nifc::wfigs-current-incident-locations/about", fire1: "https://www.spc.noaa.gov/products/fire_wx/fwdy1.html", fire2: "https://www.spc.noaa.gov/products/fire_wx/fwdy2.html", fire3: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire4: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire5: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire6: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire7: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire8: "https://www.spc.noaa.gov/products/exper/fire_wx/", wssip: "https://www.wpc.ncep.noaa.gov/wwd/wssi/prob_wssi.php", ero1: FX.SOURCES.find((x) => x.id === "wpc-ero").url, ero2: FX.SOURCES.find((x) => x.id === "wpc-ero").url, ero3: FX.SOURCES.find((x) => x.id === "wpc-ero").url, day3: "https://www.spc.noaa.gov/products/outlook/day3otlk.html", alerts: "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch", md: "https://www.spc.noaa.gov/products/md/", day1: "https://www.spc.noaa.gov/products/outlook/day1otlk.html", day2: "https://www.spc.noaa.gov/products/outlook/day2otlk.html" };
+  const SRC_LINK = { reports: "https://www.spc.noaa.gov/climo/reports/", enroute: "https://aviationweather.gov/gfa/", faa: "https://nasstatus.faa.gov/", awc: "https://aviationweather.gov/", nhc: "https://www.nhc.noaa.gov/", hms: "https://www.ospo.noaa.gov/products/land/hms.html", aqobs: "https://www.airnow.gov/", aqfcst: "https://www.airnow.gov/", naqfc: "https://airquality.weather.gov/", monitors: "https://www.airnow.gov/", nifc: "https://data-nifc.opendata.arcgis.com/datasets/nifc::wfigs-current-incident-locations/about", fire1: "https://www.spc.noaa.gov/products/fire_wx/fwdy1.html", fire2: "https://www.spc.noaa.gov/products/fire_wx/fwdy2.html", fire3: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire4: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire5: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire6: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire7: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire8: "https://www.spc.noaa.gov/products/exper/fire_wx/", wssip: "https://www.wpc.ncep.noaa.gov/wwd/wssi/prob_wssi.php", ero1: FX.SOURCES.find((x) => x.id === "wpc-ero").url, ero2: FX.SOURCES.find((x) => x.id === "wpc-ero").url, ero3: FX.SOURCES.find((x) => x.id === "wpc-ero").url, day3: "https://www.spc.noaa.gov/products/outlook/day3otlk.html", alerts: "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch", md: "https://www.spc.noaa.gov/products/md/", day1: "https://www.spc.noaa.gov/products/outlook/day1otlk.html", day2: "https://www.spc.noaa.gov/products/outlook/day2otlk.html" };
 
   /* ---------- map ---------- */
   async function getJSON(path) { const r = await fetch(path); if (!r.ok) throw Error(path + " " + r.status); return r.json(); }
@@ -561,16 +573,24 @@
     try { const r = await fetch(CARTO[theme], { signal: c.signal }); if (!r.ok) throw Error("HTTP " + r.status); const j = await r.json(); if (!j.layers || !j.sources) throw Error("not a style"); return j; }
     catch (e) { return null; } finally { clearTimeout(timer); }
   }
+  /* county lines and names: fetched once, on the first zoom in to regional level with County lines on */
+  let countiesAsked = false;
+  function ensureCounties() {
+    if (!map || !mapLoaded || !map.getLayer("cnty-lines")) return; const vis = S.counties ? "visible" : "none";
+    for (const id of ["cnty-lines", "cnty-labels"]) if (map.getLayoutProperty(id, "visibility") !== vis) map.setLayoutProperty(id, "visibility", vis);
+    if (!S.counties || countiesAsked || map.getZoom() < 4.3) return; countiesAsked = true;
+    Promise.all([getJSON("assets/geo/county-lines.json"), getJSON("assets/geo/county-labels.json")]).then(([l, n]) => { map.getSource("cnty-lines").setData(l); map.getSource("cnty-labels").setData(n); }).catch(() => { countiesAsked = false; });
+  }
   /* our hazard fills and lines go under the basemap's labels (towns and streets stay readable); our own labels stay on top */
   function orderOverBase() {
     const st = map.getStyle(), ours = new Set(OUR), firstLabel = st.layers.find((l) => l.type === "symbol" && !ours.has(l.id));
-    if (!firstLabel) return; for (const l of st.layers) if (ours.has(l.id) && l.type !== "symbol" && l.id !== "hu-county" && l.id !== "hu-state") map.moveLayer(l.id, firstLabel.id);
+    if (!firstLabel) return; for (const l of st.layers) if (ours.has(l.id) && (l.type !== "symbol" || l.id === "cnty-labels") && l.id !== "hu-state") map.moveLayer(l.id, firstLabel.id); // county names yield to town names
   }
   /* clearer state lines and county lines from zoom 6 (the basemap's own county lines start at zoom 9) */
   function baseLines() {
     const src = Object.keys(map.getStyle().sources).find((k) => map.getStyle().sources[k].type === "vector"); if (!src) return;
     const lt = light(), first = map.getStyle().layers.find((l) => l.type === "symbol");
-    for (const [id, kd, mz, col, w] of [["hu-county", 6, 6, lt ? "rgba(90,98,110,.45)" : "rgba(170,178,190,.35)", [6, 0.5, 10, 1.1]], ["hu-state", 4, 3, lt ? "rgba(70,78,90,.75)" : "rgba(200,206,216,.6)", [3, 0.8, 8, 1.8]]])
+    for (const [id, kd, mz, col, w] of [["hu-state", 4, 3, lt ? "rgba(70,78,90,.75)" : "rgba(200,206,216,.6)", [3, 0.8, 8, 1.8]]])
       if (!map.getLayer(id)) map.addLayer({ id, type: "line", source: src, "source-layer": "boundaries", minzoom: mz, filter: ["==", ["get", "kind_detail"], kd], paint: { "line-color": col, "line-width": ["interpolate", ["linear"], ["zoom"], w[0], w[1], w[2], w[3]] } }, first && first.id);
   }
   async function createMap() {
@@ -584,11 +604,13 @@
     if (!carto) cartoRetry = setInterval(retryCarto, 5 * 60e3); // as in OPE: CARTO is tried again every 5 minutes while the fallback is up
     map.on("load", () => {
       const src = (id, d) => map.addSource(id, { type: "geojson", data: d || empty });
-      src("states", states); src("lakes", lakes);
-      ["outlook", "ero", "wssi", "enr", "avroute", "pirep", "apt", "two", "tcone", "tline", "tpts", "hms", "aqmon", "fireo", "inc", "inc-pt", "active", "hl", "labels", "ring", "m-fill", "m-lines", "m-outside", "m-hull", "cities", "pt"].forEach((id) => src(id));
+      src("states", states); src("lakes", lakes); src("cnty-lines"); src("cnty-labels");
+      ["outlook", "ero", "wssi", "enr", "avroute", "pirep", "apt", "two", "tcone", "tline", "tpts", "hms", "aqmon", "fireo", "inc", "inc-pt", "lsr", "active", "hl", "labels", "ring", "m-fill", "m-lines", "m-outside", "m-hull", "cities", "pt"].forEach((id) => src(id));
       map.addImage("hatch", hatch(), { pixelRatio: 2 });
       const L = (o) => { OUR.push(o.id); map.addLayer(o); };
       L({ id: "lakes", type: "fill", source: "lakes", paint: { "fill-color": p.water } });
+      /* county lines (US Census, us-atlas 10m; inside each state) from regional zoom, names from zoom 7.5: our own files, loaded on first zoom-in */
+      L({ id: "cnty-lines", type: "line", source: "cnty-lines", minzoom: 4.5, paint: { "line-color": p.muted, "line-opacity": ["interpolate", ["linear"], ["zoom"], 4.5, 0.18, 7, 0.4, 10, 0.55], "line-width": ["interpolate", ["linear"], ["zoom"], 4.5, 0.4, 8, 0.8, 11, 1.2] } });
       L({ id: "outlook-fill", type: "fill", source: "outlook", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.55 } });
       L({ id: "m-fill", type: "fill", source: "m-fill", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.62 } });
       L({ id: "m-lines", type: "line", source: "m-lines", paint: { "line-color": "#222", "line-width": 0.7, "line-opacity": 0.6 } });
@@ -636,6 +658,8 @@
       L({ id: "warn-case", type: "line", source: "active", filter: ["==", ["get", "kind"], "warning"], layout: { "line-join": "round" }, paint: { "line-color": p.halo, "line-width": 6, "line-opacity": 0.85 } });
       L({ id: "warn-line", type: "line", source: "active", filter: ["==", ["get", "kind"], "warning"], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 3.4 } });
       L({ id: "aqmon", type: "circle", source: "aqmon", paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 3.2, 8, 6.5], "circle-color": ["get", "color"], "circle-stroke-color": "#222", "circle-stroke-width": 0.8, "circle-opacity": 0.95 } });
+      // SPC storm reports: tornado red, wind blue, hail green; small dots, a white edge
+      L({ id: "lsr", type: "circle", source: "lsr", paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, ["match", ["get", "type"], "tornado", 4.5, 3.2], 8, ["match", ["get", "type"], "tornado", 7, 5.5]], "circle-color": ["get", "color"], "circle-stroke-color": "#fff", "circle-stroke-width": 1, "circle-opacity": 0.95 } });
       L({ id: "inc-pt", type: "circle", source: "inc-pt", paint: { "circle-radius": ["get", "r"], "circle-color": ["get", "color"], "circle-stroke-color": p.halo, "circle-stroke-width": 1.4, "circle-opacity": 0.92 } });
       L({ id: "apt", type: "circle", source: "apt", paint: { "circle-radius": 9, "circle-color": ["get", "color"], "circle-stroke-color": "#111", "circle-stroke-width": 2 } });
       L({ id: "apt-label", type: "symbol", source: "apt", layout: { "text-field": ["get", "label"], "text-font": FONT, "text-size": 12, "text-offset": [0, 1.4], "text-anchor": "top" }, paint: { "text-color": p.text, "text-halo-color": p.halo, "text-halo-width": 2 } });
@@ -654,13 +678,15 @@
       // warning labels avoid each other; tornado warnings win the space. Markers above are always drawn.
       L({ id: "warn-labels", type: "symbol", source: "labels", minzoom: 3.2, filter: ["==", ["get", "kind"], "warning"], layout: { "text-field": ["get", "text"], "text-font": FONT, "text-size": ["interpolate", ["linear"], ["zoom"], 3, 11, 7, 13], "text-padding": 3, "symbol-sort-key": ["get", "rank"], "text-variable-anchor": ["bottom", "left", "right", "top"], "text-radial-offset": 1.15, "text-max-width": 20, "text-letter-spacing": 0.04 },
         paint: { "text-color": ["get", "tc"], "text-halo-color": ["get", "hc"], "text-halo-width": 2.4 } });
-      if (carto) { for (const id of ["lakes", "states", "cities"]) map.setLayoutProperty(id, "visibility", "none"); baseLines(); orderOverBase(); } // the street map has its own water, borders and places
+      L({ id: "cnty-labels", type: "symbol", source: "cnty-labels", minzoom: 7.5, layout: { "text-field": ["get", "n"], "text-font": FONT, "text-size": ["interpolate", ["linear"], ["zoom"], 7.5, 10, 11, 12], "text-transform": "uppercase", "text-letter-spacing": 0.08, "text-max-width": 8, "symbol-sort-key": 1 }, paint: { "text-color": p.muted, "text-halo-color": p.halo, "text-halo-width": 1.4, "text-opacity": 0.85 } });
+      if (carto) { for (const id of ["lakes", "states", "cities"]) map.setLayoutProperty(id, "visibility", "none"); baseLines(); orderOverBase(); }
+      map.on("moveend", ensureCounties); // the street map has its own water, borders and places
       ready = true; drawAll();
     });
     map.on("click", (e) => {
       /* a dot (fire incident, air-quality monitor, airport, storm point, pilot report) or an advisory: its own detail. Dots are
          small, so the hit area is padded (a finger on a phone); areas go to "At this spot", which lists everything covering it */
-      const dots = ["pirep-turb", "pirep-ice", "inc-pt", "aqmon", "apt", "tpts"].filter((l) => map.getLayer(l)), r = phone() ? 12 : 6;
+      const dots = ["pirep-turb", "pirep-ice", "lsr", "inc-pt", "aqmon", "apt", "tpts"].filter((l) => map.getLayer(l)), r = phone() ? 12 : 6;
       const f = dots.length ? map.queryRenderedFeatures([[e.point.x - r, e.point.y - r], [e.point.x + r, e.point.y + r]], { layers: dots }) : [], g = map.getLayer("enr-fill") ? map.queryRenderedFeatures(e.point, { layers: ["enr-fill"] }) : [];
       const dist = (x) => { const q = map.project(x.geometry.coordinates); return Math.hypot(q.x - e.point.x, q.y - e.point.y); };
       const ids = [...new Set([...f.slice().sort((a, b) => dist(a) - dist(b)), ...g].map((x) => x.properties.id))].filter((id) => byId(id)), pt = [e.lngLat.lng, e.lngLat.lat];
@@ -669,7 +695,7 @@
       const areas = spotAreas(pt).filter((p) => !ids.includes(p.id));
       if (ids.length === 1 && !areas.length) { S.sel = ids[0]; S.point = null; S.pointHits = null; openSheet(); drawAll(); return; }
       S.point = pt; S.pointHits = ids; S.sel = null; openSheet(); drawAll(); });
-    const hits = ["pirep-turb", "pirep-ice", "enr-fill", "apt", "tpts", "tcone-fill", "two-fill", "aqmon", "hms-fill", "inc-pt", "inc-fill", "fireo-fill", "warn-fill", "adv-fill", "watch-fill", "outlook-fill", "wssi-fill", "warn-dot"];
+    const hits = ["lsr", "pirep-turb", "pirep-ice", "enr-fill", "apt", "tpts", "tcone-fill", "two-fill", "aqmon", "hms-fill", "inc-pt", "inc-fill", "fireo-fill", "warn-fill", "adv-fill", "watch-fill", "outlook-fill", "wssi-fill", "warn-dot"];
     map.on("mousemove", (e) => { if (!ready) return; const f = map.queryRenderedFeatures(e.point, { layers: hits.filter((l) => map.getLayer(l)) }); map.getCanvas().style.cursor = f.length ? "pointer" : ""; });
   }
   function hatch() {
@@ -714,6 +740,7 @@
     map.getSource("fireo").setData({ type: "FeatureCollection", features: fo.slice().sort((a, b) => (a.part === "dryt") - (b.part === "dryt")).map((p) => feature(p, { color: FIRE_COLOR[p.category], fill: p.part === "dryt" ? 0.15 : 0.42 })) });
     const inc = day === 2 || day === 3 ? [] : incidents();
     map.getSource("inc").setData({ type: "FeatureCollection", features: inc.filter((p) => p.geometry).map((p) => feature(p, { color: colorOf(p) })) });
+    { const ls = day === 2 || day === 3 || winterView() || fireView() || !S.layers.severe ? [] : data.products.filter((p) => p.kind === "lsr"); map.getSource("lsr").setData({ type: "FeatureCollection", features: ls.map((p) => ({ type: "Feature", properties: { id: p.id, type: p.type, color: LSR_COLOR[p.type] }, geometry: { type: "Point", coordinates: p.point } })) }); }
     map.getSource("inc-pt").setData({ type: "FeatureCollection", features: inc.map((p) => ({ type: "Feature", properties: { id: p.id, color: colorOf(p), r: p.acres >= 10000 ? 8 : p.acres >= 1000 ? 6.5 : p.acres >= 100 ? 5 : 3.6 }, geometry: { type: "Point", coordinates: p.point } })) });
     const wa = wv ? wssiAreas() : [];
     map.getSource("wssi").setData({ type: "FeatureCollection", features: wa.filter((p) => p.geometry).sort((a, b) => a.prob - b.prob).map((p) => feature(p, { color: wssiColor(p.prob) })) });
@@ -834,7 +861,7 @@
   }
   function sources() {
     const vd = viewDay() || 1;
-    const rows = (winterView() ? ["alerts", "wssip"] : fireView() ? ["alerts", "fire" + S.fday, "nifc"] : ["alerts", ...(S.layers.severe ? ["md", "day" + vd] : []), ...(S.layers.flood ? ["ero" + vd] : []), ...(S.layers.fire ? ["nifc"] : []), ...(S.layers.smoke ? ["hms", "aqobs", "aqfcst", ...(FX.NAQFC_ENABLED ? ["naqfc"] : []), ...(isLive() ? ["monitors"] : [])] : []), ...(S.layers.tropical ? ["nhc"] : []), ...(S.layers.aviation && (S.air.length || avProducts().length) ? ["awc"] : []), ...(enOn() ? ["enroute"] : []), ...(S.layers.aviation && (S.air.length || S.route) ? ["faa"] : [])]).filter((k) => data.sources[k] && data.state[k] && data.state[k].kind !== "off").map((k) => {
+    const rows = (winterView() ? ["alerts", "wssip"] : fireView() ? ["alerts", "fire" + S.fday, "nifc"] : ["alerts", ...(S.layers.severe ? ["md", "day" + vd, ...(!viewDay() || viewDay() === 1 ? ["reports"] : [])] : []), ...(S.layers.flood ? ["ero" + vd] : []), ...(S.layers.fire ? ["nifc"] : []), ...(S.layers.smoke ? ["hms", "aqobs", "aqfcst", ...(FX.NAQFC_ENABLED ? ["naqfc"] : []), ...(isLive() ? ["monitors"] : [])] : []), ...(S.layers.tropical ? ["nhc"] : []), ...(S.layers.aviation && (S.air.length || avProducts().length) ? ["awc"] : []), ...(enOn() ? ["enroute"] : []), ...(S.layers.aviation && (S.air.length || S.route) ? ["faa"] : [])]).filter((k) => data.sources[k] && data.state[k] && data.state[k].kind !== "off").map((k) => {
       const s = data.state[k], src = data.sources[k];
       const right = s.kind === "na" ? "Not part of this archived sample" : isArchive() ? "Archived official messages, replayed" : k === "md" && src.via === "service" && s.kind !== "stale" ? "Checked " + t(src.lastOk) + " via NOAA map service" + (s.kind === "empty" ? " · none active" : "") : s.kind === "loading" ? "Loading…" : s.kind === "unavailable" ? "Not responding · status unknown" : s.kind === "stale" ? "Last confirmed " + t(src.lastOk) : "Checked " + t(src.lastOk) + (k.startsWith("day") ? (src.outlook === "expired" ? " · expired, awaiting next issuance" : "") : s.kind === "empty" ? " · none active" : "");
       const name = official() && s.kind !== "na" ? `<a href="${esc(SRC_LINK[k])}" target="_blank" rel="noopener">${esc(SRC_NAME[k])}</a>` : esc(SRC_NAME[k]);
@@ -933,6 +960,17 @@
     if (groupMemo.key !== key) { if (pairCache.size > 400000) pairCache.clear(); groupMemo = { key, groups: T.group(list, PLACES, pairCache) }; }
     return groupMemo.groups;
   }
+  /* storm reports in the last 24 h: near the venue (within 25 mi), and a national count */
+  const reportsShown = () => !S.layers.severe || viewDay() > 1 || winterView() || fireView() ? [] : data.products.filter((p) => p.kind === "lsr");
+  function reportsSection(venueOnly) {
+    const all = reportsShown(); if (!all.length && !(S.layers.severe && data.state.reports)) return "";
+    const st = data.state.reports, by = (k) => all.filter((p) => p.type === k).length;
+    if (venueOnly) { const near = all.map((p) => ({ p, d: T.pointDistance([venue.lon, venue.lat], p.point) })).filter((x) => T.miles(x.d.km) <= 25).sort((a, b) => (a.p.observed < b.p.observed ? 1 : -1));
+      if (!near.length) return ""; return `<div class="px-h" data-reports="venue"><span>Storm reports within 25 mi · last 24 h</span><span>${near.length}</span></div>` + near.slice(0, 6).map((x) => spotItem(x.p)).join(""); }
+    if (!all.length) return st && ["current", "empty"].includes(st.kind) ? `<div class="px-h" data-reports="national"><span>Storm reports · last 24 h</span><span>none</span></div>` : "";
+    const top = all.slice().sort((a, b) => ({ tornado: 0, hail: 1, wind: 2 }[a.type] - { tornado: 0, hail: 1, wind: 2 }[b.type]) || (b.magnitude || 0) - (a.magnitude || 0)).slice(0, 4);
+    return `<div class="px-h" data-reports="national"><span>Storm reports · last 24 h</span><span>${by("tornado")} tornado · ${by("wind")} wind · ${by("hail")} hail</span></div>` + top.map(spotItem).join("");
+  }
   function nationalActive() {
     if (avOnly()) return avSummaryCard() + notices() + avControls() + airportsSection() + enrouteSection() + avOnlyNote();
     const groups = groupsNow();
@@ -943,7 +981,7 @@
       const counts = ["warning", "watch", "md"].map((k) => [k, g.items.filter((p) => p.kind === k).length]).filter(([, n]) => n).map(([k, n]) => n + " " + ({ warning: "warning", watch: "watch", md: "MD" }[k]) + (n > 1 ? (k === "watch" ? "es" : "s") : "")).join(" · ");
       h += `<div class="px-group"><div class="px-group-h">${esc(g.name)}<span>${esc(counts)}</span></div>${g.items.map((p) => item(p, { rel: false })).join("")}${o ? `<div class="px-group-f">Inside the Day 1 ${esc(T.outlookLabel(o.category).toLowerCase())} area</div>` : ""}</div>`;
     }
-    h += (S.layers.aviation ? avControls() : "") + airportsSection() + enrouteSection() + tropicsSection();
+    h += reportsSection(false) + (S.layers.aviation ? avControls() : "") + airportsSection() + enrouteSection() + tropicsSection();
     if (S.layers.smoke) { const bad = monitorsShown().filter((p) => FX.AQI_CAT_ORDER.indexOf(p.category) >= 2).sort((a, b) => b.aqi - a.aqi); h += `<div class="px-h"><span>Air quality now · AirNow</span><span>${bad.length} monitor${bad.length === 1 ? "" : "s"} at USG or worse</span></div>` + (bad.length ? bad.slice(0, 5).map((p) => aqItem(p, null)).join("") : `<p class="px-empty">${data.state.monitors && ["current", "empty"].includes(data.state.monitors.kind) ? "No U.S. monitor at Unhealthy for Sensitive Groups or worse in the last 3 hours." : "AirNow monitors not confirmed."}</p>`) + `<p class="lg-note">${hmsShown().length} smoke areas in NOAA's satellite analysis (last 24 h). Satellite smoke is overhead smoke, not a ground reading.</p>`; }
     if (S.layers.fire) { const wf = incidents().filter((p) => p.category !== "RX"); if (wf.length) h += `<div class="px-h"><span>Largest active wildfires · NIFC</span><span>${wf.length} current</span></div>` + wf.slice().sort((a, b) => (b.acres || 0) - (a.acres || 0)).slice(0, 5).map((p) => incItem(p, null)).join(""); }
     h += `<div class="px-h">Forecast for later</div>` + laterButtons(null);
@@ -957,6 +995,7 @@
     if (near.length) h += `<div class="px-h"><span>Nearby · the venue is outside these</span><span>within ${Math.round(T.miles(T.NEAR_KM))} mi</span></div>` + near.map((p) => item(p)).join("");
     if (unknown.length) h += `<div class="px-h">Area not drawn</div>` + unknown.map((p) => item(p)).join("");
     if (!covers.length && !near.length && activeKnown()) h += `<p class="lg-note">${esc(SCOPE_NOTE)}</p>`;
+    h += reportsSection(true);
     h += (S.layers.aviation ? avControls() : "") + airportsSection() + enrouteSection() + smokeSection(true) + tropicsSection();
     if (S.layers.fire) { const near = nearbyIncidents(); if (near.length) h += `<div class="px-h"><span>Wildfires near the venue · NIFC</span><span>within ${Math.round(T.miles(T.NEAR_KM))} mi</span></div>` + near.map((x) => incItem(x.p, x.r)).join(""); }
     h += `<div class="px-h">Later at the venue</div>` + laterButtons([venue.lon, venue.lat]);
@@ -1009,6 +1048,7 @@
     if (p.kind === "pirep") return pirepItem(p);
     const row = (kind, title, meta) => `<button type="button" class="tx-item" data-id="${esc(p.id)}" style="--tx-c:${colorOf(p)}">${swatch(p)}<span><span class="tx-kind">${esc(kind)}</span><b>${esc(title)}</b><span class="tx-meta">${esc(meta)}</span></span></button>`;
     if (p.kind === "incident") return row(p.category === "RX" ? "PRESCRIBED FIRE" : "WILDFIRE", p.name || p.title, incFacts(p));
+    if (p.kind === "lsr") return row("STORM REPORT", p.title, t(p.observed, true) + (p.comments ? " · " + p.comments.slice(0, 80) + (p.comments.length > 80 ? "…" : "") : ""));
     if (p.kind === "smoke") return row("SATELLITE SMOKE", (p.category || "") + " smoke detected", "Observed " + t(p.obsStart) + " → " + t(p.obsEnd) + (p.satellite ? " · " + p.satellite : ""));
     if (p.kind === "aqobs") return row("AIR QUALITY", p.site || "AirNow monitor", "AQI " + p.aqi + " · " + (p.category || "") + " · observed " + t(p.observed));
     if (p.kind === "metar" || p.kind === "taf") return row(p.kind === "metar" ? "METAR" : "TAF", (p.airport || "") + (p.category ? " · " + p.category : ""), (p.kind === "metar" ? "Observed " : "Issued ") + t(p.observed || p.issued));
@@ -1097,7 +1137,7 @@
       $("txPeek1").textContent = "No threat layers selected"; $("txPeek2").textContent = "Tap for Warnings at my venue, Everything, or Layers"; $("txPeek3").textContent = ""; $("txPeek3").hidden = true; $("txPeek").style.setProperty("--peek-c", "transparent"); return;
     }
     if (data.loading) { body.innerHTML = `<p class="px-empty">Loading official feeds for the selected layers…</p>` + sources(); $("txPeek1").textContent = "Loading official feeds…"; $("txPeek2").textContent = ""; return; }
-    body.innerHTML = (p ? (p.kind === "incident" ? incidentDetail(p) : p.kind === "smoke" || p.kind === "aqobs" ? smokeDetail(p) : p.kind === "tcoutlook" || p.kind === "tctrack" ? nhcDetail(p) : p.kind === "metar" || p.kind === "taf" ? avDetail(p) : ["pirep", "sigmet", "gairmet", "cwa", "faa"].includes(p.kind) ? enDetail(p) : detail(p)) : S.point && !winterView() && !fireView() ? pointPanel() : winterView() ? winterPanel() : fireView() ? firePanel() : viewDay() ? dayPanel(viewDay()) : S.scope === "venue" ? venueActive() : nationalActive()) + sources();
+    body.innerHTML = (p ? (p.kind === "lsr" ? lsrDetail(p) : p.kind === "incident" ? incidentDetail(p) : p.kind === "smoke" || p.kind === "aqobs" ? smokeDetail(p) : p.kind === "tcoutlook" || p.kind === "tctrack" ? nhcDetail(p) : p.kind === "metar" || p.kind === "taf" ? avDetail(p) : ["pirep", "sigmet", "gairmet", "cwa", "faa"].includes(p.kind) ? enDetail(p) : detail(p)) : S.point && !winterView() && !fireView() ? pointPanel() : winterView() ? winterPanel() : fireView() ? firePanel() : viewDay() ? dayPanel(viewDay()) : S.scope === "venue" ? venueActive() : nationalActive()) + sources();
     document.querySelectorAll("[data-scope]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scope === S.scope)));
     $("scopeVenue").innerHTML = `Venue<span class="tx-sbv"> · ${esc(venue.name)}</span>`; $("scopeVenue").setAttribute("aria-label", "Venue: " + venue.name); $("scopeVenue").title = "Venue: " + venue.name;
     body.scrollTop = keep; if (focusId) { const el = body.querySelector(`[data-id="${CSS.escape(focusId)}"]`); if (el) el.focus({ preventScroll: true }); }
@@ -1145,6 +1185,7 @@
     if (S.layers.winter && !winterView() && !day) h += `<div><div class="lg-h">Winter · active now</div>${lgLine({ kind: "warning", family: "winter", event: "Winter Storm Warning" }, "<b>Winter Storm Warning</b>")}${lgLine({ kind: "warning", family: "winter", event: "Blizzard Warning" }, "Blizzard · ice storm · lake-effect snow warnings")}${lgLine({ kind: "watch", family: "winter", event: "Winter Storm Watch" }, "<b>Winter Storm Watch</b> · dashed")}${lgLine({ kind: "advisory", family: "winter", event: "Winter Weather Advisory" }, "<b>Winter Weather Advisory</b> · thin outline")}<div class="lg-note">Most winter alerts are issued for NWS forecast zones; the area is drawn from those zones.</div></div>`;
     if ((S.layers.tropical || S.layers.coastal) && !winterView() && !fireView() && !viewDay()) h += `<div><div class="lg-h">Tropical and coastal</div>${S.layers.tropical ? lgLine({ kind: "warning", family: "tropical", event: "Hurricane Warning" }, "<b>Hurricane / Tropical Storm / Storm Surge</b> warnings and watches (NWS)") + `<div class="lg-row"><svg width="28" height="16" aria-hidden="true"><rect x="2" y="2" width="24" height="12" fill="#f2f2f2" fill-opacity=".2" stroke="#f2f2f2"/></svg><span>NHC forecast cone: likely path of the center, not the impact area</span></div><div class="lg-bands">${Object.entries(TWO_COLOR).map(([k, c]) => `<span class="lg-band"><i style="background:${c}"></i>${k}</span>`).join("")}</div><div class="lg-note">NHC outlook areas: chance of formation (7 days)</div>` : ""}${S.layers.coastal ? lgLine({ kind: "warning", family: "coastal", event: "Coastal Flood Warning" }, "<b>Coastal flood, high surf, rip current</b> (NWS zones)") : ""}</div>`;
     if (S.layers.smoke && !winterView() && !fireView() && !viewDay()) h += `<div><div class="lg-h">Smoke and air quality</div><div class="lg-bands">${FX.HMS_DENSITY.map((d) => `<span class="lg-band"><i style="background:${HMS_FILL[d][0]};opacity:${0.4 + HMS_FILL[d][1]}"></i>${d}</span>`).join("")}</div><div class="lg-note">NOAA satellite smoke (overhead, not at the ground), last 24 hours.</div><div class="lg-bands">${Object.entries(AQI_COLOR).map(([k, c]) => `<span class="lg-band" title="${esc(k)}"><i style="background:${c}"></i>${esc(k === "Unhealthy for Sensitive Groups" ? "USG" : k)}</span>`).join("")}</div><div class="lg-note">AirNow monitors: latest hourly AQI (preliminary).</div></div>`;
+    if (S.layers.severe && (!day || day === 1) && !winterView() && !fireView()) h += `<div><div class="lg-h">Storm reports · last 24 h (SPC, preliminary)</div>${["tornado", "wind", "hail"].map((k) => lgLine({ kind: "lsr", type: k }, { tornado: "Tornado", wind: "Wind damage", hail: "Hail" }[k])).join("")}</div>`;
     if (S.radar && isLive()) h += `<div><div class="lg-h">Radar · NOAA MRMS</div><div class="lg-radar" aria-hidden="true"></div><div class="lg-note">Light rain or snow → heavy rain and hail (base reflectivity), under the hazards${radar.valid ? " · image " + esc(t(radar.valid)) : ""}</div></div>`;
     if (S.layers.fire && !winterView()) h += `<div><div class="lg-h">Fire</div>${lgLine({ kind: "warning", family: "fire", event: "Red Flag Warning" }, "<b>Red Flag Warning</b>")}${lgLine({ kind: "watch", family: "fire", event: "Fire Weather Watch" }, "<b>Fire Weather Watch</b> · dashed")}${lgLine({ kind: "incident", category: "WF" }, "<b>Wildfire</b> (NIFC): perimeter where mapped, dot sized by acres")}<label class="lg-toggle"><input type="checkbox" id="rxChk"${S.rx ? " checked" : ""}> Prescribed fires</label><label class="lg-toggle"><input type="checkbox" id="ctnChk"${S.ctn ? " checked" : ""}> Fully contained fires</label>${fireView() ? `<div class="lg-bands">${(S.fday >= 3 ? ["P40", "P70"] : ["ELEV", "CRIT", "EXTM", "IDRT", "SDRT"]).map((c) => `<span class="lg-band" title="${esc(FX.FIRE_NAME[c])}"><i style="background:${FIRE_COLOR[c]}"></i>${c === "P40" ? "40%" : c === "P70" ? "70%" : c}</span>`).join("")}</div><div class="lg-note">${S.fday >= 3 ? "Probability of critical fire weather within 12 miles of a point." : "ELEV elevated · CRIT critical · EXTM extremely critical (wind and humidity) · IDRT/SDRT isolated/scattered dry thunderstorms."}</div>` : ""}</div>`;
     if (winterView()) h += `<div><div class="lg-h">WPC WSSI-P · chance of at least ${esc(S.wlevel === "WWA" ? "winter weather" : WLEVEL_LABEL[S.wlevel])}</div><div class="lg-bands">${WSSI_PROBS.map((v) => `<span class="lg-band"><i style="background:${WSSI_COLOR[v]}"></i>${v}%</span>`).join("")}</div><div class="lg-note">24-hour window. Levels: Minor, Moderate, Major, Extreme winter storm impacts (WPC definitions).</div></div>`;
@@ -1179,7 +1220,7 @@
   const drawErrors = [];
   function stage(name, fn) { try { fn(); } catch (e) { drawErrors.push({ stage: name, message: e.message, stack: e.stack, at: new Date().toISOString() }); if (drawErrors.length > 50) drawErrors.shift(); console.error("Weather threats: " + name + " failed", e); } }
   /* each layer's official feeds: loaded when the layer is turned on, no longer refreshed when it is off (nothing loads with none) */
-  const LAYER_FEEDS = { severe: ["alerts", "md", "spc"], flood: ["alerts", "ero"], winter: ["alerts"], fire: ["alerts", "fire", "nifc"], smoke: ["hms", "monitors"], tropical: ["alerts", "nhc"], coastal: ["alerts"], aviation: [] };
+  const LAYER_FEEDS = { severe: ["alerts", "md", "spc", "reports"], flood: ["alerts", "ero"], winter: ["alerts"], fire: ["alerts", "fire", "nifc"], smoke: ["hms", "monitors"], tropical: ["alerts", "nhc"], coastal: ["alerts"], aviation: [] };
   let feedKey = null, zoneFamKey = null;
   const anyLayer = () => Object.keys(LAYER_FEEDS).some((k) => S.layers[k]);
   function syncFeeds() {
@@ -1242,7 +1283,7 @@
     S.sel = null; S.point = null; if (pr.scope) setScope(pr.scope, true); drawAll();
   }
 
-  function drawAll() { stage("layer feeds", syncFeeds); stage("radar", ensureRadar); stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("en route", ensureEn); stage("gtg", ensureGtg); stage("ifi", ensureIfi); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); if ((S.ap || S.fit === "route") && !framedAp && map && mapLoaded) stage("airport view", () => frameAirport(0)); if (S.sel && !framedSel && map && mapLoaded) stage("selection view", frameSelection); }
+  function drawAll() { stage("layer feeds", syncFeeds); stage("radar", ensureRadar); stage("counties", ensureCounties); stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("en route", ensureEn); stage("gtg", ensureGtg); stage("ifi", ensureIfi); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); if ((S.ap || S.fit === "route") && !framedAp && map && mapLoaded) stage("airport view", () => frameAirport(0)); if (S.sel && !framedSel && map && mapLoaded) stage("selection view", frameSelection); }
   /* a Planner "View on map" for an advisory or a pilot report: frame it once its data has loaded */
   function frameSelection() {
     const p = byId(S.sel); if (!p || !["pirep", "sigmet", "gairmet", "cwa"].includes(p.kind)) return;
@@ -1337,7 +1378,7 @@
     const av = { apt: S.av.apt, pireps: S.av.pireps && enOn(), adv: S.av.adv && enOn(), gtg: S.gtg.on, ifi: S.ifi.on };
     pop.querySelectorAll("input[data-av]").forEach((i) => { i.checked = !!av[i.dataset.av]; i.disabled = !S.layers.aviation; });
     $("txAvSub").classList.toggle("off", !S.layers.aviation);
-    { const pi = pop.querySelector("input[data-pin]"); if (pi) pi.checked = !!S.pin; }
+    { const pi = pop.querySelector("input[data-pin]"); if (pi) pi.checked = !!S.pin; const ci = pop.querySelector("input[data-counties]"); if (ci) ci.checked = !!S.counties; }
     { const ri = pop.querySelector("input[data-radar]"); ri.checked = !!S.radar && isLive(); ri.disabled = !isLive();
       $("txRadarNote").textContent = !isLive() ? "Live only: current radar doesn't belong on a demo or a replay" : S.radar && radar.valid ? radarText() : "NOAA MRMS base reflectivity · refreshed every 5 minutes while on · about 0.3 MB per view"; }
     $("txLayersSum").textContent = layersSummary(); $("txLayersBtn").setAttribute("aria-label", "Layers: " + layersSummary() + " on. Open to change");
@@ -1368,6 +1409,7 @@
     const i = e.target; if (!i.matches("input")) return;
     if (i.dataset.layer) { S.layers[i.dataset.layer] = i.checked; if ((!S.layers.winter && winterView()) || (!S.layers.fire && fireView())) S.view = "active"; }
     else if (i.hasAttribute("data-radar")) S.radar = i.checked;
+    else if (i.hasAttribute("data-counties")) { S.counties = i.checked; try { localStorage.setItem("threats_counties", S.counties ? "1" : "0"); } catch (e) { /* not remembered */ } }
     else if (i.hasAttribute("data-pin")) { S.pin = i.checked; try { localStorage.setItem("threats_pin", S.pin ? "1" : "0"); } catch (e) { /* not remembered */ } if (!S.pin && S.scope === "venue") { S.scope = "national"; renderTop(); } }
     else if (i.dataset.av === "apt") S.av.apt = i.checked;
     else if (i.dataset.av === "pireps" || i.dataset.av === "adv") { S.av[i.dataset.av] = i.checked; if (i.checked) S.en.on = true; }
@@ -1430,6 +1472,7 @@
     const set = (id, k, v) => { if (map.getLayer(id)) map.setPaintProperty(id, k, v); };
     set("warn-case", "line-color", c.halo); set("ring", "line-color", c.text); set("hl", "line-color", c.text); set("m-hull", "line-color", c.muted); set("pt", "circle-stroke-color", c.text);
     set("warn-dot", "circle-stroke-color", c.halo); set("warn-dot-core", "circle-color", c.halo);
+    set("cnty-lines", "line-color", c.muted); set("cnty-labels", "text-color", c.muted); set("cnty-labels", "text-halo-color", c.halo);
     if (map.hasImage("hatch")) map.removeImage("hatch"); map.addImage("hatch", hatch(), { pixelRatio: 2 });
   }
   window.addEventListener("ops:theme", async () => {
@@ -1462,7 +1505,7 @@
      ?lat=..&lon=..&name=..[&tz=..]) opens Venue centred there. Review links: ?scenario= ?venue= ?view= ?scope= ?model=1 ?sel= ?sheet= */
   try {
     const q = new URLSearchParams(location.search);
-    if (["live", "overlap", "multi", "quiet", "unavailable", "outage-expired", "archive-lox", "archive-mtr", "archive-ww705", "archive-flood-day", "archive-flood-afternoon", "archive-flood-outage", "archive-flood-night", "archive-winter-advisory", "archive-winter-warning", "archive-winter-outlook", "archive-fire-day4", "archive-fire-day2", "archive-fire-day1", "archive-fire-watch", "archive-fire-warning", "archive-fire-incidents", "archive-smoke-chicago", "archive-smoke-metlife", "archive-smoke-forecast-0714", "archive-smoke-forecast-0715", "archive-tropical-watch", "archive-tropical-warning", "archive-coastal-flagler", "archive-aviation-chicago", "archive-aviation-enroute"].includes(q.get("scenario"))) S.scenario = q.get("scenario");
+    if (["live", "overlap", "multi", "quiet", "unavailable", "outage-expired", "archive-lox", "archive-reports-delaware", "archive-mtr", "archive-ww705", "archive-flood-day", "archive-flood-afternoon", "archive-flood-outage", "archive-flood-night", "archive-winter-advisory", "archive-winter-warning", "archive-winter-outlook", "archive-fire-day4", "archive-fire-day2", "archive-fire-day1", "archive-fire-watch", "archive-fire-warning", "archive-fire-incidents", "archive-smoke-chicago", "archive-smoke-metlife", "archive-smoke-forecast-0714", "archive-smoke-forecast-0715", "archive-tropical-watch", "archive-tropical-warning", "archive-coastal-flagler", "archive-aviation-chicago", "archive-aviation-enroute"].includes(q.get("scenario"))) S.scenario = q.get("scenario");
     if (["inside", "edge", "outside"].includes(q.get("venue"))) S.venueKey = q.get("venue");
     const lat = parseFloat(q.get("lat")), lon = parseFloat(q.get("lon"));
     if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
@@ -1494,6 +1537,8 @@
     if (q.get("ctn") === "1") S.ctn = true;
     if (q.get("radar") === "1") S.radar = true;
     try { if (localStorage.getItem("threats_pin") === "0") S.pin = false; } catch (e) { /* no storage: marker shown */ }
+    try { if (localStorage.getItem("threats_counties") === "0") S.counties = false; } catch (e) { /* no storage: shown */ }
+    if (q.get("counties") === "0") S.counties = false; else if (q.get("counties") === "1") S.counties = true;
     if (q.get("pin") === "0") S.pin = false; else if (q.get("pin") === "1" || q.get("scope") === "venue") S.pin = true;
     if (q.get("layers")) { const L = q.get("layers").split(","); if (L.includes("aviation")) S.en.on = true; S.layers = { severe: L.includes("severe"), flood: L.includes("flood"), winter: L.includes("winter"), fire: L.includes("fire"), smoke: L.includes("smoke"), tropical: L.includes("tropical"), coastal: L.includes("coastal"), aviation: L.includes("aviation") }; }
     else if (S.scenario !== "live") Object.keys(S.layers).forEach((k) => (S.layers[k] = true)); // demo and archived samples: their shared selection is every layer
