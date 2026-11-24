@@ -83,11 +83,19 @@ jobs:
       - name: Current audited HRRR extraction + frozen model (no labels)
         run: |
           mkdir -p tests/out/current
-          day=$(jq -r .current_issue_date research/severe/conus-preview/request.json)
-          if ! PYTHONPATH=tools/severe python3 tools/severe/conus_preview_build.py current --issue-date "$day" \
-               --work tests/out/cwork --output "tests/out/current/current-$day.json" > tests/out/current/log.txt 2>&1; then
-            tail -c 1500 tests/out/current/log.txt > tests/out/current/blocker.txt; cat tests/out/current/blocker.txt
-          fi
+          want=$(jq -r .current_issue_date research/severe/conus-preview/request.json)
+          # "auto": today's 12Z run if all of f24-48 is out, else yesterday's (its Day 2 window is still current).
+          if [ "$want" = auto ]; then days="$(date -u +%F) $(date -u -d yesterday +%F)"; else days="$want"; fi
+          rm -f tests/out/current/blocker.txt
+          for day in $days; do
+            rm -rf tests/out/cwork
+            if PYTHONPATH=tools/severe python3 tools/severe/conus_preview_build.py current --issue-date "$day" \
+                 --work tests/out/cwork --output "tests/out/current/current-$day.json" > tests/out/current/log.txt 2>&1; then
+              echo "current run built for $day"; rm -f tests/out/current/blocker.txt; break
+            fi
+            echo "issue date $day not available:"; tail -c 600 tests/out/current/log.txt
+            tail -c 1500 tests/out/current/log.txt > tests/out/current/blocker.txt
+          done
           tail -5 tests/out/current/log.txt
       - uses: actions/upload-artifact@v4
         if: always()
@@ -140,6 +148,18 @@ jobs:
             --cohort tests/out/cohort/conus ${cur:+--current "$cur"} --current-blocker tests/out/current/blocker.txt \
             --output tests/out/feed
           ls -la tests/out/feed
+      - name: Stage the pinned 2024 Storm Events file (report records for replays)
+        env:
+          ARCHIVE_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
+          ACTIONS_TOKEN: ${{ github.token }}
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+        run: |
+          name=$(python3 -c "import json;print([s['file'] for s in json.load(open('research/severe/labels-v04/manifest.json'))['sources'] if '_d2024' in s['file']][0])")
+          args=(--name "$name" --cache tests/out/source --actions)
+          [ -n "$ARCHIVE_REPO" ] && args+=(--repository "$ARCHIVE_REPO")
+          python3 tools/severe/stage_report_source.py "${args[@]}"
+      - name: Storm report records for the replays (must reproduce the scored report samples)
+        run: PYTHONPATH=tools/severe python3 tools/severe/conus_preview_build.py reports --feed tests/out/feed --source tests/out/source
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -157,7 +177,10 @@ jobs:
           rm -f ../preview/assets/severe-conus/*.json
           cp tests/out/feed/*.json ../preview/assets/severe-conus/
           cd ../preview
-          git add assets/severe-conus
+          # Rebuild the phone-safe display contours for the new cases (the viewer refuses stale ones on phones).
+          rm -f assets/severe-conus-display/*.json
+          python3 tools/build-conus-display.py
+          git add assets/severe-conus assets/severe-conus-display
           git commit -q -m "CONUS research preview feed (run $GITHUB_RUN_ID)" || exit 0
           for i in 1 2 3; do git push origin "HEAD:$branch" && exit 0; git pull -q --rebase origin "$branch"; sleep 5; done
           exit 1
