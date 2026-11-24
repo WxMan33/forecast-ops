@@ -600,12 +600,16 @@
   }
   /* river gauges for the map's view, at regional zoom with Flooding on (queried by area, kept 15 minutes per area) */
   let gaugeTimer = null;
+  /* a Flood Warning (river, areal or flash) in effect inside the map's view: the only time river gauges load or show */
+  function gaugeWarn() {
+    if (!map) return (S.gaugeWhy = null);
+    const b = map.getBounds(), box = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+    return (S.gaugeWhy = (data.products || []).some((p) => p.sourceId === "nws-alerts" && FLOOD_WARNING(p) && Date.parse(p.expires) > now && p.geometry && T.bboxOverlap(T.bbox(p.geometry), box)) ? "flood warning" : null);
+  }
   function ensureGauges() {
     if (!map || !mapLoaded || !isLive() || !Live.gaugesIn || !S.layers.flood || viewDay() > 1 || winterView() || fireView() || map.getZoom() < 6) return;
     // river gauges only where a Flood Warning (river, areal or flash) is in effect inside the view
-    { const b = map.getBounds(), box = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
-      S.gaugeWhy = (data.products || []).some((p) => p.sourceId === "nws-alerts" && FLOOD_WARNING(p) && Date.parse(p.expires) > now && p.geometry && T.bboxOverlap(T.bbox(p.geometry), box)) ? "flood warning" : null;
-      if (!S.gaugeWhy) return; }
+    if (!gaugeWarn()) return;
     clearTimeout(gaugeTimer); gaugeTimer = setTimeout(() => { const b = map.getBounds(), r = (v) => Math.round(v * 2) / 2; // half-degree steps, so small pans reuse the answer
       Live.gaugesIn([r(b.getWest()) - 0.5, r(b.getSouth()) - 0.5, r(b.getEast()) + 0.5, r(b.getNorth()) + 0.5]).then(() => { load(); drawAll(); }, () => drawAll()); }, 400);
   }
@@ -779,7 +783,7 @@
     const inc = day === 2 || day === 3 ? [] : incidents();
     map.getSource("inc").setData({ type: "FeatureCollection", features: inc.filter((p) => p.geometry).map((p) => feature(p, { color: colorOf(p) })) });
     { const ls = day === 2 || day === 3 || winterView() || fireView() || !S.layers.severe ? [] : data.products.filter((p) => p.kind === "lsr"); map.getSource("lsr").setData({ type: "FeatureCollection", features: ls.map((p) => ({ type: "Feature", properties: { id: p.id, type: p.type, color: LSR_COLOR[p.type] }, geometry: { type: "Point", coordinates: p.point } })) }); }
-    { const gs = day === 2 || day === 3 || winterView() || fireView() || !S.layers.flood ? [] : data.products.filter((p) => p.kind === "gauge"); map.getSource("gauge").setData({ type: "FeatureCollection", features: gs.map((p) => ({ type: "Feature", properties: { id: p.id, rank: p.rank, color: GAUGE_COLOR[p.category] || "#8a8f98" }, geometry: { type: "Point", coordinates: p.point } })) }); }
+    { const gs = day === 2 || day === 3 || winterView() || fireView() || !S.layers.flood || !gaugeWarn() ? [] : data.products.filter((p) => p.kind === "gauge"); map.getSource("gauge").setData({ type: "FeatureCollection", features: gs.map((p) => ({ type: "Feature", properties: { id: p.id, rank: p.rank, color: GAUGE_COLOR[p.category] || "#8a8f98" }, geometry: { type: "Point", coordinates: p.point } })) }); }
     map.getSource("inc-pt").setData({ type: "FeatureCollection", features: inc.map((p) => ({ type: "Feature", properties: { id: p.id, color: colorOf(p), r: p.acres >= 10000 ? 8 : p.acres >= 1000 ? 6.5 : p.acres >= 100 ? 5 : 3.6 }, geometry: { type: "Point", coordinates: p.point } })) });
     const wa = wv ? wssiAreas() : [];
     map.getSource("wssi").setData({ type: "FeatureCollection", features: wa.filter((p) => p.geometry).sort((a, b) => a.prob - b.prob).map((p) => feature(p, { color: wssiColor(p.prob) })) });
