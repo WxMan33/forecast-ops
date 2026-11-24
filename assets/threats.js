@@ -544,7 +544,18 @@
   /* ---------- basemap: CARTO Voyager (light) or Dark Matter (dark), the vector street map Heads-Up uses (OpenStreetMap data:
      streets, towns, counties, water). If CARTO doesn't answer in 6 s, the simple outline map (states, lakes, major cities). ---------- */
   const CARTO = { light: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json", dark: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json" };
-  let carto = false, FONT = ["Open Sans Semibold"], OUR = [];
+  let carto = false, FONT = ["Open Sans Semibold"], OUR = [], attrib = null, cartoRetry = null;
+  /* the fallback map is up: try CARTO again; on success swap to it, keeping our sources and layers (labels move to CARTO's fonts) */
+  async function retryCarto() {
+    if (carto || !map || !ready) return; const next = await cartoStyle(light() ? "light" : "dark"); if (!next || carto) return;
+    clearInterval(cartoRetry); cartoRetry = null; carto = true; FONT = ["Montserrat SemiBold"];
+    const prev = map.getStyle(), keepSrc = Object.fromEntries(Object.entries(prev.sources).filter(([k]) => !next.sources[k]));
+    const ours = prev.layers.filter((l) => (OUR.includes(l.id) || l.id === "radar") && !["lakes", "states", "cities"].includes(l.id))
+      .map((l) => (l.type === "symbol" && l.layout && l.layout["text-font"] ? { ...l, layout: { ...l.layout, "text-font": FONT } } : l));
+    map.once("style.load", () => { baseLines(); orderOverBase(); themePaints(pal()); map.setMaxZoom(14); radar.tiles = null;
+      if (attrib) map.removeControl(attrib); attrib = new maplibregl.AttributionControl({ compact: true }); map.addControl(attrib, "bottom-left"); drawAll(); });
+    map.setStyle(next, { diff: false, transformStyle: () => ({ ...next, sources: { ...next.sources, ...keepSrc }, layers: [...next.layers, ...ours] }) });
+  }
   async function cartoStyle(theme) {
     const c = new AbortController(), timer = setTimeout(() => c.abort(), 6000);
     try { const r = await fetch(CARTO[theme], { signal: c.signal }); if (!r.ok) throw Error("HTTP " + r.status); const j = await r.json(); if (!j.layers || !j.sources) throw Error("not a style"); return j; }
@@ -569,7 +580,8 @@
       style: base || { version: 8, glyphs: new URL("assets/maps/fonts/open-sans-v1/{fontstack}/{range}.pbf", location.href).href.replace(/%7B/g, "{").replace(/%7D/g, "}"), sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": p.land } }] } });
     map.touchZoomRotate.disableRotation();
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-    map.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: carto ? "" : "US Census / us-atlas · Natural Earth" }), "bottom-left");
+    attrib = new maplibregl.AttributionControl({ compact: true, customAttribution: carto ? "" : "US Census / us-atlas · Natural Earth" }); map.addControl(attrib, "bottom-left");
+    if (!carto) cartoRetry = setInterval(retryCarto, 5 * 60e3); // as in OPE: CARTO is tried again every 5 minutes while the fallback is up
     map.on("load", () => {
       const src = (id, d) => map.addSource(id, { type: "geojson", data: d || empty });
       src("states", states); src("lakes", lakes);
@@ -1529,5 +1541,5 @@
       else map.fitBounds(CONUS, { padding: pad(), duration: 0 });
     });
   }).catch((e) => { $("txMap").innerHTML = `<p class="msg" style="padding:20px">The map could not load (${esc(e.message)}). The threat list still works.</p>`; });
-  window.__threats = { S, drawAll, radar, get venue() { return venue; }, get vfc() { return vfc; }, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
+  window.__threats = { S, drawAll, radar, get basemap() { return carto ? "carto" : "fallback"; }, retryCarto, get venue() { return venue; }, get vfc() { return vfc; }, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
 })();

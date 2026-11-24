@@ -121,6 +121,19 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
       R.pin = { off, kept, back };
       check(`(${d}) VENUE MARKER off: pin, label and ring hidden, national map, no venue strip (summary '${off.peek}'); remembered on the next visit; choosing Venue shows it again`,
         off.pin === false && off.scope === "national" && off.marker === "none" && off.ring === 0 && !off.strip && off.peek === "National map" && kept.pin === false && kept.marker === "none" && back.pin === true && back.marker !== "none" && !errs.length, { ...R.pin, errs }); }
+    /* BASEMAP FAILOVER (as in OPE): CARTO blocked -> built-in map with local labels; CARTO back -> the 5-minute retry swaps to it,
+       keeping every overlay */
+    { let block = true; const { p, errs } = await page("?layers=severe,coastal&radar=1", (p) => p.route(/cartocdn\.com/, (r) => (block ? r.abort() : r.continue())));
+      await p.waitForTimeout(3000);
+      const fb = await p.evaluate(() => { const m = window.__threats.map; return { basemap: window.__threats.basemap, cities: m.getLayer("cities") ? m.getLayoutProperty("cities", "visibility") !== "none" && m.queryRenderedFeatures({ layers: ["cities"] }).length : 0, states: !!m.getLayer("states"), warnLayers: !!m.getLayer("warn-fill"), maxZoom: m.getMaxZoom() }; });
+      await p.screenshot({ path: path.join(OUT, `basemap-fallback-${d}.png`) });
+      block = false; await p.evaluate(() => window.__threats.retryCarto()); await p.waitForFunction(() => window.__threats.basemap === "carto" && window.__threats.map.isStyleLoaded(), null, { timeout: 30000 }).catch(() => {}); await p.waitForTimeout(4000);
+      const up = await p.evaluate(() => { const m = window.__threats.map, L = m.getStyle().layers, i = (id) => L.findIndex((l) => l.id === id), firstCarto = L.findIndex((l) => l.type === "symbol" && !["route-label", "apt-label", "edge-labels", "labels", "warn-labels"].includes(l.id));
+        return { basemap: window.__threats.basemap, vector: Object.values(m.getStyle().sources).some((s) => s.type === "vector"), warnBelowLabels: i("warn-fill") > -1 && i("warn-fill") < firstCarto, labelsOnTop: i("warn-labels") > firstCarto, font: m.getLayoutProperty("labels", "text-font"), county: !!m.getLayer("hu-county"), radar: !!m.getLayer("radar"), noOldBase: !m.getLayer("cities") && !m.getLayer("bg"), maxZoom: m.getMaxZoom(), active: (m.getSource("active")._data.features || []).length, errors: window.__threats.errors }; });
+      await p.screenshot({ path: path.join(OUT, `basemap-retried-${d}.png`) }); R.basemap = { fb, up };
+      check(`(${d}) BASEMAP FAILOVER: CARTO blocked -> the built-in map with its own labels (${fb.cities} city labels), overlays work; CARTO back -> the retry swaps to it with every overlay kept (${up.active} warning/advisory shapes, radar ${up.radar}), hazards under its labels, our labels on top in its font, county lines, zoom 14`,
+        fb.basemap === "fallback" && fb.cities > 0 && fb.states && fb.warnLayers && fb.maxZoom === 11 && up.basemap === "carto" && up.vector && up.warnBelowLabels && up.labelsOnTop && JSON.stringify(up.font) === '["Montserrat SemiBold"]' && up.county && up.radar && up.noOldBase && up.maxZoom === 14 && up.active > 0 && !up.errors.length && !errs.length, { ...R.basemap, errs });
+      await p.close(); }
     /* the SPC Watch 705 replay */
     { const { p, errs } = await page("?scenario=archive-ww705&scope=venue"); await p.waitForTimeout(3000);
       const r = await p.evaluate(() => ({ n: window.__threats.data.products.length, watch: window.__threats.data.products.filter((x) => x.kind === "watch").map((x) => x.event), drawn: window.__threats.map.getSource("active")._data.features.length, err: window.__threats.data.loadError, panel: document.getElementById("txPanelBody").innerText.slice(0, 160) }));
