@@ -219,7 +219,7 @@
     const gust = M.gustLine ? `<p class="evd-gust" data-gust-line="${esc(M.gustLine.state)}">${esc(M.gustLine.text)}</p>` : "";
     /* the window: event parts, one row per flagged hazard, then time ticks */
     const cur = sel != null && V.span.includes(sel) ? `<span class="evd-cur" style="left:${pos(sel + 1800e3).toFixed(3)}%"></span>` : `<span class="evd-cur" hidden></span>`;
-    const partsLane = `<div class="evd-parts" aria-hidden="true">${M.parts.map((p) => { const w = pos(p.to) - pos(p.from); return `<span class="evd-part${p.key === "event" ? " evd-main" : ""}" style="${box(p.from, p.to)}" title="${esc(p.label)} ${esc(M.when(p.from, p.to))}">${w >= 11 ? esc(p.label) : ""}</span>`; }).join("")}${cur}</div>`;
+    const partsLane = `<div class="evd-parts" aria-hidden="true">${M.parts.map((p) => { const w = pos(p.to) - pos(p.from); return `<span class="evd-part${p.key === "event" ? " evd-main" : ""}" style="${box(p.from, p.to)}" title="${esc(p.label)} ${esc(M.when(p.from, p.to))}">${w >= 11 ? `<span>${esc(p.label)}</span>` : ""}</span>`; }).join("")}${cur}</div>`;
     const rows = M.flags.map((f) => `<div class="evd-row" data-hazard="${esc(f.key)}"${tier(f)}><p class="evd-rowlab"><b>${esc(f.label)}: ${esc(f.word.toLowerCase())}</b> <span data-hours>${esc(f.hours)}</span></p>` +
       `<div class="evd-track">${f.runs.flatMap((r) => r.parts).map((p) => `<i class="evd-fill" data-from="${p.from}" data-to="${p.to}" data-tier="${esc(p.tier)}" style="${box(p.from, p.to)};--tier:var(--${esc(p.tier)})"><span>${esc(p.word)}</span></i>`).join("")}` +
       f.runs.map((r) => `<button type="button" class="evd-seg" data-a="${r.a}" data-b="${r.b}" style="${box(r.from, r.to)}" aria-label="${esc(`${f.label}: ${f.word}, ${r.text}. Show this time in the hourly forecast`)}"></button>`).join("") + `${cur}</div></div>`).join("");
@@ -256,7 +256,9 @@
       sel = V.span[Math.min(z, Math.max(a, i))]; readout(); onSelect(sel);
     }));
     /* time labels that would touch at this width are dropped (the first and the end stay), measured, not guessed */
+    /* a level word or part name that doesn't fit its bar is hidden, never cut off (the row label and the title still say it) */
     const thin = () => { host.querySelectorAll(".evd-fill span").forEach((t) => { t.hidden = false; t.hidden = t.scrollWidth > t.parentElement.clientWidth - 8; });
+      host.querySelectorAll(".evd-part>span").forEach((t) => { t.hidden = false; t.hidden = t.scrollWidth > t.clientWidth + 0.5 || t.offsetWidth > t.parentElement.clientWidth - 6; });
       const ts = [...host.querySelectorAll(".evd-axis span")]; ts.forEach((t) => (t.hidden = false)); let prev = null;
       ts.forEach((t, k) => { const r = t.getBoundingClientRect(); if (prev && r.left < prev.r.right + 8) { if (k === ts.length - 1 && prev.k > 0) { prev.t.hidden = true; } else { t.hidden = true; return; } } prev = { t, r, k }; }); };
     readout(); thin();

@@ -93,6 +93,10 @@ const facts = (p) => p.evaluate(() => {
         valuePx: Math.min(...[...d.querySelectorAll('.evd-val b')].map((b) => parseFloat(getComputedStyle(b).fontSize))), chartValuePx: 22, firstRow, rowsOfTiles: cols,
         targets: segs.every((b) => b.width >= 43.5 && b.height >= 43.5), segsInside: segs.every((b) => b.left >= r(d).left - 1 && b.right <= r(d).right + 1),
         hscroll: document.documentElement.scrollWidth > innerWidth + 1, overflow: d.scrollWidth > d.clientWidth + 1, panel: cs.backgroundColor, text: getComputedStyle(d).color,
+        /* the selected-hour line runs beneath every label, and no label is cut off */
+        labelsClear: (() => { const cur = [...d.querySelectorAll('.evd-cur:not([hidden])')]; if (!cur.length) return true;
+          return [...d.querySelectorAll('.evd-fill span:not([hidden]), .evd-part>span:not([hidden])')].every((t) => { t.scrollIntoView({ block: 'center' }); const b = r(t), x = r(cur[0]).left + r(cur[0]).width / 2; if (t.scrollWidth > t.clientWidth + 0.5 || b.right > r(t.parentElement).right + 0.5) return false;
+            if (x < b.left + 1 || x > b.right - 1) return true; const hit = document.elementFromPoint(x, b.top + b.height / 2); return hit === t || t.contains(hit); }); })(),
         labelsTouch: (() => { const ts = [...d.querySelectorAll('.evd-axis span:not([hidden])')].map(r); return ts.some((t, i) => i && t.left < ts[i - 1].right); })() };
     });
     FIX = FIXES.winter;
@@ -106,6 +110,7 @@ const facts = (p) => p.evaluate(() => {
       check(f.firstRow === Math.min(dev === 'phone' ? 2 : 4, Object.keys(T).length), `${L} tiles ${dev === 'phone' ? 2 : 4} across (${f.firstRow} in the first row, ${Object.keys(T).length} tiles)`);
       check(f.valuePx >= 28, `${L} tile values are large (${f.valuePx} px)`);
       check(f.targets && !f.labelsTouch, `${L} window bars are at least 44 px touch targets; time labels never touch`);
+      check(f.labelsClear, `${L} bar labels and part names are whole and drawn above the selected-hour line`);
       check(theme === 'dark' ? /rgb\((1[0-9]|2[0-9]|[0-9]),/.test(f.panel) && /rgb\(2[0-9]{2},/.test(f.text) : /rgb\(255, 255, 255\)/.test(f.panel) && /rgb\(([0-9]|1[0-9]|2[0-9]),/.test(f.text), `${L} ${theme} theme panel ${f.panel}, text ${f.text}`);
       check(Object.values(T).every((t) => !t.tier || (t.badge || /^(Moderate|High)$/.test(t.value))), `${L} every coloured tile also says its level in words`);
       if (kind === 'rainy') {
@@ -130,6 +135,7 @@ const facts = (p) => p.evaluate(() => {
         const t = await p.evaluate(() => { const sel = +document.body.dataset.selected, seg = [...document.querySelectorAll('#evDash .evd-seg')].pop(), row = seg.closest('.evd-row');
           const hrs = [...row.querySelectorAll('.evd-fill')].flatMap((f) => { const o = []; for (let m = Math.floor(+f.dataset.from / 3600e3) * 3600e3; m < +f.dataset.to; m += 3600e3) o.push(m); return o; });
           return { sel, inRun: hrs.includes(sel), charts: [...document.querySelectorAll('#evCharts .evc-card')].map((c) => +(c.querySelector('[aria-pressed="true"]') || { dataset: {} }).dataset.hour), readout: document.querySelector('#evDash [data-sel]').innerText, cur: !document.querySelector('#evDash .evd-cur').hidden }; });
+        check((await dashFacts(p)).labelsClear, `${L} after selecting another hour, labels stay above the line`);
         check(t.inRun && t.charts.every((h) => h === t.sel) && t.cur && /^Selected/.test(t.readout), `${L} tapping a window bar selects one of its hours on the shared timeline; the charts follow (${t.readout.replace(/\s+/g, ' ')})`);
         /* keyboard: Enter selects the window's first hour (or, when an hour in it is already selected, steps to the next) */
         const run = await p.evaluate(() => { const b = document.querySelector('#evDash .evd-seg'), fs = [...b.closest('.evd-row').querySelectorAll('.evd-fill')], H = 3600e3, o = [];
