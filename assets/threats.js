@@ -1308,7 +1308,7 @@
     if (!Live.setZoneArea || !isLive()) return;
     let box, zoom;
     if (map && mapLoaded) { const b = map.getBounds(); box = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]; zoom = map.getZoom(); }
-    else if (S.scope === "venue" && venue) { box = [venue.lon - 3, venue.lat - 2, venue.lon + 3, venue.lat + 2]; zoom = 8; }
+    else if (S.scope === "venue" && venue) { box = [venue.lon - 1.5, venue.lat - 1, venue.lon + 1.5, venue.lat + 1]; zoom = 8; }
     else { box = [-125, 24, -66, 50]; zoom = 3.5; }
     const k = box.map((v) => v.toFixed(1)).join(",") + "|" + (zoom >= 5 ? 1 : 0); if (k === zoneAreaKey) return; zoneAreaKey = k; Live.setZoneArea(box, zoom);
   }
