@@ -354,5 +354,18 @@ eq(C.verify.record({ kind: "daily", source: "nws", values: { hi: 60 } }).schema,
   eq(typeof r.conflict === "string" && /split/.test(r.conflict), true, "stick: models split on type is named as conflicting guidance");
   eq(r.missing.includes("modeled ground temperature"), false, "stick: ground temperature counted when any model has it");
 }
+/* winter.readHours: the shared builder of stickRead's hours (Winter page and Event Manager) */
+{
+  const RH = C.winter.readHours, H0 = Date.UTC(2026, 11, 10, 0), ms = Array.from({ length: 10 }, (_, i) => H0 + i * 3600e3);
+  const snow = [{ w: 1, a: [0, 0, 0, 0.1, 0.2, 0.3, 0.4, 0, 0, 0] }, { w: 1, a: [0, 0, 0, 0.3, 0.4, 0.5, 0.6, 0, 0, 0] }, { w: 2, a: [0, 0, 0, 0.2, 0.3, 0.4, 0.5, 0, 0, 0] }];
+  const temp = [{ w: 1, a: ms.map(() => 30) }, { w: 1, a: ms.map(() => 34) }];
+  const det = { ms: ms.slice(2), rows: { m1: ms.slice(2).map((_, k) => ({ wet: k >= 1, codeType: "snow", split: null, t2F: 31, twF: 30, soilC: -1, snowIn: 0.2 })) } };
+  const h = RH({ ms, snow, temp, det, ids: ["m1", "missing"], s: 4, e: 7, lead: 2 });
+  eq([h.length, h[0].ms, h[0].inWin, h[2].inWin], [5, ms[2], false, true], "readHours: the window plus its lead hours, lead hours marked outside the window");
+  eq(h[2].snow50, C.stats.weightedQuantile([0.2, 0.4, 0.3], [1, 1, 2], 0.5), "readHours: hourly snow median is the weighted median of the members");
+  eq(h[0].det.length, 1, "readHours: deterministic rows aligned by time; models without rows are skipped");
+  eq([h[0].det[0].type, h[1].det[0].type], ["none", "snow"], "readHours: a dry model hour reads as none, a wet one as its type");
+  eq(RH({ ms, snow: [], temp: [], det: null, s: 4, e: 7 }).every((x) => x.snow50 === null && x.t50 === null && !x.det.length), true, "readHours: missing guidance stays missing, never zero");
+}
 console.log(`ok - ${n} checks passed`);
 
