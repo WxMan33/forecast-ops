@@ -28,11 +28,13 @@ conus_manifest={
 }
 conus_tile=gzip.compress((bytes([48])+bytes(127))*128+bytes(128*128))
 # One synthetic ECMWF hour on a regular lat-lon crop (0.25 degree cells from 20N 100W), every cell 40.0 degF
-ecmwf_run={'id':'ec','cycle':conus_cycle,'path':'qa-map/conus/ecmwf/run','hours':[1],'hoursExpected':1,'status':'complete','fields':['t2m']}
+ecmwf_run={'id':'ec','cycle':conus_cycle,'path':'qa-map/conus/ecmwf/run','hours':[1],'hoursExpected':1,'status':'complete','fields':['t2m','asnow_run','asnowk_run']}
 ecmwf_manifest={**conus_manifest,'grid':{'gridType':'regular_ll','Ni':1440,'Nj':721,'latitudeOfFirstGridPointInDegrees':90.0,'longitudeOfFirstGridPointInDegrees':180.0,
  'iDirectionIncrementInDegrees':0.25,'jDirectionIncrementInDegrees':0.25,'iScansNegatively':0,'jScansPositively':0,'jPointsAreConsecutive':0,
  'i0':320,'j0':280,'rowStep':-1,'nx':128,'ny':128,'lat0':20.0,'lon0':-100.0,'dlat':0.25,'dlon':0.25},
- 'fields':{'t2m':{'scale':0.1,'displayStep':5,'hours':{'1':{'points':True}}}}}
+ 'fields':{'t2m':{'scale':0.1,'displayStep':5,'hours':{'1':{'points':True}}},
+  'asnow_run':{'scale':0.01,'displayStep':10,'coarse':'block max','snowRatio':10,'hours':{'1':{'points':True}}},
+  'asnowk_run':{'scale':0.01,'displayStep':10,'coarse':'block max','snowRatio':'kuchera','hours':{'1':{'points':True}}}}}
 ecmwf_tile=gzip.compress((bytes([32])+bytes(127))*128+(bytes([3])+bytes(127))*128)
 def route(r):
  url=r.request.url
@@ -169,10 +171,24 @@ with sync_playwright() as p:
  assert 'centred at 39.0000, -84.5000' in page.locator('#inspect').inner_text(),page.locator('#inspect').inner_text()
  assert '© ECMWF, CC BY 4.0' in page.locator('.maplibregl-ctrl-attrib').inner_text()
  assert page.locator('#fieldSel option[value="refc"]').count()==0,'fields ECMWF does not publish are not offered'
+ # ECMWF snowfall: the 10:1 field keeps its label; the Kuchera run total and its same-window 6-h/12-h fields are offered beside it
+ opts=dict(page.evaluate("[...document.querySelectorAll('#fieldSel option')].map(o=>[o.value,o.textContent])"))
+ assert opts.get('asnow_run')=='Total snowfall since run start (ECMWF, 10:1)',opts.get('asnow_run')
+ assert opts.get('asnowk_run')=='Total snowfall since run start (ECMWF, Kuchera)',opts.get('asnowk_run')
+ assert '6-h snowfall (ECMWF, Kuchera' in opts.get('asnowk6','') and '12-h snowfall (ECMWF, Kuchera' in opts.get('asnowk12',''),opts
+ assert page.evaluate("__conus.man.fields.asnowk6.derivedFrom")=='asnowk_run' and page.evaluate("__conus.man.fields.asnowk12.derivedFrom")=='asnowk_run','same-window Kuchera fields derive from the Kuchera run total'
+ page.select_option('#fieldSel','asnowk_run')
+ page.wait_for_function("MapsConus.api.state().field==='asnowk_run' && __conus.draw && __conus.draw.length > 0")
+ info=page.locator('#mapInfo').inner_text()
+ assert 'Kuchera' in info and '18,000 ft' in info and 'colder columns give fluffier snow, near-freezing columns wetter snow' in info,info
+ assert page.locator('#legend').inner_text().startswith('Run-total snowfall (Kuchera)'),page.locator('#legend').inner_text()
+ page.evaluate("MapsConus.api.point(39.1,-84.5)")
+ page.wait_for_function("document.querySelector('#inspect').innerText.includes('Total snowfall since run start (ECMWF, Kuchera)')")
+ page.select_option('#fieldSel','t2m')
  page.goto(origin+'/maps.html?domain=conus&field=t2m')
  page.wait_for_function("document.querySelectorAll('#modelSel option').length>0")
  assert not {'ecmwf','rrfs'}&set(page.evaluate("[...document.querySelectorAll('#modelSel option')].map(o=>o.value)")),'R2-only models are not offered on GitHub Pages'
- print('CONUS browser: ECMWF lat-lon grid, menu, native cell value and credit pass')
+ print('CONUS browser: ECMWF lat-lon grid, menu, native cell value, Kuchera snowfall entries and credit pass')
  assert not errors,errors
  print('Map browser: new surface fields against GRIB checkpoints, native labels, local glyphs, no DMA outline, selected-field requests, outage/retry, cached switches, original-cell inspection, precip dependencies, valid-time matching and three widths pass')
  browser.close()
