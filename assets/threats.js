@@ -811,6 +811,15 @@
     return [part(z.counties.listed, z.counties.drawn, "county", "counties"), part((z.zones || {}).listed, (z.zones || {}).drawn, "NWS forecast zone", "NWS forecast zones"), part(z.marine.listed, z.marine.drawn, "marine zone", "marine zones")].filter(Boolean).join(" and ");
   }
   const countyText = (p) => !p.zoneInfo || !p.zoneInfo.counties ? "Area: listed counties and marine zones (shapes loading)" : p.geometryIncomplete ? "Incomplete area: drawn from " + zoneCount(p.zoneInfo, true) : "Area drawn from " + zoneCount(p.zoneInfo, false);
+  /* how often what is on now refreshes (only feeds that are loaded) */
+  function refreshNote() {
+    const on = (Live.mapFeeds && Live.mapFeeds()) || [], parts = [];
+    const fast = ["alerts", "md"].filter((k) => on.includes(k)).map((k) => (k === "alerts" ? "warnings" : "MDs")), slow = ["spc", "ero", "fire"].some((k) => on.includes(k));
+    if (fast.length) parts.push(fast.join(" and ") + " every minute"); if (slow) parts.push("outlooks every 10 minutes"); if (on.includes("nifc")) parts.push("wildfires every 5 minutes");
+    if (on.includes("hms") || on.includes("monitors")) parts.push("smoke and air quality every 10 minutes"); if (on.includes("nhc")) parts.push("NHC every 10 minutes");
+    if (S.radar && isLive()) parts.push("radar every 5 minutes");
+    return parts.length ? ". Refreshes: " + parts.join(", ") : "";
+  }
   function sources() {
     const vd = viewDay() || 1;
     const rows = (winterView() ? ["alerts", "wssip"] : fireView() ? ["alerts", "fire" + S.fday, "nifc"] : ["alerts", ...(S.layers.severe ? ["md", "day" + vd] : []), ...(S.layers.flood ? ["ero" + vd] : []), ...(S.layers.fire ? ["nifc"] : []), ...(S.layers.smoke ? ["hms", "aqobs", "aqfcst", ...(FX.NAQFC_ENABLED ? ["naqfc"] : []), ...(isLive() ? ["monitors"] : [])] : []), ...(S.layers.tropical ? ["nhc"] : []), ...(S.layers.aviation && (S.air.length || avProducts().length) ? ["awc"] : []), ...(enOn() ? ["enroute"] : []), ...(S.layers.aviation && (S.air.length || S.route) ? ["faa"] : [])]).filter((k) => data.sources[k] && data.state[k] && data.state[k].kind !== "off").map((k) => {
@@ -819,7 +828,7 @@
       const name = official() && s.kind !== "na" ? `<a href="${esc(SRC_LINK[k])}" target="_blank" rel="noopener">${esc(SRC_NAME[k])}</a>` : esc(SRC_NAME[k]);
       return `<div class="px-src ${s.kind}"${src.error ? ` title="${esc(src.error)}"` : ""}><span><b>${name}</b></span><span>${esc(right)}</span></div>`;
     }).join("");
-    const foot = isArchive() ? `Archived sample: ${esc(data.archive ? data.archive.label : "")}. Official messages replayed through the same adapter the live preview uses; the clock is set to the message time. Not a live observation. Times in ${esc(venue.tz)}.` : isLive() ? `Live official feeds, fetched by your browser. Alerts and MDs refresh every minute, outlooks every 10 minutes. Times in ${esc(venue.tz)}. A failed refresh never clears a product.` : `Demo clock ${esc(t(data.clock, true))}. A failed refresh never clears a product.`;
+    const foot = isArchive() ? `Archived sample: ${esc(data.archive ? data.archive.label : "")}. Official messages replayed through the same adapter the live preview uses; the clock is set to the message time. Not a live observation. Times in ${esc(venue.tz)}.` : isLive() ? `Live official feeds, fetched by your browser${refreshNote()}. Times in ${esc(venue.tz)}. A failed refresh never clears a product.` : `Demo clock ${esc(t(data.clock, true))}. A failed refresh never clears a product.`;
     return `<div class="px-sources" aria-label="Source status">${rows}${radarRow()}<div class="lg-note">${foot}</div></div>`;
   }
   function notices() {
