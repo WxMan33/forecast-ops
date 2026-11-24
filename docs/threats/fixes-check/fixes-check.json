@@ -1,6 +1,6 @@
 {
  "host": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev",
- "at": "2026-11-24T14:17:30.097Z",
+ "at": "2026-11-24T14:36:10.444Z",
  "devices": {
   "desktop": {
    "presetVenue": {
@@ -16,24 +16,26 @@
       "alerts",
       "ero",
       "md",
+      "reports",
       "spc"
      ],
      "sum": "Severe storms, Flooding +2"
     },
     "by": {
+     "reports": 1,
      "alerts": 1,
      "md-page": 1,
      "spc": 3,
      "ero": 3,
      "md": 1,
-     "alerts-zones": 166
+     "alerts-zones": 169
     }
    },
    "ero1": {
     "st": "current",
     "src": {
      "state": "ok",
-     "lastOk": "2026-11-24T14:17:36.765Z",
+     "lastOk": "2026-11-24T14:36:16.146Z",
      "count": 2,
      "error": null,
      "outlook": "current",
@@ -42,23 +44,23 @@
      "via": "wpc"
     },
     "rows": [
-     "WPC excessive rainfall · Day 1 Checked 9:17 AM EST"
+     "WPC excessive rainfall · Day 1 Checked 9:36 AM EST"
     ],
     "panel": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY No severe risk area Valid Tue, Nov 24, 8:00 AM EST → Wed, Nov 25, 7:00 AM EST EXCESSIVE RAINFALL · WPC ISSUED 0747Z No excessive rainfall area at the venue. OUTLOOKMarginal excessive rainfall risk (1 of 4) Day 1 · until Wed, Nov 25, 7:00 AM EST OUTLOOKMarginal excessive rainfall risk (1 of 4) Day 1 · until Wed, Nov 25, 7:00 AM EST SEVERE STORMS · SPC OUT"
    },
    "refsOnOpen": {
-    "opened": "KLOX.CF.Y.0014.2026#CAZ362",
+    "opened": "KLOX.CF.W.0003.2026#CAZ354",
     "refs": 1
    },
    "zones": {
     "first": 0,
-    "cached": 166,
+    "cached": 169,
     "second": 0
    },
    "spcUnknown": {
     "peek": "Risk unknown · SPC Day 1 outlook not responding",
     "big": "Risk unknown · SPC Day 1 outlook not responding",
-    "body": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY\nRisk unknown · SPC Day 1 outlook not responding\nSPC Day 1 outlook not responding.\nOUTLOOK AREAS\n\nRisk unknown · SPC Day 1 outlook not responding.\n\nOpen the regional Severe viewer →\nNWS warnings, watches and advisories\nChecked 9:18 AM EST\nSPC Mesoscale Discussions\nChecked 9:18 AM EST via NOAA map service · none active\nSPC Day 1 outlook\nNot responding · status unknown\nLive official feeds, fetched by your browser. Refreshes: warnings and MDs every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
+    "body": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY\nRisk unknown · SPC Day 1 outlook not responding\nSPC Day 1 outlook not responding.\nOUTLOOK AREAS\n\nRisk unknown · SPC Day 1 outlook not responding.\n\nOpen the regional Severe viewer →\nNWS warnings, watches and advisories\nChecked 9:36 AM EST\nSPC Mesoscale Discussions\nChecked 9:36 AM EST via NOAA map service · none active\nSPC Day 1 outlook\nNot responding · status unknown\nSPC storm reports (preliminary, last 24 h)\nNot responding · status unknown\nLive official feeds, fetched by your browser. Refreshes: warnings and MDs every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
    },
    "clicks": {
     "pick": {
@@ -95,17 +97,17 @@
     },
     "mon": {
      "sel": "airnow-390610006",
-     "body": "← Back\nAIR QUALITY\nSycamore\nReading\nAQI 17 Good (PM2.5)\nAll pollutants\nPM2.5 17\nObserved\nTue, Nov 24, 9:00 AM EST (hourly)\nMonitor\nSycamore · 390610006\nReporting area\nCincinnati\nVenue\n23 miles northea",
+     "body": "← Back\nAIR QUALITY\nSycamore\nReading\nAQI 17 Good (PM2.5) · PM2.5 3 µg/m³\nAll pollutants\nPM2.5 17\nObserved\nTue, Nov 24, 9:00 AM EST (hourly)\nMonitor\nSycamore · 390610006\nReporting area\nCincinnati\nVenue\n",
      "how": "direct"
     },
-    "hms": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST NWS warnings, watches and advisories Checked 9:18 AM EST NIFC wildfire incidents (WFIGS) "
+    "hms": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST NWS warnings, watches and advisories Checked 9:36 AM EST NIFC wildfire incidents (WFIGS) "
    },
    "overlap": {
     "pick": {
-     "pirep": "pirep-1795529100-41.433--104.667-UAL246",
+     "pirep": "pirep-1795530480-40.311--104.683-E55P",
      "pt": [
-      -104.6667,
-      41.4333
+      -104.6835,
+      40.3113
      ],
      "advs": [
       "gairmet-TANGO-1W-TURB-HI-6-1795509900"
@@ -114,11 +116,11 @@
     "L": {
      "under": true,
      "ids": [
-      "pirep-1795529100-41.433--104.667-UAL246",
+      "pirep-1795530480-40.311--104.683-E55P",
       "gairmet-TANGO-1W-TURB-HI-6-1795509900"
      ],
      "rows": [
-      "PILOT REPORTlight turbulence at FL420 9:05 AM EST · UAL246",
+      "PILOT REPORTlight to moderate turbulence at FL180 9:28 AM EST · E55P",
       "G-AIRMETModerate high-altitude turbulence FL180 to FL400 · snapshot 10:00 AM EST"
      ]
     },
@@ -145,7 +147,7 @@
    "basemap": {
     "fb": {
      "basemap": "fallback",
-     "cities": 25,
+     "cities": 24,
      "states": true,
      "warnLayers": true,
      "maxZoom": 11
@@ -166,6 +168,50 @@
      "errors": []
     }
    },
+   "counties": {
+    "national": 0,
+    "z6": {
+     "lines": 9,
+     "names": 0
+    },
+    "z9": {
+     "lines": 6,
+     "names": [
+      "Butler",
+      "Clinton",
+      "Dearborn",
+      "Boone",
+      "Hamilton",
+      "Switzerland",
+      "Ohio",
+      "Brown"
+     ]
+    },
+    "off": "none",
+    "files": 2
+   },
+   "reports": {
+    "nat": {
+     "drawn": 27,
+     "types": {
+      "tornado": 3,
+      "wind": 2,
+      "hail": 22
+     },
+     "head": "STORM REPORTS · LAST 24 H\n3 TORNADO · 2 WIND · 22 HAIL",
+     "legend": false
+    },
+    "sel": "lsr-tornado-2026-11-12T18:05:00.000Z-39.64,-75.7",
+    "det": "← Back STORM REPORT Tornado · 1 SW Woodshade, DE Report Tornado report Time Thu, Nov 12, 1:05 PM EST (1805Z) Where 1 SW Woodshade · New Castle County, DE Venue 33 miles southwest of Lincoln Financial ",
+    "ven": [
+     "STORM REPORTHail · 1.50 in · 1 N Oldmans Twp., NJ Thu, Nov 12, 2:16 PM EST · Pho",
+     "STORM REPORTHail · 1.50 in · Claymont, DE Thu, Nov 12, 1:55 PM EST · From a trai",
+     "STORM REPORTHail · 1.00 in · 1 E Wilmington, DE Thu, Nov 12, 1:36 PM EST · (PHI)",
+     "STORM REPORTTornado · 1 SE Eastburn Heights, DE Thu, Nov 12, 1:15 PM EST · Sever",
+     "STORM REPORTWind damage · speed not given · 1 SW Woodshade, DE Thu, Nov 12, 1:05",
+     "STORM REPORTTornado · 1 SW Woodshade, DE Thu, Nov 12, 1:05 PM EST · On the after"
+    ]
+   },
    "ww705": {
     "n": 1,
     "watch": [
@@ -181,11 +227,11 @@
     },
     "st": {
      "state": "ok",
-     "valid": "2026-11-24T14:09:55.000Z",
+     "valid": "2026-11-24T14:29:39.000Z",
      "vis": "visible",
      "below": true,
      "sum": "Radar only",
-     "row": "NOAA MRMS radar\nImage 9:09 AM EST · 10 min old",
+     "row": "NOAA MRMS radar\nImage 9:29 AM EST · 9 min old",
      "feeds": []
     }
    },
@@ -239,11 +285,13 @@
       "alerts",
       "ero",
       "md",
+      "reports",
       "spc"
      ],
      "sum": "Severe storms, Flooding +2"
     },
     "by": {
+     "reports": 1,
      "alerts": 1,
      "md-page": 1,
      "spc": 3,
@@ -256,7 +304,7 @@
     "st": "current",
     "src": {
      "state": "ok",
-     "lastOk": "2026-11-24T14:19:52.015Z",
+     "lastOk": "2026-11-24T14:38:08.770Z",
      "count": 2,
      "error": null,
      "outlook": "current",
@@ -265,7 +313,7 @@
      "via": "wpc"
     },
     "rows": [
-     "WPC excessive rainfall · Day 1 Checked 9:19 AM EST"
+     "WPC excessive rainfall · Day 1 Checked 9:38 AM EST"
     ],
     "panel": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY No severe risk area Valid Tue, Nov 24, 8:00 AM EST → Wed, Nov 25, 7:00 AM EST EXCESSIVE RAINFALL · WPC ISSUED 0747Z No excessive rainfall area at the venue. OUTLOOKMarginal excessive rainfall risk (1 of 4) Day 1 · until Wed, Nov 25, 7:00 AM EST OUTLOOKMarginal excessive rainfall risk (1 of 4) Day 1 · until Wed, Nov 25, 7:00 AM EST SEVERE STORMS · SPC OUT"
    },
@@ -281,7 +329,7 @@
    "spcUnknown": {
     "peek": "Risk unknown · SPC Day 1 outlook not responding",
     "big": "Risk unknown · SPC Day 1 outlook not responding",
-    "body": "Day 1 at CVG airport · highest SPC categoryRisk unknown · SPC Day 1 outlook not respondingSPC Day 1 outlook not responding.Outlook areasRisk unknown · SPC Day 1 outlook not responding.Open the regional Severe viewer →NWS warnings, watches and advisoriesChecked 9:20 AM ESTSPC Mesoscale DiscussionsChecked 9:20 AM EST via NOAA map service · none activeSPC Day 1 outlookNot responding · status unknownLive official feeds, fetched by your browser. Refreshes: warnings and MDs every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
+    "body": "Day 1 at CVG airport · highest SPC categoryRisk unknown · SPC Day 1 outlook not respondingSPC Day 1 outlook not responding.Outlook areasRisk unknown · SPC Day 1 outlook not responding.Open the regional Severe viewer →NWS warnings, watches and advisoriesChecked 9:39 AM ESTSPC Mesoscale DiscussionsChecked 9:39 AM EST via NOAA map service · none activeSPC Day 1 outlookNot responding · status unknownSPC storm reports (preliminary, last 24 h)Not responding · status unknownLive official feeds, fetched by your browser. Refreshes: warnings and MDs every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
    },
    "clicks": {
     "pick": {
@@ -318,40 +366,34 @@
     },
     "mon": {
      "sel": "airnow-390610006",
-     "body": "← Back\nAIR QUALITY\nSycamore\nReading\nAQI 17 Good (PM2.5)\nAll pollutants\nPM2.5 17\nObserved\nTue, Nov 24, 9:00 AM EST (hourly)\nMonitor\nSycamore · 390610006\nReporting area\nCincinnati\nVenue\n23 miles northea",
+     "body": "← Back\nAIR QUALITY\nSycamore\nReading\nAQI 17 Good (PM2.5) · PM2.5 3 µg/m³\nAll pollutants\nPM2.5 17\nObserved\nTue, Nov 24, 9:00 AM EST (hourly)\nMonitor\nSycamore · 390610006\nReporting area\nCincinnati\nVenue\n",
      "how": "direct"
     },
-    "hms": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST NWS warnings, watches and advisories Checked 9:20 AM EST NIFC wildfire incidents (WFIGS) "
+    "hms": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST NWS warnings, watches and advisories Checked 9:39 AM EST NIFC wildfire incidents (WFIGS) "
    },
    "overlap": {
     "pick": {
-     "pirep": "pirep-1795529700-45.661--121.571-B763",
+     "pirep": "pirep-1795530960-37.686--104.973-B737",
      "pt": [
-      -121.571,
-      45.6606
+      -104.9726,
+      37.6861
      ],
      "advs": [
-      "gairmet-TANGO-1W-TURB-LO-6-1795509900",
-      "gairmet-ZULU-4C-ICE-6-1795509900",
-      "gairmet-TANGO-1W-LLWS-6-1795509900"
+      "gairmet-TANGO-1W-TURB-HI-6-1795509900"
      ]
     },
     "L": {
      "under": true,
      "ids": [
-      "pirep-1795529700-45.661--121.571-B763",
-      "gairmet-TANGO-1W-LLWS-6-1795509900",
-      "gairmet-ZULU-4C-ICE-6-1795509900",
-      "gairmet-TANGO-1W-TURB-LO-6-1795509900"
+      "pirep-1795530960-37.686--104.973-B737",
+      "gairmet-TANGO-1W-TURB-HI-6-1795509900"
      ],
      "rows": [
-      "PILOT REPORTlight turbulence (chop) at FL390 9:15 AM EST · B763",
-      "G-AIRMETlow-level wind shear surface to an unstated top · snapshot 10:00 AM EST",
-      "G-AIRMETModerate icing 5,000 ft to FL210 · snapshot 10:00 AM EST",
-      "G-AIRMETModerate low-altitude turbulence surface to FL180 · snapshot 10:00 AM EST"
+      "PILOT REPORTlight to moderate turbulence (chop) at FL380 9:36 AM EST · B737",
+      "G-AIRMETModerate high-altitude turbulence FL180 to FL400 · snapshot 10:00 AM EST"
      ]
     },
-    "opened": 3
+    "opened": 2
    },
    "pin": {
     "off": {
@@ -395,6 +437,45 @@
      "errors": []
     }
    },
+   "counties": {
+    "national": 0,
+    "z6": {
+     "lines": 6,
+     "names": 0
+    },
+    "z9": {
+     "lines": 6,
+     "names": [
+      "Butler",
+      "Boone",
+      "Hamilton"
+     ]
+    },
+    "off": "none",
+    "files": 2
+   },
+   "reports": {
+    "nat": {
+     "drawn": 27,
+     "types": {
+      "tornado": 3,
+      "wind": 2,
+      "hail": 22
+     },
+     "head": "Storm reports · last 24 h3 tornado · 2 wind · 22 hail",
+     "legend": false
+    },
+    "sel": "lsr-tornado-2026-11-12T18:05:00.000Z-39.64,-75.7",
+    "det": "← Back STORM REPORT Tornado · 1 SW Woodshade, DE Report Tornado report Time Thu, Nov 12, 1:05 PM EST (1805Z) Where 1 SW Woodshade · New Castle County, DE Venue 33 miles southwest of Lincoln Financial ",
+    "ven": [
+     "STORM REPORTHail · 1.50 in · 1 N Oldmans Twp., NJThu, Nov 12, 2:16 PM EST · Phot",
+     "STORM REPORTHail · 1.50 in · Claymont, DEThu, Nov 12, 1:55 PM EST · From a train",
+     "STORM REPORTHail · 1.00 in · 1 E Wilmington, DEThu, Nov 12, 1:36 PM EST · (PHI)",
+     "STORM REPORTTornado · 1 SE Eastburn Heights, DEThu, Nov 12, 1:15 PM EST · Severa",
+     "STORM REPORTWind damage · speed not given · 1 SW Woodshade, DEThu, Nov 12, 1:05 ",
+     "STORM REPORTTornado · 1 SW Woodshade, DEThu, Nov 12, 1:05 PM EST · On the aftern"
+    ]
+   },
    "ww705": {
     "n": 1,
     "watch": [
@@ -410,11 +491,11 @@
     },
     "st": {
      "state": "ok",
-     "valid": "2026-11-24T14:09:55.000Z",
+     "valid": "2026-11-24T14:29:39.000Z",
      "vis": "visible",
      "below": true,
      "sum": "Radar only",
-     "row": "NOAA MRMS radarImage 9:09 AM EST · 12 min old",
+     "row": "NOAA MRMS radarImage 9:29 AM EST · 12 min old",
      "feeds": []
     }
    },
@@ -457,7 +538,7 @@
  },
  "results": [
   {
-   "check": "(desktop) PRESET \"Warnings at my venue\": severe, flood, winter, coastal; venue view; only alerts, MDs, SPC and WPC outlooks requested ({\"alerts\":1,\"md-page\":1,\"spc\":3,\"ero\":3,\"md\":1,\"alerts-zones\":166}); no earlier-message lookups on load",
+   "check": "(desktop) PRESET \"Warnings at my venue\": severe, flood, winter, coastal; venue view; only alerts, MDs, SPC and WPC outlooks and SPC storm reports requested ({\"reports\":1,\"alerts\":1,\"md-page\":1,\"spc\":3,\"ero\":3,\"md\":1,\"alerts-zones\":169}); no earlier-message lookups on load",
    "pass": true,
    "detail": {
     "st": {
@@ -472,17 +553,19 @@
       "alerts",
       "ero",
       "md",
+      "reports",
       "spc"
      ],
      "sum": "Severe storms, Flooding +2"
     },
     "by": {
+     "reports": 1,
      "alerts": 1,
      "md-page": 1,
      "spc": 3,
      "ero": 3,
      "md": 1,
-     "alerts-zones": 166
+     "alerts-zones": 169
     },
     "errs": []
    }
@@ -494,7 +577,7 @@
     "st": "current",
     "src": {
      "state": "ok",
-     "lastOk": "2026-11-24T14:17:36.765Z",
+     "lastOk": "2026-11-24T14:36:16.146Z",
      "count": 2,
      "error": null,
      "outlook": "current",
@@ -503,25 +586,25 @@
      "via": "wpc"
     },
     "rows": [
-     "WPC excessive rainfall · Day 1 Checked 9:17 AM EST"
+     "WPC excessive rainfall · Day 1 Checked 9:36 AM EST"
     ],
     "panel": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY No severe risk area Valid Tue, Nov 24, 8:00 AM EST → Wed, Nov 25, 7:00 AM EST EXCESSIVE RAINFALL · WPC ISSUED 0747Z No excessive rainfall area at the venue. OUTLOOKMarginal excessive rainfall risk (1 of 4) Day 1 · until Wed, Nov 25, 7:00 AM EST OUTLOOKMarginal excessive rainfall risk (1 of 4) Day 1 · until Wed, Nov 25, 7:00 AM EST SEVERE STORMS · SPC OUT"
    }
   },
   {
-   "check": "(desktop) WHAT CHANGED: the earlier message is fetched when its alert is opened (1 request for KLOX.CF.Y.0014.2026#CAZ362)",
+   "check": "(desktop) WHAT CHANGED: the earlier message is fetched when its alert is opened (1 request for KLOX.CF.W.0003.2026#CAZ354)",
    "pass": true,
    "detail": {
-    "opened": "KLOX.CF.Y.0014.2026#CAZ362",
+    "opened": "KLOX.CF.W.0003.2026#CAZ354",
     "refs": 1
    }
   },
   {
-   "check": "(desktop) ZONE OUTLINES: first visit 0 downloads, 166 kept in Cache Storage; next visit 0",
+   "check": "(desktop) ZONE OUTLINES: first visit 0 downloads, 169 kept in Cache Storage; next visit 0",
    "pass": true,
    "detail": {
     "first": 0,
-    "cached": 166,
+    "cached": 169,
     "second": 0
    }
   },
@@ -531,7 +614,7 @@
    "detail": {
     "peek": "Risk unknown · SPC Day 1 outlook not responding",
     "big": "Risk unknown · SPC Day 1 outlook not responding",
-    "body": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY\nRisk unknown · SPC Day 1 outlook not responding\nSPC Day 1 outlook not responding.\nOUTLOOK AREAS\n\nRisk unknown · SPC Day 1 outlook not responding.\n\nOpen the regional Severe viewer →\nNWS warnings, watches and advisories\nChecked 9:18 AM EST\nSPC Mesoscale Discussions\nChecked 9:18 AM EST via NOAA map service · none active\nSPC Day 1 outlook\nNot responding · status unknown\nLive official feeds, fetched by your browser. Refreshes: warnings and MDs every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
+    "body": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY\nRisk unknown · SPC Day 1 outlook not responding\nSPC Day 1 outlook not responding.\nOUTLOOK AREAS\n\nRisk unknown · SPC Day 1 outlook not responding.\n\nOpen the regional Severe viewer →\nNWS warnings, watches and advisories\nChecked 9:36 AM EST\nSPC Mesoscale Discussions\nChecked 9:36 AM EST via NOAA map service · none active\nSPC Day 1 outlook\nNot responding · status unknown\nSPC storm reports (preliminary, last 24 h)\nNot responding · status unknown\nLive official feeds, fetched by your browser. Refreshes: warnings and MDs every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
    }
   },
   {
@@ -548,14 +631,14 @@
    "pass": true,
    "detail": {
     "sel": "airnow-390610006",
-    "body": "← Back\nAIR QUALITY\nSycamore\nReading\nAQI 17 Good (PM2.5)\nAll pollutants\nPM2.5 17\nObserved\nTue, Nov 24, 9:00 AM EST (hourly)\nMonitor\nSycamore · 390610006\nReporting area\nCincinnati\nVenue\n23 miles northea",
+    "body": "← Back\nAIR QUALITY\nSycamore\nReading\nAQI 17 Good (PM2.5) · PM2.5 3 µg/m³\nAll pollutants\nPM2.5 17\nObserved\nTue, Nov 24, 9:00 AM EST (hourly)\nMonitor\nSycamore · 390610006\nReporting area\nCincinnati\nVenue\n",
     "how": "direct"
    }
   },
   {
    "check": "(desktop) CLICK inside a satellite smoke area: At this spot lists it",
    "pass": true,
-   "detail": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST NWS warnings, watches and advisories Checked 9:18 AM EST NIFC wildfire incidents (WFIGS) "
+   "detail": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST NWS warnings, watches and advisories Checked 9:36 AM EST NIFC wildfire incidents (WFIGS) "
   },
   {
    "check": "(desktop) FULLY CONTAINED FIRES hidden by default (56 listed by NIFC, 0 drawn)",
@@ -605,10 +688,10 @@
    "pass": true,
    "detail": {
     "pick": {
-     "pirep": "pirep-1795529100-41.433--104.667-UAL246",
+     "pirep": "pirep-1795530480-40.311--104.683-E55P",
      "pt": [
-      -104.6667,
-      41.4333
+      -104.6835,
+      40.3113
      ],
      "advs": [
       "gairmet-TANGO-1W-TURB-HI-6-1795509900"
@@ -617,11 +700,11 @@
     "L": {
      "under": true,
      "ids": [
-      "pirep-1795529100-41.433--104.667-UAL246",
+      "pirep-1795530480-40.311--104.683-E55P",
       "gairmet-TANGO-1W-TURB-HI-6-1795509900"
      ],
      "rows": [
-      "PILOT REPORTlight turbulence at FL420 9:05 AM EST · UAL246",
+      "PILOT REPORTlight to moderate turbulence at FL180 9:28 AM EST · E55P",
       "G-AIRMETModerate high-altitude turbulence FL180 to FL400 · snapshot 10:00 AM EST"
      ]
     },
@@ -654,12 +737,12 @@
    }
   },
   {
-   "check": "(desktop) BASEMAP FAILOVER: CARTO blocked -> the built-in map with its own labels (25 city labels), overlays work; CARTO back -> the retry swaps to it with every overlay kept (84 warning/advisory shapes, radar true), hazards under its labels, our labels on top in its font, county lines, zoom 14",
+   "check": "(desktop) BASEMAP FAILOVER: CARTO blocked -> the built-in map with its own labels (24 city labels), overlays work; CARTO back -> the retry swaps to it with every overlay kept (84 warning/advisory shapes, radar true), hazards under its labels, our labels on top in its font, county lines, zoom 14",
    "pass": true,
    "detail": {
     "fb": {
      "basemap": "fallback",
-     "cities": 25,
+     "cities": 24,
      "states": true,
      "warnLayers": true,
      "maxZoom": 11
@@ -683,6 +766,61 @@
    }
   },
   {
+   "check": "(desktop) COUNTY LINES: nothing downloaded at national zoom (0); lines from regional zoom (zoom 6: 9 segments, no names); names zoomed in (zoom 9: Butler, Clinton, Dearborn, Boone…); off hides them",
+   "pass": true,
+   "detail": {
+    "national": 0,
+    "z6": {
+     "lines": 9,
+     "names": 0
+    },
+    "z9": {
+     "lines": 6,
+     "names": [
+      "Butler",
+      "Clinton",
+      "Dearborn",
+      "Boone",
+      "Hamilton",
+      "Switzerland",
+      "Ohio",
+      "Brown"
+     ]
+    },
+    "off": "none",
+    "files": 2,
+    "errs": []
+   }
+  },
+  {
+   "check": "(desktop) STORM REPORTS (replay, SPC Nov 12): 27 drawn ({\"tornado\":3,\"wind\":2,\"hail\":22}); 'STORM REPORTS · LAST 24 H\n3 TORNADO · 2 WIND · 22 HAIL'; legend; a tornado dot opens its report (time, place, comments, preliminary); Delaware Stadium lists reports within 25 mi",
+   "pass": false,
+   "detail": {
+    "nat": {
+     "drawn": 27,
+     "types": {
+      "tornado": 3,
+      "wind": 2,
+      "hail": 22
+     },
+     "head": "STORM REPORTS · LAST 24 H\n3 TORNADO · 2 WIND · 22 HAIL",
+     "legend": false
+    },
+    "sel": "lsr-tornado-2026-11-12T18:05:00.000Z-39.64,-75.7",
+    "det": "← Back STORM REPORT Tornado · 1 SW Woodshade, DE Report Tornado report Time Thu, Nov 12, 1:05 PM EST (1805Z) Where 1 SW Woodshade · New Castle County, DE Venue 33 miles southwest of Lincoln Financial ",
+    "ven": [
+     "STORM REPORTHail · 1.50 in · 1 N Oldmans Twp., NJ Thu, Nov 12, 2:16 PM EST · Pho",
+     "STORM REPORTHail · 1.50 in · Claymont, DE Thu, Nov 12, 1:55 PM EST · From a trai",
+     "STORM REPORTHail · 1.00 in · 1 E Wilmington, DE Thu, Nov 12, 1:36 PM EST · (PHI)",
+     "STORM REPORTTornado · 1 SE Eastburn Heights, DE Thu, Nov 12, 1:15 PM EST · Sever",
+     "STORM REPORTWind damage · speed not given · 1 SW Woodshade, DE Thu, Nov 12, 1:05",
+     "STORM REPORTTornado · 1 SW Woodshade, DE Thu, Nov 12, 1:05 PM EST · On the after"
+    ],
+    "errs": [],
+    "verrs": []
+   }
+  },
+  {
    "check": "(desktop) REPLAY SPC Tornado Watch 705 loads and draws (Tornado Watch)",
    "pass": true,
    "detail": {
@@ -698,7 +836,7 @@
    }
   },
   {
-   "check": "(desktop) RADAR on, with no hazard layer: 'Radar only'; image time read once (1), 28 tiles; drawn under the hazards; status row 'NOAA MRMS radar\nImage 9:09 AM EST · 10 min old'; no threat feed requested",
+   "check": "(desktop) RADAR on, with no hazard layer: 'Radar only'; image time read once (1), 28 tiles; drawn under the hazards; status row 'NOAA MRMS radar\nImage 9:29 AM EST · 9 min old'; no threat feed requested",
    "pass": true,
    "detail": {
     "by": {
@@ -707,11 +845,11 @@
     },
     "st": {
      "state": "ok",
-     "valid": "2026-11-24T14:09:55.000Z",
+     "valid": "2026-11-24T14:29:39.000Z",
      "vis": "visible",
      "below": true,
      "sum": "Radar only",
-     "row": "NOAA MRMS radar\nImage 9:09 AM EST · 10 min old",
+     "row": "NOAA MRMS radar\nImage 9:29 AM EST · 9 min old",
      "feeds": []
     },
     "errs": []
@@ -774,7 +912,7 @@
    }
   },
   {
-   "check": "(phone) PRESET \"Warnings at my venue\": severe, flood, winter, coastal; venue view; only alerts, MDs, SPC and WPC outlooks requested ({\"alerts\":1,\"md-page\":1,\"spc\":3,\"ero\":3,\"md\":1,\"alerts-zones\":169}); no earlier-message lookups on load",
+   "check": "(phone) PRESET \"Warnings at my venue\": severe, flood, winter, coastal; venue view; only alerts, MDs, SPC and WPC outlooks and SPC storm reports requested ({\"reports\":1,\"alerts\":1,\"md-page\":1,\"spc\":3,\"ero\":3,\"md\":1,\"alerts-zones\":169}); no earlier-message lookups on load",
    "pass": true,
    "detail": {
     "st": {
@@ -789,11 +927,13 @@
       "alerts",
       "ero",
       "md",
+      "reports",
       "spc"
      ],
      "sum": "Severe storms, Flooding +2"
     },
     "by": {
+     "reports": 1,
      "alerts": 1,
      "md-page": 1,
      "spc": 3,
@@ -811,7 +951,7 @@
     "st": "current",
     "src": {
      "state": "ok",
-     "lastOk": "2026-11-24T14:19:52.015Z",
+     "lastOk": "2026-11-24T14:38:08.770Z",
      "count": 2,
      "error": null,
      "outlook": "current",
@@ -820,7 +960,7 @@
      "via": "wpc"
     },
     "rows": [
-     "WPC excessive rainfall · Day 1 Checked 9:19 AM EST"
+     "WPC excessive rainfall · Day 1 Checked 9:38 AM EST"
     ],
     "panel": "DAY 1 AT CVG AIRPORT · HIGHEST SPC CATEGORY No severe risk area Valid Tue, Nov 24, 8:00 AM EST → Wed, Nov 25, 7:00 AM EST EXCESSIVE RAINFALL · WPC ISSUED 0747Z No excessive rainfall area at the venue. OUTLOOKMarginal excessive rainfall risk (1 of 4) Day 1 · until Wed, Nov 25, 7:00 AM EST OUTLOOKMarginal excessive rainfall risk (1 of 4) Day 1 · until Wed, Nov 25, 7:00 AM EST SEVERE STORMS · SPC OUT"
    }
@@ -848,7 +988,7 @@
    "detail": {
     "peek": "Risk unknown · SPC Day 1 outlook not responding",
     "big": "Risk unknown · SPC Day 1 outlook not responding",
-    "body": "Day 1 at CVG airport · highest SPC categoryRisk unknown · SPC Day 1 outlook not respondingSPC Day 1 outlook not responding.Outlook areasRisk unknown · SPC Day 1 outlook not responding.Open the regional Severe viewer →NWS warnings, watches and advisoriesChecked 9:20 AM ESTSPC Mesoscale DiscussionsChecked 9:20 AM EST via NOAA map service · none activeSPC Day 1 outlookNot responding · status unknownLive official feeds, fetched by your browser. Refreshes: warnings and MDs every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
+    "body": "Day 1 at CVG airport · highest SPC categoryRisk unknown · SPC Day 1 outlook not respondingSPC Day 1 outlook not responding.Outlook areasRisk unknown · SPC Day 1 outlook not responding.Open the regional Severe viewer →NWS warnings, watches and advisoriesChecked 9:39 AM ESTSPC Mesoscale DiscussionsChecked 9:39 AM EST via NOAA map service · none activeSPC Day 1 outlookNot responding · status unknownSPC storm reports (preliminary, last 24 h)Not responding · status unknownLive official feeds, fetched by your browser. Refreshes: warnings and MDs every minute, outlooks every 10 minutes. Times in America/New_York. A failed refresh never clears a product."
    }
   },
   {
@@ -865,14 +1005,14 @@
    "pass": true,
    "detail": {
     "sel": "airnow-390610006",
-    "body": "← Back\nAIR QUALITY\nSycamore\nReading\nAQI 17 Good (PM2.5)\nAll pollutants\nPM2.5 17\nObserved\nTue, Nov 24, 9:00 AM EST (hourly)\nMonitor\nSycamore · 390610006\nReporting area\nCincinnati\nVenue\n23 miles northea",
+    "body": "← Back\nAIR QUALITY\nSycamore\nReading\nAQI 17 Good (PM2.5) · PM2.5 3 µg/m³\nAll pollutants\nPM2.5 17\nObserved\nTue, Nov 24, 9:00 AM EST (hourly)\nMonitor\nSycamore · 390610006\nReporting area\nCincinnati\nVenue\n",
     "how": "direct"
    }
   },
   {
    "check": "(phone) CLICK inside a satellite smoke area: At this spot lists it",
    "pass": true,
-   "detail": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST NWS warnings, watches and advisories Checked 9:20 AM EST NIFC wildfire incidents (WFIGS) "
+   "detail": "← All threats AT THIS SPOT 14.22°, -111.58° SATELLITE SMOKELight smoke detected Observed 3:10 PM EST → 7:00 PM EST · GOES-EAST SATELLITE SMOKELight smoke detected Observed 8:00 AM EST → 11:00 AM EST · GOES-EAST NWS warnings, watches and advisories Checked 9:39 AM EST NIFC wildfire incidents (WFIGS) "
   },
   {
    "check": "(phone) FULLY CONTAINED FIRES hidden by default (56 listed by NIFC, 0 drawn)",
@@ -918,37 +1058,31 @@
    "detail": []
   },
   {
-   "check": "(phone) OVERLAPPING AVIATION (a pilot report inside 3 advisories): the click lists all 4 under it; each row opens its own details and Back returns to the list",
+   "check": "(phone) OVERLAPPING AVIATION (a pilot report inside 1 advisory): the click lists all 2 under it; each row opens its own details and Back returns to the list",
    "pass": true,
    "detail": {
     "pick": {
-     "pirep": "pirep-1795529700-45.661--121.571-B763",
+     "pirep": "pirep-1795530960-37.686--104.973-B737",
      "pt": [
-      -121.571,
-      45.6606
+      -104.9726,
+      37.6861
      ],
      "advs": [
-      "gairmet-TANGO-1W-TURB-LO-6-1795509900",
-      "gairmet-ZULU-4C-ICE-6-1795509900",
-      "gairmet-TANGO-1W-LLWS-6-1795509900"
+      "gairmet-TANGO-1W-TURB-HI-6-1795509900"
      ]
     },
     "L": {
      "under": true,
      "ids": [
-      "pirep-1795529700-45.661--121.571-B763",
-      "gairmet-TANGO-1W-LLWS-6-1795509900",
-      "gairmet-ZULU-4C-ICE-6-1795509900",
-      "gairmet-TANGO-1W-TURB-LO-6-1795509900"
+      "pirep-1795530960-37.686--104.973-B737",
+      "gairmet-TANGO-1W-TURB-HI-6-1795509900"
      ],
      "rows": [
-      "PILOT REPORTlight turbulence (chop) at FL390 9:15 AM EST · B763",
-      "G-AIRMETlow-level wind shear surface to an unstated top · snapshot 10:00 AM EST",
-      "G-AIRMETModerate icing 5,000 ft to FL210 · snapshot 10:00 AM EST",
-      "G-AIRMETModerate low-altitude turbulence surface to FL180 · snapshot 10:00 AM EST"
+      "PILOT REPORTlight to moderate turbulence (chop) at FL380 9:36 AM EST · B737",
+      "G-AIRMETModerate high-altitude turbulence FL180 to FL400 · snapshot 10:00 AM EST"
      ]
     },
-    "opened": 3,
+    "opened": 2,
     "back": true,
     "errs": []
    }
@@ -1006,6 +1140,56 @@
    }
   },
   {
+   "check": "(phone) COUNTY LINES: nothing downloaded at national zoom (0); lines from regional zoom (zoom 6: 6 segments, no names); names zoomed in (zoom 9: Butler, Boone, Hamilton…); off hides them",
+   "pass": true,
+   "detail": {
+    "national": 0,
+    "z6": {
+     "lines": 6,
+     "names": 0
+    },
+    "z9": {
+     "lines": 6,
+     "names": [
+      "Butler",
+      "Boone",
+      "Hamilton"
+     ]
+    },
+    "off": "none",
+    "files": 2,
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) STORM REPORTS (replay, SPC Nov 12): 27 drawn ({\"tornado\":3,\"wind\":2,\"hail\":22}); 'Storm reports · last 24 h3 tornado · 2 wind · 22 hail'; legend; a tornado dot opens its report (time, place, comments, preliminary); Delaware Stadium lists reports within 25 mi",
+   "pass": false,
+   "detail": {
+    "nat": {
+     "drawn": 27,
+     "types": {
+      "tornado": 3,
+      "wind": 2,
+      "hail": 22
+     },
+     "head": "Storm reports · last 24 h3 tornado · 2 wind · 22 hail",
+     "legend": false
+    },
+    "sel": "lsr-tornado-2026-11-12T18:05:00.000Z-39.64,-75.7",
+    "det": "← Back STORM REPORT Tornado · 1 SW Woodshade, DE Report Tornado report Time Thu, Nov 12, 1:05 PM EST (1805Z) Where 1 SW Woodshade · New Castle County, DE Venue 33 miles southwest of Lincoln Financial ",
+    "ven": [
+     "STORM REPORTHail · 1.50 in · 1 N Oldmans Twp., NJThu, Nov 12, 2:16 PM EST · Phot",
+     "STORM REPORTHail · 1.50 in · Claymont, DEThu, Nov 12, 1:55 PM EST · From a train",
+     "STORM REPORTHail · 1.00 in · 1 E Wilmington, DEThu, Nov 12, 1:36 PM EST · (PHI)",
+     "STORM REPORTTornado · 1 SE Eastburn Heights, DEThu, Nov 12, 1:15 PM EST · Severa",
+     "STORM REPORTWind damage · speed not given · 1 SW Woodshade, DEThu, Nov 12, 1:05 ",
+     "STORM REPORTTornado · 1 SW Woodshade, DEThu, Nov 12, 1:05 PM EST · On the aftern"
+    ],
+    "errs": [],
+    "verrs": []
+   }
+  },
+  {
    "check": "(phone) REPLAY SPC Tornado Watch 705 loads and draws (Tornado Watch)",
    "pass": true,
    "detail": {
@@ -1021,7 +1205,7 @@
    }
   },
   {
-   "check": "(phone) RADAR on, with no hazard layer: 'Radar only'; image time read once (1), 8 tiles; drawn under the hazards; status row 'NOAA MRMS radarImage 9:09 AM EST · 12 min old'; no threat feed requested",
+   "check": "(phone) RADAR on, with no hazard layer: 'Radar only'; image time read once (1), 8 tiles; drawn under the hazards; status row 'NOAA MRMS radarImage 9:29 AM EST · 12 min old'; no threat feed requested",
    "pass": true,
    "detail": {
     "by": {
@@ -1030,11 +1214,11 @@
     },
     "st": {
      "state": "ok",
-     "valid": "2026-11-24T14:09:55.000Z",
+     "valid": "2026-11-24T14:29:39.000Z",
      "vis": "visible",
      "below": true,
      "sum": "Radar only",
-     "row": "NOAA MRMS radarImage 9:09 AM EST · 12 min old",
+     "row": "NOAA MRMS radarImage 9:29 AM EST · 12 min old",
      "feeds": []
     },
     "errs": []

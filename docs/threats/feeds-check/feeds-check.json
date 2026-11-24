@@ -1,6 +1,6 @@
 {
  "host": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev",
- "at": "2026-11-24T04:36:20.417Z",
+ "at": "2026-11-24T14:32:41.637Z",
  "devices": {
   "desktop": {
    "fresh": {
@@ -65,7 +65,7 @@
       "md",
       "spc"
      ],
-     "products": 83
+     "products": 98
     }
    },
    "severeOff70s": {
@@ -82,7 +82,7 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 83
+     "products": 98
     }
    },
    "total": {
@@ -115,7 +115,7 @@
       "alerts",
       "ero"
      ],
-     "products": 85
+     "products": 103
     }
    },
    "plannerLink": {
@@ -147,7 +147,7 @@
       "monitors",
       "spc"
      ],
-     "products": 180
+     "products": 194
     }
    },
    "demoLink": {
@@ -231,7 +231,7 @@
       "md",
       "spc"
      ],
-     "products": 83
+     "products": 98
     }
    },
    "severeOff70s": {
@@ -248,7 +248,7 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 83
+     "products": 98
     }
    },
    "total": {
@@ -281,7 +281,7 @@
       "alerts",
       "ero"
      ],
-     "products": 85
+     "products": 103
     }
    },
    "plannerLink": {
@@ -313,7 +313,7 @@
       "monitors",
       "spc"
      ],
-     "products": 180
+     "products": 194
     }
    },
    "demoLink": {
@@ -391,7 +391,7 @@
       "md",
       "spc"
      ],
-     "products": 83
+     "products": 98
     },
     "errs": []
    }
@@ -412,7 +412,7 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 83
+     "products": 98
     },
     "errs": []
    }
@@ -437,7 +437,7 @@
       "alerts",
       "ero"
      ],
-     "products": 85
+     "products": 103
     },
     "by": {
      "alerts": 1,
@@ -470,7 +470,7 @@
       "monitors",
       "spc"
      ],
-     "products": 180
+     "products": 194
     },
     "by": {
      "alerts": 1,
@@ -567,7 +567,7 @@
       "md",
       "spc"
      ],
-     "products": 83
+     "products": 98
     },
     "errs": []
    }
@@ -588,7 +588,7 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 83
+     "products": 98
     },
     "errs": []
    }
@@ -613,7 +613,7 @@
       "alerts",
       "ero"
      ],
-     "products": 85
+     "products": 103
     },
     "by": {
      "alerts": 1,
@@ -646,7 +646,7 @@
       "monitors",
       "spc"
      ],
-     "products": 180
+     "products": 194
     },
     "by": {
      "alerts": 1,
