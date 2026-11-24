@@ -6,6 +6,19 @@ After the function is deployed for review, also open it with `?nws=function` on 
 
 Save everything in `docs/threats/live-checks/<date>/`, labelled LIVE.
 
+## Automated run (2026-11-24)
+
+`node tools/threats-live-warning-check.js https://claude-threats-em-combined.forecast-ops-beta.pages.dev [WATCH_MIN]` runs sections 1–3
+for whatever is active (exit 3 when nothing is), on desktop and a 390 px phone, and saves the source JSON, screenshots and
+`results.json` in `live-checks/<date>/`, labelled LIVE. For section 1 it keeps the page open WATCH_MIN minutes (default 20) to catch an
+update ("What changed") or the end. `LIVE_REPLAY=archive-lox` runs the same checks on the saved LOX warning (labelled DRYRUN; it proves
+the tool, not the feed): 6/6 on 2026-11-24 (`live-checks/2026-11-24/DRYRUN-*`).
+
+Scheduled: hourly while SPC's Day 3 Marginal risk is valid (Wed Nov 25 12Z – Thu Nov 26 12Z), the first chance of a warning.
+
+Noted in the dry run: a venue link without `tz=` shows times in the page's default zone (Eastern), not the venue's own. Planner links
+always carry `tz=`.
+
 ## 1. A warning drawn directly from the live feed
 
 When NWS has an active tornado or severe thunderstorm warning in the contiguous U.S.:
