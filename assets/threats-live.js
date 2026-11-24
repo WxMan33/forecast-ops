@@ -260,8 +260,10 @@
   async function refreshReports() {
     const at = nowIso(), now = Date.now(), d0 = new Date(now - (new Date(now).getUTCHours() < 12 ? 864e5 : 0)).toISOString().slice(0, 10), d1 = new Date(Date.parse(d0) - 864e5).toISOString().slice(0, 10);
     try {
-      const today = F.parseStormReports(await get(F.REPORTS_URL("today"), "text"), d0);
-      const yest = await get(F.REPORTS_URL("yesterday"), "text").then((t) => F.parseStormReports(t, d1), () => []);
+      // on the preview, through the identifying /api/spc function (SPC's files answer automated browsers inconsistently)
+      const url = (w) => (NWS.mode === "function" ? NWS.base.replace(/\/api\/nws$/, "/api/spc") + "/reports/" + w : F.REPORTS_URL(w));
+      const today = F.parseStormReports(await get(url("today"), "text"), d0);
+      const yest = await get(url("yesterday"), "text").then((t) => F.parseStormReports(t, d1), () => []);
       Object.assign(lsr, { state: "ok", lastOk: at, error: null, products: [...today, ...yest] });
     } catch (e) { Object.assign(lsr, { state: "failed", error: e.message }); }
     emit();

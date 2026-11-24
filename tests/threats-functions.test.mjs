@@ -12,6 +12,7 @@ const awc = await import(pathToFileURL(path.join(ROOT, "functions/api/awc/[[path
 const faa = await import(pathToFileURL(path.join(ROOT, "functions/api/faa/[[path]].js")).href);
 const ifif = await import(pathToFileURL(path.join(ROOT, "functions/api/ifi/[[path]].js")).href);
 const gtgf = await import(pathToFileURL(path.join(ROOT, "functions/api/gtg/[[path]].js")).href);
+const spcf = await import(pathToFileURL(path.join(ROOT, "functions/api/spc/[[path]].js")).href);
 import fs from "node:fs";
 let n = 0; const ok = async (name, fn) => { await fn(); n++; console.log("ok -", name); };
 let clock = Date.parse("2026-11-20T20:00:00Z"), answer = () => new Response(JSON.stringify({ type: "FeatureCollection", features: [] }), { status: 200 }); const sent = [];
@@ -146,5 +147,18 @@ await ok("IFI: the latest cycle with hours 1-18; probability and severity record
   const rp = await g("/api/ifi/record?cycle=2026112301&fh=3&ft=5000&field=prob"); assert.strictEqual(rp.status, 200); assert(Buffer.from(await rp.arrayBuffer()).equals(p)); assert.strictEqual(sent.at(-1).range, `bytes=${pad}-${pad + p.length - 1}`);
   const rs = await g("/api/ifi/record?cycle=2026112301&fh=3&ft=5000&field=sev"); assert.strictEqual(rs.status, 200); assert(Buffer.from(await rs.arrayBuffer()).equals(v)); assert.strictEqual(sent.at(-1).range, `bytes=${pad + p.length}-`, "the last record: read to the end, checked by its GRIB length");
   for (const bad of ["/api/ifi/record?cycle=2026112301&fh=0&ft=5000&field=prob", "/api/ifi/record?cycle=2026112301&fh=3&ft=5250&field=prob", "/api/ifi/record?cycle=2026112301&fh=3&ft=31000&field=prob", "/api/ifi/record?cycle=2026112301&fh=3&ft=5000&field=sld", "/api/ifi/record?cycle=2026112301&fh=3&ft=5000&field=toString", "/api/ifi/latest?x=1"]) assert.strictEqual((await g(bad)).status, 404, bad);
+});
+await ok("SPC: only today's and yesterday's filtered storm reports; identifying User-Agent; 2-minute cache keeps the upstream time; a non-CSV answer is 502 and not cached", async () => {
+  sent.length = 0; const csv = "Time,F_Scale,Location,County,State,Lat,Lon,Comments\nTime,Speed,Location,County,State,Lat,Lon,Comments\nTime,Size,Location,County,State,Lat,Lon,Comments\n";
+  globalThis.fetch = async (url, init) => { sent.push({ url: String(url), ua: new Headers(init.headers).get("user-agent") }); return answer(String(url)); }; // earlier tests replaced the mock
+  answer = () => new Response(csv, { status: 200 });
+  const r1 = await get(spcf, "/api/spc/reports/today"); assert.strictEqual(r1.status, 200); assert.strictEqual(await r1.text(), csv); assert.strictEqual(sent.at(-1).url, "https://upstream.test/climo/reports/today_filtered.csv");
+  assert.strictEqual(sent.at(-1).ua, "(forecast-ops, github.com/WxMan33/forecast-ops)"); const at = r1.headers.get("X-Upstream-Fetched-At");
+  clock += 60e3; const r2 = await get(spcf, "/api/spc/reports/today"); assert.strictEqual(r2.headers.get("X-Forecast-Ops-Cache"), "HIT"); assert.strictEqual(r2.headers.get("X-Upstream-Fetched-At"), at); assert.strictEqual(sent.length, 1);
+  assert.ok(/forecast-ops-beta\.pages\.dev/.test(r1.headers.get("Access-Control-Allow-Origin") || ""));
+  for (const bad of ["/api/spc/reports/261112_rpts", "/api/spc/reports/today?x=1", "/api/spc/products/md/", "/api/spc/reports/today.csv"]) assert.strictEqual((await get(spcf, bad)).status, 404, bad);
+  answer = () => new Response("<html>Forbidden</html>", { status: 200 }); const r3 = await get(spcf, "/api/spc/reports/yesterday"); assert.strictEqual(r3.status, 502);
+  answer = () => new Response(csv, { status: 200 }); const r4 = await get(spcf, "/api/spc/reports/yesterday"); assert.strictEqual(r4.status, 200); // the failure was not cached
+  answer = () => new Response("x", { status: 503 }); clock += 300e3; const r5 = await get(spcf, "/api/spc/reports/today"); assert.strictEqual(r5.status, 502);
 });
 console.log(n + " passed");
