@@ -25,7 +25,7 @@
     if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
   });
 })();</script><!--/load-guard-->
-<link rel="stylesheet" href="assets/ops.css?v=36cc6ccbb9">
+<link rel="stylesheet" href="assets/ops.css?v=f42d725dcf">
 </head>
 <body>
 <main class="workspace">
@@ -35,32 +35,9 @@
 
   <div class="main">
     <div class="overview-brief"><a class="btn ghost sm" href="blend.html?view=brief">Open decision briefing →</a></div>
-    <section class="card" id="changes" hidden></section>
-
-    <section class="card">
-      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div style="flex:1 1 160px">
-          <div class="section-title" style="margin:0">Next 48 hours</div>
-          <div class="msg" id="overviewPoint"></div>
-        </div>
-        <button class="infobtn" type="button" id="ovHow" aria-expanded="false" aria-controls="ovHowPanel" style="flex:none">ⓘ How this summary is built</button>
-      </div>
-      <p class="msg" id="remainingToday" hidden></p>
-      <div class="daycards" id="days"><div class="state loading">Loading guidance…</div></div>
-      <p class="msg" id="sumMsg" style="margin-top:8px"></p>
-      <div class="infopanel" id="ovHowPanel" hidden><p>Rows marked NWS are NWS's own day (≈6a–6p) and night (≈6p–6a) periods. NWS is also one weighted source inside the blend values. Every other value uses the same sources, weights and calculation as its tool page: temperatures, precip and gusts from MODEL BLEND (models, ECMWF ENS, GEFS and NWS, using the blend recipe you picked there), snow chances from WINTER, the thunder signal from THUNDER. Change a model's weight on a tool page and this summary follows it. Overview cards use the printed local planning periods, with night lows and daytime highs explicitly labeled. At 2 PM, tonight and tomorrow lead; a smaller rest-of-today summary remains visible until 5 PM. Partial current-hour precipitation is counted in full and may include the elapsed part of that hour. The daily Blend table retains calendar days, so it can differ from these period values.</p></div>
-    </section>
-    <!-- Weather threats: the Threats map and its 7-day panel for the forecast point, embedded (loads when scrolled into view) -->
-    <section class="card" id="threatsCard">
-      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div style="flex:1 1 160px"><div class="section-title" style="margin:0">Weather threats · next 7 days</div>
-          <div class="msg">Official warnings, watches, outlooks and radar for the forecast point</div></div>
-        <a class="btn ghost sm" href="threats.html" style="flex:none">Open the threats map →</a>
-      </div>
-      <div class="ov-threats"><iframe src="threats.html?embed=1" title="Weather threats map and 7-day outlook" loading="lazy"></iframe></div>
-    </section>
-
-    <div class="hub">
+    <section class="home-start" aria-labelledby="startTitle">
+      <h2 class="group-title" id="startTitle">Core tools</h2>
+      <div class="hub hub-top">
       <a class="hubcard" href="blend.html">
         <span class="kicker">Tool 01</span>
         <h2>Model Blend</h2>
@@ -98,6 +75,32 @@
         <span class="go">OPEN →</span>
       </a>
     </div>
+    </section>
+    <!-- Weather threats: the Threats map and its 7-day panel for the forecast point, embedded (loads when scrolled into view) -->
+    <section class="card" id="threatsCard">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="flex:1 1 160px"><div class="section-title" style="margin:0">Weather threats · next 7 days</div>
+          <div class="msg">Official warnings, watches, outlooks and radar for the forecast point</div></div>
+        <a class="btn ghost sm" href="threats.html" style="flex:none">Open the threats map →</a>
+      </div>
+      <div class="ov-threats"><iframe src="threats.html?embed=1" title="Weather threats map and 7-day outlook" loading="lazy"></iframe></div>
+    </section>
+    <section class="card" id="changes" hidden></section>
+
+    <section class="card">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="flex:1 1 160px">
+          <div class="section-title" style="margin:0">Next 48 hours</div>
+          <div class="msg" id="overviewPoint"></div>
+        </div>
+        <button class="infobtn" type="button" id="ovHow" aria-expanded="false" aria-controls="ovHowPanel" style="flex:none">ⓘ How this summary is built</button>
+      </div>
+      <p class="msg" id="remainingToday" hidden></p>
+      <div class="daycards" id="days"><div class="state loading">Loading guidance…</div></div>
+      <p class="msg" id="sumMsg" style="margin-top:8px"></p>
+      <div class="infopanel" id="ovHowPanel" hidden><p>Rows marked NWS are NWS's own day (≈6a–6p) and night (≈6p–6a) periods. NWS is also one weighted source inside the blend values. Every other value uses the same sources, weights and calculation as its tool page: temperatures, precip and gusts from MODEL BLEND (models, ECMWF ENS, GEFS and NWS, using the blend recipe you picked there), snow chances from WINTER, the thunder signal from THUNDER. Change a model's weight on a tool page and this summary follows it. Overview cards use the printed local planning periods, with night lows and daytime highs explicitly labeled. At 2 PM, tonight and tomorrow lead; a smaller rest-of-today summary remains visible until 5 PM. Partial current-hour precipitation is counted in full and may include the elapsed part of that hour. The daily Blend table retains calendar days, so it can differ from these period values.</p></div>
+    </section>
+
   </div>
 
   <aside class="side-extra">
