@@ -55,7 +55,9 @@ what it has. Opening the picker downloads nothing.
 CARTO Voyager (light) and Dark Matter (dark), the vector street maps Heads-Up uses: streets, towns, water and place names from
 OpenStreetMap, zoom to 14. County lines from zoom 8 (where the tiles carry them), clearer state lines; hazards draw under the basemap's
 labels and our labels on top. Switching the page theme swaps the style and keeps the layers. If CARTO doesn't answer in 6 s, the built-in
-outline map (states, lakes, major cities). **Licence:** free for non-commercial use within CARTO's monthly view limit; a paid or
+outline map (states, lakes, major cities, locally drawn labels), and CARTO is retried every 5 minutes; when it answers, the map switches
+to it and keeps every overlay. This matches the OPE lightning program's basemap setup (same styles, no API key, same 6 s failover and
+5-minute retry; radar and warnings as separate overlays). **Licence:** free for non-commercial use within CARTO's monthly view limit; a paid or
 high-traffic launch needs a CARTO plan or self-hosted OpenStreetMap tiles.
 
 ## Speed (busy live day, 2026-11-23/24: 565–912 products)
@@ -70,7 +72,7 @@ high-traffic launch needs a CARTO plan or self-hosted OpenStreetMap tiles.
 | Tool | What it covers | Last result |
 |---|---|---|
 | `threats-planner-check.js` | Full Threats regression | 103/103 on `7813e4a` |
-| `threats-fixes-check.js` | Audit fixes, presets, radar, venue forecast, clicks (overlapping aviation), venue marker, Watch 705 replay | 36/36 |
+| `threats-fixes-check.js` | Audit fixes, presets, radar, venue forecast, clicks (overlapping aviation), venue marker, basemap failover and retry, Watch 705 replay | 38/38 on `66cbce4` |
 | `threats-feeds-check.js` | Threat-feed request counts: fresh visit and picker 0; one layer only its feeds; off stops refreshes; links | 14/14 |
 | `threats-ux-check.js` | Layout at desktop, 390 and 360 px | 39/39 |
 | `threats-point-check.js` | At this spot (SPC highest category) | 6/6 |
