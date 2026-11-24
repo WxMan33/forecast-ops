@@ -140,7 +140,8 @@
   }
   function withTz(v) {
     const k = v.lat.toFixed(3) + "," + v.lon.toFixed(3);
-    if (!v.tz && !tzCache[k]) { tzCache[k] = "pending"; O.zoneFor(v.lat, v.lon).then((z) => { tzCache[k] = z; load(); drawAll(); }).catch(() => { tzCache[k] = "America/New_York"; }); }
+    // the venue's own zone: from the NWS point record (through /api/nws), else Open-Meteo, else Eastern
+    if (!v.tz && !tzCache[k]) { tzCache[k] = "pending"; (Live.pointTz ? Live.pointTz(v.lat, v.lon) : Promise.reject()).catch(() => O.zoneFor(v.lat, v.lon)).then((z) => { tzCache[k] = z; load(); drawAll(); }).catch(() => { tzCache[k] = "America/New_York"; }); }
     return { ...v, tz: v.tz || (tzCache[k] && tzCache[k] !== "pending" ? tzCache[k] : "America/New_York") };
   }
   function load() {
