@@ -616,7 +616,7 @@
     const b = map.getBounds(), r = (v) => Math.round(v * 2) / 2, box = [r(b.getWest()) - 0.5, r(b.getSouth()) - 0.5, r(b.getEast()) + 0.5, r(b.getNorth()) + 0.5], k = box.join(",");
     if (gaugeAsked.k === k && Date.now() - gaugeAsked.at < 15 * 60e3) return;
     clearTimeout(gaugeTimer); gaugeTimer = setTimeout(() => { gaugeAsked = { k, at: Date.now() };
-      Live.gaugesIn(box).then(() => { load(); drawAll(); }, () => { gaugeAsked = { k, at: Date.now() - 14 * 60e3 }; drawAll(); } // failed: try this area again in a minute); }, 400);
+      Live.gaugesIn(box).then(() => { load(); drawAll(); }, () => { gaugeAsked = { k, at: Date.now() - 14 * 60e3 }; drawAll(); }); }, 400); // a failure: this area is tried again in a minute
   }
   /* county lines and names: fetched once, on the first zoom in to regional level with County lines on */
   let countiesAsked = false;
