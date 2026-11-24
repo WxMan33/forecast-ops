@@ -177,7 +177,8 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
       if (quiet.warn) { await p.evaluate((c) => window.__threats.map.jumpTo({ center: c, zoom: 8 }), quiet.warn.at);
         await p.waitForFunction(() => window.__threats.map.getSource("gauge")._data.features.length > 0, null, { timeout: 30000 }).catch(() => {}); await p.waitForTimeout(1500);
         w.drawn = await p.evaluate(() => window.__threats.map.getSource("gauge")._data.features.length);
-        const c = await p.evaluate(() => { const x = window.__threats.data.products.find((y) => y.kind === "gauge"); return x && { id: x.id, pt: x.point }; });
+        const c = await p.evaluate(() => { const f = window.__threats.map.getSource("gauge")._data.features, ids = new Set(f.map((x) => x.properties.id)), b = window.__threats.map.getBounds();
+          const x = window.__threats.data.products.find((y) => y.kind === "gauge" && ids.has(y.id) && b.contains(y.point)); return x && { id: x.id, pt: x.point }; });
         if (c) { await openDot(p, c.id, c.pt); w.det = await p.evaluate(() => document.getElementById("txPanelBody").innerText.replace(/\s+/g, " ")); } }
       const legend = await p.evaluate(() => /River gauges · NOAA/.test(document.getElementById("txLegend").textContent));
       await p.screenshot({ path: path.join(OUT, `gauges-${d}.png`) }); R.gauges = { national, quiet, q, w: { ...w, det: w.det.slice(0, 300) } };
