@@ -16,7 +16,8 @@ async function notice(p){for(let i=0;i<3;i++){if(!/External Content Notice/i.tes
  await p.goto(BASE+'severe.html#severe-conus');await notice(p);await p.waitForFunction(()=>window.SevereConusPreview&&window.SevereConusPreview.state().ready&&window.SevereConusPreview.state().case,null,{timeout:120000});
  await p.waitForFunction(()=>window.SevereConusPreview.rendered('sc-fill')>0,null,{timeout:120000});out.firstDrawSec=+((Date.now()-t0)/1000).toFixed(1);await settle();out.firstDrawMB=rss();
  await p.click('#scWhole');await settle();out.wholeConusMB=rss();
- for(const id of ['replay-2024-05-14','replay-2024-09-27','current-2026-11-22','replay-2024-05-25']){await p.selectOption('#scCase',id);await p.waitForTimeout(500);await settle();}
+ const ids=await p.evaluate(async()=>(await fetch('assets/severe-conus/index.json',{cache:'no-cache'}).then(r=>r.json())).cases.map(c=>c.id));ids.push(ids.splice(ids.indexOf('replay-2024-05-25'),1)[0]);
+ for(const id of ids){await p.selectOption('#scCase',id);await p.waitForTimeout(500);await settle();}
  out.afterAllCasesMB=rss();await p.click('#scWhole');await settle();out.wholeAgainMB=rss();
  out.contourSource=await p.evaluate(()=>window.SevereConusPreview.contourSource());out.meshBuilt=await p.evaluate(()=>window.SevereConusPreview.meshBuilt());out.errors=errs;
  const peak=Math.max(out.firstDrawMB,out.wholeConusMB,out.afterAllCasesMB,out.wholeAgainMB);out.peakMB=peak;

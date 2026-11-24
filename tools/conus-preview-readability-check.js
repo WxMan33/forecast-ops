@@ -3,6 +3,8 @@
 const {chromium,devices}=require('playwright');const [BASE,OUT,HOSTED]=process.argv.slice(2);const fs=require('fs');fs.mkdirSync(OUT,{recursive:true});
 
 const snap=(pg,o)=>pg.screenshot({...o,timeout:60000}).catch(e=>console.log('screenshot skipped ('+String(e.message).split('\n')[0]+')'));
+const savedCase=p=>p.evaluate(async()=>{const i=await fetch('assets/severe-conus/index.json',{cache:'no-cache'}).then(r=>r.json());const c=i.cases.find(x=>x.kind==='current');return c?{id:c.id,start:c.valid_start,end:c.valid_end}:null;});
+const etDay=t=>new Date(t).toLocaleDateString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',year:'numeric'});
 const R=[];const ok=(name,pass,detail)=>{R.push({name,pass:!!pass,detail});console.log((pass?'PASS ':'FAIL ')+name+(detail!==undefined?' '+JSON.stringify(detail):''));};
 async function notice(p){for(let i=0;i<3;i++){if(!/External Content Notice/i.test(await p.title().catch(()=>'')))return;const b=p.getByRole('button',{name:/open the page/i}).first();await b.waitFor({timeout:30000});await Promise.all([p.waitForURL(u=>!/External/.test(String(u)),{timeout:30000}).catch(()=>{}),b.click()]);await p.waitForLoadState('load').catch(()=>{});await p.waitForTimeout(2500);}}
 async function open(p){await p.goto(BASE+'severe.html#severe-conus');await notice(p);await p.waitForFunction(()=>window.SevereConusPreview&&window.SevereConusPreview.state().ready&&window.SevereConusPreview.state().case,null,{timeout:90000});}
@@ -45,14 +47,14 @@ async function waitReports(p){await p.waitForFunction(()=>window.SevereConusPrev
  await p.selectOption('#scCase','replay-2024-09-27');await waitReports(p);await p.evaluate(()=>window.SevereConusPreview.view([-96,38.5],3.4));await p.waitForTimeout(800);
  ok('quiet replay says no qualifying reports',/No qualifying reports/.test(await p.textContent('#scReportNote')),await p.textContent('#scReportNote'));await mapShot('quiet');
  // saved forecast
- await p.selectOption('#scCase','current-2026-11-22');await p.waitForTimeout(2500);
- const w=await p.textContent('#scWindow');ok('saved forecast labelled with absolute valid times',/SAVED FORECAST/.test(w)&&/Nov 23, 2026/.test(w)&&/Nov 24, 2026/.test(w),w);
+ const sv=await savedCase(p);await p.selectOption('#scCase',sv.id);await p.waitForTimeout(2500);
+ const w=await p.textContent('#scWindow');ok('saved forecast labelled with absolute valid times',/SAVED FORECAST/.test(w)&&w.includes(etDay(sv.start))&&w.includes(etDay(sv.end)),{case:sv.id,window:w});
  ok('reports toggle hidden for saved forecast',await p.isHidden('#scReportsWrap'));
  ok('case picker says Saved forecast',/SAVED FORECAST/.test(await p.evaluate(()=>[...document.querySelectorAll('#scCase option')].map(o=>o.textContent).join('|'))));
  // weakness replay national
  await p.selectOption('#scCase','replay-2024-05-14');await waitReports(p);await p.evaluate(()=>window.SevereConusPreview.view([-90,33],4.3));await p.waitForTimeout(1000);ok('weakness replay 36 reports',(await S(p)).reports===36);await mapShot('weakness');
  // land-only display
- await p.selectOption('#scCase','current-2026-11-22');await p.waitForTimeout(2000);await p.evaluate(()=>window.SevereConusPreview.view([-83.6,31.2],5.0));await p.waitForTimeout(800);
+ await p.selectOption('#scCase',(await savedCase(p)).id);await p.waitForTimeout(2000);await p.evaluate(()=>window.SevereConusPreview.view([-83.6,31.2],5.0));await p.waitForTimeout(800);
  ok('land mask loaded and water drawn as plain background',await p.evaluate(()=>window.SevereConusPreview.landReady()&&window.SevereConusPreview.rendered('sc-water')>0));
  for(const [name,x,y] of [['Atlantic off SC',-78.5,32.5],['Gulf of Mexico',-87,28.5],['Lake Michigan',-87,43.5]]){await p.evaluate(([x,y])=>window.SevereConusPreview.select(x,y),[x,y]);
   const t=await p.evaluate(()=>({k:window.SevereConusPreview.state().kind,v:document.getElementById('scValue').textContent}));ok('click '+name+' → Outside display area',t.k==='offdisplay'&&/Outside display area/.test(t.v),t);}
