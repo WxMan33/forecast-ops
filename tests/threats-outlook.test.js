@@ -68,7 +68,7 @@ ok("DASHBOARD: a river gauge within 25 miles forecast to reach moderate flooding
   const i = base(); i.states.gauges = "ok";
   i.gauges = [{ name: "Ohio River at Cincinnati", point: [-84.51, 39.09], obs: { category: "action", value: 50, unit: "ft" }, fcst: { category: "moderate", value: 60, unit: "ft", time: "2026-11-26T06:00:00Z" } },
     { name: "Far River", point: [-85.6, 39.6], obs: { category: "major", value: 30, unit: "ft" }, fcst: null }];
-  const r = O.build(i), it = r.days[2].items.find((x) => x.key === "river");
+  const r = O.build(i), it = r.days[3].items.find((x) => x.key === "river"); // 06Z Nov 26 is 1 a.m. EST Nov 26
   assert.strictEqual(it.text, "Ohio River at Cincinnati: forecast moderate flooding (60 ft)"); assert.strictEqual(it.level, 2);
   assert.ok(!r.days.some((d) => d.items.some((x) => /Far River/.test(x.text))));
   const j = base(); j.states.gauges = "failed"; assert.ok(O.build(j).days[0].unknown.includes("NOAA river gauges not confirmed"));
