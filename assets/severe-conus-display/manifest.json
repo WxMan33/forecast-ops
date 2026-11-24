@@ -4,8 +4,8 @@
  "cases": {
   "current-2026-11-24": {
    "file": "current-2026-11-24.json",
-   "sha256": "edf3e2177a35622d6fe24ce1996483240713d8b8fee096d6cb4d0f2cf9ee9be5",
-   "case_sha256": "419f87343fd1421b3e80015bdf8eb9b933e73bdf6362d833578a02612c160e34",
+   "sha256": "8146ffbd85156fbf0b8ac8862bc04742099af1f43ce63dd511d78a6d22ebb80d",
+   "case_sha256": "85d9078ba48b122fba5bbe3325da413c04a1b5e03f00d7d77409850315444c47",
    "bytes": 210051,
    "raw_polygons": 16362,
    "raw_vertices": 67598,
