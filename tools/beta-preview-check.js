@@ -86,7 +86,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     const { ctx, p, errors, status, notice } = await go(opts, base + "meteorologist-beta.html");
     await menuReady(p, "CVG");
     const d0 = await p.evaluate(() => ({ ...document.body.dataset, lead: document.querySelector(".hubcard.lead h2").innerText, tools: [...document.querySelectorAll("#tools h2")].map((h) => h.innerText), nav: [...document.querySelectorAll(".navbar a")].map((a) => a.innerText.trim()) }));
-    report(d0.place.startsWith("CVG") && d0.station === "CVG" && d0.lead === "Model Blend" && d0.tools.join("|") === "Thunder|Severe & Soundings|Winter|Almanac|Model Maps" && d0.nav[0] === "MENU",
+    report(d0.place.startsWith("CVG") && d0.station === "CVG" && d0.lead === "Model Blend" && d0.tools.join("|") === "Weather Threats|Thunder|Severe & Soundings|Winter|Almanac|Model Maps" && d0.nav[0] === "MENU",
       `menu ${dev}: CVG default, Model Blend first, tool cards, shared navigation`, `${d0.place} · climate ${d0.station} · lead ${d0.lead} · ${d0.tools.join(", ")} · nav ${d0.nav.slice(0, 3).join(", ")}…`);
     await pageOk(p, errors, status, notice, `menu ${dev}: loads signed out`);
     await p.screenshot({ path: `${out}/menu-cvg-${dev}.png` });

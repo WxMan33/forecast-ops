@@ -1,12 +1,11 @@
 {
  "host": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev",
- "at": "2026-11-24T17:20:22.693Z",
+ "at": "2026-11-24T18:16:41.022Z",
  "devices": {
   "desktop": {
    "fresh": {
-    "requests": 356,
+    "requests": 355,
     "byFeed": {
-     "nws-other": 2,
      "spc": 6,
      "ero": 8,
      "fire": 16,
@@ -17,10 +16,11 @@
      "gauges": 1,
      "reports": 2,
      "md": 2,
+     "nws-other": 1,
      "alerts-zones": 300
     },
     "other": {
-     "claude-threats-em-combined.forecast-ops-beta.pages.dev": 24,
+     "claude-threats-em-combined.forecast-ops-beta.pages.dev": 25,
      "fonts.googleapis.com": 1,
      "fonts.gstatic.com": 1,
      "www.spc.noaa.gov": 5,
@@ -55,7 +55,7 @@
       "reports",
       "spc"
      ],
-     "products": 207
+     "products": 221
     },
     "dash": {
      "view": "outlook",
@@ -106,7 +106,7 @@
       "reports",
       "spc"
      ],
-     "products": 153
+     "products": 167
     }
    },
    "severeOff70s": {
@@ -123,13 +123,12 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 153
+     "products": 167
     }
    },
    "total": {
-    "requests": 9,
+    "requests": 8,
     "byFeed": {
-     "nws-other": 1,
      "reports": 2,
      "alerts": 1,
      "md": 2,
@@ -137,9 +136,8 @@
     }
    },
    "floodLink": {
-    "requests": 25,
+    "requests": 24,
     "byFeed": {
-     "nws-other": 1,
      "alerts": 1,
      "ero": 3,
      "alerts-zones": 20
@@ -160,7 +158,7 @@
       "alerts",
       "ero"
      ],
-     "products": 159
+     "products": 172
     }
    },
    "plannerLink": {
@@ -194,7 +192,7 @@
       "reports",
       "spc"
      ],
-     "products": 253
+     "products": 266
     }
    },
    "demoLink": {
@@ -219,9 +217,8 @@
   },
   "phone": {
    "fresh": {
-    "requests": 356,
+    "requests": 355,
     "byFeed": {
-     "nws-other": 2,
      "spc": 6,
      "ero": 8,
      "fire": 16,
@@ -232,10 +229,11 @@
      "gauges": 1,
      "reports": 2,
      "md": 2,
+     "nws-other": 1,
      "alerts-zones": 300
     },
     "other": {
-     "claude-threats-em-combined.forecast-ops-beta.pages.dev": 24,
+     "claude-threats-em-combined.forecast-ops-beta.pages.dev": 25,
      "fonts.googleapis.com": 1,
      "fonts.gstatic.com": 1,
      "www.spc.noaa.gov": 5,
@@ -270,7 +268,7 @@
       "reports",
       "spc"
      ],
-     "products": 208
+     "products": 221
     },
     "dash": {
      "view": "outlook",
@@ -321,7 +319,7 @@
       "reports",
       "spc"
      ],
-     "products": 155
+     "products": 167
     }
    },
    "severeOff70s": {
@@ -338,13 +336,12 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 155
+     "products": 167
     }
    },
    "total": {
-    "requests": 9,
+    "requests": 8,
     "byFeed": {
-     "nws-other": 1,
      "reports": 2,
      "alerts": 1,
      "md": 2,
@@ -352,9 +349,8 @@
     }
    },
    "floodLink": {
-    "requests": 25,
+    "requests": 24,
     "byFeed": {
-     "nws-other": 1,
      "alerts": 1,
      "ero": 3,
      "alerts-zones": 20
@@ -375,7 +371,7 @@
       "alerts",
       "ero"
      ],
-     "products": 160
+     "products": 172
     }
    },
    "plannerLink": {
@@ -409,7 +405,7 @@
       "reports",
       "spc"
      ],
-     "products": 254
+     "products": 266
     }
    },
    "demoLink": {
@@ -435,7 +431,7 @@
  },
  "results": [
   {
-   "check": "(desktop) FRESH VISIT: the 7-day dashboard ('No significant threats in the next 7 days'); map defaults Severe storms, Flooding +5 + Radar: radar plus the warning, watch and advisory layers; fire, smoke and aviation off (requests: nws-other 2, spc 6, ero 8, fire 16, nhc 10, wssi 5, airnow 2, alerts 2, gauges 1, reports 2, md 2, alerts-zones 300)",
+   "check": "(desktop) FRESH VISIT: the 7-day dashboard ('No significant threats in the next 7 days'); map defaults Severe storms, Flooding +5 + Radar: radar plus the warning, watch and advisory layers; fire, smoke and aviation off (requests: spc 6, ero 8, fire 16, nhc 10, wssi 5, airnow 2, alerts 2, gauges 1, reports 2, md 2, nws-other 1, alerts-zones 300)",
    "pass": true,
    "detail": {
     "dash": {
@@ -447,7 +443,6 @@
      "radarOn": true
     },
     "by0": {
-     "nws-other": 2,
      "spc": 6,
      "ero": 8,
      "fire": 16,
@@ -458,6 +453,7 @@
      "gauges": 1,
      "reports": 2,
      "md": 2,
+     "nws-other": 1,
      "alerts-zones": 300
     },
     "s0": {
@@ -486,14 +482,14 @@
       "reports",
       "spc"
      ],
-     "products": 207
+     "products": 221
     },
     "errs": []
    }
   },
   {
-   "check": "(desktop) ?layers=none: every layer off, 'Layers · None selected', no threat-feed request (1)",
-   "pass": false,
+   "check": "(desktop) ?layers=none: every layer off, 'Layers · None selected', no threat-feed request (0)",
+   "pass": true,
    "detail": {
     "s0": {
      "layers": [],
@@ -508,9 +504,7 @@
      "feeds": [],
      "products": 0
     },
-    "reqs": [
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/points/39.0446,-84.6723"
-    ],
+    "reqs": [],
     "errs": []
    }
   },
@@ -550,7 +544,7 @@
       "reports",
       "spc"
      ],
-     "products": 153
+     "products": 167
     },
     "errs": []
    }
@@ -571,14 +565,14 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 153
+     "products": 167
     },
     "errs": []
    }
   },
   {
-   "check": "(desktop) SHARED LINK layers=flood keeps its selection and requests only alerts and the WPC rainfall outlook (nws-other 1, alerts 1, ero 3, alerts-zones 20)",
-   "pass": false,
+   "check": "(desktop) SHARED LINK layers=flood keeps its selection and requests only alerts and the WPC rainfall outlook (alerts 1, ero 3, alerts-zones 20)",
+   "pass": true,
    "detail": {
     "s": {
      "layers": [
@@ -596,10 +590,9 @@
       "alerts",
       "ero"
      ],
-     "products": 159
+     "products": 172
     },
     "by": {
-     "nws-other": 1,
      "alerts": 1,
      "ero": 3,
      "alerts-zones": 20
@@ -632,7 +625,7 @@
       "reports",
       "spc"
      ],
-     "products": 253
+     "products": 266
     },
     "by": {
      "reports": 2,
@@ -678,7 +671,7 @@
    }
   },
   {
-   "check": "(phone) FRESH VISIT: the 7-day dashboard ('No significant threats in the next 7 days'); map defaults Severe storms, Flooding +5 + Radar: radar plus the warning, watch and advisory layers; fire, smoke and aviation off (requests: nws-other 2, spc 6, ero 8, fire 16, nhc 10, wssi 5, airnow 2, alerts 2, gauges 1, reports 2, md 2, alerts-zones 300)",
+   "check": "(phone) FRESH VISIT: the 7-day dashboard ('No significant threats in the next 7 days'); map defaults Severe storms, Flooding +5 + Radar: radar plus the warning, watch and advisory layers; fire, smoke and aviation off (requests: spc 6, ero 8, fire 16, nhc 10, wssi 5, airnow 2, alerts 2, gauges 1, reports 2, md 2, nws-other 1, alerts-zones 300)",
    "pass": true,
    "detail": {
     "dash": {
@@ -690,7 +683,6 @@
      "radarOn": true
     },
     "by0": {
-     "nws-other": 2,
      "spc": 6,
      "ero": 8,
      "fire": 16,
@@ -701,6 +693,7 @@
      "gauges": 1,
      "reports": 2,
      "md": 2,
+     "nws-other": 1,
      "alerts-zones": 300
     },
     "s0": {
@@ -729,14 +722,14 @@
       "reports",
       "spc"
      ],
-     "products": 208
+     "products": 221
     },
     "errs": []
    }
   },
   {
-   "check": "(phone) ?layers=none: every layer off, 'Layers · None selected', no threat-feed request (1)",
-   "pass": false,
+   "check": "(phone) ?layers=none: every layer off, 'Layers · None selected', no threat-feed request (0)",
+   "pass": true,
    "detail": {
     "s0": {
      "layers": [],
@@ -751,9 +744,7 @@
      "feeds": [],
      "products": 0
     },
-    "reqs": [
-     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/points/39.0446,-84.6723"
-    ],
+    "reqs": [],
     "errs": []
    }
   },
@@ -793,7 +784,7 @@
       "reports",
       "spc"
      ],
-     "products": 155
+     "products": 167
     },
     "errs": []
    }
@@ -814,14 +805,14 @@
      "tilesLoaded": true,
      "marker": true,
      "feeds": [],
-     "products": 155
+     "products": 167
     },
     "errs": []
    }
   },
   {
-   "check": "(phone) SHARED LINK layers=flood keeps its selection and requests only alerts and the WPC rainfall outlook (nws-other 1, alerts 1, ero 3, alerts-zones 20)",
-   "pass": false,
+   "check": "(phone) SHARED LINK layers=flood keeps its selection and requests only alerts and the WPC rainfall outlook (alerts 1, ero 3, alerts-zones 20)",
+   "pass": true,
    "detail": {
     "s": {
      "layers": [
@@ -839,10 +830,9 @@
       "alerts",
       "ero"
      ],
-     "products": 160
+     "products": 172
     },
     "by": {
-     "nws-other": 1,
      "alerts": 1,
      "ero": 3,
      "alerts-zones": 20
@@ -875,7 +865,7 @@
       "reports",
       "spc"
      ],
-     "products": 254
+     "products": 266
     },
     "by": {
      "reports": 2,

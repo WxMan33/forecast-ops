@@ -39,7 +39,10 @@
      NWS requests through the Forecast Ops Pages Function on the same host (identifying User-Agent, 30 s cache);
      ?nwsBase=<url> points at a function on another compatible host. */
   /* Cloudflare Pages previews of this branch carry the functions, so they use them by default (?nws=direct overrides) */
-  const NWS = (() => { try { const q = new URLSearchParams(location.search); if (q.get("nwsBase")) return { mode: "function", base: q.get("nwsBase").replace(/\/$/, "") }; if (q.get("nws") === "function" || (q.get("nws") !== "direct" && /\.forecast-ops-beta\.pages\.dev$/.test(location.hostname))) return { mode: "function", base: new URL("api/nws", location.href).href }; } catch (e) { /* default */ } return { mode: "direct", base: "https://api.weather.gov" }; })();
+  const NWS = (() => { try { const q = new URLSearchParams(location.search); if (q.get("nwsBase")) return { mode: "function", base: q.get("nwsBase").replace(/\/$/, "") }; if (q.get("nws") === "function" || (q.get("nws") !== "direct" && /\.forecast-ops-beta\.pages\.dev$/.test(location.hostname))) return { mode: "function", base: new URL("api/nws", location.href).href };
+    /* hosts that can't run functions (the main site on GitHub Pages, the githack beta links): the identifying functions on the
+       Cloudflare Pages site (forecast-ops-beta.pages.dev, built from main), which allow both origins */
+    if (q.get("nws") !== "direct" && ["wxman33.github.io", "raw.githack.com"].includes(location.hostname)) return { mode: "function", base: "https://forecast-ops-beta.pages.dev/api/nws" }; } catch (e) { /* default */ } return { mode: "direct", base: "https://api.weather.gov" }; })();
   const nwsUrl = (u) => NWS.mode === "direct" ? u : u.replace(/^https:\/\/api\.weather\.gov/, NWS.base);
   /* WPC has no CORS header: through the function, WPC's own file; directly, the NOAA map service mirror (whose empty
      answers stay unconfirmed, see ThreatsFeeds.createEROStore) */
