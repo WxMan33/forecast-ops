@@ -45,7 +45,7 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
       return how; };
 
     /* PRESETS, from a fresh visit */
-    { const { p, reqs, errs } = await page("?view=active", null); await p.waitForTimeout(3000);
+    { const { p, reqs, errs } = await page("?view=active&layers=none", null); await p.waitForTimeout(3000);
       const t0 = Date.now(); await tap(p, '[data-preset="venue"]'); await p.waitForFunction(() => window.__threats.liveReady && !window.__threats.data.loading, null, { timeout: 60000 }); await p.waitForTimeout(6000);
       const st = await p.evaluate(() => ({ layers: Object.keys(window.__threats.S.layers).filter((k) => window.__threats.S.layers[k]), scope: window.__threats.S.scope, feeds: window.ThreatsLive.mapFeeds(), sum: document.getElementById("txLayersSum").textContent }));
       const by = tally(since(reqs, t0)); R.presetVenue = { st, by };
@@ -177,7 +177,7 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
       const r = await p.evaluate(() => ({ n: window.__threats.data.products.length, watch: window.__threats.data.products.filter((x) => x.kind === "watch").map((x) => x.event), drawn: window.__threats.map.getSource("active")._data.features.length, err: window.__threats.data.loadError, panel: document.getElementById("txPanelBody").innerText.slice(0, 160) }));
       R.ww705 = r; check(`(${d}) REPLAY SPC Tornado Watch 705 loads and draws (${r.watch.join(", ")})`, !r.err && r.watch.includes("Tornado Watch") && r.drawn >= 1 && !errs.length, { r, errs }); await p.screenshot({ path: path.join(OUT, `replay-ww705-${d}.png`) }); await p.close(); }
     /* RADAR: from none; image time; tiles; off stops it; demo: live only */
-    { const { p, reqs, errs } = await page("?view=active"); await p.waitForTimeout(2000); const t0 = Date.now();
+    { const { p, reqs, errs } = await page("?view=active&layers=none"); await p.waitForTimeout(2000); const t0 = Date.now();
       await tap(p, "#txLayersBtn"); await p.locator("#txLayersPop input[data-radar]").check(); await tap(p, "#txLayersPop [data-layers-close]");
       await p.waitForFunction(() => window.__threats.radar.state === "ok" && window.__threats.map.getLayer("radar") && window.__threats.map.areTilesLoaded(), null, { timeout: 60000 }).catch(() => {}); await p.waitForTimeout(3000);
       const on = since(reqs, t0), by = tally(on), st = await p.evaluate(() => { const T = window.__threats, m = T.map; return { state: T.radar.state, valid: T.radar.valid, vis: m.getLayer("radar") && m.getLayoutProperty("radar", "visibility"), below: m.getStyle().layers.findIndex((l) => l.id === "radar") < m.getStyle().layers.findIndex((l) => l.id === "outlook-fill"), sum: document.getElementById("txLayersSum").textContent, row: (document.querySelector('[data-src="radar"]') || {}).innerText, feeds: window.ThreatsLive.mapFeeds() }; });
@@ -192,7 +192,7 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
     { const { p } = await page("?scenario=overlap&radar=1"); await p.waitForTimeout(1500); const r = await p.evaluate(() => ({ dis: document.querySelector("#txLayersPop input[data-radar]").disabled, layer: !!window.__threats.map.getLayer("radar"), sum: document.getElementById("txLayersSum").textContent }));
       check(`(${d}) RADAR is live only: unavailable on a demo or replay (summary '${r.sum}')`, r.dis && !r.layer && !/Radar/.test(r.sum), r); await p.close(); }
     /* VENUE FORECAST, on request, with no layer on */
-    { const { p, reqs, errs } = await page("?view=active&scope=venue&lat=39.1113&lon=-84.5222&name=TQL%20Stadium&tz=America%2FNew_York"); await p.waitForTimeout(2000);
+    { const { p, reqs, errs } = await page("?view=active&layers=none&scope=venue&lat=39.1113&lon=-84.5222&name=TQL%20Stadium&tz=America%2FNew_York"); await p.waitForTimeout(2000);
       const before = reqs.length, t0 = Date.now(); await tap(p, "[data-vfc]"); await p.waitForSelector('[data-vfc-state="ok"], [data-vfc-state="failed"]', { timeout: 60000 });
       const r = await p.evaluate(() => { const g = document.querySelector(".px-vfc"); return { state: g && g.dataset.vfcState, sum: (document.querySelector(".px-vfcsum") || {}).textContent, rows: document.querySelectorAll(".px-vfcgrid [role=row]").length - 1, foot: ((g && g.querySelector(".lg-note")) || {}).textContent, hs: document.documentElement.scrollWidth > window.innerWidth + 1, data: window.__threats.vfc.data && { office: window.__threats.vfc.data.office, peakGust: window.__threats.vfc.data.peakGust } }; });
       const by = tally(since(reqs, t0)); await p.evaluate(() => window.__threats.drawAll()); await p.waitForTimeout(1000); const again = tally(since(reqs, t0)); R.vfc = { r, by, before };

@@ -28,9 +28,10 @@ makes that day "not confirmed", never quiet. Each line opens the map on its view
 
 ## Opening the map
 
-- **A fresh visit draws the street basemap and the venue marker with every threat layer off, and downloads no threat data.** The picker
-  reads **Layers · None selected**; the panel offers **Warnings at my venue** (severe storms, flooding, winter and coastal, venue view),
-  **Everything** (all 8 hazards) and **Choose layers**. On a phone the collapsed sheet says the same in one line.
+- **A fresh live visit** opens the panel on the 7-day dashboard with the map behind it showing **radar and the current NWS
+  warnings, watches and advisories**: Severe storms (with storm reports and MDs), Flooding, Winter, Heat & cold, Wind & visibility,
+  Tropical and Coastal. Fire, Smoke & air and Aviation stay off until chosen (the heaviest feeds). `?layers=none` opens with
+  nothing on (nothing downloaded for the map), `?radar=0` without radar.
 - **Links keep their selection:** `layers=` (and `view`, `scope`, `sel`, venue, airports, altitude, radar, `pin`) restore as sent. A Planner
   "View on map" link opens its own layer. Demo and archived samples open with every layer on.
 - A venue link without `tz=` uses the venue's own time zone (looked up), not Eastern.

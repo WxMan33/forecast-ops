@@ -62,18 +62,22 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
         feeds: window.ThreatsLive.mapFeeds ? window.ThreatsLive.mapFeeds() : "n/a", products: T.data.products.length }; });
     const since = (reqs, t0) => reqs.filter((r) => r.t >= t0);
 
-    /* 1-4: fresh visit, open the picker, Severe storms alone, then off again */
+    /* 1: a fresh visit: the 7-day dashboard, with radar and the warning, watch and advisory layers on (fire, smoke, aviation off) */
     { const { ctx, p, reqs, other, errs } = await page();
       await p.goto(HOST + PAGE, { waitUntil: "domcontentloaded" }); await ready(p);
-      await p.waitForFunction(() => window.__threats.outlook && ["ok", "failed"].includes(window.__threats.outlook.state), null, { timeout: 120000 }).catch(() => {}); await p.waitForTimeout(3000);
-      const s0 = await state(p), dash = await p.evaluate(() => ({ view: window.__threats.S.view, state: window.__threats.outlook.state, days: document.querySelectorAll("#txPanelBody .px-olday").length, head: (document.querySelector("#txPanelBody .px-olhead .px-big") || {}).textContent, presets: document.querySelectorAll("#txPanelBody [data-preset]").length }));
+      await p.waitForFunction(() => window.__threats.outlook && ["ok", "failed"].includes(window.__threats.outlook.state), null, { timeout: 120000 }).catch(() => {}); await p.waitForTimeout(4000);
+      const s0 = await state(p), dash = await p.evaluate(() => ({ view: window.__threats.S.view, state: window.__threats.outlook.state, days: document.querySelectorAll("#txPanelBody .px-olday").length, head: (document.querySelector("#txPanelBody .px-olhead .px-big") || {}).textContent, radar: window.__threats.radar.state, radarOn: window.__threats.S.radar }));
       const by0 = tally(reqs); rec.fresh = { requests: reqs.length, byFeed: by0, other: Object.fromEntries(other), state: s0, dash };
       await p.screenshot({ path: path.join(OUT, `fresh-${d}.png`) });
-      /* the dashboard's sources only: alerts at the venue's point, its NWS forecast grid, SPC Days 1-8 and fire, WPC rainfall and WSSI-P, NHC,
-         AirNow forecast (through /api/smoke), NOAA river gauges near the venue; never a map layer's feeds (zone outlines, MDs, storm reports, NIFC, HMS smoke, monitors, aviation) */
-      const DASH = ["alerts", "spc", "ero", "fire", "wssi", "nhc", "airnow", "hms", "nws-other", "gauges"], notMap = Object.keys(by0).every((k) => DASH.includes(k)) && !reqs.some((r) => r.feed === "hms" && !/airnow-area/.test(r.url));
-      check(`(${d}) FRESH VISIT: the venue's 7-day dashboard ('${dash.head}', ${dash.days} days) with map layers off ("Layers · None selected"), basemap and venue marker; only the dashboard's sources (${Object.entries(by0).map(([k, v]) => k + " " + v).join(", ")}), no map-layer feed`,
-        dash.view === "outlook" && dash.state === "ok" && dash.days === 7 && dash.presets >= 2 && !s0.layers.length && s0.sum === "None selected" && /^Layers\s*·?\s*None selected/i.test(s0.btn) && s0.basemap && s0.marker && Array.isArray(s0.feeds) && !s0.feeds.length && notMap && !errs.length, { dash, by0, s0, errs });
+      const DEF = ["severe", "flood", "winter", "heat", "wind", "tropical", "coastal"], NOT = ["nifc", "fire-map", "monitors", "awc"], fireMap = reqs.some((r) => r.feed === "fire" && Date.now()); // fire outlooks may come from the dashboard
+      check(`(${d}) FRESH VISIT: the 7-day dashboard ('${dash.head}'); map defaults ${s0.sum}: radar plus the warning, watch and advisory layers; fire, smoke and aviation off (requests: ${Object.entries(by0).map(([k, v]) => k + " " + v).join(", ")})`,
+        dash.view === "outlook" && dash.state === "ok" && dash.days === 7 && dash.radarOn && JSON.stringify(s0.layers) === JSON.stringify(DEF) && s0.sum === "Severe storms, Flooding +5 + Radar" && JSON.stringify(s0.feeds) === '["alerts","ero","md","nhc","reports","spc"]' && by0.alerts >= 1 && !by0.nifc && !by0.monitors && !by0.awc && s0.basemap && s0.marker && !errs.length, { dash, by0, s0, errs });
+      await ctx.close(); }
+    /* 2-4: from no layers (?layers=none): open the picker, Severe storms alone, then off again */
+    { const { ctx, p, reqs, other, errs } = await page();
+      await p.goto(HOST + PAGE + "?layers=none&view=active", { waitUntil: "domcontentloaded" }); await ready(p); await p.waitForTimeout(6000);
+      const s0 = await state(p);
+      check(`(${d}) ?layers=none: every layer off, 'Layers · None selected', no threat-feed request (${reqs.length})`, reqs.length === 0 && !s0.layers.length && s0.sum === "None selected" && !errs.length, { s0, reqs: reqs.map((r) => r.url), errs });
       let t0 = Date.now(); await p.click("#txLayersBtn"); await p.waitForTimeout(5000);
       const pick = since(reqs, t0), sp = await p.evaluate(() => !document.getElementById("txLayersPop").hidden); rec.pickerOpen = { requests: pick.length, byFeed: tally(pick) };
       await p.screenshot({ path: path.join(OUT, `picker-open-${d}.png`) });
