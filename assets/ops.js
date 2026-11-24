@@ -136,7 +136,7 @@
     foot.className = "foot";
     /* beta preview builds (served from the preview host) carry no verification links */
     const preview = /(^|\.)githack\.com$|(^|\.)forecast-ops-beta\.pages\.dev$/.test(location.hostname); // beta preview hosts: no private verification links
-    foot.innerHTML = `<div class="foot-top"><span class="foot-brand">${esc(BRAND.name)}${preview ? " · beta preview" : ""}</span><div class="foot-links">${preview ? '<a href="meteorologist-beta.html">Meteorologist beta</a><a href="event-beta.html">Event beta</a>' : '<a href="verify.html">CVG verification</a><a href="#" id="verifyExport">Export forecast &amp; observation logs</a>'}</div></div>
+    foot.innerHTML = `<div class="foot-top"><span class="foot-brand">${esc(BRAND.name)}${preview ? " · beta preview" : ""}</span><div class="foot-links">${preview ? '<a href="meteorologist-beta.html">Meteorologist beta</a><a href="event-beta.html">Event Manager</a>' : '<a href="verify.html">CVG verification</a><a href="#" id="verifyExport">Export forecast &amp; observation logs</a>'}</div></div>
       <p class="foot-attribution">Built by ${BRAND.contact ? `<a href="${esc(BRAND.contact)}">${esc(BRAND.owner)}</a>` : esc(BRAND.owner)} · Weather data by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0) · Alerts from <a href="https://www.weather.gov/" target="_blank" rel="noopener">NWS</a></p>
       <p class="foot-disclaimer">Model guidance only. Not an official forecast or warning. NWS is one weighted source in Model Blend; elsewhere NWS values are labelled NWS and shown alongside.</p>`;
     document.body.append(foot);
@@ -864,9 +864,28 @@
     };
     draw(); locListeners.push(draw);
   }
+  /* when no model answered: say what happened. Provider rate limiting or errors are not a problem with the reader's
+     connection. limited: every model answered HTTP 429; wait: the longest Retry-After any model sent (seconds). */
+  function loadFailText(res, unreachable = "Couldn't reach Open-Meteo. Check your connection and try again.") {
+    const fails = Object.values((res && res.failures) || {}), statuses = [...new Set(fails.map((f) => f.status).filter(Boolean))];
+    const waits = fails.map((f) => f.retryAfter).filter((x) => Number.isFinite(x) && x > 0);
+    const ra = res && Number.isFinite(res.retryAfter) && res.retryAfter > 0 ? res.retryAfter : waits.length ? Math.max(...waits) : null;
+    const wait = ra ? ` Open-Meteo asked to wait ${ra < 120 ? `${ra} s` : `about ${Math.ceil(ra / 60)} min`}.` : "";
+    const limited = !!fails.length && statuses.length === 1 && statuses[0] === 429 && fails.every((f) => f.status === 429);
+    const text = limited ? `Open-Meteo is limiting requests right now (HTTP 429 for every model).${wait}`
+      : fails.length && statuses.length && fails.every((f) => f.status) ? `Open-Meteo answered with an error for every model (HTTP ${statuses.join(", ")}).${wait} Try again in a minute.` : unreachable;
+    return { limited, wait: ra, text };
+  }
+  /* one automatic retry per page after a rate limit (every model HTTP 429): after the wait Open-Meteo asked for,
+     kept between 15 s and 2 min (30 s when it named none). Returns the seconds, or null when no retry was scheduled. */
+  let autoRetries = 0;
+  function retryWhenLimited(info, again) {
+    if (!info || !info.limited || autoRetries >= 1) return null;
+    autoRetries++; const s = Math.min(120, Math.max(15, info.wait || 30)); setTimeout(again, s * 1000); return s;
+  }
   window.Ops = {
     pct5, Core, BRAND, PRESETS, TIER, maxTier, badge, $, esc, store, css, icon,
-    shell, severeViews, beginLoad, pristine, onAlerts, searchPlaces, zoneFor, stateAbbr, onLocation: (f) => locListeners.push(f), get alertState(){return alertState;}, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
+    shell, severeViews, loadFailText, retryWhenLimited, beginLoad, pristine, onAlerts, searchPlaces, zoneFor, stateAbbr, onLocation: (f) => locListeners.push(f), get alertState(){return alertState;}, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
     Data, getJSON, hasData, savedWeights, savedDays, align: Core.stats.align,
     nowIndex, hourOf, dayOf, fmtDay, fmtHour, fmtWhen, tzShort, hourLabels, dayGroups,
     blendSeries: Core.stats.blendSeries, weightedQuantile: Core.stats.weightedQuantile,
