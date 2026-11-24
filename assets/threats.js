@@ -158,6 +158,8 @@
     data.state = {}; for (const k of Object.keys(data.sources)) data.state[k] = data.sources[k].state === "off" ? { kind: "off", text: "Layer off" } : data.sources[k].state === "pending" ? { kind: "loading", text: "Loading" } : data.sources[k].state === "na" ? { kind: "na", text: "Not part of this sample" } : data.loading ? { kind: "loading", text: "Loading" } : isArchive() ? { kind: data.sources[k].count ? "current" : "empty", text: "Archived" } : T.sourceState(data.sources[k], now, STALE_MIN[k]);
   }
   const tz = () => venue.tz;
+  /* a time zone as people say it: "Eastern Time (EST)", never the database name (America/New_York) */
+  const tzName = (z) => { try { const part = (o) => new Intl.DateTimeFormat("en-US", { timeZone: z, ...o }).formatToParts(new Date()).find((x) => x.type === "timeZoneName").value; const long = part({ timeZoneName: "longGeneric" }), abbr = part({ timeZoneName: "short" }); return /^GMT/.test(abbr) || long === abbr ? long : long + " (" + abbr + ")"; } catch (e) { return z; } };
   const t = (iso, day) => T.fmtTime(iso, tz(), { day });
   const shown = (p) => S.layers[p.family || "severe"] !== false;
   const active = () => data.products.filter((p) => p.kind !== "outlook" && p.family !== "aviation" && shown(p) && (Date.parse(p.expires) > now || (p.kind === "md" && p.expires == null)));
@@ -893,7 +895,7 @@
       const name = official() && s.kind !== "na" ? `<a href="${esc(SRC_LINK[k])}" target="_blank" rel="noopener">${esc(SRC_NAME[k])}</a>` : esc(SRC_NAME[k]);
       return `<div class="px-src ${s.kind}"${src.error ? ` title="${esc(src.error)}"` : ""}><span><b>${name}</b></span><span>${esc(right)}</span></div>`;
     }).join("");
-    const foot = isArchive() ? `Archived sample: ${esc(data.archive ? data.archive.label : "")}. Official messages replayed through the same adapter the live preview uses; the clock is set to the message time. Not a live observation. Times in ${esc(venue.tz)}.` : isLive() ? `Live official feeds, fetched by your browser${refreshNote()}. Times in ${esc(venue.tz)}. A failed refresh never clears a product.` : `Demo clock ${esc(t(data.clock, true))}. A failed refresh never clears a product.`;
+    const foot = isArchive() ? `Archived sample: ${esc(data.archive ? data.archive.label : "")}. Official messages replayed through the same adapter the live preview uses; the clock is set to the message time. Not a live observation. Times in ${esc(tzName(venue.tz))}.` : isLive() ? `Live official feeds, fetched by your browser${refreshNote()}. Times in ${esc(tzName(venue.tz))}. A failed refresh never clears a product.` : `Demo clock ${esc(t(data.clock, true))}. A failed refresh never clears a product.`;
     return `<div class="px-sources" aria-label="Source status">${rows}${radarRow()}<div class="lg-note">${foot}</div></div>`;
   }
   function notices() {
@@ -1332,7 +1334,7 @@
     let h = `<div class="px-olhead" data-ol-state="ok" style="--ol-c:${LEVEL_COLOR[hl.level]}"><div class="px-where">Next 7 days at ${esc(venue.name)}${venue.city ? " · " + esc(venue.city) : ""}</div>`
       + `<div class="px-big">${hl.level ? esc(hl.text) : esc(hl.text)}</div><div class="px-sub">${hl.level ? esc(hl.when + " · " + hl.source + " · " + LEVEL_WORD[hl.level] + " concern") : r.unknown.length ? "Not confirmed: " + esc(r.unknown.join("; ")) : "From NWS, SPC, WPC, NHC and AirNow"}</div></div>`;
     if (r.alerts.length) h += `<div class="px-h"><span>NWS alerts at the venue</span><span>${r.alerts.length}</span></div>` + r.alerts.map((a) => `<div class="px-olalert" style="--ol-c:${LEVEL_COLOR[Math.max(a.level, 1)]}"><b>${esc(a.event)}</b><span>${esc(a.start > Date.now() ? "from " + t(new Date(a.start).toISOString(), true) + " " : "now ")}until ${esc(t(new Date(a.end).toISOString(), true))}</span></div>`).join("");
-    h += `<div class="px-h"><span>Day by day</span><span>${esc(tz().split("/").pop().replace(/_/g, " "))} time</span></div><div class="px-oldays">`;
+    h += `<div class="px-h"><span>Day by day</span><span>${esc(tzName(tz()))}</span></div><div class="px-oldays">`;
     for (const d of r.days) {
       const top = d.items.reduce((m, x) => Math.max(m, x.level), 0), sig = d.items.filter((x) => x.level >= 1), info = d.items.filter((x) => x.level < 1);
       h += `<div class="px-olday" data-ol-day="${d.date}" style="--ol-c:${LEVEL_COLOR[top]}"><div class="px-olday-h"><b>${esc(d.label)}</b>${top ? `<span class="px-ollv">${LEVEL_WORD[top]}</span>` : ""}</div>`
