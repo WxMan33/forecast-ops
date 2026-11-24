@@ -5,6 +5,7 @@
    does for Node):
      GET /api/nws/alerts/active?event=<Tornado Warning|Severe Thunderstorm Warning|Tornado Watch|Severe Thunderstorm Watch|Flash Flood Warning>[,…]
      GET /api/nws/alerts/<urn:oid:… alert id>         (the earlier message an update replaced, for "What changed")
+     GET /api/nws/alerts/active?point=<lat>,<lon>   (every active alert covering the venue, for its 7-day dashboard)
      GET /api/nws/points/<lat>,<lon>   (NWS's own zones for a venue: forecast zone, county, fire weather zone)
      GET /api/nws/gridpoints/<WFO>/<x>,<y>   (the venue's hourly forecast grid: wind gusts, heat index, rain chance)
      GET /api/nws/zones/county/<XXC###>, /api/nws/zones/forecast/<XXZ###>, /api/nws/zones/fire/<XXZ###>   (county, forecast,
@@ -28,6 +29,8 @@ const memory = new Map(); // per-isolate cache; the Cache API is used too where 
 
 function route(url) {
   const p = url.pathname.replace(/^\/api\/nws/, "");
+  // every active alert covering one point (the venue's 7-day dashboard): no other parameters
+  if (p === "/alerts/active" && [...url.searchParams.keys()].join() === "point" && /^-?\d{1,2}\.\d{1,4},-?\d{1,3}\.\d{1,4}$/.test(url.searchParams.get("point") || "")) return { kind: "alerts", path: "/alerts/active?point=" + url.searchParams.get("point") };
   if (p === "/alerts/active") {
     const ev = (url.searchParams.get("event") || "").split(",").map((s) => s.trim()).filter(Boolean);
     if (!ev.length || ev.some((e) => !EVENTS.has(e)) || [...url.searchParams.keys()].some((k) => k !== "event")) return null;

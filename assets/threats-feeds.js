@@ -832,6 +832,21 @@
       source: { name: "NOAA map service (SPC MDs)", url: n ? MD_URL(n) : MD_LIST_URL }, bulletin: "", severe: !/winter|snow|freezing|blizzard/i.test(text) };
   }
 
+  /* ---------- SPC Days 4-8 severe probability (any severe, within 25 miles): 15% or 30% areas, or a statement for the day ----------
+     With no area, SPC's one feature says why: "Potential Too Low" (no area expected: quiet) or "Predictability Too Low" (SPC
+     can't say yet: unknown, never quiet). */
+  const DAY48_URL = (d) => "https://www.spc.noaa.gov/products/exper/day4-8/day" + d + "prob.nolyr.geojson";
+  function parseDay48(gj, day) {
+    if (!gj || !Array.isArray(gj.features) || !gj.features.length) throw Error("unrecognized SPC Day 4-8 answer");
+    const P0 = gj.features[0].properties || {}, start = P0.VALID_ISO ? new Date(P0.VALID_ISO).toISOString() : null, end = P0.EXPIRE_ISO ? new Date(P0.EXPIRE_ISO).toISOString() : null;
+    const issued = P0.ISSUE_ISO ? new Date(P0.ISSUE_ISO).toISOString() : P0.ISSUE ? new Date(Date.UTC(+P0.ISSUE.slice(0, 4), +P0.ISSUE.slice(4, 6) - 1, +P0.ISSUE.slice(6, 8), +P0.ISSUE.slice(8, 10), +P0.ISSUE.slice(10, 12))).toISOString() : null;
+    if (!start || !end) throw Error("SPC Day 4-8 valid times missing");
+    const products = gj.features.filter((f) => +(f.properties || {}).DN > 0 && f.geometry && /Polygon/.test(f.geometry.type)).map((f) => ({ id: "spc-d" + day + "-" + f.properties.DN + "-" + start, kind: "outlook", program: "spc48", family: "severe", day, prob: +f.properties.DN,
+      category: f.properties.DN + "%", geometry: f.geometry, validStart: start, validEnd: end, issued, title: "Day " + day + " severe probability " + f.properties.DN + "%", source: { name: "SPC Day 4-8 outlook", url: "https://www.spc.noaa.gov/products/exper/day4-8/" } }));
+    const label = String(P0.LABEL || "");
+    return { day, products, validStart: start, validEnd: end, issued, status: products.length ? "areas" : /predictability/i.test(label) ? "predictability-too-low" : /potential/i.test(label) ? "potential-too-low" : "none", label };
+  }
+
   /* ---------- SPC storm reports (preliminary, filtered): tornado, wind and hail reports for a convective day (12Z to 12Z) ----------
      One CSV with three sections, each led by its own header (Time,F_Scale / Time,Speed / Time,Size,...). Time is HHMM UTC: from
      1200 it is on the day's date, before 1200 on the next. Speed in mph, Size in hundredths of an inch, "UNK" when not given.
@@ -889,7 +904,7 @@
     return { updated: new Date(P.updateTime).toISOString(), rows, covered, peakGust: peak("gust"), peakHeat: peak("heat"), peakFeels: peak("feels"), peakPop: peak("pop"), lowFeels: rows.reduce((b, r) => (r.feels != null && (!b || r.feels < b.feels) ? r : b), null) };
   }
 
-  return { REPORTS_URL, parseStormReports, RADAR_TIME_URL, RADAR_TILE_URL, parseRadarTime, parseGrid, EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
+  return { DAY48_URL, parseDay48, REPORTS_URL, parseStormReports, RADAR_TIME_URL, RADAR_TILE_URL, parseRadarTime, parseGrid, EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
     parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries, dissolve, zoneShape,
     HAZARD, WINTER_EVENTS, FIRE_EVENTS, TROPICAL_EVENTS, COASTAL_EVENTS, EVENT_NAME, tcvToAlerts, pointZones, NAQFC_ENABLED, AWC_URL, FLT_ORDER, fltCat, parseMETAR, parseTAF, NHC_URL, NHC_WSP_AT, parseNHC, parseNHCWsp, TCWW, FIRE_CATS, DRYT_CATS, FIRE38_CATS, FIRE_NAME, FIRE_MEANING, SPC_FIRE_URL, parseFireOutlook, createFireStore,
     NIFC_INC_URL, NIFC_PER_URL, INCIDENT_TYPE, parseNIFC, zTime,

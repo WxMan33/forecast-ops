@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* Weather Threats map: threat feeds follow the selected layers. On desktop and a 390 px phone:
-     1. a fresh /threats visit draws the basemap and venue marker with every layer off, says "Layers · None selected", prompts
-        to select a layer, and makes zero threat-feed requests;
+     1. a fresh /threats visit opens the venue's 7-day dashboard with every map layer off ("Layers · None selected"): only the
+        dashboard's own sources are requested, no map-layer feed;
      2. opening the Layers picker makes zero threat-feed requests;
      3. Severe storms alone requests only its feeds (NWS alerts, SPC Mesoscale Discussions, SPC convective outlooks, SPC storm reports);
      4. turning it off again stops those refreshes (no threat-feed request over 70 s, longer than the 60 s alert/MD refresh);
@@ -63,11 +63,16 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
 
     /* 1-4: fresh visit, open the picker, Severe storms alone, then off again */
     { const { ctx, p, reqs, other, errs } = await page();
-      await p.goto(HOST + PAGE, { waitUntil: "domcontentloaded" }); await ready(p); await p.waitForTimeout(8000);
-      const s0 = await state(p); rec.fresh = { requests: reqs.length, byFeed: tally(reqs), other: Object.fromEntries(other), state: s0 };
+      await p.goto(HOST + PAGE, { waitUntil: "domcontentloaded" }); await ready(p);
+      await p.waitForFunction(() => window.__threats.outlook && ["ok", "failed"].includes(window.__threats.outlook.state), null, { timeout: 120000 }).catch(() => {}); await p.waitForTimeout(3000);
+      const s0 = await state(p), dash = await p.evaluate(() => ({ view: window.__threats.S.view, state: window.__threats.outlook.state, days: document.querySelectorAll("#txPanelBody .px-olday").length, head: (document.querySelector("#txPanelBody .px-olhead .px-big") || {}).textContent, presets: document.querySelectorAll("#txPanelBody [data-preset]").length }));
+      const by0 = tally(reqs); rec.fresh = { requests: reqs.length, byFeed: by0, other: Object.fromEntries(other), state: s0, dash };
       await p.screenshot({ path: path.join(OUT, `fresh-${d}.png`) });
-      check(`(${d}) FRESH VISIT: basemap and venue marker drawn, every layer off, "Layers · None selected", a prompt to select a layer; zero threat-feed requests (${reqs.length})`,
-        reqs.length === 0 && !s0.layers.length && s0.sum === "None selected" && /^Layers\s*·?\s*None selected/i.test(s0.btn) && s0.prompt && /Select a layer/.test(s0.promptText) && s0.peek === "No threat layers selected" && s0.basemap && s0.marker && Array.isArray(s0.feeds) && !s0.feeds.length && !errs.length, { s0, reqs: reqs.map((r) => r.url), errs });
+      /* the dashboard's sources only: alerts at the venue's point, its NWS forecast grid, SPC Days 1-8 and fire, WPC rainfall and WSSI-P, NHC,
+         AirNow forecast (through /api/smoke); never a map layer's feeds (zone outlines, MDs, storm reports, NIFC, HMS smoke, monitors, aviation) */
+      const DASH = ["alerts", "spc", "ero", "fire", "wssi", "nhc", "airnow", "hms", "nws-other"], notMap = Object.keys(by0).every((k) => DASH.includes(k)) && !reqs.some((r) => r.feed === "hms" && !/airnow-area/.test(r.url));
+      check(`(${d}) FRESH VISIT: the venue's 7-day dashboard ('${dash.head}', ${dash.days} days) with map layers off ("Layers · None selected"), basemap and venue marker; only the dashboard's sources (${Object.entries(by0).map(([k, v]) => k + " " + v).join(", ")}), no map-layer feed`,
+        dash.view === "outlook" && dash.state === "ok" && dash.days === 7 && dash.presets >= 2 && !s0.layers.length && s0.sum === "None selected" && /^Layers\s*·?\s*None selected/i.test(s0.btn) && s0.basemap && s0.marker && Array.isArray(s0.feeds) && !s0.feeds.length && notMap && !errs.length, { dash, by0, s0, errs });
       let t0 = Date.now(); await p.click("#txLayersBtn"); await p.waitForTimeout(5000);
       const pick = since(reqs, t0), sp = await p.evaluate(() => !document.getElementById("txLayersPop").hidden); rec.pickerOpen = { requests: pick.length, byFeed: tally(pick) };
       await p.screenshot({ path: path.join(OUT, `picker-open-${d}.png`) });

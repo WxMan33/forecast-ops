@@ -34,6 +34,10 @@ await ok("NWS: Flash Flood Warning, winter and fire weather alerts and fire weat
   answer = () => new Response(JSON.stringify({ properties: { forecastZone: "https://api.weather.gov/zones/forecast/AMZ454" } }));
   assert.strictEqual((await get(nws, "/api/nws/points/29.4802,-81.1065")).status, 200);
   for (const bad of ["/api/nws/points/29.48021,-81.1", "/api/nws/points/abc,1", "/api/nws/points/29.4,-81.1?x=1"]) assert.strictEqual((await get(nws, bad)).status, 404, bad);
+  // every alert at one point (the 7-day dashboard): the point only, 4 decimals at most
+  answer = () => new Response(JSON.stringify({ type: "FeatureCollection", features: [] }));
+  assert.strictEqual((await get(nws, "/api/nws/alerts/active?point=39.1113,-84.5222")).status, 200);
+  for (const bad of ["/api/nws/alerts/active?point=39.11131,-84.5", "/api/nws/alerts/active?point=39.1,-84.5&event=Tornado%20Warning", "/api/nws/alerts/active?point=abc"]) assert.strictEqual((await get(nws, bad)).status, 404, bad);
   // the venue's forecast grid: one office and cell, no query; a grid without wind gusts is refused
   answer = () => new Response(JSON.stringify({ properties: { updateTime: "2026-11-23T20:00:00+00:00", windGust: { uom: "wmoUnit:km_h-1", values: [] } } }));
   assert.strictEqual((await get(nws, "/api/nws/gridpoints/ILN/30,40")).status, 200);

@@ -172,6 +172,7 @@
   const endOf = (p) => p.expires || p.validEnd;
   const viewDay = () => ({ day1: 1, day2: 2, day3: 3 })[S.view] || null;
   const winterView = () => S.view === "winter";
+  const outlookView = () => S.view === "outlook" && isLive();
   const fireView = () => S.view === "fire";
   /* NIFC incidents (prescribed fires only when asked for) and SPC fire outlook areas for one day */
   /* fully contained fires (100%, still listed by NIFC until declared out) are hidden unless asked for, or linked to */
@@ -1128,6 +1129,13 @@
   function renderPanel() {
     const body = $("txPanelBody"), p = S.sel && byId(S.sel), keep = body.scrollTop, focusId = document.activeElement && body.contains(document.activeElement) && document.activeElement.dataset ? document.activeElement.dataset.id : null;
     if (data.loadError) { body.innerHTML = `<p class="px-empty">Could not load this archived sample (${esc(data.loadError)}).</p>`; return; }
+    if (outlookView() && !p && !S.point) {
+      body.innerHTML = outlookPanel(); document.querySelectorAll("[data-scope]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scope === S.scope)));
+      $("scopeVenue").innerHTML = `Venue<span class="tx-sbv"> · ${esc(venue.name)}</span>`;
+      const r = vo.data && OL ? OL.build({ ...vo.data, now: Date.now(), tz: tz(), venue, days: 7 }).headline : null;
+      $("txPeek1").textContent = r ? (r.level ? r.text : "Next 7 days: " + r.text.charAt(0).toLowerCase() + r.text.slice(1)) : "Next 7 days at " + venue.name; $("txPeek2").textContent = r && r.level ? r.when + " · " + r.source : vo.state === "loading" ? "Loading…" : "Tap for the day-by-day outlook";
+      $("txPeek3").textContent = ""; $("txPeek3").hidden = true; $("txPeek").style.setProperty("--peek-c", r && r.level ? LEVEL_COLOR[r.level] : "transparent"); return;
+    }
     if (!anyLayer() && !p) { // nothing selected: the basemap and venue only, and nothing downloaded
       body.innerHTML = `<div class="px-nolayer" data-kind="no-layers"><p class="px-empty"><b>No threat layers selected.</b> Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.</p>`
         + `<div class="px-presets"><button type="button" class="tx-fb tx-done" data-preset="venue">Warnings at my venue</button><button type="button" class="tx-fb" data-preset="all">Everything</button><button type="button" class="tx-fb" data-open-layers>Choose layers</button></div>`
@@ -1152,9 +1160,11 @@
     syncLayers();
     const day = viewDay();
     document.querySelectorAll('.tx-tb[data-view="winter"]').forEach((b) => { b.hidden = !S.layers.winter; });
+    document.querySelectorAll('.tx-tb[data-view="outlook"]').forEach((b) => { b.hidden = !isLive(); }); // the 7-day dashboard is live only
     document.querySelectorAll('.tx-tb[data-view="fire"]').forEach((b) => { b.hidden = !S.layers.fire; });
     if (fireView()) { const o = fireOut(S.fday)[0], src = data.sources["fire" + S.fday]; $("txValid").innerHTML = `<b>Fire · SPC Day ${S.fday}</b> · ${o ? esc(t(o.validStart, true)) + " → " + esc(t(o.validEnd, true)) + `<span class="z">${esc(T.fmtZ(o.validStart))}–${esc(T.fmtZ(o.validEnd))} · issued ${esc(T.fmtZ(o.issued))}</span>` : src && src.validEnd ? "no areas" + (src.phrase ? " (" + esc(src.phrase) + ")" : "") : "no outlook loaded"}`; }
     else if (winterView()) { const w = curWin(); $("txValid").innerHTML = w ? `<b>Winter · WPC WSSI-P</b> · ${esc(winSpan(w))}<span class="z">${esc(T.fmtZ(w.start))}–${esc(T.fmtZ(w.end))}${w.issued ? " · issued " + esc(T.fmtZ(w.issued)) : ""}</span>` : `<b>Winter · WPC WSSI-P</b> · no outlook loaded`; }
+    else if (outlookView()) $("txValid").innerHTML = `<b>Next 7 days</b> · at ${esc(venue.name)}${vo.data ? " · updated " + esc(t(vo.data.at, true)) : ""}`;
     else if (!day) $("txValid").innerHTML = `<b>Active now</b> · as of ${esc(t(data.clock, true))}`;
     else {
       const o = outlooks(day)[0] || eroOut(day)[0];
@@ -1276,6 +1286,44 @@
     if (!Live.venueForecast || vfc.state === "loading") return; vfc.state = "loading"; renderPanel(); const k = vfc.key;
     Live.venueForecast(venue.lat, venue.lon).then((d) => { if (vfc.key === k) { vfc.state = "ok"; vfc.data = d; } }).catch((e) => { if (vfc.key === k) { vfc.state = "failed"; vfc.err = e.message; } }).finally(() => renderPanel());
   }
+  /* ---------- the venue's next 7 days: a dashboard of approaching threats (ThreatsOutlook), loaded when shown ---------- */
+  const OL = window.ThreatsOutlook, LEVEL_WORD = ["", "Low", "Moderate", "High", "Extreme"], LEVEL_COLOR = ["var(--muted)", "#d9a400", "#e8742a", "#d7263d", "#a3159c"];
+  let vo = { key: null, state: "idle", data: null, err: null };
+  function loadOutlook(force) {
+    if (!OL || !Live.outlookFor || !venue) return; const k = (+venue.lat).toFixed(4) + "," + (+venue.lon).toFixed(4);
+    if (!force && vo.key === k && (vo.state === "loading" || (vo.state === "ok" && Date.now() - Date.parse(vo.data.at) < 10 * 60e3))) return;
+    vo = { key: k, state: "loading", data: vo.key === k ? vo.data : null, err: null };
+    Live.outlookFor(venue.lat, venue.lon).then((d) => { if (vo.key === k) { vo.state = "ok"; vo.data = d; } }).catch((e) => { if (vo.key === k) { vo.state = "failed"; vo.err = e.message; } }).finally(() => drawAll());
+  }
+  const OL_ICON = { severe: "⛈", rain: "🌧", winter: "❄", fire: "🔥", tropical: "🌀", wind: "💨", heat: "🌡", cold: "🥶", precip: "☂", air: "😷", alert: "⚠" };
+  function outlookPanel() {
+    loadOutlook(false);
+    if (!vo.data) return vo.state === "failed" ? `<p class="px-empty">The 7-day outlook didn't load (${esc(vo.err)}). <button type="button" class="tx-fb" data-ol-refresh>Try again</button></p>` : `<p class="px-empty" data-ol-state="loading">Loading the next 7 days at ${esc(venue.name)}: NWS alerts and forecast, SPC, WPC, NHC and AirNow outlooks…</p>`;
+    const r = OL.build({ ...vo.data, now: Date.now(), tz: tz(), venue, days: 7 }), hl = r.headline;
+    let h = `<div class="px-olhead" data-ol-state="ok" style="--ol-c:${LEVEL_COLOR[hl.level]}"><div class="px-where">Next 7 days at ${esc(venue.name)}${venue.city ? " · " + esc(venue.city) : ""}</div>`
+      + `<div class="px-big">${hl.level ? esc(hl.text) : esc(hl.text)}</div><div class="px-sub">${hl.level ? esc(hl.when + " · " + hl.source + " · " + LEVEL_WORD[hl.level] + " concern") : r.unknown.length ? "Not confirmed: " + esc(r.unknown.join("; ")) : "From NWS, SPC, WPC, NHC and AirNow"}</div></div>`;
+    if (r.alerts.length) h += `<div class="px-h"><span>NWS alerts at the venue</span><span>${r.alerts.length}</span></div>` + r.alerts.map((a) => `<div class="px-olalert" style="--ol-c:${LEVEL_COLOR[Math.max(a.level, 1)]}"><b>${esc(a.event)}</b><span>${esc(a.start > Date.now() ? "from " + t(new Date(a.start).toISOString(), true) + " " : "now ")}until ${esc(t(new Date(a.end).toISOString(), true))}</span></div>`).join("");
+    h += `<div class="px-h"><span>Day by day</span><span>${esc(tz().split("/").pop().replace(/_/g, " "))} time</span></div><div class="px-oldays">`;
+    for (const d of r.days) {
+      const top = d.items.reduce((m, x) => Math.max(m, x.level), 0), sig = d.items.filter((x) => x.level >= 1), info = d.items.filter((x) => x.level < 1);
+      h += `<div class="px-olday" data-ol-day="${d.date}" style="--ol-c:${LEVEL_COLOR[top]}"><div class="px-olday-h"><b>${esc(d.label)}</b>${top ? `<span class="px-ollv">${LEVEL_WORD[top]}</span>` : ""}</div>`
+        + (sig.length ? sig.map((x) => `<button type="button" class="px-olchip" data-ol-go="${esc(x.link || "")}" data-ol-key="${x.key}" style="--ol-c:${LEVEL_COLOR[x.level]}"><span aria-hidden="true">${OL_ICON[x.key] || "•"}</span> ${esc(x.text)} <small>${esc(x.source)}</small></button>`).join("") : `<div class="px-olquiet">${d.unknown.length ? "No threat in the sources that answered" : "No threats expected"}</div>`)
+        + (info.length ? `<div class="px-olinfo">${info.map((x) => esc(x.text)).join(" · ")}</div>` : "")
+        + (d.unknown.length ? `<div class="px-olunk">Not confirmed: ${d.unknown.map(esc).join("; ")}</div>` : "") + `</div>`;
+    }
+    h += `</div>`;
+    const gi = vo.data.gridInfo;
+    h += `<p class="lg-note">Official sources for the venue's point: NWS alerts and forecast grid${gi ? " (" + esc(gi.office + " " + gi.cell) + ", updated " + esc(t(gi.updated)) + ")" : ""}, SPC severe Days 1–8 and fire Days 1–8, WPC excessive rainfall Days 1–5 and winter WSSI-P, NHC, AirNow. Levels order what is shown; each line keeps the source's own wording. Updated ${esc(t(vo.data.at))} · <button type="button" class="px-link" data-ol-refresh>Refresh</button></p>`;
+    h += `<div class="px-h">Show on the map</div><div class="px-presets"><button type="button" class="tx-fb tx-done" data-preset="venue">Warnings at my venue</button><button type="button" class="tx-fb" data-preset="all">Everything</button><button type="button" class="tx-fb" data-open-layers>Choose layers</button></div>`;
+    return h + venueFcSection();
+  }
+  /* a dashboard line opens the map where its source is: the view and the layer it needs */
+  function outlookGo(link, key) {
+    const layer = { severe: "severe", rain: "flood", winter: "winter", fire: "fire", tropical: "tropical", alert: null }[key];
+    if (layer) S.layers[layer] = true; else if (key === "alert") ["severe", "flood", "winter", "fire", "tropical", "coastal"].forEach((k) => (S.layers[k] = true));
+    S.scope = "venue"; setView(link === "winter" ? "winter" : link === "fire" ? "fire" : /^day\d$/.test(link) ? link : "active");
+  }
+
   /* one-tap starting points in the no-layers prompt */
   const PRESETS = { venue: { layers: ["severe", "flood", "winter", "coastal"], scope: "venue" }, all: { layers: Object.keys(LAYER_FEEDS) } };
   function applyPreset(k) {
@@ -1371,7 +1419,7 @@
   }
   const layersSummary = () => { const r = S.radar && isLive(), h = hazardSummary(); return h === "None selected" ? (r ? "Radar only" : h) : h + (r ? " + Radar" : ""); };
   const hazardSummary = () => { const on = LAYER_KEYS.filter((k) => S.layers[k]); return !on.length ? "None selected" : on.length === LAYER_KEYS.length ? "All 8" : on.length <= 2 ? on.map((k) => LAYER_NAME[k]).join(", ") : LAYER_NAME[on[0]] + ", " + LAYER_NAME[on[1]] + " +" + (on.length - 2); };
-  const viewName = () => (winterView() ? "Winter · 7 days" : fireView() ? "Fire · 8 days" : viewDay() ? "Day " + viewDay() : "Active now");
+  const viewName = () => (outlookView() ? "Next 7 days" : winterView() ? "Winter · 7 days" : fireView() ? "Fire · 8 days" : viewDay() ? "Day " + viewDay() : "Active now");
   function syncLayers() {
     const pop = $("txLayersPop"); if (!pop) return;
     pop.querySelectorAll("input[data-layer]").forEach((i) => { i.checked = !!S.layers[i.dataset.layer]; const n = pop.querySelector(`[data-note="${i.dataset.layer}"]`), why = S.layers[i.dataset.layer] && layerNote(i.dataset.layer); n.textContent = why ? "Not drawn now: " + why : ""; n.hidden = !why; });
@@ -1404,7 +1452,9 @@
   $("txLayersBtn").addEventListener("click", () => popOpen($("txLayersPop").hidden));
   $("txPanelBody").addEventListener("click", (e) => { if (e.target.closest("[data-open-layers]")) { e.stopPropagation(); popOpen(true); }
     const pr = e.target.closest("[data-preset]"); if (pr) applyPreset(pr.dataset.preset);
-    if (e.target.closest("[data-vfc]")) loadVfc(); });
+    if (e.target.closest("[data-vfc]")) loadVfc();
+    if (e.target.closest("[data-ol-refresh]")) loadOutlook(true);
+    const og = e.target.closest("[data-ol-go]"); if (og && og.dataset.olGo) outlookGo(og.dataset.olGo, og.dataset.olKey); });
   $("txLayersPop").addEventListener("change", (e) => {
     const i = e.target; if (!i.matches("input")) return;
     if (i.dataset.layer) { S.layers[i.dataset.layer] = i.checked; if ((!S.layers.winter && winterView()) || (!S.layers.fire && fireView())) S.view = "active"; }
@@ -1512,7 +1562,9 @@
       S.entryVenue = { id: "entry", name: ((n) => n.length <= 80 ? n : n.slice(0, 79).replace(/\s+\S*$/, "") + "…")((q.get("name") || "Event venue").trim()), city: q.get("city") || "", lat, lon, tz: q.get("tz") || null /* no tz= in the link: looked up from the venue's position (withTz) */ };
       S.scope = "venue";
     }
-    if (["active", "day1", "day2", "day3", "winter", "fire"].includes(q.get("view"))) S.view = q.get("view");
+    if (["outlook", "active", "day1", "day2", "day3", "winter", "fire"].includes(q.get("view"))) S.view = q.get("view");
+    // a fresh live visit (no view, layers, selection or aviation in the link) opens on the venue's next 7 days
+    else if (S.scenario === "live" && !q.get("layers") && !q.get("sel") && !q.get("air") && !q.get("rt") && !q.get("gtg") && !q.get("ifi") && !q.get("focus")) S.view = "outlook";
     if (q.get("air")) S.air = q.get("air").toUpperCase().split(",").filter((x) => /^[A-Z][A-Z0-9]{3}$/.test(x)).slice(0, 4);
     if (/^[A-Z][A-Z0-9]{3}$/i.test(q.get("ap") || "")) S.ap = q.get("ap").toUpperCase();
     try { const r = JSON.parse(q.get("rt") || "null"); if (r && /^[A-Z][A-Z0-9]{3}$/i.test(r.o || "") && /^[A-Z][A-Z0-9]{3}$/i.test(r.d || "") && Number.isInteger(r.lo) && Number.isInteger(r.hi) && r.hi > r.lo) S.route = { o: r.o.toUpperCase(), d: r.d.toUpperCase(), lo: r.lo, hi: r.hi }; } catch (x) { /* ignored */ }
@@ -1586,5 +1638,5 @@
       else map.fitBounds(CONUS, { padding: pad(), duration: 0 });
     });
   }).catch((e) => { $("txMap").innerHTML = `<p class="msg" style="padding:20px">The map could not load (${esc(e.message)}). The threat list still works.</p>`; });
-  window.__threats = { S, drawAll, radar, get basemap() { return carto ? "carto" : "fallback"; }, retryCarto, get venue() { return venue; }, get vfc() { return vfc; }, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
+  window.__threats = { S, drawAll, radar, get outlook() { return vo; }, get basemap() { return carto ? "carto" : "fallback"; }, retryCarto, get venue() { return venue; }, get vfc() { return vfc; }, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
 })();

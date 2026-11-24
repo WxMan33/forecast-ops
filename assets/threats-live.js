@@ -132,10 +132,46 @@
       const pt = await get(nwsUrl("https://api.weather.gov/points/" + k), "json"), P = pt && pt.properties;
       if (!P || !P.gridId) throw Error("NWS has no forecast grid for this spot");
       const meta = {}, g = await get(nwsUrl("https://api.weather.gov/gridpoints/" + P.gridId + "/" + P.gridX + "," + P.gridY), "json", meta);
-      return { ...F.parseGrid(g, Date.now(), 12), office: P.gridId, grid: P.gridX + "," + P.gridY, fetched: meta.upstreamAt ? new Date(meta.upstreamAt).toISOString() : nowIso() };
+      return { ...F.parseGrid(g, Date.now(), 12), raw: g, office: P.gridId, grid: P.gridX + "," + P.gridY, fetched: meta.upstreamAt ? new Date(meta.upstreamAt).toISOString() : nowIso() };
     })();
     fcCache.set(k, { pending });
     try { const data = await pending; fcCache.set(k, { at: Date.now(), data }); return data; } catch (e) { fcCache.delete(k); throw e; }
+  }
+  /* ---------- the venue's next 7 days (the dashboard): what it needs, once per venue every 10 minutes ----------
+     NWS alerts at the point, the NWS forecast grid (7 days), SPC Days 1-3 and 4-8, WPC rainfall Days 1-5, SPC fire Days 1-8, WPC
+     WSSI-P at the point, NHC, AirNow forecast. Feeds the map already has fresh are not downloaded again. */
+  const outlookCache = { key: null, at: 0, data: null, pending: null };
+  const fresh = (info, min = 10) => info && info.lastOk && Date.now() - Date.parse(info.lastOk) < min * 60e3;
+  async function outlookFor(lat, lon) {
+    const key = (+lat).toFixed(4) + "," + (+lon).toFixed(4);
+    if (outlookCache.key === key && outlookCache.data && Date.now() - outlookCache.at < 10 * 60e3) return outlookCache.data;
+    if (outlookCache.pending && outlookCache.key === key) return outlookCache.pending;
+    outlookCache.key = key;
+    outlookCache.pending = (async () => {
+      const now = Date.now(), errs = {};
+      const shared = [fresh(outlooks[1].sourceInfo()) ? null : refreshOutlooks(), fresh(ero[1].sourceInfo()) ? null : refreshERO(), fresh(fire[1].windrh.sourceInfo(), 30) ? null : refreshFire(), nhc.lastOk && Date.now() - Date.parse(nhc.lastOk) < 30 * 60e3 ? null : refreshNHC()].filter(Boolean);
+      const [, wssiR, aqR, spc48, ero45, alertsR, gridR] = await Promise.allSettled([
+        Promise.allSettled(shared), wssiFor(+lat, +lon), aqFor(+lat, +lon),
+        Promise.all([4, 5, 6, 7, 8].map((d) => get(F.DAY48_URL(d), "json").then((j) => F.parseDay48(j, d)).catch((e) => ({ day: d, failed: true, error: e.message })))),
+        Promise.all([4, 5].map((d) => get(wpcUrl(d), "json").then((j) => { const r = F.parseERO(j, d, NWS.mode === "function" ? "wpc" : "mapservice"); return { day: d, products: r.products, validStart: r.validStart, validEnd: r.validEnd }; }).catch((e) => ({ day: d, failed: true, error: e.message })))),
+        get(nwsUrl("https://api.weather.gov/alerts/active?point=" + key), "json"),
+        venueForecast(lat, lon)]);
+      const spcDay = (d) => { const c = outlooks[d].current(now), i = outlooks[d].sourceInfo(); return { state: i.lastOk ? "ok" : "failed", products: c.products.map((p) => ({ ...p, day: d })) }; };
+      const eroDay = (d) => { const c = ero[d].current(now), i = ero[d].sourceInfo(); return i.lastOk ? { day: d, products: c.products, validStart: c.validStart || (c.products[0] || {}).validStart } : { day: d, failed: true, validStart: null }; };
+      const fireP = FIRE_DAYS.flatMap((d) => FIRE_PARTS.flatMap((part) => fire[d][part].current(now).products));
+      // WSSI-P at the point, by window: the chance of each level
+      const wins = new Map(); for (const p of wssi.products) if (p.pointHit && Math.abs(p.pointHit[0] - lon) < 1e-3 && Math.abs(p.pointHit[1] - lat) < 1e-3) { const w = wins.get(p.validStart) || { start: p.validStart, end: p.validEnd, levels: {} }; w.levels[p.category] = Math.max(w.levels[p.category] || 0, p.prob); wins.set(p.validStart, w); }
+      const s123 = [1, 2, 3].map(spcDay), grid = gridR.status === "fulfilled" ? F.parseGrid(gridR.value.raw, now, 168) : null;
+      const data = { at: new Date(now).toISOString(),
+        states: { spc: { 1: s123[0].state, 2: s123[1].state, 3: s123[2].state }, fire: fire[1].windrh.sourceInfo().lastOk ? "ok" : "failed", wssi: wssi.state === "ok" || wssi.lastOk ? "ok" : "failed", grid: grid ? "ok" : "failed", alerts: alertsR.status === "fulfilled" ? "ok" : "failed", aq: aq.fcst && aq.fcst.state },
+        spc: s123.flatMap((x) => x.products), spcDayStart: { 1: (s123[0].products[0] || {}).validStart, 2: (s123[1].products[0] || {}).validStart, 3: (s123[2].products[0] || {}).validStart },
+        spc48: spc48.status === "fulfilled" ? spc48.value : [], ero: [...[1, 2, 3].map(eroDay), ...(ero45.status === "fulfilled" ? ero45.value : [])], fire: fireP, wssi: [...wins.values()],
+        nhc: nhc.products || [], aq: aq.products.filter((p) => p.kind === "aqfcst"), alerts: alertsR.status === "fulfilled" ? (alertsR.value.features || []).map((f) => f.properties) : [],
+        grid, gridInfo: gridR.status === "fulfilled" ? { office: gridR.value.office, cell: gridR.value.grid, updated: gridR.value.updated } : null,
+        errors: { alerts: alertsR.status === "rejected" ? alertsR.reason.message : null, grid: gridR.status === "rejected" ? gridR.reason.message : null } };
+      outlookCache.data = data; outlookCache.at = Date.now(); return data;
+    })().finally(() => { outlookCache.pending = null; });
+    return outlookCache.pending;
   }
   /* the newest CONUS radar image time (NOAA MRMS via the NOAA map service) */
   const radarTime = () => get(F.RADAR_TIME_URL, "json").then(F.parseRadarTime);
@@ -635,5 +671,5 @@
       "wpc-ero": { ...worst(["ero1", "ero2", "ero3"]), reachEnd: reach(["ero1", "ero2", "ero3"]), reach: ["ero1", "ero2", "ero3"].map((k, i) => d.sources[k] && d.sources[k].issued ? "Day " + (i + 1) + " issued " + window.ThreatsCore.fmtZ(d.sources[k].issued) : "").filter(Boolean).join(", ") } };
   }
 
-  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, setFeeds, setZoneFamilies, venueForecast, radarTime, RADAR_TILE_URL: F.RADAR_TILE_URL, previousFor: (id) => fetchPrevious(id).then((c) => { if (c) emit(); return c; }), mapFeeds: () => (mapFeeds ? [...mapFeeds] : null), monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
+  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, setFeeds, setZoneFamilies, venueForecast, outlookFor, radarTime, RADAR_TILE_URL: F.RADAR_TILE_URL, previousFor: (id) => fetchPrevious(id).then((c) => { if (c) emit(); return c; }), mapFeeds: () => (mapFeeds ? [...mapFeeds] : null), monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
 })();

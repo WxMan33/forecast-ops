@@ -287,3 +287,19 @@
 .px-vfch span { color: var(--muted, #8a93a0); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
 /* radar legend: NWS reflectivity colours, light to heavy */
 .lg-radar { height: 8px; border-radius: 4px; margin: 4px 0; background: linear-gradient(90deg, #04e9e7, #019ff4, #0300f4, #02fd02, #01c501, #008e00, #fdf802, #e5bc00, #fd9500, #fd0000, #d40000, #bc0000, #f800fd, #9854c6); }
+/* the venue's next 7 days */
+.px-olhead { border: 1px solid var(--line); border-left: 4px solid var(--ol-c); border-radius: 8px; padding: 10px 12px; margin: 2px 0 12px; }
+.px-olhead .px-big { font-size: 18px; font-weight: 700; color: var(--text); margin: 2px 0; }
+.px-olhead .px-sub { color: var(--muted); font-size: 13px; }
+.px-olalert { display: flex; flex-direction: column; border-left: 3px solid var(--ol-c); padding: 4px 8px; margin: 0 0 6px; }
+.px-olalert span { color: var(--muted); font-size: 13px; }
+.px-oldays { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.px-olday { border: 1px solid var(--line); border-left: 4px solid var(--ol-c); border-radius: 8px; padding: 7px 10px; }
+.px-olday-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px; }
+.px-ollv { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ol-c); font-weight: 700; }
+.px-olchip { display: flex; gap: 6px; align-items: baseline; width: 100%; text-align: left; background: none; border: 0; border-left: 3px solid var(--ol-c); padding: 3px 6px; margin: 2px 0; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+.px-olchip[data-ol-go=""] { cursor: default; }
+.px-olchip small { color: var(--muted); margin-left: auto; white-space: nowrap; font-size: 11px; }
+.px-olquiet { color: var(--muted); font-size: 13px; }
+.px-olinfo { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.px-olunk { color: #c8a200; font-size: 12px; margin-top: 2px; }
