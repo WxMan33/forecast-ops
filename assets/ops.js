@@ -227,7 +227,7 @@
     store.set("ops_cvg_default_v1", true);
   }
   let loc = startupLocation || store.get("ops_loc", DEFAULT_LOC);
-  store.set("ops_loc", loc);
+  if (!EMBED) store.set("ops_loc", loc); // an embedded page (the Overview's threats map) shows its own venue without moving the saved point
   const locListeners = [];
   const shareUrl = (page) => { const u = new URL(page || location.href, location.href); u.search = new URLSearchParams({ lat: loc.lat, lon: loc.lon, name: loc.name }).toString(); return u.toString(); };
   function showLocation() {
@@ -240,7 +240,7 @@
   }
   function setLocation(next) {
     loc = { name: next.name, lat: +(+next.lat).toFixed(4), lon: +(+next.lon).toFixed(4) };
-    store.set("ops_loc", loc);
+    if (!EMBED) store.set("ops_loc", loc);
     showLocation();
     locListeners.forEach((f) => f(loc));
   }
