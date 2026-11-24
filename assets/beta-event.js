@@ -269,6 +269,7 @@
     U.timeline($("timeline"), hours, { tz, now, bus, gustLine: thr.gust, mark: top && top.from != null ? { s: top.from, e: top.to, tier: top.tier } : null,
       bands: b.phases.map((p) => ({ s: p.startMs, e: p.endMs, label: p.label.toUpperCase(), fill: p.key === "event" ? "color-mix(in srgb, var(--text) 7%, transparent)" : "transparent" })) });
     hourGrid(V, now, res);
+    winterRead(V);
     detail(b, ctx, thr);
     printView(res);
   }
@@ -323,6 +324,48 @@
     return `<div class="bx-thunder" data-nws-thunder>${nwsTh.length ? `<b>NWS thunderstorm wording:</b> ${esc(words)} <span class="bx-note">(${esc(span)})</span>` : "<b>NWS:</b> no thunderstorms in the hourly wording for the event."}${diff ? `<span class="bx-note" style="display:block">${esc(diff)}</span>` : ""}</div>`;
   }
   /* ---- hour-by-hour grid: setup through teardown, the briefing engine's concerns per hour, the blend's values ---- */
+  /* ---- winter: what could stick, for events with snow or near-freezing precipitation ----
+     The Winter page's own read (OpsCore.winter.stickRead) over the event's hours, from the same inputs that page uses:
+     snow ensembles (the Winter page's saved weights, else its defaults) and the deterministic models' type, wet-bulb and
+     ground temperature. Loaded only when the event's blend has snow, or precipitation at 35°F or colder. */
+  let winterGen = 0;
+  async function winterRead(V) {
+    const my = ++winterGen, box = $("evWinter"), W = C.winter, ok = V.hrs.filter((h) => h.state === "ok");
+    const wintry = (V.totals && fin(V.totals.sn) && V.totals.sn >= 0.05) || ok.some((h) => fin(h.temp) && h.temp <= 35 && fin(h.qpf) && h.qpf >= 0.005);
+    if (lastView) lastView.winter = null;
+    if (!wintry || !box) { if (box) { box.hidden = true; box.innerHTML = ""; } return; }
+    box.hidden = false; box.innerHTML = '<p class="bx-note">Winter: checking what could stick at the venue…</p>';
+    const where = { lat: ev.loc.lat, lon: ev.loc.lon }, ES = C.config.winter, DS = C.config.winterDet;
+    let E = null, D = null;
+    try { [E, D] = await Promise.all([O.Data.loadEnsemble(ES, where), O.Data.loadModels(DS, { ...where, days: 5 })]); } catch (e) { E = E || { empty: true }; }
+    if (my !== winterGen) return;
+    const sv = O.store.get("ops_winter_models", {}) || {}, wOf = (m) => (sv[m.id] ? (sv[m.id].on ? sv[m.id].w : 0) : m.on === false ? 0 : m.w);
+    const members = (k) => (!E || E.empty ? [] : ES.models.flatMap((m) => { const arrs = (E.ens[m.id] && E.ens[m.id][k]) || [], w = wOf(m); return w > 0 && arrs.length ? arrs.map((a) => ({ e: m, w: w / arrs.length, a })) : []; }));
+    const snow = members("snowfall"), temp = members("temperature_2m");
+    const s = E && !E.empty ? E.ms.indexOf(V.span[0]) : -1, eEnd = E && !E.empty ? E.ms.indexOf(V.span[V.span.length - 1]) : -1;
+    let det = null;
+    if (D && !D.empty) { det = { ms: D.ms, rows: {} }; Object.keys(D.models).forEach((id) => { const md = D.models[id]; det.rows[id] = W.series(md.h, D.times.length, md.elev); }); }
+    const link = `winter.html?lat=${encodeURIComponent(ev.loc.lat)}&lon=${encodeURIComponent(ev.loc.lon)}&name=${encodeURIComponent(ev.loc.name)}`;
+    if (s < 0 || eEnd < 0 || !snow.length) {
+      box.innerHTML = `<div class="ev-wbox"><b>Winter: what could stick</b><p class="bx-note">The winter guidance didn't load or doesn't reach these hours yet, so sticking can't be judged here. <a href="${esc(link)}">Open Winter</a> for the latest.</p></div>`;
+      return;
+    }
+    const R = W.stickRead(W.readHours({ ms: E.ms, snow, temp, det, ids: DS.models.map((m) => m.id), s, e: eEnd + 1, lead: 12 }), W.windowStats(snow, s, eEnd + 1));
+    if (lastView) lastView.winter = R;
+    const word = { favored: "Favored", possible: "Possible", unlikely: "Unlikely", none: "No snow" }, tierOf = { favored: "prepare", possible: "monitor", unlikely: "normal", none: "nodata" };
+    const at = (ms) => U.fmt.clock ? U.fmt.clock(ms, ev.tz) : new Date(ms).toLocaleTimeString("en-US", { timeZone: ev.tz, hour: "numeric", minute: "2-digit" });
+    const lvl = (k) => `<span class="evc-tbadge" style="--tier:var(--${tierOf[k] || "nodata"})">${esc(word[k] || k)}</span>`;
+    const A = R.amount, inch = (x) => (fin(x) ? x.toFixed(1) : "—");
+    box.innerHTML = `<div class="ev-wbox" data-winter="${esc(R.status)}"><b>Winter: what could stick</b>${R.status === "snow" ? `
+      <div class="ev-wrow"><span>Grass &amp; elevated surfaces</span>${lvl(R.grass.level)}<span>Paved roads &amp; sidewalks</span>${lvl(R.paved.level)}</div>
+      ${R.ranges.length ? `<p><b>When:</b> ${R.ranges.map((r) => `${esc(at(r.s))}–${esc(at(r.e + H))}`).join(", ")}</p>` : ""}
+      ${R.callouts.length ? `<ul>${R.callouts.map((c) => `<li><b>${esc(at(c.ms))}</b> · ${esc(c.text)}</li>`).join("")}</ul>` : ""}
+      ${A ? `<p class="bx-note">Snowfall potential: typical ${inch(A.p50)} in., higher outcome ${inch(A.p90)} in. (modeled snowfall before melting, ${esc(A.conf)} confidence). Bridges and untreated roads are not assessed.</p>` : ""}
+      ${R.conflict ? `<p class="bx-note"><b>Conflicting guidance:</b> ${esc(R.conflict)}.</p>` : ""}`
+      : R.status === "dry" ? '<p class="bx-note">Little or no snow in the winter guidance for these hours; nothing expected to stick.</p>'
+      : '<p class="bx-note">Not enough winter guidance to judge what could stick.</p>'}
+      <p class="bx-note"><a href="${esc(link)}">Open Winter</a> for the full read, odds and timing.</p></div>`;
+  }
   function hourGrid(V, now, res) {
     const G = window.HourlyGrid;
     /* NWS hourly weather wording by hour, as a second opinion on precipitation type in the chart */
