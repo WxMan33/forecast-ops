@@ -74,6 +74,75 @@ const facts = (p) => p.evaluate(() => {
       check(errors.length === 0, `${L} no script errors ${errors.join('; ')}`);
       await ctx.close();
     }
+    /* ---- "At a glance" dashboard under the callouts: tiles, the flagged-hours window, tap to select ---- */
+    const dashFacts = (p) => p.evaluate(() => {
+      const d = document.getElementById('evDash'), H = 3600e3, r = (e) => e.getBoundingClientRect();
+      const tiles = Object.fromEntries([...d.querySelectorAll('.evd-tile')].map((t) => [t.dataset.tile, { value: t.querySelector('[data-value]').textContent, text: t.innerText.replace(/\s+/g, ' '), tier: t.dataset.tier || null, badge: (t.querySelector('[data-level]') || {}).textContent || null }]));
+      const rowKey = { rain: 'hz-rain', wind: 'hz-wind', snow: 'hz-snow', lightning: 'lightning' };
+      /* the concern hours the hourly table shows for each hazard vs the hours the window bar colours */
+      const rows = [...d.querySelectorAll('.evd-row')].map((row) => { const k = row.dataset.hazard, tr = document.querySelector(`#evGrid tr[data-row="${rowKey[k] || 'hz-' + k}"]`);
+        const want = tr ? [...tr.querySelectorAll('td.hg-s-concern')].map((td) => `${td.dataset.ms}:${[...td.classList].find((c) => /^hg-t-/.test(c)).slice(5)}`) : ['no row'];
+        const got = [...row.querySelectorAll('.evd-fill')].flatMap((f) => { const out = []; for (let m = Math.floor(+f.dataset.from / H) * H; m < +f.dataset.to; m += H) out.push(`${m}:${f.dataset.tier}`); return out; });
+        return { key: k, label: row.querySelector('.evd-rowlab').innerText.replace(/\s+/g, ' '), match: JSON.stringify(want) === JSON.stringify(got), want: want.length, got: got.length }; });
+      const segs = [...d.querySelectorAll('.evd-seg')].map((b) => r(b)), cols = new Set([...d.querySelectorAll('.evd-tile')].map((t) => Math.round(r(t).top))).size;
+      const firstRow = [...d.querySelectorAll('.evd-tile')].filter((t, i, a) => Math.round(r(t).top) === Math.round(r(a[0]).top)).length;
+      const cs = getComputedStyle(d.querySelector('.evd'));
+      return { visible: !d.hidden && r(d).height > 0, afterCallouts: !!(document.getElementById('keys').compareDocumentPosition(d) & Node.DOCUMENT_POSITION_FOLLOWING) && !!(d.compareDocumentPosition(document.getElementById('secTimeline')) & Node.DOCUMENT_POSITION_FOLLOWING),
+        heading: (d.querySelector('h2') || {}).textContent, tiles, rows, none: (d.querySelector('[data-none]') || {}).textContent || null, gustLine: (d.querySelector('[data-gust-line]') || {}).textContent || null,
+        types: [...d.querySelectorAll('.evd-chip')].map((c) => c.textContent.replace(/[^A-Za-z]/g, '')).join('>'), oldStrip: document.querySelectorAll('.evc-totals').length,
+        valuePx: Math.min(...[...d.querySelectorAll('.evd-val b')].map((b) => parseFloat(getComputedStyle(b).fontSize))), chartValuePx: 22, firstRow, rowsOfTiles: cols,
+        targets: segs.every((b) => b.width >= 43.5 && b.height >= 43.5), segsInside: segs.every((b) => b.left >= r(d).left - 1 && b.right <= r(d).right + 1),
+        hscroll: document.documentElement.scrollWidth > innerWidth + 1, overflow: d.scrollWidth > d.clientWidth + 1, panel: cs.backgroundColor, text: getComputedStyle(d).color,
+        labelsTouch: (() => { const ts = [...d.querySelectorAll('.evd-axis span:not([hidden])')].map(r); return ts.some((t, i) => i && t.left < ts[i - 1].right); })() };
+    });
+    FIX = FIXES.winter;
+    for (const [fixName, wx, kind] of [['winter', 'heavy', 'rainy'], ['orlando', 'storm', 'windy'], ['winter', 'transition', 'wintry'], ['orlando', 'quiet', 'quiet']]) for (const [dev, device] of [['phone', PHONE], ['desktop', DESK]]) for (const theme of ['light', 'dark']) {
+      FIX = FIXES[fixName]; const L = `dashboard ${kind} ${dev} ${theme}:`;
+      const { ctx, p, errors } = await open(browser, base, fixName === 'orlando' ? `x&orl=${wx}` : wx, device, theme);
+      await p.evaluate(() => scrollTo(0, 0));
+      const f = await dashFacts(p), T = f.tiles;
+      check(f.visible && f.afterCallouts && f.heading === 'At a glance' && f.oldStrip === 0, `${L} "At a glance" card right after the callouts, before the schedule; the old totals strip is gone`);
+      check(!f.hscroll && !f.overflow && f.segsInside, `${L} no sideways scroll at ${device.viewport.width} px`);
+      check(f.firstRow === Math.min(dev === 'phone' ? 2 : 4, Object.keys(T).length), `${L} tiles ${dev === 'phone' ? 2 : 4} across (${f.firstRow} in the first row, ${Object.keys(T).length} tiles)`);
+      check(f.valuePx >= 28, `${L} tile values are large (${f.valuePx} px)`);
+      check(f.targets && !f.labelsTouch, `${L} window bars are at least 44 px touch targets; time labels never touch`);
+      check(theme === 'dark' ? /rgb\((1[0-9]|2[0-9]|[0-9]),/.test(f.panel) && /rgb\(2[0-9]{2},/.test(f.text) : /rgb\(255, 255, 255\)/.test(f.panel) && /rgb\(([0-9]|1[0-9]|2[0-9]),/.test(f.text), `${L} ${theme} theme panel ${f.panel}, text ${f.text}`);
+      check(Object.values(T).every((t) => !t.tier || (t.badge || /^(Moderate|High)$/.test(t.value))), `${L} every coloured tile also says its level in words`);
+      if (kind === 'rainy') {
+        check(T.rain && T.rain.value === '1.28' && /Models 0\.\d\d–1\.\d\d in/.test(T.rain.text) && T.rain.tier, `${L} rain total 1.28 in with the spread across sources, flagged (${T.rain && T.rain.text})`);
+        check(T.rate && T.rate.value === '0.17' && /in\/hr/.test(T.rate.text) && /Around 5 PM/.test(T.rate.text), `${L} heaviest rain 0.17 in/hr around 5 PM (${T.rate && T.rate.text})`);
+        check(!T.gust && /^Gusts up to 16 mph · below your 25 mph limit, not a concern$/.test(f.gustLine || ''), `${L} gusts not flagged: no tile, one muted line (${f.gustLine})`);
+        check(T.snow && T.snow.value === '0.3' && /7:1, before melting/.test(T.snow.text), `${L} a mix hour makes the event wintry: snow tile 0.3 in (${T.snow && T.snow.text})`);
+        check(f.types === 'Rain>Mix>Rain', `${L} precipitation type chips ${f.types}`);
+        check(f.rows.some((r) => r.key === 'rain' && /^Rain: plan for it 1 PM–11:30 PM$/.test(r.label)), `${L} rain window labelled in plain words (${f.rows.map((r) => r.label).join(' | ')})`);
+      }
+      if (kind === 'windy') {
+        check(T.gust && T.gust.value === '28' && /Around 2 PM/.test(T.gust.text) && T.gust.tier === 'monitor' && T.gust.badge === 'Watch', `${L} gusts flagged: Peak gusts tile 28 mph around 2 PM, Watch (${T.gust && T.gust.text})`);
+        check(T.lightning && T.lightning.value === 'Moderate' && /not detected lightning/.test(T.lightning.text), `${L} lightning flagged: tile with its level word (${T.lightning && T.lightning.text})`);
+        check(!T.snow && !f.gustLine, `${L} no snow tile (not wintry) and no duplicate gust line`);
+      }
+      if (kind === 'wintry') check(T.snow && T.snow.value === '1.9' && T.snow.tier === 'action' && T.snow.badge === 'Likely disruptive' && f.types === 'Rain>Mix>Snow', `${L} wintry: snow tile 1.9 in, Likely disruptive (${T.snow && T.snow.text}); types ${f.types}`);
+      if (kind === 'quiet') check(f.none && /^No weather concerns flagged for your event window\./.test(f.none) && f.rows.length === 0 && !T.gust && !T.snow && !T.lightning && /below your 25 mph limit/.test(f.gustLine || ''), `${L} quiet: one calm line, no window rows, no hazard tiles (${f.none})`);
+      if (kind !== 'quiet') check(f.rows.length > 0 && f.rows.every((r) => r.match), `${L} window bars cover exactly the concern hours and levels in the hourly table (${f.rows.map((r) => `${r.key} ${r.got}/${r.want}`).join(', ')})`);
+      if (kind !== 'quiet' && theme === 'light') {
+        /* tapping a bar selects that hour on the page's shared timeline: the charts follow */
+        const seg = p.locator('#evDash .evd-seg').last(), box = await seg.boundingBox(); await p.mouse.click(box.x + box.width / 2, box.y + box.height / 2); await p.waitForTimeout(200);
+        const t = await p.evaluate(() => { const sel = +document.body.dataset.selected, seg = [...document.querySelectorAll('#evDash .evd-seg')].pop(), row = seg.closest('.evd-row');
+          const hrs = [...row.querySelectorAll('.evd-fill')].flatMap((f) => { const o = []; for (let m = Math.floor(+f.dataset.from / 3600e3) * 3600e3; m < +f.dataset.to; m += 3600e3) o.push(m); return o; });
+          return { sel, inRun: hrs.includes(sel), charts: [...document.querySelectorAll('#evCharts .evc-card')].map((c) => +(c.querySelector('[aria-pressed="true"]') || { dataset: {} }).dataset.hour), readout: document.querySelector('#evDash [data-sel]').innerText, cur: !document.querySelector('#evDash .evd-cur').hidden }; });
+        check(t.inRun && t.charts.every((h) => h === t.sel) && t.cur && /^Selected/.test(t.readout), `${L} tapping a window bar selects one of its hours on the shared timeline; the charts follow (${t.readout.replace(/\s+/g, ' ')})`);
+        /* keyboard: Enter selects the window's first hour (or, when an hour in it is already selected, steps to the next) */
+        const run = await p.evaluate(() => { const b = document.querySelector('#evDash .evd-seg'), fs = [...b.closest('.evd-row').querySelectorAll('.evd-fill')], H = 3600e3, o = [];
+          fs.forEach((f) => { for (let m = Math.floor(+f.dataset.from / H) * H; m < +f.dataset.to; m += H) o.push(m); }); const a = +b.dataset.a, z = +b.dataset.b; return o.slice(0, z - a + 1); });
+        const before = +(await p.evaluate(() => document.body.dataset.selected)); await p.locator('#evDash .evd-seg').first().focus(); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
+        const k1 = +(await p.evaluate(() => document.body.dataset.selected)), want = run.includes(before) && before < run[run.length - 1] ? before + 3600e3 : run[0];
+        await p.keyboard.press('Enter'); await p.waitForTimeout(150); const k2 = +(await p.evaluate(() => document.body.dataset.selected));
+        check(k1 === want && (run.length === 1 ? k2 === run[0] : k2 === k1 + 3600e3 || (k1 === run[run.length - 1] && k2 === run[0])), `${L} keyboard: Enter on a window selects its first hour, then steps through it`);
+      }
+      await p.locator('#evDash').screenshot({ path: path.join(out, `dashboard-${kind}-${dev}-${theme}.png`) });
+      check(errors.length === 0, `${L} no script errors ${errors.join('; ')}`);
+      await ctx.close();
+    }
     /* ---- Export hourly image (1920 x 1080 PNG) and the hourly display link ---- */
     for (const [fixName, wx, expectLightning, expectType] of [['winter', 'transition', 'low-throughout', 'bands'], ['winter', 'allrain', 'low-throughout', 'rain'], ['winter', 'gaps', 'blocks', 'bands'], ['orlando', 'storm', 'blocks', 'rain']]) {
       FIX = FIXES[fixName]; const L = `export ${fixName} ${wx}:`;

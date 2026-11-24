@@ -12,7 +12,9 @@
    - Hours the briefing flags are labelled directly over those hours (no unlabelled wash). Red is used only for the
      briefing's highest level ("Likely disruptive"), and always with its words.
    - Temperature coral (dashed: feels like); wind teal (solid sustained, dashed gusts, dotted venue limit); lightning
-     potential as Low / Moderate / High blocks, labelled as forecast potential, not detected lightning or a warning. */
+     potential as Low / Moderate / High blocks, labelled as forecast potential, not detected lightning or a warning.
+   The same file draws the event dashboard ("At a glance", below the briefing's callouts): the event totals as large
+   tiles and a window bar of the hours each flagged hazard covers (see dashModel). */
 (function (root) {
   "use strict";
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -62,27 +64,6 @@
       { key: "lightning", name: "Lightning potential", unit: "", color: "lightning", type: "tier", max: 3 },
     ];
     const text = (key, i) => rows[key]?.cells[i]?.text ?? "—";
- /* event totals strip: whole-event blend totals with the spread across sources, the heaviest hour, snow when present, type sequence */
- /* a total whose hazard has a concern in these hours (the briefing engine's tiers, as in the hourly rows) is marked in
-    that colour, with the level word and the hours it covers */
- const RANKT={monitor:1,prepare:2,action:3};
- const concernOf=key=>{const r=rows[key];if(!r)return null;const cs=r.cells.map((c,i)=>({c,i})).filter(x=>x.c&&x.c.state==='concern');if(!cs.length)return null;
-  const top=cs.reduce((a,x)=>(RANKT[x.c.tier]||0)>(RANKT[a.c.tier]||0)?x:a),f=V.axis[cs[0].i],l=V.axis[cs[cs.length-1].i],nx=V.axis[cs[cs.length-1].i+1];
-  const li=cs[cs.length-1].i,cov=(V.cover&&V.cover[li])||[],endMin=cov.length?Math.max(...cov.map(p=>p.to)):60,endMs=V.axis[li].ms+endMin*60e3;
-  /* the concern ends where the event ends inside its last hour (an 11:30 PM end reads 11:30 PM, not 11 PM) */
-  const endText=endMin===60&&nx?nx.hourText:new Intl.DateTimeFormat('en-US',{timeZone:tz||undefined,hour:'numeric',minute:endMin%60?'2-digit':undefined}).format(new Date(endMs)).replace(':00','');
-  return {tier:top.c.tier||'monitor',word:top.c.text||'Concern',why:top.c.why||'',hours:`${f.hourText}–${endText}`}};
- const flag=(c,kind)=>c?` data-concern="${esc(c.tier)}" class="evc-tconcern" style="--tier:var(--${esc(c.tier)})" title="${esc(c.why||`${kind} concern`)}"`:'';
- const badge=(c,kind)=>c?`<span class="evc-tbadge">${esc(kind)}: ${esc(c.word)}</span> <span class="evc-thours">${esc(c.hours)}</span> · `:'';
- const totalsHtml=(()=>{const T=V.totals;if(!T)return'';const f2=v=>fin(v)?v.toFixed(2):'—',f1=v=>fin(v)?v.toFixed(1):'—',lb=T.gap?'at least ':'';
-  const at=ms=>{const a=V.axis.find(x=>x.ms===ms);return a?a.hourText:''};
-  const rng=(r,f)=>r&&fin(r[0])&&fin(r[1])&&r[1]-r[0]>=0.01?` <span class="evc-tnote">(models ${f(r[0])}–${f(r[1])} in.)</span>`:'';
-  const lines=[];
-  const rc=concernOf('hz-rain'),sc=concernOf('hz-snow');
-  lines.push(`<div data-total="qpf"${flag(rc,'Rain')}>${badge(rc,'Rain')}<b>Rain</b> event total <b>${lb}${f2(T.qpf)} in.</b>${rng(T.qpfR,f2)}${T.peakQ?` · heaviest hour <b>${f2(T.peakQ.v)} in.</b> <span class="evc-tnote">${esc(at(T.peakQ.ms))}</span>`:''}</div>`);
-  if((fin(T.sn)&&T.sn>=0.05)||(T.peakSn&&T.peakSn.v>=0.02))lines.push(`<div data-total="sn"${flag(sc,'Snow')}>${badge(sc,'Snow')}<b>Snow</b> event total <b>${lb}${f1(T.sn)} in.</b>${rng(T.snR,f1)}${T.peakSn?` · heaviest hour <b>${f1(T.peakSn.v)} in.</b> <span class="evc-tnote">${esc(at(T.peakSn.ms))}</span>`:''} <span class="evc-tnote">modeled snowfall (7:1), before melting</span></div>`);
-  if(T.types&&T.types.some(k=>k!=='rain'))lines.push(`<div data-total="type"><b>Type</b> ${T.types.map(k=>({rain:'Rain',mix:'Mix',snow:'Snow'})[k]).join(' → ')}</div>`);
-  return `<div class="evc-totals" title="Blend over setup through teardown (whole hours). Ranges are the 10th–90th percentile of the contributing sources' event totals.${T.gap?` ${T.gap} hour${T.gap>1?'s':''} without guidance, so totals are lower bounds.`:''}">${lines.join('')}</div>`})();
     const value = (spec, i) => {
       if (!V.hrs[i] || V.hrs[i].state !== "ok") return null;
       if (spec.type === "tier") { const c = rows.lightning?.cells[i]; return !c || c.state === "missing" ? null : { Low: 1, Moderate: 2, High: 3 }[c.text] ?? null; }
@@ -94,7 +75,7 @@
       start = Math.max(0, Math.min(start, endMax)); first = false; width = w;
       const ids = V.axis.map((_, i) => i).slice(start, start + count), a = V.axis[start], z = V.axis[ids[ids.length - 1]]; if (!a) return;
       const iSel = V.span.indexOf(sel), dayLabel = (d) => new Date(d + "T12:00Z").toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" });
-      host.innerHTML = `${totalsHtml}<div class="evc-tools"><div><b>One timeline. Four clear views.</b><span class="bx-note">Choose an hour in any chart to compare the conditions.</span></div><div class="evc-nav"><button class="bx-btn" data-move="-1" aria-label="Earlier forecast hours" ${start === 0 ? "disabled" : ""}>← Earlier</button><button class="bx-btn" data-move="1" aria-label="Later forecast hours" ${start === endMax ? "disabled" : ""}>Later →</button></div></div>` +
+      host.innerHTML = `<div class="evc-tools"><div><b>One timeline. Four clear views.</b><span class="bx-note">Choose an hour in any chart to compare the conditions.</span></div><div class="evc-nav"><button class="bx-btn" data-move="-1" aria-label="Earlier forecast hours" ${start === 0 ? "disabled" : ""}>← Earlier</button><button class="bx-btn" data-move="1" aria-label="Later forecast hours" ${start === endMax ? "disabled" : ""}>Later →</button></div></div>` +
         `<p class="evc-window">${esc(root.EventBriefingUI.dateSpan(a.ms, z.ms + H, tz))}</p>` +
         `<p class="evc-selected">Selected <b>${esc(dayLabel(V.axis[iSel]?.date))} · ${esc(V.axis[iSel]?.hourText)} ${esc(V.axis[iSel]?.zone)}</b><span> · ${esc(text("phase", iSel))}</span></p>` +
         `<div class="evc-stack">${specs.map((s) => card(s, ids, w, iSel, phone)).join("")}</div>`;
@@ -166,7 +147,124 @@
       destroy() { observer.disconnect(); if (frame !== null) cancelAnimationFrame(frame); },
     };
   }
-  const api = { render, windowFor, precipTypes, typeSummary };
+
+  /* ---------- the event dashboard: the most impactful totals and when the flagged conditions are possible ----------
+     Presentation only, from the same briefing view as the charts: V.totals (blend event totals, the spread across
+     sources, the heaviest hour, type sequence), the hourly rows' concern cells (the briefing engine's tiers, the same
+     ones the charts label and the attention outline uses) and the hourly gusts the wind chart draws. No new thresholds:
+     a tile or a window row is coloured only where the briefing already flags that hazard, always with its level word. */
+  const RANK = { monitor: 1, prepare: 2, action: 3 };
+  const LEVEL_FULL = { Watch: "Watch", Plan: "Plan for it", Likely: "Likely disruptive" };
+  const HAZ = { "hz-rain": { key: "rain", label: "Rain", order: 0 }, "hz-wind": { key: "wind", label: "Gusts", order: 1 }, lightning: { key: "lightning", label: "Lightning potential", order: 2 }, "hz-snow": { key: "snow", label: "Snow", order: 3 } };
+  /* the same test the winter read uses: modeled snow, or measurable precipitation at 35°F or colder */
+  const wintry = (V) => !!((V.totals && fin(V.totals.sn) && V.totals.sn >= 0.05) || V.hrs.some((h) => h && h.state === "ok" && fin(h.temp) && h.temp <= 35 && fin(h.qpf) && h.qpf >= 0.005));
+  function dashModel(V, { tz, gustLimit = 25 } = {}) {
+    const n = V.span.length, T = V.totals || {}, ok = V.hrs.filter((h) => h && h.state === "ok");
+    const clock = (ms) => new Intl.DateTimeFormat("en-US", { timeZone: tz || undefined, hour: "numeric", minute: "2-digit" }).format(new Date(ms)).replace(":00", "");
+    const dayOf = (ms) => new Intl.DateTimeFormat("en-US", { timeZone: tz || undefined, weekday: "short" }).format(new Date(ms));
+    const multiDay = new Set(V.axis.map((a) => a.date)).size > 1;
+    /* the event's own edges inside its first and last hours (setup at 1:30 starts the window at 1:30) */
+    const cov = (i) => (V.cover && V.cover[i]) || [];
+    const fromOf = (i) => V.span[i] + (cov(i).length ? Math.min(...cov(i).map((p) => p.from)) : 0) * 60e3;
+    const toOf = (i) => V.span[i] + (cov(i).length ? Math.max(...cov(i).map((p) => p.to)) : 60) * 60e3;
+    const s = fromOf(0), e = toOf(n - 1);
+    const when = (a, b) => { const da = dayOf(a), db = dayOf(b - 1); return multiDay ? `${da} ${clock(a)}–${db !== da ? db + " " : ""}${clock(b)}` : `${clock(a)}–${clock(b)}`; };
+    const around = (ms) => { const a = V.axis[V.span.indexOf(ms)]; return a ? `${multiDay ? dayOf(ms) + " " : ""}${a.hourText}` : clock(ms); };
+    /* flagged hazards: hours whose cell is a concern (Watch or higher), in runs of consecutive hours */
+    const flags = V.rows.filter((r) => HAZ[r.key] || /^hz-/.test(r.key)).map((r) => {
+      const idx = r.cells.map((c, i) => (c && c.state === "concern" ? i : -1)).filter((i) => i >= 0);
+      if (!idx.length) return null;
+      const top = idx.reduce((a, i) => ((RANK[r.cells[i].tier] || 0) > (RANK[r.cells[a].tier] || 0) ? i : a), idx[0]), c = r.cells[top];
+      const runs = idx.reduce((o, i) => { const l = o[o.length - 1]; if (l && l.b === i - 1) l.b = i; else o.push({ a: i, b: i }); return o; }, []).map((x) => ({ ...x, from: fromOf(x.a), to: toOf(x.b), text: when(fromOf(x.a), toOf(x.b)),
+        /* parts of the run by level, so a run that steps up from Watch to Plan for it shows both colours */
+        parts: Array.from({ length: x.b - x.a + 1 }, (_, k) => x.a + k).reduce((o, i) => { const t = r.cells[i].tier || "monitor", l = o[o.length - 1]; if (l && l.tier === t) { l.b = i; l.to = toOf(i); } else o.push({ tier: t, word: r.key === "lightning" ? r.cells[i].text : LEVEL_FULL[r.cells[i].text] || r.cells[i].text, a: i, b: i, from: fromOf(i), to: toOf(i) }); return o; }, []) }));
+      const meta = HAZ[r.key] || { key: r.key.replace(/^hz-/, ""), label: String(r.label || r.key).replace(/^[^A-Za-z]+/, ""), order: 9 };
+      return { ...meta, row: r.key, tier: c.tier || "monitor", word: r.key === "lightning" ? c.text : LEVEL_FULL[c.text] || c.text, why: c.why || "", peakMs: V.span[top], runs, hours: runs.map((x) => x.text).join(", ") };
+    }).filter(Boolean).sort((a, b) => a.order - b.order);
+    const by = Object.fromEntries(flags.map((f) => [f.key, f]));
+    const f2 = (v) => v.toFixed(2), f1 = (v) => v.toFixed(1), lb = T.gap ? "at least" : "";
+    const range = (r, f) => (r && fin(r[0]) && fin(r[1]) && r[1] - r[0] >= 0.01 ? `Models ${f(r[0])}–${f(r[1])} in` : "");
+    const tiles = [];
+    const rain = by.rain || null;
+    tiles.push(fin(T.qpf) ? { key: "rain", label: "Rain total", value: f2(T.qpf), pre: lb, unit: "in", unitWord: "inches", sub: [range(T.qpfR, f2) || (T.gap ? `${T.gap} hour${T.gap > 1 ? "s" : ""} without guidance` : "Setup through teardown")], flag: rain }
+      : { key: "rain", label: "Rain total", value: null, sub: ["No data (not zero)"], flag: null });
+    if (T.peakQ) tiles.push({ key: "rate", label: "Heaviest rain", value: f2(T.peakQ.v), unit: "in/hr", unitWord: "inches per hour", sub: [`Around ${around(T.peakQ.ms)}`], flag: rain, at: T.peakQ.ms });
+    /* gusts: the highest hourly gust the wind chart shows; a full tile only when the briefing flags wind */
+    const g = ok.filter((h) => fin(h.gust)).reduce((a, h) => (!a || h.gust > a.v ? { v: h.gust, ms: h.ms } : a), null), wind = by.wind || null;
+    let gustLine = null;
+    if (wind && g) tiles.push({ key: "gust", label: "Peak gusts", value: String(Math.round(g.v)), unit: "mph", unitWord: "miles per hour", sub: [`Around ${around(g.ms)} · your limit ${gustLimit} mph`], flag: wind, at: g.ms });
+    else gustLine = !g ? { text: "Gusts: no data for these hours (not zero)", state: "missing" }
+      : { text: `Gusts up to ${Math.round(g.v)} mph · ${g.v >= gustLimit ? `reach your ${gustLimit} mph limit around ${around(g.ms)}, rated low for this plan` : `below your ${gustLimit} mph limit, not a concern`}`, state: g.v >= gustLimit ? "low" : "clear", v: Math.round(g.v) };
+    if (wintry(V)) {
+      const snow = by.snow || null, sub = [range(T.snR, f1), "7:1, before melting"].filter(Boolean).join(" · ");
+      tiles.push(fin(T.sn) ? { key: "snow", label: "Snow total", value: f1(T.sn), pre: lb, unit: "in", unitWord: "inches", sub: [sub, ...(T.peakSn && f1(T.peakSn.v) !== "0.0" ? [`Heaviest ${f1(T.peakSn.v)} in/hr around ${around(T.peakSn.ms)}`] : [])], flag: snow }
+        : { key: "snow", label: "Snow total", value: null, sub: ["No data (not zero)"], flag: null });
+    }
+    if (by.lightning) tiles.push({ key: "lightning", label: "Lightning potential", value: by.lightning.word, unit: "", sub: [`Peaks around ${around(by.lightning.peakMs)} · forecast potential, not detected lightning`], flag: by.lightning, at: by.lightning.peakMs });
+    /* event parts on the window axis, from the hours each part covers */
+    const parts = []; (V.cover || []).forEach((ps, i) => ps.forEach((p) => { let x = parts.find((q) => q.key === p.key); if (!x) parts.push(x = { key: p.key, label: p.label, from: V.span[i] + p.from * 60e3, to: 0 }); x.to = V.span[i] + p.to * 60e3; }));
+    const missing = V.hrs.filter((h) => !h || h.state !== "ok").length;
+    return { s, e, flags, tiles, gustLine, types: (T.types || []).slice(), parts, missing, gap: T.gap || 0, when, around, clock, dayOf, multiDay };
+  }
+  const TYPE_WORD = { rain: "Rain", mix: "Mix", snow: "Snow" };
+  function dashboardHtml(V, M, { tz, sel = null } = {}) {
+    const pos = (ms) => (100 * (Math.max(M.s, Math.min(M.e, ms)) - M.s)) / (M.e - M.s);
+    const box = (a, b) => `--l:${pos(a).toFixed(3)}%;--w:${Math.max(0, pos(b) - pos(a)).toFixed(3)}%`;
+    const tier = (f) => (f ? ` data-tier="${esc(f.tier)}" style="--tier:var(--${esc(f.tier)})"` : "");
+    const tile = (t) => `<li class="evd-tile" data-tile="${t.key}"${tier(t.flag)}><span class="evd-lab">${esc(t.label)}</span>` +
+      `<span class="evd-val">${t.value == null ? `<b data-value>—</b>` : `${t.pre ? `<small>${esc(t.pre)}</small> ` : ""}<b data-value>${esc(t.value)}</b>${t.unit ? ` <span class="evd-unit"><span aria-hidden="true">${esc(t.unit)}</span><span class="sr-only">${esc(t.unitWord)}</span></span>` : ""}`}</span>` +
+      t.sub.filter(Boolean).map((x) => `<span class="evd-sub">${esc(x)}</span>`).join("") +
+      (t.flag && t.key !== "lightning" ? `<span class="evd-badge" data-level>${esc(t.flag.word)}</span>` : "") /* lightning's value is its level word */ + `</li>`;
+    const types = M.types.length ? `<p class="evd-types" data-types><span class="evd-note-lab">Precipitation type</span> ${M.types.map((k) => `<span class="evd-chip evd-chip-${esc(k)}">${TYPE[k] ? TYPE[k].sym + " " : ""}${esc(TYPE_WORD[k] || k)}</span>`).join('<span class="evd-arrow" aria-label="then">→</span>')}</p>` : "";
+    const gust = M.gustLine ? `<p class="evd-gust" data-gust-line="${esc(M.gustLine.state)}">${esc(M.gustLine.text)}</p>` : "";
+    /* the window: event parts, one row per flagged hazard, then time ticks */
+    const cur = sel != null && V.span.includes(sel) ? `<span class="evd-cur" style="left:${pos(sel + 1800e3).toFixed(3)}%"></span>` : `<span class="evd-cur" hidden></span>`;
+    const partsLane = `<div class="evd-parts" aria-hidden="true">${M.parts.map((p) => { const w = pos(p.to) - pos(p.from); return `<span class="evd-part${p.key === "event" ? " evd-main" : ""}" style="${box(p.from, p.to)}" title="${esc(p.label)} ${esc(M.when(p.from, p.to))}">${w >= 11 ? esc(p.label) : ""}</span>`; }).join("")}${cur}</div>`;
+    const rows = M.flags.map((f) => `<div class="evd-row" data-hazard="${esc(f.key)}"${tier(f)}><p class="evd-rowlab"><b>${esc(f.label)}: ${esc(f.word.toLowerCase())}</b> <span data-hours>${esc(f.hours)}</span></p>` +
+      `<div class="evd-track">${f.runs.flatMap((r) => r.parts).map((p) => `<i class="evd-fill" data-from="${p.from}" data-to="${p.to}" data-tier="${esc(p.tier)}" style="${box(p.from, p.to)};--tier:var(--${esc(p.tier)})"><span>${esc(p.word)}</span></i>`).join("")}` +
+      f.runs.map((r) => `<button type="button" class="evd-seg" data-a="${r.a}" data-b="${r.b}" style="${box(r.from, r.to)}" aria-label="${esc(`${f.label}: ${f.word}, ${r.text}. Show this time in the hourly forecast`)}"></button>`).join("") + `${cur}</div></div>`).join("");
+    const cand = [...M.parts.map((p) => ({ ms: p.from, pri: 2 })), { ms: M.e, pri: 3 }].sort((a, b) => a.ms - b.ms || b.pri - a.pri), kept = [];
+    cand.forEach((c) => { const prev = kept[kept.length - 1]; if (prev && pos(c.ms) - pos(prev.ms) < 13) { if (c.pri > prev.pri && kept.length > 1) kept[kept.length - 1] = c; return; } kept.push(c); });
+    const ticks = kept.map((c, k) => { const p = pos(c.ms), cls = k === kept.length - 1 || p >= 90 ? "end" : k === 0 || p <= 8 ? "start" : "mid";
+      const day = M.multiDay && (k === 0 || M.dayOf(c.ms - 1) !== M.dayOf(kept[k - 1].ms)) ? M.dayOf(c.ms - (c.ms === M.e ? 1 : 0)) + " " : "";
+      return `<span class="${cls}" style="left:${p.toFixed(3)}%">${esc(day + M.clock(c.ms))}</span>`; }).join("");
+    const none = `<p class="evd-none" data-none>No weather concerns flagged for your event window.${M.missing ? ` ${M.missing} hour${M.missing > 1 ? "s have" : " has"} no forecast data, so that part is not an all-clear.` : ""}</p>`;
+    const span = root.EventBriefingUI && root.EventBriefingUI.dateSpan ? root.EventBriefingUI.dateSpan(M.s, M.e, tz) : M.when(M.s, M.e);
+    return `<section class="evd" aria-labelledby="evdTitle"><div class="evd-head"><h2 id="evdTitle">At a glance</h2><span class="evd-span">Setup through teardown · ${esc(span)}</span></div>` +
+      `<ul class="evd-tiles" aria-label="Event weather totals">${M.tiles.map(tile).join("")}</ul>` +
+      (types || gust ? `<div class="evd-notes">${types}${gust}</div>` : "") +
+      `<div class="evd-when" data-window><h3>When conditions could affect the event</h3>${M.flags.length ? `<div class="evd-lanes">${partsLane}${rows}<div class="evd-axis" aria-hidden="true">${ticks}</div></div>` +
+        `<p class="evd-sel" data-sel aria-live="polite"></p>` : none}</div></section>`;
+  }
+  /* render into host; tapping a flagged window selects that hour on the page's shared timeline, like the charts */
+  function dashboard(host, { view: V, tz, gustLimit = 25, selected = null, onSelect = () => {}, onOpenHourly = null }) {
+    const M = dashModel(V, { tz, gustLimit });
+    let sel = selected;
+    host.innerHTML = dashboardHtml(V, M, { tz, sel });
+    const readout = () => {
+      const pos = (ms) => (100 * (Math.max(M.s, Math.min(M.e, ms)) - M.s)) / (M.e - M.s), on = sel != null && V.span.includes(sel);
+      host.querySelectorAll(".evd-cur").forEach((c) => { c.hidden = !on; if (on) c.style.left = pos(sel + 1800e3).toFixed(3) + "%"; });
+      const p = host.querySelector("[data-sel]"); if (!p) return;
+      const hits = on ? M.flags.filter((f) => f.runs.some((r) => V.span.indexOf(sel) >= r.a && V.span.indexOf(sel) <= r.b)).map((f) => `${f.label.toLowerCase()} ${f.word.toLowerCase()}`) : [];
+      p.innerHTML = on ? `<span>Selected <b>${esc(M.around(sel))}</b>${hits.length ? ` · ${esc(hits.join(", "))}` : ""}</span>${onOpenHourly ? `<button type="button" class="bx-link evd-open">See this hour ↓</button>` : ""}` : "<span>Tap a coloured bar to choose an hour.</span>";
+      const o = p.querySelector(".evd-open"); if (o) o.onclick = () => onOpenHourly(sel);
+    };
+    host.querySelectorAll(".evd-seg").forEach((b) => (b.onclick = (ev) => {
+      const a = +b.dataset.a, z = +b.dataset.b, cur = V.span.indexOf(sel); let i;
+      if (!ev.detail) i = cur >= a && cur < z ? cur + 1 : a; // keyboard: the window's first hour, then step through it
+      else { const r = b.parentElement.getBoundingClientRect(), t = M.s + ((ev.clientX - r.left) / r.width) * (M.e - M.s); i = Math.floor((t - V.span[0]) / H); }
+      sel = V.span[Math.min(z, Math.max(a, i))]; readout(); onSelect(sel);
+    }));
+    /* time labels that would touch at this width are dropped (the first and the end stay), measured, not guessed */
+    const thin = () => { host.querySelectorAll(".evd-fill span").forEach((t) => { t.hidden = false; t.hidden = t.scrollWidth > t.parentElement.clientWidth - 8; });
+      const ts = [...host.querySelectorAll(".evd-axis span")]; ts.forEach((t) => (t.hidden = false)); let prev = null;
+      ts.forEach((t, k) => { const r = t.getBoundingClientRect(); if (prev && r.left < prev.r.right + 8) { if (k === ts.length - 1 && prev.k > 0) { prev.t.hidden = true; } else { t.hidden = true; return; } } prev = { t, r, k }; }); };
+    readout(); thin();
+    let width = host.clientWidth; const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => { if (Math.abs(host.clientWidth - width) > 1) { width = host.clientWidth; thin(); } }) : null;
+    if (observer) observer.observe(host);
+    return { model: M, setSelected(ms) { if (ms === sel) return; sel = ms; readout(); }, destroy() { if (observer) observer.disconnect(); } };
+  }
+  const api = { render, windowFor, precipTypes, typeSummary, dashboard, dashModel, dashboardHtml, wintry };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.EventHourlyCharts = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

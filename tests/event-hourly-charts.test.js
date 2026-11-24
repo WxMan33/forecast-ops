@@ -35,3 +35,42 @@ console.log(`ok - ${n} hourly chart type checks passed`);
   }
   console.log(`ok - ${n} checks including TV palette contrast`);
 }
+
+/* Event dashboard ("At a glance", dashModel): tiles from V.totals and the hourly gusts, coloured only where the hourly
+   rows already carry a concern, and window rows from those concern hours. Synthetic view; times in America/New_York. */
+{
+  const H = 3600e3, t0 = Date.parse("2026-11-25T11:00:00Z"), n0 = n; // 6 AM EST
+  const view = ({ gusts = [12, 14, 18, 16, 15, 13], rain = [null, "Likely", "Likely", "Plan", null, null], wind = null, light = null, temp = 50, totals = {} } = {}) => {
+    const span = Array.from({ length: 6 }, (_, i) => t0 + i * H);
+    const cells = (words, tierOf) => words.map((w) => (w ? { state: "concern", tier: tierOf[w], text: w } : { state: "clear", text: "–" }));
+    const LV = { Watch: "monitor", Plan: "prepare", Likely: "action" }, LT = { Moderate: "monitor", High: "action" };
+    const rows = [{ key: "phase", cells: [] }, { key: "hz-rain", label: "☂ Rain", cells: cells(rain, LV) }];
+    if (wind) rows.push({ key: "hz-wind", label: "≋ Wind", cells: cells(wind, LV) });
+    rows.push({ key: "lightning", label: "ϟ Lightning", cells: cells(light || Array(6).fill(null), LT) });
+    return { span, hrs: span.map((ms, i) => ({ state: "ok", ms, gust: gusts[i], temp, qpf: 0.1, sn: 0 })),
+      axis: span.map((ms, i) => ({ ms, date: "2026-11-25", hourText: `${6 + i} AM` })),
+      cover: span.map((ms, i) => [{ key: i < 2 ? "setup" : "event", label: i < 2 ? "Setup" : "Event", from: 0, to: i === 5 ? 30 : 60 }]),
+      rows, totals: { hours: 6, gap: 0, qpf: 1.28, qpfR: [0.95, 1.59], sn: 0, snR: [0, 0], peakQ: { v: 0.11, ms: t0 + 4 * H }, peakSn: null, types: ["rain", "mix", "rain"], ...totals } };
+  };
+  const M = E.dashModel(view(), { tz: "America/New_York", gustLimit: 25 }), tile = (m, k) => m.tiles.find((t) => t.key === k);
+  eq([tile(M, "rain").value, tile(M, "rain").sub[0], tile(M, "rain").flag.tier, tile(M, "rain").flag.word], ["1.28", "Models 0.95–1.59 in", "action", "Likely disruptive"], "rain total tile: value, spread across sources, the concern's tier and full level word");
+  eq([tile(M, "rate").value, tile(M, "rate").unit, tile(M, "rate").sub[0]], ["0.11", "in/hr", "Around 10 AM"], "heaviest rain tile: the heaviest hour's amount and when");
+  eq([!!tile(M, "gust"), M.gustLine.state, M.gustLine.text], [false, "clear", "Gusts up to 18 mph · below your 25 mph limit, not a concern"], "gusts not flagged: no tile, one muted line with the peak");
+  eq([!!tile(M, "snow"), !!tile(M, "lightning")], [false, false], "no snow tile when not wintry; no lightning tile when lightning is not flagged");
+  eq(M.flags.map((f) => [f.key, f.tier, f.word, f.hours, f.runs.map((r) => r.parts.map((p) => p.tier).join("+"))]), [["rain", "action", "Likely disruptive", "7 AM–10 AM", ["action+prepare"]]], "window row: the concern hours as one run, coloured by level");
+  eq(M.types, ["rain", "mix", "rain"], "precipitation type sequence");
+  const W = E.dashModel(view({ gusts: [20, 27, 31, 22, 18, 16], wind: [null, "Watch", "Watch", null, null, "Watch"], light: [null, null, "Moderate", "High", null, null] }), { tz: "America/New_York", gustLimit: 25 });
+  eq([tile(W, "gust").value, tile(W, "gust").sub[0], tile(W, "gust").flag.word, W.gustLine], ["31", "Around 8 AM · your limit 25 mph", "Watch", null], "gusts flagged: a full tile with the highest hourly gust and when");
+  eq(W.flags.find((f) => f.key === "wind").hours, "7 AM–9 AM, 11 AM–11:30 AM", "two separate gust windows; the last ends where the event ends (11:30)");
+  eq([tile(W, "lightning").value, tile(W, "lightning").flag.tier, W.flags.find((f) => f.key === "lightning").hours], ["High", "action", "8 AM–10 AM"], "lightning flagged: a tile with the peak level word");
+  const Lo = E.dashModel(view({ gusts: [20, 27, 22, 18, 16, 15] }), { tz: "America/New_York", gustLimit: 25 });
+  eq([!!tile(Lo, "gust"), Lo.gustLine.state], [false, "low"], "gusts reach the limit but the plan rates wind low: still a line, not a tile (no new threshold)");
+  const S = E.dashModel(view({ temp: 33, totals: { sn: 0.3, snR: [0, 0.8], peakSn: { v: 0.2, ms: t0 + 3 * H } } }), { tz: "America/New_York" });
+  eq([tile(S, "snow").value, tile(S, "snow").sub], ["0.3", ["Models 0.0–0.8 in · 7:1, before melting", "Heaviest 0.2 in/hr around 9 AM"]], "wintry: snow tile with spread, 7:1 note and heaviest hour");
+  eq(E.wintry(view({ temp: 34 })), true, "wintry also when precipitation falls at 35°F or colder (the winter read's test)");
+  const Q = E.dashModel(view({ rain: Array(6).fill(null), totals: { qpf: null, peakQ: null, types: [] } }), { tz: "America/New_York" });
+  eq([Q.flags.length, tile(Q, "rain").value, tile(Q, "rain").sub[0], !!tile(Q, "rate")], [0, null, "No data (not zero)", false], "nothing flagged; a missing total is no data, not 0");
+  const html = E.dashboardHtml(view({ rain: Array(6).fill(null) }), E.dashModel(view({ rain: Array(6).fill(null) }), { tz: "America/New_York" }), { tz: "America/New_York" });
+  eq(/No weather concerns flagged for your event window/.test(html) && !/evd-seg/.test(html), true, "no concern: the calm line and no window rows");
+  console.log(`ok - ${n - n0} dashboard checks`);
+}
