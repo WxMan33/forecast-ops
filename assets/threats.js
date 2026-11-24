@@ -526,7 +526,7 @@
   }
   function ensureWssi() {
     if (!isLive() || !winterView()) return;
-    const once = (k, fn) => { if (W.asked.has(k)) return; W.asked.add(k); fn().then(() => { load(); drawAll(); }).catch((e) => { W.err = e.message; W.asked.delete(k); drawAll(); }); };
+    const once = (k, fn) => { if (W.asked.has(k)) return; W.asked.add(k); fn().then(() => { load(); drawAll(); }).catch((e) => { W.err = e.message; drawAll(); setTimeout(() => { W.asked.delete(k); drawAll(); }, 60e3); }); }; // failed: tried again in a minute, not on every redraw
     once("wins", () => Live.wssiWindows().then((l) => { W.wins = l; W.err = null; }));
     const w = curWin(); if (w) once(S.wlevel + "|" + w.start, () => Live.wssiArea(S.wlevel, w.start).then((ps) => { W.area.set(S.wlevel + "|" + w.start, ps); }));
     once("pt|" + venue.lat.toFixed(3) + "," + venue.lon.toFixed(3), () => Live.wssiFor(venue.lat, venue.lon));
@@ -606,12 +606,17 @@
     const b = map.getBounds(), box = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
     return (S.gaugeWhy = (data.products || []).some((p) => p.sourceId === "nws-alerts" && FLOOD_WARNING(p) && Date.parse(p.expires) > now && p.geometry && T.bboxOverlap(T.bbox(p.geometry), box)) ? "flood warning" : null);
   }
+  let gaugeAsked = { k: null, at: 0 };
   function ensureGauges() {
     if (!map || !mapLoaded || !isLive() || !Live.gaugesIn || !S.layers.flood || viewDay() > 1 || winterView() || fireView() || map.getZoom() < 6) return;
     // river gauges only where a Flood Warning (river, areal or flash) is in effect inside the view
     if (!gaugeWarn()) return;
-    clearTimeout(gaugeTimer); gaugeTimer = setTimeout(() => { const b = map.getBounds(), r = (v) => Math.round(v * 2) / 2; // half-degree steps, so small pans reuse the answer
-      Live.gaugesIn([r(b.getWest()) - 0.5, r(b.getSouth()) - 0.5, r(b.getEast()) + 0.5, r(b.getNorth()) + 0.5]).then(() => { load(); drawAll(); }, () => drawAll()); }, 400);
+    // ask once per area (and again after the 15-minute refresh); redraw only when an answer arrives. Asking on every redraw,
+    // with the cached answer redrawing again, kept the panel and map redrawing twice a second wherever gauges were shown.
+    const b = map.getBounds(), r = (v) => Math.round(v * 2) / 2, box = [r(b.getWest()) - 0.5, r(b.getSouth()) - 0.5, r(b.getEast()) + 0.5, r(b.getNorth()) + 0.5], k = box.join(",");
+    if (gaugeAsked.k === k && Date.now() - gaugeAsked.at < 15 * 60e3) return;
+    clearTimeout(gaugeTimer); gaugeTimer = setTimeout(() => { gaugeAsked = { k, at: Date.now() };
+      Live.gaugesIn(box).then(() => { load(); drawAll(); }, () => { gaugeAsked = { k, at: Date.now() - 14 * 60e3 }; drawAll(); } // failed: try this area again in a minute); }, 400);
   }
   /* county lines and names: fetched once, on the first zoom in to regional level with County lines on */
   let countiesAsked = false;
@@ -1376,9 +1381,9 @@
   let vo = { key: null, state: "idle", data: null, err: null };
   function loadOutlook(force) {
     if (!OL || !Live.outlookFor || !venue) return; const k = (+venue.lat).toFixed(4) + "," + (+venue.lon).toFixed(4);
-    if (!force && vo.key === k && (vo.state === "loading" || (vo.state === "ok" && Date.now() - Date.parse(vo.data.at) < 10 * 60e3))) return;
+    if (!force && vo.key === k && (vo.state === "loading" || (vo.state === "ok" && Date.now() - Date.parse(vo.data.at) < 10 * 60e3) || (vo.state === "failed" && Date.now() - vo.failedAt < 60e3))) return; // a failure is retried after a minute, not on every redraw
     vo = { key: k, state: "loading", data: vo.key === k ? vo.data : null, err: null };
-    Live.outlookFor(venue.lat, venue.lon).then((d) => { if (vo.key === k) { vo.state = "ok"; vo.data = d; } }).catch((e) => { if (vo.key === k) { vo.state = "failed"; vo.err = e.message; } }).finally(() => drawAll());
+    Live.outlookFor(venue.lat, venue.lon).then((d) => { if (vo.key === k) { vo.state = "ok"; vo.data = d; } }).catch((e) => { if (vo.key === k) { vo.state = "failed"; vo.err = e.message; vo.failedAt = Date.now(); setTimeout(() => { if (vo.key === k && vo.state === "failed") drawAll(); }, 61e3); } }).finally(() => drawAll());
   }
   const OL_ICON = { river: "🌊", severe: "⛈", rain: "🌧", winter: "❄", fire: "🔥", tropical: "🌀", wind: "💨", heat: "🌡", cold: "🥶", precip: "☂", air: "😷", alert: "⚠" };
   function outlookPanel() {
