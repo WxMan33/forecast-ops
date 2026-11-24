@@ -1,0 +1,42 @@
+name: Severe frozen report-source checkpoint
+on:
+  push:
+    branches: [codex/severe-daily-baseline]
+    paths: ['.github/workflows/severe-source-checkpoint.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preserve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy==2.3.5
+      - name: Retain exact frozen report-source bytes
+        run: |
+          PYTHONPATH=tools/severe python - <<'PY'
+          import json,re
+          from pathlib import Path
+          from extract import Client,digest,write_json
+          manifest=json.load(open('research/severe/labels-v04/manifest.json'))
+          root=Path('tests/out/severe-report-sources')
+          client=Client(root,60)
+          files=[]
+          for source in manifest['sources']:
+              year=int(re.search(r'_d(\d{4})_',source['file'])[1])
+              if year not in (2022,2023,2024):raise ValueError('Protected report-source year')
+              path=client.fetch(source['receipt']['url'],source['file'],max_bytes=25000000)
+              if digest(path)!=source['sha256']:raise ValueError('Frozen source bytes changed')
+              files.append({'file':path.name,'sha256':digest(path),'bytes':path.stat().st_size})
+          write_json(root/'checks.json',{'status':'passed','sources':files,'protected_2025_outcomes_accessed':False})
+          print(json.dumps({'status':'passed','sources':len(files)}))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: severe-frozen-report-sources
+          path: tests/out/severe-report-sources
+          retention-days: 90

@@ -1,0 +1,111 @@
+name: Severe current daily research product
+on:
+  schedule:
+    # Day 1 (06 UTC HRRR). The first run is the normal one; later runs are catch-ups that
+    # exit at once if this run is already published. A run after 12 UTC is flagged late.
+    - cron: '30 9 * * *'
+    - cron: '30 10 * * *'
+    - cron: '45 11 * * *'
+    - cron: '15 13 * * *'
+    # Day 2 (12 UTC HRRR), with catch-ups.
+    - cron: '30 15 * * *'
+    - cron: '30 16 * * *'
+    - cron: '30 18 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'UTC model date, blank for today'
+        type: string
+      day:
+        description: 'Lead day'
+        type: choice
+        options: ['1', '2']
+        default: '1'
+  push:
+    branches: [main]
+    paths: ['research/severe/daily-request.json']
+permissions:
+  contents: write
+# One queue per schedule entry or manual lead day. GitHub keeps only the newest pending run in
+# a group, so a shared group let a manual run silently cancel a waiting scheduled run.
+# Publication races between groups are handled by the re-export loop below.
+concurrency:
+  group: severe-current-research-${{ github.event.schedule || inputs.day || github.event_name }}
+  cancel-in-progress: false
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select the explicit run request
+        id: request
+        env:
+          EVENT: ${{ github.event_name }}
+          REQUEST_DATE: ${{ inputs.date }}
+          REQUEST_DAY: ${{ inputs.day }}
+          SCHEDULE: ${{ github.event.schedule }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          git fetch --quiet --depth=1 origin "$BRANCH"
+          python - <<'PY'
+          import json,os,subprocess
+          from datetime import datetime,timezone
+          request=json.load(open('research/severe/daily-request.json'))
+          if os.environ['EVENT']!='push':
+              request['date']=os.environ.get('REQUEST_DATE') or datetime.now(timezone.utc).date().isoformat()
+              request['day']=int(os.environ.get('REQUEST_DAY') or 1)
+          skip=False
+          if os.environ['EVENT']=='schedule':
+              schedule=os.environ['SCHEDULE']
+              day={'30 9 * * *':1,'30 10 * * *':1,'45 11 * * *':1,'15 13 * * *':1,
+                   '30 15 * * *':2,'30 16 * * *':2,'30 18 * * *':2}[schedule]
+              request['day']=day
+              init=f"{request['date']}T{'06' if day==1 else '12'}:00:00+00:00"
+              # Read the latest published feed, not the checkout from when this run was queued.
+              shown=subprocess.run(['git','show',f'FETCH_HEAD:assets/severe-daily/day{day}.json'],capture_output=True,text=True)
+              published=json.loads(shown.stdout) if shown.returncode==0 else {}
+              skip=published.get('model_init_time')==init and published.get('model_sha256')==request['model_sha256']
+              print(('Already published: ' if skip else 'Producing: ')+f"Day {day} from {init}")
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              for key in ('date','day','model','model_sha256'):f.write(f'{key}={request[key]}\n')
+              f.write(f"skip={'true' if skip else 'false'}\n")
+          PY
+      - uses: actions/setup-python@v5
+        if: steps.request.outputs.skip != 'true'
+        with:
+          python-version: '3.12'
+      - if: steps.request.outputs.skip != 'true'
+        run: pip install -r tools/severe/requirements.txt
+      - if: steps.request.outputs.skip != 'true'
+        run: python tests/severe-product.test.py && python tools/severe/model_registry.py --check
+      - name: Extract, audit and infer current daily probabilities
+        if: steps.request.outputs.skip != 'true'
+        env:
+          DATE: ${{ steps.request.outputs.date }}
+          DAY: ${{ steps.request.outputs.day }}
+          MODEL: ${{ steps.request.outputs.model }}
+          MODEL_SHA: ${{ steps.request.outputs.model_sha256 }}
+        run: python tools/severe/product.py --date "$DATE" --day "$DAY" --model "$MODEL" --model-sha256 "$MODEL_SHA" --output tests/out/current-daily --cache tests/out/current-cache
+      - name: Export, validate and publish onto the latest branch
+        if: steps.request.outputs.skip != 'true'
+        env:
+          MODEL: ${{ steps.request.outputs.model }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Fetch, reset to the newest tip, re-export, check, commit and push, up to 4 attempts.
+          # The loop is tested against an isolated remote in tests/severe-publish.test.py.
+          bash tools/severe/publish_feed.sh --source tests/out/current-daily --model "$MODEL" \
+            --branch "$BRANCH" --attempts 4 --report tests/out/current-daily/publish-report.json
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.request.outputs.skip != 'true'
+        with:
+          name: severe-current-research-day${{ steps.request.outputs.day }}-${{ github.run_id }}
+          path: tests/out/current-daily
+          if-no-files-found: warn
+          retention-days: 90

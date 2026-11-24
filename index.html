@@ -25,56 +25,23 @@
     if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
   });
 })();</script><!--/load-guard-->
-<link rel="stylesheet" href="assets/ops.css?v=f42d725dcf">
+<link rel="stylesheet" href="assets/ops.css?v=eef075228c">
 </head>
-<body>
+<body class="home-page">
 <main class="workspace">
   <aside class="side">
     <section class="card tight" id="locCard"></section>
   </aside>
 
   <div class="main">
-    <div class="overview-brief"><a class="btn ghost sm" href="blend.html?view=brief">Open decision briefing →</a></div>
     <section class="home-start" aria-labelledby="startTitle">
       <h2 class="group-title" id="startTitle">Core tools</h2>
-      <div class="hub hub-top">
-      <a class="hubcard" href="blend.html">
-        <span class="kicker">Tool 01</span>
-        <h2>Model Blend</h2>
-        <p>Your weighted forecast, source agreement and daily investigation flags.</p>
-        <span class="go">OPEN →</span>
-      </a>
-      <a class="hubcard" href="thunder.html">
-        <span class="kicker">Tool 02</span>
-        <h2>Thunder</h2>
-        <p>Find storm windows and compare hourly instability and thunder signals.</p>
-        <span class="go">OPEN →</span>
-      </a>
-      <a class="hubcard" href="severe.html">
-        <span class="kicker">Tool 03</span>
-        <h2>Severe</h2>
-        <p>Explore soundings, wind profiles and ingredients for severe weather.</p>
-        <span class="go">OPEN →</span>
-      </a>
-      <a class="hubcard" href="winter.html">
-        <span class="kicker">Tool 04</span>
-        <h2>Winter</h2>
-        <p>Compare ensemble snow totals, threshold chances and precipitation types.</p>
-        <span class="go">OPEN →</span>
-      </a>
-      <a class="hubcard" href="almanac.html">
-        <span class="kicker">Tool 05</span>
-        <h2>Almanac</h2>
-        <p>Local skywatch, sun and moon times, climate records and seasonal rankings.</p>
-        <span class="go">OPEN →</span>
-      </a>
-      <a class="hubcard" href="maps.html">
-        <span class="kicker">Tool 06</span>
-        <h2>Model Maps</h2>
-        <p>Animate regional HRRR guidance and inspect conditions at your sites.</p>
-        <span class="go">OPEN →</span>
-      </a>
-    </div>
+      <nav class="tooltiles" aria-label="Core tools">
+        <a class="tooltile" href="blend.html" data-tool="blend"><span class="tt-ic" data-icon="layers"></span><span class="tt-name">Model Blend</span><span class="tt-what">Your weighted forecast and where the models disagree.</span><span class="tt-status" data-status="blend"></span></a>
+        <a class="tooltile" href="severe.html" data-tool="severe"><span class="tt-ic" data-icon="tornado"></span><span class="tt-name">Severe</span><span class="tt-what">When storms might happen, and what could make them severe.</span><span class="tt-status" data-status="severe"></span></a>
+        <a class="tooltile" href="winter.html" data-tool="winter"><span class="tt-ic" data-icon="snow"></span><span class="tt-name">Winter</span><span class="tt-what">How much snow could fall, what could stick, and when.</span><span class="tt-status" data-status="winter"></span></a>
+        <a class="tooltile" href="almanac.html" data-tool="almanac"><span class="tt-ic" data-icon="sun"></span><span class="tt-name">Almanac</span><span class="tt-what">Sun and moon, skywatch, and climate records.</span><span class="tt-status" data-status="almanac">Today's records and sky</span></a>
+      </nav>
     </section>
     <!-- Weather threats: the Threats map and its 7-day panel for the forecast point, embedded (loads when scrolled into view) -->
     <section class="card" id="threatsCard">
@@ -86,7 +53,6 @@
       <div class="ov-threats"><iframe src="threats.html?embed=1" title="Weather threats map and 7-day outlook" loading="lazy"></iframe></div>
     </section>
     <section class="card" id="changes" hidden></section>
-
     <section class="card">
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
         <div style="flex:1 1 160px">
@@ -100,7 +66,11 @@
       <p class="msg" id="sumMsg" style="margin-top:8px"></p>
       <div class="infopanel" id="ovHowPanel" hidden><p>Rows marked NWS are NWS's own day (≈6a–6p) and night (≈6p–6a) periods. NWS is also one weighted source inside the blend values. Every other value uses the same sources, weights and calculation as its tool page: temperatures, precip and gusts from MODEL BLEND (models, ECMWF ENS, GEFS and NWS, using the blend recipe you picked there), snow chances from WINTER, the thunder signal from THUNDER. Change a model's weight on a tool page and this summary follows it. Overview cards use the printed local planning periods, with night lows and daytime highs explicitly labeled. At 2 PM, tonight and tomorrow lead; a smaller rest-of-today summary remains visible until 5 PM. Partial current-hour precipitation is counted in full and may include the elapsed part of that hour. The daily Blend table retains calendar days, so it can differ from these period values.</p></div>
     </section>
-
+    <nav class="moretools" aria-label="More">
+      <a class="moretool" href="maps.html" data-tool="maps"><span class="tt-ic" data-icon="map"></span><span><b>Model Maps</b><span class="msg">Animate HRRR, NBM and RRFS guidance on the map</span></span></a>
+      <a class="moretool" href="blend.html?view=brief" data-tool="brief"><span class="tt-ic" data-icon="layers"></span><span><b>Decision briefing</b><span class="msg">One-page summary from the blend</span></span></a>
+      <a class="moretool quiet" href="event-beta.html#upcoming" data-tool="events"><span class="tt-ic" data-icon="calendar"></span><span><b>Events</b><span class="msg">For event managers: venue briefings</span></span></a>
+    </nav>
   </div>
 
   <aside class="side-extra">
@@ -123,11 +93,11 @@
     </details>
   </aside>
 </main>
-<script src="assets/ops-core.js?v=c9a243d88e"></script>
+<script src="assets/ops-core.js?v=9f54ea80ed"></script>
 <script src="assets/ops-data.js?v=68a540c59e"></script>
-<script src="assets/ops.js?v=de6ff01851"></script>
+<script src="assets/ops.js?v=379f859044"></script>
 <script src="assets/forecast-clock.js?v=c6df9f20b7"></script>
-<script src="assets/overview.js?v=8b5402d740"></script>
+<script src="assets/overview.js?v=a65ce9552a"></script>
 <script src="assets/table-pages.js?v=5852a434bf"></script>
 </body>
 </html>

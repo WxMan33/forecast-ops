@@ -125,4 +125,17 @@ const ctxFor = (B, thunderAt) => { const ctx = S.context({ C, T, B, ws, rules: n
 eq([S.formatPrecipPercent(0), S.formatPrecipPercent(1), S.formatPrecipPercent(2.4), S.formatPrecipPercent(2.5), S.formatPrecipPercent(12), S.formatPrecipPercent(null)], ["0%", "<5%", "<5%", "5%", "10%", "—"], "a small nonzero chance reads <5%, never 0%; zero stays 0%; missing stays —");
 eq(["normal", "monitor", "prepare", "action", "nodata", null].map(S.lightningWord), ["Low", "Moderate", "Moderate", "High", "Unavailable", "Unavailable"], "lightning words map the Thunder tiers (LOW, MARGINAL, ELEVATED, HIGH); no data is Unavailable");
 eq(M.nwsThunder({ hourly: [{ s: 0, e: 10, short: "Chance Showers And Thunderstorms" }, { s: 10, e: 20, short: "Mostly Cloudy" }, { s: 20, e: 30, short: "Slight Chance T-storms" }] }, 5, 25).map((h) => h.short), ["Chance Showers And Thunderstorms", "Slight Chance T-storms"], "NWS thunder wording inside the window");
+/* ---------- event totals: whole-window blend total, the spread across sources, snow spread returned too ---------- */
+{
+  const t0 = Date.parse("2026-11-26T10:00:00Z"), hrs = 10;
+  const B = guidance(t0, hrs, (i) => ({ ...calm(), temperature_2m: 31, precipitation: 0.05, snowfall: 0.3 }));
+  const B2 = guidance(t0, hrs, (i) => ({ ...calm(), temperature_2m: 33, precipitation: 0.09, snowfall: 0.1 }));
+  B.models.ecmwf_ifs025 = B2.models.gfs_seamless;
+  const idx = Array.from({ length: hrs }, (_, i) => i), r = C.blend.windowRow(B, { gfs_seamless: 1, ecmwf_ifs025: 1 }, idx, idx, {});
+  ok(Math.abs(r.qpf - 0.7) < 1e-9, `event total is the equal-weight blend of the two sources' totals (0.5 and 0.9): ${r.qpf}`);
+  ok(r.qpfR[0] < r.qpfR[1] && r.qpfR[0] >= 0.5 - 1e-9 && r.qpfR[1] <= 0.9 + 1e-9, `rain spread lies between the sources' totals: ${r.qpfR}`);
+  ok(Array.isArray(r.snR) && r.snR[0] < r.snR[1] && r.snR[0] >= 1 - 1e-9 && r.snR[1] <= 3 + 1e-9, `snow spread is returned and lies between the sources' totals (1 and 3 in): ${r.snR}`);
+  const one = C.blend.windowRow(B, { gfs_seamless: 1, ecmwf_ifs025: 1 }, [0], [0], {});
+  ok(Math.abs(one.qpf - 0.07) < 1e-9, "one hour's blend is the per-hour rate the charts show");
+}
 console.log(`ok - ${n} hourly model checks passed`);

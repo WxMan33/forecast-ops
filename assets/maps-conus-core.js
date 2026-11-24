@@ -1,4 +1,4 @@
-/* Full-CONUS HRRR map support (beta, conus-v1): pure functions shared by the viewer and its tests.
+/* Full-CONUS model map support (beta, conus-v1: HRRR, RRFS, NBM on Lambert grids; ECMWF on a lat-lon crop): pure functions shared by the viewer and its tests.
    The pipeline (forecast-ops-maps/pipeline/conus.py) publishes the whole native HRRR grid as tiles:
      L0 every native cell (full precision), L1 every 2nd cell, L2 every 4th cell (display steps),
    256 x 256 cells per tile, one file per tile per forecast hour. Nothing is resampled: a level-L cell
@@ -119,6 +119,52 @@
     return out; // end is exclusive: HTTP Range bytes=start-(end-1)
   }
 
-  const api = { VERSION, MISS, decodeTile, packIndex, packRanges, levelInfo, tileDims, tileName, levelFor, tilesFor, scaleOf, valueAt, gridMesh, meshError, lut };
+  /* Same-window totals from two run totals of one run: end - start per native cell. Missing if either is missing;
+     decreases within `tol` stored units are packing noise and become 0, larger ones are left missing (never drawn as 0).
+     start === null means the window starts at the run's start (the run total itself). */
+  function windowDiff(end, start, tol) {
+    const out = new Int16Array(end.length);
+    for (let k = 0; k < end.length; k++) {
+      const e = end[k], a = start ? start[k] : 0;
+      if (e === MISS || a === MISS) { out[k] = MISS; continue; }
+      let d = e - a; if (d < 0) d = d >= -tol ? 0 : MISS; out[k] = d > 32767 ? 32767 : d;
+    }
+    return out;
+  }
+  const roundHalfEven = (x) => { const f = Math.floor(x), r = x - f; return r > 0.5 ? f + 1 : r < 0.5 ? f : (f % 2 === 0 ? f : f + 1); };
+  /* a display level from a native region (W x H, row-major, starting on a block boundary), exactly as pipeline/conus.py
+     coarsen(): block maximum (missing ignored unless the whole block is missing) or the corner cell, then rounded
+     half-to-even into display steps */
+  function coarsenRegion(q, W, H, L, rule, step) {
+    if (L === 0) return { values: q, nx: W, ny: H };
+    const s = 2 ** L, NX = Math.ceil(W / s), NY = Math.ceil(H / s), out = new Int16Array(NX * NY);
+    for (let b = 0; b < NY; b++) for (let a = 0; a < NX; a++) {
+      let v = MISS;
+      if (rule === "block max") { for (let j = b * s; j < Math.min(H, b * s + s); j++) for (let i = a * s; i < Math.min(W, a * s + s); i++) { const x = q[j * W + i]; if (x > v) v = x; } }
+      else v = q[b * s * W + a * s];
+      if (v !== MISS && step > 1) v = Math.max(-32767, Math.min(32767, roundHalfEven(v / step)));
+      out[b * NX + a] = v;
+    }
+    return { values: out, nx: NX, ny: NY };
+  }
+  /* Regular latitude-longitude grids (GRIB2 template 3.0, e.g. ECMWF open data, pipeline/conus.py ll_grid): a crop of native
+     cells, rows stored south to north. Cell (i, j) is centred at (lat0 + j * dlat, lon0 + i * dlon); fractional cells
+     interpolate linearly in degrees, so a cell is the exact lat/lon rectangle GRIB describes. */
+  const wrapLon = (d) => ((((d + 180) % 360) + 360) % 360) - 180;
+  function latlonProjector(grid) {
+    const toCell = (lat, lon) => [wrapLon(lon - grid.lon0) / grid.dlon, (lat - grid.lat0) / grid.dlat];
+    const fromCell = (ci, cj) => [grid.lat0 + cj * grid.dlat, wrapLon(grid.lon0 + ci * grid.dlon)];
+    const nearest = (lat, lon) => { const [fi, fj] = toCell(lat, lon), i = Math.round(fi), j = Math.round(fj); return i >= 0 && j >= 0 && i < grid.nx && j < grid.ny ? [i, j] : null; };
+    return { toCell, fromCell, nearest, kind: "latlon" };
+  }
+  const isLatLon = (grid) => !!grid && grid.gridType === "regular_ll";
+  /* the projection a manifest grid asks for: lat-lon here, otherwise the Lambert projector the caller passes (maps-core.js) */
+  const projectorFor = (grid, lambert) => (isLatLon(grid) ? latlonProjector(grid) : lambert(grid));
+  /* width of one native cell in metres at latitude `lat` (Lambert cells are DxInMetres everywhere; lat-lon cells narrow poleward) */
+  const cellMetres = (grid, lat) => (isLatLon(grid) ? 6371229 * ((grid.dlon * Math.PI) / 180) * Math.cos((lat * Math.PI) / 180) : grid.DxInMetres);
+  /* drawing mesh spacing in native cells: 8 on the 3 km Lambert grids; 2 on a 0.25 degree lat-lon grid, whose cells are 8x
+     larger and whose Mercator y is not linear in latitude (meshError: 8 -> 0.04 cell, 2 -> 0.003 cell over the CONUS crop) */
+  const meshStep = (grid) => (isLatLon(grid) ? 2 : 8);
+  const api = { VERSION, MISS, decodeTile, latlonProjector, projectorFor, isLatLon, cellMetres, meshStep, windowDiff, coarsenRegion, roundHalfEven, packIndex, packRanges, levelInfo, tileDims, tileName, levelFor, tilesFor, scaleOf, valueAt, gridMesh, meshError, lut };
   if (typeof module !== "undefined" && module.exports) module.exports = api; else root.MapsConusCore = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

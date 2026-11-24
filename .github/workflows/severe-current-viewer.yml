@@ -1,0 +1,39 @@
+name: Severe current viewer checks
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'assets/severe-daily/**'
+      - 'assets/severe-daily-core.js'
+      - 'assets/severe-research-contours.js'
+      - 'assets/severe-research-canvas.js'
+      - 'tools/severe/model_registry.py'
+      - 'tools/severe/display_mask.py'
+      - 'assets/severe-research.js'
+      - 'severe.html'
+      - 'tests/severe-current-browser.py'
+      - 'tests/severe-daily.test.js'
+      - 'tests/severe-display-mask.test.py'
+permissions:
+  contents: read
+jobs:
+  viewer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: node tools/stamp-assets.js --check
+      - run: node tests/severe-daily.test.js && node tests/severe-research.test.js && node tests/severe-contours.test.js
+      - run: python3 tools/severe/model_registry.py --check
+      - run: pip install numpy==2.3.5 scipy==1.17.0 shapely==2.2.0 && python3 tests/severe-display-mask.test.py
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright
+      - run: python -m playwright install --with-deps chromium
+      - run: python tests/severe-current-browser.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: severe-current-viewer-review
+          path: tests/out/severe-current-*

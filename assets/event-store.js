@@ -121,9 +121,10 @@
     if (ready.state === "partial") return mk("partial", ready.line + (readyAtText ? ` · full briefing around ${readyAtText}` : ""));
     return mk("waiting", readyAtText ? `Briefing expected around ${readyAtText}.` : "Hourly guidance doesn't reach this event yet.");
   }
-  /* list order: needs a weather decision first, then by start; past separately, most recent first */
+  /* list order: chronological (earliest start first) so the list reads like a schedule; events with a weather
+     concern are highlighted in place, not moved to the top. Past events separately, most recent first. */
   function order(items) {
-    const live = items.filter((x) => x.status.key !== "past").sort((a, b) => a.status.rank - b.status.rank || a.startMs - b.startMs);
+    const live = items.filter((x) => x.status.key !== "past").sort((a, b) => a.startMs - b.startMs);
     const past = items.filter((x) => x.status.key === "past").sort((a, b) => b.startMs - a.startMs);
     return { live, past };
   }

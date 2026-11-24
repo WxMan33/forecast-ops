@@ -1,0 +1,43 @@
+name: Severe fixed tree-model experiment
+on:
+  push:
+    branches: [codex/severe-daily-baseline]
+    paths: ['research/severe/tree-experiment-v08.json']
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: severe-tree-experiment
+  cancel-in-progress: false
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 joblib==1.5.2 threadpoolctl==3.6.0
+      - name: Restore the 108 pinned v07 cases and labels (private archive, else original run; verified)
+        env:
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+          ARCHIVE_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
+          ACTIONS_TOKEN: ${{ github.token }}
+        run: |
+          bash tools/severe/restore_inputs.sh --source v07 --output tests/out/tree-history
+          bash tools/severe/restore_inputs.sh --source labels --output tests/out/tree-labels
+      - run: python tools/severe/train_trees.py --history tests/out/tree-history --labels tests/out/tree-labels --output tests/out/tree-candidate
+      - run: python tools/severe/compare_daily.py --original research/severe/baseline-v07/development-scores.json --candidate tests/out/tree-candidate/development-scores.json --output tests/out/tree-candidate/comparison.json
+      - run: pip freeze > tests/out/tree-candidate/environment.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: severe-tree-candidate-v08
+          path: tests/out/tree-candidate
+          if-no-files-found: warn
+          retention-days: 90

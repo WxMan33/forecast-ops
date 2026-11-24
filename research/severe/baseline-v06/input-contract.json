@@ -1,0 +1,93 @@
+{
+  "native_grid": {
+    "gridType": "lambert",
+    "Ni": 1799,
+    "Nj": 1059,
+    "DxInMetres": 3000.0,
+    "DyInMetres": 3000.0,
+    "latitudeOfFirstGridPointInDegrees": 21.138123,
+    "longitudeOfFirstGridPointInDegrees": 237.280472,
+    "LaDInDegrees": 38.5,
+    "LoVInDegrees": 262.5,
+    "Latin1InDegrees": 38.5,
+    "Latin2InDegrees": 38.5,
+    "iScansNegatively": 0,
+    "jScansPositively": 1
+  },
+  "field_identities": {
+    "sbcape": {
+      "units": "J kg**-1",
+      "discipline": 0,
+      "parameterCategory": 7,
+      "parameterNumber": 6,
+      "typeOfLevel": "surface",
+      "level": 0
+    },
+    "sbcin": {
+      "units": "J kg**-1",
+      "discipline": 0,
+      "parameterCategory": 7,
+      "parameterNumber": 7,
+      "typeOfLevel": "surface",
+      "level": 0
+    },
+    "srh01": {
+      "units": "m**2 s**-2",
+      "discipline": 0,
+      "parameterCategory": 7,
+      "parameterNumber": 8,
+      "typeOfLevel": "heightAboveGroundLayer",
+      "level": 1000
+    },
+    "reflectivity": {
+      "units": "dB",
+      "discipline": 0,
+      "parameterCategory": 16,
+      "parameterNumber": 196,
+      "typeOfLevel": "atmosphere",
+      "level": 0
+    },
+    "dewpoint2m": {
+      "units": "K",
+      "discipline": 0,
+      "parameterCategory": 0,
+      "parameterNumber": 6,
+      "typeOfLevel": "heightAboveGround",
+      "level": 2
+    },
+    "shear06_u": {
+      "units": "s**-1",
+      "discipline": 0,
+      "parameterCategory": 2,
+      "parameterNumber": 15,
+      "typeOfLevel": "heightAboveGroundLayer",
+      "level": 0
+    },
+    "shear06_v": {
+      "units": "s**-1",
+      "discipline": 0,
+      "parameterCategory": 2,
+      "parameterNumber": 16,
+      "typeOfLevel": "heightAboveGroundLayer",
+      "level": 0
+    },
+    "uh25": {
+      "units": "unknown",
+      "discipline": 0,
+      "parameterCategory": 7,
+      "parameterNumber": 199,
+      "typeOfLevel": "heightAboveGroundLayer",
+      "level": 5000
+    }
+  },
+  "bounds": [
+    -100,
+    -75,
+    30,
+    45
+  ],
+  "stride": 5,
+  "grid_sha256": "d700ec03464bdddd27f366ce1fec6802438e1c7bdc51029d08623b6ea58bd454",
+  "model_sha256": "5912bb8a63f32468fa52daa408b9793d672a6e3446e22b3a769637c617d1cef0",
+  "training_predictor_manifest_sha256": "d8cd8c9675605ea87443e9856294882581056acad72cecaa90bcab2591013ae2"
+}

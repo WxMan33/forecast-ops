@@ -95,7 +95,17 @@
         <p>Rain chance ${pct(h.pop)} · lightning potential ${h.thunder && h.thunder !== "nodata" ? esc((LIGHTNING_WORD[h.thunder] || "unavailable").toLowerCase()) : "unavailable"} · ${fin(h.temp) ? Math.round(h.temp) + "°" : "—"} · gusts ${fin(h.gust) ? Math.round(h.gust) + " mph" : "—"}</p>
         <p class="hg-note">Forecast from ${h.n} model source${h.n === 1 ? "" : "s"} at the venue; not observed weather.</p>`;
     }
-    return { span, hrs, axis, cover, con, rows, legend, note, detail };
+    /* event totals: one blend call over every covered hour (the same windowRow the briefing's totals use), the spread
+       across sources (10th-90th percentile of the contributing sources' totals), and the heaviest blend hour. Precip type
+       per wet hour from blend snowfall vs liquid at Open-Meteo's 7:1 (>= 0.8 snow, <= 0.2 rain, else mix). */
+    const okH = hrs.filter((h) => h.state === "ok" && fin(h.i)), idxs = okH.map((h) => h.i);
+    const T = idxs.length ? C.blend.windowRow(ctx.B, ctx.ws, idxs, idxs, ctx.opts) : null;
+    const peak = (k) => okH.reduce((a, h) => (fin(h[k]) && h[k] > 0 && (!a || h[k] > a.v) ? { v: h[k], ms: h.ms } : a), null);
+    const kinds = okH.map((h) => { if (!fin(h.qpf) || h.qpf < 0.005 || !fin(h.sn)) return null; const f = Math.min(1, Math.max(0, h.sn / (7 * h.qpf))); return f >= 0.8 ? "snow" : f <= 0.2 ? "rain" : "mix"; })
+      .filter(Boolean).filter((k, i, a) => i === 0 || a[i - 1] !== k);
+    const totals = { hours: span.length, gap: span.length - idxs.length, qpf: T ? T.qpf : null, qpfR: T ? T.qpfR : null, sn: T ? T.sn : null, snR: T ? T.snR : null,
+      peakQ: peak("qpf"), peakSn: peak("sn"), types: kinds };
+    return { span, hrs, axis, cover, con, rows, legend, note, detail, totals };
   }
 
   /* ---------- Model Blend: next 24/48/72 hours or a custom window ---------- */

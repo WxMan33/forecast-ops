@@ -278,6 +278,22 @@
       ? '<div class="pv-alerts pv-alerts-off"><b>Official NWS alerts</b><span>Could not be checked when this was printed. Check weather.gov before the event.</span></div>'
       : alerts.length ? `<div class="pv-alerts"><b>Official NWS alert${alerts.length > 1 ? 's' : ''} in effect</b>${alerts.slice(0, 3).map((x) => `<span>${esc(x.event)}${x.ends ? ` until ${esc(date(Date.parse(x.ends), tz))}, ${esc(clock(Date.parse(x.ends), tz))}` : ''}</span>`).join('')}</div>` : '';
     const lines = planLines(A, b, lightAll, tz, (v) => U.pct(v));
+    /* amounts in plain words for readers without a weather background: event totals with the forecast range across
+       models, and when the heaviest hour is (V.totals: one blend over setup through teardown; see hourly-views.js) */
+    const T = V.totals || null, f2 = (v) => (Number.isFinite(v) ? v.toFixed(2) : '—'), f1 = (v) => (Number.isFinite(v) ? v.toFixed(1) : '—');
+    const hr = (ms) => clock(ms, tz), lb = T && T.gap ? 'at least ' : 'about ';
+    const rng = (r, f) => (r && Number.isFinite(r[0]) && Number.isFinite(r[1]) && r[1] - r[0] >= 0.01 ? ` (forecast range ${f(r[0])}–${f(r[1])} in.)` : '');
+    const snowy = !!T && ((Number.isFinite(T.sn) && T.sn >= 0.05) || (T.peakSn && T.peakSn.v >= 0.02));
+    const amounts = !T ? [] : [
+      Number.isFinite(T.qpf) && T.qpf >= 0.005 ? `Rain: ${lb}${f2(T.qpf)} in. over the event${rng(T.qpfR, f2)}${T.peakQ ? `; heaviest around ${hr(T.peakQ.ms)}, about ${f2(T.peakQ.v)} in. in that hour` : ''}.` : Number.isFinite(T.qpf) ? 'Rain: no measurable rain in the forecast for the event.' : '',
+      snowy ? `Snow: ${lb}${f1(T.sn)} in. could fall${rng(T.snR, f1)}${T.peakSn ? `, most around ${hr(T.peakSn.ms)}` : ''}. Forecast snowfall before melting; less may stay on the ground.` : '',
+      T.types && T.types.some((k) => k !== 'rain') ? `Precipitation type: ${T.types.map((k) => ({ rain: 'rain', mix: 'a rain/snow mix', snow: 'snow' })[k]).join(', then ')}.` : '',
+    ].filter(Boolean);
+    const amountsHtml = amounts.length ? `<ul class="pv-amounts">${amounts.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : '';
+    const watch = lines.filter((l) => l.key !== 'none' && !(l.key === 'lightning' && !A.items.some((x) => x.key === 'lightning')));
+    /* winter read (what could stick), when the event page loaded one: the same levels and hours as the screen */
+    const WR = view.winter && view.winter.status === 'snow' ? view.winter : null, LVW = { favored: 'favored', possible: 'possible', unlikely: 'unlikely', none: 'not expected' };
+    if (WR) watch.push({ key: 'winter', text: `Snow could stick: on grass and elevated surfaces ${LVW[WR.grass.level] || WR.grass.level}; on paved roads and sidewalks ${LVW[WR.paved.level] || WR.paved.level}${WR.ranges.length ? `, mainly ${WR.ranges.map((r) => `${clock(r.s, tz)}–${clock(r.e + H, tz)}`).join(', ')}` : ''}. Bridges and untreated roads are not assessed.` });
     /* a practical gap, in one line, only when it changes what a reader can rely on */
     const f = res.feeds, total = f ? f.used.length + f.missing.length : 0;
     const gap = R && R.state === 'partial' ? `The forecast does not reach the whole event yet: ${R.line}. Check again for the rest.`
@@ -310,14 +326,17 @@
       const pop = ok && Number.isFinite(h.pop) ? esc(cellText('pop', j)) : nd;
       const gust = ok && Number.isFinite(h.gust) ? `${Math.round(h.gust)} mph${x.wind && x.wind.signal ? `<small>Reaches ${A.limit} mph venue limit</small>` : ''}` : nd;
       const lc = row('lightning') && row('lightning').cells[j], light = !ok || !lc || lc.state === 'missing' ? nd : esc(lc.state === 'concern' ? lc.text : 'Low');
-      return `<tr data-ms="${ms}"><td class="pv-time">${time}</td><td>${esc(phaseCellText(V.cover[j], ms, tz))}</td><td>${ok && Number.isFinite(h.temp) ? `${Math.round(h.temp)}°F` : nd}</td><td data-pop>${pop}</td><td${x.wind && x.wind.signal ? ' class="pv-over" data-over' : ''}>${gust}</td><td>${light}</td></tr>`;
+      const rc = row('hz-rain') && row('hz-rain').cells[j], rainHit = !!(rc && rc.state === 'concern'), lightHit = !!(lc && lc.state === 'concern'), windHit = !!(x.wind && x.wind.signal);
+      const amt = (v, d) => (ok && Number.isFinite(v) ? (v < 0.005 ? '0 in.' : `${v.toFixed(d)} in.`) : nd);
+      return `<tr data-ms="${ms}"${rainHit || lightHit || windHit ? ' class="pv-watchrow" data-watch' : ''}><td class="pv-time">${time}</td><td>${esc(phaseCellText(V.cover[j], ms, tz))}</td><td>${ok && Number.isFinite(h.temp) ? `${Math.round(h.temp)}°F` : nd}</td><td data-pop${rainHit ? ' class="pv-hit"' : ''}>${pop}</td><td data-qpf${rainHit ? ' class="pv-hit"' : ''}>${amt(h.qpf, 2)}</td>${snowy ? `<td data-sn>${amt(h.sn, 1)}</td>` : ''}<td${windHit ? ' class="pv-over" data-over' : ''}>${gust}</td><td${lightHit ? ' class="pv-hit"' : ''}>${light}</td></tr>`;
     }).join('');
     const span1 = hours.length ? dateSpan(hours[0], hours[hours.length - 1] + H, tz) : 'No hours available';
     const p2 = `<section class="pv-page pv-p2${hours.length > 16 ? ' pv-dense' : ''}">
       <header class="pv-head"><div><span class="pv-kicker">Hour-by-hour forecast</span><h2 class="pv-title">${esc(name)}</h2><div class="pv-venue">${esc(ev.loc.name)}</div></div><div class="pv-iss"><b>Issued</b><br>${esc(issue)}</div></header>
+      <div class="pv-watch" data-watchbox><b>Watch for</b>${watch.length ? `<ul>${watch.map((l) => `<li data-key="${esc(l.key)}">${esc(l.text)}</li>`).join('')}</ul>` : '<p>No weather concern for the event in the current forecast.</p>'}${amountsHtml}</div>
       <p class="pv-hours-window" data-page-hours="${PH.start}-${PH.start + PH.count}"><b>Hours shown:</b> ${esc(span1)}${clipped ? `<br><b>${PH.fromStart ? 'First 24 hours only' : `24 of ${PH.total} planning hours`}</b>${PH.fromStart ? ` (24 of ${PH.total})` : ', chosen to include the first concern on page 1'}; open the briefing for the rest.` : ''}</p>
-      <table class="pv-t pv-hours"><thead><tr><th>Local time</th><th>Phase</th><th>Temperature</th><th>Rain chance</th><th>Wind gusts</th><th>Lightning potential</th></tr></thead><tbody>${body}</tbody></table>
-      <p class="pv-legend">Times are the venue's local time (${esc(tz)}). Rain chance is the chance of rain at the venue in that hour. Lightning potential is a forecast, not detected lightning; low is not zero. “No data” means no forecast was available for that hour, not zero.${gap ? ` ${esc(gap)}` : ''}</p>
+      <table class="pv-t pv-hours"><colgroup><col style="width:14%"><col style="width:${snowy ? 17 : 20}%"><col style="width:9%"><col style="width:11%"><col style="width:${snowy ? 10 : 12}%">${snowy ? '<col style="width:9%">' : ''}<col style="width:${snowy ? 16 : 19}%"><col style="width:${snowy ? 14 : 15}%"></colgroup><thead><tr><th>Local time</th><th>Phase</th><th>Temp</th><th>Rain chance</th><th>Rain amount</th>${snowy ? '<th>Snow</th>' : ''}<th>Wind gusts</th><th>Lightning</th></tr></thead><tbody>${body}</tbody></table>
+      <p class="pv-legend">Times are the venue's local time (${esc(tz)}). Rain chance is the chance of rain at the venue in that hour; rain amount is how much is forecast to fall in that hour.${snowy ? ' Snow is forecast snowfall in that hour, before melting.' : ''} Lightning is forecast potential, not detected lightning; low is not zero. Marked rows are hours with a weather concern. “No data” means no forecast was available for that hour, not zero.${gap ? ` ${esc(gap)}` : ''}</p>
       <p class="pv-src">Data: Open-Meteo (CC BY 4.0), National Weather Service, NOAA. Model guidance only, not an official forecast or warning.${area ? ' City-area forecast, not site-specific.' : ''}</p>
       ${foot(2)}</section>`;
     return p1 + p2;

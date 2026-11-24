@@ -3,7 +3,7 @@
 (function () {
   "use strict";
   const O = window.Ops, $ = O.$, C = O.Core, S = C.severe;
-  O.shell("severe", "Severe");
+  O.shell("severe", "Severe ingredients"); O.severeViews($("severeViews"), "severe");
 
   /* Models, variables and request settings: OpsCore.config.severe */
   const SPEC = C.config.severe, MODELS = SPEC.models;
@@ -59,8 +59,11 @@
     MODELS.forEach((m) => picker.setStatus(m.id, res.status[m.id] === "ok" ? "ok" : "none"));
     picker.redraw();
     if (res.empty) {
-      data = null; O.setChip("NO DATA", "err"); O.headline({ tier: "nodata" });
-      $("runMsg").className = "msg err"; $("runMsg").textContent = "Couldn't reach Open-Meteo. Check your connection and try again.";
+      data = null; O.setChip("NO DATA", "err");
+      /* rate limited: say so (not "check your connection") and try once more on its own after the requested wait */
+      const fail = O.loadFailText(res), again = O.retryWhenLimited(fail, () => { if (my === runGen) run(); });
+      O.headline({ tier: "nodata", word: fail.limited ? "BUSY" : "NO DATA" });
+      $("runMsg").className = "msg err"; $("runMsg").textContent = fail.text + (again ? ` Trying again automatically in ${again} s.` : fail.limited ? " Try again in a minute." : "");
       render(); return;
     }
     data = res;
@@ -146,7 +149,7 @@
         srh1: [dmax("srh1", d.idx), dmax("srh1", d.idx, 1)], srh3: [dmax("srh3", d.idx), dmax("srh3", d.idx, 1)], scp: [dmax("scp", d.idx), dmax("scp", d.idx, 1)], stp: [dmax("stp", d.idx), dmax("stp", d.idx, 1)],
         lr75: dmax("lr75", d.idx), lcl: dmin("lcl", unstable.length ? unstable : d.idx) };
     });
-    $("daily").innerHTML = `<thead><tr><th>Day</th><th>Signal</th><th>Storms in models</th><th>CAPE</th><th>0–6 km shear</th><th>0–1 km SRH</th><th>0–3 km SRH</th><th>SCP ≈</th><th>STP ≈</th><th>700–500 LR</th><th>Min LCL</th><th>Flags</th></tr></thead><tbody>` +
+    $("daily").innerHTML = `<thead><tr><th>Day</th><th>Signal</th><th title="Share of the models selected on this page (Severe weights) that show thunderstorms in their weather code on that day. Storm timing has the full thunder signal, with its own models and weights.">Thunder share · these models</th><th>CAPE</th><th>0–6 km shear</th><th>0–1 km SRH</th><th>0–3 km SRH</th><th>SCP ≈</th><th>STP ≈</th><th>700–500 LR</th><th>Min LCL</th><th>Flags</th></tr></thead><tbody>` +
       rows.map((r) => `<tr><td class="display" style="font-size:12px">${O.fmtDay(r.d.k)}</td><td>${O.badge({ tier: r.t, limited: r.lim.length > 0, missing: r.miss })}</td>` +
         `<td class="num">${r.th == null ? "—" : Math.round(r.th * 100) + "%"}</td><td class="num">${pair(...r.cape)}</td><td class="num">${pair(...r.bs6, 0, " kt")}</td>` +
         `<td class="num">${pair(...r.srh1)}</td><td class="num">${pair(...r.srh3)}</td><td class="num">${pair(...r.scp, 1)}</td><td class="num">${pair(...r.stp, 1)}</td>` +

@@ -35,7 +35,7 @@
   /* ---------- header: brand, page context, theme ---------- */
   function header({ audience, other, ctx = "", actions = "" }) {
     const el = document.createElement("header"); el.className = "bx-head";
-    el.innerHTML = `<div class="bx-head-in"><a class="bx-brand" href="${esc(other.self)}"><span class="bx-mark" aria-hidden="true">F</span><b>Forecast Ops</b><span class="tag">${esc(audience)} beta</span></a>
+    el.innerHTML = `<div class="bx-head-in"><a class="bx-brand" href="${esc(other.self)}"><span class="bx-mark" aria-hidden="true">F</span><b>Forecast Ops</b><span class="tag">${esc(audience === "Event" ? "Event Manager" : `${audience} beta`)}</span></a>
       <div class="bx-ctx" id="bxCtx">${ctx}</div><span class="bx-upd" id="bxUpd"></span>${actions}
       <button class="bx-btn" type="button" id="bxRefresh" title="Reload guidance" aria-label="Reload guidance">↻</button>
       <button class="bx-btn" type="button" id="bxTheme" aria-label="Switch light or dark">Light</button>
@@ -227,21 +227,53 @@
   }
 
   /* ---------- the HRRR map with the shared toolbar (layer, run, step/play, valid time) ---------- */
+  /* With parts (the Event Manager's setup/gates/event/teardown), the panel adds a time slider with the event shaded, an
+     "Event | Full run" switch (Event: 2 h before the first part to the end of the last, clipped to the run), one jump chip
+     per part, a plain coverage note when the model run ends before the event does, and a guidance disclaimer. */
   const MAP_FIELDS = ["refc", "refd1km", "precip", "t2m", "d2m", "gust", "w10m", "cloud"];
-  function mapPanel(host, { view = "tristate", field = "refc", place = null, bus, tz = "America/New_York", now = Date.now(), want = null, autoRun = false } = {}) {
+  const LEAD = 2 * H, HALF = 30 * 60e3;
+  /* the event window and its parts against a run's valid times (pure, for tests): Event mode's hour indices, and each part's reach */
+  function eventSpan(parts, valid) {
+    if (!parts || !parts.length) return null;
+    const s = parts[0].startMs - LEAD, e = parts[parts.length - 1].endMs, a = valid.length ? valid[0] : null, b = valid.length ? valid[valid.length - 1] : null;
+    const idx = valid.map((t, i) => (t > s - H && t <= e ? i : -1)).filter((i) => i >= 0); // from the hour holding the window's start to the last hour that starts by its end
+    const hourOf = (ms) => { let k = -1; valid.forEach((t, i) => { if (t <= ms + 60e3) k = i; }); return k; }; // the hour holding ms (as the hourly charts do)
+    const reach = parts.map((p) => {
+      if (b == null || p.startMs > b + HALF) return { ...p, state: "beyond", at: null };
+      if (p.endMs <= a - HALF) return { ...p, state: "before", at: null };
+      const k = Math.max(0, hourOf(p.startMs)); return { ...p, state: "in", at: valid[k] };
+    });
+    return { s, e, first: parts[0].startMs, last: e, win: idx.length ? [idx[0], idx[idx.length - 1]] : null, end: b, start: a, covers: b != null && b >= e - HALF, reach };
+  }
+  function mapPanel(host, { view = "tristate", field = "refc", place = null, bus, tz = "America/New_York", now = Date.now(), want = null, autoRun = false, parts = null } = {}) {
     const q = new URLSearchParams({ embed: "1", view, field }); if (place) { q.set("lat", place.lat); q.set("lon", place.lon); q.set("name", place.name); }
     const full = new URLSearchParams({ view, field }); if (place) { full.set("lat", place.lat); full.set("lon", place.lon); full.set("name", place.name); }
-    host.classList.add("bx-mapwrap");
+    const EV = parts && parts.length ? parts.map((p) => ({ key: p.key, label: p.label, startMs: p.startMs, endMs: p.endMs })) : null;
+    let mode = EV ? "event" : "full";
+    host.classList.add("bx-mapwrap"); host.classList.toggle("ev", !!EV); host.dataset.mode = EV ? mode : "";
     host.innerHTML = `<div class="bx-mappanel"><div class="bx-maptool" role="toolbar" aria-label="Map controls">
         <label class="sr-only" for="mpField">Layer</label><select class="bx-sel" id="mpField" disabled><option>Loading map…</option></select>
         <label class="sr-only" for="mpRun">Model run</label><select class="bx-sel" id="mpRun" disabled></select>
         <span class="grp"><button type="button" id="mpBack" aria-label="Previous hour" disabled>‹</button><button type="button" id="mpPlay" aria-pressed="false" disabled>Play</button><button type="button" id="mpNext" aria-label="Next hour" disabled>›</button></span>
         <span class="vt" id="mpVt" aria-live="polite"></span><span class="bx-dev" title="The map is a feature in development">In development</span><a class="bx-btn" href="maps.html?${full}" title="Open the full map page">Full map ↗</a></div>
+      ${EV ? `<div class="bx-mapslide">
+        <div class="bx-mapmodes"><span class="bx-seg" role="group" aria-label="Map time span"><button type="button" data-mode="event" aria-pressed="true">Event</button><button type="button" data-mode="full" aria-pressed="false">Full run</button></span>
+          <span class="bx-mapchips" id="mpChips" role="group" aria-label="Jump to a part of the event"></span></div>
+        <div class="bx-slider"><div class="bx-sltrack" id="mpTrack" aria-hidden="true"></div>
+          <label class="sr-only" for="mpSlider">Map time</label><input type="range" id="mpSlider" min="0" max="0" step="1" value="0" disabled aria-valuetext="Loading map">
+          <div class="bx-slticks" id="mpTicks" aria-hidden="true"></div></div>
+        <div class="bx-slends" id="mpEnds" aria-hidden="true"></div></div>
+      <div class="bx-mapcover" id="mpCover" role="note" hidden></div>` : ""}
       <div class="bx-mapnote" id="mpNote" hidden></div>
-      <div class="bx-mapframe"><iframe title="HRRR regional model map" src="maps.html?${q}"></iframe><div class="bx-mapflag" id="mpFlag" hidden></div></div></div>`;
+      <div class="bx-mapframe"><iframe title="HRRR regional model map" src="maps.html?${q}"></iframe><div class="bx-mapflag" id="mpFlag" hidden></div></div>
+      ${EV ? `<p class="bx-mapdisc" id="mpDisc">This is computer model guidance, not a forecast or a guarantee. Models can be wrong on timing, placement and strength. Use it alongside NWS forecasts and warnings and your own weather plan.</p>` : ""}</div>`;
     const $ = (id) => host.querySelector("#" + id), frame = host.querySelector("iframe");
-    let M = null, last = null, wanted = want;
-    const runLabel = (r) => `HRRR ${String(new Date(r.cycle).getUTCHours()).padStart(2, "0")}Z · ${r.hours} h`;
+    let M = null, last = null, wanted = want, spanSig = null;
+    const runLabel = (r) => (EV ? `${fmt.time(r.cycle, tz)} model run · ${r.hours} h` : `HRRR ${String(new Date(r.cycle).getUTCHours()).padStart(2, "0")}Z · ${r.hours} h`);
+    const at = (ms) => `${fmt.time(ms, tz)} ${fmt.zone(ms, tz)}`;
+    /* the hours the slider and the ‹ › buttons move through: Event mode's window, or every hour of the run */
+    const span = (s) => { if (!s || !s.valid.length) return null; if (mode === "event" && EV) { const w = eventSpan(EV, s.valid); return w && w.win; } return [0, s.valid.length - 1]; };
+    const nearest = (s, ms) => { let k = 0; s.valid.forEach((t, i) => { if (Math.abs(t - ms) < Math.abs(s.valid[k] - ms)) k = i; }); return k; };
     const render = (s) => {
       last = s; if (!s || !s.runs.length) return;
       const fsel = $("mpField"), rsel = $("mpRun");
@@ -251,11 +283,53 @@
       [fsel, rsel, $("mpBack"), $("mpPlay"), $("mpNext")].forEach((b) => { b.disabled = !s.ready && !s.playing; });
       $("mpPlay").textContent = s.playing ? "Pause" : "Play"; $("mpPlay").setAttribute("aria-pressed", String(s.playing));
       host.dataset.mapValid = s.validMs || ""; host.dataset.ready = String(!!s.ready);
-      $("mpVt").innerHTML = s.validMs ? `${vt(s.validMs, tz, now)} <span class="run">· F${String(s.fh).padStart(2, "0")} of ${esc(runLabel(s.runs.find((r) => r.id === s.run) || s.runs[0]))}</span>` : "";
+      const cur = s.runs.find((r) => r.id === s.run) || s.runs[0];
+      $("mpVt").innerHTML = s.validMs ? `${vt(s.validMs, tz, now)} <span class="run">· ${EV ? `model run ${esc(fmt.time(cur.cycle, tz))}` : `F${String(s.fh).padStart(2, "0")} of ${esc(runLabel(cur))}`}</span>` : "";
+      if (EV && s.ready) syncSpan(s);
       /* the map leads only while playing (or before anything is selected); otherwise it follows the selected time */
       if (s.ready && s.validMs && bus) { if (s.playing || bus.get() == null) bus.set(s.validMs, "map"); else if (M) M.setTime(bus.get()); }
-      rangeNote();
+      rangeNote(); if (EV) drawSlider();
     };
+    /* Event mode limits play and stepping in the map itself to the window (it loops there) */
+    const syncSpan = (s) => { const w = eventSpan(EV, s.valid), sig = `${mode}|${s.run}|${w && w.win}`; if (sig === spanSig || !M || !M.setSpan) return; spanSig = sig;
+      if (mode === "event" && w && w.win) M.setSpan(s.valid[w.win[0]], s.valid[w.win[1]]); else M.setSpan(null); };
+    /* ---- slider, chips, coverage note (Event Manager) ---- */
+    const drawSlider = () => {
+      const s = last, sl = $("mpSlider"), trk = $("mpTrack"), ticks = $("mpTicks"), ends = $("mpEnds"), chips = $("mpChips"), cov = $("mpCover");
+      if (!s || !s.valid.length) return;
+      const w = eventSpan(EV, s.valid), r = span(s), ok = !!r && (s.ready || s.playing);
+      host.dataset.mode = mode; host.querySelectorAll("[data-mode]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+      sl.disabled = !ok;
+      if (r) { sl.min = String(r[0]); sl.max = String(r[1]); const sel = bus && bus.get() != null ? bus.get() : s.validMs, k = Math.min(r[1], Math.max(r[0], nearest(s, sel)));
+        sl.value = String(k); sl.setAttribute("aria-valuetext", `${at(s.valid[k])}${Math.abs(s.valid[k] - sel) > HALF ? " (not the selected time)" : ""}`);
+        host.dataset.slider = `${s.valid[r[0]]}-${s.valid[r[1]]}`; }
+      else { sl.min = "0"; sl.max = "0"; sl.value = "0"; sl.setAttribute("aria-valuetext", "Your event is outside this model run"); host.dataset.slider = ""; }
+      /* the event shaded on the track, with a labelled tick at each part's start */
+      const a = r ? s.valid[r[0]] : 0, b = r ? s.valid[r[1]] : 1, f = (ms) => (b > a ? Math.min(1, Math.max(0, (ms - a) / (b - a))) : 0), pos = (x) => `calc(var(--th) / 2 + ${(x * 100).toFixed(2)}% - ${(x).toFixed(4)} * var(--th))`;
+      const inSpan = (ms) => r && ms >= a - HALF && ms <= b + HALF;
+      const bandS = f(w.first), bandE = f(w.last);
+      trk.innerHTML = r && w.last > a && w.first < b ? `<i class="band" style="left:${pos(bandS)};width:calc(${((bandE - bandS) * 100).toFixed(2)}% - ${(bandE - bandS).toFixed(4)} * var(--th))"></i>` : "";
+      const tk = r ? (mode === "event" ? w.reach.filter((p) => inSpan(p.startMs)).map((p) => ({ x: f(p.startMs), t: p.label })) : (inSpan(w.first) ? [{ x: f(w.first), t: "Your event" }] : [])) : [];
+      trk.innerHTML += tk.map((t) => `<b style="left:${pos(t.x)}"></b>`).join("");
+      ticks.innerHTML = tk.map((t) => `<span style="left:${pos(t.x)}" class="${t.x > 0.85 ? "r" : t.x < 0.15 ? "l" : ""}">${esc(t.t)}</span>`).join("");
+      ends.innerHTML = r ? `<span>${esc(at(a))}</span><span>${esc(at(b))}</span>` : "";
+      declutter(ticks);
+      /* one chip per part; a part the run does not reach is shown disabled */
+      const sig = w.reach.map((p) => p.key + p.state + p.at).join();
+      if (chips.dataset.sig !== sig) { chips.dataset.sig = sig;
+        chips.innerHTML = w.reach.map((p) => p.state === "in" ? `<button type="button" class="bx-chip" data-jump="${p.at}" data-part="${esc(p.key)}">${esc(p.label)} <b>${esc(fmt.clock(p.startMs, tz))}</b></button>`
+          : `<button type="button" class="bx-chip" data-part="${esc(p.key)}" data-state="${p.state}" disabled title="${esc(p.label)} ${esc(fmt.clock(p.startMs, tz))}: ${p.state === "beyond" ? "beyond this model run" : "before this model run"}">${esc(p.label)} <b>${esc(fmt.clock(p.startMs, tz))}</b> <i>${p.state === "beyond" ? "beyond model" : "before this run"}</i></button>`).join(""); }
+      chips.querySelectorAll("[data-jump]").forEach((c) => c.setAttribute("aria-current", String(!!(bus && Math.abs(bus.get() - +c.dataset.jump) < HALF))));
+      /* blunt coverage note whenever the selected run stops before the event does */
+      if (w.covers) { cov.hidden = true; cov.innerHTML = ""; host.dataset.cover = "all"; }
+      else { const rest = Math.max(w.end, w.first), endOf = (x) => x.cycle + x.hours * H, furthest = s.runs.slice().sort((x, y) => endOf(y) - endOf(x) || y.cycle - x.cycle)[0], curR = s.runs.find((x) => x.id === s.run);
+        const better = furthest && curR && furthest.id !== curR.id && endOf(furthest) > endOf(curR) + HALF ? furthest : null;
+        cov.hidden = false; host.dataset.cover = w.end < w.first ? "none" : "part";
+        cov.innerHTML = `<b>This is as far as the HRRR model currently reaches: ${esc(at(w.end))}.</b> ${w.end < w.first ? `Your event (${esc(fmt.span(w.first, w.last, tz))})` : `The rest of your event (${esc(fmt.span(rest, w.last, tz))})`} is beyond this model run. Newer runs reach further; check back later.`
+          + (better ? ` <button type="button" class="bx-btn" id="mpBetter" data-run="${esc(better.id)}">Show the run that reaches ${esc(fmt.time(endOf(better), tz))}</button>` : ""); }
+    };
+    /* hide a tick label that would overlap the one before it (phones, long runs) */
+    const declutter = (box) => { let prev = null; box.querySelectorAll("span").forEach((el) => { el.style.visibility = ""; const r = el.getBoundingClientRect(); if (prev && r.left < prev.right + 4) el.style.visibility = "hidden"; else prev = r; }); };
     /* when the selected time is outside this run's hours, say so on and beside the map; never let another hour
        pass for the selected time. With autoRun, first switch to the newest published run that reaches it. */
     const covering = (s, ms) => s.runs.filter((r) => r.cycle <= ms + 30 * 60e3 && r.cycle + r.hours * H >= ms - 30 * 60e3).sort((a, b) => b.cycle - a.cycle)[0] || null;
@@ -278,20 +352,34 @@
       else n.hidden = true;
       flag.hidden = out === "in"; flag.innerHTML = out === "in" ? "" : `${out === "beyond" ? "Last HRRR hour" : "First HRRR hour"} · ${esc(fmt.time(out === "beyond" ? b : a, tz))}<span>not the selected time</span>`;
       $("mpVt").classList.toggle("oor", out !== "in"); };
-    const attach = () => { const w = frame.contentWindow; if (!w || !w.MapEmbed) return false; M = w.MapEmbed; M.on(render);
-      if (wanted != null && bus) bus.set(wanted, "page"); wanted = null; if (bus && bus.get() != null) M.setTime(bus.get()); return true; };
+    /* Event mode opens on the event: a selected time outside the window moves to the first part's start (its hour) */
+    const toWindow = () => { if (!EV || mode !== "event" || !bus) return; const s0 = EV[0].startMs - LEAD, e0 = EV[EV.length - 1].endMs, ms = bus.get();
+      if (ms == null || ms < s0 - HALF || ms > e0 + HALF) bus.set(Math.floor(EV[0].startMs / H) * H, "page"); };
+    const attach = () => { const w = frame.contentWindow; if (!w || !w.MapEmbed) return false; M = w.MapEmbed;
+      if (wanted != null && bus) bus.set(wanted, "page"); wanted = null; toWindow(); M.on(render); if (bus && bus.get() != null) M.setTime(bus.get()); return true; };
     const poll = setInterval(() => { if (attach()) clearInterval(poll); }, 300); setTimeout(() => clearInterval(poll), 60000);
     $("mpField").addEventListener("change", (e) => { if (M) M.setField(e.target.value); track("map_layer_changed", { layer: e.target.value }); });
     $("mpRun").addEventListener("change", (e) => M && M.setRun(e.target.value));
     /* stepping moves the selected time; the map (and the chart) follow it, so nothing can snap back */
-    const stepBy = (d) => { if (!M) return; M.stop(); const s0 = M.state(); if (!s0.valid.length) return; const n = s0.valid.length, k = (s0.h + d + n) % n;
+    const stepBy = (d) => { if (!M) return; M.stop(); const s0 = M.state(); if (!s0.valid.length) return; const r = span(s0) || [0, s0.valid.length - 1], n = r[1] - r[0] + 1;
+      const k = s0.h < r[0] || s0.h > r[1] ? r[0] : r[0] + (((s0.h - r[0] + d) % n) + n) % n;
       if (bus) bus.set(s0.valid[k], "step"); else M.step(d); };
     $("mpBack").addEventListener("click", () => stepBy(-1));
     $("mpNext").addEventListener("click", () => stepBy(1));
     $("mpPlay").addEventListener("click", () => { if (!M) return; if (M.state().playing) M.stop(); else { M.play(); track("playback_started"); } });
-    const offBus = bus ? bus.on((ms, src) => { if (M && src !== "map") { const r = M.setTime(ms); if (r && r.validMs && r.inRange === false) rangeNote(); } rangeNote(); }) : null;
-    host._dispose = () => { clearInterval(poll); if (offBus) offBus(); M = null; host._dispose = null; };
-    return { want(ms) { if (M && bus) bus.set(ms, "page"); else wanted = ms; } };
+    let ro = null;
+    if (EV) {
+      /* the slider sets the selected time, exactly as the ‹ › buttons do */
+      $("mpSlider").addEventListener("input", (e) => { if (!M || !last) return; const s0 = M.state(); if (s0.playing) M.stop(); const k = +e.target.value; if (s0.valid[k] != null && bus) bus.set(s0.valid[k], "slider"); });
+      host.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => { if (mode === b.dataset.mode) return; mode = b.dataset.mode; if (M && M.state().playing) M.stop();
+        if (last) syncSpan(last); toWindow(); drawSlider(); }));
+      $("mpChips").addEventListener("click", (e) => { const c = e.target.closest("[data-jump]"); if (!c || !bus) return; if (M && M.state().playing) M.stop(); bus.set(+c.dataset.jump, "chip"); });
+      $("mpCover").addEventListener("click", (e) => { const c = e.target.closest("#mpBetter"); if (c && M) M.setRun(c.dataset.run); });
+      if (root.ResizeObserver) { ro = new ResizeObserver(() => declutter($("mpTicks"))); ro.observe($("mpTicks")); }
+    }
+    const offBus = bus ? bus.on((ms, src) => { if (M && src !== "map") { const r = M.setTime(ms); if (r && r.validMs && r.inRange === false) rangeNote(); } rangeNote(); if (EV) drawSlider(); }) : null;
+    host._dispose = () => { clearInterval(poll); if (offBus) offBus(); if (ro) ro.disconnect(); M = null; host.classList.remove("ev"); host._dispose = null; };
+    return { want(ms) { if (M && bus) bus.set(ms, "page"); else wanted = ms; }, mode: () => mode };
   }
 
   /* analytics hook (filled in by beta-analytics.js when it loads; a no-op otherwise) */
@@ -333,5 +421,5 @@
     host.innerHTML = `<div class="bx-mapoff" role="note"><b>HRRR map available for Cincinnati Tri-State only</b><span>The regional map is in development and covers the Cincinnati Tri-State. ${esc(place.name.split(",")[0])} is outside it; the timeline, signals and briefing below are complete for this location.</span><span class="bx-dev">In development</span></div>`;
   }
 
-  root.BetaUI = { NAMES, fmt, vt, st, deg, inch, pct, mph, fin, timeBus, header, load, outlook, assemble, recover, rateLimited, RETRY, alerts, timeline, mapPanel, mapUnavailable, placePicker, blendLine, nwsBlock, recipeFor, track };
+  root.BetaUI = { NAMES, fmt, vt, st, deg, inch, pct, mph, fin, timeBus, header, load, outlook, assemble, recover, rateLimited, RETRY, alerts, timeline, mapPanel, eventSpan, mapUnavailable, placePicker, blendLine, nwsBlock, recipeFor, track };
 })(typeof globalThis !== "undefined" ? globalThis : this);

@@ -37,6 +37,10 @@
     nav.innerHTML='<button type="button" class="btn bx-btn ghost sm" data-hg-prev aria-label="Earlier table hours">← Earlier</button><span class="hg-window" aria-live="polite"></span><button type="button" class="btn bx-btn ghost sm" data-hg-next aria-label="Later table hours">Later →</button>';
     host.prepend(nav);
     let sizedFor='';
+    function windowLabel(start,end){
+      const a=axis[start],z=axis[end-1];
+      return `${DAY(a.date)} · ${a.hourText} ${a.zone} – ${z.date!==a.date?DAY(z.date)+' · ':''}${z.hourText} ${z.zone} · ${start+1}–${end} of ${axis.length} hours`;
+    }
     function setVisible(start,end){
       const visible=i=>i>=start&&i<end;
       host.querySelectorAll('.hg-hours th[data-ms]').forEach((th,i)=>{th.hidden=!visible(i)});
@@ -50,12 +54,33 @@
       pageStart=Math.max(0,Math.min(pageStart,Math.max(0,axis.length-pageSize)));
       const end=Math.min(axis.length,pageStart+pageSize);
       /* every row keeps its tallest height across all pages of this width, so paging never moves the page below */
-      if(sizedFor!==host.clientWidth+':'+pageSize){sizedFor=host.clientWidth+':'+pageSize;const trs=Array.from(host.querySelectorAll('tr'));trs.forEach(tr=>{tr.style.height='';});const tall=trs.map(()=>0);
-        for(let s0=0;s0<axis.length;s0+=pageSize){setVisible(s0,Math.min(axis.length,s0+pageSize));trs.forEach((tr,k)=>{tall[k]=Math.max(tall[k],tr.getBoundingClientRect().height);});}
-        trs.forEach((tr,k)=>{if(tall[k])tr.style.height=Math.ceil(tall[k])+'px';});}
+      if(sizedFor!==host.clientWidth+':'+pageSize){
+        sizedFor=host.clientWidth+':'+pageSize;
+        const trs=Array.from(host.querySelectorAll('tr')),tall=trs.map(()=>0);
+        const lastStart=Math.max(0,axis.length-pageSize),starts=new Set([0,lastStart,pageStart]);
+        // A clamped final page creates a second alignment when paging backward.
+        for(const seed of Array.from(starts)){
+          for(let offset=seed;offset>=0;offset-=pageSize)starts.add(offset);
+          for(let offset=seed;offset<=lastStart;offset+=pageSize)starts.add(offset);
+        }
+        trs.forEach(tr=>{tr.style.height='';});
+        for(const offset of starts){
+          setVisible(offset,Math.min(axis.length,offset+pageSize));
+          trs.forEach((tr,k)=>{tall[k]=Math.max(tall[k],tr.getBoundingClientRect().height);});
+        }
+        trs.forEach((tr,k)=>{if(tall[k])tr.style.height=Math.ceil(tall[k])+'px';});
+        // The pager itself can gain a line when its range spans two dates.
+        const range=nav.querySelector('.hg-window');
+        range.style.minHeight='';
+        let rangeHeight=0;
+        for(let offset=0;offset<=lastStart;offset++){
+          range.textContent=windowLabel(offset,Math.min(axis.length,offset+pageSize));
+          rangeHeight=Math.max(rangeHeight,range.getBoundingClientRect().height);
+        }
+        range.style.minHeight=Math.ceil(rangeHeight)+'px';
+      }
       setVisible(pageStart,end);
-      const a=axis[pageStart],z=axis[end-1];
-      nav.querySelector('.hg-window').textContent=`${DAY(a.date)} · ${a.hourText} ${a.zone} – ${z.date!==a.date?DAY(z.date)+' · ':''}${z.hourText} ${z.zone} · ${pageStart+1}–${end} of ${axis.length} hours`;
+      nav.querySelector('.hg-window').textContent=windowLabel(pageStart,end);
       nav.querySelector('[data-hg-prev]').disabled=pageStart===0;nav.querySelector('[data-hg-next]').disabled=end===axis.length;
       host.dataset.pageStart=String(pageStart);host.dataset.pageSize=String(pageSize);
     }
