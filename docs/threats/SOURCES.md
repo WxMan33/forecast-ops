@@ -110,6 +110,15 @@ It is tested locally against real NWS (NWS received the identifier) and end to e
 
 **Status of the direct browser path, unchanged:** The page works today, and every request returned 200. It does not send the documented app identifier, and no existing infrastructure can add one without a new forwarding layer. The collector and any outreach to NWS remain on hold, as decided.
 
+## Added 2026-11-23/24 (combined preview)
+
+| Product | Endpoint | Notes |
+|---|---|---|
+| Radar (map layer, live only, off by default) | NOAA MRMS base reflectivity, `mapservices.weather.noaa.gov/eventdriven/rest/services/radar/radar_base_reflectivity/MapServer/export` (256 px Web Mercator tiles); image time from layer 2 (`name LIKE 'CONUS%'`, `idp_validtime`) | CORS echoes the origin. Image time read every 5 min while on; about 0.3 MB per view. Fixture `radar-mrms-footprint.json` |
+| Venue's next 12 hours (on request) | `api.weather.gov/points/{lat,lon}` then `/gridpoints/{WFO}/{x},{y}` through `/api/nws` | windGust (km/h), temperature, heatIndex, apparentTemperature (°C), probabilityOfPrecipitation (%); each value spans its ISO duration. Fixture `nws-gridpoints-ILN-35-38.json` |
+| WPC rainfall on a quiet day | the same ERO files | WPC sends one placeholder feature, `OUTLOOK: "None Expected"` with a Point and the issue/valid times: read as confirmed none. Fixture `wpc-ero-day1-none-expected.json` |
+| Street basemap (not a threat feed) | CARTO Voyager / Dark Matter vector styles, `basemaps.cartocdn.com/gl/{voyager,dark-matter}-gl-style/style.json`, tiles from `tiles.basemaps.cartocdn.com` (carto.streets v2 schema; boundaries `kind_detail` 4 = state, 6 = county from zoom 8) | OpenStreetMap data. Free for non-commercial use within CARTO's monthly view limit; commercial or heavy use needs a CARTO plan or another provider. Falls back to the built-in outline map if CARTO doesn't answer in 6 s |
+
 ## Branch live preview: feed-by-feed status
 
 | Feed | Live (hosted browser) | Archived official sample | Fixture only | Open |

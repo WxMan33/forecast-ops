@@ -29,6 +29,8 @@ the repo's app-identifying User-Agent, the same string the Node tools send (`ass
 | `/api/nws/alerts/active?event=…` (only Tornado / Severe Thunderstorm Warning / Watch; no other parameters) | `api.weather.gov/alerts/active` | 30 s |
 | `/api/nws/alerts/urn:oid:…` (the earlier message an update replaced; used for "What changed") | `api.weather.gov/alerts/{id}` | 1 h |
 | `/api/nws/zones/county/XXC###`, `/api/nws/zones/forecast/XXZ###` (shapes for county-based alerts) | `api.weather.gov/zones/…` | 24 h |
+| `/api/nws/points/LAT,LON` (up to 4 decimals; a venue's NWS office and grid cell) | `api.weather.gov/points/…` | 24 h |
+| `/api/nws/gridpoints/WFO/X,Y` (added 2026-11-24: the venue's hourly forecast grid for "Next 12 hours"; refused without `updateTime` and `windGust`) | `api.weather.gov/gridpoints/…` | 15 min |
 | anything else | not forwarded: **404** | — |
 
 CORS allows the github.io site, the Pages hosts, raw.githack.com and localhost.

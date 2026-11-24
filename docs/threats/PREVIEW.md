@@ -1,5 +1,7 @@
 # Weather threats: clickable preview (Phase 1)
 
+> Superseded for current behaviour by `MAP.md` (2026-11-24). This page records the Phase 1 demo.
+
 **Status:** fixture-driven preview for layout review. Every product on the page is **fictional demo data**,
 marked as such on screen. No live feeds are wired in, and nothing here is promoted to `main` or the live site.
 
