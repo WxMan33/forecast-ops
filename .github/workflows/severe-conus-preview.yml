@@ -7,9 +7,11 @@ on:
   push:
     branches: [claude/severe-phase2-training]
     paths: ['research/severe/conus-preview/request.json']
+  # Daily refresh: started by .github/workflows/severe-conus-preview-schedule.yml on main (cron must live on main).
+  workflow_dispatch:
 permissions:
   contents: write
-  actions: read
+  actions: write
 concurrency:
   group: severe-conus-preview
   cancel-in-progress: false
@@ -184,3 +186,10 @@ jobs:
           git commit -q -m "CONUS research preview feed (run $GITHUB_RUN_ID)" || exit 0
           for i in 1 2 3; do git push origin "HEAD:$branch" && exit 0; git pull -q --rebase origin "$branch"; sleep 5; done
           exit 1
+      - name: Run the hosted checks on the new feed (a bot push does not trigger them by itself)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch=$(jq -r .preview_branch research/severe/conus-preview/request.json)
+          gh workflow run severe-conus-preview-host.yml --ref "$branch" -R "$GITHUB_REPOSITORY"
+          echo "dispatched severe-conus-preview-host.yml on $branch"
