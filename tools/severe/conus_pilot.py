@@ -11,6 +11,7 @@ import argparse
 import csv
 import gzip
 import json
+import os
 import time
 from datetime import datetime
 from pathlib import Path
@@ -25,6 +26,9 @@ from protocol import future_window
 ROOT = Path(__file__).resolve().parents[2]
 EXTRA = ROOT / "research/severe/conus-v1/extra-samples.npz"
 LABEL_SOURCES = ROOT / "research/severe/labels-v04/manifest.json"
+# Sealed 2021 verification only: opened when SEVERE_VERIFY_2021=1 and the case is on the sealed list.
+VERIFY_2021_SOURCE = ROOT / "research/severe/conus-v1/verify2021/report-source.json"
+VERIFY_2021_CASES = ROOT / "research/severe/conus-v1/twostage-verification-2021.json"
 REGIONAL_BOX = (-100, -75, 30, 45)
 CONUS_BOUNDS = REGIONAL_BOX  # unchanged regional box rule; the pinned list is OR-ed on top
 SPOTS = {"Texas (Midland)": (-102.08, 31.94), "Texas (El Paso)": (-106.44, 31.76),
@@ -41,7 +45,7 @@ def in_box(coords):
 
 
 def events_for(year, cache):
-    manifest = json.loads(LABEL_SOURCES.read_text())
+    manifest = json.loads((VERIFY_2021_SOURCE if year == 2021 else LABEL_SOURCES).read_text())
     source = next(s for s in manifest["sources"] if f"_d{year}_" in s["file"])
     path = Client(cache, 60).fetch(source["receipt"]["url"], source["file"], max_bytes=25000000)
     if digest(path) != source["sha256"]:
@@ -52,8 +56,10 @@ def events_for(year, cache):
 
 
 def run(case, output, cache, budget_mb=4000):
-    if not case.startswith(("2022", "2023", "2024")):
-        raise ValueError("Only 2022-2024 cohort dates; 2025 is sealed")
+    sealed_2021 = (case.startswith("2021") and os.environ.get("SEVERE_VERIFY_2021") == "1"
+                   and case in json.loads(VERIFY_2021_CASES.read_text())["cases"])
+    if not (case.startswith(("2022", "2023", "2024")) or sealed_2021):
+        raise ValueError("Only 2022-2024 cohort dates (or a sealed 2021 verification date); 2025 is sealed")
     output = Path(output) / case
     timing, features, labels, coords, windows = {}, [], [], None, []
     events, source = events_for(int(case[:4]), Path(cache) / "reports")
