@@ -47,6 +47,7 @@ jobs:
           node tools/event-share-check.js /tmp/event-share
           node tools/event-workspace-check.js /tmp/event-workspace
           node tools/event-daylight-check.js /tmp/event-daylight
+          node tools/event-map-check.js /tmp/event-map
       - name: Hourly grid fixtures (offline)
         run: |
           python3 -m http.server 8765 >/dev/null 2>&1 &
