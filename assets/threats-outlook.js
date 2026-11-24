@@ -16,7 +16,8 @@
   /* NWS alerts by kind: warnings 3 (tornado, extreme wind 4), watches 2, advisories 1, statements 0 */
   const alertLevel = (ev) => /^(Tornado|Extreme Wind|Hurricane|Storm Surge) Warning/.test(ev) ? 4 : / Warning$/.test(ev) ? 3 : / Watch$/.test(ev) ? 2 : / Advisory$/.test(ev) ? 1 : 0;
   /* the local calendar date (YYYY-MM-DD) of an instant in the venue's zone */
-  const localDate = (ms, tz) => new Date(ms).toLocaleString("sv-SE", { timeZone: tz }).slice(0, 10);
+  // one formatter per zone (making a new one per call took over a second on a busy day)
+  const fmts = new Map(), localDate = (ms, tz) => { let f = fmts.get(tz); if (!f) { f = new Intl.DateTimeFormat("sv-SE", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }); fmts.set(tz, f); } return f.format(new Date(ms)); };
   const dayLabel = (date, i, tz) => i === 0 ? "Today" : i === 1 ? "Tomorrow" : new Date(date + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
 
   function build(inp) {

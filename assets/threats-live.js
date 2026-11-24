@@ -93,13 +93,38 @@
   function applyZones() { /* shapes are attached in snapshot(); kept for callers */ }
   /* outlines of zone-listed alerts: only for the hazards the map shows (setZoneFamilies; everything for Event Manager, which
      never calls it), and at most 6 downloads at a time so a phone isn't flooded on a first visit */
-  let zoneFamilies = null;
+  let zoneFamilies = null, zoneArea = null;
+  /* where each UGC prefix lies (states, territories and marine areas; west, south, east, north), so the map downloads only the
+     outlines near what it shows. A prefix not listed is always fetched. */
+  const UGC_BOX = { AL: [-88.5, 30.1, -84.9, 35], AK: [-180, 51, -129, 71.5], AZ: [-114.9, 31.3, -109, 37], AR: [-94.7, 33, -89.6, 36.5], CA: [-124.5, 32.5, -114.1, 42], CO: [-109.1, 36.9, -102, 41],
+    CT: [-73.8, 40.9, -71.8, 42.1], DE: [-75.8, 38.4, -75, 39.9], DC: [-77.2, 38.8, -76.9, 39], FL: [-87.7, 24.4, -80, 31], GA: [-85.7, 30.3, -80.8, 35], HI: [-160.3, 18.9, -154.7, 22.3],
+    ID: [-117.3, 41.9, -111, 49], IL: [-91.6, 36.9, -87, 42.5], IN: [-88.1, 37.7, -84.7, 41.8], IA: [-96.7, 40.3, -90.1, 43.6], KS: [-102.1, 36.9, -94.6, 40], KY: [-89.6, 36.4, -81.9, 39.2],
+    LA: [-94.1, 28.9, -88.8, 33.1], ME: [-71.1, 43, -66.9, 47.5], MD: [-79.5, 37.9, -75, 39.8], MA: [-73.5, 41.2, -69.9, 42.9], MI: [-90.5, 41.6, -82.1, 48.3], MN: [-97.3, 43.4, -89.5, 49.4],
+    MS: [-91.7, 30.1, -88.1, 35], MO: [-95.8, 35.9, -89.1, 40.7], MT: [-116.1, 44.3, -104, 49], NE: [-104.1, 39.9, -95.3, 43.1], NV: [-120.1, 35, -114, 42], NH: [-72.6, 42.7, -70.6, 45.4],
+    NJ: [-75.6, 38.9, -73.9, 41.4], NM: [-109.1, 31.3, -103, 37], NY: [-79.8, 40.4, -71.8, 45.1], NC: [-84.4, 33.8, -75.4, 36.6], ND: [-104.1, 45.9, -96.5, 49], OH: [-84.9, 38.4, -80.5, 42],
+    OK: [-103, 33.6, -94.4, 37], OR: [-124.6, 41.9, -116.4, 46.3], PA: [-80.6, 39.7, -74.7, 42.3], RI: [-71.9, 41.1, -71.1, 42], SC: [-83.4, 32, -78.5, 35.2], SD: [-104.1, 42.5, -96.4, 45.9],
+    TN: [-90.3, 34.9, -81.6, 36.7], TX: [-106.7, 25.8, -93.5, 36.5], UT: [-114.1, 37, -109, 42], VT: [-73.4, 42.7, -71.5, 45], VA: [-83.7, 36.5, -75.2, 39.5], WA: [-124.8, 45.5, -116.9, 49],
+    WV: [-82.7, 37.2, -77.7, 40.7], WI: [-92.9, 42.5, -86.8, 47.1], WY: [-111.1, 41, -104, 45], PR: [-67.3, 17.9, -65.2, 18.6], VI: [-65.1, 17.6, -64.5, 18.5],
+    LM: [-88.1, 41.6, -84.7, 46.1], LS: [-92.2, 46.4, -84.3, 49], LH: [-84.8, 43, -79.6, 46.3], LE: [-83.5, 41.3, -78.8, 42.9], LO: [-79.9, 43.1, -75.8, 44.3], LC: [-83, 42.2, -82.4, 42.8],
+    AN: [-76, 35, -66, 45], AM: [-82, 24, -75, 35], GM: [-98, 24, -81, 31], PZ: [-126, 32, -117, 49], PK: [-180, 51, -129, 72], PH: [-161, 18, -154, 23] };
+  const ZONE_PAD = 2; // degrees around the view
+  const inArea = (u) => { if (!zoneArea) return true; const b = UGC_BOX[String(u).split("/").pop().slice(0, 2)], a = zoneArea.box; if (!b) return true;
+    return b[0] <= a[2] + ZONE_PAD && a[0] - ZONE_PAD <= b[2] && b[1] <= a[3] + ZONE_PAD && a[1] - ZONE_PAD <= b[3]; };
+  // warnings and watches are outlined at any zoom; advisories and statements (the most numerous) once the map is at regional zoom
+  const zoneKindOk = (p) => !zoneArea || zoneArea.zoom >= 5 || p.kind === "warning" || p.kind === "watch";
   async function pool(items, n, fn) { let i = 0; const run = async () => { while (i < items.length) { const k = i++; try { await fn(items[k]); } catch (e) { /* that zone stays unknown */ } } }; await Promise.all(Array.from({ length: Math.min(n, items.length) }, run)); }
   async function resolvePending() {
     const want = [];
-    for (const p of alerts.products(Date.now())) if (p.geometrySource === "counties" && p.status === "active" && (!zoneFamilies || zoneFamilies.has(p.family))) for (const u of p.zones) if (!zoneGeo.has(u)) want.push(u);
+    for (const p of alerts.products(Date.now())) if (p.geometrySource === "counties" && p.status === "active" && (!zoneFamilies || zoneFamilies.has(p.family)) && zoneKindOk(p)) for (const u of p.zones) if (!zoneGeo.has(u) && inArea(u)) want.push(u);
     if (!want.length) return false;
     await pool([...new Set(want)].slice(0, 300), 6, zone); return true;
+  }
+  /* the map's view (west, south, east, north) and zoom: outlines are downloaded for that area only (Event Manager never sets it) */
+  let areaTimer = null;
+  function setZoneArea(box, zoom) {
+    const prev = zoneArea; zoneArea = box ? { box, zoom } : null;
+    const widened = !prev || !zoneArea || zoneArea.zoom >= 5 && prev.zoom < 5 || zoneArea.box[0] < prev.box[0] || zoneArea.box[1] < prev.box[1] || zoneArea.box[2] > prev.box[2] || zoneArea.box[3] > prev.box[3];
+    if (!widened) return; clearTimeout(areaTimer); areaTimer = setTimeout(() => resolvePending().then((c) => { if (c) emit(); }), 300);
   }
   function setZoneFamilies(fams) { const next = new Set(fams || []), grew = [...next].some((f) => !zoneFamilies || !zoneFamilies.has(f)); zoneFamilies = next; if (grew) resolvePending().then((c) => { if (c) emit(); }); }
   /* "What changed": the message an update replaced (same VTEC event), fetched only when someone opens that alert's details
@@ -691,5 +716,5 @@
       "wpc-ero": { ...worst(["ero1", "ero2", "ero3"]), reachEnd: reach(["ero1", "ero2", "ero3"]), reach: ["ero1", "ero2", "ero3"].map((k, i) => d.sources[k] && d.sources[k].issued ? "Day " + (i + 1) + " issued " + window.ThreatsCore.fmtZ(d.sources[k].issued) : "").filter(Boolean).join(", ") } };
   }
 
-  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, setFeeds, setZoneFamilies, pointTz, venueForecast, outlookFor, gaugesIn, radarTime, RADAR_TILE_URL: F.RADAR_TILE_URL, previousFor: (id) => fetchPrevious(id).then((c) => { if (c) emit(); return c; }), mapFeeds: () => (mapFeeds ? [...mapFeeds] : null), monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
+  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, setFeeds, setZoneFamilies, setZoneArea, pointTz, venueForecast, outlookFor, gaugesIn, radarTime, RADAR_TILE_URL: F.RADAR_TILE_URL, previousFor: (id) => fetchPrevious(id).then((c) => { if (c) emit(); return c; }), mapFeeds: () => (mapFeeds ? [...mapFeeds] : null), monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
 })();

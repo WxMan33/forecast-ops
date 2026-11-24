@@ -722,7 +722,7 @@
         paint: { "text-color": ["get", "tc"], "text-halo-color": ["get", "hc"], "text-halo-width": 2.4 } });
       L({ id: "cnty-labels", type: "symbol", source: "cnty-labels", minzoom: 7.5, layout: { "text-field": ["get", "n"], "text-font": FONT, "text-size": ["interpolate", ["linear"], ["zoom"], 7.5, 10, 11, 12], "text-transform": "uppercase", "text-letter-spacing": 0.08, "text-max-width": 8, "symbol-sort-key": 1 }, paint: { "text-color": p.muted, "text-halo-color": p.halo, "text-halo-width": 1.4, "text-opacity": 0.85 } });
       if (carto) { for (const id of ["lakes", "states", "cities"]) map.setLayoutProperty(id, "visibility", "none"); baseLines(); orderOverBase(); }
-      map.on("moveend", ensureCounties); map.on("moveend", ensureGauges); // the street map has its own water, borders and places
+      map.on("moveend", ensureCounties); map.on("moveend", ensureGauges); map.on("moveend", syncZoneArea); // the street map has its own water, borders and places
       ready = true; drawAll();
     });
     map.on("click", (e) => {
@@ -1301,11 +1301,23 @@
     const n = autoNeed(); S.autoNeed = n;
     for (const k of ["fire", "smoke"]) { if (n[k] && !S.layers[k]) { S.layers[k] = true; S.autoAdded[k] = true; } else if (!n[k] && S.autoAdded[k]) { S.layers[k] = false; delete S.autoAdded[k]; } }
   }
+  /* outlines of zone-listed alerts are downloaded for the area in view only (before the map is up: the venue's region, or the
+     country at national zoom) */
+  let zoneAreaKey = null;
+  function syncZoneArea() {
+    if (!Live.setZoneArea || !isLive()) return;
+    let box, zoom;
+    if (map && mapLoaded) { const b = map.getBounds(); box = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]; zoom = map.getZoom(); }
+    else if (S.scope === "venue" && venue) { box = [venue.lon - 3, venue.lat - 2, venue.lon + 3, venue.lat + 2]; zoom = 8; }
+    else { box = [-125, 24, -66, 50]; zoom = 3.5; }
+    const k = box.map((v) => v.toFixed(1)).join(",") + "|" + (zoom >= 5 ? 1 : 0); if (k === zoneAreaKey) return; zoneAreaKey = k; Live.setZoneArea(box, zoom);
+  }
   function syncFeeds() {
     autoLayers();
     const extra = { severe: ["md", "spc", "reports"], flood: ["ero"], tropical: ["nhc"] }, need = S.auto && isLive() ? S.autoNeed || {} : null;
     const feedsOf = (k) => (need && extra[k] ? LAYER_FEEDS[k].filter((f) => !extra[k].includes(f) || need[k]) : LAYER_FEEDS[k]);
     const keys = isLive() ? [...new Set(Object.keys(LAYER_FEEDS).filter((k) => S.layers[k]).flatMap(feedsOf))].sort() : [], k = keys.join(",");
+    syncZoneArea();
     if (Live.setZoneFamilies) { const zf = isLive() ? Object.keys(LAYER_FEEDS).filter((x) => S.layers[x] && LAYER_FEEDS[x].includes("alerts")).join(",") : ""; if (zf !== zoneFamKey) { zoneFamKey = zf; Live.setZoneFamilies(zf ? zf.split(",") : []); } } // zone outlines for the hazards shown only
     if (k === feedKey || !Live.setFeeds) return; feedKey = k;
     const p = Live.setFeeds(keys); if (isLive()) load();
