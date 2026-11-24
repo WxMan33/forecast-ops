@@ -1,0 +1,81 @@
+{
+ "dates": 728,
+ "development_climatology": 0.010838342871403277,
+ "neg_keep": 0.2,
+ "bss": {
+  "all": {
+   "national": 0.1145330740145808,
+   "original_box": 0.13291110111585414,
+   "west": 0.048966663786340625,
+   "plains_outside_box": 0.07767321997190768,
+   "florida_gulf_south": -0.007187529303587237,
+   "northeast_outside_box": 0.12680967955810063
+  },
+  "cohort96": {
+   "national": 0.0977046902080817,
+   "original_box": 0.11406861065966678,
+   "west": 0.03553001317316262,
+   "plains_outside_box": 0.06600475592240385,
+   "florida_gulf_south": -0.039427818415762816,
+   "northeast_outside_box": 0.12448985037840954
+  }
+ },
+ "brier_all_minus_cohort96": {
+  "national": [
+   -0.000180414968869722,
+   [
+    -0.00023748468197271822,
+    -0.0001289735949133506
+   ]
+  ],
+  "original_box": [
+   -0.00036974795925243765,
+   [
+    -0.0005134626906405577,
+    -0.00024578236075232466
+   ]
+  ],
+  "west": [
+   -3.681748088414195e-05,
+   [
+    -4.809662365159353e-05,
+    -2.6086779764750362e-05
+   ]
+  ],
+  "plains_outside_box": [
+   -0.00011099257646350811,
+   [
+    -0.00017450178960995875,
+    -4.885182317850852e-05
+   ]
+  ],
+  "florida_gulf_south": [
+   -0.0002269255882143822,
+   [
+    -0.0003438199628171002,
+    -0.00012701631074258328
+   ]
+  ],
+  "northeast_outside_box": [
+   -1.8469649302715424e-05,
+   [
+    -9.630344535902657e-05,
+    6.0941230381269764e-05
+   ]
+  ]
+ },
+ "calibration_all": {
+  "mean_forecast": 0.010828085851894083,
+  "observed": 0.010838342871403277,
+  "ratio": 0.9990536358158352
+ },
+ "criteria": {
+  "1_national_better": true,
+  "2_no_region_worse": true,
+  "3_calibrated": true
+ },
+ "pass": true,
+ "rule": "research/severe/conus-v1/fulldev-gate-rule.md",
+ "protected_2025_outcomes_accessed": false,
+ "verification_2021_loaded": false
+}
