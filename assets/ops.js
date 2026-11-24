@@ -76,6 +76,7 @@
   /* ---------- shell ---------- */
   const PAGES = [
     { href: "index.html", id: "home", label: "OVERVIEW", icon: "grid" },
+    { href: "threats.html", id: "threats", label: "THREATS", icon: "alert" },
     { href: "event-beta.html#upcoming", id: "events", label: "EVENTS", icon: "calendar" },
     { href: "blend.html", id: "blend", label: "MODEL BLEND", icon: "layers" },
     { href: "thunder.html", id: "thunder", label: "THUNDER", icon: "zap" },

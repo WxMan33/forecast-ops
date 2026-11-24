@@ -303,3 +303,9 @@
 .px-olquiet { color: var(--muted); font-size: 13px; }
 .px-olinfo { color: var(--muted); font-size: 12px; margin-top: 2px; }
 .px-olunk { color: #c8a200; font-size: 12px; margin-top: 2px; }
+/* embed=1: inside the Overview page's threats card */
+.tx-embed .tx-demo { display: none; }
+.tx-embed .tx { height: 100dvh; min-height: 0; padding: 0; }
+.tx-openfull { position: absolute; right: 10px; top: 10px; z-index: 5; background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: 13px; font-weight: 600; text-decoration: none; }
+.tx-openfull:hover { border-color: var(--text); }
+.tx-embed .maplibregl-ctrl-top-right { top: 40px; }

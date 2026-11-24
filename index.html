@@ -25,7 +25,7 @@
     if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
   });
 })();</script><!--/load-guard-->
-<link rel="stylesheet" href="assets/ops.css?v=2c02764827">
+<link rel="stylesheet" href="assets/ops.css?v=36cc6ccbb9">
 </head>
 <body>
 <main class="workspace">
@@ -49,6 +49,15 @@
       <div class="daycards" id="days"><div class="state loading">Loading guidance…</div></div>
       <p class="msg" id="sumMsg" style="margin-top:8px"></p>
       <div class="infopanel" id="ovHowPanel" hidden><p>Rows marked NWS are NWS's own day (≈6a–6p) and night (≈6p–6a) periods. NWS is also one weighted source inside the blend values. Every other value uses the same sources, weights and calculation as its tool page: temperatures, precip and gusts from MODEL BLEND (models, ECMWF ENS, GEFS and NWS, using the blend recipe you picked there), snow chances from WINTER, the thunder signal from THUNDER. Change a model's weight on a tool page and this summary follows it. Overview cards use the printed local planning periods, with night lows and daytime highs explicitly labeled. At 2 PM, tonight and tomorrow lead; a smaller rest-of-today summary remains visible until 5 PM. Partial current-hour precipitation is counted in full and may include the elapsed part of that hour. The daily Blend table retains calendar days, so it can differ from these period values.</p></div>
+    </section>
+    <!-- Weather threats: the Threats map and its 7-day panel for the forecast point, embedded (loads when scrolled into view) -->
+    <section class="card" id="threatsCard">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="flex:1 1 160px"><div class="section-title" style="margin:0">Weather threats · next 7 days</div>
+          <div class="msg">Official warnings, watches, outlooks and radar for the forecast point</div></div>
+        <a class="btn ghost sm" href="threats.html" style="flex:none">Open the threats map →</a>
+      </div>
+      <div class="ov-threats"><iframe src="threats.html?embed=1" title="Weather threats map and 7-day outlook" loading="lazy"></iframe></div>
     </section>
 
     <div class="hub">
@@ -113,7 +122,7 @@
 </main>
 <script src="assets/ops-core.js?v=c9a243d88e"></script>
 <script src="assets/ops-data.js?v=68a540c59e"></script>
-<script src="assets/ops.js?v=aff82b64f5"></script>
+<script src="assets/ops.js?v=de6ff01851"></script>
 <script src="assets/forecast-clock.js?v=c6df9f20b7"></script>
 <script src="assets/overview.js?v=8b5402d740"></script>
 <script src="assets/table-pages.js?v=5852a434bf"></script>
