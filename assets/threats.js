@@ -159,7 +159,10 @@
   const outlooks = (day) => data.products.filter((p) => isConvective(p) && p.day === day);
   const eroOut = (day) => data.products.filter((p) => p.kind === "outlook" && p.program === "ero" && p.day === day);
   const byId = (id) => data.products.find((p) => p.id === id);
-  const rel = (p) => T.relation(p, venue);
+  /* a product's relation to the venue, kept per outline and venue (outlines are stable objects between redraws) */
+  const relCache = new WeakMap();
+  const rel = (p) => { const g = p.geometry; if (!g || typeof g !== "object") return T.relation(p, venue); const vk = venue.lat + "," + venue.lon + "|" + p.kind, c = relCache.get(g);
+    if (c && c.vk === vk) return c.r; const r = T.relation(p, venue); relCache.set(g, { vk, r }); return r; };
   const relText = (p) => T.relationText(rel(p), p);
   const unconfirmed = (p) => data.state[SRC_OF(p)].kind === "stale" ? data.sources[SRC_OF(p)].lastOk : null;
   const endOf = (p) => p.expires || p.validEnd;
