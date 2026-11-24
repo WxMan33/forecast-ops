@@ -1,5 +1,5 @@
 {
- "at": "2026-11-24T03:39:11.449Z",
+ "at": "2026-11-24T04:26:14.501Z",
  "result": {
   "summary": "1 weather threat for this event",
   "confirmed": true,
@@ -19,15 +19,15 @@
    }
   ],
   "statuses": [
-   "NWS warnings, watches and advisories: Checked 10:39 p.m.",
-   "SPC fire weather outlooks: Checked 10:39 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
-   "NOAA satellite smoke analysis (HMS): Checked 10:39 p.m.",
-   "AirNow air quality observations: Checked 10:39 p.m. · nearest monitor Windsor Downtown (2 miles south): AQI 17 Good (Ozone) for 10 p.m.",
-   "AirNow air quality forecasts: Checked 10:39 p.m. · Southeast reporting area",
-   "NHC tropical outlooks and storm products: Checked 10:39 p.m.",
-   "NIFC wildfire incidents (WFIGS): Checked 10:39 p.m.",
-   "WPC winter storm severity outlook (WSSI-P): Checked 10:39 p.m. · file 0217Z",
-   "WPC Excessive Rainfall Outlook: Checked 10:39 p.m. · Day 1 issued 0054Z, Day 2 issued 1924Z, Day 3 issued 1924Z"
+   "NWS warnings, watches and advisories: Checked 11:26 p.m.",
+   "SPC fire weather outlooks: Checked 11:26 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NOAA satellite smoke analysis (HMS): Checked 11:26 p.m.",
+   "AirNow air quality observations: Checked 11:26 p.m. · nearest monitor Windsor Downtown (2 miles south): AQI 17 Good (Ozone) for 11 p.m.",
+   "AirNow air quality forecasts: Checked 11:26 p.m. · Southeast reporting area",
+   "NHC tropical outlooks and storm products: Checked 11:26 p.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 11:26 p.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 11:26 p.m. · file 0217Z",
+   "WPC Excessive Rainfall Outlook: Checked 11:25 p.m. · Day 1 issued 0054Z, Day 2 issued 1924Z, Day 3 issued 1924Z"
   ],
   "maps": [
    "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats.html?lat=42.34&lon=-83.0456&name=Ford+Field&tz=America%2FDetroit&scope=venue&view=winter&wwin=2026-11-24T00%3A00%3A00.000Z&wlevel=WWA&layers=winter&nws=function"
@@ -38,7 +38,7 @@
    "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/smoke/hms/20261123",
    "status": 200,
    "cache": "HIT",
-   "upstreamAt": "2026-11-24T03:38:22.539Z"
+   "upstreamAt": "2026-11-24T04:25:18.879Z"
   },
   {
    "url": "https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/Air%20Now%20Current%20Monitor%20Data%20Public/FeatureServer/0/query?geometry=-83.0456,42.34&geometryType=esriGeometryPoint&inSR=4326&distance=25&units=esriSRUnit_StatuteMile&spatialRel=esriSpatialRelIntersects&outFields=AQSID,SiteName,StateName,DataSource,ReportingArea_PipeDelimited,ValidTime,LocalTimeString,GMTOffset,PM25,PM25_AQI,PM10_AQI,OZONE_AQI,Status,MonitorType&outSR=4326&f=geojson",
@@ -55,8 +55,8 @@
   {
    "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/smoke/airnow-area?area=Southeast&state=MI",
    "status": 200,
-   "cache": "MISS",
-   "upstreamAt": "2026-11-24T03:39:09.230Z"
+   "cache": "HIT",
+   "upstreamAt": "2026-11-24T04:25:27.040Z"
   }
  ]
 }

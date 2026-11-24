@@ -1,5 +1,5 @@
 {
- "at": "2026-11-24T03:45:06.113Z",
+ "at": "2026-11-24T04:32:07.817Z",
  "result": {
   "summary": "1 weather threat for this event",
   "confirmed": false,
@@ -7,7 +7,7 @@
    {
     "id": "wpc-wssip-WWA-2026-11-24T00:00:00.000Z-20@-87.674,41.881",
     "kind": "outlook",
-    "headline": "Low chance of winter weather Monday · 20% chance of at least winter weather",
+    "headline": "Low chance of winter weather Tuesday · 20% chance of at least winter weather",
     "code": null,
     "line": "WPC's winter storm severity outlook (WSSI-P) for the 24 hours Mon 6 p.m. – Tue 6 p.m. includes the venue and overlaps the event. Expect winter weather and winter driving conditions. A chance for the whole 24 hours, not timing within it.",
     "product": "wpc-wssip-WWA-2026-11-24T00:00:00.000Z-20@-87.674,41.881",
@@ -19,17 +19,17 @@
    }
   ],
   "statuses": [
-   "NWS warnings, watches and advisories: Checked 9:45 p.m.",
-   "SPC fire weather outlooks: Checked 9:45 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
-   "NOAA satellite smoke analysis (HMS): Checked 9:45 p.m.",
-   "AirNow air quality observations: Checked 9:45 p.m. · nearest monitor CHI_SP (3 miles northwest): AQI 17 Good (PM2.5) for 9 p.m.",
-   "AirNow air quality forecasts: Checked 9:45 p.m. · Chicago reporting area",
-   "Aviation Weather Center (METAR and TAF): Checked 9:45 p.m. · KORD METAR 0251Z VFR · TAF 0253Z AMD valid to Wed 12 a.m. | KMDW METAR 0253Z VFR · TAF 0253Z AMD valid to Wed 12 a.m.",
+   "NWS warnings, watches and advisories: Checked 10:32 p.m.",
+   "SPC fire weather outlooks: Checked 10:32 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NOAA satellite smoke analysis (HMS): Checked 10:32 p.m.",
+   "AirNow air quality observations: Checked 10:32 p.m. · nearest monitor CHI_SP (3 miles northwest): AQI 17 Good (PM2.5) for 10 p.m.",
+   "AirNow air quality forecasts: Checked 10:32 p.m. · Chicago reporting area",
+   "Aviation Weather Center (METAR and TAF): Checked 10:32 p.m. · KORD METAR 0351Z VFR · TAF 0253Z AMD valid to Wed 12 a.m. | KMDW METAR 0353Z VFR · TAF 0253Z AMD valid to Wed 12 a.m.",
    "FAA airport status (delays, ground stops, closures): Not responding · status unknown. We can't rule anything out from this source.",
-   "NHC tropical outlooks and storm products: Checked 9:45 p.m.",
-   "NIFC wildfire incidents (WFIGS): Checked 9:45 p.m.",
-   "WPC winter storm severity outlook (WSSI-P): Checked 9:45 p.m. · file 0217Z",
-   "WPC Excessive Rainfall Outlook: Checked 9:45 p.m. · Day 1 issued 0054Z, Day 2 issued 1924Z, Day 3 issued 1924Z"
+   "NHC tropical outlooks and storm products: Checked 10:32 p.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 10:32 p.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 10:32 p.m. · file 0217Z",
+   "WPC Excessive Rainfall Outlook: Checked 10:32 p.m. · Day 1 issued 0054Z, Day 2 issued 1924Z, Day 3 issued 1924Z"
   ],
   "maps": [
    "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats.html?lat=41.8807&lon=-87.6742&name=United+Center&tz=America%2FChicago&scope=venue&view=winter&wwin=2026-11-24T00%3A00%3A00.000Z&wlevel=WWA&layers=winter&nws=function"
@@ -40,13 +40,13 @@
    "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/metar?ids=KMDW,KORD",
    "status": 200,
    "cache": "MISS",
-   "upstreamAt": "2026-11-24T03:45:04.543Z"
+   "upstreamAt": "2026-11-24T04:32:04.770Z"
   },
   {
    "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/taf?ids=KMDW,KORD",
    "status": 200,
    "cache": "MISS",
-   "upstreamAt": "2026-11-24T03:45:04.651Z"
+   "upstreamAt": "2026-11-24T04:32:04.922Z"
   }
  ]
 }

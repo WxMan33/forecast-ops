@@ -1,5 +1,5 @@
 {
- "at": "2026-11-24T03:44:23.128Z",
+ "at": "2026-11-24T04:31:24.888Z",
  "nwsActiveForZone": [
   "Coastal Flood Warning"
  ],
@@ -22,15 +22,15 @@
    }
   ],
   "statuses": [
-   "NWS warnings, watches and advisories: Checked 10:44 p.m.",
-   "SPC fire weather outlooks: Checked 10:44 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
-   "NOAA satellite smoke analysis (HMS): Checked 10:44 p.m.",
-   "AirNow air quality observations: Checked 10:44 p.m. · nearest monitor Flagler County (10 miles west): AQI 14 Good (Ozone) for 10 p.m.",
+   "NWS warnings, watches and advisories: Checked 11:31 p.m.",
+   "SPC fire weather outlooks: Checked 11:31 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NOAA satellite smoke analysis (HMS): Checked 11:31 p.m.",
+   "AirNow air quality observations: Checked 11:31 p.m. · nearest monitor Flagler County (10 miles west): AQI 14 Good (Ozone) for 11 p.m.",
    "AirNow air quality forecasts: No AirNow forecast area for this venue.",
-   "NHC tropical outlooks and storm products: Checked 10:44 p.m.",
-   "NIFC wildfire incidents (WFIGS): Checked 10:44 p.m.",
-   "WPC winter storm severity outlook (WSSI-P): Checked 10:44 p.m.",
-   "WPC Excessive Rainfall Outlook: Checked 10:40 p.m. · Day 1 issued 0054Z, Day 2 issued 1924Z, Day 3 issued 1924Z"
+   "NHC tropical outlooks and storm products: Checked 11:31 p.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 11:31 p.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 11:31 p.m.",
+   "WPC Excessive Rainfall Outlook: Checked 11:31 p.m. · Day 1 issued 0054Z, Day 2 issued 1924Z, Day 3 issued 1924Z"
   ],
   "maps": [
    "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats.html?lat=29.4802&lon=-81.1065&name=Flagler+Beach+Pier&tz=America%2FNew_York&scope=venue&view=active&layers=coastal&sel=KJAX.CF.W.0004.2026&nws=function"
