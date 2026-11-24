@@ -318,7 +318,7 @@
       const sig = w.reach.map((p) => p.key + p.state + p.at).join();
       if (chips.dataset.sig !== sig) { chips.dataset.sig = sig;
         chips.innerHTML = w.reach.map((p) => p.state === "in" ? `<button type="button" class="bx-chip" data-jump="${p.at}" data-part="${esc(p.key)}">${esc(p.label)} <b>${esc(fmt.clock(p.startMs, tz))}</b></button>`
-          : `<button type="button" class="bx-chip" data-part="${esc(p.key)}" disabled>${esc(p.label)} <b>${esc(fmt.clock(p.startMs, tz))}</b> <i>${p.state === "beyond" ? "beyond model" : "before this run"}</i></button>`).join(""); }
+          : `<button type="button" class="bx-chip" data-part="${esc(p.key)}" data-state="${p.state}" disabled title="${esc(p.label)} ${esc(fmt.clock(p.startMs, tz))}: ${p.state === "beyond" ? "beyond this model run" : "before this model run"}">${esc(p.label)} <b>${esc(fmt.clock(p.startMs, tz))}</b> <i>${p.state === "beyond" ? "beyond model" : "before this run"}</i></button>`).join(""); }
       chips.querySelectorAll("[data-jump]").forEach((c) => c.setAttribute("aria-current", String(!!(bus && Math.abs(bus.get() - +c.dataset.jump) < HALF))));
       /* blunt coverage note whenever the selected run stops before the event does */
       if (w.covers) { cov.hidden = true; cov.innerHTML = ""; host.dataset.cover = "all"; }

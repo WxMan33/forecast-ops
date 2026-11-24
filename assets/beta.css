@@ -104,7 +104,7 @@ body.bx * { font-variant-numeric: tabular-nums; }
 .bx-mapcover .bx-btn { margin-left: 4px; }
 .bx-mapdisc { margin: 0; padding: 8px 10px; font-size: 12.5px; color: var(--text); border-top: 1px solid var(--bx-rule); }
 .bx-seg button:focus-visible, .bx-chip:focus-visible { outline: 2px solid var(--bx-sel); outline-offset: 2px; }
-@media (max-width: 760px) { .bx-mapwrap.ev .bx-mapframe { height: 56vh; } .bx-seg button, .bx-chip { min-height: 44px; } .bx-chip { padding: 0 9px; font-size: 12px; } .bx-chip i { font-size: 11px; } .bx-mapchips { gap: 5px; } }
+@media (max-width: 760px) { .bx-mapwrap.ev .bx-mapframe { height: 56vh; } .bx-seg button, .bx-chip { min-height: 44px; } .bx-chip { padding: 0 9px; font-size: 12px; } .bx-chip i { font-size: 11px; } .bx-mapchips { gap: 5px; } .bx-chip[data-state="beyond"] i { display: none; } .bx-chip[data-state="beyond"]::after { content: "\00a0· later"; font-size: 11px; color: var(--muted); } }
 
 /* ---------- timeline chart ---------- */
 .bx-chart { position: relative; }
