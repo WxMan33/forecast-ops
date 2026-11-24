@@ -23,7 +23,7 @@ const FEEDS = [
   ["awc", /aviationweather\.gov|\/api\/awc\//], ["faa", /\/api\/faa\//], ["gtg", /\/api\/gtg\//], ["ifi", /\/api\/ifi\//], ["model", /raw\.githubusercontent\.com/], ["nws-other", /api\.weather\.gov|\/api\/nws\//]];
 const feedOf = (u) => { for (const [k, re] of FEEDS) if (re.test(u)) return k; return null; };
 const tally = (l) => l.reduce((o, r) => ((o[r.feed + (r.status && r.status >= 400 ? " HTTP " + r.status : r.status === 0 ? " failed" : "")] = (o[r.feed + (r.status && r.status >= 400 ? " HTTP " + r.status : r.status === 0 ? " failed" : "")] || 0) + 1), o), {});
-const LAYERS = ["severe", "flood", "winter", "fire", "smoke", "tropical", "coastal", "aviation"];
+const LAYERS = ["severe", "flood", "winter", "heat", "wind", "fire", "smoke", "tropical", "coastal", "aviation"];
 const REPLAY = { severe: "archive-ww705", flood: "archive-flood-day", winter: "archive-winter-warning", fire: "archive-fire-incidents", smoke: "archive-smoke-chicago", tropical: "archive-tropical-warning", coastal: "archive-coastal-flagler", aviation: "archive-aviation-chicago" };
 const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } };
 const log = (...a) => console.log(...a);

@@ -22,10 +22,12 @@
   function build(inp) {
     const tz = inp.tz, now = inp.now, pt = [inp.venue.lon, inp.venue.lat], nDays = inp.days || 7;
     const dates = []; for (let i = 0; i < nDays; i++) dates.push(localDate(now + i * 864e5, tz));
-    const days = dates.map((date, i) => ({ date, label: dayLabel(date, i, tz), items: [], unknown: [] }));
+    const days = dates.map((date, i) => ({ date, label: dayLabel(date, i, tz), items: [], unknown: [], limits: [] }));
     const at = (ms) => days.find((d) => d.date === localDate(ms, tz));
     const put = (ms, item) => { const d = at(ms); if (d) d.items.push(item); };
     const unknownOn = (ms, why) => { const d = at(ms); if (d && !d.unknown.includes(why)) d.unknown.push(why); };
+    /* a known limit of a source (SPC can't say yet for Days 6-8): shown, but not a failure */
+    const limitOn = (ms, why) => { const d = at(ms); if (d && !d.limits.includes(why)) d.limits.push(why); };
     const inside = (g) => g && T.contains(g, pt);
     /* a convective day's afternoon (12Z start + 6 h) decides which local day it belongs to */
     const mid = (p) => Date.parse(p.validStart) + 6 * 3600e3;
@@ -41,7 +43,7 @@
       if (o.failed) { if (o.validStart) unknownOn(mid(o), "SPC Day " + o.day + " outlook not confirmed"); continue; }
       const hit = o.products.filter((p) => inside(p.geometry)).sort((a, b) => b.prob - a.prob)[0];
       if (hit) put(mid(o), { key: "severe", level: hit.prob >= 30 ? 3 : 2, text: "Severe storms: " + hit.prob + "% chance within 25 miles", source: "SPC Day " + o.day, link: null });
-      else if (o.status === "predictability-too-low") unknownOn(mid(o), "SPC: predictability too low to say for Day " + o.day);
+      else if (o.status === "predictability-too-low") limitOn(mid(o), "SPC can't say yet for severe storms (Day " + o.day + ": predictability too low)");
     }
     // WPC excessive rainfall Days 1-5
     for (const o of inp.ero || []) {

@@ -21,14 +21,23 @@
   const FIRE_EVENTS = ["Red Flag Warning", "Fire Weather Watch"];
   /* tropical (issued in NWS Tropical Cyclone Watch/Warning products, coordinated with NHC) and coastal hazards */
   const TROPICAL_EVENTS = ["Hurricane Warning", "Hurricane Watch", "Tropical Storm Warning", "Tropical Storm Watch", "Storm Surge Warning", "Storm Surge Watch"];
+  /* added 2026-11-24 for the 7-day dashboard and the map's Heat & cold and Wind & visibility layers; Flooding gains river/areal products */
+  const HEAT_EVENTS = ["Extreme Heat Warning", "Extreme Heat Watch", "Heat Advisory", "Excessive Heat Warning", "Excessive Heat Watch", "Extreme Cold Warning", "Extreme Cold Watch", "Cold Weather Advisory", "Wind Chill Warning", "Wind Chill Watch", "Wind Chill Advisory", "Freeze Warning", "Freeze Watch", "Frost Advisory"];
+  const WIND_EVENTS = ["High Wind Warning", "High Wind Watch", "Wind Advisory", "Extreme Wind Warning", "Dust Storm Warning", "Blowing Dust Advisory", "Lake Wind Advisory", "Dense Fog Advisory", "Dense Smoke Advisory"];
+  const FLOOD_EVENTS = ["Flood Warning", "Flood Watch", "Flood Advisory"];
   const COASTAL_EVENTS = ["Coastal Flood Warning", "Coastal Flood Watch", "Coastal Flood Advisory", "High Surf Warning", "High Surf Advisory", "Rip Current Statement", "Beach Hazards Statement"];
-  const EVENTS = ["Tornado Warning", "Severe Thunderstorm Warning", "Tornado Watch", "Severe Thunderstorm Watch", "Flash Flood Warning", ...WINTER_EVENTS, ...FIRE_EVENTS, ...TROPICAL_EVENTS, ...COASTAL_EVENTS];
+  const EVENTS = ["Tornado Warning", "Severe Thunderstorm Warning", "Tornado Watch", "Severe Thunderstorm Watch", "Flash Flood Warning", ...FLOOD_EVENTS, ...WINTER_EVENTS, ...FIRE_EVENTS, ...TROPICAL_EVENTS, ...COASTAL_EVENTS, ...HEAT_EVENTS, ...WIND_EVENTS];
   /* hazard family per NWS VTEC phenomenon: the map's layers and Event Planner's sections group by this */
-  const HAZARD = { HU: "tropical", TR: "tropical", SS: "tropical", CF: "coastal", SU: "coastal", RP: "coastal", BH: "coastal", FW: "fire", TO: "severe", SV: "severe", FF: "flood", WS: "winter", BZ: "winter", IS: "winter", LE: "winter", WW: "winter" };
+  const HAZARD = { XH: "heat", HT: "heat", EH: "heat", EC: "heat", CW: "heat", WC: "heat", FZ: "heat", FR: "heat", HW: "wind", WI: "wind", EW: "wind", DS: "wind", DU: "wind", LW: "wind", FG: "wind", SM: "wind", FL: "flood", FA: "flood", HU: "tropical", TR: "tropical", SS: "tropical", CF: "coastal", SU: "coastal", RP: "coastal", BH: "coastal", FW: "fire", TO: "severe", SV: "severe", FF: "flood", WS: "winter", BZ: "winter", IS: "winter", LE: "winter", WW: "winter" };
   const EVENT_PHEN = { "Hurricane Warning": "HU", "Hurricane Watch": "HU", "Tropical Storm Warning": "TR", "Tropical Storm Watch": "TR", "Storm Surge Warning": "SS", "Storm Surge Watch": "SS",
     "Coastal Flood Warning": "CF", "Coastal Flood Watch": "CF", "Coastal Flood Advisory": "CF", "High Surf Warning": "SU", "High Surf Advisory": "SU", "Rip Current Statement": "RP", "Beach Hazards Statement": "BH",
     "Red Flag Warning": "FW", "Fire Weather Watch": "FW", "Tornado Warning": "TO", "Tornado Watch": "TO", "Severe Thunderstorm Warning": "SV", "Severe Thunderstorm Watch": "SV", "Flash Flood Warning": "FF",
-    "Winter Storm Warning": "WS", "Winter Storm Watch": "WS", "Blizzard Warning": "BZ", "Ice Storm Warning": "IS", "Lake Effect Snow Warning": "LE", "Winter Weather Advisory": "WW" };
+    "Winter Storm Warning": "WS", "Winter Storm Watch": "WS", "Blizzard Warning": "BZ", "Ice Storm Warning": "IS", "Lake Effect Snow Warning": "LE", "Winter Weather Advisory": "WW",
+    "Extreme Heat Warning": "XH", "Extreme Heat Watch": "XH", "Heat Advisory": "HT", "Excessive Heat Warning": "EH", "Excessive Heat Watch": "EH", "Extreme Cold Warning": "EC", "Extreme Cold Watch": "EC", "Cold Weather Advisory": "CW",
+    "Wind Chill Warning": "WC", "Wind Chill Watch": "WC", "Wind Chill Advisory": "WC", "Freeze Warning": "FZ", "Freeze Watch": "FZ", "Frost Advisory": "FR",
+    "High Wind Warning": "HW", "High Wind Watch": "HW", "Wind Advisory": "WI", "Extreme Wind Warning": "EW", "Dust Storm Warning": "DS", "Blowing Dust Advisory": "DU", "Lake Wind Advisory": "LW", "Dense Fog Advisory": "FG", "Dense Smoke Advisory": "SM",
+    // one event name, two VTEC phenomena: river (FL) or areal (FA) flooding; a Flood Watch can also carry FF
+    "Flood Warning": ["FL", "FA"], "Flood Watch": ["FA", "FF"], "Flood Advisory": ["FA", "FL"] };
   const ALERTS_URL = "https://api.weather.gov/alerts/active?event=" + EVENTS.map(encodeURIComponent).join(",");
   const OUTLOOK_URL = (day) => "https://www.spc.noaa.gov/products/outlook/day" + day + "otlk_cat.nolyr.geojson";
   const MD_LIST_URL = "https://www.spc.noaa.gov/products/md/";
@@ -51,8 +60,8 @@
     "CF.W": "Coastal Flood Warning", "CF.A": "Coastal Flood Watch", "CF.Y": "Coastal Flood Advisory", "SU.W": "High Surf Warning", "SU.Y": "High Surf Advisory", "RP.S": "Rip Current Statement", "BH.S": "Beach Hazards Statement"};
   function vtecFor(props) {
     const all = (props.parameters && props.parameters.VTEC || []).map(parseVTEC).filter(Boolean);
-    const want = EVENT_PHEN[props.event];
-    return all.find((v) => v.phen === want && KIND[v.sig]) || null;
+    const want = [].concat(EVENT_PHEN[props.event] || []);
+    return all.find((v) => want.includes(v.phen) && KIND[v.sig]) || null;
   }
   const keyOf = (v, sent) => v.office + "." + v.phen + "." + v.sig + "." + v.etn + "." + (v.begin || sent || "").slice(0, 4);
 

@@ -22,7 +22,10 @@ const EVENTS = new Set(["Tornado Warning", "Severe Thunderstorm Warning", "Torna
   "Winter Storm Warning", "Winter Storm Watch", "Blizzard Warning", "Ice Storm Warning", "Lake Effect Snow Warning", "Winter Weather Advisory",
   "Red Flag Warning", "Fire Weather Watch",
   "Hurricane Warning", "Hurricane Watch", "Tropical Storm Warning", "Tropical Storm Watch", "Storm Surge Warning", "Storm Surge Watch",
-  "Coastal Flood Warning", "Coastal Flood Watch", "Coastal Flood Advisory", "High Surf Warning", "High Surf Advisory", "Rip Current Statement", "Beach Hazards Statement"]);
+  "Coastal Flood Warning", "Coastal Flood Watch", "Coastal Flood Advisory", "High Surf Warning", "High Surf Advisory", "Rip Current Statement", "Beach Hazards Statement",
+  "Flood Warning", "Flood Watch", "Flood Advisory",
+  "Extreme Heat Warning", "Extreme Heat Watch", "Heat Advisory", "Excessive Heat Warning", "Excessive Heat Watch", "Extreme Cold Warning", "Extreme Cold Watch", "Cold Weather Advisory", "Wind Chill Warning", "Wind Chill Watch", "Wind Chill Advisory", "Freeze Warning", "Freeze Watch", "Frost Advisory",
+  "High Wind Warning", "High Wind Watch", "Wind Advisory", "Extreme Wind Warning", "Dust Storm Warning", "Blowing Dust Advisory", "Lake Wind Advisory", "Dense Fog Advisory", "Dense Smoke Advisory"]);
 const ORIGINS = [/^https:\/\/wxman33\.github\.io$/, /^https:\/\/([a-z0-9-]+\.)?forecast-ops-beta\.pages\.dev$/, /^https:\/\/raw\.githack\.com$/, /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
 const TTL_S = { alerts: 30, alert: 3600, zone: 86400, point: 86400, grid: 900 };
 const memory = new Map(); // per-isolate cache; the Cache API is used too where the platform provides it

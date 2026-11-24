@@ -25,7 +25,7 @@ const ready = (p) => p.waitForFunction(() => window.__threats && window.__threat
     let p = await open("scenario=multi&scope=national&view=active&sheet=open"), L = await layout(p);
     await p.screenshot({ path: path.join(OUT, `national-${d}.png`) });
     await p.evaluate(() => { const b = document.getElementById("txPanelBody"); b.scrollTop = b.scrollHeight; }); await p.waitForTimeout(300); const L2 = await layout(p);
-    check(`(${d}) busy national view: Time, Layers, Map area and the state line in view, no page overflow; after scrolling the details, Map area and the state line still in view`, !L.overflow && L.layersBtn && L.time && L.scope && L.pstate && /^Active now · as of .+Layers: All 8/.test(L.pstateText) && L2.scope && L2.pstate && !L.stageErrors, { L, L2 });
+    check(`(${d}) busy national view: Time, Layers, Map area and the state line in view, no page overflow; after scrolling the details, Map area and the state line still in view`, !L.overflow && L.layersBtn && L.time && L.scope && L.pstate && /^Active now · as of .+Layers: All 10/.test(L.pstateText) && L2.scope && L2.pstate && !L.stageErrors, { L, L2 });
     // the picker: every layer reachable, no downloads, keyboard
     const reqs = []; p.on("request", (r) => reqs.push(r.url())); await p.waitForTimeout(1500); const before = reqs.length;
     await p.focus("#txLayersBtn"); await p.keyboard.press("Enter"); await p.waitForTimeout(1200);
@@ -37,14 +37,14 @@ const ready = (p) => p.waitForFunction(() => window.__threats && window.__threat
     await p.keyboard.press("Space"); await p.waitForTimeout(300); await p.keyboard.press("Tab"); await p.keyboard.press("Space"); await p.waitForTimeout(300);
     const kb = await p.evaluate(() => ({ severe: window.__threats.S.layers.severe, flood: window.__threats.S.layers.flood, sum: document.getElementById("txLayersSum").textContent }));
     await p.keyboard.press("Escape"); await p.waitForTimeout(200); const ec = await p.evaluate(() => ({ open: !document.getElementById("txLayersPop").hidden, focus: document.activeElement.id }));
-    check(`(${d}) keyboard: Space turns layers off, the summary names what is still on; Escape closes and returns focus to Layers`, kb.severe === false && kb.flood === false && kb.sum === "Winter, Fire +4" && !ec.open && ec.focus === "txLayersBtn", { kb, ec });
+    check(`(${d}) keyboard: Space turns layers off, the summary names what is still on; Escape closes and returns focus to Layers`, kb.severe === false && kb.flood === false && kb.sum === "Winter, Heat & cold +6" && !ec.open && ec.focus === "txLayersBtn", { kb, ec });
     await p.click("#txLayersBtn"); await p.click("[data-layers-reset]"); await p.waitForTimeout(300); const rd = () => p.evaluate(() => ({ none: !Object.values(window.__threats.S.layers).some(Boolean), all: Object.values(window.__threats.S.layers).every(Boolean), sum: document.getElementById("txLayersSum").textContent, gtg: window.__threats.S.gtg.on, ifi: window.__threats.S.ifi.on, prompt: !!document.querySelector("[data-kind=no-layers] [data-open-layers]") })), rs = await rd();
     check(`(${d}) Clear all: no layers, "None selected", model overlays off, the panel prompts to select a layer`, rs.none && rs.sum === "None selected" && !rs.gtg && !rs.ifi && rs.prompt, rs);
     await p.click("[data-layers-all]"); await p.waitForTimeout(300); const ra = await rd();
-    check(`(${d}) Show all: all 8 hazards on`, ra.all && ra.sum === "All 8", ra);
+    check(`(${d}) Show all: all 10 hazards on`, ra.all && ra.sum === "All 10", ra);
     await p.click("[data-layers-close]"); await p.click('.tx-tb[data-view="day2"]'); await p.waitForTimeout(500);
     const d2 = await p.evaluate(() => document.getElementById("txPState").textContent);
-    check(`(${d}) a layer not drawn at the selected time says why in one short line`, /^Day 2.*Not drawn in Day 2: Smoke & air, Tropical, Coastal \(current only\); Winter, Fire \(see Layers\)$/.test(d2), d2);
+    check(`(${d}) a layer not drawn at the selected time says why in one short line`, /^Day 2.*Not drawn in Day 2: Heat & cold, Wind & visibility, Smoke & air, Tropical, Coastal \(current only\); Winter, Fire \(see Layers\)$/.test(d2), d2);
     await p.close();
     /* 2. venue with several hazards selected (from the link) */
     p = await open("scenario=overlap&scope=venue&view=active&layers=severe,flood,winter,tropical&sheet=open"); L = await layout(p);

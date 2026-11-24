@@ -22,11 +22,12 @@ const get = (h, p, origin = "https://claude-threats-planner-flood.forecast-ops-b
 
 await ok("NWS: Flash Flood Warning, winter and fire weather alerts and fire weather zones are allowed; other events and paths are not forwarded", async () => {
   assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=Flash%20Flood%20Warning")).status, 200);
-  assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=Flood%20Warning")).status, 404);
+  for (const ev of ["Flood Warning", "Flood Watch", "Heat Advisory", "Extreme Cold Warning", "Wind Advisory", "Dense Fog Advisory"]) assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=" + encodeURIComponent(ev))).status, 200, ev); // added 2026-11-24
+  assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=Air%20Quality%20Alert")).status, 404);
   assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=Flash%20Flood%20Warning&area=FL")).status, 404);
   assert.strictEqual((await get(nws, "/api/nws/points/29,-81")).status, 404);
   for (const ev of ["Winter Storm Warning", "Winter Storm Watch", "Blizzard Warning", "Ice Storm Warning", "Lake Effect Snow Warning", "Winter Weather Advisory"]) assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=" + encodeURIComponent(ev))).status, 200, ev);
-  assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=Wind%20Chill%20Advisory")).status, 404);
+  assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=Wind%20Chill%20Advisory")).status, 200); // Heat & cold layer since 2026-11-24
   for (const ev of ["Hurricane Warning", "Storm Surge Watch", "Coastal Flood Advisory", "Rip Current Statement", "Beach Hazards Statement", "High Surf Warning"]) assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=" + encodeURIComponent(ev))).status, 200, ev);
   for (const ev of ["Red Flag Warning", "Fire Weather Watch"]) assert.strictEqual((await get(nws, "/api/nws/alerts/active?event=" + encodeURIComponent(ev))).status, 200, ev);
   answer = () => new Response(JSON.stringify({ type: "Feature", geometry: { type: "Polygon", coordinates: [] }, properties: {} }));

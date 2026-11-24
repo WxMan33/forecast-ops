@@ -106,7 +106,7 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
       await p.goto(HOST + PAGE + "?scenario=overlap&scope=venue&view=active", { waitUntil: "domcontentloaded" });
       await p.waitForFunction(() => window.__threats && window.__threats.ready && !window.__threats.data.loading, null, { timeout: 90000 }); await p.waitForTimeout(5000);
       const s = await state(p); rec.demoLink = { requests: reqs.length, byFeed: tally(reqs), state: { layers: s.layers, sum: s.sum } };
-      check(`(${d}) DEMO LINK keeps every layer on (its shared selection) and requests no live feed (${reqs.length})`, s.sum === "All 8" && s.layers.length === 8 && reqs.length === 0 && !errs.length, { s, reqs: reqs.map((r) => r.url), errs });
+      check(`(${d}) DEMO LINK keeps every layer on (its shared selection) and requests no live feed (${reqs.length})`, s.sum === "All 10" && s.layers.length === 10 && reqs.length === 0 && !errs.length, { s, reqs: reqs.map((r) => r.url), errs });
       await ctx.close(); }
   }
   fs.writeFileSync(path.join(OUT, "feeds-check.json"), JSON.stringify({ ...out, results }, null, 1));

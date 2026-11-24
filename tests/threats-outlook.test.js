@@ -31,13 +31,13 @@ ok("DASHBOARD: 7 local days from today; the headline is the highest threat (an S
   assert.ok(!r.days[1].items.some((x) => /Marginal/.test(x.text)), "only the highest SPC category at the venue");
 });
 
-ok("DASHBOARD: a source that did not answer is 'not confirmed' on its day, never quiet; SPC 'predictability too low' is shown as unknown", () => {
+ok("DASHBOARD: a source that did not answer is 'not confirmed' on its day, never quiet; SPC 'predictability too low' is shown as a limit, not a failure", () => {
   const i = base(); i.states.spc[1] = "failed"; i.spcDayStart = { 1: "2026-11-23T12:00:00Z" };
   i.ero = [{ day: 1, failed: true, validStart: "2026-11-23T12:00:00Z" }];
   i.spc48 = [{ day: 6, status: "predictability-too-low", products: [], validStart: "2026-11-28T12:00:00Z" }];
   const r = O.build(i);
   assert.deepStrictEqual(r.days[0].unknown, ["SPC Day 1 outlook not confirmed", "WPC Day 1 rainfall outlook not confirmed"]);
-  assert.deepStrictEqual(r.days[5].unknown, ["SPC: predictability too low to say for Day 6"]);
+  assert.deepStrictEqual(r.days[5].unknown, []); assert.deepStrictEqual(r.days[5].limits, ["SPC can't say yet for severe storms (Day 6: predictability too low)"]);
   assert.ok(/sources that answered/.test(r.headline.text) || r.headline.level >= 1, r.headline.text);
 });
 
