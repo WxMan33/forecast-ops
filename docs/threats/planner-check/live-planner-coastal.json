@@ -1,10 +1,11 @@
 {
- "at": "2026-11-24T15:07:11.416Z",
+ "at": "2026-11-24T16:21:08.552Z",
  "nwsActiveForZone": [
-  "Coastal Flood Warning"
+  "Coastal Flood Warning",
+  "Rip Current Statement"
  ],
  "result": {
-  "summary": "1 weather threat for this event",
+  "summary": "2 weather threats for this event",
   "confirmed": false,
   "items": [
    {
@@ -19,21 +20,35 @@
     "phases": [
      "event"
     ]
+   },
+   {
+    "id": "KJAX.RP.S.0036.2026#FLZ138",
+    "kind": "statement",
+    "headline": "Coastal alert for the adjacent shoreline: Rip Current Statement",
+    "code": null,
+    "line": "Issued for Coastal Flagler; NWS places the venue in no land forecast zone (AMZ454), 1 mile from that zone. It covers the shoreline next to the venue, not the venue's own zone. In effect from 1 p.m. until 4 a.m. Thursday during the event.",
+    "product": "KJAX.RP.S.0036.2026#FLZ138",
+    "category": null,
+    "day": null,
+    "phases": [
+     "event"
+    ]
    }
   ],
   "statuses": [
-   "NWS warnings, watches and advisories: Checked 10:07 a.m.",
-   "SPC fire weather outlooks: Checked 10:07 a.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
-   "NOAA satellite smoke analysis (HMS): Checked 10:07 a.m.",
-   "AirNow air quality observations: Checked 10:07 a.m. · nearest monitor Flagler County (10 miles west): AQI 9 Good (Ozone) for 9 a.m.",
+   "NWS warnings, watches and advisories: Checked 11:21 a.m.",
+   "SPC fire weather outlooks: Checked 11:21 a.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NOAA satellite smoke analysis (HMS): Checked 11:21 a.m.",
+   "AirNow air quality observations: Checked 11:21 a.m. · nearest monitor Flagler County (10 miles west): AQI 13 Good (Ozone) for 11 a.m.",
    "AirNow air quality forecasts: No AirNow forecast area for this venue.",
-   "NHC tropical outlooks and storm products: Checked 10:07 a.m.",
-   "NIFC wildfire incidents (WFIGS): Checked 10:07 a.m.",
-   "WPC winter storm severity outlook (WSSI-P): Checked 10:07 a.m.",
-   "WPC Excessive Rainfall Outlook: Checked 10:07 a.m. · Day 1 issued 0747Z, Day 2 issued 0750Z, Day 3 issued 0750Z"
+   "NHC tropical outlooks and storm products: Checked 11:21 a.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 11:21 a.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 11:21 a.m.",
+   "WPC Excessive Rainfall Outlook: Checked 11:21 a.m. · Day 1 issued 0747Z, Day 2 issued 0750Z, Day 3 issued 0750Z"
   ],
   "maps": [
-   "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats.html?lat=29.4802&lon=-81.1065&name=Flagler+Beach+Pier&tz=America%2FNew_York&scope=venue&view=active&layers=coastal&sel=KJAX.CF.W.0004.2026%23FLZ138&nws=function"
+   "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats.html?lat=29.4802&lon=-81.1065&name=Flagler+Beach+Pier&tz=America%2FNew_York&scope=venue&view=active&layers=coastal&sel=KJAX.CF.W.0004.2026%23FLZ138&nws=function",
+   "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats.html?lat=29.4802&lon=-81.1065&name=Flagler+Beach+Pier&tz=America%2FNew_York&scope=venue&view=active&layers=coastal&sel=KJAX.RP.S.0036.2026%23FLZ138&nws=function"
   ]
  }
 }

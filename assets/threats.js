@@ -1621,7 +1621,7 @@
     try { if (localStorage.getItem("threats_counties") === "0") S.counties = false; } catch (e) { /* no storage: shown */ }
     if (q.get("counties") === "0") S.counties = false; else if (q.get("counties") === "1") S.counties = true;
     if (q.get("pin") === "0") S.pin = false; else if (q.get("pin") === "1" || q.get("scope") === "venue") S.pin = true;
-    if (q.get("layers")) { const L = q.get("layers").split(","); if (L.includes("aviation")) S.en.on = true; S.layers = { severe: L.includes("severe"), flood: L.includes("flood"), winter: L.includes("winter"), fire: L.includes("fire"), smoke: L.includes("smoke"), tropical: L.includes("tropical"), coastal: L.includes("coastal"), aviation: L.includes("aviation"), heat: L.includes("heat"), wind: L.includes("wind") }; }
+    if (q.get("layers")) { const L = q.get("layers").split(","); if (L.includes("aviation")) S.en.on = true; Object.keys(S.layers).forEach((k) => (S.layers[k] = L.includes(k))); } // keeps the picker's order
     else if (S.scenario !== "live") Object.keys(S.layers).forEach((k) => (S.layers[k] = true)); // demo and archived samples: their shared selection is every layer
     else if (S.gtg.on || S.ifi.on || q.get("air") || q.get("rt") || q.get("alt")) S.layers.aviation = true; // a live link naming aviation content and no layers
     /* a fresh live visit: radar and the current NWS warnings, watches and advisories (with storm reports and MDs); fire, smoke and
