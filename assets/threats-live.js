@@ -73,12 +73,17 @@
     return { ...p, geometry: z.geometry, geometryIncomplete: z.incomplete, zoneInfo: z, label: z.geometry ? F.labelPoint(z.geometry) : null };
   }
   function applyZones() { /* shapes are attached in snapshot(); kept for callers */ }
+  /* outlines of zone-listed alerts: only for the hazards the map shows (setZoneFamilies; everything for Event Manager, which
+     never calls it), and at most 6 downloads at a time so a phone isn't flooded on a first visit */
+  let zoneFamilies = null;
+  async function pool(items, n, fn) { let i = 0; const run = async () => { while (i < items.length) { const k = i++; try { await fn(items[k]); } catch (e) { /* that zone stays unknown */ } } }; await Promise.all(Array.from({ length: Math.min(n, items.length) }, run)); }
   async function resolvePending() {
     const want = [];
-    for (const p of alerts.products(Date.now())) if (p.geometrySource === "counties" && p.status === "active") for (const u of p.zones) if (!zoneGeo.has(u)) want.push(u);
+    for (const p of alerts.products(Date.now())) if (p.geometrySource === "counties" && p.status === "active" && (!zoneFamilies || zoneFamilies.has(p.family))) for (const u of p.zones) if (!zoneGeo.has(u)) want.push(u);
     if (!want.length) return false;
-    await Promise.allSettled([...new Set(want)].slice(0, 300).map(zone)); return true;
+    await pool([...new Set(want)].slice(0, 300), 6, zone); return true;
   }
+  function setZoneFamilies(fams) { const next = new Set(fams || []), grew = [...next].some((f) => !zoneFamilies || !zoneFamilies.has(f)); zoneFamilies = next; if (grew) resolvePending().then((c) => { if (c) emit(); }); }
   /* "What changed": the message an update replaced (same VTEC event), fetched only when someone opens that alert's details
      (once per message), not for every alert on load */
   async function fetchPrevious(onlyId) {
@@ -608,5 +613,5 @@
       "wpc-ero": { ...worst(["ero1", "ero2", "ero3"]), reachEnd: reach(["ero1", "ero2", "ero3"]), reach: ["ero1", "ero2", "ero3"].map((k, i) => d.sources[k] && d.sources[k].issued ? "Day " + (i + 1) + " issued " + window.ThreatsCore.fmtZ(d.sources[k].issued) : "").filter(Boolean).join(", ") } };
   }
 
-  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, setFeeds, venueForecast, radarTime, RADAR_TILE_URL: F.RADAR_TILE_URL, previousFor: (id) => fetchPrevious(id).then((c) => { if (c) emit(); return c; }), mapFeeds: () => (mapFeeds ? [...mapFeeds] : null), monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
+  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, setFeeds, setZoneFamilies, venueForecast, radarTime, RADAR_TILE_URL: F.RADAR_TILE_URL, previousFor: (id) => fetchPrevious(id).then((c) => { if (c) emit(); return c; }), mapFeeds: () => (mapFeeds ? [...mapFeeds] : null), monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
 })();

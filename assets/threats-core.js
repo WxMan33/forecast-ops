@@ -169,11 +169,15 @@
   const sort = (list) => list.slice().sort(compare);
 
   /* ---------- grouping: active products whose areas touch become one "area" in the overview ---------- */
-  function group(products, places = []) {
-    const list = sort(products.filter((p) => p.kind !== "outlook"));
+  /* pairCache (optional Map): whether two areas overlap doesn't depend on what else is shown, so a caller that regroups as layers
+     change keeps the answers, keyed by each product's id and outline signature */
+  const geoSig = (p) => { const c = p.geometry && p.geometry.coordinates; return p.id + "|" + (p.updated || p.issued || "") + "|" + (c ? p.geometry.type + c.length + ":" + (c[0] || []).length : "-"); };
+  function group(products, places = [], pairCache = null) {
+    const list = sort(products.filter((p) => p.kind !== "outlook")), sig = pairCache ? list.map(geoSig) : null;
     const parent = list.map((_, i) => i), find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+    const touch = (i, j) => { if (!pairCache) return overlaps(list[i].geometry, list[j].geometry); const k = sig[i] < sig[j] ? sig[i] + "~" + sig[j] : sig[j] + "~" + sig[i]; let v = pairCache.get(k); if (v === undefined) { v = overlaps(list[i].geometry, list[j].geometry); pairCache.set(k, v); } return v; };
     for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
-      if (find(i) !== find(j) && list[i].geometry && list[j].geometry && overlaps(list[i].geometry, list[j].geometry)) parent[find(j)] = find(i);
+      if (find(i) !== find(j) && list[i].geometry && list[j].geometry && touch(i, j)) parent[find(j)] = find(i);
     }
     const groups = new Map();
     list.forEach((p, i) => { const r = find(i); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(p); });

@@ -138,13 +138,13 @@
       const a = loadArchive(), list = ARCHIVE_VENUES[S.scenario];
       // a link from Event Planner names its venue: use the matching sample venue, or that venue itself
       const ent = S.entryVenue && !S.archiveVenue ? list.find((v) => Math.hypot(v.lat - S.entryVenue.lat, v.lon - S.entryVenue.lon) < 0.01) : null;
-      venue = ent || list.find((v) => v.id === S.archiveVenue) || (S.entryVenue && !S.archiveVenue ? S.entryVenue : list[0]);
+      venue = ent || list.find((v) => v.id === S.archiveVenue) || (S.entryVenue && !S.archiveVenue ? withTz(S.entryVenue) : list[0]);
       data = a && !a.error ? { ...a } : { clock: new Date().toISOString(), products: [], sources: { alerts: { state: "failed", lastOk: null }, md: { state: "na" }, day1: { state: "na" }, day2: { state: "na" } }, loading: !a, loadError: a && a.error };
       now = Date.parse(data.clock);
     } else if (isLive()) {
       data = Live.snapshot(); data.loading = !liveReady; now = Date.parse(data.clock);
       venue = withTz(S.entryVenue || liveVenues().find((v) => v.id === S.liveVenue) || liveVenues()[0]);
-    } else { data = Demo.scenario(S.scenario); now = Date.parse(data.clock); venue = S.entryVenue || data.venues[S.venueKey]; }
+    } else { data = Demo.scenario(S.scenario); now = Date.parse(data.clock); venue = S.entryVenue ? withTz(S.entryVenue) : data.venues[S.venueKey]; }
     data.state = {}; for (const k of Object.keys(data.sources)) data.state[k] = data.sources[k].state === "off" ? { kind: "off", text: "Layer off" } : data.sources[k].state === "pending" ? { kind: "loading", text: "Loading" } : data.sources[k].state === "na" ? { kind: "na", text: "Not part of this sample" } : data.loading ? { kind: "loading", text: "Loading" } : isArchive() ? { kind: data.sources[k].count ? "current" : "empty", text: "Archived" } : T.sourceState(data.sources[k], now, STALE_MIN[k]);
   }
   const tz = () => venue.tz;
@@ -903,10 +903,10 @@
   }
   const avOnlyNote = () => `<div class="px-h">Other hazards</div><p class="px-empty">Only Aviation is on. Turn on warnings and other hazards in Layers.</p>`;
   /* the national grouping only changes when the active products (or their drawn outlines) change: reuse it between redraws */
-  let groupMemo = { key: null, groups: null };
+  let groupMemo = { key: null, groups: null }; const pairCache = new Map();
   function groupsNow() {
     const list = active(), key = list.map((p) => p.id + "|" + (p.updated || p.issued || "") + "|" + (p.geometry ? p.geometry.type + (p.geometry.coordinates || []).length + ":" + ((p.geometry.coordinates || [])[0] || []).length + (p.geometryIncomplete ? "i" : "") : 0)).join(",");
-    if (groupMemo.key !== key) groupMemo = { key, groups: T.group(list, PLACES) };
+    if (groupMemo.key !== key) { if (pairCache.size > 400000) pairCache.clear(); groupMemo = { key, groups: T.group(list, PLACES, pairCache) }; }
     return groupMemo.groups;
   }
   function nationalActive() {
@@ -1156,10 +1156,11 @@
   function stage(name, fn) { try { fn(); } catch (e) { drawErrors.push({ stage: name, message: e.message, stack: e.stack, at: new Date().toISOString() }); if (drawErrors.length > 50) drawErrors.shift(); console.error("Weather threats: " + name + " failed", e); } }
   /* each layer's official feeds: loaded when the layer is turned on, no longer refreshed when it is off (nothing loads with none) */
   const LAYER_FEEDS = { severe: ["alerts", "md", "spc"], flood: ["alerts", "ero"], winter: ["alerts"], fire: ["alerts", "fire", "nifc"], smoke: ["hms", "monitors"], tropical: ["alerts", "nhc"], coastal: ["alerts"], aviation: [] };
-  let feedKey = null;
+  let feedKey = null, zoneFamKey = null;
   const anyLayer = () => Object.keys(LAYER_FEEDS).some((k) => S.layers[k]);
   function syncFeeds() {
     const keys = isLive() ? [...new Set(Object.keys(LAYER_FEEDS).filter((k) => S.layers[k]).flatMap((k) => LAYER_FEEDS[k]))].sort() : [], k = keys.join(",");
+    if (Live.setZoneFamilies) { const zf = isLive() ? Object.keys(LAYER_FEEDS).filter((x) => S.layers[x] && LAYER_FEEDS[x].includes("alerts")).join(",") : ""; if (zf !== zoneFamKey) { zoneFamKey = zf; Live.setZoneFamilies(zf ? zf.split(",") : []); } } // zone outlines for the hazards shown only
     if (k === feedKey || !Live.setFeeds) return; feedKey = k;
     const p = Live.setFeeds(keys); if (isLive()) load();
     p.then(() => { if (feedKey === k && isLive()) { liveReady = true; load(); drawAll(); } });
@@ -1441,7 +1442,7 @@
     if (["inside", "edge", "outside"].includes(q.get("venue"))) S.venueKey = q.get("venue");
     const lat = parseFloat(q.get("lat")), lon = parseFloat(q.get("lon"));
     if (isFinite(lat) && isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180) {
-      S.entryVenue = { id: "entry", name: ((n) => n.length <= 80 ? n : n.slice(0, 79).replace(/\s+\S*$/, "") + "…")((q.get("name") || "Event venue").trim()), city: q.get("city") || "", lat, lon, tz: q.get("tz") || "America/New_York" };
+      S.entryVenue = { id: "entry", name: ((n) => n.length <= 80 ? n : n.slice(0, 79).replace(/\s+\S*$/, "") + "…")((q.get("name") || "Event venue").trim()), city: q.get("city") || "", lat, lon, tz: q.get("tz") || null /* no tz= in the link: looked up from the venue's position (withTz) */ };
       S.scope = "venue";
     }
     if (["active", "day1", "day2", "day3", "winter", "fire"].includes(q.get("view"))) S.view = q.get("view");
