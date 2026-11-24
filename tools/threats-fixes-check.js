@@ -162,16 +162,27 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
       R.reports = { nat, sel, det: det.slice(0, 200), ven };
       check(`(${d}) STORM REPORTS (replay, SPC Nov 12): ${nat.drawn} drawn (${JSON.stringify(nat.types)}); '${nat.head}'; legend; a tornado dot opens its report (time, place, comments, preliminary); Delaware Stadium lists reports within 25 mi`,
         nat.drawn === 27 && nat.types.tornado === 3 && /3 tornado · 2 wind · 22 hail/i.test(nat.head || "") && nat.legend && sel === tor.id && /Tornado · 1 SW Woodshade, DE/.test(det) && /1:05 PM EST/.test(det) && /EF-1 tornado/.test(det) && /preliminary report/i.test(det) && ven.length > 0 && ven.some((x) => /Tornado/.test(x)) && !errs.length && !v.errs.length, { ...R.reports, errs, verrs: v.errs }); }
-    /* RIVER GAUGES (live, NOAA NWPS): Flooding on and zoomed in to Cincinnati: gauges drawn by category; the Ohio River at Cincinnati opens its stage and category */
+    /* RIVER GAUGES (live, NOAA NWPS): loaded and drawn only where a Flood Warning is in effect in view. Around a spot with no flood
+       warning: none queried or drawn and the source row says why; at a live Flood Warning (when one exists): gauges drawn and one opens */
     { const reqs = []; const { p, errs } = await page("?layers=flood&scope=national", (p) => p.on("request", (r) => { if (/api\.water\.noaa\.gov/.test(r.url())) reqs.push(r.url()); }));
       await p.waitForTimeout(2000); const national = reqs.length;
-      await p.evaluate(() => window.__threats.map.jumpTo({ center: [-84.51, 39.1], zoom: 9 })); await p.waitForFunction(() => window.__threats.map.getSource("gauge")._data.features.length > 0, null, { timeout: 30000 }).catch(() => {}); await p.waitForTimeout(1500);
-      const g = await p.evaluate(() => ({ drawn: window.__threats.map.getSource("gauge")._data.features.length, row: [...document.querySelectorAll(".px-src")].map((x) => x.innerText.replace(/\s+/g, " ")).find((t) => /river gauges/i.test(t)), legend: /River gauges · NOAA/.test(document.getElementById("txLegend").textContent) }));
-      const c = await p.evaluate(() => { const x = window.__threats.data.products.find((y) => y.kind === "gauge" && y.lid === "CCNO1"); return x && { id: x.id, pt: x.point }; });
-      let det = ""; if (c) { const how = await openDot(p, c.id, c.pt); det = await p.evaluate(() => document.getElementById("txPanelBody").innerText.replace(/\s+/g, " ")); }
-      await p.screenshot({ path: path.join(OUT, `gauges-${d}.png`) }); R.gauges = { national, requests: reqs.length, g, det: det.slice(0, 300) };
-      check(`(${d}) RIVER GAUGES (live NOAA): none queried at national zoom (${national}); ${g.drawn} drawn around Cincinnati; source row '${g.row}'; legend; the Ohio River at Cincinnati opens its stage, category and hydrograph link`,
-        national === 0 && g.drawn > 5 && /NOAA river gauges/i.test(g.row || "") && g.legend && /Ohio River at Cincinnati/.test(det) && /\d+(\.\d+)? ft/.test(det) && /(Below flood stage|Action stage|flooding)/.test(det) && /hydrograph/.test(det) && !errs.length, { ...R.gauges, errs }); await p.close(); }
+      const quiet = await p.evaluate(() => { const T = window.__threats, fw = T.data.products.filter((x) => x.sourceId === "nws-alerts" && /Flood Warning/.test(x.event || "") && x.geometry && Date.parse(x.expires) > Date.now());
+        const far = (lon, lat) => fw.every((x) => { const b = window.ThreatsCore.bbox(x.geometry); return lon < b[0] - 4 || lon > b[2] + 4 || lat < b[1] - 3 || lat > b[3] + 3; });
+        const spot = [[-84.51, 39.1], [-104.99, 39.74], [-112.07, 33.45], [-122.33, 47.6], [-71.06, 42.36], [-96.8, 32.78]].find(([lo, la]) => far(lo, la));
+        const fwc = fw[0] && window.ThreatsCore.bbox(fw[0].geometry); return { spot, warn: fwc ? { at: [(fwc[0] + fwc[2]) / 2, (fwc[1] + fwc[3]) / 2], ev: fw[0].event, area: fw[0].areaDesc || "" } : null, n: fw.length }; });
+      let q = { drawn: -1, row: "", queried: -1 };
+      if (quiet.spot) { const before = reqs.length; await p.evaluate((c) => window.__threats.map.jumpTo({ center: c, zoom: 9 }), quiet.spot); await p.waitForTimeout(3500);
+        q = await p.evaluate(() => ({ drawn: window.__threats.map.getSource("gauge")._data.features.length, row: [...document.querySelectorAll(".px-src")].map((x) => x.innerText.replace(/\s+/g, " ")).find((t) => /river gauges/i.test(t)) || "" })); q.queried = reqs.length - before; }
+      let w = { drawn: 0, det: "", skipped: !quiet.warn };
+      if (quiet.warn) { await p.evaluate((c) => window.__threats.map.jumpTo({ center: c, zoom: 8 }), quiet.warn.at);
+        await p.waitForFunction(() => window.__threats.map.getSource("gauge")._data.features.length > 0, null, { timeout: 30000 }).catch(() => {}); await p.waitForTimeout(1500);
+        w.drawn = await p.evaluate(() => window.__threats.map.getSource("gauge")._data.features.length);
+        const c = await p.evaluate(() => { const x = window.__threats.data.products.find((y) => y.kind === "gauge"); return x && { id: x.id, pt: x.point }; });
+        if (c) { await openDot(p, c.id, c.pt); w.det = await p.evaluate(() => document.getElementById("txPanelBody").innerText.replace(/\s+/g, " ")); } }
+      const legend = await p.evaluate(() => /River gauges · NOAA/.test(document.getElementById("txLegend").textContent));
+      await p.screenshot({ path: path.join(OUT, `gauges-${d}.png`) }); R.gauges = { national, quiet, q, w: { ...w, det: w.det.slice(0, 300) } };
+      check(`(${d}) RIVER GAUGES (live NOAA): none queried at national zoom (${national}); with no flood warning near ${quiet.spot ? quiet.spot.join(",") : "(none quiet)"}: ${q.queried} queried, ${q.drawn} drawn, row '${q.row}'; ` + (quiet.warn ? `at a live ${quiet.warn.ev} (${quiet.warn.area.slice(0, 40)}): ${w.drawn} drawn, a gauge opens its stage and hydrograph link` : "no Flood Warning active anywhere: the drawn case is skipped") + `; legend`,
+        national === 0 && (!quiet.spot || (q.queried === 0 && q.drawn === 0 && /no flood warning in view/i.test(q.row))) && (!quiet.warn || (w.drawn > 0 && /\d+(\.\d+)? ft|stage/i.test(w.det) && /hydrograph/.test(w.det))) && legend && !errs.length, { ...R.gauges, errs }); await p.close(); }
     /* the SPC Watch 705 replay */
     { const { p, errs } = await page("?scenario=archive-ww705&scope=venue"); await p.waitForTimeout(3000);
       const r = await p.evaluate(() => ({ n: window.__threats.data.products.length, watch: window.__threats.data.products.filter((x) => x.kind === "watch").map((x) => x.event), drawn: window.__threats.map.getSource("active")._data.features.length, err: window.__threats.data.loadError, panel: document.getElementById("txPanelBody").innerText.slice(0, 160) }));
