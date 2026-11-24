@@ -243,5 +243,5 @@
 
   return { NEAR_KM, KM_PER_MI, OUTLOOK, OUTLOOK_NAME, OUTLOOK_LEVEL, outlookLabel, contains, nearestEdge, pointDistance, bbox, overlaps, areaKm2,
     relation, relationText, distanceText, expiredUnconfirmed, miles, rank, compare, sort, group, placeName, outlookAt, highestOutlook, changes, sourceState,
-    fmtTime, fmtZ, untilText, polygonsOf };
+    fmtTime, fmtZ, untilText, polygonsOf, bboxOverlap };
 });

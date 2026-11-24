@@ -38,7 +38,7 @@
   const WLEVEL_LABEL = { WWA: "Any winter weather", MINOR: "Minor", MODERATE: "Moderate", MAJOR: "Major", EXTREME: "Extreme" };
   const empty = { type: "FeatureCollection", features: [] };
 
-  const S = { air: [], ap: null, layers: { severe: false, flood: false, winter: false, heat: false, wind: false, fire: false, smoke: false, tropical: false, coastal: false, aviation: false }, en: { on: false, at: 0, alt: null, age: 2 }, av: { apt: true, pireps: true, adv: true }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, ifi: { on: false, field: "prob", src: null, cyc: null }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, radar: false, pin: true, counties: true, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
+  const S = { air: [], ap: null, layers: { severe: false, flood: false, winter: false, heat: false, wind: false, fire: false, smoke: false, tropical: false, coastal: false, aviation: false }, en: { on: false, at: 0, alt: null, age: 2 }, av: { apt: true, pireps: true, adv: true }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, ifi: { on: false, field: "prob", src: null, cyc: null }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, radar: false, auto: false, autoAdded: {}, autoNeed: null, gaugeWhy: null, pin: true, counties: true, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
   let framedAp = false, framedSel = false, mapLoaded = false; // Planner airport "View on map": framed once
   let data, now, venue, map, ready = false, liveReady = false, meshes = new Map(), tzCache = {}, marker, grid = null, mesh = null, mask = null, gridLoading = null, hull = null;
   const phone = () => matchMedia("(max-width: 760px)").matches;
@@ -159,7 +159,7 @@
       data = Live.snapshot(); data.loading = !liveReady; now = Date.parse(data.clock);
       venue = withTz(S.entryVenue || liveVenues().find((v) => v.id === S.liveVenue) || liveVenues()[0]);
     } else { data = Demo.scenario(S.scenario); now = Date.parse(data.clock); venue = S.entryVenue ? withTz(S.entryVenue) : data.venues[S.venueKey]; }
-    data.state = {}; for (const k of Object.keys(data.sources)) data.state[k] = data.sources[k].state === "off" ? { kind: "off", text: "Layer off" } : data.sources[k].state === "pending" ? { kind: "loading", text: "Loading" } : data.sources[k].state === "na" ? { kind: "na", text: "Not part of this sample" } : data.loading ? { kind: "loading", text: "Loading" } : isArchive() ? { kind: data.sources[k].count ? "current" : "empty", text: "Archived" } : T.sourceState(data.sources[k], now, STALE_MIN[k]);
+    data.state = {}; for (const k of Object.keys(data.sources)) data.state[k] = data.sources[k].state === "off" ? { kind: "off", text: S.auto && isLive() ? "Not loaded · nothing near the venue calls for it" : "Layer off" } : data.sources[k].state === "pending" ? { kind: "loading", text: "Loading" } : data.sources[k].state === "na" ? { kind: "na", text: "Not part of this sample" } : data.loading ? { kind: "loading", text: "Loading" } : isArchive() ? { kind: data.sources[k].count ? "current" : "empty", text: "Archived" } : T.sourceState(data.sources[k], now, STALE_MIN[k]);
   }
   const tz = () => venue.tz;
   /* a time zone as people say it: "Eastern Time (EST)", never the database name (America/New_York) */
@@ -602,6 +602,10 @@
   let gaugeTimer = null;
   function ensureGauges() {
     if (!map || !mapLoaded || !isLive() || !Live.gaugesIn || !S.layers.flood || viewDay() > 1 || winterView() || fireView() || map.getZoom() < 6) return;
+    // river gauges only where a Flood Warning (river, areal or flash) is in effect inside the view
+    { const b = map.getBounds(), box = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+      S.gaugeWhy = (data.products || []).some((p) => p.sourceId === "nws-alerts" && FLOOD_WARNING(p) && Date.parse(p.expires) > now && p.geometry && T.bboxOverlap(T.bbox(p.geometry), box)) ? "flood warning" : null;
+      if (!S.gaugeWhy) return; }
     clearTimeout(gaugeTimer); gaugeTimer = setTimeout(() => { const b = map.getBounds(), r = (v) => Math.round(v * 2) / 2; // half-degree steps, so small pans reuse the answer
       Live.gaugesIn([r(b.getWest()) - 0.5, r(b.getSouth()) - 0.5, r(b.getEast()) + 0.5, r(b.getNorth()) + 0.5]).then(() => { load(); drawAll(); }, () => drawAll()); }, 400);
   }
@@ -1271,8 +1275,33 @@
   const LAYER_FEEDS = { heat: ["alerts"], wind: ["alerts"], severe: ["alerts", "md", "spc", "reports"], flood: ["alerts", "ero"], winter: ["alerts"], fire: ["alerts", "fire", "nifc"], smoke: ["hms", "monitors"], tropical: ["alerts", "nhc"], coastal: ["alerts"], aviation: [] };
   let feedKey = null, zoneFamKey = null;
   const anyLayer = () => Object.keys(LAYER_FEEDS).some((k) => S.layers[k]);
+  /* Automatic layers (a fresh visit, until the layer picker is used): radar and the NWS warnings, watches and advisories always;
+     everything else only when conditions at the venue call for it. */
+  const AUTO_KM = 250, kmTo = (p, v) => { const b = p.geometry && T.bbox(p.geometry); if (!b) return Infinity; const lon = Math.min(Math.max(v.lon, b[0]), b[2]), lat = Math.min(Math.max(v.lat, b[1]), b[3]), R = 6371, t = (x) => (x * Math.PI) / 180;
+    const h = Math.sin(t(lat - v.lat) / 2) ** 2 + Math.cos(t(v.lat)) * Math.cos(t(lat)) * Math.sin(t(lon - v.lon) / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
+  const alertsNear = (fam, km, test) => !!venue && (data.products || []).some((p) => p.kind !== "outlook" && p.sourceId === "nws-alerts" && (p.family || "severe") === fam && Date.parse(p.expires) > now && (!test || test(p)) && kmTo(p, venue) <= km);
+  const outlookHas = (key, days = 3, min = 1) => !!(vo.data && vo.key && vo.data.days && vo.data.days.slice(0, days).some((d) => (d.items || []).some((i) => i.key === key && i.level >= min)));
+  const FLOOD_WARNING = (p) => /Flood Warning/i.test(p.event || "");
+  function autoNeed() {
+    return {
+      severe: alertsNear("severe", AUTO_KM) || outlookHas("severe"), // SPC outlooks, MDs and storm reports
+      flood: alertsNear("flood", AUTO_KM) || outlookHas("rain"),       // WPC excessive rainfall
+      tropical: alertsNear("tropical", 800) || outlookHas("tropical", 7, 0),
+      fire: alertsNear("fire", 150) || outlookHas("fire"),             // the Fire layer: SPC fire outlooks, incidents
+      smoke: outlookHas("air", 2),                                     // Smoke & air: HMS smoke, AirNow monitors
+    };
+  }
+  const autoWhy = { severe: "a severe storm warning, watch or SPC risk near the venue", flood: "a flood alert or excessive-rainfall risk near the venue", tropical: "a tropical alert or NHC area near the venue", fire: "a fire weather alert or SPC fire risk at the venue", smoke: "an air quality alert in the AirNow forecast for the venue" };
+  function autoLayers() {
+    if (!S.auto || !isLive()) return;
+    const n = autoNeed(); S.autoNeed = n;
+    for (const k of ["fire", "smoke"]) { if (n[k] && !S.layers[k]) { S.layers[k] = true; S.autoAdded[k] = true; } else if (!n[k] && S.autoAdded[k]) { S.layers[k] = false; delete S.autoAdded[k]; } }
+  }
   function syncFeeds() {
-    const keys = isLive() ? [...new Set(Object.keys(LAYER_FEEDS).filter((k) => S.layers[k]).flatMap((k) => LAYER_FEEDS[k]))].sort() : [], k = keys.join(",");
+    autoLayers();
+    const extra = { severe: ["md", "spc", "reports"], flood: ["ero"], tropical: ["nhc"] }, need = S.auto && isLive() ? S.autoNeed || {} : null;
+    const feedsOf = (k) => (need && extra[k] ? LAYER_FEEDS[k].filter((f) => !extra[k].includes(f) || need[k]) : LAYER_FEEDS[k]);
+    const keys = isLive() ? [...new Set(Object.keys(LAYER_FEEDS).filter((k) => S.layers[k]).flatMap(feedsOf))].sort() : [], k = keys.join(",");
     if (Live.setZoneFamilies) { const zf = isLive() ? Object.keys(LAYER_FEEDS).filter((x) => S.layers[x] && LAYER_FEEDS[x].includes("alerts")).join(",") : ""; if (zf !== zoneFamKey) { zoneFamKey = zf; Live.setZoneFamilies(zf ? zf.split(",") : []); } } // zone outlines for the hazards shown only
     if (k === feedKey || !Live.setFeeds) return; feedKey = k;
     const p = Live.setFeeds(keys); if (isLive()) load();
@@ -1358,14 +1387,14 @@
   /* a dashboard line opens the map where its source is: the view and the layer it needs */
   function outlookGo(link, key) {
     const layer = { severe: "severe", rain: "flood", winter: "winter", fire: "fire", tropical: "tropical", alert: null }[key];
-    if (layer) S.layers[layer] = true; else if (key === "alert") ["severe", "flood", "winter", "heat", "wind", "fire", "tropical", "coastal"].forEach((k) => (S.layers[k] = true));
+    S.auto = false; if (layer) S.layers[layer] = true; else if (key === "alert") ["severe", "flood", "winter", "heat", "wind", "fire", "tropical", "coastal"].forEach((k) => (S.layers[k] = true));
     S.scope = "venue"; setView(link === "winter" ? "winter" : link === "fire" ? "fire" : /^day\d$/.test(link) ? link : "active");
   }
 
   /* one-tap starting points in the no-layers prompt */
   const PRESETS = { venue: { layers: ["severe", "flood", "winter", "heat", "wind", "coastal"], scope: "venue" }, all: { layers: Object.keys(LAYER_FEEDS) } };
   function applyPreset(k) {
-    const pr = PRESETS[k]; if (!pr) return; Object.keys(S.layers).forEach((x) => (S.layers[x] = pr.layers.includes(x)));
+    const pr = PRESETS[k]; if (!pr) return; S.auto = false; Object.keys(S.layers).forEach((x) => (S.layers[x] = pr.layers.includes(x)));
     S.sel = null; S.point = null; if (pr.scope) setScope(pr.scope, true); drawAll();
   }
 
@@ -1460,6 +1489,8 @@
   const viewName = () => (outlookView() ? "Next 7 days" : winterView() ? "Winter · 7 days" : fireView() ? "Fire · 8 days" : viewDay() ? "Day " + viewDay() : "Active now");
   function syncLayers() {
     const pop = $("txLayersPop"); if (!pop) return;
+    { const n = $("txAutoNote"), w = S.autoNeed || {}, on = Object.keys(autoWhy).filter((k) => w[k]);
+      if (n) { n.hidden = !(S.auto && isLive()); n.textContent = "Automatic: radar and the NWS warnings, watches and advisories, plus what conditions near the venue call for" + (on.length ? " (" + on.map((k) => autoWhy[k]).join("; ") + ")" : " (nothing else right now)") + ". River gauges appear where a flood warning is in effect. Changing a layer switches to your own choice."; } }
     pop.querySelectorAll("input[data-layer]").forEach((i) => { i.checked = !!S.layers[i.dataset.layer]; const n = pop.querySelector(`[data-note="${i.dataset.layer}"]`), why = S.layers[i.dataset.layer] && layerNote(i.dataset.layer); n.textContent = why ? "Not drawn now: " + why : ""; n.hidden = !why; });
     const av = { apt: S.av.apt, pireps: S.av.pireps && enOn(), adv: S.av.adv && enOn(), gtg: S.gtg.on, ifi: S.ifi.on };
     pop.querySelectorAll("input[data-av]").forEach((i) => { i.checked = !!av[i.dataset.av]; i.disabled = !S.layers.aviation; });
@@ -1495,7 +1526,7 @@
     const og = e.target.closest("[data-ol-go]"); if (og && og.dataset.olGo) outlookGo(og.dataset.olGo, og.dataset.olKey); });
   $("txLayersPop").addEventListener("change", (e) => {
     const i = e.target; if (!i.matches("input")) return;
-    if (i.dataset.layer) { S.layers[i.dataset.layer] = i.checked; if ((!S.layers.winter && winterView()) || (!S.layers.fire && fireView())) S.view = "active"; }
+    if (i.dataset.layer) { S.auto = false; S.layers[i.dataset.layer] = i.checked; if ((!S.layers.winter && winterView()) || (!S.layers.fire && fireView())) S.view = "active"; }
     else if (i.hasAttribute("data-radar")) S.radar = i.checked;
     else if (i.hasAttribute("data-counties")) { S.counties = i.checked; try { localStorage.setItem("threats_counties", S.counties ? "1" : "0"); } catch (e) { /* not remembered */ } }
     else if (i.hasAttribute("data-pin")) { S.pin = i.checked; try { localStorage.setItem("threats_pin", S.pin ? "1" : "0"); } catch (e) { /* not remembered */ } if (!S.pin && S.scope === "venue") { S.scope = "national"; renderTop(); } }
@@ -1507,8 +1538,8 @@
   });
   $("txLayersPop").addEventListener("click", (e) => {
     if (e.target.closest("[data-layers-close]")) { popOpen(false); $("txLayersBtn").focus(); return; }
-    if (e.target.closest("[data-layers-all]")) { LAYER_KEYS.forEach((k) => (S.layers[k] = true)); Object.assign(S.av, { apt: true, pireps: true, adv: true }); S.sel = null; drawAll(); return; }
-    if (e.target.closest("[data-layers-reset]")) { LAYER_KEYS.forEach((k) => (S.layers[k] = false)); S.radar = false; Object.assign(S.av, { apt: true, pireps: true, adv: true }); S.gtg.on = false; S.ifi.on = false; if (winterView() || fireView()) S.view = "active"; renderBar(); S.sel = null; drawAll(); }
+    if (e.target.closest("[data-layers-all]")) { S.auto = false; LAYER_KEYS.forEach((k) => (S.layers[k] = true)); Object.assign(S.av, { apt: true, pireps: true, adv: true }); S.sel = null; drawAll(); return; }
+    if (e.target.closest("[data-layers-reset]")) { S.auto = false; LAYER_KEYS.forEach((k) => (S.layers[k] = false)); S.radar = false; Object.assign(S.av, { apt: true, pireps: true, adv: true }); S.gtg.on = false; S.ifi.on = false; if (winterView() || fireView()) S.view = "active"; renderBar(); S.sel = null; drawAll(); }
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("txLayersPop").hidden) { popOpen(false); $("txLayersBtn").focus(); e.preventDefault(); } }, true);
   document.addEventListener("pointerdown", (e) => { if (!$("txLayersPop").hidden && !$("txLyr").contains(e.target)) popOpen(false); });
@@ -1635,7 +1666,7 @@
     else if (S.gtg.on || S.ifi.on || q.get("air") || q.get("rt") || q.get("alt")) S.layers.aviation = true; // a live link naming aviation content and no layers
     /* a fresh live visit: radar and the current NWS warnings, watches and advisories (with storm reports and MDs); fire, smoke and
        aviation stay off until chosen. ?layers=none opens with nothing, ?radar=0 without radar */
-    else { ["severe", "flood", "winter", "heat", "wind", "tropical", "coastal"].forEach((k) => (S.layers[k] = true)); if (q.get("radar") !== "0") S.radar = true; }
+    else { ["severe", "flood", "winter", "heat", "wind", "tropical", "coastal"].forEach((k) => (S.layers[k] = true)); if (q.get("radar") !== "0") S.radar = true; S.auto = true; }
     if (S.view === "winter") S.layers.winter = true;
     if (S.view === "fire") S.layers.fire = true;
     if (FX.WSSI_LEVELS.includes(q.get("wlevel"))) S.wlevel = q.get("wlevel");
@@ -1684,8 +1715,9 @@
     if (!v || !isFinite(+v.lat) || !isFinite(+v.lon) || !isLive()) return false;
     const n = String(v.name || "Venue").trim(), i = n.indexOf(", ");
     S.entryVenue = { id: "entry", name: i > 0 ? n.slice(0, i) : n, city: v.city || (i > 0 ? n.slice(i + 2) : ""), lat: +v.lat, lon: +v.lon, tz: v.tz || null };
-    S.sel = null; S.point = null; load(); renderBar(); drawAll();
-    if (S.scope === "venue" && map) map.easeTo({ center: [venue.lon, venue.lat], padding: pad(), duration: 400 });
+    S.sel = null; S.point = null; S.autoNeed = null; load(); renderBar();
+    if (S.scope === "venue" && map) map.jumpTo({ center: [venue.lon, venue.lat], padding: pad() }); // no animation: tiles load for the new spot at once
+    drawAll();
     return true;
   }
   window.__threats = { S, drawAll, radar, setVenue, get outlook() { return vo; }, get basemap() { return carto ? "carto" : "fallback"; }, retryCarto, get venue() { return venue; }, get vfc() { return vfc; }, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
