@@ -213,7 +213,14 @@
     if (WIN[f]) { const D = WIN[f];   /* label values of a same-window field: the same difference at the label points */
       e.p = Promise.all([points(fh, D.base), fh - D.w > 0 ? points(fh - D.w, D.base) : null]).then(([a, b]) => { if (!a || (fh - D.w > 0 && !b)) throw new Error("label points missing"); return (e.v = K.windowDiff(a, b, D.tol)); });
       e.p.catch(() => st.points.get(k) === e && st.points.delete(k)); st.points.set(k, e); return e.p; }
-    e.p = gunzip(`${SITE}/${st.run.path}/${f}/p${String(fh).padStart(2, "0")}.bin.gz`).then((u8) => (e.v = new Int16Array(u8.buffer, u8.byteOffset, u8.byteLength >> 1)));
+    /* label points: inside the hour's pack (pack.points = [offset, length], one byte-range request) or, for hours written
+       before points moved into packs, the separate p{fh}.bin.gz */
+    const pk = r.pack && r.pack.points;
+    e.p = (pk ? fetchT(`${SITE}/${st.run.path}/${r.pack.file}`, 45000, { Range: `bytes=${pk[0]}-${pk[0] + pk[1] - 1}` }).then(async (res) => {
+      if (res.status !== 206 && res.status !== 200) throw new Error(`HTTP ${res.status}`);
+      const buf = new Uint8Array(await res.arrayBuffer()); st.loadedBytes += buf.length;
+      return gunzipBytes(res.status === 200 ? buf.subarray(pk[0], pk[0] + pk[1]) : buf);
+    }) : gunzip(`${SITE}/${st.run.path}/${f}/p${String(fh).padStart(2, "0")}.bin.gz`)).then((u8) => (e.v = new Int16Array(u8.buffer, u8.byteOffset, u8.byteLength >> 1)));
     e.p.catch(() => st.points.get(k) === e && st.points.delete(k)); st.points.set(k, e); st.requests++;
     if (st.points.size > 400) st.points.delete(st.points.keys().next().value);
     return e.p;
