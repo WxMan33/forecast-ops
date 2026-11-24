@@ -245,6 +245,8 @@
     locListeners.forEach((f) => f(loc));
   }
   const saved = () => store.get("ops_saved", []);
+  /* venues saved in Event Manager (beta), offered in Quick pick */
+  const emv = () => { try { return (JSON.parse(localStorage.getItem("beta_venues_v1") || "[]") || []).filter((v) => v && v.lat !== null && v.lon !== null && isFinite(+v.lat) && isFinite(+v.lon)); } catch (e) { return []; } };
   const isSaved = () => saved().some((s) => s.lat === loc.lat && s.lon === loc.lon);
 
   /* Location card. onChange fires whenever the point changes. */
@@ -286,6 +288,7 @@
       const sv = saved();
       $("locPreset").innerHTML = `<option value="">Choose…</option>` +
         (sv.length ? `<optgroup label="Saved">${sv.map((p, i) => `<option value="s${i}">${esc(p.name)}</option>`).join("")}</optgroup>` : "") +
+        (emv().length ? `<optgroup label="Event Manager venues">${emv().map((v, i) => `<option value="m${i}">${esc(v.name + (v.city ? ", " + v.city : ""))}</option>`).join("")}</optgroup>` : "") +
         `<optgroup label="Built in">${PRESETS.map((p, i) => `<option value="p${i}">${esc(p[0])}</option>`).join("")}</optgroup>`;
       $("locSave").innerHTML = isSaved() ? `${icon("star", 13)} SAVED · REMOVE` : `${icon("star", 13)} SAVE`;
     };
@@ -293,7 +296,8 @@
     locListeners.push(fill);
     $("locPreset").addEventListener("change", (e) => {
       const v = e.target.value; if (!v) return;
-      const p = v[0] === "s" ? saved()[+v.slice(1)] : (() => { const x = PRESETS[+v.slice(1)]; return { name: x[0], lat: x[1], lon: x[2] }; })();
+      const m = v[0] === "m" ? emv()[+v.slice(1)] : null;
+      const p = m ? { name: m.name + (m.city ? ", " + m.city : ""), lat: +m.lat, lon: +m.lon } : v[0] === "s" ? saved()[+v.slice(1)] : (() => { const x = PRESETS[+v.slice(1)]; return { name: x[0], lat: x[1], lon: x[2] }; })();
       if (p) setLocation(p);
     });
     $("locSave").addEventListener("click", () => {
