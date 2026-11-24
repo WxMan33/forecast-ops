@@ -1,0 +1,187 @@
+{
+  "hazard": "wind",
+  "day": 1,
+  "threshold": 0.3,
+  "checks": [
+    {
+      "case": "2024-01-15",
+      "original": {
+        "peak": 0.18471148173605884,
+        "samples_at_least_30_percent": 0,
+        "observed_report_rate": null,
+        "mean_probability": null
+      },
+      "expanded": {
+        "peak": 0.230323383105864,
+        "samples_at_least_30_percent": 0,
+        "observed_report_rate": null,
+        "mean_probability": null
+      }
+    },
+    {
+      "case": "2024-02-15",
+      "original": {
+        "peak": 0.0484780066169939,
+        "samples_at_least_30_percent": 0,
+        "observed_report_rate": null,
+        "mean_probability": null
+      },
+      "expanded": {
+        "peak": 0.017393538362005488,
+        "samples_at_least_30_percent": 0,
+        "observed_report_rate": null,
+        "mean_probability": null
+      }
+    },
+    {
+      "case": "2024-03-15",
+      "original": {
+        "peak": 0.5345676362918922,
+        "samples_at_least_30_percent": 120,
+        "observed_report_rate": 0.225,
+        "mean_probability": 0.3638839561014135
+      },
+      "expanded": {
+        "peak": 0.6163028246491801,
+        "samples_at_least_30_percent": 147,
+        "observed_report_rate": 0.272108843537415,
+        "mean_probability": 0.3677308287049894
+      }
+    },
+    {
+      "case": "2024-04-15",
+      "original": {
+        "peak": 0.584924052384618,
+        "samples_at_least_30_percent": 153,
+        "observed_report_rate": 0.40522875816993464,
+        "mean_probability": 0.37881261017183326
+      },
+      "expanded": {
+        "peak": 0.6490885747530883,
+        "samples_at_least_30_percent": 192,
+        "observed_report_rate": 0.390625,
+        "mean_probability": 0.3998655464563024
+      }
+    },
+    {
+      "case": "2024-05-15",
+      "original": {
+        "peak": 0.6685812591319568,
+        "samples_at_least_30_percent": 146,
+        "observed_report_rate": 0.02054794520547945,
+        "mean_probability": 0.4343457072975007
+      },
+      "expanded": {
+        "peak": 0.6988525288250669,
+        "samples_at_least_30_percent": 158,
+        "observed_report_rate": 0.0759493670886076,
+        "mean_probability": 0.4423367267750821
+      }
+    },
+    {
+      "case": "2024-06-15",
+      "original": {
+        "peak": 0.6607687418820054,
+        "samples_at_least_30_percent": 242,
+        "observed_report_rate": 0.3925619834710744,
+        "mean_probability": 0.4128695115741146
+      },
+      "expanded": {
+        "peak": 0.7680545030019706,
+        "samples_at_least_30_percent": 318,
+        "observed_report_rate": 0.3081761006289308,
+        "mean_probability": 0.4552601519072495
+      }
+    },
+    {
+      "case": "2024-07-15",
+      "original": {
+        "peak": 0.9182557508041033,
+        "samples_at_least_30_percent": 1840,
+        "observed_report_rate": 0.571195652173913,
+        "mean_probability": 0.5185307349692491
+      },
+      "expanded": {
+        "peak": 0.9626680154080798,
+        "samples_at_least_30_percent": 980,
+        "observed_report_rate": 0.7959183673469388,
+        "mean_probability": 0.5191954451300369
+      }
+    },
+    {
+      "case": "2024-08-15",
+      "original": {
+        "peak": 0.6077790555016342,
+        "samples_at_least_30_percent": 364,
+        "observed_report_rate": 0.3791208791208791,
+        "mean_probability": 0.39393569424704816
+      },
+      "expanded": {
+        "peak": 0.645531198374995,
+        "samples_at_least_30_percent": 431,
+        "observed_report_rate": 0.3805104408352668,
+        "mean_probability": 0.40314305064868494
+      }
+    },
+    {
+      "case": "2024-09-15",
+      "original": {
+        "peak": 0.8527017827470885,
+        "samples_at_least_30_percent": 59,
+        "observed_report_rate": 0.0,
+        "mean_probability": 0.5462491720669436
+      },
+      "expanded": {
+        "peak": 0.6848782622405697,
+        "samples_at_least_30_percent": 31,
+        "observed_report_rate": 0.0,
+        "mean_probability": 0.5092897047056619
+      }
+    },
+    {
+      "case": "2024-10-15",
+      "original": {
+        "peak": 0.07036506397378964,
+        "samples_at_least_30_percent": 0,
+        "observed_report_rate": null,
+        "mean_probability": null
+      },
+      "expanded": {
+        "peak": 0.08846188452314903,
+        "samples_at_least_30_percent": 0,
+        "observed_report_rate": null,
+        "mean_probability": null
+      }
+    },
+    {
+      "case": "2024-11-15",
+      "original": {
+        "peak": 0.16952839244592433,
+        "samples_at_least_30_percent": 0,
+        "observed_report_rate": null,
+        "mean_probability": null
+      },
+      "expanded": {
+        "peak": 0.13966083849880795,
+        "samples_at_least_30_percent": 0,
+        "observed_report_rate": null,
+        "mean_probability": null
+      }
+    },
+    {
+      "case": "2024-12-15",
+      "original": {
+        "peak": 0.04558810913844656,
+        "samples_at_least_30_percent": 0,
+        "observed_report_rate": null,
+        "mean_probability": null
+      },
+      "expanded": {
+        "peak": 0.06345278410176457,
+        "samples_at_least_30_percent": 0,
+        "observed_report_rate": null,
+        "mean_probability": null
+      }
+    }
+  ]
+}

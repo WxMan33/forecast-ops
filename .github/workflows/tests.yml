@@ -23,8 +23,17 @@ jobs:
         with:
           node-version: 20
       - run: node tests/severe-research.test.js
+      - run: node tests/severe-daily.test.js
       - run: node tests/severe-contours.test.js
       - run: python tests/severe-daily.test.py
+      - run: python tools/severe/model_registry.py --check
+      - run: pip install numpy==2.3.5 scipy==1.17.0 shapely==2.2.0 && python tests/severe-display-mask.test.py
+      - run: python tests/severe-guidance.test.py
+      - run: python tests/severe-guidance-archive.test.py
+      - run: python tests/severe-publish.test.py
+      - run: node tests/severe-feed-health.test.js
+      - run: python tests/severe-restore-inputs.test.py
+      - run: python tests/severe-replay-source.test.py
       - run: node tests/calendar-provider.test.js
       - run: node tests/forecast-support.test.js
       - run: node tests/core.test.js
@@ -57,7 +66,6 @@ jobs:
       - run: node tests/forecast-clock.test.js
       - run: node tests/scoped-weights.test.js
       - run: node tests/maps.test.js
-      - run: node tests/maps-conus.test.js
       - run: node tests/maps-loader.test.js
       - run: node tests/maps-surface.test.js
       - run: node tests/trend-archive.test.js
@@ -66,6 +74,9 @@ jobs:
       - run: node tests/event-store.test.js
       - run: node tests/event-times.test.js
       - run: node tests/event-backup.test.js
+      - run: node tests/event-daylight.test.js
+      - run: node tests/event-hourly-charts.test.js
+      - run: node tests/event-outlook.test.js
       - run: node tests/hourly-model.test.js
       - run: node tests/event-presets.test.js
       - run: node tests/venue-search.test.js
@@ -139,6 +150,7 @@ jobs:
       - run: python tests/climate-report-browser.py
       - run: python tests/skywatch-race-browser.py
       - run: python tests/maps-browser.py
+      - run: python tests/severe-current-browser.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:

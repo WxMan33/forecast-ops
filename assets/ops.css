@@ -813,15 +813,6 @@ body.embed .mapstage .maplibregl-ctrl-bottom-right { bottom: 4px; }
 
 .strip-scroll{overflow:visible;max-width:100%}.strip{min-width:0}.strip-row>[hidden]{display:none!important}
 
-/* Maps: Tri-State | CONUS (beta) switch */
-#regionSeg a.segb { text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
-#regionSeg small { font-size: 10px; opacity: .75; text-transform: uppercase; letter-spacing: .04em; }
-@media (max-width: 700px) {
-  body.maps-conus #mapCtl .ctlrow { flex-wrap: nowrap; }
-  body.maps-conus #fieldSel, body.maps-conus #runSel { min-width: 0; flex: 1 1 0; }
-}
-body.maps-conus .mapctl2 [hidden], body.maps-conus .mapctl2 .ctlrow[hidden] { display: none !important; }
-
 /* ---------- start of shift: core-tool tiles, quieter links, Severe views (site revamp) ---------- */
 .home-start { display: grid; gap: 8px; }
 .home-start .group-title { margin: 0; }

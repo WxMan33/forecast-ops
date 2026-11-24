@@ -1,0 +1,2358 @@
+{
+ "case": "2026-11-18 Day 1 (06Z), quiet November day",
+ "window": {
+  "day": 1,
+  "model": "hrrr-v4",
+  "feature_schema": "hrrr-daily-25mi-v2-future-window",
+  "timing_protocol": "day1-06z-f06-30__day2-12z-f24-48-v1",
+  "model_init_time": "2026-11-18T06:00:00+00:00",
+  "assumed_issuance_time": "2026-11-18T09:00:00+00:00",
+  "release_lag_assumption_hours": 3,
+  "historical_public_availability_verified": false,
+  "valid_start": "2026-11-18T12:00:00+00:00",
+  "valid_end": "2026-11-19T12:00:00+00:00",
+  "radius_km": 40.2336,
+  "window_hours": 24,
+  "first_forecast_hour": 6,
+  "last_forecast_hour": 30
+ },
+ "deadlines": {
+  "scheduled_run": "2026-11-18T09:30:00+00:00",
+  "window_start": "2026-11-18T12:00:00+00:00"
+ },
+ "grid": {
+  "samples": 16413,
+  "bounds": [
+   -100,
+   -75,
+   30,
+   45
+  ],
+  "stride": 5,
+  "sha256": "d700ec03464bdddd27f366ce1fec6802438e1c7bdc51029d08623b6ea58bd454"
+ },
+ "downloaded_bytes": 216557736,
+ "command": "python tools/severe/guidance.py --date 2026-11-18 --day 1 --sources rrfs nbm --output OUT --cache CACHE",
+ "sources": {
+  "rrfs": {
+   "model": "rrfs-v1 (operational, CONUS 3 km 2dfld)",
+   "bucket": "noaa-rrfs-ops-pds",
+   "cycle": "2026-11-18T06:00:00+00:00",
+   "forecast_hours": [
+    6,
+    30
+   ],
+   "status": "complete",
+   "arrival_basis": "S3 LastModified of the public object (observed, not assumed)",
+   "counts": {
+    "on_time": 25,
+    "late": 0,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "first_arrival": "2026-11-18T07:27:15Z",
+   "last_arrival": "2026-11-18T07:51:09Z",
+   "hours": [
+    {
+     "f": 6,
+     "last_modified": "2026-11-18T07:27:15Z",
+     "size": 342610401,
+     "etag": "8f217191e3b6eb9acd16adf200f0338e-7",
+     "status": "on_time"
+    },
+    {
+     "f": 7,
+     "last_modified": "2026-11-18T07:29:02Z",
+     "size": 343200816,
+     "etag": "4a4f9b79872027d921d3e5dcb5512116-7",
+     "status": "on_time"
+    },
+    {
+     "f": 8,
+     "last_modified": "2026-11-18T07:30:27Z",
+     "size": 342411559,
+     "etag": "70f0db88e15708b0b1258afd917aa682-7",
+     "status": "on_time"
+    },
+    {
+     "f": 9,
+     "last_modified": "2026-11-18T07:32:27Z",
+     "size": 344063642,
+     "etag": "1eddf35d83dc507c02cd162cc1accbc6-7",
+     "status": "on_time"
+    },
+    {
+     "f": 10,
+     "last_modified": "2026-11-18T07:34:34Z",
+     "size": 345242853,
+     "etag": "afdc9d0187d73e30ef2a8d1197aea1ca-7",
+     "status": "on_time"
+    },
+    {
+     "f": 11,
+     "last_modified": "2026-11-18T07:34:21Z",
+     "size": 345401428,
+     "etag": "f21cc15bd58471893b46b2f5ce5e561d-7",
+     "status": "on_time"
+    },
+    {
+     "f": 12,
+     "last_modified": "2026-11-18T07:36:36Z",
+     "size": 347735511,
+     "etag": "3e1c31ccc65ce1397f0d299d85246898-7",
+     "status": "on_time"
+    },
+    {
+     "f": 13,
+     "last_modified": "2026-11-18T07:38:02Z",
+     "size": 349522035,
+     "etag": "a7c96b3cd3554140cf00bffa44b99768-7",
+     "status": "on_time"
+    },
+    {
+     "f": 14,
+     "last_modified": "2026-11-18T07:38:07Z",
+     "size": 349160081,
+     "etag": "85869f0d213fd2eeaac7eecd6833dc2e-7",
+     "status": "on_time"
+    },
+    {
+     "f": 15,
+     "last_modified": "2026-11-18T07:39:47Z",
+     "size": 347914148,
+     "etag": "c260b765c482e9f7269c3ffd56d1d46d-7",
+     "status": "on_time"
+    },
+    {
+     "f": 16,
+     "last_modified": "2026-11-18T07:41:12Z",
+     "size": 345672850,
+     "etag": "99cbf8a58c4ce076dc9cf728304508f2-7",
+     "status": "on_time"
+    },
+    {
+     "f": 17,
+     "last_modified": "2026-11-18T07:41:12Z",
+     "size": 342407811,
+     "etag": "8971f5e18d1621650b2ef6bee5748487-7",
+     "status": "on_time"
+    },
+    {
+     "f": 18,
+     "last_modified": "2026-11-18T07:42:37Z",
+     "size": 341258908,
+     "etag": "5682ca5a7bb5869724622991dbcbf04a-7",
+     "status": "on_time"
+    },
+    {
+     "f": 19,
+     "last_modified": "2026-11-18T07:38:09Z",
+     "size": 336474592,
+     "etag": "179a1a449f6ce2e7360a3fe26d7ff11b-7",
+     "status": "on_time"
+    },
+    {
+     "f": 20,
+     "last_modified": "2026-11-18T07:39:39Z",
+     "size": 337851986,
+     "etag": "cb95b6c41a807b1afd4b2dfcedf4e825-7",
+     "status": "on_time"
+    },
+    {
+     "f": 21,
+     "last_modified": "2026-11-18T07:41:17Z",
+     "size": 338291966,
+     "etag": "b411b5701ca8fe880f814d9e08de2a50-7",
+     "status": "on_time"
+    },
+    {
+     "f": 22,
+     "last_modified": "2026-11-18T07:42:46Z",
+     "size": 338584797,
+     "etag": "3c6e219b5e1fedd73eecc81eeea47ee2-7",
+     "status": "on_time"
+    },
+    {
+     "f": 23,
+     "last_modified": "2026-11-18T07:42:46Z",
+     "size": 338650821,
+     "etag": "34fa7fd026214cb8ba91dc086bac0df5-7",
+     "status": "on_time"
+    },
+    {
+     "f": 24,
+     "last_modified": "2026-11-18T07:43:47Z",
+     "size": 341170630,
+     "etag": "4bc5fa44986854216f4eff6414a8032c-7",
+     "status": "on_time"
+    },
+    {
+     "f": 25,
+     "last_modified": "2026-11-18T07:45:18Z",
+     "size": 341357488,
+     "etag": "adef9d388faa176afafdacbe4b31fd33-7",
+     "status": "on_time"
+    },
+    {
+     "f": 26,
+     "last_modified": "2026-11-18T07:45:39Z",
+     "size": 339266203,
+     "etag": "ffeaee8894d78c487637ae624d012926-7",
+     "status": "on_time"
+    },
+    {
+     "f": 27,
+     "last_modified": "2026-11-18T07:47:47Z",
+     "size": 341121444,
+     "etag": "71f0ad021c7d12529913c092f5936341-7",
+     "status": "on_time"
+    },
+    {
+     "f": 28,
+     "last_modified": "2026-11-18T07:49:39Z",
+     "size": 342055271,
+     "etag": "bf3da345d88f2fa549df3084f688ce61-7",
+     "status": "on_time"
+    },
+    {
+     "f": 29,
+     "last_modified": "2026-11-18T07:49:29Z",
+     "size": 341983600,
+     "etag": "f0e91e1768382b760e9ca22546c8c5ba-7",
+     "status": "on_time"
+    },
+    {
+     "f": 30,
+     "last_modified": "2026-11-18T07:51:09Z",
+     "size": 343435257,
+     "etag": "88731e598f4a25d64d66ba648aa199c9-7",
+     "status": "on_time"
+    }
+   ],
+   "messages": [
+    {
+     "f": 6,
+     "field": "dewpoint2m",
+     "start": 79829855,
+     "end": 81608061,
+     "sha256": "36e7da34234d9f09a48f069c2e3f630369917a63b173851218e34c84988f4af2",
+     "index_line": "76:79829855:d=2026111806:DPT:2 m above ground:6 hour fcst:"
+    },
+    {
+     "f": 6,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 973382,
+     "sha256": "34ca3e47643384b38c11d2cf348c21b43a8f946f2391158f111dae3eeba581d1",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):6 hour fcst:"
+    },
+    {
+     "f": 6,
+     "field": "sbcape",
+     "start": 124558231,
+     "end": 125135602,
+     "sha256": "9f0f859a9cce5b8844268c0a8101b08f2d98cdf6fa1db89ed5933fc404919755",
+     "index_line": "140:124558231:d=2026111806:CAPE:surface:6 hour fcst:"
+    },
+    {
+     "f": 6,
+     "field": "sbcin",
+     "start": 125135603,
+     "end": 125631369,
+     "sha256": "7f079bfc9d3d9e7f8e1ab15a4e950da731ae8ef99d0d8c2a4697bc9dfb01c8a4",
+     "index_line": "141:125135603:d=2026111806:CIN:surface:6 hour fcst:"
+    },
+    {
+     "f": 6,
+     "field": "shear06_u",
+     "start": 175796922,
+     "end": 176935608,
+     "sha256": "9cd1580511092fc5d093089dd1536d205db12fc51fecae387ff644ba42b6fe7a",
+     "index_line": "193:175796922:d=2026111806:VUCSH:0-6000 m above ground:6 hour fcst:"
+    },
+    {
+     "f": 6,
+     "field": "shear06_v",
+     "start": 176935609,
+     "end": 178037295,
+     "sha256": "4a322eacd68131c96da594af822fd6d680fe45511862b2fa39ae9d7670b6a144",
+     "index_line": "194:176935609:d=2026111806:VVCSH:0-6000 m above ground:6 hour fcst:"
+    },
+    {
+     "f": 6,
+     "field": "srh01",
+     "start": 168903106,
+     "end": 170129097,
+     "sha256": "ed57c4edc973a8f96d861050704ad0e5a94d132e254de5254c59d3c6022be19f",
+     "index_line": "187:168903106:d=2026111806:HLCY:1000-0 m above ground:6 hour fcst:"
+    },
+    {
+     "f": 7,
+     "field": "dewpoint2m",
+     "start": 79329706,
+     "end": 80341991,
+     "sha256": "ff77c07901a847d1082711a32f960a8f64ae940585aab78244ac24da8483687c",
+     "index_line": "76:79329706:d=2026111806:DPT:2 m above ground:7 hour fcst:"
+    },
+    {
+     "f": 7,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 978650,
+     "sha256": "4bb3d02065beb53a56b3138421752f037fe6b5e70118852b6a3ef21be3a2546a",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):7 hour fcst:"
+    },
+    {
+     "f": 7,
+     "field": "sbcape",
+     "start": 123073010,
+     "end": 123639382,
+     "sha256": "21d83953130dc7f7a79fc8a82d9f38045cac09ba91ccef8c041ba3f7007d2ee2",
+     "index_line": "140:123073010:d=2026111806:CAPE:surface:7 hour fcst:"
+    },
+    {
+     "f": 7,
+     "field": "sbcin",
+     "start": 123639383,
+     "end": 123898430,
+     "sha256": "9a84becfa27899be165518f2beb5f680710edfb021a47198d82e472151977f16",
+     "index_line": "141:123639383:d=2026111806:CIN:surface:7 hour fcst:"
+    },
+    {
+     "f": 7,
+     "field": "shear06_u",
+     "start": 176497739,
+     "end": 177635810,
+     "sha256": "6f2c0ad8bc57fff9fa81db27d267e4b364af1cc0dd2d52e08df5bfd3962486ed",
+     "index_line": "193:176497739:d=2026111806:VUCSH:0-6000 m above ground:7 hour fcst:"
+    },
+    {
+     "f": 7,
+     "field": "shear06_v",
+     "start": 177635811,
+     "end": 178746465,
+     "sha256": "fea89431066b5577140973cf2b73c3bbe617a99e35bd1e71d37bb11dc3dd5d97",
+     "index_line": "194:177635811:d=2026111806:VVCSH:0-6000 m above ground:7 hour fcst:"
+    },
+    {
+     "f": 7,
+     "field": "srh01",
+     "start": 169538906,
+     "end": 170766795,
+     "sha256": "95e0074fdff77d4f7aa39ce630a63e54e24972dde5478bec3b6a747f8e07082c",
+     "index_line": "187:169538906:d=2026111806:HLCY:1000-0 m above ground:7 hour fcst:"
+    },
+    {
+     "f": 7,
+     "field": "uh25",
+     "start": 17044285,
+     "end": 17128351,
+     "sha256": "eeca057cd484251b3337c4257632311594fad643d20b1ddfde81c79934f68c50",
+     "index_line": "20:17044285:d=2026111806:MXUPHL:5000-2000 m above ground:6-7 hour max fcst:"
+    },
+    {
+     "f": 8,
+     "field": "dewpoint2m",
+     "start": 78337762,
+     "end": 79334260,
+     "sha256": "7b6af4eaa73a68460743683feb28dcc486b4249a1774af29825330f6291b1b9b",
+     "index_line": "76:78337762:d=2026111806:DPT:2 m above ground:8 hour fcst:"
+    },
+    {
+     "f": 8,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 975818,
+     "sha256": "6e7833a5276f1920decc610213f4f6aebb8eb6494ff5ec00c03191b5f190a06d",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):8 hour fcst:"
+    },
+    {
+     "f": 8,
+     "field": "sbcape",
+     "start": 121963092,
+     "end": 122529945,
+     "sha256": "84204d0768cae0a7bcaa4af5532d49b1e944a995359a594f746f267d19689fbd",
+     "index_line": "140:121963092:d=2026111806:CAPE:surface:8 hour fcst:"
+    },
+    {
+     "f": 8,
+     "field": "sbcin",
+     "start": 122529946,
+     "end": 122787591,
+     "sha256": "11865ac2768eac0158ab48ad8df22952c72e610c739395f41f8efae4a674ad4f",
+     "index_line": "141:122529946:d=2026111806:CIN:surface:8 hour fcst:"
+    },
+    {
+     "f": 8,
+     "field": "shear06_u",
+     "start": 177133098,
+     "end": 177716389,
+     "sha256": "c81df6def6a2238a96283db29946deed9189977ef1b099759463741faa86abb0",
+     "index_line": "193:177133098:d=2026111806:VUCSH:0-6000 m above ground:8 hour fcst:"
+    },
+    {
+     "f": 8,
+     "field": "shear06_v",
+     "start": 177716390,
+     "end": 178817710,
+     "sha256": "ad36140d7363e49f0a2f3a44e1f8834bfadf40cc9c1a542cc55f2a449acb55a9",
+     "index_line": "194:177716390:d=2026111806:VVCSH:0-6000 m above ground:8 hour fcst:"
+    },
+    {
+     "f": 8,
+     "field": "srh01",
+     "start": 170161791,
+     "end": 171381362,
+     "sha256": "5239812636a922bc75a07e6f0314d33b178a8fb666d1cca1391667f4bf46784d",
+     "index_line": "187:170161791:d=2026111806:HLCY:1000-0 m above ground:8 hour fcst:"
+    },
+    {
+     "f": 8,
+     "field": "uh25",
+     "start": 16881029,
+     "end": 16965129,
+     "sha256": "1dde2fb9db5949631fd536853207c132406e512f0c6396a9cfe2adc6991e71fc",
+     "index_line": "20:16881029:d=2026111806:MXUPHL:5000-2000 m above ground:7-8 hour max fcst:"
+    },
+    {
+     "f": 9,
+     "field": "dewpoint2m",
+     "start": 77997439,
+     "end": 79000430,
+     "sha256": "fa05a041c12030856f9eb5b205c975290e2797cc7d1c2ab1d4eab2a64916a2b8",
+     "index_line": "76:77997439:d=2026111806:DPT:2 m above ground:9 hour fcst:"
+    },
+    {
+     "f": 9,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 964979,
+     "sha256": "b7933a2790261a70c6bb8bdde59629296858f85b3c9a27a327ffd78ab1a5ab5a",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):9 hour fcst:"
+    },
+    {
+     "f": 9,
+     "field": "sbcape",
+     "start": 120516018,
+     "end": 121081510,
+     "sha256": "656fa174fb4a1fd612665a853d9d1724160fb38c15afa46cf8625d5c0c30d3af",
+     "index_line": "140:120516018:d=2026111806:CAPE:surface:9 hour fcst:"
+    },
+    {
+     "f": 9,
+     "field": "sbcin",
+     "start": 121081511,
+     "end": 121570313,
+     "sha256": "ef3659836a1bd7712ee6883e3e4455ffdfde276d153255bda62655f10c58c60c",
+     "index_line": "141:121081511:d=2026111806:CIN:surface:9 hour fcst:"
+    },
+    {
+     "f": 9,
+     "field": "shear06_u",
+     "start": 178175406,
+     "end": 179302068,
+     "sha256": "82351644d41026e77592057436e31a652e8425cdeecdd1cea4207b3f35b7cd0e",
+     "index_line": "193:178175406:d=2026111806:VUCSH:0-6000 m above ground:9 hour fcst:"
+    },
+    {
+     "f": 9,
+     "field": "shear06_v",
+     "start": 179302069,
+     "end": 180392976,
+     "sha256": "c02521b83d37daecbe4052b8768d40428f49daaac448409b417b8f545bfb32a9",
+     "index_line": "194:179302069:d=2026111806:VVCSH:0-6000 m above ground:9 hour fcst:"
+    },
+    {
+     "f": 9,
+     "field": "srh01",
+     "start": 171459649,
+     "end": 172655232,
+     "sha256": "f2190d3fbe7281c305e9f37857f7d05193c3d39df0ac0be52b450faee4c37131",
+     "index_line": "187:171459649:d=2026111806:HLCY:1000-0 m above ground:9 hour fcst:"
+    },
+    {
+     "f": 9,
+     "field": "uh25",
+     "start": 16616497,
+     "end": 16697936,
+     "sha256": "7a1209fc102b91989e6c1aef55c964588ae0e980e003bffeb7a4a0ca139d97f7",
+     "index_line": "20:16616497:d=2026111806:MXUPHL:5000-2000 m above ground:8-9 hour max fcst:"
+    },
+    {
+     "f": 10,
+     "field": "dewpoint2m",
+     "start": 77985740,
+     "end": 78997157,
+     "sha256": "ca9cdaf76060dfa542da6d929c1fe8d5ae6c8ce13967b33fd6bce422322ec033",
+     "index_line": "76:77985740:d=2026111806:DPT:2 m above ground:10 hour fcst:"
+    },
+    {
+     "f": 10,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 962298,
+     "sha256": "bc1975dd7e5b027b80062193430bea7bbbec69e2d85175a81d9c300cda25aea9",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):10 hour fcst:"
+    },
+    {
+     "f": 10,
+     "field": "sbcape",
+     "start": 122103548,
+     "end": 122685004,
+     "sha256": "915a3e1ef719198f0686e4de2755ce5f93efa5edf27737905904c1668fdda5d1",
+     "index_line": "140:122103548:d=2026111806:CAPE:surface:10 hour fcst:"
+    },
+    {
+     "f": 10,
+     "field": "sbcin",
+     "start": 122685005,
+     "end": 123176481,
+     "sha256": "075367cc5727c9432e1cbda75bea1415905f1b08e41b21fc93ba2892b84d1f93",
+     "index_line": "141:122685005:d=2026111806:CIN:surface:10 hour fcst:"
+    },
+    {
+     "f": 10,
+     "field": "shear06_u",
+     "start": 179573716,
+     "end": 180687223,
+     "sha256": "f69fb3ca38bf23cdb26e29efc0654c219a90487e6d968ad4d03d86e42950864a",
+     "index_line": "193:179573716:d=2026111806:VUCSH:0-6000 m above ground:10 hour fcst:"
+    },
+    {
+     "f": 10,
+     "field": "shear06_v",
+     "start": 180687224,
+     "end": 181764842,
+     "sha256": "76b1b89d89e5b0099e75cd76c45135f74b849717862d72fc9b1402ccdddcd95a",
+     "index_line": "194:180687224:d=2026111806:VVCSH:0-6000 m above ground:10 hour fcst:"
+    },
+    {
+     "f": 10,
+     "field": "srh01",
+     "start": 172164574,
+     "end": 174128037,
+     "sha256": "adca98dc147fadb889b3cf1fb9edb236dc30216a95ae258149a5cb0a04b06fca",
+     "index_line": "187:172164574:d=2026111806:HLCY:1000-0 m above ground:10 hour fcst:"
+    },
+    {
+     "f": 10,
+     "field": "uh25",
+     "start": 16545731,
+     "end": 16624497,
+     "sha256": "29b0fd747096742dd0f348fc52672dacf5c516fea0d54085e04966e31416ade8",
+     "index_line": "20:16545731:d=2026111806:MXUPHL:5000-2000 m above ground:9-10 hour max fcst:"
+    },
+    {
+     "f": 11,
+     "field": "dewpoint2m",
+     "start": 77906868,
+     "end": 79686500,
+     "sha256": "f452b8b2f85926b6e7d64f7dcbc6c7a1372dbdd083a1bb17da0de19326d8875d",
+     "index_line": "76:77906868:d=2026111806:DPT:2 m above ground:11 hour fcst:"
+    },
+    {
+     "f": 11,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 957336,
+     "sha256": "b73e6a98e345fb1c6aa4e5c42aa6ed99ffe9b916d1836dfd7500d0cdcd18a5a0",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):11 hour fcst:"
+    },
+    {
+     "f": 11,
+     "field": "sbcape",
+     "start": 122895646,
+     "end": 123497279,
+     "sha256": "67f818fa5b1557705c62c82a363228f65fdc97269bf44106b4448244ca4fda50",
+     "index_line": "140:122895646:d=2026111806:CAPE:surface:11 hour fcst:"
+    },
+    {
+     "f": 11,
+     "field": "sbcin",
+     "start": 123497280,
+     "end": 124006767,
+     "sha256": "e86e989eb4e61903c15abee9ceb59549d78a47e78a8245cde0af7b4503bbb9a2",
+     "index_line": "141:123497280:d=2026111806:CIN:surface:11 hour fcst:"
+    },
+    {
+     "f": 11,
+     "field": "shear06_u",
+     "start": 180316214,
+     "end": 181418094,
+     "sha256": "853cfcf9fc59a30b3efb83cb798b848b0b32dce4138718da167a21cbcbd4cba2",
+     "index_line": "193:180316214:d=2026111806:VUCSH:0-6000 m above ground:11 hour fcst:"
+    },
+    {
+     "f": 11,
+     "field": "shear06_v",
+     "start": 181418095,
+     "end": 182483135,
+     "sha256": "07ab6ff3db30439523e95334400f9ebf24a263ad0ab13a5617c6851b6549af5a",
+     "index_line": "194:181418095:d=2026111806:VVCSH:0-6000 m above ground:11 hour fcst:"
+    },
+    {
+     "f": 11,
+     "field": "srh01",
+     "start": 173772732,
+     "end": 174925266,
+     "sha256": "705d9b43e1510940362576bb914f69d4b445db71f8de2f96475342866b460325",
+     "index_line": "187:173772732:d=2026111806:HLCY:1000-0 m above ground:11 hour fcst:"
+    },
+    {
+     "f": 11,
+     "field": "uh25",
+     "start": 16383445,
+     "end": 16458657,
+     "sha256": "87ce4c4a602b4ed00aee8d0889fce04a707af0fc72670685b1345c3afd501e44",
+     "index_line": "20:16383445:d=2026111806:MXUPHL:5000-2000 m above ground:10-11 hour max fcst:"
+    },
+    {
+     "f": 12,
+     "field": "dewpoint2m",
+     "start": 77974631,
+     "end": 79760656,
+     "sha256": "4e5b097c441659970d27dd7f270ef1684e69e116dda1d9c36717dd00c32fb70f",
+     "index_line": "76:77974631:d=2026111806:DPT:2 m above ground:12 hour fcst:"
+    },
+    {
+     "f": 12,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 954373,
+     "sha256": "f12d8c94ed3039bdb1c2320bc6743f679e226aade49a27ee36dd970847f83f3a",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):12 hour fcst:"
+    },
+    {
+     "f": 12,
+     "field": "sbcape",
+     "start": 124478462,
+     "end": 125106913,
+     "sha256": "9e57f63a2079a51c443f59c453741100a153835c38c6719bf656052b891b88af",
+     "index_line": "140:124478462:d=2026111806:CAPE:surface:12 hour fcst:"
+    },
+    {
+     "f": 12,
+     "field": "sbcin",
+     "start": 125106914,
+     "end": 125387864,
+     "sha256": "e93760fbac043e8beed0265959a94d5c6d7ec34c7aa62dc9e9a82d030bfddb5c",
+     "index_line": "141:125106914:d=2026111806:CIN:surface:12 hour fcst:"
+    },
+    {
+     "f": 12,
+     "field": "shear06_u",
+     "start": 183318163,
+     "end": 184416650,
+     "sha256": "b04e2ad8567b92d7178f5708f5fb4ee97250d5b3cd1c18727e693aeff99f7afb",
+     "index_line": "193:183318163:d=2026111806:VUCSH:0-6000 m above ground:12 hour fcst:"
+    },
+    {
+     "f": 12,
+     "field": "shear06_v",
+     "start": 184416651,
+     "end": 185472774,
+     "sha256": "266d1e4deee15ee913fe0f82f4d78333ac519eb251b4521fdc3bc3754eaa46d2",
+     "index_line": "194:184416651:d=2026111806:VVCSH:0-6000 m above ground:12 hour fcst:"
+    },
+    {
+     "f": 12,
+     "field": "srh01",
+     "start": 176777466,
+     "end": 177924069,
+     "sha256": "f6c55ca07997d61b34ea5c924371060bf7bd9d021f4af4170621ea3b8365f7e6",
+     "index_line": "187:176777466:d=2026111806:HLCY:1000-0 m above ground:12 hour fcst:"
+    },
+    {
+     "f": 12,
+     "field": "uh25",
+     "start": 16321879,
+     "end": 16396890,
+     "sha256": "d7f21676d56ee66ac5bd422d2546c0d81d5a7cb04e8b709e77346c0d3b9ee157",
+     "index_line": "20:16321879:d=2026111806:MXUPHL:5000-2000 m above ground:11-12 hour max fcst:"
+    },
+    {
+     "f": 13,
+     "field": "dewpoint2m",
+     "start": 78387887,
+     "end": 80176115,
+     "sha256": "7d859f4499bc0c9408e05b090886702fe4d2635b8e5b48ace75b090d4224437a",
+     "index_line": "76:78387887:d=2026111806:DPT:2 m above ground:13 hour fcst:"
+    },
+    {
+     "f": 13,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 967951,
+     "sha256": "2209968fd215c484932972683cb5893a46e7fb6977dd7be2c46e6f4b4e4b5f09",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):13 hour fcst:"
+    },
+    {
+     "f": 13,
+     "field": "sbcape",
+     "start": 125026665,
+     "end": 125670139,
+     "sha256": "e97a13162177887767de5b2112f951795bc0e2f357302da92f2f6a682788aab8",
+     "index_line": "140:125026665:d=2026111806:CAPE:surface:13 hour fcst:"
+    },
+    {
+     "f": 13,
+     "field": "sbcin",
+     "start": 125670140,
+     "end": 125956844,
+     "sha256": "d86c3c38d40266c4abdc3bc6c1b9a1ab11d4c07b528b81c64bcc41d56d0f8ae5",
+     "index_line": "141:125670140:d=2026111806:CIN:surface:13 hour fcst:"
+    },
+    {
+     "f": 13,
+     "field": "shear06_u",
+     "start": 185188694,
+     "end": 186287233,
+     "sha256": "b66e2d6855065c375a549767e272e17eb222a29e70bfcd4099bd6ea9740a2f9a",
+     "index_line": "193:185188694:d=2026111806:VUCSH:0-6000 m above ground:13 hour fcst:"
+    },
+    {
+     "f": 13,
+     "field": "shear06_v",
+     "start": 186287234,
+     "end": 187337591,
+     "sha256": "26fa6215738708818c753b481cbdfd5bbfcf4416a8a40653f0004f9496b65561",
+     "index_line": "194:186287234:d=2026111806:VVCSH:0-6000 m above ground:13 hour fcst:"
+    },
+    {
+     "f": 13,
+     "field": "srh01",
+     "start": 177871734,
+     "end": 179804244,
+     "sha256": "ce240e4939388df55e8b655d6f5513e9121ff22ce6ca77b3a455e4b5317d0abf",
+     "index_line": "187:177871734:d=2026111806:HLCY:1000-0 m above ground:13 hour fcst:"
+    },
+    {
+     "f": 13,
+     "field": "uh25",
+     "start": 16293033,
+     "end": 16367226,
+     "sha256": "5a214434998ce2d4846af422d06b0ebede8de96e554525669c29755ac8933b72",
+     "index_line": "20:16293033:d=2026111806:MXUPHL:5000-2000 m above ground:12-13 hour max fcst:"
+    },
+    {
+     "f": 14,
+     "field": "dewpoint2m",
+     "start": 78919232,
+     "end": 80711726,
+     "sha256": "279a1a300d5f2e53da0933786364b7bc2cdba5acd3041e00ce7342360c190bd6",
+     "index_line": "76:78919232:d=2026111806:DPT:2 m above ground:14 hour fcst:"
+    },
+    {
+     "f": 14,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 984192,
+     "sha256": "29289b4091cf67bea6e95de11c2dd74e3418d07f27743a51e4a014a76e9a141d",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):14 hour fcst:"
+    },
+    {
+     "f": 14,
+     "field": "sbcape",
+     "start": 125428479,
+     "end": 126075631,
+     "sha256": "e1d18a47d84e546b5485fce9365c09e06f48ad1eff1287f65c347130f62136ce",
+     "index_line": "140:125428479:d=2026111806:CAPE:surface:14 hour fcst:"
+    },
+    {
+     "f": 14,
+     "field": "sbcin",
+     "start": 126075632,
+     "end": 126374735,
+     "sha256": "b7a2cd416854c6d5c0dd6559ab1881e484b912f0180d89e154c49d7fe26fd9b5",
+     "index_line": "141:126075632:d=2026111806:CIN:surface:14 hour fcst:"
+    },
+    {
+     "f": 14,
+     "field": "shear06_u",
+     "start": 184879424,
+     "end": 185981356,
+     "sha256": "1badeeab3b04d657009fcc8624c568f06f02449eb0d10b9c9cb01f1fce2ce537",
+     "index_line": "193:184879424:d=2026111806:VUCSH:0-6000 m above ground:14 hour fcst:"
+    },
+    {
+     "f": 14,
+     "field": "shear06_v",
+     "start": 185981357,
+     "end": 187034050,
+     "sha256": "00141c8690072d6dffd3b60058d7f57c039420f720f491312497367e5d5a2c20",
+     "index_line": "194:185981357:d=2026111806:VVCSH:0-6000 m above ground:14 hour fcst:"
+    },
+    {
+     "f": 14,
+     "field": "srh01",
+     "start": 178369246,
+     "end": 179518176,
+     "sha256": "1f22cbe6d9d12d2cbbc293f094840be47ab006f5d908de36403dd4167c2f58ad",
+     "index_line": "187:178369246:d=2026111806:HLCY:1000-0 m above ground:14 hour fcst:"
+    },
+    {
+     "f": 14,
+     "field": "uh25",
+     "start": 16269367,
+     "end": 16341584,
+     "sha256": "f02daf4d4ae9e1e55c77d2de638c0b42d0df64efe1d0679a14d8454d2fc9fb9c",
+     "index_line": "20:16269367:d=2026111806:MXUPHL:5000-2000 m above ground:13-14 hour max fcst:"
+    },
+    {
+     "f": 15,
+     "field": "dewpoint2m",
+     "start": 78490666,
+     "end": 80287030,
+     "sha256": "78cfa2ee73163bb35ac32a59c1974190f3acab9aa87bf9cece19ae3ecd7b90f4",
+     "index_line": "76:78490666:d=2026111806:DPT:2 m above ground:15 hour fcst:"
+    },
+    {
+     "f": 15,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 996484,
+     "sha256": "72b4be9e96ca8e2b0ff7d1c80816025b4d92f4245bcd01d00c73330d2040d1b7",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):15 hour fcst:"
+    },
+    {
+     "f": 15,
+     "field": "sbcape",
+     "start": 124680034,
+     "end": 125326770,
+     "sha256": "eb60506306188a6ebeb2ba32ffd649389eb3e679347bbb02f58b0a36e609e809",
+     "index_line": "140:124680034:d=2026111806:CAPE:surface:15 hour fcst:"
+    },
+    {
+     "f": 15,
+     "field": "sbcin",
+     "start": 125326771,
+     "end": 125638659,
+     "sha256": "f843921db04cc1e01cba59b37d455e5803dbc33ef10b2db83de3d477b36c7ddb",
+     "index_line": "141:125326771:d=2026111806:CIN:surface:15 hour fcst:"
+    },
+    {
+     "f": 15,
+     "field": "shear06_u",
+     "start": 182995947,
+     "end": 184103388,
+     "sha256": "decd0a7a65d7a1c00c3d428e2beb6ed8d06861e0ae8908274fc359ea51963bfc",
+     "index_line": "193:182995947:d=2026111806:VUCSH:0-6000 m above ground:15 hour fcst:"
+    },
+    {
+     "f": 15,
+     "field": "shear06_v",
+     "start": 184103389,
+     "end": 185163114,
+     "sha256": "6cbfee6455226dcef13982202aa6ad9459af0e05b5e8afa8d4240afbddff063d",
+     "index_line": "194:184103389:d=2026111806:VVCSH:0-6000 m above ground:15 hour fcst:"
+    },
+    {
+     "f": 15,
+     "field": "srh01",
+     "start": 176469287,
+     "end": 177623130,
+     "sha256": "e8d2474fb643e5a4611aa65657f9f0680d03c38abf4c5012c1a62984f7bdb7a2",
+     "index_line": "187:176469287:d=2026111806:HLCY:1000-0 m above ground:15 hour fcst:"
+    },
+    {
+     "f": 15,
+     "field": "uh25",
+     "start": 16426420,
+     "end": 16498210,
+     "sha256": "d9329a83ab8b50e53034651dad4141f7dc2369a63fb7bb89347a85087ec441a5",
+     "index_line": "20:16426420:d=2026111806:MXUPHL:5000-2000 m above ground:14-15 hour max fcst:"
+    },
+    {
+     "f": 16,
+     "field": "dewpoint2m",
+     "start": 78587548,
+     "end": 80381343,
+     "sha256": "1494fda4ffaf1cceec6fab528667c81cc4f67b0840f9a0dbeeb628085d068db6",
+     "index_line": "76:78587548:d=2026111806:DPT:2 m above ground:16 hour fcst:"
+    },
+    {
+     "f": 16,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 1008179,
+     "sha256": "6983e927aa1227c6e0a0344f7763e768b001599ae6dc0899ea30eb4dd4c32a4d",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):16 hour fcst:"
+    },
+    {
+     "f": 16,
+     "field": "sbcape",
+     "start": 123795295,
+     "end": 124440228,
+     "sha256": "e4b4af48edc98c05d39d748b7f0a556ce081f5720829267c38bffa63bd8ac558",
+     "index_line": "140:123795295:d=2026111806:CAPE:surface:16 hour fcst:"
+    },
+    {
+     "f": 16,
+     "field": "sbcin",
+     "start": 124440229,
+     "end": 125030594,
+     "sha256": "382b1914bbc66fd7ca348001da3c520077bcf808efd9376205f1be90d5c4e897",
+     "index_line": "141:124440229:d=2026111806:CIN:surface:16 hour fcst:"
+    },
+    {
+     "f": 16,
+     "field": "shear06_u",
+     "start": 179909297,
+     "end": 181021003,
+     "sha256": "3cd414ac0c17706eef51f4739cd51c499cb5961be4f86920a52d80b1aacd5a1a",
+     "index_line": "193:179909297:d=2026111806:VUCSH:0-6000 m above ground:16 hour fcst:"
+    },
+    {
+     "f": 16,
+     "field": "shear06_v",
+     "start": 181021004,
+     "end": 182098379,
+     "sha256": "41afa175cc708642ec7bb23baf9270e2743f7fff0d619ed3e094c9decf942a6c",
+     "index_line": "194:181021004:d=2026111806:VVCSH:0-6000 m above ground:16 hour fcst:"
+    },
+    {
+     "f": 16,
+     "field": "srh01",
+     "start": 173330239,
+     "end": 174494389,
+     "sha256": "72d6cfa8e2d4cdcbbe46a11b38c40b1954545be22361e3326889d89644aed0c4",
+     "index_line": "187:173330239:d=2026111806:HLCY:1000-0 m above ground:16 hour fcst:"
+    },
+    {
+     "f": 16,
+     "field": "uh25",
+     "start": 16593702,
+     "end": 16666184,
+     "sha256": "05916732ce7da132a9834613084c4cf192ee5b6fcb6704ecbe7b63647748dd3d",
+     "index_line": "20:16593702:d=2026111806:MXUPHL:5000-2000 m above ground:15-16 hour max fcst:"
+    },
+    {
+     "f": 17,
+     "field": "dewpoint2m",
+     "start": 78602501,
+     "end": 80389597,
+     "sha256": "d0158ab1cabb3921c8ebb6e5ec25460d72a54dce83aa65855a9c289451b22620",
+     "index_line": "76:78602501:d=2026111806:DPT:2 m above ground:17 hour fcst:"
+    },
+    {
+     "f": 17,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 1010467,
+     "sha256": "4342bf29f34c60023b622936207bf4534a4dee5db267ee9c5232f5acd82a96af",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):17 hour fcst:"
+    },
+    {
+     "f": 17,
+     "field": "sbcape",
+     "start": 123491579,
+     "end": 124130309,
+     "sha256": "38cfa3c2adc0e5b5fe3a9a4bbdbb3a2bbc185c3ccb40d6e771a03b48e7aabc55",
+     "index_line": "140:123491579:d=2026111806:CAPE:surface:17 hour fcst:"
+    },
+    {
+     "f": 17,
+     "field": "sbcin",
+     "start": 124130310,
+     "end": 124738742,
+     "sha256": "89ab95d1db789012f6105271fdf3a623d196c7a0c48e0cad775bdea4a86bd8ab",
+     "index_line": "141:124130310:d=2026111806:CIN:surface:17 hour fcst:"
+    },
+    {
+     "f": 17,
+     "field": "shear06_u",
+     "start": 176790215,
+     "end": 177907044,
+     "sha256": "4bcf124b61491bcf8e9ec063d11aaaf6c0c92322385aed479cc6a0f7e22f95df",
+     "index_line": "193:176790215:d=2026111806:VUCSH:0-6000 m above ground:17 hour fcst:"
+    },
+    {
+     "f": 17,
+     "field": "shear06_v",
+     "start": 177907045,
+     "end": 178988365,
+     "sha256": "a704b3ed62efb3b7cfa4eb1a11bdab41e9ba45eec299d51bc93638a5fdc6476b",
+     "index_line": "194:177907045:d=2026111806:VVCSH:0-6000 m above ground:17 hour fcst:"
+    },
+    {
+     "f": 17,
+     "field": "srh01",
+     "start": 170177196,
+     "end": 171355443,
+     "sha256": "883f8e9a3e58a8bf7eb3251b494c85df31bfb72ff1167b4e812212a6f991eef2",
+     "index_line": "187:170177196:d=2026111806:HLCY:1000-0 m above ground:17 hour fcst:"
+    },
+    {
+     "f": 17,
+     "field": "uh25",
+     "start": 16778984,
+     "end": 16850855,
+     "sha256": "7e7d35e77dea3af78c846c948bec6d11c43e2515450f882685ba1c05fc0cbe57",
+     "index_line": "20:16778984:d=2026111806:MXUPHL:5000-2000 m above ground:16-17 hour max fcst:"
+    },
+    {
+     "f": 18,
+     "field": "dewpoint2m",
+     "start": 78647889,
+     "end": 80422687,
+     "sha256": "769a8b253f6c93d0d497736c529d9512641ac48b44f4d7b8a43722b1da17529c",
+     "index_line": "76:78647889:d=2026111806:DPT:2 m above ground:18 hour fcst:"
+    },
+    {
+     "f": 18,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 1016712,
+     "sha256": "ec9686facc018b6f23ca2b7c27121c225afdafa16c8ba1105019c24151d90537",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):18 hour fcst:"
+    },
+    {
+     "f": 18,
+     "field": "sbcape",
+     "start": 124149780,
+     "end": 124766906,
+     "sha256": "1a12ac910071ac8e89ff1d98b4a7d77106e9cb85e7b11b5abbb4cae7b6e4fe8a",
+     "index_line": "140:124149780:d=2026111806:CAPE:surface:18 hour fcst:"
+    },
+    {
+     "f": 18,
+     "field": "sbcin",
+     "start": 124766907,
+     "end": 125357310,
+     "sha256": "9bdd306209cbeef961bab51f0cfeaed2e7971cdc0a19e5bf47e714bf25d75894",
+     "index_line": "141:124766907:d=2026111806:CIN:surface:18 hour fcst:"
+    },
+    {
+     "f": 18,
+     "field": "shear06_u",
+     "start": 175961494,
+     "end": 177081089,
+     "sha256": "3a16fa687004ed7f930e1c3397c23e56e35facefa5b32a239e4eeb1aba681f91",
+     "index_line": "193:175961494:d=2026111806:VUCSH:0-6000 m above ground:18 hour fcst:"
+    },
+    {
+     "f": 18,
+     "field": "shear06_v",
+     "start": 177081090,
+     "end": 178162250,
+     "sha256": "6701cf16f1f213ecb9436aa5ed774e6838ab0660ada0898d80c9f4de6f0ee189",
+     "index_line": "194:177081090:d=2026111806:VVCSH:0-6000 m above ground:18 hour fcst:"
+    },
+    {
+     "f": 18,
+     "field": "srh01",
+     "start": 168458414,
+     "end": 170443363,
+     "sha256": "7fa595e9577f91e2fc5a064944d3262491fa8ab9a64e2f23c2216c11bd9df589",
+     "index_line": "187:168458414:d=2026111806:HLCY:1000-0 m above ground:18 hour fcst:"
+    },
+    {
+     "f": 18,
+     "field": "uh25",
+     "start": 16843978,
+     "end": 16914686,
+     "sha256": "d2672e8a9318002e151bf9d37e98fc21df661ed4d02162f2ee452aaa1709bbff",
+     "index_line": "20:16843978:d=2026111806:MXUPHL:5000-2000 m above ground:17-18 hour max fcst:"
+    },
+    {
+     "f": 19,
+     "field": "dewpoint2m",
+     "start": 78732004,
+     "end": 80497773,
+     "sha256": "8f2985ca8086778879e4c7c36e3bd61878b82adffa2e82cf153903ef35f78a4e",
+     "index_line": "76:78732004:d=2026111806:DPT:2 m above ground:19 hour fcst:"
+    },
+    {
+     "f": 19,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 1009940,
+     "sha256": "b9f79f0c955c2463dd7bffb374d101f8b893be862faa4fd287a67616aa0a0e12",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):19 hour fcst:"
+    },
+    {
+     "f": 19,
+     "field": "sbcape",
+     "start": 123609713,
+     "end": 124202736,
+     "sha256": "c4f468cfa2603fb26a936fc9c78e4fb343241219cced5d65edbce8a50b0abc79",
+     "index_line": "140:123609713:d=2026111806:CAPE:surface:19 hour fcst:"
+    },
+    {
+     "f": 19,
+     "field": "sbcin",
+     "start": 124202737,
+     "end": 124513141,
+     "sha256": "07834854953160eaa833295f1bb5b22a83ee5b28b05214d5ddb4b6a08a666719",
+     "index_line": "141:124202737:d=2026111806:CIN:surface:19 hour fcst:"
+    },
+    {
+     "f": 19,
+     "field": "shear06_u",
+     "start": 171791567,
+     "end": 172908352,
+     "sha256": "31df15ec637279bbaa557a3d863369dd99484b4a21455aef9fd2a15063ae55f6",
+     "index_line": "193:171791567:d=2026111806:VUCSH:0-6000 m above ground:19 hour fcst:"
+    },
+    {
+     "f": 19,
+     "field": "shear06_v",
+     "start": 172908353,
+     "end": 173987069,
+     "sha256": "79fbed1f034c34bd3779667cd658b5d06e8b3530887b6f7d3073bda9c958f6ea",
+     "index_line": "194:172908353:d=2026111806:VVCSH:0-6000 m above ground:19 hour fcst:"
+    },
+    {
+     "f": 19,
+     "field": "srh01",
+     "start": 165090518,
+     "end": 166294825,
+     "sha256": "a94955cac0ec5b026ed6016c3088bbd659a7de5d3c248498ca234df3947f21c7",
+     "index_line": "187:165090518:d=2026111806:HLCY:1000-0 m above ground:19 hour fcst:"
+    },
+    {
+     "f": 19,
+     "field": "uh25",
+     "start": 16815092,
+     "end": 16885042,
+     "sha256": "ce172ac68a8808f4b7e7f7236e2d0a758d18a8d994e5984ddce47af13dd439ee",
+     "index_line": "20:16815092:d=2026111806:MXUPHL:5000-2000 m above ground:18-19 hour max fcst:"
+    },
+    {
+     "f": 20,
+     "field": "dewpoint2m",
+     "start": 78784986,
+     "end": 80545752,
+     "sha256": "8a211cffd104d0235dfa5594b1573ba3b68d31ec4a6b404000c2de4d8fb82c7b",
+     "index_line": "76:78784986:d=2026111806:DPT:2 m above ground:20 hour fcst:"
+    },
+    {
+     "f": 20,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 998695,
+     "sha256": "5a3ac9bb3d9d67db079d70b9ac4fc5921584b57179dbc45e9bbb50b9ea4fc0d9",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):20 hour fcst:"
+    },
+    {
+     "f": 20,
+     "field": "sbcape",
+     "start": 124600866,
+     "end": 125181001,
+     "sha256": "c3c52494a6b85494da5e42d59f8fb78fc37f2eb2894f57dd4d6adef2d608be00",
+     "index_line": "140:124600866:d=2026111806:CAPE:surface:20 hour fcst:"
+    },
+    {
+     "f": 20,
+     "field": "sbcin",
+     "start": 125181002,
+     "end": 125715628,
+     "sha256": "586724537f0fdd3b474916bdc3da393b554ef20045c5094eb017d310c644d821",
+     "index_line": "141:125181002:d=2026111806:CIN:surface:20 hour fcst:"
+    },
+    {
+     "f": 20,
+     "field": "shear06_u",
+     "start": 172419299,
+     "end": 173537280,
+     "sha256": "de4973306ecfa68b613bedcc94432578946349e7c4219f7c1fd65c13bfd29d90",
+     "index_line": "193:172419299:d=2026111806:VUCSH:0-6000 m above ground:20 hour fcst:"
+    },
+    {
+     "f": 20,
+     "field": "shear06_v",
+     "start": 173537281,
+     "end": 174618434,
+     "sha256": "ca6873c842fba70f7fc945f7b9694d66bca2125901ca8c3baad4607ba753823b",
+     "index_line": "194:173537281:d=2026111806:VVCSH:0-6000 m above ground:20 hour fcst:"
+    },
+    {
+     "f": 20,
+     "field": "srh01",
+     "start": 165668666,
+     "end": 166873005,
+     "sha256": "dff16abc9ae53fba42b0d9766e45a88501283862eb36ec29bec016283917c339",
+     "index_line": "187:165668666:d=2026111806:HLCY:1000-0 m above ground:20 hour fcst:"
+    },
+    {
+     "f": 20,
+     "field": "uh25",
+     "start": 16820816,
+     "end": 16888975,
+     "sha256": "bc95f4dbb19a9cf0ba958b173f5048b895d6c28b94519484aa437eb5c42fdffc",
+     "index_line": "20:16820816:d=2026111806:MXUPHL:5000-2000 m above ground:19-20 hour max fcst:"
+    },
+    {
+     "f": 21,
+     "field": "dewpoint2m",
+     "start": 79264106,
+     "end": 81023609,
+     "sha256": "86be79bee953d24c5a67f4cf22125467c87a557ad0466ce68a95b302a4a9c093",
+     "index_line": "76:79264106:d=2026111806:DPT:2 m above ground:21 hour fcst:"
+    },
+    {
+     "f": 21,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 1001395,
+     "sha256": "eb8cbde22fde6f28de9308eb1dc895e7f50d6feabe0cc64fafa4b6480340ec08",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):21 hour fcst:"
+    },
+    {
+     "f": 21,
+     "field": "sbcape",
+     "start": 124395418,
+     "end": 124962060,
+     "sha256": "7ebdff9f678a2be1775c03f1f699c9f96c157a4360c8c366c89a90ec7638729e",
+     "index_line": "140:124395418:d=2026111806:CAPE:surface:21 hour fcst:"
+    },
+    {
+     "f": 21,
+     "field": "sbcin",
+     "start": 124962061,
+     "end": 125249660,
+     "sha256": "e37f03746858323e40d489bbf1170063870318677a041ca6adf958d64affa359",
+     "index_line": "141:124962061:d=2026111806:CIN:surface:21 hour fcst:"
+    },
+    {
+     "f": 21,
+     "field": "shear06_u",
+     "start": 172906975,
+     "end": 174025804,
+     "sha256": "42da072f1d90a717ab580119cd0913f822a313e0e7ae8927d41d0d111dd0efbc",
+     "index_line": "193:172906975:d=2026111806:VUCSH:0-6000 m above ground:21 hour fcst:"
+    },
+    {
+     "f": 21,
+     "field": "shear06_v",
+     "start": 174025805,
+     "end": 175109173,
+     "sha256": "8fc4d03df6c2e2821292ebe7d2ddfb9c87f0c921a9315f0396c6ebf3b12c9802",
+     "index_line": "194:174025805:d=2026111806:VVCSH:0-6000 m above ground:21 hour fcst:"
+    },
+    {
+     "f": 21,
+     "field": "srh01",
+     "start": 165359064,
+     "end": 167363519,
+     "sha256": "e4de6a64d19d5d7c1ad61c7309d2bae8c87a34cc64539c5549609c2c0b288a00",
+     "index_line": "187:165359064:d=2026111806:HLCY:1000-0 m above ground:21 hour fcst:"
+    },
+    {
+     "f": 21,
+     "field": "uh25",
+     "start": 16819297,
+     "end": 16884183,
+     "sha256": "ad467f00574224c16b4f8681aa1b5a7350d640fdad6c708ca898122b812b2609",
+     "index_line": "20:16819297:d=2026111806:MXUPHL:5000-2000 m above ground:20-21 hour max fcst:"
+    },
+    {
+     "f": 22,
+     "field": "dewpoint2m",
+     "start": 79364188,
+     "end": 81123657,
+     "sha256": "797c5e6f3bc1fead23d235e188b45c7cfa099a2ef3dbb98b0cde8825ce2489d9",
+     "index_line": "76:79364188:d=2026111806:DPT:2 m above ground:22 hour fcst:"
+    },
+    {
+     "f": 22,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 1000774,
+     "sha256": "38a7f3dd91193a37afbccca7a84858c76ca831a869518ca54c29447d4dc7dff9",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):22 hour fcst:"
+    },
+    {
+     "f": 22,
+     "field": "sbcape",
+     "start": 125004695,
+     "end": 125569775,
+     "sha256": "ef38356e6c1c07d5a2a34609b9b330fc71ef2812a56ab9adb633e444b8544e9b",
+     "index_line": "140:125004695:d=2026111806:CAPE:surface:22 hour fcst:"
+    },
+    {
+     "f": 22,
+     "field": "sbcin",
+     "start": 125569776,
+     "end": 126081945,
+     "sha256": "36dff0d20db54518f23e6dac240afa0ea86da384b3a7c89c800199feb9e7bb09",
+     "index_line": "141:125569776:d=2026111806:CIN:surface:22 hour fcst:"
+    },
+    {
+     "f": 22,
+     "field": "shear06_u",
+     "start": 173113011,
+     "end": 174232822,
+     "sha256": "9a7d7eb64f0f7678fc8816fe55532267cd0961eb382c0ac8c152c79eb6a1c0bf",
+     "index_line": "193:173113011:d=2026111806:VUCSH:0-6000 m above ground:22 hour fcst:"
+    },
+    {
+     "f": 22,
+     "field": "shear06_v",
+     "start": 174232823,
+     "end": 175321030,
+     "sha256": "6a8ecae03e3ce08031c5920de4c22d68777eb70c7d284b4462c0a28d970f2dde",
+     "index_line": "194:174232823:d=2026111806:VVCSH:0-6000 m above ground:22 hour fcst:"
+    },
+    {
+     "f": 22,
+     "field": "srh01",
+     "start": 166300096,
+     "end": 167513997,
+     "sha256": "b7240f1d9e83410688f6bb744d5806e4e07cf797c651ec1b8b7ed77cf387ae93",
+     "index_line": "187:166300096:d=2026111806:HLCY:1000-0 m above ground:22 hour fcst:"
+    },
+    {
+     "f": 22,
+     "field": "uh25",
+     "start": 16838161,
+     "end": 16902129,
+     "sha256": "b613a0720d6e8b94df318330177dada83513f38d3faad997c8571ea74d43f737",
+     "index_line": "20:16838161:d=2026111806:MXUPHL:5000-2000 m above ground:21-22 hour max fcst:"
+    },
+    {
+     "f": 23,
+     "field": "dewpoint2m",
+     "start": 79545661,
+     "end": 81305331,
+     "sha256": "d380c7f2fdd7f6cb05b2f7e393a2cf9b0259105558597055d26298b83c90e468",
+     "index_line": "76:79545661:d=2026111806:DPT:2 m above ground:23 hour fcst:"
+    },
+    {
+     "f": 23,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 1011478,
+     "sha256": "e051ae37ab662345dc5f78f6bb6c2704a80bbb15a76dd9d14985f4a02d403b7c",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):23 hour fcst:"
+    },
+    {
+     "f": 23,
+     "field": "sbcape",
+     "start": 124151634,
+     "end": 124710555,
+     "sha256": "d320592024e6fcd054cc808f11b15c39225cb76ab5aa1efc50aeb20ecda35398",
+     "index_line": "140:124151634:d=2026111806:CAPE:surface:23 hour fcst:"
+    },
+    {
+     "f": 23,
+     "field": "sbcin",
+     "start": 124710556,
+     "end": 125219629,
+     "sha256": "5fbf31480ca31d995e9136b527ed446bc80fa8a2cced9fa490d4d32c2e8ff091",
+     "index_line": "141:124710556:d=2026111806:CIN:surface:23 hour fcst:"
+    },
+    {
+     "f": 23,
+     "field": "shear06_u",
+     "start": 172510750,
+     "end": 173622257,
+     "sha256": "90d1ac9de5066c27c1246f7e1b3865504e869eae7b549097b937e712cb12d901",
+     "index_line": "193:172510750:d=2026111806:VUCSH:0-6000 m above ground:23 hour fcst:"
+    },
+    {
+     "f": 23,
+     "field": "shear06_v",
+     "start": 173622258,
+     "end": 174712871,
+     "sha256": "42309e22f7b1f7d5c7f175241736fcb1094c1353051922fd12f82e21eec875d6",
+     "index_line": "194:173622258:d=2026111806:VVCSH:0-6000 m above ground:23 hour fcst:"
+    },
+    {
+     "f": 23,
+     "field": "srh01",
+     "start": 165714394,
+     "end": 166929327,
+     "sha256": "e03e2d577c6981e95270a17427851ab1659389ab0fa5e434ce3affffb8194ec4",
+     "index_line": "187:165714394:d=2026111806:HLCY:1000-0 m above ground:23 hour fcst:"
+    },
+    {
+     "f": 23,
+     "field": "uh25",
+     "start": 16971391,
+     "end": 17034199,
+     "sha256": "d98dd23238800e9478c508c8f4c8dbc9e8091f136e439296433e61ad700da3db",
+     "index_line": "20:16971391:d=2026111806:MXUPHL:5000-2000 m above ground:22-23 hour max fcst:"
+    },
+    {
+     "f": 24,
+     "field": "dewpoint2m",
+     "start": 79567717,
+     "end": 81328226,
+     "sha256": "dba2f368d32a199cbb2f07ab8c9a4120b25e4278477ed5a0a3f3087bfb24fb1f",
+     "index_line": "76:79567717:d=2026111806:DPT:2 m above ground:24 hour fcst:"
+    },
+    {
+     "f": 24,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 1019339,
+     "sha256": "ab2824c2fed85a460ef6abcbb3e3a6a3e25f38b45fe4e9cd645ce93c151e023f",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):24 hour fcst:"
+    },
+    {
+     "f": 24,
+     "field": "sbcape",
+     "start": 125034193,
+     "end": 125597996,
+     "sha256": "00a1f1dd23d219ced165eafac066f300dfa6dfef6b50f23b2f006606c8f74bf5",
+     "index_line": "140:125034193:d=2026111806:CAPE:surface:24 hour fcst:"
+    },
+    {
+     "f": 24,
+     "field": "sbcin",
+     "start": 125597997,
+     "end": 126103221,
+     "sha256": "f00b946b4de122e30eb91cb0a6ca12b88889271dc50ee354090fc317cfa5a95e",
+     "index_line": "141:125597997:d=2026111806:CIN:surface:24 hour fcst:"
+    },
+    {
+     "f": 24,
+     "field": "shear06_u",
+     "start": 173741479,
+     "end": 174852093,
+     "sha256": "c601f45b5e463cdb7730a3552f9c667cf291e82e298bd6bc31b13cb7755d5bbd",
+     "index_line": "193:173741479:d=2026111806:VUCSH:0-6000 m above ground:24 hour fcst:"
+    },
+    {
+     "f": 24,
+     "field": "shear06_v",
+     "start": 174852094,
+     "end": 175946190,
+     "sha256": "7e3596a598591c5edaa2e545017ede67fee5f4b0fa02f6af23463dae8cdb72f2",
+     "index_line": "194:174852094:d=2026111806:VVCSH:0-6000 m above ground:24 hour fcst:"
+    },
+    {
+     "f": 24,
+     "field": "srh01",
+     "start": 166924780,
+     "end": 168140284,
+     "sha256": "8352d947aa9b1c306e832930aca873c1b8ea891242efdd0d3fce9e2fbc2f80ad",
+     "index_line": "187:166924780:d=2026111806:HLCY:1000-0 m above ground:24 hour fcst:"
+    },
+    {
+     "f": 24,
+     "field": "uh25",
+     "start": 16885652,
+     "end": 16947497,
+     "sha256": "11200445a64b3aa84de8d8b3bcd2e4ffb924a75e49a0b84894a81dd6d9efea4e",
+     "index_line": "20:16885652:d=2026111806:MXUPHL:5000-2000 m above ground:23-24 hour max fcst:"
+    },
+    {
+     "f": 25,
+     "field": "dewpoint2m",
+     "start": 79692697,
+     "end": 81456663,
+     "sha256": "d40ce4e279c19a8afecbb4fb6d2a9bd24fc5edca5db69284054fc017993518a0",
+     "index_line": "76:79692697:d=2026111806:DPT:2 m above ground:25 hour fcst:"
+    },
+    {
+     "f": 25,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 1015728,
+     "sha256": "f28a24dbaac1381a76b45fc06abf1f389c2ff5f78a6d8fda70da0fa7632972e6",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):25 hour fcst:"
+    },
+    {
+     "f": 25,
+     "field": "sbcape",
+     "start": 125163652,
+     "end": 125733199,
+     "sha256": "c391c776f97ad81110ced782866aa69cadb823bc55e7068191bd4bdd1b42443e",
+     "index_line": "140:125163652:d=2026111806:CAPE:surface:25 hour fcst:"
+    },
+    {
+     "f": 25,
+     "field": "sbcin",
+     "start": 125733200,
+     "end": 126239327,
+     "sha256": "f814565becaf1d4f213c817f6dadfc2ff62ca7484e3a696a447a41f247befdd7",
+     "index_line": "141:125733200:d=2026111806:CIN:surface:25 hour fcst:"
+    },
+    {
+     "f": 25,
+     "field": "shear06_u",
+     "start": 174285479,
+     "end": 175394602,
+     "sha256": "27e7aad63212861758bd09bf6debbfbb9fd927c1ee304859aa779b20ad82af1c",
+     "index_line": "193:174285479:d=2026111806:VUCSH:0-6000 m above ground:25 hour fcst:"
+    },
+    {
+     "f": 25,
+     "field": "shear06_v",
+     "start": 175394603,
+     "end": 176490309,
+     "sha256": "9d578ddd2cbb4c35053edc0a98149512ec8a89b25577faed59750e2cb9cc8dd7",
+     "index_line": "194:175394603:d=2026111806:VVCSH:0-6000 m above ground:25 hour fcst:"
+    },
+    {
+     "f": 25,
+     "field": "srh01",
+     "start": 167462072,
+     "end": 168679207,
+     "sha256": "7f1b872b45396ad6ae62ad9dde2f2106811a2c1f000c2ba3f0b7225a3eaeb612",
+     "index_line": "187:167462072:d=2026111806:HLCY:1000-0 m above ground:25 hour fcst:"
+    },
+    {
+     "f": 25,
+     "field": "uh25",
+     "start": 16963936,
+     "end": 17027574,
+     "sha256": "b4b9c4a4a32f4ff47f47adc78c9f3f229122efc4ba1ad9844a895c2ac303ca1c",
+     "index_line": "20:16963936:d=2026111806:MXUPHL:5000-2000 m above ground:24-25 hour max fcst:"
+    },
+    {
+     "f": 26,
+     "field": "dewpoint2m",
+     "start": 79688161,
+     "end": 81453965,
+     "sha256": "2880205a53763fbcb283d0825e3a87de334b3d284ad9a7045c48bb93e6fb2c17",
+     "index_line": "76:79688161:d=2026111806:DPT:2 m above ground:26 hour fcst:"
+    },
+    {
+     "f": 26,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 1025897,
+     "sha256": "3294253b71c66ab48ec9d155aa4e0390358e271553b700585f9d03fe8a3490bd",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):26 hour fcst:"
+    },
+    {
+     "f": 26,
+     "field": "sbcape",
+     "start": 124475320,
+     "end": 125050697,
+     "sha256": "f2faaf879f24f4d21c55295a1c0f0ce1ef08bbc6dbb3bbea18fd2342bad38386",
+     "index_line": "140:124475320:d=2026111806:CAPE:surface:26 hour fcst:"
+    },
+    {
+     "f": 26,
+     "field": "sbcin",
+     "start": 125050698,
+     "end": 125325696,
+     "sha256": "5a38509c9defa39d80a4f6fa7e58548527981c1004e8c5f4fbafc77caf24cd00",
+     "index_line": "141:125050698:d=2026111806:CIN:surface:26 hour fcst:"
+    },
+    {
+     "f": 26,
+     "field": "shear06_u",
+     "start": 173743896,
+     "end": 174853417,
+     "sha256": "6ab7d9ca4a4ef47620d01adcc4c266eee1106a2f9170a20549db1c81401f5d2c",
+     "index_line": "193:173743896:d=2026111806:VUCSH:0-6000 m above ground:26 hour fcst:"
+    },
+    {
+     "f": 26,
+     "field": "shear06_v",
+     "start": 174853418,
+     "end": 175948631,
+     "sha256": "a1900391f2bdd66d697f1afd3cb25d9969974d81871f8f857810f8db147f4d45",
+     "index_line": "194:174853418:d=2026111806:VVCSH:0-6000 m above ground:26 hour fcst:"
+    },
+    {
+     "f": 26,
+     "field": "srh01",
+     "start": 166895140,
+     "end": 168113200,
+     "sha256": "14c57614ddfb0ca68c26a026fc8389ba0ef7413a1f9ccf9184bf35aa75cd36ad",
+     "index_line": "187:166895140:d=2026111806:HLCY:1000-0 m above ground:26 hour fcst:"
+    },
+    {
+     "f": 26,
+     "field": "uh25",
+     "start": 16961779,
+     "end": 17026793,
+     "sha256": "a7dedc8d1440de0274b42ac2691507bb1ffaa5c6312afa2c2dcc948887d3baa7",
+     "index_line": "20:16961779:d=2026111806:MXUPHL:5000-2000 m above ground:25-26 hour max fcst:"
+    },
+    {
+     "f": 27,
+     "field": "dewpoint2m",
+     "start": 79917116,
+     "end": 81686634,
+     "sha256": "57807b7c90e568e8edcc7b0520d02ed3c20a1d06f39132d256f3999ef51a65e2",
+     "index_line": "76:79917116:d=2026111806:DPT:2 m above ground:27 hour fcst:"
+    },
+    {
+     "f": 27,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 1025567,
+     "sha256": "f88064fc06a3e6cdfd525f5e6522c9eb75ac29b2d397bab2ad1b636f0c3d2675",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):27 hour fcst:"
+    },
+    {
+     "f": 27,
+     "field": "sbcape",
+     "start": 124929980,
+     "end": 125512008,
+     "sha256": "71c7f2ee77fed7881233f3c0630cac27d786f99f76167c67eb74e9ab1c5d9b6d",
+     "index_line": "140:124929980:d=2026111806:CAPE:surface:27 hour fcst:"
+    },
+    {
+     "f": 27,
+     "field": "sbcin",
+     "start": 125512009,
+     "end": 126016107,
+     "sha256": "0e6bf4134177235a27b14e41f546bd36a16247b88745cf2132ba3b5292193a30",
+     "index_line": "141:125512009:d=2026111806:CIN:surface:27 hour fcst:"
+    },
+    {
+     "f": 27,
+     "field": "shear06_u",
+     "start": 174730420,
+     "end": 175837631,
+     "sha256": "1bd930c2176bb84ff736d47b987215d4d64e90cc61968aa41e1f5f0dcd208c4c",
+     "index_line": "193:174730420:d=2026111806:VUCSH:0-6000 m above ground:27 hour fcst:"
+    },
+    {
+     "f": 27,
+     "field": "shear06_v",
+     "start": 175837632,
+     "end": 176931010,
+     "sha256": "e069d7a0812fff434161958478484905b65e35a6778915c89e7e7436cdd9972b",
+     "index_line": "194:175837632:d=2026111806:VVCSH:0-6000 m above ground:27 hour fcst:"
+    },
+    {
+     "f": 27,
+     "field": "srh01",
+     "start": 167883802,
+     "end": 169100588,
+     "sha256": "e9dc3402c20b7986f833a4ec9eb3b1a0a29bc55d19942dea5917b7d4d3819695",
+     "index_line": "187:167883802:d=2026111806:HLCY:1000-0 m above ground:27 hour fcst:"
+    },
+    {
+     "f": 27,
+     "field": "uh25",
+     "start": 16958058,
+     "end": 17024201,
+     "sha256": "5d8f748631ab5d754c7e47e12de7443d7c7445e9c4a151996b1a2f7d570c048a",
+     "index_line": "20:16958058:d=2026111806:MXUPHL:5000-2000 m above ground:26-27 hour max fcst:"
+    },
+    {
+     "f": 28,
+     "field": "dewpoint2m",
+     "start": 79826776,
+     "end": 81599370,
+     "sha256": "ad7c6d398eb7b0857209dd5d214a43a207e65b45bfa0df8ad7a5ae9e45252fcf",
+     "index_line": "76:79826776:d=2026111806:DPT:2 m above ground:28 hour fcst:"
+    },
+    {
+     "f": 28,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 1021454,
+     "sha256": "10b2e093bf38984aacc1877a34ee524ff910801399924cc8ba8819645355bacb",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):28 hour fcst:"
+    },
+    {
+     "f": 28,
+     "field": "sbcape",
+     "start": 126374574,
+     "end": 126964225,
+     "sha256": "59ccb2ed08bde2eab0066961bc682905573db61fc2b4985ca76eab7ed2109b87",
+     "index_line": "140:126374574:d=2026111806:CAPE:surface:28 hour fcst:"
+    },
+    {
+     "f": 28,
+     "field": "sbcin",
+     "start": 126964226,
+     "end": 127238986,
+     "sha256": "f0f64efeebe2fc1a2c433af069d08b69394a694636769b09c13937559355c644",
+     "index_line": "141:126964226:d=2026111806:CIN:surface:28 hour fcst:"
+    },
+    {
+     "f": 28,
+     "field": "shear06_u",
+     "start": 175841275,
+     "end": 176953496,
+     "sha256": "295e80a02c9223f3b3271a82ab5ef83601011c7215a556823ea24dd6d073d33f",
+     "index_line": "193:175841275:d=2026111806:VUCSH:0-6000 m above ground:28 hour fcst:"
+    },
+    {
+     "f": 28,
+     "field": "shear06_v",
+     "start": 176953497,
+     "end": 178044435,
+     "sha256": "c542c7adb74df1e84d0cd2d296abe719915947109c222da7b176396ea2e8cc76",
+     "index_line": "194:176953497:d=2026111806:VVCSH:0-6000 m above ground:28 hour fcst:"
+    },
+    {
+     "f": 28,
+     "field": "srh01",
+     "start": 168970600,
+     "end": 170185001,
+     "sha256": "345b96a1c6b082344e3a9a76e116ebcf7112e57ab5712eb6aea9c2a1b67f525b",
+     "index_line": "187:168970600:d=2026111806:HLCY:1000-0 m above ground:28 hour fcst:"
+    },
+    {
+     "f": 28,
+     "field": "uh25",
+     "start": 17008761,
+     "end": 17073458,
+     "sha256": "6795067b9077da963ed8ad625f3793d2126d68d4ae1f600391ff9bb0ad7c0c4b",
+     "index_line": "20:17008761:d=2026111806:MXUPHL:5000-2000 m above ground:27-28 hour max fcst:"
+    },
+    {
+     "f": 29,
+     "field": "dewpoint2m",
+     "start": 79809024,
+     "end": 81583415,
+     "sha256": "6ece6f26fa04d2ffb8f7926b0ad2e7ad35e1b4bd87d43880f84d87b7d9f89c26",
+     "index_line": "76:79809024:d=2026111806:DPT:2 m above ground:29 hour fcst:"
+    },
+    {
+     "f": 29,
+     "field": "reflectivity",
+     "start": 0,
+     "end": 1026365,
+     "sha256": "811373f99f2c1e357143259bb9d4dafde1b9c54fa7906f2d7ccd6bb789218df1",
+     "index_line": "1:0:d=2026111806:REFC:entire atmosphere (considered as a single layer):29 hour fcst:"
+    },
+    {
+     "f": 29,
+     "field": "sbcape",
+     "start": 125544432,
+     "end": 126140155,
+     "sha256": "7768ad382817599e0b5583224d67ec8a1f097b04aaa98133bc1661df6f224d86",
+     "index_line": "140:125544432:d=2026111806:CAPE:surface:29 hour fcst:"
+    },
+    {
+     "f": 29,
+     "field": "sbcin",
+     "start": 126140156,
+     "end": 126652771,
+     "sha256": "4c40c4352515aec2dcf9d589277f92964694c2677387d3f28a0e11472c9c8e2b",
+     "index_line": "141:126140156:d=2026111806:CIN:surface:29 hour fcst:"
+    },
+    {
+     "f": 29,
+     "field": "shear06_u",
+     "start": 175645726,
+     "end": 176757026,
+     "sha256": "addc83d68b7519b71c986f2c64a3bcd5a90f2dc3b8899f0c822ef4529ec4b9cc",
+     "index_line": "193:175645726:d=2026111806:VUCSH:0-6000 m above ground:29 hour fcst:"
+    },
+    {
+     "f": 29,
+     "field": "shear06_v",
+     "start": 176757027,
+     "end": 177845390,
+     "sha256": "dc02005e57e7ac25a09b0462b93d7ae225db1562c8847b20ae2861d227971d9d",
+     "index_line": "194:176757027:d=2026111806:VVCSH:0-6000 m above ground:29 hour fcst:"
+    },
+    {
+     "f": 29,
+     "field": "srh01",
+     "start": 168827704,
+     "end": 170039773,
+     "sha256": "e4224664063c1ce4b5bb99085a07bd55a4a7c6ac1486e8b5b137d2644d82400a",
+     "index_line": "187:168827704:d=2026111806:HLCY:1000-0 m above ground:29 hour fcst:"
+    },
+    {
+     "f": 29,
+     "field": "uh25",
+     "start": 17016326,
+     "end": 17081911,
+     "sha256": "1f8dacecd571c2b3f3cbf93e1ceb093e5d6b787a11fcc64f3d558c2608e5ef8b",
+     "index_line": "20:17016326:d=2026111806:MXUPHL:5000-2000 m above ground:28-29 hour max fcst:"
+    },
+    {
+     "f": 30,
+     "field": "uh25",
+     "start": 16900764,
+     "end": 16965703,
+     "sha256": "73802617371ea296c2985acf3ce803ec1fcf8587ad8756f66d836b83b1855c7b",
+     "index_line": "20:16900764:d=2026111806:MXUPHL:5000-2000 m above ground:29-30 hour max fcst:"
+    }
+   ],
+   "feature_names": [
+    "x_dewpoint2m_max",
+    "x_dewpoint2m_mean",
+    "x_dewpoint2m_nearby_max_max",
+    "x_dewpoint2m_nearby_max_mean",
+    "x_reflectivity_max",
+    "x_reflectivity_mean",
+    "x_reflectivity_nearby_max_max",
+    "x_reflectivity_nearby_max_mean",
+    "x_sbcape_max",
+    "x_sbcape_mean",
+    "x_sbcape_nearby_max_max",
+    "x_sbcape_nearby_max_mean",
+    "x_sbcin_max",
+    "x_sbcin_mean",
+    "x_sbcin_nearby_max_max",
+    "x_sbcin_nearby_max_mean",
+    "x_shear06_max",
+    "x_shear06_mean",
+    "x_shear06_u_max",
+    "x_shear06_u_mean",
+    "x_shear06_u_nearby_max_max",
+    "x_shear06_u_nearby_max_mean",
+    "x_shear06_v_max",
+    "x_shear06_v_mean",
+    "x_shear06_v_nearby_max_max",
+    "x_shear06_v_nearby_max_mean",
+    "x_srh01_max",
+    "x_srh01_mean",
+    "x_srh01_nearby_max_max",
+    "x_srh01_nearby_max_mean",
+    "x_uh25_max",
+    "x_uh25_mean",
+    "x_uh25_nearby_max_max",
+    "x_uh25_nearby_max_mean"
+   ],
+   "features_sha256": "51c20381dc61a9ba3dc288bea8c7856abb509f53f9c2fc0582d94feecb603e66",
+   "field_notes": {
+    "sbcape": {
+     "comparable": true
+    },
+    "sbcin": {
+     "comparable": true
+    },
+    "srh01": {
+     "comparable": true
+    },
+    "uh25": {
+     "comparable": false,
+     "note": "Same 2-5 km hourly maximum, but RRFS (FV3) magnitudes run far above HRRR's; train separately"
+    },
+    "reflectivity": {
+     "comparable": false,
+     "note": "WMO composite reflectivity (dBZ) vs HRRR's NCEP-local code; RRFS floor is -20 dBZ, HRRR -10"
+    },
+    "dewpoint2m": {
+     "comparable": true
+    },
+    "shear06_u": {
+     "comparable": true,
+     "note": "Labelled s**-1 but values are m s**-1, exactly as in HRRR"
+    },
+    "shear06_v": {
+     "comparable": true,
+     "note": "Labelled s**-1 but values are m s**-1, exactly as in HRRR"
+    }
+   }
+  },
+  "nbm": {
+   "model": "nbm (operational core, CONUS 2.5 km)",
+   "bucket": "noaa-nbm-grib2-pds",
+   "cycle": "2026-11-18T06:00:00+00:00",
+   "forecast_hours": [
+    6,
+    30
+   ],
+   "status": "complete",
+   "arrival_basis": "S3 LastModified of the public object (observed, not assumed)",
+   "counts": {
+    "on_time": 25,
+    "late": 0,
+    "after_window_start": 0,
+    "missing": 0
+   },
+   "first_arrival": "2026-11-18T06:43:20Z",
+   "last_arrival": "2026-11-18T06:46:55Z",
+   "hours": [
+    {
+     "f": 6,
+     "last_modified": "2026-11-18T06:45:54Z",
+     "size": 193054870,
+     "etag": "48d3536b20cf9abfd249a7fac4538e7f",
+     "status": "on_time"
+    },
+    {
+     "f": 7,
+     "last_modified": "2026-11-18T06:45:51Z",
+     "size": 165338655,
+     "etag": "e730a7ba0751c00d3f2f06a0daf92f15",
+     "status": "on_time"
+    },
+    {
+     "f": 8,
+     "last_modified": "2026-11-18T06:43:20Z",
+     "size": 165151552,
+     "etag": "48ff669e0476adbac813f2de9de5f77e",
+     "status": "on_time"
+    },
+    {
+     "f": 9,
+     "last_modified": "2026-11-18T06:45:53Z",
+     "size": 165963127,
+     "etag": "75ccd99e685dda48c9d07bdf2ade95f9",
+     "status": "on_time"
+    },
+    {
+     "f": 10,
+     "last_modified": "2026-11-18T06:45:55Z",
+     "size": 165032514,
+     "etag": "75d5dda9d3956dc055bbace1d3bbbf5b",
+     "status": "on_time"
+    },
+    {
+     "f": 11,
+     "last_modified": "2026-11-18T06:45:58Z",
+     "size": 164605610,
+     "etag": "8656405a64656dfd0ecb43df3cd9af65",
+     "status": "on_time"
+    },
+    {
+     "f": 12,
+     "last_modified": "2026-11-18T06:46:01Z",
+     "size": 194157614,
+     "etag": "c795202165fbfe3aeaf099e4f71c6a33",
+     "status": "on_time"
+    },
+    {
+     "f": 13,
+     "last_modified": "2026-11-18T06:46:02Z",
+     "size": 164606952,
+     "etag": "ce6db29078f51fcc49964aced3e828e9",
+     "status": "on_time"
+    },
+    {
+     "f": 14,
+     "last_modified": "2026-11-18T06:46:03Z",
+     "size": 164402336,
+     "etag": "2c42db8b8e9ae4d57ef50ccacbc7ef66",
+     "status": "on_time"
+    },
+    {
+     "f": 15,
+     "last_modified": "2026-11-18T06:43:23Z",
+     "size": 165177134,
+     "etag": "118ecf024c3f18950025ff5527ec280b",
+     "status": "on_time"
+    },
+    {
+     "f": 16,
+     "last_modified": "2026-11-18T06:43:29Z",
+     "size": 164016482,
+     "etag": "b353c7d12b14b0d9de6db40ebe9d27ec",
+     "status": "on_time"
+    },
+    {
+     "f": 17,
+     "last_modified": "2026-11-18T06:46:01Z",
+     "size": 163568191,
+     "etag": "14d9d5f4a3920522261bb8c7ed0cc9fd",
+     "status": "on_time"
+    },
+    {
+     "f": 18,
+     "last_modified": "2026-11-18T06:46:09Z",
+     "size": 196550593,
+     "etag": "81808aad0e7c1f42281391c4fafc19db",
+     "status": "on_time"
+    },
+    {
+     "f": 19,
+     "last_modified": "2026-11-18T06:46:09Z",
+     "size": 162119761,
+     "etag": "6b6d21fcc53e387638812abaf4c6dd52",
+     "status": "on_time"
+    },
+    {
+     "f": 20,
+     "last_modified": "2026-11-18T06:46:11Z",
+     "size": 162651154,
+     "etag": "e917fca736c02d86c6318cbb44bd0732",
+     "status": "on_time"
+    },
+    {
+     "f": 21,
+     "last_modified": "2026-11-18T06:46:10Z",
+     "size": 163171825,
+     "etag": "d1d7153d856269e298530e3ded4be36a",
+     "status": "on_time"
+    },
+    {
+     "f": 22,
+     "last_modified": "2026-11-18T06:46:10Z",
+     "size": 162310243,
+     "etag": "47734ffa2809d02c31bb3625243aa631",
+     "status": "on_time"
+    },
+    {
+     "f": 23,
+     "last_modified": "2026-11-18T06:46:12Z",
+     "size": 162268128,
+     "etag": "ba664686508287db01815592e676a3c7",
+     "status": "on_time"
+    },
+    {
+     "f": 24,
+     "last_modified": "2026-11-18T06:46:18Z",
+     "size": 194008496,
+     "etag": "472db2448bd6f588e766ee1bc1c2b65f",
+     "status": "on_time"
+    },
+    {
+     "f": 25,
+     "last_modified": "2026-11-18T06:46:16Z",
+     "size": 165657801,
+     "etag": "98db72e6ed4ef2f41529168e486a6287",
+     "status": "on_time"
+    },
+    {
+     "f": 26,
+     "last_modified": "2026-11-18T06:46:19Z",
+     "size": 165945327,
+     "etag": "630642d69f97645eee36961848c42166",
+     "status": "on_time"
+    },
+    {
+     "f": 27,
+     "last_modified": "2026-11-18T06:46:17Z",
+     "size": 167159685,
+     "etag": "08c129f7cf90a3943942f6b7d00167fe",
+     "status": "on_time"
+    },
+    {
+     "f": 28,
+     "last_modified": "2026-11-18T06:46:23Z",
+     "size": 166626711,
+     "etag": "348fa2b25ea56cdd3642a927c846b15c",
+     "status": "on_time"
+    },
+    {
+     "f": 29,
+     "last_modified": "2026-11-18T06:46:55Z",
+     "size": 167133690,
+     "etag": "cb27a98fcf596049a2c8953f4cfd57b0",
+     "status": "on_time"
+    },
+    {
+     "f": 30,
+     "last_modified": "2026-11-18T06:43:47Z",
+     "size": 203447063,
+     "etag": "06eca72708e0e820f243f9a446439873",
+     "status": "on_time"
+    }
+   ],
+   "messages": [
+    {
+     "f": 6,
+     "field": "gust",
+     "start": 180088344,
+     "end": 181876837,
+     "sha256": "24d6b477d9b35cd5069caef27a1b827b4216fcc928208850d10099f7325bfe61",
+     "index_line": "199:180088344:d=2026111806:GUST:10 m above ground:6 hour fcst:"
+    },
+    {
+     "f": 7,
+     "field": "gust",
+     "start": 152588779,
+     "end": 154354082,
+     "sha256": "4f8fc9e61a1f8ce6057141de349fc7f54ca0ae4a56636fa464ed865fe8205bf1",
+     "index_line": "149:152588779:d=2026111806:GUST:10 m above ground:7 hour fcst:"
+    },
+    {
+     "f": 8,
+     "field": "gust",
+     "start": 152518079,
+     "end": 154267002,
+     "sha256": "776aef03203a8706483e4b200a1c3ea43acd65b1ed1ae77ab85c44284742ed14",
+     "index_line": "149:152518079:d=2026111806:GUST:10 m above ground:8 hour fcst:"
+    },
+    {
+     "f": 9,
+     "field": "gust",
+     "start": 153564921,
+     "end": 155282932,
+     "sha256": "fc57e7517bcb0a54e1c925e6bbd6f8a27b0f58bcb98f8b767070e08de1b7b5af",
+     "index_line": "150:153564921:d=2026111806:GUST:10 m above ground:9 hour fcst:"
+    },
+    {
+     "f": 10,
+     "field": "gust",
+     "start": 152860143,
+     "end": 154533842,
+     "sha256": "c91611157e2c9c727a496512e32ce5a90ac1f7c7754d9abe8e930cf156f60325",
+     "index_line": "152:152860143:d=2026111806:GUST:10 m above ground:10 hour fcst:"
+    },
+    {
+     "f": 11,
+     "field": "gust",
+     "start": 152643404,
+     "end": 154284758,
+     "sha256": "ce0caa36c12d4916db67b4fd8594e577a8370e2d764821f9b99c9ef8ff8c3465",
+     "index_line": "152:152643404:d=2026111806:GUST:10 m above ground:11 hour fcst:"
+    },
+    {
+     "f": 12,
+     "field": "gust",
+     "start": 182313344,
+     "end": 183891618,
+     "sha256": "6dceaf82aa928011a69cf9304731c8e24b232f0b62c1cce6eb2d4bcb703156ed",
+     "index_line": "204:182313344:d=2026111806:GUST:10 m above ground:12 hour fcst:"
+    },
+    {
+     "f": 13,
+     "field": "gust",
+     "start": 152830987,
+     "end": 154421097,
+     "sha256": "32279c8ed348cc8969df73ae05424aa7851c80fc60e45682762cbf4b77ee8fca",
+     "index_line": "152:152830987:d=2026111806:GUST:10 m above ground:13 hour fcst:"
+    },
+    {
+     "f": 14,
+     "field": "gust",
+     "start": 152630302,
+     "end": 154215267,
+     "sha256": "7e902777f6c9f3585846b211461a2ab91d080b981d9e6755b4308bdf9edcd698",
+     "index_line": "152:152630302:d=2026111806:GUST:10 m above ground:14 hour fcst:"
+    },
+    {
+     "f": 15,
+     "field": "gust",
+     "start": 153341182,
+     "end": 154932435,
+     "sha256": "9674fb0caf57ecef8a1c57bb6bc43baa4a99e24a8dd6345084e79c1b377412e8",
+     "index_line": "153:153341182:d=2026111806:GUST:10 m above ground:15 hour fcst:"
+    },
+    {
+     "f": 16,
+     "field": "gust",
+     "start": 152164477,
+     "end": 153758490,
+     "sha256": "a6816ef6909d784bbdb871351d98f24449682741d716fc9b43527b7618b012dc",
+     "index_line": "152:152164477:d=2026111806:GUST:10 m above ground:16 hour fcst:"
+    },
+    {
+     "f": 17,
+     "field": "gust",
+     "start": 151593836,
+     "end": 153224623,
+     "sha256": "56684cb7c6e39b6f7ef0650eb635126381acc2d5d67b314a09c5e4dff4a082fe",
+     "index_line": "152:151593836:d=2026111806:GUST:10 m above ground:17 hour fcst:"
+    },
+    {
+     "f": 18,
+     "field": "gust",
+     "start": 184353918,
+     "end": 186012585,
+     "sha256": "986d7fd6a35a3d7333d5358241434ab189af09dc222697e5c18fea5ed98e2fac",
+     "index_line": "207:184353918:d=2026111806:GUST:10 m above ground:18 hour fcst:"
+    },
+    {
+     "f": 18,
+     "field": "tstm_6_18",
+     "start": 79569258,
+     "end": 80189402,
+     "sha256": "3769bb1e921f7378f5a922f83286ba68f7d8f2163b1dc4be9d595081a1cbe289",
+     "index_line": "87:79569258:d=2026111806:TSTM:surface:6-18 hour acc fcst:probability forecast"
+    },
+    {
+     "f": 19,
+     "field": "gust",
+     "start": 149829909,
+     "end": 151507098,
+     "sha256": "2658b01acb3096f0f7d6f9c79a905cd9a82e0aa4db7ddff40d75836b0627f41d",
+     "index_line": "152:149829909:d=2026111806:GUST:10 m above ground:19 hour fcst:"
+    },
+    {
+     "f": 20,
+     "field": "gust",
+     "start": 150152173,
+     "end": 151856616,
+     "sha256": "60f2c9e909e1492a914010ee0e38a2b762eb786e222519bbafac312aec8eba60",
+     "index_line": "152:150152173:d=2026111806:GUST:10 m above ground:20 hour fcst:"
+    },
+    {
+     "f": 21,
+     "field": "gust",
+     "start": 150533052,
+     "end": 152264153,
+     "sha256": "e2d148a96f9b4d8df93ff1b4e316a0fc15d4f40d280e047609166fcb6a262868",
+     "index_line": "153:150533052:d=2026111806:GUST:10 m above ground:21 hour fcst:"
+    },
+    {
+     "f": 22,
+     "field": "gust",
+     "start": 149692504,
+     "end": 151430841,
+     "sha256": "1a67b62ba1f676ce41c5a97daace8ce82fd391967f4e651a2b1bab0e0ff8663a",
+     "index_line": "152:149692504:d=2026111806:GUST:10 m above ground:22 hour fcst:"
+    },
+    {
+     "f": 23,
+     "field": "gust",
+     "start": 149548626,
+     "end": 151304303,
+     "sha256": "4066bf0737d0a51b45395837ca2b7ca82526613f73e25edb0aca3b49381158a5",
+     "index_line": "152:149548626:d=2026111806:GUST:10 m above ground:23 hour fcst:"
+    },
+    {
+     "f": 24,
+     "field": "gust",
+     "start": 181227157,
+     "end": 182994312,
+     "sha256": "253b06669006b261ca622aa055251dc83a3102b8b592c831b7d02e5fd8c9d07f",
+     "index_line": "205:181227157:d=2026111806:GUST:10 m above ground:24 hour fcst:"
+    },
+    {
+     "f": 25,
+     "field": "gust",
+     "start": 152861711,
+     "end": 154633723,
+     "sha256": "87d1b62d63982213466eed9e0f32bbb871e84aa28187e98b966867da324f5d5c",
+     "index_line": "152:152861711:d=2026111806:GUST:10 m above ground:25 hour fcst:"
+    },
+    {
+     "f": 26,
+     "field": "gust",
+     "start": 153126775,
+     "end": 154905849,
+     "sha256": "7a2d258127b9e12378918c600f4fed41a376a363a4c65fad3c114d7d9b7932a3",
+     "index_line": "152:153126775:d=2026111806:GUST:10 m above ground:26 hour fcst:"
+    },
+    {
+     "f": 27,
+     "field": "gust",
+     "start": 154297638,
+     "end": 156080039,
+     "sha256": "94e3b5c560527df042dba843532651abfe7ea79f451e942d0e78ec9b84b819bd",
+     "index_line": "153:154297638:d=2026111806:GUST:10 m above ground:27 hour fcst:"
+    },
+    {
+     "f": 28,
+     "field": "gust",
+     "start": 153770036,
+     "end": 155555661,
+     "sha256": "cfc3d6689897687c05158a48731fef30278bef92e78ce1002840da858a920b6a",
+     "index_line": "152:153770036:d=2026111806:GUST:10 m above ground:28 hour fcst:"
+    },
+    {
+     "f": 29,
+     "field": "gust",
+     "start": 154267380,
+     "end": 156054679,
+     "sha256": "e0932f5a59f018bae96f120c293f7dccbfad4e034d1f8def4a2f70b1182e224b",
+     "index_line": "152:154267380:d=2026111806:GUST:10 m above ground:29 hour fcst:"
+    },
+    {
+     "f": 30,
+     "field": "tstm_18_30",
+     "start": 83854158,
+     "end": 84470659,
+     "sha256": "62ea3ce628b84bbe102bfcc1ff2511aea241828a80ecfd8e7897e518362175ef",
+     "index_line": "88:83854158:d=2026111806:TSTM:surface:18-30 hour acc fcst:probability forecast"
+    }
+   ],
+   "feature_names": [
+    "nbm_gust10m_nearby_max_max",
+    "nbm_gust10m_nearby_max_mean",
+    "nbm_tstm_18_30_nearby_max",
+    "nbm_tstm_6_18_nearby_max",
+    "nbm_tstm_18_30_nearest",
+    "nbm_tstm_6_18_nearest",
+    "nbm_tstm12_nearby_max_max"
+   ],
+   "features_sha256": "c473d84bf1d240d3b8a1d24a9e89baa100b4f9f82d18ef9fa098dad51ee863b4",
+   "native_grid": {
+    "gridType": "lambert",
+    "Ni": 2345,
+    "Nj": 1597,
+    "DxInMetres": 2539.703,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "latitudeOfFirstGridPointInDegrees": 19.229,
+    "longitudeOfFirstGridPointInDegrees": 233.7234
+   },
+   "cells_per_sample_min_median_max": [
+    788,
+    826,
+    905
+   ],
+   "thunder_periods_forecast_hours": [
+    [
+     6,
+     18
+    ],
+    [
+     18,
+     30
+    ]
+   ],
+   "mapping": "maximum over NBM cells within 40.2336 km of each sample center, and the nearest cell"
+  }
+ },
+ "rrfs_vs_hrrr_same_samples": {
+  "note": "HRRR v0.7 predictors regenerated with tools/severe/product.py; they reproduce the published probabilities exactly (max |diff| 0.0)",
+  "features": {
+   "x_dewpoint2m_nearby_max_max": {
+    "hrrr_p50": 281.65,
+    "hrrr_p99": 292.82,
+    "hrrr_max": 294.04,
+    "rrfs_p50": 281.72,
+    "rrfs_p99": 293.67,
+    "rrfs_max": 294.96,
+    "pearson_r": 0.947
+   },
+   "x_reflectivity_nearby_max_max": {
+    "hrrr_p50": -10.0,
+    "hrrr_p99": 49.17,
+    "hrrr_max": 57.06,
+    "rrfs_p50": -15.84,
+    "rrfs_p99": 51.3,
+    "rrfs_max": 65.18,
+    "pearson_r": 0.832
+   },
+   "x_sbcape_nearby_max_max": {
+    "hrrr_p50": 0.0,
+    "hrrr_p99": 950.0,
+    "hrrr_max": 1080.0,
+    "rrfs_p50": 0.0,
+    "rrfs_p99": 1044.0,
+    "rrfs_max": 1483.0,
+    "pearson_r": 0.919
+   },
+   "x_sbcin_nearby_max_max": {
+    "hrrr_p50": 0.0,
+    "hrrr_p99": 0.0,
+    "hrrr_max": 0.0,
+    "rrfs_p50": 0.0,
+    "rrfs_p99": 0.0,
+    "rrfs_max": 0.0,
+    "pearson_r": null
+   },
+   "x_shear06_u_nearby_max_max": {
+    "hrrr_p50": 13.36,
+    "hrrr_p99": 40.02,
+    "hrrr_max": 42.02,
+    "rrfs_p50": 13.8,
+    "rrfs_p99": 38.89,
+    "rrfs_max": 41.2,
+    "pearson_r": 0.966
+   },
+   "x_shear06_v_nearby_max_max": {
+    "hrrr_p50": 9.5,
+    "hrrr_p99": 35.46,
+    "hrrr_max": 40.27,
+    "rrfs_p50": 9.9,
+    "rrfs_p99": 30.7,
+    "rrfs_max": 35.8,
+    "pearson_r": 0.953
+   },
+   "x_srh01_nearby_max_max": {
+    "hrrr_p50": 159.0,
+    "hrrr_p99": 436.7,
+    "hrrr_max": 477.0,
+    "rrfs_p50": 148.0,
+    "rrfs_p99": 364.0,
+    "rrfs_max": 373.0,
+    "pearson_r": 0.96
+   },
+   "x_uh25_nearby_max_max": {
+    "hrrr_p50": 0.0,
+    "hrrr_p99": 3.5,
+    "hrrr_max": 10.1,
+    "rrfs_p50": 0.0,
+    "rrfs_p99": 26.75,
+    "rrfs_max": 84.25,
+    "pearson_r": 0.473
+   }
+  }
+ }
+}

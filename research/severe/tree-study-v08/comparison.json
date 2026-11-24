@@ -1,0 +1,765 @@
+{
+  "original_scores_sha256": "8823d2bc46c1b8f930d69fdc7dc8e8e48721640af0d6a0dc061b5a41fe9313ea",
+  "candidate_scores_sha256": "388a129e3745fd2c71313e5e2045d2497a596d3a3f88d4a4711a351a49e8f53b",
+  "comparison": "candidate minus original calibrated Brier score; negative is improvement",
+  "resampling_unit": "whole evaluation date",
+  "bootstrap_replicates": 10000,
+  "bootstrap_seed": 20261116,
+  "operational_forecast_eligible": false,
+  "products": {
+    "day1_tornado": {
+      "original_train": {
+        "known_points": 787824,
+        "positive_points": 1480,
+        "unknown_points": 0,
+        "positive_dates": 15
+      },
+      "candidate_train": {
+        "known_points": 787824,
+        "positive_points": 1480,
+        "unknown_points": 0,
+        "positive_dates": 15
+      },
+      "original_calibration": {
+        "known_points": 787824,
+        "positive_points": 1316,
+        "unknown_points": 0,
+        "positive_dates": 16
+      },
+      "candidate_calibration": {
+        "known_points": 787824,
+        "positive_points": 1316,
+        "unknown_points": 0,
+        "positive_dates": 16
+      },
+      "evaluation_dates": [
+        "2024-01-15",
+        "2024-02-15",
+        "2024-03-15",
+        "2024-04-15",
+        "2024-05-15",
+        "2024-06-15",
+        "2024-07-15",
+        "2024-08-15",
+        "2024-09-15",
+        "2024-10-15",
+        "2024-11-15",
+        "2024-12-15"
+      ],
+      "original_brier": 0.003611287606308867,
+      "candidate_brier": 0.0037656833929280006,
+      "mean_date_brier_difference": 0.0001543957866191337,
+      "paired_date_ci95": [
+        -7.378526901227029e-05,
+        0.0005090921118330667
+      ],
+      "candidate_reliability": [
+        {
+          "lower": 0,
+          "upper": 0.001,
+          "known_points": 137233,
+          "dates": 12,
+          "mean_probability": 0.0005588307334955767,
+          "observed_rate": 5.8295016504776546e-05
+        },
+        {
+          "lower": 0.001,
+          "upper": 0.01,
+          "known_points": 52937,
+          "dates": 12,
+          "mean_probability": 0.0031557316674656393,
+          "observed_rate": 0.008425109091939475
+        },
+        {
+          "lower": 0.01,
+          "upper": 0.02,
+          "known_points": 4787,
+          "dates": 12,
+          "mean_probability": 0.013529410491961177,
+          "observed_rate": 0.04804679339878839
+        },
+        {
+          "lower": 0.02,
+          "upper": 0.05,
+          "known_points": 1455,
+          "dates": 10,
+          "mean_probability": 0.027406963212714082,
+          "observed_rate": 0.027491408934707903
+        },
+        {
+          "lower": 0.05,
+          "upper": 0.1,
+          "known_points": 258,
+          "dates": 9,
+          "mean_probability": 0.07574331282619037,
+          "observed_rate": 0.050387596899224806
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.15,
+          "known_points": 182,
+          "dates": 6,
+          "mean_probability": 0.12229249696294656,
+          "observed_rate": 0.03296703296703297
+        },
+        {
+          "lower": 0.15,
+          "upper": 0.3,
+          "known_points": 104,
+          "dates": 6,
+          "mean_probability": 0.1864481711991893,
+          "observed_rate": 0.07692307692307693
+        }
+      ],
+      "date_differences": {
+        "2024-01-15": -2.2509703262388365e-06,
+        "2024-02-15": 1.7074725474968833e-07,
+        "2024-03-15": 0.00016765377810715404,
+        "2024-04-15": 7.045337429693963e-05,
+        "2024-05-15": 8.527357411710704e-05,
+        "2024-06-15": -2.2139595662357993e-05,
+        "2024-07-15": 0.001938616463186691,
+        "2024-08-15": 3.1987847099180546e-05,
+        "2024-09-15": -0.00042432883389603693,
+        "2024-10-15": 2.8852686186745334e-06,
+        "2024-11-15": 2.960800920848114e-07,
+        "2024-12-15": 4.131706541656727e-06
+      }
+    },
+    "day1_wind": {
+      "original_train": {
+        "known_points": 787824,
+        "positive_points": 13571,
+        "unknown_points": 0,
+        "positive_dates": 28
+      },
+      "candidate_train": {
+        "known_points": 787824,
+        "positive_points": 13571,
+        "unknown_points": 0,
+        "positive_dates": 28
+      },
+      "original_calibration": {
+        "known_points": 787824,
+        "positive_points": 15055,
+        "unknown_points": 0,
+        "positive_dates": 28
+      },
+      "candidate_calibration": {
+        "known_points": 787824,
+        "positive_points": 15055,
+        "unknown_points": 0,
+        "positive_dates": 28
+      },
+      "evaluation_dates": [
+        "2024-01-15",
+        "2024-02-15",
+        "2024-03-15",
+        "2024-04-15",
+        "2024-05-15",
+        "2024-06-15",
+        "2024-07-15",
+        "2024-08-15",
+        "2024-09-15",
+        "2024-10-15",
+        "2024-11-15",
+        "2024-12-15"
+      ],
+      "original_brier": 0.017463032573574882,
+      "candidate_brier": 0.01927418267654686,
+      "mean_date_brier_difference": 0.0018111501029719748,
+      "paired_date_ci95": [
+        -5.618181761527871e-05,
+        0.005094155384613145
+      ],
+      "candidate_reliability": [
+        {
+          "lower": 0,
+          "upper": 0.001,
+          "known_points": 73459,
+          "dates": 11,
+          "mean_probability": 0.0007226864256127903,
+          "observed_rate": 0.0
+        },
+        {
+          "lower": 0.001,
+          "upper": 0.01,
+          "known_points": 61148,
+          "dates": 12,
+          "mean_probability": 0.003998439616180374,
+          "observed_rate": 0.0011774710538365932
+        },
+        {
+          "lower": 0.01,
+          "upper": 0.02,
+          "known_points": 15923,
+          "dates": 12,
+          "mean_probability": 0.01424549563255087,
+          "observed_rate": 0.0035169252025372103
+        },
+        {
+          "lower": 0.02,
+          "upper": 0.05,
+          "known_points": 18057,
+          "dates": 12,
+          "mean_probability": 0.03305793013581302,
+          "observed_rate": 0.018773882704768236
+        },
+        {
+          "lower": 0.05,
+          "upper": 0.1,
+          "known_points": 15101,
+          "dates": 11,
+          "mean_probability": 0.0719234452987962,
+          "observed_rate": 0.060856896894245414
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.15,
+          "known_points": 8368,
+          "dates": 10,
+          "mean_probability": 0.12253787511772263,
+          "observed_rate": 0.17531070745697896
+        },
+        {
+          "lower": 0.15,
+          "upper": 0.3,
+          "known_points": 4798,
+          "dates": 8,
+          "mean_probability": 0.18814670764982103,
+          "observed_rate": 0.3547311379741559
+        },
+        {
+          "lower": 0.3,
+          "upper": 1,
+          "known_points": 102,
+          "dates": 5,
+          "mean_probability": 0.32845927014369175,
+          "observed_rate": 0.13725490196078433
+        }
+      ],
+      "date_differences": {
+        "2024-01-15": -2.3913052908342827e-05,
+        "2024-02-15": 2.9535930801701413e-06,
+        "2024-03-15": 0.0003722475929885116,
+        "2024-04-15": 0.0006137752126364471,
+        "2024-05-15": -0.0006590799329291019,
+        "2024-06-15": 0.0008251833406626163,
+        "2024-07-15": 0.018855236118732133,
+        "2024-08-15": 0.0023745917877023744,
+        "2024-09-15": -0.000783892373747614,
+        "2024-10-15": 1.8158595988943714e-05,
+        "2024-11-15": -2.325388022343204e-05,
+        "2024-12-15": 0.0001617942336809935
+      }
+    },
+    "day1_hail": {
+      "original_train": {
+        "known_points": 787824,
+        "positive_points": 5242,
+        "unknown_points": 0,
+        "positive_dates": 24
+      },
+      "candidate_train": {
+        "known_points": 787824,
+        "positive_points": 5242,
+        "unknown_points": 0,
+        "positive_dates": 24
+      },
+      "original_calibration": {
+        "known_points": 787824,
+        "positive_points": 6582,
+        "unknown_points": 0,
+        "positive_dates": 27
+      },
+      "candidate_calibration": {
+        "known_points": 787824,
+        "positive_points": 6582,
+        "unknown_points": 0,
+        "positive_dates": 27
+      },
+      "evaluation_dates": [
+        "2024-01-15",
+        "2024-02-15",
+        "2024-03-15",
+        "2024-04-15",
+        "2024-05-15",
+        "2024-06-15",
+        "2024-07-15",
+        "2024-08-15",
+        "2024-09-15",
+        "2024-10-15",
+        "2024-11-15",
+        "2024-12-15"
+      ],
+      "original_brier": 0.00960084537146306,
+      "candidate_brier": 0.009813017728355276,
+      "mean_date_brier_difference": 0.00021217235689221443,
+      "paired_date_ci95": [
+        -8.827946327189774e-05,
+        0.000612003002494404
+      ],
+      "candidate_reliability": [
+        {
+          "lower": 0,
+          "upper": 0.001,
+          "known_points": 83977,
+          "dates": 11,
+          "mean_probability": 0.0005266487024222989,
+          "observed_rate": 4.7632089738857066e-05
+        },
+        {
+          "lower": 0.001,
+          "upper": 0.01,
+          "known_points": 73202,
+          "dates": 12,
+          "mean_probability": 0.00339855560049655,
+          "observed_rate": 0.0014343870386055026
+        },
+        {
+          "lower": 0.01,
+          "upper": 0.02,
+          "known_points": 14454,
+          "dates": 11,
+          "mean_probability": 0.014445839892854173,
+          "observed_rate": 0.01944098519440985
+        },
+        {
+          "lower": 0.02,
+          "upper": 0.05,
+          "known_points": 15037,
+          "dates": 11,
+          "mean_probability": 0.031187734280403705,
+          "observed_rate": 0.04535479151426482
+        },
+        {
+          "lower": 0.05,
+          "upper": 0.1,
+          "known_points": 5955,
+          "dates": 9,
+          "mean_probability": 0.06968714669476712,
+          "observed_rate": 0.09319899244332494
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.15,
+          "known_points": 1664,
+          "dates": 8,
+          "mean_probability": 0.11920376182099661,
+          "observed_rate": 0.059495192307692304
+        },
+        {
+          "lower": 0.15,
+          "upper": 0.3,
+          "known_points": 2134,
+          "dates": 7,
+          "mean_probability": 0.22115615927871804,
+          "observed_rate": 0.08200562324273665
+        },
+        {
+          "lower": 0.3,
+          "upper": 1,
+          "known_points": 533,
+          "dates": 4,
+          "mean_probability": 0.3839925985271202,
+          "observed_rate": 0.043151969981238276
+        }
+      ],
+      "date_differences": {
+        "2024-01-15": -4.024921490188443e-06,
+        "2024-02-15": -2.8095016305512568e-05,
+        "2024-03-15": 0.0001032347247142875,
+        "2024-04-15": 0.0019638772944132778,
+        "2024-05-15": -0.0005630277980128266,
+        "2024-06-15": 0.00018540100327515876,
+        "2024-07-15": 8.305251049005313e-05,
+        "2024-08-15": 0.00103793861731679,
+        "2024-09-15": -0.0002481117733976865,
+        "2024-10-15": -5.277028210736438e-06,
+        "2024-11-15": -4.196801729910225e-06,
+        "2024-12-15": 2.529747164386681e-05
+      }
+    },
+    "day2_tornado": {
+      "original_train": {
+        "known_points": 787824,
+        "positive_points": 1094,
+        "unknown_points": 0,
+        "positive_dates": 15
+      },
+      "candidate_train": {
+        "known_points": 787824,
+        "positive_points": 1094,
+        "unknown_points": 0,
+        "positive_dates": 15
+      },
+      "original_calibration": {
+        "known_points": 787824,
+        "positive_points": 2005,
+        "unknown_points": 0,
+        "positive_dates": 21
+      },
+      "candidate_calibration": {
+        "known_points": 787824,
+        "positive_points": 2005,
+        "unknown_points": 0,
+        "positive_dates": 21
+      },
+      "evaluation_dates": [
+        "2024-01-15",
+        "2024-02-15",
+        "2024-03-15",
+        "2024-04-15",
+        "2024-05-15",
+        "2024-06-15",
+        "2024-07-15",
+        "2024-08-15",
+        "2024-09-15",
+        "2024-10-15",
+        "2024-11-15",
+        "2024-12-15"
+      ],
+      "original_brier": 0.0023910487726918985,
+      "candidate_brier": 0.00247805204128185,
+      "mean_date_brier_difference": 8.700326858995137e-05,
+      "paired_date_ci95": [
+        -0.00021245462548586614,
+        0.0004069900816192214
+      ],
+      "candidate_reliability": [
+        {
+          "lower": 0,
+          "upper": 0.001,
+          "known_points": 146079,
+          "dates": 12,
+          "mean_probability": 0.0003516963451294793,
+          "observed_rate": 0.0
+        },
+        {
+          "lower": 0.001,
+          "upper": 0.01,
+          "known_points": 35056,
+          "dates": 11,
+          "mean_probability": 0.0038708873143133934,
+          "observed_rate": 0.0016830214513920583
+        },
+        {
+          "lower": 0.01,
+          "upper": 0.02,
+          "known_points": 8679,
+          "dates": 11,
+          "mean_probability": 0.013951250908766331,
+          "observed_rate": 0.0077197833851826245
+        },
+        {
+          "lower": 0.02,
+          "upper": 0.05,
+          "known_points": 4030,
+          "dates": 11,
+          "mean_probability": 0.029703843521259633,
+          "observed_rate": 0.026799007444168736
+        },
+        {
+          "lower": 0.05,
+          "upper": 0.1,
+          "known_points": 1540,
+          "dates": 9,
+          "mean_probability": 0.07055410440004133,
+          "observed_rate": 0.05389610389610389
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.15,
+          "known_points": 557,
+          "dates": 7,
+          "mean_probability": 0.120866533651712,
+          "observed_rate": 0.03590664272890485
+        },
+        {
+          "lower": 0.15,
+          "upper": 0.3,
+          "known_points": 632,
+          "dates": 5,
+          "mean_probability": 0.21652841075561782,
+          "observed_rate": 0.1661392405063291
+        },
+        {
+          "lower": 0.3,
+          "upper": 1,
+          "known_points": 383,
+          "dates": 4,
+          "mean_probability": 0.3877283753302294,
+          "observed_rate": 0.06788511749347259
+        }
+      ],
+      "date_differences": {
+        "2024-01-15": 0.00021727732765509917,
+        "2024-02-15": 2.57512875152691e-06,
+        "2024-03-15": 1.1963784546674654e-06,
+        "2024-04-15": 0.0014488783235974238,
+        "2024-05-15": -0.0010616253074449598,
+        "2024-06-15": -8.025460714301828e-05,
+        "2024-07-15": -0.0001391615735743569,
+        "2024-08-15": 0.000640229905598842,
+        "2024-09-15": -3.2168575806083106e-05,
+        "2024-10-15": -1.5070857200393305e-06,
+        "2024-11-15": -1.1065468377783698e-07,
+        "2024-12-15": 4.8709963394092147e-05
+      }
+    },
+    "day2_wind": {
+      "original_train": {
+        "known_points": 787824,
+        "positive_points": 13670,
+        "unknown_points": 0,
+        "positive_dates": 28
+      },
+      "candidate_train": {
+        "known_points": 787824,
+        "positive_points": 13670,
+        "unknown_points": 0,
+        "positive_dates": 28
+      },
+      "original_calibration": {
+        "known_points": 787824,
+        "positive_points": 15178,
+        "unknown_points": 0,
+        "positive_dates": 28
+      },
+      "candidate_calibration": {
+        "known_points": 787824,
+        "positive_points": 15178,
+        "unknown_points": 0,
+        "positive_dates": 28
+      },
+      "evaluation_dates": [
+        "2024-01-15",
+        "2024-02-15",
+        "2024-03-15",
+        "2024-04-15",
+        "2024-05-15",
+        "2024-06-15",
+        "2024-07-15",
+        "2024-08-15",
+        "2024-09-15",
+        "2024-10-15",
+        "2024-11-15",
+        "2024-12-15"
+      ],
+      "original_brier": 0.019113326706272173,
+      "candidate_brier": 0.018550069263711663,
+      "mean_date_brier_difference": -0.0005632574425605113,
+      "paired_date_ci95": [
+        -0.0015336098302768007,
+        0.00026331904979516233
+      ],
+      "candidate_reliability": [
+        {
+          "lower": 0,
+          "upper": 0.001,
+          "known_points": 73734,
+          "dates": 12,
+          "mean_probability": 0.0004989364809164627,
+          "observed_rate": 1.356226435565682e-05
+        },
+        {
+          "lower": 0.001,
+          "upper": 0.01,
+          "known_points": 69348,
+          "dates": 12,
+          "mean_probability": 0.003264049482564185,
+          "observed_rate": 0.002984945492299706
+        },
+        {
+          "lower": 0.01,
+          "upper": 0.02,
+          "known_points": 11965,
+          "dates": 12,
+          "mean_probability": 0.014317908477446696,
+          "observed_rate": 0.02030923526953615
+        },
+        {
+          "lower": 0.02,
+          "upper": 0.05,
+          "known_points": 13779,
+          "dates": 11,
+          "mean_probability": 0.03291938504009708,
+          "observed_rate": 0.03425502576384353
+        },
+        {
+          "lower": 0.05,
+          "upper": 0.1,
+          "known_points": 13592,
+          "dates": 10,
+          "mean_probability": 0.07244504660959986,
+          "observed_rate": 0.07526486168334315
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.15,
+          "known_points": 6745,
+          "dates": 10,
+          "mean_probability": 0.12180261133972606,
+          "observed_rate": 0.09310600444773906
+        },
+        {
+          "lower": 0.15,
+          "upper": 0.3,
+          "known_points": 6410,
+          "dates": 8,
+          "mean_probability": 0.20709299682748133,
+          "observed_rate": 0.18003120124804992
+        },
+        {
+          "lower": 0.3,
+          "upper": 1,
+          "known_points": 1383,
+          "dates": 6,
+          "mean_probability": 0.3759007547782664,
+          "observed_rate": 0.24222704266088213
+        }
+      ],
+      "date_differences": {
+        "2024-01-15": -0.00015460907499030834,
+        "2024-02-15": 1.426852562849191e-05,
+        "2024-03-15": -0.00011126057068573192,
+        "2024-04-15": 0.0013903831232456969,
+        "2024-05-15": -0.0010036414966377548,
+        "2024-06-15": -0.003492202145870482,
+        "2024-07-15": -0.004012500094236468,
+        "2024-08-15": 0.0015358245793476374,
+        "2024-09-15": -0.0011551094112467676,
+        "2024-10-15": 1.8598702880881604e-05,
+        "2024-11-15": -2.550845748654287e-06,
+        "2024-12-15": 0.0002137093975873234
+      }
+    },
+    "day2_hail": {
+      "original_train": {
+        "known_points": 787824,
+        "positive_points": 3950,
+        "unknown_points": 0,
+        "positive_dates": 23
+      },
+      "candidate_train": {
+        "known_points": 787824,
+        "positive_points": 3950,
+        "unknown_points": 0,
+        "positive_dates": 23
+      },
+      "original_calibration": {
+        "known_points": 787824,
+        "positive_points": 7690,
+        "unknown_points": 0,
+        "positive_dates": 28
+      },
+      "candidate_calibration": {
+        "known_points": 787824,
+        "positive_points": 7690,
+        "unknown_points": 0,
+        "positive_dates": 28
+      },
+      "evaluation_dates": [
+        "2024-01-15",
+        "2024-02-15",
+        "2024-03-15",
+        "2024-04-15",
+        "2024-05-15",
+        "2024-06-15",
+        "2024-07-15",
+        "2024-08-15",
+        "2024-09-15",
+        "2024-10-15",
+        "2024-11-15",
+        "2024-12-15"
+      ],
+      "original_brier": 0.00601730065143803,
+      "candidate_brier": 0.005923887590780619,
+      "mean_date_brier_difference": -9.34130606574106e-05,
+      "paired_date_ci95": [
+        -0.001283184171440599,
+        0.0008683248280393519
+      ],
+      "candidate_reliability": [
+        {
+          "lower": 0,
+          "upper": 0.001,
+          "known_points": 98177,
+          "dates": 12,
+          "mean_probability": 0.0004412922346599609,
+          "observed_rate": 0.00018334233068845044
+        },
+        {
+          "lower": 0.001,
+          "upper": 0.01,
+          "known_points": 61013,
+          "dates": 12,
+          "mean_probability": 0.0033814617705818666,
+          "observed_rate": 0.002114303509088227
+        },
+        {
+          "lower": 0.01,
+          "upper": 0.02,
+          "known_points": 12151,
+          "dates": 11,
+          "mean_probability": 0.014301289624494156,
+          "observed_rate": 0.005678544975722163
+        },
+        {
+          "lower": 0.02,
+          "upper": 0.05,
+          "known_points": 13018,
+          "dates": 11,
+          "mean_probability": 0.032068308841354594,
+          "observed_rate": 0.0068366876632355205
+        },
+        {
+          "lower": 0.05,
+          "upper": 0.1,
+          "known_points": 5955,
+          "dates": 8,
+          "mean_probability": 0.06880097437515177,
+          "observed_rate": 0.020990764063811923
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.15,
+          "known_points": 2348,
+          "dates": 7,
+          "mean_probability": 0.12323304189126133,
+          "observed_rate": 0.054088586030664396
+        },
+        {
+          "lower": 0.15,
+          "upper": 0.3,
+          "known_points": 3052,
+          "dates": 7,
+          "mean_probability": 0.20926182193329473,
+          "observed_rate": 0.09403669724770643
+        },
+        {
+          "lower": 0.3,
+          "upper": 1,
+          "known_points": 1242,
+          "dates": 5,
+          "mean_probability": 0.3903242046353507,
+          "observed_rate": 0.26570048309178745
+        }
+      ],
+      "date_differences": {
+        "2024-01-15": -4.076467855556193e-05,
+        "2024-02-15": 3.270312044636233e-05,
+        "2024-03-15": -3.2105905487267494e-05,
+        "2024-04-15": 0.0030733836096644256,
+        "2024-05-15": -0.0056391159443764435,
+        "2024-06-15": -0.000799668497977404,
+        "2024-07-15": 0.0002642557521679717,
+        "2024-08-15": 0.0017852154078780765,
+        "2024-09-15": -8.608989530449755e-05,
+        "2024-10-15": -2.67359882277354e-06,
+        "2024-11-15": -4.988444935423442e-06,
+        "2024-12-15": 0.00032889234741360814
+      }
+    }
+  }
+}

@@ -68,7 +68,10 @@
  const RANKT={monitor:1,prepare:2,action:3};
  const concernOf=key=>{const r=rows[key];if(!r)return null;const cs=r.cells.map((c,i)=>({c,i})).filter(x=>x.c&&x.c.state==='concern');if(!cs.length)return null;
   const top=cs.reduce((a,x)=>(RANKT[x.c.tier]||0)>(RANKT[a.c.tier]||0)?x:a),f=V.axis[cs[0].i],l=V.axis[cs[cs.length-1].i],nx=V.axis[cs[cs.length-1].i+1];
-  return {tier:top.c.tier||'monitor',word:top.c.text||'Concern',why:top.c.why||'',hours:`${f.hourText}–${nx?nx.hourText:l.hourText}`}};
+  const li=cs[cs.length-1].i,cov=(V.cover&&V.cover[li])||[],endMin=cov.length?Math.max(...cov.map(p=>p.to)):60,endMs=V.axis[li].ms+endMin*60e3;
+  /* the concern ends where the event ends inside its last hour (an 11:30 PM end reads 11:30 PM, not 11 PM) */
+  const endText=endMin===60&&nx?nx.hourText:new Intl.DateTimeFormat('en-US',{timeZone:tz||undefined,hour:'numeric',minute:endMin%60?'2-digit':undefined}).format(new Date(endMs)).replace(':00','');
+  return {tier:top.c.tier||'monitor',word:top.c.text||'Concern',why:top.c.why||'',hours:`${f.hourText}–${endText}`}};
  const flag=(c,kind)=>c?` data-concern="${esc(c.tier)}" class="evc-tconcern" style="--tier:var(--${esc(c.tier)})" title="${esc(c.why||`${kind} concern`)}"`:'';
  const badge=(c,kind)=>c?`<span class="evc-tbadge">${esc(kind)}: ${esc(c.word)}</span> <span class="evc-thours">${esc(c.hours)}</span> · `:'';
  const totalsHtml=(()=>{const T=V.totals;if(!T)return'';const f2=v=>fin(v)?v.toFixed(2):'—',f1=v=>fin(v)?v.toFixed(1):'—',lb=T.gap?'at least ':'';

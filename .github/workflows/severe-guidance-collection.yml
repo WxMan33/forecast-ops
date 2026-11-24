@@ -1,0 +1,156 @@
+name: Severe research guidance collection
+# Research only: collects matched HRRR, RRFS and NBM predictors for the Day 1 and Day 2 windows
+# and archives them to the private archive. It never writes the public feed or touches the
+# production publisher.
+#
+# Scheduled collection is OFF until the repository variable SEVERE_GUIDANCE_COLLECTION_ENABLED is
+# 'true'. Schedules run 10 minutes after each production deadline (Day 1 09:30Z, Day 2 15:30Z).
+# Manual runs are always recorded as manual_or_backfill and never count toward measured on-time
+# coverage (see tools/severe/guidance_archive.py).
+on:
+  # One-shot verification from the draft PR: a push that changes this request file collects the
+  # date and lead it names and, if it says so, writes and reads back the private archive.
+  push:
+    branches: [claude/rrfs-nbm-phase1]
+    paths: ['research/severe/guidance-phase1/archive-verification.json']
+  schedule:
+    - cron: '40 9 * * *'
+    - cron: '40 15 * * *'
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'UTC initialization date (YYYY-MM-DD)'
+        required: true
+        type: string
+      day:
+        description: 'Lead day'
+        type: choice
+        options: ['1', '2', 'both']
+        default: 'both'
+      archive:
+        description: 'Also publish to the private archive (write and read-back)'
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    if: github.repository == 'WxMan33/forecast-ops' && (github.event_name != 'schedule' || vars.SEVERE_GUIDANCE_COLLECTION_ENABLED == 'true')
+    outputs:
+      date: ${{ steps.plan.outputs.date }}
+      days: ${{ steps.plan.outputs.days }}
+      archive: ${{ steps.plan.outputs.archive }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          INPUT_DATE: ${{ inputs.date }}
+          INPUT_DAY: ${{ inputs.day }}
+          INPUT_ARCHIVE: ${{ inputs.archive }}
+        run: |
+          if [ "$EVENT" = schedule ]; then
+            date=$(date -u +%Y-%m-%d)
+            case "$SCHEDULE" in '40 9 * * *') days='[1]' ;; '40 15 * * *') days='[2]' ;; *) echo "::error::Unknown schedule $SCHEDULE"; exit 1 ;; esac
+            archive=true
+          elif [ "$EVENT" = push ]; then
+            date=$(jq -r .date research/severe/guidance-phase1/archive-verification.json)
+            days=$(jq -c .days research/severe/guidance-phase1/archive-verification.json)
+            archive=$(jq -r .archive research/severe/guidance-phase1/archive-verification.json)
+          else
+            date=$INPUT_DATE
+            case "$INPUT_DAY" in 1) days='[1]' ;; 2) days='[2]' ;; *) days='[1,2]' ;; esac
+            archive=$INPUT_ARCHIVE
+          fi
+          { echo "date=$date"; echo "days=$days"; echo "archive=$archive"; } >> "$GITHUB_OUTPUT"
+  collect:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        day: ${{ fromJSON(needs.plan.outputs.days) }}
+    concurrency:
+      group: severe-guidance-${{ needs.plan.outputs.date }}-day${{ matrix.day }}
+      cancel-in-progress: false
+    env:
+      DATE: ${{ needs.plan.outputs.date }}
+      DAY: ${{ matrix.day }}
+      OUT: tests/out/guidance-study
+      OPENBLAS_NUM_THREADS: '1'
+    steps:
+      - id: start
+        run: echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%S+00:00)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r tools/severe/requirements.txt
+      - name: Collect and audit matched research inputs
+        id: collect
+        run: |
+          set +e
+          python tools/severe/collect_guidance.py --date "$DATE" --day "$DAY" --output "$OUT" --cache tests/out/guidance-study-cache
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+      - name: Record timing and collection evidence separately
+        env:
+          EVENT: ${{ github.event_name }}
+          STARTED_AT: ${{ steps.start.outputs.started_at }}
+        run: |
+          python tools/severe/guidance_archive.py record --output "$OUT" --day "$DAY" --event "$EVENT" \
+            --started-at "$STARTED_AT" --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" --commit "$GITHUB_SHA"
+      - name: Build the reproducible bundle
+        run: |
+          python tools/severe/guidance_archive.py bundle --output "$OUT" \
+            --dest "tests/out/bundle/severe-guidance-$DATE-day$DAY.tar.gz" | tee tests/out/bundle-info.json
+      - name: Publish to the private archive and verify by download
+        if: needs.plan.outputs.archive == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SEVERE_GUIDANCE_ARCHIVE_WRITE_TOKEN }}
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+        run: |
+          if [ -z "$GH_TOKEN" ] || [ -z "$ARCHIVE_REPO" ]; then
+            echo "::error::Set the secret SEVERE_GUIDANCE_ARCHIVE_WRITE_TOKEN and the variable SEVERE_REBUILD_ARCHIVE_REPO"
+            exit 1
+          fi
+          mkdir -p tests/out/receipt
+          python tools/severe/guidance_archive.py publish --bundle "tests/out/bundle/severe-guidance-$DATE-day$DAY.tar.gz" \
+            --record "$OUT/run.json" --repository "$ARCHIVE_REPO" --date "$DATE" --day "$DAY" \
+            --receipt-dir tests/out/receipt --result tests/out/publish.json
+      - name: Summary
+        if: always()
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, pathlib
+          run = json.loads(pathlib.Path("tests/out/guidance-study/run.json").read_text())
+          c = run["collection"]
+          print(f"### {run['date']} Day {run['day']}: collection {run['collection_status']}")
+          print(f"- Run: {c['run_kind']} (coverage eligible: {c['coverage_eligible']}); scheduled {c['scheduled_for']}, started {c['started_at']}")
+          for name, s in run["sources"].items():
+              print(f"- {name}: {s['status']}, hours {s['counts']}, on time: {s['on_time']}")
+          p = pathlib.Path("tests/out/publish.json")
+          if p.exists():
+              r = json.loads(p.read_text())
+              print(f"- Archive: {r.get('outcome')} {r.get('release', '')}/{r.get('asset', '')} data {str(r.get('local_data_sha256', ''))[:12]}; "
+                    f"receipt {r.get('receipt', '')}; verified={r.get('verified')}")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: severe-research-guidance-${{ needs.plan.outputs.date }}-day${{ matrix.day }}-${{ github.run_attempt }}
+          path: |
+            tests/out/guidance-study
+            tests/out/bundle
+            tests/out/bundle-info.json
+            tests/out/publish.json
+            tests/out/receipt
+          if-no-files-found: error
+          retention-days: 30
+      - name: Fail visibly on an incomplete collection (after recording and archiving it)
+        if: steps.collect.outputs.code != '0'
+        run: |
+          echo "::error::Collection was incomplete (exit ${{ steps.collect.outputs.code }}); the record and bundle are kept"
+          exit 1

@@ -1,0 +1,1400 @@
+{
+  "feature_schema": "hrrr-daily-25mi-v2-future-window",
+  "timing_protocol": "day1-06z-f06-30__day2-12z-f24-48-v1",
+  "status": "regional_research_baseline",
+  "operational_forecast_eligible": false,
+  "historical_public_availability_verified": false,
+  "protected_2025_outcomes_accessed": false,
+  "cohort_sha256": "5c33ec8a8518d1a9879de68af8da01aa9671f17714149ec23b207f83d6624e5a",
+  "frozen_labels_sha256": "6a34d0bb8a01b3119a086e32df04bf7b66825b071e67fdaa36b41be234eeddbc",
+  "joined_artifact_sha256_by_case": {
+    "2022-01-15": "b4b545d96730bd2817b37cbecc3e5faa7f1f720600fe1ce861c899f52fa73081",
+    "2022-02-15": "aac3e447cf722092f735e05a795c6e4530006b76917580cf4acc0bdff5a2e506",
+    "2022-03-15": "36cb67ab995a6caeac4714f0c2c1442d4bcd6c9288dfc178d0c30569001546d6",
+    "2022-04-15": "ad9f364a6b3248d328cd990ba9e7cc2d73f91d3a77fd3cc514da6c6fb3f47873",
+    "2022-05-15": "3771e7135bfeec2c8fe60d0aea40a6aaadb6b693c10270b69de72f4d59573a97",
+    "2022-06-15": "4bb7192c55e88449cdc489157fa894e16b4e00b6fbf65c751adba7c094fb84bc",
+    "2022-07-15": "4cb9b5bee1456363696bc3603b0d1b57dcf67725ff3b4015dc6e6444b59e7a28",
+    "2022-08-15": "061e70e4dc45c0d7e6d8af5f4aa7ae8391759f32a79c75eac739807bd06b0139",
+    "2022-09-15": "bb07a47a1bfa39b30fa6ad4673ecde25bad2538b050ccf6399f081e20e801193",
+    "2022-10-15": "67b49452bac81df2b09b073da06ec328294ef892f6459dfb15d6ef6846bcb133",
+    "2022-11-15": "bb2dd9bf9622628e72ad29dac5960ac5600b690b3f90df0f67c43b0f7c9bed4a",
+    "2022-12-15": "561202ddc630c864ef0df7185fd87c0a03c49cfae2783fb582c16e603683d742",
+    "2023-01-15": "01ea0aa361da8991b3c12cd19cfaa0e9b0b1166e830bbe9cdcccf48991286fce",
+    "2023-02-15": "18d870d3d142faba28208f6e4dfb874b157de81eb8371625e21e1ec892ac2b7c",
+    "2023-03-15": "f240df23a0704e75f38b381fbee248a31acccf7404915c8122c6c280fef57ce4",
+    "2023-04-15": "b09df8c17e6d8ce287cc51c3ba32bb5641df332485a107d3685a4876df419c00",
+    "2023-05-15": "4a73665185c5cdcf39fd8a39bf202bc8de9c77a15e506133f16749dbb33db4bd",
+    "2023-06-15": "b3bdd61262c98e530c6b9777808414d6dc0d955121a7cf36d506efa8bc65622f",
+    "2023-07-15": "50232d89b64740305b8266e2e6fd8dd56b1fd6f069595769befbfb1fe401a44e",
+    "2023-08-15": "d7243d32ed7def5f44d1b49057207e3bc31c95c7f074bd30e0c9014f3497c736",
+    "2023-09-15": "babac6050f998d8b70d41235e02d8123a4ff9a713833570a43fea35be4a81569",
+    "2023-10-15": "1732a96350320b54f65160b501bbdbae3e6e6e862bbd2b5a20271e2a3af5b8ab",
+    "2023-11-15": "008f6659d330c80475e005f8600fcbea54f0d4f359615390e2158338d962f960",
+    "2023-12-15": "cb8954c787bec8de42fadda022bab30c7fd85589beb474d1ccc0496cbb7d85c1",
+    "2024-01-15": "174df534a0b8502eb82fb5fd1c4bfd4c40fc04e4fe4e9ed6b1d0d907f8da470d",
+    "2024-02-15": "759d46f75b3038a50c08ede0126f0832ba12bf7a085b2a78c266a4f3b14b911a",
+    "2024-03-15": "cbfa48f95ddd90efbe0ca4e3b4ec13a9f7900457e0311bfc9392265edb44320d",
+    "2024-04-15": "79cd089fcc868d267729fea2cf8741534bdcccba6883afc804ef2ad61375f6d3",
+    "2024-05-15": "cce035fe9da98be169573ce82acf76de50b55489d9cb2fc70914d71cefc5dbef",
+    "2024-06-15": "0b041d3c510a0aeea92cb0a2b65a5cdda84b865ee9f5fe3abdbce8202d895d31",
+    "2024-07-15": "98e91a8163beb692cd12fdb646ba0ecd9290b3097930aafe985df3b62e3c373a",
+    "2024-08-15": "577135abdcfa6c8748580e0e1eb3f64f8851b5b4bc87d10711613fdd0f0351ee",
+    "2024-09-15": "af95e0dec5a82f3fff08ac53e3ef98ba98f746590d904e65f8028bac6da60e37",
+    "2024-10-15": "f30e0f58e179a32d11b513d30079a8a1f2864d2d944ad9d2686bd223ca82b7f1",
+    "2024-11-15": "648e0341b1ec058403c07a64b8442a3f70e06198827e8ed611f94c5b57fcd788",
+    "2024-12-15": "a571a3d2214f852736f7dfabe0fd26243294b167a72f8d3a5164607f66e6e61d"
+  },
+  "products": {
+    "day1_tornado": {
+      "train": {
+        "known_points": 196956,
+        "positive_points": 216,
+        "unknown_points": 0,
+        "positive_dates": 4
+      },
+      "calibration": {
+        "known_points": 196956,
+        "positive_points": 561,
+        "unknown_points": 0,
+        "positive_dates": 4
+      },
+      "development": {
+        "known_points": 196956,
+        "positive_points": 751,
+        "unknown_points": 0,
+        "positive_dates": 6
+      },
+      "training_climatology": {
+        "brier": 0.0038058736699675627,
+        "log_loss": 0.027080682171826284,
+        "mean_probability": 0.0010966916468652893
+      },
+      "raw": {
+        "brier": 0.003553690858974825,
+        "log_loss": 0.017632922586276356,
+        "mean_probability": 0.0017758926440536607,
+        "brier_skill_vs_training_climatology": 0.06626147709072205
+      },
+      "calibrated": {
+        "brier": 0.003603300453847176,
+        "log_loss": 0.017734315893622468,
+        "mean_probability": 0.0022069291314076632,
+        "brier_skill_vs_training_climatology": 0.05322646879188542
+      },
+      "calibrated_reliability": [
+        {
+          "lower": 0,
+          "upper": 0.001,
+          "known_points": 118280,
+          "dates": 12,
+          "mean_probability": 0.0004667379900413732,
+          "observed_rate": 0.0
+        },
+        {
+          "lower": 0.001,
+          "upper": 0.01,
+          "known_points": 71714,
+          "dates": 12,
+          "mean_probability": 0.0027871893617846012,
+          "observed_rate": 0.0037788995175279585
+        },
+        {
+          "lower": 0.01,
+          "upper": 0.02,
+          "known_points": 4353,
+          "dates": 8,
+          "mean_probability": 0.013797020334106057,
+          "observed_rate": 0.03606708017459224
+        },
+        {
+          "lower": 0.02,
+          "upper": 0.05,
+          "known_points": 2026,
+          "dates": 8,
+          "mean_probability": 0.0291651169838269,
+          "observed_rate": 0.07206317867719644
+        },
+        {
+          "lower": 0.05,
+          "upper": 0.1,
+          "known_points": 393,
+          "dates": 6,
+          "mean_probability": 0.06905496975912659,
+          "observed_rate": 0.30025445292620867
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.15,
+          "known_points": 100,
+          "dates": 5,
+          "mean_probability": 0.12179662601081699,
+          "observed_rate": 0.33
+        },
+        {
+          "lower": 0.15,
+          "upper": 0.3,
+          "known_points": 76,
+          "dates": 4,
+          "mean_probability": 0.20623851974839683,
+          "observed_rate": 0.27631578947368424
+        },
+        {
+          "lower": 0.3,
+          "upper": 1,
+          "known_points": 14,
+          "dates": 2,
+          "mean_probability": 0.3887369222514061,
+          "observed_rate": 0.35714285714285715
+        }
+      ],
+      "development_by_date": [
+        {
+          "case": "2024-01-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 1.2027325683041013e-06,
+            "raw": 1.2721569800683592e-06,
+            "calibrated": 5.292857926951654e-06
+          }
+        },
+        {
+          "case": "2024-02-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 1.2027325683041013e-06,
+            "raw": 1.521762828749854e-08,
+            "calibrated": 3.4481046229724304e-07
+          }
+        },
+        {
+          "case": "2024-03-15",
+          "positive_points": 43,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.0026153308333645986,
+            "raw": 0.002704051353509013,
+            "calibrated": 0.0026375166974919144
+          }
+        },
+        {
+          "case": "2024-04-15",
+          "positive_points": 69,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.004195966429194917,
+            "raw": 0.004126372992738298,
+            "calibrated": 0.004089575231667839
+          }
+        },
+        {
+          "case": "2024-05-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 1.2027325683041013e-06,
+            "raw": 0.00016109122999857968,
+            "calibrated": 5.76710414704984e-05
+          }
+        },
+        {
+          "case": "2024-06-15",
+          "positive_points": 78,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.0047431095200592575,
+            "raw": 0.0047191894019256555,
+            "calibrated": 0.004701484445907966
+          }
+        },
+        {
+          "case": "2024-07-15",
+          "positive_points": 512,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.03112756523507302,
+            "raw": 0.02745928193869417,
+            "calibrated": 0.028622332674745656
+          }
+        },
+        {
+          "case": "2024-08-15",
+          "positive_points": 25,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.0015210446516359174,
+            "raw": 0.0015240097655115422,
+            "calibrated": 0.001519161435843498
+          }
+        },
+        {
+          "case": "2024-09-15",
+          "positive_points": 24,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.001460250974873213,
+            "raw": 0.0019477636573662339,
+            "calibrated": 0.0016013336558323452
+          }
+        },
+        {
+          "case": "2024-10-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 1.2027325683041013e-06,
+            "raw": 1.2130163438027403e-06,
+            "calibrated": 4.355929105194155e-06
+          }
+        },
+        {
+          "case": "2024-11-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 1.2027325683041013e-06,
+            "raw": 7.970428056005951e-09,
+            "calibrated": 1.4368395145501155e-07
+          }
+        },
+        {
+          "case": "2024-12-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 1.2027325683041013e-06,
+            "raw": 2.1606574183803542e-08,
+            "calibrated": 3.9298176049589136e-07
+          }
+        }
+      ]
+    },
+    "day1_wind": {
+      "train": {
+        "known_points": 196956,
+        "positive_points": 3223,
+        "unknown_points": 0,
+        "positive_dates": 8
+      },
+      "calibration": {
+        "known_points": 196956,
+        "positive_points": 5654,
+        "unknown_points": 0,
+        "positive_dates": 7
+      },
+      "development": {
+        "known_points": 196956,
+        "positive_points": 4569,
+        "unknown_points": 0,
+        "positive_dates": 7
+      },
+      "training_climatology": {
+        "brier": 0.022706627770336656,
+        "log_loss": 0.11152264973882732,
+        "mean_probability": 0.016364061008550125
+      },
+      "raw": {
+        "brier": 0.017725000173126605,
+        "log_loss": 0.06851013255753277,
+        "mean_probability": 0.020506021520085158,
+        "brier_skill_vs_training_climatology": 0.21939090417106843
+      },
+      "calibrated": {
+        "brier": 0.017800730424777405,
+        "log_loss": 0.07055362982471468,
+        "mean_probability": 0.030659107474521406,
+        "brier_skill_vs_training_climatology": 0.2160557435115128
+      },
+      "calibrated_reliability": [
+        {
+          "lower": 0,
+          "upper": 0.001,
+          "known_points": 2514,
+          "dates": 5,
+          "mean_probability": 0.0007690495218399866,
+          "observed_rate": 0.0
+        },
+        {
+          "lower": 0.001,
+          "upper": 0.01,
+          "known_points": 108030,
+          "dates": 12,
+          "mean_probability": 0.004268608909788165,
+          "observed_rate": 0.0003702675182819587
+        },
+        {
+          "lower": 0.01,
+          "upper": 0.02,
+          "known_points": 34534,
+          "dates": 12,
+          "mean_probability": 0.014211121992740184,
+          "observed_rate": 0.0019401169861585684
+        },
+        {
+          "lower": 0.02,
+          "upper": 0.05,
+          "known_points": 24222,
+          "dates": 12,
+          "mean_probability": 0.03067324148697555,
+          "observed_rate": 0.029766328131450748
+        },
+        {
+          "lower": 0.05,
+          "upper": 0.1,
+          "known_points": 11732,
+          "dates": 10,
+          "mean_probability": 0.07175310396328732,
+          "observed_rate": 0.061285373337879305
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.15,
+          "known_points": 6747,
+          "dates": 9,
+          "mean_probability": 0.12276158078089404,
+          "observed_rate": 0.07988735734400475
+        },
+        {
+          "lower": 0.15,
+          "upper": 0.3,
+          "known_points": 6253,
+          "dates": 9,
+          "mean_probability": 0.20421219765754078,
+          "observed_rate": 0.17703502318886935
+        },
+        {
+          "lower": 0.3,
+          "upper": 1,
+          "known_points": 2924,
+          "dates": 7,
+          "mean_probability": 0.4769737159220673,
+          "observed_rate": 0.47058823529411764
+        }
+      ],
+      "development_by_date": [
+        {
+          "case": "2024-01-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.0002677824926915507,
+            "raw": 8.498786538441051e-05,
+            "calibrated": 0.0002515828696523697
+          }
+        },
+        {
+          "case": "2024-02-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.0002677824926915507,
+            "raw": 8.50631446905024e-06,
+            "calibrated": 8.276344731613599e-05
+          }
+        },
+        {
+          "case": "2024-03-15",
+          "positive_points": 277,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.016592300265265925,
+            "raw": 0.015268040494286707,
+            "calibrated": 0.015552531571721803
+          }
+        },
+        {
+          "case": "2024-04-15",
+          "positive_points": 482,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.02867362208251411,
+            "raw": 0.026414015956992727,
+            "calibrated": 0.02690927184425698
+          }
+        },
+        {
+          "case": "2024-05-15",
+          "positive_points": 334,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.019951497063232498,
+            "raw": 0.02079636841396654,
+            "calibrated": 0.02124091509786105
+          }
+        },
+        {
+          "case": "2024-06-15",
+          "positive_points": 405,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.024135759741401377,
+            "raw": 0.01917003060265863,
+            "calibrated": 0.018893635417653515
+          }
+        },
+        {
+          "case": "2024-07-15",
+          "positive_points": 2451,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.144713244805254,
+            "raw": 0.09886862992059296,
+            "calibrated": 0.09812586250954883
+          }
+        },
+        {
+          "case": "2024-08-15",
+          "positive_points": 598,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.03550988223276186,
+            "raw": 0.02878723048657035,
+            "calibrated": 0.028648311449977527
+          }
+        },
+        {
+          "case": "2024-09-15",
+          "positive_points": 22,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.0015643145901523315,
+            "raw": 0.0032593841161334806,
+            "calibrated": 0.003588617478777377
+          }
+        },
+        {
+          "case": "2024-10-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.0002677824926915507,
+            "raw": 1.4560592614415876e-05,
+            "calibrated": 0.0001245209113406674
+          }
+        },
+        {
+          "case": "2024-11-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.0002677824926915507,
+            "raw": 1.4098240985808487e-05,
+            "calibrated": 6.451609700846173e-05
+          }
+        },
+        {
+          "case": "2024-12-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.0002677824926915507,
+            "raw": 1.4149072864157021e-05,
+            "calibrated": 0.00012623640221411716
+          }
+        }
+      ]
+    },
+    "day1_hail": {
+      "train": {
+        "known_points": 196956,
+        "positive_points": 2642,
+        "unknown_points": 0,
+        "positive_dates": 7
+      },
+      "calibration": {
+        "known_points": 196956,
+        "positive_points": 2977,
+        "unknown_points": 0,
+        "positive_dates": 6
+      },
+      "development": {
+        "known_points": 196956,
+        "positive_points": 1924,
+        "unknown_points": 0,
+        "positive_dates": 6
+      },
+      "training_climatology": {
+        "brier": 0.009686541759251556,
+        "log_loss": 0.05549013592760697,
+        "mean_probability": 0.01341416356952821
+      },
+      "raw": {
+        "brier": 0.012513467361689387,
+        "log_loss": 0.0524296009380013,
+        "mean_probability": 0.01931334521130258,
+        "brier_skill_vs_training_climatology": -0.29184054254841274
+      },
+      "calibrated": {
+        "brier": 0.0096755411385378,
+        "log_loss": 0.04673199342083362,
+        "mean_probability": 0.01641891552722961,
+        "brier_skill_vs_training_climatology": 0.0011356602786798398
+      },
+      "calibrated_reliability": [
+        {
+          "lower": 0,
+          "upper": 0.001,
+          "known_points": 560,
+          "dates": 3,
+          "mean_probability": 0.0009298111024928918,
+          "observed_rate": 0.0
+        },
+        {
+          "lower": 0.001,
+          "upper": 0.01,
+          "known_points": 126175,
+          "dates": 12,
+          "mean_probability": 0.0046313063132148065,
+          "observed_rate": 0.000697444026154151
+        },
+        {
+          "lower": 0.01,
+          "upper": 0.02,
+          "known_points": 30641,
+          "dates": 12,
+          "mean_probability": 0.013976933759216055,
+          "observed_rate": 0.008289546685813127
+        },
+        {
+          "lower": 0.02,
+          "upper": 0.05,
+          "known_points": 25525,
+          "dates": 12,
+          "mean_probability": 0.03122770332347301,
+          "observed_rate": 0.028756121449559257
+        },
+        {
+          "lower": 0.05,
+          "upper": 0.1,
+          "known_points": 9459,
+          "dates": 8,
+          "mean_probability": 0.06915542909022102,
+          "observed_rate": 0.05349402685273285
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.15,
+          "known_points": 2589,
+          "dates": 7,
+          "mean_probability": 0.12067617271963112,
+          "observed_rate": 0.055619930475086905
+        },
+        {
+          "lower": 0.15,
+          "upper": 0.3,
+          "known_points": 1680,
+          "dates": 7,
+          "mean_probability": 0.19809275947960625,
+          "observed_rate": 0.09642857142857143
+        },
+        {
+          "lower": 0.3,
+          "upper": 1,
+          "known_points": 327,
+          "dates": 6,
+          "mean_probability": 0.37983532961684724,
+          "observed_rate": 0.11009174311926606
+        }
+      ],
+      "development_by_date": [
+        {
+          "case": "2024-01-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.00017993978427005794,
+            "raw": 4.271912539364728e-05,
+            "calibrated": 6.589605762417867e-05
+          }
+        },
+        {
+          "case": "2024-02-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.00017993978427005794,
+            "raw": 7.310332437869474e-05,
+            "calibrated": 0.00016423254221044668
+          }
+        },
+        {
+          "case": "2024-03-15",
+          "positive_points": 202,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.012157072418030533,
+            "raw": 0.012937698233656637,
+            "calibrated": 0.012039608806172592
+          }
+        },
+        {
+          "case": "2024-04-15",
+          "positive_points": 464,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.02769176920043273,
+            "raw": 0.0328008660415543,
+            "calibrated": 0.02821246100826154
+          }
+        },
+        {
+          "case": "2024-05-15",
+          "positive_points": 455,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.027158134578136473,
+            "raw": 0.027805580360491283,
+            "calibrated": 0.025928829548621996
+          }
+        },
+        {
+          "case": "2024-06-15",
+          "positive_points": 115,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.006998604402500033,
+            "raw": 0.012828954612438432,
+            "calibrated": 0.007744887612983374
+          }
+        },
+        {
+          "case": "2024-07-15",
+          "positive_points": 423,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.025260767032194226,
+            "raw": 0.044463812417032365,
+            "calibrated": 0.026488757902425285
+          }
+        },
+        {
+          "case": "2024-08-15",
+          "positive_points": 265,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.015892514774104343,
+            "raw": 0.016813480204614515,
+            "calibrated": 0.014463482890632198
+          }
+        },
+        {
+          "case": "2024-09-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.00017993978427005794,
+            "raw": 0.0022767981888742483,
+            "calibrated": 0.0007163020113915014
+          }
+        },
+        {
+          "case": "2024-10-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.00017993978427005794,
+            "raw": 1.5532595140194164e-06,
+            "calibrated": 2.592750146521882e-05
+          }
+        },
+        {
+          "case": "2024-11-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.00017993978427005794,
+            "raw": 2.049806064667882e-06,
+            "calibrated": 2.3364636789011077e-05
+          }
+        },
+        {
+          "case": "2024-12-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.00017993978427005794,
+            "raw": 0.00011499276625984167,
+            "calibrated": 0.0002327431438762588
+          }
+        }
+      ]
+    },
+    "day2_tornado": {
+      "train": {
+        "known_points": 196956,
+        "positive_points": 118,
+        "unknown_points": 0,
+        "positive_dates": 2
+      },
+      "calibration": {
+        "known_points": 196956,
+        "positive_points": 501,
+        "unknown_points": 0,
+        "positive_dates": 6
+      },
+      "development": {
+        "known_points": 196956,
+        "positive_points": 468,
+        "unknown_points": 0,
+        "positive_dates": 4
+      },
+      "training_climatology": {
+        "brier": 0.00237367696844769,
+        "log_loss": 0.01822914134307521,
+        "mean_probability": 0.0005991185848615933
+      },
+      "raw": {
+        "brier": 0.0023925190852910508,
+        "log_loss": 0.015934655772610988,
+        "mean_probability": 0.000825022045659651,
+        "brier_skill_vs_training_climatology": -0.007937944839934596
+      },
+      "calibrated": {
+        "brier": 0.0024953772598446887,
+        "log_loss": 0.014778831251359188,
+        "mean_probability": 0.0035761576966088036,
+        "brier_skill_vs_training_climatology": -0.051270789165800856
+      },
+      "calibrated_reliability": [
+        {
+          "lower": 0,
+          "upper": 0.001,
+          "known_points": 103781,
+          "dates": 12,
+          "mean_probability": 0.000435721447004088,
+          "observed_rate": 0.0
+        },
+        {
+          "lower": 0.001,
+          "upper": 0.01,
+          "known_points": 80031,
+          "dates": 12,
+          "mean_probability": 0.0032840699116224313,
+          "observed_rate": 0.0034986442753433046
+        },
+        {
+          "lower": 0.01,
+          "upper": 0.02,
+          "known_points": 7564,
+          "dates": 7,
+          "mean_probability": 0.013926716169962395,
+          "observed_rate": 0.02009518773135907
+        },
+        {
+          "lower": 0.02,
+          "upper": 0.05,
+          "known_points": 4154,
+          "dates": 7,
+          "mean_probability": 0.028155906144960878,
+          "observed_rate": 0.0019258545979778526
+        },
+        {
+          "lower": 0.05,
+          "upper": 0.1,
+          "known_points": 787,
+          "dates": 4,
+          "mean_probability": 0.07074063975736859,
+          "observed_rate": 0.020330368487928845
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.15,
+          "known_points": 272,
+          "dates": 4,
+          "mean_probability": 0.11923782323210377,
+          "observed_rate": 0.029411764705882353
+        },
+        {
+          "lower": 0.15,
+          "upper": 0.3,
+          "known_points": 312,
+          "dates": 3,
+          "mean_probability": 0.2036250122609589,
+          "observed_rate": 0.01282051282051282
+        },
+        {
+          "lower": 0.3,
+          "upper": 1,
+          "known_points": 55,
+          "dates": 1,
+          "mean_probability": 0.40656033155152566,
+          "observed_rate": 0.0
+        }
+      ],
+      "development_by_date": [
+        {
+          "case": "2024-01-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 3.5894307872655845e-07,
+            "raw": 9.852496848188215e-09,
+            "calibrated": 4.2563353512692624e-07
+          }
+        },
+        {
+          "case": "2024-02-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 3.5894307872655845e-07,
+            "raw": 7.662313181890958e-09,
+            "calibrated": 4.893198926708758e-07
+          }
+        },
+        {
+          "case": "2024-03-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 3.5894307872655845e-07,
+            "raw": 9.991893595376446e-08,
+            "calibrated": 2.95128930660872e-06
+          }
+        },
+        {
+          "case": "2024-04-15",
+          "positive_points": 348,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.021177658246371016,
+            "raw": 0.02112678073852583,
+            "calibrated": 0.02082862459840167
+          }
+        },
+        {
+          "case": "2024-05-15",
+          "positive_points": 30,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.0018259881933625443,
+            "raw": 0.0020237277267804396,
+            "calibrated": 0.0028311497229557645
+          }
+        },
+        {
+          "case": "2024-06-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 3.5894307872655845e-07,
+            "raw": 6.856298926494095e-06,
+            "calibrated": 0.00010472420050541362
+          }
+        },
+        {
+          "case": "2024-07-15",
+          "positive_points": 67,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.004077597602045919,
+            "raw": 0.004087112714502423,
+            "calibrated": 0.004236226826146713
+          }
+        },
+        {
+          "case": "2024-08-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 3.5894307872655845e-07,
+            "raw": 6.88680351616919e-05,
+            "calibrated": 0.0005423028778526965
+          }
+        },
+        {
+          "case": "2024-09-15",
+          "positive_points": 23,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.0014000080349629868,
+            "raw": 0.0013967172636783142,
+            "calibrated": 0.0013949908691151746
+          }
+        },
+        {
+          "case": "2024-10-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 3.5894307872655845e-07,
+            "raw": 3.895193847238069e-09,
+            "calibrated": 2.90521775974295e-07
+          }
+        },
+        {
+          "case": "2024-11-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 3.5894307872655845e-07,
+            "raw": 2.665672798614597e-09,
+            "calibrated": 2.2947313349131912e-07
+          }
+        },
+        {
+          "case": "2024-12-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 3.5894307872655845e-07,
+            "raw": 4.225130479053869e-08,
+            "calibrated": 2.1217855149614022e-06
+          }
+        }
+      ]
+    },
+    "day2_wind": {
+      "train": {
+        "known_points": 196956,
+        "positive_points": 4238,
+        "unknown_points": 0,
+        "positive_dates": 9
+      },
+      "calibration": {
+        "known_points": 196956,
+        "positive_points": 4100,
+        "unknown_points": 0,
+        "positive_dates": 8
+      },
+      "development": {
+        "known_points": 196956,
+        "positive_points": 4063,
+        "unknown_points": 0,
+        "positive_dates": 7
+      },
+      "training_climatology": {
+        "brier": 0.020204207916542413,
+        "log_loss": 0.1004959791371465,
+        "mean_probability": 0.02151749629358841
+      },
+      "raw": {
+        "brier": 0.01951582448528279,
+        "log_loss": 0.07395971285544152,
+        "mean_probability": 0.024295082398267602,
+        "brier_skill_vs_training_climatology": 0.034071290203661064
+      },
+      "calibrated": {
+        "brier": 0.019187175454808712,
+        "log_loss": 0.07319864375823613,
+        "mean_probability": 0.025555573467291457,
+        "brier_skill_vs_training_climatology": 0.05033765569700932
+      },
+      "calibrated_reliability": [
+        {
+          "lower": 0,
+          "upper": 0.001,
+          "known_points": 41123,
+          "dates": 11,
+          "mean_probability": 0.0005926145759440936,
+          "observed_rate": 0.0
+        },
+        {
+          "lower": 0.001,
+          "upper": 0.01,
+          "known_points": 93517,
+          "dates": 12,
+          "mean_probability": 0.0037270327972963187,
+          "observed_rate": 0.0006309013334473946
+        },
+        {
+          "lower": 0.01,
+          "upper": 0.02,
+          "known_points": 18431,
+          "dates": 12,
+          "mean_probability": 0.014177369708200965,
+          "observed_rate": 0.01524605284574901
+        },
+        {
+          "lower": 0.02,
+          "upper": 0.05,
+          "known_points": 20934,
+          "dates": 11,
+          "mean_probability": 0.032569786148847486,
+          "observed_rate": 0.03711665233591287
+        },
+        {
+          "lower": 0.05,
+          "upper": 0.1,
+          "known_points": 11454,
+          "dates": 9,
+          "mean_probability": 0.07004368622867908,
+          "observed_rate": 0.08320237471625633
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.15,
+          "known_points": 4283,
+          "dates": 9,
+          "mean_probability": 0.12186918167289504,
+          "observed_rate": 0.11884193322437543
+        },
+        {
+          "lower": 0.15,
+          "upper": 0.3,
+          "known_points": 4427,
+          "dates": 8,
+          "mean_probability": 0.20714949370363914,
+          "observed_rate": 0.15879828326180256
+        },
+        {
+          "lower": 0.3,
+          "upper": 1,
+          "known_points": 2787,
+          "dates": 7,
+          "mean_probability": 0.52960050677661,
+          "observed_rate": 0.2802296376031575
+        }
+      ],
+      "development_by_date": [
+        {
+          "case": "2024-01-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.00046300264674459094,
+            "raw": 4.60655293394625e-05,
+            "calibrated": 6.074634138156701e-05
+          }
+        },
+        {
+          "case": "2024-02-15",
+          "positive_points": 22,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.0017457194055992857,
+            "raw": 0.0013070787198764962,
+            "calibrated": 0.0013071973284829528
+          }
+        },
+        {
+          "case": "2024-03-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.00046300264674459094,
+            "raw": 0.00035783766752217036,
+            "calibrated": 0.0003562670676385047
+          }
+        },
+        {
+          "case": "2024-04-15",
+          "positive_points": 575,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.03398855429862866,
+            "raw": 0.02794381172754295,
+            "calibrated": 0.028055623313992084
+          }
+        },
+        {
+          "case": "2024-05-15",
+          "positive_points": 487,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.028857687263209888,
+            "raw": 0.026115605714432503,
+            "calibrated": 0.024943629249253873
+          }
+        },
+        {
+          "case": "2024-06-15",
+          "positive_points": 598,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.03532957636470402,
+            "raw": 0.03708668752080812,
+            "calibrated": 0.03655807175706101
+          }
+        },
+        {
+          "case": "2024-07-15",
+          "positive_points": 1283,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.07526871181086155,
+            "raw": 0.0808776881511147,
+            "calibrated": 0.07914347954716984
+          }
+        },
+        {
+          "case": "2024-08-15",
+          "positive_points": 1088,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.06389917690283131,
+            "raw": 0.05847419868856525,
+            "calibrated": 0.057774264551064575
+          }
+        },
+        {
+          "case": "2024-09-15",
+          "positive_points": 10,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.0010460557189512704,
+            "raw": 0.0018194478255513901,
+            "calibrated": 0.0018245639102921036
+          }
+        },
+        {
+          "case": "2024-10-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.00046300264674459094,
+            "raw": 2.618317556457441e-06,
+            "calibrated": 5.1260916144881716e-06
+          }
+        },
+        {
+          "case": "2024-11-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.00046300264674459094,
+            "raw": 1.8191404272601707e-06,
+            "calibrated": 4.1802755001657805e-06
+          }
+        },
+        {
+          "case": "2024-12-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.00046300264674459094,
+            "raw": 0.00015703482065677419,
+            "calibrated": 0.00021295602425334565
+          }
+        }
+      ]
+    },
+    "day2_hail": {
+      "train": {
+        "known_points": 196956,
+        "positive_points": 1532,
+        "unknown_points": 0,
+        "positive_dates": 7
+      },
+      "calibration": {
+        "known_points": 196956,
+        "positive_points": 2623,
+        "unknown_points": 0,
+        "positive_dates": 8
+      },
+      "development": {
+        "known_points": 196956,
+        "positive_points": 1174,
+        "unknown_points": 0,
+        "positive_dates": 7
+      },
+      "training_climatology": {
+        "brier": 0.005928495888251456,
+        "log_loss": 0.03670993912912447,
+        "mean_probability": 0.007778387050914927
+      },
+      "raw": {
+        "brier": 0.006712291584559735,
+        "log_loss": 0.029667661408421656,
+        "mean_probability": 0.009651857527775467,
+        "brier_skill_vs_training_climatology": -0.13220818755420471
+      },
+      "calibrated": {
+        "brier": 0.006949423023980026,
+        "log_loss": 0.0328827342278638,
+        "mean_probability": 0.01592566006241668,
+        "brier_skill_vs_training_climatology": -0.1722067713248734
+      },
+      "calibrated_reliability": [
+        {
+          "lower": 0,
+          "upper": 0.001,
+          "known_points": 34766,
+          "dates": 12,
+          "mean_probability": 0.0006193836834782459,
+          "observed_rate": 0.0
+        },
+        {
+          "lower": 0.001,
+          "upper": 0.01,
+          "known_points": 105179,
+          "dates": 12,
+          "mean_probability": 0.003913511128913585,
+          "observed_rate": 0.0007606081061808916
+        },
+        {
+          "lower": 0.01,
+          "upper": 0.02,
+          "known_points": 23009,
+          "dates": 12,
+          "mean_probability": 0.014225461666856702,
+          "observed_rate": 0.003954974140553696
+        },
+        {
+          "lower": 0.02,
+          "upper": 0.05,
+          "known_points": 21852,
+          "dates": 11,
+          "mean_probability": 0.03147862787513259,
+          "observed_rate": 0.01148636280431997
+        },
+        {
+          "lower": 0.05,
+          "upper": 0.1,
+          "known_points": 7522,
+          "dates": 10,
+          "mean_probability": 0.06782000411288014,
+          "observed_rate": 0.035229992023398035
+        },
+        {
+          "lower": 0.1,
+          "upper": 0.15,
+          "known_points": 1933,
+          "dates": 9,
+          "mean_probability": 0.12113861766873804,
+          "observed_rate": 0.06466632177961718
+        },
+        {
+          "lower": 0.15,
+          "upper": 0.3,
+          "known_points": 1550,
+          "dates": 7,
+          "mean_probability": 0.20129382386358532,
+          "observed_rate": 0.1167741935483871
+        },
+        {
+          "lower": 0.3,
+          "upper": 1,
+          "known_points": 1145,
+          "dates": 7,
+          "mean_probability": 0.5519725357083995,
+          "observed_rate": 0.15807860262008733
+        }
+      ],
+      "development_by_date": [
+        {
+          "case": "2024-01-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 6.050330511384104e-05,
+            "raw": 3.03267136831274e-05,
+            "calibrated": 0.00011409412113041681
+          }
+        },
+        {
+          "case": "2024-02-15",
+          "positive_points": 73,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.004439005436995058,
+            "raw": 0.004393983125608579,
+            "calibrated": 0.004342543331236413
+          }
+        },
+        {
+          "case": "2024-03-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 6.050330511384104e-05,
+            "raw": 0.00010064613675622865,
+            "calibrated": 0.00022807746206873145
+          }
+        },
+        {
+          "case": "2024-04-15",
+          "positive_points": 472,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.028370818459195136,
+            "raw": 0.02605071098282417,
+            "calibrated": 0.025198327537792633
+          }
+        },
+        {
+          "case": "2024-05-15",
+          "positive_points": 92,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.005578615580909348,
+            "raw": 0.01915154410443517,
+            "calibrated": 0.02021876743449876
+          }
+        },
+        {
+          "case": "2024-06-15",
+          "positive_points": 78,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.004738902843288291,
+            "raw": 0.006098872295593432,
+            "calibrated": 0.006752731482380374
+          }
+        },
+        {
+          "case": "2024-07-15",
+          "positive_points": 176,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.010616892006635681,
+            "raw": 0.011930080013857026,
+            "calibrated": 0.013248014097082627
+          }
+        },
+        {
+          "case": "2024-08-15",
+          "positive_points": 275,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.016554860651241714,
+            "raw": 0.012098837209573384,
+            "calibrated": 0.01222299166165137
+          }
+        },
+        {
+          "case": "2024-09-15",
+          "positive_points": 8,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 0.0005403391551830156,
+            "raw": 0.0006563444429342966,
+            "calibrated": 0.0009049300405700698
+          }
+        },
+        {
+          "case": "2024-10-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 6.050330511384104e-05,
+            "raw": 4.51236753184593e-06,
+            "calibrated": 2.3286133243076637e-05
+          }
+        },
+        {
+          "case": "2024-11-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 6.050330511384104e-05,
+            "raw": 1.1787479257341378e-06,
+            "calibrated": 8.86574890383438e-06
+          }
+        },
+        {
+          "case": "2024-12-15",
+          "positive_points": 0,
+          "known_points": 16413,
+          "brier": {
+            "training_climatology": 6.050330511384104e-05,
+            "raw": 3.046287399383284e-05,
+            "calibrated": 0.00013044723720199986
+          }
+        }
+      ]
+    }
+  }
+}

@@ -4,11 +4,6 @@
   "use strict";
   const O = window.Ops, $ = O.$, C = O.Core, S = C.severe;
   O.shell("severe", "Severe ingredients"); O.severeViews($("severeViews"), "severe");
-  /* beta has the historical replays but not the daily research section: a link to #severe-daily lands on the replays */
-  if (location.hash === "#severe-daily" && !$("severe-daily") && $("severe-research")) {
-    const r = $("severe-research"); r.open = true; history.replaceState(null, "", location.pathname + location.search + "#severe-research");
-    requestAnimationFrame(() => r.scrollIntoView());
-  }
 
   /* Models, variables and request settings: OpsCore.config.severe */
   const SPEC = C.config.severe, MODELS = SPEC.models;
@@ -64,8 +59,11 @@
     MODELS.forEach((m) => picker.setStatus(m.id, res.status[m.id] === "ok" ? "ok" : "none"));
     picker.redraw();
     if (res.empty) {
-      data = null; O.setChip("NO DATA", "err"); O.headline({ tier: "nodata" });
-      $("runMsg").className = "msg err"; $("runMsg").textContent = "Couldn't reach Open-Meteo. Check your connection and try again.";
+      data = null; O.setChip("NO DATA", "err");
+      /* rate limited: say so (not "check your connection") and try once more on its own after the requested wait */
+      const fail = O.loadFailText(res), again = O.retryWhenLimited(fail, () => { if (my === runGen) run(); });
+      O.headline({ tier: "nodata", word: fail.limited ? "BUSY" : "NO DATA" });
+      $("runMsg").className = "msg err"; $("runMsg").textContent = fail.text + (again ? ` Trying again automatically in ${again} s.` : fail.limited ? " Try again in a minute." : "");
       render(); return;
     }
     data = res;

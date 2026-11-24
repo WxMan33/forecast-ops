@@ -1,0 +1,7 @@
+{
+  "date": "2026-11-16",
+  "day": 2,
+  "model": "research/severe/baseline-v07/models.json",
+  "model_sha256": "a83218fb409683f2dd8b1a92c335c379010a2f7299b7a8705fb36960e9ae1e7e",
+  "purpose": "Prospective research trial of the expanded v0.7 candidate after fixed-date comparison"
+}

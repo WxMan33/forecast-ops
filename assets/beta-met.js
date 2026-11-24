@@ -11,8 +11,7 @@
   document.title = "Forecast Ops · Meteorologist beta";
 
   const TOOLS = [
-    { id: "thunder", page: "thunder.html", kick: "Storms", name: "Thunder", desc: "Storm timing and how guidance differs on thunder potential." },
-    { id: "soundings", page: "severe.html", kick: "Severe", name: "Severe & Soundings", desc: "Forecast profiles and the ingredients that could support severe storms." },
+    { id: "severe", page: "severe.html", kick: "Storms", name: "Severe", desc: "When storms might happen (storm timing) and what could make them severe (ingredients, soundings)." },
     { id: "winter", page: "winter.html", kick: "Winter", name: "Winter", desc: "Snow and ice guidance, ensemble ranges and chances of reaching key thresholds." },
     { id: "almanac", page: "almanac.html", kick: "Climate", name: "Almanac", desc: "Normals, records and observations from the nearest official climate station, plus daylight for this point." },
     { id: "map", page: "maps.html", kick: "Maps · in development", name: "Model Maps", desc: "HRRR forecast layers for the Cincinnati Tri-State only.", dev: true },
@@ -25,7 +24,7 @@
           <p>Daily and hourly forecasts, adjustable model weights and official NWS highs and lows.</p><span class="go">OPEN MODEL BLEND →</span></a>
         <div class="lead-links"><span class="kick">Shortcuts</span><a href="${esc(url("blend.html", "forecastControls"))}" data-tool="weights">Weights</a><a href="${esc(url("blend.html", "modelTrendCard"))}" data-tool="runs">Runs</a></div></div>`;
     $("tools").innerHTML = TOOLS.map((t) => `<a class="hubcard${t.dev ? " dev" : ""}" href="${esc(url(t.page))}" data-tool="${t.id}"><span class="kicker">${esc(t.kick)}</span><h2>${esc(t.name)}</h2><p>${esc(t.desc)}</p><span class="go">OPEN →</span></a>`).join("");
-    document.querySelectorAll("[data-tool]").forEach((a) => a.addEventListener("click", () => { U.track("tool_opened", { tool: a.dataset.tool === "soundings" ? "soundings" : a.dataset.tool }); if (["models", "runs"].includes(a.dataset.tool)) U.track("models_compared"); }));
+    document.querySelectorAll("[data-tool]").forEach((a) => a.addEventListener("click", () => { U.track("tool_opened", { tool: a.dataset.tool === "severe" ? "soundings" : a.dataset.tool }); /* the Severe card counts as the existing "soundings" tool, so usage stays comparable */ if (["models", "runs"].includes(a.dataset.tool)) U.track("models_compared"); }));
     document.body.dataset.place = here.name;
   }
   /* climate station for this point: shown here so the Almanac's reference is never a surprise */

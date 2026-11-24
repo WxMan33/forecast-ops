@@ -4,229 +4,25 @@
     "name": "Cincinnati, Ohio",
     "timeZone": "America/New_York"
   },
-  "retrievedAt": "2026-11-09T12:46:39.836Z",
-  "sourceLastModified": "Fri, 06 Nov 2026 22:01:10 GMT",
+  "retrievedAt": "2026-11-24T00:51:07.683Z",
+  "sourceLastModified": "Mon, 23 Nov 2026 22:01:08 GMT",
   "source": "https://iss-sts.hqmce.nasa.gov/iss-sts-cities-html/United_States-Ohio-Cincinnati.html",
-  "sourceHash": "311201e6415110c3804bdf25fd9a81f6026b4e8812d2242a9578c17dcc019514",
+  "sourceHash": "497b2be8dd98af81170d9963f5ddbd15d064017253fcb0e96ed4899b97cc053a",
   "dateYearInferred": true,
-  "from": "2026-11-08",
-  "through": "2026-11-20",
+  "from": "2026-11-23",
+  "through": "2026-12-04",
   "passes": [
     {
-      "id": "iss-cincinnati-1794184140000",
-      "date": "2026-11-08",
-      "start": "2026-11-09T00:29:00.000Z",
-      "duration": "< 1 min",
+      "id": "iss-cincinnati-1795477920000",
+      "date": "2026-11-23",
+      "start": "2026-11-23T23:52:00.000Z",
+      "duration": "1 min",
       "durationMinutes": 1,
-      "durationLessThan": true,
-      "maxElevation": 13,
-      "appears": {
-        "elevation": 10,
-        "direction": "SSW"
-      },
-      "disappears": {
-        "elevation": 13,
-        "direction": "SSW"
-      }
-    },
-    {
-      "id": "iss-cincinnati-1794267720000",
-      "date": "2026-11-09",
-      "start": "2026-11-09T23:42:00.000Z",
-      "duration": "2 min",
-      "durationMinutes": 2,
       "durationLessThan": false,
-      "maxElevation": 17,
-      "appears": {
-        "elevation": 10,
-        "direction": "S"
-      },
-      "disappears": {
-        "elevation": 17,
-        "direction": "SE"
-      }
-    },
-    {
-      "id": "iss-cincinnati-1794357000000",
-      "date": "2026-11-10",
-      "start": "2026-11-11T00:30:00.000Z",
-      "duration": "2 min",
-      "durationMinutes": 2,
-      "durationLessThan": false,
-      "maxElevation": 34,
-      "appears": {
-        "elevation": 10,
-        "direction": "SW"
-      },
-      "disappears": {
-        "elevation": 34,
-        "direction": "SW"
-      }
-    },
-    {
-      "id": "iss-cincinnati-1794440520000",
-      "date": "2026-11-11",
-      "start": "2026-11-11T23:42:00.000Z",
-      "duration": "4 min",
-      "durationMinutes": 4,
-      "durationLessThan": false,
-      "maxElevation": 53,
-      "appears": {
-        "elevation": 10,
-        "direction": "SW"
-      },
-      "disappears": {
-        "elevation": 36,
-        "direction": "E"
-      }
-    },
-    {
-      "id": "iss-cincinnati-1794524100000",
-      "date": "2026-11-12",
-      "start": "2026-11-12T22:55:00.000Z",
-      "duration": "6 min",
-      "durationMinutes": 6,
-      "durationLessThan": false,
-      "maxElevation": 29,
-      "appears": {
-        "elevation": 10,
-        "direction": "SSW"
-      },
-      "disappears": {
-        "elevation": 10,
-        "direction": "ENE"
-      }
-    },
-    {
-      "id": "iss-cincinnati-1794529860000",
-      "date": "2026-11-12",
-      "start": "2026-11-13T00:31:00.000Z",
-      "duration": "2 min",
-      "durationMinutes": 2,
-      "durationLessThan": false,
-      "maxElevation": 29,
-      "appears": {
-        "elevation": 10,
-        "direction": "W"
-      },
-      "disappears": {
-        "elevation": 29,
-        "direction": "NW"
-      }
-    },
-    {
-      "id": "iss-cincinnati-1794613380000",
-      "date": "2026-11-13",
-      "start": "2026-11-13T23:43:00.000Z",
-      "duration": "5 min",
-      "durationMinutes": 5,
-      "durationLessThan": false,
-      "maxElevation": 49,
-      "appears": {
-        "elevation": 10,
-        "direction": "WSW"
-      },
-      "disappears": {
-        "elevation": 27,
-        "direction": "NNE"
-      }
-    },
-    {
-      "id": "iss-cincinnati-1794696900000",
-      "date": "2026-11-14",
-      "start": "2026-11-14T22:55:00.000Z",
-      "duration": "7 min",
-      "durationMinutes": 7,
-      "durationLessThan": false,
-      "maxElevation": 86,
-      "appears": {
-        "elevation": 10,
-        "direction": "SW"
-      },
-      "disappears": {
-        "elevation": 10,
-        "direction": "NE"
-      }
-    },
-    {
-      "id": "iss-cincinnati-1794702780000",
-      "date": "2026-11-14",
-      "start": "2026-11-15T00:33:00.000Z",
-      "duration": "2 min",
-      "durationMinutes": 2,
-      "durationLessThan": false,
-      "maxElevation": 16,
-      "appears": {
-        "elevation": 10,
-        "direction": "WNW"
-      },
-      "disappears": {
-        "elevation": 16,
-        "direction": "NNW"
-      }
-    },
-    {
-      "id": "iss-cincinnati-1794786300000",
-      "date": "2026-11-15",
-      "start": "2026-11-15T23:45:00.000Z",
-      "duration": "4 min",
-      "durationMinutes": 4,
-      "durationLessThan": false,
-      "maxElevation": 22,
-      "appears": {
-        "elevation": 10,
-        "direction": "W"
-      },
-      "disappears": {
-        "elevation": 17,
-        "direction": "NNE"
-      }
-    },
-    {
-      "id": "iss-cincinnati-1794869820000",
-      "date": "2026-11-16",
-      "start": "2026-11-16T22:57:00.000Z",
-      "duration": "6 min",
-      "durationMinutes": 6,
-      "durationLessThan": false,
-      "maxElevation": 32,
-      "appears": {
-        "elevation": 10,
-        "direction": "W"
-      },
-      "disappears": {
-        "elevation": 10,
-        "direction": "NE"
-      }
-    },
-    {
-      "id": "iss-cincinnati-1794875760000",
-      "date": "2026-11-16",
-      "start": "2026-11-17T00:36:00.000Z",
-      "duration": "< 1 min",
-      "durationMinutes": 1,
-      "durationLessThan": true,
-      "maxElevation": 10,
+      "maxElevation": 12,
       "appears": {
         "elevation": 10,
         "direction": "NNW"
-      },
-      "disappears": {
-        "elevation": 10,
-        "direction": "NNW"
-      }
-    },
-    {
-      "id": "iss-cincinnati-1794959220000",
-      "date": "2026-11-17",
-      "start": "2026-11-17T23:47:00.000Z",
-      "duration": "3 min",
-      "durationMinutes": 3,
-      "durationLessThan": false,
-      "maxElevation": 13,
-      "appears": {
-        "elevation": 10,
-        "direction": "NW"
       },
       "disappears": {
         "elevation": 12,
@@ -234,16 +30,16 @@
       }
     },
     {
-      "id": "iss-cincinnati-1795042740000",
-      "date": "2026-11-18",
-      "start": "2026-11-18T22:59:00.000Z",
-      "duration": "5 min",
-      "durationMinutes": 5,
+      "id": "iss-cincinnati-1795561500000",
+      "date": "2026-11-24",
+      "start": "2026-11-24T23:05:00.000Z",
+      "duration": "2 min",
+      "durationMinutes": 2,
       "durationLessThan": false,
-      "maxElevation": 17,
+      "maxElevation": 11,
       "appears": {
         "elevation": 10,
-        "direction": "WNW"
+        "direction": "N"
       },
       "disappears": {
         "elevation": 10,
@@ -251,37 +47,207 @@
       }
     },
     {
-      "id": "iss-cincinnati-1795132200000",
-      "date": "2026-11-19",
-      "start": "2026-11-19T23:50:00.000Z",
-      "duration": "1 min",
-      "durationMinutes": 1,
+      "id": "iss-cincinnati-1795650720000",
+      "date": "2026-11-25",
+      "start": "2026-11-25T23:52:00.000Z",
+      "duration": "2 min",
+      "durationMinutes": 2,
       "durationLessThan": false,
-      "maxElevation": 10,
+      "maxElevation": 19,
       "appears": {
         "elevation": 10,
         "direction": "NNW"
       },
       "disappears": {
-        "elevation": 10,
+        "elevation": 19,
         "direction": "N"
       }
     },
     {
-      "id": "iss-cincinnati-1795215660000",
-      "date": "2026-11-20",
-      "start": "2026-11-20T23:01:00.000Z",
+      "id": "iss-cincinnati-1795734300000",
+      "date": "2026-11-26",
+      "start": "2026-11-26T23:05:00.000Z",
+      "duration": "4 min",
+      "durationMinutes": 4,
+      "durationLessThan": false,
+      "maxElevation": 16,
+      "appears": {
+        "elevation": 10,
+        "direction": "NNW"
+      },
+      "disappears": {
+        "elevation": 13,
+        "direction": "NE"
+      }
+    },
+    {
+      "id": "iss-cincinnati-1795740060000",
+      "date": "2026-11-26",
+      "start": "2026-11-27T00:41:00.000Z",
+      "duration": "1 min",
+      "durationMinutes": 1,
+      "durationLessThan": false,
+      "maxElevation": 14,
+      "appears": {
+        "elevation": 10,
+        "direction": "NW"
+      },
+      "disappears": {
+        "elevation": 14,
+        "direction": "NW"
+      }
+    },
+    {
+      "id": "iss-cincinnati-1795823580000",
+      "date": "2026-11-27",
+      "start": "2026-11-27T23:53:00.000Z",
+      "duration": "3 min",
+      "durationMinutes": 3,
+      "durationLessThan": false,
+      "maxElevation": 41,
+      "appears": {
+        "elevation": 10,
+        "direction": "NW"
+      },
+      "disappears": {
+        "elevation": 41,
+        "direction": "N"
+      }
+    },
+    {
+      "id": "iss-cincinnati-1795907100000",
+      "date": "2026-11-28",
+      "start": "2026-11-28T23:05:00.000Z",
+      "duration": "5 min",
+      "durationMinutes": 5,
+      "durationLessThan": false,
+      "maxElevation": 28,
+      "appears": {
+        "elevation": 10,
+        "direction": "NNW"
+      },
+      "disappears": {
+        "elevation": 14,
+        "direction": "E"
+      }
+    },
+    {
+      "id": "iss-cincinnati-1795912920000",
+      "date": "2026-11-28",
+      "start": "2026-11-29T00:42:00.000Z",
+      "duration": "2 min",
+      "durationMinutes": 2,
+      "durationLessThan": false,
+      "maxElevation": 21,
+      "appears": {
+        "elevation": 10,
+        "direction": "WNW"
+      },
+      "disappears": {
+        "elevation": 21,
+        "direction": "W"
+      }
+    },
+    {
+      "id": "iss-cincinnati-1795996380000",
+      "date": "2026-11-29",
+      "start": "2026-11-29T23:53:00.000Z",
+      "duration": "4 min",
+      "durationMinutes": 4,
+      "durationLessThan": false,
+      "maxElevation": 61,
+      "appears": {
+        "elevation": 10,
+        "direction": "WNW"
+      },
+      "disappears": {
+        "elevation": 39,
+        "direction": "SSE"
+      }
+    },
+    {
+      "id": "iss-cincinnati-1796079900000",
+      "date": "2026-11-30",
+      "start": "2026-11-30T23:05:00.000Z",
+      "duration": "7 min",
+      "durationMinutes": 7,
+      "durationLessThan": false,
+      "maxElevation": 73,
+      "appears": {
+        "elevation": 10,
+        "direction": "NW"
+      },
+      "disappears": {
+        "elevation": 10,
+        "direction": "ESE"
+      }
+    },
+    {
+      "id": "iss-cincinnati-1796085840000",
+      "date": "2026-11-30",
+      "start": "2026-12-01T00:44:00.000Z",
       "duration": "2 min",
       "durationMinutes": 2,
       "durationLessThan": false,
       "maxElevation": 11,
       "appears": {
         "elevation": 10,
-        "direction": "NNW"
+        "direction": "WSW"
       },
       "disappears": {
         "elevation": 10,
-        "direction": "N"
+        "direction": "SW"
+      }
+    },
+    {
+      "id": "iss-cincinnati-1796169300000",
+      "date": "2026-12-01",
+      "start": "2026-12-01T23:55:00.000Z",
+      "duration": "5 min",
+      "durationMinutes": 5,
+      "durationLessThan": false,
+      "maxElevation": 20,
+      "appears": {
+        "elevation": 10,
+        "direction": "W"
+      },
+      "disappears": {
+        "elevation": 10,
+        "direction": "S"
+      }
+    },
+    {
+      "id": "iss-cincinnati-1796252760000",
+      "date": "2026-12-02",
+      "start": "2026-12-02T23:06:00.000Z",
+      "duration": "6 min",
+      "durationMinutes": 6,
+      "durationLessThan": false,
+      "maxElevation": 34,
+      "appears": {
+        "elevation": 10,
+        "direction": "WNW"
+      },
+      "disappears": {
+        "elevation": 10,
+        "direction": "SSE"
+      }
+    },
+    {
+      "id": "iss-cincinnati-1796425680000",
+      "date": "2026-12-04",
+      "start": "2026-12-04T23:08:00.000Z",
+      "duration": "2 min",
+      "durationMinutes": 2,
+      "durationLessThan": false,
+      "maxElevation": 12,
+      "appears": {
+        "elevation": 10,
+        "direction": "WSW"
+      },
+      "disappears": {
+        "elevation": 10,
+        "direction": "SSW"
       }
     }
   ]
