@@ -71,4 +71,20 @@ const T = MC.colorTable("refc"), uu = MC.scaleU("refc", 37), k = Math.floor(uu *
 eq([...T.slice(k * 4, k * 4 + 3)].join(), MC.color("refc", 37).slice(0, 3).join(), "37 dBZ renders the 35-40 legend colour");
 eq(MC.scaleU("refc", 4.9), -1, "below 5 dBZ is not drawn");
 eq(MC.scaleU("precip", null), null, "missing precipitation has no colour coordinate");
-console.log(`ok - ${n} model-map checks passed (real HRRR package + synthetic cases)`);
+/* CONUS viewer (maps-conus-core.js): the lat-lon projection a regular_ll manifest grid selects (ECMWF IFS open data crop,
+   as pipeline/conus.py ll_grid writes it); Lambert manifests keep the Lambert projector */
+const K = require("../assets/maps-conus-core.js");
+const LL = { gridType: "regular_ll", Ni: 1440, Nj: 721, latitudeOfFirstGridPointInDegrees: 90, longitudeOfFirstGridPointInDegrees: 180, iDirectionIncrementInDegrees: 0.25, jDirectionIncrementInDegrees: 0.25,
+  iScansNegatively: 0, jScansPositively: 0, jPointsAreConsecutive: 0, i0: 180, j0: 280, rowStep: -1, nx: 301, ny: 141, lat0: 20, lon0: -135, dlat: 0.25, dlon: 0.25 };
+const PL = K.projectorFor(LL, MC.projector);
+eq(PL.kind, "latlon", "a regular_ll manifest grid selects the lat-lon projection");
+ok(K.projectorFor(g, MC.projector).kind === undefined && JSON.stringify(K.projectorFor(g, MC.projector).nearest(cp.points[0].lat, cp.points[0].lon)) === JSON.stringify(cp.points[0].cell), "a Lambert manifest keeps the Lambert projector (same cells as before)");
+{ let worst = 0; for (let j = -0.5; j <= LL.ny - 0.5; j += 0.5) for (let i = -0.5; i <= LL.nx - 0.5; i += 0.5) { const [la, lo] = PL.fromCell(i, j), [fi, fj] = PL.toCell(la, lo); worst = Math.max(worst, Math.abs(fi - i), Math.abs(fj - j)); }
+  ok(worst < 1e-9, `lat-lon fromCell/toCell round trip over every cell centre and edge (worst ${worst.toExponential(1)} cells)`); }
+eq(PL.fromCell(0, 0), [20, -135], "cell (0, 0) is the south-west cell centre, 20N 135W"); eq(PL.fromCell(300, 140), [55, -60], "cell (300, 140) is the north-east cell centre, 55N 60W");
+eq(PL.nearest(39.0447, -84.6723), [201, 76], "CVG airport -> the 0.25 degree cell at 39.0N 84.75W (rows counted from the south)");
+eq(PL.nearest(39.12, -84.63), [201, 76], "points within half a cell share the cell");
+eq([PL.nearest(19.8, -100), PL.nearest(30, -134.9 - 0.25), PL.nearest(30, 179)], [null, null, null], "outside the crop (south, west, across the dateline): no value is invented");
+ok(Math.abs(K.cellMetres(LL, 0) - 27798) < 2 && Math.abs(K.cellMetres(LL, 60) - 13899) < 2 && K.cellMetres(g, 40) === g.DxInMetres, "cell width: 0.25 degree of longitude narrows with latitude; Lambert cells are DxInMetres");
+ok(K.meshStep(LL) === 2 && K.meshStep(g) === 8 && K.meshError(PL, LL.nx, LL.ny, MC.merc, K.meshStep(LL)) < 0.01, "drawing mesh on the lat-lon crop (every 2 cells) places cells to within 1% of a cell (Mercator y is not linear in latitude)");
+console.log(`ok - ${n} model-map checks passed (real HRRR package + synthetic cases + CONUS lat-lon projection)`);

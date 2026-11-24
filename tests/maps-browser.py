@@ -27,15 +27,30 @@ conus_manifest={
  'fields':{'apcp_run':{'scale':0.01,'displayStep':1,'hours':{'1':{'points':True}}}},
 }
 conus_tile=gzip.compress((bytes([48])+bytes(127))*128+bytes(128*128))
+# One synthetic ECMWF hour on a regular lat-lon crop (0.25 degree cells from 20N 100W), every cell 40.0 degF
+ecmwf_run={'id':'ec','cycle':conus_cycle,'path':'qa-map/conus/ecmwf/run','hours':[1],'hoursExpected':1,'status':'complete','fields':['t2m']}
+ecmwf_manifest={**conus_manifest,'grid':{'gridType':'regular_ll','Ni':1440,'Nj':721,'latitudeOfFirstGridPointInDegrees':90.0,'longitudeOfFirstGridPointInDegrees':180.0,
+ 'iDirectionIncrementInDegrees':0.25,'jDirectionIncrementInDegrees':0.25,'iScansNegatively':0,'jScansPositively':0,'jPointsAreConsecutive':0,
+ 'i0':320,'j0':280,'rowStep':-1,'nx':128,'ny':128,'lat0':20.0,'lon0':-100.0,'dlat':0.25,'dlon':0.25},
+ 'fields':{'t2m':{'scale':0.1,'displayStep':5,'hours':{'1':{'points':True}}}}}
+ecmwf_tile=gzip.compress((bytes([32])+bytes(127))*128+(bytes([3])+bytes(127))*128)
 def route(r):
  url=r.request.url
  if '/fonts/open-sans-v1/' in urlsplit(url).path:glyph_requests.append(url)
+ if url.startswith('https://wxman33.github.io/forecast-ops-maps/data/conus/index.json'):r.fulfill(json={'runs':[conus_run]});return   # the GitHub Pages data host
  if '/qa-map/' not in urlsplit(url).path:
   if url.startswith(origin):r.continue_()
   else:r.fulfill(status=404,body='')
   return
  requests.append(url)
  name=urlsplit(url).path.split('/')[-1]
+ if '/conus/ecmwf/' in urlsplit(url).path:
+  if name=='index.json':r.fulfill(json={'runs':[ecmwf_run]})
+  elif name=='manifest.json':r.fulfill(json=ecmwf_manifest)
+  elif name=='p01.bin.gz':r.fulfill(body=gzip.compress(struct.pack('<h',400)))
+  elif name=='L0_0_0.bin.gz':r.fulfill(body=ecmwf_tile)
+  else:r.fulfill(status=404,body='')
+  return
  if '/qa-map/conus/' in urlsplit(url).path or '/qa-map/data/conus/' in urlsplit(url).path:
   if name=='index.json':r.fulfill(json={'runs':[conus_run]})
   elif name=='manifest.json':r.fulfill(json=conus_manifest)
@@ -143,6 +158,21 @@ with sync_playwright() as p:
  page.evaluate("__conus.map.jumpTo({zoom:4})")
  page.wait_for_function("window.__conus?.map.queryRenderedFeatures({layers:['counties']}).length === 0")
  print('CONUS browser: county lines at local zoom, native named plots, dry city name and Values Off pass')
+ # ECMWF on its lat-lon grid: offered in the model menu off GitHub Pages, drawn on the lat-lon projection, its own credit
+ page.goto(origin+'/maps.html?domain=conus&model=ecmwf&data='+origin+'/qa-map/data&field=t2m&map=39.1,-84.5,5')
+ page.wait_for_function("window.__conus?.man && __conus.draw && __conus.draw.length > 0")
+ assert page.evaluate("__conus.P.kind")=='latlon','a regular_ll manifest selects the lat-lon projection'
+ assert 'ecmwf' in page.evaluate("[...document.querySelectorAll('#modelSel option')].map(o=>o.value)"),'ECMWF is in the model menu off GitHub Pages'
+ assert 'ECMWF IFS 0.25' in page.locator('#modelSel option[value="ecmwf"]').inner_text()
+ page.evaluate("MapsConus.api.point(39.1,-84.5)")
+ page.wait_for_function("document.querySelector('#inspect').innerText.includes('40.0 °F')")
+ assert 'centred at 39.0000, -84.5000' in page.locator('#inspect').inner_text(),page.locator('#inspect').inner_text()
+ assert '© ECMWF, CC BY 4.0' in page.locator('.maplibregl-ctrl-attrib').inner_text()
+ assert page.locator('#fieldSel option[value="refc"]').count()==0,'fields ECMWF does not publish are not offered'
+ page.goto(origin+'/maps.html?domain=conus&field=t2m')
+ page.wait_for_function("document.querySelectorAll('#modelSel option').length>0")
+ assert not {'ecmwf','rrfs'}&set(page.evaluate("[...document.querySelectorAll('#modelSel option')].map(o=>o.value)")),'R2-only models are not offered on GitHub Pages'
+ print('CONUS browser: ECMWF lat-lon grid, menu, native cell value and credit pass')
  assert not errors,errors
  print('Map browser: new surface fields against GRIB checkpoints, native labels, local glyphs, no DMA outline, selected-field requests, outage/retry, cached switches, original-cell inspection, precip dependencies, valid-time matching and three widths pass')
  browser.close()

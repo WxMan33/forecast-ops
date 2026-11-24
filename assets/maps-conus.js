@@ -1,7 +1,7 @@
-/* Model maps: full-CONUS HRRR, NBM and RRFS beta (maps.html?domain=conus[&model=nbm|rrfs]). A separate viewer from the Tri-State maps.
+/* Model maps: full-CONUS HRRR, NBM, RRFS and ECMWF beta (maps.html?domain=conus[&model=nbm|rrfs|ecmwf]). A separate viewer from the Tri-State maps.
    Data: forecast-ops-maps conus-v1 tiles (see maps-conus-core.js). Drawing: a custom MapLibre WebGL layer
    samples the native grid from a texture with nearest-cell lookup, on a mesh whose nodes sit at exact
-   projected cell edges, so every model cell is drawn where HRRR put it; outside the grid nothing is drawn.
+   projected cell edges, so every model cell is drawn where the model put it; outside the grid nothing is drawn.
    Only the tiles in view are downloaded, at the coarsest level that still shows at least one cell per
    ~2 screen pixels; every click reads the native cell at full precision. */
 (function () {
@@ -9,19 +9,32 @@
   const O = window.Ops, $ = O.$, esc = O.esc, MC = window.MapsCore, K = window.MapsConusCore, ML = window.maplibregl;
   const TZ = "America/New_York", H = 3600e3, Q = new URLSearchParams(location.search);
   /* Data host: the isolated Model Maps preview (raw.githack.com) reads the R2 bucket, refreshed alongside the GitHub Pages
-     build and the only host with RRFS and NBM through Day 3; everywhere else keeps GitHub Pages. ?data= overrides both. */
+     build and the only host with RRFS, ECMWF and NBM through Day 3; everywhere else keeps GitHub Pages. ?data= overrides both. */
   const DATA_HOSTS = { r2: "https://pub-d40aeef98e1146a78125908fd1f9c48f.r2.dev/data", pages: "https://wxman33.github.io/forecast-ops-maps/data" };
   const DATA = (Q.get("data") || (location.hostname === "raw.githack.com" ? DATA_HOSTS.r2 : DATA_HOSTS.pages)).replace(/\/$/, "");
   const SITE = DATA.replace(/\/data$/, "");
   const PHONE = () => innerWidth < 700;
-  /* the models this viewer can show; each is published in the same conus-v1 format under its own run list */
+  /* the models this viewer can show; each is published in the same conus-v1 format under its own run list. r2only: published
+     on the R2 data host only (not offered in the menu on GitHub Pages). The optional texts replace NOAA/HRRR wording for a model
+     that needs its own (publisher, endorsement, projection, run schedule, field notes). */
+  const NOAA_TXT = { publisher: "NOAA", endorse: "Not endorsed by NOAA", proj: "the model's own Lambert conformal projection",
+    runs: "Runs appear hour by hour as NOAA posts them; the 00, 06, 12 and 18 UTC runs go to 48 hours, the others to 18." };
   const MODELS = {
     hrrr: { key: "hrrr", name: "HRRR", res: "3 km", label: "HRRR 3 km", index: "conus/index.json", credit: "NOAA/NCEP HRRR", source: "NOAA/NCEP HRRR (NOAA Open Data Dissemination)",
-      about: "NOAA HRRR, full CONUS 3 km grid (1799 × 1059 cells)" },
+      about: "NOAA HRRR, full CONUS 3 km grid (1799 × 1059 cells)", ...NOAA_TXT },
     rrfs: { key: "rrfs", name: "RRFS", res: "3 km", label: "RRFS 3 km", index: "conus/rrfs/index.json", credit: "NOAA/NCEP RRFS", source: "NOAA/NCEP RRFS (NOAA Open Data Dissemination)",
-      about: "NOAA/NCEP RRFS (Rapid Refresh Forecast System), full CONUS 3 km grid (1799 × 1059 cells, the HRRR grid)" },
+      about: "NOAA/NCEP RRFS (Rapid Refresh Forecast System), full CONUS 3 km grid (1799 × 1059 cells, the HRRR grid)", r2only: true, ...NOAA_TXT },
     nbm: { key: "nbm", name: "NBM", res: "2.5 km", label: "NBM 2.5 km", index: "conus/nbm/index.json", credit: "NOAA/NWS National Blend of Models", source: "NOAA/NWS National Blend of Models (NOAA Open Data Dissemination)",
-      about: "NOAA/NWS National Blend of Models (NBM), full CONUS 2.5 km grid (2345 × 1597 cells)" },
+      about: "NOAA/NWS National Blend of Models (NBM), full CONUS 2.5 km grid (2345 × 1597 cells)", ...NOAA_TXT },
+    ecmwf: { key: "ecmwf", name: "ECMWF", res: "0.25°", label: "ECMWF IFS 0.25°", index: "conus/ecmwf/index.json", r2only: true,
+      credit: "© ECMWF, CC BY 4.0 (open data; cropped and encoded by Forecast Ops)", source: "ECMWF IFS open data, © ECMWF, CC BY 4.0 (open data; cropped and encoded by Forecast Ops)",
+      about: "ECMWF IFS open data (© ECMWF, CC BY 4.0), native 0.25° cells cropped to 20–55°N, 135–60°W (301 × 141 cells, never resampled)",
+      publisher: "ECMWF", endorse: "Not endorsed by ECMWF", proj: "the model's own latitude-longitude grid",
+      runs: "The 00 and 12 UTC runs appear step by step as ECMWF posts them, every 3 hours to 120 hours (there are no 1-hour fields).",
+      gustLabel: "Surface wind gust (max over preceding period)",
+      gustNote: "ECMWF's maximum 10-m gust in the hour before the valid time through F90, and in the 3 hours before it from F93 (ECMWF posts only 3-h maxima there); not an instantaneous gust.",
+      snowTag: "ECMWF, 10:1", snowNote: "ECMWF gives snowfall only as water equivalent: shown at a fixed 10:1 snow-to-liquid ratio, not ECMWF's own snow depth.",
+      ptypeNote: "ECMWF's precipitation type at the valid time, grouped: drizzle as rain; wet snow and rain-snow mixtures as snow; freezing drizzle as freezing rain. Other ECMWF codes are left blank." },
   };
   const M = MODELS[Q.get("model")] || MODELS.hrrr;
   const EMBED = Q.get("embed") === "1", PANEL = EMBED ? (Q.get("panel") || "") : "";   // a panel of the cycle comparison (compare=1 page)
@@ -51,13 +64,13 @@
       legend: { stops: MC.SCALES.t2m.stops, ticks: [-10, 0, 10, 20, 32, 40, 50, 60, 70, 80, 90, 100, 110] } },
     d2m: { group: "Surface", vfmt: whole, label: "2-m dew point", units: "°F", dec: 1, color: (v) => MC.color("d2m", v), range: [-30, 90],
       legend: { stops: MC.SCALES.d2m.stops, ticks: [-20, 0, 20, 35, 45, 55, 60, 65, 70, 75, 80] } },
-    gust: { group: "Surface", vfmt: whole, label: "Surface wind gust", units: "mph", dec: 0, color: stepped(GUST), range: [0, 120], steps: GUST,
-      note: `${M.name}'s instantaneous gust diagnostic at the valid time, not an hourly maximum.` },
+    gust: { group: "Surface", vfmt: whole, label: M.gustLabel || "Surface wind gust", units: "mph", dec: 0, color: stepped(GUST), range: [0, 120], steps: GUST,
+      note: M.gustNote || `${M.name}'s instantaneous gust diagnostic at the valid time, not an hourly maximum.` },
     refc: { group: "Severe", label: "Composite reflectivity (simulated)", short: "Sim. composite reflectivity", units: "dBZ", dec: 1, color: stepped(REFC), range: [-20, 80], steps: REFC,
       note: "Model-simulated reflectivity, not radar." },
     ptype: { group: "Precip & Snow", label: "Precipitation type", units: "", dec: 0, cat: PTYPE, range: [0, 5],
       color: (v) => { const c = PTYPE[Math.round(v)]; return c ? [...c[1], 225] : null; },
-      note: "Where the model is precipitating at the valid time. Several types at once: freezing rain > ice pellets > snow > rain." },
+      note: M.ptypeNote || "Where the model is precipitating at the valid time. Several types at once: freezing rain > ice pellets > snow > rain." },
     apcp1h: { group: "Precip & Snow", vfmt: inch, vmin: lt(0.01), label: "1-h precipitation", units: "in", dec: 2, color: stepped(PRECIP), range: [0, 8], steps: PRECIP, window: 1 },
     apcp_run: { group: "Precip & Snow", vfmt: inch, vmin: lt(0.01), label: "Total precipitation since run start", short: "Run-total precipitation", units: "in", dec: 2, color: stepped(PRECIP), range: [0, 30], steps: PRECIP, window: "run" },
     asnow1h: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: `1-h snowfall (${M.name})`, units: "in", dec: 1, color: stepped(SNOW1H), range: [0, 8], steps: SNOW1H, window: 1,
@@ -72,12 +85,12 @@
       note: "Run total at the end of the window minus the run total at its start, cell by cell." },
     apcp12: { group: "Precip & Snow", vfmt: inch, vmin: lt(0.01), label: "12-h precipitation (same window across runs)", short: "12-h precipitation", units: "in", dec: 2, color: stepped(PRECIP), range: [0, 25], steps: PRECIP, window: 12, ends: "00 and 12Z",
       note: "Run total at the end of the window minus the run total at its start, cell by cell." },
-    asnow6: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: `6-h snowfall (${M.name}, same window across runs)`, short: "6-h snowfall", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: 6, ends: "00, 06, 12 and 18Z",
-      note: `${M.name}'s own snowfall (variable density, not 10:1): run total at the end of the window minus the run total at its start.` },
-    asnow12: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: `12-h snowfall (${M.name}, same window across runs)`, short: "12-h snowfall", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: 12, ends: "00 and 12Z",
-      note: `${M.name}'s own snowfall (variable density, not 10:1): run total at the end of the window minus the run total at its start.` },
-    asnow_run: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: `Total snowfall since run start (${M.name})`, short: "Run-total snowfall", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: "run",
-      note: `${M.name}'s own snowfall (variable snow density), not 10:1.` },
+    asnow6: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: `6-h snowfall (${M.snowTag || M.name}, same window across runs)`, short: "6-h snowfall", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: 6, ends: "00, 06, 12 and 18Z",
+      note: M.snowNote ? `${M.snowNote} Run total at the end of the window minus the run total at its start.` : `${M.name}'s own snowfall (variable density, not 10:1): run total at the end of the window minus the run total at its start.` },
+    asnow12: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: `12-h snowfall (${M.snowTag || M.name}, same window across runs)`, short: "12-h snowfall", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: 12, ends: "00 and 12Z",
+      note: M.snowNote ? `${M.snowNote} Run total at the end of the window minus the run total at its start.` : `${M.name}'s own snowfall (variable density, not 10:1): run total at the end of the window minus the run total at its start.` },
+    asnow_run: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: `Total snowfall since run start (${M.snowTag || M.name})`, short: "Run-total snowfall", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: "run",
+      note: M.snowNote || `${M.name}'s own snowfall (variable snow density), not 10:1.` },
   };
   /* Same-window fields, derived in the browser from a run's own run totals: window total = total(end) - total(start), at
      native resolution, then the display levels rebuilt with the pipeline's own rule. Windows end at fixed UTC hours so
@@ -184,7 +197,7 @@
   }
   function cellPx() {
     const m = st.map, c = m.getCenter(), mpp = (156543.03392 * Math.cos((c.lat * Math.PI) / 180)) / 2 ** m.getZoom();
-    return (st.man.grid.DxInMetres / mpp) * st.map.getPixelRatio();
+    return (K.cellMetres(st.man.grid, c.lat) / mpp) * st.map.getPixelRatio();
   }
   function wanted() {
     const L = K.levelFor(cellPx(), st.man.levels), coarse = Math.max(...st.man.levels.map((l) => l.level)), [i0, i1, j0, j1] = viewCells();
@@ -419,7 +432,7 @@
     const F = FIELDS[st.field], f2 = `F${String(fh).padStart(2, "0")}`, r = hourRec(fh);
     if (hs === "na") return `${F.label}: not available at ${f2}. ${r.notApplicable.charAt(0).toUpperCase()}${r.notApplicable.slice(1)}.`;
     if (hs === "absent") return `${F.label} is not published for this run.`;
-    return `${F.label}: ${f2} is missing for this run (not posted by NOAA yet, or it failed the source check). Nothing is drawn for this hour.`;
+    return `${F.label}: ${f2} is missing for this run (not posted by ${M.publisher} yet, or it failed the source check). Nothing is drawn for this hour.`;
   }
   const frameReady = (fh, w) => hourState(fh) !== "ok" || pointsReady(fh) && w.all.every(([x, y]) => ready(fh, w.coarse, x, y)) && (w.L === w.coarse || w.tiles.every(([x, y]) => ready(fh, w.L, x, y)));
 
@@ -432,7 +445,7 @@
       (F.window ? `<div class="msg">${esc(windowText(F, fh))}</div>` : "") + (F.note ? `<div class="msg fnote">${esc(F.note)}</div>` : "") +
       `<div class="msg">${every === 1 ? `Every native ${M.res} cell at this zoom` : `Every ${every === 2 ? "2nd" : "4th"} native cell<span class="wide-only"> at this zoom</span>; zoom in for every cell`}<span class="wide-only"> · click for the cell's own value</span></div>`;
     $("tlValid").textContent = `${fmtLocal(valid)} · F${String(fh).padStart(2, "0")}`; $("hourSl").value = String(st.h);
-    $("runInfo").innerHTML = `Run ${esc(fmtUTC(init))}: ${m.status === "in progress" ? `<b>in progress</b>, ${m.hours.length} of ${m.hoursExpected + 1} hours posted by NOAA so far` : `${m.hours.length} forecast hours (${esc(m.status)})`}. ` +
+    $("runInfo").innerHTML = `Run ${esc(fmtUTC(init))}: ${m.status === "in progress" ? `<b>in progress</b>, ${m.hours.length} of ${m.hoursPlanned ? m.hoursPlanned.length : m.hoursExpected + 1} hours posted by ${esc(M.publisher)} so far` : `${m.hours.length} forecast hours (${esc(m.status)})`}. ` +
       `Loop ready for this view: ${loopReady} of ${m.hours.length} hours. Downloaded this visit: <b>${MB(st.loadedBytes)}</b> compressed in ${st.requests} map-data requests; decoded tiles in memory: ${MB(st.bytes)}. ` +
       `Every cell is placed from the GRIB projection (checked against GRIB's own latitudes and longitudes: largest difference ${m.georef ? m.georef.maxErrorCells : "?"} cells). ${esc(m.attribution)}`;
     share();
@@ -524,7 +537,7 @@
     else { const t = F.legend.ticks, lo = t[0], hi = t[t.length - 1], bw = 900; for (let k = 0; k < bw; k++) { const col = F.color(lo + (k / bw) * (hi - lo)); if (col) { g.fillStyle = `rgb(${col.slice(0, 3).join(",")})`; g.fillRect(x + k, y, 1, 22); } }
       g.fillStyle = fg; t.forEach((v) => g.fillText(String(v), x + ((v - lo) / (hi - lo)) * bw - 8, y + 46)); }
     g.fillStyle = mute; g.font = font(500, 19);
-    g.fillText(`Forecast Ops output · Data: ${M.source} · Model guidance, not an official forecast · Not endorsed by NOAA`, 32, H - 48);
+    g.fillText(`Forecast Ops output · Data: ${M.source} · Model guidance, not an official forecast · ${M.endorse}`, 32, H - 48);
     g.fillText("Basemap: U.S. Census Bureau boundaries via us-atlas, Natural Earth · GeoNames (CC BY 4.0) · Colors and rendering: Forecast Ops", 32, H - 20);
     const blob = await new Promise((ok, no) => c.toBlob((b) => (b ? ok(b) : no(new Error("no image"))), "image/png"));
     const a = document.createElement("a"), name = `forecast-ops-${M.key}-${st.field}-${st.run.id}z-${f2.toLowerCase()}.png`;
@@ -576,8 +589,8 @@
     $("mapInfo").textContent = `Loading ${fmtUTC(Date.parse(r.cycle))} run…`;
     const man = derive(await getJSON(`${SITE}/${r.path}/manifest.json`));
     const sameGrid = st.man && JSON.stringify(st.man.grid) === JSON.stringify(man.grid);
-    st.run = r; st.man = man; st.P = MC.projector(man.grid);
-    if (!sameGrid) { st.mesh = K.gridMesh(st.P, man.grid.nx, man.grid.ny, MC.merc, 8); layer.setMesh(st.mesh); footprint(); }
+    st.run = r; st.man = man; st.P = K.projectorFor(man.grid, MC.projector);   /* the manifest grid says which: Lambert (HRRR, RRFS, NBM) or lat-lon (ECMWF) */
+    if (!sameGrid) { st.mesh = K.gridMesh(st.P, man.grid.nx, man.grid.ny, MC.merc, K.meshStep(man.grid)); layer.setMesh(st.mesh); footprint(); }
     st.labelSet = null;
     let h = 0;
     if (fhWanted != null && man.hours.includes(+fhWanted)) h = man.hours.indexOf(+fhWanted);
@@ -586,7 +599,8 @@
   }
   function timeline() {
     const m = st.man, n = m.hours.length; $("hourSl").max = String(n - 1); $("hourSl").value = String(st.h);
-    $("tlTicks").innerHTML = m.hours.map((h, i) => { const hr = +new Date(Date.parse(m.valid[h])).toLocaleString("en-US", { timeZone: TZ, hour: "numeric", hour12: false }); return hr === 0 ? `<i class="day" style="left:${(100 * i) / Math.max(1, n - 1)}%"></i>` : ""; }).join("") +
+    const day = (h) => new Date(Date.parse(m.valid[h])).toLocaleDateString("en-US", { timeZone: TZ });   /* 3-hourly steps (ECMWF, NBM after F48) need not land on local midnight */
+    $("tlTicks").innerHTML = m.hours.map((h, i) => { const hr = +new Date(Date.parse(m.valid[h])).toLocaleString("en-US", { timeZone: TZ, hour: "numeric", hour12: false }); return hr === 0 || (i > 0 && day(h) !== day(m.hours[i - 1])) ? `<i class="day" style="left:${(100 * i) / Math.max(1, n - 1)}%"></i>` : ""; }).join("") +
       /* hours with nothing to draw for this field are marked on the timeline: grey = not applicable, red = missing */
       m.hours.map((h, i) => { const hs = hourState(h); return hs === "ok" ? "" : `<i class="gap ${hs}" data-gap="${h}" title="F${String(h).padStart(2, "0")}: ${hs === "na" ? "not applicable" : "missing"}" style="left:${(100 * i) / Math.max(1, n - 1)}%"></i>`; }).join("");
   }
@@ -671,7 +685,7 @@
     const ps = $("placeSel"); if (ps) ps.closest("div").hidden = true;
     $("inspect").innerHTML = `<p class="msg">Click or tap the map to read the ${M.name} value in that native ${M.res} cell. Values come from the full-precision grid, never from the display.</p>`;
     const about = document.querySelector("#runInfo") && document.querySelector("#runInfo").previousElementSibling;
-    if (about) about.textContent = "Beta: " + M.about + " on the model's own Lambert conformal projection; areas outside the model grid are left blank. Zoomed out, the map draws every 2nd or 4th native cell (each drawn over the block it stands for) so a loop stays light on a phone; zoom in for every cell. Clicking always reads the native cell at full precision. Only the tiles in view are downloaded. Runs appear hour by hour as NOAA posts them; the 00, 06, 12 and 18 UTC runs go to 48 hours, the others to 18. U.S. county boundaries appear as you zoom in. Geography: US Census boundaries (us-atlas), Natural Earth (public domain) and GeoNames (CC BY 4.0). Model guidance only, not an official forecast.";
+    if (about) about.textContent = "Beta: " + M.about + " on " + M.proj + "; areas outside the model grid are left blank. Zoomed out, the map draws every 2nd or 4th native cell (each drawn over the block it stands for) so a loop stays light on a phone; zoom in for every cell. Clicking always reads the native cell at full precision. Only the tiles in view are downloaded. " + M.runs + " U.S. county boundaries appear as you zoom in. Geography: US Census boundaries (us-atlas), Natural Earth (public domain) and GeoNames (CC BY 4.0). Model guidance only, not an official forecast.";
   }
   async function start() {
     if (Q.get("compare") === "1" && window.MapsConusCompare) { window.MapsConusCompare.start(); return; }   // it sets up its own page shell
@@ -693,7 +707,7 @@
     if (published.size && !publishes(published, st.field)) st.field = published.has("t2m") ? "t2m" : [...published][0];   /* a field this model does not publish: its temperature map instead */
     $("fieldSel").innerHTML = fieldOptions(published); $("fieldSel").value = st.field;
     if ($("modelSel")) {   /* switching model keeps the view, the valid time when the other model has it, and the field when it publishes it */
-      $("modelSel").innerHTML = Object.values(MODELS).filter((m) => m.key !== "rrfs" || DATA !== DATA_HOSTS.pages).map((m) => `<option value="${m.key}">${esc(m.label)}</option>`).join(""); $("modelSel").value = M.key;
+      $("modelSel").innerHTML = Object.values(MODELS).filter((m) => !m.r2only || DATA !== DATA_HOSTS.pages).map((m) => `<option value="${m.key}">${esc(m.label)}</option>`).join(""); $("modelSel").value = M.key;
       $("modelSel").addEventListener("change", () => { const q = new URLSearchParams(location.search); q.set("model", $("modelSel").value); q.delete("run"); q.delete("fh");
         if (st.man) q.set("valid", st.man.valid[fhNow()]); location.href = `${location.pathname}?${q.toString()}`; }); }
     $("runSel").innerHTML = st.index.runs.map((r) => `<option value="${esc(r.id)}">${esc(runLabel(r))}</option>`).join("");
