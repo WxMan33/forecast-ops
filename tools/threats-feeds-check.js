@@ -41,7 +41,8 @@ const FEEDS = [
   ["model", /raw\.githubusercontent\.com/],
   ["nws-other", /api\.weather\.gov|\/api\/nws\//],
 ];
-const feedOf = (u) => { for (const [k, re] of FEEDS) if (re.test(u)) return k; return null; };
+/* the venue's NWS point record (time zone, forecast office) is a one-off venue lookup, cached 24 h: not a threat feed */
+const feedOf = (u) => { if (/\/points\/-?\d/.test(u)) return null; for (const [k, re] of FEEDS) if (re.test(u)) return k; return null; };
 const tally = (list) => list.reduce((o, r) => ((o[r.feed] = (o[r.feed] || 0) + 1), o), {});
 const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 } };
 (async () => {
