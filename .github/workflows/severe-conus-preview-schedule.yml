@@ -1,0 +1,25 @@
+name: Severe CONUS preview daily refresh (research)
+# Research preview only. Cron schedules run only from the default branch, so this file lives on main.
+# It starts the feed workflow on the research branch; that run rebuilds the saved forecast on the
+# preview branch and then starts the hosted checks. It does not touch the live Severe feed, the
+# publisher, production v0.7, the registry or the RRFS/NBM collector.
+on:
+  schedule:
+    - cron: '10 15 * * *'   # 15:10 UTC = 10:10 AM EST, after the 12Z HRRR f48 is available
+  workflow_dispatch:
+permissions:
+  actions: write
+concurrency:
+  group: severe-conus-preview-schedule
+  cancel-in-progress: false
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Start the CONUS preview feed on the research branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run severe-conus-preview.yml --ref claude/severe-phase2-training -R "$GITHUB_REPOSITORY"
+          echo "dispatched severe-conus-preview.yml on claude/severe-phase2-training"
