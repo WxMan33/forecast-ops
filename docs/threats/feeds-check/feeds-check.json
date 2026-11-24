@@ -1,6 +1,6 @@
 {
  "host": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev",
- "at": "2026-11-24T14:32:41.637Z",
+ "at": "2026-11-24T14:51:54.299Z",
  "devices": {
   "desktop": {
    "fresh": {
@@ -34,19 +34,22 @@
     "byFeed": {}
    },
    "severeOnly": {
-    "requests": 6,
+    "requests": 8,
     "byFeed": {
+     "reports": 2,
      "alerts": 1,
      "md": 2,
      "spc": 3
     },
     "urls": [
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/spc/reports/today",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch,Flash%20Flood%20Warning,Winter%20Storm%20Warning,Winter%20Storm%20Watch,Blizzard%20Warning,Ice%20Storm%20Warning,Lake%20Effect%20Snow%20Warning,Winter%20Weather%20Advisory,Red%20Flag%20Warning,Fire%20Weather%20Watch,Hurricane%20Warning,Hurricane%20Watch,Tropical%20Storm%20Warning,Tropical%20Storm%20Watch,Storm%20Surge%20Warning,Storm%20Surge%20Watch,Coastal%20Flood%20Warning,Coastal%20Flood%20Watch,Coastal%20Flood%20Advisory,High%20Surf%20Warning,High%20Surf%20Advisory,Rip%20Current%20Statement,Beach%20Hazards%20Statement",
      "https://www.spc.noaa.gov/products/md/",
      "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson",
      "https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson",
      "https://www.spc.noaa.gov/products/outlook/day3otlk_cat.nolyr.geojson",
-     "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0/query?where=1%3D1&outFields=*&f=geojson"
+     "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0/query?where=1%3D1&outFields=*&f=geojson",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/spc/reports/yesterday"
     ],
     "state": {
      "layers": [
@@ -63,6 +66,7 @@
      "feeds": [
       "alerts",
       "md",
+      "reports",
       "spc"
      ],
      "products": 98
@@ -86,8 +90,9 @@
     }
    },
    "total": {
-    "requests": 6,
+    "requests": 8,
     "byFeed": {
+     "reports": 2,
      "alerts": 1,
      "md": 2,
      "spc": 3
@@ -119,8 +124,9 @@
     }
    },
    "plannerLink": {
-    "requests": 12,
+    "requests": 14,
     "byFeed": {
+     "reports": 2,
      "alerts": 1,
      "md": 2,
      "spc": 3,
@@ -145,6 +151,7 @@
       "hms",
       "md",
       "monitors",
+      "reports",
       "spc"
      ],
      "products": 194
@@ -200,19 +207,22 @@
     "byFeed": {}
    },
    "severeOnly": {
-    "requests": 6,
+    "requests": 8,
     "byFeed": {
+     "reports": 2,
      "alerts": 1,
      "md": 2,
      "spc": 3
     },
     "urls": [
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/spc/reports/today",
      "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch,Flash%20Flood%20Warning,Winter%20Storm%20Warning,Winter%20Storm%20Watch,Blizzard%20Warning,Ice%20Storm%20Warning,Lake%20Effect%20Snow%20Warning,Winter%20Weather%20Advisory,Red%20Flag%20Warning,Fire%20Weather%20Watch,Hurricane%20Warning,Hurricane%20Watch,Tropical%20Storm%20Warning,Tropical%20Storm%20Watch,Storm%20Surge%20Warning,Storm%20Surge%20Watch,Coastal%20Flood%20Warning,Coastal%20Flood%20Watch,Coastal%20Flood%20Advisory,High%20Surf%20Warning,High%20Surf%20Advisory,Rip%20Current%20Statement,Beach%20Hazards%20Statement",
      "https://www.spc.noaa.gov/products/md/",
      "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson",
      "https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson",
      "https://www.spc.noaa.gov/products/outlook/day3otlk_cat.nolyr.geojson",
-     "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0/query?where=1%3D1&outFields=*&f=geojson"
+     "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0/query?where=1%3D1&outFields=*&f=geojson",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/spc/reports/yesterday"
     ],
     "state": {
      "layers": [
@@ -229,6 +239,7 @@
      "feeds": [
       "alerts",
       "md",
+      "reports",
       "spc"
      ],
      "products": 98
@@ -252,8 +263,9 @@
     }
    },
    "total": {
-    "requests": 6,
+    "requests": 8,
     "byFeed": {
+     "reports": 2,
      "alerts": 1,
      "md": 2,
      "spc": 3
@@ -285,8 +297,9 @@
     }
    },
    "plannerLink": {
-    "requests": 12,
+    "requests": 14,
     "byFeed": {
+     "reports": 2,
      "alerts": 1,
      "md": 2,
      "spc": 3,
@@ -311,6 +324,7 @@
       "hms",
       "md",
       "monitors",
+      "reports",
       "spc"
      ],
      "products": 194
@@ -366,10 +380,11 @@
    }
   },
   {
-   "check": "(desktop) SEVERE STORMS ALONE: only its feeds (alerts 1, md 2, spc 3): NWS alerts, SPC MDs and SPC outlooks each requested, nothing else",
+   "check": "(desktop) SEVERE STORMS ALONE: only its feeds (reports 2, alerts 1, md 2, spc 3): NWS alerts, SPC MDs, SPC outlooks and SPC storm reports each requested, nothing else",
    "pass": true,
    "detail": {
     "by": {
+     "reports": 2,
      "alerts": 1,
      "md": 2,
      "spc": 3
@@ -389,6 +404,7 @@
      "feeds": [
       "alerts",
       "md",
+      "reports",
       "spc"
      ],
      "products": 98
@@ -447,7 +463,7 @@
    }
   },
   {
-   "check": "(desktop) PLANNER LINK (venue, Day 1, layers=severe,smoke) keeps its selection and requests only those layers' feeds (alerts 1, md 2, spc 3, hms 3, airnow 3)",
+   "check": "(desktop) PLANNER LINK (venue, Day 1, layers=severe,smoke) keeps its selection and requests only those layers' feeds (reports 2, alerts 1, md 2, spc 3, hms 3, airnow 3)",
    "pass": true,
    "detail": {
     "s": {
@@ -468,11 +484,13 @@
       "hms",
       "md",
       "monitors",
+      "reports",
       "spc"
      ],
      "products": 194
     },
     "by": {
+     "reports": 2,
      "alerts": 1,
      "md": 2,
      "spc": 3,
@@ -542,10 +560,11 @@
    }
   },
   {
-   "check": "(phone) SEVERE STORMS ALONE: only its feeds (alerts 1, md 2, spc 3): NWS alerts, SPC MDs and SPC outlooks each requested, nothing else",
+   "check": "(phone) SEVERE STORMS ALONE: only its feeds (reports 2, alerts 1, md 2, spc 3): NWS alerts, SPC MDs, SPC outlooks and SPC storm reports each requested, nothing else",
    "pass": true,
    "detail": {
     "by": {
+     "reports": 2,
      "alerts": 1,
      "md": 2,
      "spc": 3
@@ -565,6 +584,7 @@
      "feeds": [
       "alerts",
       "md",
+      "reports",
       "spc"
      ],
      "products": 98
@@ -623,7 +643,7 @@
    }
   },
   {
-   "check": "(phone) PLANNER LINK (venue, Day 1, layers=severe,smoke) keeps its selection and requests only those layers' feeds (alerts 1, md 2, spc 3, hms 3, airnow 3)",
+   "check": "(phone) PLANNER LINK (venue, Day 1, layers=severe,smoke) keeps its selection and requests only those layers' feeds (reports 2, alerts 1, md 2, spc 3, hms 3, airnow 3)",
    "pass": true,
    "detail": {
     "s": {
@@ -644,11 +664,13 @@
       "hms",
       "md",
       "monitors",
+      "reports",
       "spc"
      ],
      "products": 194
     },
     "by": {
+     "reports": 2,
      "alerts": 1,
      "md": 2,
      "spc": 3,

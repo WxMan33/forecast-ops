@@ -1,19 +1,19 @@
 {
- "at": "2026-11-24T14:25:11.432Z",
+ "at": "2026-11-24T15:01:21.933Z",
  "result": {
   "summary": "No flooding, winter weather, fire weather or wildfire, smoke or air quality, tropical, coastal and airport weather threats apply to this event's location and times.",
   "confirmed": true,
   "items": [],
   "statuses": [
-   "NWS warnings, watches and advisories: Checked 9:25 a.m.",
-   "SPC fire weather outlooks: Checked 9:25 a.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
-   "NOAA satellite smoke analysis (HMS): Checked 9:25 a.m.",
-   "AirNow air quality observations: Checked 9:25 a.m. · nearest monitor Windsor Downtown (2 miles south): AQI 16 Good (Ozone) for 9 a.m.",
-   "AirNow air quality forecasts: Checked 9:25 a.m. · Southeast reporting area",
-   "NHC tropical outlooks and storm products: Checked 9:25 a.m.",
-   "NIFC wildfire incidents (WFIGS): Checked 9:25 a.m.",
-   "WPC winter storm severity outlook (WSSI-P): Checked 9:25 a.m. · file 1403Z",
-   "WPC Excessive Rainfall Outlook: Checked 9:24 a.m. · Day 1 issued 0747Z, Day 2 issued 0750Z, Day 3 issued 0750Z"
+   "NWS warnings, watches and advisories: Checked 10:01 a.m.",
+   "SPC fire weather outlooks: Checked 10:01 a.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NOAA satellite smoke analysis (HMS): Checked 10:01 a.m.",
+   "AirNow air quality observations: Checked 10:01 a.m. · nearest monitor Windsor Downtown (2 miles south): AQI 16 Good (Ozone) for 9 a.m.",
+   "AirNow air quality forecasts: Checked 10:01 a.m. · Southeast reporting area",
+   "NHC tropical outlooks and storm products: Checked 10:01 a.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 10:01 a.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 10:01 a.m. · file 1428Z",
+   "WPC Excessive Rainfall Outlook: Checked 9:56 a.m. · Day 1 issued 0747Z, Day 2 issued 0750Z, Day 3 issued 0750Z"
   ],
   "maps": []
  },
@@ -21,14 +21,20 @@
   {
    "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/smoke/hms/20261124",
    "status": 200,
-   "cache": "MISS",
-   "upstreamAt": "2026-11-24T14:25:04.952Z"
+   "cache": "HIT",
+   "upstreamAt": "2026-11-24T14:58:00.484Z"
   },
   {
    "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/smoke/hms/20261123",
    "status": 200,
-   "cache": "HIT",
-   "upstreamAt": "2026-11-24T14:24:08.787Z"
+   "cache": "MISS",
+   "upstreamAt": "2026-11-24T15:01:13.895Z"
+  },
+  {
+   "url": "https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/Air%20Now%20Current%20Monitor%20Data%20Public/FeatureServer/0/query?geometry=-83.0456,42.34&geometryType=esriGeometryPoint&inSR=4326&distance=25&units=esriSRUnit_StatuteMile&spatialRel=esriSpatialRelIntersects&outFields=AQSID,SiteName,StateName,DataSource,ReportingArea_PipeDelimited,ValidTime,LocalTimeString,GMTOffset,PM25,PM25_AQI,PM10_AQI,OZONE_AQI,Status,MonitorType&outSR=4326&f=geojson",
+   "status": 200,
+   "cache": null,
+   "upstreamAt": null
   },
   {
    "url": "https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/AirNow_National_Air_Quality_Index_(AQI)_Forecast/FeatureServer/0/query?geometry=-83.0456,42.34&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=RAName,RACode,RAAgency&returnGeometry=false&f=json",
@@ -39,14 +45,8 @@
   {
    "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/smoke/airnow-area?area=Southeast&state=MI",
    "status": 200,
-   "cache": "MISS",
-   "upstreamAt": "2026-11-24T14:25:09.288Z"
-  },
-  {
-   "url": "https://services.arcgis.com/cJ9YHowT8TU7DUyn/arcgis/rest/services/Air%20Now%20Current%20Monitor%20Data%20Public/FeatureServer/0/query?geometry=-83.0456,42.34&geometryType=esriGeometryPoint&inSR=4326&distance=25&units=esriSRUnit_StatuteMile&spatialRel=esriSpatialRelIntersects&outFields=AQSID,SiteName,StateName,DataSource,ReportingArea_PipeDelimited,ValidTime,LocalTimeString,GMTOffset,PM25,PM25_AQI,PM10_AQI,OZONE_AQI,Status,MonitorType&outSR=4326&f=geojson",
-   "status": 200,
-   "cache": null,
-   "upstreamAt": null
+   "cache": "HIT",
+   "upstreamAt": "2026-11-24T14:53:41.419Z"
   }
  ]
 }

@@ -1,6 +1,6 @@
 {
  "host": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev",
- "at": "2026-11-24T14:39:24.813Z",
+ "at": "2026-11-24T14:58:17.818Z",
  "results": [
   {
    "check": "(desktop) busy national view: Time, Layers, Map area and the state line in view, no page overflow; after scrolling the details, Map area and the state line still in view",
@@ -191,8 +191,8 @@
      "Icing guidance"
     ],
     "peek": "Aviation at CVG airport",
-    "peek2": "National · pilot reports loading · advisories loading",
-    "ready": false,
+    "peek2": "National · 234 pilot reports · 24 advisories",
+    "ready": true,
     "natRows": true,
     "nothing": false
    }
@@ -442,7 +442,7 @@
      "Icing guidance"
     ],
     "peek": "Aviation at CVG airport",
-    "peek2": "National · 213 pilot reports · 28 advisories",
+    "peek2": "National · 234 pilot reports · 27 advisories",
     "ready": true,
     "natRows": true,
     "nothing": false
@@ -656,7 +656,7 @@
     "ftVal": "10000",
     "fhVal": "3",
     "avctl": "apt:true,pireps:true,adv:true,gtg:true,ifi:true",
-    "legend": "Active now · most urgent firstWarning · solid, filledWatch · dashedMesoscale Discussion (MD) · dottedTornado warning, zoomed outSevere thunderstorm warning, zoomed outRed, yellow: tornado · orange, pink: severe thunderstormSPC Day 1 outlook · outlinesTSTMMRGL1SLGT2ENH3MDT4HIGH5Risk level 1–5 · TSTM: thunderstorms, no severe risk Day 1 outlook outlinesAviationpilot report, turbulenceicingSIGMET, CWAG-AIRMETturbulence guidance (GTG), light to extremeicing guidance (IFI), probability 5% to 60%+",
+    "legend": "Active now · most urgent firstWarning · solid, filledWatch · dashedMesoscale Discussion (MD) · dottedTornado warning, zoomed outSevere thunderstorm warning, zoomed outRed, yellow: tornado · orange, pink: severe thunderstormSPC Day 1 outlook · outlinesTSTMMRGL1SLGT2ENH3MDT4HIGH5Risk level 1–5 · TSTM: thunderstorms, no severe risk Day 1 outlook outlinesAviationturbulence guidance (GTG), light to extremeicing guidance (IFI), probability 5% to 60%+",
     "overflow": false
    }
   },
@@ -693,7 +693,7 @@
      "Icing guidance"
     ],
     "peek": "Aviation at CVG airport",
-    "peek2": "National · 211 pilot reports · 28 advisories",
+    "peek2": "National · 235 pilot reports · 27 advisories",
     "ready": true,
     "natRows": true,
     "nothing": false

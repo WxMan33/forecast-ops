@@ -1,99 +1,73 @@
 {
- "at": "2026-11-24T14:32:35.369Z",
+ "at": "2026-11-24T15:08:44.029Z",
  "result": {
-  "summary": "2 weather threats for this event",
+  "summary": "Not fully confirmed: no flooding, winter weather, fire weather or wildfire, smoke or air quality, tropical, coastal and airport weather threats found in the data we have, but a source is unavailable, stale or doesn't cover this venue or date.",
   "confirmed": false,
-  "items": [
-   {
-    "id": "pirep-1795525500-40.784--73.869-BCS3|route",
-    "kind": "pirep",
-    "headline": "Pilot reported moderate turbulence at 10,000 ft (during climb) near your approximate route, 1.5 hr ago · pilot report",
-    "code": null,
-    "line": "An observation by a pilot (BCS3) 17 miles from the straight-line route O'Hare → Newark, at 8:05 a.m.. Conditions at that place and time, not a forecast for your flight.",
-    "product": "pirep-1795525500-40.784--73.869-BCS3",
-    "category": null,
-    "day": null,
-    "phases": []
-   },
-   {
-    "id": "pirep-1795526760-40.835--73.955-B758|route",
-    "kind": "pirep",
-    "headline": "Pilot reported moderate turbulence between 9,000 ft and 11,000 ft near your approximate route, 1.1 hr ago · pilot report",
-    "code": null,
-    "line": "An observation by a pilot (B758) 15 miles from the straight-line route O'Hare → Newark, at 8:26 a.m.. Conditions at that place and time, not a forecast for your flight.",
-    "product": "pirep-1795526760-40.835--73.955-B758",
-    "category": null,
-    "day": null,
-    "phases": []
-   }
-  ],
+  "items": [],
   "statuses": [
-   "NWS warnings, watches and advisories: Checked 9:32 a.m.",
-   "SPC fire weather outlooks: Checked 9:32 a.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
-   "NOAA satellite smoke analysis (HMS): Checked 9:32 a.m.",
-   "AirNow air quality observations: Checked 9:32 a.m. · nearest monitor Union City High School (4 miles southeast): AQI 29 Good (PM2.5) for 9 a.m.",
-   "AirNow air quality forecasts: Checked 9:32 a.m. · Northeast Urban reporting area",
-   "Aviation Weather Center (METAR and TAF): Checked 9:32 a.m. · KEWR METAR 1351Z VFR · TAF 1122Z valid to Wed 1 p.m.",
-   "Aviation Weather Center en route (pilot reports, SIGMETs, G-AIRMETs, CWAs): Checked 9:32 a.m.",
+   "NWS warnings, watches and advisories: Checked 10:08 a.m.",
+   "SPC fire weather outlooks: Checked 10:08 a.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NOAA satellite smoke analysis (HMS): Checked 10:08 a.m.",
+   "AirNow air quality observations: Checked 10:08 a.m. · nearest monitor Union City High School (4 miles southeast): AQI 29 Good (PM2.5) for 9 a.m.",
+   "AirNow air quality forecasts: Checked 10:08 a.m. · Northeast Urban reporting area",
+   "Aviation Weather Center (METAR and TAF): Checked 10:08 a.m. · KEWR METAR 1451Z VFR · TAF 1122Z valid to Wed 1 p.m.",
+   "Aviation Weather Center en route (pilot reports, SIGMETs, G-AIRMETs, CWAs): Checked 10:08 a.m.",
    "FAA airport status (delays, ground stops, closures): Not responding · status unknown. We can't rule anything out from this source.",
-   "NHC tropical outlooks and storm products: Checked 9:32 a.m.",
-   "NIFC wildfire incidents (WFIGS): Checked 9:32 a.m.",
-   "WPC winter storm severity outlook (WSSI-P): Checked 9:32 a.m.",
-   "WPC Excessive Rainfall Outlook: Checked 9:32 a.m. · Day 1 issued 0747Z, Day 2 issued 0750Z, Day 3 issued 0750Z"
+   "NHC tropical outlooks and storm products: Checked 10:08 a.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 10:08 a.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 10:08 a.m.",
+   "WPC Excessive Rainfall Outlook: Checked 10:07 a.m. · Day 1 issued 0747Z, Day 2 issued 0750Z, Day 3 issued 0750Z"
   ],
-  "maps": [
-   "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats.html?lat=40.8135&lon=-74.0745&name=MetLife+Stadium&tz=America%2FNew_York&scope=venue&view=active&layers=aviation&air=KEWR%2CKORD&sel=pirep-1795526760-40.835--73.955-B758&rt=%7B%22o%22%3A%22KORD%22%2C%22d%22%3A%22KEWR%22%2C%22lo%22%3A10000%2C%22hi%22%3A16000%2C%22w%22%3A%5B%222026-11-24T10%3A02%22%2C%222026-11-24T11%3A32%22%5D%7D&alt=10000-16000&nws=function",
-   "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats.html?lat=40.8135&lon=-74.0745&name=MetLife+Stadium&tz=America%2FNew_York&scope=venue&view=active&layers=aviation&air=KEWR%2CKORD&sel=pirep-1795525500-40.784--73.869-BCS3&rt=%7B%22o%22%3A%22KORD%22%2C%22d%22%3A%22KEWR%22%2C%22lo%22%3A10000%2C%22hi%22%3A16000%2C%22w%22%3A%5B%222026-11-24T10%3A02%22%2C%222026-11-24T11%3A32%22%5D%7D&alt=10000-16000&nws=function"
-  ]
+  "maps": []
  },
  "feeds": [
   {
-   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/airsigmet",
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=0",
    "status": 200,
-   "cache": "MISS",
-   "upstreamAt": "2026-11-24T14:32:32.345Z"
+   "cache": "HIT",
+   "upstreamAt": "2026-11-24T15:04:40.338Z"
   },
   {
    "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=3",
    "status": 200,
    "cache": "MISS",
-   "upstreamAt": "2026-11-24T14:32:32.540Z"
+   "upstreamAt": "2026-11-24T15:08:39.438Z"
   },
   {
    "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=9",
    "status": 200,
    "cache": "MISS",
-   "upstreamAt": "2026-11-24T14:32:32.536Z"
+   "upstreamAt": "2026-11-24T15:08:39.505Z"
   },
   {
    "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/cwa",
    "status": 200,
    "cache": "MISS",
-   "upstreamAt": "2026-11-24T14:32:32.596Z"
+   "upstreamAt": "2026-11-24T15:08:39.512Z"
   },
   {
    "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=12",
    "status": 200,
    "cache": "MISS",
-   "upstreamAt": "2026-11-24T14:32:32.638Z"
-  },
-  {
-   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=0",
-   "status": 200,
-   "cache": "MISS",
-   "upstreamAt": "2026-11-24T14:32:32.730Z"
-  },
-  {
-   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=6",
-   "status": 200,
-   "cache": "MISS",
-   "upstreamAt": "2026-11-24T14:32:33.616Z"
+   "upstreamAt": "2026-11-24T15:08:39.611Z"
   },
   {
    "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/pirep?bbox=39.2,-89.4,43.5,-72.7&age=2",
    "status": 200,
    "cache": "MISS",
-   "upstreamAt": "2026-11-24T14:32:34.455Z"
+   "upstreamAt": "2026-11-24T15:08:40.957Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=6",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-24T15:08:41.398Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/airsigmet",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-24T15:08:43.129Z"
   }
  ],
  "route": {
@@ -113,20 +87,14 @@
    ],
    "lowFt": 10000,
    "highFt": 16000,
-   "startMs": 1795532520000,
-   "endMs": 1795537920000,
+   "startMs": 1795534680000,
+   "endMs": 1795540080000,
    "timeSource": "own",
-   "window": "Tue 10:02 a.m. – 11:32 a.m.",
+   "window": "Tue 10:38 a.m. – 12:08 p.m.",
    "lines": [
     {
-     "concern": true,
-     "itemId": "pirep-1795526760-40.835--73.955-B758|route",
-     "text": "Pilot reported moderate turbulence between 9,000 ft and 11,000 ft near your approximate route, 1.1 hr ago · pilot report"
-    },
-    {
-     "concern": true,
-     "itemId": "pirep-1795525500-40.784--73.869-BCS3|route",
-     "text": "Pilot reported moderate turbulence at 10,000 ft (during climb) near your approximate route, 1.5 hr ago · pilot report"
+     "concern": false,
+     "text": "No SIGMET, G-AIRMET or Center Weather Advisory for turbulence, icing or thunderstorms meets your approximate route in your time and band, and no moderate or worse pilot report near it in the last 90 minutes."
     }
    ],
    "corridorMi": 25

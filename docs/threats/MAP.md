@@ -78,8 +78,8 @@ high-traffic launch needs a CARTO plan or self-hosted OpenStreetMap tiles.
 
 | Tool | What it covers | Last result |
 |---|---|---|
-| `threats-planner-check.js` | Full Threats regression | 103/103 on `7813e4a` |
-| `threats-fixes-check.js` | Audit fixes, presets, radar, venue forecast, clicks (overlapping aviation), venue marker, basemap failover and retry, Watch 705 replay | 38/38 on `66cbce4` |
+| `threats-planner-check.js` | Full Threats regression | 103/103 on `25b9f10` |
+| `threats-fixes-check.js` | Audit fixes, presets, radar, venue forecast, clicks (overlapping aviation), venue marker, basemap failover and retry, Watch 705 replay | 42/42 on `25b9f10` |
 | `threats-feeds-check.js` | Threat-feed request counts: fresh visit and picker 0; one layer only its feeds; off stops refreshes; links | 14/14 |
 | `threats-ux-check.js` | Layout at desktop, 390 and 360 px | 39/39 |
 | `threats-point-check.js` | At this spot (SPC highest category) | 6/6 |
