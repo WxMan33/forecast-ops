@@ -33,6 +33,7 @@
       runs: "The 00 and 12 UTC runs appear step by step as ECMWF posts them, every 3 hours to 120 hours (there are no 1-hour fields).",
       gustLabel: "Surface wind gust (max over preceding period)",
       gustNote: "ECMWF's maximum 10-m gust in the hour before the valid time through F90, and in the 3 hours before it from F93 (ECMWF posts only 3-h maxima there); not an instantaneous gust.",
+      kucheraNote: "ECMWF gives snowfall only as water equivalent: shown here with a Kuchera snow-to-liquid ratio, from the warmest temperature between the ground and about 18,000 ft (500 mb): colder columns give fluffier snow, near-freezing columns wetter snow. Worked out at the end of each 3-hour step and added up; not ECMWF's own snow depth.",
       snowTag: "ECMWF, 10:1", snowNote: "ECMWF gives snowfall only as water equivalent: shown at a fixed 10:1 snow-to-liquid ratio, not ECMWF's own snow depth.",
       ptypeNote: "ECMWF's precipitation type at the valid time, grouped: drizzle as rain; wet snow and rain-snow mixtures as snow; freezing drizzle as freezing rain. Other ECMWF codes are left blank." },
   };
@@ -91,11 +92,19 @@
       note: M.snowNote ? `${M.snowNote} Run total at the end of the window minus the run total at its start.` : `${M.name}'s own snowfall (variable density, not 10:1): run total at the end of the window minus the run total at its start.` },
     asnow_run: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: `Total snowfall since run start (${M.snowTag || M.name})`, short: "Run-total snowfall", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: "run",
       note: M.snowNote || `${M.name}'s own snowfall (variable snow density), not 10:1.` },
+    /* Kuchera-ratio snowfall (ECMWF only: offered where a run publishes asnowk_run); same scale and encoding as the 10:1 run total */
+    asnowk_run: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: `Total snowfall since run start (${M.name}, Kuchera)`, short: "Run-total snowfall (Kuchera)", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: "run",
+      note: M.kucheraNote || "Snowfall at a Kuchera snow-to-liquid ratio from the warmest temperature between the ground and about 18,000 ft." },
+    asnowk6: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: `6-h snowfall (${M.name}, Kuchera, same window across runs)`, short: "6-h snowfall (Kuchera)", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: 6, ends: "00, 06, 12 and 18Z",
+      note: `${M.kucheraNote || "Kuchera-ratio snowfall."} Run total at the end of the window minus the run total at its start.` },
+    asnowk12: { group: "Precip & Snow", vfmt: snowIn, vmin: lt(0.1), label: `12-h snowfall (${M.name}, Kuchera, same window across runs)`, short: "12-h snowfall (Kuchera)", units: "in", dec: 1, color: stepped(SNOWRUN), range: [0, 60], steps: SNOWRUN, window: 12, ends: "00 and 12Z",
+      note: `${M.kucheraNote || "Kuchera-ratio snowfall."} Run total at the end of the window minus the run total at its start.` },
   };
   /* Same-window fields, derived in the browser from a run's own run totals: window total = total(end) - total(start), at
      native resolution, then the display levels rebuilt with the pipeline's own rule. Windows end at fixed UTC hours so
      two runs can be compared over exactly the same hours. tol: decreases treated as packing noise (stored units). */
-  const WIN = { apcp6: { base: "apcp_run", w: 6, tol: 5 }, apcp12: { base: "apcp_run", w: 12, tol: 5 }, asnow6: { base: "asnow_run", w: 6, tol: 5 }, asnow12: { base: "asnow_run", w: 12, tol: 5 } };
+  const WIN = { apcp6: { base: "apcp_run", w: 6, tol: 5 }, apcp12: { base: "apcp_run", w: 12, tol: 5 }, asnow6: { base: "asnow_run", w: 6, tol: 5 }, asnow12: { base: "asnow_run", w: 12, tol: 5 },
+    asnowk6: { base: "asnowk_run", w: 6, tol: 5 }, asnowk12: { base: "asnowk_run", w: 12, tol: 5 } };
   const publishes = (published, k) => published.has(k) || (WIN[k] && published.has(WIN[k].base));
   function derive(man) {
     if (!man || !man.fields) return man; const c = Date.parse(man.cycle);
