@@ -1679,5 +1679,14 @@
       else map.fitBounds(CONUS, { padding: pad(), duration: 0 });
     });
   }).catch((e) => { $("txMap").innerHTML = `<p class="msg" style="padding:20px">The map could not load (${esc(e.message)}). The threat list still works.</p>`; });
-  window.__threats = { S, drawAll, radar, get outlook() { return vo; }, get basemap() { return carto ? "carto" : "fallback"; }, retryCarto, get venue() { return venue; }, get vfc() { return vfc; }, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
+  /* the host page (the Overview card) moves the venue without reloading the map: layers, view and time stay */
+  function setVenue(v) {
+    if (!v || !isFinite(+v.lat) || !isFinite(+v.lon) || !isLive()) return false;
+    const n = String(v.name || "Venue").trim(), i = n.indexOf(", ");
+    S.entryVenue = { id: "entry", name: i > 0 ? n.slice(0, i) : n, city: v.city || (i > 0 ? n.slice(i + 2) : ""), lat: +v.lat, lon: +v.lon, tz: v.tz || null };
+    S.sel = null; S.point = null; load(); renderBar(); drawAll();
+    if (S.scope === "venue" && map) map.easeTo({ center: [venue.lon, venue.lat], padding: pad(), duration: 400 });
+    return true;
+  }
+  window.__threats = { S, drawAll, radar, setVenue, get outlook() { return vo; }, get basemap() { return carto ? "carto" : "fallback"; }, retryCarto, get venue() { return venue; }, get vfc() { return vfc; }, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
 })();
