@@ -1,0 +1,1 @@
+{"displayFieldName":"name","fieldAliases":{"name":"name","idp_validtime":"idp_validtime"},"fields":[{"name":"name","type":"esriFieldTypeString","alias":"name","length":200},{"name":"idp_validtime","type":"esriFieldTypeDate","alias":"idp_validtime","length":8}],"features":[{"attributes":{"name":"CONUS_L2_BREF_QCD_20261123_205951","idp_validtime":1795467591000}}]}

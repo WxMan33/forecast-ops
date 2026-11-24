@@ -78,6 +78,7 @@
     /* the four core tools after Overview, then Maps (supporting analysis), then Events (a separate workflow). Thunder lives
        under Severe: its page keeps its own address and the Severe tab is marked current there. */
     { href: "index.html", id: "home", label: "OVERVIEW", icon: "grid" },
+    { href: "threats.html", id: "threats", label: "THREATS", icon: "alert" },
     { href: "blend.html", id: "blend", label: "MODEL BLEND", icon: "layers" },
     { href: "severe.html", id: "severe", label: "SEVERE", icon: "tornado", also: ["thunder"] },
     { href: "winter.html", id: "winter", label: "WINTER", icon: "snow" },

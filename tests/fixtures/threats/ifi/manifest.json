@@ -1,0 +1,15 @@
+{
+ "label": "NOAA NCEP In-Flight Icing (DAFS), cycle 2026-11-23 01Z: official records cut by byte range from dafs.t01z.ifi.3km.conus.f003 and f006 on NOMADS (captured 2026-11-23)",
+ "cycle": "2026112301",
+ "records": {
+  "3|15000|prob": "ifi-2026112301-f003-prob-15000ft.grib2",
+  "3|5000|prob": "ifi-2026112301-f003-prob-5000ft.grib2",
+  "3|15000|sev": "ifi-2026112301-f003-sev-15000ft.grib2",
+  "3|5000|sev": "ifi-2026112301-f003-sev-5000ft.grib2",
+  "6|15000|prob": "ifi-2026112301-f006-prob-15000ft.grib2",
+  "6|5000|prob": "ifi-2026112301-f006-prob-5000ft.grib2",
+  "6|15000|sev": "ifi-2026112301-f006-sev-15000ft.grib2",
+  "6|5000|sev": "ifi-2026112301-f006-sev-5000ft.grib2"
+ },
+ "clock": "2026-11-23T02:00:00Z"
+}
