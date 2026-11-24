@@ -786,6 +786,22 @@
        hours: [{ms, inWin, snow50, snow90, t50, det: [{type, t2F, twF, soilC, snowIn}]}] in time order (hours before the
        window feed the "cold for how long" count). st: windowStats for the window (or null when ensembles are missing). */
     STICK: { snowyRate: 0.02, burstRate: 0.5, heavyRate: 1.0, grassMildT: 34, grassWarmT: 36, pavedColdT: 30, pavedSoakH: 6, pavedShortSoakH: 3, warmSoilC: 2 },
+    /* the hours stickRead reads, built the same way for the Winter page and the Event Manager: ensemble median and
+       90th-percentile hourly snowfall and median temperature (members weighted {w, a}), plus each deterministic model's
+       type, temperatures, ground and snowfall aligned by time. ms: the ensemble's hourly instants; [s, e) the window;
+       lead: hours before s that feed the "cold for how long" count. det: {ms, rows: {id: W.series rows}} or null. */
+    readHours({ ms, snow = [], temp = [], det = null, ids = [], s, e, lead = 12 }) {
+      const a = Math.max(0, s - lead), n = e - a;
+      const q = (mem, k, qq) => { const ws = mem.map((m) => m.w); return stats.weightedQuantile(mem.map((m) => m.a[k]), ws, qq); };
+      const detIdx = det ? new Map(det.ms.map((m, i) => [m, i])) : null, use = det ? ids.filter((id) => det.rows[id]) : [];
+      const out = [];
+      for (let k = 0; k < n; k++) {
+        const i = a + k, j = detIdx ? detIdx.get(ms[i]) : undefined;
+        out.push({ ms: ms[i], inWin: i >= s, snow50: snow.length ? q(snow, i, 0.5) ?? null : null, snow90: snow.length ? q(snow, i, 0.9) ?? null : null, t50: temp.length ? q(temp, i, 0.5) ?? null : null,
+          det: j == null ? [] : use.map((id) => { const r = det.rows[id][j]; return { type: r.wet ? r.codeType || r.split : "none", t2F: r.t2F, twF: r.twF, soilC: r.soilC, snowIn: r.snowIn }; }) });
+      }
+      return out;
+    },
     stickRead(hours, st) {
       const K = winter.STICK, mean = (a) => { const v = a.filter((x) => x != null); return v.length ? v.reduce((x, y) => x + y, 0) / v.length : null; };
       const win = hours.filter((h) => h.inWin), missing = [];

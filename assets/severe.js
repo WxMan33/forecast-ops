@@ -149,7 +149,7 @@
         srh1: [dmax("srh1", d.idx), dmax("srh1", d.idx, 1)], srh3: [dmax("srh3", d.idx), dmax("srh3", d.idx, 1)], scp: [dmax("scp", d.idx), dmax("scp", d.idx, 1)], stp: [dmax("stp", d.idx), dmax("stp", d.idx, 1)],
         lr75: dmax("lr75", d.idx), lcl: dmin("lcl", unstable.length ? unstable : d.idx) };
     });
-    $("daily").innerHTML = `<thead><tr><th>Day</th><th>Signal</th><th>Storms in models</th><th>CAPE</th><th>0–6 km shear</th><th>0–1 km SRH</th><th>0–3 km SRH</th><th>SCP ≈</th><th>STP ≈</th><th>700–500 LR</th><th>Min LCL</th><th>Flags</th></tr></thead><tbody>` +
+    $("daily").innerHTML = `<thead><tr><th>Day</th><th>Signal</th><th title="Share of the models selected on this page (Severe weights) that show thunderstorms in their weather code on that day. Storm timing has the full thunder signal, with its own models and weights.">Thunder share · these models</th><th>CAPE</th><th>0–6 km shear</th><th>0–1 km SRH</th><th>0–3 km SRH</th><th>SCP ≈</th><th>STP ≈</th><th>700–500 LR</th><th>Min LCL</th><th>Flags</th></tr></thead><tbody>` +
       rows.map((r) => `<tr><td class="display" style="font-size:12px">${O.fmtDay(r.d.k)}</td><td>${O.badge({ tier: r.t, limited: r.lim.length > 0, missing: r.miss })}</td>` +
         `<td class="num">${r.th == null ? "—" : Math.round(r.th * 100) + "%"}</td><td class="num">${pair(...r.cape)}</td><td class="num">${pair(...r.bs6, 0, " kt")}</td>` +
         `<td class="num">${pair(...r.srh1)}</td><td class="num">${pair(...r.srh3)}</td><td class="num">${pair(...r.scp, 1)}</td><td class="num">${pair(...r.stp, 1)}</td>` +

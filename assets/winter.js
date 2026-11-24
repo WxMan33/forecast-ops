@@ -179,17 +179,7 @@
      ensemble median hourly snow and temperature with each deterministic model's type, wet-bulb and ground temperature. */
   const LEAD_H = 12;   // hours before the window that feed "how long has it been at or below 32°F"
   function readHours(s, e) {
-    const a = Math.max(0, s - LEAD_H), snow = pool("snow"), temp = pool("temp");
-    const sn = snow.length ? quantileSeries(snow, snow.map((m) => m.a.slice(a, e)), e - a, [0.5, 0.9]) : [[], []];
-    const tp = temp.length ? quantileSeries(temp, temp.map((m) => m.a.slice(a, e)), e - a, [0.5])[0] : [];
-    const detIdx = det ? new Map(det.ms.map((m, i) => [m, i])) : null, ids = det ? DET.map((m) => m.id).filter((id) => det.rows[id]) : [];
-    const out = [];
-    for (let i = a; i < e; i++) {
-      const k = i - a, j = detIdx ? detIdx.get(data.ms[i]) : undefined;
-      out.push({ ms: data.ms[i], inWin: i >= s, snow50: sn[0][k] ?? null, snow90: sn[1][k] ?? null, t50: tp[k] ?? null,
-        det: j == null ? [] : ids.map((id) => { const r = det.rows[id][j]; return { type: r.wet ? r.codeType || r.split : "none", t2F: r.t2F, twF: r.twF, soilC: r.soilC, snowIn: r.snowIn }; }) });
-    }
-    return out;
+    return W.readHours({ ms: data.ms, snow: pool("snow"), temp: pool("temp"), det, ids: DET.map((m) => m.id), s, e, lead: LEAD_H });
   }
   const LVL = { favored: ["Favored", "var(--prepare)"], possible: ["Possible", "var(--monitor)"], unlikely: ["Unlikely", "var(--normal)"], none: ["No snow", "var(--nodata)"] };
   function renderRead(st, s, e) {

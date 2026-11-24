@@ -291,6 +291,9 @@
     ].filter(Boolean);
     const amountsHtml = amounts.length ? `<ul class="pv-amounts">${amounts.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : '';
     const watch = lines.filter((l) => l.key !== 'none' && !(l.key === 'lightning' && !A.items.some((x) => x.key === 'lightning')));
+    /* winter read (what could stick), when the event page loaded one: the same levels and hours as the screen */
+    const WR = view.winter && view.winter.status === 'snow' ? view.winter : null, LVW = { favored: 'favored', possible: 'possible', unlikely: 'unlikely', none: 'not expected' };
+    if (WR) watch.push({ key: 'winter', text: `Snow could stick: on grass and elevated surfaces ${LVW[WR.grass.level] || WR.grass.level}; on paved roads and sidewalks ${LVW[WR.paved.level] || WR.paved.level}${WR.ranges.length ? `, mainly ${WR.ranges.map((r) => `${clock(r.s, tz)}–${clock(r.e + H, tz)}`).join(', ')}` : ''}. Bridges and untreated roads are not assessed.` });
     /* a practical gap, in one line, only when it changes what a reader can rely on */
     const f = res.feeds, total = f ? f.used.length + f.missing.length : 0;
     const gap = R && R.state === 'partial' ? `The forecast does not reach the whole event yet: ${R.line}. Check again for the rest.`
