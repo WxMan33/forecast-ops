@@ -115,9 +115,11 @@
   async function pool(items, n, fn) { let i = 0; const run = async () => { while (i < items.length) { const k = i++; try { await fn(items[k]); } catch (e) { /* that zone stays unknown */ } } }; await Promise.all(Array.from({ length: Math.min(n, items.length) }, run)); }
   async function resolvePending() {
     const want = [];
-    for (const p of alerts.products(Date.now())) if (p.geometrySource === "counties" && p.status === "active" && (!zoneFamilies || zoneFamilies.has(p.family)) && zoneKindOk(p)) for (const u of p.zones) if (!zoneGeo.has(u) && inArea(u)) want.push(u);
+    const KIND = { warning: 0, watch: 1, advisory: 2, statement: 3 }, ps = alerts.products(Date.now()).slice().sort((a, b) => (KIND[a.kind] ?? 4) - (KIND[b.kind] ?? 4));
+    for (const p of ps) if (p.geometrySource === "counties" && p.status === "active" && (!zoneFamilies || zoneFamilies.has(p.family)) && zoneKindOk(p)) for (const u of p.zones) if (!zoneGeo.has(u) && inArea(u)) want.push(u);
     if (!want.length) return false;
-    await pool([...new Set(want)].slice(0, 300), 6, zone); return true;
+    // national zoom: at most 150 outlines, warnings first, then watches (more as the map zooms in)
+    await pool([...new Set(want)].slice(0, zoneArea && zoneArea.zoom < 5 ? 150 : 300), 6, zone); return true;
   }
   /* the map's view (west, south, east, north) and zoom: outlines are downloaded for that area only (Event Manager never sets it) */
   let areaTimer = null;
