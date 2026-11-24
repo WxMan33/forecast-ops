@@ -29,6 +29,9 @@
     /* a known limit of a source (SPC can't say yet for Days 6-8): shown, but not a failure */
     const limitOn = (ms, why) => { const d = at(ms); if (d && !d.limits.includes(why)) d.limits.push(why); };
     const inside = (g) => g && T.contains(g, pt);
+    /* approaching: the highest area within 100 miles that is higher than the venue's own (distance and direction from the venue) */
+    const NEAR_KM = 161, nearHigher = (ps, levelOf, atLevel) => { let best = null; for (const p of ps) { if (!p.geometry || inside(p.geometry)) continue; const lv = levelOf(p); if (!(lv > atLevel)) continue; const r = T.relation({ kind: "outlook", geometry: p.geometry }, inp.venue, NEAR_KM); if (r.kind === "near" && (!best || lv > best.lv || (lv === best.lv && r.km < best.r.km))) best = { p, lv, r }; } return best; };
+    const nearText = (b) => Math.max(1, Math.round(T.miles(b.r.km))) + " mi " + b.r.dir;
     /* a convective day's afternoon (12Z start + 6 h) decides which local day it belongs to */
     const mid = (p) => Date.parse(p.validStart) + 6 * 3600e3;
 
@@ -37,12 +40,16 @@
       const st = (inp.states.spc || {})[d], ps = (inp.spc || []).filter((p) => p.day === d);
       if (st !== "ok") { const ref = ps[0] || null; if (ref) unknownOn(mid(ref), "SPC Day " + d + " outlook not confirmed"); else if (inp.spcDayStart && inp.spcDayStart[d]) unknownOn(mid({ validStart: inp.spcDayStart[d] }), "SPC Day " + d + " outlook not confirmed"); continue; }
       const top = T.outlookAt(ps, pt); if (top) put(mid(top), { key: "severe", level: SPC_LEVEL[top.category] || 0, text: top.category === "TSTM" ? "Thunderstorms possible" : "Severe storms: " + SPC_NAME[top.category], source: "SPC Day " + d, link: "day" + d });
+      const nb = nearHigher(ps.filter((p) => p.category !== "TSTM"), (p) => SPC_LEVEL[p.category] || 0, top ? SPC_LEVEL[top.category] || 0 : 0);
+      if (nb) put(mid(nb.p), { key: "severe", level: Math.max(0, nb.lv - 1), text: "Nearby: " + SPC_NAME[nb.p.category] + ", " + nearText(nb), source: "SPC Day " + d, link: "day" + d, near: true });
     }
     // SPC Days 4-8: 15% / 30% areas; "predictability too low" is unknown
     for (const o of inp.spc48 || []) {
       if (o.failed) { if (o.validStart) unknownOn(mid(o), "SPC Day " + o.day + " outlook not confirmed"); continue; }
       const hit = o.products.filter((p) => inside(p.geometry)).sort((a, b) => b.prob - a.prob)[0];
       if (hit) put(mid(o), { key: "severe", level: hit.prob >= 30 ? 3 : 2, text: "Severe storms: " + hit.prob + "% chance within 25 miles", source: "SPC Day " + o.day, link: null });
+      const nb = nearHigher(o.products, (p) => (p.prob >= 30 ? 3 : 2), hit ? (hit.prob >= 30 ? 3 : 2) : 0);
+      if (nb) put(mid(o), { key: "severe", level: Math.max(0, nb.lv - 1), text: "Nearby: " + nb.p.prob + "% severe area, " + nearText(nb), source: "SPC Day " + o.day, link: null, near: true });
       else if (o.status === "predictability-too-low") limitOn(mid(o), "SPC can't say yet for severe storms (Day " + o.day + ": predictability too low)");
     }
     // WPC excessive rainfall Days 1-5
@@ -50,6 +57,8 @@
       if (o.failed) { if (o.validStart) unknownOn(mid(o), "WPC Day " + o.day + " rainfall outlook not confirmed"); continue; }
       const hit = (o.products || []).filter((p) => inside(p.geometry)).sort((a, b) => (ERO_LEVEL[b.category] || 0) - (ERO_LEVEL[a.category] || 0))[0];
       if (hit) put(mid(o), { key: "rain", level: ERO_LEVEL[hit.category] || 1, text: "Excessive rainfall: " + ERO_NAME[hit.category], source: "WPC Day " + o.day, link: o.day <= 3 ? "day" + o.day : null });
+      const nb = nearHigher(o.products || [], (p) => ERO_LEVEL[p.category] || 0, hit ? ERO_LEVEL[hit.category] || 0 : 0);
+      if (nb && o.validStart) put(mid(o), { key: "rain", level: Math.max(0, nb.lv - 1), text: "Nearby: excessive rainfall " + ERO_NAME[nb.p.category] + ", " + nearText(nb), source: "WPC Day " + o.day, link: o.day <= 3 ? "day" + o.day : null, near: true });
     }
     // SPC fire weather Days 1-8 (the highest of the day's parts)
     if (inp.states.fire === "ok") {

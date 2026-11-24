@@ -73,4 +73,11 @@ ok("DASHBOARD: a river gauge within 25 miles forecast to reach moderate flooding
   assert.ok(!r.days.some((d) => d.items.some((x) => /Far River/.test(x.text))));
   const j = base(); j.states.gauges = "failed"; assert.ok(O.build(j).days[0].unknown.includes("NOAA river gauges not confirmed"));
 });
+ok("DASHBOARD: approaching: a higher SPC area within 100 miles shows as 'Nearby', with distance and direction, one level lower; farther away it doesn't", () => {
+  const i = base(), west = { type: "Polygon", coordinates: [[[-86.4, 38.6], [-85.6, 38.6], [-85.6, 39.6], [-86.4, 39.6], [-86.4, 38.6]]] }, far = { type: "Polygon", coordinates: [[[-92, 38], [-91, 38], [-91, 39], [-92, 39], [-92, 38]]] };
+  i.spc = [{ day: 1, category: "MRGL", geometry: box(V.lon, V.lat, 2), validStart: "2026-11-23T12:00:00Z" }, { day: 1, category: "ENH", geometry: west, validStart: "2026-11-23T12:00:00Z" }, { day: 1, category: "HIGH", geometry: far, validStart: "2026-11-23T12:00:00Z" }];
+  const r = O.build(i), nb = r.days[0].items.find((x) => x.near);
+  assert.ok(/^Nearby: Enhanced risk \(3 of 5\), \d+ mi west$/.test(nb.text), nb.text); assert.strictEqual(nb.level, 2);
+  assert.ok(r.days[0].items.some((x) => x.text === "Severe storms: Marginal risk (1 of 5)"));
+});
 console.log(n + " passed");

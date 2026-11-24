@@ -3,6 +3,29 @@
 Preview: `https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats` (branch `claude/threats-em-combined`).
 Shared beta, production and navigation are unchanged. Sources are listed in `SOURCES.md`; the NWS forwarder in `NWS-FUNCTION.md`.
 
+## Next 7 days: the dashboard (the first view on a fresh visit)
+
+A fresh live visit (no `layers`, `view`, selection or aviation in the link) opens on **Next 7 days at <venue>**: a headline naming
+the highest threat ahead (with its day and source), NWS alerts at the venue now or scheduled, then one card per local day. Map
+layers stay off until chosen; the dashboard loads only its own sources (about 45 requests, 3–4 s), and refreshes every 10 minutes.
+
+| Line | Source (at the venue's point) |
+|---|---|
+| NWS alerts now and scheduled | `api.weather.gov/alerts/active?point=` (through `/api/nws`) |
+| Severe storms | SPC Days 1–3 categorical (highest at the venue) and Days 4–8 15%/30%; Days 6–8 "predictability too low" shown as a limit |
+| Excessive rainfall | WPC Days 1–5 |
+| Winter | WPC WSSI-P (highest level with at least a 30% chance) |
+| Fire weather | SPC fire Days 1–8 |
+| Tropical | NHC cone or 7-day formation area over the venue |
+| River | NOAA gauges within 25 mi forecast or observed at minor flooding or worse |
+| Gusts, heat index, feels-like, rain chance | NWS forecast grid (7 days) |
+| Air quality | AirNow forecast |
+| Nearby | a higher SPC or WPC area within 100 mi, with distance and direction, one level lower |
+
+Levels (Low, Moderate, High, Extreme) only order and colour; each line keeps the source's wording. A source that doesn't answer
+makes that day "not confirmed", never quiet. Each line opens the map on its view and layer. Logic: `assets/threats-outlook.js`
+(`tests/threats-outlook.test.js`).
+
 ## Opening the map
 
 - **A fresh visit draws the street basemap and the venue marker with every threat layer off, and downloads no threat data.** The picker
@@ -20,12 +43,14 @@ what it has. Opening the picker downloads nothing.
 | Layer | Feeds |
 |---|---|
 | Severe storms | NWS alerts, SPC MDs (NOAA map service), SPC Day 1–3 outlooks, SPC storm reports (preliminary, last 24 h) |
-| Flooding | NWS alerts, WPC excessive rainfall Days 1–3 |
+| Flooding | NWS alerts (Flash Flood, and river/areal Flood Warning, Watch and Advisory), WPC excessive rainfall Days 1–3, NOAA river gauges in view at regional zoom |
 | Winter | NWS alerts (WSSI-P in the Winter view) |
 | Fire | NWS alerts, SPC fire outlooks Days 1–8, NIFC incidents |
 | Smoke & air | NOAA HMS smoke, AirNow monitors (venue observations and forecast) |
 | Tropical | NWS alerts, NHC |
 | Coastal | NWS alerts |
+| Heat & cold | NWS alerts: Extreme Heat, Heat Advisory, Extreme Cold, Cold Weather Advisory, Wind Chill, Freeze, Frost |
+| Wind & visibility | NWS alerts: High Wind, Wind Advisory, Extreme Wind, Dust, Lake Wind, Dense Fog, Dense Smoke |
 | Aviation | airports, pilot reports and advisories, GTG and IFI on request |
 
 - **Zone outlines** (alerts issued by county or zone) are downloaded only for the hazards on, at most 6 at a time, and kept in the
