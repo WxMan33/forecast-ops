@@ -119,7 +119,8 @@ async function loadReports(c,seq){reports=null;reportUi();const meta=c.reports;i
  reportUi();draw();}
 
 /* ---------- loading ---------- */
-const caseLabel=c=>c.kind==='current'?'SAVED FORECAST · valid '+new Date(c.valid_start).toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'numeric'})+'–'+new Date(c.valid_end).toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'numeric',year:'numeric'}):'REPLAY · '+c.label;
+const savedExpired=c=>c.kind==='current'&&Date.parse(c.valid_end)<Date.now();
+const caseLabel=c=>c.kind==='current'?'SAVED FORECAST'+(savedExpired(c)?' · EXPIRED':'')+' · valid '+new Date(c.valid_start).toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'numeric'})+'–'+new Date(c.valid_end).toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'numeric',year:'numeric'}):'REPLAY · '+c.label;
 async function init(){if(loaded)return;loaded=true;host.setAttribute('aria-busy','true');status('Loading CONUS research preview…');try{
  index=await fetchJson('index.json');if(index.schema_version!==1||index.status!=='research_preview'||index.operational_forecast_eligible!==false)throw Error('Unsupported CONUS preview feed');
  const g=await fetchJson(index.grid.file,index.grid.sha256);grid=g.coordinates;supported=g.supported.map(Boolean);if(grid.length!==index.coverage.samples||supported.length!==grid.length)throw Error('CONUS grid size mismatch');
@@ -132,12 +133,12 @@ async function init(){if(loaded)return;loaded=true;host.setAttribute('aria-busy'
 async function loadCase(){const seq=++request,c=index.cases.find(x=>x.id===$('scCase').value);values=null;active=null;reports=null;if(popup)popup.remove();draw();try{
  if(!cache.has(c.id))cache.set(c.id,fetchJson(c.file,c.sha256).catch(e=>{cache.delete(c.id);throw e;}));const data=await cache.get(c.id);if(seq!==request)return;
  const w=data.probabilities&&data.probabilities.wind;if(!Array.isArray(w)||w.length!==grid.length||data.id!==c.id||Number(data.day)!==2)throw Error('Case identity or size mismatch');
- values=w;active={...c,data};meta();draw();restore();status((c.kind==='current'?'Saved forecast (does not update)':'Replay of '+c.issue_date)+' · click the map to read a point.');
+ values=w;active={...c,data};meta();draw();restore();status((c.kind==='current'?(savedExpired(c)?'Saved forecast EXPIRED: its valid window has ended':'Saved forecast (does not update)'):'Replay of '+c.issue_date)+' · click the map to read a point.');
  loadReports(c,seq);
 }catch(e){if(seq!==request)return;status('Could not load this CONUS case: '+e.message+'. No probability is shown.',true);}}
 function meta(){const c=active,d=c.data;
- $('scWindow').innerHTML=(c.kind==='current'?'<span class="sc-kind sc-kind-saved">SAVED FORECAST</span>':'<span class="sc-kind">REPLAY</span>')+' Valid '+esc(eastern(d.valid_start))+' → '+esc(eastern(d.valid_end));
- $('scCycle').textContent='HRRR '+utc(d.model_init_time)+' run (f24–48) · Day 2 · '+utc(d.valid_start)+' – '+utc(d.valid_end)+(c.kind==='current'?' · fixed snapshot, does not update':'');
+ $('scWindow').innerHTML=(c.kind==='current'?'<span class="sc-kind sc-kind-saved">SAVED FORECAST'+(savedExpired(c)?' · EXPIRED':'')+'</span>':'<span class="sc-kind">REPLAY</span>')+' Valid '+esc(eastern(d.valid_start))+' → '+esc(eastern(d.valid_end));
+ $('scCycle').textContent='HRRR '+utc(d.model_init_time)+' run (f24–48) · Day 2 · '+utc(d.valid_start)+' – '+utc(d.valid_end)+(c.kind==='current'?(savedExpired(c)?' · EXPIRED: valid window has ended; the daily refresh did not run':' · fixed snapshot, does not update'):'');
  $('scCaseNote').textContent=c.description;reportUi();}
 function coverageNote(){const v=index.coverage;$('scCoverage').textContent='Coverage: '+n(v.supported)+' of '+n(v.samples)+' grid points (within 25 miles of US land). The map shades lower-48 land only; water and areas outside the US are plain background. Blank inside coverage means below 0.1%.';$('scDefinition').textContent='Chance of a ≥50 kt thunderstorm wind report within 25 miles of a point during the 24-hour window. Unshaded inside the US: below 0.1%. Water and areas outside the lower 48 are not shaded.';}
 function benchmark(){const b=index.benchmark,names={conus:'All CONUS',original_box:'Old regional box',plains_outside_box:'Plains (outside box)',northeast_outside_box:'Northeast (outside box)',west:'West',florida_gulf_south:'Florida / Gulf'};const f=x=>x==null?'—':(x*100).toFixed(1)+'%',s=x=>x==null?'—':(x>=0?'+':'')+x.toFixed(3);

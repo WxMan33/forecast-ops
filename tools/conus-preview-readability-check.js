@@ -51,6 +51,9 @@ async function waitReports(p){await p.waitForFunction(()=>window.SevereConusPrev
  const w=await p.textContent('#scWindow');ok('saved forecast labelled with absolute valid times',/SAVED FORECAST/.test(w)&&w.includes(etDay(sv.start))&&w.includes(etDay(sv.end)),{case:sv.id,window:w});
  ok('reports toggle hidden for saved forecast',await p.isHidden('#scReportsWrap'));
  ok('case picker says Saved forecast',/SAVED FORECAST/.test(await p.evaluate(()=>[...document.querySelectorAll('#scCase option')].map(o=>o.textContent).join('|'))));
+ ok('in-date saved forecast is not marked EXPIRED',!/EXPIRED/.test(await p.textContent('#scWindow')));
+ {const xp=await b.newPage({viewport:{width:1280,height:900}});await xp.addInitScript(end=>{const t=Date.parse(end)+3600e3,n=Date.now.bind(Date);const off=t-n();Date.now=()=>n()+off;},sv.end);await open(xp);await xp.selectOption('#scCase',sv.id);await xp.waitForTimeout(2500);
+  const xw=await xp.textContent('#scWindow'),xo=await xp.evaluate(()=>[...document.querySelectorAll('#scCase option')].map(o=>o.textContent).join('|'));ok('saved forecast past its valid window is marked EXPIRED',/EXPIRED/.test(xw)&&/SAVED FORECAST · EXPIRED/.test(xo)&&/EXPIRED/.test(await xp.textContent('#scCycle')),{window:xw});await xp.close();}
  // weakness replay national
  await p.selectOption('#scCase','replay-2024-05-14');await waitReports(p);await p.evaluate(()=>window.SevereConusPreview.view([-90,33],4.3));await p.waitForTimeout(1000);ok('weakness replay 36 reports',(await S(p)).reports===36);await mapShot('weakness');
  // land-only display

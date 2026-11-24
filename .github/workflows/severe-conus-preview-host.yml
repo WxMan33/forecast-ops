@@ -18,6 +18,19 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
+      - name: Saved forecast is still in date (fails if the daily refresh stopped)
+        run: |
+          python3 - <<'PY'
+          import json, sys, datetime as dt
+          idx = json.load(open('assets/severe-conus/index.json'))
+          cur = [c for c in idx['cases'] if c['kind'] == 'current']
+          if not cur: print('::error::no saved forecast in index.json'); sys.exit(1)
+          now = dt.datetime.now(dt.timezone.utc)
+          for c in cur:
+              end = dt.datetime.fromisoformat(c['valid_end'].replace('Z', '+00:00'))
+              print(c['id'], 'valid until', c['valid_end'], '(now', now.isoformat(timespec='minutes') + ')')
+              if end < now: print('::error::saved forecast', c['id'], 'expired at', c['valid_end'], '- the daily feed did not refresh it'); sys.exit(1)
+          PY
       - name: Prebuilt display contours match the current cases (else phones would get no shading)
         run: |
           python3 - <<'PY'
