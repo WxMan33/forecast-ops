@@ -160,6 +160,7 @@
       venue = withTz(S.entryVenue || liveVenues().find((v) => v.id === S.liveVenue) || liveVenues()[0]);
     } else { data = Demo.scenario(S.scenario); now = Date.parse(data.clock); venue = S.entryVenue ? withTz(S.entryVenue) : data.venues[S.venueKey]; }
     data.state = {}; for (const k of Object.keys(data.sources)) data.state[k] = data.sources[k].state === "off" ? { kind: "off", text: S.auto && isLive() ? "Not loaded · nothing near the venue calls for it" : "Layer off" } : data.sources[k].state === "pending" ? { kind: "loading", text: "Loading" } : data.sources[k].state === "na" ? { kind: "na", text: "Not part of this sample" } : data.loading ? { kind: "loading", text: "Loading" } : isArchive() ? { kind: data.sources[k].count ? "current" : "empty", text: "Archived" } : T.sourceState(data.sources[k], now, STALE_MIN[k]);
+    if (isLive() && data.state.gauges && !S.gaugeWhy) data.state.gauges = { kind: "off", text: "Not loaded · no flood warning in view" };
   }
   const tz = () => venue.tz;
   /* a time zone as people say it: "Eastern Time (EST)", never the database name (America/New_York) */
