@@ -67,10 +67,15 @@
     return zonePending.get(url);
   }
   /* county/zone-based products get their drawn area from the zone shapes fetched so far (attached per snapshot) */
+  /* the drawn outline only changes when the alert's zone list or the zones downloaded so far change: kept, not rebuilt on every
+     snapshot (dissolving many zones took ~0.7 s per redraw on a busy day) */
+  const shapeCache = new Map();
   function withZones(p) {
     if (p.geometrySource !== "counties" || !p.zones || !p.zones.length) return p;
-    const z = F.zoneShape(p.zones, p.zones.map((u) => zoneGeo.get(u) || null));
-    return { ...p, geometry: z.geometry, geometryIncomplete: z.incomplete, zoneInfo: z, label: z.geometry ? F.labelPoint(z.geometry) : null };
+    const have = p.zones.map((u) => zoneGeo.get(u) || null), key = p.zones.join(",") + "|" + have.map((g) => (g ? 1 : 0)).join("");
+    let c = shapeCache.get(p.id);
+    if (!c || c.key !== key) { const z = F.zoneShape(p.zones, have); c = { key, z, label: z.geometry ? F.labelPoint(z.geometry) : null }; shapeCache.set(p.id, c); if (shapeCache.size > 2000) shapeCache.delete(shapeCache.keys().next().value); }
+    return { ...p, geometry: c.z.geometry, geometryIncomplete: c.z.incomplete, zoneInfo: c.z, label: c.label };
   }
   function applyZones() { /* shapes are attached in snapshot(); kept for callers */ }
   /* outlines of zone-listed alerts: only for the hazards the map shows (setZoneFamilies; everything for Event Manager, which
