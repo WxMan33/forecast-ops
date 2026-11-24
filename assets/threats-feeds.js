@@ -841,6 +841,24 @@
       source: { name: "NOAA map service (SPC MDs)", url: n ? MD_URL(n) : MD_LIST_URL }, bulletin: "", severe: !/winter|snow|freezing|blizzard/i.test(text) };
   }
 
+  /* ---------- NOAA river gauges (National Water Prediction Service): observed and forecast stage and flood category ----------
+     Categories: no_flooding, action, minor, moderate, major. "not_defined" (no flood stages set), "obs_not_current",
+     "fcst_not_current" and "out_of_service" are reported as such, never as no flooding. -999 means no value. */
+  const GAUGES_URL = (b) => "https://api.water.noaa.gov/nwps/v1/gauges?bbox.xmin=" + b[0] + "&bbox.ymin=" + b[1] + "&bbox.xmax=" + b[2] + "&bbox.ymax=" + b[3] + "&srid=EPSG_4326";
+  const GAUGE_CATS = ["no_flooding", "action", "minor", "moderate", "major"];
+  const GAUGE_WORD = { no_flooding: "Below flood stage", action: "Action stage", minor: "Minor flooding", moderate: "Moderate flooding", major: "Major flooding", not_defined: "No flood stages defined", obs_not_current: "Observation not current", fcst_not_current: "No current forecast", out_of_service: "Out of service" };
+  function parseGauges(j) {
+    const list = Array.isArray(j) ? j : j && Array.isArray(j.gauges) ? j.gauges : null; if (!list) throw Error("unrecognized NWPS gauge answer");
+    const part = (x) => !x ? null : { value: x.primary === -999 || x.primary == null ? null : +x.primary, unit: x.primaryUnit || "", flow: x.secondary === -999 || x.secondary == null ? null : +x.secondary, flowUnit: x.secondaryUnit || "", category: x.floodCategory || "not_defined", time: x.validTime && !/^0001/.test(x.validTime) ? new Date(x.validTime).toISOString() : null };
+    return list.filter((g) => g && g.lid && isFinite(+g.latitude) && isFinite(+g.longitude)).map((g) => {
+      const obs = part(g.status && g.status.observed), fcst = part(g.status && g.status.forecast), rank = (c) => GAUGE_CATS.indexOf(c);
+      const worst = [obs, fcst].filter((x) => x && rank(x.category) >= 0).sort((a, b) => rank(b.category) - rank(a.category))[0] || null;
+      return { id: "gauge-" + g.lid, kind: "gauge", family: "flood", sourceId: "nwps", lid: g.lid, name: g.name, wfo: g.wfo && g.wfo.abbreviation, state: g.state && g.state.abbreviation, point: [+g.longitude, +g.latitude], geometry: null, label: [+g.longitude, +g.latitude],
+        obs, fcst, category: worst ? worst.category : (obs && obs.category) || "not_defined", rank: worst ? rank(worst.category) : -1, title: g.name, event: "River gauge",
+        source: { name: "NOAA National Water Prediction Service", url: "https://water.noaa.gov/gauges/" + String(g.lid).toLowerCase() } };
+    });
+  }
+
   /* ---------- SPC Days 4-8 severe probability (any severe, within 25 miles): 15% or 30% areas, or a statement for the day ----------
      With no area, SPC's one feature says why: "Potential Too Low" (no area expected: quiet) or "Predictability Too Low" (SPC
      can't say yet: unknown, never quiet). */
@@ -913,7 +931,7 @@
     return { updated: new Date(P.updateTime).toISOString(), rows, covered, peakGust: peak("gust"), peakHeat: peak("heat"), peakFeels: peak("feels"), peakPop: peak("pop"), lowFeels: rows.reduce((b, r) => (r.feels != null && (!b || r.feels < b.feels) ? r : b), null) };
   }
 
-  return { DAY48_URL, parseDay48, REPORTS_URL, parseStormReports, RADAR_TIME_URL, RADAR_TILE_URL, parseRadarTime, parseGrid, EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
+  return { GAUGES_URL, GAUGE_CATS, GAUGE_WORD, parseGauges, DAY48_URL, parseDay48, REPORTS_URL, parseStormReports, RADAR_TIME_URL, RADAR_TILE_URL, parseRadarTime, parseGrid, EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
     parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries, dissolve, zoneShape,
     HAZARD, WINTER_EVENTS, FIRE_EVENTS, TROPICAL_EVENTS, COASTAL_EVENTS, EVENT_NAME, tcvToAlerts, pointZones, NAQFC_ENABLED, AWC_URL, FLT_ORDER, fltCat, parseMETAR, parseTAF, NHC_URL, NHC_WSP_AT, parseNHC, parseNHCWsp, TCWW, FIRE_CATS, DRYT_CATS, FIRE38_CATS, FIRE_NAME, FIRE_MEANING, SPC_FIRE_URL, parseFireOutlook, createFireStore,
     NIFC_INC_URL, NIFC_PER_URL, INCIDENT_TYPE, parseNIFC, zTime,

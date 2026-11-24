@@ -1,0 +1,1044 @@
+{
+  "gauges": [
+    {
+      "lid": "BHDO1",
+      "name": "East Fork Little Miami River at Harsha Lake",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "OH",
+        "name": "Ohio"
+      },
+      "latitude": 39.02228628,
+      "longitude": -84.1521569,
+      "pedts": {
+        "observed": "HPIRG",
+        "forecast": "HPIFE"
+      },
+      "status": {
+        "observed": {
+          "primary": 729.2,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "not_defined",
+          "validTime": "2026-11-24T14:30:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "BVLK2",
+      "name": "Mud Lick Creek near Beaverlick",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "KY",
+        "name": "Kentucky"
+      },
+      "latitude": 38.8450635,
+      "longitude": -84.72077969,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFE"
+      },
+      "status": {
+        "observed": {
+          "primary": 1.22,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "not_defined",
+          "validTime": "2026-11-24T14:45:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "BVUK2",
+      "name": "Taylor Creek at Bellevue",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "KY",
+        "name": "Kentucky"
+      },
+      "latitude": 39.097222222222,
+      "longitude": -84.482777777778,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 1.68,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "not_defined",
+          "validTime": "2026-11-24T14:30:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "CAEO1",
+      "name": "Caesar Creek near Wellman",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "OH",
+        "name": "Ohio"
+      },
+      "latitude": 39.4825605,
+      "longitude": -84.0643779,
+      "pedts": {
+        "observed": "HTIRG",
+        "forecast": "HTIFE"
+      },
+      "status": {
+        "observed": {
+          "primary": 6.17,
+          "primaryUnit": "ft",
+          "secondary": 0.276,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "not_defined",
+          "validTime": "2026-11-24T14:00:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "CCLO1",
+      "name": "Caesar Creek at Caesar Creek Lake",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "OH",
+        "name": "Ohio"
+      },
+      "latitude": 39.48617166,
+      "longitude": -84.0604889,
+      "pedts": {
+        "observed": "HPIRG",
+        "forecast": ""
+      },
+      "status": {
+        "observed": {
+          "primary": 846.29,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "not_defined",
+          "validTime": "2026-11-24T14:45:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "CCNO1",
+      "name": "Ohio River at Cincinnati",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "OH",
+        "name": "Ohio"
+      },
+      "latitude": 39.0945044,
+      "longitude": -84.5104983,
+      "pedts": {
+        "observed": "HGIR2",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 26.93,
+          "primaryUnit": "ft",
+          "secondary": 61.5,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-11-24T15:00:00Z"
+        },
+        "forecast": {
+          "primary": 27,
+          "primaryUnit": "ft",
+          "secondary": 63.2,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-11-25T12:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "EDGK2",
+      "name": "Banklick Creek near Erlanger",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "KY",
+        "name": "Kentucky"
+      },
+      "latitude": 38.98,
+      "longitude": -84.542222222222,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 1.08,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-11-24T14:00:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "ELJK2",
+      "name": "Elijahs Creek near Hebron",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "KY",
+        "name": "Kentucky"
+      },
+      "latitude": 39.079722222222,
+      "longitude": -84.685277777778,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 1.41,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-11-24T14:00:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "ERLK2",
+      "name": "Dry Creek near Erlanger",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "KY",
+        "name": "Kentucky"
+      },
+      "latitude": 39.058888888889,
+      "longitude": -84.616111111111,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 1.24,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "not_defined",
+          "validTime": "2026-11-24T14:40:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "EVNO1",
+      "name": "Mill Creek at Evendale",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "OH",
+        "name": "Ohio"
+      },
+      "latitude": 39.254444444444,
+      "longitude": -84.425277777778,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 4.72,
+          "primaryUnit": "ft",
+          "secondary": 0.0266,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-11-24T14:45:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "FCVK2",
+      "name": "Sand Run at Francisville",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "KY",
+        "name": "Kentucky"
+      },
+      "latitude": 39.1045833,
+      "longitude": -84.7291944,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 1.63,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "not_defined",
+          "validTime": "2026-11-24T14:25:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "FMCK2",
+      "name": "Fourmile Creek near Alexandria",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "KY",
+        "name": "Kentucky"
+      },
+      "latitude": 38.986666666667,
+      "longitude": -84.365277777778,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 1.56,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "not_defined",
+          "validTime": "2026-11-24T14:00:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "GPCK2",
+      "name": "Gunpowder Creek near Union",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "KY",
+        "name": "Kentucky"
+      },
+      "latitude": 38.994166666667,
+      "longitude": -84.716111111111,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 1.21,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "not_defined",
+          "validTime": "2026-11-24T14:00:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "HAMO1",
+      "name": "Great Miami River at Hamilton",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "OH",
+        "name": "Ohio"
+      },
+      "latitude": 39.391111111111,
+      "longitude": -84.572222222222,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 62.94,
+          "primaryUnit": "ft",
+          "secondary": 1.33,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-11-24T14:45:00Z"
+        },
+        "forecast": {
+          "primary": 63,
+          "primaryUnit": "ft",
+          "secondary": 1.46,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-11-27T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "MCRO1",
+      "name": "Mill Creek above Reading",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "OH",
+        "name": "Ohio"
+      },
+      "latitude": 39.2206139,
+      "longitude": -84.4468864,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFE"
+      },
+      "status": {
+        "observed": {
+          "primary": 5.09,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "not_defined",
+          "validTime": "2026-11-24T14:30:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "MCSO1",
+      "name": "Mill Creek at East Sharon Road",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "OH",
+        "name": "Ohio"
+      },
+      "latitude": 39.2694,
+      "longitude": -84.4319,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": ""
+      },
+      "status": {
+        "observed": {
+          "primary": 5.38,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "not_defined",
+          "validTime": "2026-11-24T15:00:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "MIAO1",
+      "name": "Great Miami River at Miamitown",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "OH",
+        "name": "Ohio"
+      },
+      "latitude": 39.216111111111,
+      "longitude": -84.702777777778,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 1.03,
+          "primaryUnit": "ft",
+          "secondary": 0.833,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-11-24T14:45:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "MLGO1",
+      "name": "Little Miami River at Milford",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "OH",
+        "name": "Ohio"
+      },
+      "latitude": 39.171388888889,
+      "longitude": -84.298055555556,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 5.32,
+          "primaryUnit": "ft",
+          "secondary": 0.412,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-11-24T14:30:00Z"
+        },
+        "forecast": {
+          "primary": 5.6,
+          "primaryUnit": "ft",
+          "secondary": 0.583,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-11-26T18:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "PERO1",
+      "name": "East Fork Little Miami River at Perintown",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "OH",
+        "name": "Ohio"
+      },
+      "latitude": 39.137222222222,
+      "longitude": -84.238055555556,
+      "pedts": {
+        "observed": "HGIRZ",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 2.34,
+          "primaryUnit": "ft",
+          "secondary": 0.0842,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-11-24T15:00:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "RCSO1",
+      "name": "Todd Fork near Roachester",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "OH",
+        "name": "Ohio"
+      },
+      "latitude": 39.3357,
+      "longitude": -84.0867,
+      "pedts": {
+        "observed": "HGIRZ",
+        "forecast": ""
+      },
+      "status": {
+        "observed": {
+          "primary": 2.85,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "not_defined",
+          "validTime": "2026-11-24T13:45:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "SCRO1",
+      "name": "Sharon Creek at Sharonville",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "OH",
+        "name": "Ohio"
+      },
+      "latitude": 39.273333333333,
+      "longitude": -84.411111111111,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 2,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-11-24T14:30:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "SLBO1",
+      "name": "Little Miami River near South Lebanon",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "OH",
+        "name": "Ohio"
+      },
+      "latitude": 39.368814,
+      "longitude": -84.225182,
+      "pedts": {
+        "observed": "HGIRZ",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 5.66,
+          "primaryUnit": "ft",
+          "secondary": 0.31,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-11-24T14:00:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "SPGO1",
+      "name": "Mill Creek at Kemper",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "OH",
+        "name": "Ohio"
+      },
+      "latitude": 39.2845,
+      "longitude": -84.4327198,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 3.3,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-11-24T14:45:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "TMCK2",
+      "name": "Twelvemile Creek near Alexandria",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "KY",
+        "name": "Kentucky"
+      },
+      "latitude": 38.951388888889,
+      "longitude": -84.338333333333,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFF"
+      },
+      "status": {
+        "observed": {
+          "primary": 1.57,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "no_flooding",
+          "validTime": "2026-11-24T14:45:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "VLIK2",
+      "name": "Licking River above Visalia",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "KY",
+        "name": "Kentucky"
+      },
+      "latitude": 38.9203417,
+      "longitude": -84.44799549,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFE"
+      },
+      "status": {
+        "observed": {
+          "primary": 6.49,
+          "primaryUnit": "ft",
+          "secondary": 0.99,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "not_defined",
+          "validTime": "2026-11-24T14:30:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    },
+    {
+      "lid": "WPCK2",
+      "name": "Woolper Creek near Burlington",
+      "rfc": {
+        "abbreviation": "OHRFC",
+        "name": "Ohio River Forecast Center"
+      },
+      "wfo": {
+        "abbreviation": "ILN",
+        "name": "Wilmington"
+      },
+      "state": {
+        "abbreviation": "KY",
+        "name": "Kentucky"
+      },
+      "latitude": 39.03,
+      "longitude": -84.804166666667,
+      "pedts": {
+        "observed": "HGIRG",
+        "forecast": "HGIFE"
+      },
+      "status": {
+        "observed": {
+          "primary": 4.23,
+          "primaryUnit": "ft",
+          "secondary": -999,
+          "secondaryUnit": "kcfs",
+          "floodCategory": "not_defined",
+          "validTime": "2026-11-24T14:45:00Z"
+        },
+        "forecast": {
+          "primary": -999,
+          "primaryUnit": "",
+          "secondary": -999,
+          "secondaryUnit": "",
+          "floodCategory": "fcst_not_current",
+          "validTime": "0001-01-01T00:00:00Z"
+        }
+      }
+    }
+  ]
+}

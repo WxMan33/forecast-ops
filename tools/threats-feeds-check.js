@@ -19,6 +19,7 @@ fs.mkdirSync(OUT, { recursive: true });
 const results = [], check = (name, cond, detail) => { results.push({ check: name, pass: !!cond, detail }); console.log((cond ? "pass " : "FAIL ") + name + (cond ? "" : " :: " + JSON.stringify(detail).slice(0, 700))); };
 /* threat feeds by the layer family they serve (first match wins) */
 const FEEDS = [
+  ["gauges", /api\.water\.noaa\.gov/],
   ["reports", /climo\/reports|\/api\/spc\/reports/],
   /* the NWS alerts feed: the active list, the outlines of alerts issued by zone, and the earlier messages an alert references */
   ["alerts", /\/alerts\/active/],
@@ -69,8 +70,8 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
       const by0 = tally(reqs); rec.fresh = { requests: reqs.length, byFeed: by0, other: Object.fromEntries(other), state: s0, dash };
       await p.screenshot({ path: path.join(OUT, `fresh-${d}.png`) });
       /* the dashboard's sources only: alerts at the venue's point, its NWS forecast grid, SPC Days 1-8 and fire, WPC rainfall and WSSI-P, NHC,
-         AirNow forecast (through /api/smoke); never a map layer's feeds (zone outlines, MDs, storm reports, NIFC, HMS smoke, monitors, aviation) */
-      const DASH = ["alerts", "spc", "ero", "fire", "wssi", "nhc", "airnow", "hms", "nws-other"], notMap = Object.keys(by0).every((k) => DASH.includes(k)) && !reqs.some((r) => r.feed === "hms" && !/airnow-area/.test(r.url));
+         AirNow forecast (through /api/smoke), NOAA river gauges near the venue; never a map layer's feeds (zone outlines, MDs, storm reports, NIFC, HMS smoke, monitors, aviation) */
+      const DASH = ["alerts", "spc", "ero", "fire", "wssi", "nhc", "airnow", "hms", "nws-other", "gauges"], notMap = Object.keys(by0).every((k) => DASH.includes(k)) && !reqs.some((r) => r.feed === "hms" && !/airnow-area/.test(r.url));
       check(`(${d}) FRESH VISIT: the venue's 7-day dashboard ('${dash.head}', ${dash.days} days) with map layers off ("Layers · None selected"), basemap and venue marker; only the dashboard's sources (${Object.entries(by0).map(([k, v]) => k + " " + v).join(", ")}), no map-layer feed`,
         dash.view === "outlook" && dash.state === "ok" && dash.days === 7 && dash.presets >= 2 && !s0.layers.length && s0.sum === "None selected" && /^Layers\s*·?\s*None selected/i.test(s0.btn) && s0.basemap && s0.marker && Array.isArray(s0.feeds) && !s0.feeds.length && notMap && !errs.length, { dash, by0, s0, errs });
       let t0 = Date.now(); await p.click("#txLayersBtn"); await p.waitForTimeout(5000);

@@ -64,4 +64,13 @@ ok("DASHBOARD: Day 4-8 15% area over the venue, WPC Day 2 rainfall, WSSI-P Moder
   assert.strictEqual(find(2, "fire").text, "Fire weather: Critical");
   assert.strictEqual(find(4, "air").text, "Air quality: Unhealthy for Sensitive Groups (AQI 105), PM2.5");
 });
+ok("DASHBOARD: a river gauge within 25 miles forecast to reach moderate flooding lands on the forecast day; one 60 miles away does not; a failed gauge query is 'not confirmed'", () => {
+  const i = base(); i.states.gauges = "ok";
+  i.gauges = [{ name: "Ohio River at Cincinnati", point: [-84.51, 39.09], obs: { category: "action", value: 50, unit: "ft" }, fcst: { category: "moderate", value: 60, unit: "ft", time: "2026-11-26T06:00:00Z" } },
+    { name: "Far River", point: [-85.6, 39.6], obs: { category: "major", value: 30, unit: "ft" }, fcst: null }];
+  const r = O.build(i), it = r.days[2].items.find((x) => x.key === "river");
+  assert.strictEqual(it.text, "Ohio River at Cincinnati: forecast moderate flooding (60 ft)"); assert.strictEqual(it.level, 2);
+  assert.ok(!r.days.some((d) => d.items.some((x) => /Far River/.test(x.text))));
+  const j = base(); j.states.gauges = "failed"; assert.ok(O.build(j).days[0].unknown.includes("NOAA river gauges not confirmed"));
+});
 console.log(n + " passed");

@@ -406,4 +406,15 @@ ok("STORM REPORTS: SPC's filtered reports for Nov 12, 2026 (Delaware tornadoes):
   assert.throws(() => F.parseStormReports("<html>not found</html>", "2026-11-12"), /unrecognized SPC storm report file/);
 });
 
+ok("RIVER GAUGES: NWPS gauges around Cincinnati (Nov 24): stage, flow and category observed and forecast; no flood stages or no current forecast are named, never 'no flooding'", () => {
+  const r = F.parseGauges(JSON.parse(fs.readFileSync(FX("nwps-gauges-cincinnati-20261124.json"), "utf8")));
+  assert.strictEqual(r.length, 26); const c = r.find((g) => g.lid === "CCNO1");
+  assert.strictEqual(c.name, "Ohio River at Cincinnati"); assert.deepStrictEqual(c.point, [-84.5104983, 39.0945044]); assert.strictEqual(c.obs.value, 26.93); assert.strictEqual(c.obs.unit, "ft"); assert.strictEqual(c.obs.category, "no_flooding"); assert.strictEqual(c.category, "no_flooding");
+  assert.strictEqual(c.source.url, "https://water.noaa.gov/gauges/ccno1");
+  const h = r.find((g) => g.lid === "BHDO1"); assert.strictEqual(h.obs.flow, null); assert.strictEqual(h.fcst.time, null); assert.strictEqual(h.category, "not_defined"); assert.strictEqual(h.rank, -1);
+  const f = F.parseGauges({ gauges: [{ lid: "X1", name: "Test", latitude: 39, longitude: -84, status: { observed: { primary: 20, primaryUnit: "ft", floodCategory: "action", validTime: "2026-11-24T15:00:00Z" }, forecast: { primary: 31, primaryUnit: "ft", floodCategory: "moderate", validTime: "2026-11-26T06:00:00Z" } } }] })[0];
+  assert.strictEqual(f.category, "moderate"); assert.strictEqual(f.rank, 3); // the worse of observed and forecast
+  assert.throws(() => F.parseGauges({ error: "x" }), /unrecognized NWPS gauge answer/);
+});
+
 Promise.all([...resolvedCases, ...watchCases]).then(() => console.log(n + " passed")).catch((e) => { console.error(e); process.exit(1); });

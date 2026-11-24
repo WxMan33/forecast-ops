@@ -77,6 +77,14 @@
         if (c != null && c <= 20) d.items.push({ key: "cold", level: c <= -30 ? 3 : c <= -15 ? 2 : c <= 10 ? 1 : 0, text: "Feels like " + c + "°F", source: "NWS forecast", link: null });
         if (pop != null && pop >= 40) d.items.push({ key: "precip", level: 0, text: "Rain or snow chance " + pop + "%", source: "NWS forecast", link: null }); }
     } else if (inp.states.grid === "failed") unknownOn(now, "NWS forecast for the venue not confirmed");
+    // NOAA river gauges within 25 miles: forecast (or observed) at or above action stage, on the day it is expected
+    const GL = { action: 0, minor: 1, moderate: 2, major: 3 }, GW = { action: "action stage", minor: "minor flooding", moderate: "moderate flooding", major: "major flooding" };
+    for (const g of inp.gauges || []) {
+      const d = T.pointDistance(pt, g.point); if (T.miles(d.km) > 25) continue;
+      if (g.obs && GL[g.obs.category] != null && g.obs.category !== "action") put(now, { key: "river", level: GL[g.obs.category], text: g.name + ": " + GW[g.obs.category] + " now (" + g.obs.value + " " + g.obs.unit + ")", source: "NOAA river gauge", link: null });
+      if (g.fcst && GL[g.fcst.category] != null && g.fcst.time) put(Date.parse(g.fcst.time), { key: "river", level: GL[g.fcst.category], text: g.name + ": forecast " + GW[g.fcst.category] + " (" + g.fcst.value + " " + g.fcst.unit + ")", source: "NOAA river forecast", link: null });
+    }
+    if (inp.states.gauges === "failed") unknownOn(now, "NOAA river gauges not confirmed");
     // AirNow forecast for the venue's reporting area
     for (const p of inp.aq || []) { const lv = AQ_LEVEL[p.category]; if (lv) put(Date.parse(p.validDate + "T18:00:00Z"), { key: "air", level: lv, text: "Air quality: " + p.category + (p.aqi ? " (AQI " + p.aqi + ")" : "") + (p.pollutant ? ", " + p.pollutant : ""), source: "AirNow forecast", link: null }); }
     // NWS alerts covering the venue: listed on top, and on each day they cover

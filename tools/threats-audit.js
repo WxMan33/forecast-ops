@@ -17,6 +17,7 @@ const HOST = (process.argv[2] || "").replace(/\/$/, ""), OUT = path.resolve(proc
 if (!HOST) { console.error("usage: threats-audit.js https://<host> [OUT_DIR]"); process.exit(2); }
 fs.mkdirSync(OUT, { recursive: true });
 const FEEDS = [
+  ["gauges", /api\.water\.noaa\.gov/],
   ["reports", /climo\/reports|\/api\/spc\/reports/],["alerts", /\/alerts\/active/], ["alerts-zones", /api\.weather\.gov\/zones|\/api\/nws\/zones/], ["alerts-refs", /(api\.weather\.gov|\/api\/nws)\/alerts\/urn/],
   ["md", /spc\.noaa\.gov\/products\/md|spc_mesoscale_discussion/], ["spc", /spc\.noaa\.gov\/products\/outlook/], ["fire", /fire_wx/], ["ero", /eromap|wpc_precip_hazards|\/api\/wpc\/ero/],
   ["wssi", /wpc_wssi_p|\/api\/wpc\/wssi/], ["nifc", /WFIGS|services3\.arcgis\.com/], ["hms", /satepsanone|\/api\/smoke/], ["airnow", /AirNow|airnowtech|Air%20Now/i], ["nhc", /tropical\/rest|nhc\.noaa\.gov/],

@@ -17,6 +17,15 @@
      per venue (like WSSI-P); all monitors for the map */
   const hms = { state: "never", lastOk: null, error: null, products: [], days: [] };
   const lsr = { state: "never", lastOk: null, error: null, products: [] };
+  /* NOAA river gauges: queried by area (the map's view at regional zoom, or around the venue), kept by gauge id */
+  const gauges = { state: "never", lastOk: null, error: null, byId: new Map(), asked: new Map() };
+  async function gaugesIn(b) {
+    const k = b.map((v) => v.toFixed(2)).join(","), c = gauges.asked.get(k);
+    if (c && (c.pending || Date.now() - c.at < 15 * 60e3)) return c.pending || c.list;
+    const pending = get(F.GAUGES_URL(b), "json").then((j) => { const list = F.parseGauges(j); for (const g of list) gauges.byId.set(g.id, g); Object.assign(gauges, { state: "ok", lastOk: nowIso(), error: null }); gauges.asked.set(k, { at: Date.now(), list }); emit(); return list; })
+      .catch((e) => { gauges.asked.delete(k); Object.assign(gauges, { state: gauges.lastOk ? "ok" : "failed", error: e.message }); emit(); throw e; });
+    gauges.asked.set(k, { pending }); return pending;
+  }
   const aq = { key: null, obs: { state: "never" }, fcst: { state: "never" }, naqfc: { state: "never" }, products: [] };
   const monAll = { state: "never", lastOk: null, error: null, products: [] };
   /* NHC (regional context) and the venue's NHC wind speed probabilities */
@@ -150,12 +159,12 @@
     outlookCache.pending = (async () => {
       const now = Date.now(), errs = {};
       const shared = [fresh(outlooks[1].sourceInfo()) ? null : refreshOutlooks(), fresh(ero[1].sourceInfo()) ? null : refreshERO(), fresh(fire[1].windrh.sourceInfo(), 30) ? null : refreshFire(), nhc.lastOk && Date.now() - Date.parse(nhc.lastOk) < 30 * 60e3 ? null : refreshNHC()].filter(Boolean);
-      const [, wssiR, aqR, spc48, ero45, alertsR, gridR] = await Promise.allSettled([
+      const [, wssiR, aqR, spc48, ero45, alertsR, gridR, gaugeR] = await Promise.allSettled([
         Promise.allSettled(shared), wssiFor(+lat, +lon), aqFor(+lat, +lon),
         Promise.all([4, 5, 6, 7, 8].map((d) => get(F.DAY48_URL(d), "json").then((j) => F.parseDay48(j, d)).catch((e) => ({ day: d, failed: true, error: e.message })))),
         Promise.all([4, 5].map((d) => get(wpcUrl(d), "json").then((j) => { const r = F.parseERO(j, d, NWS.mode === "function" ? "wpc" : "mapservice"); return { day: d, products: r.products, validStart: r.validStart, validEnd: r.validEnd }; }).catch((e) => ({ day: d, failed: true, error: e.message })))),
         get(nwsUrl("https://api.weather.gov/alerts/active?point=" + key), "json"),
-        venueForecast(lat, lon)]);
+        venueForecast(lat, lon), gaugesIn([+lon - 0.5, +lat - 0.38, +lon + 0.5, +lat + 0.38])]);
       const spcDay = (d) => { const c = outlooks[d].current(now), i = outlooks[d].sourceInfo(); return { state: i.lastOk ? "ok" : "failed", products: c.products.map((p) => ({ ...p, day: d })) }; };
       const eroDay = (d) => { const c = ero[d].current(now), i = ero[d].sourceInfo(); return i.lastOk ? { day: d, products: c.products, validStart: c.validStart || (c.products[0] || {}).validStart } : { day: d, failed: true, validStart: null }; };
       const fireP = FIRE_DAYS.flatMap((d) => FIRE_PARTS.flatMap((part) => fire[d][part].current(now).products));
@@ -163,10 +172,10 @@
       const wins = new Map(); for (const p of wssi.products) if (p.pointHit && Math.abs(p.pointHit[0] - lon) < 1e-3 && Math.abs(p.pointHit[1] - lat) < 1e-3) { const w = wins.get(p.validStart) || { start: p.validStart, end: p.validEnd, levels: {} }; w.levels[p.category] = Math.max(w.levels[p.category] || 0, p.prob); wins.set(p.validStart, w); }
       const s123 = [1, 2, 3].map(spcDay), grid = gridR.status === "fulfilled" ? F.parseGrid(gridR.value.raw, now, 168) : null;
       const data = { at: new Date(now).toISOString(),
-        states: { spc: { 1: s123[0].state, 2: s123[1].state, 3: s123[2].state }, fire: fire[1].windrh.sourceInfo().lastOk ? "ok" : "failed", wssi: wssi.state === "ok" || wssi.lastOk ? "ok" : "failed", grid: grid ? "ok" : "failed", alerts: alertsR.status === "fulfilled" ? "ok" : "failed", aq: aq.fcst && aq.fcst.state },
+        states: { gauges: gaugeR.status === "fulfilled" ? "ok" : "failed", spc: { 1: s123[0].state, 2: s123[1].state, 3: s123[2].state }, fire: fire[1].windrh.sourceInfo().lastOk ? "ok" : "failed", wssi: wssi.state === "ok" || wssi.lastOk ? "ok" : "failed", grid: grid ? "ok" : "failed", alerts: alertsR.status === "fulfilled" ? "ok" : "failed", aq: aq.fcst && aq.fcst.state },
         spc: s123.flatMap((x) => x.products), spcDayStart: { 1: (s123[0].products[0] || {}).validStart, 2: (s123[1].products[0] || {}).validStart, 3: (s123[2].products[0] || {}).validStart },
         spc48: spc48.status === "fulfilled" ? spc48.value : [], ero: [...[1, 2, 3].map(eroDay), ...(ero45.status === "fulfilled" ? ero45.value : [])], fire: fireP, wssi: [...wins.values()],
-        nhc: nhc.products || [], aq: aq.products.filter((p) => p.kind === "aqfcst"), alerts: alertsR.status === "fulfilled" ? (alertsR.value.features || []).map((f) => f.properties) : [],
+        nhc: nhc.products || [], aq: aq.products.filter((p) => p.kind === "aqfcst"), gauges: gaugeR.status === "fulfilled" ? gaugeR.value : [], alerts: alertsR.status === "fulfilled" ? (alertsR.value.features || []).map((f) => f.properties) : [],
         grid, gridInfo: gridR.status === "fulfilled" ? { office: gridR.value.office, cell: gridR.value.grid, updated: gridR.value.updated } : null,
         errors: { alerts: alertsR.status === "rejected" ? alertsR.reason.message : null, grid: gridR.status === "rejected" ? gridR.reason.message : null } };
       outlookCache.data = data; outlookCache.at = Date.now(); return data;
@@ -472,7 +481,7 @@
     const wsp = wssi.products.filter((p) => Date.parse(p.validEnd) > now);
     const fireP = FIRE_DAYS.flatMap((d) => FIRE_PARTS.flatMap((part) => fire[d][part].current(now).products));
     const lsrP = lsr.products.filter((p) => now - Date.parse(p.observed) < 24 * 3600e3 && Date.parse(p.observed) <= now + 5 * 60e3);
-    const products = [...lsrP, ...ps.filter((p) => p.status === "active" || p.status === "lapsed").map(withZones), ...wsp, ...mdList, ...o[1].products, ...o[2].products, ...o[3].products, ...e[1].products, ...e[2].products, ...e[3].products, ...fireP, ...nifc.products, ...hms.products, ...aq.products, ...nhc.products, ...tcw.products, ...av.products, ...enr.products, ...faa.products];
+    const products = [...gauges.byId.values(), ...lsrP, ...ps.filter((p) => p.status === "active" || p.status === "lapsed").map(withZones), ...wsp, ...mdList, ...o[1].products, ...o[2].products, ...o[3].products, ...e[1].products, ...e[2].products, ...e[3].products, ...fireP, ...nifc.products, ...hms.products, ...aq.products, ...nhc.products, ...tcw.products, ...av.products, ...enr.products, ...faa.products];
     const src = (info, count, extra) => ({ state: info.state === "ok" ? "ok" : "failed", lastOk: info.lastOk, count, error: info.error, ...extra });
     return {
       live: true, clock: new Date(now).toISOString(), products,
@@ -492,6 +501,7 @@
         faa: faa.state === "never" || faa.state === "pending" ? { state: "pending", lastOk: null, count: 0 } : { state: faa.state, lastOk: faa.lastOk, count: faa.products.length, error: faa.error },
         nhc: nhc.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: nhc.state, lastOk: nhc.lastOk, count: nhc.products.length, error: nhc.error || tcw.error, storms: nhc.products.filter((p) => p.part === "cone").length },
         hms: hms.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: hms.state, lastOk: hms.lastOk, count: hms.products.length, error: hms.error },
+        gauges: gauges.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: gauges.state, lastOk: gauges.lastOk, count: gauges.byId.size, error: gauges.error },
         reports: lsr.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: lsr.state, lastOk: lsr.lastOk, count: lsrP.length, error: lsr.error },
         aqobs: aqSrc(aq.obs, aq.products.filter((p) => p.kind === "aqobs").length), aqfcst: aqSrc(aq.fcst, aq.products.filter((p) => p.kind === "aqfcst").length), naqfc: F.NAQFC_ENABLED ? aqSrc(aq.naqfc, aq.products.filter((p) => p.kind === "smokefcst").length) : { state: "na" },
         monitors: monAll.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: monAll.state, lastOk: monAll.lastOk, count: monAll.products.length, error: monAll.error },
@@ -671,5 +681,5 @@
       "wpc-ero": { ...worst(["ero1", "ero2", "ero3"]), reachEnd: reach(["ero1", "ero2", "ero3"]), reach: ["ero1", "ero2", "ero3"].map((k, i) => d.sources[k] && d.sources[k].issued ? "Day " + (i + 1) + " issued " + window.ThreatsCore.fmtZ(d.sources[k].issued) : "").filter(Boolean).join(", ") } };
   }
 
-  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, setFeeds, setZoneFamilies, venueForecast, outlookFor, radarTime, RADAR_TILE_URL: F.RADAR_TILE_URL, previousFor: (id) => fetchPrevious(id).then((c) => { if (c) emit(); return c; }), mapFeeds: () => (mapFeeds ? [...mapFeeds] : null), monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
+  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, setFeeds, setZoneFamilies, venueForecast, outlookFor, gaugesIn, radarTime, RADAR_TILE_URL: F.RADAR_TILE_URL, previousFor: (id) => fetchPrevious(id).then((c) => { if (c) emit(); return c; }), mapFeeds: () => (mapFeeds ? [...mapFeeds] : null), monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
 })();
