@@ -1,5 +1,5 @@
 {
- "at": "2026-11-23T22:41:10.673Z",
+ "at": "2026-11-24T03:45:06.113Z",
  "result": {
   "summary": "1 weather threat for this event",
   "confirmed": false,
@@ -19,17 +19,17 @@
    }
   ],
   "statuses": [
-   "NWS warnings, watches and advisories: Checked 4:41 p.m.",
-   "SPC fire weather outlooks: Checked 4:41 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
-   "NOAA satellite smoke analysis (HMS): Checked 4:41 p.m.",
-   "AirNow air quality observations: Checked 4:41 p.m. · nearest monitor CHI_SP (3 miles northwest): AQI 14 Good (PM2.5) for 4 p.m.",
-   "AirNow air quality forecasts: Checked 4:41 p.m. · Chicago reporting area",
-   "Aviation Weather Center (METAR and TAF): Checked 4:41 p.m. · KORD METAR 2151Z VFR · TAF 2044Z AMD valid to Tue 6 p.m. | KMDW METAR 2153Z VFR · TAF 2044Z AMD valid to Tue 6 p.m.",
+   "NWS warnings, watches and advisories: Checked 9:45 p.m.",
+   "SPC fire weather outlooks: Checked 9:45 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NOAA satellite smoke analysis (HMS): Checked 9:45 p.m.",
+   "AirNow air quality observations: Checked 9:45 p.m. · nearest monitor CHI_SP (3 miles northwest): AQI 17 Good (PM2.5) for 9 p.m.",
+   "AirNow air quality forecasts: Checked 9:45 p.m. · Chicago reporting area",
+   "Aviation Weather Center (METAR and TAF): Checked 9:45 p.m. · KORD METAR 0251Z VFR · TAF 0253Z AMD valid to Wed 12 a.m. | KMDW METAR 0253Z VFR · TAF 0253Z AMD valid to Wed 12 a.m.",
    "FAA airport status (delays, ground stops, closures): Not responding · status unknown. We can't rule anything out from this source.",
-   "NHC tropical outlooks and storm products: Checked 4:41 p.m.",
-   "NIFC wildfire incidents (WFIGS): Checked 4:41 p.m.",
-   "WPC winter storm severity outlook (WSSI-P): Checked 4:41 p.m. · file 1848Z",
-   "WPC Excessive Rainfall Outlook: Checked 4:37 p.m. · Day 1 issued 1550Z, Day 2 issued 1924Z, Day 3 issued 1924Z"
+   "NHC tropical outlooks and storm products: Checked 9:45 p.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 9:45 p.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 9:45 p.m. · file 0217Z",
+   "WPC Excessive Rainfall Outlook: Checked 9:45 p.m. · Day 1 issued 0054Z, Day 2 issued 1924Z, Day 3 issued 1924Z"
   ],
   "maps": [
    "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats.html?lat=41.8807&lon=-87.6742&name=United+Center&tz=America%2FChicago&scope=venue&view=winter&wwin=2026-11-24T00%3A00%3A00.000Z&wlevel=WWA&layers=winter&nws=function"
@@ -40,13 +40,13 @@
    "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/metar?ids=KMDW,KORD",
    "status": 200,
    "cache": "MISS",
-   "upstreamAt": "2026-11-23T22:41:07.404Z"
+   "upstreamAt": "2026-11-24T03:45:04.543Z"
   },
   {
    "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/taf?ids=KMDW,KORD",
    "status": 200,
    "cache": "MISS",
-   "upstreamAt": "2026-11-23T22:41:08.376Z"
+   "upstreamAt": "2026-11-24T03:45:04.651Z"
   }
  ]
 }

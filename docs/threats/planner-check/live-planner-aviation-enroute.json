@@ -1,73 +1,99 @@
 {
- "at": "2026-11-23T22:41:45.427Z",
+ "at": "2026-11-24T03:45:35.302Z",
  "result": {
-  "summary": "Not fully confirmed: no flooding, winter weather, fire weather or wildfire, smoke or air quality, tropical, coastal and airport weather threats found in the data we have, but a source is unavailable, stale or doesn't cover this venue or date.",
+  "summary": "2 weather threats for this event",
   "confirmed": false,
-  "items": [],
-  "statuses": [
-   "NWS warnings, watches and advisories: Checked 5:41 p.m.",
-   "SPC fire weather outlooks: Checked 5:41 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
-   "NOAA satellite smoke analysis (HMS): Checked 5:41 p.m.",
-   "AirNow air quality observations: Checked 5:41 p.m. · nearest monitor Union City High School (4 miles southeast): AQI 38 Good (PM2.5) for 5 p.m.",
-   "AirNow air quality forecasts: Checked 5:41 p.m. · Northeast Urban reporting area",
-   "Aviation Weather Center (METAR and TAF): Checked 5:41 p.m. · KEWR METAR 2151Z VFR · TAF 2042Z AMD valid to Tue 7 p.m.",
-   "Aviation Weather Center en route (pilot reports, SIGMETs, G-AIRMETs, CWAs): Checked 5:41 p.m.",
-   "FAA airport status (delays, ground stops, closures): Not responding · status unknown. We can't rule anything out from this source.",
-   "NHC tropical outlooks and storm products: Checked 5:41 p.m.",
-   "NIFC wildfire incidents (WFIGS): Checked 5:41 p.m.",
-   "WPC winter storm severity outlook (WSSI-P): Checked 5:41 p.m.",
-   "WPC Excessive Rainfall Outlook: Checked 5:41 p.m. · Day 1 issued 1550Z, Day 2 issued 1924Z, Day 3 issued 1924Z"
+  "items": [
+   {
+    "id": "gairmet-ZULU-1C-ICE-1795491060|route",
+    "kind": "enroute",
+    "headline": "Moderate icing forecast may overlap your approximate route, surface to 10,000 ft, Mon 11:15 p.m. – Tue 12:45 a.m. · G-AIRMET",
+    "code": null,
+    "line": "Potential overlap. The straight-line route O'Hare → Newark passes through the area; the forecast's time and altitude overlap your time in the air (Mon 11:15 p.m. – Tue 12:45 a.m.) and band (10,000 ft to 16,000 ft). An approximate route, not a flight plan.",
+    "product": "gairmet-ZULU-1C-ICE-0-1795491060",
+    "category": null,
+    "day": null,
+    "phases": []
+   },
+   {
+    "id": "gairmet-ZULU-9C-ICE-1795491060|route",
+    "kind": "enroute",
+    "headline": "Moderate icing forecast may overlap your approximate route, 2,000 ft to 12,000 ft, Mon 11:15 p.m. – Tue 12:45 a.m. · G-AIRMET",
+    "code": null,
+    "line": "Potential overlap. The straight-line route O'Hare → Newark passes through the area; the forecast's time and altitude overlap your time in the air (Mon 11:15 p.m. – Tue 12:45 a.m.) and band (10,000 ft to 16,000 ft). An approximate route, not a flight plan.",
+    "product": "gairmet-ZULU-9C-ICE-0-1795491060",
+    "category": null,
+    "day": null,
+    "phases": []
+   }
   ],
-  "maps": []
+  "statuses": [
+   "NWS warnings, watches and advisories: Checked 10:45 p.m.",
+   "SPC fire weather outlooks: Checked 10:45 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NOAA satellite smoke analysis (HMS): Checked 10:45 p.m.",
+   "AirNow air quality observations: Checked 10:45 p.m. · nearest monitor Union City High School (4 miles southeast): AQI 9 Good (PM2.5) for 10 p.m.",
+   "AirNow air quality forecasts: Checked 10:45 p.m. · Northeast Urban reporting area",
+   "Aviation Weather Center (METAR and TAF): Checked 10:45 p.m. · KEWR METAR 0251Z VFR · TAF 0239Z AMD valid to Wed 1 a.m.",
+   "Aviation Weather Center en route (pilot reports, SIGMETs, G-AIRMETs, CWAs): Checked 10:45 p.m.",
+   "FAA airport status (delays, ground stops, closures): Not responding · status unknown. We can't rule anything out from this source.",
+   "NHC tropical outlooks and storm products: Checked 10:45 p.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 10:45 p.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 10:45 p.m.",
+   "WPC Excessive Rainfall Outlook: Checked 10:44 p.m. · Day 1 issued 0054Z, Day 2 issued 1924Z, Day 3 issued 1924Z"
+  ],
+  "maps": [
+   "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats.html?lat=40.8135&lon=-74.0745&name=MetLife+Stadium&tz=America%2FNew_York&scope=venue&view=active&layers=aviation&air=KEWR%2CKORD&sel=gairmet-ZULU-1C-ICE-0-1795491060&rt=%7B%22o%22%3A%22KORD%22%2C%22d%22%3A%22KEWR%22%2C%22lo%22%3A10000%2C%22hi%22%3A16000%2C%22w%22%3A%5B%222026-11-23T23%3A15%22%2C%222026-11-24T00%3A45%22%5D%7D&alt=10000-16000&at=2026-11-24T04%3A15%3A00.000Z&nws=function",
+   "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats.html?lat=40.8135&lon=-74.0745&name=MetLife+Stadium&tz=America%2FNew_York&scope=venue&view=active&layers=aviation&air=KEWR%2CKORD&sel=gairmet-ZULU-9C-ICE-0-1795491060&rt=%7B%22o%22%3A%22KORD%22%2C%22d%22%3A%22KEWR%22%2C%22lo%22%3A10000%2C%22hi%22%3A16000%2C%22w%22%3A%5B%222026-11-23T23%3A15%22%2C%222026-11-24T00%3A45%22%5D%7D&alt=10000-16000&at=2026-11-24T04%3A15%3A00.000Z&nws=function"
+  ]
  },
  "feeds": [
   {
    "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=0",
    "status": 200,
-   "cache": "HIT",
-   "upstreamAt": "2026-11-23T22:37:32.538Z"
-  },
-  {
-   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=3",
-   "status": 200,
-   "cache": "HIT",
-   "upstreamAt": "2026-11-23T22:37:32.546Z"
+   "cache": "MISS",
+   "upstreamAt": "2026-11-24T03:45:28.086Z"
   },
   {
    "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/airsigmet",
    "status": 200,
    "cache": "MISS",
-   "upstreamAt": "2026-11-23T22:41:38.868Z"
+   "upstreamAt": "2026-11-24T03:45:28.097Z"
   },
   {
-   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=9",
-   "status": 200,
-   "cache": "HIT",
-   "upstreamAt": "2026-11-23T22:37:32.597Z"
-  },
-  {
-   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=12",
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=3",
    "status": 200,
    "cache": "MISS",
-   "upstreamAt": "2026-11-23T22:41:39.071Z"
-  },
-  {
-   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/pirep?bbox=39.2,-89.4,43.5,-72.7&age=2",
-   "status": 200,
-   "cache": "MISS",
-   "upstreamAt": "2026-11-23T22:41:39.222Z"
-  },
-  {
-   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/cwa",
-   "status": 200,
-   "cache": "MISS",
-   "upstreamAt": "2026-11-23T22:41:39.657Z"
+   "upstreamAt": "2026-11-24T03:45:28.091Z"
   },
   {
    "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=6",
    "status": 200,
    "cache": "MISS",
-   "upstreamAt": "2026-11-23T22:41:44.067Z"
+   "upstreamAt": "2026-11-24T03:45:28.099Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=9",
+   "status": 200,
+   "cache": "HIT",
+   "upstreamAt": "2026-11-24T03:42:02.969Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=12",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-24T03:45:28.152Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/cwa",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-24T03:45:28.156Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/pirep?bbox=39.2,-89.4,43.5,-72.7&age=2",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-24T03:45:34.398Z"
   }
  ],
  "route": {
@@ -87,14 +113,20 @@
    ],
    "lowFt": 10000,
    "highFt": 16000,
-   "startMs": 1795475460000,
-   "endMs": 1795480860000,
+   "startMs": 1795493700000,
+   "endMs": 1795499100000,
    "timeSource": "own",
-   "window": "Mon 6:11 p.m. – 7:41 p.m.",
+   "window": "Mon 11:15 p.m. – Tue 12:45 a.m.",
    "lines": [
     {
-     "concern": false,
-     "text": "No SIGMET, G-AIRMET or Center Weather Advisory for turbulence, icing or thunderstorms meets your approximate route in your time and band, and no moderate or worse pilot report near it in the last 90 minutes."
+     "concern": true,
+     "itemId": "gairmet-ZULU-1C-ICE-1795491060|route",
+     "text": "Moderate icing forecast may overlap your approximate route, surface to 10,000 ft, Mon 11:15 p.m. – Tue 12:45 a.m. · G-AIRMET"
+    },
+    {
+     "concern": true,
+     "itemId": "gairmet-ZULU-9C-ICE-1795491060|route",
+     "text": "Moderate icing forecast may overlap your approximate route, 2,000 ft to 12,000 ft, Mon 11:15 p.m. – Tue 12:45 a.m. · G-AIRMET"
     }
    ],
    "corridorMi": 25
