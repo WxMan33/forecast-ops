@@ -58,13 +58,20 @@ GROUND RULES WE KEPT
   - By region: original box 0.114→0.133, West 0.036→0.049, Plains 0.066→0.078, Florida/Gulf −0.039→−0.007, Northeast 0.124→0.127 (a tie).
   - Calibration ratio 0.999.
   - Reading: real progress, but still well short of NadoCast's 0.204 (2024 benchmark). Florida/Gulf moved from negative skill to roughly no skill.
-- NEXT (approved Nov 24): freeze the 728-day model, then spend the sealed 2021 data once (96 dates) to verify it against the 96-day model and v0.7.
+- 2021 VERIFICATION (one-time, Nov 24): FAILED the pre-committed rule.
+  - The frozen 728-day model was scored once on 96 sealed 2021 dates (0 missing).
+  - National BSS: 0.099 for the 728-day model vs 0.102 for the 96-day model. Brier difference +0.000027 (95% CI −0.000037 to +0.000101), a statistical tie. Criterion 1 needed a clear win.
+  - The other criteria held: no region significantly worse; calibration 0.00953 forecast vs 0.00883 observed; all 96 dates scored.
+  - By region (728 vs 96): Plains 0.077 vs 0.064 (significantly better); Florida/Gulf −0.038 vs −0.065 (better, not significant); original box 0.111 vs 0.119 (slightly worse, not significant); West 0.056 vs 0.053; Northeast 0.120 vs 0.126.
+  - Both national models clearly beat live v0.7 inside the original box. 728-day minus v0.7 Brier: −0.00041 (95% CI −0.00083 to −0.00007).
+  - Caveat: in the development gate, both arms used the same 20% sampling of non-event rows. On 2021 the 728-day model (sampled) was compared with the original 96-day model, which was trained on all rows. So the sampling change and the extra data are mixed in this comparison.
+  - Consequences: 2021 is now spent. Nothing is frozen into production. v0.7 stays live. 2025 stays sealed.
 
 6) OTHER WORK (earlier, kept separate)
 - A Day 1 tornado "corridor" model and a blend with the existing model were developed and tested. That decision sits in its own PR (#31, with the NadoCast benchmark) and was not mixed into the CONUS work.
 
 OPEN QUESTIONS I MAY ASK YOU ABOUT
-- How to read the gate and the 2021 verification results.
+- Why a clear development-gate gain (+0.017 BSS on 728 held-out 2022–23 days) became a tie on 2021, and what to try next.
 - How to fix the Florida/Gulf over-forecasting (new predictors? climatology-aware calibration?).
 - What, besides more data, could close the remaining gap to NadoCast (e.g. HRRR time-lagged ensembles, more model runs, better report-density handling).
 - When the CONUS view would be ready to go live.
@@ -72,4 +79,4 @@ OPEN QUESTIONS I MAY ASK YOU ABOUT
 
 ## 2021 verification result
 
-(Pending. Claude adds it here when the run finishes.)
+FAIL. Full table: `research/severe/conus-v1/verify2021/verification.md` (run 45490929880). The summary is inside the paste box above, under section 5.
