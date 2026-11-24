@@ -2,15 +2,15 @@
  "description": "Prebuilt, land-clipped display contours for the CONUS preview (see tools/build-conus-display.py).",
  "land_sha256": "db6227b78f564ddbb65d7cc63a43588ab8e0821d300b7716b4d42d6503e37292",
  "cases": {
-  "current-2026-11-22": {
-   "file": "current-2026-11-22.json",
-   "sha256": "64058fdb9a7a47145d1280295c6b3d365dbce5473d94c820c50446a78624aa61",
-   "case_sha256": "784c2da6c5e34f860d78d1145f3662a24ac4a30a7298e7c39e8c8f09f2b18921",
-   "bytes": 145738,
-   "raw_polygons": 12582,
-   "raw_vertices": 51746,
-   "polygons": 190,
-   "vertices": 4435
+  "current-2026-11-24": {
+   "file": "current-2026-11-24.json",
+   "sha256": "edf3e2177a35622d6fe24ce1996483240713d8b8fee096d6cb4d0f2cf9ee9be5",
+   "case_sha256": "419f87343fd1421b3e80015bdf8eb9b933e73bdf6362d833578a02612c160e34",
+   "bytes": 210051,
+   "raw_polygons": 16362,
+   "raw_vertices": 67598,
+   "polygons": 248,
+   "vertices": 6632
   },
   "replay-2024-05-25": {
    "file": "replay-2024-05-25.json",
