@@ -17,7 +17,7 @@
   const linkCity = (() => { const lat = parseFloat(Q.get("lat")), lon = parseFloat(Q.get("lon")); return fin(lat) && fin(lon) ? { name: Q.get("name") || `${lat.toFixed(3)}, ${lon.toFixed(3)}`, lat, lon, tz: Q.get("tz") || null } : null; })();
   const sampleAt = (city) => S.sampleEvent(C, Date.now(), (city && city.tz) || "America/New_York", 1, city || null);
   let retried = false;
-  let lastView = null, chartController = null, updatedMs = null, lastHourly = null, hourlyJumped = false;
+  let lastView = null, chartController = null, dashController = null, updatedMs = null, lastHourly = null, hourlyJumped = false;
   /* a local event address (?ev=…) opened in a browser that doesn't have that event: say so; never show another event */
   let missingId = Q.get("ev") && !storedOk(Q.get("ev")) && !linkEvent ? Q.get("ev") : null;
   let ev = storedOk(Q.get("ev")) || linkEvent || (linkCity || missingId ? null : storedOk(E.last())) || null, tzFromPick = false, pickSeq = 0, gen = 0, lastRes = null, bus = null, pendingCity = linkCity;
@@ -88,9 +88,10 @@
     /* nothing from the previous briefing (another venue, or guidance that has since failed) may stay on screen or in print */
     lastRes = null; lastView = null;
     if (chartController) { chartController.destroy(); chartController = null; }
+    if (dashController) { dashController.destroy(); dashController = null; } $("evDash").hidden = true;
     lastHourly = null; ["shareImage", "tvExport"].forEach((id) => { $(id).disabled = true; $(id).title = "Available once the hourly forecast covers this event"; });
     if ($("map")._dispose) $("map")._dispose();
-    ["alerts", "evCharts", "evGrid", "evGridDetail", "evGridLegend", "nwsEv", "blendLine", "hourlyValid", "map", "printView"].forEach((id) => { const el = $(id); if (el) el.innerHTML = ""; });
+    ["alerts", "evDash", "evCharts", "evGrid", "evGridDetail", "evGridLegend", "nwsEv", "blendLine", "hourlyValid", "map", "printView"].forEach((id) => { const el = $(id); if (el) el.innerHTML = ""; });
     head.setUpdated(null);
     $("decision").textContent = "Reading the guidance…"; $("coverage").hidden = true; document.body.dataset.readiness = ""; ["sourceCoverage", "keys", "schedule", "daylight", "hourlyDaylight", "detailBody", "phases", "changes", "checks", "timeline"].forEach((id) => { $(id).innerHTML = ""; });
     /* the schedule and daylight need no forecast: shown now, while the briefing loads, is pending or fails */
@@ -330,8 +331,8 @@
      ground temperature. Loaded only when the event's blend has snow, or precipitation at 35°F or colder. */
   let winterGen = 0;
   async function winterRead(V) {
-    const my = ++winterGen, box = $("evWinter"), W = C.winter, ok = V.hrs.filter((h) => h.state === "ok");
-    const wintry = (V.totals && fin(V.totals.sn) && V.totals.sn >= 0.05) || ok.some((h) => fin(h.temp) && h.temp <= 35 && fin(h.qpf) && h.qpf >= 0.005);
+    const my = ++winterGen, box = $("evWinter"), W = C.winter;
+    const wintry = window.EventHourlyCharts.wintry(V); // the same test the dashboard's snow tile uses
     if (lastView) lastView.winter = null;
     if (!wintry || !box) { if (box) { box.hidden = true; box.innerHTML = ""; } return; }
     box.hidden = false; box.innerHTML = '<p class="bx-note">Winter: checking what could stick at the venue…</p>';
@@ -378,6 +379,11 @@
       onSelect: (ms) => { if (bus) bus.set(ms, "grid"); showHour(ms); } });
     $("evGridLegend").innerHTML = `<p class="bx-note">Swipe for more hours · tap an hour for details.</p><details class="bx-more"><summary>How to read these hours</summary>${G.legend(V.legend)}<p class="bx-note">${esc(V.note)}</p><p class="bx-note">Follow NWS warnings and your venue's lightning policy for live decisions.</p></details>`;
     chartController = window.EventHourlyCharts.render($("evCharts"), { view: V, selected: sel0, tz: ev.tz, gustLimit: ev.gust || 25, nwsTypes, onSelect: ms => { if (bus) bus.set(ms, "variable-charts"); showHour(ms); } });
+    /* the dashboard under the callouts: the same view, the same selected hour */
+    if (dashController) dashController.destroy();
+    $("evDash").hidden = false;
+    dashController = window.EventHourlyCharts.dashboard($("evDash"), { view: V, tz: ev.tz, gustLimit: ev.gust || 25, selected: sel0,
+      onSelect: (ms) => { if (bus) bus.set(ms, "dashboard"); showHour(ms); }, onOpenHourly: () => $("hourlyLink").click() });
     showHour(sel0);
     lastHourly = { V, nwsTypes }; ["shareImage", "tvExport"].forEach((id) => { $(id).disabled = false; $(id).title = "Save a 1920 × 1080 image of these hours for a TV display"; });
     /* a display link (…#hourly) opens straight to these charts */
@@ -385,7 +391,7 @@
       /* alerts, the map and late sources can still grow the page above; keep the section in place until the viewer acts */
       let user = false; const stop = () => { user = true; }; ["wheel", "touchstart", "keydown", "mousedown"].forEach((t) => addEventListener(t, stop, { once: true, passive: true }));
       [0, 400, 1200, 2500, 5000].forEach((ms) => setTimeout(() => { if (!user) d.scrollIntoView({ block: "start" }); }, ms)); }
-    if (bus) bus.on((ms) => { const hm = Math.floor(ms / H) * H; if (V.span.includes(hm)) { grid.setSelected(hm); chartController.setSelected(hm); showHour(hm); } });
+    if (bus) bus.on((ms) => { const hm = Math.floor(ms / H) * H; if (V.span.includes(hm)) { grid.setSelected(hm); chartController.setSelected(hm); if (dashController) dashController.setSelected(hm); showHour(hm); } });
   }
   function briefingUpdate(event, b, V, res) {
     const host = $("briefUpdate"); host.hidden = true;
