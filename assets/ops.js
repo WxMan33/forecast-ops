@@ -256,8 +256,8 @@
       <div class="section-title">Location</div>
       <div class="stack">
         <div>
-          <label class="field-label" for="locSearch">Search a place</label>
-          <input class="input" id="locSearch" type="search" placeholder="City, town or ZIP" autocomplete="off">
+          <label class="field-label" for="locSearch">Search a place or venue</label>
+          <input class="input" id="locSearch" type="search" placeholder="City, ZIP, venue or address" autocomplete="off" enterkeyhint="search">
           <div class="results" id="locResults"></div>
         </div>
         <div>
@@ -330,23 +330,51 @@
         () => { $("locMsg").textContent = "Location permission was declined or unavailable."; },
         { timeout: 10000 });
     });
-    let timer = null;
+    let timer = null, gen = 0;
+    /* venues, landmarks and street addresses: OpenStreetMap search (the module Event Manager uses), run only when asked
+       (Enter or the button) — that service allows user-started searches, not as-you-type */
+    let vsLoad = null;
+    const venueModule = () => window.VenueSearch ? Promise.resolve(window.VenueSearch) : (vsLoad || (vsLoad = new Promise((ok, no) => {
+      const sc = document.createElement("script"); sc.src = "assets/venue-search.js"; sc.onload = () => window.VenueSearch ? ok(window.VenueSearch) : no(new Error("no module"));
+      sc.onerror = () => { vsLoad = null; no(new Error("The venue search didn't load.")); }; document.head.append(sc); })));
+    const placeName = (p) => { const parts = String(p.address || "").split(", "), st = parts.length >= 2 ? parts[parts.length - 1].split(" ")[0] : "", city = parts.length >= 2 ? parts[parts.length - 2] : "";
+      return [p.name, city && city !== p.name ? city : "", /^[A-Z]{2}$/.test(st) ? st : ""].filter(Boolean).join(", "); };
+    const venueBtn = (q) => `<button type="button" class="loc-venue" data-venue>${icon("pin", 13)} Search venues &amp; addresses for “${esc(q)}”</button>`;
+    const drawCities = (q, r, note) => {
+      $("locResults").innerHTML = (r.length ? r.map((x, i) => `<button type="button" data-i="${i}">${esc(x.name)} <small>${esc([x.admin1, x.country_code].filter(Boolean).join(", "))}</small></button>`).join("")
+        : `<p class="msg">${note || "No cities or towns match."}</p>`) + venueBtn(q);
+      $("locResults").querySelectorAll("[data-i]").forEach((b) => b.addEventListener("click", () => {
+        const x = r[b.dataset.i];
+        setLocation({ name: [x.name, x.admin1 && x.country_code === "US" ? stateAbbr(x.admin1) : x.country_code].filter(Boolean).join(", "), lat: x.latitude, lon: x.longitude });
+        $("locResults").innerHTML = ""; $("locSearch").value = "";
+      }));
+      $("locResults").querySelector("[data-venue]").addEventListener("click", () => venueSearch(q));
+    };
+    async function venueSearch(q) {
+      q = (q || $("locSearch").value).trim(); if (q.length < 2) return;
+      clearTimeout(timer); const g = ++gen;
+      $("locResults").innerHTML = '<p class="msg">Searching venues and addresses…</p>';
+      try {
+        const V = await venueModule(), places = (await V.search(q)).filter((p) => isFinite(+p.lat) && isFinite(+p.lon)).slice(0, 6); if (g !== gen) return;
+        const attr = `<p class="msg loc-attr">${V.attribution()}</p>`;
+        $("locResults").innerHTML = (places.length ? places.map((p, i) => `<button type="button" data-v="${i}">${esc(p.name)} <small>${esc(p.address || p.label || "")}</small></button>`).join("")
+          : `<p class="msg">No venue or address matches “${esc(q)}”. Try the full venue name with its city, or a street address.</p>`) + attr;
+        $("locResults").querySelectorAll("[data-v]").forEach((b) => b.addEventListener("click", () => {
+          const p = places[+b.dataset.v];
+          setLocation({ name: placeName(p), lat: +p.lat, lon: +p.lon });
+          $("locResults").innerHTML = ""; $("locSearch").value = "";
+        }));
+      } catch (err) { if (g === gen) $("locResults").innerHTML = '<p class="msg err">Venue search is unavailable right now. Search a city, or enter coordinates under Coordinates &amp; GPS.</p>'; }
+    }
+    $("locSearch").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); venueSearch(); } });
     $("locSearch").addEventListener("input", (e) => {
-      clearTimeout(timer);
+      clearTimeout(timer); gen++;
       const q = e.target.value.trim();
       if (q.length < 2) { $("locResults").innerHTML = ""; return; }
       timer = setTimeout(async () => {
-        try {
-          const r = await searchPlaces(q, { raw: true });
-          $("locResults").innerHTML = r.length ? r.map((x, i) =>
-            `<button type="button" data-i="${i}">${esc(x.name)} <small>${esc([x.admin1, x.country_code].filter(Boolean).join(", "))}</small></button>`).join("")
-            : '<p class="msg">No matches.</p>';
-          $("locResults").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
-            const x = r[b.dataset.i];
-            setLocation({ name: [x.name, x.admin1 && x.country_code === "US" ? stateAbbr(x.admin1) : x.country_code].filter(Boolean).join(", "), lat: x.latitude, lon: x.longitude });
-            $("locResults").innerHTML = ""; $("locSearch").value = "";
-          }));
-        } catch (err) { $("locResults").innerHTML = '<p class="msg err">Place search is unavailable right now.</p>'; }
+        const g = gen;
+        try { const r = await searchPlaces(q, { raw: true }); if (g === gen) drawCities(q, r); }
+        catch (err) { if (g === gen) drawCities(q, [], "City search is unavailable right now."); }
       }, 300);
     });
   }
