@@ -30,6 +30,7 @@
 <link rel="stylesheet" href="assets/beta.css?v=859d8c8be1">
 <link rel="stylesheet" href="assets/hourly-grid.css?v=befa3eb506">
 <link rel="stylesheet" href="assets/forecast-support.css?v=52766a62f7">
+<link rel="stylesheet" href="assets/event-threats.css?v=dda140049a">
 </head>
 <body class="bx event-planner">
 <main class="bx-brief">
@@ -59,6 +60,7 @@
   </section>
   <!-- 2. Event schedule: what time each part of the event is; the weather is in the briefing above and hour by hour below -->
   <section class="bx-sec ev-sched" id="secTimeline"><div class="ev-sched-h"><h2>Event schedule</h2><a class="bx-link ev-hourly-link" id="hourlyLink" href="#secHourly">View hourly forecast ↓</a></div><div id="daylight" class="ev-dl-wrap"></div><div id="schedule"></div></section>
+  <section class="bx-sec ev-threats" id="secThreats" aria-label="Weather threats"><div class="ev-sched-h"><h2>Weather threats</h2><span class="bx-note">official warnings, outlooks and airport weather for this venue and schedule</span></div><div id="threats"><p class="bx-note">Checking official weather threats…</p></div></section>
   <!-- 3. Details on demand -->
   <section class="ev-details" id="secDetails" aria-label="Details"><h2 class="ev-details-h">Details</h2>
   <details class="bx-sec ev-group" id="secHourly"><summary><b>Hour by hour</b><span class="bx-note" id="hourlyValid"></span></summary><div class="evc-share"><button class="bx-btn" type="button" id="tvExport" disabled title="Available once the briefing loads">Export hourly image</button><label class="evc-theme"><span class="sr-only">Image theme</span><select class="bx-select" id="tvTheme" aria-label="Image theme"><option value="match" selected>Match page theme</option><option value="light">Light PNG</option><option value="dark">Dark PNG</option></select></label><button class="bx-btn" type="button" id="hourlyCopy">Copy hourly display link</button><span class="bx-note" id="hourlyShareMsg" role="status" aria-live="polite"></span></div><div id="hourlyDaylight"></div><div id="evWinter" class="ev-winter" hidden></div><div id="evCharts"></div><details class="bx-more" id="hourlyTable"><summary>All hourly values · data table</summary><div id="evGrid" style="margin-top:6px"></div><div id="evGridLegend"></div></details><div id="evGridDetail" class="hg-detail" hidden aria-live="polite"></div>
@@ -101,6 +103,14 @@
 <script src="assets/almanac-core.js?v=715a4bf1f5"></script>
 <script src="assets/event-daylight.js?v=26abf7022f"></script>
 <script src="assets/event-briefing-ui.js?v=b77f7b4433"></script>
+<script src="assets/threats-core.js?v=5f39577bf7"></script>
+<script src="assets/threats-feeds.js?v=721413b747"></script>
+<script src="assets/threats-enroute.js?v=aa01a5cebb"></script>
+<script src="assets/threats-gtg.js?v=90a6946eed"></script>
+<script src="assets/threats-ifi.js?v=1a8301f4fa"></script>
+<script src="assets/threats-match.js?v=65ce084306"></script>
+<script src="assets/threats-live.js?v=09be8db4a7"></script>
+<script src="assets/event-threats.js?v=c95cf15194"></script>
 <script src="assets/beta-event.js?v=3565be2f6d"></script>
 <script src="assets/table-pages.js?v=5852a434bf"></script>
 </body>
