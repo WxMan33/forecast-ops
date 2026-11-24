@@ -1,1 +1,1 @@
-{"request": 1, "stage": "freeze", "note": "Fit and commit the 728-date candidate on 2022-23 only, before any 2021 data is fetched."}
+{"request": 2, "stage": "verify", "fulldev_frozen_sha256": "dcc16d91a36205f7c754ae9ce148ac374ade3bf1d6c82b78e94f676b093724ae", "note": "One-time 2021 verification under verify2021-rule.md. Pin 2021 Storm Events, extract the 96 sealed dates, score once."}
