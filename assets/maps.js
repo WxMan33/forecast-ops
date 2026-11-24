@@ -316,11 +316,16 @@
     $("inspect").innerHTML = `<div class="inspect-v">${esc(F.label)}: ${val}</div><div class="msg">${st.selName ? esc(st.selName) + " · " : ""}HRRR cell ${i},${j} centred at ${la.toFixed(4)}, ${lo.toFixed(4)} (GRIB coordinates)${st.selDist != null ? ` · ${st.selDist.toFixed(1)} km from the point` : ""} · valid ${esc(fmtLocal(Date.parse(st.man.valid[st.h])))}${st.field === "precip" ? " · " + esc(windowText()) : ""}${st.smooth && F.smooth ? " · original cell value (the map colours are smoothed)" : ""}</div>`;
   }
   function select(lat, lon, name) { st.selectedPoint = { lat, lon, name }; const c = st.P && st.P.nearest(lat, lon); if (!c) { st.sel = null; $("inspect").innerHTML = '<p class="msg">That point is outside the model data area.</p>'; drawLabels(); syncLabels(); return; } const g = st.man.grid, per = g.nx * g.ny; st.sel = c; st.selName = name || null; st.selDist = hav(lat, lon, st.lat[c[1] * g.nx + c[0]], st.lat[per + c[1] * g.nx + c[0]]); inspect(); drawLabels(); syncLabels(); }
-  function step(d) { if (!st.man || st.loading) return; st.h = (st.h + d + st.man.hours.length) % st.man.hours.length; refresh(); }
+  /* embed only: the host can limit stepping and playback to a span of hours (an event window); the full page never sets it */
+  let span = null;
+  const spanIdx = () => { if (!span || !st.man) return null; const v = st.man.valid.map((x) => Date.parse(x)), k = v.map((t, i) => (t >= span[0] - 30 * 60e3 && t <= span[1] + 30 * 60e3 ? i : -1)).filter((i) => i >= 0); return k.length ? [k[0], k[k.length - 1]] : null; };
+  function step(d) { if (!st.man || st.loading) return; const r = spanIdx();
+    if (r) { const n = r[1] - r[0] + 1; st.h = st.h < r[0] || st.h > r[1] ? r[0] : r[0] + ((st.h - r[0] + d) % n + n) % n; }
+    else st.h = (st.h + d + st.man.hours.length) % st.man.hours.length; refresh(); }
   function stop() { if (st.play) cancelAnimationFrame(st.play); st.play = null; $("playBtn").textContent = "PLAY"; $("playBtn").setAttribute("aria-pressed", "false"); }
   function play() {
     if (!st.man || st.loading) return;
-    if (st.play) { stop(); return; } for (let h = 0; h < st.man.hours.length; h++) frame(h); // precompute every frame before playing
+    if (st.play) { stop(); return; } const r = spanIdx() || [0, st.man.hours.length - 1]; for (let h = r[0]; h <= r[1]; h++) frame(h); // precompute every frame before playing
     let last = 0; const tick = (t) => { if (t - last > 600) { last = t; step(1); } st.play = requestAnimationFrame(tick); }; st.play = requestAnimationFrame(tick);
     $("playBtn").textContent = "PAUSE"; $("playBtn").setAttribute("aria-pressed", "true"); emit();
   }
@@ -369,6 +374,8 @@
       setTime(ms) { if (!st.man || st.loading) return { inRange: false }; const v = st.man.valid.map((x) => Date.parse(x)); let k = 0; v.forEach((t, i) => { if (Math.abs(t - ms) < Math.abs(v[k] - ms)) k = i; });
         const inRange = ms >= v[0] - 30 * 60e3 && ms <= v[v.length - 1] + 30 * 60e3; if (k !== st.h) { stop(); st.h = k; refresh(); } return { inRange, exact: Math.abs(v[k] - ms) < 30 * 60e3, validMs: v[k] }; },
       step: (d) => step(d), play: () => play(), stop: () => { stop(); emit(); },
+      /* limit step and play to valid times in [fromMs, toMs] (an event window); setSpan(null) restores every hour */
+      setSpan: (fromMs, toMs) => { span = Number.isFinite(fromMs) && Number.isFinite(toMs) ? [fromMs, toMs] : null; return spanIdx(); },
     };
     emit();
   }
