@@ -56,7 +56,8 @@
     const span = M.eventSpan(brief), hrs = M.blendHours(C, ctx.B, ctx.ws, ctx.opts, span, ctx.th), axis = M.axis(C, span, tz);
     const cover = M.phaseCover(span, brief.phases), con = M.eventConcerns(S, C, brief, hrs, thr);
     const clock = (min) => `:${String(Math.round(min)).padStart(2, "0")}`;
-    const phaseCells = cover.map((ps) => {
+    const phaseCells = cover.map((ps, ci) => {
+      if (!ps.length && brief.spans && !C.event.inSpans(brief.spans, span[ci])) return { state: "clear", text: "Between slots", title: "Between slots: not part of the schedule; left out of the event totals and concerns" };
       if (!ps.length) return { state: "clear", text: "" };
       const main = ps.reduce((a, c) => (c.fraction > a.fraction ? c : a));
       const text = ps.length > 1 ? ps.map((p, i) => (i && p.starts ? `${p.label} ${clock(p.from)}` : p.label)).join(" → ") : main.starts ? `${main.label} ${clock(main.from)}` : main.ends ? `${main.label} to ${clock(main.to)}` : main.label;
@@ -99,12 +100,17 @@
     /* event totals: one blend call over every covered hour (the same windowRow the briefing's totals use), the spread
        across sources (10th-90th percentile of the contributing sources' totals), and the heaviest blend hour. Precip type
        per wet hour from blend snowfall vs liquid at Open-Meteo's 7:1 (>= 0.8 snow, <= 0.2 rain, else mix). */
-    const okH = hrs.filter((h) => h.state === "ok" && fin(h.i)), idxs = okH.map((h) => h.i);
+    /* with slots and gaps between them (brief.spans), the totals leave out the hours that lie between slots
+       (Core.event.inSpans: neither the hour starting nor the hour ending at the label touches a slot; those hours are
+       shaded "Between slots" in the grid and charts). The blend call is the same windowRow over the remaining hours, so
+       the total is the sum of their hourly amounts; nothing per hour changes. Without gaps every hour counts, as before. */
+    const G = brief.spans, evH = G ? hrs.filter((h) => C.event.inSpans(G, h.ms)) : hrs;
+    const okH = evH.filter((h) => h.state === "ok" && fin(h.i)), idxs = okH.map((h) => h.i);
     const T = idxs.length ? C.blend.windowRow(ctx.B, ctx.ws, idxs, idxs, ctx.opts) : null;
     const peak = (k) => okH.reduce((a, h) => (fin(h[k]) && h[k] > 0 && (!a || h[k] > a.v) ? { v: h[k], ms: h.ms } : a), null);
     const kinds = okH.map((h) => { if (!fin(h.qpf) || h.qpf < 0.005 || !fin(h.sn)) return null; const f = Math.min(1, Math.max(0, h.sn / (7 * h.qpf))); return f >= 0.8 ? "snow" : f <= 0.2 ? "rain" : "mix"; })
       .filter(Boolean).filter((k, i, a) => i === 0 || a[i - 1] !== k);
-    const totals = { hours: span.length, gap: span.length - idxs.length, qpf: T ? T.qpf : null, qpfR: T ? T.qpfR : null, sn: T ? T.sn : null, snR: T ? T.snR : null,
+    const totals = { hours: evH.length, gap: evH.length - idxs.length, spans: brief.spans || null, qpf: T ? T.qpf : null, qpfR: T ? T.qpfR : null, sn: T ? T.sn : null, snR: T ? T.snR : null,
       peakQ: peak("qpf"), peakSn: peak("sn"), types: kinds };
     return { span, hrs, axis, cover, con, rows, legend, note, detail, totals };
   }

@@ -5,6 +5,11 @@
    marks what is missing. Pure: no DOM, Node-testable. Presentation lives in hourly-grid.js. */
 (function (root) {
   "use strict";
+  /* part names in sentences: the fixed parts (Setup, Gates, Event, Teardown) read as before, in lower case; a planner's
+     own slot keeps its name as typed (PW: "Outdoor ceremony"), with an article after "during" or "for" (PS: "the Outdoor ceremony") */
+  const PARTS = ['Setup', 'Gates', 'Event', 'Teardown'];
+  const PW = (l) => (PARTS.includes(l) ? String(l).toLowerCase() : String(l == null ? '' : l));
+  const PS = (l) => (PARTS.includes(l) ? String(l).toLowerCase() : /^(the|a|an|our|my|day\b|mon|tue|wed|thu|fri|sat|sun)/i.test(String(l).trim()) ? String(l).trim() : `the ${String(l).trim()}`);
   const H = 3600e3;
   const fin = (x) => typeof x === "number" && Number.isFinite(x);
 
@@ -84,8 +89,8 @@
         }
         if (!hz.hour(h, thr)) return { state: "clear" };
         const ph = phasesAt(h.ms), lvl = Math.max(0, ...ph.map((p) => p.levels[key] || 0));
-        if (lvl >= 1) return { state: "concern", tier: S.LEVEL_TIER[lvl], level: lvl, word: S.LEVEL_WORD[lvl], why: `${hz.label} possible this hour; rated ${S.LEVEL_WORD[lvl].toLowerCase()} for ${ph.filter((p) => (p.levels[key] || 0) === lvl).map((p) => p.label.toLowerCase()).join(" and ")}`, source: "phase" };
-        return { state: "flag", why: ph.length ? `${hz.label} possible this hour, but rated low for ${ph.map((p) => p.label.toLowerCase()).join(" and ")}` : `${hz.label} possible this hour, outside the event's schedule`, source: "rule" };
+        if (lvl >= 1) return { state: "concern", tier: S.LEVEL_TIER[lvl], level: lvl, word: S.LEVEL_WORD[lvl], why: `${hz.label} possible this hour; rated ${S.LEVEL_WORD[lvl].toLowerCase()} for ${ph.filter((p) => (p.levels[key] || 0) === lvl).map((p) => PS(p.label)).join(" and ")}`, source: "phase" };
+        return { state: "flag", why: ph.length ? `${hz.label} possible this hour, but rated low for ${ph.map((p) => PS(p.label)).join(" and ")}` : `${hz.label} possible this hour, outside the event's schedule`, source: "rule" };
       });
       if (cells.some((c) => c.state === "concern" || c.state === "flag")) rows.push({ key, label: hz.label, cells });
     });
@@ -97,7 +102,7 @@
         const partial = rows.some((r) => r.cells[i].state === "missing") || (S.HAZARDS.lightning && (!h.thunder || h.thunder === "nodata"));
         /* no single-hour signal, but the part of the event this hour belongs to carries a rating: say so (unshaded) */
         const rated = phasesAt(h.ms).filter((p) => p.level >= 1 && p.top).sort((a, b) => b.level - a.level)[0];
-        if (rated) return { state: "rated", key: rated.top, level: rated.level, word: S.LEVEL_WORD[rated.level], why: `No single hour stands out, but ${rated.label.toLowerCase()} is rated ${S.HAZARDS[rated.top].label.toLowerCase()}: ${S.LEVEL_WORD[rated.level].toLowerCase()}` };
+        if (rated) return { state: "rated", key: rated.top, level: rated.level, word: S.LEVEL_WORD[rated.level], why: `No single hour stands out, but ${PS(rated.label)} is rated ${S.HAZARDS[rated.top].label.toLowerCase()}: ${S.LEVEL_WORD[rated.level].toLowerCase()}` };
         return partial ? { state: "partial", why: "No concern found in the guidance available; lightning guidance is missing for this hour" } : { state: "clear", why: "No concern identified" };
       }
       const worst = hits.filter((x) => x.c.state === "concern").sort((a, b) => (RANK[b.c.tier] ?? 0) - (RANK[a.c.tier] ?? 0))[0];

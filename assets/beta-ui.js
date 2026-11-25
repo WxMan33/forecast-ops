@@ -235,7 +235,8 @@
   /* the event window and its parts against a run's valid times (pure, for tests): Event mode's hour indices, and each part's reach */
   function eventSpan(parts, valid) {
     if (!parts || !parts.length) return null;
-    const s = parts[0].startMs - LEAD, e = parts[parts.length - 1].endMs, a = valid.length ? valid[0] : null, b = valid.length ? valid[valid.length - 1] : null;
+    const s = parts[0].startMs - LEAD, e = Math.max(...parts.map((p) => p.endMs)), // slots can overlap: the window ends with the latest one
+       a = valid.length ? valid[0] : null, b = valid.length ? valid[valid.length - 1] : null;
     const idx = valid.map((t, i) => (t > s - H && t <= e ? i : -1)).filter((i) => i >= 0); // from the hour holding the window's start to the last hour that starts by its end
     const hourOf = (ms) => { let k = -1; valid.forEach((t, i) => { if (t <= ms + 60e3) k = i; }); return k; }; // the hour holding ms (as the hourly charts do)
     const reach = parts.map((p) => {
@@ -359,7 +360,7 @@
       flag.hidden = out === "in"; flag.innerHTML = out === "in" ? "" : `${out === "beyond" ? "Last HRRR hour" : "First HRRR hour"} · ${esc(fmt.time(out === "beyond" ? b : a, tz))}<span>not the selected time</span>`;
       $("mpVt").classList.toggle("oor", out !== "in"); };
     /* Event mode opens on the event: a selected time outside the window moves to the first part's start (its hour) */
-    const toWindow = () => { if (!EV || mode !== "event" || !bus) return; const s0 = EV[0].startMs - LEAD, e0 = EV[EV.length - 1].endMs, ms = bus.get();
+    const toWindow = () => { if (!EV || mode !== "event" || !bus) return; const s0 = EV[0].startMs - LEAD, e0 = Math.max(...EV.map((p) => p.endMs)), ms = bus.get();
       if (ms == null || ms < s0 - HALF || ms > e0 + HALF) bus.set(Math.floor(EV[0].startMs / H) * H, "page"); };
     const attach = () => { const w = frame.contentWindow; if (!w || !w.MapEmbed) return false; M = w.MapEmbed;
       if (wanted != null && bus) bus.set(wanted, "page"); wanted = null; toWindow(); M.on(render); if (bus && bus.get() != null) M.setTime(bus.get()); return true; };

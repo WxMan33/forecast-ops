@@ -64,6 +64,7 @@
       { key: "lightning", name: "Lightning potential", unit: "", color: "lightning", type: "tier", max: 3 },
     ];
     const text = (key, i) => rows[key]?.cells[i]?.text ?? "No data";
+    const hasBetween = !!(rows.phase && rows.phase.cells.some((c) => c && c.text === "Between slots"));
     const value = (spec, i) => {
       if (!V.hrs[i] || V.hrs[i].state !== "ok") return null;
       if (spec.type === "tier") { const c = rows.lightning?.cells[i]; return !c || c.state === "missing" ? null : { Low: 1, Moderate: 2, High: 3 }[c.text] ?? null; }
@@ -100,6 +101,10 @@
         const label = T ? `${T.sym} ${word}` : `? ${word}`, fit = wd >= label.length * 7.2 + 8;
         under += `<text x="${x0 + 5}" y="${base - 7}" class="evc-bandlabel${T ? "" : " evc-bandlabel-unc"}" data-type-label="${kind}">${esc(fit ? label : T ? T.sym : "?")}</text>`;
       });
+      /* hours between a planner's slots: shown with their values, shaded and labelled as outside the schedule (they are
+         left out of the event totals and concerns, never out of the chart) */
+      runs(ids.map((i) => (rows.phase && rows.phase.cells[i] && rows.phase.cells[i].text === "Between slots" ? "g" : null))).forEach((r) => { const x0 = left + r.a * bw, wd = (r.b - r.a + 1) * bw;
+        under += `<rect x="${x0}" y="${top}" width="${wd}" height="${base - top}" class="evc-between" data-between="${r.b - r.a + 1}"><title>Between slots: not part of the schedule</title></rect>${wd >= 36 ? `<text x="${x0 + wd / 2}" y="${top + 14}" text-anchor="middle" class="evc-betweentext">${wd >= 90 ? "Between slots" : "Gap"}</text>` : ""}`; });
       /* missing hours: a light gap, "No data" when there is room */
       ids.forEach((i, j) => { if (value(s, i) === null && V.hrs[i]?.state !== "beyond") marks += `<rect x="${left + j * bw + 2}" y="${top}" width="${bw - 4}" height="${base - top}" class="evc-gap"><title>No data</title></rect>${bw >= 58 ? `<text x="${x(j)}" y="${(top + base) / 2 + 5}" text-anchor="middle" class="evc-gaptext">No data</text>` : ""}`; }); /* a narrow bar keeps its hatching and a "No data" title; the label is written out where it fits */
       /* hours the hourly guidance doesn't reach yet: left blank, with one label over them */
@@ -133,7 +138,7 @@
     /* each chart's own key */
     function legend(s) {
       const sw = (cls, t) => `<span class="evc-key"><i class="${cls}"></i>${esc(t)}</span>`;
-      if (s.key === "pop") return `<p class="evc-legend">${sw("k-line k-dots", "Chance of precipitation each hour (0–100%)")}${tsum.mode === "bands" ? sw("k-band k-rain", "☂ Rain") + sw("k-band k-mix", "✱ Mix") + sw("k-band k-snow", "❄ Snow") + sw("k-band k-unc", "? Type uncertain (unshaded)") : `<span class="evc-key evc-type" data-type-summary="${tsum.mode}">${esc(tsum.text)}</span>`}${sw("k-gap", "No data: guidance missing, not 0%")}</p>`;
+      if (s.key === "pop") return `<p class="evc-legend">${sw("k-line k-dots", "Chance of precipitation each hour (0–100%)")}${tsum.mode === "bands" ? sw("k-band k-rain", "☂ Rain") + sw("k-band k-mix", "✱ Mix") + sw("k-band k-snow", "❄ Snow") + sw("k-band k-unc", "? Type uncertain (unshaded)") : `<span class="evc-key evc-type" data-type-summary="${tsum.mode}">${esc(tsum.text)}</span>`}${sw("k-gap", "No data: guidance missing, not 0%")}${hasBetween ? sw("k-between", "Gap: between your time slots, not in the event totals") : ""}</p>`;
       if (s.key === "temp") return `<p class="evc-legend">${sw("k-line", "Temperature")}${sw("k-line k-dash", "Feels like")}</p>`;
       if (s.key === "wind") return `<p class="evc-legend">${sw("k-line", "Sustained wind")}${sw("k-line k-dash", "Gusts")}${sw("k-limit", "Venue gust limit")}</p>`;
       return `<p class="evc-legend">${sw("k-tier k-t1", "Low")}${sw("k-tier k-t2", "Moderate")}${sw("k-tier k-t3", "High")}<span class="evc-key">Low is not zero</span></p>`;
@@ -158,6 +163,15 @@
   const HAZ = { "hz-rain": { key: "rain", label: "Rain", order: 0 }, "hz-wind": { key: "wind", label: "Gusts", order: 1 }, lightning: { key: "lightning", label: "Lightning potential", order: 2 }, "hz-snow": { key: "snow", label: "Snow", order: 3 } };
   /* the same test the winter read uses: modeled snow, or measurable precipitation at 35°F or colder */
   const wintry = (V) => !!((V.totals && fin(V.totals.sn) && V.totals.sn >= 0.05) || V.hrs.some((h) => h && h.state === "ok" && fin(h.temp) && h.temp <= 35 && fin(h.qpf) && h.qpf >= 0.005));
+  /* what the totals cover, in the planner's own words: the fixed parts as before ("Setup through teardown"); slots by
+     name ("Reception", "Vendor setup through Reception"), and "your slots only" when there are gaps between them */
+  const FIXED = ["Setup", "Gates", "Event", "Teardown"];
+  function windowWords(V) {
+    const seen = []; (V.cover || []).forEach((ps) => ps.forEach((p) => { if (!seen.includes(p.label)) seen.push(p.label); }));
+    if (!seen.length || seen.every((l) => FIXED.includes(l))) return "Setup through teardown";
+    if (V.totals && V.totals.spans) return "Your slots only, not the gaps between them";
+    return seen.length === 1 ? `Over the ${seen[0]}` : `${seen[0]} through ${seen[seen.length - 1]}`;
+  }
   function dashModel(V, { tz, gustLimit = 25 } = {}) {
     const n = V.span.length, T = V.totals || {}, ok = V.hrs.filter((h) => h && h.state === "ok");
     const clock = (ms) => new Intl.DateTimeFormat("en-US", { timeZone: tz || undefined, hour: "numeric", minute: "2-digit" }).format(new Date(ms)).replace(":00", "");
@@ -196,10 +210,11 @@
       return { state: "part", text };
     };
     const okHour = V.hrs.map((h) => !!(h && h.state === "ok"));
-    const totCov = T.gap ? coverage(okHour) || { state: "part", text: `Partial coverage · ${n - T.gap} of ${n} hours` } : null;
+    /* with gaps between slots the totals count only the hours inside the slots (T.hours of them), so coverage is told against those */
+    const totCov = T.gap ? (T.spans ? { state: "part", text: `Partial coverage · ${T.hours - T.gap} of ${T.hours} slot hours` } : coverage(okHour) || { state: "part", text: `Partial coverage · ${n - T.gap} of ${n} hours` }) : null;
     const tiles = [];
     const rain = by.rain || null;
-    tiles.push(fin(T.qpf) ? { key: "rain", label: "Rain total", value: f2(T.qpf), pre: lb, unit: "in", unitWord: "inches", sub: [range(T.qpfR, f2) || (T.gap ? "" : "Setup through teardown")], cover: totCov, flag: rain }
+    tiles.push(fin(T.qpf) ? { key: "rain", label: "Rain total", value: f2(T.qpf), pre: lb, unit: "in", unitWord: "inches", sub: [range(T.qpfR, f2) || (T.gap ? "" : windowWords(V))], cover: totCov, flag: rain }
       : { key: "rain", label: "Rain total", value: null, sub: ["No data (not zero)"], flag: null });
     if (T.peakQ) tiles.push({ key: "rate", label: "Heaviest rain rate", value: f2(T.peakQ.v), unit: "in/hr", unitWord: "inches per hour", sub: [`Around ${around(T.peakQ.ms)}`], cover: totCov, flag: null, at: T.peakQ.ms }); // a number only: the rain rating is named once, on the Rain total tile
     /* gusts: the highest hourly gust the wind chart shows; a full tile only when the briefing flags wind */
