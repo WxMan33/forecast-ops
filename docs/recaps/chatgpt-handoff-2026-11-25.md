@@ -96,6 +96,12 @@ UPDATE, Nov 25 early morning (03:30 UTC)
       - Mar 11, 2022: NBM lowered probabilities where reports were (report points at ≥5%: 155 → 134).
       - Apr 29, 2023: NBM raised an already-elevated no-report area in southeast Florida.
     - Clue only: nearby NBM 12 h thunder probability has the strongest association (r ≈ +0.26). A controlled comparison would be needed to show that removing it fixes Florida/Gulf while keeping the national gain.
+  - GUST-ONLY NBM TEST (pre-registered; run 45658640918): FAIL on criteria 1 and 2.
+    - National: no gain. Brier −0.000003 (95% CI −0.000024 to +0.000015); BSS 0.114 → 0.115.
+    - Florida/Gulf still significantly worse: +0.000043 (CI +0.000007 to +0.000079); BSS −0.008 → −0.014; calibration about 2.14× over-forecast.
+    - Against full NBM: gust-only gives up nearly all of the national gain (+0.000079, CI +0.000056 to +0.000105). Its Florida/Gulf difference from full NBM is not significant.
+    - March–April subset: gust-only largely avoids the spring false-alarm sharpening (+7.5 vs +50.1). Its Florida/Gulf loss mostly comes outside March–April.
+    - Reading: the thunder predictors carry both the national gain and much of the spring Florida loss. Neither NBM variant is a clean improvement.
 - SAMPLING CHECK (development only; same folds, recipe, calibration and scoring rows): sampling does NOT explain the 2021 tie.
   - National BSS: 96 days all rows 0.096; 96 days sampled 0.098; 728 days sampled 0.115.
   - Sampling effect: −0.000017 Brier (95% CI −0.000030 to −0.000005). Sampling helped slightly.
