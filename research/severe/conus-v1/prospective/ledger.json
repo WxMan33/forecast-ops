@@ -1,0 +1,12 @@
+[
+ {
+  "issue_date": "2026-11-24",
+  "status": "on_time",
+  "generated_at": "2026-11-25T03:17:19.333268+00:00"
+ },
+ {
+  "issue_date": "2026-11-25",
+  "status": "pending",
+  "generated_at": null
+ }
+]
