@@ -33,16 +33,16 @@
  },
  "cases": [
   {
-   "id": "current-2026-11-24",
-   "file": "current-2026-11-24.json",
-   "sha256": "b1c2cb729853389babc17f0939873d1392170a1e049a0285687ddeffdf2849b0",
+   "id": "current-2026-11-25",
+   "file": "current-2026-11-25.json",
+   "sha256": "3ee1fa2ab46c4f63fbe5522e56cd63a1ca98fef2246161051e329928a5931cf7",
    "kind": "current",
-   "label": "Current run \u00b7 2026-11-24 12Z",
+   "label": "Current run \u00b7 2026-11-25 12Z",
    "description": "Current research run from today's audited HRRR inputs (no observed reports yet)",
-   "issue_date": "2026-11-24",
-   "model_init_time": "2026-11-24T12:00:00+00:00",
-   "valid_start": "2026-11-25T12:00:00+00:00",
-   "valid_end": "2026-11-26T12:00:00+00:00",
+   "issue_date": "2026-11-25",
+   "model_init_time": "2026-11-25T12:00:00+00:00",
+   "valid_start": "2026-11-26T12:00:00+00:00",
+   "valid_end": "2026-11-27T12:00:00+00:00",
    "report_points": null,
    "reports": {
     "status": "not_applicable",
@@ -283,7 +283,7 @@
    "passes": true
   }
  },
- "built_at": "2026-11-25T03:22:08.166636+00:00",
+ "built_at": "2026-11-25T15:24:51.701718+00:00",
  "protected_2025_outcomes_accessed": false,
  "reports_source": {
   "file": "StormEvents_details-ftp_v1.0_d2024_c20260728.csv.gz",
