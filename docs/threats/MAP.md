@@ -4,7 +4,8 @@
 |---|---|
 | Main site: `https://wxman33.github.io/forecast-ops/threats.html`, plus the Overview card | `main` |
 | Shared beta (`beta-previews`, raw.githack.com) | `main`'s map, plus Event Manager's Weather Threats section (beta only) |
-| Rainfall preview: `https://claude-threats-rain.forecast-ops-beta.pages.dev/threats` | `claude-threats-rain` (not on main or the beta yet) |
+| Rainfall preview: `https://claude-threats-rain.forecast-ops-beta.pages.dev/threats` | `claude/threats-rain` (not on main or the beta yet) |
+| Combined beta preview (rainfall + Event Manager): `https://claude-threats-em-combined.forecast-ops-beta.pages.dev` | `claude/threats-em-combined` (isolated; not the shared beta) |
 
 The main site and the githack betas read the NWS, SPC and WPC files that refuse browsers through the Cloudflare Pages functions
 at `https://forecast-ops-beta.pages.dev/api/…`. NOAA map services (`mapservices.weather.noaa.gov`: radar, rainfall, WPC outlooks,
@@ -155,7 +156,7 @@ non-commercial use within CARTO's monthly view limit; a paid or high-traffic lau
 
 | Tool | What it covers | Last result |
 |---|---|---|
-| `threats-rain-check.js` | Rainfall: live, replay (saved NOAA answers, clock pinned: current and delayed), outage, automatic and manual, desktop and phone | 19/19 on `70b1bab` (rainfall preview) |
+| `threats-rain-check.js` | Rainfall: live, replay (saved NOAA answers, clock pinned: current and delayed), outage, automatic (flood warning: fallen; forecast-only Flood Watch: to come) and manual, switching by tap on a phone, desktop and phone | 23/23 on `490e687` (rainfall preview), with fixes 44/44, request counts 16/16, At this spot 6/6 |
 | `threats-planner-check.js` | Full Threats regression, including Event Manager (combined beta) | 102/102 on the 2026-11-24 release; the earlier suite (103 cases) passed on `00ed0f5`, `de98663`, `7813e4a` and `25b9f10` |
 | `threats-fixes-check.js` | Audit fixes, presets, radar, venue forecast, clicks, venue marker, basemap failover, river gauges under flood warnings | 44/44 on the 2026-11-24 release |
 | `threats-feeds-check.js` | Request counts: fresh visit (automatic), picker, one layer, layer off, links | 16/16 on the 2026-11-24 release |
