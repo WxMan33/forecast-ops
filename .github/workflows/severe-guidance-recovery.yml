@@ -77,10 +77,19 @@ jobs:
           tag="severe-guidance-${DATE:0:7}"
           gh release view "$tag" --repo "$ARCHIVE_REPO" --json assets --jq '.assets[].name' | sort > tests/out/assets-before.txt || true
           echo "assets in $tag before recovery:"; cat tests/out/assets-before.txt
-          for n in "severe-guidance-$DATE-day$DAY.tar.gz" "severe-guidance-$DATE-day$DAY.run-$RUN-$ATT.json"; do
-            if grep -qx "$n" tests/out/assets-before.txt; then echo "::error::$n already exists in the archive; nothing published"; exit 1; fi
-          done
-          echo "confirmed missing: data asset and attempt receipt"
+          asset="severe-guidance-$DATE-day$DAY.tar.gz"; receipt="severe-guidance-$DATE-day$DAY.run-$RUN-$ATT.json"
+          if grep -qx "$receipt" tests/out/assets-before.txt; then echo "::error::$receipt already exists; nothing published"; exit 1; fi
+          if grep -qx "$asset" tests/out/assets-before.txt; then
+            # Only allowed when resuming an interrupted recovery (request "resume_of"): the asset must be this exact bundle.
+            [ "$(jq -r '.resume_of // empty' research/severe/guidance-phase1/recovery/request.json)" != "" ] || { echo "::error::$asset already exists; nothing published"; exit 1; }
+            mkdir -p tests/out/existing && gh release download "$tag" --repo "$ARCHIVE_REPO" --pattern "$asset" --dir tests/out/existing
+            want=$(jq -r .bundle_sha256 tests/out/verify.json); have=$(sha256sum < "tests/out/existing/$asset" | cut -c1-64)
+            [ "$want" = "$have" ] || { echo "::error::existing $asset differs from the surviving bundle ($have vs $want); nothing published"; exit 1; }
+            echo "resume: data asset already present and identical to the surviving bundle ($have); attempt receipt missing"
+            echo "asset_present_before=identical" > tests/out/resume.txt
+          else
+            echo "confirmed missing: data asset and attempt receipt"
+          fi
       - name: Publish the exact bundle with the original run record, then verify by download
         env:
           GH_TOKEN: ${{ secrets.SEVERE_GUIDANCE_ARCHIVE_WRITE_TOKEN }}
@@ -90,6 +99,7 @@ jobs:
           RUN: ${{ steps.req.outputs.source_run }}
           ATT: ${{ steps.req.outputs.source_attempt }}
         run: |
+          mkdir -p tests/out/receipt
           python3 tests/out/main-tools/guidance_archive.py publish --bundle "tests/out/orig/bundle/severe-guidance-$DATE-day$DAY.tar.gz" \
             --record tests/out/orig/guidance-study/run.json --repository "$ARCHIVE_REPO" --date "$DATE" --day "$DAY" \
             --receipt-dir tests/out/receipt --result tests/out/publish.json
@@ -131,6 +141,11 @@ jobs:
                             "artifact": os.environ.get("ARTIFACT", ""), "original_publish_result": v["original_publish_result"]},
                  "bundle": {"name": v["bundle"], "sha256": v["bundle_sha256"], "data_sha256": v["data_sha256"], "bytes": v["bundle_bytes"]},
                  "pre_publish_checks": v["checks"], "assets_before": pathlib.Path("tests/out/assets-before.txt").read_text().split(),
+                 "resume": ({"resume_of_run": json.loads(pathlib.Path("research/severe/guidance-phase1/recovery/request.json").read_text()).get("resume_of"),
+                             "note": "The first recovery run uploaded and read-back-verified the data asset, then failed before the attempt "
+                                     "receipt (a missing local directory in the recovery workflow). This run confirmed the archived asset is "
+                                     "byte-identical to the surviving bundle and published the original-run receipt."}
+                            if pathlib.Path("tests/out/resume.txt").exists() else None),
                  "publish_result": json.loads(pathlib.Path("tests/out/publish.json").read_text()),
                  "readback": json.loads(pathlib.Path("tests/out/readback.json").read_text()),
                  "recovery_run": {"run_id": os.environ["GITHUB_RUN_ID"], "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"], "sha": os.environ["GITHUB_SHA"]},
