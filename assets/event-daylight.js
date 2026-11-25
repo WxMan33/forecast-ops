@@ -49,7 +49,7 @@
     const zones = [...new Set(shown.map((d) => d.zone))];
     /* one short note; an overnight event that crosses both sunset and sunrise gets both in that one line */
     const note = notes.length ? notes.slice(0, 2).map((n, i) => (i ? n.text.charAt(0).toLowerCase() + n.text.slice(1) : n.text)).join(" Then ").replace(/\.\sThen /, "; then ") : "";
-    return { days, shown, skipped: days.length - shown.length, zone: zones.join("/"), zones, note, notes, hm: (ms) => (ms == null ? "—" : hm(C, ms, tz)), dayLabel };
+    return { days, shown, skipped: days.length - shown.length, zone: zones.join("/"), zones, note, notes, hm: (ms) => (ms == null ? "Unavailable" : hm(C, ms, tz)), dayLabel };
   }
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   /* the screen row: Daylight · date · Sunrise time · Sunset time · zone; dates labelled whenever there is more than one */

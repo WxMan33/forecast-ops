@@ -157,10 +157,10 @@
   }
   function certainty(t) {
     if (!t || !t.of) return { level: null, word: "Not enough guidance to judge timing" };
-    if (t.show / t.of < 0.5) return { level: "low", word: `Low — only ${t.show} of ${t.of} model sources show it` };
-    if (t.spreadH <= 2) return { level: "high", word: "Fairly consistent — sources within about 2 hours" };
-    if (t.spreadH <= 5) return { level: "medium", word: `Could shift — sources differ by about ${Math.round(t.spreadH)} hours` };
-    return { level: "low", word: `Uncertain — sources differ by about ${Math.round(t.spreadH)} hours` };
+    if (t.show / t.of < 0.5) return { level: "low", word: `Low: only ${t.show} of ${t.of} model sources show it` };
+    if (t.spreadH <= 2) return { level: "high", word: "Fairly consistent: sources within about 2 hours" };
+    if (t.spreadH <= 5) return { level: "medium", word: `Could shift: sources differ by about ${Math.round(t.spreadH)} hours` };
+    return { level: "low", word: `Uncertain: sources differ by about ${Math.round(t.spreadH)} hours` };
   }
   /* ev: {name, loc, tz, times} as in Core.event; thr: {gust} */
   function eventBrief(ctx, ev, thr = { gust: 25 }) {

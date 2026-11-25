@@ -1056,3 +1056,5 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
   .event-planner .ev-lead .ev-callouts dd { padding: 4px 0 5px; }
   .ev-lead-when, .ev-lead-watch { line-height: 1.3; }
 }
+/* At a glance: the rating line names its subject and may wrap; a box, not a pill */
+.evd-badge { border-radius: 8px; line-height: 1.25; }

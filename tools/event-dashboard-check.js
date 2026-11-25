@@ -94,7 +94,7 @@ const firstScreen = (p) => p.evaluate(() => { const vh = innerHeight, dd = [...d
     if (name === 'orlando quiet') check(/No weather concern/.test(f.decision) && /below your 25 mph/i.test(f.callouts[2]) && !(await p.locator('#keys dd[data-tier]').count()), `${L} quiet: no concern, nothing highlighted (${f.decision})`);
     if (name === 'orlando partly covered') check(/partly covered|pending/i.test(await p.locator('#coverage').innerText()), `${L} partial coverage is stated next to the decision: ${(await p.locator('#coverage').innerText()).replace(/\s+/g, ' ').slice(0, 120)}`);
     if (name === 'cincinnati missing hour') { await p.locator('#hourlyLink').click(); await p.waitForTimeout(300); await p.locator('#evCharts [data-variable=pop] [data-hour="' + Date.parse('2026-11-12T19:00Z') + '"]').click();
-      const v = await p.locator('#evCharts [data-value=pop]').innerText(); check(v === '—', `${L} a missing hour stays missing (—) one tap away in the hourly forecast`); }
+      const v = await p.locator('#evCharts [data-value=pop]').innerText(); check(v === 'No data', `${L} a missing hour stays missing ("No data", never 0%) one tap away in the hourly forecast`); }
     if (name === 'cincinnati overnight') { const items = await p.evaluate(() => [...document.querySelectorAll('#secTimeline .ev-schedule li')].map((li) => li.innerText.replace(/\s+/g, ' ')));
       check(items.length === 4 && items.some((x) => /Fri/.test(x)), `${L} an overnight schedule names the next day where a part ends after midnight (${items.join(' | ')})`); }
     await p.evaluate(() => scrollTo(0, 0)); await p.screenshot({ path: path.join(out, `${name.replace(/\s+/g, '-')}-${dev}.png`) });

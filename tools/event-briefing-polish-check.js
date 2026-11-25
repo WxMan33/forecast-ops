@@ -61,7 +61,7 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
  await p.emulateMedia({media:'screen'});await p.goto(base+'/event-beta.html?gaps=1');await p.waitForFunction(()=>document.body.dataset.loaded);
  await p.locator('#secHourly > summary').click(); await p.waitForTimeout(250);
  await p.locator('#evCharts [data-variable=pop] [data-hour="'+Date.parse('2026-11-12T19:00Z')+'"]').click();
- check((await p.locator('#evCharts [data-value=pop]').innerText())==='—','missing rain guidance stays missing rather than zero');
+ check((await p.locator('#evCharts [data-value=pop]').innerText())==='No data','missing rain guidance stays missing ("No data") rather than zero');
  check(/n\/a|Unavail/.test(await p.locator('#evCharts [data-value=lightning]').innerText()),'missing lightning is never shown as Low');
  check(await p.locator('#evCharts .evc-gap').count()>=4,'missing hour is visibly marked in every variable chart');
  await p.emulateMedia({media:'print'});await p.evaluate(()=>window.dispatchEvent(new Event('beforeprint')));
