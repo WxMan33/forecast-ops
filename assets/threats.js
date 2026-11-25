@@ -1206,7 +1206,7 @@
       if (live1) { const p1 = live1.p; $("txPeek1").textContent = (S.testReplay ? "TEST REPLAY · " : "") + (p1.title || p1.event) + (p1.impact ? " · " + p1.impact.tag : ""); $("txPeek2").textContent = "Covers this site · " + (p1.openEnded ? "until further notice" : "until " + t(p1.expires, true)); }
       else if ((!r || r.level < 2) && SA && SA.built && SA.built.highlights && SA.built.highlights.list.length) { /* the same rule as the panel's lead: the headline; the rain window on its own line; then what couldn't be checked, or the label */
         const HLx = SA.built.highlights, lead = OL.highlightLead(HLx.list, tz()), unc = HLx.unchecked || [], label = "Forecast highlights · NWS forecast · not an alert";
-        $("txPeek1").textContent = lead.text; $("txPeek2").textContent = lead.timing || label; p3 = unc.length ? "Not fully checked: " + unc.map((u) => u.replace(/ \(.*$/, "")).join("; ") : lead.timing ? label : ""; }
+        $("txPeek1").textContent = lead.text; $("txPeek2").textContent = lead.timing.replace(", so the total may be higher", "") || label; p3 = unc.length ? "Not fully checked: " + unc.map((u) => u.replace(/ \(.*$/, "")).join("; ") : lead.timing ? label : ""; }
       else { $("txPeek1").textContent = r ? (r.level ? r.text : "Next 7 days: " + r.text.charAt(0).toLowerCase() + r.text.slice(1)) : "Next 7 days at " + venue.name; $("txPeek2").textContent = r && r.level ? r.when + " · " + r.source : vo.state === "loading" ? "Loading…" : "Tap for the day-by-day outlook"; }
       $("txPeek3").textContent = p3; $("txPeek3").hidden = !p3; $("txPeek").style.setProperty("--peek-c", r && r.level ? LEVEL_COLOR[r.level] : "transparent"); return;
     }
