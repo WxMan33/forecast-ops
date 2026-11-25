@@ -259,6 +259,7 @@
       ${EV ? `<div class="bx-mapslide">
         <div class="bx-mapmodes"><span class="bx-seg" role="group" aria-label="Map time span"><button type="button" data-mode="event" aria-pressed="true">Event</button><button type="button" data-mode="full" aria-pressed="false">Full run</button></span>
           <span class="bx-mapchips" id="mpChips" role="group" aria-label="Jump to a part of the event"></span></div>
+        <p class="bx-slnow" id="mpNow" aria-hidden="true"></p>
         <div class="bx-slider"><div class="bx-sltrack" id="mpTrack" aria-hidden="true"></div>
           <label class="sr-only" for="mpSlider">Map time</label><input type="range" id="mpSlider" min="0" max="0" step="1" value="0" disabled aria-valuetext="Loading map">
           <div class="bx-slticks" id="mpTicks" aria-hidden="true"></div></div>
@@ -294,6 +295,10 @@
     const syncSpan = (s) => { const w = eventSpan(EV, s.valid), sig = `${mode}|${s.run}|${w && w.win}`; if (sig === spanSig || !M || !M.setSpan) return; spanSig = sig;
       if (mode === "event" && w && w.win) M.setSpan(s.valid[w.win[0]], s.valid[w.win[1]]); else M.setSpan(null); };
     /* ---- slider, chips, coverage note (Event Manager) ---- */
+    /* the map time readout right above the slider: day, hour and time zone, updated on every input and Play frame */
+    const showNow = (ms, off = false) => { const el = $("mpNow"); if (!el) return;
+      el.innerHTML = ms == null ? `<span>Your event is outside this model run</span>` : `<i>Map time</i> <b>${esc(fmt.time(ms, tz))} ${esc(fmt.zone(ms, tz))}</b>${off ? ` <i>not the selected time</i>` : ""}`;
+      el.classList.toggle("oor", !!off); el.dataset.ms = ms == null ? "" : String(ms); };
     const drawSlider = () => {
       const s = last, sl = $("mpSlider"), trk = $("mpTrack"), ticks = $("mpTicks"), ends = $("mpEnds"), chips = $("mpChips"), cov = $("mpCover");
       if (!s || !s.valid.length) return;
@@ -302,8 +307,9 @@
       sl.disabled = !ok;
       if (r) { sl.min = String(r[0]); sl.max = String(r[1]); const sel = bus && bus.get() != null ? bus.get() : s.validMs, k = Math.min(r[1], Math.max(r[0], nearest(s, sel)));
         sl.value = String(k); sl.setAttribute("aria-valuetext", `${at(s.valid[k])}${Math.abs(s.valid[k] - sel) > HALF ? " (not the selected time)" : ""}`);
+        showNow(s.valid[k], Math.abs(s.valid[k] - sel) > HALF);
         host.dataset.slider = `${s.valid[r[0]]}-${s.valid[r[1]]}`; }
-      else { sl.min = "0"; sl.max = "0"; sl.value = "0"; sl.setAttribute("aria-valuetext", "Your event is outside this model run"); host.dataset.slider = ""; }
+      else { sl.min = "0"; sl.max = "0"; sl.value = "0"; sl.setAttribute("aria-valuetext", "Your event is outside this model run"); host.dataset.slider = ""; showNow(null); }
       /* the event shaded on the track, with a labelled tick at each part's start */
       const a = r ? s.valid[r[0]] : 0, b = r ? s.valid[r[1]] : 1, f = (ms) => (b > a ? Math.min(1, Math.max(0, (ms - a) / (b - a))) : 0), pos = (x) => `calc(var(--th) / 2 + ${(x * 100).toFixed(2)}% - ${(x).toFixed(4)} * var(--th))`;
       const inSpan = (ms) => r && ms >= a - HALF && ms <= b + HALF;
@@ -370,7 +376,7 @@
     let ro = null;
     if (EV) {
       /* the slider sets the selected time, exactly as the ‹ › buttons do */
-      $("mpSlider").addEventListener("input", (e) => { if (!M || !last) return; const s0 = M.state(); if (s0.playing) M.stop(); const k = +e.target.value; if (s0.valid[k] != null && bus) bus.set(s0.valid[k], "slider"); });
+      $("mpSlider").addEventListener("input", (e) => { if (!M || !last) return; const s0 = M.state(); if (s0.playing) M.stop(); const k = +e.target.value; if (s0.valid[k] != null) showNow(s0.valid[k]); if (s0.valid[k] != null && bus) bus.set(s0.valid[k], "slider"); });
       host.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => { if (mode === b.dataset.mode) return; mode = b.dataset.mode; if (M && M.state().playing) M.stop();
         if (last) syncSpan(last); toWindow(); drawSlider(); }));
       $("mpChips").addEventListener("click", (e) => { const c = e.target.closest("[data-jump]"); if (!c || !bus) return; if (M && M.state().playing) M.stop(); bus.set(+c.dataset.jump, "chip"); });
