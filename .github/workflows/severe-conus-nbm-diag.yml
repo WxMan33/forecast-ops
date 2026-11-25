@@ -1,0 +1,85 @@
+name: Severe CONUS Day 2 wind NBM March-April Florida/Gulf diagnostic (research)
+# Development-only diagnostic of the FAILED HRRR+NBM candidate (verdict unchanged). Refits held-out folds 2 and 3
+# exactly as in run 45544910438, must reproduce that run's per-date, per-region totals before saving anything,
+# then saves March-April Florida/Gulf point forecasts. No 2021/2024/2025 data. No live pieces touched.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-v1/nbm/diag-request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-nbm-diag
+  cancel-in-progress: false
+env:
+  NBM_RUN: '45544910438'
+jobs:
+  fold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        fold: [2, 3]
+    env: { OPENBLAS_NUM_THREADS: '4', OMP_NUM_THREADS: '4' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 shapely==2.2.0
+      - id: req
+        run: |
+          f=research/severe/conus-v1/fulldev-gate-request.json
+          echo "cohort=$(jq -r .cohort_extraction_run $f)" >> "$GITHUB_OUTPUT"
+          echo "corridor=$(jq -r .corridor_extraction_run $f)" >> "$GITHUB_OUTPUT"
+          echo "fulldev=$(jq -r .fulldev_extraction_run $f)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.cohort }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.corridor }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.fulldev }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'nbm-b*', merge-multiple: true, path: tests/out/nbm, run-id: '${{ env.NBM_RUN }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { name: 'nbm-gate-fold-${{ matrix.fold }}', path: tests/out/original, run-id: '${{ env.NBM_RUN }}', github-token: '${{ github.token }}' }
+      - name: Refit fold ${{ matrix.fold }}, reproduce the original totals, save March-April Florida/Gulf points
+        run: |
+          mkdir -p tests/out/dev
+          for d in tests/out/x/conus/2022-* tests/out/x/conus/2023-*; do ln -s "$PWD/$d" tests/out/dev/; done
+          sha256sum tests/out/original/fold-${{ matrix.fold }}.json
+          PYTHONPATH=tools/severe python3 tools/severe/conus_nbm_diag.py fold --fold ${{ matrix.fold }} --conus tests/out/dev \
+            --nbm tests/out/nbm --original tests/out/original/fold-${{ matrix.fold }}.json --output tests/out/diag
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nbm-diag-fold-${{ matrix.fold }}
+          path: tests/out/diag
+          retention-days: 90
+  combine:
+    needs: fold
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 shapely==2.2.0 matplotlib==3.11.2
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'nbm-diag-fold-*', merge-multiple: true, path: tests/out/diag }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'nbm-gate-fold-*', merge-multiple: true, path: tests/out/originals, run-id: '${{ env.NBM_RUN }}', github-token: '${{ github.token }}' }
+      - name: Analyse, map, commit
+        env:
+          DEST: research/severe/conus-v1/nbm/diag-mar-apr
+        run: |
+          sha256sum tests/out/originals/*.json
+          PYTHONPATH=tools/severe python3 tools/severe/conus_nbm_diag.py combine --diag tests/out/diag --originals tests/out/originals --output "$DEST"
+          cp tests/out/diag/reproduction-fold-*.json "$DEST/"
+          echo "run_id: $GITHUB_RUN_ID" > "$DEST/run.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$DEST"
+          git commit -m "NBM March-April Florida/Gulf diagnostic (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done
+          exit 1
