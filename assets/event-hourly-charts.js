@@ -201,7 +201,7 @@
     const rain = by.rain || null;
     tiles.push(fin(T.qpf) ? { key: "rain", label: "Rain total", value: f2(T.qpf), pre: lb, unit: "in", unitWord: "inches", sub: [range(T.qpfR, f2) || (T.gap ? "" : "Setup through teardown")], cover: totCov, flag: rain }
       : { key: "rain", label: "Rain total", value: null, sub: ["No data (not zero)"], flag: null });
-    if (T.peakQ) tiles.push({ key: "rate", label: "Heaviest rain rate", value: f2(T.peakQ.v), unit: "in/hr", unitWord: "inches per hour", sub: [`Around ${around(T.peakQ.ms)}`], cover: totCov, flag: rain, at: T.peakQ.ms });
+    if (T.peakQ) tiles.push({ key: "rate", label: "Heaviest rain rate", value: f2(T.peakQ.v), unit: "in/hr", unitWord: "inches per hour", sub: [`Around ${around(T.peakQ.ms)}`], cover: totCov, flag: null, at: T.peakQ.ms }); // a number only: the rain rating is named once, on the Rain total tile
     /* gusts: the highest hourly gust the wind chart shows; a full tile only when the briefing flags wind */
     const g = ok.filter((h) => fin(h.gust)).reduce((a, h) => (!a || h.gust > a.v ? { v: h.gust, ms: h.ms } : a), null), wind = by.wind || null;
     /* "not a concern" only when every event hour has a gust value; otherwise the line says partial coverage */
