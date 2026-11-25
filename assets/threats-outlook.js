@@ -84,6 +84,14 @@
     const dayRange = (a, b) => { const d0 = dayName(a, tz, now), d1 = dayName(b - H, tz, now); return d0 === d1 ? d0 : d0 + (localDate(b - H, tz) <= localDate(a + 864e5, tz) ? " into " : " to ") + d1; };
     const byAmounts = (r) => r && RAINY(r) && r.qpf != null && !measurable(r);
     const at = (t) => fmtDay(t, tz) + " " + fmtH(t, tz), between = (b) => "between " + at(b[0]) + " and " + (fmtDay(b[0], tz) === fmtDay(b[1], tz) ? "" : fmtDay(b[1], tz) + " ") + fmtH(b[1], tz);
+    /* the headline's timing line, in words: "from 3 AM Thursday through 7 PM Friday, with light rain after 7 AM Friday".
+       An edge known only to its 6-hour interval reads "between 6 PM Thursday and 12 AM Friday". */
+    const long = (t) => fmtH(t, tz) + " " + dayName(t, tz, now), sameDay = (a, b) => localDate(a, tz) === localDate(b, tz);
+    const longBetween = (b) => "between " + (sameDay(b[0], b[1]) ? fmtH(b[0], tz) + " and " + long(b[1]) : long(b[0]) + " and " + long(b[1]));
+    const timing = (w, startIn, endIn, lightFrom) => (startIn || endIn
+      ? (startIn ? "starting " + longBetween(startIn) : "from " + long(w.from)) + (endIn ? ", ending " + longBetween(endIn) : (startIn ? " and lasting" : "") + " through " + long(w.to))
+      : sameDay(w.from, w.to) ? "from " + fmtH(w.from, tz) + " through " + long(w.to) : "from " + long(w.from) + " through " + long(w.to))
+      + (lightFrom != null ? ", with light rain after " + long(lightFrom) : "");
     for (const w of rounds) {
       const first = w.rows[0], last = w.rows[w.rows.length - 1];
       const startIn = byAmounts(rowAt.get(w.from - H)) && blk(first)[1] - blk(first)[0] > H ? blk(first) : null;
@@ -96,7 +104,7 @@
       const hits = new Set(); for (let t = sure0; t < sure1; t += H) { const d = new Date(t), dow = new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short" }).format(d), h = +new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hourCycle: "h23" }).format(d); if (/Sat|Sun/.test(dow)) continue; for (const [a, b, n] of COMMUTE) if (h >= a && h < b) hits.add(dow + " " + n); }
       const amt = w.rows.every((r) => r.qpf != null) ? w.rows.reduce((m, r) => m + r.qpf, 0) : null, c = [...hits];
       out.push({ kind: "linger", rank: 2, at: w.from, start: w.from, end: w.to, day: dayName(w.from, tz, now), days: dayRange(w.from, w.to), amountsKnown: amt != null,
-        when: when + (lightFrom != null ? ", light after " + at(lightFrom) : ""), lightFrom,
+        when: when + (lightFrom != null ? ", light after " + at(lightFrom) : ""), lightFrom, timing: timing(w, startIn, endIn, lightFrom),
         short: "Rain likely " + dayRange(w.from, w.to),
         text: "Rain likely for about " + (least < hrs ? least + "–" : "") + hrs + " hours, " + when + (amt != null ? (amt >= 0.05 ? " (about " + amt.toFixed(1) + " in)" : "") : " (rain amounts not in the NWS forecast yet)")
           + (c.length ? "; covers " + (c.length === 1 ? "the " + c[0] : c.length + " commutes: " + c.join(", ")) : "")
@@ -125,7 +133,7 @@
     const cap = (x) => x.charAt(0).toUpperCase() + x.slice(1);
     const words = top.map((item, i) => (i > 0 && item.kind === "linger" && ["rain", "linger"].includes(top[0].kind) ? "More rain " + item.days : item.short));
     const rain = (top.includes(heavy) && related) || top.find((item) => item.kind === "linger");
-    return { text: words.map(cap).join(" · "), timing: rain ? "Rain likely " + rain.when : "" };
+    return { text: words.map(cap).join(" · "), timing: rain ? "Rain likely " + rain.timing : "" };
   }
   const dayName = (ms, tz, now) => localDate(ms, tz) === localDate(now, tz) ? "today" : new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "long" }).format(new Date(ms)); // weekdays: planners count by them
 
