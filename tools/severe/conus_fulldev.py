@@ -324,6 +324,122 @@ def verify(a):
     print("\n".join(L))
 
 
+SAMPLING_ARMS = ("cohort96_all_rows", "cohort96_sampled", "all728_sampled")
+SAMPLING_PAIRS = (("cohort96_sampled", "cohort96_all_rows", "sampling effect at 96 dates"),
+                  ("all728_sampled", "cohort96_sampled", "data effect with sampling held fixed (the development gate)"),
+                  ("all728_sampled", "cohort96_all_rows", "the comparison 2021 actually made"))
+
+
+def sampling_fold(a):
+    """Sampling check (research/severe/conus-v1/sampling-check-rule.md): three arms per held-out fold, same
+    recipe, folds, scoring rows and calibration step. Only the training rows differ."""
+    fitted, sha = check_frozen(a.models, a.manifest)
+    keep, scales, coords = fitted["keep"], fitted["scales"][DAY], fitted["coords"]
+    files = case_files(a.conus)
+    cases = sorted(files)
+    if len(cases) < MIN_DATES:
+        raise ValueError(f"Expected at least {MIN_DATES} development dates, found {len(cases)}")
+    cohort = {c for c in calendar_cases(json.loads(Path(a.cohort).read_text())) if c.startswith(("2022", "2023"))}
+    if not cohort <= set(cases) or len(cohort) != 96:
+        raise ValueError("All 96 cohort development dates must be present")
+    with np.load(files[cases[0]][0], allow_pickle=False) as d:
+        names = d["feature_names"].tolist()
+    reg = region_index(None, regions(coords), keep)
+    test_cases = [c for c in cases if S.fold_of(c) == a.fold]
+    train_cases = [c for c in cases if S.fold_of(c) != a.fold]
+    xs, ys, ws, gs, inb = [], [], [], [], []
+    fx, fy, fg = [], [], []
+    for c in train_cases:
+        x, y, _ = load_case(*files[c], keep, scales, names, coords)
+        rng = np.random.default_rng(int(c.replace("-", "")))
+        m = (y > 0) | (rng.random(len(y)) < NEG_KEEP)
+        xs.append(x[m]); ys.append(y[m]); ws.append(np.where(y[m] > 0, 1.0, 1.0 / NEG_KEEP))
+        gs.append(np.full(m.sum(), S.fold_of(c) % 3)); inb.append(np.full(m.sum(), c in cohort))
+        if c in cohort:
+            fx.append(x); fy.append(y); fg.append(np.full(len(y), S.fold_of(c) % 3))
+    x, y, w, g, b = (np.concatenate(v) for v in (xs, ys, ws, gs, inb))
+    del xs
+    models = {"all728_sampled": fit(x, y, w, g)}
+    print(f"fold {a.fold}: all728_sampled fitted ({len(y)} rows)", flush=True)
+    models["cohort96_sampled"] = fit(x[b], y[b], w[b], g[b])
+    print(f"fold {a.fold}: cohort96_sampled fitted ({int(b.sum())} rows)", flush=True)
+    del x
+    X96, Y96, G96 = np.concatenate(fx), np.concatenate(fy), np.concatenate(fg)
+    del fx
+    models["cohort96_all_rows"] = fit(X96, Y96, np.ones(len(Y96)), G96)
+    print(f"fold {a.fold}: cohort96_all_rows fitted ({len(Y96)} rows)", flush=True)
+    del X96
+    sums = {k: [] for k in models}
+    for c in test_cases:
+        xt, yt, pts = load_case(*files[c], keep, scales, names, coords)
+        rt = reg[pts]
+        for k, (tree, cal) in models.items():
+            p = expit(cal[0] + cal[1] * tree.decision_function(xt))
+            for r in range(len(REGIONS)):
+                m = rt == r
+                sums[k].append([c, r, int(m.sum()), float(yt[m].sum()), float(((p[m] - yt[m]) ** 2).sum()), float(p[m].sum())])
+    out = {"fold": a.fold, "frozen_models_sha256": sha, "train_dates": len(train_cases), "test_dates": test_cases,
+           "neg_keep": NEG_KEEP, "regions": list(REGIONS), "sums": sums}
+    a.output.mkdir(parents=True, exist_ok=True)
+    (a.output / f"fold-{a.fold}.json").write_text(json.dumps(out) + "\n")
+
+
+def sampling_combine(a):
+    parts = [json.loads(f.read_text()) for f in sorted(a.input.glob("fold-*.json"))]
+    if sorted(p["fold"] for p in parts) != list(range(S.FOLDS)):
+        raise ValueError("Need all 6 folds")
+    rows = {k: [] for k in SAMPLING_ARMS}
+    for p in parts:
+        for k in SAMPLING_ARMS:
+            rows[k] += p["sums"][k]
+    dates = sorted({r[0] for r in rows[SAMPLING_ARMS[0]]})
+    di = {d: i for i, d in enumerate(dates)}
+    A = {k: np.zeros((len(dates), len(REGIONS), 4)) for k in SAMPLING_ARMS}
+    for k in SAMPLING_ARMS:
+        for c, r, n, sy, sse, sp in rows[k]:
+            A[k][di[c], r] = (n, sy, sse, sp)
+    clim = float(A[SAMPLING_ARMS[0]][..., 1].sum() / A[SAMPLING_ARMS[0]][..., 0].sum())
+
+    def bss(v):
+        n, sy, sse = v[..., 0].sum(), v[..., 1].sum(), v[..., 2].sum()
+        return float(1 - sse / (sy - 2 * clim * sy + n * clim * clim))
+
+    rng = np.random.default_rng(20261125)
+    idx = [rng.integers(0, len(dates), len(dates)) for _ in range(2000)]
+
+    def diff(m1, m2, sl):
+        a1 = A[m1][:, sl, 2].reshape(len(dates), -1).sum(1)
+        a2 = A[m2][:, sl, 2].reshape(len(dates), -1).sum(1)
+        n = A[m1][:, sl, 0].reshape(len(dates), -1).sum(1)
+        bs = [(a1[j].sum() - a2[j].sum()) / n[j].sum() for j in idx]
+        return [float((a1.sum() - a2.sum()) / n.sum()), float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))]
+
+    res = {"dates": len(dates), "development_climatology": clim,
+           "bss": {k: {"national": bss(A[k])} | {REGIONS[r]: bss(A[k][:, r]) for r in range(len(REGIONS))} for k in SAMPLING_ARMS},
+           "calibration_ratio": {k: float(A[k][..., 3].sum() / A[k][..., 1].sum()) for k in SAMPLING_ARMS},
+           "pairs": {}}
+    for m1, m2, label in SAMPLING_PAIRS:
+        res["pairs"][f"{m1} - {m2}"] = {"meaning": label, "national": diff(m1, m2, slice(None))}
+        res["pairs"][f"{m1} - {m2}"].update({REGIONS[r]: diff(m1, m2, slice(r, r + 1)) for r in range(len(REGIONS))})
+    s_nat = res["pairs"]["cohort96_sampled - cohort96_all_rows"]["national"]
+    res["reading"] = ("sampling_hurts" if s_nat[1] > 0 else "sampling_helps" if s_nat[2] < 0 else "sampling_no_clear_effect")
+    res["protected_2025_outcomes_accessed"] = False
+    res["verification_2021_loaded"] = False
+    a.output.mkdir(parents=True, exist_ok=True)
+    (a.output / "sampling.json").write_text(json.dumps(res, indent=1) + "\n")
+    L = ["# Sampling check: Day 2 wind, held-out 2022-23 months", "",
+         f"{len(dates)} held-out dates (6 month-grouped folds); BSS vs development climatology {clim:.5f}. Reading: **{res['reading']}**.", "",
+         "| Arm | National | " + " | ".join(REGIONS) + " | mean p / obs |", "|---|---|" + "---|" * len(REGIONS) + "---|"]
+    for k in SAMPLING_ARMS:
+        L.append(f"| {k} | {res['bss'][k]['national']:.3f} | " + " | ".join(f"{res['bss'][k][r]:.3f}" for r in REGIONS)
+                 + f" | {res['calibration_ratio'][k]:.3f} |")
+    for name, v in res["pairs"].items():
+        L += ["", f"**{name}** ({v['meaning']}), Brier difference, 95% whole-date interval:", ""]
+        L += [f"- {r}: {v[r][0]:+.6f} ({v[r][1]:+.6f} to {v[r][2]:+.6f})" for r in ["national", *REGIONS]]
+    (a.output / "sampling.md").write_text("\n".join(L) + "\n")
+    print("\n".join(L))
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -337,6 +453,16 @@ def main():
     c = sub.add_parser("combine")
     c.add_argument("--input", type=Path, required=True)
     c.add_argument("--output", type=Path, required=True)
+    sf = sub.add_parser("sampling-fold")
+    sf.add_argument("--fold", type=int, required=True)
+    sf.add_argument("--conus", type=Path, required=True)
+    sf.add_argument("--output", type=Path, required=True)
+    sf.add_argument("--cohort", type=Path, default=Path("research/severe/cohort-v07.json"))
+    sf.add_argument("--models", type=Path, default=Path("research/severe/conus-v1/frozen/models.pkl"))
+    sf.add_argument("--manifest", type=Path, default=Path("research/severe/conus-v1/frozen/manifest.json"))
+    sc = sub.add_parser("sampling-combine")
+    sc.add_argument("--input", type=Path, required=True)
+    sc.add_argument("--output", type=Path, required=True)
     z = sub.add_parser("freeze")
     z.add_argument("--conus", type=Path, required=True)
     z.add_argument("--output", type=Path, required=True)
@@ -352,7 +478,8 @@ def main():
         q.add_argument("--models", type=Path, default=Path("research/severe/conus-v1/frozen/models.pkl"))
         q.add_argument("--manifest", type=Path, default=Path("research/severe/conus-v1/frozen/manifest.json"))
     a = p.parse_args()
-    {"fold": fold, "combine": combine, "freeze": freeze, "verify": verify}[a.cmd](a)
+    {"fold": fold, "combine": combine, "freeze": freeze, "verify": verify,
+     "sampling-fold": sampling_fold, "sampling-combine": sampling_combine}[a.cmd](a)
 
 
 if __name__ == "__main__":
