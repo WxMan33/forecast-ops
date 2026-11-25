@@ -110,7 +110,7 @@
     if (top && top.key === 'rain') { const h = heavier(o); if (h) return h; }
     if (top && fin(top.from)) return `the ${top.noun} arriving earlier or later than ${clock(top.from, tz)}.`;
     if (top) return `whether the ${top.noun}${during} firms up in the next update.`;
-    if (G.limited) return G.incomplete ? 'the missing hours filling in.' : 'the missing guidance returning.';
+    if (G.limited) return G.incomplete ? 'the gap filling in.' : 'the missing guidance returning.';
     return 'any new rain, wind or thunder signal.';
   }
 

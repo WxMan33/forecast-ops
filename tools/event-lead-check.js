@@ -92,7 +92,7 @@ const CASES = [
     }
     if (name === 'missing') {
       const INC = 'Forecast guidance is incomplete for the 9–11 AM race window', RINC = 'Rain guidance is incomplete for the 9–11 AM race window';
-      check(s.kind === 'missing' && s.decision === INC + '.' && /Only 3 of 9 model sources reach these hours\./.test(s.when) && s.watch === 'Watch for: the missing hours filling in.', `${L} the lead says guidance is incomplete for the race window and why: ${s.decision} ${s.when.replace(/\s+/g, ' ')}`);
+      check(s.kind === 'missing' && s.decision === INC + '.' && /Only 3 of 9 model sources reach these hours\./.test(s.when) && s.watch === 'Watch for: the gap filling in.', `${L} the lead says guidance is incomplete for the race window and why: ${s.decision} ${s.when.replace(/\s+/g, ' ')}`);
       /* nowhere on the page reads as "no rain concern" for the race window */
       const rows = await p.evaluate(() => ({ rain: [...document.querySelectorAll('#keys dd')][0].innerText, glance: (document.querySelector('#evDash [data-none]') || {}).innerText || '', event: (document.querySelector('#phases [data-phase=event]') || {}).textContent || '' }));
       check(rows.rain.includes(RINC) && !/no rain concern/i.test(rows.rain), `${L} the Rain chance row says the race window is incomplete, not "no rain concern": ${rows.rain.replace(/\s+/g, ' ')}`);
@@ -135,7 +135,14 @@ const CASES = [
       const r = els.map((e) => e.getBoundingClientRect()), dd = [...document.querySelectorAll('#keys dd')].pop();
       return { n: els.length, rows: new Set(r.map((x) => Math.round(x.top))).size, minH: Math.min(...r.map((x) => x.height)), minW: Math.min(...r.map((x) => x.width)), names: els.map((e) => e.getAttribute('aria-label') || e.title || e.innerText.trim()), next: dd ? dd.getBoundingClientRect().bottom : 9999 }; });
     check(bar.n === 5 && bar.rows === 1 && bar.minH >= 44 && bar.minW >= 44 && bar.names.every(Boolean), `${name} 375×667: Print, Feedback, refresh, Dark and Met on one row, each a ≥44 px target with a name (${JSON.stringify(bar)})`);
-    if (name === 'replay' || name === 'quiet') check(bar.next <= 667, `${name} 375×667: Next check is on the first screen (ends ${Math.round(bar.next)} px)`);
+    if (name === 'replay' || name === 'quiet' || name === 'missing') check(bar.next <= 667, `${name} 375×667: Next check is on the first screen (ends ${Math.round(bar.next)} px)`);
+    if (name === 'warning') { const w = await p.evaluate(() => { const u = document.getElementById('leadUrgent'), r = u.getBoundingClientRect(), a = u.querySelector('a[href*="weather.gov"]'), ar = a && a.getBoundingClientRect();
+        /* nothing weather-related above it: the concern headline, the lead line, callouts, official block all come after */
+        const after = ['decision', 'leadBody', 'keys', 'alerts', 'evDash'].every((id) => !!(u.compareDocumentPosition(document.getElementById(id)) & Node.DOCUMENT_POSITION_FOLLOWING));
+        return { text: u.innerText.replace(/\s+/g, ' '), bottom: r.bottom, link: !!a, linkBottom: ar ? ar.bottom : 9999, after }; });
+      check(w.after && /Flash Flood Warning in effect/.test(w.text) && /until 1 PM Thu/.test(w.text) && w.link && w.bottom <= 667 && w.linkBottom <= 667, `${name} 375×667: the official warning is the first weather item, with its expiry and NWS link on the first screen (${w.text}; ends ${Math.round(w.bottom)} px)`); }
+    if (name === 'missing') { const m = await p.evaluate(() => ({ dec: document.getElementById('decision').innerText, rows: [...document.querySelectorAll('#keys dd')].slice(0, 3).map((d) => d.innerText.replace(/\s+/g, ' ')) }));
+      check(/9–11 AM/.test(m.dec) && /in hours with guidance/.test(m.rows[0]) && /in hours with guidance/.test(m.rows[2]) && !/\d/.test(m.rows[1].replace(/9–11 AM/g, '')), `${name} 375×667: the missing hours are named (${m.dec}) and every number shown for other hours says "in hours with guidance" (${m.rows.join(' | ')})`); }
     check(s.whenBottom <= s.vh && s.watchBottom <= s.vh && (name !== 'warning' || (s.urgentBottom > 0 && s.urgentBottom <= s.vh)) && !s.hscroll && !errors.length, `${name} 375×667: lead and "Watch for"${name === 'warning' ? ' and the urgent warning' : ''} on the first screen (watch ends ${Math.round(s.watchBottom)} px${name === 'warning' ? `, warning ends ${Math.round(s.urgentBottom)} px` : ''})`);
     await p.screenshot({ path: path.join(out, `${name}-phone375-light.png`) }); await ctx.close();
   }
