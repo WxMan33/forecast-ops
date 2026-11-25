@@ -311,3 +311,16 @@
 .tx-embed .maplibregl-ctrl-top-right { top: 40px; }
 
 .tx-lyrauto { margin: 0 0 8px; font-size: 12px; line-height: 1.4; color: var(--muted, #9aa4b2); }
+
+/* rainfall overlays under Flooding */
+.tx-rain { margin: 2px 0 6px 26px; display: grid; gap: 4px; }
+.tx-rainrow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.tx-rainrow .tx-lt { flex: 1 1 200px; margin: 0; }
+.tx-rainrow select { flex: 0 0 auto; max-width: 100%; font-size: 13px; padding: 4px 6px; }
+.tx-rain.off { opacity: .55; }
+.tx-rainnote { margin: 0; }
+.lg-rain { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 2px 8px; margin: 4px 0; }
+.lg-rain span { display: flex; align-items: center; gap: 4px; font-size: 11px; white-space: nowrap; }
+.lg-rain img { width: 12px; height: 12px; flex: none; border-radius: 2px; }
+.px-rain { margin: 6px 0; }
+.px-rain .px-rv { font-weight: 700; }

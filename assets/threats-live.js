@@ -219,6 +219,20 @@
     })().finally(() => { outlookCache.pending = null; });
     return outlookCache.pending;
   }
+  /* rainfall: MRMS window ends, WPC issuance and period, the venue's values, and each legend; each answer kept a short while
+     (catalog 5 min, WPC times 10 min, point values 10 min, legends for the session). A failure is not cached. */
+  const rainMemo = new Map();
+  function rainGet(key, ttl, fn) {
+    const c = rainMemo.get(key); if (c && (c.pending || Date.now() - c.at < ttl)) return c.pending || Promise.resolve(c.value);
+    const pending = fn().then((value) => { rainMemo.set(key, { at: Date.now(), value }); return value; }, (e) => { rainMemo.delete(key); throw e; });
+    rainMemo.set(key, { pending }); return pending;
+  }
+  const rainObsMeta = () => rainGet("mrms-cat", 5 * 60e3, () => get(F.MRMS_CATALOG_URL, "json").then(F.parseMrmsCatalog));
+  const rainObsAt = (win, lat, lon) => rainGet("mrms-pt|" + win + "|" + (+lat).toFixed(3) + "," + (+lon).toFixed(3), 10 * 60e3, () => get(F.MRMS_POINT_URL(win, lat, lon), "json").then(F.parseMrmsPoint));
+  const rainObsLegend = (win) => rainGet("mrms-leg|" + win, 864e5, () => get(F.MRMS_LEGEND_URL(win), "json").then((j) => F.parseLegend(j)));
+  const rainFcstMeta = (per) => rainGet("wpc-meta|" + per, 10 * 60e3, () => get(F.WPC_META_URL(per), "json").then(F.parseWpcMeta));
+  const rainFcstAt = (per, lat, lon) => rainGet("wpc-pt|" + per + "|" + (+lat).toFixed(3) + "," + (+lon).toFixed(3), 10 * 60e3, () => get(F.WPC_POINT_URL(per, lat, lon), "json").then(F.parseWpcPoint));
+  const rainFcstLegend = (per) => rainGet("wpc-leg|" + per, 864e5, () => get(F.WPC_LEGEND_URL, "json").then((j) => F.parseLegend(j, F.WPC_PERIODS[per].layer)));
   /* the newest CONUS radar image time (NOAA MRMS via the NOAA map service) */
   const radarTime = () => get(F.RADAR_TIME_URL, "json").then(F.parseRadarTime);
   let mdPageBlocked = false;
@@ -718,5 +732,5 @@
       "wpc-ero": { ...worst(["ero1", "ero2", "ero3"]), reachEnd: reach(["ero1", "ero2", "ero3"]), reach: ["ero1", "ero2", "ero3"].map((k, i) => d.sources[k] && d.sources[k].issued ? "Day " + (i + 1) + " issued " + window.ThreatsCore.fmtZ(d.sources[k].issued) : "").filter(Boolean).join(", ") } };
   }
 
-  window.ThreatsLive = { archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, setFeeds, setZoneFamilies, setZoneArea, pointTz, venueForecast, outlookFor, gaugesIn, radarTime, RADAR_TILE_URL: F.RADAR_TILE_URL, previousFor: (id) => fetchPrevious(id).then((c) => { if (c) emit(); return c; }), mapFeeds: () => (mapFeeds ? [...mapFeeds] : null), monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
+  window.ThreatsLive = { rainObsMeta, rainObsAt, rainObsLegend, rainFcstMeta, rainFcstAt, rainFcstLegend, MRMS_TILE_URL: F.MRMS_TILE_URL, WPC_TILE_URL: F.WPC_TILE_URL, MRMS_WINDOWS: F.MRMS_WINDOWS, WPC_PERIODS: F.WPC_PERIODS, archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, setFeeds, setZoneFamilies, setZoneArea, pointTz, venueForecast, outlookFor, gaugesIn, radarTime, RADAR_TILE_URL: F.RADAR_TILE_URL, previousFor: (id) => fetchPrevious(id).then((c) => { if (c) emit(); return c; }), mapFeeds: () => (mapFeeds ? [...mapFeeds] : null), monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
 })();
