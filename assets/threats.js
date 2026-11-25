@@ -1190,7 +1190,9 @@
       body.innerHTML = outlookPanel(); document.querySelectorAll("[data-scope]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scope === S.scope)));
       $("scopeVenue").innerHTML = `Venue<span class="tx-sbv"> · ${esc(venue.name)}</span>`;
       const r = vo.data && OL ? OL.build({ ...vo.data, now: Date.now(), tz: tz(), venue, days: 7 }).headline : null;
-      $("txPeek1").textContent = r ? (r.level ? r.text : "Next 7 days: " + r.text.charAt(0).toLowerCase() + r.text.slice(1)) : "Next 7 days at " + venue.name; $("txPeek2").textContent = r && r.level ? r.when + " · " + r.source : vo.state === "loading" ? "Loading…" : "Tap for the day-by-day outlook";
+      const SA = siteAssess(), live1 = SA && SA.at.filter((x) => !(Date.parse(x.p.issued) > Date.now())).sort((a, b) => (b.p.kind === "warning") - (a.p.kind === "warning"))[0];
+      if (live1) { const p1 = live1.p; $("txPeek1").textContent = (S.testReplay ? "TEST REPLAY · " : "") + (p1.title || p1.event) + (p1.impact ? " · " + p1.impact.tag : ""); $("txPeek2").textContent = "Covers this site · " + (p1.openEnded ? "until further notice" : "until " + t(p1.expires, true)); }
+      else { $("txPeek1").textContent = r ? (r.level ? r.text : "Next 7 days: " + r.text.charAt(0).toLowerCase() + r.text.slice(1)) : "Next 7 days at " + venue.name; $("txPeek2").textContent = r && r.level ? r.when + " · " + r.source : vo.state === "loading" ? "Loading…" : "Tap for the day-by-day outlook"; }
       $("txPeek3").textContent = ""; $("txPeek3").hidden = true; $("txPeek").style.setProperty("--peek-c", r && r.level ? LEVEL_COLOR[r.level] : "transparent"); return;
     }
     if (!anyLayer() && !p) { // nothing selected: the basemap and venue only, and nothing downloaded
@@ -1565,9 +1567,12 @@
         + `<div class="px-alert-h"><b>${esc(p.title || p.event)}</b>${imp ? `<span class="px-impact">${esc(imp.tag)}</span>` : ""}</div>`
         + `<div class="px-alert-s">${esc(where)} · ${esc(when)}${p.office ? " · " + esc(p.office) : ""}</div>`
         + `<div class="px-alert-a"><button type="button" class="bx-link tx-linkbtn" data-strip-sel="${esc(p.id)}">Show on map</button> · <a href="${esc((p.source && p.source.url) || "https://alerts.weather.gov/")}" target="_blank" rel="noopener">NWS bulletin</a></div></div>`; };
-    let h = `<section class="px-strip" aria-label="Active alerts for this site">`;
-    if (A.at.length) h += `<div class="px-h px-h-alert"><span>In effect at this site</span><span>${A.at.length}</span></div>` + A.at.map((x) => item(x, x.by === "zone" ? "Covers the site (its NWS zone)" : x.by === "nws-point" ? "Covers the site (NWS point check)" : "Covers the site")).join("");
-    else h += `<div class="px-alert-none">${A.checked ? (A.pointFailed ? "No NWS alert found at this site in the live list; <b>NWS's point check didn't answer</b>, so this isn't fully confirmed." : "No NWS warning, watch or advisory in effect at this site.") : "Checking NWS alerts at this site…"}</div>`;
+    const covers = (x) => x.by === "zone" ? "Covers this site (its NWS zone)" : x.by === "nws-point" ? "Covers this site (NWS point check)" : "Covers this site";
+    const started = (x) => !(Date.parse(x.p.issued) > Date.now()), now = A.at.filter(started), later = A.at.filter((x) => !started(x));
+    let h = `<section class="px-sitealerts" aria-label="Alerts for this site">${S.testReplay ? `<div class="px-testreplay" role="note">TEST REPLAY · synthetic alert injected by an automated check · not real</div>` : ""}`;
+    if (now.length) h += `<div class="px-h px-h-alert"><span>In effect at this site</span><span>${now.length}</span></div>` + now.map((x) => item(x, covers(x))).join("");
+    if (!now.length) h += `<div class="px-alert-none">${A.checked ? (A.pointFailed ? "No NWS alert found at this site in the live list; <b>NWS's point check didn't answer</b>, so this isn't fully confirmed." : (later.length ? "No NWS alert in effect at this site now." : "No NWS warning, watch or advisory in effect at this site.")) : "Checking NWS alerts at this site…"}</div>`;
+    if (later.length) h += `<div class="px-h"><span>Upcoming alerts at this site</span><span>${later.length}</span></div>` + later.map((x) => item(x, covers(x))).join("");
     if (A.near.length) h += `<div class="px-h"><span>Nearby · outside the alert area</span><span>${A.near.length}</span></div>` + A.near.map((x) => item(x, Math.max(1, Math.round(T.miles(x.km))) + " mi " + x.dir + " of the site")).join("");
     if (A.unknown.length) h += `<div class="px-h"><span>Coverage unknown</span><span>${A.unknown.length}</span></div><p class="lg-note">Its area hasn't loaded yet, so it can't be confirmed or ruled out for the site.</p>` + A.unknown.map((x) => item(x, "Coverage not confirmed")).join("");
     return h + `</section>`;
@@ -1760,12 +1765,13 @@
   /* top bar: live preview vs fictional demo, and the matching venue choices */
   function renderBar() {
     const live = isLive(), arc = isArchive();
-    $("txBadge").textContent = live ? "LIVE PREVIEW" : arc ? "ARCHIVED SAMPLE" : "DEMO DATA"; $("txBadge").classList.toggle("live", live); $("txBadge").classList.toggle("arc", arc);
+    $("txBadge").textContent = live && S.testReplay ? "TEST REPLAY" : live ? "LIVE PREVIEW" : arc ? "ARCHIVED SAMPLE" : "DEMO DATA"; $("txBadge").classList.toggle("test", !!(live && S.testReplay)); $("txBadge").classList.toggle("live", live); $("txBadge").classList.toggle("arc", arc);
     $("txDemo").classList.toggle("live", live); $("txDemo").classList.toggle("arc", arc);
     // the icing overlay's saved records are official NOAA guidance even on a demo page: say so in the banner
     const saved = [S.gtg.on && S.gtg.src === "fixture" ? "turbulence" : null, S.ifi.on && S.ifi.src === "fixture" ? "icing" : null].filter(Boolean);
     const ifiNote = saved.length ? " The " + saved.join(" and ") + " overlay" + (saved.length > 1 ? "s are" : " is") + " different: saved official NOAA guidance (" + saved.map((x) => (x === "turbulence" ? "GTG" : "IFI")).join(", ") + "; the cycle is on the status line), not demo data." : "";
-    $("txBarText").textContent = (live ? "Branch preview of official NWS and SPC feeds. Not for operational decisions." : arc ? "Real official messages replayed through the live adapter, at their own time. Not a live observation." : "Fictional products for layout review. Nothing here was issued by NWS or SPC.") + ifiNote;
+    { const o = $("demoScenario").querySelector('option[value="live"]'); if (o) o.textContent = S.testReplay ? "TEST REPLAY: live feeds + a synthetic alert" : "Live official feeds"; }
+    $("txBarText").textContent = (live && S.testReplay ? "TEST REPLAY: live official feeds with a synthetic alert injected by an automated check (" + S.testReplay + "). Not real; not for decisions." : live ? "Branch preview of official NWS and SPC feeds. Not for operational decisions." : arc ? "Real official messages replayed through the live adapter, at their own time. Not a live observation." : "Fictional products for layout review. Nothing here was issued by NWS or SPC.") + ifiNote;
     $("stepField").hidden = !arc || !(data && data.archive && data.archive.messages.length);
     if (arc && data && data.archive) { $("demoStep").innerHTML = data.archive.messages.map((m, i) => `<option value="${i + 1}">Msg ${i + 1}/${data.archive.steps} · ${esc(m.action || "")} · ${esc(T.fmtTime(m.sent, venue.tz))}</option>`).join(""); $("demoStep").value = String(data.archive.step); }
     const opts = arc ? ARCHIVE_VENUES[S.scenario].map((v) => ({ id: v.id, label: v.label })) : live ? [...(S.entryVenue ? [{ id: "entry", label: "Linked venue: " + S.entryVenue.name }] : []), ...liveVenues()] : [{ id: "inside", label: "Inside the warning" }, { id: "edge", label: "Near the warning edge" }, { id: "outside", label: "Outside the warning" }];
@@ -1773,7 +1779,7 @@
     $("demoVenue").value = arc ? (S.archiveVenue || (venue && ARCHIVE_VENUES[S.scenario].some((x) => x.id === venue.id) ? venue.id : ARCHIVE_VENUES[S.scenario][0].id)) : live ? (S.entryVenue ? "entry" : S.liveVenue) : S.venueKey;
     $("demoScenario").value = S.scenario;
     const sub = document.querySelector(".statusbar .page-sub"); if (sub) sub.textContent = live ? "Preview · weather threats · live official feeds" : arc ? "Preview · weather threats · archived official sample" : "Preview · weather threats · demo data";
-    O.setChip(live ? "LIVE PREVIEW" : arc ? "ARCHIVED SAMPLE" : "DEMO DATA", live ? "live" : "warn", live ? "Official feeds, branch preview" : "Fictional products for layout review");
+    O.setChip(live && S.testReplay ? "TEST REPLAY" : live ? "LIVE PREVIEW" : arc ? "ARCHIVED SAMPLE" : "DEMO DATA", live ? "live" : "warn", live ? "Official feeds, branch preview" : "Fictional products for layout review");
   }
   $("demoScenario").addEventListener("change", () => {
     S.scenario = $("demoScenario").value; S.sel = null; S.point = null; S.step = null; S.archiveVenue = null;
@@ -1866,6 +1872,7 @@
     if (q.get("rx") === "1") S.rx = true;
     if (q.get("ctn") === "1") S.ctn = true;
     if (q.get("radar") === "1") S.radar = true;
+    if (/^[\w .-]{1,60}$/.test(q.get("testreplay") || "")) S.testReplay = q.get("testreplay"); // an automated check injecting synthetic data says so on screen
     { const m = /^(obs)(1|24|72)?$|^(fcst)(auto|1-3|1|2|3)?$/.exec(q.get("rain") || ""); if (m) { if (m[1]) { S.rain.obs = true; if (m[2]) S.rain.win = +m[2]; } else { S.rain.fcst = true; if (m[4]) S.rain.per = m[4]; } } }
     try { if (localStorage.getItem("threats_pin") === "0") S.pin = false; } catch (e) { /* no storage: marker shown */ }
     try { if (localStorage.getItem("threats_counties") === "0") S.counties = false; } catch (e) { /* no storage: shown */ }

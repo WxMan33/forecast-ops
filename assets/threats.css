@@ -325,13 +325,19 @@
 .px-rain { margin: 6px 0; }
 .px-rain .px-rv { font-weight: 700; }
 
-/* active alerts for the site, above the 7 days */
-.px-strip { margin: 8px 0 10px; display: grid; gap: 6px; }
+/* alerts for the site, above the 7 days (one column; nothing beside the cards) */
+.px-sitealerts { margin: 8px 0 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.px-sitealerts > * { min-width: 0; max-width: 100%; }
+.px-sitealerts .px-h { margin: 6px 0 0; }
+.px-testreplay { font-size: 12px; font-weight: 800; letter-spacing: .05em; padding: 6px 8px; border-radius: 6px; background: #ffd400; color: #111; }
+.tx-demo-badge.test { background: #ffd400; color: #111; }
 .px-h-alert { color: var(--text, #e8edf3); }
 .px-alert { border: 1px solid var(--line, #2a3442); border-left: 5px solid var(--ol-c, #e0a800); border-radius: 8px; padding: 8px 10px; background: color-mix(in srgb, var(--ol-c, #e0a800) 9%, transparent); }
 .px-alert-x { border-color: #ff2d55; border-left-width: 7px; background: color-mix(in srgb, #ff2d55 16%, transparent); }
 .px-alert-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
-.px-alert-h b { font-size: 15px; }
+.px-alert-h b { font-size: 15px; overflow-wrap: anywhere; }
+.px-alert, .px-alert-s, .px-alert-a { overflow-wrap: anywhere; }
+.px-alert-a a, .px-alert-a .tx-linkbtn { display: inline-block; padding: 7px 0; min-height: 24px; }
 .px-impact { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; padding: 1px 6px; border-radius: 4px; background: #ff2d55; color: #fff; }
 .px-alert-s { font-size: 12.5px; opacity: .9; margin-top: 2px; }
 .px-alert-a { font-size: 12.5px; margin-top: 4px; }

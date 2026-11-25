@@ -27,7 +27,7 @@ async function open(b, phone, query, setup) {
 }
 const settle = async (p, ms = 3000) => { await p.waitForFunction(() => window.__threats.outlook && ["ok", "failed"].includes(window.__threats.outlook.state), null, { timeout: 120000 }).catch(() => {}); await p.waitForTimeout(ms); };
 const st = (p) => p.evaluate(() => { const T = window.__threats, S = T.S, m = T.map, vis = (id) => !!(m.getLayer(id) && m.getLayoutProperty(id, "visibility") === "visible");
-  const strip = document.querySelector(".px-strip"), sec = (re) => [...document.querySelectorAll(".px-strip .px-h")].find((h) => re.test(h.textContent));
+  const strip = document.querySelector(".px-sitealerts"), sec = (re) => [...document.querySelectorAll(".px-sitealerts .px-h")].find((h) => re.test(h.textContent));
   const labels = (m.getSource("labels") && m.getSource("labels")._data && m.getSource("labels")._data.features) || [];
   return { alertsState: (T.data.sources.alerts || {}).state, auto: S.auto, scope: S.scope, view: S.view, need: S.autoNeed, rain: S.rain, layers: Object.keys(S.layers).filter((k) => S.layers[k]), radar: S.radar, zoom: +m.getZoom().toFixed(2), venue: T.venue && { name: T.venue.name, lat: T.venue.lat, lon: T.venue.lon },
     sum: (document.getElementById("txLayersSum") || {}).textContent || "", valid: (document.getElementById("txValid") || {}).textContent || "", strip: strip ? strip.innerText.replace(/\s+/g, " ") : "",
@@ -112,9 +112,9 @@ const dropFamily = (re) => rewriteAlerts((j) => { const n0 = j.features.length; 
     const feat = { ...f0, id: P["@id"], properties: P };
     const ring = f0.geometry.coordinates[0], cx = ring.reduce((a, c) => a + c[0], 0) / ring.length, cy = ring.reduce((a, c) => a + c[1], 0) / ring.length;
     for (const phone of [false, true]) { const d = phone ? "phone" : "desktop";
-      const t0 = { ...tally }; const v = await open(b, phone, site("Tornado Emergency replay site", cy, cx), rewriteAlerts((j) => { j.features.unshift(feat); tally.added++; }));
+      const t0 = { ...tally }; const v = await open(b, phone, site("Tornado Emergency replay site", cy, cx) + "&testreplay=auto-check", rewriteAlerts((j) => { j.features.unshift(feat); tally.added++; }));
       await settle(v.p, 4000); const s = await st(v.p); await shot(v.p, `after-critical-replay-${d}`);
-      const first = await v.p.evaluate(() => { const a = document.querySelector(".px-strip .px-alert"); return a ? a.innerText.replace(/\s+/g, " ") : ""; });
+      const first = await v.p.evaluate(() => { const a = document.querySelector(".px-sitealerts .px-alert"); return a ? a.innerText.replace(/\s+/g, " ") : ""; });
       check(`(${d}) CRITICAL-ALERT REPLAY (synthetic: saved KMTR Tornado Warning moved to now, catastrophic tag; added to ${tally.added - t0.added} answers): first in the strip '${first.slice(0, 160)}'; urgent labels ${s.labelsUrgent}; rewrite failures ${tally.failed - t0.failed}`,
         tally.added > t0.added && tally.failed === t0.failed && s.alertsState === "ok" && s.atSite && /\(its NWS zone\)|Covers the site ·/.test(first) && /Tornado Warning/.test(first) && /Tornado Emergency/i.test(first) && /until /.test(first) && /NWS bulletin/.test(first) && s.need.severe && s.labelsUrgent >= 1 && !v.errs.length && !s.errors.length, { s, first, errs: v.errs });
       await v.ctx.close(); } }
