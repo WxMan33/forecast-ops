@@ -37,11 +37,19 @@
     const T = (r) => Date.parse(r.t);
     // heavy rain: the wettest rolling 24 hours of forecast amounts
     const q = rows.map((r) => (r.qpf == null ? null : r.qpf)), have = q.some((v) => v != null);
-    if (have) { let best = null; for (let i = 0; i < rows.length; i++) { if (q[i] == null) continue; let sum = 0, n = 0; for (let j = i; j < Math.min(rows.length, i + 24) && q[j] != null; j++) { sum += q[j]; n++; } if (n >= 6 && (!best || sum > best.sum)) best = { i, sum, n }; }
+    /* NWS gives rain amounts per interval (usually 6 hours) and parseGrid spreads each evenly over its hours, so a window or a
+       peak may only start and end on interval edges: anything finer would be timing the forecast doesn't have. Rows without
+       interval edges (hourly amounts) are their own 1-hour intervals. */
+    const blk = (r) => (r.qpfFrom ? [Date.parse(r.qpfFrom), Date.parse(r.qpfTo)] : [T(r), T(r) + H]);
+    if (have) { let best = null; for (let i = 0; i < rows.length; i++) { if (q[i] == null || (i > 0 && T(rows[i]) !== blk(rows[i])[0])) continue; let sum = 0, n = 0, keep = 0, kept = 0;
+        for (let j = i; j < Math.min(rows.length, i + 24) && q[j] != null; j++) { sum += q[j]; n++; if (T(rows[j]) + H === blk(rows[j])[1] || j === rows.length - 1) { keep = n; kept = sum; } }
+        if (keep >= 6 && (!best || kept > best.sum)) best = { i, sum: kept, n: keep }; }
       if (best && best.sum >= rainIn) { const w = rows.slice(best.i, best.i + best.n), wet = w.filter((r) => r.qpf >= 0.01), a = T(wet[0]), b = T(wet[wet.length - 1]) + H;
-        let pk = null; for (let i = 0; i + 6 <= w.length; i++) { const s6 = w.slice(i, i + 6).reduce((m, r) => m + (r.qpf || 0), 0); if (!pk || s6 > pk.s) pk = { s: s6, t: T(w[i]) }; }
-        const mid = pk ? pk.t + 3 * H : a;
-        out.push({ kind: "rain", rank: 4, at: mid, start: a, end: b, value: +best.sum.toFixed(2), short: "Heavy rain " + dayName(mid, tz, now), text: "Heavy rain: about " + best.sum.toFixed(1) + " in from " + span(a, b, tz) + (pk ? "; heaviest " + span(pk.t, pk.t + 6 * H, tz) + " (about " + pk.s.toFixed(1) + " in)" : ""), source: "NWS forecast (rain amounts)", link: "rain",
+        let pk = null; const blocked = w.some((r) => r.qpfFrom);
+        if (blocked) { for (const r of w) { if (r.qpfFrom && T(r) !== blk(r)[0]) continue; const [b0, b1] = blk(r), s = w.filter((x) => T(x) >= b0 && T(x) < b1).reduce((m, x) => m + x.qpf, 0); if (!pk || s > pk.s) pk = { s, t: b0, e: b1 }; } }
+        else for (let i = 0; i + 6 <= w.length; i++) { const s6 = w.slice(i, i + 6).reduce((m, r) => m + (r.qpf || 0), 0); if (!pk || s6 > pk.s) pk = { s: s6, t: T(w[i]), e: T(w[i]) + 6 * H }; }
+        const mid = pk ? (pk.t + pk.e) / 2 : a;
+        out.push({ kind: "rain", rank: 4, at: mid, start: a, end: b, value: +best.sum.toFixed(2), short: "Heavy rain " + dayName(mid, tz, now), text: "Heavy rain: about " + best.sum.toFixed(1) + " in from " + span(a, b, tz) + (pk ? "; heaviest " + span(pk.t, pk.e, tz) + " (about " + pk.s.toFixed(1) + " in)" : ""), source: "NWS forecast (rain amounts)", link: "rain",
           partial: grid.qpfThrough && b >= Date.parse(grid.qpfThrough) - H }); } }
     if (grid.qpfThrough) notes.push("Rain amounts forecast through " + fmtDay(Date.parse(grid.qpfThrough), tz) + " " + fmtH(Date.parse(grid.qpfThrough), tz));
     else notes.push("No rain amounts in the NWS forecast for this site");
@@ -55,32 +63,44 @@
       out.push({ kind: "winter", rank: frz ? 4 : 3, at: w.from, short: name + " " + word + " " + dayName(w.from, tz, now) + " " + partOfDay(w.from, tz), text: name + " " + word + " " + span(w.from, w.to, tz) + ": " + types.join(", ")
         + (snow >= 0.1 ? "; snow about " + snow.toFixed(1) + " in" : "") + (ice >= 0.01 ? "; ice about " + ice.toFixed(2) + " in" : ""), source: "NWS forecast (precipitation type" + (snow >= 0.1 || ice >= 0.01 ? " and amounts" : "") + ")", link: "winter" }); }
     /* lingering rain: 6 or more hours of rain likely or definite, as separate rounds.
-       NWS spreads each 6-hour rain amount evenly over its hours, and its weather types can say "rain likely" through hours that
-       carry only a trace. Where amounts are given, an hour counts only with a measurable amount (more than 0.01 in per 6 hours);
-       a round ends at 3 or more hours without one, so a dry spell is never counted as rain and two rounds stay two. Where the
-       grid gives no amount, the weather type alone decides and the text says amounts aren't in the forecast yet. An hour with no
-       weather type at all (missing guidance) always ends a round: nothing is bridged across hours the forecast doesn't cover.
-       A round crossing midnight stays one round and is named by every day it covers ("Thursday into Friday"). */
+       An hour counts when its weather type says rain likely or definite and, where the grid gives amounts, its NWS interval holds a
+       measurable amount (0.01 in or more; NWS spreads each interval's amount evenly over its hours). A round ends at 3 or more
+       hours without that, so a dry spell is never counted as rain and two rounds stay two. Where the grid gives no amount, the
+       weather type alone decides and the text says amounts aren't in the forecast yet. An hour with no weather type at all
+       (missing guidance) always ends a round: nothing is bridged across hours the forecast doesn't cover. A round crossing
+       midnight stays one round and is named by every day it covers ("Thursday into Friday").
+       Timing is said only as finely as the guidance resolves it: an edge set by the weather type is to the hour; an edge set by the
+       amounts (rain still "likely" but its interval holds none) is only known to fall inside that interval, so it reads
+       "between Fri 1 AM and 7 AM". Light rain (0.01 in or less per 6 hours) at the end of a round is said ("light after …"). */
     const RAINY = (r) => (r.wx || []).some((x) => /rain|drizzle|showers/.test(x.type) && !/freezing/.test(x.type) && x.cov >= 3);
-    const MEASURABLE = 0.01 / 6 + 1e-9, DRY_GAP = 3;
-    const wetHour = (r) => RAINY(r) && (r.qpf == null || r.qpf > MEASURABLE);
+    const DRY_GAP = 3, total = (r) => r.qpf * (blk(r)[1] - blk(r)[0]) / H, LIGHT = 0.01 / 6 + 1e-9;
+    const measurable = (r) => r.qpf == null || total(r) >= 0.01 - 1e-6, wetHour = (r) => RAINY(r) && measurable(r);
+    const rowAt = new Map(rows.map((r) => [T(r), r]));
     const rounds = []; { let cur = null, gap = [];
       for (const x of rows) {
-        if (wetHour(x)) { if (cur && gap.length < DRY_GAP && gap.every((g) => g.wx)) { cur.rows.push(...gap, x); cur.to = T(x) + H; } else { cur = { from: T(x), to: T(x) + H, rows: [x], trailing: null }; rounds.push(cur); } gap = []; }
+        if (wetHour(x)) { if (cur && gap.length < DRY_GAP && gap.every((g) => g.wx)) { cur.rows.push(...gap, x); cur.to = T(x) + H; } else { cur = { from: T(x), to: T(x) + H, rows: [x] }; rounds.push(cur); } gap = []; }
         else if (cur) { gap.push(x); if (!x.wx || gap.length >= DRY_GAP) { cur = null; gap = []; } }
-      }
-      // likely-rain hours right after a round that carry only traces: said, not counted
-      for (const w of rounds) { let t = w.to; for (const x of rows) { const tx = T(x); if (tx < t) continue; if (tx === t && RAINY(x) && x.qpf != null && x.qpf <= MEASURABLE) t += H; else if (tx >= t) break; } if (t > w.to) w.trailing = t; } }
+      } }
     const dayRange = (a, b) => { const d0 = dayName(a, tz, now), d1 = dayName(b - H, tz, now); return d0 === d1 ? d0 : d0 + (localDate(b - H, tz) <= localDate(a + 864e5, tz) ? " into " : " to ") + d1; };
+    const byAmounts = (r) => r && RAINY(r) && r.qpf != null && !measurable(r);
+    const at = (t) => fmtDay(t, tz) + " " + fmtH(t, tz), between = (b) => "between " + at(b[0]) + " and " + (fmtDay(b[0], tz) === fmtDay(b[1], tz) ? "" : fmtDay(b[1], tz) + " ") + fmtH(b[1], tz);
     for (const w of rounds) {
-      const hrs = Math.round((w.to - w.from) / H); if (hrs < 6) continue;
-      const hits = new Set(); for (let t = w.from; t < w.to; t += H) { const d = new Date(t), dow = new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short" }).format(d), h = +new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hourCycle: "h23" }).format(d); if (/Sat|Sun/.test(dow)) continue; for (const [a, b, n] of COMMUTE) if (h >= a && h < b) hits.add(dow + " " + n); }
+      const first = w.rows[0], last = w.rows[w.rows.length - 1];
+      const startIn = byAmounts(rowAt.get(w.from - H)) && blk(first)[1] - blk(first)[0] > H ? blk(first) : null;
+      const endIn = byAmounts(rowAt.get(w.to)) && blk(last)[1] - blk(last)[0] > H ? blk(last) : null;
+      const sure0 = startIn ? startIn[1] : w.from, sure1 = endIn ? endIn[0] : w.to;
+      const hrs = Math.round((w.to - w.from) / H), least = Math.max(0, Math.round((sure1 - sure0) / H)); if (hrs < 6) continue;
+      const when = startIn || endIn ? (startIn ? between(startIn) : at(w.from)) + " until " + (endIn ? between(endIn) : at(w.to)) : span(w.from, w.to, tz);
+      let lightFrom = null; for (let k = w.rows.length - 1; k >= 0 && w.rows[k].qpf != null && w.rows[k].qpf <= LIGHT; k--) lightFrom = T(w.rows[k]);
+      if (lightFrom != null && (lightFrom <= w.from || w.to - lightFrom < 6 * H)) lightFrom = null;
+      const hits = new Set(); for (let t = sure0; t < sure1; t += H) { const d = new Date(t), dow = new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short" }).format(d), h = +new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hourCycle: "h23" }).format(d); if (/Sat|Sun/.test(dow)) continue; for (const [a, b, n] of COMMUTE) if (h >= a && h < b) hits.add(dow + " " + n); }
       const amt = w.rows.every((r) => r.qpf != null) ? w.rows.reduce((m, r) => m + r.qpf, 0) : null, c = [...hits];
       out.push({ kind: "linger", rank: 2, at: w.from, start: w.from, end: w.to, day: dayName(w.from, tz, now), days: dayRange(w.from, w.to), amountsKnown: amt != null,
+        when: when + (lightFrom != null ? ", light after " + at(lightFrom) : ""), lightFrom,
         short: "Rain likely " + dayRange(w.from, w.to),
-        text: "Rain likely for about " + hrs + " hours, " + span(w.from, w.to, tz) + (amt != null ? (amt >= 0.05 ? " (about " + amt.toFixed(1) + " in)" : "") : " (rain amounts not in the NWS forecast yet)")
+        text: "Rain likely for about " + (least < hrs ? least + "–" : "") + hrs + " hours, " + when + (amt != null ? (amt >= 0.05 ? " (about " + amt.toFixed(1) + " in)" : "") : " (rain amounts not in the NWS forecast yet)")
           + (c.length ? "; covers " + (c.length === 1 ? "the " + c[0] : c.length + " commutes: " + c.join(", ")) : "")
-          + (w.trailing ? "; then only traces until " + fmtDay(w.trailing, tz) + " " + fmtH(w.trailing, tz) : ""),
+          + (lightFrom != null ? "; light after " + at(lightFrom) + " (0.01 in or less per 6 hours)" : ""),
         source: "NWS forecast (precipitation type, chance" + (amt != null ? " and amounts" : "") + ")", link: "rain" }); }
     // heat: the peak heat index and when
     const hp = rows.reduce((b, r) => (r.heat != null && (!b || r.heat > b.heat) ? r : b), null);
@@ -105,7 +125,7 @@
     const cap = (x) => x.charAt(0).toUpperCase() + x.slice(1);
     const words = top.map((item, i) => (i > 0 && item.kind === "linger" && ["rain", "linger"].includes(top[0].kind) ? "More rain " + item.days : item.short));
     const rain = (top.includes(heavy) && related) || top.find((item) => item.kind === "linger");
-    return { text: words.map(cap).join(" · "), timing: rain ? "Rain likely " + span(rain.start, rain.end, tz) : "" };
+    return { text: words.map(cap).join(" · "), timing: rain ? "Rain likely " + rain.when : "" };
   }
   const dayName = (ms, tz, now) => localDate(ms, tz) === localDate(now, tz) ? "today" : new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "long" }).format(new Date(ms)); // weekdays: planners count by them
 
