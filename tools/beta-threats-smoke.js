@@ -36,7 +36,7 @@ const ready = (p) => p.waitForFunction(() => window.__threats && window.__threat
       await p.screenshot({ path: path.join(OUT, `cvg-${d}.png`) });
       if (!phone) check(`deployed build: githack serves threats.js?v=${s.stamp}${STAMP ? " (commit's own: " + STAMP + ")" : ""}`, s.stamp && (!STAMP || s.stamp === STAMP), { s });
       check(`(${d}) CVG forecast highlights: lead '${s.big}' (${s.lead}); ${s.items.length} highlight(s)${s.items[0] ? ": '" + s.items[0].slice(0, 90) + "'" : " (" + s.hlState + ")"}; alert status '${s.status.slice(0, 60)}'; '${s.sum}'`,
-        s.hl && (s.items.length ? s.items.every((x) => /NWS forecast \(/.test(x)) : ["none", "missing"].includes(s.hlState)) && /\S/.test(s.status) && !s.alertWords.length && /^Auto · /.test(s.sum) && s.badge === "LIVE PREVIEW" && !errs.length, { s, errs });
+        s.hl && (s.items.length ? s.items.every((x) => /NWS forecast \(/.test(x)) : ["none", "missing", "partial"].includes(s.hlState)) && /\S/.test(s.status) && !s.alertWords.length && /^Auto · /.test(s.sum) && s.badge === "LIVE PREVIEW" && !errs.length, { s, errs });
       await ctx.close(); }
     // 2. both rainfall modes
     for (const mode of ["obs24", "fcst"]) { const { ctx, p, errs } = await mk(); await go(p, BASE + "threats.html?" + CVG + "&layers=flood&rain=" + mode + "&view=active&scope=venue"); await ready(p);

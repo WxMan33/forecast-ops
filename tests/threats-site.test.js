@@ -60,4 +60,18 @@ ok("highlights land in the day cards on their own day (heavy rain on Thursday, t
   const d = (lab) => b.days.find((x) => x.date === lab).items.filter((i) => i.highlight).map((i) => i.key);
   assert.deepStrictEqual(d("2026-11-26").sort(), ["hl-linger", "hl-rain"]); assert.deepStrictEqual(d("2026-11-27"), ["hl-winter"]);
 });
+ok("highlights: a grid served without rain amounts and weather types says what it couldn't check, and is not a quiet all-clear", () => {
+  const p = hl("partial"); assert.strictEqual(p.missing, false); assert.strictEqual(p.list.length, 0);
+  assert.deepStrictEqual(p.unchecked, ["heavy rain (no rain amounts)", "wintry mix and long rain (no precipitation types)"]);
+  const b = OL.build({ tz: TZ, now: NOW, venue: CVG, days: 7, states: { spc: {}, grid: "ok" }, grid: FG.parseGrid(REPLAY.scenario(GRID, "partial", NOW), NOW, 168) });
+  assert.ok(b.unknown.some((x) => /NWS forecast for the venue came back incomplete; not checked: heavy rain/.test(x)), b.unknown);
+  assert.ok(b.days[0].unknown.length && !b.days[1].unknown.length); assert.ok(!/No significant threats in the next/.test(b.headline.text), b.headline.text);
+  const del = JSON.parse(JSON.stringify(GRID)); delete del.properties.quantitativePrecipitation; delete del.properties.weather; // the layers left out altogether
+  assert.strictEqual(OL.highlights(FG.parseGrid(del, NOW, 168), TZ, NOW, {}).unchecked.length, 2);
+});
+ok("highlights: complete grids are fully checked (a November grid without a heat index, a quiet replay, a heavy replay)", () => {
+  assert.deepStrictEqual(OL.highlights(FG.parseGrid(GRID, NOW, 168), TZ, NOW, {}).unchecked, []);
+  assert.deepStrictEqual(hl("quiet").unchecked, []); assert.deepStrictEqual(hl("heavy").unchecked, []);
+  const b = OL.build({ tz: TZ, now: NOW, venue: CVG, days: 7, states: { spc: {}, grid: "ok" }, grid: FG.parseGrid(REPLAY.scenario(GRID, "quiet", NOW), NOW, 168) }); assert.deepStrictEqual(b.unknown, []);
+});
 console.log(n + " passed");
