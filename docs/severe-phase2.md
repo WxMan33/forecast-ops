@@ -93,14 +93,49 @@ Day 2 judged separately.
   - Cost: ~63 s and ~235 MB per lead, ~6.5 MB stored per case.
 - Full 108-case extraction: 12 restartable month batches (`.github/workflows/severe-conus-extraction.yml`).
 
-## 8. RRFS/NBM readiness
-- Operational: 0 coverage-eligible matched dates so far (1 manual), against the 60 matched / 20
-  with-reports checkpoint. The collector stays on its own schedule.
-- History: 93 retrospective pre-operational RRFS days (Jul 2023, Jan-Feb 2024, May 2024). 89 support
-  both leads and carry all eight v0.7 fields. HRRR and NBM history exists for them
-  (`research/severe/phase2-guidance/retro-inventory.json`).
-- Not yet built: the extraction for those historical RRFS files (~950 MB prslev files, read by byte
-  range). There's no data blocker; this is the remaining work for the four-way comparison.
+## 8. Severe guidance roadmap: HRRR, RRFS, and REFS
+
+The forecast goal is to match or beat archived NadoCast at comparable false-alarm area, with
+reliable probabilities. The product goal is to help meteorologists see which areas deserve
+their attention, why they stand out, and what changed since the previous forecast. Day 2
+damaging wind is the first national product under review. Tornado and hail have their own
+verification and release decisions.
+
+1. **Keep the HRRR trial collecting fresh forecasts.** The 06Z + 12Z Day 2 wind candidate
+   passed the development gate. Keep its three frozen arms in the prospective research archive
+   under the [existing review rules](../research/severe/conus-v1/hrrr-lag/PROSPECTIVE.md).
+2. **Next experiment: measure what operational RRFS adds.** Audit the current collector and
+   the archives first. Inventory matched, on-time CONUS Day 2 windows, available fields,
+   version and cycle metadata, and coverage gaps. Track pre-operational retrospective runs
+   separately from operational RRFS. The earlier inventory found 93 retrospective days
+   (July 2023, January–February 2024 and May 2024), 89 covering both leads
+   (`research/severe/phase2-guidance/retro-inventory.json`). The existing [Phase 1 ingest](severe-guidance-phase1.md)
+   demonstrated the fields on the original regional grid. Verify the same contract across
+   the CONUS research grid before scaling.
+3. **Lock a three-arm Day 2 wind comparison before fitting.** Compare HRRR-only, a separately
+   trained RRFS-only arm, and HRRR + RRFS on the same issue cutoff, valid windows, dates, grid,
+   reports and held-out folds. Use the verified 06Z + 12Z HRRR recipe as the HRRR baseline
+   for this comparison and carry the same HRRR inputs into the combined arm. Check units
+   and distributions by source: the Phase 1 case showed materially different updraft
+   helicity magnitudes, even on the same native grid. Report paired Brier error and uncertainty,
+   calibration, report hits at matched false-alarm area, Florida/Gulf performance, and
+   coverage loss from missing or late guidance. Use archived NadoCast for a head-to-head
+   comparison only where the dates, valid windows, footprint and issuance availability match.
+   Reconcile this first test with Phase 1's longer-term four-way protocol before locking the
+   rule. Keep the 60 matched-date and 20 report-date checkpoint as the existing collection
+   milestone and report the current tally before requesting a full run.
+4. **Test REFS ensemble agreement separately.** NOAA introduced [RRFS and its ensemble, REFS](https://forecast.weather.gov/product.php?format=TXT&glossary=1&issuedby=WSH&product=PNS&site=RNK&version=1)
+   to replace NAM, HREF, SREF and HiresW. Inventory which REFS members and ensemble summaries
+   can reach the same cutoff. Once there is a suitable sample, test whether agreement or spread
+   adds reliability or improves detection at comparable false-alarm area over the best
+   deterministic comparison. Track ensemble coverage and model changes explicitly.
+5. **Bring the findings into the map after verification.** Show the hazard and area of concern,
+   when it matters where timing has been verified, which guidance agrees or disagrees, and
+   what changed. Label official SPC outlooks separately from Forecast Ops guidance.
+
+Keep the regional v0.7 feed live, the 96-day model in the separate CONUS preview, and the
+2025 holdout sealed. NBM remains a research input. Stop after the RRFS/REFS availability
+audit and proposed rule for review before full extraction, fitting or a feed change.
 
 ## Blockers met and how they were handled
 - NOAA has replaced the pinned 2022-2024 Storm Events files (old URLs return 404). All three pinned
