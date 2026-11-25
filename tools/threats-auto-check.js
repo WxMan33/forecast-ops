@@ -32,7 +32,7 @@ const st = (p) => p.evaluate(() => { const T = window.__threats, S = T.S, m = T.
   return { alertsState: (T.data.sources.alerts || {}).state, auto: S.auto, scope: S.scope, view: S.view, need: S.autoNeed, rain: S.rain, layers: Object.keys(S.layers).filter((k) => S.layers[k]), radar: S.radar, zoom: +m.getZoom().toFixed(2), venue: T.venue && { name: T.venue.name, lat: T.venue.lat, lon: T.venue.lon },
     sum: (document.getElementById("txLayersSum") || {}).textContent || "", valid: (document.getElementById("txValid") || {}).textContent || "", strip: strip ? strip.innerText.replace(/\s+/g, " ") : "",
     atSite: !!sec(/In effect at this site/), nearby: !!sec(/Nearby/), head: ((document.querySelector(".px-olhead .px-where") || {}).textContent || ""), quiet: [...document.querySelectorAll(".px-olquiet")].map((x) => x.textContent),
-    gaugesDrawn: (m.getSource("gauge") && m.getSource("gauge")._data.features.length) || 0, siteGauges: [...document.querySelectorAll("[data-gauge]")].map((x) => x.innerText.replace(/\s+/g, " ").slice(0, 200)),
+    gaugesDrawn: (m.getSource("gauge") && m.getSource("gauge")._data.features.length) || 0, siteGauges: [...document.querySelectorAll("[data-gauge]")].map((x) => x.innerText.replace(/\s+/g, " ").slice(0, 500)),
     rainObs: vis("rain-obs"), rainFcst: vis("rain-fcst"), labelsUrgent: labels.filter((f) => f.properties.lk === "urgent").length, labelsAll: labels.length, oKey: T.outlook && T.outlook.key, oOffice: T.outlook && T.outlook.data && T.outlook.data.gridInfo && T.outlook.data.gridInfo.office, errors: T.errors.map((e) => e.stage + ": " + e.message) }; });
 /* rewrite NWS alerts answers (national list and point check). The answer is fetched by Node (the test browser's own request
    context can't reach the preview here), and every rewrite is counted, so a silent pass-through can't count as a pass. */
@@ -116,7 +116,7 @@ const dropFamily = (re) => rewriteAlerts((j) => { const n0 = j.features.length; 
       await settle(v.p, 4000); const s = await st(v.p); await shot(v.p, `after-critical-replay-${d}`);
       const first = await v.p.evaluate(() => { const a = document.querySelector(".px-strip .px-alert"); return a ? a.innerText.replace(/\s+/g, " ") : ""; });
       check(`(${d}) CRITICAL-ALERT REPLAY (synthetic: saved KMTR Tornado Warning moved to now, catastrophic tag; added to ${tally.added - t0.added} answers): first in the strip '${first.slice(0, 160)}'; urgent labels ${s.labelsUrgent}`,
-        tally.added > t0.added && tally.failed === t0.failed && s.alertsState === "ok" && s.atSite && /\(its NWS zone\)|Covers the site ·/.test(first) && /Tornado Warning/.test(first) && /Tornado Emergency/.test(first) && /until /.test(first) && /NWS bulletin/.test(first) && s.need.severe && s.labelsUrgent >= 1 && !v.errs.length && !s.errors.length, { s, first });
+        tally.added > t0.added && tally.failed === t0.failed && s.alertsState === "ok" && s.atSite && /\(its NWS zone\)|Covers the site ·/.test(first) && /Tornado Warning/.test(first) && /Tornado Emergency/.test(first) && /until /.test(first) && /NWS bulletin/.test(first) && s.need.severe && s.labelsUrgent >= 1 && !v.errs.length && !s.errors.length, { s, first, errs: v.errs });
       await v.ctx.close(); } }
 
   /* 6. A -> B -> A with B's answers held back and arriving last: the panel, outlook and layers stay A's; B's late answer is filed as B's */

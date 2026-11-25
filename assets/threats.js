@@ -1446,10 +1446,10 @@
   function siteGaugesHtml() {
     const A = siteAssess(); if (!A || !A.gauges.length || !isLive()) return "";
     const W = FX.GAUGE_WORD || {}, val = (x) => x && x.value != null ? x.value.toFixed(1) + " " + (x.unit || "ft") : "–";
-    return `<div class="px-h" data-gauges="site"><span>Rivers near ${esc(venue.name)} · at or forecast to reach action stage</span><span>${A.gauges.length}</span></div>` + A.gauges.slice(0, 3).map((g) => {
+    return `<div class="px-h" data-gauges="site"><span>Gauges near ${esc(venue.name)} · at or forecast to reach action stage (rivers, lakes and tide)</span><span>${A.gauges.length}</span></div>` + A.gauges.slice(0, 3).map((g) => {
       if (!gDet.has(g.lid)) { gDet.set(g.lid, null); Live.gaugeDetail(g.lid).then((d) => { gDet.set(g.lid, d); rainSoon(); }, () => { gDet.set(g.lid, { err: true }); rainSoon(); }); }
       const d = gDet.get(g.lid), th = !d ? "flood stages loading…" : d.err ? "flood stages not available" : [d.action != null ? "action " + d.action + " " + d.units : "", d.minor != null ? "flood stage " + d.minor + " " + d.units : "", d.moderate != null ? "moderate " + d.moderate : "", d.major != null ? "major " + d.major : ""].filter(Boolean).join(" · ");
-      return `<div class="px-item-sub" data-gauge="${esc(g.lid)}"><b>${esc(g.name)}</b> (river gauge reading, NWPS): now ${esc(val(g.obs))}${g.obs && g.obs.category ? " (" + esc(W[g.obs.category] || g.obs.category) + ")" : ""}; forecast ${esc(val(g.fcst))}${g.fcst && g.fcst.time ? " at " + esc(t(g.fcst.time, true)) : ""}${g.fcst && g.fcst.category ? " (" + esc(W[g.fcst.category] || g.fcst.category) + ")" : ""} · ${esc(th)} · <a href="${esc(g.source.url)}" target="_blank" rel="noopener">hydrograph</a></div>`; }).join("");
+      return `<div class="px-item-sub" data-gauge="${esc(g.lid)}"><b>${esc(g.name)}</b> (gauge reading, NWPS): now ${esc(val(g.obs))}${g.obs && g.obs.category ? " (" + esc(W[g.obs.category] || g.obs.category) + ")" : ""}; forecast ${esc(val(g.fcst))}${g.fcst && g.fcst.time ? " at " + esc(t(g.fcst.time, true)) : ""}${g.fcst && g.fcst.category ? " (" + esc(W[g.fcst.category] || g.fcst.category) + ")" : ""} · ${esc(th)} · <a href="${esc(g.source.url)}" target="_blank" rel="noopener">hydrograph</a></div>`; }).join("");
   }
   function rainVenueHtml() {
     const v = R.venue, want = isLive() && S.layers.flood && (S.rain.obs || S.rain.fcst || (S.auto && S.autoNeed && S.autoNeed.flood)); if (!want || !venue) return "";
