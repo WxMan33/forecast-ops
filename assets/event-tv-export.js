@@ -69,7 +69,7 @@
     const panels = [["pop", 0, 0], ["temp", 1, 0], ["wind", 0, 1], ["lightning", 1, 1]];
     panels.forEach(([k, cx, cy]) => panel(k, PAD + cx * (pw + gap), top0 + cy * (ph + gap), pw, ph));
     /* ---- footer ---- */
-    const foot = `${cut ? `First ${ids.length} of ${total} event hours · ` : ""}Times are the venue's local time${d.zone ? ` (${d.zone})` : ""} · Forecast Ops · NOAA/NWS and Open-Meteo guidance`;
+    const foot = `${cut ? `First ${ids.length} of ${total} event hours · ` : ""}${V.custom ? "Chance, rain and gusts: the hour ending at each time · " : ""}Times are the venue's local time${d.zone ? ` (${d.zone})` : ""} · Forecast Ops · NOAA/NWS and Open-Meteo guidance`;
     text(foot, PAD, HGT - 22, { font: FONT(500, 20), color: C.muted });
     canvas.daylight = daylightAt;
     canvas.theme = C.name; canvas.minFontPx = minFont; canvas.lightning = lightningSummary(V, ids).allLow ? "low-throughout" : "blocks"; canvas.typeMode = tsum.mode;
@@ -96,19 +96,33 @@
         else if (kind === "box") { g.globalAlpha = 0.35; g.fillStyle = color; g.fillRect(kx, ky - 22, 26, 26); g.globalAlpha = 1; kx += 34; }
         else if (kind === "solid") { g.fillStyle = color; g.fillRect(kx, ky - 22, 26, 26); kx += 34; }
         else if (kind === "gap") { g.fillStyle = C.gap; g.fillRect(kx, ky - 22, 26, 26); kx += 34; }
+        else if (kind === "between") { g.globalAlpha = 0.5; g.fillStyle = C.muted; g.fillRect(kx, ky - 22, 26, 26); g.globalAlpha = 1; kx += 34; }
         g.font = FONT(600, 22); text(label, kx, ky, { font: FONT(600, 22), color: C.muted }); kx += g.measureText(label).width + 26; }); };
+      /* planner-defined slots (as the page shows them): hours between slots shaded in the panels of hour-ending values
+         (precipitation chance and gusts) and labelled, and the
+         slot names along the top of the precipitation panel over the hours they cover (rain, chance and gusts there are
+         for the hour ending at each time) */
+      const phaseRow = rows.phase, between = (i) => !!(V.custom && phaseRow && phaseRow.cells[i] && phaseRow.cells[i].text === "Between slots");
+      const schedule = (withNames) => { if (!V.custom) return; let run = null; const out = [];
+        ids.forEach((i, j) => { const k = between(i) ? "|gap" : V.cover && V.cover[i] && V.cover[i].length ? V.cover[i].reduce((a, c) => (c.fraction > a.fraction ? c : a)).label : null;
+          if (k && run && run.k === k && run.b === j - 1) run.b = j; else { if (run) out.push(run); run = k ? { k, a: j, b: j } : null; } }); if (run) out.push(run);
+        out.forEach((r) => { const x0 = L + r.a * bw, wd = (r.b - r.a + 1) * bw;
+          if (r.k === "|gap") { g.globalAlpha = C.name === "dark" ? 0.22 : 0.14; g.fillStyle = C.muted; g.fillRect(x0 + 1, T, wd - 2, B - T); g.globalAlpha = 1;
+            if (withNames) { g.font = FONT(700, 20); const t = g.measureText("Between slots").width + 10 <= wd ? "Between slots" : "Gap"; text(g.measureText(t).width + 6 <= wd ? t : "", x0 + wd / 2, T + 26, { font: FONT(700, 20), color: C.muted, align: "center" }); } return; }
+          if (!withNames) return; g.strokeStyle = C.border; g.lineWidth = 2; line(x0, T, x0, T + 34);
+          g.font = FONT(700, 20); text(r.k, x0 + 8, T + 26, { font: FONT(700, 20), color: C.muted, max: Math.max(40, wd - 12) }); }); };
       const flags = (hz, word) => { const r = rows[hz]; if (!r) return; let run = null; const out = [];
         ids.forEach((i, j) => { const c = r.cells[i], k = c && c.state === "concern" ? `${c.tier}|${c.text}` : null; if (k && run && run.k === k && run.b === j - 1) run.b = j; else { if (run) out.push(run); run = k ? { k, a: j, b: j } : null; } }); if (run) out.push(run);
         out.forEach((f) => { const [tier, wd] = f.k.split("|"), x0 = L + f.a * bw + 4, x1 = L + (f.b + 1) * bw - 4, col = tier === "action" ? C.red : C.text; g.strokeStyle = col; g.lineWidth = 3; g.beginPath(); g.moveTo(x0, T - 6); g.lineTo(x0, T - 16); g.lineTo(x1, T - 16); g.lineTo(x1, T - 6); g.stroke();
           text(`${word}: ${wd}`, x0, T - 24, { font: FONT(800, 22), color: col, max: Math.max(80, x1 - x0) }); }); };
 
       if (key === "pop") {
-        keyItems([["line", C.pop, "Chance each hour"], ...(tsum.mode === "bands" ? [["box", C.band.rain, "☂ Rain"], ["box", C.band.mix, "✱ Mix"], ["box", C.band.snow, "❄ Snow"]] : []), ["gap", null, "No data"]]);
+        keyItems([["line", C.pop, V.custom ? "Chance, hour ending at each time" : "Chance each hour"], ...(tsum.mode === "bands" ? [["box", C.band.rain, "☂ Rain"], ["box", C.band.mix, "✱ Mix"], ["box", C.band.snow, "❄ Snow"]] : []), ["gap", null, "No data"], ...(V.custom && ids.some(between) ? [["between", null, "Between slots"]] : [])]);
         if (tsum.mode !== "bands") text(tsum.text, R, y + 46, { font: FONT(700, 26), align: "right", color: C.text });
         if (tsum.mode === "bands") { let run = null; const out = []; ids.forEach((i, j) => { const t = types[i], k = ["dry", "missing"].includes(t.kind) ? null : `${t.kind}|${t.word}`; if (k && run && run.k === k && run.b === j - 1) run.b = j; else { if (run) out.push(run); run = k ? { k, a: j, b: j } : null; } }); if (run) out.push(run);
           out.forEach((r) => { const [kind, word] = r.k.split("|"), x0 = L + r.a * bw, wd = (r.b - r.a + 1) * bw; if (C.band[kind]) { g.globalAlpha = C.bandAlpha; g.fillStyle = C.band[kind]; g.fillRect(x0, T, wd, B - T); g.globalAlpha = 1; }
             const label = C.band[kind] ? `${SYM[kind]} ${word}` : `? ${word}`; g.font = FONT(800, 24); text(g.measureText(label).width + 12 <= wd ? label : C.band[kind] ? SYM[kind] : "?", x0 + 8, B - 12, { font: FONT(800, 24), color: C.band[kind] ? C.text : C.muted }); }); }
-        grid(0, 100, [0, 50, 100], (v) => `${v}%`);
+        grid(0, 100, [0, 50, 100], (v) => `${v}%`); schedule(true);
         const vals = ids.map((i) => (missing(i) || !fin(V.hrs[i].pop) ? null : V.hrs[i].pop)); gaps((i) => vals[ids.indexOf(i)]);
         flags("hz-rain", "Precip"); series(vals, 0, 100, C.pop, { dots: true });
       } else if (key === "temp" || key === "wind") {
@@ -117,7 +131,7 @@
         const all = [...v1, ...v2].filter(fin), lim = key === "wind" ? d.gustLimit : null;
         let lo = key === "temp" ? Math.floor((Math.min(...all) - 3) / 5) * 5 : 0, hi = key === "temp" ? Math.ceil((Math.max(...all) + 3) / 5) * 5 : Math.ceil(Math.max(10, ...all, lim || 0) / 10) * 10; if (!all.length) { lo = 0; hi = 10; } if (hi <= lo) hi = lo + 10;
         keyItems(key === "temp" ? [["line", color, "Temperature °F"], ["dash", color, "Feels like"]] : [["line", color, "Sustained mph"], ["dash", color, "Gusts"], ["dot", C.limit, "Venue gust limit"]]);
-        const sel = (i) => i; grid(lo, hi, [lo, (lo + hi) / 2, hi], (v) => `${Math.round(v)}`); gaps((i) => v1[ids.indexOf(sel(i))]);
+        const sel = (i) => i; grid(lo, hi, [lo, (lo + hi) / 2, hi], (v) => `${Math.round(v)}`); if (key === "wind") schedule(false); // gusts are hour-ending values; temperature is read at its time gaps((i) => v1[ids.indexOf(sel(i))]);
         if (lim && lim <= hi) { const yy = B - ((lim - lo) / (hi - lo)) * (B - T); g.strokeStyle = C.limit; g.lineWidth = 3; g.setLineDash([3, 7]); line(L, yy, R, yy); g.setLineDash([]); text(`${lim} mph limit`, R - 6, yy - 10, { font: FONT(700, 22), color: C.limit, align: "right" }); }
         if (key === "wind") flags("hz-wind", "Wind");
         series(v2, lo, hi, color, { dash: true, width: 4 }); series(v1, lo, hi, color, { width: 6 });

@@ -74,6 +74,9 @@
     const { C, B } = ctx, L = C.event.locate(w, { ms: B.ms });
     if (!L.idx.length && !L.acc.length) return null;
     const idx = L.idx.length ? L.idx : L.acc, r = C.blend.windowRow(B, ctx.ws, idx, L.acc, ctx.opts);
+    /* a planner's slot: precipitation chance and gusts are hour-ending values (Core.event.KIND), so they come from the
+       hours whose hour overlaps the slot, the same hours as its rain amount; the fixed parts are read as before */
+    if (w.slot && L.acc.length) { const q = C.blend.windowRow(B, ctx.ws, L.acc, L.acc, ctx.opts); r.pop = q.pop; r.gust = q.gust; }
     const tiers = ctx.th ? idx.map((i) => ctx.th.at(B.ms[i])).filter(Boolean) : [];
     const thunder = tiers.length ? tiers.reduce((a, b) => ((RANK[b] ?? -1) > (RANK[a] ?? -1) ? b : a), "nodata") : null;
     return { ...r, s: w.startMs, e: w.endMs, idx, acc: L.acc, thunder, chanceV: r.chance ? r.chance.v / 100 : null, complete: L.acc.length >= L.need };
@@ -159,16 +162,18 @@
   /* ---------- event briefing ---------- */
   /* per-source first hour meeting a hazard's hourly rule inside [s, e): the timing spread across guidance */
   function hazardTiming(ctx, key, s, e, thr, spans = null) {
-    const out = (m) => !!spans && !ctx.C.event.inSpans(spans, m); // an hour in a gap between slots is not event time
-    if (key === "rain") { const p = spans && spans.length > 1 ? precipTimingIn(ctx, spans, s, e) : precipTiming(ctx, s, e); return { first: p.first, last: p.last, spreadH: p.spreadH, show: p.wet + 0, of: p.usable, active: p.active }; }
+    /* planner-defined slots (spans): each hour is read by its own interval (Core.event.KIND); a value outside every slot
+       is not event time, and an hour-ending value's first time is the start of its hour */
+    const kind = ctx.C.event.HAZARD_KIND[key], out = (m) => !!spans && !ctx.C.event.covers(spans, m, kind), sh = spans && kind === "end" ? H : 0;
+    if (key === "rain") { const p = spans ? precipTimingIn(ctx, spans, s, e) : precipTiming(ctx, s, e); return { first: p.first, last: p.last, spreadH: p.spreadH, show: p.wet + 0, of: p.usable, active: p.active }; }
     const firsts = []; let of = 0;
     if (key === "lightning") {
       if (!ctx.th) return { show: 0, of: 0, spreadH: 0, first: null };
-      ctx.th.ids.forEach((id) => { let any = false, hit = null; ctx.B.ms.forEach((m) => { if (m < s || m >= e || out(m)) return; const t = ctx.th.perModel(id, m); if (t && t !== "nodata") any = true; if (hit == null && (RANK[t] ?? 0) >= 1) hit = m; }); if (any) of++; if (hit != null) firsts.push(hit); });
+      ctx.th.ids.forEach((id) => { let any = false, hit = null; ctx.B.ms.forEach((m) => { if (m < s || m >= e || out(m)) return; const t = ctx.th.perModel(id, m); if (t && t !== "nodata") any = true; if (hit == null && (RANK[t] ?? 0) >= 1) hit = m - sh; }); if (any) of++; if (hit != null) firsts.push(hit); });
     } else {
       const v = { wind: "wind_gusts_10m", heat: "temperature_2m", cold: "apparent_temperature", snow: "snowfall" }[key];
       const test = { wind: (x) => x >= (thr.gust || 25), heat: (x) => x >= 90, cold: (x) => x <= 32, snow: (x) => x >= 0.05 }[key];
-      PRECIP_SOURCES(ctx.B).forEach(([id, md]) => { const a = md.h && md.h[v]; if (!a) return; let any = false, hit = null; ctx.B.ms.forEach((m, i) => { if (m < s || m >= e || out(m) || !fin(a[i])) return; any = true; if (hit == null && test(a[i])) hit = m; }); if (any) of++; if (hit != null) firsts.push(hit); });
+      PRECIP_SOURCES(ctx.B).forEach(([id, md]) => { const a = md.h && md.h[v]; if (!a) return; let any = false, hit = null; ctx.B.ms.forEach((m, i) => { if (m < s || m >= e || out(m) || !fin(a[i])) return; any = true; if (hit == null && test(a[i])) hit = m - sh; }); if (any) of++; if (hit != null) firsts.push(hit); });
     }
     return { show: firsts.length, of, first: firsts.length ? Math.min(...firsts) : null, last: firsts.length ? Math.max(...firsts) : null, spreadH: firsts.length > 1 ? (Math.max(...firsts) - Math.min(...firsts)) / H : 0 };
   }
@@ -195,18 +200,22 @@
     const span = { s: Math.max(all.startMs, Math.floor(ctx.now / H) * H), e: all.endMs };
     /* the hours the event uses: with slots and gaps between them, hours wholly inside a gap are left out of the
        concerns, their timing and every total (each hour's own values and the thresholds are unchanged) */
-    const spans = all.spans || null, gapped = !!(spans && spans.length > 1);
-    const hours = span.e > span.s ? hourly(ctx, span.s, span.e).filter((h) => !gapped || C.event.inSpans(spans, h.ms)) : [];
+    /* planner-defined slots: every hour from the first start to the hour ending at the last end, each value kept only
+       where its own interval meets a slot (Core.event.KIND): rain labelled 4 PM fell 3–4 PM, so it counts only if a slot
+       is on between 3 and 4 PM. Values and thresholds are unchanged. The fixed parts read exactly as before. */
+    const custom = C.event.hasSlots(ev), spans = custom ? all.spans : null;
+    const hours = span.e > span.s ? (custom ? hourly(ctx, span.s, span.e + H).filter((h) => C.event.covers(spans, h.ms, "end") || C.event.covers(spans, h.ms, "at")) : hourly(ctx, span.s, span.e)) : [];
     const concerns = ranked.map((k) => {
-      const hz = HAZARDS[k], hits = hours.filter((h) => hz.hour(h, thr)), worst = live.filter((p) => p.levels[k] === overall[k]);
-      const phasesHit = live.filter((p) => hits.some((h) => h.ms >= p.startMs && h.ms < p.endMs)).map((p) => p.label);
-      const t = hazardTiming(ctx, k, span.s, span.e, thr, gapped ? spans : null);
+      const kind = C.event.HAZARD_KIND[k], hz = HAZARDS[k], hits = hours.filter((h) => hz.hour(h, thr) && (!custom || C.event.covers(spans, h.ms, kind))), worst = live.filter((p) => p.levels[k] === overall[k]);
+      const phasesHit = live.filter((p) => hits.some((h) => (custom ? C.event.holding([p], h.ms, kind).length > 0 : h.ms >= p.startMs && h.ms < p.endMs))).map((p) => p.label);
+      const t = hazardTiming(ctx, k, span.s, custom ? span.e + H : span.e, thr, spans);
+      const sh = custom && kind === "end" ? H : 0; // an hour-ending value's hour starts an hour before its label
       return { key: k, label: hz.label, noun: hz.noun, level: overall[k], word: LEVEL_WORD[overall[k]], tier: LEVEL_TIER[overall[k]],
-        why: hz.why(worst[0].r), from: hits.length ? hits[0].ms : null, to: hits.length ? hits[hits.length - 1].ms + H : null, phases: phasesHit.length ? phasesHit : worst.map((p) => p.label),
+        why: hz.why(worst[0].r), from: hits.length ? hits[0].ms - sh : null, to: hits.length ? hits[hits.length - 1].ms + H - sh : null, phases: phasesHit.length ? phasesHit : worst.map((p) => p.label),
         timing: t, certainty: certainty(t) };
     });
     const coverage = rows.some((p) => p.cov.status === "beyond") ? "beyond" : rows.some((p) => p.cov.status === "partial") ? "partial" : rows.every((p) => p.cov.status === "past") ? "past" : "full";
-    return { ev, phases: rows, all, hours, concerns, top: concerns[0] || null, coverage, thresholds: thr, spans: gapped ? spans : null };
+    return { ev, phases: rows, all, hours, concerns, top: concerns[0] || null, coverage, thresholds: thr, spans, custom };
   }
   /* What could change the plan: plain consequences of the spread in guidance, never invented events */
   function planChanges(brief, fmt) {

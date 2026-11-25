@@ -65,6 +65,8 @@
     ];
     const text = (key, i) => rows[key]?.cells[i]?.text ?? "No data";
     const hasBetween = !!(rows.phase && rows.phase.cells.some((c) => c && c.text === "Between slots"));
+    /* planner-defined slots: "3–4 PM" for the hour ending at a column's time */
+    const hhmm = (ms) => new Date(ms).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).replace(":00", ""), hourText = (L) => { const a = hhmm(L - H), b = hhmm(L), ma = a.match(/^(.*) (AM|PM)$/), mb = b.match(/^(.*) (AM|PM)$/); return ma && mb && ma[2] === mb[2] ? `${ma[1]}–${b}` : `${a}–${b}`; };
     const value = (spec, i) => {
       if (!V.hrs[i] || V.hrs[i].state !== "ok") return null;
       if (spec.type === "tier") { const c = rows.lightning?.cells[i]; return !c || c.state === "missing" ? null : { Low: 1, Moderate: 2, High: 3 }[c.text] ?? null; }
@@ -103,7 +105,8 @@
       });
       /* hours between a planner's slots: shown with their values, shaded and labelled as outside the schedule (they are
          left out of the event totals and concerns, never out of the chart) */
-      runs(ids.map((i) => (rows.phase && rows.phase.cells[i] && rows.phase.cells[i].text === "Between slots" ? "g" : null))).forEach((r) => { const x0 = left + r.a * bw, wd = (r.b - r.a + 1) * bw;
+      /* (only on the charts of hour-ending values: precipitation chance and amount, and wind with its gusts) */
+      runs(ids.map((i) => ((s.key === "pop" || s.key === "wind") && rows.phase && rows.phase.cells[i] && rows.phase.cells[i].text === "Between slots" ? "g" : null))).forEach((r) => { const x0 = left + r.a * bw, wd = (r.b - r.a + 1) * bw;
         under += `<rect x="${x0}" y="${top}" width="${wd}" height="${base - top}" class="evc-between" data-between="${r.b - r.a + 1}"><title>Between slots: not part of the schedule</title></rect>${wd >= 36 ? `<text x="${x0 + wd / 2}" y="${top + 14}" text-anchor="middle" class="evc-betweentext">${wd >= 90 ? "Between slots" : "Gap"}</text>` : ""}`; });
       /* missing hours: a light gap, "No data" when there is room */
       ids.forEach((i, j) => { if (value(s, i) === null && V.hrs[i]?.state !== "beyond") marks += `<rect x="${left + j * bw + 2}" y="${top}" width="${bw - 4}" height="${base - top}" class="evc-gap"><title>No data</title></rect>${bw >= 58 ? `<text x="${x(j)}" y="${(top + base) / 2 + 5}" text-anchor="middle" class="evc-gaptext">No data</text>` : ""}`; }); /* a narrow bar keeps its hatching and a "No data" title; the label is written out where it fits */
@@ -130,7 +133,7 @@
       const buttons = ids.map((i, j) => { const a = V.axis[i], on = V.span[i] === sel, show = j % every === 0 || on;
         return `<g role="button" tabindex="0" aria-label="${esc(`${a.date} ${a.hourText} ${a.zone}, ${s.name}: ${text(s.key, i)}`)}" aria-pressed="${on}" data-hour="${a.ms}"><rect x="${left + j * bw}" y="${top - 4}" width="${bw}" height="${base - top + 36}" fill="transparent"/>${on ? `<rect x="${left + j * bw + 1}" y="${top}" width="${bw - 2}" height="${base - top}" class="evc-selcol"/>` : ""}${show ? `<text x="${x(j)}" y="${base + 22}" text-anchor="middle" class="evc-hour${on ? " evc-hour-sel" : ""}">${esc(a.hourText)}${a.repeated || a.zoneChange ? `<tspan x="${x(j)}" dy="14" class="evc-zone">${esc(a.zone)}</tspan>` : ""}</text>` : ""}</g>`; }).join("");
       /* the header: the selected hour's value, large; amount separate from chance */
-      const amount = s.key === "pop" ? `<span>This hour <b data-amount>${esc(text("qpf", iSel))}${text("qpf", iSel) === "No data" ? "" : " in."}</b>${tsum.mode !== "none" && types[iSel] && !["dry"].includes(types[iSel].kind) ? ` · <b data-sel-type>${esc(types[iSel].word || "")}</b>` : ""}</span>` : "";
+      const amount = s.key === "pop" ? `<span>${V.custom && V.span[iSel] != null ? `Rain ${esc(hourText(V.span[iSel]))}` : "This hour"} <b data-amount>${esc(text("qpf", iSel))}${text("qpf", iSel) === "No data" ? "" : " in."}</b>${tsum.mode !== "none" && types[iSel] && !["dry"].includes(types[iSel].kind) ? ` · <b data-sel-type>${esc(types[iSel].word || "")}</b>` : ""}</span>` : "";
       const head = s.type === "tier" ? `<b data-value="${s.key}">${esc(text(s.key, iSel))}</b><span>Forecast potential, not detected lightning or a warning</span>`
         : `<b data-value="${s.key}">${esc(text(s.key, iSel))}${s.unit === "°F" ? "F" : s.unit && s.unit !== "%" ? " " + esc(s.unit) : ""}</b>${s.second ? `<span>${esc(s.secondLabel)} <b>${esc(text(s.second, iSel))}${s.unit === "mph" ? " mph" : s.unit === "°F" ? "F" : ""}</b></span>` : amount}`;
       return `<section class="evc-card evc-${s.color}" data-variable="${s.key}"><header><h3>${esc(s.name)}</h3><div class="evc-val">${head}</div></header>${legend(s)}<svg viewBox="0 0 ${w} ${height}" role="group" aria-label="${esc(s.name)} by hour">${under}${axes}${marks}${over}${buttons}</svg></section>`;
@@ -138,7 +141,7 @@
     /* each chart's own key */
     function legend(s) {
       const sw = (cls, t) => `<span class="evc-key"><i class="${cls}"></i>${esc(t)}</span>`;
-      if (s.key === "pop") return `<p class="evc-legend">${sw("k-line k-dots", "Chance of precipitation each hour (0–100%)")}${tsum.mode === "bands" ? sw("k-band k-rain", "☂ Rain") + sw("k-band k-mix", "✱ Mix") + sw("k-band k-snow", "❄ Snow") + sw("k-band k-unc", "? Type uncertain (unshaded)") : `<span class="evc-key evc-type" data-type-summary="${tsum.mode}">${esc(tsum.text)}</span>`}${sw("k-gap", "No data: guidance missing, not 0%")}${hasBetween ? sw("k-between", "Gap: between your time slots, not in the event totals") : ""}</p>`;
+      if (s.key === "pop") return `<p class="evc-legend">${sw("k-line k-dots", "Chance of precipitation each hour (0–100%)")}${tsum.mode === "bands" ? sw("k-band k-rain", "☂ Rain") + sw("k-band k-mix", "✱ Mix") + sw("k-band k-snow", "❄ Snow") + sw("k-band k-unc", "? Type uncertain (unshaded)") : `<span class="evc-key evc-type" data-type-summary="${tsum.mode}">${esc(tsum.text)}</span>`}${sw("k-gap", "No data: guidance missing, not 0%")}${hasBetween ? sw("k-between", "Gap: between your time slots, not in the event totals") : ""}${V.custom ? `<span class="evc-key" data-interval-note>Chance, amount and gusts: the hour ending at each time</span>` : ""}</p>`;
       if (s.key === "temp") return `<p class="evc-legend">${sw("k-line", "Temperature")}${sw("k-line k-dash", "Feels like")}</p>`;
       if (s.key === "wind") return `<p class="evc-legend">${sw("k-line", "Sustained wind")}${sw("k-line k-dash", "Gusts")}${sw("k-limit", "Venue gust limit")}</p>`;
       return `<p class="evc-legend">${sw("k-tier k-t1", "Low")}${sw("k-tier k-t2", "Moderate")}${sw("k-tier k-t3", "High")}<span class="evc-key">Low is not zero</span></p>`;
@@ -179,8 +182,10 @@
     const multiDay = new Set(V.axis.map((a) => a.date)).size > 1;
     /* the event's own edges inside its first and last hours (setup at 1:30 starts the window at 1:30) */
     const cov = (i) => (V.cover && V.cover[i]) || [];
-    const fromOf = (i) => V.span[i] + (cov(i).length ? Math.min(...cov(i).map((p) => p.from)) : 0) * 60e3;
-    const toOf = (i) => V.span[i] + (cov(i).length ? Math.max(...cov(i).map((p) => p.to)) : 60) * 60e3;
+    /* planner-defined slots: a column's rain, chance and gusts are for the hour ending at its time (V.hourStart) */
+    const hs = (i, k) => (V.hourStart && k !== "lightning" ? V.hourStart[i] : V.span[i]); // lightning is read at its time
+    const fromOf = (i, k) => (V.custom && k === "lightning" ? V.span[i] : hs(i, k) + (cov(i).length ? Math.min(...cov(i).map((p) => p.from)) : 0) * 60e3);
+    const toOf = (i, k) => (V.custom && k === "lightning" ? V.span[i] + H : hs(i, k) + (cov(i).length ? Math.max(...cov(i).map((p) => p.to)) : 60) * 60e3);
     const s = fromOf(0), e = toOf(n - 1);
     const when = (a, b) => { const da = dayOf(a), db = dayOf(b - 1); return multiDay ? `${da} ${clock(a)}–${db !== da ? db + " " : ""}${clock(b)}` : `${clock(a)}–${clock(b)}`; };
     const around = (ms) => { const a = V.axis[V.span.indexOf(ms)]; return a ? `${multiDay ? dayOf(ms) + " " : ""}${a.hourText}` : clock(ms); };
@@ -189,9 +194,9 @@
       const idx = r.cells.map((c, i) => (c && c.state === "concern" ? i : -1)).filter((i) => i >= 0);
       if (!idx.length) return null;
       const top = idx.reduce((a, i) => ((RANK[r.cells[i].tier] || 0) > (RANK[r.cells[a].tier] || 0) ? i : a), idx[0]), c = r.cells[top];
-      const runs = idx.reduce((o, i) => { const l = o[o.length - 1]; if (l && l.b === i - 1) l.b = i; else o.push({ a: i, b: i }); return o; }, []).map((x) => ({ ...x, from: fromOf(x.a), to: toOf(x.b), text: when(fromOf(x.a), toOf(x.b)),
+      const runs = idx.reduce((o, i) => { const l = o[o.length - 1]; if (l && l.b === i - 1) l.b = i; else o.push({ a: i, b: i }); return o; }, []).map((x) => ({ ...x, from: fromOf(x.a, r.key), to: toOf(x.b, r.key), text: when(fromOf(x.a, r.key), toOf(x.b, r.key)),
         /* parts of the run by level, so a run that steps up from Watch to Plan for it shows both colours */
-        parts: Array.from({ length: x.b - x.a + 1 }, (_, k) => x.a + k).reduce((o, i) => { const t = r.cells[i].tier || "monitor", l = o[o.length - 1]; if (l && l.tier === t) { l.b = i; l.to = toOf(i); } else o.push({ tier: t, word: r.key === "lightning" ? r.cells[i].text : LEVEL_FULL[r.cells[i].text] || r.cells[i].text, a: i, b: i, from: fromOf(i), to: toOf(i) }); return o; }, []) }));
+        parts: Array.from({ length: x.b - x.a + 1 }, (_, k) => x.a + k).reduce((o, i) => { const t = r.cells[i].tier || "monitor", l = o[o.length - 1]; if (l && l.tier === t) { l.b = i; l.to = toOf(i, r.key); } else o.push({ tier: t, word: r.key === "lightning" ? r.cells[i].text : LEVEL_FULL[r.cells[i].text] || r.cells[i].text, a: i, b: i, from: fromOf(i, r.key), to: toOf(i, r.key) }); return o; }, []) }));
       const meta = HAZ[r.key] || { key: r.key.replace(/^hz-/, ""), label: String(r.label || r.key).replace(/^[^A-Za-z]+/, ""), order: 9 };
       return { ...meta, row: r.key, tier: c.tier || "monitor", word: r.key === "lightning" ? c.text : LEVEL_FULL[c.text] || c.text, why: c.why || "", peakMs: V.span[top], runs, hours: runs.map((x) => x.text).join(", ") };
     }).filter(Boolean).sort((a, b) => a.order - b.order);
@@ -216,13 +221,13 @@
     const rain = by.rain || null;
     tiles.push(fin(T.qpf) ? { key: "rain", label: "Rain total", value: f2(T.qpf), pre: lb, unit: "in", unitWord: "inches", sub: [range(T.qpfR, f2) || (T.gap ? "" : windowWords(V))], cover: totCov, flag: rain }
       : { key: "rain", label: "Rain total", value: null, sub: ["No data (not zero)"], flag: null });
-    if (T.peakQ) tiles.push({ key: "rate", label: "Heaviest rain rate", value: f2(T.peakQ.v), unit: "in/hr", unitWord: "inches per hour", sub: [`Around ${around(T.peakQ.ms)}`], cover: totCov, flag: null, at: T.peakQ.ms }); // a number only: the rain rating is named once, on the Rain total tile
+    if (T.peakQ) tiles.push({ key: "rate", label: "Heaviest rain rate", value: f2(T.peakQ.v), unit: "in/hr", unitWord: "inches per hour", sub: [V.custom ? `${clock(T.peakQ.ms - H)}–${clock(T.peakQ.ms)}` : `Around ${around(T.peakQ.ms)}`], cover: totCov, flag: null, at: T.peakQ.ms }); // a number only: the rain rating is named once, on the Rain total tile
     /* gusts: the highest hourly gust the wind chart shows; a full tile only when the briefing flags wind */
     const g = ok.filter((h) => fin(h.gust)).reduce((a, h) => (!a || h.gust > a.v ? { v: h.gust, ms: h.ms } : a), null), wind = by.wind || null;
     /* "not a concern" only when every event hour has a gust value; otherwise the line says partial coverage */
     const gustCov = coverage(V.span.map((ms, i) => !!(V.hrs[i] && V.hrs[i].state === "ok" && fin(V.hrs[i].gust))));
     let gustLine = null;
-    if (wind && g) tiles.push({ key: "gust", label: "Peak gusts", value: String(Math.round(g.v)), unit: "mph", unitWord: "miles per hour", sub: [`Around ${around(g.ms)} · your limit ${gustLimit} mph`], cover: gustCov, flag: wind, at: g.ms });
+    if (wind && g) tiles.push({ key: "gust", label: "Peak gusts", value: String(Math.round(g.v)), unit: "mph", unitWord: "miles per hour", sub: [`${V.custom ? `${clock(g.ms - H)}–${clock(g.ms)}` : `Around ${around(g.ms)}`} · your limit ${gustLimit} mph`], cover: gustCov, flag: wind, at: g.ms });
     else gustLine = !g ? { text: "Gusts: no data for these hours (not zero)", state: "missing", cover: "none" }
       : gustCov ? { text: `Gusts up to ${Math.round(g.v)} mph in the hours with data · ${g.v >= gustLimit ? `reach your ${gustLimit} mph limit around ${around(g.ms)}, rated low for this plan · ` : ""}partial coverage`, state: g.v >= gustLimit ? "low" : "partial", cover: "part", v: Math.round(g.v) }
       : { text: `Gusts up to ${Math.round(g.v)} mph · ${g.v >= gustLimit ? `reach your ${gustLimit} mph limit around ${around(g.ms)}, rated low for this plan` : `below your ${gustLimit} mph limit, not a concern`}`, state: g.v >= gustLimit ? "low" : "clear", cover: "all", v: Math.round(g.v) };
@@ -233,7 +238,7 @@
     }
     if (by.lightning) tiles.push({ key: "lightning", label: "Lightning potential", value: by.lightning.word, unit: "", sub: [`Peaks around ${around(by.lightning.peakMs)} · forecast potential, not detected lightning`], flag: by.lightning, at: by.lightning.peakMs });
     /* event parts on the window axis, from the hours each part covers */
-    const parts = []; (V.cover || []).forEach((ps, i) => ps.forEach((p) => { let x = parts.find((q) => q.key === p.key); if (!x) parts.push(x = { key: p.key, label: p.label, from: V.span[i] + p.from * 60e3, to: 0 }); x.to = V.span[i] + p.to * 60e3; }));
+    const parts = []; (V.cover || []).forEach((ps, i) => ps.forEach((p) => { let x = parts.find((q) => q.key === p.key); if (!x) parts.push(x = { key: p.key, label: p.label, from: hs(i) + p.from * 60e3, to: 0 }); x.to = hs(i) + p.to * 60e3; }));
     const missing = V.hrs.filter((h) => !h || h.state !== "ok").length;
     return { s, e, flags, tiles, gustLine, types: (T.types || []).slice(), parts, missing, gap: T.gap || 0, when, around, clock, dayOf, multiDay };
   }

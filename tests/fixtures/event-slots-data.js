@@ -1,8 +1,9 @@
 /* SYNTHETIC guidance for planner-defined schedules (tools/event-slots-check.js): a garden venue near Cincinnati with
    invented weather. Not a forecast. The event travels in the link (?e=); ?wx= picks the weather:
-     ceremony  a shower in the 4 PM and 5 PM hours tomorrow (the wedding's Outdoor ceremony)
-     gap       rain only in the 6 PM hour tomorrow, between a wedding's Outdoor ceremony (4–4:30 PM) and a 7 PM
-               reception (an hour wholly between slots: hourly guidance can't split an hour, so shorter gaps hold none)
+     ceremony  rain falling 4–5 PM tomorrow (the hourly amount labelled 5 PM): the wedding's Outdoor ceremony
+     gap       rain falling 3–4 PM tomorrow only (labelled 4 PM), between the wedding's Vendor setup (1–3 PM) and its
+               Outdoor ceremony (4–4:30 PM)
+   Hourly amounts, chance and gusts are for the hour ending at their label (Core.event.KIND).
      evening   rain 6–9 PM tomorrow (the single-window Reception)
      night     gusty after 10 PM tomorrow into the early morning (the overnight event)
      festival  a shower Saturday 2–4 PM; the guidance ends Saturday night, so a Sunday slot has none yet
@@ -17,8 +18,8 @@
     const d = local(m).slice(0, 10), hr = +local(m).slice(11, 13), tm = d === tomorrow, nx = d === after;
     const temp = 58 + 9 * Math.max(0, Math.sin(((hr - 9) / 14) * Math.PI));
     let pop = 10, qpf = 0, gust = 12;
-    if (wx === "ceremony" && tm && (hr === 16 || hr === 17)) { pop = 70; qpf = 0.12; }
-    if (wx === "gap" && tm && hr === 18) { pop = 65; qpf = 0.12; }
+    if (wx === "ceremony" && tm && hr === 17) { pop = 70; qpf = 0.12; }
+    if (wx === "gap" && tm && hr === 16) { pop = 65; qpf = 0.12; }
     if (wx === "evening" && tm && hr >= 19 && hr <= 21) { pop = 65; qpf = 0.08; }
     if (wx === "night" && ((tm && hr >= 22) || (nx && hr <= 2))) gust = 31;
     if (wx === "festival" && local(m).slice(0, 10) === local(t0 + 78 * H).slice(0, 10) && hr >= 14 && hr <= 15) { pop = 60; qpf = 0.1; }

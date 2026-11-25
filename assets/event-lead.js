@@ -56,7 +56,8 @@
   function gaps({ b, V, R, feeds, alertsAvailable, now, tz }) {
     const f = feeds || { used: [], missing: [] }, total = f.used.length + (f.missing || []).length;
     const thin = total > 0 && f.used.length / total < 0.7; // the briefing's own "material gap" rule (gapFlag)
-    const inEvent = (ms) => b.phases.some((p) => ms + H > p.startMs && ms < p.endMs);
+    /* planner-defined slots: an hour's guidance is event guidance when its hour (ending at the label) meets a slot */
+    const inEvent = (ms) => (b.custom ? b.phases.some((p) => p.startMs < ms && p.endMs > ms - H) : b.phases.some((p) => ms + H > p.startMs && ms < p.endMs));
     const missingHours = (V ? V.span : []).filter((ms, i) => inEvent(ms) && ms + H > now && V.hrs[i] && V.hrs[i].state !== 'ok' && V.hrs[i].state !== 'beyond');
     const partial = R && R.state === 'partial' ? R.line : null;
     const hoursText = missingHours.length ? `${missingHours.length === 1 ? `the ${clock(missingHours[0], tz)} hour has` : `${missingHours.length} event hours (${span(missingHours[0], missingHours[missingHours.length - 1] + H, tz)}) have`} no forecast data` : '';
@@ -100,7 +101,7 @@
   function heavier(o) {
     const { b, V, tz } = o, ev = b.phases.find((p) => p.key === 'event'), gates = b.phases.find((p) => p.key === 'gates');
     if (!V || !ev) return null;
-    const hrs = V.span.map((ms, i) => ({ ms, q: V.hrs[i] && V.hrs[i].state === 'ok' && fin(V.hrs[i].qpf) ? Math.round(V.hrs[i].qpf * 100) : null })).filter((x) => x.q != null && x.ms + H > b.all.startMs && x.ms < b.all.endMs && (!b.spans || b.spans.some((g) => x.ms + H > g.s && x.ms - H < g.e)));
+    const hrs = V.span.map((ms, i) => ({ ms, q: V.hrs[i] && V.hrs[i].state === 'ok' && fin(V.hrs[i].qpf) ? Math.round(V.hrs[i].qpf * 100) : null })).filter((x) => x.q != null && (b.custom ? b.phases.some((p) => p.startMs < x.ms && p.endMs > x.ms - H) : x.ms + H > b.all.startMs && x.ms < b.all.endMs)).map((x) => (b.custom ? { ...x, ms: x.ms - H } : x)); // slots: an amount's hour ends at its label
     const top = Math.max(0, ...hrs.map((x) => x.q)); if (!(top > 0)) return null;
     const peak = hrs.filter((x) => x.q === top), word = /^(race|run|marathon|walk)$/.test(eventWord(b.ev && b.ev.name)) ? 'lineup' : 'gates';
     const inGates = !!gates && peak.some((x) => x.ms < gates.endMs && x.ms + H > gates.startMs), nearStart = peak.some((x) => Math.abs(x.ms - ev.startMs) <= H);
@@ -223,7 +224,9 @@
     /* 2. model spread: the forecast range across sources the page already computes */
     const T = V && V.totals, spread = [];
     /* with gaps between slots, say which hours the totals and timing cover (only the hours inside the slots are summed) */
-    if (b.spans && b.spans.length > 1) spread.push(`Totals cover your slots: ${slotSpans(b.spans, tz)}; hours wholly between them are not counted.`);
+    if (b.spans && b.spans.length > 1) spread.push(`Totals cover your slots: ${slotSpans(b.spans, tz)}; rain that falls between them is not counted.`);
+    /* hourly guidance can't split an hour: say which partly covered hours are counted with which slot */
+    if (b.custom && V && V.totals && V.totals.partial && V.totals.partial.length) spread.push(`Hourly data: ${V.totals.partial.slice(0, 3).map((x) => `${span(x.s, x.e, tz)} counted with ${listWords(x.labels.map((l) => PS(l)))}`).join('; ')}; the forecast can’t separate parts of an hour.`);
     if (T && fin(T.qpf)) spread.push(`Rain over the event ${inch(T.qpf)} in the blend${T.qpfR && fin(T.qpfR[0]) && fin(T.qpfR[1]) ? (T.qpfR[1] - T.qpfR[0] >= 0.005 ? `; sources range ${inch(T.qpfR[0])}–${inch(T.qpfR[1])} (10th–90th percentile, weighted)` : '; the sources agree on that amount') : ''}${T.gap ? `, with ${T.gap} hour${T.gap > 1 ? 's' : ''} missing` : ''}.`);
     if (top && top.timing && top.timing.of) spread.push(`${top.timing.show} of ${top.timing.of} sources show ${top.noun} in these hours${fin(top.timing.first) && top.key !== 'lightning' ? `, first between ${clock(top.timing.first, tz)} and ${clock(top.timing.last, tz)}` : ''}. Timing: ${top.certainty.word.replace(/^./, (c) => c.toLowerCase())}.`);
     const ev = b.phases.find((p) => p.key === 'event'), er = ev && ev.r;

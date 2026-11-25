@@ -52,7 +52,12 @@ const link = (name, slots) => '?e=' + encodeURIComponent(JSON.stringify({ n: nam
   t: { start: slots[0][1], end: slots.reduce((m, x) => (x[2] > m ? x[2] : m), slots[0][2]) }, g: 25, s: slots }));
 const D = TOMORROW, D2 = '2026-11-27';
 const WEDDING = [['Vendor setup', `${D}T13:00`, `${D}T15:00`], ['Outdoor ceremony', `${D}T16:00`, `${D}T16:30`, { m: 1 }], ['Reception', `${D}T17:00`, `${D}T22:00`]];
-const BREAK = [WEDDING[0], WEDDING[1], ['Reception', `${D}T19:00`, `${D}T22:00`]];
+const OVERLAP = [['Ceremony', `${D}T16:00`, `${D}T17:30`, { m: 1 }], ['Reception', `${D}T17:00`, `${D}T22:00`]];
+/* the hourly image (TV export), drawn from the page's own view, saved as a PNG */
+const tvShot = async (p, file) => { await p.evaluate(() => { document.getElementById('secHourly').open = true; });
+  await Promise.all([p.waitForEvent('download', { timeout: 20000 }).catch(() => null), p.click('#tvExport')]).catch(() => null);
+  const url = await p.evaluate(() => { const c = window.EventTvExport.draw(document.createElement('canvas'), window.__lastHourly); return c.toDataURL('image/png'); }).catch(() => null);
+  if (url) fs.writeFileSync(file, Buffer.from(url.split(',')[1], 'base64')); return !!url; };
 const RECEPTION = [['Reception', `${D}T17:00`, `${D}T22:00`]], NIGHT = [['Night market', `${D}T21:00`, `${D2}T03:00`]];
 
 (async () => {
@@ -80,7 +85,8 @@ const RECEPTION = [['Reception', `${D}T17:00`, `${D}T22:00`]], NIGHT = [['Night 
       const lanes = await p.evaluate(() => [...document.querySelectorAll('#evDash .evd-part')].map((e) => e.getAttribute('title')));
       check(lanes.length === 3 && /^Vendor setup/.test(lanes[0]) && /^Outdoor ceremony/.test(lanes[1]) && /^Reception/.test(lanes[2]), `${L} the timeline ("When conditions could affect the event") lanes use the slot names (${lanes.join(' · ')})`);
       check(/Outdoor ceremony/.test(x.phases) && /Vendor setup/.test(x.phases) && /Reception/.test(x.phases), `${L} By phase lists the slots by name`);
-      check(/Totals cover your slots: 1–3 PM, 4–4:30 PM, 5–10 PM/.test(x.why), `${L} Why this is flagged says which hours the totals cover`);
+      check(/Totals cover your slots: 1–3 PM, 4–4:30 PM, 5–10 PM/.test(x.why) && /Hourly data: 4–5 PM counted with the Outdoor ceremony; the forecast can’t separate parts of an hour/.test(x.why), `${L} Why this is flagged says which hours the totals cover and that 4–5 PM counts with the ceremony`);
+      check(await tvShot(p, path.join(out, 'wedding-tv-export.png')), `${L} hourly image (TV) exported with the slot names`);
       check(x.nextBottom != null && x.nextBottom <= x.vh && !x.hscroll, `${L} decision, callouts and next check on the first 375×667 screen (next check ends at ${x.nextBottom} px; decision at ${x.decisionBottom})`);
       await p.screenshot({ path: path.join(out, 'wedding-phone-first-screen.png') });
       await p.locator('#evDash').screenshot({ path: path.join(out, 'wedding-timeline.png') }).catch(() => {});
@@ -91,12 +97,12 @@ const RECEPTION = [['Reception', `${D}T17:00`, `${D}T22:00`]], NIGHT = [['Night 
       fs.writeFileSync(path.join(out, 'wedding-pdf.txt'), P.p1 + '\n\f\n' + P.p2);
       check(!errors.length, `${L} no page errors ${errors.join('; ')}`); await ctx.close(); }
 
-    /* ---- owner case 2: rain only in an hour between slots (6 PM, after a 4–4:30 PM ceremony and before a 7 PM reception) ---- */
-    { const { ctx, p, errors } = await open(browser, srv, { fixture: 'event-slots-data.js', query: link('Wedding', BREAK) + '&wx=gap' }); const x = await texts(p), L = 'wedding, rain only in a gap:';
+    /* ---- owner case 2: rain falling 3–4 PM only (labelled 4 PM), between Vendor setup and the Outdoor ceremony ---- */
+    { const { ctx, p, errors } = await open(browser, srv, { fixture: 'event-slots-data.js', query: link('Wedding', WEDDING) + '&wx=gap' }); const x = await texts(p), L = 'wedding, rain only in a gap:';
       console.log('   decision: ' + x.decision); console.log('   why: ' + x.why.slice(0, 400));
       check(!/rain/i.test(x.decision) || /No weather concern/i.test(x.decision), `${L} no rain concern for any slot (${x.decision})`);
       check(!/Rain:/.test(x.phases), `${L} no slot is rated for rain`);
-      check(/Totals cover your slots: 1–3 PM, 4–4:30 PM, 7–10 PM; hours wholly between them are not counted/.test(x.why), `${L} Why this is flagged states the hours the totals cover`);
+      check(/Totals cover your slots: 1–3 PM, 4–4:30 PM, 5–10 PM; rain that falls between them is not counted/.test(x.why), `${L} Why this is flagged states the hours the totals cover`);
       const tile = await p.evaluate(() => { const t = document.querySelector('[data-tile=rain] [data-value]'); return t ? t.textContent : null; });
       check(tile === '0.00' || tile === '0', `${L} the rain total over the slots is 0 (tile ${tile})`);
       await p.screenshot({ path: path.join(out, 'wedding-gap-phone-first-screen.png') });
@@ -105,12 +111,25 @@ const RECEPTION = [['Reception', `${D}T17:00`, `${D}T22:00`]], NIGHT = [['Night 
         const hour = document.querySelector('#evCharts [data-variable=pop] [data-hour]'), cols = [...document.querySelectorAll('#evCharts [data-variable=pop] [data-hour]')].map((x) => +x.dataset.hour);
         return { cols, between: document.querySelectorAll('#evCharts [data-variable=pop] .evc-between').length, label: !!document.querySelector('#evCharts .evc-betweentext'),
           grid: [...document.querySelectorAll('#evGrid th, #evGrid td')].some((c) => /Between slots/.test(c.textContent)) }; });
-      const at4 = Date.parse(`${D}T18:00:00-05:00`);
+      const at4 = Date.parse(`${D}T16:00:00-05:00`);
       await p.locator(`#evCharts [data-variable=pop] [data-hour="${at4}"]`).first().click().catch(() => {}); await p.waitForTimeout(250);
-      const sel = await p.evaluate(() => ({ chance: (document.querySelector('#evCharts [data-value=pop]') || {}).textContent, amount: (document.querySelector('#evCharts [data-amount]') || {}).textContent }));
-      check(g.between >= 1 && g.label && g.grid, `${L} the hourly charts and grid still show the gap hours, shaded (with a "Between slots" title) and labelled in the grid (${JSON.stringify({ between: g.between, label: g.label, grid: g.grid })})`);
-      check(/65%/.test(sel.chance || '') && /0\.12/.test(sel.amount || ''), `${L} the gap rain is visible in the hourly chart at 6 PM (${sel.chance}, ${sel.amount})`);
+      const sel = await p.evaluate(() => ({ chance: (document.querySelector('#evCharts [data-value=pop]') || {}).textContent, amount: (document.querySelector('#evCharts [data-amount]') || {}).parentElement.textContent,
+        detail: (document.getElementById('evGridDetail') || {}).textContent || '', dash: document.getElementById('evDash').textContent }));
+      check(/Rain 3–4 PM/.test(sel.amount), `${L} the chart labels the rain interval (${sel.amount})`);
+      const flags = await p.evaluate(() => [...document.querySelectorAll('#evDash .evd-row')].map((r) => r.dataset.hazard));
+      check(!flags.includes('rain'), `${L} the hazard timeline (At a glance) has no rain row (${flags.join(', ') || 'none'})`);
+      await p.locator('#evGrid').first().scrollIntoViewIfNeeded().catch(() => {});
+      const gd = await p.evaluate((ms) => { const c = document.querySelector(`#evGrid button[data-ms="${ms}"]`); if (c) c.click(); return (document.getElementById('evGridDetail') || {}).textContent || ''; }, at4);
+      check(/3–4 PM \(the hour ending 4 PM\), between slots/.test(gd), `${L} the hour detail names the rain's hour (${gd.replace(/\s+/g, ' ').slice(0, 160)})`);
+      check(await tvShot(p, path.join(out, 'wedding-gap-tv-export.png')), `${L} hourly image (TV) exported with the gap hour shaded`);      check(g.between >= 1 && g.label && g.grid, `${L} the hourly charts and grid still show the gap hours, shaded (with a "Between slots" title) and labelled in the grid (${JSON.stringify({ between: g.between, label: g.label, grid: g.grid })})`);
+      check(/65%/.test(sel.chance || '') && /0\.12/.test(sel.amount || ''), `${L} the 3–4 PM rain is visible in the hourly chart (column 4 PM, "Rain 3–4 PM") (${sel.chance}, ${sel.amount})`);
       await p.locator('#evCharts [data-variable=pop]').first().scrollIntoViewIfNeeded(); await p.locator('#evCharts [data-variable=pop]').first().screenshot({ path: path.join(out, 'wedding-gap-hourly-chart.png') }).catch((e) => console.log('   (chart capture: ' + e.message.split('\n')[0] + ')'));
+      check(!errors.length, `${L} no page errors ${errors.join('; ')}`); await ctx.close(); }
+
+    /* ---- overlapping slots: an hour both slots share is counted once ---- */
+    { const { ctx, p, errors } = await open(browser, srv, { fixture: 'event-slots-data.js', query: link('Ceremony and reception', OVERLAP) + '&wx=evening' }), L = 'overlapping slots:';
+      const tile = await p.evaluate(() => { const t = document.querySelector('[data-tile=rain] [data-value]'); return t ? t.textContent : null; });
+      check(tile === '0.24', `${L} the rain total counts each hour once (6–9 PM, 3 × 0.08 in): ${tile}`);
       check(!errors.length, `${L} no page errors ${errors.join('; ')}`); await ctx.close(); }
 
     /* ---- overnight: 9 PM to 3 AM ---- */

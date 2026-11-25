@@ -1029,11 +1029,36 @@
       w.forEach((x) => { const l = out[out.length - 1]; if (l && x.s <= l.e) l.e = Math.max(l.e, x.e); else out.push({ ...x }); });
       return out;
     },
-    /* is the hour labelled ms event time? An hourly value is read both as the hour starting at its label (the hourly
-       grid's columns) and as the hour ending at it (accumulated amounts, as Core.event.locate rates each part), so an
-       hour is between slots only when neither reading touches a slot: [ms - 1 h, ms + 1 h) lies wholly in a gap. With
-       the fixed parts (one span) every hour of the event is event time. A gap shorter than two hours holds no such hour. */
-    inSpans: (spans, ms) => !spans || spans.some((x) => ms + 3600e3 > x.s && ms - 3600e3 < x.e),
+    /* ---- which slot an hourly value belongs to (planner-defined slots only; the fixed parts keep their own path) ----
+       Every hourly value carries a time label L, but not every value means the same moment:
+         "end" (the hour ending at L, i.e. L - 1 h to L): precipitation amount, snowfall, the ensemble share with at least
+                0.01 in (from members' precipitation), precipitation chance (PoP: Open-Meteo's "preceding hour") and gusts
+                (Open-Meteo's "maximum of the preceding hour")
+         "at"  (the moment L): temperature, feels-like, sustained wind and direction, and the thunder tier (from CAPE and
+                instantaneous fields)
+       So rain labelled 4 PM fell 3–4 PM. An "end" value belongs to every slot its hour overlaps; an hour that only partly
+       overlaps a slot is counted whole with that slot (hourly guidance can't split an hour). An "at" value belongs to the
+       slots whose start <= L <= end (as Core.event.locate reads instantaneous fields). */
+    KIND: { qpf: "end", sn: "end", chance: "end", pop: "end", gust: "end", temp: "at", feel: "at", wind: "at", thunder: "at" },
+    HAZARD_KIND: { rain: "end", wind: "end", snow: "end", lightning: "at", heat: "at", cold: "at" },
+    /* windows (or merged spans {s, e}) a value labelled L belongs to */
+    holding(wins, L, kind) {
+      const s = (w) => (w.startMs != null ? w.startMs : w.s), e = (w) => (w.endMs != null ? w.endMs : w.e);
+      return wins.filter((w) => w.key !== "all" && (kind === "end" ? s(w) < L && e(w) > L - 3600e3 : s(w) <= L && L <= e(w)));
+    },
+    covers: (spans, L, kind) => !spans || event.holding(spans, L, kind).length > 0,
+    /* "end" hours that only partly overlap the schedule (the rest of the hour is between slots or outside): counted whole
+       with the slot(s) they touch. [{ s, e, labels }] for the hour [s, e). */
+    partialHours(wins) {
+      const ph = wins.filter((w) => w.key !== "all"); if (!ph.length) return [];
+      const lo = Math.floor(Math.min(...ph.map((w) => w.startMs)) / 3600e3) * 3600e3, hi = Math.max(...ph.map((w) => w.endMs)), out = [];
+      for (let L = lo + 3600e3; L - 3600e3 < hi; L += 3600e3) {
+        const held = event.holding(ph, L, "end"); if (!held.length) continue;
+        const cov = event.union(held.map((w) => ({ key: w.key, startMs: Math.max(w.startMs, L - 3600e3), endMs: Math.min(w.endMs, L) }))).reduce((t, x) => t + x.e - x.s, 0);
+        if (cov < 3600e3) out.push({ s: L - 3600e3, e: L, labels: held.map((w) => w.label) });
+      }
+      return out;
+    },
     /* how a part is named in a sentence: the fixed parts as before ("setup", "gates", "teardown", "event"); a planner's
        own slot name as typed ("Outdoor ceremony") */
     word: (label) => (event.LEGACY_LABELS.includes(label) ? String(label).toLowerCase() : String(label || "")),

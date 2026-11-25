@@ -66,23 +66,36 @@ check("existing stadium events: read exactly as before; as slots they are Setup,
   assert.deepEqual(C.event.legacyTimes(sl), stadium.times, "unchanged slots save as the same fixed parts");
   assert.equal(C.event.legacyTimes([{ ...sl[0], name: "Load-in" }, ...sl.slice(1)]), null, "a renamed part is a slot schedule");
   assert.deepEqual(C.event.legacyTimes([{ name: "Event", start: `${day}T19:30`, end: `${day}T21:30` }]), { start: `${day}T19:30`, end: `${day}T21:30` }, "one window named Event is today's start/end-only event");
-  const { b } = run(stadium); assert.equal(b.spans, null, "no gaps: nothing filtered");
+  const { b } = run(stadium); assert.equal(b.spans, null, "the fixed parts keep their own path"); assert.equal(b.custom, false);
 });
-/* a wedding with a longer break before the reception (4:30–7 PM): the 6 PM hour lies wholly between slots */
-const longBreak = { ...wedding, id: "ev_break", slots: wedding.slots.map((x) => (x.name === "Reception" ? { ...x, start: `${day}T19:00` } : x)) };
-check("gaps: an hour wholly between slots is left out of the totals, concerns and timing; short gaps hold no whole hour", () => {
-  const ctx0 = data(), { b, V } = run(longBreak, ctx0), hh = (m) => C.time.toLocal(m, tz).slice(11, 13);
-  assert.deepEqual(V.span.map(hh), ["13", "14", "15", "16", "17", "18", "19", "20", "21"], "the grid and charts show every hour of the span");
-  assert.ok(!b.hours.map((h) => hh(h.ms)).includes("18"), "the 6 PM hour is not an event hour"); assert.ok(b.hours.map((h) => hh(h.ms)).includes("17"), "the 5 PM hour still reads the end of the ceremony's hour");
-  assert.equal(V.totals.hours, 8);
-  const sum = V.hrs.filter((h) => hh(h.ms) !== "18").reduce((t, h) => t + h.qpf, 0);
-  assert.ok(Math.abs(V.totals.qpf - sum) < 1e-9, `total ${V.totals.qpf} = the sum of the hourly amounts outside the gap (${sum})`);
-  const whole = run({ ...stadium, times: { start: `${day}T13:00`, end: `${day}T22:00` } }, ctx0).V.totals.qpf;
-  assert.ok(Math.abs(whole - V.totals.qpf - 0.05) < 1e-9, `one window over the same hours adds exactly the gap hour (${whole} vs ${V.totals.qpf})`);
-  assert.equal(V.rows.find((r) => r.key === "phase").cells[V.span.indexOf(at("18:00"))].text, "Between slots");
-  /* the owner's wedding: the 3–4 PM and 4:30–5 PM gaps are shorter than two hours, so every hourly value touches a slot
-     (the 3 PM column's amount is 2–3 PM rain, during vendor setup; the 4 PM column is the ceremony's hour) */
-  const w = run(wedding, ctx0); assert.equal(w.V.totals.hours, 9); assert.equal(w.V.rows.find((r) => r.key === "phase").cells.filter((c) => c.text === "Between slots").length, 0);
+const hh = (m) => C.time.toLocal(m, tz).slice(11, 13);
+check("interval conventions: hour-ending values (rain, snow, chance, gusts) and values at the time (temperature, wind, thunder)", () => {
+  assert.deepEqual(C.event.KIND, { qpf: "end", sn: "end", chance: "end", pop: "end", gust: "end", temp: "at", feel: "at", wind: "at", thunder: "at" });
+  const w = C.event.windows(wedding), L = at("16:00");
+  assert.deepEqual(C.event.holding(w, L, "end").map((x) => x.label), [], "rain labelled 4 PM fell 3–4 PM: between slots");
+  assert.deepEqual(C.event.holding(w, L, "at").map((x) => x.label), ["Outdoor ceremony"], "the temperature at 4 PM is the ceremony's");
+  assert.deepEqual(C.event.holding(w, at("17:00"), "end").map((x) => x.label), ["Outdoor ceremony"], "4–5 PM touches only the ceremony");
+});
+check("partial overlap: an hour that only partly overlaps a slot is counted whole with it, and said so", () => {
+  const ph = C.event.partialHours(C.event.windows(wedding));
+  assert.deepEqual(ph.map((x) => [hh(x.s), hh(x.e), x.labels]), [["16", "17", ["Outdoor ceremony"]]]);
+  const { V } = run(wedding), i = V.span.indexOf(at("17:00"));
+  assert.match(V.rows.find((r) => r.key === "phase").cells[i].title, /^Hourly data: 4–5 PM counted with Outdoor ceremony; the forecast can't separate parts of an hour$/);
+  assert.match(V.detail(i), /Hourly data: 4–5 PM counted with Outdoor ceremony/);
+});
+check("totals: each hour once, by the hour it covers; the 3–4 PM hour (labelled 4 PM) is out", () => {
+  const ctx0 = data(), { b, V } = run(wedding, ctx0);
+  assert.deepEqual(V.span.map(hh), ["13", "14", "15", "16", "17", "18", "19", "20", "21", "22"], "the grid and charts run to the hour ending at the last end");
+  const counted = V.span.filter((m) => C.event.covers(b.spans, m, "end")).map(hh);
+  assert.deepEqual(counted, ["14", "15", "17", "18", "19", "20", "21", "22"], "1–3 PM (2, 3 PM), 4–5 PM (5 PM, partly the ceremony), 5–10 PM (6–10 PM)");
+  assert.equal(V.totals.hours, 8); assert.ok(Math.abs(V.totals.qpf - 8 * 0.05) < 1e-9, `sum of the hourly amounts of those hours (${V.totals.qpf})`);
+  assert.equal(V.rows.find((r) => r.key === "phase").cells[V.span.indexOf(at("16:00"))].text, "Between slots");
+});
+check("overlapping slots: an hour two slots share is counted once", () => {
+  const ov = { ...wedding, id: "ev_ov", slots: [{ id: "c", name: "Ceremony", start: `${day}T16:00`, end: `${day}T17:30`, main: true }, { id: "r", name: "Reception", start: `${day}T17:00`, end: `${day}T22:00` }] };
+  const { b, V } = run(ov);
+  assert.deepEqual(C.event.holding(b.phases, at("18:00"), "end").map((x) => x.label), ["Ceremony", "Reception"], "5–6 PM belongs to both");
+  assert.equal(V.totals.hours, 6); assert.ok(Math.abs(V.totals.qpf - 6 * 0.05) < 1e-9, `4–10 PM: six hours, each once (${V.totals.qpf})`);
 });
 check("gaps: the per-hour calculation and thresholds are the same with and without slots", () => {
   const a = run(wedding).V, z = run({ ...stadium, times: { start: `${day}T13:00`, end: `${day}T22:00` } }).V;
@@ -102,48 +115,47 @@ check("names in the briefing: the lead, the decision and the plan lines use the 
 });
 check("single window: the Reception is named, 5–10 PM; no gap wording", () => {
   const { b, V } = run(reception);
-  assert.equal(b.phases.length, 1); assert.equal(b.spans, null);
+  assert.equal(b.phases.length, 1); assert.equal(b.spans.length, 1);
   assert.match(U.headline(b, S.decision(b).text), /Reception/);
   assert.equal(V.rows.find((r) => r.key === "phase").cells.filter((c) => c.text === "Between slots").length, 0);
 });
 check("overnight slot: 9 PM to 3 AM is one window across midnight", () => {
   const ctx = data(at("06:00")), { b, V } = run(overnight, ctx);
-  assert.equal(V.span.length, 6); assert.equal(C.time.toLocal(V.span[5], tz), "2026-12-06T02:00");
-  assert.equal(b.spans, null);
+  assert.equal(V.span.length, 7); assert.equal(C.time.toLocal(V.span[6], tz), "2026-12-06T03:00", "through the hour ending at 3 AM");
+  assert.equal(b.spans.length, 1); assert.equal(b.custom, true);
   assert.equal(S.readiness(b, ctx).line, "The Night market covered");
 });
 check("why this is flagged: totals over gaps name the slot hours they cover", () => {
   const { b, V, ctx } = run(wedding), A2 = U.attention({ b, V, S, thr: { gust: 25 } });
   const o = { b, A: A2, R: S.readiness(b, ctx), S, V, ctx, feeds: { used: ["GFS", "ECMWF IFS", "NBM"], missing: [] }, alerts: [], alertsAvailable: true, tz, now: ctx.now, limit: 25, names: {} };
   const LM = L.model(o), W = L.why(o, LM), spread = W.rows.find((r) => r[0] === "Model spread")[1];
-  assert.match(spread, /Totals cover your slots: 1–3 PM, 4–4:30 PM, 5–10 PM; hours wholly between them are not counted\./);
-  assert.ok(A2.hours.filter((x) => x.rain.signal).every((x) => C.event.inSpans(b.spans, x.ms)), "no attention hour in a gap");
+  assert.match(spread, /Totals cover your slots: 1–3 PM, 4–4:30 PM, 5–10 PM; rain that falls between them is not counted\./);
+  assert.ok(A2.hours.filter((x) => x.rain.signal).every((x) => C.event.covers(b.spans, x.ms, "end")), "no attention hour in a gap");
   assert.match(L.leadHtml(LM, { tz, lat: 39, lon: -84 }), /Vendor setup through Reception/);
 });
 const leadOf = (ev, ctx) => { const { b, V } = run(ev, ctx), A2 = U.attention({ b, V, S, thr: { gust: 25 } });
   const o = { b, A: A2, R: S.readiness(b, ctx), S, V, ctx, feeds: { used: ["GFS", "ECMWF IFS", "NBM"], missing: [] }, alerts: [], alertsAvailable: true, tz, now: ctx.now, limit: 25, names: {} };
   const LM = L.model(o); return { b, V, A2, LM, W: L.why(o, LM), head: U.headline(b, S.decision(b).text) }; };
-check("owner case 1: a shower at the Outdoor ceremony (the 4 and 5 PM hours); the headline, lead and plan lines name that slot", () => {
-  /* a shower in the 4 PM and 5 PM hours of the hourly grid (synthetic): the ceremony's own rating sees the 4–5 PM amount */
-  const ctx = data(at("06:00"), (hr) => hr === 16 || hr === 17), r = leadOf(wedding, ctx);
-  assert.equal(r.b.top.key, "rain"); assert.ok(r.b.phases.find((p) => p.label === "Outdoor ceremony").levels.rain >= 1, "the ceremony is rated for rain");
-  assert.equal(r.b.top.phases[0], "Outdoor ceremony"); assert.ok(!r.b.top.phases.includes("Vendor setup"));
+check("owner case 1: rain during the Outdoor ceremony (4–5 PM, labelled 5 PM): headline, lead, plan lines and Why name that slot", () => {
+  const ctx = data(at("06:00"), (hr) => hr === 17), r = leadOf(wedding, ctx);
+  assert.equal(r.b.top.key, "rain"); assert.deepEqual(r.b.top.phases, ["Outdoor ceremony"]);
+  assert.equal(r.b.top.from, at("16:00")); assert.equal(r.b.top.to, at("17:00"), "the concern's hours are the hour the rain fell");
   assert.equal(r.head, "Watch for rain through the 4 PM Outdoor ceremony.");
-  assert.match(L.leadHtml(r.LM, { tz, lat: 39, lon: -84 }), /Outdoor ceremony 4–4:30 PM/);
-  assert.match(S.decision(r.b).text, /Outdoor ceremony/);
+  assert.match(L.leadHtml(r.LM, { tz, lat: 39, lon: -84 }), /Thu|Sat/); assert.match(L.leadHtml(r.LM, { tz, lat: 39, lon: -84 }), /4–5 PM<\/b>, <span class="ev-ph">Outdoor ceremony 4–4:30 PM<\/span>/);
   const lines = U.planLines(r.A2, r.b, { state: "ok", base: "Low" }, tz, (v) => `${Math.round(v)}%`).map((x) => x.text).join(" ");
-  assert.match(lines, /the Outdoor ceremony/); assert.doesNotMatch(lines, /Vendor setup/);
+  assert.match(lines, /the Outdoor ceremony/); assert.doesNotMatch(lines, /Vendor setup|Reception/);
+  assert.match(r.W.rows.find((x) => x[0] === "Model spread")[1], /Hourly data: 4–5 PM counted with the Outdoor ceremony; the forecast can’t separate parts of an hour\./);
+  assert.ok(Math.abs(r.V.totals.qpf - 0.05) < 1e-9);
 });
-check("owner case 2: rain only in an hour between slots (6 PM, before a 7 PM reception): no slot is affected, the totals leave it out, the grid still shows it", () => {
-  const ctx = data(at("06:00"), (hr) => hr === 18), r = leadOf(longBreak, ctx);
-  assert.equal(r.b.top, null, "no concern: the only wet hour is between slots");
-  assert.ok(r.b.phases.every((p) => !p.levels.rain), "no slot rated for rain");
-  assert.equal(r.V.totals.qpf, 0, "the gap hour's rain is not in the total");
-  const i = r.V.span.indexOf(at("18:00")); assert.ok(Math.abs(r.V.hrs[i].qpf - 0.05) < 1e-9, "the hourly grid and charts still show it"); assert.equal(r.V.rows.find((x) => x.key === "phase").cells[i].text, "Between slots");
-  const all = run({ ...stadium, times: { start: `${day}T13:00`, end: `${day}T22:00` } }, ctx);
-  assert.ok(all.V.totals.qpf > 0.04, "the same hours as one window would count it (same per-hour values)");
-  assert.match(r.W.rows.find((x) => x[0] === "Model spread")[1], /Totals cover your slots: 1–3 PM, 4–4:30 PM, 7–10 PM; hours wholly between them are not counted\./);
-  assert.ok(r.A2.hours.every((x) => !x.rain.signal), "no attention-track hour");
+check("owner case 2: rain only 3–4 PM (labelled 4 PM), between Vendor setup and the ceremony: shown, marked, never counted", () => {
+  const ctx = data(at("06:00"), (hr) => hr === 16), r = leadOf(wedding, ctx), i = r.V.span.indexOf(at("16:00"));
+  assert.equal(r.b.top, null, "no concern"); assert.ok(r.b.phases.every((p) => !p.levels.rain), "no slot rated for rain");
+  assert.equal(r.V.totals.qpf, 0, "not in the slot totals");
+  assert.ok(Math.abs(r.V.hrs[i].qpf - 0.05) < 1e-9, "still in the hourly grid and charts"); assert.equal(r.V.rows.find((x) => x.key === "phase").cells[i].text, "Between slots");
+  assert.match(r.V.detail(i), /Rain, rain chance and gusts: 3–4 PM \(the hour ending 4 PM\), between slots: not in the event totals\. Temperature and wind: at 4 PM, Outdoor ceremony\./);
+  assert.ok(r.A2.hours.every((x) => !x.rain.signal), "not in the attention tracks"); assert.equal(r.A2.items.length, 0);
+  assert.ok(r.V.rows.filter((x) => /^hz-/.test(x.key)).every((x) => x.cells[i].state !== "concern"), "no concern cell for the hazard timeline");
+  assert.match(r.W.rows.find((x) => x[0] === "Model spread")[1], /Totals cover your slots: 1–3 PM, 4–4:30 PM, 5–10 PM; rain that falls between them is not counted\./);
 });
 check("daylight notes name the slot", () => {
   const Dl = D.compute({ A, C, windows: C.event.windows(reception), lat: loc.lat, lon: loc.lon, tz });

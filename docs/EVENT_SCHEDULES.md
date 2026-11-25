@@ -38,25 +38,37 @@ The slot that leads the headline ("Rain likely through the 4 PM Outdoor ceremony
 When a concern doesn't touch the main slot, the headline names the first slot it does touch ("Plan for rain during
 the Reception, from 7 PM").
 
-## Gaps between slots
+## Which slot an hourly value belongs to (interval rule)
 
-* An hour is **between slots** when neither reading of its hourly value touches a slot: the hour starting at its
-  label (how the hourly grid and charts show it) and the hour ending at it (how accumulated amounts work, and how
-  each slot's own rating reads them, `Core.event.locate`). In other words `[label - 1 h, label + 1 h)` lies wholly in a
-  gap (`Core.event.inSpans`).
-* Hours between slots stay in the hourly grid and the hourly charts with their values, shaded and labelled
-  "Between slots" / "Gap". They are left out of the concern hours, hazard timing (each source's first hour), the
-  attention tracks, At a glance and every total.
-* Totals over discontiguous slots are the same blend call (`C.blend.windowRow`) over the remaining hours, so a total is
-  the sum of those hours' amounts. Per-hour values and every threshold are unchanged; each slot is still rated on its
-  own hours exactly as the fixed parts are.
-* Rain timing across slots reads each source span by span (the same `ModelTrends.timing` call) and takes its first
-  wet span.
-* "Why this is flagged" says which hours the totals cover: "Totals cover your slots: 1–3 PM, 4–4:30 PM, 7–10 PM;
-  hours wholly between them are not counted." The printout's summary says "Rain over your slots (…)".
-* Guidance is hourly and an hour can't be split, so a gap shorter than two hours (the wedding's 3–4 PM and
-  4:30–5 PM) holds no whole hour: its hours are shared with the neighbouring slots and counted with them, the same
-  way a 30-minute Gates part is read today. A longer break (4:30–7 PM before a 7 PM reception) leaves the 6 PM hour out.
+Every hourly value has a time label, but not every value means the same moment. Planner-defined slots assign each value
+by the interval it covers (`Core.event.KIND`, `Core.event.holding`); the fixed Setup / Gates / Event / Teardown parts keep
+their existing path unchanged.
+
+| Variable | Interval | Source |
+| --- | --- | --- |
+| Precipitation amount, snowfall | the hour **ending** at the label (rain labelled 4 PM fell 3–4 PM) | Open-Meteo hourly sums of the preceding hour; `Core.blend.aggregate` reads them as `acc` |
+| Ensemble share with at least 0.01 in | the hour ending at the label | built from members' precipitation (`acc`) |
+| Precipitation chance (PoP) | the hour ending at the label | Open-Meteo: "probability of precipitation … of the preceding hour" |
+| Gusts | the hour ending at the label | Open-Meteo: "maximum of the preceding hour" |
+| Temperature, feels-like, sustained wind and direction | **at** the label | instantaneous (`idx`) |
+| Thunder tier | at the label | from CAPE and other instantaneous fields |
+
+* A slot's own rating uses its hour-ending values from the hours that overlap it (as `Core.event.locate` already does
+  for amounts; for slots, PoP and gusts are read over the same hours) and its instantaneous values from the labels
+  inside it. Hazards follow their variable: rain, wind and snow by the hour ending at the label; lightning, heat and
+  cold at the label.
+* **Partial overlap:** an hour that only partly overlaps a slot is counted whole with that slot. Amounts are never
+  split. The page says so: "Hourly data: 4–5 PM counted with the Outdoor ceremony; the forecast can't separate parts
+  of an hour" (in "Why this is flagged", the hour's detail and the grid cell's title).
+* **Between slots:** an hour-ending value whose hour meets no slot (rain falling 3–4 PM between Vendor setup and the
+  ceremony, labelled 4 PM) stays in the hourly grid, the charts and the hourly image, shaded and labelled "Between
+  slots" / "Gap", with its interval named ("Rain 3–4 PM", "the hour ending 4 PM"). It is left out of the slot totals,
+  the concern and lead, At a glance and the hazard timeline.
+* **Totals** are the same blend call (`C.blend.windowRow`) over the hours whose hour overlaps any slot, each hour once
+  (the union), so overlapping slots never count an hour twice. A total is the sum of those hours' amounts. Per-hour
+  values and thresholds are unchanged.
+* "Why this is flagged" names the hours: "Totals cover your slots: 1–3 PM, 4–4:30 PM, 5–10 PM; rain that falls between
+  them is not counted."
 
 ## Share links and backups
 
@@ -84,7 +96,9 @@ guidance does not reach it. The follow-up would add:
 * **Two-page printout for the selected day**: the same handout and hour table, titled with the day.
 * **Official alerts** are still checked for the venue, for the whole event.
 
-Built today, for reference: rain in an hour between slots stays visible in the hourly chart, shaded and labelled,
-and is left out of the totals and concerns.
+Built today, for reference: rain falling 3–4 PM between slots stays visible in the hourly chart, shaded and
+labelled, and is left out of the totals and concerns; the hourly image shows the slot names.
 
-![Hourly chart with a gap hour](beta/schedule-sketch/wedding-gap-hourly-chart.png)
+![Hourly chart with rain between slots](beta/schedule-sketch/wedding-gap-hourly-chart.png)
+
+![Hourly image (TV) with slot names](beta/schedule-sketch/wedding-tv-export.png)

@@ -245,7 +245,7 @@
     const top = b.top, checks = S.checkAgain(ctx, b, U.NAMES), next = checks[0];
     /* one set of hourly values for everything below: the grid, the phase summaries and the printout */
     const V = window.HourlyViews.eventView({ C, S, M: window.HourlyModel, ctx, brief: b, thr, tz, now });
-    const PS = window.HourlyModel.phaseSummaries(S, b, V.hrs, V.cover), live = PS.filter((p) => p.covered);
+    const PS = window.HourlyModel.phaseSummaries(S, b, V.hrs, V.cover, V.coverAt), live = PS.filter((p) => p.covered);
     const peak = live.filter((p) => p.peakPop).reduce((a, p) => (!a || p.peakPop.v > a.v ? p.peakPop : a), null);
     const lightAll = lightningOf(PS), nwsTh = window.HourlyModel.nwsThunder(ctx.nws, b.all.startMs, b.all.endMs);
     const A = BUI.attention({ b, V, S, thr }); // the same hourly values and venue limit feed the screen tracks and the printout
