@@ -75,8 +75,8 @@ const report = (ok, name, detail) => { if (!ok) failed++; console.log(`${ok ? "P
     { const { ctx, p, errors } = await open(dev, `case=multiday&theme=${theme}`), g = await read(p);
       const beyond = g.rows.concern.filter((c) => c.state === "missing"), wrong = g.rows.concern.filter((c, i) => c.state === "clear" && g.rows.temp[i].state === "missing");
       const partial = g.rows.concern.filter((c) => c.state === "partial");
-      report(g.days.length === 3 && g.hours.length === 60 && beyond.length > 0 && beyond.every((c) => c.text === "n/a") && !wrong.length && partial.length > 0 && partial.every((c) => c.text === "Limited") && g.rows.temp.filter((c) => c.state === "missing").every((c) => c.text === "—") && !errors.length,
-        `multi-day event (${devName}, ${theme}): 60 hours over three dates; hours beyond the guidance read n/a (never "no concern"); hours without thunder guidance read Limited`,
+      report(g.days.length === 3 && g.hours.length === 60 && beyond.length > 0 && beyond.every((c) => c.text === "n/a") && !wrong.length && partial.length > 0 && partial.every((c) => c.text === "Limited") && g.rows.temp.filter((c) => c.state === "missing").every((c) => c.text === "No data") && !errors.length,
+        `multi-day event (${devName}, ${theme}): 60 hours over three dates; hours beyond the guidance read n/a (never "no concern") and their values "No data"; hours without thunder guidance read Limited`,
         `${g.days.join(" | ")} · ${beyond.length} beyond · ${partial.length} partial · ${wrong.length} missing hours shown as clear${errors.length ? " · " + errors.join("; ") : ""}`);
       if (shots.includes("multiday")) await p.screenshot({ path: `${out}/hourly-event-multiday-${devName}-${theme}.png` });
       await ctx.close(); }
