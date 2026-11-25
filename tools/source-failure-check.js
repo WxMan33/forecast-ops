@@ -150,7 +150,7 @@ async function eventChecks(base) {
   const gapHour = sim.DAY0 + (gapFrom + 1) * H;
   await openHourly(p); await p.waitForTimeout(200);
   await p.locator(`#evCharts [data-variable=pop] [data-hour="${gapHour}"]`).click();
-  check((await text(p, '#evCharts [data-value=pop]')).trim() === '—', 'event: an hour with no rain-chance guidance shows — on the chart, not 0%');
+  check((await text(p, '#evCharts [data-value=pop]')).trim() === 'No data', 'event: an hour with no rain-chance guidance shows "No data" on the chart, not 0%');
   check(!/\b0%/.test(await text(p, '#evGridDetail')), 'event: selected-hour details never turn the missing chance into 0%');
   /* the printout has no phase table; each phase's peak in the printed hourly table must equal its card's peak */
   const agree = await p.evaluate(() => { const cards = [...document.querySelectorAll('#phases .bx-phase[data-phase]')].map((c) => ({ label: c.querySelector('.nm').childNodes[0].textContent.trim(), peak: c.querySelector('[data-peak]').textContent.trim() }));

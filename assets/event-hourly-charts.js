@@ -63,7 +63,7 @@
       { key: "wind", name: "Wind & gusts", unit: "mph", color: "wind", second: "gust", secondLabel: "Gusts", hazard: "hz-wind", hazardWord: "Wind", limit: gustLimit },
       { key: "lightning", name: "Lightning potential", unit: "", color: "lightning", type: "tier", max: 3 },
     ];
-    const text = (key, i) => rows[key]?.cells[i]?.text ?? "—";
+    const text = (key, i) => rows[key]?.cells[i]?.text ?? "No data";
     const value = (spec, i) => {
       if (!V.hrs[i] || V.hrs[i].state !== "ok") return null;
       if (spec.type === "tier") { const c = rows.lightning?.cells[i]; return !c || c.state === "missing" ? null : { Low: 1, Moderate: 2, High: 3 }[c.text] ?? null; }
@@ -101,7 +101,7 @@
         under += `<text x="${x0 + 5}" y="${base - 7}" class="evc-bandlabel${T ? "" : " evc-bandlabel-unc"}" data-type-label="${kind}">${esc(fit ? label : T ? T.sym : "?")}</text>`;
       });
       /* missing hours: a light gap, "No data" when there is room */
-      ids.forEach((i, j) => { if (value(s, i) === null && V.hrs[i]?.state !== "beyond") marks += `<rect x="${left + j * bw + 2}" y="${top}" width="${bw - 4}" height="${base - top}" class="evc-gap"/><text x="${x(j)}" y="${(top + base) / 2 + 5}" text-anchor="middle" class="evc-gaptext">${bw >= 58 ? "No data" : "—"}</text>`; });
+      ids.forEach((i, j) => { if (value(s, i) === null && V.hrs[i]?.state !== "beyond") marks += `<rect x="${left + j * bw + 2}" y="${top}" width="${bw - 4}" height="${base - top}" class="evc-gap"><title>No data</title></rect>${bw >= 58 ? `<text x="${x(j)}" y="${(top + base) / 2 + 5}" text-anchor="middle" class="evc-gaptext">No data</text>` : ""}`; }); /* a narrow bar keeps its hatching and a "No data" title; the label is written out where it fits */
       /* hours the hourly guidance doesn't reach yet: left blank, with one label over them */
       runs(ids.map((i) => (V.hrs[i]?.state === "beyond" ? "b" : null))).forEach((r) => { const x0 = left + r.a * bw, wd = (r.b - r.a + 1) * bw;
         marks += `<text x="${x0 + wd / 2}" y="${(top + base) / 2 + 5}" text-anchor="middle" class="evc-beyond" data-beyond="${r.b - r.a + 1}">${wd >= 150 ? "Not in hourly range yet" : wd >= 60 ? "Not yet" : ""}</text>`; });
@@ -125,7 +125,7 @@
       const buttons = ids.map((i, j) => { const a = V.axis[i], on = V.span[i] === sel, show = j % every === 0 || on;
         return `<g role="button" tabindex="0" aria-label="${esc(`${a.date} ${a.hourText} ${a.zone}, ${s.name}: ${text(s.key, i)}`)}" aria-pressed="${on}" data-hour="${a.ms}"><rect x="${left + j * bw}" y="${top - 4}" width="${bw}" height="${base - top + 36}" fill="transparent"/>${on ? `<rect x="${left + j * bw + 1}" y="${top}" width="${bw - 2}" height="${base - top}" class="evc-selcol"/>` : ""}${show ? `<text x="${x(j)}" y="${base + 22}" text-anchor="middle" class="evc-hour${on ? " evc-hour-sel" : ""}">${esc(a.hourText)}${a.repeated || a.zoneChange ? `<tspan x="${x(j)}" dy="14" class="evc-zone">${esc(a.zone)}</tspan>` : ""}</text>` : ""}</g>`; }).join("");
       /* the header: the selected hour's value, large; amount separate from chance */
-      const amount = s.key === "pop" ? `<span>This hour <b data-amount>${esc(text("qpf", iSel))}${text("qpf", iSel) === "—" ? "" : " in."}</b>${tsum.mode !== "none" && types[iSel] && !["dry"].includes(types[iSel].kind) ? ` · <b data-sel-type>${esc(types[iSel].word || "")}</b>` : ""}</span>` : "";
+      const amount = s.key === "pop" ? `<span>This hour <b data-amount>${esc(text("qpf", iSel))}${text("qpf", iSel) === "No data" ? "" : " in."}</b>${tsum.mode !== "none" && types[iSel] && !["dry"].includes(types[iSel].kind) ? ` · <b data-sel-type>${esc(types[iSel].word || "")}</b>` : ""}</span>` : "";
       const head = s.type === "tier" ? `<b data-value="${s.key}">${esc(text(s.key, iSel))}</b><span>Forecast potential, not detected lightning or a warning</span>`
         : `<b data-value="${s.key}">${esc(text(s.key, iSel))}${s.unit === "°F" ? "F" : s.unit && s.unit !== "%" ? " " + esc(s.unit) : ""}</b>${s.second ? `<span>${esc(s.secondLabel)} <b>${esc(text(s.second, iSel))}${s.unit === "mph" ? " mph" : s.unit === "°F" ? "F" : ""}</b></span>` : amount}`;
       return `<section class="evc-card evc-${s.color}" data-variable="${s.key}"><header><h3>${esc(s.name)}</h3><div class="evc-val">${head}</div></header>${legend(s)}<svg viewBox="0 0 ${w} ${height}" role="group" aria-label="${esc(s.name)} by hour">${under}${axes}${marks}${over}${buttons}</svg></section>`;
@@ -201,7 +201,7 @@
     const rain = by.rain || null;
     tiles.push(fin(T.qpf) ? { key: "rain", label: "Rain total", value: f2(T.qpf), pre: lb, unit: "in", unitWord: "inches", sub: [range(T.qpfR, f2) || (T.gap ? "" : "Setup through teardown")], cover: totCov, flag: rain }
       : { key: "rain", label: "Rain total", value: null, sub: ["No data (not zero)"], flag: null });
-    if (T.peakQ) tiles.push({ key: "rate", label: "Heaviest rain rate", value: f2(T.peakQ.v), unit: "in/hr", unitWord: "inches per hour", sub: [`Around ${around(T.peakQ.ms)}`], cover: totCov, flag: rain, at: T.peakQ.ms });
+    if (T.peakQ) tiles.push({ key: "rate", label: "Heaviest rain rate", value: f2(T.peakQ.v), unit: "in/hr", unitWord: "inches per hour", sub: [`Around ${around(T.peakQ.ms)}`], cover: totCov, flag: null, at: T.peakQ.ms }); // a number only: the rain rating is named once, on the Rain total tile
     /* gusts: the highest hourly gust the wind chart shows; a full tile only when the briefing flags wind */
     const g = ok.filter((h) => fin(h.gust)).reduce((a, h) => (!a || h.gust > a.v ? { v: h.gust, ms: h.ms } : a), null), wind = by.wind || null;
     /* "not a concern" only when every event hour has a gust value; otherwise the line says partial coverage */
@@ -228,10 +228,12 @@
     const box = (a, b) => `--l:${pos(a).toFixed(3)}%;--w:${Math.max(0, pos(b) - pos(a)).toFixed(3)}%`;
     const tier = (f) => (f ? ` data-tier="${esc(f.tier)}" style="--tier:var(--${esc(f.tier)})"` : "");
     const tile = (t) => `<li class="evd-tile" data-tile="${t.key}" data-coverage="${t.value == null ? "none" : t.cover ? esc(t.cover.state) : "all"}"${tier(t.flag)}><span class="evd-lab">${esc(t.label)}</span>` +
-      `<span class="evd-val">${t.value == null ? `<b data-value>—</b>` : `${t.pre ? `<small>${esc(t.pre)}</small> ` : ""}<b data-value>${esc(t.value)}</b>${t.unit ? ` <span class="evd-unit"><span aria-hidden="true">${esc(t.unit)}</span><span class="sr-only">${esc(t.unitWord)}</span></span>` : ""}`}</span>` +
+      `<span class="evd-val">${t.value == null ? `<b data-value>No data</b>` : `${t.pre ? `<small>${esc(t.pre)}</small> ` : ""}<b data-value>${esc(t.value)}</b>${t.unit ? ` <span class="evd-unit"><span aria-hidden="true">${esc(t.unit)}</span><span class="sr-only">${esc(t.unitWord)}</span></span>` : ""}`}</span>` +
       t.sub.filter(Boolean).map((x) => `<span class="evd-sub">${esc(x)}</span>`).join("") +
       (t.value != null && t.cover ? `<span class="evd-cov" data-coverage="${esc(t.cover.state)}">${esc(t.cover.text)}</span>` : "") +
-      (t.flag && t.key !== "lightning" ? `<span class="evd-badge" data-level>${esc(t.flag.word)}</span>` : "") /* lightning's value is its level word */ + `</li>`;
+      /* the rating names its subject ("Rain rating: likely disruptive") on its own line, so a number and a tier word don't
+         read as one claim ("0.92 in · Likely disruptive"); colour is never the only signal */
+      (t.flag && t.key !== "lightning" ? `<span class="evd-badge" data-level>${esc(`${t.flag.label} rating: ${t.flag.word.toLowerCase()}`)}</span>` : "") /* lightning's value is its level word */ + `</li>`;
     const types = M.types.length ? `<p class="evd-types" data-types><span class="evd-note-lab">Precipitation type</span> ${M.types.map((k) => `<span class="evd-chip evd-chip-${esc(k)}">${TYPE[k] ? TYPE[k].sym + " " : ""}${esc(TYPE_WORD[k] || k)}</span>`).join('<span class="evd-arrow" aria-label="then">→</span>')}</p>` : "";
     const gust = M.gustLine ? `<p class="evd-gust" data-gust-line="${esc(M.gustLine.state)}" data-coverage="${esc(M.gustLine.cover)}">${esc(M.gustLine.text)}</p>` : "";
     /* the window: event parts, one row per flagged hazard, then time ticks */

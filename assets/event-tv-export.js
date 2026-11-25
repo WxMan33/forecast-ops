@@ -61,7 +61,7 @@
     }
     text(d.takeaway || "", PAD, Y.take, { font: FONT(700, 36), max: W - 2 * PAD });
     text("Forecast updated", W - PAD, 70, { font: FONT(500, 24), color: C.muted, align: "right" });
-    text(d.updated || "—", W - PAD, 108, { font: FONT(700, 32), align: "right" });
+    text(d.updated || "Unavailable", W - PAD, 108, { font: FONT(700, 32), align: "right" });
     text("Model guidance · not an official forecast", W - PAD, 140, { font: FONT(500, 20), color: C.muted, align: "right" });
     g.fillStyle = C.rule; g.fillRect(PAD, 214, W - 2 * PAD, 2);
     /* ---- 2 x 2 panels ---- */
@@ -85,7 +85,7 @@
       const hourLabels = () => { g.font = FONT(700, 24); const wide = Math.max(...ids.map((i) => g.measureText(V.axis[i].hourText).width)), every = Math.max(1, Math.ceil((wide + 14) / bw));
         ids.forEach((i, j) => { if (j % every) return; text(V.axis[i].hourText, X(j), B + 36, { font: FONT(700, 24), align: "center" }); }); };
       const missing = (i) => !V.hrs[i] || V.hrs[i].state !== "ok";
-      const gaps = (val) => ids.forEach((i, j) => { if (val(i) != null) return; g.fillStyle = C.gap; g.fillRect(L + j * bw + 2, T, bw - 4, B - T); text(bw >= 70 ? "No data" : "—", X(j), (T + B) / 2 + 8, { font: FONT(700, 20), color: C.muted, align: "center" }); });
+      const gaps = (val) => ids.forEach((i, j) => { if (val(i) != null) return; g.fillStyle = C.gap; g.fillRect(L + j * bw + 2, T, bw - 4, B - T); text(bw >= 70 ? "No data" : "", X(j), (T + B) / 2 + 8, { font: FONT(700, 20), color: C.muted, align: "center" }); });
       const grid = (lo, hi, ticks, fmt) => ticks.forEach((v) => { const yy = B - ((v - lo) / (hi - lo)) * (B - T); g.strokeStyle = C.rule; g.lineWidth = 1.5; line(L, yy, R, yy); text(fmt(v), L - 12, yy + 8, { font: FONT(600, 22), color: C.muted, align: "right" }); });
       const series = (vals, lo, hi, color, { dash = false, width = 5, dots = false } = {}) => { const yy = (v) => B - ((v - lo) / (hi - lo)) * (B - T);
         g.strokeStyle = color; g.lineWidth = width; g.setLineDash(dash ? [16, 10] : []); g.lineJoin = "round"; g.lineCap = "round"; let open = false; g.beginPath();
@@ -143,7 +143,7 @@
           keyItems([["solid", C.tier[1], "Low"], ["solid", C.tier[2], "Moderate"], ["solid", C.tier[3], "High"], ["gap", null, "No data"]]);
           const yy = (v) => B - (v / 3) * (B - T);
           [1, 2, 3].forEach((v) => { g.strokeStyle = C.ruleSoft; g.lineWidth = 1.5; line(L, yy(v), R, yy(v)); text(["", "Low", "Mod", "High"][v], L - 12, yy(v) + 8, { font: FONT(600, 22), color: C.muted, align: "right" }); });
-          levels.forEach((v, j) => { if (v == null) { g.fillStyle = C.gap; g.fillRect(L + j * bw + 2, T, bw - 4, B - T); text(bw >= 70 ? "No data" : "—", X(j), (T + B) / 2 + 8, { font: FONT(700, 20), color: C.muted, align: "center" }); return; }
+          levels.forEach((v, j) => { if (v == null) { g.fillStyle = C.gap; g.fillRect(L + j * bw + 2, T, bw - 4, B - T); text(bw >= 70 ? "No data" : "", X(j), (T + B) / 2 + 8, { font: FONT(700, 20), color: C.muted, align: "center" }); return; }
             g.fillStyle = C.tier[v]; roundRect(X(j) - bw * 0.36, yy(v), bw * 0.72, B - yy(v), 4); g.fill(); text(bw >= 80 ? ["", "Low", "Mod", "High"][v] : ["", "L", "M", "H"][v], X(j), B - 12, { font: FONT(800, 20), color: C.tierText[v], align: "center" }); });
         }
       }
