@@ -85,9 +85,10 @@ def record(issue_date, x_day2, fitted, model_sha, baseline, baseline_path, windo
     p728 = expit(big["calibration"][0] + big["calibration"][1] * big["tree"].decision_function(e.astype(np.float64)))
     box = in_box(coords[keep])
     v07 = np.where(box, pr["v07_frozen"][0], np.nan)
+    lag_probs, lag_meta = lagged_candidates(issue_date, xk, coords, keep)
     np.savez_compressed(npz_path, sample_index=np.nonzero(keep)[0].astype(np.int32),
                         conus_gbt_96=pr["conus_gbt"][0].astype(np.float32), conus_gbt_728=p728.astype(np.float32),
-                        v07_frozen_box=v07.astype(np.float32))
+                        v07_frozen_box=v07.astype(np.float32), **lag_probs)
     cutoff = datetime.fromisoformat(window["valid_start"])
     meta = {"issue_date": issue_date, "issue_cycle": window["model_init_time"], "day": DAY, "hazard": "wind",
             "valid_start": window["valid_start"], "valid_end": window["valid_end"],
@@ -100,12 +101,43 @@ def record(issue_date, x_day2, fitted, model_sha, baseline, baseline_path, windo
                          "v07_footprint": {"box": BOX, "samples": int(box.sum())}},
             "probabilities": {"file": npz_path.name, "sha256": sha(npz_path)},
             "rules": "research/severe/conus-v1/prospective/RULES.md",
+            "lagged_candidates": lag_meta,
             "generator": {"run_id": os.environ.get("GITHUB_RUN_ID"), "workflow": os.environ.get("GITHUB_WORKFLOW"),
                           "event": os.environ.get("GITHUB_EVENT_NAME"), "triggering_actor": os.environ.get("GITHUB_TRIGGERING_ACTOR"),
                           "sha": os.environ.get("GITHUB_SHA")}}
     meta_path.write_text(json.dumps(meta, indent=1) + "\n")
     print(f"prospective record written for {issue_date} (on_time={meta['on_time']})")
     return meta
+
+
+LAG_ARMS = {"lag_hrrr": "hrrr", "lag_12z18": "hrrr_12z18", "lag_full": "hrrr_lag"}
+BASE_MODELS = ("conus_gbt_96", "conus_gbt_728", "v07_frozen_box")
+
+
+def lagged_candidates(issue_date, xk, coords, keep):
+    """Frozen time-lagged research candidates (hrrr-lag/PROSPECTIVE.md). Never stops the main record: a missing,
+    late or failed 06Z/12Z input is logged and the three arrays are written as NaN."""
+    nan = {k: np.full(int(keep.sum()), np.nan, dtype=np.float32) for k in LAG_ARMS}
+    root = ROOT / "research/severe/conus-v1/hrrr-lag/frozen"
+    if not (root / "manifest.json").exists():
+        return nan, {"status": "not_frozen"}
+    try:
+        from conus_hrrr_lag import live_lag, load_frozen_arms, predict_arms
+        arms = load_frozen_arms(root)
+        shas = {k: arms[v][1] for k, v in LAG_ARMS.items()}
+        status, feats, lmeta = live_lag(issue_date, np.asarray(coords, dtype=float))
+        meta = {"status": status["status"], "detail": {k: v for k, v in status.items() if k not in ("date", "status")},
+                "models": shas, "rules": "research/severe/conus-v1/hrrr-lag/PROSPECTIVE.md"}
+        if status["status"] != "ok":
+            print(f"lagged candidates not issued for {issue_date}: {status}", flush=True)
+            return nan, meta
+        meta["input_messages"] = len(lmeta["messages"])
+        meta["input_sha256"] = hashlib.sha256(json.dumps(lmeta["messages"], sort_keys=True).encode()).hexdigest()
+        probs = predict_arms(arms, xk, feats[keep])
+        return {k: probs[v].astype(np.float32) for k, v in LAG_ARMS.items()}, meta
+    except Exception as e:  # logged; the existing forecast and archive still complete
+        print(f"lagged candidates failed for {issue_date}: {e!r}", flush=True)
+        return nan, {"status": "failed", "error": repr(e)[:400]}
 
 
 def issue_dates(today):
@@ -124,11 +156,14 @@ def ledger(a):
         cutoff = datetime(d.year, d.month, d.day, 12, tzinfo=timezone.utc) + timedelta(hours=24)
         if f.exists():
             m = json.loads(f.read_text())
-            rows.append({"issue_date": str(d), "status": "on_time" if m["on_time"] else "late", "generated_at": m["generated_at"]})
+            lag = (m.get("lagged_candidates") or {}).get("status", "not_in_record")
+            rows.append({"issue_date": str(d), "status": "on_time" if m["on_time"] else "late", "generated_at": m["generated_at"],
+                         "lagged_candidates": lag, "lagged_detail": (m.get("lagged_candidates") or {}).get("detail")})
         else:
             rows.append({"issue_date": str(d), "status": "missed" if now >= cutoff else "pending", "generated_at": None})
     (a.archive / "ledger.json").write_text(json.dumps(rows, indent=1) + "\n")
     counts = {s: sum(r["status"] == s for r in rows) for s in ("on_time", "late", "missed", "pending")}
+    counts["lagged_candidates_ok"] = sum(r.get("lagged_candidates") == "ok" for r in rows)
     print(json.dumps(counts))
     return rows
 
@@ -173,15 +208,17 @@ def labels_from_points(coords, pts):
 
 
 def day_sums(meta, probs, y, keep_idx, region_of):
-    """Per-model, per-region [n, events, sum sq err, sum p]."""
+    """Per-model, per-region [n, events, sum sq err, sum p, report points >= 5%, no-report points >= 5%]."""
     out = {}
-    for m in ("conus_gbt_96", "conus_gbt_728", "v07_frozen_box"):
+    for m in probs:
         p = probs[m].astype(np.float64)
         ok = np.isfinite(p)
         out[m] = {}
         for r in sorted(set(region_of.tolist())):
             k = ok & (region_of == r)
-            out[m][r] = [int(k.sum()), float(y[k].sum()), float(((p[k] - y[k]) ** 2).sum()), float(p[k].sum())]
+            hi = k & (p >= 0.05)
+            out[m][r] = [int(k.sum()), float(y[k].sum()), float(((p[k] - y[k]) ** 2).sum()), float(p[k].sum()),
+                         int((hi & (y > 0)).sum()), int((hi & (y == 0)).sum())]
     return out
 
 
@@ -207,8 +244,8 @@ def scorecard(dirpath, title):
             for m, regs in d["variants"][variant].items():
                 for r, v in regs.items():
                     t = tot.setdefault((m, r), np.zeros(4))
-                    t += v
-        for m in ("conus_gbt_96", "conus_gbt_728", "v07_frozen_box"):
+                    t += v[:4]
+        for m in BASE_MODELS + tuple(LAG_ARMS):
             agg = np.zeros(4)
             for (mm, r), v in sorted(tot.items()):
                 if mm != m or v[0] == 0:
@@ -222,8 +259,41 @@ def scorecard(dirpath, title):
                 ref = sy - 2 * clim * sy + n * clim * clim
                 lines.append(f"| {m} | **all scored** | {int(n)} | {int(sy)} | **{1 - sse / ref:.3f}** | {sp / n:.4f} | {sy / n:.4f} |")
         lines.append("")
+    lines += lagged_section(days)
     lines.append("v07_frozen_box covers only the original regional box. BSS uses a fixed climatology, so regions with no reports score trivially high. Days are few; read as monitoring, not a verdict.")
     (dirpath / "scorecard.md").write_text("\n".join(lines) + "\n")
+
+
+def lagged_section(days):
+    """Paired comparison of the frozen time-lagged candidates (hrrr-lag/PROSPECTIVE.md): only days where all three
+    arms were issued on time. National and Florida/Gulf are reported separately."""
+    from conus_followup import SAMPLE_KM2
+    L = ["## Time-lagged HRRR research candidates (paired dates only)", ""]
+    for variant in days[0]["variants"]:
+        paired = [d for d in days if all(sum(v[0] for v in d["variants"][variant].get(k, {}).values()) > 0 for k in LAG_ARMS)]
+        L += [f"### Labels: {variant}: {len(paired)} paired days", ""]
+        if not paired:
+            L += ["No paired days yet.", ""]
+            continue
+        for scope, regs in (("national", None), ("florida_gulf_south", "florida_gulf_south")):
+            arr = {k: np.array([[sum(v[i] for r, v in d["variants"][variant][k].items() if regs in (None, r)) for i in range(6)]
+                                for d in paired]) for k in LAG_ARMS}
+            n = arr["lag_hrrr"][:, 0]
+            L += [f"**{scope}** ({int(n.sum()):,} points, {int(arr['lag_hrrr'][:, 1].sum())} report points)", "",
+                  "| Arm | Brier | mean p / obs | report pts ≥5% | false-alarm area ≥5%, km² |", "|---|---|---|---|---|"]
+            for k in LAG_ARMS:
+                a = arr[k]
+                obs = a[:, 1].sum()
+                L.append(f"| {k} | {a[:, 2].sum() / a[:, 0].sum():.6f} | {(a[:, 3].sum() / obs) if obs else float('nan'):.3f} | "
+                         f"{int(a[:, 4].sum())} | {a[:, 5].sum() * SAMPLE_KM2:,.0f} |")
+            rng = np.random.default_rng(20261125)
+            for m1, m2 in (("lag_full", "lag_hrrr"), ("lag_full", "lag_12z18")):
+                d1, d2 = arr[m1][:, 2], arr[m2][:, 2]
+                pt = (d1.sum() - d2.sum()) / n.sum()
+                bs = [((d1[j].sum() - d2[j].sum()) / n[j].sum()) for j in (rng.integers(0, len(n), len(n)) for _ in range(2000))]
+                L.append(f"- Brier {m1} − {m2}: {pt:+.6f} (95% whole-date interval {np.percentile(bs, 2.5):+.6f} to {np.percentile(bs, 97.5):+.6f})")
+            L.append("")
+    return L
 
 
 def score_prelim(a):
@@ -255,7 +325,7 @@ def score_prelim(a):
             dest.write_text(json.dumps({"issue_date": meta["issue_date"], "status": "reports_unavailable", "checked_at": now.isoformat()}, indent=1) + "\n")
             continue
         with np.load(npz) as z:
-            probs = {k: z[k] for k in ("conus_gbt_96", "conus_gbt_728", "v07_frozen_box")}
+            probs = {k: z[k] for k in BASE_MODELS + tuple(LAG_ARMS) if k in z.files}
             idx = z["sample_index"]
         c = np.asarray(coords)[idx]
         variants = {"spc_all_wind": [r for r in reps], "spc_ge58mph": [r for r in reps if r["mph"] is not None and r["mph"] >= 58]}
@@ -297,7 +367,7 @@ def score_final(a):
         if sha(npz) != meta["probabilities"]["sha256"]:
             raise ValueError(f"{npz}: probabilities changed after archiving")
         with np.load(npz) as z:
-            probs = {k: z[k] for k in ("conus_gbt_96", "conus_gbt_728", "v07_frozen_box")}
+            probs = {k: z[k] for k in BASE_MODELS + tuple(LAG_ARMS) if k in z.files}
             idx = z["sample_index"]
         labels, counts = label_window(np.asarray(coords)[idx], events, vs, ve)
         y = labels[:, HAZ].astype(np.float64)

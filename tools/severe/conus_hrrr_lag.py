@@ -76,10 +76,25 @@ CELLS = {}
 
 
 def extract_date(date, coords, out_root):
-    import eccodes as ec
-    from extract import disk_max_at_samples
     if not date.startswith(("2022", "2023")):
         raise ValueError("development dates only")
+    return _extract(date, coords, out_root)
+
+
+def live_lag(date, coords):
+    """Current issue date for the prospective archive: returns (status, features or None, meta). Never raises for
+    missing/late inputs; the reason is recorded instead. 2025 is refused."""
+    if date.startswith("2025") or date < "2026-11-01":
+        raise ValueError("live lag features are for current dates only")
+    try:
+        return _extract(date, coords, None)
+    except Exception as e:
+        return {"date": date, "status": "failed", "error": repr(e)[:400]}, None, None
+
+
+def _extract(date, coords, out_root):
+    import eccodes as ec
+    from extract import disk_max_at_samples
     day = date.replace("-", "")
     base = datetime.strptime(day, "%Y%m%d").replace(tzinfo=timezone.utc)
     cutoff = base.replace(hour=CUTOFF_UTC[0], minute=CUTOFF_UTC[1])
@@ -90,7 +105,8 @@ def extract_date(date, coords, out_root):
         need = [f"hrrr.{day}/conus/hrrr.t{cyc:02d}z.wrfsfcf{f:02d}.grib2{s}" for f in LISTED[cyc] for s in ("", ".idx")]
         missing = [k for k in need if k not in objs]
         if missing:
-            return {"date": date, "status": "missing", "missing": missing[:5]}
+            r = {"date": date, "status": "missing", "missing": missing[:5], "run": f"{cyc:02d}z"}
+            return (r, None, None) if out_root is None else r
         latest = max(objs[k] for k in need)
         meta["runs"][f"{cyc:02d}z"] = {"latest_listed": latest,
                                        "listed_before_cutoff": datetime.fromisoformat(latest.replace("Z", "+00:00")) <= cutoff}
@@ -135,10 +151,13 @@ def extract_date(date, coords, out_root):
                              maxima[(6, "gust")], maxima[(6, "refc")], maxima[(6, "uh25")]]).astype(np.float32)
     if not np.isfinite(feats).all():
         raise ValueError("non-finite lagged predictor")
+    meta["listed_before_cutoff"] = all(r["listed_before_cutoff"] for r in meta["runs"].values())
+    if out_root is None:
+        status = "ok" if meta["listed_before_cutoff"] else "listed_after_cutoff"
+        return {"date": date, "status": status, "runs": meta["runs"]}, feats, meta
     out = Path(out_root) / date
     out.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(out / "lag.npz", features=feats, feature_names=np.array(FEATURES))
-    meta["listed_before_cutoff"] = all(r["listed_before_cutoff"] for r in meta["runs"].values())
     meta["artifact"] = {"file": "lag.npz", "sha256": hashlib.sha256((out / "lag.npz").read_bytes()).hexdigest()}
     (out / "lag.json").write_text(json.dumps(meta) + "\n")
     return {"date": date, "status": "complete", "listed_before_cutoff": meta["listed_before_cutoff"]}
@@ -365,6 +384,78 @@ def combine(a):
     print("\n".join(L))
 
 
+def freeze(a):
+    """Fit all three arms once on every matched development date (the gate's exact recipe) and commit them with
+    checksums. Run before any prospective score is inspected."""
+    import pickle
+    import phase2_study as S
+    from conus_calibration import check_frozen
+    from conus_fulldev import DAY, NEG_KEEP, case_files, fit, load_case
+    fitted, sha = check_frozen(a.models, a.manifest)
+    keep, scales, coords = fitted["keep"], fitted["scales"][DAY], fitted["coords"]
+    files = case_files(a.conus)
+    cases = sorted(files)
+    excluded, lag = {}, {}
+    for c in cases:
+        f, why = lag_load(a.lag, c, keep)
+        if f is None:
+            excluded[c] = why
+        else:
+            lag[c] = f
+    matched = [c for c in cases if c in lag]
+    if len(matched) != a.expected_dates:
+        raise SystemExit(f"expected {a.expected_dates} matched dates (as in the gate), found {len(matched)}")
+    with np.load(files[cases[0]][0], allow_pickle=False) as d:
+        names = d["feature_names"].tolist()
+    xs, ls, ys, ws, gs = [], [], [], [], []
+    for c in matched:
+        x, y, pts = load_case(*files[c], keep, scales, names, coords)
+        rng = np.random.default_rng(int(c.replace("-", "")))
+        m = (y > 0) | (rng.random(len(y)) < NEG_KEEP)
+        xs.append(x[m]); ls.append(lag[c][pts][m]); ys.append(y[m])
+        ws.append(np.where(y[m] > 0, 1.0, 1.0 / NEG_KEEP)); gs.append(np.full(m.sum(), S.fold_of(c) % 3))
+    x, xl, y, w, g = (np.concatenate(v) for v in (xs, ls, ys, ws, gs))
+    del xs, ls
+    inputs = arm_inputs(x, xl)
+    a.output.mkdir(parents=True, exist_ok=True)
+    man = {"status": "frozen", "purpose": "prospective research archive only (not the preview, not production)",
+           "rule": "research/severe/conus-v1/hrrr-lag/RULES.md (gate) and PROSPECTIVE.md (fresh verification)",
+           "gate_run": 45675157126, "train_dates": len(matched), "excluded": excluded, "sampled_rows": int(len(y)),
+           "events": int(y.sum()), "recipe_from_frozen_sha256": sha, "names": names, "lag_features": list(FEATURES),
+           "arms": {}, "verification_2021_loaded": False, "protected_2025_outcomes_accessed": False}
+    for k in ARMS:
+        tree, cal = fit(inputs[k], y, w, g)
+        raw = pickle.dumps({"arm": k, "tree": tree, "calibration": [float(cal[0]), float(cal[1])], "names": names,
+                            "scales_day2": scales, "keep": keep, "lag_features": list(FEATURES), "train_dates": matched})
+        (a.output / f"{k}.pkl").write_bytes(raw)
+        man["arms"][k] = {"file": f"{k}.pkl", "sha256": hashlib.sha256(raw).hexdigest(), "predictors": int(inputs[k].shape[1]),
+                          "calibration": [float(cal[0]), float(cal[1])]}
+        print(f"froze {k}: {man['arms'][k]['sha256'][:12]}", flush=True)
+    (a.output / "manifest.json").write_text(json.dumps(man, indent=1) + "\n")
+
+
+def load_frozen_arms(root=ROOT / "research/severe/conus-v1/hrrr-lag/frozen"):
+    import pickle
+    man = json.loads((root / "manifest.json").read_text())
+    out = {}
+    for k, spec in man["arms"].items():
+        raw = (root / spec["file"]).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != spec["sha256"]:
+            raise ValueError(f"{k}: frozen lagged-arm file does not match its committed checksum")
+        out[k] = (pickle.loads(raw), spec["sha256"])
+    return out
+
+
+def predict_arms(arms, x_raw_keep, lag_keep):
+    """x_raw_keep: raw predictors at supported samples; lag_keep: the six lag features at the same samples."""
+    import phase2_study as S
+    any_model = next(iter(arms.values()))[0]
+    e, _ = S.engineer(x_raw_keep, any_model["names"], any_model["scales_day2"])
+    ins = arm_inputs(e.astype(np.float32), lag_keep.astype(np.float32))
+    return {k: expit(m["calibration"][0] + m["calibration"][1] * m["tree"].decision_function(ins[k].astype(np.float64)))
+            for k, (m, _) in arms.items()}
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -381,8 +472,15 @@ def main():
     c = sub.add_parser("combine")
     c.add_argument("--input", type=Path, required=True)
     c.add_argument("--output", type=Path, required=True)
+    z = sub.add_parser("freeze")
+    z.add_argument("--conus", type=Path, required=True)
+    z.add_argument("--lag", type=Path, required=True)
+    z.add_argument("--output", type=Path, required=True)
+    z.add_argument("--expected-dates", type=int, default=724)
+    z.add_argument("--models", type=Path, default=Path("research/severe/conus-v1/frozen/models.pkl"))
+    z.add_argument("--manifest", type=Path, default=Path("research/severe/conus-v1/frozen/manifest.json"))
     a = p.parse_args()
-    {"extract": extract, "fold": fold, "combine": combine}[a.cmd](a)
+    {"extract": extract, "fold": fold, "combine": combine, "freeze": freeze}[a.cmd](a)
 
 
 if __name__ == "__main__":
