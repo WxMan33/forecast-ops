@@ -306,6 +306,20 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .bx-sched-f input.own { border-color: var(--bx-sel); }
 .bx-check { display: flex !important; gap: 8px; align-items: center; font-size: 14px; flex-direction: row !important; }
 .bx-check input { width: auto !important; }
+/* planner-defined time slots in the event editor: one card per slot, 44 px touch targets */
+.bx-form-part { display: grid; gap: 11px; }
+.bx-form-part[hidden], .ev-slots-f[hidden] { display: none; }
+.ev-slots { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.ev-slot { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--bx-rule); border-radius: 8px; }
+.ev-slot-h { display: flex; gap: 8px; align-items: end; }
+.ev-slot-name { flex: 1 1 auto; }
+.ev-slot-t { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.ev-slot input, .ev-slot-x, .ev-slot-add { min-height: 44px; }
+.ev-slot .bx-check { min-height: 44px; }
+.ev-slot .bx-check input { width: 22px !important; height: 22px; }
+.ev-slot-f { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; }
+.ev-slot-add { justify-self: start; }
+@media (max-width: 400px) { .ev-slot-t { grid-template-columns: 1fr 1fr; } .ev-slot-t label:first-child { grid-column: 1 / -1; } }
 
 /* calendar import */
 .ci-choices { display: grid; gap: 8px; justify-items: start; }
@@ -1058,3 +1072,6 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 }
 /* At a glance: the rating line names its subject and may wrap; a box, not a pill */
 .evd-badge { border-radius: 8px; line-height: 1.25; }
+/* hourly charts: hours between a planner's slots (shown, shaded, labelled; outside the schedule) */
+.evc-between{fill:var(--muted);opacity:.14}.evc-betweentext{font:600 11px var(--bx-font);fill:var(--muted)}
+.evc-key .k-between{width:14px;height:14px;background:color-mix(in srgb,var(--muted) 30%,transparent);border-radius:2px}
