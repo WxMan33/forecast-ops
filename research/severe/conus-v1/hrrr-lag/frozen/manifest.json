@@ -1,0 +1,91 @@
+{
+ "status": "frozen",
+ "purpose": "prospective research archive only (not the preview, not production)",
+ "rule": "research/severe/conus-v1/hrrr-lag/RULES.md (gate) and PROSPECTIVE.md (fresh verification)",
+ "gate_run": 45675157126,
+ "train_dates": 724,
+ "excluded": {
+  "2022-01-06": "excluded_by_audit: 06Z and 12Z listed after cutoff",
+  "2022-01-08": "excluded_by_audit: 06Z and 12Z listed after cutoff",
+  "2022-07-23": "listed_after_cutoff (found during extraction)",
+  "2022-08-11": "excluded_by_audit: 12Z listed after cutoff"
+ },
+ "sampled_rows": 5869418,
+ "events": 304465,
+ "recipe_from_frozen_sha256": "a9ff6aa76b946c92a16d2148e3cdb1fb8920e6dd904789058edfddbde0af8d7a",
+ "names": [
+  "x_dewpoint2m_max",
+  "x_dewpoint2m_mean",
+  "x_dewpoint2m_nearby_max_max",
+  "x_dewpoint2m_nearby_max_mean",
+  "x_reflectivity_max",
+  "x_reflectivity_mean",
+  "x_reflectivity_nearby_max_max",
+  "x_reflectivity_nearby_max_mean",
+  "x_sbcape_max",
+  "x_sbcape_mean",
+  "x_sbcape_nearby_max_max",
+  "x_sbcape_nearby_max_mean",
+  "x_sbcin_max",
+  "x_sbcin_mean",
+  "x_sbcin_nearby_max_max",
+  "x_sbcin_nearby_max_mean",
+  "x_shear06_max",
+  "x_shear06_mean",
+  "x_shear06_u_max",
+  "x_shear06_u_mean",
+  "x_shear06_u_nearby_max_max",
+  "x_shear06_u_nearby_max_mean",
+  "x_shear06_v_max",
+  "x_shear06_v_mean",
+  "x_shear06_v_nearby_max_max",
+  "x_shear06_v_nearby_max_mean",
+  "x_srh01_max",
+  "x_srh01_mean",
+  "x_srh01_nearby_max_max",
+  "x_srh01_nearby_max_mean",
+  "x_uh25_max",
+  "x_uh25_mean",
+  "x_uh25_nearby_max_max",
+  "x_uh25_nearby_max_mean"
+ ],
+ "lag_features": [
+  "h12_gust_max18",
+  "h12_refc_max18",
+  "h12_uh25_max18",
+  "h06_gust_max18",
+  "h06_refc_max18",
+  "h06_uh25_max18"
+ ],
+ "arms": {
+  "hrrr": {
+   "file": "hrrr.pkl",
+   "sha256": "bd95215401b9b9aa9e4640f81c1c1ac96fee6bc412e37806959099cc2352389e",
+   "predictors": 37,
+   "calibration": [
+    -0.05281542490070588,
+    0.9705213890204454
+   ]
+  },
+  "hrrr_12z18": {
+   "file": "hrrr_12z18.pkl",
+   "sha256": "f28ac127a9c009f88aca0d119f5a3ab11f4fe539b4d070dea1580fd0b1f6d5d4",
+   "predictors": 40,
+   "calibration": [
+    -0.06620935195098634,
+    0.966428675076956
+   ]
+  },
+  "hrrr_lag": {
+   "file": "hrrr_lag.pkl",
+   "sha256": "1b378a8d70cf664aa46f036dad146ed1fbe79218127d0a14938dc0bce634438e",
+   "predictors": 49,
+   "calibration": [
+    -0.06951191367429557,
+    0.9647131909717416
+   ]
+  }
+ },
+ "verification_2021_loaded": false,
+ "protected_2025_outcomes_accessed": false
+}
