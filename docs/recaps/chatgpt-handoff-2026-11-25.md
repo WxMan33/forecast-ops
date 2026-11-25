@@ -102,6 +102,16 @@ UPDATE, Nov 25 early morning (03:30 UTC)
     - Against full NBM: gust-only gives up nearly all of the national gain (+0.000079, CI +0.000056 to +0.000105). Its Florida/Gulf difference from full NBM is not significant.
     - March–April subset: gust-only largely avoids the spring false-alarm sharpening (+7.5 vs +50.1). Its Florida/Gulf loss mostly comes outside March–April.
     - Reading: the thunder predictors carry both the national gain and much of the spring Florida loss. Neither NBM variant is a clean improvement.
+- TIME-LAGGED HRRR TEST (pre-registered, three nested arms; run 45675157126): PASSED all five criteria. Stopped for review; nothing frozen.
+  - Dates: 724 (four excluded: three late-listed by audit, plus 2022-07-23 found late during extraction).
+  - National BSS: 0.115 (frozen) → 0.127 (+12Z 18 h maxima) → 0.133 (+06Z lagged).
+  - Lagged vs frozen: −0.000193 (95% CI −0.000249 to −0.000141).
+  - Lagged vs 12Z control (the 06Z contribution): −0.000066 (CI −0.000091 to −0.000042).
+  - Florida/Gulf: lagged vs frozen +0.000075 (CI −0.000054 to +0.000214), not significant but worse; BSS −0.006 → −0.017; calibration about 2.16×.
+    - The 12Z same-window maxima alone are significantly worse in Florida/Gulf (+0.000109).
+    - The 06Z addition doesn't worsen it further.
+  - The March–April Florida spring false-alarm sharpening is still present: +83 vs frozen, +21 vs the control.
+  - Open question: freeze and add it to the prospective archive as a research candidate, despite Florida/Gulf?
 - SAMPLING CHECK (development only; same folds, recipe, calibration and scoring rows): sampling does NOT explain the 2021 tie.
   - National BSS: 96 days all rows 0.096; 96 days sampled 0.098; 728 days sampled 0.115.
   - Sampling effect: −0.000017 Brier (95% CI −0.000030 to −0.000005). Sampling helped slightly.
