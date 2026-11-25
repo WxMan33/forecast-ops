@@ -29,7 +29,7 @@ const settle = async (p, ms = 3000) => { await p.waitForFunction(() => window.__
 const st = (p) => p.evaluate(() => { const T = window.__threats, S = T.S, m = T.map, vis = (id) => !!(m.getLayer(id) && m.getLayoutProperty(id, "visibility") === "visible");
   const strip = document.querySelector(".px-strip"), sec = (re) => [...document.querySelectorAll(".px-strip .px-h")].find((h) => re.test(h.textContent));
   const labels = (m.getSource("labels") && m.getSource("labels")._data && m.getSource("labels")._data.features) || [];
-  return { auto: S.auto, scope: S.scope, view: S.view, need: S.autoNeed, rain: S.rain, layers: Object.keys(S.layers).filter((k) => S.layers[k]), radar: S.radar, zoom: +m.getZoom().toFixed(2), venue: T.venue && { name: T.venue.name, lat: T.venue.lat, lon: T.venue.lon },
+  return { alertsState: (T.data.sources.alerts || {}).state, auto: S.auto, scope: S.scope, view: S.view, need: S.autoNeed, rain: S.rain, layers: Object.keys(S.layers).filter((k) => S.layers[k]), radar: S.radar, zoom: +m.getZoom().toFixed(2), venue: T.venue && { name: T.venue.name, lat: T.venue.lat, lon: T.venue.lon },
     sum: (document.getElementById("txLayersSum") || {}).textContent || "", valid: (document.getElementById("txValid") || {}).textContent || "", strip: strip ? strip.innerText.replace(/\s+/g, " ") : "",
     atSite: !!sec(/In effect at this site/), nearby: !!sec(/Nearby/), head: ((document.querySelector(".px-olhead .px-where") || {}).textContent || ""), quiet: [...document.querySelectorAll(".px-olquiet")].map((x) => x.textContent),
     gaugesDrawn: (m.getSource("gauge") && m.getSource("gauge")._data.features.length) || 0, siteGauges: [...document.querySelectorAll("[data-gauge]")].map((x) => x.innerText.replace(/\s+/g, " ").slice(0, 200)),
@@ -40,7 +40,9 @@ const tally = { dropped: 0, added: 0, rewrites: 0, failed: 0 };
 const rewriteAlerts = (fn) => async (p) => { await p.route(ALERTS, async (r) => {
   try { const q = r.request(), res = await fetch(q.url(), { headers: { Accept: "application/geo+json" } }), j = await res.json();
     if (Array.isArray(j.features)) { fn(j); tally.rewrites++; }
-    await r.fulfill({ status: res.status, headers: { "content-type": "application/geo+json", "access-control-allow-origin": "*", "access-control-expose-headers": "*" }, body: JSON.stringify(j) });
+    // keep the forwarder's own headers (the page requires X-Upstream-Fetched-At from /api/nws and refuses an answer without it)
+    const h = {}; res.headers.forEach((v, k) => { if (!/^(content-length|content-encoding|transfer-encoding|connection)$/i.test(k)) h[k] = v; });
+    await r.fulfill({ status: res.status, headers: { ...h, "content-type": "application/geo+json", "access-control-allow-origin": "*", "access-control-expose-headers": h["access-control-expose-headers"] || "*" }, body: JSON.stringify(j) });
   } catch (e) { tally.failed++; await r.abort(); } }); };
 const dropFamily = (re) => rewriteAlerts((j) => { const n0 = j.features.length; j.features = j.features.filter((f) => !re.test((f.properties || {}).event || "")); tally.dropped += n0 - j.features.length; });
 
@@ -72,7 +74,7 @@ const dropFamily = (re) => rewriteAlerts((j) => { const n0 = j.features.length; 
       const t0 = { ...tally }; const v = await open(b, phone, site(label + " test site", a.lat, a.lon), dropFamily(re)); await settle(v.p, 4500); const s = await st(v.p); await shot(v.p, `after-${need}-only-${d}`);
       const cause = await v.p.evaluate((k) => { const A = window.__threats.siteAssess ? window.__threats.siteAssess() : null; return A && A.cause[k] ? A.cause[k] : null; }, need);
       check(`(${d}) ${label.toUpperCase()} (${a.what} at ${a.lat.toFixed(2)}, ${a.lon.toFixed(2)}; ${tally.rewrites - t0.rewrites} alert answers rewritten, ${tally.dropped - t0.dropped} ${need} alerts removed, ${tally.failed - t0.failed} failed): Auto needs ${need} from the forecast only (cause: ${JSON.stringify(cause)}; summary '${s.sum}')`,
-        tally.rewrites > t0.rewrites && tally.failed === t0.failed && s.auto && s.need && s.need[need] && cause && cause.every((c) => !/ at the site$| mi [NSEW]{1,3}$/.test(c)) && extra(s) && new RegExp({ flood: "Flooding", severe: "Severe storms" }[need]).test(s.sum) && !v.errs.length, { a, s, cause });
+        tally.rewrites > t0.rewrites && tally.failed === t0.failed && s.alertsState === "ok" && s.auto && s.need && s.need[need] && cause && cause.every((c) => !/ at the site$| mi [NSEW]{1,3}$/.test(c)) && extra(s) && new RegExp({ flood: "Flooding", severe: "Severe storms" }[need]).test(s.sum) && !v.errs.length, { a, s, cause });
       await v.ctx.close(); } }
 
   /* 3. active flooding: a live NWS flood warning covering a site (strip, rain that has fallen, gauges in view) */
@@ -114,7 +116,7 @@ const dropFamily = (re) => rewriteAlerts((j) => { const n0 = j.features.length; 
       await settle(v.p, 4000); const s = await st(v.p); await shot(v.p, `after-critical-replay-${d}`);
       const first = await v.p.evaluate(() => { const a = document.querySelector(".px-strip .px-alert"); return a ? a.innerText.replace(/\s+/g, " ") : ""; });
       check(`(${d}) CRITICAL-ALERT REPLAY (synthetic: saved KMTR Tornado Warning moved to now, catastrophic tag; added to ${tally.added - t0.added} answers): first in the strip '${first.slice(0, 160)}'; urgent labels ${s.labelsUrgent}`,
-        tally.added > t0.added && tally.failed === t0.failed && s.atSite && /Tornado Warning/.test(first) && /Tornado Emergency/.test(first) && /until /.test(first) && /NWS bulletin/.test(first) && s.need.severe && s.labelsUrgent >= 1 && !v.errs.length && !s.errors.length, { s, first });
+        tally.added > t0.added && tally.failed === t0.failed && s.alertsState === "ok" && s.atSite && /\(its NWS zone\)|Covers the site ·/.test(first) && /Tornado Warning/.test(first) && /Tornado Emergency/.test(first) && /until /.test(first) && /NWS bulletin/.test(first) && s.need.severe && s.labelsUrgent >= 1 && !v.errs.length && !s.errors.length, { s, first });
       await v.ctx.close(); } }
 
   /* 6. A -> B -> A with B's answers held back and arriving last: the panel, outlook and layers stay A's; B's late answer is filed as B's */
