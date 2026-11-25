@@ -166,10 +166,10 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
        warning: none queried or drawn and the source row says why; at a live Flood Warning (when one exists): gauges drawn and one opens */
     { const reqs = []; const { p, errs } = await page("?layers=flood&scope=national", (p) => p.on("request", (r) => { if (/api\.water\.noaa\.gov/.test(r.url())) reqs.push(r.url()); }));
       await p.waitForTimeout(2000); const national = reqs.length;
-      const quiet = await p.evaluate(() => { const T = window.__threats, fw = T.data.products.filter((x) => x.sourceId === "nws-alerts" && /Flood Warning/.test(x.event || "") && x.geometry && Date.parse(x.expires) > Date.now());
+      const quiet = await p.evaluate(() => { const T = window.__threats, fw = T.data.products.filter((x) => x.sourceId === "nws-alerts" && /Flood Warning/.test(x.event || "") && x.geometry && Date.parse(x.expires) > Date.now()), fwNow = fw.filter((x) => !(Date.parse(x.issued) > Date.now())); /* the quiet spot keeps clear of every flood warning; the one tested is in effect now (one that starts later is upcoming, by design) */
         const far = (lon, lat) => fw.every((x) => { const b = window.ThreatsCore.bbox(x.geometry); return lon < b[0] - 4 || lon > b[2] + 4 || lat < b[1] - 3 || lat > b[3] + 3; });
         const spot = [[-84.51, 39.1], [-104.99, 39.74], [-112.07, 33.45], [-122.33, 47.6], [-71.06, 42.36], [-96.8, 32.78]].find(([lo, la]) => far(lo, la));
-        const fwc = fw[0] && window.ThreatsCore.bbox(fw[0].geometry); return { spot, warn: fwc ? { at: [(fwc[0] + fwc[2]) / 2, (fwc[1] + fwc[3]) / 2], ev: fw[0].event, area: fw[0].areaDesc || "" } : null, n: fw.length }; });
+        const fwc = fwNow[0] && window.ThreatsCore.bbox(fwNow[0].geometry); return { spot, warn: fwc ? { at: [(fwc[0] + fwc[2]) / 2, (fwc[1] + fwc[3]) / 2], ev: fwNow[0].event, area: fwNow[0].areaDesc || "" } : null, n: fw.length }; });
       let q = { drawn: -1, row: "", queried: -1 };
       if (quiet.spot) { const before = reqs.length; await p.evaluate((c) => window.__threats.map.jumpTo({ center: c, zoom: 9 }), quiet.spot); await p.waitForTimeout(3500);
         q = await p.evaluate(() => ({ drawn: window.__threats.map.getSource("gauge")._data.features.length, row: [...document.querySelectorAll(".px-src")].map((x) => x.innerText.replace(/\s+/g, " ")).find((t) => /river gauges/i.test(t)) || "" })); q.queried = reqs.length - before; }
