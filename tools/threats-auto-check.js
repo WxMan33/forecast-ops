@@ -38,7 +38,7 @@ const st = (p) => p.evaluate(() => { const T = window.__threats, S = T.S, m = T.
    context can't reach the preview here), and every rewrite is counted, so a silent pass-through can't count as a pass. */
 const tally = { dropped: 0, added: 0, rewrites: 0, failed: 0 };
 const rewriteAlerts = (fn) => async (p) => { await p.route(ALERTS, async (r) => {
-  try { const q = r.request(), res = await fetch(q.url(), { headers: { Accept: "application/geo+json" } }), j = await res.json();
+  try { const q = r.request(), get = () => fetch(q.url(), { headers: { Accept: "application/geo+json" } }); let res; try { res = await get(); } catch (e) { res = await get(); } const j = await res.json(); // one retry for a dropped fetch
     if (Array.isArray(j.features)) { fn(j); tally.rewrites++; }
     // keep the forwarder's own headers (the page requires X-Upstream-Fetched-At from /api/nws and refuses an answer without it)
     const h = {}; res.headers.forEach((v, k) => { if (!/^(content-length|content-encoding|transfer-encoding|connection)$/i.test(k)) h[k] = v; });
@@ -115,7 +115,7 @@ const dropFamily = (re) => rewriteAlerts((j) => { const n0 = j.features.length; 
       const t0 = { ...tally }; const v = await open(b, phone, site("Tornado Emergency replay site", cy, cx), rewriteAlerts((j) => { j.features.unshift(feat); tally.added++; }));
       await settle(v.p, 4000); const s = await st(v.p); await shot(v.p, `after-critical-replay-${d}`);
       const first = await v.p.evaluate(() => { const a = document.querySelector(".px-strip .px-alert"); return a ? a.innerText.replace(/\s+/g, " ") : ""; });
-      check(`(${d}) CRITICAL-ALERT REPLAY (synthetic: saved KMTR Tornado Warning moved to now, catastrophic tag; added to ${tally.added - t0.added} answers): first in the strip '${first.slice(0, 160)}'; urgent labels ${s.labelsUrgent}`,
+      check(`(${d}) CRITICAL-ALERT REPLAY (synthetic: saved KMTR Tornado Warning moved to now, catastrophic tag; added to ${tally.added - t0.added} answers): first in the strip '${first.slice(0, 160)}'; urgent labels ${s.labelsUrgent}; rewrite failures ${tally.failed - t0.failed}`,
         tally.added > t0.added && tally.failed === t0.failed && s.alertsState === "ok" && s.atSite && /\(its NWS zone\)|Covers the site ·/.test(first) && /Tornado Warning/.test(first) && /Tornado Emergency/.test(first) && /until /.test(first) && /NWS bulletin/.test(first) && s.need.severe && s.labelsUrgent >= 1 && !v.errs.length && !s.errors.length, { s, first, errs: v.errs });
       await v.ctx.close(); } }
 
