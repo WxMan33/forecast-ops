@@ -33,7 +33,7 @@ check("official alerts: none only after a successful check; warnings are urgent"
 const H = 3600e3, t0 = Date.parse("2026-11-26T10:00Z"), tz = "America/New_York";
 const phases = [["setup", "Setup", 0, 1.5], ["gates", "Gates", 1.5, 4], ["event", "Event", 4, 5.5], ["teardown", "Teardown", 5.5, 7]].map(([key, label, a, b]) => ({ key, label, startMs: t0 + a * H, endMs: t0 + b * H, r: {}, levels: {} }));
 const b = { phases, all: { startMs: t0, endMs: t0 + 7 * H }, coverage: "full", top: null, concerns: [] };
-const V = (missing = []) => ({ span: Array.from({ length: 7 }, (_, i) => t0 + i * H), hrs: Array.from({ length: 7 }, (_, i) => ({ ms: t0 + i * H, state: missing.includes(i) ? "missing" : "ok" })) });
+const V = (missing = []) => ({ span: Array.from({ length: 7 }, (_, i) => t0 + i * H), hrs: Array.from({ length: 7 }, (_, i) => ({ ms: t0 + i * H, state: missing.includes(i) ? "nodata" : "ok", pop: missing.includes(i) ? null : 5, qpf: missing.includes(i) ? null : 0 })) });
 check("missing guidance: thin sources and missing event hours limit confidence; full coverage does not", () => {
   const full = L.gaps({ b, V: V(), R: { state: "ready" }, feeds: { used: ["GFS", "ECMWF IFS", "NBM"], missing: [] }, now: t0 - 20 * H, tz });
   assert.equal(full.limited, false); assert.equal(full.short, "");
@@ -69,12 +69,26 @@ check("headline leads with the affected part and its local time; the verb follow
   assert.equal(U.headline({ ...B({ key: "rain", noun: "rain", level: 1, from: t0 + 6 * H, to: t0 + 7 * H }), ev: { name: "Riverfront Music Night", tz } }, "x"), "Watch for rain after the event, from 11 AM.");
   assert.equal(L.eventWord("Orlando City vs. visiting club"), "event"); assert.equal(L.eventWord("Thanksgiving Day Race"), "race");
 });
-check("missing race hours are named as incomplete guidance for that window, never as no concern", () => {
-  const g = L.gaps({ b: { ...b, ev: { name: "Thanksgiving Day Race" } }, V: V([4, 5]), R: { state: "ready" }, feeds: { used: ["GFS", "NBM", "ECMWF IFS"], missing: [] }, now: t0 - 20 * H, tz });
-  assert.equal(g.incomplete, "Rain guidance is incomplete for the 9–11 AM race window");
-  assert.equal(U.headline(b, "No weather concern for this event right now.", { limited: true, incomplete: g.incomplete }), "Rain guidance is incomplete for the 9–11 AM race window.");
+check("missing race hours: forecast guidance when every variable is missing, rain guidance for the rain row", () => {
+  const bb = { ...b, ev: { name: "Thanksgiving Day Race" } };
+  const g = L.gaps({ b: bb, V: V([4, 5]), R: { state: "ready" }, feeds: { used: ["GFS", "NBM", "ECMWF IFS"], missing: [] }, now: t0 - 20 * H, tz });
+  assert.equal(g.incomplete, "Forecast guidance is incomplete for the 9–11 AM race window");
+  assert.equal(g.incompleteRain, "Rain guidance is incomplete for the 9–11 AM race window");
+  assert.equal(U.headline(b, "No weather concern for this event right now.", { limited: true, incomplete: g.incomplete }), "Forecast guidance is incomplete for the 9–11 AM race window.");
   const lines = U.planLines({ items: [] }, b, { state: "ok", base: "Low" }, tz, (v) => v + "%", g.incomplete);
-  assert.equal(lines[0].text, "Rain guidance is incomplete for the 9–11 AM race window; no weather concern in the hours that have guidance.");
+  assert.equal(lines[0].text, "Forecast guidance is incomplete for the 9–11 AM race window; no weather concern in the hours that have guidance.");
+  /* only rain missing (other values present): rain wording everywhere */
+  const Vr = V(); Vr.hrs = Vr.hrs.map((h, i) => (i === 4 ? { ...h, pop: null, qpf: null, gust: 12 } : { ...h, pop: 5, qpf: 0 }));
+  const r = L.gaps({ b: bb, V: Vr, R: { state: "ready" }, feeds: { used: ["GFS"], missing: [] }, now: t0 - 20 * H, tz });
+  assert.equal(r.incomplete, "Rain guidance is incomplete for the 9–10 AM race window"); assert.equal(r.incompleteRain, r.incomplete);
+});
+check("Watch for heavier rain: only when the heaviest hourly amounts fall in gates/lineup or within an hour of the start", () => {
+  const bb = { ...b, ev: { name: "Thanksgiving Day Race", tz } }, Vq = (q) => ({ span: V().span, hrs: V().hrs.map((h, i) => ({ ...h, qpf: q[i] })) });
+  assert.equal(L.heavier({ b: bb, V: Vq([0, 0.1, 0.12, 0.2, 0.2, 0.1, 0]), tz }), "heavier rain during lineup and around the 9 AM start.");
+  assert.equal(L.heavier({ b: bb, V: Vq([0, 0.1, 0.25, 0.1, 0.1, 0.1, 0]), tz }), "heavier rain during lineup (6:30–9 AM).");
+  assert.equal(L.heavier({ b: { ...bb, ev: { name: "Riverfront Music Night", tz } }, V: Vq([0, 0.1, 0.25, 0.1, 0.1, 0.1, 0]), tz }), "heavier rain during gates (6:30–9 AM).");
+  assert.equal(L.heavier({ b: bb, V: Vq([0.3, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]), tz }), null);
+  assert.equal(L.heavier({ b: bb, V: Vq([0, 0, 0, 0, 0, 0, 0]), tz }), null);
 });
 check("Watch for: the organizer's gust limit when it applies; otherwise what to watch, never a policy", () => {
   const ph = phases.map((p, i) => ({ ...p, r: { gust: i === 0 ? 31 : 18 } }));

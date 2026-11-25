@@ -1,6 +1,7 @@
 /* REPLAY SAMPLE, not a forecast. The Thanksgiving Day Race at TQL Stadium, Cincinnati, Thu Nov 26 2026: public 9:00 AM
    start, with SAMPLE crew times (setup 5:00, gates 6:30, end 10:30, teardown noon: placeholders, not confirmed race-day
-   times). Synthetic guidance in the shape of the Thanksgiving run: a band of heavy rain through the morning, with the
+   times). Synthetic guidance in the shape of the Thanksgiving run: a band of heavy rain through the morning, heaviest during
+   lineup and around the 9 AM start, with the
    models differing by a few hours on when it starts. The official-alert set is EMPTY (no NWS alerts, and the Weather
    threats matcher finds nothing at the venue), which is the case where an empty alert list must not read as "no threats".
    The real engines and the full Event Manager page render it; the replay clock is Wed Nov 25 2026, 2:30 PM EST.
@@ -23,7 +24,7 @@
     ms.forEach((m) => { const l = local(m), race = l.slice(0, 10) === "2026-11-26", hr = +l.slice(11, 13);
       const temp = 44 + 5 * Math.max(0, Math.sin(((hr - 8) / 12) * Math.PI)) + (id === "ecmwf_ifs025" ? 1 : 0);
       const wet = wx === "replay" && race && hr >= w0 && hr <= w1, soon = wx === "replay" && race && hr >= w0 - 2 && hr < w0;
-      const peak = wet ? rate * (1 + 0.5 * Math.sin(((hr - w0 + 0.5) / (w1 - w0 + 1)) * Math.PI)) : 0;
+      const peak = wet ? rate * (hr === 8 ? 2.2 : hr === 9 ? 1.6 : 1) : 0; // heaviest through lineup and the 9 AM start
       let v = { temperature_2m: temp, apparent_temperature: temp - 4, precipitation_probability: wet ? 90 : soon ? 45 : mode === "quiet" ? 5 : 12, precipitation: wet ? +peak.toFixed(3) : 0,
         wind_speed_10m: wet ? 12 : 8, wind_gusts_10m: wet ? 21 : mode === "quiet" ? 11 : 15, snowfall: 0 };
       /* missing guidance: no source has the 9 and 10 AM race hours */
@@ -61,7 +62,8 @@
   const WHY = { ecmwf_ifs025: "request failed (HTTP 502)", ncep_nbm_conus: "no data returned", gfs_hrrr: "request failed (timeout)", ncep_rrfs_conus: "no data returned", gefs: "ensemble unavailable", ecmwf_ens: "ensemble unavailable" };
   const ids = [...present, ...ensPresent], allIds = [...all, ...Object.keys(ENS)];
   const feeds = { usedIds: ids, used: ids.map((id) => NAME[id]), missing: allIds.filter((id) => !ids.includes(id)).map((id) => ({ id, name: NAME[id], why: WHY[id] })) };
-  const ev = { n: mode === "warning" ? "Thanksgiving Day Race (warning sample)" : mode === "replay" ? "Thanksgiving Day Race (replay sample)" : mode === "quiet" ? "Thanksgiving Day Race (quiet sample)" : "Thanksgiving Day Race (missing-guidance sample)",
+  /* the real event name; the on-screen banner (below) labels every variant as a sample */
+  const ev = { n: "Thanksgiving Day Race",
     v: { name: "TQL Stadium, Cincinnati, OH", lat: 39.1113, lon: -84.5222 }, z: tz,
     t: { setup: "2026-11-26T05:00", gates: "2026-11-26T06:30", start: "2026-11-26T09:00", end: "2026-11-26T10:30", teardown: "2026-11-26T12:00" }, g: 25 };
   if (!q.get("e")) { q.set("e", JSON.stringify(ev)); history.replaceState(null, "", location.pathname + "?" + q.toString() + location.hash); }
@@ -83,6 +85,6 @@
       return { ...r, items: [], statuses, confirmed: true, venueConfirmed: true, venueSummary: words ? `No ${words} threats apply to the venue and event times.` : r.venueSummary }; };
   }
   document.addEventListener("DOMContentLoaded", () => { const b = document.createElement("p"); b.className = "ev-sample-banner"; b.setAttribute("role", "note");
-    b.textContent = mode === "warning" ? "Sample · replay with a synthetic Flash Flood Warning, not a real alert or forecast" : mode === "replay" ? "Replay sample · Thanksgiving run, synthetic guidance, not a forecast" : mode === "quiet" ? "Sample · quiet race morning, synthetic guidance, not a forecast" : "Sample · missing guidance, synthetic, not a forecast";
+    b.textContent = mode === "warning" ? "Sample · synthetic Flash Flood Warning, not a real alert" : mode === "replay" ? "Replay sample · synthetic guidance, not a forecast" : mode === "quiet" ? "Sample · quiet morning, synthetic, not a forecast" : "Sample · missing guidance, synthetic, not a forecast";
     const host = document.getElementById("briefView"); if (host) host.prepend(b); });
 })();

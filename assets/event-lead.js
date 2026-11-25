@@ -36,7 +36,7 @@
   };
   /* what it means in practice, per hazard and level (1 watch, 2 plan for it, 3 likely disruptive) */
   const IMPLICATION = {
-    rain: [null, 'Keep rain gear and covers handy.', 'Plan covered areas; protect power.', 'Expect a wet event: cover staging, protect power, plan safe footing.'],
+    rain: [null, 'Keep rain gear and covers handy.', 'Plan covered areas; protect power.', 'Expect a wet event: covered staging, safe footing.'],
     wind: [null, 'Check that tents, banners and signage are secured.', 'Secure or lower tents, banners and signage.', 'Expect wind to limit tents, staging and signage.'],
     lightning: [null, 'Know where people would shelter.', 'Have shelter ready; detected lightning on the day matters most.', 'Expect thunderstorms to interrupt outdoor activity; have shelter ready.'],
     snow: [null, 'Have snow clearing on call.', 'Plan snow clearing and salt for walkways.', 'Expect snow to slow setup and access.'],
@@ -55,13 +55,17 @@
     const hoursText = missingHours.length ? `${missingHours.length === 1 ? `the ${clock(missingHours[0], tz)} hour has` : `${missingHours.length} event hours (${span(missingHours[0], missingHours[missingHours.length - 1] + H, tz)}) have`} no forecast data` : '';
     const why = [thin ? `only ${f.used.length} of ${total} model sources reach these hours (missing ${f.missing.length > 3 ? `${f.missing.slice(0, 3).map((m) => m.name).join(', ')} and ${f.missing.length - 3} more` : listWords(f.missing.map((m) => m.name))})` : '', hoursText, partial ? partial.replace(/\.$/, '').replace(/^./, (c) => c.toLowerCase()) : ''].filter(Boolean);
     const limited = why.length > 0;
-    /* missing hours inside the schedule: name the window and the part of the event it falls in ("the 9–11 AM race window") */
-    let incomplete = '';
-    if (missingHours.length) { const a = missingHours[0], z = missingHours[missingHours.length - 1] + H, ph = b.phases.find((p) => a + H > p.startMs && a < p.endMs);
-      incomplete = `Rain guidance is incomplete for the ${span(a, z, tz)} ${ph && ph.key !== 'event' ? ph.label.toLowerCase() : eventWord(b.ev && b.ev.name)} window`; }
+    /* missing hours inside the schedule: name the window and the part of the event it falls in ("the 9–11 AM race window").
+       Hours with no value for any variable ("nodata") are forecast guidance; hours that have other values but neither a
+       rain chance nor an amount are rain guidance only. The Rain chance row always uses the rain wording. */
+    const windowOf = (hs) => { if (!hs.length) return ''; const a = hs[0], z = hs[hs.length - 1] + H, ph = b.phases.find((p) => a + H > p.startMs && a < p.endMs);
+      return `${span(a, z, tz)} ${ph && ph.key !== 'event' ? ph.label.toLowerCase() : eventWord(b.ev && b.ev.name)} window`; };
+    const rainHours = (V ? V.span : []).filter((ms, i) => { const h = V.hrs[i]; return inEvent(ms) && ms + H > now && h && h.state !== 'beyond' && (h.state !== 'ok' || (!fin(h.pop) && !fin(h.qpf))); });
+    const incompleteRain = rainHours.length ? `Rain guidance is incomplete for the ${windowOf(rainHours)}` : '';
+    const incomplete = missingHours.length ? `Forecast guidance is incomplete for the ${windowOf(missingHours)}` : incompleteRain;
     const brief = [thin ? `${f.used.length} of ${total} model sources` : '', missingHours.length ? `${missingHours.length} hour${missingHours.length > 1 ? 's' : ''} without data` : '', partial ? 'part of the event not covered yet' : ''].filter(Boolean);
     return { thin, used: f.used.length, total, missing: f.missing || [], missingHours, partial, alertsOff: alertsAvailable === false, limited,
-      why, incomplete, short: limited ? `Confidence is limited: ${why.join('; ')}.` : '', brief: limited ? `Confidence is limited: ${brief.join(', ')}.` : '' };
+      why, incomplete, incompleteRain, short: limited ? `Confidence is limited: ${why.join('; ')}.` : '', brief: limited ? `Confidence is limited: ${brief.join(', ')}.` : '' };
   }
 
   /* the official alerts at the venue: urgent (warning-level) ones lead; an empty set is said only when the check succeeded */
@@ -83,6 +87,19 @@
     const implication = top ? (IMPLICATION[top.key] || [])[top.level] || '' : kind === 'missing' ? 'Treat it as unconfirmed until the guidance returns.' : 'no weather change needed.';
     return { kind, top, item, gaps: G, official: OF, phases, hit, focus, when, implication, watch: watchFor(o, { top, hit, G }), changes: changes(o, { top, hit, evp, G }), evidence: evidence(o, focus) };
   }
+  /* heavier rain at the busiest moment: the heaviest hour(s) of the blend's hourly rain amounts (V.hrs qpf; ties at the
+     two decimals the page shows) falling in gates ("lineup" for a race or run) and/or within an hour of the event start.
+     Read from the existing hourly values only; no new threshold. Null when the timing doesn't support it. */
+  function heavier(o) {
+    const { b, V, tz } = o, ev = b.phases.find((p) => p.key === 'event'), gates = b.phases.find((p) => p.key === 'gates');
+    if (!V || !ev) return null;
+    const hrs = V.span.map((ms, i) => ({ ms, q: V.hrs[i] && V.hrs[i].state === 'ok' && fin(V.hrs[i].qpf) ? Math.round(V.hrs[i].qpf * 100) : null })).filter((x) => x.q != null && x.ms + H > b.all.startMs && x.ms < b.all.endMs);
+    const top = Math.max(0, ...hrs.map((x) => x.q)); if (!(top > 0)) return null;
+    const peak = hrs.filter((x) => x.q === top), word = /^(race|run|marathon|walk)$/.test(eventWord(b.ev && b.ev.name)) ? 'lineup' : 'gates';
+    const inGates = !!gates && peak.some((x) => x.ms < gates.endMs && x.ms + H > gates.startMs), nearStart = peak.some((x) => Math.abs(x.ms - ev.startMs) <= H);
+    const at = `the ${clock(ev.startMs, tz)} start`;
+    return inGates && nearStart ? `heavier rain during ${word} and around ${at}.` : inGates ? `heavier rain during ${word} (${span(gates.startMs, gates.endMs, tz)}).` : nearStart ? `heavier rain around ${at}.` : null;
+  }
   /* "Watch for": one short line for the first screen. The organizer's own threshold where the event has one (its gust
      limit); otherwise what to watch in the next update, with no implied delay or cancellation rule. */
   function watchFor(o, { top, hit, G }) {
@@ -90,6 +107,7 @@
     if (top && top.key === 'wind') { const pk = Math.round(o.b.phases.reduce((m, p) => Math.max(m, p.r && fin(p.r.gust) ? p.r.gust : 0), 0));
       return `gusts at or above your ${o.limit || 25} mph limit${during} (now up to ${pk} mph).`; }
     if (top && top.key === 'lightning') return `the thunder signal${during} holding or fading.`;
+    if (top && top.key === 'rain') { const h = heavier(o); if (h) return h; }
     if (top && fin(top.from)) return `the ${top.noun} arriving earlier or later than ${clock(top.from, tz)}.`;
     if (top) return `whether the ${top.noun}${during} firms up in the next update.`;
     if (G.limited) return G.incomplete ? `the missing hours filling in at the next check.` : `the missing guidance returning at the next check.`;
@@ -255,7 +273,7 @@
     return `<div class="pv-why" data-pv="why"><b>Why this is flagged</b> ${W.print.map((t) => `<span>${esc(t)}</span>`).join(' ')}</div>`;
   }
 
-  const api = { eventWord, watchFor, TIER_RULE, IMPLICATION, URGENT, gaps, official, model, changes, evidence, why, leadKind, leadHtml, afterHtml, officialHtml, whyHtml, printLead, printWhy, span };
+  const api = { eventWord, watchFor, heavier, TIER_RULE, IMPLICATION, URGENT, gaps, official, model, changes, evidence, why, leadKind, leadHtml, afterHtml, officialHtml, whyHtml, printLead, printWhy, span };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.EventLead = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

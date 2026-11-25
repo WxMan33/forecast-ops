@@ -42,6 +42,9 @@
       if (isSample()) ev = sampleAt({ ...p, tz }); else ev = { ...ev, loc: { name: p.name, lat: p.lat, lon: p.lon }, tz };
       run(); } });
   head.onRefresh(() => run());
+  /* on a phone the toolbar shows Print and Feedback as icons: keep their names for screen readers and a tooltip */
+  const fbName = () => { const f = document.getElementById("bxFeedback"); if (f && !f.title) { f.title = "Feedback"; f.setAttribute("aria-label", "Feedback"); } };
+  fbName(); addEventListener("load", fbName); setTimeout(fbName, 1500);
   { const pc = $("picker").querySelector(".bx-ppcopy"); if (pc) pc.title = "Copy a link to this event (also under Share)"; }
   $("editBtn").addEventListener("click", () => UP.editEvent(ev, { title: isStored() ? "Edit event" : "Save as your event", onSaved: (rec) => { ev = rec; E.setLast(rec.id); O.store.set(SEEN, Date.now()); history.replaceState(null, "", `?ev=${encodeURIComponent(rec.id)}`); upCount(); run(); } }));
   $("resetBtn").addEventListener("click", () => { E.setLast(null); history.replaceState(null, "", location.pathname); ev = sampleAt(null);
@@ -268,7 +271,7 @@
       /* the hazard word is highlighted wherever the headline puts it ("Rain likely…", "Plan for rain…") */
       const hz = top ? new RegExp(esc(top.noun).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") : null;
       $("decision").innerHTML = top ? esc(displayText).replace(hz, (m) => `<span class="hz" style="--tier:var(--${top.tier})">${m}</span>`) : esc(displayText);
-      $("keys").innerHTML = callouts({ A, PS, live, peak, lightAll, next, R, tz, now, gapText: G.incomplete });
+      $("keys").innerHTML = callouts({ A, PS, live, peak, lightAll, next, R, tz, now, gapText: G.incompleteRain, gapAll: G.incomplete });
     }
     $("coverage").querySelectorAll("[data-remind]").forEach((a) => a.addEventListener("click", () => U.track("reminder_exported", { via: a.dataset.remind })));
     earlyOutlook(res, R, around);
@@ -317,7 +320,7 @@
   }
   /* ---- the briefing's callouts: rain, lightning potential, and the third concern (gusts against the venue limit unless
      another hazard ranks higher), then the next check. Values come from the briefing engine and the attention model. ---- */
-  function callouts({ A, PS, live, peak, lightAll, next, R, tz, now, gapText = "" }) {
+  function callouts({ A, PS, live, peak, lightAll, next, R, tz, now, gapText = "", gapAll = "" }) {
     /* the lead above already gives the primary concern's hours; its callout keeps only where in the schedule it falls */
     const item = (k) => A.items.find((x) => x.key === k), when = (it) => { const f = BUI.focusOf(it, A.phases), lead = A.items[0] === it && f.text;
       return [f.text, f.from != null && !lead ? fmt.span(f.from, f.to, tz) : ""].filter(Boolean).join(" · "); };
@@ -325,7 +328,7 @@
     const dt = (label, it) => `<dt${it && it.tier ? ` data-tier="${esc(it.tier)}" style="--tier:var(--${esc(it.tier)})"` : ""}>${esc(label)}</dt>`;
     const rain = item("rain"), light = item("lightning"), wind = item("wind");
     const rainDd = rain ? `<dd${tierCls(rain)}><b>${esc(rain.word || "Possible")}</b> · up to ${esc(U.pct(peak ? peak.v : (rain.peak && rain.peak.v)))}<span class="bx-note">${esc(when(rain))}</span></dd>`
-      : peak && gapText ? `<dd class="ev-c" data-incomplete>Incomplete<span class="bx-note">${esc(gapText)}. Peak hourly ${esc(U.pct(peak.v))} in the hours with guidance.</span></dd>`
+      : peak && gapText ? `<dd class="ev-c" data-incomplete>Incomplete · up to ${esc(U.pct(peak.v))} elsewhere<span class="bx-note">${esc(gapText)}.</span></dd>`
       : peak ? `<dd class="ev-c">Peak hourly ${esc(U.pct(peak.v))}<span class="bx-note">${esc(fmt.day(peak.at, tz))}, ${esc(BUI.hourWindow(peak.at, tz))} · no rain concern for the plan</span></dd>`
       : `<dd class="ev-c">${live.length ? "Unavailable" : "Not in range yet"}<span class="bx-note">${live.length ? "No hourly rain chance came back for these hours (not zero). Try ↻ later." : ""}</span></dd>`;
     const lightDd = `<dd${tierCls(light)}>${esc(lightAll.word)}<span class="bx-note">${light ? `${esc(when(light))}. ` : ""}${esc(lightAll.note)}</span></dd>`;
@@ -336,7 +339,7 @@
     else {
       const g = live.filter((p) => p.gust), gmax = g.length ? Math.max(...g.map((p) => p.gust.v)) : null;
       third = wind && wind.windows.length ? `${dt("Gusts", wind)}<dd${tierCls(wind)}><b>Reach your ${A.limit} mph limit</b> · up to ${esc(mph(Math.max(...wind.windows.map((w) => w.peak ? w.peak.v : 0))))}<span class="bx-note">${esc(when(wind))}</span></dd>`
-        : `${dt("Gusts", wind)}<dd${tierCls(wind)}>${fin(gmax) ? `Up to ${esc(mph(gmax))}` : "Unavailable"}<span class="bx-note">${fin(gmax) ? `Below your ${A.limit} mph venue limit${gapText ? " where there is guidance; some event hours have no data" : ""}` : "No gust guidance for these hours (not zero)"}</span></dd>`;
+        : `${dt("Gusts", wind)}<dd${tierCls(wind)}>${fin(gmax) ? `Up to ${esc(mph(gmax))}` : "Unavailable"}<span class="bx-note">${fin(gmax) ? `${gapAll ? `Below your ${A.limit} mph limit; some hours have no data` : `Below your ${A.limit} mph venue limit`}` : "No gust guidance for these hours (not zero)"}</span></dd>`;
     }
     const nextDd = next ? `${vt(next.at, tz, now)}<span class="bx-note">${esc(next.what)}</span>` : "Now: use radar, lightning detection and NWS warnings.";
     return `${dt("Rain chance", rain)}${rainDd}${dt("Lightning potential", light)}${lightDd}${third}<dt>Next check</dt><dd class="ev-next">${nextDd}</dd>`;
