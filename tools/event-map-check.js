@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Offline check of the Event Manager radar map: time slider, "Event | Full run" switch, jump chips, coverage note and
+/* Offline check of the Event Manager forecast radar (HRRR model map): heading, time slider with its time readout, "Event | Full run" switch, jump chips, coverage note and
    guidance disclaimer. Real page, real map viewer (maps.html embed) and real map engine; the weather is the synthetic
    winter sample (tests/fixtures/event-winter-data.js: setup 1 PM tomorrow, teardown 11:30 PM) and the HRRR runs are the
    captured Tri-State fixture (tests/fixtures/maps/2026110500) re-timed and repeated to the run lengths each case needs.
@@ -75,7 +75,15 @@ const state = (p) => p.evaluate(() => { const m = document.getElementById('map')
   return { selected: +document.body.dataset.selected, map: +m.dataset.mapValid, range: m.dataset.range, mode: m.dataset.mode, slider: m.dataset.slider, cover: m.dataset.cover, chart: sel ? +sel.dataset.hour : null,
     min: +sl.min, max: +sl.max, value: +sl.value, disabled: sl.disabled, valuetext: sl.getAttribute('aria-valuetext'), note: cov.hidden ? null : cov.innerText.replace(/\s+/g, ' ').trim(),
     chips: [...document.querySelectorAll('#mpChips .bx-chip')].map((c) => ({ text: c.innerText.replace(/\s+/g, ' ').trim(), disabled: c.disabled, jump: c.dataset.jump ? +c.dataset.jump : null })),
-    disc: (document.getElementById('mpDisc') || {}).innerText || '', vt: document.getElementById('mpVt').innerText.replace(/\s+/g, ' ') }; });
+    disc: (document.getElementById('mpDisc') || {}).innerText || '', vt: document.getElementById('mpVt').innerText.replace(/\s+/g, ' '),
+    now: document.getElementById('mpNow').textContent.replace(/\s+/g, ' ').trim(), nowMs: +document.getElementById('mpNow').dataset.ms }; });
+/* layout facts: the time readout right above the slider, the coverage note right below it, tiles that never carry the HRRR reach */
+const layout = (p) => p.evaluate(() => { const r = (id) => document.getElementById(id).getBoundingClientRect(), now = r('mpNow'), sl = r('mpSlider'), ends = r('mpEnds'), cov = document.getElementById('mpCover');
+  const c = cov.hidden ? null : cov.getBoundingClientRect(), dash = document.getElementById('evDash'), cs = getComputedStyle(document.getElementById('mpNow'));
+  return { nowAbove: now.bottom <= sl.top + 1 && sl.top - now.bottom < 12, nowPx: parseFloat(cs.fontSize), nowFits: now.left >= r('map').left - 1 && now.right <= r('map').right + 1 && document.getElementById('mpNow').scrollWidth <= document.getElementById('mpNow').clientWidth + 1,
+    nowInView: now.top >= 0 && now.bottom <= innerHeight, coverGap: c ? Math.round(c.top - ends.bottom) : null, coverBelow: c ? c.top >= sl.bottom : null,
+    heading: document.querySelector('#secMap > h2').textContent, labelled: document.getElementById('secMap').getAttribute('aria-labelledby') === document.querySelector('#secMap > h2').id,
+    tiles: dash ? [...dash.querySelectorAll('.evd-tile')].map((t) => t.dataset.coverage + ':' + t.innerText.replace(/\s+/g, ' ')) : [], dashText: dash ? dash.innerText : '' }; });
 const span = (x) => x.slider ? x.slider.split('-').map(Number) : [];
 const iso = (ms) => (ms ? nyLocal(ms).replace('T', ' ') : '—');
 /* screenshots of the map section: sticky page bars are unpinned while capturing so they do not cover it */
@@ -92,6 +100,11 @@ const shot = async (p, name) => { await p.evaluate(() => document.querySelectorA
   {
     const { ctx, p, errors } = await open(browser, base, { device: DESK, theme: 'light' }); let x = await state(p);
     check(x.mode === 'event', `mid-event run: opens in Event mode (${x.mode})`);
+    let L0 = await layout(p);
+    check(L0.heading === 'Forecast radar · HRRR model' && L0.labelled, `section heading "${L0.heading}" labels the map section`);
+    check(/^Map time \w{3} \d{1,2}(:\d\d)? [AP]M E[SD]T$/.test(x.now) && x.nowMs === x.selected && L0.nowAbove && L0.nowPx >= 14, `time readout right above the slider shows the selected day, hour and time zone (${x.now}, ${L0.nowPx} px)`);
+    check(L0.coverGap !== null && L0.coverGap >= 0 && L0.coverGap <= 8 && L0.coverBelow, `HRRR cutoff note sits directly below the slider (${L0.coverGap} px under its time range)`);
+    check(L0.tiles.length > 0 && L0.tiles.every((t) => t.startsWith('all:')) && !/HRRR|as far as|model run/i.test(L0.dashText), `HRRR ends at 6 PM, but the blend covers the event: tiles carry no coverage note and never the HRRR cutoff (${L0.tiles.map((t) => t.split(':')[0]).join(', ')})`);
     check(x.selected >= WIN0 && x.selected <= at('18:00') && x.map === x.selected, `mid-event run: the map opens on the event, not the run's first hour (selected ${iso(x.selected)} · map ${iso(x.map)} · run starts ${iso(R1.cycle)})`);
     check(span(x)[0] === WIN0 && span(x)[1] === at('18:00'), `Event window = 2 h before setup → end of the run (clipped): ${iso(span(x)[0])} – ${iso(span(x)[1])}`);
     console.log('   coverage note: ' + x.note);
@@ -111,6 +124,7 @@ const shot = async (p, name) => { await p.evaluate(() => document.querySelectorA
     await p.focus('#mpSlider'); await p.keyboard.press('Home'); await p.waitForTimeout(500); x = await state(p);
     check(x.selected === WIN0 && x.map === WIN0, `slider Home → window start, map follows (selected ${iso(x.selected)} · map ${iso(x.map)})`);
     await p.keyboard.press('ArrowRight'); await p.keyboard.press('ArrowRight'); await p.waitForTimeout(500); x = await state(p);
+    check(x.nowMs === x.selected && /E[SD]T$/.test(x.now), `time readout follows slider input (${x.now})`);
     check(x.selected === WIN0 + 2 * H && x.map === x.selected && x.chart === x.selected, `slider arrow keys step the shared time; map and hourly charts follow (selected ${iso(x.selected)} · map ${iso(x.map)} · chart ${iso(x.chart)})`);
     const ring = await p.evaluate(() => { const s = document.getElementById('mpSlider'); return s.matches(':focus-visible') ? getComputedStyle(s).outlineStyle : 'no focus-visible'; });
     check(ring === 'solid', `slider has a visible focus ring (${ring})`);
@@ -125,12 +139,13 @@ const shot = async (p, name) => { await p.evaluate(() => document.querySelectorA
     await p.click('#mpChips [data-part="setup"]'); await p.waitForTimeout(500); x = await state(p);
     check(x.selected === SETUP && x.map === SETUP, `Setup chip jumps to 1 PM (${iso(x.selected)})`);
     /* play loops inside the window */
-    const seen = []; await p.click('#mpPlay');
-    for (let i = 0; i < 30; i++) { await p.waitForTimeout(250); seen.push(+(await p.evaluate(() => document.body.dataset.selected))); }
+    const seen = [], reads = []; await p.click('#mpPlay');
+    for (let i = 0; i < 30; i++) { await p.waitForTimeout(250); const o = await p.evaluate(() => ({ sel: +document.body.dataset.selected, ms: +document.getElementById('mpNow').dataset.ms, t: document.getElementById('mpNow').textContent.replace(/\s+/g, ' ').trim() })); seen.push(o.sel); reads.push(o); }
     await p.click('#mpPlay'); await p.waitForTimeout(400);
     const inWin = seen.every((t) => t >= WIN0 && t <= at('18:00')), wrapped = seen.some((t, i) => i && t < seen[i - 1]);
     check(inWin && wrapped && new Set(seen).size >= 6, `Play loops inside the Event window (${[...new Set(seen)].map((t) => nyLocal(t).slice(11)).join(' ')})`);
     x = await state(p); check(x.map === x.selected, 'after pause the map and the selected time agree');
+    check(new Set(reads.map((o) => o.t)).size >= 6 && reads.filter((o) => o.ms === o.sel).length >= reads.length - 3 && reads.every((o) => /E[SD]T$/.test(o.t.trim())), `time readout updates with every Play frame, always with its time zone (${new Set(reads.map((o) => o.t)).size} distinct readouts)`);
     await shot(p, 'event-map-desktop-light-event.png');
     /* Full run */
     await p.click('[data-mode="full"]'); await p.waitForTimeout(500); x = await state(p);
@@ -153,6 +168,20 @@ const shot = async (p, name) => { await p.evaluate(() => document.querySelectorA
     if (dev === 'phone') check(lay.slH >= 44 && lay.chipH >= 44, `phone ${theme}: slider and chips have ≥44 px touch targets (slider ${lay.slH}, chips ${lay.chipH})`);
     if (dev === 'phone') { await p.locator('#mpSlider').scrollIntoViewIfNeeded(); const b = await p.locator('#mpSlider').boundingBox(); await p.touchscreen.tap(b.x + b.width - 14, b.y + b.height / 2); await p.waitForTimeout(500); const x = await state(p);
       check(x.selected === at('18:00') && x.map === x.selected, `phone ${theme}: tapping the end of the slider jumps to the last hour (${iso(x.selected)})`); }
+    if (dev === 'phone') {
+      /* drag the thumb across the track: the readout follows every input event and stays in view and on one line */
+      await p.locator('#mpSlider').scrollIntoViewIfNeeded(); const b = await p.locator('#mpSlider').boundingBox(), y = b.y + b.height / 2, drag = [];
+      await p.mouse.move(b.x + b.width - 12, y); await p.mouse.down();
+      for (let i = 1; i <= 6; i++) { await p.mouse.move(b.x + b.width - 12 - (b.width - 24) * i / 6, y); await p.waitForTimeout(120); drag.push(await p.evaluate(() => ({ t: document.getElementById('mpNow').textContent.replace(/\s+/g, ' ').trim(), ms: +document.getElementById('mpNow').dataset.ms, v: +document.getElementById('mpSlider').value }))); }
+      await p.mouse.up(); const Ld = await layout(p);
+      check(new Set(drag.map((d) => d.t)).size >= 4 && drag.every((d) => /^Map time \w{3} \d{1,2}(:\d\d)? [AP]M E[SD]T$/.test(d.t)) && Ld.nowInView && Ld.nowFits && Ld.nowPx >= 14, `phone ${theme}: while dragging, the time readout updates live with the time zone, in view and readable at 390 px (${drag.map((d) => d.t.replace('Map time ', '')).join(' → ')})`);
+      check(Ld.coverGap !== null && Ld.coverGap >= 0 && Ld.coverGap <= 8, `phone ${theme}: HRRR cutoff note directly below the slider (${Ld.coverGap} px)`);
+      /* Play: the readout keeps pace with each frame and stays in view */
+      const reads = []; await p.click('#mpPlay');
+      for (let i = 0; i < 16; i++) { await p.waitForTimeout(250); reads.push(await p.evaluate(() => { const e = document.getElementById('mpNow'), r = e.getBoundingClientRect(); return { t: e.textContent.replace(/\s+/g, ' ').trim(), ms: +e.dataset.ms, map: +document.getElementById('map').dataset.mapValid, view: r.top >= 0 && r.bottom <= innerHeight }; })); }
+      await p.click('#mpPlay'); await p.waitForTimeout(300);
+      check(new Set(reads.map((o) => o.t)).size >= 4 && reads.filter((o) => o.ms === o.map).length >= reads.length - 3 && reads.every((o) => o.view && /E[SD]T$/.test(o.t)), `phone ${theme}: during Play the readout shows each frame's time and zone and stays in view (${[...new Set(reads.map((o) => o.t.replace('Map time ', '')))].join(' · ')})`);
+    }
     await shot(p, `event-map-${dev}-${theme}-event.png`);
     if (dev === 'phone') { await p.click('[data-mode="full"]'); await p.waitForTimeout(500); await shot(p, `event-map-${dev}-${theme}-full.png`);
       const h = await p.evaluate(() => Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) > innerWidth + 1); check(!h, `phone ${theme}: Full run, no sideways scroll`); }
@@ -166,6 +195,14 @@ const shot = async (p, name) => { await p.evaluate(() => document.querySelectorA
   {
     const { ctx, p, errors } = await open(browser, base, { device: DESK }); const x = await state(p);
     check(x.cover === 'all' && x.note === null, `whole event covered: no coverage note (${x.cover})`);
+    const L2 = await layout(p);
+    check(L2.tiles.length > 0 && L2.tiles.every((t) => t.startsWith('all:')) && /^Map time .* E[SD]T$/.test(x.now), `whole event covered: tiles without coverage notes; readout ${x.now}`);
+    /* At a glance: the tap cue sits above the rows; tapping a row selects that time and the map and charts show the same hour */
+    const cue = await p.evaluate(() => { const c = document.querySelector('#evDash [data-cue]'), row = document.querySelector('#evDash .evd-row'); return c && row ? { text: c.textContent, above: c.getBoundingClientRect().bottom <= row.getBoundingClientRect().top + 1 } : null; });
+    check(cue && cue.text === 'Tap a row to jump to that time.' && cue.above, `At a glance: "${cue && cue.text}" above the hazard rows`);
+    await p.locator('#evDash .evd-seg').last().scrollIntoViewIfNeeded(); const sb = await p.locator('#evDash .evd-seg').last().boundingBox(); await p.mouse.click(sb.x + sb.width / 2, sb.y + sb.height / 2); await p.waitForTimeout(900);
+    const z = await state(p), lab = await p.evaluate(() => { const s = document.querySelector('#evDash [data-sel]'), lanes = document.querySelector('#evDash .evd-lanes'); return { t: s.innerText.replace(/\s+/g, ' '), near: s.getBoundingClientRect().top - lanes.getBoundingClientRect().bottom < 16 }; });
+    check(/^Selected /.test(lab.t) && lab.near && z.map === z.selected && z.chart === z.selected && z.nowMs === z.selected, `tapping a row: "${lab.t.split(' · ')[0]}" under the rows; map ${iso(z.map)}, charts ${iso(z.chart)} and slider readout show the same hour`);
     check(span(x)[0] === WIN0 && span(x)[1] === at('23:00'), `Event window = 11 AM → the last hour of teardown (${iso(span(x)[0])} – ${iso(span(x)[1])})`);
     check(x.chips.length === 4 && x.chips.every((c) => !c.disabled), 'every part has a working chip');
     await p.click('#mpChips [data-part="teardown"]'); await p.waitForTimeout(500); const y = await state(p);

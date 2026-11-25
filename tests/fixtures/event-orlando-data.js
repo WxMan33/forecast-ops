@@ -37,7 +37,7 @@
   if (!q.get("e")) { q.set("e", JSON.stringify(ev)); history.replaceState(null, "", location.pathname + "?" + q.toString()); }
   BetaUI.load = async () => ({ ctx, NW, RB: {}, problems: [], feeds: { used: ["GFS", "ECMWF IFS", "NBM", "HRRR", "ECMWF AIFS", "GEFS", "ECMWF ENS", "RRFS 3 km", "NWS point forecast"], missing: [{ name: "RRFS ensemble", why: "sample" }] }, market: { tuned: false }, recipe: "Default blend recipe", verified: "Design sample with synthetic weather: not a forecast." });
   BetaUI.alerts = async () => [];
-  BetaUI.mapPanel = (el) => { el.innerHTML = '<p class="bx-note">Radar map omitted from this design sample.</p>'; };
+  BetaUI.mapPanel = (el) => { el.innerHTML = '<p class="bx-note">Forecast radar omitted from this design sample.</p>'; };
   /* label the page plainly as a sample wherever it is opened */
   document.addEventListener("DOMContentLoaded", () => { const b = document.createElement("p"); b.className = "ev-sample-banner"; b.setAttribute("role", "note");
     b.textContent = "Design sample · synthetic weather, not a forecast"; const host = document.getElementById("briefView"); if (host) host.prepend(b); });

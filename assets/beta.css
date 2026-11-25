@@ -99,6 +99,10 @@ body.bx * { font-variant-numeric: tabular-nums; }
 .bx-slticks { position: absolute; left: 0; right: 0; top: 42px; height: 18px; overflow: hidden; }
 .bx-slticks span { position: absolute; transform: translateX(-50%); font: 600 11px var(--bx-font); color: var(--muted); white-space: nowrap; }
 .bx-slticks span.l { transform: translateX(-4px); } .bx-slticks span.r { transform: translateX(calc(-100% + 4px)); }
+/* the map time, attached to the slider: stays in view while scrubbing and while Play loops */
+.bx-slnow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; margin: 6px 0 0; font: 700 15px var(--bx-font); color: var(--text); font-variant-numeric: tabular-nums; }
+.bx-slnow i { font-style: normal; font-weight: 600; font-size: 13px; color: var(--muted); }
+.bx-slnow.oor b { text-decoration: line-through; text-decoration-color: var(--monitor); }
 .bx-slends { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; color: var(--muted); }
 .bx-mapcover { font-size: 13px; padding: 8px 10px; border-bottom: 1px solid var(--bx-rule); background: color-mix(in srgb, var(--monitor) 14%, transparent); }
 .bx-mapcover .bx-btn { margin-left: 4px; }
@@ -660,7 +664,7 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
   .at-hitlayer { left: calc(74px + 6px); }
   .ev-ro { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-/* 3. Details on demand: a few named groups, closed by default; the radar map stays open */
+/* 3. Details on demand: a few named groups, closed by default; the forecast radar stays open */
 .ev-details { margin-top: 26px; }
 .ev-details-h { font-size: 13px !important; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 4px !important; }
 .event-planner .ev-group { margin-top: 0; padding: 0; }
@@ -935,6 +939,9 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .evd-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;border:1px solid var(--bx-rule);font-weight:700;font-size:14px;background:color-mix(in srgb,var(--text) 5%,transparent)}
 .evd-arrow{color:var(--muted);font-weight:700}
 .evd-gust{color:var(--muted)}
+/* a tile's own data does not cover the whole window: said on that tile (never the HRRR map's reach) */
+.evd-cov{align-self:flex-start;margin-top:4px;padding:2px 8px;border-radius:6px;border:1px dashed color-mix(in srgb,var(--text) 45%,transparent);font-size:12.5px;font-weight:700;line-height:1.3;color:var(--text)}
+.evd-cue{margin:0 0 6px;font-size:14px;color:var(--muted)}
 .evd-when{margin:14px 0 0;padding:12px 0 0;border-top:1px solid var(--bx-rule)}
 .evd-when h3{margin:0 0 8px;font-size:16px;font-weight:800}
 .evd-lanes{position:relative}
