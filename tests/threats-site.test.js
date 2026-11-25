@@ -76,9 +76,9 @@ ok("highlights: complete grids are fully checked (a November grid without a heat
 });
 ok("lead: heavy rain and the lingering rain around it are one event, named once, with the whole rain window underneath", () => {
   const L = (name) => OL.highlightLead(hl(name).list, TZ);
-  assert.deepStrictEqual(L("heavy"), { text: "Heavy rain Thursday · Wintry mix possible Friday morning", timing: "Rain likely from Thu 10 AM through Fri 7 AM" });
-  assert.deepStrictEqual(L("heavy-alone"), { text: "Heavy rain Thursday", timing: "Rain from Thu 1 PM through Fri 7 AM" });
-  assert.deepStrictEqual(OL.highlightLead(OL.highlights(FG.parseGrid(GRID, NOW, 168), TZ, NOW, {}).list, TZ), { text: "Rain likely Thursday · Rain likely Sunday", timing: "From Thu 4 AM through Fri 1 PM" });
+  assert.deepStrictEqual(L("heavy"), { text: "Heavy rain Thursday · Wintry mix possible Friday morning", timing: "Rain likely from Thu 10 AM through Fri 7 AM", more: "" });
+  assert.deepStrictEqual(L("heavy-alone"), { text: "Heavy rain Thursday", timing: "Rain from Thu 1 PM through Fri 7 AM", more: "" });
+  assert.deepStrictEqual(OL.highlightLead(OL.highlights(FG.parseGrid(GRID, NOW, 168), TZ, NOW, {}).list, TZ), { text: "Rain likely Thursday", timing: "From Thu 4 AM through Fri 1 PM", more: "More rain likely Sunday · Sun 1 PM through 7 PM" }); // a later rain event: its own line and window
 });
 ok("partial rain amounts: short of an inch before they stop mid-rain is 'not checked' on that day; past an inch keeps heavy rain and says the total may be higher", () => {
   const pr = hl("partial-rain"); assert.deepStrictEqual(pr.list.map((x) => x.kind), ["linger"]);

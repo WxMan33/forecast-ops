@@ -847,9 +847,13 @@
     const valid = /Valid (\d{2})(\d{2})(\d{2})Z\s*-\s*(\d{2})(\d{2})(\d{2})Z/.exec(text);
     let start = null, end = null;
     if (valid) { const d = new Date(now), y = d.getUTCFullYear(), mo = d.getUTCMonth(), at = (dd, h, mi) => { let t = Date.UTC(y, mo, dd, h, mi); if (t - now > 15 * 86400e3) t = Date.UTC(y, mo - 1, dd, h, mi); return new Date(t).toISOString(); }; start = at(+valid[1], +valid[2], +valid[3]); end = at(+valid[4], +valid[5], +valid[6]); }
-    const n = num ? +num[1] : null;
+    /* "MD 2465 Active Till 0300 UTC" (the service's folderpath): the end time, the next 03:00Z from now; the start isn't given */
+    const till = !end && /Active Till (\d{2})(\d{2}) ?UTC/i.exec(text);
+    if (till) { const d = new Date(now); let e = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), +till[1], +till[2]); if (e < now - 3 * 3600e3) e += 86400e3; end = new Date(e).toISOString(); }
+    const n = num ? +num[1] : null, topicKnown = /severe|tornado|thunderstorm|hail|wind|winter|snow|freezing|blizzard|heavy rain|flash flood/i.test(text);
     return { id: "spc-md-svc-" + (n || P.objectid || f.id), kind: "md", family: "severe", sourceId: "spc-md", event: "Mesoscale Discussion", title: "Mesoscale Discussion (MD)" + (n ? " " + n : ""), number: n,
-      headline: "", hazard: "", area: "Unavailable from the map service", office: "NWS Storm Prediction Center", issued: start, updated: start, validStart: start, expires: end, validUnknown: !valid,
+      headline: "", hazard: topicKnown ? "" : "Topic unavailable: the NOAA map service doesn't say what this MD is about (severe storms, winter weather or heavy rain). See the SPC bulletin.", topicUnknown: !topicKnown,
+      area: "Unavailable from the map service", office: "NWS Storm Prediction Center", issued: start, updated: start, validStart: start, expires: end, validUnknown: !valid,
       geometry: f.geometry, label: labelPoint(f.geometry), detailsUnavailable: true, viaService: true,
       source: { name: "NOAA map service (SPC MDs)", url: n ? MD_URL(n) : MD_LIST_URL }, bulletin: "", severe: !/winter|snow|freezing|blizzard/i.test(text) };
   }

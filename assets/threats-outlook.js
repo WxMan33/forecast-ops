@@ -90,14 +90,20 @@
     const heavy = list.find((item) => item.kind === "rain");
     const belongsToHeavy = (item) => heavy && item.kind === "linger" && item.start < heavy.end && item.end > heavy.start;
     const related = list.filter(belongsToHeavy);
-    const top = list.filter((item) => !belongsToHeavy(item)).slice(0, 2);
+    /* one rain event in the headline: a separate, later rain event gets its own line with its own window ("More rain likely
+       Sunday · Sun 7 AM through 7 PM"), never the first event's timing */
+    const isRain = (item) => item.kind === "rain" || item.kind === "linger", rest = list.filter((item) => !belongsToHeavy(item));
+    const first = rest[0], second = rest.slice(1).find((item) => !(isRain(first) && isRain(item)));
+    const top = [first, ...(second ? [second] : [])].filter(Boolean);
     const text = top.map(({ short }) => short.charAt(0).toUpperCase() + short.slice(1)).join(" · ");
     const thru = (a, b) => fmtDay(a, tz) + " " + fmtH(a, tz) + " through " + (fmtDay(a, tz) === fmtDay(b, tz) ? "" : fmtDay(b, tz) + " ") + fmtH(b, tz);
+    const nextRain = isRain(first) ? rest.filter((item) => item !== first && isRain(item)).sort((a, b) => a.start - b.start)[0] : null;
+    const more = nextRain ? "More " + (nextRain.kind === "rain" ? "heavy rain " : "rain likely ") + nextRain.short.replace(/^(Heavy rain|Rain likely) /, "") + " · " + thru(nextRain.start, nextRain.end) : "";
     let timing = "";
     if (top.includes(heavy)) { const all = [heavy, ...related], a = Math.min(...all.map((x) => x.start)), b = Math.max(...all.map((x) => x.end));
       timing = (related.length ? "Rain likely from " : "Rain from ") + thru(a, b) + (heavy.partial && heavy.amountsEnd ? " · rain amounts stop " + fmtDay(heavy.amountsEnd, tz) + " " + fmtH(heavy.amountsEnd, tz) + ", so the total may be higher" : ""); }
     else { const ln = top.find((item) => item.kind === "linger"); if (ln) timing = "From " + thru(ln.start, ln.end); }
-    return { text, timing };
+    return { text, timing, more };
   }
   const dayName = (ms, tz, now) => localDate(ms, tz) === localDate(now, tz) ? "today" : new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "long" }).format(new Date(ms)); // weekdays: planners count by them
 
