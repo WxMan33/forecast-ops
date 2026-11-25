@@ -1,0 +1,123 @@
+name: Severe CONUS Day 2 wind time-lagged HRRR test (research)
+# research/severe/conus-v1/hrrr-lag/RULES.md. Extract 06Z/12Z first-18-hour maxima for the 725 eligible development
+# dates, then three nested arms on six held-out folds. Development data only; no live pieces touched.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-v1/hrrr-lag/request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-hrrr-lag
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      batches: ${{ steps.p.outputs.batches }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          python3 - >> "$GITHUB_OUTPUT" <<'PY'
+          import json
+          d = json.load(open("research/severe/conus-v1/hrrr-lag/dates.json"))["eligible_dates"]
+          assert len(d) == 725
+          print("batches=" + json.dumps([{"name": f"b{i:02d}", "dates": " ".join(d[i::12])} for i in range(12)]))
+          PY
+  extract:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        batch: ${{ fromJSON(needs.plan.outputs.batches) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r tools/severe/requirements.txt scikit-learn==1.9.1 shapely==2.2.0
+      - name: Extract 06Z/12Z first-18-hour maxima
+        run: |
+          PYTHONPATH=tools/severe python3 tools/severe/conus_hrrr_lag.py extract --dates ${{ matrix.batch.dates }} --output tests/out/lag \
+            || echo "::warning::some dates failed (recorded in status/)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lag-${{ matrix.batch.name }}
+          path: tests/out/lag
+          retention-days: 90
+  fold:
+    needs: extract
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        fold: [0, 1, 2, 3, 4, 5]
+    env: { OPENBLAS_NUM_THREADS: '4', OMP_NUM_THREADS: '4' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 shapely==2.2.0
+      - run: lscpu | grep -E "Model name|^CPU\(s\)"; pip freeze
+      - id: req
+        run: |
+          f=research/severe/conus-v1/fulldev-gate-request.json
+          echo "cohort=$(jq -r .cohort_extraction_run $f)" >> "$GITHUB_OUTPUT"
+          echo "corridor=$(jq -r .corridor_extraction_run $f)" >> "$GITHUB_OUTPUT"
+          echo "fulldev=$(jq -r .fulldev_extraction_run $f)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.cohort }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.corridor }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.fulldev }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'lag-b*', merge-multiple: true, path: tests/out/lag }
+      - name: Three nested arms, held-out fold ${{ matrix.fold }}
+        run: |
+          mkdir -p tests/out/dev
+          for d in tests/out/x/conus/2022-* tests/out/x/conus/2023-*; do ln -s "$PWD/$d" tests/out/dev/; done
+          echo "HRRR dates: $(ls tests/out/dev | wc -l); lag complete: $(ls tests/out/lag/*/lag.json | wc -l)"
+          PYTHONPATH=tools/severe python3 tools/severe/conus_hrrr_lag.py fold --fold ${{ matrix.fold }} --conus tests/out/dev \
+            --lag tests/out/lag --output tests/out/gate
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lag-gate-fold-${{ matrix.fold }}
+          path: tests/out/gate
+          retention-days: 90
+  combine:
+    needs: fold
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 shapely==2.2.0
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'lag-gate-fold-*', merge-multiple: true, path: tests/out/gate }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'lag-b*', merge-multiple: true, path: tests/out/lag }
+      - name: Apply the committed rule and commit
+        env:
+          DEST: research/severe/conus-v1/hrrr-lag/gate
+        run: |
+          PYTHONPATH=tools/severe python3 tools/severe/conus_hrrr_lag.py combine --input tests/out/gate --output "$DEST"
+          python3 - <<'PY'
+          import json, glob, collections
+          rows = [json.load(open(f)) for f in sorted(glob.glob("tests/out/lag/status/*.json"))]
+          json.dump(rows, open("research/severe/conus-v1/hrrr-lag/gate/extraction-status.json", "w"), indent=0)
+          print(collections.Counter((r["status"], r.get("listed_before_cutoff")) for r in rows))
+          PY
+          echo "run_id: $GITHUB_RUN_ID" > "$DEST/run.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$DEST"
+          git commit -m "Time-lagged HRRR test for Day 2 wind (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done
+          exit 1
