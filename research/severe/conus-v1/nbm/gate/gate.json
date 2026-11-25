@@ -1,0 +1,108 @@
+{
+ "matched_dates": 726,
+ "excluded": {
+  "2022-01-06": "listed_after_cutoff",
+  "2023-01-20": "listed_after_cutoff"
+ },
+ "excluded_count": 2,
+ "development_climatology": 0.010868200565263891,
+ "bss": {
+  "hrrr": {
+   "national": 0.11433785465772839,
+   "original_box": 0.13276598878094803,
+   "west": 0.04919028614798915,
+   "plains_outside_box": 0.07685790784292124,
+   "florida_gulf_south": -0.007695523320436548,
+   "northeast_outside_box": 0.1270277349272484
+  },
+  "hrrr_nbm": {
+   "national": 0.12197698212598829,
+   "original_box": 0.14177102323447133,
+   "west": 0.04858007174574153,
+   "plains_outside_box": 0.08365329611612204,
+   "florida_gulf_south": -0.018407223731306432,
+   "northeast_outside_box": 0.14047090889406455
+  }
+ },
+ "brier_nbm_minus_hrrr": {
+  "national": [
+   -8.212125266403734e-05,
+   -0.00011260736826001321,
+   -5.47221590334093e-05
+  ],
+  "original_box": [
+   -0.00017718560291528533,
+   -0.00025168905659289805,
+   -0.00011301325401180743
+  ],
+  "west": [
+   1.6767417399913564e-06,
+   -3.9030391989794266e-06,
+   7.165661130425307e-06
+  ],
+  "plains_outside_box": [
+   -6.481534971915919e-05,
+   -0.00011848845794473863,
+   -1.7459266968133242e-05
+  ],
+  "florida_gulf_south": [
+   7.560171012515036e-05,
+   1.625938977594421e-05,
+   0.00014207889382027503
+  ],
+  "northeast_outside_box": [
+   -0.00010732249351875265,
+   -0.00016457512049474924,
+   -5.321838974749482e-05
+  ]
+ },
+ "calibration_ratio": {
+  "hrrr": 0.9993185370457993,
+  "hrrr_nbm": 0.9989173919327751
+ },
+ "florida_gulf_calibration_ratio": {
+  "hrrr": 2.0952827770947855,
+  "hrrr_nbm": 2.0815415401501025
+ },
+ "hits_at_5pct": {
+  "hrrr": 220066,
+  "hrrr_nbm": 223190
+ },
+ "event_samples": 306444,
+ "false_alarm_area_km2_at_5pct": {
+  "hrrr": 341603550.0,
+  "hrrr_nbm": 336090150.0
+ },
+ "area_at_5pct_on_no_report_dates_km2_per_date": {
+  "hrrr": 37086.72199170125,
+  "hrrr_nbm": 32049.896265560164
+ },
+ "by_nbm_version": {
+  "v4.0 (before 2023-01-17)": {
+   "dates": 380,
+   "national": [
+    -9.945638767522212e-05,
+    -0.0001351145837142481,
+    -6.550934844195743e-05
+   ]
+  },
+  "v4.1 (from 2023-01-17)": {
+   "dates": 346,
+   "national": [
+    -6.30826650795013e-05,
+    -0.00011401175373174599,
+    -1.6544812509072274e-05
+   ]
+  }
+ },
+ "hit_retention": 1.0141957412776168,
+ "criteria": {
+  "1_national_better": true,
+  "2_no_region_worse": false,
+  "3_calibrated_15pct": true,
+  "4_hit_retention_ge_95pct": true
+ },
+ "pass": false,
+ "protected_2025_outcomes_accessed": false,
+ "verification_2021_loaded": false
+}
