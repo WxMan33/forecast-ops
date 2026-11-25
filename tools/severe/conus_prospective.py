@@ -29,7 +29,7 @@ from scipy.special import expit
 
 ROOT = Path(__file__).resolve().parents[2]
 ARCHIVE = ROOT / "research/severe/conus-v1/prospective"
-START = date(2026, 11, 25)
+START = date(2026, 11, 24)
 FULLDEV_MODEL = ROOT / "research/severe/conus-v1/fulldev-frozen/model.pkl"
 FULLDEV_MANIFEST = ROOT / "research/severe/conus-v1/fulldev-frozen/manifest.json"
 EXTRA = ROOT / "research/severe/conus-v1/extra-samples.npz"

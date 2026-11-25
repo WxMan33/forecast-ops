@@ -16,7 +16,7 @@ fresh data for judging any new candidate.
 - A record is never overwritten. A forecast made after its cutoff is kept, marked late, and excluded from both scorecards.
 
 ## Ledger
-`ledger.json` lists every issue date from 2026-11-25 as one of:
+`ledger.json` lists every issue date from 2026-11-24 as one of:
 - on_time
 - late
 - missed (no record by the cutoff)
