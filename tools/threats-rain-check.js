@@ -105,6 +105,30 @@ async function replay(p) {
       await openPicker(a.p); await a.p.uncheck('input[data-layer="wind"]'); await a.p.waitForTimeout(1500); const m = await st(a.p);
       check("AUTOMATIC → manual: changing a layer keeps the rainfall overlay as it was (no automatic changes after)", m.S.auto === false && m.S.rain.obs && m.obsOn, { m: m.S });
       await a.ctx.close(); }
+    /* forecast-only: a live Flood Watch or WPC rainfall-risk area with no flood warning or advisory within 300 km selects the rain
+       still to come; then a user switches overlays with taps (desktop and phone) */
+    { const n = await page(b, false, "layers=flood&scope=national&view=day1"); await n.p.waitForTimeout(9000);
+      const fc = await n.p.evaluate(() => { const T = window.ThreatsCore, ps = window.__threats.data.products, now = Date.now();
+        const warn = ps.filter((x) => x.sourceId === "nws-alerts" && x.family === "flood" && x.geometry && Date.parse(x.expires) > now && / (Warning|Advisory)$/.test(x.event || ""));
+        const km = (pt, g) => { const b = T.bbox(g), lon = Math.min(Math.max(pt[0], b[0]), b[2]), lat = Math.min(Math.max(pt[1], b[1]), b[3]); return Math.hypot((lon - pt[0]) * 111 * Math.cos(pt[1] * Math.PI / 180), (lat - pt[1]) * 111); };
+        const c = ps.filter((x) => x.geometry && ((x.kind === "outlook" && x.family === "flood" && x.day <= 3) || (x.sourceId === "nws-alerts" && /Flood Watch/.test(x.event || "") && Date.parse(x.expires) > now)))
+          .map((x) => { const b = T.bbox(x.geometry); return { what: x.kind === "outlook" ? "WPC excessive rainfall Day " + x.day + " " + x.category : x.event, lat: (b[1] + b[3]) / 2, lon: (b[0] + b[2]) / 2, g: x.geometry }; })
+          .filter((x) => T.contains(x.g, [x.lon, x.lat]) && warn.every((w) => km([x.lon, x.lat], w.geometry) > 300) && x.lon > -125 && x.lon < -66 && x.lat > 24 && x.lat < 50);
+        return c.length ? { what: c[0].what, lat: c[0].lat, lon: c[0].lon } : null; });
+      await n.ctx.close();
+      if (!fc) check("AUTOMATIC forecast-only: no live Flood Watch or rainfall risk away from flood warnings right now (case not run)", true, {});
+      else for (const phone of [false, true]) { const d = phone ? "phone" : "desktop";
+        const a = await page(b, phone, `lat=${fc.lat.toFixed(4)}&lon=${fc.lon.toFixed(4)}&name=${encodeURIComponent("Rainfall risk test spot")}`); await a.p.waitForFunction(() => window.__threats.outlook && ["ok", "failed"].includes(window.__threats.outlook.state), null, { timeout: 90000 }).catch(() => {}); await waitRain(a.p, "fcst"); await a.p.waitForTimeout(2500);
+        await a.p.evaluate(() => { const T = window.__threats; T.S.view = "active"; T.S.scope = "venue"; T.drawAll(); }); await waitVenue(a.p); await waitRain(a.p, "fcst"); await a.p.waitForTimeout(1500);
+        const s0 = await st(a.p); await a.p.screenshot({ path: path.join(OUT, `auto-forecast-only-${d}.png`) });
+        check(`(${d}) AUTOMATIC forecast-only at a live ${fc.what} (${fc.lat.toFixed(2)}, ${fc.lon.toFixed(2)}; no flood warning or advisory within 300 km): Flooding needed, the rain still to come drawn; row '${(s0.rows[0] || {}).text}'`,
+          s0.S.auto && s0.S.need && s0.S.need.flood && s0.S.rain.fcst && !s0.S.rain.obs && s0.fcstOn && !s0.obsOn && /Days 1–3: .+ · issued /.test((s0.rows[0] || {}).text) && /Rain that has fallen/.test(s0.venue) && /Rain still to come/.test(s0.venue) && !a.errs.length, { fc, s0, errs: a.errs });
+        const pick = (k) => phone ? a.p.tap(`input[data-rain="${k}"]`) : a.p.check(`input[data-rain="${k}"]`); // a real tap on the phone
+        await openPicker(a.p); await pick("obs"); await waitRain(a.p, "obs"); await a.p.waitForTimeout(1500); const s1 = await st(a.p);
+        await pick("fcst"); await waitRain(a.p, "fcst"); await a.p.waitForTimeout(1500); const s2 = await st(a.p);
+        check(`(${d}) switching with the picker: fallen on (${s1.obsOn && !s1.fcstOn ? "drawn alone" : "NOT alone"}), then to come again (${s2.fcstOn && !s2.obsOn ? "drawn alone" : "NOT alone"}); the map is now the user's choice`,
+          s1.obsOn && !s1.fcstOn && s1.S.rain.obs && !s1.S.rain.fcst && s2.fcstOn && !s2.obsOn && s2.S.rain.fcst && !s2.S.rain.obs && s1.S.auto === false && s2.S.auto === false, { s1: s1.S, s2: s2.S });
+        await a.ctx.close(); } }
     const q = await page(b, false, CVG); await q.p.waitForFunction(() => window.__threats.outlook && ["ok", "failed"].includes(window.__threats.outlook.state), null, { timeout: 90000 }).catch(() => {}); await q.p.waitForTimeout(3000);
     const qs = await st(q.p), qreq = q.reqs.length;
     check(`AUTOMATIC at CVG: ${qs.S.need && qs.S.need.flood ? "Flooding needed: a rainfall overlay drawn" : "nothing near calls for Flooding: no rainfall overlay and no rainfall requests (" + qreq + ")"}`,
