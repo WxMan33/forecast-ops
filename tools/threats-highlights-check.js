@@ -5,6 +5,8 @@
        rainfall overlay until asked); the phone's collapsed line leads with the highlights.
      TEST REPLAY hot: "Heat index 100°F <day>".  TEST REPLAY quiet: nothing stands out, said plainly.
      missing data: the grid refused: "Forecast highlights not available", alerts still shown.
+     TEST REPLAY partial: the grid served with rain amounts and weather types empty: "Not fully checked", naming what couldn't be
+       checked; no "Nothing stands out" all-clear; the lead and today's card say not confirmed.
      live CVG: whatever the real forecast holds, every highlight names its source and the coverage note is there.
    Usage: node tools/threats-highlights-check.js https://<host> [outDir] */
 "use strict";
@@ -29,14 +31,14 @@ const rewrite = (name, count) => async (p) => { await p.route(GRID, async (r) =>
 const read = (p) => p.evaluate(() => { const T = window.__threats, m = T.map, vis = (id) => !!(m.getLayer(id) && m.getLayoutProperty(id, "visibility") === "visible"), head = document.querySelector(".px-olhead");
   return { lead: head && head.dataset.lead, big: ((head && head.querySelector(".px-big")) || {}).textContent || "", sub: ((head && head.querySelector(".px-sub")) || {}).textContent || "",
     items: [...document.querySelectorAll(".px-hlitem")].map((x) => x.innerText.replace(/\s+/g, " ")), state: ((document.querySelector("[data-hl-state]") || {}).dataset || {}).hlState || null, notes: ((document.querySelector("[data-hl-notes]") || {}).textContent) || "",
-    openRain: !!document.querySelector("[data-open-rain]"), status: ((document.querySelector(".px-alert-none") || document.querySelector(".px-sitealerts .px-h")) || {}).textContent || "",
+    openRain: !!document.querySelector("[data-open-rain]"), empty: ((document.querySelector(".px-hl .px-empty") || {}).textContent) || "", unk: [...document.querySelectorAll(".px-olunk")].map((x) => x.textContent), status: ((document.querySelector(".px-alert-none") || document.querySelector(".px-sitealerts .px-h")) || {}).textContent || "",
     chips: [...document.querySelectorAll(".px-olhl")].map((x) => x.closest(".px-olday").dataset.olDay + " " + x.dataset.olKey), rainDrawn: vis("rain-obs") || vis("rain-fcst"), sum: document.getElementById("txLayersSum").textContent,
     peek1: document.getElementById("txPeek1").textContent, peek2: document.getElementById("txPeek2").textContent, badge: document.getElementById("txBadge").textContent, hscroll: document.documentElement.scrollWidth > window.innerWidth + 1, errors: T.errors.map((e) => e.stage + ": " + e.message) }; });
 
 (async () => {
   const b = await chromium.launch(), H = 3600e3, { day1, day2 } = REPLAY.anchors(Date.now()), D1 = wk(day1 + 12 * H), D2 = wk(day2 + 12 * H);
   for (const phone of [false, true]) { const d = phone ? "phone" : "desktop";
-    for (const name of ["heavy", "hot", "quiet", "missing", "live"]) {
+    for (const name of ["heavy", "hot", "quiet", "partial", "missing", "live"]) {
       const count = { n: 0, failed: 0 }, ctx = await b.newContext(phone ? { ...devices["iPhone 13"] } : { viewport: { width: 1440, height: 1000 } }), p = await ctx.newPage(), errs = [];
       p.on("pageerror", (e) => errs.push(e.message)); if (name !== "live") await rewrite(name, count)(p);
       await p.goto(HOST + "/threats.html?" + CVG + (name === "live" ? "" : "&testreplay=highlights-" + name), { waitUntil: "domcontentloaded", timeout: 60000 });
@@ -60,6 +62,9 @@ const read = (p) => p.evaluate(() => { const T = window.__threats, m = T.map, vi
         check(`(${d}) Open rainfall map: rain still to come drawn (Days 1–3), Flooding on, Manual`, o.drawn && o.rain.fcst && o.rain.per === "1-3" && o.flood && !o.auto, { o });
       } else if (name === "hot") check(`(${d}) HOT DAY REPLAY: lead '${s.big}'; '${(s.items[0] || "").slice(0, 80)}'`, base && s.lead === "highlights" && s.big === `Heat index 100°F ${D1}` && /Heat index to 100°F around \w{3} 2 PM/.test(s.items[0] || "") && /NWS forecast \(heat index\)/.test(s.items[0] || ""), { s, count });
       else if (name === "quiet") check(`(${d}) QUIET REPLAY: lead '${s.big}' (${s.lead}); '${s.state}'`, base && s.lead !== "highlights" && s.state === "none" && !s.items.length && !s.openRain, { s, count });
+      else if (name === "partial") check(`(${d}) PARTIAL GRID REPLAY: '${s.empty.slice(0, 150)}'; lead '${s.big}' / '${s.sub.slice(0, 90)}'; day cards '${s.unk[0] || "none"}'${phone ? "; collapsed '" + s.peek1 + "'" : ""}`,
+        base && s.state === "partial" && /couldn't be checked: heavy rain \(no rain amounts\); wintry mix and long rain \(no precipitation types\)/.test(s.empty) && !/Nothing stands out in the NWS forecast/.test(s.empty) && !s.items.length
+          && s.lead !== "highlights" && !/No significant threats in the next/.test(s.big + " " + s.peek1) && s.unk.some((x) => /came back incomplete/.test(x)), { s, count });
       else if (name === "missing") check(`(${d}) MISSING DATA (grid refused): highlights say they're not available; the alert status still shows ('${s.status.slice(0, 60)}')`, base && s.state === "missing" && !s.items.length && /\S/.test(s.status), { s, count });
       else check(`(${d}) LIVE CVG: ${s.items.length} highlight(s) (${s.items.map((x) => x.slice(0, 50)).join(" | ") || "none"}); every one names its source; coverage note '${s.notes.slice(0, 60)}'`, base && s.items.every((x) => /NWS forecast \(/.test(x)) && (s.state === "none" || s.items.length > 0) && /forecast through|No rain amounts/.test(s.notes), { s });
       await ctx.close(); } }

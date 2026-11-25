@@ -1584,7 +1584,9 @@
     let h = `<section class="px-hl" aria-label="Forecast highlights for this site"><div class="px-h"><span>Forecast highlights for this site</span><span>NWS forecast</span></div>`;
     if (H.missing) return h + `<p class="px-empty" data-hl-state="missing">Forecast highlights not available: the NWS forecast for this site ${od && od.errors && od.errors.grid ? "didn't load (" + esc(od.errors.grid) + ")" : "hasn't answered"}. Alerts and outlooks above and below still apply.</p></section>`;
     h += HLs.length ? HLs.map((x) => `<div class="px-hlitem" data-hl="${x.kind}"><b>${OL_ICON["hl-" + x.kind] || "•"} ${esc(x.text)}</b><small>${esc(x.source)}${x.partial ? " · the forecast amounts stop inside this window, so the total may be higher" : ""}</small></div>`).join("")
+      : (H.unchecked || []).length ? `<p class="px-empty" data-hl-state="partial">Not fully checked: the NWS forecast for this site came back without some of its data, so these couldn't be checked: ${esc(H.unchecked.join("; "))}. Nothing stands out in the parts that did come back. Alerts and outlooks above and below still apply.</p>`
       : `<p class="px-empty" data-hl-state="none">Nothing stands out in the NWS forecast for this site: no heavy rain (${S.hl.rainIn} in or more in 24 h), wintry mix, long rain or heat index of ${S.hl.heatF}°F or more.</p>`;
+    if (HLs.length && (H.unchecked || []).length) h += `<p class="lg-note" data-hl-unchecked>Not checked: ${esc(H.unchecked.join("; "))}: missing from the NWS forecast for this site.</p>`;
     if (H.notes.length) h += `<p class="lg-note" data-hl-notes>${esc(H.notes.join(" · "))}.</p>`;
     if (isLive() && HLs.some((x) => x.link === "rain")) h += `<button type="button" class="tx-fb" data-open-rain>Open rainfall map</button>`;
     return h + `</section>`;

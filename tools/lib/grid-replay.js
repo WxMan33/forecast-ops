@@ -3,7 +3,8 @@
      heavy:  Thursday-style heavy rain crossing local midnight (1 PM – 7 AM, about 1.26 in), rain definite from 10 AM that day to
              3 AM, then a Friday-morning wintry mix (rain and snow possible 6 – 11 AM, snow about 0.2 in)
      hot:    a heat index of 100°F at 2 PM the next day, everything else dry
-     quiet:  no rain amounts, no precipitation type, no heat index */
+     quiet:  no rain amounts, no precipitation type, no heat index
+     partial: the grid as NWS sometimes serves it: rain amounts and weather types empty (the layers there, with no values) */
 "use strict";
 const H = 3600e3;
 function anchors(now) { const est = new Date(now - 5 * H), d0 = Date.UTC(est.getUTCFullYear(), est.getUTCMonth(), est.getUTCDate()) + 5 * H; return { day1: d0 + 24 * H, day2: d0 + 48 * H }; } // local midnights, as UTC ms
@@ -13,6 +14,7 @@ function scenario(grid, name, now) {
   const g = JSON.parse(JSON.stringify(grid)), P = g.properties, { day1, day2 } = anchors(now), end = day1 + 6 * 24 * H;
   const zeroAmt = () => [block(Math.floor(now / H) * H, Math.max(1, Math.round((end - Math.floor(now / H) * H) / H)), 0)];
   P.updateTime = iso(now - 30 * 60e3);
+  if (name === "partial") { P.quantitativePrecipitation.values = []; P.weather.values = []; return g; }
   if (name === "quiet" || name === "hot") {
     P.quantitativePrecipitation.values = zeroAmt(); P.snowfallAmount.values = zeroAmt(); P.iceAccumulation.values = zeroAmt();
     P.weather.values = [{ validTime: iso(Math.floor(now / H) * H) + "/P7D", value: [{ coverage: null, weather: null, intensity: null }] }];

@@ -65,7 +65,13 @@
     const hp = rows.reduce((b, r) => (r.heat != null && (!b || r.heat > b.heat) ? r : b), null);
     if (hp && hp.heat >= heatF) out.push({ kind: "heat", rank: hp.heat >= 103 ? 4 : 3, at: T(hp), value: hp.heat, short: "Heat index " + hp.heat + "°F " + dayName(T(hp), tz, now), text: "Heat index to " + hp.heat + "°F around " + fmtDay(T(hp), tz) + " " + fmtH(T(hp), tz), source: "NWS forecast (heat index)", link: null });
     out.sort((a, b) => b.rank - a.rank || a.at - b.at);
-    return { list: out, notes, missing: false };
+    /* checks the grid's answer couldn't support: NWS sometimes serves a grid with whole layers empty (rain amounts, weather types).
+       Heat counts as checked while temperatures are there: winter grids carry no heat index, and that is not a gap. */
+    const unchecked = [];
+    if (!grid.qpfThrough) unchecked.push("heavy rain (no rain amounts)");
+    if (!grid.wxThrough) unchecked.push("wintry mix and long rain (no precipitation types)");
+    if (!grid.heatThrough && !rows.some((r) => r.temp != null)) unchecked.push("heat (no heat index or temperatures)");
+    return { list: out, notes, missing: false, unchecked };
   }
   const dayName = (ms, tz, now) => localDate(ms, tz) === localDate(now, tz) ? "today" : new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "long" }).format(new Date(ms)); // weekdays: planners count by them
 
@@ -144,6 +150,7 @@
         else if (rh != null && rh <= 30) d.items.push({ key: "dry", level: 0, text: "Humidity as low as " + rh + "%", source: "NWS forecast", link: "fire", rh, gust: g }); }
     } else if (inp.states.grid === "failed") unknownOn(now, "NWS forecast for the venue not confirmed");
     const HL = inp.grid && inp.grid.rows ? highlights(inp.grid, tz, now, inp.highlightOpts) : { list: [], notes: [], missing: true };
+    if ((HL.unchecked || []).length) unknownOn(now, "NWS forecast for the venue came back incomplete; not checked: " + HL.unchecked.join("; "));
     for (const h of HL.list) { const d = at(h.at); if (d) d.items.unshift({ key: "hl-" + h.kind, level: 0, highlight: true, text: h.text, source: h.source, link: h.link }); }
     // NOAA river gauges within 25 miles: forecast (or observed) at or above action stage, on the day it is expected
     const GL = { action: 0, minor: 1, moderate: 2, major: 3 }, GW = { action: "action stage", minor: "minor flooding", moderate: "moderate flooding", major: "major flooding" };
