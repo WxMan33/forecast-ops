@@ -80,4 +80,67 @@ ok("DASHBOARD: approaching: a higher SPC area within 100 miles shows as 'Nearby'
   assert.ok(/^Nearby: Enhanced risk \(3 of 5\), \d+ mi west$/.test(nb.text), nb.text); assert.strictEqual(nb.level, 2);
   assert.ok(r.days[0].items.some((x) => x.text === "Severe storms: Marginal risk (1 of 5)"));
 });
+
+/* ---------- the rain headline: duration, day labels and rounds (from "Heavy rain Thursday · Rain for 40 h Thursday") ---------- */
+const NOW_W = Date.parse("2026-11-25T21:32:24Z"), H1 = 3600e3;
+const THU = Date.parse("2026-11-26T05:00:00Z"); // Thursday 00:00 in Cincinnati
+/* hourly rows from Thursday 00:00 local for 72 h; `hour(i)` returns { cov, qpf } for hour i (cov 0 = no rain type; wx: null = missing) */
+const rowsFrom = (hour) => Array.from({ length: 72 }, (_, i) => { const h = hour(i) || {}; return { t: new Date(THU + i * H1).toISOString(), qpf: h.qpf === undefined ? 0 : h.qpf,
+  wx: h.wx === null ? null : h.cov ? [{ type: "rain", cov: h.cov }] : [] }; });
+const gridOf = (rows) => ({ rows, qpfThrough: rows.at(-1).t, wxThrough: rows.at(-1).t });
+const lead = (rows) => { const hl = O.highlights(gridOf(rows), TZ, NOW_W); return { hl, lead: O.highlightLead(hl.list, TZ) }; };
+
+ok("RAIN HEADLINE, real Cincinnati forecast grid (ILN 35,38, downtown; 2026-11-25 21:32Z): one event, not a 40-hour Thursday; the separate Sunday round reads 'More rain Sunday'", () => {
+  const g = F.parseGrid(JSON.parse(fs.readFileSync(FX("nws-gridpoints-ILN-35-38-20261125T2132Z.json"), "utf8")), NOW_W, 168);
+  const hl = O.highlights(g, TZ, NOW_W), L = O.highlightLead(hl.list, TZ);
+  assert.strictEqual(L.text, "Heavy rain Thursday · More rain Sunday");
+  assert.strictEqual(L.timing, "Rain likely Thu 3 AM – Fri 7 AM");
+  const thu = hl.list.find((x) => x.kind === "linger" && x.day === "Thursday");
+  assert.strictEqual(thu.short, "Rain likely Thursday into Friday");
+  // the Friday hours with only 0.01 in per 6 h are said, not counted (the old text was "about 40 hours, Thu 3 AM – Fri 7 PM")
+  assert.ok(/^Rain likely for about 28 hours, Thu 3 AM – Fri 7 AM \(about 1\.2 in\); covers 3 commutes: .*; then only traces until Fri 7 PM$/.test(thu.text), thu.text);
+  const sun = hl.list.find((x) => x.kind === "linger" && x.day === "Sunday");
+  assert.ok(/\(rain amounts not in the NWS forecast yet\)/.test(sun.text), sun.text);
+  assert.ok(!hl.list.some((x) => /40 h|for 40/.test(x.short + x.text)));
+});
+
+ok("RAIN HEADLINE: continuous rain across midnight is one round, named by both days; with heavy rain it is the same event, not a second item", () => {
+  let r = lead(rowsFrom((i) => (i >= 18 && i < 30 ? { cov: 3, qpf: 0.05 } : null)));
+  assert.deepStrictEqual(r.hl.list.map((x) => x.short), ["Rain likely Thursday into Friday"]);
+  assert.ok(/^Rain likely for about 12 hours, Thu 6 PM – Fri 6 AM/.test(r.hl.list[0].text), r.hl.list[0].text);
+  assert.strictEqual(r.lead.text, "Rain likely Thursday into Friday");
+  r = lead(rowsFrom((i) => (i >= 18 && i < 30 ? { cov: 4, qpf: 0.1 } : null)));
+  assert.strictEqual(r.lead.text, "Heavy rain Thursday");
+  assert.strictEqual(r.lead.timing, "Rain likely Thu 6 PM – Fri 6 AM");
+});
+
+ok("RAIN HEADLINE: separate rounds with a dry gap stay separate; 'More rain Friday' only when Friday rain is supported", () => {
+  // heavy Thursday 6 AM - 6 PM, dry Thursday night, rain likely Friday 10 AM - 6 PM
+  let r = lead(rowsFrom((i) => (i >= 6 && i < 18 ? { cov: 4, qpf: 0.1 } : i >= 34 && i < 42 ? { cov: 3, qpf: 0.03 } : null)));
+  assert.strictEqual(r.lead.text, "Heavy rain Thursday · More rain Friday");
+  assert.strictEqual(r.lead.timing, "Rain likely Thu 6 AM – 6 PM");
+  // the dry gap hidden behind "rain likely" with only traces still separates the rounds
+  r = lead(rowsFrom((i) => (i >= 6 && i < 18 ? { cov: 4, qpf: 0.1 } : i >= 18 && i < 34 ? { cov: 3, qpf: 0.0015 } : i >= 34 && i < 42 ? { cov: 3, qpf: 0.03 } : null)));
+  assert.strictEqual(r.lead.text, "Heavy rain Thursday · More rain Friday");
+  assert.ok(r.hl.list.every((x) => !/2[0-9]+ hours|3[0-9]+ hours/.test(x.text)), "no round spans the dry gap");
+  // a 2-hour lull is not a dry gap: one round
+  r = lead(rowsFrom((i) => (i >= 6 && i < 12 ? { cov: 3, qpf: 0.03 } : i >= 12 && i < 14 ? { cov: 3, qpf: 0 } : i >= 14 && i < 20 ? { cov: 3, qpf: 0.03 } : null)));
+  assert.deepStrictEqual(r.hl.list.map((x) => x.short), ["Rain likely Thursday"]);
+  assert.ok(/about 14 hours/.test(r.hl.list[0].text), r.hl.list[0].text);
+  // Friday rain too short to be supported (4 h): no "More rain Friday"
+  r = lead(rowsFrom((i) => (i >= 6 && i < 18 ? { cov: 4, qpf: 0.1 } : i >= 34 && i < 38 ? { cov: 3, qpf: 0.03 } : null)));
+  assert.strictEqual(r.lead.text, "Heavy rain Thursday");
+});
+
+ok("RAIN HEADLINE: missing hourly guidance is never bridged, and missing amounts are said, not assumed", () => {
+  // two wet stretches with 2 hours of no weather data between them: two rounds, not one
+  let r = lead(rowsFrom((i) => (i >= 6 && i < 14 ? { cov: 3, qpf: 0.03 } : i >= 14 && i < 16 ? { wx: null, qpf: null } : i >= 16 && i < 24 ? { cov: 3, qpf: 0.03 } : null)));
+  assert.strictEqual(r.hl.list.filter((x) => x.kind === "linger").length, 2);
+  assert.ok(r.hl.list.every((x) => /about 8 hours/.test(x.text)), r.hl.list.map((x) => x.text).join(" | "));
+  // rain likely with no amounts: kept on the weather type alone, and the text says the amounts are missing
+  r = lead(rowsFrom((i) => (i >= 6 && i < 14 ? { cov: 3, qpf: null } : null)));
+  assert.strictEqual(r.hl.list[0].short, "Rain likely Thursday");
+  assert.ok(/about 8 hours, .*\(rain amounts not in the NWS forecast yet\)(;|$)/.test(r.hl.list[0].text), r.hl.list[0].text);
+  assert.strictEqual(r.hl.list[0].source, "NWS forecast (precipitation type, chance)");
+});
 console.log(n + " passed");
