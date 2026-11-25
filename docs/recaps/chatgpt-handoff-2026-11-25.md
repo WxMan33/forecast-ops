@@ -66,7 +66,23 @@ GROUND RULES (all kept)
 6) OTHER WORK (kept separate)
 - A Day 1 tornado "corridor" model and a blend were developed and tested. That decision is in its own PR (#31, with the NadoCast benchmark) and was not mixed into the CONUS work.
 
-PROPOSED NEXT STEPS (not started yet, as of Nov 25)
+UPDATE, Nov 25 early morning (03:30 UTC)
+- PROSPECTIVE ARCHIVE is live.
+  - Rules were committed before the first record. Every daily forecast is saved with: issue cycle, valid window, generation time, cutoff (= valid start), on_time flag, input/model/grid/coverage checksums, and probabilities for the 96-day, 728-day and v0.7 models (v0.7 inside its box only).
+  - Records are never overwritten. Late forecasts are excluded from scoring. A ledger tracks every date as on_time / late / missed / pending.
+  - Preliminary scorecard: SPC filtered wind reports, 36+ h after the window ends; two variants, all reports and ≥58 mph only.
+  - Final scorecard: the same frozen files rescored against pinned NOAA Storm Events. The two scorecards are kept separate.
+  - First record: 12Z Nov 24 HRRR, valid Nov 25 12Z – Nov 26 12Z. Generated 03:17 UTC, before the 12:00 UTC cutoff: on time. Max probability 19% (96-day), 19% (728-day), 12% (v0.7 in box).
+  - The feed and hosted checks still pass. The first scheduled refresh is Nov 25 15:10 UTC.
+- SAMPLING CHECK (development only; same folds, recipe, calibration and scoring rows): sampling does NOT explain the 2021 tie.
+  - National BSS: 96 days all rows 0.096; 96 days sampled 0.098; 728 days sampled 0.115.
+  - Sampling effect: −0.000017 Brier (95% CI −0.000030 to −0.000005). Sampling helped slightly.
+  - Data effect with sampling fixed: −0.000180 (CI −0.000236 to −0.000128).
+  - The exact 2021 comparison, on development data: −0.000197 (CI −0.000255 to −0.000145), clearly better in development but a tie on 2021.
+  - Reading (pre-committed rule): sampling is not the cause. The development gain did not transfer to a different year (year-to-year variability or a 2022–23-specific fit).
+  - Next per the rule: one pre-registered test of a new input.
+
+PROPOSED NEXT STEPS (as first written Nov 25; a and b now done)
 a) Development-only check of the sampling confound, about 30 minutes. Compare three arms on held-out 2022–23 months: 96 days with all rows, 96 days with sampling, 728 days with sampling.
    - If sampling hurt: try "728 days, all rows", which needs chunked training to fit in memory.
    - If not: more data simply didn't transfer to 2021, and the next lever is new inputs (e.g. HRRR time-lagged runs or other fields).
