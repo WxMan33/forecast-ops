@@ -183,21 +183,37 @@
     }).filter(Boolean).sort((a, b) => a.order - b.order);
     const by = Object.fromEntries(flags.map((f) => [f.key, f]));
     const f2 = (v) => v.toFixed(2), f1 = (v) => v.toFixed(1), lb = T.gap ? "at least" : "";
-    const range = (r, f) => (r && fin(r[0]) && fin(r[1]) && r[1] - r[0] >= 0.01 ? `Models ${f(r[0])}–${f(r[1])} in` : "");
+    const range = (r, f) => (r && fin(r[0]) && fin(r[1]) && r[1] - r[0] >= 0.01 ? `Range across models ${f(r[0])}–${f(r[1])} in` : "");
+    /* coverage of the setup → teardown window by a tile's own data (no new calculation): the totals use the blend hours
+       that have guidance (V.totals.gap counts the rest); gusts use the hours with a gust value. Full coverage: no note.
+       Missing hours only at the end: "through" the last covered hour's end; only at the start: "from"; else N of M. The
+       HRRR map's reach is never used here: the blend can cover the whole event when the HRRR run ends early. */
+    const zoneOf = (i) => (V.axis[i] && V.axis[i].zone ? " " + V.axis[i].zone : "");
+    const coverage = (has) => {
+      const k = has.filter(Boolean).length; if (k === n) return null; if (!k) return { state: "none", text: "No data" };
+      const a = has.indexOf(true), b = has.lastIndexOf(true), solid = b - a + 1 === k;
+      const text = solid && a === 0 ? `Partial coverage: through ${clock(toOf(b))}${zoneOf(b)}` : solid && b === n - 1 ? `Partial coverage: from ${clock(fromOf(a))}${zoneOf(a)}` : `Partial coverage · ${k} of ${n} hours`;
+      return { state: "part", text };
+    };
+    const okHour = V.hrs.map((h) => !!(h && h.state === "ok"));
+    const totCov = T.gap ? coverage(okHour) || { state: "part", text: `Partial coverage · ${n - T.gap} of ${n} hours` } : null;
     const tiles = [];
     const rain = by.rain || null;
-    tiles.push(fin(T.qpf) ? { key: "rain", label: "Rain total", value: f2(T.qpf), pre: lb, unit: "in", unitWord: "inches", sub: [range(T.qpfR, f2) || (T.gap ? `${T.gap} hour${T.gap > 1 ? "s" : ""} without guidance` : "Setup through teardown")], flag: rain }
+    tiles.push(fin(T.qpf) ? { key: "rain", label: "Rain total", value: f2(T.qpf), pre: lb, unit: "in", unitWord: "inches", sub: [range(T.qpfR, f2) || (T.gap ? "" : "Setup through teardown")], cover: totCov, flag: rain }
       : { key: "rain", label: "Rain total", value: null, sub: ["No data (not zero)"], flag: null });
-    if (T.peakQ) tiles.push({ key: "rate", label: "Heaviest rain", value: f2(T.peakQ.v), unit: "in/hr", unitWord: "inches per hour", sub: [`Around ${around(T.peakQ.ms)}`], flag: rain, at: T.peakQ.ms });
+    if (T.peakQ) tiles.push({ key: "rate", label: "Heaviest rain rate", value: f2(T.peakQ.v), unit: "in/hr", unitWord: "inches per hour", sub: [`Around ${around(T.peakQ.ms)}`], cover: totCov, flag: rain, at: T.peakQ.ms });
     /* gusts: the highest hourly gust the wind chart shows; a full tile only when the briefing flags wind */
     const g = ok.filter((h) => fin(h.gust)).reduce((a, h) => (!a || h.gust > a.v ? { v: h.gust, ms: h.ms } : a), null), wind = by.wind || null;
+    /* "not a concern" only when every event hour has a gust value; otherwise the line says partial coverage */
+    const gustCov = coverage(V.span.map((ms, i) => !!(V.hrs[i] && V.hrs[i].state === "ok" && fin(V.hrs[i].gust))));
     let gustLine = null;
-    if (wind && g) tiles.push({ key: "gust", label: "Peak gusts", value: String(Math.round(g.v)), unit: "mph", unitWord: "miles per hour", sub: [`Around ${around(g.ms)} · your limit ${gustLimit} mph`], flag: wind, at: g.ms });
-    else gustLine = !g ? { text: "Gusts: no data for these hours (not zero)", state: "missing" }
-      : { text: `Gusts up to ${Math.round(g.v)} mph · ${g.v >= gustLimit ? `reach your ${gustLimit} mph limit around ${around(g.ms)}, rated low for this plan` : `below your ${gustLimit} mph limit, not a concern`}`, state: g.v >= gustLimit ? "low" : "clear", v: Math.round(g.v) };
+    if (wind && g) tiles.push({ key: "gust", label: "Peak gusts", value: String(Math.round(g.v)), unit: "mph", unitWord: "miles per hour", sub: [`Around ${around(g.ms)} · your limit ${gustLimit} mph`], cover: gustCov, flag: wind, at: g.ms });
+    else gustLine = !g ? { text: "Gusts: no data for these hours (not zero)", state: "missing", cover: "none" }
+      : gustCov ? { text: `Gusts up to ${Math.round(g.v)} mph in the hours with data · ${g.v >= gustLimit ? `reach your ${gustLimit} mph limit around ${around(g.ms)}, rated low for this plan · ` : ""}partial coverage`, state: g.v >= gustLimit ? "low" : "partial", cover: "part", v: Math.round(g.v) }
+      : { text: `Gusts up to ${Math.round(g.v)} mph · ${g.v >= gustLimit ? `reach your ${gustLimit} mph limit around ${around(g.ms)}, rated low for this plan` : `below your ${gustLimit} mph limit, not a concern`}`, state: g.v >= gustLimit ? "low" : "clear", cover: "all", v: Math.round(g.v) };
     if (wintry(V)) {
       const snow = by.snow || null, sub = [range(T.snR, f1), "7:1, before melting"].filter(Boolean).join(" · ");
-      tiles.push(fin(T.sn) ? { key: "snow", label: "Snow total", value: f1(T.sn), pre: lb, unit: "in", unitWord: "inches", sub: [sub, ...(T.peakSn && f1(T.peakSn.v) !== "0.0" ? [`Heaviest ${f1(T.peakSn.v)} in/hr around ${around(T.peakSn.ms)}`] : [])], flag: snow }
+      tiles.push(fin(T.sn) ? { key: "snow", label: "Snow total", value: f1(T.sn), pre: lb, unit: "in", unitWord: "inches", sub: [sub, ...(T.peakSn && f1(T.peakSn.v) !== "0.0" ? [`Heaviest ${f1(T.peakSn.v)} in/hr around ${around(T.peakSn.ms)}`] : [])], cover: totCov, flag: snow }
         : { key: "snow", label: "Snow total", value: null, sub: ["No data (not zero)"], flag: null });
     }
     if (by.lightning) tiles.push({ key: "lightning", label: "Lightning potential", value: by.lightning.word, unit: "", sub: [`Peaks around ${around(by.lightning.peakMs)} · forecast potential, not detected lightning`], flag: by.lightning, at: by.lightning.peakMs });
@@ -211,12 +227,13 @@
     const pos = (ms) => (100 * (Math.max(M.s, Math.min(M.e, ms)) - M.s)) / (M.e - M.s);
     const box = (a, b) => `--l:${pos(a).toFixed(3)}%;--w:${Math.max(0, pos(b) - pos(a)).toFixed(3)}%`;
     const tier = (f) => (f ? ` data-tier="${esc(f.tier)}" style="--tier:var(--${esc(f.tier)})"` : "");
-    const tile = (t) => `<li class="evd-tile" data-tile="${t.key}"${tier(t.flag)}><span class="evd-lab">${esc(t.label)}</span>` +
+    const tile = (t) => `<li class="evd-tile" data-tile="${t.key}" data-coverage="${t.value == null ? "none" : t.cover ? esc(t.cover.state) : "all"}"${tier(t.flag)}><span class="evd-lab">${esc(t.label)}</span>` +
       `<span class="evd-val">${t.value == null ? `<b data-value>—</b>` : `${t.pre ? `<small>${esc(t.pre)}</small> ` : ""}<b data-value>${esc(t.value)}</b>${t.unit ? ` <span class="evd-unit"><span aria-hidden="true">${esc(t.unit)}</span><span class="sr-only">${esc(t.unitWord)}</span></span>` : ""}`}</span>` +
       t.sub.filter(Boolean).map((x) => `<span class="evd-sub">${esc(x)}</span>`).join("") +
+      (t.value != null && t.cover ? `<span class="evd-cov" data-coverage="${esc(t.cover.state)}">${esc(t.cover.text)}</span>` : "") +
       (t.flag && t.key !== "lightning" ? `<span class="evd-badge" data-level>${esc(t.flag.word)}</span>` : "") /* lightning's value is its level word */ + `</li>`;
     const types = M.types.length ? `<p class="evd-types" data-types><span class="evd-note-lab">Precipitation type</span> ${M.types.map((k) => `<span class="evd-chip evd-chip-${esc(k)}">${TYPE[k] ? TYPE[k].sym + " " : ""}${esc(TYPE_WORD[k] || k)}</span>`).join('<span class="evd-arrow" aria-label="then">→</span>')}</p>` : "";
-    const gust = M.gustLine ? `<p class="evd-gust" data-gust-line="${esc(M.gustLine.state)}">${esc(M.gustLine.text)}</p>` : "";
+    const gust = M.gustLine ? `<p class="evd-gust" data-gust-line="${esc(M.gustLine.state)}" data-coverage="${esc(M.gustLine.cover)}">${esc(M.gustLine.text)}</p>` : "";
     /* the window: event parts, one row per flagged hazard, then time ticks */
     const cur = sel != null && V.span.includes(sel) ? `<span class="evd-cur" style="left:${pos(sel + 1800e3).toFixed(3)}%"></span>` : `<span class="evd-cur" hidden></span>`;
     const partsLane = `<div class="evd-parts" aria-hidden="true">${M.parts.map((p) => { const w = pos(p.to) - pos(p.from); return `<span class="evd-part${p.key === "event" ? " evd-main" : ""}" style="${box(p.from, p.to)}" title="${esc(p.label)} ${esc(M.when(p.from, p.to))}">${w >= 11 ? `<span>${esc(p.label)}</span>` : ""}</span>`; }).join("")}${cur}</div>`;
@@ -233,7 +250,7 @@
     return `<section class="evd" aria-labelledby="evdTitle"><div class="evd-head"><h2 id="evdTitle">At a glance</h2><span class="evd-span">Setup through teardown · ${esc(span)}</span></div>` +
       `<ul class="evd-tiles" aria-label="Event weather totals">${M.tiles.map(tile).join("")}</ul>` +
       (types || gust ? `<div class="evd-notes">${types}${gust}</div>` : "") +
-      `<div class="evd-when" data-window><h3>When conditions could affect the event</h3>${M.flags.length ? `<div class="evd-lanes">${partsLane}${rows}<div class="evd-axis" aria-hidden="true">${ticks}</div></div>` +
+      `<div class="evd-when" data-window><h3>When conditions could affect the event</h3>${M.flags.length ? `<p class="evd-cue" data-cue>Tap a row to jump to that time.</p><div class="evd-lanes">${partsLane}${rows}<div class="evd-axis" aria-hidden="true">${ticks}</div></div>` +
         `<p class="evd-sel" data-sel aria-live="polite"></p>` : none}</div></section>`;
   }
   /* render into host; tapping a flagged window selects that hour on the page's shared timeline, like the charts */
