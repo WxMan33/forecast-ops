@@ -36,7 +36,7 @@
   };
   /* what it means in practice, per hazard and level (1 watch, 2 plan for it, 3 likely disruptive) */
   const IMPLICATION = {
-    rain: [null, 'Keep rain gear and covers handy.', 'Plan covered areas; protect power.', 'Expect a wet event: covered staging, safe footing.'],
+    rain: [null, 'Keep rain gear and covers handy.', 'Cover gear and protect power.', 'Plan for wet footing and keep check-in and equipment covered.'],
     wind: [null, 'Check that tents, banners and signage are secured.', 'Secure or lower tents, banners and signage.', 'Expect wind to limit tents, staging and signage.'],
     lightning: [null, 'Know where people would shelter.', 'Have shelter ready; detected lightning on the day matters most.', 'Expect thunderstorms to interrupt outdoor activity; have shelter ready.'],
     snow: [null, 'Have snow clearing on call.', 'Plan snow clearing and salt for walkways.', 'Expect snow to slow setup and access.'],
@@ -170,7 +170,8 @@
     const hit = L.phases.filter((p) => p.hit), all = L.phases.length > 1 && hit.length === L.phases.length, P = L.phases;
     const whole = P.length ? `${P[0].label.toLowerCase()} through ${P[P.length - 1].label.toLowerCase()}` : 'the event';
     let text;
-    if (L.kind === 'forecast') text = `<b>${esc(L.when || cap(L.top.noun))}</b>, ${all ? esc(whole) : hit.length ? listWords(hit.map((p) => `<span class="ev-ph">${esc(p.label.toLowerCase())} ${esc(p.time)}</span>`)) : 'exact time uncertain'}. ${esc(L.implication)}${L.gaps.limited ? ` <span class="ev-lead-gap" data-lead="gap">${esc(L.gaps.brief)}</span>` : ''}`;
+    /* the implication now sits with the tier word in the concern's callout row just below ("Likely disruptive. Plan …") */
+    if (L.kind === 'forecast') text = `<b>${esc(L.when || cap(L.top.noun))}</b>, ${all ? esc(whole) : hit.length ? listWords(hit.map((p) => `<span class="ev-ph">${esc(p.label.toLowerCase())} ${esc(p.time)}</span>`)) : 'exact time uncertain'}.${L.gaps.limited ? ` <span class="ev-lead-gap" data-lead="gap">${esc(L.gaps.brief)}</span>` : ''}`;
     /* missing guidance: the headline names the window; one short line says why (the missing sources are named under
        "Why this is flagged" and in the Missing guidance block below), with "Watch for" in the same paragraph */
     else if (L.kind === 'missing') { const G = L.gaps, w = [G.thin ? `Only ${G.used} of ${G.total} model sources reach these hours.` : '', G.partial ? `${G.partial.replace(/\.$/, '')}.` : '',
@@ -267,7 +268,7 @@
     const where = L.kind === 'forecast' ? (all ? `${P[0].label.toLowerCase()} through ${P[P.length - 1].label.toLowerCase()}` : hit.map((p) => `${p.label.toLowerCase()} ${p.time}`).join(', ') || 'exact time uncertain')
       : `checked ${P.length ? `${P[0].label.toLowerCase()} through ${P[P.length - 1].label.toLowerCase()}` : 'the event'}`;
     return `<div class="pv-takeaway pv-takeaway-lead"><div class="pv-lead" data-pv="lead"><span class="pv-kind">${esc(KIND[L.kind])}</span><h2 class="pv-dec">${esc(headline)}</h2>
-      <p class="pv-lead-when">${L.when ? `<b>${esc(L.when)}</b>, ${esc(where)}` : esc(cap(where))}. ${esc(L.implication)}</p>
+      <p class="pv-lead-when">${L.when ? `<b>${esc(L.when)}</b>, ${esc(where)}` : esc(cap(where))}. ${L.top && L.top.word ? `<b>${esc(L.top.word)}.</b> ` : ''}${esc(L.implication)}</p>
       <p class="pv-lead-watch"><b>Watch for:</b> ${esc(L.watch)}</p>
       <p class="pv-lead-change"><b>What would change the plan:</b> ${esc(L.kind === 'missing' ? 'If the missing forecast data returns at the next check, the assessment could change.' : L.changes[0] || '')}</p>
       <p class="pv-lead-next"><b>Next weather check:</b> ${esc(nextTxt)}</p></div></div>${official}${gap}`;

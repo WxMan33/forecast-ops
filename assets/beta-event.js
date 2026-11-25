@@ -327,19 +327,27 @@
     const tierCls = (it) => it && it.tier ? ` class="ev-c" data-tier="${esc(it.tier)}" style="--tier:var(--${esc(it.tier)})"` : ' class="ev-c"';
     const dt = (label, it) => `<dt${it && it.tier ? ` data-tier="${esc(it.tier)}" style="--tier:var(--${esc(it.tier)})"` : ""}>${esc(label)}</dt>`;
     const rain = item("rain"), light = item("lightning"), wind = item("wind");
-    const rainDd = rain ? `<dd${tierCls(rain)}><b>${esc(rain.word || "Possible")}</b> · up to ${esc(U.pct(peak ? peak.v : (rain.peak && rain.peak.v)))}<span class="bx-note">${esc(when(rain))}</span></dd>`
-      : peak && gapText ? `<dd class="ev-c" data-incomplete>Incomplete · up to ${esc(U.pct(peak.v))} elsewhere<span class="bx-note">${esc(gapText)}.</span></dd>`
+    /* each number and each label has its own job: the value line is the forecast number; the planning impact (the tier
+       word and its practical line, EventLead.IMPLICATION) sits on its own line, so "Likely disruptive · up to 90%" can't
+       read as a 90% chance of disruption. The primary concern's hours are in the lead line above. */
+    const primary = A.items[0], impact = (it) => { const line = it && it.word && LEAD.IMPLICATION[it.key] ? LEAD.IMPLICATION[it.key][it.level] : "";
+      return it && it.word ? `<span class="bx-note ev-impact" data-impact><b>${esc(it.word)}.</b> ${esc(line || "")}</span>` : ""; };
+    const sub = (it) => (it === primary && it.word ? impact(it) : `<span class="bx-note">${it && it.word ? `<b>${esc(it.word)}.</b> ` : ""}${esc(when(it))}</span>`);
+    /* the rain number is the highest single-hour chance of rain (HourlyModel.phaseSummaries peakPop), so it says so */
+    const rainDd = rain ? `<dd${tierCls(rain)}>Up to ${esc(U.pct(peak ? peak.v : (rain.peak && rain.peak.v)))} in the likeliest hour${sub(rain)}</dd>`
+      : peak && gapText ? `<dd class="ev-c" data-incomplete>Up to ${esc(U.pct(peak.v))} in hours with guidance<span class="bx-note">${esc(gapText)}.</span></dd>`
       : peak ? `<dd class="ev-c">Peak hourly ${esc(U.pct(peak.v))}<span class="bx-note">${esc(fmt.day(peak.at, tz))}, ${esc(BUI.hourWindow(peak.at, tz))} · no rain concern for the plan</span></dd>`
       : `<dd class="ev-c">${live.length ? "Unavailable" : "Not in range yet"}<span class="bx-note">${live.length ? "No hourly rain chance came back for these hours (not zero). Try ↻ later." : ""}</span></dd>`;
     const lnote = gapAll && lightAll.limited && lightAll.base === "Low" ? "Low is not zero; some hours have no data." : lightAll.note; // shorter when the lead already names the missing hours
-    const lightDd = `<dd${tierCls(light)}>${esc(lightAll.word)}<span class="bx-note">${light ? `${esc(when(light))}. ` : ""}${esc(lnote)}</span></dd>`;
+    const lightDd = light && light === primary && light.word ? `<dd${tierCls(light)}>${esc(lightAll.word)} potential${impact(light)}</dd>`
+      : `<dd${tierCls(light)}>${esc(lightAll.word)}<span class="bx-note">${light ? `${esc(when(light))}. ` : ""}${esc(lnote)}</span></dd>`;
     /* third: another hazard the engine ranks above wind (heat, snow, cold), else gusts against the venue's own limit */
     const other = A.items.find((x) => !["rain", "lightning", "wind"].includes(x.key) && (!wind || x.level > wind.level));
     let third;
-    if (other) third = `${dt(other.label, other)}<dd${tierCls(other)}><b>${esc(other.word || "")}</b><span class="bx-note">${esc(when(other))}</span></dd>`;
+    if (other) third = `${dt(other.label, other)}<dd${tierCls(other)}>${esc(when(other) || other.label)}${other === primary ? impact(other) : `<span class="bx-note"><b>${esc(other.word || "")}.</b></span>`}</dd>`;
     else {
       const g = live.filter((p) => p.gust), gmax = g.length ? Math.max(...g.map((p) => p.gust.v)) : null;
-      third = wind && wind.windows.length ? `${dt("Gusts", wind)}<dd${tierCls(wind)}><b>Reach your ${A.limit} mph limit</b> · up to ${esc(mph(Math.max(...wind.windows.map((w) => w.peak ? w.peak.v : 0))))}<span class="bx-note">${esc(when(wind))}</span></dd>`
+      third = wind && wind.windows.length ? `${dt("Gusts", wind)}<dd${tierCls(wind)}><b>Reach your ${A.limit} mph limit</b> · up to ${esc(mph(Math.max(...wind.windows.map((w) => w.peak ? w.peak.v : 0))))}${wind === primary && wind.word ? impact(wind) : `<span class="bx-note">${esc(when(wind))}</span>`}</dd>`
         : `${dt("Gusts", wind)}<dd${tierCls(wind)}>${fin(gmax) ? `Up to ${esc(mph(gmax))}` : "Unavailable"}<span class="bx-note">${fin(gmax) ? `${gapAll ? `Below your ${A.limit} mph limit; hours missing` : `Below your ${A.limit} mph venue limit`}` : "No gust guidance for these hours (not zero)"}</span></dd>`;
     }
     const nextDd = next ? `${vt(next.at, tz, now)}<span class="bx-note">${esc(next.what)}</span>` : "Now: use radar, lightning detection and NWS warnings.";

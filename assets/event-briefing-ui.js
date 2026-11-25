@@ -234,7 +234,8 @@
       if (it.key === 'rain') {
         const verb = it.level >= 3 ? 'Expect disruptive rain' : it.level === 2 ? 'Plan for rain' : 'Watch for rain';
         const pk = c ? Math.max(...c.ws.map((w) => (w.peak && Number.isFinite(w.peak.v) ? w.peak.v : 0))) : null;
-        out.push({ key: 'rain', text: c ? `${verb} ${when(c)}${pk ? `; hourly chance up to ${pct(pk)}` : ''}.${uncertain(it)}` : `${verb} during ${listWords(it.phaseOnly.map((x) => x.toLowerCase()))}; exact time uncertain.` });
+        /* the timing and the chance are separate sentences: the number is the highest single-hour chance, not a chance of disruption */
+        out.push({ key: 'rain', text: c ? `${verb} ${when(c)}.${pk ? ` Rain chance up to ${pct(pk)} in the likeliest hour.` : ''}${uncertain(it)}` : `${verb} during ${listWords(it.phaseOnly.map((x) => x.toLowerCase()))}; exact time uncertain.` });
       } else if (it.key === 'wind') {
         const pk = c ? Math.max(...c.ws.map((w) => (w.peak && Number.isFinite(w.peak.v) ? w.peak.v : 0))) : it.peak && it.peak.v;
         out.push({ key: 'wind', text: c ? `Gusts may reach the venue’s ${it.limit} mph limit ${when(c)}; up to ${Math.round(pk)} mph.` : `Gusts up to ${Math.round(pk)} mph, below the venue’s ${it.limit} mph limit.` });
