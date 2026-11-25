@@ -34,8 +34,15 @@ const st = (p) => p.evaluate(() => { const T = window.__threats, S = T.S, m = T.
     atSite: !!sec(/In effect at this site/), nearby: !!sec(/Nearby/), head: ((document.querySelector(".px-olhead .px-where") || {}).textContent || ""), quiet: [...document.querySelectorAll(".px-olquiet")].map((x) => x.textContent),
     gaugesDrawn: (m.getSource("gauge") && m.getSource("gauge")._data.features.length) || 0, siteGauges: [...document.querySelectorAll("[data-gauge]")].map((x) => x.innerText.replace(/\s+/g, " ").slice(0, 200)),
     rainObs: vis("rain-obs"), rainFcst: vis("rain-fcst"), labelsUrgent: labels.filter((f) => f.properties.lk === "urgent").length, labelsAll: labels.length, oKey: T.outlook && T.outlook.key, oOffice: T.outlook && T.outlook.data && T.outlook.data.gridInfo && T.outlook.data.gridInfo.office, errors: T.errors.map((e) => e.stage + ": " + e.message) }; });
-/* remove one hazard family's NWS alerts from every alerts answer (national list and point check) */
-const dropFamily = (re) => async (p) => { await p.route(ALERTS, async (r) => { try { const res = await r.fetch(), j = await res.json(); if (Array.isArray(j.features)) j.features = j.features.filter((f) => !re.test((f.properties || {}).event || "")); await r.fulfill({ response: res, json: j }); } catch (e) { await r.continue(); } }); };
+/* rewrite NWS alerts answers (national list and point check). The answer is fetched by Node (the test browser's own request
+   context can't reach the preview here), and every rewrite is counted, so a silent pass-through can't count as a pass. */
+const tally = { dropped: 0, added: 0, rewrites: 0, failed: 0 };
+const rewriteAlerts = (fn) => async (p) => { await p.route(ALERTS, async (r) => {
+  try { const q = r.request(), res = await fetch(q.url(), { headers: { Accept: "application/geo+json" } }), j = await res.json();
+    if (Array.isArray(j.features)) { fn(j); tally.rewrites++; }
+    await r.fulfill({ status: res.status, headers: { "content-type": "application/geo+json", "access-control-allow-origin": "*", "access-control-expose-headers": "*" }, body: JSON.stringify(j) });
+  } catch (e) { tally.failed++; await r.abort(); } }); };
+const dropFamily = (re) => rewriteAlerts((j) => { const n0 = j.features.length; j.features = j.features.filter((f) => !re.test((f.properties || {}).event || "")); tally.dropped += n0 - j.features.length; });
 
 (async () => {
   const b = await chromium.launch();
@@ -62,8 +69,10 @@ const dropFamily = (re) => async (p) => { await p.route(ALERTS, async (r) => { t
                                              ["SPC-only severe risk", areas.spc, /Tornado|Severe Thunderstorm/i, "severe", () => true]]) {
     if (!a) { check(`${label}: no live area right now (case not run)`, true, {}); continue; }
     for (const phone of [false, true]) { const d = phone ? "phone" : "desktop";
-      const v = await open(b, phone, site(label + " test site", a.lat, a.lon), dropFamily(re)); await settle(v.p, 4500); const s = await st(v.p); await shot(v.p, `after-${need}-only-${d}`);
-      check(`(${d}) ${label.toUpperCase()} (${a.what} at ${a.lat.toFixed(2)}, ${a.lon.toFixed(2)}; that family's NWS alerts removed): Auto needs ${need} from the forecast (summary '${s.sum}')`, s.auto && s.need && s.need[need] && extra(s) && new RegExp({ flood: "Flooding", severe: "Severe storms" }[need]).test(s.sum) && !v.errs.length, { a, s });
+      const t0 = { ...tally }; const v = await open(b, phone, site(label + " test site", a.lat, a.lon), dropFamily(re)); await settle(v.p, 4500); const s = await st(v.p); await shot(v.p, `after-${need}-only-${d}`);
+      const cause = await v.p.evaluate((k) => { const A = window.__threats.siteAssess ? window.__threats.siteAssess() : null; return A && A.cause[k] ? A.cause[k] : null; }, need);
+      check(`(${d}) ${label.toUpperCase()} (${a.what} at ${a.lat.toFixed(2)}, ${a.lon.toFixed(2)}; ${tally.rewrites - t0.rewrites} alert answers rewritten, ${tally.dropped - t0.dropped} ${need} alerts removed, ${tally.failed - t0.failed} failed): Auto needs ${need} from the forecast only (cause: ${JSON.stringify(cause)}; summary '${s.sum}')`,
+        tally.rewrites > t0.rewrites && tally.failed === t0.failed && s.auto && s.need && s.need[need] && cause && cause.every((c) => !/ at the site$| mi [NSEW]{1,3}$/.test(c)) && extra(s) && new RegExp({ flood: "Flooding", severe: "Severe storms" }[need]).test(s.sum) && !v.errs.length, { a, s, cause });
       await v.ctx.close(); } }
 
   /* 3. active flooding: a live NWS flood warning covering a site (strip, rain that has fallen, gauges in view) */
@@ -73,7 +82,8 @@ const dropFamily = (re) => async (p) => { await p.route(ALERTS, async (r) => { t
     await pr.ctx.close();
     if (!fw) check("ACTIVE FLOODING: no live flood warning with a polygon right now (case not run)", true, {});
     else for (const phone of [false, true]) { const d = phone ? "phone" : "desktop";
-      const v = await open(b, phone, site("Flood warning test site", fw.lat, fw.lon)); await settle(v.p, 5000); const s = await st(v.p); await shot(v.p, `after-active-flood-${d}`);
+      const v = await open(b, phone, site("Flood warning test site", fw.lat, fw.lon)); await settle(v.p, 3000);
+      await v.p.waitForFunction(() => { const m = window.__threats.map; return m.getLayer("rain-obs") && m.getLayoutProperty("rain-obs", "visibility") === "visible"; }, null, { timeout: 30000 }).catch(() => {}); const s = await st(v.p); await shot(v.p, `after-active-flood-${d}`);
       check(`(${d}) ACTIVE FLOODING at a live ${fw.ev}: strip lists it in effect at the site; Auto · Flooding; rain that has fallen drawn; ${s.gaugesDrawn} gauges drawn`, s.auto && s.atSite && /Flood Warning/.test(s.strip) && s.need.flood && /Flooding/.test(s.sum) && s.rain.obs && s.rainObs && !v.errs.length, { fw, s });
       await v.ctx.close(); } }
 
@@ -100,11 +110,11 @@ const dropFamily = (re) => async (p) => { await p.route(ALERTS, async (r) => { t
     const feat = { ...f0, id: P["@id"], properties: P };
     const ring = f0.geometry.coordinates[0], cx = ring.reduce((a, c) => a + c[0], 0) / ring.length, cy = ring.reduce((a, c) => a + c[1], 0) / ring.length;
     for (const phone of [false, true]) { const d = phone ? "phone" : "desktop";
-      const v = await open(b, phone, site("Tornado Emergency replay site", cy, cx), async (p) => { await p.route(ALERTS, async (r) => { try { const res = await r.fetch(), j = await res.json(); if (Array.isArray(j.features)) j.features.unshift(feat); await r.fulfill({ response: res, json: j }); } catch (e) { await r.continue(); } }); });
+      const t0 = { ...tally }; const v = await open(b, phone, site("Tornado Emergency replay site", cy, cx), rewriteAlerts((j) => { j.features.unshift(feat); tally.added++; }));
       await settle(v.p, 4000); const s = await st(v.p); await shot(v.p, `after-critical-replay-${d}`);
       const first = await v.p.evaluate(() => { const a = document.querySelector(".px-strip .px-alert"); return a ? a.innerText.replace(/\s+/g, " ") : ""; });
-      check(`(${d}) CRITICAL-ALERT REPLAY (synthetic: saved KMTR Tornado Warning moved to now, catastrophic tag): first in the strip '${first.slice(0, 160)}'; urgent labels ${s.labelsUrgent}`,
-        s.atSite && /Tornado Warning/.test(first) && /Tornado Emergency/.test(first) && /until /.test(first) && /NWS bulletin/.test(first) && s.need.severe && s.labelsUrgent >= 1 && !v.errs.length && !s.errors.length, { s, first });
+      check(`(${d}) CRITICAL-ALERT REPLAY (synthetic: saved KMTR Tornado Warning moved to now, catastrophic tag; added to ${tally.added - t0.added} answers): first in the strip '${first.slice(0, 160)}'; urgent labels ${s.labelsUrgent}`,
+        tally.added > t0.added && tally.failed === t0.failed && s.atSite && /Tornado Warning/.test(first) && /Tornado Emergency/.test(first) && /until /.test(first) && /NWS bulletin/.test(first) && s.need.severe && s.labelsUrgent >= 1 && !v.errs.length && !s.errors.length, { s, first });
       await v.ctx.close(); } }
 
   /* 6. A -> B -> A with B's answers held back and arriving last: the panel, outlook and layers stay A's; B's late answer is filed as B's */
