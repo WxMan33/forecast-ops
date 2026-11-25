@@ -1,0 +1,83 @@
+{
+ "assets_before": [
+  "severe-guidance-2026-11-18-day1.run-44449136917-1.json",
+  "severe-guidance-2026-11-18-day1.run-44449136917-2.json",
+  "severe-guidance-2026-11-18-day1.tar.gz",
+  "severe-guidance-2026-11-21-day1.run-44890968813-1.json",
+  "severe-guidance-2026-11-21-day1.tar.gz",
+  "severe-guidance-2026-11-21-day2.run-44920543327-1.json",
+  "severe-guidance-2026-11-21-day2.tar.gz",
+  "severe-guidance-2026-11-22-day1.run-45008967192-1.json",
+  "severe-guidance-2026-11-22-day1.tar.gz",
+  "severe-guidance-2026-11-22-day2.run-45039708358-1.json",
+  "severe-guidance-2026-11-22-day2.tar.gz",
+  "severe-guidance-2026-11-23-day1.run-45149593050-1.json",
+  "severe-guidance-2026-11-23-day1.tar.gz",
+  "severe-guidance-2026-11-23-day2.run-45208223343-1.json",
+  "severe-guidance-2026-11-23-day2.tar.gz",
+  "severe-guidance-2026-11-24-day1.run-45367983389-1.json",
+  "severe-guidance-2026-11-24-day1.tar.gz",
+  "severe-guidance-2026-11-24-day2.run-45428644806-1.json",
+  "severe-guidance-2026-11-24-day2.tar.gz",
+  "severe-guidance-2026-11-25-day1.run-45588194733-1.json",
+  "severe-guidance-2026-11-25-day1.tar.gz",
+  "severe-guidance-2026-11-25-day2.tar.gz"
+ ],
+ "bundle": {
+  "bytes": 3193029,
+  "data_sha256": "38d079815d92dc4e1ea8bea02e443008ea95ffb32326a3d3a51c1d8858359361",
+  "name": "severe-guidance-2026-11-25-day2.tar.gz",
+  "sha256": "4963fa2dd7c0d80c55739aa32419169b8c471a76d0804e8c630523eae271c9a9"
+ },
+ "date": "2026-11-25",
+ "day": 2,
+ "kind": "archive_recovery",
+ "note": "Re-publication of an already-collected bundle whose original publish failed. No data was re-collected; the original collection run record and its timestamps are the attempt receipt unchanged. This recovery is recorded separately and is not a collection attempt.",
+ "pre_publish_checks": {
+  "bundle_sha256_matches_bundle_info": true,
+  "collection_complete": true,
+  "data_sha256_matches_bundle_info": true,
+  "original_publish_failed": true,
+  "run_record_in_bundle_matches_artifact": true,
+  "source_run_and_attempt": true
+ },
+ "publish_result": {
+  "asset": "severe-guidance-2026-11-25-day2.tar.gz",
+  "local_bundle_sha256": "4963fa2dd7c0d80c55739aa32419169b8c471a76d0804e8c630523eae271c9a9",
+  "local_data_sha256": "38d079815d92dc4e1ea8bea02e443008ea95ffb32326a3d3a51c1d8858359361",
+  "outcome": "duplicate_data",
+  "receipt": "severe-guidance-2026-11-25-day2.run-45648173453-1.json",
+  "release": "severe-guidance-2026-11",
+  "remote_bundle_sha256": "4963fa2dd7c0d80c55739aa32419169b8c471a76d0804e8c630523eae271c9a9",
+  "remote_data_sha256": "38d079815d92dc4e1ea8bea02e443008ea95ffb32326a3d3a51c1d8858359361",
+  "repository": "WxMan33/forecast-ops-archive",
+  "verified": true
+ },
+ "readback": {
+  "asset_sha256": "4963fa2dd7c0d80c55739aa32419169b8c471a76d0804e8c630523eae271c9a9",
+  "checks": {
+   "downloaded_asset_sha256_matches": true,
+   "receipt_data_sha256_matches": true,
+   "receipt_keeps_original_run_record": true
+  }
+ },
+ "recovered_at": "2026-11-25T21:57:28.128059+00:00",
+ "recovery_run": {
+  "run_attempt": "1",
+  "run_id": "45708914392",
+  "sha": "cb4e51e8c01c882e2c9c41639adff3fea2d6e6ea"
+ },
+ "resume": {
+  "note": "The first recovery run uploaded and read-back-verified the data asset, then failed before the attempt receipt (a missing local directory in the recovery workflow). This run confirmed the archived asset is byte-identical to the surviving bundle and published the original-run receipt.",
+  "resume_of_run": 45708648336
+ },
+ "source": {
+  "artifact": "severe-research-guidance-2026-11-25-day2-1",
+  "original_publish_result": {
+   "error": "gh release upload severe-guidance-2026-11 failed: HTTP 502: Error creating policy (https://uploads.github.com/repos/WxMan33/forecast-ops-archive/releases/450830471/assets?label=&name=severe-guidance-2026-11-25-day2.tar.gz)",
+   "outcome": "error"
+  },
+  "run_attempt": "1",
+  "run_id": "45648173453"
+ }
+}
