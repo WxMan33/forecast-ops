@@ -4,7 +4,10 @@
              3 AM, then a Friday-morning wintry mix (rain and snow possible 6 – 11 AM, snow about 0.2 in)
      hot:    a heat index of 100°F at 2 PM the next day, everything else dry
      quiet:  no rain amounts, no precipitation type, no heat index
-     partial: the grid as NWS sometimes serves it: rain amounts and weather types empty (the layers there, with no values) */
+     partial: the grid as NWS sometimes serves it: rain amounts and weather types empty (the layers there, with no values)
+     partial-rain:  rain amounts for six hours only (1 PM – 7 PM day 1, about 0.6 in) and then none, while rain stays definite to 3 AM
+     partial-heavy: the same six hours at about 1.2 in, then none: heavy rain already, the total may be higher
+     heavy-alone:   the heavy-rain amounts with rain only a chance (no lingering-rain stretch), no wintry mix */
 "use strict";
 const H = 3600e3;
 function anchors(now) { const est = new Date(now - 5 * H), d0 = Date.UTC(est.getUTCFullYear(), est.getUTCMonth(), est.getUTCDate()) + 5 * H; return { day1: d0 + 24 * H, day2: d0 + 48 * H }; } // local midnights, as UTC ms
@@ -15,6 +18,20 @@ function scenario(grid, name, now) {
   const zeroAmt = () => [block(Math.floor(now / H) * H, Math.max(1, Math.round((end - Math.floor(now / H) * H) / H)), 0)];
   P.updateTime = iso(now - 30 * 60e3);
   if (name === "partial") { P.quantitativePrecipitation.values = []; P.weather.values = []; return g; }
+  if (name === "partial-rain" || name === "partial-heavy") {
+    P.quantitativePrecipitation.values = [block(day1 + 13 * H, 6, name === "partial-rain" ? 15 : 30)]; // mm over the 6 h: about 0.59 / 1.18 in
+    P.snowfallAmount.values = zeroAmt(); P.iceAccumulation.values = zeroAmt();
+    P.weather.values = [{ validTime: iso(day1 + 10 * H) + "/PT17H", value: [{ coverage: "definite", weather: "rain", intensity: "moderate" }] }];
+    P.heatIndex = { uom: "wmoUnit:degC", values: [block(Math.floor(now / H) * H, 168, null)] };
+    return g;
+  }
+  if (name === "heavy-alone") {
+    P.quantitativePrecipitation.values = [block(day1 + 7 * H, 6, 1.5), block(day1 + 13 * H, 6, 10), block(day1 + 19 * H, 6, 14), block(day2 + 1 * H, 6, 8), block(day2 + 7 * H, 6, 1)];
+    P.snowfallAmount.values = zeroAmt(); P.iceAccumulation.values = zeroAmt();
+    P.weather.values = [{ validTime: iso(day1 + 10 * H) + "/PT17H", value: [{ coverage: "chance", weather: "rain_showers", intensity: "moderate" }] }];
+    P.heatIndex = { uom: "wmoUnit:degC", values: [block(Math.floor(now / H) * H, 168, null)] };
+    return g;
+  }
   if (name === "quiet" || name === "hot") {
     P.quantitativePrecipitation.values = zeroAmt(); P.snowfallAmount.values = zeroAmt(); P.iceAccumulation.values = zeroAmt();
     P.weather.values = [{ validTime: iso(Math.floor(now / H) * H) + "/P7D", value: [{ coverage: null, weather: null, intensity: null }] }];

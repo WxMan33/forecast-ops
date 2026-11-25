@@ -74,4 +74,19 @@ ok("highlights: complete grids are fully checked (a November grid without a heat
   assert.deepStrictEqual(hl("quiet").unchecked, []); assert.deepStrictEqual(hl("heavy").unchecked, []);
   const b = OL.build({ tz: TZ, now: NOW, venue: CVG, days: 7, states: { spc: {}, grid: "ok" }, grid: FG.parseGrid(REPLAY.scenario(GRID, "quiet", NOW), NOW, 168) }); assert.deepStrictEqual(b.unknown, []);
 });
+ok("lead: heavy rain and the lingering rain around it are one event, named once, with the whole rain window underneath", () => {
+  const L = (name) => OL.highlightLead(hl(name).list, TZ);
+  assert.deepStrictEqual(L("heavy"), { text: "Heavy rain Thursday · Wintry mix possible Friday morning", timing: "Rain likely from Thu 10 AM through Fri 7 AM" });
+  assert.deepStrictEqual(L("heavy-alone"), { text: "Heavy rain Thursday", timing: "Rain from Thu 1 PM through Fri 7 AM" });
+  assert.deepStrictEqual(OL.highlightLead(OL.highlights(FG.parseGrid(GRID, NOW, 168), TZ, NOW, {}).list, TZ), { text: "Rain likely Thursday · Rain likely Sunday", timing: "From Thu 4 AM through Fri 1 PM" });
+});
+ok("partial rain amounts: short of an inch before they stop mid-rain is 'not checked' on that day; past an inch keeps heavy rain and says the total may be higher", () => {
+  const pr = hl("partial-rain"); assert.deepStrictEqual(pr.list.map((x) => x.kind), ["linger"]);
+  assert.deepStrictEqual(pr.unchecked, ["heavy rain after Thu 7 PM (rain amounts stop while rain is still forecast; about 0.59 in before then)"]);
+  const b = OL.build({ tz: TZ, now: NOW, venue: CVG, days: 7, states: { spc: {}, grid: "ok" }, grid: FG.parseGrid(REPLAY.scenario(GRID, "partial-rain", NOW), NOW, 168) });
+  assert.deepStrictEqual(b.days.map((d) => d.unknown.length), [0, 1, 0, 0, 0, 0, 0]);
+  const ph = hl("partial-heavy"); assert.deepStrictEqual(ph.unchecked, []); assert.strictEqual(ph.list[0].kind, "rain"); assert.ok(ph.list[0].partial);
+  assert.strictEqual(OL.highlightLead(ph.list, TZ).timing, "Rain likely from Thu 10 AM through Fri 3 AM · rain amounts stop Thu 7 PM, so the total may be higher");
+  assert.deepStrictEqual(hl("heavy").unchecked, []); // amounts that run past the rain: fully checked
+});
 console.log(n + " passed");

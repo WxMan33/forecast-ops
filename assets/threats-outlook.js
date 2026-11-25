@@ -42,7 +42,16 @@
         let pk = null; for (let i = 0; i + 6 <= w.length; i++) { const s6 = w.slice(i, i + 6).reduce((m, r) => m + (r.qpf || 0), 0); if (!pk || s6 > pk.s) pk = { s: s6, t: T(w[i]) }; }
         const mid = pk ? pk.t + 3 * H : a;
         out.push({ kind: "rain", rank: 4, at: mid, start: a, end: b, value: +best.sum.toFixed(2), short: "Heavy rain " + dayName(mid, tz, now), text: "Heavy rain: about " + best.sum.toFixed(1) + " in from " + span(a, b, tz) + (pk ? "; heaviest " + span(pk.t, pk.t + 6 * H, tz) + " (about " + pk.s.toFixed(1) + " in)" : ""), source: "NWS forecast (rain amounts)", link: "rain",
-          partial: grid.qpfThrough && b >= Date.parse(grid.qpfThrough) - H }); } }
+          partial: grid.qpfThrough && b >= Date.parse(grid.qpfThrough) - H, amountsEnd: grid.qpfThrough ? Date.parse(grid.qpfThrough) : null }); } }
+    /* rain amounts that stop in the middle of rain: where the known hours just before the stop don't reach the threshold, heavy
+       rain past that point can't be ruled out. Counted when the last known hour has rain or the next hour has rain likely. */
+    const gaps = [], wetType = /rain|drizzle|showers|thunderstorms|snow|sleet/;
+    for (let i = 0; i + 1 < rows.length; i++) {
+      if (q[i] == null || q[i + 1] != null) continue;
+      const next = rows[i + 1], goesOn = q[i] >= 0.01 || (next.wx || []).some((x) => wetType.test(x.type) && x.cov >= 3); if (!goesOn) continue;
+      const stop = T(rows[i]) + H; if (out.some((h) => h.kind === "rain" && h.end >= stop - H)) continue; // a heavy-rain highlight already reaches it (and says so)
+      let known = 0; for (let j = i; j > i - 24 && j >= 0 && q[j] != null; j--) known += q[j];
+      gaps.push({ at: stop, text: "heavy rain after " + fmtDay(stop, tz) + " " + fmtH(stop, tz) + " (rain amounts stop while rain is still forecast; about " + known.toFixed(2) + " in before then)" }); }
     if (grid.qpfThrough) notes.push("Rain amounts forecast through " + fmtDay(Date.parse(grid.qpfThrough), tz) + " " + fmtH(Date.parse(grid.qpfThrough), tz));
     else notes.push("No rain amounts in the NWS forecast for this site");
     // wintry mix: contiguous hours with snow, sleet or freezing rain/drizzle at least a chance
@@ -71,16 +80,24 @@
     if (!grid.qpfThrough) unchecked.push("heavy rain (no rain amounts)");
     if (!grid.wxThrough) unchecked.push("wintry mix and long rain (no precipitation types)");
     if (!grid.heatThrough && !rows.some((r) => r.temp != null)) unchecked.push("heat (no heat index or temperatures)");
-    return { list: out, notes, missing: false, unchecked };
+    const uncheckedAt = unchecked.map(() => now);
+    for (const g of gaps) { unchecked.push(g.text); uncheckedAt.push(g.at); }
+    return { list: out, notes, missing: false, unchecked, uncheckedAt };
   }
+  /* the lead: heavy rain and the lingering rain around it are one event, named once; underneath, the whole rain window (heavy
+     and lingering hours together) in site-local time. A distinct highlight (a wintry mix, heat) can still share the headline. */
   function highlightLead(list, tz) {
     const heavy = list.find((item) => item.kind === "rain");
     const belongsToHeavy = (item) => heavy && item.kind === "linger" && item.start < heavy.end && item.end > heavy.start;
-    const related = list.find(belongsToHeavy);
+    const related = list.filter(belongsToHeavy);
     const top = list.filter((item) => !belongsToHeavy(item)).slice(0, 2);
     const text = top.map(({ short }) => short.charAt(0).toUpperCase() + short.slice(1)).join(" · ");
-    const rain = (top.includes(heavy) && related) || top.find((item) => item.kind === "linger");
-    return { text, timing: rain ? "Rain likely " + span(rain.start, rain.end, tz) : "" };
+    const thru = (a, b) => fmtDay(a, tz) + " " + fmtH(a, tz) + " through " + (fmtDay(a, tz) === fmtDay(b, tz) ? "" : fmtDay(b, tz) + " ") + fmtH(b, tz);
+    let timing = "";
+    if (top.includes(heavy)) { const all = [heavy, ...related], a = Math.min(...all.map((x) => x.start)), b = Math.max(...all.map((x) => x.end));
+      timing = (related.length ? "Rain likely from " : "Rain from ") + thru(a, b) + (heavy.partial && heavy.amountsEnd ? " · rain amounts stop " + fmtDay(heavy.amountsEnd, tz) + " " + fmtH(heavy.amountsEnd, tz) + ", so the total may be higher" : ""); }
+    else { const ln = top.find((item) => item.kind === "linger"); if (ln) timing = "From " + thru(ln.start, ln.end); }
+    return { text, timing };
   }
   const dayName = (ms, tz, now) => localDate(ms, tz) === localDate(now, tz) ? "today" : new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "long" }).format(new Date(ms)); // weekdays: planners count by them
 
@@ -159,7 +176,7 @@
         else if (rh != null && rh <= 30) d.items.push({ key: "dry", level: 0, text: "Humidity as low as " + rh + "%", source: "NWS forecast", link: "fire", rh, gust: g }); }
     } else if (inp.states.grid === "failed") unknownOn(now, "NWS forecast for the venue not confirmed");
     const HL = inp.grid && inp.grid.rows ? highlights(inp.grid, tz, now, inp.highlightOpts) : { list: [], notes: [], missing: true };
-    if ((HL.unchecked || []).length) unknownOn(now, "NWS forecast for the venue came back incomplete; not checked: " + HL.unchecked.join("; "));
+    (HL.unchecked || []).forEach((u, k) => unknownOn((HL.uncheckedAt || [])[k] || now, "NWS forecast for the venue came back incomplete; not checked: " + u));
     for (const h of HL.list) { const d = at(h.at); if (d) d.items.unshift({ key: "hl-" + h.kind, level: 0, highlight: true, text: h.text, source: h.source, link: h.link }); }
     // NOAA river gauges within 25 miles: forecast (or observed) at or above action stage, on the day it is expected
     const GL = { action: 0, minor: 1, moderate: 2, major: 3 }, GW = { action: "action stage", minor: "minor flooding", moderate: "moderate flooding", major: "major flooding" };
