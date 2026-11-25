@@ -70,16 +70,26 @@ const QUERY = `lat=${cy.toFixed(4)}&lon=${cx.toFixed(4)}&name=${encodeURICompone
     check(`(${tag}) ${m ? m.cards.length : 0} cards, ${m ? m.heads.length : 0} headings: none overlap, all full width (${m && m.sw}px), no one-word columns, no sideways scroll`, m && m.cards.length >= 2 && !m.overlap.length && !m.narrow.length && !m.hscroll, { overlap: m && m.overlap, narrow: m && m.narrow, cards: m && m.cards });
     check(`(${tag}) every 'NWS bulletin' and 'Show on map' link can be tapped (${m ? m.links.length : 0} links, at least 24 px tall and on top)`, m && m.links.length >= 4 && m.links.every((l) => l.hit && l.h >= 24 && l.w >= 40), { links: m && m.links });
     if (phone) check(`(${tag}) collapsed sheet: '${peek && peek.p1}' / '${peek && peek.p2}'`, peek && peek.vis && /Tornado Warning/.test(peek.p1) && /^Covers this site · until /.test(peek.p2) && !/Today · NWS/.test(peek.p2), { peek });
-    // the Active now map: the warning that starts later is drawn dashed with a FROM label, not as if in effect
-    await p.evaluate(() => { const T = window.__threats; T.S.view = "active"; T.S.sel = null; T.drawAll(); }); await p.waitForTimeout(2000);
-    const an = await p.evaluate(() => { const T = window.__threats, m = T.map, f = (m.getSource("active")._data.features || []), L = (m.getSource("labels")._data.features || []);
-      const sv = f.find((x) => /0904/.test(x.properties.id || "") || /Severe Thunderstorm Warning/.test(x.properties.text || "") && x.properties.later), to = f.find((x) => /0903/.test(x.properties.id || "") || /Tornado/.test(x.properties.text || ""));
-      const svl = L.find((x) => /SEVERE THUNDERSTORM|Severe Thunderstorm/i.test(x.properties.text) && /^FROM /.test(x.properties.text)), tol = L.find((x) => /TORNADO/i.test(x.properties.text));
-      const list = [...document.querySelectorAll("#txPanelBody *")].map((x) => x.textContent).find((x) => /Starts .* · until /.test(x)) || "";
-      return { svLater: sv && sv.properties.later, svFill: sv && sv.properties.fill, toLater: to && to.properties.later, svLabel: svl && svl.properties.text, toLabel: tol && tol.properties.text, laterLayer: !!m.getLayer("later-line") && m.getLayoutProperty("later-line", "visibility") !== "none", list: list.slice(0, 120) }; });
-    await p.screenshot({ path: path.join(OUT, `active-now-${tag}.png`) });
-    check(`(${tag}) Active now: the upcoming warning is drawn dashed and faint with '${an.svLabel}'; the warning in effect is not ('${an.toLabel}'); lists say '${an.list.slice(0, 70)}'`,
-      an.svLater === true && an.svFill < 0.1 && an.toLater !== true && /^FROM \d/.test(an.svLabel || "") && !/^FROM /.test(an.toLabel || "") && an.laterLayer && /Starts .* · until /.test(an.list), { an });
+    // Active now: only alerts in effect. The upcoming warning is listed, drawn only when opened (dashed, FROM label), hidden again
+    // when closed, and joins Active now by itself once its start passes (the clock is moved past it; the next refresh re-reads it).
+    const amap = () => p.evaluate(() => { const T = window.__threats, m = T.map, f = (m.getSource("active")._data.features || []), L = (m.getSource("labels")._data.features || []);
+      const sv = f.find((x) => /0904/.test(x.properties.id || "")), svl = L.find((x) => /Severe Thunderstorm/i.test(x.properties.text));
+      return { sv: sv ? { later: sv.properties.later, fill: sv.properties.fill } : null, svLabel: svl ? svl.properties.text : null, to: !!f.find((x) => /0903/.test(x.properties.id || "")), sel: T.S.sel,
+        upcoming: !![...document.querySelectorAll("[data-upcoming]")].length, upText: [...document.querySelectorAll("#txPanelBody *")].map((x) => x.textContent).find((x) => /Starts .* · until /.test(x)) || "" }; });
+    await p.evaluate(() => { const T = window.__threats; T.S.view = "active"; T.S.sel = null; T.drawAll(); }); await p.waitForTimeout(1500);
+    const a0 = await amap();
+    check(`(${tag}) Active now: the warning in effect is drawn, the upcoming one is not (it is listed under 'Upcoming alerts': ${a0.upcoming}; '${a0.upText.slice(0, 60)}')`, a0.to && !a0.sv && a0.upcoming && /Starts .* · until /.test(a0.upText), { a0 });
+    await p.evaluate(() => { const T = window.__threats; T.S.view = "outlook"; T.drawAll(); }); await p.waitForTimeout(1200);
+    if (phone && !(await p.locator(".px-sitealerts").isVisible())) { await p.locator("#txPeek").click(); await p.waitForTimeout(800); }
+    const btn = p.locator('.px-sitealerts [data-strip-sel*="0904"]').first(); await btn.scrollIntoViewIfNeeded(); await btn.click(); await p.waitForTimeout(2000);
+    const a1 = await amap(); await p.screenshot({ path: path.join(OUT, `upcoming-shown-${tag}.png`) });
+    check(`(${tag}) Show on map draws the upcoming warning on demand: dashed and faint, '${a1.svLabel}'`, a1.sv && a1.sv.later === true && a1.sv.fill < 0.1 && /^FROM \d/.test(a1.svLabel || ""), { a1 });
+    await p.evaluate(() => { const T = window.__threats; T.S.sel = null; T.drawAll(); }); await p.waitForTimeout(1000); const a2 = await amap();
+    check(`(${tag}) closing it takes it off Active now again`, !a2.sv, { a2 });
+    await p.clock.setFixedTime(new Date(now + 2 * 3600e3 + 60e3)); // the upcoming warning's start has passed
+    await p.waitForFunction(() => { const f = window.__threats.map.getSource("active")._data.features || []; return f.some((x) => /0904/.test(x.properties.id || "") && !x.properties.later); }, null, { timeout: 95000 }).catch(() => {});
+    const a3 = await amap(); await p.screenshot({ path: path.join(OUT, `upcoming-started-${tag}.png`) });
+    check(`(${tag}) at its start it joins Active now by itself: drawn as in effect (later ${a3.sv && a3.sv.later}), label '${a3.svLabel}'`, a3.sv && a3.sv.later === false && !/^FROM /.test(a3.svLabel || "") && !a3.sel, { a3 });
     check(`(${tag}) no page errors`, !errs.length, { errs });
     await ctx.close();
   }

@@ -170,10 +170,15 @@
     return abbrs.some((a) => /^GMT/.test(a)) || long === abbrs[0] ? long : long + " (" + abbrs.join("/") + ")"; } catch (e) { return z; } };
   const t = (iso, day) => T.fmtTime(iso, tz(), { day });
   const shown = (p) => S.layers[p.family || "severe"] !== false;
-  /* an alert issued ahead of its start (onset later than now): kept on the Active now map, but drawn and worded as upcoming */
+  /* an alert issued ahead of its start (onset later than now): listed as upcoming; drawn dashed with a FROM label only while selected */
   const later = (p) => (p.kind === "warning" || p.kind === "watch" || p.kind === "advisory" || p.kind === "statement") && Date.parse(p.issued) > now;
   const startsText = (p) => "Starts " + t(p.issued, true) + " · until " + t(p.expires, true);
-  const active = () => data.products.filter((p) => p.kind !== "outlook" && p.family !== "aviation" && shown(p) && (Date.parse(p.expires) > now || (p.kind === "md" && p.expires == null)));
+  // Active now: alerts in effect. An alert that starts later is listed under Upcoming alerts and drawn only while it is selected
+  // (Show on map); it joins Active now by itself once its start passes (the list is re-read at every refresh, about each minute).
+  const active = () => data.products.filter((p) => p.kind !== "outlook" && p.family !== "aviation" && shown(p) && (Date.parse(p.expires) > now || (p.kind === "md" && p.expires == null)) && (!later(p) || S.sel === p.id));
+  const upcoming = () => data.products.filter((p) => p.kind !== "outlook" && p.family !== "aviation" && shown(p) && later(p) && Date.parse(p.expires) > now).sort((a, b) => Date.parse(a.issued) - Date.parse(b.issued));
+  function upcomingSection() { const u = upcoming(); if (!u.length) return "";
+    return `<div class="px-h" data-upcoming><span>Upcoming alerts · not in effect yet</span><span>${u.length}</span></div><p class="lg-note">Shown on the map when opened; each joins Active now at its start.</p>` + u.slice(0, 8).map((p) => item(p)).join(""); }
   // reached its published expiration while the source was down: not active, and not described as cleared
   const lapsed = () => data.products.filter((p) => p.kind !== "outlook" && T.expiredUnconfirmed(p, data.sources[SRC_OF(p)], now));
   /* SPC convective outlooks only (live program "spc"; demo fixtures carry no program). Every other outlook program (WPC
@@ -1045,6 +1050,7 @@
     h += reportsSection(false) + (S.layers.aviation ? avControls() : "") + airportsSection() + enrouteSection() + tropicsSection();
     if (S.layers.smoke) { const bad = monitorsShown().filter((p) => FX.AQI_CAT_ORDER.indexOf(p.category) >= 2).sort((a, b) => b.aqi - a.aqi); h += `<div class="px-h"><span>Air quality now · AirNow</span><span>${bad.length} monitor${bad.length === 1 ? "" : "s"} at USG or worse</span></div>` + (bad.length ? bad.slice(0, 5).map((p) => aqItem(p, null)).join("") : `<p class="px-empty">${data.state.monitors && ["current", "empty"].includes(data.state.monitors.kind) ? "No U.S. monitor at Unhealthy for Sensitive Groups or worse in the last 3 hours." : "AirNow monitors not confirmed."}</p>`) + `<p class="lg-note">${hmsShown().length} smoke areas in NOAA's satellite analysis (last 24 h). Satellite smoke is overhead smoke, not a ground reading.</p>`; }
     if (S.layers.fire) { const wf = incidents().filter((p) => p.category !== "RX"); if (wf.length) h += `<div class="px-h"><span>Largest active wildfires · NIFC</span><span>${wf.length} current</span></div>` + wf.slice().sort((a, b) => (b.acres || 0) - (a.acres || 0)).slice(0, 5).map((p) => incItem(p, null)).join(""); }
+    h += upcomingSection();
     h += `<div class="px-h">Forecast for later</div>` + laterButtons(null);
     return h;
   }
@@ -1055,6 +1061,7 @@
     if (covers.length) h += `<div class="px-h">At the venue</div>` + covers.map((p) => item(p)).join("");
     if (near.length) h += `<div class="px-h"><span>Nearby · the venue is outside these</span><span>within ${Math.round(T.miles(T.NEAR_KM))} mi</span></div>` + near.map((p) => item(p)).join("");
     if (unknown.length) h += `<div class="px-h">Area not drawn</div>` + unknown.map((p) => item(p)).join("");
+    h += upcomingSection();
     if (!covers.length && !near.length && activeKnown()) h += `<p class="lg-note">${esc(SCOPE_NOTE)}</p>`;
     h += reportsSection(true);
     if (S.layers.flood) { const near = data.products.filter((p) => p.kind === "gauge" && p.rank >= 1 && T.miles(T.pointDistance([venue.lon, venue.lat], p.point).km) <= 25); if (near.length) h += `<div class="px-h" data-gauges="venue"><span>River gauges within 25 mi · at or above action stage</span><span>${near.length}</span></div>` + near.sort((a, b) => b.rank - a.rank).slice(0, 6).map(spotItem).join(""); h += siteGaugesHtml() + rainVenueHtml(); }
@@ -1780,7 +1787,7 @@
     const og = e.target.closest("[data-ol-go]"); if (og && og.dataset.olGo) outlookGo(og.dataset.olGo, og.dataset.olKey);
     if (e.target.closest("[data-open-rain]")) { openRainMap(); return; }
     const ss = e.target.closest("[data-strip-sel]"); if (ss) { const p = byId(ss.dataset.stripSel) || ((siteAssess() || { at: [] }).at.find((x) => x.p.id === ss.dataset.stripSel) || {}).p; // an alert in the strip, opened on the map
-      if (p) { const fam = p.family || "severe"; if (!S.layers[fam]) { S.layers[fam] = true; S.auto = false; } S.scope = "venue"; setView("active"); if (byId(p.id)) { S.sel = p.id; drawAll(); } } } });
+      if (p) { const fam = p.family || "severe"; if (!S.layers[fam]) { S.layers[fam] = true; S.auto = false; } S.scope = "venue"; setView("active"); if (byId(p.id)) { S.sel = p.id; drawAll(); if (map && p.label) map.easeTo({ center: p.label, duration: 400 }); } } } }); // an upcoming alert shows while selected
   $("txLayersPop").addEventListener("change", (e) => {
     const i = e.target; if (!i.matches("input, select")) return;
     if (i.dataset.rain) { S.auto = false; S.rain[i.dataset.rain] = i.checked; if (i.checked) { S.rain[i.dataset.rain === "obs" ? "fcst" : "obs"] = false; S.layers.flood = true; } } // one rainfall overlay at a time
