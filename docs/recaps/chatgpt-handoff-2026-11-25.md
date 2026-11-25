@@ -80,6 +80,14 @@ UPDATE, Nov 25 early morning (03:30 UTC)
   - Two dates were listed after the 15:10 UTC cutoff and are excluded from both arms.
   - In 2022–23 gusts were archived hourly to f36, then 3-hourly, so the same 16 hours are used for history and for current runs.
   - Pass rule: national Brier better (CI excludes 0), no region worse, calibration within 15%, hit retention ≥95%.
+  - RESULT (Nov 25, run 45544910438): FAIL on criterion 2 — Florida/Gulf got significantly WORSE.
+    - 726 matched dates; 2 excluded (listed after cutoff); 0 extraction failures.
+    - National BSS 0.114 → 0.122; Brier −0.000082 (95% CI −0.000113 to −0.000055).
+    - Better: original box 0.133→0.142, Plains 0.077→0.084, Northeast 0.127→0.140. West unchanged.
+    - Florida/Gulf BSS −0.008 → −0.018; Brier +0.000076 (CI +0.000016 to +0.000142). Calibration there is about 2.1× over-forecast in both arms.
+    - National calibration 0.999; hit retention 1.014; area ≥5% on no-report dates 37,087 → 32,050 km² per date.
+    - The national gain held in both NBM version periods (v4.0 −0.000099, v4.1 −0.000063).
+    - Outcome: nothing frozen; not added to the archive. NBM helps nationally but makes the Florida/Gulf weakness slightly worse.
 - SAMPLING CHECK (development only; same folds, recipe, calibration and scoring rows): sampling does NOT explain the 2021 tie.
   - National BSS: 96 days all rows 0.096; 96 days sampled 0.098; 728 days sampled 0.115.
   - Sampling effect: −0.000017 Brier (95% CI −0.000030 to −0.000005). Sampling helped slightly.
