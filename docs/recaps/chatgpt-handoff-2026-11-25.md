@@ -1,0 +1,82 @@
+# ChatGPT handoff: forecast-ops severe research, Sun Nov 22 – Wed Nov 25, 2026
+
+Paste everything inside the box below into ChatGPT.
+
+```text
+HANDOFF: I run "forecast-ops", a personal experimental weather site (GitHub repo WxMan33/forecast-ops). From Sunday Nov 22 to Wednesday Nov 25, 2026 I worked with Claude Code (an AI coding agent) on severe-weather research. Please treat this as background for my follow-up questions.
+
+GROUND RULES (all kept)
+- The live Severe product (regional model "v0.7"), its feed, the publisher and the model registry were never touched. v0.7 is still live.
+- The RRFS/NBM data collector kept running on schedule.
+- 2025 stays sealed as the final untouched test year.
+- 2021 was reserved for one-time verification, allowed only after a pre-committed development gate passes. It was used this week and is now spent.
+- Every pass/fail rule was committed before its experiment ran. Already-inspected 2024 dates are "exploratory".
+- All work runs on branches. I approve anything that goes to main.
+
+1) CONUS SEVERE RESEARCH PREVIEW (draft PR #35, not merged)
+- The severe page gets a "View" switch: Regional (live v0.7, unchanged) or CONUS research.
+- The CONUS view shows Day 2 damaging wind only: the chance of a ≥50 kt thunderstorm wind report within 25 miles, 12Z–12Z. It comes from a frozen national boosted-tree model trained on HRRR predictors, on about 40k grid points (15 km spacing), trained on 96 days of 2022–23.
+- Features:
+  - 3 historical replays (active, quiet, and a Florida/Gulf weakness case) plus a saved current forecast;
+  - NOAA Storm Events report markers, checked so they exactly reproduce the scored data;
+  - county lines;
+  - land-only shading;
+  - phone layout;
+  - a "not available" panel for other day/hazard combinations.
+- Fixed an iPhone crash. Browser-built contours (about 165k polygons) used 2.3–3.4 GB. Prebuilt, simplified contours (about 21k points) bring the phone peak to about 0.9 GB. I confirmed it works on my iPhone.
+- Automated hosted checks (Playwright/Chromium with iPhone emulation) on two beta hosts: 46 readability checks plus a 1.5 GB memory budget.
+
+2) DAILY REFRESH (PR #46, merged to main Nov 24)
+- Every day at 15:10 UTC (10:10 AM ET) a scheduled job rebuilds the saved CONUS forecast from that day's 12Z HRRR, pushes it to the preview and runs the hosted checks.
+- If a run is missed, the viewer labels the forecast "EXPIRED" and the hosted check fails.
+- Tested end to end on Nov 24. The first scheduled run is today, Nov 25. Claude checks it Nov 25–27.
+
+3) WHERE THE NATIONAL MODEL STANDS (before this week's experiments)
+- Inside the original regional box it beats live v0.7 (Brier difference −0.00091, 95% CI −0.00141 to −0.00047).
+- Against NadoCast (an established ML severe forecast) on 213 fresh 2024 days, it is well behind nationally: BSS 0.101 vs 0.204.
+- It has negative skill in Florida/Gulf (−0.093). It over-forecasts summer convection there that rarely produces reports.
+- Earlier fixes that failed their gates: regional calibration, a two-stage regional correction, and downburst predictors.
+
+4) LEARNING CURVE (development data only)
+- Trained on 20/40/60/80 of the 96 days and scored on held-out months. National BSS: 0.068 / 0.079 / 0.088 / 0.093, about +0.013 per doubling.
+- 40→80 days: +0.014 (95% CI +0.009 to +0.020). That met the pre-committed rule: more data is the lead lever.
+- Florida/Gulf stayed about −0.07 at every size.
+
+5) MORE TRAINING DATA: 96 → 728 DAYS
+- Extracted the remaining 366 days of 2022–23 (0 failures). Together with earlier extractions, that makes 728 days.
+- Memory workaround: training keeps all event rows plus a fixed 20% of non-event rows, weighted ×5.
+- DEVELOPMENT GATE (pre-committed): PASSED. On 728 held-out 2022–23 days, comparing the same recipe and the same sampling, 728 vs 96 days:
+  - National BSS 0.098 → 0.115; Brier −0.00018 (95% CI −0.00024 to −0.00013).
+  - Florida/Gulf −0.039 → −0.007.
+  - No region worse; calibration ratio 0.999.
+- The model was then frozen on all 728 days, with its checksum committed before any 2021 data was fetched.
+- ONE-TIME 2021 VERIFICATION (96 sealed dates, 0 missing): FAILED criterion 1.
+  - National BSS: 728-day 0.099 vs 96-day 0.102. Brier +0.000027 (95% CI −0.000037 to +0.000101), a tie. A clear win was required.
+  - Passed: no region significantly worse; calibration (0.95% forecast vs 0.88% observed); all dates scored.
+  - By region (728 vs 96):
+    - Plains 0.077 vs 0.064 (significantly better);
+    - Florida/Gulf −0.038 vs −0.065 (better, not significant);
+    - original box 0.111 vs 0.119 (slightly worse, not significant);
+    - West 0.056 vs 0.053;
+    - Northeast 0.120 vs 0.126.
+  - Both national models clearly beat v0.7 inside the original box (728-day minus v0.7 Brier −0.00041, 95% CI −0.00083 to −0.00007).
+  - CAVEAT: in the development gate, both arms used the same 20% non-event sampling. On 2021, the sampled 728-day model was compared with the original 96-day model, which was trained on all rows. So "more data" and "sampling" are mixed in this result.
+  - Outcome: nothing goes to production, v0.7 stays live, the preview keeps the 96-day model, 2021 is spent, 2025 stays sealed.
+
+6) OTHER WORK (kept separate)
+- A Day 1 tornado "corridor" model and a blend were developed and tested. That decision is in its own PR (#31, with the NadoCast benchmark) and was not mixed into the CONUS work.
+
+PROPOSED NEXT STEPS (not started yet, as of Nov 25)
+a) Development-only check of the sampling confound, about 30 minutes. Compare three arms on held-out 2022–23 months: 96 days with all rows, 96 days with sampling, 728 days with sampling.
+   - If sampling hurt: try "728 days, all rows", which needs chunked training to fit in memory.
+   - If not: more data simply didn't transfer to 2021, and the next lever is new inputs (e.g. HRRR time-lagged runs or other fields).
+b) Prospective verification. Archive each day's CONUS forecast from the daily refresh (with model checksum, plus the 96-day and v0.7 versions) so a true forward-in-time test set accumulates. Score it against preliminary storm reports within days, and against official NOAA Storm Events later. With 2021 spent and 2025 sealed, this is the only fresh test data left for any new candidate.
+c) Lower priority: a targeted Florida/Gulf fix (predictors that separate report-producing summer storms from non-producing ones). It also needs (b) for a fair test.
+
+QUESTIONS I MAY ASK YOU
+- Why a clear development gain (+0.017 BSS) became a tie on 2021: year-to-year variance, the sampling confound, or overfitting to 2022–23?
+- Is the proposed sampling check well designed? What else would separate the explanations?
+- Best ways to close the gap to NadoCast (BSS ~0.10 vs ~0.20) beyond more days of data.
+- How to design prospective verification fairly, given the lag and quality differences between preliminary and final storm reports.
+- When, if ever, the CONUS view should go live.
+```
