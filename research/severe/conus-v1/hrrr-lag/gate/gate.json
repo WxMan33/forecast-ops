@@ -1,0 +1,170 @@
+{
+ "matched_dates": 724,
+ "excluded": {
+  "2022-01-06": "excluded_by_audit: 06Z and 12Z listed after cutoff",
+  "2022-01-08": "excluded_by_audit: 06Z and 12Z listed after cutoff",
+  "2022-07-23": "listed_after_cutoff (found during extraction)",
+  "2022-08-11": "excluded_by_audit: 12Z listed after cutoff"
+ },
+ "excluded_count": 4,
+ "development_climatology": 0.010827843039183303,
+ "bss": {
+  "hrrr": {
+   "national": 0.11499101130406975,
+   "original_box": 0.13321298228941925,
+   "west": 0.04945345635510556,
+   "plains_outside_box": 0.07833053243002974,
+   "florida_gulf_south": -0.006046237596281312,
+   "northeast_outside_box": 0.12774747563149624
+  },
+  "hrrr_12z18": {
+   "national": 0.12689038104802308,
+   "original_box": 0.14959651320769052,
+   "west": 0.04977836628046217,
+   "plains_outside_box": 0.08036095317164682,
+   "florida_gulf_south": -0.02147011999532955,
+   "northeast_outside_box": 0.1345677252725459
+  },
+  "hrrr_lag": {
+   "national": 0.1330408120596791,
+   "original_box": 0.15754271196281044,
+   "west": 0.05175777166110973,
+   "plains_outside_box": 0.08165821180883959,
+   "florida_gulf_south": -0.016660349655720275,
+   "northeast_outside_box": 0.13684310156305834
+  }
+ },
+ "lag_minus_hrrr": {
+  "national": [
+   -0.0001933242113930134,
+   -0.00024908521954019393,
+   -0.00014112549499301858
+  ],
+  "original_box": [
+   -0.00047761073402736493,
+   -0.0006211018107006822,
+   -0.0003534109053397334
+  ],
+  "west": [
+   -6.233988670195875e-06,
+   -2.11764820756775e-05,
+   8.115315444756309e-06
+  ],
+  "plains_outside_box": [
+   -3.176689345667777e-05,
+   -0.00010982799308200583,
+   4.744056129026256e-05
+  ],
+  "florida_gulf_south": [
+   7.511322407866403e-05,
+   -5.3594536838196925e-05,
+   0.00021359941501026658
+  ],
+  "northeast_outside_box": [
+   -7.138261158067993e-05,
+   -0.00014446286532410373,
+   -4.1991518820887344e-06
+  ]
+ },
+ "lag_minus_12z18": {
+  "national": [
+   -6.587481164776721e-05,
+   -9.116026353639236e-05,
+   -4.172871648849036e-05
+  ],
+  "original_box": [
+   -0.00015598980634424733,
+   -0.0002176446898841231,
+   -9.588824697700127e-05
+  ],
+  "west": [
+   -5.354992298375675e-06,
+   -1.261805435697286e-05,
+   1.5345773308965664e-06
+  ],
+  "plains_outside_box": [
+   -1.2383968592609867e-05,
+   -5.8380571907356325e-05,
+   2.939268696064049e-05
+  ],
+  "florida_gulf_south": [
+   -3.4037454594678124e-05,
+   -0.00010041362204088377,
+   3.3051610444507144e-05
+  ],
+  "northeast_outside_box": [
+   -1.7857187967891976e-05,
+   -5.477165925137504e-05,
+   1.8869561918498394e-05
+  ]
+ },
+ "12z18_minus_hrrr": {
+  "national": [
+   -0.00012744939974524617,
+   -0.00016946590093034573,
+   -8.58159432200594e-05
+  ],
+  "florida_gulf_south": [
+   0.00010915067867334214,
+   1.2653272682488906e-05,
+   0.00020933236913636965
+  ]
+ },
+ "calibration_ratio": {
+  "hrrr": 0.9980839454079163,
+  "hrrr_12z18": 0.9990072526336161,
+  "hrrr_lag": 1.0001771685034966
+ },
+ "florida_gulf_calibration_ratio": {
+  "hrrr": 2.0972311886728567,
+  "hrrr_12z18": 2.1595344190191375,
+  "hrrr_lag": 2.1583979953412378
+ },
+ "hits_at_5pct": {
+  "hrrr": 218950,
+  "hrrr_12z18": 221262,
+  "hrrr_lag": 222778
+ },
+ "florida_gulf_hits_at_5pct": {
+  "hrrr": 2887,
+  "hrrr_12z18": 2886,
+  "hrrr_lag": 2983
+ },
+ "false_alarm_area_km2_at_5pct": {
+  "hrrr": 339186375.0,
+  "hrrr_12z18": 329691825.0,
+  "hrrr_lag": 322868925.0
+ },
+ "florida_gulf_false_alarm_area_km2_at_5pct": {
+  "hrrr": 11608200.0,
+  "hrrr_12z18": 11585700.0,
+  "hrrr_lag": 11485800.0
+ },
+ "area_at_5pct_on_no_report_dates_km2_per_date": {
+  "hrrr": 37014.35950413223,
+  "hrrr_12z18": 32225.206611570247,
+  "hrrr_lag": 30701.34297520661
+ },
+ "hit_retention_vs_hrrr": 1.0174834437086093,
+ "criteria": {
+  "1_national_better_than_hrrr": true,
+  "2_no_region_worse_than_hrrr": true,
+  "3_calibrated_15pct": true,
+  "4_hit_retention_ge_95pct_vs_hrrr": true,
+  "5_national_better_than_12z_control": true
+ },
+ "pass": true,
+ "mar_apr_florida_gulf_diagnostic": {
+  "subset": "no-report points where hrrr and hrrr_lag are both >= 5%",
+  "points": 11510,
+  "brier_change_sum_lag_minus_hrrr": 83.26314351181004,
+  "brier_change_sum_lag_minus_12z18": 20.915597997456977,
+  "mean_p": {
+   "hrrr": 0.1328858733177185,
+   "hrrr_12z18": 0.14443205296993256,
+   "hrrr_lag": 0.14687684178352356
+  }
+ },
+ "protected_2025_outcomes_accessed": false,
+ "verification_2021_loaded": false
+}
