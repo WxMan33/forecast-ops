@@ -43,7 +43,9 @@ const firstScreen = (p) => p.evaluate(() => { const vh = innerHeight, dd = [...d
       console.log('   decision: ' + f.decision.replace(/\n/g, ' ')); f.keys.forEach((k, i) => console.log(`   ${k}: ${f.callouts[i]}`));
       check(/rain/i.test(f.decision), `${L} the decision is about rain`);
       check(f.keys.join('|') === 'Rain chance|Lightning potential|Gusts|Next check', `${L} three callouts then the next check (${f.keys.join(', ')})`);
-      check(/Across the planning window/.test(f.callouts[0]), `${L} rain affects the planning window`);
+      /* the rain number and the planning impact are separate lines; the concern's hours and parts are in the lead line */
+      const leadWhen = await p.locator('[data-lead=when]').innerText();
+      check(/^Up to 60% in the likeliest hour/.test(f.callouts[0]) && /Plan for it\. Cover gear and protect power\./.test(f.callouts[0]) && !/Plan for it · up to/.test(f.callouts[0]) && /setup through teardown/.test(leadWhen), `${L} rain chance and planning impact on separate lines; the lead says rain affects setup through teardown (${f.callouts[0]} | ${leadWhen.replace(/\s+/g, ' ')})`);
       check(/^(Moderate|High)/.test(f.callouts[1]) && /(Mainly|During) setup/.test(f.callouts[1]) && /not detected/.test(f.callouts[1]), `${L} lightning potential is mainly a setup concern, labelled as forecast potential`);
       check(/Reach your 25 mph limit/.test(f.callouts[2]) && /(Mainly|During) setup/.test(f.callouts[2]), `${L} gusts reach the 25 mph venue limit, mainly during setup`);
       const keysText = await p.locator('#keys').innerText();

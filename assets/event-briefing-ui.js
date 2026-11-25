@@ -15,11 +15,29 @@
     const e = ms + H, zs = zone(ms,tz), ze = zone(e,tz);
     return `${clock(ms,tz)}${zs !== ze ? ' '+zs : ''}–${clock(e,tz)}${zs !== ze ? ' '+ze : ''} hour`;
   }
-  function headline(b, fallback) {
+  /* opts.limited: the guidance is missing or thin for the event hours (EventLead.gaps), so "no concern" is not an all-clear;
+     opts.partial: only part of the event is covered (the caller's fallback already says "so far") */
+  function headline(b, fallback, opts = {}) {
     const t = b.top;
     if (t && t.key === 'rain' && t.level === 2 && t.from == null)
       return `Have a rain plan for ${t.phases.length ? t.phases.map(x=>x.toLowerCase()).join(' and ') : 'the event'}.`;
+    if (!t && !opts.partial && opts.incomplete) return `${opts.incomplete}.`;
+    if (!t && !opts.partial && opts.limited) return 'No concern found, but confidence is limited.';
+    const a = anchored(b); if (a) return a;
+    if (!t && !opts.partial && b.coverage === 'full') return 'No weather concern for your event window.';
     return fallback;
+  }
+  /* the concern led by the part of the event it reaches and that part's local time: "Rain likely through the 9 AM race
+     start". The verb follows the engine's level (3 likely, 2 plan for, 1 watch for); timing is the concern's own hours. */
+  function anchored(b) {
+    const t = b.top, ev = b.phases && b.phases.find((p) => p.key === 'event'), tz = b.ev && b.ev.tz;
+    if (!t || t.from == null || t.to == null || !ev || !tz) return null;
+    const word = root.EventLead ? root.EventLead.eventWord(b.ev.name) : 'event', noun = t.noun.charAt(0).toUpperCase() + t.noun.slice(1);
+    const lead = t.level >= 3 ? `${noun} likely` : t.level === 2 ? `Plan for ${t.noun}` : `Watch for ${t.noun}`;
+    if (t.from <= ev.startMs && t.to > ev.startMs) return `${lead} through the ${clock(ev.startMs, tz)} ${word} start.`;
+    if (t.from > ev.startMs && t.from < ev.endMs) return `${lead} during the ${word}, from ${clock(t.from, tz)}.`;
+    if (t.to <= ev.startMs) return `${lead} before the ${clock(ev.startMs, tz)} ${word} start.`;
+    return `${lead} after the ${word}, from ${clock(t.from, tz)}.`;
   }
   function coverage(res) {
     const feeds = res.feeds || {used:[],missing:[]}, used = feeds.used.length, missing = feeds.missing || [];
@@ -205,7 +223,7 @@
     return `during ${w.join(' and ')}`;
   }
   /* page 1's "What to plan for": one plain line per concern, timed inside the planning window */
-  function planLines(A, b, lightAll, tz, pct) {
+  function planLines(A, b, lightAll, tz, pct, incomplete = '') {
     const lo = b.all.startMs, hi = b.all.endMs, out = [];
     const clip = (it) => { const ws = it.windows.map((w) => ({ ...w, from: Math.max(lo, w.from), to: Math.min(hi, w.to) })).filter((w) => w.to > w.from);
       return ws.length ? { from: ws[0].from, to: ws[ws.length - 1].to, ws } : null; };
@@ -216,7 +234,8 @@
       if (it.key === 'rain') {
         const verb = it.level >= 3 ? 'Expect disruptive rain' : it.level === 2 ? 'Plan for rain' : 'Watch for rain';
         const pk = c ? Math.max(...c.ws.map((w) => (w.peak && Number.isFinite(w.peak.v) ? w.peak.v : 0))) : null;
-        out.push({ key: 'rain', text: c ? `${verb} ${when(c)}${pk ? `; hourly chance up to ${pct(pk)}` : ''}.${uncertain(it)}` : `${verb} during ${listWords(it.phaseOnly.map((x) => x.toLowerCase()))}; exact time uncertain.` });
+        /* the timing and the chance are separate sentences: the number is the highest single-hour chance, not a chance of disruption */
+        out.push({ key: 'rain', text: c ? `${verb} ${when(c)}.${pk ? ` Rain chance up to ${pct(pk)} in the likeliest hour.` : ''}${uncertain(it)}` : `${verb} during ${listWords(it.phaseOnly.map((x) => x.toLowerCase()))}; exact time uncertain.` });
       } else if (it.key === 'wind') {
         const pk = c ? Math.max(...c.ws.map((w) => (w.peak && Number.isFinite(w.peak.v) ? w.peak.v : 0))) : it.peak && it.peak.v;
         out.push({ key: 'wind', text: c ? `Gusts may reach the venue’s ${it.limit} mph limit ${when(c)}; up to ${Math.round(pk)} mph.` : `Gusts up to ${Math.round(pk)} mph, below the venue’s ${it.limit} mph limit.` });
@@ -227,7 +246,7 @@
     });
     if (!A.items.some((x) => x.key === 'lightning')) out.push({ key: 'lightning', text: lightAll.state === 'missing' ? 'Lightning guidance is unavailable for these hours; follow NWS forecasts and your lightning policy.'
       : `Lightning potential is ${lightAll.base ? lightAll.base.toLowerCase() : 'low'}${lightAll.limited ? ', with some hours missing guidance' : ''}. This is a forecast, not detected lightning; low is not zero.` });
-    if (!A.items.length) out.unshift({ key: 'none', text: 'No weather concern for the event in the current forecast.' });
+    if (!A.items.length) out.unshift({ key: 'none', text: incomplete ? `${incomplete}; no weather concern in the hours that have guidance.` : 'No weather concern for the event in the current forecast.' });
     return out;
   }
   /* page 2's phase column in plain words: "Setup", "Gates from 4:30", "Teardown until 11:30", "Setup until 4:30, then Gates" */
@@ -271,13 +290,14 @@
     const A = view.A || attention({ b, V, S, thr: { gust: ev.gust || 25 } }), PH = pageHours(A, V), off = PH.start, hours = V.span.slice(off, off + PH.count), clipped = PH.clipped;
     const issued = res.ctx.B.viewedAt || now, issue = `${date(issued, tz)} · ${clock(issued, tz)} ${zone(issued, tz)}`;
     const main = b.phases.find((p) => p.key === 'event') || b.all, area = !!(ev.loc && ev.loc.approximate), nextCk = checks[0];
-    const decision = headline(b, !top && R && R.state === 'partial' ? `No weather concern so far for ${R.inRange}.` : S.decision(b).text);
+    const LD = view.lead && root.EventLead ? view.lead : null; // the screen's lead (EventLead.model / why), when the page built one
+    const decision = headline(b, !top && R && R.state === 'partial' ? `No weather concern so far for ${R.inRange}.` : S.decision(b).text, { limited: !!(LD && LD.L.gaps.limited), incomplete: LD ? LD.L.gaps.incomplete : '', partial: !!(R && R.state === 'partial') });
     const foot = (n) => `<footer class="pv-footer"><span class="pv-footer-l">${esc(name)}</span><span class="pv-policy">This is forecast planning guidance. For live decisions, follow official NWS warnings and your venue’s lightning and weather policy.</span><span>${n} / 2</span></footer>`;
     /* official alerts: their own labelled box; if alerts could not be checked, say so rather than imply none */
     const alerts = res.alerts || [], alertBox = res.alertsAvailable === false
       ? '<div class="pv-alerts pv-alerts-off"><b>Official NWS alerts</b><span>Could not be checked when this was printed. Check weather.gov before the event.</span></div>'
       : alerts.length ? `<div class="pv-alerts"><b>Official NWS alert${alerts.length > 1 ? 's' : ''} in effect</b>${alerts.slice(0, 3).map((x) => `<span>${esc(x.event)}${x.ends ? ` until ${esc(date(Date.parse(x.ends), tz))}, ${esc(clock(Date.parse(x.ends), tz))}` : ''}</span>`).join('')}</div>` : '';
-    const lines = planLines(A, b, lightAll, tz, (v) => U.pct(v));
+    const gapTxt = LD ? LD.L.gaps.incomplete : '', lines = planLines(A, b, lightAll, tz, (v) => U.pct(v), gapTxt);
     /* amounts in plain words for readers without a weather background: event totals with the forecast range across
        models, and when the heaviest hour is (V.totals: one blend over setup through teardown; see hourly-views.js) */
     const T = V.totals || null, f2 = (v) => (Number.isFinite(v) ? v.toFixed(2) : '—'), f1 = (v) => (Number.isFinite(v) ? v.toFixed(1) : '—');
@@ -303,18 +323,19 @@
       <header class="pv-head"><div><span class="pv-kicker">Event weather briefing</span><h1 class="pv-title">${esc(name)}</h1><div class="pv-venue">${esc(ev.loc.name)}</div>
         <div class="pv-when">${esc(dateSpan(main.startMs, main.endMs, tz))}</div>${area ? '<div class="pv-area">City-area forecast for planning, not a site-specific venue forecast.</div>' : ''}</div>
         <div class="pv-iss"><b>Issued</b><br>${esc(issue)}</div></header>
-      ${alertBox}
-      <div class="pv-takeaway"><h2 class="pv-dec">${esc(decision)}</h2></div>
+      ${LD ? root.EventLead.printLead(LD.L, { tz, next: nextCk, checkedAt: LD.o.checkedAt, headline: decision }) : `${alertBox}
+      <div class="pv-takeaway"><h2 class="pv-dec">${esc(decision)}</h2></div>`}
       <h2 class="pv-section">What to plan for</h2>
       <ul class="pv-plan">${lines.map((l) => `<li data-key="${esc(l.key)}">${esc(l.text)}</li>`).join('')}</ul>
-      ${gap ? `<p class="pv-gap">${esc(gap)}</p>` : ''}
+      ${gap && !LD ? `<p class="pv-gap">${esc(gap)}</p>` : ''}
       <h2 class="pv-section">Event schedule</h2>
       ${scheduleHtml(b.phases, tz, 'pv-sched')}
       ${view.daylight && root.EventDaylight ? root.EventDaylight.printLine(view.daylight) : ''}
-      <p class="pv-nextcheck"><b>Next weather check:</b> ${nextCk ? `${esc(date(nextCk.at, tz))}, ${esc(clock(nextCk.at, tz))} ${esc(zone(nextCk.at, tz))} · ${esc(nextCk.what)}` : 'Now: use radar, lightning detection and official NWS warnings.'}</p>
+      ${LD ? '' : `<p class="pv-nextcheck"><b>Next weather check:</b> ${nextCk ? `${esc(date(nextCk.at, tz))}, ${esc(clock(nextCk.at, tz))} ${esc(zone(nextCk.at, tz))} · ${esc(nextCk.what)}` : 'Now: use radar, lightning detection and official NWS warnings.'}</p>`}
       <h2 class="pv-section">Official NWS forecast</h2>
       ${per.length ? `<ul class="pv-nws">${per.map((p) => `<li data-nws-period><b>${esc(p.name)}:</b> ${esc(p.text)}${p.thunder ? ' Thunderstorms mentioned.' : ''}</li>`).join('')}</ul>` : '<p class="pv-note">The NWS forecast was unavailable when this was printed.</p>'}
       <p class="pv-note">From the National Weather Service${nws ? ` (${esc(nws.office)} office)` : ''}${NP.cut || NP.omitted ? '; shortened to fit, full wording on the website' : ''}.${nwsTh.length && lightAll.base === 'Low' ? ' The NWS mentions thunderstorms; treat them as possible.' : ''}</p>
+      ${LD ? root.EventLead.printWhy(LD.W) : ''}
       ${foot(1)}</section>`;
     /* page 2: one table; missing data is written out; the venue limit is named where gusts reach it */
     const row = (k) => V.rows.find((r) => r.key === k), cellText = (k, j) => { const c = row(k) && row(k).cells[j]; return c ? c.text || '' : ''; };
@@ -333,7 +354,7 @@
     const span1 = hours.length ? dateSpan(hours[0], hours[hours.length - 1] + H, tz) : 'No hours available';
     const p2 = `<section class="pv-page pv-p2${hours.length > 16 ? ' pv-dense' : ''}">
       <header class="pv-head"><div><span class="pv-kicker">Hour-by-hour forecast</span><h2 class="pv-title">${esc(name)}</h2><div class="pv-venue">${esc(ev.loc.name)}</div></div><div class="pv-iss"><b>Issued</b><br>${esc(issue)}</div></header>
-      <div class="pv-watch" data-watchbox><b>Watch for</b>${watch.length ? `<ul>${watch.map((l) => `<li data-key="${esc(l.key)}">${esc(l.text)}</li>`).join('')}</ul>` : '<p>No weather concern for the event in the current forecast.</p>'}${amountsHtml}</div>
+      <div class="pv-watch" data-watchbox><b>Watch for</b>${watch.length ? `<ul>${watch.map((l) => `<li data-key="${esc(l.key)}">${esc(l.text)}</li>`).join('')}</ul>` : `<p>${esc(gapTxt ? `${gapTxt}; no weather concern in the hours that have guidance.` : 'No weather concern for the event in the current forecast.')}</p>`}${amountsHtml}</div>
       <p class="pv-hours-window" data-page-hours="${PH.start}-${PH.start + PH.count}"><b>Hours shown:</b> ${esc(span1)}${clipped ? `<br><b>${PH.fromStart ? 'First 24 hours only' : `24 of ${PH.total} planning hours`}</b>${PH.fromStart ? ` (24 of ${PH.total})` : ', chosen to include the first concern on page 1'}; open the briefing for the rest.` : ''}</p>
       <table class="pv-t pv-hours"><colgroup><col style="width:14%"><col style="width:${snowy ? 17 : 20}%"><col style="width:9%"><col style="width:11%"><col style="width:${snowy ? 10 : 12}%">${snowy ? '<col style="width:9%">' : ''}<col style="width:${snowy ? 16 : 19}%"><col style="width:${snowy ? 14 : 15}%"></colgroup><thead><tr><th>Local time</th><th>Phase</th><th>Temp</th><th>Rain chance</th><th>Rain amount</th>${snowy ? '<th>Snow</th>' : ''}<th>Wind gusts</th><th>Lightning</th></tr></thead><tbody>${body}</tbody></table>
       <p class="pv-legend">Times are the venue's local time (${esc(tz)}). Rain chance is the chance of rain at the venue in that hour; rain amount is how much is forecast to fall in that hour.${snowy ? ' Snow is forecast snowfall in that hour, before melting.' : ''} Lightning is forecast potential, not detected lightning; low is not zero. Marked rows are hours with a weather concern. “No data” means no forecast was available for that hour, not zero.${gap ? ` ${esc(gap)}` : ''}</p>
@@ -341,7 +362,7 @@
       ${foot(2)}</section>`;
     return p1 + p2;
   }
-  const api={date,dateSpan,hourWindow,windowText,headline,coverage,eventFeeds,sourceHtml,rainAmount,nwsPrint,focusOf,clockSpan,scheduleHtml,phaseWords,planLines,phaseCellText,attention,attentionText,attentionHtml,attentionList,pageHours,printMarkup};
+  const api={anchored,date,dateSpan,hourWindow,windowText,headline,coverage,eventFeeds,sourceHtml,rainAmount,nwsPrint,focusOf,clockSpan,scheduleHtml,phaseWords,planLines,phaseCellText,attention,attentionText,attentionHtml,attentionList,pageHours,printMarkup};
   if(typeof module!=='undefined'&&module.exports) module.exports=api;
   root.EventBriefingUI=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

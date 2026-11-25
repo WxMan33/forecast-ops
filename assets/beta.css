@@ -983,3 +983,76 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
   .evd-sub{font-size:13px}
   .evd-part{font-size:12px;padding:0 4px}
 }
+
+/* ---------- Event Manager lead: one event concern first; official alerts and missing guidance labelled apart ---------- */
+.ev-kind { display: inline-block; font: 800 10.5px/1 var(--bx-font, sans-serif); letter-spacing: .04em; text-transform: uppercase; padding: 4px 6px 3px; border-radius: 4px; border: 1px solid currentColor; vertical-align: 1px; white-space: nowrap; }
+.ev-kind[data-kind="forecast"] { color: var(--prepare); }
+.ev-kind[data-kind="none"] { color: var(--muted); }
+.ev-kind[data-kind="missing"] { color: var(--monitor); border-style: dashed; }
+.ev-kind[data-kind="official"] { color: #fff; background: var(--action); border-color: var(--action); }
+.ev-kind-src { font-size: 12px; color: var(--muted); }
+.ev-lead-when .ev-kind { margin-right: 2px; }
+.ev-lead-when { margin: 6px 0 0; font-size: 14.5px; line-height: 1.35; }
+.ev-lead-when .ev-ph { white-space: nowrap; }
+.ev-lead-watch { margin: 3px 0 0; font-size: 14px; line-height: 1.35; }
+.ev-lead-imp { color: var(--text); }
+.ev-lead-urgent { margin-top: 8px; }
+.ev-lead-urgent .bx-alert, .ev-officialbox .bx-alert { margin-bottom: 6px; flex-wrap: wrap; }
+.event-planner .ev-lead-urgent .bx-alert::before, .event-planner .ev-officialbox .bx-alert::before { content: none; }
+.ev-lead-gap { margin: 6px 0 0; font-size: 13.5px; line-height: 1.35; }
+.ev-lead-change { margin: 12px 0 0; font-size: 14px; }
+.ev-lead-change ul { margin: 3px 0 0; padding-left: 18px; }
+.ev-lead-change li { margin: 2px 0; line-height: 1.35; }
+.ev-evidence { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0 0; font-size: 14px; }
+.ev-evnote { margin: 4px 0 0; }
+.ev-why { margin: 10px 0 0; border: 1px solid var(--bx-rule); border-radius: 8px; padding: 0 12px; }
+.ev-why > summary { cursor: pointer; padding: 10px 0; font-weight: 700; font-size: 14.5px; min-height: 24px; }
+.ev-why[open] > summary { border-bottom: 1px solid var(--bx-rule); }
+.ev-why-list { display: grid; grid-template-columns: 9.5em minmax(0, 1fr); gap: 6px 12px; margin: 10px 0; font-size: 13.5px; line-height: 1.4; }
+.ev-why-list dt { font-weight: 700; color: var(--muted); }
+.ev-why-list dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 600px) { .ev-why-list { grid-template-columns: minmax(0, 1fr); gap: 2px; } .ev-why-list dd { margin-bottom: 8px; } }
+.ev-officialbox { margin-top: 14px; }
+.ev-official-none { display: flex; gap: 8px; align-items: baseline; margin: 0; padding: 8px 10px; border: 1px solid var(--bx-rule); border-radius: 8px; font-size: 13.5px; line-height: 1.4; }
+.ev-official-none .ev-kind { background: none; color: var(--muted); border-color: var(--muted); }
+.ev-officialbox .bx-alert-off .ev-kind { margin-right: 4px; }
+.ev-gap .ev-kind { margin-right: 6px; }
+.ev-threats-scope { margin: 2px 0 6px; }
+@media print {
+  .pv .pv-lead .pv-kind { display: inline-block; font-size: 7.5pt; font-weight: 700; letter-spacing: .8pt; text-transform: uppercase; border: .75pt solid #111; padding: 0 4pt; }
+  .pv .pv-lead .pv-dec { margin: 2pt 0 2pt !important; font-size: 17pt !important; }
+  .pv .pv-lead p { margin: 2pt 0 0; font-size: 10.5pt; line-height: 1.3; color: #111; }
+  .pv .pv-p1 .pv-takeaway-lead { margin: 10pt 0 4pt; }
+  .pv .pv-alerts-none { border-width: 1pt; padding: 3pt 8pt; font-size: 10pt; }
+  .pv .pv-alerts-none b { text-transform: none; letter-spacing: 0; font-size: 10pt; }
+  .pv .pv-takeaway-lead ~ .pv-alerts { margin-top: 4pt; }
+  .pv .pv-why { margin: 6pt 0 0; padding: 3pt 7pt; border: .75pt dashed #555; font-size: 8pt; line-height: 1.25; color: #222; }
+  .pv .pv-why > b { font-size: 8pt; text-transform: uppercase; letter-spacing: .5pt; }
+}
+/* phone: the lead (headline, timing, implication) and the callouts share the first screen */
+@media (max-width: 600px) {
+  .event-planner .ev-lead .bx-decision { font-size: 25px !important; margin-top: 4px !important; }
+  .ev-lead-when { font-size: 14px; margin-top: 3px; }
+  .ev-lead-watch { font-size: 13.5px; margin-top: 2px; }
+  .event-planner .ev-lead .ev-callouts { margin-top: 5px; }
+  .event-planner .ev-lead .ev-callouts dt { padding-top: 7px; padding-bottom: 7px; }
+  .event-planner .ev-lead .ev-callouts dd { padding: 5px 0 6px; font-size: 14.5px; }
+  .event-planner .ev-lead .ev-callouts dd .bx-note { font-size: 12.5px; }
+}
+/* phone: the toolbar on one row (Print and Feedback as labelled icons), every control a 44 px tap target */
+@media (max-width: 600px) {
+  .event-planner .bx-head-in { gap: 5px; row-gap: 4px; padding-top: 3px; padding-bottom: 4px; }
+  .event-planner .bx-head-in > .bx-btn { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; }
+  .event-planner .bx-head .bx-print span { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+  .event-planner .bx-head .bx-print .bx-ico { width: 17px; height: 17px; }
+  .event-planner #bxFeedback { font-size: 0; }
+  .event-planner #bxFeedback::before { content: ""; display: block; width: 18px; height: 18px; background: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 2.5h12v8.5H6.5L3 14v-3H2z' fill='none' stroke='black' stroke-width='1.4' stroke-linejoin='round'/%3E%3Cpath d='M5 6h6M5 8.3h4' stroke='black' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 2.5h12v8.5H6.5L3 14v-3H2z' fill='none' stroke='black' stroke-width='1.4' stroke-linejoin='round'/%3E%3Cpath d='M5 6h6M5 8.3h4' stroke='black' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat; }
+}
+@media (max-width: 600px) {
+  .event-planner .bx-brief { padding-top: 8px; }
+  .event-planner .ev-lead .ev-callouts dt { padding-top: 6px; padding-bottom: 6px; }
+  .event-planner .ev-lead .ev-callouts dd { padding: 4px 0 5px; }
+  .ev-lead-when, .ev-lead-watch { line-height: 1.3; }
+}

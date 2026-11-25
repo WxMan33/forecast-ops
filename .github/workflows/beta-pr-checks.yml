@@ -17,7 +17,7 @@ jobs:
         with: { node-version: 20 }
       - name: Unit tests
         run: |
-          for t in calendar-provider forecast-support core fixtures source-failure forecast-cache beta-story beta-analytics event-store event-times event-backup event-daylight hourly-model event-presets event-briefing-history event-ops-handoff event-briefing-ui almanac climate-report climate-daily climate-period-records climate-station weather-history; do
+          for t in calendar-provider forecast-support core fixtures source-failure forecast-cache beta-story beta-analytics event-store event-times event-backup event-daylight hourly-model event-presets event-briefing-history event-ops-handoff event-briefing-ui event-lead almanac climate-report climate-daily climate-period-records climate-station weather-history; do
             echo "::group::$t"; node tests/$t.test.js || { echo "::error::$t failed"; exit 1; }; echo "::endgroup::"
           done
       - run: node tools/stamp-assets.js --check
@@ -42,6 +42,7 @@ jobs:
         run: |
           node tools/build-event-sample.js && git diff --exit-code docs/beta/event-sample.html
           node tools/event-dashboard-check.js /tmp/event-dashboard
+          node tools/event-lead-check.js /tmp/event-lead
           node tools/event-hourly-charts-check.js /tmp/event-hourly-charts
           node tests/event-outlook.test.js && node tools/event-outlook-check.js /tmp/event-outlook
           node tools/event-share-check.js /tmp/event-share
@@ -69,4 +70,5 @@ jobs:
             /tmp/almanac-daily
             /tmp/site-sweep
             docs/beta/screens/event-polish-*
+            /tmp/event-lead
           if-no-files-found: ignore
