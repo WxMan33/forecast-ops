@@ -68,6 +68,8 @@ Audited 2026-11-25 from `s3://noaa-rrfs-ops-pds`, the collector's run history an
     was the one day checked before the listing connection dropped; it needs confirming over more days.
   - **A Day 2 REFS test therefore uses the 06Z ensemble**, which is a lagged ensemble relative to the 12Z deterministic
     runs.
+  - **Confirmed afterwards** (2026-11-17 to 11-25, 9 of 9 days): 06Z products for f30–f54 complete by
+    09:10–09:18 UTC, and members by 08:53–09:00 UTC.
 
 ## 5. Proposed comparison (draft for review; not locked)
 There is **no version-matched history**: operational RRFS exists only from Aug 12, 2026 (v1 from Nov 3). An RRFS arm
