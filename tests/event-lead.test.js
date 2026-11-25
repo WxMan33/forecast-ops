@@ -61,4 +61,26 @@ check("what would change: a quiet event names the next update, a missing-guidanc
   const w = L.changes({ b: { ...b, phases: phases.map((p, i) => ({ ...p, r: { gust: i === 0 ? 31 : 18 } })) }, S: Sx, tz, ctx: {}, now: t0 - 20 * H, limit: 30 }, { top: { key: "wind", label: "Wind", word: "Watch", level: 1, noun: "gusty wind", timing: {} }, hit: [phases[0]], evp: phases[2], G: { limited: false } });
   assert.match(w[0], /Your event’s gust limit is 30 mph and gusts reach up to 31 mph during setup/); assert.doesNotMatch(w.join(" "), /cancel|delay|postpone/i);
 });
+check("headline leads with the affected part and its local time; the verb follows the engine level", () => {
+  const ev = { name: "Thanksgiving Day Race", tz }, B = (top) => ({ ...b, ev, top });
+  assert.equal(U.headline(B({ key: "rain", noun: "rain", level: 3, from: t0 + H, to: t0 + 7 * H, phases: ["Gates", "Event"] }), "x"), "Rain likely through the 9 AM race start.");
+  assert.equal(U.headline(B({ key: "rain", noun: "rain", level: 2, from: t0 + 4.5 * H, to: t0 + 6 * H, phases: ["Event"] }), "x"), "Plan for rain during the race, from 9:30 AM.");
+  assert.equal(U.headline(B({ key: "wind", noun: "gusty wind", level: 1, from: t0, to: t0 + 2 * H, phases: ["Setup"] }), "x"), "Watch for gusty wind before the 9 AM race start.");
+  assert.equal(U.headline({ ...B({ key: "rain", noun: "rain", level: 1, from: t0 + 6 * H, to: t0 + 7 * H }), ev: { name: "Riverfront Music Night", tz } }, "x"), "Watch for rain after the event, from 11 AM.");
+  assert.equal(L.eventWord("Orlando City vs. visiting club"), "event"); assert.equal(L.eventWord("Thanksgiving Day Race"), "race");
+});
+check("missing race hours are named as incomplete guidance for that window, never as no concern", () => {
+  const g = L.gaps({ b: { ...b, ev: { name: "Thanksgiving Day Race" } }, V: V([4, 5]), R: { state: "ready" }, feeds: { used: ["GFS", "NBM", "ECMWF IFS"], missing: [] }, now: t0 - 20 * H, tz });
+  assert.equal(g.incomplete, "Rain guidance is incomplete for the 9–11 AM race window");
+  assert.equal(U.headline(b, "No weather concern for this event right now.", { limited: true, incomplete: g.incomplete }), "Rain guidance is incomplete for the 9–11 AM race window.");
+  const lines = U.planLines({ items: [] }, b, { state: "ok", base: "Low" }, tz, (v) => v + "%", g.incomplete);
+  assert.equal(lines[0].text, "Rain guidance is incomplete for the 9–11 AM race window; no weather concern in the hours that have guidance.");
+});
+check("Watch for: the organizer's gust limit when it applies; otherwise what to watch, never a policy", () => {
+  const ph = phases.map((p, i) => ({ ...p, r: { gust: i === 0 ? 31 : 18 } }));
+  assert.equal(L.watchFor({ b: { ...b, phases: ph }, tz, limit: 30 }, { top: { key: "wind", noun: "gusty wind" }, hit: [ph[0]], G: {} }), "gusts at or above your 30 mph limit during setup (now up to 31 mph).");
+  assert.equal(L.watchFor({ b, tz }, { top: { key: "rain", noun: "rain", from: Date.parse("2026-11-26T11:00Z") }, hit: [], G: {} }), "the rain arriving earlier or later than 6 AM.");
+  assert.equal(L.watchFor({ b, tz }, { top: null, hit: [], G: { limited: false } }), "any new rain, wind or thunder signal.");
+  assert.equal(L.watchFor({ b, tz }, { top: null, hit: [], G: { limited: true, incomplete: "x" } }), "the missing hours filling in at the next check.");
+});
 console.log(`${n} event lead checks passed`);

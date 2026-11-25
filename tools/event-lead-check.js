@@ -26,7 +26,7 @@ async function open(base, query, { device = PHONE, theme = 'light' } = {}) {
 const state = (p) => p.evaluate(() => { const r = (s) => { const e = document.querySelector(s); return e ? e.getBoundingClientRect() : null; }, t = (s) => (document.querySelector(s) || {}).innerText || '';
   const pos = (a, b) => { const x = document.querySelector(a), y = document.querySelector(b); return x && y ? !!(x.compareDocumentPosition(y) & Node.DOCUMENT_POSITION_FOLLOWING) : null; };
   return { vh: innerHeight, kind: document.body.dataset.leadKind, decision: t('#decision'), when: t('[data-lead=when]'), change: t('[data-lead=change]'), alerts: t('#alerts'), gapFlag: document.getElementById('gapFlag').hidden ? '' : t('#gapFlag'),
-    decisionBottom: (r('#decision') || {}).bottom, whenBottom: (r('[data-lead=when]') || {}).bottom, urgentBottom: (r('[data-lead=urgent]') || {}).bottom, kindTag: t('[data-lead=when] .ev-kind'),
+    decisionBottom: (r('#decision') || {}).bottom, whenBottom: (r('[data-lead=when]') || {}).bottom, watch: t('[data-lead=watch]'), watchBottom: (r('[data-lead=watch]') || {}).bottom, urgentBottom: (r('[data-lead=urgent]') || {}).bottom, kindTag: t('[data-lead=when] .ev-kind'),
     leadBeforeAlerts: pos('#decision', '#alerts'), leadBeforeThreats: pos('#lead', '#secThreats'), whyOpen: document.getElementById('whyFlagged').open, hscroll: document.documentElement.scrollWidth > innerWidth + 1,
     evidence: [...document.querySelectorAll('[data-evidence]')].map((a) => ({ k: a.dataset.evidence, at: +a.dataset.at, text: a.innerText })), radarNote: t('[data-lead=radar-note]') }; });
 async function print(p, file) {
@@ -50,12 +50,13 @@ const CASES = [
     const L = `${name}:`, { ctx, p, errors } = await open(base, query);
     const s = await state(p);
     console.log(`   ${label}\n   lead: ${s.decision} | ${s.when.replace(/\s+/g, ' ')}\n   official: ${s.alerts.replace(/\s+/g, ' ').slice(0, 160)}`);
-    check(s.decisionBottom <= s.vh && s.whenBottom <= s.vh, `${L} the lead (headline, timing and phases, implication) is on the first 390×664 phone screen (ends ${Math.round(s.whenBottom)} px)`);
+    check(s.decisionBottom <= s.vh && s.whenBottom <= s.vh && s.watchBottom <= s.vh && /^Watch for: /.test(s.watch), `${L} the lead (headline, timing and phases, implication, one "Watch for" line) is on the first 390×664 phone screen (ends ${Math.round(s.watchBottom)} px): ${s.watch}`);
     check(s.leadBeforeAlerts && s.leadBeforeThreats, `${L} the event concern comes before the official-alert block and the official threats section`);
     check(!s.hscroll, `${L} no sideways page scroll`);
     if (name === 'replay' || name === 'warning' || name === 'alertsfail') {
       check(s.kind === 'forecast' && /^FORECAST CONCERN/i.test(s.kindTag), `${L} labelled as a forecast concern`);
-      check(/rain/i.test(s.decision) && /Rain Thu 6 AM–12 PM EST/.test(s.when) && /setup through teardown/.test(s.when) && /wet event/.test(s.when), `${L} one rain concern with its hours, the parts of the race it affects and what it means (${s.when.replace(/\s+/g, ' ')})`);
+      check(s.decision === 'Rain likely through the 9 AM race start.' && /Thu 6 AM–12 PM, setup through teardown/.test(s.when) && /wet event/.test(s.when), `${L} the headline leads with the affected part and its local time ("${s.decision}"), then the concern's hours, the parts it affects and what it means (${s.when.replace(/\s+/g, ' ')})`);
+      check(s.watch === 'Watch for: the rain arriving earlier or later than 6 AM.', `${L} with no organizer rain threshold, "Watch for" says what to watch, with no implied delay or cancellation rule`);
       check(/9 AM event start/.test(s.change) && /sources now start it between/.test(s.change) && /likely disruptive by the briefing’s rain rule/.test(s.change) && !/cancel|postpone|delay/i.test(s.change), `${L} what would change the plan names a trigger tied to the race start and the briefing's own rain rule, with no implied venue policy`);
       check(s.evidence.length === 2 && s.evidence.every((e) => e.at === Date.parse('2026-11-26T11:00:00Z')) && /6 AM Thu/.test(s.evidence[0].text), `${L} hourly charts and forecast radar links open at the concern's hour (6 AM Thu)`);
     }
@@ -82,12 +83,19 @@ const CASES = [
       check(await p.evaluate(() => { const r = document.getElementById('secMap').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; }) && await p.evaluate(() => +document.body.dataset.selected === Date.parse('2026-11-26T11:00:00Z')), `${L} "Forecast radar" brings the map up at the concern's hour`);
     }
     if (name === 'quiet') {
-      check(s.kind === 'none' && s.decision === 'No weather concern for your event window.' && /Checked setup through teardown, 5 AM–12 PM/.test(s.when), `${L} calm lead: "${s.decision}" ${s.when.replace(/\s+/g, ' ')}`);
+      check(!/incomplete|limited/i.test(s.decision + s.when + (await p.locator('#keys').innerText())) && /no rain concern for the plan/.test(await p.locator('#keys').innerText()), `${L} the quiet case stays distinct: no "incomplete" or "limited" wording anywhere in the lead or callouts`);
+      check(s.kind === 'none' && s.decision === 'No weather concern for your event window.' && /Checked setup through teardown, 5 AM–12 PM: no weather change needed/.test(s.when) && s.watch === 'Watch for: any new rain, wind or thunder signal.', `${L} calm lead: "${s.decision}" ${s.when.replace(/\s+/g, ' ')}`);
       check(/No active official alerts/.test(s.alerts), `${L} official alerts shown as none, separately`);
       check(/No part of the event reaches a planning threshold/.test(s.change), `${L} what would change: a new signal in the next update`);
     }
     if (name === 'missing') {
-      check(s.kind === 'missing' && /confidence is limited/i.test(s.decision) && /only 3 of 9 model sources reach these hours/i.test(s.when) && /2 event hours \(9–11 AM\) have no forecast data/.test(s.when), `${L} the lead says confidence is limited and why: ${s.decision} ${s.when.replace(/\s+/g, ' ')}`);
+      const INC = 'Rain guidance is incomplete for the 9–11 AM race window';
+      check(s.kind === 'missing' && s.decision === INC + '.' && /only 3 of 9 model sources reach these hours/i.test(s.when) && /unconfirmed/.test(s.when), `${L} the lead says guidance is incomplete for the race window and why: ${s.decision} ${s.when.replace(/\s+/g, ' ')}`);
+      /* nowhere on the page reads as "no rain concern" for the race window */
+      const rows = await p.evaluate(() => ({ rain: [...document.querySelectorAll('#keys dd')][0].innerText, glance: (document.querySelector('#evDash [data-none]') || {}).innerText || '', event: (document.querySelector('#phases [data-phase=event]') || {}).textContent || '' }));
+      check(rows.rain.includes(INC) && !/no rain concern/i.test(rows.rain), `${L} the Rain chance row says the race window is incomplete, not "no rain concern": ${rows.rain.replace(/\s+/g, ' ')}`);
+      check(rows.glance.includes(INC) && !/^No weather concerns flagged for your event window/.test(rows.glance), `${L} At a glance says the same: ${rows.glance.slice(0, 120)}`);
+      check(/Guidance incomplete/.test(rows.event) && !/No concern found/.test(rows.event), `${L} By phase marks the race as guidance incomplete, not "No concern found"`);
       check(/^MISSING GUIDANCE/i.test(s.kindTag) && /Missing guidance/i.test(s.gapFlag) && /3 of 9/.test(s.gapFlag), `${L} labelled missing guidance, with its own block naming the sources`);
       check(/Forecast radar doesn’t reach 9 AM Thu yet; the charts use the model blend\./.test(s.radarNote), `${L} no HRRR for the race: the radar link says so (${s.radarNote})`);
       await p.locator('#whyFlagged > summary').click(); const cov = await p.locator('#whyFlagged [data-why=coverage]').innerText();
@@ -107,14 +115,22 @@ const CASES = [
     check(pr.pages === 2, `${L} prints exactly two US Letter pages (got ${pr.pages})`);
     const at = (re) => { const m = p1.search(re); return m < 0 ? Infinity : m; };
     check(at(/(FORECAST CONCERN|NO FORECAST CONCERN|MISSING GUIDANCE)/) < at(/Official NWS alert/i) && at(/What would change the plan/) < at(/Official NWS alert/i) && at(/Next weather check/) < at(/What to plan for/), `${L} page 1 leads with the concern, what would change and the next check, then official alerts`);
+    check(p1.includes('Watch for: ' + s.watch.replace(/^Watch for: /, '')) && p1.includes(s.decision), `${L} page 1 carries the same headline and "Watch for" line as the phone`);
     check(/Why this is flagged/i.test(p1) && /(Newest model run|Model run times)/.test(p1) && /Coverage/.test(p1), `${L} page 1 carries a compact "Why this is flagged" summary`);
     if (name === 'replay' || name === 'quiet') check(/Official NWS alerts: none active for the site/.test(p1), `${L} page 1 states no active official alerts, separately`);
+    if (name === 'missing') check(p1.includes('Rain guidance is incomplete for the 9–11 AM race window; no weather concern in the hours that have guidance') && !/No weather concern for the event in the current forecast/.test(p1 + pr.p2.replace(/\s+/g, ' ')) && pr.p2.replace(/\s+/g, ' ').includes('Rain guidance is incomplete for the 9–11 AM race window'), `${L} the printout's headline, "What to plan for" and page 2 "Watch for" say the race window is incomplete, never "No weather concern"`);
     if (name === 'missing') check(/Missing guidance: Only part of the usual forecast data reaches these hours/.test(p1) && /9–11 AM \(2 hours\) have no forecast data/.test(p1) && at(/Official NWS alert/i) < at(/Missing guidance:/), `${L} page 1 lists missing guidance after official alerts`);
     if (name === 'warning') check(/Official NWS alert in effect Flash Flood Warning until Thu 1 PM/i.test(p1), `${L} page 1 shows the warning in the official-alert box`);
     if (name === 'alertsfail') check(/Could not be checked when this was printed/.test(p1) && !/none active/.test(p1), `${L} page 1 never prints "none" when the alert check failed`);
     check(/Local time/.test(pr.p2), `${L} page 2 is the hour-by-hour table`);
     check(errors.length === 0, `${L} no script errors ${errors.join('; ')}`);
     await ctx.close();
+  }
+  /* a small phone (375×667, iPhone SE-like): the lead and "Watch for" (and an urgent warning) on the first screen */
+  for (const [name, query] of CASES.slice(0, 4)) {
+    const { ctx, p, errors } = await open(base, query, { device: { width: 375, height: 667 } }), s = await state(p);
+    check(s.whenBottom <= s.vh && s.watchBottom <= s.vh && (name !== 'warning' || (s.urgentBottom > 0 && s.urgentBottom <= s.vh)) && !s.hscroll && !errors.length, `${name} 375×667: lead and "Watch for"${name === 'warning' ? ' and the urgent warning' : ''} on the first screen (watch ends ${Math.round(s.watchBottom)} px${name === 'warning' ? `, warning ends ${Math.round(s.urgentBottom)} px` : ''})`);
+    await p.screenshot({ path: path.join(out, `${name}-phone375-light.png`) }); await ctx.close();
   }
   /* dark phone and desktop views of the replay */
   for (const [file, opt] of [['replay-phone-dark', { theme: 'dark' }], ['replay-desktop-light', { device: DESK }]]) {

@@ -985,7 +985,7 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 }
 
 /* ---------- Event Manager lead: one event concern first; official alerts and missing guidance labelled apart ---------- */
-.ev-kind { display: inline-block; font: 800 10.5px/1 var(--bx-font, sans-serif); letter-spacing: .07em; text-transform: uppercase; padding: 4px 6px 3px; border-radius: 4px; border: 1px solid currentColor; vertical-align: 1px; white-space: nowrap; }
+.ev-kind { display: inline-block; font: 800 10.5px/1 var(--bx-font, sans-serif); letter-spacing: .04em; text-transform: uppercase; padding: 4px 6px 3px; border-radius: 4px; border: 1px solid currentColor; vertical-align: 1px; white-space: nowrap; }
 .ev-kind[data-kind="forecast"] { color: var(--prepare); }
 .ev-kind[data-kind="none"] { color: var(--muted); }
 .ev-kind[data-kind="missing"] { color: var(--monitor); border-style: dashed; }
@@ -994,6 +994,7 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .ev-lead-when .ev-kind { margin-right: 2px; }
 .ev-lead-when { margin: 6px 0 0; font-size: 14.5px; line-height: 1.35; }
 .ev-lead-when .ev-ph { white-space: nowrap; }
+.ev-lead-watch { margin: 3px 0 0; font-size: 14px; line-height: 1.35; }
 .ev-lead-imp { color: var(--text); }
 .ev-lead-urgent { margin-top: 8px; }
 .ev-lead-urgent .bx-alert, .ev-officialbox .bx-alert { margin-bottom: 6px; flex-wrap: wrap; }
@@ -1030,10 +1031,11 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 }
 /* phone: the lead (headline, timing, implication) and the callouts share the first screen */
 @media (max-width: 600px) {
-  .event-planner .ev-lead .bx-decision { font-size: 25px !important; margin-top: 8px !important; }
-  .ev-lead-when { font-size: 14px; margin-top: 5px; }
-  .event-planner .ev-lead .ev-callouts { margin-top: 10px; }
+  .event-planner .ev-lead .bx-decision { font-size: 25px !important; margin-top: 4px !important; }
+  .ev-lead-when { font-size: 14px; margin-top: 3px; }
+  .ev-lead-watch { font-size: 13.5px; margin-top: 2px; }
+  .event-planner .ev-lead .ev-callouts { margin-top: 5px; }
   .event-planner .ev-lead .ev-callouts dt { padding-top: 7px; padding-bottom: 7px; }
-  .event-planner .ev-lead .ev-callouts dd { padding: 5px 0 6px; font-size: 15px; }
+  .event-planner .ev-lead .ev-callouts dd { padding: 5px 0 6px; font-size: 14.5px; }
   .event-planner .ev-lead .ev-callouts dd .bx-note { font-size: 12.5px; }
 }
