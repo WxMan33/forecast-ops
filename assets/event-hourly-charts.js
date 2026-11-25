@@ -223,7 +223,7 @@
     return { s, e, flags, tiles, gustLine, types: (T.types || []).slice(), parts, missing, gap: T.gap || 0, when, around, clock, dayOf, multiDay };
   }
   const TYPE_WORD = { rain: "Rain", mix: "Mix", snow: "Snow" };
-  function dashboardHtml(V, M, { tz, sel = null } = {}) {
+  function dashboardHtml(V, M, { tz, sel = null, gapText = "" } = {}) {
     const pos = (ms) => (100 * (Math.max(M.s, Math.min(M.e, ms)) - M.s)) / (M.e - M.s);
     const box = (a, b) => `--l:${pos(a).toFixed(3)}%;--w:${Math.max(0, pos(b) - pos(a)).toFixed(3)}%`;
     const tier = (f) => (f ? ` data-tier="${esc(f.tier)}" style="--tier:var(--${esc(f.tier)})"` : "");
@@ -245,7 +245,9 @@
     const ticks = kept.map((c, k) => { const p = pos(c.ms), cls = k === kept.length - 1 || p >= 90 ? "end" : k === 0 || p <= 8 ? "start" : "mid";
       const day = M.multiDay && (k === 0 || M.dayOf(c.ms - 1) !== M.dayOf(kept[k - 1].ms)) ? M.dayOf(c.ms - (c.ms === M.e ? 1 : 0)) + " " : "";
       return `<span class="${cls}" style="left:${p.toFixed(3)}%">${esc(day + M.clock(c.ms))}</span>`; }).join("");
-    const none = `<p class="evd-none" data-none>No weather concerns flagged for your event window.${M.missing ? ` ${M.missing} hour${M.missing > 1 ? "s have" : " has"} no forecast data, so that part is not an all-clear.` : ""}</p>`;
+    /* gapText (Event Manager): the briefing's own wording for event hours without guidance, so the page says it one way */
+    const none = gapText ? `<p class="evd-none" data-none data-incomplete>${esc(gapText)}. No weather concerns flagged in the hours that have guidance; the missing hours are not an all-clear.</p>`
+      : `<p class="evd-none" data-none>No weather concerns flagged for your event window.${M.missing ? ` ${M.missing} hour${M.missing > 1 ? "s have" : " has"} no forecast data, so that part is not an all-clear.` : ""}</p>`;
     const span = root.EventBriefingUI && root.EventBriefingUI.dateSpan ? root.EventBriefingUI.dateSpan(M.s, M.e, tz) : M.when(M.s, M.e);
     return `<section class="evd" aria-labelledby="evdTitle"><div class="evd-head"><h2 id="evdTitle">At a glance</h2><span class="evd-span">Setup through teardown · ${esc(span)}</span></div>` +
       `<ul class="evd-tiles" aria-label="Event weather totals">${M.tiles.map(tile).join("")}</ul>` +
@@ -254,10 +256,10 @@
         `<p class="evd-sel" data-sel aria-live="polite"></p>` : none}</div></section>`;
   }
   /* render into host; tapping a flagged window selects that hour on the page's shared timeline, like the charts */
-  function dashboard(host, { view: V, tz, gustLimit = 25, selected = null, onSelect = () => {}, onOpenHourly = null }) {
+  function dashboard(host, { view: V, tz, gustLimit = 25, selected = null, onSelect = () => {}, onOpenHourly = null, gapText = "" }) {
     const M = dashModel(V, { tz, gustLimit });
     let sel = selected;
-    host.innerHTML = dashboardHtml(V, M, { tz, sel });
+    host.innerHTML = dashboardHtml(V, M, { tz, sel, gapText });
     const readout = () => {
       const pos = (ms) => (100 * (Math.max(M.s, Math.min(M.e, ms)) - M.s)) / (M.e - M.s), on = sel != null && V.span.includes(sel);
       host.querySelectorAll(".evd-cur").forEach((c) => { c.hidden = !on; if (on) c.style.left = pos(sel + 1800e3).toFixed(3) + "%"; });
