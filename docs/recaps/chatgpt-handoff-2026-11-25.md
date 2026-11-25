@@ -74,6 +74,12 @@ UPDATE, Nov 25 early morning (03:30 UTC)
   - Final scorecard: the same frozen files rescored against pinned NOAA Storm Events. The two scorecards are kept separate.
   - First record: 12Z Nov 24 HRRR, valid Nov 25 12Z – Nov 26 12Z. Generated 03:17 UTC, before the 12:00 UTC cutoff: on time. Max probability 19% (96-day), 19% (728-day), 12% (v0.7 in box).
   - The feed and hosted checks still pass. The first scheduled refresh is Nov 25 15:10 UTC.
+  - Earliest preliminary scoring of this first record: window end (Nov 26 12Z) + 36 h = Nov 28 00Z (7 PM EST Nov 27). The code already used this rule; an earlier chat message said Nov 27 12Z by mistake.
+- NBM TEST (option B chosen): pre-registered and running. NBM 12Z thunder probability (two 12 h periods tiling the Day 2 window) and 10 m gust are added to the HRRR predictors.
+  - Audit: 728/728 development dates complete. NBM v4.0 until Jan 16, 2023, v4.1 after; current output is v5.x, a known version shift.
+  - Two dates were listed after the 15:10 UTC cutoff and are excluded from both arms.
+  - In 2022–23 gusts were archived hourly to f36, then 3-hourly, so the same 16 hours are used for history and for current runs.
+  - Pass rule: national Brier better (CI excludes 0), no region worse, calibration within 15%, hit retention ≥95%.
 - SAMPLING CHECK (development only; same folds, recipe, calibration and scoring rows): sampling does NOT explain the 2021 tie.
   - National BSS: 96 days all rows 0.096; 96 days sampled 0.098; 728 days sampled 0.115.
   - Sampling effect: −0.000017 Brier (95% CI −0.000030 to −0.000005). Sampling helped slightly.
