@@ -84,6 +84,11 @@ const layout = (p) => p.evaluate(() => { const r = (id) => document.getElementBy
     nowInView: now.top >= 0 && now.bottom <= innerHeight, coverGap: c ? Math.round(c.top - ends.bottom) : null, coverBelow: c ? c.top >= sl.bottom : null,
     heading: document.querySelector('#secMap > h2').textContent, labelled: document.getElementById('secMap').getAttribute('aria-labelledby') === document.querySelector('#secMap > h2').id,
     tiles: dash ? [...dash.querySelectorAll('.evd-tile')].map((t) => t.dataset.coverage + ':' + t.innerText.replace(/\s+/g, ' ')) : [], dashText: dash ? dash.innerText : '' }; });
+/* the focused slider's outline box (input box grown by outline-offset + outline-width) must not touch any visible tick label */
+const ringClear = (p) => p.evaluate(() => { const s = document.getElementById('mpSlider'), cs = getComputedStyle(s), g = parseFloat(cs.outlineOffset) + parseFloat(cs.outlineWidth), b = s.getBoundingClientRect();
+  const box = { l: b.left - g, r: b.right + g, t: b.top - g, btm: b.bottom + g }, ticks = [...document.querySelectorAll('#mpTicks span')].filter((t) => t.style.visibility !== 'hidden' && t.textContent).map((t) => t.getBoundingClientRect());
+  const hit = ticks.filter((t) => t.left < box.r && t.right > box.l && t.top < box.btm && t.bottom > box.t);
+  return { ok: cs.outlineStyle === 'solid' && ticks.length > 0 && !hit.length, why: `${ticks.length} labels, ring bottom ${Math.round(box.btm)}, first label top ${ticks.length ? Math.round(Math.min(...ticks.map((t) => t.top))) : '-'}, overlaps ${hit.length}` }; });
 const span = (x) => x.slider ? x.slider.split('-').map(Number) : [];
 const iso = (ms) => (ms ? nyLocal(ms).replace('T', ' ') : '—');
 /* screenshots of the map section: sticky page bars are unpinned while capturing so they do not cover it */
@@ -128,6 +133,7 @@ const shot = async (p, name) => { await p.evaluate(() => document.querySelectorA
     check(x.selected === WIN0 + 2 * H && x.map === x.selected && x.chart === x.selected, `slider arrow keys step the shared time; map and hourly charts follow (selected ${iso(x.selected)} · map ${iso(x.map)} · chart ${iso(x.chart)})`);
     const ring = await p.evaluate(() => { const s = document.getElementById('mpSlider'); return s.matches(':focus-visible') ? getComputedStyle(s).outlineStyle : 'no focus-visible'; });
     check(ring === 'solid', `slider has a visible focus ring (${ring})`);
+    const rc = await ringClear(p); check(rc.ok, `focus ring clears the tick labels below the track (${rc.why})`);
     await p.keyboard.press('End'); await p.waitForTimeout(500); x = await state(p);
     check(x.selected === at('18:00') && x.map === x.selected, `slider End → last hour the run reaches (${iso(x.selected)})`);
     /* drag / tap: a pointer click on the track jumps straight there */
@@ -165,6 +171,8 @@ const shot = async (p, name) => { await p.evaluate(() => document.querySelectorA
     const lay = await p.evaluate(() => { const pan = document.querySelector('#map .bx-mappanel').getBoundingClientRect(), inside = [...document.querySelectorAll('#map .bx-chip, #map .bx-seg, #mpSlider, #mpCover, #mpDisc')].every((e) => { const r = e.getBoundingClientRect(); return r.left >= pan.left - 1 && r.right <= pan.right + 1; });
       return { hscroll: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) > innerWidth + 1, inside, chipH: Math.min(...[...document.querySelectorAll('#map .bx-chip')].map((c) => c.getBoundingClientRect().height)), slH: document.getElementById('mpSlider').getBoundingClientRect().height }; });
     check(!lay.hscroll && lay.inside, `${dev} ${theme}: no sideways scroll; switch, chips, slider, note and disclaimer stay inside the map panel`);
+    await p.locator('#mpSlider').scrollIntoViewIfNeeded(); await p.locator('#mpSlider').focus(); await p.keyboard.press('ArrowLeft'); await p.keyboard.press('ArrowRight'); await p.waitForTimeout(300);
+    { const rc = await ringClear(p); check(rc.ok, `${dev} ${theme}: focus ring clears the tick labels (${rc.why})`); }
     if (dev === 'phone') check(lay.slH >= 44 && lay.chipH >= 44, `phone ${theme}: slider and chips have ≥44 px touch targets (slider ${lay.slH}, chips ${lay.chipH})`);
     if (dev === 'phone') { await p.locator('#mpSlider').scrollIntoViewIfNeeded(); const b = await p.locator('#mpSlider').boundingBox(); await p.touchscreen.tap(b.x + b.width - 14, b.y + b.height / 2); await p.waitForTimeout(500); const x = await state(p);
       check(x.selected === at('18:00') && x.map === x.selected, `phone ${theme}: tapping the end of the slider jumps to the last hour (${iso(x.selected)})`); }
