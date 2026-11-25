@@ -100,7 +100,7 @@ const dropFamily = (re) => rewriteAlerts((j) => { const n0 = j.features.length; 
     if (!g || g.err || !g.g) check(`RIVER NEAR A SITE WITHOUT A WARNING: ${g && g.err ? "NWPS list didn't answer" : "no gauge at action stage or higher away from flood warnings right now (" + (g ? g.n : 0) + " at action+)"} (case not run)`, true, { g });
     else { const v = await open(b, false, site("River gauge test site", g.g.lat + 0.03, g.g.lon + 0.03)); await settle(v.p, 6000); await v.p.evaluate(() => { const T = window.__threats; T.S.view = "active"; T.drawAll(); }); await v.p.waitForTimeout(4000); const s = await st(v.p); await shot(v.p, "after-river-gauge-desktop");
       check(`RIVER NEAR A SITE WITHOUT A WARNING: ${g.g.name} (${g.g.lid}; now ${g.g.obs}, forecast ${g.g.fc}): drawn (${s.gaugesDrawn}) and listed with stage, forecast and flood stages: '${(s.siteGauges[0] || "").slice(0, 180)}'`,
-        s.gaugesDrawn >= 1 && s.siteGauges.length >= 1 && /now [\d.]+ ft/.test(s.siteGauges[0]) && /forecast/.test(s.siteGauges[0]) && /(flood stage|action) [\d.]+/.test(s.siteGauges[0]) && s.need.flood && !v.errs.length, { g, s });
+        s.gaugesDrawn >= 1 && s.siteGauges.length >= 1 && /now [\d.]+ ft/.test(s.siteGauges[0]) && /forecast/.test(s.siteGauges[0]) && /(flood stage|action) [\d.]+/.test(s.siteGauges[0]) && (!["minor", "moderate", "major"].some((c) => g.g.obs === c || g.g.fc === c) || s.need.flood) && !v.errs.length, { g, s }); // action stage alone: shown and listed; Flooding extras only from minor flooding
       await v.ctx.close(); } }
 
   /* 5. critical-alert replay: a saved NWS Tornado Warning moved to now and marked catastrophic (Tornado Emergency) at the site */
