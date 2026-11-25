@@ -110,7 +110,7 @@
     if (top && top.key === 'rain') { const h = heavier(o); if (h) return h; }
     if (top && fin(top.from)) return `the ${top.noun} arriving earlier or later than ${clock(top.from, tz)}.`;
     if (top) return `whether the ${top.noun}${during} firms up in the next update.`;
-    if (G.limited) return G.incomplete ? `the missing hours filling in at the next check.` : `the missing guidance returning at the next check.`;
+    if (G.limited) return G.incomplete ? 'the missing hours filling in.' : 'the missing guidance returning.';
     return 'any new rain, wind or thunder signal.';
   }
 
@@ -171,11 +171,14 @@
     const whole = P.length ? `${P[0].label.toLowerCase()} through ${P[P.length - 1].label.toLowerCase()}` : 'the event';
     let text;
     if (L.kind === 'forecast') text = `<b>${esc(L.when || cap(L.top.noun))}</b>, ${all ? esc(whole) : hit.length ? listWords(hit.map((p) => `<span class="ev-ph">${esc(p.label.toLowerCase())} ${esc(p.time)}</span>`)) : 'exact time uncertain'}. ${esc(L.implication)}${L.gaps.limited ? ` <span class="ev-lead-gap" data-lead="gap">${esc(L.gaps.brief)}</span>` : ''}`;
-    else if (L.kind === 'missing') { const w = L.gaps.incomplete ? L.gaps.why.filter((x) => !/no forecast data/.test(x)) : L.gaps.why;
-      text = `<span data-lead="gap">${esc(cap((w.length ? w : L.gaps.why).join('; ')))}.</span> ${esc(L.implication)}`; }
+    /* missing guidance: the headline names the window; one short line says why (the missing sources are named under
+       "Why this is flagged" and in the Missing guidance block below), with "Watch for" in the same paragraph */
+    else if (L.kind === 'missing') { const G = L.gaps, w = [G.thin ? `Only ${G.used} of ${G.total} model sources reach these hours.` : '', G.partial ? `${G.partial.replace(/\.$/, '')}.` : '',
+        !G.incomplete && G.missingHours.length ? `${cap(G.why.find((x) => /no forecast data/.test(x)) || '')}.` : ''].filter((x) => x && x !== '.');
+      text = `<span data-lead="gap">${esc(w.join(' ') || 'Treat it as unconfirmed until the guidance returns.')}</span> <span class="ev-lead-watch" data-lead="watch"><b>Watch for:</b> ${esc(L.watch)}</span>`; }
     else text = `Checked ${esc(whole)}${P.length ? `, ${esc(span(P[0].startMs, P[P.length - 1].endMs, tz))}` : ''}: ${esc(L.implication.replace(/^./, (c) => c.toLowerCase()))}`;
     const urgent = L.official.urgent.map((a) => alertLine(a, tz, lat, lon)).join('');
-    return `<p class="ev-lead-when" data-lead="when">${leadKind(L)} ${text}</p><p class="ev-lead-watch" data-lead="watch"><b>Watch for:</b> ${esc(L.watch)}</p>${urgent ? `<div class="ev-lead-urgent" data-lead="urgent">${urgent}</div>` : ''}`;
+    return `<p class="ev-lead-when" data-lead="when">${leadKind(L)} ${text}</p>${L.kind === 'missing' ? '' : `<p class="ev-lead-watch" data-lead="watch"><b>Watch for:</b> ${esc(L.watch)}</p>`}${urgent ? `<div class="ev-lead-urgent" data-lead="urgent">${urgent}</div>` : ''}`;
   }
   /* below the callouts: what would change the plan, the evidence links and the disclosure */
   function afterHtml(L, W) {

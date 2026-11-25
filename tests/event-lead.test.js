@@ -95,6 +95,6 @@ check("Watch for: the organizer's gust limit when it applies; otherwise what to 
   assert.equal(L.watchFor({ b: { ...b, phases: ph }, tz, limit: 30 }, { top: { key: "wind", noun: "gusty wind" }, hit: [ph[0]], G: {} }), "gusts at or above your 30 mph limit during setup (now up to 31 mph).");
   assert.equal(L.watchFor({ b, tz }, { top: { key: "rain", noun: "rain", from: Date.parse("2026-11-26T11:00Z") }, hit: [], G: {} }), "the rain arriving earlier or later than 6 AM.");
   assert.equal(L.watchFor({ b, tz }, { top: null, hit: [], G: { limited: false } }), "any new rain, wind or thunder signal.");
-  assert.equal(L.watchFor({ b, tz }, { top: null, hit: [], G: { limited: true, incomplete: "x" } }), "the missing hours filling in at the next check.");
+  assert.equal(L.watchFor({ b, tz }, { top: null, hit: [], G: { limited: true, incomplete: "x" } }), "the missing hours filling in.");
 });
 console.log(`${n} event lead checks passed`);

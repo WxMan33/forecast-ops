@@ -90,7 +90,7 @@ const CASES = [
     }
     if (name === 'missing') {
       const INC = 'Forecast guidance is incomplete for the 9–11 AM race window', RINC = 'Rain guidance is incomplete for the 9–11 AM race window';
-      check(s.kind === 'missing' && s.decision === INC + '.' && /only 3 of 9 model sources reach these hours/i.test(s.when) && /unconfirmed/.test(s.when), `${L} the lead says guidance is incomplete for the race window and why: ${s.decision} ${s.when.replace(/\s+/g, ' ')}`);
+      check(s.kind === 'missing' && s.decision === INC + '.' && /Only 3 of 9 model sources reach these hours\./.test(s.when) && s.watch === 'Watch for: the missing hours filling in.', `${L} the lead says guidance is incomplete for the race window and why: ${s.decision} ${s.when.replace(/\s+/g, ' ')}`);
       /* nowhere on the page reads as "no rain concern" for the race window */
       const rows = await p.evaluate(() => ({ rain: [...document.querySelectorAll('#keys dd')][0].innerText, glance: (document.querySelector('#evDash [data-none]') || {}).innerText || '', event: (document.querySelector('#phases [data-phase=event]') || {}).textContent || '' }));
       check(rows.rain.includes(RINC) && !/no rain concern/i.test(rows.rain), `${L} the Rain chance row says the race window is incomplete, not "no rain concern": ${rows.rain.replace(/\s+/g, ' ')}`);
