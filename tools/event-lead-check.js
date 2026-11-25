@@ -106,7 +106,7 @@ const CASES = [
     }
     if (name === 'quiet') { await p.locator('#whyFlagged > summary').click(); await p.evaluate(() => { document.getElementById('whyFlagged').scrollIntoView({ block: 'start' }); scrollBy(0, -170); }); await p.waitForTimeout(100); await p.screenshot({ path: path.join(out, `${name}-phone-why.png`) }); await p.evaluate(() => { document.getElementById('whyFlagged').open = false; scrollTo(0, 0); }); }
     if (name === 'warning') {
-      check(s.urgentBottom > 0 && s.urgentBottom <= s.vh && /Flash Flood Warning in effect/.test(await p.locator('[data-lead=urgent]').innerText()), `${L} the urgent warning is on the first phone screen with the forecast concern (ends ${Math.round(s.urgentBottom)} px)`);
+      check(s.urgentBottom > 0 && s.urgentBottom <= s.vh && await p.evaluate(() => document.getElementById('leadUrgent').getBoundingClientRect().bottom <= document.getElementById('decision').getBoundingClientRect().top) && /Flash Flood Warning in effect/.test(await p.locator('[data-lead=urgent]').innerText()), `${L} the urgent warning is on the first phone screen with the forecast concern (ends ${Math.round(s.urgentBottom)} px)`);
       check(/shown with the forecast concern above/.test(s.alerts), `${L} the official block points to the warning instead of repeating it`);
     }
     if (name === 'alertsfail') check(/Official alerts could not be checked \(2:3\d PM\)/.test(s.alerts) && /weather\.gov/.test(s.alerts) && /Missing guidance/i.test(s.alerts) && !/No active official alerts/.test(s.alerts), `${L} a failed alert check is missing guidance, never "none": ${s.alerts.replace(/\s+/g, ' ').slice(0, 120)}`);

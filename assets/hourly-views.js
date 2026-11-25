@@ -18,11 +18,11 @@
      the speed alone, with the reason; never north by default. Calm: "Calm". Winds that cancel between sources: "VRB". */
   const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
   const compass = (deg) => (fin(deg) ? COMPASS[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16] : null);
-  function windCells(hrs, now) {
+  function windCells(hrs, now, none = "—") {
     return hrs.map((h) => {
-      if (h.state !== "ok") return { state: "missing", text: "—", why: h.state === "beyond" ? "Beyond the hourly guidance" : "No guidance for this hour" };
+      if (h.state !== "ok") return { state: "missing", text: none, why: h.state === "beyond" ? "Beyond the hourly guidance" : "No guidance for this hour" };
       const past = now != null && h.ms + H <= now, note = past ? "Earlier hour: model guidance, not an observation" : "";
-      if (!fin(h.wind)) return { state: "missing", text: "—", why: "Not in the guidance for this hour", past };
+      if (!fin(h.wind)) return { state: "missing", text: none, why: "Not in the guidance for this hour", past };
       const spd = Math.round(h.wind);
       if (h.windCalm || spd === 0) return { state: "ok", text: "Calm", past, why: note };
       const dir = h.windVariable ? "VRB" : compass(h.windDir);
@@ -31,13 +31,14 @@
     });
   }
 
-  /* the value rows both pages share: same order, same definitions */
-  function valueRows(hrs, now) {
-    const miss = (h) => ({ state: "missing", text: "—", why: h.state === "beyond" ? "Beyond the hourly guidance" : "No guidance for this hour" });
+  /* the value rows both pages share: same order, same definitions. `none` is the missing-value label: Event Manager
+     writes it out ("No data"); Model Blend keeps its compact mark */
+  function valueRows(hrs, now, none = "—") {
+    const miss = (h) => ({ state: "missing", text: none, why: h.state === "beyond" ? "Beyond the hourly guidance" : "No guidance for this hour" });
     const val = (k, f) => hrs.map((h) => {
       if (h.state !== "ok") return miss(h);
       const past = now != null && h.ms + H <= now;
-      return fin(h[k]) ? { state: "ok", text: f(h[k]), past, why: past ? "Earlier hour: model guidance, not an observation" : "" } : { state: "missing", text: "—", why: "Not in the guidance for this hour", past };
+      return fin(h[k]) ? { state: "ok", text: f(h[k]), past, why: past ? "Earlier hour: model guidance, not an observation" : "" } : { state: "missing", text: none, why: "Not in the guidance for this hour", past };
     });
     return [
       { key: "temp", label: "Temperature", sub: "°F", cells: val("temp", (x) => `${Math.round(x)}°`) },
@@ -45,7 +46,7 @@
       { key: "pop", label: "Precip chance", sub: "hourly PoP", cells: val("pop", (x) => pct(x)) },
       { key: "chance", label: "Ensemble ≥0.01″", sub: "share of members", cells: val("chance", (x) => pct(x * 100)) },
       { key: "qpf", label: "Precip amount", sub: "inches", cells: val("qpf", (x) => rainAmount(x)) },
-      { key: "wind", label: "Wind", sub: "direction · sustained mph", cells: windCells(hrs, now) },
+      { key: "wind", label: "Wind", sub: "direction · sustained mph", cells: windCells(hrs, now, none) },
       { key: "gust", label: "Gusts", sub: "mph", cells: val("gust", (x) => `${Math.round(x)}`) },
     ];
   }
@@ -73,7 +74,7 @@
       const w = LIGHTNING_WORD[h.thunder] || "Unavailable", raised = h.thunder !== "normal";
       return raised ? { state: "concern", tier: h.thunder, icon: "ϟ", text: w, why: `Lightning potential ${w.toLowerCase()} (forecast signal, not detected lightning)` } : { state: "clear", text: "Low", why: "Lightning potential low, not zero (forecast signal, not detected lightning)" };
     });
-    const values = valueRows(hrs, now).filter((r) => r.key !== "chance").map((r) => (r.key === "pop" ? { ...r, label: "Rain chance", sub: "each hour, at the venue" } : r.key === "qpf" ? { ...r, label: "Rain amount", sub: "inches" } : r));
+    const values = valueRows(hrs, now, "No data").filter((r) => r.key !== "chance").map((r) => (r.key === "pop" ? { ...r, label: "Rain chance", sub: "each hour, at the venue" } : r.key === "qpf" ? { ...r, label: "Rain amount", sub: "inches" } : r));
     const rows = [
       { key: "phase", kind: "phase", label: "Phase", cells: phaseCells },
       { key: "concern", kind: "summary", label: "Hourly signal", sub: "tap for details", cells: summary },
@@ -83,16 +84,16 @@
     ];
     const tiers = [...new Set(con.rows.flatMap((r) => r.cells.filter((c) => c.state === "concern").map((c) => c.tier)))];
     const legend = [
-      ...["monitor", "prepare", "action"].filter((t) => tiers.includes(t)).map((t) => ({ state: "concern", tier: t, text: { monitor: "Watch · marginal", prepare: "Plan for it · elevated", action: "Likely disruptive · high" }[t] })),
-      { state: "flag", text: "Low — a signal below the phase planning threshold" }, { state: "clear", text: "– no specific hourly signal; see phase plan above" },
-      { state: "partial", text: "Limited — some guidance missing" }, { state: "missing", text: "n/a — no guidance (not an all-clear)" }];
+      ...["monitor", "prepare", "action"].filter((t) => tiers.includes(t)).map((t) => ({ state: "concern", tier: t, text: { monitor: "Watch: the lowest planning rating", prepare: "Plan for it: the middle rating", action: "Likely disruptive: the highest rating" }[t] })),
+      { state: "flag", text: "Low: a signal below the phase planning threshold" }, { state: "clear", text: "– no specific hourly signal; see phase plan above" },
+      { state: "partial", text: "Limited: some guidance missing" }, { state: "missing", text: "n/a or No data: no guidance (not an all-clear)" }];
     const note = "Shading marks hours with an identified signal; its colour uses the existing phase rating. A phase plan does not mean every hour has that threat. Rain chance is the blended hourly chance at the venue. Lightning potential is forecast guidance, not detected lightning.";
     function detail(i) {
       const h = hrs[i], a = axis[i], hits = con.rows.map((r) => ({ r, c: r.cells[i] })).filter((x) => x.c.state === "concern" || x.c.state === "flag");
       const head = `<h3>${esc(day(h.ms, tz))}, ${esc(a.hourText)} ${esc(a.zone)}${cover[i].length ? ` · ${esc(cover[i].map((p) => p.label).join(", "))}` : ""}</h3>`;
       if (h.state !== "ok") return head + `<p>${esc(h.state === "beyond" ? "Beyond the hourly guidance: this hour fills in as the date gets closer." : "No guidance source has values for this hour.")} This is missing guidance, not an all-clear.</p>`;
-      return head + `<p>${hits.length ? hits.map((x) => `<b>${esc(x.r.label)}</b>: ${esc(x.c.word || "low")} — ${esc(x.c.why)}`).join("<br>") : esc(con.summary[i].why || "No concern identified")}</p>
-        <p>Rain chance ${pct(h.pop)} · lightning potential ${h.thunder && h.thunder !== "nodata" ? esc((LIGHTNING_WORD[h.thunder] || "unavailable").toLowerCase()) : "unavailable"} · ${fin(h.temp) ? Math.round(h.temp) + "°" : "—"} · gusts ${fin(h.gust) ? Math.round(h.gust) + " mph" : "—"}</p>
+      return head + `<p>${hits.length ? hits.map((x) => `<b>${esc(x.r.label)}</b>: ${esc(x.c.word || "low")}. ${esc(x.c.why)}`).join("<br>") : esc(con.summary[i].why || "No concern identified")}</p>
+        <p>Rain chance ${fin(h.pop) ? pct(h.pop) : "no data"} · lightning potential ${h.thunder && h.thunder !== "nodata" ? esc((LIGHTNING_WORD[h.thunder] || "unavailable").toLowerCase()) : "unavailable"} · temperature ${fin(h.temp) ? Math.round(h.temp) + "°" : "no data"} · gusts ${fin(h.gust) ? Math.round(h.gust) + " mph" : "no data"}</p>
         <p class="hg-note">Forecast from ${h.n} model source${h.n === 1 ? "" : "s"} at the venue; not observed weather.</p>`;
     }
     /* event totals: one blend call over every covered hour (the same windowRow the briefing's totals use), the spread

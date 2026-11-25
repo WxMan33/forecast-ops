@@ -149,7 +149,7 @@
     const NW = res.NW;
     if (!NW || !NW.ok) return `<p class="bx-note">Official NWS forecast unavailable${NW && NW.reason ? ` (${esc(NW.reason)})` : ""}. The blend above still uses every other source.</p>`;
     const per = (NW.periods || []).filter((p) => (from == null || p.e > from) && (to == null || p.s < to)).slice(0, max);
-    return `<div class="bx-nws"><div class="bx-cap">Official NWS forecast · ${esc(NW.office)} office · grid ${NW.gridX},${NW.gridY}</div>${per.length ? `<ul>${per.map((p) => `<li><b>${esc(p.name)}</b> <span class="t">${p.temp == null ? "—" : Math.round(p.temp) + "°"}</span> <span>${esc(p.short)}${fin(p.pop) ? ` · ${pct(p.pop)} chance` : ""}</span></li>`).join("")}</ul>` : '<p class="bx-note">No NWS periods for this window yet.</p>'}<p class="bx-note">Issued by NWS ${esc(NW.office)} for this point. Shown alongside the model blend, not mixed into these lines.</p></div>`;
+    return `<div class="bx-nws"><div class="bx-cap">Official NWS forecast · ${esc(NW.office)} office · grid ${NW.gridX},${NW.gridY}</div>${per.length ? `<ul>${per.map((p) => `<li><b>${esc(p.name)}</b> <span class="t">${p.temp == null ? "no temperature given" : Math.round(p.temp) + "°"}</span> <span>${esc(p.short)}${fin(p.pop) ? ` · ${pct(p.pop)} chance` : ""}</span></li>`).join("")}</ul>` : '<p class="bx-note">No NWS periods for this window yet.</p>'}<p class="bx-note">Issued by NWS ${esc(NW.office)} for this point. Shown alongside the model blend, not mixed into these lines.</p></div>`;
   }
 
   async function alerts(where) {

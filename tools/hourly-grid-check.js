@@ -92,9 +92,9 @@ const report = (ok, name, detail) => { if (!ok) failed++; console.log(`${ok ? "P
     { const { ctx, p, errors } = await open(dev, `case=missing&theme=${theme}`), g = await read(p);
       const i8 = g.hours.indexOf("8 PM"), i9 = g.hours.indexOf("9 PM");
       const valueRows = ["temp", "feel", "pop", "qpf", "wind", "gust"];
-      report(valueRows.every((k) => g.rows[k][i8].state === "missing" && g.rows[k][i8].text === "—") && g.rows.concern[i8].text === "n/a" && g.rows.pop[i9].state === "missing" && g.rows.temp[i9].state === "ok"
+      report(valueRows.every((k) => g.rows[k][i8].state === "missing" && g.rows[k][i8].text === "No data") && g.rows.concern[i8].text === "n/a" && g.rows.pop[i9].state === "missing" && g.rows.temp[i9].state === "ok"
         && g.rows.concern[i9].text === "Limited" && g.rows.lightning[i9].text === "Unavail." && g.rows.lightning[i9].state === "missing" && g.rows.lightning[i8].text === "n/a" && !errors.length,
-        `missing data (${devName}, ${theme}): a source gap reads — and n/a (never 0 or "no concern"); one missing field stays missing while the rest show; missing lightning guidance reads Unavailable, never Low`,
+        `missing data (${devName}, ${theme}): a source gap reads "No data" and n/a (never 0 or "no concern"); one missing field stays missing while the rest show; missing lightning guidance reads Unavailable, never Low`,
         `8 PM ${valueRows.map((k) => g.rows[k][i8].text).join(" ")} / concern ${g.rows.concern[i8].text} · 9 PM PoP ${g.rows.pop[i9].text}, temp ${g.rows.temp[i9].text}, concern ${g.rows.concern[i9].text}${errors.length ? " · " + errors.join("; ") : ""}`);
       /* wind: direction before speed; missing direction is the speed alone (never N); calm reads Calm; gusts unchanged;
          on a phone direction stacks above speed and every wind cell keeps one height */

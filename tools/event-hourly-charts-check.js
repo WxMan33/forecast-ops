@@ -61,7 +61,7 @@ const facts = (p) => p.evaluate(() => {
       check(f.wash === 0 && f.unlabeledFlags === 0 && f.redOutsideFlags === 0, `${L} no unlabelled concern wash; flags labelled (${f.flags.join(' | ') || 'none'}); red only on labelled high-priority flags`);
       check(f.hourPx >= 13.5 && f.valuePx >= 22, `${L} readable: hour labels ${f.hourPx.toFixed(1)} px, selected values ${f.valuePx} px`);
       check(/not detected lightning or a warning/.test(f.lightningNote), `${L} lightning is labelled forecast potential, not detected lightning or a warning`);
-      check(/^\d|—/.test(f.amount || '') && f.amount !== f.chance, `${L} selected amount shown separately from chance (chance ${f.chance}, amount ${f.amount})`);
+      check(/^\d|^No data$/.test(f.amount || '') && f.amount !== f.chance, `${L} selected amount shown separately from chance (chance ${f.chance}, amount ${f.amount})`);
       if (wx === 'allrain') check(f.bands.length === 0 && f.summary === 'Type: rain', `${L} all rain: no bands, just "${f.summary}"`);
       if (wx === 'transition') check(new Set(f.bands).size >= 2 && f.bands.every((b) => ['rain', 'mix', 'snow'].includes(b)) && f.bandLabels.some((l) => /Snow/.test(l)) && /Rain.*Mix.*Snow/.test(f.legend), `${L} type change: labelled bands ${[...new Set(f.bands)].join(', ')} (${f.bandLabels.join(' | ')})`);
       if (wx === 'gaps') check(f.gaps >= 1 && f.gapCards === 4 && (f.segments >= 2 || !f.gapInside), `${L} missing hours: gap in all four charts, chance line broken around them (${f.segments} segments${f.gapInside ? '' : ', gap at the window edge'}), not drawn as 0%`);
@@ -123,11 +123,11 @@ const facts = (p) => p.evaluate(() => {
         check(f.rows.some((r) => r.key === 'rain' && /^Rain: plan for it 1 PM–11:30 PM$/.test(r.label)), `${L} rain window labelled in plain words (${f.rows.map((r) => r.label).join(' | ')})`);
       }
       if (kind === 'windy') {
-        check(T.gust && T.gust.value === '28' && /Around 2 PM/.test(T.gust.text) && T.gust.tier === 'monitor' && T.gust.badge === 'Watch', `${L} gusts flagged: Peak gusts tile 28 mph around 2 PM, Watch (${T.gust && T.gust.text})`);
+        check(T.gust && T.gust.value === '28' && /Around 2 PM/.test(T.gust.text) && T.gust.tier === 'monitor' && T.gust.badge === 'Gusts rating: watch', `${L} gusts flagged: Peak gusts tile 28 mph around 2 PM, Watch (${T.gust && T.gust.text})`);
         check(T.lightning && T.lightning.value === 'Moderate' && /not detected lightning/.test(T.lightning.text), `${L} lightning flagged: tile with its level word (${T.lightning && T.lightning.text})`);
         check(!T.snow && !f.gustLine, `${L} no snow tile (not wintry) and no duplicate gust line`);
       }
-      if (kind === 'wintry') check(T.snow && T.snow.value === '1.9' && T.snow.tier === 'action' && T.snow.badge === 'Likely disruptive' && f.types === 'Rain>Mix>Snow', `${L} wintry: snow tile 1.9 in, Likely disruptive (${T.snow && T.snow.text}); types ${f.types}`);
+      if (kind === 'wintry') check(T.snow && T.snow.value === '1.9' && T.snow.tier === 'action' && T.snow.badge === 'Snow rating: likely disruptive' && f.types === 'Rain>Mix>Snow', `${L} wintry: snow tile 1.9 in, Likely disruptive (${T.snow && T.snow.text}); types ${f.types}`);
       if (kind === 'quiet') check(f.none && /^No weather concerns flagged for your event window\./.test(f.none) && f.rows.length === 0 && !T.gust && !T.snow && !T.lightning && /below your 25 mph limit/.test(f.gustLine || ''), `${L} quiet: one calm line, no window rows, no hazard tiles (${f.none})`);
       if (kind !== 'quiet') check(f.cue === 'Tap a row to jump to that time.', `${L} tap cue above the hazard rows (${f.cue})`);
       if (kind === 'quiet') check(f.cue === null, `${L} no tap cue without rows`);

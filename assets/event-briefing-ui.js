@@ -59,7 +59,7 @@
     const c = coverage(res);
     return `<aside class="brief-source${c.limited ? ' is-limited' : ''}" aria-label="Model source coverage"><span class="brief-source-dot" aria-hidden="true"></span><div><b>${esc(c.text)}</b><span>${esc(c.detail)}</span></div></aside>`;
   }
-  const rainAmount = x => !Number.isFinite(x) ? '—' : x > 0 && x < 0.01 ? '<0.01' : x === 0 ? '0' : x.toFixed(2);
+  const rainAmount = x => !Number.isFinite(x) ? 'No data' : x > 0 && x < 0.01 ? '<0.01' : x === 0 ? '0' : x.toFixed(2);
   const fin = Number.isFinite;
   const shortDay = (ms, tz) => new Date(ms).toLocaleDateString('en-US', {timeZone:tz, weekday:'short', month:'short', day:'numeric'});
   /* "Thu, Nov 12 · 2–5 PM EST" (or both dates when the window crosses midnight) */
@@ -123,7 +123,7 @@
     const when = [parts.join(', ') + z, ...it.phaseOnly.map(l => `${l} · exact time uncertain`)].filter(x => x.trim()).join('; ');
     const peak = it.windows.length ? Math.max(...it.windows.map(w => w.peak && fin(w.peak.v) ? w.peak.v : 0)) : it.peak && fin(it.peak.v) ? it.peak.v : null;
     let what;
-    if (it.key === 'wind') what = it.windows.length ? `Gusts reach your ${it.limit} mph limit (up to ${Math.round(peak)} mph)` : `Gusts up to ${fin(peak) ? Math.round(peak) : '—'} mph, below your ${it.limit} mph limit`;
+    if (it.key === 'wind') what = it.windows.length ? `Gusts reach your ${it.limit} mph limit (up to ${Math.round(peak)} mph)` : (fin(peak) ? `Gusts up to ${Math.round(peak)} mph, below your ${it.limit} mph limit` : `No gust data, so your ${it.limit} mph limit can't be checked`);
     else if (it.key === 'rain') what = `Rain: ${it.word ? it.word.toLowerCase() : 'possible'}${fin(peak) && peak > 0 ? ` (up to ${Math.round(peak)}% chance)` : ''}`;
     else if (it.key === 'lightning') { const w = it.windows.map(x => x.peak).filter(Boolean); what = `Lightning potential ${w.includes('High') ? 'high' : w.includes('Moderate') ? 'moderate' : 'possible'} (a forecast, not detected lightning)`; }
     else what = `${it.label}${it.word ? `: ${it.word.toLowerCase()}` : ''}`;
@@ -300,7 +300,7 @@
     const gapTxt = LD ? LD.L.gaps.incomplete : '', lines = planLines(A, b, lightAll, tz, (v) => U.pct(v), gapTxt);
     /* amounts in plain words for readers without a weather background: event totals with the forecast range across
        models, and when the heaviest hour is (V.totals: one blend over setup through teardown; see hourly-views.js) */
-    const T = V.totals || null, f2 = (v) => (Number.isFinite(v) ? v.toFixed(2) : '—'), f1 = (v) => (Number.isFinite(v) ? v.toFixed(1) : '—');
+    const T = V.totals || null, f2 = (v) => (Number.isFinite(v) ? v.toFixed(2) : 'no data'), f1 = (v) => (Number.isFinite(v) ? v.toFixed(1) : 'no data');
     const hr = (ms) => clock(ms, tz), lb = T && T.gap ? 'at least ' : 'about ';
     const rng = (r, f) => (r && Number.isFinite(r[0]) && Number.isFinite(r[1]) && r[1] - r[0] >= 0.01 ? ` (forecast range ${f(r[0])}–${f(r[1])} in.)` : '');
     const snowy = !!T && ((Number.isFinite(T.sn) && T.sn >= 0.05) || (T.peakSn && T.peakSn.v >= 0.02));
