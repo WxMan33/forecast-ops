@@ -226,3 +226,79 @@ jobs:
           git commit -q -m "Prospective ledger and preliminary scorecard (run $GITHUB_RUN_ID)" || exit 0
           for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done
           exit 1
+  rrfs-collect:
+    # CONUS RRFS predictor collection (research only; rrfs/COLLECTION.md). Independent of the forecast, preview and
+    # archive record: if RRFS is unavailable those still complete.
+    needs: [plan, current]
+    if: always() && needs.plan.outputs.stage != 'reports'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: '${{ github.ref_name }}' }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r tools/severe/requirements.txt scikit-learn==1.9.1 shapely==2.2.0
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with: { name: preview-current, path: tests/out/current }
+      - name: Collect RRFS 06Z and 12Z for the issue date
+        id: c
+        run: |
+          git pull -q --ff-only origin "$GITHUB_REF_NAME"
+          d=$(ls tests/out/current/current-*.json 2>/dev/null | head -1 | sed -E 's/.*current-([0-9-]+)\.json/\1/')
+          [ -n "$d" ] || d=$(date -u +%F)
+          echo "date=$d" >> "$GITHUB_OUTPUT"
+          PYTHONPATH=tools/severe python3 tools/severe/conus_rrfs.py collect --date "$d" --data-dir tests/out/rrfs-data
+      - name: Archive the arrays privately (never overwrite; verify by download)
+        env:
+          GH_TOKEN: ${{ secrets.SEVERE_GUIDANCE_ARCHIVE_WRITE_TOKEN }}
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+          DATE: ${{ steps.c.outputs.date }}
+        run: |
+          meta=research/severe/conus-v1/rrfs/collection/$DATE.json
+          f=tests/out/rrfs-data/severe-conus-rrfs-$DATE.npz
+          [ -f "$f" ] || { echo "no arrays to archive (see $meta)"; exit 0; }
+          python3 - "$meta" <<'PY'
+          import json, sys; m = json.load(open(sys.argv[1]))
+          if m.get("archive", {}).get("verified"): sys.exit("already archived")
+          PY
+          status=failed; detail=""
+          if [ -n "$GH_TOKEN" ] && [ -n "$ARCHIVE_REPO" ] && [ "$(gh repo view "$ARCHIVE_REPO" --json isPrivate --jq .isPrivate)" = true ]; then
+            tag="severe-conus-rrfs-${DATE:0:7}"
+            gh release view "$tag" --repo "$ARCHIVE_REPO" >/dev/null 2>&1 || gh release create "$tag" --repo "$ARCHIVE_REPO" \
+              --title "CONUS RRFS research predictors ${DATE:0:7}" --notes "Research-only CONUS RRFS Day 2 predictors; one asset per issue date, never overwritten."
+            mkdir -p tests/out/rb
+            if gh release download "$tag" --repo "$ARCHIVE_REPO" --pattern "$(basename "$f")" --dir tests/out/rb 2>/dev/null; then
+              status=exists; detail="asset already present; not overwritten"
+            elif gh release upload "$tag" "$f" --repo "$ARCHIVE_REPO"; then
+              rm -rf tests/out/rb; mkdir -p tests/out/rb
+              gh release download "$tag" --repo "$ARCHIVE_REPO" --pattern "$(basename "$f")" --dir tests/out/rb
+              if [ "$(sha256sum < "$f" | cut -c1-64)" = "$(sha256sum < "tests/out/rb/$(basename "$f")" | cut -c1-64)" ]; then status=verified; fi
+            fi
+          else
+            detail="archive token/repository missing or not private"
+          fi
+          python3 - "$meta" "$status" "$detail" <<'PY'
+          import json, sys
+          m = json.load(open(sys.argv[1])); st, detail = sys.argv[2], sys.argv[3]
+          m["archive"] = {"verified": st in ("verified", "exists"), "status": st, "detail": detail}
+          json.dump(m, open(sys.argv[1], "w"), indent=1); open(sys.argv[1], "a").write("\n")
+          PY
+          echo "archive status: $status $detail"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rrfs-collection-${{ steps.c.outputs.date }}
+          path: tests/out/rrfs-data
+          retention-days: 90
+      - name: Tally and commit the manifest
+        if: always()
+        run: |
+          PYTHONPATH=tools/severe python3 tools/severe/conus_rrfs.py tally
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/severe/conus-v1/rrfs/collection
+          git commit -q -m "CONUS RRFS collection ${{ steps.c.outputs.date }} (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done
+          exit 1

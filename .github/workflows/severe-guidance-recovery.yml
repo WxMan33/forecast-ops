@@ -1,0 +1,160 @@
+name: Severe research guidance archive recovery (one bundle)
+# Re-publishes ONE already-collected regional guidance bundle whose original publish failed, from the original
+# run's artifact. No collection or extraction is repeated. The original run record (timestamps, run id, attempt)
+# is published unchanged as the attempt receipt; the recovery is recorded separately.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/guidance-phase1/recovery/request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-guidance-recovery
+  cancel-in-progress: false
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - id: req
+        run: |
+          f=research/severe/guidance-phase1/recovery/request.json
+          for k in date day source_run source_attempt artifact; do echo "$k=$(jq -r .$k $f)" >> "$GITHUB_OUTPUT"; done
+      - uses: actions/download-artifact@v4
+        with: { name: '${{ steps.req.outputs.artifact }}', path: tests/out/orig, run-id: '${{ steps.req.outputs.source_run }}', github-token: '${{ github.token }}' }
+      - name: Use the collector's own archive code from main (unchanged)
+        run: |
+          git fetch -q origin main
+          mkdir -p tests/out/main-tools && git show origin/main:tools/severe/guidance_archive.py > tests/out/main-tools/guidance_archive.py
+          git show origin/main:tools/severe/guidance_archive.py | sha256sum
+          find tests/out/orig -maxdepth 3 | sort | head -40
+      - name: Verify the surviving bundle against the original run's own records
+        env:
+          DATE: ${{ steps.req.outputs.date }}
+          DAY: ${{ steps.req.outputs.day }}
+          RUN: ${{ steps.req.outputs.source_run }}
+          ATT: ${{ steps.req.outputs.source_attempt }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, tarfile, pathlib, sys
+          o = pathlib.Path("tests/out/orig"); date, day = os.environ["DATE"], int(os.environ["DAY"])
+          b = o / "bundle" / f"severe-guidance-{date}-day{day}.tar.gz"
+          info = json.loads((o / "bundle-info.json").read_text())
+          run = json.loads((o / "guidance-study" / "run.json").read_text())
+          pub = json.loads((o / "publish.json").read_text()) if (o / "publish.json").exists() else None
+          sha = hashlib.sha256(b.read_bytes()).hexdigest()
+          with tarfile.open(b, "r:gz") as t:
+              ident = json.loads(t.extractfile("data-identity.json").read())
+              inner_run = json.loads(t.extractfile("run.json").read()) if "run.json" in t.getnames() else None
+          checks = {
+              "bundle_sha256_matches_bundle_info": sha == info["sha256"],
+              "data_sha256_matches_bundle_info": ident["data_sha256"] == info["data_sha256"],
+              "run_record_in_bundle_matches_artifact": inner_run is None or inner_run == run,
+              "source_run_and_attempt": str(run["collection"]["run_id"]) == os.environ["RUN"] and str(run["collection"]["run_attempt"]) == os.environ["ATT"],
+              "collection_complete": run["collection_status"] == "complete",
+              "original_publish_failed": pub is not None and pub.get("outcome") == "error",
+          }
+          out = {"bundle": b.name, "bundle_sha256": sha, "data_sha256": ident["data_sha256"], "bundle_bytes": b.stat().st_size,
+                 "original_run_record": run, "original_publish_result": pub, "checks": checks}
+          pathlib.Path("tests/out/verify.json").write_text(json.dumps(out, indent=1))
+          print(json.dumps(checks, indent=1)); print("bundle sha256", sha)
+          if not all(checks.values()):
+              sys.exit("::error::the surviving bundle does not match the original run's records; nothing published")
+          PY
+      - name: Confirm the private archive is missing the asset and this attempt's receipt
+        env:
+          GH_TOKEN: ${{ secrets.SEVERE_GUIDANCE_ARCHIVE_WRITE_TOKEN }}
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+          DATE: ${{ steps.req.outputs.date }}
+          DAY: ${{ steps.req.outputs.day }}
+          RUN: ${{ steps.req.outputs.source_run }}
+          ATT: ${{ steps.req.outputs.source_attempt }}
+        run: |
+          [ "$(gh repo view "$ARCHIVE_REPO" --json isPrivate --jq .isPrivate)" = true ] || { echo "::error::archive is not private/readable"; exit 1; }
+          tag="severe-guidance-${DATE:0:7}"
+          gh release view "$tag" --repo "$ARCHIVE_REPO" --json assets --jq '.assets[].name' | sort > tests/out/assets-before.txt || true
+          echo "assets in $tag before recovery:"; cat tests/out/assets-before.txt
+          for n in "severe-guidance-$DATE-day$DAY.tar.gz" "severe-guidance-$DATE-day$DAY.run-$RUN-$ATT.json"; do
+            if grep -qx "$n" tests/out/assets-before.txt; then echo "::error::$n already exists in the archive; nothing published"; exit 1; fi
+          done
+          echo "confirmed missing: data asset and attempt receipt"
+      - name: Publish the exact bundle with the original run record, then verify by download
+        env:
+          GH_TOKEN: ${{ secrets.SEVERE_GUIDANCE_ARCHIVE_WRITE_TOKEN }}
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+          DATE: ${{ steps.req.outputs.date }}
+          DAY: ${{ steps.req.outputs.day }}
+          RUN: ${{ steps.req.outputs.source_run }}
+          ATT: ${{ steps.req.outputs.source_attempt }}
+        run: |
+          python3 tests/out/main-tools/guidance_archive.py publish --bundle "tests/out/orig/bundle/severe-guidance-$DATE-day$DAY.tar.gz" \
+            --record tests/out/orig/guidance-study/run.json --repository "$ARCHIVE_REPO" --date "$DATE" --day "$DAY" \
+            --receipt-dir tests/out/receipt --result tests/out/publish.json
+          cat tests/out/publish.json
+          tag="severe-guidance-${DATE:0:7}"; mkdir -p tests/out/readback
+          gh release download "$tag" --repo "$ARCHIVE_REPO" --dir tests/out/readback \
+            --pattern "severe-guidance-$DATE-day$DAY.tar.gz" --pattern "severe-guidance-$DATE-day$DAY.run-$RUN-$ATT.json"
+          python3 - <<'PY'
+          import hashlib, json, os, pathlib, sys
+          d, day, run, att = os.environ["DATE"], os.environ["DAY"], os.environ["RUN"], os.environ["ATT"]
+          v = json.loads(pathlib.Path("tests/out/verify.json").read_text())
+          rb = pathlib.Path("tests/out/readback")
+          asset_sha = hashlib.sha256((rb / f"severe-guidance-{d}-day{day}.tar.gz").read_bytes()).hexdigest()
+          receipt = json.loads((rb / f"severe-guidance-{d}-day{day}.run-{run}-{att}.json").read_text())
+          ok = {"downloaded_asset_sha256_matches": asset_sha == v["bundle_sha256"],
+                "receipt_keeps_original_run_record": receipt["run"] == v["original_run_record"],
+                "receipt_data_sha256_matches": receipt["data_sha256"] == v["data_sha256"]}
+          print(json.dumps(ok, indent=1))
+          pathlib.Path("tests/out/readback.json").write_text(json.dumps({"asset_sha256": asset_sha, "checks": ok}, indent=1))
+          if not all(ok.values()):
+              sys.exit("::error::read-back verification failed")
+          PY
+      - name: Record the recovery separately (archive asset + research-branch copy)
+        env:
+          ARTIFACT: ${{ steps.req.outputs.artifact }}
+          GH_TOKEN: ${{ secrets.SEVERE_GUIDANCE_ARCHIVE_WRITE_TOKEN }}
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+          DATE: ${{ steps.req.outputs.date }}
+          DAY: ${{ steps.req.outputs.day }}
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, datetime
+          v = json.loads(pathlib.Path("tests/out/verify.json").read_text())
+          rec = {"kind": "archive_recovery", "note": "Re-publication of an already-collected bundle whose original publish failed. "
+                 "No data was re-collected; the original collection run record and its timestamps are the attempt receipt unchanged. "
+                 "This recovery is recorded separately and is not a collection attempt.",
+                 "date": os.environ["DATE"], "day": int(os.environ["DAY"]),
+                 "source": {"run_id": v["original_run_record"]["collection"]["run_id"], "run_attempt": v["original_run_record"]["collection"]["run_attempt"],
+                            "artifact": os.environ.get("ARTIFACT", ""), "original_publish_result": v["original_publish_result"]},
+                 "bundle": {"name": v["bundle"], "sha256": v["bundle_sha256"], "data_sha256": v["data_sha256"], "bytes": v["bundle_bytes"]},
+                 "pre_publish_checks": v["checks"], "assets_before": pathlib.Path("tests/out/assets-before.txt").read_text().split(),
+                 "publish_result": json.loads(pathlib.Path("tests/out/publish.json").read_text()),
+                 "readback": json.loads(pathlib.Path("tests/out/readback.json").read_text()),
+                 "recovery_run": {"run_id": os.environ["GITHUB_RUN_ID"], "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"], "sha": os.environ["GITHUB_SHA"]},
+                 "recovered_at": datetime.datetime.now(datetime.timezone.utc).isoformat()}
+          name = f"severe-guidance-{rec['date']}-day{rec['day']}.recovery-run-{os.environ['GITHUB_RUN_ID']}-{os.environ['GITHUB_RUN_ATTEMPT']}.json"
+          pathlib.Path("tests/out", name).write_text(json.dumps(rec, indent=1, sort_keys=True) + "\n")
+          dest = pathlib.Path("research/severe/guidance-phase1/recovery") / f"{rec['date']}-day{rec['day']}.json"
+          dest.write_text(json.dumps(rec, indent=1, sort_keys=True) + "\n")
+          print(name)
+          PY
+          tag="severe-guidance-${DATE:0:7}"
+          f=$(ls tests/out/severe-guidance-$DATE-day$DAY.recovery-run-*.json)
+          gh release upload "$tag" "$f" --repo "$ARCHIVE_REPO"
+          mkdir -p tests/out/rb2 && gh release download "$tag" --repo "$ARCHIVE_REPO" --pattern "$(basename "$f")" --dir tests/out/rb2
+          cmp "$f" "tests/out/rb2/$(basename "$f")" && echo "recovery record verified in archive"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/severe/guidance-phase1/recovery
+          git commit -q -m "Record the archive recovery of the $DATE Day $DAY guidance bundle (run $GITHUB_RUN_ID)"
+          for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done
+          exit 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: guidance-recovery-${{ steps.req.outputs.date }}-day${{ steps.req.outputs.day }}
+          path: tests/out
+          retention-days: 90
