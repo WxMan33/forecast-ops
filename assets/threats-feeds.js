@@ -943,10 +943,13 @@
     if (!Object.keys(out).length) throw new Error("no rainfall windows listed");
     return out;
   }
-  /* identify -> { inches: number|null, noEstimate: bool, item, end: ISO|null } */
+  /* identify -> { inches: number|null, noEstimate: bool, item, end: ISO|null }
+     The raw pixel values are MILLIMETRES, although the service and its legend say inches: NOAA's own rendering (rft_*hr)
+     paints each point in the inch class of value / 25.4 (checked 2026-11-25 at CVG, Louisville, Dallas and Nashville; CVG's
+     72 h 5.9 = 0.23 in against 0.24 in measured at the airport). So the value is converted here. */
   function parseMrmsPoint(j) {
     arcErr(j); const v = j.value === "NoData" || j.value == null ? null : +j.value, it = ((j.catalogItems || {}).features || [])[0], a = it ? it.attributes || {} : {};
-    return { inches: v == null || !isFinite(v) || v < 0 ? null : Math.round(v * 100) / 100, noEstimate: v == null || !isFinite(v) || v < 0, item: a.name || null, end: a.idp_validendtime ? new Date(a.idp_validendtime).toISOString() : null };
+    return { inches: v == null || !isFinite(v) || v < 0 ? null : Math.round((v / 25.4) * 100) / 100, mm: v == null || !isFinite(v) || v < 0 ? null : v, noEstimate: v == null || !isFinite(v) || v < 0, item: a.name || null, end: a.idp_validendtime ? new Date(a.idp_validendtime).toISOString() : null };
   }
   /* point query -> { low, high, issued, start, end } (low: highest threshold area containing the point; none: under 0.01 in) */
   function parseWpcPoint(j) {
