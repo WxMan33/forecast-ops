@@ -440,6 +440,174 @@ def sampling_combine(a):
     print("\n".join(L))
 
 
+NBM_ARMS = ("hrrr", "hrrr_nbm")
+NBM_V41 = "2023-01-17"  # NBM index fingerprint changes 119 -> 164 records (v4.0 -> v4.1)
+
+
+def nbm_load(root, case, keep):
+    meta_p = Path(root) / case / "nbm.json"
+    if not meta_p.exists():
+        st = Path(root) / "status" / f"{case}.json"
+        return None, (json.loads(st.read_text()).get("status", "missing") if st.exists() else "not_extracted")
+    meta = json.loads(meta_p.read_text())
+    if meta.get("status") != "complete":
+        return None, meta.get("status", "incomplete")
+    if not meta["listed_before_cutoff"]:
+        return None, "listed_after_cutoff"
+    path = meta_p.parent / meta["artifact"]["file"]
+    if digest(path) != meta["artifact"]["sha256"]:
+        raise ValueError(f"{case}: NBM artifact hash mismatch")
+    with np.load(path, allow_pickle=False) as z:
+        return z["features"][keep].astype(np.float32), "ok"
+
+
+def nbm_fold(a):
+    """NBM gate (research/severe/conus-v1/nbm/RULES.md): HRRR-only vs HRRR + NBM on the same matched dates,
+    folds, training-row sample, calibration step and scoring rows."""
+    fitted, sha = check_frozen(a.models, a.manifest)
+    keep, scales, coords = fitted["keep"], fitted["scales"][DAY], fitted["coords"]
+    files = case_files(a.conus)
+    cases = sorted(files)
+    excluded, nbm = {}, {}
+    for c in cases:
+        f, why = nbm_load(a.nbm, c, keep)
+        if f is None:
+            excluded[c] = why
+        else:
+            nbm[c] = f
+    matched = [c for c in cases if c in nbm]
+    with np.load(files[cases[0]][0], allow_pickle=False) as d:
+        names = d["feature_names"].tolist()
+    reg = region_index(None, regions(coords), keep)
+    test_cases = [c for c in matched if S.fold_of(c) == a.fold]
+    train_cases = [c for c in matched if S.fold_of(c) != a.fold]
+    xs, ns, ys, ws, gs = [], [], [], [], []
+    for c in train_cases:
+        x, y, pts = load_case(*files[c], keep, scales, names, coords)
+        rng = np.random.default_rng(int(c.replace("-", "")))
+        m = (y > 0) | (rng.random(len(y)) < NEG_KEEP)
+        xs.append(x[m]); ns.append(nbm[c][pts][m]); ys.append(y[m])
+        ws.append(np.where(y[m] > 0, 1.0, 1.0 / NEG_KEEP)); gs.append(np.full(m.sum(), S.fold_of(c) % 3))
+    x, xn, y, w, g = (np.concatenate(v) for v in (xs, ns, ys, ws, gs))
+    del xs, ns
+    models = {"hrrr": fit(x, y, w, g)}
+    print(f"fold {a.fold}: hrrr fitted ({len(y)} rows)", flush=True)
+    models["hrrr_nbm"] = fit(np.hstack([x, xn]), y, w, g)
+    print(f"fold {a.fold}: hrrr_nbm fitted", flush=True)
+    del x, xn
+    sums = {k: [] for k in models}
+    for c in test_cases:
+        xt, yt, pts = load_case(*files[c], keep, scales, names, coords)
+        rt = reg[pts]
+        inputs = {"hrrr": xt, "hrrr_nbm": np.hstack([xt, nbm[c][pts]])}
+        for k, (tree, cal) in models.items():
+            p = expit(cal[0] + cal[1] * tree.decision_function(inputs[k]))
+            hi = p >= 0.05
+            for r in range(len(REGIONS)):
+                m = rt == r
+                sums[k].append([c, r, int(m.sum()), float(yt[m].sum()), float(((p[m] - yt[m]) ** 2).sum()), float(p[m].sum()),
+                                int((hi[m] & (yt[m] > 0)).sum()), int((hi[m] & (yt[m] == 0)).sum())])
+    out = {"fold": a.fold, "frozen_models_sha256": sha, "matched_dates": len(matched), "excluded": excluded,
+           "train_dates": len(train_cases), "test_dates": test_cases, "neg_keep": NEG_KEEP, "regions": list(REGIONS),
+           "nbm_features": NBM_FEATURES_NOTE, "sums": sums}
+    a.output.mkdir(parents=True, exist_ok=True)
+    (a.output / f"fold-{a.fold}.json").write_text(json.dumps(out) + "\n")
+
+
+NBM_FEATURES_NOTE = "conus_nbm.FEATURES (7 columns, raw units: m/s and %), appended to the frozen engineered HRRR predictors"
+
+
+def nbm_combine(a):
+    from conus_followup import SAMPLE_KM2
+    parts = [json.loads(f.read_text()) for f in sorted(a.input.glob("fold-*.json"))]
+    if sorted(p["fold"] for p in parts) != list(range(S.FOLDS)):
+        raise ValueError("Need all 6 folds")
+    excluded = parts[0]["excluded"]
+    rows = {k: [] for k in NBM_ARMS}
+    for p in parts:
+        for k in NBM_ARMS:
+            rows[k] += p["sums"][k]
+    dates = sorted({r[0] for r in rows["hrrr"]})
+    di = {d: i for i, d in enumerate(dates)}
+    A = {k: np.zeros((len(dates), len(REGIONS), 6)) for k in NBM_ARMS}  # n, events, sse, sum p, hits, false-alarm samples
+    for k in NBM_ARMS:
+        for c, r, n, sy, sse, sp, hit, fa in rows[k]:
+            A[k][di[c], r] = (n, sy, sse, sp, hit, fa)
+    clim = float(A["hrrr"][..., 1].sum() / A["hrrr"][..., 0].sum())
+
+    def bss(v):
+        n, sy, sse = v[..., 0].sum(), v[..., 1].sum(), v[..., 2].sum()
+        return float(1 - sse / (sy - 2 * clim * sy + n * clim * clim))
+
+    rng = np.random.default_rng(20261125)
+    idx = [rng.integers(0, len(dates), len(dates)) for _ in range(2000)]
+
+    def diff(sel_dates, sl):
+        a1 = A["hrrr_nbm"][sel_dates][:, sl, 2].reshape(len(sel_dates), -1).sum(1)
+        a2 = A["hrrr"][sel_dates][:, sl, 2].reshape(len(sel_dates), -1).sum(1)
+        n = A["hrrr"][sel_dates][:, sl, 0].reshape(len(sel_dates), -1).sum(1)
+        r2 = np.random.default_rng(7)
+        bs = []
+        for _ in range(2000):
+            j = r2.integers(0, len(sel_dates), len(sel_dates))
+            bs.append((a1[j].sum() - a2[j].sum()) / n[j].sum())
+        return [float((a1.sum() - a2.sum()) / n.sum()), float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))]
+
+    alld = np.arange(len(dates))
+    fl = REGIONS.index("florida_gulf_south")
+    noreport = A["hrrr"][..., 1].sum(1) == 0
+    res = {"matched_dates": len(dates), "excluded": excluded, "excluded_count": len(excluded),
+           "development_climatology": clim,
+           "bss": {k: {"national": bss(A[k])} | {REGIONS[r]: bss(A[k][:, r]) for r in range(len(REGIONS))} for k in NBM_ARMS},
+           "brier_nbm_minus_hrrr": {"national": diff(alld, slice(None))} | {REGIONS[r]: diff(alld, slice(r, r + 1)) for r in range(len(REGIONS))},
+           "calibration_ratio": {k: float(A[k][..., 3].sum() / A[k][..., 1].sum()) for k in NBM_ARMS},
+           "florida_gulf_calibration_ratio": {k: float(A[k][:, fl, 3].sum() / A[k][:, fl, 1].sum()) for k in NBM_ARMS},
+           "hits_at_5pct": {k: int(A[k][..., 4].sum()) for k in NBM_ARMS},
+           "event_samples": int(A["hrrr"][..., 1].sum()),
+           "false_alarm_area_km2_at_5pct": {k: float(A[k][..., 5].sum() * SAMPLE_KM2) for k in NBM_ARMS},
+           "area_at_5pct_on_no_report_dates_km2_per_date": {k: float((A[k][noreport][..., 5].sum()) * SAMPLE_KM2 / max(1, noreport.sum())) for k in NBM_ARMS},
+           "by_nbm_version": {}}
+    early = np.array([d < NBM_V41 for d in dates])
+    for tag, m in (("v4.0 (before 2023-01-17)", early), ("v4.1 (from 2023-01-17)", ~early)):
+        res["by_nbm_version"][tag] = {"dates": int(m.sum()), "national": diff(alld[m], slice(None))}
+    res["hit_retention"] = res["hits_at_5pct"]["hrrr_nbm"] / max(1, res["hits_at_5pct"]["hrrr"])
+    c1 = res["brier_nbm_minus_hrrr"]["national"][2] < 0
+    c2 = not any(res["brier_nbm_minus_hrrr"][r][1] > 0 for r in REGIONS)
+    c3 = abs(res["calibration_ratio"]["hrrr_nbm"] - 1) <= 0.15
+    c4 = res["hit_retention"] >= 0.95
+    res["criteria"] = {"1_national_better": bool(c1), "2_no_region_worse": bool(c2), "3_calibrated_15pct": bool(c3),
+                       "4_hit_retention_ge_95pct": bool(c4)}
+    res["pass"] = bool(c1 and c2 and c3 and c4)
+    res["protected_2025_outcomes_accessed"] = False
+    res["verification_2021_loaded"] = False
+    a.output.mkdir(parents=True, exist_ok=True)
+    (a.output / "gate.json").write_text(json.dumps(res, indent=1) + "\n")
+    why = {}
+    for c, r in excluded.items():
+        why.setdefault(r, []).append(c)
+    L = [f"# NBM gate (Day 2 wind, HRRR-only vs HRRR + NBM): {'PASS' if res['pass'] else 'FAIL'}", "",
+         f"{len(dates)} matched held-out 2022-23 dates (6 month-grouped folds); {len(excluded)} excluded from both arms: "
+         + (", ".join(f"{k}: {', '.join(v)}" for k, v in why.items()) or "none") + ".", "",
+         f"BSS vs development climatology {clim:.5f}.", "",
+         "| Arm | National | " + " | ".join(REGIONS) + " | mean p / obs | FL/Gulf mean p / obs |", "|---|---|" + "---|" * len(REGIONS) + "---|---|"]
+    for k in NBM_ARMS:
+        L.append(f"| {k} | {res['bss'][k]['national']:.3f} | " + " | ".join(f"{res['bss'][k][r]:.3f}" for r in REGIONS)
+                 + f" | {res['calibration_ratio'][k]:.3f} | {res['florida_gulf_calibration_ratio'][k]:.3f} |")
+    L += ["", "Brier (HRRR + NBM − HRRR-only), 95% whole-date interval:", ""]
+    L += [f"- {k}: {v[0]:+.6f} ({v[1]:+.6f} to {v[2]:+.6f})" for k, v in res["brier_nbm_minus_hrrr"].items()]
+    L += ["", "By NBM version period (national):", ""]
+    L += [f"- {k} ({v['dates']} dates): {v['national'][0]:+.6f} ({v['national'][1]:+.6f} to {v['national'][2]:+.6f})" for k, v in res["by_nbm_version"].items()]
+    L += ["", f"Hits at >=5% (of {res['event_samples']} report samples): HRRR {res['hits_at_5pct']['hrrr']}, HRRR+NBM {res['hits_at_5pct']['hrrr_nbm']} "
+          f"(retention {res['hit_retention']:.3f})",
+          f"False-alarm area at >=5% (samples with no report, summed over dates): HRRR {res['false_alarm_area_km2_at_5pct']['hrrr']:,.0f} km², "
+          f"HRRR+NBM {res['false_alarm_area_km2_at_5pct']['hrrr_nbm']:,.0f} km²",
+          f"Area at >=5% per no-report date: HRRR {res['area_at_5pct_on_no_report_dates_km2_per_date']['hrrr']:,.0f} km², "
+          f"HRRR+NBM {res['area_at_5pct_on_no_report_dates_km2_per_date']['hrrr_nbm']:,.0f} km²", "",
+          f"Criteria: {res['criteria']}"]
+    (a.output / "gate.md").write_text("\n".join(L) + "\n")
+    print("\n".join(L))
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -463,6 +631,16 @@ def main():
     sc = sub.add_parser("sampling-combine")
     sc.add_argument("--input", type=Path, required=True)
     sc.add_argument("--output", type=Path, required=True)
+    nf = sub.add_parser("nbm-fold")
+    nf.add_argument("--fold", type=int, required=True)
+    nf.add_argument("--conus", type=Path, required=True)
+    nf.add_argument("--nbm", type=Path, required=True)
+    nf.add_argument("--output", type=Path, required=True)
+    nf.add_argument("--models", type=Path, default=Path("research/severe/conus-v1/frozen/models.pkl"))
+    nf.add_argument("--manifest", type=Path, default=Path("research/severe/conus-v1/frozen/manifest.json"))
+    nc = sub.add_parser("nbm-combine")
+    nc.add_argument("--input", type=Path, required=True)
+    nc.add_argument("--output", type=Path, required=True)
     z = sub.add_parser("freeze")
     z.add_argument("--conus", type=Path, required=True)
     z.add_argument("--output", type=Path, required=True)
@@ -479,7 +657,8 @@ def main():
         q.add_argument("--manifest", type=Path, default=Path("research/severe/conus-v1/frozen/manifest.json"))
     a = p.parse_args()
     {"fold": fold, "combine": combine, "freeze": freeze, "verify": verify,
-     "sampling-fold": sampling_fold, "sampling-combine": sampling_combine}[a.cmd](a)
+     "sampling-fold": sampling_fold, "sampling-combine": sampling_combine,
+     "nbm-fold": nbm_fold, "nbm-combine": nbm_combine}[a.cmd](a)
 
 
 if __name__ == "__main__":
