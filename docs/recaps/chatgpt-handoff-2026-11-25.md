@@ -88,6 +88,14 @@ UPDATE, Nov 25 early morning (03:30 UTC)
     - National calibration 0.999; hit retention 1.014; area ≥5% on no-report dates 37,087 → 32,050 km² per date.
     - The national gain held in both NBM version periods (v4.0 −0.000099, v4.1 −0.000063).
     - Outcome: nothing frozen; not added to the archive. NBM helps nationally but makes the Florida/Gulf weakness slightly worse.
+  - MARCH–APRIL FLORIDA/GULF DIAGNOSTIC (closed out Nov 25; run 45654910378; verdict unchanged):
+    - Reproduction: both folds matched the original gate exactly. Fold 2's first attempt mismatched for an unknown reason (an audit found no code, input, package or thread difference; the CPU model was never logged). The rerun matched all 1,220 rows with zero difference.
+    - March–April = 76% of the net Florida/Gulf loss.
+    - Main net driver: more confident existing false alarms. At no-report points where both arms were at or above 5%, mean p went 12.9% → 13.9%, which is +92% of the net loss. Points that stayed below 5% improved.
+    - Report points: big offsetting effects (NBM lowered: +57%; NBM raised: −54%).
+      - Mar 11, 2022: NBM lowered probabilities where reports were (report points at ≥5%: 155 → 134).
+      - Apr 29, 2023: NBM raised an already-elevated no-report area in southeast Florida.
+    - Clue only: nearby NBM 12 h thunder probability has the strongest association (r ≈ +0.26). A controlled comparison would be needed to show that removing it fixes Florida/Gulf while keeping the national gain.
 - SAMPLING CHECK (development only; same folds, recipe, calibration and scoring rows): sampling does NOT explain the 2021 tie.
   - National BSS: 96 days all rows 0.096; 96 days sampled 0.098; 728 days sampled 0.115.
   - Sampling effect: −0.000017 Brier (95% CI −0.000030 to −0.000005). Sampling helped slightly.
