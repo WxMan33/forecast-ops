@@ -1,1 +1,1 @@
-{"request": 1, "scope": "folds 2 and 3 only; March-April Florida/Gulf; development data; diagnostic of the failed HRRR+NBM candidate (verdict unchanged)", "original_run": 45544910438}
+{"request": 2, "scope": "rerun fold 2 once with identical settings after an audit found no code/input/package/thread difference; compare with the original (run 45544910438) and the failed attempt (run 45647038211); reuse fold 3 from run 45647038211; tolerance unchanged", "original_run": 45544910438}

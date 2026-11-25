@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        fold: [2, 3]
+        fold: [2]  # rerun 2 (fold 3 reproduced in run 45647038211 and is reused)
     env: { OPENBLAS_NUM_THREADS: '4', OMP_NUM_THREADS: '4' }
     steps:
       - uses: actions/checkout@v4
@@ -44,13 +44,22 @@ jobs:
         with: { pattern: 'nbm-b*', merge-multiple: true, path: tests/out/nbm, run-id: '${{ env.NBM_RUN }}', github-token: '${{ github.token }}' }
       - uses: actions/download-artifact@v4
         with: { name: 'nbm-gate-fold-${{ matrix.fold }}', path: tests/out/original, run-id: '${{ env.NBM_RUN }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { name: 'nbm-diag-fold-${{ matrix.fold }}', path: tests/out/previous, run-id: '45647038211', github-token: '${{ github.token }}' }
+      - name: Environment record (logging only)
+        run: |
+          lscpu | grep -E "Model name|Vendor ID|^CPU\(s\)|Flags" | cut -c1-300
+          python3 -c "import numpy, sklearn; numpy.show_config()" | head -40
+          pip freeze
+          sha256sum tests/out/previous/*
       - name: Refit fold ${{ matrix.fold }}, reproduce the original totals, save March-April Florida/Gulf points
         run: |
           mkdir -p tests/out/dev
           for d in tests/out/x/conus/2022-* tests/out/x/conus/2023-*; do ln -s "$PWD/$d" tests/out/dev/; done
           sha256sum tests/out/original/fold-${{ matrix.fold }}.json
           PYTHONPATH=tools/severe python3 tools/severe/conus_nbm_diag.py fold --fold ${{ matrix.fold }} --conus tests/out/dev \
-            --nbm tests/out/nbm --original tests/out/original/fold-${{ matrix.fold }}.json --output tests/out/diag
+            --nbm tests/out/nbm --original tests/out/original/fold-${{ matrix.fold }}.json --output tests/out/diag \
+            --previous tests/out/previous/mismatch-fold-${{ matrix.fold }}.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -67,6 +76,8 @@ jobs:
       - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 shapely==2.2.0 matplotlib==3.11.2
       - uses: actions/download-artifact@v4
         with: { pattern: 'nbm-diag-fold-*', merge-multiple: true, path: tests/out/diag }
+      - uses: actions/download-artifact@v4
+        with: { name: 'nbm-diag-fold-3', path: tests/out/diag, run-id: '45647038211', github-token: '${{ github.token }}' }
       - uses: actions/download-artifact@v4
         with: { pattern: 'nbm-gate-fold-*', merge-multiple: true, path: tests/out/originals, run-id: '${{ env.NBM_RUN }}', github-token: '${{ github.token }}' }
       - name: Analyse, map, commit

@@ -105,6 +105,23 @@ def fold(a):
                 if len(problems) > 50:
                     break
     a.output.mkdir(parents=True, exist_ok=True)
+    # full totals of this attempt, always written (logging only; nothing above depends on it)
+    (a.output / f"sums-fold-{a.fold}.json").write_text(json.dumps({"fold": a.fold, "sums": sums}) + "\n")
+    if a.previous:
+        prev = json.loads(Path(a.previous).read_text())
+        cmp = {"listed_rows": 0, "matches_previous_attempt": 0, "matches_original": 0}
+        lookup = {(r[0], r[1]): r for r in sums["hrrr_nbm"]}
+        for item in prev:
+            if not isinstance(item, dict) or item.get("arm") != "hrrr_nbm":
+                continue
+            row = lookup[(item["new"][0], item["new"][1])]
+            cmp["listed_rows"] += 1
+            same = lambda u, v: u[:4] == v[:4] and u[6:] == v[6:] and close(u[4], v[4]) and close(u[5], v[5])
+            cmp["matches_previous_attempt"] += same(row, item["new"])
+            cmp["matches_original"] += same(row, item["original"])
+        (a.output / f"vs-previous-attempt-fold-{a.fold}.json").write_text(json.dumps(cmp, indent=1) + "\n")
+        print(f"fold {a.fold}: on the {cmp['listed_rows']} rows listed by the failed attempt, this run matches the failed attempt "
+              f"on {cmp['matches_previous_attempt']} and the original on {cmp['matches_original']}", flush=True)
     if problems:
         (a.output / f"mismatch-fold-{a.fold}.json").write_text(json.dumps(problems, indent=1) + "\n")
         print(f"::error::fold {a.fold} does not reproduce the original artifact ({len(problems)} differences); stopping")
@@ -239,6 +256,7 @@ def main():
     f.add_argument("--nbm", type=Path, required=True)
     f.add_argument("--original", type=Path, required=True, help="the verified original fold-N.json")
     f.add_argument("--output", type=Path, required=True)
+    f.add_argument("--previous", type=Path, default=None, help="mismatch-fold-N.json of an earlier failed attempt")
     c = sub.add_parser("combine")
     c.add_argument("--diag", type=Path, required=True)
     c.add_argument("--originals", type=Path, required=True)
