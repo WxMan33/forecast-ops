@@ -168,13 +168,16 @@
   }
   /* the same event (venue, schedule) keeps its selected hour across refreshes; anything else starts at the focus hour */
   let selKey = null;
-  const selectionKey = () => JSON.stringify([ev.id || ev.name, ev.loc.lat, ev.loc.lon, ev.tz, ev.times]);
+  const selectionKey = () => JSON.stringify([ev.id || ev.name, ev.loc.lat, ev.loc.lon, ev.tz, ev.times, ev.slots || null]);
   function context() {
     const w = C.event.windows(ev), ph = Object.fromEntries(w.map((x) => [x.key, x])), main = ph.event || ph.all, tz = ev.tz;
     $("sampleTag").hidden = !isSample(); $("resetBtn").hidden = isSample();
     $("evName").textContent = ev.name.replace(/ \(sample\)$/, "");
     $("evVenue").textContent = ev.loc.name;
-    $("evWhen").textContent = main ? `${BUI.dateSpan(main.startMs, main.endMs, tz)}${ph.setup ? ` · setup from ${fmt.clock(ph.setup.startMs, tz)}` : ""}` : "";
+    /* planner-defined slots: the whole schedule's dates and times (the slots are listed under Event schedule) */
+    const slotted = C.event.hasSlots(ev) && w.length > 2;
+    $("evWhen").textContent = slotted && ph.all ? BUI.dateSpan(ph.all.startMs, ph.all.endMs, tz) : main ? `${BUI.dateSpan(main.startMs, main.endMs, tz)}${ph.setup ? ` · setup from ${fmt.clock(ph.setup.startMs, tz)}` : ""}` : "";
+    const pn = $("secPhases") && $("secPhases").querySelector("summary .bx-note"); if (pn) pn.textContent = C.event.hasSlots(ev) ? w.filter((x) => x.key !== "all").map((x) => x.label).join(", ") : "setup, gates, event, teardown";
     if (window.EventThreats) window.EventThreats.update(ev); // weather threats follow the venue and schedule on screen
   }
 
@@ -242,7 +245,7 @@
     const top = b.top, checks = S.checkAgain(ctx, b, U.NAMES), next = checks[0];
     /* one set of hourly values for everything below: the grid, the phase summaries and the printout */
     const V = window.HourlyViews.eventView({ C, S, M: window.HourlyModel, ctx, brief: b, thr, tz, now });
-    const PS = window.HourlyModel.phaseSummaries(S, b, V.hrs, V.cover), live = PS.filter((p) => p.covered);
+    const PS = window.HourlyModel.phaseSummaries(S, b, V.hrs, V.cover, V.coverAt), live = PS.filter((p) => p.covered);
     const peak = live.filter((p) => p.peakPop).reduce((a, p) => (!a || p.peakPop.v > a.v ? p.peakPop : a), null);
     const lightAll = lightningOf(PS), nwsTh = window.HourlyModel.nwsThunder(ctx.nws, b.all.startMs, b.all.endMs);
     const A = BUI.attention({ b, V, S, thr }); // the same hourly values and venue limit feed the screen tracks and the printout
@@ -431,7 +434,7 @@
     const showHour = (ms) => { const i = V.span.indexOf(ms), d = $("evGridDetail"); if (i < 0) { d.hidden = true; return; } d.hidden = false; d.innerHTML = V.detail(i); };
     const pick = (ms) => (fin(ms) ? Math.min(V.span[V.span.length - 1], Math.max(V.span[0], Math.floor(ms / H) * H)) : V.span[0]);
     const sel0 = pick(bus && bus.get());
-    const grid = G.render($("evGrid"), { axis: V.axis, rows: V.rows, selected: sel0, now, label: "Event hour by hour", caption: "Event weather hour by hour, setup through teardown",
+    const grid = G.render($("evGrid"), { axis: V.axis, rows: V.rows, selected: sel0, now, label: "Event hour by hour", caption: C.event.hasSlots(ev) ? "Event weather hour by hour, across your time slots" : "Event weather hour by hour, setup through teardown",
       onSelect: (ms) => { if (bus) bus.set(ms, "grid"); showHour(ms); } });
     $("evGridLegend").innerHTML = `<p class="bx-note">Swipe for more hours · tap an hour for details.</p><details class="bx-more"><summary>How to read these hours</summary>${G.legend(V.legend)}<p class="bx-note">${esc(V.note)}</p><p class="bx-note">Follow NWS warnings and your venue's lightning policy for live decisions.</p></details>`;
     chartController = window.EventHourlyCharts.render($("evCharts"), { view: V, selected: sel0, tz: ev.tz, gustLimit: ev.gust || 25, nwsTypes, onSelect: ms => { if (bus) bus.set(ms, "variable-charts"); showHour(ms); } });

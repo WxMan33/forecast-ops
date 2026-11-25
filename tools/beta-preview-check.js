@@ -261,14 +261,14 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     await until(p, () => document.querySelector("#upView:not([hidden]) #upAdd"), null, 30000);
     const setVal = (sel, v) => p.evaluate(([s, x]) => { const el = document.querySelector(s); el.value = x; el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); }, [sel, v]);
     /* match 1: new venue TQL Stadium, its schedule saved as the venue default */
-    await p.click("#upAdd"); await until(p, () => document.getElementById("editDlg").open, null, 10000);
+    await p.click("#upAdd"); await until(p, () => document.getElementById("editDlg").open, null, 10000); await p.selectOption("#fTpl", "stadium"); // new events start as one window; these matches use the stadium schedule
     await p.fill("#fName", "FC Cincinnati vs. Test FC (check)"); await p.fill("#fVenue", "TQL Stadium");
     await p.fill("#fCity .vs-q", "TQL Stadium"); await p.click("#fCity .vs-go"); await until(p, () => document.querySelector("#fCity .vs-hit"), null, 20000); await p.click("#fCity .vs-hit");
     await setVal("#fDate", d1); await setVal("#fStart", "19:30"); await setVal("#fEnd", "21:30"); await setVal("#fSetup", "15:00"); await setVal("#fGates", "18:00"); await setVal("#fTear", "23:30"); await setVal("#fGust", "30");
     await p.click("#fSave"); await until(p, () => !document.getElementById("editDlg").open, null, 30000);
     /* match 2: the saved venue fills setup, gates and teardown; gates changed for this match only */
     await until(p, () => document.querySelectorAll(".up-ev").length === 1 && document.querySelectorAll(".up-vn").length === 1, null, 20000);
-    await p.click("#upAdd"); await until(p, () => document.getElementById("editDlg").open, null, 10000);
+    await p.click("#upAdd"); await until(p, () => document.getElementById("editDlg").open, null, 10000); await p.selectOption("#fTpl", "stadium"); // new events start as one window; these matches use the stadium schedule
     const sel = await p.evaluate(() => document.querySelector("#fVenueSel").selectedOptions[0].textContent);
     await p.fill("#fName", "FC Cincinnati vs. Second FC (check)"); await setVal("#fDate", d2); await setVal("#fStart", "19:30"); await setVal("#fEnd", "21:30");
     const filled = await p.evaluate(() => ["fSetup", "fGates", "fTear", "fGust"].map((i) => document.getElementById(i).value).join(" "));
@@ -745,7 +745,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       await p.click("#vAddPreset"); await p.fill(".vp-row .vp-name", "Practice"); await p.fill(".vp-row .vp-setup", "1"); await p.fill(".vp-row .vp-tear", "30");
       await p.click("#vSave"); await until(p, () => !document.getElementById("editDlg").open, null, 30000);
       const venue1 = await p.evaluate(() => JSON.parse(localStorage.getItem("beta_venues_v1"))[0]);
-      await p.click("#upAdd"); await until(p, () => document.getElementById("fPreset"), null, 10000);
+      await p.click("#upAdd"); await until(p, () => document.getElementById("fPreset"), null, 10000); await p.selectOption("#fTpl", "stadium");
       await p.selectOption("#fVenueSel", "vn_check"); const pid = venue1.presets && venue1.presets[0] && venue1.presets[0].id;
       await p.selectOption("#fPreset", pid); await p.fill("#fName", "Practice (check)"); await p.fill("#fStart", "17:00"); await p.fill("#fEnd", "19:00");
       await p.evaluate(() => ["fStart", "fEnd"].forEach((id) => document.getElementById(id).dispatchEvent(new Event("change", { bubbles: true }))));
