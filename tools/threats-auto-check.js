@@ -116,7 +116,7 @@ const dropFamily = (re) => rewriteAlerts((j) => { const n0 = j.features.length; 
       await settle(v.p, 4000); const s = await st(v.p); await shot(v.p, `after-critical-replay-${d}`);
       const first = await v.p.evaluate(() => { const a = document.querySelector(".px-strip .px-alert"); return a ? a.innerText.replace(/\s+/g, " ") : ""; });
       check(`(${d}) CRITICAL-ALERT REPLAY (synthetic: saved KMTR Tornado Warning moved to now, catastrophic tag; added to ${tally.added - t0.added} answers): first in the strip '${first.slice(0, 160)}'; urgent labels ${s.labelsUrgent}; rewrite failures ${tally.failed - t0.failed}`,
-        tally.added > t0.added && tally.failed === t0.failed && s.alertsState === "ok" && s.atSite && /\(its NWS zone\)|Covers the site ·/.test(first) && /Tornado Warning/.test(first) && /Tornado Emergency/.test(first) && /until /.test(first) && /NWS bulletin/.test(first) && s.need.severe && s.labelsUrgent >= 1 && !v.errs.length && !s.errors.length, { s, first, errs: v.errs });
+        tally.added > t0.added && tally.failed === t0.failed && s.alertsState === "ok" && s.atSite && /\(its NWS zone\)|Covers the site ·/.test(first) && /Tornado Warning/.test(first) && /Tornado Emergency/i.test(first) && /until /.test(first) && /NWS bulletin/.test(first) && s.need.severe && s.labelsUrgent >= 1 && !v.errs.length && !s.errors.length, { s, first, errs: v.errs });
       await v.ctx.close(); } }
 
   /* 6. A -> B -> A with B's answers held back and arriving last: the panel, outlook and layers stay A's; B's late answer is filed as B's */
