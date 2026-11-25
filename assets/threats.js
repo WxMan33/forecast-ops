@@ -493,6 +493,7 @@
       + (top ? `<div class="px-also">${esc(FX.FIRE_MEANING[top.category] || "")} It rates the weather and fuels for the whole period, not whether a fire starts.</div>` : "") + `</div>`;
     h += `<div class="px-h"><span>Outlook areas · Day ${d}</span><span>${ol[0] ? "issued " + esc(T.fmtZ(ol[0].issued)) : ""}</span></div>` + (ol.length ? ol.slice().sort((a, b) => FX.FIRE_CATS.concat(FX.FIRE38_CATS).indexOf(b.category) - FX.FIRE_CATS.concat(FX.FIRE38_CATS).indexOf(a.category)).map((p) => item(p)).join("") : `<p class="px-empty">${st && st.kind === "na" ? "Not part of this archived sample." : src && src.phrase ? "SPC: " + esc(src.phrase) + "." : "No areas."}</p>`);
     if (d >= 3) h += `<p class="lg-note">Days 3–8: SPC's probability of critical fire weather conditions (or dry thunderstorms) within 12 miles of a point, 40% or 70%.</p>`;
+    h += siteFireWx();
     const near = nearbyIncidents();
     h += `<div class="px-h"><span>Wildfires near the venue</span><span>within ${Math.round(T.miles(T.NEAR_KM))} mi</span></div>` + (near.length ? near.map((x) => incItem(x.p, x.r)).join("") : `<p class="px-empty">${data.state.nifc && ["current", "empty"].includes(data.state.nifc.kind) ? "No active wildfire within 15 miles." : "NIFC incidents not confirmed."}</p>`);
     const fa = active().filter((p) => p.family === "fire" && rel(p).kind === "covers");
@@ -1338,7 +1339,7 @@
       for (const p of live) { if ((p.family || "severe") !== fam || (test && !test(p))) continue; const r = coverOf(p, km); if (r.kind === "near") return p.event + " " + Math.max(1, Math.round(T.miles(r.km))) + " mi " + r.dir; } return null; };
     const dayItem = (keyName, days = 3, min = 1) => { if (!built) return null; for (const d of built.days.slice(0, days)) for (const it of d.items) if (it.key === keyName && it.level >= min && !it.near) return it.text + " · " + it.source + " · " + d.label; return null; };
     for (const [k, fam, km] of [["severe", "severe", AUTO_KM], ["flood", "flood", AUTO_KM], ["tropical", "tropical", 800], ["fire", "fire", 150]]) { const w = famAlert(fam, km); if (w) add(k, w); }
-    for (const [k, item, days, min] of [["severe", "severe", 3, 1], ["flood", "rain", 3, 1], ["flood", "river", 7, 1], ["tropical", "tropical", 7, 0], ["fire", "fire", 3, 1], ["smoke", "air", 2, 1]]) { const w = dayItem(item, days, min); if (w) add(k, w); }
+    for (const [k, item, days, min] of [["severe", "severe", 3, 1], ["flood", "rain", 3, 1], ["flood", "river", 7, 1], ["tropical", "tropical", 7, 0], ["fire", "fire", 3, 1], ["fire", "dry", 3, 1], ["smoke", "air", 2, 1]]) { const w = dayItem(item, days, min); if (w) add(k, w); }
     const need = { severe: !!cause.severe, flood: !!cause.flood, tropical: !!cause.tropical, fire: !!cause.fire, smoke: !!cause.smoke };
     // rainfall: flooding under way (a flood warning or advisory at or near the site) shows the rain that has fallen; otherwise the rain still to come
     const rainNow = !!famAlert("flood", AUTO_KM, (p) => / (Warning|Advisory)$/.test(p.event || ""));
@@ -1533,7 +1534,7 @@
     vo = { key: k, state: "loading", data: vo.key === k ? vo.data : null, err: null };
     Live.outlookFor(venue.lat, venue.lon).then((d) => { if (vo.key === k) { vo.state = "ok"; vo.data = d; } }).catch((e) => { if (vo.key === k) { vo.state = "failed"; vo.err = e.message; vo.failedAt = Date.now(); setTimeout(() => { if (vo.key === k && vo.state === "failed") drawAll(); }, 61e3); } }).finally(() => drawAll());
   }
-  const OL_ICON = { river: "🌊", severe: "⛈", rain: "🌧", winter: "❄", fire: "🔥", tropical: "🌀", wind: "💨", heat: "🌡", cold: "🥶", precip: "☂", air: "😷", alert: "⚠" };
+  const OL_ICON = { river: "🌊", severe: "⛈", rain: "🌧", winter: "❄", fire: "🔥", tropical: "🌀", wind: "💨", heat: "🌡", cold: "🥶", precip: "☂", air: "😷", alert: "⚠", dry: "🍂" };
   function outlookPanel() {
     loadOutlook(false);
     if (!vo.data) return vo.state === "failed" ? `<p class="px-empty">The 7-day outlook didn't load (${esc(vo.err)}). <button type="button" class="tx-fb" data-ol-refresh>Try again</button></p>` : `<p class="px-empty" data-ol-state="loading">Loading the next 7 days at ${esc(venue.name)}: NWS alerts and forecast, SPC, WPC, NHC and AirNow outlooks…</p>`;
@@ -1555,6 +1556,24 @@
     h += `<p class="lg-note">Official sources for the venue's point: NWS alerts and forecast grid${gi ? " (" + esc(gi.office + " " + gi.cell) + ", updated " + esc(t(gi.updated)) + ")" : ""}, SPC severe Days 1–8 and fire Days 1–8, WPC excessive rainfall Days 1–5 and winter WSSI-P, NHC, AirNow. Levels order what is shown; each line keeps the source's own wording. Updated ${esc(t(vo.data.at))} · <button type="button" class="px-link" data-ol-refresh>Refresh</button></p>`;
     h += `<div class="px-h">Show on the map</div><div class="px-presets"><button type="button" class="tx-fb tx-done" data-preset="venue">Warnings at my venue</button><button type="button" class="tx-fb" data-preset="all">Everything</button><button type="button" class="tx-fb" data-open-layers>Choose layers</button></div>`;
     return h + venueFcSection();
+  }
+  /* fire weather at the site from the NWS forecast grid: each of the next 3 days' peak gust and minimum humidity, and the hours
+     that are both dry (25% or less) and gusty (25 mph or more). Labelled as the NWS forecast; Red Flag Warnings and SPC fire
+     outlooks above stay the official word. */
+  function siteFireWx() {
+    const od = vo.key === venueKey() && vo.data ? vo.data : null, g = od && od.grid;
+    const head = `<div class="px-h"><span>Wind and humidity at ${esc(venue.name)}</span><span>NWS forecast</span></div>`;
+    if (!od) return head + `<p class="px-empty">${vo.state === "failed" ? "The NWS forecast for the site didn't load." : "Loading the NWS forecast for the site…"}</p>`;
+    if (!g || !g.rows || !g.rows.length) return head + `<p class="px-empty">NWS forecast for the site not confirmed${od.errors && od.errors.grid ? " (" + esc(od.errors.grid) + ")" : ""}.</p>`;
+    const by = new Map(); for (const r of g.rows) { const k = OL.localDate(Date.parse(r.t), tz()); if (!by.has(k)) by.set(k, []); by.get(k).push(r); }
+    const rows = [...by.entries()].slice(0, 3).map(([date, rs], i) => {
+      const pk = (k, f) => rs.reduce((b, r) => (r[k] != null && (!b || f(r[k], b[k])) ? r : b), null), gm = pk("gust", (a, b) => a > b), rm = pk("rh", (a, b) => a < b);
+      const dg = rs.filter((r) => r.rh != null && r.gust != null && r.rh <= 25 && r.gust >= 25), hi = dg.some((r) => r.rh <= 15 && r.gust >= 35);
+      const lab = i === 0 ? "Today" : i === 1 ? "Tomorrow" : new Date(date + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+      const hh = (r) => t(r.t).replace(/:00 /, " ");
+      return `<div class="px-firewx${dg.length ? " dry" + (hi ? " hi" : "") : ""}" data-firewx="${date}"><b>${esc(lab)}</b><span>Gusts ${gm ? "to " + gm.gust + " mph around " + esc(hh(gm)) : "–"}</span><span>Humidity ${rm ? "as low as " + rm.rh + "% around " + esc(hh(rm)) : "–"}</span>`
+        + (dg.length ? `<span class="px-firewx-flag">Dry and gusty for ${dg.length} h${hi ? " (15% or less with gusts of 35 mph or more)" : ""}</span>` : "") + `</div>`; }).join("");
+    return head + rows + `<p class="lg-note">From the NWS forecast grid${od.gridInfo ? " (" + esc(od.gridInfo.office + " " + od.gridInfo.cell) + ", updated " + esc(t(od.gridInfo.updated)) + ")" : ""}. Dry and gusty: humidity 25% or less with gusts of 25 mph or more in the same hour. Not an official fire weather product: Red Flag Warnings and SPC outlooks are.</p>`;
   }
   /* active alerts for the site, above the 7 days: At this site (polygon, the site's NWS zones, or NWS's point check), Nearby
      (outside the alert area, real edge within 50 mi) and Coverage unknown; the official name, NWS impact tag, expiration in the
@@ -1579,7 +1598,7 @@
   }
   /* a dashboard line opens the map where its source is: the view and the layer it needs */
   function outlookGo(link, key) {
-    const layer = { severe: "severe", rain: "flood", winter: "winter", fire: "fire", tropical: "tropical", alert: null }[key];
+    const layer = { severe: "severe", rain: "flood", winter: "winter", fire: "fire", dry: "fire", tropical: "tropical", alert: null }[key];
     S.auto = false; if (layer) S.layers[layer] = true; else if (key === "alert") ["severe", "flood", "winter", "heat", "wind", "fire", "tropical", "coastal"].forEach((k) => (S.layers[k] = true));
     S.scope = "venue"; setView(link === "winter" ? "winter" : link === "fire" ? "fire" : /^day\d$/.test(link) ? link : "active");
   }

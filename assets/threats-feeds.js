@@ -1002,10 +1002,10 @@
   }
   function parseGrid(gj, nowMs, hours = 12) {
     const P = gj && gj.properties; if (!P || !P.updateTime || !P.windGust) throw Error("unrecognized NWS forecast grid");
-    const el = { gust: gridSeries(P.windGust), wind: gridSeries(P.windSpeed), temp: gridSeries(P.temperature), heat: gridSeries(P.heatIndex), feels: gridSeries(P.apparentTemperature), pop: gridSeries(P.probabilityOfPrecipitation) };
+    const el = { gust: gridSeries(P.windGust), wind: gridSeries(P.windSpeed), temp: gridSeries(P.temperature), heat: gridSeries(P.heatIndex), feels: gridSeries(P.apparentTemperature), pop: gridSeries(P.probabilityOfPrecipitation), rh: gridSeries(P.relativeHumidity) };
     const at = (k, t) => { const l = el[k]; if (!l) return null; const x = l.find((y) => t >= y.t0 && t < y.t1); return x && x.v != null ? Math.round(x.v) : null; };
     const h0 = Math.floor(nowMs / 3600e3) * 3600e3, rows = [];
-    for (let i = 0; i < hours; i++) { const t = h0 + i * 3600e3; rows.push({ t: new Date(t).toISOString(), gust: at("gust", t), wind: at("wind", t), temp: at("temp", t), heat: at("heat", t), feels: at("feels", t), pop: at("pop", t) }); }
+    for (let i = 0; i < hours; i++) { const t = h0 + i * 3600e3; rows.push({ t: new Date(t).toISOString(), gust: at("gust", t), wind: at("wind", t), temp: at("temp", t), heat: at("heat", t), feels: at("feels", t), pop: at("pop", t), rh: at("rh", t) }); }
     const peak = (k) => rows.reduce((b, r) => (r[k] != null && (!b || r[k] > b[k]) ? r : b), null);
     const covered = rows.filter((r) => r.gust != null || r.temp != null).length;
     return { updated: new Date(P.updateTime).toISOString(), rows, covered, peakGust: peak("gust"), peakHeat: peak("heat"), peakFeels: peak("feels"), peakPop: peak("pop"), lowFeels: rows.reduce((b, r) => (r.feels != null && (!b || r.feels < b.feels) ? r : b), null) };

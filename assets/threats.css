@@ -344,3 +344,10 @@
 .px-alert-none { font-size: 13px; padding: 6px 8px; border: 1px dashed var(--line, #2a3442); border-radius: 8px; }
 .tx-linkbtn { background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; }
 .tx-lyrauto .tx-fb { margin-left: 6px; }
+
+/* fire weather at the site (NWS forecast grid) */
+.px-firewx { display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: baseline; padding: 6px 8px; border-left: 3px solid var(--line, #2a3442); margin: 0 0 4px; font-size: 13px; }
+.px-firewx b { min-width: 84px; }
+.px-firewx.dry { border-left-color: #e8833a; background: color-mix(in srgb, #e8833a 8%, transparent); }
+.px-firewx.hi { border-left-color: #e5484d; background: color-mix(in srgb, #e5484d 10%, transparent); }
+.px-firewx-flag { flex-basis: 100%; font-weight: 700; }

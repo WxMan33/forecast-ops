@@ -85,7 +85,14 @@
         if (g != null && g >= 25) d.items.push({ key: "wind", level: g >= 58 ? 3 : g >= 40 ? 2 : g >= 30 ? 1 : 0, text: "Gusts to " + g + " mph", source: "NWS forecast", link: null });
         if (h != null && h >= 90) d.items.push({ key: "heat", level: h >= 125 ? 3 : h >= 103 ? 2 : 1, text: "Heat index to " + h + "°F", source: "NWS forecast", link: null });
         if (c != null && c <= 20) d.items.push({ key: "cold", level: c <= -30 ? 3 : c <= -15 ? 2 : c <= 10 ? 1 : 0, text: "Feels like " + c + "°F", source: "NWS forecast", link: null });
-        if (pop != null && pop >= 40) d.items.push({ key: "precip", level: 0, text: "Rain or snow chance " + pop + "%", source: "NWS forecast", link: null }); }
+        if (pop != null && pop >= 40) d.items.push({ key: "precip", level: 0, text: "Rain or snow chance " + pop + "%", source: "NWS forecast", link: null });
+        /* fire weather at the site, from the same grid: the day's minimum relative humidity, and the hours that are both dry and
+           gusty (humidity at or below 25% with gusts of 25 mph or more; 15% and 35 mph is a higher concern). This is the NWS
+           forecast grid, not an official fire weather product: Red Flag Warnings and SPC fire outlooks stay the official word. */
+        const rh = min("rh"), dg = rs.filter((r) => r.rh != null && r.gust != null && r.rh <= 25 && r.gust >= 25);
+        if (dg.length) { const worst = dg.reduce((b, r) => (r.rh * 100 - r.gust < b.rh * 100 - b.gust ? r : b)), hi = dg.some((r) => r.rh <= 15 && r.gust >= 35);
+          d.items.push({ key: "dry", level: hi ? 2 : 1, text: "Dry and gusty: humidity " + worst.rh + "% with gusts to " + worst.gust + " mph (" + dg.length + " h)", source: "NWS forecast", link: "fire", rh, gust: g, hours: dg.length }); }
+        else if (rh != null && rh <= 30) d.items.push({ key: "dry", level: 0, text: "Humidity as low as " + rh + "%", source: "NWS forecast", link: "fire", rh, gust: g }); }
     } else if (inp.states.grid === "failed") unknownOn(now, "NWS forecast for the venue not confirmed");
     // NOAA river gauges within 25 miles: forecast (or observed) at or above action stage, on the day it is expected
     const GL = { action: 0, minor: 1, moderate: 2, major: 3 }, GW = { action: "action stage", minor: "minor flooding", moderate: "moderate flooding", major: "major flooding" };
