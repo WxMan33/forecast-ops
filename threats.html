@@ -28,7 +28,7 @@
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
 <link rel="stylesheet" href="assets/ops.css?v=11ee4de8ce">
-<link rel="stylesheet" href="assets/threats.css?v=0c1e7d410d">
+<link rel="stylesheet" href="assets/threats.css?v=02821a4bea">
 </head>
 <body class="threats-page">
 <main class="tx" id="tx">
@@ -102,6 +102,13 @@
             <fieldset class="tx-lyrfs"><legend>Hazards on the map <span class="tx-lyrhint">several can be on together</span></legend>
               <label class="tx-lt"><input type="checkbox" data-layer="severe"><span class="tx-ltn">Severe storms</span><span class="tx-ltnote" data-note="severe"></span></label>
               <label class="tx-lt"><input type="checkbox" data-layer="flood"><span class="tx-ltn">Flooding</span><span class="tx-ltnote" data-note="flood"></span></label>
+              <div class="tx-rain" id="txRain" role="group" aria-label="Rainfall overlays (with Flooding)">
+                <div class="tx-rainrow"><label class="tx-lt tx-sub"><input type="checkbox" data-rain="obs"><span class="tx-ltn">Rain that has fallen</span><span class="tx-ltnote" id="txRainObsNote">NOAA MRMS radar estimate</span></label>
+                  <select class="input inline" data-rain-win aria-label="Rain that has fallen: period"><option value="1">Past hour</option><option value="24">Past 24 hours</option><option value="72">Past 72 hours</option></select></div>
+                <div class="tx-rainrow"><label class="tx-lt tx-sub"><input type="checkbox" data-rain="fcst"><span class="tx-ltn">Rain still to come</span><span class="tx-ltnote" id="txRainFcstNote">WPC forecast totals</span></label>
+                  <select class="input inline" data-rain-per aria-label="Rain still to come: period"><option value="auto">Follow the Time tab</option><option value="1-3">Days 1–3</option><option value="1">Day 1</option><option value="2">Day 2</option><option value="3">Day 3</option></select></div>
+                <p class="tx-ltnote tx-rainnote">One rainfall overlay at a time: both use NOAA's rainfall colours. The venue view lists both amounts.</p>
+              </div>
               <label class="tx-lt"><input type="checkbox" data-layer="winter"><span class="tx-ltn">Winter</span><span class="tx-ltnote" data-note="winter"></span></label>
               <label class="tx-lt"><input type="checkbox" data-layer="heat"><span class="tx-ltn">Heat &amp; cold</span><span class="tx-ltnote" data-note="heat"></span></label>
               <label class="tx-lt"><input type="checkbox" data-layer="wind"><span class="tx-ltn">Wind &amp; visibility</span><span class="tx-ltnote" data-note="wind"></span></label>
@@ -172,12 +179,12 @@
 <script src="assets/threats-core.js?v=082bdb6545"></script>
 <script src="assets/threats-demo.js?v=ecef6ab463"></script>
 <script src="assets/severe-daily-core.js?v=8b3bc7c800"></script>
-<script src="assets/threats-feeds.js?v=721413b747"></script>
+<script src="assets/threats-feeds.js?v=9ff099cbc2"></script>
 <script src="assets/threats-enroute.js?v=aa01a5cebb"></script>
 <script src="assets/threats-gtg.js?v=90a6946eed"></script>
 <script src="assets/threats-ifi.js?v=1a8301f4fa"></script>
 <script src="assets/threats-outlook.js?v=d971d2938c"></script>
-<script src="assets/threats-live.js?v=88256aeffb"></script>
-<script src="assets/threats.js?v=4560e5fa33"></script>
+<script src="assets/threats-live.js?v=a739fca10b"></script>
+<script src="assets/threats.js?v=1f0d0300e4"></script>
 </body>
 </html>

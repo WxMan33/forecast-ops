@@ -38,7 +38,7 @@
   const WLEVEL_LABEL = { WWA: "Any winter weather", MINOR: "Minor", MODERATE: "Moderate", MAJOR: "Major", EXTREME: "Extreme" };
   const empty = { type: "FeatureCollection", features: [] };
 
-  const S = { air: [], ap: null, layers: { severe: false, flood: false, winter: false, heat: false, wind: false, fire: false, smoke: false, tropical: false, coastal: false, aviation: false }, en: { on: false, at: 0, alt: null, age: 2 }, av: { apt: true, pireps: true, adv: true }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, ifi: { on: false, field: "prob", src: null, cyc: null }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, radar: false, auto: false, autoAdded: {}, autoNeed: null, gaugeWhy: null, pin: true, counties: true, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
+  const S = { air: [], ap: null, layers: { severe: false, flood: false, winter: false, heat: false, wind: false, fire: false, smoke: false, tropical: false, coastal: false, aviation: false }, en: { on: false, at: 0, alt: null, age: 2 }, av: { apt: true, pireps: true, adv: true }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, ifi: { on: false, field: "prob", src: null, cyc: null }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, radar: false, rain: { obs: false, fcst: false, win: 24, per: "auto" }, auto: false, autoAdded: {}, autoNeed: null, gaugeWhy: null, pin: true, counties: true, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
   let framedAp = false, framedSel = false, mapLoaded = false; // Planner airport "View on map": framed once
   let data, now, venue, map, ready = false, liveReady = false, meshes = new Map(), tzCache = {}, marker, grid = null, mesh = null, mask = null, gridLoading = null, hull = null;
   const phone = () => matchMedia("(max-width: 760px)").matches;
@@ -587,9 +587,9 @@
     if (carto || !map || !ready) return; const next = await cartoStyle(light() ? "light" : "dark"); if (!next || carto) return;
     clearInterval(cartoRetry); cartoRetry = null; carto = true; FONT = ["Montserrat SemiBold"];
     const prev = map.getStyle(), keepSrc = Object.fromEntries(Object.entries(prev.sources).filter(([k]) => !next.sources[k]));
-    const ours = prev.layers.filter((l) => (OUR.includes(l.id) || l.id === "radar") && !["lakes", "states", "cities"].includes(l.id))
+    const ours = prev.layers.filter((l) => (OUR.includes(l.id) || ["radar", "rain-obs", "rain-fcst"].includes(l.id)) && !["lakes", "states", "cities"].includes(l.id))
       .map((l) => (l.type === "symbol" && l.layout && l.layout["text-font"] ? { ...l, layout: { ...l.layout, "text-font": FONT } } : l));
-    map.once("style.load", () => { baseLines(); orderOverBase(); themePaints(pal()); map.setMaxZoom(14); radar.tiles = null;
+    map.once("style.load", () => { baseLines(); orderOverBase(); themePaints(pal()); map.setMaxZoom(14); radar.tiles = null; R.obs.tiles = R.fcst.tiles = null;
       if (attrib) map.removeControl(attrib); attrib = new maplibregl.AttributionControl({ compact: true }); map.addControl(attrib, "bottom-left"); drawAll(); });
     map.setStyle(next, { diff: false, transformStyle: () => ({ ...next, sources: { ...next.sources, ...keepSrc }, layers: [...next.layers, ...ours] }) });
   }
@@ -727,7 +727,7 @@
         paint: { "text-color": ["get", "tc"], "text-halo-color": ["get", "hc"], "text-halo-width": 2.4 } });
       L({ id: "cnty-labels", type: "symbol", source: "cnty-labels", minzoom: 7.5, layout: { "text-field": ["get", "n"], "text-font": FONT, "text-size": ["interpolate", ["linear"], ["zoom"], 7.5, 10, 11, 12], "text-transform": "uppercase", "text-letter-spacing": 0.08, "text-max-width": 8, "symbol-sort-key": 1 }, paint: { "text-color": p.muted, "text-halo-color": p.halo, "text-halo-width": 1.4, "text-opacity": 0.85 } });
       if (carto) { for (const id of ["lakes", "states", "cities"]) map.setLayoutProperty(id, "visibility", "none"); baseLines(); orderOverBase(); }
-      map.on("moveend", ensureCounties); map.on("moveend", ensureGauges); map.on("moveend", syncZoneArea); map.on("moveend", () => { if (gaugeRow && gaugeRow !== (gaugeWarn() ? "on" : "off")) drawAll(); }); // a flood warning came into or left the view // the street map has its own water, borders and places
+      map.on("moveend", ensureCounties); map.on("moveend", ensureGauges); map.on("moveend", syncZoneArea); map.on("error", (e) => { const id = e && e.sourceId; if (id === "rain-obs" || id === "rain-fcst") { R[id === "rain-obs" ? "obs" : "fcst"].tileErr = Date.now(); rainSoon(); } }); // a rainfall image that didn't load is named in the source list map.on("moveend", () => { if (gaugeRow && gaugeRow !== (gaugeWarn() ? "on" : "off")) drawAll(); }); // a flood warning came into or left the view // the street map has its own water, borders and places
       ready = true; drawAll();
     });
     map.on("click", (e) => {
@@ -918,7 +918,7 @@
       return `<div class="px-src ${s.kind}"${src.error ? ` title="${esc(src.error)}"` : ""}><span><b>${name}</b></span><span>${esc(right)}</span></div>`;
     }).join("");
     const foot = isArchive() ? `Archived sample: ${esc(data.archive ? data.archive.label : "")}. Official messages replayed through the same adapter the live preview uses; the clock is set to the message time. Not a live observation. Times in ${esc(tzName(venue.tz))}.` : isLive() ? `Live official feeds, fetched by your browser${refreshNote()}. Times in ${esc(tzName(venue.tz))}. A failed refresh never clears a product.` : `Demo clock ${esc(t(data.clock, true))}. A failed refresh never clears a product.`;
-    return `<div class="px-sources" aria-label="Source status">${rows}${radarRow()}<div class="lg-note">${foot}</div></div>`;
+    return `<div class="px-sources" aria-label="Source status">${rows}${radarRow()}${rainRows()}<div class="lg-note">${foot}</div></div>`;
   }
   function notices() {
     const out = [];
@@ -1046,7 +1046,7 @@
     if (unknown.length) h += `<div class="px-h">Area not drawn</div>` + unknown.map((p) => item(p)).join("");
     if (!covers.length && !near.length && activeKnown()) h += `<p class="lg-note">${esc(SCOPE_NOTE)}</p>`;
     h += reportsSection(true);
-    if (S.layers.flood) { const near = data.products.filter((p) => p.kind === "gauge" && p.rank >= 1 && T.miles(T.pointDistance([venue.lon, venue.lat], p.point).km) <= 25); if (near.length) h += `<div class="px-h" data-gauges="venue"><span>River gauges within 25 mi · at or above action stage</span><span>${near.length}</span></div>` + near.sort((a, b) => b.rank - a.rank).slice(0, 6).map(spotItem).join(""); }
+    if (S.layers.flood) { const near = data.products.filter((p) => p.kind === "gauge" && p.rank >= 1 && T.miles(T.pointDistance([venue.lon, venue.lat], p.point).km) <= 25); if (near.length) h += `<div class="px-h" data-gauges="venue"><span>River gauges within 25 mi · at or above action stage</span><span>${near.length}</span></div>` + near.sort((a, b) => b.rank - a.rank).slice(0, 6).map(spotItem).join(""); h += rainVenueHtml(); }
     h += (S.layers.aviation ? avControls() : "") + airportsSection() + enrouteSection() + smokeSection(true) + tropicsSection();
     if (S.layers.fire) { const near = nearbyIncidents(); if (near.length) h += `<div class="px-h"><span>Wildfires near the venue · NIFC</span><span>within ${Math.round(T.miles(T.NEAR_KM))} mi</span></div>` + near.map((x) => incItem(x.p, x.r)).join(""); }
     h += `<div class="px-h">Later at the venue</div>` + laterButtons([venue.lon, venue.lat]);
@@ -1249,6 +1249,7 @@
     if (S.layers.smoke && !winterView() && !fireView() && !viewDay()) h += `<div><div class="lg-h">Smoke and air quality</div><div class="lg-bands">${FX.HMS_DENSITY.map((d) => `<span class="lg-band"><i style="background:${HMS_FILL[d][0]};opacity:${0.4 + HMS_FILL[d][1]}"></i>${d}</span>`).join("")}</div><div class="lg-note">NOAA satellite smoke (overhead, not at the ground), last 24 hours.</div><div class="lg-bands">${Object.entries(AQI_COLOR).map(([k, c]) => `<span class="lg-band" title="${esc(k)}"><i style="background:${c}"></i>${esc(k === "Unhealthy for Sensitive Groups" ? "USG" : k)}</span>`).join("")}</div><div class="lg-note">AirNow monitors: latest hourly AQI (preliminary).</div></div>`;
     if (S.layers.flood && (!day || day === 1) && !winterView() && !fireView()) h += `<div><div class="lg-h">River gauges · NOAA (regional zoom)</div>${["no_flooding", "action", "minor", "moderate", "major"].map((c) => lgLine({ kind: "gauge", category: c }, FX.GAUGE_WORD[c])).join("")}${lgLine({ kind: "gauge", category: "not_defined" }, "No stages defined / no current data")}</div>`;
     if (S.layers.severe && (!day || day === 1) && !winterView() && !fireView()) h += `<div><div class="lg-h">Storm reports · last 24 h (SPC, preliminary)</div>${["tornado", "wind", "hail"].map((k) => lgLine({ kind: "lsr", type: k }, { tornado: "Tornado", wind: "Wind damage", hail: "Hail" }[k])).join("")}</div>`;
+    h += rainLegendHtml();
     if (S.radar && isLive()) h += `<div><div class="lg-h">Radar · NOAA MRMS</div><div class="lg-radar" aria-hidden="true"></div><div class="lg-note">Light rain or snow → heavy rain and hail (base reflectivity), under the hazards${radar.valid ? " · image " + esc(t(radar.valid)) : ""}</div></div>`;
     if (S.layers.fire && !winterView()) h += `<div><div class="lg-h">Fire</div>${lgLine({ kind: "warning", family: "fire", event: "Red Flag Warning" }, "<b>Red Flag Warning</b>")}${lgLine({ kind: "watch", family: "fire", event: "Fire Weather Watch" }, "<b>Fire Weather Watch</b> · dashed")}${lgLine({ kind: "incident", category: "WF" }, "<b>Wildfire</b> (NIFC): perimeter where mapped, dot sized by acres")}<label class="lg-toggle"><input type="checkbox" id="rxChk"${S.rx ? " checked" : ""}> Prescribed fires</label><label class="lg-toggle"><input type="checkbox" id="ctnChk"${S.ctn ? " checked" : ""}> Fully contained fires</label>${fireView() ? `<div class="lg-bands">${(S.fday >= 3 ? ["P40", "P70"] : ["ELEV", "CRIT", "EXTM", "IDRT", "SDRT"]).map((c) => `<span class="lg-band" title="${esc(FX.FIRE_NAME[c])}"><i style="background:${FIRE_COLOR[c]}"></i>${c === "P40" ? "40%" : c === "P70" ? "70%" : c}</span>`).join("")}</div><div class="lg-note">${S.fday >= 3 ? "Probability of critical fire weather within 12 miles of a point." : "ELEV elevated · CRIT critical · EXTM extremely critical (wind and humidity) · IDRT/SDRT isolated/scattered dry thunderstorms."}</div>` : ""}</div>`;
     if (winterView()) h += `<div><div class="lg-h">WPC WSSI-P · chance of at least ${esc(S.wlevel === "WWA" ? "winter weather" : WLEVEL_LABEL[S.wlevel])}</div><div class="lg-bands">${WSSI_PROBS.map((v) => `<span class="lg-band"><i style="background:${WSSI_COLOR[v]}"></i>${v}%</span>`).join("")}</div><div class="lg-note">24-hour window. Levels: Minor, Moderate, Major, Extreme winter storm impacts (WPC definitions).</div></div>`;
@@ -1307,6 +1308,10 @@
     if (!S.auto || !isLive()) return;
     const n = autoNeed(); S.autoNeed = n;
     for (const k of ["fire", "smoke"]) { if (n[k] && !S.layers[k]) { S.layers[k] = true; S.autoAdded[k] = true; } else if (!n[k] && S.autoAdded[k]) { S.layers[k] = false; delete S.autoAdded[k]; } }
+    // rainfall with Flooding: a flood warning or advisory near the venue (water already high) shows the rain that has fallen;
+    // a flood watch or a WPC rainfall risk shows the rain still to come
+    if (n.flood) { const now2 = alertsNear("flood", AUTO_KM, (p) => / (Warning|Advisory)$/.test(p.event || "")); S.rain.obs = now2; S.rain.fcst = !now2; S.autoAdded.rain = true; }
+    else if (S.autoAdded.rain) { S.rain.obs = S.rain.fcst = false; delete S.autoAdded.rain; }
   }
   /* outlines of zone-listed alerts are downloaded for the area in view only (before the map is up: the venue's region, or the
      country at national zoom) */
@@ -1329,6 +1334,92 @@
     if (k === feedKey || !Live.setFeeds) return; feedKey = k;
     const p = Live.setFeeds(keys); if (isLive()) load();
     p.then(() => { if (feedKey === k && isLive()) { liveReady = true; load(); drawAll(); } });
+  }
+  /* ---------- rainfall (live only, with Flooding): rain that has fallen (NOAA MRMS radar estimate, 1/24/72 h) and rain still
+     to come (WPC forecast totals, Days 1-3 or one day). Both are NOAA-rendered image tiles fetched only for the area in view;
+     one is drawn at a time (they share NOAA's rainfall colours). Times: when the MRMS window ended; when WPC issued the forecast
+     and the exact period it covers. Anything old or not answering says so; no answer never reads as "no rain". ---------- */
+  const RAIN_STALE_OBS_H = 3, RAIN_STALE_FCST_H = 18;
+  const R = { obs: { state: "off", meta: null, err: null, lastOk: null, asked: null, tiles: null, tileErr: 0 }, fcst: { state: "off", meta: null, err: null, lastOk: null, asked: null, tiles: null, tileErr: 0 },
+    leg: {}, legAsked: {}, venue: { key: null, obs: null, fcst: null, fmeta: null } };
+  const fcstPeriod = () => S.rain.per !== "auto" ? S.rain.per : viewDay() ? String(viewDay()) : "1-3";
+  const rainShown = (k) => isLive() && S.layers.flood && S.rain[k] && !winterView() && !fireView() && !(k === "obs" && viewDay() > 1);
+  const hoursAgo = (iso) => iso ? (Date.now() - Date.parse(iso)) / 36e5 : Infinity;
+  const inchTxt = (v) => v == null ? "" : (v < 0.01 ? "less than 0.01" : v.toFixed(2)) + " in";
+  const rainWinLabel = () => (Live.MRMS_WINDOWS || {})[S.rain.win] ? Live.MRMS_WINDOWS[S.rain.win].label : S.rain.win + " h";
+  const perLabel = (per) => ((Live.WPC_PERIODS || {})[per] || {}).label || per;
+  function rainStateOf(k) {
+    const r = R[k]; if (!rainShown(k)) return "off"; if (!r.meta) return r.err ? "failed" : "loading";
+    if (r.err) return "stale"; // answered before, not now
+    if (k === "obs") return hoursAgo(r.meta.end) > RAIN_STALE_OBS_H ? "old" : "ok";
+    return hoursAgo(r.meta.issued) > RAIN_STALE_FCST_H || Date.parse(r.meta.end) < Date.now() ? "old" : "ok";
+  }
+  const obsWindowText = (m) => `${rainWinLabel()} ending ${t(m.end)}`;
+  const fcstWindowText = (m, per) => `${perLabel(per)}: ${t(m.start)} – ${t(m.end)} · issued ${t(m.issued)}`;
+  let rainRedraw = null; const rainSoon = () => { clearTimeout(rainRedraw); rainRedraw = setTimeout(drawAll, 250); };
+  function rainMeta(k) { // asked once per key and refreshed every 10 minutes; an answer (or a failure) redraws once
+    const key = k === "obs" ? "w" + S.rain.win : "p" + fcstPeriod(), r = R[k];
+    if (r.asked && r.asked.key === key && Date.now() - r.asked.at < (r.err ? 60e3 : 10 * 60e3)) return;
+    if (!r.asked || r.asked.key !== key) { r.meta = null; r.err = null; }
+    r.asked = { key, at: Date.now() };
+    (k === "obs" ? Live.rainObsMeta().then((c) => { const w = c[S.rain.win]; if (!w || !w.end) throw new Error("no " + rainWinLabel() + " window listed"); return { end: w.end, regions: w.regions }; }) : Live.rainFcstMeta(fcstPeriod()))
+      .then((m) => { if (r.asked.key !== key) return; r.meta = m; r.err = null; r.lastOk = new Date().toISOString(); }, (e) => { if (r.asked.key !== key) return; r.err = e.message; })
+      .finally(rainSoon);
+  }
+  function rainLegend(k) {
+    const key = k === "obs" ? "o" + S.rain.win : "f" + fcstPeriod(); if (R.leg[key] || (R.legAsked[key] && Date.now() - R.legAsked[key] < 60e3)) return; R.legAsked[key] = Date.now();
+    (k === "obs" ? Live.rainObsLegend(S.rain.win) : Live.rainFcstLegend(fcstPeriod())).then((l) => { R.leg[key] = l; rainSoon(); }, () => {});
+  }
+  const RAIN_IDS = { obs: "rain-obs", fcst: "rain-fcst" };
+  function ensureRain() {
+    if (!map || !mapLoaded) return;
+    for (const k of ["obs", "fcst"]) {
+      const id = RAIN_IDS[k], r = R[k], on = rainShown(k);
+      if (!on) { r.state = "off"; if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", "none"); continue; }
+      rainMeta(k); rainLegend(k); r.state = rainStateOf(k);
+      if (!r.meta || r.state === "failed") { if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", "none"); continue; }
+      const url = k === "obs" ? Live.MRMS_TILE_URL(S.rain.win, Date.parse(r.meta.end)) : Live.WPC_TILE_URL(fcstPeriod(), Date.parse(r.meta.issued)); // a new window or issuance is a new URL
+      const before = map.getLayer("radar") ? "radar" : map.getLayer("outlook-fill") ? "outlook-fill" : undefined;
+      if (!map.getSource(id)) { map.addSource(id, { type: "raster", tiles: [url], tileSize: 256, attribution: k === "obs" ? "NOAA MRMS rainfall" : "NOAA WPC rainfall forecast" }); map.addLayer({ id, type: "raster", source: id, paint: { "raster-opacity": k === "obs" ? 0.75 : 0.6, "raster-fade-duration": 0 } }, before); }
+      else if (r.tiles !== url) { map.getSource(id).setTiles([url]); r.tileErr = 0; }
+      r.tiles = url; map.setLayoutProperty(id, "visibility", "visible");
+    }
+    ensureRainVenue();
+  }
+  /* the venue's two amounts (point lookups, a few hundred bytes): with either overlay on, or when automatic Flooding calls for them */
+  function ensureRainVenue() {
+    const want = isLive() && S.layers.flood && venue && (S.rain.obs || S.rain.fcst || (S.auto && S.autoNeed && S.autoNeed.flood));
+    if (!want) return; const per = fcstPeriod(), key = [venue.lat.toFixed(3), venue.lon.toFixed(3), S.rain.win, per].join("|"), v = R.venue;
+    if (v.key === key && Date.now() - v.at < (v.obs && v.obs.err || v.fcst && v.fcst.err ? 60e3 : 10 * 60e3)) return;
+    if (v.key !== key) { v.obs = null; v.fcst = null; v.fmeta = null; } v.key = key; v.at = Date.now();
+    const lat = venue.lat, lon = venue.lon;
+    Live.rainObsAt(S.rain.win, lat, lon).then((x) => { if (v.key === key) v.obs = x; }, (e) => { if (v.key === key) v.obs = { err: e.message }; }).finally(rainSoon);
+    Promise.all([Live.rainFcstAt(per, lat, lon), Live.rainFcstMeta(per)]).then(([x, m]) => { if (v.key === key) { v.fcst = x; v.fmeta = m; } }, (e) => { if (v.key === key) v.fcst = { err: e.message }; }).finally(rainSoon);
+  }
+  function rainVenueHtml() {
+    const v = R.venue, want = isLive() && S.layers.flood && (S.rain.obs || S.rain.fcst || (S.auto && S.autoNeed && S.autoNeed.flood)); if (!want || !venue) return "";
+    const per = fcstPeriod();
+    const obs = !v.obs ? "Loading…" : v.obs.err ? "Not responding · rain that has fallen at the venue is unknown" : v.obs.noEstimate ? "No radar estimate at the venue" : `<span class="px-rv">${esc(inchTxt(v.obs.inches))}</span> in the ${esc(rainWinLabel().replace(/^1 hour$/, "past hour").replace(/^(\d+) hours$/, "past $1 hours"))}${v.obs.end ? " · window ended " + esc(t(v.obs.end)) + (hoursAgo(v.obs.end) > RAIN_STALE_OBS_H ? " (" + Math.round(hoursAgo(v.obs.end)) + " h ago: delayed)" : "") : ""}`;
+    const fc = !v.fcst ? "Loading…" : v.fcst.err ? "Not responding · rain still to come at the venue is unknown" : `<span class="px-rv">${esc(v.fcst.none ? "less than 0.01 in" : v.fcst.high ? v.fcst.low.toFixed(2) + "–" + v.fcst.high.toFixed(2) + " in" : "at least " + v.fcst.low.toFixed(2) + " in")}</span>${v.fmeta ? " · " + esc(fcstWindowText(v.fmeta, per)) : ""}`;
+    return `<div class="px-h" data-rain="venue"><span>Rainfall at ${esc(venue.name)}</span><span></span></div><div class="px-rain"><div class="px-item-sub"><b>Rain that has fallen</b> (NOAA MRMS radar estimate): ${obs}</div><div class="px-item-sub"><b>Rain still to come</b> (WPC forecast): ${fc}</div></div>`;
+  }
+  function rainRows() {
+    return ["obs", "fcst"].filter(rainShown).map((k) => {
+      const r = R[k], st = rainStateOf(k), cls = st === "ok" ? "current" : st === "old" || st === "stale" ? "stale" : st === "failed" ? "unavailable" : "loading";
+      const name = k === "obs" ? `<a href="https://mrms.nssl.noaa.gov/" target="_blank" rel="noopener">NOAA MRMS rain that has fallen</a>` : `<a href="https://www.wpc.ncep.noaa.gov/qpf/qpf2.shtml" target="_blank" rel="noopener">WPC rain still to come</a>`;
+      const what = r.meta ? (k === "obs" ? obsWindowText(r.meta) : fcstWindowText(r.meta, fcstPeriod())) : "";
+      const right = st === "loading" ? "Loading…" : st === "failed" ? "Not responding · not drawn" : st === "stale" ? "Last answer: " + what + " · not responding now" : st === "old" ? what + (k === "obs" ? " · " + Math.round(hoursAgo(r.meta.end)) + " h ago (delayed)" : " · older than expected") : what + (r.tileErr && Date.now() - r.tileErr < 120e3 ? " · some map images didn't load" : "");
+      return `<div class="px-src ${cls}" data-src="rain-${k}"><span><b>${name}</b></span><span>${esc(right)}</span></div>`;
+    }).join("");
+  }
+  function rainLegendHtml() {
+    return ["obs", "fcst"].filter(rainShown).map((k) => {
+      const r = R[k], key = k === "obs" ? "o" + S.rain.win : "f" + fcstPeriod(), leg = R.leg[key], st = rainStateOf(k);
+      const head = k === "obs" ? "Rain that has fallen · NOAA MRMS radar estimate (inches)" : "Rain still to come · WPC forecast (inches of liquid)";
+      const when = r.meta ? (k === "obs" ? obsWindowText(r.meta) : fcstWindowText(r.meta, fcstPeriod())) : st === "failed" ? "Not responding: not drawn" : "Loading…";
+      const sw = leg ? `<div class="lg-rain">${(k === "obs" ? leg : leg.slice().reverse()).map((x) => `<span><img src="${x.img}" alt="">${esc(x.label)}</span>`).join("")}</div>` : `<div class="lg-note">${st === "failed" ? "Colour scale unavailable" : "Loading the colour scale…"}</div>`;
+      return `<div data-lg="rain-${k}"><div class="lg-h">${esc(head)}</div><div class="lg-note">${esc(when)}</div>${sw}</div>`;
+    }).join("");
   }
   /* ---------- radar (live only, off by default): NOAA MRMS base reflectivity under the hazards; the image time is read from the
      service every 5 minutes while radar is on, and the tiles are re-requested only when a newer image is listed ---------- */
@@ -1421,7 +1512,7 @@
     S.sel = null; S.point = null; if (pr.scope) setScope(pr.scope, true); drawAll();
   }
 
-  function drawAll() { stage("layer feeds", syncFeeds); stage("radar", ensureRadar); stage("counties", ensureCounties); stage("gauges", ensureGauges); stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("en route", ensureEn); stage("gtg", ensureGtg); stage("ifi", ensureIfi); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); if ((S.ap || S.fit === "route") && !framedAp && map && mapLoaded) stage("airport view", () => frameAirport(0)); if (S.sel && !framedSel && map && mapLoaded) stage("selection view", frameSelection); }
+  function drawAll() { stage("layer feeds", syncFeeds); stage("radar", ensureRadar); stage("rainfall", ensureRain); stage("counties", ensureCounties); stage("gauges", ensureGauges); stage("feeds", ensureWssi); stage("air quality", ensureAq); stage("tropical", ensureTc); stage("aviation", ensureAv); stage("en route", ensureEn); stage("gtg", ensureGtg); stage("ifi", ensureIfi); stage("top bar", renderTop); stage("panel", renderPanel); stage("map", drawMap); stage("sheet", sheetVar); if ((S.ap || S.fit === "route") && !framedAp && map && mapLoaded) stage("airport view", () => frameAirport(0)); if (S.sel && !framedSel && map && mapLoaded) stage("selection view", frameSelection); }
   /* a Planner "View on map" for an advisory or a pilot report: frame it once its data has loaded */
   function frameSelection() {
     const p = byId(S.sel); if (!p || !["pirep", "sigmet", "gairmet", "cwa"].includes(p.kind)) return;
@@ -1519,6 +1610,11 @@
     pop.querySelectorAll("input[data-av]").forEach((i) => { i.checked = !!av[i.dataset.av]; i.disabled = !S.layers.aviation; });
     $("txAvSub").classList.toggle("off", !S.layers.aviation);
     { const pi = pop.querySelector("input[data-pin]"); if (pi) pi.checked = !!S.pin; const ci = pop.querySelector("input[data-counties]"); if (ci) ci.checked = !!S.counties; }
+    { const live = isLive(); pop.querySelectorAll("input[data-rain]").forEach((x) => { x.checked = live && !!S.rain[x.dataset.rain]; x.disabled = !live; });
+      const w = pop.querySelector("select[data-rain-win]"), pr = pop.querySelector("select[data-rain-per]"); if (w) { w.value = String(S.rain.win); w.disabled = !live; } if (pr) { pr.value = String(S.rain.per); pr.disabled = !live; }
+      $("txRain").classList.toggle("off", !S.layers.flood);
+      $("txRainObsNote").textContent = !live ? "Live only" : S.rain.obs && R.obs.meta ? "NOAA MRMS radar estimate · " + obsWindowText(R.obs.meta) : "NOAA MRMS radar estimate · 1 km";
+      $("txRainFcstNote").textContent = !live ? "Live only" : S.rain.fcst && R.fcst.meta ? "WPC · " + fcstWindowText(R.fcst.meta, fcstPeriod()) : "WPC forecast totals · CONUS"; }
     { const ri = pop.querySelector("input[data-radar]"); ri.checked = !!S.radar && isLive(); ri.disabled = !isLive();
       $("txRadarNote").textContent = !isLive() ? "Live only: current radar doesn't belong on a demo or a replay" : S.radar && radar.valid ? radarText() : "NOAA MRMS base reflectivity · refreshed every 5 minutes while on · about 0.3 MB per view"; }
     $("txLayersSum").textContent = layersSummary(); $("txLayersBtn").setAttribute("aria-label", "Layers: " + layersSummary() + " on. Open to change");
@@ -1548,8 +1644,11 @@
     if (e.target.closest("[data-ol-refresh]")) loadOutlook(true);
     const og = e.target.closest("[data-ol-go]"); if (og && og.dataset.olGo) outlookGo(og.dataset.olGo, og.dataset.olKey); });
   $("txLayersPop").addEventListener("change", (e) => {
-    const i = e.target; if (!i.matches("input")) return;
-    if (i.dataset.layer) { S.auto = false; S.layers[i.dataset.layer] = i.checked; if ((!S.layers.winter && winterView()) || (!S.layers.fire && fireView())) S.view = "active"; }
+    const i = e.target; if (!i.matches("input, select")) return;
+    if (i.dataset.rain) { S.auto = false; S.rain[i.dataset.rain] = i.checked; if (i.checked) { S.rain[i.dataset.rain === "obs" ? "fcst" : "obs"] = false; S.layers.flood = true; } } // one rainfall overlay at a time
+    else if (i.hasAttribute("data-rain-win")) { S.rain.win = +i.value; if (!S.rain.obs) { S.auto = false; S.rain.obs = true; S.rain.fcst = false; S.layers.flood = true; } }
+    else if (i.hasAttribute("data-rain-per")) { S.rain.per = i.value; if (!S.rain.fcst) { S.auto = false; S.rain.fcst = true; S.rain.obs = false; S.layers.flood = true; } }
+    else if (i.dataset.layer) { S.auto = false; S.layers[i.dataset.layer] = i.checked; if ((!S.layers.winter && winterView()) || (!S.layers.fire && fireView())) S.view = "active"; }
     else if (i.hasAttribute("data-radar")) S.radar = i.checked;
     else if (i.hasAttribute("data-counties")) { S.counties = i.checked; try { localStorage.setItem("threats_counties", S.counties ? "1" : "0"); } catch (e) { /* not remembered */ } }
     else if (i.hasAttribute("data-pin")) { S.pin = i.checked; try { localStorage.setItem("threats_pin", S.pin ? "1" : "0"); } catch (e) { /* not remembered */ } if (!S.pin && S.scope === "venue") { S.scope = "national"; renderTop(); } }
@@ -1621,8 +1720,8 @@
     if (!ready) return; const c = pal();
     if (carto) { // swap the street map's light/dark style, keeping our sources and layers
       const next = await cartoStyle(light() ? "light" : "dark"); if (!next) { themePaints(c); drawAll(); return; }
-      const prev = map.getStyle(), ours = prev.layers.filter((l) => OUR.includes(l.id) || l.id === "radar"), keepSrc = Object.fromEntries(Object.entries(prev.sources).filter(([k]) => !next.sources[k]));
-      map.once("style.load", () => { baseLines(); orderOverBase(); themePaints(pal()); radar.tiles = null; drawAll(); }); // hatch is re-added in themePaints
+      const prev = map.getStyle(), ours = prev.layers.filter((l) => OUR.includes(l.id) || ["radar", "rain-obs", "rain-fcst"].includes(l.id)), keepSrc = Object.fromEntries(Object.entries(prev.sources).filter(([k]) => !next.sources[k]));
+      map.once("style.load", () => { baseLines(); orderOverBase(); themePaints(pal()); radar.tiles = null; R.obs.tiles = R.fcst.tiles = null; drawAll(); }); // hatch is re-added in themePaints
       map.setStyle(next, { diff: false, transformStyle: () => ({ ...next, sources: { ...next.sources, ...keepSrc }, layers: [...next.layers, ...ours] }) }); // a full reload, so style.load runs
       return; }
     map.setPaintProperty("bg", "background-color", c.land); map.setPaintProperty("lakes", "fill-color", c.water); map.setPaintProperty("states", "line-color", c.line);
@@ -1680,16 +1779,19 @@
     if (q.get("rx") === "1") S.rx = true;
     if (q.get("ctn") === "1") S.ctn = true;
     if (q.get("radar") === "1") S.radar = true;
+    { const m = /^(obs)(1|24|72)?$|^(fcst)(auto|1-3|1|2|3)?$/.exec(q.get("rain") || ""); if (m) { if (m[1]) { S.rain.obs = true; if (m[2]) S.rain.win = +m[2]; } else { S.rain.fcst = true; if (m[4]) S.rain.per = m[4]; } } }
     try { if (localStorage.getItem("threats_pin") === "0") S.pin = false; } catch (e) { /* no storage: marker shown */ }
     try { if (localStorage.getItem("threats_counties") === "0") S.counties = false; } catch (e) { /* no storage: shown */ }
     if (q.get("counties") === "0") S.counties = false; else if (q.get("counties") === "1") S.counties = true;
     if (q.get("pin") === "0") S.pin = false; else if (q.get("pin") === "1" || q.get("scope") === "venue") S.pin = true;
+    if (q.get("rain") && !q.get("layers") && (S.rain.obs || S.rain.fcst)) S.layers.flood = true; // a rainfall link without layers= opens Flooding with it
     if (q.get("layers")) { const L = q.get("layers").split(","); if (L.includes("aviation")) S.en.on = true; Object.keys(S.layers).forEach((k) => (S.layers[k] = L.includes(k))); } // keeps the picker's order
     else if (S.scenario !== "live") Object.keys(S.layers).forEach((k) => (S.layers[k] = true)); // demo and archived samples: their shared selection is every layer
     else if (S.gtg.on || S.ifi.on || q.get("air") || q.get("rt") || q.get("alt")) S.layers.aviation = true; // a live link naming aviation content and no layers
     /* a fresh live visit: radar and the current NWS warnings, watches and advisories (with storm reports and MDs); fire, smoke and
        aviation stay off until chosen. ?layers=none opens with nothing, ?radar=0 without radar */
     else { ["severe", "flood", "winter", "heat", "wind", "tropical", "coastal"].forEach((k) => (S.layers[k] = true)); if (q.get("radar") !== "0") S.radar = true; S.auto = true; }
+    if (q.get("rain") && (S.rain.obs || S.rain.fcst)) S.auto = false; // a link naming a rainfall overlay keeps it (no automatic changes)
     if (S.view === "winter") S.layers.winter = true;
     if (S.view === "fire") S.layers.fire = true;
     if (FX.WSSI_LEVELS.includes(q.get("wlevel"))) S.wlevel = q.get("wlevel");
@@ -1743,5 +1845,5 @@
     drawAll();
     return true;
   }
-  window.__threats = { S, drawAll, radar, setVenue, get outlook() { return vo; }, get basemap() { return carto ? "carto" : "fallback"; }, retryCarto, get venue() { return venue; }, get vfc() { return vfc; }, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
+  window.__threats = { S, drawAll, radar, rain: R, setVenue, get outlook() { return vo; }, get basemap() { return carto ? "carto" : "fallback"; }, retryCarto, get venue() { return venue; }, get vfc() { return vfc; }, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
 })();
