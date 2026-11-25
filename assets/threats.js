@@ -170,6 +170,9 @@
     return abbrs.some((a) => /^GMT/.test(a)) || long === abbrs[0] ? long : long + " (" + abbrs.join("/") + ")"; } catch (e) { return z; } };
   const t = (iso, day) => T.fmtTime(iso, tz(), { day });
   const shown = (p) => S.layers[p.family || "severe"] !== false;
+  /* an alert issued ahead of its start (onset later than now): kept on the Active now map, but drawn and worded as upcoming */
+  const later = (p) => (p.kind === "warning" || p.kind === "watch" || p.kind === "advisory" || p.kind === "statement") && Date.parse(p.issued) > now;
+  const startsText = (p) => "Starts " + t(p.issued, true) + " · until " + t(p.expires, true);
   const active = () => data.products.filter((p) => p.kind !== "outlook" && p.family !== "aviation" && shown(p) && (Date.parse(p.expires) > now || (p.kind === "md" && p.expires == null)));
   // reached its published expiration while the source was down: not active, and not described as cleared
   const lapsed = () => data.products.filter((p) => p.kind !== "outlook" && T.expiredUnconfirmed(p, data.sources[SRC_OF(p)], now));
@@ -697,13 +700,14 @@
       L({ id: "pirep-ice", type: "circle", source: "pirep", filter: ["==", ["get", "ice"], true], paint: { "circle-radius": ["get", "r"], "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": ["get", "color"], "circle-stroke-width": 3 } });
       L({ id: "hl", type: "line", source: "hl", layout: { "line-join": "round" }, paint: { "line-color": p.text, "line-width": 9, "line-opacity": 0.55, "line-blur": 1 } });
       L({ id: "watch-fill", type: "fill", source: "active", filter: ["==", ["get", "kind"], "watch"], paint: { "fill-color": ["get", "color"], "fill-opacity": 0.08 } });
-      L({ id: "watch-line", type: "line", source: "active", filter: ["==", ["get", "kind"], "watch"], paint: { "line-color": ["get", "color"], "line-width": 2.6, "line-dasharray": [3, 2], "line-opacity": ["get", "op"] } });
+      L({ id: "watch-line", type: "line", source: "active", filter: ["all", ["==", ["get", "kind"], "watch"], ["!=", ["get", "later"], true]], paint: { "line-color": ["get", "color"], "line-width": 2.6, "line-dasharray": [3, 2], "line-opacity": ["get", "op"] } });
       L({ id: "md-line", type: "line", source: "active", filter: ["==", ["get", "kind"], "md"], layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 3.2, "line-dasharray": [0.1, 2.2], "line-opacity": ["get", "op"] } });
       L({ id: "adv-fill", type: "fill", source: "active", filter: ["in", ["get", "kind"], ["literal", ["advisory", "statement"]]], paint: { "fill-color": ["get", "color"], "fill-opacity": ["*", ["get", "fill"], 0.6] } });
-      L({ id: "adv-line", type: "line", source: "active", filter: ["in", ["get", "kind"], ["literal", ["advisory", "statement"]]], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 2, "line-opacity": ["get", "op"] } });
+      L({ id: "adv-line", type: "line", source: "active", filter: ["all", ["in", ["get", "kind"], ["literal", ["advisory", "statement"]]], ["!=", ["get", "later"], true]], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 2, "line-opacity": ["get", "op"] } });
       L({ id: "warn-fill", type: "fill", source: "active", filter: ["==", ["get", "kind"], "warning"], paint: { "fill-color": ["get", "color"], "fill-opacity": ["get", "fill"] } });
       L({ id: "warn-case", type: "line", source: "active", filter: ["==", ["get", "kind"], "warning"], layout: { "line-join": "round" }, paint: { "line-color": p.halo, "line-width": 6, "line-opacity": 0.85 } });
-      L({ id: "warn-line", type: "line", source: "active", filter: ["==", ["get", "kind"], "warning"], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 3.4 } });
+      L({ id: "later-line", type: "line", source: "active", filter: ["==", ["get", "later"], true], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 2.6, "line-dasharray": [1.5, 1.5] } }); // starts later: dashed
+      L({ id: "warn-line", type: "line", source: "active", filter: ["all", ["==", ["get", "kind"], "warning"], ["!=", ["get", "later"], true]], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 3.4 } });
       L({ id: "aqmon", type: "circle", source: "aqmon", paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 3.2, 8, 6.5], "circle-color": ["get", "color"], "circle-stroke-color": "#222", "circle-stroke-width": 0.8, "circle-opacity": 0.95 } });
       // SPC storm reports: tornado red, wind blue, hail green; small dots, a white edge
       // NOAA river gauges (Flooding, regional zoom): filled by flood category, a grey ring when no category applies
@@ -771,7 +775,7 @@
     // Active now: everything. Day 1: current warnings as outlines, labelled Active now. Day 2: no current geometry.
     // Winter outlook: current winter warnings and advisories as outlines over the WSSI-P areas.
     const act = day === 2 || day === 3 ? [] : active().filter((p) => p.geometry && (!day || p.kind === "warning" || (wv && p.family === "winter") || (fv && p.family === "fire")) && (!wv || p.family === "winter") && (!fv || p.family === "fire"));
-    map.getSource("active").setData({ type: "FeatureCollection", features: act.map((p) => feature(p, { kind: p.kind, color: colorOf(p), op: unconfirmed(p) ? 0.6 : 1, fill: day ? 0 : unconfirmed(p) ? 0.16 : 0.3, day: day || 0, text: labelText(p), tc: c.text, hc: c.halo })) });
+    map.getSource("active").setData({ type: "FeatureCollection", features: act.map((p) => feature(p, { kind: p.kind, later: later(p), color: colorOf(p), op: unconfirmed(p) ? 0.6 : 1, fill: day ? 0 : later(p) ? 0.07 : unconfirmed(p) ? 0.16 : 0.3, day: day || 0, text: labelText(p), tc: c.text, hc: c.halo })) });
     { const ap = avProducts(), ids = [...new Set(ap.map((p) => p.airport))];
       map.getSource("apt").setData({ type: "FeatureCollection", features: ids.map((id) => { const m = ap.filter((p) => p.kind === "metar" && p.airport === id).sort((a, b) => (a.observed < b.observed ? 1 : -1))[0], any = m || ap.find((p) => p.airport === id); return { type: "Feature", properties: { id: (m || any).id, color: m ? FLT_COLOR[m.category] : "#9aa3ad", label: id + (m ? " · " + m.category : "") }, geometry: { type: "Point", coordinates: any.point } }; }) }); }
     { const en = day === 2 || day === 3 || wv || fv ? [] : enShown(), adv = en.filter((x) => x.kind !== "pirep"), rp = en.filter((x) => x.kind === "pirep");
@@ -810,7 +814,7 @@
     // at any zoom; other warnings from regional zoom (5.5); advisories when zoomed in (6.5)
     const siteIds = new Set(((siteAssess() || { at: [] }).at || []).map((x) => x.p.id));
     for (const p of act) if (p.kind === "warning" || p.kind === "advisory") { const site = siteIds.has(p.id), urgent = site || isTor(p) || !!p.impact || URGENT.test(p.event || "");
-      labels.push({ p, text: (day ? "ACTIVE NOW · " : "") + labelText(p), size: site ? 14 : 13, rank: site ? -1 : isTor(p) || p.impact ? 0 : urgent ? 1 : p.kind === "warning" ? 2 : 3, lk: urgent ? "urgent" : p.kind === "warning" ? "more" : "adv", tc: c.halo, hc: colorOf(p) }); }
+      labels.push({ p, text: (later(p) ? "FROM " + t(p.issued).replace(/:00 /, " ").replace(/ [A-Z]{3,4}$/, "") + " · " : day ? "ACTIVE NOW · " : "") + labelText(p), size: site ? 14 : 13, rank: site ? -1 : isTor(p) || p.impact ? 0 : urgent ? 1 : p.kind === "warning" ? 2 : 3, lk: urgent ? "urgent" : p.kind === "warning" ? "more" : "adv", tc: c.halo, hc: colorOf(p) }); }
     for (const p of ol) if (p.category !== "TSTM" || day) labels.push({ p, text: p.category, size: day ? 12 : 10, rank: 5, tc: c.text, hc: c.halo });
     for (const p of fo) if (p.label) labels.push({ p, text: p.day >= 3 ? (p.category === "CRIT" ? "CRITICAL" : FX.FIRE_NAME[p.category]) : p.category, size: 11.5, rank: 4, tc: c.text, hc: c.halo });
     for (const p of inc) if (p.acres >= 1000 || p.geometry) labels.push({ p, text: p.name + " · " + Math.round(p.acres || 0).toLocaleString("en-US") + " ac", size: 11, rank: 6, tc: c.text, hc: c.halo });
@@ -888,7 +892,7 @@
   const lastKnown = (u) => `<span class="tx-flag">LAST CONFIRMED ${esc(t(u).toUpperCase())} · SOURCE NOT RESPONDING</span>`;
   function item(p, opts = {}) {
     const r = rel(p), u = unconfirmed(p);
-    const when = p.kind === "outlook" ? "Day " + p.day + " · until " + t(p.validEnd, true) : p.expires == null ? "Valid time unavailable (NOAA map service)" : (u ? "Published expiration " : "Until ") + t(p.expires) + (u ? "" : " · " + T.untilText(p.expires, now));
+    const when = p.kind === "outlook" ? "Day " + p.day + " · until " + t(p.validEnd, true) : p.expires == null ? "Valid time unavailable (NOAA map service)" : (later(p) ? startsText(p) : (u ? "Published expiration " : "Until ") + t(p.expires) + (u ? "" : " · " + T.untilText(p.expires, now)));
     const title = p.kind === "outlook" ? olabel(p) : p.title;
     const showRel = opts.rel !== false && p.kind !== "outlook" && r.kind !== "none";
     return `<button type="button" class="tx-item${S.hover === p.id ? " hl" : ""}" data-id="${esc(p.id)}" style="--tx-c:${colorOf(p)}">${swatch(p)}<span>`
@@ -947,8 +951,8 @@
     const covers = venueCovers(), near = venueNear().filter((p) => p.kind === "warning"), lines = [];
     for (const p of covers.filter((x) => ["warning", "watch", "advisory"].includes(x.kind))) {
       const u = unconfirmed(p);
-      lines.push({ p, at: true, head: u ? `Last known: ${p.event} at the venue` : `${p.event} in effect at the venue`,
-        sub: u ? `Last confirmed ${t(u)} · published expiration ${t(p.expires)}` : `Until ${t(p.expires)} · ${T.untilText(p.expires, now)}` });
+      lines.push({ p, at: true, head: u ? `Last known: ${p.event} at the venue` : later(p) ? `${p.event} at the venue, starting later` : `${p.event} in effect at the venue`,
+        sub: u ? `Last confirmed ${t(u)} · published expiration ${t(p.expires)}` : later(p) ? startsText(p) : `Until ${t(p.expires)} · ${T.untilText(p.expires, now)}` });
     }
     for (const p of near) {
       const r = rel(p), u = unconfirmed(p);
@@ -1155,7 +1159,7 @@
     if (p.detailsUnavailable) rows.push(["Details", "Unavailable: SPC's text page could not be reached, so this MD comes from the NOAA map service, which gives its outline" + (p.number ? " and number" : "") + " only. Use the SPC link below for the full discussion."]);
     if (p.kind === "md" && p.expires == null) rows.push(["Valid", "Unavailable"]);
     else if (p.kind === "outlook" || p.kind === "md") rows.push(["Valid", esc(t(p.validStart, true)) + " → " + esc(t(endOf(p), true)) + ` <span class="mono" style="color:var(--muted)">${esc(T.fmtZ(p.validStart))}–${esc(T.fmtZ(endOf(p)))}</span>`]);
-    else rows.push([u ? "Published expiration" : "Expires", `<b>${esc(t(p.expires, true))}</b>${u ? "" : " · " + esc(T.untilText(p.expires, now))}`]);
+    else { if (later(p)) rows.push(["Starts", `<b>${esc(t(p.issued, true))}</b> · not in effect yet`]); rows.push([u ? "Published expiration" : "Expires", `<b>${esc(t(p.expires, true))}</b>${u || later(p) ? "" : " · " + esc(T.untilText(p.expires, now))}`]); }
     rows.push(["Venue", `<b>${esc(p.kind === "outlook" ? outlookVenueText(p) : relText(p))}</b> <span style="color:var(--muted)">(${esc(venue.name)})</span>`]);
     if (ch) rows.push(["What changed", `<span style="color:var(--muted)">Since ${esc(t(ch.since))}:</span><ul>${ch.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>`]);
     if (p.viaService) rows.push(["Official bulletin", `<a href="${esc(p.source.url)}" target="_blank" rel="noopener">${p.number ? "SPC Mesoscale Discussion " + p.number : "SPC Mesoscale Discussions page"}</a>`]);

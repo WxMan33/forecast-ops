@@ -107,7 +107,9 @@ const ready = (p) => p.waitForFunction(() => window.__threats && window.__threat
       await q.waitForSelector(".et-mc .et-ifi[data-ifi-complete]", { timeout: 180000 }); await q.waitForSelector(".et-mc .et-gtg[data-gtg-complete], .et-mc [data-gtg-state=failed]", { timeout: 180000 });
       const post = await q.evaluate(() => ({ done: [...document.querySelectorAll(".et-mcdone")].map((x) => x.textContent), gtgHead: !!document.querySelector(".et-mc .et-gtg .et-gtgh"), ifiHead: !!document.querySelector(".et-mc .et-ifi .et-ifih"), overflow: document.documentElement.scrollWidth > window.innerWidth + 1 }));
       check(`(${d}) Planner: one 'Model checks along the route' area with 'Check turbulence' and 'Check icing'; both on demand; each result under its own heading`, pre.heads === 1 && /^Check turbulence \(about \d+ MB\)$/.test(pre.btns[0]) && /^Check icing \(about \d+ MB\)$/.test(pre.btns[1]) && post.done.length === 2 && post.gtgHead && post.ifiHead && !post.overflow && !perr.length, { pre, post, perr });
-      await q.locator(".et-mc").scrollIntoViewIfNeeded(); await q.locator(".et-mc").screenshot({ path: path.join(OUT, `planner-modelchecks-${d}.png`) }).catch(() => {}); await q.close(); }
+      // the screenshot only (the check above already ran): a live refresh can redraw the section mid-scroll, so try again rather than abort the suite
+      for (let i = 0; i < 3; i++) { try { await q.locator(".et-mc").scrollIntoViewIfNeeded({ timeout: 8000 }); await q.locator(".et-mc").screenshot({ path: path.join(OUT, `planner-modelchecks-${d}.png`), timeout: 8000 }); break; } catch (e) { await q.waitForTimeout(1000); } }
+      await q.close(); }
     await ctx.close();
   }
   fs.writeFileSync(path.join(OUT, "ux-check.json"), JSON.stringify({ host: HOST, at: new Date().toISOString(), results }, null, 1));

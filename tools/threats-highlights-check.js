@@ -43,6 +43,10 @@ const read = (p) => p.evaluate(() => { const T = window.__threats, m = T.map, vi
       await p.waitForFunction(() => window.__threats && window.__threats.outlook && ["ok", "failed"].includes(window.__threats.outlook.state), null, { timeout: 120000 }).catch(() => {}); await p.waitForTimeout(3500);
       const s = await read(p); await p.screenshot({ path: path.join(OUT, `${name}-${d}.png`) });
       if (phone) { await p.locator("#txPeek").click().catch(() => {}); await p.waitForTimeout(900); await p.locator(".px-hl").scrollIntoViewIfNeeded().catch(() => {}); await p.screenshot({ path: path.join(OUT, `${name}-${d}-open.png`) }); }
+      // a forecast highlight is never worded as an alert: headline, highlight list, day-card chips and the phone's collapsed line
+      const alertWords = await p.evaluate(() => { const w = /\b(warning|watch|advisory)\b/i, head = document.querySelector('.px-olhead[data-lead="highlights"]');
+        return [...(head ? [head.querySelector(".px-big").textContent] : []), ...[...document.querySelectorAll(".px-hlitem b, .px-olhl")].map((x) => x.textContent), ...(head ? [document.getElementById("txPeek1").textContent, document.getElementById("txPeek2").textContent] : [])].filter((x) => w.test(x)); });
+      check(`(${phone ? "phone" : "desktop"}) ${name}: no forecast highlight is worded as an alert (${alertWords.length} found)`, !alertWords.length, { alertWords });
       const base = !errs.length && !s.errors.length && !s.hscroll && (name === "live" || (s.badge === "TEST REPLAY" && count.n > 0 && count.failed === 0));
       if (name === "heavy") {
         check(`(${d}) HEAVY RAIN REPLAY: lead '${s.big}' (${s.lead}); sub '${s.sub.slice(0, 90)}'`, base && s.lead === "highlights" && s.big === `Heavy rain ${D1} · Wintry mix possible ${D2} morning` && /not an alert or outlook/.test(s.sub), { s, count, errs });

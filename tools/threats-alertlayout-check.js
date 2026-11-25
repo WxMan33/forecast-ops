@@ -70,6 +70,16 @@ const QUERY = `lat=${cy.toFixed(4)}&lon=${cx.toFixed(4)}&name=${encodeURICompone
     check(`(${tag}) ${m ? m.cards.length : 0} cards, ${m ? m.heads.length : 0} headings: none overlap, all full width (${m && m.sw}px), no one-word columns, no sideways scroll`, m && m.cards.length >= 2 && !m.overlap.length && !m.narrow.length && !m.hscroll, { overlap: m && m.overlap, narrow: m && m.narrow, cards: m && m.cards });
     check(`(${tag}) every 'NWS bulletin' and 'Show on map' link can be tapped (${m ? m.links.length : 0} links, at least 24 px tall and on top)`, m && m.links.length >= 4 && m.links.every((l) => l.hit && l.h >= 24 && l.w >= 40), { links: m && m.links });
     if (phone) check(`(${tag}) collapsed sheet: '${peek && peek.p1}' / '${peek && peek.p2}'`, peek && peek.vis && /Tornado Warning/.test(peek.p1) && /^Covers this site · until /.test(peek.p2) && !/Today · NWS/.test(peek.p2), { peek });
+    // the Active now map: the warning that starts later is drawn dashed with a FROM label, not as if in effect
+    await p.evaluate(() => { const T = window.__threats; T.S.view = "active"; T.S.sel = null; T.drawAll(); }); await p.waitForTimeout(2000);
+    const an = await p.evaluate(() => { const T = window.__threats, m = T.map, f = (m.getSource("active")._data.features || []), L = (m.getSource("labels")._data.features || []);
+      const sv = f.find((x) => /0904/.test(x.properties.id || "") || /Severe Thunderstorm Warning/.test(x.properties.text || "") && x.properties.later), to = f.find((x) => /0903/.test(x.properties.id || "") || /Tornado/.test(x.properties.text || ""));
+      const svl = L.find((x) => /SEVERE THUNDERSTORM|Severe Thunderstorm/i.test(x.properties.text) && /^FROM /.test(x.properties.text)), tol = L.find((x) => /TORNADO/i.test(x.properties.text));
+      const list = [...document.querySelectorAll("#txPanelBody *")].map((x) => x.textContent).find((x) => /Starts .* · until /.test(x)) || "";
+      return { svLater: sv && sv.properties.later, svFill: sv && sv.properties.fill, toLater: to && to.properties.later, svLabel: svl && svl.properties.text, toLabel: tol && tol.properties.text, laterLayer: !!m.getLayer("later-line") && m.getLayoutProperty("later-line", "visibility") !== "none", list: list.slice(0, 120) }; });
+    await p.screenshot({ path: path.join(OUT, `active-now-${tag}.png`) });
+    check(`(${tag}) Active now: the upcoming warning is drawn dashed and faint with '${an.svLabel}'; the warning in effect is not ('${an.toLabel}'); lists say '${an.list.slice(0, 70)}'`,
+      an.svLater === true && an.svFill < 0.1 && an.toLater !== true && /^FROM \d/.test(an.svLabel || "") && !/^FROM /.test(an.toLabel || "") && an.laterLayer && /Starts .* · until /.test(an.list), { an });
     check(`(${tag}) no page errors`, !errs.length, { errs });
     await ctx.close();
   }
