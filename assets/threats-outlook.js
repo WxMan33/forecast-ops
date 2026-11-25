@@ -20,6 +20,55 @@
   const fmts = new Map(), localDate = (ms, tz) => { let f = fmts.get(tz); if (!f) { f = new Intl.DateTimeFormat("sv-SE", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }); fmts.set(tz, f); } return f.format(new Date(ms)); };
   const dayLabel = (date, i, tz) => i === 0 ? "Today" : i === 1 ? "Tomorrow" : new Date(date + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
 
+  /* ---------- forecast highlights for the site (NWS forecast grid) ----------
+     Weather that can matter to an event or a commute without any alert or outlook: heavy rain (the wettest rolling 24 hours,
+     from the grid's amounts, so a rain event crossing midnight counts once), a wintry mix (snow, sleet or freezing rain in the
+     forecast, with accumulation only when the grid gives it), rain that lingers (6+ hours likely or definite), and heat (peak
+     heat index and when). Thresholds: 1 inch in 24 h and a 90°F heat index unless the caller sets others. Every highlight
+     says where its numbers come from and how far the data reaches; nothing here is an alert or an outlook. */
+  const COMMUTE = [[6, 9, "morning commute"], [16, 19, "evening commute"]];
+  const fmtH = (ms, tz) => new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric" }).format(new Date(ms)).replace(" ", " ");
+  const fmtDay = (ms, tz) => new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short" }).format(new Date(ms));
+  const span = (a, b, tz) => fmtDay(a, tz) + " " + fmtH(a, tz) + " – " + (fmtDay(a, tz) === fmtDay(b, tz) ? "" : fmtDay(b, tz) + " ") + fmtH(b, tz);
+  const partOfDay = (ms, tz) => { const h = +new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hourCycle: "h23" }).format(new Date(ms)); return h < 5 ? "overnight" : h < 12 ? "morning" : h < 17 ? "afternoon" : h < 21 ? "evening" : "night"; };
+  function highlights(grid, tz, now, opt = {}) {
+    const rainIn = opt.rainIn || 1, heatF = opt.heatF || 90, rows = (grid && grid.rows) || [], H = 3600e3, out = [], notes = [];
+    if (!rows.length) return { list: out, notes, missing: true };
+    const T = (r) => Date.parse(r.t);
+    // heavy rain: the wettest rolling 24 hours of forecast amounts
+    const q = rows.map((r) => (r.qpf == null ? null : r.qpf)), have = q.some((v) => v != null);
+    if (have) { let best = null; for (let i = 0; i < rows.length; i++) { if (q[i] == null) continue; let sum = 0, n = 0; for (let j = i; j < Math.min(rows.length, i + 24) && q[j] != null; j++) { sum += q[j]; n++; } if (n >= 6 && (!best || sum > best.sum)) best = { i, sum, n }; }
+      if (best && best.sum >= rainIn) { const w = rows.slice(best.i, best.i + best.n), wet = w.filter((r) => r.qpf >= 0.01), a = T(wet[0]), b = T(wet[wet.length - 1]) + H;
+        let pk = null; for (let i = 0; i + 6 <= w.length; i++) { const s6 = w.slice(i, i + 6).reduce((m, r) => m + (r.qpf || 0), 0); if (!pk || s6 > pk.s) pk = { s: s6, t: T(w[i]) }; }
+        const mid = pk ? pk.t + 3 * H : a;
+        out.push({ kind: "rain", rank: 4, at: mid, value: +best.sum.toFixed(2), short: "Heavy rain " + dayName(mid, tz, now), text: "Heavy rain: about " + best.sum.toFixed(1) + " in from " + span(a, b, tz) + (pk ? "; heaviest " + span(pk.t, pk.t + 6 * H, tz) + " (about " + pk.s.toFixed(1) + " in)" : ""), source: "NWS forecast (rain amounts)", link: "rain",
+          partial: grid.qpfThrough && b >= Date.parse(grid.qpfThrough) - H }); } }
+    if (grid.qpfThrough) notes.push("Rain amounts forecast through " + fmtDay(Date.parse(grid.qpfThrough), tz) + " " + fmtH(Date.parse(grid.qpfThrough), tz));
+    else notes.push("No rain amounts in the NWS forecast for this site");
+    // wintry mix: contiguous hours with snow, sleet or freezing rain/drizzle at least a chance
+    const WINTRY = /snow|sleet|freezing/;
+    const runs = (pred) => { const r = []; let cur = null; for (const x of rows) { if (pred(x)) { if (!cur) { cur = { from: T(x), rows: [] }; r.push(cur); } cur.rows.push(x); cur.to = T(x) + H; } else cur = null; } return r; };
+    for (const w of runs((r) => (r.wx || []).some((x) => WINTRY.test(x.type) && x.cov >= 2))) {
+      const types = [...new Set(w.rows.flatMap((r) => (r.wx || []).filter((x) => x.cov >= 2).map((x) => x.type.replace(/_/g, " "))))], cov = Math.max(...w.rows.flatMap((r) => (r.wx || []).filter((x) => WINTRY.test(x.type)).map((x) => x.cov)));
+      const snow = w.rows.reduce((m, r) => m + (r.snow || 0), 0), ice = w.rows.reduce((m, r) => m + (r.ice || 0), 0), mixed = types.length > 1, frz = types.some((t) => /freezing/.test(t));
+      const word = cov >= 3 ? "likely" : "possible", name = frz ? "Freezing rain" : mixed ? "Wintry mix" : types[0].charAt(0).toUpperCase() + types[0].slice(1);
+      out.push({ kind: "winter", rank: frz ? 4 : 3, at: w.from, short: name + " " + word + " " + dayName(w.from, tz, now) + " " + partOfDay(w.from, tz), text: name + " " + word + " " + span(w.from, w.to, tz) + ": " + types.join(", ")
+        + (snow >= 0.1 ? "; snow about " + snow.toFixed(1) + " in" : "") + (ice >= 0.01 ? "; ice about " + ice.toFixed(2) + " in" : ""), source: "NWS forecast (precipitation type" + (snow >= 0.1 || ice >= 0.01 ? " and amounts" : "") + ")", link: "winter" }); }
+    // lingering rain: 6 or more hours of rain likely or definite; says which commutes it covers
+    for (const w of runs((r) => (r.wx || []).some((x) => /rain|drizzle|showers/.test(x.type) && !/freezing/.test(x.type) && x.cov >= 3))) {
+      const hrs = Math.round((w.to - w.from) / H); if (hrs < 6) continue;
+      const hits = new Set(); for (let t = w.from; t < w.to; t += H) { const d = new Date(t), dow = new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short" }).format(d), h = +new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hourCycle: "h23" }).format(d); if (/Sat|Sun/.test(dow)) continue; for (const [a, b, n] of COMMUTE) if (h >= a && h < b) hits.add(dow + " " + n); }
+      const amt = w.rows.every((r) => r.qpf != null) ? w.rows.reduce((m, r) => m + r.qpf, 0) : null, c = [...hits];
+      out.push({ kind: "linger", rank: 2, at: w.from, short: "Rain for " + hrs + " h " + dayName(w.from, tz, now), text: "Rain likely for about " + hrs + " hours, " + span(w.from, w.to, tz) + (amt != null && amt >= 0.05 ? " (about " + amt.toFixed(1) + " in)" : "")
+        + (c.length ? "; covers " + (c.length === 1 ? "the " + c[0] : c.length + " commutes: " + c.join(", ")) : ""), source: "NWS forecast (precipitation type, chance" + (amt != null ? " and amounts" : "") + ")", link: "rain" }); }
+    // heat: the peak heat index and when
+    const hp = rows.reduce((b, r) => (r.heat != null && (!b || r.heat > b.heat) ? r : b), null);
+    if (hp && hp.heat >= heatF) out.push({ kind: "heat", rank: hp.heat >= 103 ? 4 : 3, at: T(hp), value: hp.heat, short: "Heat index " + hp.heat + "°F " + dayName(T(hp), tz, now), text: "Heat index to " + hp.heat + "°F around " + fmtDay(T(hp), tz) + " " + fmtH(T(hp), tz), source: "NWS forecast (heat index)", link: null });
+    out.sort((a, b) => b.rank - a.rank || a.at - b.at);
+    return { list: out, notes, missing: false };
+  }
+  const dayName = (ms, tz, now) => localDate(ms, tz) === localDate(now, tz) ? "today" : new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "long" }).format(new Date(ms)); // weekdays: planners count by them
+
   function build(inp) {
     const tz = inp.tz, now = inp.now, pt = [inp.venue.lon, inp.venue.lat], nDays = inp.days || 7;
     const dates = []; for (let i = 0; i < nDays; i++) dates.push(localDate(now + i * 864e5, tz));
@@ -94,6 +143,8 @@
           d.items.push({ key: "dry", level: hi ? 2 : 1, text: "Dry and gusty: humidity " + worst.rh + "% with gusts to " + worst.gust + " mph (" + dg.length + " h)", source: "NWS forecast", link: "fire", rh, gust: g, hours: dg.length }); }
         else if (rh != null && rh <= 30) d.items.push({ key: "dry", level: 0, text: "Humidity as low as " + rh + "%", source: "NWS forecast", link: "fire", rh, gust: g }); }
     } else if (inp.states.grid === "failed") unknownOn(now, "NWS forecast for the venue not confirmed");
+    const HL = inp.grid && inp.grid.rows ? highlights(inp.grid, tz, now, inp.highlightOpts) : { list: [], notes: [], missing: true };
+    for (const h of HL.list) { const d = at(h.at); if (d) d.items.unshift({ key: "hl-" + h.kind, level: 0, highlight: true, text: h.text, source: h.source, link: h.link }); }
     // NOAA river gauges within 25 miles: forecast (or observed) at or above action stage, on the day it is expected
     const GL = { action: 0, minor: 1, moderate: 2, major: 3 }, GW = { action: "action stage", minor: "minor flooding", moderate: "moderate flooding", major: "major flooding" };
     for (const g of inp.gauges || []) {
@@ -115,7 +166,7 @@
     const unknownAll = [...new Set(days.flatMap((d) => d.unknown))];
     const headline = best ? { level: best.it.level, text: best.it.text, when: best.d.label, source: best.it.source }
       : { level: 0, text: unknownAll.length ? "No significant threat in the sources that answered" : "No significant threats in the next " + nDays + " days", when: null, source: null };
-    return { headline, alerts, days, unknown: unknownAll };
+    return { headline, alerts, days, unknown: unknownAll, highlights: HL };
   }
-  return { build, alertLevel, localDate };
+  return { build, alertLevel, localDate, highlights };
 });

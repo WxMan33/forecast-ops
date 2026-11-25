@@ -38,7 +38,7 @@
   const WLEVEL_LABEL = { WWA: "Any winter weather", MINOR: "Minor", MODERATE: "Moderate", MAJOR: "Major", EXTREME: "Extreme" };
   const empty = { type: "FeatureCollection", features: [] };
 
-  const S = { air: [], ap: null, layers: { severe: false, flood: false, winter: false, heat: false, wind: false, fire: false, smoke: false, tropical: false, coastal: false, aviation: false }, en: { on: false, at: 0, alt: null, age: 2 }, av: { apt: true, pireps: true, adv: true }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, ifi: { on: false, field: "prob", src: null, cyc: null }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, radar: false, rain: { obs: false, fcst: false, win: 24, per: "auto" }, auto: false, autoAdded: {}, autoNeed: null, gaugeWhy: null, pin: true, counties: true, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
+  const S = { air: [], ap: null, layers: { severe: false, flood: false, winter: false, heat: false, wind: false, fire: false, smoke: false, tropical: false, coastal: false, aviation: false }, en: { on: false, at: 0, alt: null, age: 2 }, av: { apt: true, pireps: true, adv: true }, gtg: { on: false, fh: 0, ft: 30000, cls: "medium" }, ifi: { on: false, field: "prob", src: null, cyc: null }, route: null, fit: null, rx: false, fday: 1, wlevel: "MINOR", wwin: null, radar: false, hl: { rainIn: 1, heatF: 90 }, rain: { obs: false, fcst: false, win: 24, per: "auto" }, auto: false, autoAdded: {}, autoNeed: null, gaugeWhy: null, pin: true, counties: true, scenario: "live", venueKey: "inside", liveVenue: "fp", entryVenue: null, view: "active", scope: "national", sel: null, hover: null, point: null, model: false, hazard: "tornado", ctx: true, sheet: "open" };
   let framedAp = false, framedSel = false, mapLoaded = false; // Planner airport "View on map": framed once
   let data, now, venue, map, ready = false, liveReady = false, meshes = new Map(), tzCache = {}, marker, grid = null, mesh = null, mask = null, gridLoading = null, hull = null;
   const phone = () => matchMedia("(max-width: 760px)").matches;
@@ -1190,9 +1190,10 @@
     if (outlookView() && !p && !S.point) {
       body.innerHTML = outlookPanel(); document.querySelectorAll("[data-scope]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scope === S.scope)));
       $("scopeVenue").innerHTML = `Venue<span class="tx-sbv"> · ${esc(venue.name)}</span>`;
-      const r = vo.data && OL ? OL.build({ ...vo.data, now: Date.now(), tz: tz(), venue, days: 7 }).headline : null;
+      const r = vo.data && OL ? OL.build({ ...vo.data, now: Date.now(), tz: tz(), venue, days: 7, highlightOpts: S.hl }).headline : null;
       const SA = siteAssess(), live1 = SA && SA.at.filter((x) => !(Date.parse(x.p.issued) > Date.now())).sort((a, b) => (b.p.kind === "warning") - (a.p.kind === "warning"))[0];
       if (live1) { const p1 = live1.p; $("txPeek1").textContent = (S.testReplay ? "TEST REPLAY · " : "") + (p1.title || p1.event) + (p1.impact ? " · " + p1.impact.tag : ""); $("txPeek2").textContent = "Covers this site · " + (p1.openEnded ? "until further notice" : "until " + t(p1.expires, true)); }
+      else if (r && !r.level && SA && SA.built && SA.built.highlights && SA.built.highlights.list.length) { const L = SA.built.highlights.list, cap = (x) => x.charAt(0).toUpperCase() + x.slice(1); $("txPeek1").textContent = L.slice(0, 2).map((x) => cap(x.short)).join(" · "); $("txPeek2").textContent = "Forecast highlights · NWS forecast · not an alert"; }
       else { $("txPeek1").textContent = r ? (r.level ? r.text : "Next 7 days: " + r.text.charAt(0).toLowerCase() + r.text.slice(1)) : "Next 7 days at " + venue.name; $("txPeek2").textContent = r && r.level ? r.when + " · " + r.source : vo.state === "loading" ? "Loading…" : "Tap for the day-by-day outlook"; }
       $("txPeek3").textContent = ""; $("txPeek3").hidden = true; $("txPeek").style.setProperty("--peek-c", r && r.level ? LEVEL_COLOR[r.level] : "transparent"); return;
     }
@@ -1321,7 +1322,7 @@
     const vk = venueKey(), od = vo.key === vk && vo.data ? vo.data : null, live = isLive() ? (data.products || []).filter((p) => p.sourceId === "nws-alerts" && p.kind !== "outlook" && Date.parse(p.expires) > Date.now()) : [];
     const key = [vk, od ? od.at : "-", data.clock, live.length, live.reduce((n, p) => n + (p.geometry ? 1 : 0), 0), siteZones() ? 1 : 0, Math.floor(Date.now() / 60e3)].join("|");
     if (saMemo.key === key) return saMemo.v;
-    const built = od && OL ? OL.build({ ...od, now: Date.now(), tz: tz(), venue, days: 7 }) : null;
+    const built = od && OL ? OL.build({ ...od, now: Date.now(), tz: tz(), venue, days: 7, highlightOpts: S.hl }) : null;
     const at = [], near = [], unknown = [], seen = new Set();
     for (const p of live) {
       const r = coverOf(p, STRIP_KM), k = vtecKey(p);
@@ -1534,19 +1535,27 @@
     vo = { key: k, state: "loading", data: vo.key === k ? vo.data : null, err: null };
     Live.outlookFor(venue.lat, venue.lon).then((d) => { if (vo.key === k) { vo.state = "ok"; vo.data = d; } }).catch((e) => { if (vo.key === k) { vo.state = "failed"; vo.err = e.message; vo.failedAt = Date.now(); setTimeout(() => { if (vo.key === k && vo.state === "failed") drawAll(); }, 61e3); } }).finally(() => drawAll());
   }
-  const OL_ICON = { river: "🌊", severe: "⛈", rain: "🌧", winter: "❄", fire: "🔥", tropical: "🌀", wind: "💨", heat: "🌡", cold: "🥶", precip: "☂", air: "😷", alert: "⚠", dry: "🍂" };
+  const OL_ICON = { river: "🌊", severe: "⛈", rain: "🌧", winter: "❄", fire: "🔥", tropical: "🌀", wind: "💨", heat: "🌡", cold: "🥶", precip: "☂", air: "😷", alert: "⚠", dry: "🍂", "hl-rain": "🌧", "hl-winter": "🌨", "hl-linger": "☔", "hl-heat": "🌡" };
   function outlookPanel() {
     loadOutlook(false);
     if (!vo.data) return vo.state === "failed" ? `<p class="px-empty">The 7-day outlook didn't load (${esc(vo.err)}). <button type="button" class="tx-fb" data-ol-refresh>Try again</button></p>` : `<p class="px-empty" data-ol-state="loading">Loading the next 7 days at ${esc(venue.name)}: NWS alerts and forecast, SPC, WPC, NHC and AirNow outlooks…</p>`;
-    const A = siteAssess(), r = (A && A.built) || OL.build({ ...vo.data, now: Date.now(), tz: tz(), venue, days: 7 }), hl = r.headline;
-    let h = `<div class="px-olhead" data-ol-state="ok" style="--ol-c:${LEVEL_COLOR[hl.level]}"><div class="px-where">Next 7 days at ${esc(venue.name)}${venue.city ? " · " + esc(venue.city) : ""}</div>`
-      + `<div class="px-big">${hl.level ? esc(hl.text) : esc(hl.text)}</div><div class="px-sub">${hl.level ? esc(hl.when + " · " + hl.source + " · " + LEVEL_WORD[hl.level] + " concern") : r.unknown.length ? "Not confirmed: " + esc(r.unknown.join("; ")) : "From NWS, SPC, WPC, NHC and AirNow"}</div></div>`;
+    const A = siteAssess(), r = (A && A.built) || OL.build({ ...vo.data, now: Date.now(), tz: tz(), venue, days: 7, highlightOpts: S.hl }), hl = r.headline;
+    // the lead: an official warning in effect at the site; else a notable official outlook; else the forecast highlights; else quiet
+    const HLs = (r.highlights && r.highlights.list) || [], warnNow = A && A.at.find((x) => x.p.kind === "warning" && !(Date.parse(x.p.issued) > Date.now()));
+    const where = `<div class="px-where">Next 7 days at ${esc(venue.name)}${venue.city ? " · " + esc(venue.city) : ""}</div>`;
+    let h;
+    if (warnNow) { const p = warnNow.p; h = `<div class="px-olhead" data-ol-state="ok" data-lead="warning" style="--ol-c:${LEVEL_COLOR[4]}">${where}<div class="px-big">${esc(p.title || p.event)}${p.impact ? " · " + esc(p.impact.tag) : ""}</div><div class="px-sub">Covers this site · ${esc(p.openEnded ? "until further notice" : "until " + t(p.expires, true))} · ${esc(p.office || "NWS")}</div></div>`; }
+    else if (hl.level >= 2 || !HLs.length) h = `<div class="px-olhead" data-ol-state="ok" data-lead="${hl.level ? "outlook" : "quiet"}" style="--ol-c:${LEVEL_COLOR[hl.level]}">${where}<div class="px-big">${esc(hl.text)}</div><div class="px-sub">${hl.level ? esc(hl.when + " · " + hl.source + " · " + LEVEL_WORD[hl.level] + " concern") : r.unknown.length ? "Not confirmed: " + esc(r.unknown.join("; ")) : "From NWS, SPC, WPC, NHC and AirNow"}</div></div>`;
+    else { const top = HLs.slice(0, 2).map((x) => x.short), cap = (x) => x.charAt(0).toUpperCase() + x.slice(1);
+      h = `<div class="px-olhead" data-ol-state="ok" data-lead="highlights" style="--ol-c:var(--accent)">${where}<div class="px-big">${esc(top.map(cap).join(" · "))}</div><div class="px-sub">Forecast highlights · NWS forecast for this site · not an alert or outlook${hl.level ? " · official outlooks: " + esc(hl.text) : ""}</div></div>`; }
+    h += forecastHighlights(r, HLs);
     h += alertStrip(A);
     if (false) h += `<div class="px-h"><span>NWS alerts at the venue</span><span>${r.alerts.length}</span></div>` + r.alerts.map((a) => `<div class="px-olalert" style="--ol-c:${LEVEL_COLOR[Math.max(a.level, 1)]}"><b>${esc(a.event)}</b><span>${esc(a.start > Date.now() ? "from " + t(new Date(a.start).toISOString(), true) + " " : "now ")}until ${esc(t(new Date(a.end).toISOString(), true))}</span></div>`).join("");
     h += `<div class="px-h"><span>Day by day</span><span>${esc(tzName(tz(), 7))}</span></div><div class="px-oldays">`;
     for (const d of r.days) {
-      const top = d.items.reduce((m, x) => Math.max(m, x.level), 0), sig = d.items.filter((x) => x.level >= 1), info = d.items.filter((x) => x.level < 1);
+      const top = d.items.reduce((m, x) => Math.max(m, x.level), 0), hls = d.items.filter((x) => x.highlight), sig = d.items.filter((x) => x.level >= 1), info = d.items.filter((x) => x.level < 1 && !x.highlight);
       h += `<div class="px-olday" data-ol-day="${d.date}" style="--ol-c:${LEVEL_COLOR[top]}"><div class="px-olday-h"><b>${esc(d.label)}</b>${top ? `<span class="px-ollv">${LEVEL_WORD[top]}</span>` : ""}</div>`
+        + hls.map((x) => `<button type="button" class="px-olchip px-olhl" data-ol-go="${esc(x.link || "")}" data-ol-key="${x.key}"><span aria-hidden="true">${OL_ICON[x.key] || "•"}</span> ${esc(x.text)} <small>${esc(x.source)}</small></button>`).join("")
         + (sig.length ? sig.map((x) => `<button type="button" class="px-olchip" data-ol-go="${esc(x.link || "")}" data-ol-key="${x.key}" style="--ol-c:${LEVEL_COLOR[x.level]}"><span aria-hidden="true">${OL_ICON[x.key] || "•"}</span> ${esc(x.text)} <small>${esc(x.source)}</small></button>`).join("") : `<div class="px-olquiet">${d.unknown.length ? "Not fully checked: no significant hazards in the sources that answered" : "No significant hazards identified"}</div>`)
         + (info.length ? `<div class="px-olinfo">${info.map((x) => esc(x.text)).join(" · ")}</div>` : "")
         + (d.unknown.length ? `<div class="px-olunk">Not confirmed: ${d.unknown.map(esc).join("; ")}</div>` : "") + (d.limits.length ? `<div class="px-olinfo">${d.limits.map(esc).join("; ")}</div>` : "") + `</div>`;
@@ -1556,6 +1565,18 @@
     h += `<p class="lg-note">Official sources for the venue's point: NWS alerts and forecast grid${gi ? " (" + esc(gi.office + " " + gi.cell) + ", updated " + esc(t(gi.updated)) + ")" : ""}, SPC severe Days 1–8 and fire Days 1–8, WPC excessive rainfall Days 1–5 and winter WSSI-P, NHC, AirNow. Levels order what is shown; each line keeps the source's own wording. Updated ${esc(t(vo.data.at))} · <button type="button" class="px-link" data-ol-refresh>Refresh</button></p>`;
     h += `<div class="px-h">Show on the map</div><div class="px-presets"><button type="button" class="tx-fb tx-done" data-preset="venue">Warnings at my venue</button><button type="button" class="tx-fb" data-preset="all">Everything</button><button type="button" class="tx-fb" data-open-layers>Choose layers</button></div>`;
     return h + venueFcSection();
+  }
+  /* forecast highlights for this site: each with its amount or value, the site's local timing and its source; how far the forecast
+     data reaches; Open rainfall map when the rainfall overlay can show it. Not alerts or outlooks. */
+  function forecastHighlights(r, HLs) {
+    const od = vo.key === venueKey() && vo.data ? vo.data : null, H = r.highlights || { list: [], notes: [], missing: true };
+    let h = `<section class="px-hl" aria-label="Forecast highlights for this site"><div class="px-h"><span>Forecast highlights for this site</span><span>NWS forecast</span></div>`;
+    if (H.missing) return h + `<p class="px-empty" data-hl-state="missing">Forecast highlights not available: the NWS forecast for this site ${od && od.errors && od.errors.grid ? "didn't load (" + esc(od.errors.grid) + ")" : "hasn't answered"}. Alerts and outlooks above and below still apply.</p></section>`;
+    h += HLs.length ? HLs.map((x) => `<div class="px-hlitem" data-hl="${x.kind}"><b>${OL_ICON["hl-" + x.kind] || "•"} ${esc(x.text)}</b><small>${esc(x.source)}${x.partial ? " · the forecast amounts stop inside this window, so the total may be higher" : ""}</small></div>`).join("")
+      : `<p class="px-empty" data-hl-state="none">Nothing stands out in the NWS forecast for this site: no heavy rain (${S.hl.rainIn} in or more in 24 h), wintry mix, long rain or heat index of ${S.hl.heatF}°F or more.</p>`;
+    if (H.notes.length) h += `<p class="lg-note" data-hl-notes>${esc(H.notes.join(" · "))}.</p>`;
+    if (isLive() && HLs.some((x) => x.link === "rain")) h += `<button type="button" class="tx-fb" data-open-rain>Open rainfall map</button>`;
+    return h + `</section>`;
   }
   /* fire weather at the site from the NWS forecast grid: each of the next 3 days' peak gust and minimum humidity, and the hours
      that are both dry (25% or less) and gusty (25 mph or more). Labelled as the NWS forecast; Red Flag Warnings and SPC fire
@@ -1597,7 +1618,9 @@
     return h + `</section>`;
   }
   /* a dashboard line opens the map where its source is: the view and the layer it needs */
+  function openRainMap() { S.auto = false; S.layers.flood = true; S.rain.fcst = true; S.rain.obs = false; S.rain.per = "1-3"; S.scope = "venue"; setView("active"); }
   function outlookGo(link, key) {
+    if (link === "rain") { openRainMap(); return; }
     const layer = { severe: "severe", rain: "flood", winter: "winter", fire: "fire", dry: "fire", tropical: "tropical", alert: null }[key];
     S.auto = false; if (layer) S.layers[layer] = true; else if (key === "alert") ["severe", "flood", "winter", "heat", "wind", "fire", "tropical", "coastal"].forEach((k) => (S.layers[k] = true));
     S.scope = "venue"; setView(link === "winter" ? "winter" : link === "fire" ? "fire" : /^day\d$/.test(link) ? link : "active");
@@ -1751,6 +1774,7 @@
     if (e.target.closest("[data-vfc]")) loadVfc();
     if (e.target.closest("[data-ol-refresh]")) loadOutlook(true);
     const og = e.target.closest("[data-ol-go]"); if (og && og.dataset.olGo) outlookGo(og.dataset.olGo, og.dataset.olKey);
+    if (e.target.closest("[data-open-rain]")) { openRainMap(); return; }
     const ss = e.target.closest("[data-strip-sel]"); if (ss) { const p = byId(ss.dataset.stripSel) || ((siteAssess() || { at: [] }).at.find((x) => x.p.id === ss.dataset.stripSel) || {}).p; // an alert in the strip, opened on the map
       if (p) { const fam = p.family || "severe"; if (!S.layers[fam]) { S.layers[fam] = true; S.auto = false; } S.scope = "venue"; setView("active"); if (byId(p.id)) { S.sel = p.id; drawAll(); } } } });
   $("txLayersPop").addEventListener("change", (e) => {
@@ -1891,7 +1915,8 @@
     if (q.get("rx") === "1") S.rx = true;
     if (q.get("ctn") === "1") S.ctn = true;
     if (q.get("radar") === "1") S.radar = true;
-    if (/^[\w .-]{1,60}$/.test(q.get("testreplay") || "")) S.testReplay = q.get("testreplay"); // an automated check injecting synthetic data says so on screen
+    if (/^[\w .-]{1,60}$/.test(q.get("testreplay") || "")) S.testReplay = q.get("testreplay");
+    { const r = +q.get("hlrain"), hh = +q.get("hlheat"); S.hl = { rainIn: r > 0 && r <= 10 ? r : 1, heatF: hh >= 70 && hh <= 130 ? hh : 90 }; } // forecast-highlight thresholds // an automated check injecting synthetic data says so on screen
     { const m = /^(obs)(1|24|72)?$|^(fcst)(auto|1-3|1|2|3)?$/.exec(q.get("rain") || ""); if (m) { if (m[1]) { S.rain.obs = true; if (m[2]) S.rain.win = +m[2]; } else { S.rain.fcst = true; if (m[4]) S.rain.per = m[4]; } } }
     try { if (localStorage.getItem("threats_pin") === "0") S.pin = false; } catch (e) { /* no storage: marker shown */ }
     try { if (localStorage.getItem("threats_counties") === "0") S.counties = false; } catch (e) { /* no storage: shown */ }

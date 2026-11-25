@@ -351,3 +351,11 @@
 .px-firewx.dry { border-left-color: #e8833a; background: color-mix(in srgb, #e8833a 8%, transparent); }
 .px-firewx.hi { border-left-color: #e5484d; background: color-mix(in srgb, #e5484d 10%, transparent); }
 .px-firewx-flag { flex-basis: 100%; font-weight: 700; }
+
+/* forecast highlights for the site (NWS forecast; not alerts) */
+.px-hl { margin: 6px 0 8px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.px-hlitem { display: flex; flex-direction: column; gap: 1px; padding: 6px 8px; border-left: 3px solid var(--accent, #4aa3ff); background: color-mix(in srgb, var(--accent, #4aa3ff) 8%, transparent); border-radius: 4px; overflow-wrap: anywhere; }
+.px-hlitem b { font-size: 13.5px; font-weight: 600; }
+.px-hlitem small { font-size: 11.5px; opacity: .8; }
+.px-hl .tx-fb { align-self: flex-start; }
+.px-olchip.px-olhl { --ol-c: var(--accent, #4aa3ff); }

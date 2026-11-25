@@ -33,4 +33,31 @@ ok("fire weather at the site from the NWS grid: dry and gusty hours, a higher co
   assert.strictEqual(it(1)[0].level, 1); assert.ok(/humidity 22% with gusts to 28 mph \(2 h\)/.test(it(1)[0].text));
   assert.strictEqual(it(2)[0].level, 0); assert.strictEqual(it(2)[0].text, "Humidity as low as 28%"); assert.strictEqual(it(0)[0].link, "fire");
 });
+
+const REPLAY = require("../tools/lib/grid-replay.js"), FG = require("../assets/threats-feeds.js");
+const GRID = FX("nws-gridpoints-ILN-35-38-20261125.json"), NOW = Date.parse("2026-11-25T15:00:00Z"), TZ = "America/New_York", CVG = { lat: 39.04, lon: -84.67 };
+const hl = (name, opt) => OL.highlights(FG.parseGrid(REPLAY.scenario(GRID, name, NOW), NOW, 168), TZ, NOW, opt);
+ok("highlights, CVG replay: heavy rain across midnight (rolling 24 h), Friday-morning wintry mix, lingering rain covering commutes", () => {
+  const h = hl("heavy"), k = (x) => h.list.find((y) => y.kind === x);
+  assert.deepStrictEqual(h.list.map((x) => x.short).slice(0, 2), ["Heavy rain Thursday", "Wintry mix possible Friday morning"]);
+  assert.ok(/^Heavy rain: about 1\.3 in from Thu 1 PM – Fri 7 AM; heaviest Thu 7 PM – Fri 1 AM \(about 0\.6 in\)$/.test(k("rain").text), k("rain").text);
+  assert.ok(/^Wintry mix possible Fri 6 AM – 11 AM: rain, snow; snow about 0\.2 in$/.test(k("winter").text), k("winter").text);
+  assert.ok(/^Rain likely for about 17 hours, Thu 10 AM – Fri 3 AM \(about 1\.\d in\); covers the Thu evening commute$/.test(k("linger").text), k("linger").text);
+  assert.ok(h.notes.some((n) => /^Rain amounts forecast through /.test(n)));
+});
+ok("highlights: the heavy-rain threshold is configurable; below it, no heavy-rain highlight", () => {
+  assert.ok(!hl("heavy", { rainIn: 1.5 }).list.some((x) => x.kind === "rain")); assert.ok(hl("heavy", { rainIn: 0.5 }).list.some((x) => x.kind === "rain"));
+});
+ok("highlights: a hot day (heat index 100°F at 2 PM Thursday), a quiet forecast, and missing data", () => {
+  const hot = hl("hot"); assert.deepStrictEqual(hot.list.map((x) => x.text), ["Heat index to 100°F around Thu 2 PM"]);
+  assert.strictEqual(hl("hot", { heatF: 101 }).list.length, 0);
+  const q = hl("quiet"); assert.strictEqual(q.list.length, 0); assert.strictEqual(q.missing, false);
+  const m = OL.highlights(null, TZ, NOW, {}); assert.strictEqual(m.missing, true); assert.strictEqual(m.list.length, 0);
+  const b = OL.build({ tz: TZ, now: NOW, venue: CVG, days: 7, states: { spc: {}, grid: "failed" }, grid: null }); assert.strictEqual(b.highlights.missing, true);
+});
+ok("highlights land in the day cards on their own day (heavy rain on Thursday, the mix on Friday)", () => {
+  const b = OL.build({ tz: TZ, now: NOW, venue: CVG, days: 7, states: { spc: {}, grid: "ok" }, grid: FG.parseGrid(REPLAY.scenario(GRID, "heavy", NOW), NOW, 168) });
+  const d = (lab) => b.days.find((x) => x.date === lab).items.filter((i) => i.highlight).map((i) => i.key);
+  assert.deepStrictEqual(d("2026-11-26").sort(), ["hl-linger", "hl-rain"]); assert.deepStrictEqual(d("2026-11-27"), ["hl-winter"]);
+});
 console.log(n + " passed");
