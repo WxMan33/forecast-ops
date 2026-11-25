@@ -95,6 +95,19 @@ card per local day. Sources at the venue's point:
 confirmed", never quiet. About 45 requests, refreshed every 10 minutes; a failed lookup is retried after a minute. The logic is in
 `assets/threats-outlook.js`.
 
+**Forecast highlights for this site** (NWS forecast grid; not alerts or outlooks, and never worded as one):
+- heavy rain: the wettest rolling 24 h of forecast amounts at 1 in or more (`?hlrain=`);
+- wintry mix: snow, sleet or freezing rain at least possible;
+- lingering rain: 6 h or more of rain likely, with the weekday commutes it covers;
+- heat: heat index of 90°F or more (`?hlheat=`).
+
+They lead the panel when no warning covers the site and no official outlook is level 2 or higher. If the grid doesn't load:
+"Forecast highlights not available". If NWS serves the grid with layers empty (this happened on the shared beta on
+2026-11-25: no rain amounts and no weather types, while the rain chance was 100%), the panel says "Not fully checked" and names
+what couldn't be checked, today's card and the lead say not confirmed, and the headline is "in the sources that answered".
+A grid without a heat index (normal outside summer) still counts as checked while temperatures are there. Replay:
+`tools/lib/grid-replay.js` scenario `partial`, `?testreplay=`.
+
 ## Rainfall overlays (preview `claude-threats-rain`; with Flooding)
 
 | | Rain that has fallen | Rain still to come |
