@@ -1,0 +1,43 @@
+{
+ "issue_date": "2026-11-25",
+ "issue_cycle": "2026-11-25T12:00:00+00:00",
+ "day": 2,
+ "hazard": "wind",
+ "valid_start": "2026-11-26T12:00:00+00:00",
+ "valid_end": "2026-11-27T12:00:00+00:00",
+ "generated_at": "2026-11-25T15:19:04.215647+00:00",
+ "cutoff": "2026-11-26T12:00:00+00:00",
+ "on_time": true,
+ "inputs": {
+  "predictor_sha256": "b3dea54eefc333cde16f0730358a97dc3a677348dc09bd834b9bbbeaefaca7d1",
+  "raw_audit_sha256": "3d0b35cdaf13fa42001be77e360d7b89642188f298cfe5405a6c03ba0a4b1486"
+ },
+ "models": {
+  "conus_gbt_96": "a9ff6aa76b946c92a16d2148e3cdb1fb8920e6dd904789058edfddbde0af8d7a",
+  "conus_gbt_728": "dcc16d91a36205f7c754ae9ce148ac374ade3bf1d6c82b78e94f676b093724ae",
+  "v07_frozen": "a83218fb409683f2dd8b1a92c335c379010a2f7299b7a8705fb36960e9ae1e7e"
+ },
+ "grid": {
+  "samples": 40311,
+  "coords_sha256": "4b58dcc99578ceab982661bb5e95c4ae9ba414f47637a42732a818af8ffcbf3f",
+  "extra_samples_sha256": "9d9ab914ae84634d8db475c01639266427667cf58931ccf87f8f70c972d531a7"
+ },
+ "coverage": {
+  "supported_samples": 38838,
+  "keep_mask_sha256": "a9a45881b560c1cc2695201d850841d53cdf2f4fedede3830972a8562a347188",
+  "v07_footprint": {
+   "box": [
+    -100,
+    -75,
+    30,
+    45
+   ],
+   "samples": 14940
+  }
+ },
+ "probabilities": {
+  "file": "2026-11-25.npz",
+  "sha256": "aa417a392bfd7fba63a6b911b1e8f19daa5f3024ee7efed85f8aed1d6623319e"
+ },
+ "rules": "research/severe/conus-v1/prospective/RULES.md"
+}
