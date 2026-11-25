@@ -18,6 +18,7 @@ import csv
 import hashlib
 import io
 import json
+import os
 import pickle
 import urllib.error
 import urllib.request
@@ -98,7 +99,10 @@ def record(issue_date, x_day2, fitted, model_sha, baseline, baseline_path, windo
             "coverage": {"supported_samples": int(keep.sum()), "keep_mask_sha256": arr_sha(keep.astype(np.uint8)),
                          "v07_footprint": {"box": BOX, "samples": int(box.sum())}},
             "probabilities": {"file": npz_path.name, "sha256": sha(npz_path)},
-            "rules": "research/severe/conus-v1/prospective/RULES.md"}
+            "rules": "research/severe/conus-v1/prospective/RULES.md",
+            "generator": {"run_id": os.environ.get("GITHUB_RUN_ID"), "workflow": os.environ.get("GITHUB_WORKFLOW"),
+                          "event": os.environ.get("GITHUB_EVENT_NAME"), "triggering_actor": os.environ.get("GITHUB_TRIGGERING_ACTOR"),
+                          "sha": os.environ.get("GITHUB_SHA")}}
     meta_path.write_text(json.dumps(meta, indent=1) + "\n")
     print(f"prospective record written for {issue_date} (on_time={meta['on_time']})")
     return meta
