@@ -50,16 +50,27 @@ When SPC issues a tornado or severe thunderstorm watch:
 
 When SPC has an active Mesoscale Discussion:
 
-- [ ] **Source response:** save `https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0/query?where=1%3D1&outFields=*&f=geojson`.
+- [x] **Source response:** save `https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0/query?where=1%3D1&outFields=*&f=geojson`.
       Record the exact `name`, `popupinfo` and `folderpath` values, and how long after SPC's issue time the shape appeared.
-- [ ] Also save SPC's `https://www.spc.noaa.gov/products/md/` and the MD's own page (from a normal browser), for the number, valid times and text.
+      **2026-11-25 22:29Z (live, MD 2465):** `name` "MD 2465", `folderpath` "MD 2465 Active Till 0300 UTC", `popupinfo`
+      "http://www.spc.noaa.gov/products/md/md2465.html"; no topic, area or issue/valid times. SPC issued it at 2130Z (3:30 PM CST);
+      the service file is stamped 21:33:15Z and ingested 21:33:25Z: about 3 minutes later. Saved:
+      `live-checks/2026-11-25/LIVE-2026-11-25T2229Z-md-service.json`.
+- [x] Also save SPC's `https://www.spc.noaa.gov/products/md/` and the MD's own page (from a normal browser), for the number, valid times and text.
 - [ ] **In the preview:**
-  - [ ] the MD source row says how it was checked: via SPC, or via the NOAA map service;
-  - [ ] the MD outline is drawn;
+  - [x] the MD source row says how it was checked: via SPC, or via the NOAA map service; ("Checked 5:29 PM EST via NOAA map service")
+  - [x] the MD outline is drawn;
   - [ ] the detail shows the number, valid time (or "Unavailable"), and a working link to the SPC bulletin.
+        **2026-11-25 (MD 2465): partly.** Number and SPC link correct; Valid "Unavailable". **Fails:** "Issued" reads
+        "Wed, Dec 31, 7:00 PM EST 0000Z" (an empty time shown as the 1970 epoch; it should say Unavailable). The service's
+        "Active Till 0300 UTC" is not used for the end time. Not fixed: reported for a decision.
 
   Screenshot of the national view and the MD detail.
 - [ ] **Winter MDs** (snow, freezing rain): check whether the service lets them be told apart from severe MDs. They must not appear here.
+      **2026-11-25: fails.** MD 2465 is "Concerning...Heavy snow" (SE Missouri, SW Illinois; valid 252130Z–260300Z, per SPC's
+      page saved as `LIVE-2026-11-25T2229Z-spc-md2465.html`). The service's fields carry no topic, so it can't be told apart and
+      it was drawn on the severe layer. Telling them apart needs SPC's text (the MD page or index), which the browser can't
+      read directly. Not fixed: reported for a decision.
 - [ ] **Then:** add the saved service response as a fixture. Update `mdFromService` if the fields differ from the guess in the code, and the test.
 
 ## 4. Still pending live (recorded 2026-11-20, Planner branch `claude/threats-planner-flood`)
@@ -69,7 +80,7 @@ When SPC has an active Mesoscale Discussion:
 | Live tornado or severe thunderstorm **warning** drawn from the feed (section 1) | **Open**, kept for the shared-beta navigation decision: none active in a usable spot during the checks |
 | Live **Flash Flood Warning** reaching Event Planner through `/api/nws` | **Done 2026-11-21 04:24Z (live):** KJAX FF.W.0055 (Gilchrist County, FL; 10:26 p.m.–12:30 a.m. EST). For a test point inside the polygon (29.67, -82.865) and an event inside the window, Planner showed "Flash Flood Warning until 12:30 a.m. Saturday · Covers the venue during the event", via `/api/nws` with its upstream time. Evidence: `live-checks/2026-11-21/live-planner-ffw-kjax-0055.json` and `.png`; official payload `tests/fixtures/threats/nws-live-kjax-ff-w-0055.json`. **Complete.** |
 | Live NWS **watch** message (section 2) | Pending |
-| NOAA map service with an **active MD** (section 3) | Pending |
+| NOAA map service with an **active MD** (section 3) | **Seen live 2026-11-25 22:29Z (MD 2465, heavy snow):** source row, outline, number and SPC link pass. Open: a winter MD is shown as severe (the service has no topic), and "Issued" shows a 1970 date when the time is missing. Evidence: `live-checks/2026-11-25/LIVE-2026-11-25T2229Z-*` |
 | **Same storm**: WSSI-P in Planner several days before an event, then the NWS alert for that storm | Pending: WPC's WSSI-P shapes are not archived (ftp-wpc keeps images only), so it needs captures days apart. Capture with `python3 tools/capture-wssi-p.py NAME W S E N OUT.json` |
 | Live **Red Flag Warning / Fire Weather Watch** reaching Planner through `/api/nws` | Pending: none active on Nov 20–21; proven on archived NWS Denver/Boulder messages |
 | Live **SPC Day 1–2 Critical** fire area or a **Days 3–8 probability** (40/70%) at a venue | Pending. Live Elevated verified Nov 21 01:19Z (Cheyenne, `planner-check/live-planner-fire.json`). The 40/70% label format will be confirmed when SPC first draws one: the parser accepts "40", "40%" and "0.40" and rejects anything else (the source then reads not confirmed) |
