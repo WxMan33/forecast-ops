@@ -131,6 +131,19 @@
     if (P.thunderstormDamageThreat) out.push("damage threat " + first(P.thunderstormDamageThreat).toLowerCase());
     return out.join(" · ");
   }
+  /* NWS impact tags, as NWS supplies them (CAP parameters; the bulletin text for emergencies):
+     tornadoDamageThreat CATASTROPHIC = Tornado Emergency, CONSIDERABLE; flashFloodDamageThreat CATASTROPHIC = Flash Flood
+     Emergency, CONSIDERABLE; thunderstormDamageThreat DESTRUCTIVE, CONSIDERABLE. null when the message carries none. */
+  function impactOf(p) {
+    const P = p.parameters || {}, up = (k) => String(first(P[k]) || "").toUpperCase(), text = ((p.headline || "") + " " + (p.description || "")).toUpperCase();
+    if (up("tornadoDamageThreat") === "CATASTROPHIC" || /TORNADO EMERGENCY/.test(text)) return { tag: "Tornado Emergency", level: 5 };
+    if (up("flashFloodDamageThreat") === "CATASTROPHIC" || /FLASH FLOOD EMERGENCY/.test(text)) return { tag: "Flash Flood Emergency", level: 5 };
+    if (up("thunderstormDamageThreat") === "DESTRUCTIVE") return { tag: "Destructive", level: 4 };
+    if (up("tornadoDamageThreat") === "CONSIDERABLE") return { tag: "Considerable tornado damage threat", level: 4 };
+    if (up("flashFloodDamageThreat") === "CONSIDERABLE") return { tag: "Considerable flash flood damage threat", level: 4 };
+    if (up("thunderstormDamageThreat") === "CONSIDERABLE") return { tag: "Considerable", level: 3 };
+    return null;
+  }
   function plainHeadline(p) {
     const d = (p.description || "").replace(/\s+/g, " ");
     const m = /\* ?(At \d{1,4} ?[AP]M [A-Z]{3,4},[^.]+\.)/.exec(d) || /(At \d{1,4} ?[AP]M [A-Z]{3,4},[^.]+\.)/.exec(d);
@@ -145,7 +158,7 @@
     const title = kind === "watch" && (v.phen === "TO" || v.phen === "SV") ? p.event + " " + Number(v.etn) : p.event; // SPC-numbered convective watches only
     return {
       id: keyOf(v, p.sent), messageId: p.id, kind, family: HAZARD[v.phen] || "severe", sourceId: "nws-alerts", event: p.event, title, action: v.action, vtec: v,
-      headline: plainHeadline(p), hazard: hazardText(p), area: p.areaDesc || "", office: p.senderName || "NWS",
+      headline: plainHeadline(p), hazard: hazardText(p), impact: impactOf(p), area: p.areaDesc || "", office: p.senderName || "NWS",
       issued: iso(p.onset || p.effective || p.sent), sent: iso(p.sent), updated: iso(p.sent), expires: iso(ends), messageExpires: iso(p.expires),
       geometry: f.geometry || null, geometrySource: f.geometry ? "polygon" : "counties", zones: p.affectedZones || [], ugc: (p.geocode || {}).UGC || [],
       references: (p.references || []).map((r) => ({ id: r.identifier, url: r["@id"], sent: iso(r.sent) })),
@@ -859,6 +872,14 @@
     });
   }
 
+  /* one gauge's flood stages (NWPS /gauges/{lid}): { units, action, minor, moderate, major } in the gauge's stage units; a missing
+     category is null (-9999 and absent values are not thresholds) */
+  const GAUGE_DETAIL_URL = (lid) => "https://api.water.noaa.gov/nwps/v1/gauges/" + encodeURIComponent(lid);
+  function parseGaugeDetail(j) {
+    const f = j && j.flood; if (!f || !f.categories) throw Error("no flood categories for this gauge");
+    const st = (k) => { const v = f.categories[k] && f.categories[k].stage; return v == null || !isFinite(+v) || +v <= -999 ? null : +v; };
+    return { units: f.stageUnits || "ft", action: st("action"), minor: st("minor"), moderate: st("moderate"), major: st("major") };
+  }
   /* ---------- SPC Days 4-8 severe probability (any severe, within 25 miles): 15% or 30% areas, or a statement for the day ----------
      With no area, SPC's one feature says why: "Potential Too Low" (no area expected: quiet) or "Predictability Too Low" (SPC
      can't say yet: unknown, never quiet). */
@@ -990,7 +1011,7 @@
     return { updated: new Date(P.updateTime).toISOString(), rows, covered, peakGust: peak("gust"), peakHeat: peak("heat"), peakFeels: peak("feels"), peakPop: peak("pop"), lowFeels: rows.reduce((b, r) => (r.feels != null && (!b || r.feels < b.feels) ? r : b), null) };
   }
 
-  return { MRMS_SVC, WPC_QPF_SVC, MRMS_WINDOWS, WPC_PERIODS, WPC_STEPS, MRMS_CATALOG_URL, MRMS_TILE_URL, MRMS_LEGEND_URL, MRMS_POINT_URL, WPC_TILE_URL, WPC_META_URL, WPC_POINT_URL, WPC_LEGEND_URL, wpcIso, parseMrmsCatalog, parseMrmsPoint, parseWpcPoint, parseWpcMeta, parseLegend, GAUGES_URL, GAUGE_CATS, GAUGE_WORD, parseGauges, DAY48_URL, parseDay48, REPORTS_URL, parseStormReports, RADAR_TIME_URL, RADAR_TILE_URL, parseRadarTime, parseGrid, EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
+  return { MRMS_SVC, WPC_QPF_SVC, MRMS_WINDOWS, WPC_PERIODS, WPC_STEPS, MRMS_CATALOG_URL, MRMS_TILE_URL, MRMS_LEGEND_URL, MRMS_POINT_URL, WPC_TILE_URL, WPC_META_URL, WPC_POINT_URL, WPC_LEGEND_URL, wpcIso, parseMrmsCatalog, parseMrmsPoint, parseWpcPoint, parseWpcMeta, parseLegend, GAUGES_URL, GAUGE_DETAIL_URL, parseGaugeDetail, GAUGE_CATS, GAUGE_WORD, parseGauges, DAY48_URL, parseDay48, REPORTS_URL, parseStormReports, RADAR_TIME_URL, RADAR_TILE_URL, parseRadarTime, parseGrid, EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, impactOf, createAlertStore, resolveZones,
     parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries, dissolve, zoneShape,
     HAZARD, WINTER_EVENTS, FIRE_EVENTS, TROPICAL_EVENTS, COASTAL_EVENTS, EVENT_NAME, tcvToAlerts, pointZones, NAQFC_ENABLED, AWC_URL, FLT_ORDER, fltCat, parseMETAR, parseTAF, NHC_URL, NHC_WSP_AT, parseNHC, parseNHCWsp, TCWW, FIRE_CATS, DRYT_CATS, FIRE38_CATS, FIRE_NAME, FIRE_MEANING, SPC_FIRE_URL, parseFireOutlook, createFireStore,
     NIFC_INC_URL, NIFC_PER_URL, INCIDENT_TYPE, parseNIFC, zTime,

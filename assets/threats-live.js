@@ -186,14 +186,18 @@
   /* ---------- the venue's next 7 days (the dashboard): what it needs, once per venue every 10 minutes ----------
      NWS alerts at the point, the NWS forecast grid (7 days), SPC Days 1-3 and 4-8, WPC rainfall Days 1-5, SPC fire Days 1-8, WPC
      WSSI-P at the point, NHC, AirNow forecast. Feeds the map already has fresh are not downloaded again. */
-  const outlookCache = { key: null, at: 0, data: null, pending: null };
+  /* one entry per site (answer and request in flight), so a slow answer for an earlier site can never be stored as, or
+     returned for, the site now shown; kept 10 minutes, at most 12 sites */
+  const outlookCache = new Map();
   const fresh = (info, min = 10) => info && info.lastOk && Date.now() - Date.parse(info.lastOk) < min * 60e3;
   async function outlookFor(lat, lon) {
     const key = (+lat).toFixed(4) + "," + (+lon).toFixed(4);
-    if (outlookCache.key === key && outlookCache.data && Date.now() - outlookCache.at < 10 * 60e3) return outlookCache.data;
-    if (outlookCache.pending && outlookCache.key === key) return outlookCache.pending;
-    outlookCache.key = key;
-    outlookCache.pending = (async () => {
+    const c = outlookCache.get(key) || {};
+    if (c.data && Date.now() - c.at < 10 * 60e3) return c.data;
+    if (c.pending) return c.pending;
+    if (outlookCache.size >= 12) outlookCache.delete(outlookCache.keys().next().value);
+    const entry = { data: c.data || null, at: c.at || 0, pending: null }; outlookCache.set(key, entry);
+    entry.pending = (async () => {
       const now = Date.now(), errs = {};
       const shared = [fresh(outlooks[1].sourceInfo()) ? null : refreshOutlooks(), fresh(ero[1].sourceInfo()) ? null : refreshERO(), fresh(fire[1].windrh.sourceInfo(), 30) ? null : refreshFire(), nhc.lastOk && Date.now() - Date.parse(nhc.lastOk) < 30 * 60e3 ? null : refreshNHC()].filter(Boolean);
       const [, wssiR, aqR, spc48, ero45, alertsR, gridR, gaugeR] = await Promise.allSettled([
@@ -215,10 +219,15 @@
         nhc: nhc.products || [], aq: aq.products.filter((p) => p.kind === "aqfcst"), gauges: gaugeR.status === "fulfilled" ? gaugeR.value : [], alerts: alertsR.status === "fulfilled" ? (alertsR.value.features || []).map((f) => f.properties) : [],
         grid, gridInfo: gridR.status === "fulfilled" ? { office: gridR.value.office, cell: gridR.value.grid, updated: gridR.value.updated } : null,
         errors: { alerts: alertsR.status === "rejected" ? alertsR.reason.message : null, grid: gridR.status === "rejected" ? gridR.reason.message : null } };
-      outlookCache.data = data; outlookCache.at = Date.now(); return data;
-    })().finally(() => { outlookCache.pending = null; });
-    return outlookCache.pending;
+      entry.data = data; entry.at = Date.now(); return data;
+    })().finally(() => { entry.pending = null; });
+    return entry.pending;
   }
+  /* a gauge's flood stages, for the few gauges flagged near a site (kept an hour; a failure isn't kept) */
+  const gaugeDet = new Map();
+  function gaugeDetail(lid) { const c = gaugeDet.get(lid); if (c && (c.pending || Date.now() - c.at < 3600e3)) return c.pending || Promise.resolve(c.value);
+    const pending = get(F.GAUGE_DETAIL_URL(lid), "json").then(F.parseGaugeDetail).then((value) => { gaugeDet.set(lid, { at: Date.now(), value }); return value; }, (e) => { gaugeDet.delete(lid); throw e; });
+    gaugeDet.set(lid, { pending }); return pending; }
   /* rainfall: MRMS window ends, WPC issuance and period, the venue's values, and each legend; each answer kept a short while
      (catalog 5 min, WPC times 10 min, point values 10 min, legends for the session). A failure is not cached. */
   const rainMemo = new Map();
@@ -732,5 +741,5 @@
       "wpc-ero": { ...worst(["ero1", "ero2", "ero3"]), reachEnd: reach(["ero1", "ero2", "ero3"]), reach: ["ero1", "ero2", "ero3"].map((k, i) => d.sources[k] && d.sources[k].issued ? "Day " + (i + 1) + " issued " + window.ThreatsCore.fmtZ(d.sources[k].issued) : "").filter(Boolean).join(", ") } };
   }
 
-  window.ThreatsLive = { rainObsMeta, rainObsAt, rainObsLegend, rainFcstMeta, rainFcstAt, rainFcstLegend, MRMS_TILE_URL: F.MRMS_TILE_URL, WPC_TILE_URL: F.WPC_TILE_URL, MRMS_WINDOWS: F.MRMS_WINDOWS, WPC_PERIODS: F.WPC_PERIODS, archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, setFeeds, setZoneFamilies, setZoneArea, pointTz, venueForecast, outlookFor, gaugesIn, radarTime, RADAR_TILE_URL: F.RADAR_TILE_URL, previousFor: (id) => fetchPrevious(id).then((c) => { if (c) emit(); return c; }), mapFeeds: () => (mapFeeds ? [...mapFeeds] : null), monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
+  window.ThreatsLive = { gaugeDetail, rainObsMeta, rainObsAt, rainObsLegend, rainFcstMeta, rainFcstAt, rainFcstLegend, MRMS_TILE_URL: F.MRMS_TILE_URL, WPC_TILE_URL: F.WPC_TILE_URL, MRMS_WINDOWS: F.MRMS_WINDOWS, WPC_PERIODS: F.WPC_PERIODS, archiveSnapshot, ARCHIVES, NWS, refresh: refreshAlerts, registryState, aqFor, tropicalFor, pointZones, airportsFor, enrouteFor, faaFor, setFeeds, setZoneFamilies, setZoneArea, pointTz, venueForecast, outlookFor, gaugesIn, radarTime, RADAR_TILE_URL: F.RADAR_TILE_URL, previousFor: (id) => fetchPrevious(id).then((c) => { if (c) emit(); return c; }), mapFeeds: () => (mapFeeds ? [...mapFeeds] : null), monitorsAll: () => monAll.products, wssiFor, wssiArea, wssiWindows, start, startModel, snapshot, onUpdate: (f) => listeners.push(f), diag, _stores: { alerts, outlooks, md, model } };
 })();
