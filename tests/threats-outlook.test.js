@@ -87,6 +87,7 @@ const THU = Date.parse("2026-11-26T05:00:00Z"); // Thursday 00:00 in Cincinnati
 /* hourly rows from Thursday 00:00 local for 72 h; `hour(i)` returns { cov, qpf } for hour i (cov 0 = no rain type; wx: null = missing) */
 const rowsFrom = (hour) => Array.from({ length: 72 }, (_, i) => { const h = hour(i) || {}; return { t: new Date(THU + i * H1).toISOString(), qpf: h.qpf === undefined ? 0 : h.qpf,
   wx: h.wx === null ? null : h.cov ? [{ type: "rain", cov: h.cov }] : [] }; });
+const plain = (s) => s.replace(/\u00a0/g, " "); // the timing line keeps "7 PM" together with a no-break space
 const gridOf = (rows) => ({ rows, qpfThrough: rows.at(-1).t, wxThrough: rows.at(-1).t });
 const lead = (rows) => { const hl = O.highlights(gridOf(rows), TZ, NOW_W); return { hl, lead: O.highlightLead(hl.list, TZ) }; };
 
@@ -94,7 +95,7 @@ ok("RAIN HEADLINE, real Cincinnati forecast grid (ILN 35,38, downtown; 2026-11-2
   const g = F.parseGrid(JSON.parse(fs.readFileSync(FX("nws-gridpoints-ILN-35-38-20261125T2132Z.json"), "utf8")), NOW_W, 168);
   const hl = O.highlights(g, TZ, NOW_W), L = O.highlightLead(hl.list, TZ);
   assert.strictEqual(L.text, "Heavy rain Thursday · More rain Sunday");
-  assert.strictEqual(L.timing, "Rain likely from 3 AM Thursday through 7 PM Friday, with light rain after 7 AM Friday");
+  assert.strictEqual(plain(L.timing), "Rain likely from 3 AM Thursday through 7 PM Friday, with light rain after 7 AM Friday");
   const thu = hl.list.find((x) => x.kind === "linger" && x.day === "Thursday");
   assert.strictEqual(thu.short, "Rain likely Thursday into Friday");
   // Friday's 0.01 in per 6 h (NWS's smallest measurable amount, chance 70-79%) is light rain, said as such, not dropped
@@ -111,14 +112,14 @@ ok("RAIN HEADLINE: continuous rain across midnight is one round, named by both d
   assert.strictEqual(r.lead.text, "Rain likely Thursday into Friday");
   r = lead(rowsFrom((i) => (i >= 18 && i < 30 ? { cov: 4, qpf: 0.1 } : null)));
   assert.strictEqual(r.lead.text, "Heavy rain Thursday");
-  assert.strictEqual(r.lead.timing, "Rain likely from 6 PM Thursday through 6 AM Friday");
+  assert.strictEqual(plain(r.lead.timing), "Rain likely from 6 PM Thursday through 6 AM Friday");
 });
 
 ok("RAIN HEADLINE: separate rounds with a dry gap stay separate; 'More rain Friday' only when Friday rain is supported", () => {
   // heavy Thursday 6 AM - 6 PM, dry Thursday night, rain likely Friday 10 AM - 6 PM
   let r = lead(rowsFrom((i) => (i >= 6 && i < 18 ? { cov: 4, qpf: 0.1 } : i >= 34 && i < 42 ? { cov: 3, qpf: 0.03 } : null)));
   assert.strictEqual(r.lead.text, "Heavy rain Thursday · More rain Friday");
-  assert.strictEqual(r.lead.timing, "Rain likely from 6 AM through 6 PM Thursday");
+  assert.strictEqual(plain(r.lead.timing), "Rain likely from 6 AM through 6 PM Thursday");
   // the dry gap hidden behind "rain likely" with only traces still separates the rounds
   r = lead(rowsFrom((i) => (i >= 6 && i < 18 ? { cov: 4, qpf: 0.1 } : i >= 18 && i < 34 ? { cov: 3, qpf: 0.0015 } : i >= 34 && i < 42 ? { cov: 3, qpf: 0.03 } : null)));
   assert.strictEqual(r.lead.text, "Heavy rain Thursday · More rain Friday");
@@ -153,7 +154,8 @@ ok("RAIN HEADLINE, real CVG forecast grid (ILN 30,35; 2026-11-25 21:45Z): the ai
   assert.deepStrictEqual([thu7.qpfFrom, thu7.qpfTo], ["2026-11-26T12:00:00.000Z", "2026-11-26T18:00:00.000Z"]);
   const hl = O.highlights(g, TZ, NOW_W), L = O.highlightLead(hl.list, TZ);
   assert.strictEqual(L.text, "Heavy rain Thursday · More rain Sunday");
-  assert.strictEqual(L.timing, "Rain likely from 3 AM Thursday through 7 PM Friday, with light rain after 7 AM Friday");
+  assert.strictEqual(plain(L.timing), "Rain likely from 3 AM Thursday through 7 PM Friday, with light rain after 7 AM Friday");
+  assert.ok(L.timing.includes("7\u00a0PM Friday"), "hour and AM/PM stay on one line");
   // the heavy-rain window and its wettest period start and end on the 6-hour interval edges
   assert.strictEqual(hl.list[0].text, "Heavy rain: about 1.2 in from Thu 1 AM – Fri 1 AM; heaviest Thu 7 AM – 1 PM (about 0.7 in)");
   const thu = hl.list.find((x) => x.kind === "linger" && x.day === "Thursday"), sun = hl.list.find((x) => x.kind === "linger" && x.day === "Sunday");
@@ -166,22 +168,22 @@ ok("RAIN HEADLINE: an edge set by 6-hour amounts is given as the interval it fal
   // rain likely Thu 6 AM - Fri 6 AM by weather type; the Thu 6 PM - midnight interval holds 0.06 in and the next none
   let rows = sixHour(rowsFrom((i) => (i >= 6 && i < 30 ? { cov: 3 } : null)), (k) => [0, 0.3, 0.3, 0.06, 0][k] ?? 0);
   let r = lead(rows), it = r.hl.list.find((x) => x.kind === "linger");
-  assert.strictEqual(r.lead.timing, "Rain likely from 6 AM Thursday, ending between 6 PM Thursday and 12 AM Friday");
+  assert.strictEqual(plain(r.lead.timing), "Rain likely from 6 AM Thursday, ending between 6 PM Thursday and 12 AM Friday");
   assert.ok(it.text.includes("Thu 6 AM until between Thu 6 PM and Fri 12 AM"), it.text);
   assert.ok(/^Rain likely for about 12–18 hours, /.test(it.text), it.text);
   // and the start: rain likely from midnight, but the first interval with rain is Thu 6 AM - noon
   rows = sixHour(rowsFrom((i) => (i < 18 ? { cov: 3 } : null)), (k) => [0, 0.3, 0.3][k] ?? 0);
   r = lead(rows);
-  assert.strictEqual(r.lead.timing, "Rain likely starting between 6 AM and 12 PM Thursday and lasting through 6 PM Thursday");
+  assert.strictEqual(plain(r.lead.timing), "Rain likely starting between 6 AM and 12 PM Thursday and lasting through 6 PM Thursday");
   // where the weather type sets both edges, they are to the hour
   rows = sixHour(rowsFrom((i) => (i >= 8 && i < 22 ? { cov: 3 } : null)), (k) => [0, 0.3, 0.3, 0.3][k] ?? 0);
-  assert.strictEqual(lead(rows).lead.timing, "Rain likely from 8 AM through 10 PM Thursday");
+  assert.strictEqual(plain(lead(rows).lead.timing), "Rain likely from 8 AM through 10 PM Thursday");
 });
 
 ok("RAIN HEADLINE: light rain (0.01 in per 6 hours) at the end of a round is said, and a zero-amount interval is a dry gap", () => {
   let rows = sixHour(rowsFrom((i) => (i >= 6 && i < 30 ? { cov: 3 } : null)), (k) => [0, 0.3, 0.3, 0.01, 0.01][k] ?? 0);
   let r = lead(rows);
-  assert.strictEqual(r.lead.timing, "Rain likely from 6 AM Thursday through 6 AM Friday, with light rain after 6 PM Thursday");
+  assert.strictEqual(plain(r.lead.timing), "Rain likely from 6 AM Thursday through 6 AM Friday, with light rain after 6 PM Thursday");
   // a whole 6-hour interval of zero amount, even under "rain likely", splits two rounds
   rows = sixHour(rowsFrom((i) => (i >= 6 && i < 36 ? { cov: 3 } : null)), (k) => [0, 0.3, 0, 0.3, 0.3][k] ?? 0);
   assert.deepStrictEqual(lead(rows).hl.list.filter((x) => x.kind === "linger").map((x) => x.short), ["Rain likely Thursday", "Rain likely Thursday into Friday"]);

@@ -84,13 +84,13 @@
     const dayRange = (a, b) => { const d0 = dayName(a, tz, now), d1 = dayName(b - H, tz, now); return d0 === d1 ? d0 : d0 + (localDate(b - H, tz) <= localDate(a + 864e5, tz) ? " into " : " to ") + d1; };
     const byAmounts = (r) => r && RAINY(r) && r.qpf != null && !measurable(r);
     const at = (t) => fmtDay(t, tz) + " " + fmtH(t, tz), between = (b) => "between " + at(b[0]) + " and " + (fmtDay(b[0], tz) === fmtDay(b[1], tz) ? "" : fmtDay(b[1], tz) + " ") + fmtH(b[1], tz);
-    /* the headline's timing line, in words: "from 3 AM Thursday through 7 PM Friday, with light rain after 7 AM Friday".
+    /* the headline's timing line, in words (the hour and AM/PM never split across lines): "from 3 AM Thursday through 7 PM Friday, with light rain after 7 AM Friday".
        An edge known only to its 6-hour interval reads "between 6 PM Thursday and 12 AM Friday". */
-    const long = (t) => fmtH(t, tz) + " " + dayName(t, tz, now), sameDay = (a, b) => localDate(a, tz) === localDate(b, tz);
-    const longBetween = (b) => "between " + (sameDay(b[0], b[1]) ? fmtH(b[0], tz) + " and " + long(b[1]) : long(b[0]) + " and " + long(b[1]));
+    const hm = (t) => fmtH(t, tz).replace(" ", "\u00a0"), long = (t) => hm(t) + " " + dayName(t, tz, now), sameDay = (a, b) => localDate(a, tz) === localDate(b, tz);
+    const longBetween = (b) => "between " + (sameDay(b[0], b[1]) ? hm(b[0]) + " and " + long(b[1]) : long(b[0]) + " and " + long(b[1]));
     const timing = (w, startIn, endIn, lightFrom) => (startIn || endIn
       ? (startIn ? "starting " + longBetween(startIn) : "from " + long(w.from)) + (endIn ? ", ending " + longBetween(endIn) : (startIn ? " and lasting" : "") + " through " + long(w.to))
-      : sameDay(w.from, w.to) ? "from " + fmtH(w.from, tz) + " through " + long(w.to) : "from " + long(w.from) + " through " + long(w.to))
+      : sameDay(w.from, w.to) ? "from " + hm(w.from) + " through " + long(w.to) : "from " + long(w.from) + " through " + long(w.to))
       + (lightFrom != null ? ", with light rain after " + long(lightFrom) : "");
     for (const w of rounds) {
       const first = w.rows[0], last = w.rows[w.rows.length - 1];
