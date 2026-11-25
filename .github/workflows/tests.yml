@@ -78,6 +78,7 @@ jobs:
       - run: node tests/event-daylight.test.js
       - run: node tests/event-hourly-charts.test.js
       - run: node tests/event-outlook.test.js
+      - run: node tests/event-lead.test.js
       - run: node tests/hourly-model.test.js
       - run: node tests/event-presets.test.js
       - run: node tests/venue-search.test.js
