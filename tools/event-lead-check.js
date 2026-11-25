@@ -55,7 +55,9 @@ const CASES = [
     check(!s.hscroll, `${L} no sideways page scroll`);
     if (name === 'replay' || name === 'warning' || name === 'alertsfail') {
       check(s.kind === 'forecast' && /^FORECAST CONCERN/i.test(s.kindTag), `${L} labelled as a forecast concern`);
-      check(s.decision === 'Rain likely through the 9 AM race start.' && /Thu 6 AM–12 PM, setup through teardown/.test(s.when) && /wet event/.test(s.when), `${L} the headline leads with the affected part and its local time ("${s.decision}"), then the concern's hours, the parts it affects and what it means (${s.when.replace(/\s+/g, ' ')})`);
+      check(s.decision === 'Rain likely through the 9 AM race start.' && /Thu 6 AM–12 PM, setup through teardown\./.test(s.when), `${L} the headline leads with the affected part and its local time ("${s.decision}"), then the concern's hours and the parts it affects (${s.when.replace(/\s+/g, ' ')})`);
+      const rainRow = (await p.locator('#keys dd').first().innerText()).replace(/\s+/g, ' ');
+      check(rainRow === 'Up to 90% in the likeliest hour Likely disruptive. Plan for wet footing and keep check-in and equipment covered.', `${L} the Rain chance row keeps the number and the planning impact apart: ${rainRow}`);
       check(s.watch === 'Watch for: heavier rain during lineup and around the 9 AM start.', `${L} "Watch for" names the heavier rain during lineup and around the start (the heaviest hourly amounts fall there), with no implied delay or cancellation rule: ${s.watch}`);
       check(/9 AM event start/.test(s.change) && /sources now start it between/.test(s.change) && /likely disruptive by the briefing’s rain rule/.test(s.change) && !/cancel|postpone|delay/i.test(s.change), `${L} what would change the plan names a trigger tied to the race start and the briefing's own rain rule, with no implied venue policy`);
       check(s.evidence.length === 2 && s.evidence.every((e) => e.at === Date.parse('2026-11-26T11:00:00Z')) && /6 AM Thu/.test(s.evidence[0].text), `${L} hourly charts and forecast radar links open at the concern's hour (6 AM Thu)`);
