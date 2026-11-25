@@ -1354,8 +1354,8 @@
     if (k === "obs") return hoursAgo(r.meta.end) > RAIN_STALE_OBS_H ? "old" : "ok";
     return hoursAgo(r.meta.issued) > RAIN_STALE_FCST_H || Date.parse(r.meta.end) < Date.now() ? "old" : "ok";
   }
-  const obsWindowText = (m) => `${rainWinLabel()} ending ${t(m.end)}`;
-  const fcstWindowText = (m, per) => `${perLabel(per)}: ${t(m.start)} – ${t(m.end)} · issued ${t(m.issued)}`;
+  const obsWindowText = (m) => `${rainWinLabel()} ending ${t(m.end, true)}`;
+  const fcstWindowText = (m, per) => `${perLabel(per)}: ${t(m.start, true)} – ${t(m.end, true)} · issued ${t(m.issued, true)}`;
   let rainRedraw = null; const rainSoon = () => { clearTimeout(rainRedraw); rainRedraw = setTimeout(drawAll, 250); };
   function rainMeta(k) { // asked once per key and refreshed every 10 minutes; an answer (or a failure) redraws once
     const key = k === "obs" ? "w" + S.rain.win : "p" + fcstPeriod(), r = R[k];
@@ -1399,7 +1399,7 @@
   function rainVenueHtml() {
     const v = R.venue, want = isLive() && S.layers.flood && (S.rain.obs || S.rain.fcst || (S.auto && S.autoNeed && S.autoNeed.flood)); if (!want || !venue) return "";
     const per = fcstPeriod();
-    const obs = !v.obs ? "Loading…" : v.obs.err ? "Not responding · rain that has fallen at the venue is unknown" : v.obs.noEstimate ? "No radar estimate at the venue" : `<span class="px-rv">${esc(inchTxt(v.obs.inches))}</span> in the ${esc(rainWinLabel().replace(/^1 hour$/, "past hour").replace(/^(\d+) hours$/, "past $1 hours"))}${v.obs.end ? " · window ended " + esc(t(v.obs.end)) + (hoursAgo(v.obs.end) > RAIN_STALE_OBS_H ? " (" + Math.round(hoursAgo(v.obs.end)) + " h ago: delayed)" : "") : ""}`;
+    const obs = !v.obs ? "Loading…" : v.obs.err ? "Not responding · rain that has fallen at the venue is unknown" : v.obs.noEstimate ? "No radar estimate at the venue" : `<span class="px-rv">${esc(inchTxt(v.obs.inches))}</span> over the ${esc(rainWinLabel() === "1 hour" ? "past hour" : "past " + rainWinLabel())}${v.obs.end ? " · window ended " + esc(t(v.obs.end, true)) + (hoursAgo(v.obs.end) > RAIN_STALE_OBS_H ? " (" + Math.round(hoursAgo(v.obs.end)) + " h ago: delayed)" : "") : ""}`;
     const fc = !v.fcst ? "Loading…" : v.fcst.err ? "Not responding · rain still to come at the venue is unknown" : `<span class="px-rv">${esc(v.fcst.none ? "less than 0.01 in" : v.fcst.high ? v.fcst.low.toFixed(2) + "–" + v.fcst.high.toFixed(2) + " in" : "at least " + v.fcst.low.toFixed(2) + " in")}</span>${v.fmeta ? " · " + esc(fcstWindowText(v.fmeta, per)) : ""}`;
     return `<div class="px-h" data-rain="venue"><span>Rainfall at ${esc(venue.name)}</span><span></span></div><div class="px-rain"><div class="px-item-sub"><b>Rain that has fallen</b> (NOAA MRMS radar estimate): ${obs}</div><div class="px-item-sub"><b>Rain still to come</b> (WPC forecast): ${fc}</div></div>`;
   }

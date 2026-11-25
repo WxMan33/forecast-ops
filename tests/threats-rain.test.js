@@ -18,12 +18,13 @@ ok("MRMS catalog: a service error or an empty list throws (never 'no rain')", ()
   assert.throws(() => F.parseMrmsCatalog({ features: [] }), /no rainfall windows/);
   assert.throws(() => F.parseMrmsCatalog({ error: { code: 500, message: "Error performing query" } }), /Error performing query \(500\)/);
 });
-ok("MRMS point: 0.00 in at CVG from the CONUS 24 h item; negative values mean no estimate", () => {
+ok("MRMS point: millimetres converted to inches; 0.00 in at CVG from the CONUS 24 h item; negative values mean no estimate", () => {
   const p = F.parseMrmsPoint(J("mrms-identify-cvg-24hr.json"));
   assert.strictEqual(p.inches, 0); assert.strictEqual(p.noEstimate, false); assert.strictEqual(p.item, "conus_QPE_24H"); assert.strictEqual(p.end, "2026-11-25T02:00:00.000Z");
   assert.strictEqual(F.parseMrmsPoint({ value: "-3", catalogItems: { features: [] } }).noEstimate, true);
   assert.strictEqual(F.parseMrmsPoint({ value: "NoData" }).noEstimate, true);
-  assert.strictEqual(F.parseMrmsPoint({ value: "1.234" }).inches, 1.23);
+  // raw values are millimetres (NOAA's rendering classes them as value / 25.4 inches): CVG airport 72 h 5.9 -> 0.23 in (0.24 in measured)
+  assert.strictEqual(F.parseMrmsPoint({ value: "5.9" }).inches, 0.23); assert.strictEqual(F.parseMrmsPoint({ value: "25.4" }).inches, 1); assert.strictEqual(F.parseMrmsPoint({ value: "5.9" }).mm, 5.9);
 });
 ok("WPC point: nested thresholds give a range; outside every area is under 0.01 in", () => {
   assert.deepStrictEqual(F.parseWpcPoint(J("wpc-point-cvg-9.json")), { low: 1.5, high: 1.75, issued: "2026-11-24T22:25:19Z", start: "2026-11-25T00:00:00Z", end: "2026-11-28T00:00:00Z", none: false });
