@@ -216,6 +216,10 @@ def current(a):
             "model_sha256": model_sha, "prepared_at": datetime.now(timezone.utc).isoformat()}
     Path(a.output).write_text(json.dumps(body, separators=(",", ":")))
     print("current run written", w["model_init_time"], w["valid_start"], w["valid_end"])
+    if a.prospective:
+        from conus_prospective import record
+        record(a.issue_date, x2, fitted, model_sha, baseline, BASELINE, w, m["products"][0]["sha256"],
+               digest(dest / "raw-audit.json"), archive=a.prospective)
 
 
 REPORT_MANIFEST = ROOT / "research/severe/labels-v04/manifest.json"
@@ -306,6 +310,7 @@ def main():
     b.add_argument("--output", type=Path, required=True)
     c = sub.add_parser("current")
     c.add_argument("--issue-date", required=True)
+    c.add_argument("--prospective", type=Path, default=None, help="Write the frozen prospective record into this archive directory")
     c.add_argument("--work", type=Path, required=True)
     c.add_argument("--output", type=Path, required=True)
     r = sub.add_parser("reports")

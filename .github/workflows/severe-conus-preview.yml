@@ -92,6 +92,7 @@ jobs:
           for day in $days; do
             rm -rf tests/out/cwork
             if PYTHONPATH=tools/severe python3 tools/severe/conus_preview_build.py current --issue-date "$day" \
+                 --prospective research/severe/conus-v1/prospective \
                  --work tests/out/cwork --output "tests/out/current/current-$day.json" > tests/out/current/log.txt 2>&1; then
               echo "current run built for $day"; rm -f tests/out/current/blocker.txt; break
             fi
@@ -99,6 +100,15 @@ jobs:
             tail -c 1500 tests/out/current/log.txt > tests/out/current/blocker.txt
           done
           tail -5 tests/out/current/log.txt
+      - name: Commit the prospective record and ledger to the research branch
+        run: |
+          PYTHONPATH=tools/severe python3 tools/severe/conus_prospective.py ledger
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/severe/conus-v1/prospective
+          git commit -q -m "Prospective CONUS Day 2 wind record (run $GITHUB_RUN_ID)" || { echo "nothing new to archive"; exit 0; }
+          for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done
+          echo "::error::could not push the prospective record"; exit 1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -193,3 +203,26 @@ jobs:
           branch=$(jq -r .preview_branch research/severe/conus-preview/request.json)
           gh workflow run severe-conus-preview-host.yml --ref "$branch" -R "$GITHUB_REPOSITORY"
           echo "dispatched severe-conus-preview-host.yml on $branch"
+  prospective-score:
+    # Preliminary scoring of archived on-time forecasts (SPC reports; research/severe/conus-v1/prospective/RULES.md).
+    needs: [plan, current]
+    if: always() && needs.plan.outputs.stage != 'reports'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: '${{ github.ref_name }}' }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r tools/severe/requirements.txt scikit-learn==1.9.1 shapely==2.2.0
+      - name: Ledger and preliminary scorecard
+        run: |
+          git pull -q --ff-only origin "$GITHUB_REF_NAME"
+          PYTHONPATH=tools/severe python3 tools/severe/conus_prospective.py ledger
+          PYTHONPATH=tools/severe python3 tools/severe/conus_prospective.py score-prelim
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/severe/conus-v1/prospective
+          git commit -q -m "Prospective ledger and preliminary scorecard (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done
+          exit 1
