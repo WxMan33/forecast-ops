@@ -41,7 +41,7 @@
       if (best && best.sum >= rainIn) { const w = rows.slice(best.i, best.i + best.n), wet = w.filter((r) => r.qpf >= 0.01), a = T(wet[0]), b = T(wet[wet.length - 1]) + H;
         let pk = null; for (let i = 0; i + 6 <= w.length; i++) { const s6 = w.slice(i, i + 6).reduce((m, r) => m + (r.qpf || 0), 0); if (!pk || s6 > pk.s) pk = { s: s6, t: T(w[i]) }; }
         const mid = pk ? pk.t + 3 * H : a;
-        out.push({ kind: "rain", rank: 4, at: mid, value: +best.sum.toFixed(2), short: "Heavy rain " + dayName(mid, tz, now), text: "Heavy rain: about " + best.sum.toFixed(1) + " in from " + span(a, b, tz) + (pk ? "; heaviest " + span(pk.t, pk.t + 6 * H, tz) + " (about " + pk.s.toFixed(1) + " in)" : ""), source: "NWS forecast (rain amounts)", link: "rain",
+        out.push({ kind: "rain", rank: 4, at: mid, start: a, end: b, value: +best.sum.toFixed(2), short: "Heavy rain " + dayName(mid, tz, now), text: "Heavy rain: about " + best.sum.toFixed(1) + " in from " + span(a, b, tz) + (pk ? "; heaviest " + span(pk.t, pk.t + 6 * H, tz) + " (about " + pk.s.toFixed(1) + " in)" : ""), source: "NWS forecast (rain amounts)", link: "rain",
           partial: grid.qpfThrough && b >= Date.parse(grid.qpfThrough) - H }); } }
     if (grid.qpfThrough) notes.push("Rain amounts forecast through " + fmtDay(Date.parse(grid.qpfThrough), tz) + " " + fmtH(Date.parse(grid.qpfThrough), tz));
     else notes.push("No rain amounts in the NWS forecast for this site");
@@ -59,7 +59,7 @@
       const hrs = Math.round((w.to - w.from) / H); if (hrs < 6) continue;
       const hits = new Set(); for (let t = w.from; t < w.to; t += H) { const d = new Date(t), dow = new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short" }).format(d), h = +new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "numeric", hourCycle: "h23" }).format(d); if (/Sat|Sun/.test(dow)) continue; for (const [a, b, n] of COMMUTE) if (h >= a && h < b) hits.add(dow + " " + n); }
       const amt = w.rows.every((r) => r.qpf != null) ? w.rows.reduce((m, r) => m + r.qpf, 0) : null, c = [...hits];
-      out.push({ kind: "linger", rank: 2, at: w.from, short: "Rain for " + hrs + " h " + dayName(w.from, tz, now), text: "Rain likely for about " + hrs + " hours, " + span(w.from, w.to, tz) + (amt != null && amt >= 0.05 ? " (about " + amt.toFixed(1) + " in)" : "")
+      out.push({ kind: "linger", rank: 2, at: w.from, start: w.from, end: w.to, short: "Rain likely " + dayName(w.from, tz, now), text: "Rain likely for about " + hrs + " hours, " + span(w.from, w.to, tz) + (amt != null && amt >= 0.05 ? " (about " + amt.toFixed(1) + " in)" : "")
         + (c.length ? "; covers " + (c.length === 1 ? "the " + c[0] : c.length + " commutes: " + c.join(", ")) : ""), source: "NWS forecast (precipitation type, chance" + (amt != null ? " and amounts" : "") + ")", link: "rain" }); }
     // heat: the peak heat index and when
     const hp = rows.reduce((b, r) => (r.heat != null && (!b || r.heat > b.heat) ? r : b), null);
@@ -72,6 +72,15 @@
     if (!grid.wxThrough) unchecked.push("wintry mix and long rain (no precipitation types)");
     if (!grid.heatThrough && !rows.some((r) => r.temp != null)) unchecked.push("heat (no heat index or temperatures)");
     return { list: out, notes, missing: false, unchecked };
+  }
+  function highlightLead(list, tz) {
+    const heavy = list.find((item) => item.kind === "rain");
+    const belongsToHeavy = (item) => heavy && item.kind === "linger" && item.start < heavy.end && item.end > heavy.start;
+    const related = list.find(belongsToHeavy);
+    const top = list.filter((item) => !belongsToHeavy(item)).slice(0, 2);
+    const text = top.map(({ short }) => short.charAt(0).toUpperCase() + short.slice(1)).join(" · ");
+    const rain = (top.includes(heavy) && related) || top.find((item) => item.kind === "linger");
+    return { text, timing: rain ? "Rain likely " + span(rain.start, rain.end, tz) : "" };
   }
   const dayName = (ms, tz, now) => localDate(ms, tz) === localDate(now, tz) ? "today" : new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "long" }).format(new Date(ms)); // weekdays: planners count by them
 
@@ -175,5 +184,5 @@
       : { level: 0, text: unknownAll.length ? "No significant threat in the sources that answered" : "No significant threats in the next " + nDays + " days", when: null, source: null };
     return { headline, alerts, days, unknown: unknownAll, highlights: HL };
   }
-  return { build, alertLevel, localDate, highlights };
+  return { build, alertLevel, localDate, highlights, highlightLead };
 });
