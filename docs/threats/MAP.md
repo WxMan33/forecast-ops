@@ -41,6 +41,42 @@ WSSI, NHC, MDs) answer browsers directly. Sources are listed in `SOURCES.md`; th
   their source row says "Not loaded · no flood warning in view", and it updates as the map is panned. The 7-day panel still makes one
   lookup within 25 mi of the venue for rivers forecast to flood.
 
+## Auto for the site, active alerts and labels (combined preview, `fde6af2`)
+
+- **One site assessment** (`siteAssess()` in `assets/threats.js`) feeds the 7-day dashboard, Auto and the alert strip. It also
+  fixes forecast-only triggers, which read a field the stored answer never had.
+- **Coverage** is decided three ways, then merged:
+  - storm-based warnings by their polygon;
+  - zone-listed alerts by the site's own NWS zones (forecast zone, county, fire-weather zone, from the point record), with no
+    outline needed;
+  - NWS's own point check.
+
+  **Nearby** means the alert's real edge is within 50 mi, outside the alert area. **Coverage unknown** means neither test can
+  answer yet.
+- **7-day answers are cached and requested per site**, so a slow answer for an earlier site can't be stored as the current one
+  (tested A → B → A with B answering last).
+- **A fresh visit opens on the site** at venue zoom, in **Auto for this site**. The summary reads "Auto · Radar + alerts" or
+  "Auto · Flooding + Radar"; any layer change makes it "Manual · …". The picker says why each group is on, and **Return to Auto
+  for this site** restores it. National is one tap away.
+- **Active alerts strip** above the 7 days: **In effect at this site**, **Nearby · outside the alert area**, **Coverage
+  unknown**. Each alert shows:
+  - its official name;
+  - its NWS impact tag (Tornado Emergency, Flash Flood Emergency, Destructive, Considerable);
+  - start and expiration in the site's time;
+  - the issuing office, Show on map, and the NWS bulletin.
+
+  Quiet days read "No significant hazards identified" and keep the expected weather.
+- **Labels:** every area and marker is still drawn. Text priority:
+  - alerts covering the site, emergencies, tornado and the most urgent warning types: any zoom;
+  - other warnings: from zoom 5.5;
+  - advisories: from 6.5.
+- **Flooding group:** gauges within 25 mi of the site at, or forecast to reach, action stage show without a warning. They list
+  now, forecast (with its time) and NWPS flood stages; this covers river, lake and tide gauges. A gauge at minor flooding or
+  worse also switches on the Flooding extras (WPC rainfall and the rainfall overlay).
+- **Checks:** `tools/threats-auto-check.js` 18/18. It covers quiet CVG; WPC-only and SPC-only risk (with that family's NWS alerts
+  removed from the feed); active flooding; a gauge near a site; a critical-alert replay (synthetic Tornado Emergency, desktop and
+  phone); A → B → A; manual links; Return to Auto.
+
 ## Next 7 days (the first view)
 
 The headline names the highest threat ahead, with its day and source. Below it: NWS alerts at the venue now or scheduled, then one
