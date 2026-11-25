@@ -1,0 +1,170 @@
+{
+ "matched_dates": 726,
+ "development_climatology": 0.010868200565263891,
+ "bss": {
+  "hrrr": {
+   "national": 0.11433785465772839,
+   "original_box": 0.13276598878094803,
+   "west": 0.04919028614798915,
+   "plains_outside_box": 0.07685790784292124,
+   "florida_gulf_south": -0.007695523320436548,
+   "northeast_outside_box": 0.1270277349272484
+  },
+  "hrrr_gust": {
+   "national": 0.11464504546925025,
+   "original_box": 0.13313395574537934,
+   "west": 0.05017316477114675,
+   "plains_outside_box": 0.07728818140516902,
+   "florida_gulf_south": -0.013776894306949172,
+   "northeast_outside_box": 0.12693325714998382
+  },
+  "hrrr_nbm": {
+   "national": 0.12197698212598829,
+   "original_box": 0.14177102323447133,
+   "west": 0.04858007174574153,
+   "plains_outside_box": 0.08365329611612204,
+   "florida_gulf_south": -0.018407223731306432,
+   "northeast_outside_box": 0.14047090889406455
+  }
+ },
+ "gust_minus_hrrr": {
+  "national": [
+   -3.3023266536509043e-06,
+   -2.3781996095979413e-05,
+   1.5059118257809845e-05
+  ],
+  "original_box": [
+   -7.240221987176968e-06,
+   -5.654556745778726e-05,
+   3.649254980032487e-05
+  ],
+  "west": [
+   -2.7007451917283886e-06,
+   -7.482420435565152e-06,
+   2.1408742319597132e-06
+  ],
+  "plains_outside_box": [
+   -4.104008526190804e-06,
+   -3.7646541800729246e-05,
+   2.6668340937891023e-05
+  ],
+  "florida_gulf_south": [
+   4.2921481076829744e-05,
+   7.4146218988271e-06,
+   7.89854340006572e-05
+  ],
+  "northeast_outside_box": [
+   7.542557035394944e-07,
+   -3.178270926526988e-05,
+   3.773873499124685e-05
+  ]
+ },
+ "gust_minus_full_nbm": {
+  "national": [
+   7.881892601038643e-05,
+   5.572183850272482e-05,
+   0.00010499670909949899
+  ],
+  "florida_gulf_south": [
+   -3.268022904832061e-05,
+   -9.64613970347639e-05,
+   2.568391676292191e-05
+  ]
+ },
+ "full_nbm_minus_hrrr_reference": {
+  "national": [
+   -8.212125266403734e-05,
+   -0.00011260736826001321,
+   -5.47221590334093e-05
+  ],
+  "florida_gulf_south": [
+   7.560171012515036e-05,
+   1.625938977594421e-05,
+   0.00014207889382027503
+  ]
+ },
+ "calibration_ratio": {
+  "hrrr": 0.9993185370457993,
+  "hrrr_gust": 1.0006341978774287,
+  "hrrr_nbm": 0.9989173919327751
+ },
+ "florida_gulf_calibration_ratio": {
+  "hrrr": 2.0952827770947855,
+  "hrrr_gust": 2.1429421453219395,
+  "hrrr_nbm": 2.0815415401501025
+ },
+ "hits_at_5pct": {
+  "hrrr": 220066,
+  "hrrr_gust": 220655,
+  "hrrr_nbm": 223190
+ },
+ "florida_gulf_hits_at_5pct": {
+  "hrrr": 2852,
+  "hrrr_gust": 2865,
+  "hrrr_nbm": 2869
+ },
+ "false_alarm_area_km2_at_5pct": {
+  "hrrr": 341603550.0,
+  "hrrr_gust": 340703325.0,
+  "hrrr_nbm": 336090150.0
+ },
+ "florida_gulf_false_alarm_area_km2_at_5pct": {
+  "hrrr": 11572650.0,
+  "hrrr_gust": 11868750.0,
+  "hrrr_nbm": 11396475.0
+ },
+ "area_at_5pct_on_no_report_dates_km2_per_date": {
+  "hrrr": 37086.72199170125,
+  "hrrr_gust": 36153.11203319502,
+  "hrrr_nbm": 32049.896265560164
+ },
+ "gust_by_nbm_version": {
+  "v4.0 (before 2023-01-17)": {
+   "dates": 380,
+   "national": [
+    -1.4195083262137059e-05,
+    -3.1627948429482466e-05,
+    2.855907697166526e-06
+   ]
+  },
+  "v4.1 (from 2023-01-17)": {
+   "dates": 346,
+   "national": [
+    8.660816442374352e-06,
+    -2.8297223715656267e-05,
+    4.3188727347005955e-05
+   ]
+  }
+ },
+ "hit_retention": 1.0026764697863368,
+ "criteria": {
+  "1_national_better": false,
+  "2_no_region_worse": false,
+  "3_calibrated_15pct": true,
+  "4_hit_retention_ge_95pct": true
+ },
+ "pass": false,
+ "mar_apr_diagnostic": {
+  "subset_as_in_closed_diagnostic": "Florida/Gulf, March-April, no-report points where HRRR-only and full-NBM were both >= 5%",
+  "points": 12040,
+  "brier_change_sum_full_nbm_minus_hrrr": 50.11625201882853,
+  "brier_change_sum_gust_minus_hrrr": 7.53753515741216,
+  "mean_p": {
+   "hrrr": 0.12910554137798738,
+   "hrrr_nbm": 0.13854595542083992,
+   "hrrr_gust": 0.13144223214439626
+  },
+  "gust_defined_subset": {
+   "points": 13806,
+   "brier_change_sum_gust_minus_hrrr": 7.602546456139033,
+   "mean_p_hrrr": 0.12177514099771909,
+   "mean_p_gust": 0.12393720096157164
+  },
+  "mar_apr_total_brier_change_sum": {
+   "full_nbm_minus_hrrr": 41.478677136394836,
+   "gust_minus_hrrr": 5.235454240018434
+  }
+ },
+ "protected_2025_outcomes_accessed": false,
+ "verification_2021_loaded": false
+}
