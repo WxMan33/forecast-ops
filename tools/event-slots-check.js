@@ -38,7 +38,7 @@ async function open(browser, srv, { fixture, query = '', store = null, device = 
 /* everything a planner reads on the first screen and in the schedule, as text */
 const texts = (p) => p.evaluate(() => { const t = (s) => { const e = document.querySelector(s); return e ? e.innerText.replace(/\s+/g, ' ').trim() : ''; }, all = (s) => { const e = document.querySelector(s); return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; }; // closed details: their text too
   const dd = [...document.querySelectorAll('#keys dd')], last = dd[dd.length - 1], r = (e) => e && e.getBoundingClientRect();
-  return { name: t('#evName'), when: t('#evWhen'), decision: t('#decision'), lead: t('#leadBody'), keys: t('#keys'), after: t('#leadAfter'), schedule: t('#schedule'), phases: all('#phases'), dash: all('#evDash'),
+  return { name: t('#evName'), when: t('#evWhen'), decision: t('#decision'), lead: t('#leadBody'), keys: t('#keys'), after: t('#leadAfter'), schedule: t('#schedule'), glance: t('#evDash .evd-span'), phases: all('#phases'), dash: all('#evDash'),
     why: all('#whyFlagged'), checks: all('#checks'), changes: all('#changes'), decisionBottom: Math.round(r(document.getElementById('decision')).bottom), nextBottom: last ? Math.round(r(last).bottom) : null, vh: innerHeight,
     hscroll: document.documentElement.scrollWidth > innerWidth + 1 }; });
 async function pdf(p, file) {
@@ -68,6 +68,7 @@ const RECEPTION = [['Reception', `${D}T17:00`, `${D}T22:00`]], NIGHT = [['Night 
       console.log('   decision: ' + x.decision); console.log('   lead: ' + x.lead);
       check(/Reception/.test(x.decision) && /rain/i.test(x.decision), `${L} the decision names the Reception (${x.decision})`);
       check(x.schedule === 'Reception 5–10 PM', `${L} the schedule is one slot (${x.schedule})`);
+      check(x.glance === 'Reception · 5–10 PM', `${L} At a glance is headed with the slot and its saved times (${x.glance})`);
       check(/Reception 5–10 PM/.test(x.lead) || /Reception/.test(x.lead), `${L} the lead names the slot`);
       check(!/Between slots/.test(x.dash) && !/Totals cover your slots/.test(x.why), `${L} no gap wording for one window`);
       check(x.nextBottom != null && x.nextBottom <= x.vh && !x.hscroll, `${L} decision, callouts and next check on the first 375×667 screen (next check ends at ${x.nextBottom} px; decision at ${x.decisionBottom})`);
@@ -82,6 +83,7 @@ const RECEPTION = [['Reception', `${D}T17:00`, `${D}T22:00`]], NIGHT = [['Night 
       check(/the 4 PM Outdoor ceremony/.test(x.decision), `${L} the headline names the 4 PM Outdoor ceremony (${x.decision})`);
       check(/Outdoor ceremony 4–4:30 PM/.test(x.lead), `${L} the lead lists the Outdoor ceremony and its time`);
       check(x.schedule === 'Vendor setup 1–3 PM Outdoor ceremony 4–4:30 PM Reception 5–10 PM', `${L} the schedule lists the three slots (${x.schedule})`);
+      check(x.glance === 'Your slots · 1–10 PM', `${L} At a glance is headed with the saved slot times, not the stadium wording (${x.glance})`);
       const lanes = await p.evaluate(() => [...document.querySelectorAll('#evDash .evd-part')].map((e) => e.getAttribute('title')));
       check(lanes.length === 3 && /^Vendor setup/.test(lanes[0]) && /^Outdoor ceremony/.test(lanes[1]) && /^Reception/.test(lanes[2]), `${L} the timeline ("When conditions could affect the event") lanes use the slot names (${lanes.join(' · ')})`);
       check(/Outdoor ceremony/.test(x.phases) && /Vendor setup/.test(x.phases) && /Reception/.test(x.phases), `${L} By phase lists the slots by name`);
@@ -102,6 +104,7 @@ const RECEPTION = [['Reception', `${D}T17:00`, `${D}T22:00`]], NIGHT = [['Night 
       console.log('   decision: ' + x.decision); console.log('   why: ' + x.why.slice(0, 400));
       check(!/rain/i.test(x.decision) || /No weather concern/i.test(x.decision), `${L} no rain concern for any slot (${x.decision})`);
       check(!/Rain:/.test(x.phases), `${L} no slot is rated for rain`);
+      check(x.glance === 'Your slots · 1–10 PM' && /Your slots only, not the gaps between them/.test(x.dash), `${L} At a glance: saved slot times in the header; the totals still say they cover the slots only (${x.glance})`);
       check(/Totals cover your slots: 1–3 PM, 4–4:30 PM, 5–10 PM; rain that falls between them is not counted/.test(x.why), `${L} Why this is flagged states the hours the totals cover`);
       const tile = await p.evaluate(() => { const t = document.querySelector('[data-tile=rain] [data-value]'); return t ? t.textContent : null; });
       check(tile === '0.00' || tile === '0', `${L} the rain total over the slots is 0 (tile ${tile})`);

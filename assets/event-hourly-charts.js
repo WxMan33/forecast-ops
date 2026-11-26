@@ -243,7 +243,7 @@
     return { s, e, flags, tiles, gustLine, types: (T.types || []).slice(), parts, missing, gap: T.gap || 0, when, around, clock, dayOf, multiDay };
   }
   const TYPE_WORD = { rain: "Rain", mix: "Mix", snow: "Snow" };
-  function dashboardHtml(V, M, { tz, sel = null, gapText = "" } = {}) {
+  function dashboardHtml(V, M, { tz, sel = null, gapText = "", schedule = null } = {}) {
     const pos = (ms) => (100 * (Math.max(M.s, Math.min(M.e, ms)) - M.s)) / (M.e - M.s);
     const box = (a, b) => `--l:${pos(a).toFixed(3)}%;--w:${Math.max(0, pos(b) - pos(a)).toFixed(3)}%`;
     const tier = (f) => (f ? ` data-tier="${esc(f.tier)}" style="--tier:var(--${esc(f.tier)})"` : "");
@@ -270,18 +270,21 @@
     /* gapText (Event Manager): the briefing's own wording for event hours without guidance, so the page says it one way */
     const none = gapText ? `<p class="evd-none" data-none data-incomplete>${esc(gapText)}. No weather concerns flagged in the hours that have guidance; the missing hours are not an all-clear.</p>`
       : `<p class="evd-none" data-none>No weather concerns flagged for your event window.${M.missing ? ` ${M.missing} hour${M.missing > 1 ? "s have" : " has"} no forecast data, so that part is not an all-clear.` : ""}</p>`;
-    const span = root.EventBriefingUI && root.EventBriefingUI.dateSpan ? root.EventBriefingUI.dateSpan(M.s, M.e, tz) : M.when(M.s, M.e);
-    return `<section class="evd" aria-labelledby="evdTitle"><div class="evd-head"><h2 id="evdTitle">At a glance</h2><span class="evd-span">Setup through teardown · ${esc(span)}</span></div>` +
+    /* planner-defined slots: the header names the planner's schedule ("Your slots", or the one slot's name) with the saved
+       slot times, not the forecast hours behind it (whose first hour starts before the first slot) */
+    const ds = (a, z) => (root.EventBriefingUI && root.EventBriefingUI.dateSpan ? root.EventBriefingUI.dateSpan(a, z, tz) : M.when(a, z));
+    const head = schedule ? `${schedule.label} · ${slotRange(schedule.s, schedule.e, tz)}` : `Setup through teardown · ${ds(M.s, M.e)}`;
+    return `<section class="evd" aria-labelledby="evdTitle"><div class="evd-head"><h2 id="evdTitle">At a glance</h2><span class="evd-span"${schedule ? " data-schedule" : ""}>${esc(head)}</span></div>` +
       `<ul class="evd-tiles" aria-label="Event weather totals">${M.tiles.map(tile).join("")}</ul>` +
       (types || gust ? `<div class="evd-notes">${types}${gust}</div>` : "") +
       `<div class="evd-when" data-window><h3>When conditions could affect the event</h3>${M.flags.length ? `<p class="evd-cue" data-cue>Tap a row to jump to that time.</p><div class="evd-lanes">${partsLane}${rows}<div class="evd-axis" aria-hidden="true">${ticks}</div></div>` +
         `<p class="evd-sel" data-sel aria-live="polite"></p>` : none}</div></section>`;
   }
   /* render into host; tapping a flagged window selects that hour on the page's shared timeline, like the charts */
-  function dashboard(host, { view: V, tz, gustLimit = 25, selected = null, onSelect = () => {}, onOpenHourly = null, gapText = "" }) {
+  function dashboard(host, { view: V, tz, gustLimit = 25, selected = null, onSelect = () => {}, onOpenHourly = null, gapText = "", schedule = null }) {
     const M = dashModel(V, { tz, gustLimit });
     let sel = selected;
-    host.innerHTML = dashboardHtml(V, M, { tz, sel, gapText });
+    host.innerHTML = dashboardHtml(V, M, { tz, sel, gapText, schedule });
     const readout = () => {
       const pos = (ms) => (100 * (Math.max(M.s, Math.min(M.e, ms)) - M.s)) / (M.e - M.s), on = sel != null && V.span.includes(sel);
       host.querySelectorAll(".evd-cur").forEach((c) => { c.hidden = !on; if (on) c.style.left = pos(sel + 1800e3).toFixed(3) + "%"; });
@@ -307,7 +310,21 @@
     if (observer) observer.observe(host);
     return { model: M, setSelected(ms) { if (ms === sel) return; sel = ms; readout(); }, destroy() { if (observer) observer.disconnect(); } };
   }
-  const api = { render, windowFor, precipTypes, typeSummary, dashboard, dashModel, dashboardHtml, wintry };
+  /* "1–10 PM", "11 AM–2 PM", "Sat 9 PM–Sun 3 AM"; the zone only when it changes inside the schedule (a fall-back night) */
+  function slotRange(a, b, tz) {
+    const f = (ms, o) => new Intl.DateTimeFormat("en-US", { timeZone: tz || undefined, ...o }).format(new Date(ms));
+    const parts = (ms) => { const t = f(ms, { hour: "numeric", minute: "2-digit" }).replace(":00", "").split(" "); return { t: t[0], ap: t[1], day: f(ms, { weekday: "short" }), date: f(ms, { year: "numeric", month: "2-digit", day: "2-digit" }), zone: f(ms, { timeZoneName: "short" }).split(" ").pop() }; };
+    const x = parts(a), y = parts(b), zs = x.zone !== y.zone;
+    if (x.date !== y.date) return `${x.day} ${x.t} ${x.ap}${zs ? " " + x.zone : ""}–${y.day} ${y.t} ${y.ap}${zs ? " " + y.zone : ""}`;
+    return x.ap === y.ap && !zs ? `${x.t}–${y.t} ${y.ap}` : `${x.t} ${x.ap}${zs ? " " + x.zone : ""}–${y.t} ${y.ap}${zs ? " " + y.zone : ""}`;
+  }
+  /* At a glance header for planner-defined slots, from Core.event.windows(ev): the saved slot times, named by the one
+     slot or "Your slots" for several. Stadium events (no slots) keep "Setup through teardown" over the window. */
+  function glanceSchedule(windows) {
+    const all = (windows || []).find((x) => x.key === "all"), parts = (windows || []).filter((x) => x.key !== "all");
+    return all && parts.length ? { label: parts.length === 1 ? parts[0].label : "Your slots", s: all.startMs, e: all.endMs } : null;
+  }
+  const api = { render, windowFor, precipTypes, typeSummary, dashboard, dashModel, dashboardHtml, glanceSchedule, wintry };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.EventHourlyCharts = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

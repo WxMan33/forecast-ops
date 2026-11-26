@@ -207,4 +207,15 @@ check("templates: single window, the stadium schedule from venue defaults, and a
   assert.deepEqual(E.templateSlots("wedding", day).map((x) => [x.name, x.start.slice(11), x.end.slice(11), !!x.main]), [["Vendor setup", "13:00", "15:00", false], ["Outdoor ceremony", "16:00", "16:30", true], ["Reception", "17:00", "22:00", false]]);
   assert.equal(E.templateSlots("stadium", day), null, "the stadium template is the fixed-part form");
 });
+check("At a glance header: the saved slot times and names; the stadium header is unchanged", () => {
+  const EH = require("../assets/event-hourly-charts.js"); global.EventBriefingUI = U;
+  const head = (ev) => { const { V } = run(ev), sch = C.event.hasSlots(ev) ? EH.glanceSchedule(C.event.windows(ev)) : null;
+    return /<span class="evd-span"[^>]*>([^<]*)</.exec(EH.dashboardHtml(V, EH.dashModel(V, { tz }), { tz, schedule: sch }))[1]; };
+  assert.equal(head(wedding), "Your slots · 1–10 PM", "the wedding: first slot start to last slot end");
+  assert.equal(head(reception), "Reception · 5–10 PM", "one slot: its name");
+  assert.equal(head(overnight), "Night market · Sat 9 PM–Sun 3 AM");
+  assert.match(head(stadium), /^Setup through teardown · /, "stadium events keep the old header");
+  const { V } = run(wedding); assert.match(EH.dashboardHtml(V, EH.dashModel(V, { tz }), { tz, schedule: EH.glanceSchedule(C.event.windows(wedding)) }), /Your slots only, not the gaps between them/, "the gap note on the totals stays");
+  delete global.EventBriefingUI;
+});
 console.log(`${n} checks passed`);
