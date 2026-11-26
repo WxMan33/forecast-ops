@@ -92,4 +92,15 @@ ok("partial rain amounts: short of an inch before they stop mid-rain is 'not che
   assert.strictEqual(plainT(OL.highlightLead(ph.list, TZ).timing), "Rain likely from 10 AM Thursday through 3 AM Friday; rain amounts stop at 7 PM Thursday, so the total may be higher");
   for (const n of ["heavy", "heavy-alone", "quiet", "hot"]) assert.deepStrictEqual(hl(n).unchecked, [], n); // amounts that outlast the rain: fully checked
 });
+ok("rain amounts: the normal end of NWS coverage (about 3 days) is a note on that day, not 'Not fully checked'; amounts missing inside the window still are", () => {
+  // the live CVG grid of 2026-11-26 18:27Z: amounts through Sun 7 PM ET (Mon 00Z), rain still likely after
+  const j = FX("nws-gridpoints-ILN-30-35-20261126T1827Z.json"), now = Date.parse(j.properties.updateTime) + 30 * 60e3, g = FG.parseGrid(j, now, 168);
+  const h = OL.highlights(g, TZ, now, {}); assert.deepStrictEqual(h.unchecked, []);
+  assert.deepStrictEqual(h.coverage.map((c) => c.text), ["Sunday rain amounts after 7 PM aren't available yet (NWS forecasts them about 3 days ahead)"]);
+  const b = OL.build({ tz: TZ, now, venue: CVG, days: 7, states: { spc: {}, grid: "ok" }, grid: g });
+  assert.deepStrictEqual(b.days.find((d) => d.date === "2026-11-29").limits, ["Sunday rain amounts after 7 PM aren't available yet (NWS forecasts them about 3 days ahead)"]);
+  assert.ok(b.days.every((d) => !d.unknown.length), "no day is 'not confirmed'");
+  // amounts that stop about a day out while rain continues: still missing data inside the window
+  const pr = hl("partial-rain"); assert.deepStrictEqual(pr.coverage, []); assert.ok(/^heavy rain after \w{3} 7 PM/.test(pr.unchecked[0]), pr.unchecked);
+});
 console.log(n + " passed");
