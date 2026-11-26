@@ -40,5 +40,5 @@
   BetaUI.mapPanel = (el) => { el.innerHTML = '<p class="bx-note">Forecast radar omitted from this design sample.</p>'; };
   /* label the page plainly as a sample wherever it is opened */
   document.addEventListener("DOMContentLoaded", () => { const b = document.createElement("p"); b.className = "ev-sample-banner"; b.setAttribute("role", "note");
-    b.textContent = "Design sample · synthetic weather, not a forecast"; const host = document.getElementById("briefView"); if (host) host.prepend(b); });
+    b.textContent = "Design sample · synthetic weather, not a forecast"; const host = document.getElementById("briefView"); const up = document.getElementById("upLink"); if (up) { const row = document.createElement("div"); row.className = "ev-sample-row"; up.before(row); row.append(up, b); } else if (host) host.prepend(b); });
 })();
