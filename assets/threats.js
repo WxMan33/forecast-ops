@@ -656,14 +656,18 @@
     Promise.all([getJSON("assets/geo/county-lines.json"), getJSON("assets/geo/county-labels.json")]).then(([l, n]) => { map.getSource("cnty-lines").setData(l); map.getSource("cnty-labels").setData(n); }).catch(() => { countiesAsked = false; });
   }
   function radarBeforeLayer() {
-    const aboveRadar = ["hu-state", "states", "cnty-lines", "outlook-fill"];
+    const aboveRadar = ["hu-state-case", "hu-state", "states", "cnty-case", "cnty-lines", "outlook-fill"];
     return map.getStyle().layers.find((layer) => aboveRadar.includes(layer.id))?.id;
   }
   /* our hazard fills and lines go under the basemap's labels (towns and streets stay readable); our own labels stay on top */
   function orderOverBase() {
-    const st = map.getStyle(), ours = new Set(OUR), firstLabel = st.layers.find((l) => l.type === "symbol" && !ours.has(l.id));
+    /* "under the labels" means under the first basemap label that comes after the basemap's last road or boundary line: the light
+       basemap draws its roads late, and radar and hazards under them were crossed by every street */
+    const st = map.getStyle(), ours = new Set([...OUR, "hu-state", "hu-state-case", "radar", "rain-obs", "rain-fcst"]), lastLine = st.layers.reduce((k, l, i) => (l.type === "line" && !ours.has(l.id) ? i : k), -1),
+      firstLabel = st.layers.find((l, i) => i > lastLine && l.type === "symbol" && !ours.has(l.id)) || st.layers.find((l) => l.type === "symbol" && !ours.has(l.id));
     if (!firstLabel) return;
-    for (const l of st.layers) if (ours.has(l.id) && (l.type !== "symbol" || l.id === "cnty-labels") && l.id !== "hu-state") map.moveLayer(l.id, firstLabel.id);
+    for (const l of st.layers) if (OUR.includes(l.id) && (l.type !== "symbol" || l.id === "cnty-labels")) map.moveLayer(l.id, firstLabel.id);
+    for (const id of ["hu-state-case", "hu-state"]) if (map.getLayer(id)) map.moveLayer(id, map.getLayer("lakes") ? "lakes" : firstLabel.id); // the state lines sit just under our layers
     if (map.getLayer("radar")) {
       map.moveLayer("radar", radarBeforeLayer());
       for (const id of ["rain-obs", "rain-fcst"]) if (map.getLayer(id)) map.moveLayer(id, "radar");
@@ -673,6 +677,9 @@
   function baseLines() {
     const src = Object.keys(map.getStyle().sources).find((k) => map.getStyle().sources[k].type === "vector"); if (!src) return;
     const lt = light(), first = map.getStyle().layers.find((l) => l.type === "symbol");
+    /* a casing under the state lines, shown only with radar on: a contrasting edge keeps the line readable over any echo colour */
+    if (!map.getLayer("hu-state-case")) map.addLayer({ id: "hu-state-case", type: "line", source: src, "source-layer": "boundaries", minzoom: 3, filter: ["==", ["get", "kind_detail"], 4], layout: { visibility: S.radar ? "visible" : "none" },
+      paint: { "line-color": lt ? "#ffffff" : "#0b0f15", "line-opacity": lt ? 0.75 : 0.7, "line-width": ["interpolate", ["linear"], ["zoom"], 3, 2.4, 8, 4] } }, first && first.id);
     for (const [id, kd, mz, col, w] of [["hu-state", 4, 3, lt ? "#52606d" : "#b8c2cc", [3, 0.8, 8, 1.8]]])
       if (!map.getLayer(id)) map.addLayer({ id, type: "line", source: src, "source-layer": "boundaries", minzoom: mz, filter: ["==", ["get", "kind_detail"], kd], paint: { "line-color": col, "line-opacity": 0.85, "line-width": ["interpolate", ["linear"], ["zoom"], w[0], w[1], w[2], w[3]] } }, first && first.id);
   }
@@ -693,6 +700,7 @@
       const L = (o) => { OUR.push(o.id); map.addLayer(o); };
       L({ id: "lakes", type: "fill", source: "lakes", paint: { "fill-color": p.water } });
       /* county lines (US Census, us-atlas 10m; inside each state) from regional zoom, names from zoom 7.5: our own files, loaded on first zoom-in */
+      L({ id: "cnty-case", type: "line", source: "cnty-lines", minzoom: 4.5, layout: { visibility: "none" }, paint: { "line-color": p.halo, "line-opacity": 0.6, "line-width": ["interpolate", ["linear"], ["zoom"], 4.5, 1.6, 8, 2.4, 11, 3.2] } }); // with radar on only
       L({ id: "cnty-lines", type: "line", source: "cnty-lines", minzoom: 4.5, paint: { "line-color": p.muted, "line-opacity": ["interpolate", ["linear"], ["zoom"], 4.5, 0.18, 7, 0.55, 10, 0.6], "line-width": ["interpolate", ["linear"], ["zoom"], 4.5, 0.4, 8, 0.8, 11, 1.2] } });
       L({ id: "outlook-fill", type: "fill", source: "outlook", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.55 } });
       L({ id: "m-fill", type: "fill", source: "m-fill", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.62 } });
@@ -1549,7 +1557,9 @@
   function ensureRadar() {
     if (!map || !mapLoaded) return;
     const on = S.radar && isLive() && (!!RD || !!Live.radarTime);
-    if (!on) { if (radar.timer) { clearInterval(radar.timer); radar.timer = null; } radar.state = "off"; if (map.getLayer("radar")) map.setLayoutProperty("radar", "visibility", "none"); return; }
+    const casings = (v) => { for (const id of ["hu-state-case", "cnty-case"]) if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", v); };
+    if (!on) { if (radar.timer) { clearInterval(radar.timer); radar.timer = null; } radar.state = "off"; if (map.getLayer("radar")) map.setLayoutProperty("radar", "visibility", "none"); casings("none"); return; }
+    casings("visible");
     if (RD && !radar.client) { radar.client = RD.createClient(); if (!radar.proto && window.maplibregl && maplibregl.addProtocol) { maplibregl.addProtocol("lcref", (params) => radar.client.tile(params)); radar.proto = true; } }
     if (!radar.timer) { radar.state = radar.lastOk ? radar.state : "loading"; radarTick(); radar.timer = setInterval(radarTick, 60e3); }
     if (!radar.valid) return;
@@ -1908,7 +1918,7 @@
     const set = (id, k, v) => { if (map.getLayer(id)) map.setPaintProperty(id, k, v); };
     set("warn-case", "line-color", c.halo); set("ring", "line-color", c.text); set("hl", "line-color", c.text); set("m-hull", "line-color", c.muted); set("pt", "circle-stroke-color", c.text);
     set("warn-dot", "circle-stroke-color", c.halo); set("warn-dot-core", "circle-color", c.halo);
-    set("cnty-lines", "line-color", c.muted); set("cnty-labels", "text-color", c.muted); set("cnty-labels", "text-halo-color", c.halo);
+    set("cnty-lines", "line-color", c.muted); set("cnty-case", "line-color", c.halo); set("cnty-labels", "text-color", c.muted); set("cnty-labels", "text-halo-color", c.halo);
     if (map.hasImage("hatch")) map.removeImage("hatch"); map.addImage("hatch", hatch(), { pixelRatio: 2 });
   }
   window.addEventListener("ops:theme", async () => {
