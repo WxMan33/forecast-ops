@@ -87,7 +87,7 @@ const CASES = [
     if (name === 'quiet') {
       check(!/incomplete|limited/i.test(s.decision + s.when + (await p.locator('#keys').innerText())) && /no rain concern for the plan/.test(await p.locator('#keys').innerText()), `${L} the quiet case stays distinct: no "incomplete" or "limited" wording anywhere in the lead or callouts`);
       check(s.kind === 'none' && s.decision === 'No weather concern for your event window.' && /Checked setup through teardown, 5 AM–12 PM: no weather change needed/.test(s.when) && s.watch === 'Watch for: any new rain, wind or thunder signal.', `${L} calm lead: "${s.decision}" ${s.when.replace(/\s+/g, ' ')}`);
-      check(/No active official alerts/.test(s.alerts), `${L} official alerts shown as none, separately`);
+      check(/No active official alerts for your site right now \(checked \d{1,2}(:\d\d)? [AP]M\)\.$/.test(s.alerts.replace(/\s+/g, ' ').trim()) && !/forecast concern is above|doesn’t mean no weather concern/.test(s.alerts), `${L} official alerts shown as none, separately; with no forecast concern the card ends after the check (${s.alerts.replace(/\s+/g, ' ').trim()})`);
       check(/No part of the event reaches a planning threshold/.test(s.change), `${L} what would change: a new signal in the next update`);
     }
     if (name === 'missing') {
@@ -129,7 +129,7 @@ const CASES = [
     await ctx.close();
   }
   /* a small phone (375×667, iPhone SE-like): the lead and "Watch for" (and an urgent warning) on the first screen */
-  for (const [name, query] of CASES.slice(0, 4)) {
+  for (const [name, query] of CASES) {
     const { ctx, p, errors } = await open(base, query, { device: { width: 375, height: 667 } }), s = await state(p);
     const bar = await p.evaluate(() => { const ids = ['printTop', 'bxFeedback', 'bxRefresh', 'bxTheme'], els = [...ids.map((i) => document.getElementById(i)), document.querySelector('.bx-head-in > a.bx-btn')].filter(Boolean);
       const r = els.map((e) => e.getBoundingClientRect()), dd = [...document.querySelectorAll('#keys dd')].pop();
@@ -144,6 +144,13 @@ const CASES = [
     if (name === 'missing') { const m = await p.evaluate(() => ({ dec: document.getElementById('decision').innerText, rows: [...document.querySelectorAll('#keys dd')].slice(0, 3).map((d) => d.innerText.replace(/\s+/g, ' ')) }));
       check(/9–11 AM/.test(m.dec) && /in hours with guidance/.test(m.rows[0]) && /in hours with guidance/.test(m.rows[2]) && !/\d/.test(m.rows[1].replace(/9–11 AM/g, '')), `${name} 375×667: the missing hours are named (${m.dec}) and every number shown for other hours says "in hours with guidance" (${m.rows.join(' | ')})`); }
     check(s.whenBottom <= s.vh && s.watchBottom <= s.vh && (name !== 'warning' || (s.urgentBottom > 0 && s.urgentBottom <= s.vh)) && !s.hscroll && !errors.length, `${name} 375×667: lead and "Watch for"${name === 'warning' ? ' and the urgent warning' : ''} on the first screen (watch ends ${Math.round(s.watchBottom)} px${name === 'warning' ? `, warning ends ${Math.round(s.urgentBottom)} px` : ''})`);
+    /* the official-alert card: it ends after the check when there is no forecast concern; with a concern (or missing
+       guidance) it points to it; a failed check is never "No active official alerts" */
+    const card = (await p.locator('#alerts').innerText()).replace(/\s+/g, ' ').trim(), NONE = /^OFFICIAL ALERT No active official alerts for your site right now \(checked \d{1,2}(:\d\d)? [AP]M\)\./;
+    if (name === 'quiet') check(NONE.test(card) && /\(checked \d{1,2}(:\d\d)? [AP]M\)\.$/.test(card), `${name} 375×667: no forecast concern, so the official-alert card ends after the check (${card})`);
+    if (name === 'replay' || name === 'missing') check(NONE.test(card) && /This doesn’t mean no weather concern: the forecast concern is above\. Outlooks and other official products ↓$/.test(card), `${name} 375×667: the official-alert card keeps its pointer to the concern (${card})`);
+    if (name === 'alertsfail') check(/Official alerts could not be checked \(\d{1,2}(:\d\d)? [AP]M\)/.test(card) && /weather\.gov/.test(card) && !/No active official alerts/.test(card), `${name} 375×667: a failed alert check stays unavailable and never says "No active official alerts" (${card})`);
+    await p.locator('#alerts').screenshot({ path: path.join(out, `${name}-phone375-alerts.png`) }).catch(() => {});
     await p.screenshot({ path: path.join(out, `${name}-phone375-light.png`) }); await ctx.close();
   }
   /* dark phone and desktop views of the replay */

@@ -202,7 +202,9 @@
   function officialHtml(L, { tz, lat, lon, checkedAt }) {
     const O = L.official, rest = O.all.filter((a) => !URGENT.test(a.event || ''));
     if (O.state === 'unchecked') return `<div class="bx-alert-off ev-official" role="status" data-alerts="unavailable" data-official="unchecked">${tag('missing')} <b>Official alerts could not be checked${checkedAt ? ` (${esc(clock(checkedAt, tz))})` : ''}</b>. NWS alerts could not be checked just now. No alert shown here does not mean none is in effect; check <a href="https://www.weather.gov/" target="_blank" rel="noopener">weather.gov</a>.</div>`;
-    if (O.state === 'none') return `<p class="ev-official ev-official-none" data-official="none">${tag('official')} <span><b>No active official alerts</b> for your site right now${checkedAt ? ` (checked ${esc(clock(checkedAt, tz))})` : ''}. This doesn’t mean no weather concern: the forecast concern is above. <a class="bx-link" href="#secThreats">Outlooks and other official products ↓</a></span></p>`;
+    /* with no forecast concern there is nothing above to point to: the card ends with the check itself. A forecast concern
+       or missing guidance keeps the pointer, so "no alerts" never reads as all clear. */
+    if (O.state === 'none') return `<p class="ev-official ev-official-none" data-official="none">${tag('official')} <span><b>No active official alerts</b> for your site right now${checkedAt ? ` (checked ${esc(clock(checkedAt, tz))})` : ''}.${L.kind === 'none' ? '' : ` This doesn’t mean no weather concern: the forecast concern is above. <a class="bx-link" href="#secThreats">Outlooks and other official products ↓</a>`}</span></p>`;
     return `${rest.map((a) => alertLine(a, tz, lat, lon)).join('')}${O.urgent.length ? `<p class="bx-note ev-official-more" data-official="urgent-above">${O.urgent.length === 1 ? 'The warning in effect is shown' : `${O.urgent.length} warnings in effect are shown`} with the forecast concern above.</p>` : ''}`;
   }
 

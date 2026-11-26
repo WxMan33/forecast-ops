@@ -30,6 +30,24 @@ check("official alerts: none only after a successful check; warnings are urgent"
   const un = L.officialHtml({ official: L.official(off, false) }, { tz: "America/New_York", lat: 39, lon: -84, checkedAt: Date.parse("2026-11-25T19:30Z") });
   assert.match(un, /could not be checked \(2:30 PM\)/); assert.match(un, /Missing guidance/); assert.doesNotMatch(un, /No active official alerts/);
 });
+check("official alerts card: ends after the check when the briefing has no concern; keeps the pointer when it has one", () => {
+  const ok = Object.assign([], { available: true }), off = Object.assign([], { available: false }), at = { tz: "America/New_York", lat: 39, lon: -84, checkedAt: Date.parse("2026-11-25T19:30Z") };
+  const text = (h) => h.replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+  // no forecast concern: the sentence is the whole card (the OFFICIAL ALERT tag is in front of it)
+  const quiet = L.officialHtml({ kind: "none", official: L.official(ok, true) }, at);
+  assert.match(text(quiet), /No active official alerts for your site right now \(checked 2:30 PM\)\.$/);
+  assert.doesNotMatch(quiet, /forecast concern is above|doesn’t mean no weather concern|Outlooks and other official products/);
+  // a forecast concern, or missing guidance: the pointer stays
+  for (const kind of ["forecast", "missing"]) {
+    const h = L.officialHtml({ kind, official: L.official(ok, true) }, at);
+    assert.match(text(h), /No active official alerts for your site right now \(checked 2:30 PM\)\. This doesn’t mean no weather concern: the forecast concern is above\. Outlooks and other official products ↓$/, kind);
+  }
+  // a failed check stays unavailable whatever the briefing says, and never claims none
+  for (const kind of ["none", "forecast", "missing"]) {
+    const h = L.officialHtml({ kind, official: L.official(off, false) }, at);
+    assert.match(h, /Official alerts could not be checked \(2:30 PM\)/); assert.match(h, /data-alerts="unavailable"/); assert.doesNotMatch(h, /No active official alerts/);
+  }
+});
 const H = 3600e3, t0 = Date.parse("2026-11-26T10:00Z"), tz = "America/New_York";
 const phases = [["setup", "Setup", 0, 1.5], ["gates", "Gates", 1.5, 4], ["event", "Event", 4, 5.5], ["teardown", "Teardown", 5.5, 7]].map(([key, label, a, b]) => ({ key, label, startMs: t0 + a * H, endMs: t0 + b * H, r: {}, levels: {} }));
 const b = { phases, all: { startMs: t0, endMs: t0 + 7 * H }, coverage: "full", top: null, concerns: [] };
