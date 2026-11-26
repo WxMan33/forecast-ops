@@ -35,14 +35,29 @@ async function open(base, { phone = false, theme = 'light' } = {}) {
   });
   const p = await ctx.newPage();
   p.on('pageerror', (e) => state.errors.push(e.message));
-  await p.clock.install({ time: new Date(NOW) });
+  /* the page clock is paused at NOW and moves only in this check's own steps: an explicit fastForward, or a wait below
+     (pass, waitFor, settled), which runs it forward by the real time that wait took. clock.install alone also lets the
+     clock follow real time, and in Playwright 1.48 (the version CI installs) that real-time sync can run at the same
+     moment as fastForward or runFor; whichever finishes last sets the clock, so it can step back by a fraction of a
+     second. A Retry-After the page remembered at one clock reading could then still be pending when its own retry timer
+     fired at an earlier one, and the retry was not sent. Paused, the clock only moves forward, one step at a time. */
+  await p.clock.install({ time: new Date(NOW - 60000) });
+  await p.clock.pauseAt(new Date(NOW));
   await p.addInitScript((t) => { localStorage.setItem('ops_theme', JSON.stringify(t)); localStorage.setItem('fo_analytics_optout', '1'); }, theme);
   return { ctx, p, state };
 }
 /* the hourly charts are under the "Hour by hour" details group: open it before using them */
 const openHourly = (p) => p.evaluate(() => { const d = document.getElementById('secHourly'); if (d) d.open = true; });
 const text = (p, sel) => p.evaluate((q) => document.querySelector(q)?.textContent || '', sel).catch(() => '');
-const settled = (p, ms = 30000) => p.waitForFunction(() => { const d = document.getElementById('decision')?.textContent || ''; return document.body.dataset.loaded || /could not be loaded|slow to answer|ended|pending|needs confirmation/i.test(d); }, null, { timeout: ms });
+/* waits that move the paused page clock forward in step with real time, so the simulated network's real delays keep
+   their place against the page's own timers. runFor rethrows a page timer's exception; it is printed, not fatal, as it
+   was when real time ran those timers */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const step = async (p, ms) => { await p.clock.runFor(Math.max(1, Math.round(ms))).catch((e) => console.log('note: a page timer threw: ' + String(e.message || e).split('\n')[0])); };
+async function pass(p, ms) { const end = Date.now() + ms; let last = Date.now(); while (Date.now() < end) { await sleep(Math.min(25, end - Date.now())); const now = Date.now(); await step(p, now - last); last = now; } }
+async function waitFor(p, fn, arg, ms) { const end = Date.now() + ms; let last = Date.now();
+  for (;;) { if (await p.evaluate(fn, arg).catch(() => false)) return true; if (Date.now() >= end) return false; await sleep(25); const now = Date.now(); await step(p, now - last); last = now; } }
+const settled = async (p, ms = 30000) => { if (!(await waitFor(p, () => { const d = document.getElementById('decision')?.textContent || ''; return document.body.dataset.loaded || /could not be loaded|slow to answer|ended|pending|needs confirmation/i.test(d); }, null, ms))) throw new Error(`settled: timeout ${ms}ms exceeded`); };
 const requests = (st, host) => st.log.filter((x) => !host || x.host === host).length;
 
 async function eventChecks(base) {
@@ -80,32 +95,32 @@ async function eventChecks(base) {
   check(!/No weather concern|all clear/i.test(dec) && /slow to answer|could not be loaded/i.test(dec), 'event: all models failing never reads as an all-clear (' + dec + ')');
   check(!(await text(p, '#evCharts')).trim() && !(await text(p, '#nwsEv')).trim() && !(await p.locator('#printView').innerHTML()).trim(), 'event: the previous briefing\'s charts, NWS block and printout are cleared while guidance is unavailable');
   await p.clock.fastForward(21000); await settled(p);
-  await p.waitForFunction(() => /could not be loaded/i.test(document.getElementById('decision').textContent), null, { timeout: 15000 }).catch(() => {});
+  await waitFor(p, () => /could not be loaded/i.test(document.getElementById('decision').textContent), null, 15000);
   dec = await text(p, '#decision');
   check(/could not be loaded/i.test(dec), 'event: one bounded automatic retry, then a plain failure');
-  const n0 = requests(state, 'api.open-meteo.com'); await p.clock.fastForward(180000); await p.waitForTimeout(500);
+  const n0 = requests(state, 'api.open-meteo.com'); await p.clock.fastForward(180000); await pass(p, 500);
   check(requests(state, 'api.open-meteo.com') === n0, 'event: no further automatic retries after the bounded one');
 
   /* ---- provider retry guidance: Retry-After 45 s is respected, not the fixed 20 s ---- */
   state.scenario = { forecast: { '*': { status: 429, retryAfter: 45 } } };
   await p.evaluate(() => sessionStorage.clear()); await p.locator('#bxRefresh').click(); await settled(p);
   const n1 = requests(state, 'api.open-meteo.com');
-  await p.clock.fastForward(25000); await p.waitForTimeout(500);
+  await p.clock.fastForward(25000); await pass(p, 500);
   check(requests(state, 'api.open-meteo.com') === n1, 'event: no automatic retry before the provider\'s Retry-After (45 s)');
   check(/45 seconds|in 45/.test(await text(p, '#keys')), 'event: the wait follows the provider\'s guidance (' + (await text(p, '#keys')) + ')');
   state.scenario = {};
   await p.clock.fastForward(21000); await settled(p);
-  await p.waitForFunction(() => document.body.dataset.loaded, null, { timeout: 20000 }).catch(() => {});
+  await waitFor(p, () => document.body.dataset.loaded, null, 20000);
   check(requests(state, 'api.open-meteo.com') > n1 && !!(await p.evaluate(() => document.body.dataset.loaded)), 'event: retries after Retry-After and recovers');
 
   /* ---- recovery keeps the selected hour and clears obsolete errors ---- */
   const hour = Date.parse('2026-11-12T23:00:00Z');
-  await openHourly(p); await p.waitForTimeout(200);
+  await openHourly(p); await pass(p, 200);
   await p.locator(`#evCharts [data-variable=pop] [data-hour="${hour}"]`).click();
   check(await p.evaluate((h) => +document.body.dataset.selected === h, hour), 'event: an hour can be selected');
   state.scenario = { forecast: { '*': { status: 500 } } }; await p.evaluate(() => sessionStorage.clear()); await p.locator('#bxRefresh').click(); await settled(p);
   state.scenario = {}; await p.evaluate(() => sessionStorage.clear()); await p.locator('#bxRefresh').click(); await settled(p);
-  await p.waitForFunction(() => document.body.dataset.loaded, null, { timeout: 20000 }).catch(() => {});
+  await waitFor(p, () => document.body.dataset.loaded, null, 20000);
   dec = await text(p, '#decision');
   check(!/slow to answer|could not be loaded/i.test(dec) && !/Try/.test(await text(p, '#keys')), 'event: recovery clears the obsolete failure message');
   check(await p.evaluate((h) => +document.body.dataset.selected === h && document.querySelector('#evCharts [aria-pressed=true]')?.dataset.hour === String(h), hour), 'event: recovery keeps the selected event hour');
@@ -123,7 +138,7 @@ async function eventChecks(base) {
   dec = await text(p, '#decision');
   check(/slow to answer|could not be loaded/i.test(dec), 'event: expired cache plus a failed refresh is reported as unavailable, not as current guidance');
   state.scenario = {}; await p.clock.fastForward(21000); await settled(p);
-  await p.waitForFunction(() => document.body.dataset.loaded, null, { timeout: 20000 }).catch(() => {});
+  await waitFor(p, () => document.body.dataset.loaded, null, 20000);
   check(!!(await p.evaluate(() => document.body.dataset.loaded)) && !/saved/i.test(await text(p, '#bxUpd')), 'event: recovery replaces the failure with fresh guidance');
 
   /* ---- NWS forecast and alerts down, models fine ---- */
@@ -148,7 +163,7 @@ async function eventChecks(base) {
   state.scenario = { forecast: { '*': { nullFrom: [gapFrom, gapTo], nullVars: ['precipitation_probability'] }, gfs_hrrr: { hoursAvailable: 30 } }, ensemble: { '*': { nullFrom: [gapFrom, gapTo] } } };
   await p.evaluate(() => sessionStorage.clear()); await p.locator('#bxRefresh').click(); await settled(p);
   const gapHour = sim.DAY0 + (gapFrom + 1) * H;
-  await openHourly(p); await p.waitForTimeout(200);
+  await openHourly(p); await pass(p, 200);
   await p.locator(`#evCharts [data-variable=pop] [data-hour="${gapHour}"]`).click();
   check((await text(p, '#evCharts [data-value=pop]')).trim() === 'No data', 'event: an hour with no rain-chance guidance shows "No data" on the chart, not 0%');
   check(!/\b0%/.test(await text(p, '#evGridDetail')), 'event: selected-hour details never turn the missing chance into 0%');
@@ -187,12 +202,12 @@ async function raceChecks(base) {
     await p.goto(base + '/event-beta.html'); await settled(p, 30000);
     check(/Wind Advisory/.test(await text(p, '#alerts')), 'race: the first venue\'s alert is shown for it');
     state.scenario = { delay: { cvg: 4000, cmh: 1500 }, alerts: state.scenario.alerts };
-    await p.locator('#bxRefresh').click(); await p.waitForTimeout(200);
-    const inp = p.locator('#picker input'); await inp.fill('Columbus'); await p.locator('#picker [role=option]:has-text("Columbus")').first().click({ timeout: 5000 });
-    await p.waitForTimeout(400);
+    await p.locator('#bxRefresh').click(); await pass(p, 200);
+    const inp = p.locator('#picker input'); await inp.fill('Columbus'); await waitFor(p, () => [...document.querySelectorAll('#picker [role=option]')].some((o) => /Columbus/.test(o.textContent)), null, 5000); await p.locator('#picker [role=option]:has-text("Columbus")').first().click({ timeout: 5000 });
+    await pass(p, 400);
     check(!/Wind Advisory/.test(await text(p, '#alerts')), 'race: the previous venue\'s alert disappears as soon as the venue changes');
-    await p.waitForFunction(() => /Columbus/.test(document.body.dataset.loaded || ''), null, { timeout: 20000 }).catch(() => {});
-    await p.waitForTimeout(5000);
+    await waitFor(p, () => /Columbus/.test(document.body.dataset.loaded || ''), null, 20000);
+    await pass(p, 5000);
     const s = await p.evaluate(() => ({ loaded: document.body.dataset.loaded, place: document.body.dataset.place, office: document.body.dataset.office, name: document.getElementById('evVenue').textContent }));
     check(/Columbus/.test(s.loaded) && /Columbus/.test(s.place) && /Columbus/.test(s.name), 'race: the newer venue stays selected after the slow answer for the old one arrives (' + JSON.stringify(s) + ')');
     check(!/Wind Advisory/.test(await text(p, '#alerts')), 'race: a late alert answer for the old venue is not shown for the new one');
@@ -202,12 +217,12 @@ async function raceChecks(base) {
   { const { ctx, p, state } = await open(base);
     state.scenario = { delay: { cvg: 2500 } };
     await p.goto(base + '/blend.html');
-    await p.waitForTimeout(300);
+    await pass(p, 300);
     await p.locator('#locPreset').selectOption({ label: 'Columbus, OH' }).catch(async () => { const v = await p.locator('#locPreset option', { hasText: 'Columbus' }).first().getAttribute('value'); await p.locator('#locPreset').selectOption(v); });
-    await p.waitForFunction(() => /grid 82,70/.test(document.getElementById('runMsg')?.textContent || ''), null, { timeout: 20000 }).catch(() => {});
+    await waitFor(p, () => /grid 82,70/.test(document.getElementById('runMsg')?.textContent || ''), null, 20000);
     // the old point's answers (each delayed, several in sequence) land well after the new point's; wait them out
-    await p.waitForFunction(() => !document.getElementById('runBtn').disabled, null, { timeout: 30000 }).catch(() => {});
-    await p.waitForTimeout(12000);
+    await waitFor(p, () => !document.getElementById('runBtn').disabled, null, 30000);
+    await pass(p, 12000);
     const old = state.log.filter((x) => x.venue === 'cvg').length;
     const m = await text(p, '#runMsg');
     check(old > 0, 'race: the old point was still being requested when the new one was chosen (' + old + ' requests)');
@@ -220,7 +235,7 @@ async function blendChecks(base) {
   for (const [label, scenario] of [['one model 429', { forecast: { gfs_seamless: { status: 429 } } }], ['all models 500', { forecast: { '*': { status: 500 } }, ensemble: { '*': { status: 500 } } }], ['all models 429', { forecast: { '*': { status: 429 } }, ensemble: { '*': { status: 429 } } }], ['all models unreachable', { forecast: { '*': { hang: true } }, ensemble: { '*': { hang: true } } }], ['NWS down', { nws: { status: 503 }, alerts: { status: 500 } }]]) {
     const { ctx, p, state } = await open(base); state.scenario = scenario;
     await p.goto(base + '/blend.html');
-    await p.waitForFunction(() => !document.getElementById('runBtn')?.disabled && /models|Couldn't/.test(document.getElementById('runMsg')?.textContent || ''), null, { timeout: 40000 }).catch(() => {});
+    await waitFor(p, () => !document.getElementById('runBtn')?.disabled && /models|Couldn't/.test(document.getElementById('runMsg')?.textContent || ''), null, 40000);
     const m = await text(p, '#runMsg');
     if (label === 'one model 429') check(/GFS: request failed \(HTTP 429\)/.test(m), 'blend: a rate-limited model is named with its HTTP status (' + m.slice(0, 160) + ')');
     if (label === 'all models unreachable') check(/Couldn't reach Open-Meteo/.test(m), 'blend: requests that never answer are reported as unreachable (' + m.slice(0, 100) + ')');
