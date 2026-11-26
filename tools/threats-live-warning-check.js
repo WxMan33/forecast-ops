@@ -123,6 +123,11 @@ const DEV = { desktop: { viewport: { width: 1440, height: 900 } }, phone: { view
     check(`LIVE MD: row says how it was checked ('${r.row}'); outline drawn; detail has number ${r.number} and an SPC bulletin link`, r.n >= 1 && r.drawn && /Checked/.test(r.row || "") && r.links.length > 0 && !errs.length, { r, errs }); await ctx.close();
   } else console.log("section 3 skipped: no active MD in the NOAA map service");
 
+  /* section 1 is met only by a live tornado or severe thunderstorm WARNING whose checks all passed; a watch or an MD (of any topic)
+     never meets it, so an exit of 0 from watches or MDs alone is not a section 1 pass */
+  const s1 = results.filter((x) => /^LIVE WARNING/.test(x.check)), section1 = s1.length > 0 && s1.every((x) => x.pass);
+  out.section1Satisfied = section1;
+  console.log(section1 ? "SECTION 1 SATISFIED: a live severe warning passed" : "SECTION 1 NOT SATISFIED: " + (s1.length ? "a live warning was checked but did not pass" : "no live tornado or severe thunderstorm warning (watches and MDs don't count)"));
   save("results.json", { ...out, results }); await b.close();
   const failed = results.filter((x) => !x.pass).length; console.log(`${results.length - failed} of ${results.length} passed · evidence in ${path.relative(process.cwd(), OUT)}`); process.exit(failed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exit(1); });

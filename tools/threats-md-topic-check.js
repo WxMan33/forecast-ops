@@ -2,6 +2,11 @@
    TEST REPLAY of the live answer saved 2026-11-25 22:29Z (MD 2465, a heavy-snow MD per SPC's own page), desktop and phone:
      the outline is drawn and labelled "MD 2465 · TOPIC UNAVAILABLE"; the detail says Topic unavailable, Issued "Unavailable from the
      map service" (never a 1970 date), Valid "Until <time> (0300Z) · start unavailable", and links the SPC bulletin.
+   A venue inside MD 2465's outline (37.946, -90.536):
+     fresh visit (Auto): the MD is not one of the site's alerts, doesn't make Auto turn on Severe storms, and is not in the lead
+       or the alert strip;
+     Severe storms on by hand: the MD is found and listed as a discussion that includes the venue; the headline doesn't call it a
+       warning and doesn't also say no MD covers the venue.
    Usage: node tools/threats-md-topic-check.js https://<host> [outDir] */
 "use strict";
 const { chromium, devices } = require("playwright");
@@ -38,7 +43,36 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
         && /^Until .* 0300Z · start unavailable from the map service$/.test(det.valid) && det.link,
       { det, md });
     check(`(${d}) no script errors; the replay is marked TEST REPLAY`, !errs.length && (await p.evaluate(() => document.getElementById("txBadge").textContent)) === "TEST REPLAY", { errs });
-    await ctx.close(); }
+    await ctx.close();
+
+    /* a venue inside the MD */
+    const IN = "lat=37.946&lon=-90.536&name=" + encodeURIComponent("Inside MD 2465");
+    const visit = async (q) => { const c = await b.newContext(phone ? { ...devices["iPhone 13"] } : { viewport: { width: 1440, height: 1000 } }), pg = await c.newPage(), e = [];
+      pg.on("pageerror", (x) => e.push(x.message));
+      await pg.route(/spc_mesoscale_discussion\/MapServer\/0\/query/, (r) => r.fulfill({ status: 200, headers: { "content-type": "application/geo+json", "access-control-allow-origin": "*" }, body: FIX }));
+      await pg.route(/spc\.noaa\.gov\/products\/md\//, (r) => r.abort());
+      await pg.goto(HOST + "/threats.html?" + IN + q + "&testreplay=md-topic", { waitUntil: "domcontentloaded", timeout: 60000 });
+      await pg.waitForFunction(() => window.__threats && window.__threats.ready && window.__threats.liveReady, null, { timeout: 90000 }).catch(() => {});
+      return { c, pg, e }; };
+    const siteRead = (pg) => pg.evaluate(() => { const T = window.__threats, A = T.siteAssess(), head = document.querySelector(".px-olhead"), strip = document.querySelector(".px-sitealerts"), brief = document.querySelector(".px-brief");
+      return { auto: T.S.auto, sum: document.getElementById("txLayersSum").textContent, need: A && A.need, cause: A && A.cause, atKinds: A ? A.at.map((x) => x.p.kind + ":" + x.p.event) : null,
+        mdLoaded: T.data.products.filter((x) => x.kind === "md").map((x) => x.title), lead: head ? head.innerText.replace(/\s+/g, " ") : "", strip: strip ? strip.innerText.replace(/\s+/g, " ") : "",
+        brief: brief ? brief.innerText.replace(/\s+/g, " ") : "", peek: document.getElementById("txPeek1").textContent + " / " + document.getElementById("txPeek2").textContent }; });
+    { const { c, pg, e } = await visit(""); await pg.waitForFunction(() => window.__threats.outlook && ["ok", "failed"].includes(window.__threats.outlook.state), null, { timeout: 120000 }).catch(() => {}); await pg.waitForTimeout(4000);
+      const s1 = await siteRead(pg); await pg.screenshot({ path: path.join(OUT, `md-inside-auto-${d}.png`) });
+      const mdWord = /Mesoscale|\bMD \d/;
+      check(`(${d}) venue inside MD 2465, fresh visit: '${s1.sum}'; site alerts [${(s1.atKinds || []).join(", ") || "none"}]; severe need ${s1.need && s1.need.severe} (${JSON.stringify(s1.cause && s1.cause.severe) || "-"}); lead '${s1.lead.slice(0, 80)}'`,
+        s1.auto && s1.atKinds && !s1.atKinds.some((k) => /^md:/.test(k)) && (!s1.need.severe || !mdWord.test(JSON.stringify(s1.cause.severe || ""))) && (s1.need.severe || !/Severe storms/.test(s1.sum))
+          && !mdWord.test(s1.lead) && !mdWord.test(s1.strip) && !mdWord.test(s1.peek) && !e.length, { s1, e });
+      await c.close(); }
+    { const { c, pg, e } = await visit("&layers=severe&view=active&scope=venue"); await pg.waitForFunction(() => window.__threats.data.products.some((x) => x.kind === "md"), null, { timeout: 60000 }).catch(() => {}); await pg.waitForTimeout(3000);
+      if (phone) { await pg.locator("#txPeek").click().catch(() => {}); await pg.waitForTimeout(800); }
+      const s2 = await siteRead(pg); await pg.screenshot({ path: path.join(OUT, `md-inside-manual-${d}.png`) });
+      check(`(${d}) Severe storms on by hand: MD found (${s2.mdLoaded.join(", ")}); venue block '${s2.brief.slice(0, 230)}'; still not a site alert; severe need ${s2.need && s2.need.severe}`,
+        s2.mdLoaded.length > 0 && /Mesoscale Discussion 2465 \(topic unavailable\): discussion area includes the venue/.test(s2.brief) && !/no SPC Mesoscale Discussion covers it/.test(s2.brief)
+          && !/MD 2465.* in effect at the venue/i.test(s2.brief) && s2.atKinds && !s2.atKinds.some((k) => /^md:/.test(k)) && (!s2.need.severe || !/Mesoscale|\bMD \d/.test(JSON.stringify(s2.cause.severe || ""))) && !e.length, { s2, e });
+      await c.close(); }
+  }
   await b.close();
   fs.writeFileSync(path.join(OUT, "md-topic-check.json"), JSON.stringify({ host: HOST, at: new Date().toISOString(), results }, null, 1));
   console.log(`${results.length - fails} of ${results.length} passed`); process.exit(fails ? 1 : 0);

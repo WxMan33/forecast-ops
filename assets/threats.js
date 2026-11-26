@@ -580,7 +580,10 @@
   /* when only one source is unconfirmed, say exactly which part is known */
   function quietText() {
     if (!srcOn("alerts")) return { big: "No warning layer on", sub: "The layers on now don't include NWS warnings and watches. Turn on Severe storms, Flooding, Winter, Fire, Tropical or Coastal to check the venue." };
-    if (activeKnown()) return { big: "Nothing active at the venue", sub: "No " + alertWords() + " warning, watch or advisory is in effect at the venue" + (srcOn("md") ? ", and no SPC Mesoscale Discussion covers it." : ".") };
+    /* an MD that includes the venue is listed just below; it is not a warning, so it doesn't change the headline, but the line
+       mustn't also say that no MD covers it */
+    const mdHere = srcOn("md") && venueCovers().some((p) => p.kind === "md");
+    if (activeKnown()) return { big: mdHere ? "No warning, watch or advisory at the venue" : "Nothing active at the venue", sub: "No " + alertWords() + " warning, watch or advisory is in effect at the venue" + (!srcOn("md") ? "." : mdHere ? ". An SPC Mesoscale Discussion includes it (below): a discussion, not a warning." : ", and no SPC Mesoscale Discussion covers it.") };
     if (known("alerts")) return { big: "No warning or watch at the venue", sub: "NWS checked " + t(data.sources.alerts.lastOk) + ". SPC Mesoscale Discussion status is unknown: that source is not responding." };
     return { big: "Venue status not confirmed", sub: "No product covers the venue in the data we have, but NWS warnings and watches are not confirmed (see below)." };
   }
