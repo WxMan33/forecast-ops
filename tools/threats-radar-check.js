@@ -33,7 +33,9 @@ async function open(b, ctxOpt, theme, slow) {
 }
 const read = (p) => p.evaluate(() => { const T = window.__threats, m = T.map, st = m.getStyle(), ids = st.layers.map((l) => l.id), r = T.radar, rs = T.radarStats;
   const above = st.layers.filter((l) => l.source === "active").map((l) => l.id), ri = ids.indexOf("radar");
-  return { via: r.via, state: r.state, valid: r.valid, stats: rs && { scan: rs.scan, bytes: rs.bytes, downloadMs: rs.downloadMs, decodeMs: rs.decodeMs, size: rs.size, loads: rs.loads, tiles: rs.tileMs.length, tileMed: rs.tileMs.length ? rs.tileMs.slice().sort((a, b) => a - b)[Math.floor(rs.tileMs.length / 2)] : null, tileMax: rs.tileMs.length ? Math.max(...rs.tileMs) : null, error: rs.error },
+  const politicalLines = [ids.includes("hu-state") ? "hu-state" : "states", "cnty-lines"];
+  const boundariesAbove = ri >= 0 && politicalLines.every((id) => ids.indexOf(id) > ri);
+  return { boundariesAbove, via: r.via, state: r.state, valid: r.valid, stats: rs && { scan: rs.scan, bytes: rs.bytes, downloadMs: rs.downloadMs, decodeMs: rs.decodeMs, size: rs.size, loads: rs.loads, tiles: rs.tileMs.length, tileMed: rs.tileMs.length ? rs.tileMs.slice().sort((a, b) => a - b)[Math.floor(rs.tileMs.length / 2)] : null, tileMax: rs.tileMs.length ? Math.max(...rs.tileMs) : null, error: rs.error },
     paint: m.getLayer("radar") ? { opacity: m.getPaintProperty("radar", "raster-opacity"), resampling: m.getPaintProperty("radar", "raster-resampling") } : null,
     radarIndex: ri, warningsAbove: above.length && above.every((id) => ids.indexOf(id) > ri), activeLayers: above.length,
     legend: !!document.querySelector('[data-lg="radar"] .lg-r26'), row: ((document.querySelector('[data-src="radar"]') || {}).innerText || "").replace(/\s+/g, " "), theme: document.documentElement.dataset.theme }; });
@@ -46,6 +48,7 @@ const read = (p) => p.evaluate(() => { const T = window.__threats, m = T.map, st
     check(`(desktop) radar drawn from IEM's measured MRMS grid (via ${s.via}; scan ${s.valid}; ${s.stats && s.stats.size}); source row '${s.row.slice(0, 110)}'`, s.via === "iem" && s.state === "ok" && s.stats && s.stats.size === "7000x3500" && /MRMS reflectivity · lowest elevation, via IEM/.test(s.row), { s });
     check(`(desktop) style: opacity ${s.paint && s.paint.opacity}, resampling ${s.paint && s.paint.resampling}; legend shows the 2026 bands: ${s.legend}`, s.paint && s.paint.opacity === 0.85 && s.paint.resampling === "nearest" && s.legend, { s });
     check(`(desktop) warnings and watches draw above radar (radar layer ${s.radarIndex}; ${s.activeLayers} alert layers all above)`, s.radarIndex >= 0 && s.warningsAbove, { s });
+    check("(desktop) state and county lines draw above radar", s.boundariesAbove, { s });
     /* the page's tile vs the reference renderer, same scan */
     /* IEM can publish a new scan between the page's download and this check's: try until both read the same scan */
     const tile = [9, 137, 195]; let pg, scan, png, wld;
@@ -68,7 +71,7 @@ const read = (p) => p.evaluate(() => { const T = window.__threats, m = T.map, st
   /* desktop, light; phone, light: screenshots and the same source */
   for (const [name, opt, theme] of [["desktop-light", { viewport: { width: 1440, height: 900 } }, "light"], ["phone-light", { ...devices["iPhone 13"] }, "light"]]) {
     const { ctx, p, errs } = await open(b, opt, theme, false); const s = await read(p); await p.screenshot({ path: path.join(OUT, `cvg-${name}.png`) });
-    check(`(${name}) theme ${s.theme}: radar from IEM, opacity ${s.paint && s.paint.opacity}, nearest; warnings above`, s.via === "iem" && s.paint && s.paint.opacity === 0.85 && s.paint.resampling === "nearest" && s.warningsAbove && !errs.length, { s, errs }); await ctx.close(); }
+    check(`(${name}) theme ${s.theme}: radar from IEM, opacity ${s.paint && s.paint.opacity}, nearest; boundaries and warnings above`, s.via === "iem" && s.paint && s.paint.opacity === 0.85 && s.paint.resampling === "nearest" && s.warningsAbove && s.boundariesAbove && !errs.length, { s, errs }); await ctx.close(); }
   /* IEM not answering: within about 15 s the page shows NOAA's pre-coloured tiles, labelled as the fallback */
   { const ctx = await b.newContext({ ...devices["iPhone 13"] }), p = await ctx.newPage(), errs = []; p.on("pageerror", (e) => errs.push(e.message));
     await p.route(/mesonet\.agron\.iastate\.edu\/data\/gis\/images\/4326\/mrms\/lcref\.png/, () => {}); // never answers
