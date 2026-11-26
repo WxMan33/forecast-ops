@@ -1,0 +1,73 @@
+{
+ "issue_date": "2026-11-26",
+ "issue_cycle": "2026-11-26T12:00:00+00:00",
+ "day": 2,
+ "hazard": "wind",
+ "valid_start": "2026-11-27T12:00:00+00:00",
+ "valid_end": "2026-11-28T12:00:00+00:00",
+ "generated_at": "2026-11-26T15:18:59.934121+00:00",
+ "cutoff": "2026-11-27T12:00:00+00:00",
+ "on_time": true,
+ "inputs": {
+  "predictor_sha256": "90d38a0c5e2bd2ec3786d2a13464b06c92ed679c2294b6d09c11ee61ce28a26c",
+  "raw_audit_sha256": "7dd8dee98b0cbfd1a7bb305d9f5648e6644b48f351abe06f0a8a8605947c7fb3"
+ },
+ "models": {
+  "conus_gbt_96": "a9ff6aa76b946c92a16d2148e3cdb1fb8920e6dd904789058edfddbde0af8d7a",
+  "conus_gbt_728": "dcc16d91a36205f7c754ae9ce148ac374ade3bf1d6c82b78e94f676b093724ae",
+  "v07_frozen": "a83218fb409683f2dd8b1a92c335c379010a2f7299b7a8705fb36960e9ae1e7e"
+ },
+ "grid": {
+  "samples": 40311,
+  "coords_sha256": "4b58dcc99578ceab982661bb5e95c4ae9ba414f47637a42732a818af8ffcbf3f",
+  "extra_samples_sha256": "9d9ab914ae84634d8db475c01639266427667cf58931ccf87f8f70c972d531a7"
+ },
+ "coverage": {
+  "supported_samples": 38838,
+  "keep_mask_sha256": "a9a45881b560c1cc2695201d850841d53cdf2f4fedede3830972a8562a347188",
+  "v07_footprint": {
+   "box": [
+    -100,
+    -75,
+    30,
+    45
+   ],
+   "samples": 14940
+  }
+ },
+ "probabilities": {
+  "file": "2026-11-26.npz",
+  "sha256": "26e457f54212e2a3cc6528960d23da7e58150702cdd3436e8b3ec8a2af9e3898"
+ },
+ "rules": "research/severe/conus-v1/prospective/RULES.md",
+ "lagged_candidates": {
+  "status": "ok",
+  "detail": {
+   "runs": {
+    "12z": {
+     "latest_listed": "2026-11-26T13:57:48.000Z",
+     "listed_before_cutoff": true
+    },
+    "06z": {
+     "latest_listed": "2026-11-26T07:47:41.000Z",
+     "listed_before_cutoff": true
+    }
+   }
+  },
+  "models": {
+   "lag_hrrr": "bd95215401b9b9aa9e4640f81c1c1ac96fee6bc412e37806959099cc2352389e",
+   "lag_12z18": "f28ac127a9c009f88aca0d119f5a3ab11f4fe539b4d070dea1580fd0b1f6d5d4",
+   "lag_full": "1b378a8d70cf664aa46f036dad146ed1fbe79218127d0a14938dc0bce634438e"
+  },
+  "rules": "research/severe/conus-v1/hrrr-lag/PROSPECTIVE.md",
+  "input_messages": 108,
+  "input_sha256": "6b7306b13aedb4b2267ca90bebfdb984008db6d519105a1ef80a0ba6dd04e8b3"
+ },
+ "generator": {
+  "run_id": "45847486766",
+  "workflow": "Severe CONUS research preview feed (research)",
+  "event": "workflow_dispatch",
+  "triggering_actor": "github-actions[bot]",
+  "sha": "ea9dab36a6be55bc5b47ba263dc6d00478d8b370"
+ }
+}
