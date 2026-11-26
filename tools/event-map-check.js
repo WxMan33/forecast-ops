@@ -77,6 +77,8 @@ const state = (p) => p.evaluate(() => { const m = document.getElementById('map')
     chips: [...document.querySelectorAll('#mpChips .bx-chip')].map((c) => ({ text: c.innerText.replace(/\s+/g, ' ').trim(), disabled: c.disabled, jump: c.dataset.jump ? +c.dataset.jump : null })),
     disc: (document.getElementById('mpDisc') || {}).innerText || '', vt: document.getElementById('mpVt').innerText.replace(/\s+/g, ' '),
     now: document.getElementById('mpNow').textContent.replace(/\s+/g, ' ').trim(), nowMs: +document.getElementById('mpNow').dataset.ms }; });
+/* times are matched as "Fri 5 PM EST" or "Fri, 5 PM EST": Chromium versions format weekday + hour differently (130,
+   which CI pins through playwright@1.48.2, adds the comma; newer releases don't). Day, hour, zone and wording are still checked. */
 /* layout facts: the time readout right above the slider, the coverage note right below it, tiles that never carry the HRRR reach */
 const layout = (p) => p.evaluate(() => { const r = (id) => document.getElementById(id).getBoundingClientRect(), now = r('mpNow'), sl = r('mpSlider'), ends = r('mpEnds'), cov = document.getElementById('mpCover');
   const c = cov.hidden ? null : cov.getBoundingClientRect(), dash = document.getElementById('evDash'), cs = getComputedStyle(document.getElementById('mpNow'));
@@ -107,13 +109,13 @@ const shot = async (p, name) => { await p.evaluate(() => document.querySelectorA
     check(x.mode === 'event', `mid-event run: opens in Event mode (${x.mode})`);
     let L0 = await layout(p);
     check(L0.heading === 'Forecast radar · HRRR model' && L0.labelled, `section heading "${L0.heading}" labels the map section`);
-    check(/^Map time \w{3} \d{1,2}(:\d\d)? [AP]M E[SD]T$/.test(x.now) && x.nowMs === x.selected && L0.nowAbove && L0.nowPx >= 14, `time readout right above the slider shows the selected day, hour and time zone (${x.now}, ${L0.nowPx} px)`);
+    check(/^Map time \w{3},? \d{1,2}(:\d\d)? [AP]M E[SD]T$/.test(x.now) && x.nowMs === x.selected && L0.nowAbove && L0.nowPx >= 14, `time readout right above the slider shows the selected day, hour and time zone (${x.now}, ${L0.nowPx} px, above ${L0.nowAbove})`);
     check(L0.coverGap !== null && L0.coverGap >= 0 && L0.coverGap <= 8 && L0.coverBelow, `HRRR cutoff note sits directly below the slider (${L0.coverGap} px under its time range)`);
     check(L0.tiles.length > 0 && L0.tiles.every((t) => t.startsWith('all:')) && !/HRRR|as far as|model run/i.test(L0.dashText), `HRRR ends at 6 PM, but the blend covers the event: tiles carry no coverage note and never the HRRR cutoff (${L0.tiles.map((t) => t.split(':')[0]).join(', ')})`);
     check(x.selected >= WIN0 && x.selected <= at('18:00') && x.map === x.selected, `mid-event run: the map opens on the event, not the run's first hour (selected ${iso(x.selected)} · map ${iso(x.map)} · run starts ${iso(R1.cycle)})`);
     check(span(x)[0] === WIN0 && span(x)[1] === at('18:00'), `Event window = 2 h before setup → end of the run (clipped): ${iso(span(x)[0])} – ${iso(span(x)[1])}`);
     console.log('   coverage note: ' + x.note);
-    check(/^This is as far as the HRRR model currently reaches: \w{3} 6 PM E[SD]T\. The rest of your event \(\w{3} 6 PM – 11:30 PM\) is beyond this model run\. Newer runs reach further; check back later\./.test(x.note || ''), 'coverage note: blunt, names where the model stops and the rest of the event');
+    check(/^This is as far as the HRRR model currently reaches: \w{3},? 6 PM E[SD]T\. The rest of your event \(\w{3},? 6 PM – 11:30 PM\) is beyond this model run\. Newer runs reach further; check back later\./.test(x.note || ''), 'coverage note: blunt, names where the model stops and the rest of the event');
     check(x.cover === 'part', `coverage state is "part" (${x.cover})`);
     const chips = x.chips.map((c) => c.text).join(' | '); console.log('   chips: ' + chips);
     check(x.chips.length === 4 && /^Setup 1 PM$/.test(x.chips[0].text) && !x.chips[0].disabled && /^Gates 5 PM$/.test(x.chips[1].text) && !x.chips[1].disabled
@@ -121,8 +123,8 @@ const shot = async (p, name) => { await p.evaluate(() => document.querySelectorA
     check(/^This is computer model guidance, not a forecast or a guarantee\. Models can be wrong on timing, placement and strength\. Use it alongside NWS forecasts and warnings and your own weather plan\.$/.test(x.disc.trim()), 'guidance disclaimer is shown in plain words');
     const disc = await p.evaluate(() => { const d = document.getElementById('mpDisc').getBoundingClientRect(), f = document.querySelector('.bx-mapframe').getBoundingClientRect(), cs = getComputedStyle(document.getElementById('mpDisc')); return { below: d.top >= f.bottom - 1 && d.top - f.bottom < 4, visible: d.height > 10 && cs.visibility === 'visible' && cs.display !== 'none' }; });
     check(disc.below && disc.visible, 'disclaimer sits right under the map, always visible');
-    check(/^\w{3} \d{1,2}(:\d\d)? [AP]M E[SD]T/.test(x.vt) && /model run/.test(x.vt) && !/\bF\d\d\b/.test(x.vt), `time label leads with the local time and says "model run", no forecast-hour code (${x.vt})`);
-    check(/^\w{3} \d{1,2}(:\d\d)? [AP]M E[SD]T/.test(x.valuetext || ''), `slider aria-valuetext is the local time (${x.valuetext})`);
+    check(/^\w{3},? \d{1,2}(:\d\d)? [AP]M E[SD]T/.test(x.vt) && /model run/.test(x.vt) && !/\bF\d\d\b/.test(x.vt), `time label leads with the local time and says "model run", no forecast-hour code (${x.vt})`);
+    check(/^\w{3},? \d{1,2}(:\d\d)? [AP]M E[SD]T/.test(x.valuetext || ''), `slider aria-valuetext is the local time (${x.valuetext})`);
     const role = await p.evaluate(() => { const s = document.getElementById('mpSlider'); return { type: s.type, label: document.querySelector('label[for="mpSlider"]').textContent, h: s.getBoundingClientRect().height }; });
     check(role.type === 'range' && role.label === 'Map time' && role.h >= 44, `slider is a labelled range input with a ≥44 px hit area (${role.h} px)`);
     /* keyboard: Home, ArrowRight, End move the selected time; the map and the hourly charts follow */
@@ -182,7 +184,7 @@ const shot = async (p, name) => { await p.evaluate(() => document.querySelectorA
       await p.mouse.move(b.x + b.width - 12, y); await p.mouse.down();
       for (let i = 1; i <= 6; i++) { await p.mouse.move(b.x + b.width - 12 - (b.width - 24) * i / 6, y); await p.waitForTimeout(120); drag.push(await p.evaluate(() => ({ t: document.getElementById('mpNow').textContent.replace(/\s+/g, ' ').trim(), ms: +document.getElementById('mpNow').dataset.ms, v: +document.getElementById('mpSlider').value }))); }
       await p.mouse.up(); const Ld = await layout(p);
-      check(new Set(drag.map((d) => d.t)).size >= 4 && drag.every((d) => /^Map time \w{3} \d{1,2}(:\d\d)? [AP]M E[SD]T$/.test(d.t)) && Ld.nowInView && Ld.nowFits && Ld.nowPx >= 14, `phone ${theme}: while dragging, the time readout updates live with the time zone, in view and readable at 390 px (${drag.map((d) => d.t.replace('Map time ', '')).join(' → ')})`);
+      check(new Set(drag.map((d) => d.t)).size >= 4 && drag.every((d) => /^Map time \w{3},? \d{1,2}(:\d\d)? [AP]M E[SD]T$/.test(d.t)) && Ld.nowInView && Ld.nowFits && Ld.nowPx >= 14, `phone ${theme}: while dragging, the time readout updates live with the time zone, in view and readable at 390 px (${drag.map((d) => d.t.replace('Map time ', '')).join(' → ')}; in view ${Ld.nowInView}, fits ${Ld.nowFits}, ${Ld.nowPx} px)`);
       check(Ld.coverGap !== null && Ld.coverGap >= 0 && Ld.coverGap <= 8, `phone ${theme}: HRRR cutoff note directly below the slider (${Ld.coverGap} px)`);
       /* Play: the readout keeps pace with each frame and stays in view */
       const reads = []; await p.click('#mpPlay');
@@ -224,7 +226,7 @@ const shot = async (p, name) => { await p.evaluate(() => document.querySelectorA
   {
     const { ctx, p, errors } = await open(browser, base, { device: DESK }); const x = await state(p);
     console.log('   coverage note: ' + x.note);
-    check(x.cover === 'none' && /^This is as far as the HRRR model currently reaches: \w{3} 9 AM E[SD]T\. Your event \(\w{3} 1 PM – 11:30 PM\) is beyond this model run\. Newer runs reach further; check back later\./.test(x.note || ''), 'run ends before setup: the note says the whole event is beyond this model run');
+    check(x.cover === 'none' && /^This is as far as the HRRR model currently reaches: \w{3},? 9 AM E[SD]T\. Your event \(\w{3},? 1 PM – 11:30 PM\) is beyond this model run\. Newer runs reach further; check back later\./.test(x.note || ''), 'run ends before setup: the note says the whole event is beyond this model run');
     check(x.chips.every((c) => c.disabled && /beyond model/.test(c.text)), 'every chip is disabled, "beyond model"');
     check(x.disabled, 'Event mode slider is disabled (no hours of the event in this run)');
     const fr = await p.evaluate(() => { const f = document.getElementById('mpFlag'); return f.hidden ? '' : f.innerText.replace(/\s+/g, ' '); });
