@@ -1,0 +1,16 @@
+{
+ "basis": "CONUS research grid, 15:10 UTC cutoff (separate from the regional collector's 15:30 UTC milestone)",
+ "days": 1,
+ "both_cycles_ok_and_archived": 1,
+ "06z_ok": 1,
+ "12z_ok": 1,
+ "rows": [
+  {
+   "issue_date": "2026-11-26",
+   "06z": "ok",
+   "12z": "ok",
+   "both_cycles_ok": true,
+   "archived": true
+  }
+ ]
+}

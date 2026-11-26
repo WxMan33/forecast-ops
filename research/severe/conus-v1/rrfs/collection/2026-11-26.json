@@ -1,0 +1,147 @@
+{
+ "issue_date": "2026-11-26",
+ "collected_at": "2026-11-26T15:21:06.746368+00:00",
+ "cycles": {
+  "06z": {
+   "status": "ok",
+   "latest_listed": "2026-11-26T08:20:59.000Z",
+   "cutoff": "2026-11-26T15:10:00+00:00",
+   "messages": 216,
+   "input_sha256": "b00b6b249c983669d50a618aa74f1147a41fe09eb71ae3741392a9d843c7d5af"
+  },
+  "12z": {
+   "status": "ok",
+   "latest_listed": "2026-11-26T14:47:08.000Z",
+   "cutoff": "2026-11-26T15:10:00+00:00",
+   "messages": 216,
+   "input_sha256": "bc80dc3ed528c6b912b4cd0f93e44d910dc9590537dc58a7b196cb7497c33493"
+  }
+ },
+ "both_cycles_ok": true,
+ "grid": {
+  "samples": 40311,
+  "supported_samples": 38838,
+  "frozen_grid_from_sha256": "a9ff6aa76b946c92a16d2148e3cdb1fb8920e6dd904789058edfddbde0af8d7a"
+ },
+ "fields": {
+  "gust": [
+   "GUST",
+   "surface",
+   "instant"
+  ],
+  "refc": [
+   "REFC",
+   "entire atmosphere (considered as a single layer)",
+   "instant"
+  ],
+  "uh25": [
+   "MXUPHL",
+   "5000-2000 m above ground",
+   "hourmax"
+  ],
+  "uh03": [
+   "MXUPHL",
+   "3000-0 m above ground",
+   "hourmax"
+  ],
+  "maxuvv": [
+   "MAXUVV",
+   "100-1000 mb",
+   "hourmax"
+  ],
+  "wind10max": [
+   "WIND",
+   "10 m above ground",
+   "hourmax"
+  ],
+  "cape_sfc": [
+   "CAPE",
+   "surface",
+   "instant"
+  ],
+  "srh01": [
+   "HLCY",
+   "1000-0 m above ground",
+   "instant"
+  ],
+  "shear06": [
+   "VUCSH",
+   "0-6000 m above ground",
+   "instant"
+  ]
+ },
+ "rules": "research/severe/conus-v1/rrfs/COLLECTION.md",
+ "generator": {
+  "run_id": "45847486766",
+  "workflow": "Severe CONUS research preview feed (research)",
+  "event": "workflow_dispatch",
+  "sha": "ea9dab36a6be55bc5b47ba263dc6d00478d8b370"
+ },
+ "data": {
+  "file": "severe-conus-rrfs-2026-11-26.npz",
+  "sha256": "7651a2820a8f16d0ad16de00be407bc6efe63553579752981ddb2cc02e0cd1d3",
+  "bytes": 1795002,
+  "arrays": [
+   "c06_cape_sfc_mean24",
+   "c06_cape_sfc_nbhdmax18",
+   "c06_cape_sfc_nbhdmax24",
+   "c06_gust_mean24",
+   "c06_gust_nbhdmax18",
+   "c06_gust_nbhdmax24",
+   "c06_maxuvv_mean24",
+   "c06_maxuvv_nbhdmax18",
+   "c06_maxuvv_nbhdmax24",
+   "c06_refc_mean24",
+   "c06_refc_nbhdmax18",
+   "c06_refc_nbhdmax24",
+   "c06_shear06_mean24",
+   "c06_shear06_nbhdmax18",
+   "c06_shear06_nbhdmax24",
+   "c06_srh01_mean24",
+   "c06_srh01_nbhdmax18",
+   "c06_srh01_nbhdmax24",
+   "c06_uh03_mean24",
+   "c06_uh03_nbhdmax18",
+   "c06_uh03_nbhdmax24",
+   "c06_uh25_mean24",
+   "c06_uh25_nbhdmax18",
+   "c06_uh25_nbhdmax24",
+   "c06_wind10max_mean24",
+   "c06_wind10max_nbhdmax18",
+   "c06_wind10max_nbhdmax24",
+   "c12_cape_sfc_mean24",
+   "c12_cape_sfc_nbhdmax18",
+   "c12_cape_sfc_nbhdmax24",
+   "c12_gust_mean24",
+   "c12_gust_nbhdmax18",
+   "c12_gust_nbhdmax24",
+   "c12_maxuvv_mean24",
+   "c12_maxuvv_nbhdmax18",
+   "c12_maxuvv_nbhdmax24",
+   "c12_refc_mean24",
+   "c12_refc_nbhdmax18",
+   "c12_refc_nbhdmax24",
+   "c12_shear06_mean24",
+   "c12_shear06_nbhdmax18",
+   "c12_shear06_nbhdmax24",
+   "c12_srh01_mean24",
+   "c12_srh01_nbhdmax18",
+   "c12_srh01_nbhdmax24",
+   "c12_uh03_mean24",
+   "c12_uh03_nbhdmax18",
+   "c12_uh03_nbhdmax24",
+   "c12_uh25_mean24",
+   "c12_uh25_nbhdmax18",
+   "c12_uh25_nbhdmax24",
+   "c12_wind10max_mean24",
+   "c12_wind10max_nbhdmax18",
+   "c12_wind10max_nbhdmax24"
+  ],
+  "storage": "private archive release severe-conus-rrfs-YYYY-MM (uploaded by the workflow; never overwritten)"
+ },
+ "archive": {
+  "verified": true,
+  "status": "verified",
+  "detail": ""
+ }
+}
