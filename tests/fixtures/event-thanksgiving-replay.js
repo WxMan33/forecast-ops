@@ -86,5 +86,5 @@
   }
   document.addEventListener("DOMContentLoaded", () => { const b = document.createElement("p"); b.className = "ev-sample-banner"; b.setAttribute("role", "note");
     b.textContent = mode === "warning" ? "Sample · synthetic Flash Flood Warning, not a real alert" : mode === "replay" ? "Replay sample · synthetic guidance, not a forecast" : mode === "quiet" ? "Sample · quiet morning, synthetic, not a forecast" : "Sample · missing guidance, synthetic, not a forecast";
-    const host = document.getElementById("briefView"); if (host) host.prepend(b); });
+    const host = document.getElementById("briefView"); const up = document.getElementById("upLink"); if (up) { const row = document.createElement("div"); row.className = "ev-sample-row"; up.before(row); row.append(up, b); } else if (host) host.prepend(b); });
 })();
