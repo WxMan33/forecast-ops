@@ -27,6 +27,14 @@ check("official alerts: none only after a successful check; warnings are urgent"
   assert.equal(a.state, "active"); assert.deepEqual(a.urgent.map((x) => x.event), ["Flash Flood Warning"]); assert.deepEqual(a.other.map((x) => x.event), ["Wind Advisory", "Winter Storm Watch"]);
   const none = L.officialHtml({ official: L.official(ok, true) }, { tz: "America/New_York", lat: 39, lon: -84, checkedAt: Date.parse("2026-11-25T19:30Z") });
   assert.match(none, /No active official alerts/); assert.match(none, /doesn’t mean no weather concern/); assert.doesNotMatch(none, /No threats/i);
+  /* no forecast concern: the card ends after the alert check; limited guidance keeps the caution without pointing to a concern above */
+  const at = { tz: "America/New_York", lat: 39, lon: -84, checkedAt: Date.parse("2026-11-25T19:30Z") };
+  const quiet = L.officialHtml({ kind: "none", official: L.official(ok, true) }, at);
+  assert.match(quiet, /No active official alerts<\/b> for your site right now \(checked 2:30 PM\)\.<\/span><\/p>$/); assert.doesNotMatch(quiet, /concern|above/);
+  const thin = L.officialHtml({ kind: "missing", official: L.official(ok, true) }, at);
+  assert.match(thin, /This doesn’t mean no weather concern\. /); assert.doesNotMatch(thin, /concern is above/);
+  const wet = L.officialHtml({ kind: "forecast", official: L.official(ok, true) }, at);
+  assert.match(wet, /This doesn’t mean no weather concern: the forecast concern is above\./);
   const un = L.officialHtml({ official: L.official(off, false) }, { tz: "America/New_York", lat: 39, lon: -84, checkedAt: Date.parse("2026-11-25T19:30Z") });
   assert.match(un, /could not be checked \(2:30 PM\)/); assert.match(un, /Missing guidance/); assert.doesNotMatch(un, /No active official alerts/);
 });
