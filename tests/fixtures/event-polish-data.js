@@ -7,11 +7,13 @@ const ms=Array.from({length:96},(_,i)=>t0+i*H), h={};
 ["temperature_2m","apparent_temperature","precipitation_probability","precipitation","wind_speed_10m","wind_gusts_10m","snowfall"].forEach(k=>h[k]=[]);
 const gaps=new URLSearchParams(location.search).has("gaps");
 /* attention-track scenarios: quiet, rain during setup only, gusts over the venue limit during the event, a phase rated without a qualifying hour, an overnight event */
-const q=new URLSearchParams(location.search),quiet=q.has("quiet"),setuprain=q.has("setuprain"),gusty=q.has("gusty"),phaseonly=q.has("phaseonly"),overnight=q.has("overnight"),lateRain=q.has("laterain"),storm=q.has("storm"),area=q.has("area");
+const q=new URLSearchParams(location.search),quiet=q.has("quiet"),setuprain=q.has("setuprain"),gusty=q.has("gusty"),windy=q.has("windy"),phaseonly=q.has("phaseonly"),overnight=q.has("overnight"),lateRain=q.has("laterain"),storm=q.has("storm"),area=q.has("area");
 ms.forEach((m,i)=>{const hour=+C.time.toLocal(m,tz).slice(11,13),day1=i<24,v={temperature_2m:Math.max(43,57-hour*.5),apparent_temperature:Math.max(39,53-hour*.5),precipitation_probability:improve?3:hour>=16&&hour<=21?30:hour>=12?15:3,precipitation:improve?0:hour>=(shift?14:12)&&hour<17?.025:hour===18?.002:0,wind_speed_10m:10,wind_gusts_10m:delta?40:20,snowfall:0};if(quiet||setuprain||gusty||phaseonly||lateRain||storm){v.precipitation_probability=3;v.precipitation=0;v.wind_gusts_10m=14}
  if(setuprain&&day1&&hour>=12&&hour<16){v.precipitation_probability=70;v.precipitation=.08}
  if(phaseonly&&day1&&hour>=11&&hour<17){v.precipitation_probability=30;v.precipitation=.008}
  if(gusty&&day1&&hour>=18&&hour<21){v.wind_gusts_10m=hour===19?33:28}
+ /* windy (with long): rain as usual plus gusts at or over a 25 mph venue limit for most of the first day, so the printed hour table carries the limit note on many rows */
+ if(windy&&day1&&hour>=11){v.wind_gusts_10m=26+(hour%3)}
  if(lateRain&&i>=48&&hour>=18&&hour<21){v.precipitation_probability=80;v.precipitation=.12}
  if(overnight){v.precipitation_probability=hour>=1&&hour<3&&i<40?60:5;v.precipitation=hour>=1&&hour<3&&i<40?.04:0;v.wind_gusts_10m=16}
  Object.keys(h).forEach(k=>h[k].push(gaps&&hour===14?null:v[k]))});
