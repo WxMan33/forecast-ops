@@ -75,11 +75,12 @@
     const R = S.readiness(b, ctx), top = b.top;
     const clock = (ms) => new Intl.DateTimeFormat("en-US", { timeZone: tz || ev.tz, hour: "numeric", minute: "2-digit" }).format(new Date(ms)).replace(":00", "");
     const span = (a, z) => { const x = clock(a), y = clock(z), ax = x.split(" "), ay = y.split(" "); return ax[1] && ax[1] === ay[1] ? `${ax[0]}–${y}` : `${x}–${y}`; };
-    if (R.state === "past") return { date, state: "past", text: "Done", tier: null };
-    if (R.state === "pending") return { date, state: "pending", text: "Not in the hourly forecast yet", tier: null, cover: "none" };
+    /* text: the full line (tooltip and screen readers); short: one or two words for the compact day chip */
+    if (R.state === "past") return { date, state: "past", text: "Done", short: "Done", tier: null };
+    if (R.state === "pending") return { date, state: "pending", text: "Not in the hourly forecast yet", short: "No data yet", tier: null, cover: "none" };
     const cover = R.state === "partial" ? "part" : "all";
-    if (top) return { date, state: "concern", tier: top.tier, cover, text: `${top.label}: ${top.word.toLowerCase()}${top.from != null ? ` ${span(top.from, top.to)}` : ""}`, slots: top.phases.slice(), key: top.key };
-    return { date, state: "clear", tier: null, cover, text: cover === "part" ? "No concern in the hours covered so far" : "No concern found" };
+    if (top) return { date, state: "concern", tier: top.tier, cover, text: `${top.label}: ${top.word.toLowerCase()}${top.from != null ? ` ${span(top.from, top.to)}` : ""}${cover === "part" ? " · partly covered" : ""}`, short: top.label, slots: top.phases.slice(), key: top.key };
+    return { date, state: "clear", tier: null, cover, text: cover === "part" ? "No concern in the hours covered so far · partly covered" : "No concern found", short: cover === "part" ? "Partial data" : "No concern" };
   }
   const api = { pieces, days, isMultiDay, defaultDay, dayEvent, status, dayLabel };
   if (typeof module !== "undefined" && module.exports) module.exports = api;

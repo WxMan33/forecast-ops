@@ -45,9 +45,11 @@ async function pdf(p, file) {
 }
 const fest = '?wx=festival&e=' + encodeURIComponent(JSON.stringify({ n: 'Riverside weekend festival', v: { name: 'Riverfront park (synthetic), Cincinnati, OH', lat: 39.1, lon: -84.5 }, z: 'America/New_York',
   t: { start: '2026-11-27T17:00', end: '2026-11-29T18:00' }, g: 25, s: [['Friday set', '2026-11-27T17:00', '2026-11-27T23:00'], ['Main day', '2026-11-28T10:00', '2026-11-28T23:00', { m: 1 }], ['Closing day', '2026-11-29T10:00', '2026-11-29T18:00']] }));
-const picker = (p) => p.evaluate(() => ({ on: document.body.dataset.day, head: (document.querySelector('#dayPick .ev-days-h') || {}).innerText || '', hidden: document.getElementById('dayPick').hidden,
-  allLink: (document.querySelector('#dayPick .ev-days-h [data-day=all]') || {}).textContent || null, days: [...document.querySelectorAll('#dayPick .ev-day[data-day]')].map((b) => ({ day: b.dataset.day, on: b.getAttribute('aria-pressed') === 'true', state: b.dataset.state, tier: b.dataset.tier || null, text: b.innerText.replace(/\s+/g, ' ').trim() })),
-  bottom: Math.round(document.getElementById('dayPick').getBoundingClientRect().bottom), search: location.search }));
+const picker = (p) => p.evaluate(() => { const row = document.querySelector('#dayPick .ev-days-row'), r = document.getElementById('dayPick').getBoundingClientRect();
+  return { on: document.body.dataset.day, group: row ? row.getAttribute('aria-label') : '', hidden: document.getElementById('dayPick').hidden, height: Math.round(r.height), bottom: Math.round(r.bottom),
+    all: (() => { const a = document.querySelector('#dayPick [data-day=all]'); return a ? { on: a.getAttribute('aria-pressed') === 'true', text: a.innerText.replace(/\s+/g, ' ').trim(), label: a.getAttribute('aria-label') } : null; })(),
+    days: [...document.querySelectorAll('#dayPick .ev-day[data-day]:not([data-day=all])')].map((b) => ({ day: b.dataset.day, on: b.getAttribute('aria-pressed') === 'true', state: b.dataset.state, tier: b.dataset.tier || null, short: b.innerText.replace(/\s+/g, ' ').trim(), text: b.getAttribute('aria-label') })),
+    search: location.search }; });
 const pick = async (p, d) => { await p.click(`#dayPick [data-day="${d}"]`); await p.waitForFunction((d) => document.body.dataset.day === d && document.body.dataset.loaded && document.body.dataset.leadKind, d, { timeout: 25000 }).catch(() => {});
   await p.waitForFunction((d) => document.body.dataset.day === d && document.body.dataset.loaded, d, { timeout: 25000 }); await p.waitForTimeout(400); };
 (async () => {
@@ -57,26 +59,27 @@ const pick = async (p, d) => { await p.click(`#dayPick [data-day="${d}"]`); awai
       const { ctx, p, errors } = await open(browser, srv, { fixture: 'event-slots-data.js', query: fest, device }), L = `festival (${dev}):`;
       await p.waitForFunction(() => document.body.dataset.leadKind, null, { timeout: 25000 }).catch(() => {});
       let k = await picker(p), x = await texts(p);
-      check(!k.hidden && k.on === '2026-11-27' && /^Day 1 of 3/.test(k.head), `${L} opens on the next scheduled day, Friday (${k.on}; "${k.head}")`);
-      check(k.days.map((d) => d.day).join() === '2026-11-27,2026-11-28,2026-11-29' && k.allLink === 'All days', `${L} one button per day, and All days beside "Day 1 of 3" (${k.days.map((d) => d.day).join(', ')}; ${k.allLink})`);
+      check(!k.hidden && k.on === '2026-11-27' && /^Day 1 of 3: choose a day$/.test(k.group), `${L} opens on the next scheduled day, Friday (${k.on}; "${k.group}")`);
+      check(k.height <= 44, `${L} the day picker is one compact row (${k.height} px)`);
+      check(k.days.map((d) => d.day).join() === '2026-11-27,2026-11-28,2026-11-29' && k.all && k.all.text === 'All Fri–Sun', `${L} one chip per day, then All (${k.days.map((d) => d.short).join(' | ')} | ${k.all && k.all.text})`);
       const [fri, sat, sun] = k.days;
-      check(/^Fri, Nov 27 5–11 PM No concern found$/.test(fri.text) && fri.on, `${L} Friday: its hours and no concern (${fri.text})`);
-      check(/^Sat, Nov 28 10 AM–11 PM Rain: plan for it 1–3 PM$/.test(sat.text) && sat.state === 'concern' && !!sat.tier, `${L} Saturday: the concern with its level and hours, coloured by tier (${sat.text})`);
-      check(/^Sun, Nov 29 10 AM–6 PM Not in the hourly forecast yet$/.test(sun.text) && sun.state === 'pending' && !/no concern/i.test(sun.text), `${L} Sunday: beyond the guidance, stated as such, never "no concern" (${sun.text})`);
+      check(fri.short === 'Fri 27 No concern' && fri.text === 'Fri, Nov 27, 5–11 PM: No concern found' && fri.on, `${L} Friday: no concern; its hours in the chip's label (${fri.short} / ${fri.text})`);
+      check(sat.short === 'Sat 28 Rain' && sat.text === 'Sat, Nov 28, 10 AM–11 PM: Rain: plan for it 1–3 PM' && sat.state === 'concern' && !!sat.tier, `${L} Saturday: the concern, coloured by tier, with level and hours in the label (${sat.short} / ${sat.text})`);
+      check(sun.short === 'Sun 29 No data yet' && sun.text === 'Sun, Nov 29, 10 AM–6 PM: Not in the hourly forecast yet' && sun.state === 'pending' && !/no concern/i.test(sun.short + sun.text), `${L} Sunday: beyond the guidance, stated as such, never "no concern" (${sun.short} / ${sun.text})`);
       check(/Fri, Nov 27, 2026 · 5 PM – 11 PM EST/.test(x.when) && /No weather concern/.test(x.decision) && /Next check/.test(x.keys), `${L} Friday's briefing: its own window, decision and next check (${x.when} · ${x.decision})`);
       check(/Checked Friday set, 5–11 PM: no weather change needed/.test(x.lead) && !/Friday set through/.test(x.lead), `${L} one slot is named once in the lead (${x.lead.slice(0, 70)})`);
       check(x.glance === 'Friday set · 5–11 PM', `${L} At a glance headed by Friday's slot (${x.glance})`);
-      if (dev === 'phone') { check(!x.hscroll, `${L} no sideways page scroll at 375 px`); await p.screenshot({ path: path.join(out, 'days-phone-friday.png') }); }
+      if (dev === 'phone') { check(!x.hscroll, `${L} no sideways page scroll at 375 px`); check(x.nextBottom != null && x.nextBottom <= x.vh, `${L} Friday: decision, callouts and next check on the first 375×667 screen (next check ends at ${x.nextBottom} px)`); await p.screenshot({ path: path.join(out, 'days-phone-friday.png') }); }
 
       await pick(p, '2026-11-28'); k = await picker(p); x = await texts(p);
-      check(k.on === '2026-11-28' && /^Day 2 of 3/.test(k.head) && /day=2026-11-28/.test(k.search), `${L} choosing Saturday briefs Saturday and keeps it in the address (${k.search.slice(-15)})`);
+      check(k.on === '2026-11-28' && /^Day 2 of 3/.test(k.group) && /day=2026-11-28/.test(k.search), `${L} choosing Saturday briefs Saturday and keeps it in the address (${k.search.slice(-15)})`);
       check(/the Main day/.test(x.decision) && /rain/i.test(x.decision) && /Sat 1–3 PM/.test(x.lead), `${L} Saturday: the concern, its hours and the affected slot (${x.decision} · ${x.lead.slice(0, 60)})`);
       check(/Next check/.test(x.keys), `${L} Saturday has its own next check`);
       const tile = await p.evaluate(() => (document.querySelector('[data-tile=rain]') || {}).innerText || '');
       check(/0\.20/.test(tile) && /Over the Main day/.test(tile), `${L} Saturday's rain total covers Saturday's slot only (${tile.replace(/\s+/g, ' ').slice(0, 60)})`);
       const span = await p.evaluate(() => { const c = [...document.querySelectorAll('#evGrid [data-ms], #evGrid th')].map((e) => e.innerText.replace(/\s+/g, ' ').trim()).filter(Boolean); return { first: c[0] || '', all: c.join(' | ') }; });
       check(!/11 PM.*Fri|Fri.*1[01] PM/.test(span.all.slice(0, 40)) && !/\b(1|2|3|4|5|6|7|8) AM\b/.test(span.all.split('|').slice(0, 3).join(' ')), `${L} Saturday's hour by hour starts at Saturday's slot, not Friday night (${span.all.slice(0, 80)})`);
-      if (dev === 'phone') { await p.screenshot({ path: path.join(out, 'days-phone-saturday.png') }); await p.locator('#dayPick').screenshot({ path: path.join(out, 'days-phone-picker.png') }); }
+      if (dev === 'phone') { check(x.nextBottom != null && x.nextBottom <= x.vh, `${L} Saturday: decision, callouts and next check on the first 375×667 screen (next check ends at ${x.nextBottom} px)`); await p.screenshot({ path: path.join(out, 'days-phone-saturday.png') }); await p.locator('#dayPick').screenshot({ path: path.join(out, 'days-phone-picker.png') }); }
       if (dev === 'desktop') {
         const P = await pdf(p, path.join(out, 'days-saturday.pdf'));
         check(P.pages === 2, `${L} Saturday prints two US Letter pages (${P.pages})`);
@@ -92,11 +95,20 @@ const pick = async (p, d) => { await p.click(`#dayPick [data-day="${d}"]`); awai
         check(/Hourly guidance (doesn’t reach this event yet|should reach the Closing day around)/.test(cov) && !/reach setup/.test(cov), `${L} Sunday: the coverage gap is stated, naming the day's slot (${cov.replace(/\s+/g, ' ').trim().slice(0, 140)})`); }
 
       await pick(p, 'all'); k = await picker(p); x = await texts(p);
-      check(/^All 3 days/.test(k.head) && /day=all/.test(k.search) && !k.days.some((d) => d.on) && !k.allLink, `${L} All days: the whole event as one briefing, no single day selected (${k.head})`);
+      check(/^All 3 days: choose a day$/.test(k.group) && /day=all/.test(k.search) && !k.days.some((d) => d.on) && k.all.on, `${L} All days: the whole event as one briefing, no single day selected (${k.group})`);
       check(/Fri, Nov 27, 2026/.test(x.when) && /Sun, Nov 29/.test(x.when), `${L} All days covers Friday through Sunday (${x.when})`);
+      if (dev === 'desktop') { const P = await pdf(p, path.join(out, 'days-all.pdf')), title = await p.evaluate(() => (document.querySelector('#printView .pv-p1 .pv-title') || {}).textContent || '');
+        check(P.pages === 2 && title === 'Riverside weekend festival' && /Friday set/.test(P.p1) && /Main day/.test(P.p1) && /Closing day/.test(P.p1), `${L} All days prints the whole event on two pages, every slot in the schedule (${P.pages} pages; ${title})`);
+        check(/First 24 hours only|24 of \d+ planning hours/.test(P.p2.replace(/\s+/g, ' ')), `${L} All days page 2 says which 24 hours it shows`); }
       check(!errors.length, `${L} no page errors ${errors.join('; ')}`);
       await ctx.close();
     }
+    /* an active official warning (synthetic) on Saturday: the warning, the lead and "Watch for" stay on the first phone screen under the day chips */
+    { const { ctx, p, errors } = await open(browser, srv, { fixture: 'event-slots-data.js', query: fest + '&day=2026-11-28&alerts=warn' }); await p.waitForFunction(() => document.body.dataset.leadKind, null, { timeout: 25000 }).catch(() => {});
+      const w = await p.evaluate(() => { const b = (id) => { const e = document.getElementById(id); return e && !e.hidden ? Math.round(e.getBoundingClientRect().bottom) : null; }, wt = document.querySelector('[data-lead="watch"]');
+        return { urgent: b('leadUrgent'), urgentText: (document.getElementById('leadUrgent') || {}).innerText || '', pick: b('dayPick'), watch: wt ? Math.round(wt.getBoundingClientRect().bottom) : null, vh: innerHeight }; });
+      check(w.urgent && w.pick < w.urgent && w.urgent <= w.vh && /Flash Flood Warning in effect/.test(w.urgentText) && w.watch <= w.vh, `active warning (synthetic) on Saturday at 375×667: the warning ends at ${w.urgent} px and "Watch for" at ${w.watch} px, below the day chips (${w.pick} px)`);
+      await p.screenshot({ path: path.join(out, 'days-phone-warning.png') }); check(!errors.length, 'warning case: no page errors'); await ctx.close(); }
     /* an address with ?day= opens that day; a single-day event shows no picker */
     { const { ctx, p, errors } = await open(browser, srv, { fixture: 'event-slots-data.js', query: fest + '&day=2026-11-28' }); const k = await picker(p);
       check(k.on === '2026-11-28', `a link with day=2026-11-28 opens Saturday (${k.on})`); check(!errors.length, 'no page errors'); await ctx.close(); }
