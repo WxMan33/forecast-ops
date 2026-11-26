@@ -79,7 +79,7 @@ const dropFamily = (re) => rewriteAlerts((j) => { const n0 = j.features.length; 
 
   /* 3. active flooding: a live NWS flood warning covering a site (strip, rain that has fallen, gauges in view) */
   { const pr = await open(b, false, "layers=flood&scope=national&view=active"); await pr.p.waitForTimeout(8000);
-    const fw = await pr.p.evaluate(() => { const T = window.ThreatsCore, p = window.__threats.data.products.find((x) => x.sourceId === "nws-alerts" && /Flood Warning/.test(x.event || "") && x.geometry && Date.parse(x.expires) > Date.now()); if (!p) return null;
+    const fw = await pr.p.evaluate(() => { const T = window.ThreatsCore, p = window.__threats.data.products.find((x) => x.sourceId === "nws-alerts" && /Flood Warning/.test(x.event || "") && x.geometry && Date.parse(x.expires) > Date.now() && !(Date.parse(x.issued) > Date.now())); if (!p) return null; /* one already in effect: a warning that starts later is listed as upcoming, by design */
       const b = T.bbox(p.geometry); for (let i = 1; i < 30; i++) for (let j = 1; j < 30; j++) { const pt = [b[0] + (b[2] - b[0]) * i / 30, b[1] + (b[3] - b[1]) * j / 30]; if (T.contains(p.geometry, pt)) return { lat: pt[1], lon: pt[0], ev: p.event }; } return null; });
     await pr.ctx.close();
     if (!fw) check("ACTIVE FLOODING: no live flood warning with a polygon right now (case not run)", true, {});

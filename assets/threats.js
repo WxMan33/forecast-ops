@@ -568,7 +568,7 @@
     if (wa.length) h += `<div class="px-h">Winter alerts in effect at the venue</div>` + wa.map((p) => item(p)).join("");
     return h;
   }
-  const shortTitle = (p) => p.kind === "watch" ? p.event : p.kind === "md" ? "Mesoscale Discussion " + p.title.replace(/\D+/g, "") : p.title;
+  const shortTitle = (p) => p.kind === "watch" ? p.event : p.kind === "md" ? "Mesoscale Discussion " + p.title.replace(/\D+/g, "") + (p.topicUnknown ? " (topic unavailable)" : "") : p.title;
   const venueCovers = () => T.sort(active().filter((p) => rel(p).kind === "covers"));
   const venueNear = () => T.sort(active().filter((p) => rel(p).kind === "near"));
   const known = (k) => ["current", "empty", "na", "off"].includes(data.state[k].kind);
@@ -580,8 +580,15 @@
   /* when only one source is unconfirmed, say exactly which part is known */
   function quietText() {
     if (!srcOn("alerts")) return { big: "No warning layer on", sub: "The layers on now don't include NWS warnings and watches. Turn on Severe storms, Flooding, Winter, Fire, Tropical or Coastal to check the venue." };
-    if (activeKnown()) return { big: "Nothing active at the venue", sub: "No " + alertWords() + " warning, watch or advisory is in effect at the venue" + (srcOn("md") ? ", and no SPC Mesoscale Discussion covers it." : ".") };
-    if (known("alerts")) return { big: "No warning or watch at the venue", sub: "NWS checked " + t(data.sources.alerts.lastOk) + ". SPC Mesoscale Discussion status is unknown: that source is not responding." };
+    /* an MD that includes the venue is listed just below; it is not a warning, so it doesn't change the headline, but the line
+       mustn't also say that no MD covers it */
+    const mdHere = srcOn("md") && venueCovers().some((p) => p.kind === "md");
+    /* the headline names its scope: only the alert layers that are on were checked (a winter warning can cover a venue while
+       only Severe storms is on) */
+    const on = Object.keys(ALERT_WORD).filter((k) => S.layers[k]).length, all = on === Object.keys(ALERT_WORD).length;
+    const scoped = all ? "No active alerts at the venue" : on <= 2 ? "No active " + alertWords() + " alerts at the venue" : "No active alerts at the venue in the layers shown";
+    if (activeKnown()) return { big: scoped, sub: "No " + alertWords() + " warning, watch or advisory is in effect at the venue" + (!srcOn("md") ? "." : mdHere ? ". An SPC Mesoscale Discussion includes it (below): a discussion, not a warning." : ", and no SPC Mesoscale Discussion covers it.") };
+    if (known("alerts")) return { big: scoped.replace("No active", "No active NWS"), sub: "NWS checked " + t(data.sources.alerts.lastOk) + ". SPC Mesoscale Discussion status is unknown: that source is not responding." };
     return { big: "Venue status not confirmed", sub: "No product covers the venue in the data we have, but NWS warnings and watches are not confirmed (see below)." };
   }
   const SRC_LINK = { gauges: "https://water.noaa.gov/", reports: "https://www.spc.noaa.gov/climo/reports/", enroute: "https://aviationweather.gov/gfa/", faa: "https://nasstatus.faa.gov/", awc: "https://aviationweather.gov/", nhc: "https://www.nhc.noaa.gov/", hms: "https://www.ospo.noaa.gov/products/land/hms.html", aqobs: "https://www.airnow.gov/", aqfcst: "https://www.airnow.gov/", naqfc: "https://airquality.weather.gov/", monitors: "https://www.airnow.gov/", nifc: "https://data-nifc.opendata.arcgis.com/datasets/nifc::wfigs-current-incident-locations/about", fire1: "https://www.spc.noaa.gov/products/fire_wx/fwdy1.html", fire2: "https://www.spc.noaa.gov/products/fire_wx/fwdy2.html", fire3: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire4: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire5: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire6: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire7: "https://www.spc.noaa.gov/products/exper/fire_wx/", fire8: "https://www.spc.noaa.gov/products/exper/fire_wx/", wssip: "https://www.wpc.ncep.noaa.gov/wwd/wssi/prob_wssi.php", ero1: FX.SOURCES.find((x) => x.id === "wpc-ero").url, ero2: FX.SOURCES.find((x) => x.id === "wpc-ero").url, ero3: FX.SOURCES.find((x) => x.id === "wpc-ero").url, day3: "https://www.spc.noaa.gov/products/outlook/day3otlk.html", alerts: "https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch", md: "https://www.spc.noaa.gov/products/md/", day1: "https://www.spc.noaa.gov/products/outlook/day1otlk.html", day2: "https://www.spc.noaa.gov/products/outlook/day2otlk.html" };
@@ -846,7 +853,7 @@
     const u = (unconfirmed(p) ? " (last known)" : "") + (p.geometryIncomplete && p.zoneInfo && p.zoneInfo.counties ? " (area incomplete)" : "");
     if (p.kind === "warning") return p.event.toUpperCase() + u;
     if (p.kind === "watch" || p.kind === "advisory") return (p.kind === "advisory" ? p.event : p.title).toUpperCase() + u;
-    if (p.kind === "md") return "MD " + p.title.replace(/\D+/g, "") + u;
+    if (p.kind === "md") return "MD " + p.title.replace(/\D+/g, "") + (p.topicUnknown ? " · TOPIC UNAVAILABLE" : "") + u;
     return p.category;
   }
 
@@ -1158,13 +1165,14 @@
     if (isLive() && Live.previousFor && !p.previous && (p.references || []).length && !prevAsked.has(p.id)) { prevAsked.add(p.id); Live.previousFor(p.id); }
     const ch = T.changes(p, (iso) => t(iso)), u = unconfirmed(p);
     const rows = [];
-    if (p.hazard) rows.push(["Hazard", esc(p.hazard)]);
+    if (p.hazard) rows.push([p.topicUnknown ? "Topic" : "Hazard", esc(p.hazard)]);
     rows.push(["Area", esc(p.kind === "outlook" ? olabel(p) + " area" : p.area)]);
     if (p.geometrySource === "counties") rows.push(["Area shape", esc(countyText(p)) + (p.geometryIncomplete ? "<br>Venue relationship is unknown where counties are missing." : "")]);
-    rows.push(["Issued", esc(t(p.issued, true)) + ` <span class="mono" style="color:var(--muted)">${esc(T.fmtZ(p.issued))}</span>`]);
+    rows.push(["Issued", p.issued ? esc(t(p.issued, true)) + ` <span class="mono" style="color:var(--muted)">${esc(T.fmtZ(p.issued))}</span>` : "Unavailable from the map service"]); /* never an empty time shown as a date */
     if (p.updated && p.updated !== p.issued) rows.push(["Updated", esc(t(p.updated, true))]);
     if (p.detailsUnavailable) rows.push(["Details", "Unavailable: SPC's text page could not be reached, so this MD comes from the NOAA map service, which gives its outline" + (p.number ? " and number" : "") + " only. Use the SPC link below for the full discussion."]);
     if (p.kind === "md" && p.expires == null) rows.push(["Valid", "Unavailable"]);
+    else if (p.kind === "md" && !p.validStart) rows.push(["Valid", "Until " + esc(t(p.expires, true)) + ` <span class="mono" style="color:var(--muted)">${esc(T.fmtZ(p.expires))}</span> · start unavailable from the map service`]);
     else if (p.kind === "outlook" || p.kind === "md") rows.push(["Valid", esc(t(p.validStart, true)) + " → " + esc(t(endOf(p), true)) + ` <span class="mono" style="color:var(--muted)">${esc(T.fmtZ(p.validStart))}–${esc(T.fmtZ(endOf(p)))}</span>`]);
     else { if (later(p)) rows.push(["Starts", `<b>${esc(t(p.issued, true))}</b> · not in effect yet`]); rows.push([u ? "Published expiration" : "Expires", `<b>${esc(t(p.expires, true))}</b>${u || later(p) ? "" : " · " + esc(T.untilText(p.expires, now))}`]); }
     rows.push(["Venue", `<b>${esc(p.kind === "outlook" ? outlookVenueText(p) : relText(p))}</b> <span style="color:var(--muted)">(${esc(venue.name)})</span>`]);
@@ -1202,11 +1210,13 @@
       body.innerHTML = outlookPanel(); document.querySelectorAll("[data-scope]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.scope === S.scope)));
       $("scopeVenue").innerHTML = `Venue<span class="tx-sbv"> · ${esc(venue.name)}</span>`;
       const r = vo.data && OL ? OL.build({ ...vo.data, now: Date.now(), tz: tz(), venue, days: 7, highlightOpts: S.hl }).headline : null;
-      const SA = siteAssess(), live1 = SA && SA.at.filter((x) => !(Date.parse(x.p.issued) > Date.now())).sort((a, b) => (b.p.kind === "warning") - (a.p.kind === "warning"))[0];
+      let p3 = ""; const SA = siteAssess(), live1 = SA && SA.at.filter((x) => !(Date.parse(x.p.issued) > Date.now())).sort((a, b) => (b.p.kind === "warning") - (a.p.kind === "warning"))[0];
       if (live1) { const p1 = live1.p; $("txPeek1").textContent = (S.testReplay ? "TEST REPLAY · " : "") + (p1.title || p1.event) + (p1.impact ? " · " + p1.impact.tag : ""); $("txPeek2").textContent = "Covers this site · " + (p1.openEnded ? "until further notice" : "until " + t(p1.expires, true)); }
-      else if ((!r || r.level < 2) && SA && SA.built && SA.built.highlights && SA.built.highlights.list.length) { /* the same rule as the panel's lead */ const lead = OL.highlightLead(SA.built.highlights.list, tz()); $("txPeek1").textContent = lead.text; $("txPeek2").textContent = [lead.timing, "Forecast highlights · NWS forecast · not an alert"].filter(Boolean).join(" · "); }
+      else if ((!r || r.level < 2) && SA && SA.built && SA.built.highlights && SA.built.highlights.list.length) { /* the same rule as the panel's lead: the headline; the rain window on its own line; then what couldn't be checked, or the label */
+        const HLx = SA.built.highlights, lead = OL.highlightLead(HLx.list, tz()), unc = HLx.unchecked || [], label = "Forecast highlights · NWS forecast · not an alert";
+        $("txPeek1").textContent = lead.text; $("txPeek2").textContent = lead.timing.replace(/, so the total may be higher$/, "") || label; p3 = unc.length ? "Not fully checked: " + unc.map((u) => u.replace(/ \(.*$/, "")).join("; ") : lead.timing ? label : ""; }
       else { $("txPeek1").textContent = r ? (r.level ? r.text : "Next 7 days: " + r.text.charAt(0).toLowerCase() + r.text.slice(1)) : "Next 7 days at " + venue.name; $("txPeek2").textContent = r && r.level ? r.when + " · " + r.source : vo.state === "loading" ? "Loading…" : "Tap for the day-by-day outlook"; }
-      $("txPeek3").textContent = ""; $("txPeek3").hidden = true; $("txPeek").style.setProperty("--peek-c", r && r.level ? LEVEL_COLOR[r.level] : "transparent"); return;
+      $("txPeek3").textContent = p3; $("txPeek3").hidden = !p3; $("txPeek").style.setProperty("--peek-c", r && r.level ? LEVEL_COLOR[r.level] : "transparent"); return;
     }
     if (!anyLayer() && !p) { // nothing selected: the basemap and venue only, and nothing downloaded
       body.innerHTML = `<div class="px-nolayer" data-kind="no-layers"><p class="px-empty"><b>No threat layers selected.</b> Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.</p>`
@@ -1558,7 +1568,7 @@
     if (warnNow) { const p = warnNow.p; h = `<div class="px-olhead" data-ol-state="ok" data-lead="warning" style="--ol-c:${LEVEL_COLOR[4]}">${where}<div class="px-big">${esc(p.title || p.event)}${p.impact ? " · " + esc(p.impact.tag) : ""}</div><div class="px-sub">Covers this site · ${esc(p.openEnded ? "until further notice" : "until " + t(p.expires, true))} · ${esc(p.office || "NWS")}</div></div>`; }
     else if (hl.level >= 2 || !HLs.length) h = `<div class="px-olhead" data-ol-state="ok" data-lead="${hl.level ? "outlook" : "quiet"}" style="--ol-c:${LEVEL_COLOR[hl.level]}">${where}<div class="px-big">${esc(hl.text)}</div><div class="px-sub">${hl.level ? esc(hl.when + " · " + hl.source + " · " + LEVEL_WORD[hl.level] + " concern") : r.unknown.length ? "Not confirmed: " + esc(r.unknown.join("; ")) : "From NWS, SPC, WPC, NHC and AirNow"}</div></div>`;
     else { const lead = OL.highlightLead(HLs, tz());
-      h = `<div class="px-olhead" data-ol-state="ok" data-lead="highlights" style="--ol-c:var(--accent)">${where}<div class="px-big">${esc(lead.text)}</div>${lead.timing ? `<div class="px-sub">${esc(lead.timing)}</div>` : ""}<div class="px-sub">Forecast highlights · NWS forecast for this site · not an alert or outlook${hl.level ? " · also: " + esc(hl.text) + " (" + esc(hl.source) + ")" : ""}</div></div>`; }
+      h = `<div class="px-olhead" data-ol-state="ok" data-lead="highlights" style="--ol-c:var(--accent)">${where}<div class="px-big">${esc(lead.text)}</div>${lead.timing ? `<div class="px-sub" data-hl-timing>${esc(lead.timing)}</div>` : ""}${lead.more ? `<div class="px-sub" data-hl-more>${esc(lead.more)}</div>` : ""}${(r.highlights.unchecked || []).length ? `<div class="px-sub" data-hl-lead-unchecked>Not fully checked: ${esc(r.highlights.unchecked.join("; "))}</div>` : ""}<div class="px-sub">Forecast highlights · NWS forecast for this site · not an alert or outlook${hl.level ? " · also: " + esc(hl.text) + " (" + esc(hl.source) + ")" : ""}</div></div>`; }
     h += forecastHighlights(r, HLs);
     h += alertStrip(A);
     if (false) h += `<div class="px-h"><span>NWS alerts at the venue</span><span>${r.alerts.length}</span></div>` + r.alerts.map((a) => `<div class="px-olalert" style="--ol-c:${LEVEL_COLOR[Math.max(a.level, 1)]}"><b>${esc(a.event)}</b><span>${esc(a.start > Date.now() ? "from " + t(new Date(a.start).toISOString(), true) + " " : "now ")}until ${esc(t(new Date(a.end).toISOString(), true))}</span></div>`).join("");
@@ -1586,7 +1596,6 @@
     h += HLs.length ? HLs.map((x) => `<div class="px-hlitem" data-hl="${x.kind}"><b>${OL_ICON["hl-" + x.kind] || "•"} ${esc(x.text)}</b><small>${esc(x.source)}${x.partial ? " · the forecast amounts stop inside this window, so the total may be higher" : ""}</small></div>`).join("")
       : (H.unchecked || []).length ? `<p class="px-empty" data-hl-state="partial">Not fully checked: the NWS forecast for this site came back without some of its data, so these couldn't be checked: ${esc(H.unchecked.join("; "))}. Nothing stands out in the parts that did come back. Alerts and outlooks above and below still apply.</p>`
       : `<p class="px-empty" data-hl-state="none">Nothing stands out in the NWS forecast for this site: no heavy rain (${S.hl.rainIn} in or more in 24 h), wintry mix, long rain or heat index of ${S.hl.heatF}°F or more.</p>`;
-    if (HLs.length && (H.unchecked || []).length) h += `<p class="lg-note" data-hl-unchecked>Not checked: ${esc(H.unchecked.join("; "))}: missing from the NWS forecast for this site.</p>`;
     if (H.notes.length) h += `<p class="lg-note" data-hl-notes>${esc(H.notes.join(" · "))}.</p>`;
     if (isLive() && HLs.some((x) => x.link === "rain")) h += `<button type="button" class="tx-fb" data-open-rain>Open rainfall map</button>`;
     return h + `</section>`;

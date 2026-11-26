@@ -1,0 +1,53 @@
+{
+ "host": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev",
+ "at": "2026-11-26T02:36:26.152Z",
+ "source": "docs/threats/live-checks/2026-11-26/LIVE-2026-11-26T0236Z-alerts.json",
+ "warning": null,
+ "watch": null,
+ "md": {
+  "service": [
+   {
+    "name": "MD 2465",
+    "popupinfo": "http://www.spc.noaa.gov/products/md/md2465.html",
+    "folderpath": "MD 2465 Active Till 0300 UTC",
+    "idp_filedate": 1795642395000
+   }
+  ],
+  "map": {
+   "n": 1,
+   "drawn": true,
+   "row": "SPC Mesoscale Discussions Checked 9:36 PM EST via NOAA map service",
+   "number": 2465,
+   "links": [
+    "https://www.spc.noaa.gov/products/md/md2465.html",
+    "https://www.spc.noaa.gov/products/md/md2465.html",
+    "https://www.spc.noaa.gov/products/md/",
+    "https://www.spc.noaa.gov/products/outlook/day1otlk.html",
+    "https://www.spc.noaa.gov/climo/reports/"
+   ]
+  }
+ },
+ "section1Satisfied": false,
+ "results": [
+  {
+   "check": "LIVE MD: row says how it was checked ('SPC Mesoscale Discussions Checked 9:36 PM EST via NOAA map service'); outline drawn; detail has number 2465 and an SPC bulletin link",
+   "pass": true,
+   "detail": {
+    "r": {
+     "n": 1,
+     "drawn": true,
+     "row": "SPC Mesoscale Discussions Checked 9:36 PM EST via NOAA map service",
+     "number": 2465,
+     "links": [
+      "https://www.spc.noaa.gov/products/md/md2465.html",
+      "https://www.spc.noaa.gov/products/md/md2465.html",
+      "https://www.spc.noaa.gov/products/md/",
+      "https://www.spc.noaa.gov/products/outlook/day1otlk.html",
+      "https://www.spc.noaa.gov/climo/reports/"
+     ]
+    },
+    "errs": []
+   }
+  }
+ ]
+}
