@@ -441,7 +441,7 @@
     /* the dashboard under the callouts: the same view, the same selected hour */
     if (dashController) dashController.destroy();
     $("evDash").hidden = false;
-    dashController = window.EventHourlyCharts.dashboard($("evDash"), { view: V, tz: ev.tz, gustLimit: ev.gust || 25, selected: sel0, gapText: lastLead && lastLead.L.gaps.incomplete,
+    dashController = window.EventHourlyCharts.dashboard($("evDash"), { view: V, tz: ev.tz, gustLimit: ev.gust || 25, selected: sel0, gapText: lastLead && lastLead.L.gaps.incomplete, schedule: C.event.hasSlots(ev) ? window.EventHourlyCharts.glanceSchedule(C.event.windows(ev)) : null,
       onSelect: (ms) => { if (bus) bus.set(ms, "dashboard"); showHour(ms); }, onOpenHourly: () => $("hourlyLink").click() });
     showHour(sel0);
     lastHourly = { V, nwsTypes }; ["shareImage", "tvExport"].forEach((id) => { $(id).disabled = false; $(id).title = "Save a 1920 × 1080 image of these hours for a TV display"; });
