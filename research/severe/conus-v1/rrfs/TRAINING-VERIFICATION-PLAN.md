@@ -1,6 +1,6 @@
 # Three-arm RRFS comparison (Day 2 wind): chronological training and verification plan
 
-Status: **revised proposal for review** (2026-11-25: verification is real-time only, starting after the freeze; pre-freeze dates are replay). Step B stays on hold. Nothing is fitted until this plan is approved and committed as the
+Status: **LOCKED rule** (approved by the owner 2026-11-26). Verification is real-time only and starts after the freeze; pre-freeze dates are replay. The 15:10 UTC input cutoff and the 18:00 UTC issuance deadline are fixed. Fitting (Step B) and adding the frozen arms to the archive each still need separate approval. Nothing is fitted until that approval; this plan is the
 rule. Collection (Step A, `COLLECTION.md`) started with issue date 2026-11-26.
 
 ## Eligible day
@@ -31,7 +31,12 @@ identical dates, windows, points and reports.
 - **V starts on the first eligible issue date that is after both:**
   1. the 7-day embargo; and
   2. the freeze: B, A′ and C fitted on T, their checksums committed, and the daily archive issuing them.
-- **Issued live** means the daily feed produces all three frozen arms (and A) before 15:10 UTC from that morning's inputs, and archives them **before their valid window opens**, under the existing archive rules: never rewritten, late records excluded. V measures what the frozen models would actually have shown a meteorologist that morning.
+- **Two separate times, both fixed now:**
+  - **Input cutoff: 15:10 UTC** on the issue date. Every HRRR and RRFS input object used must be listed on S3 by then, as already enforced per cycle.
+  - **Issuance deadline: 18:00 UTC (1:00 PM EST)** on the issue date. All four arms (A, A′, B, C) must be computed from those inputs and archived by then.
+- **Why 18:00 UTC:** the scheduled job starts at 15:10 UTC (it has fired at 15:17 UTC) and has finished in about 15–25 minutes. 18:00 UTC leaves margin for GitHub's scheduler delays. It is still 18 hours before the valid window opens at 12Z the next day, early in a forecaster's day.
+- **Recorded issuance time:** each arm's actual archive time (`generated_at`, plus the commit time of the record) is recorded per arm. A date counts toward V only if **all four arms** have an issuance time at or before 18:00 UTC and used inputs that met the 15:10 UTC cutoff. Late or missing arms exclude the date, and their reasons count against coverage.
+- **Issued live** means exactly that. The frozen arms are archived under the existing archive rules (never rewritten, late records excluded), so V measures what the frozen models would actually have shown a meteorologist that morning.
 - **An eligible V day** additionally requires that all four arms were issued on time that day. Days where a frozen arm was missing or late are excluded, with their reasons, and count against coverage.
 
 ## What happens in each block
@@ -43,7 +48,7 @@ identical dates, windows, points and reports.
      - C's stacking form: the logit of `lag_full` plus B's predictors.
    - **Chosen within T by month-grouped inner CV:** only the monotone recalibration, as in every earlier gate.
    - **Then:** fit B, A′ and C on all of T. Freeze them, commit their checksums, and record the T date list and its final tally. A stays the already-frozen `lag_full`.
-   - **Feed change, for separate approval at that time:** add the frozen arms to the daily archive record or sidecar, so they are issued live before the cutoff. V begins with the first eligible issue date after that change is live.
+   - **Feed change, for separate approval at that time:** add the frozen arms to the daily archive record or sidecar, so they are issued live by the 18:00 UTC deadline from inputs that met the 15:10 UTC cutoff. V begins with the first eligible issue date after that change is live.
 3. **Replay (R):** dates collected between the embargo and the freeze keep their inputs. They may be scored afterwards only as a labelled replay diagnostic. Replay never enters the prospective tally, the verdict, or any model choice.
 4. **During V:** nothing is fitted or tuned. Preliminary SPC scores may be monitored, as for every archive candidate, but they don't decide anything.
 5. **At V close** (once final labels cover V): one scorecard, scored once:
