@@ -46,7 +46,7 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
     await ctx.close();
 
     /* a venue inside the MD */
-    const IN = "lat=37.946&lon=-90.536&name=" + encodeURIComponent("Inside MD 2465");
+    const IN = "lat=37.946&lon=-90.536&name=" + encodeURIComponent("Ste. Genevieve test site");
     const visit = async (q) => { const c = await b.newContext(phone ? { ...devices["iPhone 13"] } : { viewport: { width: 1440, height: 1000 } }), pg = await c.newPage(), e = [];
       pg.on("pageerror", (x) => e.push(x.message));
       await pg.route(/spc_mesoscale_discussion\/MapServer\/0\/query/, (r) => r.fulfill({ status: 200, headers: { "content-type": "application/geo+json", "access-control-allow-origin": "*" }, body: FIX }));
