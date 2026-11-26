@@ -69,7 +69,7 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
       if (phone) { await pg.locator("#txPeek").click().catch(() => {}); await pg.waitForTimeout(800); }
       const s2 = await siteRead(pg); await pg.screenshot({ path: path.join(OUT, `md-inside-manual-${d}.png`) });
       check(`(${d}) Severe storms on by hand: MD found (${s2.mdLoaded.join(", ")}); venue block '${s2.brief.slice(0, 230)}'; still not a site alert; severe need ${s2.need && s2.need.severe}`,
-        s2.mdLoaded.length > 0 && /Mesoscale Discussion 2465 \(topic unavailable\): discussion area includes the venue/.test(s2.brief) && !/no SPC Mesoscale Discussion covers it/.test(s2.brief)
+        s2.mdLoaded.length > 0 && /^AT .*? No active severe storm alerts at the venue /.test(s2.brief) && /Mesoscale Discussion 2465 \(topic unavailable\): discussion area includes the venue/.test(s2.brief) && !/no SPC Mesoscale Discussion covers it/.test(s2.brief)
           && !/MD 2465.* in effect at the venue/i.test(s2.brief) && s2.atKinds && !s2.atKinds.some((k) => /^md:/.test(k)) && (!s2.need.severe || !/Mesoscale|\bMD \d/.test(JSON.stringify(s2.cause.severe || ""))) && !e.length, { s2, e });
       await c.close(); }
   }
