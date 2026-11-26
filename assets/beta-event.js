@@ -531,6 +531,7 @@
     const host = $("printView"); if (!host || !lastView || !res) return;
     renderSupport(res, lastView.b);
     host.innerHTML = BUI.printMarkup({ ev, res: { ...res, feeds: res.eventFeeds || res.feeds }, view: lastView, S, U });
+    BUI.fitPrint(host); // two sheets whatever the content: tighten spacing on a page that would spill onto a third
     printReady(true);
   }
   /* the top Print button is live only once a full briefing exists to print */

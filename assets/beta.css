@@ -793,6 +793,38 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
   .pv .pv-dense .pv-hours td, .pv .pv-dense .pv-hours th { padding-top: 2.5pt; padding-bottom: 2.5pt; }
   .pv .pv-legend { font-size: 9pt; color: #333; margin: 8pt 0 0; }
   .pv .pv-src { font-size: 8.5pt; color: #444; border-top: 0; margin-top: 6pt; padding-top: 0; }
+  /* fit steps (EventBriefingUI.fitPrint): applied only to a page that would otherwise spill onto another sheet.
+     Step 1 keeps "Reaches N mph venue limit" on the gust value's line: the gust column takes width from Phase and Lightning. */
+  .pv .pv-fit1 .pv-hours td small, .pv .pv-fit2 .pv-hours td small, .pv .pv-fit3 .pv-hours td small { display: inline; margin-left: 3pt; font-size: 7.5pt; }
+  .pv .pv-fit1 .pv-hours:not(.pv-snowy) col:nth-child(1), .pv .pv-fit2 .pv-hours:not(.pv-snowy) col:nth-child(1), .pv .pv-fit3 .pv-hours:not(.pv-snowy) col:nth-child(1) { width: 13% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours:not(.pv-snowy) col:nth-child(2) { width: 14% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours:not(.pv-snowy) col:nth-child(3) { width: 8% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours:not(.pv-snowy) col:nth-child(4) { width: 9% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours:not(.pv-snowy) col:nth-child(5) { width: 10% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours:not(.pv-snowy) col:nth-child(6) { width: 34% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours:not(.pv-snowy) col:nth-child(7) { width: 12% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours.pv-snowy col:nth-child(1) { width: 12% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours.pv-snowy col:nth-child(2) { width: 12% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours.pv-snowy col:nth-child(3) { width: 8% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours.pv-snowy col:nth-child(4) { width: 9% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours.pv-snowy col:nth-child(5) { width: 9% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours.pv-snowy col:nth-child(6) { width: 8% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours.pv-snowy col:nth-child(7) { width: 31% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours.pv-snowy col:nth-child(8) { width: 11% !important; }
+  .pv .pv-fit1.pv-p1 { line-height: 1.25; }
+  .pv .pv-fit1 .pv-nws { font-size: 10pt; }
+  .pv .pv-fit1 .pv-section { margin-top: 5px !important; }
+  .pv :is(.pv-fit2, .pv-fit3) .pv-hours td, .pv :is(.pv-fit2, .pv-fit3) .pv-hours th { padding-top: 1pt; padding-bottom: 1pt; line-height: 1.15; }
+  .pv :is(.pv-fit2, .pv-fit3) .pv-watch, .pv :is(.pv-fit2, .pv-fit3) .pv-legend, .pv :is(.pv-fit2, .pv-fit3) .pv-src { font-size: 8pt; line-height: 1.2; }
+  .pv :is(.pv-fit2, .pv-fit3) .pv-hours-window { margin: 5pt 0 4pt; }
+  .pv .pv-fit2.pv-p1 { font-size: 10pt; line-height: 1.2; }
+  .pv .pv-fit2 .pv-nws { font-size: 9.5pt; }
+  .pv :is(.pv-fit2, .pv-fit3) .pv-section { margin-top: 3px !important; }
+  .pv .pv-fit3 .pv-hours { font-size: 9pt; }
+  .pv .pv-fit3 .pv-hours td small { font-size: 7pt; }
+  .pv .pv-fit3.pv-p1 { font-size: 9.5pt; line-height: 1.15; }
+  .pv .pv-fit3 .pv-nws { font-size: 9pt; }
+}
 }
 @media print {
   .pv .pv-hours { table-layout: fixed; width: 100%; }
