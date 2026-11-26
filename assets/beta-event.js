@@ -202,6 +202,8 @@
       return `<button type="button" class="ev-day${on ? " is-on" : ""}" data-day="${esc(d.date)}" aria-pressed="${on}" title="${esc(full)}" aria-label="${esc(full)}"${x && x.tier ? ` data-tier="${esc(x.tier)}" style="--tier:var(--${esc(x.tier)})"` : ""} data-state="${esc(x ? x.state : "loading")}"${x && x.cover ? ` data-cover="${esc(x.cover)}"` : ""}><b>${esc(nm)}</b><span class="ev-day-s">${esc(x ? x.short : "…")}</span></button>`; };
     host.innerHTML = `<div class="ev-days-row" role="group" aria-label="${esc(all ? `All ${dayList.length} days` : `Day ${ev.day.index + 1} of ${ev.day.count}`)}: choose a day">${dayList.map(chip).join("")}` +
       `<button type="button" class="ev-day ev-day-all${all ? " is-on" : ""}" data-day="all" aria-pressed="${all}" title="The whole event in one briefing" aria-label="All ${dayList.length} days: the whole event in one briefing"><b>All</b><span class="ev-day-s">${esc(dayList[0].label.split(",")[0])}–${esc(dayList[dayList.length - 1].label.split(",")[0])}</span></button></div>`;
+    { const row = host.querySelector(".ev-days-row"), on = host.querySelector(".ev-day.is-on"); // keep the selected day in view in the sideways-scrolling row
+      if (row && on) { const l = on.offsetLeft - row.offsetLeft, r = l + on.offsetWidth; if (r > row.scrollLeft + row.clientWidth) row.scrollLeft = r - row.clientWidth + 8; else if (l < row.scrollLeft) row.scrollLeft = Math.max(0, l - 8); } }
     host.querySelectorAll("[data-day]").forEach((btn) => btn.addEventListener("click", () => { if (btn.dataset.day === dayPick) return;
       dayPick = btn.dataset.day; applyDay();
       const u = new URL(location.href); u.searchParams.set("day", dayPick); history.replaceState(null, "", u.toString());
@@ -244,7 +246,9 @@
   let alertsCheckedAt = null, lastLead = null;
   const LEAD = window.EventLead;
   function officialBlock(a, L) {
-    const lead = L || { official: LEAD.official(a, a.available !== false) };
+    /* without a lead (alerts answered first, or the briefing is pending): no forecast concern to point to, so the card keeps
+       only the caution ("This doesn't mean no weather concern."), never "the forecast concern is above" */
+    const lead = L || { kind: "missing", official: LEAD.official(a, a.available !== false) };
     $("alerts").innerHTML = LEAD.officialHtml(lead, { tz: ev.tz, lat: ev.loc.lat, lon: ev.loc.lon, checkedAt: alertsCheckedAt });
   }
   /* the last hour the HRRR (the forecast radar's model) has guidance for, from the loaded data */

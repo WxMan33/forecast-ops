@@ -90,6 +90,10 @@ const pick = async (p, d) => { await p.click(`#dayPick [data-day="${d}"]`); awai
 
       await pick(p, '2026-11-29'); x = await texts(p);
       check(/pending/i.test(x.decision) && !/No weather concern/.test(x.decision), `${L} Sunday: briefing pending, never "no concern" (${x.decision})`);
+      { const card = await p.evaluate(() => (document.querySelector('p[data-official=none]') || {}).innerText || '');
+        check(/No active official alerts/.test(card) && /This doesn’t mean no weather concern\./.test(card) && !/concern is above/.test(card), `${L} Sunday (pending): the alert card doesn't point to a forecast concern above (${card.replace(/\s+/g, ' ').slice(0, 120)})`);
+        const vis = await p.evaluate(() => { const row = document.querySelector('#dayPick .ev-days-row'), on = document.querySelector('#dayPick .ev-day.is-on'), a = row.getBoundingClientRect(), b = on.getBoundingClientRect(); return b.left >= a.left - 1 && b.right <= a.right + 1; });
+        check(vis, `${L} Sunday: the selected chip is scrolled fully into view`); }
       { const cov = await p.evaluate(() => { const c = document.getElementById('coverage'), o = document.getElementById('outlook'); return (c.hidden ? '' : c.innerText) + ' ' + (o.hidden ? '' : o.innerText); });
         /* the coverage note, or the early outlook that takes its place, says when hourly guidance reaches the day, naming its slot */
         check(/Hourly guidance (doesn’t reach this event yet|should reach the Closing day around)/.test(cov) && !/reach setup/.test(cov), `${L} Sunday: the coverage gap is stated, naming the day's slot (${cov.replace(/\s+/g, ' ').trim().slice(0, 140)})`); }
