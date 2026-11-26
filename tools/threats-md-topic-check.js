@@ -14,7 +14,9 @@ const fs = require("fs"), path = require("path");
 const HOST = (process.argv[2] || "").replace(/\/$/, ""), OUT = path.resolve(process.argv[3] || "docs/threats/md-topic-check");
 if (!HOST) { console.error("usage: node tools/threats-md-topic-check.js https://host [outDir]"); process.exit(2); }
 fs.mkdirSync(OUT, { recursive: true });
-const FIX = fs.readFileSync(path.join(__dirname, "..", "tests", "fixtures", "threats", "spc-md-service-2465-20261125.json"), "utf8");
+/* the saved answer, with its "Active Till" moved to 3 hours from now so the replayed MD is current whenever the check runs */
+const till = new Date(Date.now() + 3 * 3600e3), HHMM = String(till.getUTCHours()).padStart(2, "0") + String(till.getUTCMinutes()).padStart(2, "0");
+const FIX = fs.readFileSync(path.join(__dirname, "..", "tests", "fixtures", "threats", "spc-md-service-2465-20261125.json"), "utf8").replace(/Active Till \d{4} UTC/, "Active Till " + HHMM + " UTC");
 const results = []; let fails = 0;
 const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); if (!ok) fails++; console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : " :: " + JSON.stringify(detail).slice(0, 1200))); };
 
@@ -40,7 +42,7 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
     check(`(${d}) map label '${md.label}' (outline drawn: ${md.drawn})`, md.drawn && /^MD 2465 · TOPIC UNAVAILABLE/.test(md.label || ""), { md });
     check(`(${d}) detail: Topic '${det.topic.slice(0, 70)}…'; Issued '${det.issued}'; Valid '${det.valid}'; SPC bulletin link ${det.link}`,
       /^Topic unavailable: the NOAA map service doesn't say/.test(det.topic) && det.issued === "Unavailable from the map service" && !/1969|1970|Dec 31/.test(det.txt)
-        && /^Until .* 0300Z · start unavailable from the map service$/.test(det.valid) && det.link,
+        && new RegExp("^Until .* " + HHMM + "Z · start unavailable from the map service$").test(det.valid) && det.link,
       { det, md });
     check(`(${d}) no script errors; the replay is marked TEST REPLAY`, !errs.length && (await p.evaluate(() => document.getElementById("txBadge").textContent)) === "TEST REPLAY", { errs });
     await ctx.close();
@@ -68,6 +70,8 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
     { const { c, pg, e } = await visit("&layers=severe&view=active&scope=venue"); await pg.waitForFunction(() => window.__threats.data.products.some((x) => x.kind === "md"), null, { timeout: 60000 }).catch(() => {}); await pg.waitForTimeout(3000);
       if (phone) { await pg.locator("#txPeek").click().catch(() => {}); await pg.waitForTimeout(800); }
       const s2 = await siteRead(pg); await pg.screenshot({ path: path.join(OUT, `md-inside-manual-${d}.png`) });
+      const hidden = (s2.atKinds || []).filter((k) => /^warning:/.test(k) && !/Tornado|Severe Thunderstorm/.test(k));
+      check(`(${d}) a warning on a hidden layer covers the test site (${hidden.join(", ") || "none live now"}), while only Severe storms is on`, hidden.length > 0, { s2 });
       check(`(${d}) Severe storms on by hand: MD found (${s2.mdLoaded.join(", ")}); venue block '${s2.brief.slice(0, 230)}'; still not a site alert; severe need ${s2.need && s2.need.severe}`,
         s2.mdLoaded.length > 0 && /^AT .*? No active severe storm alerts at the venue /.test(s2.brief) && /Mesoscale Discussion 2465 \(topic unavailable\): discussion area includes the venue/.test(s2.brief) && !/no SPC Mesoscale Discussion covers it/.test(s2.brief)
           && !/MD 2465.* in effect at the venue/i.test(s2.brief) && s2.atKinds && !s2.atKinds.some((k) => /^md:/.test(k)) && (!s2.need.severe || !/Mesoscale|\bMD \d/.test(JSON.stringify(s2.cause.severe || ""))) && !e.length, { s2, e });

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* Offline check of Event Manager's HTTP 429 recovery. Open-Meteo, NWS and geocoding are mocked; the page, its loader,
-   forecast cache and Retry-After cooldown are real. Timers run on Playwright's fake clock, so waits are exact.
+   forecast cache and Retry-After cooldown are real. Timers run on Playwright's fake clock, paused, so waits are exact.
    Usage: node tools/event-429-recovery-check.js [results.json] */
 'use strict';
 const fs = require('node:fs'), path = require('node:path'), http = require('node:http'), { chromium } = require('playwright');
@@ -36,7 +36,14 @@ function ensembleBody(u) {
 async function scenario(browser, base, name, { rules = {}, ensRules = {}, steps, init = null, knownErrors = [] }) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: TZ }), p = await ctx.newPage(), errors = [], log = [];
   p.on('pageerror', (e) => errors.push(e.message));
-  await p.clock.install({ time: new Date(T0) });
+  /* the clock is paused at T0 and moves only when a step runs it. clock.install alone leaves it also following real time,
+     and in Playwright 1.48 (the version CI installs) that real-time sync and runFor can advance the page clock at the same
+     moment; whichever finishes last sets it, so Date.now() and the timers can step back by up to one 250 ms step. A
+     retry the page sent exactly 1 s (or 8 s) after the previous answer could then be stamped "sent at" (the page clock,
+     read when the mock sees the request) after the clock had stepped back, earlier than the page sent it, and measure as
+     early. Paused, the page clock only moves forward, and only in runFor. */
+  await p.clock.install({ time: new Date(T0 - 60000) });
+  await p.clock.pauseAt(new Date(T0));
   await p.addInitScript(() => { localStorage.setItem('beta_analytics_optout', '1'); window.print = () => {}; });
   if (init) await p.addInitScript(init);
   const seen = {}; let inflight = 0, peakRetryOverlap = 0;

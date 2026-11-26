@@ -1015,11 +1015,13 @@
     const el = { gust: gridSeries(P.windGust), wind: gridSeries(P.windSpeed), temp: gridSeries(P.temperature), heat: gridSeries(P.heatIndex), feels: gridSeries(P.apparentTemperature), pop: gridSeries(P.probabilityOfPrecipitation), rh: gridSeries(P.relativeHumidity),
       qpf: amountSeries(P.quantitativePrecipitation), snow: amountSeries(P.snowfallAmount), ice: amountSeries(P.iceAccumulation), wx: wxSeries(P.weather) };
     const amt = (k, t) => { const l = el[k]; if (!l) return null; const x = l.find((y) => t >= y.t0 && t < y.t1); return x && x.v != null ? x.v : null; };
+    // the NWS interval each spread rain amount came from (usually 6 hours): timing inside it is not resolved
+    const qpfBlock = (t) => { const x = el.qpf && el.qpf.find((y) => t >= y.t0 && t < y.t1); return x && x.v != null ? { qpfFrom: new Date(x.t0).toISOString(), qpfTo: new Date(x.t1).toISOString() } : {}; };
     const wxAt = (t) => { const l = el.wx; if (!l) return null; const x = l.find((y) => t >= y.t0 && t < y.t1); return x ? x.v : null; };
     const through = (k) => { const l = el[k]; if (!l || !l.length) return null; const last = l.filter((x) => x.v != null).reduce((m, x) => Math.max(m, x.t1), 0); return last ? new Date(last).toISOString() : null; };
     const at = (k, t) => { const l = el[k]; if (!l) return null; const x = l.find((y) => t >= y.t0 && t < y.t1); return x && x.v != null ? Math.round(x.v) : null; };
     const h0 = Math.floor(nowMs / 3600e3) * 3600e3, rows = [];
-    for (let i = 0; i < hours; i++) { const t = h0 + i * 3600e3; rows.push({ t: new Date(t).toISOString(), gust: at("gust", t), wind: at("wind", t), temp: at("temp", t), heat: at("heat", t), feels: at("feels", t), pop: at("pop", t), rh: at("rh", t), qpf: amt("qpf", t), snow: amt("snow", t), ice: amt("ice", t), wx: wxAt(t) }); }
+    for (let i = 0; i < hours; i++) { const t = h0 + i * 3600e3; rows.push({ t: new Date(t).toISOString(), gust: at("gust", t), wind: at("wind", t), temp: at("temp", t), heat: at("heat", t), feels: at("feels", t), pop: at("pop", t), rh: at("rh", t), qpf: amt("qpf", t), ...qpfBlock(t), snow: amt("snow", t), ice: amt("ice", t), wx: wxAt(t) }); }
     const peak = (k) => rows.reduce((b, r) => (r[k] != null && (!b || r[k] > b[k]) ? r : b), null);
     const covered = rows.filter((r) => r.gust != null || r.temp != null).length;
     return { updated: new Date(P.updateTime).toISOString(), rows, covered, qpfThrough: through("qpf"), wxThrough: through("wx"), heatThrough: through("heat"), peakGust: peak("gust"), peakHeat: peak("heat"), peakFeels: peak("feels"), peakPop: peak("pop"), lowFeels: rows.reduce((b, r) => (r.feels != null && (!b || r.feels < b.feels) ? r : b), null) };

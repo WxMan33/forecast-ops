@@ -5,6 +5,11 @@
    marks what is missing. Pure: no DOM, Node-testable. Presentation lives in hourly-grid.js. */
 (function (root) {
   "use strict";
+  /* part names in sentences: the fixed parts (Setup, Gates, Event, Teardown) read as before, in lower case; a planner's
+     own slot keeps its name as typed (PW: "Outdoor ceremony"), with an article after "during" or "for" (PS: "the Outdoor ceremony") */
+  const PARTS = ['Setup', 'Gates', 'Event', 'Teardown'];
+  const PW = (l) => (PARTS.includes(l) ? String(l).toLowerCase() : String(l == null ? '' : l));
+  const PS = (l) => (PARTS.includes(l) ? String(l).toLowerCase() : /^(the|a|an|our|my|day\b|mon|tue|wed|thu|fri|sat|sun)/i.test(String(l).trim()) ? String(l).trim() : `the ${String(l).trim()}`);
   const H = 3600e3;
   const fin = (x) => typeof x === "number" && Number.isFinite(x);
 
@@ -71,7 +76,9 @@
   function eventConcerns(S, C, brief, hours, thr) {
     const RANK = { nodata: -1, normal: 0, monitor: 1, prepare: 2, action: 3 };
     const covered = (h) => h.state === "ok";
-    const phasesAt = (ms) => brief.phases.filter((p) => p.r && p.startMs < ms + H && p.endMs > ms);
+    /* planner-defined slots: each hazard's hour is read by its own interval (Core.event.HAZARD_KIND: rain, wind and snow
+       for the hour ending at the label; lightning, heat and cold at the label) */
+    const phasesAt = (ms, key) => (brief.custom ? C.event.holding(brief.phases.filter((p) => p.r), ms, C.event.HAZARD_KIND[key] || "end") : brief.phases.filter((p) => p.r && p.startMs < ms + H && p.endMs > ms));
     const rows = [];
     Object.entries(S.HAZARDS).sort((a, b) => a[1].order - b[1].order).forEach(([key, hz]) => {
       const cells = hours.map((h) => {
@@ -83,9 +90,9 @@
             : { state: "clear" };
         }
         if (!hz.hour(h, thr)) return { state: "clear" };
-        const ph = phasesAt(h.ms), lvl = Math.max(0, ...ph.map((p) => p.levels[key] || 0));
-        if (lvl >= 1) return { state: "concern", tier: S.LEVEL_TIER[lvl], level: lvl, word: S.LEVEL_WORD[lvl], why: `${hz.label} possible this hour; rated ${S.LEVEL_WORD[lvl].toLowerCase()} for ${ph.filter((p) => (p.levels[key] || 0) === lvl).map((p) => p.label.toLowerCase()).join(" and ")}`, source: "phase" };
-        return { state: "flag", why: ph.length ? `${hz.label} possible this hour, but rated low for ${ph.map((p) => p.label.toLowerCase()).join(" and ")}` : `${hz.label} possible this hour, outside the event's schedule`, source: "rule" };
+        const ph = phasesAt(h.ms, key), lvl = Math.max(0, ...ph.map((p) => p.levels[key] || 0));
+        if (lvl >= 1) return { state: "concern", tier: S.LEVEL_TIER[lvl], level: lvl, word: S.LEVEL_WORD[lvl], why: `${hz.label} possible this hour; rated ${S.LEVEL_WORD[lvl].toLowerCase()} for ${ph.filter((p) => (p.levels[key] || 0) === lvl).map((p) => PS(p.label)).join(" and ")}`, source: "phase" };
+        return { state: "flag", why: ph.length ? `${hz.label} possible this hour, but rated low for ${ph.map((p) => PS(p.label)).join(" and ")}` : (brief.custom ? `${hz.label} possible this hour, between or outside your time slots` : `${hz.label} possible this hour, outside the event's schedule`), source: "rule" };
       });
       if (cells.some((c) => c.state === "concern" || c.state === "flag")) rows.push({ key, label: hz.label, cells });
     });
@@ -96,8 +103,8 @@
       if (!hits.length) {
         const partial = rows.some((r) => r.cells[i].state === "missing") || (S.HAZARDS.lightning && (!h.thunder || h.thunder === "nodata"));
         /* no single-hour signal, but the part of the event this hour belongs to carries a rating: say so (unshaded) */
-        const rated = phasesAt(h.ms).filter((p) => p.level >= 1 && p.top).sort((a, b) => b.level - a.level)[0];
-        if (rated) return { state: "rated", key: rated.top, level: rated.level, word: S.LEVEL_WORD[rated.level], why: `No single hour stands out, but ${rated.label.toLowerCase()} is rated ${S.HAZARDS[rated.top].label.toLowerCase()}: ${S.LEVEL_WORD[rated.level].toLowerCase()}` };
+        const rated = phasesAt(h.ms, "rain").filter((p) => p.level >= 1 && p.top).sort((a, b) => b.level - a.level)[0];
+        if (rated) return { state: "rated", key: rated.top, level: rated.level, word: S.LEVEL_WORD[rated.level], why: `No single hour stands out, but ${PS(rated.label)} is rated ${S.HAZARDS[rated.top].label.toLowerCase()}: ${S.LEVEL_WORD[rated.level].toLowerCase()}` };
         return partial ? { state: "partial", why: "No concern found in the guidance available; lightning guidance is missing for this hour" } : { state: "clear", why: "No concern identified" };
       }
       const worst = hits.filter((x) => x.c.state === "concern").sort((a, b) => (RANK[b.c.tier] ?? 0) - (RANK[a.c.tier] ?? 0))[0];
@@ -111,19 +118,22 @@
      peak hourly rain chance (the highest hourly PoP, not a chance of rain sometime in the phase), temperature range,
      peak gust and lightning potential (the strongest Thunder-page tier among those hours, in plain words).
      Lightning is "Unavailable" when no hour has thunder guidance and "Limited guidance" when only some do. */
-  function phaseSummaries(S, brief, hrs, cover) {
-    const RANK = { normal: 0, monitor: 1, prepare: 2, action: 3 };
+  /* coverAt (planner-defined slots): the parts each column's instantaneous values belong to (temperature, thunder);
+     cover then describes the hour-ending values (rain chance, gusts), whose hour starts an hour before the label */
+  function phaseSummaries(S, brief, hrs, cover, coverAt = null) {
+    const RANK = { normal: 0, monitor: 1, prepare: 2, action: 3 }, sh = coverAt ? H : 0;
     return brief.phases.map((p) => {
       const idx = cover.map((c, i) => (c.some((x) => x.key === p.key) ? i : -1)).filter((i) => i >= 0);
+      const idxAt = coverAt ? coverAt.map((c, i) => (c.some((x) => x.key === p.key) ? i : -1)).filter((i) => i >= 0) : idx, okAt = idxAt.filter((i) => hrs[i].state === "ok");
       const ok = idx.filter((i) => hrs[i].state === "ok"), val = (k) => ok.filter((i) => fin(hrs[i][k]));
       const popI = val("pop"), peak = popI.length ? popI.reduce((a, b) => (hrs[b].pop > hrs[a].pop ? b : a)) : null;
-      const temps = val("temp").map((i) => hrs[i].temp), gustI = val("gust"), gust = gustI.length ? gustI.reduce((a, b) => (hrs[b].gust > hrs[a].gust ? b : a)) : null;
-      const thI = ok.filter((i) => hrs[i].thunder && hrs[i].thunder !== "nodata"), worst = thI.length ? thI.reduce((a, b) => ((RANK[hrs[b].thunder] ?? 0) > (RANK[hrs[a].thunder] ?? 0) ? b : a)) : null;
-      const lightning = !idx.length ? { word: "Unavailable", state: "missing" } : !thI.length ? { word: "Unavailable", state: "missing", why: "No lightning guidance reaches these hours" }
-        : { word: S.lightningWord(hrs[worst].thunder), tier: hrs[worst].thunder, at: hrs[worst].ms, state: thI.length < idx.length ? "limited" : "ok", missing: idx.length - thI.length };
+      const temps = okAt.filter((i) => fin(hrs[i].temp)).map((i) => hrs[i].temp), gustI = val("gust"), gust = gustI.length ? gustI.reduce((a, b) => (hrs[b].gust > hrs[a].gust ? b : a)) : null;
+      const thI = okAt.filter((i) => hrs[i].thunder && hrs[i].thunder !== "nodata"), worst = thI.length ? thI.reduce((a, b) => ((RANK[hrs[b].thunder] ?? 0) > (RANK[hrs[a].thunder] ?? 0) ? b : a)) : null;
+      const lightning = !idxAt.length ? { word: "Unavailable", state: "missing" } : !thI.length ? { word: "Unavailable", state: "missing", why: "No lightning guidance reaches these hours" }
+        : { word: S.lightningWord(hrs[worst].thunder), tier: hrs[worst].thunder, at: hrs[worst].ms, state: thI.length < idxAt.length ? "limited" : "ok", missing: idxAt.length - thI.length };
       return { key: p.key, label: p.label, startMs: p.startMs, endMs: p.endMs, hours: idx.map((i) => hrs[i].ms), covered: ok.length, of: idx.length,
-        peakPop: peak == null ? null : { v: hrs[peak].pop, at: hrs[peak].ms }, popMissing: ok.length - popI.length,
-        temp: temps.length ? { lo: Math.min(...temps), hi: Math.max(...temps) } : null, gust: gust == null ? null : { v: hrs[gust].gust, at: hrs[gust].ms }, lightning,
+        peakPop: peak == null ? null : { v: hrs[peak].pop, at: hrs[peak].ms - sh }, popMissing: ok.length - popI.length,
+        temp: temps.length ? { lo: Math.min(...temps), hi: Math.max(...temps) } : null, gust: gust == null ? null : { v: hrs[gust].gust, at: hrs[gust].ms - sh }, lightning,
         level: p.level || 0, top: p.top || null, ensemble: p.r && p.r.chanceV != null ? p.r.chanceV : null };
     });
   }

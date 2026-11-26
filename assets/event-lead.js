@@ -11,6 +11,11 @@
 (function (root) {
   'use strict';
   const H = 3600e3, fin = Number.isFinite;
+  /* part names in sentences: the fixed parts (Setup, Gates, Event, Teardown) read as before, in lower case; a planner's
+     own slot keeps its name as typed (PW: "Outdoor ceremony"), with an article after "during" or "for" (PS: "the Outdoor ceremony") */
+  const PARTS = ['Setup', 'Gates', 'Event', 'Teardown'];
+  const PW = (l) => (PARTS.includes(l) ? String(l).toLowerCase() : String(l == null ? '' : l));
+  const PS = (l) => (PARTS.includes(l) ? String(l).toLowerCase() : /^(the|a|an|our|my|day\b|mon|tue|wed|thu|fri|sat|sun)/i.test(String(l).trim()) ? String(l).trim() : `the ${String(l).trim()}`);
   const esc = (x) => String(x == null ? '' : x).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const clock = (ms, tz) => new Date(ms).toLocaleTimeString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' }).replace(':00', '');
   const zone = (ms, tz) => new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' }).formatToParts(new Date(ms)).find((x) => x.type === 'timeZoneName').value;
@@ -23,6 +28,8 @@
   const span = (s, e, tz) => { const a = clock(s, tz), b = clock(e, tz), ma = a.match(/^(.*) (AM|PM)$/), mb = b.match(/^(.*) (AM|PM)$/);
     return ma && mb && ma[2] === mb[2] && dayKey(s, tz) === dayKey(e - 1, tz) ? `${ma[1]}–${b}` : `${a}–${b}`; };
 
+  /* the hours a gapped schedule covers: "1–3 PM, 4–4:30 PM, 5–10 PM"; with the weekday when they fall on different days */
+  const slotSpans = (sp, tz) => { const multi = new Set(sp.map((x) => dayKey(x.s, tz))).size > 1; return sp.map((x) => `${multi ? wd(x.s, tz) + ' ' : ''}${span(x.s, x.e, tz)}`).join(', '); };
   /* what the main part of the event is called, from its name ("race", "game", …); otherwise "event" */
   const eventWord = (name) => { const m = String(name || '').match(/\b(race|run|marathon|walk|game|match|concert|show|festival|parade|ceremony|tournament)\b/i); return m ? m[1].toLowerCase() : 'event'; };
   /* The briefing's tier rules (BetaStory.HAZARDS[k].level), in words, per level 1..3. Wording only. */
@@ -49,7 +56,8 @@
   function gaps({ b, V, R, feeds, alertsAvailable, now, tz }) {
     const f = feeds || { used: [], missing: [] }, total = f.used.length + (f.missing || []).length;
     const thin = total > 0 && f.used.length / total < 0.7; // the briefing's own "material gap" rule (gapFlag)
-    const inEvent = (ms) => b.phases.some((p) => ms + H > p.startMs && ms < p.endMs);
+    /* planner-defined slots: an hour's guidance is event guidance when its hour (ending at the label) meets a slot */
+    const inEvent = (ms) => (b.custom ? b.phases.some((p) => p.startMs < ms && p.endMs > ms - H) : b.phases.some((p) => ms + H > p.startMs && ms < p.endMs));
     const missingHours = (V ? V.span : []).filter((ms, i) => inEvent(ms) && ms + H > now && V.hrs[i] && V.hrs[i].state !== 'ok' && V.hrs[i].state !== 'beyond');
     const partial = R && R.state === 'partial' ? R.line : null;
     const hoursText = missingHours.length ? `${missingHours.length === 1 ? `the ${clock(missingHours[0], tz)} hour has` : `${missingHours.length} event hours (${span(missingHours[0], missingHours[missingHours.length - 1] + H, tz)}) have`} no forecast data` : '';
@@ -59,7 +67,7 @@
        Hours with no value for any variable ("nodata") are forecast guidance; hours that have other values but neither a
        rain chance nor an amount are rain guidance only. The Rain chance row always uses the rain wording. */
     const windowOf = (hs) => { if (!hs.length) return ''; const a = hs[0], z = hs[hs.length - 1] + H, ph = b.phases.find((p) => a + H > p.startMs && a < p.endMs);
-      return `${span(a, z, tz)} ${ph && ph.key !== 'event' ? ph.label.toLowerCase() : eventWord(b.ev && b.ev.name)} window`; };
+      return `${span(a, z, tz)} ${ph && (ph.key !== 'event' || ph.slot) ? PW(ph.label) : eventWord(b.ev && b.ev.name)} window`; };
     const rainHours = (V ? V.span : []).filter((ms, i) => { const h = V.hrs[i]; return inEvent(ms) && ms + H > now && h && h.state !== 'beyond' && (h.state !== 'ok' || (!fin(h.pop) && !fin(h.qpf))); });
     const incompleteRain = rainHours.length ? `Rain guidance is incomplete for the ${windowOf(rainHours)}` : '';
     const incomplete = missingHours.length ? `Forecast guidance is incomplete for the ${windowOf(missingHours)}` : incompleteRain;
@@ -93,17 +101,17 @@
   function heavier(o) {
     const { b, V, tz } = o, ev = b.phases.find((p) => p.key === 'event'), gates = b.phases.find((p) => p.key === 'gates');
     if (!V || !ev) return null;
-    const hrs = V.span.map((ms, i) => ({ ms, q: V.hrs[i] && V.hrs[i].state === 'ok' && fin(V.hrs[i].qpf) ? Math.round(V.hrs[i].qpf * 100) : null })).filter((x) => x.q != null && x.ms + H > b.all.startMs && x.ms < b.all.endMs);
+    const hrs = V.span.map((ms, i) => ({ ms, q: V.hrs[i] && V.hrs[i].state === 'ok' && fin(V.hrs[i].qpf) ? Math.round(V.hrs[i].qpf * 100) : null })).filter((x) => x.q != null && (b.custom ? b.phases.some((p) => p.startMs < x.ms && p.endMs > x.ms - H) : x.ms + H > b.all.startMs && x.ms < b.all.endMs)).map((x) => (b.custom ? { ...x, ms: x.ms - H } : x)); // slots: an amount's hour ends at its label
     const top = Math.max(0, ...hrs.map((x) => x.q)); if (!(top > 0)) return null;
     const peak = hrs.filter((x) => x.q === top), word = /^(race|run|marathon|walk)$/.test(eventWord(b.ev && b.ev.name)) ? 'lineup' : 'gates';
     const inGates = !!gates && peak.some((x) => x.ms < gates.endMs && x.ms + H > gates.startMs), nearStart = peak.some((x) => Math.abs(x.ms - ev.startMs) <= H);
-    const at = `the ${clock(ev.startMs, tz)} start`;
+    const at = ev.slot && ev.label !== 'Event' ? `the ${clock(ev.startMs, tz)} ${ev.label}` : `the ${clock(ev.startMs, tz)} start`;
     return inGates && nearStart ? `heavier rain during ${word} and around ${at}.` : inGates ? `heavier rain during ${word} (${span(gates.startMs, gates.endMs, tz)}).` : nearStart ? `heavier rain around ${at}.` : null;
   }
   /* "Watch for": one short line for the first screen. The organizer's own threshold where the event has one (its gust
      limit); otherwise what to watch in the next update, with no implied delay or cancellation rule. */
   function watchFor(o, { top, hit, G }) {
-    const tz = o.tz, first = hit[0], during = first ? ` during ${first.label.toLowerCase()}` : '';
+    const tz = o.tz, first = hit[0], during = first ? ` during ${PS(first.label)}` : '';
     if (top && top.key === 'wind') { const pk = Math.round(o.b.phases.reduce((m, p) => Math.max(m, p.r && fin(p.r.gust) ? p.r.gust : 0), 0));
       return `gusts at or above your ${o.limit || 25} mph limit${during} (now up to ${pk} mph).`; }
     if (top && top.key === 'lightning') return `the thunder signal${during} holding or fading.`;
@@ -119,12 +127,12 @@
      implies a delay or cancellation policy the venue may not have. */
   function changes(o, { top, hit, evp, G }) {
     const { b, S, tz } = o, out = [];
-    const firstHit = hit[0], evLabel = evp.key === 'event' ? 'event' : evp.label.toLowerCase();
+    const firstHit = hit[0], evLabel = evp.key === 'event' && !evp.slot ? 'event' : PW(evp.label);
     if (top) {
       const t = top.timing || {};
       if (top.key === 'rain') {
         /* each source's own onset (the same per-source timing the briefing's certainty uses) */
-        const s0 = Math.max(b.all.startMs, Math.floor(o.now / H) * H), all = S.precipTiming ? S.precipTiming(o.ctx, s0, b.all.endMs).rows.filter((r) => r.status === 'wet') : [];
+        const s0 = Math.max(b.all.startMs, Math.floor(o.now / H) * H), all = S.precipTiming ? (b.spans && S.precipTimingIn ? S.precipTimingIn(o.ctx, b.spans, s0, b.all.endMs) : S.precipTiming(o.ctx, s0, b.all.endMs)).rows.filter((r) => r.status === 'wet') : [];
         const rows = all.filter((r) => fin(r.onset) && !r.onsetClipped), under = all.filter((r) => r.onsetClipped);
         const name = (id) => ((o.names && o.names[id]) || id).replace(/ \(.*\)$/, ''), early = rows.slice().sort((a, c) => a.onset - c.onset)[0], late = rows.slice().sort((a, c) => c.onset - a.onset)[0];
         const range = early && late ? (late.onset - early.onset >= H ? `sources now start it between ${clock(early.onset, tz)} (${name(early.id)}) and ${clock(late.onset, tz)} (${name(late.id)})` : `sources agree on about ${clock(early.onset, tz)}`)
@@ -135,9 +143,9 @@
         else if (fin(top.from)) out.push(`Watch whether the rain moves earlier than ${clock(top.from, tz)}, into the ${evLabel} itself (it ends ${clock(evp.endMs, tz)}).`);
       } else if (top.key === 'wind') {
         const pk = Math.round(b.phases.reduce((m, p) => Math.max(m, p.r && fin(p.r.gust) ? p.r.gust : 0), 0)), lim = o.limit || 25;
-        out.push(`Your event’s gust limit is ${lim} mph and gusts reach up to ${pk} mph${firstHit ? ` during ${firstHit.label.toLowerCase()} (${span(firstHit.startMs, firstHit.endMs, tz)})` : ''}. Watch whether they stay at or above ${lim} mph in the next update.`);
+        out.push(`Your event’s gust limit is ${lim} mph and gusts reach up to ${pk} mph${firstHit ? ` during ${PS(firstHit.label)} (${span(firstHit.startMs, firstHit.endMs, tz)})` : ''}. Watch whether they stay at or above ${lim} mph in the next update.`);
       } else if (top.key === 'lightning') {
-        out.push(`Watch whether the thunder signal${firstHit ? ` during ${firstHit.label.toLowerCase()} (${span(firstHit.startMs, firstHit.endMs, tz)})` : ''} holds in the next update. It is forecast potential, not detected lightning.`);
+        out.push(`Watch whether the thunder signal${firstHit ? ` during ${PS(firstHit.label)} (${span(firstHit.startMs, firstHit.endMs, tz)})` : ''} holds in the next update. It is forecast potential, not detected lightning.`);
       } else if (fin(top.from)) out.push(`Watch whether the ${top.noun} moves earlier or later than ${span(top.from, top.to, tz)} in the next update.`);
       const rule = (TIER_RULE[top.key] || [])[top.level], below = top.level > 1 ? S.LEVEL_WORD[top.level - 1] : null;
       if (rule) out.push(`It is rated ${top.word.toLowerCase()} by the briefing’s ${top.label.toLowerCase()} rule (${rule}).${below ? ` If the next update falls below that, it would be “${below.toLowerCase()}”.` : ' If the next update falls below that, it would drop off the list.'}`);
@@ -168,10 +176,10 @@
   function leadKind(L) { return tag(L.kind); }
   function leadHtml(L, { tz, lat, lon }) {
     const hit = L.phases.filter((p) => p.hit), all = L.phases.length > 1 && hit.length === L.phases.length, P = L.phases;
-    const whole = P.length ? `${P[0].label.toLowerCase()} through ${P[P.length - 1].label.toLowerCase()}` : 'the event';
+    const whole = P.length ? `${PW(P[0].label)} through ${PW(P[P.length - 1].label)}` : 'the event';
     let text;
     /* the implication now sits with the tier word in the concern's callout row just below ("Likely disruptive. Plan …") */
-    if (L.kind === 'forecast') text = `<b>${esc(L.when || cap(L.top.noun))}</b>, ${all ? esc(whole) : hit.length ? listWords(hit.map((p) => `<span class="ev-ph">${esc(p.label.toLowerCase())} ${esc(p.time)}</span>`)) : 'exact time uncertain'}.${L.gaps.limited ? ` <span class="ev-lead-gap" data-lead="gap">${esc(L.gaps.brief)}</span>` : ''}`;
+    if (L.kind === 'forecast') text = `<b>${esc(L.when || cap(L.top.noun))}</b>, ${all ? esc(whole) : hit.length ? listWords(hit.map((p) => `<span class="ev-ph">${esc(PW(p.label))} ${esc(p.time)}</span>`)) : 'exact time uncertain'}.${L.gaps.limited ? ` <span class="ev-lead-gap" data-lead="gap">${esc(L.gaps.brief)}</span>` : ''}`;
     /* missing guidance: the headline names the window; one short line says why (the missing sources are named under
        "Why this is flagged" and in the Missing guidance block below), with "Watch for" in the same paragraph */
     else if (L.kind === 'missing') { const G = L.gaps, w = [G.thin ? `Only ${G.used} of ${G.total} model sources reach these hours.` : '', G.partial ? `${G.partial.replace(/\.$/, '')}.` : '',
@@ -211,14 +219,18 @@
       rows.push(['Against the rule', `${cap(top.word)} means ${(TIER_RULE[top.key] || [])[top.level] || 'the briefing’s top tier'}. By part: ${per.join('; ') || 'no single part rated'}.`]);
     } else {
       const live = b.phases.filter((p) => p.r), mx = (k) => live.reduce((a, p) => (fin(p.r[k]) && (!a || p.r[k] > a.v) ? { v: p.r[k], p } : a), null), c = mx('chanceV'), g = mx('gust');
-      rows.push(['Guidance', `${blend}. No hazard reaches the briefing’s lowest tier in any part of the event${c ? `; highest rain chance ${pct(c.v)} (${c.p.label.toLowerCase()})` : ''}${g ? `, peak gust ${Math.round(g.v)} mph (${g.p.label.toLowerCase()})` : ''}.${G.incomplete ? ` ${G.incomplete}: those hours are missing, not quiet.` : ''}`]);
+      rows.push(['Guidance', `${blend}. No hazard reaches the briefing’s lowest tier in any part of the event${c ? `; highest rain chance ${pct(c.v)} (${PW(c.p.label)})` : ''}${g ? `, peak gust ${Math.round(g.v)} mph (${PW(g.p.label)})` : ''}.${G.incomplete ? ` ${G.incomplete}: those hours are missing, not quiet.` : ''}`]);
     }
     /* 2. model spread: the forecast range across sources the page already computes */
     const T = V && V.totals, spread = [];
+    /* with gaps between slots, say which hours the totals and timing cover (only the hours inside the slots are summed) */
+    if (b.spans && b.spans.length > 1) spread.push(`Totals cover your slots: ${slotSpans(b.spans, tz)}; rain that falls between them is not counted.`);
+    /* hourly guidance can't split an hour: say which partly covered hours are counted with which slot */
+    if (b.custom && V && V.totals && V.totals.partial && V.totals.partial.length) spread.push(`Hourly data: ${V.totals.partial.slice(0, 3).map((x) => `${span(x.s, x.e, tz)} counted with ${listWords(x.labels.map((l) => PS(l)))}`).join('; ')}; the forecast can’t separate parts of an hour.`);
     if (T && fin(T.qpf)) spread.push(`Rain over the event ${inch(T.qpf)} in the blend${T.qpfR && fin(T.qpfR[0]) && fin(T.qpfR[1]) ? (T.qpfR[1] - T.qpfR[0] >= 0.005 ? `; sources range ${inch(T.qpfR[0])}–${inch(T.qpfR[1])} (10th–90th percentile, weighted)` : '; the sources agree on that amount') : ''}${T.gap ? `, with ${T.gap} hour${T.gap > 1 ? 's' : ''} missing` : ''}.`);
     if (top && top.timing && top.timing.of) spread.push(`${top.timing.show} of ${top.timing.of} sources show ${top.noun} in these hours${fin(top.timing.first) && top.key !== 'lightning' ? `, first between ${clock(top.timing.first, tz)} and ${clock(top.timing.last, tz)}` : ''}. Timing: ${top.certainty.word.replace(/^./, (c) => c.toLowerCase())}.`);
     const ev = b.phases.find((p) => p.key === 'event'), er = ev && ev.r;
-    if (er && fin(er.hiR[0]) && fin(er.hiR[1])) spread.push(`Temperature during the ${ev.label.toLowerCase()}: ${Math.round(er.hiR[0]) === Math.round(er.hiR[1]) ? `${Math.round(er.hiR[1])}° in every source` : `${Math.round(er.hiR[0])}–${Math.round(er.hiR[1])}° across sources`} (${er.ag.word.toLowerCase()}).`);
+    if (er && fin(er.hiR[0]) && fin(er.hiR[1])) spread.push(`Temperature during ${ev.slot ? PS(ev.label) : `the ${ev.label.toLowerCase()}`}: ${Math.round(er.hiR[0]) === Math.round(er.hiR[1]) ? `${Math.round(er.hiR[1])}° in every source` : `${Math.round(er.hiR[0])}–${Math.round(er.hiR[1])}° across sources`} (${er.ag.word.toLowerCase()}).`);
     rows.push(['Model spread', spread.join(' ') || 'Not enough sources to show a spread.']);
     /* 3. trend: only against a comparable earlier briefing */
     const u = o.update, trend = u && u.items && u.items.length ? `Since your briefing of ${clock(u.previousAt, tz)} ${wd(u.previousAt, tz)}: ${u.items.map((x) => x.text).join(' ')}`
@@ -245,7 +257,7 @@
        the website (the handout rule), so coverage points to the "Missing guidance" line instead */
     const print = [
       top ? `${top.label} ${top.word.toLowerCase()}: ${(TIER_RULE[top.key] || [])[top.level] || ''}.` : G.incomplete ? `${G.incomplete}; no hazard reaches the briefing’s lowest tier in the hours that have guidance.` : 'No hazard reaches the briefing’s lowest tier in any part of the event.',
-      `${T && fin(T.qpf) && T.qpf >= 0.005 ? `Event rain ${inch(T.qpf)} in the blend${T.qpfR && fin(T.qpfR[1]) && T.qpfR[1] - T.qpfR[0] >= 0.005 ? `, forecast range ${inch(T.qpfR[0])}–${inch(T.qpfR[1])}` : ''}. ` : ''}${T2 && T2.of && fin(T2.first) && top.key !== 'lightning' ? `First ${top.noun} ${clock(T2.first, tz)}–${clock(T2.last, tz)} across the guidance (${top.certainty.word.replace(/:.*$/, '').toLowerCase()}). ` : ''}`.trim(),
+      `${T && fin(T.qpf) && T.qpf >= 0.005 ? `${b.spans && b.spans.length > 1 ? `Rain over your slots (${slotSpans(b.spans, tz)})` : 'Event rain'} ${inch(T.qpf)} in the blend${T.qpfR && fin(T.qpfR[1]) && T.qpfR[1] - T.qpfR[0] >= 0.005 ? `, forecast range ${inch(T.qpfR[0])}–${inch(T.qpfR[1])}` : ''}. ` : ''}${T2 && T2.of && fin(T2.first) && top.key !== 'lightning' ? `First ${top.noun} ${clock(T2.first, tz)}–${clock(T2.last, tz)} across the guidance (${top.certainty.word.replace(/:.*$/, '').toLowerCase()}). ` : ''}`.trim(),
       `${newest ? `Newest model run ${clock(newest.init, tz)} ${wd(newest.init, tz)}` : 'Model run times not reported'}${nx ? `; next update about ${clock(nx.at, tz)} ${wd(nx.at, tz)}` : ''}.`,
       G.limited ? 'Coverage is limited: see Missing guidance above.' : 'Coverage: the guidance reaches every event hour.',
       trend,
@@ -266,8 +278,8 @@
     const G = L.gaps, plain = [G.thin ? 'Only part of the usual forecast data reaches these hours, so timing could shift.' : '', G.missingHours.length ? `${cap(G.missingHours.length === 1 ? `the ${clock(G.missingHours[0], tz)} hour has` : `${span(G.missingHours[0], G.missingHours[G.missingHours.length - 1] + H, tz)} (${G.missingHours.length} hours) have`)} no forecast data: missing, not zero.` : '', G.partial ? `${G.partial} Check again for the rest.` : '', G.alertsOff ? 'Official alerts could not be checked.' : ''].filter(Boolean);
     const gap = plain.length ? `<p class="pv-gap" data-pv="missing"><b>Missing guidance:</b> ${esc(plain.join(' '))}</p>` : '';
     const P = L.phases, hit = P.filter((p) => p.hit), all = P.length > 1 && hit.length === P.length;
-    const where = L.kind === 'forecast' ? (all ? `${P[0].label.toLowerCase()} through ${P[P.length - 1].label.toLowerCase()}` : hit.map((p) => `${p.label.toLowerCase()} ${p.time}`).join(', ') || 'exact time uncertain')
-      : `checked ${P.length ? `${P[0].label.toLowerCase()} through ${P[P.length - 1].label.toLowerCase()}` : 'the event'}`;
+    const where = L.kind === 'forecast' ? (all ? `${PW(P[0].label)} through ${PW(P[P.length - 1].label)}` : hit.map((p) => `${PW(p.label)} ${p.time}`).join(', ') || 'exact time uncertain')
+      : `checked ${P.length ? `${PW(P[0].label)} through ${PW(P[P.length - 1].label)}` : 'the event'}`;
     return `<div class="pv-takeaway pv-takeaway-lead"><div class="pv-lead" data-pv="lead"><span class="pv-kind">${esc(KIND[L.kind])}</span><h2 class="pv-dec">${esc(headline)}</h2>
       <p class="pv-lead-when">${L.when ? `<b>${esc(L.when)}</b>, ${esc(where)}` : esc(cap(where))}. ${L.top && L.top.word ? `<b>${esc(L.top.word)}.</b> ` : ''}${esc(L.implication)}</p>
       <p class="pv-lead-watch"><b>Watch for:</b> ${esc(L.watch)}</p>

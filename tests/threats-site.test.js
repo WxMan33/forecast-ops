@@ -74,11 +74,14 @@ ok("highlights: complete grids are fully checked (a November grid without a heat
   assert.deepStrictEqual(hl("quiet").unchecked, []); assert.deepStrictEqual(hl("heavy").unchecked, []);
   const b = OL.build({ tz: TZ, now: NOW, venue: CVG, days: 7, states: { spc: {}, grid: "ok" }, grid: FG.parseGrid(REPLAY.scenario(GRID, "quiet", NOW), NOW, 168) }); assert.deepStrictEqual(b.unknown, []);
 });
-ok("lead: heavy rain and the lingering rain around it are one event, named once, with the whole rain window underneath", () => {
-  const L = (name) => OL.highlightLead(hl(name).list, TZ);
-  assert.deepStrictEqual(L("heavy"), { text: "Heavy rain Thursday · Wintry mix possible Friday morning", timing: "Rain likely from Thu 10 AM through Fri 7 AM", more: "" });
-  assert.deepStrictEqual(L("heavy-alone"), { text: "Heavy rain Thursday", timing: "Rain from Thu 1 PM through Fri 7 AM", more: "" });
-  assert.deepStrictEqual(OL.highlightLead(OL.highlights(FG.parseGrid(GRID, NOW, 168), TZ, NOW, {}).list, TZ), { text: "Rain likely Thursday", timing: "From Thu 4 AM through Fri 1 PM", more: "More rain likely Sunday · Sun 1 PM through 7 PM" }); // a later rain event: its own line and window
+const plainT = (x) => x.replace(/\u00a0/g, " ");
+ok("lead: a later rain round gets its own line and window (real CVG grid, ILN 30,35 2026-11-25 21:45Z); heavy rain alone gets its own window", () => {
+  const g = FG.parseGrid(FX("nws-gridpoints-ILN-30-35-20261125T2145Z.json"), Date.parse("2026-11-25T22:00:00Z"), 168), L = OL.highlightLead(OL.highlights(g, TZ, Date.parse("2026-11-25T22:00:00Z"), {}).list, TZ);
+  assert.strictEqual(L.text, "Heavy rain Thursday · More rain Sunday");
+  assert.strictEqual(plainT(L.timing), "Rain likely from 3 AM Thursday through 7 PM Friday, with light rain after 7 AM Friday");
+  assert.strictEqual(plainT(L.more), "More rain likely Sunday · from 7 AM through 7 PM Sunday");
+  const A = OL.highlightLead(hl("heavy-alone").list, TZ); assert.strictEqual(A.text, "Heavy rain Thursday"); assert.strictEqual(plainT(A.timing), "Rain from 1 PM Thursday through 7 AM Friday"); assert.strictEqual(A.more, "");
+  assert.strictEqual(OL.highlightLead(hl("heavy").list, TZ).more, "");
 });
 ok("partial rain amounts: short of an inch before they stop mid-rain is 'not checked' on that day; past an inch keeps heavy rain and says the total may be higher", () => {
   const pr = hl("partial-rain"); assert.deepStrictEqual(pr.list.map((x) => x.kind), ["linger"]);
@@ -86,7 +89,7 @@ ok("partial rain amounts: short of an inch before they stop mid-rain is 'not che
   const b = OL.build({ tz: TZ, now: NOW, venue: CVG, days: 7, states: { spc: {}, grid: "ok" }, grid: FG.parseGrid(REPLAY.scenario(GRID, "partial-rain", NOW), NOW, 168) });
   assert.deepStrictEqual(b.days.map((d) => d.unknown.length), [0, 1, 0, 0, 0, 0, 0]);
   const ph = hl("partial-heavy"); assert.deepStrictEqual(ph.unchecked, []); assert.strictEqual(ph.list[0].kind, "rain"); assert.ok(ph.list[0].partial);
-  assert.strictEqual(OL.highlightLead(ph.list, TZ).timing, "Rain likely from Thu 10 AM through Fri 3 AM · rain amounts stop Thu 7 PM, so the total may be higher");
-  assert.deepStrictEqual(hl("heavy").unchecked, []); // amounts that run past the rain: fully checked
+  assert.strictEqual(plainT(OL.highlightLead(ph.list, TZ).timing), "Rain likely from 10 AM Thursday through 3 AM Friday; rain amounts stop at 7 PM Thursday, so the total may be higher");
+  for (const n of ["heavy", "heavy-alone", "quiet", "hot"]) assert.deepStrictEqual(hl(n).unchecked, [], n); // amounts that outlast the rain: fully checked
 });
 console.log(n + " passed");
