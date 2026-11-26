@@ -616,21 +616,33 @@
     catch (e) { return null; } finally { clearTimeout(timer); }
   }
   /* river gauges for the map's view, at regional zoom with Flooding on (queried by area, kept 15 minutes per area) */
-  let gaugeTimer = null;
-  /* a Flood Warning (river, areal or flash) in effect inside the map's view: the only time river gauges load or show */
+  let gaugeTimer = null, gaugeArea = null;
+  const mapBounds = () => {
+    const b = map.getBounds();
+    return [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+  };
+  const liveFloodWarnings = () => data.products.filter((p) => p.sourceId === "nws-alerts" && FLOOD_WARNING(p) && !later(p) && Date.parse(p.expires) > now);
+  const warningIntersects = (p, box) => p.geometry && T.bboxOverlap(T.bbox(p.geometry), box);
+  const retainedGaugeArea = (warnings, box) => gaugeArea && T.bboxOverlap(gaugeArea.box, box) && warnings.some((p) => gaugeArea.warningIds.has(p.id));
   function gaugeWarn() {
     if (!map) return (S.gaugeWhy = null);
-    const b = map.getBounds(), box = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
-    return (S.gaugeWhy = (data.products || []).some((p) => p.sourceId === "nws-alerts" && FLOOD_WARNING(p) && Date.parse(p.expires) > now && p.geometry && T.bboxOverlap(T.bbox(p.geometry), box)) ? "flood warning" : null);
+    const box = mapBounds(), warnings = liveFloodWarnings();
+    return (S.gaugeWhy = warnings.some((p) => warningIntersects(p, box)) || retainedGaugeArea(warnings, box) ? "flood warning" : null);
   }
   let gaugeAsked = { k: null, at: 0 };
   function ensureGauges() {
     if (!map || !mapLoaded || !isLive() || !Live.gaugesIn || !S.layers.flood || viewDay() > 1 || winterView() || fireView() || map.getZoom() < 6) return;
-    // river gauges only where a Flood Warning (river, areal or flash) is in effect inside the view
-    if (!gaugeWarn()) return;
-    // ask once per area (and again after the 15-minute refresh); redraw only when an answer arrives. Asking on every redraw,
-    // with the cached answer redrawing again, kept the panel and map redrawing twice a second wherever gauges were shown.
-    const b = map.getBounds(), r = (v) => Math.round(v * 2) / 2, box = [r(b.getWest()) - 0.5, r(b.getSouth()) - 0.5, r(b.getEast()) + 0.5, r(b.getNorth()) + 0.5], k = box.join(",");
+    const view = mapBounds(), warnings = liveFloodWarnings();
+    const visible = warnings.filter((p) => warningIntersects(p, view));
+    const keep = retainedGaugeArea(warnings, view);
+    if (!visible.length && !keep) { clearTimeout(gaugeTimer); return; }
+    const covered = keep && view[0] >= gaugeArea.box[0] && view[1] >= gaugeArea.box[1] && view[2] <= gaugeArea.box[2] && view[3] <= gaugeArea.box[3];
+    // Zooming to a gauge can leave the warning offscreen. Reuse the original query area while its warning remains active.
+    const r = (v) => Math.round(v * 2) / 2;
+    const box = covered || !visible.length ? gaugeArea.box : view.map((v, i) => r(v) + (i < 2 ? -0.5 : 0.5));
+    const k = box.join(",");
+    if (!gaugeArea || gaugeArea.box !== box) gaugeArea = { box, warningIds: new Set(visible.map((p) => p.id)) };
+    else for (const p of visible) gaugeArea.warningIds.add(p.id);
     if (gaugeAsked.k === k && Date.now() - gaugeAsked.at < 15 * 60e3) return;
     clearTimeout(gaugeTimer); gaugeTimer = setTimeout(() => { gaugeAsked = { k, at: Date.now() };
       Live.gaugesIn(box).then(() => { load(); drawAll(); }, () => { gaugeAsked = { k, at: Date.now() - 14 * 60e3 }; drawAll(); }); }, 400); // a failure: this area is tried again in a minute
@@ -643,17 +655,26 @@
     if (!S.counties || countiesAsked || map.getZoom() < 4.3) return; countiesAsked = true;
     Promise.all([getJSON("assets/geo/county-lines.json"), getJSON("assets/geo/county-labels.json")]).then(([l, n]) => { map.getSource("cnty-lines").setData(l); map.getSource("cnty-labels").setData(n); }).catch(() => { countiesAsked = false; });
   }
+  function radarBeforeLayer() {
+    const aboveRadar = ["hu-state", "states", "cnty-lines", "outlook-fill"];
+    return map.getStyle().layers.find((layer) => aboveRadar.includes(layer.id))?.id;
+  }
   /* our hazard fills and lines go under the basemap's labels (towns and streets stay readable); our own labels stay on top */
   function orderOverBase() {
     const st = map.getStyle(), ours = new Set(OUR), firstLabel = st.layers.find((l) => l.type === "symbol" && !ours.has(l.id));
-    if (!firstLabel) return; for (const l of st.layers) if (ours.has(l.id) && (l.type !== "symbol" || l.id === "cnty-labels") && l.id !== "hu-state") map.moveLayer(l.id, firstLabel.id); // county names yield to town names
+    if (!firstLabel) return;
+    for (const l of st.layers) if (ours.has(l.id) && (l.type !== "symbol" || l.id === "cnty-labels") && l.id !== "hu-state") map.moveLayer(l.id, firstLabel.id);
+    if (map.getLayer("radar")) {
+      map.moveLayer("radar", radarBeforeLayer());
+      for (const id of ["rain-obs", "rain-fcst"]) if (map.getLayer(id)) map.moveLayer(id, "radar");
+    }
   }
   /* clearer state lines and county lines from zoom 6 (the basemap's own county lines start at zoom 9) */
   function baseLines() {
     const src = Object.keys(map.getStyle().sources).find((k) => map.getStyle().sources[k].type === "vector"); if (!src) return;
     const lt = light(), first = map.getStyle().layers.find((l) => l.type === "symbol");
-    for (const [id, kd, mz, col, w] of [["hu-state", 4, 3, lt ? "rgba(70,78,90,.75)" : "rgba(200,206,216,.6)", [3, 0.8, 8, 1.8]]])
-      if (!map.getLayer(id)) map.addLayer({ id, type: "line", source: src, "source-layer": "boundaries", minzoom: mz, filter: ["==", ["get", "kind_detail"], kd], paint: { "line-color": col, "line-width": ["interpolate", ["linear"], ["zoom"], w[0], w[1], w[2], w[3]] } }, first && first.id);
+    for (const [id, kd, mz, col, w] of [["hu-state", 4, 3, lt ? "#52606d" : "#b8c2cc", [3, 0.8, 8, 1.8]]])
+      if (!map.getLayer(id)) map.addLayer({ id, type: "line", source: src, "source-layer": "boundaries", minzoom: mz, filter: ["==", ["get", "kind_detail"], kd], paint: { "line-color": col, "line-opacity": 0.85, "line-width": ["interpolate", ["linear"], ["zoom"], w[0], w[1], w[2], w[3]] } }, first && first.id);
   }
   async function createMap() {
     const [states, lakes, base] = await Promise.all([getJSON("assets/severe-research/states.json"), getJSON("assets/severe-research/lakes.json"), cartoStyle(light() ? "light" : "dark")]);
@@ -672,7 +693,7 @@
       const L = (o) => { OUR.push(o.id); map.addLayer(o); };
       L({ id: "lakes", type: "fill", source: "lakes", paint: { "fill-color": p.water } });
       /* county lines (US Census, us-atlas 10m; inside each state) from regional zoom, names from zoom 7.5: our own files, loaded on first zoom-in */
-      L({ id: "cnty-lines", type: "line", source: "cnty-lines", minzoom: 4.5, paint: { "line-color": p.muted, "line-opacity": ["interpolate", ["linear"], ["zoom"], 4.5, 0.18, 7, 0.4, 10, 0.55], "line-width": ["interpolate", ["linear"], ["zoom"], 4.5, 0.4, 8, 0.8, 11, 1.2] } });
+      L({ id: "cnty-lines", type: "line", source: "cnty-lines", minzoom: 4.5, paint: { "line-color": p.muted, "line-opacity": ["interpolate", ["linear"], ["zoom"], 4.5, 0.18, 7, 0.55, 10, 0.6], "line-width": ["interpolate", ["linear"], ["zoom"], 4.5, 0.4, 8, 0.8, 11, 1.2] } });
       L({ id: "outlook-fill", type: "fill", source: "outlook", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.55 } });
       L({ id: "m-fill", type: "fill", source: "m-fill", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.62 } });
       L({ id: "m-lines", type: "line", source: "m-lines", paint: { "line-color": "#222", "line-width": 0.7, "line-opacity": 0.6 } });
@@ -807,7 +828,10 @@
     const inc = day === 2 || day === 3 ? [] : incidents();
     map.getSource("inc").setData({ type: "FeatureCollection", features: inc.filter((p) => p.geometry).map((p) => feature(p, { color: colorOf(p) })) });
     { const ls = day === 2 || day === 3 || winterView() || fireView() || !S.layers.severe ? [] : data.products.filter((p) => p.kind === "lsr"); map.getSource("lsr").setData({ type: "FeatureCollection", features: ls.map((p) => ({ type: "Feature", properties: { id: p.id, type: p.type, color: LSR_COLOR[p.type] }, geometry: { type: "Point", coordinates: p.point } })) }); }
-    { const gs = day === 2 || day === 3 || winterView() || fireView() || !S.layers.flood ? [] : gaugeWarn() ? data.products.filter((p) => p.kind === "gauge") : ((siteAssess() || {}).gauges || []); map.getSource("gauge").setData({ type: "FeatureCollection", features: gs.map((p) => ({ type: "Feature", properties: { id: p.id, rank: p.rank, color: GAUGE_COLOR[p.category] || "#8a8f98" }, geometry: { type: "Point", coordinates: p.point } })) }); }
+    { const siteGauges = (siteAssess() || {}).gauges || [];
+      const inFloodArea = (p) => p.kind === "gauge" && gaugeArea && T.bboxOverlap(gaugeArea.box, [...p.point, ...p.point]);
+      const gs = day === 2 || day === 3 || winterView() || fireView() || !S.layers.flood ? [] : gaugeWarn() && gaugeArea ? data.products.filter(inFloodArea) : siteGauges;
+      map.getSource("gauge").setData({ type: "FeatureCollection", features: gs.map((p) => ({ type: "Feature", properties: { id: p.id, rank: p.rank, color: GAUGE_COLOR[p.category] || "#8a8f98" }, geometry: { type: "Point", coordinates: p.point } })) }); }
     map.getSource("inc-pt").setData({ type: "FeatureCollection", features: inc.map((p) => ({ type: "Feature", properties: { id: p.id, color: colorOf(p), r: p.acres >= 10000 ? 8 : p.acres >= 1000 ? 6.5 : p.acres >= 100 ? 5 : 3.6 }, geometry: { type: "Point", coordinates: p.point } })) });
     const wa = wv ? wssiAreas() : [];
     map.getSource("wssi").setData({ type: "FeatureCollection", features: wa.filter((p) => p.geometry).sort((a, b) => a.prob - b.prob).map((p) => feature(p, { color: wssiColor(p.prob) })) });
@@ -1532,7 +1556,7 @@
     const url = radar.via === "iem" ? radar.client.tileUrl() : Live.RADAR_TILE_URL + "&t=" + Date.parse(radar.valid); // a new scan is a new URL
     const paint = radar.via === "iem" ? { "raster-opacity": RD.OPACITY, "raster-resampling": "nearest", "raster-fade-duration": 0 } : { "raster-opacity": 0.6, "raster-fade-duration": 0 };
     if (map.getSource("radar") && radar.srcVia !== radar.via) { map.removeLayer("radar"); map.removeSource("radar"); radar.tiles = null; }
-    if (!map.getSource("radar")) { map.addSource("radar", { type: "raster", tiles: [url], tileSize: 256, maxzoom: radar.via === "iem" ? 10 : 22, attribution: radar.via === "iem" ? "MRMS via Iowa Environmental Mesonet" : "NOAA MRMS radar" }); map.addLayer({ id: "radar", type: "raster", source: "radar", paint }, map.getLayer("outlook-fill") ? "outlook-fill" : undefined); radar.srcVia = radar.via; }
+    if (!map.getSource("radar")) { map.addSource("radar", { type: "raster", tiles: [url], tileSize: 256, maxzoom: radar.via === "iem" ? 10 : 22, attribution: radar.via === "iem" ? "MRMS via Iowa Environmental Mesonet" : "NOAA MRMS radar" }); map.addLayer({ id: "radar", type: "raster", source: "radar", paint }, radarBeforeLayer()); radar.srcVia = radar.via; }
     else if (radar.tiles !== url) map.getSource("radar").setTiles([url]);
     radar.tiles = url; map.setLayoutProperty("radar", "visibility", "visible");
   }
