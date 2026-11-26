@@ -129,7 +129,7 @@ const CASES = [
     await ctx.close();
   }
   /* a small phone (375×667, iPhone SE-like): the lead and "Watch for" (and an urgent warning) on the first screen */
-  for (const [name, query] of CASES.slice(0, 4)) {
+  for (const [name, query] of CASES) {
     const { ctx, p, errors } = await open(base, query, { device: { width: 375, height: 667 } }), s = await state(p);
     const bar = await p.evaluate(() => { const ids = ['printTop', 'bxFeedback', 'bxRefresh', 'bxTheme'], els = [...ids.map((i) => document.getElementById(i)), document.querySelector('.bx-head-in > a.bx-btn')].filter(Boolean);
       const r = els.map((e) => e.getBoundingClientRect()), dd = [...document.querySelectorAll('#keys dd')].pop();
@@ -144,6 +144,8 @@ const CASES = [
     if (name === 'missing') { const m = await p.evaluate(() => ({ dec: document.getElementById('decision').innerText, rows: [...document.querySelectorAll('#keys dd')].slice(0, 3).map((d) => d.innerText.replace(/\s+/g, ' ')) }));
       check(/9–11 AM/.test(m.dec) && /in hours with guidance/.test(m.rows[0]) && /in hours with guidance/.test(m.rows[2]) && !/\d/.test(m.rows[1].replace(/9–11 AM/g, '')), `${name} 375×667: the missing hours are named (${m.dec}) and every number shown for other hours says "in hours with guidance" (${m.rows.join(' | ')})`); }
     check(s.whenBottom <= s.vh && s.watchBottom <= s.vh && (name !== 'warning' || (s.urgentBottom > 0 && s.urgentBottom <= s.vh)) && !s.hscroll && !errors.length, `${name} 375×667: lead and "Watch for"${name === 'warning' ? ' and the urgent warning' : ''} on the first screen (watch ends ${Math.round(s.watchBottom)} px${name === 'warning' ? `, warning ends ${Math.round(s.urgentBottom)} px` : ''})`);
+    if (name === 'alertsfail') { const card = (await p.locator('#alerts').innerText()).replace(/\s+/g, ' ').trim();
+      check(/Official alerts could not be checked \(\d{1,2}(:\d\d)? [AP]M\)/.test(card) && /weather\.gov/.test(card) && !/No active official alerts/.test(card), `${name} 375×667: a failed alert check stays unavailable and never says "No active official alerts" (${card})`); }
     await p.screenshot({ path: path.join(out, `${name}-phone375-light.png`) }); await ctx.close();
   }
   /* dark phone and desktop views of the replay */
