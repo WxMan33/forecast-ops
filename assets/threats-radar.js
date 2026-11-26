@@ -101,7 +101,8 @@
       };`;
   }
   function createClient(opts = {}) {
-    const fetchFn = opts.fetch || ((u) => fetch(u, { cache: "no-store" }));
+    /* 15 s per request, as Predictable (source.ts AbortSignal.timeout(15_000)): a slow IEM falls back to NOAA's tiles and retries next minute */
+    const fetchFn = opts.fetch || ((u) => fetch(u, { cache: "no-store", signal: typeof AbortSignal !== "undefined" && AbortSignal.timeout ? AbortSignal.timeout(opts.timeoutMs || 15000) : undefined }));
     const state = { scan: null, checkedAt: null, error: null, bytes: null, downloadMs: null, decodeMs: null, size: null, tileMs: [], loads: 0 };
     let worker = null, seq = 0, pending = new Map(), loading = null;
     const call = (msg, transfer) => new Promise((res, rej) => { const id = ++seq; pending.set(id, { res, rej }); worker.postMessage({ ...msg, id }, transfer || []); });

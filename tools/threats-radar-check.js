@@ -69,6 +69,14 @@ const read = (p) => p.evaluate(() => { const T = window.__threats, m = T.map, st
   for (const [name, opt, theme] of [["desktop-light", { viewport: { width: 1440, height: 900 } }, "light"], ["phone-light", { ...devices["iPhone 13"] }, "light"]]) {
     const { ctx, p, errs } = await open(b, opt, theme, false); const s = await read(p); await p.screenshot({ path: path.join(OUT, `cvg-${name}.png`) });
     check(`(${name}) theme ${s.theme}: radar from IEM, opacity ${s.paint && s.paint.opacity}, nearest; warnings above`, s.via === "iem" && s.paint && s.paint.opacity === 0.85 && s.paint.resampling === "nearest" && s.warningsAbove && !errs.length, { s, errs }); await ctx.close(); }
+  /* IEM not answering: within about 15 s the page shows NOAA's pre-coloured tiles, labelled as the fallback */
+  { const ctx = await b.newContext({ ...devices["iPhone 13"] }), p = await ctx.newPage(), errs = []; p.on("pageerror", (e) => errs.push(e.message));
+    await p.route(/mesonet\.agron\.iastate\.edu\/data\/gis\/images\/4326\/mrms\/lcref\.png/, () => {}); // never answers
+    const t0 = Date.now(); await p.goto(HOST + "/threats.html?" + CVG + "&radar=1&view=active&scope=venue", { waitUntil: "domcontentloaded", timeout: 60000 }); await passNotice(p);
+    await p.waitForFunction(() => window.__threats && window.__threats.radar && window.__threats.radar.via === "noaa" && window.__threats.radar.state === "ok", null, { timeout: 60000 }).catch(() => {});
+    const s = await read(p), secs = Math.round((Date.now() - t0) / 1000);
+    check(`(phone) IEM image not answering: NOAA's tiles shown after ${secs} s, labelled ('${s.row.slice(0, 80)}'); legend says fallback`, s.via === "noaa" && /fallback/.test(s.row) && secs <= 40 && !errs.length, { s, secs, errs });
+    await ctx.close(); }
   /* phone, dark, 4x slower CPU: consecutive refreshes */
   { const { ctx, p, errs, reqs } = await open(b, { ...devices["iPhone 13"] }, "dark", true); const first = await read(p); await p.screenshot({ path: path.join(OUT, "cvg-phone-dark.png") });
     const scans = [{ scan: first.stats && first.stats.scan, bytes: first.stats && first.stats.bytes, downloadMs: first.stats && first.stats.downloadMs, decodeMs: first.stats && first.stats.decodeMs }];

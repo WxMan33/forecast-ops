@@ -1513,7 +1513,10 @@
   function radarTick() {
     if (document.hidden && radar.lastOk) return;
     const viaIem = () => radar.client.refresh().then(() => { radar.valid = new Date(radar.client.state.scan).toISOString(); radar.via = "iem"; });
-    const viaNoaa = (e) => { radar.iemError = e.message; return Live.radarTime().then((v) => { radar.valid = v; radar.via = "noaa"; }); };
+    /* IEM not answering: keep the measured scan already shown while it is under 15 minutes old; otherwise NOAA's tiles */
+    const viaNoaa = (e) => { radar.iemError = e.message; const s0 = radar.client && radar.client.state.scan;
+      if (s0 && Date.now() - s0 < 15 * 60e3) { radar.valid = new Date(s0).toISOString(); radar.via = "iem"; return; }
+      return Live.radarTime().then((v) => { radar.valid = v; radar.via = "noaa"; }); };
     (RD && radar.client ? viaIem().catch(viaNoaa) : Live.radarTime().then((v) => { radar.valid = v; radar.via = "noaa"; }))
       .then(() => { radar.lastOk = new Date().toISOString(); radar.state = "ok"; radar.error = null; })
       .catch((e) => { radar.state = radar.lastOk ? "stale" : "failed"; radar.error = e.message; })
