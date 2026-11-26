@@ -747,9 +747,15 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .event-planner #sampleTag[hidden] { display: none; }
 .event-planner .bx-decision { margin-top: 18px !important; }
 @media (max-width: 600px) {
-  .event-planner .ev-back { margin-top: 10px; }
-  .event-planner .ev-sample-row { margin-top: 10px; }
-  .event-planner .ev-head { margin-top: 6px; }
+  .event-planner .ev-back { margin-top: 8px; }
+  .event-planner .ev-sample-row { margin-top: 8px; }
+  .event-planner .ev-sample-row .ev-sample-banner { padding: 2px 8px; line-height: 1.2; }
+  /* narrow phones: the event's name, venue and date take the full width (a wider fallback font would otherwise squeeze them
+     into many short lines beside the buttons); Share, Edit event and Use sample event follow in one compact row */
+  .event-planner .ev-head { margin-top: 4px; flex-direction: column; align-items: stretch; gap: 6px; }
+  .event-planner .ev-head-actions { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+  .event-planner .ev-sharepop { left: 0; right: auto; }
+  .event-planner .ev-head-actions .ev-sharemenu { border-top: 0; padding: 0; margin: 0; }
   .event-planner .ev-venue { font-size: 14px; }
   .event-planner .ev-when { font-size: 13px; }
   .event-planner .bx-decision { margin-top: 12px !important; }
