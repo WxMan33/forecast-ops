@@ -231,9 +231,31 @@
   .threats-page .statusbar .headline { padding: 0; min-width: 0; }
   .threats-page .statusbar .hl-word { font-size: 16px; }
   .threats-page .statusbar .page-sub, .threats-page #printBtn, .threats-page #dataChip { display: none; }
-  .threats-page .navbar { display: none; }
-  .threats-page.tx-nav-open .navbar { display: flex; flex-wrap: wrap; }
-  .tx-menu { display: inline-flex !important; cursor: pointer; }
+  /* the other Forecast Ops pages stay one tap away: the same eight labelled links as every page, as a compact 4 x 2 grid (no
+     icons, short rows) instead of hiding them behind a Menu button */
+  .threats-page .navbar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; padding: 4px 6px; }
+  .threats-page .navbar a { flex-direction: row; justify-content: center; min-height: 28px; padding: 4px 2px; font-size: 10.5px; letter-spacing: .02em; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; }
+  .threats-page .navbar a svg { display: none; }
+  .tx-menu { display: none !important; }
+  /* demo bar: badge, data and venue on one row */
+  .tx-demo { grid-template-columns: auto minmax(0, .8fr) minmax(0, 1.2fr); grid-template-areas: "badge data venue"; padding: 4px 8px; }
+  .tx-demo:has(#stepField:not([hidden])) { grid-template-columns: auto minmax(0, .8fr) minmax(0, 1.2fr) minmax(0, .8fr); grid-template-areas: "badge data venue step"; }
+  .tx-demo:has(#stepField[hidden]) { grid-template-areas: "badge data venue"; }
+  .tx-demo-badge { font-size: 10px; padding: 2px 6px; }
+  /* map controls in one row: Layers first, then the time choices scrolling sideways instead of wrapping */
+  .tx-top { display: flex; flex-direction: row; align-items: center; gap: 6px; right: 8px; top: 6px; left: 8px; flex-wrap: wrap; }
+  .tx-top > .tx-lyr { order: 0; }
+  .tx-top > .tx-time { order: 1; flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 2px 4px; }
+  .tx-top > .tx-model { order: 2; flex-basis: 100%; }
+  .tx-top > .tx-time::-webkit-scrollbar { display: none; }
+  .tx-top > .tx-time .tx-gl { display: none; }
+  .tx-lyr { flex: 0 0 auto; }
+  .tx-lyrbtn .tx-gl { display: none; }
+  .tx-lyrsum { max-width: 34vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
+  /* the "Next 7 days at … updated …" line repeats the sheet's own status lines: shown there only */
+  .tx-valid { display: none; }
+  /* the collapsed sheet keeps its lead lines (warnings first) and Details; the map-area switch and status lines show once it opens */
+  .tx-panel[data-sheet="peek"] .tx-scope, .tx-panel[data-sheet="peek"] .tx-pstate { display: none; }
   .tx-panel-body { padding: 10px 12px 16px; }
   .px-big { font-size: 20px; }
 }
