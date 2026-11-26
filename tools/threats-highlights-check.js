@@ -15,6 +15,8 @@
      live CVG: whatever the real forecast holds, every highlight names its source and the coverage note is there.
    Usage: node tools/threats-highlights-check.js https://<host> [outDir] */
 "use strict";
+/* raw.githack shows its "External Content Notice" first: click "Open the page", as a visitor does */
+const passNotice = async (pg) => { if (/External Content Notice/.test(await pg.title().catch(() => ""))) { await pg.getByText("Open the page", { exact: false }).first().click(); await pg.waitForLoadState("domcontentloaded"); } };
 const { chromium, devices } = require("playwright");
 const fs = require("fs"), path = require("path");
 const REPLAY = require("./lib/grid-replay.js");
@@ -46,7 +48,7 @@ const read = (p) => p.evaluate(() => { const nb = (x) => (x || "").replace(/\u00
     for (const name of ["heavy", "hot", "quiet", "partial", "partial-rain", "partial-heavy", "heavy-alone", "missing", "live"]) {
       const count = { n: 0, failed: 0 }, ctx = await b.newContext(phone ? { ...devices["iPhone 13"] } : { viewport: { width: 1440, height: 1000 } }), p = await ctx.newPage(), errs = [];
       p.on("pageerror", (e) => errs.push(e.message)); if (name !== "live") await rewrite(name, count)(p);
-      await p.goto(HOST + "/threats.html?" + CVG + (name === "live" ? "" : "&testreplay=highlights-" + name), { waitUntil: "domcontentloaded", timeout: 60000 });
+      await p.goto(HOST + "/threats.html?" + CVG + (name === "live" ? "" : "&testreplay=highlights-" + name), { waitUntil: "domcontentloaded", timeout: 60000 }); await passNotice(p);
       await p.waitForFunction(() => window.__threats && window.__threats.outlook && ["ok", "failed"].includes(window.__threats.outlook.state), null, { timeout: 120000 }).catch(() => {}); await p.waitForTimeout(3500);
       const s = await read(p); await p.screenshot({ path: path.join(OUT, `${name}-${d}.png`) });
       if (phone) { await p.locator("#txPeek").click().catch(() => {}); await p.waitForTimeout(900); await p.locator(".px-hl").scrollIntoViewIfNeeded().catch(() => {}); await p.screenshot({ path: path.join(OUT, `${name}-${d}-open.png`) }); }
@@ -88,7 +90,7 @@ const read = (p) => p.evaluate(() => { const nb = (x) => (x || "").replace(/\u00
   for (const name of ["heavy", "partial-rain", "partial-heavy"]) {
     const count = { n: 0, failed: 0 }, ctx = await b.newContext({ ...devices["Galaxy S9+"], viewport: { width: 360, height: 740 } }), p = await ctx.newPage(), errs = [];
     p.on("pageerror", (e) => errs.push(e.message)); await rewrite(name, count)(p);
-    await p.goto(HOST + "/threats.html?" + CVG + "&testreplay=highlights-" + name, { waitUntil: "domcontentloaded", timeout: 60000 });
+    await p.goto(HOST + "/threats.html?" + CVG + "&testreplay=highlights-" + name, { waitUntil: "domcontentloaded", timeout: 60000 }); await passNotice(p);
     await p.waitForFunction(() => window.__threats && window.__threats.outlook && ["ok", "failed"].includes(window.__threats.outlook.state), null, { timeout: 120000 }).catch(() => {}); await p.waitForTimeout(3500);
     const f = await p.evaluate(() => { const line = (id) => { const e = document.getElementById(id), r = e.getBoundingClientRect(); return { text: e.hidden ? "" : e.textContent, cut: e.scrollWidth > e.clientWidth + 1, right: Math.round(r.right), h: Math.round(r.height), visible: !e.hidden && r.width > 0 && r.bottom <= window.innerHeight }; };
       return { p1: line("txPeek1"), p2: line("txPeek2"), p3: line("txPeek3"), vw: window.innerWidth, hscroll: document.documentElement.scrollWidth > window.innerWidth + 1 }; });

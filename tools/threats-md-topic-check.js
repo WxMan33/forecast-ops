@@ -9,6 +9,8 @@
        warning and doesn't also say no MD covers the venue.
    Usage: node tools/threats-md-topic-check.js https://<host> [outDir] */
 "use strict";
+/* raw.githack shows its "External Content Notice" first: click "Open the page", as a visitor does */
+const passNotice = async (pg) => { if (/External Content Notice/.test(await pg.title().catch(() => ""))) { await pg.getByText("Open the page", { exact: false }).first().click(); await pg.waitForLoadState("domcontentloaded"); } };
 const { chromium, devices } = require("playwright");
 const fs = require("fs"), path = require("path");
 const HOST = (process.argv[2] || "").replace(/\/$/, ""), OUT = path.resolve(process.argv[3] || "docs/threats/md-topic-check");
@@ -27,7 +29,7 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
     p.on("pageerror", (e) => errs.push(e.message));
     await p.route(/spc_mesoscale_discussion\/MapServer\/0\/query/, (r) => { served++; r.fulfill({ status: 200, headers: { "content-type": "application/geo+json", "access-control-allow-origin": "*" }, body: FIX }); });
     await p.route(/spc\.noaa\.gov\/products\/md\//, (r) => r.abort()); // SPC's text unreachable, as from a browser: the map service is used
-    await p.goto(HOST + "/threats.html?layers=severe&scope=national&view=active&testreplay=md-topic", { waitUntil: "domcontentloaded", timeout: 60000 });
+    await p.goto(HOST + "/threats.html?layers=severe&scope=national&view=active&testreplay=md-topic", { waitUntil: "domcontentloaded", timeout: 60000 }); await passNotice(p);
     await p.waitForFunction(() => window.__threats && window.__threats.ready && window.__threats.data.products.some((x) => x.kind === "md"), null, { timeout: 60000 }).catch(() => {});
     await p.waitForTimeout(2500);
     const md = await p.evaluate(() => { const T = window.__threats, x = T.data.products.find((y) => y.kind === "md"); if (!x) return null;
@@ -53,7 +55,7 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok, detail }); 
       pg.on("pageerror", (x) => e.push(x.message));
       await pg.route(/spc_mesoscale_discussion\/MapServer\/0\/query/, (r) => r.fulfill({ status: 200, headers: { "content-type": "application/geo+json", "access-control-allow-origin": "*" }, body: FIX }));
       await pg.route(/spc\.noaa\.gov\/products\/md\//, (r) => r.abort());
-      await pg.goto(HOST + "/threats.html?" + IN + q + "&testreplay=md-topic", { waitUntil: "domcontentloaded", timeout: 60000 });
+      await pg.goto(HOST + "/threats.html?" + IN + q + "&testreplay=md-topic", { waitUntil: "domcontentloaded", timeout: 60000 }); await passNotice(pg);
       await pg.waitForFunction(() => window.__threats && window.__threats.ready && window.__threats.liveReady, null, { timeout: 90000 }).catch(() => {});
       return { c, pg, e }; };
     const siteRead = (pg) => pg.evaluate(() => { const T = window.__threats, A = T.siteAssess(), head = document.querySelector(".px-olhead"), strip = document.querySelector(".px-sitealerts"), brief = document.querySelector(".px-brief");
