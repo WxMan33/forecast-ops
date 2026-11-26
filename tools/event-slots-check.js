@@ -104,6 +104,8 @@ const RECEPTION = [['Reception', `${D}T17:00`, `${D}T22:00`]], NIGHT = [['Night 
       console.log('   decision: ' + x.decision); console.log('   why: ' + x.why.slice(0, 400));
       check(!/rain/i.test(x.decision) || /No weather concern/i.test(x.decision), `${L} no rain concern for any slot (${x.decision})`);
       check(!/Rain:/.test(x.phases), `${L} no slot is rated for rain`);
+      { const card = await p.evaluate(() => { const e = document.querySelector('p[data-official=none]'); return e ? e.innerText.replace(/\s+/g, ' ').trim() : null; });
+        check(card !== null && /^Official alert No active official alerts for your site right now( \(checked [^)]+\))?\.$/i.test(card), `${L} with no forecast concern the official-alert card ends after "No active official alerts for your site right now" (${card})`); }
       check(x.glance === 'Your slots · 1–10 PM' && /Your slots only, not the gaps between them/.test(x.dash), `${L} At a glance: saved slot times in the header; the totals still say they cover the slots only (${x.glance})`);
       check(/Totals cover your slots: 1–3 PM, 4–4:30 PM, 5–10 PM; rain that falls between them is not counted/.test(x.why), `${L} Why this is flagged states the hours the totals cover`);
       const tile = await p.evaluate(() => { const t = document.querySelector('[data-tile=rain] [data-value]'); return t ? t.textContent : null; });
