@@ -1118,3 +1118,18 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 /* hourly charts: hours between a planner's slots (shown, shaded, labelled; outside the schedule) */
 .evc-between{fill:var(--muted);opacity:.14}.evc-betweentext{font:600 11px var(--bx-font);fill:var(--muted)}
 .evc-key .k-between{width:14px;height:14px;background:color-mix(in srgb,var(--muted) 30%,transparent);border-radius:2px}
+/* Multi-day events: the day picker (EventDays). One compact row of chips (about 40 px tall) so a phone's first screen
+   keeps the decision, callouts, next check and any warning; it scrolls sideways when there are many days. */
+.event-planner .ev-days { margin: 8px 0 2px; }
+.event-planner .ev-days-row { display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none; }
+.event-planner .ev-days-row::-webkit-scrollbar { display: none; }
+.event-planner .ev-day { flex: 0 0 auto; display: inline-flex; align-items: baseline; gap: 5px; padding: 6px 9px; min-height: 36px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--bx-rule); border-left: 4px solid var(--tier, var(--bx-rule)); background: var(--panel, transparent); color: var(--text); font: inherit; font-size: 12.5px; cursor: pointer; }
+.event-planner .ev-day b { font-size: 13px; }
+.event-planner .ev-day .ev-day-s { color: var(--muted); }
+.event-planner .ev-day[data-state="concern"] .ev-day-s { color: var(--text); font-weight: 600; }
+.event-planner .ev-day[data-state="pending"] .ev-day-s, .event-planner .ev-day[data-cover="part"] .ev-day-s { font-style: italic; }
+.event-planner .ev-day.is-on { border-color: var(--text); border-left-color: var(--tier, var(--text)); box-shadow: inset 0 0 0 1px var(--text); }
+.event-planner .ev-day-all { border-left-width: 1px; }
+.event-planner .ev-day:focus-visible { outline: 2px solid var(--accent, #2563eb); outline-offset: 2px; }
+@media print { .event-planner .ev-days { display: none !important; } }

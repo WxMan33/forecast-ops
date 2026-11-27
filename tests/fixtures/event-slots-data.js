@@ -34,7 +34,10 @@
   ctx.th = { at: () => "normal", perModel: () => null, ids: [] };
   window.SLOTS_FIXTURE = { tomorrow, after };
   BetaUI.load = async () => ({ ctx, NW, RB: {}, problems: [], feeds: { used: ["GFS", "ECMWF IFS", "NBM", "HRRR"], missing: [] }, market: { tuned: false }, recipe: "Default blend recipe", verified: "Synthetic weather for a schedule check: not a forecast." });
-  BetaUI.alerts = async () => [];
+  /* &alerts=warn: an URGENT official warning active at the venue (a synthetic Flash Flood Warning, not a real product), to
+     check that it stays on the first phone screen with the day picker above the briefing */
+  BetaUI.alerts = async () => (new URLSearchParams(location.search).get("alerts") === "warn"
+    ? [{ event: "Flash Flood Warning", headline: "Flash Flood Warning (synthetic sample, not a real alert)", starts: new Date(now - 30 * 60e3).toISOString(), ends: new Date(now + 6 * 3600e3).toISOString(), url: "sample" }] : []);
   BetaUI.mapPanel = (el) => { el.innerHTML = '<p class="bx-note">Forecast radar omitted from this synthetic check.</p>'; };
   document.addEventListener("DOMContentLoaded", () => { const b = document.createElement("p"); b.className = "ev-sample-banner"; b.setAttribute("role", "note");
     b.textContent = "Schedule check · synthetic weather, not a forecast"; const host = document.getElementById("briefView"); const up = document.getElementById("upLink"); if (up) { const row = document.createElement("div"); row.className = "ev-sample-row"; up.before(row); row.append(up, b); } else if (host) host.prepend(b); });

@@ -729,7 +729,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     { const day = (n) => new Date(Date.now() + n * 864e5).toLocaleDateString("en-CA", { timeZone: "America/New_York" });
       const ev3 = { id: "ev_check3day", name: "Three-day fair (check)", venueId: null, loc: { name: "Sawyer Point, Cincinnati, OH", lat: 39.0966, lon: -84.4996 }, tz: "America/New_York",
         times: { setup: `${day(1)}T08:00`, start: `${day(1)}T10:00`, end: `${day(3)}T18:00`, teardown: `${day(3)}T20:00` }, gust: 25, overrides: [], source: { kind: "manual" } };
-      const { ctx, p, errors } = await go(PHONE, base + "event-beta.html?ev=ev_check3day", `if (!sessionStorage.getItem("seeded3")) { sessionStorage.setItem("seeded3", "1"); localStorage.setItem("beta_events_v2", ${JSON.stringify(JSON.stringify([ev3]))}); }`);
+      const { ctx, p, errors } = await go(PHONE, base + "event-beta.html?ev=ev_check3day&day=all", `if (!sessionStorage.getItem("seeded3")) { sessionStorage.setItem("seeded3", "1"); localStorage.setItem("beta_events_v2", ${JSON.stringify(JSON.stringify([ev3]))}); }`);
       const ready = await until(p, () => document.querySelector("#printView .pv-p2"), null, 150000);
       const m = ready ? await p.evaluate(() => ({ head: document.querySelector("#printView .pv-p2 .pv-hours-window").innerText, rows: document.querySelectorAll("#printView .pv-hours tbody tr").length, phases: document.querySelectorAll("#printView .pv-sched [data-phase]").length })) : null;
       let pages = null; if (ready) { await p.emulateMedia({ media: "print" }); const pdf = await p.pdf({ path: `${out}/event-briefing-3day.pdf`, format: "Letter", preferCSSPageSize: true }); pages = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length; }
