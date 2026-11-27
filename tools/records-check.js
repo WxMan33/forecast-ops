@@ -15,12 +15,18 @@ const serve = (noPack) => new Promise((ok) => { const s = http.createServer((req
 const CVG = 'lat=39.0446&lon=-84.6723&name=CVG+airport%2C+Cincinnati%2FNorthern+Kentucky';
 const DEN = 'lat=39.8561&lon=-104.6737&name=Denver+International+Airport%2C+CO', COL = 'lat=39.9612&lon=-82.9988&name=Columbus%2C+OH';
 const PLACES = { cvg: { name: 'CVG airport, Cincinnati/Northern Kentucky', lat: 39.0446, lon: -84.6723 }, den: { name: 'Denver International Airport, CO', lat: 39.8561, lon: -104.6737 }, col: { name: 'Columbus, OH', lat: 39.9612, lon: -82.9988 } };
-const CIN_WORDS = /Cincinnati|CVG|Thanksgiving/, DEN_WORDS = /Denver/;
+const CIN_WORDS = /Cincinnati|CVG|Thanksgiving/, DEN_WORDS = /Denver/, COL_WORDS = /Columbus|CMH/;
+const COL1953 = `${COL}&date=1953-09-02#insights`;
+/* a place without a pack: real RCC-ACIS and api.weather.gov answers for Columbus on Sep 2 1953, recorded once and replayed
+   (matched by method, URL and body), so the Almanac's station-history fallback runs offline */
+const FIX = JSON.parse(fs.readFileSync(path.join(here, 'tests/fixtures/records/columbus-1953-almanac.json'), 'utf8')).requests;
+const replay = async (r, u) => { const q = r.request(), hit = FIX.find((x) => x.method === q.method() && x.url === q.url() && (x.body || '') === (q.postData() || ''));
+  if (!hit) return false; await r.fulfill({ status: 200, contentType: hit.type || 'application/json', headers: { 'access-control-allow-origin': '*' }, body: hit.text }); return true; };
 async function open(b, srv, page, { clock, vp = { width: 1366, height: 900 }, theme = 'light', route = null }) {
   const ctx = await b.newContext({ viewport: vp, timezoneId: 'America/New_York', permissions: ['clipboard-read', 'clipboard-write'] }), p = await ctx.newPage(), errors = [];
   p.on('pageerror', (e) => errors.push(e.message)); await p.clock.install({ time: new Date(clock) });
   await p.addInitScript((t) => { localStorage.setItem('ops_theme', JSON.stringify(t)); localStorage.setItem('beta_analytics_optout', '1'); }, theme);
-  await ctx.route('**/*', async (r) => { const u = new URL(r.request().url()); if (u.origin !== srv.base) return r.fulfill({ status: 503, body: '' }); if (route && (await route(r, u))) return; return r.continue(); });
+  await ctx.route('**/*', async (r) => { const u = new URL(r.request().url()); if (route && (await route(r, u))) return; if (u.origin !== srv.base) return r.fulfill({ status: 503, body: '' }); return r.continue(); });
   await p.goto(`${srv.base}/${page}`); await p.waitForTimeout(2500); return { ctx, p, errors };
 }
 const card = (p, id) => p.evaluate((id) => { const h = document.getElementById(id); return { hidden: h.hidden, text: h.innerText.replace(/\s+/g, ' '), items: [...h.querySelectorAll('[data-id]')].map((e) => e.dataset.id), links: [...h.querySelectorAll('a')].map((a) => a.getAttribute('href')), hs: document.documentElement.scrollWidth > innerWidth + 1, bottom: Math.round(h.getBoundingClientRect().bottom) }; }, id);
@@ -84,6 +90,28 @@ const card = (p, id) => p.evaluate((id) => { const h = document.getElementById(i
       check(!d2.hidden && DEN_WORDS.test(d2.text) && !CIN_WORDS.test(d2.text), 'Almanac switch: Denver Oct 6 shows Denver findings only');
       check(c.hidden && !DEN_WORDS.test(c.text) && !CIN_WORDS.test(c.text), 'Almanac switch: Columbus Oct 6 (no pack, station history unavailable offline): hidden, nothing from Denver or Cincinnati');
       check(z.hidden && !DEN_WORDS.test(z.text) && !errors.length, `Almanac switch: Cincinnati Oct 6 (no finding): hidden, no Denver facts ${errors.join('; ')}`); await ctx.close(); }
+    /* Columbus, no pack: its own station's daily record from 1953, still standing, with its station and source, and the
+       status "Archive confirmation unavailable" (never "Observed record" by age, never "Preliminary observation") */
+    for (const [dev, vp, theme] of [['desktop', { width: 1366, height: 900 }, 'light'], ['phone', { width: 375, height: 667 }, 'dark']]) {
+      const { ctx, p, errors } = await open(b, srv, `almanac.html?${COL1953}`, { clock: '2026-11-27T15:00:00Z', vp, theme, route: replay });
+      await p.waitForFunction(() => document.getElementById('insightsCard').dataset.records === '1953-09-02', null, { timeout: 15000 }).catch(() => {});
+      const c = await card(p, 'insightsCard'), chips = await p.$$eval('#insightsCard .rec-status', (a) => a.map((e) => e.dataset.status + ':' + e.textContent));
+      check(!c.hidden && c.items.includes('rec-hiMax') && /100°F broke the Sep 2 record of 94°F set in 1913/.test(c.text) && /Columbus Area threaded record \(official city record, CMHthr\)/.test(c.text) && /Range 1878 to 1952/.test(c.text), `Columbus ${dev} ${theme}: the 1953 record high shows with its station, source and range`);
+      check(chips.length >= 2 && chips.every((x) => x === 'unconfirmed:Archive confirmation unavailable') && !/Preliminary|Observed record/i.test(c.text) && /not checked against the archive/.test(c.text), `Columbus ${dev} ${theme}: badge and legend say Archive confirmation unavailable only (${[...new Set(chips)].join(', ')})`);
+      check(/\(archive confirmation unavailable\)\./.test(await p.textContent('#insightsCard .rec-copytext')) && /this preview has packs for Cincinnati .* and Denver/.test(c.text) && !c.hs && !errors.length, `Columbus ${dev} ${theme}: Copy fact matches the label; the note names the preview's packs; no sideways scroll or page errors ${errors.join('; ')}`);
+      await p.locator('#insightsCard').screenshot({ path: path.join(out, `columbus-1953-almanac-${dev}-${theme}.png`) }); await ctx.close(); }
+    /* one tab: Columbus, Cincinnati, Denver, Columbus. Each shows only its own facts and its own status labels */
+    { const ctx = await b.newContext({ viewport: { width: 1366, height: 900 }, timezoneId: 'America/New_York' }), p = await ctx.newPage(), errors = []; p.on('pageerror', (e) => errors.push(e.message));
+      await p.clock.install({ time: new Date('2026-11-27T15:00:00Z') });
+      await ctx.route('**/*', async (r) => { const u = new URL(r.request().url()); if (await replay(r, u)) return; return u.origin !== srv.base ? r.fulfill({ status: 503, body: '' }) : r.continue(); });
+      const at = async (q, date) => { await p.goto(`${srv.base}/almanac.html?${q}`); await p.waitForFunction((d) => document.getElementById('insightsCard').dataset.records === d, date, { timeout: 15000 }).catch(() => {}); await p.waitForTimeout(500);
+        return { ...(await card(p, 'insightsCard')), chips: await p.$$eval('#insightsCard .rec-fact .rec-status', (a) => [...new Set(a.map((e) => e.dataset.status))]) }; };
+      const c1 = await at(COL1953, '1953-09-02'), cv = await at(`${CVG}&date=2026-11-26`, '2026-11-26'), dn = await at(`${DEN}&date=2026-10-06`, '2026-10-06'), c2 = await at(COL1953, '1953-09-02');
+      check(!c1.hidden && COL_WORDS.test(c1.text) && c1.chips.join() === 'unconfirmed', 'Columbus/Cincinnati/Denver switch: Columbus 1953 first, Archive confirmation unavailable');
+      check(!cv.hidden && !COL_WORDS.test(cv.text) && cv.chips.join() === 'preliminary' && !/Archive confirmation unavailable/.test(cv.text), 'Columbus/Cincinnati/Denver switch: Cincinnati Nov 26 shows only its own findings, Preliminary observation, nothing from Columbus');
+      check(!dn.hidden && !COL_WORDS.test(dn.text) && !CIN_WORDS.test(dn.text) && dn.chips.join() === 'final' && !/Archive confirmation unavailable|Preliminary/.test(dn.text), 'Columbus/Cincinnati/Denver switch: Denver Oct 6 shows only its own archive-confirmed findings (Observed record)');
+      check(!c2.hidden && c2.items.join() === c1.items.join() && !CIN_WORDS.test(c2.text.split('Daily records only for this place')[0]) && !DEN_WORDS.test(c2.text.split('Daily records only for this place')[0]) && c2.text.includes('Daily records only for this place') && c2.chips.join() === 'unconfirmed' && !errors.length, `Columbus/Cincinnati/Denver switch: back to Columbus, the same 1953 finding and label, no Cincinnati or Denver facts ${errors.join('; ')}`);
+      await ctx.close(); }
     /* a stale pack (the refresh has been failing): the findings stay, with how old they are */
     { const old = (u) => { const j = JSON.parse(fs.readFileSync(path.join(here, u.pathname.slice(1)), 'utf8')); j.generated = '2026-11-24T12:00:00Z'; return JSON.stringify(j); };
       const { ctx, p, errors } = await open(b, srv, `almanac.html?${CVG}&date=2026-11-26#insights`, { clock: '2026-11-27T15:00:00Z', route: async (r, u) => (u.pathname.endsWith('/cvg.json') ? (await r.fulfill({ status: 200, contentType: 'application/json', body: old(u) }), true) : false) });

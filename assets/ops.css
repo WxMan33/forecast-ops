@@ -949,6 +949,7 @@ body.embed .mapstage .maplibregl-ctrl-bottom-right { bottom: 4px; }
 .rec-status { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line, #3334); color: var(--muted); margin-right: 8px; vertical-align: 1px; white-space: nowrap; }
 .rec-status[data-status="final"] { color: var(--accent); border-color: var(--accent); }
 .rec-status[data-status="preliminary"] { color: var(--monitor, #b45309); border-color: var(--monitor, #b45309); border-style: dashed; }
+.rec-status[data-status="unconfirmed"] { color: var(--muted); border-color: var(--muted); }
 .rec-status[data-status="forecast"] { color: var(--muted); border-style: dotted; font-style: italic; }
 .rec-ov-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin-bottom: 8px; }
 .rec-ov-h .group-title { margin: 0; }

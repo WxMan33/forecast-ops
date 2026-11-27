@@ -6,8 +6,9 @@ Forecast Ops finds the notable weather story for the selected market. **Overview
 
 | Label | Meaning |
 |---|---|
-| **Observed record** | The day is in the quality-controlled archive (NCEI GHCN-Daily for U.S. stations). |
+| **Observed record** | The value is confirmed in the quality-controlled archive (NCEI GHCN-Daily for U.S. stations): same station, date, measurement and value, no quality flag. Only records packs do this check. |
 | **Preliminary observation** | The value comes from the NWS daily climate report or CF6, carried by ACIS, and isn't final yet. Copy says "(preliminary)". |
+| **Archive confirmation unavailable** | A real historical observation from the station's record whose value hasn't been checked against the archive: Almanac findings for places without a records pack. Never inferred from age (a 1953 record is not called final, and not called preliminary). Copy says "(archive confirmation unavailable)". |
 | **Interim report** | A same-day report before the day is complete. It never produces a finding. |
 | **Forecast record potential** | Reserved for phase 4. Guidance near a record, never written into observed records. |
 
@@ -22,7 +23,7 @@ Forecast Ops finds the notable weather story for the selected market. **Overview
 - **The normals** are the observing station's 1991-2020 normals.
 - **Final or preliminary** is decided per value, never by date alone. A finding is final only when NCEI's GHCN-Daily archive for the market's current observing station (`ghcnd` in `feeds/insights/markets.json`) has the same date and measurement, with the same value (precipitation within 0.005 in, snowfall within 0.05 in, temperature exact, trace only matching trace) and no quality flag (`RecordsEngine.confirm`). The archive's latest date is shown for context only: an earlier date can still be missing from the archive or differ from the value the finding used. Month to date is final only when every day of the month so far is confirmed. If NCEI can't be read, everything stays preliminary.
 - **Markets** are configured in `feeds/insights/markets.json`: id, name, country, region, time zone, units, record id and kind, normals station, GHCN-D id and thresholds.
-- **Places without a pack:** the Almanac judges daily records only, from the calendar-day history it already loads (ClimateStation's record for the point), and says that holiday rankings and longer context need a pack.
+- **Places without a pack:** the Almanac judges daily records only, from the calendar-day history it already loads (ClimateStation's record for the point), labels them Archive confirmation unavailable (no extra NCEI request on page load), and says that holiday rankings and longer context need a pack. Checked offline with recorded real responses for Columbus on Sep 2, 1953 (`tests/fixtures/records/columbus-1953-almanac.json`).
 
 ## Coverage rules (every finder)
 

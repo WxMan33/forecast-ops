@@ -330,13 +330,15 @@
   }
   /* Historical Insights & Fun Facts (RecordsUI): the market's records pack when there is one; otherwise daily records from
      the calendar-day history loaded above plus the selected day's own observation. Today's values are interim and never
-     judged; days within 60 days count as preliminary (NCEI's quality-controlled archive lags), older ones as final. */
+     judged. These values aren't checked against NCEI's quality-controlled archive (that check is per value and lives in
+     the records pack builder), so their status is "unconfirmed" (Archive confirmation unavailable), never inferred from
+     their age. */
   function insights({ sel, today, recRows, oRows }) {
     const host = $("insightsCard"); if (!host || !window.RecordsUI) return;
     const E = window.RecordsEngine, own = (oRows || []).find((r) => r[0] === sel), rows = (recRows || []).concat(own ? [own] : []);
     const cal = E && rows.length && sel < today ? { market: { id: CLIM.recordsSid, name: (O.location && O.location.name || CLIM.recordsName).split(",")[0], country: "US", units: { precip: "in", temp: "F" },
         record: { sid: CLIM.recordsSid, name: CLIM.recordsName, kind: CLIM.threaded === false ? "station" : "threaded" } },
-      S: { maxt: E.series(rows, 1), mint: E.series(rows, 2), pcpn: E.series(rows, 3), snow: E.series(rows, 4) }, status: sel >= A.addDays(today, -60) ? "preliminary" : "final" } : null;
+      S: { maxt: E.series(rows, 1), mint: E.series(rows, 2), pcpn: E.series(rows, 3), snow: E.series(rows, 4) }, status: "unconfirmed" } : null;
     window.RecordsUI.almanac(host, { lat: O.location.lat, lon: O.location.lon, date: sel, calendarDay: cal }).catch(() => { host.hidden = true; });
   }
   function renderClimateSheet(el, d) {

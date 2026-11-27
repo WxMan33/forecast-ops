@@ -98,6 +98,14 @@ check("calendar-day scope (the Almanac's per-date history for a market without a
   const f = E.findings({ market: CIN, date: "2026-11-26", S: { pcpn: S }, status: () => "preliminary", scope: "calendarDay" });
   assert.deepEqual(f.items.map((i) => i.id), ["rec-pcpn"]); assert.equal(f.scope, "calendarDay");
 });
+check("a place without a pack: an unchecked historical value is 'Archive confirmation unavailable', never final or preliminary by age", () => {
+  /* the 1946 record day itself, decades old: still not called an observed record, because its value wasn't checked against the archive */
+  const rows = fx.CVGthr.rows.filter((r) => r[0].slice(5) === "11-26" && r[0] <= "1946-11-26"), S = E.series(rows, 1);
+  const f = E.findings({ market: CIN, date: "1946-11-26", S: { pcpn: S }, status: () => "unconfirmed", scope: "calendarDay" });
+  const it = f.items.find((i) => i.id === "rec-pcpn"); assert.ok(it, "the 1946 record is still found");
+  assert.equal(it.status, "unconfirmed"); assert.equal(it.label, "Archive confirmation unavailable"); assert.equal(f.status, "unconfirmed");
+  assert.match(it.copyFact, / \(archive confirmation unavailable\)\.$/); assert.doesNotMatch(it.copyFact + it.label, /preliminary|Observed record/);
+});
 check("refresh: each pack is recomputed from the source; a revised value replaces the old one, and a finding is final only when the archive confirms that station, date and value", () => {
   const market = { ...CIN, tz: "America/New_York" }, nf = () => ({ month: 3.23, toDate: 2.77 });
   const prelim = E.pack({ market, S: { pcpn: thr }, through: "2026-11-26", days: 1, finalThrough: "2026-11-15", normalsFor: nf, generated: "2026-11-27T06:45:00Z" });

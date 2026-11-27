@@ -18,8 +18,10 @@
    - Holidays use each year's observed date (RecordsHolidays). Where the observed date is uncertain (1939-1941 US
      Thanksgiving), every candidate is tried and the result is published only if it is the same for all of them.
    - Observed values only: forecast or model values never enter a record or ranking. Status comes from the caller:
-     "final" (quality-controlled archive), "preliminary" (daily climate report or recent data not yet final) or
-     "interim" (a same-day report before the day is complete); interim values are never used for record claims. */
+     "final" (the value is confirmed in the quality-controlled archive), "preliminary" (a provisional report, such as
+     the daily climate report, not yet confirmed), "unconfirmed" (a historical observation whose value hasn't been
+     checked against the archive, e.g. a place without a records pack; never inferred from its age) or "interim" (a
+     same-day report before the day is complete); interim values are never used for record claims. */
 (function (root) {
   "use strict";
   const A = typeof module !== "undefined" && module.exports ? require("./almanac-core.js") : root.AlmanacCore;
@@ -56,7 +58,9 @@
   const span = (S) => { const ks = [...S.keys()].sort(); return { from: ks[0], to: ks[ks.length - 1] }; };
 
   /* the status words used everywhere, so observed, preliminary and forecast never blur */
-  const STATUS = { final: "Observed record", preliminary: "Preliminary observation", interim: "Interim report", forecast: "Forecast record potential" };
+  const STATUS = { final: "Observed record", preliminary: "Preliminary observation", unconfirmed: "Archive confirmation unavailable", interim: "Interim report", forecast: "Forecast record potential" };
+  /* what a stand-alone Copy fact adds for a status that isn't final */
+  const NOTE = (st, long = false) => (st === "preliminary" ? (long ? " (preliminary data)" : " (preliminary)") : st === "unconfirmed" ? " (archive confirmation unavailable)" : "");
 
   /* ---------- daily record ---------- */
   /* opts: { S (series), date, el (ELEMENTS key), value? (defaults to S.get(date)), minYears = 30, minShare = 0.8, top = 10 } */
@@ -152,7 +156,8 @@
     const items = [], rec = market.record, src = `${rec.name} (${rec.kind === "threaded" ? "official city record" : "station record"}, ${rec.sid})`;
     if (st0 === "interim") return { items, highlights: [], note: "Only an interim report so far: findings wait for the complete day." };
     /* a day is final only when every finding on it is */
-    const dayStatus = () => (items.length && items.every((i) => i.status === "final") ? "final" : st0 === "final" && !items.length ? "final" : "preliminary");
+    const dayStatus = () => { if (!items.length) return st0 === "final" ? "final" : st0 === "unconfirmed" ? "unconfirmed" : "preliminary";
+      return items.every((i) => i.status === "final") ? "final" : items.some((i) => i.status === "preliminary") ? "preliminary" : "unconfirmed"; };
     const dayWord = longDate(date), sDate = shortDate(date);
     /* daily records for each element present */
     const recs = [];
@@ -165,7 +170,7 @@
         : r.outcome === "tie" ? `${v} tied the ${sDate} record set in ${yrs}.` : `${v} ranks ${ordinal(r.rank)} of ${r.of} years for ${sDate}. The record is ${pv} (${yrs}).`;
       const short = r.outcome === "new" ? `${v}, breaking ${pv} from ${yrs}.` : r.outcome === "tie" ? `${v}, tying ${yrs}.` : `${v}; the record is ${pv} (${yrs}).`;
       items.push({ id: `rec-${r.el}`, short, score: (r.outcome === "new" ? 100 : r.outcome === "tie" ? 85 : 40 - r.rank * 5) + Math.min(10, r.previous.age / 10), status: st, label, head, body,
-        copyFact: `${market.name}'s ${v} ${el.kind === "amount" ? "of " + el.noun : el.noun} on ${dayWord} ${r.outcome === "new" ? `broke the ${sDate} record of ${pv} set in ${yrs}` : r.outcome === "tie" ? `tied the ${sDate} record set in ${yrs}` : `ranked ${ordinal(r.rank)} for the date`}${st === "preliminary" ? " (preliminary data)" : ""}.`,
+        copyFact: `${market.name}'s ${v} ${el.kind === "amount" ? "of " + el.noun : el.noun} on ${dayWord} ${r.outcome === "new" ? `broke the ${sDate} record of ${pv} set in ${yrs}` : r.outcome === "tie" ? `tied the ${sDate} record set in ${yrs}` : `ranked ${ordinal(r.rank)} for the date`}${NOTE(st, true)}.`,
         evidence: { finding: r, source: src, range: `${r.sample.from} to ${r.sample.to}`, sample: `${r.sample.n} prior years with an observation${r.sample.missing ? `, ${r.sample.missing} missing and left out` : ", none missing"}${r.sample.leapOnly ? " (leap years only)" : ""}` } });
     });
     /* scope "calendarDay": the caller has only this calendar date's yearly values (e.g. the Almanac's records query), so
@@ -181,7 +186,7 @@
       if (r.rank <= 5) items.push({ id: `hol-${h.key}`, short: r.rank === 1 ? `${v}, wetter than any ${h.name} since ${r.sample.from}.` : `${v}. Only ${listWords(ahead.map((t) => `${t.y} (${fmt(t.v, el, units)})`))} ${ahead.length === 1 ? "was" : "were"} wetter.`, score: 90 - r.rank * 6 + (r.rank === 1 ? 20 : 0), status: st, label,
         head: r.rank === 1 ? `Wettest ${h.name} on record` : `${ordinal(r.rank)} wettest ${h.name} on record`,
         body: `${v} on ${h.name}, ${sDate}. ${r.rank === 1 ? `That tops ${r.top[1] ? `${r.top[1].y} (${fmt(r.top[1].v, el, units)})` : "every other year"}` : `Only ${listWords(ahead.map((t) => `${t.y} (${fmt(t.v, el, units)})`))} ${ahead.length === 1 ? "was" : "were"} wetter`}, ranked against each year's own ${h.name} date since ${r.sample.from}.`,
-        copyFact: `${h.name} ${yearOf(date)} was ${market.name}'s ${r.rank === 1 ? "wettest" : `${ordinal(r.rank)} wettest`} on record${r.rank > 1 ? `, behind only ${listWords(ahead.map((t) => t.y))}` : ""}${st === "preliminary" ? " (preliminary)" : ""}.`,
+        copyFact: `${h.name} ${yearOf(date)} was ${market.name}'s ${r.rank === 1 ? "wettest" : `${ordinal(r.rank)} wettest`} on record${r.rank > 1 ? `, behind only ${listWords(ahead.map((t) => t.y))}` : ""}${NOTE(st)}.`,
         evidence: { finding: r, source: src, range: `${r.sample.from} to ${r.sample.to}`, sample: `${r.of} ${h.name}s with an observation${r.sample.missing ? `, ${r.sample.missing} missing and left out` : ", none missing"}${r.uncertainYears.length ? `; ${r.uncertainYears.join(", ")} dates varied by state, and the ranking is the same for every candidate date` : ""}` } });
       if (r.freq && r.freq.count <= Math.max(3, r.freq.n * 0.05)) {
         const t = fmt(r.freq.threshold, el, units).replace(/\.00 in$/, " inches"), pct = (100 * r.freq.count / r.freq.n).toFixed(1);
@@ -199,14 +204,14 @@
       const lo = lastOccurrence({ S, date, el: "pcpn" }), el = ELEMENTS.pcpn;
       if (lo && lo.monthRank <= 5) items.push({ id: "ctx-month-day", short: `${ordinal(lo.monthRank)} wettest ${MONTHS[+date.slice(5, 7) - 1]} day since ${span(S).from.slice(0, 4)}.`, score: 45 - lo.monthRank, status: st, label, head: `${ordinal(lo.monthRank)} wettest ${MONTHS[+date.slice(5, 7) - 1]} day on record`,
         body: `Only ${listWords(lo.monthAbove.map((a) => `${longDate(a.date)} (${fmt(a.value, el, units)})`))} ${lo.monthAbove.length === 1 ? "was" : "were"} wetter. The last day of any month with this much rain was ${lo.any ? `${longDate(lo.any.date)} (${fmt(lo.any.value, el, units)})` : "never"}.`,
-        copyFact: `${market.name}'s ${fmt(today.v, el, units)} on ${dayWord} was its ${ordinal(lo.monthRank)} wettest ${MONTHS[+date.slice(5, 7) - 1]} day on record${st === "preliminary" ? " (preliminary)" : ""}.`,
+        copyFact: `${market.name}'s ${fmt(today.v, el, units)} on ${dayWord} was its ${ordinal(lo.monthRank)} wettest ${MONTHS[+date.slice(5, 7) - 1]} day on record${NOTE(st)}.`,
         evidence: { finding: lo, source: src, range: `${span(S).from.slice(0, 4)} to ${date.slice(0, 4)}`, sample: `${lo.monthDays} ${MONTHS[+date.slice(5, 7) - 1]} days with a measurable observation` } });
       const n = ctx.normals && ctx.normals.pcpn, mt = monthToDate({ S, date, el: "pcpn", normals: n });
       const stM = Array.from({ length: +date.slice(8, 10) }, (_, i) => stOf("pcpn", `${date.slice(0, 8)}${String(i + 1).padStart(2, "0")}`)).every((x) => x === "final") ? "final" : "preliminary";
       if (mt && !mt.incomplete && mt.normalToDate != null && Math.abs(mt.departure) >= 1) items.push({ id: "ctx-mtd", short: `${fmt(mt.total, el, units)} so far, ${mt.pct}% of normal to date.`, score: 30, status: stM, label: STATUS[stM],
         head: `${MONTHS[+date.slice(5, 7) - 1]} is running ${mt.departure > 0 ? "wet" : "dry"}`,
         body: `${fmt(mt.total, el, units)} through the ${ordinal(+date.slice(8, 10))}, ${fmt(Math.abs(mt.departure), el, units)} ${mt.departure > 0 ? "above" : "below"} normal to date (${mt.pct}%).${mt.monthNormal != null && mt.total > mt.monthNormal ? ` Already more than a normal full ${MONTHS[+date.slice(5, 7) - 1]} (${fmt(mt.monthNormal, el, units)}).` : ""}`,
-        copyFact: `${market.name}'s ${MONTHS[+date.slice(5, 7) - 1]} is ${fmt(Math.abs(mt.departure), el, units).replace(/ in$/, " inches")} ${mt.departure > 0 ? "above" : "below"} normal through the ${ordinal(+date.slice(8, 10))}${stM === "preliminary" ? " (preliminary)" : ""}.`,
+        copyFact: `${market.name}'s ${MONTHS[+date.slice(5, 7) - 1]} is ${fmt(Math.abs(mt.departure), el, units).replace(/ in$/, " inches")} ${mt.departure > 0 ? "above" : "below"} normal through the ${ordinal(+date.slice(8, 10))}${NOTE(stM)}.`,
         evidence: { finding: mt, source: `${src}; normals ${market.normals && market.normals.label || "1991-2020"}`, range: `${MONTHS[+date.slice(5, 7) - 1]} 1 to ${+date.slice(8, 10)}`, sample: `${mt.of} years with a complete ${MONTHS[+date.slice(5, 7) - 1]} 1 to ${+date.slice(8, 10)}` } });
     }
     items.sort((a, b) => b.score - a.score);

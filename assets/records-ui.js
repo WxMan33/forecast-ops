@@ -29,6 +29,9 @@
   const localDate = (tz, ms) => new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(ms));
   const addDays = (d, n) => new Date(Date.parse(d + "T00:00:00Z") + n * 86400e3).toISOString().slice(0, 10);
   const chip = (it) => `<span class="rec-status" data-status="${esc(it.status)}">${esc(it.label)}</span>`;
+  /* the legend lists only the statuses on screen */
+  const LEGEND = [["final", "Observed record", "confirmed against NCEI's quality-controlled archive"], ["preliminary", "Preliminary observation", "a provisional report, such as the daily climate report, not yet confirmed"], ["unconfirmed", "Archive confirmation unavailable", "the station's historical observation, not checked against the archive"]];
+  const legend = (items) => LEGEND.filter(([k]) => items.some((i) => i.status === k)).map(([k, l, t]) => `<span class="rec-status" data-status="${k}">${l}</span> ${t}`).join(" · ");
   const firstSentence = (t) => (String(t).match(/^.*?[.!?](\s|$)/) || [t])[0].trim();
   const almanacHref = (pack, loc, date) => `almanac.html?${new URLSearchParams({ lat: loc.lat, lon: loc.lon, name: loc.name || pack.market.name, date })}#insights`;
 
@@ -61,12 +64,12 @@
     if (pack && pack.days && pack.days[date]) { items = pack.days[date].items; src = pack.sources.join(" · "); }
     else if (calendarDay && root.RecordsEngine) {
       const E = root.RecordsEngine; try {
-        const f = E.findings({ market: calendarDay.market, date, S: calendarDay.S, status: () => calendarDay.status || "preliminary", scope: "calendarDay" });
-        items = f.items; if (!pack) { const c = await coverage(); if (my !== host._seq) return null; note = `Daily records only for this place, from its climate station's history. Holiday rankings, historical frequency and longer context need a records pack; this preview has packs for ${c.join(" and ") || "no markets"}.`; }
+        const f = E.findings({ market: calendarDay.market, date, S: calendarDay.S, status: () => calendarDay.status || "unconfirmed", scope: "calendarDay" });
+        items = f.items; if (!pack) { const c = await coverage(); if (my !== host._seq) return null; note = `Daily records only for this place, from its climate station's history. These values haven't been checked against NCEI's quality-controlled archive, so they're marked Archive confirmation unavailable. Holiday rankings, historical frequency and longer context need a records pack; this preview has packs for ${c.join(" and ") || "no markets"}.`; }
       } catch (e) { items = []; } }
     if (!items.length) { host.hidden = true; host.innerHTML = ""; host.dataset.records = "none"; return null; }
     host.innerHTML = `<div class="section-title" id="insights">Historical Insights &amp; Fun Facts</div>` +
-      `<p class="msg rec-legend"><span class="rec-status" data-status="final">Observed record</span> quality-controlled data · <span class="rec-status" data-status="preliminary">Preliminary observation</span> the daily climate report, before final review · records never use forecasts</p>` +
+      `<p class="msg rec-legend">${legend(items)} · records never use forecasts</p>` +
       `<ul class="rec-facts">${items.map(factHtml).join("")}</ul>${note ? `<p class="msg rec-cov" data-coverage="station">${esc(note)}</p>` : ""}${cov ? `<p class="msg rec-cov" data-coverage="pack">${esc(cov)}</p>` : ""}${src ? `<p class="msg rec-src">Data: ${esc(src)}</p>` : ""}`;
     host.hidden = false; host.dataset.records = date;
     host.querySelectorAll("[data-copy]").forEach((b) => b.addEventListener("click", async () => {
