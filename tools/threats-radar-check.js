@@ -72,7 +72,9 @@ const read = (p) => p.evaluate(() => { const T = window.__threats, m = T.map, st
       const before = await p.evaluate(() => ({ shown: document.querySelector("[data-radar-op-val]").textContent, map: window.__threats.map.getPaintProperty("radar", "raster-opacity") }));
       const slider = p.locator("[data-radar-op]");
       await slider.scrollIntoViewIfNeeded();
-      const track = await slider.boundingBox();
+      /* the Layers panel scrolls smoothly: wait until the slider stops moving before measuring it, or the press lands beside it */
+      let track = await slider.boundingBox();
+      for (let i = 0; i < 20; i++) { await p.waitForTimeout(100); const nb = await slider.boundingBox(); if (Math.abs(nb.y - track.y) < 0.5) break; track = nb; }
       const y = track.y + track.height / 2;
       await p.mouse.move(track.x + track.width * 0.625, y);
       await p.mouse.down();
@@ -85,6 +87,20 @@ const read = (p) => p.evaluate(() => { const T = window.__threats, m = T.map, st
       const kept = await p.evaluate(() => ({ shown: document.querySelector("[data-radar-op-val]").textContent, map: window.__threats.map.getPaintProperty("radar", "raster-opacity") }));
       check(`(desktop) opacity slider: starts ${before.shown} (map ${before.map}); dragged: shows ${moved.shown}, map ${moved.map} at once; after a reload ${kept.shown} (map ${kept.map})`,
         before.shown === "70%" && before.map === 0.7 && moved.map >= 0.85 && moved.shown === Math.round(moved.map * 100) + "%" && kept.shown === moved.shown && kept.map === moved.map, { before, moved, kept });
+      /* what is drawn changes, not just the setting: the national map at the dragged opacity vs 30%, radar pixels compared */
+      { await p.keyboard.press("Escape").catch(() => {}); await p.evaluate(() => window.__threats.map.jumpTo({ center: [-96, 38.5], zoom: 3.6 })); await p.waitForTimeout(3500);
+        const box = await p.locator("#txMap, .tx-map, .maplibregl-canvas").first().boundingBox();
+        const shot = async () => (await p.screenshot({ clip: box })).toString("base64");
+        const a = await shot(); await p.evaluate(() => { const i = document.querySelector("[data-radar-op]"); i.value = "30"; i.dispatchEvent(new Event("input", { bubbles: true })); }); await p.waitForTimeout(800); const c = await shot();
+        const diff = await p.evaluate(async ([a, c]) => { const img = async (b) => { const im = new Image(); im.src = "data:image/png;base64," + b; await im.decode(); const cv = new OffscreenCanvas(im.width, im.height), g = cv.getContext("2d"); g.drawImage(im, 0, 0); return g.getImageData(0, 0, im.width, im.height).data; };
+          const x = await img(a), y = await img(c); let n = 0; for (let k = 0; k < x.length; k += 4) if (Math.abs(x[k] - y[k]) + Math.abs(x[k + 1] - y[k + 1]) + Math.abs(x[k + 2] - y[k + 2]) > 24) n++; return n; }, [a, c]);
+        const op30 = await p.evaluate(() => window.__threats.map.getPaintProperty("radar", "raster-opacity"));
+        /* the same setting in Precipitation type */
+        await p.evaluate(() => window.__threats.setRadarMode("ptype")); await p.waitForFunction(() => window.__threats.radar.via === "ptype", null, { timeout: 90000 }).catch(() => {}); await p.waitForTimeout(1500);
+        const pt = await p.evaluate(() => ({ via: window.__threats.radar.via, map: window.__threats.map.getPaintProperty("radar", "raster-opacity"), shown: document.querySelector("[data-radar-op-val]").textContent }));
+        check(`(desktop) rendered opacity: ${moved.shown} vs 30% changes ${diff} radar pixels on the national map; 30% also applies in Precipitation type (${pt.via}, map ${pt.map}, shows ${pt.shown})`,
+          diff > 200 && op30 === 0.3 && pt.via === "ptype" && pt.map === 0.3 && pt.shown === "30%", { diff, op30, pt });
+        await p.evaluate(() => window.__threats.setRadarMode("refl")); }
       await p.evaluate(() => localStorage.removeItem("tx_radar_opacity")); }
     check("(desktop) no script errors", !errs.length, { errs }); await ctx.close(); }
   /* desktop, light; phone, light: screenshots and the same source */
