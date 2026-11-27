@@ -133,9 +133,13 @@ verification and release decisions.
    when it matters where timing has been verified, which guidance agrees or disagrees, and
    what changed. Label official SPC outlooks separately from Forecast Ops guidance.
 
-Keep the regional v0.7 feed live, the 96-day model in the separate CONUS preview, and the
-2025 holdout sealed. NBM remains a research input. Stop after the RRFS/REFS availability
-audit and proposed rule for review before full extraction, fitting or a feed change.
+**Approved development track (November 27).** Run the [RRFS retrospective pilot](../research/severe/conus-v1/rrfs/RETROSPECTIVE-PILOT.md)
+now on the pre-operational archive. Check fields, cache the extracted predictors and compare
+HRRR, RRFS and the combined arm on matched held-out blocks. Carry promising findings into
+eligible operational development work under the [locked plan](../research/severe/conus-v1/rrfs/TRAINING-VERIFICATION-PLAN.md).
+Daily research collection continues. Operational fitting and live research issuance remain
+separate approval points. Keep the regional v0.7 feed live, the 96-day CONUS preview model
+and the 2025 holdout sealed. NBM remains a research input.
 
 ## Blockers met and how they were handled
 - NOAA has replaced the pinned 2022-2024 Storm Events files (old URLs return 404). All three pinned
