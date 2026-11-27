@@ -15,6 +15,9 @@
   });
   document.querySelectorAll("[data-icon]").forEach((el) => { el.innerHTML = O.icon(el.dataset.icon, 20); el.setAttribute("aria-hidden", "true"); });
   tileLinks(); O.onLocation(tileLinks);
+  /* Weather Records & Milestones: up to three highlights from the market's records pack; hidden on ordinary days */
+  const records = () => { if (window.RecordsUI) window.RecordsUI.overview(document.getElementById("recordsCard"), O.location).catch(() => {}); };
+  records(); O.onLocation(records);
   const tileStatus = (key, html, tier) => { const el = document.querySelector(`[data-status="${key}"]`); if (!el) return; el.innerHTML = html;
     const tile = el.closest(".tooltile"); if (tile) { tile.classList.toggle("attn", !!tier && O.TIER[tier].rank >= 1); tile.style.setProperty("--tier", tier ? O.TIER[tier].color : ""); } };
   const clearStatus = () => ["blend", "severe", "winter"].forEach((k) => tileStatus(k, '<span class="msg">Loading…</span>'));

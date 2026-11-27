@@ -1,0 +1,567 @@
+{
+ "schema": 2,
+ "id": "den",
+ "generated": "2026-11-27T16:08:37.079Z",
+ "through": "2026-11-26",
+ "windowDays": 60,
+ "finalThrough": "2026-11-15",
+ "market": {
+  "id": "den",
+  "name": "Denver",
+  "country": "US",
+  "region": "CO",
+  "tz": "America/Denver",
+  "lat": 39.8561,
+  "lon": -104.6737,
+  "radiusKm": 60,
+  "units": {
+   "precip": "in",
+   "temp": "F"
+  },
+  "record": {
+   "sid": "DENthr",
+   "kind": "threaded",
+   "segments": "Downtown city office from 1872, then Stapleton (Denver Central Park) and Denver International Airport from 1994 (identical to DEN from Sep 1994); exact switch dates unverified",
+   "name": "Denver Area",
+   "por": [
+    "1872-01-01",
+    "2026-11-26"
+   ]
+  },
+  "normals": {
+   "sid": "DEN",
+   "label": "1991-2020"
+  }
+ },
+ "sources": [
+  "RCC-ACIS StnData DENthr (Denver Area), retrieved 2026-11-27",
+  "NCEI GHCN-Daily USW00003017 (each value confirmed by date and measurement; archive through 2026-11-15)",
+  "1991-2020 normals, ACIS DEN"
+ ],
+ "days": {
+  "2026-09-28": {
+   "status": "final",
+   "items": [
+    {
+     "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "tie",
+      "rank": 1,
+      "v": "59°F",
+      "pv": "59°F",
+      "yrs": "1931",
+      "age": 95,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
+     "short": "59°F, tying 1931.",
+     "score": 94.5,
+     "status": "final",
+     "label": "Observed record",
+     "head": "Tied the Sep 28 record warm low (warmest minimum)",
+     "body": "59°F tied the Sep 28 record set in 1931.",
+     "copyFact": "Denver's 59°F warm low on September 28, 2026 tied the Sep 28 record set in 1931.",
+     "evidence": {
+      "source": "Denver Area (official city record, DENthr)",
+      "range": "1872 to 2025",
+      "sample": "154 prior years with an observation, none missing"
+     }
+    }
+   ],
+   "highlights": [
+    "rec-hiMin"
+   ]
+  },
+  "2026-10-05": {
+   "status": "final",
+   "items": [
+    {
+     "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "tie",
+      "rank": 1,
+      "v": "55°F",
+      "pv": "55°F",
+      "yrs": "1920 and 1947",
+      "age": 79,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
+     "short": "55°F, tying 1920 and 1947.",
+     "score": 92.9,
+     "status": "final",
+     "label": "Observed record",
+     "head": "Tied the Oct 5 record warm low (warmest minimum)",
+     "body": "55°F tied the Oct 5 record set in 1920 and 1947.",
+     "copyFact": "Denver's 55°F warm low on October 5, 2026 tied the Oct 5 record set in 1920 and 1947.",
+     "evidence": {
+      "source": "Denver Area (official city record, DENthr)",
+      "range": "1872 to 2025",
+      "sample": "154 prior years with an observation, none missing"
+     }
+    },
+    {
+     "id": "rec-hiMax",
+     "fact": {
+      "el": "hiMax",
+      "row": "maxt",
+      "outcome": "tie",
+      "rank": 1,
+      "v": "87°F",
+      "pv": "87°F",
+      "yrs": "2024",
+      "age": 2,
+      "record": "record high",
+      "noun": "high"
+     },
+     "short": "87°F, tying 2024.",
+     "score": 85.2,
+     "status": "final",
+     "label": "Observed record",
+     "head": "Tied the Oct 5 record high",
+     "body": "87°F tied the Oct 5 record set in 2024.",
+     "copyFact": "Denver's 87°F high on October 5, 2026 tied the Oct 5 record set in 2024.",
+     "evidence": {
+      "source": "Denver Area (official city record, DENthr)",
+      "range": "1872 to 2025",
+      "sample": "154 prior years with an observation, none missing"
+     }
+    }
+   ],
+   "highlights": [
+    "rec-hiMin",
+    "rec-hiMax"
+   ]
+  },
+  "2026-10-06": {
+   "status": "final",
+   "items": [
+    {
+     "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "new",
+      "rank": 1,
+      "v": "59°F",
+      "pv": "55°F",
+      "yrs": "1947",
+      "age": 79,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
+     "short": "59°F, breaking 55°F from 1947.",
+     "score": 107.9,
+     "status": "final",
+     "label": "Observed record",
+     "head": "Record warm low (warmest minimum) on Oct 6",
+     "body": "59°F broke the Oct 6 record of 55°F set in 1947, a record 79 years old, by 4°.",
+     "copyFact": "Denver's 59°F warm low on October 6, 2026 broke the Oct 6 record of 55°F set in 1947.",
+     "evidence": {
+      "source": "Denver Area (official city record, DENthr)",
+      "range": "1872 to 2025",
+      "sample": "154 prior years with an observation, none missing"
+     }
+    },
+    {
+     "id": "rec-hiMax",
+     "fact": {
+      "el": "hiMax",
+      "row": "maxt",
+      "outcome": "tie",
+      "rank": 1,
+      "v": "87°F",
+      "pv": "87°F",
+      "yrs": "1975 and 2020",
+      "age": 6,
+      "record": "record high",
+      "noun": "high"
+     },
+     "short": "87°F, tying 1975 and 2020.",
+     "score": 85.6,
+     "status": "final",
+     "label": "Observed record",
+     "head": "Tied the Oct 6 record high",
+     "body": "87°F tied the Oct 6 record set in 1975 and 2020.",
+     "copyFact": "Denver's 87°F high on October 6, 2026 tied the Oct 6 record set in 1975 and 2020.",
+     "evidence": {
+      "source": "Denver Area (official city record, DENthr)",
+      "range": "1872 to 2025",
+      "sample": "154 prior years with an observation, none missing"
+     }
+    }
+   ],
+   "highlights": [
+    "rec-hiMin",
+    "rec-hiMax"
+   ]
+  },
+  "2026-10-08": {
+   "status": "final",
+   "items": [
+    {
+     "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "new",
+      "rank": 1,
+      "v": "59°F",
+      "pv": "54°F",
+      "yrs": "1930, 1934 and 1954",
+      "age": 72,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
+     "short": "59°F, breaking 54°F from 1930, 1934 and 1954.",
+     "score": 107.2,
+     "status": "final",
+     "label": "Observed record",
+     "head": "Record warm low (warmest minimum) on Oct 8",
+     "body": "59°F broke the Oct 8 record of 54°F set in 1930, 1934 and 1954, a record 72 years old, by 5°.",
+     "copyFact": "Denver's 59°F warm low on October 8, 2026 broke the Oct 8 record of 54°F set in 1930, 1934 and 1954.",
+     "evidence": {
+      "source": "Denver Area (official city record, DENthr)",
+      "range": "1872 to 2025",
+      "sample": "154 prior years with an observation, none missing"
+     }
+    },
+    {
+     "id": "rec-hiMax",
+     "fact": {
+      "el": "hiMax",
+      "row": "maxt",
+      "outcome": "none",
+      "rank": 3,
+      "v": "84°F",
+      "pv": "85°F",
+      "yrs": "1910 and 2020",
+      "age": 6,
+      "record": "record high",
+      "noun": "high"
+     },
+     "short": "84°F; the record is 85°F (1910 and 2020).",
+     "score": 25.6,
+     "status": "final",
+     "label": "Observed record",
+     "head": "3rd highest high for Oct 8",
+     "body": "84°F ranks 3rd of 155 years for Oct 8. The record is 85°F (1910 and 2020).",
+     "copyFact": "Denver's 84°F high on October 8, 2026 ranked 3rd for the date.",
+     "evidence": {
+      "source": "Denver Area (official city record, DENthr)",
+      "range": "1872 to 2025",
+      "sample": "154 prior years with an observation, none missing"
+     }
+    }
+   ],
+   "highlights": [
+    "rec-hiMin"
+   ]
+  },
+  "2026-10-09": {
+   "status": "final",
+   "items": [
+    {
+     "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "new",
+      "rank": 1,
+      "v": "56°F",
+      "pv": "55°F",
+      "yrs": "1954 and 2020",
+      "age": 6,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
+     "short": "56°F, breaking 55°F from 1954 and 2020.",
+     "score": 100.6,
+     "status": "final",
+     "label": "Observed record",
+     "head": "Record warm low (warmest minimum) on Oct 9",
+     "body": "56°F broke the Oct 9 record of 55°F set in 1954 and 2020, a record 6 years old, by 1°.",
+     "copyFact": "Denver's 56°F warm low on October 9, 2026 broke the Oct 9 record of 55°F set in 1954 and 2020.",
+     "evidence": {
+      "source": "Denver Area (official city record, DENthr)",
+      "range": "1872 to 2025",
+      "sample": "154 prior years with an observation, none missing"
+     }
+    },
+    {
+     "id": "rec-hiMax",
+     "fact": {
+      "el": "hiMax",
+      "row": "maxt",
+      "outcome": "none",
+      "rank": 2,
+      "v": "86°F",
+      "pv": "87°F",
+      "yrs": "1910",
+      "age": 116,
+      "record": "record high",
+      "noun": "high"
+     },
+     "short": "86°F; the record is 87°F (1910).",
+     "score": 40,
+     "status": "final",
+     "label": "Observed record",
+     "head": "2nd highest high for Oct 9",
+     "body": "86°F ranks 2nd of 155 years for Oct 9. The record is 87°F (1910).",
+     "copyFact": "Denver's 86°F high on October 9, 2026 ranked 2nd for the date.",
+     "evidence": {
+      "source": "Denver Area (official city record, DENthr)",
+      "range": "1872 to 2025",
+      "sample": "154 prior years with an observation, none missing"
+     }
+    }
+   ],
+   "highlights": [
+    "rec-hiMin",
+    "rec-hiMax"
+   ]
+  },
+  "2026-10-10": {
+   "status": "final",
+   "items": [
+    {
+     "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "new",
+      "rank": 1,
+      "v": "57°F",
+      "pv": "56°F",
+      "yrs": "1928",
+      "age": 98,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
+     "short": "57°F, breaking 56°F from 1928.",
+     "score": 109.8,
+     "status": "final",
+     "label": "Observed record",
+     "head": "Record warm low (warmest minimum) on Oct 10",
+     "body": "57°F broke the Oct 10 record of 56°F set in 1928, a record 98 years old, by 1°.",
+     "copyFact": "Denver's 57°F warm low on October 10, 2026 broke the Oct 10 record of 56°F set in 1928.",
+     "evidence": {
+      "source": "Denver Area (official city record, DENthr)",
+      "range": "1872 to 2025",
+      "sample": "154 prior years with an observation, none missing"
+     }
+    }
+   ],
+   "highlights": [
+    "rec-hiMin"
+   ]
+  },
+  "2026-10-11": {
+   "status": "final",
+   "items": [
+    {
+     "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "tie",
+      "rank": 1,
+      "v": "57°F",
+      "pv": "57°F",
+      "yrs": "1881",
+      "age": 145,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
+     "short": "57°F, tying 1881.",
+     "score": 95,
+     "status": "final",
+     "label": "Observed record",
+     "head": "Tied the Oct 11 record warm low (warmest minimum)",
+     "body": "57°F tied the Oct 11 record set in 1881.",
+     "copyFact": "Denver's 57°F warm low on October 11, 2026 tied the Oct 11 record set in 1881.",
+     "evidence": {
+      "source": "Denver Area (official city record, DENthr)",
+      "range": "1872 to 2025",
+      "sample": "154 prior years with an observation, none missing"
+     }
+    },
+    {
+     "id": "rec-hiMax",
+     "fact": {
+      "el": "hiMax",
+      "row": "maxt",
+      "outcome": "none",
+      "rank": 2,
+      "v": "85°F",
+      "pv": "87°F",
+      "yrs": "2015",
+      "age": 11,
+      "record": "record high",
+      "noun": "high"
+     },
+     "short": "85°F; the record is 87°F (2015).",
+     "score": 31.1,
+     "status": "final",
+     "label": "Observed record",
+     "head": "2nd highest high for Oct 11",
+     "body": "85°F ranks 2nd of 155 years for Oct 11. The record is 87°F (2015).",
+     "copyFact": "Denver's 85°F high on October 11, 2026 ranked 2nd for the date.",
+     "evidence": {
+      "source": "Denver Area (official city record, DENthr)",
+      "range": "1872 to 2025",
+      "sample": "154 prior years with an observation, none missing"
+     }
+    }
+   ],
+   "highlights": [
+    "rec-hiMin",
+    "rec-hiMax"
+   ]
+  },
+  "2026-10-20": {
+   "status": "final",
+   "items": [
+    {
+     "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "new",
+      "rank": 1,
+      "v": "52°F",
+      "pv": "50°F",
+      "yrs": "1939, 1947 and 2012",
+      "age": 14,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
+     "short": "52°F, breaking 50°F from 1939, 1947 and 2012.",
+     "score": 101.4,
+     "status": "final",
+     "label": "Observed record",
+     "head": "Record warm low (warmest minimum) on Oct 20",
+     "body": "52°F broke the Oct 20 record of 50°F set in 1939, 1947 and 2012, a record 14 years old, by 2°.",
+     "copyFact": "Denver's 52°F warm low on October 20, 2026 broke the Oct 20 record of 50°F set in 1939, 1947 and 2012.",
+     "evidence": {
+      "source": "Denver Area (official city record, DENthr)",
+      "range": "1872 to 2025",
+      "sample": "154 prior years with an observation, none missing"
+     }
+    }
+   ],
+   "highlights": [
+    "rec-hiMin"
+   ]
+  },
+  "2026-10-21": {
+   "status": "final",
+   "items": [
+    {
+     "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "none",
+      "rank": 3,
+      "v": "49°F",
+      "pv": "54°F",
+      "yrs": "1947",
+      "age": 79,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
+     "short": "49°F; the record is 54°F (1947).",
+     "score": 32.9,
+     "status": "final",
+     "label": "Observed record",
+     "head": "3rd highest warm low for Oct 21",
+     "body": "49°F ranks 3rd of 155 years for Oct 21. The record is 54°F (1947).",
+     "copyFact": "Denver's 49°F warm low on October 21, 2026 ranked 3rd for the date.",
+     "evidence": {
+      "source": "Denver Area (official city record, DENthr)",
+      "range": "1872 to 2025",
+      "sample": "154 prior years with an observation, none missing"
+     }
+    }
+   ],
+   "highlights": [
+    "rec-hiMin"
+   ]
+  },
+  "2026-10-22": {
+   "status": "final",
+   "items": [
+    {
+     "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "new",
+      "rank": 1,
+      "v": "54°F",
+      "pv": "52°F",
+      "yrs": "1902",
+      "age": 124,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
+     "short": "54°F, breaking 52°F from 1902.",
+     "score": 110,
+     "status": "final",
+     "label": "Observed record",
+     "head": "Record warm low (warmest minimum) on Oct 22",
+     "body": "54°F broke the Oct 22 record of 52°F set in 1902, a record 124 years old, by 2°.",
+     "copyFact": "Denver's 54°F warm low on October 22, 2026 broke the Oct 22 record of 52°F set in 1902.",
+     "evidence": {
+      "source": "Denver Area (official city record, DENthr)",
+      "range": "1872 to 2025",
+      "sample": "154 prior years with an observation, none missing"
+     }
+    }
+   ],
+   "highlights": [
+    "rec-hiMin"
+   ]
+  },
+  "2026-10-23": {
+   "status": "final",
+   "items": [
+    {
+     "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "new",
+      "rank": 1,
+      "v": "58°F",
+      "pv": "49°F",
+      "yrs": "2003",
+      "age": 23,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
+     "short": "58°F, breaking 49°F from 2003.",
+     "score": 102.3,
+     "status": "final",
+     "label": "Observed record",
+     "head": "Record warm low (warmest minimum) on Oct 23",
+     "body": "58°F broke the Oct 23 record of 49°F set in 2003, a record 23 years old, by 9°.",
+     "copyFact": "Denver's 58°F warm low on October 23, 2026 broke the Oct 23 record of 49°F set in 2003.",
+     "evidence": {
+      "source": "Denver Area (official city record, DENthr)",
+      "range": "1872 to 2025",
+      "sample": "154 prior years with an observation, none missing"
+     }
+    }
+   ],
+   "highlights": [
+    "rec-hiMin"
+   ]
+  }
+ }
+}
