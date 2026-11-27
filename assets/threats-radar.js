@@ -98,7 +98,7 @@
     [7, "Rain with hail", [225, 30, 150]], [3, "Snow", [60, 140, 255]], [91, "Tropical/stratiform rain mix", [150, 215, 40]], [96, "Tropical/convective rain mix", [255, 130, 30]]];
   const PTYPE_ALPHA = 235, NO_PRECIP = 0, NO_COVERAGE = -3;
   /* no-coverage stripes per theme (light grey on the dark basemap, dark grey on the light one); unknown-code checker tones */
-  const HATCH = { dark: [205, 205, 205, 150], light: [60, 60, 60, 140] }, UNKNOWN = [[25, 25, 25, 235], [250, 250, 250, 235]];
+  const HATCH = { dark: [215, 215, 215, 170], light: [40, 40, 40, 170] }, UNKNOWN = [[25, 25, 25, 235], [250, 250, 250, 235]];
   const PTYPE_URL = "https://mrms.ncep.noaa.gov/2D/PrecipFlag/MRMS_PrecipFlag.latest.grib2.gz";
   /* GRIB2 simple scaling: value = (R + X * 2^E) / 10^D */
   const gribValue = (x, p) => Math.round((p.R + x * 2 ** p.E) / 10 ** p.D);

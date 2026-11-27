@@ -185,16 +185,17 @@ const ptRoute = (gz, scanIso) => async (p) => {
     const wrgb = rgbOf(water), a = stripe[3] / 255 * s.paint.opacity, mix = wrgb && wrgb.map((v, k) => v * (1 - a) + stripe[k] * a);
     const lum = (c) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
     const ratio = mix ? (Math.max(lum(mix), lum(wrgb)) + 0.05) / (Math.min(lum(mix), lum(wrgb)) + 0.05) : null;
-    const ncOk = nc.some((c) => c === stripe.join()) && nc.some((c) => c === "0,0,0,0");
+    const near = (c, want) => { const v = c.split(",").map(Number); return v.every((x, k) => Math.abs(x - want[k]) <= 2); }; // PNG round trip: ±1
+    const ncOk = nc.some((c) => near(c, stripe)) && nc.some((c) => c === "0,0,0,0");
     await p.screenshot({ path: path.join(OUT, `winter-${dev}-${theme}-ptype.png`) }); if (dev !== "desktop" || theme === "dark") await layersShot(p, `winter-${dev}-${theme}-ptype-layers.png`);
     check(`(${dev}, ${theme}) ${s.badge}: winter replay in precipitation type; probes ${got.map((g) => g.want + "→" + (g.rgba.slice(0, 3).join() === colour[g.want].join() ? "ok" : g.rgba.join())).join(", ")}; legend ${s.legend.items.length} entries; lines and warnings above radar`,
       s.badge === "TEST REPLAY" && s.via === "ptype" && okPx && s.legend.ptype && s.order.linesAbove && s.order.warningsAbove && !errs.length, { got, s, errs });
     check(`(${dev}, ${theme}) unknown code 50: drawn as the dark/light checker (${[...new Set(uk)].join(" | ")}), legend '${s.unknownLegend}'`, ukOk && /Code not in NOAA's table \(50\)/.test(s.unknownLegend || ""), { uk, s: s.legend });
-    check(`(${dev}, ${theme}) no-coverage stripes ${stripe.slice(0, 3).join()} over the Gulf; on the basemap water ${water} at ${Math.round(s.paint.opacity * 100)}% the stripe/water contrast is ${ratio && ratio.toFixed(2)}:1`, ncOk && ratio >= 1.5, { nc, water, ratio });
+    check(`(${dev}, ${theme}) no-coverage stripes ${stripe.slice(0, 3).join()} over the Gulf; on the basemap water ${water} at ${Math.round(s.paint.opacity * 100)}% the stripe/water contrast is ${ratio && ratio.toFixed(2)}:1`, ncOk && ratio >= 2.5, { nc, water, ratio });
     await pickMode(p, "refl"); await p.evaluate(() => window.__threats.map.jumpTo({ center: [-84.7, 39.1], zoom: 6.6 })); await p.waitForTimeout(3500);
     const r = await read(p), rp = await pixel(p, -84.6, 40.2), want = RD.dbzToRgba(Math.round(((15 + 0) + 32) * 2) * 0.5 - 32); // snow band: 15-25 dBZ
     await p.screenshot({ path: path.join(OUT, `winter-${dev}-${theme}-refl.png`) }); if (dev !== "desktop" || theme === "dark") await layersShot(p, `winter-${dev}-${theme}-refl-layers.png`);
-    check(`(${dev}, ${theme}) winter replay in Reflectivity: via ${r.via}, Reflectivity 2026 legend ${r.legend.refl}; snow area drawn ${rp.join()} (a 15-25 dBZ band colour)`, r.via === "iem" && r.legend.refl && rp[3] > 0 && [15, 20].some((v) => RD.dbzToRgba(v).g === rp[1] && RD.dbzToRgba(v).r === rp[0]) && !errs.length, { r, rp, want, errs });
+    check(`(${dev}, ${theme}) winter replay in Reflectivity: via ${r.via}, Reflectivity 2026 legend ${r.legend.refl}; snow area drawn ${rp.join()} (a 15-25 dBZ band colour)`, r.via === "iem" && r.legend.refl && rp[3] > 0 && [15, 20].some((v) => { const c = RD.dbzToRgba(v); return Math.abs(c.r - rp[0]) <= 2 && Math.abs(c.g - rp[1]) <= 2 && Math.abs(c.b - rp[2]) <= 2; }) && !errs.length, { r, rp, want, errs });
     await ctx.close(); }
   await b.close();
   fs.writeFileSync(path.join(OUT, "ptype-check.json"), JSON.stringify({ host: HOST, at: new Date().toISOString(), results, info }, null, 1));
