@@ -1,0 +1,17 @@
+{
+ "schema": 1,
+ "generated": "2026-11-27T14:53:49.343Z",
+ "markets": [
+  {
+   "id": "cvg",
+   "name": "Cincinnati",
+   "lat": 39.0446,
+   "lon": -84.6723,
+   "radiusKm": 60,
+   "through": "2026-11-26",
+   "days": [
+    "2026-11-26"
+   ]
+  }
+ ]
+}

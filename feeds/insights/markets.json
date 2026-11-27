@@ -1,0 +1,10 @@
+{
+ "about": "Markets with a precomputed Weather Records & Milestones pack (tools/build-insights.js). record: the official record the facts come from (threaded = the city's official record joining stations over time; station = one station). normals: the station whose 1991-2020 normals apply. ghcnd: the current observing station in NCEI GHCN-Daily, used to tell final from preliminary.",
+ "markets": [
+  { "id": "cvg", "name": "Cincinnati", "country": "US", "region": "OH", "tz": "America/New_York", "lat": 39.0446, "lon": -84.6723, "radiusKm": 60,
+    "units": { "precip": "in", "temp": "F" },
+    "record": { "sid": "CVGthr", "kind": "threaded", "segments": "Downtown city office 1871 to Mar 1915; Abbe Observatory Apr 1915 to Mar 1947; CVG airport from Apr 1947 (identical to CVG from then on)" },
+    "station": { "sid": "CVG", "name": "Cincinnati/Northern Kentucky International Airport" },
+    "normals": { "sid": "CVG" }, "ghcnd": "USW00093814", "thresholds": { "pcpn": 2 } }
+ ]
+}

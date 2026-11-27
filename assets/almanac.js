@@ -90,6 +90,7 @@
     if (my !== run) return;
     locTz = tzP;
     if (!chosen) { sel = todayIn(tzP); $("almDate").value = sel; } // "today" is the selected location's today
+    insights({ sel, today: todayIn(tzP), recRows: null, oRows: null }); // the market's records pack: needs no station lookup or climate query
     const res = await window.ClimateStation.forPoint(loc, { fetchJSON }).catch((e) => ({ station: null, alternatives: [], missing: [`Climate station lookup failed (${(e && e.message) || e}).`] }));
     if (my !== run) return; // a slow answer for an earlier point never replaces the current one
     const next = fromStation(res);
@@ -323,8 +324,20 @@
     /* weather numbers run through the same cutoff as the sheet's totals */
     climData = { R, nRows, oRows, thru: cutoff, sel, status, reportDate, met: cutoffSeason, obsErr, rankMonthP: col(1), rankSeasonP: col(2), rankSeasonT: col(3), rankMonthT: col(4) };
     renderDaily({ today, rpt, acisRows, nRows, show: reportDate === today });
+    insights({ sel, today, recRows, oRows });
     renderClimateSheet(el, { reportDate, status, cutoff, pending, today, dailyNWS, nws, check: rpt && rpt.check, nRows, oRows, R, periodRecords, recThru, errors: [nor, rec, obs].filter(x => x?.v?.error && !x.stale).map(x => x.v.error), stale: [nor, rec, obs].filter(x => x?.stale).map(x => x.error) });
     facts();
+  }
+  /* Historical Insights & Fun Facts (RecordsUI): the market's records pack when there is one; otherwise daily records from
+     the calendar-day history loaded above plus the selected day's own observation. Today's values are interim and never
+     judged; days within 60 days count as preliminary (NCEI's quality-controlled archive lags), older ones as final. */
+  function insights({ sel, today, recRows, oRows }) {
+    const host = $("insightsCard"); if (!host || !window.RecordsUI) return;
+    const E = window.RecordsEngine, own = (oRows || []).find((r) => r[0] === sel), rows = (recRows || []).concat(own ? [own] : []);
+    const cal = E && rows.length && sel < today ? { market: { id: CLIM.recordsSid, name: (O.location && O.location.name || CLIM.recordsName).split(",")[0], country: "US", units: { precip: "in", temp: "F" },
+        record: { sid: CLIM.recordsSid, name: CLIM.recordsName, kind: CLIM.threaded === false ? "station" : "threaded" } },
+      S: { maxt: E.series(rows, 1), mint: E.series(rows, 2), pcpn: E.series(rows, 3), snow: E.series(rows, 4) }, status: sel >= A.addDays(today, -60) ? "preliminary" : "final" } : null;
+    window.RecordsUI.almanac(host, { lat: O.location.lat, lon: O.location.lon, date: sel, calendarDay: cal }).catch(() => { host.hidden = true; });
   }
   function renderClimateSheet(el, d) {
     const report = window.ClimateReport.build(A, { date: d.reportDate, observations: d.oRows, normals: d.nRows, records: d.R, periodRecords: d.periodRecords, status: d.status, cutoff: d.cutoff, pending: d.pending });

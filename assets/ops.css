@@ -944,3 +944,30 @@ body.embed .mapstage .maplibregl-ctrl-bottom-right { bottom: 4px; }
 .ov-threats { position: relative; height: 620px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
 .ov-threats iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 @media (max-width: 700px) { .ov-threats { height: 640px; } }
+
+/* Weather Records & Milestones (records-ui.js): Overview highlights and Almanac "Historical Insights & Fun Facts" */
+.rec-status { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line, #3334); color: var(--muted); margin-right: 8px; vertical-align: 1px; white-space: nowrap; }
+.rec-status[data-status="final"] { color: var(--accent); border-color: var(--accent); }
+.rec-status[data-status="preliminary"] { color: var(--monitor, #b45309); border-color: var(--monitor, #b45309); border-style: dashed; }
+.rec-status[data-status="forecast"] { color: var(--muted); border-style: dotted; font-style: italic; }
+.rec-ov-h { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin-bottom: 8px; }
+.rec-ov-h .group-title { margin: 0; }
+.rec-ov-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.rec-ov-item { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--line, #3334); border-left: 3px solid var(--accent); border-radius: 10px; }
+.rec-ov-item b { font-size: 15px; line-height: 1.3; }
+.rec-ov-item .rec-status, .rec-fact-h .rec-status { align-self: flex-start; max-width: 100%; white-space: normal; }
+.rec-ov-body { font-size: 13.5px; color: var(--text); line-height: 1.4; }
+.rec-ov-more { font-size: 12.5px; margin-top: 2px; }
+.rec-facts { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 12px; }
+.rec-fact { padding: 12px 0 0; border-top: 1px solid var(--line, #3334); }
+.rec-fact:first-child { border-top: 0; padding-top: 0; }
+.rec-fact-h b { font-size: 16px; }
+.rec-fact p { margin: 6px 0; line-height: 1.45; }
+.rec-ev { font-size: 12.5px; color: var(--muted); }
+.rec-copy { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+.rec-copytext { flex: 1 1 260px; font-size: 13.5px; padding: 8px 10px; border-radius: 8px; background: color-mix(in srgb, var(--accent) 8%, transparent); quotes: none; }
+.rec-copied { font-size: 12px; color: var(--muted); }
+.rec-legend { font-size: 12.5px; }
+.rec-src { font-size: 12px; }
+@media (max-width: 600px) { .rec-ov-list { grid-template-columns: 1fr; } .rec-fact-h b { font-size: 15px; } }
+@media print { .rec-copy button { display: none; } }
