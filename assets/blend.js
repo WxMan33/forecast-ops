@@ -308,6 +308,7 @@
   const temperatureCues = (r, values) => window.ForecastClock.temperaturePattern(C, data.tz, data.ms, values, r.k);
   const cueHtml = (cues, source) => cues.map(c => `<span class="temp-timing" title="${O.esc(source + ': ' + c.text)}">${O.esc(c.label)}</span>`).join('');
 
+  O.onLocation(() => { const h = $("recordPotential"); if (h) { h.hidden = true; h.innerHTML = ""; } }); // a new market clears the card at once
   const recordWatch = window.RecordWatch.mount({ O, C, rerender: () => { if (data) renderDaily(); } });
   const impactFlags = window.ImpactFlags.mount({ O, C });
   const headsUp=window.Next48HeadsUp.mount({O,C,host:$("next48HeadsUp"),details:item=>impactFlags.content(item.day,[item.flag],NAMES,data?.tz||O.alertState.tz,false)});
@@ -328,6 +329,17 @@
     headsUp.render({data,rows,impacts,records,gusts,now:now,alertStatus:O.alertState.locationKey===data.pointKey?O.alertState.status:'loading',recordStatus:recordWatch.status(rows,O.location,data.tz,now,horizon)});
   }
 
+  /* Forecast record potential: the same records as the daily-table badges, as a card near the top; hidden when no full
+     forecast day is near a record. Snowfall uses NWS's gridded snowfall forecast only (see record-watch.js). */
+  function renderPotential(rows) {
+    const host = $("recordPotential"); if (!host) return;
+    if (data.pointKey !== `${Number(O.location.lat).toFixed(4)},${Number(O.location.lon).toFixed(4)}`) { host.hidden = true; host.innerHTML = ""; return; } // another point's forecast never meets this point's records
+    const A = data.nwsAxis, dayMs = (k) => [C.time.toUtc(k + "T00:00", data.tz), C.time.toUtc(new Date(Date.parse(k + "T12:00:00Z") + 86400000).toISOString().slice(0, 10) + "T00:00", data.tz)];
+    const snowFor = A && A.snow && A.snow.length ? (k) => { const [s, e] = dayMs(k); return N.totalOver(A.snow, s, e); } : null;
+    const c = recordWatch.candidates(rows, O.location, data.tz, Date.now(), snowFor);
+    const html = c.station ? window.RecordWatch.card(c.items, { esc: O.esc, station: c.station, approxDays: c.approx }) : "";
+    host.innerHTML = html; host.hidden = !html; host.dataset.items = String(c.items.length);
+  }
   function renderDaily() {
     if (!data) return;
     const expandedDays=new Set([...$("daily").querySelectorAll('tr.detrow:not([hidden])')].map(r=>r.dataset.for));
@@ -345,6 +357,7 @@
     const temps = O.blendSeries(series("temperature_2m", active("temperature_2m")), data.times.length).mean;
     const patterns = new Map(rows.map(r=>[r.k, temperatureCues(r, temps)]));
     recordWatch.prepare(rows, O.location, data.tz);
+    renderPotential(rows);
     const impactNow = Date.now(), futureStart = Math.floor(impactNow / 3600000) * 3600000, impactToday = C.time.toLocal(impactNow, data.tz).slice(0, 10);
     const impacts = new Map(rows.map(r => {
       const idx = data.ms.map((ms, i) => ({ ms, i })).filter(p => p.ms >= futureStart && C.time.toLocal(p.ms, data.tz).slice(0, 10) === r.k).map(p => p.i);

@@ -1,11 +1,28 @@
-# Daily Blend record watch
+# Daily Blend record watch and Forecast record potential
+
+## Forecast record potential (card near the top of Model Blend)
+
+A card at the top of the main column (also shown in the decision-briefing view) lists every full forecast day that is near a daily record, using the same records as the badges below: the forecast point's climate station (threaded city record where one exists), via RCC-ACIS, 30 or more usable years.
+
+- **Temperature:** the four extremes (record high, record cold high, record low, record warm low). Within 2°F on the approach side, a tie, or beyond. Wording: "Thursday's forecast high is within 1°F of the record high", "The current blend would tie Friday's record warm low", "The current blend would break Sunday's record high by 2°F". The weighted guidance range (10th to 90th percentile) is shown, with whether its far end reaches the record or its near end stays short of it.
+- **Precipitation:** the blend's daily liquid total against the daily precipitation record (rain and melted snow). Shown at 80% of the record or more (and at least 0.25 in), or when the upper guidance reaches the record from at least half of it.
+- **Snowfall:** only NWS's gridded snowfall forecast, which forecasts measured snowfall. The models' snowfall (Open-Meteo, a fixed 7:1 ratio) is never compared with a snowfall record. NWS intervals must cover the calendar day; when they straddle its edges, only a total whose low end already reaches the record is shown ("Even the low end of NWS's snowfall forecast would break...").
+- **Never:** today (a partial day), 23/25-hour days, past days, Feb 29, or a market without a resolved climate station. Daylight-time days are marked approximate (records use midnight to midnight standard time).
+- **Not yet:** month, season and year-to-date totals. They need observations to date plus the remaining forecast with matching cutoffs; on the page, today's observed-so-far and the hourly forecast's first hour don't line up reliably, so they are left out rather than approximated.
+- **Hidden** when nothing is meaningful; cleared at once when the location changes, and redrawn only for the forecast of the current point.
+- Thresholds are display choices, not probabilities. The card is labelled "Forecast record potential" and never calls anything an observed record.
+
+Validation: `node tests/record-watch.test.js` (43 checks, including the potential rules) and `node tools/record-potential-check.js` (synthetic forecast from `tests/fixtures/source-sim.js`, synthetic NWS snowfall and synthetic records placed at, just above or below the simulated values; phone and desktop, light and dark; model-snow-only; a market with no candidates; switching markets).
+
+## Daily table badges
+
 
 An informational heads-up beside the daily low/high, with no change to source data, forecast calculations, blend weights or verification archives.
 
 - Cincinnati threaded city records (`CVGthr`, RCC-ACIS StnData), sampled on each forecast calendar date from 1871 through the previous year. Uses the same source as the Almanac. Includes tied years and reports missing years. At least 30 usable historical observations are required for each extreme.
-- Four temperature extremes: hottest high, coldest low, coldest high and warmest low. No precipitation records or inferred ensemble probabilities.
+- Four temperature extremes: hottest high, coldest low, coldest high and warmest low. Precipitation and snowfall appear in the Forecast record potential card, not as badges. No inferred ensemble probabilities.
 - The displayed rounded blend temperature is compared with the record. Badges appear within 2°F on the approach side, at a potential tie or beyond the record. The 2°F threshold is a display choice, not a calibrated risk probability. Farther beyond a record also triggers a badge.
-- Only the selected point within 5 km of CVG with America/New_York time is enabled. Other points get no Cincinnati badge. This is a point guidance comparison, not a station observation or a guaranteed airport forecast.
+- Records come from the forecast point's climate station (ClimateStation), not only Cincinnati; a point without a resolved station gets no badge. This is a point guidance comparison, not a station observation or a guaranteed airport forecast.
 - Full 24-hour forecast days only. Partial days, DST transition days (23/25 h), past dates and Feb 29 are excluded. Feb 29 needs separate leap-specific sampling, not an adjacent-date substitution.
 - Normal daylight-saving dates use a civil calendar day that differs by one hour from the official standard-time climate day. The expanded badge explicitly calls the comparison an approximate heads-up on these dates. No actual-record declaration is made.
 - The source is fetched in the browser, limited to three requests at a time with a 15-second timeout each. Successful date-specific results are cached seven days. Failed or insufficient historical records produce a quiet note under the table. No record badge is not an all-clear.
