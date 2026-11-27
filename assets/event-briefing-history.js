@@ -2,6 +2,8 @@
 (function(root){
 'use strict';
 const KEY='forecast_ops_briefing_history_v1',H=3600e3,finite=Number.isFinite;
+/* part names: the fixed parts as before (lower case); a planner's own slot as "the <name>" */
+const PARTS=['Setup','Gates','Event','Teardown'],PS=l=>PARTS.includes(l)?String(l).toLowerCase():/^(the|a|an|our|my|day\b|mon|tue|wed|thu|fri|sat|sun)/i.test(String(l).trim())?String(l).trim():`the ${String(l).trim()}`;
 const percent=x=>x>0&&Math.round(x/5)*5===0?'<5%':`${Math.round(x/5)*5}%`;
 const identity=(ev,b)=>JSON.stringify([ev.loc.lat,ev.loc.lon,ev.tz,ev.gust||25,b.phases.map(p=>[p.key,p.startMs,p.endMs])]);
 /* recipe = the weights the planner's recipe asks for, not which models happened to answer: a failed model is a
@@ -28,7 +30,7 @@ function compare(old,now){
  let paired=0;
  for(const p of now.phases){
  const hours=now.hours.filter(h=>h.ms+H>now.at&&h.ms<p.end&&h.ms+H>p.start&&h.ok&&previous.get(h.ms)?.ok).map(h=>({old:previous.get(h.ms),now:h}));if(!hours.length)continue;paired+=hours.filter(h=>(h.old.rain!==null&&h.now.rain!==null&&h.old.rainSources===h.now.rainSources)||(finite(h.old.gust)&&finite(h.now.gust)&&h.old.gustSources===h.now.gustSources)||(h.old.lightning!==null&&h.now.lightning!==null&&h.old.lightningSources===h.now.lightningSources)).length;
- const phase=p.label.toLowerCase(),rain=hours.filter(h=>h.old.rain!==null&&h.now.rain!==null&&h.old.rainSources===h.now.rainSources),wet=rain.filter(h=>h.now.rain),wasWet=rain.filter(h=>h.old.rain);
+ const phase=PS(p.label),rain=hours.filter(h=>h.old.rain!==null&&h.now.rain!==null&&h.old.rainSources===h.now.rainSources),wet=rain.filter(h=>h.now.rain),wasWet=rain.filter(h=>h.old.rain);
  if(wet.length&&!wasWet.length)out.items.push({kind:'rain-window',trend:'worse',priority:p.key==='gates'?3:4,phase:p.key});
  if(wet.length&&wasWet.length){const from=wasWet[0].now.ms,to=wet[0].now.ms;
   // Two hours is a display change filter, not a new rain or safety threshold.
@@ -49,7 +51,7 @@ function compare(old,now){
  if(!wet.length&&next-prev>=15)out.items.push({kind:'rain-chance',trend:'worse',priority:5,phase:p.key,from:prev,to:next});
  else if(!(wasWet.length&&!wet.length)&&prev-next>=15)out.items.push({kind:'rain-chance-down',trend:'better',priority:9,phase:p.key,from:prev,to:next})}
  }
- const W=['Low','Moderate','High'],list=xs=>xs.length<3?xs.join(' and '):xs.slice(0,-1).join(', ')+' and '+xs.at(-1),label=k=>now.phases.find(p=>p.key===k).label.toLowerCase(),r=Math.round;
+ const W=['Low','Moderate','High'],list=xs=>xs.length<3?xs.join(' and '):xs.slice(0,-1).join(', ')+' and '+xs.at(-1),label=k=>PS(now.phases.find(p=>p.key===k).label),r=Math.round;
  /* one line per kind of change: phases joined, worst-case values kept */
  const TEXT={'rain-later':(w,a,b)=>`The first rain signal during ${w} shifted about ${Math.round((b-a)/H)} hours later in the same forecast hours. This is a timing change, not an all-clear.`,'rain-earlier':(w,a,b)=>`The first rain signal during ${w} shifted about ${Math.round((a-b)/H)} hours earlier in the same forecast hours.`,
  'rain-window':(w)=>`Rain now reaches ${w}. The previous briefing had no hourly rain signal there.`,'rain-clear':(w)=>`Rain no longer reaches ${w}. The previous briefing had an hourly rain signal there; the same hours now show none.`,
