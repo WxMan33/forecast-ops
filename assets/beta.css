@@ -694,6 +694,10 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 #secChanges h3 { font-size: 14px; margin: 16px 0 6px; }
 @media print { .ev-readout, .at-hitlayer { display: none !important; } }
 .ev-sample-banner { margin: 10px 0 0; padding: 6px 10px; border: 1px dashed var(--muted); border-radius: 6px; font-size: 12.5px; font-weight: 600; color: var(--text); text-align: center; }
+/* on an event page the sample label shares the "‹ Upcoming events" row, so it costs the first screen almost no height */
+.event-planner .ev-sample-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
+.event-planner .ev-sample-row .ev-back { margin-top: 0; flex: none; }
+.event-planner .ev-sample-row .ev-sample-banner { margin: 0; padding: 3px 8px; font-size: 12px; line-height: 1.3; flex: 0 1 auto; }
 
 /* phones: label beside value, so the decision, three callouts and the next check fit the first screen */
 @media (max-width: 600px) {
@@ -734,7 +738,7 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .event-planner .ev-back:hover { color: var(--text); text-decoration: underline; }
 .event-planner .ev-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px 20px; margin-top: 8px; }
 .event-planner .ev-head-text { min-width: 0; }
-.event-planner .ev-name { font: 700 clamp(22px, 5.4vw, 30px)/1.15 var(--bx-font) !important; letter-spacing: -.01em; margin: 0 !important; overflow-wrap: anywhere; }
+.event-planner .ev-name { font: 700 clamp(21px, 5.4vw, 30px)/1.15 var(--bx-font) !important; letter-spacing: -.01em; margin: 0 !important; overflow-wrap: anywhere; }
 .event-planner .ev-venue { margin: 4px 0 0; font-size: 15px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
 .event-planner .ev-when { margin: 2px 0 0; font-size: 14px; color: var(--muted); }
 .event-planner .ev-head-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
@@ -743,8 +747,15 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .event-planner #sampleTag[hidden] { display: none; }
 .event-planner .bx-decision { margin-top: 18px !important; }
 @media (max-width: 600px) {
-  .event-planner .ev-back { margin-top: 10px; }
-  .event-planner .ev-head { margin-top: 6px; }
+  .event-planner .ev-back { margin-top: 8px; }
+  .event-planner .ev-sample-row { margin-top: 8px; }
+  .event-planner .ev-sample-row .ev-sample-banner { padding: 2px 8px; line-height: 1.2; }
+  /* narrow phones: the event's name, venue and date take the full width (a wider fallback font would otherwise squeeze them
+     into many short lines beside the buttons); Share, Edit event and Use sample event follow in one compact row */
+  .event-planner .ev-head { margin-top: 4px; flex-direction: column; align-items: stretch; gap: 6px; }
+  .event-planner .ev-head-actions { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+  .event-planner .ev-sharepop { left: 0; right: auto; }
+  .event-planner .ev-head-actions .ev-sharemenu { border-top: 0; padding: 0; margin: 0; }
   .event-planner .ev-venue { font-size: 14px; }
   .event-planner .ev-when { font-size: 13px; }
   .event-planner .bx-decision { margin-top: 12px !important; }
@@ -793,6 +804,38 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
   .pv .pv-dense .pv-hours td, .pv .pv-dense .pv-hours th { padding-top: 2.5pt; padding-bottom: 2.5pt; }
   .pv .pv-legend { font-size: 9pt; color: #333; margin: 8pt 0 0; }
   .pv .pv-src { font-size: 8.5pt; color: #444; border-top: 0; margin-top: 6pt; padding-top: 0; }
+  /* fit steps (EventBriefingUI.fitPrint): applied only to a page that would otherwise spill onto another sheet.
+     Step 1 keeps "Reaches N mph venue limit" on the gust value's line: the gust column takes width from Phase and Lightning. */
+  .pv .pv-fit1 .pv-hours td small, .pv .pv-fit2 .pv-hours td small, .pv .pv-fit3 .pv-hours td small { display: inline; margin-left: 3pt; font-size: 7.5pt; }
+  .pv .pv-fit1 .pv-hours:not(.pv-snowy) col:nth-child(1), .pv .pv-fit2 .pv-hours:not(.pv-snowy) col:nth-child(1), .pv .pv-fit3 .pv-hours:not(.pv-snowy) col:nth-child(1) { width: 13% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours:not(.pv-snowy) col:nth-child(2) { width: 14% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours:not(.pv-snowy) col:nth-child(3) { width: 8% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours:not(.pv-snowy) col:nth-child(4) { width: 9% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours:not(.pv-snowy) col:nth-child(5) { width: 10% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours:not(.pv-snowy) col:nth-child(6) { width: 34% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours:not(.pv-snowy) col:nth-child(7) { width: 12% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours.pv-snowy col:nth-child(1) { width: 12% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours.pv-snowy col:nth-child(2) { width: 12% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours.pv-snowy col:nth-child(3) { width: 8% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours.pv-snowy col:nth-child(4) { width: 9% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours.pv-snowy col:nth-child(5) { width: 9% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours.pv-snowy col:nth-child(6) { width: 8% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours.pv-snowy col:nth-child(7) { width: 31% !important; }
+  .pv :is(.pv-fit1, .pv-fit2, .pv-fit3) .pv-hours.pv-snowy col:nth-child(8) { width: 11% !important; }
+  .pv .pv-fit1.pv-p1 { line-height: 1.25; }
+  .pv .pv-fit1 .pv-nws { font-size: 10pt; }
+  .pv .pv-fit1 .pv-section { margin-top: 5px !important; }
+  .pv :is(.pv-fit2, .pv-fit3) .pv-hours td, .pv :is(.pv-fit2, .pv-fit3) .pv-hours th { padding-top: 1pt; padding-bottom: 1pt; line-height: 1.15; }
+  .pv :is(.pv-fit2, .pv-fit3) .pv-watch, .pv :is(.pv-fit2, .pv-fit3) .pv-legend, .pv :is(.pv-fit2, .pv-fit3) .pv-src { font-size: 8pt; line-height: 1.2; }
+  .pv :is(.pv-fit2, .pv-fit3) .pv-hours-window { margin: 5pt 0 4pt; }
+  .pv .pv-fit2.pv-p1 { font-size: 10pt; line-height: 1.2; }
+  .pv .pv-fit2 .pv-nws { font-size: 9.5pt; }
+  .pv :is(.pv-fit2, .pv-fit3) .pv-section { margin-top: 3px !important; }
+  .pv .pv-fit3 .pv-hours { font-size: 9pt; }
+  .pv .pv-fit3 .pv-hours td small { font-size: 7pt; }
+  .pv .pv-fit3.pv-p1 { font-size: 9.5pt; line-height: 1.15; }
+  .pv .pv-fit3 .pv-nws { font-size: 9pt; }
+}
 }
 @media print {
   .pv .pv-hours { table-layout: fixed; width: 100%; }
@@ -1075,3 +1118,18 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 /* hourly charts: hours between a planner's slots (shown, shaded, labelled; outside the schedule) */
 .evc-between{fill:var(--muted);opacity:.14}.evc-betweentext{font:600 11px var(--bx-font);fill:var(--muted)}
 .evc-key .k-between{width:14px;height:14px;background:color-mix(in srgb,var(--muted) 30%,transparent);border-radius:2px}
+/* Multi-day events: the day picker (EventDays). One compact row of chips (about 40 px tall) so a phone's first screen
+   keeps the decision, callouts, next check and any warning; it scrolls sideways when there are many days. */
+.event-planner .ev-days { margin: 8px 0 2px; }
+.event-planner .ev-days-row { display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none; }
+.event-planner .ev-days-row::-webkit-scrollbar { display: none; }
+.event-planner .ev-day { flex: 0 0 auto; display: inline-flex; align-items: baseline; gap: 5px; padding: 6px 9px; min-height: 36px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--bx-rule); border-left: 4px solid var(--tier, var(--bx-rule)); background: var(--panel, transparent); color: var(--text); font: inherit; font-size: 12.5px; cursor: pointer; }
+.event-planner .ev-day b { font-size: 13px; }
+.event-planner .ev-day .ev-day-s { color: var(--muted); }
+.event-planner .ev-day[data-state="concern"] .ev-day-s { color: var(--text); font-weight: 600; }
+.event-planner .ev-day[data-state="pending"] .ev-day-s, .event-planner .ev-day[data-cover="part"] .ev-day-s { font-style: italic; }
+.event-planner .ev-day.is-on { border-color: var(--text); border-left-color: var(--tier, var(--text)); box-shadow: inset 0 0 0 1px var(--text); }
+.event-planner .ev-day-all { border-left-width: 1px; }
+.event-planner .ev-day:focus-visible { outline: 2px solid var(--accent, #2563eb); outline-offset: 2px; }
+@media print { .event-planner .ev-days { display: none !important; } }

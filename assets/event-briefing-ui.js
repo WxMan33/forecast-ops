@@ -380,13 +380,49 @@
       <header class="pv-head"><div><span class="pv-kicker">Hour-by-hour forecast</span><h2 class="pv-title">${esc(name)}</h2><div class="pv-venue">${esc(ev.loc.name)}</div></div><div class="pv-iss"><b>Issued</b><br>${esc(issue)}</div></header>
       <div class="pv-watch" data-watchbox><b>Watch for</b>${watch.length ? `<ul>${watch.map((l) => `<li data-key="${esc(l.key)}">${esc(l.text)}</li>`).join('')}</ul>` : `<p>${esc(gapTxt ? `${gapTxt}; no weather concern in the hours that have guidance.` : 'No weather concern for the event in the current forecast.')}</p>`}${amountsHtml}</div>
       <p class="pv-hours-window" data-page-hours="${PH.start}-${PH.start + PH.count}"><b>Hours shown:</b> ${esc(span1)}${clipped ? `<br><b>${PH.fromStart ? 'First 24 hours only' : `24 of ${PH.total} planning hours`}</b>${PH.fromStart ? ` (24 of ${PH.total})` : ', chosen to include the first concern on page 1'}; open the briefing for the rest.` : ''}</p>
-      <table class="pv-t pv-hours"><colgroup><col style="width:14%"><col style="width:${snowy ? 17 : 20}%"><col style="width:9%"><col style="width:11%"><col style="width:${snowy ? 10 : 12}%">${snowy ? '<col style="width:9%">' : ''}<col style="width:${snowy ? 16 : 19}%"><col style="width:${snowy ? 14 : 15}%"></colgroup><thead><tr><th>Local time</th><th>Phase</th><th>Temp</th><th>Rain chance</th><th>Rain amount</th>${snowy ? '<th>Snow</th>' : ''}<th>Wind gusts</th><th>Lightning</th></tr></thead><tbody>${body}</tbody></table>
+      <table class="pv-t pv-hours${snowy ? ' pv-snowy' : ''}"><colgroup><col style="width:14%"><col style="width:${snowy ? 17 : 20}%"><col style="width:9%"><col style="width:11%"><col style="width:${snowy ? 10 : 12}%">${snowy ? '<col style="width:9%">' : ''}<col style="width:${snowy ? 16 : 19}%"><col style="width:${snowy ? 14 : 15}%"></colgroup><thead><tr><th>Local time</th><th>Phase</th><th>Temp</th><th>Rain chance</th><th>Rain amount</th>${snowy ? '<th>Snow</th>' : ''}<th>Wind gusts</th><th>Lightning</th></tr></thead><tbody>${body}</tbody></table>
       <p class="pv-legend">Times are the venue's local time (${esc(tz)}). ${V.custom ? 'Rain chance, rain amount and gusts are for the hour ending at the time shown (4 PM: 3 to 4 PM); temperature is at that time. Phase names the time slot that hour falls in; “Between slots” hours are not in the event totals.' : 'Rain chance is the chance of rain at the venue in that hour; rain amount is how much is forecast to fall in that hour.'}${snowy ? ' Snow is forecast snowfall in that hour, before melting.' : ''} Lightning is forecast potential, not detected lightning; low is not zero. Marked rows are hours with a weather concern. “No data” means no forecast was available for that hour, not zero.${gap ? ` ${esc(gap)}` : ''}</p>
       <p class="pv-src">Data: Open-Meteo (CC BY 4.0), National Weather Service, NOAA. Model guidance only, not an official forecast or warning.${area ? ' City-area forecast, not site-specific.' : ''}</p>
       ${foot(2)}</section>`;
     return p1 + p2;
   }
-  const api={anchored,date,dateSpan,hourWindow,windowText,headline,coverage,eventFeeds,sourceHtml,rainAmount,nwsPrint,focusOf,clockSpan,scheduleHtml,phaseWords,planLines,phaseCellText,attention,attentionText,attentionHtml,attentionList,pageHours,printMarkup};
+  /* Keep each printed page on its own sheet. Live content varies (long NWS wording, many hours at the venue's gust limit,
+     each carrying "Reaches N mph venue limit" on a second line), so after the markup is built the pages are laid out once
+     in a hidden 8.5in-wide frame that carries the print styles only (screen-only rules left out, "print" rules applied),
+     measured against the US Letter content box (11in less the 0.52in @page margins) and, while one overflows, its
+     layout steps in (pv-fit1: the gust column widens so a venue-limit note sits beside the value instead of under it;
+     pv-fit2..3: tighter rows and margins; never below 9 pt table text, never dropping content).
+     host.dataset.fit records the result per page ("ok", "fit1".."fit3", or "over"). */
+  const PAGE_PX = (11 - 2 * 0.52) * 96;
+  function printCss(doc) {
+    const out = [], walk = (rs) => { for (const r of rs) {
+      if (r.media && r.cssRules && r.conditionText !== undefined || (r.media && r.cssRules)) {
+        const m = r.media.mediaText; if (/\bscreen\b/.test(m) && !/\bprint\b/.test(m)) continue; if (/not\s+print/.test(m)) continue;
+        out.push(`@media ${/\bprint\b/.test(m) ? m.replace(/\bprint\b/g, 'all') : m} {${[...r.cssRules].map((x) => x.cssText).filter((t) => !/^@page/.test(t)).join('\n')}}`);
+      } else if (!/^@(page|import)/.test(r.cssText)) out.push(r.cssText); } };
+    for (const sh of doc.styleSheets) { let rs; try { rs = sh.cssRules; } catch (e) { continue; } const m = sh.media && sh.media.mediaText; if (rs && !(m && /\bscreen\b/.test(m) && !/\bprint\b/.test(m))) walk(rs); }
+    return out.join('\n');
+  }
+  function fitPrint(host) {
+    if (!host || !host.ownerDocument || !host.ownerDocument.body) return null;
+    const doc = host.ownerDocument, pages = [...host.querySelectorAll('.pv-page')]; if (!pages.length) return null;
+    pages.forEach((pg) => pg.classList.remove('pv-fit1', 'pv-fit2', 'pv-fit3'));
+    const fr = doc.createElement('iframe'); fr.setAttribute('aria-hidden', 'true'); fr.tabIndex = -1;
+    fr.style.cssText = 'display:block !important;position:fixed;left:-10000px;top:0;width:8.5in;height:11in;border:0;visibility:hidden;pointer-events:none';
+    doc.documentElement.appendChild(fr); const result = []; // outside <body>: the print rule that hides everything but the printout (it applies when beforeprint re-renders) must not hide the frame
+    try {
+      const d = fr.contentDocument; d.open();
+      d.write(`<!doctype html><html><head><meta charset="utf-8"><style>${printCss(doc)}\nhtml,body{margin:0;background:#fff}#${host.id || 'printView'}{width:${8.5 - 2 * 0.55}in}</style></head><body>${host.outerHTML}</body></html>`); d.close();
+      const copies = [...d.querySelectorAll('.pv-page')];
+      copies.forEach((pg, k) => { let step = 0;
+        while (pg.getBoundingClientRect().height > PAGE_PX + 0.5 && step < 3) { if (step) pg.classList.remove(`pv-fit${step}`); step++; pg.classList.add(`pv-fit${step}`); }
+        if (step && pages[k]) pages[k].classList.add(`pv-fit${step}`);
+        result.push(pg.getBoundingClientRect().height > PAGE_PX + 0.5 ? 'over' : step ? `fit${step}` : 'ok'); });
+    } catch (e) { result.length = 0; } finally { fr.remove(); }
+    host.dataset.fit = result.join(' ');
+    return result;
+  }
+  const api={anchored,date,dateSpan,hourWindow,windowText,headline,coverage,eventFeeds,sourceHtml,rainAmount,nwsPrint,focusOf,clockSpan,scheduleHtml,phaseWords,planLines,phaseCellText,attention,attentionText,attentionHtml,attentionList,pageHours,printMarkup,fitPrint};
   if(typeof module!=='undefined'&&module.exports) module.exports=api;
   root.EventBriefingUI=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

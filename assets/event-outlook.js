@@ -51,11 +51,12 @@
     return { state, days, hourly: R.state, firstAt: R.firstAt, readyAt: R.readyAt, outlookAt: state === "beyond" ? outlookAt : null };
   }
 
-  /* HTML for the model; f: { dayName(k), when(ms) } venue-local formatting; remind: the calendar reminder HTML */
+  /* HTML for the model; f: { dayName(k), when(ms), first? } venue-local formatting, and the first part's name in the
+     briefing's words ("setup", "the event", "the Closing day"; "setup" when not given); remind: the calendar reminder HTML */
   function html(m, f, remind = "") {
     if (m.state === "none") return "";
     const timing = m.hourly === "pending"
-      ? `Hourly guidance should reach setup around <b>${esc(f.when(m.firstAt))}</b> and the whole event around <b>${esc(f.when(m.readyAt))}</b>.`
+      ? `Hourly guidance should reach ${esc(f.first || "setup")} around <b>${esc(f.when(m.firstAt))}</b> and the whole event around <b>${esc(f.when(m.readyAt))}</b>.`
       : `The rest of the event should come into hourly range around <b>${esc(f.when(m.readyAt))}</b>.`;
     if (m.state === "beyond") return `<div class="ev-outlook" data-outlook="beyond"><h3>Early weather outlook</h3>
       <p class="ev-ol-lead">This event is past the 10-day outlook. A lot can change this far out.</p>

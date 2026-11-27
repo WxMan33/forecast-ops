@@ -1,6 +1,6 @@
 /* Event Manager: "Export hourly image": a 1920 x 1080 PNG for TV rotations that show images.
    Header: event, venue and local time, then sunrise and sunset at the venue ("Sunrise 7:33 AM · Sunset 5:17 PM EST",
-   the same line as Hour by hour; the schedule note after it only when both fit), the briefing's one-line takeaway, and
+   the same line as Hour by hour; the schedule note after it on the same row, using the width clear of the right-hand block), the briefing's one-line takeaway, and
    when the forecast was updated. The four panels keep the same size and position with or without the daylight line.
    Below: four large panels in a 2 x 2 grid on one shared hour axis:
      precipitation chance (line + dot per hour, 0-100%, labelled type bands when the type changes),
@@ -25,6 +25,7 @@
   let C = PALETTES.light;
   const FONT = (w, px) => `${w} ${px}px Archivo, "Segoe UI", system-ui, sans-serif`;
   const SYM = { rain: "☂", mix: "✱", snow: "❄" };
+  const MODEL_NOTE = "Model guidance · not an official forecast", MODEL_FONT = FONT(500, 20);
 
   /* the hours to show: the event's hours, at most 24 */
   function hoursOf(V) { const n = Math.min(V.span.length, MAX_HOURS); return { ids: V.span.slice(0, n).map((_, i) => i), total: V.span.length, cut: V.span.length > n }; }
@@ -52,17 +53,27 @@
     text(d.title, PAD, Y.title, { font: FONT(800, 56), max: 1260 });
     text([d.venue, d.when].filter(Boolean).join("  ·  "), PAD, Y.details, { font: FONT(500, 30), color: C.muted, max: 1260 });
     const widthOf = (t, f) => { g.font = f; return g.measureText(t).width; };
-    let daylightAt = "none";
+    let daylightAt = "none"; canvas.daylightNotePx = null; canvas.lightningNote = null;
     if (dlLine) {
-      /* the sunrise / sunset line, readable across a room; the schedule note follows it only when both fit in the column */
-      const withNote = d.daylight ? `${dlLine}  ·  ${d.daylight}` : "", dlFont = FONT(700, 30);
-      const shown = withNote && widthOf(withNote, dlFont) <= 1260 ? withNote : dlLine;
-      text(shown, PAD, Y.day, { font: dlFont, color: C.text, max: 1260 }); daylightAt = shown === withNote ? "line+note" : "line";
+      /* the sunrise / sunset line, readable across a room. The schedule note ("Sunset during the event (5:17 PM).") follows on
+         the same row: the header has no spare row (the takeaway and the rule at 214 sit just below, and the panels stay put),
+         but this row is clear all the way to the right-hand block's last line, so the note may use that width. A wider
+         fallback font (the web font not loaded) needed this: within the old 1260 px column the note was dropped. If the
+         note is still too long it steps down to 27 and then 24 px (never smaller); only then is it left out. */
+      const dlFont = FONT(700, 30), sep = "  ·  ", lineW = widthOf(dlLine, dlFont), sepW = widthOf(sep, dlFont);
+      const room = W - PAD - widthOf(MODEL_NOTE, MODEL_FONT) - 32 - PAD; // clear of "Model guidance · not an official forecast"
+      text(dlLine, PAD, Y.day, { font: dlFont, color: C.text, max: room }); daylightAt = "line";
+      if (d.daylight) for (const px of [30, 27, 24]) {
+        const nf = FONT(700, px);
+        if (lineW + sepW + widthOf(d.daylight, nf) > room) continue;
+        text(sep, PAD + lineW, Y.day, { font: dlFont, color: C.text }); text(d.daylight, PAD + lineW + sepW, Y.day, { font: nf, color: C.text });
+        daylightAt = "line+note"; canvas.daylightNotePx = px; break;
+      }
     }
     text(d.takeaway || "", PAD, Y.take, { font: FONT(700, 36), max: W - 2 * PAD });
     text("Forecast updated", W - PAD, 70, { font: FONT(500, 24), color: C.muted, align: "right" });
     text(d.updated || "Unavailable", W - PAD, 108, { font: FONT(700, 32), align: "right" });
-    text("Model guidance · not an official forecast", W - PAD, 140, { font: FONT(500, 20), color: C.muted, align: "right" });
+    text(MODEL_NOTE, W - PAD, 140, { font: MODEL_FONT, color: C.muted, align: "right" });
     g.fillStyle = C.rule; g.fillRect(PAD, 214, W - 2 * PAD, 2);
     /* ---- 2 x 2 panels ---- */
     const top0 = 236, gap = 24, pw = (W - 2 * PAD - gap) / 2, ph = (HGT - top0 - 58 - gap) / 2;
@@ -148,7 +159,18 @@
         const real = v1.filter((v) => v != null); lab(v1, "max"); if (key === "temp" && real.length && Math.round(Math.min(...real)) !== Math.round(Math.max(...real))) lab(v1, "min");
       } else {
         const { levels, allLow } = lightningSummary(V, ids);
-        text("Forecast potential, not detected lightning or a warning", R, y + 46, { font: FONT(600, 20), color: C.muted, align: "right" });
+        /* the safety line beside the title: one line when both fit; with a wider fallback font (the web font not loaded) it
+           would run into the title, so it wraps onto two right-aligned lines in the title band, still at 20 px, split where
+           the two lines are most even. canvas.lightningNote records which. */
+        { const sub = "Forecast potential, not detected lightning or a warning", sf = FONT(600, 20), widthOf = (t, f) => { g.font = f; return g.measureText(t).width; };
+          const room = R - (x + 24 + widthOf(title, FONT(800, 32)) + 24);
+          if (widthOf(sub, sf) <= room) { text(sub, R, y + 46, { font: sf, color: C.muted, align: "right" }); canvas.lightningNote = "one line"; }
+          else {
+            const words = sub.split(" "); let best = null;
+            for (let i = 1; i < words.length; i++) { const a = words.slice(0, i).join(" "), b2 = words.slice(i).join(" "), m = Math.max(widthOf(a, sf), widthOf(b2, sf)); if (!best || m < best.m) best = { a, b: b2, m }; }
+            text(best.a, R, y + 37, { font: sf, color: C.muted, align: "right" }); text(best.b, R, y + 61, { font: sf, color: C.muted, align: "right" });
+            canvas.lightningNote = best.m <= room ? "two lines" : "two lines, tight";
+          } }
         if (allLow) {
           text("Low throughout", x + w / 2, (T + B) / 2 + 10, { font: FONT(800, 64), align: "center", color: C.lowThroughout });
           text("Low is not zero · every event hour covered", x + w / 2, (T + B) / 2 + 60, { font: FONT(600, 26), color: C.muted, align: "center" });
