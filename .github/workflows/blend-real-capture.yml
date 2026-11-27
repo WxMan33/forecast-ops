@@ -1,0 +1,27 @@
+# One-off: capture a fully real near-record Model Blend case (real forecast, official station records, both unedited).
+# Runs only on a push to this capture branch; read-only (commits nothing, deploys nothing). Uploads the recording.
+name: Blend real record capture (one-off)
+on:
+  push:
+    branches: [claude/blend-real-capture]
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: |
+          npm install --no-save playwright@1.48.2
+          npx playwright install --with-deps chromium || npx playwright install chromium
+      - name: Find candidates (NWS vs station records), load Model Blend live, record everything
+        run: node tools/blend-real-capture.js /tmp/capture
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blend-real-capture
+          path: /tmp/capture
+          if-no-files-found: ignore
