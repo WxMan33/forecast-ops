@@ -51,11 +51,12 @@
     return { state, days, hourly: R.state, firstAt: R.firstAt, readyAt: R.readyAt, outlookAt: state === "beyond" ? outlookAt : null };
   }
 
-  /* HTML for the model; f: { dayName(k), when(ms) } venue-local formatting; remind: the calendar reminder HTML */
+  /* HTML for the model; f: { dayName(k), when(ms), first? } venue-local formatting, and the first part's name in the
+     briefing's words ("setup", "the event", "the Closing day"; "setup" when not given); remind: the calendar reminder HTML */
   function html(m, f, remind = "") {
     if (m.state === "none") return "";
     const timing = m.hourly === "pending"
-      ? `Hourly guidance should reach setup around <b>${esc(f.when(m.firstAt))}</b> and the whole event around <b>${esc(f.when(m.readyAt))}</b>.`
+      ? `Hourly guidance should reach ${esc(f.first || "setup")} around <b>${esc(f.when(m.firstAt))}</b> and the whole event around <b>${esc(f.when(m.readyAt))}</b>.`
       : `The rest of the event should come into hourly range around <b>${esc(f.when(m.readyAt))}</b>.`;
     if (m.state === "beyond") return `<div class="ev-outlook" data-outlook="beyond"><h3>Early weather outlook</h3>
       <p class="ev-ol-lead">This event is past the 10-day outlook. A lot can change this far out.</p>
@@ -63,8 +64,8 @@
     if (m.state === "unavailable") return `<div class="ev-outlook" data-outlook="unavailable"><h3>Early weather outlook</h3>
       <p class="bx-note">The daily outlook could not be loaded just now. ${timing}</p>${remind}</div>`;
     const cards = m.days.map((d) => d.covered ? `<div class="ev-ol-day" data-day="${esc(d.k)}"><div class="ev-ol-date">${esc(f.dayName(d.k))}<span class="bx-note"> · ${esc(d.parts.join(", "))}</span></div>
-        <dl class="ev-ol-vals"><div><dt>High / low</dt><dd><b>${d.hi == null ? "—" : d.hi + "°"}</b> / <b>${d.lo == null ? "—" : d.lo + "°"}</b></dd></div>
-        <div><dt>Chance of precipitation, whole day</dt><dd><b data-ol-pop>${d.pop == null ? "—" : d.pop + "%"}</b></dd></div></dl>
+        <dl class="ev-ol-vals"><div><dt>High / low</dt><dd><b>${d.hi == null ? "No data" : d.hi + "°"}</b> / <b>${d.lo == null ? "No data" : d.lo + "°"}</b></dd></div>
+        <div><dt>Chance of precipitation, whole day</dt><dd><b data-ol-pop>${d.pop == null ? "No data" : d.pop + "%"}</b></dd></div></dl>
         <p class="ev-ol-type" data-ol-type="${d.type.kind}">${esc(d.type.text)}</p>
         <p class="bx-note ev-ol-period">For the whole day, midnight to midnight venue time, not the event hours.</p></div>`
       : `<div class="ev-ol-day ev-ol-out" data-day="${esc(d.k)}"><div class="ev-ol-date">${esc(f.dayName(d.k))}<span class="bx-note"> · ${esc(d.parts.join(", "))}</span></div><p class="bx-note">Past the 10-day outlook: no numbers yet.</p></div>`).join("");

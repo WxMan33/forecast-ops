@@ -7,6 +7,10 @@
   const MAX_DAYS = 3; // a longer event lists its first and last dates
   const PHASE_WORD = { setup: "Setup", gates: "Gates", event: "The event", teardown: "Teardown" };
   const lower = (k) => (k === "event" ? "the event" : PHASE_WORD[k] ? PHASE_WORD[k].toLowerCase() : k);
+  /* a planner's own slot is named as typed ("Sunset during the Reception"); the fixed parts as before */
+  const OWN = (p) => !!p.slot && !(p.label === "Event" && p.key === "event") && !["Setup", "Gates", "Teardown"].includes(p.label);
+  const the = (l) => (/^(the|a|an|our|my|day\b|mon|tue|wed|thu|fri|sat|sun)/i.test(String(l).trim()) ? String(l).trim() : `the ${String(l).trim()}`);
+  const nameOf = (p) => (OWN(p) ? the(p.label) : lower(p.slot ? { Setup: "setup", Gates: "gates", Teardown: "teardown", Event: "event" }[p.label] || p.key : p.key));
   const addDays = (ymd, n) => new Date(Date.parse(ymd + "T12:00:00Z") + n * 864e5).toISOString().slice(0, 10);
   /* the Almanac's clock: "7:34 AM", venue-local */
   function hm(C, ms, tz) { const s = C.time.toLocal(ms, tz); let h = +s.slice(11, 13); const m = s.slice(14, 16), ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return `${h}:${m} ${ap}`; }
@@ -35,21 +39,21 @@
     if (dark(all.startMs)) {
       const prev = marks.filter((m) => m.ms <= all.startMs).pop(), next = marks.find((m) => m.ms > all.startMs);
       const evening = C.time.toLocal(prev.ms, tz).slice(0, 10) === C.time.toLocal(all.startMs, tz).slice(0, 10);
-      const p0 = phases[0], w = PHASE_WORD[p0.key] || p0.label;
+      const p0 = phases[0], w = OWN(p0) ? the(p0.label).replace(/^./, (c) => c.toUpperCase()) : PHASE_WORD[p0.slot ? { Setup: "setup", Gates: "gates", Teardown: "teardown", Event: "event" }[p0.label] || p0.key : p0.key] || p0.label;
       if (!next || next.ms >= all.endMs) notes.push({ ms: all.startMs, kind: "allDark", text: evening ? `The whole event is after sunset (${hm(C, prev.ms, tz)}).` : `The whole event is before sunrise (${hm(C, next.ms, tz)}).` });
       else notes.push({ ms: all.startMs, kind: evening ? "afterSet" : "beforeRise", text: evening ? `${w} starts after sunset (${hm(C, prev.ms, tz)}).` : `${w} starts before sunrise (${hm(C, next.ms, tz)}).` });
     }
     /* a sunrise or sunset inside a phase; a phase that already spans a whole night (multi-day events) isn't flagged */
     marks.filter((m) => m.ms > all.startMs && m.ms < all.endMs).forEach((m) => {
       const p = phases.find((x) => m.ms >= x.startMs && m.ms < x.endMs); if (!p || p.endMs - p.startMs > 18 * 3600e3) return;
-      if (m.kind === "set") notes.push({ ms: m.ms, kind: "set", text: `Sunset during ${lower(p.key)} (${hm(C, m.ms, tz)}).` });
-      else if (!notes.some((n) => n.kind === "beforeRise")) notes.push({ ms: m.ms, kind: "rise", text: `Sunrise during ${lower(p.key)} (${hm(C, m.ms, tz)}).` });
+      if (m.kind === "set") notes.push({ ms: m.ms, kind: "set", text: `Sunset during ${nameOf(p)} (${hm(C, m.ms, tz)}).` });
+      else if (!notes.some((n) => n.kind === "beforeRise")) notes.push({ ms: m.ms, kind: "rise", text: `Sunrise during ${nameOf(p)} (${hm(C, m.ms, tz)}).` });
     });
     notes.sort((a, b) => a.ms - b.ms);
     const zones = [...new Set(shown.map((d) => d.zone))];
     /* one short note; an overnight event that crosses both sunset and sunrise gets both in that one line */
     const note = notes.length ? notes.slice(0, 2).map((n, i) => (i ? n.text.charAt(0).toLowerCase() + n.text.slice(1) : n.text)).join(" Then ").replace(/\.\sThen /, "; then ") : "";
-    return { days, shown, skipped: days.length - shown.length, zone: zones.join("/"), zones, note, notes, hm: (ms) => (ms == null ? "—" : hm(C, ms, tz)), dayLabel };
+    return { days, shown, skipped: days.length - shown.length, zone: zones.join("/"), zones, note, notes, hm: (ms) => (ms == null ? "Unavailable" : hm(C, ms, tz)), dayLabel };
   }
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   /* the screen row: Daylight · date · Sunrise time · Sunset time · zone; dates labelled whenever there is more than one */

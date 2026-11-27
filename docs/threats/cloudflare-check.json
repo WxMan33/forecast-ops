@@ -1,0 +1,132 @@
+{
+ "host": "https://claude-beautiful-hawking-tnr.forecast-ops-beta.pages.dev",
+ "at": "2026-11-20T20:25:54.593Z",
+ "checks": {
+  "browser NWS requests all go to the same-origin function": true,
+  "no direct api.weather.gov request from the browser": true,
+  "page last-confirmed = function upstream time (load)": true,
+  "refresh within 30 s: function cache HIT and last-confirmed unchanged": true,
+  "refresh after 30 s: fresh upstream time and last-confirmed advanced": true,
+  "function reports the identifying User-Agent": true,
+  "county and marine zone shapes through the function": true,
+  "no page errors": true
+ },
+ "steps": [
+  {
+   "step": "page load",
+   "lastOk": "2026-11-20T20:25:17.945Z",
+   "shown": "empty",
+   "mode": "function",
+   "base": "https://claude-beautiful-hawking-tnr.forecast-ops-beta.pages.dev/api/nws",
+   "venue": [
+    "Nothing active at the venue"
+   ],
+   "activeWarnings": [],
+   "response": {
+    "url": "https://claude-beautiful-hawking-tnr.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
+    "viaFunction": true,
+    "status": 200,
+    "cache": "MISS",
+    "upstreamAt": "2026-11-20T20:25:17.945Z",
+    "upstreamUserAgent": "(forecast-ops, github.com/WxMan33/forecast-ops)"
+   }
+  },
+  {
+   "step": "refresh within 30 s",
+   "lastOk": "2026-11-20T20:25:17.945Z",
+   "shown": "empty",
+   "mode": "function",
+   "base": "https://claude-beautiful-hawking-tnr.forecast-ops-beta.pages.dev/api/nws",
+   "venue": [
+    "Nothing active at the venue"
+   ],
+   "activeWarnings": [],
+   "response": {
+    "url": "https://claude-beautiful-hawking-tnr.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
+    "viaFunction": true,
+    "status": 200,
+    "cache": "HIT",
+    "upstreamAt": "2026-11-20T20:25:17.945Z",
+    "upstreamUserAgent": "(forecast-ops, github.com/WxMan33/forecast-ops)"
+   }
+  },
+  {
+   "step": "refresh after the 30 s cache",
+   "lastOk": "2026-11-20T20:25:53.259Z",
+   "shown": "empty",
+   "mode": "function",
+   "base": "https://claude-beautiful-hawking-tnr.forecast-ops-beta.pages.dev/api/nws",
+   "venue": [
+    "Nothing active at the venue"
+   ],
+   "activeWarnings": [],
+   "response": {
+    "url": "https://claude-beautiful-hawking-tnr.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
+    "viaFunction": true,
+    "status": 200,
+    "cache": "MISS",
+    "upstreamAt": "2026-11-20T20:25:53.259Z",
+    "upstreamUserAgent": "(forecast-ops, github.com/WxMan33/forecast-ops)"
+   }
+  }
+ ],
+ "zones": [
+  {
+   "zone": "/api/nws/zones/county/PAC101",
+   "status": 200,
+   "cache": "HIT",
+   "upstreamAt": "2026-11-20T20:24:00.020Z",
+   "shape": "Polygon"
+  },
+  {
+   "zone": "/api/nws/zones/forecast/ANZ430",
+   "status": 200,
+   "cache": "HIT",
+   "upstreamAt": "2026-11-20T20:24:00.225Z",
+   "shape": "Polygon"
+  }
+ ],
+ "nwsRequests": [
+  {
+   "url": "https://claude-beautiful-hawking-tnr.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
+   "viaFunction": true,
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-20T20:25:17.945Z",
+   "upstreamUserAgent": "(forecast-ops, github.com/WxMan33/forecast-ops)"
+  },
+  {
+   "url": "https://claude-beautiful-hawking-tnr.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
+   "viaFunction": true,
+   "status": 200,
+   "cache": "HIT",
+   "upstreamAt": "2026-11-20T20:25:17.945Z",
+   "upstreamUserAgent": "(forecast-ops, github.com/WxMan33/forecast-ops)"
+  },
+  {
+   "url": "https://claude-beautiful-hawking-tnr.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
+   "viaFunction": true,
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-20T20:25:53.259Z",
+   "upstreamUserAgent": "(forecast-ops, github.com/WxMan33/forecast-ops)"
+  },
+  {
+   "url": "https://claude-beautiful-hawking-tnr.forecast-ops-beta.pages.dev/api/nws/zones/county/PAC101",
+   "viaFunction": true,
+   "status": 200,
+   "cache": "HIT",
+   "upstreamAt": "2026-11-20T20:24:00.020Z",
+   "upstreamUserAgent": "(forecast-ops, github.com/WxMan33/forecast-ops)"
+  },
+  {
+   "url": "https://claude-beautiful-hawking-tnr.forecast-ops-beta.pages.dev/api/nws/zones/forecast/ANZ430",
+   "viaFunction": true,
+   "status": 200,
+   "cache": "HIT",
+   "upstreamAt": "2026-11-20T20:24:00.225Z",
+   "upstreamUserAgent": "(forecast-ops, github.com/WxMan33/forecast-ops)"
+  }
+ ],
+ "pageErrors": []
+}

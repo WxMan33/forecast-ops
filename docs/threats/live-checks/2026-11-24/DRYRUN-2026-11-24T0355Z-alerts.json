@@ -1,0 +1,165 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.e3985aad00ce1cb9a0e8294d8dc6153d734bddc3.001.1",
+   "type": "Feature",
+   "geometry": {
+    "type": "Polygon",
+    "coordinates": [
+     [
+      [
+       -118.32,
+       33.71
+      ],
+      [
+       -118.33,
+       33.73
+      ],
+      [
+       -118.28,
+       33.79
+      ],
+      [
+       -118.25,
+       33.85
+      ],
+      [
+       -118.12,
+       34.07
+      ],
+      [
+       -118.04,
+       34.28
+      ],
+      [
+       -117.79,
+       34.32
+      ],
+      [
+       -118.19,
+       33.68
+      ],
+      [
+       -118.27,
+       33.69
+      ],
+      [
+       -118.3,
+       33.69
+      ],
+      [
+       -118.32,
+       33.71
+      ]
+     ]
+    ]
+   },
+   "properties": {
+    "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.e3985aad00ce1cb9a0e8294d8dc6153d734bddc3.001.1",
+    "@type": "wx:Alert",
+    "id": "urn:oid:2.49.0.1.840.0.e3985aad00ce1cb9a0e8294d8dc6153d734bddc3.001.1",
+    "areaDesc": "Los Angeles, CA",
+    "geocode": {
+     "SAME": [
+      "006037"
+     ],
+     "UGC": [
+      "CAC037"
+     ]
+    },
+    "affectedZones": [
+     "https://api.weather.gov/zones/county/CAC037"
+    ],
+    "references": [
+     {
+      "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.867970f143a6564162c79a59cf5471580781a3e6.001.1",
+      "identifier": "urn:oid:2.49.0.1.840.0.867970f143a6564162c79a59cf5471580781a3e6.001.1",
+      "sender": "w-nws.webmaster@noaa.gov",
+      "sent": "2026-11-19T08:45:00-08:00"
+     },
+     {
+      "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.cfababa4c7d6e6c348c1b48b7150622ace43bcd5.001.1",
+      "identifier": "urn:oid:2.49.0.1.840.0.cfababa4c7d6e6c348c1b48b7150622ace43bcd5.001.1",
+      "sender": "w-nws.webmaster@noaa.gov",
+      "sent": "2026-11-19T09:16:00-08:00"
+     }
+    ],
+    "sent": "2026-11-19T09:37:00-08:00",
+    "effective": "2026-11-19T09:37:00-08:00",
+    "onset": "2026-11-19T09:37:00-08:00",
+    "expires": "2026-11-19T09:45:00-08:00",
+    "ends": "2026-11-19T09:45:00-08:00",
+    "status": "Actual",
+    "messageType": "Update",
+    "category": "Met",
+    "severity": "Severe",
+    "certainty": "Observed",
+    "urgency": "Immediate",
+    "event": "Severe Thunderstorm Warning",
+    "sender": "w-nws.webmaster@noaa.gov",
+    "senderName": "NWS Los Angeles/Oxnard CA",
+    "headline": "Severe Thunderstorm Warning issued November 19 at 9:37AM PST until November 19 at 9:45AM PST by NWS Los Angeles/Oxnard CA",
+    "description": "At 937 AM PST, severe thunderstorms were located along a line from 7\nmiles southeast of Llano to near Long Beach, or along a line from 7\nmiles west of Wrightwood to near Long Beach, moving east at 30 mph.\n\nHAZARD...60 mph wind gusts. Small chance for a brief, weak tornado.\n\nSOURCE...Radar indicated.\n\nIMPACT...Expect damage to roofs, siding, and trees.\n\nLocations impacted include...\nLong Beach, Whittier, Pasadena, Mount Wilson, Carson, Port of Los\nAngeles, Pico Rivera, Montebello, Monterey Park, El Monte, Santa Fe\nSprings, Commerce, San Gabriel, Downey and Hacienda Heights.",
+    "instruction": "Seek shelter inside a well-built structure and stay away from\nwindows. These storms are capable of producing damaging winds.\nTornadoes can develop quickly from severe thunderstorms. Seek shelter\nimmediately in an interior room on the lowest floor of a well-built\nstructure.",
+    "response": "Shelter",
+    "note": null,
+    "parameters": {
+     "AWIPSidentifier": [
+      "SVSLOX"
+     ],
+     "WMOidentifier": [
+      "WWUS56 KLOX 191737"
+     ],
+     "NWSheadline": [
+      "SEVERE THUNDERSTORM WARNING REMAINS IN EFFECT UNTIL 945 AM PST FOR EAST CENTRAL LOS ANGELES COUNTY"
+     ],
+     "eventMotionDescription": [
+      "2026-11-19T17:16:00-00:00...storm...254DEG...25KT...34.36,-117.93 33.75,-118.24"
+     ],
+     "windThreat": [
+      "RADAR INDICATED"
+     ],
+     "maxWindGust": [
+      "60 MPH"
+     ],
+     "hailThreat": [
+      "RADAR INDICATED"
+     ],
+     "maxHailSize": [
+      "0.00"
+     ],
+     "tornadoDetection": [
+      "POSSIBLE"
+     ],
+     "BLOCKCHANNEL": [
+      "EAS",
+      "NWEM",
+      "CMAS"
+     ],
+     "EAS-ORG": [
+      "WXR"
+     ],
+     "VTEC": [
+      "/O.CON.KLOX.SV.W.0015.000000T0000Z-261119T1745Z/"
+     ],
+     "eventEndingTime": [
+      "2026-11-19T09:45:00-08:00"
+     ]
+    },
+    "scope": "Public",
+    "code": "IPAWSv1.0",
+    "language": "en-US",
+    "web": "http://www.weather.gov",
+    "eventCode": {
+     "SAME": [
+      "SVS"
+     ],
+     "NationalWeatherService": [
+      "SVW"
+     ]
+    }
+   }
+  }
+ ]
+}

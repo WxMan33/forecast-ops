@@ -128,3 +128,54 @@ It is tested locally against real NWS (NWS received the identifier) and end to e
 | SPC outlooks | Drawn with SPC issue and valid times | n/a | Rollover; failed fetch keeps the last good copy | Rollover observed live |
 | SPC MDs | Quiet state via the NOAA service (SPC pages refuse automated browsers) | MD 2458 text | Active service response; active SPC list | The service's active fields |
 | Research model | Published Severe-viewer feed, checksummed | n/a | n/a | — |
+
+## Rainfall (verified 2026-11-25 ~03:00Z; rainfall preview `claude-threats-rain`)
+
+Both are NOAA map services on `mapservices.weather.noaa.gov`. Both answered a real browser directly (CORS-enabled, pixels readable for
+the map) from `wxman33.github.io`, `raw.githack.com` and the Cloudflare preview. No forwarder is needed, the same as radar.
+
+| | NOAA MRMS QPE: rain that has fallen | WPC QPF: rain still to come |
+|---|---|---|
+| Service | `raster/rest/services/obs/mrms_qpe/ImageServer` | `vector/rest/services/precip/wpc_qpf/MapServer` |
+| What it is | Radar-only quantitative precipitation estimates (MRMS/Q3) | WPC forecast liquid-equivalent totals |
+| Units | **Service and legend say inches; point values (identify) are millimetres** (see below) | Inches (`units` = "Inches") |
+| Coverage, resolution | CONUS, Alaska, Hawaii, Caribbean; about 1 km | CONUS; contour areas at 0.01, 0.1, 0.25, 0.5, 0.75, 1 … 20 in |
+| Windows / periods used | 1, 24, 72 h (3, 6, 12, 48 h also exist) | Day 1, 2, 3 (layers 1–3, 24 h each), Days 1–3 (layer 9, 72 h) |
+| Times | `idp_validendtime` per catalog item: when the window ended (UTC ms). CONUS 24 h ended 02:00Z while 1 h ended 03:00Z: longer windows lag an hour | `issue_time`, `start_time`, `end_time` strings in **UTC** (the file was written 22:58Z after an issue time of 22:02, impossible if Eastern). Periods run 00Z–00Z |
+| Update | "Usually by 0:04 after the hour" | Day 1–3 issued about twice daily (seen: 22:02–22:25Z) |
+| Drawing | `exportImage` tiles with NOAA's raster functions `rft_1hr`/`rft_24hr`/`rft_72hr` and the newest item per region; legend via `/legend` | `export` tiles (`layers=show:N`); legend via `/legend` |
+| Size | About 5–60 KB per 256 px tile | About 8–19 KB per tile. Vector areas were 0.75–2.2 MB per period even simplified, so they aren't downloaded |
+
+**Flags found while verifying:**
+1. **MRMS point values are millimetres.** The service description and legend say inches, but `identify` returns millimetres. NOAA's
+   own rendering paints each point in the inch class of value / 25.4, checked at four points (raw → inches → class NOAA drew):
+
+   | Point | Raw | Inches | Class NOAA drew | Observed |
+   |---|---|---|---|---|
+   | CVG airport (72 h) | 5.9 | 0.23 | 0.10–0.25 | 0.24 in measured at the airport (IEM daily, Nov 22–24) |
+   | Louisville | 7.2 | 0.28 | 0.25–0.50 | – |
+   | Dallas | 2.5 | 0.10 | 0.01–0.10 | – |
+   | Nashville | 4.9 | 0.19 | 0.10–0.25 | – |
+
+   The adapter converts (`parseMrmsPoint`); the map images and legends were already right.
+2. **WPC custom styling doesn't work.** WPC areas can't be restyled as outlines: the map service's `dynamicLayers` option returns
+   empty images, even with no style change. So only one rainfall overlay is drawn at a time.
+3. **The MRMS catalog fails intermittently.** It answered once with `{"status":"error","messages":["Could not access any server
+   machines…"]}`, and a legend request once returned non-JSON. Both succeeded on retry. The map shows "Not responding" and retries
+   after a minute.
+
+## Alert coverage audit: Snow Squall and Tsunami (2026-11-25)
+
+NWS's event list (`api.weather.gov/alerts/types`) includes **Snow Squall Warning** and **Tsunami Warning, Advisory and Watch**.
+None of them reaches the map today. Each is missing from all three of:
+- the map's event list (`EVENTS` in `assets/threats-feeds.js`);
+- the forwarder's allowlist (`functions/api/nws/[[path]].js`);
+- the hazard map (`HAZARD`: SQ → winter, TS → coastal).
+
+Before enabling, verify:
+- the bulletin source: tsunami messages come from the National and Pacific Tsunami Warning Centers;
+- VTEC presence;
+- cancellation and expiration handling;
+- zone and polygon coverage: snow squall warnings are storm-based polygons; tsunami alerts use coastal land and marine zones.
+
+The label priority already treats both warnings as urgent.

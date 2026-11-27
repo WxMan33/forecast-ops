@@ -22,7 +22,7 @@ const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - 
     p.on('pageerror', e => errors.push(e.message)); await p.clock.install({ time: new Date('2026-11-11T20:30:00Z') });
     await p.addInitScript(() => { localStorage.setItem('ops_theme', JSON.stringify('light')); localStorage.setItem('beta_analytics_optout', '1'); window.print = () => { window.__printed = (window.__printed || 0) + 1; }; });
     await ctx.route('**/*', r => { const u = new URL(r.request().url()); if (u.origin !== base) return r.fulfill({ status: 200, body: '', contentType: u.pathname.endsWith('.js') ? 'application/javascript' : 'text/plain' }); if (u.pathname === '/assets/beta-event.js') return r.fulfill({ contentType: 'application/javascript', body: fixture + '\n' + fs.readFileSync(path.join(root, 'assets/beta-event.js'), 'utf8') }); return r.continue(); });
-    await p.goto(base + '/event-beta.html' + (sc === 'base' ? '' : '?' + sc.split('+').map(k => k + '=1').join('&'))); await p.waitForFunction(() => document.body.dataset.loaded, { timeout: 15000 });
+    await p.goto(base + '/event-beta.html' + (sc === 'base' ? '' : '?' + sc.split('+').map(k => k + '=1').join('&') + '&day=all')); // day=all: multi-day scenarios as one whole-event briefing await p.waitForFunction(() => document.body.dataset.loaded, { timeout: 15000 });
     if (sc === 'base') {
       const top = await p.evaluate(() => { const b = document.getElementById('printTop'), r = b.getBoundingClientRect(); return { text: b.innerText, disabled: b.disabled, inView: r.top >= 0 && r.bottom <= innerHeight, beforeDecision: !!(b.compareDocumentPosition(document.getElementById('decision')) & Node.DOCUMENT_POSITION_FOLLOWING) }; });
       check(/Print \/ PDF/.test(top.text) && !top.disabled && top.inView && top.beforeDecision, 'top Print / PDF button is enabled, above the decision and in the first screen ' + JSON.stringify(top));
@@ -55,7 +55,8 @@ const contrast = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - 
     const p1 = await p.locator('.pv-p1').innerText(), p2 = await p.locator('.pv-p2').innerText();
     const plan = await p.evaluate(() => [...document.querySelectorAll('.pv-plan li[data-key]')].map((e) => ({ key: e.dataset.key, text: e.innerText })));
     const line = (k) => (plan.find((x) => x.key === k) || {}).text || '';
-    check(p1.indexOf('What to plan for') > 0 && p1.indexOf('What to plan for') < p1.indexOf('Event schedule') && p1.indexOf('Event schedule') < p1.indexOf('Next weather check'), L + ' page 1 reads headline → what to plan for → schedule → next weather check');
+    /* the lead (headline, timing, what would change, next weather check) comes first; then what to plan for and the schedule */
+    check(p1.indexOf('Next weather check') > 0 && p1.indexOf('Next weather check') < p1.indexOf('What to plan for') && p1.indexOf('What to plan for') < p1.indexOf('Event schedule'), L + ' page 1 reads lead (headline → what would change → next weather check) → what to plan for → schedule');
     check(await p.locator('.pv-p1 .pv-sched li').count() === 4 && await p.locator('#printView .at, #printView .pv-keys, #printView .pv-phases').count() === 0, L + ' one four-part schedule; no bar chart, key facts list or phase table');
     check(/not detected lightning/.test(p1) && /not detected lightning/.test(p2), L + ' lightning is labelled a forecast, not detection, on both pages');
     check(!/model sources|ensemble|Guidance support|\d+\.\d{3,}/i.test(p1 + p2), L + ' model counts, ensemble names, diagnostics and coordinates stay on the website');

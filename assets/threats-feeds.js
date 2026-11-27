@@ -131,6 +131,19 @@
     if (P.thunderstormDamageThreat) out.push("damage threat " + first(P.thunderstormDamageThreat).toLowerCase());
     return out.join(" · ");
   }
+  /* NWS impact tags, as NWS supplies them (CAP parameters; the bulletin text for emergencies):
+     tornadoDamageThreat CATASTROPHIC = Tornado Emergency, CONSIDERABLE; flashFloodDamageThreat CATASTROPHIC = Flash Flood
+     Emergency, CONSIDERABLE; thunderstormDamageThreat DESTRUCTIVE, CONSIDERABLE. null when the message carries none. */
+  function impactOf(p) {
+    const P = p.parameters || {}, up = (k) => String(first(P[k]) || "").toUpperCase(), text = ((p.headline || "") + " " + (p.description || "")).toUpperCase();
+    if (up("tornadoDamageThreat") === "CATASTROPHIC" || /TORNADO EMERGENCY/.test(text)) return { tag: "Tornado Emergency", level: 5 };
+    if (up("flashFloodDamageThreat") === "CATASTROPHIC" || /FLASH FLOOD EMERGENCY/.test(text)) return { tag: "Flash Flood Emergency", level: 5 };
+    if (up("thunderstormDamageThreat") === "DESTRUCTIVE") return { tag: "Destructive", level: 4 };
+    if (up("tornadoDamageThreat") === "CONSIDERABLE") return { tag: "Considerable tornado damage threat", level: 4 };
+    if (up("flashFloodDamageThreat") === "CONSIDERABLE") return { tag: "Considerable flash flood damage threat", level: 4 };
+    if (up("thunderstormDamageThreat") === "CONSIDERABLE") return { tag: "Considerable", level: 3 };
+    return null;
+  }
   function plainHeadline(p) {
     const d = (p.description || "").replace(/\s+/g, " ");
     const m = /\* ?(At \d{1,4} ?[AP]M [A-Z]{3,4},[^.]+\.)/.exec(d) || /(At \d{1,4} ?[AP]M [A-Z]{3,4},[^.]+\.)/.exec(d);
@@ -145,7 +158,7 @@
     const title = kind === "watch" && (v.phen === "TO" || v.phen === "SV") ? p.event + " " + Number(v.etn) : p.event; // SPC-numbered convective watches only
     return {
       id: keyOf(v, p.sent), messageId: p.id, kind, family: HAZARD[v.phen] || "severe", sourceId: "nws-alerts", event: p.event, title, action: v.action, vtec: v,
-      headline: plainHeadline(p), hazard: hazardText(p), area: p.areaDesc || "", office: p.senderName || "NWS",
+      headline: plainHeadline(p), hazard: hazardText(p), impact: impactOf(p), area: p.areaDesc || "", office: p.senderName || "NWS",
       issued: iso(p.onset || p.effective || p.sent), sent: iso(p.sent), updated: iso(p.sent), expires: iso(ends), messageExpires: iso(p.expires),
       geometry: f.geometry || null, geometrySource: f.geometry ? "polygon" : "counties", zones: p.affectedZones || [], ugc: (p.geocode || {}).UGC || [],
       references: (p.references || []).map((r) => ({ id: r.identifier, url: r["@id"], sent: iso(r.sent) })),
@@ -834,9 +847,13 @@
     const valid = /Valid (\d{2})(\d{2})(\d{2})Z\s*-\s*(\d{2})(\d{2})(\d{2})Z/.exec(text);
     let start = null, end = null;
     if (valid) { const d = new Date(now), y = d.getUTCFullYear(), mo = d.getUTCMonth(), at = (dd, h, mi) => { let t = Date.UTC(y, mo, dd, h, mi); if (t - now > 15 * 86400e3) t = Date.UTC(y, mo - 1, dd, h, mi); return new Date(t).toISOString(); }; start = at(+valid[1], +valid[2], +valid[3]); end = at(+valid[4], +valid[5], +valid[6]); }
-    const n = num ? +num[1] : null;
+    /* "MD 2465 Active Till 0300 UTC" (the service's folderpath): the end time, the next 03:00Z from now; the start isn't given */
+    const till = !end && /Active Till (\d{2})(\d{2}) ?UTC/i.exec(text);
+    if (till) { const d = new Date(now); let e = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), +till[1], +till[2]); if (e < now - 3 * 3600e3) e += 86400e3; end = new Date(e).toISOString(); }
+    const n = num ? +num[1] : null, topicKnown = /severe|tornado|thunderstorm|hail|wind|winter|snow|freezing|blizzard|heavy rain|flash flood/i.test(text);
     return { id: "spc-md-svc-" + (n || P.objectid || f.id), kind: "md", family: "severe", sourceId: "spc-md", event: "Mesoscale Discussion", title: "Mesoscale Discussion (MD)" + (n ? " " + n : ""), number: n,
-      headline: "", hazard: "", area: "Unavailable from the map service", office: "NWS Storm Prediction Center", issued: start, updated: start, validStart: start, expires: end, validUnknown: !valid,
+      headline: "", hazard: topicKnown ? "" : "Topic unavailable: the NOAA map service doesn't say what this MD is about (severe storms, winter weather or heavy rain). See the SPC bulletin.", topicUnknown: !topicKnown,
+      area: "Unavailable from the map service", office: "NWS Storm Prediction Center", issued: start, updated: start, validStart: start, expires: end, validUnknown: !valid,
       geometry: f.geometry, label: labelPoint(f.geometry), detailsUnavailable: true, viaService: true,
       source: { name: "NOAA map service (SPC MDs)", url: n ? MD_URL(n) : MD_LIST_URL }, bulletin: "", severe: !/winter|snow|freezing|blizzard/i.test(text) };
   }
@@ -859,6 +876,14 @@
     });
   }
 
+  /* one gauge's flood stages (NWPS /gauges/{lid}): { units, action, minor, moderate, major } in the gauge's stage units; a missing
+     category is null (-9999 and absent values are not thresholds) */
+  const GAUGE_DETAIL_URL = (lid) => "https://api.water.noaa.gov/nwps/v1/gauges/" + encodeURIComponent(lid);
+  function parseGaugeDetail(j) {
+    const f = j && j.flood; if (!f || !f.categories) throw Error("no flood categories for this gauge");
+    const st = (k) => { const v = f.categories[k] && f.categories[k].stage; return v == null || !isFinite(+v) || +v <= -999 ? null : +v; };
+    return { units: f.stageUnits || "ft", action: st("action"), minor: st("minor"), moderate: st("moderate"), major: st("major") };
+  }
   /* ---------- SPC Days 4-8 severe probability (any severe, within 25 miles): 15% or 30% areas, or a statement for the day ----------
      With no area, SPC's one feature says why: "Potential Too Low" (no area expected: quiet) or "Predictability Too Low" (SPC
      can't say yet: unknown, never quiet). */
@@ -906,6 +931,65 @@
      Each element is a list of { validTime: "start/ISO-duration", value } in its own unit (uom). Hourly rows from the current
      hour: wind and gusts in mph, temperature, heat index and feels-like in °F, rain chance in %. A missing value stays null
      (heat index is only forecast when warm), never zero. */
+  /* ---------- rainfall (verified 2026-11-25; see docs/threats/SOURCES.md) ----------
+     MRMS QPE (rain that has fallen): NOAA image service obs/mrms_qpe, radar-only estimates in inches, 1 km, CONUS, Alaska, Hawaii
+     and the Caribbean; one catalog item per region and window (e.g. conus_QPE_24H) with idp_validendtime = when the window
+     ended (UTC ms). Usually updated about 4 minutes after the hour; the 3-72 h windows can lag the 1 h window by an hour.
+     Pixel values below 0 mean no radar estimate there. Drawn with NOAA's own colour scale (raster function rft_<N>hr).
+     WPC QPF (rain still to come): NOAA map service precip/wpc_qpf, inches of liquid, CONUS. Layer 1-3 = Day 1-3 (24 h each),
+     layer 9 = Days 1-3 (72 h). Each area carries issue_time, start_time and end_time as "YYYY-MM-DD hh:mm:ss" in UTC
+     (the file is written after the issue time, so the stamps are UTC, not Eastern). Areas are nested thresholds
+     (0.01, 0.1, 0.25 ... inches): the highest one containing a point is that point's lower bound. */
+  const MRMS_SVC = "https://mapservices.weather.noaa.gov/raster/rest/services/obs/mrms_qpe/ImageServer";
+  const WPC_QPF_SVC = "https://mapservices.weather.noaa.gov/vector/rest/services/precip/wpc_qpf/MapServer";
+  const MRMS_WINDOWS = { 1: { rft: "rft_1hr", tag: "01H", label: "1 hour" }, 24: { rft: "rft_24hr", tag: "24H", label: "24 hours" }, 72: { rft: "rft_72hr", tag: "72H", label: "72 hours" } };
+  const WPC_PERIODS = { "1-3": { layer: 9, label: "Days 1–3" }, 1: { layer: 1, label: "Day 1" }, 2: { layer: 2, label: "Day 2" }, 3: { layer: 3, label: "Day 3" } };
+  const WPC_STEPS = [0.01, 0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5, 7, 10, 15, 20];
+  const enc = encodeURIComponent;
+  const mrmsMosaic = (win) => enc(JSON.stringify({ mosaicMethod: "esriMosaicAttribute", sortField: "idp_validendtime", ascending: false, where: "name LIKE '%_QPE_" + MRMS_WINDOWS[win].tag + "'" }));
+  const MRMS_CATALOG_URL = MRMS_SVC + "/query?where=" + enc("name LIKE '%_QPE_%'") + "&outFields=name,idp_validendtime,idp_filedate&returnGeometry=false&f=json";
+  const MRMS_TILE_URL = (win, endMs) => MRMS_SVC + "/exportImage?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=256,256&format=png32&transparent=true&renderingRule=" + enc(JSON.stringify({ rasterFunction: MRMS_WINDOWS[win].rft })) + "&mosaicRule=" + mrmsMosaic(win) + "&f=image&t=" + endMs;
+  const MRMS_LEGEND_URL = (win) => MRMS_SVC + "/legend?renderingRule=" + enc(JSON.stringify({ rasterFunction: MRMS_WINDOWS[win].rft })) + "&f=json";
+  const MRMS_POINT_URL = (win, lat, lon) => MRMS_SVC + "/identify?geometry=" + enc(JSON.stringify({ x: +(+lon).toFixed(4), y: +(+lat).toFixed(4), spatialReference: { wkid: 4326 } })) + "&geometryType=esriGeometryPoint&mosaicRule=" + mrmsMosaic(win) + "&renderingRule=" + enc(JSON.stringify({ rasterFunction: "None" })) + "&returnCatalogItems=true&f=json";
+  const WPC_TILE_URL = (per, issued) => WPC_QPF_SVC + "/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=256,256&format=png32&transparent=true&layers=show:" + WPC_PERIODS[per].layer + "&f=image&t=" + (issued || 0);
+  const WPC_META_URL = (per) => WPC_QPF_SVC + "/" + WPC_PERIODS[per].layer + "/query?where=1%3D1&outFields=issue_time,start_time,end_time&returnGeometry=false&resultRecordCount=1&f=json";
+  const WPC_POINT_URL = (per, lat, lon) => WPC_QPF_SVC + "/" + WPC_PERIODS[per].layer + "/query?where=1%3D1&outFields=qpf,issue_time,start_time,end_time&geometry=" + (+(+lon).toFixed(4)) + "," + (+(+lat).toFixed(4)) + "&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&returnGeometry=false&orderByFields=qpf+DESC&f=json";
+  const WPC_LEGEND_URL = WPC_QPF_SVC + "/legend?f=json";
+  const wpcIso = (s) => { const m = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})$/.exec(String(s || "").trim()); return m ? m[1] + "T" + m[2] + "Z" : null; };
+  const arcErr = (j) => { if (!j || typeof j !== "object") throw new Error("not JSON"); if (j.error) throw new Error((j.error.message || "service error") + (j.error.code ? " (" + j.error.code + ")" : "")); if (j.status === "error") throw new Error((j.messages || []).join(" ").trim() || "service error"); };
+  /* catalog -> { [win]: { end: ISO (CONUS window end), regions: { conus|alaska|hawaii|carib: ISO } } } */
+  function parseMrmsCatalog(j) {
+    arcErr(j); if (!Array.isArray(j.features)) throw new Error("no catalog items");
+    const out = {};
+    for (const f of j.features) { const a = f.attributes || {}, m = /^(\w+?)_QPE_(\d\d)H$/.exec(a.name || ""); if (!m || !a.idp_validendtime) continue;
+      const win = +m[2]; if (!MRMS_WINDOWS[win]) continue; const iso = new Date(a.idp_validendtime).toISOString(), w = (out[win] = out[win] || { end: null, regions: {} });
+      if (!w.regions[m[1]] || iso > w.regions[m[1]]) w.regions[m[1]] = iso; }
+    for (const w of Object.values(out)) w.end = w.regions.conus || Object.values(w.regions).sort().pop() || null;
+    if (!Object.keys(out).length) throw new Error("no rainfall windows listed");
+    return out;
+  }
+  /* identify -> { inches: number|null, noEstimate: bool, item, end: ISO|null }
+     The raw pixel values are MILLIMETRES, although the service and its legend say inches: NOAA's own rendering (rft_*hr)
+     paints each point in the inch class of value / 25.4 (checked 2026-11-25 at CVG, Louisville, Dallas and Nashville; CVG's
+     72 h 5.9 = 0.23 in against 0.24 in measured at the airport). So the value is converted here. */
+  function parseMrmsPoint(j) {
+    arcErr(j); const v = j.value === "NoData" || j.value == null ? null : +j.value, it = ((j.catalogItems || {}).features || [])[0], a = it ? it.attributes || {} : {};
+    return { inches: v == null || !isFinite(v) || v < 0 ? null : Math.round((v / 25.4) * 100) / 100, mm: v == null || !isFinite(v) || v < 0 ? null : v, noEstimate: v == null || !isFinite(v) || v < 0, item: a.name || null, end: a.idp_validendtime ? new Date(a.idp_validendtime).toISOString() : null };
+  }
+  /* point query -> { low, high, issued, start, end } (low: highest threshold area containing the point; none: under 0.01 in) */
+  function parseWpcPoint(j) {
+    arcErr(j); if (!Array.isArray(j.features)) throw new Error("no answer");
+    const fs = j.features.map((f) => f.attributes || {}).filter((a) => isFinite(+a.qpf)).sort((a, b) => b.qpf - a.qpf), top = fs[0];
+    if (!top) return { low: 0, high: 0.01, issued: null, start: null, end: null, none: true };
+    const low = +top.qpf, high = WPC_STEPS.find((x) => x > low + 1e-9) || null;
+    return { low, high, issued: wpcIso(top.issue_time), start: wpcIso(top.start_time), end: wpcIso(top.end_time), none: false };
+  }
+  function parseWpcMeta(j) { arcErr(j); const a = ((j.features || [])[0] || {}).attributes; if (!a) throw new Error("no forecast areas"); const r = { issued: wpcIso(a.issue_time), start: wpcIso(a.start_time), end: wpcIso(a.end_time) }; if (!r.issued || !r.start || !r.end) throw new Error("forecast times missing"); return r; }
+  /* legend -> [{ label, img }] (img: the service's own swatch, a data URL) */
+  function parseLegend(j, layerId) {
+    arcErr(j); const L = (j.layers || []).find((l) => layerId == null || l.layerId === layerId); if (!L || !Array.isArray(L.legend) || !L.legend.length) throw new Error("no legend");
+    return L.legend.filter((x) => x.imageData && x.label && !/^0(\.0+)?$/.test(String(x.label).trim())).map((x) => ({ label: String(x.label).replace(/\s*\(inches\)\s*/i, "").trim(), img: "data:" + (x.contentType || "image/png") + ";base64," + x.imageData }));
+  }
   const RADAR_SVC = "https://mapservices.weather.noaa.gov/eventdriven/rest/services/radar/radar_base_reflectivity/MapServer";
   const RADAR_TIME_URL = RADAR_SVC + "/2/query?where=" + encodeURIComponent("name LIKE 'CONUS%'") + "&outFields=name,idp_validtime&returnGeometry=false&f=json";
   const RADAR_TILE_URL = RADAR_SVC + "/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=256,256&format=png32&transparent=true&f=image";
@@ -915,23 +999,35 @@
     return new Date(Math.max(...f.map((a) => +a.idp_validtime))).toISOString();
   }
   const durMs = (d) => { const m = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?)?$/.exec(d || ""); return m ? ((+m[1] || 0) * 24 + (+m[2] || 0)) * 3600e3 + (+m[3] || 0) * 60e3 : 0; };
-  const CONV = { "wmoUnit:km_h-1": (v) => v * 0.621371, "wmoUnit:m_s-1": (v) => v * 2.23694, "wmoUnit:degC": (v) => v * 9 / 5 + 32, "wmoUnit:degF": (v) => v, "wmoUnit:percent": (v) => v };
+  const CONV = { "wmoUnit:km_h-1": (v) => v * 0.621371, "wmoUnit:m_s-1": (v) => v * 2.23694, "wmoUnit:degC": (v) => v * 9 / 5 + 32, "wmoUnit:degF": (v) => v, "wmoUnit:percent": (v) => v, "wmoUnit:mm": (v) => v / 25.4 };
+  /* amounts (rain, snow, ice) come in blocks of several hours: spread evenly over the block's hours, in inches */
+  function amountSeries(el) { const l = gridSeries(el); return l ? l.map((x) => ({ ...x, v: x.v == null ? null : x.v / Math.max(1, (x.t1 - x.t0) / 3600e3) })) : null; }
+  /* precipitation type by period: [{ type, coverage, intensity }] for rain, snow, sleet, freezing rain or drizzle, thunderstorms */
+  const WX_COVER = { slight_chance: 1, chance: 2, likely: 3, definite: 4, occasional: 3, frequent: 4, widespread: 4, numerous: 3, scattered: 2, isolated: 1, areas: 2, patchy: 1 };
+  function wxSeries(el) { if (!el || !Array.isArray(el.values)) return null;
+    return el.values.map((x) => { const [s0, d] = String(x.validTime).split("/"), t0 = Date.parse(s0); return { t0, t1: t0 + durMs(d), v: (x.value || []).filter((w) => w && w.weather).map((w) => ({ type: w.weather, coverage: w.coverage || null, cov: WX_COVER[w.coverage] || 0, intensity: w.intensity || null })) }; }).filter((x) => isFinite(x.t0) && x.t1 > x.t0); }
   function gridSeries(el) {
     if (!el || !Array.isArray(el.values)) return null; const cv = CONV[el.uom] || ((v) => v);
     return el.values.map((x) => { const [s, d] = String(x.validTime).split("/"), t0 = Date.parse(s); return { t0, t1: t0 + durMs(d), v: x.value == null ? null : cv(x.value) }; }).filter((x) => isFinite(x.t0) && x.t1 > x.t0);
   }
   function parseGrid(gj, nowMs, hours = 12) {
     const P = gj && gj.properties; if (!P || !P.updateTime || !P.windGust) throw Error("unrecognized NWS forecast grid");
-    const el = { gust: gridSeries(P.windGust), wind: gridSeries(P.windSpeed), temp: gridSeries(P.temperature), heat: gridSeries(P.heatIndex), feels: gridSeries(P.apparentTemperature), pop: gridSeries(P.probabilityOfPrecipitation) };
+    const el = { gust: gridSeries(P.windGust), wind: gridSeries(P.windSpeed), temp: gridSeries(P.temperature), heat: gridSeries(P.heatIndex), feels: gridSeries(P.apparentTemperature), pop: gridSeries(P.probabilityOfPrecipitation), rh: gridSeries(P.relativeHumidity),
+      qpf: amountSeries(P.quantitativePrecipitation), snow: amountSeries(P.snowfallAmount), ice: amountSeries(P.iceAccumulation), wx: wxSeries(P.weather) };
+    const amt = (k, t) => { const l = el[k]; if (!l) return null; const x = l.find((y) => t >= y.t0 && t < y.t1); return x && x.v != null ? x.v : null; };
+    // the NWS interval each spread rain amount came from (usually 6 hours): timing inside it is not resolved
+    const qpfBlock = (t) => { const x = el.qpf && el.qpf.find((y) => t >= y.t0 && t < y.t1); return x && x.v != null ? { qpfFrom: new Date(x.t0).toISOString(), qpfTo: new Date(x.t1).toISOString() } : {}; };
+    const wxAt = (t) => { const l = el.wx; if (!l) return null; const x = l.find((y) => t >= y.t0 && t < y.t1); return x ? x.v : null; };
+    const through = (k) => { const l = el[k]; if (!l || !l.length) return null; const last = l.filter((x) => x.v != null).reduce((m, x) => Math.max(m, x.t1), 0); return last ? new Date(last).toISOString() : null; };
     const at = (k, t) => { const l = el[k]; if (!l) return null; const x = l.find((y) => t >= y.t0 && t < y.t1); return x && x.v != null ? Math.round(x.v) : null; };
     const h0 = Math.floor(nowMs / 3600e3) * 3600e3, rows = [];
-    for (let i = 0; i < hours; i++) { const t = h0 + i * 3600e3; rows.push({ t: new Date(t).toISOString(), gust: at("gust", t), wind: at("wind", t), temp: at("temp", t), heat: at("heat", t), feels: at("feels", t), pop: at("pop", t) }); }
+    for (let i = 0; i < hours; i++) { const t = h0 + i * 3600e3; rows.push({ t: new Date(t).toISOString(), gust: at("gust", t), wind: at("wind", t), temp: at("temp", t), heat: at("heat", t), feels: at("feels", t), pop: at("pop", t), rh: at("rh", t), qpf: amt("qpf", t), ...qpfBlock(t), snow: amt("snow", t), ice: amt("ice", t), wx: wxAt(t) }); }
     const peak = (k) => rows.reduce((b, r) => (r[k] != null && (!b || r[k] > b[k]) ? r : b), null);
     const covered = rows.filter((r) => r.gust != null || r.temp != null).length;
-    return { updated: new Date(P.updateTime).toISOString(), rows, covered, peakGust: peak("gust"), peakHeat: peak("heat"), peakFeels: peak("feels"), peakPop: peak("pop"), lowFeels: rows.reduce((b, r) => (r.feels != null && (!b || r.feels < b.feels) ? r : b), null) };
+    return { updated: new Date(P.updateTime).toISOString(), rows, covered, qpfThrough: through("qpf"), wxThrough: through("wx"), heatThrough: through("heat"), peakGust: peak("gust"), peakHeat: peak("heat"), peakFeels: peak("feels"), peakPop: peak("pop"), lowFeels: rows.reduce((b, r) => (r.feels != null && (!b || r.feels < b.feels) ? r : b), null) };
   }
 
-  return { GAUGES_URL, GAUGE_CATS, GAUGE_WORD, parseGauges, DAY48_URL, parseDay48, REPORTS_URL, parseStormReports, RADAR_TIME_URL, RADAR_TILE_URL, parseRadarTime, parseGrid, EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, createAlertStore, resolveZones,
+  return { MRMS_SVC, WPC_QPF_SVC, MRMS_WINDOWS, WPC_PERIODS, WPC_STEPS, MRMS_CATALOG_URL, MRMS_TILE_URL, MRMS_LEGEND_URL, MRMS_POINT_URL, WPC_TILE_URL, WPC_META_URL, WPC_POINT_URL, WPC_LEGEND_URL, wpcIso, parseMrmsCatalog, parseMrmsPoint, parseWpcPoint, parseWpcMeta, parseLegend, GAUGES_URL, GAUGE_DETAIL_URL, parseGaugeDetail, GAUGE_CATS, GAUGE_WORD, parseGauges, DAY48_URL, parseDay48, REPORTS_URL, parseStormReports, RADAR_TIME_URL, RADAR_TILE_URL, parseRadarTime, parseGrid, EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, impactOf, createAlertStore, resolveZones,
     parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries, dissolve, zoneShape,
     HAZARD, WINTER_EVENTS, FIRE_EVENTS, TROPICAL_EVENTS, COASTAL_EVENTS, EVENT_NAME, tcvToAlerts, pointZones, NAQFC_ENABLED, AWC_URL, FLT_ORDER, fltCat, parseMETAR, parseTAF, NHC_URL, NHC_WSP_AT, parseNHC, parseNHCWsp, TCWW, FIRE_CATS, DRYT_CATS, FIRE38_CATS, FIRE_NAME, FIRE_MEANING, SPC_FIRE_URL, parseFireOutlook, createFireStore,
     NIFC_INC_URL, NIFC_PER_URL, INCIDENT_TYPE, parseNIFC, zTime,

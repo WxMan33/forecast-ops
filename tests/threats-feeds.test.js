@@ -208,6 +208,14 @@ ok("NOAA MD service (FIXTURE: active field contents never observed): geometry dr
   assert.strictEqual(F.parseMDService({ features: [{ properties: { name: "MD 1" }, geometry: null }] }).state, "unrecognized");
 });
 
+ok("NOAA MD service, LIVE answer (MD 2465, 2026-11-25 22:29Z; a heavy-snow MD per SPC's page): no topic given, so 'Topic unavailable'; no issue time (not a date); ends at the service's 'Active Till 0300 UTC'", () => {
+  const r = F.parseMDService(JSON.parse(fs.readFileSync(FX("spc-md-service-2465-20261125.json"), "utf8"))); assert.strictEqual(r.state, "list");
+  const p = F.mdFromService(r.features[0], Date.parse("2026-11-25T22:29:54Z"));
+  assert.strictEqual(p.number, 2465); assert.strictEqual(p.topicUnknown, true); assert.ok(/^Topic unavailable/.test(p.hazard));
+  assert.strictEqual(p.issued, null); assert.strictEqual(p.validStart, null); assert.strictEqual(p.expires, "2026-11-26T03:00:00.000Z"); assert.strictEqual(p.source.url, F.MD_URL(2465));
+  assert.strictEqual(F.mdFromService(r.features[0], Date.parse("2026-11-26T02:30:00Z")).expires, "2026-11-26T03:00:00.000Z"); // the same night, after midnight UTC
+});
+
 /* ---------- watches and county-only coverage (FIXTURE-TESTED: no live watch sample yet) ---------- */
 const zoneShape = JSON.parse(fs.readFileSync(FX("nws-zone-OHC061.json"), "utf8")).geometry;  // real Hamilton County OH shape
 const watchFixture = () => msg({ event: "Tornado Watch", phen: "TO", sig: "A", etn: "0612", sent: "2026-11-20T18:55:00Z", ends: "2026-11-21T02:00:00Z", geometry: null,

@@ -1,0 +1,136 @@
+{
+ "host": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev",
+ "at": "2026-11-24T16:12:18.058Z",
+ "results": [
+  {
+   "check": "(desktop) TQL Stadium: Day 1 · Enhanced risk (3 of 5) once (the spot is inside TSTM, MRGL, SLGT, ENH), with the Tornado Warning, Tornado Watch and Mesoscale Discussion",
+   "pass": true,
+   "detail": {
+    "a": {
+     "spot": true,
+     "items": [
+      "WARNINGTornado Warning Until 4:15 PM EST · 17 min left",
+      "WATCHTornado Watch 612 Until 9:00 PM EST · 5 h 02 min left",
+      "MDMesoscale Discussion (MD) 1945 Until 5:15 PM EST · 1 h 17 min left",
+      "OUTLOOKEnhanced risk (3 of 5) Day 1 · until Sat, Nov 21, 7:00 AM EST"
+     ],
+     "point": [
+      -84.5222,
+      39.1113
+     ]
+    },
+    "tql": {
+     "lon": -84.5222,
+     "lat": 39.1113,
+     "outlooks": [
+      "TSTM",
+      "MRGL",
+      "SLGT",
+      "ENH"
+     ],
+     "warn": true
+    }
+   }
+  },
+  {
+   "check": "(desktop) a lower-risk spot (SLGT, inside TSTM, MRGL, SLGT): the panel updates to that one category, and no warning, watch or MD",
+   "pass": true,
+   "detail": {
+    "c": {
+     "spot": true,
+     "items": [
+      "OUTLOOKSlight risk (2 of 5) Day 1 · until Sat, Nov 21, 7:00 AM EST"
+     ],
+     "point": [
+      -88.92666666666643,
+      33.48139598451249
+     ]
+    },
+    "low": {
+     "lon": -88.92666666666668,
+     "lat": 33.480000000000004,
+     "cat": "SLGT",
+     "inside": [
+      "TSTM",
+      "MRGL",
+      "SLGT"
+     ]
+    }
+   }
+  },
+  {
+   "check": "(desktop) the map's outlook contours are unchanged (4 areas drawn); no script errors",
+   "pass": true,
+   "detail": {
+    "contoursBefore": 4,
+    "contoursAfter": 4,
+    "errs": []
+   }
+  },
+  {
+   "check": "(p390) TQL Stadium: Day 1 · Enhanced risk (3 of 5) once (the spot is inside TSTM, MRGL, SLGT, ENH), with the Tornado Warning, Tornado Watch and Mesoscale Discussion",
+   "pass": true,
+   "detail": {
+    "a": {
+     "spot": true,
+     "items": [
+      "WARNINGTornado Warning Until 4:15 PM EST · 17 min left",
+      "WATCHTornado Watch 612 Until 9:00 PM EST · 5 h 02 min left",
+      "MDMesoscale Discussion (MD) 1945 Until 5:15 PM EST · 1 h 17 min left",
+      "OUTLOOKEnhanced risk (3 of 5) Day 1 · until Sat, Nov 21, 7:00 AM EST"
+     ],
+     "point": [
+      -84.5222,
+      39.1113
+     ]
+    },
+    "tql": {
+     "lon": -84.5222,
+     "lat": 39.1113,
+     "outlooks": [
+      "TSTM",
+      "MRGL",
+      "SLGT",
+      "ENH"
+     ],
+     "warn": true
+    }
+   }
+  },
+  {
+   "check": "(p390) a lower-risk spot (SLGT, inside TSTM, MRGL, SLGT): the panel updates to that one category, and no warning, watch or MD",
+   "pass": true,
+   "detail": {
+    "c": {
+     "spot": true,
+     "items": [
+      "OUTLOOKSlight risk (2 of 5) Day 1 · until Sat, Nov 21, 7:00 AM EST"
+     ],
+     "point": [
+      -88.92666666666636,
+      33.480976579373035
+     ]
+    },
+    "low": {
+     "lon": -88.92666666666668,
+     "lat": 33.480000000000004,
+     "cat": "SLGT",
+     "inside": [
+      "TSTM",
+      "MRGL",
+      "SLGT"
+     ]
+    }
+   }
+  },
+  {
+   "check": "(p390) the map's outlook contours are unchanged (4 areas drawn); no script errors",
+   "pass": true,
+   "detail": {
+    "contoursBefore": 4,
+    "contoursAfter": 4,
+    "errs": []
+   }
+  }
+ ]
+}

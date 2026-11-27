@@ -1,0 +1,111 @@
+{
+ "at": "2026-11-24T17:35:45.593Z",
+ "result": {
+  "summary": "Not fully confirmed: no flooding, winter weather, fire weather or wildfire, smoke or air quality, tropical, coastal and airport weather threats found in the data we have, but a source is unavailable, stale or doesn't cover this venue or date.",
+  "confirmed": false,
+  "items": [],
+  "statuses": [
+   "NWS warnings, watches and advisories: Checked 12:35 p.m.",
+   "SPC fire weather outlooks: Checked 12:35 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NOAA satellite smoke analysis (HMS): Checked 12:35 p.m.",
+   "AirNow air quality observations: Checked 12:35 p.m. · nearest monitor Union City High School (4 miles southeast): AQI 12 Good (PM2.5) for 12 p.m.",
+   "AirNow air quality forecasts: Checked 12:35 p.m. · Northeast Urban reporting area",
+   "Aviation Weather Center (METAR and TAF): Checked 12:35 p.m. · KEWR METAR 1651Z VFR · TAF 1509Z AMD valid to Wed 1 p.m.",
+   "Aviation Weather Center en route (pilot reports, SIGMETs, G-AIRMETs, CWAs): Checked 12:35 p.m.",
+   "FAA airport status (delays, ground stops, closures): Not responding · status unknown. We can't rule anything out from this source.",
+   "NHC tropical outlooks and storm products: Checked 12:35 p.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 12:35 p.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 12:35 p.m.",
+   "WPC Excessive Rainfall Outlook: Checked 12:31 p.m. · Day 1 issued 1552Z, Day 2 issued 0750Z, Day 3 issued 0750Z"
+  ],
+  "maps": []
+ },
+ "feeds": [
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/airsigmet",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-24T17:35:42.888Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=0",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-24T17:35:43.000Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/cwa",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-24T17:35:43.030Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=9",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-24T17:35:43.052Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=3",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-24T17:35:43.092Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=12",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-24T17:35:43.168Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/pirep?bbox=39.2,-89.4,43.5,-72.7&age=2",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-24T17:35:43.950Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/gairmet?fore=6",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-24T17:35:44.679Z"
+  }
+ ],
+ "route": {
+  "route": {
+   "set": true,
+   "o": "KORD",
+   "d": "KEWR",
+   "label": "O'Hare → Newark",
+   "band": "10,000 ft to 16,000 ft",
+   "oPt": [
+    -87.9316,
+    41.9602
+   ],
+   "dPt": [
+    -74.1692,
+    40.6828
+   ],
+   "lowFt": 10000,
+   "highFt": 16000,
+   "startMs": 1795543500000,
+   "endMs": 1795548900000,
+   "timeSource": "own",
+   "window": "Tue 1:05 p.m. – 2:35 p.m.",
+   "lines": [
+    {
+     "concern": false,
+     "text": "No SIGMET, G-AIRMET or Center Weather Advisory for turbulence, icing or thunderstorms meets your approximate route in your time and band, and no moderate or worse pilot report near it in the last 90 minutes."
+    }
+   ],
+   "corridorMi": 25
+  },
+  "faa": [
+   [
+    "FAA airport status isn't answering, so disruptions at Newark (KEWR) are unknown."
+   ],
+   [
+    "FAA airport status isn't answering, so disruptions at O'Hare (KORD) are unknown."
+   ]
+  ]
+ }
+}
