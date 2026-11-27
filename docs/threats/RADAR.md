@@ -45,14 +45,17 @@ Layers → Radar → **Show: Precipitation type | Reflectivity**. The choice is 
 | | |
 |---|---|
 | Source | NOAA MRMS **PrecipFlag**: `https://mrms.ncep.noaa.gov/2D/PrecipFlag/MRMS_PrecipFlag.latest.grib2.gz`. GRIB2, NCEP centre 161, discipline 209, category 6, parameter 0. 7000 × 3500 at 0.01°, the same grid as lcref. PNG packing (template 5.41), 8-bit, value = byte − 3. |
-| Browser access | NOAA sends no `Access-Control-Allow-Origin`, so browsers can't read it directly (checked). The page reads it through `functions/api/mrms`: `GET /api/mrms/precipflag/time` (about 100 bytes) every 60 s, and `GET /api/mrms/precipflag/latest` (about 230 KB) only for a new scan. The forwarder checks the file is PrecipFlag on that grid before serving it, makes one upstream read a minute per worker shared by all viewers, and sends our User-Agent. Failures return 502 and are never cached. |
+| Browser access | NOAA sends no `Access-Control-Allow-Origin`, so browsers can't read it directly (checked). The page reads it through `functions/api/mrms`: `GET /api/mrms/precipflag/time` (about 100 bytes) every 60 s, and `GET /api/mrms/precipflag/latest` (about 230 KB) only for a new scan. The forwarder checks the file is PrecipFlag on that grid before serving it and sends our User-Agent. Failures return 502 and are never cached. |
+| Sharing | Requests in one worker that arrive during a read join it. The workers in one Cloudflare data centre share a Cache API copy. Each worker's copy expires at 60 s plus its own random 0–15 s, so the first refresh is stored before the others look. Data centres don't share with each other, so NOAA sees at most about one read a minute from each data centre that has viewers. Measured at ORD on 2026-11-27: 5 NOAA reads in 5.5 minutes; 4 bursts of 30 simultaneous requests at expiry, 1 read each. Before the stagger: 3 reads at every expiry. |
 | Cadence | A new scan about every 2 minutes; the file appears 2–3 minutes after its scan time. |
 | Codes drawn | NOAA's documented codes only: 1 warm stratiform rain, 10 cool stratiform rain, 6 convective rain, 7 rain with hail, 3 snow, 91 tropical/stratiform rain mix, 96 tropical/convective rain mix. Each has its own colour (ours). |
-| Not drawn | 0 no precipitation (transparent). Any undocumented code (counted in `ptypeStats.unknown`). |
-| No coverage | −3 is drawn as a light grey hatch, so outside radar coverage never looks dry. |
+| No precipitation | 0 is transparent. |
+| No coverage | −3 is drawn as grey stripes, so outside radar coverage never looks dry: light grey on the dark basemap, dark grey on the light one. |
+| Unknown codes | Any other code is drawn as a dark-and-light checker, and the legend adds "Code not in NOAA's table (n)". It can't pass for no precipitation or a category. The codes are counted in `ptypeStats.unknown`. |
 | Not in the product | Sleet and freezing rain. The legend says so. |
 | Rendering | Decoded in a Web Worker; nearest-neighbour into 256 px tiles through a `ptype://` protocol; the same `radar` layer, so the layer order is unchanged. |
-| Fallback | A scan over 15 minutes old, or the forwarder failing: the reflectivity layer, with "Precipitation type unavailable · showing reflectivity" and the Reflectivity 2026 legend. |
+| Fallback | A scan over 15 minutes old, or the forwarder failing, switches to the reflectivity layer. The map credit, the legend (Reflectivity 2026 with its scan time), the source row and the Layers note all say "Precipitation type unavailable · showing reflectivity" and give the reflectivity scan time. The legend also gives the last precipitation-type scan. |
+| Recovery | Precipitation type is retried every minute. When a fresh scan arrives the map switches back without a reload, keeping the saved opacity. |
 
 The colour shows type, not intensity; Reflectivity shows intensity.
 
