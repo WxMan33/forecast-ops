@@ -1,0 +1,10 @@
+batch b0: 611s
+batch b1: 701s
+batch b2: 478s
+batch b3: 575s
+batch b4: 588s
+batch b5: 780s
+batch b6: 495s
+batch b7: 722s
+batch b8: 666s
+batch b9: 498s
