@@ -13,7 +13,7 @@
        tiles the page drew, in both modes.
    Screenshots: desktop, 360 and 390 px, both modes, with the Layers panel open.
    Usage: node tools/threats-ptype-check.js https://<host> [outDir] [minutes of phone refreshes, default 5]
-   ONLY=winter runs just the winter replay (and builds its files). */
+   ONLY=winter runs just the winter replay (and builds its files); ONLY=late runs recovery, the scan turnover and the winter replay. */
 "use strict";
 const { chromium, devices } = require("playwright");
 const fs = require("fs"), path = require("path"), zlib = require("zlib");
@@ -85,7 +85,7 @@ async function winterFiles() {
   /* reflectivity to match: 32 dBZ in the convective rain, 25 in warm rain, 20 in cool rain, 15-25 dBZ snow */
   const base = RD.BASE, json = Buffer.from(download(base + ".json")).toString(), wld = Buffer.from(download(base + ".wld")).toString(), png = download(base + ".png");
   const lg = await RD.decodeIndexedPng(png, inflate), w = RD.parseWorldFile(wld), lc = (lon) => Math.round((lon - w.firstLon) / w.dx), lr = (lat) => Math.round((lat - w.firstLat) / w.dy);
-  for (let y = lr(40.8); y <= lr(37.6); y++) for (let x = lc(-87.4); x <= lc(-82.2); x++) { const lon = w.firstLon + x * w.dx, lat = w.firstLat + y * w.dy, c = code(lon, lat), dbz = c === 6 ? 32 : c === 1 ? 25 : c === 10 ? 20 : 15 + 10 * ((x + y) % 7) / 7; lg.indices[y * lg.width + x] = Math.round((dbz + 32) * 2); }
+  for (let y = lr(40.8); y <= lr(37.6); y++) for (let x = lc(-87.4); x <= lc(-82.2); x++) { const lon = w.firstLon + x * w.dx, lat = w.firstLat + y * w.dy, c = code(lon, lat), dbz = c === 6 ? 32 : c === 1 ? 25 : c === 10 ? 20 : 25 - 10 * Math.min(1, (lat - edge(lon)) / 1.2); /* snow: 25 dBZ at the line, fading to 15 north */ lg.indices[y * lg.width + x] = Math.round((dbz + 32) * 2); }
   const keep = [], dv = new DataView(png.buffer, png.byteOffset, png.byteLength); let idatAt = -1;
   for (let o = 8; o + 12 <= png.length;) { const len = dv.getUint32(o), type = String.fromCharCode(...png.subarray(o + 4, o + 8)); if (type === "IDAT") { if (idatAt < 0) idatAt = keep.length; } else if (type !== "IEND") keep.push(Buffer.from(png.subarray(o, o + len + 12))); o += len + 12; }
   const raw = Buffer.alloc((lg.width + 1) * lg.height); for (let y = 0; y < lg.height; y++) Buffer.from(lg.indices.buffer, y * lg.width, lg.width).copy(raw, y * (lg.width + 1) + 1);
@@ -96,9 +96,9 @@ async function winterFiles() {
   return { scan, pf, lcref: { json: JSON.stringify(j), wld, png: Buffer.concat([Buffer.from(png.subarray(0, 8)), ...keep, chunk("IEND", Buffer.alloc(0))]) }, code, edge };
 }
 /* a PrecipFlag file for any minute (the replay's pixels, that minute's scan time), for routes that answer the page's /at/ asks */
-let pfBase = null; const pfCache = new Map();
+let pfBase = null, pfSource = null; const pfCache = new Map(); // pfSource: the replay's own PrecipFlag file (set once W is built)
 async function pfFor(stamp) {
-  if (!pfCache.has(stamp)) { if (!pfBase) { const g = zlib.gunzipSync(download("https://mrms.ncep.noaa.gov/2D/PrecipFlag/MRMS_PrecipFlag.latest.grib2.gz")); pfBase = { g, idx: (await RD.decodeIndexedPng(RD.parsePrecipFlag(new Uint8Array(g)).png, inflate)).indices }; }
+  if (!pfCache.has(stamp)) { if (!pfBase) { const g = zlib.gunzipSync(pfSource); pfBase = { g, idx: (await RD.decodeIndexedPng(RD.parsePrecipFlag(new Uint8Array(g)).png, inflate)).indices }; }
     const t = Date.UTC(+stamp.slice(0, 4), +stamp.slice(4, 6) - 1, +stamp.slice(6, 8), +stamp.slice(9, 11), +stamp.slice(11, 13)); pfCache.set(stamp, zlib.gzipSync(PFB.replacePixels(pfBase.g, pfBase.idx, t))); }
   return pfCache.get(stamp);
 }
@@ -158,25 +158,26 @@ const ptRoute = (gz, scanIso) => async (p) => {
       s.mode === "ptype" && s.ptFallback && s.via === "iem" && s.legend.fallback === "Precipitation type unavailable · showing reflectivity" && s.legend.refl && !s.legend.ptype && /^Reflectivity: MRMS via Iowa Environmental Mesonet \(precipitation type unavailable\)/.test(s.credit) && /^Precipitation type unavailable · showing reflectivity · MRMS lowest-elevation reflectivity, scan/.test(s.note) && /Precipitation type unavailable · showing reflectivity · MRMS reflectivity/.test(s.row) && reflIso === s.valid && s.reflLegendScan && !errs.length, { s, errs });
     await ctx.close(); }
   const W = await winterFiles();
+  pfSource = W.pf;
   if (!ONLY) { const { ctx, p, errs } = await open(b, DESKTOP, { route: (p) => p.route(/\/api\/mrms\/precipflag\/at\//, (r) => r.fulfill({ status: 404, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: '{"error":"MRMS has no precipitation-type scan for this minute"}' })) });
     const s = await read(p); await p.screenshot({ path: path.join(OUT, "fallback-desktop-unaligned.png") });
     check(`(desktop) no precipitation-type scan for the radar's minute: legend '${s.legend.fallback}', reflectivity shown (${s.via}), reason '${s.ptError}'`, s.ptFallback && s.via === "iem" && s.legend.fallback === "Precipitation type unavailable · showing reflectivity" && s.legend.refl && /no precipitation-type scan for the radar scan/.test(s.ptError || "") && !errs.length, { s, errs });
     await ctx.close(); }
 
   /* ---- recovery: the forwarder fails for the first 3 minutes, then a fresh scan arrives; saved opacity 40% throughout ---- */
-  if (!ONLY) { let failUntil = 0; const route = async (p) => { failUntil = Date.now() + 150e3;
+  if (!ONLY || ONLY === "late") { let failUntil = 0; const route = async (p) => { failUntil = Date.now() + 150e3;
       await p.route(/\/api\/mrms\/precipflag\/at\//, async (r) => { if (Date.now() < failUntil) return r.fulfill({ status: 502, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: '{"error":"MRMS did not answer in time"}' });
         const st = /at\/(\d{8}-\d{4})/.exec(r.request().url())[1]; r.fulfill({ status: 200, headers: { "content-type": "application/gzip", "access-control-allow-origin": "*" }, body: await pfFor(st) }); }); };
     const { ctx, p, errs } = await open(b, PHONES["390"], { op: "0.4", route, query: "&testreplay=radar-ptype-recovery" }); const a = await read(p); await p.screenshot({ path: path.join(OUT, "recovery-390-1-fallback.png") });
     await p.waitForFunction(() => window.__threats.radar.via === "ptype", null, { timeout: 240000 }).catch(() => {}); await p.waitForTimeout(3000);
     const z = await read(p); await p.evaluate(() => window.__threats.map.jumpTo({ center: [-84.7, 39.1], zoom: 6.6 })); await p.waitForTimeout(3000); await p.screenshot({ path: path.join(OUT, "recovery-390-2-ptype-back.png") });
     check(`(390 px) recovery without a reload: first ${a.via}${a.ptFallback ? " (fallback)" : ""} at ${a.paint && a.paint.opacity}, credit '${a.credit}'; when a fresh scan arrived: ${z.via}, fallback ${z.ptFallback}, opacity ${z.paint && z.paint.opacity} (${z.opShown}), legend ${z.legend.ptype ? "precipitation type" : "?"}, credit '${z.credit}'`,
-      a.ptFallback && a.via === "iem" && a.paint.opacity === 0.4 && z.via === "ptype" && !z.ptFallback && z.paint.opacity === 0.4 && z.opShown === "40%" && z.legend.ptype && !z.legend.fallback && /^Precipitation type: NOAA MRMS PrecipFlag/.test(z.credit) && !/unavailable/.test(z.credit + z.row + z.note) && !errs.length, { a, z, errs });
+      a.ptFallback && a.via === "iem" && a.paint.opacity === 0.4 && z.via === "ptype" && !z.ptFallback && z.paint.opacity === 0.4 && z.opShown === "40%" && z.legend.ptype && !z.legend.fallback && /^Precipitation type: MRMS reflectivity via Iowa Environmental Mesonet, type NOAA MRMS PrecipFlag/.test(z.credit) && !/unavailable/.test(z.credit + z.row + z.note) && !errs.length, { a, z, errs });
     await ctx.close(); }
 
   /* ---- Reflectivity: IEM publishes a new scan while the page downloads its first one (seen once on 24ccf4e: NOAA fallback after
      a reload); the page must fetch the new scan, not fall back ---- */
-  if (!ONLY) { const json = JSON.parse(Buffer.from(download(RD.BASE + ".json")).toString()), t0 = Date.parse(json.meta.start_valid); let n = 0;
+  if (!ONLY || ONLY === "late") { const json = JSON.parse(Buffer.from(download(RD.BASE + ".json")).toString()), t0 = Date.parse(json.meta.start_valid); let n = 0;
     const route = async (p) => p.route(/mrms\/lcref\.json/, (r) => { n++; const j = JSON.parse(JSON.stringify(json)); if (n >= 2) j.meta.start_valid = j.meta.end_valid = new Date(t0 + 120e3).toISOString().replace(".000Z", "Z"); r.fulfill({ status: 200, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: JSON.stringify(j) }); });
     const { ctx, p, errs } = await open(b, DESKTOP, { mode: "refl", route }); const s = await read(p), turn = await p.evaluate(() => window.__threats.radarStats && window.__threats.radarStats.turnovers);
     check(`(desktop) Reflectivity, a new IEM scan published mid-download on first load: drawn from ${s.via}, scan turnovers handled ${turn}, error ${s.iemError}`, s.via === "iem" && turn >= 1 && !s.iemError && !errs.length, { s, turn, errs });
@@ -184,10 +185,10 @@ const ptRoute = (gz, scanIso) => async (p) => {
 
   /* ---- winter replay at CVG, both modes, desktop, 360 and 390, dark and light ---- */
   const probes = [[-84.6, 38.3, 1], [-84.6, W.edge(-84.6) - 0.25, 10], [-84.6, 40.2, 3], [-86.5, 37.8, 6], [-83.0, 40.5, 3]];
-  /* what the replay painted: convective rain 32 dBZ, warm rain 25, cool rain 20, snow 15-25 (checker by pixel) */
+  /* what the replay painted: convective rain 32 dBZ, warm rain 25, cool rain 20, snow 25 fading to 15 northward */
   const dbzOf = { 6: 32, 1: 25, 10: 20 }, snowLut = RD.snowPalette(new Uint8Array(256).fill(255)), snowAt = (d) => { const k = Math.round((d + 32) * 2) * 4; return [snowLut[k], snowLut[k + 1], snowLut[k + 2], snowLut[k + 3]]; };
-  const want = (c) => c === 3 ? [snowAt(15), snowAt(20), snowAt(25)] : [(({ r, g, b, a }) => [r, g, b, a])(RD.dbzToRgba(dbzOf[c]))];
-  const near = (x, y) => x.every((v, k) => Math.abs(v - y[k]) <= 2);
+  const wantOf = (c) => c === 3 ? [snowAt(15), snowAt(20), snowAt(25)] : [(({ r, g, b, a }) => [r, g, b, a])(RD.dbzToRgba(dbzOf[c]))];
+  const nearPx = (x, y) => x.every((v, k) => Math.abs(v - y[k]) <= 2);
   const replayRoute = async (p) => { await ptRoute(W.pf, new Date(W.scan).toISOString())(p);
     await p.route(/mrms\/lcref\.png/, (r) => r.fulfill({ status: 200, headers: { "content-type": "image/png", "access-control-allow-origin": "*" }, body: W.lcref.png }));
     await p.route(/mrms\/lcref\.json/, (r) => r.fulfill({ status: 200, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: W.lcref.json }));
@@ -196,7 +197,7 @@ const ptRoute = (gz, scanIso) => async (p) => {
     const { ctx, p, errs } = await open(b, opt, { theme, route: replayRoute, query: "&testreplay=radar-winter-rain-to-snow" });
     await p.evaluate(() => window.__threats.map.jumpTo({ center: [-84.7, 39.1], zoom: 6.6 })); await p.waitForTimeout(4000);
     const s = await read(p), got = []; for (const [lon, lat, c] of probes) got.push({ lon, lat, want: c, rgba: await pixel(p, lon, lat) });
-    const okPx = got.every((g) => want(g.want).some((w) => near(g.rgba, w)));
+    const okPx = got.every((g) => wantOf(g.want).some((w) => nearPx(g.rgba, w)));
     const uk = []; for (const [lon, lat] of [[-86.6, 40.55], [-86.55, 40.5], [-86.45, 40.6], [-86.4, 40.45]]) uk.push((await pixel(p, lon, lat, 9)).join());
     const ukOk = uk.every((c) => [RD.UNKNOWN[0].join(), RD.UNKNOWN[1].join()].includes(c)) && new Set(uk).size === 2;
     /* no coverage: the stripes over the Gulf, in this theme; contrast against the basemap's water at the layer's opacity */
@@ -209,7 +210,7 @@ const ptRoute = (gz, scanIso) => async (p) => {
     const near = (c, want) => { const v = c.split(",").map(Number); return v.every((x, k) => Math.abs(x - want[k]) <= 2); }; // PNG round trip: ±1
     const ncOk = nc.some((c) => near(c, stripe)) && nc.some((c) => c === "0,0,0,0");
     await p.screenshot({ path: path.join(OUT, `winter-${dev}-${theme}-ptype.png`) }); if (dev !== "desktop" || theme === "dark") await layersShot(p, `winter-${dev}-${theme}-ptype-layers.png`);
-    check(`(${dev}, ${theme}) ${s.badge}: winter replay in precipitation type; probes ${got.map((g) => (g.want === 3 ? "snow" : "rain " + dbzOf[g.want] + " dBZ") + "→" + (want(g.want).some((w) => near(g.rgba, w)) ? "ok" : g.rgba.join())).join(", ")}; rain and snow bars in the legend; lines and warnings above radar`,
+    check(`(${dev}, ${theme}) ${s.badge}: winter replay in precipitation type; probes ${got.map((g) => (g.want === 3 ? "snow" : "rain " + dbzOf[g.want] + " dBZ") + "→" + (wantOf(g.want).some((w) => nearPx(g.rgba, w)) ? "ok" : g.rgba.join())).join(", ")}; rain and snow bars in the legend; lines and warnings above radar`,
       s.badge === "TEST REPLAY" && s.via === "ptype" && okPx && s.legend.ptype && s.legend.rainBar === 14 && s.legend.snowBar === 14 && s.order.linesAbove && s.order.warningsAbove && !errs.length, { got, s, errs });
     check(`(${dev}, ${theme}) unknown code 50: drawn as the dark/light checker (${[...new Set(uk)].join(" | ")}), legend '${s.unknownLegend}'`, ukOk && /Code not in NOAA's table \(50\)/.test(s.unknownLegend || ""), { uk, s: s.legend });
     check(`(${dev}, ${theme}) no-coverage stripes ${stripe.slice(0, 3).join()} over the Gulf; on the basemap water ${water} at ${Math.round(s.paint.opacity * 100)}% the stripe/water contrast is ${ratio && ratio.toFixed(2)}:1`, ncOk && ratio >= 2.5, { nc, water, ratio });
