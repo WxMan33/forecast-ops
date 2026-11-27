@@ -927,6 +927,58 @@
     return out;
   }
 
+  /* ---------- observed reports: NWS Local Storm Reports, the last 24 hours, from Iowa Environmental Mesonet ----------
+     https://mesonet.agron.iastate.edu/geojson/lsr.geojson?hours=N (Access-Control-Allow-Origin: *; free, no key). Every LSR the
+     NWS issued, preliminary: tornadoes, hail, wind damage and severe gusts, flooding, heavy rain, snow, ice and freezing rain,
+     each with where, when it was observed, who reported it and remarks. Only the categories below are drawn; the rest (fog,
+     non-thunderstorm gusts, surf, ...) are counted as "other" and listed in the source row. */
+  const OBS_URL = (hours) => "https://mesonet.agron.iastate.edu/geojson/lsr.geojson?hours=" + hours;
+  const OBS_PRODUCT_URL = (pid) => "https://mesonet.agron.iastate.edu/p.php?pid=" + encodeURIComponent(pid);
+  /* IEM's typetext -> our category; order matters only for the legend */
+  const OBS_CATS = {
+    tornado: { name: "Tornado", types: ["TORNADO", "FUNNEL CLOUD", "WALL CLOUD", "WATERSPOUT"] },
+    hail: { name: "Hail", types: ["HAIL"] },
+    wind: { name: "Wind damage or severe gust", types: ["TSTM WND DMG", "TSTM WND GST", "NON-TSTM WND DMG", "DOWNBURST", "HIGH SUST WINDS"] },
+    flood: { name: "Flooding", types: ["FLOOD", "FLASH FLOOD", "COASTAL FLOOD", "LAKESHORE FLOOD", "STORM SURGE"] },
+    rain: { name: "Heavy rain", types: ["RAIN", "HEAVY RAIN"] },
+    snow: { name: "Snow", types: ["SNOW", "HEAVY SNOW", "BLIZZARD", "LAKE-EFFECT SNOW", "SNOW SQUALL"] },
+    ice: { name: "Ice, sleet or freezing rain", types: ["FREEZING RAIN", "ICE STORM", "SLEET", "SNOW/ICE DAMAGE", "FREEZING DRIZZLE", "ICE ACCUMULATION"] },
+  };
+  const OBS_CAT_OF = Object.fromEntries(Object.entries(OBS_CATS).flatMap(([k, c]) => c.types.map((t) => [t, k])));
+  const obsCat = (typetext) => OBS_CAT_OF[String(typetext || "").trim().toUpperCase()] || null;
+  function obsMagText(pr, cat) {
+    const m = pr.magnitude != null && pr.magnitude !== "" ? Number(pr.magf != null ? pr.magf : pr.magnitude) : null, u = String(pr.unit || "").trim(), q = { E: "estimated", M: "measured", U: "" }[String(pr.qualifier || "").toUpperCase()] || "";
+    if (cat === "tornado" || m == null || !isFinite(m) || m === 0 && cat !== "snow" && cat !== "ice" && cat !== "rain") return "";
+    const unit = /^INCH/i.test(u) ? " in" : /^MPH/i.test(u) ? " mph" : /^KNOT|^KT/i.test(u) ? " kt" : u ? " " + u.toLowerCase() : "";
+    return (unit === " in" ? m.toFixed(m < 1 ? 2 : 1).replace(/\.0$/, "") : String(m)) + unit + (q ? " (" + q + ")" : "");
+  }
+  /* GeoJSON from IEM -> reports ({ kind: "obs" }); anything that isn't IEM's LSR shape is refused (throws), a bad row is skipped */
+  function parseObsReports(gj) {
+    if (!gj || gj.type !== "FeatureCollection" || !Array.isArray(gj.features)) throw Error("unrecognized Local Storm Report feed");
+    const out = [], other = {};
+    for (const f of gj.features) {
+      const pr = f && f.properties, c = f && f.geometry && f.geometry.coordinates; if (!pr || !Array.isArray(c)) continue;
+      const lon = +c[0], lat = +c[1], t = Date.parse(pr.valid || ""); if (!isFinite(lon) || !isFinite(lat) || !isFinite(t)) continue;
+      const type = String(pr.typetext || "").trim().toUpperCase(), cat = obsCat(type);
+      if (!cat) { other[type || "UNKNOWN"] = (other[type || "UNKNOWN"] || 0) + 1; continue; }
+      const magText = obsMagText(pr, cat), place = [pr.city, pr.st || pr.state].filter(Boolean).join(", "), observed = new Date(t).toISOString();
+      const typeName = type.charAt(0) + type.slice(1).toLowerCase().replace(/tstm/g, "thunderstorm").replace(/wnd/g, "wind").replace(/dmg/g, "damage").replace(/gst/g, "gust").replace(/non-thunderstorm/g, "non-thunderstorm");
+      out.push({ id: "obs-" + (pr.product_id || "") + "-" + type + "-" + observed + "-" + lat + "," + lon, kind: "obs", family: cat === "snow" || cat === "ice" ? "winter" : cat === "flood" || cat === "rain" ? "flood" : "severe",
+        sourceId: "iem-lsr", program: "lsr", cat, lsrType: type, typeName, magnitude: magText ? Number(pr.magf != null ? pr.magf : pr.magnitude) : null, magText,
+        title: typeName + (magText ? " · " + magText : "") + (place ? " · " + place : ""),
+        observed, issued: observed, location: pr.city || "", county: pr.county || "", state: pr.st || pr.state || "", office: pr.wfo || null, reporter: String(pr.source || "").trim(), comments: /^[&\s.]*$/.test(pr.remark || "") ? "" : String(pr.remark).trim(),
+        productId: pr.product_id || null, point: [lon, lat], geometry: null, label: [lon, lat],
+        source: { name: "NWS Local Storm Report (preliminary), via Iowa Environmental Mesonet", url: pr.product_id ? OBS_PRODUCT_URL(pr.product_id) : "https://mesonet.agron.iastate.edu/lsr/" } });
+    }
+    out.other = other; return out;
+  }
+  /* an SPC storm report already shown as an observed report: same kind (tornado, hail, wind), within 3 km and 10 minutes */
+  const SPC_TO_OBS = { tornado: "tornado", hail: "hail", wind: "wind" };
+  function obsCovers(spc, obs) {
+    const want = SPC_TO_OBS[spc.type], t = Date.parse(spc.observed); if (!want) return false;
+    return obs.some((o) => o.cat === want && Math.abs(Date.parse(o.observed) - t) <= 10 * 60e3 && Math.abs(o.point[1] - spc.point[1]) < 0.03 && Math.abs(o.point[0] - spc.point[0]) < 0.04);
+  }
+
   /* ---------- the venue's next hours: the NWS forecast grid (api.weather.gov /gridpoints) ----------
      Each element is a list of { validTime: "start/ISO-duration", value } in its own unit (uom). Hourly rows from the current
      hour: wind and gusts in mph, temperature, heat index and feels-like in °F, rain chance in %. A missing value stays null
@@ -1027,7 +1079,7 @@
     return { updated: new Date(P.updateTime).toISOString(), rows, covered, qpfThrough: through("qpf"), wxThrough: through("wx"), heatThrough: through("heat"), peakGust: peak("gust"), peakHeat: peak("heat"), peakFeels: peak("feels"), peakPop: peak("pop"), lowFeels: rows.reduce((b, r) => (r.feels != null && (!b || r.feels < b.feels) ? r : b), null) };
   }
 
-  return { MRMS_SVC, WPC_QPF_SVC, MRMS_WINDOWS, WPC_PERIODS, WPC_STEPS, MRMS_CATALOG_URL, MRMS_TILE_URL, MRMS_LEGEND_URL, MRMS_POINT_URL, WPC_TILE_URL, WPC_META_URL, WPC_POINT_URL, WPC_LEGEND_URL, wpcIso, parseMrmsCatalog, parseMrmsPoint, parseWpcPoint, parseWpcMeta, parseLegend, GAUGES_URL, GAUGE_DETAIL_URL, parseGaugeDetail, GAUGE_CATS, GAUGE_WORD, parseGauges, DAY48_URL, parseDay48, REPORTS_URL, parseStormReports, RADAR_TIME_URL, RADAR_TILE_URL, parseRadarTime, parseGrid, EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, impactOf, createAlertStore, resolveZones,
+  return { MRMS_SVC, WPC_QPF_SVC, MRMS_WINDOWS, WPC_PERIODS, WPC_STEPS, MRMS_CATALOG_URL, MRMS_TILE_URL, MRMS_LEGEND_URL, MRMS_POINT_URL, WPC_TILE_URL, WPC_META_URL, WPC_POINT_URL, WPC_LEGEND_URL, wpcIso, parseMrmsCatalog, parseMrmsPoint, parseWpcPoint, parseWpcMeta, parseLegend, GAUGES_URL, GAUGE_DETAIL_URL, parseGaugeDetail, GAUGE_CATS, GAUGE_WORD, parseGauges, DAY48_URL, parseDay48, REPORTS_URL, parseStormReports, OBS_URL, OBS_PRODUCT_URL, OBS_CATS, obsCat, parseObsReports, obsCovers, RADAR_TIME_URL, RADAR_TILE_URL, parseRadarTime, parseGrid, EVENTS, ALERTS_URL, OUTLOOK_URL, MD_LIST_URL, MD_URL, MD_SERVICE_URL, parseVTEC, normalizeAlert, impactOf, createAlertStore, resolveZones,
     parseOutlook, createOutlookStore, parseMDList, parseMD, parseLatLon, parseMDService, mdFromService, parseUGC, wouToAlert, labelPoint, mergeGeometries, dissolve, zoneShape,
     HAZARD, WINTER_EVENTS, FIRE_EVENTS, TROPICAL_EVENTS, COASTAL_EVENTS, EVENT_NAME, tcvToAlerts, pointZones, NAQFC_ENABLED, AWC_URL, FLT_ORDER, fltCat, parseMETAR, parseTAF, NHC_URL, NHC_WSP_AT, parseNHC, parseNHCWsp, TCWW, FIRE_CATS, DRYT_CATS, FIRE38_CATS, FIRE_NAME, FIRE_MEANING, SPC_FIRE_URL, parseFireOutlook, createFireStore,
     NIFC_INC_URL, NIFC_PER_URL, INCIDENT_TYPE, parseNIFC, zTime,

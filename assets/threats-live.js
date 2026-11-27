@@ -17,6 +17,10 @@
      per venue (like WSSI-P); all monitors for the map */
   const hms = { state: "never", lastOk: null, error: null, products: [], days: [] };
   const lsr = { state: "never", lastOk: null, error: null, products: [] };
+  /* observed reports (NWS Local Storm Reports via IEM): the full 24 h when turned on and every 30 minutes; in between, every 5
+     minutes, the last 6 hours (about 60 KB instead of 500 KB), merged; a report filed late with an older time arrives at the
+     next full read at the latest */
+  const obs = { state: "never", lastOk: null, lastFull: 0, error: null, byId: new Map(), other: {}, otherFull: {} };
   /* NOAA river gauges: queried by area (the map's view at regional zoom, or around the venue), kept by gauge id */
   const gauges = { state: "never", lastOk: null, error: null, byId: new Map(), asked: new Map() };
   async function gaugesIn(b) {
@@ -373,6 +377,17 @@
     } catch (e) { Object.assign(lsr, { state: "failed", error: e.message }); }
     emit();
   }
+  async function refreshObs() {
+    const at = nowIso(), full = !obs.lastFull || Date.now() - obs.lastFull >= 30 * 60e3;
+    try {
+      const got = F.parseObsReports(await get(F.OBS_URL(full ? 24 : 6), "json"));
+      if (full) { obs.byId = new Map(); obs.lastFull = Date.now(); obs.otherFull = got.other; }
+      for (const p of got) obs.byId.set(p.id, p);
+      const cut = Date.now() - 24 * 3600e3; for (const [k, p] of obs.byId) if (Date.parse(p.observed) < cut) obs.byId.delete(k);
+      Object.assign(obs, { state: "ok", lastOk: at, error: null, other: obs.otherFull });
+    } catch (e) { Object.assign(obs, { state: "failed", error: e.message }); }
+    emit();
+  }
   async function refreshNHC() {
     const at = nowIso();
     try { const parts = await Promise.all(["two", "cone", "track", "points", "watchwarning"].map(async (L) => F.parseNHC(await get(F.NHC_URL(L), "json"), L))); Object.assign(nhc, { state: "ok", lastOk: at, error: null, products: parts.flat() }); }
@@ -541,7 +556,8 @@
     const wsp = wssi.products.filter((p) => Date.parse(p.validEnd) > now);
     const fireP = FIRE_DAYS.flatMap((d) => FIRE_PARTS.flatMap((part) => fire[d][part].current(now).products));
     const lsrP = lsr.products.filter((p) => now - Date.parse(p.observed) < 24 * 3600e3 && Date.parse(p.observed) <= now + 5 * 60e3);
-    const products = [...gauges.byId.values(), ...lsrP, ...ps.filter((p) => p.status === "active" || p.status === "lapsed").map(withZones), ...wsp, ...mdList, ...o[1].products, ...o[2].products, ...o[3].products, ...e[1].products, ...e[2].products, ...e[3].products, ...fireP, ...nifc.products, ...hms.products, ...aq.products, ...nhc.products, ...tcw.products, ...av.products, ...enr.products, ...faa.products];
+    const obsP = [...obs.byId.values()].filter((p) => now - Date.parse(p.observed) < 24 * 3600e3 && Date.parse(p.observed) <= now + 5 * 60e3);
+    const products = [...gauges.byId.values(), ...lsrP, ...obsP, ...ps.filter((p) => p.status === "active" || p.status === "lapsed").map(withZones), ...wsp, ...mdList, ...o[1].products, ...o[2].products, ...o[3].products, ...e[1].products, ...e[2].products, ...e[3].products, ...fireP, ...nifc.products, ...hms.products, ...aq.products, ...nhc.products, ...tcw.products, ...av.products, ...enr.products, ...faa.products];
     const src = (info, count, extra) => ({ state: info.state === "ok" ? "ok" : "failed", lastOk: info.lastOk, count, error: info.error, ...extra });
     return {
       live: true, clock: new Date(now).toISOString(), products,
@@ -563,6 +579,7 @@
         hms: hms.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: hms.state, lastOk: hms.lastOk, count: hms.products.length, error: hms.error },
         gauges: gauges.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: gauges.state, lastOk: gauges.lastOk, count: gauges.byId.size, error: gauges.error },
         reports: lsr.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: lsr.state, lastOk: lsr.lastOk, count: lsrP.length, error: lsr.error },
+        obs: obs.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: obs.state, lastOk: obs.lastOk, count: obsP.length, error: obs.error, other: obs.other },
         aqobs: aqSrc(aq.obs, aq.products.filter((p) => p.kind === "aqobs").length), aqfcst: aqSrc(aq.fcst, aq.products.filter((p) => p.kind === "aqfcst").length), naqfc: F.NAQFC_ENABLED ? aqSrc(aq.naqfc, aq.products.filter((p) => p.kind === "smokefcst").length) : { state: "na" },
         monitors: monAll.state === "never" ? { state: "pending", lastOk: null, count: 0 } : { state: monAll.state, lastOk: monAll.lastOk, count: monAll.products.length, error: monAll.error },
         nifc: nifc.state === "never" ? { state: "pending", lastOk: null, count: 0 } : src({ state: nifc.state, lastOk: nifc.lastOk, error: nifc.error }, nifc.products.length),
@@ -591,7 +608,7 @@
   }
   /* the map: each layer's feeds load when it is turned on and stop refreshing when it is off (Event Manager keeps start()) */
   let mapFeeds = null; const feedTimers = {}, feedAt = {}, QUICK = new Set(["alerts", "md", "spc", "ero"]);
-  const FEEDS = { reports: [() => refreshReports(), 5 * 60e3], alerts: [() => refreshAlerts(), 60e3], md: [() => refreshMD(), 60e3], spc: [() => refreshOutlooks(), 10 * 60e3], ero: [() => refreshERO(), 10 * 60e3], fire: [() => refreshFire(), 10 * 60e3], nifc: [() => refreshNIFC(), 5 * 60e3], hms: [() => refreshHMS(), 10 * 60e3], monitors: [() => refreshMonitorsAll(), 10 * 60e3], nhc: [() => refreshNHC(), 10 * 60e3] };
+  const FEEDS = { obs: [() => refreshObs(), 5 * 60e3], reports: [() => refreshReports(), 5 * 60e3], alerts: [() => refreshAlerts(), 60e3], md: [() => refreshMD(), 60e3], spc: [() => refreshOutlooks(), 10 * 60e3], ero: [() => refreshERO(), 10 * 60e3], fire: [() => refreshFire(), 10 * 60e3], nifc: [() => refreshNIFC(), 5 * 60e3], hms: [() => refreshHMS(), 10 * 60e3], monitors: [() => refreshMonitorsAll(), 10 * 60e3], nhc: [() => refreshNHC(), 10 * 60e3] };
   function setFeeds(keys) {
     const want = new Set((keys || []).filter((k) => FEEDS[k])), first = [];
     if (!mapFeeds) { mapFeeds = new Set(); document.addEventListener("visibilitychange", () => { if (!document.hidden) { if (mapFeeds.has("alerts")) refreshAlerts(); if (mapFeeds.has("md")) refreshMD(); } }); }
