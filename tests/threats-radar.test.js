@@ -72,21 +72,19 @@ function indexedPng(w, h, rows, filters, trns) {
   });
   /* precipitation type: MRMS PrecipFlag, NOAA/NSSL's documented codes */
   const B = require("../tools/precipflag-grib.js");
-  await ok("PrecipFlag codes: only NOAA's documented categories are drawn; no sleet or freezing-rain class is invented", () => {
-    assert.deepStrictEqual(R.PTYPE.map((c) => [c[0], c[1]]), [[1, "Warm stratiform rain"], [10, "Cool stratiform rain"], [6, "Convective rain"], [7, "Rain with hail"], [3, "Snow"], [91, "Tropical/stratiform rain mix"], [96, "Tropical/convective rain mix"]]);
+  await ok("precipitation type: NOAA's documented codes only; rain classes and snow; no sleet, freezing-rain or mix class is invented", () => {
+    assert.deepStrictEqual(R.PTYPE.map((c) => [c[0], c[2]]), [[1, "rain"], [10, "rain"], [6, "rain"], [7, "rain"], [91, "rain"], [96, "rain"], [3, "snow"]]);
     assert.strictEqual(R.NO_PRECIP, 0); assert.strictEqual(R.NO_COVERAGE, -3);
-    assert.ok(!R.PTYPE.some((c) => /sleet|freezing|ice pellet/i.test(c[1])));
-    assert.strictEqual(new Set(R.PTYPE.map((c) => c[2].join())).size, R.PTYPE.length); // every category its own colour
+    assert.ok(!R.PTYPE.some((c) => /sleet|freezing|ice pellet|mix(ed)? (rain|snow)/i.test(c[1])));
+    const cls = R.ptypeClasses({ R: -3, E: 0, D: 0 }); // value = byte - 3
+    assert.deepStrictEqual([0, 3, 4, 6, 9, 10, 13, 94, 99].map((b) => cls[b]), [1, 0, 0, 3, 0, 0, 0, 0, 0]); // -3 none-coverage; 0,1 rain-like; 3 snow; 6,7,10,91,96 rain
+    for (const b of [5, 7, 8, 11, 50, 200]) assert.strictEqual(cls[b], 2, "byte " + b); // 2, 4, 5, 8, 47, 197: undocumented
   });
-  await ok("PrecipFlag palette (value = byte - 3): no precipitation transparent; no coverage striped (per theme); undocumented codes a checker, never transparent or a category colour", () => {
-    const p = R.ptypePalette({ R: -3, E: 0, D: 0 }), a = (byte) => p.lut[byte * 4 + 3], k = (byte) => p.pat.kind[byte];
-    assert.strictEqual(R.gribValue(0, { R: -3, E: 0, D: 0 }), -3); assert.strictEqual(R.gribValue(6, { R: -3, E: 0, D: 0 }), 3);
-    assert.strictEqual(a(3), 0); assert.strictEqual(k(3), 0);                                     // 0 no precipitation: transparent
-    assert.strictEqual(a(0), 0); assert.strictEqual(k(0), 1);                                     // -3 no coverage: stripes
-    assert.deepStrictEqual([...p.lut.subarray(6 * 4, 7 * 4)], [60, 140, 255, R.PTYPE_ALPHA]);   // 3 snow
-    assert.deepStrictEqual([...p.lut.subarray(4 * 4, 5 * 4)], [35, 190, 75, R.PTYPE_ALPHA]);    // 1 warm stratiform rain
-    for (const byte of [5, 7, 8, 11, 50, 200]) { assert.strictEqual(a(byte), 0, "byte " + byte); assert.strictEqual(k(byte), 2, "byte " + byte); } // 2, 4, 5, 8, 47, 197: undocumented, checker
-    assert.deepStrictEqual(R.ptypePalette({ R: -3, E: 0, D: 0 }, "light").pat.hatch, R.HATCH.light); assert.deepStrictEqual(p.pat.hatch, R.HATCH.dark);
+  await ok("snow ramp: blue, deeper with intensity, below 5 dBZ transparent; the legend's snow bar uses the rain bar's dBZ bands", () => {
+    const alpha = new Uint8Array(256).fill(255), lut = R.snowPalette(alpha), at = (dbz) => [...lut.subarray(Math.round((dbz + 32) * 2) * 4, Math.round((dbz + 32) * 2) * 4 + 4)];
+    assert.deepStrictEqual(at(4.5), [0, 0, 0, 0]); assert.deepStrictEqual(at(5), [205, 230, 255, 170]); assert.deepStrictEqual(at(27), [45, 105, 225, 245]); assert.deepStrictEqual(at(60), [40, 30, 130, 255]);
+    for (let d = 5; d < 40; d += 5) { const a = at(d), c = at(d + 5); assert.ok(c[0] + c[1] + c[2] < a[0] + a[1] + a[2], "darker at " + (d + 5)); assert.ok(a[2] >= a[0] && a[2] >= a[1], "blue at " + d); }
+    assert.strictEqual(R.snowLegend().length, R.legend().length); assert.deepStrictEqual(R.snowLegend().map((x) => x.dbz), R.legend().map((x) => x.dbz));
   });
   await ok("PrecipFlag GRIB2: scan time, scaling, grid and PNG read; wrong product, centre, grid template or packing refused", async () => {
     const bytes = new Uint8Array([0, 3, 4, 6, 9, 10, 13, 94]), scan = Date.parse("2026-01-12T18:04:00Z");
@@ -96,15 +94,35 @@ function indexedPng(w, h, rows, filters, trns) {
     for (const [bad, re] of [[{ cat: 1 }, /PrecipFlag/], [{ centre: 7 }, /centre/], [{ discipline: 0 }, /MRMS/], [{ template: 40 }, /packing/]]) assert.throws(() => R.parsePrecipFlag(new Uint8Array(B.build({ scan, width: 4, height: 2, bytes, ...bad }))), re);
     assert.throws(() => R.parsePrecipFlag(new Uint8Array(20)), /GRIB2/);
   });
-  await ok("PrecipFlag tiles: nearest-neighbour; no-coverage stripes and unknown-code checker continuous across tiles and distinct; no precipitation transparent", () => {
-    const w = 4, h = 4;
-    const grid = { width: w, height: h, indices: new Uint8Array([0, 0, 0, 0, 3, 3, 6, 6, 4, 4, 4, 4, 13, 13, 50, 50]), dx: 90, dy: -45, firstLon: -180, firstLat: 90 };
-    for (const theme of ["dark", "light"]) { const p = R.ptypePalette({ R: -3, E: 0, D: 0 }, theme), t = R.renderTile(grid, p.lut, 0, 0, 0, 64, p.pat), n = {};
-      for (let i = 0; i < t.length; i += 4) { const c = t[i + 3] ? t[i] + "," + t[i + 1] + "," + t[i + 2] : "clear"; n[c] = (n[c] || 0) + 1; }
-      const hatch = n[R.HATCH[theme].slice(0, 3).join()] || 0, dark = n[R.UNKNOWN[0].slice(0, 3).join()] || 0, light = n[R.UNKNOWN[1].slice(0, 3).join()] || 0;
-      assert.ok(hatch > 0 && hatch < 64 * 16 * 0.35, theme + " stripes, a hatch not a fill: " + hatch);
-      assert.ok(dark > 50 && light > 50 && Math.abs(dark - light) < (dark + light) * 0.2, theme + " checker both tones: " + dark + "/" + light);
-      assert.ok(n["60,140,255"] > 0 && n["35,190,75"] > 0, JSON.stringify(n)); }
+  await ok("precipitation-type tiles: rain pixels identical to Reflectivity's; snow from the blue ramp; below 5 dBZ transparent; no coverage striped; unknown codes a checker", () => {
+    const w = 4, h = 4, geo = { dx: 90, dy: -45, firstLon: -180, firstLat: 90 }, alpha = new Uint8Array(256).fill(255);
+    const ref = { width: w, height: h, indices: new Uint8Array([140, 140, 140, 140, 100, 120, 160, 70, 140, 140, 140, 140, 140, 140, 140, 140]), alpha, ...geo }; // 38 dBZ, 18/28/48 dBZ, 3 dBZ
+    const pf = { width: w, height: h, indices: new Uint8Array([0, 0, 0, 0, 4, 6, 9, 6, 13, 13, 13, 13, 50, 50, 50, 50]) }; // no coverage; rain, snow, rain, snow(<5 dBZ); rain; unknown
+    const lut = R.palette(alpha), snow = R.snowPalette(alpha), cls = R.ptypeClasses({ R: -3, E: 0, D: 0 });
+    for (const theme of ["dark", "light"]) { const pat = { hatch: R.HATCH[theme] }, t = R.renderPtypeTile(ref, lut, snow, pf, cls, 0, 0, 0, 64, pat), base = R.renderTile(ref, lut, 0, 0, 0, 64), n = {};
+      let rainSame = 0, rainDiff = 0;
+      for (let py = 0; py < 64; py++) for (let px = 0; px < 64; px++) { const k = (py * 64 + px) * 4, c = t[k + 3] ? t[k] + "," + t[k + 1] + "," + t[k + 2] : "clear"; n[c] = (n[c] || 0) + 1;
+        const lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * (py + 0.5) / 64))) * 180 / Math.PI, row = Math.round((lat - 90) / -45), col = Math.round(((px + 0.5) / 64 * 360 - 180 + 180) / 90);
+        if (row >= 0 && row < 4 && col >= 0 && col < 4 && cls[pf.indices[row * 4 + col]] === 0) { if ([0, 1, 2, 3].every((j) => t[k + j] === base[k + j])) rainSame++; else rainDiff++; } }
+      assert.ok(rainSame > 100 && rainDiff === 0, theme + " rain identical: " + rainSame + "/" + rainDiff);
+      const sn = R.snowPalette(alpha), s28 = (28 + 32) * 2 * 4; assert.ok(n[sn[s28] + "," + sn[s28 + 1] + "," + sn[s28 + 2]] > 0, theme + " snow at 28 dBZ: " + JSON.stringify(n));
+      assert.ok((n[R.HATCH[theme].slice(0, 3).join()] || 0) > 0, theme + " stripes"); assert.ok(n[R.UNKNOWN[0].slice(0, 3).join()] > 0 && n[R.UNKNOWN[1].slice(0, 3).join()] > 0, theme + " checker"); }
+  });
+  await ok("precipitation-type client: pairs IEM's reflectivity scan with the PrecipFlag file of the same minute; a missing one is 'unaligned', never a mismatched pair", async () => {
+    const t1 = "2026-11-27T19:30:00Z", meta = { meta: { start_valid: t1, end_valid: t1, product: "lcref", units: "0.5 dBZ" } }, asked = [];
+    let pfStatus = 404; const fetch = async (u) => { asked.push(u); if (/lcref\.json$/.test(u)) return { ok: true, json: async () => meta };
+      if (/precipflag\/at\//.test(u)) return { ok: pfStatus === 200, status: pfStatus, arrayBuffer: async () => new ArrayBuffer(8) };
+      return { ok: true, arrayBuffer: async () => new ArrayBuffer(8), text: async () => "0.01\n0\n0\n-0.01\n-129.995\n54.995" }; };
+    let sentScan = Date.parse(t1);
+    globalThis.Worker = class { postMessage(m) { setTimeout(() => this.onmessage({ data: { id: m.id, ok: true, pfScan: sentScan, decodeMs: 1, width: 7000, height: 3500, codes: { "0": 5, "3": 2 } } }), 0); } };
+    globalThis.URL.createObjectURL = () => "blob:x";
+    const c = R.createPtypeClient({ base: "https://x.test/api/mrms", fetch });
+    await assert.rejects(c.refresh(), (e) => e.unaligned === true && /no precipitation-type scan for the radar scan of 19:30/.test(e.message));
+    assert.ok(asked.some((u) => /\/precipflag\/at\/20261127-1930$/.test(u))); assert.strictEqual(c.state.scan, null);
+    pfStatus = 200; assert.strictEqual(await c.refresh(), true); assert.strictEqual(c.state.scan, Date.parse(t1)); assert.strictEqual(c.state.pfScan, Date.parse(t1)); assert.strictEqual(c.state.unaligned, false);
+    sentScan = Date.parse("2026-11-27T19:34:00Z"); meta.meta.start_valid = meta.meta.end_valid = "2026-11-27T19:32:00Z";
+    await assert.rejects(c.refresh(), /doesn't match the radar scan/); assert.strictEqual(c.state.unaligned, true);
+    delete globalThis.Worker;
   });
   console.log(n + " passed");
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -213,4 +213,15 @@ await ok("MRMS PrecipFlag staggered expiry: three workers sharing a data-centre 
   for (let s2 = 0; s2 <= 300; s2 += 1) { clock = start + s2 * 1000; await Promise.all(workers.map((w, i) => w.handle(new Request("https://x.test/api/mrms/precipflag/time"), { ...env, CACHE, JITTER: () => jit[i] }))); }
   const minutes = 300 / 60, reads = sent.length; assert.ok(reads <= Math.ceil(minutes * 60 / 60) + 1, "NOAA reads in 5 minutes: " + reads);
 });
+await ok("MRMS PrecipFlag by scan time: /precipflag/at/YYYYMMDD-HHMM forwards that scan's file, checks its time, keeps it an hour; NOAA's 404 stays a 404; bad stamps refused", async () => {
+  mrmsf._reset(); sent.length = 0; const scan = Date.parse("2026-11-27T19:30:00Z");
+  const gz = zlibm.gzipSync(PFB.build({ scan, width: 7000, height: 3500, bytes: new Uint8Array(7000 * 3500).fill(3) }));
+  answer = (u) => /_20261127-193000\.grib2\.gz$/.test(u) ? new Response(gz, { status: 200 }) : new Response("Not Found", { status: 404 });
+  const r1 = await get(mrmsf, "/api/mrms/precipflag/at/20261127-1930"); assert.strictEqual(r1.status, 200); assert.strictEqual(r1.headers.get("X-MRMS-Scan"), "2026-11-27T19:30:00.000Z");
+  assert.strictEqual(sent.at(-1).url, "https://upstream.test/2D/PrecipFlag/MRMS_PrecipFlag_00.00_20261127-193000.grib2.gz");
+  clock += 30 * 60e3; const r2 = await get(mrmsf, "/api/mrms/precipflag/at/20261127-1930"); assert.strictEqual(r2.headers.get("X-Forecast-Ops-Cache"), "MEMORY"); assert.strictEqual(sent.length, 1);
+  const r3 = await get(mrmsf, "/api/mrms/precipflag/at/20261127-1932"); assert.strictEqual(r3.status, 404); assert.match((await r3.json()).error, /no precipitation-type scan/);
+  answer = () => new Response(gz, { status: 200 }); const r4 = await get(mrmsf, "/api/mrms/precipflag/at/20261127-1934"); assert.strictEqual(r4.status, 502); assert.match((await r4.json()).error, /another scan time/);
+  for (const bad of ["/api/mrms/precipflag/at/2026112-1930", "/api/mrms/precipflag/at/20261127-1990", "/api/mrms/precipflag/at/20261127-1930/x", "/api/mrms/precipflag/at/20261127-1930?x=1"]) assert.strictEqual((await get(mrmsf, bad)).status, 404, bad);
+});
 console.log(n + " passed");

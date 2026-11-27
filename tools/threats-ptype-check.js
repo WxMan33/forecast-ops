@@ -52,8 +52,8 @@ const read = (p) => p.evaluate(() => { const T = window.__threats, m = T.map, st
   return { mode: T.radarMode(), via: r.via, state: r.state, valid: r.valid, ptFallback: r.ptFallback, ptError: r.ptError, iemError: r.iemError || null,
     order: { radar: ri, lines: lines.map((id) => [id, ids.indexOf(id)]), linesAbove: ri >= 0 && lines.length === 2 && lines.every((id) => ids.indexOf(id) > ri), warnings: act.length, warningsAbove: act.every((id) => ids.indexOf(id) > ri), gauge: gi, gaugeAbove: gi < 0 || gi > ri },
     paint: m.getLayer("radar") && { opacity: m.getPaintProperty("radar", "raster-opacity"), resampling: m.getPaintProperty("radar", "raster-resampling") },
-    pt: ps && { scan: ps.scan, bytes: ps.bytes, downloadMs: ps.downloadMs, decodeMs: ps.decodeMs, size: ps.size, codes: ps.codes, unknown: ps.unknown, loads: ps.loads, tiles: ps.tileMs.length, tileMed: med(ps.tileMs), tileMax: ps.tileMs.length ? Math.max(...ps.tileMs) : null, error: ps.error },
-    legend: { ptype: !!lg, items: lg ? [...lg.querySelectorAll(".lg-pt span")].map((s) => s.textContent) : [], note: lg ? lg.querySelector(".lg-note").textContent : "", refl: !!(lr && lr.querySelector(".lg-r26")), fallback: fb ? fb.textContent : null },
+    pt: ps && { scan: ps.scan, pfScan: ps.pfScan, pfBytes: ps.pfBytes, bytes: ps.bytes, downloadMs: ps.downloadMs, decodeMs: ps.decodeMs, size: ps.size, codes: ps.codes, unknown: ps.unknown, loads: ps.loads, tiles: ps.tileMs.length, tileMed: med(ps.tileMs), tileMax: ps.tileMs.length ? Math.max(...ps.tileMs) : null, error: ps.error },
+    legend: { rainBar: lg ? (lg.querySelector(".lg-r26") || { children: [] }).children.length : 0, snowBar: lg ? (lg.querySelector(".lg-snow") || { children: [] }).children.length : 0, ptype: !!lg, items: lg ? [...lg.querySelectorAll(".lg-pt span")].map((s) => s.textContent) : [], note: lg ? lg.querySelector(".lg-note").textContent : "", refl: !!(lr && lr.querySelector(".lg-r26")), fallback: fb ? fb.textContent : null },
     credit: (document.querySelector(".maplibregl-ctrl-attrib-inner") || {}).textContent || "", unknownLegend: (document.querySelector("[data-ptype-unknown]") || {}).textContent || null, ptLast: (document.querySelector("[data-ptype-last]") || {}).textContent || null,
     reflScan: T.radarStats && T.radarStats.scan, reflLegendScan: lr ? (lr.querySelector(".lg-note").textContent.match(/scan (.+)$/) || [])[1] || null : null, theme: document.documentElement.dataset.theme,
     row: (document.querySelector("[data-src=radar]") || {}).textContent || "", note: document.getElementById("txRadarNote").textContent,
@@ -95,7 +95,15 @@ async function winterFiles() {
   const j = JSON.parse(json); j.meta.start_valid = j.meta.end_valid = new Date(scan).toISOString().replace(/\.000Z$/, "Z");
   return { scan, pf, lcref: { json: JSON.stringify(j), wld, png: Buffer.concat([Buffer.from(png.subarray(0, 8)), ...keep, chunk("IEND", Buffer.alloc(0))]) }, code, edge };
 }
+/* a PrecipFlag file for any minute (the replay's pixels, that minute's scan time), for routes that answer the page's /at/ asks */
+let pfBase = null; const pfCache = new Map();
+async function pfFor(stamp) {
+  if (!pfCache.has(stamp)) { if (!pfBase) { const g = zlib.gunzipSync(download("https://mrms.ncep.noaa.gov/2D/PrecipFlag/MRMS_PrecipFlag.latest.grib2.gz")); pfBase = { g, idx: (await RD.decodeIndexedPng(RD.parsePrecipFlag(new Uint8Array(g)).png, inflate)).indices }; }
+    const t = Date.UTC(+stamp.slice(0, 4), +stamp.slice(4, 6) - 1, +stamp.slice(6, 8), +stamp.slice(9, 11), +stamp.slice(11, 13)); pfCache.set(stamp, zlib.gzipSync(PFB.replacePixels(pfBase.g, pfBase.idx, t))); }
+  return pfCache.get(stamp);
+}
 const ptRoute = (gz, scanIso) => async (p) => {
+  await p.route(/\/api\/mrms\/precipflag\/at\//, (r) => r.fulfill({ status: 200, headers: { "content-type": "application/gzip", "access-control-allow-origin": "*" }, body: Buffer.from(gz) }));
   await p.route(/\/api\/mrms\/precipflag\/time/, (r) => r.fulfill({ status: 200, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: JSON.stringify({ product: "PrecipFlag", scan: scanIso, fetchedAt: new Date().toISOString(), bytes: gz.length }) }));
   await p.route(/\/api\/mrms\/precipflag\/latest/, (r) => r.fulfill({ status: 200, headers: { "content-type": "application/gzip", "access-control-allow-origin": "*" }, body: Buffer.from(gz) }));
 };
@@ -109,10 +117,10 @@ const ptRoute = (gz, scanIso) => async (p) => {
     const s = await read(p); info.live = s; const age = s.pt && s.pt.scan ? Math.round((Date.now() - s.pt.scan) / 60e3) : null;
     const total = s.pt && s.pt.codes ? Object.values(s.pt.codes).reduce((a, x) => a + x, 0) : 0, cov = total ? 1 - (s.pt.codes["-3"] || 0) / total : 0;
     check(`(desktop) browser access: NOAA's file read directly is ${direct} (no CORS header); through /api/mrms the page shows precipitation type by default (mode ${s.mode}, via ${s.via})`, direct === "blocked" && s.mode === "ptype" && s.via === "ptype" && s.modeChecked === "ptype", { direct, s });
-    check(`(desktop) scan ${s.pt && new Date(s.pt.scan).toISOString()} is ${age} min old; grid ${s.pt && s.pt.size}; ${(s.pt.bytes / 1024).toFixed(0)} KB in ${s.pt.downloadMs} ms; decoded in ${s.pt.decodeMs} ms`, age != null && age <= 15 && s.pt.size === "7000x3500" && s.pt.bytes < 600e3, { pt: s.pt });
+    check(`(desktop) scan ${s.pt && new Date(s.pt.scan).toISOString()} is ${age} min old; grid ${s.pt && s.pt.size}; reflectivity ${(s.pt.bytes / 1024).toFixed(0)} KB + type ${(s.pt.pfBytes / 1024).toFixed(0)} KB in ${s.pt.downloadMs} ms; decoded in ${s.pt.decodeMs} ms; type scan ${s.pt.pfScan && new Date(s.pt.pfScan).toISOString()} = radar scan`, age != null && age <= 15 && s.pt.size === "7000x3500" && s.pt.pfScan === s.pt.scan && s.pt.pfBytes < 600e3, { pt: s.pt });
     check(`(desktop) codes in the live grid: ${JSON.stringify(s.pt.codes)}; all documented (unknown: ${JSON.stringify(s.pt.unknown)}); radar coverage ${(cov * 100).toFixed(1)}% of the grid (the rest is outside coverage, hatched, not 'no precipitation')`, s.pt.unknown.length === 0 && s.pt.codes["-3"] > 0 && s.pt.codes["0"] > 0, { codes: s.pt.codes });
     check(`(desktop) style: opacity ${s.paint && s.paint.opacity}, ${s.paint && s.paint.resampling}; state and county lines ${JSON.stringify(s.order.lines)} and ${s.order.warnings} warning layers above radar (${s.order.radar}); gauges ${s.order.gauge < 0 ? "not loaded" : "layer " + s.order.gauge}`, s.paint.opacity === 0.7 && s.paint.resampling === "nearest" && s.order.linesAbove && s.order.warningsAbove && s.order.gaugeAbove, { s });
-    check(`(desktop) legend: ${s.legend.items.join(" / ")}; note '${s.legend.note.slice(0, 110)}'`, s.legend.ptype && s.legend.items.length === 8 && s.legend.items.includes("Snow") && s.legend.items.includes("No radar coverage") && /no separate sleet or freezing-rain/.test(s.legend.note) && !s.legend.fallback, { legend: s.legend });
+    check(`(desktop) legend: rain bar (Reflectivity 2026) ${s.legend.rainBar}, snow bar ${s.legend.snowBar}; ${s.legend.items.join(" / ")}; note '${s.legend.note.slice(0, 150)}'`, s.legend.ptype && s.legend.rainBar === 14 && s.legend.snowBar === 14 && s.legend.items.includes("No radar coverage") && !s.legend.items.some((x) => /stratiform|convective|tropical/i.test(x)) && /no sleet, freezing-rain or mixed category/.test(s.legend.note) && !s.legend.fallback, { legend: s.legend });
     await p.screenshot({ path: path.join(OUT, "live-desktop-ptype-cvg.png") });
     await p.evaluate(() => window.__threats.map.jumpTo({ center: [-74.2, 43.6], zoom: 6.3 })); await p.waitForTimeout(4000); await p.screenshot({ path: path.join(OUT, "live-desktop-ptype-northeast-rain-snow.png") });
     await layersShot(p, "live-desktop-ptype-layers.png");
@@ -134,10 +142,10 @@ const ptRoute = (gz, scanIso) => async (p) => {
     const scans = [{ scan: s.pt && s.pt.scan, bytes: s.pt && s.pt.bytes, downloadMs: s.pt && s.pt.downloadMs, decodeMs: s.pt && s.pt.decodeMs }];
     if (w === "390") { const t0 = Date.now(); while (Date.now() - t0 < MIN * 60e3) { await p.waitForTimeout(20e3); await p.evaluate(() => window.__threats.map.panBy([30, 0], { duration: 0 }));
       const x = await read(p); if (x.pt && x.pt.scan !== scans[scans.length - 1].scan) scans.push({ scan: x.pt.scan, bytes: x.pt.bytes, downloadMs: x.pt.downloadMs, decodeMs: x.pt.decodeMs }); } }
-    const last = await read(p), gets = reqs.filter((r) => /precipflag\/latest$/.test(r.url)), times = reqs.filter((r) => /precipflag\/time$/.test(r.url)), lcref = reqs.filter((r) => /lcref\.png$/.test(r.url));
+    const last = await read(p), gets = reqs.filter((r) => /precipflag\/at\//.test(r.url)), times = reqs.filter((r) => /lcref\.json$/.test(r.url)), lcref = reqs.filter((r) => /lcref\.png$/.test(r.url));
     console.log(`phone ${w}:`, JSON.stringify(scans.map((x) => ({ scan: x.scan && new Date(x.scan).toISOString().slice(11, 16) + "Z", KB: x.bytes && Math.round(x.bytes / 1024), downloadMs: x.downloadMs, decodeMs: x.decodeMs }))));
-    check(`(${w} px, 4x slower CPU, ~8 Mbps / 150 ms) precipitation type via ${s.via}: ${scans.length} scan(s), ${gets.length} file download(s) of ${gets.map((r) => Math.round((r.bytes || 0) / 1024) + " KB").join(", ")}, scan time read ${times.length} times; download ${scans.map((x) => x.downloadMs + " ms").join(", ")}; decode ${scans.map((x) => x.decodeMs + " ms").join(", ")}; tiles median ${Math.round(last.pt.tileMed)} ms, max ${Math.round(last.pt.tileMax)} ms (${last.pt.tiles}); reflectivity images ${lcref.length}`,
-      s.via === "ptype" && gets.length === scans.length && last.pt.loads === scans.length && (w !== "390" || scans.length >= 2) && lcref.length === 0 && !errs.length, { scans, last: last.pt, errs, gets });
+    check(`(${w} px, 4x slower CPU, ~8 Mbps / 150 ms) precipitation type via ${s.via}: ${scans.length} scan(s), ${lcref.length} reflectivity image(s) and ${gets.length} same-minute type file(s) (${gets.map((r) => Math.round((r.bytes || 0) / 1024) + " KB").join(", ")}), scan time read ${times.length} times; download ${scans.map((x) => x.downloadMs + " ms").join(", ")}; decode ${scans.map((x) => x.decodeMs + " ms").join(", ")}; tiles median ${Math.round(last.pt.tileMed)} ms, max ${Math.round(last.pt.tileMax)} ms (${last.pt.tiles})`,
+      s.via === "ptype" && gets.length === scans.length && last.pt.loads === scans.length && (w !== "390" || scans.length >= 2) && lcref.length === scans.length && !errs.length, { scans, last: last.pt, errs, gets });
     await pickMode(p, "refl"); await p.screenshot({ path: path.join(OUT, `live-${w}-refl-northeast.png`) }); await layersShot(p, `live-${w}-refl-layers.png`);
     const r = await read(p); check(`(${w} px) Reflectivity: via ${r.via}, legend Reflectivity 2026 ${r.legend.refl}, opacity ${r.paint.opacity}; lines and warnings above radar`, r.via === "iem" && r.legend.refl && r.paint.opacity === 0.7 && r.order.linesAbove && r.order.warningsAbove, { r });
     info["phone" + w] = { scans, last: last.pt }; await ctx.close(); }
@@ -150,15 +158,15 @@ const ptRoute = (gz, scanIso) => async (p) => {
       s.mode === "ptype" && s.ptFallback && s.via === "iem" && s.legend.fallback === "Precipitation type unavailable · showing reflectivity" && s.legend.refl && !s.legend.ptype && /^Reflectivity: MRMS via Iowa Environmental Mesonet \(precipitation type unavailable\)/.test(s.credit) && /^Precipitation type unavailable · showing reflectivity · MRMS lowest-elevation reflectivity, scan/.test(s.note) && /Precipitation type unavailable · showing reflectivity · MRMS reflectivity/.test(s.row) && reflIso === s.valid && s.reflLegendScan && !errs.length, { s, errs });
     await ctx.close(); }
   const W = await winterFiles();
-  if (!ONLY) { const old = W.scan - 30 * 60e3, gz = zlib.gzipSync(PFB.replacePixels(zlib.gunzipSync(W.pf), RD && (await RD.decodeIndexedPng(RD.parsePrecipFlag(new Uint8Array(zlib.gunzipSync(W.pf))).png, inflate)).indices, old));
-    const { ctx, p, errs } = await open(b, DESKTOP, { route: ptRoute(gz, new Date(old).toISOString()) }); const s = await read(p); await p.screenshot({ path: path.join(OUT, "fallback-desktop-stale.png") });
-    check(`(desktop) precipitation-type scan 30 min old: legend '${s.legend.fallback}', reflectivity shown (${s.via}), reason '${s.ptError}'`, s.ptFallback && s.via === "iem" && s.legend.fallback === "Precipitation type unavailable · showing reflectivity" && s.legend.refl && /min old/.test(s.ptError || "") && !errs.length, { s, errs });
+  if (!ONLY) { const { ctx, p, errs } = await open(b, DESKTOP, { route: (p) => p.route(/\/api\/mrms\/precipflag\/at\//, (r) => r.fulfill({ status: 404, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: '{"error":"MRMS has no precipitation-type scan for this minute"}' })) });
+    const s = await read(p); await p.screenshot({ path: path.join(OUT, "fallback-desktop-unaligned.png") });
+    check(`(desktop) no precipitation-type scan for the radar's minute: legend '${s.legend.fallback}', reflectivity shown (${s.via}), reason '${s.ptError}'`, s.ptFallback && s.via === "iem" && s.legend.fallback === "Precipitation type unavailable · showing reflectivity" && s.legend.refl && /no precipitation-type scan for the radar scan/.test(s.ptError || "") && !errs.length, { s, errs });
     await ctx.close(); }
 
   /* ---- recovery: the forwarder fails for the first 3 minutes, then a fresh scan arrives; saved opacity 40% throughout ---- */
   if (!ONLY) { let failUntil = 0; const route = async (p) => { failUntil = Date.now() + 150e3;
-      await p.route(/\/api\/mrms\/precipflag\/time/, (r) => Date.now() < failUntil ? r.fulfill({ status: 502, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: '{"error":"MRMS did not answer in time"}' }) : r.fulfill({ status: 200, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: JSON.stringify({ product: "PrecipFlag", scan: new Date(W.scan).toISOString(), fetchedAt: new Date().toISOString(), bytes: W.pf.length }) }));
-      await p.route(/\/api\/mrms\/precipflag\/latest/, (r) => Date.now() < failUntil ? r.fulfill({ status: 502, body: "{}" }) : r.fulfill({ status: 200, headers: { "content-type": "application/gzip", "access-control-allow-origin": "*" }, body: Buffer.from(W.pf) })); };
+      await p.route(/\/api\/mrms\/precipflag\/at\//, async (r) => { if (Date.now() < failUntil) return r.fulfill({ status: 502, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: '{"error":"MRMS did not answer in time"}' });
+        const st = /at\/(\d{8}-\d{4})/.exec(r.request().url())[1]; r.fulfill({ status: 200, headers: { "content-type": "application/gzip", "access-control-allow-origin": "*" }, body: await pfFor(st) }); }); };
     const { ctx, p, errs } = await open(b, PHONES["390"], { op: "0.4", route, query: "&testreplay=radar-ptype-recovery" }); const a = await read(p); await p.screenshot({ path: path.join(OUT, "recovery-390-1-fallback.png") });
     await p.waitForFunction(() => window.__threats.radar.via === "ptype", null, { timeout: 240000 }).catch(() => {}); await p.waitForTimeout(3000);
     const z = await read(p); await p.evaluate(() => window.__threats.map.jumpTo({ center: [-84.7, 39.1], zoom: 6.6 })); await p.waitForTimeout(3000); await p.screenshot({ path: path.join(OUT, "recovery-390-2-ptype-back.png") });
@@ -176,7 +184,10 @@ const ptRoute = (gz, scanIso) => async (p) => {
 
   /* ---- winter replay at CVG, both modes, desktop, 360 and 390, dark and light ---- */
   const probes = [[-84.6, 38.3, 1], [-84.6, W.edge(-84.6) - 0.25, 10], [-84.6, 40.2, 3], [-86.5, 37.8, 6], [-83.0, 40.5, 3]];
-  const colour = Object.fromEntries(RD.PTYPE.map((c) => [c[0], c[2]]));
+  /* what the replay painted: convective rain 32 dBZ, warm rain 25, cool rain 20, snow 15-25 (checker by pixel) */
+  const dbzOf = { 6: 32, 1: 25, 10: 20 }, snowLut = RD.snowPalette(new Uint8Array(256).fill(255)), snowAt = (d) => { const k = Math.round((d + 32) * 2) * 4; return [snowLut[k], snowLut[k + 1], snowLut[k + 2], snowLut[k + 3]]; };
+  const want = (c) => c === 3 ? [snowAt(15), snowAt(20), snowAt(25)] : [(({ r, g, b, a }) => [r, g, b, a])(RD.dbzToRgba(dbzOf[c]))];
+  const near = (x, y) => x.every((v, k) => Math.abs(v - y[k]) <= 2);
   const replayRoute = async (p) => { await ptRoute(W.pf, new Date(W.scan).toISOString())(p);
     await p.route(/mrms\/lcref\.png/, (r) => r.fulfill({ status: 200, headers: { "content-type": "image/png", "access-control-allow-origin": "*" }, body: W.lcref.png }));
     await p.route(/mrms\/lcref\.json/, (r) => r.fulfill({ status: 200, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: W.lcref.json }));
@@ -185,7 +196,7 @@ const ptRoute = (gz, scanIso) => async (p) => {
     const { ctx, p, errs } = await open(b, opt, { theme, route: replayRoute, query: "&testreplay=radar-winter-rain-to-snow" });
     await p.evaluate(() => window.__threats.map.jumpTo({ center: [-84.7, 39.1], zoom: 6.6 })); await p.waitForTimeout(4000);
     const s = await read(p), got = []; for (const [lon, lat, c] of probes) got.push({ lon, lat, want: c, rgba: await pixel(p, lon, lat) });
-    const okPx = got.every((g) => g.rgba.slice(0, 3).join() === colour[g.want].join() && g.rgba[3] === RD.PTYPE_ALPHA);
+    const okPx = got.every((g) => want(g.want).some((w) => near(g.rgba, w)));
     const uk = []; for (const [lon, lat] of [[-86.6, 40.55], [-86.55, 40.5], [-86.45, 40.6], [-86.4, 40.45]]) uk.push((await pixel(p, lon, lat, 9)).join());
     const ukOk = uk.every((c) => [RD.UNKNOWN[0].join(), RD.UNKNOWN[1].join()].includes(c)) && new Set(uk).size === 2;
     /* no coverage: the stripes over the Gulf, in this theme; contrast against the basemap's water at the layer's opacity */
@@ -198,8 +209,8 @@ const ptRoute = (gz, scanIso) => async (p) => {
     const near = (c, want) => { const v = c.split(",").map(Number); return v.every((x, k) => Math.abs(x - want[k]) <= 2); }; // PNG round trip: ±1
     const ncOk = nc.some((c) => near(c, stripe)) && nc.some((c) => c === "0,0,0,0");
     await p.screenshot({ path: path.join(OUT, `winter-${dev}-${theme}-ptype.png`) }); if (dev !== "desktop" || theme === "dark") await layersShot(p, `winter-${dev}-${theme}-ptype-layers.png`);
-    check(`(${dev}, ${theme}) ${s.badge}: winter replay in precipitation type; probes ${got.map((g) => g.want + "→" + (g.rgba.slice(0, 3).join() === colour[g.want].join() ? "ok" : g.rgba.join())).join(", ")}; legend ${s.legend.items.length} entries; lines and warnings above radar`,
-      s.badge === "TEST REPLAY" && s.via === "ptype" && okPx && s.legend.ptype && s.order.linesAbove && s.order.warningsAbove && !errs.length, { got, s, errs });
+    check(`(${dev}, ${theme}) ${s.badge}: winter replay in precipitation type; probes ${got.map((g) => (g.want === 3 ? "snow" : "rain " + dbzOf[g.want] + " dBZ") + "→" + (want(g.want).some((w) => near(g.rgba, w)) ? "ok" : g.rgba.join())).join(", ")}; rain and snow bars in the legend; lines and warnings above radar`,
+      s.badge === "TEST REPLAY" && s.via === "ptype" && okPx && s.legend.ptype && s.legend.rainBar === 14 && s.legend.snowBar === 14 && s.order.linesAbove && s.order.warningsAbove && !errs.length, { got, s, errs });
     check(`(${dev}, ${theme}) unknown code 50: drawn as the dark/light checker (${[...new Set(uk)].join(" | ")}), legend '${s.unknownLegend}'`, ukOk && /Code not in NOAA's table \(50\)/.test(s.unknownLegend || ""), { uk, s: s.legend });
     check(`(${dev}, ${theme}) no-coverage stripes ${stripe.slice(0, 3).join()} over the Gulf; on the basemap water ${water} at ${Math.round(s.paint.opacity * 100)}% the stripe/water contrast is ${ratio && ratio.toFixed(2)}:1`, ncOk && ratio >= 2.5, { nc, water, ratio });
     await pickMode(p, "refl"); await p.evaluate(() => window.__threats.map.jumpTo({ center: [-84.7, 39.1], zoom: 6.6 })); await p.waitForTimeout(3500);

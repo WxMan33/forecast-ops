@@ -89,25 +89,59 @@
     }
     return rgba;
   }
-  /* ---------- precipitation type: MRMS PrecipFlag (NOAA/NSSL), a numeric category per 1 km pixel ----------
-     Codes as NOAA documents them get category colours (ours). 0 (no precipitation) is transparent; -3 (no radar coverage) is a
-     striped hatch, so "outside coverage" never looks like "dry"; any other code gets a dark-and-light checker and its own legend
-     line, so it can't look like "no precipitation" or a category. The product has no sleet or freezing-rain category. */
-  const PTYPE = [
-    [1, "Warm stratiform rain", [35, 190, 75]], [10, "Cool stratiform rain", [0, 150, 140]], [6, "Convective rain", [245, 200, 20]],
-    [7, "Rain with hail", [225, 30, 150]], [3, "Snow", [60, 140, 255]], [91, "Tropical/stratiform rain mix", [150, 215, 40]], [96, "Tropical/convective rain mix", [255, 130, 30]]];
-  const PTYPE_ALPHA = 235, NO_PRECIP = 0, NO_COVERAGE = -3;
+  /* ---------- precipitation type: Predictable's radar with winter colours ----------
+     Intensity comes from the same measured reflectivity as Reflectivity mode (IEM lcref); the type comes from NOAA/NSSL MRMS
+     PrecipFlag for the same scan minute, on the same 0.01-degree grid. Each pixel:
+       - PrecipFlag -3 (no radar coverage): grey stripes, so outside coverage never looks dry;
+       - below 5 dBZ: transparent, as in Reflectivity;
+       - PrecipFlag 3 (snow): a blue intensity ramp (SNOW_STOPS);
+       - every rain class NOAA documents (1, 6, 7, 10, 91, 96) and 0: Predictable's Reflectivity 2026 colours, exactly;
+       - any code NOAA doesn't document: a dark-and-light checker with its own legend line.
+     PrecipFlag has no sleet, freezing-rain or mixed class, so none is drawn as an area; those come from ground reports. */
+  const PTYPE = [[1, "Warm stratiform rain", "rain"], [10, "Cool stratiform rain", "rain"], [6, "Convective rain", "rain"], [7, "Rain with hail", "rain"],
+    [91, "Tropical/stratiform rain mix", "rain"], [96, "Tropical/convective rain mix", "rain"], [3, "Snow", "snow"]];
+  const NO_PRECIP = 0, NO_COVERAGE = -3;
+  /* snow: light to deep blue with intensity (lower bound in dBZ, colour, alpha), below 5 dBZ transparent like rain */
+  const SNOW_STOPS = [[5, [205, 230, 255], 170], [10, [160, 205, 255], 200], [15, [115, 175, 250], 220], [20, [75, 140, 240], 235],
+    [25, [45, 105, 225], 245], [30, [30, 75, 200], 255], [35, [25, 50, 165], 255], [40, [40, 30, 130], 255]];
   /* no-coverage stripes per theme (light grey on the dark basemap, dark grey on the light one); unknown-code checker tones */
   const HATCH = { dark: [215, 215, 215, 170], light: [20, 20, 20, 200] }, UNKNOWN = [[25, 25, 25, 235], [250, 250, 250, 235]];
   const PTYPE_URL = "https://mrms.ncep.noaa.gov/2D/PrecipFlag/MRMS_PrecipFlag.latest.grib2.gz";
   /* GRIB2 simple scaling: value = (R + X * 2^E) / 10^D */
   const gribValue = (x, p) => Math.round((p.R + x * 2 ** p.E) / 10 ** p.D);
-  function ptypePalette(p, theme = "dark") {
-    const lut = new Uint8Array(256 * 4), pat = { kind: new Uint8Array(256), hatch: HATCH[theme === "light" ? "light" : "dark"], ua: UNKNOWN[0], ub: UNKNOWN[1] }, byCode = new Map(PTYPE.map((c) => [c[0], c[2]]));
-    for (let i = 0; i < 256; i++) { const v = gribValue(i, p); if (v === NO_PRECIP) continue; if (v === NO_COVERAGE) { pat.kind[i] = 1; continue; } const c = byCode.get(v); if (!c) { pat.kind[i] = 2; continue; }
-      lut[i * 4] = c[0]; lut[i * 4 + 1] = c[1]; lut[i * 4 + 2] = c[2]; lut[i * 4 + 3] = PTYPE_ALPHA; }
-    return { lut, pat };
+  const CLS_REFL = 0, CLS_NOCOV = 1, CLS_UNKNOWN = 2, CLS_SNOW = 3;
+  /* PrecipFlag byte -> how the pixel is coloured */
+  function ptypeClasses(p) {
+    const cls = new Uint8Array(256), known = new Map(PTYPE.map((c) => [c[0], c[2]]));
+    for (let i = 0; i < 256; i++) { const v = gribValue(i, p); cls[i] = v === NO_COVERAGE ? CLS_NOCOV : v === NO_PRECIP ? CLS_REFL : known.get(v) === "snow" ? CLS_SNOW : known.has(v) ? CLS_REFL : CLS_UNKNOWN; }
+    return cls;
   }
+  /* reflectivity index -> snow RGBA, honouring the source's transparency as palette() does */
+  function snowPalette(alpha, threshold = THRESHOLD) {
+    const lut = new Uint8Array(256 * 4);
+    for (let i = 0; i < 256; i++) { const dbz = indexDbz(i); if (dbz < threshold || !alpha[i]) continue; let c = null; for (const s of SNOW_STOPS) { if (dbz >= s[0]) c = s; else break; } if (!c) continue;
+      lut[i * 4] = c[1][0]; lut[i * 4 + 1] = c[1][1]; lut[i * 4 + 2] = c[1][2]; lut[i * 4 + 3] = Math.round(c[2] * alpha[i] / 255); }
+    return lut;
+  }
+  /* one 256 px tile from reflectivity (ref, with its Reflectivity 2026 lut and snow lut) and PrecipFlag (pf, with its classes),
+     both on the same grid, nearest-neighbour; where PrecipFlag says rain the pixel is exactly renderTile's */
+  function renderPtypeTile(ref, lut, snow, pf, cls, z, x, y, size = 256, pat = null) {
+    const rgba = new Uint8ClampedArray(size * size * 4), n = 2 ** z, cols = new Int32Array(size);
+    for (let px = 0; px < size; px++) { const lon = (x + (px + 0.5) / size) / n * 360 - 180; cols[px] = Math.round((lon - ref.firstLon) / ref.dx); }
+    for (let py = 0; py < size; py++) {
+      const lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + (py + 0.5) / size) / n))) * 180 / Math.PI, row = Math.round((lat - ref.firstLat) / ref.dy);
+      if (row < 0 || row >= ref.height) continue;
+      for (let px = 0; px < size; px++) { const col = cols[px]; if (col < 0 || col >= ref.width) continue;
+        const i = row * ref.width + col, c = cls[pf.indices[i]], d = (py * size + px) * 4;
+        if (c === CLS_NOCOV) { if (pat && ((x * size + px) + (y * size + py)) % 9 < 2) { rgba[d] = pat.hatch[0]; rgba[d + 1] = pat.hatch[1]; rgba[d + 2] = pat.hatch[2]; rgba[d + 3] = pat.hatch[3]; } continue; }
+        const k = ref.indices[i] * 4; if (!lut[k + 3]) continue; // below 5 dBZ: nothing, whatever the type
+        if (c === CLS_UNKNOWN) { const u = (((x * size + px) >> 1) + ((y * size + py) >> 1)) & 1 ? UNKNOWN[0] : UNKNOWN[1]; rgba[d] = u[0]; rgba[d + 1] = u[1]; rgba[d + 2] = u[2]; rgba[d + 3] = u[3]; continue; }
+        const L = c === CLS_SNOW ? snow : lut; rgba[d] = L[k]; rgba[d + 1] = L[k + 1]; rgba[d + 2] = L[k + 2]; rgba[d + 3] = L[k + 3]; }
+    }
+    return rgba;
+  }
+  /* PrecipFlag file name stamp for a scan time: YYYYMMDD-HHMM (UTC) */
+  const pfStamp = (t) => { const d = new Date(t), p = (v) => String(v).padStart(2, "0"); return d.getUTCFullYear() + p(d.getUTCMonth() + 1) + p(d.getUTCDate()) + "-" + p(d.getUTCHours()) + p(d.getUTCMinutes()); };
   /* one PrecipFlag GRIB2 message -> scan time, scaling, the embedded PNG and its georeferencing; anything else is refused */
   function parsePrecipFlag(g) {
     const dv = new DataView(g.buffer, g.byteOffset, g.byteLength), s32 = (o) => { const v = dv.getUint32(o); return v & 0x80000000 ? -(v & 0x7fffffff) : v; }, s16 = (o) => { const v = dv.getUint16(o); return v & 0x8000 ? -(v & 0x7fff) : v; };
@@ -127,7 +161,8 @@
     const scan = Date.UTC(dv.getUint16(s1 + 12), g[s1 + 14] - 1, g[s1 + 15], g[s1 + 16], g[s1 + 17], g[s1 + 18]);
     return { scan, width: w, height: h, scaling, png: g.subarray(s7 + 5, s7 + dv.getUint32(s7)), world: { dx: di, dy: -dj, firstLon: lo1 > 180 ? lo1 - 360 : lo1, firstLat: la1 } };
   }
-  const ptypeLegend = () => PTYPE.map(([code, label, c]) => ({ code, label, rgba: `rgba(${c[0]},${c[1]},${c[2]},${(PTYPE_ALPHA / 255).toFixed(3)})` }));
+  /* the snow ramp on the same dBZ bands as the rain legend, so the two bars line up */
+  const snowLegend = () => STOPS.map(([v]) => { let c = SNOW_STOPS[0]; for (const s of SNOW_STOPS) if (v >= s[0]) c = s; return { dbz: v, rgba: `rgba(${c[1][0]},${c[1][1]},${c[1][2]},${(c[2] / 255).toFixed(3)})` }; });
   const legend = () => STOPS.map(([v, c, a]) => ({ dbz: v, rgba: `rgba(${c[0]},${c[1]},${c[2]},${(a / 255).toFixed(3)})` }));
 
   /* ---------- in the browser: a worker holds the grid and draws tiles; the page asks for tiles through the lcref:// protocol ---------- */
@@ -147,52 +182,67 @@
         } catch (err) { postMessage({ id: m.id, ok: false, error: String(err && err.message || err) }); }
       };`;
   }
-  /* the precipitation-type worker: gunzip the GRIB2 file, check it, decode its PNG, draw tiles with the category colours */
+  /* the precipitation-type worker: holds the reflectivity grid and the PrecipFlag grid of the same minute, draws combined tiles */
   function ptypeWorkerSource() {
     return `"use strict";
-      const PTYPE = ${JSON.stringify(PTYPE)}, PTYPE_ALPHA = ${PTYPE_ALPHA}, NO_PRECIP = ${NO_PRECIP}, NO_COVERAGE = ${NO_COVERAGE}, HATCH = ${JSON.stringify(HATCH)}, UNKNOWN = ${JSON.stringify(UNKNOWN)};
+      const indexDbz = ${indexDbz.toString()}; const STOPS = ${JSON.stringify(STOPS)}, SNOW_STOPS = ${JSON.stringify(SNOW_STOPS)}, THRESHOLD = ${THRESHOLD};
+      const PTYPE = ${JSON.stringify(PTYPE)}, NO_PRECIP = ${NO_PRECIP}, NO_COVERAGE = ${NO_COVERAGE}, HATCH = ${JSON.stringify(HATCH)}, UNKNOWN = ${JSON.stringify(UNKNOWN)};
+      const CLS_REFL = ${CLS_REFL}, CLS_NOCOV = ${CLS_NOCOV}, CLS_UNKNOWN = ${CLS_UNKNOWN}, CLS_SNOW = ${CLS_SNOW};
       const gribValue = ${gribValue.toString()};
-      ${ptypePalette.toString()} ${parsePrecipFlag.toString()} ${decodeIndexedPng.toString()} ${renderTile.toString()}
+      ${dbzToRgba.toString()} ${palette.toString()} ${snowPalette.toString()} ${ptypeClasses.toString()} ${parsePrecipFlag.toString()} ${decodeIndexedPng.toString()} ${renderPtypeTile.toString()}
       const unz = (kind) => async (z) => new Uint8Array(await new Response(new Blob([z]).stream().pipeThrough(new DecompressionStream(kind))).arrayBuffer());
-      let grid = null, pal = null, scaling = null, theme = "dark";
+      let ref = null, lut = null, snow = null, pf = null, cls = null, theme = "dark";
+      const pat = () => ({ hatch: HATCH[theme === "light" ? "light" : "dark"] });
       onmessage = async (e) => { const m = e.data;
         try {
-          if (m.type === "theme") { theme = m.theme; if (scaling) pal = ptypePalette(scaling, theme); postMessage({ id: m.id, ok: true }); }
-          else if (m.type === "load") { if (m.theme) theme = m.theme; const t0 = performance.now(); const f = parsePrecipFlag(await unz("gzip")(new Uint8Array(m.gz))); const g = await decodeIndexedPng(f.png, unz("deflate"));
-            if (g.width !== f.width || g.height !== f.height) throw Error("PrecipFlag image size does not match its grid");
-            grid = Object.assign(g, f.world); scaling = f.scaling; pal = ptypePalette(f.scaling, theme);
-            const counts = {}; for (let i = 0; i < 256; i++) counts[i] = 0; for (const v of g.indices) counts[v]++;
+          if (m.type === "theme") { theme = m.theme; postMessage({ id: m.id, ok: true }); }
+          else if (m.type === "load") { if (m.theme) theme = m.theme; const t0 = performance.now();
+            const g = await decodeIndexedPng(new Uint8Array(m.png), unz("deflate")), f = parsePrecipFlag(await unz("gzip")(new Uint8Array(m.gz))), q = await decodeIndexedPng(f.png, unz("deflate"));
+            const w = m.world, near = (a, b) => Math.abs(a - b) < 1e-6;
+            if (g.width !== q.width || g.height !== q.height || !near(w.dx, f.world.dx) || !near(w.dy, f.world.dy) || !near(w.firstLon, f.world.firstLon) || !near(w.firstLat, f.world.firstLat)) throw Error("the reflectivity and precipitation-type grids don't match");
+            ref = Object.assign(g, w); lut = palette(g.alpha, THRESHOLD); snow = snowPalette(g.alpha, THRESHOLD); pf = q; cls = ptypeClasses(f.scaling);
+            const counts = new Uint32Array(256); for (const v of q.indices) counts[v]++;
             const codes = {}; for (let i = 0; i < 256; i++) if (counts[i]) codes[gribValue(i, f.scaling)] = counts[i];
-            postMessage({ id: m.id, ok: true, scan: f.scan, decodeMs: Math.round(performance.now() - t0), width: g.width, height: g.height, codes }); }
-          else if (m.type === "tile") { if (!grid) throw Error("no precipitation-type grid yet"); const t0 = performance.now(); const rgba = renderTile(grid, pal.lut, m.z, m.x, m.y, 256, pal.pat);
+            postMessage({ id: m.id, ok: true, pfScan: f.scan, decodeMs: Math.round(performance.now() - t0), width: g.width, height: g.height, codes }); }
+          else if (m.type === "tile") { if (!ref) throw Error("no radar grid yet"); const t0 = performance.now(); const rgba = renderPtypeTile(ref, lut, snow, pf, cls, m.z, m.x, m.y, 256, pat());
             const c = new OffscreenCanvas(256, 256); c.getContext("2d").putImageData(new ImageData(rgba, 256, 256), 0, 0);
             const buf = await (await c.convertToBlob({ type: "image/png" })).arrayBuffer(); postMessage({ id: m.id, ok: true, png: buf, ms: performance.now() - t0 }, [buf]); }
         } catch (err) { postMessage({ id: m.id, ok: false, error: String(err && err.message || err) }); }
       };`;
   }
-  /* precipitation type through our same-origin forwarder (functions/api/mrms): the scan time every 60 s (about 100 bytes), the
-     grid (about 230 KB) only for a new scan. base: ".../api/mrms" */
+  /* precipitation type: IEM's reflectivity scan (as Reflectivity mode reads it), then the PrecipFlag file of that same minute
+     through our forwarder (base ".../api/mrms"). If NOAA has no PrecipFlag for that minute, refresh() fails with
+     unaligned: true and the page shows the labelled reflectivity fallback. */
   function createPtypeClient(opts = {}) {
     const base = String(opts.base || "").replace(/\/$/, "");
     const fetchFn = opts.fetch || ((u) => fetch(u, { cache: "no-store", signal: typeof AbortSignal !== "undefined" && AbortSignal.timeout ? AbortSignal.timeout(opts.timeoutMs || 15000) : undefined }));
-    const state = { scan: null, checkedAt: null, error: null, bytes: null, downloadMs: null, decodeMs: null, size: null, codes: null, unknown: [], tileMs: [], loads: 0, theme: opts.theme === "light" ? "light" : "dark" };
+    const state = { scan: null, pfScan: null, checkedAt: null, error: null, unaligned: false, bytes: null, pfBytes: null, downloadMs: null, decodeMs: null, size: null, codes: null, unknown: [], tileMs: [], loads: 0, turnovers: 0, theme: opts.theme === "light" ? "light" : "dark" };
     let worker = null, seq = 0, pending = new Map(), loading = null;
     const call = (msg, transfer) => new Promise((res, rej) => { const id = ++seq; pending.set(id, { res, rej }); worker.postMessage({ ...msg, id }, transfer || []); });
     function ensureWorker() { if (worker) return; const url = URL.createObjectURL(new Blob([ptypeWorkerSource()], { type: "text/javascript" })); worker = new Worker(url);
       worker.onmessage = (e) => { const p = pending.get(e.data.id); if (!p) return; pending.delete(e.data.id); e.data.ok ? p.res(e.data) : p.rej(Error(e.data.error)); }; }
+    const get = async (ext) => { const r = await fetchFn(BASE + "." + ext); if (!r.ok) throw Error("IEM MRMS " + ext + " HTTP " + r.status); return r; };
     async function refresh() {
       if (!base) throw Error("no MRMS forwarder on this host");
       if (loading) return loading;
       loading = (async () => {
-        const r = await fetchFn(base + "/precipflag/time"); if (!r.ok) throw Error("MRMS precipitation type HTTP " + r.status);
-        const j = await r.json(), listed = Date.parse(j && j.scan); if (!j || j.product !== "PrecipFlag" || !Number.isFinite(listed)) throw Error("unexpected MRMS precipitation-type answer");
-        state.checkedAt = Date.now(); if (state.scan === listed) return false;
-        const t0 = performance.now(), g = await fetchFn(base + "/precipflag/latest"); if (!g.ok) throw Error("MRMS precipitation type HTTP " + g.status);
-        const gz = await g.arrayBuffer(); state.downloadMs = Math.round(performance.now() - t0); state.bytes = gz.byteLength;
-        ensureWorker(); const d = await call({ type: "load", gz, theme: state.theme }, [gz]);
+        let scan = parseMeta(await (await get("json")).json()), png, wld, t0; state.checkedAt = Date.now();
+        if (state.scan === scan && !state.unaligned) return false;
+        for (let attempt = 0; ; attempt++) { // a new IEM scan published mid-download is fetched straight away (as in Reflectivity)
+          t0 = performance.now(); [png, wld] = await Promise.all([get("png").then((r) => r.arrayBuffer()), get("wld").then((r) => r.text())]);
+          const after = parseMeta(await (await get("json")).json()); if (after === scan) break;
+          if (attempt >= 2) throw Error("the MRMS scan kept changing during download; next refresh will retry");
+          scan = after; state.turnovers++;
+        }
+        const r = await fetchFn(base + "/precipflag/at/" + pfStamp(scan));
+        if (r.status === 404) { state.unaligned = true; const e = Error("no precipitation-type scan for the radar scan of " + new Date(scan).toISOString().slice(11, 16) + " UTC yet"); e.unaligned = true; throw e; }
+        if (!r.ok) throw Error("MRMS precipitation type HTTP " + r.status);
+        const gz = await r.arrayBuffer(); state.downloadMs = Math.round(performance.now() - t0); state.bytes = png.byteLength; state.pfBytes = gz.byteLength;
+        ensureWorker(); const d = await call({ type: "load", png, world: parseWorldFile(wld), gz, theme: state.theme }, [png, gz]);
+        if (d.pfScan !== scan) { state.unaligned = true; throw Error("precipitation-type scan " + new Date(d.pfScan).toISOString() + " doesn't match the radar scan " + new Date(scan).toISOString()); }
         const known = new Set([0, -3, ...PTYPE.map((c) => c[0])]);
-        Object.assign(state, { scan: d.scan, decodeMs: d.decodeMs, size: d.width + "x" + d.height, codes: d.codes, unknown: Object.keys(d.codes).map(Number).filter((c) => !known.has(c)), error: null }); state.loads++;
-        return true; // the scan time is the one inside the file, so a turnover between /time and /latest is never mislabelled
+        Object.assign(state, { scan, pfScan: d.pfScan, unaligned: false, decodeMs: d.decodeMs, size: d.width + "x" + d.height, codes: d.codes, unknown: Object.keys(d.codes).map(Number).filter((c) => !known.has(c)), error: null }); state.loads++;
+        return true;
       })().catch((e) => { state.error = e.message; throw e; }).finally(() => { loading = null; });
       return loading;
     }
@@ -246,5 +296,5 @@
     return { state, refresh, tile, dispose, tileUrl: () => "lcref://{z}/{x}/{y}?t=" + state.scan };
   }
   return { BASE, STOPS, THRESHOLD, OPACITY, dbzToRgba, indexDbz, palette, parseWorldFile, parseMeta, decodeIndexedPng, renderTile, legend, createClient,
-    PTYPE, PTYPE_ALPHA, NO_PRECIP, NO_COVERAGE, HATCH, UNKNOWN, PTYPE_URL, gribValue, ptypePalette, parsePrecipFlag, ptypeLegend, createPtypeClient };
+    PTYPE, NO_PRECIP, NO_COVERAGE, SNOW_STOPS, HATCH, UNKNOWN, PTYPE_URL, gribValue, ptypeClasses, snowPalette, renderPtypeTile, pfStamp, parsePrecipFlag, snowLegend, createPtypeClient };
 });

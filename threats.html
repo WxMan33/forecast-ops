@@ -28,7 +28,7 @@
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
 <link rel="stylesheet" href="assets/ops.css?v=023da63cd4">
-<link rel="stylesheet" href="assets/threats.css?v=ef96226f87">
+<link rel="stylesheet" href="assets/threats.css?v=648b8ec6de">
 </head>
 <body class="threats-page">
 <main class="tx" id="tx">
@@ -130,7 +130,7 @@
               <label class="tx-lt"><input type="checkbox" data-pin><span class="tx-ltn">Venue marker</span><span class="tx-ltnote">the venue's pin, label and 15-mile ring; off for just the map</span></label>
             </fieldset>
             <fieldset class="tx-lyrfs"><legend>Under the hazards</legend>
-              <label class="tx-lt"><input type="checkbox" data-radar><span class="tx-ltn">Radar</span><span class="tx-ltnote" id="txRadarNote">MRMS precipitation type (NOAA PrecipFlag) · new scan about every 2 minutes · about 0.23 MB per scan while on</span></label>
+              <label class="tx-lt"><input type="checkbox" data-radar><span class="tx-ltn">Radar</span><span class="tx-ltnote" id="txRadarNote">MRMS reflectivity with NOAA precipitation type · new scan about every 2 minutes · about 1.4 MB per scan while on</span></label>
               <div class="tx-lt tx-sub tx-radmode" id="txRadarMode" role="radiogroup" aria-label="Radar shows"><span class="tx-ltn">Show</span><span class="tx-seg"><label><input type="radio" name="txRadarMode" value="ptype" data-radar-mode checked><span>Precipitation type</span></label><label><input type="radio" name="txRadarMode" value="refl" data-radar-mode><span>Reflectivity</span></label></span></div>
               <label class="tx-lt tx-sub tx-radop" id="txRadarOp"><span class="tx-ltn">Radar opacity</span><input type="range" min="20" max="100" step="5" value="70" data-radar-op aria-label="Radar opacity"><output data-radar-op-val>70%</output></label>
             </fieldset>
@@ -186,8 +186,8 @@
 <script src="assets/threats-gtg.js?v=90a6946eed"></script>
 <script src="assets/threats-ifi.js?v=1a8301f4fa"></script>
 <script src="assets/threats-outlook.js?v=153e403b7c"></script>
-<script src="assets/threats-radar.js?v=bac5507a12"></script>
+<script src="assets/threats-radar.js?v=6c66055eb0"></script>
 <script src="assets/threats-live.js?v=05df01384d"></script>
-<script src="assets/threats.js?v=a92dfdc819"></script>
+<script src="assets/threats.js?v=477639c38c"></script>
 </body>
 </html>
