@@ -1,0 +1,21 @@
+# RRFS retrospective pilot for Day 2 damaging wind
+
+Owner approved November 27, 2026. Development only. This pilot runs alongside daily collection and the [locked operational comparison](TRAINING-VERIFICATION-PLAN.md). Its purpose is to find useful RRFS inputs quickly and prioritize experiments before operational verification.
+
+## Start with the archive
+
+- The committed [inventory](../../phase2-guidance/retro-inventory.json) identifies 92 candidates for 12Z Day 2 and 89 candidates for both the 12Z and 06Z full Day 2 windows from July 2023, January–February 2024 and May 2024. Counts are inventory estimates until extraction validates each date.
+- On November 27, public NOAA `noaa-rrfs-pds` index requests succeeded on July 15, January 15, February 5 and May 15. The four sampled hours per date (12Z f024/f025/f048 and 06Z f054) each contained all nine operational-collector field identifiers, with expected instant and trailing-hour metadata in the index. Indexed names do not establish decoded grid, units, or valid times.
+- First extract the 12Z cycle with named GRIB byte ranges from `retro_output_final` `prslev` files. Reuse the existing CONUS grid, 25-mile neighborhood, field and time checks. Fetch each hourly index once, confirm the init, valid time, units and native grid in decoded messages, and cache checksummed daily features so future comparisons can reuse them. Time one real date and run dates in parallel. For replay, preserve original model cycles and offsets and record archive dates as provenance. Historical backfill timestamps cannot establish real-time availability.
+- Reuse existing HRRR feature cases, sample IDs and pinned final NOAA Storm Events labels where available. Extract missing cases on the same grid and valid window. Use the existing Day 2 target of wind of at least 50 kt within 25 miles and exclude unknown magnitude. Log each dropped date or row with a reason and use the same intersection for every arm. Exclude 2025.
+
+## First comparison
+
+- Compare HRRR-only, RRFS-only and HRRR plus RRFS on identical held-out rows. Use source-specific predictors and scaling, with a fixed regularized logistic recipe for the first inexpensive screen. Start with the existing HRRR predictor recipe and the nine RRFS fields from the collection contract. Compare the combined arm to the matched HRRR arm to measure what RRFS adds.
+- Hold out the three contiguous archive blocks in turn: July 2023, January–February 2024 and May 2024. Fit transforms, coefficients and any calibration on training blocks only. The frozen HRRR model saw some retrospective dates in development, so refit the HRRR arm inside each fold. Commit the exact feature roster, regularization, fold dates and metric definitions before looking at scores. If an arm is unscorable or a regional sample is thin, report its event-day count and uncertainty.
+- Report paired Brier differences with whole-date uncertainty, calibration, hits at matched false-alarm area, coverage and report-day counts. Show each held-out block and Florida/Gulf separately. Use thresholds selected on training data for deployable-style metrics and clearly label any held-out area matching as diagnostic. Include NadoCast on a separate common-date comparison only where matching forecasts exist.
+- If the first result gives a useful lead, use the cache for one targeted feature comparison at a time. Prioritize source differences in gust, reflectivity and updraft helicity. Test 06Z only as a paired comparison on its smaller common roster, rerunning the 12Z baseline on that same roster. Log every experiment and version. The short, seasonally uneven retrospective is suitable for development and cannot establish skill of current operational RRFS.
+
+## Keep improving as fresh dates arrive
+
+Keep collecting daily CONUS RRFS and lagged HRRR. Use collection for coverage monitoring and version/field drift checks. When fitting is separately approved and the operational training block closes, use eligible development data to check which retrospective lessons carry over, within the approved training rule. Keep prospective verification isolated. Any change to the locked fit or later trial requires a recorded protocol and fresh verification dates. The archive remains independent of any future candidate publication.
