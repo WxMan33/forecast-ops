@@ -53,6 +53,8 @@
  const MD=(k)=>new Date(k+'T12:00:00Z').toLocaleDateString('en-US',{timeZone:'UTC',month:'short',day:'numeric'});
  const TEMPW={highMax:['high','record high'],lowMax:['high','record cold high'],lowMin:['low','record low'],highMin:['low','record warm low']};
  const in2=(x)=>(+x).toFixed(2)+' in',in1=(x)=>(+x).toFixed(1)+' in';
+ /* "All guidance" only when every source's own value is the same; bounds that merely round alike read "Guidance around" */
+ const agree=(parts)=>{const v=(parts||[]).map(p=>p&&p.v).filter(Number.isFinite);return v.length>1&&Math.max(...v)-Math.min(...v)<1e-9;};
  function potential(row,rec,{snow=null,dayName=null}={}){
    if(!row||row.hours!==24||!rec)return [];const day=dayName||DAYW(row.k),out=[];
    for(const kind of ['hi','lo'])for(const hit of assess(row,kind,rec)){const [word,name]=TEMPW[hit.key],dir=TYPES[kind].find(t=>t[0]===hit.key)[3],margin=(hit.forecast-hit.record)*dir,R=kind==='hi'?row.hiR:row.loR;
@@ -61,18 +63,18 @@
      out.push({date:row.k,key:hit.key,kind:'temp',color:hit.color,label:name,forecast:hit.forecast+'°F',record:hit.record+'°F',years:hit.years,state:margin>0?'break':margin===0?'tie':'near',
        sentence:margin>0?`The current blend would break ${day}'s ${name} by ${margin}°F`:margin===0?`The current blend would tie ${day}'s ${name}`:`${day}'s forecast ${word} is within ${-margin}°F of the ${name}`,
        closeness:margin>0?`${margin}°F past the record`:margin===0?'ties the record':`${-margin}°F short`,
-       spread:has?(Math.round(R[0])===Math.round(R[1])?`All guidance ${Math.round(R[0])}°F`:`Guidance range ${Math.round(R[0])}–${Math.round(R[1])}°F${extra}`):null});}
+       spread:has?(Math.round(R[0])===Math.round(R[1])?`${agree(row.parts&&row.parts[kind])?'All guidance':'Guidance around'} ${Math.round(R[0])}°F`:`Guidance range ${Math.round(R[0])}–${Math.round(R[1])}°F${extra}`):null});}
    const P=rec.pcpn;if(P&&P.n>=30&&Number.isFinite(row.qpf)&&P.value>0){const f=Math.round(row.qpf*100)/100,hi=row.qpfR&&Number.isFinite(row.qpfR[1])?row.qpfR[1]:null;
      const near=f>=0.8*P.value&&f>=0.25,upper=hi!=null&&hi>=P.value&&f>=0.5*P.value;
      if(f>=P.value||near||upper)out.push({date:row.k,key:'pcpn',kind:'pcpn',color:'wet',label:'daily precipitation record',forecast:in2(f),record:in2(P.value),years:P.years,state:f>P.value?'break':f===P.value?'tie':'near',
        sentence:f>P.value?`The current blend would break ${day}'s daily precipitation record`:f===P.value?`The current blend would tie ${day}'s daily precipitation record`:near?`${day}'s blend precipitation is within ${in2(P.value-f)} of the daily record`:`The upper guidance for ${day} reaches the daily precipitation record`,
        closeness:f>P.value?`${in2(f-P.value)} past the record`:f===P.value?'ties the record':`${in2(P.value-f)} short (${Math.round(100*f/P.value)}% of the record)`,
-       spread:row.qpfR&&Number.isFinite(row.qpfR[0])&&hi!=null?(in2(row.qpfR[0])===in2(hi)?`All guidance ${in2(hi)}`:`Guidance range ${(+row.qpfR[0]).toFixed(2)}–${in2(hi)}`):null});}
+       spread:row.qpfR&&Number.isFinite(row.qpfR[0])&&hi!=null?(in2(row.qpfR[0])===in2(hi)?`${agree(row.parts&&row.parts.qpf)?'All guidance':'Guidance around'} ${in2(hi)}`:`Guidance range ${(+row.qpfR[0]).toFixed(2)}–${in2(hi)}`):null});}
    const SN=rec.snow;if(SN&&SN.n>=30&&SN.value>0&&snow&&snow.covers){const exact=snow.exact,lo=snow.lower,up=snow.upper;
-     const v=exact?Math.round(lo*10)/10:null,ok=exact?(v>=SN.value||(v>=0.8*SN.value&&v>=1)):lo>=SN.value;
-     if(ok)out.push({date:row.k,key:'snow',kind:'snow',color:'cold',label:'daily snowfall record',forecast:exact?in1(v):`${in1(lo)}–${in1(up)}`,record:in1(SN.value),years:SN.years,state:exact?(v>SN.value?'break':v===SN.value?'tie':'near'):'break',
-       sentence:!exact?`Even the low end of NWS's snowfall forecast would break ${day}'s daily snowfall record`:v>SN.value?`NWS's snowfall forecast would break ${day}'s daily snowfall record`:v===SN.value?`NWS's snowfall forecast would tie ${day}'s daily snowfall record`:`${day}'s NWS snowfall forecast is within ${in1(SN.value-v)} of the daily record`,
-       closeness:!exact?`low end ${in1(lo-SN.value)} past the record`:v>SN.value?`${in1(v-SN.value)} past the record`:v===SN.value?'ties the record':`${in1(SN.value-v)} short`,
+     const v=exact?Math.round(lo*10)/10:null,low=Math.round(lo*10)/10,ok=exact?(v>=SN.value||(v>=0.8*SN.value&&v>=1)):low>=SN.value;
+     if(ok)out.push({date:row.k,key:'snow',kind:'snow',color:'cold',label:'daily snowfall record',forecast:exact?in1(v):`${in1(lo)}–${in1(up)}`,record:in1(SN.value),years:SN.years,state:exact?(v>SN.value?'break':v===SN.value?'tie':'near'):low>SN.value?'break':'tie',
+       sentence:!exact?(low>SN.value?`Even the low end of NWS's snowfall forecast would break ${day}'s daily snowfall record`:`NWS's snowfall forecast would at least tie ${day}'s daily snowfall record`):v>SN.value?`NWS's snowfall forecast would break ${day}'s daily snowfall record`:v===SN.value?`NWS's snowfall forecast would tie ${day}'s daily snowfall record`:`${day}'s NWS snowfall forecast is within ${in1(SN.value-v)} of the daily record`,
+       closeness:!exact?(low>SN.value?`low end ${in1(low-SN.value)} past the record`:'low end ties the record'):v>SN.value?`${in1(v-SN.value)} past the record`:v===SN.value?'ties the record':`${in1(SN.value-v)} short`,
        spread:exact?null:'NWS snowfall intervals cross the calendar day\'s edges, so this is a range',src:'NWS snowfall forecast'});}
    return out;}
  /* the card: one row per candidate, grouped by day; hidden (empty string) when there is nothing meaningful */

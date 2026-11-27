@@ -53,7 +53,9 @@ async function route(ctx, base, { snowCmh = true } = {}) {
       let bodyText = a.body;
       /* NWS gridded snowfall for Columbus: Nov 14 in four 6-hour intervals inside the local day (synthetic, 4.4 in) */
       if (snowCmh && u.hostname === 'api.weather.gov' && /\/gridpoints\/ILN\/cmh$/.test(u.pathname)) { const j = JSON.parse(a.body), d = DAY0 + 3 * 24 * H;
-        j.properties.snowfallAmount = { uom: 'wmoUnit:mm', values: [0, 1, 2, 3].map((k) => ({ validTime: `${new Date(d + k * 6 * H).toISOString()}/PT6H`, value: 27.94 })) };
+        /* Nov 16: intervals shifted 3 hours, so they straddle the day's edges; inside the day 4.0 in (the record), 4.8 in counting the straddling ones */
+        const d2 = DAY0 + 5 * 24 * H - 3 * H, straddle = [10, 101.6 / 3, 101.6 / 3, 101.6 / 3, 10].map((mm, k) => ({ validTime: `${new Date(d2 + k * 6 * H).toISOString()}/PT6H`, value: mm }));
+        j.properties.snowfallAmount = { uom: 'wmoUnit:mm', values: [...[0, 1, 2, 3].map((k) => ({ validTime: `${new Date(d + k * 6 * H).toISOString()}/PT6H`, value: 27.94 })), ...straddle] };
         bodyText = JSON.stringify(j); }
       return r.fulfill({ status: a.status, headers: { ...CORS, ...(a.headers || {}) }, contentType: 'application/json', body: bodyText });
     }
@@ -83,7 +85,7 @@ const cardOf = (p) => p.evaluate(() => { const h = document.getElementById('reco
     { const { ctx, p } = await open(b, base, CMH); const rows = await rowsOf(p); await ctx.close();
       const num = (s) => parseFloat(String(s).replace(/[^\d.-]+/g, ' ').trim().split(' ')[0]);
       const at = (k) => rows.find((r) => r.k === k) || {};
-      RECS = { CMH: { '11-12': { maxt: num(at('2026-11-12').hi) + 1 }, '11-13': { highMin: num(at('2026-11-13').lo), pcpn: num(at('2026-11-13').qpf) }, '11-14': { snow: 4.0 } } };
+      RECS = { CMH: { '11-12': { maxt: num(at('2026-11-12').hi) + 1 }, '11-13': { highMin: num(at('2026-11-13').lo), pcpn: num(at('2026-11-13').qpf) }, '11-14': { snow: 4.0 }, '11-16': { snow: 4.0 } } };
       console.log(`(synthetic) Columbus blend: Nov 12 high ${at('2026-11-12').hi}; Nov 13 low ${at('2026-11-13').lo}, precip ${at('2026-11-13').qpf}. Records set: ${JSON.stringify(RECS.CMH)}`); }
     for (const [dev, vp] of [['desktop', { width: 1366, height: 900 }], ['phone', { width: 375, height: 667 }]]) for (const theme of ['light', 'dark']) {
       const L = `${dev} ${theme}:`, { ctx, p, errors } = await open(b, base, CMH, { vp, theme }), c = await cardOf(p), by = (k) => c.items.find((i) => i.key === k) || {};
@@ -92,7 +94,9 @@ const cardOf = (p) => p.evaluate(() => { const h = document.getElementById('reco
       check(by('2026-11-13-highMin').state === 'tie' && by('2026-11-13-highMin').sentence === "Would tie The current blend would tie Friday's record warm low.", `${L} Friday: the blend low ties the record warm low (${by('2026-11-13-highMin').sentence})`);
       check(by('2026-11-13-pcpn').state === 'tie' && by('2026-11-13-pcpn').sentence === "Would tie The current blend would tie Friday's daily precipitation record." && /Record 0\.\d\d in \(\d{4}\)/.test(by('2026-11-13-pcpn').nums), `${L} Friday: the blend total ties the daily precipitation record (${by('2026-11-13-pcpn').nums})`);
       check(by('2026-11-14-snow').state === 'break' && by('2026-11-14-snow').sentence === "Would break NWS's snowfall forecast would break Saturday's daily snowfall record." && /NWS snowfall forecast 4\.4 in/.test(by('2026-11-14-snow').nums), `${L} Saturday: NWS's 4.4 in snowfall forecast would break the 4.0 in record`);
-      check(!c.items.some((i) => i.key.startsWith('2026-11-11')) && c.items.length === 4 && !/—/.test(c.text) && !c.hs && !errors.length, `${L} nothing for today (a partial day) or anything else; no em dashes, no sideways scroll, no page errors (${c.items.map((i) => i.key).join(', ')}) ${errors.join('; ')}`);
+      check(by('2026-11-16-snow').state === 'tie' && by('2026-11-16-snow').sentence === "Would tie NWS's snowfall forecast would at least tie Monday's daily snowfall record." && /NWS snowfall forecast 4\.0 in–4\.8 in/.test(by('2026-11-16-snow').nums) && /Gap low end ties the record/.test(by('2026-11-16-snow').nums), `${L} Monday: a straddled NWS range whose low end equals the record "would at least tie", never "would break" (${by('2026-11-16-snow').sentence})`);
+      check(by('2026-11-13-pcpn').note === 'All guidance 0.36 in.', `${L} Friday's precipitation: "All guidance" only because every simulated source has exactly 0.36 in (${by('2026-11-13-pcpn').note})`);
+      check(!c.items.some((i) => i.key.startsWith('2026-11-11')) && c.items.length === 5 && !/—/.test(c.text) && !c.hs && !errors.length, `${L} nothing for today (a partial day) or anything else; no em dashes, no sideways scroll, no page errors (${c.items.map((i) => i.key).join(', ')}) ${errors.join('; ')}`);
       await p.locator('#recordPotential').screenshot({ path: path.join(out, `record-potential-${dev}-${theme}.png`) });
       if (dev === 'desktop' && theme === 'light') await p.screenshot({ path: path.join(out, 'record-potential-page-top.png') });
       await ctx.close();
@@ -105,8 +109,8 @@ const cardOf = (p) => p.evaluate(() => { const h = document.getElementById('reco
     { const { ctx, p, errors } = await open(b, base, CVG), c0 = await cardOf(p);
       check(c0.hidden && !c0.text, 'Cincinnati (no record within reach): the card is hidden');
       const mid = await p.evaluate((pl) => { Ops.setLocation(pl); const h = document.getElementById('recordPotential'); return { hidden: h.hidden, text: h.innerText }; }, CMH);
-      await p.waitForFunction(() => document.querySelectorAll('#recordPotential .rp-item').length === 4, null, { timeout: 30000 }).catch(() => {}); const c1 = await cardOf(p);
-      check(mid.hidden && !c1.hidden && c1.items.length === 4, `switch Cincinnati to Columbus: Columbus's four candidates appear (${c1.items.length})`);
+      await p.waitForFunction(() => document.querySelectorAll('#recordPotential .rp-item').length === 5, null, { timeout: 30000 }).catch(() => {}); const c1 = await cardOf(p);
+      check(mid.hidden && !c1.hidden && c1.items.length === 5, `switch Cincinnati to Columbus: Columbus's five candidates appear (${c1.items.length})`);
       const mid2 = await p.evaluate((pl) => { Ops.setLocation(pl); const h = document.getElementById('recordPotential'); return { hidden: h.hidden, text: h.innerText }; }, CVG);
       await p.waitForTimeout(6000); const c2 = await cardOf(p);
       check(mid2.hidden && !mid2.text.trim() && c2.hidden && !errors.length, `switch back to Cincinnati: the card clears at once and stays hidden; no page errors ${errors.join('; ')}`); await ctx.close(); }
