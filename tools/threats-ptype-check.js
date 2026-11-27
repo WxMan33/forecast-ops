@@ -12,7 +12,8 @@
        Kentucky, Ohio and Indiana (warm rain, cool rain, then snow to the north, with a ragged edge), checked pixel by pixel on
        tiles the page drew, in both modes.
    Screenshots: desktop, 360 and 390 px, both modes, with the Layers panel open.
-   Usage: node tools/threats-ptype-check.js https://<host> [outDir] [minutes of phone refreshes, default 5] */
+   Usage: node tools/threats-ptype-check.js https://<host> [outDir] [minutes of phone refreshes, default 5]
+   ONLY=winter runs just the winter replay (and builds its files). */
 "use strict";
 const { chromium, devices } = require("playwright");
 const fs = require("fs"), path = require("path"), zlib = require("zlib");
@@ -101,8 +102,9 @@ const ptRoute = (gz, scanIso) => async (p) => {
 
 (async () => {
   const b = await chromium.launch(), info = {};
+  const ONLY = process.env.ONLY || "";
   /* ---- live, desktop ---- */
-  { const { ctx, p, errs, reqs } = await open(b, DESKTOP);
+  if (!ONLY) { const { ctx, p, errs, reqs } = await open(b, DESKTOP);
     const direct = await p.evaluate(async () => { try { await fetch("https://mrms.ncep.noaa.gov/2D/PrecipFlag/MRMS_PrecipFlag.latest.grib2.gz"); return "readable"; } catch (e) { return "blocked"; } });
     const s = await read(p); info.live = s; const age = s.pt && s.pt.scan ? Math.round((Date.now() - s.pt.scan) / 60e3) : null;
     const total = s.pt && s.pt.codes ? Object.values(s.pt.codes).reduce((a, x) => a + x, 0) : 0, cov = total ? 1 - (s.pt.codes["-3"] || 0) / total : 0;
@@ -125,7 +127,7 @@ const ptRoute = (gz, scanIso) => async (p) => {
     check("(desktop) no script errors", !errs.length, { errs }); fs.writeFileSync(path.join(OUT, "live-desktop-requests.json"), JSON.stringify(reqs, null, 1)); await ctx.close(); }
 
   /* ---- phones, 4x slower CPU, throttled network ---- */
-  for (const w of ["360", "390"]) {
+  for (const w of ONLY ? [] : ["360", "390"]) {
     const { ctx, p, errs, reqs } = await open(b, PHONES[w], { slow: true }); const s = await read(p);
     await p.screenshot({ path: path.join(OUT, `live-${w}-ptype.png`) }); await layersShot(p, `live-${w}-ptype-layers.png`);
     await p.evaluate(() => window.__threats.map.jumpTo({ center: [-73.8, 43.8], zoom: 5.6 })); await p.waitForTimeout(4000); await p.screenshot({ path: path.join(OUT, `live-${w}-ptype-northeast-rain-snow.png`) });
@@ -141,20 +143,20 @@ const ptRoute = (gz, scanIso) => async (p) => {
     info["phone" + w] = { scans, last: last.pt }; await ctx.close(); }
 
   /* ---- fallback: forwarder failing; scan 30 minutes old ---- */
-  { const { ctx, p, errs } = await open(b, PHONES["390"], { route: async (p) => { await p.route(/\/api\/mrms\//, (r) => r.fulfill({ status: 502, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: '{"error":"MRMS did not answer in time"}' })); } });
+  if (!ONLY) { const { ctx, p, errs } = await open(b, PHONES["390"], { route: async (p) => { await p.route(/\/api\/mrms\//, (r) => r.fulfill({ status: 502, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: '{"error":"MRMS did not answer in time"}' })); } });
     const s = await read(p); await p.screenshot({ path: path.join(OUT, "fallback-390-unavailable.png") }); await layersShot(p, "fallback-390-unavailable-layers.png");
     const reflIso = s.reflScan && new Date(s.reflScan).toISOString();
     check(`(390 px) forwarder failing, everything names the reflectivity on screen: map credit '${s.credit}'; legend '${s.legend.fallback}' + Reflectivity 2026 (scan ${s.reflLegendScan}); '${s.ptLast}'; source row '${s.row}'; Layers note '${s.note}'; the reflectivity scan shown is ${reflIso} = page scan ${s.valid}`,
       s.mode === "ptype" && s.ptFallback && s.via === "iem" && s.legend.fallback === "Precipitation type unavailable · showing reflectivity" && s.legend.refl && !s.legend.ptype && /^Reflectivity: MRMS via Iowa Environmental Mesonet \(precipitation type unavailable\)/.test(s.credit) && /^Precipitation type unavailable · showing reflectivity · MRMS lowest-elevation reflectivity, scan/.test(s.note) && /Precipitation type unavailable · showing reflectivity · MRMS reflectivity/.test(s.row) && reflIso === s.valid && s.reflLegendScan && !errs.length, { s, errs });
     await ctx.close(); }
   const W = await winterFiles();
-  { const old = W.scan - 30 * 60e3, gz = zlib.gzipSync(PFB.replacePixels(zlib.gunzipSync(W.pf), RD && (await RD.decodeIndexedPng(RD.parsePrecipFlag(new Uint8Array(zlib.gunzipSync(W.pf))).png, inflate)).indices, old));
+  if (!ONLY) { const old = W.scan - 30 * 60e3, gz = zlib.gzipSync(PFB.replacePixels(zlib.gunzipSync(W.pf), RD && (await RD.decodeIndexedPng(RD.parsePrecipFlag(new Uint8Array(zlib.gunzipSync(W.pf))).png, inflate)).indices, old));
     const { ctx, p, errs } = await open(b, DESKTOP, { route: ptRoute(gz, new Date(old).toISOString()) }); const s = await read(p); await p.screenshot({ path: path.join(OUT, "fallback-desktop-stale.png") });
     check(`(desktop) precipitation-type scan 30 min old: legend '${s.legend.fallback}', reflectivity shown (${s.via}), reason '${s.ptError}'`, s.ptFallback && s.via === "iem" && s.legend.fallback === "Precipitation type unavailable · showing reflectivity" && s.legend.refl && /min old/.test(s.ptError || "") && !errs.length, { s, errs });
     await ctx.close(); }
 
   /* ---- recovery: the forwarder fails for the first 3 minutes, then a fresh scan arrives; saved opacity 40% throughout ---- */
-  { let failUntil = 0; const route = async (p) => { failUntil = Date.now() + 150e3;
+  if (!ONLY) { let failUntil = 0; const route = async (p) => { failUntil = Date.now() + 150e3;
       await p.route(/\/api\/mrms\/precipflag\/time/, (r) => Date.now() < failUntil ? r.fulfill({ status: 502, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: '{"error":"MRMS did not answer in time"}' }) : r.fulfill({ status: 200, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: JSON.stringify({ product: "PrecipFlag", scan: new Date(W.scan).toISOString(), fetchedAt: new Date().toISOString(), bytes: W.pf.length }) }));
       await p.route(/\/api\/mrms\/precipflag\/latest/, (r) => Date.now() < failUntil ? r.fulfill({ status: 502, body: "{}" }) : r.fulfill({ status: 200, headers: { "content-type": "application/gzip", "access-control-allow-origin": "*" }, body: Buffer.from(W.pf) })); };
     const { ctx, p, errs } = await open(b, PHONES["390"], { op: "0.4", route, query: "&testreplay=radar-ptype-recovery" }); const a = await read(p); await p.screenshot({ path: path.join(OUT, "recovery-390-1-fallback.png") });
