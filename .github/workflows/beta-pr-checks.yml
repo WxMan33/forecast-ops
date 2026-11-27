@@ -17,7 +17,7 @@ jobs:
         with: { node-version: 20 }
       - name: Unit tests
         run: |
-          for t in calendar-provider forecast-support core fixtures source-failure forecast-cache beta-story beta-analytics event-store event-times event-backup event-daylight hourly-model event-presets event-slots event-days event-briefing-history event-ops-handoff event-briefing-ui event-lead almanac climate-report climate-daily climate-period-records climate-station weather-history; do
+          for t in calendar-provider forecast-support core fixtures source-failure forecast-cache beta-story beta-analytics event-store event-times event-backup event-daylight hourly-model event-presets event-slots event-days event-briefing-history event-ops-handoff event-briefing-ui event-lead almanac climate-report climate-daily climate-period-records climate-station weather-history record-watch; do
             echo "::group::$t"; node tests/$t.test.js || { echo "::error::$t failed"; exit 1; }; echo "::endgroup::"
           done
       - run: node tools/stamp-assets.js --check
@@ -60,6 +60,10 @@ jobs:
         run: node tools/almanac-refresh-check.js
       - name: Almanac daily reports (morning, interim, correction, failed refresh, rollover, time zones)
         run: node tools/almanac-daily-check.js /tmp/almanac-daily
+      - name: Forecast record potential on Model Blend (synthetic forecast and records; phone and desktop; light and dark; market switch)
+        run: node tools/record-potential-check.js /tmp/record-potential
+      - name: Forecast record potential on real recorded Blend loads (CVG hides; Las Vegas shows; replayed offline)
+        run: node tools/record-potential-replay-check.js /tmp/record-potential-replay
       - name: Whole-site layout sweep (every page; phone and desktop; light and dark; simulated network)
         run: node tools/site-sweep-check.js /tmp/site-sweep
       - name: Keep the screenshots
