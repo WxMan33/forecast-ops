@@ -3,8 +3,8 @@
      GET /api/mrms/precipflag/time    -> {"scan": "<ISO>", "fetchedAt": "<ISO>", "bytes": n}   (about 100 bytes; polled every 60 s)
      GET /api/mrms/precipflag/latest  -> https://mrms.ncep.noaa.gov/2D/PrecipFlag/MRMS_PrecipFlag.latest.grib2.gz, unchanged
                                          (about 230 KB; downloaded by the page only when /time lists a new scan)
-   Nothing else is forwarded (404). Sharing: at most one NOAA read per 60 s per Cloudflare data centre (the Cache API is shared
-   by the workers in one data centre, not between data centres), and simultaneous requests at expiry join one read. Every answer
+   Nothing else is forwarded (404). Sharing: simultaneous requests in a worker join one read; the workers in one Cloudflare data
+   centre share its Cache API copy (with staggered expiry, below); data centres don't share with each other. Every answer
    carries X-Upstream-Fetched-At and X-MRMS-Scan (a cache hit keeps the original times) and X-Forecast-Ops-Cache (MEMORY, JOINED,
    COLO or MISS). The body is checked before it is
    served: gzip, GRIB edition 2, NCEP MRMS (centre 161, discipline 209, category 6 parameter 0 = PrecipFlag), the 7000 x 3500
@@ -13,7 +13,7 @@
 export const USER_AGENT = "(forecast-ops, github.com/WxMan33/forecast-ops)";
 const MRMS = "https://mrms.ncep.noaa.gov";
 const ORIGINS = [/^https:\/\/wxman33\.github\.io$/, /^https:\/\/([a-z0-9-]+\.)?forecast-ops-beta\.pages\.dev$/, /^https:\/\/raw\.githack\.com$/, /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/];
-const TTL_MS = 60e3, MAX_BYTES = 8 * 1048576;
+const TTL_MS = 60e3, JITTER_MS = 15e3, MAX_BYTES = 8 * 1048576;
 let memory = null;
 const EXPOSE = "X-Upstream-Fetched-At, X-MRMS-Scan, X-Upstream-Status, X-Forecast-Ops-Cache, X-Upstream-User-Agent";
 function cors(request) { const o = request.headers.get("Origin"); return o && ORIGINS.some((r) => r.test(o)) ? { "Access-Control-Allow-Origin": o, Vary: "Origin" } : { Vary: "Origin" }; }
@@ -42,15 +42,18 @@ export function checkPrecipFlag(g) {
    that data centre, not between data centres); then NOAA. Only checked files are kept. */
 let inflight = null;
 const CACHE_KEY = "https://forecast-ops-cache.invalid/mrms/precipflag/latest";
+/* each worker keeps its copy 60 s plus its own random 0-15 s: at expiry the workers in a data centre don't all miss at once,
+   so the first to refresh stores the new file in the data-centre cache and the rest find it there instead of asking NOAA.
+   A copy in the data-centre cache counts as current for 75 s. */
 async function record(t, now) {
-  if (memory && now - memory.at < TTL_MS) return { rec: memory, cache: "MEMORY" };
+  if (memory && now - memory.at < memory.ttl) return { rec: memory, cache: "MEMORY" };
   if (inflight) return { rec: await inflight, cache: "JOINED" };
-  let layer = "MISS";
+  let layer = "MISS"; const ttl = TTL_MS + Math.round((t.JITTER ? t.JITTER() : Math.random()) * JITTER_MS);
   inflight = (async () => {
     const store = t.CACHE !== undefined ? t.CACHE : (typeof caches !== "undefined" && caches.default) || null;
     if (store) { const hit = await store.match(CACHE_KEY).catch(() => null);
       if (hit) { const at = +hit.headers.get("x-fo-at"), scan = +hit.headers.get("x-fo-scan");
-        if (now - at < TTL_MS && Number.isFinite(scan)) { layer = "COLO"; return (memory = { body: new Uint8Array(await hit.arrayBuffer()), at, scan }); } } }
+        if (now - at < TTL_MS + JITTER_MS && Number.isFinite(scan)) { layer = "COLO"; return (memory = { body: new Uint8Array(await hit.arrayBuffer()), at, scan, ttl: Math.max(ttl, now - at + 5e3) }); } } }
     const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), t.TIMEOUT_MS || 15000); let res, body;
     try { res = await fetch((t.UPSTREAM || MRMS) + "/2D/PrecipFlag/MRMS_PrecipFlag.latest.grib2.gz", { headers: { "User-Agent": USER_AGENT }, signal: ctl.signal }); body = new Uint8Array(await res.arrayBuffer()); }
     catch (e) { throw { status: 502, error: "MRMS " + (ctl.signal.aborted ? "did not answer in time" : "request failed") }; }
@@ -58,8 +61,8 @@ async function record(t, now) {
     if (!res.ok) throw { status: 502, error: "MRMS answered HTTP " + res.status, upstream: res.status };
     if (body.length > MAX_BYTES || body[0] !== 0x1f || body[1] !== 0x8b) throw { status: 502, error: "MRMS answer was not a gzip file" };
     let scan; try { scan = checkPrecipFlag(await gunzip(body)); } catch (e) { throw { status: 502, error: "MRMS answer was not PrecipFlag: " + e.message }; }
-    const rec = (memory = { body, at: now, scan });
-    if (store) await store.put(CACHE_KEY, new Response(body, { headers: { "Content-Type": "application/gzip", "Cache-Control": "public, max-age=" + Math.round(TTL_MS / 1000), "x-fo-at": String(now), "x-fo-scan": String(scan) } })).catch(() => {});
+    const rec = (memory = { body, at: now, scan, ttl });
+    if (store) await store.put(CACHE_KEY, new Response(body, { headers: { "Content-Type": "application/gzip", "Cache-Control": "public, max-age=" + Math.round((TTL_MS + JITTER_MS) / 1000), "x-fo-at": String(now), "x-fo-scan": String(scan) } })).catch(() => {});
     return rec;
   })().finally(() => { inflight = null; });
   return { rec: await inflight, cache: layer === "COLO" ? "COLO" : "MISS" };

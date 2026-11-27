@@ -20,7 +20,7 @@ import fs from "node:fs";
 let n = 0; const ok = async (name, fn) => { await fn(); n++; console.log("ok -", name); };
 let clock = Date.parse("2026-11-20T20:00:00Z"), answer = () => new Response(JSON.stringify({ type: "FeatureCollection", features: [] }), { status: 200 }); const sent = [];
 globalThis.fetch = async (url, init) => { sent.push({ url: String(url), ua: new Headers(init.headers).get("user-agent") }); return answer(String(url)); };
-const env = { __harness: true, NOW: () => clock, UPSTREAM: "https://upstream.test", TIMEOUT_MS: 500 };
+const env = { __harness: true, NOW: () => clock, UPSTREAM: "https://upstream.test", TIMEOUT_MS: 500, JITTER: () => 0 };
 const get = (h, p, origin = "https://claude-threats-planner-flood.forecast-ops-beta.pages.dev") => h.handle(new Request("https://x.test" + p, { headers: { Origin: origin } }), env);
 
 await ok("NWS: Flash Flood Warning, winter and fire weather alerts and fire weather zones are allowed; other events and paths are not forwarded", async () => {
@@ -186,7 +186,7 @@ await ok("MRMS PrecipFlag: /time and /latest only; identified; checked as Precip
 });
 await ok("MRMS PrecipFlag sharing: 25 simultaneous requests at expiry make one NOAA read; a second worker in the same data centre reads the data-centre cache, not NOAA; a failed read is shared by those waiting and then retried", async () => {
   const store = new Map(), CACHE = { match: async (k) => { const v = store.get(k); return v ? v.clone() : undefined; }, put: async (k, r) => { store.set(k, r); } };
-  const envC = { ...env, CACHE }, getC = (p) => mrmsf.handle(new Request("https://x.test" + p, { headers: { Origin: "https://claude-threats-radar-style.forecast-ops-beta.pages.dev" } }), envC);
+  const envC = { ...env, CACHE, JITTER: () => 0 }, getC = (p) => mrmsf.handle(new Request("https://x.test" + p, { headers: { Origin: "https://claude-threats-radar-style.forecast-ops-beta.pages.dev" } }), envC);
   mrmsf._reset(); sent.length = 0; const scan = Date.parse("2026-01-12T18:06:00Z");
   const gz = zlibm.gzipSync(PFB.build({ scan, width: 7000, height: 3500, bytes: new Uint8Array(7000 * 3500).fill(3) }));
   let release; const gate = new Promise((r) => (release = r));
@@ -198,9 +198,19 @@ await ok("MRMS PrecipFlag sharing: 25 simultaneous requests at expiry make one N
   assert.strictEqual(new Set(rs.map((r) => r.headers.get("X-Upstream-Fetched-At"))).size, 1);
   mrmsf._reset(); clock += 10e3; const r2 = await getC("/api/mrms/precipflag/latest"); // another worker, same data centre, same minute
   assert.strictEqual(r2.headers.get("X-Forecast-Ops-Cache"), "COLO"); assert.strictEqual(sent.length, 1); assert.deepStrictEqual(new Uint8Array(await r2.arrayBuffer()), new Uint8Array(gz));
-  clock += 61e3; let rel2; const gate2 = new Promise((r) => (rel2 = r)); answer = async () => { await gate2; return new Response("x", { status: 503 }); };
+  clock += 80e3; let rel2; const gate2 = new Promise((r) => (rel2 = r)); answer = async () => { await gate2; return new Response("x", { status: 503 }); };
   const bad = Promise.all(Array.from({ length: 5 }, () => getC("/api/mrms/precipflag/time"))); await new Promise((r) => setTimeout(r, 20)); rel2(); const bs = await bad;
   assert.ok(bs.every((r) => r.status === 502)); assert.strictEqual(sent.length, 2);
   answer = () => new Response(gz, { status: 200 }); assert.strictEqual((await getC("/api/mrms/precipflag/time")).status, 200); assert.strictEqual(sent.length, 3);
+});
+await ok("MRMS PrecipFlag staggered expiry: three workers sharing a data-centre cache, each with its own random delay, make one NOAA read a minute", async () => {
+  const store = new Map(), CACHE = { match: async (k) => { const v = store.get(k); return v ? v.clone() : undefined; }, put: async (k, r) => { store.set(k, r); } };
+  const scan = Date.parse("2026-01-12T18:08:00Z"), gz = zlibm.gzipSync(PFB.build({ scan, width: 7000, height: 3500, bytes: new Uint8Array(7000 * 3500).fill(3) }));
+  answer = () => new Response(gz, { status: 200 }); sent.length = 0; clock += 300e3;
+  /* simulate 3 workers (separate memory) by loading three copies of the module */
+  const workers = await Promise.all([1, 2, 3].map((i) => import(pathToFileURL(path.join(ROOT, "functions/api/mrms/[[path]].js")).href + "?w=" + i)));
+  const jit = [0.1, 0.5, 0.9]; const start = clock;
+  for (let s2 = 0; s2 <= 300; s2 += 1) { clock = start + s2 * 1000; await Promise.all(workers.map((w, i) => w.handle(new Request("https://x.test/api/mrms/precipflag/time"), { ...env, CACHE, JITTER: () => jit[i] }))); }
+  const minutes = 300 / 60, reads = sent.length; assert.ok(reads <= Math.ceil(minutes * 60 / 60) + 1, "NOAA reads in 5 minutes: " + reads);
 });
 console.log(n + " passed");
