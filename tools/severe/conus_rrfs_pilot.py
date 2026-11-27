@@ -153,6 +153,8 @@ assert sorted(sum(GROUPS.values(), ())) == sorted(FIELDS)
 for _g, _fs in GROUPS.items():
     RRFS_COLS[f"rrfs_no_{_g}"] = np.array([3 * i + j for i, f in enumerate(FIELDS) if f not in _fs for j in range(3)])
 ABL_ARMS = ("hrrr", "hrrr_rrfs") + tuple(f"hrrr_rrfs_no_{g}" for g in GROUPS)
+FLCAL_ARMS = ("hrrr", "hrrr_rrfs", "hrrr_rrfs_flcal")
+FLCAL_PAIRS = (("hrrr_rrfs_flcal", "hrrr_rrfs"), ("hrrr_rrfs_flcal", "hrrr"), ("hrrr_rrfs", "hrrr"))
 ABL_PAIRS = tuple((f"hrrr_rrfs_no_{g}", "hrrr_rrfs") for g in GROUPS) + (("hrrr_rrfs", "hrrr"),)
 
 
@@ -212,6 +214,8 @@ def run_comparison(D, names, arms=("hrrr", "rrfs", "hrrr_rrfs"), log=print):
         y = np.concatenate([D[d][2] for d in train])
         thr[blk] = {}
         for arm in arms:
+            if arm == "hrrr_rrfs_flcal":
+                continue  # derived below from the unchanged hrrr_rrfs model
             m = fit_arm(arm, xh, xr, y, names)
             ptr = predict(m, arm, xh, xr, names)
             thr[blk][arm] = ptr
@@ -219,6 +223,30 @@ def run_comparison(D, names, arms=("hrrr", "rrfs", "hrrr_rrfs"), log=print):
                 P[arm][d] = predict(m, arm, D[d][0], D[d][1], names).astype(np.float64)
             log(f"{blk}: {arm} fitted on {len(train)} dates ({int(y.sum())} event rows), iters {int(m['lr'].n_iter_[0])}")
             FINGERPRINTS.setdefault("coefficients", {})[f"{blk}/{arm}"] = sha(np.concatenate([m["lr"].coef_.ravel(), m["lr"].intercept_]).tobytes())
+        if "hrrr_rrfs_flcal" in arms:
+            # Florida/Gulf-only monotone logit adjustment, fit on out-of-fold predictions inside the training blocks:
+            # for each training block, hrrr_rrfs is refit on the other training block and predicts it.
+            fl_id = REGIONS.index(FL)
+            rtr = np.concatenate([reg_all[pos[D[d][3]]] for d in train]) == fl_id
+            tblocks = sorted({block_of(d) for d in train})
+            oof_p, oof_y = [], []
+            for tb in tblocks:
+                inner_fit = [d for d in train if block_of(d) != tb]
+                inner_pred = [d for d in train if block_of(d) == tb]
+                mi = fit_arm("hrrr_rrfs", np.concatenate([D[d][0] for d in inner_fit]), np.concatenate([D[d][1] for d in inner_fit]),
+                             np.concatenate([D[d][2] for d in inner_fit]), names)
+                for d in inner_pred:
+                    f = reg_all[pos[D[d][3]]] == fl_id
+                    oof_p.append(predict(mi, "hrrr_rrfs", D[d][0][f], D[d][1][f], names)); oof_y.append(D[d][2][f])
+                log(f"{blk}: inner hrrr_rrfs fit on {tb} complement ({len(inner_fit)} dates) -> out-of-fold {tb} Florida/Gulf rows")
+            cal = fit_logit_adjust(np.concatenate(oof_p), np.concatenate(oof_y))
+            CALIBRATIONS[blk] = cal | {"oof_rows": int(sum(len(v) for v in oof_y)), "oof_event_rows": int(sum(v.sum() for v in oof_y)),
+                                      "oof_forecast_to_observed": float(np.concatenate(oof_p).sum() / max(np.concatenate(oof_y).sum(), 1))}
+            log(f"{blk}: Florida/Gulf adjustment a={cal['a']:.4f} b={cal['b']:.4f} (lower bound active: {cal['b_at_lower_bound']})")
+            thr[blk]["hrrr_rrfs_flcal"] = np.where(rtr, apply_logit_adjust(thr[blk]["hrrr_rrfs"], cal), thr[blk]["hrrr_rrfs"])
+            for d in test:
+                f = reg_all[pos[D[d][3]]] == fl_id
+                P["hrrr_rrfs_flcal"][d] = np.where(f, apply_logit_adjust(P["hrrr_rrfs"][d], cal), P["hrrr_rrfs"][d])
         # deployable thresholds: each arm matches, on its own training predictions, the training false-alarm
         # fraction of the HRRR arm at FA_REF
         frac = float(((thr[blk]["hrrr"] >= FA_REF) & (y == 0)).sum() / (y == 0).sum())
@@ -230,6 +258,31 @@ def run_comparison(D, names, arms=("hrrr", "rrfs", "hrrr_rrfs"), log=print):
 
 
 FINGERPRINTS = {}
+CALIBRATIONS = {}
+B_MIN = 1e-3  # strictly positive slope (lower bound); whether it binds is reported
+
+
+def logit(p):
+    p = np.clip(p, 1e-7, 1 - 1e-7)
+    return np.log(p / (1 - p))
+
+
+def fit_logit_adjust(p, y):
+    """logit p' = a + b * logit p, b >= B_MIN > 0, unweighted log loss (monotone; ranking preserved)."""
+    from scipy.optimize import minimize
+    from scipy.special import expit
+    z = logit(p)
+    def f(q):
+        t = q[0] + q[1] * z
+        g = (expit(t) - y) / len(y)
+        return np.mean(np.logaddexp(0, t) - y * t), np.array([g.sum(), (g * z).sum()])
+    r = minimize(f, np.array([0.0, 1.0]), jac=True, method="L-BFGS-B", bounds=[(None, None), (B_MIN, None)])
+    return {"a": float(r.x[0]), "b": float(r.x[1]), "b_at_lower_bound": bool(r.x[1] <= B_MIN * 1.0001), "converged": bool(r.success)}
+
+
+def apply_logit_adjust(p, cal):
+    from scipy.special import expit
+    return expit(cal["a"] + cal["b"] * logit(p))
 
 
 def run_environment():
@@ -319,6 +372,8 @@ def summarize(D, P, folds, reg_all, pos, arms, names_regions, pairs=PAIRS):
                     "deployable": {"hits": int(hits_dep[a].sum()), "hit_fraction": float(hits_dep[a].sum() / y.sum()),
                                    "false_alarm_points": int(fa_dep[a].sum()),
                                    "false_alarm_km2_per_day": float(fa_dep[a].sum() * SAMPLE_KM2 / nd)},
+                    "fixed_5pct": {"hit_fraction": float(((p[a] >= 0.05) & (y == 1)).sum() / y.sum()),
+                                   "false_alarm_km2_per_day": float(((p[a] >= 0.05) & (y == 0)).sum() * SAMPLE_KM2 / nd)},
                     "diagnostic_equal_area": {"threshold": hits_eq[a][0], "hits": int(hits_eq[a][1].sum()),
                                               "hit_fraction": float(hits_eq[a][1].sum() / y.sum()), "false_alarm_points": hits_eq[a][2],
                                               "reference_false_alarm_points": ref_fa}}
@@ -352,14 +407,30 @@ def score(a):
         print(s, flush=True); log_lines.append(s)
     if a.experiment == "ablation":
         arms, pairs = ABL_ARMS, ABL_PAIRS
+    elif a.experiment == "flcal":
+        arms, pairs = FLCAL_ARMS, FLCAL_PAIRS
     else:
         arms, pairs = (("hrrr", "rrfs", "hrrr_rrfs"), PAIRS) if a.cycle == 12 else (("hrrr", "hrrr_rrfs", "hrrr_rrfs06"), PAIRS06)
     P, folds, reg_all, pos = run_comparison(D, names, arms, log)
+    check = None
+    if a.expect_fingerprints:
+        # verify the unchanged arms against a pinned reference BEFORE anything is evaluated
+        ref = json.loads(Path(a.expect_fingerprints).read_text())["fingerprints"]
+        got_p = {arm: sha(np.concatenate([P[arm][d] for d in sorted(P[arm])]).tobytes()) for arm in ("hrrr", "hrrr_rrfs")}
+        got_c = {k: v for k, v in FINGERPRINTS["coefficients"].items() if k.split("/")[1] in ("hrrr", "hrrr_rrfs")}
+        ref_c = {k: v for k, v in ref["coefficients"].items() if k.split("/")[1] in ("hrrr", "hrrr_rrfs")}
+        check = {"reference": a.expect_fingerprints, "predictions_match": all(got_p[k] == ref["predictions"][k] for k in got_p),
+                 "coefficients_match": got_c == ref_c, "predictions": got_p}
+        log(f"fingerprint check vs {a.expect_fingerprints}: predictions {check['predictions_match']}, coefficients {check['coefficients_match']}")
+        if not (check["predictions_match"] and check["coefficients_match"]):
+            Path(a.output).mkdir(parents=True, exist_ok=True)
+            (Path(a.output) / "fingerprint-mismatch.json").write_text(json.dumps(check, indent=1) + "\n")
+            raise SystemExit("Unchanged arms do not reproduce the pinned fingerprints; adjustment not evaluated")
     res = summarize(D, P, folds, reg_all, pos, arms, list(REGIONS), pairs)
     dropped = [r for r in man["dates"] if r["status"] != "ok"]
     if a.cycle == 6:
         dropped += [{"date": r["date"], "status": "dropped", "reason": f"06Z {r['rrfs']['06z']}"} for r in man["dates"] if r["status"] == "ok" and r["rrfs"]["06z"] != "ok"]
-    out = {"rules": "research/severe/conus-v1/rrfs/retro/" + ("ABLATION.md" if a.experiment == "ablation" else "RULES.md" if a.cycle == 12 else "FOLLOWUP-06Z.md"),
+    out = {"rules": "research/severe/conus-v1/rrfs/retro/" + ("FL-RECAL.md" if a.experiment == "flcal" else "ABLATION.md" if a.experiment == "ablation" else "RULES.md" if a.cycle == 12 else "FOLLOWUP-06Z.md"),
            "experiment": a.experiment, "groups": GROUPS if a.experiment == "ablation" else None, "rrfs_cycle": f"{a.cycle:02d}z", "arms": list(arms),
            "recipe": {"model": "sklearn LogisticRegression (L2, lbfgs)", "C": C_REG, "scaling": "asinh(x / training median |x|) per source, then StandardScaler, fit on training blocks only",
                       "hrrr_predictors": "phase2_study.engineer on the cached HRRR raw predictors", "rrfs_predictors": "27 per cycle = 9 fields x (nbhdmax24, nbhdmax18, mean24)"},
@@ -367,7 +438,8 @@ def score(a):
            "scored_dates": len(D), "results": res, "log": log_lines,
            "fingerprints": {"predictions": {arm: sha(np.concatenate([P[arm][d] for d in sorted(P[arm])]).tobytes()) for arm in arms},
                             "coefficients": FINGERPRINTS.get("coefficients", {})},
-           "run_environment": run_environment()}
+           "run_environment": run_environment(), "fingerprint_check": check,
+           "florida_gulf_adjustment": CALIBRATIONS or None}
     Path(a.output).mkdir(parents=True, exist_ok=True)
     (Path(a.output) / "scorecard.json").write_text(json.dumps(out, indent=1) + "\n")
     (Path(a.output) / "scorecard.md").write_text(render(out) + "\n")
@@ -431,7 +503,8 @@ def main():
     s = sub.add_parser("score")
     s.add_argument("--cache", required=True)
     s.add_argument("--cycle", type=int, default=12, choices=[12, 6])
-    s.add_argument("--experiment", default="first", choices=["first", "ablation"])
+    s.add_argument("--experiment", default="first", choices=["first", "ablation", "flcal"])
+    s.add_argument("--expect-fingerprints", help="scorecard whose hrrr / hrrr_rrfs fingerprints must be reproduced first")
     s.add_argument("--output", required=True)
     a = p.parse_args()
     {"cache": cache, "score": score}[a.cmd](a)

@@ -1,0 +1,7 @@
+{
+ "request": 1,
+ "purpose": "Florida/Gulf-only monotone logit adjustment of the full HRRR + 12Z RRFS model, fit on out-of-fold predictions within the training blocks; pinned environment; fingerprint gate first",
+ "rules": "research/severe/conus-v1/rrfs/retro/FL-RECAL.md",
+ "cache_run": 46035459501,
+ "expect_fingerprints": "research/severe/conus-v1/rrfs/retro/repro/scorecard-pinned-1.json"
+}
