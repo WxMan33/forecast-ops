@@ -86,6 +86,7 @@ const read = (p) => p.evaluate(() => { const T = window.__threats, m = T.map, st
     check(`(${name}) theme ${s.theme}: radar from IEM, opacity ${s.paint && s.paint.opacity}, nearest; boundaries and warnings above`, s.via === "iem" && s.paint && s.paint.opacity === 0.7 && s.paint.resampling === "nearest" && s.warningsAbove && s.boundariesAbove && !errs.length, { s, errs }); await ctx.close(); }
   /* IEM not answering: within about 15 s the page shows NOAA's pre-coloured tiles, labelled as the fallback */
   { const ctx = await b.newContext({ ...devices["iPhone 13"] }), p = await ctx.newPage(), errs = []; p.on("pageerror", (e) => errs.push(e.message));
+    await p.addInitScript(() => { try { localStorage.setItem("tx_radar_mode", "refl"); } catch (e) {} }); // this check is about Reflectivity (Precipitation type is the default)
     await p.route(/mesonet\.agron\.iastate\.edu\/data\/gis\/images\/4326\/mrms\/lcref\.png/, () => {}); // never answers
     const t0 = Date.now(); await p.goto(HOST + "/threats.html?" + CVG + "&radar=1&view=active&scope=venue", { waitUntil: "domcontentloaded", timeout: 60000 }); await passNotice(p);
     await p.waitForFunction(() => window.__threats && window.__threats.radar && window.__threats.radar.via === "noaa" && window.__threats.radar.state === "ok", null, { timeout: 60000 }).catch(() => {});
