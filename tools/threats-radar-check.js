@@ -70,14 +70,21 @@ const read = (p) => p.evaluate(() => { const T = window.__threats, m = T.map, st
     /* the opacity slider (Layers → Radar): shows the percentage, moves the map at once, is remembered after a reload */
     { await p.locator("#txLayersBtn").click(); await p.waitForTimeout(400);
       const before = await p.evaluate(() => ({ shown: document.querySelector("[data-radar-op-val]").textContent, map: window.__threats.map.getPaintProperty("radar", "raster-opacity") }));
-      await p.locator("[data-radar-op]").fill("50"); await p.waitForTimeout(200);
+      const slider = p.locator("[data-radar-op]");
+      await slider.scrollIntoViewIfNeeded();
+      const track = await slider.boundingBox();
+      const y = track.y + track.height / 2;
+      await p.mouse.move(track.x + track.width * 0.625, y);
+      await p.mouse.down();
+      await p.mouse.move(track.x + track.width * 0.9, y, { steps: 8 });
+      await p.mouse.up();
       const moved = await p.evaluate(() => ({ shown: document.querySelector("[data-radar-op-val]").textContent, map: window.__threats.map.getPaintProperty("radar", "raster-opacity") }));
-      await p.screenshot({ path: path.join(OUT, "slider-desktop-50.png") });
+      await p.screenshot({ path: path.join(OUT, "slider-desktop-drag.png") });
       await p.reload({ waitUntil: "domcontentloaded" }); await passNotice(p);
       await p.waitForFunction(() => window.__threats && window.__threats.map && window.__threats.map.getLayer("radar"), null, { timeout: 90000 }).catch(() => {}); await p.waitForTimeout(2000);
       const kept = await p.evaluate(() => ({ shown: document.querySelector("[data-radar-op-val]").textContent, map: window.__threats.map.getPaintProperty("radar", "raster-opacity") }));
-      check(`(desktop) opacity slider: starts ${before.shown} (map ${before.map}); set to 50%: shows ${moved.shown}, map ${moved.map} at once; after a reload ${kept.shown} (map ${kept.map})`,
-        before.shown === "70%" && before.map === 0.7 && moved.shown === "50%" && moved.map === 0.5 && kept.shown === "50%" && kept.map === 0.5, { before, moved, kept });
+      check(`(desktop) opacity slider: starts ${before.shown} (map ${before.map}); dragged: shows ${moved.shown}, map ${moved.map} at once; after a reload ${kept.shown} (map ${kept.map})`,
+        before.shown === "70%" && before.map === 0.7 && moved.map >= 0.85 && moved.shown === Math.round(moved.map * 100) + "%" && kept.shown === moved.shown && kept.map === moved.map, { before, moved, kept });
       await p.evaluate(() => localStorage.removeItem("tx_radar_opacity")); }
     check("(desktop) no script errors", !errs.length, { errs }); await ctx.close(); }
   /* desktop, light; phone, light: screenshots and the same source */
