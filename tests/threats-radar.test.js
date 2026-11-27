@@ -58,6 +58,18 @@ function indexedPng(w, h, rows, filters, trns) {
     const t = R.renderTile(grid, R.palette(grid.alpha), 0, 0, 0, 64); let col = 0; for (let i = 3; i < t.length; i += 4) if (t[i]) col++;
     assert.ok(col > 0 && col < 64 * 64, col); assert.strictEqual(t[(0 * 64 + 0) * 4 + 3], 0); // the top-left corner is outside the grid
   });
+  await ok("refresh: a new IEM scan published during the download is fetched straight away, not treated as a failure", async () => {
+    const scans = ["2026-11-27T15:24:00Z", "2026-11-27T15:26:00Z", "2026-11-27T15:26:00Z"]; let j = 0; const got = [];
+    const meta = (t) => ({ meta: { start_valid: t, end_valid: t, product: "lcref", units: "0.5 dBZ" } });
+    const fetch = async (u) => { got.push(u.split(".").pop()); if (/json$/.test(u)) { const t = scans[Math.min(j++, scans.length - 1)]; return { ok: true, json: async () => meta(t) }; } return { ok: true, arrayBuffer: async () => new ArrayBuffer(8), text: async () => "0.01\n0\n0\n-0.01\n-129.995\n54.995" }; };
+    const c = R.createClient({ fetch }); let loaded = null;
+    globalThis.Worker = class { constructor() {} postMessage(m) { loaded = m; setTimeout(() => this.onmessage({ data: { id: m.id, ok: true, decodeMs: 1, width: 7000, height: 3500 } }), 0); } };
+    globalThis.URL.createObjectURL = () => "blob:x"; globalThis.performance = globalThis.performance || { now: () => Date.now() };
+    assert.strictEqual(await c.refresh(), true);
+    assert.strictEqual(c.state.scan, Date.parse("2026-11-27T15:26:00Z")); assert.strictEqual(c.state.turnovers, 1); assert.strictEqual(c.state.error, null);
+    assert.deepStrictEqual(got.filter((x) => x === "png").length, 2); assert.ok(loaded && loaded.type === "load");
+    delete globalThis.Worker;
+  });
   /* precipitation type: MRMS PrecipFlag, NOAA/NSSL's documented codes */
   const B = require("../tools/precipflag-grib.js");
   await ok("PrecipFlag codes: only NOAA's documented categories are drawn; no sleet or freezing-rain class is invented", () => {

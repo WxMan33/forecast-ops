@@ -49,7 +49,7 @@ const read = (p) => p.evaluate(() => { const T = window.__threats, m = T.map, st
   const lines = ["hu-state", "cnty-lines"].filter((id) => ids.includes(id)), act = st.layers.filter((l) => l.source === "active").map((l) => l.id), gi = ids.indexOf("gauge");
   const ps = T.ptypeStats, lg = document.querySelector("[data-lg=ptype]"), lr = document.querySelector("[data-lg=radar]"), fb = document.querySelector("[data-ptype-fallback]");
   const med = (a) => (a && a.length ? a.slice().sort((x, y) => x - y)[Math.floor(a.length / 2)] : null);
-  return { mode: T.radarMode(), via: r.via, state: r.state, valid: r.valid, ptFallback: r.ptFallback, ptError: r.ptError,
+  return { mode: T.radarMode(), via: r.via, state: r.state, valid: r.valid, ptFallback: r.ptFallback, ptError: r.ptError, iemError: r.iemError || null,
     order: { radar: ri, lines: lines.map((id) => [id, ids.indexOf(id)]), linesAbove: ri >= 0 && lines.length === 2 && lines.every((id) => ids.indexOf(id) > ri), warnings: act.length, warningsAbove: act.every((id) => ids.indexOf(id) > ri), gauge: gi, gaugeAbove: gi < 0 || gi > ri },
     paint: m.getLayer("radar") && { opacity: m.getPaintProperty("radar", "raster-opacity"), resampling: m.getPaintProperty("radar", "raster-resampling") },
     pt: ps && { scan: ps.scan, bytes: ps.bytes, downloadMs: ps.downloadMs, decodeMs: ps.decodeMs, size: ps.size, codes: ps.codes, unknown: ps.unknown, loads: ps.loads, tiles: ps.tileMs.length, tileMed: med(ps.tileMs), tileMax: ps.tileMs.length ? Math.max(...ps.tileMs) : null, error: ps.error },
@@ -164,6 +164,14 @@ const ptRoute = (gz, scanIso) => async (p) => {
     const z = await read(p); await p.evaluate(() => window.__threats.map.jumpTo({ center: [-84.7, 39.1], zoom: 6.6 })); await p.waitForTimeout(3000); await p.screenshot({ path: path.join(OUT, "recovery-390-2-ptype-back.png") });
     check(`(390 px) recovery without a reload: first ${a.via}${a.ptFallback ? " (fallback)" : ""} at ${a.paint && a.paint.opacity}, credit '${a.credit}'; when a fresh scan arrived: ${z.via}, fallback ${z.ptFallback}, opacity ${z.paint && z.paint.opacity} (${z.opShown}), legend ${z.legend.ptype ? "precipitation type" : "?"}, credit '${z.credit}'`,
       a.ptFallback && a.via === "iem" && a.paint.opacity === 0.4 && z.via === "ptype" && !z.ptFallback && z.paint.opacity === 0.4 && z.opShown === "40%" && z.legend.ptype && !z.legend.fallback && /^Precipitation type: NOAA MRMS PrecipFlag/.test(z.credit) && !/unavailable/.test(z.credit + z.row + z.note) && !errs.length, { a, z, errs });
+    await ctx.close(); }
+
+  /* ---- Reflectivity: IEM publishes a new scan while the page downloads its first one (seen once on 24ccf4e: NOAA fallback after
+     a reload); the page must fetch the new scan, not fall back ---- */
+  if (!ONLY) { const json = JSON.parse(Buffer.from(download(RD.BASE + ".json")).toString()), t0 = Date.parse(json.meta.start_valid); let n = 0;
+    const route = async (p) => p.route(/mrms\/lcref\.json/, (r) => { n++; const j = JSON.parse(JSON.stringify(json)); if (n >= 2) j.meta.start_valid = j.meta.end_valid = new Date(t0 + 120e3).toISOString().replace(".000Z", "Z"); r.fulfill({ status: 200, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: JSON.stringify(j) }); });
+    const { ctx, p, errs } = await open(b, DESKTOP, { mode: "refl", route }); const s = await read(p), turn = await p.evaluate(() => window.__threats.radarStats && window.__threats.radarStats.turnovers);
+    check(`(desktop) Reflectivity, a new IEM scan published mid-download on first load: drawn from ${s.via}, scan turnovers handled ${turn}, error ${s.iemError}`, s.via === "iem" && turn >= 1 && !s.iemError && !errs.length, { s, turn, errs });
     await ctx.close(); }
 
   /* ---- winter replay at CVG, both modes, desktop, 360 and 390, dark and light ---- */

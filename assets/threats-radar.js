@@ -219,10 +219,16 @@
     async function refresh() {
       if (loading) return loading;
       loading = (async () => {
-        const scan = parseMeta(await (await get("json")).json()); state.checkedAt = Date.now();
+        /* IEM publishes a new scan about every 2 minutes; if one lands while we download, download the new one straight away
+           (up to twice) rather than failing, which on a first load would have meant NOAA's fallback tiles for a minute */
+        let scan = parseMeta(await (await get("json")).json()), png, wld, t0; state.checkedAt = Date.now();
         if (state.scan === scan) return false;
-        const t0 = performance.now(), [png, wld] = await Promise.all([get("png").then((r) => r.arrayBuffer()), get("wld").then((r) => r.text())]);
-        if (parseMeta(await (await get("json")).json()) !== scan) throw Error("the MRMS scan changed during download; next refresh will retry");
+        for (let attempt = 0; ; attempt++) {
+          t0 = performance.now(); [png, wld] = await Promise.all([get("png").then((r) => r.arrayBuffer()), get("wld").then((r) => r.text())]);
+          const after = parseMeta(await (await get("json")).json()); if (after === scan) break;
+          if (attempt >= 2) throw Error("the MRMS scan kept changing during download; next refresh will retry");
+          scan = after; state.turnovers = (state.turnovers || 0) + 1;
+        }
         state.downloadMs = Math.round(performance.now() - t0); state.bytes = png.byteLength;
         ensureWorker(); const r = await call({ type: "load", png, world: parseWorldFile(wld) }, [png]);
         Object.assign(state, { scan, decodeMs: r.decodeMs, size: r.width + "x" + r.height, error: null }); state.loads++;
