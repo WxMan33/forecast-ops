@@ -1,0 +1,6 @@
+{
+ "request": 1,
+ "purpose": "Test 1: RRFS 12Z field-group ablation (gust, refl, updraft, env) against the full HRRR + 12Z RRFS model and the HRRR-only control, on the 92-date cache",
+ "rules": "research/severe/conus-v1/rrfs/retro/ABLATION.md",
+ "cache_run": 46035459501
+}

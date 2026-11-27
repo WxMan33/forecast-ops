@@ -145,6 +145,15 @@ def asinh_scales(x):
 
 # RRFS columns per arm: 12Z occupies columns 0-26; in the 06Z follow-up the cache adds 06Z as columns 27-53
 RRFS_COLS = {"rrfs": slice(0, 27), "rrfs06": slice(27, 54)}
+# Field-group ablation (research/severe/conus-v1/rrfs/retro/ABLATION.md): every one of the nine fields is in exactly
+# one group; each ablation arm drops one group's 3 predictors per field from the full 12Z set.
+GROUPS = {"gust": ("gust", "wind10max"), "refl": ("refc",), "updraft": ("uh25", "uh03", "maxuvv"),
+          "env": ("cape_sfc", "srh01", "shear06")}
+assert sorted(sum(GROUPS.values(), ())) == sorted(FIELDS)
+for _g, _fs in GROUPS.items():
+    RRFS_COLS[f"rrfs_no_{_g}"] = np.array([3 * i + j for i, f in enumerate(FIELDS) if f not in _fs for j in range(3)])
+ABL_ARMS = ("hrrr", "hrrr_rrfs") + tuple(f"hrrr_rrfs_no_{g}" for g in GROUPS)
+ABL_PAIRS = tuple((f"hrrr_rrfs_no_{g}", "hrrr_rrfs") for g in GROUPS) + (("hrrr_rrfs", "hrrr"),)
 
 
 def design(arm, xh, xr, names, sc):
@@ -310,13 +319,17 @@ def score(a):
     log_lines = []
     def log(s):
         print(s, flush=True); log_lines.append(s)
-    arms = ("hrrr", "rrfs", "hrrr_rrfs") if a.cycle == 12 else ("hrrr", "hrrr_rrfs", "hrrr_rrfs06")
+    if a.experiment == "ablation":
+        arms, pairs = ABL_ARMS, ABL_PAIRS
+    else:
+        arms, pairs = (("hrrr", "rrfs", "hrrr_rrfs"), PAIRS) if a.cycle == 12 else (("hrrr", "hrrr_rrfs", "hrrr_rrfs06"), PAIRS06)
     P, folds, reg_all, pos = run_comparison(D, names, arms, log)
-    res = summarize(D, P, folds, reg_all, pos, arms, list(REGIONS), PAIRS if a.cycle == 12 else PAIRS06)
+    res = summarize(D, P, folds, reg_all, pos, arms, list(REGIONS), pairs)
     dropped = [r for r in man["dates"] if r["status"] != "ok"]
     if a.cycle == 6:
         dropped += [{"date": r["date"], "status": "dropped", "reason": f"06Z {r['rrfs']['06z']}"} for r in man["dates"] if r["status"] == "ok" and r["rrfs"]["06z"] != "ok"]
-    out = {"rules": "research/severe/conus-v1/rrfs/retro/" + ("RULES.md" if a.cycle == 12 else "FOLLOWUP-06Z.md"), "rrfs_cycle": f"{a.cycle:02d}z", "arms": list(arms),
+    out = {"rules": "research/severe/conus-v1/rrfs/retro/" + ("ABLATION.md" if a.experiment == "ablation" else "RULES.md" if a.cycle == 12 else "FOLLOWUP-06Z.md"),
+           "experiment": a.experiment, "groups": GROUPS if a.experiment == "ablation" else None, "rrfs_cycle": f"{a.cycle:02d}z", "arms": list(arms),
            "recipe": {"model": "sklearn LogisticRegression (L2, lbfgs)", "C": C_REG, "scaling": "asinh(x / training median |x|) per source, then StandardScaler, fit on training blocks only",
                       "hrrr_predictors": "phase2_study.engineer on the cached HRRR raw predictors", "rrfs_predictors": "27 per cycle = 9 fields x (nbhdmax24, nbhdmax18, mean24)"},
            "folds": {b: {k: v for k, v in f.items()} for b, f in folds.items()}, "dropped_dates": dropped,
@@ -335,6 +348,22 @@ def render(o):
     R = o["results"]
     L = [f"# Retrospective RRFS pilot scorecard ({o['rrfs_cycle']} RRFS, Day 2 damaging wind)", "",
          f"Scored dates: {o['scored_dates']}; dropped: {len(o['dropped_dates'])}. Rules: `{o['rules']}`.", ""]
+    if o.get("experiment") == "ablation":
+        L += ["## Cost of dropping each group (drop-one minus full HRRR + RRFS; positive Brier / negative hits = the group helps)", "",
+              "| Scope | Region | Group | Brier | Hits, training threshold (pts) | Hits, equal area, diagnostic (pts) | Fcst/obs |", "|---|---|---|---|---|---|---|"]
+        for scope in ["all_blocks"] + [b for b in BLOCKS if b in R]:
+            for region in ("national", FL):
+                r = R[scope][region]
+                if "paired" not in r:
+                    continue
+                for g in o["groups"]:
+                    v = r["paired"][f"hrrr_rrfs_no_{g}_minus_hrrr_rrfs"]
+                    b, h, e = v["brier"], v["deployable_hit_fraction"], v["diagnostic_equal_area_hit_fraction"]
+                    L.append(f"| {scope} | {region} | {g} | {b['estimate']:+.6f} [{b['ci95'][0]:+.6f}, {b['ci95'][1]:+.6f}] | "
+                             f"{100*h['estimate']:+.1f} [{100*h['ci95'][0]:+.1f}, {100*h['ci95'][1]:+.1f}] | "
+                             f"{100*e['estimate']:+.1f} [{100*e['ci95'][0]:+.1f}, {100*e['ci95'][1]:+.1f}] | "
+                             f"{r['arms'][f'hrrr_rrfs_no_{g}']['forecast_to_observed_ratio']:.2f} (full {r['arms']['hrrr_rrfs']['forecast_to_observed_ratio']:.2f}) |")
+        L.append("")
     for scope in ["all_blocks"] + [b for b in BLOCKS if b in R]:
         for region in ("national", FL):
             r = R[scope][region]
@@ -368,6 +397,7 @@ def main():
     s = sub.add_parser("score")
     s.add_argument("--cache", required=True)
     s.add_argument("--cycle", type=int, default=12, choices=[12, 6])
+    s.add_argument("--experiment", default="first", choices=["first", "ablation"])
     s.add_argument("--output", required=True)
     a = p.parse_args()
     {"cache": cache, "score": score}[a.cmd](a)
