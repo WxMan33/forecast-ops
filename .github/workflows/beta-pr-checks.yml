@@ -64,6 +64,8 @@ jobs:
         run: node tools/almanac-daily-check.js /tmp/almanac-daily
       - name: Forecast record potential on Model Blend (synthetic forecast and records; phone and desktop; light and dark; market switch)
         run: node tools/record-potential-check.js /tmp/record-potential
+      - name: Forecast record potential on a real recorded Blend load (CVG, Nov 27 2026; replayed offline)
+        run: node tools/record-potential-replay-check.js /tmp/record-potential-replay
       - name: Whole-site layout sweep (every page; phone and desktop; light and dark; simulated network)
         run: node tools/site-sweep-check.js /tmp/site-sweep
       - name: Keep the screenshots

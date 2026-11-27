@@ -12,6 +12,8 @@ A card at the top of the main column (also shown in the decision-briefing view) 
 - **Hidden** when nothing is meaningful; cleared at once when the location changes, and redrawn only for the forecast of the current point.
 - Thresholds are display choices, not probabilities. The card is labelled "Forecast record potential" and never calls anything an observed record.
 
+Real-data check: `node tools/record-potential-replay-check.js` replays a real recorded Blend load for CVG (Nov 27, 2026: NWS, RCC-ACIS records, the site's trend feeds; `tests/fixtures/blend/cvg-real-20261127.json.gz`) after both the forecast and the records have loaded. All real, no day is near a record (nearest: Nov 28 low 34°F against a 55°F warm low; Nov 29 0.51 in against a 0.86 in record), so the card stays hidden. With one labelled edit, the Nov 29 record history lowered so the record high sits 1°F above the real 51°F blend high, the card shows exactly that candidate. Only CVG has saved model runs; other cities need Open-Meteo directly, which was rate-limiting during recording.
+
 Validation: `node tests/record-watch.test.js` (51 checks, including the potential rules) and `node tools/record-potential-check.js` (synthetic forecast from `tests/fixtures/source-sim.js`, synthetic NWS snowfall and synthetic records placed at, just above or below the simulated values; phone and desktop, light and dark; model-snow-only; a market with no candidates; switching markets).
 
 ## Daily table badges
@@ -29,5 +31,7 @@ An informational heads-up beside the daily low/high, with no change to source da
 - Details are a click/tap disclosure, with hover text and keyboard support. Button events do not toggle the underlying forecast-day row. Multiple disclosures can remain open.
 
 WPC's NDFD records page (https://www.wpc.ncep.noaa.gov/exper/ndfd/ndfd.html) independently compares NDFD guidance to ThreadEx records. These badges instead compare this site's displayed blend directly to RCC-ACIS records; they do not claim to reproduce WPC's forecast or ingest its graphics.
+
+Real-data check: `node tools/record-potential-replay-check.js` replays a real recorded Blend load for CVG (Nov 27, 2026: NWS, RCC-ACIS records, the site's trend feeds; `tests/fixtures/blend/cvg-real-20261127.json.gz`) after both the forecast and the records have loaded. All real, no day is near a record (nearest: Nov 28 low 34°F against a 55°F warm low; Nov 29 0.51 in against a 0.86 in record), so the card stays hidden. With one labelled edit, the Nov 29 record history lowered so the record high sits 1°F above the real 51°F blend high, the card shows exactly that candidate. Only CVG has saved model runs; other cities need Open-Meteo directly, which was rate-limiting during recording.
 
 Validation: `node tests/record-watch.test.js` checks captured official Cincinnati records and all four directions, thresholds, missing inputs, partial days and location gating. Browser QA uses synthetic forecast values with the captured records so potential ties/exceedances can be tested without claiming an actual record threat.
