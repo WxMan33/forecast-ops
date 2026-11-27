@@ -19,7 +19,7 @@ const CIN_WORDS = /Cincinnati|CVG|Thanksgiving/, DEN_WORDS = /Denver/, COL_WORDS
 const COL1953 = `${COL}&date=1953-09-02#insights`;
 /* a place without a pack: real RCC-ACIS and api.weather.gov answers for Columbus on Sep 2 1953, recorded once and replayed
    (matched by method, URL and body), so the Almanac's station-history fallback runs offline */
-const FIX = JSON.parse(fs.readFileSync(path.join(here, 'tests/fixtures/records/columbus-1953-almanac.json'), 'utf8')).requests;
+const FIX = ['columbus-1953-almanac.json', 'almanac-spotlight.json'].flatMap((f) => JSON.parse(fs.readFileSync(path.join(here, 'tests/fixtures/records', f), 'utf8')).requests);
 const replay = async (r, u) => { const q = r.request(), hit = FIX.find((x) => x.method === q.method() && x.url === q.url() && (x.body || '') === (q.postData() || ''));
   if (!hit) return false; await r.fulfill({ status: 200, contentType: hit.type || 'application/json', headers: { 'access-control-allow-origin': '*' }, body: hit.text }); return true; };
 async function open(b, srv, page, { clock, vp = { width: 1366, height: 900 }, theme = 'light', route = null }) {
@@ -112,6 +112,43 @@ const card = (p, id) => p.evaluate((id) => { const h = document.getElementById(i
       check(!dn.hidden && !COL_WORDS.test(dn.text) && !CIN_WORDS.test(dn.text) && dn.chips.join() === 'final' && !/Archive confirmation unavailable|Preliminary/.test(dn.text), 'Columbus/Cincinnati/Denver switch: Denver Oct 6 shows only its own archive-confirmed findings (Observed record)');
       check(!c2.hidden && c2.items.join() === c1.items.join() && !CIN_WORDS.test(c2.text.split('Daily records only for this place')[0]) && !DEN_WORDS.test(c2.text.split('Daily records only for this place')[0]) && c2.text.includes('Daily records only for this place') && c2.chips.join() === 'unconfirmed' && !errors.length, `Columbus/Cincinnati/Denver switch: back to Columbus, the same 1953 finding and label, no Cincinnati or Denver facts ${errors.join('; ')}`);
       await ctx.close(); }
+    /* Record Spotlight at the top of Almanac, with the climate table replayed from recorded real responses */
+    const spotOf = (p) => p.evaluate(() => { const h = document.getElementById('recSpot'), t = document.querySelector('#climCard table');
+      return { hidden: h.hidden, text: h.innerText.replace(/\s+/g, ' '), heads: [...h.querySelectorAll('.spot-h')].map((e) => e.firstChild.textContent.trim()), chips: [...h.querySelectorAll('.spot-item .rec-status')].map((e) => e.dataset.status),
+        links: [...h.querySelectorAll('a')].map((a) => a.getAttribute('href')), above: !!t && h.getBoundingClientRect().top < t.getBoundingClientRect().top, table: !!t,
+        badges: [...document.querySelectorAll('#climCard .rec-badge')].map((b) => `${b.closest('tr').dataset.climoRow}:${b.textContent}`), hs: document.documentElement.scrollWidth > innerWidth + 1 }; });
+    const openSpot = async (q, { clock = '2026-11-27T15:00:00Z', vp, theme } = {}) => { const o = await open(b, srv, `almanac.html?${q}`, { clock, vp, theme, route: replay });
+      await o.p.waitForFunction(() => document.querySelector('#climCard table'), null, { timeout: 20000 }).catch(() => {}); await o.p.waitForTimeout(800); return o; };
+    for (const [dev, vp, theme] of [['desktop', { width: 1366, height: 900 }, 'light'], ['desktop', { width: 1366, height: 900 }, 'dark'], ['phone', { width: 375, height: 667 }, 'light'], ['phone', { width: 375, height: 667 }, 'dark']]) {
+      const L = `Spotlight ${dev} ${theme}:`;
+      { const { ctx, p, errors } = await openSpot(`${CVG}&date=2026-11-26`, { vp, theme }), c = await spotOf(p);
+        check(!c.hidden && c.heads[0] === 'New Nov 26 rainfall record' && c.chips[0] === 'preliminary' && /2\.16 in at CVG, beating the previous record of 1\.49 in set in 1946\./.test(c.text) && c.above, `${L} CVG Nov 26 leads with the new rainfall record, value, previous record and year, Preliminary, above the climate table`);
+        check(/Holiday ranking .*2nd wettest Thanksgiving in the Cincinnati Area record.*separate comparison from the calendar-day record/.test(c.text) && c.heads.length === 1, `${L} the Thanksgiving ranking is a separate line, not a second record`);
+        check(c.badges.join() === 'pcpn:New record' && !c.hs && !errors.length, `${L} the Daily total precipitation row carries a "New record" text badge (${c.badges.join(', ')}); no sideways scroll or page errors ${errors.join('; ')}`);
+        await p.locator('#recSpot').screenshot({ path: path.join(out, `spotlight-cvg-1126-${dev}-${theme}.png`) });
+        if (dev === 'desktop' && theme === 'light') await p.locator('#climCard tr.rec-row').screenshot({ path: path.join(out, 'spotlight-cvg-1126-row.png') });
+        await ctx.close(); }
+      { const { ctx, p, errors } = await openSpot(CVG, { vp, theme }), c = await spotOf(p);
+        check(!c.hidden && c.heads[0] === 'Yesterday broke an 80-year-old rainfall record' && c.chips[0] === 'preliminary' && /2\.16 in at CVG on Nov 26\./.test(c.text) && c.links.some((h) => /date=2026-11-26.*#climo-pcpn$/.test(h)) && !c.badges.length && !errors.length, `${L} today (Nov 27) surfaces yesterday's record with its date and a link to that table row; today's table has no badge`);
+        await p.locator('#recSpot').screenshot({ path: path.join(out, `spotlight-cvg-1127-${dev}-${theme}.png`) });
+        if (dev === 'phone' && theme === 'dark') { await p.click('#recSpot a.spot-link'); await p.waitForFunction(() => document.querySelector('#climCard tr.rec-row'), null, { timeout: 20000 }).catch(() => {}); await p.waitForTimeout(1200);
+          const r = await p.evaluate(() => { const tr = document.querySelector('#climCard tr.rec-row'); if (!tr) return null; const b = tr.getBoundingClientRect(); return { row: tr.dataset.climoRow, url: location.search + location.hash, inView: b.top >= 0 && b.bottom <= innerHeight, badge: tr.querySelector('.rec-badge')?.textContent }; });
+          check(r && r.row === 'pcpn' && /date=2026-11-26/.test(r.url) && r.inView && r.badge === 'New record', `${L} the link opens Nov 26 with the badged Daily total row in view (${JSON.stringify(r)})`);
+          await p.screenshot({ path: path.join(out, 'spotlight-link-landing-phone-dark.png') }); }
+        await ctx.close(); }
+    }
+    { const { ctx, p, errors } = await openSpot(`${DEN}&date=2026-10-06`), c = await spotOf(p);
+      check(!c.hidden && c.heads.join(' | ') === 'New Oct 6 record warm low | Tied the Oct 6 record high' && c.chips.join() === 'final,final' && /59°F at DEN, beating the previous record of 55°F set in 1947\./.test(c.text) && /87°F at DEN, tying the record set in 1975 and 2020\./.test(c.text) && !CIN_WORDS.test(c.text), 'Spotlight Denver Oct 6: the new warm low and the tied high, both Observed record');
+      check(c.badges.sort().join() === 'maxt:Tied record,mint:New record warm low' && !errors.length, `Spotlight Denver Oct 6: badges name which record on each row (${c.badges.join(', ')})`);
+      await p.locator('#recSpot').screenshot({ path: path.join(out, 'spotlight-den-1006.png') }); await ctx.close(); }
+    { const { ctx, p, errors } = await openSpot(`${CVG}&date=2026-11-22`), c = await spotOf(p);
+      check(c.hidden && !c.badges.length && c.table && !errors.length, 'Spotlight ordinary day (CVG Nov 22): no Spotlight and no badge; the climate table renders'); await ctx.close(); }
+    { const { ctx, p, errors } = await openSpot(COL1953.replace('#insights', '')), c = await spotOf(p);
+      check(!c.hidden && c.heads[0] === 'New Sep 2 record high' && c.chips[0] === 'unconfirmed' && /100°F at CMH, beating the previous record of 94°F set in 1913\./.test(c.text) && c.badges.join() === 'maxt:New record' && !errors.length, `Spotlight Columbus Sep 2 1953 (no pack): Archive confirmation unavailable, row badged (${c.badges.join(', ')})`);
+      await p.locator('#recSpot').screenshot({ path: path.join(out, 'spotlight-columbus-1953.png') }); await ctx.close(); }
+    /* moving to another day or place in the page clears the Spotlight and the badge: nothing carries over */
+    { const { ctx, p, errors } = await openSpot(`${CVG}&date=2026-11-26`); await p.click('#prevDay'); await p.waitForTimeout(3500); const c = await spotOf(p);
+      check(c.hidden && !c.badges.length && !errors.length, `Spotlight: Nov 26 to Nov 25 with the date arrows clears the Spotlight and the row badge (${c.badges.join(', ')})`); await ctx.close(); }
     /* a stale pack (the refresh has been failing): the findings stay, with how old they are */
     { const old = (u) => { const j = JSON.parse(fs.readFileSync(path.join(here, u.pathname.slice(1)), 'utf8')); j.generated = '2026-11-24T12:00:00Z'; return JSON.stringify(j); };
       const { ctx, p, errors } = await open(b, srv, `almanac.html?${CVG}&date=2026-11-26#insights`, { clock: '2026-11-27T15:00:00Z', route: async (r, u) => (u.pathname.endsWith('/cvg.json') ? (await r.fulfill({ status: 200, contentType: 'application/json', body: old(u) }), true) : false) });

@@ -79,5 +79,57 @@
     if (location.hash === "#insights") host.scrollIntoView({ block: "start" });
     return { date, items };
   }
-  root.RecordsUI = { packFor, overview, almanac };
+
+  /* Record Spotlight (Almanac, above the climate table): what the selected date broke or tied, in words, with the observed
+     value, the previous record and year, and the status; on today's sheet, a record set yesterday, with its date and a
+     link to that row of yesterday's climate table. Uses the same findings as the section below (records pack, or the
+     station-history fallback), so market selection and archive-confirmation rules are the same. Ranks that didn't break
+     or tie a record, holiday rankings and context never lead here; a holiday ranking can follow as its own line. */
+  const sDay = (d) => new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
+  const an = (n) => (/^(8|11|18)$/.test(String(n)) || /^8\d$/.test(String(n)) || /^8\d\d$/.test(String(n)) ? "an" : "a");
+  const RECWORD = { pcpn: "rainfall record", snow: "snowfall record", hiMax: "record high", loMin: "record low", hiMin: "record warm low", loMax: "record cold high" };
+  const isRecord = (it) => it.fact && (it.fact.outcome === "new" || it.fact.outcome === "tie");
+  async function itemsFor(pack, date, calendarDay) {
+    if (pack && pack.days && pack.days[date]) return pack.days[date].items;
+    if (pack && date >= addDays(pack.through, -(pack.windowDays || 7) + 1) && date <= pack.through) return []; // the pack looked at this day and found nothing
+    if (calendarDay && root.RecordsEngine) { try { return root.RecordsEngine.findings({ market: calendarDay.market, date, S: calendarDay.S, status: () => calendarDay.status || "unconfirmed", scope: "calendarDay" }).items; } catch (e) { return []; } }
+    return [];
+  }
+  const badgeText = (f) => (f.outcome === "tie" ? "Tied record" : "New record") + (f.el === "hiMin" ? " warm low" : f.el === "loMax" ? " cold high" : "");
+  async function spotlight(host, { lat, lon, date, today, calendarDay = null, where = "", rowHref = null } = {}) {
+    if (!host) return null; forPlace(host, lat, lon); const my = (host._seq = (host._seq || 0) + 1);
+    const pack = await packFor(lat, lon); if (my !== host._seq) return null;
+    const stn = (pack && pack.market.normals && pack.market.normals.sid) || where || "";
+    const at = stn ? ` at ${stn}` : "";
+    let html = "", marks = [];
+    const sel = (await itemsFor(pack, date, calendarDay)).filter(isRecord);
+    if (sel.length) {
+      const all = pack && pack.days && pack.days[date] ? pack.days[date].items : [], hol = all.find((i) => /^hol-/.test(i.id));
+      marks = sel.map((it) => ({ row: it.fact.row, text: badgeText(it.fact), status: it.status }));
+      html = sel.slice(0, 3).map((it, k) => { const f = it.fact;
+        const head = f.outcome === "new" ? `New ${sDay(date)} ${RECWORD[f.el]}` : `Tied the ${sDay(date)} ${RECWORD[f.el]}`;
+        const line = f.outcome === "new" ? `<b>${esc(f.v)}</b>${esc(at)}, beating the previous record of <b>${esc(f.pv)}</b> set in ${esc(f.yrs)}.` : `<b>${esc(f.v)}</b>${esc(at)}, tying the record set in ${esc(f.yrs)}.`;
+        return `<div class="spot-item${k ? " spot-more" : ""}" data-id="${esc(it.id)}"><h2 class="spot-h">${esc(head)} ${chip(it)}</h2><p class="spot-line">${line}</p>` +
+          `<a class="spot-link" href="#climo-${esc(f.row)}" data-row="${esc(f.row)}">Find it in the climate table ↓</a></div>`; }).join("") +
+        (hol ? `<p class="spot-aside" data-id="${esc(hol.id)}"><b>Holiday ranking</b> ${chip(hol)} ${esc(hol.head.replace(/ on record$/, ""))} in the ${esc(pack.market.record.name)} record, ranked against each year's own holiday date. This is a separate comparison from the calendar-day record above.</p>` : "");
+    } else if (today && date === today && pack) {
+      const y = addDays(today, -1), yi = ((pack.days && pack.days[y] && pack.days[y].items) || []).filter(isRecord);
+      if (yi.length) { const it = yi.slice().sort((a, b) => b.score - a.score)[0], f = it.fact, more = yi.length - 1;
+        const head = f.outcome === "new" ? `Yesterday broke ${f.age >= 2 ? `${an(f.age)} ${f.age}-year-old` : "a"} ${RECWORD[f.el]}` : `Yesterday tied the ${sDay(y)} ${RECWORD[f.el]}`;
+        const href = rowHref ? rowHref(y, f.row) : `#climo-${f.row}`;
+        html = `<div class="spot-item" data-id="${esc(it.id)}" data-date="${esc(y)}"><h2 class="spot-h">${esc(head)} ${chip(it)}</h2><p class="spot-line"><b>${esc(f.v)}</b>${esc(at)} on ${esc(sDay(y))}${more ? `, and ${more} more record${more > 1 ? "s" : ""} that day` : ""}. <a class="spot-link" href="${esc(href)}">View yesterday's climate report →</a></p></div>`; }
+    }
+    if (!html) { host.hidden = true; host.innerHTML = ""; host.dataset.records = "none"; return { date, marks: [] }; }
+    host.innerHTML = `<div class="spot-kick"><span class="spot-star" aria-hidden="true">★</span> Record Spotlight</div>${html}`;
+    host.hidden = false; host.dataset.records = date;
+    host.querySelectorAll("a[data-row]").forEach((a) => a.addEventListener("click", (e) => { const r = document.getElementById(`climo-${a.dataset.row}`); if (r) { e.preventDefault(); r.scrollIntoView({ block: "center" }); history.replaceState(null, "", `${location.pathname}${location.search}#climo-${a.dataset.row}`); } }));
+    return { date, marks };
+  }
+  /* the climate table's rows for a record: a text badge beside the row's name (readable without colour) */
+  function markRows(table, marks) {
+    if (!table) return; table.querySelectorAll(".rec-badge").forEach((b) => b.remove()); table.querySelectorAll("tr.rec-row").forEach((r) => r.classList.remove("rec-row"));
+    (marks || []).forEach((m) => { const tr = table.querySelector(`tr[data-climo-row="${m.row}"]`); if (!tr) return; tr.classList.add("rec-row"); const th = tr.querySelector("th"); if (!th) return; const sm = th.querySelector("small"), badge = `<span class="rec-badge" data-status="${esc(m.status)}">${esc(m.text)}</span>`;
+      if (sm) sm.insertAdjacentHTML("beforebegin", badge); else th.insertAdjacentHTML("beforeend", badge); });
+  }
+  root.RecordsUI = { packFor, overview, almanac, spotlight, markRows };
 })(typeof globalThis !== "undefined" ? globalThis : this);

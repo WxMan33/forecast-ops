@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "id": "cvg",
- "generated": "2026-11-27T15:54:27.125Z",
+ "generated": "2026-11-27T16:08:34.080Z",
  "through": "2026-11-26",
  "windowDays": 60,
  "finalThrough": "2026-11-15",
@@ -44,6 +44,18 @@
    "items": [
     {
      "id": "rec-hiMax",
+     "fact": {
+      "el": "hiMax",
+      "row": "maxt",
+      "outcome": "none",
+      "rank": 2,
+      "v": "88°F",
+      "pv": "95°F",
+      "yrs": "2019",
+      "age": 7,
+      "record": "record high",
+      "noun": "high"
+     },
      "short": "88°F; the record is 95°F (2019).",
      "score": 30.7,
      "status": "final",
@@ -67,6 +79,18 @@
    "items": [
     {
      "id": "rec-hiMax",
+     "fact": {
+      "el": "hiMax",
+      "row": "maxt",
+      "outcome": "new",
+      "rank": 1,
+      "v": "89°F",
+      "pv": "88°F",
+      "yrs": "1928",
+      "age": 98,
+      "record": "record high",
+      "noun": "high"
+     },
      "short": "89°F, breaking 88°F from 1928.",
      "score": 109.8,
      "status": "final",
@@ -90,6 +114,18 @@
    "items": [
     {
      "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "tie",
+      "rank": 1,
+      "v": "68°F",
+      "pv": "68°F",
+      "yrs": "1879",
+      "age": 147,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
      "short": "68°F, tying 1879.",
      "score": 95,
      "status": "final",
@@ -105,6 +141,18 @@
     },
     {
      "id": "rec-hiMax",
+     "fact": {
+      "el": "hiMax",
+      "row": "maxt",
+      "outcome": "none",
+      "rank": 3,
+      "v": "84°F",
+      "pv": "87°F",
+      "yrs": "1897",
+      "age": 129,
+      "record": "record high",
+      "noun": "high"
+     },
      "short": "84°F; the record is 87°F (1897).",
      "score": 35,
      "status": "final",
@@ -129,6 +177,18 @@
    "items": [
     {
      "id": "rec-hiMax",
+     "fact": {
+      "el": "hiMax",
+      "row": "maxt",
+      "outcome": "none",
+      "rank": 3,
+      "v": "78°F",
+      "pv": "81°F",
+      "yrs": "1946",
+      "age": 80,
+      "record": "record high",
+      "noun": "high"
+     },
      "short": "78°F; the record is 81°F (1946).",
      "score": 33,
      "status": "final",
@@ -144,6 +204,18 @@
     },
     {
      "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "none",
+      "rank": 3,
+      "v": "56°F",
+      "pv": "62°F",
+      "yrs": "1977",
+      "age": 49,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
      "short": "56°F; the record is 62°F (1977).",
      "score": 29.9,
      "status": "final",
@@ -167,6 +239,18 @@
    "items": [
     {
      "id": "rec-pcpn",
+     "fact": {
+      "el": "pcpn",
+      "row": "pcpn",
+      "outcome": "none",
+      "rank": 3,
+      "v": "1.00 in",
+      "pv": "1.66 in",
+      "yrs": "1936",
+      "age": 90,
+      "record": "rainfall record",
+      "noun": "rain"
+     },
      "short": "1.00 in; the record is 1.66 in (1936).",
      "score": 34,
      "status": "final",
@@ -182,6 +266,18 @@
     },
     {
      "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "none",
+      "rank": 3,
+      "v": "59°F",
+      "pv": "61°F",
+      "yrs": "2024",
+      "age": 2,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
      "short": "59°F; the record is 61°F (2024).",
      "score": 25.2,
      "status": "final",
@@ -205,6 +301,18 @@
    "items": [
     {
      "id": "rec-pcpn",
+     "fact": {
+      "el": "pcpn",
+      "row": "pcpn",
+      "outcome": "new",
+      "rank": 1,
+      "v": "2.16 in",
+      "pv": "1.49 in",
+      "yrs": "1946",
+      "age": 80,
+      "record": "rainfall record",
+      "noun": "rain"
+     },
      "short": "2.16 in, breaking 1.49 in from 1946.",
      "score": 108,
      "status": "preliminary",

@@ -68,6 +68,17 @@ Forecast Ops finds the notable weather story for the selected market. **Overview
 
 These are fixed in `tests/records-engine.test.js` from a real ACIS snapshot (`tests/fixtures/records/cvg-november.json`).
 
+## Record Spotlight (Almanac, top)
+
+A card above the climate table that says what the selected date did, in words, so nobody has to compare 2.16 with 1.49 themselves. It uses the same findings as "Historical Insights & Fun Facts" (the records pack, or the station-history fallback), so market selection and archive-confirmation rules are the same.
+
+- **The selected date broke or tied a record:** it leads with that. For example "New Nov 26 rainfall record", then "2.16 in at CVG, beating the previous record of 1.49 in set in 1946", with the status badge. Ties read "Tied the Oct 6 record high: 87°F at DEN, tying the record set in 1975 and 2020". Up to three records. Ranks that didn't break or tie a record never lead.
+- **Holiday ranking** (packs only) follows as its own line, marked as a separate comparison from the calendar-day record, with its own status.
+- **Today's sheet:** if yesterday (in the market's time zone) broke or tied a record in the pack, for example "Yesterday broke an 80-year-old rainfall record", with "2.16 in at CVG on Nov 26" and a link to that row of yesterday's climate table (`almanac.html?...&date=2026-11-26#climo-pcpn`).
+- **Climate table:** the matching row gets a text badge beside its name ("New record", "Tied record", "New record warm low", "New record cold high"), so it works without colour. Warm-low and cold-high badges name the record, because the table's Record column shows the record low and record high.
+- **Hidden** on ordinary days. Changing the date or place clears the card and the badge before anything new loads.
+- **Checks:** `tools/records-check.js` replays recorded real responses (`tests/fixtures/records/almanac-spotlight.json`) for CVG Nov 26, CVG Nov 27 (today), Denver Oct 6, CVG Nov 22 (ordinary) and Columbus Sep 2, 1953 (no pack), on phone and desktop, light and dark.
+
 ## Data flow and caching
 
 - **Packs:** `tools/build-insights.js` reads each market's full daily record from RCC-ACIS once, plus normals and NCEI status. It writes `feeds/insights/<id>.json` (about 4 KB) and `feeds/insights/index.json`.

@@ -1,7 +1,7 @@
 {
  "schema": 2,
  "id": "den",
- "generated": "2026-11-27T15:54:29.972Z",
+ "generated": "2026-11-27T16:08:37.079Z",
  "through": "2026-11-26",
  "windowDays": 60,
  "finalThrough": "2026-11-15",
@@ -44,6 +44,18 @@
    "items": [
     {
      "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "tie",
+      "rank": 1,
+      "v": "59°F",
+      "pv": "59°F",
+      "yrs": "1931",
+      "age": 95,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
      "short": "59°F, tying 1931.",
      "score": 94.5,
      "status": "final",
@@ -67,6 +79,18 @@
    "items": [
     {
      "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "tie",
+      "rank": 1,
+      "v": "55°F",
+      "pv": "55°F",
+      "yrs": "1920 and 1947",
+      "age": 79,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
      "short": "55°F, tying 1920 and 1947.",
      "score": 92.9,
      "status": "final",
@@ -82,6 +106,18 @@
     },
     {
      "id": "rec-hiMax",
+     "fact": {
+      "el": "hiMax",
+      "row": "maxt",
+      "outcome": "tie",
+      "rank": 1,
+      "v": "87°F",
+      "pv": "87°F",
+      "yrs": "2024",
+      "age": 2,
+      "record": "record high",
+      "noun": "high"
+     },
      "short": "87°F, tying 2024.",
      "score": 85.2,
      "status": "final",
@@ -106,6 +142,18 @@
    "items": [
     {
      "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "new",
+      "rank": 1,
+      "v": "59°F",
+      "pv": "55°F",
+      "yrs": "1947",
+      "age": 79,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
      "short": "59°F, breaking 55°F from 1947.",
      "score": 107.9,
      "status": "final",
@@ -121,6 +169,18 @@
     },
     {
      "id": "rec-hiMax",
+     "fact": {
+      "el": "hiMax",
+      "row": "maxt",
+      "outcome": "tie",
+      "rank": 1,
+      "v": "87°F",
+      "pv": "87°F",
+      "yrs": "1975 and 2020",
+      "age": 6,
+      "record": "record high",
+      "noun": "high"
+     },
      "short": "87°F, tying 1975 and 2020.",
      "score": 85.6,
      "status": "final",
@@ -145,6 +205,18 @@
    "items": [
     {
      "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "new",
+      "rank": 1,
+      "v": "59°F",
+      "pv": "54°F",
+      "yrs": "1930, 1934 and 1954",
+      "age": 72,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
      "short": "59°F, breaking 54°F from 1930, 1934 and 1954.",
      "score": 107.2,
      "status": "final",
@@ -160,6 +232,18 @@
     },
     {
      "id": "rec-hiMax",
+     "fact": {
+      "el": "hiMax",
+      "row": "maxt",
+      "outcome": "none",
+      "rank": 3,
+      "v": "84°F",
+      "pv": "85°F",
+      "yrs": "1910 and 2020",
+      "age": 6,
+      "record": "record high",
+      "noun": "high"
+     },
      "short": "84°F; the record is 85°F (1910 and 2020).",
      "score": 25.6,
      "status": "final",
@@ -183,6 +267,18 @@
    "items": [
     {
      "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "new",
+      "rank": 1,
+      "v": "56°F",
+      "pv": "55°F",
+      "yrs": "1954 and 2020",
+      "age": 6,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
      "short": "56°F, breaking 55°F from 1954 and 2020.",
      "score": 100.6,
      "status": "final",
@@ -198,6 +294,18 @@
     },
     {
      "id": "rec-hiMax",
+     "fact": {
+      "el": "hiMax",
+      "row": "maxt",
+      "outcome": "none",
+      "rank": 2,
+      "v": "86°F",
+      "pv": "87°F",
+      "yrs": "1910",
+      "age": 116,
+      "record": "record high",
+      "noun": "high"
+     },
      "short": "86°F; the record is 87°F (1910).",
      "score": 40,
      "status": "final",
@@ -222,6 +330,18 @@
    "items": [
     {
      "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "new",
+      "rank": 1,
+      "v": "57°F",
+      "pv": "56°F",
+      "yrs": "1928",
+      "age": 98,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
      "short": "57°F, breaking 56°F from 1928.",
      "score": 109.8,
      "status": "final",
@@ -245,6 +365,18 @@
    "items": [
     {
      "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "tie",
+      "rank": 1,
+      "v": "57°F",
+      "pv": "57°F",
+      "yrs": "1881",
+      "age": 145,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
      "short": "57°F, tying 1881.",
      "score": 95,
      "status": "final",
@@ -260,6 +392,18 @@
     },
     {
      "id": "rec-hiMax",
+     "fact": {
+      "el": "hiMax",
+      "row": "maxt",
+      "outcome": "none",
+      "rank": 2,
+      "v": "85°F",
+      "pv": "87°F",
+      "yrs": "2015",
+      "age": 11,
+      "record": "record high",
+      "noun": "high"
+     },
      "short": "85°F; the record is 87°F (2015).",
      "score": 31.1,
      "status": "final",
@@ -284,6 +428,18 @@
    "items": [
     {
      "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "new",
+      "rank": 1,
+      "v": "52°F",
+      "pv": "50°F",
+      "yrs": "1939, 1947 and 2012",
+      "age": 14,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
      "short": "52°F, breaking 50°F from 1939, 1947 and 2012.",
      "score": 101.4,
      "status": "final",
@@ -307,6 +463,18 @@
    "items": [
     {
      "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "none",
+      "rank": 3,
+      "v": "49°F",
+      "pv": "54°F",
+      "yrs": "1947",
+      "age": 79,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
      "short": "49°F; the record is 54°F (1947).",
      "score": 32.9,
      "status": "final",
@@ -330,6 +498,18 @@
    "items": [
     {
      "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "new",
+      "rank": 1,
+      "v": "54°F",
+      "pv": "52°F",
+      "yrs": "1902",
+      "age": 124,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
      "short": "54°F, breaking 52°F from 1902.",
      "score": 110,
      "status": "final",
@@ -353,6 +533,18 @@
    "items": [
     {
      "id": "rec-hiMin",
+     "fact": {
+      "el": "hiMin",
+      "row": "mint",
+      "outcome": "new",
+      "rank": 1,
+      "v": "58°F",
+      "pv": "49°F",
+      "yrs": "2003",
+      "age": 23,
+      "record": "record warm low",
+      "noun": "warm low"
+     },
      "short": "58°F, breaking 49°F from 2003.",
      "score": 102.3,
      "status": "final",

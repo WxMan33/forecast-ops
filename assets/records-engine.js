@@ -169,7 +169,9 @@
       const body = r.outcome === "new" ? `${v} broke the ${sDate} record of ${pv} set in ${yrs}, a record ${r.previous.age} years old, by ${fmt(r.previous.margin, el, units).replace(/°[FC]$/, "°")}.`
         : r.outcome === "tie" ? `${v} tied the ${sDate} record set in ${yrs}.` : `${v} ranks ${ordinal(r.rank)} of ${r.of} years for ${sDate}. The record is ${pv} (${yrs}).`;
       const short = r.outcome === "new" ? `${v}, breaking ${pv} from ${yrs}.` : r.outcome === "tie" ? `${v}, tying ${yrs}.` : `${v}; the record is ${pv} (${yrs}).`;
-      items.push({ id: `rec-${r.el}`, short, score: (r.outcome === "new" ? 100 : r.outcome === "tie" ? 85 : 40 - r.rank * 5) + Math.min(10, r.previous.age / 10), status: st, label, head, body,
+      /* fact: the structured record for the Spotlight and the climate-table badge (row = the table's row id) */
+      const fact = { el: r.el, row: COL[r.el], outcome: r.outcome, rank: r.rank, v, pv, yrs, age: r.previous.age, record: el.record.replace(/ \(.*\)$/, ""), noun: el.noun };
+      items.push({ id: `rec-${r.el}`, fact, short, score: (r.outcome === "new" ? 100 : r.outcome === "tie" ? 85 : 40 - r.rank * 5) + Math.min(10, r.previous.age / 10), status: st, label, head, body,
         copyFact: `${market.name}'s ${v} ${el.kind === "amount" ? "of " + el.noun : el.noun} on ${dayWord} ${r.outcome === "new" ? `broke the ${sDate} record of ${pv} set in ${yrs}` : r.outcome === "tie" ? `tied the ${sDate} record set in ${yrs}` : `ranked ${ordinal(r.rank)} for the date`}${NOTE(st, true)}.`,
         evidence: { finding: r, source: src, range: `${r.sample.from} to ${r.sample.to}`, sample: `${r.sample.n} prior years with an observation${r.sample.missing ? `, ${r.sample.missing} missing and left out` : ", none missing"}${r.sample.leapOnly ? " (leap years only)" : ""}` } });
     });

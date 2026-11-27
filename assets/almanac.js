@@ -325,7 +325,7 @@
     climData = { R, nRows, oRows, thru: cutoff, sel, status, reportDate, met: cutoffSeason, obsErr, rankMonthP: col(1), rankSeasonP: col(2), rankSeasonT: col(3), rankMonthT: col(4) };
     renderDaily({ today, rpt, acisRows, nRows, show: reportDate === today });
     insights({ sel, today, recRows, oRows });
-    renderClimateSheet(el, { reportDate, status, cutoff, pending, today, dailyNWS, nws, check: rpt && rpt.check, nRows, oRows, R, periodRecords, recThru, errors: [nor, rec, obs].filter(x => x?.v?.error && !x.stale).map(x => x.v.error), stale: [nor, rec, obs].filter(x => x?.stale).map(x => x.error) });
+    renderClimateSheet(el, { reportDate, status, cutoff, pending, today, dailyNWS, nws, check: rpt && rpt.check, nRows, oRows, R, periodRecords, recThru, errors: [nor, rec, obs].filter(x => x?.v?.error && !x.stale).map(x => x.v.error), stale: [nor, rec, obs].filter(x => x?.stale).map(x => x.error) }); markSpot();
     facts();
   }
   /* Historical Insights & Fun Facts (RecordsUI): the market's records pack when there is one; otherwise daily records from
@@ -340,6 +340,18 @@
         record: { sid: CLIM.recordsSid, name: CLIM.recordsName, kind: CLIM.threaded === false ? "station" : "threaded" } },
       S: { maxt: E.series(rows, 1), mint: E.series(rows, 2), pcpn: E.series(rows, 3), snow: E.series(rows, 4) }, status: "unconfirmed" } : null;
     window.RecordsUI.almanac(host, { lat: O.location.lat, lon: O.location.lon, date: sel, calendarDay: cal }).catch(() => { host.hidden = true; });
+    /* Record Spotlight at the top: the same findings, in words, with the climate-table row marked */
+    const spot = $("recSpot"); if (!spot || !window.RecordsUI.spotlight) return;
+    const rowHref = (d, row) => { const u = new URL(location.href); u.searchParams.set("date", d); u.hash = `climo-${row}`; return u.pathname.split("/").pop() + u.search + u.hash; };
+    window.RecordsUI.spotlight(spot, { lat: O.location.lat, lon: O.location.lon, date: sel, today, calendarDay: cal, where: CLIM.obsSid || "", rowHref })
+      .then((r) => { if (r && r.date === sel) { spotMarks = r; markSpot(); } }).catch(() => { spot.hidden = true; });
+  }
+  let spotMarks = null;
+  /* badge the climate-table row of the selected date's record; jump to it when the link asked for it (#climo-...) */
+  function markSpot() {
+    const card = $("climCard"); if (!card || !window.RecordsUI || !window.RecordsUI.markRows) return;
+    window.RecordsUI.markRows(card, spotMarks && spotMarks.date === sel ? spotMarks.marks : []);
+    const h = location.hash; if (/^#climo-[\w-]+$/.test(h) && !markSpot.done) { const r = document.getElementById(h.slice(1)); if (r) { markSpot.done = true; r.scrollIntoView({ block: "center" }); } }
   }
   function renderClimateSheet(el, d) {
     const report = window.ClimateReport.build(A, { date: d.reportDate, observations: d.oRows, normals: d.nRows, records: d.R, periodRecords: d.periodRecords, status: d.status, cutoff: d.cutoff, pending: d.pending });
@@ -360,7 +372,7 @@
       const detail = x.n ? `${x.n} complete historical periods, ${x.from}–${x.to}; ${x.excluded} incomplete periods excluded. Same printed calendar dates in each year.` : '';
       return (years.length > 4 ? `<details class="climo-record-ties"><summary>${years.length} tied years</summary><small>${esc(years.join(', '))}</small></details>` : years.length ? `<small>${esc(years.join(', '))}</small>` : '') + (detail ? `<small title="${esc(detail)}">${x.n} complete ${r.id === 'snwd' ? 'years' : 'periods'}</small>` : '');
     };
-    const row = r => `<tr data-climo-row="${r.id}"><th scope="row">${esc(r.label)}${r.from ? `<small>${esc(short(r.from))}–${esc(short(r.to))}${r.partial ? " · later days pending" : ""}</small>` : ""}</th><td class="climo-observed" data-label="Observed">${number(r.observed, r.decimals)}${r.observed.reason ? `<small>${esc(r.observed.reason)}</small>` : ""}</td><td data-label="Record">${number(r.record, r.decimals)}${recordYears(r)}</td><td data-label="Normal">${number(r.normal, r.decimals)}</td><td data-label="Departure" class="${r.departure?.value > 0 ? "climo-above" : r.departure?.value < 0 ? "climo-below" : ""}">${number(r.departure, r.decimals, true)}</td><td data-label="Last year">${number(r.lastYear, r.decimals)}${r.lastYear?.reason ? `<small>${esc(r.lastYear.reason)}</small>` : ""}</td></tr>`;
+    const row = r => `<tr data-climo-row="${r.id}" id="climo-${r.id}"><th scope="row">${esc(r.label)}${r.from ? `<small>${esc(short(r.from))}–${esc(short(r.to))}${r.partial ? " · later days pending" : ""}</small>` : ""}</th><td class="climo-observed" data-label="Observed">${number(r.observed, r.decimals)}${r.observed.reason ? `<small>${esc(r.observed.reason)}</small>` : ""}</td><td data-label="Record">${number(r.record, r.decimals)}${recordYears(r)}</td><td data-label="Normal">${number(r.normal, r.decimals)}</td><td data-label="Departure" class="${r.departure?.value > 0 ? "climo-above" : r.departure?.value < 0 ? "climo-below" : ""}">${number(r.departure, r.decimals, true)}</td><td data-label="Last year">${number(r.lastYear, r.decimals)}${r.lastYear?.reason ? `<small>${esc(r.lastYear.reason)}</small>` : ""}</td></tr>`;
     /* completeness of the selected day: which daily values are reported */
     const dayIds = ["maxt", "mint", "pcpn", "snow"], dayRows = report.sections.flatMap((x) => x.rows).filter((r) => dayIds.includes(r.id) || (r.id === "pcpn" || r.id === "snow"));
     const reported = dayRows.filter((r) => r.observed && (r.observed.value != null || r.observed.trace)).length;
