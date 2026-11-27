@@ -33,18 +33,38 @@
   }
 
   /* ---------- header: brand, page context, theme ---------- */
-  function header({ audience, other, ctx = "", actions = "" }) {
+  /* site: { pageId, place } puts the page in the normal Forecast Ops navigation: the logo opens Overview, the standard tab
+     row (desktop) or a labelled Forecast Ops menu (phones) lists the same destinations, and tools that take a forecast
+     point open on place ({ lat, lon, name }; setPlace updates it). Without site the header is as before. */
+  const SITE_POINT = new Set(["home", "threats", "blend", "severe", "winter", "almanac"]);
+  function siteHref(p, place) {
+    if (!place || !SITE_POINT.has(p.id) || !Number.isFinite(+place.lat) || !Number.isFinite(+place.lon)) return p.href;
+    return `${p.href}?${new URLSearchParams({ lat: (+place.lat).toFixed(5), lon: (+place.lon).toFixed(5), name: place.name || "" })}`;
+  }
+  function header({ audience, other, ctx = "", actions = "", site = null }) {
     const el = document.createElement("header"); el.className = "bx-head";
-    el.innerHTML = `<div class="bx-head-in"><a class="bx-brand" href="${esc(other.self)}"><span class="bx-mark" aria-hidden="true">F</span><b>Forecast Ops</b><span class="tag">${esc(audience === "Event" ? "Event Manager" : `${audience} beta`)}</span></a>
+    const home = site ? siteHref({ id: "home", href: "index.html" }, site.place) : other.self;
+    el.innerHTML = `<div class="bx-head-in"><a class="bx-brand" href="${esc(home)}"${site ? ' title="Forecast Ops: Overview" data-home' : ""}><span class="bx-mark" aria-hidden="true">F</span><b>Forecast Ops</b><span class="tag">${esc(audience === "Event" ? "Event Manager" : `${audience} beta`)}</span></a>
       <div class="bx-ctx" id="bxCtx">${ctx}</div><span class="bx-upd" id="bxUpd"></span>${actions}
       <button class="bx-btn" type="button" id="bxRefresh" title="Reload guidance" aria-label="Reload guidance">↻</button>
       <button class="bx-btn" type="button" id="bxTheme" aria-label="Switch light or dark">Light</button>
-      <a class="bx-btn" href="${esc(other.href)}">${esc(other.label)}</a></div>`;
-    document.body.prepend(el);
+      ${site ? `<details class="bx-sitemenu" id="bxSiteMenu"><summary class="bx-btn" aria-label="Forecast Ops menu"><span aria-hidden="true">☰</span> Menu</summary><nav class="bx-sitemenu-pop" aria-label="Forecast Ops"><p class="bx-sitemenu-h">Forecast Ops</p>${O.navLinks(site.pageId, (p) => siteHref(p, site.place))}<a class="bx-metview bx-sitemenu-met" href="${esc(siteHref({ id: "home", href: other.href }, site.place))}">${esc(other.label)}</a></nav></details>` : ""}
+      <a class="bx-btn${site ? " bx-metview" : ""}" href="${esc(site ? siteHref({ id: "home", href: other.href }, site.place) : other.href)}"${site ? ` title="${esc(other.label)}: the same forecast point in the meteorologist tools"` : ""}>${esc(other.label)}</a></div>`;
+    let tabs = null;
+    if (site) { tabs = document.createElement("nav"); tabs.className = "navbar bx-sitenav"; tabs.setAttribute("aria-label", "Forecast Ops"); tabs.innerHTML = O.navLinks(site.pageId, (p) => siteHref(p, site.place)); }
+    document.body.prepend(...(tabs ? [el, tabs] : [el]));
+    const setPlace = (place) => { if (!site) return; site.place = place;
+      const b = el.querySelector("[data-home]"); if (b) b.href = siteHref({ id: "home", href: "index.html" }, place);
+      el.querySelectorAll(".bx-metview").forEach((m) => { m.href = siteHref({ id: "home", href: other.href }, place); });
+      document.querySelectorAll(".bx-sitenav [data-nav], .bx-sitemenu [data-nav]").forEach((a) => { const p = O.PAGES.find((x) => x.id === a.dataset.nav); if (p) a.href = siteHref(p, place); }); };
+    /* the phone menu closes when a link is chosen, on Escape, or on a tap outside it */
+    const menu = el.querySelector("#bxSiteMenu");
+    if (menu) { document.addEventListener("click", (e) => { if (menu.open && !menu.contains(e.target)) menu.open = false; });
+      document.addEventListener("keydown", (e) => { if (e.key === "Escape" && menu.open) { menu.open = false; menu.querySelector("summary").focus(); } }); }
     const apply = (t) => { document.documentElement.setAttribute("data-theme", t); O.$("bxTheme").textContent = t === "dark" ? "Light" : "Dark"; window.dispatchEvent(new CustomEvent("ops:theme")); };
     apply(O.store.get("ops_theme", "dark"));
     O.$("bxTheme").addEventListener("click", () => { const t = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark"; O.store.set("ops_theme", t); apply(t); });
-    return { setUpdated(ms, { saved = false } = {}) { O.$("bxUpd").textContent = ms ? `${saved ? "Guidance from" : "Loaded"} ${new Date(ms).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}${saved ? " · saved copy" : ""}` : ""; }, onRefresh(f) { O.$("bxRefresh").addEventListener("click", f); } };
+    return { setPlace, setUpdated(ms, { saved = false } = {}) { O.$("bxUpd").textContent = ms ? `${saved ? "Guidance from" : "Loaded"} ${new Date(ms).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}${saved ? " · saved copy" : ""}` : ""; }, onRefresh(f) { O.$("bxRefresh").addEventListener("click", f); } };
   }
 
   /* ---------- data: the same requests and recipe as Model Blend / overview ---------- */
