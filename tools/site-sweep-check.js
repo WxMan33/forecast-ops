@@ -108,10 +108,18 @@ async function measure(p, W) {
         const btn = p.locator(next).first();
         if (!(await btn.count()) || !(await btn.isVisible().catch(() => false)) || !(await btn.isEnabled().catch(() => false))) continue;
         const pos = () => p.evaluate(([q, W]) => { const b = document.querySelector(q), host = b.closest('section, .card, details, .bx-sec') || b.parentElement; let after = host.nextElementSibling; while (after && !after.getBoundingClientRect().height) after = after.nextElementSibling; return { nav: Math.round(b.getBoundingClientRect().top + scrollY), after: after ? Math.round(after.getBoundingClientRect().top + scrollY) : null, sw: document.documentElement.scrollWidth - W, wide: [...host.querySelectorAll('table')].some((t) => t.getBoundingClientRect().width > t.parentElement.getBoundingClientRect().width + 1) }; }, [next, phone ? 390 : 1280]);
+        /* when the page around the pager moves, say what moved: every element above the pager whose height changed */
+        const heights = () => p.evaluate((q) => { const b = document.querySelector(q), y = b.getBoundingClientRect().top, out = {}; let i = 0;
+          for (const e of document.querySelectorAll('body *')) { i++; const r = e.getBoundingClientRect(); if (!r.height || r.bottom > y + 1 || !(e.id || (typeof e.className === 'string' && e.className))) continue;
+            out[e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (typeof e.className === 'string' && e.className ? '.' + e.className.trim().split(/\s+/).slice(0, 2).join('.') : '') + '@' + i] = [Math.round(r.height), (e.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 70)]; }
+          return out; }, next);
+        const h0 = await heights();
         const a = await pos(); const moves = [];
         for (let i = 0; i < 3 && (await btn.isEnabled().catch(() => false)); i++) { await btn.click(); await p.waitForTimeout(150); const b = await pos(); moves.push(b); }
         const jump = moves.some((b) => Math.abs(b.nav - a.nav) > 2 || (a.after != null && Math.abs(b.after - a.after) > 2)), wide = [a, ...moves].some((b) => b.sw > 1 || b.wide);
-        check(!jump && !wide, `${label}: paging the ${what} keeps the layout still and inside the page${jump || wide ? ` (${JSON.stringify([a, ...moves])})` : ''}`);
+        let grew = '';
+        if (jump) { const h1 = await heights(); grew = ' grew: ' + JSON.stringify(Object.keys(h1).filter((k) => !h0[k] || h0[k][0] !== h1[k][0]).map((k) => [k, h0[k] || null, h1[k]])).slice(0, 2500); }
+        check(!jump && !wide, `${label}: paging the ${what} keeps the layout still and inside the page${jump || wide ? ` (${JSON.stringify([a, ...moves])})${grew}` : ''}`);
       }
       check(m.overflow <= 1, `${label}: no horizontal page overflow${m.overflow > 1 ? ` (+${m.overflow}px: ${m.top.join(', ')})` : ''}`);
       check(!m.cut.length && !m.offscreen.length, `${label}: controls are not clipped or off screen${m.cut.length || m.offscreen.length ? ` (${[...m.cut, ...m.offscreen].join('; ')})` : ''}`);
