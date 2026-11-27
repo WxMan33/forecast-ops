@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Event Manager · Forecast Ops</title>
-<meta name="description" content="Beta: phone-first weather briefing for an outdoor event — biggest concern, timing and when to check again.">
+<meta name="description" content="Beta: phone-first weather briefing for an outdoor event: the biggest concern, its timing and when to check again.">
 <meta name="robots" content="noindex">
 <link rel="icon" href="assets/icon.svg?v=05c4bd5103" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,7 +27,7 @@
   });
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/ops.css?v=11ee4de8ce">
-<link rel="stylesheet" href="assets/beta.css?v=30226a47d0">
+<link rel="stylesheet" href="assets/beta.css?v=26a220bdf9">
 <link rel="stylesheet" href="assets/hourly-grid.css?v=befa3eb506">
 <link rel="stylesheet" href="assets/forecast-support.css?v=52766a62f7">
 </head>
@@ -48,12 +48,21 @@
           <p class="bx-note" id="shareImageNote">A 1920 × 1080 picture of your forecast as it is now. Everyone sees exactly the same thing: use this for a TV.</p></div>
         <p class="bx-note ev-sharemsg" id="shareMsg" role="status" aria-live="polite"></p></div></details><button class="bx-btn" type="button" id="editBtn">Edit event</button><button class="bx-link ev-quiet" type="button" id="resetBtn" hidden>Use sample event</button></div>
   </div>
-  <div class="bx-alerts" id="alerts"></div>
+  <!-- multi-day events: one day at a time (EventDays); hidden for a single-day event -->
+  <nav class="ev-days" id="dayPick" aria-label="Event days" hidden></nav>
   <div id="briefUpdate" hidden></div><div id="opsHandoff" hidden></div>
+  <!-- the lead: one event concern (forecast, or missing guidance), its timing, what it means, what would change the plan; evidence one tap away -->
+  <section class="ev-lead" id="lead" aria-label="Event concern">
+  <div id="leadUrgent" class="ev-lead-urgent" data-lead="urgent" hidden></div>
   <h2 class="bx-decision" id="decision" aria-live="polite">Reading the guidance…</h2>
+  <div id="leadBody"></div>
   <div class="bx-cover" id="coverage" hidden></div>
   <div id="outlook" hidden></div>
   <dl class="bx-keys ev-callouts" id="keys"></dl>
+  <div id="leadAfter"></div>
+  </section>
+  <!-- official alerts: their own block, after the forecast concern (an urgent warning also shows in the lead) -->
+  <div class="bx-alerts ev-officialbox" id="alerts" aria-label="Official alerts"></div>
   <p class="bx-cov-update" id="coverageUpdate" role="status" hidden></p><p class="ev-gap" id="gapFlag" role="status" hidden></p>
   <div class="ev-dash" id="evDash" hidden></div>
   </section>
@@ -77,31 +86,33 @@
 <div id="printView" class="pv" aria-hidden="true"></div>
 <dialog id="editDlg" aria-labelledby="editTitle"><form class="bx-form" id="editForm" method="dialog"></form></dialog>
 <script src="assets/forecast-support.js?v=8e562569c6"></script>
-<script src="assets/ops-core.js?v=9f54ea80ed"></script>
+<script src="assets/ops-core.js?v=e1094fa657"></script>
 <script src="assets/ops-data.js?v=68a540c59e"></script>
 <script src="assets/ops.js?v=c665c60df0"></script>
 <script src="assets/forecast-clock.js?v=c6df9f20b7"></script>
 <script src="assets/model-trends.js?v=20f2fb637c"></script>
-<script src="assets/beta-story.js?v=636e9d4621"></script>
+<script src="assets/beta-story.js?v=13a65095d7"></script>
 <script src="assets/beta-config.js?v=69b0bd8aed"></script>
 <script src="assets/beta-analytics.js?v=2fe1a4634a"></script>
-<script src="assets/beta-ui.js?v=7b5ac461df"></script>
-<script src="assets/event-store.js?v=a051a0562c"></script>
+<script src="assets/beta-ui.js?v=afdc830e2c"></script>
+<script src="assets/event-store.js?v=d5f8592bec"></script>
 <script src="assets/venue-search.js?v=307f9ceb2a"></script>
 <script src="assets/calendar-import.js?v=15af4d2829"></script>
-<script src="assets/beta-upcoming.js?v=45d0d4c8b1"></script>
-<script src="assets/hourly-model.js?v=c684f8a23f"></script>
-<script src="assets/hourly-views.js?v=3d6236a039"></script>
+<script src="assets/beta-upcoming.js?v=386c3bb285"></script>
+<script src="assets/hourly-model.js?v=a29761bba0"></script>
+<script src="assets/hourly-views.js?v=0b0975c2b7"></script>
 <script src="assets/hourly-grid.js?v=9f52f47fec"></script>
-<script src="assets/event-briefing-history.js?v=51fe1f9804"></script>
+<script src="assets/event-briefing-history.js?v=3baffaf999"></script>
 <script src="assets/event-ops-handoff.js?v=fa83113129"></script>
-<script src="assets/event-hourly-charts.js?v=61b36a5e00"></script>
-<script src="assets/event-outlook.js?v=e27cba4166"></script>
-<script src="assets/event-tv-export.js?v=758147d3c1"></script>
+<script src="assets/event-hourly-charts.js?v=8e0beefc8c"></script>
+<script src="assets/event-outlook.js?v=b0a12c6400"></script>
+<script src="assets/event-tv-export.js?v=6261d717ab"></script>
 <script src="assets/almanac-core.js?v=715a4bf1f5"></script>
-<script src="assets/event-daylight.js?v=26abf7022f"></script>
-<script src="assets/event-briefing-ui.js?v=b77f7b4433"></script>
-<script src="assets/beta-event.js?v=9ea7ccbdc9"></script>
+<script src="assets/event-daylight.js?v=c30358e1d0"></script>
+<script src="assets/event-days.js?v=2aede295c4"></script>
+<script src="assets/event-lead.js?v=1bdb9a0cd7"></script>
+<script src="assets/event-briefing-ui.js?v=430be123bd"></script>
+<script src="assets/beta-event.js?v=59a3e0247a"></script>
 <script src="assets/table-pages.js?v=5852a434bf"></script>
 </body>
 </html>

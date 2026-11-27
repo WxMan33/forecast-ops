@@ -2,11 +2,15 @@
    The records are structured so a calendar import can feed the same list later:
      venue  { id, name, city, lat, lon, tz, defaults: { setup, gates, teardown, gust } }
             setup/gates: minutes before the event starts; teardown: minutes after it ends; gust: tent limit (mph)
-     event  { id, name, venueId, loc: { name, lat, lon }, tz, times: { setup, gates, start, end, teardown },
+     event  { id, name, venueId, loc: { name, lat, lon }, tz, times: { setup, gates, start, end, teardown }, slots?,
               gust, overrides: ["gates", …], source: { kind: "manual" | "calendar", calendarId?, eventId?, etag? },
               created, updated }
    Times are the venue's local wall clock ("YYYY-MM-DDTHH:MM"), as Core.event expects. A calendar event without a
    recognised venue has loc.lat/lon = null and shows "Venue needs confirmation".
+   Planner-defined schedules: event.slots = [{ id, name, start, end, main?, fold? }] (venue-local, end may be the next
+   day). When an event has slots, times holds only their outer { start, end } (so older pages and every list, sort and
+   calendar helper keep working) and the slots are the schedule. An event without slots is read exactly as before;
+   nothing stored is ever rewritten into slots. Templates (TEMPLATES) are starting points for the editor.
    Pure helpers (applyDefaults, overridesOf, offsetsOf, statusOf, order, fromCalendar) run in Node for tests. */
 (function (root) {
   "use strict";
@@ -14,6 +18,28 @@
   const PHASE_KEYS = ["setup", "gates", "teardown"];
   const STD = { setup: 240, gates: 90, teardown: 120, gust: 25 }; // until a venue has its own defaults
   const fin = (x) => typeof x === "number" && isFinite(x);
+  /* editor templates: slots as [name, start minute, end minute] from the day's midnight (end may pass midnight);
+     "stadium" is the fixed Setup / Gates / Event / Teardown schedule from the venue's defaults, built by the editor */
+  const TEMPLATES = [
+    { id: "single", label: "Single window", slots: [["Event", 19 * 60 + 30, 21 * 60 + 30]] },
+    { id: "stadium", label: "Stadium / race (Setup, Gates, Event, Teardown)", stadium: true },
+    { id: "wedding", label: "Wedding (example)", slots: [["Vendor setup", 13 * 60, 15 * 60], ["Outdoor ceremony", 16 * 60, 16 * 60 + 30, true], ["Reception", 17 * 60, 22 * 60]] },
+  ];
+  /* a template's slots on a date (main flag kept) */
+  function templateSlots(id, date) {
+    const t = TEMPLATES.find((x) => x.id === id); if (!t || !t.slots) return null;
+    return t.slots.map(([name, a, b, main], i) => ({ id: newSlotId(i), name, start: addMin(`${date}T00:00`, a), end: addMin(`${date}T00:00`, b), ...(main ? { main: true } : {}) }));
+  }
+  const newSlotId = (i = 0) => `sl_${Date.now().toString(36)}${i}${Math.random().toString(36).slice(2, 5)}`;
+  /* a slot as stored: name, start, end, and main/fold only when set */
+  const LOCALRE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+  function cleanSlot(x, i) {
+    if (!x || typeof x !== "object") return null;
+    const out = { id: typeof x.id === "string" && x.id ? x.id.slice(0, 40) : `s${i + 1}`, name: typeof x.name === "string" ? x.name.slice(0, 40) : "", start: typeof x.start === "string" ? x.start : "", end: typeof x.end === "string" ? x.end : "" };
+    if (x.main === true) out.main = true;
+    if (x.fold && typeof x.fold === "object") { const f = {}; if (x.fold.start === 1) f.start = 1; if (x.fold.end === 1) f.end = 1; if (Object.keys(f).length) out.fold = f; }
+    return out;
+  }
   const newId = (p) => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 
   /* ---- wall-clock arithmetic on local "YYYY-MM-DDTHH:MM" strings (what a planner means by "90 minutes before") ---- */
@@ -219,7 +245,15 @@
         if (v && tz) { const full = schedule(vd, { start, end, tz, startMs: sMs, endMs: eMs }); PHASE_KEYS.forEach((k) => { if (ms[k] == null && full.times[k] === times[k]) ms[k] = localMs(times[k], tz, full.fold[k]); }); }
         fold = tz ? foldsFor(times, ms, tz) : {};
       }
-      const next = { ...old, ...(!keepVenue && old.preset != null ? { preset: null } : {}), name: r.name, times, fold, tz, venueId: keepVenue ? old.venueId : r.venueId, loc: keepVenue ? old.loc : r.loc,
+      /* an imported event the planner gave its own slots: the slots move with the calendar's start (each keeps its
+         wall-clock offset from it) and times stays their outer start and end */
+      let slots = old.slots;
+      const was = os.start && (old.tz || tz) ? wallAt(os.start, old.tz || tz) : null;
+      if (Array.isArray(old.slots) && old.slots.length && was && start && start !== was) {
+        const d = diffMin(start, was); slots = old.slots.map((x) => ({ ...x, start: addMin(x.start, d), end: addMin(x.end, d) }));
+      }
+      if (Array.isArray(slots) && slots.length) { const a = slots.reduce((m, x) => (x.start < m ? x.start : m), slots[0].start), z = slots.reduce((m, x) => (x.end > m ? x.end : m), slots[0].end); times = { start: a, end: z }; fold = {}; }
+      const next = { ...old, ...(!keepVenue && old.preset != null ? { preset: null } : {}), ...(slots ? { slots } : {}), name: r.name, times, fold, tz, venueId: keepVenue ? old.venueId : r.venueId, loc: keepVenue ? old.loc : r.loc,
         match: keepVenue ? old.match : r.match, source: { ...os, ...rs }, updated: now };
       if (!sameLoc) relocated++;
       if (JSON.stringify({ ...next, updated: 0 }) === JSON.stringify({ ...old, updated: 0 })) unchanged++; else { out[i] = next; updated++; }
@@ -348,6 +382,7 @@
     if (e.loc?.approximate === true) out.loc.approximate = true;
     if (e.fold) out.fold = fold; // optional fields stay optional, so a record round-trips exactly
     if (e.preset !== undefined) out.preset = str(e.preset, 80);
+    if (Array.isArray(e.slots)) out.slots = e.slots.slice(0, 24).map(cleanSlot).filter(Boolean);
     if (e.match) out.match = { status: str(m.status, 20) || "unknown", via: str(m.via, 20), candidates: Array.isArray(m.candidates) ? m.candidates.filter((x) => typeof x === "string").slice(0, 20) : [] };
     return out;
   }
@@ -392,6 +427,8 @@
       if (Object.values(e.times).some((x) => !LOCAL.test(x) || !isFinite(Date.parse(x + ":00Z")))) errors.push(`${where} has a time that isn't a valid date and time.`);
       else if (e.times.start && e.times.end && e.times.end <= e.times.start && !(e.tz && e.source.start && e.source.end && Date.parse(e.source.end) > Date.parse(e.source.start))) errors.push(`${where} ends before it starts.`);
       if (e.tz && !validZone(e.tz)) errors.push(`${where} has an unknown time zone.`);
+      if (e.slots && (!e.slots.length || e.slots.some((x) => !x.name.trim() || !LOCALRE.test(x.start) || !LOCALRE.test(x.end) || !isFinite(Date.parse(x.start + ":00Z")) || !isFinite(Date.parse(x.end + ":00Z")))))
+        errors.push(`${where} has a time slot without a name or a valid start and end.`);
       if ((e.loc.lat == null) !== (e.loc.lon == null) || (e.loc.lat != null && (Math.abs(e.loc.lat) > 90 || Math.abs(e.loc.lon) > 180))) errors.push(`${where} has invalid coordinates.`);
       if (e.source.kind === "calendar" && (!e.source.calendarId || !e.source.eventId)) errors.push(`${where} is a calendar event without its calendar and event IDs.`);
       eIds.add(e.id); es.push(e);
@@ -470,7 +507,7 @@
     return { ...plan.summary, replaced, replaceAll, preferences: applied };
   }
 
-  const api = { presetsOf, defsFor, newPresetId, BACKUP_KIND, BACKUP_VERSION, PREFS, PREF_KEYS, preferences, backup, readBackup, planRestore, applyRestore, storageOk, wallAt, wallMs, localMs, instantsOf, foldsFor, schedule, scheduleAt, msOf, BUILTIN, matchVenue, rememberAlias, norm, mergeImported, confirmVenue, importEvents, STD, STATUS, applyDefaults, offsetsOf, overridesOf, statusOf, order, fromCalendar, addMin, diffMin,
+  const api = { TEMPLATES, templateSlots, newSlotId, cleanSlot, presetsOf, defsFor, newPresetId, BACKUP_KIND, BACKUP_VERSION, PREFS, PREF_KEYS, preferences, backup, readBackup, planRestore, applyRestore, storageOk, wallAt, wallMs, localMs, instantsOf, foldsFor, schedule, scheduleAt, msOf, BUILTIN, matchVenue, rememberAlias, norm, mergeImported, confirmVenue, importEvents, STD, STATUS, applyDefaults, offsetsOf, overridesOf, statusOf, order, fromCalendar, addMin, diffMin,
     events, venues, saveEvent, getEvent, removeEvent, saveVenue, getVenue, removeVenue, last, setLast, migrate, EV_KEY, VN_KEY };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.EventStore = api;

@@ -1,6 +1,6 @@
 /* Event Manager: "Export hourly image": a 1920 x 1080 PNG for TV rotations that show images.
    Header: event, venue and local time, then sunrise and sunset at the venue ("Sunrise 7:33 AM · Sunset 5:17 PM EST",
-   the same line as Hour by hour; the schedule note after it only when both fit), the briefing's one-line takeaway, and
+   the same line as Hour by hour; the schedule note after it on the same row, using the width clear of the right-hand block), the briefing's one-line takeaway, and
    when the forecast was updated. The four panels keep the same size and position with or without the daylight line.
    Below: four large panels in a 2 x 2 grid on one shared hour axis:
      precipitation chance (line + dot per hour, 0-100%, labelled type bands when the type changes),
@@ -25,6 +25,7 @@
   let C = PALETTES.light;
   const FONT = (w, px) => `${w} ${px}px Archivo, "Segoe UI", system-ui, sans-serif`;
   const SYM = { rain: "☂", mix: "✱", snow: "❄" };
+  const MODEL_NOTE = "Model guidance · not an official forecast", MODEL_FONT = FONT(500, 20);
 
   /* the hours to show: the event's hours, at most 24 */
   function hoursOf(V) { const n = Math.min(V.span.length, MAX_HOURS); return { ids: V.span.slice(0, n).map((_, i) => i), total: V.span.length, cut: V.span.length > n }; }
@@ -52,24 +53,34 @@
     text(d.title, PAD, Y.title, { font: FONT(800, 56), max: 1260 });
     text([d.venue, d.when].filter(Boolean).join("  ·  "), PAD, Y.details, { font: FONT(500, 30), color: C.muted, max: 1260 });
     const widthOf = (t, f) => { g.font = f; return g.measureText(t).width; };
-    let daylightAt = "none";
+    let daylightAt = "none"; canvas.daylightNotePx = null; canvas.lightningNote = null;
     if (dlLine) {
-      /* the sunrise / sunset line, readable across a room; the schedule note follows it only when both fit in the column */
-      const withNote = d.daylight ? `${dlLine}  ·  ${d.daylight}` : "", dlFont = FONT(700, 30);
-      const shown = withNote && widthOf(withNote, dlFont) <= 1260 ? withNote : dlLine;
-      text(shown, PAD, Y.day, { font: dlFont, color: C.text, max: 1260 }); daylightAt = shown === withNote ? "line+note" : "line";
+      /* the sunrise / sunset line, readable across a room. The schedule note ("Sunset during the event (5:17 PM).") follows on
+         the same row: the header has no spare row (the takeaway and the rule at 214 sit just below, and the panels stay put),
+         but this row is clear all the way to the right-hand block's last line, so the note may use that width. A wider
+         fallback font (the web font not loaded) needed this: within the old 1260 px column the note was dropped. If the
+         note is still too long it steps down to 27 and then 24 px (never smaller); only then is it left out. */
+      const dlFont = FONT(700, 30), sep = "  ·  ", lineW = widthOf(dlLine, dlFont), sepW = widthOf(sep, dlFont);
+      const room = W - PAD - widthOf(MODEL_NOTE, MODEL_FONT) - 32 - PAD; // clear of "Model guidance · not an official forecast"
+      text(dlLine, PAD, Y.day, { font: dlFont, color: C.text, max: room }); daylightAt = "line";
+      if (d.daylight) for (const px of [30, 27, 24]) {
+        const nf = FONT(700, px);
+        if (lineW + sepW + widthOf(d.daylight, nf) > room) continue;
+        text(sep, PAD + lineW, Y.day, { font: dlFont, color: C.text }); text(d.daylight, PAD + lineW + sepW, Y.day, { font: nf, color: C.text });
+        daylightAt = "line+note"; canvas.daylightNotePx = px; break;
+      }
     }
     text(d.takeaway || "", PAD, Y.take, { font: FONT(700, 36), max: W - 2 * PAD });
     text("Forecast updated", W - PAD, 70, { font: FONT(500, 24), color: C.muted, align: "right" });
-    text(d.updated || "—", W - PAD, 108, { font: FONT(700, 32), align: "right" });
-    text("Model guidance · not an official forecast", W - PAD, 140, { font: FONT(500, 20), color: C.muted, align: "right" });
+    text(d.updated || "Unavailable", W - PAD, 108, { font: FONT(700, 32), align: "right" });
+    text(MODEL_NOTE, W - PAD, 140, { font: MODEL_FONT, color: C.muted, align: "right" });
     g.fillStyle = C.rule; g.fillRect(PAD, 214, W - 2 * PAD, 2);
     /* ---- 2 x 2 panels ---- */
     const top0 = 236, gap = 24, pw = (W - 2 * PAD - gap) / 2, ph = (HGT - top0 - 58 - gap) / 2;
     const panels = [["pop", 0, 0], ["temp", 1, 0], ["wind", 0, 1], ["lightning", 1, 1]];
     panels.forEach(([k, cx, cy]) => panel(k, PAD + cx * (pw + gap), top0 + cy * (ph + gap), pw, ph));
     /* ---- footer ---- */
-    const foot = `${cut ? `First ${ids.length} of ${total} event hours · ` : ""}Times are the venue's local time${d.zone ? ` (${d.zone})` : ""} · Forecast Ops · NOAA/NWS and Open-Meteo guidance`;
+    const foot = `${cut ? `First ${ids.length} of ${total} event hours · ` : ""}${V.custom ? "Chance, rain and gusts: the hour ending at each time · " : ""}Times are the venue's local time${d.zone ? ` (${d.zone})` : ""} · Forecast Ops · NOAA/NWS and Open-Meteo guidance`;
     text(foot, PAD, HGT - 22, { font: FONT(500, 20), color: C.muted });
     canvas.daylight = daylightAt;
     canvas.theme = C.name; canvas.minFontPx = minFont; canvas.lightning = lightningSummary(V, ids).allLow ? "low-throughout" : "blocks"; canvas.typeMode = tsum.mode;
@@ -85,7 +96,7 @@
       const hourLabels = () => { g.font = FONT(700, 24); const wide = Math.max(...ids.map((i) => g.measureText(V.axis[i].hourText).width)), every = Math.max(1, Math.ceil((wide + 14) / bw));
         ids.forEach((i, j) => { if (j % every) return; text(V.axis[i].hourText, X(j), B + 36, { font: FONT(700, 24), align: "center" }); }); };
       const missing = (i) => !V.hrs[i] || V.hrs[i].state !== "ok";
-      const gaps = (val) => ids.forEach((i, j) => { if (val(i) != null) return; g.fillStyle = C.gap; g.fillRect(L + j * bw + 2, T, bw - 4, B - T); text(bw >= 70 ? "No data" : "—", X(j), (T + B) / 2 + 8, { font: FONT(700, 20), color: C.muted, align: "center" }); });
+      const gaps = (val) => ids.forEach((i, j) => { if (val(i) != null) return; g.fillStyle = C.gap; g.fillRect(L + j * bw + 2, T, bw - 4, B - T); text(bw >= 70 ? "No data" : "", X(j), (T + B) / 2 + 8, { font: FONT(700, 20), color: C.muted, align: "center" }); });
       const grid = (lo, hi, ticks, fmt) => ticks.forEach((v) => { const yy = B - ((v - lo) / (hi - lo)) * (B - T); g.strokeStyle = C.rule; g.lineWidth = 1.5; line(L, yy, R, yy); text(fmt(v), L - 12, yy + 8, { font: FONT(600, 22), color: C.muted, align: "right" }); });
       const series = (vals, lo, hi, color, { dash = false, width = 5, dots = false } = {}) => { const yy = (v) => B - ((v - lo) / (hi - lo)) * (B - T);
         g.strokeStyle = color; g.lineWidth = width; g.setLineDash(dash ? [16, 10] : []); g.lineJoin = "round"; g.lineCap = "round"; let open = false; g.beginPath();
@@ -96,19 +107,33 @@
         else if (kind === "box") { g.globalAlpha = 0.35; g.fillStyle = color; g.fillRect(kx, ky - 22, 26, 26); g.globalAlpha = 1; kx += 34; }
         else if (kind === "solid") { g.fillStyle = color; g.fillRect(kx, ky - 22, 26, 26); kx += 34; }
         else if (kind === "gap") { g.fillStyle = C.gap; g.fillRect(kx, ky - 22, 26, 26); kx += 34; }
+        else if (kind === "between") { g.globalAlpha = 0.5; g.fillStyle = C.muted; g.fillRect(kx, ky - 22, 26, 26); g.globalAlpha = 1; kx += 34; }
         g.font = FONT(600, 22); text(label, kx, ky, { font: FONT(600, 22), color: C.muted }); kx += g.measureText(label).width + 26; }); };
+      /* planner-defined slots (as the page shows them): hours between slots shaded in the panels of hour-ending values
+         (precipitation chance and gusts) and labelled, and the
+         slot names along the top of the precipitation panel over the hours they cover (rain, chance and gusts there are
+         for the hour ending at each time) */
+      const phaseRow = rows.phase, between = (i) => !!(V.custom && phaseRow && phaseRow.cells[i] && phaseRow.cells[i].text === "Between slots");
+      const schedule = (withNames) => { if (!V.custom) return; let run = null; const out = [];
+        ids.forEach((i, j) => { const k = between(i) ? "|gap" : V.cover && V.cover[i] && V.cover[i].length ? V.cover[i].reduce((a, c) => (c.fraction > a.fraction ? c : a)).label : null;
+          if (k && run && run.k === k && run.b === j - 1) run.b = j; else { if (run) out.push(run); run = k ? { k, a: j, b: j } : null; } }); if (run) out.push(run);
+        out.forEach((r) => { const x0 = L + r.a * bw, wd = (r.b - r.a + 1) * bw;
+          if (r.k === "|gap") { g.globalAlpha = C.name === "dark" ? 0.22 : 0.14; g.fillStyle = C.muted; g.fillRect(x0 + 1, T, wd - 2, B - T); g.globalAlpha = 1;
+            if (withNames) { g.font = FONT(700, 20); const t = g.measureText("Between slots").width + 10 <= wd ? "Between slots" : "Gap"; text(g.measureText(t).width + 6 <= wd ? t : "", x0 + wd / 2, T + 26, { font: FONT(700, 20), color: C.muted, align: "center" }); } return; }
+          if (!withNames) return; g.strokeStyle = C.border; g.lineWidth = 2; line(x0, T, x0, T + 34);
+          g.font = FONT(700, 20); text(r.k, x0 + 8, T + 26, { font: FONT(700, 20), color: C.muted, max: Math.max(40, wd - 12) }); }); };
       const flags = (hz, word) => { const r = rows[hz]; if (!r) return; let run = null; const out = [];
         ids.forEach((i, j) => { const c = r.cells[i], k = c && c.state === "concern" ? `${c.tier}|${c.text}` : null; if (k && run && run.k === k && run.b === j - 1) run.b = j; else { if (run) out.push(run); run = k ? { k, a: j, b: j } : null; } }); if (run) out.push(run);
         out.forEach((f) => { const [tier, wd] = f.k.split("|"), x0 = L + f.a * bw + 4, x1 = L + (f.b + 1) * bw - 4, col = tier === "action" ? C.red : C.text; g.strokeStyle = col; g.lineWidth = 3; g.beginPath(); g.moveTo(x0, T - 6); g.lineTo(x0, T - 16); g.lineTo(x1, T - 16); g.lineTo(x1, T - 6); g.stroke();
           text(`${word}: ${wd}`, x0, T - 24, { font: FONT(800, 22), color: col, max: Math.max(80, x1 - x0) }); }); };
 
       if (key === "pop") {
-        keyItems([["line", C.pop, "Chance each hour"], ...(tsum.mode === "bands" ? [["box", C.band.rain, "☂ Rain"], ["box", C.band.mix, "✱ Mix"], ["box", C.band.snow, "❄ Snow"]] : []), ["gap", null, "No data"]]);
+        keyItems([["line", C.pop, V.custom ? "Chance, hour ending at each time" : "Chance each hour"], ...(tsum.mode === "bands" ? [["box", C.band.rain, "☂ Rain"], ["box", C.band.mix, "✱ Mix"], ["box", C.band.snow, "❄ Snow"]] : []), ["gap", null, "No data"], ...(V.custom && ids.some(between) ? [["between", null, "Between slots"]] : [])]);
         if (tsum.mode !== "bands") text(tsum.text, R, y + 46, { font: FONT(700, 26), align: "right", color: C.text });
         if (tsum.mode === "bands") { let run = null; const out = []; ids.forEach((i, j) => { const t = types[i], k = ["dry", "missing"].includes(t.kind) ? null : `${t.kind}|${t.word}`; if (k && run && run.k === k && run.b === j - 1) run.b = j; else { if (run) out.push(run); run = k ? { k, a: j, b: j } : null; } }); if (run) out.push(run);
           out.forEach((r) => { const [kind, word] = r.k.split("|"), x0 = L + r.a * bw, wd = (r.b - r.a + 1) * bw; if (C.band[kind]) { g.globalAlpha = C.bandAlpha; g.fillStyle = C.band[kind]; g.fillRect(x0, T, wd, B - T); g.globalAlpha = 1; }
             const label = C.band[kind] ? `${SYM[kind]} ${word}` : `? ${word}`; g.font = FONT(800, 24); text(g.measureText(label).width + 12 <= wd ? label : C.band[kind] ? SYM[kind] : "?", x0 + 8, B - 12, { font: FONT(800, 24), color: C.band[kind] ? C.text : C.muted }); }); }
-        grid(0, 100, [0, 50, 100], (v) => `${v}%`);
+        grid(0, 100, [0, 50, 100], (v) => `${v}%`); schedule(true);
         const vals = ids.map((i) => (missing(i) || !fin(V.hrs[i].pop) ? null : V.hrs[i].pop)); gaps((i) => vals[ids.indexOf(i)]);
         flags("hz-rain", "Precip"); series(vals, 0, 100, C.pop, { dots: true });
       } else if (key === "temp" || key === "wind") {
@@ -117,7 +142,7 @@
         const all = [...v1, ...v2].filter(fin), lim = key === "wind" ? d.gustLimit : null;
         let lo = key === "temp" ? Math.floor((Math.min(...all) - 3) / 5) * 5 : 0, hi = key === "temp" ? Math.ceil((Math.max(...all) + 3) / 5) * 5 : Math.ceil(Math.max(10, ...all, lim || 0) / 10) * 10; if (!all.length) { lo = 0; hi = 10; } if (hi <= lo) hi = lo + 10;
         keyItems(key === "temp" ? [["line", color, "Temperature °F"], ["dash", color, "Feels like"]] : [["line", color, "Sustained mph"], ["dash", color, "Gusts"], ["dot", C.limit, "Venue gust limit"]]);
-        const sel = (i) => i; grid(lo, hi, [lo, (lo + hi) / 2, hi], (v) => `${Math.round(v)}`); gaps((i) => v1[ids.indexOf(sel(i))]);
+        const sel = (i) => i; grid(lo, hi, [lo, (lo + hi) / 2, hi], (v) => `${Math.round(v)}`); if (key === "wind") schedule(false); // gusts are hour-ending values; temperature is read at its time gaps((i) => v1[ids.indexOf(sel(i))]);
         if (lim && lim <= hi) { const yy = B - ((lim - lo) / (hi - lo)) * (B - T); g.strokeStyle = C.limit; g.lineWidth = 3; g.setLineDash([3, 7]); line(L, yy, R, yy); g.setLineDash([]); text(`${lim} mph limit`, R - 6, yy - 10, { font: FONT(700, 22), color: C.limit, align: "right" }); }
         if (key === "wind") flags("hz-wind", "Wind");
         series(v2, lo, hi, color, { dash: true, width: 4 }); series(v1, lo, hi, color, { width: 6 });
@@ -134,7 +159,18 @@
         const real = v1.filter((v) => v != null); lab(v1, "max"); if (key === "temp" && real.length && Math.round(Math.min(...real)) !== Math.round(Math.max(...real))) lab(v1, "min");
       } else {
         const { levels, allLow } = lightningSummary(V, ids);
-        text("Forecast potential, not detected lightning or a warning", R, y + 46, { font: FONT(600, 20), color: C.muted, align: "right" });
+        /* the safety line beside the title: one line when both fit; with a wider fallback font (the web font not loaded) it
+           would run into the title, so it wraps onto two right-aligned lines in the title band, still at 20 px, split where
+           the two lines are most even. canvas.lightningNote records which. */
+        { const sub = "Forecast potential, not detected lightning or a warning", sf = FONT(600, 20), widthOf = (t, f) => { g.font = f; return g.measureText(t).width; };
+          const room = R - (x + 24 + widthOf(title, FONT(800, 32)) + 24);
+          if (widthOf(sub, sf) <= room) { text(sub, R, y + 46, { font: sf, color: C.muted, align: "right" }); canvas.lightningNote = "one line"; }
+          else {
+            const words = sub.split(" "); let best = null;
+            for (let i = 1; i < words.length; i++) { const a = words.slice(0, i).join(" "), b2 = words.slice(i).join(" "), m = Math.max(widthOf(a, sf), widthOf(b2, sf)); if (!best || m < best.m) best = { a, b: b2, m }; }
+            text(best.a, R, y + 37, { font: sf, color: C.muted, align: "right" }); text(best.b, R, y + 61, { font: sf, color: C.muted, align: "right" });
+            canvas.lightningNote = best.m <= room ? "two lines" : "two lines, tight";
+          } }
         if (allLow) {
           text("Low throughout", x + w / 2, (T + B) / 2 + 10, { font: FONT(800, 64), align: "center", color: C.lowThroughout });
           text("Low is not zero · every event hour covered", x + w / 2, (T + B) / 2 + 60, { font: FONT(600, 26), color: C.muted, align: "center" });
@@ -143,7 +179,7 @@
           keyItems([["solid", C.tier[1], "Low"], ["solid", C.tier[2], "Moderate"], ["solid", C.tier[3], "High"], ["gap", null, "No data"]]);
           const yy = (v) => B - (v / 3) * (B - T);
           [1, 2, 3].forEach((v) => { g.strokeStyle = C.ruleSoft; g.lineWidth = 1.5; line(L, yy(v), R, yy(v)); text(["", "Low", "Mod", "High"][v], L - 12, yy(v) + 8, { font: FONT(600, 22), color: C.muted, align: "right" }); });
-          levels.forEach((v, j) => { if (v == null) { g.fillStyle = C.gap; g.fillRect(L + j * bw + 2, T, bw - 4, B - T); text(bw >= 70 ? "No data" : "—", X(j), (T + B) / 2 + 8, { font: FONT(700, 20), color: C.muted, align: "center" }); return; }
+          levels.forEach((v, j) => { if (v == null) { g.fillStyle = C.gap; g.fillRect(L + j * bw + 2, T, bw - 4, B - T); text(bw >= 70 ? "No data" : "", X(j), (T + B) / 2 + 8, { font: FONT(700, 20), color: C.muted, align: "center" }); return; }
             g.fillStyle = C.tier[v]; roundRect(X(j) - bw * 0.36, yy(v), bw * 0.72, B - yy(v), 4); g.fill(); text(bw >= 80 ? ["", "Low", "Mod", "High"][v] : ["", "L", "M", "H"][v], X(j), B - 12, { font: FONT(800, 20), color: C.tierText[v], align: "center" }); });
         }
       }

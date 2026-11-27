@@ -11,7 +11,8 @@
   const myTz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { return null; } })();
   const hm = (s) => (s ? s.slice(11, 16) : "");
   const nextDay = (d, n) => new Date(Date.parse(d + "T12:00Z") + n * 864e5).toISOString().slice(0, 10);
-  const winOf = (ev) => { try { const w = C.event.windows(ev), all = w.find((x) => x.key === "all"), main = w.find((x) => x.key === "event") || all; return { all, main }; } catch (e) { return null; } };
+  /* main: the time the list shows and sorts by (the Event part; for planner-defined slots, the whole schedule) */
+  const winOf = (ev) => { try { const w = C.event.windows(ev), all = w.find((x) => x.key === "all"), main = (!C.event.hasSlots(ev) && w.find((x) => x.key === "event")) || all; return { all, main }; } catch (e) { return null; } };
   const offText = (d) => { const h = (m) => (m % 60 ? `${Math.floor(m / 60) ? Math.floor(m / 60) + " h " : ""}${m % 60} min` : `${m / 60} h`);
     return [d.setup != null ? `Setup ${h(d.setup)} before` : "No setup", d.gates != null ? `gates ${h(d.gates)} before` : "no gates", d.teardown != null ? `teardown ${h(d.teardown)} after` : "no teardown", d.gust != null ? `gust limit ${d.gust} mph` : ""].filter(Boolean).join(" · "); };
 
@@ -49,16 +50,26 @@
         <p class="bx-note" id="fAreaNote" hidden>City-area forecasts are for planning. Choose an exact point to save a venue or open live monitoring.</p>
         <label class="bx-check"><input type="checkbox" id="fSaveVenue" ${base && !base.sample && !venue && fin(base.loc.lat) ? "" : "checked"}> Save this venue and its schedule for future events</label>
       </div>
+      <label>Schedule<select id="fTpl">${E.TEMPLATES.map((x) => `<option value="${esc(x.id)}">${esc(x.label)}</option>`).join("")}<option value="slots">Your own time slots</option></select></label>
+      <div id="fLegacy" class="bx-form-part">
       <div class="two"><label>Starts on<input type="date" id="fDate" value="${esc(t.start ? t.start.slice(0, 10) : defDate)}"></label><label>Ends on<input type="date" id="fEndDate" value="${esc(t.end ? t.end.slice(0, 10) : defDate)}"></label></div>
       <div class="two"><label>Event starts<input type="time" id="fStart" value="${esc(hm(t.start) || "19:30")}" required></label><label>Event ends<input type="time" id="fEnd" value="${esc(hm(t.end) || "21:30")}" required></label></div>
       <fieldset class="bx-sched-f"><legend>Schedule</legend>
         <label id="fPresetBox">Schedule preset<select id="fPreset"></select></label>
         <div class="two"><label>Setup starts<input type="time" id="fSetup" data-k="setup"></label><label>Gates open<input type="time" id="fGates" data-k="gates"></label></div>
-        <div class="two"><label>Teardown ends<input type="time" id="fTear" data-k="teardown"></label><label>Gust limit (mph)<input type="number" id="fGust" min="10" max="60"></label></div>
+        <div class="two"><label>Teardown ends<input type="time" id="fTear" data-k="teardown"></label></div>
         <p class="bx-note" id="fDefNote" style="margin:0"></p>
         <label class="bx-check" id="fMakeDefBox"><input type="checkbox" id="fMakeDef"> <span id="fMakeDefTxt">Make this schedule the venue default</span></label>
         <label id="fNewPresetBox">Save these times as a new preset (optional)<input id="fNewPreset" maxlength="40" placeholder="e.g. Practice"></label>
       </fieldset>
+      </div>
+      <fieldset class="bx-sched-f ev-slots-f" id="fSlotsBox" hidden><legend>Time slots</legend>
+        <p class="bx-note" style="margin:0">Each slot has its own date and times at the venue. An end earlier than the start is the next day. Hours between slots are left out of the event totals and concerns.</p>
+        <ol class="ev-slots" id="fSlots"></ol>
+        <button type="button" class="bx-btn ev-slot-add" id="fAddSlot">Add slot</button>
+        <p class="bx-note" id="fSlotNote" role="status" aria-live="polite" style="margin:0"></p>
+      </fieldset>
+      <label>Gust limit (mph)<input type="number" id="fGust" min="10" max="60"></label>
       <p class="bx-note" style="margin:0" id="fTzNote"></p>
       <p class="err" id="fErr" hidden></p>
       <div style="display:flex;gap:8px;justify-content:flex-end"><button class="bx-btn" value="cancel" formnovalidate>Cancel</button><button class="bx-btn primary" id="fSave" value="save">Save event</button></div>`;
@@ -138,15 +149,75 @@
     for (const id of ["fLat","fLon"]) $(id).addEventListener("input", () => { city = noPoint(); fill(false); });
     $("fVenue").addEventListener("input", () => { $("fVenue").dataset.auto = ""; });
     fill(true);
+    /* ---- time slots: a planner-defined schedule (one window or several); the stadium template is the form above ---- */
+    let slots = base && C.event.hasSlots(base) ? C.event.slotsOf(base) : null;
+    const slotDay = (x) => x.start.slice(0, 10), endNext = (x) => x.end.slice(0, 10) > x.start.slice(0, 10);
+    const rowHtml = (x, i, n) => `<li class="ev-slot" data-i="${i}"><div class="ev-slot-h"><label class="ev-slot-name">Slot name<input data-f="name" maxlength="40" value="${esc(x.name)}" required></label>
+        ${n > 1 ? `<button type="button" class="bx-btn ev-slot-x" data-x="${i}" aria-label="Remove ${esc(x.name || "this slot")}">Remove</button>` : ""}</div>
+      <div class="ev-slot-t"><label>Date<input type="date" data-f="date" value="${esc(slotDay(x))}" required></label><label>Starts<input type="time" data-f="start" value="${esc(x.start.slice(11, 16))}" required></label><label>Ends<input type="time" data-f="end" value="${esc(x.end.slice(11, 16))}" required></label></div>
+      <div class="ev-slot-f">${n > 1 ? `<label class="bx-check"><input type="radio" name="fMain" data-f="main" ${x.main ? "checked" : ""}> Main slot (leads the headline)</label>` : ""}<span class="bx-note" data-next>${endNext(x) ? "Ends the next day" : ""}</span></div></li>`;
+    /* rows → slots: an end at or before the start is the next day; slots are kept in time order */
+    const readRows = () => [...$("fSlots").querySelectorAll(".ev-slot")].map((li, k) => {
+      const v = (f) => li.querySelector(`[data-f="${f}"]`), d = v("date").value, a = v("start").value, z = v("end").value, old = slots[+li.dataset.i] || {};
+      const start = d && a ? `${d}T${a}` : "", end = d && z ? `${z <= a ? nextDay(d, 1) : d}T${z}` : "";
+      return { id: old.id || E.newSlotId(k), name: v("name").value.trim(), start, end, ...(v("main") && v("main").checked ? { main: true } : {}) }; });
+    const sortSlots = (a) => a.slice().sort((x, y) => (x.start < y.start ? -1 : x.start > y.start ? 1 : x.end < y.end ? -1 : 1));
+    function drawSlots() {
+      if (!slots.some((x) => x.main) && slots.length > 1) { const m = C.event.mainOf(slots); if (m >= 0) slots[m] = { ...slots[m], main: true }; }
+      $("fSlots").innerHTML = slots.map((x, i) => rowHtml(x, i, slots.length)).join("");
+      slotNote();
+    }
+    function slotNote() {
+      const cur = readRows(), tz = zone(), names = cur.map((x) => x.name.toLowerCase()), dup = names.filter((n, i) => n && names.indexOf(n) !== i);
+      const warn = tz && cur.every((x) => x.start && x.end) ? C.event.warnings({ tz, slots: cur }) : [];
+      $("fSlotNote").textContent = [...warn.map((w) => `${w} The forecast still covers both.`), dup.length ? `Two slots are called “${cur.find((x) => x.name.toLowerCase() === dup[0]).name}”; different names keep the briefing clear.` : ""].filter(Boolean).join(" ");
+      [...$("fSlots").querySelectorAll(".ev-slot")].forEach((li, k) => { const x = cur[k]; li.querySelector("[data-next]").textContent = x.start && x.end && x.end.slice(0, 10) > x.start.slice(0, 10) ? "Ends the next day" : ""; });
+    }
+    $("fSlots").addEventListener("input", slotNote);
+    $("fSlots").addEventListener("change", (e) => { if (e.target.dataset.f === "main") { slots = readRows(); slots.forEach((x, i) => { if (!e.target.checked || i !== +e.target.closest(".ev-slot").dataset.i) delete x.main; }); } else if (e.target.dataset.f !== "name") { slots = sortSlots(readRows()); drawSlots(); } slotNote(); });
+    $("fSlots").addEventListener("click", (e) => { const b = e.target.closest("[data-x]"); if (!b) return; slots = readRows(); if (slots.length < 2) return; const gone = slots.splice(+b.dataset.x, 1)[0]; if (gone.main) slots.forEach((x) => delete x.main); drawSlots();
+      const f = $("fSlots").querySelector('[data-f="name"]'); if (f) f.focus(); $("fSlotNote").textContent = `Removed ${gone.name || "the slot"}.`; });
+    $("fAddSlot").addEventListener("click", () => { slots = readRows(); const last = slots.reduce((m, x) => (!m || x.end > m.end ? x : m), null), d = last ? last.end.slice(0, 10) : $("fDate").value || defDate;
+      const a = last ? last.end.slice(11, 16) : "17:00", s0 = `${d}T${a}`, e0 = E.addMin(s0, 60);
+      slots.push({ id: E.newSlotId(slots.length), name: `Slot ${slots.length + 1}`, start: s0, end: e0 }); slots = sortSlots(slots); drawSlots();
+      const rows = [...$("fSlots").querySelectorAll(".ev-slot")], li = rows.find((r) => r.querySelector('[data-f="name"]').value === `Slot ${slots.length}`) || rows[rows.length - 1]; const inp = li.querySelector('[data-f="name"]'); inp.focus(); inp.select(); });
+    /* the template picker: Single window and Wedding start slots on the event's date; Stadium is the fixed schedule form */
+    function setMode(m) {
+      const legacy = m === "stadium";
+      $("fLegacy").hidden = !legacy; $("fSlotsBox").hidden = legacy;
+      ["fDate", "fEndDate", "fStart", "fEnd"].forEach((id) => { $(id).required = legacy; });
+      $("fTpl").value = m;
+      if (!legacy) drawSlots();
+    }
+    $("fTpl").addEventListener("change", () => {
+      const m = $("fTpl").value, d = (slots && slots.length ? slots[0].start.slice(0, 10) : null) || $("fDate").value || defDate;
+      if (m === "stadium") { const src = slots && slots.length ? readRows() : null, mi = src ? Math.max(0, C.event.mainOf(src)) : -1;
+        if (src && src[mi] && src[mi].start && src[mi].end) { $("fDate").value = prevDate = src[mi].start.slice(0, 10); $("fStart").value = src[mi].start.slice(11, 16); $("fEnd").value = src[mi].end.slice(11, 16); $("fEndDate").value = src[mi].end.slice(0, 10); endAuto = $("fEndDate").value === autoEnd(); dirty.clear(); fill(false); }
+        setMode("stadium"); return; }
+      if (m === "single") { const st = `${$("fDate").value || d}T${$("fStart").value || "19:30"}`, en = endLocal(); slots = [{ id: E.newSlotId(0), name: "Event", start: st, end: en > st ? en : E.addMin(st, 120) }]; }
+      else if (m !== "slots") slots = E.templateSlots(m, d);
+      if (!slots || !slots.length) slots = E.templateSlots("single", d);
+      setMode(m === "slots" ? "slots" : m);
+    });
+    /* a new event starts with one editable Event window; a saved or shared event keeps its own schedule */
+    if (slots) setMode("slots");
+    else if (base && base.times && (base.times.setup || base.times.gates || base.times.teardown || stored)) setMode("stadium");
+    else { const st = `${$("fDate").value}T${$("fStart").value}`, en = endLocal(); slots = [{ id: E.newSlotId(0), name: "Event", start: st, end: en > st ? en : E.addMin(st, 120) }]; setMode("single"); }
     $("editDlg").showModal();
     $("fSave").addEventListener("click", async (ev0) => {
       ev0.preventDefault();
       const err = (m) => { $("fErr").textContent = m; $("fErr").hidden = false; };
-      const date = $("fDate").value, s = $("fStart").value, e = $("fEnd").value;
-      if (!date || !s || !e || !$("fEndDate").value) return err("Start and end dates and times are required.");
-      const end = endLocal();
+      const slotMode = !$("fSlotsBox").hidden, own = slotMode ? sortSlots(readRows()) : null;
+      if (slotMode && own.some((x) => !x.start || !x.end)) return err("Each slot needs a date, a start and an end.");
+      if (slotMode && own.some((x) => !x.name)) return err("Each slot needs a name.");
+      const outer = own ? C.event.outerTimes(own, null) : null;
+      const date = own ? outer.start.slice(0, 10) : $("fDate").value, s = own ? outer.start.slice(11, 16) : $("fStart").value, e = own ? outer.end.slice(11, 16) : $("fEnd").value;
+      if (!date || !s || !e || (!own && !$("fEndDate").value)) return err("Start and end dates and times are required.");
+      const end = own ? outer.end : endLocal();
       const before = (v) => (!v ? null : `${v > s ? nextDay(date, -1) : date}T${v}`), tear = (v) => (!v ? null : `${v < end.slice(11, 16) ? nextDay(end.slice(0, 10), 1) : end.slice(0, 10)}T${v}`);
-      const times = { setup: before(F.setup.value), gates: before(F.gates.value), start: `${date}T${s}`, end, teardown: tear(F.teardown.value) };
+      /* slots that are exactly a Setup / Gates / Event / Teardown schedule are saved the way such events always were */
+      const legacyT = own ? C.event.legacyTimes(own) : null, useSlots = !!own && !legacyT;
+      const times = own ? (legacyT || { start: `${date}T${s}`, end }) : { setup: before(F.setup.value), gates: before(F.gates.value), start: `${date}T${s}`, end, teardown: tear(F.teardown.value) };
       Object.keys(times).forEach((k) => { if (!times[k]) delete times[k]; });
       let loc, tz, venueId = venue ? venue.id : null;
       if (venue) { loc = { name: venue.name, lat: venue.lat, lon: venue.lon }; tz = venue.tz; }
@@ -165,25 +236,28 @@
       }
       const gust = Math.min(60, Math.max(10, +$("fGust").value || 25));
       const draft = { name: $("fName").value.trim() || (base && !base.sample ? base.name : "My event"), loc, tz, times, gust };
+      if (useSlots) { draft.slots = own.map((x) => { const c = E.cleanSlot(x); if (own.length < 2) delete c.main; return c; }); draft.times = C.event.outerTimes(draft.slots, tz); }
       /* times that happen twice on a fall-back night: settled from the calendar's own instants, the times as saved, or
          the venue defaults; a repeated time typed by hand is still left for validation to flag */
       { const ms = {};
         ["start", "end"].forEach((k) => { const m = knownMs(k, times[k], tz); if (m != null) ms[k] = m; });
         const sch = E.schedule(defs(), { start: times.start, end: times.end, tz, startMs: ms.start, endMs: ms.end });
         Object.keys(times).forEach((k) => { if (ms[k] != null) return; if (stored && stored.tz === tz && stored.times[k] === times[k] && E.msOf(stored, k) != null) ms[k] = E.msOf(stored, k); else if (sch.times[k] === times[k]) ms[k] = E.localMs(times[k], tz, sch.fold[k]); });
-        draft.fold = E.foldsFor(times, ms, tz); }
+        draft.fold = useSlots ? {} : E.foldsFor(times, ms, tz); }
       const errs = C.event.validate(draft); if (errs.length) return err(errs.join(" "));
       if (!venue && !loc.approximate && $("fSaveVenue").checked) { venue = E.saveVenue({ name: loc.name, city: city.name || "", address: city.address || "", lat: loc.lat, lon: loc.lon, tz, defaults: { ...E.offsetsOf(times, tz, draft.fold), gust } }); venueId = venue.id; U.track("venue_saved"); }
+      else if (own) { /* a slot schedule never changes a venue's fixed-part defaults or presets */ }
       else if (venue && $("fMakeDef").checked && preset) { const o = E.offsetsOf(times, tz, draft.fold); venue = E.saveVenue({ ...venue, presets: E.presetsOf(venue).map((p) => (p.id === preset ? { ...p, setup: o.setup ?? null, gates: o.gates ?? null, teardown: o.teardown ?? null } : p)) }); U.track("venue_saved"); }
       else if (venue && $("fMakeDef").checked) { venue = E.saveVenue({ ...venue, defaults: { ...venue.defaults, ...E.offsetsOf(times, tz, draft.fold), gust } }); U.track("venue_saved"); }
-      const newPreset = venue ? $("fNewPreset").value.trim() : "";
+      const newPreset = venue && !own ? $("fNewPreset").value.trim() : "";
       if (newPreset) { if (venue.builtin) venue = E.saveVenue({ ...venue, builtin: undefined });
         const o = E.offsetsOf(times, tz, draft.fold), id = E.newPresetId();
         venue = E.saveVenue({ ...venue, presets: [...E.presetsOf(venue), { id, name: newPreset, setup: o.setup ?? null, gates: o.gates ?? null, teardown: o.teardown ?? null }] }); preset = id; U.track("venue_saved"); }
       if (venue && venue.builtin) { venue = E.saveVenue({ ...venue, builtin: undefined }); venueId = venue.id; } // a built-in venue becomes a saved one
       /* confirming a calendar event's venue by hand: remember its calendar location for future imports */
       if (venue && src && src.location && (!stored || stored.venueId !== venue.id)) venue = E.rememberAlias(venue, src.location);
-      const rec = E.saveEvent({ ...(stored || {}), ...draft, id: stored ? stored.id : null, venueId, preset: venue ? preset : null, overrides: venue ? E.overridesOf(times, E.defsFor(venue, preset), tz, draft.fold) : [], source: (stored && stored.source) || { kind: "manual" } });
+      const { slots: _old, ...keep } = stored || {}; // a schedule saved as fixed parts drops any earlier slots
+      const rec = E.saveEvent({ ...keep, ...draft, id: stored ? stored.id : null, venueId, preset: venue && !own ? preset : null, overrides: venue && !own ? E.overridesOf(times, E.defsFor(venue, preset), tz, draft.fold) : [], source: (stored && stored.source) || { kind: "manual" } });
       U.track("event_saved", { market: S.market(loc.lat, loc.lon).tuned ? "cincinnati" : "elsewhere" });
       $("editDlg").close(); if (onSaved) onSaved(rec);
     });

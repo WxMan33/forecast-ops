@@ -6,7 +6,7 @@ check("repeated hour names both offsets",()=>assert.match(U.hourWindow(Date.pars
 check("phase-wide rain plan does not claim a particular hour",()=>assert.equal(U.headline({top:{key:"rain",level:2,from:null,phases:["Setup"]}},"old"),"Have a rain plan for setup."));
 check("timed rain and other hazards keep engine wording",()=>{assert.equal(U.headline({top:{key:"rain",level:2,from:3}},"timed"),"timed");assert.equal(U.headline({top:{key:"wind",level:2,from:null}},"wind"),"wind")});
 check("missing sources are named without disguising reduced coverage",()=>{const x=U.coverage({feeds:{used:["GFS"],missing:[{name:"HRRR"}]}});assert.equal(x.text,"1 of 2 model sources available");assert.match(x.detail,/HRRR/);assert.equal(x.limited,true)});
-check("tiny precipitation is retained",()=>{assert.equal(U.rainAmount(.002),"<0.01");assert.equal(U.rainAmount(0),"0");assert.equal(U.rainAmount(null),"—")});
+check("tiny precipitation is retained",()=>{assert.equal(U.rainAmount(.002),"<0.01");assert.equal(U.rainAmount(0),"0");assert.equal(U.rainAmount(null),"No data")});
 
 /* attention model: synthetic briefing, engine-shaped hazard rules (thresholds come from the rules passed in, not from this file) */
 const H=3600e3,t0=Date.parse("2026-11-12T17:00Z"),tz="America/New_York";

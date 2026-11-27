@@ -18,11 +18,11 @@
      the speed alone, with the reason; never north by default. Calm: "Calm". Winds that cancel between sources: "VRB". */
   const COMPASS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
   const compass = (deg) => (fin(deg) ? COMPASS[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16] : null);
-  function windCells(hrs, now) {
+  function windCells(hrs, now, none = "—") {
     return hrs.map((h) => {
-      if (h.state !== "ok") return { state: "missing", text: "—", why: h.state === "beyond" ? "Beyond the hourly guidance" : "No guidance for this hour" };
+      if (h.state !== "ok") return { state: "missing", text: none, why: h.state === "beyond" ? "Beyond the hourly guidance" : "No guidance for this hour" };
       const past = now != null && h.ms + H <= now, note = past ? "Earlier hour: model guidance, not an observation" : "";
-      if (!fin(h.wind)) return { state: "missing", text: "—", why: "Not in the guidance for this hour", past };
+      if (!fin(h.wind)) return { state: "missing", text: none, why: "Not in the guidance for this hour", past };
       const spd = Math.round(h.wind);
       if (h.windCalm || spd === 0) return { state: "ok", text: "Calm", past, why: note };
       const dir = h.windVariable ? "VRB" : compass(h.windDir);
@@ -31,13 +31,14 @@
     });
   }
 
-  /* the value rows both pages share: same order, same definitions */
-  function valueRows(hrs, now) {
-    const miss = (h) => ({ state: "missing", text: "—", why: h.state === "beyond" ? "Beyond the hourly guidance" : "No guidance for this hour" });
+  /* the value rows both pages share: same order, same definitions. `none` is the missing-value label: Event Manager
+     writes it out ("No data"); Model Blend keeps its compact mark */
+  function valueRows(hrs, now, none = "—") {
+    const miss = (h) => ({ state: "missing", text: none, why: h.state === "beyond" ? "Beyond the hourly guidance" : "No guidance for this hour" });
     const val = (k, f) => hrs.map((h) => {
       if (h.state !== "ok") return miss(h);
       const past = now != null && h.ms + H <= now;
-      return fin(h[k]) ? { state: "ok", text: f(h[k]), past, why: past ? "Earlier hour: model guidance, not an observation" : "" } : { state: "missing", text: "—", why: "Not in the guidance for this hour", past };
+      return fin(h[k]) ? { state: "ok", text: f(h[k]), past, why: past ? "Earlier hour: model guidance, not an observation" : "" } : { state: "missing", text: none, why: "Not in the guidance for this hour", past };
     });
     return [
       { key: "temp", label: "Temperature", sub: "°F", cells: val("temp", (x) => `${Math.round(x)}°`) },
@@ -45,20 +46,33 @@
       { key: "pop", label: "Precip chance", sub: "hourly PoP", cells: val("pop", (x) => pct(x)) },
       { key: "chance", label: "Ensemble ≥0.01″", sub: "share of members", cells: val("chance", (x) => pct(x * 100)) },
       { key: "qpf", label: "Precip amount", sub: "inches", cells: val("qpf", (x) => rainAmount(x)) },
-      { key: "wind", label: "Wind", sub: "direction · sustained mph", cells: windCells(hrs, now) },
+      { key: "wind", label: "Wind", sub: "direction · sustained mph", cells: windCells(hrs, now, none) },
       { key: "gust", label: "Gusts", sub: "mph", cells: val("gust", (x) => `${Math.round(x)}`) },
     ];
   }
 
   /* ---------- Event Manager: setup through teardown ---------- */
   function eventView({ C, S, M, ctx, brief, thr, tz, now }) {
-    const span = M.eventSpan(brief), hrs = M.blendHours(C, ctx.B, ctx.ws, ctx.opts, span, ctx.th), axis = M.axis(C, span, tz);
-    const cover = M.phaseCover(span, brief.phases), con = M.eventConcerns(S, C, brief, hrs, thr);
+    /* planner-defined slots (brief.custom): the columns run to the hour ending at the last end, and each column's part
+       of the schedule is read for the hour its rain, chance and gusts cover (the hour ending at its time, Core.event.KIND);
+       hourStart[i] is that hour's start. The fixed parts keep the columns and coverage they always had. */
+    const custom = !!brief.custom, all = brief.all, H0 = custom ? H : 0;
+    const span = custom ? M.spanHours(all.startMs, all.endMs + H) : M.eventSpan(brief), hrs = M.blendHours(C, ctx.B, ctx.ws, ctx.opts, span, ctx.th), axis = M.axis(C, span, tz);
+    const hourStart = span.map((L) => L - H0), cover = M.phaseCover(hourStart, brief.phases), con = M.eventConcerns(S, C, brief, hrs, thr);
+    const coverAt = custom ? span.map((L) => C.event.holding(brief.phases, L, "at")) : null;
+    const partial = custom ? C.event.partialHours(brief.phases) : [];
+    const hhmm = (ms) => new Date(ms).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: "2-digit" }).replace(":00", "");
+    const hourOf = (L) => { const a = hhmm(L - H), b = hhmm(L), ma = a.match(/^(.*) (AM|PM)$/), mb = b.match(/^(.*) (AM|PM)$/); return ma && mb && ma[2] === mb[2] ? `${ma[1]}–${b}` : `${a}–${b}`; }; // "3–4 PM"
+    const inside = (i) => hourStart[i] >= all.startMs && span[i] <= all.endMs;
     const clock = (min) => `:${String(Math.round(min)).padStart(2, "0")}`;
-    const phaseCells = cover.map((ps) => {
+    const phaseCells = cover.map((ps, ci) => {
+      if (custom && !ps.length && inside(ci)) return { state: "clear", text: "Between slots", title: `Between slots: rain, chance and gusts here are for ${hourOf(span[ci])} (the hour ending ${hhmm(span[ci])}), outside your time slots; left out of the event totals and concerns` };
+      if (custom && !ps.length) return { state: "clear", text: "", title: `Outside the schedule: rain, chance and gusts here are for ${hourOf(span[ci])}` };
       if (!ps.length) return { state: "clear", text: "" };
       const main = ps.reduce((a, c) => (c.fraction > a.fraction ? c : a));
       const text = ps.length > 1 ? ps.map((p, i) => (i && p.starts ? `${p.label} ${clock(p.from)}` : p.label)).join(" → ") : main.starts ? `${main.label} ${clock(main.from)}` : main.ends ? `${main.label} to ${clock(main.to)}` : main.label;
+      const pt = custom ? partial.find((x) => x.e === span[ci]) : null;
+      if (pt) return { state: "ok", text, split: ps.length === 1 && main.fraction < 1 ? { from: main.from, to: main.to } : null, title: `Hourly data: ${hourOf(span[ci])} counted with ${pt.labels.join(" and ")}; the forecast can't separate parts of an hour` };
       return { state: "ok", text, split: ps.length === 1 && main.fraction < 1 ? { from: main.from, to: main.to } : null, title: ps.map((p) => `${p.label} ${clock(p.from)}–${p.to === 60 ? ":00 next hour" : clock(p.to)}`).join(" · ") };
     });
     const cellOf = (c, icon) => c.state === "concern" ? { state: "concern", tier: c.tier, icon, text: SHORT[c.word] || c.word, why: c.why }
@@ -73,7 +87,9 @@
       const w = LIGHTNING_WORD[h.thunder] || "Unavailable", raised = h.thunder !== "normal";
       return raised ? { state: "concern", tier: h.thunder, icon: "ϟ", text: w, why: `Lightning potential ${w.toLowerCase()} (forecast signal, not detected lightning)` } : { state: "clear", text: "Low", why: "Lightning potential low, not zero (forecast signal, not detected lightning)" };
     });
-    const values = valueRows(hrs, now).filter((r) => r.key !== "chance").map((r) => (r.key === "pop" ? { ...r, label: "Rain chance", sub: "each hour, at the venue" } : r.key === "qpf" ? { ...r, label: "Rain amount", sub: "inches" } : r));
+    const values = valueRows(hrs, now, "No data").filter((r) => r.key !== "chance").map((r) => (r.key === "pop" ? { ...r, label: "Rain chance", sub: "each hour, at the venue" } : r.key === "qpf" ? { ...r, label: "Rain amount", sub: "inches" } : r));
+    /* planner-defined slots: say which hour each column's hour-ending values cover */
+    if (custom) values.forEach((r) => { if (r.key === "pop") r.sub = "hour ending at the time shown"; if (r.key === "qpf") r.sub = "inches, hour ending at the time shown"; if (r.key === "gust") r.sub = "mph, hour ending at the time shown"; });
     const rows = [
       { key: "phase", kind: "phase", label: "Phase", cells: phaseCells },
       { key: "concern", kind: "summary", label: "Hourly signal", sub: "tap for details", cells: summary },
@@ -83,29 +99,35 @@
     ];
     const tiers = [...new Set(con.rows.flatMap((r) => r.cells.filter((c) => c.state === "concern").map((c) => c.tier)))];
     const legend = [
-      ...["monitor", "prepare", "action"].filter((t) => tiers.includes(t)).map((t) => ({ state: "concern", tier: t, text: { monitor: "Watch · marginal", prepare: "Plan for it · elevated", action: "Likely disruptive · high" }[t] })),
-      { state: "flag", text: "Low — a signal below the phase planning threshold" }, { state: "clear", text: "– no specific hourly signal; see phase plan above" },
-      { state: "partial", text: "Limited — some guidance missing" }, { state: "missing", text: "n/a — no guidance (not an all-clear)" }];
+      ...["monitor", "prepare", "action"].filter((t) => tiers.includes(t)).map((t) => ({ state: "concern", tier: t, text: { monitor: "Watch: the lowest planning rating", prepare: "Plan for it: the middle rating", action: "Likely disruptive: the highest rating" }[t] })),
+      { state: "flag", text: "Low: a signal below the phase planning threshold" }, { state: "clear", text: "– no specific hourly signal; see phase plan above" },
+      { state: "partial", text: "Limited: some guidance missing" }, { state: "missing", text: "n/a or No data: no guidance (not an all-clear)" }];
     const note = "Shading marks hours with an identified signal; its colour uses the existing phase rating. A phase plan does not mean every hour has that threat. Rain chance is the blended hourly chance at the venue. Lightning potential is forecast guidance, not detected lightning.";
     function detail(i) {
       const h = hrs[i], a = axis[i], hits = con.rows.map((r) => ({ r, c: r.cells[i] })).filter((x) => x.c.state === "concern" || x.c.state === "flag");
-      const head = `<h3>${esc(day(h.ms, tz))}, ${esc(a.hourText)} ${esc(a.zone)}${cover[i].length ? ` · ${esc(cover[i].map((p) => p.label).join(", "))}` : ""}</h3>`;
+      const head = custom ? `<h3>${esc(day(h.ms, tz))}, ${esc(a.hourText)} ${esc(a.zone)}</h3><p class="hg-note" data-interval>Rain, rain chance and gusts: ${esc(hourOf(h.ms))} (the hour ending ${esc(hhmm(h.ms))})${cover[i].length ? `, ${esc(cover[i].map((p) => p.label).join(" and "))}` : inside(i) ? ", between slots: not in the event totals" : ", outside the schedule"}. Temperature and wind: at ${esc(hhmm(h.ms))}${coverAt[i].length ? `, ${esc(coverAt[i].map((p) => p.label).join(" and "))}` : ""}.${partial.some((x) => x.e === h.ms) ? ` Hourly data: ${esc(hourOf(h.ms))} counted with ${esc(partial.find((x) => x.e === h.ms).labels.join(" and "))}; the forecast can't separate parts of an hour.` : ""}</p>`
+        : `<h3>${esc(day(h.ms, tz))}, ${esc(a.hourText)} ${esc(a.zone)}${cover[i].length ? ` · ${esc(cover[i].map((p) => p.label).join(", "))}` : ""}</h3>`;
       if (h.state !== "ok") return head + `<p>${esc(h.state === "beyond" ? "Beyond the hourly guidance: this hour fills in as the date gets closer." : "No guidance source has values for this hour.")} This is missing guidance, not an all-clear.</p>`;
-      return head + `<p>${hits.length ? hits.map((x) => `<b>${esc(x.r.label)}</b>: ${esc(x.c.word || "low")} — ${esc(x.c.why)}`).join("<br>") : esc(con.summary[i].why || "No concern identified")}</p>
-        <p>Rain chance ${pct(h.pop)} · lightning potential ${h.thunder && h.thunder !== "nodata" ? esc((LIGHTNING_WORD[h.thunder] || "unavailable").toLowerCase()) : "unavailable"} · ${fin(h.temp) ? Math.round(h.temp) + "°" : "—"} · gusts ${fin(h.gust) ? Math.round(h.gust) + " mph" : "—"}</p>
+      return head + `<p>${hits.length ? hits.map((x) => `<b>${esc(x.r.label)}</b>: ${esc(x.c.word || "low")}. ${esc(x.c.why)}`).join("<br>") : esc(con.summary[i].why || "No concern identified")}</p>
+        <p>Rain chance ${fin(h.pop) ? pct(h.pop) : "no data"} · lightning potential ${h.thunder && h.thunder !== "nodata" ? esc((LIGHTNING_WORD[h.thunder] || "unavailable").toLowerCase()) : "unavailable"} · temperature ${fin(h.temp) ? Math.round(h.temp) + "°" : "no data"} · gusts ${fin(h.gust) ? Math.round(h.gust) + " mph" : "no data"}</p>
         <p class="hg-note">Forecast from ${h.n} model source${h.n === 1 ? "" : "s"} at the venue; not observed weather.</p>`;
     }
     /* event totals: one blend call over every covered hour (the same windowRow the briefing's totals use), the spread
        across sources (10th-90th percentile of the contributing sources' totals), and the heaviest blend hour. Precip type
        per wet hour from blend snowfall vs liquid at Open-Meteo's 7:1 (>= 0.8 snow, <= 0.2 rain, else mix). */
-    const okH = hrs.filter((h) => h.state === "ok" && fin(h.i)), idxs = okH.map((h) => h.i);
-    const T = idxs.length ? C.blend.windowRow(ctx.B, ctx.ws, idxs, idxs, ctx.opts) : null;
+    /* planner-defined slots: amounts are summed over the hours whose own hour (ending at the label) overlaps a slot, each
+       hour once however many slots it touches (the union); an hour that only partly overlaps a slot counts whole with it;
+       instantaneous values come from the labels inside a slot. Same windowRow call; nothing per hour changes. */
+    const G = custom ? brief.spans : null, evH = G ? hrs.filter((h) => C.event.covers(G, h.ms, "end")) : hrs;
+    const okH = evH.filter((h) => h.state === "ok" && fin(h.i)), idxs = okH.map((h) => h.i);
+    const atI = G ? hrs.filter((h) => h.state === "ok" && fin(h.i) && C.event.covers(G, h.ms, "at")).map((h) => h.i) : idxs;
+    const T = idxs.length ? C.blend.windowRow(ctx.B, ctx.ws, atI.length ? atI : idxs, idxs, ctx.opts) : null;
     const peak = (k) => okH.reduce((a, h) => (fin(h[k]) && h[k] > 0 && (!a || h[k] > a.v) ? { v: h[k], ms: h.ms } : a), null);
     const kinds = okH.map((h) => { if (!fin(h.qpf) || h.qpf < 0.005 || !fin(h.sn)) return null; const f = Math.min(1, Math.max(0, h.sn / (7 * h.qpf))); return f >= 0.8 ? "snow" : f <= 0.2 ? "rain" : "mix"; })
       .filter(Boolean).filter((k, i, a) => i === 0 || a[i - 1] !== k);
-    const totals = { hours: span.length, gap: span.length - idxs.length, qpf: T ? T.qpf : null, qpfR: T ? T.qpfR : null, sn: T ? T.sn : null, snR: T ? T.snR : null,
+    const totals = { hours: evH.length, gap: evH.length - idxs.length, spans: G && G.length > 1 ? G : null, custom, partial, qpf: T ? T.qpf : null, qpfR: T ? T.qpfR : null, sn: T ? T.sn : null, snR: T ? T.snR : null,
       peakQ: peak("qpf"), peakSn: peak("sn"), types: kinds };
-    return { span, hrs, axis, cover, con, rows, legend, note, detail, totals };
+    return { span, hrs, axis, cover, coverAt, hourStart, custom, con, rows, legend, note, detail, totals };
   }
 
   /* ---------- Model Blend: next 24/48/72 hours or a custom window ---------- */
