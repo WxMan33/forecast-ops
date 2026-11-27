@@ -34,24 +34,23 @@ async function build(m) {
   if (m.ghcnd) { try {
     const u = `https://www.ncei.noaa.gov/access/services/data/v1?dataset=daily-summaries&stations=${m.ghcnd}&startDate=${E.addDays(through, -days - 40)}&endDate=${through}&dataTypes=PRCP&format=json`;
     const j = await (await fetch(u)).json(); finalThrough = j.map((x) => x.DATE).sort().pop() || null; } catch (e) { finalThrough = null; } }
-  const status = (d) => (finalThrough && d <= finalThrough ? "final" : "preliminary");
-  const out = { schema: 1, id: m.id, generated: new Date().toISOString(), through, finalThrough,
-    market: { id: m.id, name: m.name, country: m.country, region: m.region, tz: m.tz, lat: m.lat, lon: m.lon, radiusKm: m.radiusKm, units: m.units, record: { ...m.record, name: recRes.meta.name, por: recRes.meta.valid_daterange[0] }, normals: { sid: m.normals.sid, label: "1991-2020" } },
-    sources: [`RCC-ACIS StnData ${m.record.sid} (${recRes.meta.name}), retrieved ${new Date().toISOString().slice(0, 10)}`, m.ghcnd ? `NCEI GHCN-Daily ${m.ghcnd} (final through ${finalThrough || "unknown"})` : null, `1991-2020 normals, ACIS ${m.normals.sid}`].filter(Boolean),
-    days: {} };
-  for (let i = days - 1; i >= 0; i--) {
-    const d = E.addDays(through, -i);
-    const toDate = d.slice(0, 7) === through.slice(0, 7) ? ndaily.filter((r) => r[0] <= d).reduce((a, r) => a + r[1], 0) : null, mon = ndaily.reduce((a, r) => a + r[1], 0);
-    const f = E.findings({ market: out.market, date: d, S, status, normals: { pcpn: toDate != null ? { month: +mon.toFixed(2), toDate: +toDate.toFixed(2) } : null }, thresholds: m.thresholds || { pcpn: 2 } });
-    if (f.items.length) out.days[d] = { status: f.status, items: f.items.map(({ evidence, ...it }) => ({ ...it, evidence: { source: evidence.source, range: evidence.range, sample: evidence.sample } })), highlights: f.highlights.map((h) => h.id) };
-  }
-  fs.writeFileSync(path.join(dir, `${m.id}.json`), JSON.stringify(out, null, 1) + "\n");
-  return { id: m.id, name: m.name, lat: m.lat, lon: m.lon, radiusKm: m.radiusKm, through, days: Object.keys(out.days) };
+  const market = { id: m.id, name: m.name, country: m.country, region: m.region, tz: m.tz, lat: m.lat, lon: m.lon, radiusKm: m.radiusKm, units: m.units,
+    record: { ...m.record, name: recRes.meta.name, por: recRes.meta.valid_daterange[0] }, normals: { sid: m.normals.sid, label: "1991-2020" } };
+  const mon = ndaily.reduce((a, r) => a + r[1], 0);
+  const normalsFor = (d) => (d.slice(0, 7) === through.slice(0, 7) && ndaily.length ? { month: +mon.toFixed(2), toDate: +ndaily.filter((r) => r[0] <= d).reduce((a, r) => a + r[1], 0).toFixed(2) } : null);
+  const sources = [`RCC-ACIS StnData ${m.record.sid} (${recRes.meta.name}), retrieved ${new Date().toISOString().slice(0, 10)}`, m.ghcnd ? `NCEI GHCN-Daily ${m.ghcnd} (final through ${finalThrough || "unknown"})` : null, `1991-2020 normals, ACIS ${m.normals.sid}`].filter(Boolean);
+  const out = E.pack({ market, S, through, days, finalThrough, normalsFor, thresholds: m.thresholds || { pcpn: 2 }, sources });
+  /* write the new file only once it is complete (temp file, then rename): a failed refresh leaves the last good pack */
+  const tmp = path.join(dir, `.${m.id}.json.tmp`); fs.writeFileSync(tmp, JSON.stringify(out, null, 1) + "\n"); fs.renameSync(tmp, path.join(dir, `${m.id}.json`));
+  return { id: m.id, name: m.name, record: market.record.name, lat: m.lat, lon: m.lon, radiusKm: m.radiusKm, through, finalThrough, generated: out.generated, days: Object.keys(out.days) };
 }
 (async () => {
   const todo = MARKETS.filter((m) => !ids.length || ids.includes(m.id)), index = [];
-  for (const m of todo) { const r = await build(m); index.push(r); console.log(`${m.id}: through ${r.through}; days with findings: ${r.days.join(", ") || "none"}`); }
+  let failed = 0;
+  for (const m of todo) { try { const r = await build(m); index.push(r); console.log(`${m.id}: through ${r.through}; final through ${r.finalThrough || "unknown"}; days with findings: ${r.days.join(", ") || "none"}`); }
+    catch (e) { failed++; console.error(`${m.id}: refresh failed (${e.message || e}); its last pack stays in place`); } }
   const prev = fs.existsSync(path.join(dir, "index.json")) ? JSON.parse(fs.readFileSync(path.join(dir, "index.json"), "utf8")).markets : [];
   const merged = [...prev.filter((p) => !index.some((x) => x.id === p.id)), ...index];
   fs.writeFileSync(path.join(dir, "index.json"), JSON.stringify({ schema: 1, generated: new Date().toISOString(), markets: merged }, null, 1) + "\n");
+  if (failed) process.exit(1);
 })().catch((e) => { console.error(e); process.exit(1); });

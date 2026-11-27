@@ -72,15 +72,55 @@ These are fixed in `tests/records-engine.test.js` from a real ACIS snapshot (`te
 - **Packs:** `tools/build-insights.js` reads each market's full daily record from RCC-ACIS once, plus normals and NCEI status. It writes `feeds/insights/<id>.json` (about 4 KB) and `feeds/insights/index.json`.
 - **Overview** reads only the pack and caches it for 15 minutes in sessionStorage. It never downloads a climate archive. With no pack, or a failure, the section stays hidden and the page is unchanged.
 - **Almanac** shows the pack's findings for the selected date. Without a pack it computes daily records from data it already has.
-- **Rebuilding the pack** needs a schedule: daily after the morning daily climate report, and again after the afternoon report. A scheduled workflow is proposed, but not added without the owner's approval.
+- **What a pack holds:** findings for the last 60 days (`windowDays`), with `through` (last day covered), `finalThrough` (last day in NCEI's final archive) and `generated` (when the refresh ran). The index lists each market's name, official record, centre and radius (60 km), so a place is matched to the nearest market whose radius covers it.
+
+## Preview coverage
+
+The preview has two packs, both built from real RCC-ACIS and NCEI data for the 60 days through Nov 26, 2026:
+
+| Pack | Official record | Days with findings |
+|---|---|---|
+| Cincinnati (`cvg`) | Cincinnati Area threaded record (CVGthr) | Oct 1, Oct 13, Oct 14, Nov 3, Nov 4, Nov 26 (Nov 26 preliminary, the rest final) |
+| Denver (`den`) | Denver Area threaded record (DENthr), America/Denver | Sep 28, Oct 5, Oct 6, Oct 8 to 11, Oct 20 to 23 (all final). Oct 6: record warm low (59°F, old record 55°F in 1947) and a tie with the record high (87°F, 1975 and 2020) |
+
+Every other place has no pack. Overview hides the section there. Almanac shows daily records from the point's own climate station history when that loads, with a note naming the preview's packs. The Almanac coverage line for a pack names the record, the 60-day window, how far the data is final and when the pack was refreshed.
+
+**Changing places never carries facts over.** The section is cleared the moment the place changes, before the next pack loads, and a slow answer for the earlier place is dropped. `tools/records-check.js` covers Cincinnati to Denver (with the Denver pack held back 1.5 seconds), Denver to Columbus (no pack) and back, on Overview without a reload and on Almanac in one tab with a shared session cache.
+
+## Refresh
+
+**Existing workflow.** `.github/workflows/astronomy.yml` ("Refresh Cincinnati astronomy") already runs four times a day on standard GitHub-hosted runners: 1:43 AM, 7:43 AM, 1:43 PM and 7:43 PM ET (`43 0,6,12,18 * * *` UTC; an hour later in summer). Each run takes about 42 seconds, recent runs all succeeded, and it commits `feeds/iss-cincinnati.json` to `main`.
+
+**It can build the packs** by adding two steps after its own: `node tools/build-insights.js` and `git add feeds/insights`. The builder takes under 10 seconds for both markets (6.5 s in a test run) (one ACIS request per market for the full record, one for normals, one NCEI request for status) and needs no keys. Two conditions:
+
+1. `tools/build-insights.js`, `assets/records-engine.js`, `assets/records-holidays.js` and `feeds/insights/markets.json` must be on `main`, because the workflow runs there. That means after the feature ships to production, not before.
+2. The step should not fail the astronomy refresh: run it with `continue-on-error: true`, so a records outage never stops the ISS feed.
+
+The 7:43 AM and 7:43 PM ET runs line up with the overnight daily climate report (the prior day, complete) and the late-afternoon report (today so far, which the builder never uses, since it stops at yesterday in the market's time zone). No separate twice-daily job is needed unless the owner wants a different time. Nothing has been added yet.
+
+**Preliminary to final, and revisions.** Every refresh recomputes every finding in the 60-day window from the source; nothing is patched. So:
+
+- When NCEI's final archive reaches a day (`finalThrough` passes it), the next refresh relabels that day's findings **Observed record** and drops "(preliminary)" from the copy.
+- When the source revises a value, the next refresh uses the new value. A record claim that no longer holds disappears; a new one appears. `tests/records-engine.test.js` ("refresh: ...") builds the Cincinnati Nov 26 pack three ways: as issued (2.16 in, preliminary), after a downward revision to 1.40 in (the record claim is gone), and after NCEI finalizes it (Observed record, no preliminary note).
+- Browsers keep a pack for up to 15 minutes, so a change shows within 15 minutes of the commit reaching the site.
+
+**When a refresh fails.** The builder writes each pack to a temporary file and renames it only when complete, so a failed market keeps its last good pack. It logs "refresh failed (...); its last pack stays in place", keeps that market's index entry and exits with an error, so the run shows red. On the page, findings stay visible with their original labels. Once a pack is more than 36 hours old, Almanac's coverage line adds: "This refresh is N hours old, so newer observations or revisions aren't reflected yet." If the pack can't be read at all, both sections stay hidden and the rest of each page works (both are checked in `tools/records-check.js`).
+
+## Toronto plan (not built)
+
+- **Data:** Environment and Climate Change Canada, through MSC GeoMet's OGC API: `climate-daily` for daily observations, `climate-normals` for 1991-2020 normals and ECCC's long-term threaded extremes for Toronto (station IDs and how ECCC joins the city and airport records to be confirmed from ECCC's own metadata). These hosts are blocked from this build environment; whether GitHub-hosted runners reach them needs one manual run to confirm.
+- **Units:** keep ECCC's native metric (mm, cm, °C) in the pack and copy. Never convert to inches for Canadian markets; the engine already formats mm and is unit tested for Toronto.
+- **Final or preliminary:** ECCC's quality flags per value replace NCEI's archive date. Unflagged, quality-controlled values are final; values flagged estimated or not yet reviewed are preliminary.
+- **Holidays:** Canadian Thanksgiving is fixed as the second Monday of October from 1957. Earlier years were set by proclamation each year; they need a table from the Canada Gazette, and until then those years are left out, not guessed. Provincial holidays (Civic Holiday, Family Day) and Victoria Day need their own rules and per-province tables before they're offered.
+- **Acceptance:** a verified Toronto case, like Cincinnati's, checked by hand against ECCC before Toronto is listed.
 
 ## Markets checked
 
 | Market | What the engine supports |
 |---|---|
 | Cincinnati (CVGthr since 1871; CVG since 1947) | Everything above. |
-| Denver (DENthr since 1872; DEN since 1994) | Daily records and holiday rankings for temperature and precipitation. Oct 6 2026's 87°F **tied** the threaded record's daily record (1975 and 2020), but only 2020 in the airport record. Snowfall has a gap in 1995 to 2005. Airport-only Thanksgiving snowfall has 21 usable years, so it's suppressed. Dec 2013 precipitation is missing. No ACIS snowfall normals for DEN. |
-| Toronto (non-U.S., metric, Canadian Thanksgiving) | The engine runs in mm with the Canadian holiday (unit tested; an ACIS copy of Toronto 1957 to 2017 behaves as expected, suppressing claims with under 30 years). The authoritative source is ECCC (MSC GeoMet climate-daily, normals and threaded long-term extremes). Its hosts aren't reachable from the build environment, and the ACIS copies end in 2017 to 2025. Needs an ECCC adapter, native metric values and ECCC quality flags for final or preliminary. |
+| Denver (DENthr since 1872; DEN since 1994) | In the preview (pack `den`). Daily records and holiday rankings for temperature and precipitation. Oct 6 2026's 87°F **tied** the threaded record's daily record (1975 and 2020), but only 2020 in the airport record. Snowfall has a gap in 1995 to 2005. Airport-only Thanksgiving snowfall has 21 usable years, so it's suppressed. Dec 2013 precipitation is missing. No ACIS snowfall normals for DEN. |
+| Toronto (non-U.S., metric, Canadian Thanksgiving) | The engine runs in mm with the Canadian holiday (unit tested; an ACIS copy of Toronto 1957 to 2017 behaves as expected, suppressing claims with under 30 years). The authoritative source is ECCC (MSC GeoMet climate-daily, normals and threaded long-term extremes). Its hosts aren't reachable from the build environment, and the ACIS copies end in 2017 to 2025. See the Toronto plan above. |
 
 ## Phases
 

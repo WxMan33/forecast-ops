@@ -155,7 +155,7 @@
     [["pcpn", "pcpn"], ["snow", "snow"], ["maxt", "hiMax"], ["mint", "loMin"], ["mint", "hiMin"], ["maxt", "loMax"]].forEach(([col, k]) => {
       const S = ctx.S[col]; if (!S) return; const r = dailyRecord({ S, date, el: k }); if (r && r.enough && (r.outcome !== "none" || r.rank <= 3)) recs.push(r); });
     recs.forEach((r) => {
-      const el = ELEMENTS[r.el], v = fmt(r.value, el, units), pv = fmt(r.previous.value, el, units), yrs = r.previous.years.join(" and ");
+      const el = ELEMENTS[r.el], v = fmt(r.value, el, units), pv = fmt(r.previous.value, el, units), yrs = listWords(r.previous.years);
       const head = r.outcome === "new" ? `${el.kind === "amount" ? "Record " + el.noun : cap(el.record)} on ${sDate}` : r.outcome === "tie" ? `Tied the ${sDate} ${el.record}` : `${ordinal(r.rank)} ${el.dir === "max" ? "highest" : "lowest"} ${el.kind === "amount" ? el.nounLong : el.noun} for ${sDate}`;
       const body = r.outcome === "new" ? `${v} broke the ${sDate} record of ${pv} set in ${yrs}, a record ${r.previous.age} years old, by ${fmt(r.previous.margin, el, units).replace(/°[FC]$/, "°")}.`
         : r.outcome === "tie" ? `${v} tied the ${sDate} record set in ${yrs}.` : `${v} ranks ${ordinal(r.rank)} of ${r.of} years for ${sDate}. The record is ${pv} (${yrs}).`;
@@ -212,7 +212,21 @@
   }
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const listWords = (a) => (a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}`);
-  const api = { ELEMENTS, STATUS, series, dailyRecord, holidayRank, lastOccurrence, monthToDate, findings, fmt, longDate, shortDate, addDays };
+  /* ---------- a market's pack: the findings for its recent days, as the site reads them ----------
+     Recomputed from the source on every refresh, so a revised value or a status change (preliminary -> final) simply
+     replaces the earlier finding: nothing is carried over from the previous pack. A finding that no longer holds after a
+     revision disappears. opts: { market, S, through, days = 7, finalThrough (latest final date or null), normalsFor(date)
+     -> { month, toDate } | null, thresholds, sources, generated (ISO) } */
+  function pack({ market, S, through, days = 7, finalThrough = null, normalsFor = () => null, thresholds = { pcpn: 2 }, sources = [], generated = new Date().toISOString() }) {
+    const status = (d) => (finalThrough && d <= finalThrough ? "final" : "preliminary");
+    const out = { schema: 1, id: market.id, generated, through, windowDays: days, finalThrough, market, sources, days: {} };
+    for (let i = days - 1; i >= 0; i--) {
+      const d = addDays(through, -i), f = findings({ market, date: d, S, status, normals: { pcpn: normalsFor(d) }, thresholds });
+      if (f.items.length) out.days[d] = { status: f.status, items: f.items.map(({ evidence, ...it }) => ({ ...it, evidence: { source: evidence.source, range: evidence.range, sample: evidence.sample } })), highlights: f.highlights.map((h) => h.id) };
+    }
+    return out;
+  }
+  const api = { ELEMENTS, STATUS, series, dailyRecord, holidayRank, lastOccurrence, monthToDate, findings, pack, fmt, longDate, shortDate, addDays };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.RecordsEngine = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

@@ -1,8 +1,9 @@
 {
  "schema": 1,
  "id": "cvg",
- "generated": "2026-11-27T14:53:48.789Z",
+ "generated": "2026-11-27T15:42:17.891Z",
  "through": "2026-11-26",
+ "windowDays": 60,
  "finalThrough": "2026-11-15",
  "market": {
   "id": "cvg",
@@ -38,6 +39,167 @@
   "1991-2020 normals, ACIS CVG"
  ],
  "days": {
+  "2026-10-01": {
+   "status": "final",
+   "items": [
+    {
+     "id": "rec-hiMax",
+     "short": "88°F; the record is 95°F (2019).",
+     "score": 30.7,
+     "status": "final",
+     "label": "Observed record",
+     "head": "2nd highest high for Oct 1",
+     "body": "88°F ranks 2nd of 155 years for Oct 1. The record is 95°F (2019).",
+     "copyFact": "Cincinnati's 88°F high on October 1, 2026 ranked 2nd for the date.",
+     "evidence": {
+      "source": "Cincinnati Area (official city record, CVGthr)",
+      "range": "1871 to 2025",
+      "sample": "154 prior years with an observation, 1 missing and left out"
+     }
+    }
+   ],
+   "highlights": [
+    "rec-hiMax"
+   ]
+  },
+  "2026-10-13": {
+   "status": "final",
+   "items": [
+    {
+     "id": "rec-hiMax",
+     "short": "89°F, breaking 88°F from 1928.",
+     "score": 109.8,
+     "status": "final",
+     "label": "Observed record",
+     "head": "Record high on Oct 13",
+     "body": "89°F broke the Oct 13 record of 88°F set in 1928, a record 98 years old, by 1°.",
+     "copyFact": "Cincinnati's 89°F high on October 13, 2026 broke the Oct 13 record of 88°F set in 1928.",
+     "evidence": {
+      "source": "Cincinnati Area (official city record, CVGthr)",
+      "range": "1871 to 2025",
+      "sample": "154 prior years with an observation, 1 missing and left out"
+     }
+    }
+   ],
+   "highlights": [
+    "rec-hiMax"
+   ]
+  },
+  "2026-10-14": {
+   "status": "final",
+   "items": [
+    {
+     "id": "rec-hiMin",
+     "short": "68°F, tying 1879.",
+     "score": 95,
+     "status": "final",
+     "label": "Observed record",
+     "head": "Tied the Oct 14 record warm low (warmest minimum)",
+     "body": "68°F tied the Oct 14 record set in 1879.",
+     "copyFact": "Cincinnati's 68°F warm low on October 14, 2026 tied the Oct 14 record set in 1879.",
+     "evidence": {
+      "source": "Cincinnati Area (official city record, CVGthr)",
+      "range": "1871 to 2025",
+      "sample": "154 prior years with an observation, 1 missing and left out"
+     }
+    },
+    {
+     "id": "rec-hiMax",
+     "short": "84°F; the record is 87°F (1897).",
+     "score": 35,
+     "status": "final",
+     "label": "Observed record",
+     "head": "3rd highest high for Oct 14",
+     "body": "84°F ranks 3rd of 155 years for Oct 14. The record is 87°F (1897).",
+     "copyFact": "Cincinnati's 84°F high on October 14, 2026 ranked 3rd for the date.",
+     "evidence": {
+      "source": "Cincinnati Area (official city record, CVGthr)",
+      "range": "1871 to 2025",
+      "sample": "154 prior years with an observation, 1 missing and left out"
+     }
+    }
+   ],
+   "highlights": [
+    "rec-hiMin",
+    "rec-hiMax"
+   ]
+  },
+  "2026-11-03": {
+   "status": "final",
+   "items": [
+    {
+     "id": "rec-hiMax",
+     "short": "78°F; the record is 81°F (1946).",
+     "score": 33,
+     "status": "final",
+     "label": "Observed record",
+     "head": "3rd highest high for Nov 3",
+     "body": "78°F ranks 3rd of 155 years for Nov 3. The record is 81°F (1946).",
+     "copyFact": "Cincinnati's 78°F high on November 3, 2026 ranked 3rd for the date.",
+     "evidence": {
+      "source": "Cincinnati Area (official city record, CVGthr)",
+      "range": "1871 to 2025",
+      "sample": "154 prior years with an observation, 1 missing and left out"
+     }
+    },
+    {
+     "id": "rec-hiMin",
+     "short": "56°F; the record is 62°F (1977).",
+     "score": 29.9,
+     "status": "final",
+     "label": "Observed record",
+     "head": "3rd highest warm low for Nov 3",
+     "body": "56°F ranks 3rd of 155 years for Nov 3. The record is 62°F (1977).",
+     "copyFact": "Cincinnati's 56°F warm low on November 3, 2026 ranked 3rd for the date.",
+     "evidence": {
+      "source": "Cincinnati Area (official city record, CVGthr)",
+      "range": "1871 to 2025",
+      "sample": "154 prior years with an observation, 1 missing and left out"
+     }
+    }
+   ],
+   "highlights": [
+    "rec-hiMax"
+   ]
+  },
+  "2026-11-04": {
+   "status": "final",
+   "items": [
+    {
+     "id": "rec-pcpn",
+     "short": "1.00 in; the record is 1.66 in (1936).",
+     "score": 34,
+     "status": "final",
+     "label": "Observed record",
+     "head": "3rd highest precipitation for Nov 4",
+     "body": "1.00 in ranks 3rd of 155 years for Nov 4. The record is 1.66 in (1936).",
+     "copyFact": "Cincinnati's 1.00 in of rain on November 4, 2026 ranked 3rd for the date.",
+     "evidence": {
+      "source": "Cincinnati Area (official city record, CVGthr)",
+      "range": "1871 to 2025",
+      "sample": "154 prior years with an observation, 1 missing and left out"
+     }
+    },
+    {
+     "id": "rec-hiMin",
+     "short": "59°F; the record is 61°F (2024).",
+     "score": 25.2,
+     "status": "final",
+     "label": "Observed record",
+     "head": "3rd highest warm low for Nov 4",
+     "body": "59°F ranks 3rd of 154 years for Nov 4. The record is 61°F (2024).",
+     "copyFact": "Cincinnati's 59°F warm low on November 4, 2026 ranked 3rd for the date.",
+     "evidence": {
+      "source": "Cincinnati Area (official city record, CVGthr)",
+      "range": "1871 to 2025",
+      "sample": "153 prior years with an observation, 2 missing and left out"
+     }
+    }
+   ],
+   "highlights": [
+    "rec-pcpn"
+   ]
+  },
   "2026-11-26": {
    "status": "preliminary",
    "items": [
@@ -88,7 +250,7 @@
     },
     {
      "id": "ctx-month-day",
-     "short": "2.16 in; wetter November days: 3.",
+     "short": "4th wettest November day since 1871.",
      "score": 41,
      "status": "preliminary",
      "label": "Preliminary observation",

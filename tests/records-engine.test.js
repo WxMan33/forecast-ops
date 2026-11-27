@@ -98,4 +98,17 @@ check("calendar-day scope (the Almanac's per-date history for a market without a
   const f = E.findings({ market: CIN, date: "2026-11-26", S: { pcpn: S }, status: () => "preliminary", scope: "calendarDay" });
   assert.deepEqual(f.items.map((i) => i.id), ["rec-pcpn"]); assert.equal(f.scope, "calendarDay");
 });
+check("refresh: each pack is recomputed from the source, so a revised value or a final status replaces the preliminary finding", () => {
+  const market = { ...CIN, tz: "America/New_York" }, nf = () => ({ month: 3.23, toDate: 2.77 });
+  const prelim = E.pack({ market, S: { pcpn: thr }, through: "2026-11-26", days: 1, finalThrough: "2026-11-15", normalsFor: nf, generated: "2026-11-27T06:45:00Z" });
+  const p = prelim.days["2026-11-26"]; assert.equal(p.status, "preliminary"); assert.equal(p.items[0].label, "Preliminary observation"); assert.match(p.items[0].copyFact, /\(preliminary data\)\.$/);
+  /* the source revises Nov 26 down to 1.40 in (below the 1.49 in record): the record claim is gone on the next refresh */
+  const revised = new Map(thr); revised.set("2026-11-26", { v: 1.4 });
+  const r = E.pack({ market, S: { pcpn: revised }, through: "2026-11-26", days: 1, finalThrough: "2026-11-15", normalsFor: nf });
+  const ri = (r.days["2026-11-26"] || { items: [] }).items; assert.ok(!ri.some((i) => i.id === "rec-pcpn" && /broke/.test(i.body)), "no record claim after a downward revision");
+  /* NCEI finalizes the day: the same finding becomes an observed record, without the preliminary note */
+  const fin = E.pack({ market, S: { pcpn: thr }, through: "2026-11-26", days: 1, finalThrough: "2026-11-30", normalsFor: nf }).days["2026-11-26"];
+  assert.equal(fin.status, "final"); assert.equal(fin.items[0].label, "Observed record"); assert.doesNotMatch(fin.items.map((i) => i.copyFact).join(" "), /preliminary/);
+  assert.equal(prelim.windowDays, 1); assert.equal(prelim.generated, "2026-11-27T06:45:00Z");
+});
 console.log(`${n} checks passed`);
