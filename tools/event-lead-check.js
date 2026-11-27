@@ -131,10 +131,10 @@ const CASES = [
   /* a small phone (375×667, iPhone SE-like): the lead and "Watch for" (and an urgent warning) on the first screen */
   for (const [name, query] of CASES) {
     const { ctx, p, errors } = await open(base, query, { device: { width: 375, height: 667 } }), s = await state(p);
-    const bar = await p.evaluate(() => { const ids = ['printTop', 'bxFeedback', 'bxRefresh', 'bxTheme'], els = [...ids.map((i) => document.getElementById(i)), document.querySelector('.bx-head-in > a.bx-btn')].filter(Boolean);
+    const bar = await p.evaluate(() => { const ids = ['printTop', 'bxFeedback', 'bxRefresh', 'bxTheme'], menu = document.querySelector('.bx-sitemenu > summary'), els = [...ids.map((i) => document.getElementById(i)), menu && menu.offsetParent ? menu : document.querySelector('.bx-head-in > a.bx-btn')].filter(Boolean); // phones: the Forecast Ops menu (with Meteorologist view inside) is the fifth control
       const r = els.map((e) => e.getBoundingClientRect()), dd = [...document.querySelectorAll('#keys dd')].pop();
       return { n: els.length, rows: new Set(r.map((x) => Math.round(x.top))).size, minH: Math.min(...r.map((x) => x.height)), minW: Math.min(...r.map((x) => x.width)), names: els.map((e) => e.getAttribute('aria-label') || e.title || e.innerText.trim()), next: dd ? dd.getBoundingClientRect().bottom : 9999 }; });
-    check(bar.n === 5 && bar.rows === 1 && bar.minH >= 44 && bar.minW >= 44 && bar.names.every(Boolean), `${name} 375×667: Print, Feedback, refresh, Dark and Met on one row, each a ≥44 px target with a name (${JSON.stringify(bar)})`);
+    check(bar.n === 5 && bar.rows === 1 && bar.minH >= 44 && bar.minW >= 44 && bar.names.every(Boolean), `${name} 375×667: Print, Feedback, refresh, Dark and the Forecast Ops menu (or Met) on one row, each a ≥44 px target with a name (${JSON.stringify(bar)})`);
     if (name === 'replay' || name === 'quiet' || name === 'missing') check(bar.next <= 667, `${name} 375×667: Next check is on the first screen (ends ${Math.round(bar.next)} px)`);
     if (name === 'warning') { const w = await p.evaluate(() => { const u = document.getElementById('leadUrgent'), r = u.getBoundingClientRect(), a = u.querySelector('a[href*="weather.gov"]'), ar = a && a.getBoundingClientRect();
         /* nothing weather-related above it: the concern headline, the lead line, callouts, official block all come after */
