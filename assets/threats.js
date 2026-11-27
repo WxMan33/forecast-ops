@@ -1057,7 +1057,7 @@
   const obsDup = (p) => { if (!obsOn()) return false; const os = obsShown(), key = os.length + ":" + (os[0] && os[0].id);
     if (obsDupCache.key !== key) obsDupCache = { key, set: new Set(data.products.filter((x) => x.kind === "lsr" && FX.obsCovers(x, os)).map((x) => x.id)) };
     return obsDupCache.set.has(p.id); };
-  const obsOtherText = (src) => { const o = src && src.other ? Object.entries(src.other).filter(([, n]) => n) : []; return o.length ? " · not drawn: " + o.map(([k, n]) => n + " " + k.toLowerCase()).join(", ") : ""; };
+  const obsOtherText = (src) => { const o = src && src.other ? Object.entries(src.other).filter(([, n]) => n) : []; return o.length ? " · not drawn: " + o.map(([k, n]) => n + " " + k.toLowerCase().replace(/\btstm\b/g, "thunderstorm").replace(/\bwnd\b/g, "wind").replace(/\bgst\b/g, "gust").replace(/\bdmg\b/g, "damage") + (n === 1 ? "" : "s")).join(", ") : ""; };
   const reportsShown = () => !S.layers.severe || viewDay() > 1 || winterView() || fireView() ? [] : data.products.filter((p) => p.kind === "lsr");
   function reportsSection(venueOnly) {
     const all = reportsShown(); if (!all.length && !(S.layers.severe && data.state.reports)) return "";

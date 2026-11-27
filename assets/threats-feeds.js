@@ -949,6 +949,7 @@
   function obsMagText(pr, cat) {
     const m = pr.magnitude != null && pr.magnitude !== "" ? Number(pr.magf != null ? pr.magf : pr.magnitude) : null, u = String(pr.unit || "").trim(), q = { E: "estimated", M: "measured", U: "" }[String(pr.qualifier || "").toUpperCase()] || "";
     if (cat === "tornado" || m == null || !isFinite(m) || m === 0 && cat !== "snow" && cat !== "ice" && cat !== "rain") return "";
+    if (m === 0) return "trace"; // NWS LSRs carry a trace of snow, ice or rain as 0
     const unit = /^INCH/i.test(u) ? " in" : /^MPH/i.test(u) ? " mph" : /^KNOT|^KT/i.test(u) ? " kt" : u ? " " + u.toLowerCase() : "";
     return (unit === " in" ? m.toFixed(m < 1 ? 2 : 1).replace(/\.0$/, "") : String(m)) + unit + (q ? " (" + q + ")" : "");
   }
@@ -962,7 +963,7 @@
       const type = String(pr.typetext || "").trim().toUpperCase(), cat = obsCat(type);
       if (!cat) { other[type || "UNKNOWN"] = (other[type || "UNKNOWN"] || 0) + 1; continue; }
       const magText = obsMagText(pr, cat), place = [pr.city, pr.st || pr.state].filter(Boolean).join(", "), observed = new Date(t).toISOString();
-      const typeName = type.charAt(0) + type.slice(1).toLowerCase().replace(/tstm/g, "thunderstorm").replace(/wnd/g, "wind").replace(/dmg/g, "damage").replace(/gst/g, "gust").replace(/non-thunderstorm/g, "non-thunderstorm");
+      const words = type.toLowerCase().replace(/\btstm\b/g, "thunderstorm").replace(/\bwnd\b/g, "wind").replace(/\bdmg\b/g, "damage").replace(/\bgst\b/g, "gust").replace(/\bsust\b/g, "sustained"), typeName = words.charAt(0).toUpperCase() + words.slice(1);
       out.push({ id: "obs-" + (pr.product_id || "") + "-" + type + "-" + observed + "-" + lat + "," + lon, kind: "obs", family: cat === "snow" || cat === "ice" ? "winter" : cat === "flood" || cat === "rain" ? "flood" : "severe",
         sourceId: "iem-lsr", program: "lsr", cat, lsrType: type, typeName, magnitude: magText ? Number(pr.magf != null ? pr.magf : pr.magnitude) : null, magText,
         title: typeName + (magText ? " · " + magText : "") + (place ? " · " + place : ""),
