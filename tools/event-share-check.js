@@ -88,6 +88,8 @@ const windowsOf = (p) => p.evaluate(() => { const C = window.Ops.Core, q = new U
     { const r = await browserCtx(browser, DESK), q = await r.ctx.newPage(); const old = { n: 'Older link', v: { name: 'TQL Stadium, Cincinnati, OH', lat: 39.1113, lon: -84.5222 }, z: 'America/New_York', t: { start: '2026-11-21T19:30', end: '2026-11-21T21:30' }, g: 25 };
       await q.goto(`${base}/event-beta.html?e=${encodeURIComponent(JSON.stringify(old))}`); await q.waitForFunction(() => document.body.dataset.loaded, null, { timeout: 20000 });
       check(await q.locator('#evName').innerText() === 'Older link', 'a share link made before this change still opens its event'); await r.ctx.close(); }
+    /* sections 5 and 6 test the Weather threats airports and route; they run where the page loads that section (beta) */
+    if (/assets\/event-threats\.js/.test(fs.readFileSync(path.join(root, 'event-beta.html'), 'utf8'))) {
     /* 5. Weather threats airports (kept with the event in the sender's browser) travel beside the event as ?air=, outside e;
        the Share menu says so; a clean browser gets the same airports and flight windows; the same link without air opens unchanged */
     for (const [dev, device] of [['phone', PHONE], ['desktop', DESK]]) {
@@ -166,6 +168,7 @@ const windowsOf = (p) => p.evaluate(() => { const C = window.Ops.Core, q = new U
         const g = await routeForm(q); check(g.name === SAVED.name && g.rt === '|||||' && g.pi === 'KCVG' && !r.errors.length, `${dev} recipient, ${kind} in ?rt=: ignored; the event and its airports open without a route ${r.errors.join('; ')}`); await r.ctx.close();
       }
     }
+    } else console.log('SKIP 5-6: this page has no Weather threats section (production), so share links carry no airports or route');
   } finally { await browser.close(); server.close(); }
   console.log(failed ? `${failed} check(s) failed` : 'all sharing checks passed'); process.exit(failed ? 1 : 0);
 })();

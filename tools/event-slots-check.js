@@ -38,7 +38,7 @@ async function open(browser, srv, { fixture, query = '', store = null, device = 
 /* everything a planner reads on the first screen and in the schedule, as text */
 /* the official-alert card after a successful check with no active alerts (null when the page shows another state) */
 const noneCard = (p) => p.evaluate(() => { const e = document.querySelector('p[data-official=none]'); return e ? e.innerText.replace(/\s+/g, ' ').trim() : null; });
-const POINTER = /^Official alert No active official alerts for your site right now( \(checked [^)]+\))?\. This doesn’t mean no weather concern: the forecast concern is above\. Outlooks and other official products ↓$/i;
+const POINTER = /^Official alert No active official alerts for your site right now( \(checked [^)]+\))?\. This doesn’t mean no weather concern: the forecast concern is above\. Outlooks and other official products [↓→]$/i; // ↓ the threats section on this page (beta); → the Threats page for the venue (production)
 const texts = (p) => p.evaluate(() => { const t = (s) => { const e = document.querySelector(s); return e ? e.innerText.replace(/\s+/g, ' ').trim() : ''; }, all = (s) => { const e = document.querySelector(s); return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; }; // closed details: their text too
   const dd = [...document.querySelectorAll('#keys dd')], last = dd[dd.length - 1], r = (e) => e && e.getBoundingClientRect();
   return { name: t('#evName'), when: t('#evWhen'), decision: t('#decision'), lead: t('#leadBody'), keys: t('#keys'), after: t('#leadAfter'), schedule: t('#schedule'), glance: t('#evDash .evd-span'), phases: all('#phases'), dash: all('#evDash'),
