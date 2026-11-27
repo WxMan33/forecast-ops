@@ -1,0 +1,7 @@
+{
+ "request": 1,
+ "purpose": "Retrospective RRFS pilot, first comparison: extract 12Z+06Z retrospective RRFS for the 92-date roster, reuse/extract HRRR cases, build the checksummed cache, score HRRR-only / RRFS-only / HRRR+RRFS over three held-out blocks",
+ "rules": "research/severe/conus-v1/rrfs/retro/RULES.md",
+ "roster": "research/severe/conus-v1/rrfs/retro/roster.json",
+ "approval": "Owner approved the retrospective research pilot 2026-11-27 (PR #31 handoff). Development only; 2025 sealed; no operational fitting or feed arms."
+}
