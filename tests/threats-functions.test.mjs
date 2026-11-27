@@ -13,6 +13,9 @@ const faa = await import(pathToFileURL(path.join(ROOT, "functions/api/faa/[[path
 const ifif = await import(pathToFileURL(path.join(ROOT, "functions/api/ifi/[[path]].js")).href);
 const gtgf = await import(pathToFileURL(path.join(ROOT, "functions/api/gtg/[[path]].js")).href);
 const spcf = await import(pathToFileURL(path.join(ROOT, "functions/api/spc/[[path]].js")).href);
+const mrmsf = await import(pathToFileURL(path.join(ROOT, "functions/api/mrms/[[path]].js")).href);
+import { createRequire } from "node:module"; import zlibm from "node:zlib";
+const PFB = createRequire(import.meta.url)("../tools/precipflag-grib.js");
 import fs from "node:fs";
 let n = 0; const ok = async (name, fn) => { await fn(); n++; console.log("ok -", name); };
 let clock = Date.parse("2026-11-20T20:00:00Z"), answer = () => new Response(JSON.stringify({ type: "FeatureCollection", features: [] }), { status: 200 }); const sent = [];
@@ -165,5 +168,20 @@ await ok("SPC: only today's and yesterday's filtered storm reports; identifying 
   answer = () => new Response("<html>Forbidden</html>", { status: 200 }); const r3 = await get(spcf, "/api/spc/reports/yesterday"); assert.strictEqual(r3.status, 502);
   answer = () => new Response(csv, { status: 200 }); const r4 = await get(spcf, "/api/spc/reports/yesterday"); assert.strictEqual(r4.status, 200); // the failure was not cached
   answer = () => new Response("x", { status: 503 }); clock += 300e3; const r5 = await get(spcf, "/api/spc/reports/today"); assert.strictEqual(r5.status, 502);
+});
+await ok("MRMS PrecipFlag: /time and /latest only; identified; checked as PrecipFlag before serving; one upstream read per minute; failures 502 and not cached", async () => {
+  mrmsf._reset(); sent.length = 0; const scan = "2026-01-12T18:04:00.000Z";
+  const gz = zlibm.gzipSync(PFB.build({ scan: Date.parse(scan), width: 7000, height: 3500, bytes: new Uint8Array(7000 * 3500).fill(3) }));
+  answer = () => new Response(gz, { status: 200 });
+  const r1 = await get(mrmsf, "/api/mrms/precipflag/time"); assert.strictEqual(r1.status, 200); const j = await r1.json();
+  assert.strictEqual(j.scan, scan); assert.strictEqual(j.product, "PrecipFlag"); assert.strictEqual(sent.at(-1).url, "https://upstream.test/2D/PrecipFlag/MRMS_PrecipFlag.latest.grib2.gz"); assert.match(sent.at(-1).ua, /forecast-ops/);
+  assert.ok(r1.headers.get("Access-Control-Allow-Origin"));
+  const r2 = await get(mrmsf, "/api/mrms/precipflag/latest"); assert.strictEqual(r2.status, 200); assert.strictEqual(r2.headers.get("X-MRMS-Scan"), scan); assert.strictEqual(r2.headers.get("X-Forecast-Ops-Cache"), "HIT");
+  assert.deepStrictEqual(new Uint8Array(await r2.arrayBuffer()), new Uint8Array(gz)); assert.strictEqual(sent.length, 1);
+  for (const bad of ["/api/mrms/precipflag", "/api/mrms/precipflag/latest?x=1", "/api/mrms/lcref/latest", "/api/mrms/../nws"]) assert.strictEqual((await get(mrmsf, bad)).status, 404, bad);
+  clock += 61e3; answer = () => new Response("<html>maintenance</html>", { status: 200 }); assert.strictEqual((await get(mrmsf, "/api/mrms/precipflag/time")).status, 502);
+  answer = () => new Response(zlibm.gzipSync(PFB.build({ scan: Date.parse(scan), width: 4, height: 2, bytes: new Uint8Array(8) })), { status: 200 }); const r3 = await get(mrmsf, "/api/mrms/precipflag/time"); assert.strictEqual(r3.status, 502); assert.match((await r3.json()).error, /grid/);
+  answer = () => new Response("x", { status: 503 }); assert.strictEqual((await get(mrmsf, "/api/mrms/precipflag/latest")).status, 502);
+  answer = () => new Response(gz, { status: 200 }); assert.strictEqual((await get(mrmsf, "/api/mrms/precipflag/latest")).status, 200); // the failures were not cached
 });
 console.log(n + " passed");

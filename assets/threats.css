@@ -286,6 +286,19 @@
 .px-vfcgrid > div { display: contents; }
 .px-vfch span { color: var(--muted, #8a93a0); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
 /* radar opacity slider under Layers → Radar */
+.tx-radmode { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px; }
+.tx-seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; min-width: 0; }
+.tx-seg label { position: relative; display: block; min-width: 0; cursor: pointer; }
+.tx-seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.tx-seg span { display: block; padding: 7px 6px; text-align: center; font-size: 12.5px; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tx-seg label + label span { border-left: 1px solid var(--line); }
+.tx-seg input:checked + span { background: var(--accent); color: var(--accent-ink, #fff); }
+.tx-seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -3px; }
+.lg-pt { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 3px 10px; margin: 4px 0 2px; font-size: 11.5px; }
+.lg-pt span { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.lg-pt i { flex: none; width: 14px; height: 10px; border-radius: 2px; }
+.lg-ptnc { background: repeating-linear-gradient(135deg, rgba(150,150,150,.75) 0 2px, transparent 2px 6px); border: 1px solid var(--line); }
+.lg-ptfb { font-weight: 700; color: var(--warn, #b45309); margin-bottom: 4px; }
 .tx-radop { display: grid; grid-template-columns: auto 1fr 3.2em; align-items: center; gap: 8px; }
 .tx-radop input[type=range] { width: 100%; min-width: 0; accent-color: var(--accent); }
 .tx-radop output { font-variant-numeric: tabular-nums; text-align: right; font-weight: 700; }

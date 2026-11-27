@@ -58,5 +58,38 @@ function indexedPng(w, h, rows, filters, trns) {
     const t = R.renderTile(grid, R.palette(grid.alpha), 0, 0, 0, 64); let col = 0; for (let i = 3; i < t.length; i += 4) if (t[i]) col++;
     assert.ok(col > 0 && col < 64 * 64, col); assert.strictEqual(t[(0 * 64 + 0) * 4 + 3], 0); // the top-left corner is outside the grid
   });
+  /* precipitation type: MRMS PrecipFlag, NOAA/NSSL's documented codes */
+  const B = require("../tools/precipflag-grib.js");
+  await ok("PrecipFlag codes: only NOAA's documented categories are drawn; no sleet or freezing-rain class is invented", () => {
+    assert.deepStrictEqual(R.PTYPE.map((c) => [c[0], c[1]]), [[1, "Warm stratiform rain"], [10, "Cool stratiform rain"], [6, "Convective rain"], [7, "Rain with hail"], [3, "Snow"], [91, "Tropical/stratiform rain mix"], [96, "Tropical/convective rain mix"]]);
+    assert.strictEqual(R.NO_PRECIP, 0); assert.strictEqual(R.NO_COVERAGE, -3);
+    assert.ok(!R.PTYPE.some((c) => /sleet|freezing|ice pellet/i.test(c[1])));
+    assert.strictEqual(new Set(R.PTYPE.map((c) => c[2].join())).size, R.PTYPE.length); // every category its own colour
+  });
+  await ok("PrecipFlag palette (value = byte - 3): no precipitation transparent; no coverage hatched, never coloured like a category; unknown codes not drawn", () => {
+    const p = R.ptypePalette({ R: -3, E: 0, D: 0 }), a = (byte) => p.lut[byte * 4 + 3];
+    assert.strictEqual(R.gribValue(0, { R: -3, E: 0, D: 0 }), -3); assert.strictEqual(R.gribValue(6, { R: -3, E: 0, D: 0 }), 3);
+    assert.strictEqual(a(3), 0); assert.strictEqual(p.hatch.on[3], 0);                            // 0 no precipitation
+    assert.strictEqual(a(0), 0); assert.strictEqual(p.hatch.on[0], 1);                            // -3 no coverage
+    assert.deepStrictEqual([...p.lut.subarray(6 * 4, 7 * 4)], [60, 140, 255, R.PTYPE_ALPHA]);   // 3 snow
+    assert.deepStrictEqual([...p.lut.subarray(4 * 4, 5 * 4)], [35, 190, 75, R.PTYPE_ALPHA]);    // 1 warm stratiform rain
+    for (const byte of [5, 7, 8, 11, 50, 200]) assert.strictEqual(a(byte), 0, "byte " + byte);  // 2, 4, 5, 8, 47, 197: undocumented
+  });
+  await ok("PrecipFlag GRIB2: scan time, scaling, grid and PNG read; wrong product, centre, grid template or packing refused", async () => {
+    const bytes = new Uint8Array([0, 3, 4, 6, 9, 10, 13, 94]), scan = Date.parse("2026-01-12T18:04:00Z");
+    const f = R.parsePrecipFlag(new Uint8Array(B.build({ scan, width: 4, height: 2, bytes })));
+    assert.strictEqual(f.scan, scan); assert.deepStrictEqual(f.scaling, { R: -3, E: 0, D: 0 }); assert.deepStrictEqual(f.world, { dx: 0.01, dy: -0.01, firstLon: -129.995, firstLat: 54.995 });
+    const g = await R.decodeIndexedPng(f.png, inflate); assert.deepStrictEqual([...g.indices], [...bytes]);
+    for (const [bad, re] of [[{ cat: 1 }, /PrecipFlag/], [{ centre: 7 }, /centre/], [{ discipline: 0 }, /MRMS/], [{ template: 40 }, /packing/]]) assert.throws(() => R.parsePrecipFlag(new Uint8Array(B.build({ scan, width: 4, height: 2, bytes, ...bad }))), re);
+    assert.throws(() => R.parsePrecipFlag(new Uint8Array(20)), /GRIB2/);
+  });
+  await ok("PrecipFlag tiles: nearest-neighbour; no-coverage hatch continuous across tiles; no precipitation transparent", () => {
+    const w = 4, h = 4, p = R.ptypePalette({ R: -3, E: 0, D: 0 });
+    const grid = { width: w, height: h, indices: new Uint8Array([0, 0, 0, 0, 3, 3, 6, 6, 4, 4, 4, 4, 13, 13, 13, 13]), dx: 90, dy: -45, firstLon: -180, firstLat: 90 };
+    const t = R.renderTile(grid, p.lut, 0, 0, 0, 64, p.hatch); let hatch = 0, snow = 0, rain = 0;
+    for (let i = 0; i < t.length; i += 4) { const c = t[i] + "," + t[i + 1] + "," + t[i + 2]; if (c === R.HATCH.slice(0, 3).join()) hatch++; else if (c === "60,140,255") snow++; else if (c === "35,190,75") rain++; }
+    assert.ok(hatch > 0 && snow > 0 && rain > 0, JSON.stringify({ hatch, snow, rain }));
+    assert.ok(hatch < 64 * 16 * 0.35, "no coverage is a light hatch, not a fill: " + hatch);
+  });
   console.log(n + " passed");
 })().catch((e) => { console.error(e); process.exit(1); });

@@ -1313,9 +1313,11 @@
     if (S.layers.flood && (!day || day === 1) && !winterView() && !fireView()) h += `<div><div class="lg-h">River gauges · NOAA (regional zoom)</div>${["no_flooding", "action", "minor", "moderate", "major"].map((c) => lgLine({ kind: "gauge", category: c }, FX.GAUGE_WORD[c])).join("")}${lgLine({ kind: "gauge", category: "not_defined" }, "No stages defined / no current data")}</div>`;
     if (S.layers.severe && (!day || day === 1) && !winterView() && !fireView()) h += `<div><div class="lg-h">Storm reports · last 24 h (SPC, preliminary)</div>${["tornado", "wind", "hail"].map((k) => lgLine({ kind: "lsr", type: k }, { tornado: "Tornado", wind: "Wind damage", hail: "Hail" }[k])).join("")}</div>`;
     h += rainLegendHtml();
-    if (S.radar && isLive()) h += radar.via === "noaa" || !RD
+    if (S.radar && isLive()) h += (radar.ptFallback ? `<div class="lg-note lg-ptfb" data-ptype-fallback>${esc(PT_UNAVAILABLE)}</div>` : "") + (radar.via === "ptype" && RD
+      ? `<div data-lg="ptype"><div class="lg-h">Radar · MRMS precipitation type</div><div class="lg-pt">${RD.ptypeLegend().map((x) => `<span><i style="background:${x.rgba}"></i>${esc(x.label)}</span>`).join("")}<span><i class="lg-ptnc"></i>No radar coverage</span></div><div class="lg-note">NOAA PrecipFlag categories only: no separate sleet or freezing-rain category; no precipitation is not shown. Colour shows type, not intensity (switch to Reflectivity for intensity), under the hazards${radar.valid ? " · scan " + esc(t(radar.valid)) : ""}</div></div>`
+      : radar.via === "noaa" || !RD
       ? `<div><div class="lg-h">Radar · NOAA MRMS (fallback)</div><div class="lg-radar" aria-hidden="true"></div><div class="lg-note">Light rain or snow → heavy rain and hail (base reflectivity), under the hazards${radar.valid ? " · image " + esc(t(radar.valid)) : ""}</div></div>`
-      : `<div data-lg="radar"><div class="lg-h">Radar · MRMS reflectivity (dBZ)</div><div class="lg-r26" aria-hidden="true">${RD.legend().map((x) => `<span style="background:${x.rgba}"></span>`).join("")}</div><div class="lg-r26n" aria-hidden="true">${RD.legend().filter((x, i) => i % 2 === 0).map((x) => `<span>${x.dbz}</span>`).join("")}</div><div class="lg-note">Lowest-elevation reflectivity, measured values; below 5 dBZ not shown. Reflectivity 2026 colours, under the hazards${radar.valid ? " · scan " + esc(t(radar.valid)) : ""}</div></div>`;
+      : `<div data-lg="radar"><div class="lg-h">Radar · MRMS reflectivity (dBZ)</div><div class="lg-r26" aria-hidden="true">${RD.legend().map((x) => `<span style="background:${x.rgba}"></span>`).join("")}</div><div class="lg-r26n" aria-hidden="true">${RD.legend().filter((x, i) => i % 2 === 0).map((x) => `<span>${x.dbz}</span>`).join("")}</div><div class="lg-note">Lowest-elevation reflectivity, measured values; below 5 dBZ not shown. Reflectivity 2026 colours, under the hazards${radar.valid ? " · scan " + esc(t(radar.valid)) : ""}</div></div>`);
     if (S.layers.fire && !winterView()) h += `<div><div class="lg-h">Fire</div>${lgLine({ kind: "warning", family: "fire", event: "Red Flag Warning" }, "<b>Red Flag Warning</b>")}${lgLine({ kind: "watch", family: "fire", event: "Fire Weather Watch" }, "<b>Fire Weather Watch</b> · dashed")}${lgLine({ kind: "incident", category: "WF" }, "<b>Wildfire</b> (NIFC): perimeter where mapped, dot sized by acres")}<label class="lg-toggle"><input type="checkbox" id="rxChk"${S.rx ? " checked" : ""}> Prescribed fires</label><label class="lg-toggle"><input type="checkbox" id="ctnChk"${S.ctn ? " checked" : ""}> Fully contained fires</label>${fireView() ? `<div class="lg-bands">${(S.fday >= 3 ? ["P40", "P70"] : ["ELEV", "CRIT", "EXTM", "IDRT", "SDRT"]).map((c) => `<span class="lg-band" title="${esc(FX.FIRE_NAME[c])}"><i style="background:${FIRE_COLOR[c]}"></i>${c === "P40" ? "40%" : c === "P70" ? "70%" : c}</span>`).join("")}</div><div class="lg-note">${S.fday >= 3 ? "Probability of critical fire weather within 12 miles of a point." : "ELEV elevated · CRIT critical · EXTM extremely critical (wind and humidity) · IDRT/SDRT isolated/scattered dry thunderstorms."}</div>` : ""}</div>`;
     if (winterView()) h += `<div><div class="lg-h">WPC WSSI-P · chance of at least ${esc(S.wlevel === "WWA" ? "winter weather" : WLEVEL_LABEL[S.wlevel])}</div><div class="lg-bands">${WSSI_PROBS.map((v) => `<span class="lg-band"><i style="background:${WSSI_COLOR[v]}"></i>${v}%</span>`).join("")}</div><div class="lg-note">24-hour window. Levels: Minor, Moderate, Major, Extreme winter storm impacts (WPC definitions).</div></div>`;
     if (!day && !winterView()) h += `<label class="lg-toggle"><input type="checkbox" id="ctxChk"${S.ctx ? " checked" : ""}> Day 1 outlook outlines</label>`;
@@ -1544,20 +1546,42 @@
   function setRadarOp(v) { v = Math.min(1, Math.max(0.2, Math.round(v * 20) / 20)); try { localStorage.setItem(RADAR_OP_KEY, String(v)); } catch (e) { /* no storage */ }
     if (map && map.getLayer("radar")) map.setPaintProperty("radar", "raster-opacity", v); syncRadarOp(); }
   function syncRadarOp() { const v = radarOp(), i = document.querySelector("[data-radar-op]"), o = document.querySelector("[data-radar-op-val]"); if (i) i.value = String(Math.round(v * 100)); if (o) o.textContent = Math.round(v * 100) + "%"; }
-  const RD = window.ThreatsRadar, radar = { state: "off", valid: null, lastOk: null, error: null, timer: null, tiles: null, via: null, client: null, proto: false };
+  /* radar mode: Precipitation type (MRMS PrecipFlag, through our /api/mrms forwarder: NOAA sends no CORS header) by default, or
+     Reflectivity; remembered in this browser. Precipitation type older than 15 minutes, or not answering, falls back to
+     reflectivity, and the legend and the Layers note say "Precipitation type unavailable · showing reflectivity". */
+  const RADAR_MODE_KEY = "tx_radar_mode", radarMode = () => { let v = null; try { v = localStorage.getItem(RADAR_MODE_KEY); } catch (e) { /* no storage */ } return v === "refl" ? "refl" : "ptype"; };
+  function setRadarMode(m) { try { localStorage.setItem(RADAR_MODE_KEY, m === "refl" ? "refl" : "ptype"); } catch (e) { /* no storage */ } syncRadarMode(); if (S.radar && isLive()) { radar.state = "loading"; radarTick(); } drawAll(); }
+  function syncRadarMode() { const m = radarMode(); document.querySelectorAll("[data-radar-mode]").forEach((i) => { i.checked = i.value === m; }); }
+  const MRMS_BASE = (() => { try { const q = new URLSearchParams(location.search); if (q.get("mrmsBase")) return q.get("mrmsBase");
+    if (/\.forecast-ops-beta\.pages\.dev$/.test(location.hostname)) return new URL("api/mrms", location.href).href;
+    if (["wxman33.github.io", "raw.githack.com"].includes(location.hostname)) return "https://forecast-ops-beta.pages.dev/api/mrms"; } catch (e) { /* none */ } return ""; })();
+  const PT_STALE_MS = 15 * 60e3;
+  const RD = window.ThreatsRadar, radar = { state: "off", valid: null, lastOk: null, error: null, timer: null, tiles: null, via: null, client: null, pt: null, ptFallback: false, ptError: null, proto: false };
   const radarAgeMin = () => (radar.valid ? Math.round((Date.now() - Date.parse(radar.valid)) / 60e3) : null);
-  const radarText = () => (radar.via === "noaa" ? "NOAA MRMS radar image (fallback) " : "MRMS lowest-elevation reflectivity, scan ") + t(radar.valid) + " (" + radarAgeMin() + " min old" + (radarAgeMin() > 20 ? ", delayed" : "") + ")";
+  const PT_UNAVAILABLE = "Precipitation type unavailable · showing reflectivity";
+  const radarText = () => (radar.ptFallback ? PT_UNAVAILABLE + " · " : "") + (radar.via === "noaa" ? "NOAA MRMS radar image (fallback) " : radar.via === "ptype" ? "MRMS precipitation type, scan " : "MRMS lowest-elevation reflectivity, scan ") + t(radar.valid) + " (" + radarAgeMin() + " min old" + (radarAgeMin() > 20 ? ", delayed" : "") + ")";
   function radarTick() {
     if (document.hidden && radar.lastOk) return;
+    const done = (p) => p.then(() => { radar.lastOk = new Date().toISOString(); radar.state = "ok"; radar.error = null; })
+      .catch((e) => { radar.state = radar.lastOk ? "stale" : "failed"; radar.error = e.message; })
+      .finally(() => { if (S.radar) drawAll(); });
     const viaIem = () => radar.client.refresh().then(() => { radar.valid = new Date(radar.client.state.scan).toISOString(); radar.via = "iem"; });
     /* IEM not answering: keep the measured scan already shown while it is under 15 minutes old; otherwise NOAA's tiles */
     const viaNoaa = (e) => { radar.iemError = e.message; const s0 = radar.client && radar.client.state.scan;
       if (s0 && Date.now() - s0 < 15 * 60e3) { radar.valid = new Date(s0).toISOString(); radar.via = "iem"; return; }
       return Live.radarTime().then((v) => { radar.valid = v; radar.via = "noaa"; }); };
-    (RD && radar.client ? viaIem().catch(viaNoaa) : Live.radarTime().then((v) => { radar.valid = v; radar.via = "noaa"; }))
-      .then(() => { radar.lastOk = new Date().toISOString(); radar.state = "ok"; radar.error = null; })
-      .catch((e) => { radar.state = radar.lastOk ? "stale" : "failed"; radar.error = e.message; })
-      .finally(() => { if (S.radar) drawAll(); });
+    const reflectivity = () => (RD && radar.client ? viaIem().catch(viaNoaa) : Live.radarTime().then((v) => { radar.valid = v; radar.via = "noaa"; }));
+    if (radarMode() === "ptype" && RD && RD.createPtypeClient) {
+      if (!radar.pt) radar.pt = RD.createPtypeClient({ base: MRMS_BASE });
+      return done(radar.pt.refresh().then(() => null, (e) => e.message).then((err) => {
+        const s = radar.pt.state.scan, fresh = s && Date.now() - s < PT_STALE_MS;
+        if (fresh) { radar.ptFallback = false; radar.ptError = err; radar.valid = new Date(s).toISOString(); radar.via = "ptype"; if (radar.client) radar.client.dispose(); return; }
+        radar.ptFallback = true; radar.ptError = err || (s ? "last scan " + Math.round((Date.now() - s) / 60e3) + " min old" : "no scan");
+        return reflectivity();
+      }));
+    }
+    radar.ptFallback = false; radar.ptError = null; if (radar.pt) { radar.pt.dispose(); radar.pt = null; }
+    return done(reflectivity());
   }
   function ensureRadar() {
     if (!map || !mapLoaded) return;
@@ -1565,17 +1589,19 @@
     const casings = (v) => { for (const id of ["hu-state-case", "cnty-case"]) if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", v); };
     if (!on) { if (radar.timer) { clearInterval(radar.timer); radar.timer = null; } radar.state = "off"; if (map.getLayer("radar")) map.setLayoutProperty("radar", "visibility", "none"); casings("none"); return; }
     casings("visible");
-    if (RD && !radar.client) { radar.client = RD.createClient(); if (!radar.proto && window.maplibregl && maplibregl.addProtocol) { maplibregl.addProtocol("lcref", (params) => radar.client.tile(params)); radar.proto = true; } }
+    if (RD && !radar.client) radar.client = RD.createClient();
+    if (RD && !radar.proto && window.maplibregl && maplibregl.addProtocol) { maplibregl.addProtocol("lcref", (params) => radar.client.tile(params)); maplibregl.addProtocol("ptype", (params) => (radar.pt ? radar.pt.tile(params) : Promise.reject(Error("precipitation type is off")))); radar.proto = true; }
     if (!radar.timer) { radar.state = radar.lastOk ? radar.state : "loading"; radarTick(); radar.timer = setInterval(radarTick, 60e3); }
     if (!radar.valid) return;
-    const url = radar.via === "iem" ? radar.client.tileUrl() : Live.RADAR_TILE_URL + "&t=" + Date.parse(radar.valid); // a new scan is a new URL
-    const paint = radar.via === "iem" ? { "raster-opacity": radarOp(), "raster-resampling": "nearest", "raster-fade-duration": 0 } : { "raster-opacity": radarOp(), "raster-fade-duration": 0 };
+    const own = radar.via === "iem" || radar.via === "ptype";
+    const url = radar.via === "ptype" ? radar.pt.tileUrl() : radar.via === "iem" ? radar.client.tileUrl() : Live.RADAR_TILE_URL + "&t=" + Date.parse(radar.valid); // a new scan is a new URL
+    const paint = own ? { "raster-opacity": radarOp(), "raster-resampling": "nearest", "raster-fade-duration": 0 } : { "raster-opacity": radarOp(), "raster-fade-duration": 0 };
     if (map.getSource("radar") && radar.srcVia !== radar.via) { map.removeLayer("radar"); map.removeSource("radar"); radar.tiles = null; }
-    if (!map.getSource("radar")) { map.addSource("radar", { type: "raster", tiles: [url], tileSize: 256, maxzoom: radar.via === "iem" ? 10 : 22, attribution: radar.via === "iem" ? "MRMS via Iowa Environmental Mesonet" : "NOAA MRMS radar" }); map.addLayer({ id: "radar", type: "raster", source: "radar", paint }, radarBeforeLayer()); radar.srcVia = radar.via; }
+    if (!map.getSource("radar")) { map.addSource("radar", { type: "raster", tiles: [url], tileSize: 256, maxzoom: own ? 10 : 22, attribution: radar.via === "ptype" ? "NOAA MRMS PrecipFlag" : radar.via === "iem" ? "MRMS via Iowa Environmental Mesonet" : "NOAA MRMS radar" }); map.addLayer({ id: "radar", type: "raster", source: "radar", paint }, radarBeforeLayer()); radar.srcVia = radar.via; }
     else if (radar.tiles !== url) map.getSource("radar").setTiles([url]);
     radar.tiles = url; map.setLayoutProperty("radar", "visibility", "visible");
   }
-  const radarRow = () => !(S.radar && isLive()) ? "" : `<div class="px-src ${radar.state === "ok" ? (radarAgeMin() > 20 ? "stale" : "current") : radar.state === "stale" ? "stale" : radar.state === "failed" ? "unavailable" : "loading"}" data-src="radar"><span><b>${radar.via === "noaa" ? `<a href="https://mrms.nssl.noaa.gov/" target="_blank" rel="noopener">NOAA MRMS radar</a> (fallback: IEM not responding)` : `<a href="https://mesonet.agron.iastate.edu/GIS/rasters.php?rid=4" target="_blank" rel="noopener">MRMS reflectivity</a> · lowest elevation, via IEM`}</b></span><span>${radar.state === "ok" ? esc((radar.via === "noaa" ? "Image " : "Scan ") + t(radar.valid) + " · " + radarAgeMin() + " min old" + (radarAgeMin() > 20 ? " (delayed)" : "")) : radar.state === "stale" ? esc("Last image " + t(radar.valid) + " · not responding") : radar.state === "failed" ? "Not responding" : "Loading…"}</span></div>`;
+  const radarRow = () => !(S.radar && isLive()) ? "" : `<div class="px-src ${radar.state === "ok" ? (radarAgeMin() > 20 ? "stale" : "current") : radar.state === "stale" ? "stale" : radar.state === "failed" ? "unavailable" : "loading"}" data-src="radar"><span><b>${radar.ptFallback ? esc(PT_UNAVAILABLE) + " · " : ""}${radar.via === "ptype" ? `<a href="https://mrms.nssl.noaa.gov/" target="_blank" rel="noopener">MRMS precipitation type</a> (PrecipFlag) · NOAA` : radar.via === "noaa" ? `<a href="https://mrms.nssl.noaa.gov/" target="_blank" rel="noopener">NOAA MRMS radar</a> (fallback: IEM not responding)` : `<a href="https://mesonet.agron.iastate.edu/GIS/rasters.php?rid=4" target="_blank" rel="noopener">MRMS reflectivity</a> · lowest elevation, via IEM`}</b></span><span>${radar.state === "ok" ? esc((radar.via === "noaa" ? "Image " : "Scan ") + t(radar.valid) + " · " + radarAgeMin() + " min old" + (radarAgeMin() > 20 ? " (delayed)" : "")) : radar.state === "stale" ? esc("Last image " + t(radar.valid) + " · not responding") : radar.state === "failed" ? "Not responding" : "Loading…"}</span></div>`;
 
   /* ---------- the venue's next 12 hours (NWS forecast grid), on request: gusts, heat index or feels-like, rain chance ---------- */
   let vfc = { key: null, state: "idle" };
@@ -1821,7 +1847,7 @@
       $("txRainObsNote").textContent = !live ? "Live only" : S.rain.obs && R.obs.meta ? "NOAA MRMS radar estimate · " + obsWindowText(R.obs.meta) : "NOAA MRMS radar estimate · 1 km";
       $("txRainFcstNote").textContent = !live ? "Live only" : S.rain.fcst && R.fcst.meta ? "WPC · " + fcstWindowText(R.fcst.meta, fcstPeriod()) : "WPC forecast totals · CONUS"; }
     { const ri = pop.querySelector("input[data-radar]"); ri.checked = !!S.radar && isLive(); ri.disabled = !isLive();
-      $("txRadarNote").textContent = !isLive() ? "Live only: current radar doesn't belong on a demo or a replay" : S.radar && radar.valid ? radarText() : "NOAA MRMS base reflectivity · refreshed every 5 minutes while on · about 0.3 MB per view"; }
+      $("txRadarNote").textContent = !isLive() ? "Live only: current radar doesn't belong on a demo or a replay" : S.radar && radar.valid ? radarText() : (radarMode() === "ptype" ? "MRMS precipitation type (NOAA PrecipFlag) · new scan about every 2 minutes · about 0.23 MB per scan while on" : "MRMS lowest-elevation reflectivity (IEM) · new scan about every 2 minutes · about 1.2 MB per scan while on"); syncRadarMode(); }
     $("txLayersSum").textContent = layersSummary(); $("txLayersBtn").setAttribute("aria-label", "Layers: " + layersSummary() + " on. Open to change");
     // the panel's state line: time and layers stay in view while the details scroll; layers not drawn now, briefly why
     const missing = LAYER_KEYS.filter((k) => S.layers[k] && layerNote(k) && !(k === "aviation" && viewDay())) /* aviation is partly drawn in Day 2/3: the picker says which part */, cur = missing.filter((k) => ["smoke", "tropical", "coastal", "heat", "wind"].includes(k)), own = missing.filter((k) => !["smoke", "tropical", "coastal", "heat", "wind"].includes(k));
@@ -1854,7 +1880,8 @@
   /* the opacity slider moves the map as it is dragged (input), without redrawing anything else */
   $("txLayersPop").addEventListener("input", (e) => { if (e.target.matches("[data-radar-op]")) setRadarOp(+e.target.value / 100); });
   syncRadarOp();
-  $("txLayersPop").addEventListener("change", (e) => { if (e.target.matches("[data-radar-op]")) return;
+  syncRadarMode();
+  $("txLayersPop").addEventListener("change", (e) => { if (e.target.matches("[data-radar-op]")) return; if (e.target.matches("[data-radar-mode]")) { setRadarMode(e.target.value); return; }
     const i = e.target; if (!i.matches("input, select")) return;
     if (i.dataset.rain) { S.auto = false; S.rain[i.dataset.rain] = i.checked; if (i.checked) { S.rain[i.dataset.rain === "obs" ? "fcst" : "obs"] = false; S.layers.flood = true; } } // one rainfall overlay at a time
     else if (i.hasAttribute("data-rain-win")) { S.rain.win = +i.value; if (!S.rain.obs) { S.auto = false; S.rain.obs = true; S.rain.fcst = false; S.layers.flood = true; } }
@@ -2060,5 +2087,5 @@
     drawAll();
     return true;
   }
-  window.__threats = { S, drawAll, radar, get radarStats() { return radar.client ? radar.client.state : null; }, rain: R, setVenue, siteAssess, get outlook() { return vo; }, get basemap() { return carto ? "carto" : "fallback"; }, retryCarto, get venue() { return venue; }, get vfc() { return vfc; }, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
+  window.__threats = { S, drawAll, radar, get radarStats() { return radar.client ? radar.client.state : null; }, get ptypeStats() { return radar.pt ? radar.pt.state : null; }, radarMode, setRadarMode, rain: R, setVenue, siteAssess, get outlook() { return vo; }, get basemap() { return carto ? "carto" : "fallback"; }, retryCarto, get venue() { return venue; }, get vfc() { return vfc; }, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
 })();
