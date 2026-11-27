@@ -738,7 +738,7 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .event-planner .ev-back:hover { color: var(--text); text-decoration: underline; }
 .event-planner .ev-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px 20px; margin-top: 8px; }
 .event-planner .ev-head-text { min-width: 0; }
-.event-planner .ev-name { font: 700 clamp(22px, 5.4vw, 30px)/1.15 var(--bx-font) !important; letter-spacing: -.01em; margin: 0 !important; overflow-wrap: anywhere; }
+.event-planner .ev-name { font: 700 clamp(21px, 5.4vw, 30px)/1.15 var(--bx-font) !important; letter-spacing: -.01em; margin: 0 !important; overflow-wrap: anywhere; }
 .event-planner .ev-venue { margin: 4px 0 0; font-size: 15px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
 .event-planner .ev-when { margin: 2px 0 0; font-size: 14px; color: var(--muted); }
 .event-planner .ev-head-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
