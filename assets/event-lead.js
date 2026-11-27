@@ -176,7 +176,7 @@
   function leadKind(L) { return tag(L.kind); }
   function leadHtml(L, { tz, lat, lon }) {
     const hit = L.phases.filter((p) => p.hit), all = L.phases.length > 1 && hit.length === L.phases.length, P = L.phases;
-    const whole = P.length ? `${PW(P[0].label)} through ${PW(P[P.length - 1].label)}` : 'the event';
+    const whole = P.length ? (P.length === 1 ? PW(P[0].label) : `${PW(P[0].label)} through ${PW(P[P.length - 1].label)}`) : 'the event'; // one part: named once
     let text;
     /* the implication now sits with the tier word in the concern's callout row just below ("Likely disruptive. Plan …") */
     if (L.kind === 'forecast') text = `<b>${esc(L.when || cap(L.top.noun))}</b>, ${all ? esc(whole) : hit.length ? listWords(hit.map((p) => `<span class="ev-ph">${esc(PW(p.label))} ${esc(p.time)}</span>`)) : 'exact time uncertain'}.${L.gaps.limited ? ` <span class="ev-lead-gap" data-lead="gap">${esc(L.gaps.brief)}</span>` : ''}`;
@@ -202,7 +202,11 @@
   function officialHtml(L, { tz, lat, lon, checkedAt }) {
     const O = L.official, rest = O.all.filter((a) => !URGENT.test(a.event || ''));
     if (O.state === 'unchecked') return `<div class="bx-alert-off ev-official" role="status" data-alerts="unavailable" data-official="unchecked">${tag('missing')} <b>Official alerts could not be checked${checkedAt ? ` (${esc(clock(checkedAt, tz))})` : ''}</b>. NWS alerts could not be checked just now. No alert shown here does not mean none is in effect; check <a href="https://www.weather.gov/" target="_blank" rel="noopener">weather.gov</a>.</div>`;
-    if (O.state === 'none') return `<p class="ev-official ev-official-none" data-official="none">${tag('official')} <span><b>No active official alerts</b> for your site right now${checkedAt ? ` (checked ${esc(clock(checkedAt, tz))})` : ''}. This doesn’t mean no weather concern: the forecast concern is above. <a class="bx-link" href="#secThreats">Outlooks and other official products ↓</a></span></p>`;
+    /* no forecast concern (L.kind "none"): the card ends with the alert check itself, since there is no concern above to
+       point to; with limited guidance the caution stays, without claiming a concern above; otherwise as before */
+    if (O.state === 'none') { const head = `<p class="ev-official ev-official-none" data-official="none">${tag('official')} <span><b>No active official alerts</b> for your site right now${checkedAt ? ` (checked ${esc(clock(checkedAt, tz))})` : ''}.`;
+      if (L.kind === 'none') return `${head}</span></p>`;
+      return `${head} ${L.kind === 'missing' ? 'This doesn’t mean no weather concern.' : 'This doesn’t mean no weather concern: the forecast concern is above.'} <a class="bx-link" href="#secThreats">Outlooks and other official products ↓</a></span></p>`; }
     return `${rest.map((a) => alertLine(a, tz, lat, lon)).join('')}${O.urgent.length ? `<p class="bx-note ev-official-more" data-official="urgent-above">${O.urgent.length === 1 ? 'The warning in effect is shown' : `${O.urgent.length} warnings in effect are shown`} with the forecast concern above.</p>` : ''}`;
   }
 
@@ -278,8 +282,9 @@
     const G = L.gaps, plain = [G.thin ? 'Only part of the usual forecast data reaches these hours, so timing could shift.' : '', G.missingHours.length ? `${cap(G.missingHours.length === 1 ? `the ${clock(G.missingHours[0], tz)} hour has` : `${span(G.missingHours[0], G.missingHours[G.missingHours.length - 1] + H, tz)} (${G.missingHours.length} hours) have`)} no forecast data: missing, not zero.` : '', G.partial ? `${G.partial} Check again for the rest.` : '', G.alertsOff ? 'Official alerts could not be checked.' : ''].filter(Boolean);
     const gap = plain.length ? `<p class="pv-gap" data-pv="missing"><b>Missing guidance:</b> ${esc(plain.join(' '))}</p>` : '';
     const P = L.phases, hit = P.filter((p) => p.hit), all = P.length > 1 && hit.length === P.length;
-    const where = L.kind === 'forecast' ? (all ? `${PW(P[0].label)} through ${PW(P[P.length - 1].label)}` : hit.map((p) => `${PW(p.label)} ${p.time}`).join(', ') || 'exact time uncertain')
-      : `checked ${P.length ? `${PW(P[0].label)} through ${PW(P[P.length - 1].label)}` : 'the event'}`;
+    const thru = () => (P.length === 1 ? PW(P[0].label) : `${PW(P[0].label)} through ${PW(P[P.length - 1].label)}`); // one part: named once
+    const where = L.kind === 'forecast' ? (all ? thru() : hit.map((p) => `${PW(p.label)} ${p.time}`).join(', ') || 'exact time uncertain')
+      : `checked ${P.length ? thru() : 'the event'}`;
     return `<div class="pv-takeaway pv-takeaway-lead"><div class="pv-lead" data-pv="lead"><span class="pv-kind">${esc(KIND[L.kind])}</span><h2 class="pv-dec">${esc(headline)}</h2>
       <p class="pv-lead-when">${L.when ? `<b>${esc(L.when)}</b>, ${esc(where)}` : esc(cap(where))}. ${L.top && L.top.word ? `<b>${esc(L.top.word)}.</b> ` : ''}${esc(L.implication)}</p>
       <p class="pv-lead-watch"><b>Watch for:</b> ${esc(L.watch)}</p>

@@ -53,7 +53,7 @@
     text(d.title, PAD, Y.title, { font: FONT(800, 56), max: 1260 });
     text([d.venue, d.when].filter(Boolean).join("  ·  "), PAD, Y.details, { font: FONT(500, 30), color: C.muted, max: 1260 });
     const widthOf = (t, f) => { g.font = f; return g.measureText(t).width; };
-    let daylightAt = "none"; canvas.daylightNotePx = null;
+    let daylightAt = "none"; canvas.daylightNotePx = null; canvas.lightningNote = null;
     if (dlLine) {
       /* the sunrise / sunset line, readable across a room. The schedule note ("Sunset during the event (5:17 PM).") follows on
          the same row: the header has no spare row (the takeaway and the rule at 214 sit just below, and the panels stay put),
@@ -159,7 +159,18 @@
         const real = v1.filter((v) => v != null); lab(v1, "max"); if (key === "temp" && real.length && Math.round(Math.min(...real)) !== Math.round(Math.max(...real))) lab(v1, "min");
       } else {
         const { levels, allLow } = lightningSummary(V, ids);
-        text("Forecast potential, not detected lightning or a warning", R, y + 46, { font: FONT(600, 20), color: C.muted, align: "right" });
+        /* the safety line beside the title: one line when both fit; with a wider fallback font (the web font not loaded) it
+           would run into the title, so it wraps onto two right-aligned lines in the title band, still at 20 px, split where
+           the two lines are most even. canvas.lightningNote records which. */
+        { const sub = "Forecast potential, not detected lightning or a warning", sf = FONT(600, 20), widthOf = (t, f) => { g.font = f; return g.measureText(t).width; };
+          const room = R - (x + 24 + widthOf(title, FONT(800, 32)) + 24);
+          if (widthOf(sub, sf) <= room) { text(sub, R, y + 46, { font: sf, color: C.muted, align: "right" }); canvas.lightningNote = "one line"; }
+          else {
+            const words = sub.split(" "); let best = null;
+            for (let i = 1; i < words.length; i++) { const a = words.slice(0, i).join(" "), b2 = words.slice(i).join(" "), m = Math.max(widthOf(a, sf), widthOf(b2, sf)); if (!best || m < best.m) best = { a, b: b2, m }; }
+            text(best.a, R, y + 37, { font: sf, color: C.muted, align: "right" }); text(best.b, R, y + 61, { font: sf, color: C.muted, align: "right" });
+            canvas.lightningNote = best.m <= room ? "two lines" : "two lines, tight";
+          } }
         if (allLow) {
           text("Low throughout", x + w / 2, (T + B) / 2 + 10, { font: FONT(800, 64), align: "center", color: C.lowThroughout });
           text("Low is not zero · every event hour covered", x + w / 2, (T + B) / 2 + 60, { font: FONT(600, 26), color: C.muted, align: "center" });

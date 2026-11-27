@@ -50,12 +50,28 @@ for(const theme of ['dark','light'])for(const phone of [true,false]){
   check(await p.locator('.pv-hour-bar').count()===0 && (await p.locator('.pv-hours thead th').allInnerTexts()).join('|')==='Local time|Phase|Temp|Rain chance|Rain amount|Wind gusts|Lightning','hourly page is one plain table: local time, phase, temperature, rain chance, wind gusts, lightning potential');
  }
  if(!phone&&theme==='light'){
- await p.emulateMedia({media:'screen'});await p.goto(base+'/event-beta.html?long=1');await p.waitForFunction(()=>document.body.dataset.loaded);
+ await p.emulateMedia({media:'screen'});await p.goto(base+'/event-beta.html?long=1&day=all'); /* day=all: the whole three-day event, as one briefing (a multi-day event opens on its next day otherwise) */await p.waitForFunction(()=>document.body.dataset.loaded);
  await p.emulateMedia({media:'print'});await p.evaluate(()=>window.dispatchEvent(new Event('beforeprint')));
  check(await p.evaluate(()=>getComputedStyle(document.documentElement).colorScheme==='light'),'dark theme prints with light paper margins');
  const pdf=await p.pdf({path:path.join(out,'event-polish-long-briefing.pdf'),preferCSSPageSize:true,printBackground:true});
  const pages=(pdf.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length;check(pages===2,'three-day event prints two pages (got '+pages+')');
  check((await p.locator('#printView').innerText()).includes('First 24 hours only'),'long event clearly labels the hourly excerpt');
+ /* the beta preview's live 60-hour case: many hours at the venue's gust limit (each row carries the limit note) plus long NWS
+    wording used to spill onto a third and fourth sheet. Sample data (windy, longnws); both phone and desktop print contexts. */
+ for(const prof of [{viewport:{width:1280,height:960}},{viewport:{width:390,height:844},deviceScaleFactor:3,isMobile:true,hasTouch:true}]){
+  const c2=await browser.newContext({...prof,timezoneId:'America/New_York'}),q=await c2.newPage();await q.clock.install({time:new Date('2026-11-11T20:30:00Z')});
+  await q.addInitScript(()=>{localStorage.setItem('ops_theme',JSON.stringify('light'));localStorage.setItem('beta_analytics_optout','1')});
+  await c2.route('**/*',r=>{const u=new URL(r.request().url());if(u.origin!==base)return r.fulfill({status:200,body:''});if(u.pathname==='/assets/beta-event.js')return r.fulfill({contentType:'application/javascript',body:fixture+'\n'+fs.readFileSync(path.join(root,'assets/beta-event.js'),'utf8')});return r.continue()});
+  await q.goto(base+'/event-beta.html?long=1&windy&longnws&day=all');await q.waitForFunction(()=>document.body.dataset.loaded,{timeout:15000});await q.emulateMedia({media:'print'});
+  const pdf2=await q.pdf({format:'Letter',preferCSSPageSize:true});const n2=(pdf2.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length;
+  const pv=await q.evaluate(()=>{const v=document.getElementById('printView');return {text:v.innerText,notes:[...v.querySelectorAll('.pv-hours td small')].map(x=>x.textContent),rows:v.querySelectorAll('.pv-hours tbody tr').length,sched:v.querySelectorAll('.pv-sched li').length,fit:v.dataset.fit,pt:parseFloat(getComputedStyle(v.querySelector('.pv-p2 .pv-hours')).fontSize)*.75}});
+  const L2='60-hour event, gusts at the venue limit for 12 hours, long NWS wording ('+(prof.isMobile?'phone':'desktop')+' print):';
+  check(n2===2,L2+' prints two US Letter pages (got '+n2+', fit '+pv.fit+')');
+  check(pv.rows===24&&/First 24 hours only/.test(pv.text)&&/open the briefing for the rest/.test(pv.text)&&pv.sched===4,L2+' 24 hourly rows, the first-24-hours note and the full four-part schedule are kept');
+  check(pv.notes.length>=10&&pv.notes.every(t=>t==='Reaches 25 mph venue limit'),L2+' every hour at the limit keeps "Reaches 25 mph venue limit" ('+pv.notes.length+' rows)');
+  check(pv.pt>=9,L2+' hourly table text stays 9 pt or larger ('+pv.pt.toFixed(1)+' pt)');
+  await c2.close();
+ }
  }
  if(!phone&&theme==='light'){
  await p.emulateMedia({media:'screen'});await p.goto(base+'/event-beta.html?gaps=1');await p.waitForFunction(()=>document.body.dataset.loaded);
