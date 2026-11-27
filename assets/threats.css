@@ -297,9 +297,10 @@
 .px-olday { border: 1px solid var(--line); border-left: 4px solid var(--ol-c); border-radius: 8px; padding: 7px 10px; }
 .px-olday-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px; }
 .px-ollv { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ol-c); font-weight: 700; }
-.px-olchip { display: flex; gap: 6px; align-items: baseline; width: 100%; text-align: left; background: none; border: 0; border-left: 3px solid var(--ol-c); padding: 3px 6px; margin: 2px 0; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+.px-olchip { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 6px; box-sizing: border-box; align-items: baseline; width: 100%; text-align: left; background: none; border: 0; border-left: 3px solid var(--ol-c); padding: 3px 6px; margin: 2px 0; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
 .px-olchip[data-ol-go=""] { cursor: default; }
-.px-olchip small { color: var(--muted); margin-left: auto; white-space: nowrap; font-size: 11px; }
+.px-olchip small { grid-column: 2; color: var(--muted); font-size: 11px; }
+.px-olchip .px-olchip-text, .px-olchip small { overflow-wrap: anywhere; white-space: normal; }
 .px-olquiet { color: var(--muted); font-size: 13px; }
 .px-olinfo { color: var(--muted); font-size: 12px; margin-top: 2px; }
 .px-olunk { color: #c8a200; font-size: 12px; margin-top: 2px; }
