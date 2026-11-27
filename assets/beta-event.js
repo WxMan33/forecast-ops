@@ -45,7 +45,10 @@
     return u.toString(); };
   /* Print / PDF sits in the toolbar with the other page controls (before Feedback); live once a briefing is ready */
   const PRINT_ICON = '<svg class="bx-ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 6V1.5h8V6M4 12H2.5A1 1 0 0 1 1.5 11V7a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H12M4 9.5h8v5H4z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
-  const head = U.header({ audience: "Event", other: { self: "event-beta.html", href: "meteorologist-beta.html", label: "Met" }, ctx: `<div id="picker" class="bx-ctx" style="flex:1 1 auto"></div>`,
+  /* the normal Forecast Ops navigation: the logo opens Overview; the tab row (desktop) or the Forecast Ops menu (phones) has
+     the same destinations, with Events current; tools that take a forecast point open on the venue. Meteorologist view
+     stays its own action. */
+  const head = U.header({ audience: "Event", other: { self: "event-beta.html", href: "meteorologist-beta.html", label: "Meteorologist view" }, site: { pageId: "events", place: ev.loc }, ctx: `<div id="picker" class="bx-ctx" style="flex:1 1 auto"></div>`,
     actions: `<button class="bx-btn bx-print" type="button" id="printTop" disabled title="Available once the briefing loads">${PRINT_ICON}<span>Print / PDF</span></button>` });
   document.title = "Event Manager · Forecast Ops";
   const picker = U.placePicker($("picker"), { current: { name: ev.loc.name }, link, label: "Venue city",
@@ -219,6 +222,7 @@
     $("evWhen").textContent = slotted && ph.all ? BUI.dateSpan(ph.all.startMs, ph.all.endMs, tz) : main ? `${BUI.dateSpan(main.startMs, main.endMs, tz)}${ph.setup ? ` · setup from ${fmt.clock(ph.setup.startMs, tz)}` : ""}` : "";
     const pn = $("secPhases") && $("secPhases").querySelector("summary .bx-note"); if (pn) pn.textContent = C.event.hasSlots(ev) ? w.filter((x) => x.key !== "all").map((x) => x.label).join(", ") : "setup, gates, event, teardown";
     if (window.EventThreats) window.EventThreats.update(ev); // weather threats follow the venue and schedule on screen
+    if (head && head.setPlace) head.setPlace(ev.loc); // site links open the other tools on this venue
   }
 
   /* the event schedule, once: each part with its venue-local times. The weather for these times is in the briefing above
