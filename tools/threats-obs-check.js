@@ -60,7 +60,8 @@ async function openReport(p, match) {
     await p.screenshot({ path: path.join(OUT, "live-desktop-northeast.png") });
     /* the toggle is remembered, and while off nothing is requested */
     await p.reload({ waitUntil: "domcontentloaded" }); await passNotice(p); await p.waitForFunction(() => window.__threats && window.__threats.ready, null, { timeout: 90000 }).catch(() => {}); await p.waitForTimeout(2500);
-    const r = await read(p); check(`(desktop) after a reload the toggle is still on (${r.toggle}) and reports are drawn (${r.drawn})`, r.toggle === true && r.drawn > 0, { r });
+    const r = await read(p), pill = await p.evaluate(() => (document.querySelector("#txLayersBtn") || {}).textContent || "");
+    check(`(desktop) after a reload the toggle is still on (${r.toggle}), reports are drawn (${r.drawn}), and the Layers button says so ('${pill.trim()}')`, r.toggle === true && r.drawn > 0 && /Reports/.test(pill), { r, pill });
     check("(desktop) no script errors", !errs.length, { errs }); await ctx.close(); }
   { const { ctx, p, errs, reqs } = await open(b, DESKTOP, { obs: false }); const s = await read(p);
     check(`(desktop) toggle off: no IEM requests (${reqs.length}), nothing drawn (${s.drawn}), no source row`, reqs.length === 0 && !s.drawn && !s.row && !errs.length, { s, reqs, errs }); await ctx.close(); }

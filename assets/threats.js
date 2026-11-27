@@ -1772,7 +1772,8 @@
     }
     return null;
   }
-  const layersSummary = () => { const r = S.radar && isLive(), h = hazardSummary();
+  const layersSummary = () => { const s = layersSummary0(); return obsOn() ? s + " + Reports" : s; };
+  const layersSummary0 = () => { const r = S.radar && isLive(), h = hazardSummary();
     if (S.auto && isLive()) { const n = S.autoNeed || {}, g = ["flood", "severe", "fire", "smoke", "tropical"].filter((k) => n[k]).map((k) => ({ flood: "Flooding", severe: "Severe storms", fire: "Fire weather", smoke: "Smoke & air", tropical: "Tropical" })[k]);
       return "Auto · " + (g.length ? g.join(" + ") + (r ? " + Radar" : "") : (r ? "Radar + alerts" : "Alerts")); }
     const m = h === "None selected" ? (r ? "Radar only" : h) : h + (r ? " + Radar" : ""); return isLive() ? "Manual · " + m : m; };
