@@ -5,7 +5,7 @@
        https://mesonet.agron.iastate.edu/GIS/rasters.php?rid=4. IEM allows browsers to read it (Access-Control-Allow-Origin: *),
        so the browser reads it directly: no server of ours in between.
      colours: the "Reflectivity 2026" table, below 5 dBZ transparent, each band with its own transparency; nearest-neighbour
-       sampling into map tiles; the layer at 85% opacity by default.
+       sampling into map tiles; the layer at 70% opacity to start (the viewer can change it).
    The page reads the scan time every 60 seconds and downloads the image only when a new scan is listed (about 1.2 MB). The
    decoding and the tile drawing happen in a Web Worker, so the page stays responsive. Pure pieces are exported for tests. */
 (function (root, factory) {
@@ -20,7 +20,7 @@
     [5, [0, 150, 190], 150], [10, [0, 105, 215], 185], [15, [0, 185, 125], 215], [20, [0, 205, 70], 232], [25, [65, 220, 45], 242],
     [30, [170, 225, 35], 248], [35, [245, 220, 20], 255], [40, [255, 155, 20], 255], [45, [245, 65, 35], 255], [50, [205, 20, 25], 255],
     [55, [225, 35, 150], 255], [60, [170, 45, 205], 255], [65, [225, 210, 245], 255], [70, [255, 255, 255], 255]];
-  const THRESHOLD = 5, OPACITY = 0.85;
+  const THRESHOLD = 5, OPACITY = 0.7; // the starting opacity; the page lets the viewer change it (Layers → Radar) and remembers it
   /* the colour for a dBZ value: the last band whose lower bound it reaches; below the first band, transparent */
   function dbzToRgba(dbz) { let c = null; for (const s of STOPS) { if (dbz >= s[0]) c = s; else break; } return c ? { r: c[1][0], g: c[1][1], b: c[1][2], a: c[2] } : { r: 0, g: 0, b: 0, a: 0 }; }
   const indexDbz = (i) => i * 0.5 - 32; // IEM's documented lcref lookup: index 0 = -32 dBZ, 64 = 0 dBZ

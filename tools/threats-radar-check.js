@@ -46,7 +46,7 @@ const read = (p) => p.evaluate(() => { const T = window.__threats, m = T.map, st
   { const { ctx, p, errs } = await open(b, { viewport: { width: 1440, height: 900 } }, "dark", false); const s = await read(p);
     await p.screenshot({ path: path.join(OUT, "cvg-desktop-dark.png") });
     check(`(desktop) radar drawn from IEM's measured MRMS grid (via ${s.via}; scan ${s.valid}; ${s.stats && s.stats.size}); source row '${s.row.slice(0, 110)}'`, s.via === "iem" && s.state === "ok" && s.stats && s.stats.size === "7000x3500" && /MRMS reflectivity · lowest elevation, via IEM/.test(s.row), { s });
-    check(`(desktop) style: opacity ${s.paint && s.paint.opacity}, resampling ${s.paint && s.paint.resampling}; legend shows the 2026 bands: ${s.legend}`, s.paint && s.paint.opacity === 0.85 && s.paint.resampling === "nearest" && s.legend, { s });
+    check(`(desktop) style: opacity ${s.paint && s.paint.opacity}, resampling ${s.paint && s.paint.resampling}; legend shows the 2026 bands: ${s.legend}`, s.paint && s.paint.opacity === 0.7 && s.paint.resampling === "nearest" && s.legend, { s });
     check(`(desktop) warnings and watches draw above radar (radar layer ${s.radarIndex}; ${s.activeLayers} alert layers all above)`, s.radarIndex >= 0 && s.warningsAbove, { s });
     check("(desktop) state and county lines draw above radar", s.boundariesAbove, { s });
     /* the page's tile vs the reference renderer, same scan */
@@ -67,11 +67,23 @@ const read = (p) => p.evaluate(() => { const T = window.__threats, m = T.map, st
       let bad = 0, coloured = 0; for (let i = 0; i < ref.length; i += 4) { const a = ref[i + 3]; if (a) coloured++; if (pg.rgba[i + 3] !== a) { bad++; continue; } if (!a) continue; const tol = a === 255 ? 0 : 2; for (let k = 0; k < 3; k++) if (Math.abs(pg.rgba[i + k] - ref[i + k]) > tol) { bad++; break; } }
       check(`(desktop) tile z${tile.join("/")} at CVG matches the reference renderer pixel for pixel on scan ${new Date(scan).toISOString()} (${coloured} coloured pixels; ${bad} differ)`, bad === 0, { bad, coloured });
     } else check(`(desktop) tile comparison: page and check never read the same scan in 4 tries`, false, {});
+    /* the opacity slider (Layers → Radar): shows the percentage, moves the map at once, is remembered after a reload */
+    { await p.locator("#txLayersBtn").click(); await p.waitForTimeout(400);
+      const before = await p.evaluate(() => ({ shown: document.querySelector("[data-radar-op-val]").textContent, map: window.__threats.map.getPaintProperty("radar", "raster-opacity") }));
+      await p.locator("[data-radar-op]").fill("50"); await p.waitForTimeout(200);
+      const moved = await p.evaluate(() => ({ shown: document.querySelector("[data-radar-op-val]").textContent, map: window.__threats.map.getPaintProperty("radar", "raster-opacity") }));
+      await p.screenshot({ path: path.join(OUT, "slider-desktop-50.png") });
+      await p.reload({ waitUntil: "domcontentloaded" }); await passNotice(p);
+      await p.waitForFunction(() => window.__threats && window.__threats.map && window.__threats.map.getLayer("radar"), null, { timeout: 90000 }).catch(() => {}); await p.waitForTimeout(2000);
+      const kept = await p.evaluate(() => ({ shown: document.querySelector("[data-radar-op-val]").textContent, map: window.__threats.map.getPaintProperty("radar", "raster-opacity") }));
+      check(`(desktop) opacity slider: starts ${before.shown} (map ${before.map}); set to 50%: shows ${moved.shown}, map ${moved.map} at once; after a reload ${kept.shown} (map ${kept.map})`,
+        before.shown === "70%" && before.map === 0.7 && moved.shown === "50%" && moved.map === 0.5 && kept.shown === "50%" && kept.map === 0.5, { before, moved, kept });
+      await p.evaluate(() => localStorage.removeItem("tx_radar_opacity")); }
     check("(desktop) no script errors", !errs.length, { errs }); await ctx.close(); }
   /* desktop, light; phone, light: screenshots and the same source */
   for (const [name, opt, theme] of [["desktop-light", { viewport: { width: 1440, height: 900 } }, "light"], ["phone-light", { ...devices["iPhone 13"] }, "light"]]) {
     const { ctx, p, errs } = await open(b, opt, theme, false); const s = await read(p); await p.screenshot({ path: path.join(OUT, `cvg-${name}.png`) });
-    check(`(${name}) theme ${s.theme}: radar from IEM, opacity ${s.paint && s.paint.opacity}, nearest; boundaries and warnings above`, s.via === "iem" && s.paint && s.paint.opacity === 0.85 && s.paint.resampling === "nearest" && s.warningsAbove && s.boundariesAbove && !errs.length, { s, errs }); await ctx.close(); }
+    check(`(${name}) theme ${s.theme}: radar from IEM, opacity ${s.paint && s.paint.opacity}, nearest; boundaries and warnings above`, s.via === "iem" && s.paint && s.paint.opacity === 0.7 && s.paint.resampling === "nearest" && s.warningsAbove && s.boundariesAbove && !errs.length, { s, errs }); await ctx.close(); }
   /* IEM not answering: within about 15 s the page shows NOAA's pre-coloured tiles, labelled as the fallback */
   { const ctx = await b.newContext({ ...devices["iPhone 13"] }), p = await ctx.newPage(), errs = []; p.on("pageerror", (e) => errs.push(e.message));
     await p.route(/mesonet\.agron\.iastate\.edu\/data\/gis\/images\/4326\/mrms\/lcref\.png/, () => {}); // never answers

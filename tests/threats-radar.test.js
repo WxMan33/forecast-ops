@@ -26,7 +26,7 @@ function indexedPng(w, h, rows, filters, trns) {
 }
 (async () => {
   await ok("Reflectivity 2026: the same 14 bands, colours and transparency as Predictable's table", () => {
-    assert.deepStrictEqual(R.STOPS, PREDICTABLE); assert.strictEqual(R.THRESHOLD, 5); assert.strictEqual(R.OPACITY, 0.85);
+    assert.deepStrictEqual(R.STOPS, PREDICTABLE); assert.strictEqual(R.THRESHOLD, 5); assert.strictEqual(R.OPACITY, 0.7);
   });
   await ok("dBZ to colour: below 5 dBZ transparent; each band from its lower bound; 70 and above white", () => {
     assert.deepStrictEqual(R.dbzToRgba(4.5), { r: 0, g: 0, b: 0, a: 0 });

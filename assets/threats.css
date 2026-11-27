@@ -285,6 +285,10 @@
 .px-vfcgrid { display: grid; grid-template-columns: auto auto auto auto; gap: 2px 14px; font-size: 13px; font-variant-numeric: tabular-nums; }
 .px-vfcgrid > div { display: contents; }
 .px-vfch span { color: var(--muted, #8a93a0); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+/* radar opacity slider under Layers → Radar */
+.tx-radop { display: grid; grid-template-columns: auto 1fr 3.2em; align-items: center; gap: 8px; }
+.tx-radop input[type=range] { width: 100%; min-width: 0; accent-color: var(--accent); }
+.tx-radop output { font-variant-numeric: tabular-nums; text-align: right; font-weight: 700; }
 /* radar legend (Reflectivity 2026): one swatch per 5 dBZ band, 5 to 70; labels every 10 dBZ */
 .lg-r26 { display: grid; grid-template-columns: repeat(14, 1fr); height: 10px; border-radius: 3px; overflow: hidden; margin: 4px 0 2px; background: repeating-conic-gradient(var(--line) 0% 25%, transparent 0% 50%) 0 0 / 6px 6px; }
 .lg-r26n { display: grid; grid-template-columns: repeat(7, 1fr); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }

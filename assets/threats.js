@@ -1539,6 +1539,11 @@
      with the Reflectivity 2026 table exactly as Predictable draws it (assets/threats-radar.js). The scan time is read every 60 s
      while radar is on; the image is downloaded only for a new scan. If IEM can't be read, NOAA's pre-coloured MRMS tiles are
      shown instead and the source row says so. ---------- */
+  /* radar opacity: 70% to start, set with the slider under Layers → Radar, remembered in this browser */
+  const RADAR_OP_KEY = "tx_radar_opacity", radarOp = () => { let v = NaN; try { v = +localStorage.getItem(RADAR_OP_KEY); } catch (e) { /* no storage */ } return v >= 0.2 && v <= 1 ? v : 0.7; };
+  function setRadarOp(v) { v = Math.min(1, Math.max(0.2, Math.round(v * 20) / 20)); try { localStorage.setItem(RADAR_OP_KEY, String(v)); } catch (e) { /* no storage */ }
+    if (map && map.getLayer("radar")) map.setPaintProperty("radar", "raster-opacity", v); syncRadarOp(); }
+  function syncRadarOp() { const v = radarOp(), i = document.querySelector("[data-radar-op]"), o = document.querySelector("[data-radar-op-val]"); if (i) i.value = String(Math.round(v * 100)); if (o) o.textContent = Math.round(v * 100) + "%"; }
   const RD = window.ThreatsRadar, radar = { state: "off", valid: null, lastOk: null, error: null, timer: null, tiles: null, via: null, client: null, proto: false };
   const radarAgeMin = () => (radar.valid ? Math.round((Date.now() - Date.parse(radar.valid)) / 60e3) : null);
   const radarText = () => (radar.via === "noaa" ? "NOAA MRMS radar image (fallback) " : "MRMS lowest-elevation reflectivity, scan ") + t(radar.valid) + " (" + radarAgeMin() + " min old" + (radarAgeMin() > 20 ? ", delayed" : "") + ")";
@@ -1564,7 +1569,7 @@
     if (!radar.timer) { radar.state = radar.lastOk ? radar.state : "loading"; radarTick(); radar.timer = setInterval(radarTick, 60e3); }
     if (!radar.valid) return;
     const url = radar.via === "iem" ? radar.client.tileUrl() : Live.RADAR_TILE_URL + "&t=" + Date.parse(radar.valid); // a new scan is a new URL
-    const paint = radar.via === "iem" ? { "raster-opacity": RD.OPACITY, "raster-resampling": "nearest", "raster-fade-duration": 0 } : { "raster-opacity": 0.6, "raster-fade-duration": 0 };
+    const paint = radar.via === "iem" ? { "raster-opacity": radarOp(), "raster-resampling": "nearest", "raster-fade-duration": 0 } : { "raster-opacity": radarOp(), "raster-fade-duration": 0 };
     if (map.getSource("radar") && radar.srcVia !== radar.via) { map.removeLayer("radar"); map.removeSource("radar"); radar.tiles = null; }
     if (!map.getSource("radar")) { map.addSource("radar", { type: "raster", tiles: [url], tileSize: 256, maxzoom: radar.via === "iem" ? 10 : 22, attribution: radar.via === "iem" ? "MRMS via Iowa Environmental Mesonet" : "NOAA MRMS radar" }); map.addLayer({ id: "radar", type: "raster", source: "radar", paint }, radarBeforeLayer()); radar.srcVia = radar.via; }
     else if (radar.tiles !== url) map.getSource("radar").setTiles([url]);
@@ -1846,7 +1851,10 @@
     if (e.target.closest("[data-open-rain]")) { openRainMap(); return; }
     const ss = e.target.closest("[data-strip-sel]"); if (ss) { const p = byId(ss.dataset.stripSel) || ((siteAssess() || { at: [] }).at.find((x) => x.p.id === ss.dataset.stripSel) || {}).p; // an alert in the strip, opened on the map
       if (p) { const fam = p.family || "severe"; if (!S.layers[fam]) { S.layers[fam] = true; S.auto = false; } S.scope = "venue"; setView("active"); if (byId(p.id)) { S.sel = p.id; drawAll(); if (map && p.label) map.easeTo({ center: p.label, duration: 400 }); } } } }); // an upcoming alert shows while selected
-  $("txLayersPop").addEventListener("change", (e) => {
+  /* the opacity slider moves the map as it is dragged (input), without redrawing anything else */
+  $("txLayersPop").addEventListener("input", (e) => { if (e.target.matches("[data-radar-op]")) setRadarOp(+e.target.value / 100); });
+  syncRadarOp();
+  $("txLayersPop").addEventListener("change", (e) => { if (e.target.matches("[data-radar-op]")) return;
     const i = e.target; if (!i.matches("input, select")) return;
     if (i.dataset.rain) { S.auto = false; S.rain[i.dataset.rain] = i.checked; if (i.checked) { S.rain[i.dataset.rain === "obs" ? "fcst" : "obs"] = false; S.layers.flood = true; } } // one rainfall overlay at a time
     else if (i.hasAttribute("data-rain-win")) { S.rain.win = +i.value; if (!S.rain.obs) { S.auto = false; S.rain.obs = true; S.rain.fcst = false; S.layers.flood = true; } }

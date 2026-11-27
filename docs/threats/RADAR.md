@@ -15,7 +15,7 @@ Predictable (heads-up a6a83c1) draws MRMS with:
 | Values | dBZ = index × 0.5 − 32 | same |
 | Colours | Reflectivity 2026, 14 bands from 5 to 70 dBZ, each with its own transparency; below 5 dBZ transparent; the source's own tRNS respected | same table (`assets/threats-radar.js` `STOPS`) |
 | Sampling | nearest neighbour into 256 px web-mercator tiles | same; MapLibre `raster-resampling: nearest` |
-| Opacity | 85% default | 85% |
+| Opacity | 85% default | 70% to start; slider under Layers → Radar (20–100%), remembered in the browser |
 | Refresh | scan time every 60 s; image only for a new scan; scan time re-read after download so a turnover is never mislabelled | same |
 | Where it runs | Node server: decode in a worker thread, tiles over HTTP | the browser: decode and tiles in a Web Worker, tiles through a MapLibre `lcref://` protocol |
 
