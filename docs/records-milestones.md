@@ -20,7 +20,7 @@ Forecast Ops finds the notable weather story for the selected market. **Overview
   - Abbe Observatory, Apr 1915 to Mar 1947;
   - CVG airport from Apr 1947. From then on the thread and CVG agree day for day.
 - **The normals** are the observing station's 1991-2020 normals.
-- **Final or preliminary** is decided by the latest date in GHCN-Daily for the current observing station (`ghcnd` in `feeds/insights/markets.json`).
+- **Final or preliminary** is decided per value, never by date alone. A finding is final only when NCEI's GHCN-Daily archive for the market's current observing station (`ghcnd` in `feeds/insights/markets.json`) has the same date and measurement, with the same value (precipitation within 0.005 in, snowfall within 0.05 in, temperature exact, trace only matching trace) and no quality flag (`RecordsEngine.confirm`). The archive's latest date is shown for context only: an earlier date can still be missing from the archive or differ from the value the finding used. Month to date is final only when every day of the month so far is confirmed. If NCEI can't be read, everything stays preliminary.
 - **Markets** are configured in `feeds/insights/markets.json`: id, name, country, region, time zone, units, record id and kind, normals station, GHCN-D id and thresholds.
 - **Places without a pack:** the Almanac judges daily records only, from the calendar-day history it already loads (ClimateStation's record for the point), and says that holiday rankings and longer context need a pack.
 
@@ -48,7 +48,7 @@ Forecast Ops finds the notable weather story for the selected market. **Overview
 
 ## First acceptance case: Cincinnati, Thanksgiving Nov 26, 2026
 
-- **Observation:** CVG measured 2.16 in. The NWS daily climate report (final for the day, issued 12:55 AM EST Nov 27), the CF6 and ACIS agree. NCEI's final archive runs through Nov 15, so the value is **preliminary**.
+- **Observation:** CVG measured 2.16 in. The NWS daily climate report (final for the day, issued 12:55 AM EST Nov 27), the CF6 and ACIS agree. NCEI's archive runs through Nov 15 and doesn't have Nov 26, so the value is **preliminary**.
 - **Calendar-day record:**
 
   | Record | Result |
@@ -72,7 +72,7 @@ These are fixed in `tests/records-engine.test.js` from a real ACIS snapshot (`te
 - **Packs:** `tools/build-insights.js` reads each market's full daily record from RCC-ACIS once, plus normals and NCEI status. It writes `feeds/insights/<id>.json` (about 4 KB) and `feeds/insights/index.json`.
 - **Overview** reads only the pack and caches it for 15 minutes in sessionStorage. It never downloads a climate archive. With no pack, or a failure, the section stays hidden and the page is unchanged.
 - **Almanac** shows the pack's findings for the selected date. Without a pack it computes daily records from data it already has.
-- **What a pack holds:** findings for the last 60 days (`windowDays`), with `through` (last day covered), `finalThrough` (last day in NCEI's final archive) and `generated` (when the refresh ran). The index lists each market's name, official record, centre and radius (60 km), so a place is matched to the nearest market whose radius covers it.
+- **What a pack holds:** findings for the last 60 days (`windowDays`), with `through` (last day covered), `finalThrough` (the archive's latest date, for context only) and `generated` (when the refresh ran). The index lists each market's name, official record, centre and radius (60 km), so a place is matched to the nearest market whose radius covers it.
 
 ## Preview coverage
 
@@ -80,8 +80,8 @@ The preview has two packs, both built from real RCC-ACIS and NCEI data for the 6
 
 | Pack | Official record | Days with findings |
 |---|---|---|
-| Cincinnati (`cvg`) | Cincinnati Area threaded record (CVGthr) | Oct 1, Oct 13, Oct 14, Nov 3, Nov 4, Nov 26 (Nov 26 preliminary, the rest final) |
-| Denver (`den`) | Denver Area threaded record (DENthr), America/Denver | Sep 28, Oct 5, Oct 6, Oct 8 to 11, Oct 20 to 23 (all final). Oct 6: record warm low (59°F, old record 55°F in 1947) and a tie with the record high (87°F, 1975 and 2020) |
+| Cincinnati (`cvg`) | Cincinnati Area threaded record (CVGthr) | Oct 1, Oct 13, Oct 14, Nov 3, Nov 4, Nov 26 (Nov 26 preliminary; every other finding confirmed in NCEI's archive, same value, no flag) |
+| Denver (`den`) | Denver Area threaded record (DENthr), America/Denver | Sep 28, Oct 5, Oct 6, Oct 8 to 11, Oct 20 to 23 (all confirmed in NCEI's archive for USW00003017). Oct 6: record warm low (59°F, old record 55°F in 1947) and a tie with the record high (87°F, 1975 and 2020) |
 
 Every other place has no pack. Overview hides the section there. Almanac shows daily records from the point's own climate station history when that loads, with a note naming the preview's packs. The Almanac coverage line for a pack names the record, the 60-day window, how far the data is final and when the pack was refreshed.
 
@@ -100,8 +100,8 @@ The 7:43 AM and 7:43 PM ET runs line up with the overnight daily climate report 
 
 **Preliminary to final, and revisions.** Every refresh recomputes every finding in the 60-day window from the source; nothing is patched. So:
 
-- When NCEI's final archive reaches a day (`finalThrough` passes it), the next refresh relabels that day's findings **Observed record** and drops "(preliminary)" from the copy.
-- When the source revises a value, the next refresh uses the new value. A record claim that no longer holds disappears; a new one appears. `tests/records-engine.test.js` ("refresh: ...") builds the Cincinnati Nov 26 pack three ways: as issued (2.16 in, preliminary), after a downward revision to 1.40 in (the record claim is gone), and after NCEI finalizes it (Observed record, no preliminary note).
+- When NCEI's archive confirms a value (same station, date, measurement and value, no quality flag), the next refresh relabels the findings that use it **Observed record** and drops "(preliminary)" from the copy. If the archive has a different value or a flag, the finding stays preliminary.
+- When the source revises a value, the next refresh uses the new value. A record claim that no longer holds disappears; a new one appears. `tests/records-engine.test.js` ("refresh: ...") builds the Cincinnati Nov 26 pack three ways: as issued (2.16 in, preliminary), after a downward revision to 1.40 in (the record claim is gone), with the archive's latest date past Nov 26 but no matching value (still preliminary), with a different archive value or a quality flag (still preliminary), and with the archive confirming 2.16 in (Observed record, no preliminary note; month to date stays preliminary until every November day is confirmed).
 - Browsers keep a pack for up to 15 minutes, so a change shows within 15 minutes of the commit reaching the site.
 
 **When a refresh fails.** The builder writes each pack to a temporary file and renames it only when complete, so a failed market keeps its last good pack. It logs "refresh failed (...); its last pack stays in place", keeps that market's index entry and exits with an error, so the run shows red. On the page, findings stay visible with their original labels. Once a pack is more than 36 hours old, Almanac's coverage line adds: "This refresh is N hours old, so newer observations or revisions aren't reflected yet." If the pack can't be read at all, both sections stay hidden and the rest of each page works (both are checked in `tools/records-check.js`).
@@ -110,7 +110,7 @@ The 7:43 AM and 7:43 PM ET runs line up with the overnight daily climate report 
 
 - **Data:** Environment and Climate Change Canada, through MSC GeoMet's OGC API: `climate-daily` for daily observations, `climate-normals` for 1991-2020 normals and ECCC's long-term threaded extremes for Toronto (station IDs and how ECCC joins the city and airport records to be confirmed from ECCC's own metadata). These hosts are blocked from this build environment; whether GitHub-hosted runners reach them needs one manual run to confirm.
 - **Units:** keep ECCC's native metric (mm, cm, °C) in the pack and copy. Never convert to inches for Canadian markets; the engine already formats mm and is unit tested for Toronto.
-- **Final or preliminary:** ECCC's quality flags per value replace NCEI's archive date. Unflagged, quality-controlled values are final; values flagged estimated or not yet reviewed are preliminary.
+- **Final or preliminary:** ECCC's per-value quality flags take the place of the NCEI comparison. Unflagged, quality-controlled values are final; values flagged estimated or not yet reviewed are preliminary.
 - **Holidays:** Canadian Thanksgiving is fixed as the second Monday of October from 1957. Earlier years were set by proclamation each year; they need a table from the Canada Gazette, and until then those years are left out, not guessed. Provincial holidays (Civic Holiday, Family Day) and Victoria Day need their own rules and per-province tables before they're offered.
 - **Acceptance:** a verified Toronto case, like Cincinnati's, checked by hand against ECCC before Toronto is listed.
 

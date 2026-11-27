@@ -1,7 +1,7 @@
 {
- "schema": 1,
+ "schema": 2,
  "id": "cvg",
- "generated": "2026-11-27T15:42:17.891Z",
+ "generated": "2026-11-27T15:54:27.125Z",
  "through": "2026-11-26",
  "windowDays": 60,
  "finalThrough": "2026-11-15",
@@ -35,7 +35,7 @@
  },
  "sources": [
   "RCC-ACIS StnData CVGthr (Cincinnati Area), retrieved 2026-11-27",
-  "NCEI GHCN-Daily USW00093814 (final through 2026-11-15)",
+  "NCEI GHCN-Daily USW00093814 (each value confirmed by date and measurement; archive through 2026-11-15)",
   "1991-2020 normals, ACIS CVG"
  ],
  "days": {

@@ -143,19 +143,23 @@
   }
 
   /* ---------- the story: rank by significance, combine related findings, write plain copy ---------- */
-  /* ctx: { market, date, S: { pcpn, snow, maxt, mint }, status(date) -> "final"|"preliminary"|"interim", normals?: { pcpn: {month, toDate} },
+  /* ctx: { market, date, S: { pcpn, snow, maxt, mint }, status(date, el?) -> "final"|"preliminary"|"interim" (el: "pcpn", "snow", "maxt" or
+           "mint"; a value is final only once that station, date and measurement is confirmed, so it is asked per element), normals?: { pcpn: {month, toDate} },
            holidays?: [keys], thresholds?: { pcpn: 2 } } -> { items: [...], highlights: [...up to 3] } */
   function findings(ctx) {
-    const { market, date } = ctx, units = market.units || {}, st = ctx.status ? ctx.status(date) : "final";
+    const { market, date } = ctx, units = market.units || {}, st0 = ctx.status ? ctx.status(date) : "final";
+    const stOf = (el, d = date) => (ctx.status ? ctx.status(d, el) : "final"), COL = { pcpn: "pcpn", snow: "snow", hiMax: "maxt", loMax: "maxt", loMin: "mint", hiMin: "mint" };
     const items = [], rec = market.record, src = `${rec.name} (${rec.kind === "threaded" ? "official city record" : "station record"}, ${rec.sid})`;
-    if (st === "interim") return { items, highlights: [], note: "Only an interim report so far: findings wait for the complete day." };
-    const label = STATUS[st] || STATUS.final, dayWord = longDate(date), sDate = shortDate(date);
+    if (st0 === "interim") return { items, highlights: [], note: "Only an interim report so far: findings wait for the complete day." };
+    /* a day is final only when every finding on it is */
+    const dayStatus = () => (items.length && items.every((i) => i.status === "final") ? "final" : st0 === "final" && !items.length ? "final" : "preliminary");
+    const dayWord = longDate(date), sDate = shortDate(date);
     /* daily records for each element present */
     const recs = [];
     [["pcpn", "pcpn"], ["snow", "snow"], ["maxt", "hiMax"], ["mint", "loMin"], ["mint", "hiMin"], ["maxt", "loMax"]].forEach(([col, k]) => {
       const S = ctx.S[col]; if (!S) return; const r = dailyRecord({ S, date, el: k }); if (r && r.enough && (r.outcome !== "none" || r.rank <= 3)) recs.push(r); });
     recs.forEach((r) => {
-      const el = ELEMENTS[r.el], v = fmt(r.value, el, units), pv = fmt(r.previous.value, el, units), yrs = listWords(r.previous.years);
+      const el = ELEMENTS[r.el], v = fmt(r.value, el, units), pv = fmt(r.previous.value, el, units), yrs = listWords(r.previous.years), st = stOf(COL[r.el]), label = STATUS[st] || STATUS.final;
       const head = r.outcome === "new" ? `${el.kind === "amount" ? "Record " + el.noun : cap(el.record)} on ${sDate}` : r.outcome === "tie" ? `Tied the ${sDate} ${el.record}` : `${ordinal(r.rank)} ${el.dir === "max" ? "highest" : "lowest"} ${el.kind === "amount" ? el.nounLong : el.noun} for ${sDate}`;
       const body = r.outcome === "new" ? `${v} broke the ${sDate} record of ${pv} set in ${yrs}, a record ${r.previous.age} years old, by ${fmt(r.previous.margin, el, units).replace(/°[FC]$/, "°")}.`
         : r.outcome === "tie" ? `${v} tied the ${sDate} record set in ${yrs}.` : `${v} ranks ${ordinal(r.rank)} of ${r.of} years for ${sDate}. The record is ${pv} (${yrs}).`;
@@ -166,11 +170,11 @@
     });
     /* scope "calendarDay": the caller has only this calendar date's yearly values (e.g. the Almanac's records query), so
        only daily records can be judged; holiday rankings and context need the full daily record (a market pack) */
-    if (ctx.scope === "calendarDay") { items.sort((a, b) => b.score - a.score); return { items, highlights: items.filter((i) => i.score >= 30).slice(0, 3), date, status: st, scope: "calendarDay" }; }
+    if (ctx.scope === "calendarDay") { items.sort((a, b) => b.score - a.score); return { items, highlights: items.filter((i) => i.score >= 30).slice(0, 3), date, status: dayStatus(), scope: "calendarDay" }; }
     /* holidays on this date */
     const hols = (HOL.on(date, market.country || "US", market.region) || []).filter((h) => !ctx.holidays || ctx.holidays.includes(h.key));
     hols.forEach((h) => {
-      const S = ctx.S.pcpn; if (!S) return; const thr = (ctx.thresholds && ctx.thresholds.pcpn) || null;
+      const S = ctx.S.pcpn; if (!S) return; const thr = (ctx.thresholds && ctx.thresholds.pcpn) || null, st = stOf("pcpn"), label = STATUS[st] || STATUS.final;
       const r = holidayRank({ S, holiday: h.key, year: yearOf(date), region: market.region, el: "pcpn", threshold: thr && (S.get(date) || {}).v >= thr ? thr : null });
       if (!r || !r.enough || !r.robust || r.trace || !(r.value > 0)) return;
       const el = ELEMENTS.pcpn, v = fmt(r.value, el, units), ahead = r.top.filter((t) => t.v > r.value);
@@ -191,16 +195,18 @@
     /* context: how rare a day like this is, and the month so far */
     const S = ctx.S.pcpn, today = S && S.get(date);
     if (S && today && !today.missing && !today.trace && today.v >= 1) {
+      const st = stOf("pcpn"), label = STATUS[st] || STATUS.final;
       const lo = lastOccurrence({ S, date, el: "pcpn" }), el = ELEMENTS.pcpn;
       if (lo && lo.monthRank <= 5) items.push({ id: "ctx-month-day", short: `${ordinal(lo.monthRank)} wettest ${MONTHS[+date.slice(5, 7) - 1]} day since ${span(S).from.slice(0, 4)}.`, score: 45 - lo.monthRank, status: st, label, head: `${ordinal(lo.monthRank)} wettest ${MONTHS[+date.slice(5, 7) - 1]} day on record`,
         body: `Only ${listWords(lo.monthAbove.map((a) => `${longDate(a.date)} (${fmt(a.value, el, units)})`))} ${lo.monthAbove.length === 1 ? "was" : "were"} wetter. The last day of any month with this much rain was ${lo.any ? `${longDate(lo.any.date)} (${fmt(lo.any.value, el, units)})` : "never"}.`,
         copyFact: `${market.name}'s ${fmt(today.v, el, units)} on ${dayWord} was its ${ordinal(lo.monthRank)} wettest ${MONTHS[+date.slice(5, 7) - 1]} day on record${st === "preliminary" ? " (preliminary)" : ""}.`,
         evidence: { finding: lo, source: src, range: `${span(S).from.slice(0, 4)} to ${date.slice(0, 4)}`, sample: `${lo.monthDays} ${MONTHS[+date.slice(5, 7) - 1]} days with a measurable observation` } });
       const n = ctx.normals && ctx.normals.pcpn, mt = monthToDate({ S, date, el: "pcpn", normals: n });
-      if (mt && !mt.incomplete && mt.normalToDate != null && Math.abs(mt.departure) >= 1) items.push({ id: "ctx-mtd", short: `${fmt(mt.total, el, units)} so far, ${mt.pct}% of normal to date.`, score: 30, status: st, label,
+      const stM = Array.from({ length: +date.slice(8, 10) }, (_, i) => stOf("pcpn", `${date.slice(0, 8)}${String(i + 1).padStart(2, "0")}`)).every((x) => x === "final") ? "final" : "preliminary";
+      if (mt && !mt.incomplete && mt.normalToDate != null && Math.abs(mt.departure) >= 1) items.push({ id: "ctx-mtd", short: `${fmt(mt.total, el, units)} so far, ${mt.pct}% of normal to date.`, score: 30, status: stM, label: STATUS[stM],
         head: `${MONTHS[+date.slice(5, 7) - 1]} is running ${mt.departure > 0 ? "wet" : "dry"}`,
         body: `${fmt(mt.total, el, units)} through the ${ordinal(+date.slice(8, 10))}, ${fmt(Math.abs(mt.departure), el, units)} ${mt.departure > 0 ? "above" : "below"} normal to date (${mt.pct}%).${mt.monthNormal != null && mt.total > mt.monthNormal ? ` Already more than a normal full ${MONTHS[+date.slice(5, 7) - 1]} (${fmt(mt.monthNormal, el, units)}).` : ""}`,
-        copyFact: `${market.name}'s ${MONTHS[+date.slice(5, 7) - 1]} is ${fmt(Math.abs(mt.departure), el, units).replace(/ in$/, " inches")} ${mt.departure > 0 ? "above" : "below"} normal through the ${ordinal(+date.slice(8, 10))}${st === "preliminary" ? " (preliminary)" : ""}.`,
+        copyFact: `${market.name}'s ${MONTHS[+date.slice(5, 7) - 1]} is ${fmt(Math.abs(mt.departure), el, units).replace(/ in$/, " inches")} ${mt.departure > 0 ? "above" : "below"} normal through the ${ordinal(+date.slice(8, 10))}${stM === "preliminary" ? " (preliminary)" : ""}.`,
         evidence: { finding: mt, source: `${src}; normals ${market.normals && market.normals.label || "1991-2020"}`, range: `${MONTHS[+date.slice(5, 7) - 1]} 1 to ${+date.slice(8, 10)}`, sample: `${mt.of} years with a complete ${MONTHS[+date.slice(5, 7) - 1]} 1 to ${+date.slice(8, 10)}` } });
     }
     items.sort((a, b) => b.score - a.score);
@@ -208,7 +214,7 @@
     const recP = items.find((i) => i.id === "rec-pcpn" && i.score >= 85), holP = items.find((i) => i.id.startsWith("hol-"));
     const highlights = items.filter((i) => i.score >= 30).slice(0, 3).map((i) => ({ ...i }));
     if (recP && holP) { const h = highlights.find((i) => i.id === recP.id); if (h) h.related = [holP.id]; }
-    return { items, highlights, date, status: st };
+    return { items, highlights, date, status: dayStatus() };
   }
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const listWords = (a) => (a.length <= 1 ? a.join("") : `${a.slice(0, -1).join(", ")} and ${a[a.length - 1]}`);
@@ -217,16 +223,37 @@
      replaces the earlier finding: nothing is carried over from the previous pack. A finding that no longer holds after a
      revision disappears. opts: { market, S, through, days = 7, finalThrough (latest final date or null), normalsFor(date)
      -> { month, toDate } | null, thresholds, sources, generated (ISO) } */
-  function pack({ market, S, through, days = 7, finalThrough = null, normalsFor = () => null, thresholds = { pcpn: 2 }, sources = [], generated = new Date().toISOString() }) {
-    const status = (d) => (finalThrough && d <= finalThrough ? "final" : "preliminary");
-    const out = { schema: 1, id: market.id, generated, through, windowDays: days, finalThrough, market, sources, days: {} };
+  /* confirmed: { "YYYY-MM-DD": { pcpn: true, snow: true, maxt: true, mint: true } }, the values the builder found in the
+     quality-controlled archive (NCEI GHCN-Daily) for the same station and date with the same value and no quality flag.
+     Anything not confirmed is preliminary. finalThrough is only the archive's latest date, for the coverage line: a date
+     before it can still be missing or differ, so it never makes a value final by itself. */
+  function pack({ market, S, through, days = 7, finalThrough = null, confirmed = {}, normalsFor = () => null, thresholds = { pcpn: 2 }, sources = [], generated = new Date().toISOString() }) {
+    const status = (d, el) => (el && confirmed[d] && confirmed[d][el] ? "final" : "preliminary");
+    const out = { schema: 2, id: market.id, generated, through, windowDays: days, finalThrough, market, sources, days: {} };
     for (let i = days - 1; i >= 0; i--) {
       const d = addDays(through, -i), f = findings({ market, date: d, S, status, normals: { pcpn: normalsFor(d) }, thresholds });
       if (f.items.length) out.days[d] = { status: f.status, items: f.items.map(({ evidence, ...it }) => ({ ...it, evidence: { source: evidence.source, range: evidence.range, sample: evidence.sample } })), highlights: f.highlights.map((h) => h.id) };
     }
     return out;
   }
-  const api = { ELEMENTS, STATUS, series, dailyRecord, holidayRank, lastOccurrence, monthToDate, findings, pack, fmt, longDate, shortDate, addDays };
+  /* which values the quality-controlled archive confirms. rows: NCEI GHCN-Daily daily-summaries JSON for the market's
+     station (units=standard, includeAttributes=true). A value is confirmed when the archive has that date and measurement,
+     with no quality flag, and the same value as the record (precipitation within 0.005 in, snowfall within 0.05 in,
+     temperature exact; a trace only matches a trace). -> { date: { pcpn, snow, maxt, mint } } */
+  const NCEI = { pcpn: ["PRCP", 0.005], snow: ["SNOW", 0.05], maxt: ["TMAX", 0], mint: ["TMIN", 0] };
+  function confirm({ S, rows }) {
+    const out = {};
+    (rows || []).forEach((r) => { const d = String(r.DATE || "").slice(0, 10);
+      Object.entries(NCEI).forEach(([el, [k, tol]]) => {
+        if (!S[el] || r[k] == null || r[k] === "") return;
+        const [mflag = "", qflag = ""] = String(r[`${k}_ATTRIBUTES`] || "").split(","); if (qflag.trim()) return;
+        const ours = S[el].get(d); if (!ours || ours.missing) return;
+        const theirs = parseFloat(r[k]), trace = mflag.trim() === "T";
+        const ok = ours.trace ? trace : !trace && isFinite(theirs) && Math.abs(theirs - ours.v) <= tol + 1e-9;
+        if (ok) (out[d] = out[d] || {})[el] = true; }); });
+    return out;
+  }
+  const api = { ELEMENTS, STATUS, series, confirm, dailyRecord, holidayRank, lastOccurrence, monthToDate, findings, pack, fmt, longDate, shortDate, addDays };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.RecordsEngine = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

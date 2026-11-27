@@ -98,7 +98,7 @@ check("calendar-day scope (the Almanac's per-date history for a market without a
   const f = E.findings({ market: CIN, date: "2026-11-26", S: { pcpn: S }, status: () => "preliminary", scope: "calendarDay" });
   assert.deepEqual(f.items.map((i) => i.id), ["rec-pcpn"]); assert.equal(f.scope, "calendarDay");
 });
-check("refresh: each pack is recomputed from the source, so a revised value or a final status replaces the preliminary finding", () => {
+check("refresh: each pack is recomputed from the source; a revised value replaces the old one, and a finding is final only when the archive confirms that station, date and value", () => {
   const market = { ...CIN, tz: "America/New_York" }, nf = () => ({ month: 3.23, toDate: 2.77 });
   const prelim = E.pack({ market, S: { pcpn: thr }, through: "2026-11-26", days: 1, finalThrough: "2026-11-15", normalsFor: nf, generated: "2026-11-27T06:45:00Z" });
   const p = prelim.days["2026-11-26"]; assert.equal(p.status, "preliminary"); assert.equal(p.items[0].label, "Preliminary observation"); assert.match(p.items[0].copyFact, /\(preliminary data\)\.$/);
@@ -106,9 +106,23 @@ check("refresh: each pack is recomputed from the source, so a revised value or a
   const revised = new Map(thr); revised.set("2026-11-26", { v: 1.4 });
   const r = E.pack({ market, S: { pcpn: revised }, through: "2026-11-26", days: 1, finalThrough: "2026-11-15", normalsFor: nf });
   const ri = (r.days["2026-11-26"] || { items: [] }).items; assert.ok(!ri.some((i) => i.id === "rec-pcpn" && /broke/.test(i.body)), "no record claim after a downward revision");
-  /* NCEI finalizes the day: the same finding becomes an observed record, without the preliminary note */
-  const fin = E.pack({ market, S: { pcpn: thr }, through: "2026-11-26", days: 1, finalThrough: "2026-11-30", normalsFor: nf }).days["2026-11-26"];
-  assert.equal(fin.status, "final"); assert.equal(fin.items[0].label, "Observed record"); assert.doesNotMatch(fin.items.map((i) => i.copyFact).join(" "), /preliminary/);
+  /* the archive's latest date passing Nov 26 is not enough: without that station, date and value confirmed, it stays preliminary */
+  const past = E.pack({ market, S: { pcpn: thr }, through: "2026-11-26", days: 1, finalThrough: "2026-11-30", normalsFor: nf }).days["2026-11-26"];
+  assert.equal(past.status, "preliminary"); assert.equal(past.items[0].label, "Preliminary observation");
+  /* a different archive value, or a quality flag, does not confirm it either */
+  const row = (v, attr = ",,W,2400") => [{ DATE: "2026-11-26", STATION: "USW00093814", PRCP: v, PRCP_ATTRIBUTES: attr }];
+  assert.deepEqual(E.confirm({ S: { pcpn: thr }, rows: row("2.12") }), {}, "a different archive value is not a confirmation");
+  assert.deepEqual(E.confirm({ S: { pcpn: thr }, rows: row("2.16", ",X,W,2400") }), {}, "a quality-flagged value is not a confirmation");
+  assert.deepEqual(E.confirm({ S: { pcpn: thr }, rows: [{ DATE: "2026-11-26", TMAX: "60", TMAX_ATTRIBUTES: ",,W" }] }), {}, "another measurement on the date does not confirm precipitation");
+  /* the archive has the same value, unflagged: the same finding becomes an observed record, without the preliminary note */
+  const confirmed = E.confirm({ S: { pcpn: thr }, rows: row("2.16") }); assert.deepEqual(confirmed, { "2026-11-26": { pcpn: true } });
+  const fin = E.pack({ market, S: { pcpn: thr }, through: "2026-11-26", days: 1, finalThrough: "2026-11-30", confirmed, normalsFor: nf }).days["2026-11-26"];
+  const one = (id) => fin.items.find((i) => i.id === id);
+  ["rec-pcpn", "hol-US-thanksgiving", "ctx-month-day"].forEach((id) => { assert.equal(one(id).label, "Observed record", id); assert.doesNotMatch(one(id).copyFact, /preliminary/, id); });
+  /* month to date leans on every November day so far: only Nov 26 is confirmed here, so it and the day stay preliminary */
+  assert.equal(one("ctx-mtd").status, "preliminary"); assert.match(one("ctx-mtd").copyFact, /\(preliminary\)\.$/); assert.equal(fin.status, "preliminary");
+  const all = {}; for (let d = 1; d <= 26; d++) all[`2026-11-${String(d).padStart(2, "0")}`] = { pcpn: true };
+  assert.equal(E.pack({ market, S: { pcpn: thr }, through: "2026-11-26", days: 1, confirmed: all, normalsFor: nf }).days["2026-11-26"].status, "final");
   assert.equal(prelim.windowDays, 1); assert.equal(prelim.generated, "2026-11-27T06:45:00Z");
 });
 console.log(`${n} checks passed`);

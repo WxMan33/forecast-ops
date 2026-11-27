@@ -37,7 +37,7 @@ const card = (p, id) => p.evaluate((id) => { const h = document.getElementById(i
         await p.locator('#recordsCard').screenshot({ path: path.join(out, `overview-${dev}-${theme}.png`) }); await ctx.close(); }
       /* Almanac: every finding with evidence and Copy fact */
       { const { ctx, p, errors } = await open(b, srv, `almanac.html?${CVG}&date=2026-11-26#insights`, { clock: '2026-11-27T15:00:00Z', vp, theme }), c = await card(p, 'insightsCard');
-        check(!c.hidden && c.items.length === 5 && /Historical Insights & Fun Facts/.test(c.text) && /1871 to 2025/.test(c.text) && /155 prior years with an observation, none missing/.test(c.text) && /final through 2026-11-15/.test(c.text), `${L} Almanac lists 5 findings with source, range, sample and status`);
+        check(!c.hidden && c.items.length === 5 && /Historical Insights & Fun Facts/.test(c.text) && /1871 to 2025/.test(c.text) && /155 prior years with an observation, none missing/.test(c.text) && /observed record only once NCEI's quality-controlled archive has the same value for that date and measurement \(archive through 2026-11-15\)/.test(c.text), `${L} Almanac lists 5 findings with source, range, sample and status`);
         if (dev === 'desktop') { await p.locator('#insightsCard [data-copy]').first().click(); await p.waitForTimeout(200);
           const clip = await p.evaluate(() => navigator.clipboard.readText().catch(() => '')); check(clip === "Cincinnati's 2.16 in of rain on November 26, 2026 broke the Nov 26 record of 1.49 in set in 1946 (preliminary data).", `${L} Copy fact copies a stand-alone sentence (${clip})`); }
         check(!/—/.test(c.text) && !c.hs && !errors.length, `${L} Almanac: no em dashes, no sideways scroll, no page errors ${errors.join('; ')}`);
@@ -53,7 +53,7 @@ const card = (p, id) => p.evaluate((id) => { const h = document.getElementById(i
         check(c.links.every((h) => /date=2026-10-06.*#insights$/.test(h)) && !/—/.test(c.text) && !c.hs && !errors.length, `${L} Overview links to Almanac Oct 6; no em dashes, sideways scroll or page errors ${errors.join('; ')}`);
         await p.locator('#recordsCard').screenshot({ path: path.join(out, `denver-overview-${dev}-${theme}.png`) }); await ctx.close(); }
       { const { ctx, p, errors } = await open(b, srv, `almanac.html?${DEN}&date=2026-10-06#insights`, { clock: '2026-10-07T15:00:00Z', vp, theme }), c = await card(p, 'insightsCard');
-        check(!c.hidden && c.items.join() === 'rec-hiMin,rec-hiMax' && /59°F/.test(c.text) && /tying 1975 and 2020|1975 and 2020/.test(c.text) && /Denver records pack: Denver Area \(official city record, DENthr\)/.test(c.text) && /findings for the 60 days through 2026-11-26; final through 2026-11-15/.test(c.text) && !CIN_WORDS.test(c.text), `${L} Almanac lists Denver's Oct 6 findings with the pack's coverage line`);
+        check(!c.hidden && c.items.join() === 'rec-hiMin,rec-hiMax' && /59°F/.test(c.text) && /tying 1975 and 2020|1975 and 2020/.test(c.text) && /Denver records pack: Denver Area \(official city record, DENthr\)/.test(c.text) && /findings for the 60 days through 2026-11-26\. A finding is an observed record only once/.test(c.text) && !CIN_WORDS.test(c.text), `${L} Almanac lists Denver's Oct 6 findings with the pack's coverage line`);
         check(!/—/.test(c.text) && !c.hs && !errors.length, `${L} Almanac: no em dashes, sideways scroll or page errors ${errors.join('; ')}`);
         await p.locator('#insightsCard').screenshot({ path: path.join(out, `denver-almanac-${dev}-${theme}.png`) }); await ctx.close(); }
     }

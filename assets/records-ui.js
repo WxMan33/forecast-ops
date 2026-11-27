@@ -56,7 +56,7 @@
     const pack = await packFor(lat, lon); if (my !== host._seq) return null;
     let items = [], note = "", src = "", cov = "";
     if (pack) { const t = pack.market.tz, age = now - Date.parse(pack.generated);
-      cov = `${pack.market.name} records pack: ${pack.market.record.name} (${pack.market.record.kind === "threaded" ? "official city record" : "station record"}, ${pack.market.record.sid}), findings for the ${pack.windowDays || 7} days through ${pack.through}; final through ${pack.finalThrough || "unknown"}, later days preliminary. Refreshed ${fmtStamp(pack.generated, t)}.` +
+      cov = `${pack.market.name} records pack: ${pack.market.record.name} (${pack.market.record.kind === "threaded" ? "official city record" : "station record"}, ${pack.market.record.sid}), findings for the ${pack.windowDays || 7} days through ${pack.through}. A finding is an observed record only once NCEI's quality-controlled archive has the same value for that date and measurement (archive through ${pack.finalThrough || "unknown"}); otherwise it is preliminary. Refreshed ${fmtStamp(pack.generated, t)}.` +
         (age > STALE_MS ? ` This refresh is ${Math.round(age / 3600e3)} hours old, so newer observations or revisions aren't reflected yet.` : ""); }
     if (pack && pack.days && pack.days[date]) { items = pack.days[date].items; src = pack.sources.join(" · "); }
     else if (calendarDay && root.RecordsEngine) {

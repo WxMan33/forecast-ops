@@ -1,7 +1,7 @@
 {
- "schema": 1,
+ "schema": 2,
  "id": "den",
- "generated": "2026-11-27T15:42:20.983Z",
+ "generated": "2026-11-27T15:54:29.972Z",
  "through": "2026-11-26",
  "windowDays": 60,
  "finalThrough": "2026-11-15",
@@ -35,7 +35,7 @@
  },
  "sources": [
   "RCC-ACIS StnData DENthr (Denver Area), retrieved 2026-11-27",
-  "NCEI GHCN-Daily USW00003017 (final through 2026-11-15)",
+  "NCEI GHCN-Daily USW00003017 (each value confirmed by date and measurement; archive through 2026-11-15)",
   "1991-2020 normals, ACIS DEN"
  ],
  "days": {
