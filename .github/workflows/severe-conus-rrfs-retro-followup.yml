@@ -1,0 +1,42 @@
+name: Severe CONUS retrospective RRFS pilot follow-up (research)
+# research/severe/conus-v1/rrfs/retro/FOLLOWUP-06Z.md: score HRRR / HRRR+12Z RRFS / HRRR+06Z RRFS on the matched
+# 06Z roster from the checksummed cache of the first comparison. Development only; 2025 never loaded; nothing live touched.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-v1/rrfs/retro/followup-request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-rrfs-retro
+  cancel-in-progress: false
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env: { OPENBLAS_NUM_THREADS: '4', OMP_NUM_THREADS: '4' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 shapely==2.2.0
+      - id: req
+        run: echo "run=$(jq -r .cache_run research/severe/conus-v1/rrfs/retro/followup-request.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with: { name: rrfs-retro-cache, path: tests/out/cache, run-id: '${{ steps.req.outputs.run }}', github-token: '${{ github.token }}' }
+      - name: Score the 06Z follow-up
+        run: PYTHONPATH=tools/severe python3 tools/severe/conus_rrfs_pilot.py score --cache tests/out/cache --cycle 6 --output tests/out/score
+      - name: Commit
+        env:
+          DEST: research/severe/conus-v1/rrfs/retro/followup-06z
+        run: |
+          mkdir -p "$DEST"
+          cp tests/out/score/scorecard.json tests/out/score/scorecard.md "$DEST/"
+          echo "run_id: $GITHUB_RUN_ID" > "$DEST/run.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$DEST"
+          git commit -m "Retrospective RRFS pilot: 06Z follow-up scorecard (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done
+          exit 1

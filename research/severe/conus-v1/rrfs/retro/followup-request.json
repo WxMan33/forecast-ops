@@ -1,0 +1,6 @@
+{
+ "request": 1,
+ "purpose": "06Z follow-up on its own matched roster (88 dates) with the 12Z baseline rerun on the same dates; reuses the checksummed cache",
+ "rules": "research/severe/conus-v1/rrfs/retro/FOLLOWUP-06Z.md",
+ "cache_run": 46035459501
+}

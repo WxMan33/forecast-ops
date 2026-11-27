@@ -133,7 +133,8 @@ def load_cache(root, cyc=12, dates=None):
         with np.load(io.BytesIO(b), allow_pickle=False) as z:
             y = z["labels"]
             k = y != 255
-            D[r["date"]] = (z["hrrr"][k], z[f"rrfs{cyc:02d}"][k], y[k].astype(np.float64), z["row_index"][k])
+            xr = z["rrfs12"][k] if cyc == 12 else np.concatenate([z["rrfs12"][k], z["rrfs06"][k]], axis=1)
+            D[r["date"]] = (z["hrrr"][k], xr, y[k].astype(np.float64), z["row_index"][k])
     return man, D
 
 
@@ -142,13 +143,18 @@ def asinh_scales(x):
     return np.array([np.median(c[c > 0]) if (c > 0).any() else 1.0 for c in a.T])
 
 
+# RRFS columns per arm: 12Z occupies columns 0-26; in the 06Z follow-up the cache adds 06Z as columns 27-53
+RRFS_COLS = {"rrfs": slice(0, 27), "rrfs06": slice(27, 54)}
+
+
 def design(arm, xh, xr, names, sc):
     import phase2_study as S
     parts = []
-    if arm in ("hrrr", "hrrr_rrfs"):
+    if arm.startswith("hrrr"):
         parts.append(S.engineer(xh, names, sc["hrrr"])[0])
-    if arm in ("rrfs", "hrrr_rrfs"):
-        parts.append(np.arcsinh(xr / sc["rrfs"]))
+    cols = RRFS_COLS.get(arm.replace("hrrr_", "").replace("hrrr", ""))
+    if cols is not None:
+        parts.append(np.arcsinh(xr[:, cols] / sc["rrfs"][cols]))
     return np.concatenate(parts, axis=1)
 
 
@@ -213,7 +219,11 @@ def run_comparison(D, names, arms=("hrrr", "rrfs", "hrrr_rrfs"), log=print):
     return P, folds, reg_all, pos
 
 
-def summarize(D, P, folds, reg_all, pos, arms, names_regions):
+PAIRS = (("hrrr_rrfs", "hrrr"), ("rrfs", "hrrr"), ("hrrr_rrfs", "rrfs"))
+PAIRS06 = (("hrrr_rrfs06", "hrrr_rrfs"), ("hrrr_rrfs06", "hrrr"), ("hrrr_rrfs", "hrrr"))
+
+
+def summarize(D, P, folds, reg_all, pos, arms, names_regions, pairs=PAIRS):
     rng = np.random.default_rng(SEED)
     out = {}
     scopes = {"all_blocks": list(folds)} | {b: [b] for b in folds}
@@ -274,7 +284,7 @@ def summarize(D, P, folds, reg_all, pos, arms, names_regions):
                                               "reference_false_alarm_points": ref_fa}}
             idx = rng.integers(0, nd, size=(BOOT, nd))
             diffs = {}
-            for a, b in (("hrrr_rrfs", "hrrr"), ("rrfs", "hrrr"), ("hrrr_rrfs", "rrfs")):
+            for a, b in pairs:
                 def ci(num_a, num_b, den):
                     pt = (num_a.sum() - num_b.sum()) / den.sum()
                     bt = (num_a[idx].sum(1) - num_b[idx].sum(1)) / den[idx].sum(1)
@@ -300,15 +310,15 @@ def score(a):
     log_lines = []
     def log(s):
         print(s, flush=True); log_lines.append(s)
-    arms = ("hrrr", "rrfs", "hrrr_rrfs")
+    arms = ("hrrr", "rrfs", "hrrr_rrfs") if a.cycle == 12 else ("hrrr", "hrrr_rrfs", "hrrr_rrfs06")
     P, folds, reg_all, pos = run_comparison(D, names, arms, log)
-    res = summarize(D, P, folds, reg_all, pos, arms, list(REGIONS))
+    res = summarize(D, P, folds, reg_all, pos, arms, list(REGIONS), PAIRS if a.cycle == 12 else PAIRS06)
     dropped = [r for r in man["dates"] if r["status"] != "ok"]
     if a.cycle == 6:
         dropped += [{"date": r["date"], "status": "dropped", "reason": f"06Z {r['rrfs']['06z']}"} for r in man["dates"] if r["status"] == "ok" and r["rrfs"]["06z"] != "ok"]
-    out = {"rules": "research/severe/conus-v1/rrfs/retro/RULES.md", "rrfs_cycle": f"{a.cycle:02d}z", "arms": list(arms),
+    out = {"rules": "research/severe/conus-v1/rrfs/retro/" + ("RULES.md" if a.cycle == 12 else "FOLLOWUP-06Z.md"), "rrfs_cycle": f"{a.cycle:02d}z", "arms": list(arms),
            "recipe": {"model": "sklearn LogisticRegression (L2, lbfgs)", "C": C_REG, "scaling": "asinh(x / training median |x|) per source, then StandardScaler, fit on training blocks only",
-                      "hrrr_predictors": "phase2_study.engineer on the cached HRRR raw predictors", "rrfs_predictors": f"{len(rrfs_names(a.cycle))} = 9 fields x (nbhdmax24, nbhdmax18, mean24)"},
+                      "hrrr_predictors": "phase2_study.engineer on the cached HRRR raw predictors", "rrfs_predictors": "27 per cycle = 9 fields x (nbhdmax24, nbhdmax18, mean24)"},
            "folds": {b: {k: v for k, v in f.items()} for b, f in folds.items()}, "dropped_dates": dropped,
            "scored_dates": len(D), "results": res, "log": log_lines}
     Path(a.output).mkdir(parents=True, exist_ok=True)
