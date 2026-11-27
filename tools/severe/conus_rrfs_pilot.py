@@ -218,6 +218,7 @@ def run_comparison(D, names, arms=("hrrr", "rrfs", "hrrr_rrfs"), log=print):
             for d in test:
                 P[arm][d] = predict(m, arm, D[d][0], D[d][1], names).astype(np.float64)
             log(f"{blk}: {arm} fitted on {len(train)} dates ({int(y.sum())} event rows), iters {int(m['lr'].n_iter_[0])}")
+            FINGERPRINTS.setdefault("coefficients", {})[f"{blk}/{arm}"] = sha(np.concatenate([m["lr"].coef_.ravel(), m["lr"].intercept_]).tobytes())
         # deployable thresholds: each arm matches, on its own training predictions, the training false-alarm
         # fraction of the HRRR arm at FA_REF
         frac = float(((thr[blk]["hrrr"] >= FA_REF) & (y == 0)).sum() / (y == 0).sum())
@@ -226,6 +227,36 @@ def run_comparison(D, names, arms=("hrrr", "rrfs", "hrrr_rrfs"), log=print):
                       **thr[blk]}
         del xh, xr
     return P, folds, reg_all, pos
+
+
+FINGERPRINTS = {}
+
+
+def run_environment():
+    """CPU and math-library settings that decide floating-point kernels (recorded for reproducibility)."""
+    import os
+    import platform
+    info = {"python": platform.python_version(), "numpy": np.__version__,
+            "env": {k: os.environ.get(k) for k in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "OPENBLAS_CORETYPE", "NPY_DISABLE_CPU_FEATURES")}}
+    try:
+        cpu = Path("/proc/cpuinfo").read_text()
+        info["cpu_model"] = next((l.split(":", 1)[1].strip() for l in cpu.splitlines() if l.startswith("model name")), None)
+        info["cpu_avx512f"] = " avx512f" in cpu
+    except OSError:
+        pass
+    try:
+        from numpy._core._multiarray_umath import __cpu_features__ as f
+        info["numpy_active_avx512"] = sorted(k for k, v in f.items() if v and k.startswith("AVX512"))
+    except Exception:
+        pass
+    try:
+        import sklearn
+        import threadpoolctl
+        info["sklearn"] = sklearn.__version__
+        info["threadpools"] = [{k: t.get(k) for k in ("internal_api", "version", "num_threads", "architecture")} for t in threadpoolctl.threadpool_info()]
+    except Exception:
+        pass
+    return info
 
 
 PAIRS = (("hrrr_rrfs", "hrrr"), ("rrfs", "hrrr"), ("hrrr_rrfs", "rrfs"))
@@ -333,7 +364,10 @@ def score(a):
            "recipe": {"model": "sklearn LogisticRegression (L2, lbfgs)", "C": C_REG, "scaling": "asinh(x / training median |x|) per source, then StandardScaler, fit on training blocks only",
                       "hrrr_predictors": "phase2_study.engineer on the cached HRRR raw predictors", "rrfs_predictors": "27 per cycle = 9 fields x (nbhdmax24, nbhdmax18, mean24)"},
            "folds": {b: {k: v for k, v in f.items()} for b, f in folds.items()}, "dropped_dates": dropped,
-           "scored_dates": len(D), "results": res, "log": log_lines}
+           "scored_dates": len(D), "results": res, "log": log_lines,
+           "fingerprints": {"predictions": {arm: sha(np.concatenate([P[arm][d] for d in sorted(P[arm])]).tobytes()) for arm in arms},
+                            "coefficients": FINGERPRINTS.get("coefficients", {})},
+           "run_environment": run_environment()}
     Path(a.output).mkdir(parents=True, exist_ok=True)
     (Path(a.output) / "scorecard.json").write_text(json.dumps(out, indent=1) + "\n")
     (Path(a.output) / "scorecard.md").write_text(render(out) + "\n")
