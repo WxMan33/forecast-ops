@@ -25,7 +25,7 @@ async function open(b, ctxOpt, theme, slow) {
   p.on("requestfinished", async (r) => { const u = r.url(); if (!/mesonet\.agron\.iastate\.edu\/data\/gis\/images\/4326\/mrms\/lcref|mapservices\.weather\.noaa\.gov\/.*radar/.test(u)) return;
     const s = await r.sizes().catch(() => null); reqs.push({ at: Date.now(), url: u.replace(/\?.*$/, "").split("/").pop() || u, bytes: s ? s.responseBodySize : null }); });
   if (slow) { const cdp = await ctx.newCDPSession(p); await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 }); }
-  await p.addInitScript((th) => { try { localStorage.setItem("ops_theme", JSON.stringify(th)); } catch (e) {} }, theme);
+  await p.addInitScript((th) => { try { localStorage.setItem("ops_theme", JSON.stringify(th)); localStorage.setItem("tx_radar_mode", "refl"); } catch (e) {} }, theme);
   await p.goto(HOST + "/threats.html?" + CVG + "&radar=1&view=active&scope=venue", { waitUntil: "domcontentloaded", timeout: 60000 }); await passNotice(p);
   await p.waitForFunction(() => window.__threats && window.__threats.ready && window.__threats.radar && window.__threats.radar.state === "ok" && window.__threats.radar.via, null, { timeout: 120000 }).catch(() => {});
   await p.waitForTimeout(4000);

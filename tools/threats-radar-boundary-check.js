@@ -38,7 +38,7 @@ async function heavyScan() {
   console.log(`replaying scan ${JSON.parse(scan.json).meta.start_valid} with heavy stripes at CVG (${(scan.png.length / 1048576).toFixed(2)} MB)`);
   for (const [dev, opt] of [["desktop", { viewport: { width: 1440, height: 900 } }], ["phone", { ...devices["iPhone 13"] }]]) for (const theme of ["dark", "light"]) {
     const ctx = await b.newContext(opt), p = await ctx.newPage(), errs = []; p.on("pageerror", (e) => errs.push(e.message));
-    await p.addInitScript((th) => { try { localStorage.setItem("ops_theme", JSON.stringify(th)); } catch (e) {} }, theme);
+    await p.addInitScript((th) => { try { localStorage.setItem("ops_theme", JSON.stringify(th)); localStorage.setItem("tx_radar_mode", "refl"); } catch (e) {} }, theme);
     await p.route(/mrms\/lcref\.png/, (r) => r.fulfill({ status: 200, headers: { "content-type": "image/png", "access-control-allow-origin": "*" }, body: scan.png }));
     await p.route(/mrms\/lcref\.json/, (r) => r.fulfill({ status: 200, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: scan.json }));
     await p.route(/mrms\/lcref\.wld/, (r) => r.fulfill({ status: 200, headers: { "content-type": "text/plain", "access-control-allow-origin": "*" }, body: scan.wld }));
