@@ -28,13 +28,16 @@ const UA = "(forecast-ops, github.com/WxMan33/forecast-ops)";
 const PHONES = { "360": { viewport: { width: 360, height: 740 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, userAgent: devices["Galaxy S8"].userAgent }, "390": { ...devices["iPhone 13"] } };
 const DESKTOP = { viewport: { width: 1440, height: 900 } };
 const inflate = async (z) => new Uint8Array(zlib.inflateSync(Buffer.from(z)));
+const { execFileSync } = require("child_process");
+const download = (u) => new Uint8Array(execFileSync("curl", ["-sSf", "--max-time", "60", "-A", UA, u], { maxBuffer: 64 * 1048576 }));
 
 async function open(b, opt, { theme = "dark", slow = false, mode = null, op = null, route = null, query = "" } = {}) {
   const ctx = await b.newContext(opt), p = await ctx.newPage(), errs = [], reqs = [];
   p.on("pageerror", (e) => errs.push(e.message));
   p.on("requestfinished", async (r) => { const u = r.url(); if (!/\/api\/mrms\/|mrms\/lcref|mapservices\.weather\.noaa\.gov\/.*radar/.test(u)) return; const s = await r.sizes().catch(() => null); reqs.push({ at: Date.now(), url: u.replace(/\?.*$/, ""), bytes: s ? s.responseBodySize : null }); });
   if (slow) { const cdp = await ctx.newCDPSession(p); await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 }); await cdp.send("Network.enable"); await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 150, downloadThroughput: 1.6e6 / 8 * 5, uploadThroughput: 750e3 / 8 }); } // about 8 Mbps down, 150 ms
-  await p.addInitScript(([th, mode, op]) => { try { localStorage.setItem("ops_theme", JSON.stringify(th)); if (mode) localStorage.setItem("tx_radar_mode", mode); else localStorage.removeItem("tx_radar_mode"); if (op) localStorage.setItem("tx_radar_opacity", op); else localStorage.removeItem("tx_radar_opacity"); } catch (e) {} }, [theme, mode, op]);
+  await p.addInitScript(([th, mode, op]) => { try { if (sessionStorage.getItem("__ptcheck")) return; sessionStorage.setItem("__ptcheck", "1"); // first load only: a reload keeps what the page saved
+    localStorage.setItem("ops_theme", JSON.stringify(th)); if (mode) localStorage.setItem("tx_radar_mode", mode); else localStorage.removeItem("tx_radar_mode"); if (op) localStorage.setItem("tx_radar_opacity", op); else localStorage.removeItem("tx_radar_opacity"); } catch (e) {} }, [theme, mode, op]);
   if (route) await route(p);
   await p.goto(HOST + "/threats.html?" + CVG + "&radar=1&view=active&scope=venue" + query, { waitUntil: "domcontentloaded", timeout: 60000 }); await passNotice(p);
   await p.waitForFunction(() => window.__threats && window.__threats.ready && window.__threats.radar && window.__threats.radar.state === "ok" && window.__threats.radar.via, null, { timeout: 150000 }).catch(() => {});
@@ -50,6 +53,8 @@ const read = (p) => p.evaluate(() => { const T = window.__threats, m = T.map, st
     paint: m.getLayer("radar") && { opacity: m.getPaintProperty("radar", "raster-opacity"), resampling: m.getPaintProperty("radar", "raster-resampling") },
     pt: ps && { scan: ps.scan, bytes: ps.bytes, downloadMs: ps.downloadMs, decodeMs: ps.decodeMs, size: ps.size, codes: ps.codes, unknown: ps.unknown, loads: ps.loads, tiles: ps.tileMs.length, tileMed: med(ps.tileMs), tileMax: ps.tileMs.length ? Math.max(...ps.tileMs) : null, error: ps.error },
     legend: { ptype: !!lg, items: lg ? [...lg.querySelectorAll(".lg-pt span")].map((s) => s.textContent) : [], note: lg ? lg.querySelector(".lg-note").textContent : "", refl: !!(lr && lr.querySelector(".lg-r26")), fallback: fb ? fb.textContent : null },
+    credit: (document.querySelector(".maplibregl-ctrl-attrib-inner") || {}).textContent || "", unknownLegend: (document.querySelector("[data-ptype-unknown]") || {}).textContent || null, ptLast: (document.querySelector("[data-ptype-last]") || {}).textContent || null,
+    reflScan: T.radarStats && T.radarStats.scan, reflLegendScan: lr ? (lr.querySelector(".lg-note").textContent.match(/scan (.+)$/) || [])[1] || null : null, theme: document.documentElement.dataset.theme,
     row: (document.querySelector("[data-src=radar]") || {}).textContent || "", note: document.getElementById("txRadarNote").textContent,
     opShown: (document.querySelector("[data-radar-op-val]") || {}).textContent, modeChecked: (document.querySelector("[data-radar-mode]:checked") || {}).value, badge: (document.getElementById("txBadge") || {}).textContent };
 });
@@ -66,17 +71,18 @@ async function pickMode(p, mode) { await p.locator("#txLayersBtn").click(); awai
 
 /* the winter replay: real current files with a rain-to-snow transition over KY / OH / IN, scan time 2 minutes ago */
 async function winterFiles() {
-  const pfGz = new Uint8Array(await (await fetch("https://mrms.ncep.noaa.gov/2D/PrecipFlag/MRMS_PrecipFlag.latest.grib2.gz", { headers: { "User-Agent": UA } })).arrayBuffer());
+  const pfGz = download("https://mrms.ncep.noaa.gov/2D/PrecipFlag/MRMS_PrecipFlag.latest.grib2.gz");
   const g = zlib.gunzipSync(pfGz), f = RD.parsePrecipFlag(new Uint8Array(g)), d = await RD.decodeIndexedPng(f.png, inflate), W = f.width;
   const col = (lon) => Math.round((lon - f.world.firstLon) / f.world.dx), row = (lat) => Math.round((lat - f.world.firstLat) / f.world.dy);
   const edge = (lon) => 39.35 + 0.25 * Math.sin(lon * 2.3) + 0.1 * Math.sin(lon * 7.1); // the rain/snow line, ragged
   const code = (lon, lat) => (lat >= edge(lon) ? 3 : lat >= edge(lon) - 0.45 ? 10 : lat >= 38.0 ? 1 : 6);
   const bytes = new Uint8Array(d.indices);
   for (let y = row(40.8); y <= row(37.6); y++) for (let x = col(-87.4); x <= col(-82.2); x++) { const lon = f.world.firstLon + x * f.world.dx, lat = f.world.firstLat + y * f.world.dy; bytes[y * W + x] = code(lon, lat) + 3; }
+  for (let y = row(40.7); y <= row(40.4); y++) for (let x = col(-86.9); x <= col(-86.3); x++) bytes[y * W + x] = 50 + 3; // code 50: not in NOAA's table
   const scan = Math.floor((Date.now() - 2 * 60e3) / 60e3) * 60e3;
   const pf = zlib.gzipSync(PFB.replacePixels(g, bytes, scan));
   /* reflectivity to match: 32 dBZ in the convective rain, 25 in warm rain, 20 in cool rain, 15-25 dBZ snow */
-  const base = RD.BASE, json = await (await fetch(base + ".json")).text(), wld = await (await fetch(base + ".wld")).text(), png = new Uint8Array(await (await fetch(base + ".png")).arrayBuffer());
+  const base = RD.BASE, json = Buffer.from(download(base + ".json")).toString(), wld = Buffer.from(download(base + ".wld")).toString(), png = download(base + ".png");
   const lg = await RD.decodeIndexedPng(png, inflate), w = RD.parseWorldFile(wld), lc = (lon) => Math.round((lon - w.firstLon) / w.dx), lr = (lat) => Math.round((lat - w.firstLat) / w.dy);
   for (let y = lr(40.8); y <= lr(37.6); y++) for (let x = lc(-87.4); x <= lc(-82.2); x++) { const lon = w.firstLon + x * w.dx, lat = w.firstLat + y * w.dy, c = code(lon, lat), dbz = c === 6 ? 32 : c === 1 ? 25 : c === 10 ? 20 : 15 + 10 * ((x + y) % 7) / 7; lg.indices[y * lg.width + x] = Math.round((dbz + 32) * 2); }
   const keep = [], dv = new DataView(png.buffer, png.byteOffset, png.byteLength); let idatAt = -1;
@@ -122,6 +128,7 @@ const ptRoute = (gz, scanIso) => async (p) => {
   for (const w of ["360", "390"]) {
     const { ctx, p, errs, reqs } = await open(b, PHONES[w], { slow: true }); const s = await read(p);
     await p.screenshot({ path: path.join(OUT, `live-${w}-ptype.png`) }); await layersShot(p, `live-${w}-ptype-layers.png`);
+    await p.evaluate(() => window.__threats.map.jumpTo({ center: [-73.8, 43.8], zoom: 5.6 })); await p.waitForTimeout(4000); await p.screenshot({ path: path.join(OUT, `live-${w}-ptype-northeast-rain-snow.png`) });
     const scans = [{ scan: s.pt && s.pt.scan, bytes: s.pt && s.pt.bytes, downloadMs: s.pt && s.pt.downloadMs, decodeMs: s.pt && s.pt.decodeMs }];
     if (w === "390") { const t0 = Date.now(); while (Date.now() - t0 < MIN * 60e3) { await p.waitForTimeout(20e3); await p.evaluate(() => window.__threats.map.panBy([30, 0], { duration: 0 }));
       const x = await read(p); if (x.pt && x.pt.scan !== scans[scans.length - 1].scan) scans.push({ scan: x.pt.scan, bytes: x.pt.bytes, downloadMs: x.pt.downloadMs, decodeMs: x.pt.decodeMs }); } }
@@ -129,19 +136,32 @@ const ptRoute = (gz, scanIso) => async (p) => {
     console.log(`phone ${w}:`, JSON.stringify(scans.map((x) => ({ scan: x.scan && new Date(x.scan).toISOString().slice(11, 16) + "Z", KB: x.bytes && Math.round(x.bytes / 1024), downloadMs: x.downloadMs, decodeMs: x.decodeMs }))));
     check(`(${w} px, 4x slower CPU, ~8 Mbps / 150 ms) precipitation type via ${s.via}: ${scans.length} scan(s), ${gets.length} file download(s) of ${gets.map((r) => Math.round((r.bytes || 0) / 1024) + " KB").join(", ")}, scan time read ${times.length} times; download ${scans.map((x) => x.downloadMs + " ms").join(", ")}; decode ${scans.map((x) => x.decodeMs + " ms").join(", ")}; tiles median ${Math.round(last.pt.tileMed)} ms, max ${Math.round(last.pt.tileMax)} ms (${last.pt.tiles}); reflectivity images ${lcref.length}`,
       s.via === "ptype" && gets.length === scans.length && last.pt.loads === scans.length && (w !== "390" || scans.length >= 2) && lcref.length === 0 && !errs.length, { scans, last: last.pt, errs, gets });
-    await pickMode(p, "refl"); await p.screenshot({ path: path.join(OUT, `live-${w}-refl.png`) }); await layersShot(p, `live-${w}-refl-layers.png`);
+    await pickMode(p, "refl"); await p.screenshot({ path: path.join(OUT, `live-${w}-refl-northeast.png`) }); await layersShot(p, `live-${w}-refl-layers.png`);
     const r = await read(p); check(`(${w} px) Reflectivity: via ${r.via}, legend Reflectivity 2026 ${r.legend.refl}, opacity ${r.paint.opacity}; lines and warnings above radar`, r.via === "iem" && r.legend.refl && r.paint.opacity === 0.7 && r.order.linesAbove && r.order.warningsAbove, { r });
     info["phone" + w] = { scans, last: last.pt }; await ctx.close(); }
 
   /* ---- fallback: forwarder failing; scan 30 minutes old ---- */
   { const { ctx, p, errs } = await open(b, PHONES["390"], { route: async (p) => { await p.route(/\/api\/mrms\//, (r) => r.fulfill({ status: 502, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: '{"error":"MRMS did not answer in time"}' })); } });
     const s = await read(p); await p.screenshot({ path: path.join(OUT, "fallback-390-unavailable.png") }); await layersShot(p, "fallback-390-unavailable-layers.png");
-    check(`(390 px) forwarder failing: legend '${s.legend.fallback}', Reflectivity 2026 legend ${s.legend.refl}, layer via ${s.via}; Layers note '${s.note.slice(0, 60)}'; source row '${s.row.slice(0, 60)}'`, s.mode === "ptype" && s.ptFallback && s.via === "iem" && s.legend.fallback === "Precipitation type unavailable · showing reflectivity" && s.legend.refl && !s.legend.ptype && /^Precipitation type unavailable · showing reflectivity/.test(s.note) && /Precipitation type unavailable/.test(s.row) && !errs.length, { s, errs });
+    const reflIso = s.reflScan && new Date(s.reflScan).toISOString();
+    check(`(390 px) forwarder failing, everything names the reflectivity on screen: map credit '${s.credit}'; legend '${s.legend.fallback}' + Reflectivity 2026 (scan ${s.reflLegendScan}); '${s.ptLast}'; source row '${s.row}'; Layers note '${s.note}'; the reflectivity scan shown is ${reflIso} = page scan ${s.valid}`,
+      s.mode === "ptype" && s.ptFallback && s.via === "iem" && s.legend.fallback === "Precipitation type unavailable · showing reflectivity" && s.legend.refl && !s.legend.ptype && /^Reflectivity: MRMS via Iowa Environmental Mesonet \(precipitation type unavailable\)/.test(s.credit) && /^Precipitation type unavailable · showing reflectivity · MRMS lowest-elevation reflectivity, scan/.test(s.note) && /Precipitation type unavailable · showing reflectivity · MRMS reflectivity/.test(s.row) && reflIso === s.valid && s.reflLegendScan && !errs.length, { s, errs });
     await ctx.close(); }
   const W = await winterFiles();
   { const old = W.scan - 30 * 60e3, gz = zlib.gzipSync(PFB.replacePixels(zlib.gunzipSync(W.pf), RD && (await RD.decodeIndexedPng(RD.parsePrecipFlag(new Uint8Array(zlib.gunzipSync(W.pf))).png, inflate)).indices, old));
     const { ctx, p, errs } = await open(b, DESKTOP, { route: ptRoute(gz, new Date(old).toISOString()) }); const s = await read(p); await p.screenshot({ path: path.join(OUT, "fallback-desktop-stale.png") });
     check(`(desktop) precipitation-type scan 30 min old: legend '${s.legend.fallback}', reflectivity shown (${s.via}), reason '${s.ptError}'`, s.ptFallback && s.via === "iem" && s.legend.fallback === "Precipitation type unavailable · showing reflectivity" && s.legend.refl && /min old/.test(s.ptError || "") && !errs.length, { s, errs });
+    await ctx.close(); }
+
+  /* ---- recovery: the forwarder fails for the first 3 minutes, then a fresh scan arrives; saved opacity 40% throughout ---- */
+  { let failUntil = 0; const route = async (p) => { failUntil = Date.now() + 150e3;
+      await p.route(/\/api\/mrms\/precipflag\/time/, (r) => Date.now() < failUntil ? r.fulfill({ status: 502, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: '{"error":"MRMS did not answer in time"}' }) : r.fulfill({ status: 200, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: JSON.stringify({ product: "PrecipFlag", scan: new Date(W.scan).toISOString(), fetchedAt: new Date().toISOString(), bytes: W.pf.length }) }));
+      await p.route(/\/api\/mrms\/precipflag\/latest/, (r) => Date.now() < failUntil ? r.fulfill({ status: 502, body: "{}" }) : r.fulfill({ status: 200, headers: { "content-type": "application/gzip", "access-control-allow-origin": "*" }, body: Buffer.from(W.pf) })); };
+    const { ctx, p, errs } = await open(b, PHONES["390"], { op: "0.4", route, query: "&testreplay=radar-ptype-recovery" }); const a = await read(p); await p.screenshot({ path: path.join(OUT, "recovery-390-1-fallback.png") });
+    await p.waitForFunction(() => window.__threats.radar.via === "ptype", null, { timeout: 240000 }).catch(() => {}); await p.waitForTimeout(3000);
+    const z = await read(p); await p.evaluate(() => window.__threats.map.jumpTo({ center: [-84.7, 39.1], zoom: 6.6 })); await p.waitForTimeout(3000); await p.screenshot({ path: path.join(OUT, "recovery-390-2-ptype-back.png") });
+    check(`(390 px) recovery without a reload: first ${a.via}${a.ptFallback ? " (fallback)" : ""} at ${a.paint && a.paint.opacity}, credit '${a.credit}'; when a fresh scan arrived: ${z.via}, fallback ${z.ptFallback}, opacity ${z.paint && z.paint.opacity} (${z.opShown}), legend ${z.legend.ptype ? "precipitation type" : "?"}, credit '${z.credit}'`,
+      a.ptFallback && a.via === "iem" && a.paint.opacity === 0.4 && z.via === "ptype" && !z.ptFallback && z.paint.opacity === 0.4 && z.opShown === "40%" && z.legend.ptype && !z.legend.fallback && /^Precipitation type: NOAA MRMS PrecipFlag/.test(z.credit) && !/unavailable/.test(z.credit + z.row + z.note) && !errs.length, { a, z, errs });
     await ctx.close(); }
 
   /* ---- winter replay at CVG, both modes, desktop, 360 and 390, dark and light ---- */
@@ -156,9 +176,21 @@ const ptRoute = (gz, scanIso) => async (p) => {
     await p.evaluate(() => window.__threats.map.jumpTo({ center: [-84.7, 39.1], zoom: 6.6 })); await p.waitForTimeout(4000);
     const s = await read(p), got = []; for (const [lon, lat, c] of probes) got.push({ lon, lat, want: c, rgba: await pixel(p, lon, lat) });
     const okPx = got.every((g) => g.rgba.slice(0, 3).join() === colour[g.want].join() && g.rgba[3] === RD.PTYPE_ALPHA);
+    const uk = []; for (const [lon, lat] of [[-86.6, 40.55], [-86.55, 40.5], [-86.45, 40.6], [-86.4, 40.45]]) uk.push((await pixel(p, lon, lat, 9)).join());
+    const ukOk = uk.every((c) => [RD.UNKNOWN[0].join(), RD.UNKNOWN[1].join()].includes(c)) && new Set(uk).size === 2;
+    /* no coverage: the stripes over the Gulf, in this theme; contrast against the basemap's water at the layer's opacity */
+    const nc = []; for (let i = 0; i < 24; i++) nc.push((await pixel(p, -89.5 + i * 0.013, 25.5, 9)).join());
+    const stripe = RD.HATCH[theme], water = await p.evaluate(() => { const m = window.__threats.map, l = m.getStyle().layers.find((x) => /water/.test(x.id) && x.type === "fill"); const c = l && m.getPaintProperty(l.id, "fill-color"); return typeof c === "string" ? c : null; });
+    const rgbOf = (c) => { const m = /rgba?\(([^)]+)\)/.exec(c || "") || null; if (m) return m[1].split(",").slice(0, 3).map(Number); const h = /^#([0-9a-f]{6})$/i.exec(c || ""); return h ? [0, 2, 4].map((k) => parseInt(h[1].slice(k, k + 2), 16)) : null; };
+    const wrgb = rgbOf(water), a = stripe[3] / 255 * s.paint.opacity, mix = wrgb && wrgb.map((v, k) => v * (1 - a) + stripe[k] * a);
+    const lum = (c) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+    const ratio = mix ? (Math.max(lum(mix), lum(wrgb)) + 0.05) / (Math.min(lum(mix), lum(wrgb)) + 0.05) : null;
+    const ncOk = nc.some((c) => c === stripe.join()) && nc.some((c) => c === "0,0,0,0");
     await p.screenshot({ path: path.join(OUT, `winter-${dev}-${theme}-ptype.png`) }); if (dev !== "desktop" || theme === "dark") await layersShot(p, `winter-${dev}-${theme}-ptype-layers.png`);
     check(`(${dev}, ${theme}) ${s.badge}: winter replay in precipitation type; probes ${got.map((g) => g.want + "→" + (g.rgba.slice(0, 3).join() === colour[g.want].join() ? "ok" : g.rgba.join())).join(", ")}; legend ${s.legend.items.length} entries; lines and warnings above radar`,
       s.badge === "TEST REPLAY" && s.via === "ptype" && okPx && s.legend.ptype && s.order.linesAbove && s.order.warningsAbove && !errs.length, { got, s, errs });
+    check(`(${dev}, ${theme}) unknown code 50: drawn as the dark/light checker (${[...new Set(uk)].join(" | ")}), legend '${s.unknownLegend}'`, ukOk && /Code not in NOAA's table \(50\)/.test(s.unknownLegend || ""), { uk, s: s.legend });
+    check(`(${dev}, ${theme}) no-coverage stripes ${stripe.slice(0, 3).join()} over the Gulf; on the basemap water ${water} at ${Math.round(s.paint.opacity * 100)}% the stripe/water contrast is ${ratio && ratio.toFixed(2)}:1`, ncOk && ratio >= 1.5, { nc, water, ratio });
     await pickMode(p, "refl"); await p.evaluate(() => window.__threats.map.jumpTo({ center: [-84.7, 39.1], zoom: 6.6 })); await p.waitForTimeout(3500);
     const r = await read(p), rp = await pixel(p, -84.6, 40.2), want = RD.dbzToRgba(Math.round(((15 + 0) + 32) * 2) * 0.5 - 32); // snow band: 15-25 dBZ
     await p.screenshot({ path: path.join(OUT, `winter-${dev}-${theme}-refl.png`) }); if (dev !== "desktop" || theme === "dark") await layersShot(p, `winter-${dev}-${theme}-refl-layers.png`);

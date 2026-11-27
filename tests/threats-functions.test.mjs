@@ -176,12 +176,31 @@ await ok("MRMS PrecipFlag: /time and /latest only; identified; checked as Precip
   const r1 = await get(mrmsf, "/api/mrms/precipflag/time"); assert.strictEqual(r1.status, 200); const j = await r1.json();
   assert.strictEqual(j.scan, scan); assert.strictEqual(j.product, "PrecipFlag"); assert.strictEqual(sent.at(-1).url, "https://upstream.test/2D/PrecipFlag/MRMS_PrecipFlag.latest.grib2.gz"); assert.match(sent.at(-1).ua, /forecast-ops/);
   assert.ok(r1.headers.get("Access-Control-Allow-Origin"));
-  const r2 = await get(mrmsf, "/api/mrms/precipflag/latest"); assert.strictEqual(r2.status, 200); assert.strictEqual(r2.headers.get("X-MRMS-Scan"), scan); assert.strictEqual(r2.headers.get("X-Forecast-Ops-Cache"), "HIT");
+  const r2 = await get(mrmsf, "/api/mrms/precipflag/latest"); assert.strictEqual(r2.status, 200); assert.strictEqual(r2.headers.get("X-MRMS-Scan"), scan); assert.strictEqual(r2.headers.get("X-Forecast-Ops-Cache"), "MEMORY");
   assert.deepStrictEqual(new Uint8Array(await r2.arrayBuffer()), new Uint8Array(gz)); assert.strictEqual(sent.length, 1);
   for (const bad of ["/api/mrms/precipflag", "/api/mrms/precipflag/latest?x=1", "/api/mrms/lcref/latest", "/api/mrms/../nws"]) assert.strictEqual((await get(mrmsf, bad)).status, 404, bad);
   clock += 61e3; answer = () => new Response("<html>maintenance</html>", { status: 200 }); assert.strictEqual((await get(mrmsf, "/api/mrms/precipflag/time")).status, 502);
   answer = () => new Response(zlibm.gzipSync(PFB.build({ scan: Date.parse(scan), width: 4, height: 2, bytes: new Uint8Array(8) })), { status: 200 }); const r3 = await get(mrmsf, "/api/mrms/precipflag/time"); assert.strictEqual(r3.status, 502); assert.match((await r3.json()).error, /grid/);
   answer = () => new Response("x", { status: 503 }); assert.strictEqual((await get(mrmsf, "/api/mrms/precipflag/latest")).status, 502);
   answer = () => new Response(gz, { status: 200 }); assert.strictEqual((await get(mrmsf, "/api/mrms/precipflag/latest")).status, 200); // the failures were not cached
+});
+await ok("MRMS PrecipFlag sharing: 25 simultaneous requests at expiry make one NOAA read; a second worker in the same data centre reads the data-centre cache, not NOAA; a failed read is shared by those waiting and then retried", async () => {
+  const store = new Map(), CACHE = { match: async (k) => { const v = store.get(k); return v ? v.clone() : undefined; }, put: async (k, r) => { store.set(k, r); } };
+  const envC = { ...env, CACHE }, getC = (p) => mrmsf.handle(new Request("https://x.test" + p, { headers: { Origin: "https://claude-threats-radar-style.forecast-ops-beta.pages.dev" } }), envC);
+  mrmsf._reset(); sent.length = 0; const scan = Date.parse("2026-01-12T18:06:00Z");
+  const gz = zlibm.gzipSync(PFB.build({ scan, width: 7000, height: 3500, bytes: new Uint8Array(7000 * 3500).fill(3) }));
+  let release; const gate = new Promise((r) => (release = r));
+  answer = async () => { await gate; return new Response(gz, { status: 200 }); };
+  clock += 120e3; const all = Promise.all(Array.from({ length: 25 }, (_, i) => getC(i % 2 ? "/api/mrms/precipflag/time" : "/api/mrms/precipflag/latest")));
+  await new Promise((r) => setTimeout(r, 20)); release(); const rs = await all;
+  assert.strictEqual(sent.length, 1); assert.ok(rs.every((r) => r.status === 200));
+  const kinds = rs.map((r) => r.headers.get("X-Forecast-Ops-Cache")); assert.strictEqual(kinds.filter((k) => k === "MISS").length, 1); assert.strictEqual(kinds.filter((k) => k === "JOINED").length, 24);
+  assert.strictEqual(new Set(rs.map((r) => r.headers.get("X-Upstream-Fetched-At"))).size, 1);
+  mrmsf._reset(); clock += 10e3; const r2 = await getC("/api/mrms/precipflag/latest"); // another worker, same data centre, same minute
+  assert.strictEqual(r2.headers.get("X-Forecast-Ops-Cache"), "COLO"); assert.strictEqual(sent.length, 1); assert.deepStrictEqual(new Uint8Array(await r2.arrayBuffer()), new Uint8Array(gz));
+  clock += 61e3; let rel2; const gate2 = new Promise((r) => (rel2 = r)); answer = async () => { await gate2; return new Response("x", { status: 503 }); };
+  const bad = Promise.all(Array.from({ length: 5 }, () => getC("/api/mrms/precipflag/time"))); await new Promise((r) => setTimeout(r, 20)); rel2(); const bs = await bad;
+  assert.ok(bs.every((r) => r.status === 502)); assert.strictEqual(sent.length, 2);
+  answer = () => new Response(gz, { status: 200 }); assert.strictEqual((await getC("/api/mrms/precipflag/time")).status, 200); assert.strictEqual(sent.length, 3);
 });
 console.log(n + " passed");

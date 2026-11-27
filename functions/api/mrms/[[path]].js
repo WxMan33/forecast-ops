@@ -3,8 +3,10 @@
      GET /api/mrms/precipflag/time    -> {"scan": "<ISO>", "fetchedAt": "<ISO>", "bytes": n}   (about 100 bytes; polled every 60 s)
      GET /api/mrms/precipflag/latest  -> https://mrms.ncep.noaa.gov/2D/PrecipFlag/MRMS_PrecipFlag.latest.grib2.gz, unchanged
                                          (about 230 KB; downloaded by the page only when /time lists a new scan)
-   Nothing else is forwarded (404). Freshness: one upstream read per 60 s per worker, shared by every viewer; every answer
-   carries X-Upstream-Fetched-At and X-MRMS-Scan (a cache hit keeps the original times). The body is checked before it is
+   Nothing else is forwarded (404). Sharing: at most one NOAA read per 60 s per Cloudflare data centre (the Cache API is shared
+   by the workers in one data centre, not between data centres), and simultaneous requests at expiry join one read. Every answer
+   carries X-Upstream-Fetched-At and X-MRMS-Scan (a cache hit keeps the original times) and X-Forecast-Ops-Cache (MEMORY, JOINED,
+   COLO or MISS). The body is checked before it is
    served: gzip, GRIB edition 2, NCEP MRMS (centre 161, discipline 209, category 6 parameter 0 = PrecipFlag), the 7000 x 3500
    0.01-degree CONUS grid, PNG packing (template 5.41). Anything else, an upstream error or a timeout returns 502 with a JSON
    reason and is never cached. */
@@ -35,6 +37,34 @@ export function checkPrecipFlag(g) {
   if (!Number.isFinite(t)) throw Error("missing scan time"); return t;
 }
 
+/* one PrecipFlag record shared, in order: this worker's memory; requests arriving while an upstream read is in flight join it
+   (one read, however many arrive together at expiry); Cloudflare's data-centre cache (the Cache API: shared by every worker in
+   that data centre, not between data centres); then NOAA. Only checked files are kept. */
+let inflight = null;
+const CACHE_KEY = "https://forecast-ops-cache.invalid/mrms/precipflag/latest";
+async function record(t, now) {
+  if (memory && now - memory.at < TTL_MS) return { rec: memory, cache: "MEMORY" };
+  if (inflight) return { rec: await inflight, cache: "JOINED" };
+  let layer = "MISS";
+  inflight = (async () => {
+    const store = t.CACHE !== undefined ? t.CACHE : (typeof caches !== "undefined" && caches.default) || null;
+    if (store) { const hit = await store.match(CACHE_KEY).catch(() => null);
+      if (hit) { const at = +hit.headers.get("x-fo-at"), scan = +hit.headers.get("x-fo-scan");
+        if (now - at < TTL_MS && Number.isFinite(scan)) { layer = "COLO"; return (memory = { body: new Uint8Array(await hit.arrayBuffer()), at, scan }); } } }
+    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), t.TIMEOUT_MS || 15000); let res, body;
+    try { res = await fetch((t.UPSTREAM || MRMS) + "/2D/PrecipFlag/MRMS_PrecipFlag.latest.grib2.gz", { headers: { "User-Agent": USER_AGENT }, signal: ctl.signal }); body = new Uint8Array(await res.arrayBuffer()); }
+    catch (e) { throw { status: 502, error: "MRMS " + (ctl.signal.aborted ? "did not answer in time" : "request failed") }; }
+    finally { clearTimeout(timer); }
+    if (!res.ok) throw { status: 502, error: "MRMS answered HTTP " + res.status, upstream: res.status };
+    if (body.length > MAX_BYTES || body[0] !== 0x1f || body[1] !== 0x8b) throw { status: 502, error: "MRMS answer was not a gzip file" };
+    let scan; try { scan = checkPrecipFlag(await gunzip(body)); } catch (e) { throw { status: 502, error: "MRMS answer was not PrecipFlag: " + e.message }; }
+    const rec = (memory = { body, at: now, scan });
+    if (store) await store.put(CACHE_KEY, new Response(body, { headers: { "Content-Type": "application/gzip", "Cache-Control": "public, max-age=" + Math.round(TTL_MS / 1000), "x-fo-at": String(now), "x-fo-scan": String(scan) } })).catch(() => {});
+    return rec;
+  })().finally(() => { inflight = null; });
+  return { rec: await inflight, cache: layer === "COLO" ? "COLO" : "MISS" };
+}
+
 export async function handle(request, env = {}) {
   const t = env.__harness === true ? env : {};
   const url = new URL(request.url), head = { ...cors(request), "Access-Control-Expose-Headers": EXPOSE, "Cache-Control": "no-store" };
@@ -42,21 +72,12 @@ export async function handle(request, env = {}) {
   if (request.method !== "GET") return json(405, { error: "GET only" }, head);
   const m = /^\/api\/mrms\/precipflag\/(time|latest)$/.exec(url.pathname);
   if (!m || [...url.searchParams.keys()].length) return json(404, { error: "not a Weather Threats MRMS request" }, head);
-  const now = t.NOW ? t.NOW() : Date.now();
-  let rec = memory && now - memory.at < TTL_MS ? memory : null, cache = rec ? "HIT" : "MISS";
-  if (!rec) {
-    const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), t.TIMEOUT_MS || 15000); let res, body;
-    try { res = await fetch((t.UPSTREAM || MRMS) + "/2D/PrecipFlag/MRMS_PrecipFlag.latest.grib2.gz", { headers: { "User-Agent": USER_AGENT }, signal: ctl.signal }); body = new Uint8Array(await res.arrayBuffer()); }
-    catch (e) { return json(502, { error: "MRMS " + (ctl.signal.aborted ? "did not answer in time" : "request failed") }, head); }
-    finally { clearTimeout(timer); }
-    if (!res.ok) return json(502, { error: "MRMS answered HTTP " + res.status }, { ...head, "X-Upstream-Status": String(res.status) });
-    if (body.length > MAX_BYTES || body[0] !== 0x1f || body[1] !== 0x8b) return json(502, { error: "MRMS answer was not a gzip file" }, head);
-    let scan; try { scan = checkPrecipFlag(await gunzip(body)); } catch (e) { return json(502, { error: "MRMS answer was not PrecipFlag: " + e.message }, head); }
-    rec = memory = { body, at: now, scan };
-  }
+  let rec, cache;
+  try { ({ rec, cache } = await record(t, t.NOW ? t.NOW() : Date.now())); }
+  catch (e) { return json(e.status || 502, { error: e.error || "MRMS request failed" }, e.upstream ? { ...head, "X-Upstream-Status": String(e.upstream) } : head); }
   const meta = { "X-Upstream-Fetched-At": new Date(rec.at).toISOString(), "X-MRMS-Scan": new Date(rec.scan).toISOString(), "X-Forecast-Ops-Cache": cache, "X-Upstream-User-Agent": USER_AGENT };
-  if (m[1] === "time") return json(200, { product: "PrecipFlag", scan: new Date(rec.scan).toISOString(), fetchedAt: new Date(rec.at).toISOString(), bytes: rec.body.length }, { ...head, ...meta });
+  if (m[1] === "time") return json(200, { product: "PrecipFlag", scan: new Date(rec.scan).toISOString(), fetchedAt: new Date(rec.at).toISOString(), bytes: rec.body.length, cache }, { ...head, ...meta });
   return new Response(rec.body, { status: 200, headers: { ...head, ...meta, "Content-Type": "application/gzip" } });
 }
-export const _reset = () => { memory = null; };
+export const _reset = () => { memory = null; inflight = null; };
 export async function onRequest(context) { return handle(context.request, context.env || {}); }

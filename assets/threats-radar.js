@@ -71,35 +71,42 @@
     return { width: w, height: h, indices: idx, alpha };
   }
   /* one 256 px web-mercator tile from the grid, nearest-neighbour, as Predictable's renderMrmsTile */
-  /* hatch (precipitation type only): {on: Uint8Array(256), c: [r,g,b,a]}; those pixels get thin diagonal stripes, continuous across tiles */
-  function renderTile(grid, lut, z, x, y, size = 256, hatch = null) {
+  /* pat (precipitation type only): {kind: Uint8Array(256), hatch: rgba, ua: rgba, ub: rgba}. kind 1 (no radar coverage): thin
+     diagonal stripes; kind 2 (a code NOAA doesn't document): a two-tone checker, dark and light, so it reads on either basemap
+     and can't pass for "no precipitation" or any category. Both patterns are continuous across tiles. */
+  function renderTile(grid, lut, z, x, y, size = 256, pat = null) {
     const rgba = new Uint8ClampedArray(size * size * 4), n = 2 ** z, cols = new Int32Array(size);
     for (let px = 0; px < size; px++) { const lon = (x + (px + 0.5) / size) / n * 360 - 180; cols[px] = Math.round((lon - grid.firstLon) / grid.dx); }
     for (let py = 0; py < size; py++) {
       const lat = Math.atan(Math.sinh(Math.PI * (1 - 2 * (y + (py + 0.5) / size) / n))) * 180 / Math.PI, row = Math.round((lat - grid.firstLat) / grid.dy);
       if (row < 0 || row >= grid.height) continue;
       for (let px = 0; px < size; px++) { const col = cols[px]; if (col < 0 || col >= grid.width) continue; const v = grid.indices[row * grid.width + col], k = v * 4;
-        if (hatch && hatch.on[v]) { if (((x * size + px) + (y * size + py)) % 9 < 2) { const d = (py * size + px) * 4; rgba[d] = hatch.c[0]; rgba[d + 1] = hatch.c[1]; rgba[d + 2] = hatch.c[2]; rgba[d + 3] = hatch.c[3]; } continue; }
+        if (pat && pat.kind[v]) { const gx = x * size + px, gy = y * size + py; let c = null;
+          if (pat.kind[v] === 1) { if ((gx + gy) % 9 < 2) c = pat.hatch; } else c = ((gx >> 1) + (gy >> 1)) & 1 ? pat.ua : pat.ub;
+          if (c) { const d = (py * size + px) * 4; rgba[d] = c[0]; rgba[d + 1] = c[1]; rgba[d + 2] = c[2]; rgba[d + 3] = c[3]; } continue; }
         if (!lut[k + 3]) continue;
         const d = (py * size + px) * 4; rgba[d] = lut[k]; rgba[d + 1] = lut[k + 1]; rgba[d + 2] = lut[k + 2]; rgba[d + 3] = lut[k + 3]; }
     }
     return rgba;
   }
   /* ---------- precipitation type: MRMS PrecipFlag (NOAA/NSSL), a numeric category per 1 km pixel ----------
-     Codes as NOAA documents them; only these are drawn. 0 (no precipitation) is transparent; -3 (no radar coverage) is a light
-     hatch, so "outside coverage" never looks like "dry". The product has no sleet or freezing-rain category. Colours are ours. */
+     Codes as NOAA documents them get category colours (ours). 0 (no precipitation) is transparent; -3 (no radar coverage) is a
+     striped hatch, so "outside coverage" never looks like "dry"; any other code gets a dark-and-light checker and its own legend
+     line, so it can't look like "no precipitation" or a category. The product has no sleet or freezing-rain category. */
   const PTYPE = [
     [1, "Warm stratiform rain", [35, 190, 75]], [10, "Cool stratiform rain", [0, 150, 140]], [6, "Convective rain", [245, 200, 20]],
     [7, "Rain with hail", [225, 30, 150]], [3, "Snow", [60, 140, 255]], [91, "Tropical/stratiform rain mix", [150, 215, 40]], [96, "Tropical/convective rain mix", [255, 130, 30]]];
-  const PTYPE_ALPHA = 235, NO_PRECIP = 0, NO_COVERAGE = -3, HATCH = [150, 150, 150, 120];
+  const PTYPE_ALPHA = 235, NO_PRECIP = 0, NO_COVERAGE = -3;
+  /* no-coverage stripes per theme (light grey on the dark basemap, dark grey on the light one); unknown-code checker tones */
+  const HATCH = { dark: [205, 205, 205, 150], light: [60, 60, 60, 140] }, UNKNOWN = [[25, 25, 25, 235], [250, 250, 250, 235]];
   const PTYPE_URL = "https://mrms.ncep.noaa.gov/2D/PrecipFlag/MRMS_PrecipFlag.latest.grib2.gz";
   /* GRIB2 simple scaling: value = (R + X * 2^E) / 10^D */
   const gribValue = (x, p) => Math.round((p.R + x * 2 ** p.E) / 10 ** p.D);
-  function ptypePalette(p) {
-    const lut = new Uint8Array(256 * 4), hatch = { on: new Uint8Array(256), c: HATCH }, byCode = new Map(PTYPE.map((c) => [c[0], c[2]]));
-    for (let i = 0; i < 256; i++) { const v = gribValue(i, p); if (v === NO_COVERAGE) { hatch.on[i] = 1; continue; } const c = byCode.get(v); if (!c) continue;
+  function ptypePalette(p, theme = "dark") {
+    const lut = new Uint8Array(256 * 4), pat = { kind: new Uint8Array(256), hatch: HATCH[theme === "light" ? "light" : "dark"], ua: UNKNOWN[0], ub: UNKNOWN[1] }, byCode = new Map(PTYPE.map((c) => [c[0], c[2]]));
+    for (let i = 0; i < 256; i++) { const v = gribValue(i, p); if (v === NO_PRECIP) continue; if (v === NO_COVERAGE) { pat.kind[i] = 1; continue; } const c = byCode.get(v); if (!c) { pat.kind[i] = 2; continue; }
       lut[i * 4] = c[0]; lut[i * 4 + 1] = c[1]; lut[i * 4 + 2] = c[2]; lut[i * 4 + 3] = PTYPE_ALPHA; }
-    return { lut, hatch };
+    return { lut, pat };
   }
   /* one PrecipFlag GRIB2 message -> scan time, scaling, the embedded PNG and its georeferencing; anything else is refused */
   function parsePrecipFlag(g) {
@@ -143,20 +150,21 @@
   /* the precipitation-type worker: gunzip the GRIB2 file, check it, decode its PNG, draw tiles with the category colours */
   function ptypeWorkerSource() {
     return `"use strict";
-      const PTYPE = ${JSON.stringify(PTYPE)}, PTYPE_ALPHA = ${PTYPE_ALPHA}, NO_COVERAGE = ${NO_COVERAGE}, HATCH = ${JSON.stringify(HATCH)};
+      const PTYPE = ${JSON.stringify(PTYPE)}, PTYPE_ALPHA = ${PTYPE_ALPHA}, NO_PRECIP = ${NO_PRECIP}, NO_COVERAGE = ${NO_COVERAGE}, HATCH = ${JSON.stringify(HATCH)}, UNKNOWN = ${JSON.stringify(UNKNOWN)};
       const gribValue = ${gribValue.toString()};
       ${ptypePalette.toString()} ${parsePrecipFlag.toString()} ${decodeIndexedPng.toString()} ${renderTile.toString()}
       const unz = (kind) => async (z) => new Uint8Array(await new Response(new Blob([z]).stream().pipeThrough(new DecompressionStream(kind))).arrayBuffer());
-      let grid = null, pal = null;
+      let grid = null, pal = null, scaling = null, theme = "dark";
       onmessage = async (e) => { const m = e.data;
         try {
-          if (m.type === "load") { const t0 = performance.now(); const f = parsePrecipFlag(await unz("gzip")(new Uint8Array(m.gz))); const g = await decodeIndexedPng(f.png, unz("deflate"));
+          if (m.type === "theme") { theme = m.theme; if (scaling) pal = ptypePalette(scaling, theme); postMessage({ id: m.id, ok: true }); }
+          else if (m.type === "load") { if (m.theme) theme = m.theme; const t0 = performance.now(); const f = parsePrecipFlag(await unz("gzip")(new Uint8Array(m.gz))); const g = await decodeIndexedPng(f.png, unz("deflate"));
             if (g.width !== f.width || g.height !== f.height) throw Error("PrecipFlag image size does not match its grid");
-            grid = Object.assign(g, f.world); pal = ptypePalette(f.scaling);
+            grid = Object.assign(g, f.world); scaling = f.scaling; pal = ptypePalette(f.scaling, theme);
             const counts = {}; for (let i = 0; i < 256; i++) counts[i] = 0; for (const v of g.indices) counts[v]++;
             const codes = {}; for (let i = 0; i < 256; i++) if (counts[i]) codes[gribValue(i, f.scaling)] = counts[i];
             postMessage({ id: m.id, ok: true, scan: f.scan, decodeMs: Math.round(performance.now() - t0), width: g.width, height: g.height, codes }); }
-          else if (m.type === "tile") { if (!grid) throw Error("no precipitation-type grid yet"); const t0 = performance.now(); const rgba = renderTile(grid, pal.lut, m.z, m.x, m.y, 256, pal.hatch);
+          else if (m.type === "tile") { if (!grid) throw Error("no precipitation-type grid yet"); const t0 = performance.now(); const rgba = renderTile(grid, pal.lut, m.z, m.x, m.y, 256, pal.pat);
             const c = new OffscreenCanvas(256, 256); c.getContext("2d").putImageData(new ImageData(rgba, 256, 256), 0, 0);
             const buf = await (await c.convertToBlob({ type: "image/png" })).arrayBuffer(); postMessage({ id: m.id, ok: true, png: buf, ms: performance.now() - t0 }, [buf]); }
         } catch (err) { postMessage({ id: m.id, ok: false, error: String(err && err.message || err) }); }
@@ -167,7 +175,7 @@
   function createPtypeClient(opts = {}) {
     const base = String(opts.base || "").replace(/\/$/, "");
     const fetchFn = opts.fetch || ((u) => fetch(u, { cache: "no-store", signal: typeof AbortSignal !== "undefined" && AbortSignal.timeout ? AbortSignal.timeout(opts.timeoutMs || 15000) : undefined }));
-    const state = { scan: null, checkedAt: null, error: null, bytes: null, downloadMs: null, decodeMs: null, size: null, codes: null, unknown: [], tileMs: [], loads: 0 };
+    const state = { scan: null, checkedAt: null, error: null, bytes: null, downloadMs: null, decodeMs: null, size: null, codes: null, unknown: [], tileMs: [], loads: 0, theme: opts.theme === "light" ? "light" : "dark" };
     let worker = null, seq = 0, pending = new Map(), loading = null;
     const call = (msg, transfer) => new Promise((res, rej) => { const id = ++seq; pending.set(id, { res, rej }); worker.postMessage({ ...msg, id }, transfer || []); });
     function ensureWorker() { if (worker) return; const url = URL.createObjectURL(new Blob([ptypeWorkerSource()], { type: "text/javascript" })); worker = new Worker(url);
@@ -181,7 +189,7 @@
         state.checkedAt = Date.now(); if (state.scan === listed) return false;
         const t0 = performance.now(), g = await fetchFn(base + "/precipflag/latest"); if (!g.ok) throw Error("MRMS precipitation type HTTP " + g.status);
         const gz = await g.arrayBuffer(); state.downloadMs = Math.round(performance.now() - t0); state.bytes = gz.byteLength;
-        ensureWorker(); const d = await call({ type: "load", gz }, [gz]);
+        ensureWorker(); const d = await call({ type: "load", gz, theme: state.theme }, [gz]);
         const known = new Set([0, -3, ...PTYPE.map((c) => c[0])]);
         Object.assign(state, { scan: d.scan, decodeMs: d.decodeMs, size: d.width + "x" + d.height, codes: d.codes, unknown: Object.keys(d.codes).map(Number).filter((c) => !known.has(c)), error: null }); state.loads++;
         return true; // the scan time is the one inside the file, so a turnover between /time and /latest is never mislabelled
@@ -194,7 +202,9 @@
       return { data: r.png };
     }
     function dispose() { if (worker) { worker.terminate(); worker = null; } for (const p of pending.values()) p.rej(Error("stopped")); pending.clear(); state.scan = null; }
-    return { state, refresh, tile, dispose, tileUrl: () => "ptype://{z}/{x}/{y}?t=" + state.scan };
+    /* the no-coverage stripes follow the basemap theme; a new theme is a new tile URL, so the map redraws */
+    async function setTheme(th) { th = th === "light" ? "light" : "dark"; if (th === state.theme) return false; state.theme = th; if (worker) await call({ type: "theme", theme: th }); return true; }
+    return { state, refresh, tile, dispose, setTheme, tileUrl: () => "ptype://{z}/{x}/{y}?t=" + state.scan + "&th=" + state.theme };
   }
   function createClient(opts = {}) {
     /* 15 s per request, as Predictable (source.ts AbortSignal.timeout(15_000)): a slow IEM falls back to NOAA's tiles and retries next minute */
@@ -230,5 +240,5 @@
     return { state, refresh, tile, dispose, tileUrl: () => "lcref://{z}/{x}/{y}?t=" + state.scan };
   }
   return { BASE, STOPS, THRESHOLD, OPACITY, dbzToRgba, indexDbz, palette, parseWorldFile, parseMeta, decodeIndexedPng, renderTile, legend, createClient,
-    PTYPE, PTYPE_ALPHA, NO_PRECIP, NO_COVERAGE, HATCH, PTYPE_URL, gribValue, ptypePalette, parsePrecipFlag, ptypeLegend, createPtypeClient };
+    PTYPE, PTYPE_ALPHA, NO_PRECIP, NO_COVERAGE, HATCH, UNKNOWN, PTYPE_URL, gribValue, ptypePalette, parsePrecipFlag, ptypeLegend, createPtypeClient };
 });

@@ -1313,8 +1313,8 @@
     if (S.layers.flood && (!day || day === 1) && !winterView() && !fireView()) h += `<div><div class="lg-h">River gauges · NOAA (regional zoom)</div>${["no_flooding", "action", "minor", "moderate", "major"].map((c) => lgLine({ kind: "gauge", category: c }, FX.GAUGE_WORD[c])).join("")}${lgLine({ kind: "gauge", category: "not_defined" }, "No stages defined / no current data")}</div>`;
     if (S.layers.severe && (!day || day === 1) && !winterView() && !fireView()) h += `<div><div class="lg-h">Storm reports · last 24 h (SPC, preliminary)</div>${["tornado", "wind", "hail"].map((k) => lgLine({ kind: "lsr", type: k }, { tornado: "Tornado", wind: "Wind damage", hail: "Hail" }[k])).join("")}</div>`;
     h += rainLegendHtml();
-    if (S.radar && isLive()) h += (radar.ptFallback ? `<div class="lg-note lg-ptfb" data-ptype-fallback>${esc(PT_UNAVAILABLE)}</div>` : "") + (radar.via === "ptype" && RD
-      ? `<div data-lg="ptype"><div class="lg-h">Radar · MRMS precipitation type</div><div class="lg-pt">${RD.ptypeLegend().map((x) => `<span><i style="background:${x.rgba}"></i>${esc(x.label)}</span>`).join("")}<span><i class="lg-ptnc"></i>No radar coverage</span></div><div class="lg-note">NOAA PrecipFlag categories only: no separate sleet or freezing-rain category; no precipitation is not shown. Colour shows type, not intensity (switch to Reflectivity for intensity), under the hazards${radar.valid ? " · scan " + esc(t(radar.valid)) : ""}</div></div>`
+    if (S.radar && isLive()) h += (radar.ptFallback ? `<div class="lg-note lg-ptfb" data-ptype-fallback>${esc(PT_UNAVAILABLE)}</div><div class="lg-note" data-ptype-last>${esc(radar.ptLast ? "Last precipitation-type scan " + t(new Date(radar.ptLast).toISOString()) + " (" + Math.round((Date.now() - radar.ptLast) / 60e3) + " min old); retried every minute" : "Precipitation type not answering; retried every minute")}</div>` : "") + (radar.via === "ptype" && RD
+      ? `<div data-lg="ptype"><div class="lg-h">Radar · MRMS precipitation type</div><div class="lg-pt">${RD.ptypeLegend().map((x) => `<span><i style="background:${x.rgba}"></i>${esc(x.label)}</span>`).join("")}<span><i class="lg-ptnc"></i>No radar coverage</span>${radar.pt && radar.pt.state.unknown.length ? `<span data-ptype-unknown><i class="lg-ptuk"></i>Code not in NOAA's table (${esc(radar.pt.state.unknown.join(", "))})</span>` : ""}</div><div class="lg-note">NOAA PrecipFlag categories only: no separate sleet or freezing-rain category; no precipitation is not shown. Colour shows type, not intensity (switch to Reflectivity for intensity), under the hazards${radar.valid ? " · scan " + esc(t(radar.valid)) : ""}</div></div>`
       : radar.via === "noaa" || !RD
       ? `<div><div class="lg-h">Radar · NOAA MRMS (fallback)</div><div class="lg-radar" aria-hidden="true"></div><div class="lg-note">Light rain or snow → heavy rain and hail (base reflectivity), under the hazards${radar.valid ? " · image " + esc(t(radar.valid)) : ""}</div></div>`
       : `<div data-lg="radar"><div class="lg-h">Radar · MRMS reflectivity (dBZ)</div><div class="lg-r26" aria-hidden="true">${RD.legend().map((x) => `<span style="background:${x.rgba}"></span>`).join("")}</div><div class="lg-r26n" aria-hidden="true">${RD.legend().filter((x, i) => i % 2 === 0).map((x) => `<span>${x.dbz}</span>`).join("")}</div><div class="lg-note">Lowest-elevation reflectivity, measured values; below 5 dBZ not shown. Reflectivity 2026 colours, under the hazards${radar.valid ? " · scan " + esc(t(radar.valid)) : ""}</div></div>`);
@@ -1576,7 +1576,7 @@
       return done(radar.pt.refresh().then(() => null, (e) => e.message).then((err) => {
         const s = radar.pt.state.scan, fresh = s && Date.now() - s < PT_STALE_MS;
         if (fresh) { radar.ptFallback = false; radar.ptError = err; radar.valid = new Date(s).toISOString(); radar.via = "ptype"; if (radar.client) radar.client.dispose(); return; }
-        radar.ptFallback = true; radar.ptError = err || (s ? "last scan " + Math.round((Date.now() - s) / 60e3) + " min old" : "no scan");
+        radar.ptFallback = true; radar.ptLast = s || null; radar.ptError = err || (s ? "last scan " + Math.round((Date.now() - s) / 60e3) + " min old" : "no scan");
         return reflectivity();
       }));
     }
@@ -1593,11 +1593,15 @@
     if (RD && !radar.proto && window.maplibregl && maplibregl.addProtocol) { maplibregl.addProtocol("lcref", (params) => radar.client.tile(params)); maplibregl.addProtocol("ptype", (params) => (radar.pt ? radar.pt.tile(params) : Promise.reject(Error("precipitation type is off")))); radar.proto = true; }
     if (!radar.timer) { radar.state = radar.lastOk ? radar.state : "loading"; radarTick(); radar.timer = setInterval(radarTick, 60e3); }
     if (!radar.valid) return;
-    const own = radar.via === "iem" || radar.via === "ptype";
+    const theme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+    if (radar.pt && radar.pt.state.theme !== theme) radar.pt.setTheme(theme).then(() => drawAll(), () => {});
+    const own = radar.via === "iem" || radar.via === "ptype", srcKey = radar.via + (radar.ptFallback ? "+fallback" : "");
     const url = radar.via === "ptype" ? radar.pt.tileUrl() : radar.via === "iem" ? radar.client.tileUrl() : Live.RADAR_TILE_URL + "&t=" + Date.parse(radar.valid); // a new scan is a new URL
     const paint = own ? { "raster-opacity": radarOp(), "raster-resampling": "nearest", "raster-fade-duration": 0 } : { "raster-opacity": radarOp(), "raster-fade-duration": 0 };
-    if (map.getSource("radar") && radar.srcVia !== radar.via) { map.removeLayer("radar"); map.removeSource("radar"); radar.tiles = null; }
-    if (!map.getSource("radar")) { map.addSource("radar", { type: "raster", tiles: [url], tileSize: 256, maxzoom: own ? 10 : 22, attribution: radar.via === "ptype" ? "NOAA MRMS PrecipFlag" : radar.via === "iem" ? "MRMS via Iowa Environmental Mesonet" : "NOAA MRMS radar" }); map.addLayer({ id: "radar", type: "raster", source: "radar", paint }, radarBeforeLayer()); radar.srcVia = radar.via; }
+    if (map.getSource("radar") && radar.srcVia !== srcKey) { map.removeLayer("radar"); map.removeSource("radar"); radar.tiles = null; }
+    /* the map's own credit line names what is drawn, including when precipitation type has fallen back to reflectivity */
+    const credit = (radar.via === "ptype" ? "Precipitation type: NOAA MRMS PrecipFlag" : radar.via === "iem" ? "Reflectivity: MRMS via Iowa Environmental Mesonet" : "Reflectivity: NOAA MRMS radar") + (radar.ptFallback ? " (precipitation type unavailable)" : "");
+    if (!map.getSource("radar")) { map.addSource("radar", { type: "raster", tiles: [url], tileSize: 256, maxzoom: own ? 10 : 22, attribution: credit }); map.addLayer({ id: "radar", type: "raster", source: "radar", paint }, radarBeforeLayer()); radar.srcVia = srcKey; }
     else if (radar.tiles !== url) map.getSource("radar").setTiles([url]);
     radar.tiles = url; map.setLayoutProperty("radar", "visibility", "visible");
   }
