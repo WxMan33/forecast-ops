@@ -1,0 +1,914 @@
+{
+ "host": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev",
+ "at": "2026-11-24T19:11:20.469Z",
+ "devices": {
+  "desktop": {
+   "fresh": {
+    "requests": 355,
+    "byFeed": {
+     "spc": 6,
+     "ero": 8,
+     "fire": 16,
+     "nhc": 10,
+     "wssi": 5,
+     "airnow": 2,
+     "alerts": 2,
+     "gauges": 1,
+     "reports": 2,
+     "md": 2,
+     "nws-other": 1,
+     "alerts-zones": 300
+    },
+    "other": {
+     "claude-threats-em-combined.forecast-ops-beta.pages.dev": 25,
+     "fonts.googleapis.com": 1,
+     "fonts.gstatic.com": 1,
+     "www.spc.noaa.gov": 5,
+     "basemaps.cartocdn.com": 1,
+     "blob:https://claude-": 1,
+     "tiles.basemaps.cartocdn.com": 8,
+     "mapservices.weather.noaa.gov": 29
+    },
+    "state": {
+     "layers": [
+      "severe",
+      "flood",
+      "winter",
+      "heat",
+      "wind",
+      "tropical",
+      "coastal"
+     ],
+     "sum": "Severe storms, Flooding +5 + Radar",
+     "btn": "LAYERS Severe storms, Flooding +5 + Radar ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Next 7 days: no significant threats in the next 7 days",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "ero",
+      "md",
+      "nhc",
+      "reports",
+      "spc"
+     ],
+     "products": 233
+    },
+    "dash": {
+     "view": "outlook",
+     "state": "ok",
+     "days": 7,
+     "head": "No significant threats in the next 7 days",
+     "radar": "ok",
+     "radarOn": true
+    }
+   },
+   "pickerOpen": {
+    "requests": 0,
+    "byFeed": {}
+   },
+   "severeOnly": {
+    "requests": 8,
+    "byFeed": {
+     "reports": 2,
+     "alerts": 1,
+     "md": 2,
+     "spc": 3
+    },
+    "urls": [
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/spc/reports/today",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch,Flash%20Flood%20Warning,Flood%20Warning,Flood%20Watch,Flood%20Advisory,Winter%20Storm%20Warning,Winter%20Storm%20Watch,Blizzard%20Warning,Ice%20Storm%20Warning,Lake%20Effect%20Snow%20Warning,Winter%20Weather%20Advisory,Red%20Flag%20Warning,Fire%20Weather%20Watch,Hurricane%20Warning,Hurricane%20Watch,Tropical%20Storm%20Warning,Tropical%20Storm%20Watch,Storm%20Surge%20Warning,Storm%20Surge%20Watch,Coastal%20Flood%20Warning,Coastal%20Flood%20Watch,Coastal%20Flood%20Advisory,High%20Surf%20Warning,High%20Surf%20Advisory,Rip%20Current%20Statement,Beach%20Hazards%20Statement,Extreme%20Heat%20Warning,Extreme%20Heat%20Watch,Heat%20Advisory,Excessive%20Heat%20Warning,Excessive%20Heat%20Watch,Extreme%20Cold%20Warning,Extreme%20Cold%20Watch,Cold%20Weather%20Advisory,Wind%20Chill%20Warning,Wind%20Chill%20Watch,Wind%20Chill%20Advisory,Freeze%20Warning,Freeze%20Watch,Frost%20Advisory,High%20Wind%20Warning,High%20Wind%20Watch,Wind%20Advisory,Extreme%20Wind%20Warning,Dust%20Storm%20Warning,Blowing%20Dust%20Advisory,Lake%20Wind%20Advisory,Dense%20Fog%20Advisory,Dense%20Smoke%20Advisory",
+     "https://www.spc.noaa.gov/products/md/",
+     "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson",
+     "https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson",
+     "https://www.spc.noaa.gov/products/outlook/day3otlk_cat.nolyr.geojson",
+     "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0/query?where=1%3D1&outFields=*&f=geojson",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/spc/reports/yesterday"
+    ],
+    "state": {
+     "layers": [
+      "severe"
+     ],
+     "sum": "Severe storms",
+     "btn": "LAYERS Severe storms ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Nothing active at CVG airport",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "md",
+      "reports",
+      "spc"
+     ],
+     "products": 179
+    }
+   },
+   "severeOff70s": {
+    "requests": 0,
+    "byFeed": {},
+    "state": {
+     "layers": [],
+     "sum": "None selected",
+     "btn": "LAYERS None selected ▾",
+     "prompt": true,
+     "promptText": "No threat layers selected. Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.\n\nWarnings at my venue\nEverything\nChoose layers\n\nWarnings at my venue: severe storms, flooding, winter, heat and cold, wind and visibility, and coastal warnings and outlooks, centred on CVG airport. Everything: all 10 hazards (more to download).",
+     "peek": "No threat layers selected",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 179
+    }
+   },
+   "total": {
+    "requests": 8,
+    "byFeed": {
+     "reports": 2,
+     "alerts": 1,
+     "md": 2,
+     "spc": 3
+    }
+   },
+   "floodLink": {
+    "requests": 40,
+    "byFeed": {
+     "alerts": 1,
+     "ero": 3,
+     "alerts-zones": 36
+    },
+    "state": {
+     "layers": [
+      "flood"
+     ],
+     "sum": "Flooding",
+     "btn": "LAYERS Flooding ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Nothing active at CVG airport",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "ero"
+     ],
+     "products": 184
+    }
+   },
+   "plannerLink": {
+    "requests": 14,
+    "byFeed": {
+     "reports": 2,
+     "alerts": 1,
+     "md": 2,
+     "spc": 3,
+     "hms": 3,
+     "airnow": 3
+    },
+    "state": {
+     "layers": [
+      "severe",
+      "smoke"
+     ],
+     "sum": "Severe storms, Smoke & air",
+     "btn": "LAYERS Severe storms, Smoke & air ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Day 1 at TQL Stadium",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "hms",
+      "md",
+      "monitors",
+      "reports",
+      "spc"
+     ],
+     "products": 279
+    }
+   },
+   "demoLink": {
+    "requests": 0,
+    "byFeed": {},
+    "state": {
+     "layers": [
+      "severe",
+      "flood",
+      "winter",
+      "heat",
+      "wind",
+      "fire",
+      "smoke",
+      "tropical",
+      "coastal",
+      "aviation"
+     ],
+     "sum": "All 10"
+    }
+   }
+  },
+  "phone": {
+   "fresh": {
+    "requests": 355,
+    "byFeed": {
+     "spc": 6,
+     "ero": 8,
+     "fire": 16,
+     "nhc": 10,
+     "wssi": 5,
+     "airnow": 2,
+     "alerts": 2,
+     "gauges": 1,
+     "reports": 2,
+     "md": 2,
+     "nws-other": 1,
+     "alerts-zones": 300
+    },
+    "other": {
+     "claude-threats-em-combined.forecast-ops-beta.pages.dev": 25,
+     "fonts.googleapis.com": 1,
+     "fonts.gstatic.com": 1,
+     "www.spc.noaa.gov": 5,
+     "basemaps.cartocdn.com": 1,
+     "blob:https://claude-": 1,
+     "tiles.basemaps.cartocdn.com": 11,
+     "mapservices.weather.noaa.gov": 9
+    },
+    "state": {
+     "layers": [
+      "severe",
+      "flood",
+      "winter",
+      "heat",
+      "wind",
+      "tropical",
+      "coastal"
+     ],
+     "sum": "Severe storms, Flooding +5 + Radar",
+     "btn": "LAYERS Severe storms, Flooding +5 + Radar ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Next 7 days: no significant threats in the next 7 days",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "ero",
+      "md",
+      "nhc",
+      "reports",
+      "spc"
+     ],
+     "products": 233
+    },
+    "dash": {
+     "view": "outlook",
+     "state": "ok",
+     "days": 7,
+     "head": "No significant threats in the next 7 days",
+     "radar": "ok",
+     "radarOn": true
+    }
+   },
+   "pickerOpen": {
+    "requests": 0,
+    "byFeed": {}
+   },
+   "severeOnly": {
+    "requests": 8,
+    "byFeed": {
+     "reports": 2,
+     "alerts": 1,
+     "md": 2,
+     "spc": 3
+    },
+    "urls": [
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/spc/reports/today",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/nws/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch,Flash%20Flood%20Warning,Flood%20Warning,Flood%20Watch,Flood%20Advisory,Winter%20Storm%20Warning,Winter%20Storm%20Watch,Blizzard%20Warning,Ice%20Storm%20Warning,Lake%20Effect%20Snow%20Warning,Winter%20Weather%20Advisory,Red%20Flag%20Warning,Fire%20Weather%20Watch,Hurricane%20Warning,Hurricane%20Watch,Tropical%20Storm%20Warning,Tropical%20Storm%20Watch,Storm%20Surge%20Warning,Storm%20Surge%20Watch,Coastal%20Flood%20Warning,Coastal%20Flood%20Watch,Coastal%20Flood%20Advisory,High%20Surf%20Warning,High%20Surf%20Advisory,Rip%20Current%20Statement,Beach%20Hazards%20Statement,Extreme%20Heat%20Warning,Extreme%20Heat%20Watch,Heat%20Advisory,Excessive%20Heat%20Warning,Excessive%20Heat%20Watch,Extreme%20Cold%20Warning,Extreme%20Cold%20Watch,Cold%20Weather%20Advisory,Wind%20Chill%20Warning,Wind%20Chill%20Watch,Wind%20Chill%20Advisory,Freeze%20Warning,Freeze%20Watch,Frost%20Advisory,High%20Wind%20Warning,High%20Wind%20Watch,Wind%20Advisory,Extreme%20Wind%20Warning,Dust%20Storm%20Warning,Blowing%20Dust%20Advisory,Lake%20Wind%20Advisory,Dense%20Fog%20Advisory,Dense%20Smoke%20Advisory",
+     "https://www.spc.noaa.gov/products/md/",
+     "https://www.spc.noaa.gov/products/outlook/day1otlk_cat.nolyr.geojson",
+     "https://www.spc.noaa.gov/products/outlook/day2otlk_cat.nolyr.geojson",
+     "https://www.spc.noaa.gov/products/outlook/day3otlk_cat.nolyr.geojson",
+     "https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0/query?where=1%3D1&outFields=*&f=geojson",
+     "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/spc/reports/yesterday"
+    ],
+    "state": {
+     "layers": [
+      "severe"
+     ],
+     "sum": "Severe storms",
+     "btn": "LAYERS Severe storms ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Nothing active at CVG airport",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "md",
+      "reports",
+      "spc"
+     ],
+     "products": 179
+    }
+   },
+   "severeOff70s": {
+    "requests": 0,
+    "byFeed": {},
+    "state": {
+     "layers": [],
+     "sum": "None selected",
+     "btn": "LAYERS None selected ▾",
+     "prompt": true,
+     "promptText": "No threat layers selected. Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.Warnings at my venueEverythingChoose layersWarnings at my venue: severe storms, flooding, winter, heat and cold, wind and visibility, and coastal warnings and outlooks, centred on CVG airport. Everything: all 10 hazards (more to download).",
+     "peek": "No threat layers selected",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 179
+    }
+   },
+   "total": {
+    "requests": 8,
+    "byFeed": {
+     "reports": 2,
+     "alerts": 1,
+     "md": 2,
+     "spc": 3
+    }
+   },
+   "floodLink": {
+    "requests": 40,
+    "byFeed": {
+     "alerts": 1,
+     "ero": 3,
+     "alerts-zones": 36
+    },
+    "state": {
+     "layers": [
+      "flood"
+     ],
+     "sum": "Flooding",
+     "btn": "LAYERS Flooding ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Nothing active at CVG airport",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "ero"
+     ],
+     "products": 184
+    }
+   },
+   "plannerLink": {
+    "requests": 14,
+    "byFeed": {
+     "reports": 2,
+     "alerts": 1,
+     "md": 2,
+     "spc": 3,
+     "hms": 3,
+     "airnow": 3
+    },
+    "state": {
+     "layers": [
+      "severe",
+      "smoke"
+     ],
+     "sum": "Severe storms, Smoke & air",
+     "btn": "LAYERS Severe storms, Smoke & air ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Day 1 at TQL Stadium",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "hms",
+      "md",
+      "monitors",
+      "reports",
+      "spc"
+     ],
+     "products": 279
+    }
+   },
+   "demoLink": {
+    "requests": 0,
+    "byFeed": {},
+    "state": {
+     "layers": [
+      "severe",
+      "flood",
+      "winter",
+      "heat",
+      "wind",
+      "fire",
+      "smoke",
+      "tropical",
+      "coastal",
+      "aviation"
+     ],
+     "sum": "All 10"
+    }
+   }
+  }
+ },
+ "results": [
+  {
+   "check": "(desktop) FRESH VISIT: the 7-day dashboard ('No significant threats in the next 7 days'); map defaults Severe storms, Flooding +5 + Radar: radar plus the warning, watch and advisory layers; fire, smoke and aviation off (requests: spc 6, ero 8, fire 16, nhc 10, wssi 5, airnow 2, alerts 2, gauges 1, reports 2, md 2, nws-other 1, alerts-zones 300)",
+   "pass": true,
+   "detail": {
+    "dash": {
+     "view": "outlook",
+     "state": "ok",
+     "days": 7,
+     "head": "No significant threats in the next 7 days",
+     "radar": "ok",
+     "radarOn": true
+    },
+    "by0": {
+     "spc": 6,
+     "ero": 8,
+     "fire": 16,
+     "nhc": 10,
+     "wssi": 5,
+     "airnow": 2,
+     "alerts": 2,
+     "gauges": 1,
+     "reports": 2,
+     "md": 2,
+     "nws-other": 1,
+     "alerts-zones": 300
+    },
+    "s0": {
+     "layers": [
+      "severe",
+      "flood",
+      "winter",
+      "heat",
+      "wind",
+      "tropical",
+      "coastal"
+     ],
+     "sum": "Severe storms, Flooding +5 + Radar",
+     "btn": "LAYERS Severe storms, Flooding +5 + Radar ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Next 7 days: no significant threats in the next 7 days",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "ero",
+      "md",
+      "nhc",
+      "reports",
+      "spc"
+     ],
+     "products": 233
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(desktop) ?layers=none: every layer off, 'Layers · None selected', no threat-feed request (0)",
+   "pass": true,
+   "detail": {
+    "s0": {
+     "layers": [],
+     "sum": "None selected",
+     "btn": "LAYERS None selected ▾",
+     "prompt": true,
+     "promptText": "No threat layers selected. Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.\n\nWarnings at my venue\nEverything\nChoose layers\n\nWarnings at my venue: severe storms, flooding, winter, heat and cold, wind and visibility, and coastal warnings and outlooks, centred on CVG airport. Everything: all 10 hazards (more to download).",
+     "peek": "No threat layers selected",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 0
+    },
+    "reqs": [],
+    "errs": []
+   }
+  },
+  {
+   "check": "(desktop) OPENING THE LAYER PICKER: zero threat-feed requests (0)",
+   "pass": true,
+   "detail": {
+    "sp": true,
+    "pick": []
+   }
+  },
+  {
+   "check": "(desktop) SEVERE STORMS ALONE: only its feeds (reports 2, alerts 1, md 2, spc 3): NWS alerts, SPC MDs, SPC outlooks and SPC storm reports each requested, nothing else",
+   "pass": true,
+   "detail": {
+    "by": {
+     "reports": 2,
+     "alerts": 1,
+     "md": 2,
+     "spc": 3
+    },
+    "ss": {
+     "layers": [
+      "severe"
+     ],
+     "sum": "Severe storms",
+     "btn": "LAYERS Severe storms ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Nothing active at CVG airport",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "md",
+      "reports",
+      "spc"
+     ],
+     "products": 179
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(desktop) SEVERE STORMS OFF AGAIN: its refreshes stop: zero threat-feed requests in 70 s (0); the prompt returns",
+   "pass": true,
+   "detail": {
+    "off": [],
+    "so": {
+     "layers": [],
+     "sum": "None selected",
+     "btn": "LAYERS None selected ▾",
+     "prompt": true,
+     "promptText": "No threat layers selected. Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.\n\nWarnings at my venue\nEverything\nChoose layers\n\nWarnings at my venue: severe storms, flooding, winter, heat and cold, wind and visibility, and coastal warnings and outlooks, centred on CVG airport. Everything: all 10 hazards (more to download).",
+     "peek": "No threat layers selected",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 179
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(desktop) SHARED LINK layers=flood keeps its selection and requests only alerts and the WPC rainfall outlook (alerts 1, ero 3, alerts-zones 36)",
+   "pass": true,
+   "detail": {
+    "s": {
+     "layers": [
+      "flood"
+     ],
+     "sum": "Flooding",
+     "btn": "LAYERS Flooding ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Nothing active at CVG airport",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "ero"
+     ],
+     "products": 184
+    },
+    "by": {
+     "alerts": 1,
+     "ero": 3,
+     "alerts-zones": 36
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(desktop) PLANNER LINK (venue, Day 1, layers=severe,smoke) keeps its selection and requests only those layers' feeds (reports 2, alerts 1, md 2, spc 3, hms 3, airnow 3)",
+   "pass": true,
+   "detail": {
+    "s": {
+     "layers": [
+      "severe",
+      "smoke"
+     ],
+     "sum": "Severe storms, Smoke & air",
+     "btn": "LAYERS Severe storms, Smoke & air ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Day 1 at TQL Stadium",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "hms",
+      "md",
+      "monitors",
+      "reports",
+      "spc"
+     ],
+     "products": 279
+    },
+    "by": {
+     "reports": 2,
+     "alerts": 1,
+     "md": 2,
+     "spc": 3,
+     "hms": 3,
+     "airnow": 3
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(desktop) DEMO LINK keeps every layer on (its shared selection) and requests no live feed (0)",
+   "pass": true,
+   "detail": {
+    "s": {
+     "layers": [
+      "severe",
+      "flood",
+      "winter",
+      "heat",
+      "wind",
+      "fire",
+      "smoke",
+      "tropical",
+      "coastal",
+      "aviation"
+     ],
+     "sum": "All 10",
+     "btn": "LAYERS All 10 ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Tornado Warning in effect at TQL Stadium",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 10
+    },
+    "reqs": [],
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) FRESH VISIT: the 7-day dashboard ('No significant threats in the next 7 days'); map defaults Severe storms, Flooding +5 + Radar: radar plus the warning, watch and advisory layers; fire, smoke and aviation off (requests: spc 6, ero 8, fire 16, nhc 10, wssi 5, airnow 2, alerts 2, gauges 1, reports 2, md 2, nws-other 1, alerts-zones 300)",
+   "pass": true,
+   "detail": {
+    "dash": {
+     "view": "outlook",
+     "state": "ok",
+     "days": 7,
+     "head": "No significant threats in the next 7 days",
+     "radar": "ok",
+     "radarOn": true
+    },
+    "by0": {
+     "spc": 6,
+     "ero": 8,
+     "fire": 16,
+     "nhc": 10,
+     "wssi": 5,
+     "airnow": 2,
+     "alerts": 2,
+     "gauges": 1,
+     "reports": 2,
+     "md": 2,
+     "nws-other": 1,
+     "alerts-zones": 300
+    },
+    "s0": {
+     "layers": [
+      "severe",
+      "flood",
+      "winter",
+      "heat",
+      "wind",
+      "tropical",
+      "coastal"
+     ],
+     "sum": "Severe storms, Flooding +5 + Radar",
+     "btn": "LAYERS Severe storms, Flooding +5 + Radar ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Next 7 days: no significant threats in the next 7 days",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "ero",
+      "md",
+      "nhc",
+      "reports",
+      "spc"
+     ],
+     "products": 233
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) ?layers=none: every layer off, 'Layers · None selected', no threat-feed request (0)",
+   "pass": true,
+   "detail": {
+    "s0": {
+     "layers": [],
+     "sum": "None selected",
+     "btn": "LAYERS None selected ▾",
+     "prompt": true,
+     "promptText": "No threat layers selected. Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.Warnings at my venueEverythingChoose layersWarnings at my venue: severe storms, flooding, winter, heat and cold, wind and visibility, and coastal warnings and outlooks, centred on CVG airport. Everything: all 10 hazards (more to download).",
+     "peek": "No threat layers selected",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 0
+    },
+    "reqs": [],
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) OPENING THE LAYER PICKER: zero threat-feed requests (0)",
+   "pass": true,
+   "detail": {
+    "sp": true,
+    "pick": []
+   }
+  },
+  {
+   "check": "(phone) SEVERE STORMS ALONE: only its feeds (reports 2, alerts 1, md 2, spc 3): NWS alerts, SPC MDs, SPC outlooks and SPC storm reports each requested, nothing else",
+   "pass": true,
+   "detail": {
+    "by": {
+     "reports": 2,
+     "alerts": 1,
+     "md": 2,
+     "spc": 3
+    },
+    "ss": {
+     "layers": [
+      "severe"
+     ],
+     "sum": "Severe storms",
+     "btn": "LAYERS Severe storms ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Nothing active at CVG airport",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "md",
+      "reports",
+      "spc"
+     ],
+     "products": 179
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) SEVERE STORMS OFF AGAIN: its refreshes stop: zero threat-feed requests in 70 s (0); the prompt returns",
+   "pass": true,
+   "detail": {
+    "off": [],
+    "so": {
+     "layers": [],
+     "sum": "None selected",
+     "btn": "LAYERS None selected ▾",
+     "prompt": true,
+     "promptText": "No threat layers selected. Select a layer to see official warnings, outlooks and reports. Nothing is downloaded until you do.Warnings at my venueEverythingChoose layersWarnings at my venue: severe storms, flooding, winter, heat and cold, wind and visibility, and coastal warnings and outlooks, centred on CVG airport. Everything: all 10 hazards (more to download).",
+     "peek": "No threat layers selected",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 179
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) SHARED LINK layers=flood keeps its selection and requests only alerts and the WPC rainfall outlook (alerts 1, ero 3, alerts-zones 36)",
+   "pass": true,
+   "detail": {
+    "s": {
+     "layers": [
+      "flood"
+     ],
+     "sum": "Flooding",
+     "btn": "LAYERS Flooding ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Nothing active at CVG airport",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "ero"
+     ],
+     "products": 184
+    },
+    "by": {
+     "alerts": 1,
+     "ero": 3,
+     "alerts-zones": 36
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) PLANNER LINK (venue, Day 1, layers=severe,smoke) keeps its selection and requests only those layers' feeds (reports 2, alerts 1, md 2, spc 3, hms 3, airnow 3)",
+   "pass": true,
+   "detail": {
+    "s": {
+     "layers": [
+      "severe",
+      "smoke"
+     ],
+     "sum": "Severe storms, Smoke & air",
+     "btn": "LAYERS Severe storms, Smoke & air ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Day 1 at TQL Stadium",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [
+      "alerts",
+      "hms",
+      "md",
+      "monitors",
+      "reports",
+      "spc"
+     ],
+     "products": 279
+    },
+    "by": {
+     "reports": 2,
+     "alerts": 1,
+     "md": 2,
+     "spc": 3,
+     "hms": 3,
+     "airnow": 3
+    },
+    "errs": []
+   }
+  },
+  {
+   "check": "(phone) DEMO LINK keeps every layer on (its shared selection) and requests no live feed (0)",
+   "pass": true,
+   "detail": {
+    "s": {
+     "layers": [
+      "severe",
+      "flood",
+      "winter",
+      "heat",
+      "wind",
+      "fire",
+      "smoke",
+      "tropical",
+      "coastal",
+      "aviation"
+     ],
+     "sum": "All 10",
+     "btn": "LAYERS All 10 ▾",
+     "prompt": false,
+     "promptText": "",
+     "peek": "Tornado Warning in effect at TQL Stadium",
+     "basemap": true,
+     "tilesLoaded": true,
+     "marker": true,
+     "feeds": [],
+     "products": 10
+    },
+    "reqs": [],
+    "errs": []
+   }
+  }
+ ]
+}

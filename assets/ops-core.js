@@ -932,6 +932,7 @@
       const e = [], t = (ev && ev.times) || {}, okFmt = (x) => !x || /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(x);
       if (!ev || !ev.loc || !isFinite(ev.loc.lat) || !isFinite(ev.loc.lon)) e.push("Pick a location.");
       if (!ev || !ev.tz) e.push("The location's time zone is unknown.");
+      if (event.hasSlots(ev)) return e.length ? e : event.validateSlots(ev);
       if (!t.start || !t.end) e.push("Event start and end are required.");
       Object.keys(t).forEach((k) => { if (!okFmt(t[k])) e.push(`${k} time is not valid.`); });
       if (e.length) return e;
@@ -950,8 +951,29 @@
       if (ms.teardown != null && ms.teardown - ms.setup > 0 && (ms.teardown || ms.end) - (ms.setup || ms.start) > 7 * 86400e3) e.push("Events longer than 7 days aren't supported.");
       return e;
     },
-    /* Phase windows as real instants [startMs, endMs). */
+    validateSlots(ev) {
+      const e = [], okFmt = (x) => typeof x === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(x);
+      if (ev.slots.length > 24) e.push("An event can have up to 24 time slots.");
+      const ms = [];
+      ev.slots.forEach((x, i) => {
+        const n = String((x && x.name) || "").trim() || `Slot ${i + 1}`;
+        if (!x || !String(x.name || "").trim()) e.push(`Slot ${i + 1} needs a name.`);
+        if (!okFmt(x && x.start) || !okFmt(x && x.end)) { e.push(`${n}: start and end need a date and time.`); return; }
+        const r = {};
+        for (const k of ["start", "end"]) { const c = time.classify(x[k], ev.tz); if (c.kind === "nonexistent") { e.push(`${n} ${k} ${x[k].slice(11)} doesn't exist that day (clocks jump forward). Pick a time outside the skipped hour.`); return; } r[k] = time.toUtc(x[k], ev.tz, (x.fold || {})[k] || 0); }
+        if (!(r.end > r.start)) e.push(`${n} must end after it starts.`);
+        ms.push(r);
+      });
+      if (!e.length && ms.length && Math.max(...ms.map((r) => r.end)) - Math.min(...ms.map((r) => r.start)) > 7 * 86400e3) e.push("Events longer than 7 days aren't supported.");
+      return e;
+    },
+    /* Phase windows as real instants [startMs, endMs). An event with planner-defined slots (ev.slots) gets one window
+       per slot, in time order, named as the planner named it; the main slot (event.mainOf) takes the key "event" so
+       everything that leads with the main part keeps working. Without slots the fixed parts are read exactly as before.
+       "all" spans the first start to the last end; all.spans lists the hours the event actually uses (the union of
+       its windows): one span for the fixed parts, several when slots leave gaps. */
     windows(ev) {
+      if (event.hasSlots(ev)) return event.slotWindows(ev);
       const t = ev.times, out = [];
       event.PHASES.forEach((p) => {
         if (!t[p.from]) return;
@@ -960,7 +982,128 @@
         if (e > s) out.push({ key: p.key, label: p.label, startMs: s, endMs: e, startLocal: time.toLocal(s, ev.tz), endLocal: time.toLocal(e, ev.tz), hours: (e - s) / 3600e3 });
       });
       const all = out.length ? { key: "all", label: "Whole event", startMs: out[0].startMs, endMs: out[out.length - 1].endMs } : null;
-      if (all) { all.startLocal = time.toLocal(all.startMs, ev.tz); all.endLocal = time.toLocal(all.endMs, ev.tz); all.hours = (all.endMs - all.startMs) / 3600e3; out.push(all); }
+      if (all) { all.startLocal = time.toLocal(all.startMs, ev.tz); all.endLocal = time.toLocal(all.endMs, ev.tz); all.hours = (all.endMs - all.startMs) / 3600e3; all.spans = event.union(out); out.push(all); }
+      return out;
+    },
+    /* ---- planner-defined slots: ev.slots = [{ id, name, start, end, main?, fold? }] ----
+       start/end are venue-local "YYYY-MM-DDTHH:MM" (end may be the next day); fold {start, end} picks the second of a
+       time that happens twice on a fall-back night (first otherwise). ev.times then only carries the outer start and
+       end ({start, end}), so builds without slots still read the event as one window. */
+    LEGACY_LABELS: ["Setup", "Gates", "Event", "Teardown"],
+    hasSlots: (ev) => !!(ev && Array.isArray(ev.slots) && ev.slots.length),
+    /* the slot that leads the headline: the one marked main; else the one named "Event"; else the longest slot that
+       isn't setup, gates, load-in or teardown work; else the first. Ties go to the earlier slot. */
+    mainOf(slots, msOf) {
+      if (!slots || !slots.length) return -1;
+      const marked = slots.findIndex((x) => x.main === true); if (marked >= 0) return marked;
+      const named = slots.findIndex((x) => String(x.name || "").trim().toLowerCase() === "event"); if (named >= 0) return named;
+      const SIDE = /\b(setup|set-up|set up|gates?|doors|load[- ]?in|load[- ]?out|teardown|tear[- ]?down|strike|breakdown|vendor|arrival|parking)\b/i;
+      const len = (x) => { const a = msOf ? msOf(x, "start") : Date.parse(x.start + ":00Z"), b = msOf ? msOf(x, "end") : Date.parse(x.end + ":00Z"); return isFinite(a) && isFinite(b) ? b - a : 0; };
+      let best = -1; slots.forEach((x, i) => { if (SIDE.test(x.name || "")) return; if (best < 0 || len(x) > len(slots[best])) best = i; });
+      return best >= 0 ? best : 0;
+    },
+    /* the slots in time order (ties by end), each with its real instants */
+    slotList(ev) {
+      const f = (x, k) => time.toUtc(x[k], ev.tz, (x.fold || {})[k] || 0);
+      const list = ev.slots.map((x, i) => ({ ...x, i, startMs: f(x, "start"), endMs: f(x, "end") }));
+      const mi = event.mainOf(ev.slots, (x, k) => f(x, k));
+      list.forEach((x) => { x.main = x.i === mi; });
+      return list.sort((a, b) => a.startMs - b.startMs || a.endMs - b.endMs || a.i - b.i);
+    },
+    slotWindows(ev) {
+      const out = [];
+      event.slotList(ev).forEach((x) => {
+        if (!(x.endMs > x.startMs)) return;
+        out.push({ key: x.main ? "event" : String(x.id || `slot${x.i}`), id: String(x.id || `slot${x.i}`), slot: true, main: x.main, label: String(x.name || "Event").trim() || "Event",
+          startMs: x.startMs, endMs: x.endMs, startLocal: time.toLocal(x.startMs, ev.tz), endLocal: time.toLocal(x.endMs, ev.tz), hours: (x.endMs - x.startMs) / 3600e3 });
+      });
+      if (!out.length) return out;
+      const all = { key: "all", label: "Whole event", startMs: Math.min(...out.map((w) => w.startMs)), endMs: Math.max(...out.map((w) => w.endMs)), spans: event.union(out) };
+      all.startLocal = time.toLocal(all.startMs, ev.tz); all.endLocal = time.toLocal(all.endMs, ev.tz); all.hours = (all.endMs - all.startMs) / 3600e3; all.gaps = all.spans.length > 1;
+      out.push(all);
+      return out;
+    },
+    /* the union of windows as merged [s, e) spans (touching windows merge) */
+    union(wins) {
+      const w = wins.filter((x) => x.key !== "all" && x.endMs > x.startMs).map((x) => ({ s: x.startMs, e: x.endMs })).sort((a, b) => a.s - b.s), out = [];
+      w.forEach((x) => { const l = out[out.length - 1]; if (l && x.s <= l.e) l.e = Math.max(l.e, x.e); else out.push({ ...x }); });
+      return out;
+    },
+    /* ---- which slot an hourly value belongs to (planner-defined slots only; the fixed parts keep their own path) ----
+       Every hourly value carries a time label L, but not every value means the same moment:
+         "end" (the hour ending at L, i.e. L - 1 h to L): precipitation amount, snowfall, the ensemble share with at least
+                0.01 in (from members' precipitation), precipitation chance (PoP: Open-Meteo's "preceding hour") and gusts
+                (Open-Meteo's "maximum of the preceding hour")
+         "at"  (the moment L): temperature, feels-like, sustained wind and direction, and the thunder tier (from CAPE and
+                instantaneous fields)
+       So rain labelled 4 PM fell 3–4 PM. An "end" value belongs to every slot its hour overlaps; an hour that only partly
+       overlaps a slot is counted whole with that slot (hourly guidance can't split an hour). An "at" value belongs to the
+       slots whose start <= L <= end (as Core.event.locate reads instantaneous fields). */
+    KIND: { qpf: "end", sn: "end", chance: "end", pop: "end", gust: "end", temp: "at", feel: "at", wind: "at", thunder: "at" },
+    HAZARD_KIND: { rain: "end", wind: "end", snow: "end", lightning: "at", heat: "at", cold: "at" },
+    /* windows (or merged spans {s, e}) a value labelled L belongs to */
+    holding(wins, L, kind) {
+      const s = (w) => (w.startMs != null ? w.startMs : w.s), e = (w) => (w.endMs != null ? w.endMs : w.e);
+      return wins.filter((w) => w.key !== "all" && (kind === "end" ? s(w) < L && e(w) > L - 3600e3 : s(w) <= L && L <= e(w)));
+    },
+    covers: (spans, L, kind) => !spans || event.holding(spans, L, kind).length > 0,
+    /* "end" hours that only partly overlap the schedule (the rest of the hour is between slots or outside): counted whole
+       with the slot(s) they touch. [{ s, e, labels }] for the hour [s, e). */
+    partialHours(wins) {
+      const ph = wins.filter((w) => w.key !== "all"); if (!ph.length) return [];
+      const lo = Math.floor(Math.min(...ph.map((w) => w.startMs)) / 3600e3) * 3600e3, hi = Math.max(...ph.map((w) => w.endMs)), out = [];
+      for (let L = lo + 3600e3; L - 3600e3 < hi; L += 3600e3) {
+        const held = event.holding(ph, L, "end"); if (!held.length) continue;
+        const cov = event.union(held.map((w) => ({ key: w.key, startMs: Math.max(w.startMs, L - 3600e3), endMs: Math.min(w.endMs, L) }))).reduce((t, x) => t + x.e - x.s, 0);
+        if (cov < 3600e3) out.push({ s: L - 3600e3, e: L, labels: held.map((w) => w.label) });
+      }
+      return out;
+    },
+    /* how a part is named in a sentence: the fixed parts as before ("setup", "gates", "teardown", "event"); a planner's
+       own slot name as typed ("Outdoor ceremony") */
+    word: (label) => (event.LEGACY_LABELS.includes(label) ? String(label).toLowerCase() : String(label || "")),
+    /* with an article: "the event", "setup", "the Outdoor ceremony" (a name that is a day or already has one: as typed) */
+    phrase(label) {
+      if (label === "Event") return "the event";
+      if (event.LEGACY_LABELS.includes(label)) return label.toLowerCase();
+      const l = String(label || "").trim();
+      return /^(the|a|an|our|my|day\b|mon|tue|wed|thu|fri|sat|sun)/i.test(l) ? l : `the ${l}`;
+    },
+    /* the slots an editor shows for any event: its own, or its fixed parts read as slots (nothing stored changes) */
+    slotsOf(ev) {
+      if (event.hasSlots(ev)) return ev.slots.map((x) => ({ ...x }));
+      const t = (ev && ev.times) || {}, out = [];
+      if (!t.start || !t.end) return out;
+      event.PHASES.forEach((p) => { if (!t[p.from]) return; const toKey = p.to.find((k) => t[k]); if (!toKey) return;
+        const fold = {}; if ((ev.fold || {})[p.from]) fold.start = ev.fold[p.from]; if ((ev.fold || {})[toKey]) fold.end = ev.fold[toKey];
+        out.push({ id: p.key, name: p.label, start: t[p.from], end: t[toKey], ...(p.key === "event" ? { main: true } : {}), ...(Object.keys(fold).length ? { fold } : {}) }); });
+      return out;
+    },
+    /* the fixed parts behind a set of slots, when they are exactly a Setup/Gates/Event/Teardown schedule (in that order,
+       back to back, the main slot named Event): then the event is saved the way it always was. null otherwise. */
+    legacyTimes(slots) {
+      if (!slots || !slots.length) return null;
+      const s = slots.slice().sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0)), names = s.map((x) => x.name);
+      const order = event.LEGACY_LABELS.filter((n) => names.includes(n));
+      if (names.length !== order.length || names.some((n, i) => n !== order[i]) || !names.includes("Event")) return null;
+      if (s.some((x) => x.main === true && x.name !== "Event")) return null;
+      for (let i = 1; i < s.length; i++) if (s[i].start !== s[i - 1].end) return null;
+      const by = Object.fromEntries(s.map((x) => [x.name, x])), t = {};
+      if (by.Setup) t.setup = by.Setup.start; if (by.Gates) t.gates = by.Gates.start;
+      t.start = by.Event.start; t.end = by.Event.end; if (by.Teardown) t.teardown = by.Teardown.end;
+      return t;
+    },
+    /* the outer start and end of a set of slots (what ev.times carries alongside them) */
+    outerTimes(slots, tz) {
+      const ms = (x, k) => (tz ? time.toUtc(x[k], tz, (x.fold || {})[k] || 0) : Date.parse(x[k] + ":00Z"));
+      const a = slots.reduce((m, x) => (!m || ms(x, "start") < ms(m, "start") ? x : m), null), b = slots.reduce((m, x) => (!m || ms(x, "end") > ms(m, "end") ? x : m), null);
+      return { start: a.start, end: b.end };
+    },
+    /* planner-facing notes that don't stop saving: overlapping slots */
+    warnings(ev) {
+      if (!event.hasSlots(ev) || !ev.tz) return [];
+      const list = event.slotList(ev).filter((x) => x.endMs > x.startMs), out = [];
+      for (let i = 1; i < list.length; i++) for (let j = 0; j < i; j++) if (list[i].startMs < list[j].endMs) out.push(`${list[j].name} and ${list[i].name} overlap.`);
       return out;
     },
     /* Hours of a data axis inside a window. idx: valid times in [start, end] (instantaneous fields);

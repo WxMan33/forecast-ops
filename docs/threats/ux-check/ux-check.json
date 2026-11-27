@@ -1,0 +1,783 @@
+{
+ "host": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev",
+ "at": "2026-11-24T17:20:22.391Z",
+ "results": [
+  {
+   "check": "(desktop) busy national view: Time, Layers, Map area and the state line in view, no page overflow; after scrolling the details, Map area and the state line still in view",
+   "pass": true,
+   "detail": {
+    "L": {
+     "overflow": false,
+     "layersBtn": true,
+     "time": true,
+     "scope": true,
+     "pstate": true,
+     "pstateText": "Active now · as of 3:58 PM ESTLayers: All 10",
+     "sum": "All 10",
+     "stageErrors": 0
+    },
+    "L2": {
+     "overflow": false,
+     "layersBtn": true,
+     "time": true,
+     "scope": true,
+     "pstate": true,
+     "pstateText": "Active now · as of 3:58 PM ESTLayers: All 10",
+     "sum": "All 10",
+     "stageErrors": 0
+    }
+   }
+  },
+  {
+   "check": "(desktop) Layers picker: opens from the keyboard, all 10 hazards and 5 Aviation parts within the screen, focus moves in, and opening downloads nothing",
+   "pass": true,
+   "detail": {
+    "pk": {
+     "open": true,
+     "expanded": "true",
+     "inView": true,
+     "focus": "severe",
+     "layers": [
+      {
+       "k": "severe",
+       "ok": true
+      },
+      {
+       "k": "flood",
+       "ok": true
+      },
+      {
+       "k": "winter",
+       "ok": true
+      },
+      {
+       "k": "heat",
+       "ok": true
+      },
+      {
+       "k": "wind",
+       "ok": true
+      },
+      {
+       "k": "fire",
+       "ok": true
+      },
+      {
+       "k": "smoke",
+       "ok": true
+      },
+      {
+       "k": "tropical",
+       "ok": true
+      },
+      {
+       "k": "coastal",
+       "ok": true
+      },
+      {
+       "k": "aviation",
+       "ok": true
+      }
+     ],
+     "av": 5,
+     "overflow": false
+    },
+    "downloads": []
+   }
+  },
+  {
+   "check": "(desktop) keyboard: Space turns layers off, the summary names what is still on; Escape closes and returns focus to Layers",
+   "pass": true,
+   "detail": {
+    "kb": {
+     "severe": false,
+     "flood": false,
+     "sum": "Winter, Heat & cold +6"
+    },
+    "ec": {
+     "open": false,
+     "focus": "txLayersBtn"
+    }
+   }
+  },
+  {
+   "check": "(desktop) Clear all: no layers, \"None selected\", model overlays off, the panel prompts to select a layer",
+   "pass": true,
+   "detail": {
+    "none": true,
+    "all": false,
+    "sum": "None selected",
+    "gtg": false,
+    "ifi": false,
+    "prompt": true
+   }
+  },
+  {
+   "check": "(desktop) Show all: all 10 hazards on",
+   "pass": true,
+   "detail": {
+    "none": false,
+    "all": true,
+    "sum": "All 10",
+    "gtg": false,
+    "ifi": false,
+    "prompt": false
+   }
+  },
+  {
+   "check": "(desktop) a layer not drawn at the selected time says why in one short line",
+   "pass": true,
+   "detail": "Day 2Layers: All 10Not drawn in Day 2: Heat & cold, Wind & visibility, Smoke & air, Tropical, Coastal (current only); Winter, Fire (see Layers)"
+  },
+  {
+   "check": "(desktop) venue view, several hazards from the link: the picker and the summary show exactly them; Map area says 'Venue · TQL Stadium' and the state line keeps the full venue name",
+   "pass": true,
+   "detail": {
+    "lv": {
+     "layers": "severe,flood,winter,tropical",
+     "boxes": "severe,flood,winter,tropical"
+    },
+    "L": {
+     "overflow": false,
+     "layersBtn": true,
+     "time": true,
+     "scope": true,
+     "pstate": true,
+     "pstateText": "Active now · as of 3:58 PM ESTLayers: Severe storms, Flooding +2Venue: TQL Stadium",
+     "sum": "Severe storms, Flooding +2",
+     "stageErrors": 0
+    },
+    "vb": "Venue · TQL Stadium",
+    "vlab": "Venue: TQL Stadium"
+   }
+  },
+  {
+   "check": "(desktop) Aviation with both overlays: one shared altitude and valid-time control (10,000 ft, +3 h), Aviation's own switches show what is on, legend lists turbulence and icing guidance",
+   "pass": true,
+   "detail": {
+    "gtg": "ok",
+    "ifi": "ok",
+    "ft": 1,
+    "fh": 1,
+    "ftVal": "10000",
+    "fhVal": "3",
+    "avctl": "apt:true,pireps:true,adv:true,gtg:true,ifi:true",
+    "legend": "Active now · most urgent firstWarning · solid, filledWatch · dashedMesoscale Discussion (MD) · dottedTornado warning, zoomed outSevere thunderstorm warning, zoomed outRed, yellow: tornado · orange, pink: severe thunderstormSPC Day 1 outlook · outlinesTSTMMRGL1SLGT2ENH3MDT4HIGH5Risk level 1–5 · TSTM: thunderstorms, no severe risk Day 1 outlook outlinesAviationpilot report, turbulenceicingSIGMET, CWAG-AIRMETturbulence guidance (GTG), light to extremeicing guidance (IFI), probability 5% to 60%+",
+    "overflow": false
+   }
+  },
+  {
+   "check": "(desktop) picker end: it scrolls, a 'More below' cue shows until the end, Icing guidance reached by keyboard (14 Tabs) and visible above the pinned actions, and by touch at the end",
+   "pass": true,
+   "detail": {
+    "st": {
+     "scrolls": true,
+     "more": true,
+     "cue": true
+    },
+    "tabs": 14,
+    "kv": {
+     "focus": "ifi",
+     "visible": true,
+     "more": true
+    },
+    "endMore": false,
+    "tapped": true
+   }
+  },
+  {
+   "check": "(desktop) Aviation only: the panel lead with \"Aviation at <venue>\" and list airport weather, pilot reports, advisories, turbulence and icing guidance as available or not",
+   "pass": true,
+   "detail": {
+    "first": true,
+    "head": "Aviation at CVG airport",
+    "rows": [
+     "Airport weather",
+     "Pilot reports",
+     "Advisories",
+     "Turbulence guidance",
+     "Icing guidance"
+    ],
+    "peek": "Aviation at CVG airport",
+    "peek2": "National · pilot reports loading · advisories loading",
+    "ready": false,
+    "natRows": true,
+    "nothing": false
+   }
+  },
+  {
+   "check": "(desktop) links restore: venue and layers; airports and the selected airport; icing field, altitude, valid time and the saved-records replay (banner says so); an archived replay",
+   "pass": true,
+   "detail": {
+    "v": {
+     "scope": "venue",
+     "venue": "Venue · TQL Stadium",
+     "sum": "Flooding, Smoke & air"
+    },
+    "a": {
+     "air": "KORD,KMDW",
+     "ap": "KMDW",
+     "sum": "Aviation"
+    },
+    "f": {
+     "key": "2026112301|6|15000|sev",
+     "field": "sev",
+     "ft": "15000",
+     "fh": "6",
+     "banner": "Fictional products for layout review. Nothing here was issued by NWS or SPC. The icing overlay is different: saved official NOAA guidance (IFI; the cycle is on the status line), not demo data.",
+     "ifiBox": true
+    },
+    "r": {
+     "scenario": "archive-aviation-enroute",
+     "venue": "Venue · MetLife Stadium"
+    }
+   }
+  },
+  {
+   "check": "(desktop) no script errors in any view",
+   "pass": true,
+   "detail": []
+  },
+  {
+   "check": "(desktop) Planner: one 'Model checks along the route' area with 'Check turbulence' and 'Check icing'; both on demand; each result under its own heading",
+   "pass": true,
+   "detail": {
+    "pre": {
+     "heads": 1,
+     "btns": [
+      "Check turbulence (about 1 MB)",
+      "Check icing (about 1 MB)"
+     ]
+    },
+    "post": {
+     "done": [
+      "✓ Turbulence checked below",
+      "✓ Icing checked below"
+     ],
+     "gtgHead": true,
+     "ifiHead": true,
+     "overflow": false
+    },
+    "perr": []
+   }
+  },
+  {
+   "check": "(p390) busy national view: Time, Layers, Map area and the state line in view, no page overflow; after scrolling the details, Map area and the state line still in view",
+   "pass": true,
+   "detail": {
+    "L": {
+     "overflow": false,
+     "layersBtn": true,
+     "time": true,
+     "scope": true,
+     "pstate": true,
+     "pstateText": "Active now · as of 3:58 PM ESTLayers: All 10",
+     "sum": "All 10",
+     "stageErrors": 0
+    },
+    "L2": {
+     "overflow": false,
+     "layersBtn": true,
+     "time": true,
+     "scope": true,
+     "pstate": true,
+     "pstateText": "Active now · as of 3:58 PM ESTLayers: All 10",
+     "sum": "All 10",
+     "stageErrors": 0
+    }
+   }
+  },
+  {
+   "check": "(p390) Layers picker: opens from the keyboard, all 10 hazards and 5 Aviation parts within the screen, focus moves in, and opening downloads nothing",
+   "pass": true,
+   "detail": {
+    "pk": {
+     "open": true,
+     "expanded": "true",
+     "inView": true,
+     "focus": "severe",
+     "layers": [
+      {
+       "k": "severe",
+       "ok": true
+      },
+      {
+       "k": "flood",
+       "ok": true
+      },
+      {
+       "k": "winter",
+       "ok": true
+      },
+      {
+       "k": "heat",
+       "ok": true
+      },
+      {
+       "k": "wind",
+       "ok": true
+      },
+      {
+       "k": "fire",
+       "ok": true
+      },
+      {
+       "k": "smoke",
+       "ok": true
+      },
+      {
+       "k": "tropical",
+       "ok": true
+      },
+      {
+       "k": "coastal",
+       "ok": true
+      },
+      {
+       "k": "aviation",
+       "ok": true
+      }
+     ],
+     "av": 5,
+     "overflow": false
+    },
+    "downloads": []
+   }
+  },
+  {
+   "check": "(p390) keyboard: Space turns layers off, the summary names what is still on; Escape closes and returns focus to Layers",
+   "pass": true,
+   "detail": {
+    "kb": {
+     "severe": false,
+     "flood": false,
+     "sum": "Winter, Heat & cold +6"
+    },
+    "ec": {
+     "open": false,
+     "focus": "txLayersBtn"
+    }
+   }
+  },
+  {
+   "check": "(p390) Clear all: no layers, \"None selected\", model overlays off, the panel prompts to select a layer",
+   "pass": true,
+   "detail": {
+    "none": true,
+    "all": false,
+    "sum": "None selected",
+    "gtg": false,
+    "ifi": false,
+    "prompt": true
+   }
+  },
+  {
+   "check": "(p390) Show all: all 10 hazards on",
+   "pass": true,
+   "detail": {
+    "none": false,
+    "all": true,
+    "sum": "All 10",
+    "gtg": false,
+    "ifi": false,
+    "prompt": false
+   }
+  },
+  {
+   "check": "(p390) a layer not drawn at the selected time says why in one short line",
+   "pass": true,
+   "detail": "Day 2Layers: All 10Not drawn in Day 2: Heat & cold, Wind & visibility, Smoke & air, Tropical, Coastal (current only); Winter, Fire (see Layers)"
+  },
+  {
+   "check": "(p390) venue view, several hazards from the link: the picker and the summary show exactly them; Map area says 'Venue' and the state line keeps the full venue name",
+   "pass": true,
+   "detail": {
+    "lv": {
+     "layers": "severe,flood,winter,tropical",
+     "boxes": "severe,flood,winter,tropical"
+    },
+    "L": {
+     "overflow": false,
+     "layersBtn": true,
+     "time": true,
+     "scope": true,
+     "pstate": true,
+     "pstateText": "Active now · as of 3:58 PM ESTLayers: Severe storms, Flooding +2Venue: TQL Stadium",
+     "sum": "Severe storms, Flooding +2",
+     "stageErrors": 0
+    },
+    "vb": "Venue",
+    "vlab": "Venue: TQL Stadium"
+   }
+  },
+  {
+   "check": "(p390) Aviation with both overlays: one shared altitude and valid-time control (10,000 ft, +3 h), Aviation's own switches show what is on, legend lists turbulence and icing guidance",
+   "pass": true,
+   "detail": {
+    "gtg": "ok",
+    "ifi": "ok",
+    "ft": 1,
+    "fh": 1,
+    "ftVal": "10000",
+    "fhVal": "3",
+    "avctl": "apt:true,pireps:true,adv:true,gtg:true,ifi:true",
+    "legend": "Active now · most urgent firstWarning · solid, filledWatch · dashedMesoscale Discussion (MD) · dottedTornado warning, zoomed outSevere thunderstorm warning, zoomed outRed, yellow: tornado · orange, pink: severe thunderstormSPC Day 1 outlook · outlinesTSTMMRGL1SLGT2ENH3MDT4HIGH5Risk level 1–5 · TSTM: thunderstorms, no severe risk Day 1 outlook outlinesAviationpilot report, turbulenceicingSIGMET, CWAG-AIRMETturbulence guidance (GTG), light to extremeicing guidance (IFI), probability 5% to 60%+",
+    "overflow": false
+   }
+  },
+  {
+   "check": "(p390) picker end: it scrolls, a 'More below' cue shows until the end, Icing guidance reached by keyboard (14 Tabs) and visible above the pinned actions, and by touch at the end",
+   "pass": true,
+   "detail": {
+    "st": {
+     "scrolls": true,
+     "more": true,
+     "cue": true
+    },
+    "tabs": 14,
+    "kv": {
+     "focus": "ifi",
+     "visible": true,
+     "more": true
+    },
+    "endMore": false,
+    "tapped": true
+   }
+  },
+  {
+   "check": "(p390) Aviation only: the panel and the phone's sheet header lead with \"Aviation at <venue>\" and list airport weather, pilot reports, advisories, turbulence and icing guidance as available or not",
+   "pass": true,
+   "detail": {
+    "first": true,
+    "head": "Aviation at CVG airport",
+    "rows": [
+     "Airport weather",
+     "Pilot reports",
+     "Advisories",
+     "Turbulence guidance",
+     "Icing guidance"
+    ],
+    "peek": "Aviation at CVG airport",
+    "peek2": "National · pilot reports loading · advisories loading",
+    "ready": false,
+    "natRows": true,
+    "nothing": false
+   }
+  },
+  {
+   "check": "(p390) links restore: venue and layers; airports and the selected airport; icing field, altitude, valid time and the saved-records replay (banner says so); an archived replay",
+   "pass": true,
+   "detail": {
+    "v": {
+     "scope": "venue",
+     "venue": "Venue · TQL Stadium",
+     "sum": "Flooding, Smoke & air"
+    },
+    "a": {
+     "air": "KORD,KMDW",
+     "ap": "KMDW",
+     "sum": "Aviation"
+    },
+    "f": {
+     "key": "2026112301|6|15000|sev",
+     "field": "sev",
+     "ft": "15000",
+     "fh": "6",
+     "banner": "Fictional products for layout review. Nothing here was issued by NWS or SPC. The icing overlay is different: saved official NOAA guidance (IFI; the cycle is on the status line), not demo data.",
+     "ifiBox": true
+    },
+    "r": {
+     "scenario": "archive-aviation-enroute",
+     "venue": "Venue · MetLife Stadium"
+    }
+   }
+  },
+  {
+   "check": "(p390) no script errors in any view",
+   "pass": true,
+   "detail": []
+  },
+  {
+   "check": "(p390) Planner: one 'Model checks along the route' area with 'Check turbulence' and 'Check icing'; both on demand; each result under its own heading",
+   "pass": true,
+   "detail": {
+    "pre": {
+     "heads": 1,
+     "btns": [
+      "Check turbulence (about 1 MB)",
+      "Check icing (about 1 MB)"
+     ]
+    },
+    "post": {
+     "done": [
+      "✓ Turbulence checked below",
+      "✓ Icing checked below"
+     ],
+     "gtgHead": true,
+     "ifiHead": true,
+     "overflow": false
+    },
+    "perr": []
+   }
+  },
+  {
+   "check": "(p360) busy national view: Time, Layers, Map area and the state line in view, no page overflow; after scrolling the details, Map area and the state line still in view",
+   "pass": true,
+   "detail": {
+    "L": {
+     "overflow": false,
+     "layersBtn": true,
+     "time": true,
+     "scope": true,
+     "pstate": true,
+     "pstateText": "Active now · as of 3:58 PM ESTLayers: All 10",
+     "sum": "All 10",
+     "stageErrors": 0
+    },
+    "L2": {
+     "overflow": false,
+     "layersBtn": true,
+     "time": true,
+     "scope": true,
+     "pstate": true,
+     "pstateText": "Active now · as of 3:58 PM ESTLayers: All 10",
+     "sum": "All 10",
+     "stageErrors": 0
+    }
+   }
+  },
+  {
+   "check": "(p360) Layers picker: opens from the keyboard, all 10 hazards and 5 Aviation parts within the screen, focus moves in, and opening downloads nothing",
+   "pass": true,
+   "detail": {
+    "pk": {
+     "open": true,
+     "expanded": "true",
+     "inView": true,
+     "focus": "severe",
+     "layers": [
+      {
+       "k": "severe",
+       "ok": true
+      },
+      {
+       "k": "flood",
+       "ok": true
+      },
+      {
+       "k": "winter",
+       "ok": true
+      },
+      {
+       "k": "heat",
+       "ok": true
+      },
+      {
+       "k": "wind",
+       "ok": true
+      },
+      {
+       "k": "fire",
+       "ok": true
+      },
+      {
+       "k": "smoke",
+       "ok": true
+      },
+      {
+       "k": "tropical",
+       "ok": true
+      },
+      {
+       "k": "coastal",
+       "ok": true
+      },
+      {
+       "k": "aviation",
+       "ok": true
+      }
+     ],
+     "av": 5,
+     "overflow": false
+    },
+    "downloads": []
+   }
+  },
+  {
+   "check": "(p360) keyboard: Space turns layers off, the summary names what is still on; Escape closes and returns focus to Layers",
+   "pass": true,
+   "detail": {
+    "kb": {
+     "severe": false,
+     "flood": false,
+     "sum": "Winter, Heat & cold +6"
+    },
+    "ec": {
+     "open": false,
+     "focus": "txLayersBtn"
+    }
+   }
+  },
+  {
+   "check": "(p360) Clear all: no layers, \"None selected\", model overlays off, the panel prompts to select a layer",
+   "pass": true,
+   "detail": {
+    "none": true,
+    "all": false,
+    "sum": "None selected",
+    "gtg": false,
+    "ifi": false,
+    "prompt": true
+   }
+  },
+  {
+   "check": "(p360) Show all: all 10 hazards on",
+   "pass": true,
+   "detail": {
+    "none": false,
+    "all": true,
+    "sum": "All 10",
+    "gtg": false,
+    "ifi": false,
+    "prompt": false
+   }
+  },
+  {
+   "check": "(p360) a layer not drawn at the selected time says why in one short line",
+   "pass": true,
+   "detail": "Day 2Layers: All 10Not drawn in Day 2: Heat & cold, Wind & visibility, Smoke & air, Tropical, Coastal (current only); Winter, Fire (see Layers)"
+  },
+  {
+   "check": "(p360) venue view, several hazards from the link: the picker and the summary show exactly them; Map area says 'Venue' and the state line keeps the full venue name",
+   "pass": true,
+   "detail": {
+    "lv": {
+     "layers": "severe,flood,winter,tropical",
+     "boxes": "severe,flood,winter,tropical"
+    },
+    "L": {
+     "overflow": false,
+     "layersBtn": true,
+     "time": true,
+     "scope": true,
+     "pstate": true,
+     "pstateText": "Active now · as of 3:58 PM ESTLayers: Severe storms, Flooding +2Venue: TQL Stadium",
+     "sum": "Severe storms, Flooding +2",
+     "stageErrors": 0
+    },
+    "vb": "Venue",
+    "vlab": "Venue: TQL Stadium"
+   }
+  },
+  {
+   "check": "(p360) Aviation with both overlays: one shared altitude and valid-time control (10,000 ft, +3 h), Aviation's own switches show what is on, legend lists turbulence and icing guidance",
+   "pass": true,
+   "detail": {
+    "gtg": "ok",
+    "ifi": "ok",
+    "ft": 1,
+    "fh": 1,
+    "ftVal": "10000",
+    "fhVal": "3",
+    "avctl": "apt:true,pireps:true,adv:true,gtg:true,ifi:true",
+    "legend": "Active now · most urgent firstWarning · solid, filledWatch · dashedMesoscale Discussion (MD) · dottedTornado warning, zoomed outSevere thunderstorm warning, zoomed outRed, yellow: tornado · orange, pink: severe thunderstormSPC Day 1 outlook · outlinesTSTMMRGL1SLGT2ENH3MDT4HIGH5Risk level 1–5 · TSTM: thunderstorms, no severe risk Day 1 outlook outlinesAviationpilot report, turbulenceicingSIGMET, CWAG-AIRMETturbulence guidance (GTG), light to extremeicing guidance (IFI), probability 5% to 60%+",
+    "overflow": false
+   }
+  },
+  {
+   "check": "(p360) picker end: it scrolls, a 'More below' cue shows until the end, Icing guidance reached by keyboard (14 Tabs) and visible above the pinned actions, and by touch at the end",
+   "pass": true,
+   "detail": {
+    "st": {
+     "scrolls": true,
+     "more": true,
+     "cue": true
+    },
+    "tabs": 14,
+    "kv": {
+     "focus": "ifi",
+     "visible": true,
+     "more": true
+    },
+    "endMore": false,
+    "tapped": true
+   }
+  },
+  {
+   "check": "(p360) Aviation only: the panel and the phone's sheet header lead with \"Aviation at <venue>\" and list airport weather, pilot reports, advisories, turbulence and icing guidance as available or not",
+   "pass": true,
+   "detail": {
+    "first": true,
+    "head": "Aviation at CVG airport",
+    "rows": [
+     "Airport weather",
+     "Pilot reports",
+     "Advisories",
+     "Turbulence guidance",
+     "Icing guidance"
+    ],
+    "peek": "Aviation at CVG airport",
+    "peek2": "National · pilot reports loading · advisories loading",
+    "ready": false,
+    "natRows": true,
+    "nothing": false
+   }
+  },
+  {
+   "check": "(p360) links restore: venue and layers; airports and the selected airport; icing field, altitude, valid time and the saved-records replay (banner says so); an archived replay",
+   "pass": true,
+   "detail": {
+    "v": {
+     "scope": "venue",
+     "venue": "Venue · TQL Stadium",
+     "sum": "Flooding, Smoke & air"
+    },
+    "a": {
+     "air": "KORD,KMDW",
+     "ap": "KMDW",
+     "sum": "Aviation"
+    },
+    "f": {
+     "key": "2026112301|6|15000|sev",
+     "field": "sev",
+     "ft": "15000",
+     "fh": "6",
+     "banner": "Fictional products for layout review. Nothing here was issued by NWS or SPC. The icing overlay is different: saved official NOAA guidance (IFI; the cycle is on the status line), not demo data.",
+     "ifiBox": true
+    },
+    "r": {
+     "scenario": "archive-aviation-enroute",
+     "venue": "Venue · MetLife Stadium"
+    }
+   }
+  },
+  {
+   "check": "(p360) no script errors in any view",
+   "pass": true,
+   "detail": []
+  },
+  {
+   "check": "(p360) Planner: one 'Model checks along the route' area with 'Check turbulence' and 'Check icing'; both on demand; each result under its own heading",
+   "pass": true,
+   "detail": {
+    "pre": {
+     "heads": 1,
+     "btns": [
+      "Check turbulence (about 1 MB)",
+      "Check icing (about 1 MB)"
+     ]
+    },
+    "post": {
+     "done": [
+      "✓ Turbulence checked below",
+      "✓ Icing checked below"
+     ],
+     "gtgHead": true,
+     "ifiHead": true,
+     "overflow": false
+    },
+    "perr": []
+   }
+  }
+ ]
+}

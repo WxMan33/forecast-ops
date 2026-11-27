@@ -84,7 +84,7 @@ body.bx * { font-variant-numeric: tabular-nums; }
 .bx-chip i { font-style: normal; font-size: 11.5px; color: var(--muted); }
 .bx-chip[aria-current="true"] { border-color: var(--bx-sel); color: var(--bx-sel); }
 .bx-chip:disabled { cursor: default; color: var(--muted); border-style: dashed; }
-.bx-slider { --th: 24px; position: relative; height: 62px; margin-top: 4px; }
+.bx-slider { --th: 24px; position: relative; height: 70px; margin-top: 4px; }
 .bx-slider input[type="range"] { position: absolute; left: 0; right: 0; top: 0; width: 100%; height: 44px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; cursor: pointer; z-index: 1; }
 .bx-slider input[type="range"]:disabled { cursor: default; opacity: .5; }
 .bx-slider input[type="range"]::-webkit-slider-runnable-track { height: 44px; background: transparent; }
@@ -96,9 +96,14 @@ body.bx * { font-variant-numeric: tabular-nums; }
 .bx-sltrack { position: absolute; left: 0; right: 0; top: 19px; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--muted) 28%, transparent); }
 .bx-sltrack .band { position: absolute; top: -3px; bottom: -3px; border-radius: 4px; background: color-mix(in srgb, var(--bx-sel) 38%, transparent); }
 .bx-sltrack b { position: absolute; top: -6px; width: 2px; height: 18px; margin-left: -1px; background: var(--text); opacity: .7; }
-.bx-slticks { position: absolute; left: 0; right: 0; top: 42px; height: 18px; overflow: hidden; }
+/* tick labels start below the focus ring (44 px input + 2 px offset + 2 px outline) so it never crosses them */
+.bx-slticks { position: absolute; left: 0; right: 0; top: 50px; height: 18px; overflow: hidden; }
 .bx-slticks span { position: absolute; transform: translateX(-50%); font: 600 11px var(--bx-font); color: var(--muted); white-space: nowrap; }
 .bx-slticks span.l { transform: translateX(-4px); } .bx-slticks span.r { transform: translateX(calc(-100% + 4px)); }
+/* the map time, attached to the slider: stays in view while scrubbing and while Play loops */
+.bx-slnow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; margin: 6px 0 0; font: 700 15px var(--bx-font); color: var(--text); font-variant-numeric: tabular-nums; }
+.bx-slnow i { font-style: normal; font-weight: 600; font-size: 13px; color: var(--muted); }
+.bx-slnow.oor b { text-decoration: line-through; text-decoration-color: var(--monitor); }
 .bx-slends { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; color: var(--muted); }
 .bx-mapcover { font-size: 13px; padding: 8px 10px; border-bottom: 1px solid var(--bx-rule); background: color-mix(in srgb, var(--monitor) 14%, transparent); }
 .bx-mapcover .bx-btn { margin-left: 4px; }
@@ -301,6 +306,20 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .bx-sched-f input.own { border-color: var(--bx-sel); }
 .bx-check { display: flex !important; gap: 8px; align-items: center; font-size: 14px; flex-direction: row !important; }
 .bx-check input { width: auto !important; }
+/* planner-defined time slots in the event editor: one card per slot, 44 px touch targets */
+.bx-form-part { display: grid; gap: 11px; }
+.bx-form-part[hidden], .ev-slots-f[hidden] { display: none; }
+.ev-slots { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.ev-slot { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--bx-rule); border-radius: 8px; }
+.ev-slot-h { display: flex; gap: 8px; align-items: end; }
+.ev-slot-name { flex: 1 1 auto; }
+.ev-slot-t { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.ev-slot input, .ev-slot-x, .ev-slot-add { min-height: 44px; }
+.ev-slot .bx-check { min-height: 44px; }
+.ev-slot .bx-check input { width: 22px !important; height: 22px; }
+.ev-slot-f { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; }
+.ev-slot-add { justify-self: start; }
+@media (max-width: 400px) { .ev-slot-t { grid-template-columns: 1fr 1fr; } .ev-slot-t label:first-child { grid-column: 1 / -1; } }
 
 /* calendar import */
 .ci-choices { display: grid; gap: 8px; justify-items: start; }
@@ -660,7 +679,7 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
   .at-hitlayer { left: calc(74px + 6px); }
   .ev-ro { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-/* 3. Details on demand: a few named groups, closed by default; the radar map stays open */
+/* 3. Details on demand: a few named groups, closed by default; the forecast radar stays open */
 .ev-details { margin-top: 26px; }
 .ev-details-h { font-size: 13px !important; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 4px !important; }
 .event-planner .ev-group { margin-top: 0; padding: 0; }
@@ -675,6 +694,10 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 #secChanges h3 { font-size: 14px; margin: 16px 0 6px; }
 @media print { .ev-readout, .at-hitlayer { display: none !important; } }
 .ev-sample-banner { margin: 10px 0 0; padding: 6px 10px; border: 1px dashed var(--muted); border-radius: 6px; font-size: 12.5px; font-weight: 600; color: var(--text); text-align: center; }
+/* on an event page the sample label shares the "‹ Upcoming events" row, so it costs the first screen almost no height */
+.event-planner .ev-sample-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; }
+.event-planner .ev-sample-row .ev-back { margin-top: 0; flex: none; }
+.event-planner .ev-sample-row .ev-sample-banner { margin: 0; padding: 3px 8px; font-size: 12px; line-height: 1.3; flex: 0 1 auto; }
 
 /* phones: label beside value, so the decision, three callouts and the next check fit the first screen */
 @media (max-width: 600px) {
@@ -724,8 +747,15 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .event-planner #sampleTag[hidden] { display: none; }
 .event-planner .bx-decision { margin-top: 18px !important; }
 @media (max-width: 600px) {
-  .event-planner .ev-back { margin-top: 10px; }
-  .event-planner .ev-head { margin-top: 6px; }
+  .event-planner .ev-back { margin-top: 8px; }
+  .event-planner .ev-sample-row { margin-top: 8px; }
+  .event-planner .ev-sample-row .ev-sample-banner { padding: 2px 8px; line-height: 1.2; }
+  /* narrow phones: the event's name, venue and date take the full width (a wider fallback font would otherwise squeeze them
+     into many short lines beside the buttons); Share, Edit event and Use sample event follow in one compact row */
+  .event-planner .ev-head { margin-top: 4px; flex-direction: column; align-items: stretch; gap: 6px; }
+  .event-planner .ev-head-actions { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+  .event-planner .ev-sharepop { left: 0; right: auto; }
+  .event-planner .ev-head-actions .ev-sharemenu { border-top: 0; padding: 0; margin: 0; }
   .event-planner .ev-venue { font-size: 14px; }
   .event-planner .ev-when { font-size: 13px; }
   .event-planner .bx-decision { margin-top: 12px !important; }
@@ -935,6 +965,9 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .evd-chip{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;border:1px solid var(--bx-rule);font-weight:700;font-size:14px;background:color-mix(in srgb,var(--text) 5%,transparent)}
 .evd-arrow{color:var(--muted);font-weight:700}
 .evd-gust{color:var(--muted)}
+/* a tile's own data does not cover the whole window: said on that tile (never the HRRR map's reach) */
+.evd-cov{align-self:flex-start;margin-top:4px;padding:2px 8px;border-radius:6px;border:1px dashed color-mix(in srgb,var(--text) 45%,transparent);font-size:12.5px;font-weight:700;line-height:1.3;color:var(--text)}
+.evd-cue{margin:0 0 6px;font-size:14px;color:var(--muted)}
 .evd-when{margin:14px 0 0;padding:12px 0 0;border-top:1px solid var(--bx-rule)}
 .evd-when h3{margin:0 0 8px;font-size:16px;font-weight:800}
 .evd-lanes{position:relative}
@@ -975,3 +1008,81 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
   .evd-sub{font-size:13px}
   .evd-part{font-size:12px;padding:0 4px}
 }
+
+/* ---------- Event Manager lead: one event concern first; official alerts and missing guidance labelled apart ---------- */
+.ev-kind { display: inline-block; font: 800 10.5px/1 var(--bx-font, sans-serif); letter-spacing: .04em; text-transform: uppercase; padding: 4px 6px 3px; border-radius: 4px; border: 1px solid currentColor; vertical-align: 1px; white-space: nowrap; }
+.ev-kind[data-kind="forecast"] { color: var(--prepare); }
+.ev-kind[data-kind="none"] { color: var(--muted); }
+.ev-kind[data-kind="missing"] { color: var(--monitor); border-style: dashed; }
+.ev-kind[data-kind="official"] { color: #fff; background: var(--action); border-color: var(--action); }
+.ev-kind-src { font-size: 12px; color: var(--muted); }
+.ev-lead-when .ev-kind { margin-right: 2px; }
+.ev-lead-when { margin: 6px 0 0; font-size: 14.5px; line-height: 1.35; }
+.ev-lead-when .ev-ph { white-space: nowrap; }
+.ev-lead-watch { margin: 3px 0 0; font-size: 14px; line-height: 1.35; }
+.ev-lead-imp { color: var(--text); }
+.ev-lead-urgent { margin-top: 8px; }
+.ev-lead-urgent .bx-alert, .ev-officialbox .bx-alert { margin-bottom: 6px; flex-wrap: wrap; }
+.event-planner .ev-lead-urgent .bx-alert::before, .event-planner .ev-officialbox .bx-alert::before { content: none; }
+.ev-lead-gap { margin: 6px 0 0; font-size: 13.5px; line-height: 1.35; }
+.ev-lead-change { margin: 12px 0 0; font-size: 14px; }
+.ev-lead-change ul { margin: 3px 0 0; padding-left: 18px; }
+.ev-lead-change li { margin: 2px 0; line-height: 1.35; }
+.ev-evidence { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 8px 0 0; font-size: 14px; }
+.ev-evnote { margin: 4px 0 0; }
+.ev-why { margin: 10px 0 0; border: 1px solid var(--bx-rule); border-radius: 8px; padding: 0 12px; }
+.ev-why > summary { cursor: pointer; padding: 10px 0; font-weight: 700; font-size: 14.5px; min-height: 24px; }
+.ev-why[open] > summary { border-bottom: 1px solid var(--bx-rule); }
+.ev-why-list { display: grid; grid-template-columns: 9.5em minmax(0, 1fr); gap: 6px 12px; margin: 10px 0; font-size: 13.5px; line-height: 1.4; }
+.ev-why-list dt { font-weight: 700; color: var(--muted); }
+.ev-why-list dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 600px) { .ev-why-list { grid-template-columns: minmax(0, 1fr); gap: 2px; } .ev-why-list dd { margin-bottom: 8px; } }
+.ev-officialbox { margin-top: 14px; }
+.ev-official-none { display: flex; gap: 8px; align-items: baseline; margin: 0; padding: 8px 10px; border: 1px solid var(--bx-rule); border-radius: 8px; font-size: 13.5px; line-height: 1.4; }
+.ev-official-none .ev-kind { background: none; color: var(--muted); border-color: var(--muted); }
+.ev-officialbox .bx-alert-off .ev-kind { margin-right: 4px; }
+.ev-gap .ev-kind { margin-right: 6px; }
+.ev-threats-scope { margin: 2px 0 6px; }
+@media print {
+  .pv .pv-lead .pv-kind { display: inline-block; font-size: 7.5pt; font-weight: 700; letter-spacing: .8pt; text-transform: uppercase; border: .75pt solid #111; padding: 0 4pt; }
+  .pv .pv-lead .pv-dec { margin: 2pt 0 2pt !important; font-size: 17pt !important; }
+  .pv .pv-lead p { margin: 2pt 0 0; font-size: 10.5pt; line-height: 1.3; color: #111; }
+  .pv .pv-p1 .pv-takeaway-lead { margin: 10pt 0 4pt; }
+  .pv .pv-alerts-none { border-width: 1pt; padding: 3pt 8pt; font-size: 10pt; }
+  .pv .pv-alerts-none b { text-transform: none; letter-spacing: 0; font-size: 10pt; }
+  .pv .pv-takeaway-lead ~ .pv-alerts { margin-top: 4pt; }
+  .pv .pv-why { margin: 6pt 0 0; padding: 3pt 7pt; border: .75pt dashed #555; font-size: 8pt; line-height: 1.25; color: #222; }
+  .pv .pv-why > b { font-size: 8pt; text-transform: uppercase; letter-spacing: .5pt; }
+}
+/* phone: the lead (headline, timing, implication) and the callouts share the first screen */
+@media (max-width: 600px) {
+  .event-planner .ev-lead .bx-decision { font-size: 25px !important; margin-top: 4px !important; }
+  .ev-lead-when { font-size: 14px; margin-top: 3px; }
+  .ev-lead-watch { font-size: 13.5px; margin-top: 2px; }
+  .event-planner .ev-lead .ev-callouts { margin-top: 5px; }
+  .event-planner .ev-lead .ev-callouts dt { padding-top: 7px; padding-bottom: 7px; }
+  .event-planner .ev-lead .ev-callouts dd { padding: 5px 0 6px; font-size: 14.5px; }
+  .event-planner .ev-lead .ev-callouts dd .bx-note { font-size: 12.5px; }
+}
+/* phone: the toolbar on one row (Print and Feedback as labelled icons), every control a 44 px tap target */
+@media (max-width: 600px) {
+  .event-planner .bx-head-in { gap: 5px; row-gap: 4px; padding-top: 3px; padding-bottom: 4px; }
+  .event-planner .bx-head-in > .bx-btn { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; }
+  .event-planner .bx-head .bx-print span { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+  .event-planner .bx-head .bx-print .bx-ico { width: 17px; height: 17px; }
+  .event-planner #bxFeedback { font-size: 0; }
+  .event-planner #bxFeedback::before { content: ""; display: block; width: 18px; height: 18px; background: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 2.5h12v8.5H6.5L3 14v-3H2z' fill='none' stroke='black' stroke-width='1.4' stroke-linejoin='round'/%3E%3Cpath d='M5 6h6M5 8.3h4' stroke='black' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M2 2.5h12v8.5H6.5L3 14v-3H2z' fill='none' stroke='black' stroke-width='1.4' stroke-linejoin='round'/%3E%3Cpath d='M5 6h6M5 8.3h4' stroke='black' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat; }
+}
+@media (max-width: 600px) {
+  .event-planner .bx-brief { padding-top: 8px; }
+  .event-planner .ev-lead .ev-callouts dt { padding-top: 6px; padding-bottom: 6px; }
+  .event-planner .ev-lead .ev-callouts dd { padding: 4px 0 5px; }
+  .ev-lead-when, .ev-lead-watch { line-height: 1.3; }
+}
+/* At a glance: the rating line names its subject and may wrap; a box, not a pill */
+.evd-badge { border-radius: 8px; line-height: 1.25; }
+/* hourly charts: hours between a planner's slots (shown, shaded, labelled; outside the schedule) */
+.evc-between{fill:var(--muted);opacity:.14}.evc-betweentext{font:600 11px var(--bx-font);fill:var(--muted)}
+.evc-key .k-between{width:14px;height:14px;background:color-mix(in srgb,var(--muted) 30%,transparent);border-radius:2px}

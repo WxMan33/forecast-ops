@@ -4,7 +4,8 @@
 |---|---|
 | Main site: `https://wxman33.github.io/forecast-ops/threats.html`, plus the Overview card | `main` |
 | Shared beta (`beta-previews`, raw.githack.com) | `main`'s map, plus Event Manager's Weather Threats section (beta only) |
-| Rainfall preview: `https://claude-threats-rain.forecast-ops-beta.pages.dev/threats` | `claude-threats-rain` (not on main or the beta yet) |
+| Rainfall preview: `https://claude-threats-rain.forecast-ops-beta.pages.dev/threats` | `claude/threats-rain` (not on main or the beta yet) |
+| Combined beta preview (rainfall + Event Manager): `https://claude-threats-em-combined.forecast-ops-beta.pages.dev` | `claude/threats-em-combined` (isolated; not the shared beta) |
 
 The main site and the githack betas read the NWS, SPC and WPC files that refuse browsers through the Cloudflare Pages functions
 at `https://forecast-ops-beta.pages.dev/api/…`. NOAA map services (`mapservices.weather.noaa.gov`: radar, rainfall, WPC outlooks,
@@ -40,6 +41,42 @@ WSSI, NHC, MDs) answer browsers directly. Sources are listed in `SOURCES.md`; th
   their source row says "Not loaded · no flood warning in view", and it updates as the map is panned. The 7-day panel still makes one
   lookup within 25 mi of the venue for rivers forecast to flood.
 
+## Auto for the site, active alerts and labels (combined preview, `fde6af2`)
+
+- **One site assessment** (`siteAssess()` in `assets/threats.js`) feeds the 7-day dashboard, Auto and the alert strip. It also
+  fixes forecast-only triggers, which read a field the stored answer never had.
+- **Coverage** is decided three ways, then merged:
+  - storm-based warnings by their polygon;
+  - zone-listed alerts by the site's own NWS zones (forecast zone, county, fire-weather zone, from the point record), with no
+    outline needed;
+  - NWS's own point check.
+
+  **Nearby** means the alert's real edge is within 50 mi, outside the alert area. **Coverage unknown** means neither test can
+  answer yet.
+- **7-day answers are cached and requested per site**, so a slow answer for an earlier site can't be stored as the current one
+  (tested A → B → A with B answering last).
+- **A fresh visit opens on the site** at venue zoom, in **Auto for this site**. The summary reads "Auto · Radar + alerts" or
+  "Auto · Flooding + Radar"; any layer change makes it "Manual · …". The picker says why each group is on, and **Return to Auto
+  for this site** restores it. National is one tap away.
+- **Active alerts strip** above the 7 days: **In effect at this site**, **Nearby · outside the alert area**, **Coverage
+  unknown**. Each alert shows:
+  - its official name;
+  - its NWS impact tag (Tornado Emergency, Flash Flood Emergency, Destructive, Considerable);
+  - start and expiration in the site's time;
+  - the issuing office, Show on map, and the NWS bulletin.
+
+  Quiet days read "No significant hazards identified" and keep the expected weather.
+- **Labels:** every area and marker is still drawn. Text priority:
+  - alerts covering the site, emergencies, tornado and the most urgent warning types: any zoom;
+  - other warnings: from zoom 5.5;
+  - advisories: from 6.5.
+- **Flooding group:** gauges within 25 mi of the site at, or forecast to reach, action stage show without a warning. They list
+  now, forecast (with its time) and NWPS flood stages; this covers river, lake and tide gauges. A gauge at minor flooding or
+  worse also switches on the Flooding extras (WPC rainfall and the rainfall overlay).
+- **Checks:** `tools/threats-auto-check.js` 18/18. It covers quiet CVG; WPC-only and SPC-only risk (with that family's NWS alerts
+  removed from the feed); active flooding; a gauge near a site; a critical-alert replay (synthetic Tornado Emergency, desktop and
+  phone); A → B → A; manual links; Return to Auto.
+
 ## Next 7 days (the first view)
 
 The headline names the highest threat ahead, with its day and source. Below it: NWS alerts at the venue now or scheduled, then one
@@ -57,6 +94,19 @@ card per local day. Sources at the venue's point:
 "Nearby" is a higher SPC or WPC area within 100 mi, shown one level lower. A source that doesn't answer makes that day "not
 confirmed", never quiet. About 45 requests, refreshed every 10 minutes; a failed lookup is retried after a minute. The logic is in
 `assets/threats-outlook.js`.
+
+**Forecast highlights for this site** (NWS forecast grid; not alerts or outlooks, and never worded as one):
+- heavy rain: the wettest rolling 24 h of forecast amounts at 1 in or more (`?hlrain=`);
+- wintry mix: snow, sleet or freezing rain at least possible;
+- lingering rain: 6 h or more of rain likely, with the weekday commutes it covers;
+- heat: heat index of 90°F or more (`?hlheat=`).
+
+They lead the panel when no warning covers the site and no official outlook is level 2 or higher. If the grid doesn't load:
+"Forecast highlights not available". If NWS serves the grid with layers empty (this happened on the shared beta on
+2026-11-25: no rain amounts and no weather types, while the rain chance was 100%), the panel says "Not fully checked" and names
+what couldn't be checked, today's card and the lead say not confirmed, and the headline is "in the sources that answered".
+A grid without a heat index (normal outside summer) still counts as checked while temperatures are there. Replay:
+`tools/lib/grid-replay.js` scenario `partial`, `?testreplay=`.
 
 ## Rainfall overlays (preview `claude-threats-rain`; with Flooding)
 
@@ -155,7 +205,7 @@ non-commercial use within CARTO's monthly view limit; a paid or high-traffic lau
 
 | Tool | What it covers | Last result |
 |---|---|---|
-| `threats-rain-check.js` | Rainfall: live, replay (saved NOAA answers, clock pinned: current and delayed), outage, automatic and manual, desktop and phone | 19/19 on `70b1bab` (rainfall preview) |
+| `threats-rain-check.js` | Rainfall: live, replay (saved NOAA answers, clock pinned: current and delayed), outage, automatic (flood warning: fallen; forecast-only Flood Watch: to come) and manual, switching by tap on a phone, desktop and phone | 23/23 on `490e687` (rainfall preview), with fixes 44/44, request counts 16/16, At this spot 6/6 |
 | `threats-planner-check.js` | Full Threats regression, including Event Manager (combined beta) | 102/102 on the 2026-11-24 release; the earlier suite (103 cases) passed on `00ed0f5`, `de98663`, `7813e4a` and `25b9f10` |
 | `threats-fixes-check.js` | Audit fixes, presets, radar, venue forecast, clicks, venue marker, basemap failover, river gauges under flood warnings | 44/44 on the 2026-11-24 release |
 | `threats-feeds-check.js` | Request counts: fresh visit (automatic), picker, one layer, layer off, links | 16/16 on the 2026-11-24 release |

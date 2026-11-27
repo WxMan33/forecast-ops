@@ -1,0 +1,85 @@
+{
+ "note": "Real api.weather.gov through the local Pages harness (same handler as functions/api/nws/[[path]].js), 2026-11-20T20:03:16.396035+00:00",
+ "responses": [
+  {
+   "request": "/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
+   "status": 200,
+   "cache": "HIT",
+   "upstreamFetchedAt": "2026-11-20T20:03:07.692Z",
+   "cors": "http://localhost:8822",
+   "bytes": 208
+  },
+  {
+   "request": "/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch",
+   "status": 200,
+   "cache": "HIT",
+   "upstreamFetchedAt": "2026-11-20T20:03:07.692Z",
+   "cors": "http://localhost:8822",
+   "bytes": 208
+  },
+  {
+   "request": "/zones/county/PAC101",
+   "status": 200,
+   "cache": "HIT",
+   "upstreamFetchedAt": "2026-11-20T19:58:44.517Z",
+   "cors": "http://localhost:8822",
+   "bytes": 20735
+  },
+  {
+   "request": "/zones/forecast/ANZ430",
+   "status": 200,
+   "cache": "HIT",
+   "upstreamFetchedAt": "2026-11-20T19:58:44.620Z",
+   "cors": "http://localhost:8822",
+   "bytes": 736522
+  },
+  {
+   "request": "/alerts/active?event=Flood%20Warning",
+   "status": 404,
+   "cache": null,
+   "upstreamFetchedAt": null,
+   "cors": "http://localhost:8822",
+   "bytes": 45
+  },
+  {
+   "request": "/points/39,-84",
+   "status": 404,
+   "cache": null,
+   "upstreamFetchedAt": null,
+   "cors": "http://localhost:8822",
+   "bytes": 45
+  }
+ ],
+ "upstreamRequestsSentByTheFunction": [
+  {
+   "at": "2026-11-20T19:58:43.820Z",
+   "url": "https://api.weather.gov/alerts/active?event=Severe%20Thunderstorm%20Warning,Severe%20Thunderstorm%20Watch,Tornado%20Warning,Tornado%20Watch",
+   "userAgent": "(forecast-ops, github.com/WxMan33/forecast-ops)",
+   "status": 200
+  },
+  {
+   "at": "2026-11-20T19:58:44.412Z",
+   "url": "https://api.weather.gov/zones/county/PAC101",
+   "userAgent": "(forecast-ops, github.com/WxMan33/forecast-ops)",
+   "status": 200
+  },
+  {
+   "at": "2026-11-20T19:58:44.531Z",
+   "url": "https://api.weather.gov/zones/forecast/ANZ430",
+   "userAgent": "(forecast-ops, github.com/WxMan33/forecast-ops)",
+   "status": 200
+  },
+  {
+   "at": "2026-11-20T19:58:44.634Z",
+   "url": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.e32e136969fb5972c1fa57107228588a8bd634fd.001.1",
+   "userAgent": "(forecast-ops, github.com/WxMan33/forecast-ops)",
+   "status": 200
+  },
+  {
+   "at": "2026-11-20T20:03:06.994Z",
+   "url": "https://api.weather.gov/alerts/active?event=Severe%20Thunderstorm%20Warning,Severe%20Thunderstorm%20Watch,Tornado%20Warning,Tornado%20Watch",
+   "userAgent": "(forecast-ops, github.com/WxMan33/forecast-ops)",
+   "status": 200
+  }
+ ]
+}

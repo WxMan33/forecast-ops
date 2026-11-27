@@ -26,7 +26,9 @@
   /* a saved event opened again in a later session (approximate, per browser) */
   if (!linkEvent && !linkCity && !isSample()) { const last = O.store.get(SEEN, null); let sess = null; try { sess = sessionStorage.getItem("beta_sess_seen"); sessionStorage.setItem("beta_sess_seen", "1"); } catch (e) { /* no storage */ }
     if (last && !sess) U.track("event_revisited"); }
-  const link = () => { const u = new URL(location.href); u.hash = ""; u.search = isSample() ? new URLSearchParams({ lat: ev.loc.lat, lon: ev.loc.lon, name: ev.loc.name, tz: ev.tz }) : new URLSearchParams({ e: S.eventToParam(ev) }); return u.toString(); };
+  const link = () => { const u = new URL(location.href); u.hash = ""; u.search = isSample() ? new URLSearchParams({ lat: ev.loc.lat, lon: ev.loc.lon, name: ev.loc.name, tz: ev.tz }) : new URLSearchParams({ e: S.eventToParam(ev) });
+    const x = !isSample() && window.EventThreats && window.EventThreats.shareParams ? window.EventThreats.shareParams(ev) : null; if (x) Object.entries(x).forEach(([k, v]) => u.searchParams.set(k, v)); // weather threats: airports travel beside the event, never inside e
+    return u.toString(); };
   /* Print / PDF sits in the toolbar with the other page controls (before Feedback); live once a briefing is ready */
   const PRINT_ICON = '<svg class="bx-ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 6V1.5h8V6M4 12H2.5A1 1 0 0 1 1.5 11V7a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H12M4 9.5h8v5H4z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
   const head = U.header({ audience: "Event", other: { self: "event-beta.html", href: "meteorologist-beta.html", label: "Met" }, ctx: `<div id="picker" class="bx-ctx" style="flex:1 1 auto"></div>`,
@@ -40,6 +42,9 @@
       if (isSample()) ev = sampleAt({ ...p, tz }); else ev = { ...ev, loc: { name: p.name, lat: p.lat, lon: p.lon }, tz };
       run(); } });
   head.onRefresh(() => run());
+  /* on a phone the toolbar shows Print and Feedback as icons: keep their names for screen readers and a tooltip */
+  const fbName = () => { const f = document.getElementById("bxFeedback"); if (f && !f.title) { f.title = "Feedback"; f.setAttribute("aria-label", "Feedback"); } };
+  fbName(); addEventListener("load", fbName); setTimeout(fbName, 1500);
   { const pc = $("picker").querySelector(".bx-ppcopy"); if (pc) pc.title = "Copy a link to this event (also under Share)"; }
   $("editBtn").addEventListener("click", () => UP.editEvent(ev, { title: isStored() ? "Edit event" : "Save as your event", onSaved: (rec) => { ev = rec; E.setLast(rec.id); O.store.set(SEEN, Date.now()); history.replaceState(null, "", `?ev=${encodeURIComponent(rec.id)}`); upCount(); run(); } }));
   $("resetBtn").addEventListener("click", () => { E.setLast(null); history.replaceState(null, "", location.pathname); ev = sampleAt(null);
@@ -91,13 +96,13 @@
     if (dashController) { dashController.destroy(); dashController = null; } $("evDash").hidden = true;
     lastHourly = null; ["shareImage", "tvExport"].forEach((id) => { $(id).disabled = true; $(id).title = "Available once the hourly forecast covers this event"; });
     if ($("map")._dispose) $("map")._dispose();
-    ["alerts", "evDash", "evCharts", "evGrid", "evGridDetail", "evGridLegend", "nwsEv", "blendLine", "hourlyValid", "map", "printView"].forEach((id) => { const el = $(id); if (el) el.innerHTML = ""; });
+    ["alerts", "leadUrgent", "leadBody", "leadAfter", "evDash", "evCharts", "evGrid", "evGridDetail", "evGridLegend", "nwsEv", "blendLine", "hourlyValid", "map", "printView"].forEach((id) => { const el = $(id); if (el) el.innerHTML = ""; });
     head.setUpdated(null);
     $("decision").textContent = "Reading the guidance…"; $("coverage").hidden = true; document.body.dataset.readiness = ""; ["sourceCoverage", "keys", "schedule", "daylight", "hourlyDaylight", "detailBody", "phases", "changes", "checks", "timeline"].forEach((id) => { $(id).innerHTML = ""; });
     /* the schedule and daylight need no forecast: shown now, while the briefing loads, is pending or fails */
     showSchedule(C.event.windows(ev).filter((w) => w.key !== "all"));
     const alertsPromise = U.alerts(where);
-    alertsPromise.then((a) => { if (g !== gen) return; $("alerts").innerHTML = a.available === false ? `<div class="bx-alert-off" role="status" data-alerts="unavailable">NWS alerts could not be checked just now. No alert shown here does not mean none is in effect; check <a href="https://www.weather.gov/" target="_blank" rel="noopener">weather.gov</a>.</div>` : a.slice(0, 2).map((x) => `<div class="bx-alert" role="alert">${st("action", x.event + " in effect")}${x.ends ? `<span class="bx-note">until ${esc(fmt.time(Date.parse(x.ends), ev.tz))}</span>` : ""}<a href="https://forecast.weather.gov/MapClick.php?lat=${ev.loc.lat}&lon=${ev.loc.lon}" target="_blank" rel="noopener">NWS ↗</a></div>`).join(""); });
+    alertsPromise.then((a) => { if (g !== gen) return; alertsCheckedAt = Date.now(); officialBlock(a); });
     const endMs = Math.max(...C.event.windows(ev).map((w) => w.endMs)), days = 7; // the same forecast length Overview and Model Blend request, so this tab's answers for them are reused (briefing values are identical)
     const res = await U.load(where, { days });
     if (g !== gen) return;
@@ -163,13 +168,17 @@
   }
   /* the same event (venue, schedule) keeps its selected hour across refreshes; anything else starts at the focus hour */
   let selKey = null;
-  const selectionKey = () => JSON.stringify([ev.id || ev.name, ev.loc.lat, ev.loc.lon, ev.tz, ev.times]);
+  const selectionKey = () => JSON.stringify([ev.id || ev.name, ev.loc.lat, ev.loc.lon, ev.tz, ev.times, ev.slots || null]);
   function context() {
     const w = C.event.windows(ev), ph = Object.fromEntries(w.map((x) => [x.key, x])), main = ph.event || ph.all, tz = ev.tz;
     $("sampleTag").hidden = !isSample(); $("resetBtn").hidden = isSample();
     $("evName").textContent = ev.name.replace(/ \(sample\)$/, "");
     $("evVenue").textContent = ev.loc.name;
-    $("evWhen").textContent = main ? `${BUI.dateSpan(main.startMs, main.endMs, tz)}${ph.setup ? ` · setup from ${fmt.clock(ph.setup.startMs, tz)}` : ""}` : "";
+    /* planner-defined slots: the whole schedule's dates and times (the slots are listed under Event schedule) */
+    const slotted = C.event.hasSlots(ev) && w.length > 2;
+    $("evWhen").textContent = slotted && ph.all ? BUI.dateSpan(ph.all.startMs, ph.all.endMs, tz) : main ? `${BUI.dateSpan(main.startMs, main.endMs, tz)}${ph.setup ? ` · setup from ${fmt.clock(ph.setup.startMs, tz)}` : ""}` : "";
+    const pn = $("secPhases") && $("secPhases").querySelector("summary .bx-note"); if (pn) pn.textContent = C.event.hasSlots(ev) ? w.filter((x) => x.key !== "all").map((x) => x.label).join(", ") : "setup, gates, event, teardown";
+    if (window.EventThreats) window.EventThreats.update(ev); // weather threats follow the venue and schedule on screen
   }
 
   /* the event schedule, once: each part with its venue-local times. The weather for these times is in the briefing above
@@ -193,6 +202,36 @@
   const refreshSupport=()=>{if(!document.hidden&&lastRes&&lastView)renderSupport(lastRes,lastView.b);};
   setInterval(refreshSupport,60000);
   document.addEventListener('visibilitychange',refreshSupport);
+  /* ---- official alerts: their own block after the forecast concern; "none" only when the check succeeded ---- */
+  let alertsCheckedAt = null, lastLead = null;
+  const LEAD = window.EventLead;
+  function officialBlock(a, L) {
+    const lead = L || { official: LEAD.official(a, a.available !== false) };
+    $("alerts").innerHTML = LEAD.officialHtml(lead, { tz: ev.tz, lat: ev.loc.lat, lon: ev.loc.lon, checkedAt: alertsCheckedAt });
+  }
+  /* the last hour the HRRR (the forecast radar's model) has guidance for, from the loaded data */
+  function hrrrEnd(B) { const h = B.models.gfs_hrrr && B.models.gfs_hrrr.h, a = h && (h.precipitation || h.precipitation_probability); if (!a) return null;
+    for (let i = a.length - 1; i >= 0; i--) if (fin(a[i])) return B.ms[i]; return null; }
+  /* the lead: one concern, its timing and phases, what it means, what would change the plan, evidence, why it is flagged */
+  function renderLead(res, { b, A, R, V, top, limited }) {
+    const ctx = res.ctx, feeds = res.eventFeeds || res.feeds;
+    const o = { b, A, R, S, V, ctx, feeds, alerts: res.alerts, alertsAvailable: res.alertsAvailable, tz: ev.tz, now: ctx.now, limit: ev.gust || 25, recipe: res.recipe,
+      names: U.NAMES, checkedAt: alertsCheckedAt, update: lastView && lastView.update, mapOk: !!S.market(ev.loc.lat, ev.loc.lon).map, hrrrEnd: hrrrEnd(ctx.B) };
+    const L = LEAD.model(o), W = LEAD.why(o, L); lastLead = { L, W, o }; lastView.lead = lastLead;
+    document.body.dataset.leadKind = L.kind; document.body.dataset.official = L.official.state + (L.official.urgent.length ? "-urgent" : "");
+    $("leadBody").innerHTML = LEAD.leadHtml(L, { tz: ev.tz, lat: ev.loc.lat, lon: ev.loc.lon });
+    const urgent = LEAD.urgentHtml(L, { tz: ev.tz, lat: ev.loc.lat, lon: ev.loc.lon }); $("leadUrgent").innerHTML = urgent; $("leadUrgent").hidden = !urgent;
+    $("leadAfter").innerHTML = LEAD.afterHtml(L, W);
+    officialBlock(res.alerts, L);
+    const why = $("whyFlagged"); if (why) why.addEventListener("toggle", () => { if (why.open) U.track("why_flagged_opened"); });
+  }
+  /* evidence links: the hourly charts and the forecast radar open at the concern's hour (the shared time bus) */
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest("[data-evidence]"); if (!a) return; e.preventDefault();
+    const ms = +a.dataset.at; if (bus && fin(ms)) bus.set(ms, "lead");
+    if (a.dataset.evidence === "charts") { const d = $("secHourly"); d.open = true; d.scrollIntoView({ behavior: "smooth", block: "start" }); d.querySelector("summary").focus({ preventScroll: true }); }
+    else { const m = $("secMap"); m.scrollIntoView({ behavior: "smooth", block: "start" }); }
+  });
   function render(res, { recovered = false } = {}) {
     const ctx = res.ctx, tz = ev.tz, now = ctx.now, thr = { gust: ev.gust || 25 };
     if (isSample() && !ev.picked) { const v = ev.loc.name === S.SAMPLE_VENUE.name ? null : ev.loc; ev = { ...S.pickSample(ctx, C, ev.tz, [1, 2, 3], v), picked: true }; context(); }
@@ -206,14 +245,18 @@
     const top = b.top, checks = S.checkAgain(ctx, b, U.NAMES), next = checks[0];
     /* one set of hourly values for everything below: the grid, the phase summaries and the printout */
     const V = window.HourlyViews.eventView({ C, S, M: window.HourlyModel, ctx, brief: b, thr, tz, now });
-    const PS = window.HourlyModel.phaseSummaries(S, b, V.hrs, V.cover), live = PS.filter((p) => p.covered);
+    const PS = window.HourlyModel.phaseSummaries(S, b, V.hrs, V.cover, V.coverAt), live = PS.filter((p) => p.covered);
     const peak = live.filter((p) => p.peakPop).reduce((a, p) => (!a || p.peakPop.v > a.v ? p.peakPop : a), null);
     const lightAll = lightningOf(PS), nwsTh = window.HourlyModel.nwsThunder(ctx.nws, b.all.startMs, b.all.endMs);
     const A = BUI.attention({ b, V, S, thr }); // the same hourly values and venue limit feed the screen tracks and the printout
+    const prevUpdate = lastView && lastView.update;
     lastView = { b, V, PS, peak, lightAll, nwsTh, R: null, checks, top, A, daylight: daylight() };
+    if (recovered && prevUpdate) lastView.update = prevUpdate; // a late source is a coverage change, not a new visit
     /* ---- the decision, then the three facts that support it ---- */
     /* ---- how much of the event the guidance reaches: pending, partly covered or ready ---- */
     const R = S.readiness(b, ctx); document.body.dataset.readiness = R.state; lastView.R = R;
+    /* missing or thin guidance for the event hours (EventLead.gaps): never read as "no concern" anywhere below */
+    const G = LEAD.gaps({ b, V, R, feeds: BUI.eventFeeds(res.feeds, ctx.B, b.all.startMs, b.all.endMs), alertsAvailable: res.alertsAvailable, now, tz });
     if (R.state === "past") { $("decision").textContent = "This event has ended."; $("keys").innerHTML = '<dt>Next</dt><dd>Edit the event to brief a future date.</dd>'; $("coverage").hidden = true; return; }
     const around = (ms) => { const h = Math.ceil(ms / H) * H; return `${fmt.day(h, tz)}, about ${fmt.clock(h, tz)}`; };
     const remind = R.readyAt ? remindHtml(R.readyAt, "Add a calendar reminder") : "";
@@ -228,9 +271,11 @@
       $("coverage").innerHTML = R.state === "ready" ? `<b>Forecast covers ${esc(R.names[0])} through ${esc(R.names[R.names.length - 1])}.</b>`
         : `<b>${esc(R.line)}</b><span class="bx-note"> · full briefing around ${esc(around(R.readyAt))}</span>${remind}`;
       const d = S.decision(b), text = !top && R.state === "partial" ? `No weather concern so far for ${R.inRange}.` : d.text;
-      const displayText = BUI.headline(b, text);
-      $("decision").innerHTML = top ? esc(displayText).replace(esc(top.noun), `<span class="hz" style="--tier:var(--${top.tier})">${esc(top.noun)}</span>`) : esc(displayText);
-      $("keys").innerHTML = callouts({ A, PS, live, peak, lightAll, next, R, tz, now });
+      const displayText = BUI.headline(b, text, { limited: G.limited, incomplete: G.incomplete, partial: R.state === "partial" });
+      /* the hazard word is highlighted wherever the headline puts it ("Rain likely…", "Plan for rain…") */
+      const hz = top ? new RegExp(esc(top.noun).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") : null;
+      $("decision").innerHTML = top ? esc(displayText).replace(hz, (m) => `<span class="hz" style="--tier:var(--${top.tier})">${m}</span>`) : esc(displayText);
+      $("keys").innerHTML = callouts({ A, PS, live, peak, lightAll, next, R, tz, now, gapText: G.incompleteRain, gapAll: G.incomplete });
     }
     $("coverage").querySelectorAll("[data-remind]").forEach((a) => a.addEventListener("click", () => U.track("reminder_exported", { via: a.dataset.remind })));
     earlyOutlook(res, R, around);
@@ -240,18 +285,21 @@
     if (!recovered) briefingUpdate(ev, b, V, res); // a source answering late is a coverage change, not a new visit to compare
     monitoringHandoff(ev, b, now);
     gapFlag(res);
+    if (R.state !== "pending") renderLead(res, { b, A, R, V, top }); else { ["leadUrgent", "leadBody", "leadAfter"].forEach((id) => { $(id).innerHTML = ""; }); $("leadUrgent").hidden = true; officialBlock(res.alerts); }
     $("secTimeline").hidden = false;
     showSchedule(b.phases);
     if (R.state === "pending") { detail(b, ctx, thr); return; } // nothing at event time yet: schedule and sources only
     /* ---- phases: from the same hours as the grid ---- */
     $("phases").innerHTML = b.phases.map((p, i) => {
       const P = PS[i], past = p.cov.status === "past";
+      const gap = G.missingHours.some((ms) => ms + H > p.startMs && ms < p.endMs); // a part with hours that have no guidance is not "no concern"
+      if (!past && !P.covered && gap) return `<div class="bx-phase pending" data-phase="${esc(p.key)}"><div><div class="nm">${esc(p.label)} <span class="tm">${esc(fmt.span(p.startMs, p.endMs, tz))}</span></div><div style="margin-top:3px;font-size:13.5px">${st("monitor", "Guidance incomplete")} <span class="bx-note">no forecast data for these hours (missing, not zero)</span></div></div></div>`;
       if (!past && !P.covered) return `<div class="bx-phase pending"><div><div class="nm">${esc(p.label)} <span class="tm">${esc(fmt.span(p.startMs, p.endMs, tz))}</span></div><div style="margin-top:3px;font-size:13.5px">${st(null, "Pending")} <span class="bx-note">in range around ${esc(around(Math.max(now, p.startMs - R.lead)))}</span></div></div></div>`;
-      const lvl = p.level, status = past ? st(null, "Done") : lvl ? st(S.LEVEL_TIER[lvl], `${S.HAZARDS[p.top].label}: ${S.LEVEL_WORD[lvl].toLowerCase()}`) : st(null, "No concern found");
-      const temp = P.temp ? (Math.round(P.temp.lo) === Math.round(P.temp.hi) ? `${Math.round(P.temp.hi)}°` : `${Math.round(P.temp.lo)}–${Math.round(P.temp.hi)}°`) : "—";
+      const lvl = p.level, status = past ? st(null, "Done") : lvl ? st(S.LEVEL_TIER[lvl], `${S.HAZARDS[p.top].label}: ${S.LEVEL_WORD[lvl].toLowerCase()}`) : gap ? st("monitor", "Guidance incomplete") : st(null, "No concern found");
+      const temp = P.temp ? (Math.round(P.temp.lo) === Math.round(P.temp.hi) ? `${Math.round(P.temp.hi)}°` : `${Math.round(P.temp.lo)}–${Math.round(P.temp.hi)}°`) : "No data";
       const L = P.lightning, lw = L.state === "limited" ? `${L.word} · limited guidance` : L.word;
       return `<div class="bx-phase ${past ? "past" : ""}" data-phase="${esc(p.key)}"><div><div class="nm">${esc(p.label)} <span class="tm">${esc(fmt.span(p.startMs, p.endMs, tz))}</span></div><div style="margin-top:3px;font-size:13.5px">${status}</div></div><div class="tp">${temp}</div>
-        <div class="mt"><span>Peak hourly rain chance: <b data-peak>${esc(P.peakPop ? U.pct(P.peakPop.v) : "—")}</b>${P.peakPop ? ` <span class="bx-note">${esc(BUI.hourWindow(P.peakPop.at, tz))}</span>` : ""}</span><span>Lightning potential: <b data-light>${esc(lw)}</b></span><span>Gusts to <b>${esc(P.gust ? mph(P.gust.v) : "—")}</b></span></div></div>`;
+        <div class="mt"><span>Peak hourly rain chance: <b data-peak>${esc(P.peakPop ? U.pct(P.peakPop.v) : "No data")}</b>${P.peakPop ? ` <span class="bx-note">${esc(BUI.hourWindow(P.peakPop.at, tz))}</span>` : ""}</span><span>Lightning potential: <b data-light>${esc(lw)}</b></span><span>Gusts to <b>${esc(P.gust ? mph(P.gust.v) : "No data")}</b></span></div></div>`;
     }).join("");
     $("nwsEv").innerHTML = U.nwsBlock(res, tz, { from: b.all.startMs, to: b.all.endMs, max: 3 }) + thunderNote(nwsTh, lightAll, tz);
     $("blendLine").innerHTML = `<b>Model blend:</b> ${esc(U.blendLine(res))}. ${esc(res.verified)}`;
@@ -276,24 +324,35 @@
   }
   /* ---- the briefing's callouts: rain, lightning potential, and the third concern (gusts against the venue limit unless
      another hazard ranks higher), then the next check. Values come from the briefing engine and the attention model. ---- */
-  function callouts({ A, PS, live, peak, lightAll, next, R, tz, now }) {
-    const item = (k) => A.items.find((x) => x.key === k), when = (it) => { const f = BUI.focusOf(it, A.phases);
-      return [f.text, f.from != null ? fmt.span(f.from, f.to, tz) : ""].filter(Boolean).join(" · "); };
+  function callouts({ A, PS, live, peak, lightAll, next, R, tz, now, gapText = "", gapAll = "" }) {
+    /* the lead above already gives the primary concern's hours; its callout keeps only where in the schedule it falls */
+    const item = (k) => A.items.find((x) => x.key === k), when = (it) => { const f = BUI.focusOf(it, A.phases), lead = A.items[0] === it && f.text;
+      return [f.text, f.from != null && !lead ? fmt.span(f.from, f.to, tz) : ""].filter(Boolean).join(" · "); };
     const tierCls = (it) => it && it.tier ? ` class="ev-c" data-tier="${esc(it.tier)}" style="--tier:var(--${esc(it.tier)})"` : ' class="ev-c"';
     const dt = (label, it) => `<dt${it && it.tier ? ` data-tier="${esc(it.tier)}" style="--tier:var(--${esc(it.tier)})"` : ""}>${esc(label)}</dt>`;
     const rain = item("rain"), light = item("lightning"), wind = item("wind");
-    const rainDd = rain ? `<dd${tierCls(rain)}><b>${esc(rain.word || "Possible")}</b> · up to ${esc(U.pct(peak ? peak.v : (rain.peak && rain.peak.v)))}<span class="bx-note">${esc(when(rain))}</span></dd>`
+    /* each number and each label has its own job: the value line is the forecast number; the planning impact (the tier
+       word and its practical line, EventLead.IMPLICATION) sits on its own line, so "Likely disruptive · up to 90%" can't
+       read as a 90% chance of disruption. The primary concern's hours are in the lead line above. */
+    const primary = A.items[0], impact = (it) => { const line = it && it.word && LEAD.IMPLICATION[it.key] ? LEAD.IMPLICATION[it.key][it.level] : "";
+      return it && it.word ? `<span class="bx-note ev-impact" data-impact><b>${esc(it.word)}.</b> ${esc(line || "")}</span>` : ""; };
+    const sub = (it) => (it === primary && it.word ? impact(it) : `<span class="bx-note">${it && it.word ? `<b>${esc(it.word)}.</b> ` : ""}${esc(when(it))}</span>`);
+    /* the rain number is the highest single-hour chance of rain (HourlyModel.phaseSummaries peakPop), so it says so */
+    const rainDd = rain ? `<dd${tierCls(rain)}>Up to ${esc(U.pct(peak ? peak.v : (rain.peak && rain.peak.v)))} in the likeliest hour${sub(rain)}</dd>`
+      : peak && gapText ? `<dd class="ev-c" data-incomplete>Up to ${esc(U.pct(peak.v))} in hours with guidance<span class="bx-note">${esc(gapText)}.</span></dd>`
       : peak ? `<dd class="ev-c">Peak hourly ${esc(U.pct(peak.v))}<span class="bx-note">${esc(fmt.day(peak.at, tz))}, ${esc(BUI.hourWindow(peak.at, tz))} · no rain concern for the plan</span></dd>`
       : `<dd class="ev-c">${live.length ? "Unavailable" : "Not in range yet"}<span class="bx-note">${live.length ? "No hourly rain chance came back for these hours (not zero). Try ↻ later." : ""}</span></dd>`;
-    const lightDd = `<dd${tierCls(light)}>${esc(lightAll.word)}<span class="bx-note">${light ? `${esc(when(light))}. ` : ""}${esc(lightAll.note)}</span></dd>`;
+    const lnote = gapAll && lightAll.limited && lightAll.base === "Low" ? "Low is not zero; some hours have no data." : lightAll.note; // shorter when the lead already names the missing hours
+    const lightDd = light && light === primary && light.word ? `<dd${tierCls(light)}>${esc(lightAll.word)} potential${impact(light)}</dd>`
+      : `<dd${tierCls(light)}>${esc(lightAll.word)}<span class="bx-note">${light ? `${esc(when(light))}. ` : ""}${esc(lnote)}</span></dd>`;
     /* third: another hazard the engine ranks above wind (heat, snow, cold), else gusts against the venue's own limit */
     const other = A.items.find((x) => !["rain", "lightning", "wind"].includes(x.key) && (!wind || x.level > wind.level));
     let third;
-    if (other) third = `${dt(other.label, other)}<dd${tierCls(other)}><b>${esc(other.word || "")}</b><span class="bx-note">${esc(when(other))}</span></dd>`;
+    if (other) third = `${dt(other.label, other)}<dd${tierCls(other)}>${esc(when(other) || other.label)}${other === primary ? impact(other) : `<span class="bx-note"><b>${esc(other.word || "")}.</b></span>`}</dd>`;
     else {
       const g = live.filter((p) => p.gust), gmax = g.length ? Math.max(...g.map((p) => p.gust.v)) : null;
-      third = wind && wind.windows.length ? `${dt("Gusts", wind)}<dd${tierCls(wind)}><b>Reach your ${A.limit} mph limit</b> · up to ${esc(mph(Math.max(...wind.windows.map((w) => w.peak ? w.peak.v : 0))))}<span class="bx-note">${esc(when(wind))}</span></dd>`
-        : `${dt("Gusts", wind)}<dd${tierCls(wind)}>${fin(gmax) ? `Up to ${esc(mph(gmax))}` : "Unavailable"}<span class="bx-note">${fin(gmax) ? `Below your ${A.limit} mph venue limit` : "No gust guidance for these hours (not zero)"}</span></dd>`;
+      third = wind && wind.windows.length ? `${dt("Gusts", wind)}<dd${tierCls(wind)}><b>Reach your ${A.limit} mph limit</b> · up to ${esc(mph(Math.max(...wind.windows.map((w) => w.peak ? w.peak.v : 0))))}${wind === primary && wind.word ? impact(wind) : `<span class="bx-note">${esc(when(wind))}</span>`}</dd>`
+        : `${dt("Gusts", wind)}<dd${tierCls(wind)}>${fin(gmax) ? `Up to ${esc(mph(gmax))}${gapAll ? " in hours with guidance" : ""}` : "Unavailable"}<span class="bx-note">${fin(gmax) ? `${gapAll ? `Below your ${A.limit} mph limit` : `Below your ${A.limit} mph venue limit`}` : "No gust guidance for these hours (not zero)"}</span></dd>`;
     }
     const nextDd = next ? `${vt(next.at, tz, now)}<span class="bx-note">${esc(next.what)}</span>` : "Now: use radar, lightning detection and NWS warnings.";
     return `${dt("Rain chance", rain)}${rainDd}${dt("Lightning potential", light)}${lightDd}${third}<dt>Next check</dt><dd class="ev-next">${nextDd}</dd>`;
@@ -303,7 +362,7 @@
     const f = res.eventFeeds || res.feeds, host = $("gapFlag"); if (!f || !host) return;
     const total = f.used.length + f.missing.length, material = total && f.used.length / total < 0.7;
     host.hidden = !material;
-    if (material) host.textContent = `Limited guidance: ${f.used.length} of ${total} model sources reach these hours (missing ${f.missing.slice(0, 3).map((m) => m.name).join(", ")}${f.missing.length > 3 ? " and more" : ""}). Treat timing as rough.`;
+    if (material) host.innerHTML = `<span class="ev-kind" data-kind="missing">Missing guidance</span> Limited guidance: ${esc(f.used.length)} of ${esc(total)} model sources reach these hours (missing ${esc(f.missing.slice(0, 3).map((m) => `${m.name}${m.why ? ` (${m.why})` : ""}`).join(", "))}${f.missing.length > 3 ? " and more" : ""}). Treat timing as rough.`;
   }
   /* lightning potential across the event: the strongest hourly tier, said plainly; missing guidance never reads Low */
   function lightningOf(PS) {
@@ -356,7 +415,7 @@
     const word = { favored: "Favored", possible: "Possible", unlikely: "Unlikely", none: "No snow" }, tierOf = { favored: "prepare", possible: "monitor", unlikely: "normal", none: "nodata" };
     const at = (ms) => U.fmt.clock ? U.fmt.clock(ms, ev.tz) : new Date(ms).toLocaleTimeString("en-US", { timeZone: ev.tz, hour: "numeric", minute: "2-digit" });
     const lvl = (k) => `<span class="evc-tbadge" style="--tier:var(--${tierOf[k] || "nodata"})">${esc(word[k] || k)}</span>`;
-    const A = R.amount, inch = (x) => (fin(x) ? x.toFixed(1) : "—");
+    const A = R.amount, inch = (x) => (fin(x) ? x.toFixed(1) : "no data");
     box.innerHTML = `<div class="ev-wbox" data-winter="${esc(R.status)}"><b>Winter: what could stick</b>${R.status === "snow" ? `
       <div class="ev-wrow"><span>Grass &amp; elevated surfaces</span>${lvl(R.grass.level)}<span>Paved roads &amp; sidewalks</span>${lvl(R.paved.level)}</div>
       ${R.ranges.length ? `<p><b>When:</b> ${R.ranges.map((r) => `${esc(at(r.s))}–${esc(at(r.e + H))}`).join(", ")}</p>` : ""}
@@ -375,14 +434,14 @@
     const showHour = (ms) => { const i = V.span.indexOf(ms), d = $("evGridDetail"); if (i < 0) { d.hidden = true; return; } d.hidden = false; d.innerHTML = V.detail(i); };
     const pick = (ms) => (fin(ms) ? Math.min(V.span[V.span.length - 1], Math.max(V.span[0], Math.floor(ms / H) * H)) : V.span[0]);
     const sel0 = pick(bus && bus.get());
-    const grid = G.render($("evGrid"), { axis: V.axis, rows: V.rows, selected: sel0, now, label: "Event hour by hour", caption: "Event weather hour by hour, setup through teardown",
+    const grid = G.render($("evGrid"), { axis: V.axis, rows: V.rows, selected: sel0, now, label: "Event hour by hour", caption: C.event.hasSlots(ev) ? "Event weather hour by hour, across your time slots" : "Event weather hour by hour, setup through teardown",
       onSelect: (ms) => { if (bus) bus.set(ms, "grid"); showHour(ms); } });
     $("evGridLegend").innerHTML = `<p class="bx-note">Swipe for more hours · tap an hour for details.</p><details class="bx-more"><summary>How to read these hours</summary>${G.legend(V.legend)}<p class="bx-note">${esc(V.note)}</p><p class="bx-note">Follow NWS warnings and your venue's lightning policy for live decisions.</p></details>`;
     chartController = window.EventHourlyCharts.render($("evCharts"), { view: V, selected: sel0, tz: ev.tz, gustLimit: ev.gust || 25, nwsTypes, onSelect: ms => { if (bus) bus.set(ms, "variable-charts"); showHour(ms); } });
     /* the dashboard under the callouts: the same view, the same selected hour */
     if (dashController) dashController.destroy();
     $("evDash").hidden = false;
-    dashController = window.EventHourlyCharts.dashboard($("evDash"), { view: V, tz: ev.tz, gustLimit: ev.gust || 25, selected: sel0,
+    dashController = window.EventHourlyCharts.dashboard($("evDash"), { view: V, tz: ev.tz, gustLimit: ev.gust || 25, selected: sel0, gapText: lastLead && lastLead.L.gaps.incomplete, schedule: C.event.hasSlots(ev) ? window.EventHourlyCharts.glanceSchedule(C.event.windows(ev)) : null,
       onSelect: (ms) => { if (bus) bus.set(ms, "dashboard"); showHour(ms); }, onOpenHourly: () => $("hourlyLink").click() });
     showHour(sel0);
     lastHourly = { V, nwsTypes }; ["shareImage", "tvExport"].forEach((id) => { $(id).disabled = false; $(id).title = "Save a 1920 × 1080 image of these hours for a TV display"; });
@@ -456,15 +515,15 @@
     const mq = new URLSearchParams({ lat: ev.loc.lat, lon: ev.loc.lon, name: ev.loc.name });
     $("sourcesNote").textContent = lastRes && (lastRes.eventFeeds || lastRes.feeds) ? `${(lastRes.eventFeeds || lastRes.feeds).used.length} of ${(lastRes.eventFeeds || lastRes.feeds).used.length + (lastRes.eventFeeds || lastRes.feeds).missing.length} sources` : "";
     $("detailBody").innerHTML = `
-      <details><summary>All concerns</summary>${b.concerns.length ? `<ul class="bx-list" style="margin-top:8px">${b.concerns.map((c) => `<li><b>${esc(c.label)}: ${esc(c.word.toLowerCase())}</b> — ${esc(c.why)}. ${c.from != null ? "Most likely " + esc(fmt.span(c.from, c.to, tz)) + ". " : ""}Timing: ${esc(c.certainty.word)}.</li>`).join("")}</ul>` : (b.coverage === "full" ? '<p class="bx-note">No hazard reaches a planning threshold.</p>' : '<p class="bx-note">Concerns are listed once the guidance reaches every phase.</p>')}</details>
+      <details><summary>All concerns</summary>${b.concerns.length ? `<ul class="bx-list" style="margin-top:8px">${b.concerns.map((c) => `<li><b>${esc(c.label)}: ${esc(c.word.toLowerCase())}.</b> ${esc(c.why)}. ${c.from != null ? "Most likely " + esc(fmt.span(c.from, c.to, tz)) + ". " : ""}Timing: ${esc(c.certainty.word)}.</li>`).join("")}</ul>` : (b.coverage === "full" ? '<p class="bx-note">No hazard reaches a planning threshold.</p>' : '<p class="bx-note">Concerns are listed once the guidance reaches every phase.</p>')}</details>
       <details><summary>NWS forecast wording</summary><p>${words.length ? esc(words.slice(0, 6).join(" → ")) : "NWS hourly wording unavailable."}</p></details>
       ${lastView ? `<details id="ensDetail"><summary>Rain across ensemble members (a different measure)</summary><p class="bx-note">The share of ensemble model runs with at least 0.01″ of rain at some point during each part of the event. It is not the hourly rain chance shown above, and it usually differs from it.</p><table class="bx-age"><tbody>${lastView.PS.map((P) => `<tr><td>${esc(P.label)}</td><td class="n">${P.ensemble != null ? esc(U.pct(P.ensemble * 100)) + " of members" : "not available"}</td></tr>`).join("")}</tbody></table></details>` : ""}
       <details><summary>Why the numbers can differ</summary><p class="bx-note">Rain chance is the blended hourly chance of rain at the venue's exact location; each part of the event shows its highest single hour, which is not the chance of rain sometime during that part. The rating in the headline (watch, plan for it, likely disruptive) weighs all the guidance for each part, including the ensemble share and how much rain falls, so a part can be rated “plan for it” with a modest hourly chance, or the reverse. The NWS forecast is issued separately and is shown alongside, not mixed in.</p></details>
-      <details><summary>How this briefing is built</summary><p class="bx-note">Values are the Forecast Ops model blend (${esc(lastRes.recipe)}${lastRes.market.tuned ? "" : ", unverified for this market"}) at the venue's coordinates, the same calculation as Model Blend. Lightning potential uses the Thunder page's tiers: Low (its LOW tier — not zero), Moderate (MARGINAL or ELEVATED), High (HIGH); hours without thunder guidance read Unavailable. It describes forecast potential, not detected lightning. Ratings use display thresholds: gusts ${thr.gust}/35/45 mph; rain 20/50/70% of ensemble members or 0.02/0.1/0.25″; snow 0.05/0.3/1″; heat 90/95°; feels-like 32/20°. They are not calibrated probabilities. Timing compares when each model source first shows the hazard.</p></details>
+      <details><summary>How this briefing is built</summary><p class="bx-note">Values are the Forecast Ops model blend (${esc(lastRes.recipe)}${lastRes.market.tuned ? "" : ", unverified for this market"}) at the venue's coordinates, the same calculation as Model Blend. Lightning potential uses the Thunder page's tiers: Low (its LOW tier, not zero), Moderate (MARGINAL or ELEVATED), High (HIGH); hours without thunder guidance read Unavailable. It describes forecast potential, not detected lightning. Ratings use display thresholds: gusts ${thr.gust}/35/45 mph; rain 20/50/70% of ensemble members or 0.02/0.1/0.25″; snow 0.05/0.3/1″; heat 90/95°; feels-like 32/20°. They are not calibrated probabilities. Timing compares when each model source first shows the hazard.</p></details>
       <details><summary>Sources and how recent they are</summary><table class="bx-age"><tbody>${ages.map((a) => `<tr><td>${esc(a.name)}</td><td class="n ${a.late ? "bx-late" : ""}">${a.unknown ? "run time unknown" : esc(fmt.age(a.ageH)) + " old" + (a.late ? " · late" : "")}</td></tr>`).join("")}</tbody></table></details>
       <p style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><a class="bx-btn" href="meteorologist-beta.html?${mq}">Meteorologist view of this venue</a><button class="bx-btn" type="button" id="printBtn">Print / PDF</button></p>`;
     $("printBtn").addEventListener("click", () => { printView(lastRes); window.print(); });
-    $("foot").innerHTML = `<span>Model guidance only — not an official forecast or warning. Follow NWS warnings and your venue's lightning policy.</span><span>Data: Open-Meteo (CC BY 4.0), NWS, NOAA HRRR. ${lastRes.problems.length ? `Partial data: ${esc(lastRes.problems.slice(0, 3).join("; "))}.` : ""}</span><span>Beta for colleague testing. Your events and venues are stored only in this browser.</span>`;
+    $("foot").innerHTML = `<span>Model guidance only, not an official forecast or warning. Follow NWS warnings and your venue's lightning policy.</span><span>Data: Open-Meteo (CC BY 4.0), NWS, NOAA HRRR. ${lastRes.problems.length ? `Partial data: ${esc(lastRes.problems.slice(0, 3).join("; "))}.` : ""}</span><span>Beta for colleague testing. Your events and venues are stored only in this browser.</span>`;
   }
 
   /* ---- printout: two US Letter pages for a typical single-day event, built from the same values as the screen ---- */
@@ -480,7 +539,7 @@
   /* ---- sharing: one set of actions, from the Share menu or from Hour by hour ---- */
   async function exportImage(themeSel, msg) {
     if (!lastHourly) { msg.textContent = "The image is available once the hourly forecast covers this event."; return; }
-    const when = (ms) => (fin(ms) ? `${new Date(ms).toLocaleString("en-US", { timeZone: ev.tz, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} ${fmt.zone(ms, ev.tz)}` : "—");
+    const when = (ms) => (fin(ms) ? `${new Date(ms).toLocaleString("en-US", { timeZone: ev.tz, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} ${fmt.zone(ms, ev.tz)}` : "Unavailable");
     const now = Date.now(), l = C.time.toLocal(now, ev.tz); // file name: the export time, venue-local
     try {
       const data = { title: $("evName").textContent, venue: $("evVenue").textContent, when: $("evWhen").textContent, takeaway: $("decision").textContent,

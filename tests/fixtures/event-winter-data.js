@@ -6,9 +6,11 @@
      unc                   the transition, with NWS hourly wording saying rain for two of the blend's snow hours
      heavy                 a steady soaking rain (about 1.3 in. over the event, heaviest around gates) with one hour of
                            rain/snow mix, light wind; the four sources differ in amount so the totals have a spread
+     short                 heavy, with the guidance ending at 8 PM local, before teardown (the totals cover part of the event)
+     gustgap               heavy, with no gust values at 7 PM and 8 PM local (everything else complete)
    The real engines and page render it; the event travels in the link (?e=), nothing is stored. */
 (function () {
-  const C = OpsCore, S = BetaStory, H = 3600e3, tz = "America/New_York", q = new URLSearchParams(location.search), mode = q.get("wx") || "transition";
+  const C = OpsCore, S = BetaStory, H = 3600e3, tz = "America/New_York", q = new URLSearchParams(location.search), mode = q.get("wx") || "transition", heavy = ["heavy", "short", "gustgap"].includes(mode);
   const now = Date.now(), local = (ms) => C.time.toLocal(ms, tz), day0 = local(now).slice(0, 10);
   const t0 = C.time.fromLocal ? C.time.fromLocal(day0 + "T00:00", tz) : Math.floor(now / H) * H - (+local(now).slice(11, 13)) * H;
   const tomorrow = local(t0 + 30 * H).slice(0, 10);
@@ -19,30 +21,31 @@
     let temp = 40 - (inWin ? (hr - 12) * 1.2 : 0), pop = 10, qpf = 0, snowFrac = 0, gust = 18;
     if (inWin) {
       pop = hr < 14 ? 55 : hr < 22 ? 80 : 60; qpf = hr < 14 ? 0.02 : 0.05; gust = 22 + (hr >= 18 && hr <= 21 ? 6 : 0);
-      if (mode === "heavy") { const Q = [0.06, 0.08, 0.10, 0.12, 0.15, 0.17, 0.16, 0.14, 0.12, 0.10, 0.08, 0.06]; qpf = Q[hr - 12]; pop = 90; gust = 16; temp = 38 - (hr - 12) * 0.3; snowFrac = hr === 18 ? 0.3 : 0; }
+      if (heavy) { const Q = [0.06, 0.08, 0.10, 0.12, 0.15, 0.17, 0.16, 0.14, 0.12, 0.10, 0.08, 0.06]; qpf = Q[hr - 12]; pop = 90; gust = 16; temp = 38 - (hr - 12) * 0.3; snowFrac = hr === 18 ? 0.3 : 0; }
       else if (mode !== "allrain") snowFrac = hr < 17 ? 0 : hr < 20 ? 0.5 : 1; // rain → mix → snow
       else temp = 50 - (hr - 12) * 0.6;
     }
     if (mode === "gaps" && d === tomorrow && (hr === 19 || hr === 20)) { Object.keys(h).forEach((k) => h[k].push(null)); return; }
+    if (mode === "short" && (d > tomorrow || (d === tomorrow && hr >= 20))) { Object.keys(h).forEach((k) => h[k].push(null)); return; }
     /* US units as the page loads them: precipitation in inches, snowfall in inches at Open-Meteo's 7:1 (7 cm per 10 mm) */
-    const v = { temperature_2m: temp, apparent_temperature: temp - 7, precipitation_probability: pop, precipitation: qpf, wind_speed_10m: 12, wind_gusts_10m: gust, snowfall: qpf * snowFrac * 7 };
+    const v = { temperature_2m: temp, apparent_temperature: temp - 7, precipitation_probability: pop, precipitation: qpf, wind_speed_10m: 12, wind_gusts_10m: mode === "gustgap" && d === tomorrow && (hr === 19 || hr === 20) ? null : gust, snowfall: qpf * snowFrac * 7 };
     Object.keys(h).forEach((k) => h[k].push(v[k]));
   });
   const ids = ["gfs_seamless", "ecmwf_ifs025", "ncep_nbm_conus", "gfs_hrrr"];
   /* heavy: each source scales the amounts (snowfall with them) so the event totals have a spread across sources */
   const scaled = (f) => (f === 1 ? h : { ...h, precipitation: h.precipitation.map((x) => (x == null ? x : x * f)), snowfall: h.snowfall.map((x) => (x == null ? x : x * f)) });
-  const models = Object.fromEntries(ids.map((id, k) => [id, { h: mode === "heavy" ? scaled([0.72, 0.95, 1.05, 1.28][k]) : h, d: {} }]));
+  const models = Object.fromEntries(ids.map((id, k) => [id, { h: heavy ? scaled([0.72, 0.95, 1.05, 1.28][k]) : h, d: {} }]));
   const B = { ms, times: ms.map(local), tz, models, viewedAt: now };
   /* NWS grid weather wording: agrees with the blend, except in "unc" where it says rain for two snow hours */
   const at = (hr) => C.time.fromLocal ? C.time.fromLocal(`${tomorrow}T${String(hr).padStart(2, "0")}:00`, tz) : t0 + (24 + hr) * H;
   const wx = [];
   for (let hr = 12; hr < 24; hr++) {
-    const kind = mode === "allrain" ? "rain" : mode === "heavy" ? (hr === 18 ? "mix" : "rain") : hr < 17 ? "rain" : hr < 20 ? "mix" : mode === "unc" && (hr === 21 || hr === 22) ? "rain" : "snow";
+    const kind = mode === "allrain" ? "rain" : heavy ? (hr === 18 ? "mix" : "rain") : hr < 17 ? "rain" : hr < 20 ? "mix" : mode === "unc" && (hr === 21 || hr === 22) ? "rain" : "snow";
     const value = kind === "mix" ? [{ weather: "rain" }, { weather: "snow" }] : [{ weather: kind }];
     wx.push({ validTime: `${new Date(at(hr)).toISOString().replace(".000Z", "+00:00")}/PT1H`, value });
   }
   const NW = { ok: true, office: "ILN", gridX: 37, gridY: 42, hourly: [], parts: { grid: { properties: { weather: { values: wx } } } },
-    periods: [{ s: t0 + 30 * H, e: t0 + 42 * H, name: "Tomorrow", short: mode === "allrain" ? "Rain likely" : mode === "heavy" ? "Rain, heavy at times. A brief mix with snow possible in the evening" : "Rain, then rain and snow, then snow", temp: 40, pop: 80 }] };
+    periods: [{ s: t0 + 30 * H, e: t0 + 42 * H, name: "Tomorrow", short: mode === "allrain" ? "Rain likely" : heavy ? "Rain, heavy at times. A brief mix with snow possible in the evening" : "Rain, then rain and snow, then snow", temp: 40, pop: 80 }] };
   const ctx = S.context({ C, T: ModelTrends, B, ws: Object.fromEntries(ids.map((id) => [id, 1])), rules: null, nws: NW, now });
   ctx.th = { at: (m) => "normal", perModel: () => null, ids: [] };
   const ev = { n: "FC Cincinnati evening match (winter sample)", v: { name: "TQL Stadium, Cincinnati, OH", lat: 39.1113, lon: -84.5222 }, z: tz,
@@ -50,5 +53,5 @@
   if (!q.get("e") && !q.get("ev")) { q.set("e", JSON.stringify(ev)); history.replaceState(null, "", location.pathname + "?" + q.toString() + location.hash); } // a local ?ev= address is left as it is
   BetaUI.load = async () => ({ ctx, NW, RB: {}, problems: [], feeds: { used: ["GFS", "ECMWF IFS", "NBM", "HRRR", "NWS point forecast"], missing: [] }, market: { tuned: false }, recipe: "Default blend recipe", verified: "Design sample with synthetic weather: not a forecast." });
   BetaUI.alerts = async () => [];
-  BetaUI.mapPanel = (el) => { el.innerHTML = '<p class="bx-note">Radar map omitted from this design sample.</p>'; };
+  BetaUI.mapPanel = (el) => { el.innerHTML = '<p class="bx-note">Forecast radar omitted from this design sample.</p>'; };
 })();

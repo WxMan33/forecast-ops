@@ -163,3 +163,19 @@ the map) from `wxman33.github.io`, `raw.githack.com` and the Cloudflare preview.
 3. **The MRMS catalog fails intermittently.** It answered once with `{"status":"error","messages":["Could not access any server
    machines…"]}`, and a legend request once returned non-JSON. Both succeeded on retry. The map shows "Not responding" and retries
    after a minute.
+
+## Alert coverage audit: Snow Squall and Tsunami (2026-11-25)
+
+NWS's event list (`api.weather.gov/alerts/types`) includes **Snow Squall Warning** and **Tsunami Warning, Advisory and Watch**.
+None of them reaches the map today. Each is missing from all three of:
+- the map's event list (`EVENTS` in `assets/threats-feeds.js`);
+- the forwarder's allowlist (`functions/api/nws/[[path]].js`);
+- the hazard map (`HAZARD`: SQ → winter, TS → coastal).
+
+Before enabling, verify:
+- the bulletin source: tsunami messages come from the National and Pacific Tsunami Warning Centers;
+- VTEC presence;
+- cancellation and expiration handling;
+- zone and polygon coverage: snow squall warnings are storm-based polygons; tsunami alerts use coastal land and marine zones.
+
+The label priority already treats both warnings as urgent.

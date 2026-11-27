@@ -1,0 +1,36 @@
+{
+ "at": "2026-11-24T17:35:11.665Z",
+ "result": {
+  "summary": "Not fully confirmed: no flooding, winter weather, fire weather or wildfire, smoke or air quality, tropical, coastal and airport weather threats found in the data we have, but a source is unavailable, stale or doesn't cover this venue or date.",
+  "confirmed": false,
+  "items": [],
+  "statuses": [
+   "NWS warnings, watches and advisories: Checked 11:34 a.m.",
+   "SPC fire weather outlooks: Checked 11:35 a.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NOAA satellite smoke analysis (HMS): Checked 11:35 a.m.",
+   "AirNow air quality observations: Checked 11:35 a.m. · nearest monitor CHI_SP (3 miles northwest): AQI 19 Good (PM2.5) for 11 a.m.",
+   "AirNow air quality forecasts: Checked 11:35 a.m. · Chicago reporting area",
+   "Aviation Weather Center (METAR and TAF): Checked 11:35 a.m. · KORD METAR 1651Z VFR · TAF 1725Z valid to Wed 6 p.m. | KMDW METAR 1653Z VFR · TAF 1725Z valid to Wed 6 p.m.",
+   "FAA airport status (delays, ground stops, closures): Not responding · status unknown. We can't rule anything out from this source.",
+   "NHC tropical outlooks and storm products: Checked 11:35 a.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 11:35 a.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 11:35 a.m. · file 1428Z",
+   "WPC Excessive Rainfall Outlook: Checked 11:34 a.m. · Day 1 issued 1552Z, Day 2 issued 0750Z, Day 3 issued 0750Z"
+  ],
+  "maps": []
+ },
+ "feeds": [
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/metar?ids=KMDW,KORD",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-24T17:35:08.469Z"
+  },
+  {
+   "url": "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/api/awc/taf?ids=KMDW,KORD",
+   "status": 200,
+   "cache": "MISS",
+   "upstreamAt": "2026-11-24T17:35:10.771Z"
+  }
+ ]
+}

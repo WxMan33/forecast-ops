@@ -11,6 +11,7 @@
   document.title = "Forecast Ops · Meteorologist beta";
 
   const TOOLS = [
+    { id: "threats", page: "threats.html", kick: "Threats · next 7 days", name: "Weather Threats", desc: "Official warnings, watches and outlooks on a map with radar, and the approaching threats for this point over the next 7 days." },
     { id: "severe", page: "severe.html", kick: "Storms", name: "Severe", desc: "When storms might happen (storm timing) and what could make them severe (ingredients, soundings)." },
     { id: "winter", page: "winter.html", kick: "Winter", name: "Winter", desc: "Snow and ice guidance, ensemble ranges and chances of reaching key thresholds." },
     { id: "almanac", page: "almanac.html", kick: "Climate", name: "Almanac", desc: "Normals, records and observations from the nearest official climate station, plus daylight for this point." },

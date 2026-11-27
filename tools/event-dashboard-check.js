@@ -43,7 +43,9 @@ const firstScreen = (p) => p.evaluate(() => { const vh = innerHeight, dd = [...d
       console.log('   decision: ' + f.decision.replace(/\n/g, ' ')); f.keys.forEach((k, i) => console.log(`   ${k}: ${f.callouts[i]}`));
       check(/rain/i.test(f.decision), `${L} the decision is about rain`);
       check(f.keys.join('|') === 'Rain chance|Lightning potential|Gusts|Next check', `${L} three callouts then the next check (${f.keys.join(', ')})`);
-      check(/Across the planning window/.test(f.callouts[0]), `${L} rain affects the planning window`);
+      /* the rain number and the planning impact are separate lines; the concern's hours and parts are in the lead line */
+      const leadWhen = await p.locator('[data-lead=when]').innerText();
+      check(/^Up to 60% in the likeliest hour/.test(f.callouts[0]) && /Plan for it\. Cover gear and protect power\./.test(f.callouts[0]) && !/Plan for it · up to/.test(f.callouts[0]) && /setup through teardown/.test(leadWhen), `${L} rain chance and planning impact on separate lines; the lead says rain affects setup through teardown (${f.callouts[0]} | ${leadWhen.replace(/\s+/g, ' ')})`);
       check(/^(Moderate|High)/.test(f.callouts[1]) && /(Mainly|During) setup/.test(f.callouts[1]) && /not detected/.test(f.callouts[1]), `${L} lightning potential is mainly a setup concern, labelled as forecast potential`);
       check(/Reach your 25 mph limit/.test(f.callouts[2]) && /(Mainly|During) setup/.test(f.callouts[2]), `${L} gusts reach the 25 mph venue limit, mainly during setup`);
       const keysText = await p.locator('#keys').innerText();
@@ -92,7 +94,7 @@ const firstScreen = (p) => p.evaluate(() => { const vh = innerHeight, dd = [...d
     if (name === 'orlando quiet') check(/No weather concern/.test(f.decision) && /below your 25 mph/i.test(f.callouts[2]) && !(await p.locator('#keys dd[data-tier]').count()), `${L} quiet: no concern, nothing highlighted (${f.decision})`);
     if (name === 'orlando partly covered') check(/partly covered|pending/i.test(await p.locator('#coverage').innerText()), `${L} partial coverage is stated next to the decision: ${(await p.locator('#coverage').innerText()).replace(/\s+/g, ' ').slice(0, 120)}`);
     if (name === 'cincinnati missing hour') { await p.locator('#hourlyLink').click(); await p.waitForTimeout(300); await p.locator('#evCharts [data-variable=pop] [data-hour="' + Date.parse('2026-11-12T19:00Z') + '"]').click();
-      const v = await p.locator('#evCharts [data-value=pop]').innerText(); check(v === '—', `${L} a missing hour stays missing (—) one tap away in the hourly forecast`); }
+      const v = await p.locator('#evCharts [data-value=pop]').innerText(); check(v === 'No data', `${L} a missing hour stays missing ("No data", never 0%) one tap away in the hourly forecast`); }
     if (name === 'cincinnati overnight') { const items = await p.evaluate(() => [...document.querySelectorAll('#secTimeline .ev-schedule li')].map((li) => li.innerText.replace(/\s+/g, ' ')));
       check(items.length === 4 && items.some((x) => /Fri/.test(x)), `${L} an overnight schedule names the next day where a part ends after midnight (${items.join(' | ')})`); }
     await p.evaluate(() => scrollTo(0, 0)); await p.screenshot({ path: path.join(out, `${name.replace(/\s+/g, '-')}-${dev}.png`) });

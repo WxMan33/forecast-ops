@@ -1,0 +1,54 @@
+{
+ "at": "2026-11-24T17:34:14.008Z",
+ "nwsActiveForZone": [
+  "Coastal Flood Warning",
+  "Rip Current Statement"
+ ],
+ "result": {
+  "summary": "2 weather threats for this event",
+  "confirmed": false,
+  "items": [
+   {
+    "id": "KJAX.CF.W.0004.2026#FLZ138",
+    "kind": "warning",
+    "headline": "Coastal alert for the adjacent shoreline: Coastal Flood Warning",
+    "code": null,
+    "line": "Issued for Coastal Flagler; NWS places the venue in no land forecast zone (AMZ454), 1 mile from that zone. It covers the shoreline next to the venue, not the venue's own zone. In effect until 7 p.m. Wednesday during the event.",
+    "product": "KJAX.CF.W.0004.2026#FLZ138",
+    "category": null,
+    "day": null,
+    "phases": [
+     "event"
+    ]
+   },
+   {
+    "id": "KJAX.RP.S.0036.2026#FLZ138",
+    "kind": "statement",
+    "headline": "Coastal alert for the adjacent shoreline: Rip Current Statement",
+    "code": null,
+    "line": "Issued for Coastal Flagler; NWS places the venue in no land forecast zone (AMZ454), 1 mile from that zone. It covers the shoreline next to the venue, not the venue's own zone. In effect from 1 p.m. until 4 a.m. Thursday during the event.",
+    "product": "KJAX.RP.S.0036.2026#FLZ138",
+    "category": null,
+    "day": null,
+    "phases": [
+     "event"
+    ]
+   }
+  ],
+  "statuses": [
+   "NWS warnings, watches and advisories: Checked 12:34 p.m.",
+   "SPC fire weather outlooks: Checked 12:34 p.m. · Days 1, 2, 3, 4, 5, 6, 7, 8",
+   "NOAA satellite smoke analysis (HMS): Checked 12:34 p.m.",
+   "AirNow air quality observations: No AirNow monitor reading within 15 miles in the last 3 hours: surface air quality isn't reported for this venue.",
+   "AirNow air quality forecasts: No AirNow forecast area for this venue.",
+   "NHC tropical outlooks and storm products: Checked 12:34 p.m.",
+   "NIFC wildfire incidents (WFIGS): Checked 12:34 p.m.",
+   "WPC winter storm severity outlook (WSSI-P): Checked 12:34 p.m.",
+   "WPC Excessive Rainfall Outlook: Checked 12:34 p.m. · Day 1 issued 1552Z, Day 2 issued 0750Z, Day 3 issued 0750Z"
+  ],
+  "maps": [
+   "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats.html?lat=29.4802&lon=-81.1065&name=Flagler+Beach+Pier&tz=America%2FNew_York&scope=venue&view=active&layers=coastal&sel=KJAX.CF.W.0004.2026%23FLZ138&nws=function",
+   "https://claude-threats-em-combined.forecast-ops-beta.pages.dev/threats.html?lat=29.4802&lon=-81.1065&name=Flagler+Beach+Pier&tz=America%2FNew_York&scope=venue&view=active&layers=coastal&sel=KJAX.RP.S.0036.2026%23FLZ138&nws=function"
+  ]
+ }
+}

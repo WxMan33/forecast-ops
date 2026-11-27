@@ -1,0 +1,108 @@
+# First active-weather verification
+
+The archived replays already show how the map handles real warning updates, a cancellation, and Watch 705's county list.
+Three things can only be confirmed live. Use an ordinary desktop browser and a phone. Open the live preview (Data: Live official feeds).
+After the function is deployed for review, also open it with `?nws=function` on that host.
+
+Save everything in `docs/threats/live-checks/<date>/`, labelled LIVE.
+
+## Automated run (2026-11-24)
+
+`node tools/threats-live-warning-check.js https://claude-threats-em-combined.forecast-ops-beta.pages.dev [WATCH_MIN]` runs sections 1–3
+for whatever is active (exit 3 when nothing is), on desktop and a 390 px phone, and saves the source JSON, screenshots and
+`results.json` in `live-checks/<date>/`, labelled LIVE. For section 1 it keeps the page open WATCH_MIN minutes (default 20) to catch an
+update ("What changed") or the end. `LIVE_REPLAY=archive-lox` runs the same checks on the saved LOX warning (labelled DRYRUN; it proves
+the tool, not the feed): 6/6 on 2026-11-24 (`live-checks/2026-11-24/DRYRUN-*`).
+
+Scheduled: hourly while SPC's Day 3 Marginal risk is valid (Wed Nov 25 12Z – Thu Nov 26 12Z), the first chance of a warning.
+
+Noted in the dry run: a venue link without `tz=` shows times in the page's default zone (Eastern), not the venue's own. Planner links
+always carry `tz=`.
+
+## 1. A warning drawn directly from the live feed
+
+When NWS has an active tornado or severe thunderstorm warning in the contiguous U.S.:
+
+- [ ] **Source response:** save `https://api.weather.gov/alerts/active?event=Tornado%20Warning,Severe%20Thunderstorm%20Warning,Tornado%20Watch,Severe%20Thunderstorm%20Watch` as JSON. Note the time.
+- [ ] **National view (desktop):** the warning marker shows at national zoom, and it is the first item in "Most urgent now". Screenshot.
+- [ ] **Venue view:** pick a venue inside or near the polygon (Venue menu, or `?lat=…&lon=…&name=…`). Check "in effect at the venue" or
+      "N miles <direction> · the venue is outside the warning area". Screenshot on desktop and on phone with the sheet closed.
+- [ ] **Detail:** headline, expires, venue relationship, the official bulletin text, and the source link to the alert record. Screenshot.
+- [ ] **If it updates while open:** "What changed" appears with the right expiration and area change, and the venue relationship
+      follows the new polygon. Save the second JSON response.
+- [ ] **When it ends:** "cancelled by NWS at …" or "no longer listed" for a nearby venue. Nothing stays drawn.
+
+## 2. A real NWS watch message
+
+When SPC issues a tornado or severe thunderstorm watch:
+
+- [ ] **Source response:** save the alert list JSON. Record whether watch messages have `geometry: null`, what `affectedZones` lists
+      (county `…/zones/county/…`, forecast zones `…/zones/forecast/…`, marine zones), and whether one watch arrives as one message or
+      one per issuing office.
+- [ ] **Map:** a single outline with no internal county lines; the label "Area drawn from N counties and M marine zones". Screenshot of the
+      national view and of a venue inside.
+- [ ] **Venue just outside the watch:** "Nothing active", or the venue relationship. If any zone fails, the label reads "Incomplete area" and
+      a venue that a missing zone could cover shows "unknown". Screenshot.
+- [ ] Compare with SPC's own watch page (`https://www.spc.noaa.gov/products/watch/ww####.html`): same number, end time and counties.
+- [ ] **Then:** add the saved JSON as a fixture and replace the WOU conversion in the watch tests with it.
+
+## 3. The NOAA map service with an active MD
+
+When SPC has an active Mesoscale Discussion:
+
+- [x] **Source response:** save `https://mapservices.weather.noaa.gov/vector/rest/services/outlooks/spc_mesoscale_discussion/MapServer/0/query?where=1%3D1&outFields=*&f=geojson`.
+      Record the exact `name`, `popupinfo` and `folderpath` values, and how long after SPC's issue time the shape appeared.
+      **2026-11-25 22:29Z (live, MD 2465):** `name` "MD 2465", `folderpath` "MD 2465 Active Till 0300 UTC", `popupinfo`
+      "http://www.spc.noaa.gov/products/md/md2465.html"; no topic, area or issue/valid times. SPC issued it at 2130Z (3:30 PM CST);
+      the service file is stamped 21:33:15Z and ingested 21:33:25Z: about 3 minutes later. Saved:
+      `live-checks/2026-11-25/LIVE-2026-11-25T2229Z-md-service.json`.
+- [x] Also save SPC's `https://www.spc.noaa.gov/products/md/` and the MD's own page (from a normal browser), for the number, valid times and text.
+- [ ] **In the preview:**
+  - [x] the MD source row says how it was checked: via SPC, or via the NOAA map service; ("Checked 5:29 PM EST via NOAA map service")
+  - [x] the MD outline is drawn;
+  - [ ] the detail shows the number, valid time (or "Unavailable"), and a working link to the SPC bulletin.
+        **2026-11-25 (MD 2465): partly.** Number and SPC link correct; Valid "Unavailable". **Fails:** "Issued" reads
+        "Wed, Dec 31, 7:00 PM EST 0000Z" (an empty time shown as the 1970 epoch; it should say Unavailable). The service's
+        "Active Till 0300 UTC" is not used for the end time. Not fixed: reported for a decision.
+
+  Screenshot of the national view and the MD detail.
+- [ ] **Winter MDs** (snow, freezing rain): check whether the service lets them be told apart from severe MDs. They must not appear here.
+      **2026-11-25: fails.** MD 2465 is "Concerning...Heavy snow" (SE Missouri, SW Illinois; valid 252130Z–260300Z, per SPC's
+      page saved as `LIVE-2026-11-25T2229Z-spc-md2465.html`). The service's fields carry no topic, so it can't be told apart and
+      it was drawn on the severe layer. Telling them apart needs SPC's text (the MD page or index), which the browser can't
+      read directly. Not fixed: reported for a decision.
+- [ ] **Then:** add the saved service response as a fixture. Update `mdFromService` if the fields differ from the guess in the code, and the test.
+
+## 4. Still pending live (recorded 2026-11-20, Planner branch `claude/threats-planner-flood`)
+
+| Check | Status |
+|---|---|
+| Live tornado or severe thunderstorm **warning** drawn from the feed (section 1) | **Open**, kept for the shared-beta navigation decision: none active in a usable spot during the checks |
+| Live **Flash Flood Warning** reaching Event Planner through `/api/nws` | **Done 2026-11-21 04:24Z (live):** KJAX FF.W.0055 (Gilchrist County, FL; 10:26 p.m.–12:30 a.m. EST). For a test point inside the polygon (29.67, -82.865) and an event inside the window, Planner showed "Flash Flood Warning until 12:30 a.m. Saturday · Covers the venue during the event", via `/api/nws` with its upstream time. Evidence: `live-checks/2026-11-21/live-planner-ffw-kjax-0055.json` and `.png`; official payload `tests/fixtures/threats/nws-live-kjax-ff-w-0055.json`. **Complete.** |
+| Live NWS **watch** message (section 2) | Pending |
+| NOAA map service with an **active MD** (section 3) | **Seen live 2026-11-25 22:29Z (MD 2465, heavy snow):** source row, outline, number and SPC link pass. Open: a winter MD is shown as severe (the service has no topic), and "Issued" shows a 1970 date when the time is missing. Evidence: `live-checks/2026-11-25/LIVE-2026-11-25T2229Z-*` |
+| **Same storm**: WSSI-P in Planner several days before an event, then the NWS alert for that storm | Pending: WPC's WSSI-P shapes are not archived (ftp-wpc keeps images only), so it needs captures days apart. Capture with `python3 tools/capture-wssi-p.py NAME W S E N OUT.json` |
+| Live **Red Flag Warning / Fire Weather Watch** reaching Planner through `/api/nws` | Pending: none active on Nov 20–21; proven on archived NWS Denver/Boulder messages |
+| Live **SPC Day 1–2 Critical** fire area or a **Days 3–8 probability** (40/70%) at a venue | Pending. Live Elevated verified Nov 21 01:19Z (Cheyenne, `planner-check/live-planner-fire.json`). The 40/70% label format will be confirmed when SPC first draws one: the parser accepts "40", "40%" and "0.40" and rejects anything else (the source then reads not confirmed) |
+| Live **wildfire within 15 miles** of a test venue | Pending as a live Planner item; live NIFC feeds (225+ incidents, perimeters) verified on the map |
+| NOAA **NAQFC smoke unit** (service text says "micrograms per cubic feet") | **Resolved 2026-11-21 (`9242e40`):**<br>- The service answers in kg/m³. Every live value is an exact multiple of 1e-9, the legend has classes 1–150, and the stated maximum is 1.06e-7.<br>- Values are converted to µg/m³, and items show at 9 µg/m³ or more.<br>- The old threshold of 1 could never fire, so no smoke-forecast item had ever shown.<br>- Hosted check: live values under satellite plumes come out as whole µg/m³.<br>- Not confirmed by NOAA documentation, which is unreachable from here. |
+| Live **smoke item** at a test venue (HMS plume over it, or an AirNow monitor at USG or worse within 15 mi) | **Done 2026-11-21 03:27Z (live):** Ford Field, Detroit: "Air quality now: Unhealthy (AQI 159, PM2.5) at Detroit-Trinity, 5 miles southwest" (`planner-check/live-planner-smoke.json` at that run). Still open: a live HMS plume over a test venue |
+| Live **tropical** watch or warning in Planner | Pending: none active (season ends Nov 30). Proven on archived Hurricane Isaias (NWS Mobile TCV texts and NHC advisories 4 and 6) |
+| **WSSI-P failed-level fallback** (retry, then "inferred" from the level below) | **Done 2026-11-21 (`c0363d1`, hosted):** with NOAA's Extreme layer blocked in the browser at Snowbird, the source retried, then showed Extreme as under 5% inferred from Major, and More info marked it "(inferred …)". Logic extracted to `ThreatsFeeds.combineWSSI`, with unit tests. Not seen with a real upstream timeout yet |
+| Live **Winter Storm Warning** in Planner and on the map | **Done 2026-11-20 21:43Z**: KSLC.WS.W.0003 at Snowbird through `/api/nws`, with live WSSI-P (5 point queries) on the same event. `docs/threats/planner-check/live-planner-winter.json` |
+
+## Map crash fixed 2026-11-21
+
+`TypeError: Cannot read properties of undefined (reading 'slice')` at `shade` ← `drawMap` ← `setView`. Deployed file `threats.js?v=d9b6aff3cd` (app files of `9599215`).
+- **When it fired:** a live SPC fire weather Day 1 area existed and Day 1 was opened.
+- **Cause:** fire outlooks were taken for convective outlooks.
+- **Fix:** `2a5eddc`.
+- **Regression checks** (`tools/threats-planner-check.js`, section 4f):
+  - an archived replay that fails before the fix;
+  - a live walk-through with 75 s of background refreshes;
+  - partial feeds.
+
+## Each time
+
+- [ ] Run `node tools/threats-preview-check.js https://raw.githack.com/WxMan33/forecast-ops/<commit>/threats.html` and keep `report.json`.
+- [ ] Note any requests that failed, and the source rows' "Checked …" times against the saved responses.

@@ -39,5 +39,5 @@
     return { rows: C.blend.dailyRows(B10, opt.ws, { rules: opt.rules }), tz, days: 10 };
   };
   BetaUI.alerts = async () => [];
-  BetaUI.mapPanel = (el) => { el.innerHTML = '<p class="bx-note">Radar map omitted from this sample.</p>'; };
+  BetaUI.mapPanel = (el) => { el.innerHTML = '<p class="bx-note">Forecast radar omitted from this sample.</p>'; };
 })();

@@ -86,7 +86,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     const { ctx, p, errors, status, notice } = await go(opts, base + "meteorologist-beta.html");
     await menuReady(p, "CVG");
     const d0 = await p.evaluate(() => ({ ...document.body.dataset, lead: document.querySelector(".hubcard.lead h2").innerText, tools: [...document.querySelectorAll("#tools h2")].map((h) => h.innerText), nav: [...document.querySelectorAll(".navbar a")].map((a) => a.innerText.trim()) }));
-    report(d0.place.startsWith("CVG") && d0.station === "CVG" && d0.lead === "Model Blend" && d0.tools.join("|") === "Severe|Winter|Almanac|Model Maps" && d0.nav[0] === "MENU",
+    report(d0.place.startsWith("CVG") && d0.station === "CVG" && d0.lead === "Model Blend" && d0.tools.join("|") === "Weather Threats|Severe|Winter|Almanac|Model Maps" && d0.nav[0] === "MENU",
       `menu ${dev}: CVG default, Model Blend first, tool cards, shared navigation`, `${d0.place} · climate ${d0.station} · lead ${d0.lead} · ${d0.tools.join(", ")} · nav ${d0.nav.slice(0, 3).join(", ")}…`);
     await pageOk(p, errors, status, notice, `menu ${dev}: loads signed out`);
     await p.screenshot({ path: `${out}/menu-cvg-${dev}.png` });
@@ -201,7 +201,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       const dd = [...document.querySelectorAll("#keys dd")], bar = document.querySelector(".sch-bar"), ticks = [...document.querySelectorAll(".sch-ticks span")].map((x) => b(x));
       const pcts = [...document.querySelectorAll("#keys, #phases")].flatMap((el) => [...el.textContent.matchAll(/(\d{1,3})%/g)].map((m) => +m[1]));
       return { decision: document.getElementById("decision").innerText, keys, nextBottom: dd.length ? b(dd[dd.length - 1]).bottom : 9999, vh, barFits: bar && bar.scrollWidth <= bar.clientWidth + 1 && b(bar).right <= innerWidth + 0.5 && b(bar).left >= 0, ticksFit: ticks.every((t) => t.left >= -0.5 && t.right <= innerWidth + 0.5), pcts }; });
-    report(/^(Plan for|Have a rain plan|Watch for|Expect|No weather concern)/.test(r.decision) && r.keys[r.keys.length - 1] === "Next check" && r.keys.includes("Rain chance") && r.keys.includes("Lightning potential") && r.nextBottom <= r.vh, "event phone: decision, window, timing and next check on the first screen", `"${r.decision}" · ${r.keys.join(" · ")} · ends at ${Math.round(r.nextBottom)} of ${r.vh} px`);
+    report(/^(Plan for|Have a rain plan|Watch for|Expect|No weather concern|No concern found|Rain guidance is incomplete|[A-Z][a-z]+( [a-z]+)? likely)/.test(r.decision) && r.keys[r.keys.length - 1] === "Next check" && r.keys.includes("Rain chance") && r.keys.includes("Lightning potential") && r.nextBottom <= r.vh, "event phone: decision, window, timing and next check on the first screen", `"${r.decision}" · ${r.keys.join(" · ")} · ends at ${Math.round(r.nextBottom)} of ${r.vh} px`);
     report(r.barFits && r.ticksFit, "event phone: phase strip fits the width", `bar ${r.barFits ? "fits" : "overflows"}, labels ${r.ticksFit ? "fit" : "overflow"}`);
     report(r.pcts.length > 0 && r.pcts.every((x) => x % 5 === 0), "event phone: precipitation chances in 5-point steps", r.pcts.join("%, ") + "%");
     await p.screenshot({ path: `${out}/check-event-first-screen.png` }); await ctx.close(); }
@@ -261,14 +261,14 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
     await until(p, () => document.querySelector("#upView:not([hidden]) #upAdd"), null, 30000);
     const setVal = (sel, v) => p.evaluate(([s, x]) => { const el = document.querySelector(s); el.value = x; el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); }, [sel, v]);
     /* match 1: new venue TQL Stadium, its schedule saved as the venue default */
-    await p.click("#upAdd"); await until(p, () => document.getElementById("editDlg").open, null, 10000);
+    await p.click("#upAdd"); await until(p, () => document.getElementById("editDlg").open, null, 10000); await p.selectOption("#fTpl", "stadium"); // new events start as one window; these matches use the stadium schedule
     await p.fill("#fName", "FC Cincinnati vs. Test FC (check)"); await p.fill("#fVenue", "TQL Stadium");
     await p.fill("#fCity .vs-q", "TQL Stadium"); await p.click("#fCity .vs-go"); await until(p, () => document.querySelector("#fCity .vs-hit"), null, 20000); await p.click("#fCity .vs-hit");
     await setVal("#fDate", d1); await setVal("#fStart", "19:30"); await setVal("#fEnd", "21:30"); await setVal("#fSetup", "15:00"); await setVal("#fGates", "18:00"); await setVal("#fTear", "23:30"); await setVal("#fGust", "30");
     await p.click("#fSave"); await until(p, () => !document.getElementById("editDlg").open, null, 30000);
     /* match 2: the saved venue fills setup, gates and teardown; gates changed for this match only */
     await until(p, () => document.querySelectorAll(".up-ev").length === 1 && document.querySelectorAll(".up-vn").length === 1, null, 20000);
-    await p.click("#upAdd"); await until(p, () => document.getElementById("editDlg").open, null, 10000);
+    await p.click("#upAdd"); await until(p, () => document.getElementById("editDlg").open, null, 10000); await p.selectOption("#fTpl", "stadium"); // new events start as one window; these matches use the stadium schedule
     const sel = await p.evaluate(() => document.querySelector("#fVenueSel").selectedOptions[0].textContent);
     await p.fill("#fName", "FC Cincinnati vs. Second FC (check)"); await setVal("#fDate", d2); await setVal("#fStart", "19:30"); await setVal("#fEnd", "21:30");
     const filled = await p.evaluate(() => ["fSetup", "fGates", "fTear", "fGust"].map((i) => document.getElementById(i).value).join(" "));
@@ -745,7 +745,7 @@ const iso = (ms) => (ms ? new Date(ms).toISOString().slice(5, 16).replace("T", "
       await p.click("#vAddPreset"); await p.fill(".vp-row .vp-name", "Practice"); await p.fill(".vp-row .vp-setup", "1"); await p.fill(".vp-row .vp-tear", "30");
       await p.click("#vSave"); await until(p, () => !document.getElementById("editDlg").open, null, 30000);
       const venue1 = await p.evaluate(() => JSON.parse(localStorage.getItem("beta_venues_v1"))[0]);
-      await p.click("#upAdd"); await until(p, () => document.getElementById("fPreset"), null, 10000);
+      await p.click("#upAdd"); await until(p, () => document.getElementById("fPreset"), null, 10000); await p.selectOption("#fTpl", "stadium");
       await p.selectOption("#fVenueSel", "vn_check"); const pid = venue1.presets && venue1.presets[0] && venue1.presets[0].id;
       await p.selectOption("#fPreset", pid); await p.fill("#fName", "Practice (check)"); await p.fill("#fStart", "17:00"); await p.fill("#fEnd", "19:00");
       await p.evaluate(() => ["fStart", "fEnd"].forEach((id) => document.getElementById(id).dispatchEvent(new Event("change", { bubbles: true }))));
