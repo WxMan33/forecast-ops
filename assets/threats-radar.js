@@ -1,10 +1,9 @@
-/* Radar reflectivity drawn from measured values, matching Predictable's MRMS view (heads-up a6a83c1: lib/mrms.ts,
-   lib/mrmsComposite/{source,indexedPng,render}.ts, lib/level3/colorTable.ts):
+/* Radar reflectivity drawn from measured MRMS values:
      source: Iowa Environmental Mesonet's MRMS lowest-elevation composite reflectivity (lcref), a 0.01-degree indexed PNG whose
        pixel values are the measured values (dBZ = index * 0.5 - 32), its world file and a JSON with the scan time;
        https://mesonet.agron.iastate.edu/GIS/rasters.php?rid=4. IEM allows browsers to read it (Access-Control-Allow-Origin: *),
        so the browser reads it directly: no server of ours in between.
-     colours: the "Reflectivity 2026" table, below 5 dBZ transparent, each band with its own transparency; nearest-neighbour
+     colours: green, yellow, orange and red, below 5 dBZ transparent, each band with its own transparency; nearest-neighbour
        sampling into map tiles; the layer at 70% opacity to start (the viewer can change it).
    The page reads the scan time every 60 seconds and downloads the image only when a new scan is listed (about 1.2 MB). The
    decoding and the tile drawing happen in a Web Worker, so the page stays responsive. Pure pieces are exported for tests. */
@@ -15,11 +14,11 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
   const BASE = "https://mesonet.agron.iastate.edu/data/gis/images/4326/mrms/lcref";
-  /* Reflectivity 2026 (Predictable lib/level3/colorTable.ts REFLECTIVITY_VISUAL_STOPS): inclusive lower bound in dBZ, colour, alpha 0-255 */
+  /* Inclusive lower bound in dBZ, RGB colour and alpha (0–255). Blue is reserved for snow in precipitation-type mode. */
   const STOPS = [
-    [5, [0, 150, 190], 150], [10, [0, 105, 215], 185], [15, [0, 185, 125], 215], [20, [0, 205, 70], 232], [25, [65, 220, 45], 242],
-    [30, [170, 225, 35], 248], [35, [245, 220, 20], 255], [40, [255, 155, 20], 255], [45, [245, 65, 35], 255], [50, [205, 20, 25], 255],
-    [55, [225, 35, 150], 255], [60, [170, 45, 205], 255], [65, [225, 210, 245], 255], [70, [255, 255, 255], 255]];
+    [5, [24, 132, 51], 150], [10, [26, 158, 51], 185], [15, [32, 184, 51], 215], [20, [56, 202, 47], 232], [25, [96, 215, 43], 242],
+    [30, [161, 221, 33], 248], [35, [244, 221, 20], 255], [40, [255, 170, 17], 255], [45, [250, 116, 20], 255], [50, [239, 53, 25], 255],
+    [55, [221, 28, 23], 255], [60, [198, 17, 21], 255], [65, [174, 10, 18], 255], [70, [150, 5, 15], 255]];
   const THRESHOLD = 5, OPACITY = 0.7; // the starting opacity; the page lets the viewer change it (Layers → Radar) and remembers it
   /* the colour for a dBZ value: the last band whose lower bound it reaches; below the first band, transparent */
   function dbzToRgba(dbz) { let c = null; for (const s of STOPS) { if (dbz >= s[0]) c = s; else break; } return c ? { r: c[1][0], g: c[1][1], b: c[1][2], a: c[2] } : { r: 0, g: 0, b: 0, a: 0 }; }
@@ -89,13 +88,13 @@
     }
     return rgba;
   }
-  /* ---------- precipitation type: Predictable's radar with winter colours ----------
+  /* ---------- precipitation type: rain and snow from the same scan ----------
      Intensity comes from the same measured reflectivity as Reflectivity mode (IEM lcref); the type comes from NOAA/NSSL MRMS
      PrecipFlag for the same scan minute, on the same 0.01-degree grid. Each pixel:
        - PrecipFlag -3 (no radar coverage): grey stripes, so outside coverage never looks dry;
        - below 5 dBZ: transparent, as in Reflectivity;
        - PrecipFlag 3 (snow): a blue intensity ramp (SNOW_STOPS);
-       - every rain class NOAA documents (1, 6, 7, 10, 91, 96) and 0: Predictable's Reflectivity 2026 colours, exactly;
+       - every rain class NOAA documents (1, 6, 7, 10, 91, 96) and 0: the same green-to-red colours as Reflectivity mode;
        - any code NOAA doesn't document: a dark-and-light checker with its own legend line.
      PrecipFlag has no sleet, freezing-rain or mixed class, so none is drawn as an area; those come from ground reports. */
   const PTYPE = [[1, "Warm stratiform rain", "rain"], [10, "Cool stratiform rain", "rain"], [6, "Convective rain", "rain"], [7, "Rain with hail", "rain"],
@@ -123,7 +122,7 @@
       lut[i * 4] = c[1][0]; lut[i * 4 + 1] = c[1][1]; lut[i * 4 + 2] = c[1][2]; lut[i * 4 + 3] = Math.round(c[2] * alpha[i] / 255); }
     return lut;
   }
-  /* one 256 px tile from reflectivity (ref, with its Reflectivity 2026 lut and snow lut) and PrecipFlag (pf, with its classes),
+  /* one 256 px tile from reflectivity (ref, with its reflectivity lut and snow lut) and PrecipFlag (pf, with its classes),
      both on the same grid, nearest-neighbour; where PrecipFlag says rain the pixel is exactly renderTile's */
   function renderPtypeTile(ref, lut, snow, pf, cls, z, x, y, size = 256, pat = null) {
     const rgba = new Uint8ClampedArray(size * size * 4), n = 2 ** z, cols = new Int32Array(size);

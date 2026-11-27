@@ -13,7 +13,7 @@ Predictable (heads-up a6a83c1) draws MRMS with:
 |---|---|---|
 | Source | IEM `lcref` (MRMS lowest-elevation composite reflectivity): `lcref.json` (scan time, product, units), `lcref.png` (indexed, the pixel values are the measurements), `lcref.wld` | the same three files, read by the browser (IEM sends `Access-Control-Allow-Origin: *`) |
 | Values | dBZ = index × 0.5 − 32 | same |
-| Colours | Reflectivity 2026, 14 bands from 5 to 70 dBZ, each with its own transparency; below 5 dBZ transparent; the source's own tRNS respected | same table (`assets/threats-radar.js` `STOPS`) |
+| Colours | Reflectivity 2026, 14 bands from 5 to 70 dBZ, each with its own transparency; below 5 dBZ transparent; the source's own tRNS respected | green → yellow → orange → red (`assets/threats-radar.js` `STOPS`), with blue reserved for snow in Precipitation type |
 | Sampling | nearest neighbour into 256 px web-mercator tiles | same; MapLibre `raster-resampling: nearest` |
 | Opacity | 85% default | 70% to start; slider under Layers → Radar (20–100%), remembered in the browser |
 | Refresh | scan time every 60 s; image only for a new scan; scan time re-read after download so a turnover is never mislabelled | same |
@@ -21,9 +21,9 @@ Predictable (heads-up a6a83c1) draws MRMS with:
 
 The previous Forecast Ops radar (NOAA's pre-coloured MRMS base-reflectivity tiles at 60%) is kept only as a fallback when IEM can't be read. The source row and the legend say which one is shown.
 
-## Checked against Predictable's own code
+## Earlier baseline checked against Predictable's own code
 
-On a real scan (2026-11-26 19:36Z), `assets/threats-radar.js` was run alongside Predictable's `decodeIndexedPng`, `mrmsPalette` and `renderMrmsTile`, taken from a6a83c1 and run under Node. Predictable's PNG encoder was replaced by a pass-through of the RGBA it would encode.
+Before the Forecast Ops palette was changed to reserve blue for snow, on a real scan (2026-11-26 19:36Z), `assets/threats-radar.js` was run alongside Predictable's `decodeIndexedPng`, `mrmsPalette` and `renderMrmsTile`, taken from a6a83c1 and run under Node. Predictable's PNG encoder was replaced by a pass-through of the RGBA it would encode.
 - **Grid:** 7000 × 3500; 0 index differences; tRNS identical.
 - **Palette:** the 256-entry lookup is identical.
 - **dBZ probes:** −10, 4.5, 5, 9.5, 10, 17, 20, 29.5, 30, 37, 45, 52, 58, 62, 66, 70 and 75 give the same RGBA.
@@ -54,7 +54,7 @@ Layers → Radar → **Show: Precipitation type | Reflectivity**. The choice is 
 | Unknown codes | Any other code is drawn as a dark-and-light checker, and the legend adds "Code not in NOAA's table (n)". It can't pass for no precipitation or a category. The codes are counted in `ptypeStats.unknown`. |
 | Not in the product | Sleet and freezing rain. The legend says so. |
 | Rendering | Decoded in a Web Worker; nearest-neighbour into 256 px tiles through a `ptype://` protocol; the same `radar` layer, so the layer order is unchanged. |
-| Fallback | A scan over 15 minutes old, or the forwarder failing, switches to the reflectivity layer. The map credit, the legend (Reflectivity 2026 with its scan time), the source row and the Layers note all say "Precipitation type unavailable · showing reflectivity" and give the reflectivity scan time. The legend also gives the last precipitation-type scan. |
+| Fallback | A scan over 15 minutes old, or the forwarder failing, switches to the reflectivity layer. The map credit, the legend (reflectivity with its scan time), the source row and the Layers note all say "Precipitation type unavailable · showing reflectivity" and give the reflectivity scan time. The legend also gives the last precipitation-type scan. |
 | Recovery | Precipitation type is retried every minute. When a fresh scan arrives the map switches back without a reload, keeping the saved opacity. |
 
 The colour shows type, not intensity; Reflectivity shows intensity.
@@ -66,3 +66,5 @@ The colour shows type, not intensity; Reflectivity shows intensity.
 - a TEST REPLAY rain-to-snow transition at CVG in both modes, read pixel by pixel from tiles the page drew.
 
 `tools/precipflag-grib.js` builds PrecipFlag files for the tests and the replay.
+
+Warning, watch and advisory polygon fills sit below the radar. Their outlines, labels and markers sit above it.

@@ -1,14 +1,8 @@
-/* Radar from measured values (assets/threats-radar.js), matching Predictable heads-up a6a83c1:
-   the Reflectivity 2026 table, IEM's lcref index lookup, world file and scan-time parsing, and the indexed-PNG decoder through
-   every PNG filter type. (The byte-for-byte comparison with Predictable's own decoder and tile renderer on a real 7000 x 3500
-   scan is recorded in docs/threats/RADAR.md.) Run: node tests/threats-radar.test.js */
+/* Test measured reflectivity, precipitation type and tile decoding. Run: node tests/threats-radar.test.js */
 "use strict";
 const assert = require("assert"), zlib = require("zlib");
 const R = require("../assets/threats-radar.js");
 let n = 0; const ok = async (name, fn) => { await fn(); n++; console.log("ok -", name); };
-// Predictable lib/level3/colorTable.ts REFLECTIVITY_VISUAL_STOPS at a6a83c1, copied here as the reference
-const PREDICTABLE = [[5, [0, 150, 190], 150], [10, [0, 105, 215], 185], [15, [0, 185, 125], 215], [20, [0, 205, 70], 232], [25, [65, 220, 45], 242], [30, [170, 225, 35], 248],
-  [35, [245, 220, 20], 255], [40, [255, 155, 20], 255], [45, [245, 65, 35], 255], [50, [205, 20, 25], 255], [55, [225, 35, 150], 255], [60, [170, 45, 205], 255], [65, [225, 210, 245], 255], [70, [255, 255, 255], 255]];
 const inflate = async (z) => new Uint8Array(zlib.inflateSync(Buffer.from(z)));
 /* a small 8-bit indexed PNG with a tRNS chunk, each row using a different filter */
 function indexedPng(w, h, rows, filters, trns) {
@@ -25,19 +19,20 @@ function indexedPng(w, h, rows, filters, trns) {
   return new Uint8Array(Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("PLTE", plte), chunk("tRNS", Buffer.from(trns)), chunk("IDAT", zlib.deflateSync(raw)), chunk("IEND", Buffer.alloc(0))]));
 }
 (async () => {
-  await ok("Reflectivity 2026: the same 14 bands, colours and transparency as Predictable's table", () => {
-    assert.deepStrictEqual(R.STOPS, PREDICTABLE); assert.strictEqual(R.THRESHOLD, 5); assert.strictEqual(R.OPACITY, 0.7);
+  await ok("reflectivity: 14 intensity bands and no blue or purple bands", () => {
+    assert.deepStrictEqual(R.STOPS.map(([dbz]) => dbz), Array.from({ length: 14 }, (_, i) => 5 + i * 5));
+    assert.ok(R.STOPS.every(([, [r, g, b]]) => b < Math.max(r, g) && (r < 100 || g < 230))); assert.strictEqual(R.THRESHOLD, 5); assert.strictEqual(R.OPACITY, 0.7);
   });
-  await ok("dBZ to colour: below 5 dBZ transparent; each band from its lower bound; 70 and above white", () => {
+  await ok("dBZ to colour: below 5 dBZ transparent; each band from its lower bound; 70 and above deep red", () => {
     assert.deepStrictEqual(R.dbzToRgba(4.5), { r: 0, g: 0, b: 0, a: 0 });
-    assert.deepStrictEqual(R.dbzToRgba(5), { r: 0, g: 150, b: 190, a: 150 }); assert.deepStrictEqual(R.dbzToRgba(9.5), { r: 0, g: 150, b: 190, a: 150 });
-    assert.deepStrictEqual(R.dbzToRgba(37), { r: 245, g: 220, b: 20, a: 255 }); assert.deepStrictEqual(R.dbzToRgba(52), { r: 205, g: 20, b: 25, a: 255 });
-    assert.deepStrictEqual(R.dbzToRgba(80), { r: 255, g: 255, b: 255, a: 255 });
+    assert.deepStrictEqual(R.dbzToRgba(5), { r: 24, g: 132, b: 51, a: 150 }); assert.deepStrictEqual(R.dbzToRgba(9.5), { r: 24, g: 132, b: 51, a: 150 });
+    assert.deepStrictEqual(R.dbzToRgba(37), { r: 244, g: 221, b: 20, a: 255 }); assert.deepStrictEqual(R.dbzToRgba(52), { r: 239, g: 53, b: 25, a: 255 });
+    assert.deepStrictEqual(R.dbzToRgba(80), { r: 150, g: 5, b: 15, a: 255 });
   });
   await ok("IEM lcref index lookup (0 = -32 dBZ, 64 = 0 dBZ, 0.5 dBZ steps); the palette honours the source's own transparency", () => {
     assert.strictEqual(R.indexDbz(0), -32); assert.strictEqual(R.indexDbz(64), 0); assert.strictEqual(R.indexDbz(74), 5); assert.strictEqual(R.indexDbz(73), 4.5);
     const alpha = new Uint8Array(256).fill(255); alpha[140] = 0; alpha[150] = 128; const lut = R.palette(alpha);
-    assert.deepStrictEqual([...lut.subarray(73 * 4, 74 * 4)], [0, 0, 0, 0]); assert.deepStrictEqual([...lut.subarray(74 * 4, 75 * 4)], [0, 150, 190, 150]);
+    assert.deepStrictEqual([...lut.subarray(73 * 4, 74 * 4)], [0, 0, 0, 0]); assert.deepStrictEqual([...lut.subarray(74 * 4, 75 * 4)], [24, 132, 51, 150]);
     assert.strictEqual(lut[140 * 4 + 3], 0); assert.strictEqual(lut[150 * 4 + 3], Math.round(255 * 128 / 255)); // 43 dBZ at half the source's alpha
   });
   await ok("world file and scan time: the real IEM files (2026-11-26 19:36Z); wrong product or units refused", () => {

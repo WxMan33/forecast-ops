@@ -667,7 +667,7 @@
       firstLabel = st.layers.find((l, i) => i > lastLine && l.type === "symbol" && !ours.has(l.id)) || st.layers.find((l) => l.type === "symbol" && !ours.has(l.id));
     if (!firstLabel) return;
     for (const l of st.layers) if (OUR.includes(l.id) && (l.type !== "symbol" || l.id === "cnty-labels")) map.moveLayer(l.id, firstLabel.id);
-    for (const id of ["hu-state-case", "hu-state"]) if (map.getLayer(id)) map.moveLayer(id, map.getLayer("lakes") ? "lakes" : firstLabel.id); // the state lines sit just under our layers
+    for (const id of ["hu-state-case", "hu-state"]) if (map.getLayer(id)) map.moveLayer(id, map.getLayer("cnty-case") ? "cnty-case" : firstLabel.id); // above alert fills, below the other boundary lines
     if (map.getLayer("radar")) {
       map.moveLayer("radar", radarBeforeLayer());
       for (const id of ["rain-obs", "rain-fcst"]) if (map.getLayer(id)) map.moveLayer(id, "radar");
@@ -699,6 +699,10 @@
       map.addImage("hatch", hatch(), { pixelRatio: 2 });
       const L = (o) => { OUR.push(o.id); map.addLayer(o); };
       L({ id: "lakes", type: "fill", source: "lakes", paint: { "fill-color": p.water } });
+      // Keep alert fills under radar and their outlines, labels and markers above it.
+      L({ id: "watch-fill", type: "fill", source: "active", filter: ["==", ["get", "kind"], "watch"], paint: { "fill-color": ["get", "color"], "fill-opacity": 0.08 } });
+      L({ id: "adv-fill", type: "fill", source: "active", filter: ["in", ["get", "kind"], ["literal", ["advisory", "statement"]]], paint: { "fill-color": ["get", "color"], "fill-opacity": ["*", ["get", "fill"], 0.6] } });
+      L({ id: "warn-fill", type: "fill", source: "active", filter: ["==", ["get", "kind"], "warning"], paint: { "fill-color": ["get", "color"], "fill-opacity": ["get", "fill"] } });
       /* county lines (US Census, us-atlas 10m; inside each state) from regional zoom, names from zoom 7.5: our own files, loaded on first zoom-in */
       L({ id: "cnty-case", type: "line", source: "cnty-lines", minzoom: 4.5, layout: { visibility: "none" }, paint: { "line-color": p.halo, "line-opacity": 0.6, "line-width": ["interpolate", ["linear"], ["zoom"], 4.5, 1.6, 8, 2.4, 11, 3.2] } }); // with radar on only
       L({ id: "cnty-lines", type: "line", source: "cnty-lines", minzoom: 4.5, paint: { "line-color": p.muted, "line-opacity": ["interpolate", ["linear"], ["zoom"], 4.5, 0.18, 7, 0.55, 10, 0.6], "line-width": ["interpolate", ["linear"], ["zoom"], 4.5, 0.4, 8, 0.8, 11, 1.2] } });
@@ -740,12 +744,9 @@
       L({ id: "pirep-turb", type: "circle", source: "pirep", filter: ["==", ["get", "ice"], false], paint: { "circle-radius": ["get", "r"], "circle-color": ["get", "color"], "circle-stroke-color": "#111", "circle-stroke-width": 1 } });
       L({ id: "pirep-ice", type: "circle", source: "pirep", filter: ["==", ["get", "ice"], true], paint: { "circle-radius": ["get", "r"], "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": ["get", "color"], "circle-stroke-width": 3 } });
       L({ id: "hl", type: "line", source: "hl", layout: { "line-join": "round" }, paint: { "line-color": p.text, "line-width": 9, "line-opacity": 0.55, "line-blur": 1 } });
-      L({ id: "watch-fill", type: "fill", source: "active", filter: ["==", ["get", "kind"], "watch"], paint: { "fill-color": ["get", "color"], "fill-opacity": 0.08 } });
       L({ id: "watch-line", type: "line", source: "active", filter: ["all", ["==", ["get", "kind"], "watch"], ["!=", ["get", "later"], true]], paint: { "line-color": ["get", "color"], "line-width": 2.6, "line-dasharray": [3, 2], "line-opacity": ["get", "op"] } });
       L({ id: "md-line", type: "line", source: "active", filter: ["==", ["get", "kind"], "md"], layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 3.2, "line-dasharray": [0.1, 2.2], "line-opacity": ["get", "op"] } });
-      L({ id: "adv-fill", type: "fill", source: "active", filter: ["in", ["get", "kind"], ["literal", ["advisory", "statement"]]], paint: { "fill-color": ["get", "color"], "fill-opacity": ["*", ["get", "fill"], 0.6] } });
       L({ id: "adv-line", type: "line", source: "active", filter: ["all", ["in", ["get", "kind"], ["literal", ["advisory", "statement"]]], ["!=", ["get", "later"], true]], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 2, "line-opacity": ["get", "op"] } });
-      L({ id: "warn-fill", type: "fill", source: "active", filter: ["==", ["get", "kind"], "warning"], paint: { "fill-color": ["get", "color"], "fill-opacity": ["get", "fill"] } });
       L({ id: "warn-case", type: "line", source: "active", filter: ["==", ["get", "kind"], "warning"], layout: { "line-join": "round" }, paint: { "line-color": p.halo, "line-width": 6, "line-opacity": 0.85 } });
       L({ id: "later-line", type: "line", source: "active", filter: ["==", ["get", "later"], true], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 2.6, "line-dasharray": [1.5, 1.5] } }); // starts later: dashed
       L({ id: "warn-line", type: "line", source: "active", filter: ["all", ["==", ["get", "kind"], "warning"], ["!=", ["get", "later"], true]], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 3.4 } });
@@ -1319,10 +1320,10 @@
         + `<div class="lg-ptrow"><span class="lg-ptlbl">Snow</span><div class="lg-snow" aria-hidden="true">${RD.snowLegend().map((x) => `<span style="background:${x.rgba}"></span>`).join("")}</div></div>`
         + `<div class="lg-ptrow"><span class="lg-ptlbl"></span><div class="lg-r26n" aria-hidden="true">${RD.legend().filter((x, i) => i % 2 === 0).map((x) => `<span>${x.dbz}</span>`).join("")}</div></div>`
         + `<div class="lg-pt"><span><i class="lg-ptnc"></i>No radar coverage</span>${radar.pt && radar.pt.state.unknown.length ? `<span data-ptype-unknown><i class="lg-ptuk"></i>Code not in NOAA's table (${esc(radar.pt.state.unknown.join(", "))})</span>` : ""}</div>`
-        + `<div class="lg-note">Rain in Predictable's reflectivity colours; snow in blues, by intensity. Type from NOAA MRMS for the same scan. It has no sleet, freezing-rain or mixed category, so those appear only as ground reports where reported. Below 5 dBZ not shown, under the hazards${radar.valid ? " · scan " + esc(t(radar.valid)) : ""}</div></div>`
+        + `<div class="lg-note">Rain from green to red; snow in blue. Both are shaded by intensity. Type from NOAA MRMS for the same scan. It has no sleet, freezing-rain or mixed category, so those appear only as ground reports where reported. Below 5 dBZ not shown${radar.valid ? " · scan " + esc(t(radar.valid)) : ""}</div></div>`
       : radar.via === "noaa" || !RD
-      ? `<div><div class="lg-h">Radar · NOAA MRMS (fallback)</div><div class="lg-radar" aria-hidden="true"></div><div class="lg-note">Light rain or snow → heavy rain and hail (base reflectivity), under the hazards${radar.valid ? " · image " + esc(t(radar.valid)) : ""}</div></div>`
-      : `<div data-lg="radar"><div class="lg-h">Radar · MRMS reflectivity (dBZ)</div><div class="lg-r26" aria-hidden="true">${RD.legend().map((x) => `<span style="background:${x.rgba}"></span>`).join("")}</div><div class="lg-r26n" aria-hidden="true">${RD.legend().filter((x, i) => i % 2 === 0).map((x) => `<span>${x.dbz}</span>`).join("")}</div><div class="lg-note">Lowest-elevation reflectivity, measured values; below 5 dBZ not shown. Reflectivity 2026 colours, under the hazards${radar.valid ? " · scan " + esc(t(radar.valid)) : ""}</div></div>`);
+      ? `<div><div class="lg-h">Radar · NOAA MRMS (fallback)</div><div class="lg-radar" aria-hidden="true"></div><div class="lg-note">NOAA’s own reflectivity colours. Colours show intensity only${radar.valid ? " · image " + esc(t(radar.valid)) : ""}</div></div>`
+      : `<div data-lg="radar"><div class="lg-h">Radar · MRMS reflectivity (dBZ)</div><div class="lg-r26" aria-hidden="true">${RD.legend().map((x) => `<span style="background:${x.rgba}"></span>`).join("")}</div><div class="lg-r26n" aria-hidden="true">${RD.legend().filter((x, i) => i % 2 === 0).map((x) => `<span>${x.dbz}</span>`).join("")}</div><div class="lg-note">Lowest-elevation reflectivity, measured values; below 5 dBZ not shown. Green to red shows echo intensity only${radar.valid ? " · scan " + esc(t(radar.valid)) : ""}</div></div>`);
     if (S.layers.fire && !winterView()) h += `<div><div class="lg-h">Fire</div>${lgLine({ kind: "warning", family: "fire", event: "Red Flag Warning" }, "<b>Red Flag Warning</b>")}${lgLine({ kind: "watch", family: "fire", event: "Fire Weather Watch" }, "<b>Fire Weather Watch</b> · dashed")}${lgLine({ kind: "incident", category: "WF" }, "<b>Wildfire</b> (NIFC): perimeter where mapped, dot sized by acres")}<label class="lg-toggle"><input type="checkbox" id="rxChk"${S.rx ? " checked" : ""}> Prescribed fires</label><label class="lg-toggle"><input type="checkbox" id="ctnChk"${S.ctn ? " checked" : ""}> Fully contained fires</label>${fireView() ? `<div class="lg-bands">${(S.fday >= 3 ? ["P40", "P70"] : ["ELEV", "CRIT", "EXTM", "IDRT", "SDRT"]).map((c) => `<span class="lg-band" title="${esc(FX.FIRE_NAME[c])}"><i style="background:${FIRE_COLOR[c]}"></i>${c === "P40" ? "40%" : c === "P70" ? "70%" : c}</span>`).join("")}</div><div class="lg-note">${S.fday >= 3 ? "Probability of critical fire weather within 12 miles of a point." : "ELEV elevated · CRIT critical · EXTM extremely critical (wind and humidity) · IDRT/SDRT isolated/scattered dry thunderstorms."}</div>` : ""}</div>`;
     if (winterView()) h += `<div><div class="lg-h">WPC WSSI-P · chance of at least ${esc(S.wlevel === "WWA" ? "winter weather" : WLEVEL_LABEL[S.wlevel])}</div><div class="lg-bands">${WSSI_PROBS.map((v) => `<span class="lg-band"><i style="background:${WSSI_COLOR[v]}"></i>${v}%</span>`).join("")}</div><div class="lg-note">24-hour window. Levels: Minor, Moderate, Major, Extreme winter storm impacts (WPC definitions).</div></div>`;
     if (!day && !winterView()) h += `<label class="lg-toggle"><input type="checkbox" id="ctxChk"${S.ctx ? " checked" : ""}> Day 1 outlook outlines</label>`;
@@ -1543,7 +1544,7 @@
     }).join("");
   }
   /* ---------- radar (live only, off by default): MRMS lowest-elevation reflectivity from measured values (IEM lcref), coloured
-     with the Reflectivity 2026 table exactly as Predictable draws it (assets/threats-radar.js). The scan time is read every 60 s
+     on the green-to-red scale in assets/threats-radar.js. The scan time is read every 60 s
      while radar is on; the image is downloaded only for a new scan. If IEM can't be read, NOAA's pre-coloured MRMS tiles are
      shown instead and the source row says so. ---------- */
   /* radar opacity: 70% to start, set with the slider under Layers → Radar, remembered in this browser */

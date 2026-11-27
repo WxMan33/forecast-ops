@@ -1,4 +1,4 @@
-/* State and county lines over heavy radar echoes, and warnings above radar, at CVG (TEST REPLAY), desktop and phone, dark and light.
+/* State and county lines over heavy radar echoes, and alert outlines above radar, fills below, at CVG (TEST REPLAY), desktop and phone, dark and light.
    CVG had only light rain when this was written, so the check replays IEM's real current scan with a block of heavy echoes laid
    over the Ohio, Kentucky and Indiana state lines around CVG: stripes of 30, 35, 40, 45, 50, 55, 60, 65 and 70 dBZ, wide
    enough to cover county lines too. The page is marked TEST REPLAY. It records the layer order (boundaries and warnings above
@@ -44,12 +44,12 @@ async function heavyScan() {
     await p.route(/mrms\/lcref\.wld/, (r) => r.fulfill({ status: 200, headers: { "content-type": "text/plain", "access-control-allow-origin": "*" }, body: scan.wld }));
     await p.goto(HOST + "/threats.html?lat=39.0446&lon=-84.6723&name=CVG&radar=1&view=active&scope=venue&testreplay=radar-heavy-echoes", { waitUntil: "domcontentloaded", timeout: 60000 }); await passNotice(p);
     await p.waitForFunction(() => window.__threats && window.__threats.radar && window.__threats.radar.via === "iem" && window.__threats.radar.state === "ok", null, { timeout: 120000 }).catch(() => {});
-    const s = await p.evaluate(() => { const T = window.__threats, m = T.map, ids = m.getStyle().layers.map((l) => l.id), ri = ids.indexOf("radar"), act = m.getStyle().layers.filter((l) => l.source === "active").map((l) => l.id);
+    const s = await p.evaluate(() => { const T = window.__threats, m = T.map, ids = m.getStyle().layers.map((l) => l.id), ri = ids.indexOf("radar"), act = m.getStyle().layers.filter((l) => l.source === "active" && l.type === "line").map((l) => l.id);
       const st = ids.includes("hu-state") ? "hu-state" : "states";
-      return { ri, state: ids.indexOf(st), county: ids.indexOf("cnty-lines"), warningsAbove: act.length > 0 && act.every((id) => ids.indexOf(id) > ri), opacity: m.getPaintProperty("radar", "raster-opacity"), theme: document.documentElement.dataset.theme, badge: document.getElementById("txBadge").textContent }; });
+      return { ri, state: ids.indexOf(st), county: ids.indexOf("cnty-lines"), fillsBelow: ["watch-fill", "adv-fill", "warn-fill"].every((id) => ids.includes(id) && ids.indexOf(id) < ri), warningsAbove: act.length > 0 && act.every((id) => ids.indexOf(id) > ri), opacity: m.getPaintProperty("radar", "raster-opacity"), theme: document.documentElement.dataset.theme, badge: document.getElementById("txBadge").textContent }; });
     for (const z of [7.5, 9]) { await p.evaluate(([c, z]) => window.__threats.map.jumpTo({ center: c, zoom: z }), [CVG, z]); await p.waitForTimeout(4000);
       await p.screenshot({ path: path.join(OUT, `heavy-${dev}-${theme}-z${z}.png`) }); }
-    check(`(${dev}, ${theme}) ${s.badge}: radar ${s.opacity * 100}%; state lines (layer ${s.state}) and county lines (layer ${s.county}) above radar (layer ${s.ri}); warnings above radar`, s.theme === theme && s.badge === "TEST REPLAY" && s.ri >= 0 && s.state > s.ri && s.county > s.ri && s.warningsAbove && !errs.length, { s, errs });
+    check(`(${dev}, ${theme}) ${s.badge}: radar ${s.opacity * 100}%; state lines (layer ${s.state}) and county lines (layer ${s.county}) above radar (layer ${s.ri}); alert outlines above radar, fills below`, s.theme === theme && s.badge === "TEST REPLAY" && s.ri >= 0 && s.state > s.ri && s.county > s.ri && s.warningsAbove && s.fillsBelow && !errs.length, { s, errs });
     await ctx.close(); }
   await b.close();
   fs.writeFileSync(path.join(OUT, "radar-boundary-check.json"), JSON.stringify({ host: HOST, at: new Date().toISOString(), results }, null, 1));

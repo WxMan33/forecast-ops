@@ -1,13 +1,13 @@
 /* Precipitation type (MRMS PrecipFlag) on a hosted Threats page: live, throttled phones, fallback and a winter replay.
      live (desktop): the default mode is Precipitation type, read through the page's /api/mrms forwarder (NOAA sends no CORS
        header, so a direct read is also tried and must fail); scan age; coverage; only NOAA's documented codes in the grid;
-       nearest-neighbour; 70% opacity; state and county lines and warnings above radar; legend: the categories, "No radar
+       nearest-neighbour; 70% opacity; state and county lines and alert outlines above radar, fills below; legend: the categories, "No radar
        coverage", and the no sleet / freezing-rain note; switching to Reflectivity and back; the opacity slider in both modes;
        both remembered after a reload.
      phones at 360 and 390 px, 4x slower CPU and a throttled network: download size and time, decode time, tile times, and
        consecutive refreshes (each new scan downloaded once).
      fallback: the forwarder failing, and a scan 30 minutes old: "Precipitation type unavailable · showing reflectivity" and the
-       Reflectivity 2026 legend with the reflectivity layer.
+       green-to-red reflectivity legend with the reflectivity layer.
      winter replay (TEST REPLAY) at CVG: the real current PrecipFlag and lcref files with a rain-to-snow transition painted over
        Kentucky, Ohio and Indiana (warm rain, cool rain, then snow to the north, with a ragged edge), checked pixel by pixel on
        tiles the page drew, in both modes.
@@ -46,11 +46,11 @@ async function open(b, opt, { theme = "dark", slow = false, mode = null, op = nu
   return { ctx, p, errs, reqs };
 }
 const read = (p) => p.evaluate(() => { const T = window.__threats, m = T.map, st = m.getStyle(), ids = st.layers.map((l) => l.id), r = T.radar, ri = ids.indexOf("radar");
-  const lines = ["hu-state", "cnty-lines"].filter((id) => ids.includes(id)), act = st.layers.filter((l) => l.source === "active").map((l) => l.id), gi = ids.indexOf("gauge");
+  const lines = ["hu-state", "cnty-lines"].filter((id) => ids.includes(id)), act = st.layers.filter((l) => l.source === "active" && l.type === "line").map((l) => l.id), gi = ids.indexOf("gauge");
   const ps = T.ptypeStats, lg = document.querySelector("[data-lg=ptype]"), lr = document.querySelector("[data-lg=radar]"), fb = document.querySelector("[data-ptype-fallback]");
   const med = (a) => (a && a.length ? a.slice().sort((x, y) => x - y)[Math.floor(a.length / 2)] : null);
   return { mode: T.radarMode(), via: r.via, state: r.state, valid: r.valid, ptFallback: r.ptFallback, ptError: r.ptError, iemError: r.iemError || null,
-    order: { radar: ri, lines: lines.map((id) => [id, ids.indexOf(id)]), linesAbove: ri >= 0 && lines.length === 2 && lines.every((id) => ids.indexOf(id) > ri), warnings: act.length, warningsAbove: act.every((id) => ids.indexOf(id) > ri), gauge: gi, gaugeAbove: gi < 0 || gi > ri },
+    order: { radar: ri, lines: lines.map((id) => [id, ids.indexOf(id)]), linesAbove: ri >= 0 && lines.length === 2 && lines.every((id) => ids.indexOf(id) > ri), warnings: act.length, fillsBelow: ["watch-fill", "adv-fill", "warn-fill"].every((id) => ids.includes(id) && ids.indexOf(id) < ri), warningsAbove: act.every((id) => ids.indexOf(id) > ri), gauge: gi, gaugeAbove: gi < 0 || gi > ri },
     paint: m.getLayer("radar") && { opacity: m.getPaintProperty("radar", "raster-opacity"), resampling: m.getPaintProperty("radar", "raster-resampling") },
     pt: ps && { scan: ps.scan, pfScan: ps.pfScan, pfBytes: ps.pfBytes, bytes: ps.bytes, downloadMs: ps.downloadMs, decodeMs: ps.decodeMs, size: ps.size, codes: ps.codes, unknown: ps.unknown, loads: ps.loads, tiles: ps.tileMs.length, tileMed: med(ps.tileMs), tileMax: ps.tileMs.length ? Math.max(...ps.tileMs) : null, error: ps.error },
     legend: { rainBar: lg ? (lg.querySelector(".lg-r26") || { children: [] }).children.length : 0, snowBar: lg ? (lg.querySelector(".lg-snow") || { children: [] }).children.length : 0, ptype: !!lg, items: lg ? [...lg.querySelectorAll(".lg-pt span")].map((s) => s.textContent) : [], note: lg ? lg.querySelector(".lg-note").textContent : "", refl: !!(lr && lr.querySelector(".lg-r26")), fallback: fb ? fb.textContent : null },
@@ -119,8 +119,8 @@ const ptRoute = (gz, scanIso) => async (p) => {
     check(`(desktop) browser access: NOAA's file read directly is ${direct} (no CORS header); through /api/mrms the page shows precipitation type by default (mode ${s.mode}, via ${s.via})`, direct === "blocked" && s.mode === "ptype" && s.via === "ptype" && s.modeChecked === "ptype", { direct, s });
     check(`(desktop) scan ${s.pt && new Date(s.pt.scan).toISOString()} is ${age} min old; grid ${s.pt && s.pt.size}; reflectivity ${(s.pt.bytes / 1024).toFixed(0)} KB + type ${(s.pt.pfBytes / 1024).toFixed(0)} KB in ${s.pt.downloadMs} ms; decoded in ${s.pt.decodeMs} ms; type scan ${s.pt.pfScan && new Date(s.pt.pfScan).toISOString()} = radar scan`, age != null && age <= 15 && s.pt.size === "7000x3500" && s.pt.pfScan === s.pt.scan && s.pt.pfBytes < 600e3, { pt: s.pt });
     check(`(desktop) codes in the live grid: ${JSON.stringify(s.pt.codes)}; all documented (unknown: ${JSON.stringify(s.pt.unknown)}); radar coverage ${(cov * 100).toFixed(1)}% of the grid (the rest is outside coverage, hatched, not 'no precipitation')`, s.pt.unknown.length === 0 && s.pt.codes["-3"] > 0 && s.pt.codes["0"] > 0, { codes: s.pt.codes });
-    check(`(desktop) style: opacity ${s.paint && s.paint.opacity}, ${s.paint && s.paint.resampling}; state and county lines ${JSON.stringify(s.order.lines)} and ${s.order.warnings} warning layers above radar (${s.order.radar}); gauges ${s.order.gauge < 0 ? "not loaded" : "layer " + s.order.gauge}`, s.paint.opacity === 0.7 && s.paint.resampling === "nearest" && s.order.linesAbove && s.order.warningsAbove && s.order.gaugeAbove, { s });
-    check(`(desktop) legend: rain bar (Reflectivity 2026) ${s.legend.rainBar}, snow bar ${s.legend.snowBar}; ${s.legend.items.join(" / ")}; note '${s.legend.note.slice(0, 150)}'`, s.legend.ptype && s.legend.rainBar === 14 && s.legend.snowBar === 14 && s.legend.items.includes("No radar coverage") && !s.legend.items.some((x) => /stratiform|convective|tropical/i.test(x)) && /no sleet, freezing-rain or mixed category/.test(s.legend.note) && !s.legend.fallback, { legend: s.legend });
+    check(`(desktop) style: opacity ${s.paint && s.paint.opacity}, ${s.paint && s.paint.resampling}; state and county lines ${JSON.stringify(s.order.lines)} and ${s.order.warnings} alert outlines above radar, fills below (${s.order.radar}); gauges ${s.order.gauge < 0 ? "not loaded" : "layer " + s.order.gauge}`, s.paint.opacity === 0.7 && s.paint.resampling === "nearest" && s.order.linesAbove && s.order.warningsAbove && s.order.fillsBelow && s.order.gaugeAbove, { s });
+    check(`(desktop) legend: rain bar (green-to-red reflectivity) ${s.legend.rainBar}, snow bar ${s.legend.snowBar}; ${s.legend.items.join(" / ")}; note '${s.legend.note.slice(0, 150)}'`, s.legend.ptype && s.legend.rainBar === 14 && s.legend.snowBar === 14 && s.legend.items.includes("No radar coverage") && !s.legend.items.some((x) => /stratiform|convective|tropical/i.test(x)) && /no sleet, freezing-rain or mixed category/.test(s.legend.note) && !s.legend.fallback, { legend: s.legend });
     await p.screenshot({ path: path.join(OUT, "live-desktop-ptype-cvg.png") });
     await p.evaluate(() => window.__threats.map.jumpTo({ center: [-74.2, 43.6], zoom: 6.3 })); await p.waitForTimeout(4000); await p.screenshot({ path: path.join(OUT, "live-desktop-ptype-northeast-rain-snow.png") });
     await layersShot(p, "live-desktop-ptype-layers.png");
@@ -128,7 +128,7 @@ const ptRoute = (gz, scanIso) => async (p) => {
     await pickMode(p, "refl"); const r1 = await read(p); await p.screenshot({ path: path.join(OUT, "live-desktop-refl-northeast.png") });
     await p.locator("#txLayersBtn").click(); await p.waitForTimeout(300); await p.locator("[data-radar-op]").fill("50"); await p.waitForTimeout(300); const r1b = await read(p); await p.screenshot({ path: path.join(OUT, "live-desktop-refl-layers-50.png") }); await p.keyboard.press("Escape");
     await pickMode(p, "ptype"); const r2 = await read(p);
-    check(`(desktop) Reflectivity: via ${r1.via}, Reflectivity 2026 legend ${r1.legend.refl}; slider 50% → map ${r1b.paint.opacity}; back to Precipitation type: via ${r2.via}, map ${r2.paint.opacity}, shows ${r2.opShown}`, r1.via === "iem" && r1.legend.refl && !r1.legend.ptype && r1b.paint.opacity === 0.5 && r2.via === "ptype" && r2.paint.opacity === 0.5 && r2.opShown === "50%" && r2.legend.ptype, { r1, r1b, r2 });
+    check(`(desktop) Reflectivity: via ${r1.via}, green-to-red reflectivity legend ${r1.legend.refl}; slider 50% → map ${r1b.paint.opacity}; back to Precipitation type: via ${r2.via}, map ${r2.paint.opacity}, shows ${r2.opShown}`, r1.via === "iem" && r1.legend.refl && !r1.legend.ptype && r1b.paint.opacity === 0.5 && r2.via === "ptype" && r2.paint.opacity === 0.5 && r2.opShown === "50%" && r2.legend.ptype, { r1, r1b, r2 });
     await pickMode(p, "refl"); await p.reload({ waitUntil: "domcontentloaded" }); await passNotice(p);
     await p.waitForFunction(() => window.__threats && window.__threats.radar && window.__threats.radar.state === "ok" && window.__threats.radar.via, null, { timeout: 90000 }).catch(() => {}); await p.waitForTimeout(2500);
     const r3 = await read(p); check(`(desktop) after a reload: mode ${r3.mode} (${r3.via}), opacity ${r3.paint && r3.paint.opacity} (${r3.opShown})`, r3.mode === "refl" && r3.via === "iem" && r3.paint.opacity === 0.5 && r3.opShown === "50%", { r3 });
@@ -147,14 +147,14 @@ const ptRoute = (gz, scanIso) => async (p) => {
     check(`(${w} px, 4x slower CPU, ~8 Mbps / 150 ms) precipitation type via ${s.via}: ${scans.length} scan(s), ${lcref.length} reflectivity image(s) and ${gets.length} same-minute type file(s) (${gets.map((r) => Math.round((r.bytes || 0) / 1024) + " KB").join(", ")}), scan time read ${times.length} times; download ${scans.map((x) => x.downloadMs + " ms").join(", ")}; decode ${scans.map((x) => x.decodeMs + " ms").join(", ")}; tiles median ${Math.round(last.pt.tileMed)} ms, max ${Math.round(last.pt.tileMax)} ms (${last.pt.tiles})`,
       s.via === "ptype" && gets.length === scans.length && last.pt.loads === scans.length && (w !== "390" || scans.length >= 2) && lcref.length === scans.length && !errs.length, { scans, last: last.pt, errs, gets });
     await pickMode(p, "refl"); await p.screenshot({ path: path.join(OUT, `live-${w}-refl-northeast.png`) }); await layersShot(p, `live-${w}-refl-layers.png`);
-    const r = await read(p); check(`(${w} px) Reflectivity: via ${r.via}, legend Reflectivity 2026 ${r.legend.refl}, opacity ${r.paint.opacity}; lines and warnings above radar`, r.via === "iem" && r.legend.refl && r.paint.opacity === 0.7 && r.order.linesAbove && r.order.warningsAbove, { r });
+    const r = await read(p); check(`(${w} px) Reflectivity: via ${r.via}, legend green-to-red reflectivity ${r.legend.refl}, opacity ${r.paint.opacity}; lines and alert outlines above radar, fills below`, r.via === "iem" && r.legend.refl && r.paint.opacity === 0.7 && r.order.linesAbove && r.order.warningsAbove && r.order.fillsBelow, { r });
     info["phone" + w] = { scans, last: last.pt }; await ctx.close(); }
 
   /* ---- fallback: forwarder failing; scan 30 minutes old ---- */
   if (!ONLY) { const { ctx, p, errs } = await open(b, PHONES["390"], { route: async (p) => { await p.route(/\/api\/mrms\//, (r) => r.fulfill({ status: 502, headers: { "content-type": "application/json", "access-control-allow-origin": "*" }, body: '{"error":"MRMS did not answer in time"}' })); } });
     const s = await read(p); await p.screenshot({ path: path.join(OUT, "fallback-390-unavailable.png") }); await layersShot(p, "fallback-390-unavailable-layers.png");
     const reflIso = s.reflScan && new Date(s.reflScan).toISOString();
-    check(`(390 px) forwarder failing, everything names the reflectivity on screen: map credit '${s.credit}'; legend '${s.legend.fallback}' + Reflectivity 2026 (scan ${s.reflLegendScan}); '${s.ptLast}'; source row '${s.row}'; Layers note '${s.note}'; the reflectivity scan shown is ${reflIso} = page scan ${s.valid}`,
+    check(`(390 px) forwarder failing, everything names the reflectivity on screen: map credit '${s.credit}'; legend '${s.legend.fallback}' + green-to-red reflectivity (scan ${s.reflLegendScan}); '${s.ptLast}'; source row '${s.row}'; Layers note '${s.note}'; the reflectivity scan shown is ${reflIso} = page scan ${s.valid}`,
       s.mode === "ptype" && s.ptFallback && s.via === "iem" && s.legend.fallback === "Precipitation type unavailable · showing reflectivity" && s.legend.refl && !s.legend.ptype && /^Reflectivity: MRMS via Iowa Environmental Mesonet \(precipitation type unavailable\)/.test(s.credit) && /^Precipitation type unavailable · showing reflectivity · MRMS lowest-elevation reflectivity, scan/.test(s.note) && /Precipitation type unavailable · showing reflectivity · MRMS reflectivity/.test(s.row) && reflIso === s.valid && s.reflLegendScan && !errs.length, { s, errs });
     await ctx.close(); }
   const W = await winterFiles();
@@ -210,14 +210,14 @@ const ptRoute = (gz, scanIso) => async (p) => {
     const near = (c, want) => { const v = c.split(",").map(Number); return v.every((x, k) => Math.abs(x - want[k]) <= 2); }; // PNG round trip: ±1
     const ncOk = nc.some((c) => near(c, stripe)) && nc.some((c) => c === "0,0,0,0");
     await p.screenshot({ path: path.join(OUT, `winter-${dev}-${theme}-ptype.png`) }); if (dev !== "desktop" || theme === "dark") await layersShot(p, `winter-${dev}-${theme}-ptype-layers.png`);
-    check(`(${dev}, ${theme}) ${s.badge}: winter replay in precipitation type; probes ${got.map((g) => (g.want === 3 ? "snow" : "rain " + dbzOf[g.want] + " dBZ") + "→" + (wantOf(g.want).some((w) => nearPx(g.rgba, w)) ? "ok" : g.rgba.join())).join(", ")}; rain and snow bars in the legend; lines and warnings above radar`,
-      s.badge === "TEST REPLAY" && s.via === "ptype" && okPx && s.legend.ptype && s.legend.rainBar === 14 && s.legend.snowBar === 14 && s.order.linesAbove && s.order.warningsAbove && !errs.length, { got, s, errs });
+    check(`(${dev}, ${theme}) ${s.badge}: winter replay in precipitation type; probes ${got.map((g) => (g.want === 3 ? "snow" : "rain " + dbzOf[g.want] + " dBZ") + "→" + (wantOf(g.want).some((w) => nearPx(g.rgba, w)) ? "ok" : g.rgba.join())).join(", ")}; rain and snow bars in the legend; lines and alert outlines above radar, fills below`,
+      s.badge === "TEST REPLAY" && s.via === "ptype" && okPx && s.legend.ptype && s.legend.rainBar === 14 && s.legend.snowBar === 14 && s.order.linesAbove && s.order.warningsAbove && s.order.fillsBelow && !errs.length, { got, s, errs });
     check(`(${dev}, ${theme}) unknown code 50: drawn as the dark/light checker (${[...new Set(uk)].join(" | ")}), legend '${s.unknownLegend}'`, ukOk && /Code not in NOAA's table \(50\)/.test(s.unknownLegend || ""), { uk, s: s.legend });
     check(`(${dev}, ${theme}) no-coverage stripes ${stripe.slice(0, 3).join()} over the Gulf; on the basemap water ${water} at ${Math.round(s.paint.opacity * 100)}% the stripe/water contrast is ${ratio && ratio.toFixed(2)}:1`, ncOk && ratio >= 2.5, { nc, water, ratio });
     await pickMode(p, "refl"); await p.evaluate(() => window.__threats.map.jumpTo({ center: [-84.7, 39.1], zoom: 6.6 })); await p.waitForTimeout(3500);
     const r = await read(p), rp = await pixel(p, -84.6, 40.2), want = RD.dbzToRgba(Math.round(((15 + 0) + 32) * 2) * 0.5 - 32); // snow band: 15-25 dBZ
     await p.screenshot({ path: path.join(OUT, `winter-${dev}-${theme}-refl.png`) }); if (dev !== "desktop" || theme === "dark") await layersShot(p, `winter-${dev}-${theme}-refl-layers.png`);
-    check(`(${dev}, ${theme}) winter replay in Reflectivity: via ${r.via}, Reflectivity 2026 legend ${r.legend.refl}; snow area drawn ${rp.join()} (a 15-25 dBZ band colour)`, r.via === "iem" && r.legend.refl && rp[3] > 0 && [15, 20].some((v) => { const c = RD.dbzToRgba(v); return Math.abs(c.r - rp[0]) <= 2 && Math.abs(c.g - rp[1]) <= 2 && Math.abs(c.b - rp[2]) <= 2; }) && !errs.length, { r, rp, want, errs });
+    check(`(${dev}, ${theme}) winter replay in Reflectivity: via ${r.via}, green-to-red reflectivity legend ${r.legend.refl}; snow area drawn ${rp.join()} (a 15-25 dBZ band colour)`, r.via === "iem" && r.legend.refl && rp[3] > 0 && [15, 20].some((v) => { const c = RD.dbzToRgba(v); return Math.abs(c.r - rp[0]) <= 2 && Math.abs(c.g - rp[1]) <= 2 && Math.abs(c.b - rp[2]) <= 2; }) && !errs.length, { r, rp, want, errs });
     await ctx.close(); }
   await b.close();
   fs.writeFileSync(path.join(OUT, "ptype-check.json"), JSON.stringify({ host: HOST, at: new Date().toISOString(), results, info }, null, 1));
