@@ -51,6 +51,7 @@ jobs:
           node tools/event-map-check.js /tmp/event-map
           node tools/event-slots-check.js /tmp/event-slots
           node tools/event-days-check.js /tmp/event-days
+          node tools/event-checkin-check.js /tmp/event-checkin
       - name: Hourly grid fixtures (offline)
         run: |
           python3 -m http.server 8765 >/dev/null 2>&1 &

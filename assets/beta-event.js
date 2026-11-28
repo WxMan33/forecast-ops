@@ -239,7 +239,7 @@
     if(open)$("sourceCoverage").querySelector('details').open=true;
   }
   // Refresh ages without making provider requests or resetting the selected forecast hour.
-  const refreshSupport=()=>{if(!document.hidden&&lastRes&&lastView)renderSupport(lastRes,lastView.b);};
+  const refreshSupport=()=>{if(!document.hidden&&lastRes&&lastView){renderSupport(lastRes,lastView.b);refreshCheck();}};
   setInterval(refreshSupport,60000);
   document.addEventListener('visibilitychange',refreshSupport);
   /* ---- official alerts: their own block after the forecast concern; "none" only when the check succeeded ---- */
@@ -286,7 +286,10 @@
     head.setUpdated(saved && fin(oldest) ? oldest : ctx.B.viewedAt, { saved: saved && fin(oldest) }); updatedMs = saved && fin(oldest) ? oldest : ctx.B.viewedAt;
     const b = S.eventBrief(ctx, ev, thr);
     if (b.error) { $("decision").textContent = b.error; return; }
-    const top = b.top, checks = S.checkAgain(ctx, b, U.NAMES), next = checks[0];
+    /* the operational check comes from the schedule and the clock (S.opCheck); the next model update is shown on its own,
+       because it comes from each browser's own model metadata */
+    const top = b.top, checks = S.checkAgain(ctx, b, U.NAMES), op = S.opCheck(ctx, b), mu = S.nextModelUpdate(ctx, U.NAMES, b.all.endMs);
+    const next = op && op.state === "upcoming" ? { at: op.at, what: op.what } : op && op.state === "now" ? { at: op.at, what: `Check now: ${op.opens.toLowerCase()} at ${fmt.time(op.opensMs, tz)}`, now: true } : null;
     dayPicker(ctx, thr);
     /* one set of hourly values for everything below: the grid, the phase summaries and the printout */
     const V = window.HourlyViews.eventView({ C, S, M: window.HourlyModel, ctx, brief: b, thr, tz, now });
@@ -295,7 +298,7 @@
     const lightAll = lightningOf(PS), nwsTh = window.HourlyModel.nwsThunder(ctx.nws, b.all.startMs, b.all.endMs);
     const A = BUI.attention({ b, V, S, thr }); // the same hourly values and venue limit feed the screen tracks and the printout
     const prevUpdate = lastView && lastView.update;
-    lastView = { b, V, PS, peak, lightAll, nwsTh, R: null, checks, top, A, daylight: daylight() };
+    lastView = { b, V, PS, peak, lightAll, nwsTh, R: null, checks, top, A, daylight: daylight(), op, mu, next };
     if (recovered && prevUpdate) lastView.update = prevUpdate; // a late source is a coverage change, not a new visit
     /* ---- the decision, then the three facts that support it ---- */
     /* ---- how much of the event the guidance reaches: pending, partly covered or ready ---- */
@@ -320,7 +323,10 @@
       /* the hazard word is highlighted wherever the headline puts it ("Rain likely…", "Plan for rain…") */
       const hz = top ? new RegExp(esc(top.noun).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") : null;
       $("decision").innerHTML = top ? esc(displayText).replace(hz, (m) => `<span class="hz" style="--tier:var(--${top.tier})">${m}</span>`) : esc(displayText);
-      $("keys").innerHTML = callouts({ A, PS, live, peak, lightAll, next, R, tz, now, gapText: G.incompleteRain, gapAll: G.incomplete });
+      /* the next model update, on its own line under the callouts: it comes from this browser's model metadata */
+      { const m = $("modelNext"); if (m) { m.hidden = !mu; m.textContent = mu ? `Next model update: ${String(mu.name).replace(/ \(.*\)$/, "")}, ${fmt.time(mu.at, tz)}` : ""; } }
+      setTimeout(refreshCheck, 0);
+      $("keys").innerHTML = callouts({ A, PS, live, peak, lightAll, op, R, tz, now, gapText: G.incompleteRain, gapAll: G.incomplete });
     }
     $("coverage").querySelectorAll("[data-remind]").forEach((a) => a.addEventListener("click", () => U.track("reminder_exported", { via: a.dataset.remind })));
     earlyOutlook(res, R, around);
@@ -349,7 +355,7 @@
     $("nwsEv").innerHTML = U.nwsBlock(res, tz, { from: b.all.startMs, to: b.all.endMs, max: 3 }) + thunderNote(nwsTh, lightAll, tz);
     $("blendLine").innerHTML = `<b>Model blend:</b> ${esc(U.blendLine(res))}. ${esc(res.verified)}`;
     $("changes").innerHTML = S.planChanges(b, (ms) => fmt.time(ms, tz)).map((t) => `<li>${esc(t)}</li>`).join("");
-    $("checksNote").textContent = next ? `next ${fmt.time(next.at, tz)}` : "";
+    $("checksNote").textContent = op && op.state === "upcoming" ? `next ${fmt.time(op.at, tz)}` : op && op.state === "now" ? "check now" : "";
     $("checks").innerHTML = checks.length ? checks.map((c) => `<li><div class="when">${esc(fmt.time(c.at, tz))}<em>${esc(fmt.rel(c.at, now))}</em></div><div><b>${esc(c.what)}</b><div class="bx-note">${esc(c.why)}</div></div></li>`).join("") : '<li><div class="when">Now</div><div>Use radar, lightning detection and NWS warnings.</div></li>';
     /* ---- one selected time for the map and the hour-by-hour chart: the concern's start, or the event start ---- */
     const evStart = (b.phases.find((p) => p.key === "event") || b.phases[0]).startMs, focus = top && top.from != null ? top.from : evStart;
@@ -369,7 +375,7 @@
   }
   /* ---- the briefing's callouts: rain, lightning potential, and the third concern (gusts against the venue limit unless
      another hazard ranks higher), then the next check. Values come from the briefing engine and the attention model. ---- */
-  function callouts({ A, PS, live, peak, lightAll, next, R, tz, now, gapText = "", gapAll = "" }) {
+  function callouts({ A, PS, live, peak, lightAll, op = null, R, tz, now, gapText = "", gapAll = "" }) {
     /* the lead above already gives the primary concern's hours; its callout keeps only where in the schedule it falls */
     const item = (k) => A.items.find((x) => x.key === k), when = (it) => { const f = BUI.focusOf(it, A.phases), lead = A.items[0] === it && f.text;
       return [f.text, f.from != null && !lead ? fmt.span(f.from, f.to, tz) : ""].filter(Boolean).join(" · "); };
@@ -399,8 +405,28 @@
       third = wind && wind.windows.length ? `${dt("Gusts", wind)}<dd${tierCls(wind)}><b>Reach your ${A.limit} mph limit</b> · up to ${esc(mph(Math.max(...wind.windows.map((w) => w.peak ? w.peak.v : 0))))}${wind === primary && wind.word ? impact(wind) : `<span class="bx-note">${esc(when(wind))}</span>`}</dd>`
         : `${dt("Gusts", wind)}<dd${tierCls(wind)}>${fin(gmax) ? `Up to ${esc(mph(gmax))}${gapAll ? " in hours with guidance" : ""}` : "Unavailable"}<span class="bx-note">${fin(gmax) ? `${gapAll ? `Below your ${A.limit} mph limit` : `Below your ${A.limit} mph venue limit`}` : "No gust guidance for these hours (not zero)"}</span></dd>`;
     }
-    const nextDd = next ? `${vt(next.at, tz, now)}<span class="bx-note">${esc(next.what)}</span>` : "Now: use radar, lightning detection and NWS warnings.";
+    const nextDd = nextCheckHtml(op, tz, now);
     return `${dt("Rain chance", rain)}${rainDd}${dt("Lightning potential", light)}${lightDd}${third}<dt>Next check</dt><dd class="ev-next">${nextDd}</dd>`;
+  }
+  /* the operational check: the same for everyone with this schedule (the next model update has its own line below) */
+  function nextCheckHtml(op, tz, now) {
+    const hm = (ms) => new Date(ms).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: new Date(ms).getUTCMinutes() ? "2-digit" : undefined }); // the day is in the time stamp above
+    return op && op.state === "upcoming" ? `${vt(op.at, tz, now)}<span class="bx-note" data-op-check>${esc(op.what)} at ${esc(hm(op.opensMs))}</span>`
+      : op && op.state === "now" ? `<b class="ev-checknow" data-op-check="now">Check now</b><span class="bx-note">${esc(op.what)} at ${esc(hm(op.opensMs))}</span>`
+      : "Now: use radar, lightning detection and NWS warnings.";
+  }
+  /* a page left open: the checkpoint moves on with the clock (upcoming, Check now, then live monitoring once gates open)
+     without a reload or a weather request. Only the Next check row and the Sources note change; the selected forecast
+     hour, the warning and everything else stay as they are. Runs each minute, when the tab is shown again, and exactly
+     at the next checkpoint or gate time. */
+  let opTimer = null;
+  function refreshCheck() {
+    clearTimeout(opTimer); if (!lastView || !lastView.b || !ev) return;
+    const now = Date.now(), tz = ev.tz, op = S.opCheck({ now }, lastView.b), dd = document.querySelector("#keys dd.ev-next");
+    if (dd) { const html = nextCheckHtml(op, tz, now); if (dd.innerHTML !== html) dd.innerHTML = html; }
+    const note = $("checksNote"); if (note) note.textContent = op && op.state === "upcoming" ? `next ${fmt.time(op.at, tz)}` : op && op.state === "now" ? "check now" : "";
+    const nextAt = op && op.state === "upcoming" ? op.at : op && op.state === "now" ? op.opensMs : null;
+    if (nextAt && nextAt - now < 24 * 3600e3) opTimer = setTimeout(refreshCheck, Math.max(250, nextAt - now + 50));
   }
   /* a material gap in the guidance belongs next to the decision; routine counts stay under Sources */
   function gapFlag(res) {
