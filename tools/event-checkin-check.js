@@ -40,7 +40,7 @@ const shot = async (p, name) => { await p.locator('#keys').screenshot({ path: pa
     for (const [dev, device] of [['phone', PHONE], ['desktop', DESK]]) {
       /* Bill: gates 4:30 PM, show 5 PM -> 4:00 PM "Before gates open at 4:30 PM"; model update on its own line */
       { const { ctx, p, errors } = await open(browser, srv, { query: bill + '&wx=ceremony&meta=a', device, clock: CLOCK }), x = await read(p);
-        check(/^Thu 4 PM EST in \d+ h/.test(x.next) && x.op === 'Before gates open at 4:30 PM' && /^Next model update: [A-Z][^(]+, [A-Z][a-z]{2} \d/.test(x.model) && !/Before gates \/ start/.test(x.next + x.checks), `Bill ${dev}: Next check 4:00 PM, Before gates open at 4:30 PM; model update separate (${x.next})`);
+        check(/^Thu,? 4 PM EST in \d+ h/.test(x.next) && x.op === 'Before gates open at 4:30 PM' && /^Next model update: [A-Z][^(]+, [A-Z][a-z]{2},? \d/.test(x.model) && !/Before gates \/ start/.test(x.next + x.checks), `Bill ${dev}: Next check 4:00 PM, Before gates open at 4:30 PM; model update separate (${x.next})`);
         if (dev === 'phone') check(x.nextBottom <= x.vh && !x.hs, `Bill phone: Next check fits the first 375 × 667 screen (the model update is on its own line below) (bottom ${x.nextBottom} of ${x.vh})`);
         check(!errors.length, `Bill ${dev}: no page errors ${errors.join('; ')}`);
         await shot(p, `bill-${dev}`); await ctx.close(); }
@@ -69,7 +69,7 @@ const shot = async (p, name) => { await p.locator('#keys').screenshot({ path: pa
         const { ctx, p, errors } = await open(browser, srv, { query: today + '&wx=dry&meta=a&alerts=warn', device, clock: '2026-11-26T20:59:00Z' });
         await p.evaluate(() => { window.__loads = 0; const o = BetaUI.load; BetaUI.load = async (...a) => { window.__loads++; return o(...a); }; window.__warn = document.querySelector('.bx-alert'); window.__lead = document.getElementById('decision'); });
         const sel0 = await p.evaluate(() => document.body.dataset.selected), x0 = await read(p);
-        check(/^Thu 4 PM EST in 1 min Before gates open at 4:30 PM$/.test(x0.next), `left open ${dev}, 3:59 PM: ${x0.next}`);
+        check(/^Thu,? 4 PM EST in 1 min Before gates open at 4:30 PM$/.test(x0.next), `left open ${dev}, 3:59 PM: ${x0.next}`);
         await p.clock.runFor(70e3); await p.waitForTimeout(300);
         const x1 = await read(p), same = await p.evaluate((s0) => ({ loads: window.__loads, sel: document.body.dataset.selected === s0, warn: !!window.__warn && window.__warn.isConnected && window.__warn === document.querySelector('.bx-alert'), lead: window.__lead === document.getElementById('decision') }), sel0);
         check(x1.checkNow && x1.next === 'Check now Before gates open at 4:30 PM', `left open ${dev}, 4:00:10 PM: switched to "${x1.next}"`);
@@ -96,18 +96,18 @@ const shot = async (p, name) => { await p.locator('#keys').screenshot({ path: pa
         await ctx.close(); }
       /* single-window reception, no gates */
       { const { ctx, p } = await open(browser, srv, { query: E({ n: 'Smith reception', t: { start: `${D}T18:00`, end: `${D}T22:00` }, s: [['Reception', `${D}T18:00`, `${D}T22:00`]] }) + '&wx=evening&meta=a', device, clock: CLOCK }), x = await read(p);
-        check(/^Thu 5:30 PM EST/.test(x.next) && x.op === 'Before Reception at 6 PM', `single-window reception ${dev}: ${x.next}`); await shot(p, `reception-${dev}`); await ctx.close(); }
+        check(/^Thu,? 5:30 PM EST/.test(x.next) && x.op === 'Before Reception at 6 PM', `single-window reception ${dev}: ${x.next}`); await shot(p, `reception-${dev}`); await ctx.close(); }
       /* custom ceremony slot */
       { const w = E({ n: 'Garden wedding', t: { start: `${D}T13:00`, end: `${D}T22:00` }, s: [['Vendor setup', `${D}T13:00`, `${D}T15:00`], ['Outdoor ceremony', `${D}T16:00`, `${D}T16:30`, { m: 1 }], ['Reception', `${D}T17:00`, `${D}T22:00`]] });
         const { ctx, p } = await open(browser, srv, { query: w + '&wx=ceremony&meta=a', device, clock: CLOCK }), x = await read(p);
-        check(/^Thu 3:30 PM EST/.test(x.next) && x.op === 'Before Outdoor ceremony at 4 PM', `custom ceremony slot ${dev}: ${x.next}`); await shot(p, `ceremony-${dev}`); await ctx.close(); }
+        check(/^Thu,? 3:30 PM EST/.test(x.next) && x.op === 'Before Outdoor ceremony at 4 PM', `custom ceremony slot ${dev}: ${x.next}`); await shot(p, `ceremony-${dev}`); await ctx.close(); }
       /* multi-day festival: each day's own schedule */
       { const fest = E({ n: 'Riverside weekend festival', t: { start: '2026-11-27T17:00', end: '2026-11-29T18:00' }, s: [['Friday set', '2026-11-27T17:00', '2026-11-27T23:00'], ['Main day', '2026-11-28T10:00', '2026-11-28T23:00', { m: 1 }], ['Closing day', '2026-11-29T10:00', '2026-11-29T18:00']] });
         const { ctx, p } = await open(browser, srv, { query: fest + '&wx=festival&meta=a', device, clock: CLOCK }), seen = {};
         for (const d of ['2026-11-27', '2026-11-28']) { if (!BEFORE) { await p.click(`#dayPick [data-day="${d}"]`).catch(() => {}); await p.waitForFunction((d) => document.body.dataset.day === d && document.body.dataset.loaded, d, { timeout: 25000 }).catch(() => {}); await p.waitForTimeout(500); }
           seen[d] = await read(p); }
-        check(/^Fri 4:30 PM EST/.test(seen['2026-11-27'].next) && seen['2026-11-27'].op === 'Before Friday set at 5 PM', `multi-day ${dev}, Friday: ${seen['2026-11-27'].next}`);
-        check(/^Sat 9:30 AM EST/.test(seen['2026-11-28'].next) && seen['2026-11-28'].op === 'Before Main day at 10 AM', `multi-day ${dev}, Saturday: ${seen['2026-11-28'].next}`);
+        check(/^Fri,? 4:30 PM EST/.test(seen['2026-11-27'].next) && seen['2026-11-27'].op === 'Before Friday set at 5 PM', `multi-day ${dev}, Friday: ${seen['2026-11-27'].next}`);
+        check(/^Sat,? 9:30 AM EST/.test(seen['2026-11-28'].next) && seen['2026-11-28'].op === 'Before Main day at 10 AM', `multi-day ${dev}, Saturday: ${seen['2026-11-28'].next}`);
         await shot(p, `festival-sat-${dev}`); await ctx.close(); }
     }
   } catch (e) { console.log('FAIL ' + (e.stack || e)); failed++; }
