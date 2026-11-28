@@ -1184,6 +1184,7 @@
     if (p.kind === "incident") return row(p.category === "RX" ? "PRESCRIBED FIRE" : "WILDFIRE", p.name || p.title, incFacts(p));
     if (p.kind === "gauge") return row("RIVER GAUGE", p.name, (FX.GAUGE_WORD[p.category] || p.category) + (p.obs && p.obs.value != null ? " · " + p.obs.value + " " + p.obs.unit + " now" : ""));
     if (p.kind === "lsr") return row("STORM REPORT", p.title, t(p.observed, true) + (p.comments ? " · " + p.comments.slice(0, 80) + (p.comments.length > 80 ? "…" : "") : ""));
+    if (p.kind === "obs") return row("LOCAL STORM REPORT", p.title, "Observed " + t(p.observed, true) + " · preliminary" + (p.comments ? " · " + p.comments.slice(0, 80) + (p.comments.length > 80 ? "…" : "") : ""));
     if (p.kind === "smoke") return row("SATELLITE SMOKE", (p.category || "") + " smoke detected", "Observed " + t(p.obsStart) + " → " + t(p.obsEnd) + (p.satellite ? " · " + p.satellite : ""));
     if (p.kind === "aqobs") return row("AIR QUALITY", p.site || "AirNow monitor", "AQI " + p.aqi + " · " + (p.category || "") + " · observed " + t(p.observed));
     if (p.kind === "metar" || p.kind === "taf") return row(p.kind === "metar" ? "METAR" : "TAF", (p.airport || "") + (p.category ? " · " + p.category : ""), (p.kind === "metar" ? "Observed " : "Issued ") + t(p.observed || p.issued));
