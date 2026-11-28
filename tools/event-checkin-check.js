@@ -44,6 +44,35 @@ const shot = async (p, name) => { await p.locator('#keys').screenshot({ path: pa
         if (dev === 'phone') check(x.nextBottom <= x.vh && !x.hs, `Bill phone: Next check fits the first 375 × 667 screen (the model update is on its own line below) (bottom ${x.nextBottom} of ${x.vh})`);
         check(!errors.length, `Bill ${dev}: no page errors ${errors.join('; ')}`);
         await shot(p, `bill-${dev}`); await ctx.close(); }
+      if (!BEFORE) {
+        for (const wx of ['dry', 'sunny-wind']) {
+          const { ctx, p, errors } = await open(browser, srv, { query: bill + `&wx=${wx}&meta=a`, device, clock: CLOCK });
+          await p.waitForFunction(() => window.EventThreatsLast && document.querySelector('#threats .et-sources'));
+          const venue = await p.evaluate(() => {
+            const sources = document.querySelector('#threats .et-sources');
+            sources.open = true;
+            window.EventThreats.render();
+            return { banner: !!document.querySelector('#etVenueHead'), incomplete: !window.EventThreatsLast.venueConfirmed,
+              sources: !!document.querySelector('#threats .et-sources[open] .et-warn'), callouts: document.getElementById('keys').innerText };
+          });
+          check(!venue.banner && venue.incomplete && venue.sources && !errors.length, `${wx} ${dev}: missing feeds stay under Sources checked without a Venue hazards banner`);
+          if (wx === 'sunny-wind') check(/Reach your 25 mph limit/.test(venue.callouts) && /31 mph/.test(venue.callouts), `sunny with wind ${dev}: gusts above the venue limit still appear in the briefing`);
+          else {
+            const warning = await p.evaluate(() => {
+              const data = window.ThreatsLive.snapshot();
+              const product = { id: 'synthetic-flood-warning', family: 'flood', kind: 'warning', event: 'Flash Flood Warning',
+                sourceId: 'nws-alerts', issued: '2026-11-26T18:00:00Z', expires: '2026-11-26T22:00:00Z',
+                geometry: { type: 'Polygon', coordinates: [[[-85, 39], [-84, 39], [-84, 40], [-85, 40], [-85, 39]]] } };
+              window.ThreatsLive.snapshot = () => ({ ...data, products: [product] });
+              window.EventThreats.render();
+              const item = document.querySelector('#threats .et-item[data-kind="warning"]');
+              return !!document.querySelector('#etVenueHead') && !!item && /Flash Flood Warning/.test(item.textContent);
+            });
+            check(warning && !errors.length, `venue warning ${dev}: an overlapping warning still opens the Venue hazards section`);
+          }
+          await ctx.close();
+        }
+      }
       /* the same event and schedule in a browser with other model run times: same operational check, different model line */
       { const a = await open(browser, srv, { query: bill + '&wx=ceremony&meta=a', device, clock: CLOCK }), xa = await read(a.p); await a.ctx.close();
         const b = await open(browser, srv, { query: bill + '&wx=ceremony&meta=b', device, clock: CLOCK }), xb = await read(b.p); await b.ctx.close();
