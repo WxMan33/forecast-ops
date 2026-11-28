@@ -231,9 +231,31 @@
   .threats-page .statusbar .headline { padding: 0; min-width: 0; }
   .threats-page .statusbar .hl-word { font-size: 16px; }
   .threats-page .statusbar .page-sub, .threats-page #printBtn, .threats-page #dataChip { display: none; }
-  .threats-page .navbar { display: none; }
-  .threats-page.tx-nav-open .navbar { display: flex; flex-wrap: wrap; }
-  .tx-menu { display: inline-flex !important; cursor: pointer; }
+  /* the other Forecast Ops pages stay one tap away: the same eight labelled links as every page, as a compact 4 x 2 grid (no
+     icons, short rows) instead of hiding them behind a Menu button */
+  .threats-page .navbar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; padding: 4px 6px; }
+  .threats-page .navbar a { flex-direction: row; justify-content: center; min-height: 28px; padding: 4px 2px; font-size: 10.5px; letter-spacing: .02em; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; }
+  .threats-page .navbar a svg { display: none; }
+  .tx-menu { display: none !important; }
+  /* demo bar: badge, data and venue on one row */
+  .tx-demo { grid-template-columns: auto minmax(0, .8fr) minmax(0, 1.2fr); grid-template-areas: "badge data venue"; padding: 4px 8px; }
+  .tx-demo:has(#stepField:not([hidden])) { grid-template-columns: auto minmax(0, .8fr) minmax(0, 1.2fr) minmax(0, .8fr); grid-template-areas: "badge data venue step"; }
+  .tx-demo:has(#stepField[hidden]) { grid-template-areas: "badge data venue"; }
+  .tx-demo-badge { font-size: 10px; padding: 2px 6px; }
+  /* map controls in one row: Layers first, then the time choices scrolling sideways instead of wrapping */
+  .tx-top { display: flex; flex-direction: row; align-items: center; gap: 6px; right: 8px; top: 6px; left: 8px; flex-wrap: wrap; }
+  .tx-top > .tx-lyr { order: 0; }
+  .tx-top > .tx-time { order: 1; flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding: 2px 4px; }
+  .tx-top > .tx-model { order: 2; flex-basis: 100%; }
+  .tx-top > .tx-time::-webkit-scrollbar { display: none; }
+  .tx-top > .tx-time .tx-gl { display: none; }
+  .tx-lyr { flex: 0 0 auto; }
+  .tx-lyrbtn .tx-gl { display: none; }
+  .tx-lyrsum { max-width: 34vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; vertical-align: bottom; }
+  /* the "Next 7 days at … updated …" line repeats the sheet's own status lines: shown there only */
+  .tx-valid { display: none; }
+  /* the collapsed sheet keeps its lead lines (warnings first) and Details; the map-area switch and status lines show once it opens */
+  .tx-panel[data-sheet="peek"] .tx-scope, .tx-panel[data-sheet="peek"] .tx-pstate { display: none; }
   .tx-panel-body { padding: 10px 12px 16px; }
   .px-big { font-size: 20px; }
 }
@@ -285,7 +307,32 @@
 .px-vfcgrid { display: grid; grid-template-columns: auto auto auto auto; gap: 2px 14px; font-size: 13px; font-variant-numeric: tabular-nums; }
 .px-vfcgrid > div { display: contents; }
 .px-vfch span { color: var(--muted, #8a93a0); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
-/* radar legend: NWS reflectivity colours, light to heavy */
+/* radar opacity slider under Layers → Radar */
+.tx-radmode { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 8px; }
+.tx-seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; min-width: 0; }
+.tx-seg label { position: relative; display: block; min-width: 0; cursor: pointer; }
+.tx-seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.tx-seg span { display: block; padding: 7px 6px; text-align: center; font-size: 12.5px; font-weight: 600; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tx-seg label + label span { border-left: 1px solid var(--line); }
+.tx-seg input:checked + span { background: var(--accent); color: var(--accent-ink, #fff); }
+.tx-seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -3px; }
+.lg-ptrow { display: grid; grid-template-columns: 2.6em 1fr; align-items: center; gap: 6px; }
+.lg-ptlbl { font-size: 11px; font-weight: 700; color: var(--muted); }
+.lg-snow { display: grid; grid-template-columns: repeat(14, 1fr); height: 10px; border-radius: 3px; overflow: hidden; margin: 2px 0; background: repeating-conic-gradient(var(--line) 0% 25%, transparent 0% 50%) 0 0 / 6px 6px; }
+.lg-pt { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 3px 10px; margin: 4px 0 2px; font-size: 11.5px; }
+.lg-pt span { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.lg-pt i { flex: none; width: 14px; height: 10px; border-radius: 2px; }
+.lg-ptnc { background: repeating-linear-gradient(135deg, rgb(215,215,215) 0 2px, transparent 2px 6px); border: 1px solid var(--line); }
+:root[data-theme="light"] .lg-ptnc { background: repeating-linear-gradient(135deg, rgb(20,20,20) 0 2px, transparent 2px 6px); }
+.lg-ptuk { background: repeating-conic-gradient(rgb(25,25,25) 0% 25%, rgb(250,250,250) 0% 50%) 0 0 / 4px 4px; border: 1px solid var(--line); }
+.lg-ptfb { font-weight: 700; color: var(--warn, #b45309); margin-bottom: 4px; }
+.tx-radop { display: grid; grid-template-columns: auto 1fr 3.2em; align-items: center; gap: 8px; }
+.tx-radop input[type=range] { width: 100%; min-width: 0; accent-color: var(--accent); }
+.tx-radop output { font-variant-numeric: tabular-nums; text-align: right; font-weight: 700; }
+/* radar legend (Reflectivity 2026): one swatch per 5 dBZ band, 5 to 70; labels every 10 dBZ */
+.lg-r26 { display: grid; grid-template-columns: repeat(14, 1fr); height: 10px; border-radius: 3px; overflow: hidden; margin: 4px 0 2px; background: repeating-conic-gradient(var(--line) 0% 25%, transparent 0% 50%) 0 0 / 6px 6px; }
+.lg-r26n { display: grid; grid-template-columns: repeat(7, 1fr); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+/* radar legend: NWS reflectivity colours, light to heavy (NOAA fallback) */
 .lg-radar { height: 8px; border-radius: 4px; margin: 4px 0; background: linear-gradient(90deg, #04e9e7, #019ff4, #0300f4, #02fd02, #01c501, #008e00, #fdf802, #e5bc00, #fd9500, #fd0000, #d40000, #bc0000, #f800fd, #9854c6); }
 /* the venue's next 7 days */
 .px-olhead { border: 1px solid var(--line); border-left: 4px solid var(--ol-c); border-radius: 8px; padding: 10px 12px; margin: 2px 0 12px; }
@@ -297,9 +344,10 @@
 .px-olday { border: 1px solid var(--line); border-left: 4px solid var(--ol-c); border-radius: 8px; padding: 7px 10px; }
 .px-olday-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px; }
 .px-ollv { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ol-c); font-weight: 700; }
-.px-olchip { display: flex; gap: 6px; align-items: baseline; width: 100%; text-align: left; background: none; border: 0; border-left: 3px solid var(--ol-c); padding: 3px 6px; margin: 2px 0; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
+.px-olchip { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 6px; box-sizing: border-box; align-items: baseline; width: 100%; text-align: left; background: none; border: 0; border-left: 3px solid var(--ol-c); padding: 3px 6px; margin: 2px 0; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
 .px-olchip[data-ol-go=""] { cursor: default; }
-.px-olchip small { color: var(--muted); margin-left: auto; white-space: nowrap; font-size: 11px; }
+.px-olchip small { grid-column: 2; color: var(--muted); font-size: 11px; }
+.px-olchip .px-olchip-text, .px-olchip small { overflow-wrap: anywhere; white-space: normal; }
 .px-olquiet { color: var(--muted); font-size: 13px; }
 .px-olinfo { color: var(--muted); font-size: 12px; margin-top: 2px; }
 .px-olunk { color: #c8a200; font-size: 12px; margin-top: 2px; }

@@ -129,12 +129,12 @@ const CASES = [
     await ctx.close();
   }
   /* a small phone (375×667, iPhone SE-like): the lead and "Watch for" (and an urgent warning) on the first screen */
-  for (const [name, query] of CASES.slice(0, 4)) {
+  for (const [name, query] of CASES) {
     const { ctx, p, errors } = await open(base, query, { device: { width: 375, height: 667 } }), s = await state(p);
-    const bar = await p.evaluate(() => { const ids = ['printTop', 'bxFeedback', 'bxRefresh', 'bxTheme'], els = [...ids.map((i) => document.getElementById(i)), document.querySelector('.bx-head-in > a.bx-btn')].filter(Boolean);
+    const bar = await p.evaluate(() => { const ids = ['printTop', 'bxFeedback', 'bxRefresh', 'bxTheme'], menu = document.querySelector('.bx-sitemenu > summary'), els = [...ids.map((i) => document.getElementById(i)), menu && menu.offsetParent ? menu : document.querySelector('.bx-head-in > a.bx-btn')].filter(Boolean); // phones: the Forecast Ops menu (with Meteorologist view inside) is the fifth control
       const r = els.map((e) => e.getBoundingClientRect()), dd = [...document.querySelectorAll('#keys dd')].pop();
       return { n: els.length, rows: new Set(r.map((x) => Math.round(x.top))).size, minH: Math.min(...r.map((x) => x.height)), minW: Math.min(...r.map((x) => x.width)), names: els.map((e) => e.getAttribute('aria-label') || e.title || e.innerText.trim()), next: dd ? dd.getBoundingClientRect().bottom : 9999 }; });
-    check(bar.n === 5 && bar.rows === 1 && bar.minH >= 44 && bar.minW >= 44 && bar.names.every(Boolean), `${name} 375×667: Print, Feedback, refresh, Dark and Met on one row, each a ≥44 px target with a name (${JSON.stringify(bar)})`);
+    check(bar.n === 5 && bar.rows === 1 && bar.minH >= 44 && bar.minW >= 44 && bar.names.every(Boolean), `${name} 375×667: Print, Feedback, refresh, Dark and the Forecast Ops menu (or Met) on one row, each a ≥44 px target with a name (${JSON.stringify(bar)})`);
     if (name === 'replay' || name === 'quiet' || name === 'missing') check(bar.next <= 667, `${name} 375×667: Next check is on the first screen (ends ${Math.round(bar.next)} px)`);
     if (name === 'warning') { const w = await p.evaluate(() => { const u = document.getElementById('leadUrgent'), r = u.getBoundingClientRect(), a = u.querySelector('a[href*="weather.gov"]'), ar = a && a.getBoundingClientRect();
         /* nothing weather-related above it: the concern headline, the lead line, callouts, official block all come after */
@@ -144,6 +144,8 @@ const CASES = [
     if (name === 'missing') { const m = await p.evaluate(() => ({ dec: document.getElementById('decision').innerText, rows: [...document.querySelectorAll('#keys dd')].slice(0, 3).map((d) => d.innerText.replace(/\s+/g, ' ')) }));
       check(/9–11 AM/.test(m.dec) && /in hours with guidance/.test(m.rows[0]) && /in hours with guidance/.test(m.rows[2]) && !/\d/.test(m.rows[1].replace(/9–11 AM/g, '')), `${name} 375×667: the missing hours are named (${m.dec}) and every number shown for other hours says "in hours with guidance" (${m.rows.join(' | ')})`); }
     check(s.whenBottom <= s.vh && s.watchBottom <= s.vh && (name !== 'warning' || (s.urgentBottom > 0 && s.urgentBottom <= s.vh)) && !s.hscroll && !errors.length, `${name} 375×667: lead and "Watch for"${name === 'warning' ? ' and the urgent warning' : ''} on the first screen (watch ends ${Math.round(s.watchBottom)} px${name === 'warning' ? `, warning ends ${Math.round(s.urgentBottom)} px` : ''})`);
+    if (name === 'alertsfail') { const card = (await p.locator('#alerts').innerText()).replace(/\s+/g, ' ').trim();
+      check(/Official alerts could not be checked \(\d{1,2}(:\d\d)? [AP]M\)/.test(card) && /weather\.gov/.test(card) && !/No active official alerts/.test(card), `${name} 375×667: a failed alert check stays unavailable and never says "No active official alerts" (${card})`); }
     await p.screenshot({ path: path.join(out, `${name}-phone375-light.png`) }); await ctx.close();
   }
   /* dark phone and desktop views of the replay */

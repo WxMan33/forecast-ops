@@ -92,6 +92,16 @@ async function measure(p, W) {
         const probe = await measure(p, phone ? 390 : 1280); await p.evaluate(() => document.getElementById('sweepProbe').remove());
         check(probe.overflow > 1 && probe.offscreen.length > 0, `self-test: the sweep detects page overflow and a clipped control (+${probe.overflow}px, ${probe.offscreen.join(', ')})`);
       }
+      /* the Next 48 hours status changes after load (records and NWS alerts are checked late); every wording it can take must
+         keep the section the same height, or the hourly table below jumps (CI caught a 26 px shift on slow runners) */
+      if (await p.locator('#next48HeadsUp .heads-up-status').count()) {
+        const hs = await p.evaluate(() => { const st = document.querySelector('#next48HeadsUp .heads-up-status'), sec = document.getElementById('next48HeadsUp'), was = st.textContent, out = [];
+          const base = 'No additional flags in available guidance.';
+          for (const t of [base, base + ' Checking records…', base + ' Checking records… Checking NWS alerts…', base + ' Record checks incomplete.', base + ' Record checks incomplete. NWS alert check unavailable.', 'Model guidance unavailable. Record checks incomplete.']) { st.textContent = t; out.push([t, Math.round(sec.getBoundingClientRect().height)]); }
+          st.textContent = was; return out; });
+        const hset = new Set(hs.map((x) => x[1]));
+        check(hset.size === 1, `${label}: the Next 48 hours status keeps the same height whatever it says${hset.size === 1 ? '' : ` (${JSON.stringify(hs)})`}`);
+      }
       /* paging the hourly table and the variable charts: the page around them must not jump */
       for (const [open, next, what] of [['#hourlyTable, #hgWrap, details:has(#hgGrid)', '[data-hg-next]', 'hourly table'], [null, '#evCharts [data-move="1"]', 'variable charts']]) {
         if (open) await p.evaluate((q) => document.querySelectorAll(q).forEach((d) => { if (d.tagName === 'DETAILS') d.open = true; }), open);

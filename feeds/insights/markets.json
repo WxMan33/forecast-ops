@@ -1,0 +1,66 @@
+{
+ "about": "Markets with a precomputed Weather Records & Milestones pack (tools/build-insights.js). record: the official record the facts come from (threaded = the city's official record joining stations over time; station = one station). normals: the station whose 1991-2020 normals apply. ghcnd: the current observing station in NCEI GHCN-Daily, used to tell final from preliminary.",
+ "markets": [
+  {
+   "id": "cvg",
+   "name": "Cincinnati",
+   "country": "US",
+   "region": "OH",
+   "tz": "America/New_York",
+   "lat": 39.0446,
+   "lon": -84.6723,
+   "radiusKm": 60,
+   "units": {
+    "precip": "in",
+    "temp": "F"
+   },
+   "record": {
+    "sid": "CVGthr",
+    "kind": "threaded",
+    "segments": "Downtown city office 1871 to Mar 1915; Abbe Observatory Apr 1915 to Mar 1947; CVG airport from Apr 1947 (identical to CVG from then on)"
+   },
+   "station": {
+    "sid": "CVG",
+    "name": "Cincinnati/Northern Kentucky International Airport"
+   },
+   "normals": {
+    "sid": "CVG"
+   },
+   "ghcnd": "USW00093814",
+   "thresholds": {
+    "pcpn": 2
+   }
+  },
+  {
+   "id": "den",
+   "name": "Denver",
+   "country": "US",
+   "region": "CO",
+   "tz": "America/Denver",
+   "lat": 39.8561,
+   "lon": -104.6737,
+   "radiusKm": 60,
+   "units": {
+    "precip": "in",
+    "temp": "F"
+   },
+   "record": {
+    "sid": "DENthr",
+    "kind": "threaded",
+    "segments": "Downtown city office from 1872, then Stapleton (Denver Central Park) and Denver International Airport from 1994 (identical to DEN from Sep 1994); exact switch dates unverified"
+   },
+   "station": {
+    "sid": "DEN",
+    "name": "Denver International Airport"
+   },
+   "normals": {
+    "sid": "DEN"
+   },
+   "ghcnd": "USW00003017",
+   "thresholds": {
+    "pcpn": 1
+   },
+   "coverage": "Snowfall missing 1995 to 2005 and for parts of 1872 to 1920; precipitation missing Dec 2013; no ACIS snowfall normals for DEN."
+  }
+ ]
+}

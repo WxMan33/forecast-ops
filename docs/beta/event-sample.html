@@ -28,8 +28,8 @@
     if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
   });
 })();</script><!--/load-guard-->
-<link rel="stylesheet" href="assets/ops.css?v=11ee4de8ce">
-<link rel="stylesheet" href="assets/beta.css?v=4aea3a1bdd">
+<link rel="stylesheet" href="assets/ops.css?v=023da63cd4">
+<link rel="stylesheet" href="assets/beta.css?v=afac5cc476">
 <link rel="stylesheet" href="assets/hourly-grid.css?v=befa3eb506">
 <link rel="stylesheet" href="assets/forecast-support.css?v=52766a62f7">
 <link rel="stylesheet" href="assets/event-threats.css?v=dda140049a">
@@ -51,6 +51,8 @@
           <p class="bx-note" id="shareImageNote">A 1920 × 1080 picture of your forecast as it is now. Everyone sees exactly the same thing: use this for a TV.</p></div>
         <p class="bx-note ev-sharemsg" id="shareMsg" role="status" aria-live="polite"></p></div></details><button class="bx-btn" type="button" id="editBtn">Edit event</button><button class="bx-link ev-quiet" type="button" id="resetBtn" hidden>Use sample event</button></div>
   </div>
+  <!-- multi-day events: one day at a time (EventDays); hidden for a single-day event -->
+  <nav class="ev-days" id="dayPick" aria-label="Event days" hidden></nav>
   <div id="briefUpdate" hidden></div><div id="opsHandoff" hidden></div>
   <!-- the lead: one event concern (forecast, or missing guidance), its timing, what it means, what would change the plan; evidence one tap away -->
   <section class="ev-lead" id="lead" aria-label="Event concern">
@@ -90,13 +92,13 @@
 <script src="assets/forecast-support.js?v=8e562569c6"></script>
 <script src="assets/ops-core.js?v=e1094fa657"></script>
 <script src="assets/ops-data.js?v=68a540c59e"></script>
-<script src="assets/ops.js?v=c665c60df0"></script>
+<script src="assets/ops.js?v=0d6cbb6f52"></script>
 <script src="assets/forecast-clock.js?v=c6df9f20b7"></script>
 <script src="assets/model-trends.js?v=20f2fb637c"></script>
 <script src="assets/beta-story.js?v=13a65095d7"></script>
 <script src="assets/beta-config.js?v=69b0bd8aed"></script>
 <script src="assets/beta-analytics.js?v=2fe1a4634a"></script>
-<script src="assets/beta-ui.js?v=afdc830e2c"></script>
+<script src="assets/beta-ui.js?v=0c4d878b04"></script>
 <script src="assets/event-store.js?v=d5f8592bec"></script>
 <script src="assets/venue-search.js?v=307f9ceb2a"></script>
 <script src="assets/calendar-import.js?v=15af4d2829"></script>
@@ -107,11 +109,12 @@
 <script src="assets/event-briefing-history.js?v=3baffaf999"></script>
 <script src="assets/event-ops-handoff.js?v=fa83113129"></script>
 <script src="assets/event-hourly-charts.js?v=8e0beefc8c"></script>
-<script src="assets/event-outlook.js?v=2f03565c9a"></script>
-<script src="assets/event-tv-export.js?v=41f7fd0fa2"></script>
+<script src="assets/event-outlook.js?v=b0a12c6400"></script>
+<script src="assets/event-tv-export.js?v=6261d717ab"></script>
 <script src="assets/almanac-core.js?v=715a4bf1f5"></script>
 <script src="assets/event-daylight.js?v=c30358e1d0"></script>
-<script src="assets/event-lead.js?v=9859ed7e03"></script>
+<script src="assets/event-days.js?v=2aede295c4"></script>
+<script src="assets/event-lead.js?v=baae635508"></script>
 <script src="assets/event-briefing-ui.js?v=430be123bd"></script>
 <script src="assets/threats-core.js?v=082bdb6545"></script>
 <script src="assets/threats-feeds.js?v=2397dcd0f2"></script>
@@ -122,7 +125,7 @@
 <script src="assets/threats-live.js?v=05df01384d"></script>
 <script src="assets/event-threats.js?v=c95cf15194"></script>
 <script src="tests/fixtures/event-orlando-data.js"></script>
-<script src="assets/beta-event.js?v=e7e911071f"></script>
+<script src="assets/beta-event.js?v=deed24ab88"></script>
 <script src="assets/table-pages.js?v=5852a434bf"></script>
 </body>
 </html>

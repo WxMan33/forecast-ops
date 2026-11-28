@@ -738,7 +738,7 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .event-planner .ev-back:hover { color: var(--text); text-decoration: underline; }
 .event-planner .ev-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px 20px; margin-top: 8px; }
 .event-planner .ev-head-text { min-width: 0; }
-.event-planner .ev-name { font: 700 clamp(22px, 5.4vw, 30px)/1.15 var(--bx-font) !important; letter-spacing: -.01em; margin: 0 !important; overflow-wrap: anywhere; }
+.event-planner .ev-name { font: 700 clamp(21px, 5.4vw, 30px)/1.15 var(--bx-font) !important; letter-spacing: -.01em; margin: 0 !important; overflow-wrap: anywhere; }
 .event-planner .ev-venue { margin: 4px 0 0; font-size: 15px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
 .event-planner .ev-when { margin: 2px 0 0; font-size: 14px; color: var(--muted); }
 .event-planner .ev-head-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
@@ -1118,3 +1118,40 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 /* hourly charts: hours between a planner's slots (shown, shaded, labelled; outside the schedule) */
 .evc-between{fill:var(--muted);opacity:.14}.evc-betweentext{font:600 11px var(--bx-font);fill:var(--muted)}
 .evc-key .k-between{width:14px;height:14px;background:color-mix(in srgb,var(--muted) 30%,transparent);border-radius:2px}
+/* Multi-day events: the day picker (EventDays). One compact row of chips (about 40 px tall) so a phone's first screen
+   keeps the decision, callouts, next check and any warning; it scrolls sideways when there are many days. */
+.event-planner .ev-days { margin: 8px 0 2px; }
+.event-planner .ev-days-row { display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none; }
+.event-planner .ev-days-row::-webkit-scrollbar { display: none; }
+.event-planner .ev-day { flex: 0 0 auto; display: inline-flex; align-items: baseline; gap: 5px; padding: 6px 9px; min-height: 36px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--bx-rule); border-left: 4px solid var(--tier, var(--bx-rule)); background: var(--panel, transparent); color: var(--text); font: inherit; font-size: 12.5px; cursor: pointer; }
+.event-planner .ev-day b { font-size: 13px; }
+.event-planner .ev-day .ev-day-s { color: var(--muted); }
+.event-planner .ev-day[data-state="concern"] .ev-day-s { color: var(--text); font-weight: 600; }
+.event-planner .ev-day[data-state="pending"] .ev-day-s, .event-planner .ev-day[data-cover="part"] .ev-day-s { font-style: italic; }
+.event-planner .ev-day.is-on { border-color: var(--text); border-left-color: var(--tier, var(--text)); box-shadow: inset 0 0 0 1px var(--text); }
+.event-planner .ev-day-all { border-left-width: 1px; }
+.event-planner .ev-day:focus-visible { outline: 2px solid var(--accent, #2563eb); outline-offset: 2px; }
+@media print { .event-planner .ev-days { display: none !important; } }
+
+/* Forecast Ops navigation in pages with their own header (Event Manager): the standard tab row on wider screens; on
+   phones a labelled Forecast Ops menu with the same destinations, then Meteorologist view as its own item */
+.bx-sitenav { position: relative; z-index: 2; }
+.bx-sitemenu, .bx details.bx-sitemenu { display: none; position: relative; padding: 0; border: 0; } /* not the generic .bx details panel */
+.bx-sitemenu:not([open]) .bx-sitemenu-pop { display: none; } /* closed: no boxes at all (Chromium sizes closed <details> content) */
+.bx-sitemenu > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; font-weight: 600; }
+.bx-sitemenu > summary::-webkit-details-marker { display: none; }
+.bx-sitemenu-pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 40; width: min(320px, calc(100vw - 24px)); padding: 10px; border-radius: 12px;
+  background: var(--bg); border: 1px solid var(--bx-rule); box-shadow: 0 10px 30px rgba(0, 0, 0, .22); display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.bx-sitemenu-h { grid-column: 1 / -1; margin: 0 0 2px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.bx-sitemenu-pop a { display: flex; align-items: center; gap: 7px; min-height: 44px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--bx-rule); color: var(--text); text-decoration: none; font-size: 12.5px; font-weight: 600; letter-spacing: .03em; }
+.bx-sitemenu-pop a[aria-current="page"] { border-color: var(--accent); background: var(--accent-dim); }
+.bx-sitemenu-pop a svg { flex: none; }
+.bx-sitemenu-pop .bx-sitemenu-met { grid-column: 1 / -1; justify-content: center; margin-top: 4px; letter-spacing: 0; color: var(--accent, #2563eb); }
+@media (max-width: 760px) {
+  .bx-sitenav { display: none !important; }
+  .bx-sitemenu, .bx details.bx-sitemenu { display: flex; align-items: center; } /* flex: the closed <details> adds no extra line box below its summary */
+  .bx-head-in > a.bx-metview { display: none !important; } /* on phones it sits in the Forecast Ops menu */
+  .event-planner .bx-head-in > .bx-sitemenu > summary { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; box-sizing: border-box; }
+}
+@media print { .bx-sitenav, .bx-sitemenu { display: none !important; } }

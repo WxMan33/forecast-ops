@@ -17,7 +17,7 @@ jobs:
         with: { node-version: 20 }
       - name: Unit tests
         run: |
-          for t in calendar-provider forecast-support core fixtures source-failure forecast-cache beta-story beta-analytics event-store event-times event-backup event-daylight hourly-model event-presets event-slots event-briefing-history event-ops-handoff event-briefing-ui event-lead almanac climate-report climate-daily climate-period-records climate-station weather-history; do
+          for t in calendar-provider forecast-support core fixtures source-failure forecast-cache beta-story beta-analytics event-store event-times event-backup event-daylight hourly-model event-presets event-slots event-days records-engine event-briefing-history event-ops-handoff event-briefing-ui event-lead almanac climate-report climate-daily climate-period-records climate-station weather-history record-watch; do
             echo "::group::$t"; node tests/$t.test.js || { echo "::error::$t failed"; exit 1; }; echo "::endgroup::"
           done
       - run: node tools/stamp-assets.js --check
@@ -50,6 +50,9 @@ jobs:
           node tools/event-daylight-check.js /tmp/event-daylight
           node tools/event-map-check.js /tmp/event-map
           node tools/event-slots-check.js /tmp/event-slots
+          node tools/event-days-check.js /tmp/event-days
+          node tools/event-nav-check.js /tmp/event-nav
+          node tools/records-check.js /tmp/records
       - name: Hourly grid fixtures (offline)
         run: |
           python3 -m http.server 8765 >/dev/null 2>&1 &
@@ -59,6 +62,10 @@ jobs:
         run: node tools/almanac-refresh-check.js
       - name: Almanac daily reports (morning, interim, correction, failed refresh, rollover, time zones)
         run: node tools/almanac-daily-check.js /tmp/almanac-daily
+      - name: Forecast record potential on Model Blend (synthetic forecast and records; phone and desktop; light and dark; market switch)
+        run: node tools/record-potential-check.js /tmp/record-potential
+      - name: Forecast record potential on a real recorded Blend load (CVG, Nov 27 2026; replayed offline)
+        run: node tools/record-potential-replay-check.js /tmp/record-potential-replay
       - name: Whole-site layout sweep (every page; phone and desktop; light and dark; simulated network)
         run: node tools/site-sweep-check.js /tmp/site-sweep
       - name: Keep the screenshots
@@ -70,6 +77,7 @@ jobs:
             /tmp/source-failure
             /tmp/almanac-daily
             /tmp/site-sweep
+            /tmp/record-potential
             docs/beta/screens/event-polish-*
             /tmp/event-lead
           if-no-files-found: ignore

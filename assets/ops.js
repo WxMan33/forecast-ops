@@ -87,6 +87,10 @@
     { href: "event-beta.html#upcoming", id: "events", label: "EVENTS", icon: "calendar" },
   ];
 
+  /* the site's tool links, for pages that build their own header (Event Manager): the same destinations, labels and
+     icons as the tab row; href(p) gives each address (e.g. carrying a venue as the forecast point) */
+  const navLinks = (pageId, href = (p) => p.href) => PAGES.map((p) =>
+    `<a href="${esc(href(p))}" data-nav="${p.id}"${p.id === pageId || (p.also || []).includes(pageId) ? ' aria-current="page"' : ""}>${icon(p.icon)}${p.label}</a>`).join("");
   /* opts: { subtitle, forecastPoint (default true): show the forecast point and its NWS alerts } */
   const SUBTITLES = { betamenu: "Meteorologist beta · choose a tool", home: "Start of shift: what needs attention, and where to work", blend: "Weighted guidance from models, ensembles and NWS", thunder: "Severe · when storms might happen: thunder signal hour by hour", severe: "Severe · what could make storms severe: shear, helicity, soundings", winter: "Snow odds, precipitation type and profiles", almanac: "Sun, moon and daily climate for the selected point", maps: "In development · HRRR 3 km, Cincinnati Tri-State only" };
   function shell(pageId, title, opts = {}) {
@@ -918,7 +922,7 @@
   }
   window.Ops = {
     pct5, Core, BRAND, PRESETS, TIER, maxTier, badge, $, esc, store, css, icon,
-    shell, severeViews, loadFailText, retryWhenLimited, beginLoad, pristine, onAlerts, searchPlaces, zoneFor, stateAbbr, onLocation: (f) => locListeners.push(f), get alertState(){return alertState;}, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
+    shell, PAGES, navLinks, severeViews, loadFailText, retryWhenLimited, beginLoad, pristine, onAlerts, searchPlaces, zoneFor, stateAbbr, onLocation: (f) => locListeners.push(f), get alertState(){return alertState;}, setChip, dataStatus, headline, locationCard, get location() { return loc; }, setLocation, shareUrl,
     Data, getJSON, hasData, savedWeights, savedDays, align: Core.stats.align,
     nowIndex, hourOf, dayOf, fmtDay, fmtHour, fmtWhen, tzShort, hourLabels, dayGroups,
     blendSeries: Core.stats.blendSeries, weightedQuantile: Core.stats.weightedQuantile,

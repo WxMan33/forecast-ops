@@ -25,12 +25,13 @@
     if (st.indexOf(location.origin) >= 0) show("A script error stopped it (" + (r.message || r) + ").");
   });
 })();</script><!--/load-guard-->
-<link rel="stylesheet" href="assets/ops.css?v=11ee4de8ce">
+<link rel="stylesheet" href="assets/ops.css?v=023da63cd4">
 </head>
 <body class="home-page">
 <main class="workspace">
   <aside class="side">
     <section class="card tight" id="locCard"></section>
+    <section class="card rec-ov" id="recordsCard" aria-label="Weather records and milestones" hidden></section>
   </aside>
 
   <div class="main">
@@ -95,9 +96,10 @@
 </main>
 <script src="assets/ops-core.js?v=e1094fa657"></script>
 <script src="assets/ops-data.js?v=68a540c59e"></script>
-<script src="assets/ops.js?v=c665c60df0"></script>
+<script src="assets/ops.js?v=0d6cbb6f52"></script>
 <script src="assets/forecast-clock.js?v=c6df9f20b7"></script>
-<script src="assets/overview.js?v=4429fb6b78"></script>
+<script src="assets/records-ui.js?v=d161af30c3"></script>
+<script src="assets/overview.js?v=0eb7a6e9f2"></script>
 <script src="assets/table-pages.js?v=5852a434bf"></script>
 </body>
 </html>

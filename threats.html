@@ -27,8 +27,8 @@
   });
 })();</script><!--/load-guard-->
 <link rel="stylesheet" href="assets/vendor/maplibre-gl-4.7.1.css?v=576b085fdd">
-<link rel="stylesheet" href="assets/ops.css?v=11ee4de8ce">
-<link rel="stylesheet" href="assets/threats.css?v=5350d82bcd">
+<link rel="stylesheet" href="assets/ops.css?v=023da63cd4">
+<link rel="stylesheet" href="assets/threats.css?v=5b3b65dd48">
 </head>
 <body class="threats-page">
 <main class="tx" id="tx">
@@ -130,7 +130,9 @@
               <label class="tx-lt"><input type="checkbox" data-pin><span class="tx-ltn">Venue marker</span><span class="tx-ltnote">the venue's pin, label and 15-mile ring; off for just the map</span></label>
             </fieldset>
             <fieldset class="tx-lyrfs"><legend>Under the hazards</legend>
-              <label class="tx-lt"><input type="checkbox" data-radar><span class="tx-ltn">Radar</span><span class="tx-ltnote" id="txRadarNote">NOAA MRMS base reflectivity · refreshed every 5 minutes while on · about 0.3 MB per view</span></label>
+              <label class="tx-lt"><input type="checkbox" data-radar><span class="tx-ltn">Radar</span><span class="tx-ltnote" id="txRadarNote">MRMS reflectivity with NOAA precipitation type · new scan about every 2 minutes · about 1.4 MB per scan while on</span></label>
+              <div class="tx-lt tx-sub tx-radmode" id="txRadarMode" role="radiogroup" aria-label="Radar shows"><span class="tx-ltn">Show</span><span class="tx-seg"><label><input type="radio" name="txRadarMode" value="ptype" data-radar-mode checked><span>Precipitation type</span></label><label><input type="radio" name="txRadarMode" value="refl" data-radar-mode><span>Reflectivity</span></label></span></div>
+              <label class="tx-lt tx-sub tx-radop" id="txRadarOp"><span class="tx-ltn">Radar opacity</span><input type="range" min="20" max="100" step="5" value="70" data-radar-op aria-label="Radar opacity"><output data-radar-op-val>70%</output></label>
             </fieldset>
             <div class="tx-lyrmore" id="txLyrMore" aria-hidden="true">More below ▾ scroll for Aviation's parts</div>
             <div class="tx-lyract"><button type="button" class="tx-fb" data-layers-all>Show all</button><button type="button" class="tx-fb" data-layers-reset>Clear all</button><button type="button" class="tx-fb tx-done" data-layers-close>Done</button></div>
@@ -170,7 +172,7 @@
 </main>
 <script src="assets/ops-core.js?v=e1094fa657"></script>
 <script src="assets/ops-data.js?v=68a540c59e"></script>
-<script src="assets/ops.js?v=c665c60df0"></script>
+<script src="assets/ops.js?v=0d6cbb6f52"></script>
 <script src="assets/vendor/maplibre-gl-4.7.1.js?v=be9633c4d8"></script>
 <script src="assets/vendor/d3-array-3.2.4.js?v=80aa70d0cd"></script>
 <script src="assets/vendor/d3-contour-4.0.2.js?v=78e1d80350"></script>
@@ -184,7 +186,8 @@
 <script src="assets/threats-gtg.js?v=90a6946eed"></script>
 <script src="assets/threats-ifi.js?v=1a8301f4fa"></script>
 <script src="assets/threats-outlook.js?v=a686bcbe44"></script>
+<script src="assets/threats-radar.js?v=6135a2d788"></script>
 <script src="assets/threats-live.js?v=05df01384d"></script>
-<script src="assets/threats.js?v=4023334c85"></script>
+<script src="assets/threats.js?v=028d255b58"></script>
 </body>
 </html>

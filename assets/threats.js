@@ -616,21 +616,33 @@
     catch (e) { return null; } finally { clearTimeout(timer); }
   }
   /* river gauges for the map's view, at regional zoom with Flooding on (queried by area, kept 15 minutes per area) */
-  let gaugeTimer = null;
-  /* a Flood Warning (river, areal or flash) in effect inside the map's view: the only time river gauges load or show */
+  let gaugeTimer = null, gaugeArea = null;
+  const mapBounds = () => {
+    const b = map.getBounds();
+    return [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+  };
+  const liveFloodWarnings = () => data.products.filter((p) => p.sourceId === "nws-alerts" && FLOOD_WARNING(p) && !later(p) && Date.parse(p.expires) > now);
+  const warningIntersects = (p, box) => p.geometry && T.bboxOverlap(T.bbox(p.geometry), box);
+  const retainedGaugeArea = (warnings, box) => gaugeArea && T.bboxOverlap(gaugeArea.box, box) && warnings.some((p) => gaugeArea.warningIds.has(p.id));
   function gaugeWarn() {
     if (!map) return (S.gaugeWhy = null);
-    const b = map.getBounds(), box = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
-    return (S.gaugeWhy = (data.products || []).some((p) => p.sourceId === "nws-alerts" && FLOOD_WARNING(p) && Date.parse(p.expires) > now && p.geometry && T.bboxOverlap(T.bbox(p.geometry), box)) ? "flood warning" : null);
+    const box = mapBounds(), warnings = liveFloodWarnings();
+    return (S.gaugeWhy = warnings.some((p) => warningIntersects(p, box)) || retainedGaugeArea(warnings, box) ? "flood warning" : null);
   }
   let gaugeAsked = { k: null, at: 0 };
   function ensureGauges() {
     if (!map || !mapLoaded || !isLive() || !Live.gaugesIn || !S.layers.flood || viewDay() > 1 || winterView() || fireView() || map.getZoom() < 6) return;
-    // river gauges only where a Flood Warning (river, areal or flash) is in effect inside the view
-    if (!gaugeWarn()) return;
-    // ask once per area (and again after the 15-minute refresh); redraw only when an answer arrives. Asking on every redraw,
-    // with the cached answer redrawing again, kept the panel and map redrawing twice a second wherever gauges were shown.
-    const b = map.getBounds(), r = (v) => Math.round(v * 2) / 2, box = [r(b.getWest()) - 0.5, r(b.getSouth()) - 0.5, r(b.getEast()) + 0.5, r(b.getNorth()) + 0.5], k = box.join(",");
+    const view = mapBounds(), warnings = liveFloodWarnings();
+    const visible = warnings.filter((p) => warningIntersects(p, view));
+    const keep = retainedGaugeArea(warnings, view);
+    if (!visible.length && !keep) { clearTimeout(gaugeTimer); return; }
+    const covered = keep && view[0] >= gaugeArea.box[0] && view[1] >= gaugeArea.box[1] && view[2] <= gaugeArea.box[2] && view[3] <= gaugeArea.box[3];
+    // Zooming to a gauge can leave the warning offscreen. Reuse the original query area while its warning remains active.
+    const r = (v) => Math.round(v * 2) / 2;
+    const box = covered || !visible.length ? gaugeArea.box : view.map((v, i) => r(v) + (i < 2 ? -0.5 : 0.5));
+    const k = box.join(",");
+    if (!gaugeArea || gaugeArea.box !== box) gaugeArea = { box, warningIds: new Set(visible.map((p) => p.id)) };
+    else for (const p of visible) gaugeArea.warningIds.add(p.id);
     if (gaugeAsked.k === k && Date.now() - gaugeAsked.at < 15 * 60e3) return;
     clearTimeout(gaugeTimer); gaugeTimer = setTimeout(() => { gaugeAsked = { k, at: Date.now() };
       Live.gaugesIn(box).then(() => { load(); drawAll(); }, () => { gaugeAsked = { k, at: Date.now() - 14 * 60e3 }; drawAll(); }); }, 400); // a failure: this area is tried again in a minute
@@ -643,17 +655,33 @@
     if (!S.counties || countiesAsked || map.getZoom() < 4.3) return; countiesAsked = true;
     Promise.all([getJSON("assets/geo/county-lines.json"), getJSON("assets/geo/county-labels.json")]).then(([l, n]) => { map.getSource("cnty-lines").setData(l); map.getSource("cnty-labels").setData(n); }).catch(() => { countiesAsked = false; });
   }
+  function radarBeforeLayer() {
+    const aboveRadar = ["hu-state-case", "hu-state", "states", "cnty-case", "cnty-lines", "outlook-fill"];
+    return map.getStyle().layers.find((layer) => aboveRadar.includes(layer.id))?.id;
+  }
   /* our hazard fills and lines go under the basemap's labels (towns and streets stay readable); our own labels stay on top */
   function orderOverBase() {
-    const st = map.getStyle(), ours = new Set(OUR), firstLabel = st.layers.find((l) => l.type === "symbol" && !ours.has(l.id));
-    if (!firstLabel) return; for (const l of st.layers) if (ours.has(l.id) && (l.type !== "symbol" || l.id === "cnty-labels") && l.id !== "hu-state") map.moveLayer(l.id, firstLabel.id); // county names yield to town names
+    /* "under the labels" means under the first basemap label that comes after the basemap's last road or boundary line: the light
+       basemap draws its roads late, and radar and hazards under them were crossed by every street */
+    const st = map.getStyle(), ours = new Set([...OUR, "hu-state", "hu-state-case", "radar", "rain-obs", "rain-fcst"]), lastLine = st.layers.reduce((k, l, i) => (l.type === "line" && !ours.has(l.id) ? i : k), -1),
+      firstLabel = st.layers.find((l, i) => i > lastLine && l.type === "symbol" && !ours.has(l.id)) || st.layers.find((l) => l.type === "symbol" && !ours.has(l.id));
+    if (!firstLabel) return;
+    for (const l of st.layers) if (OUR.includes(l.id) && (l.type !== "symbol" || l.id === "cnty-labels")) map.moveLayer(l.id, firstLabel.id);
+    for (const id of ["hu-state-case", "hu-state"]) if (map.getLayer(id)) map.moveLayer(id, map.getLayer("cnty-case") ? "cnty-case" : firstLabel.id); // above alert fills, below the other boundary lines
+    if (map.getLayer("radar")) {
+      map.moveLayer("radar", radarBeforeLayer());
+      for (const id of ["rain-obs", "rain-fcst"]) if (map.getLayer(id)) map.moveLayer(id, "radar");
+    }
   }
   /* clearer state lines and county lines from zoom 6 (the basemap's own county lines start at zoom 9) */
   function baseLines() {
     const src = Object.keys(map.getStyle().sources).find((k) => map.getStyle().sources[k].type === "vector"); if (!src) return;
     const lt = light(), first = map.getStyle().layers.find((l) => l.type === "symbol");
-    for (const [id, kd, mz, col, w] of [["hu-state", 4, 3, lt ? "rgba(70,78,90,.75)" : "rgba(200,206,216,.6)", [3, 0.8, 8, 1.8]]])
-      if (!map.getLayer(id)) map.addLayer({ id, type: "line", source: src, "source-layer": "boundaries", minzoom: mz, filter: ["==", ["get", "kind_detail"], kd], paint: { "line-color": col, "line-width": ["interpolate", ["linear"], ["zoom"], w[0], w[1], w[2], w[3]] } }, first && first.id);
+    /* a casing under the state lines, shown only with radar on: a contrasting edge keeps the line readable over any echo colour */
+    if (!map.getLayer("hu-state-case")) map.addLayer({ id: "hu-state-case", type: "line", source: src, "source-layer": "boundaries", minzoom: 3, filter: ["==", ["get", "kind_detail"], 4], layout: { visibility: S.radar ? "visible" : "none" },
+      paint: { "line-color": lt ? "#ffffff" : "#0b0f15", "line-opacity": lt ? 0.75 : 0.7, "line-width": ["interpolate", ["linear"], ["zoom"], 3, 2.4, 8, 4] } }, first && first.id);
+    for (const [id, kd, mz, col, w] of [["hu-state", 4, 3, lt ? "#52606d" : "#b8c2cc", [3, 0.8, 8, 1.8]]])
+      if (!map.getLayer(id)) map.addLayer({ id, type: "line", source: src, "source-layer": "boundaries", minzoom: mz, filter: ["==", ["get", "kind_detail"], kd], paint: { "line-color": col, "line-opacity": 0.85, "line-width": ["interpolate", ["linear"], ["zoom"], w[0], w[1], w[2], w[3]] } }, first && first.id);
   }
   async function createMap() {
     const [states, lakes, base] = await Promise.all([getJSON("assets/severe-research/states.json"), getJSON("assets/severe-research/lakes.json"), cartoStyle(light() ? "light" : "dark")]);
@@ -671,8 +699,13 @@
       map.addImage("hatch", hatch(), { pixelRatio: 2 });
       const L = (o) => { OUR.push(o.id); map.addLayer(o); };
       L({ id: "lakes", type: "fill", source: "lakes", paint: { "fill-color": p.water } });
+      // Keep alert fills under radar and their outlines, labels and markers above it.
+      L({ id: "watch-fill", type: "fill", source: "active", filter: ["==", ["get", "kind"], "watch"], paint: { "fill-color": ["get", "color"], "fill-opacity": 0.08 } });
+      L({ id: "adv-fill", type: "fill", source: "active", filter: ["in", ["get", "kind"], ["literal", ["advisory", "statement"]]], paint: { "fill-color": ["get", "color"], "fill-opacity": ["*", ["get", "fill"], 0.6] } });
+      L({ id: "warn-fill", type: "fill", source: "active", filter: ["==", ["get", "kind"], "warning"], paint: { "fill-color": ["get", "color"], "fill-opacity": ["get", "fill"] } });
       /* county lines (US Census, us-atlas 10m; inside each state) from regional zoom, names from zoom 7.5: our own files, loaded on first zoom-in */
-      L({ id: "cnty-lines", type: "line", source: "cnty-lines", minzoom: 4.5, paint: { "line-color": p.muted, "line-opacity": ["interpolate", ["linear"], ["zoom"], 4.5, 0.18, 7, 0.4, 10, 0.55], "line-width": ["interpolate", ["linear"], ["zoom"], 4.5, 0.4, 8, 0.8, 11, 1.2] } });
+      L({ id: "cnty-case", type: "line", source: "cnty-lines", minzoom: 4.5, layout: { visibility: "none" }, paint: { "line-color": p.halo, "line-opacity": 0.6, "line-width": ["interpolate", ["linear"], ["zoom"], 4.5, 1.6, 8, 2.4, 11, 3.2] } }); // with radar on only
+      L({ id: "cnty-lines", type: "line", source: "cnty-lines", minzoom: 4.5, paint: { "line-color": p.muted, "line-opacity": ["interpolate", ["linear"], ["zoom"], 4.5, 0.18, 7, 0.55, 10, 0.6], "line-width": ["interpolate", ["linear"], ["zoom"], 4.5, 0.4, 8, 0.8, 11, 1.2] } });
       L({ id: "outlook-fill", type: "fill", source: "outlook", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.55 } });
       L({ id: "m-fill", type: "fill", source: "m-fill", paint: { "fill-color": ["get", "color"], "fill-opacity": 0.62 } });
       L({ id: "m-lines", type: "line", source: "m-lines", paint: { "line-color": "#222", "line-width": 0.7, "line-opacity": 0.6 } });
@@ -711,12 +744,9 @@
       L({ id: "pirep-turb", type: "circle", source: "pirep", filter: ["==", ["get", "ice"], false], paint: { "circle-radius": ["get", "r"], "circle-color": ["get", "color"], "circle-stroke-color": "#111", "circle-stroke-width": 1 } });
       L({ id: "pirep-ice", type: "circle", source: "pirep", filter: ["==", ["get", "ice"], true], paint: { "circle-radius": ["get", "r"], "circle-color": "rgba(0,0,0,0)", "circle-stroke-color": ["get", "color"], "circle-stroke-width": 3 } });
       L({ id: "hl", type: "line", source: "hl", layout: { "line-join": "round" }, paint: { "line-color": p.text, "line-width": 9, "line-opacity": 0.55, "line-blur": 1 } });
-      L({ id: "watch-fill", type: "fill", source: "active", filter: ["==", ["get", "kind"], "watch"], paint: { "fill-color": ["get", "color"], "fill-opacity": 0.08 } });
       L({ id: "watch-line", type: "line", source: "active", filter: ["all", ["==", ["get", "kind"], "watch"], ["!=", ["get", "later"], true]], paint: { "line-color": ["get", "color"], "line-width": 2.6, "line-dasharray": [3, 2], "line-opacity": ["get", "op"] } });
       L({ id: "md-line", type: "line", source: "active", filter: ["==", ["get", "kind"], "md"], layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 3.2, "line-dasharray": [0.1, 2.2], "line-opacity": ["get", "op"] } });
-      L({ id: "adv-fill", type: "fill", source: "active", filter: ["in", ["get", "kind"], ["literal", ["advisory", "statement"]]], paint: { "fill-color": ["get", "color"], "fill-opacity": ["*", ["get", "fill"], 0.6] } });
       L({ id: "adv-line", type: "line", source: "active", filter: ["all", ["in", ["get", "kind"], ["literal", ["advisory", "statement"]]], ["!=", ["get", "later"], true]], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 2, "line-opacity": ["get", "op"] } });
-      L({ id: "warn-fill", type: "fill", source: "active", filter: ["==", ["get", "kind"], "warning"], paint: { "fill-color": ["get", "color"], "fill-opacity": ["get", "fill"] } });
       L({ id: "warn-case", type: "line", source: "active", filter: ["==", ["get", "kind"], "warning"], layout: { "line-join": "round" }, paint: { "line-color": p.halo, "line-width": 6, "line-opacity": 0.85 } });
       L({ id: "later-line", type: "line", source: "active", filter: ["==", ["get", "later"], true], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 2.6, "line-dasharray": [1.5, 1.5] } }); // starts later: dashed
       L({ id: "warn-line", type: "line", source: "active", filter: ["all", ["==", ["get", "kind"], "warning"], ["!=", ["get", "later"], true]], layout: { "line-join": "round" }, paint: { "line-color": ["get", "color"], "line-width": 3.4 } });
@@ -807,7 +837,10 @@
     const inc = day === 2 || day === 3 ? [] : incidents();
     map.getSource("inc").setData({ type: "FeatureCollection", features: inc.filter((p) => p.geometry).map((p) => feature(p, { color: colorOf(p) })) });
     { const ls = day === 2 || day === 3 || winterView() || fireView() || !S.layers.severe ? [] : data.products.filter((p) => p.kind === "lsr"); map.getSource("lsr").setData({ type: "FeatureCollection", features: ls.map((p) => ({ type: "Feature", properties: { id: p.id, type: p.type, color: LSR_COLOR[p.type] }, geometry: { type: "Point", coordinates: p.point } })) }); }
-    { const gs = day === 2 || day === 3 || winterView() || fireView() || !S.layers.flood ? [] : gaugeWarn() ? data.products.filter((p) => p.kind === "gauge") : ((siteAssess() || {}).gauges || []); map.getSource("gauge").setData({ type: "FeatureCollection", features: gs.map((p) => ({ type: "Feature", properties: { id: p.id, rank: p.rank, color: GAUGE_COLOR[p.category] || "#8a8f98" }, geometry: { type: "Point", coordinates: p.point } })) }); }
+    { const siteGauges = (siteAssess() || {}).gauges || [];
+      const inFloodArea = (p) => p.kind === "gauge" && gaugeArea && T.bboxOverlap(gaugeArea.box, [...p.point, ...p.point]);
+      const gs = day === 2 || day === 3 || winterView() || fireView() || !S.layers.flood ? [] : gaugeWarn() && gaugeArea ? data.products.filter(inFloodArea) : siteGauges;
+      map.getSource("gauge").setData({ type: "FeatureCollection", features: gs.map((p) => ({ type: "Feature", properties: { id: p.id, rank: p.rank, color: GAUGE_COLOR[p.category] || "#8a8f98" }, geometry: { type: "Point", coordinates: p.point } })) }); }
     map.getSource("inc-pt").setData({ type: "FeatureCollection", features: inc.map((p) => ({ type: "Feature", properties: { id: p.id, color: colorOf(p), r: p.acres >= 10000 ? 8 : p.acres >= 1000 ? 6.5 : p.acres >= 100 ? 5 : 3.6 }, geometry: { type: "Point", coordinates: p.point } })) });
     const wa = wv ? wssiAreas() : [];
     map.getSource("wssi").setData({ type: "FeatureCollection", features: wa.filter((p) => p.geometry).sort((a, b) => a.prob - b.prob).map((p) => feature(p, { color: wssiColor(p.prob) })) });
@@ -1281,7 +1314,16 @@
     if (S.layers.flood && (!day || day === 1) && !winterView() && !fireView()) h += `<div><div class="lg-h">River gauges · NOAA (regional zoom)</div>${["no_flooding", "action", "minor", "moderate", "major"].map((c) => lgLine({ kind: "gauge", category: c }, FX.GAUGE_WORD[c])).join("")}${lgLine({ kind: "gauge", category: "not_defined" }, "No stages defined / no current data")}</div>`;
     if (S.layers.severe && (!day || day === 1) && !winterView() && !fireView()) h += `<div><div class="lg-h">Storm reports · last 24 h (SPC, preliminary)</div>${["tornado", "wind", "hail"].map((k) => lgLine({ kind: "lsr", type: k }, { tornado: "Tornado", wind: "Wind damage", hail: "Hail" }[k])).join("")}</div>`;
     h += rainLegendHtml();
-    if (S.radar && isLive()) h += `<div><div class="lg-h">Radar · NOAA MRMS</div><div class="lg-radar" aria-hidden="true"></div><div class="lg-note">Light rain or snow → heavy rain and hail (base reflectivity), under the hazards${radar.valid ? " · image " + esc(t(radar.valid)) : ""}</div></div>`;
+    if (S.radar && isLive()) h += (radar.ptFallback ? `<div class="lg-note lg-ptfb" data-ptype-fallback>${esc(PT_UNAVAILABLE)}</div><div class="lg-note" data-ptype-last>${esc(radar.ptLast ? "Last precipitation-type scan " + t(new Date(radar.ptLast).toISOString()) + " (" + Math.round((Date.now() - radar.ptLast) / 60e3) + " min old); retried every minute" : "Precipitation type not answering; retried every minute")}</div>` : "") + (radar.via === "ptype" && RD
+      ? `<div data-lg="ptype"><div class="lg-h">Radar · precipitation type (dBZ)</div>`
+        + `<div class="lg-ptrow"><span class="lg-ptlbl">Rain</span><div class="lg-r26" aria-hidden="true">${RD.legend().map((x) => `<span style="background:${x.rgba}"></span>`).join("")}</div></div>`
+        + `<div class="lg-ptrow"><span class="lg-ptlbl">Snow</span><div class="lg-snow" aria-hidden="true">${RD.snowLegend().map((x) => `<span style="background:${x.rgba}"></span>`).join("")}</div></div>`
+        + `<div class="lg-ptrow"><span class="lg-ptlbl"></span><div class="lg-r26n" aria-hidden="true">${RD.legend().filter((x, i) => i % 2 === 0).map((x) => `<span>${x.dbz}</span>`).join("")}</div></div>`
+        + `<div class="lg-pt"><span><i class="lg-ptnc"></i>No radar coverage</span>${radar.pt && radar.pt.state.unknown.length ? `<span data-ptype-unknown><i class="lg-ptuk"></i>Code not in NOAA's table (${esc(radar.pt.state.unknown.join(", "))})</span>` : ""}</div>`
+        + `<div class="lg-note">Rain from green to red; snow in blue. Both are shaded by intensity. Type from NOAA MRMS for the same scan. It has no sleet, freezing-rain or mixed category, so those appear only as ground reports where reported. Below 5 dBZ not shown${radar.valid ? " · scan " + esc(t(radar.valid)) : ""}</div></div>`
+      : radar.via === "noaa" || !RD
+      ? `<div><div class="lg-h">Radar · NOAA MRMS (fallback)</div><div class="lg-radar" aria-hidden="true"></div><div class="lg-note">NOAA’s own reflectivity colours. Colours show intensity only${radar.valid ? " · image " + esc(t(radar.valid)) : ""}</div></div>`
+      : `<div data-lg="radar"><div class="lg-h">Radar · MRMS reflectivity (dBZ)</div><div class="lg-r26" aria-hidden="true">${RD.legend().map((x) => `<span style="background:${x.rgba}"></span>`).join("")}</div><div class="lg-r26n" aria-hidden="true">${RD.legend().filter((x, i) => i % 2 === 0).map((x) => `<span>${x.dbz}</span>`).join("")}</div><div class="lg-note">Lowest-elevation reflectivity, measured values; below 5 dBZ not shown. Green to red shows echo intensity only${radar.valid ? " · scan " + esc(t(radar.valid)) : ""}</div></div>`);
     if (S.layers.fire && !winterView()) h += `<div><div class="lg-h">Fire</div>${lgLine({ kind: "warning", family: "fire", event: "Red Flag Warning" }, "<b>Red Flag Warning</b>")}${lgLine({ kind: "watch", family: "fire", event: "Fire Weather Watch" }, "<b>Fire Weather Watch</b> · dashed")}${lgLine({ kind: "incident", category: "WF" }, "<b>Wildfire</b> (NIFC): perimeter where mapped, dot sized by acres")}<label class="lg-toggle"><input type="checkbox" id="rxChk"${S.rx ? " checked" : ""}> Prescribed fires</label><label class="lg-toggle"><input type="checkbox" id="ctnChk"${S.ctn ? " checked" : ""}> Fully contained fires</label>${fireView() ? `<div class="lg-bands">${(S.fday >= 3 ? ["P40", "P70"] : ["ELEV", "CRIT", "EXTM", "IDRT", "SDRT"]).map((c) => `<span class="lg-band" title="${esc(FX.FIRE_NAME[c])}"><i style="background:${FIRE_COLOR[c]}"></i>${c === "P40" ? "40%" : c === "P70" ? "70%" : c}</span>`).join("")}</div><div class="lg-note">${S.fday >= 3 ? "Probability of critical fire weather within 12 miles of a point." : "ELEV elevated · CRIT critical · EXTM extremely critical (wind and humidity) · IDRT/SDRT isolated/scattered dry thunderstorms."}</div>` : ""}</div>`;
     if (winterView()) h += `<div><div class="lg-h">WPC WSSI-P · chance of at least ${esc(S.wlevel === "WWA" ? "winter weather" : WLEVEL_LABEL[S.wlevel])}</div><div class="lg-bands">${WSSI_PROBS.map((v) => `<span class="lg-band"><i style="background:${WSSI_COLOR[v]}"></i>${v}%</span>`).join("")}</div><div class="lg-note">24-hour window. Levels: Minor, Moderate, Major, Extreme winter storm impacts (WPC definitions).</div></div>`;
     if (!day && !winterView()) h += `<label class="lg-toggle"><input type="checkbox" id="ctxChk"${S.ctx ? " checked" : ""}> Day 1 outlook outlines</label>`;
@@ -1501,29 +1543,75 @@
       return `<div data-lg="rain-${k}"><div class="lg-h">${esc(head)}</div><div class="lg-note">${esc(when)}</div>${sw}</div>`;
     }).join("");
   }
-  /* ---------- radar (live only, off by default): NOAA MRMS base reflectivity under the hazards; the image time is read from the
-     service every 5 minutes while radar is on, and the tiles are re-requested only when a newer image is listed ---------- */
-  const radar = { state: "off", valid: null, lastOk: null, error: null, timer: null, tiles: null };
+  /* ---------- radar (live only, off by default): MRMS lowest-elevation reflectivity from measured values (IEM lcref), coloured
+     on the green-to-red scale in assets/threats-radar.js. The scan time is read every 60 s
+     while radar is on; the image is downloaded only for a new scan. If IEM can't be read, NOAA's pre-coloured MRMS tiles are
+     shown instead and the source row says so. ---------- */
+  /* radar opacity: 70% to start, set with the slider under Layers → Radar, remembered in this browser */
+  const RADAR_OP_KEY = "tx_radar_opacity", radarOp = () => { let v = NaN; try { v = +localStorage.getItem(RADAR_OP_KEY); } catch (e) { /* no storage */ } return v >= 0.2 && v <= 1 ? v : 0.7; };
+  function setRadarOp(v) { v = Math.min(1, Math.max(0.2, Math.round(v * 20) / 20)); try { localStorage.setItem(RADAR_OP_KEY, String(v)); } catch (e) { /* no storage */ }
+    if (map && map.getLayer("radar")) map.setPaintProperty("radar", "raster-opacity", v); syncRadarOp(); }
+  function syncRadarOp() { const v = radarOp(), i = document.querySelector("[data-radar-op]"), o = document.querySelector("[data-radar-op-val]"); if (i) i.value = String(Math.round(v * 100)); if (o) o.textContent = Math.round(v * 100) + "%"; }
+  /* radar mode: Precipitation type (MRMS PrecipFlag, through our /api/mrms forwarder: NOAA sends no CORS header) by default, or
+     Reflectivity; remembered in this browser. Precipitation type older than 15 minutes, or not answering, falls back to
+     reflectivity, and the legend and the Layers note say "Precipitation type unavailable · showing reflectivity". */
+  const RADAR_MODE_KEY = "tx_radar_mode", radarMode = () => { let v = null; try { v = localStorage.getItem(RADAR_MODE_KEY); } catch (e) { /* no storage */ } return v === "refl" ? "refl" : "ptype"; };
+  function setRadarMode(m) { try { localStorage.setItem(RADAR_MODE_KEY, m === "refl" ? "refl" : "ptype"); } catch (e) { /* no storage */ } syncRadarMode(); if (S.radar && isLive()) { radar.state = "loading"; radarTick(); } drawAll(); }
+  function syncRadarMode() { const m = radarMode(); document.querySelectorAll("[data-radar-mode]").forEach((i) => { i.checked = i.value === m; }); }
+  const MRMS_BASE = (() => { try { const q = new URLSearchParams(location.search); if (q.get("mrmsBase")) return q.get("mrmsBase");
+    if (/\.forecast-ops-beta\.pages\.dev$/.test(location.hostname)) return new URL("api/mrms", location.href).href;
+    if (["wxman33.github.io", "raw.githack.com"].includes(location.hostname)) return "https://forecast-ops-beta.pages.dev/api/mrms"; } catch (e) { /* none */ } return ""; })();
+  const PT_STALE_MS = 15 * 60e3;
+  const RD = window.ThreatsRadar, radar = { state: "off", valid: null, lastOk: null, error: null, timer: null, tiles: null, via: null, client: null, pt: null, ptFallback: false, ptError: null, proto: false };
   const radarAgeMin = () => (radar.valid ? Math.round((Date.now() - Date.parse(radar.valid)) / 60e3) : null);
-  const radarText = () => "NOAA MRMS radar image " + t(radar.valid) + " (" + radarAgeMin() + " min old" + (radarAgeMin() > 20 ? ", delayed" : "") + ")";
+  const PT_UNAVAILABLE = "Precipitation type unavailable · showing reflectivity";
+  const radarText = () => (radar.ptFallback ? PT_UNAVAILABLE + " · " : "") + (radar.via === "noaa" ? "NOAA MRMS radar image (fallback) " : radar.via === "ptype" ? "MRMS reflectivity with precipitation type, scan " : "MRMS lowest-elevation reflectivity, scan ") + t(radar.valid) + " (" + radarAgeMin() + " min old" + (radarAgeMin() > 20 ? ", delayed" : "") + ")";
   function radarTick() {
     if (document.hidden && radar.lastOk) return;
-    Live.radarTime().then((v) => { radar.valid = v; radar.lastOk = new Date().toISOString(); radar.state = "ok"; radar.error = null; })
+    const done = (p) => p.then(() => { radar.lastOk = new Date().toISOString(); radar.state = "ok"; radar.error = null; })
       .catch((e) => { radar.state = radar.lastOk ? "stale" : "failed"; radar.error = e.message; })
       .finally(() => { if (S.radar) drawAll(); });
+    const viaIem = () => radar.client.refresh().then(() => { radar.valid = new Date(radar.client.state.scan).toISOString(); radar.via = "iem"; });
+    /* IEM not answering: keep the measured scan already shown while it is under 15 minutes old; otherwise NOAA's tiles */
+    const viaNoaa = (e) => { radar.iemError = e.message; const s0 = radar.client && radar.client.state.scan;
+      if (s0 && Date.now() - s0 < 15 * 60e3) { radar.valid = new Date(s0).toISOString(); radar.via = "iem"; return; }
+      return Live.radarTime().then((v) => { radar.valid = v; radar.via = "noaa"; }); };
+    const reflectivity = () => (RD && radar.client ? viaIem().catch(viaNoaa) : Live.radarTime().then((v) => { radar.valid = v; radar.via = "noaa"; }));
+    if (radarMode() === "ptype" && RD && RD.createPtypeClient) {
+      if (!radar.pt) radar.pt = RD.createPtypeClient({ base: MRMS_BASE });
+      return done(radar.pt.refresh().then(() => null, (e) => e.message).then((err) => {
+        const s = radar.pt.state.scan, fresh = s && Date.now() - s < PT_STALE_MS;
+        if (fresh) { radar.ptFallback = false; radar.ptError = err; radar.valid = new Date(s).toISOString(); radar.via = "ptype"; if (radar.client) radar.client.dispose(); return; }
+        radar.ptFallback = true; radar.ptLast = s || null; radar.ptError = err || (s ? "last scan " + Math.round((Date.now() - s) / 60e3) + " min old" : "no scan");
+        return reflectivity();
+      }));
+    }
+    radar.ptFallback = false; radar.ptError = null; if (radar.pt) { radar.pt.dispose(); radar.pt = null; }
+    return done(reflectivity());
   }
   function ensureRadar() {
     if (!map || !mapLoaded) return;
-    const on = S.radar && isLive() && !!Live.radarTime;
-    if (!on) { if (radar.timer) { clearInterval(radar.timer); radar.timer = null; } radar.state = "off"; if (map.getLayer("radar")) map.setLayoutProperty("radar", "visibility", "none"); return; }
-    if (!radar.timer) { radar.state = radar.lastOk ? radar.state : "loading"; radarTick(); radar.timer = setInterval(radarTick, 5 * 60e3); }
+    const on = S.radar && isLive() && (!!RD || !!Live.radarTime);
+    const casings = (v) => { for (const id of ["hu-state-case", "cnty-case"]) if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", v); };
+    if (!on) { if (radar.timer) { clearInterval(radar.timer); radar.timer = null; } radar.state = "off"; if (map.getLayer("radar")) map.setLayoutProperty("radar", "visibility", "none"); casings("none"); return; }
+    casings("visible");
+    if (RD && !radar.client) radar.client = RD.createClient();
+    if (RD && !radar.proto && window.maplibregl && maplibregl.addProtocol) { maplibregl.addProtocol("lcref", (params) => radar.client.tile(params)); maplibregl.addProtocol("ptype", (params) => (radar.pt ? radar.pt.tile(params) : Promise.reject(Error("precipitation type is off")))); radar.proto = true; }
+    if (!radar.timer) { radar.state = radar.lastOk ? radar.state : "loading"; radarTick(); radar.timer = setInterval(radarTick, 60e3); }
     if (!radar.valid) return;
-    const url = Live.RADAR_TILE_URL + "&t=" + Date.parse(radar.valid); // a new image time is a new URL; the same one is reused from the cache
-    if (!map.getSource("radar")) { map.addSource("radar", { type: "raster", tiles: [url], tileSize: 256, attribution: "NOAA MRMS radar" }); map.addLayer({ id: "radar", type: "raster", source: "radar", paint: { "raster-opacity": 0.6, "raster-fade-duration": 0 } }, map.getLayer("outlook-fill") ? "outlook-fill" : undefined); }
+    const theme = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+    if (radar.pt && radar.pt.state.theme !== theme) radar.pt.setTheme(theme).then(() => drawAll(), () => {});
+    const own = radar.via === "iem" || radar.via === "ptype", srcKey = radar.via + (radar.ptFallback ? "+fallback" : "");
+    const url = radar.via === "ptype" ? radar.pt.tileUrl() : radar.via === "iem" ? radar.client.tileUrl() : Live.RADAR_TILE_URL + "&t=" + Date.parse(radar.valid); // a new scan is a new URL
+    const paint = own ? { "raster-opacity": radarOp(), "raster-resampling": "nearest", "raster-fade-duration": 0 } : { "raster-opacity": radarOp(), "raster-fade-duration": 0 };
+    if (map.getSource("radar") && radar.srcVia !== srcKey) { map.removeLayer("radar"); map.removeSource("radar"); radar.tiles = null; }
+    /* the map's own credit line names what is drawn, including when precipitation type has fallen back to reflectivity */
+    const credit = (radar.via === "ptype" ? "Precipitation type: MRMS reflectivity via Iowa Environmental Mesonet, type NOAA MRMS PrecipFlag" : radar.via === "iem" ? "Reflectivity: MRMS via Iowa Environmental Mesonet" : "Reflectivity: NOAA MRMS radar") + (radar.ptFallback ? " (precipitation type unavailable)" : "");
+    if (!map.getSource("radar")) { map.addSource("radar", { type: "raster", tiles: [url], tileSize: 256, maxzoom: own ? 10 : 22, attribution: credit }); map.addLayer({ id: "radar", type: "raster", source: "radar", paint }, radarBeforeLayer()); radar.srcVia = srcKey; }
     else if (radar.tiles !== url) map.getSource("radar").setTiles([url]);
     radar.tiles = url; map.setLayoutProperty("radar", "visibility", "visible");
   }
-  const radarRow = () => !(S.radar && isLive()) ? "" : `<div class="px-src ${radar.state === "ok" ? (radarAgeMin() > 20 ? "stale" : "current") : radar.state === "stale" ? "stale" : radar.state === "failed" ? "unavailable" : "loading"}" data-src="radar"><span><b><a href="https://mrms.nssl.noaa.gov/" target="_blank" rel="noopener">NOAA MRMS radar</a></b></span><span>${radar.state === "ok" ? esc("Image " + t(radar.valid) + " · " + radarAgeMin() + " min old" + (radarAgeMin() > 20 ? " (delayed)" : "")) : radar.state === "stale" ? esc("Last image " + t(radar.valid) + " · not responding") : radar.state === "failed" ? "Not responding" : "Loading…"}</span></div>`;
+  const radarRow = () => !(S.radar && isLive()) ? "" : `<div class="px-src ${radar.state === "ok" ? (radarAgeMin() > 20 ? "stale" : "current") : radar.state === "stale" ? "stale" : radar.state === "failed" ? "unavailable" : "loading"}" data-src="radar"><span><b>${radar.ptFallback ? esc(PT_UNAVAILABLE) + " · " : ""}${radar.via === "ptype" ? `<a href="https://mrms.nssl.noaa.gov/" target="_blank" rel="noopener">MRMS precipitation type</a> · reflectivity via IEM, type (PrecipFlag) via NOAA, same scan` : radar.via === "noaa" ? `<a href="https://mrms.nssl.noaa.gov/" target="_blank" rel="noopener">NOAA MRMS radar</a> (fallback: IEM not responding)` : `<a href="https://mesonet.agron.iastate.edu/GIS/rasters.php?rid=4" target="_blank" rel="noopener">MRMS reflectivity</a> · lowest elevation, via IEM`}</b></span><span>${radar.state === "ok" ? esc((radar.via === "noaa" ? "Image " : "Scan ") + t(radar.valid) + " · " + radarAgeMin() + " min old" + (radarAgeMin() > 20 ? " (delayed)" : "")) : radar.state === "stale" ? esc("Last image " + t(radar.valid) + " · not responding") : radar.state === "failed" ? "Not responding" : "Loading…"}</span></div>`;
 
   /* ---------- the venue's next 12 hours (NWS forecast grid), on request: gusts, heat index or feels-like, rain chance ---------- */
   let vfc = { key: null, state: "idle" };
@@ -1576,8 +1664,8 @@
     for (const d of r.days) {
       const top = d.items.reduce((m, x) => Math.max(m, x.level), 0), hls = d.items.filter((x) => x.highlight), sig = d.items.filter((x) => x.level >= 1), info = d.items.filter((x) => x.level < 1 && !x.highlight);
       h += `<div class="px-olday" data-ol-day="${d.date}" style="--ol-c:${LEVEL_COLOR[top]}"><div class="px-olday-h"><b>${esc(d.label)}</b>${top ? `<span class="px-ollv">${LEVEL_WORD[top]}</span>` : ""}</div>`
-        + hls.map((x) => `<button type="button" class="px-olchip px-olhl" data-ol-go="${esc(x.link || "")}" data-ol-key="${x.key}"><span aria-hidden="true">${OL_ICON[x.key] || "•"}</span> ${esc(x.text)} <small>${esc(x.source)}</small></button>`).join("")
-        + (sig.length ? sig.map((x) => `<button type="button" class="px-olchip" data-ol-go="${esc(x.link || "")}" data-ol-key="${x.key}" style="--ol-c:${LEVEL_COLOR[x.level]}"><span aria-hidden="true">${OL_ICON[x.key] || "•"}</span> ${esc(x.text)} <small>${esc(x.source)}</small></button>`).join("") : `<div class="px-olquiet">${d.unknown.length ? "Not fully checked: no significant hazards in the sources that answered" : "No significant hazards identified"}</div>`)
+        + hls.map((x) => `<button type="button" class="px-olchip px-olhl" data-ol-go="${esc(x.link || "")}" data-ol-key="${x.key}"><span aria-hidden="true">${OL_ICON[x.key] || "•"}</span> <span class="px-olchip-text">${esc(x.text)}</span><small>${esc(x.source)}</small></button>`).join("")
+        + (sig.length ? sig.map((x) => `<button type="button" class="px-olchip" data-ol-go="${esc(x.link || "")}" data-ol-key="${x.key}" style="--ol-c:${LEVEL_COLOR[x.level]}"><span aria-hidden="true">${OL_ICON[x.key] || "•"}</span> <span class="px-olchip-text">${esc(x.text)}</span><small>${esc(x.source)}</small></button>`).join("") : `<div class="px-olquiet">${d.unknown.length ? "Not fully checked: no significant hazards in the sources that answered" : "No significant hazards identified"}</div>`)
         + (info.length ? `<div class="px-olinfo">${info.map((x) => esc(x.text)).join(" · ")}</div>` : "")
         + (d.unknown.length ? `<div class="px-olunk">Not confirmed: ${d.unknown.map(esc).join("; ")}</div>` : "") + (d.limits.length ? `<div class="px-olinfo">${d.limits.map(esc).join("; ")}</div>` : "") + `</div>`;
     }
@@ -1769,7 +1857,7 @@
       $("txRainObsNote").textContent = !live ? "Live only" : S.rain.obs && R.obs.meta ? "NOAA MRMS radar estimate · " + obsWindowText(R.obs.meta) : "NOAA MRMS radar estimate · 1 km";
       $("txRainFcstNote").textContent = !live ? "Live only" : S.rain.fcst && R.fcst.meta ? "WPC · " + fcstWindowText(R.fcst.meta, fcstPeriod()) : "WPC forecast totals · CONUS"; }
     { const ri = pop.querySelector("input[data-radar]"); ri.checked = !!S.radar && isLive(); ri.disabled = !isLive();
-      $("txRadarNote").textContent = !isLive() ? "Live only: current radar doesn't belong on a demo or a replay" : S.radar && radar.valid ? radarText() : "NOAA MRMS base reflectivity · refreshed every 5 minutes while on · about 0.3 MB per view"; }
+      $("txRadarNote").textContent = !isLive() ? "Live only: current radar doesn't belong on a demo or a replay" : S.radar && radar.valid ? radarText() : (radarMode() === "ptype" ? "MRMS reflectivity with NOAA precipitation type · new scan about every 2 minutes · about 1.4 MB per scan while on" : "MRMS lowest-elevation reflectivity (IEM) · new scan about every 2 minutes · about 1.2 MB per scan while on"); syncRadarMode(); }
     $("txLayersSum").textContent = layersSummary(); $("txLayersBtn").setAttribute("aria-label", "Layers: " + layersSummary() + " on. Open to change");
     // the panel's state line: time and layers stay in view while the details scroll; layers not drawn now, briefly why
     const missing = LAYER_KEYS.filter((k) => S.layers[k] && layerNote(k) && !(k === "aviation" && viewDay())) /* aviation is partly drawn in Day 2/3: the picker says which part */, cur = missing.filter((k) => ["smoke", "tropical", "coastal", "heat", "wind"].includes(k)), own = missing.filter((k) => !["smoke", "tropical", "coastal", "heat", "wind"].includes(k));
@@ -1783,7 +1871,7 @@
      between press and release and the click was lost (the last rows: Radar, Icing guidance). Hold the position while pressed;
      a touch drag cancels the press, so scrolling by finger still works */
   { const pop = $("txLayersPop"); let pressTop = null;
-    pop.addEventListener("mousedown", (e) => { if (e.target.closest(".tx-lt")) e.preventDefault(); }); // no focus scroll from a press; the click still toggles
+    pop.addEventListener("mousedown", (e) => { if (e.target.closest(".tx-lt") && !e.target.matches("input[type=range]")) e.preventDefault(); }); // range inputs need the native press to start dragging
     pop.addEventListener("pointerdown", () => { pressTop = pop.scrollTop; }, true);
     pop.addEventListener("scroll", () => { if (pressTop != null && pop.scrollTop !== pressTop) pop.scrollTop = pressTop; });
     for (const ev of ["pointerup", "pointercancel"]) document.addEventListener(ev, () => { setTimeout(() => { pressTop = null; }, 0); }, true); } window.addEventListener("resize", popMore);
@@ -1799,7 +1887,11 @@
     if (e.target.closest("[data-open-rain]")) { openRainMap(); return; }
     const ss = e.target.closest("[data-strip-sel]"); if (ss) { const p = byId(ss.dataset.stripSel) || ((siteAssess() || { at: [] }).at.find((x) => x.p.id === ss.dataset.stripSel) || {}).p; // an alert in the strip, opened on the map
       if (p) { const fam = p.family || "severe"; if (!S.layers[fam]) { S.layers[fam] = true; S.auto = false; } S.scope = "venue"; setView("active"); if (byId(p.id)) { S.sel = p.id; drawAll(); if (map && p.label) map.easeTo({ center: p.label, duration: 400 }); } } } }); // an upcoming alert shows while selected
-  $("txLayersPop").addEventListener("change", (e) => {
+  /* the opacity slider moves the map as it is dragged (input), without redrawing anything else */
+  $("txLayersPop").addEventListener("input", (e) => { if (e.target.matches("[data-radar-op]")) setRadarOp(+e.target.value / 100); });
+  syncRadarOp();
+  syncRadarMode();
+  $("txLayersPop").addEventListener("change", (e) => { if (e.target.matches("[data-radar-op]")) return; if (e.target.matches("[data-radar-mode]")) { setRadarMode(e.target.value); return; }
     const i = e.target; if (!i.matches("input, select")) return;
     if (i.dataset.rain) { S.auto = false; S.rain[i.dataset.rain] = i.checked; if (i.checked) { S.rain[i.dataset.rain === "obs" ? "fcst" : "obs"] = false; S.layers.flood = true; } } // one rainfall overlay at a time
     else if (i.hasAttribute("data-rain-win")) { S.rain.win = +i.value; if (!S.rain.obs) { S.auto = false; S.rain.obs = true; S.rain.fcst = false; S.layers.flood = true; } }
@@ -1871,7 +1963,7 @@
     const set = (id, k, v) => { if (map.getLayer(id)) map.setPaintProperty(id, k, v); };
     set("warn-case", "line-color", c.halo); set("ring", "line-color", c.text); set("hl", "line-color", c.text); set("m-hull", "line-color", c.muted); set("pt", "circle-stroke-color", c.text);
     set("warn-dot", "circle-stroke-color", c.halo); set("warn-dot-core", "circle-color", c.halo);
-    set("cnty-lines", "line-color", c.muted); set("cnty-labels", "text-color", c.muted); set("cnty-labels", "text-halo-color", c.halo);
+    set("cnty-lines", "line-color", c.muted); set("cnty-case", "line-color", c.halo); set("cnty-labels", "text-color", c.muted); set("cnty-labels", "text-halo-color", c.halo);
     if (map.hasImage("hatch")) map.removeImage("hatch"); map.addImage("hatch", hatch(), { pixelRatio: 2 });
   }
   window.addEventListener("ops:theme", async () => {
@@ -2005,5 +2097,5 @@
     drawAll();
     return true;
   }
-  window.__threats = { S, drawAll, radar, rain: R, setVenue, siteAssess, get outlook() { return vo; }, get basemap() { return carto ? "carto" : "fallback"; }, retryCarto, get venue() { return venue; }, get vfc() { return vfc; }, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
+  window.__threats = { S, drawAll, radar, get radarStats() { return radar.client ? radar.client.state : null; }, get ptypeStats() { return radar.pt ? radar.pt.state : null; }, radarMode, setRadarMode, rain: R, setVenue, siteAssess, get outlook() { return vo; }, get basemap() { return carto ? "carto" : "fallback"; }, retryCarto, get venue() { return venue; }, get vfc() { return vfc; }, ifi: { get state() { return ifi.state; }, get reason() { return ifi.reason; }, get key() { return ifi.key; }, get latest() { return ifi.latest; }, get dec() { return ifi.dec; }, at: (lon, lat) => ifiAt([lon, lat]) }, gtg: { get state() { return gtg.state; }, get error() { return gtg.error; }, get key() { return gtg.key; }, get latest() { return gtg.latest; }, get dec() { return gtg.dec; }, at: (lon, lat) => gtgAt([lon, lat]) }, frameAirport, get map() { return map; }, get ready() { return ready; }, get liveReady() { return liveReady; }, get data() { return data; }, errors: drawErrors, diag: Live.diag };
 })();

@@ -22,32 +22,49 @@
   let missingId = Q.get("ev") && !storedOk(Q.get("ev")) && !linkEvent ? Q.get("ev") : null;
   let ev = storedOk(Q.get("ev")) || linkEvent || (linkCity || missingId ? null : storedOk(E.last())) || null, tzFromPick = false, pickSeq = 0, gen = 0, lastRes = null, bus = null, pendingCity = linkCity;
   if (!ev) ev = sampleAt(linkCity && linkCity.tz ? linkCity : null);
-  const isSample = () => !!ev.sample, isStored = () => !!(ev.id && E.getEvent(ev.id));
+  /* multi-day events (EventDays): "plan" is the planner's whole event (what is saved, edited and shared); "ev" is what the
+     briefing covers: the selected day's scheduled time for a multi-day event, otherwise the event itself, unchanged */
+  const DY = window.EventDays;
+  let plan = ev, dayPick = /^(\d{4}-\d{2}-\d{2}|all)$/.test(Q.get("day") || "") ? Q.get("day") : null, dayList = [];
+  function applyDay(now = Date.now()) {
+    dayList = DY ? DY.days(C, plan) : [];
+    if (dayList.length < 2) { ev = plan; return; }
+    if (dayPick === "all") { ev = plan; return; } // All days: the whole-event briefing and printout, as before
+    if (!dayPick || !dayList.some((d) => d.date === dayPick)) dayPick = DY.defaultDay(dayList, now);
+    ev = DY.dayEvent(C, plan, dayPick);
+  }
+  const setPlan = (x) => { plan = x; applyDay(); };
+  applyDay();
+  const isSample = () => !!plan.sample, isStored = () => !!(plan.id && E.getEvent(plan.id));
   /* a saved event opened again in a later session (approximate, per browser) */
   if (!linkEvent && !linkCity && !isSample()) { const last = O.store.get(SEEN, null); let sess = null; try { sess = sessionStorage.getItem("beta_sess_seen"); sessionStorage.setItem("beta_sess_seen", "1"); } catch (e) { /* no storage */ }
     if (last && !sess) U.track("event_revisited"); }
-  const link = () => { const u = new URL(location.href); u.hash = ""; u.search = isSample() ? new URLSearchParams({ lat: ev.loc.lat, lon: ev.loc.lon, name: ev.loc.name, tz: ev.tz }) : new URLSearchParams({ e: S.eventToParam(ev) });
-    const x = !isSample() && window.EventThreats && window.EventThreats.shareParams ? window.EventThreats.shareParams(ev) : null; if (x) Object.entries(x).forEach(([k, v]) => u.searchParams.set(k, v)); // weather threats: airports travel beside the event, never inside e
+  const link = () => { const u = new URL(location.href); u.hash = ""; u.search = isSample() ? new URLSearchParams({ lat: plan.loc.lat, lon: plan.loc.lon, name: plan.loc.name, tz: plan.tz }) : new URLSearchParams({ e: S.eventToParam(plan) });
+    if (ev.day) u.searchParams.set("day", ev.day.date); else if (dayList.length > 1 && dayPick === "all") u.searchParams.set("day", "all"); // a multi-day event opens on the day being looked at
+    const x = !isSample() && window.EventThreats && window.EventThreats.shareParams ? window.EventThreats.shareParams(plan) : null; if (x) Object.entries(x).forEach(([k, v]) => u.searchParams.set(k, v)); // weather threats: airports travel beside the event, never inside e
     return u.toString(); };
   /* Print / PDF sits in the toolbar with the other page controls (before Feedback); live once a briefing is ready */
   const PRINT_ICON = '<svg class="bx-ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M4 6V1.5h8V6M4 12H2.5A1 1 0 0 1 1.5 11V7a1 1 0 0 1 1-1h11a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H12M4 9.5h8v5H4z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
-  const head = U.header({ audience: "Event", other: { self: "event-beta.html", href: "meteorologist-beta.html", label: "Met" }, ctx: `<div id="picker" class="bx-ctx" style="flex:1 1 auto"></div>`,
+  /* the normal Forecast Ops navigation: the logo opens Overview; the tab row (desktop) or the Forecast Ops menu (phones) has
+     the same destinations, with Events current; tools that take a forecast point open on the venue. Meteorologist view
+     stays its own action. */
+  const head = U.header({ audience: "Event", other: { self: "event-beta.html", href: "meteorologist-beta.html", label: "Meteorologist view" }, site: { pageId: "events", place: ev.loc }, ctx: `<div id="picker" class="bx-ctx" style="flex:1 1 auto"></div>`,
     actions: `<button class="bx-btn bx-print" type="button" id="printTop" disabled title="Available once the briefing loads">${PRINT_ICON}<span>Print / PDF</span></button>` });
   document.title = "Event Manager · Forecast Ops";
   const picker = U.placePicker($("picker"), { current: { name: ev.loc.name }, link, label: "Venue city",
     async onPick(p) { const my = ++pickSeq; const tz = p.tz || await O.zoneFor(p.lat, p.lon).catch(() => null); if (my !== pickSeq) return; // a later pick wins, even over a slow time-zone lookup
       /* no time zone (lookup failed): still switch city, and take the zone from that city's forecast response */
-      if (!tz) { U.track("city_selected", { market: S.market(p.lat, p.lon).tuned ? "cincinnati" : "elsewhere" }); if (isSample()) pendingCity = { ...p, tz: null }; else { ev = { ...ev, loc: { name: p.name, lat: p.lat, lon: p.lon } }; tzFromPick = true; } return run(); }
+      if (!tz) { U.track("city_selected", { market: S.market(p.lat, p.lon).tuned ? "cincinnati" : "elsewhere" }); if (isSample()) pendingCity = { ...p, tz: null }; else { setPlan({ ...plan, loc: { name: p.name, lat: p.lat, lon: p.lon } }); tzFromPick = true; } return run(); }
       U.track("city_selected", { market: S.market(p.lat, p.lon).tuned ? "cincinnati" : "elsewhere" });
-      if (isSample()) ev = sampleAt({ ...p, tz }); else ev = { ...ev, loc: { name: p.name, lat: p.lat, lon: p.lon }, tz };
+      if (isSample()) setPlan(sampleAt({ ...p, tz })); else setPlan({ ...plan, loc: { name: p.name, lat: p.lat, lon: p.lon }, tz });
       run(); } });
   head.onRefresh(() => run());
   /* on a phone the toolbar shows Print and Feedback as icons: keep their names for screen readers and a tooltip */
   const fbName = () => { const f = document.getElementById("bxFeedback"); if (f && !f.title) { f.title = "Feedback"; f.setAttribute("aria-label", "Feedback"); } };
   fbName(); addEventListener("load", fbName); setTimeout(fbName, 1500);
   { const pc = $("picker").querySelector(".bx-ppcopy"); if (pc) pc.title = "Copy a link to this event (also under Share)"; }
-  $("editBtn").addEventListener("click", () => UP.editEvent(ev, { title: isStored() ? "Edit event" : "Save as your event", onSaved: (rec) => { ev = rec; E.setLast(rec.id); O.store.set(SEEN, Date.now()); history.replaceState(null, "", `?ev=${encodeURIComponent(rec.id)}`); upCount(); run(); } }));
-  $("resetBtn").addEventListener("click", () => { E.setLast(null); history.replaceState(null, "", location.pathname); ev = sampleAt(null);
+  $("editBtn").addEventListener("click", () => UP.editEvent(plan, { title: isStored() ? "Edit event" : "Save as your event", onSaved: (rec) => { setPlan(rec); E.setLast(rec.id); O.store.set(SEEN, Date.now()); history.replaceState(null, "", `?ev=${encodeURIComponent(rec.id)}`); upCount(); run(); } }));
+  $("resetBtn").addEventListener("click", () => { E.setLast(null); history.replaceState(null, "", location.pathname); dayPick = null; setPlan(sampleAt(null));
     if (missingId) { missingId = null; delete document.body.dataset.missing; const pc = $("picker").querySelector(".bx-ppcopy"); if (pc) pc.hidden = false; $("editBtn").hidden = false; $("shareMenu").hidden = false; $("resetBtn").textContent = "Use sample event"; $("secDetails") && ($("secDetails").hidden = false); briefStarted = true; }
     run(); });
   /* two views on one page: the briefing (main screen) and Upcoming events (#upcoming) */
@@ -82,7 +99,7 @@
     /* a city link without a time zone: look it up; failing that, take it from the forecast response for that point */
     let tzFromData = null;
     if (pendingCity && !pendingCity.tz) { const tz = await O.zoneFor(pendingCity.lat, pendingCity.lon).catch(() => null); if (g !== gen) return;
-      if (tz) ev = sampleAt({ ...pendingCity, tz }); else { tzFromData = pendingCity; ev = { ...sampleAt(null), loc: { name: pendingCity.name, lat: pendingCity.lat, lon: pendingCity.lon } }; } }
+      if (tz) setPlan(sampleAt({ ...pendingCity, tz })); else { tzFromData = pendingCity; setPlan({ ...sampleAt(null), loc: { name: pendingCity.name, lat: pendingCity.lat, lon: pendingCity.lon } }); } }
     pendingCity = null;
     if (isStored()) E.setLast(ev.id);
     if (!fin(ev.loc.lat) || !fin(ev.loc.lon)) { context(); $("decision").textContent = "Venue needs confirmation"; $("keys").innerHTML = '<dt>Next</dt><dd>Pick the venue to get a site-specific forecast.<span class="bx-note">Use Edit to choose a saved venue or search its city.</span></dd>'; return; }
@@ -101,6 +118,7 @@
     $("decision").textContent = "Reading the guidance…"; $("coverage").hidden = true; document.body.dataset.readiness = ""; ["sourceCoverage", "keys", "schedule", "daylight", "hourlyDaylight", "detailBody", "phases", "changes", "checks", "timeline"].forEach((id) => { $(id).innerHTML = ""; });
     /* the schedule and daylight need no forecast: shown now, while the briefing loads, is pending or fails */
     showSchedule(C.event.windows(ev).filter((w) => w.key !== "all"));
+    dayPicker(null);
     const alertsPromise = U.alerts(where);
     alertsPromise.then((a) => { if (g !== gen) return; alertsCheckedAt = Date.now(); officialBlock(a); });
     const endMs = Math.max(...C.event.windows(ev).map((w) => w.endMs)), days = 7; // the same forecast length Overview and Model Blend request, so this tab's answers for them are reused (briefing values are identical)
@@ -120,7 +138,7 @@
     }
     retried = false;
     if (!res.NW || !res.NW.ok) U.track("load_failed", { what: "nws" });
-    if (tzFromData) { ev = sampleAt({ ...tzFromData, tz: res.ctx.B.tz }); context(); document.body.dataset.tz = ev.tz; }
+    if (tzFromData) { setPlan(sampleAt({ ...tzFromData, tz: res.ctx.B.tz })); context(); document.body.dataset.tz = ev.tz; }
     if (!(await show(g, res, alertsPromise, t0))) return;
     /* the briefing and Print are ready; only now are refused sources tried again (never after an automatic whole reload,
        which already asked every source a second time) */
@@ -128,7 +146,7 @@
   }
   /* put a usable result on screen and in print; false when a newer load has taken over */
   async function show(g, res, alertsPromise, t0, opts = {}) {
-    if (tzFromPick) { tzFromPick = false; ev = { ...ev, tz: res.ctx.B.tz }; if (isStored()) ev = E.saveEvent(ev); context(); document.body.dataset.tz = ev.tz; }
+    if (tzFromPick) { tzFromPick = false; setPlan({ ...plan, tz: res.ctx.B.tz }); if (isStored()) setPlan(E.saveEvent(plan)); context(); document.body.dataset.tz = ev.tz; }
     res.alerts = await alertsPromise; res.alertsAvailable = res.alerts.available !== false;
     if (g !== gen) return false;
     lastRes = res; render(res, opts);
@@ -169,6 +187,31 @@
   /* the same event (venue, schedule) keeps its selected hour across refreshes; anything else starts at the focus hour */
   let selKey = null;
   const selectionKey = () => JSON.stringify([ev.id || ev.name, ev.loc.lat, ev.loc.lon, ev.tz, ev.times, ev.slots || null]);
+  /* ---- multi-day events: the day picker. One button per scheduled day with its times and, once guidance is loaded, that
+     day's status from the same briefing engine (EventDays.status): its concern and hours, no concern, or how much of the
+     day the hourly guidance reaches. Choosing a day re-briefs that day (same loaded guidance, served from the cache). ---- */
+  function dayPicker(ctx, thr) {
+    const host = $("dayPick"); if (!host) return;
+    if (dayList.length < 2) { host.hidden = true; host.innerHTML = ""; delete document.body.dataset.day; return; }
+    const tz = plan.tz, clock = (ms) => fmt.clock(ms, tz).replace(":00", "");
+    /* "5–11 PM", "10 AM–6 PM", "9 PM–3 AM": the day is already on the button */
+    const span = (a, z) => { const x = clock(a), y = clock(z), ax = x.split(" "), ay = y.split(" "); return ax[1] && ax[1] === ay[1] ? `${ax[0]}–${y}` : `${x}–${y}`; };
+    const stat = (d) => (ctx ? DY.status(C, S, ctx, plan, d.date, thr, tz) : null);
+    const all = !ev.day; host.hidden = false; document.body.dataset.day = all ? "all" : ev.day.date;
+    /* one compact row (about 40 px) so the decision, callouts and next check, and any warning, stay on a phone's first
+       screen: day, a one- or two-word status coloured by tier; the full line is the chip's tooltip and accessible name */
+    const chip = (d) => { const x = stat(d), on = !all && d.date === ev.day.date, nm = d.label.replace(/^(\w+), \w+ (\d+)$/, "$1 $2"), slots = x && x.state === "concern" && x.slots && x.slots.length && d.pieces.length > 1 ? ` · ${x.slots.join(", ")}` : "";
+      const full = `${d.label}, ${span(d.startMs, d.endMs)}: ${x ? x.text + slots : "loading"}`;
+      return `<button type="button" class="ev-day${on ? " is-on" : ""}" data-day="${esc(d.date)}" aria-pressed="${on}" title="${esc(full)}" aria-label="${esc(full)}"${x && x.tier ? ` data-tier="${esc(x.tier)}" style="--tier:var(--${esc(x.tier)})"` : ""} data-state="${esc(x ? x.state : "loading")}"${x && x.cover ? ` data-cover="${esc(x.cover)}"` : ""}><b>${esc(nm)}</b><span class="ev-day-s">${esc(x ? x.short : "…")}</span></button>`; };
+    host.innerHTML = `<div class="ev-days-row" role="group" aria-label="${esc(all ? `All ${dayList.length} days` : `Day ${ev.day.index + 1} of ${ev.day.count}`)}: choose a day">${dayList.map(chip).join("")}` +
+      `<button type="button" class="ev-day ev-day-all${all ? " is-on" : ""}" data-day="all" aria-pressed="${all}" title="The whole event in one briefing" aria-label="All ${dayList.length} days: the whole event in one briefing"><b>All</b><span class="ev-day-s">${esc(dayList[0].label.split(",")[0])}–${esc(dayList[dayList.length - 1].label.split(",")[0])}</span></button></div>`;
+    { const row = host.querySelector(".ev-days-row"), on = host.querySelector(".ev-day.is-on"); // keep the selected day in view in the sideways-scrolling row
+      if (row && on) { const l = on.offsetLeft - row.offsetLeft, r = l + on.offsetWidth; if (r > row.scrollLeft + row.clientWidth) row.scrollLeft = r - row.clientWidth + 8; else if (l < row.scrollLeft) row.scrollLeft = Math.max(0, l - 8); } }
+    host.querySelectorAll("[data-day]").forEach((btn) => btn.addEventListener("click", () => { if (btn.dataset.day === dayPick) return;
+      dayPick = btn.dataset.day; applyDay();
+      const u = new URL(location.href); u.searchParams.set("day", dayPick); history.replaceState(null, "", u.toString());
+      run(); }));
+  }
   function context() {
     const w = C.event.windows(ev), ph = Object.fromEntries(w.map((x) => [x.key, x])), main = ph.event || ph.all, tz = ev.tz;
     $("sampleTag").hidden = !isSample(); $("resetBtn").hidden = isSample();
@@ -179,6 +222,7 @@
     $("evWhen").textContent = slotted && ph.all ? BUI.dateSpan(ph.all.startMs, ph.all.endMs, tz) : main ? `${BUI.dateSpan(main.startMs, main.endMs, tz)}${ph.setup ? ` · setup from ${fmt.clock(ph.setup.startMs, tz)}` : ""}` : "";
     const pn = $("secPhases") && $("secPhases").querySelector("summary .bx-note"); if (pn) pn.textContent = C.event.hasSlots(ev) ? w.filter((x) => x.key !== "all").map((x) => x.label).join(", ") : "setup, gates, event, teardown";
     if (window.EventThreats) window.EventThreats.update(ev); // weather threats follow the venue and schedule on screen
+    if (head && head.setPlace) head.setPlace(ev.loc); // site links open the other tools on this venue
   }
 
   /* the event schedule, once: each part with its venue-local times. The weather for these times is in the briefing above
@@ -206,7 +250,9 @@
   let alertsCheckedAt = null, lastLead = null;
   const LEAD = window.EventLead;
   function officialBlock(a, L) {
-    const lead = L || { official: LEAD.official(a, a.available !== false) };
+    /* without a lead (alerts answered first, or the briefing is pending): no forecast concern to point to, so the card keeps
+       only the caution ("This doesn't mean no weather concern."), never "the forecast concern is above" */
+    const lead = L || { kind: "missing", official: LEAD.official(a, a.available !== false) };
     $("alerts").innerHTML = LEAD.officialHtml(lead, { tz: ev.tz, lat: ev.loc.lat, lon: ev.loc.lon, checkedAt: alertsCheckedAt });
   }
   /* the last hour the HRRR (the forecast radar's model) has guidance for, from the loaded data */
@@ -234,7 +280,7 @@
   });
   function render(res, { recovered = false } = {}) {
     const ctx = res.ctx, tz = ev.tz, now = ctx.now, thr = { gust: ev.gust || 25 };
-    if (isSample() && !ev.picked) { const v = ev.loc.name === S.SAMPLE_VENUE.name ? null : ev.loc; ev = { ...S.pickSample(ctx, C, ev.tz, [1, 2, 3], v), picked: true }; context(); }
+    if (isSample() && !plan.picked) { const v = plan.loc.name === S.SAMPLE_VENUE.name ? null : plan.loc; setPlan({ ...S.pickSample(ctx, C, plan.tz, [1, 2, 3], v), picked: true }); context(); }
     /* guidance reused from this tab's short cache keeps its original retrieval time and is labelled as a saved copy
        (a copy under a minute old is simply current) */
     const got = Object.keys(ctx.ws).map((id) => ctx.B.models[id]).filter(Boolean), oldest = Math.min(...got.map((m) => Date.parse(m.retrievedAt)).filter(fin));
@@ -243,6 +289,7 @@
     const b = S.eventBrief(ctx, ev, thr);
     if (b.error) { $("decision").textContent = b.error; return; }
     const top = b.top, checks = S.checkAgain(ctx, b, U.NAMES), next = checks[0];
+    dayPicker(ctx, thr);
     /* one set of hourly values for everything below: the grid, the phase summaries and the printout */
     const V = window.HourlyViews.eventView({ C, S, M: window.HourlyModel, ctx, brief: b, thr, tz, now });
     const PS = window.HourlyModel.phaseSummaries(S, b, V.hrs, V.cover, V.coverAt), live = PS.filter((p) => p.covered);
@@ -282,7 +329,7 @@
     /* counted for this event's hours: a source whose forecast ends before the event is named, not counted */
     res.eventFeeds = BUI.eventFeeds(res.feeds, ctx.B, b.all.startMs, b.all.endMs);
     renderSupport(res,b,now);
-    if (!recovered) briefingUpdate(ev, b, V, res); // a source answering late is a coverage change, not a new visit to compare
+    if (!recovered) briefingUpdate(ev.dayKey ? { ...ev, id: ev.dayKey } : ev, b, V, res); // a multi-day event keeps one comparison per day // a source answering late is a coverage change, not a new visit to compare
     monitoringHandoff(ev, b, now);
     gapFlag(res);
     if (R.state !== "pending") renderLead(res, { b, A, R, V, top }); else { ["leadUrgent", "leadBody", "leadAfter"].forEach((id) => { $(id).innerHTML = ""; }); $("leadUrgent").hidden = true; officialBlock(res.alerts); }
@@ -488,7 +535,7 @@
     const host = $("outlook"), my = gen; host.innerHTML = ""; host.hidden = true; delete document.body.dataset.outlook;
     if (!R || (R.state !== "pending" && R.state !== "partial")) return;
     const ctx = res.ctx, tz = ev.tz, now = ctx.now, ms = ctx.B.ms, hourlyEndMs = ms.length ? ms[ms.length - 1] + H : now, windows = C.event.windows(ev);
-    const f = { dayName: (k) => new Date(k + "T12:00Z").toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" }), when: (t) => `${around(t)} ${fmt.zone(t, tz)}` };
+    const f = { dayName: (k) => new Date(k + "T12:00Z").toLocaleDateString("en-US", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric" }), when: (t) => `${around(t)} ${fmt.zone(t, tz)}`, first: R.names && R.names[0] };
     const remind = R.state === "pending" && R.readyAt ? remindHtml(R.readyAt, "Add a calendar reminder") : "";
     const show = (rows) => {
       if (my !== gen) return;
@@ -530,7 +577,7 @@
   function printView(res) {
     const host = $("printView"); if (!host || !lastView || !res) return;
     renderSupport(res, lastView.b);
-    host.innerHTML = BUI.printMarkup({ ev, res: { ...res, feeds: res.eventFeeds || res.feeds }, view: lastView, S, U });
+    host.innerHTML = BUI.printMarkup({ ev: ev.day ? { ...ev, name: `${ev.name} · ${ev.day.label}` } : ev, res: { ...res, feeds: res.eventFeeds || res.feeds }, view: lastView, S, U });
     BUI.fitPrint(host); // two sheets whatever the content: tighten spacing on a page that would spill onto a third
     printReady(true);
   }
