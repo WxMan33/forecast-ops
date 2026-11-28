@@ -1,8 +1,9 @@
 {
- "request": 1,
- "stage": "inventory",
- "purpose": "NadoCast head-to-head, stage 1: inventory and commit the matched 2024 date list and exclusions (no scoring)",
+ "request": 2,
+ "stage": "compare",
+ "purpose": "NadoCast head-to-head, stage 2: pinned held-out predictions (fingerprint gate) vs NadoCast on the committed 46-date roster",
  "rules": "research/severe/conus-v1/rrfs/retro/NADOCAST.md",
  "cache_run": 46035459501,
- "expect_fingerprints": "research/severe/conus-v1/rrfs/retro/repro/scorecard-pinned-1.json"
+ "expect_fingerprints": "research/severe/conus-v1/rrfs/retro/repro/scorecard-pinned-1.json",
+ "roster": "research/severe/conus-v1/rrfs/retro/nadocast/nadocast-roster.json (committed by the stage-1 run before this request)"
 }
