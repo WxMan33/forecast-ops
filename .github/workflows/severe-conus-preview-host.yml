@@ -1,0 +1,96 @@
+# CONUS Severe research preview: confirm the public beta host serves this exact commit, then drive it headlessly.
+# Runs only for the preview branch. Read-only: commits nothing, touches no live feed, publisher or collector.
+name: CONUS research preview host check
+on:
+  push:
+    branches: [claude/severe-conus-preview]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency: { group: conus-preview-host, cancel-in-progress: true }
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      BASE: https://raw.githack.com/${{ github.repository }}/${{ github.ref_name }}/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Saved forecast is still in date (fails if the daily refresh stopped)
+        run: |
+          python3 - <<'PY'
+          import json, sys, datetime as dt
+          idx = json.load(open('assets/severe-conus/index.json'))
+          cur = [c for c in idx['cases'] if c['kind'] == 'current']
+          if not cur: print('::error::no saved forecast in index.json'); sys.exit(1)
+          now = dt.datetime.now(dt.timezone.utc)
+          for c in cur:
+              end = dt.datetime.fromisoformat(c['valid_end'].replace('Z', '+00:00'))
+              print(c['id'], 'valid until', c['valid_end'], '(now', now.isoformat(timespec='minutes') + ')')
+              if end < now: print('::error::saved forecast', c['id'], 'expired at', c['valid_end'], '- the daily feed did not refresh it'); sys.exit(1)
+          PY
+      - name: Prebuilt display contours match the current cases (else phones would get no shading)
+        run: |
+          python3 - <<'PY'
+          import json, hashlib, sys
+          idx = json.load(open('assets/severe-conus/index.json')); man = json.load(open('assets/severe-conus-display/manifest.json'))
+          bad = []
+          for c in idx['cases']:
+              e = man['cases'].get(c['id'])
+              if not e or e['case_sha256'] != c['sha256']: bad.append(c['id']); continue
+              if hashlib.sha256(open('assets/severe-conus-display/' + e['file'], 'rb').read()).hexdigest() != e['sha256']: bad.append(c['id'] + ' (file)')
+              print(c['id'], 'prebuilt', e['polygons'], 'polygons /', e['vertices'], 'points (raw', e['raw_polygons'], '/', e['raw_vertices'], ')')
+          if bad: print('::error::rebuild with tools/build-conus-display.py:', bad); sys.exit(1)
+          PY
+      - name: Wait until the beta host serves this commit (every file severe.html and the CONUS viewer load)
+        run: |
+          echo "commit $GITHUB_SHA"
+          FILES="severe.html $(grep -ho '\(src\|href\)="assets/[^"?]*' severe.html | sed 's/^[a-z]*="//') assets/maps/basemap.json assets/maps/conus-detail.geojson.gz assets/severe-conus-land.json $(ls assets/severe-conus/*.json assets/severe-conus-display/*.json)"
+          FILES="$(printf '%s\n' $FILES | sort -u | tr '\n' ' ')"; echo "checking $(echo $FILES | wc -w) files"
+          for i in $(seq 1 40); do stale=""
+            for f in $FILES; do [ "$(curl -fsSL "${BASE}$f" | sha256sum | cut -c1-16)" = "$(sha256sum "$f" | cut -c1-16)" ] || stale="$stale $f"; done
+            if [ -z "$stale" ]; then echo "host serves commit $GITHUB_SHA for all files"; exit 0; fi
+            echo "waiting for:$stale"; sleep 30; done
+          echo "::error::beta host still stale after 20 minutes:$stale"; exit 1
+      - run: |
+          npm install --no-save playwright@1.48.2
+          npx playwright install --with-deps chromium || npx playwright install chromium
+      - name: Response headers for the viewer files
+        run: for f in severe.html assets/severe-conus.js assets/severe-research.js assets/severe-conus/index.json; do echo "== $f"; curl -sSI "${BASE}$f" | grep -iE '^(HTTP|content-type|location|x-content-type)'; done
+      - name: Hosted CONUS / Regional check (desktop and phone)
+        run: mkdir -p out && node tools/conus-preview-host-check.js "$BASE" out
+      - name: Hosted readability checks (reports, county lines, layers, saved forecast, phone)
+        run: node tools/conus-preview-readability-check.js "$BASE" out/readability
+      - name: Mobile memory budget (iPhone 13 emulation in Chromium; first draw, Whole CONUS, all cases)
+        run: node tools/conus-preview-memory-check.js "$BASE" 1500
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: conus-preview-host, path: out, retention-days: 30 }
+  cloudflare:
+    # The direct Cloudflare Pages branch preview (project forecast-ops-beta builds this branch on its own).
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      BASE: https://claude-severe-conus-preview.forecast-ops-beta.pages.dev/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: Wait until the Cloudflare branch preview serves this commit
+        run: |
+          echo "Cloudflare preview: ${BASE}severe.html#severe-conus  (commit $GITHUB_SHA)"
+          FILES="severe.html assets/severe-conus.js assets/severe-research.css assets/severe-conus-land.json $(ls assets/severe-conus-display/*.json) assets/severe-conus/index.json"
+          for i in $(seq 1 50); do stale=""
+            for f in $FILES; do [ "$(curl -fsSL "${BASE}$f" | sha256sum | cut -c1-16)" = "$(sha256sum "$f" | cut -c1-16)" ] || stale="$stale $f"; done
+            if [ -z "$stale" ]; then echo "Cloudflare serves commit $GITHUB_SHA"; exit 0; fi
+            echo "waiting for:$stale"; sleep 30; done
+          echo "::error::Cloudflare branch preview still stale after 25 minutes:$stale"; exit 1
+      - run: |
+          npm install --no-save playwright@1.48.2
+          npx playwright install --with-deps chromium || npx playwright install chromium
+      - name: Mobile memory budget on Cloudflare (iPhone 13 emulation in Chromium)
+        run: node tools/conus-preview-memory-check.js "$BASE" 1500
+      - name: Readability checks on Cloudflare
+        run: mkdir -p out && node tools/conus-preview-readability-check.js "$BASE" out/readability

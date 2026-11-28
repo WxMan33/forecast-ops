@@ -1,0 +1,292 @@
+{
+ "schema_version": 1,
+ "status": "research_preview",
+ "operational_forecast_eligible": false,
+ "product": {
+  "day": 2,
+  "hazard": "wind",
+  "definition": "Probability of a thunderstorm wind report of at least 50 kt within 25 miles of the sampled grid center during the 24-hour valid window (12Z-12Z)",
+  "cycle": "12Z HRRR, forecast hours 24-48"
+ },
+ "available": {
+  "day2": [
+   "wind"
+  ]
+ },
+ "unavailable_note": "Only Day 2 damaging wind has a national candidate. Day 1 and tornado/hail stay Regional.",
+ "model": {
+  "name": "CONUS boosted-tree candidate (frozen research model, not operational)",
+  "file": "research/severe/conus-v1/frozen/models.pkl",
+  "sha256": "a9ff6aa76b946c92a16d2148e3cdb1fb8920e6dd904789058edfddbde0af8d7a",
+  "feature_schema": "hrrr-daily-25mi-v2-future-window",
+  "product": "day2_wind"
+ },
+ "coverage": {
+  "samples": 40311,
+  "supported": 38838,
+  "outside": 1473,
+  "rule": "Supported = sample within 25 miles of US land (the verified coverage mask). Samples beyond it, and everywhere off the grid, are outside coverage."
+ },
+ "grid": {
+  "file": "grid.json",
+  "sha256": "7b5a5c8e0be666329be30cf2c79968fae0d553fba9bd2b29b2c67ecad47e9673"
+ },
+ "cases": [
+  {
+   "id": "current-2026-11-28",
+   "file": "current-2026-11-28.json",
+   "sha256": "3f0557efa85a058935a30df85115f96dfe74f0651388824d90f94797081f9bc7",
+   "kind": "current",
+   "label": "Current run \u00b7 2026-11-28 12Z",
+   "description": "Current research run from today's audited HRRR inputs (no observed reports yet)",
+   "issue_date": "2026-11-28",
+   "model_init_time": "2026-11-28T12:00:00+00:00",
+   "valid_start": "2026-11-29T12:00:00+00:00",
+   "valid_end": "2026-11-30T12:00:00+00:00",
+   "report_points": null,
+   "reports": {
+    "status": "not_applicable",
+    "note": "Saved forecast: its valid window has no verified reports in this preview."
+   }
+  },
+  {
+   "id": "replay-2024-05-25",
+   "file": "replay-2024-05-25.json",
+   "sha256": "96ba9e2e864e28ca9ca99f70142601cdb8b038fc36b79b6885a35a46ec06e715",
+   "kind": "replay",
+   "case_type": "active",
+   "label": "Active \u00b7 May 25, 2024",
+   "description": "Active wind case from the Day 2 benchmark (Ohio Valley to Mid-Atlantic)",
+   "issue_date": "2024-05-25",
+   "model_init_time": "2024-05-25T12:00:00+00:00",
+   "valid_start": "2024-05-26T12:00:00+00:00",
+   "valid_end": "2024-05-27T12:00:00+00:00",
+   "report_points": 3455,
+   "reports": {
+    "status": "available",
+    "file": "reports-2024-05-25.json",
+    "sha256": "30d05a31509c82620ddbec41d0c1bbe082b882b80da0f03bca353445ac006a41",
+    "count": 776,
+    "uncertain": 0
+   }
+  },
+  {
+   "id": "replay-2024-09-27",
+   "file": "replay-2024-09-27.json",
+   "sha256": "276e2224f8fbb2d4c2dd4938248f77d864ac4823f80ff4b7651cc68c2c999129",
+   "kind": "replay",
+   "case_type": "quiet",
+   "label": "Quiet \u00b7 Sep 27, 2024",
+   "description": "Quiet case: the warm-season (May-Sep) benchmark day with the fewest wind report points",
+   "issue_date": "2024-09-27",
+   "model_init_time": "2024-09-27T12:00:00+00:00",
+   "valid_start": "2024-09-28T12:00:00+00:00",
+   "valid_end": "2024-09-29T12:00:00+00:00",
+   "report_points": 0,
+   "reports": {
+    "status": "available",
+    "file": "reports-2024-09-27.json",
+    "sha256": "6f77a0497fec47489c6077b261ffec26fdbe5211d5d1dc0fcd6674b14ed072ce",
+    "count": 0,
+    "uncertain": 0
+   }
+  },
+  {
+   "id": "replay-2024-05-14",
+   "file": "replay-2024-05-14.json",
+   "sha256": "d32d239e6912fa68f363b0b9ffb94b3c5015915e490896b4becba5da316df16b",
+   "kind": "replay",
+   "case_type": "weakness",
+   "label": "Florida/Gulf weakness \u00b7 May 14, 2024",
+   "description": "Florida/Gulf weakness: the benchmark day with the largest Florida/Gulf area at 5%+ and no Florida/Gulf report",
+   "issue_date": "2024-05-14",
+   "model_init_time": "2024-05-14T12:00:00+00:00",
+   "valid_start": "2024-05-15T12:00:00+00:00",
+   "valid_end": "2024-05-16T12:00:00+00:00",
+   "report_points": 466,
+   "reports": {
+    "status": "available",
+    "file": "reports-2024-05-14.json",
+    "sha256": "6d1cb70abc3b4c5cf221efe8e5170df6f81ef676e7212337745182ed78acb2c7",
+    "count": 36,
+    "uncertain": 0
+   }
+  }
+ ],
+ "current_run": {
+  "status": "available"
+ },
+ "benchmark": {
+  "source": "NadoCast Day 2 wind benchmark, score run 45046549803 (213 fresh 2024 days)",
+  "regions": {
+   "conus": {
+    "report_points": 97796,
+    "report_days": 157,
+    "candidate": {
+     "brier": 0.010505863204377878,
+     "bss": 0.1006849651806554,
+     "pod_5pct": 0.710110842979263,
+     "false_alarm_km2_per_day_5pct": 536658.8028169014,
+     "hits_at_nadocast_5pct_area": 60803
+    },
+    "nadocast": {
+     "brier": 0.009294508689458325,
+     "bss": 0.20437842725709765,
+     "pod_5pct": 0.8066894351507219,
+     "false_alarm_km2_per_day_5pct": 397195.77464788733,
+     "hits_at_nadocast_5pct_area": 78891
+    },
+    "candidate_minus_nadocast_brier_95": [
+     0.0008713854537256238,
+     0.0016272321743408722
+    ]
+   },
+   "original_box": {
+    "report_points": 67689,
+    "report_days": 131,
+    "candidate": {
+     "brier": 0.018196894043474215,
+     "bss": 0.12592859611558993,
+     "pod_5pct": 0.7918716482737225,
+     "false_alarm_km2_per_day_5pct": 342527.11267605633,
+     "hits_at_nadocast_5pct_area": 48310
+    },
+    "nadocast": {
+     "brier": 0.015925626627136296,
+     "bss": 0.23502687928701693,
+     "pod_5pct": 0.8750166201303018,
+     "false_alarm_km2_per_day_5pct": 266102.11267605633,
+     "hits_at_nadocast_5pct_area": 59229
+    },
+    "candidate_minus_nadocast_brier_95": [
+     0.0014710764684841735,
+     0.0032421217305733238
+    ]
+   },
+   "west": {
+    "report_points": 11249,
+    "report_days": 83,
+    "candidate": {
+     "brier": 0.003554914163338263,
+     "bss": 0.020874077803959667,
+     "pod_5pct": 0.2824251044537292,
+     "false_alarm_km2_per_day_5pct": 50416.90140845071,
+     "hits_at_nadocast_5pct_area": 2897
+    },
+    "nadocast": {
+     "brier": 0.003404667669141513,
+     "bss": 0.06225629701596169,
+     "pod_5pct": 0.42590452484665303,
+     "false_alarm_km2_per_day_5pct": 43470.42253521127,
+     "hits_at_nadocast_5pct_area": 4791
+    },
+    "candidate_minus_nadocast_brier_95": [
+     6.701266812821381e-05,
+     0.0002466601580059986
+    ]
+   },
+   "plains_outside_box": {
+    "report_points": 14167,
+    "report_days": 94,
+    "candidate": {
+     "brier": 0.010468364889868619,
+     "bss": 0.021775791049738036,
+     "pod_5pct": 0.673819439542599,
+     "false_alarm_km2_per_day_5pct": 111071.8309859155,
+     "hits_at_nadocast_5pct_area": 6757
+    },
+    "nadocast": {
+     "brier": 0.009011611685888397,
+     "bss": 0.1579031868361106,
+     "pod_5pct": 0.786969718359568,
+     "false_alarm_km2_per_day_5pct": 64572.887323943665,
+     "hits_at_nadocast_5pct_area": 11149
+    },
+    "candidate_minus_nadocast_brier_95": [
+     0.001049098794896213,
+     0.001931781482717301
+    ]
+   },
+   "florida_gulf_south": {
+    "report_points": 906,
+    "report_days": 33,
+    "candidate": {
+     "brier": 0.004667058590828038,
+     "bss": -0.09313176115563615,
+     "pod_5pct": 0.5662251655629139,
+     "false_alarm_km2_per_day_5pct": 13953.169014084508,
+     "hits_at_nadocast_5pct_area": 323
+    },
+    "nadocast": {
+     "brier": 0.004508803963921863,
+     "bss": -0.05606491152127524,
+     "pod_5pct": 0.4922737306843267,
+     "false_alarm_km2_per_day_5pct": 5620.774647887324,
+     "hits_at_nadocast_5pct_area": 446
+    },
+    "candidate_minus_nadocast_brier_95": [
+     -0.0005437346069858148,
+     0.0006845829469360101
+    ]
+   },
+   "northeast_outside_box": {
+    "report_points": 3785,
+    "report_days": 29,
+    "candidate": {
+     "brier": 0.006911486837902066,
+     "bss": 0.11207949669728945,
+     "pod_5pct": 0.6892998678996037,
+     "false_alarm_km2_per_day_5pct": 18689.788732394365,
+     "hits_at_nadocast_5pct_area": 2545
+    },
+    "nadocast": {
+     "brier": 0.00610653243525201,
+     "bss": 0.21549219719137347,
+     "pod_5pct": 0.8655217965653897,
+     "false_alarm_km2_per_day_5pct": 17429.577464788734,
+     "hits_at_nadocast_5pct_area": 3276
+    },
+    "candidate_minus_nadocast_brier_95": [
+     -6.674762708813611e-05,
+     0.0018457606548427478
+    ]
+   }
+  },
+  "regional_box_vs_live_v07": {
+   "candidate_minus_live_brier": -0.0009088442516698193,
+   "candidate_minus_live_brier_95": [
+    -0.0014055298699826638,
+    -0.0004732713495319128
+   ]
+  }
+ },
+ "checks": {
+  "reproduction": {
+   "archived_source": "research/severe/conus-v1/study/scorecard.json (CONUS study run 44589486745)",
+   "cases": [
+    "2024-01-15",
+    "2024-02-15",
+    "2024-03-15",
+    "2024-04-15",
+    "2024-05-15",
+    "2024-06-15",
+    "2024-07-15",
+    "2024-08-15",
+    "2024-09-15",
+    "2024-10-15",
+    "2024-11-15",
+    "2024-12-15"
+   ],
+   "archived_brier": 0.011891122250193942,
+   "recomputed_brier": 0.011891122250193942,
+   "abs_difference": 0.0,
+   "passes": true
+  }
+ },
+ "built_at": "2026-11-28T15:21:56.921613+00:00",
+ "protected_2025_outcomes_accessed": false,
+ "reports_source": {
+  "file": "StormEvents_details-ftp_v1.0_d2024_c20260728.csv.gz",
+  "sha256": "2070b83eccab041b36360ab73645b9a249c3eefc5b92b5b3fc0cbba4d9fcc09c"
+ }
+}
