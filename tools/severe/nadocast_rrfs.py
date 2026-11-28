@@ -106,7 +106,10 @@ def compare(a):
     pdates = z["dates"].tolist()
     off = z["offsets"]
     thr = json.loads(Path(a.thresholds).read_text())
-    Y, D, R, Pm, B_ = [], [], [], {k: [] for k in ARMS}, []
+    ours = tuple(k for k in ("hrrr", "hrrr_rrfs", "hrrr_rrfs_smooth") if k in z.files)
+    arms = ours + ("nadocast",)
+    Y, D, R, Pm, B_ = [], [], [], {k: [] for k in arms}, []
+    keep_rows = {}
     nn = km_max = None
     for j, d in enumerate(dates):
         i = pdates.index(d)
@@ -129,7 +132,10 @@ def compare(a):
         elif not (np.array_equal(glat, grid_ref[0]) and np.array_equal(glon, grid_ref[1])):
             raise ValueError(f"{d}: NadoCast grid changed")
         Y.append(y); D.append(np.full(len(y), j)); R.append(reg_all[posk[rows]]); B_.append(np.full(len(y), block_of(d)))
-        Pm["hrrr"].append(z["hrrr"][sl]); Pm["hrrr_rrfs"].append(z["hrrr_rrfs"][sl]); Pm["nadocast"].append(g[nn[rows]])
+        for k in ours:
+            Pm[k].append(z[k][sl])
+        Pm["nadocast"].append(g[nn[rows]])
+        keep_rows[d] = rows
     y = np.concatenate(Y).astype(float); dd = np.concatenate(D); rr = np.concatenate(R); bb = np.concatenate(B_)
     P = {k: np.concatenate(v).astype(float) for k, v in Pm.items()}
     rng = np.random.default_rng(SEED)
@@ -143,7 +149,7 @@ def compare(a):
             nd = len(sel)
             remap = np.full(len(dates), -1); remap[sel] = np.arange(nd)
             di = remap[ds]
-            p = {k: P[k][s] for k in ARMS}
+            p = {k: P[k][s] for k in arms}
             out = {"dates": nd, "rows": int(len(ys)), "event_rows": int(ys.sum()), "report_days": int(len(np.unique(di[ys == 1]))),
                    "base_rate": float(ys.mean()) if len(ys) else None, "arms": {}}
             if len(ys) == 0 or ys.sum() == 0:
@@ -154,7 +160,7 @@ def compare(a):
             n_d, e_d = pdsum(np.ones(len(ys))), pdsum(ys)
             ref_fa = int(((p["nadocast"] >= REF_T) & (ys == 0)).sum())
             sse, hit_eq, hit_dep = {}, {}, {}
-            for k in ARMS:
+            for k in arms:
                 sse[k] = pdsum((p[k] - ys) ** 2)
                 t_eq = REF_T if k == "nadocast" else equal_area_threshold(p[k], ys, ref_fa)
                 he = (p[k] >= t_eq) if k == "nadocast" else (p[k] > t_eq)
@@ -182,11 +188,27 @@ def compare(a):
                 bt = (num_a[idx].sum(1) - num_b[idx].sum(1)) / den[idx].sum(1)
                 return {"estimate": float(pt), "ci95": [float(np.nanpercentile(bt, 2.5)), float(np.nanpercentile(bt, 97.5))]}
             out["paired"] = {}
-            for x_, y_ in (("hrrr_rrfs", "nadocast"), ("hrrr", "nadocast"), ("hrrr_rrfs", "hrrr")):
+            pairs = (("hrrr_rrfs", "nadocast"), ("hrrr", "nadocast"), ("hrrr_rrfs", "hrrr"))
+            if "hrrr_rrfs_smooth" in arms:
+                pairs = (("hrrr_rrfs_smooth", "hrrr_rrfs"), ("hrrr_rrfs_smooth", "nadocast")) + pairs
+            for x_, y_ in pairs:
                 out["paired"][f"{x_}_minus_{y_}"] = {"brier": ci(sse[x_], sse[y_], n_d),
                                                      "equal_area_hit_fraction": ci(hit_eq[x_], hit_eq[y_], e_d),
                                                      "training_threshold_hit_fraction": ci(hit_dep[x_], hit_dep[y_], e_d)}
+            if "hrrr_rrfs_smooth" in arms:
+                # report points recovered / lost by smoothing at the equal-area thresholds, incl. NadoCast-only points
+                fe = {k: (p[k] >= REF_T) if k == "nadocast" else (p[k] > out["arms"][k]["equal_area_vs_nadocast_5pct"]["threshold"]) for k in arms}
+                yy = ys == 1
+                out["smoothing_recovery_equal_area"] = {
+                    "recovered": int((yy & fe["hrrr_rrfs_smooth"] & ~fe["hrrr_rrfs"]).sum()),
+                    "lost": int((yy & fe["hrrr_rrfs"] & ~fe["hrrr_rrfs_smooth"]).sum()),
+                    "nadocast_only_for_blend": int((yy & fe["nadocast"] & ~fe["hrrr_rrfs"]).sum()),
+                    "of_which_caught_after_smoothing": int((yy & fe["nadocast"] & ~fe["hrrr_rrfs"] & fe["hrrr_rrfs_smooth"]).sum())}
+                if sc == "may2024" and region == "national":
+                    may_thr = {k: out["arms"][k]["equal_area_vs_nadocast_5pct"]["threshold"] for k in arms}
             res.setdefault(sc, {})[region] = out
+    if "hrrr_rrfs_smooth" in arms and getattr(a, "map_dates", None):
+        draw_smooth_maps(Path(a.output), a.map_dates, dates, Y, Pm, keep_rows, coords, may_thr)
     card = {"rules": "research/severe/conus-v1/rrfs/retro/NADOCAST.md", "matched_dates": len(dates), "excluded": ros["excluded"],
             "max_nearest_nadocast_km": km_max, "predictions_fingerprint_check": json.loads(Path(a.fingerprint_check).read_text()),
             "results": res}
@@ -312,6 +334,29 @@ def draw_maps(outd, maps, dates, tm, per):
         plt.close(fig)
 
 
+def draw_smooth_maps(outd, map_dates, dates, Y, Pm, keep_rows, coords, thr):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    outd.mkdir(parents=True, exist_ok=True)
+    for d in map_dates:
+        j = dates.index(d)
+        xy, y = coords[keep_rows[d]], Y[j].astype(bool)
+        fig, ax = plt.subplots(1, 3, figsize=(19, 5), constrained_layout=True)
+        for k, (arm, name) in enumerate((("nadocast", "NadoCast"), ("hrrr_rrfs", "HRRR + 12Z RRFS"), ("hrrr_rrfs_smooth", "HRRR + 12Z RRFS, smoothed"))):
+            p, t = Pm[arm][j], thr[arm]
+            f = p >= t if arm == "nadocast" else p > t
+            sc = ax[k].scatter(xy[:, 0], xy[:, 1], c=p, s=4, cmap="viridis", vmin=0, vmax=0.3)
+            ax[k].scatter(xy[f, 0], xy[f, 1], s=4, facecolors="none", edgecolors="orange", linewidths=0.4)
+            ax[k].scatter(xy[y, 0], xy[y, 1], s=3, c="red")
+            ax[k].set_title(f"{name}: {int((f & y).sum())} of {int(y.sum())} report pts, {int((f & ~y).sum())} false-alarm pts (flag {t:.1%})", fontsize=9)
+            ax[k].set_xlim(-125, -66); ax[k].set_ylim(24, 50)
+        fig.colorbar(sc, ax=ax, shrink=0.7, label="probability")
+        fig.suptitle(f"Issue {d}: May equal-area thresholds; flagged = orange, reports = red")
+        fig.savefig(outd / f"smooth-map-{d}.png", dpi=90)
+        plt.close(fig)
+
+
 def render(c):
     L = [f"# NadoCast vs HRRR + 12Z RRFS (retrospective pilot, Day 2 damaging wind)", "",
          f"Matched dates: {c['matched_dates']}; excluded: {len(c['excluded'])}. Rules: `{c['rules']}`.", "",
@@ -333,6 +378,20 @@ def render(c):
                      f"({A['nadocast']['training_set_threshold']['false_alarm_km2_per_day']:,.0f} → {A['hrrr_rrfs']['training_set_threshold']['false_alarm_km2_per_day']:,.0f}) | "
                      f"{b['estimate']:+.6f} [{b['ci95'][0]:+.6f}, {b['ci95'][1]:+.6f}] |")
     L.append("")
+    if any("smoothing_recovery_equal_area" in r for by in c["results"].values() for r in by.values()):
+        L += ["## Smoothed minus unsmoothed blend", "", "| Scope | Region | Hits at NadoCast 5% area | Recovered / lost report points | NadoCast-only points now caught | "
+              "Hits at training-set threshold (FA km²/day before → after) | Brier |", "|---|---|---|---|---|---|---|"]
+        for sc, by in c["results"].items():
+            for region, r in by.items():
+                if "smoothing_recovery_equal_area" not in r:
+                    continue
+                v, q, A = r["paired"]["hrrr_rrfs_smooth_minus_hrrr_rrfs"], r["smoothing_recovery_equal_area"], r["arms"]
+                e, t, b = v["equal_area_hit_fraction"], v["training_threshold_hit_fraction"], v["brier"]
+                L.append(f"| {sc} | {region} | {100*e['estimate']:+.1f} [{100*e['ci95'][0]:+.1f}, {100*e['ci95'][1]:+.1f}] | {q['recovered']} / {q['lost']} | "
+                         f"{q['of_which_caught_after_smoothing']} of {q['nadocast_only_for_blend']} | {100*t['estimate']:+.1f} [{100*t['ci95'][0]:+.1f}, {100*t['ci95'][1]:+.1f}] "
+                         f"({A['hrrr_rrfs']['training_set_threshold']['false_alarm_km2_per_day']:,.0f} → {A['hrrr_rrfs_smooth']['training_set_threshold']['false_alarm_km2_per_day']:,.0f}) | "
+                         f"{b['estimate']:+.6f} [{b['ci95'][0]:+.6f}, {b['ci95'][1]:+.6f}] |")
+        L.append("")
     for sc, by in c["results"].items():
         for region, r in by.items():
             if "arms" not in r or not r["arms"]:
@@ -351,6 +410,7 @@ def main():
     c = sub.add_parser("compare")
     for k in ("--roster", "--predictions", "--thresholds", "--fingerprint-check", "--output"):
         c.add_argument(k, required=True)
+    c.add_argument("--map-dates", nargs="*", default=None)
     c.add_argument("--cache", type=Path, required=True)
     g = sub.add_parser("diagnose")
     for k in ("--roster", "--predictions", "--scorecard", "--output"):

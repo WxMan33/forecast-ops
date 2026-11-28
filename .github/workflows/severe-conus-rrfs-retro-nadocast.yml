@@ -37,7 +37,7 @@ jobs:
         run: |
           PYTHONPATH=tools/severe python3 tools/severe/nadocast_rrfs.py inventory --cache tests/out/nccache --output tests/out/nc
       - uses: actions/download-artifact@v4
-        if: steps.req.outputs.stage == 'compare' || steps.req.outputs.stage == 'diagnose'
+        if: steps.req.outputs.stage == 'compare' || steps.req.outputs.stage == 'diagnose' || steps.req.outputs.stage == 'smooth'
         with: { name: rrfs-retro-cache, path: tests/out/cache, run-id: '${{ steps.req.outputs.run }}', github-token: '${{ github.token }}' }
       - name: Stage 2 - pinned predictions (fingerprint gate), then the NadoCast comparison
         if: steps.req.outputs.stage == 'compare'
@@ -56,6 +56,18 @@ jobs:
           PYTHONPATH=tools/severe python3 tools/severe/nadocast_rrfs.py diagnose --roster research/severe/conus-v1/rrfs/retro/nadocast/nadocast-roster.json \
             --predictions tests/out/pred/pred.npz --scorecard research/severe/conus-v1/rrfs/retro/nadocast/scorecard.json \
             --cache tests/out/nccache --output tests/out/nc/may-diagnosis
+      - name: Smoothing test (pinned predictions behind the fingerprint gate; radius chosen on training blocks)
+        if: steps.req.outputs.stage == 'smooth'
+        run: |
+          PYTHONPATH=tools/severe python3 tools/severe/conus_rrfs_pilot.py score --cache tests/out/cache --cycle 12 --experiment smooth \
+            --expect-fingerprints "${{ steps.req.outputs.ref }}" --save-predictions tests/out/sm/pred.npz --output tests/out/sm
+          PYTHONPATH=tools/severe python3 tools/severe/nadocast_rrfs.py compare --roster research/severe/conus-v1/rrfs/retro/nadocast/nadocast-roster.json \
+            --predictions tests/out/sm/pred.npz --thresholds tests/out/sm/pred.thresholds.json \
+            --fingerprint-check tests/out/sm/pred.fingerprint-check.json --cache tests/out/nccache --output tests/out/smnc \
+            --map-dates 2024-05-16 2024-05-24 2024-05-30
+          mkdir -p research/severe/conus-v1/rrfs/retro/smoothing/nadocast
+          cp tests/out/sm/scorecard.json tests/out/sm/scorecard.md research/severe/conus-v1/rrfs/retro/smoothing/
+          cp tests/out/smnc/* research/severe/conus-v1/rrfs/retro/smoothing/nadocast/
       - name: Commit
         if: always()
         env:
@@ -68,6 +80,7 @@ jobs:
           echo "run_id: $GITHUB_RUN_ID (stage ${{ steps.req.outputs.stage }})" > "$DEST/run-${{ steps.req.outputs.stage }}.txt"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          [ -d research/severe/conus-v1/rrfs/retro/smoothing ] && git add research/severe/conus-v1/rrfs/retro/smoothing
           git add "$DEST"
           git commit -m "Retrospective RRFS pilot: NadoCast ${{ steps.req.outputs.stage }} (run $GITHUB_RUN_ID)" || exit 0
           for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done

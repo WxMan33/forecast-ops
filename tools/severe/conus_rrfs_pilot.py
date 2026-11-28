@@ -154,6 +154,8 @@ for _g, _fs in GROUPS.items():
     RRFS_COLS[f"rrfs_no_{_g}"] = np.array([3 * i + j for i, f in enumerate(FIELDS) if f not in _fs for j in range(3)])
 ABL_ARMS = ("hrrr", "hrrr_rrfs") + tuple(f"hrrr_rrfs_no_{g}" for g in GROUPS)
 BLEND_REF = "hrrr_rrfs"
+SMOOTH_ARMS = ("hrrr", "hrrr_rrfs", "hrrr_rrfs_smooth")
+SMOOTH_PAIRS = (("hrrr_rrfs_smooth", "hrrr_rrfs"), ("hrrr_rrfs_smooth", "hrrr"), ("hrrr_rrfs", "hrrr"))
 TWO_ARMS = ("hrrr", "hrrr_rrfs", "hrrr_rrfs_2cyc")
 TWO_PAIRS = (("hrrr_rrfs_2cyc", "hrrr_rrfs"), ("hrrr_rrfs_2cyc", "hrrr"), ("hrrr_rrfs", "hrrr"))
 FLCAL_ARMS = ("hrrr", "hrrr_rrfs", "hrrr_rrfs_flcal")
@@ -217,7 +219,7 @@ def run_comparison(D, names, arms=("hrrr", "rrfs", "hrrr_rrfs"), log=print):
         y = np.concatenate([D[d][2] for d in train])
         thr[blk] = {}
         for arm in arms:
-            if arm == "hrrr_rrfs_flcal":
+            if arm in ("hrrr_rrfs_flcal", "hrrr_rrfs_smooth"):
                 continue  # derived below from the unchanged hrrr_rrfs model
             m = fit_arm(arm, xh, xr, y, names)
             ptr = predict(m, arm, xh, xr, names)
@@ -250,6 +252,29 @@ def run_comparison(D, names, arms=("hrrr", "rrfs", "hrrr_rrfs"), log=print):
             for d in test:
                 f = reg_all[pos[D[d][3]]] == fl_id
                 P["hrrr_rrfs_flcal"][d] = np.where(f, apply_logit_adjust(P["hrrr_rrfs"][d], cal), P["hrrr_rrfs"][d])
+        if "hrrr_rrfs_smooth" in arms:
+            # radius chosen on out-of-fold predictions inside the training blocks only (Brier, ties -> smaller radius)
+            ck = np.asarray(fitted["coords"])[kidx]
+            tblocks = sorted({block_of(d) for d in train})
+            bs = {r: 0.0 for r in SMOOTH_RADII_KM}
+            n_oof = 0
+            for tb in tblocks:
+                inner_fit = [d for d in train if block_of(d) != tb]
+                mi = fit_arm("hrrr_rrfs", np.concatenate([D[d][0] for d in inner_fit]), np.concatenate([D[d][1] for d in inner_fit]),
+                             np.concatenate([D[d][2] for d in inner_fit]), names)
+                for d in [d for d in train if block_of(d) == tb]:
+                    po = predict(mi, "hrrr_rrfs", D[d][0], D[d][1], names)
+                    for r in SMOOTH_RADII_KM:
+                        bs[r] += float(((smooth_date(po, pos[D[d][3]], r, ck) - D[d][2]) ** 2).sum())
+                    n_oof += len(po)
+            best = min(SMOOTH_RADII_KM, key=lambda r: (round(bs[r] / n_oof, 12), r))
+            SMOOTHING[blk] = {"radius_km": best, "oof_brier_by_radius": {str(r): bs[r] / n_oof for r in SMOOTH_RADII_KM}, "oof_rows": n_oof}
+            log(f"{blk}: smoothing radius {best} km (out-of-fold Brier by radius: " + ", ".join(f"{r}: {bs[r]/n_oof:.6f}" for r in SMOOTH_RADII_KM) + ")")
+            lens = np.cumsum([0] + [len(D[d][2]) for d in train])
+            thr[blk]["hrrr_rrfs_smooth"] = np.concatenate([smooth_date(thr[blk]["hrrr_rrfs"][lens[i]:lens[i + 1]], pos[D[d][3]], best, ck)
+                                                           for i, d in enumerate(train)])
+            for d in test:
+                P["hrrr_rrfs_smooth"][d] = smooth_date(P["hrrr_rrfs"][d], pos[D[d][3]], best, ck)
         # deployable thresholds: each arm matches, on its own training predictions, the training false-alarm
         # fraction of the HRRR arm at FA_REF
         frac = float(((thr[blk]["hrrr"] >= FA_REF) & (y == 0)).sum() / (y == 0).sum())
@@ -262,6 +287,33 @@ def run_comparison(D, names, arms=("hrrr", "rrfs", "hrrr_rrfs"), log=print):
 
 FINGERPRINTS = {}
 CALIBRATIONS = {}
+SMOOTHING = {}
+SMOOTH_RADII_KM = (0, 25, 50, 75, 100)  # 0 = no smoothing; chosen per fold on training blocks only
+_ADJ = {}
+
+
+def adjacency(r_km, coords_keep):
+    """0/1 neighbour matrix over the supported samples within r_km (great-circle), self included."""
+    from scipy.sparse import csr_matrix
+    from scipy.spatial import cKDTree
+    if r_km not in _ADJ:
+        lon, lat = np.radians(coords_keep[:, 0]), np.radians(coords_keep[:, 1])
+        xyz = np.column_stack((np.cos(lat) * np.cos(lon), np.cos(lat) * np.sin(lon), np.sin(lat)))
+        nb = cKDTree(xyz).query_ball_point(xyz, 2 * np.sin(r_km / 6371.0088 / 2))
+        rows = np.repeat(np.arange(len(nb)), [len(x) for x in nb])
+        _ADJ[r_km] = csr_matrix((np.ones(len(rows)), (rows, np.concatenate(nb))), shape=(len(nb), len(nb)))
+    return _ADJ[r_km]
+
+
+def smooth_date(p, keep_pos, r_km, coords_keep):
+    """Neighbourhood mean of one date's probabilities over the supported samples that have a prediction
+    (coastal/edge cells average only over available neighbours; nothing outside the supported set counts as zero)."""
+    if r_km == 0:
+        return p
+    A = adjacency(r_km, coords_keep)
+    full = np.zeros(A.shape[0]); have = np.zeros(A.shape[0])
+    full[keep_pos] = p; have[keep_pos] = 1.0
+    return (A @ full)[keep_pos] / (A @ have)[keep_pos]
 B_MIN = 1e-3  # strictly positive slope (lower bound); whether it binds is reported
 
 
@@ -425,6 +477,8 @@ def score(a):
         arms, pairs = ABL_ARMS, ABL_PAIRS
     elif a.experiment == "flcal":
         arms, pairs = FLCAL_ARMS, FLCAL_PAIRS
+    elif a.experiment == "smooth":
+        arms, pairs = SMOOTH_ARMS, SMOOTH_PAIRS
     elif a.experiment == "twocycle":
         if a.cycle != 6:
             raise SystemExit("twocycle needs --cycle 6 (loads the matched 12Z + 06Z roster)")
@@ -462,7 +516,7 @@ def score(a):
     dropped = [r for r in man["dates"] if r["status"] != "ok"]
     if a.cycle == 6:
         dropped += [{"date": r["date"], "status": "dropped", "reason": f"06Z {r['rrfs']['06z']}"} for r in man["dates"] if r["status"] == "ok" and r["rrfs"]["06z"] != "ok"]
-    out = {"rules": "research/severe/conus-v1/rrfs/retro/" + ("TWO-CYCLE.md" if a.experiment == "twocycle" else "FL-RECAL.md" if a.experiment == "flcal" else "ABLATION.md" if a.experiment == "ablation" else "RULES.md" if a.cycle == 12 else "FOLLOWUP-06Z.md"),
+    out = {"rules": "research/severe/conus-v1/rrfs/retro/" + ("SMOOTHING.md" if a.experiment == "smooth" else "TWO-CYCLE.md" if a.experiment == "twocycle" else "FL-RECAL.md" if a.experiment == "flcal" else "ABLATION.md" if a.experiment == "ablation" else "RULES.md" if a.cycle == 12 else "FOLLOWUP-06Z.md"),
            "experiment": a.experiment, "groups": GROUPS if a.experiment == "ablation" else None, "rrfs_cycle": f"{a.cycle:02d}z", "arms": list(arms),
            "recipe": {"model": "sklearn LogisticRegression (L2, lbfgs)", "C": C_REG, "scaling": "asinh(x / training median |x|) per source, then StandardScaler, fit on training blocks only",
                       "hrrr_predictors": "phase2_study.engineer on the cached HRRR raw predictors", "rrfs_predictors": "27 per cycle = 9 fields x (nbhdmax24, nbhdmax18, mean24)"},
@@ -471,7 +525,7 @@ def score(a):
            "fingerprints": {"predictions": {arm: sha(np.concatenate([P[arm][d] for d in sorted(P[arm])]).tobytes()) for arm in arms},
                             "coefficients": FINGERPRINTS.get("coefficients", {})},
            "run_environment": run_environment(), "fingerprint_check": check,
-           "florida_gulf_adjustment": CALIBRATIONS or None}
+           "florida_gulf_adjustment": CALIBRATIONS or None, "smoothing": SMOOTHING or None}
     Path(a.output).mkdir(parents=True, exist_ok=True)
     (Path(a.output) / "scorecard.json").write_text(json.dumps(out, indent=1) + "\n")
     (Path(a.output) / "scorecard.md").write_text(render(out) + "\n")
@@ -551,7 +605,7 @@ def main():
     s = sub.add_parser("score")
     s.add_argument("--cache", required=True)
     s.add_argument("--cycle", type=int, default=12, choices=[12, 6])
-    s.add_argument("--experiment", default="first", choices=["first", "ablation", "flcal", "twocycle"])
+    s.add_argument("--experiment", default="first", choices=["first", "ablation", "flcal", "twocycle", "smooth"])
     s.add_argument("--save-predictions", help="write held-out predictions (npz) after the fingerprint gate")
     s.add_argument("--expect-fingerprints", help="scorecard whose hrrr / hrrr_rrfs fingerprints must be reproduced first")
     s.add_argument("--output", required=True)
