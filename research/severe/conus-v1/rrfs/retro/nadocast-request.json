@@ -1,0 +1,9 @@
+{
+ "request": 6,
+ "stage": "tree",
+ "purpose": "Tree model (fixed GBT recipe, weighted sampling, training-only calibration) vs the logistic and 100 km smoothed logistic blends",
+ "rules": "research/severe/conus-v1/rrfs/retro/TREE.md",
+ "cache_run": 46035459501,
+ "expect_fingerprints": "research/severe/conus-v1/rrfs/retro/repro/scorecard-pinned-1.json",
+ "roster": "research/severe/conus-v1/rrfs/retro/nadocast/nadocast-roster.json (committed by the stage-1 run before this request)"
+}

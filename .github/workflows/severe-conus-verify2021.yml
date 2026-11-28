@@ -1,0 +1,184 @@
+name: Severe CONUS Day 2 wind 728-date freeze and one-time 2021 verification (research)
+# stage "freeze": fit the 728-date candidate on 2022-23 development dates only and commit it with its hash.
+# stage "verify": pin the 2021 Storm Events file, extract the 96 sealed 2021 dates, score once
+# (research/severe/conus-v1/verify2021-rule.md). Never touches the live feed, publisher, registry or collector.
+# 2025 is never loaded.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-v1/verify2021-request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-verify2021
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      stage: ${{ steps.r.outputs.stage }}
+      batches: ${{ steps.r.outputs.batches }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: r
+        run: |
+          echo "stage=$(jq -r .stage research/severe/conus-v1/verify2021-request.json)" >> "$GITHUB_OUTPUT"
+          python3 - >> "$GITHUB_OUTPUT" <<'PY'
+          import json
+          c = json.load(open("research/severe/conus-v1/twostage-verification-2021.json"))["cases"]
+          assert len(c) == 96 and all(x.startswith("2021") for x in c)
+          print("batches=" + json.dumps([{"name": f"b{i}", "cases": " ".join(c[i*24:(i+1)*24])} for i in range(4)]))
+          PY
+  freeze:
+    needs: plan
+    if: needs.plan.outputs.stage == 'freeze'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env: { OPENBLAS_NUM_THREADS: '4', OMP_NUM_THREADS: '4' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 shapely==2.2.0
+      - id: req
+        run: |
+          f=research/severe/conus-v1/fulldev-gate-request.json
+          echo "cohort=$(jq -r .cohort_extraction_run $f)" >> "$GITHUB_OUTPUT"
+          echo "corridor=$(jq -r .corridor_extraction_run $f)" >> "$GITHUB_OUTPUT"
+          echo "fulldev=$(jq -r .fulldev_extraction_run $f)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.cohort }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.corridor }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.fulldev }}', github-token: '${{ github.token }}' }
+      - name: Freeze on the 2022-23 development dates
+        run: |
+          mkdir -p tests/out/dev
+          for d in tests/out/x/conus/2022-* tests/out/x/conus/2023-*; do ln -s "$PWD/$d" tests/out/dev/; done
+          ls tests/out/dev | wc -l
+          PYTHONPATH=tools/severe python3 tools/severe/conus_fulldev.py freeze --conus tests/out/dev --output research/severe/conus-v1/fulldev-frozen
+      - name: Commit the frozen candidate
+        run: |
+          echo "run_id: $GITHUB_RUN_ID" > research/severe/conus-v1/fulldev-frozen/run.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/severe/conus-v1/fulldev-frozen
+          git commit -m "Freeze the 728-date Day 2 wind candidate (run $GITHUB_RUN_ID)"
+          for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done
+          exit 1
+  pin:
+    needs: plan
+    if: needs.plan.outputs.stage == 'verify'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r tools/severe/requirements.txt
+      - name: Fetch and pin the 2021 Storm Events file
+        run: |
+          test -f research/severe/conus-v1/fulldev-frozen/manifest.json || { echo "::error::freeze first"; exit 1; }
+          mkdir -p tests/out/cache/reports research/severe/conus-v1/verify2021
+          PYTHONPATH=tools/severe python3 - <<'PY'
+          import csv, gzip, json, re
+          from pathlib import Path
+          from extract import Client, digest
+          from labels import NCEI, normalize
+          c = Client(Path("tests/out/cache/reports"), 60)
+          idx = c.fetch(NCEI, "directory.html")
+          names = sorted(set(re.findall(r"StormEvents_details-ftp_v1\.0_d2021_c\d{8}\.csv\.gz", idx.read_text())))
+          assert names, "no 2021 file"
+          name = names[-1]
+          path = c.fetch(NCEI + name, name, max_bytes=25000000)
+          with gzip.open(path, "rt", newline="") as f:
+              _, stats = normalize(csv.DictReader(f))
+          receipt = json.loads(path.with_suffix(".gz.receipt.json").read_text())
+          doc = {"purpose": "Sealed one-time 2021 verification (research/severe/conus-v1/verify2021-rule.md)",
+                 "sources": [{"file": name, "sha256": digest(path), "receipt": receipt, "normalization": stats}]}
+          Path("research/severe/conus-v1/verify2021/report-source.json").write_text(json.dumps(doc, indent=1) + "\n")
+          print(json.dumps(doc, indent=1))
+          PY
+          rm -f tests/out/cache/reports/directory.html*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verify2021-report-source
+          path: |
+            tests/out/cache/reports
+            research/severe/conus-v1/verify2021/report-source.json
+          retention-days: 90
+  extract:
+    needs: [plan, pin]
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        batch: ${{ fromJSON(needs.plan.outputs.batches) }}
+    env: { OPENBLAS_NUM_THREADS: '2', SEVERE_VERIFY_2021: '1' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r tools/severe/requirements.txt matplotlib==3.11.2 shapely==2.2.0
+      - run: cd tools/severe && python3 conus_grid.py --check
+      - uses: actions/download-artifact@v4
+        with: { name: verify2021-report-source, path: tests/out/pin }
+      - name: Stage the pinned 2021 report file
+        run: |
+          mkdir -p tests/out/cache/reports research/severe/conus-v1/verify2021
+          cp tests/out/pin/research/severe/conus-v1/verify2021/report-source.json research/severe/conus-v1/verify2021/
+          cp tests/out/pin/tests/out/cache/reports/* tests/out/cache/reports/
+          ls -la tests/out/cache/reports
+      - name: Extract each sealed date
+        env:
+          CASES: ${{ matrix.batch.cases }}
+        run: |
+          mkdir -p tests/out/reports
+          for case in $CASES; do
+            start=$(date +%s)
+            PYTHONPATH=tools/severe python3 tools/severe/conus_pilot.py --case "$case" --output tests/out/conus \
+              --cache tests/out/cache --report "tests/out/reports/$case.json" \
+              || echo "{\"case\": \"$case\", \"status\": \"failed\"}" > "tests/out/reports/$case.failed.json"
+            rm -rf tests/out/cache/"$case"
+            echo "$case $(( $(date +%s) - start ))s" | tee -a tests/out/reports/runtime.txt
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verify2021-conus-${{ matrix.batch.name }}
+          path: |
+            tests/out/conus
+            tests/out/reports
+          retention-days: 90
+  verify:
+    needs: [plan, extract]
+    if: always() && needs.plan.outputs.stage == 'verify' && needs.extract.result != 'cancelled'
+    runs-on: ubuntu-latest
+    env: { OPENBLAS_NUM_THREADS: '4', OMP_NUM_THREADS: '4' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 shapely==2.2.0
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'verify2021-conus-*', merge-multiple: true, path: tests/out/x }
+      - uses: actions/download-artifact@v4
+        with: { name: verify2021-report-source, path: tests/out/pin }
+      - name: Score once and commit
+        env:
+          DEST: research/severe/conus-v1/verify2021
+        run: |
+          mkdir -p "$DEST"
+          cp tests/out/pin/research/severe/conus-v1/verify2021/report-source.json "$DEST/"
+          cp tests/out/x/reports/*.json "$DEST/" 2>/dev/null || true
+          cp tests/out/x/reports/runtime.txt "$DEST/" 2>/dev/null || true
+          PYTHONPATH=tools/severe python3 tools/severe/conus_fulldev.py verify --conus tests/out/x/conus --output "$DEST"
+          echo "run_id: $GITHUB_RUN_ID" > "$DEST/run.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$DEST"
+          git commit -m "One-time 2021 verification of the 728-date Day 2 wind candidate (run $GITHUB_RUN_ID)"
+          for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done
+          exit 1

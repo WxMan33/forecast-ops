@@ -1,0 +1,81 @@
+name: Severe CONUS Day 2 wind sampling check (research)
+# Development-only diagnostic (research/severe/conus-v1/sampling-check-rule.md): all extracted 2022-23 dates;
+# no 2021, 2024 or 2025 data is loaded. Never touches the live feed, publisher, registry or collector.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-v1/sampling-check-request.json']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-sampling-check
+  cancel-in-progress: false
+jobs:
+  fold:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        fold: [0, 1, 2, 3, 4, 5]
+    env:
+      OPENBLAS_NUM_THREADS: '4'
+      OMP_NUM_THREADS: '4'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 shapely==2.2.0
+      - id: req
+        run: |
+          f=research/severe/conus-v1/fulldev-gate-request.json
+          echo "cohort=$(jq -r .cohort_extraction_run $f)" >> "$GITHUB_OUTPUT"
+          echo "corridor=$(jq -r .corridor_extraction_run $f)" >> "$GITHUB_OUTPUT"
+          echo "fulldev=$(jq -r .fulldev_extraction_run $f)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.cohort }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.corridor }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.fulldev }}', github-token: '${{ github.token }}' }
+      - name: Held-out fold ${{ matrix.fold }} (2022-23 only)
+        run: |
+          mkdir -p tests/out/dev
+          for d in tests/out/x/conus/2022-* tests/out/x/conus/2023-*; do ln -s "$PWD/$d" tests/out/dev/; done
+          ls tests/out/dev | wc -l; df -h . | tail -1
+          PYTHONPATH=tools/severe python3 tools/severe/conus_fulldev.py sampling-fold --fold ${{ matrix.fold }} \
+            --conus tests/out/dev --output tests/out/lc
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sampling-check-fold-${{ matrix.fold }}
+          path: tests/out/lc
+          retention-days: 90
+  combine:
+    needs: fold
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 shapely==2.2.0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: sampling-check-fold-*
+          merge-multiple: true
+          path: tests/out/lc
+      - name: Combine and commit
+        env:
+          DEST: research/severe/conus-v1/sampling-check
+        run: |
+          PYTHONPATH=tools/severe python3 tools/severe/conus_fulldev.py sampling-combine --input tests/out/lc --output "$DEST"
+          echo "run_id: $GITHUB_RUN_ID" > "$DEST/run.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$DEST"
+          git commit -m "Day 2 wind sampling check (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done
+          exit 1

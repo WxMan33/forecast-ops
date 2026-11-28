@@ -1,0 +1,239 @@
+{
+ "conus_logistic": {
+  "day1_tornado": {
+   "verdict": "inconclusive",
+   "conclusive_regions": [
+    "original_box"
+   ],
+   "better_than_reference": [],
+   "brier_minus_reference_95": [
+    -0.0001342211130255346,
+    9.86986699196861e-05
+   ],
+   "inconclusive_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box",
+    "plains_outside_box",
+    "west"
+   ]
+  },
+  "day1_wind": {
+   "verdict": "holds",
+   "conclusive_regions": [
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "better_than_reference": [
+    "plains_outside_box",
+    "west"
+   ],
+   "brier_minus_reference_95": [
+    -0.0002352914459719378,
+    0.00022547411811775899
+   ],
+   "inconclusive_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box"
+   ]
+  },
+  "day1_hail": {
+   "verdict": "holds",
+   "conclusive_regions": [
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "better_than_reference": [
+    "original_box",
+    "plains_outside_box"
+   ],
+   "brier_minus_reference_95": [
+    -0.0006287690081073756,
+    -1.531449009427268e-05
+   ],
+   "inconclusive_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box"
+   ]
+  },
+  "day2_tornado": {
+   "verdict": "inconclusive",
+   "conclusive_regions": [
+    "original_box"
+   ],
+   "better_than_reference": [
+    "original_box"
+   ],
+   "brier_minus_reference_95": [
+    -0.00020848621321329546,
+    -8.13299862789476e-06
+   ],
+   "inconclusive_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box",
+    "plains_outside_box",
+    "west"
+   ]
+  },
+  "day2_wind": {
+   "verdict": "holds",
+   "conclusive_regions": [
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "better_than_reference": [
+    "original_box",
+    "plains_outside_box"
+   ],
+   "brier_minus_reference_95": [
+    -0.0011482775834803982,
+    -5.45466833326364e-05
+   ],
+   "inconclusive_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box"
+   ]
+  },
+  "day2_hail": {
+   "verdict": "holds",
+   "conclusive_regions": [
+    "original_box",
+    "plains_outside_box"
+   ],
+   "better_than_reference": [
+    "original_box",
+    "plains_outside_box"
+   ],
+   "brier_minus_reference_95": [
+    -0.001251284525804548,
+    6.16441345516295e-05
+   ],
+   "inconclusive_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box",
+    "west"
+   ]
+  }
+ },
+ "conus_gbt": {
+  "day1_tornado": {
+   "verdict": "inconclusive",
+   "conclusive_regions": [
+    "original_box"
+   ],
+   "better_than_reference": [],
+   "brier_minus_reference_95": [
+    -0.00020019372833167732,
+    0.00029822996687982654
+   ],
+   "inconclusive_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box",
+    "plains_outside_box",
+    "west"
+   ]
+  },
+  "day1_wind": {
+   "verdict": "holds",
+   "conclusive_regions": [
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "better_than_reference": [
+    "plains_outside_box",
+    "west"
+   ],
+   "brier_minus_reference_95": [
+    -0.0002649078561117691,
+    0.0005055202417235366
+   ],
+   "inconclusive_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box"
+   ]
+  },
+  "day1_hail": {
+   "verdict": "holds",
+   "conclusive_regions": [
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "better_than_reference": [
+    "original_box",
+    "plains_outside_box"
+   ],
+   "brier_minus_reference_95": [
+    -0.0008343660685514813,
+    9.141008805083008e-05
+   ],
+   "inconclusive_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box"
+   ]
+  },
+  "day2_tornado": {
+   "verdict": "inconclusive",
+   "conclusive_regions": [
+    "original_box"
+   ],
+   "better_than_reference": [
+    "original_box"
+   ],
+   "brier_minus_reference_95": [
+    -0.0002456330892488489,
+    -1.0907536802279487e-05
+   ],
+   "inconclusive_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box",
+    "plains_outside_box",
+    "west"
+   ]
+  },
+  "day2_wind": {
+   "verdict": "holds",
+   "conclusive_regions": [
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "better_than_reference": [
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "brier_minus_reference_95": [
+    -0.0014577609813641599,
+    -2.9191042883782007e-05
+   ],
+   "inconclusive_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box"
+   ]
+  },
+  "day2_hail": {
+   "verdict": "holds",
+   "conclusive_regions": [
+    "original_box",
+    "plains_outside_box"
+   ],
+   "better_than_reference": [
+    "original_box",
+    "plains_outside_box"
+   ],
+   "brier_minus_reference_95": [
+    -0.0015356028512547248,
+    0.000145392410908191
+   ],
+   "inconclusive_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box",
+    "west"
+   ]
+  }
+ }
+}

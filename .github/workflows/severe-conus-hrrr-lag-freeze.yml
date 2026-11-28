@@ -1,0 +1,51 @@
+name: Severe CONUS Day 2 wind time-lagged HRRR freeze (research)
+# Fit the three gate arms once on all 724 matched development dates (gate run 45675157126) and commit them with
+# checksums, for the prospective research archive only (hrrr-lag/PROSPECTIVE.md). No live pieces touched.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-v1/hrrr-lag/freeze-request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-hrrr-lag-freeze
+  cancel-in-progress: false
+jobs:
+  freeze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env: { OPENBLAS_NUM_THREADS: '4', OMP_NUM_THREADS: '4' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 shapely==2.2.0
+      - run: lscpu | grep -E "Model name|^CPU\(s\)"; pip freeze
+      - id: req
+        run: |
+          f=research/severe/conus-v1/fulldev-gate-request.json
+          echo "cohort=$(jq -r .cohort_extraction_run $f)" >> "$GITHUB_OUTPUT"
+          echo "corridor=$(jq -r .corridor_extraction_run $f)" >> "$GITHUB_OUTPUT"
+          echo "fulldev=$(jq -r .fulldev_extraction_run $f)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.cohort }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.corridor }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.fulldev }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'lag-b*', merge-multiple: true, path: tests/out/lag, run-id: '45675157126', github-token: '${{ github.token }}' }
+      - name: Freeze the three arms
+        run: |
+          mkdir -p tests/out/dev
+          for d in tests/out/x/conus/2022-* tests/out/x/conus/2023-*; do ln -s "$PWD/$d" tests/out/dev/; done
+          PYTHONPATH=tools/severe python3 tools/severe/conus_hrrr_lag.py freeze --conus tests/out/dev --lag tests/out/lag \
+            --output research/severe/conus-v1/hrrr-lag/frozen
+          echo "run_id: $GITHUB_RUN_ID" > research/severe/conus-v1/hrrr-lag/frozen/run.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/severe/conus-v1/hrrr-lag/frozen
+          git commit -m "Freeze the time-lagged HRRR research candidates (run $GITHUB_RUN_ID)"
+          for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done
+          exit 1

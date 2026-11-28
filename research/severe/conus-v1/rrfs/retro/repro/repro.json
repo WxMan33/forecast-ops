@@ -1,0 +1,461 @@
+{
+ "rules": "research/severe/conus-v1/rrfs/retro/REPRODUCIBILITY.md",
+ "jobs": {
+  "pinned-1": {
+   "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+   "cpu_avx512f": true,
+   "numpy_active_avx512": [
+    "AVX512BITALG",
+    "AVX512BW",
+    "AVX512DQ",
+    "AVX512IFMA",
+    "AVX512VBMI",
+    "AVX512VBMI2",
+    "AVX512VL",
+    "AVX512VNNI",
+    "AVX512VPOPCNTDQ"
+   ],
+   "env": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_CORETYPE": "Haswell",
+    "NPY_DISABLE_CPU_FEATURES": "AVX512F AVX512CD AVX512_SKX AVX512_CLX AVX512_CNL AVX512_ICL AVX512_SPR"
+   },
+   "threadpools": [
+    {
+     "internal_api": "openblas",
+     "version": "0.3.30",
+     "num_threads": 1,
+     "architecture": "Haswell"
+    },
+    {
+     "internal_api": "openblas",
+     "version": "0.3.30",
+     "num_threads": 1,
+     "architecture": "Haswell"
+    },
+    {
+     "internal_api": "openmp",
+     "version": null,
+     "num_threads": 1,
+     "architecture": null
+    }
+   ],
+   "iterations": [
+    "149",
+    "111",
+    "269",
+    "172",
+    "96",
+    "204",
+    "153",
+    "134",
+    "212"
+   ],
+   "prediction_fingerprints": {
+    "hrrr": "a106cf760041c1e43feb96f0b0d0e5e082854c1fa71254615d9670df87eacc10",
+    "rrfs": "b53204ab652e5e44bc1058b637e33674672f26a9325e2fabe2116cbdb5a8c0f9",
+    "hrrr_rrfs": "0606ebebef50a2cdefee51bb6ca4c8506f321055b93c342e719f41bab30c147c"
+   }
+  },
+  "pinned-2": {
+   "cpu_model": "AMD EPYC 9V45 96-Core Processor",
+   "cpu_avx512f": true,
+   "numpy_active_avx512": [
+    "AVX512BITALG",
+    "AVX512BW",
+    "AVX512DQ",
+    "AVX512IFMA",
+    "AVX512VBMI",
+    "AVX512VBMI2",
+    "AVX512VL",
+    "AVX512VNNI",
+    "AVX512VPOPCNTDQ"
+   ],
+   "env": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_CORETYPE": "Haswell",
+    "NPY_DISABLE_CPU_FEATURES": "AVX512F AVX512CD AVX512_SKX AVX512_CLX AVX512_CNL AVX512_ICL AVX512_SPR"
+   },
+   "threadpools": [
+    {
+     "internal_api": "openmp",
+     "version": null,
+     "num_threads": 1,
+     "architecture": null
+    },
+    {
+     "internal_api": "openblas",
+     "version": "0.3.30",
+     "num_threads": 1,
+     "architecture": "Haswell"
+    },
+    {
+     "internal_api": "openblas",
+     "version": "0.3.30",
+     "num_threads": 1,
+     "architecture": "Haswell"
+    }
+   ],
+   "iterations": [
+    "149",
+    "111",
+    "269",
+    "172",
+    "96",
+    "204",
+    "153",
+    "134",
+    "212"
+   ],
+   "prediction_fingerprints": {
+    "hrrr": "a106cf760041c1e43feb96f0b0d0e5e082854c1fa71254615d9670df87eacc10",
+    "rrfs": "b53204ab652e5e44bc1058b637e33674672f26a9325e2fabe2116cbdb5a8c0f9",
+    "hrrr_rrfs": "0606ebebef50a2cdefee51bb6ca4c8506f321055b93c342e719f41bab30c147c"
+   }
+  },
+  "unpinned-1": {
+   "cpu_model": "INTEL(R) XEON(R) PLATINUM 8573C",
+   "cpu_avx512f": true,
+   "numpy_active_avx512": [
+    "AVX512BITALG",
+    "AVX512BW",
+    "AVX512CD",
+    "AVX512DQ",
+    "AVX512F",
+    "AVX512IFMA",
+    "AVX512VBMI",
+    "AVX512VBMI2",
+    "AVX512VL",
+    "AVX512VNNI",
+    "AVX512VPOPCNTDQ",
+    "AVX512_CLX",
+    "AVX512_CNL",
+    "AVX512_ICL",
+    "AVX512_SKX"
+   ],
+   "env": {
+    "OPENBLAS_NUM_THREADS": "4",
+    "OMP_NUM_THREADS": "4",
+    "OPENBLAS_CORETYPE": null,
+    "NPY_DISABLE_CPU_FEATURES": null
+   },
+   "threadpools": [
+    {
+     "internal_api": "openmp",
+     "version": null,
+     "num_threads": 4,
+     "architecture": null
+    },
+    {
+     "internal_api": "openblas",
+     "version": "0.3.30",
+     "num_threads": 4,
+     "architecture": "SkylakeX"
+    },
+    {
+     "internal_api": "openblas",
+     "version": "0.3.30",
+     "num_threads": 4,
+     "architecture": "SkylakeX"
+    }
+   ],
+   "iterations": [
+    "160",
+    "96",
+    "293",
+    "160",
+    "78",
+    "236",
+    "131",
+    "131",
+    "223"
+   ],
+   "prediction_fingerprints": {
+    "hrrr": "0ae57260e79ea547b4671f50e2ad74928f449e703a263978ce3e18cca44ad709",
+    "rrfs": "2545a1523962e6d716f23dae76ae76b415ba86fe6b8d2c4f5974346c1e144030",
+    "hrrr_rrfs": "5f23d4d5d071832c15c1f1a9d7b101817f06c4a6f87c05ea0a0fa305fcbb1c5d"
+   }
+  },
+  "unpinned-2": {
+   "cpu_model": "AMD EPYC 9V45 96-Core Processor",
+   "cpu_avx512f": true,
+   "numpy_active_avx512": [
+    "AVX512BITALG",
+    "AVX512BW",
+    "AVX512CD",
+    "AVX512DQ",
+    "AVX512F",
+    "AVX512IFMA",
+    "AVX512VBMI",
+    "AVX512VBMI2",
+    "AVX512VL",
+    "AVX512VNNI",
+    "AVX512VPOPCNTDQ",
+    "AVX512_CLX",
+    "AVX512_CNL",
+    "AVX512_ICL",
+    "AVX512_SKX"
+   ],
+   "env": {
+    "OPENBLAS_NUM_THREADS": "4",
+    "OMP_NUM_THREADS": "4",
+    "OPENBLAS_CORETYPE": null,
+    "NPY_DISABLE_CPU_FEATURES": null
+   },
+   "threadpools": [
+    {
+     "internal_api": "openmp",
+     "version": null,
+     "num_threads": 4,
+     "architecture": null
+    },
+    {
+     "internal_api": "openblas",
+     "version": "0.3.30",
+     "num_threads": 4,
+     "architecture": "SkylakeX"
+    },
+    {
+     "internal_api": "openblas",
+     "version": "0.3.30",
+     "num_threads": 4,
+     "architecture": "SkylakeX"
+    }
+   ],
+   "iterations": [
+    "160",
+    "96",
+    "293",
+    "160",
+    "78",
+    "236",
+    "131",
+    "131",
+    "223"
+   ],
+   "prediction_fingerprints": {
+    "hrrr": "0ae57260e79ea547b4671f50e2ad74928f449e703a263978ce3e18cca44ad709",
+    "rrfs": "2545a1523962e6d716f23dae76ae76b415ba86fe6b8d2c4f5974346c1e144030",
+    "hrrr_rrfs": "5f23d4d5d071832c15c1f1a9d7b101817f06c4a6f87c05ea0a0fa305fcbb1c5d"
+   }
+  }
+ },
+ "pairs": {
+  "pinned-1_vs_pinned-2": {
+   "results_identical": true,
+   "differing_values": 0,
+   "max_relative_brier_difference": 0.0,
+   "max_hit_count_difference": 0,
+   "national_brier": {
+    "hrrr": [
+     0.019434386190307178,
+     0.019434386190307178
+    ],
+    "rrfs": [
+     0.019610439378222613,
+     0.019610439378222613
+    ],
+    "hrrr_rrfs": [
+     0.018765677656770247,
+     0.018765677656770247
+    ]
+   },
+   "national_hits": {
+    "hrrr": [
+     54908,
+     54908
+    ],
+    "rrfs": [
+     54802,
+     54802
+    ],
+    "hrrr_rrfs": [
+     58185,
+     58185
+    ]
+   },
+   "prediction_fingerprints_identical": true,
+   "coefficient_fingerprints_identical": true,
+   "same_cpu_model": false,
+   "same_avx512": true
+  },
+  "unpinned-1_vs_unpinned-2": {
+   "results_identical": true,
+   "differing_values": 0,
+   "max_relative_brier_difference": 0.0,
+   "max_hit_count_difference": 0,
+   "national_brier": {
+    "hrrr": [
+     0.01943808060842806,
+     0.01943808060842806
+    ],
+    "rrfs": [
+     0.019607713486880163,
+     0.019607713486880163
+    ],
+    "hrrr_rrfs": [
+     0.018768093479000162,
+     0.018768093479000162
+    ]
+   },
+   "national_hits": {
+    "hrrr": [
+     54858,
+     54858
+    ],
+    "rrfs": [
+     54794,
+     54794
+    ],
+    "hrrr_rrfs": [
+     58175,
+     58175
+    ]
+   },
+   "prediction_fingerprints_identical": true,
+   "coefficient_fingerprints_identical": true,
+   "same_cpu_model": false,
+   "same_avx512": true
+  },
+  "pinned-1_vs_first_scorecard": {
+   "results_identical": false,
+   "differing_values": 791,
+   "max_relative_brier_difference": 0.0036690609564068613,
+   "max_hit_count_difference": 31,
+   "national_brier": {
+    "hrrr": [
+     0.019434386190307178,
+     0.019437208110380112
+    ],
+    "rrfs": [
+     0.019610439378222613,
+     0.01961022362017441
+    ],
+    "hrrr_rrfs": [
+     0.018765677656770247,
+     0.018765677656823295
+    ]
+   },
+   "national_hits": {
+    "hrrr": [
+     54908,
+     54877
+    ],
+    "rrfs": [
+     54802,
+     54806
+    ],
+    "hrrr_rrfs": [
+     58185,
+     58185
+    ]
+   }
+  },
+  "pinned-2_vs_first_scorecard": {
+   "results_identical": false,
+   "differing_values": 791,
+   "max_relative_brier_difference": 0.0036690609564068613,
+   "max_hit_count_difference": 31,
+   "national_brier": {
+    "hrrr": [
+     0.019434386190307178,
+     0.019437208110380112
+    ],
+    "rrfs": [
+     0.019610439378222613,
+     0.01961022362017441
+    ],
+    "hrrr_rrfs": [
+     0.018765677656770247,
+     0.018765677656823295
+    ]
+   },
+   "national_hits": {
+    "hrrr": [
+     54908,
+     54877
+    ],
+    "rrfs": [
+     54802,
+     54806
+    ],
+    "hrrr_rrfs": [
+     58185,
+     58185
+    ]
+   }
+  },
+  "unpinned-1_vs_first_scorecard": {
+   "results_identical": false,
+   "differing_values": 981,
+   "max_relative_brier_difference": 0.0024022064255227807,
+   "max_hit_count_difference": 32,
+   "national_brier": {
+    "hrrr": [
+     0.01943808060842806,
+     0.019437208110380112
+    ],
+    "rrfs": [
+     0.019607713486880163,
+     0.01961022362017441
+    ],
+    "hrrr_rrfs": [
+     0.018768093479000162,
+     0.018765677656823295
+    ]
+   },
+   "national_hits": {
+    "hrrr": [
+     54858,
+     54877
+    ],
+    "rrfs": [
+     54794,
+     54806
+    ],
+    "hrrr_rrfs": [
+     58175,
+     58185
+    ]
+   }
+  },
+  "unpinned-2_vs_first_scorecard": {
+   "results_identical": false,
+   "differing_values": 981,
+   "max_relative_brier_difference": 0.0024022064255227807,
+   "max_hit_count_difference": 32,
+   "national_brier": {
+    "hrrr": [
+     0.01943808060842806,
+     0.019437208110380112
+    ],
+    "rrfs": [
+     0.019607713486880163,
+     0.01961022362017441
+    ],
+    "hrrr_rrfs": [
+     0.018768093479000162,
+     0.018765677656823295
+    ]
+   },
+   "national_hits": {
+    "hrrr": [
+     54858,
+     54877
+    ],
+    "rrfs": [
+     54794,
+     54806
+    ],
+    "hrrr_rrfs": [
+     58175,
+     58185
+    ]
+   }
+  }
+ },
+ "pass": true,
+ "hardware_differed_between_pinned_jobs": true
+}

@@ -1,0 +1,92 @@
+{
+ "rules": "research/severe/conus-v1/rrfs/retro/REPRODUCIBILITY.md",
+ "jobs": {
+  "run": {
+   "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+   "cpu_avx512f": true,
+   "numpy_active_avx512": [
+    "AVX512BITALG",
+    "AVX512BW",
+    "AVX512DQ",
+    "AVX512IFMA",
+    "AVX512VBMI",
+    "AVX512VBMI2",
+    "AVX512VL",
+    "AVX512VNNI",
+    "AVX512VPOPCNTDQ"
+   ],
+   "env": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_CORETYPE": "Haswell",
+    "NPY_DISABLE_CPU_FEATURES": "AVX512F AVX512CD AVX512_SKX AVX512_CLX AVX512_CNL AVX512_ICL AVX512_SPR"
+   },
+   "threadpools": [
+    {
+     "internal_api": "openmp",
+     "version": null,
+     "num_threads": 1,
+     "architecture": null
+    },
+    {
+     "internal_api": "openblas",
+     "version": "0.3.30",
+     "num_threads": 1,
+     "architecture": "Haswell"
+    },
+    {
+     "internal_api": "openblas",
+     "version": "0.3.30",
+     "num_threads": 1,
+     "architecture": "Haswell"
+    }
+   ],
+   "iterations": [
+    "208",
+    "233",
+    "312",
+    "184",
+    "232",
+    "253",
+    "150",
+    "198",
+    "231"
+   ],
+   "prediction_fingerprints": {
+    "hrrr": "fdabde698a422a256b1fd58cf20f2a67f1a846f92ca6f2d2b6ec4b35a48a4212",
+    "hrrr_rrfs": "f99a390e8c635ff940dbc4ed27a905d6ed8bf61db47b32d9a9b5912cfd45d590",
+    "hrrr_rrfs_2cyc": "43d00e28a808b3fe63df9f6603b1978e8ce3108c371b1145ffe24922f486a435"
+   }
+  }
+ },
+ "pairs": {
+  "run_vs_first_scorecard": {
+   "results_identical": false,
+   "differing_values": 608,
+   "max_relative_brier_difference": 0.005120825060275972,
+   "max_hit_count_difference": 52,
+   "national_brier": {
+    "hrrr": [
+     0.01938760875820613,
+     0.019387076914666613
+    ],
+    "hrrr_rrfs": [
+     0.018786401337735254,
+     0.0187887932182973
+    ]
+   },
+   "national_hits": {
+    "hrrr": [
+     52886,
+     52843
+    ],
+    "hrrr_rrfs": [
+     55740,
+     55713
+    ]
+   }
+  }
+ },
+ "pass": false,
+ "hardware_differed_between_pinned_jobs": null
+}

@@ -9,7 +9,7 @@ from extract import decode,digest,validate_time,write_json
 from daily import required_fields
 
 
-def audit(output,cache,destination):
+def audit(output,cache,destination,extra_samples=None):
     output,cache=Path(output),Path(cache)
     m=json.loads((output/'manifest.json').read_text());issue=datetime.fromisoformat(m['model_init_time'])
     expected={(h,name) for product in m['products'] for h,fields in required_fields(product).items() for name in fields}
@@ -24,7 +24,11 @@ def audit(output,cache,destination):
     w,e,s,n=m['bounds'];first_hour=min(p['first_forecast_hour'] for p in m['products'])
     first=decode(cache/f'f{first_hour:02d}/sbcape.grib2',issue,first_hour,'sbcape',True)
     sample=np.zeros(first['lat'].shape,bool);sample[::m['stride'],::m['stride']]=True
-    rows,cols=np.where(sample&(first['lon']>=w)&(first['lon']<=e)&(first['lat']>=s)&(first['lat']<=n))
+    box=(first['lon']>=w)&(first['lon']<=e)&(first['lat']>=s)&(first['lat']<=n)
+    if m.get('extra_samples'):
+        if extra_samples is None or digest(extra_samples)!=m['extra_samples']['sha256']:raise ValueError('Pinned extra sample list missing or changed')
+        with np.load(extra_samples,allow_pickle=False) as extra:box=box.copy();box[extra['rows'],extra['cols']]=True
+    rows,cols=np.where(sample&box)
     points=np.unique(np.linspace(0,len(rows)-1,5,dtype=int));rr,cc=rows[points],cols[points]
     dy,dx=np.mgrid[-13:14,-13:14];disk=(dx*dx+dy*dy)*9<=40.2336**2
     checks=[]

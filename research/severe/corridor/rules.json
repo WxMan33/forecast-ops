@@ -1,0 +1,71 @@
+{
+ "name": "day1-tornado-corridor-experiment-v1",
+ "locked_before_fitting": true,
+ "approved_by_user": "2026-11-22 (PR #31)",
+ "product": "Day 1 tornado (06Z HRRR f06-30, valid 12Z-12Z), probability of a tornado report within 25 miles",
+ "domain": "v0.7 regional box (-100..-75 E, 30..45 N), samples within 25 miles of US land (14,940)",
+ "data": {
+  "development": "the 96 2022-23 cohort dates, CONUS extraction run 44577990940 (Day 1 features and Storm Events tornado labels; label 255 = unknown, dropped)",
+  "diagnostic_only": "2024: the 323 NadoCast benchmark days (extraction runs 44942885255 + 44961446546; NadoCast from score run 44961880902)",
+  "sealed": "2021 (96 dates in research/severe/conus-v1/twostage-verification-2021.json) opened once only if the candidate passes; 2025 never"
+ },
+ "wider_features": {
+  "base_fields": [
+   "x_uh25_max",
+   "x_srh01_max",
+   "x_shear06_max",
+   "x_sbcape_max",
+   "x_reflectivity_max"
+  ],
+  "base_meaning": "each field's 24-h (f06-f30) maximum at a sample centre, already in the saved extraction",
+  "radii_miles": [
+   50,
+   100
+  ],
+  "radii_km": [
+   80.4672,
+   160.9344
+  ],
+  "statistics": [
+   "mean",
+   "max"
+  ],
+  "count": 20,
+  "neighbourhood": "all samples of the saved 40,311-point CONUS grid (stride-5 HRRR, ~15 km) whose great-circle distance from the box sample is <= the radius, including the sample itself",
+  "edges": "No padding, no zero fill, no extrapolation. Neighbourhoods reaching outside the box use the real CONUS-grid samples there (box + pinned land samples + box-rectangle ocean samples). Where the grid ends (open ocean outside the box rectangle, Canada, Mexico) the statistic uses only the samples that exist. Measured before fitting: 99.5% (50 mi) and 98.5% (100 mi) of box samples have >= 80% of a full disk; minimum 46 of 90 and 181 of 362 samples (coastal corners). The per-sample sample count is recorded, not used as a feature.",
+  "transform": "asinh(x) for UH, SRH and SBCAPE statistics; raw for shear and reflectivity; then standardized with training-fold mean and s.d."
+ },
+ "arms": {
+  "a_refit": "v0.7 recipe refit: the 34 v0.7 inputs, standardized, penalized logistic; monotone logistic (Platt) calibration on inner out-of-fold scores, as the v0.7 recipe",
+  "b_recalibrated": "arm a's logistic, with isotonic recalibration on inner out-of-fold scores instead of Platt (recalibration only)",
+  "c_corridor": "the 34 v0.7 inputs + the 20 wider features, same penalized logistic, isotonic recalibration on inner out-of-fold scores"
+ },
+ "nesting": {
+  "outer": "6 month-grouped folds (phase2_study.fold_of: whole calendar months, every fold spans all seasons); each outer fold's months are unseen by fitting, tuning and calibration",
+  "inner": "within the training months, the remaining 5 month-groups: penalty chosen by inner held-out log loss from (1e-4, 1e-3, 1e-2, 1e-1) for each feature set; calibration fitted on inner out-of-fold scores",
+  "evaluation": "all comparisons use the outer held-out predictions only"
+ },
+ "live_threshold_proposal": "chosen inside training folds only: (1) 5% on the calibrated scale (calibration fitted in training months); (2) the arm-c threshold whose inner out-of-fold false-alarm area equals arm b's 5% inner out-of-fold area. Both are reported on held-out months; neither decides pass/fail.",
+ "pass_criteria_c_vs_b": {
+  "1_matched_area_hits": "hits at matched false-alarm area (arm b's pooled held-out 5% area; arm c thresholded to the same false-alarm count) >= 1.10 x arm b, with the paired date-bootstrap 95% lower bound of (c - b) hits > 0",
+  "2_left_out": "report points left out of an otherwise correctly placed corridor (missed, within 100 km of that arm's own flagged area that day, at matched area) reduced by >= 25% vs arm b, with the paired 95% lower bound of (b - c) > 0",
+  "3_brier": "Brier(c) - Brier(b) < 0 with the paired 95% interval entirely below 0",
+  "4_no_regression": "wrong-place misses (c) <= 1.05 x (b) and no-signal misses (c) <= 1.05 x (b) (point estimates, same definitions as the diagnosis: flagged area >= 10 samples, 100 km)",
+  "5_reliability": "for arm c held-out bins [2,5), [5,10), [10,15), [15,30), [30,100]% with >= 20 report points: |mean forecast - observed| <= 0.30 x observed",
+  "bootstrap": "5000 paired draws of development dates, seed 20261124"
+ },
+ "also_reported": [
+  "arm a vs b vs c Brier, AUC, reliability, hits/misses at 2% and 5%, matched-detection false-alarm area",
+  "2024 diagnostic: arms b and c refit on all 96 dates, applied to the 323 benchmark days, compared with NadoCast at matched area (never deciding)"
+ ],
+ "maps": {
+  "rules": [
+   "development day with the most tornado report points in the box (held-out predictions, arms b and c)",
+   "development day with the most arm-b left-out report points (held-out, arms b and c)",
+   "2024-12-28 diagnostic: arms b, c and NadoCast"
+  ]
+ },
+ "if_pass": "freeze arm c (fit on all 96 dates, hashes committed), then verify once on the sealed 2021 list against arm b and live v0.7 with the same metrics",
+ "if_fail": "2021 stays sealed; the scorecard shows each criterion's value and margin",
+ "unchanged": "live v0.7 map, RRFS/NBM collector, 2025 sealed"
+}

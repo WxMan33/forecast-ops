@@ -1,0 +1,30 @@
+{
+ "status": "2024 diagnostic only (323 benchmark days); never deciding",
+ "reference": "NadoCast 5% false-alarm area",
+ "by_model": {
+  "nadocast": {
+   "brier": 0.003403220997530248,
+   "hit": 11456,
+   "left_out": 2597,
+   "wrong_place": 2376,
+   "no_signal": 2341,
+   "false_alarm_km2_per_day": 54668.034055727556
+  },
+  "b": {
+   "brier": 0.0035978221524387076,
+   "hit": 9695,
+   "left_out": 4638,
+   "wrong_place": 3335,
+   "no_signal": 1102,
+   "false_alarm_km2_per_day": 54668.034055727556
+  },
+  "c": {
+   "brier": 0.003421895106355237,
+   "hit": 11679,
+   "left_out": 2880,
+   "wrong_place": 2459,
+   "no_signal": 1752,
+   "false_alarm_km2_per_day": 54668.034055727556
+  }
+ }
+}

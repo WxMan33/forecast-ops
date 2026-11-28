@@ -1,0 +1,118 @@
+name: Severe NadoCast benchmark (research)
+# Research only. stage "inventory": read-only crawl of the public data.nadocast.com archive for
+# 2022-2024 and 2026 (2021 and 2025 are never requested), with a few sample GRIB2 downloads to
+# record grid, variable, time range and units. stage "pilot"/"score": the locked Day 1 tornado
+# head-to-head (docs/severe-nadocast-benchmark.md) on 2024 dates, using our CONUS extraction
+# artifacts from the run named in the request. Nothing touches the live feed, publisher, registry
+# or RRFS/NBM collector.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/nadocast/request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-nadocast
+  cancel-in-progress: false
+jobs:
+  inventory:
+    if: ${{ !contains(github.event.head_commit.message, '[skip nadocast]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r tools/severe/requirements.txt scikit-learn==1.9.1 matplotlib==3.11.2 shapely==2.2.0
+      - id: req
+        run: |
+          echo "stage=$(jq -r .stage research/severe/nadocast/request.json)" >> "$GITHUB_OUTPUT"
+          echo "run=$(jq -r '.extraction_run // empty' research/severe/nadocast/request.json)" >> "$GITHUB_OUTPUT"
+          echo "run2=$(jq -r '.extraction_run_supplement // empty' research/severe/nadocast/request.json)" >> "$GITHUB_OUTPUT"
+          echo "arrays=$(jq -r '.arrays_run // empty' research/severe/nadocast/request.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        if: steps.req.outputs.stage == 'diagnose_day1'
+        with:
+          name: nadocast-score
+          path: tests/out/prev
+          run-id: ${{ steps.req.outputs.arrays }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        if: steps.req.outputs.stage == 'pilot' || steps.req.outputs.stage == 'score' || steps.req.outputs.stage == 'wind_pilot' || steps.req.outputs.stage == 'wind_score' || steps.req.outputs.stage == 'diagnose_day1'
+        with:
+          pattern: severe-conus-*
+          merge-multiple: true
+          path: tests/out/x
+          run-id: ${{ steps.req.outputs.run }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        if: (steps.req.outputs.stage == 'pilot' || steps.req.outputs.stage == 'score' || steps.req.outputs.stage == 'wind_pilot' || steps.req.outputs.stage == 'wind_score' || steps.req.outputs.stage == 'diagnose_day1') && steps.req.outputs.run2 != ''
+        with:
+          pattern: severe-conus-*
+          merge-multiple: true
+          path: tests/out/x2
+          run-id: ${{ steps.req.outputs.run2 }}
+          github-token: ${{ github.token }}
+      - name: Head-to-head (${{ steps.req.outputs.stage }})
+        if: steps.req.outputs.stage == 'pilot' || steps.req.outputs.stage == 'score' || steps.req.outputs.stage == 'wind_pilot' || steps.req.outputs.stage == 'wind_score' || steps.req.outputs.stage == 'diagnose_day1'
+        run: |
+          if [ -d tests/out/x2/conus ]; then  # supplement: re-extracted dates override failed ones
+            for d in tests/out/x2/conus/*/; do rm -rf "tests/out/x/conus/$(basename "$d")"; cp -r "$d" tests/out/x/conus/; done
+          fi
+          ls tests/out/x/conus | wc -l
+          stage="${{ steps.req.outputs.stage }}"
+          if [ "$stage" = diagnose_day1 ]; then
+            PYTHONPATH=tools/severe python3 tools/severe/nadocast_diagnose.py --arrays tests/out/prev/score-arrays.npz \
+              --conus tests/out/x/conus --output tests/out/nadocast
+          elif [ "${stage#wind_}" != "$stage" ]; then
+            PYTHONPATH=tools/severe python3 tools/severe/nadocast_wind.py --stage "${stage#wind_}" \
+              --conus tests/out/x/conus --cache tests/out/nccache --output tests/out/nadocast
+          else
+            PYTHONPATH=tools/severe python3 tools/severe/nadocast_benchmark.py --stage "$stage" \
+              --conus tests/out/x/conus --cache tests/out/nccache --output tests/out/nadocast
+          fi
+      - name: Commit the scorecard and maps (not the arrays)
+        if: steps.req.outputs.stage == 'pilot' || steps.req.outputs.stage == 'score' || steps.req.outputs.stage == 'wind_pilot' || steps.req.outputs.stage == 'wind_score' || steps.req.outputs.stage == 'diagnose_day1'
+        run: |
+          dest=research/severe/nadocast/${{ steps.req.outputs.stage }}
+          mkdir -p "$dest"
+          cp tests/out/nadocast/*-scorecard.json tests/out/nadocast/diagnosis.json "$dest"/ 2>/dev/null || true
+          cp tests/out/nadocast/*.png "$dest"/ 2>/dev/null || true
+          echo "run_id: $GITHUB_RUN_ID" > "$dest/run.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$dest"
+          git commit -m "NadoCast benchmark ${{ steps.req.outputs.stage }} (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3; do git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0; sleep 10; done
+          exit 1
+      - name: Connectivity probe
+        if: steps.req.outputs.stage == 'inventory'
+        run: |
+          for u in http://data.nadocast.com/ https://data.nadocast.com/ http://nadocast.com/; do
+            echo "$u -> $(curl -s -o /dev/null -m 30 -w '%{http_code} %{size_download}B' "$u" || echo failed)"
+          done
+          curl -s -m 30 http://data.nadocast.com/ | head -c 1500 || true
+      - name: Inventory the NadoCast archive (2022-2024, 2026)
+        if: steps.req.outputs.stage == 'inventory'
+        run: python3 tools/severe/nadocast_inventory.py --output tests/out/nadocast
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nadocast-${{ steps.req.outputs.stage }}
+          path: tests/out/nadocast
+          retention-days: 90
+      - name: Commit the inventory (not the GRIB samples)
+        if: steps.req.outputs.stage == 'inventory'
+        run: |
+          dest=research/severe/nadocast/inventory
+          mkdir -p "$dest"
+          cp tests/out/nadocast/inventory.json tests/out/nadocast/tornado-wind-grib2.json "$dest"/
+          echo "run_id: $GITHUB_RUN_ID" > "$dest/run.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$dest"
+          git commit -m "NadoCast archive inventory (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3; do git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0; sleep 10; done
+          exit 1

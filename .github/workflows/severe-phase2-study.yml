@@ -1,0 +1,83 @@
+name: Severe Phase 2 research study
+# Research only. Restores the pinned v0.7 cohort (2022-2024) and labels, reproduces the v0.7
+# baseline, trains the Phase 2 candidates on 2022+2023 only, scores everything on the same 2024
+# dates, draws the experimental maps and commits the results to the research branch.
+# It never writes the public feed, the publisher, the model registry or any archive, and it never
+# loads 2025 outcomes.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/phase2-request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-phase2-study
+  cancel-in-progress: false
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      OPENBLAS_NUM_THREADS: '4'
+      OMP_NUM_THREADS: '4'
+      OUT: research/severe/phase2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 matplotlib==3.11.2 shapely==2.2.0
+      - run: python tests/severe-phase2.test.py
+      - name: Restore the 108 pinned v07 cases and labels (private archive, else original run; verified)
+        env:
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+          ARCHIVE_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
+          ACTIONS_TOKEN: ${{ github.token }}
+        run: |
+          bash tools/severe/restore_inputs.sh --source v07 --output tests/out/history
+          bash tools/severe/restore_inputs.sh --source labels --output tests/out/labels
+      - name: Audit, reproduce v0.7, train and score
+        run: |
+          mkdir -p "$OUT"
+          python tools/severe/phase2_study.py --history tests/out/history --labels tests/out/labels \
+            --output "$OUT" --arrays tests/out/arrays 2>&1 | tee tests/out/study.log
+      - name: Stage the pinned 2024 Storm Events file for report locations (optional layer)
+        id: reports
+        continue-on-error: true
+        env:
+          ARCHIVE_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
+          ACTIONS_TOKEN: ${{ github.token }}
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+        run: |
+          args=(--cache tests/out/report-cache --actions)
+          [ -n "$ARCHIVE_REPO" ] && args+=(--repository "$ARCHIVE_REPO")
+          python tools/severe/stage_report_source.py "${args[@]}"
+          echo "file=$(ls tests/out/report-cache/StormEvents_details-*d2024*.csv.gz | head -1)" >> "$GITHUB_OUTPUT"
+      - name: Experimental maps and scorecard
+        env:
+          REPORTS: ${{ steps.reports.outputs.file }}
+        run: |
+          extra=(); [ -n "$REPORTS" ] && extra=(--reports "$REPORTS")
+          PYTHONPATH=tools/severe python tools/severe/phase2_maps.py --arrays tests/out/arrays --output "$OUT/maps" "${extra[@]}"
+          python tools/severe/phase2_report.py --study "$OUT"
+          pip freeze > "$OUT/environment.txt"
+          { echo "run_id: $GITHUB_RUN_ID"; echo "commit: $GITHUB_SHA"; } > "$OUT/run.txt"
+          cat "$OUT/scorecard.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: severe-phase2-study
+          path: |
+            research/severe/phase2
+            tests/out/study.log
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Commit results to the research branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$OUT"
+          git commit -m "Phase 2 study results (run $GITHUB_RUN_ID)"
+          for i in 1 2 3; do git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0; sleep 10; done
+          exit 1

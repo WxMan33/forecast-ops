@@ -1,0 +1,282 @@
+{
+ "conus_logistic": {
+  "day1_tornado": {
+   "repeats_nationally": true,
+   "brier_minus_reference_95": [
+    -0.00039408880512732284,
+    -3.910181542640844e-05
+   ],
+   "regional": "holds",
+   "entered_regions": [
+    "original_box",
+    "plains_outside_box"
+   ],
+   "better_regions": [
+    "original_box",
+    "plains_outside_box"
+   ],
+   "thin_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box",
+    "west"
+   ]
+  },
+  "day1_wind": {
+   "repeats_nationally": false,
+   "brier_minus_reference_95": [
+    -0.00037773259299531164,
+    0.00020391037729778757
+   ],
+   "regional": "holds",
+   "entered_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box",
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "better_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box",
+    "original_box",
+    "west"
+   ],
+   "thin_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box"
+   ]
+  },
+  "day1_hail": {
+   "repeats_nationally": true,
+   "brier_minus_reference_95": [
+    -0.0004629161521127969,
+    -5.750889321975531e-05
+   ],
+   "regional": "holds",
+   "entered_regions": [
+    "northeast_outside_box",
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "better_regions": [
+    "northeast_outside_box",
+    "original_box",
+    "plains_outside_box"
+   ],
+   "thin_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box"
+   ]
+  },
+  "day2_tornado": {
+   "repeats_nationally": true,
+   "brier_minus_reference_95": [
+    -0.00016021746236790057,
+    -3.4874646241436596e-05
+   ],
+   "regional": "holds",
+   "entered_regions": [
+    "florida_gulf_south",
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "better_regions": [
+    "florida_gulf_south",
+    "original_box",
+    "plains_outside_box"
+   ],
+   "thin_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box",
+    "west"
+   ]
+  },
+  "day2_wind": {
+   "repeats_nationally": true,
+   "brier_minus_reference_95": [
+    -0.00070836195451075,
+    -2.477643123581043e-05
+   ],
+   "regional": "holds",
+   "entered_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box",
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "better_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box",
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "thin_regions": []
+  },
+  "day2_hail": {
+   "repeats_nationally": true,
+   "brier_minus_reference_95": [
+    -0.0005247106903283708,
+    -0.00010281241662741874
+   ],
+   "regional": "holds",
+   "entered_regions": [
+    "northeast_outside_box",
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "better_regions": [
+    "northeast_outside_box",
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "thin_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box"
+   ]
+  }
+ },
+ "conus_gbt": {
+  "day1_tornado": {
+   "repeats_nationally": true,
+   "brier_minus_reference_95": [
+    -0.00036319644685067217,
+    -2.9034059732582796e-05
+   ],
+   "regional": "holds",
+   "entered_regions": [
+    "original_box",
+    "plains_outside_box"
+   ],
+   "better_regions": [
+    "original_box",
+    "plains_outside_box"
+   ],
+   "thin_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box",
+    "west"
+   ]
+  },
+  "day1_wind": {
+   "repeats_nationally": false,
+   "brier_minus_reference_95": [
+    -0.0005095436983252814,
+    0.0004965350555520585
+   ],
+   "regional": "does_not_hold",
+   "entered_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box",
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "better_regions": [
+    "florida_gulf_south",
+    "original_box"
+   ],
+   "thin_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box"
+   ]
+  },
+  "day1_hail": {
+   "repeats_nationally": false,
+   "brier_minus_reference_95": [
+    -0.0005203517122671488,
+    0.0002475544099457783
+   ],
+   "regional": "holds",
+   "entered_regions": [
+    "northeast_outside_box",
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "better_regions": [
+    "northeast_outside_box",
+    "original_box",
+    "plains_outside_box"
+   ],
+   "thin_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box"
+   ]
+  },
+  "day2_tornado": {
+   "repeats_nationally": false,
+   "brier_minus_reference_95": [
+    -0.00011694295057171373,
+    1.3292541392437652e-06
+   ],
+   "regional": "does_not_hold",
+   "entered_regions": [
+    "florida_gulf_south",
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "better_regions": [
+    "original_box",
+    "plains_outside_box"
+   ],
+   "thin_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box",
+    "west"
+   ]
+  },
+  "day2_wind": {
+   "repeats_nationally": true,
+   "brier_minus_reference_95": [
+    -0.0009137192467223164,
+    -6.674584768770356e-05
+   ],
+   "regional": "holds",
+   "entered_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box",
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "better_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box",
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "thin_regions": []
+  },
+  "day2_hail": {
+   "repeats_nationally": false,
+   "brier_minus_reference_95": [
+    -0.0005758510195925577,
+    0.0001607187859808752
+   ],
+   "regional": "holds",
+   "entered_regions": [
+    "northeast_outside_box",
+    "original_box",
+    "plains_outside_box",
+    "west"
+   ],
+   "better_regions": [
+    "northeast_outside_box",
+    "original_box",
+    "plains_outside_box"
+   ],
+   "thin_regions": [
+    "florida_gulf_south",
+    "northeast_outside_box"
+   ]
+  }
+ }
+}

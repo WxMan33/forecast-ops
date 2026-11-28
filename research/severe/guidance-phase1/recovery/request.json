@@ -1,0 +1,1 @@
+{"request": 2, "date": "2026-11-25", "day": 2, "source_run": 45648173453, "source_attempt": 1, "artifact": "severe-research-guidance-2026-11-25-day2-1", "resume_of": 45708648336, "reason": "Resume the approved recovery: run 45708648336 uploaded and verified the data asset, then failed before writing the attempt receipt (missing local directory)."}

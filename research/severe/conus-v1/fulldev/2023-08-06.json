@@ -1,0 +1,473 @@
+{
+  "case": "2023-08-06",
+  "samples": 40311,
+  "regional_box_samples": 16413,
+  "artifact": {
+    "file": "conus-joined.npz",
+    "sha256": "1512c1d0e258e283ddb01b4e7023385a2fe76f1de6e66382cba8c2510d63907b",
+    "bytes": 7300954
+  },
+  "report_source": {
+    "file": "StormEvents_details-ftp_v1.0_d2023_c20260323.csv.gz",
+    "sha256": "713784bed40d9e5a95b1d6240a654f865f3ef97703713105c7b35437270da134",
+    "normalization": {
+      "wind_accepted": 20184,
+      "hail_accepted": 10061,
+      "below_hail_threshold": 1696,
+      "tornado_accepted": 1519,
+      "below_wind_threshold": 1032
+    }
+  },
+  "windows": [
+    {
+      "day": 1,
+      "model": "hrrr-v4",
+      "feature_schema": "hrrr-daily-25mi-v2-future-window",
+      "timing_protocol": "day1-06z-f06-30__day2-12z-f24-48-v1",
+      "model_init_time": "2023-08-06T06:00:00+00:00",
+      "assumed_issuance_time": "2023-08-06T09:00:00+00:00",
+      "release_lag_assumption_hours": 3,
+      "historical_public_availability_verified": false,
+      "valid_start": "2023-08-06T12:00:00+00:00",
+      "valid_end": "2023-08-07T12:00:00+00:00",
+      "radius_km": 40.2336,
+      "window_hours": 24,
+      "first_forecast_hour": 6,
+      "last_forecast_hour": 30,
+      "label_counts": {
+        "tornado": {
+          "positive_samples": 163,
+          "unknown_samples": 0,
+          "report_records": 12,
+          "regional_report_records": 12,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 1500,
+          "unknown_samples": 0,
+          "report_records": 248,
+          "regional_report_records": 248,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 383,
+          "unknown_samples": 0,
+          "report_records": 30,
+          "regional_report_records": 30,
+          "uncertain_records": 0
+        }
+      },
+      "predictor_sha256": "81ca767d0d66349adfbd85bae1ce547c60aa3e87eb7ec19306c2adcb72b97188"
+    },
+    {
+      "day": 2,
+      "model": "hrrr-v4",
+      "feature_schema": "hrrr-daily-25mi-v2-future-window",
+      "timing_protocol": "day1-06z-f06-30__day2-12z-f24-48-v1",
+      "model_init_time": "2023-08-06T12:00:00+00:00",
+      "assumed_issuance_time": "2023-08-06T15:00:00+00:00",
+      "release_lag_assumption_hours": 3,
+      "historical_public_availability_verified": false,
+      "valid_start": "2023-08-07T12:00:00+00:00",
+      "valid_end": "2023-08-08T12:00:00+00:00",
+      "radius_km": 40.2336,
+      "window_hours": 24,
+      "first_forecast_hour": 24,
+      "last_forecast_hour": 48,
+      "label_counts": {
+        "tornado": {
+          "positive_samples": 330,
+          "unknown_samples": 0,
+          "report_records": 23,
+          "regional_report_records": 23,
+          "uncertain_records": 0
+        },
+        "wind": {
+          "positive_samples": 3475,
+          "unknown_samples": 0,
+          "report_records": 815,
+          "regional_report_records": 815,
+          "uncertain_records": 0
+        },
+        "hail": {
+          "positive_samples": 1103,
+          "unknown_samples": 0,
+          "report_records": 160,
+          "regional_report_records": 160,
+          "uncertain_records": 0
+        }
+      },
+      "predictor_sha256": "197b4682b651192d36b2c1c3ca8d56a6141c5ad46aa7d3d3dce69861f697a4c4"
+    }
+  ],
+  "timing": {
+    "day1": {
+      "seconds": 39.3,
+      "downloaded_mb": 248.9
+    },
+    "day2": {
+      "seconds": 39.9,
+      "downloaded_mb": 260.4
+    }
+  },
+  "extra_samples_sha256": "9d9ab914ae84634d8db475c01639266427667cf58931ccf87f8f70c972d531a7",
+  "protected_2025_outcomes_accessed": false,
+  "spot_checks": {
+    "Texas (Midland)": {
+      "sample": [
+        -102.058,
+        31.967
+      ],
+      "distance_km": 3.6,
+      "inside_regional_box": false,
+      "day1": {
+        "dewpoint2m_max_K": 288.4,
+        "sbcape_max": 630.0,
+        "uh25_nearby_max_max": 0.2,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      },
+      "day2": {
+        "dewpoint2m_max_K": 291.9,
+        "sbcape_max": 1520.0,
+        "uh25_nearby_max_max": 3.0,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      }
+    },
+    "Texas (El Paso)": {
+      "sample": [
+        -106.463,
+        31.691
+      ],
+      "distance_km": 7.9,
+      "inside_regional_box": false,
+      "day1": {
+        "dewpoint2m_max_K": 282.1,
+        "sbcape_max": 190.0,
+        "uh25_nearby_max_max": 2.0,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      },
+      "day2": {
+        "dewpoint2m_max_K": 289.3,
+        "sbcape_max": 630.0,
+        "uh25_nearby_max_max": 5.0,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      }
+    },
+    "Texas (Brownsville)": {
+      "sample": [
+        -97.476,
+        25.942
+      ],
+      "distance_km": 5.2,
+      "inside_regional_box": false,
+      "day1": {
+        "dewpoint2m_max_K": 299.0,
+        "sbcape_max": 3450.0,
+        "uh25_nearby_max_max": 0.0,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      },
+      "day2": {
+        "dewpoint2m_max_K": 298.5,
+        "sbcape_max": 2880.0,
+        "uh25_nearby_max_max": 0.0,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      }
+    },
+    "Florida (Miami)": {
+      "sample": [
+        -80.25,
+        25.809
+      ],
+      "distance_km": 8.0,
+      "inside_regional_box": false,
+      "day1": {
+        "dewpoint2m_max_K": 299.3,
+        "sbcape_max": 3560.0,
+        "uh25_nearby_max_max": 17.0,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      },
+      "day2": {
+        "dewpoint2m_max_K": 298.6,
+        "sbcape_max": 3510.0,
+        "uh25_nearby_max_max": 1.0,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      }
+    },
+    "Florida (Tampa)": {
+      "sample": [
+        -82.542,
+        27.916
+      ],
+      "distance_km": 8.9,
+      "inside_regional_box": false,
+      "day1": {
+        "dewpoint2m_max_K": 299.5,
+        "sbcape_max": 3770.0,
+        "uh25_nearby_max_max": 1.1,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      },
+      "day2": {
+        "dewpoint2m_max_K": 299.6,
+        "sbcape_max": 3750.0,
+        "uh25_nearby_max_max": 8.2,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      }
+    },
+    "West (Denver)": {
+      "sample": [
+        -105.024,
+        39.772
+      ],
+      "distance_km": 4.6,
+      "inside_regional_box": false,
+      "day1": {
+        "dewpoint2m_max_K": 286.8,
+        "sbcape_max": 980.0,
+        "uh25_nearby_max_max": 61.0,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 1
+        }
+      },
+      "day2": {
+        "dewpoint2m_max_K": 284.6,
+        "sbcape_max": 930.0,
+        "uh25_nearby_max_max": 15.0,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      }
+    },
+    "West (Phoenix)": {
+      "sample": [
+        -112.018,
+        33.391
+      ],
+      "distance_km": 8.1,
+      "inside_regional_box": false,
+      "day1": {
+        "dewpoint2m_max_K": 294.1,
+        "sbcape_max": 1550.0,
+        "uh25_nearby_max_max": 0.0,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      },
+      "day2": {
+        "dewpoint2m_max_K": 294.0,
+        "sbcape_max": 1540.0,
+        "uh25_nearby_max_max": 7.5,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      }
+    },
+    "West (Seattle)": {
+      "sample": [
+        -122.279,
+        47.687
+      ],
+      "distance_km": 9.3,
+      "inside_regional_box": false,
+      "day1": {
+        "dewpoint2m_max_K": 290.1,
+        "sbcape_max": 80.0,
+        "uh25_nearby_max_max": 1.1,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      },
+      "day2": {
+        "dewpoint2m_max_K": 289.6,
+        "sbcape_max": 300.0,
+        "uh25_nearby_max_max": 1.0,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      }
+    },
+    "West (Sacramento)": {
+      "sample": [
+        -121.534,
+        38.511
+      ],
+      "distance_km": 8.5,
+      "inside_regional_box": false,
+      "day1": {
+        "dewpoint2m_max_K": 286.4,
+        "sbcape_max": 0.0,
+        "uh25_nearby_max_max": 0.0,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      },
+      "day2": {
+        "dewpoint2m_max_K": 284.9,
+        "sbcape_max": 0.0,
+        "uh25_nearby_max_max": 0.0,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      }
+    },
+    "New England (Boston)": {
+      "sample": [
+        -71.071,
+        42.339
+      ],
+      "distance_km": 2.5,
+      "inside_regional_box": false,
+      "day1": {
+        "dewpoint2m_max_K": 288.7,
+        "sbcape_max": 10.0,
+        "uh25_nearby_max_max": 0.0,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      },
+      "day2": {
+        "dewpoint2m_max_K": 294.2,
+        "sbcape_max": 420.0,
+        "uh25_nearby_max_max": 20.5,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      }
+    },
+    "New England (Portland ME)": {
+      "sample": [
+        -70.314,
+        43.717
+      ],
+      "distance_km": 7.7,
+      "inside_regional_box": false,
+      "day1": {
+        "dewpoint2m_max_K": 289.5,
+        "sbcape_max": 90.0,
+        "uh25_nearby_max_max": 0.0,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      },
+      "day2": {
+        "dewpoint2m_max_K": 290.9,
+        "sbcape_max": 20.0,
+        "uh25_nearby_max_max": 21.7,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      }
+    },
+    "Northern Plains (Bismarck)": {
+      "sample": [
+        -100.783,
+        46.817
+      ],
+      "distance_km": 0.8,
+      "inside_regional_box": false,
+      "day1": {
+        "dewpoint2m_max_K": 286.0,
+        "sbcape_max": 50.0,
+        "uh25_nearby_max_max": 0.0,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      },
+      "day2": {
+        "dewpoint2m_max_K": 287.4,
+        "sbcape_max": 300.0,
+        "uh25_nearby_max_max": 0.0,
+        "labels": {
+          "tornado": 0,
+          "wind": 0,
+          "hail": 0
+        }
+      }
+    },
+    "_new_area_summary": {
+      "samples_outside_box": 23898,
+      "all_predictors_finite": true,
+      "event_points_outside_box": {
+        "day1_tornado": 48,
+        "day1_wind": 51,
+        "day1_hail": 167,
+        "day2_tornado": 29,
+        "day2_wind": 496,
+        "day2_hail": 522
+      },
+      "event_points_inside_box": {
+        "day1_tornado": 115,
+        "day1_wind": 1449,
+        "day1_hail": 216,
+        "day2_tornado": 301,
+        "day2_wind": 2979,
+        "day2_hail": 581
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+ "request": 1,
+ "purpose": "Two-cycle blend test: HRRR + 12Z RRFS + 06Z RRFS vs HRRR + 12Z RRFS on the 88 matched dates; equal-area diagnostic referenced to the HRRR + 12Z RRFS blend; pinned environment",
+ "rules": "research/severe/conus-v1/rrfs/retro/TWO-CYCLE.md",
+ "cache_run": 46035459501,
+ "compare_to": "research/severe/conus-v1/rrfs/retro/followup-06z/scorecard.json"
+}

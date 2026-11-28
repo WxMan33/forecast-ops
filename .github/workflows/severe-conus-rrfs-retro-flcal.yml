@@ -1,0 +1,53 @@
+name: Severe CONUS retrospective RRFS pilot Florida/Gulf recalibration (research)
+# research/severe/conus-v1/rrfs/retro/FL-RECAL.md: pinned environment; verify hrrr / hrrr_rrfs fingerprints, then score the
+# Florida/Gulf-only monotone logit adjustment. Development only; 2025 never loaded; nothing live touched.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-v1/rrfs/retro/flcal-request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-rrfs-retro
+  cancel-in-progress: false
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_CORETYPE: Haswell
+      NPY_DISABLE_CPU_FEATURES: 'AVX512F AVX512CD AVX512_SKX AVX512_CLX AVX512_CNL AVX512_ICL AVX512_SPR'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 shapely==2.2.0
+      - id: req
+        run: |
+          f=research/severe/conus-v1/rrfs/retro/flcal-request.json
+          echo "run=$(jq -r .cache_run $f)" >> "$GITHUB_OUTPUT"
+          echo "ref=$(jq -r .expect_fingerprints $f)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with: { name: rrfs-retro-cache, path: tests/out/cache, run-id: '${{ steps.req.outputs.run }}', github-token: '${{ github.token }}' }
+      - name: Fingerprint gate, then score the Florida/Gulf adjustment
+        run: |
+          grep -m1 "model name" /proc/cpuinfo
+          PYTHONPATH=tools/severe python3 tools/severe/conus_rrfs_pilot.py score --cache tests/out/cache --cycle 12 --experiment flcal \
+            --expect-fingerprints "${{ steps.req.outputs.ref }}" --output tests/out/score
+      - name: Commit
+        if: always()
+        env:
+          DEST: research/severe/conus-v1/rrfs/retro/flcal
+        run: |
+          mkdir -p "$DEST"
+          cp tests/out/score/* "$DEST/" 2>/dev/null || true
+          echo "run_id: $GITHUB_RUN_ID" > "$DEST/run.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$DEST"
+          git commit -m "Retrospective RRFS pilot: Florida/Gulf recalibration scorecard (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done
+          exit 1

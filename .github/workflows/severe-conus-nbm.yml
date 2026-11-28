@@ -1,0 +1,122 @@
+name: Severe CONUS Day 2 wind NBM gate (research)
+# research/severe/conus-v1/nbm/RULES.md: extract pinned NBM 12Z thunder/gust predictors for the 728 development
+# dates, then HRRR-only vs HRRR+NBM on matched dates and the same folds. Development data only (no 2021/2024/2025).
+# Never touches the live feed, publisher, registry or collector.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-v1/nbm/request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-nbm
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      batches: ${{ steps.p.outputs.batches }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          python3 - >> "$GITHUB_OUTPUT" <<'PY'
+          import json
+          d = json.load(open("research/severe/conus-v1/nbm/dates.json"))["dates"]
+          assert len(d) == 728 and all(x.startswith(("2022", "2023")) for x in d)
+          print("batches=" + json.dumps([{"name": f"b{i}", "dates": " ".join(d[i::8])} for i in range(8)]))
+          PY
+  extract:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        batch: ${{ fromJSON(needs.plan.outputs.batches) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r tools/severe/requirements.txt scikit-learn==1.9.1 shapely==2.2.0
+      - name: Extract NBM predictors
+        run: |
+          PYTHONPATH=tools/severe python3 tools/severe/conus_nbm.py --dates ${{ matrix.batch.dates }} --output tests/out/nbm || echo "::warning::some dates failed (recorded in status/)"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nbm-${{ matrix.batch.name }}
+          path: tests/out/nbm
+          retention-days: 90
+  fold:
+    needs: extract
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        fold: [0, 1, 2, 3, 4, 5]
+    env: { OPENBLAS_NUM_THREADS: '4', OMP_NUM_THREADS: '4' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 shapely==2.2.0
+      - id: req
+        run: |
+          f=research/severe/conus-v1/fulldev-gate-request.json
+          echo "cohort=$(jq -r .cohort_extraction_run $f)" >> "$GITHUB_OUTPUT"
+          echo "corridor=$(jq -r .corridor_extraction_run $f)" >> "$GITHUB_OUTPUT"
+          echo "fulldev=$(jq -r .fulldev_extraction_run $f)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.cohort }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.corridor }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'severe-conus-*', merge-multiple: true, path: tests/out/x, run-id: '${{ steps.req.outputs.fulldev }}', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'nbm-b*', merge-multiple: true, path: tests/out/nbm }
+      - name: Held-out fold ${{ matrix.fold }}
+        run: |
+          mkdir -p tests/out/dev
+          for d in tests/out/x/conus/2022-* tests/out/x/conus/2023-*; do ln -s "$PWD/$d" tests/out/dev/; done
+          echo "HRRR dates: $(ls tests/out/dev | wc -l); NBM complete: $(ls tests/out/nbm/*/nbm.json | wc -l)"
+          PYTHONPATH=tools/severe python3 tools/severe/conus_fulldev.py nbm-fold --fold ${{ matrix.fold }} \
+            --conus tests/out/dev --nbm tests/out/nbm --output tests/out/gate
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nbm-gate-fold-${{ matrix.fold }}
+          path: tests/out/gate
+          retention-days: 90
+  combine:
+    needs: fold
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 shapely==2.2.0
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'nbm-gate-fold-*', merge-multiple: true, path: tests/out/gate }
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'nbm-b*', merge-multiple: true, path: tests/out/nbm }
+      - name: Combine, apply the committed rule, commit
+        env:
+          DEST: research/severe/conus-v1/nbm/gate
+        run: |
+          PYTHONPATH=tools/severe python3 tools/severe/conus_fulldev.py nbm-combine --input tests/out/gate --output "$DEST"
+          python3 - <<'PY'
+          import json, glob, os
+          rows = [json.load(open(f)) for f in sorted(glob.glob("tests/out/nbm/status/*.json"))]
+          json.dump(rows, open("research/severe/conus-v1/nbm/gate/extraction-status.json", "w"), indent=0)
+          print({s: sum(r["status"] == s for r in rows) for s in {r["status"] for r in rows}})
+          PY
+          echo "run_id: $GITHUB_RUN_ID" > "$DEST/run.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/severe/conus-v1/nbm
+          git commit -m "NBM gate for Day 2 wind (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done
+          exit 1

@@ -1,0 +1,6 @@
+{
+ "request": 1,
+ "purpose": "Reproducibility check: rerun the first comparison in 2 pinned + 2 unpinned jobs and compare fingerprints",
+ "rules": "research/severe/conus-v1/rrfs/retro/REPRODUCIBILITY.md",
+ "cache_run": 46035459501
+}

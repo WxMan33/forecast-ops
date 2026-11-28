@@ -1,0 +1,39 @@
+{
+ "name": "day1-tornado-corridor-experiment-v2",
+ "locked_before_fitting": true,
+ "approved_by_user": "2026-11-22 (PR #31, one follow-up)",
+ "changes_from_v1": [
+  "development roster expanded to 362 dates (research/severe/corridor/v2/roster.json)",
+  "arms b and c use the same smooth monotone calibration (beta calibration) instead of isotonic; arm a keeps the v0.7 recipe's Platt step"
+ ],
+ "unchanged_from_v1": [
+  "product, domain and labels",
+  "wider-feature definition, radii, statistics, edge handling and transform (v1 rules.wider_features)",
+  "arm structure and penalty grid",
+  "6 month-grouped outer folds (phase2_study.fold_of) and inner month folds",
+  "all five pass criteria and their definitions (v1 rules.pass_criteria_c_vs_b)",
+  "2024 diagnostic only; 2021 once only on a full pass; 2025 sealed"
+ ],
+ "v1_rules": "research/severe/corridor/rules.json",
+ "roster": "research/severe/corridor/v2/roster.json (362 dates: 96 original + March-July 2022 and 2023; fold sizes 70/16/70/68/70/68 dates; fold 1 holds only Feb/Aug months)",
+ "calibration": {
+  "arm_a": "Platt (monotone logistic on the inner out-of-fold logit), as the v0.7 recipe",
+  "arms_b_c": "beta calibration: logistic regression of the outcome on [ln p, -ln(1-p)] where p = expit(inner out-of-fold logit), both slopes constrained >= 0 (monotone non-decreasing), intercept free, penalty 1e-4; fitted inside each training fold on that fold's inner out-of-fold predictions only",
+  "why": "smooth and monotone with 3 parameters, so it cannot form the isotonic top step (v1 forecast 89% vs observed 20%)"
+ },
+ "reporting_added": [
+  "matched-area results before calibration (uncalibrated logistic scores) and after calibration, for arms b and c",
+  "the original 96-date subset of the held-out predictions alongside the full 362-date sample (not deciding)",
+  "number of distinct event dates (and report points) supporting each reliability bin, especially >= 30%"
+ ],
+ "pass_criteria": "identical to v1 rules.pass_criteria_c_vs_b, evaluated on the full 362-date held-out sample",
+ "maps": {
+  "fills_gap": "held-out day with the largest (arm b left-out - arm c left-out) among days where arm c has more hits than arm b at matched area",
+  "spreads_along_front": "held-out day with the largest increase in matched-area false-alarm area (c - b) among days where arm c has no more hits than arm b",
+  "plus": "2024-12-28 diagnostic (arms b, c, NadoCast)",
+  "note": "each map is drawn only if such a day exists"
+ },
+ "if_pass": "freeze arm c fitted on all 362 dates (hash committed) and verify once on the sealed 2021 list (96 dates)",
+ "if_fail": "post the exact misses to PR #31 and stop for review; 2021 stays sealed",
+ "unchanged": "live v0.7 map, RRFS/NBM collector, 2025 sealed"
+}

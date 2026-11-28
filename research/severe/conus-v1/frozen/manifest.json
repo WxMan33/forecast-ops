@@ -1,0 +1,46 @@
+{
+ "status": "reproduced",
+ "models_file": "models.pkl",
+ "sha256": "a9ff6aa76b946c92a16d2148e3cdb1fb8920e6dd904789058edfddbde0af8d7a",
+ "bytes": 3148235,
+ "source_scoring_run": "44589486745",
+ "fit_dates": "96 cohort dates in 2022-2023",
+ "models": [
+  "v07_frozen",
+  "conus_v07_recipe",
+  "conus_logistic",
+  "conus_gbt"
+ ],
+ "verification": {
+  "max_abs_probability_difference": {
+   "day1_tornado/v07_frozen": 2.7617190645479184e-08,
+   "day1_tornado/conus_v07_recipe": 2.9299450865494236e-08,
+   "day1_tornado/conus_logistic": 1.4364135270117373e-08,
+   "day1_tornado/conus_gbt": 1.036754704308862e-08,
+   "day1_wind/v07_frozen": 2.979697255600655e-08,
+   "day1_wind/conus_v07_recipe": 2.9779749777247844e-08,
+   "day1_wind/conus_logistic": 2.9785597877030057e-08,
+   "day1_wind/conus_gbt": 2.9543308910362498e-08,
+   "day1_hail/v07_frozen": 2.9622951647212403e-08,
+   "day1_hail/conus_v07_recipe": 2.9531487366618592e-08,
+   "day1_hail/conus_logistic": 2.9560793923799622e-08,
+   "day1_hail/conus_gbt": 2.9405950896510546e-08,
+   "day2_tornado/v07_frozen": 1.476266953126526e-08,
+   "day2_tornado/conus_v07_recipe": 2.6156146470945885e-08,
+   "day2_tornado/conus_logistic": 1.4690973382247563e-08,
+   "day2_tornado/conus_gbt": 7.424452802551329e-09,
+   "day2_wind/v07_frozen": 2.9797371237094694e-08,
+   "day2_wind/conus_v07_recipe": 2.9712193261310915e-08,
+   "day2_wind/conus_logistic": 2.9801798251405387e-08,
+   "day2_wind/conus_gbt": 2.977642277190995e-08,
+   "day2_hail/v07_frozen": 2.9733877693338684e-08,
+   "day2_hail/conus_v07_recipe": 2.9795811373745096e-08,
+   "day2_hail/conus_logistic": 2.978097235484256e-08,
+   "day2_hail/conus_gbt": 2.9257914091473936e-08
+  },
+  "worst": 2.9801798251405387e-08,
+  "status": "reproduced"
+ },
+ "rule": "docs/severe-phase2-criteria.md section 6 (frozen before scoring)",
+ "protected_2025_outcomes_accessed": false
+}

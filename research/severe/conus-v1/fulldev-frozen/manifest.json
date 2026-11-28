@@ -1,0 +1,13 @@
+{
+ "status": "frozen",
+ "sha256": "dcc16d91a36205f7c754ae9ce148ac374ade3bf1d6c82b78e94f676b093724ae",
+ "train_dates": 728,
+ "sampled_rows": 5902001,
+ "events": 306444,
+ "calibration": [
+  -0.055295168168591674,
+  0.9697060416234768
+ ],
+ "verification_2021_loaded": false,
+ "protected_2025_outcomes_accessed": false
+}

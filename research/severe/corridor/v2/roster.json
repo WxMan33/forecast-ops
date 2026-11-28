@@ -1,0 +1,2212 @@
+{
+ "roster_rule": "original 96 2022-23 development dates UNION every date 2022-03-01..2022-07-31 and 2023-03-01..2023-07-31; deduplicated",
+ "counts": {
+  "original_96": 96,
+  "march_july_days": 306,
+  "overlap": 40,
+  "roster": 362,
+  "new_to_extract": 266
+ },
+ "folds": "phase2_study.fold_of: ((year-2022)*12 + month - 1) % 6; whole calendar months, unchanged from the first test",
+ "fold_date_counts": {
+  "0": 70,
+  "1": 16,
+  "2": 70,
+  "3": 68,
+  "4": 70,
+  "5": 68
+ },
+ "extraction_plan": {
+  "existing": "96 dates from CONUS extraction run 44577990940 (unchanged artifacts, hash-checked on load)",
+  "new": "266 dates via severe-conus-extraction.yml mode 'corridor' (same extractor, CONUS grid, labels-v04 pinned 2022/2023 Storm Events), month batches of 3",
+  "new_by_month": {
+   "2022-03": 27,
+   "2022-04": 26,
+   "2022-05": 27,
+   "2022-06": 26,
+   "2022-07": 27,
+   "2023-03": 27,
+   "2023-04": 26,
+   "2023-05": 27,
+   "2023-06": 26,
+   "2023-07": 27
+  },
+  "estimated_cost": "about 2 min per date, 4 parallel batches: roughly 2.5-3 h",
+  "missing_policy": "a date whose extraction fails is retried once in a single-date run; any date still missing is listed and excluded before fitting (roster otherwise unchanged)"
+ },
+ "sealed_overlap_check": "no roster date is in the sealed 2021 list or in 2024/2025",
+ "dates": [
+  {
+   "date": "2022-01-01",
+   "fold": 0,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-01-08",
+   "fold": 0,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-01-15",
+   "fold": 0,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-01-22",
+   "fold": 0,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-02-01",
+   "fold": 1,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-02-08",
+   "fold": 1,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-02-15",
+   "fold": 1,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-02-22",
+   "fold": 1,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-03-01",
+   "fold": 2,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-03-02",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-03",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-04",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-05",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-06",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-07",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-08",
+   "fold": 2,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-03-09",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-10",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-11",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-12",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-13",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-14",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-15",
+   "fold": 2,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-03-16",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-17",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-18",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-19",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-20",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-21",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-22",
+   "fold": 2,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-03-23",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-24",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-25",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-26",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-27",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-28",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-29",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-30",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-03-31",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-01",
+   "fold": 3,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-04-02",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-03",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-04",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-05",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-06",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-07",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-08",
+   "fold": 3,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-04-09",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-10",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-11",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-12",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-13",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-14",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-15",
+   "fold": 3,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-04-16",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-17",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-18",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-19",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-20",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-21",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-22",
+   "fold": 3,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-04-23",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-24",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-25",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-26",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-27",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-28",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-29",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-04-30",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-01",
+   "fold": 4,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-05-02",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-03",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-04",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-05",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-06",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-07",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-08",
+   "fold": 4,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-05-09",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-10",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-11",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-12",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-13",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-14",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-15",
+   "fold": 4,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-05-16",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-17",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-18",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-19",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-20",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-21",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-22",
+   "fold": 4,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-05-23",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-24",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-25",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-26",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-27",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-28",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-29",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-30",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-05-31",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-01",
+   "fold": 5,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-06-02",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-03",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-04",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-05",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-06",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-07",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-08",
+   "fold": 5,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-06-09",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-10",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-11",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-12",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-13",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-14",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-15",
+   "fold": 5,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-06-16",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-17",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-18",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-19",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-20",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-21",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-22",
+   "fold": 5,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-06-23",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-24",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-25",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-26",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-27",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-28",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-29",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-06-30",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-01",
+   "fold": 0,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-07-02",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-03",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-04",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-05",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-06",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-07",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-08",
+   "fold": 0,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-07-09",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-10",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-11",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-12",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-13",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-14",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-15",
+   "fold": 0,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-07-16",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-17",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-18",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-19",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-20",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-21",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-22",
+   "fold": 0,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-07-23",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-24",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-25",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-26",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-27",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-28",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-29",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-30",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-07-31",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2022-08-01",
+   "fold": 1,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-08-08",
+   "fold": 1,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-08-15",
+   "fold": 1,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-08-22",
+   "fold": 1,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-09-01",
+   "fold": 2,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-09-08",
+   "fold": 2,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-09-15",
+   "fold": 2,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-09-22",
+   "fold": 2,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-10-01",
+   "fold": 3,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-10-08",
+   "fold": 3,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-10-15",
+   "fold": 3,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-10-22",
+   "fold": 3,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-11-01",
+   "fold": 4,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-11-08",
+   "fold": 4,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-11-15",
+   "fold": 4,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-11-22",
+   "fold": 4,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-12-01",
+   "fold": 5,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-12-08",
+   "fold": 5,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-12-15",
+   "fold": 5,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2022-12-22",
+   "fold": 5,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-01-01",
+   "fold": 0,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-01-08",
+   "fold": 0,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-01-15",
+   "fold": 0,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-01-22",
+   "fold": 0,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-02-01",
+   "fold": 1,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-02-08",
+   "fold": 1,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-02-15",
+   "fold": 1,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-02-22",
+   "fold": 1,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-03-01",
+   "fold": 2,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-03-02",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-03",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-04",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-05",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-06",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-07",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-08",
+   "fold": 2,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-03-09",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-10",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-11",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-12",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-13",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-14",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-15",
+   "fold": 2,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-03-16",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-17",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-18",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-19",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-20",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-21",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-22",
+   "fold": 2,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-03-23",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-24",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-25",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-26",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-27",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-28",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-29",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-30",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-03-31",
+   "fold": 2,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-01",
+   "fold": 3,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-04-02",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-03",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-04",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-05",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-06",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-07",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-08",
+   "fold": 3,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-04-09",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-10",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-11",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-12",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-13",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-14",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-15",
+   "fold": 3,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-04-16",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-17",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-18",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-19",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-20",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-21",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-22",
+   "fold": 3,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-04-23",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-24",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-25",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-26",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-27",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-28",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-29",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-04-30",
+   "fold": 3,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-01",
+   "fold": 4,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-05-02",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-03",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-04",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-05",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-06",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-07",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-08",
+   "fold": 4,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-05-09",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-10",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-11",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-12",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-13",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-14",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-15",
+   "fold": 4,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-05-16",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-17",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-18",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-19",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-20",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-21",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-22",
+   "fold": 4,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-05-23",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-24",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-25",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-26",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-27",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-28",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-29",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-30",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-05-31",
+   "fold": 4,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-01",
+   "fold": 5,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-06-02",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-03",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-04",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-05",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-06",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-07",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-08",
+   "fold": 5,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-06-09",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-10",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-11",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-12",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-13",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-14",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-15",
+   "fold": 5,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-06-16",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-17",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-18",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-19",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-20",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-21",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-22",
+   "fold": 5,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-06-23",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-24",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-25",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-26",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-27",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-28",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-29",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-06-30",
+   "fold": 5,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-01",
+   "fold": 0,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-07-02",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-03",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-04",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-05",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-06",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-07",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-08",
+   "fold": 0,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-07-09",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-10",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-11",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-12",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-13",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-14",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-15",
+   "fold": 0,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-07-16",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-17",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-18",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-19",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-20",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-21",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-22",
+   "fold": 0,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-07-23",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-24",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-25",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-26",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-27",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-28",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-29",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-30",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-07-31",
+   "fold": 0,
+   "in_original_96": false,
+   "source": "new benchmark-mode extraction (this experiment)"
+  },
+  {
+   "date": "2023-08-01",
+   "fold": 1,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-08-08",
+   "fold": 1,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-08-15",
+   "fold": 1,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-08-22",
+   "fold": 1,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-09-01",
+   "fold": 2,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-09-08",
+   "fold": 2,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-09-15",
+   "fold": 2,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-09-22",
+   "fold": 2,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-10-01",
+   "fold": 3,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-10-08",
+   "fold": 3,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-10-15",
+   "fold": 3,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-10-22",
+   "fold": 3,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-11-01",
+   "fold": 4,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-11-08",
+   "fold": 4,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-11-15",
+   "fold": 4,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-11-22",
+   "fold": 4,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-12-01",
+   "fold": 5,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-12-08",
+   "fold": 5,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-12-15",
+   "fold": 5,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  },
+  {
+   "date": "2023-12-22",
+   "fold": 5,
+   "in_original_96": true,
+   "source": "extraction run 44577990940 (existing)"
+  }
+ ]
+}

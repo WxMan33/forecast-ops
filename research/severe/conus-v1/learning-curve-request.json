@@ -1,0 +1,6 @@
+{
+ "request": 1,
+ "development_extraction_run": 44577990940,
+ "question": "Does Day 2 wind national skill of the frozen conus_gbt recipe keep rising with more training dates (20/40/60/80 of the 96 2022-23 development dates, scored on held-out months)?",
+ "reading_rule_committed_before_running": "If the national BSS change from 40 to 80 training dates is positive with a 95% whole-date interval excluding zero, more training data is the lead lever: propose extracting the remaining 2022-23 dates (a separate approval). If the 40->80 interval includes zero, more dates alone is unlikely to close the NadoCast gap and the next step is predictors/ensemble inputs instead. Diagnostic only; nothing is frozen or verified from it; 2021 and 2025 stay sealed."
+}

@@ -1,0 +1,7604 @@
+{
+ "source": "http://data.nadocast.com/",
+ "years_requested": [
+  "2022",
+  "2023",
+  "2024",
+  "2026"
+ ],
+ "sealed_years_not_requested": [
+  "2021",
+  "2025"
+ ],
+ "root_months": [
+  "202204",
+  "202205",
+  "202206",
+  "202207",
+  "202208",
+  "202209",
+  "202210",
+  "202211",
+  "202212",
+  "202301",
+  "202302",
+  "202303",
+  "202304",
+  "202305",
+  "202306",
+  "202307",
+  "202308",
+  "202309",
+  "202310",
+  "202312",
+  "202401",
+  "202402",
+  "202403",
+  "202404",
+  "202405",
+  "202406",
+  "202407",
+  "202408",
+  "202409",
+  "202410",
+  "202411",
+  "202412",
+  "202501",
+  "202502",
+  "202503",
+  "202504",
+  "202505",
+  "202506",
+  "202507",
+  "202508",
+  "202509",
+  "202510",
+  "202511",
+  "202512",
+  "202601",
+  "202602",
+  "202603",
+  "202604",
+  "202605",
+  "202606",
+  "202607",
+  "202608",
+  "202609",
+  "202610",
+  "202611",
+  "614faafd77",
+  "CHANGELOG.txt",
+  "d0338096ae",
+  "progress_bar.html",
+  "viewer.html"
+ ],
+ "months_crawled": [
+  {
+   "month": "202204",
+   "dates": 11,
+   "files": 108
+  },
+  {
+   "month": "202205",
+   "dates": 31,
+   "files": 1044
+  },
+  {
+   "month": "202206",
+   "dates": 30,
+   "files": 3090
+  },
+  {
+   "month": "202207",
+   "dates": 31,
+   "files": 4186
+  },
+  {
+   "month": "202208",
+   "dates": 31,
+   "files": 4213
+  },
+  {
+   "month": "202209",
+   "dates": 30,
+   "files": 4053
+  },
+  {
+   "month": "202210",
+   "dates": 31,
+   "files": 3573
+  },
+  {
+   "month": "202211",
+   "dates": 30,
+   "files": 3180
+  },
+  {
+   "month": "202212",
+   "dates": 24,
+   "files": 4704
+  },
+  {
+   "month": "202301",
+   "dates": 2,
+   "files": 309
+  },
+  {
+   "month": "202302",
+   "dates": 28,
+   "files": 3444
+  },
+  {
+   "month": "202303",
+   "dates": 31,
+   "files": 3780
+  },
+  {
+   "month": "202304",
+   "dates": 24,
+   "files": 2703
+  },
+  {
+   "month": "202305",
+   "dates": 30,
+   "files": 3364
+  },
+  {
+   "month": "202306",
+   "dates": 26,
+   "files": 3038
+  },
+  {
+   "month": "202307",
+   "dates": 31,
+   "files": 3813
+  },
+  {
+   "month": "202308",
+   "dates": 6,
+   "files": 732
+  },
+  {
+   "month": "202309",
+   "dates": 30,
+   "files": 3690
+  },
+  {
+   "month": "202310",
+   "dates": 31,
+   "files": 3690
+  },
+  {
+   "month": "202312",
+   "dates": 12,
+   "files": 1064
+  },
+  {
+   "month": "202401",
+   "dates": 25,
+   "files": 2571
+  },
+  {
+   "month": "202402",
+   "dates": 29,
+   "files": 3444
+  },
+  {
+   "month": "202403",
+   "dates": 31,
+   "files": 7872
+  },
+  {
+   "month": "202404",
+   "dates": 30,
+   "files": 7605
+  },
+  {
+   "month": "202405",
+   "dates": 30,
+   "files": 7451
+  },
+  {
+   "month": "202406",
+   "dates": 29,
+   "files": 6890
+  },
+  {
+   "month": "202407",
+   "dates": 31,
+   "files": 7875
+  },
+  {
+   "month": "202408",
+   "dates": 31,
+   "files": 7998
+  },
+  {
+   "month": "202409",
+   "dates": 30,
+   "files": 7482
+  },
+  {
+   "month": "202410",
+   "dates": 29,
+   "files": 6609
+  },
+  {
+   "month": "202411",
+   "dates": 28,
+   "files": 6916
+  },
+  {
+   "month": "202412",
+   "dates": 24,
+   "files": 5331
+  },
+  {
+   "month": "202601",
+   "dates": 31,
+   "files": 7905
+  },
+  {
+   "month": "202602",
+   "dates": 28,
+   "files": 6676
+  },
+  {
+   "month": "202603",
+   "dates": 31,
+   "files": 7998
+  },
+  {
+   "month": "202604",
+   "dates": 30,
+   "files": 7742
+  },
+  {
+   "month": "202605",
+   "dates": 31,
+   "files": 7998
+  },
+  {
+   "month": "202606",
+   "dates": 30,
+   "files": 7740
+  },
+  {
+   "month": "202607",
+   "dates": 31,
+   "files": 7998
+  },
+  {
+   "month": "202608",
+   "dates": 31,
+   "files": 7998
+  },
+  {
+   "month": "202609",
+   "dates": 30,
+   "files": 7482
+  },
+  {
+   "month": "202610",
+   "dates": 29,
+   "files": 7376
+  },
+  {
+   "month": "202611",
+   "dates": 3,
+   "files": 510
+  }
+ ],
+ "daily_grib2_variants": [
+  {
+   "model": "2020",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "10Z",
+   "period": "f02-25",
+   "dates": 226,
+   "first": "20220429",
+   "last": "20230130",
+   "by_year": {
+    "2022": 225,
+    "2023": 1
+   }
+  },
+  {
+   "model": "2020",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "14Z",
+   "period": "f02-21",
+   "dates": 1005,
+   "first": "20220429",
+   "last": "20261024",
+   "by_year": {
+    "2022": 224,
+    "2023": 228,
+    "2024": 316,
+    "2026": 237
+   }
+  },
+  {
+   "model": "2020",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "17Z",
+   "period": "f02-18",
+   "dates": 3,
+   "first": "20220504",
+   "last": "20240506",
+   "by_year": {
+    "2022": 1,
+    "2024": 2
+   }
+  },
+  {
+   "model": "2020",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 1,
+   "first": "20220502",
+   "last": "20220502",
+   "by_year": {
+    "2022": 1
+   }
+  },
+  {
+   "model": "2020",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "19Z",
+   "period": "f02-16",
+   "dates": 1,
+   "first": "20220502",
+   "last": "20220502",
+   "by_year": {
+    "2022": 1
+   }
+  },
+  {
+   "model": "2020",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "20Z",
+   "period": "f02-15",
+   "dates": 106,
+   "first": "20220428",
+   "last": "20240506",
+   "by_year": {
+    "2022": 105,
+    "2024": 1
+   }
+  },
+  {
+   "model": "2020",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "23Z",
+   "period": "f02-12",
+   "dates": 3,
+   "first": "20220504",
+   "last": "20240525",
+   "by_year": {
+    "2022": 1,
+    "2024": 2
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "hail",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 1018,
+   "first": "20220601",
+   "last": "20261102",
+   "by_year": {
+    "2022": 161,
+    "2023": 239,
+    "2024": 316,
+    "2026": 302
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "hail",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 897,
+   "first": "20221012",
+   "last": "20261102",
+   "by_year": {
+    "2022": 23,
+    "2023": 242,
+    "2024": 331,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "hail",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 896,
+   "first": "20221129",
+   "last": "20261102",
+   "by_year": {
+    "2022": 22,
+    "2023": 241,
+    "2024": 333,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "hail",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 1018,
+   "first": "20220601",
+   "last": "20261102",
+   "by_year": {
+    "2022": 161,
+    "2023": 239,
+    "2024": 316,
+    "2026": 302
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "hail",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 897,
+   "first": "20221012",
+   "last": "20261102",
+   "by_year": {
+    "2022": 23,
+    "2023": 242,
+    "2024": 331,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "hail",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 896,
+   "first": "20221129",
+   "last": "20261102",
+   "by_year": {
+    "2022": 22,
+    "2023": 241,
+    "2024": 333,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 1018,
+   "first": "20220601",
+   "last": "20261102",
+   "by_year": {
+    "2022": 161,
+    "2023": 239,
+    "2024": 316,
+    "2026": 302
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 897,
+   "first": "20221012",
+   "last": "20261102",
+   "by_year": {
+    "2022": 23,
+    "2023": 242,
+    "2024": 331,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 896,
+   "first": "20221129",
+   "last": "20261102",
+   "by_year": {
+    "2022": 22,
+    "2023": 241,
+    "2024": 333,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 1018,
+   "first": "20220601",
+   "last": "20261102",
+   "by_year": {
+    "2022": 161,
+    "2023": 239,
+    "2024": 316,
+    "2026": 302
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 897,
+   "first": "20221012",
+   "last": "20261102",
+   "by_year": {
+    "2022": 23,
+    "2023": 242,
+    "2024": 331,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 896,
+   "first": "20221129",
+   "last": "20261102",
+   "by_year": {
+    "2022": 22,
+    "2023": 241,
+    "2024": 333,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 1018,
+   "first": "20220601",
+   "last": "20261102",
+   "by_year": {
+    "2022": 161,
+    "2023": 239,
+    "2024": 316,
+    "2026": 302
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 897,
+   "first": "20221012",
+   "last": "20261102",
+   "by_year": {
+    "2022": 23,
+    "2023": 242,
+    "2024": 331,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 896,
+   "first": "20221129",
+   "last": "20261102",
+   "by_year": {
+    "2022": 22,
+    "2023": 241,
+    "2024": 333,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 1018,
+   "first": "20220601",
+   "last": "20261102",
+   "by_year": {
+    "2022": 161,
+    "2023": 239,
+    "2024": 316,
+    "2026": 302
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 897,
+   "first": "20221012",
+   "last": "20261102",
+   "by_year": {
+    "2022": 23,
+    "2023": 242,
+    "2024": 331,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 896,
+   "first": "20221129",
+   "last": "20261102",
+   "by_year": {
+    "2022": 22,
+    "2023": 241,
+    "2024": 333,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 1018,
+   "first": "20220601",
+   "last": "20261102",
+   "by_year": {
+    "2022": 161,
+    "2023": 239,
+    "2024": 316,
+    "2026": 302
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 897,
+   "first": "20221012",
+   "last": "20261102",
+   "by_year": {
+    "2022": 23,
+    "2023": 242,
+    "2024": 331,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 896,
+   "first": "20221129",
+   "last": "20261102",
+   "by_year": {
+    "2022": 22,
+    "2023": 241,
+    "2024": 333,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 1018,
+   "first": "20220601",
+   "last": "20261102",
+   "by_year": {
+    "2022": 161,
+    "2023": 239,
+    "2024": 316,
+    "2026": 302
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 897,
+   "first": "20221012",
+   "last": "20261102",
+   "by_year": {
+    "2022": 23,
+    "2023": 242,
+    "2024": 331,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 896,
+   "first": "20221129",
+   "last": "20261102",
+   "by_year": {
+    "2022": 22,
+    "2023": 241,
+    "2024": 333,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_wind_adj",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 1018,
+   "first": "20220601",
+   "last": "20261102",
+   "by_year": {
+    "2022": 161,
+    "2023": 239,
+    "2024": 316,
+    "2026": 302
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_wind_adj",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 897,
+   "first": "20221012",
+   "last": "20261102",
+   "by_year": {
+    "2022": 23,
+    "2023": 242,
+    "2024": 331,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_wind_adj",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 896,
+   "first": "20221129",
+   "last": "20261102",
+   "by_year": {
+    "2022": 22,
+    "2023": 241,
+    "2024": 333,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_wind_adj",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 1018,
+   "first": "20220601",
+   "last": "20261102",
+   "by_year": {
+    "2022": 161,
+    "2023": 239,
+    "2024": 316,
+    "2026": 302
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_wind_adj",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 897,
+   "first": "20221012",
+   "last": "20261102",
+   "by_year": {
+    "2022": 23,
+    "2023": 242,
+    "2024": 331,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "sig_wind_adj",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 896,
+   "first": "20221129",
+   "last": "20261102",
+   "by_year": {
+    "2022": 22,
+    "2023": 241,
+    "2024": 333,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 1018,
+   "first": "20220601",
+   "last": "20261102",
+   "by_year": {
+    "2022": 161,
+    "2023": 239,
+    "2024": 316,
+    "2026": 302
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 897,
+   "first": "20221012",
+   "last": "20261102",
+   "by_year": {
+    "2022": 23,
+    "2023": 242,
+    "2024": 331,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 896,
+   "first": "20221129",
+   "last": "20261102",
+   "by_year": {
+    "2022": 22,
+    "2023": 241,
+    "2024": 333,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "tornado",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 1018,
+   "first": "20220601",
+   "last": "20261102",
+   "by_year": {
+    "2022": 161,
+    "2023": 239,
+    "2024": 316,
+    "2026": 302
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "tornado",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 897,
+   "first": "20221012",
+   "last": "20261102",
+   "by_year": {
+    "2022": 23,
+    "2023": 242,
+    "2024": 331,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "tornado",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 896,
+   "first": "20221129",
+   "last": "20261102",
+   "by_year": {
+    "2022": 22,
+    "2023": 241,
+    "2024": 333,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "wind",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 1018,
+   "first": "20220601",
+   "last": "20261102",
+   "by_year": {
+    "2022": 161,
+    "2023": 239,
+    "2024": 316,
+    "2026": 302
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "wind",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 897,
+   "first": "20221012",
+   "last": "20261102",
+   "by_year": {
+    "2022": 23,
+    "2023": 242,
+    "2024": 331,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "wind",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 896,
+   "first": "20221129",
+   "last": "20261102",
+   "by_year": {
+    "2022": 22,
+    "2023": 241,
+    "2024": 333,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "wind",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 1018,
+   "first": "20220601",
+   "last": "20261102",
+   "by_year": {
+    "2022": 161,
+    "2023": 239,
+    "2024": 316,
+    "2026": 302
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "wind",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 897,
+   "first": "20221012",
+   "last": "20261102",
+   "by_year": {
+    "2022": 23,
+    "2023": 242,
+    "2024": 331,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "wind",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 896,
+   "first": "20221129",
+   "last": "20261102",
+   "by_year": {
+    "2022": 22,
+    "2023": 241,
+    "2024": 333,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "wind_adj",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 1018,
+   "first": "20220601",
+   "last": "20261102",
+   "by_year": {
+    "2022": 161,
+    "2023": 239,
+    "2024": 316,
+    "2026": 302
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "wind_adj",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 897,
+   "first": "20221012",
+   "last": "20261102",
+   "by_year": {
+    "2022": 23,
+    "2023": 242,
+    "2024": 331,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "wind_adj",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 896,
+   "first": "20221129",
+   "last": "20261102",
+   "by_year": {
+    "2022": 22,
+    "2023": 241,
+    "2024": 333,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "wind_adj",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 1018,
+   "first": "20220601",
+   "last": "20261102",
+   "by_year": {
+    "2022": 161,
+    "2023": 239,
+    "2024": 316,
+    "2026": 302
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "wind_adj",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 897,
+   "first": "20221012",
+   "last": "20261102",
+   "by_year": {
+    "2022": 23,
+    "2023": 242,
+    "2024": 331,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2022",
+   "hazard": "wind_adj",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 896,
+   "first": "20221129",
+   "last": "20261102",
+   "by_year": {
+    "2022": 22,
+    "2023": 241,
+    "2024": 333,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "hail",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 582,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 281,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "hail",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "hail",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "hail",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 582,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 281,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "hail",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "hail",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 582,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 281,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 582,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 281,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 282,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 582,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 281,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 282,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 582,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 281,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_wind_adj",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 582,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 281,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_wind_adj",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_wind_adj",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_wind_adj",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 582,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 281,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_wind_adj",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "sig_wind_adj",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 282,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "tornado",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 582,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 281,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "tornado",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "tornado",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "tornado_life_risk",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 582,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 281,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "tornado_life_risk",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "tornado_life_risk",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "tornado_life_risk",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 582,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 281,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "tornado_life_risk",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "tornado_life_risk",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "wind",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 282,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "wind",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "wind",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "wind",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 582,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 281,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "wind",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "wind",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "wind_adj",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 582,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 281,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "wind_adj",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "wind_adj",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "wind_adj",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f01-23",
+   "dates": 582,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 281,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "wind_adj",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 579,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 278,
+    "2026": 301
+   }
+  },
+  {
+   "model": "2024_preliminary",
+   "hazard": "wind_adj",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f01-17",
+   "dates": 583,
+   "first": "20240301",
+   "last": "20261102",
+   "by_year": {
+    "2024": 283,
+    "2026": 300
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "hail",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 228,
+   "first": "20220430",
+   "last": "20230130",
+   "by_year": {
+    "2022": 227,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "hail",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 194,
+   "first": "20220613",
+   "last": "20230130",
+   "by_year": {
+    "2022": 193,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "hail",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 228,
+   "first": "20220502",
+   "last": "20221224",
+   "by_year": {
+    "2022": 228
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "hail",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f18-41",
+   "dates": 3,
+   "first": "20220719",
+   "last": "20221104",
+   "by_year": {
+    "2022": 3
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "hail",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 175,
+   "first": "20220701",
+   "last": "20230130",
+   "by_year": {
+    "2022": 174,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "hail",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 194,
+   "first": "20220613",
+   "last": "20230130",
+   "by_year": {
+    "2022": 193,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "hail",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 175,
+   "first": "20220701",
+   "last": "20221224",
+   "by_year": {
+    "2022": 175
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "hail",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f18-41",
+   "dates": 3,
+   "first": "20220719",
+   "last": "20221104",
+   "by_year": {
+    "2022": 3
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 228,
+   "first": "20220430",
+   "last": "20230130",
+   "by_year": {
+    "2022": 227,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 194,
+   "first": "20220613",
+   "last": "20230130",
+   "by_year": {
+    "2022": 193,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 228,
+   "first": "20220502",
+   "last": "20221224",
+   "by_year": {
+    "2022": 228
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f18-41",
+   "dates": 3,
+   "first": "20220719",
+   "last": "20221104",
+   "by_year": {
+    "2022": 3
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 175,
+   "first": "20220701",
+   "last": "20230130",
+   "by_year": {
+    "2022": 174,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 194,
+   "first": "20220613",
+   "last": "20230130",
+   "by_year": {
+    "2022": 193,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 175,
+   "first": "20220701",
+   "last": "20221224",
+   "by_year": {
+    "2022": 175
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_hail",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f18-41",
+   "dates": 3,
+   "first": "20220719",
+   "last": "20221104",
+   "by_year": {
+    "2022": 3
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 228,
+   "first": "20220430",
+   "last": "20230130",
+   "by_year": {
+    "2022": 227,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 194,
+   "first": "20220613",
+   "last": "20230130",
+   "by_year": {
+    "2022": 193,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 228,
+   "first": "20220502",
+   "last": "20221224",
+   "by_year": {
+    "2022": 228
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f18-41",
+   "dates": 3,
+   "first": "20220719",
+   "last": "20221104",
+   "by_year": {
+    "2022": 3
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 175,
+   "first": "20220701",
+   "last": "20230130",
+   "by_year": {
+    "2022": 174,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 194,
+   "first": "20220613",
+   "last": "20230130",
+   "by_year": {
+    "2022": 193,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 175,
+   "first": "20220701",
+   "last": "20221224",
+   "by_year": {
+    "2022": 175
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_tornado",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f18-41",
+   "dates": 3,
+   "first": "20220719",
+   "last": "20221104",
+   "by_year": {
+    "2022": 3
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 228,
+   "first": "20220430",
+   "last": "20230130",
+   "by_year": {
+    "2022": 227,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 194,
+   "first": "20220613",
+   "last": "20230130",
+   "by_year": {
+    "2022": 193,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 228,
+   "first": "20220502",
+   "last": "20221224",
+   "by_year": {
+    "2022": 228
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f18-41",
+   "dates": 3,
+   "first": "20220719",
+   "last": "20221104",
+   "by_year": {
+    "2022": 3
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 175,
+   "first": "20220701",
+   "last": "20230130",
+   "by_year": {
+    "2022": 174,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 194,
+   "first": "20220613",
+   "last": "20230130",
+   "by_year": {
+    "2022": 193,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 175,
+   "first": "20220701",
+   "last": "20221224",
+   "by_year": {
+    "2022": 175
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "sig_wind",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f18-41",
+   "dates": 3,
+   "first": "20220719",
+   "last": "20221104",
+   "by_year": {
+    "2022": 3
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "10Z",
+   "period": "f02-25",
+   "dates": 8,
+   "first": "20220421",
+   "last": "20220428",
+   "by_year": {
+    "2022": 8
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 228,
+   "first": "20220430",
+   "last": "20230130",
+   "by_year": {
+    "2022": 227,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 194,
+   "first": "20220613",
+   "last": "20230130",
+   "by_year": {
+    "2022": 193,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "14Z",
+   "period": "f02-21",
+   "dates": 8,
+   "first": "20220420",
+   "last": "20220428",
+   "by_year": {
+    "2022": 8
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "17Z",
+   "period": "f02-18",
+   "dates": 1,
+   "first": "20220423",
+   "last": "20220423",
+   "by_year": {
+    "2022": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 228,
+   "first": "20220502",
+   "last": "20221224",
+   "by_year": {
+    "2022": 228
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f18-41",
+   "dates": 3,
+   "first": "20220719",
+   "last": "20221104",
+   "by_year": {
+    "2022": 3
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "20Z",
+   "period": "f02-15",
+   "dates": 7,
+   "first": "20220420",
+   "last": "20220427",
+   "by_year": {
+    "2022": 7
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "tornado",
+   "absolutely_calibrated": false,
+   "cycle": "22Z",
+   "period": "f02-13",
+   "dates": 1,
+   "first": "20220421",
+   "last": "20220421",
+   "by_year": {
+    "2022": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "tornado",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 175,
+   "first": "20220701",
+   "last": "20230130",
+   "by_year": {
+    "2022": 174,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "tornado",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 194,
+   "first": "20220613",
+   "last": "20230130",
+   "by_year": {
+    "2022": 193,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "tornado",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 175,
+   "first": "20220701",
+   "last": "20221224",
+   "by_year": {
+    "2022": 175
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "tornado",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f18-41",
+   "dates": 3,
+   "first": "20220719",
+   "last": "20221104",
+   "by_year": {
+    "2022": 3
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "wind",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 228,
+   "first": "20220430",
+   "last": "20230130",
+   "by_year": {
+    "2022": 227,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "wind",
+   "absolutely_calibrated": false,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 194,
+   "first": "20220613",
+   "last": "20230130",
+   "by_year": {
+    "2022": 193,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "wind",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 228,
+   "first": "20220502",
+   "last": "20221224",
+   "by_year": {
+    "2022": 228
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "wind",
+   "absolutely_calibrated": false,
+   "cycle": "18Z",
+   "period": "f18-41",
+   "dates": 3,
+   "first": "20220719",
+   "last": "20221104",
+   "by_year": {
+    "2022": 3
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "wind",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f02-23",
+   "dates": 175,
+   "first": "20220701",
+   "last": "20230130",
+   "by_year": {
+    "2022": 174,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "wind",
+   "absolutely_calibrated": true,
+   "cycle": "12Z",
+   "period": "f24-47",
+   "dates": 194,
+   "first": "20220613",
+   "last": "20230130",
+   "by_year": {
+    "2022": 193,
+    "2023": 1
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "wind",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f02-17",
+   "dates": 175,
+   "first": "20220701",
+   "last": "20221224",
+   "by_year": {
+    "2022": 175
+   }
+  },
+  {
+   "model": "unversioned",
+   "hazard": "wind",
+   "absolutely_calibrated": true,
+   "cycle": "18Z",
+   "period": "f18-41",
+   "dates": 3,
+   "first": "20220719",
+   "last": "20221104",
+   "by_year": {
+    "2022": 3
+   }
+  }
+ ],
+ "samples": [
+  {
+   "name": "nadocast_2020_models_conus_tornado_20220429_t10z_f02-25.grib2",
+   "bytes": 9949,
+   "sha256": "9116412a1f94049d02482bebdf788fabcad11e7bc383bfcbd69cbb22bba70d09",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220429,
+    "dataTime": 1000,
+    "stepRange": "2-25",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0009369420586153865,
+     "max": 14.043905692058615,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2020_models_conus_tornado_20230130_t10z_f02-25.grib2",
+   "bytes": 13014,
+   "sha256": "865668ef12bc3f00f5d077d955e98f21455d9c8ddfd981cb0eb8df39826fe40b",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20230130,
+    "dataTime": 1000,
+    "stepRange": "2-25",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0010326335905119777,
+     "max": 2.605524821090512,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2020_models_conus_tornado_20220429_t14z_f02-21.grib2",
+   "bytes": 7426,
+   "sha256": "353dc2a26c57feeb6bb334f0600e6da5ff3b333a96ff4e9c9ca30987a94feba7",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220429,
+    "dataTime": 1400,
+    "stepRange": "2-21",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0005419655935838819,
+     "max": 18.477104465593584,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2020_models_conus_tornado_20261024_t14z_f02-21.grib2",
+   "bytes": 16115,
+   "sha256": "d0d39c9020393a302008fc8fad18c280de40f77a6da517f4f6ac11648f94f0b5",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261024,
+    "dataTime": 1400,
+    "stepRange": "2-21",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0004091662121936679,
+     "max": 3.6302919787121937,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2020_models_conus_tornado_20220504_t17z_f02-18.grib2",
+   "bytes": 10820,
+   "sha256": "c17c654608d4ba776ece75da22afe9ac64e8a709c477a66c604381f08fb21af9",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220504,
+    "dataTime": 1700,
+    "stepRange": "2-18",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0003982086491305381,
+     "max": 14.27774195864913,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2020_models_conus_tornado_20240506_t17z_f02-18.grib2",
+   "bytes": 9758,
+   "sha256": "c40e697d4b530a0b99a8149ede4301481ec20d4ad4468afe7d315fe5f2223d3d",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240506,
+    "dataTime": 1700,
+    "stepRange": "2-18",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00034783873707056046,
+     "max": 45.57847283873707,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2020_models_conus_tornado_20220502_t18z_f02-17.grib2",
+   "bytes": 6151,
+   "sha256": "4aeb3b8f1dfd38cd01470cb956de7eb6bd64fb54ebd509c54ae51f518ba85aa0",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220502,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00043306825682520866,
+     "max": 34.672308068256825,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2020_models_conus_tornado_20220502_t19z_f02-16.grib2",
+   "bytes": 5974,
+   "sha256": "875424e37015d7ed780dc26e56a5096e95a868cdea6b1e8bc02b2363275de8d7",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220502,
+    "dataTime": 1900,
+    "stepRange": "2-16",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0003901560266967863,
+     "max": 41.3285151560267,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2020_models_conus_tornado_20220428_t20z_f02-15.grib2",
+   "bytes": 19096,
+   "sha256": "e37f07e65429861bac40bb1aa0a4943d6c1821fb4c394f69d236d7be78d7f216",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220428,
+    "dataTime": 2000,
+    "stepRange": "2-15",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0003731920733116567,
+     "max": 0.8853829576983117,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2020_models_conus_tornado_20240506_t20z_f02-15.grib2",
+   "bytes": 8859,
+   "sha256": "6890bd29ace8eab7684cfcdb3334d8378c3383ea1114dcfe1c6475aab789c280",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240506,
+    "dataTime": 2000,
+    "stepRange": "2-15",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00027392274932935834,
+     "max": 42.45339892274933,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2020_models_conus_tornado_20220504_t23z_f02-12.grib2",
+   "bytes": 5373,
+   "sha256": "e8e42f89e0f6f2c4d1a09872fca340cf6b2c1886edb81a0e5e40ac9e79b23632",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220504,
+    "dataTime": 2300,
+    "stepRange": "2-12",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0001732134260237217,
+     "max": 17.953298213426024,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2020_models_conus_tornado_20240525_t23z_f02-12.grib2",
+   "bytes": 7837,
+   "sha256": "88487dd10881cd1b93cbe9a68e1162b468165f4ee0a3f3fb951e7d4f38594f7d",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240525,
+    "dataTime": 2300,
+    "stepRange": "2-12",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00025501532945781946,
+     "max": 27.883067515329458,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_tornado_20220601_t12z_f02-23.grib2",
+   "bytes": 14655,
+   "sha256": "3fe88ca40ad0a4f25fa7884a58d32874183a1d71da090322b4f3815f52626002",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220601,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00048811757005751133,
+     "max": 5.1137693675700575,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_tornado_20261102_t12z_f02-23.grib2",
+   "bytes": 10562,
+   "sha256": "846503a67a110259a3a4a7568ceff2e7790ea0ac47eeaadcaa8578f5d06312db",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00047966960119083524,
+     "max": 11.96532341960119,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_tornado_20221012_t12z_f24-47.grib2",
+   "bytes": 13073,
+   "sha256": "0fea6cac0d23ff67a97b1c9a28d4a96224db10a39f7b18d0ddf1c2a27d6669aa",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221012,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.001568628940731287,
+     "max": 5.622662378940731,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_tornado_20261102_t12z_f24-47.grib2",
+   "bytes": 13617,
+   "sha256": "397843d7f4a603e6f4e1fd95adce25e6121b54db5ae8e94bd1b86885f8c88454",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0018775069620460272,
+     "max": 4.535080631962046,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_tornado_20221129_t18z_f02-17.grib2",
+   "bytes": 5219,
+   "sha256": "5b17d118e8631f0d544a25856a196f5f4f20f8417f71c63d3a2039bbb5550d01",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221129,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0001631603081477806,
+     "max": 55.01578816030815,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_tornado_20261102_t18z_f02-17.grib2",
+   "bytes": 9513,
+   "sha256": "4b81678723968350d414a0a14cb8bc109392c49f299956e3cbc939186560ab6d",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00022700995032209903,
+     "max": 11.781477009950322,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_tornado_abs_calib_20220601_t12z_f02-23.grib2",
+   "bytes": 14353,
+   "sha256": "9c7d8cda5445c600c940d0cc4d24794eafb147a3dbc3d1e5dbe59a6f699d47cf",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220601,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0004556830390356481,
+     "max": 7.672330683039036,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_tornado_abs_calib_20261102_t12z_f02-23.grib2",
+   "bytes": 8306,
+   "sha256": "dfcf03a9f0e85490be67b1b013863bd208cddcf829e1d84ecde537be6987bb75",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00044779639574699104,
+     "max": 23.156697796395747,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_tornado_abs_calib_20221012_t12z_f24-47.grib2",
+   "bytes": 9894,
+   "sha256": "8cb8d0ed3853200502a0186a6040d2c414a7c21dfd94b09a8c29ae1b0ec1e449",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221012,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.001329460646957159,
+     "max": 8.196641960646957,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_tornado_abs_calib_20261102_t12z_f24-47.grib2",
+   "bytes": 13036,
+   "sha256": "68d42a9c1759c6495f4b49de38047485a5b151f7d9ede62a57f16cc2ada22e65",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0015912442468106747,
+     "max": 6.034794369246811,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_tornado_abs_calib_20221129_t18z_f02-17.grib2",
+   "bytes": 5218,
+   "sha256": "366b71167895df79e7007760782e6c4c602d0a4bb7dab364750c59a27d6030f2",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221129,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00015231860743369907,
+     "max": 62.000152318607434,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_tornado_abs_calib_20261102_t18z_f02-17.grib2",
+   "bytes": 7558,
+   "sha256": "576b359ad6b78904361979598f1378943582573b41b6fa64be94cd1a0b6b3342",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00021192553685978055,
+     "max": 22.66427442553686,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_20220601_t12z_f02-23.grib2",
+   "bytes": 13036,
+   "sha256": "e549dc911bc0a04b5c380c7564678c67e89cab734d289192a7b278f564699517",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220601,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00012189646804472432,
+     "max": 55.062621896468045,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_20261102_t12z_f02-23.grib2",
+   "bytes": 6888,
+   "sha256": "3102c9d73140a655e81f49a4be97cc20ef171a296e3470286e5865653d61f163",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00010124238906428218,
+     "max": 32.890726242389064,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_20221012_t12z_f24-47.grib2",
+   "bytes": 11381,
+   "sha256": "8d6ad4e958b59a0d5f640dd4ec208eb255a8ee3a985425c2b530c3ceacfe3644",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221012,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00016315722314175218,
+     "max": 18.48453815722314,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_20261102_t12z_f24-47.grib2",
+   "bytes": 10444,
+   "sha256": "e52228bccdaba0a71441ba4f3d40dfe96c28da3efcc882bc9fd4e0bb6f132e21",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00016451638657599688,
+     "max": 10.718914516386576,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_20221129_t18z_f02-17.grib2",
+   "bytes": 6641,
+   "sha256": "643aae970c7f9a91a3bde11b21bb15ba932ca5335839d5c285562a14fca5db4d",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221129,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 5.0012175051961094e-05,
+     "max": 37.96880001217505,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_20261102_t18z_f02-17.grib2",
+   "bytes": 8015,
+   "sha256": "bd2388cd300c0703ad15291f1877a1f182df79978316652e237f7d4afcac666c",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 6.02969121246133e-05,
+     "max": 29.125060296912125,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_abs_calib_20220601_t12z_f02-23.grib2",
+   "bytes": 10853,
+   "sha256": "91c4e381eb3d808bde4cc3733cd4c3777ad2d49fa3437ead35015eec2dee5f1b",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220601,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00012062515452271327,
+     "max": 82.21887062515452,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_abs_calib_20261102_t12z_f02-23.grib2",
+   "bytes": 7056,
+   "sha256": "309d69da9bddbe4d83a1408fa924c0c53a59cd46435366d6b0a5fb2e9bff9645",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00010018649481935427,
+     "max": 56.46885018649482,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_abs_calib_20221012_t12z_f24-47.grib2",
+   "bytes": 11225,
+   "sha256": "1708b850d08cd2df90108c74e98494e9e6d350b5a4d2c6846f6621599354880f",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221012,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00015660090139135718,
+     "max": 28.20328160090139,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_abs_calib_20261102_t12z_f24-47.grib2",
+   "bytes": 10298,
+   "sha256": "7962957565c046e61d1600fb2938a75f482ba2a7c6a24e78ccb2906fb9bea2eb",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00015790545148774981,
+     "max": 14.519689155451488,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_abs_calib_20221129_t18z_f02-17.grib2",
+   "bytes": 5505,
+   "sha256": "4d9729812d3ff197f4408a6331575ef6d6066408ec07e4af170c47026be7a5d6",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221129,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 4.949057620251551e-05,
+     "max": 65.5937994905762,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_abs_calib_20261102_t18z_f02-17.grib2",
+   "bytes": 6548,
+   "sha256": "348884a79ee84cc37f011356fc07d50feaa6ebfcf08a2854216b19273bbb58b8",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 5.9668054745998234e-05,
+     "max": 49.593809668054746,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_adj_20220601_t12z_f02-23.grib2",
+   "bytes": 13085,
+   "sha256": "922c807002ccdf1cd9c246ff2b9231bbe13a181cfe55dd97c0f9234372020151",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220601,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0008042597910389304,
+     "max": 44.31330425979104,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_adj_20261102_t12z_f02-23.grib2",
+   "bytes": 8637,
+   "sha256": "5e79e4ca867a074ada86e8acdf92096319437509e43a76b8cfd738e711c3d974",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.000790674239397049,
+     "max": 35.5320406742394,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_adj_20221012_t12z_f24-47.grib2",
+   "bytes": 16049,
+   "sha256": "906bd44d7420df0c06f0f0ff12d2caa028d2997f81e430532d2b21ffe4941f64",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221012,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0013866173103451729,
+     "max": 10.778730367310345,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_adj_20261102_t12z_f24-47.grib2",
+   "bytes": 14898,
+   "sha256": "b2a76dcc9e47ffc81bce93e738ba33449964462f0a93380a04348918d5eb8f9a",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0018167720409110188,
+     "max": 6.101426147040911,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_adj_20221129_t18z_f02-17.grib2",
+   "bytes": 13096,
+   "sha256": "df0760bf1887d9f38dc19c80a48e536721b7bce25703578502f54251a8e97f41",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221129,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00047251718933694065,
+     "max": 15.426253767189337,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_adj_20261102_t18z_f02-17.grib2",
+   "bytes": 7884,
+   "sha256": "f612dc9a8efa353f020898a4c2989baaaebf44a9178c3035213cb9bc539927dc",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0005024544661864638,
+     "max": 37.90675245446619,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_adj_abs_calib_20220601_t12z_f02-23.grib2",
+   "bytes": 8485,
+   "sha256": "cd2dff30ddaaaaa746f19d3fdbdb21da7b46bc49f755310bef80fda6f94838cd",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220601,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00019147434795740992,
+     "max": 47.04706647434796,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_adj_abs_calib_20261102_t12z_f02-23.grib2",
+   "bytes": 5413,
+   "sha256": "12734ac1d8ff700884352e101563e637dea45d7c350d07fbd44faa35914cf130",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00018823995196726173,
+     "max": 33.14081323995197,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_adj_abs_calib_20221012_t12z_f24-47.grib2",
+   "bytes": 12495,
+   "sha256": "99c84b5cd38e5137c98f002a7c970168707e84551a9348478486fbb93aea0a22",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221012,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0003300134849268943,
+     "max": 4.459314388484927,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_adj_abs_calib_20261102_t12z_f24-47.grib2",
+   "bytes": 14646,
+   "sha256": "2713be87303a8244210ce04093710618a9a64f4ad62983837abde857564c379c",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0004323898465372622,
+     "max": 1.8129323898465373,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_adj_abs_calib_20221129_t18z_f02-17.grib2",
+   "bytes": 10371,
+   "sha256": "01c7de722e370e4b24d418cc4aede0d8ae0491b4a2df4aecdab02e4671f13f5e",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221129,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00011249465023865923,
+     "max": 7.418081244650239,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2022_models_conus_wind_adj_abs_calib_20261102_t18z_f02-17.grib2",
+   "bytes": 5103,
+   "sha256": "5a7bfb63522790f8fca8108f2830efc92843639599ec0aeeac34201678f038d6",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00011962197459070012,
+     "max": 36.89074462197459,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_tornado_20240301_t12z_f01-23.grib2",
+   "bytes": 9909,
+   "sha256": "9ec951c821a3f001a57b3162e942b538e3a63072a27719a3530f5e536a9ee26a",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1200,
+    "stepRange": "1-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 8.550276834284887e-05,
+     "max": 4.990319877768343,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_tornado_20261102_t12z_f01-23.grib2",
+   "bytes": 10001,
+   "sha256": "67a7d24e2429f4d947779b666e605a32b8bb46c618a17cae1bbcf9ac002e3464",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "1-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00010077213664771989,
+     "max": 13.046975772136648,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_tornado_20240301_t12z_f24-47.grib2",
+   "bytes": 16487,
+   "sha256": "a583b614d8876f04bfb16e175877e2ed33d7ef24198c30757701f60c6a98def3",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00033487495966255665,
+     "max": 3.7005301874596626,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_tornado_20261102_t12z_f24-47.grib2",
+   "bytes": 14798,
+   "sha256": "c59e9e44ab3b54f47da9ccdd89b7d07caae877ed1b6f5f935d29f816747c6d2b",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00020682484318967909,
+     "max": 3.7990349498431897,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_tornado_20240301_t18z_f01-17.grib2",
+   "bytes": 9105,
+   "sha256": "5b1f4e0a71c1afa2340d498440b9f35839c292bb5a1f3e8543fc1e2d69194e0a",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1800,
+    "stepRange": "1-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 5.740155393141322e-05,
+     "max": 5.121151151553931,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_tornado_20261102_t18z_f01-17.grib2",
+   "bytes": 9198,
+   "sha256": "e6419445046aebacb584795c9f6a1ff8448750feea18e67a3bad352cd9c6203b",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1800,
+    "stepRange": "1-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 5.900257019675337e-05,
+     "max": 14.632871502570197,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_tornado_abs_calib_20240301_t12z_f01-23.grib2",
+   "bytes": 9441,
+   "sha256": "449420d3ed3a9db3823bdebcdbbe7d76155ae075d3e413fdf1963d7e4b6f4806",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1200,
+    "stepRange": "1-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 7.246618770295754e-05,
+     "max": 6.814525591187703,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_tornado_abs_calib_20261102_t12z_f01-23.grib2",
+   "bytes": 7849,
+   "sha256": "2980872fe408bd2f9c9eb9e0deb291331c359aeef9ff43cc371b54d5815af928",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "1-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 8.540745329810306e-05,
+     "max": 26.804772907453298,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_tornado_abs_calib_20240301_t12z_f24-47.grib2",
+   "bytes": 12310,
+   "sha256": "0ac1ad5e0b19e3843c722d847f404e5068e0a56054b3acba000d3a5a13dd246f",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00028381668380461633,
+     "max": 4.605752566683805,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_tornado_abs_calib_20261102_t12z_f24-47.grib2",
+   "bytes": 11139,
+   "sha256": "971072a6a54a287cc4c48dafcbe56b5b3f509dc7fba39a0dfee0c214d5fce83d",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00017529034812469035,
+     "max": 4.773612790348125,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_tornado_abs_calib_20240301_t18z_f01-17.grib2",
+   "bytes": 8746,
+   "sha256": "43a0df2d650f005818f8e01e3436df8e141c3fca06b5dbec49df98fa3d265b54",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1800,
+    "stepRange": "1-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 4.864955917582847e-05,
+     "max": 7.095751774559176,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_tornado_abs_calib_20261102_t18z_f01-17.grib2",
+   "bytes": 7312,
+   "sha256": "1fc84bd768a52c6ea3cdabe66469c4a13b38baf0b3dfe01183f203c8cacab4e7",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1800,
+    "stepRange": "1-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 5.000647433917038e-05,
+     "max": 31.46880000647434,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_20240301_t12z_f01-23.grib2",
+   "bytes": 8379,
+   "sha256": "cc87bc14b31606582b2f885a737e5c1559a1f00140cefe22d0ee1895a5c6ff0a",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1200,
+    "stepRange": "1-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 1.97426816157531e-05,
+     "max": 16.609394742681616,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_20261102_t12z_f01-23.grib2",
+   "bytes": 6766,
+   "sha256": "b787375451e97d8ec19e2dbb475adcd26249c8f6a5d0d6f9c6f18cd9705fe308",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "1-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 1.738711762300227e-05,
+     "max": 33.40626738711762,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_20240301_t12z_f24-47.grib2",
+   "bytes": 12741,
+   "sha256": "9e29570b4fc3d6e914bbf06abe0e27080118a8eb3966aab657bed481f28ec286",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 4.747725688503124e-05,
+     "max": 9.828172477256885,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_20261102_t12z_f24-47.grib2",
+   "bytes": 8503,
+   "sha256": "a88eb0406017b581e410182aa706cd01ae2f46a9ee0a806293cca1a00d651855",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 2.833655889844522e-05,
+     "max": 10.097684586558898,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_20240301_t18z_f01-17.grib2",
+   "bytes": 7973,
+   "sha256": "b95bd760cb36c6dec9e05d02623361d986b57f14abbbe3a614958b941d209bfe",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1800,
+    "stepRange": "1-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 1.6898991816560738e-05,
+     "max": 16.734391898991817,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_20261102_t18z_f01-17.grib2",
+   "bytes": 6443,
+   "sha256": "81d02e79b7becbb7f0d8120adeadbfd639c34ffe032afc6f58815bce9676c507",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1800,
+    "stepRange": "1-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 1.4797039511904586e-05,
+     "max": 33.70313979703951,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_abs_calib_20240301_t12z_f01-23.grib2",
+   "bytes": 8347,
+   "sha256": "32abd8148e9a94b17c94bb2ff3fc42e3cb5d05c4dc264e1a4efa7e1c6208c13a",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1200,
+    "stepRange": "1-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 1.8949340301332995e-05,
+     "max": 24.7656439493403,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_abs_calib_20261102_t12z_f01-23.grib2",
+   "bytes": 6866,
+   "sha256": "49c7ccbb93f580ded491cfbe9aa7444bcd5463a092f6c786a7665f7642e7fff6",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "1-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 1.6688432879163884e-05,
+     "max": 55.03126668843288,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_abs_calib_20240301_t12z_f24-47.grib2",
+   "bytes": 12545,
+   "sha256": "2f1549eea0847f1192a8215489dbdfd49c398a8709552e134c2700654fe542fd",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 4.55694280390162e-05,
+     "max": 13.003951819428039,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_abs_calib_20261102_t12z_f24-47.grib2",
+   "bytes": 8436,
+   "sha256": "2500523ced29375af9837c65d4ec32404300fc89b02bdcef054b827a32e3109e",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 2.7197882445761934e-05,
+     "max": 13.460964697882446,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_abs_calib_20240301_t18z_f01-17.grib2",
+   "bytes": 8005,
+   "sha256": "07f3d848f336b327497693ec2844b2b333adc8b28729850a5ab9e774a6134df8",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1800,
+    "stepRange": "1-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 1.6219921235460788e-05,
+     "max": 24.984391219921235,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_abs_calib_20261102_t18z_f01-17.grib2",
+   "bytes": 6581,
+   "sha256": "3514d5a519803617e911788226ebfa182940c037f52c7164640c98f7178495d9",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1800,
+    "stepRange": "1-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 1.420243461325299e-05,
+     "max": 55.51563920243461,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_adj_20240301_t12z_f01-23.grib2",
+   "bytes": 10489,
+   "sha256": "905a554fc11b9f0b47a1caa19ef3decbb43221de83bef39fc2897a17503c9984",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1200,
+    "stepRange": "1-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00021557413856498897,
+     "max": 16.750215574138565,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_adj_20261102_t12z_f01-23.grib2",
+   "bytes": 8697,
+   "sha256": "ba71a311247c31dc2947927d5dd311beb1014250ec32bac17a7000c18f072757",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "1-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0002499737893231213,
+     "max": 41.20337497378932,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_adj_20240301_t12z_f24-47.grib2",
+   "bytes": 14523,
+   "sha256": "3d53205e42920d310a087d8d1021ff7a63140a56e11f43dd4f1c19308af2c999",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00014481345715466887,
+     "max": 21.961082313457155,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_adj_20261102_t12z_f24-47.grib2",
+   "bytes": 12722,
+   "sha256": "762ecb9d29b8986e6fd0bce95bed222f01acb5bcda3ed5124c9ab9f76aa87b57",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00017126728198491037,
+     "max": 7.367358767281985,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_adj_20240301_t18z_f01-17.grib2",
+   "bytes": 9621,
+   "sha256": "2f5fde5b79b48cea9e7f5dd4ad672069e6d701b3ae172780269bca9d354391b9",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1800,
+    "stepRange": "1-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00012807866733055562,
+     "max": 17.90637807866733,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_adj_20261102_t18z_f01-17.grib2",
+   "bytes": 7711,
+   "sha256": "785ba1165ad68f9997ffc7e6e46d99e0a8eb5b01faae46df62a12c1735685c0d",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1800,
+    "stepRange": "1-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00015406213060487062,
+     "max": 38.765779062130605,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_adj_abs_calib_20240301_t12z_f01-23.grib2",
+   "bytes": 8285,
+   "sha256": "91eda16f4da82b00f8ce45869507dd802707ef026a33ab10509bc413d4b73e07",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1200,
+    "stepRange": "1-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 5.130642239237204e-05,
+     "max": 8.855520056422392,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_adj_abs_calib_20261102_t12z_f01-23.grib2",
+   "bytes": 5703,
+   "sha256": "1546a987998dcb9c93ee0f2386291cb604bbe5261a81b862bca7eb45e0445639",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "1-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 5.949349724687636e-05,
+     "max": 41.32818449349725,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_adj_abs_calib_20240301_t12z_f24-47.grib2",
+   "bytes": 11692,
+   "sha256": "984aa62788f9e4c3b58ebd698dd49aaec52a02455a5f573b8ae3e83412d08608",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 3.4465450880816206e-05,
+     "max": 14.82815946545088,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_adj_abs_calib_20261102_t12z_f24-47.grib2",
+   "bytes": 9561,
+   "sha256": "10eeb9a18f490c5f7f6ec29d0c1cd7100105a34dc8a9b0b770fe7875d5ff0bc1",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 4.076143159181811e-05,
+     "max": 2.529337636431592,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_adj_abs_calib_20240301_t18z_f01-17.grib2",
+   "bytes": 7677,
+   "sha256": "001103514adab7e949ea96e4717c11fe45f940607a3fad131ffa52a8ac24ffdf",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20240301,
+    "dataTime": 1800,
+    "stepRange": "1-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 3.0482589863822795e-05,
+     "max": 10.179717982589864,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_2024_preliminary_models_conus_wind_adj_abs_calib_20261102_t18z_f01-17.grib2",
+   "bytes": 5202,
+   "sha256": "7671baa24b364782f32b43c38caf1b97f9a42487efb75af331f5e7e33957371c",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20261102,
+    "dataTime": 1800,
+    "stepRange": "1-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 3.666662814794108e-05,
+     "max": 37.56253666662815,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_20220421_t10z_f02-25.grib2",
+   "bytes": 16515,
+   "sha256": "de91f5c784847b18d46f309075803e6458f2f59806303096e297cca31dc20e39",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220421,
+    "dataTime": 1000,
+    "stepRange": "2-25",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0009104187483899295,
+     "max": 2.43450416874839,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_20220428_t10z_f02-25.grib2",
+   "bytes": 23441,
+   "sha256": "aa130f11eaa67596cf63ccbd7d568cf5f5bc1d8b694a4d0ef394b64a47867caf",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220428,
+    "dataTime": 1000,
+    "stepRange": "2-25",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0009025846375152469,
+     "max": 0.9440178190125152,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_20220430_t12z_f02-23.grib2",
+   "bytes": 11380,
+   "sha256": "4ff5502f38b36a62a8c8db61c9a05cd1eb66aa6d8492d04bb8c27e132f0f3711",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220430,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0006330632022581995,
+     "max": 13.906883063202258,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_20230130_t12z_f02-23.grib2",
+   "bytes": 9155,
+   "sha256": "e74a2ea5eba9aa552d9d82058db1a10b17d7d559b164279511b72b1225c562f8",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20230130,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0008482896955683827,
+     "max": 5.735223289695568,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_20220613_t12z_f24-47.grib2",
+   "bytes": 21313,
+   "sha256": "30618fe8194e592c20a30fc6fd659415c019f23405487b2e022ea5672fab3ec9",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220613,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.001027710852213204,
+     "max": 3.730519898352213,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_20230130_t12z_f24-47.grib2",
+   "bytes": 12822,
+   "sha256": "c8f130418ad61bbc601f6fb390b00515eb43e06a45076e9e28e1c6c8d2c6b2f6",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20230130,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00135156256146729,
+     "max": 3.2318203125614673,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_20220420_t14z_f02-21.grib2",
+   "bytes": 17527,
+   "sha256": "e4d810231adccd3f29e7de84511d2b5da45980f0ea82313511e78f8da70e136e",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220420,
+    "dataTime": 1400,
+    "stepRange": "2-21",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0005874456255696714,
+     "max": 1.8145522893755697,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_20220428_t14z_f02-21.grib2",
+   "bytes": 22218,
+   "sha256": "b0380ff5fc48457c11d9624a575485fba276acf54c51af2f598c388fbb320a68",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220428,
+    "dataTime": 1400,
+    "stepRange": "2-21",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0006375176599249244,
+     "max": 0.9159207207849249,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_20220423_t17z_f02-18.grib2",
+   "bytes": 6761,
+   "sha256": "d080c322a95e1dd37605f238bfa1d2fccd190efa4966d0d844129877e9f5426d",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220423,
+    "dataTime": 1700,
+    "stepRange": "2-18",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00045634456910192966,
+     "max": 31.375456344569102,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_20220502_t18z_f02-17.grib2",
+   "bytes": 10254,
+   "sha256": "b56adc7644c29deb5222038bda8ce9a3ea571131c9d4108a96db58d25ea466bc",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220502,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00040964403888210654,
+     "max": 14.031659644038882,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_20221224_t18z_f02-17.grib2",
+   "bytes": 13136,
+   "sha256": "9eb91d56a76eac621c4a96f17e4f82c42378640546e139289d46cb1f2108d1de",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221224,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0005307598039507866,
+     "max": 1.5625424785539508,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_20220719_t18z_f18-41.grib2",
+   "bytes": 19798,
+   "sha256": "6ac1845350a349bf559a2fc02e1d48cc10184b18499588dc0e891ea95c553a2f",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220719,
+    "dataTime": 1800,
+    "stepRange": "18-41",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0009369823383167386,
+     "max": 6.788046357338317,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_20221104_t18z_f18-41.grib2",
+   "bytes": 18106,
+   "sha256": "99d9e5aec66193fb45671ea914cdeb6c5405a374b72bdaba88a2ab06fe06cd91",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221104,
+    "dataTime": 1800,
+    "stepRange": "18-41",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.001260759774595499,
+     "max": 4.0813388847745955,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_20220420_t20z_f02-15.grib2",
+   "bytes": 14324,
+   "sha256": "99e2f62057fe7e2d05257b396f1984ab4a688349712075f23308c9b65545b956",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220420,
+    "dataTime": 2000,
+    "stepRange": "2-15",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0003690990270115435,
+     "max": 1.2816190990270115,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_20220427_t20z_f02-15.grib2",
+   "bytes": 17558,
+   "sha256": "63faca40c887c73a19af443a37cf1446e50c82e7c37f28b061877c36ca72e721",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220427,
+    "dataTime": 2000,
+    "stepRange": "2-15",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00036953750532120466,
+     "max": 0.6102328187553212,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_20220421_t22z_f02-13.grib2",
+   "bytes": 19051,
+   "sha256": "b5158f29fe1bdb0057e455a6fd85d245b32280687f5c239dee40a025ef5aa03e",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220421,
+    "dataTime": 2200,
+    "stepRange": "2-13",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0002901647239923477,
+     "max": 0.7910616490989923,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_abs_calib_20220701_t12z_f02-23.grib2",
+   "bytes": 14965,
+   "sha256": "7f16c670004aaa71a1f736f60c5dd6130ff1ce0a7d442f48111d700227f9d443",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220701,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.000632549577858299,
+     "max": 8.293601299577858,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_abs_calib_20230130_t12z_f02-23.grib2",
+   "bytes": 6964,
+   "sha256": "696ec3df833ccf5c64b779e45bd31d13c2e36e45b79c5f39b8daaa808fbb86ee",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20230130,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.000821207941044122,
+     "max": 9.762539957941044,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_abs_calib_20220613_t12z_f24-47.grib2",
+   "bytes": 16775,
+   "sha256": "e7775b9e5e6b2e43eeee7b1b8935dfd901fac469b66ad13d7a92551b71df1204",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220613,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0009194331360049546,
+     "max": 5.248966308136005,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_abs_calib_20230130_t12z_f24-47.grib2",
+   "bytes": 9072,
+   "sha256": "542eab319b830653b03ca4ceb0993da6b096f461a3fc3017612b9f1f9cac2baa",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20230130,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0012091645039618015,
+     "max": 4.253162289503962,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_abs_calib_20220701_t18z_f02-17.grib2",
+   "bytes": 14116,
+   "sha256": "963228a3f6c876b41c6533b2782f20f51cb6c206f77bcca6303e93ad4bacaa7b",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220701,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0004323118773754686,
+     "max": 8.023869811877375,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_abs_calib_20221224_t18z_f02-17.grib2",
+   "bytes": 12956,
+   "sha256": "f677c4cf6533c2a2ff1607c715ef08481753f44b8727ba16e33db74d8d67e29f",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221224,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0005138151464052498,
+     "max": 1.5127208463964052,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_abs_calib_20220719_t18z_f18-41.grib2",
+   "bytes": 15500,
+   "sha256": "b5e699482055ff807a0882537ee985ec861a15b5d8bac34261f66a619ee72626",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220719,
+    "dataTime": 1800,
+    "stepRange": "18-41",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0008382637170143425,
+     "max": 11.133650763717014,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_tornado_abs_calib_20221104_t18z_f18-41.grib2",
+   "bytes": 17500,
+   "sha256": "5bba77fa6254af0b57895e208b8be291e74965305d39802ef8cbc4b7fe0f02fc",
+   "grib": {
+    "shortName": "torprob",
+    "name": "Tornado probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 197,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221104,
+    "dataTime": 1800,
+    "stepRange": "18-41",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0011279284954071045,
+     "max": 5.952299803495407,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_wind_20220430_t12z_f02-23.grib2",
+   "bytes": 9841,
+   "sha256": "af8f5aad2afef938b1048b71eb2ee3a7a52d05900af043c9d5a92487336c8346",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220430,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 2.5549352358211763e-05,
+     "max": 17.179713049352358,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_wind_20230130_t12z_f02-23.grib2",
+   "bytes": 8019,
+   "sha256": "d759edb5a7618e77f3142040439128739f369cbb3effcf7442b7e951abc1ca71",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20230130,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 3.529840614646673e-05,
+     "max": 7.4394884234061465,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_wind_20220613_t12z_f24-47.grib2",
+   "bytes": 21299,
+   "sha256": "cde5d026d06018961097a9b4f7181a5ee41657eed50f2537bd88732269e84140",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220613,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.0001433024153811857,
+     "max": 30.99233080241538,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_wind_20230130_t12z_f24-47.grib2",
+   "bytes": 12217,
+   "sha256": "77e590aad55150ad6f6487e42630b35a17576ead11c6aadb59c117deb044c081",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20230130,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00017816349281929433,
+     "max": 3.8429516009928193,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_wind_20220502_t18z_f02-17.grib2",
+   "bytes": 8100,
+   "sha256": "b9094c6e379140c785777901a0a9c498507e4e848f6e0706410bf0c7c15937e7",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220502,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 1.5032890587463044e-05,
+     "max": 52.43751503289059,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_wind_20221224_t18z_f02-17.grib2",
+   "bytes": 15983,
+   "sha256": "ebef7bd35325ee9660b096f38b2638e85a143da3b2d84d83cb9534e50a51b342",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221224,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 2.7889378543477505e-05,
+     "max": 0.6838657800035435,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_wind_20220719_t18z_f18-41.grib2",
+   "bytes": 19787,
+   "sha256": "7e34f3335a8b22d5cb2f97a6cedd8653f6dc19d97342455641004c6eff5a64b0",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220719,
+    "dataTime": 1800,
+    "stepRange": "18-41",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00011732784332707524,
+     "max": 42.07824232784333,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_wind_20221104_t18z_f18-41.grib2",
+   "bytes": 15394,
+   "sha256": "ad0bc6d99ceecabb001ff8a7f9480d50c7bf38c4ef34f5a042c3719526d71696",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221104,
+    "dataTime": 1800,
+    "stepRange": "18-41",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00015111404354684055,
+     "max": 31.164213614043547,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_wind_abs_calib_20220701_t12z_f02-23.grib2",
+   "bytes": 16957,
+   "sha256": "4248bc635c0ee22798ea56cedb3f5f22f6ed1278e67c649d3258d0569d3d74ba",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220701,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 3.785140870604664e-05,
+     "max": 91.6875378514087,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_wind_abs_calib_20230130_t12z_f02-23.grib2",
+   "bytes": 5978,
+   "sha256": "fe4335cbccfbb53afccf5ee9a34dd80cfef236615fc62e14057459a8a0a381e9",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20230130,
+    "dataTime": 1200,
+    "stepRange": "2-23",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 3.77741307602264e-05,
+     "max": 9.66410027413076,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_wind_abs_calib_20220613_t12z_f24-47.grib2",
+   "bytes": 17947,
+   "sha256": "e419cf6270231f4492abd232beaaa659f2e6c978140298605bbc5e10df5908a4",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220613,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00014806160470470786,
+     "max": 51.468898061604705,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_wind_abs_calib_20230130_t12z_f24-47.grib2",
+   "bytes": 12429,
+   "sha256": "2e4f144bae625290ebd8df0f3e5e611ae1c902dbf9429a2c20594157e392c71d",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20230130,
+    "dataTime": 1200,
+    "stepRange": "24-47",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00018408044707030058,
+     "max": 3.9708872054470703,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_wind_abs_calib_20220701_t18z_f02-17.grib2",
+   "bytes": 16639,
+   "sha256": "270acf184d1a8773a36d508c8f3b5513feefd4d3032a62b9edfaa3a06b6043ef",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220701,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 2.7254149244981818e-05,
+     "max": 82.68752725414924,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_wind_abs_calib_20221224_t18z_f02-17.grib2",
+   "bytes": 16348,
+   "sha256": "e8e060238966385ad7dddb1c31687e739b90c0ecaaf77256bec9349da5d9a18f",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221224,
+    "dataTime": 1800,
+    "stepRange": "2-17",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 2.9845457902411e-05,
+     "max": 0.7319634392079024,
+     "n": 87462
+    }
+   }
+  },
+  {
+   "name": "nadocast_conus_wind_abs_calib_20220719_t18z_f18-41.grib2",
+   "bytes": 16560,
+   "sha256": "349283de4d6be7066679cbdfcc8f7306e3e15fed81be1838eee3e9d4c3d7deff",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20220719,
+    "dataTime": 1800,
+    "stepRange": "18-41",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00012122438056394458,
+     "max": 72.59387122438056,
+     "n": 87462
+    },
+    "bbox": [
+     -134.47412801446723,
+     -60.17119684133155,
+     19.85800000000002,
+     52.60479218483181
+    ]
+   }
+  },
+  {
+   "name": "nadocast_conus_wind_abs_calib_20221104_t18z_f18-41.grib2",
+   "bytes": 12556,
+   "sha256": "256fd415f34a48afe4976243fde003cf65ac85e59d852aee4867bc6cc921c630",
+   "grib": {
+    "shortName": "windprob",
+    "name": "Wind probability",
+    "units": "%",
+    "discipline": 0,
+    "parameterCategory": 19,
+    "parameterNumber": 199,
+    "gridType": "lambert",
+    "Ni": 387,
+    "Nj": 226,
+    "Nx": 387,
+    "Ny": 226,
+    "DxInMetres": 15237.0,
+    "DyInMetres": 15237.0,
+    "LaDInDegrees": 25.0,
+    "LoVInDegrees": 265.0,
+    "Latin1InDegrees": 25.0,
+    "Latin2InDegrees": 25.0,
+    "latitudeOfFirstGridPointInDegrees": 19.858,
+    "longitudeOfFirstGridPointInDegrees": 234.906,
+    "dataDate": 20221104,
+    "dataTime": 1800,
+    "stepRange": "18-41",
+    "stepType": "avg",
+    "probabilityType": 3,
+    "numberOfMissing": 0,
+    "values": {
+     "min": 0.00015613266441505402,
+     "max": 51.797031132664415,
+     "n": 87462
+    }
+   }
+  }
+ ],
+ "outcomes_accessed": false
+}

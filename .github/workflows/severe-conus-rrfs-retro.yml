@@ -1,0 +1,158 @@
+name: Severe CONUS retrospective RRFS pilot (research)
+# research/severe/conus-v1/rrfs/retro/RULES.md: extract retrospective RRFS (12Z + 06Z) for the 92-date roster with
+# byte ranges, reuse existing HRRR cases (extract the 8 missing), build a checksummed feature cache, then score
+# HRRR-only / RRFS-only / HRRR+RRFS with the fixed logistic recipe over three held-out archive blocks.
+# Development only: 2025 is never loaded; never touches the live feed, publisher, registry, preview or collectors.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-v1/rrfs/retro/request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-rrfs-retro
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      batches: ${{ steps.p.outputs.batches }}
+      new: ${{ steps.p.outputs.new }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          python3 - >> "$GITHUB_OUTPUT" <<'PY'
+          import json
+          r = json.load(open("research/severe/conus-v1/rrfs/retro/roster.json"))
+          d = r["dates"]
+          assert len(d) == 92 and not any(x.startswith("2025") for x in d)
+          print("batches=" + json.dumps([{"name": f"b{i}", "dates": " ".join(d[i::10])} for i in range(10)]))
+          print("new=" + " ".join(r["hrrr_sources"]["extract_new"]))
+          PY
+  rrfs:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        batch: ${{ fromJSON(needs.plan.outputs.batches) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r tools/severe/requirements.txt scikit-learn==1.9.1 shapely==2.2.0
+      - name: Extract retrospective RRFS (12Z and 06Z)
+        run: |
+          start=$(date +%s)
+          PYTHONPATH=tools/severe python3 tools/severe/conus_rrfs_retro.py extract --dates ${{ matrix.batch.dates }} --cycles 12 6 --output tests/out/rrfs
+          echo "batch ${{ matrix.batch.name }}: $(( $(date +%s) - start ))s" | tee tests/out/rrfs/runtime-${{ matrix.batch.name }}.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rrfs-retro-${{ matrix.batch.name }}
+          path: tests/out/rrfs
+          retention-days: 90
+  hrrr-new:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env: { OPENBLAS_NUM_THREADS: '2' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r tools/severe/requirements.txt matplotlib==3.11.2 shapely==2.2.0
+      - run: cd tools/severe && python3 conus_grid.py --check
+      - name: Stage the pinned 2024 Storm Events file (verified by size and SHA-256)
+        env:
+          ARCHIVE_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
+          ACTIONS_TOKEN: ${{ github.token }}
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+        run: |
+          name=$(python3 -c "import json;print([s['file'] for s in json.load(open('research/severe/labels-v04/manifest.json'))['sources'] if '_d2024' in s['file']][0])")
+          args=(--name "$name" --cache tests/out/cache/reports --actions)
+          [ -n "$ARCHIVE_REPO" ] && args+=(--repository "$ARCHIVE_REPO")
+          python3 tools/severe/stage_report_source.py "${args[@]}"
+      - name: Extract the HRRR cases not yet extracted
+        run: |
+          mkdir -p tests/out/reports
+          for case in ${{ needs.plan.outputs.new }}; do
+            start=$(date +%s)
+            PYTHONPATH=tools/severe python3 tools/severe/conus_pilot.py --case "$case" --output tests/out/conus \
+              --cache tests/out/cache --report "tests/out/reports/$case.json" || echo "{\"case\": \"$case\", \"status\": \"failed\"}" > "tests/out/reports/$case.failed.json"
+            rm -rf tests/out/cache/"$case"
+            echo "$case $(( $(date +%s) - start ))s" | tee -a tests/out/reports/runtime.txt
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: severe-conus-retro-new
+          path: |
+            tests/out/conus
+            tests/out/reports
+          retention-days: 90
+  score:
+    needs: [plan, rrfs, hrrr-new]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env: { OPENBLAS_NUM_THREADS: '4', OMP_NUM_THREADS: '4' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 shapely==2.2.0
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'rrfs-retro-b*', merge-multiple: true, path: tests/out/rrfs }
+      - uses: actions/download-artifact@v4
+        with: { name: severe-conus-retro-new, path: tests/out/h0 }
+        continue-on-error: true
+      - uses: actions/download-artifact@v4
+        with: { name: severe-conus-2023-07_2023-09, path: tests/out/h1, run-id: '44577990940', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { name: severe-conus-2023-07_2023-07, path: tests/out/h2, run-id: '45065678907', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { name: severe-conus-2024-05_2024-05, path: tests/out/h3, run-id: '44961446546', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { name: severe-conus-2024-01_2024-03, path: tests/out/h4, run-id: '44942885255', github-token: '${{ github.token }}' }
+      - uses: actions/download-artifact@v4
+        with: { name: severe-conus-2024-04_2024-06, path: tests/out/h5, run-id: '44942885255', github-token: '${{ github.token }}' }
+      - name: Build the checksummed feature cache
+        run: |
+          df -h . | tail -1
+          PYTHONPATH=tools/severe python3 tools/severe/conus_rrfs_pilot.py cache --roster research/severe/conus-v1/rrfs/retro/roster.json \
+            --hrrr tests/out/h0/conus tests/out/h1/conus tests/out/h2/conus tests/out/h3/conus tests/out/h4/conus tests/out/h5/conus \
+            --rrfs tests/out/rrfs --output tests/out/cache
+          rm -rf tests/out/h1 tests/out/h2 tests/out/h3 tests/out/h4 tests/out/h5
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rrfs-retro-cache
+          path: tests/out/cache
+          retention-days: 90
+      - name: Score the first comparison (12Z)
+        run: |
+          PYTHONPATH=tools/severe python3 tools/severe/conus_rrfs_pilot.py score --cache tests/out/cache --cycle 12 --output tests/out/score
+      - name: Commit roster log, cache manifest and scorecard
+        env:
+          DEST: research/severe/conus-v1/rrfs/retro/first
+        run: |
+          mkdir -p "$DEST"
+          cp tests/out/cache/manifest.json "$DEST/cache-manifest.json"
+          cp tests/out/score/scorecard.json tests/out/score/scorecard.md "$DEST/"
+          python3 - <<'PY'
+          import json, glob
+          rows = [json.load(open(f)) for f in sorted(glob.glob("tests/out/rrfs/*/rrfs-*z.json"))]
+          slim = [{k: r.get(k) for k in ("issue_date", "cycle", "status", "error", "messages", "downloaded_bytes", "input_sha256", "timing_seconds", "valid_window", "grid", "native_value_range", "artifact")} for r in rows]
+          json.dump(slim, open("research/severe/conus-v1/rrfs/retro/first/rrfs-extraction.json", "w"), indent=0)
+          print({c: {s: sum(r["status"] == s and r["cycle"] == c for r in rows) for s in {r["status"] for r in rows}} for c in ("12z", "06z")})
+          PY
+          cat tests/out/rrfs/runtime-*.txt > "$DEST/rrfs-runtime.txt" || true
+          cp tests/out/h0/reports/runtime.txt "$DEST/hrrr-new-runtime.txt" 2>/dev/null || true
+          echo "run_id: $GITHUB_RUN_ID" > "$DEST/run.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$DEST"
+          git commit -m "Retrospective RRFS pilot: first scorecard (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done
+          exit 1

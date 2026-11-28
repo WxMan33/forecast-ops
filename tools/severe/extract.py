@@ -30,6 +30,10 @@ def write_json(path,value):
     tmp=path.with_suffix(path.suffix+'.tmp');tmp.write_text(json.dumps(value,indent=2,allow_nan=False)+'\n');tmp.replace(path)
 
 
+class ShortRead(ValueError):
+    """A byte-range response that came back truncated; transient, so it is retried."""
+
+
 class Client:
     def __init__(self,root,budget_mb):
         self.root=Path(root);self.limit=budget_mb*1000000;self.used=0;self.lock=threading.Lock()
@@ -52,10 +56,10 @@ class Client:
                     with self.lock:
                         self.used+=len(data)
                         if self.used>self.limit:raise ValueError('Download budget exhausted')
-                    if len(data)>limit or start is not None and len(data)!=limit:raise ValueError('Incorrect response length')
+                    if len(data)>limit or start is not None and len(data)!=limit:raise ShortRead('Incorrect response length')
                     etag=response.headers.get('ETag')
                 break
-            except (urllib.error.URLError,TimeoutError) as error:
+            except (urllib.error.URLError,TimeoutError,ShortRead) as error:
                 if isinstance(error,urllib.error.HTTPError) and error.code not in [429,500,502,503,504]:raise
                 if attempt==2:raise
                 time.sleep(2**attempt)
@@ -126,7 +130,9 @@ class Aggregate:
         return columns,np.column_stack([arrays[n] for n in columns]).astype(np.float32)
 
 
-def extract(issue,output,cache,budget_mb=2000,days=(1,2),stride=5,bounds=(-100,-75,30,45),target_windows=None,expected_coordinates=None):
+def extract(issue,output,cache,budget_mb=2000,days=(1,2),stride=5,bounds=(-100,-75,30,45),target_windows=None,expected_coordinates=None,extra_samples=None):
+    """extra_samples: optional path to an .npz with native 'rows'/'cols' (on the stride lattice) added to
+    the bounds samples, e.g. the CONUS land grid. Without it the regional behavior is unchanged."""
     targets=[w for w in windows(issue) if w['day'] in days] if target_windows is None else target_windows
     if any(w['model_init_time']!=issue.isoformat() or w['day'] not in days for w in targets):raise ValueError('Target initialization/day mismatch')
     if len({w['day'] for w in targets})!=len(targets) or len({w['feature_schema'] for w in targets})!=1:raise ValueError('Mixed or duplicate target schemas')
@@ -155,7 +161,12 @@ def extract(issue,output,cache,budget_mb=2000,days=(1,2),stride=5,bounds=(-100,-
             if geometry is None:
                 geometry=data['geometry'];w,e,s,n=bounds
                 mask=(data['lon']>=w)&(data['lon']<=e)&(data['lat']>=s)&(data['lat']<=n)
-                sample=np.zeros(mask.shape,bool);sample[::stride,::stride]=True;rows,cols=np.where(mask&sample)
+                sample=np.zeros(mask.shape,bool);sample[::stride,::stride]=True
+                if extra_samples is not None:
+                    with np.load(extra_samples,allow_pickle=False) as extra:er,ec=extra['rows'],extra['cols']
+                    if (er%stride).any() or (ec%stride).any():raise ValueError('Extra samples must lie on the stride lattice')
+                    mask=mask.copy();mask[er,ec]=True
+                rows,cols=np.where(mask&sample)
                 if not len(rows):raise ValueError('No sample centers in domain')
                 coords=np.column_stack((data['lon'][rows,cols],data['lat'][rows,cols]))
                 if expected_coordinates is not None:
@@ -189,6 +200,8 @@ def extract(issue,output,cache,budget_mb=2000,days=(1,2),stride=5,bounds=(-100,-
         np.savez_compressed(path,coordinates=coords,features=matrix,feature_names=np.array(columns))
         products.append({**window,'file':path.name,'sha256':digest(path),'samples':len(coords),'features':columns,'probabilities_available':False})
     manifest={'schema_version':1,'status':'predictors_only_not_a_forecast','feature_schema':schema,'model_init_time':issue.isoformat(),'completed_at':datetime.now(timezone.utc).isoformat(),'bounds':list(bounds),'stride':stride,'native_grid':geometry,'field_identities':identity,'grid_sha256':hashlib.sha256(coords.astype('<f8').tobytes()).hexdigest(),'products':products,'hour_hashes':hour_hashes,'source_receipts':receipts,'downloaded_bytes':client.used,'neighborhood':'Nominal 3 km native-grid disk; no missing/edge padding','operational_skill_established':False}
+    if extra_samples is not None:  # only CONUS runs carry this key; regional manifests are unchanged
+        manifest['extra_samples']={'file':Path(extra_samples).name,'sha256':digest(extra_samples),'count':int(np.load(extra_samples)['rows'].size)}
     write_json(output/'manifest.json',manifest)
     return manifest
 

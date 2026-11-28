@@ -1,0 +1,8 @@
+{
+ "request": 1,
+ "cohort_extraction_run": 44577990940,
+ "corridor_extraction_run": 45065678907,
+ "fulldev_extraction_run": 45437839535,
+ "rule": "research/severe/conus-v1/fulldev-gate-rule.md (committed in a9363c2 before the extraction ran)",
+ "note": "728 2022-23 development dates (96 cohort + 266 corridor + 366 fulldev, 0 failed). 2021 and 2025 sealed; nothing live touched."
+}

@@ -1,0 +1,94 @@
+{
+ "protected_2025_outcomes_accessed": false,
+ "status": "research_only_not_operational",
+ "cohort_sha256": "de630ae0a8ada2c2bb42434f0c34a9c9d8fd2aad35ac6469734e9155eb294d7c",
+ "frozen_labels_sha256": "1451eac672dbe8fdaf26c2e0cb8f809fe23a4d35ccdf6258039316756168ad25",
+ "development_dates_previously_used_for_selection": true,
+ "note": "2024 development dates were already used to compare v0.6/v0.7/v0.8, so these scores are exploratory, not a sealed test. 2025 remains sealed.",
+ "products": {
+  "day1_tornado": {
+   "dates": 96,
+   "event_points": 2796,
+   "event_dates": 31,
+   "v07_recipe": {
+    "log_loss": 0.009173893307692462,
+    "brier": 0.0016982058828908242
+   },
+   "phase2_logistic_recipe": {
+    "log_loss": 0.00856211885235923,
+    "brier": 0.0016777164614566256
+   },
+   "climatology_brier": 0.0017713591332573079
+  },
+  "day1_wind": {
+   "dates": 96,
+   "event_points": 28626,
+   "event_dates": 56,
+   "v07_recipe": {
+    "log_loss": 0.06458122284743177,
+    "brier": 0.0162425315388
+   },
+   "phase2_logistic_recipe": {
+    "log_loss": 0.06186498330603141,
+    "brier": 0.015966886411539163
+   },
+   "climatology_brier": 0.017837695732869852
+  },
+  "day1_hail": {
+   "dates": 96,
+   "event_points": 11824,
+   "event_dates": 51,
+   "v07_recipe": {
+    "log_loss": 0.0328281718924706,
+    "brier": 0.007202329066737223
+   },
+   "phase2_logistic_recipe": {
+    "log_loss": 0.029134655613308146,
+    "brier": 0.00666869510944376
+   },
+   "climatology_brier": 0.007447900909351653
+  },
+  "day2_tornado": {
+   "dates": 96,
+   "event_points": 3099,
+   "event_dates": 36,
+   "v07_recipe": {
+    "log_loss": 0.010585633699694784,
+    "brier": 0.0019361571391683949
+   },
+   "phase2_logistic_recipe": {
+    "log_loss": 0.009718398261178752,
+    "brier": 0.001919258211862103
+   },
+   "climatology_brier": 0.001962941504884149
+  },
+  "day2_wind": {
+   "dates": 96,
+   "event_points": 28848,
+   "event_dates": 56,
+   "v07_recipe": {
+    "log_loss": 0.06300685215310307,
+    "brier": 0.016121700762140027
+   },
+   "phase2_logistic_recipe": {
+    "log_loss": 0.060153792344638274,
+    "brier": 0.015725419480796803
+   },
+   "climatology_brier": 0.017973450821893052
+  },
+  "day2_hail": {
+   "dates": 96,
+   "event_points": 11640,
+   "event_dates": 51,
+   "v07_recipe": {
+    "log_loss": 0.03211878196382741,
+    "brier": 0.007066851477047083
+   },
+   "phase2_logistic_recipe": {
+    "log_loss": 0.029282942886323878,
+    "brier": 0.006752144529839528
+   },
+   "climatology_brier": 0.0073328625656166255
+  }
+ }
+}

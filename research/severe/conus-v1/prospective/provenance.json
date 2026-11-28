@@ -1,0 +1,10 @@
+{
+ "note": "Which workflow run wrote each prospective record. Records are never edited; records written from 2026-11-26 on also carry a generator field.",
+ "records": {
+  "2026-11-24": {"trigger": "manual dispatch", "feed_run": 45538419142, "feed_run_url": "https://github.com/WxMan33/forecast-ops/actions/runs/45538419142", "commit": "8528032"},
+  "2026-11-25": {"trigger": "scheduled (main, severe-conus-preview-schedule.yml)", "schedule_run": 45643412792,
+                 "schedule_run_url": "https://github.com/WxMan33/forecast-ops/actions/runs/45643412792",
+                 "feed_run": 45643428624, "feed_run_url": "https://github.com/WxMan33/forecast-ops/actions/runs/45643428624",
+                 "hosted_check_run": 45644962176, "commit": "65e2e99"}
+ }
+}

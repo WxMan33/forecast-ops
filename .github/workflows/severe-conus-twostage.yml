@@ -1,0 +1,82 @@
+name: Severe CONUS Day 2 wind two-stage experiment (research)
+# Research only (criterion 8). stage "gate": nested development gate per candidate on the 96
+# 2022-23 dates (whole months held out from both stages). No 2021, 2024 verification or 2025 data
+# is loaded at this stage. Never touches the feed, publisher or registry.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-v1/twostage-request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-twostage
+  cancel-in-progress: false
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    strategy:
+      fail-fast: false
+      matrix:
+        candidate: [conus_logistic, conus_gbt]
+    env:
+      OPENBLAS_NUM_THREADS: '4'
+      OMP_NUM_THREADS: '4'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install numpy==2.3.5 scipy==1.17.0 scikit-learn==1.9.1 matplotlib==3.11.2 shapely==2.2.0
+      - id: req
+        run: |
+          echo "run=$(jq -r .development_extraction_run research/severe/conus-v1/twostage-request.json)" >> "$GITHUB_OUTPUT"
+          echo "stage=$(jq -r .stage research/severe/conus-v1/twostage-request.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: severe-conus-*
+          merge-multiple: true
+          path: tests/out/x
+          run-id: ${{ steps.req.outputs.run }}
+          github-token: ${{ github.token }}
+      - name: Nested development gate (2022-23 only)
+        run: |
+          mkdir -p tests/out/dev
+          for d in tests/out/x/conus/2022-* tests/out/x/conus/2023-*; do ln -s "$PWD/$d" tests/out/dev/; done
+          ls tests/out/dev | wc -l
+          extra=()
+          if [ "${{ steps.req.outputs.stage }}" = analyze ]; then
+            extra=(--analyze "research/severe/conus-v1/twostage-gate/gate-${{ matrix.candidate }}.json")
+          fi
+          PYTHONPATH=tools/severe python3 tools/severe/conus_twostage.py gate --candidate ${{ matrix.candidate }} \
+            --conus tests/out/dev --output tests/out/gate "${extra[@]}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: twostage-${{ steps.req.outputs.stage }}-${{ matrix.candidate }}
+          path: tests/out/gate
+          retention-days: 90
+  commit:
+    needs: gate
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: req
+        run: echo "stage=$(jq -r .stage research/severe/conus-v1/twostage-request.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: twostage-${{ steps.req.outputs.stage }}-*
+          merge-multiple: true
+          path: research/severe/conus-v1/twostage-${{ steps.req.outputs.stage }}
+      - name: Commit results
+        env:
+          DEST: research/severe/conus-v1/twostage-${{ steps.req.outputs.stage }}
+        run: |
+          echo "run_id: $GITHUB_RUN_ID" > "$DEST/run.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$DEST"
+          git commit -m "Two-stage ${{ steps.req.outputs.stage }} (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3; do git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0; sleep 10; done
+          exit 1

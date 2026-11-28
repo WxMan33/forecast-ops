@@ -1,0 +1,145 @@
+name: Severe CONUS extraction (research)
+# Research only. Extracts HRRR predictors and report labels on the CONUS land grid for cohort
+# dates (2022-2024 only; 2025 is never loaded), proves the regional overlap reproduces the
+# archived v07 predictors and labels exactly, and commits small JSON/PNG results to the research
+# branch. Never touches the live feed, publisher, registry, RRFS/NBM collector or any archive.
+# mode "corridor": listed 2022-23 dates for the corridor experiment (like "calibration").
+# mode "fulldev": the remaining 2022-23 development dates for the larger-training-set test (like "corridor").
+# mode "benchmark": listed 2024 dates for the NadoCast benchmark (like "calibration").
+# mode "pilot": the listed cases in one job. mode "batch": all 108 cohort cases in month batches;
+# a failed batch is restartable with "Re-run failed jobs" (finished batches keep their artifacts).
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-v1/request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-extraction
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      batches: ${{ steps.plan.outputs.batches }}
+      mode: ${{ steps.plan.outputs.mode }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          sys.path.insert(0, "tools/severe")
+          from cohort import calendar_cases
+          req = json.load(open("research/severe/conus-v1/request.json"))
+          cases = req["cases"] if req["mode"] in ("pilot", "followup", "calibration", "benchmark", "corridor", "fulldev") else calendar_cases(json.load(open("research/severe/cohort-v07.json")))
+          if any(not c.startswith(("2022", "2023", "2024")) for c in cases):
+              raise SystemExit("2025 is sealed")
+          if req["mode"] == "pilot":
+              batches = [{"name": "pilot", "cases": " ".join(cases)}]
+          else:
+              months = {}
+              for c in cases:
+                  months.setdefault(c[:7], []).append(c)
+              keys = sorted(months)
+              batches = [{"name": f"{keys[i]}_{keys[min(i+2, len(keys)-1)]}", "cases": " ".join(sum((months[k] for k in keys[i:i+3]), []))}
+                         for i in range(0, len(keys), 3)]
+          print("batches=" + json.dumps(batches))
+          print("mode=" + req["mode"])
+          PY
+  extract:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        batch: ${{ fromJSON(needs.plan.outputs.batches) }}
+    env:
+      OPENBLAS_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r tools/severe/requirements.txt matplotlib==3.11.2 shapely==2.2.0
+      - run: cd tools/severe && python3 conus_grid.py --check
+      - name: Stage the pinned Storm Events files (NOAA has replaced them; verified by size and SHA-256)
+        env:
+          ARCHIVE_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
+          ACTIONS_TOKEN: ${{ github.token }}
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+          CASES: ${{ matrix.batch.cases }}
+        run: |
+          for year in $(for c in $CASES; do echo "${c:0:4}"; done | sort -u); do
+            name=$(python3 -c "import json,sys;print([s['file'] for s in json.load(open('research/severe/labels-v04/manifest.json'))['sources'] if '_d$year' in s['file']][0])")
+            args=(--name "$name" --cache tests/out/cache/reports --actions)
+            [ -n "$ARCHIVE_REPO" ] && args+=(--repository "$ARCHIVE_REPO")
+            python3 tools/severe/stage_report_source.py "${args[@]}"
+          done
+      - name: Extract, audit, label and verify each case
+        env:
+          ARCHIVE_REPO: ${{ vars.SEVERE_REBUILD_ARCHIVE_REPO }}
+          ARCHIVE_TOKEN: ${{ secrets.SEVERE_REBUILD_ARCHIVE_TOKEN }}
+          ACTIONS_TOKEN: ${{ github.token }}
+          CASES: ${{ matrix.batch.cases }}
+          MODE: ${{ needs.plan.outputs.mode }}
+        run: |
+          mkdir -p tests/out/reports
+          status=0
+          for case in $CASES; do
+            start=$(date +%s)
+            regional=()
+            if [ "$MODE" != followup ] && [ "$MODE" != calibration ] && [ "$MODE" != benchmark ] && [ "$MODE" != corridor ] && [ "$MODE" != fulldev ]; then  # no archived regional case for these dates
+              bash tools/severe/restore_inputs.sh --source v07 --case "$case" --output "tests/out/regional/$case"
+              regional=(--regional "$(dirname "$(find "tests/out/regional/$case" -name joined.npz | head -1)")")
+            fi
+            if PYTHONPATH=tools/severe python3 tools/severe/conus_pilot.py --case "$case" --output tests/out/conus \
+                 --cache tests/out/cache "${regional[@]}" --report "tests/out/reports/$case.json"; then
+              PYTHONPATH=tools/severe python3 tools/severe/conus_pilot_map.py --case "$case" --conus tests/out/conus --output tests/out/maps || true
+            else
+              echo "{\"case\": \"$case\", \"status\": \"failed\"}" > "tests/out/reports/$case.failed.json"; status=1
+            fi
+            rm -rf tests/out/cache/"$case" tests/out/regional
+            echo "$case $(( $(date +%s) - start ))s" | tee -a tests/out/reports/runtime.txt
+          done
+          du -sh tests/out/conus | tee -a tests/out/reports/runtime.txt
+          exit $status
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: severe-conus-${{ matrix.batch.name }}
+          path: |
+            tests/out/conus
+            tests/out/reports
+            tests/out/maps
+          if-no-files-found: warn
+          retention-days: 90
+  commit:
+    needs: [plan, extract]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: severe-conus-*
+          path: tests/out/batches
+      - name: Commit reports and maps (not the predictor arrays) to the research branch
+        env:
+          MODE: ${{ needs.plan.outputs.mode }}
+        run: |
+          dest=research/severe/conus-v1/$MODE
+          mkdir -p "$dest"
+          find tests/out/batches -path '*/reports/*.json' -exec cp {} "$dest"/ \;
+          find tests/out/batches -path '*/maps/*.png' -exec cp {} "$dest"/ \;
+          cat tests/out/batches/*/reports/runtime.txt >> "$dest/runtime.txt" 2>/dev/null || true
+          echo "run_id: $GITHUB_RUN_ID" >> "$dest/run.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$dest"
+          git commit -m "CONUS $MODE results (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3; do git pull --rebase origin "$GITHUB_REF_NAME" && git push origin "HEAD:$GITHUB_REF_NAME" && exit 0; sleep 10; done
+          exit 1

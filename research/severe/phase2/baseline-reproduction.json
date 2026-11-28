@@ -1,0 +1,47 @@
+{
+ "protected_2025_outcomes_accessed": false,
+ "status": "research_only_not_operational",
+ "cohort_sha256": "de630ae0a8ada2c2bb42434f0c34a9c9d8fd2aad35ac6469734e9155eb294d7c",
+ "frozen_labels_sha256": "1451eac672dbe8fdaf26c2e0cb8f809fe23a4d35ccdf6258039316756168ad25",
+ "development_dates_previously_used_for_selection": true,
+ "note": "2024 development dates were already used to compare v0.6/v0.7/v0.8, so these scores are exploratory, not a sealed test. 2025 remains sealed.",
+ "products": {
+  "day1_tornado": {
+   "committed_calibrated_brier": 0.003611287606308867,
+   "reproduced_calibrated_brier": 0.0036112876063202426,
+   "abs_difference": 1.1375449193717913e-14,
+   "max_abs_coefficient_difference": 5.0666883882888314e-11
+  },
+  "day1_wind": {
+   "committed_calibrated_brier": 0.017463032573574882,
+   "reproduced_calibrated_brier": 0.017463031794007468,
+   "abs_difference": 7.795674140942399e-10,
+   "max_abs_coefficient_difference": 3.736586654312646e-06
+  },
+  "day1_hail": {
+   "committed_calibrated_brier": 0.00960084537146306,
+   "reproduced_calibrated_brier": 0.009600845371461874,
+   "abs_difference": 1.186550857568136e-15,
+   "max_abs_coefficient_difference": 1.185630760236478e-11
+  },
+  "day2_tornado": {
+   "committed_calibrated_brier": 0.0023910487726918985,
+   "reproduced_calibrated_brier": 0.002391048772692426,
+   "abs_difference": 5.273559366969494e-16,
+   "max_abs_coefficient_difference": 3.1845359682591834e-13
+  },
+  "day2_wind": {
+   "committed_calibrated_brier": 0.019113326706272173,
+   "reproduced_calibrated_brier": 0.019113326708548966,
+   "abs_difference": 2.2767933371969917e-12,
+   "max_abs_coefficient_difference": 1.4459036073999343e-07
+  },
+  "day2_hail": {
+   "committed_calibrated_brier": 0.00601730065143803,
+   "reproduced_calibrated_brier": 0.006017300651468706,
+   "abs_difference": 3.067598258743587e-14,
+   "max_abs_coefficient_difference": 2.3543056393293682e-11
+  }
+ },
+ "reproduced": true
+}

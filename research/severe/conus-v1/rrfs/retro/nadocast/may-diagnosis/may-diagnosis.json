@@ -1,0 +1,592 @@
+{
+ "rules": "research/severe/conus-v1/rrfs/retro/DIAG-MAY.md",
+ "thresholds_equal_area_may": {
+  "hrrr": 0.07959918677806854,
+  "hrrr_rrfs": 0.07494701445102692,
+  "nadocast": 0.05
+ },
+ "dates": 26,
+ "total_gap_points": 2012,
+ "totals": {
+  "nadocast_only_hits": 3377,
+  "blend_only_hits": 1365,
+  "both_hits": 21119,
+  "both_miss": 2979,
+  "missed_near_threshold": 2108,
+  "missed_displaced": 1092,
+  "missed_absent": 177
+ },
+ "share_of_gap_from_top_dates": {
+  "top_1": 0.1993041749502982,
+  "top_3": 0.4845924453280318,
+  "top_5": 0.6993041749502982
+ },
+ "missed_point_blend_rank_percentile": {
+  "median": 81.38373200813658,
+  "p10": 69.30504415892062,
+  "p90": 88.5748126786312
+ },
+ "area_spread": {
+  "dates_blend_flags_more_area": 14,
+  "dates_with_nadocast_area": 26
+ },
+ "per_date": [
+  {
+   "date": "2024-05-16",
+   "report_points": 945,
+   "hits": {
+    "nadocast": 753,
+    "hrrr_rrfs": 352
+   },
+   "false_alarm_points": {
+    "nadocast": 4785,
+    "hrrr_rrfs": 3376
+   },
+   "nadocast_only_hits": 401,
+   "blend_only_hits": 0,
+   "missed_by_blend": {
+    "near_threshold": 184,
+    "displaced": 186,
+    "absent": 31
+   },
+   "gap_points": 401,
+   "false_alarm_ratio_blend_to_nadocast": 0.7055381400208987
+  },
+  {
+   "date": "2024-05-24",
+   "report_points": 1664,
+   "hits": {
+    "nadocast": 1337,
+    "hrrr_rrfs": 1031
+   },
+   "false_alarm_points": {
+    "nadocast": 5969,
+    "hrrr_rrfs": 4196
+   },
+   "nadocast_only_hits": 393,
+   "blend_only_hits": 87,
+   "missed_by_blend": {
+    "near_threshold": 197,
+    "displaced": 149,
+    "absent": 47
+   },
+   "gap_points": 306,
+   "false_alarm_ratio_blend_to_nadocast": 0.7029653208242587
+  },
+  {
+   "date": "2024-05-05",
+   "report_points": 2172,
+   "hits": {
+    "nadocast": 1996,
+    "hrrr_rrfs": 1728
+   },
+   "false_alarm_points": {
+    "nadocast": 4968,
+    "hrrr_rrfs": 4984
+   },
+   "nadocast_only_hits": 268,
+   "blend_only_hits": 0,
+   "missed_by_blend": {
+    "near_threshold": 154,
+    "displaced": 114,
+    "absent": 0
+   },
+   "gap_points": 268,
+   "false_alarm_ratio_blend_to_nadocast": 1.003220611916264
+  },
+  {
+   "date": "2024-05-22",
+   "report_points": 1952,
+   "hits": {
+    "nadocast": 1709,
+    "hrrr_rrfs": 1484
+   },
+   "false_alarm_points": {
+    "nadocast": 7648,
+    "hrrr_rrfs": 6667
+   },
+   "nadocast_only_hits": 311,
+   "blend_only_hits": 86,
+   "missed_by_blend": {
+    "near_threshold": 237,
+    "displaced": 74,
+    "absent": 0
+   },
+   "gap_points": 225,
+   "false_alarm_ratio_blend_to_nadocast": 0.8717311715481172
+  },
+  {
+   "date": "2024-05-02",
+   "report_points": 635,
+   "hits": {
+    "nadocast": 472,
+    "hrrr_rrfs": 265
+   },
+   "false_alarm_points": {
+    "nadocast": 2139,
+    "hrrr_rrfs": 3789
+   },
+   "nadocast_only_hits": 257,
+   "blend_only_hits": 50,
+   "missed_by_blend": {
+    "near_threshold": 213,
+    "displaced": 44,
+    "absent": 0
+   },
+   "gap_points": 207,
+   "false_alarm_ratio_blend_to_nadocast": 1.7713884992987377
+  },
+  {
+   "date": "2024-05-26",
+   "report_points": 1063,
+   "hits": {
+    "nadocast": 933,
+    "hrrr_rrfs": 764
+   },
+   "false_alarm_points": {
+    "nadocast": 5722,
+    "hrrr_rrfs": 4920
+   },
+   "nadocast_only_hits": 209,
+   "blend_only_hits": 40,
+   "missed_by_blend": {
+    "near_threshold": 157,
+    "displaced": 52,
+    "absent": 0
+   },
+   "gap_points": 169,
+   "false_alarm_ratio_blend_to_nadocast": 0.8598392170569731
+  },
+  {
+   "date": "2024-05-06",
+   "report_points": 1135,
+   "hits": {
+    "nadocast": 994,
+    "hrrr_rrfs": 854
+   },
+   "false_alarm_points": {
+    "nadocast": 3817,
+    "hrrr_rrfs": 3456
+   },
+   "nadocast_only_hits": 156,
+   "blend_only_hits": 16,
+   "missed_by_blend": {
+    "near_threshold": 114,
+    "displaced": 42,
+    "absent": 0
+   },
+   "gap_points": 140,
+   "false_alarm_ratio_blend_to_nadocast": 0.9054231071522137
+  },
+  {
+   "date": "2024-05-21",
+   "report_points": 1811,
+   "hits": {
+    "nadocast": 1687,
+    "hrrr_rrfs": 1591
+   },
+   "false_alarm_points": {
+    "nadocast": 4373,
+    "hrrr_rrfs": 4432
+   },
+   "nadocast_only_hits": 140,
+   "blend_only_hits": 44,
+   "missed_by_blend": {
+    "near_threshold": 95,
+    "displaced": 45,
+    "absent": 0
+   },
+   "gap_points": 96,
+   "false_alarm_ratio_blend_to_nadocast": 1.0134918820032015
+  },
+  {
+   "date": "2024-05-07",
+   "report_points": 1978,
+   "hits": {
+    "nadocast": 1922,
+    "hrrr_rrfs": 1851
+   },
+   "false_alarm_points": {
+    "nadocast": 5342,
+    "hrrr_rrfs": 4716
+   },
+   "nadocast_only_hits": 101,
+   "blend_only_hits": 30,
+   "missed_by_blend": {
+    "near_threshold": 42,
+    "displaced": 59,
+    "absent": 0
+   },
+   "gap_points": 71,
+   "false_alarm_ratio_blend_to_nadocast": 0.8828154249344815
+  },
+  {
+   "date": "2024-05-20",
+   "report_points": 1990,
+   "hits": {
+    "nadocast": 1835,
+    "hrrr_rrfs": 1766
+   },
+   "false_alarm_points": {
+    "nadocast": 4118,
+    "hrrr_rrfs": 4343
+   },
+   "nadocast_only_hits": 157,
+   "blend_only_hits": 88,
+   "missed_by_blend": {
+    "near_threshold": 117,
+    "displaced": 40,
+    "absent": 0
+   },
+   "gap_points": 69,
+   "false_alarm_ratio_blend_to_nadocast": 1.054638173870811
+  },
+  {
+   "date": "2024-05-23",
+   "report_points": 1317,
+   "hits": {
+    "nadocast": 1201,
+    "hrrr_rrfs": 1140
+   },
+   "false_alarm_points": {
+    "nadocast": 5807,
+    "hrrr_rrfs": 5724
+   },
+   "nadocast_only_hits": 112,
+   "blend_only_hits": 51,
+   "missed_by_blend": {
+    "near_threshold": 43,
+    "displaced": 40,
+    "absent": 29
+   },
+   "gap_points": 61,
+   "false_alarm_ratio_blend_to_nadocast": 0.9857069054589289
+  },
+  {
+   "date": "2024-05-14",
+   "report_points": 466,
+   "hits": {
+    "nadocast": 428,
+    "hrrr_rrfs": 369
+   },
+   "false_alarm_points": {
+    "nadocast": 2983,
+    "hrrr_rrfs": 3315
+   },
+   "nadocast_only_hits": 76,
+   "blend_only_hits": 17,
+   "missed_by_blend": {
+    "near_threshold": 56,
+    "displaced": 20,
+    "absent": 0
+   },
+   "gap_points": 59,
+   "false_alarm_ratio_blend_to_nadocast": 1.1112973516594034
+  },
+  {
+   "date": "2024-05-15",
+   "report_points": 906,
+   "hits": {
+    "nadocast": 754,
+    "hrrr_rrfs": 709
+   },
+   "false_alarm_points": {
+    "nadocast": 2537,
+    "hrrr_rrfs": 3413
+   },
+   "nadocast_only_hits": 48,
+   "blend_only_hits": 3,
+   "missed_by_blend": {
+    "near_threshold": 25,
+    "displaced": 23,
+    "absent": 0
+   },
+   "gap_points": 45,
+   "false_alarm_ratio_blend_to_nadocast": 1.3452897122585732
+  },
+  {
+   "date": "2024-05-10",
+   "report_points": 194,
+   "hits": {
+    "nadocast": 55,
+    "hrrr_rrfs": 13
+   },
+   "false_alarm_points": {
+    "nadocast": 183,
+    "hrrr_rrfs": 779
+   },
+   "nadocast_only_hits": 55,
+   "blend_only_hits": 13,
+   "missed_by_blend": {
+    "near_threshold": 2,
+    "displaced": 2,
+    "absent": 51
+   },
+   "gap_points": 42,
+   "false_alarm_ratio_blend_to_nadocast": 4.256830601092896
+  },
+  {
+   "date": "2024-05-09",
+   "report_points": 613,
+   "hits": {
+    "nadocast": 559,
+    "hrrr_rrfs": 525
+   },
+   "false_alarm_points": {
+    "nadocast": 1825,
+    "hrrr_rrfs": 1831
+   },
+   "nadocast_only_hits": 41,
+   "blend_only_hits": 7,
+   "missed_by_blend": {
+    "near_threshold": 40,
+    "displaced": 1,
+    "absent": 0
+   },
+   "gap_points": 34,
+   "false_alarm_ratio_blend_to_nadocast": 1.0032876712328767
+  },
+  {
+   "date": "2024-05-28",
+   "report_points": 373,
+   "hits": {
+    "nadocast": 206,
+    "hrrr_rrfs": 180
+   },
+   "false_alarm_points": {
+    "nadocast": 3662,
+    "hrrr_rrfs": 2595
+   },
+   "nadocast_only_hits": 67,
+   "blend_only_hits": 41,
+   "missed_by_blend": {
+    "near_threshold": 42,
+    "displaced": 25,
+    "absent": 0
+   },
+   "gap_points": 26,
+   "false_alarm_ratio_blend_to_nadocast": 0.7086291643910432
+  },
+  {
+   "date": "2024-05-11",
+   "report_points": 359,
+   "hits": {
+    "nadocast": 234,
+    "hrrr_rrfs": 210
+   },
+   "false_alarm_points": {
+    "nadocast": 1306,
+    "hrrr_rrfs": 2849
+   },
+   "nadocast_only_hits": 61,
+   "blend_only_hits": 37,
+   "missed_by_blend": {
+    "near_threshold": 42,
+    "displaced": 19,
+    "absent": 0
+   },
+   "gap_points": 24,
+   "false_alarm_ratio_blend_to_nadocast": 2.1814701378254213
+  },
+  {
+   "date": "2024-05-31",
+   "report_points": 713,
+   "hits": {
+    "nadocast": 428,
+    "hrrr_rrfs": 404
+   },
+   "false_alarm_points": {
+    "nadocast": 4027,
+    "hrrr_rrfs": 4914
+   },
+   "nadocast_only_hits": 78,
+   "blend_only_hits": 54,
+   "missed_by_blend": {
+    "near_threshold": 43,
+    "displaced": 35,
+    "absent": 0
+   },
+   "gap_points": 24,
+   "false_alarm_ratio_blend_to_nadocast": 1.220263223243109
+  },
+  {
+   "date": "2024-05-25",
+   "report_points": 3455,
+   "hits": {
+    "nadocast": 3284,
+    "hrrr_rrfs": 3262
+   },
+   "false_alarm_points": {
+    "nadocast": 3742,
+    "hrrr_rrfs": 3687
+   },
+   "nadocast_only_hits": 111,
+   "blend_only_hits": 89,
+   "missed_by_blend": {
+    "near_threshold": 60,
+    "displaced": 51,
+    "absent": 0
+   },
+   "gap_points": 22,
+   "false_alarm_ratio_blend_to_nadocast": 0.9853019775521111
+  },
+  {
+   "date": "2024-05-04",
+   "report_points": 200,
+   "hits": {
+    "nadocast": 75,
+    "hrrr_rrfs": 66
+   },
+   "false_alarm_points": {
+    "nadocast": 1567,
+    "hrrr_rrfs": 2065
+   },
+   "nadocast_only_hits": 29,
+   "blend_only_hits": 20,
+   "missed_by_blend": {
+    "near_threshold": 11,
+    "displaced": 18,
+    "absent": 0
+   },
+   "gap_points": 9,
+   "false_alarm_ratio_blend_to_nadocast": 1.3178047223994895
+  },
+  {
+   "date": "2024-05-13",
+   "report_points": 401,
+   "hits": {
+    "nadocast": 227,
+    "hrrr_rrfs": 223
+   },
+   "false_alarm_points": {
+    "nadocast": 3581,
+    "hrrr_rrfs": 2390
+   },
+   "nadocast_only_hits": 50,
+   "blend_only_hits": 46,
+   "missed_by_blend": {
+    "near_threshold": 45,
+    "displaced": 1,
+    "absent": 4
+   },
+   "gap_points": 4,
+   "false_alarm_ratio_blend_to_nadocast": 0.6674113376151913
+  },
+  {
+   "date": "2024-05-03",
+   "report_points": 293,
+   "hits": {
+    "nadocast": 162,
+    "hrrr_rrfs": 165
+   },
+   "false_alarm_points": {
+    "nadocast": 1942,
+    "hrrr_rrfs": 3603
+   },
+   "nadocast_only_hits": 63,
+   "blend_only_hits": 66,
+   "missed_by_blend": {
+    "near_threshold": 33,
+    "displaced": 19,
+    "absent": 11
+   },
+   "gap_points": -3,
+   "false_alarm_ratio_blend_to_nadocast": 1.8553038105046344
+  },
+  {
+   "date": "2024-05-29",
+   "report_points": 919,
+   "hits": {
+    "nadocast": 811,
+    "hrrr_rrfs": 825
+   },
+   "false_alarm_points": {
+    "nadocast": 3053,
+    "hrrr_rrfs": 3708
+   },
+   "nadocast_only_hits": 43,
+   "blend_only_hits": 57,
+   "missed_by_blend": {
+    "near_threshold": 42,
+    "displaced": 1,
+    "absent": 0
+   },
+   "gap_points": -14,
+   "false_alarm_ratio_blend_to_nadocast": 1.2145430723878152
+  },
+  {
+   "date": "2024-05-27",
+   "report_points": 1116,
+   "hits": {
+    "nadocast": 838,
+    "hrrr_rrfs": 875
+   },
+   "false_alarm_points": {
+    "nadocast": 5207,
+    "hrrr_rrfs": 4453
+   },
+   "nadocast_only_hits": 47,
+   "blend_only_hits": 84,
+   "missed_by_blend": {
+    "near_threshold": 28,
+    "displaced": 15,
+    "absent": 4
+   },
+   "gap_points": -37,
+   "false_alarm_ratio_blend_to_nadocast": 0.8551949299020549
+  },
+  {
+   "date": "2024-05-08",
+   "report_points": 1686,
+   "hits": {
+    "nadocast": 1409,
+    "hrrr_rrfs": 1473
+   },
+   "false_alarm_points": {
+    "nadocast": 4195,
+    "hrrr_rrfs": 3049
+   },
+   "nadocast_only_hits": 44,
+   "blend_only_hits": 108,
+   "missed_by_blend": {
+    "near_threshold": 36,
+    "displaced": 8,
+    "absent": 0
+   },
+   "gap_points": -64,
+   "false_alarm_ratio_blend_to_nadocast": 0.7268176400476758
+  },
+  {
+   "date": "2024-05-30",
+   "report_points": 484,
+   "hits": {
+    "nadocast": 187,
+    "hrrr_rrfs": 359
+   },
+   "false_alarm_points": {
+    "nadocast": 2244,
+    "hrrr_rrfs": 3488
+   },
+   "nadocast_only_hits": 59,
+   "blend_only_hits": 231,
+   "missed_by_blend": {
+    "near_threshold": 50,
+    "displaced": 9,
+    "absent": 0
+   },
+   "gap_points": -172,
+   "false_alarm_ratio_blend_to_nadocast": 1.554367201426025
+  }
+ ],
+ "mapped": {
+  "largest_gaps": [
+   "2024-05-16",
+   "2024-05-24",
+   "2024-05-05",
+   "2024-05-22"
+  ],
+  "blend_best": [
+   "2024-05-30"
+  ]
+ }
+}
