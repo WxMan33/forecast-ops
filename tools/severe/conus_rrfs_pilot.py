@@ -144,7 +144,7 @@ def asinh_scales(x):
 
 
 # RRFS columns per arm: 12Z occupies columns 0-26; in the 06Z follow-up the cache adds 06Z as columns 27-53
-RRFS_COLS = {"rrfs": slice(0, 27), "rrfs06": slice(27, 54)}
+RRFS_COLS = {"rrfs": slice(0, 27), "rrfs06": slice(27, 54), "rrfs_2cyc": slice(0, 54)}
 # Field-group ablation (research/severe/conus-v1/rrfs/retro/ABLATION.md): every one of the nine fields is in exactly
 # one group; each ablation arm drops one group's 3 predictors per field from the full 12Z set.
 GROUPS = {"gust": ("gust", "wind10max"), "refl": ("refc",), "updraft": ("uh25", "uh03", "maxuvv"),
@@ -153,6 +153,9 @@ assert sorted(sum(GROUPS.values(), ())) == sorted(FIELDS)
 for _g, _fs in GROUPS.items():
     RRFS_COLS[f"rrfs_no_{_g}"] = np.array([3 * i + j for i, f in enumerate(FIELDS) if f not in _fs for j in range(3)])
 ABL_ARMS = ("hrrr", "hrrr_rrfs") + tuple(f"hrrr_rrfs_no_{g}" for g in GROUPS)
+BLEND_REF = "hrrr_rrfs"
+TWO_ARMS = ("hrrr", "hrrr_rrfs", "hrrr_rrfs_2cyc")
+TWO_PAIRS = (("hrrr_rrfs_2cyc", "hrrr_rrfs"), ("hrrr_rrfs_2cyc", "hrrr"), ("hrrr_rrfs", "hrrr"))
 FLCAL_ARMS = ("hrrr", "hrrr_rrfs", "hrrr_rrfs_flcal")
 FLCAL_PAIRS = (("hrrr_rrfs_flcal", "hrrr_rrfs"), ("hrrr_rrfs_flcal", "hrrr"), ("hrrr_rrfs", "hrrr"))
 ABL_PAIRS = tuple((f"hrrr_rrfs_no_{g}", "hrrr_rrfs") for g in GROUPS) + (("hrrr_rrfs", "hrrr"),)
@@ -358,6 +361,14 @@ def summarize(D, P, folds, reg_all, pos, arms, names_regions, pairs=PAIRS):
                 p0 = np.sort(p[a][y == 0])[::-1]
                 t = float(p0[ref_fa]) if ref_fa < len(p0) else -1.0
                 hits_eq[a] = (t, per_date(((p[a] > t) & (y == 1)).astype(float)), int((p0 > t).sum()))
+            # diagnostic: held-out equal false-alarm area to the HRRR + 12Z RRFS blend at its training-set threshold
+            hits_eqb = {}
+            if BLEND_REF in arms:
+                ref_b = int(fa_dep[BLEND_REF].sum())
+                for a in arms:
+                    p0 = np.sort(p[a][y == 0])[::-1]
+                    t = float(p0[ref_b]) if ref_b < len(p0) else -1.0
+                    hits_eqb[a] = (t, per_date(((p[a] > t) & (y == 1)).astype(float)), int((p0 > t).sum()), ref_b)
             clim = folds_base(folds, blks)
             for a in arms:
                 bs = sse[a].sum() / n_d.sum()
@@ -374,6 +385,10 @@ def summarize(D, P, folds, reg_all, pos, arms, names_regions, pairs=PAIRS):
                                    "false_alarm_km2_per_day": float(fa_dep[a].sum() * SAMPLE_KM2 / nd)},
                     "fixed_5pct": {"hit_fraction": float(((p[a] >= 0.05) & (y == 1)).sum() / y.sum()),
                                    "false_alarm_km2_per_day": float(((p[a] >= 0.05) & (y == 0)).sum() * SAMPLE_KM2 / nd)},
+                    "diagnostic_equal_area_vs_blend": ({"threshold": hits_eqb[a][0], "hits": int(hits_eqb[a][1].sum()),
+                                                        "hit_fraction": float(hits_eqb[a][1].sum() / y.sum()), "false_alarm_points": hits_eqb[a][2],
+                                                        "reference_false_alarm_points": hits_eqb[a][3],
+                                                        "false_alarm_km2_per_day": float(hits_eqb[a][2] * SAMPLE_KM2 / nd)} if hits_eqb else None),
                     "diagnostic_equal_area": {"threshold": hits_eq[a][0], "hits": int(hits_eq[a][1].sum()),
                                               "hit_fraction": float(hits_eq[a][1].sum() / y.sum()), "false_alarm_points": hits_eq[a][2],
                                               "reference_false_alarm_points": ref_fa}}
@@ -388,7 +403,8 @@ def summarize(D, P, folds, reg_all, pos, arms, names_regions, pairs=PAIRS):
                     "brier": ci(sse[a], sse[b], n_d),
                     "deployable_hit_fraction": ci(hits_dep[a], hits_dep[b], e_d),
                     "deployable_false_alarm_km2_per_day": {"estimate": float((fa_dep[a].sum() - fa_dep[b].sum()) * SAMPLE_KM2 / nd)},
-                    "diagnostic_equal_area_hit_fraction": ci(hits_eq[a][1], hits_eq[b][1], e_d)}
+                    "diagnostic_equal_area_hit_fraction": ci(hits_eq[a][1], hits_eq[b][1], e_d),
+                    "diagnostic_equal_area_vs_blend_hit_fraction": (ci(hits_eqb[a][1], hits_eqb[b][1], e_d) if hits_eqb else None)}
             res["paired"] = diffs
             out.setdefault(scope, {})[region] = res
     return out
@@ -409,6 +425,10 @@ def score(a):
         arms, pairs = ABL_ARMS, ABL_PAIRS
     elif a.experiment == "flcal":
         arms, pairs = FLCAL_ARMS, FLCAL_PAIRS
+    elif a.experiment == "twocycle":
+        if a.cycle != 6:
+            raise SystemExit("twocycle needs --cycle 6 (loads the matched 12Z + 06Z roster)")
+        arms, pairs = TWO_ARMS, TWO_PAIRS
     else:
         arms, pairs = (("hrrr", "rrfs", "hrrr_rrfs"), PAIRS) if a.cycle == 12 else (("hrrr", "hrrr_rrfs", "hrrr_rrfs06"), PAIRS06)
     P, folds, reg_all, pos = run_comparison(D, names, arms, log)
@@ -430,7 +450,7 @@ def score(a):
     dropped = [r for r in man["dates"] if r["status"] != "ok"]
     if a.cycle == 6:
         dropped += [{"date": r["date"], "status": "dropped", "reason": f"06Z {r['rrfs']['06z']}"} for r in man["dates"] if r["status"] == "ok" and r["rrfs"]["06z"] != "ok"]
-    out = {"rules": "research/severe/conus-v1/rrfs/retro/" + ("FL-RECAL.md" if a.experiment == "flcal" else "ABLATION.md" if a.experiment == "ablation" else "RULES.md" if a.cycle == 12 else "FOLLOWUP-06Z.md"),
+    out = {"rules": "research/severe/conus-v1/rrfs/retro/" + ("TWO-CYCLE.md" if a.experiment == "twocycle" else "FL-RECAL.md" if a.experiment == "flcal" else "ABLATION.md" if a.experiment == "ablation" else "RULES.md" if a.cycle == 12 else "FOLLOWUP-06Z.md"),
            "experiment": a.experiment, "groups": GROUPS if a.experiment == "ablation" else None, "rrfs_cycle": f"{a.cycle:02d}z", "arms": list(arms),
            "recipe": {"model": "sklearn LogisticRegression (L2, lbfgs)", "C": C_REG, "scaling": "asinh(x / training median |x|) per source, then StandardScaler, fit on training blocks only",
                       "hrrr_predictors": "phase2_study.engineer on the cached HRRR raw predictors", "rrfs_predictors": "27 per cycle = 9 fields x (nbhdmax24, nbhdmax18, mean24)"},
@@ -454,6 +474,22 @@ def render(o):
     R = o["results"]
     L = [f"# Retrospective RRFS pilot scorecard ({o['rrfs_cycle']} RRFS, Day 2 damaging wind)", "",
          f"Scored dates: {o['scored_dates']}; dropped: {len(o['dropped_dates'])}. Rules: `{o['rules']}`.", ""]
+    if o.get("experiment") == "twocycle":
+        L += ["## Two-cycle blend minus HRRR + 12Z RRFS (hit change in points of report coverage, 95% whole-date intervals)", "",
+              "| Scope | Region | Report days | Hits, equal area vs blend (diagnostic) | Hits, training-set threshold | False-alarm km²/day, training threshold (blend → two-cycle) | Brier |",
+              "|---|---|---|---|---|---|---|"]
+        for scope in ["all_blocks"] + [b for b in BLOCKS if b in R]:
+            for region in ("national", FL):
+                r = R[scope][region]
+                if "paired" not in r:
+                    continue
+                v = r["paired"]["hrrr_rrfs_2cyc_minus_hrrr_rrfs"]
+                e, h, b = v["diagnostic_equal_area_vs_blend_hit_fraction"], v["deployable_hit_fraction"], v["brier"]
+                fb, f2 = r["arms"]["hrrr_rrfs"]["deployable"]["false_alarm_km2_per_day"], r["arms"]["hrrr_rrfs_2cyc"]["deployable"]["false_alarm_km2_per_day"]
+                L.append(f"| {scope} | {region} | {r['report_days']} | {100*e['estimate']:+.1f} [{100*e['ci95'][0]:+.1f}, {100*e['ci95'][1]:+.1f}] | "
+                         f"{100*h['estimate']:+.1f} [{100*h['ci95'][0]:+.1f}, {100*h['ci95'][1]:+.1f}] | {fb:,.0f} → {f2:,.0f} | "
+                         f"{b['estimate']:+.6f} [{b['ci95'][0]:+.6f}, {b['ci95'][1]:+.6f}] |")
+        L.append("")
     if o.get("experiment") == "ablation":
         L += ["## Cost of dropping each group (drop-one minus full HRRR + RRFS; positive Brier / negative hits = the group helps)", "",
               "| Scope | Region | Group | Brier | Hits, training threshold (pts) | Hits, equal area, diagnostic (pts) | Fcst/obs |", "|---|---|---|---|---|---|---|"]
@@ -503,7 +539,7 @@ def main():
     s = sub.add_parser("score")
     s.add_argument("--cache", required=True)
     s.add_argument("--cycle", type=int, default=12, choices=[12, 6])
-    s.add_argument("--experiment", default="first", choices=["first", "ablation", "flcal"])
+    s.add_argument("--experiment", default="first", choices=["first", "ablation", "flcal", "twocycle"])
     s.add_argument("--expect-fingerprints", help="scorecard whose hrrr / hrrr_rrfs fingerprints must be reproduced first")
     s.add_argument("--output", required=True)
     a = p.parse_args()
