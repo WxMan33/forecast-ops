@@ -425,4 +425,30 @@ ok("RIVER GAUGES: NWPS gauges around Cincinnati (Nov 24): stage, flow and catego
   assert.throws(() => F.parseGauges({ error: "x" }), /unrecognized NWPS gauge answer/);
 });
 
+ok("observed reports (IEM LSR GeoJSON, real sample 2026-11-27): kinds, magnitudes and trace, reporter, office, bulletin link; other types counted, not drawn", () => {
+  const gj = JSON.parse(fs.readFileSync(FX("iem-lsr-20261127.json"), "utf8")), r = F.parseObsReports(gj);
+  const cats = new Set(r.map((p) => p.cat)); for (const c of ["snow", "fzra", "wind", "rain", "flood"]) assert.ok(cats.has(c), c);
+  assert.ok(r.other["NON-TSTM WND GST"] > 0 && !r.some((p) => p.lsrType === "NON-TSTM WND GST"));
+  for (const p of r) { assert.strictEqual(p.kind, "obs"); assert.ok(isFinite(Date.parse(p.observed)) && p.point.length === 2 && p.source.url.startsWith("https://mesonet.agron.iastate.edu/")); }
+  const snow = r.find((p) => p.cat === "snow" && p.magText); assert.match(snow.title, /^Snow · [\d.]+ in/);
+  const one = (o) => F.parseObsReports({ type: "FeatureCollection", features: [{ properties: { valid: "2026-11-27T10:00:00Z", city: "Hebron", st: "KY", wfo: "ILN", source: "Trained Spotter", remark: "&&", product_id: "P1", ...o }, geometry: { coordinates: [-84.7, 39.07] } }] })[0];
+  assert.strictEqual(one({ typetext: "FREEZING RAIN", magf: 0, magnitude: "0.00", unit: "INCH" }).title, "Freezing rain · trace · Hebron, KY");
+  assert.strictEqual(one({ typetext: "SLEET", magf: 0.5, magnitude: "0.5", unit: "INCH", qualifier: "E" }).title, "Sleet · 0.50 in (estimated) · Hebron, KY");
+  assert.strictEqual(one({ typetext: "SLEET", magf: 0.5, magnitude: "0.5", unit: "INCH" }).cat, "sleet");
+  assert.strictEqual(one({ typetext: "FREEZING RAIN", magf: 0.1, magnitude: "0.1", unit: "INCH" }).cat, "fzra");
+  assert.strictEqual(one({ typetext: "ICE STORM" }).cat, "fzra"); assert.strictEqual(one({ typetext: "FREEZING DRIZZLE" }).cat, "fzra");
+  assert.ok(!F.parseObsReports({ type: "FeatureCollection", features: [] }).some((p) => p.cat === "ice"));
+  const t = one({ typetext: "TORNADO", magf: 0, magnitude: "0" }); assert.strictEqual(t.cat, "tornado"); assert.strictEqual(t.title, "Tornado · Hebron, KY"); assert.strictEqual(t.comments, ""); assert.strictEqual(t.office, "ILN"); assert.strictEqual(t.source.url, "https://mesonet.agron.iastate.edu/p.php?pid=P1");
+  assert.strictEqual(one({ typetext: "TSTM WND GST", magf: 61, magnitude: "61", unit: "MPH", qualifier: "M" }).title, "Thunderstorm wind gust · 61 mph (measured) · Hebron, KY");
+  assert.throws(() => F.parseObsReports({ error: "x" }), /unrecognized Local Storm Report feed/);
+  assert.strictEqual(F.parseObsReports({ type: "FeatureCollection", features: [] }).length, 0);
+});
+ok("observed reports: an SPC report already shown as an observed report (same kind, within 3 km and 10 minutes) is recognised; others are not", () => {
+  const o = [{ cat: "tornado", observed: "2026-11-27T18:05:00Z", point: [-84.70, 39.09] }];
+  assert.ok(F.obsCovers({ type: "tornado", observed: "2026-11-27T18:00:00Z", point: [-84.70, 39.09] }, o));
+  assert.ok(!F.obsCovers({ type: "tornado", observed: "2026-11-27T17:30:00Z", point: [-84.70, 39.09] }, o)); // 35 minutes apart
+  assert.ok(!F.obsCovers({ type: "tornado", observed: "2026-11-27T18:00:00Z", point: [-84.50, 39.09] }, o)); // 17 km apart
+  assert.ok(!F.obsCovers({ type: "hail", observed: "2026-11-27T18:00:00Z", point: [-84.70, 39.09] }, o)); // another kind
+});
+
 Promise.all([...resolvedCases, ...watchCases]).then(() => console.log(n + " passed")).catch((e) => { console.error(e); process.exit(1); });
