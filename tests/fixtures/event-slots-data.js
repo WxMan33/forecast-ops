@@ -7,7 +7,8 @@
      evening   rain 6–9 PM tomorrow (the single-window Reception)
      night     gusty after 10 PM tomorrow into the early morning (the overnight event)
      festival  a shower Saturday 2–4 PM; the guidance ends Saturday night, so a Sunday slot has none yet
-     dry       quiet throughout */
+     dry       quiet throughout
+   &meta=a|b gives synthetic model run times (two browsers with different forecast updates); omitted, none. */
 (function () {
   const C = OpsCore, S = BetaStory, H = 3600e3, tz = "America/New_York", q = new URLSearchParams(location.search), wx = q.get("wx") || "ceremony";
   const now = Date.now(), local = (ms) => C.time.toLocal(ms, tz), day0 = local(now).slice(0, 10);
@@ -30,7 +31,11 @@
   const B = { ms, times: ms.map(local), tz, models, viewedAt: now };
   const NW = { ok: true, office: "ILN", gridX: 36, gridY: 38, hourly: [], periods: [{ s: t0 + 30 * H, e: t0 + 42 * H, name: "Tomorrow", short: wx === "dry" ? "Mostly sunny" : "Chance of showers", temp: 67, pop: wx === "dry" ? 5 : 50 },
     { s: t0 + 42 * H, e: t0 + 54 * H, name: "Tomorrow night", short: "Mostly cloudy", temp: 52, pop: 20 }] };
-  const ctx = S.context({ C, T: ModelTrends, B, ws: Object.fromEntries(ids.map((id) => [id, 1])), rules: null, nws: NW, now });
+  /* &meta=a|b: model run times as two browsers might hold them (synthetic): the next model update differs, the
+     schedule's operational check must not */
+  const mk = q.get("meta"), runAgo = mk === "a" ? 1 : mk === "b" ? 4.5 : null;
+  const meta = runAgo == null ? undefined : Object.fromEntries(["gfs_seamless", "ecmwf_ifs025", "gfs_hrrr"].map((id) => [id, { lastRunInit: new Date(now - (runAgo + 4) * H).toISOString(), lastRunAvailable: new Date(now - runAgo * H).toISOString(), updateIntervalH: id === "gfs_hrrr" ? 1 : 6 }]));
+  const ctx = S.context({ C, T: ModelTrends, B, ws: Object.fromEntries(ids.map((id) => [id, 1])), rules: null, nws: NW, meta, now });
   ctx.th = { at: () => "normal", perModel: () => null, ids: [] };
   window.SLOTS_FIXTURE = { tomorrow, after };
   BetaUI.load = async () => ({ ctx, NW, RB: {}, problems: [], feeds: { used: ["GFS", "ECMWF IFS", "NBM", "HRRR"], missing: [] }, market: { tuned: false }, recipe: "Default blend recipe", verified: "Synthetic weather for a schedule check: not a forecast." });

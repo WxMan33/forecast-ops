@@ -54,6 +54,35 @@ eq(ages.find((a) => a.id === "b").late, false, "…and not as a late run");
 const checks = S.checkAgain(ctx, b, {});
 ok(checks.every((c) => c.at > now), "every check time is in the future");
 ok(checks.every((c, i) => !i || checks[i - 1].at <= c.at), "check times are in order");
+/* the operational check: 30 min before gates when there is a Gates time, else before the main slot or the start; from
+   the schedule and the clock only (synthetic schedules; times in America/New_York) */
+{
+  const D = "2026-11-11", L = (h, m = 0) => `${D}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`, ctxAt = (t, m = meta) => S.context({ C, T, B, ws, rules: null, meta: m, now: t });
+  const op = (ev, t, m) => { const c = ctxAt(t, m); return S.opCheck(c, S.eventBrief(c, { id: "x", name: "x", tz: TZ, loc: { lat: 39.1, lon: -84.5 }, ...ev })); };
+  const clockAt = (h, m = 0) => C.time.toUtc(L(h, m), TZ);
+  /* Bill's example: setup noon, gates 4:30 PM, show 5 PM */
+  const bill = { times: { setup: L(12), gates: L(16, 30), start: L(17), end: L(22) } };
+  const b1 = op(bill, clockAt(10));
+  eq([b1.state, b1.what, b1.at, b1.opens], ["upcoming", "Before gates open", clockAt(16), "Gates open"], "Bill: 4:00 PM, 30 minutes before gates open at 4:30 PM, not before the 5 PM start");
+  /* the same schedule in two browsers with different model metadata: the same operational check */
+  const otherMeta = { a: { lastRunInit: new Date(now - 2 * H).toISOString(), lastRunAvailable: new Date(now - 0.5 * H).toISOString(), updateIntervalH: 1 } };
+  eq(op(bill, clockAt(10), otherMeta), b1, "Bill and Michael: same event and schedule, different forecast updates, same operational check");
+  /* missed checkpoint: past 4:00 PM with gates still closed -> check now; once gates open -> underway */
+  eq(op(bill, clockAt(16, 10)).state, "now", "4:10 PM, gates still closed: check now");
+  eq(op(bill, clockAt(16, 30)).state, "underway", "gates open at 4:30 PM: the checkpoint gives way to live monitoring");
+  /* no gates: a single-window reception and a custom ceremony slot, by their own names */
+  const rec = op({ times: { start: L(18), end: L(22) }, slots: [{ id: "s1", name: "Reception", start: L(18), end: L(22) }] }, clockAt(10));
+  eq([rec.what, rec.at, rec.opens], ["Before Reception", clockAt(17, 30), "Reception starts"], "single-window reception: Before Reception at 5:30 PM");
+  const plain = op({ times: { start: L(18), end: L(22) } }, clockAt(10));
+  eq([plain.what, plain.at], ["Before the event starts", clockAt(17, 30)], "a plain start with no gates: Before the event starts");
+  const cer = op({ times: { start: L(15), end: L(22) }, slots: [{ id: "s1", name: "Setup", start: L(13), end: L(15) }, { id: "s2", name: "Outdoor ceremony", start: L(16), end: L(17), main: true }, { id: "s3", name: "Reception", start: L(17), end: L(22) }] }, clockAt(10));
+  eq([cer.what, cer.at, cer.gates], ["Before Outdoor ceremony", clockAt(15, 30), false], "custom main slot: Before Outdoor ceremony at 3:30 PM");
+  const slotGates = op({ times: { start: L(13), end: L(22) }, slots: [{ id: "s1", name: "Setup", start: L(13), end: L(16) }, { id: "s2", name: "Gates", start: L(16), end: L(17) }, { id: "s3", name: "Outdoor ceremony", start: L(17), end: L(22), main: true }] }, clockAt(10));
+  eq([slotGates.what, slotGates.at], ["Before gates open", clockAt(15, 30)], "a slot named Gates counts as the saved Gates time");
+  /* the check-again list carries the same operational checkpoint and no "Before gates / start" */
+  const c1 = ctxAt(clockAt(10)), list = S.checkAgain(c1, S.eventBrief(c1, { id: "x", name: "x", tz: TZ, loc: { lat: 39.1, lon: -84.5 }, ...bill }), {});
+  ok(list.some((x) => x.op && x.at === clockAt(16) && x.what === "Before gates open") && !list.some((x) => /gates \/ start/.test(x.what)), "check-again list: Before gates open at 4:00 PM");
+}
 /* sample event opens without any account or saved data; the picker prefers the active evening */
 const s1 = S.sampleEvent(C, now, TZ, 1); eq(C.event.validate(s1), [], "sample event is valid");
 eq(s1.times.start.slice(0, 10), "2026-11-11", "sample defaults to tomorrow");

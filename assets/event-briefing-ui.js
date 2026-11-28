@@ -313,7 +313,7 @@
     const { b, V, lightAll, nwsTh, R, checks, top } = view, tz = ev.tz, now = res.ctx.now, name = ev.name.replace(/ \(sample\)$/, '');
     const A = view.A || attention({ b, V, S, thr: { gust: ev.gust || 25 } }), PH = pageHours(A, V), off = PH.start, hours = V.span.slice(off, off + PH.count), clipped = PH.clipped;
     const issued = res.ctx.B.viewedAt || now, issue = `${date(issued, tz)} · ${clock(issued, tz)} ${zone(issued, tz)}`;
-    const main = b.phases.find((p) => p.key === 'event') || b.all, area = !!(ev.loc && ev.loc.approximate), nextCk = checks[0];
+    const main = b.phases.find((p) => p.key === 'event') || b.all, area = !!(ev.loc && ev.loc.approximate), nextCk = view.next !== undefined ? view.next : checks[0];
     const LD = view.lead && root.EventLead ? view.lead : null; // the screen's lead (EventLead.model / why), when the page built one
     const decision = headline(b, !top && R && R.state === 'partial' ? `No weather concern so far for ${R.inRange}.` : S.decision(b).text, { limited: !!(LD && LD.L.gaps.limited), incomplete: LD ? LD.L.gaps.incomplete : '', partial: !!(R && R.state === 'partial') });
     const foot = (n) => `<footer class="pv-footer"><span class="pv-footer-l">${esc(name)}</span><span class="pv-policy">This is forecast planning guidance. For live decisions, follow official NWS warnings and your venue’s lightning and weather policy.</span><span>${n} / 2</span></footer>`;
