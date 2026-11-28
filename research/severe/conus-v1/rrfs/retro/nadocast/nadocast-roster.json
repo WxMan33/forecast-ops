@@ -1,0 +1,1006 @@
+{
+ "rules": "research/severe/conus-v1/rrfs/retro/NADOCAST.md",
+ "nadocast_product": "2022 models, absolutely calibrated wind, 12Z f24-47",
+ "matched_dates": [
+  "2024-01-09",
+  "2024-01-10",
+  "2024-01-12",
+  "2024-01-13",
+  "2024-01-14",
+  "2024-01-15",
+  "2024-01-16",
+  "2024-01-20",
+  "2024-01-24",
+  "2024-01-25",
+  "2024-01-26",
+  "2024-01-27",
+  "2024-01-29",
+  "2024-01-30",
+  "2024-02-02",
+  "2024-02-03",
+  "2024-02-04",
+  "2024-02-05",
+  "2024-02-07",
+  "2024-02-08",
+  "2024-05-02",
+  "2024-05-03",
+  "2024-05-04",
+  "2024-05-05",
+  "2024-05-06",
+  "2024-05-07",
+  "2024-05-08",
+  "2024-05-09",
+  "2024-05-10",
+  "2024-05-11",
+  "2024-05-13",
+  "2024-05-14",
+  "2024-05-15",
+  "2024-05-16",
+  "2024-05-20",
+  "2024-05-21",
+  "2024-05-22",
+  "2024-05-23",
+  "2024-05-24",
+  "2024-05-25",
+  "2024-05-26",
+  "2024-05-27",
+  "2024-05-28",
+  "2024-05-29",
+  "2024-05-30",
+  "2024-05-31"
+ ],
+ "matched_by_block": {
+  "janfeb2024": [
+   "2024-01-09",
+   "2024-01-10",
+   "2024-01-12",
+   "2024-01-13",
+   "2024-01-14",
+   "2024-01-15",
+   "2024-01-16",
+   "2024-01-20",
+   "2024-01-24",
+   "2024-01-25",
+   "2024-01-26",
+   "2024-01-27",
+   "2024-01-29",
+   "2024-01-30",
+   "2024-02-02",
+   "2024-02-03",
+   "2024-02-04",
+   "2024-02-05",
+   "2024-02-07",
+   "2024-02-08"
+  ],
+  "may2024": [
+   "2024-05-02",
+   "2024-05-03",
+   "2024-05-04",
+   "2024-05-05",
+   "2024-05-06",
+   "2024-05-07",
+   "2024-05-08",
+   "2024-05-09",
+   "2024-05-10",
+   "2024-05-11",
+   "2024-05-13",
+   "2024-05-14",
+   "2024-05-15",
+   "2024-05-16",
+   "2024-05-20",
+   "2024-05-21",
+   "2024-05-22",
+   "2024-05-23",
+   "2024-05-24",
+   "2024-05-25",
+   "2024-05-26",
+   "2024-05-27",
+   "2024-05-28",
+   "2024-05-29",
+   "2024-05-30",
+   "2024-05-31"
+  ]
+ },
+ "excluded": {
+  "2024-01-08": "Last-Modified 2024-01-09T04:51:35+00:00 after the 18Z issue-date cutoff",
+  "2024-01-11": "Last-Modified 2024-01-12T06:38:38+00:00 after the 18Z issue-date cutoff",
+  "2024-01-17": "no archived NadoCast wind file (HTTP 404)",
+  "2024-01-18": "no archived NadoCast wind file (HTTP 404)",
+  "2024-01-19": "no archived NadoCast wind file (HTTP 404)",
+  "2024-01-21": "no archived NadoCast wind file (HTTP 404)",
+  "2024-01-22": "Last-Modified 2024-01-23T07:17:14+00:00 after the 18Z issue-date cutoff",
+  "2024-01-23": "Last-Modified 2024-01-24T06:45:58+00:00 after the 18Z issue-date cutoff",
+  "2024-01-28": "Last-Modified 2024-01-29T04:50:37+00:00 after the 18Z issue-date cutoff",
+  "2024-01-31": "no archived NadoCast wind file (HTTP 404)",
+  "2024-02-01": "Last-Modified 2024-02-02T07:04:08+00:00 after the 18Z issue-date cutoff",
+  "2024-02-06": "Last-Modified 2024-02-07T06:42:06+00:00 after the 18Z issue-date cutoff",
+  "2024-05-12": "Last-Modified 2024-05-12T20:57:51+00:00 after the 18Z issue-date cutoff",
+  "2024-05-17": "no archived NadoCast wind file (HTTP 404)",
+  "2024-05-18": "no archived NadoCast wind file (HTTP 404)",
+  "2024-05-19": "no archived NadoCast wind file (HTTP 404)"
+ },
+ "files": [
+  {
+   "date": "2024-01-08",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240108/t12z/nadocast_2022_models_conus_wind_abs_calib_20240108_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "839e4b5d2fa2d83a196720ca7e8549793cb9e44fff41167c3a7539cc4c8e66e9",
+   "last_modified": "2024-01-09T04:51:35+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "839e4b5d2fa2d83a196720ca7e8549793cb9e44fff41167c3a7539cc4c8e66e9",
+    "last_modified": "2024-01-09T04:51:35+00:00"
+   },
+   "eligible": false,
+   "exclusion": "Last-Modified 2024-01-09T04:51:35+00:00 after the 18Z issue-date cutoff"
+  },
+  {
+   "date": "2024-01-09",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240109/t12z/nadocast_2022_models_conus_wind_abs_calib_20240109_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "d956443883deff81513a12e28268cde063d441c4fb7e12ef922c4649be0077a1",
+   "last_modified": "2024-01-09T15:28:14+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "d956443883deff81513a12e28268cde063d441c4fb7e12ef922c4649be0077a1",
+    "last_modified": "2024-01-09T15:28:14+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-01-10",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240110/t12z/nadocast_2022_models_conus_wind_abs_calib_20240110_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "c3293a65cd2031d4015c963a11537a829b8065ea9a1527044c4fdd72379cf1b0",
+   "last_modified": "2024-01-10T15:28:40+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "c3293a65cd2031d4015c963a11537a829b8065ea9a1527044c4fdd72379cf1b0",
+    "last_modified": "2024-01-10T15:28:40+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-01-11",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240111/t12z/nadocast_2022_models_conus_wind_abs_calib_20240111_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "b0f41b40e67d91617712a3a272c88a6c2f4a227b08103c021572c8a66da76927",
+   "last_modified": "2024-01-12T06:38:38+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "b0f41b40e67d91617712a3a272c88a6c2f4a227b08103c021572c8a66da76927",
+    "last_modified": "2024-01-12T06:38:38+00:00"
+   },
+   "eligible": false,
+   "exclusion": "Last-Modified 2024-01-12T06:38:38+00:00 after the 18Z issue-date cutoff"
+  },
+  {
+   "date": "2024-01-12",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240112/t12z/nadocast_2022_models_conus_wind_abs_calib_20240112_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "982b136b63a2a4cc2679172bba86d1ac5fd6ddf87bedcadc68854d1d0febd683",
+   "last_modified": "2024-01-12T15:27:35+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "982b136b63a2a4cc2679172bba86d1ac5fd6ddf87bedcadc68854d1d0febd683",
+    "last_modified": "2024-01-12T15:27:35+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-01-13",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240113/t12z/nadocast_2022_models_conus_wind_abs_calib_20240113_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "a626822348d8b54e400c2a72e90576308f0b58207aad7a43f1afb5076cb65f1c",
+   "last_modified": "2024-01-13T15:28:11+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "a626822348d8b54e400c2a72e90576308f0b58207aad7a43f1afb5076cb65f1c",
+    "last_modified": "2024-01-13T15:28:11+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-01-14",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240114/t12z/nadocast_2022_models_conus_wind_abs_calib_20240114_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "a359bcce5bc3466dbea713ace1b02e5850da38022d3652551e987fe398791944",
+   "last_modified": "2024-01-14T15:28:33+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "a359bcce5bc3466dbea713ace1b02e5850da38022d3652551e987fe398791944",
+    "last_modified": "2024-01-14T15:28:33+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-01-15",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240115/t12z/nadocast_2022_models_conus_wind_abs_calib_20240115_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "686b56bd0d6944988938bfaedb325458d02ad2a25ddec9941d6dbb919bb1b15d",
+   "last_modified": "2024-01-15T15:27:49+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "686b56bd0d6944988938bfaedb325458d02ad2a25ddec9941d6dbb919bb1b15d",
+    "last_modified": "2024-01-15T15:27:49+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-01-16",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240116/t12z/nadocast_2022_models_conus_wind_abs_calib_20240116_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "af96045e4c8b256fb16a530b45a10e4d491e72edd42655cf5ae84f2b143953b6",
+   "last_modified": "2024-01-16T15:32:56+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "af96045e4c8b256fb16a530b45a10e4d491e72edd42655cf5ae84f2b143953b6",
+    "last_modified": "2024-01-16T15:32:56+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-01-17",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240117/t12z/nadocast_2022_models_conus_wind_abs_calib_20240117_t12z_f24-47.grib2",
+   "http_status": 404,
+   "sha256": null,
+   "last_modified": null,
+   "prior_pin": null,
+   "eligible": false,
+   "exclusion": "no archived NadoCast wind file (HTTP 404)"
+  },
+  {
+   "date": "2024-01-18",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240118/t12z/nadocast_2022_models_conus_wind_abs_calib_20240118_t12z_f24-47.grib2",
+   "http_status": 404,
+   "sha256": null,
+   "last_modified": null,
+   "prior_pin": null,
+   "eligible": false,
+   "exclusion": "no archived NadoCast wind file (HTTP 404)"
+  },
+  {
+   "date": "2024-01-19",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240119/t12z/nadocast_2022_models_conus_wind_abs_calib_20240119_t12z_f24-47.grib2",
+   "http_status": 404,
+   "sha256": null,
+   "last_modified": null,
+   "prior_pin": null,
+   "eligible": false,
+   "exclusion": "no archived NadoCast wind file (HTTP 404)"
+  },
+  {
+   "date": "2024-01-20",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240120/t12z/nadocast_2022_models_conus_wind_abs_calib_20240120_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "0b3e1cbb65b3990d1bb6eb33dfb1f0dea924421418723b858dade0b43018c437",
+   "last_modified": "2024-01-20T15:28:04+00:00",
+   "prior_pin": null,
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-01-21",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240121/t12z/nadocast_2022_models_conus_wind_abs_calib_20240121_t12z_f24-47.grib2",
+   "http_status": 404,
+   "sha256": null,
+   "last_modified": null,
+   "prior_pin": null,
+   "eligible": false,
+   "exclusion": "no archived NadoCast wind file (HTTP 404)"
+  },
+  {
+   "date": "2024-01-22",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240122/t12z/nadocast_2022_models_conus_wind_abs_calib_20240122_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "b7f964dce15bd948c2e5ec964aafc454102c18c90aa93461ac55416520292f51",
+   "last_modified": "2024-01-23T07:17:14+00:00",
+   "prior_pin": null,
+   "eligible": false,
+   "exclusion": "Last-Modified 2024-01-23T07:17:14+00:00 after the 18Z issue-date cutoff"
+  },
+  {
+   "date": "2024-01-23",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240123/t12z/nadocast_2022_models_conus_wind_abs_calib_20240123_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "ea3742826194cb31db6e9ad675f3173a3c09c6cc0228500765dab0a44cce598e",
+   "last_modified": "2024-01-24T06:45:58+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "ea3742826194cb31db6e9ad675f3173a3c09c6cc0228500765dab0a44cce598e",
+    "last_modified": "2024-01-24T06:45:58+00:00"
+   },
+   "eligible": false,
+   "exclusion": "Last-Modified 2024-01-24T06:45:58+00:00 after the 18Z issue-date cutoff"
+  },
+  {
+   "date": "2024-01-24",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240124/t12z/nadocast_2022_models_conus_wind_abs_calib_20240124_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "104b5c146770aeb226a060913c3664999bd00ed49e9ed0e90e72d2b429bfd7ed",
+   "last_modified": "2024-01-24T15:30:37+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "104b5c146770aeb226a060913c3664999bd00ed49e9ed0e90e72d2b429bfd7ed",
+    "last_modified": "2024-01-24T15:30:37+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-01-25",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240125/t12z/nadocast_2022_models_conus_wind_abs_calib_20240125_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "72089c48398718257ce33f2e303f97f65a6d535c0de08b038b6a7f2601d0e590",
+   "last_modified": "2024-01-25T15:29:19+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "72089c48398718257ce33f2e303f97f65a6d535c0de08b038b6a7f2601d0e590",
+    "last_modified": "2024-01-25T15:29:19+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-01-26",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240126/t12z/nadocast_2022_models_conus_wind_abs_calib_20240126_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "f2317a5440d7ef62d1268e008736cfa87b532a8ac8df2fd35245a0cfcb5769f3",
+   "last_modified": "2024-01-26T15:29:06+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "f2317a5440d7ef62d1268e008736cfa87b532a8ac8df2fd35245a0cfcb5769f3",
+    "last_modified": "2024-01-26T15:29:06+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-01-27",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240127/t12z/nadocast_2022_models_conus_wind_abs_calib_20240127_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "1d5d043e6e01618fd2d3f1ccefae8e9b59cb9a074a5cd40b62c185f2efe474d5",
+   "last_modified": "2024-01-27T15:28:40+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "1d5d043e6e01618fd2d3f1ccefae8e9b59cb9a074a5cd40b62c185f2efe474d5",
+    "last_modified": "2024-01-27T15:28:40+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-01-28",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240128/t12z/nadocast_2022_models_conus_wind_abs_calib_20240128_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "eafef36a8a2a920f9da216de1c8da986ce99ddf9d9587319a39e406d163058bf",
+   "last_modified": "2024-01-29T04:50:37+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "eafef36a8a2a920f9da216de1c8da986ce99ddf9d9587319a39e406d163058bf",
+    "last_modified": "2024-01-29T04:50:37+00:00"
+   },
+   "eligible": false,
+   "exclusion": "Last-Modified 2024-01-29T04:50:37+00:00 after the 18Z issue-date cutoff"
+  },
+  {
+   "date": "2024-01-29",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240129/t12z/nadocast_2022_models_conus_wind_abs_calib_20240129_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "faafa6c287729257960f2d5a3a91d09ba7a500cbb5d267ad5cdc6db19f7ccc2f",
+   "last_modified": "2024-01-29T15:28:34+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "faafa6c287729257960f2d5a3a91d09ba7a500cbb5d267ad5cdc6db19f7ccc2f",
+    "last_modified": "2024-01-29T15:28:34+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-01-30",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240130/t12z/nadocast_2022_models_conus_wind_abs_calib_20240130_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "d7393639f8e92bf89c2036a4a1483acf336b9f352af01d63d91d536f3fbcd8e1",
+   "last_modified": "2024-01-30T15:28:23+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "d7393639f8e92bf89c2036a4a1483acf336b9f352af01d63d91d536f3fbcd8e1",
+    "last_modified": "2024-01-30T15:28:23+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-01-31",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202401/20240131/t12z/nadocast_2022_models_conus_wind_abs_calib_20240131_t12z_f24-47.grib2",
+   "http_status": 404,
+   "sha256": null,
+   "last_modified": null,
+   "prior_pin": null,
+   "eligible": false,
+   "exclusion": "no archived NadoCast wind file (HTTP 404)"
+  },
+  {
+   "date": "2024-02-01",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202402/20240201/t12z/nadocast_2022_models_conus_wind_abs_calib_20240201_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "8dd21f4a5d75bdd77758f45636e2a4ff5c02e9c7dbb80538fc2c0edd6a509b35",
+   "last_modified": "2024-02-02T07:04:08+00:00",
+   "prior_pin": null,
+   "eligible": false,
+   "exclusion": "Last-Modified 2024-02-02T07:04:08+00:00 after the 18Z issue-date cutoff"
+  },
+  {
+   "date": "2024-02-02",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202402/20240202/t12z/nadocast_2022_models_conus_wind_abs_calib_20240202_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "d4c2508e78908f4bf9c451a703b7abd268c34aa027198f75406286c127a62965",
+   "last_modified": "2024-02-02T15:28:22+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "d4c2508e78908f4bf9c451a703b7abd268c34aa027198f75406286c127a62965",
+    "last_modified": "2024-02-02T15:28:22+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-02-03",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202402/20240203/t12z/nadocast_2022_models_conus_wind_abs_calib_20240203_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "68a2c74c7b919df35bfcc7010b6987a63f49d56672ba409374d7643a454c3f86",
+   "last_modified": "2024-02-03T15:28:36+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "68a2c74c7b919df35bfcc7010b6987a63f49d56672ba409374d7643a454c3f86",
+    "last_modified": "2024-02-03T15:28:36+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-02-04",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202402/20240204/t12z/nadocast_2022_models_conus_wind_abs_calib_20240204_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "5d2ef3db1526deb5b8b37180bcb226db086c3c059ecc06fcaf5bc24a3a9d22fb",
+   "last_modified": "2024-02-04T15:29:31+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "5d2ef3db1526deb5b8b37180bcb226db086c3c059ecc06fcaf5bc24a3a9d22fb",
+    "last_modified": "2024-02-04T15:29:31+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-02-05",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202402/20240205/t12z/nadocast_2022_models_conus_wind_abs_calib_20240205_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "86a06ff2edcf5a191c241d92ca3c93a2b2cb64db0c3a75fa686ce3bc9f95d286",
+   "last_modified": "2024-02-05T15:29:24+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "86a06ff2edcf5a191c241d92ca3c93a2b2cb64db0c3a75fa686ce3bc9f95d286",
+    "last_modified": "2024-02-05T15:29:24+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-02-06",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202402/20240206/t12z/nadocast_2022_models_conus_wind_abs_calib_20240206_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "b0c4cfc1c6ccf7101575d8096385fefd518c868ef1e9bfc0b3a9e8ae32133fcf",
+   "last_modified": "2024-02-07T06:42:06+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "b0c4cfc1c6ccf7101575d8096385fefd518c868ef1e9bfc0b3a9e8ae32133fcf",
+    "last_modified": "2024-02-07T06:42:06+00:00"
+   },
+   "eligible": false,
+   "exclusion": "Last-Modified 2024-02-07T06:42:06+00:00 after the 18Z issue-date cutoff"
+  },
+  {
+   "date": "2024-02-07",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202402/20240207/t12z/nadocast_2022_models_conus_wind_abs_calib_20240207_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "3da6b39f251f84eac5fac83e7864c1d84ad95e02ed07e161527b3603f9d833ce",
+   "last_modified": "2024-02-07T15:28:44+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "3da6b39f251f84eac5fac83e7864c1d84ad95e02ed07e161527b3603f9d833ce",
+    "last_modified": "2024-02-07T15:28:44+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-02-08",
+   "block": "janfeb2024",
+   "url": "http://data.nadocast.com/202402/20240208/t12z/nadocast_2022_models_conus_wind_abs_calib_20240208_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "f1e22ac867372c2658618b62dfd40f609c0a4647935b84067989fbbeed7232ea",
+   "last_modified": "2024-02-08T15:29:00+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "f1e22ac867372c2658618b62dfd40f609c0a4647935b84067989fbbeed7232ea",
+    "last_modified": "2024-02-08T15:29:00+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-02",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240502/t12z/nadocast_2022_models_conus_wind_abs_calib_20240502_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "01e67e87eafa504212721262788a8aaf068a558408c5da91c3ee1537dc662d47",
+   "last_modified": "2024-05-02T15:29:09+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "01e67e87eafa504212721262788a8aaf068a558408c5da91c3ee1537dc662d47",
+    "last_modified": "2024-05-02T15:29:09+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-03",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240503/t12z/nadocast_2022_models_conus_wind_abs_calib_20240503_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "017a0697cccbe235fa33a9a494ece61841261d40a146526de6afc6bf47e23d14",
+   "last_modified": "2024-05-03T15:36:34+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "017a0697cccbe235fa33a9a494ece61841261d40a146526de6afc6bf47e23d14",
+    "last_modified": "2024-05-03T15:36:34+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-04",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240504/t12z/nadocast_2022_models_conus_wind_abs_calib_20240504_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "2d911fce9f541e5aa1cafe46747f92f2500c8c8c34bde3878462bcbe5e1cda8e",
+   "last_modified": "2024-05-04T15:28:48+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "2d911fce9f541e5aa1cafe46747f92f2500c8c8c34bde3878462bcbe5e1cda8e",
+    "last_modified": "2024-05-04T15:28:48+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-05",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240505/t12z/nadocast_2022_models_conus_wind_abs_calib_20240505_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "02c4303082e1194d79a6a5553d03163d409373f3a14fd4d3b82b69f925b3f812",
+   "last_modified": "2024-05-05T15:28:20+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "02c4303082e1194d79a6a5553d03163d409373f3a14fd4d3b82b69f925b3f812",
+    "last_modified": "2024-05-05T15:28:20+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-06",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240506/t12z/nadocast_2022_models_conus_wind_abs_calib_20240506_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "4ae4f0e69e6ad4a5a1269912cf9f84ad3535bde9b4238c59836ebd9160493c8e",
+   "last_modified": "2024-05-06T15:29:04+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "4ae4f0e69e6ad4a5a1269912cf9f84ad3535bde9b4238c59836ebd9160493c8e",
+    "last_modified": "2024-05-06T15:29:04+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-07",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240507/t12z/nadocast_2022_models_conus_wind_abs_calib_20240507_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "e9bc299e0d58a6fb818bde04bb8fc79d87dc660cac483abf6ec3f7f2d4e50415",
+   "last_modified": "2024-05-07T15:28:26+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "e9bc299e0d58a6fb818bde04bb8fc79d87dc660cac483abf6ec3f7f2d4e50415",
+    "last_modified": "2024-05-07T15:28:26+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-08",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240508/t12z/nadocast_2022_models_conus_wind_abs_calib_20240508_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "2270962329c7200a0473f5116a67f556c40773d30332c9db8a1c5063a871b04d",
+   "last_modified": "2024-05-08T15:28:31+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "2270962329c7200a0473f5116a67f556c40773d30332c9db8a1c5063a871b04d",
+    "last_modified": "2024-05-08T15:28:31+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-09",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240509/t12z/nadocast_2022_models_conus_wind_abs_calib_20240509_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "cd127045178bcc60018f9ce62128227ae1412f7ca19a90d11665a9a0e38f3fbc",
+   "last_modified": "2024-05-09T15:28:46+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "cd127045178bcc60018f9ce62128227ae1412f7ca19a90d11665a9a0e38f3fbc",
+    "last_modified": "2024-05-09T15:28:46+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-10",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240510/t12z/nadocast_2022_models_conus_wind_abs_calib_20240510_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "07cc36df84cdd4cdce3c80e074ac24ece079a30c0754164cb2a18e61c10d9c66",
+   "last_modified": "2024-05-10T15:28:43+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "07cc36df84cdd4cdce3c80e074ac24ece079a30c0754164cb2a18e61c10d9c66",
+    "last_modified": "2024-05-10T15:28:43+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-11",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240511/t12z/nadocast_2022_models_conus_wind_abs_calib_20240511_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "c626558af217a57b0d635833011114ec9dfd945a4296b6a22281f4ef365e1245",
+   "last_modified": "2024-05-11T15:28:45+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "c626558af217a57b0d635833011114ec9dfd945a4296b6a22281f4ef365e1245",
+    "last_modified": "2024-05-11T15:28:45+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-12",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240512/t12z/nadocast_2022_models_conus_wind_abs_calib_20240512_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "b74e73f581d5ecab63bc804e545d0e53610987df45ef84945d5c6e813481df96",
+   "last_modified": "2024-05-12T20:57:51+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "b74e73f581d5ecab63bc804e545d0e53610987df45ef84945d5c6e813481df96",
+    "last_modified": "2024-05-12T20:57:51+00:00"
+   },
+   "eligible": false,
+   "exclusion": "Last-Modified 2024-05-12T20:57:51+00:00 after the 18Z issue-date cutoff"
+  },
+  {
+   "date": "2024-05-13",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240513/t12z/nadocast_2022_models_conus_wind_abs_calib_20240513_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "dd204e6e538add3b324c7571eb9483f74f0df75fe436b7373dcf54feec7a8ed3",
+   "last_modified": "2024-05-13T15:28:48+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "dd204e6e538add3b324c7571eb9483f74f0df75fe436b7373dcf54feec7a8ed3",
+    "last_modified": "2024-05-13T15:28:48+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-14",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240514/t12z/nadocast_2022_models_conus_wind_abs_calib_20240514_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "ef54d4199cc90329c909fa501636c99ac7cbb7d15081294cb3df68a4ffdc4f1c",
+   "last_modified": "2024-05-14T15:28:30+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "ef54d4199cc90329c909fa501636c99ac7cbb7d15081294cb3df68a4ffdc4f1c",
+    "last_modified": "2024-05-14T15:28:30+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-15",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240515/t12z/nadocast_2022_models_conus_wind_abs_calib_20240515_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "ce463e878968014374b43415f14e40bd9a98713f533b60618229ae8a910b5137",
+   "last_modified": "2024-05-15T15:28:30+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "ce463e878968014374b43415f14e40bd9a98713f533b60618229ae8a910b5137",
+    "last_modified": "2024-05-15T15:28:30+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-16",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240516/t12z/nadocast_2022_models_conus_wind_abs_calib_20240516_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "cdd9020125c915038d2afc05ad64eb5291c08a2314f4af32a41b55687d09a9b2",
+   "last_modified": "2024-05-16T15:28:47+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "cdd9020125c915038d2afc05ad64eb5291c08a2314f4af32a41b55687d09a9b2",
+    "last_modified": "2024-05-16T15:28:47+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-17",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240517/t12z/nadocast_2022_models_conus_wind_abs_calib_20240517_t12z_f24-47.grib2",
+   "http_status": 404,
+   "sha256": null,
+   "last_modified": null,
+   "prior_pin": null,
+   "eligible": false,
+   "exclusion": "no archived NadoCast wind file (HTTP 404)"
+  },
+  {
+   "date": "2024-05-18",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240518/t12z/nadocast_2022_models_conus_wind_abs_calib_20240518_t12z_f24-47.grib2",
+   "http_status": 404,
+   "sha256": null,
+   "last_modified": null,
+   "prior_pin": null,
+   "eligible": false,
+   "exclusion": "no archived NadoCast wind file (HTTP 404)"
+  },
+  {
+   "date": "2024-05-19",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240519/t12z/nadocast_2022_models_conus_wind_abs_calib_20240519_t12z_f24-47.grib2",
+   "http_status": 404,
+   "sha256": null,
+   "last_modified": null,
+   "prior_pin": null,
+   "eligible": false,
+   "exclusion": "no archived NadoCast wind file (HTTP 404)"
+  },
+  {
+   "date": "2024-05-20",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240520/t12z/nadocast_2022_models_conus_wind_abs_calib_20240520_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "9bc386732d15f2bdff7447bfb68c640be78db7ca33a97d89fdacce2b5b73ec5a",
+   "last_modified": "2024-05-20T15:27:49+00:00",
+   "prior_pin": null,
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-21",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240521/t12z/nadocast_2022_models_conus_wind_abs_calib_20240521_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "10e78008ce37bd8d75fb426ef689877b5ed34c36e064d57329fadc8ce12eacc1",
+   "last_modified": "2024-05-21T15:32:38+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "10e78008ce37bd8d75fb426ef689877b5ed34c36e064d57329fadc8ce12eacc1",
+    "last_modified": "2024-05-21T15:32:38+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-22",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240522/t12z/nadocast_2022_models_conus_wind_abs_calib_20240522_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "02343083cb5791275af96923c89799530d47fc26b54da905d71ccd163c32d483",
+   "last_modified": "2024-05-22T15:43:16+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "02343083cb5791275af96923c89799530d47fc26b54da905d71ccd163c32d483",
+    "last_modified": "2024-05-22T15:43:16+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-23",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240523/t12z/nadocast_2022_models_conus_wind_abs_calib_20240523_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "ca627ac3f0a988f7cc19b7daf101badc2957959d3eeed0f6d9e1815a55804120",
+   "last_modified": "2024-05-23T15:28:26+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "ca627ac3f0a988f7cc19b7daf101badc2957959d3eeed0f6d9e1815a55804120",
+    "last_modified": "2024-05-23T15:28:26+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-24",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240524/t12z/nadocast_2022_models_conus_wind_abs_calib_20240524_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "662bebb4497e361903e52dca8e8ba68728acd5fc6f08ddd62fdc28742ba312f2",
+   "last_modified": "2024-05-24T15:28:42+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "662bebb4497e361903e52dca8e8ba68728acd5fc6f08ddd62fdc28742ba312f2",
+    "last_modified": "2024-05-24T15:28:42+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-25",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240525/t12z/nadocast_2022_models_conus_wind_abs_calib_20240525_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "4dd45cb52e00c5bc57555c021ba6dd796f8429d1418b920733a66f1a4c05575c",
+   "last_modified": "2024-05-25T15:28:38+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "4dd45cb52e00c5bc57555c021ba6dd796f8429d1418b920733a66f1a4c05575c",
+    "last_modified": "2024-05-25T15:28:38+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-26",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240526/t12z/nadocast_2022_models_conus_wind_abs_calib_20240526_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "6cf3c2a8b83eb16f71d37962edb97ec9be39566cb181f009387fdb7d564a30d2",
+   "last_modified": "2024-05-26T15:31:46+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "6cf3c2a8b83eb16f71d37962edb97ec9be39566cb181f009387fdb7d564a30d2",
+    "last_modified": "2024-05-26T15:31:46+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-27",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240527/t12z/nadocast_2022_models_conus_wind_abs_calib_20240527_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "de602ce3abf68e54cbba4a58e0c312a61677bfbe1fe6a8b67ca6458b3bc9e319",
+   "last_modified": "2024-05-27T15:32:34+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "de602ce3abf68e54cbba4a58e0c312a61677bfbe1fe6a8b67ca6458b3bc9e319",
+    "last_modified": "2024-05-27T15:32:34+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-28",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240528/t12z/nadocast_2022_models_conus_wind_abs_calib_20240528_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "9952049c964d0c8b5811094b90c9d98068b8bc273ea67f3df2211290b99b044c",
+   "last_modified": "2024-05-28T15:33:44+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "9952049c964d0c8b5811094b90c9d98068b8bc273ea67f3df2211290b99b044c",
+    "last_modified": "2024-05-28T15:33:44+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-29",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240529/t12z/nadocast_2022_models_conus_wind_abs_calib_20240529_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "a6f847d08f1d88d6a481bb7f93e751f8d777f71663779283c2523220d445e60a",
+   "last_modified": "2024-05-29T15:35:35+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "a6f847d08f1d88d6a481bb7f93e751f8d777f71663779283c2523220d445e60a",
+    "last_modified": "2024-05-29T15:35:35+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-30",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240530/t12z/nadocast_2022_models_conus_wind_abs_calib_20240530_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "f663a36db42c9ae20c188f0b1f17ec9199faa73d25dfd55220b19f049642f984",
+   "last_modified": "2024-05-30T15:33:24+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "f663a36db42c9ae20c188f0b1f17ec9199faa73d25dfd55220b19f049642f984",
+    "last_modified": "2024-05-30T15:33:24+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  },
+  {
+   "date": "2024-05-31",
+   "block": "may2024",
+   "url": "http://data.nadocast.com/202405/20240531/t12z/nadocast_2022_models_conus_wind_abs_calib_20240531_t12z_f24-47.grib2",
+   "http_status": 200,
+   "sha256": "e611006a6cd3e02c5c9b54876c18f3da6e4b0ba4fab6be273be60b4b06080af9",
+   "last_modified": "2024-05-31T15:34:12+00:00",
+   "prior_pin": {
+    "status": 200,
+    "sha256": "e611006a6cd3e02c5c9b54876c18f3da6e4b0ba4fab6be273be60b4b06080af9",
+    "last_modified": "2024-05-31T15:34:12+00:00"
+   },
+   "eligible": true,
+   "exclusion": null
+  }
+ ]
+}
