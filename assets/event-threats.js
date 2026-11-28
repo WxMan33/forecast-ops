@@ -424,11 +424,13 @@
         <label>Aircraft class <select name="rc" class="input">${[["medium", "Medium (A320, B737)"], ["light", "Light (under 15,500 lb)"], ["heavy", "Heavy (B777, A350)"]].map(([k, l]) => `<option value="${k}"${(rt.c || "medium") === k ? " selected" : ""}>${l}</option>`).join("")}</select></label>
         <p class="bx-note">Drawn as a straight line between the airports (an approximate route). Leave the times blank to use your arrival window at the destination. Times in the air are needed for when modeled turbulence would be met along the way; the aircraft class sets its categories.</p></fieldset>`;
     const airForm = `<details class="bx-more et-air"${ap.length ? "" : ""}><summary>Airports for this event${ap.length ? ": " + esc(ap.map((x) => x.i.toUpperCase()).join(", ")) : " (optional)"}${rt.o ? " · route " + esc(rt.o + " → " + rt.d) : ""}</summary><form class="et-airform">${slot("p", "p")}${slot("a", "a")}${rtSlot}<p class="et-rterr bx-note" hidden></p><button type="submit" class="btn">Save airports</button><p class="bx-note">Times in ${esc(tz)}. Checked against each airport's own METAR and TAF from the NOAA Aviation Weather Center.</p></form></details>`;
-    const vCount = r.items.filter((it) => it.family !== "aviation").length, venueOnly = FAMILIES.some((f) => f !== "aviation");
-    box.innerHTML = `${label}${notes}${venueOnly ? `<h3 class="et-h" id="etVenueHead">Venue hazards</h3><p class="et-summary${vCount ? " has" : r.venueConfirmed ? "" : " warn"}" data-confirmed="${r.venueConfirmed}">${esc(r.venueSummary)}</p>
-      ${venueItems ? `<ul class="et-list">${venueItems}</ul>` : ""}` : `<p class="et-summary${r.items.length ? " has" : r.confirmed ? "" : " warn"}" data-confirmed="${r.confirmed}">${esc(r.summary)}</p>`}
+    const venueOnly = FAMILIES.some((f) => f !== "aviation");
+    const showSources = box.querySelector(".et-sources")?.open;
+    const venueSection = venueItems ? `<h3 class="et-h" id="etVenueHead">Venue hazards</h3><p class="et-summary has" data-confirmed="${r.venueConfirmed}">${esc(r.venueSummary)}</p>
+      <ul class="et-list">${venueItems}</ul>` : "";
+    box.innerHTML = `${label}${notes}${venueOnly ? venueSection : `<p class="et-summary${r.items.length ? " has" : r.confirmed ? "" : " warn"}" data-confirmed="${r.confirmed}">${esc(r.summary)}</p>`}
       ${airSec}${faaSec}${routeSec}
-      <details class="bx-more et-sources"><summary>Sources checked for this event</summary><ul>${statuses}</ul>
+      <details class="bx-more et-sources"${showSources ? " open" : ""}><summary>Sources checked for this event</summary><ul>${statuses}</ul>
       <p class="bx-note">Matched to the venue pin and the event's own schedule (${esc(tz)}). Official warnings and outlooks only; daily outlooks flag a period and do not time anything within it. Delivery by email, text or push is not part of this preview.</p></details>`;
     // the airports form lives beside the list and is drawn only when the event changes (typing is never interrupted)
     let air = document.getElementById("threatsAir"); if (!air) { air = document.createElement("div"); air.id = "threatsAir"; box.after(air); }

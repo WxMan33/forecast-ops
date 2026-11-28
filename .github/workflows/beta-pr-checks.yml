@@ -52,6 +52,7 @@ jobs:
           node tools/event-slots-check.js /tmp/event-slots
           node tools/event-days-check.js /tmp/event-days
           node tools/event-nav-check.js /tmp/event-nav
+          node tools/event-checkin-check.js /tmp/event-checkin
           node tools/records-check.js /tmp/records
       - name: Hourly grid fixtures (offline)
         run: |
