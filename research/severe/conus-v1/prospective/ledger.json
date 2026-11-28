@@ -48,5 +48,23 @@
     }
    }
   }
+ },
+ {
+  "issue_date": "2026-11-28",
+  "status": "on_time",
+  "generated_at": "2026-11-28T15:17:51.008089+00:00",
+  "lagged_candidates": "ok",
+  "lagged_detail": {
+   "runs": {
+    "12z": {
+     "latest_listed": "2026-11-28T13:46:26.000Z",
+     "listed_before_cutoff": true
+    },
+    "06z": {
+     "latest_listed": "2026-11-28T07:46:17.000Z",
+     "listed_before_cutoff": true
+    }
+   }
+  }
  }
 ]
