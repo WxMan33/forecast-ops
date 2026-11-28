@@ -1,9 +1,10 @@
 {
- "request": 3,
+ "request": 4,
  "stage": "diagnose",
  "purpose": "May 2024 miss diagnosis vs NadoCast at the committed equal-area thresholds (no fitting)",
  "rules": "research/severe/conus-v1/rrfs/retro/DIAG-MAY.md",
  "cache_run": 46035459501,
  "expect_fingerprints": "research/severe/conus-v1/rrfs/retro/repro/scorecard-pinned-1.json",
- "roster": "research/severe/conus-v1/rrfs/retro/nadocast/nadocast-roster.json (committed by the stage-1 run before this request)"
+ "roster": "research/severe/conus-v1/rrfs/retro/nadocast/nadocast-roster.json (committed by the stage-1 run before this request)",
+ "note": "rerun of the diagnose stage: run 46116458932 wrote may-diagnosis.json but failed drawing maps (matplotlib not installed); definitions unchanged"
 }
