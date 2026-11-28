@@ -1155,3 +1155,7 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
   .event-planner .bx-head-in > .bx-sitemenu > summary { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; box-sizing: border-box; }
 }
 @media print { .bx-sitenav, .bx-sitemenu { display: none !important; } }
+
+/* Event Manager: the operational check when its time has come, and the next model update on its own line */
+.bx .ev-checknow { color: var(--action, #c2410c); font-weight: 800; letter-spacing: .02em; }
+.bx .ev-model { margin: 4px 0 0; }

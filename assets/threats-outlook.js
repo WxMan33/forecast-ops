@@ -121,20 +121,29 @@
       if (h.partial && h.amountsEnd) h.amountsNote = "rain amounts stop at " + long(h.amountsEnd) + ", so the total may be higher"; }
     /* rain amounts that stop in the middle of rain: where the known hours just before the stop don't reach the threshold, heavy
        rain past that point can't be ruled out. Counted when the last known hour has rain or the next hour has rain likely. */
-    const gaps = [], wetType = /rain|drizzle|showers|thunderstorms|snow|sleet/;
+    const gaps = [], coverage = [], COVER_H = 60, wetType = /rain|drizzle|showers|thunderstorms|snow|sleet/;
     for (let i = 0; i + 1 < rows.length; i++) {
       if (q[i] == null || q[i + 1] != null) continue;
       const next = rows[i + 1], goesOn = q[i] >= 0.01 || (next.wx || []).some((x) => wetType.test(x.type) && x.cov >= 3); if (!goesOn) continue;
       const stop = T(rows[i]) + H; if (out.some((h) => h.kind === "rain" && h.end > stop - 24 * H)) continue; // a heavy-rain highlight already covers these hours (and says if its amounts stop)
+      /* where the amounts end is normal forecast coverage when it is the end of the grid's amounts and at least COVER_H after
+         the grid's update (NWS forecasts amounts about 3 days ahead: 69-75 h in the saved CVG grids). That is a quiet note on
+         the day ("Sunday rain amounts after 7 PM aren't available yet"), not "Not fully checked". Amounts that stop earlier, or a
+         hole with amounts again after it, are missing data inside the forecast window and stay "Not fully checked". */
+      const isEnd = !q.slice(i + 1).some((v) => v != null), upd = Date.parse(grid.updated || "");
+      if (isEnd && Number.isFinite(upd) && stop >= upd + COVER_H * H) { coverage.push({ at: stop, text: dayName(stop, tz, now, true) + " rain amounts after " + fmtH(stop, tz) + " aren't available yet (NWS forecasts them about 3 days ahead)" }); continue; }
       let known = 0; for (let j = i; j > i - 24 && j >= 0 && q[j] != null; j--) known += q[j];
       gaps.push({ at: stop, text: "heavy rain after " + fmtDay(stop, tz) + " " + fmtH(stop, tz) + " (rain amounts stop while rain is still forecast; about " + known.toFixed(2) + " in before then)" }); }
+    /* rain likely on a later day, entirely past the end of the amounts: said on that day */
+    if (coverage.length) for (const it of out) if (it.kind === "linger" && it.start >= coverage[0].at && localDate(it.start, tz) !== localDate(coverage[0].at - H, tz))
+      coverage.push({ at: it.start, text: dayName(it.start, tz, now, true) + " rain amounts aren't available yet" });
     const unchecked = [];
     if (!grid.qpfThrough) unchecked.push("heavy rain (no rain amounts)");
     if (!grid.wxThrough) unchecked.push("wintry mix and long rain (no precipitation types)");
     if (!grid.heatThrough && !rows.some((r) => r.temp != null)) unchecked.push("heat (no heat index or temperatures)");
     const uncheckedAt = unchecked.map(() => now);
     for (const g of gaps) { unchecked.push(g.text); uncheckedAt.push(g.at); }
-    return { list: out, notes, missing: false, unchecked, uncheckedAt };
+    return { list: out, notes, missing: false, unchecked, uncheckedAt, coverage };
   }
   /* The site headline from the highlights: the main impact first. Lingering rain that overlaps the heavy-rain window is the same
      event (its hours go in the timing line, not a second headline item). A separate round of rain reads "More rain <day>"; it is
@@ -157,7 +166,7 @@
     const more = later ? "More " + (later.kind === "rain" ? "heavy rain " + later.short.replace(/^Heavy rain /, "") : "rain likely " + later.days) + " · " + later.timing : "";
     return { text: words.map(cap).join(" · "), timing: rain && rain.timing ? (rain === heavy && !related ? "Rain " : "Rain likely ") + rain.timing + note : "", more };
   }
-  const dayName = (ms, tz, now) => localDate(ms, tz) === localDate(now, tz) ? "today" : new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "long" }).format(new Date(ms)); // weekdays: planners count by them
+  const dayName = (ms, tz, now, weekday) => !weekday && localDate(ms, tz) === localDate(now, tz) ? "today" : new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "long" }).format(new Date(ms)); // weekdays: planners count by them
 
   function build(inp) {
     const tz = inp.tz, now = inp.now, pt = [inp.venue.lon, inp.venue.lat], nDays = inp.days || 7;
@@ -234,6 +243,7 @@
         else if (rh != null && rh <= 30) d.items.push({ key: "dry", level: 0, text: "Humidity as low as " + rh + "%", source: "NWS forecast", link: "fire", rh, gust: g }); }
     } else if (inp.states.grid === "failed") unknownOn(now, "NWS forecast for the venue not confirmed");
     const HL = inp.grid && inp.grid.rows ? highlights(inp.grid, tz, now, inp.highlightOpts) : { list: [], notes: [], missing: true };
+    (HL.coverage || []).forEach((c) => limitOn(c.at, c.text)); // normal forecast coverage: a note on the day, not a failure
     (HL.unchecked || []).forEach((u, k) => unknownOn((HL.uncheckedAt || [])[k] || now, "NWS forecast for the venue came back incomplete; not checked: " + u));
     for (const h of HL.list) { const d = at(h.at); if (d) d.items.unshift({ key: "hl-" + h.kind, level: 0, highlight: true, text: h.text, source: h.source, link: h.link }); }
     // NOAA river gauges within 25 miles: forecast (or observed) at or above action stage, on the day it is expected
