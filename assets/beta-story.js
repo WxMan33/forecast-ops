@@ -239,16 +239,34 @@
   const LEGACY = ["Setup", "Gates", "Event", "Teardown"];
   const partWord = (l) => (LEGACY.includes(l) ? String(l).toLowerCase() : String(l || ""));
   const partPhrase = (l) => (l === "Event" ? "the event" : LEGACY.includes(l) ? l.toLowerCase() : /^(the|a|an|our|my|day\b|mon|tue|wed|thu|fri|sat|sun)/i.test(String(l).trim()) ? String(l).trim() : `the ${String(l).trim()}`);
+  /* The operational check: 30 minutes before gates open when the schedule has a Gates time (a "gates" part, or a slot
+     named Gates), otherwise 30 minutes before the main slot or the event start, named as the planner named it ("Before
+     Outdoor ceremony"). It depends on the schedule and the clock only, never on model metadata, so two people opening the
+     same event with the same schedule see the same check even when their browsers hold different forecast updates. In a
+     multi-day briefing the brief is the selected day's, so the check is that day's.
+     -> { state: "upcoming" | "now" | "underway", at, opensMs, what, opens, gates } or null without a schedule.
+     "now": the checkpoint has passed and gates (or the start) are still ahead: check now. */
+  const OP_LEAD = 30 * 60e3;
+  function opCheck(ctx, brief) {
+    const ph = brief.phases || [], gates = ph.find((p) => p.key === "gates" || /^gates?$/i.test(String(p.label || "").trim()));
+    const main = ph.find((p) => p.key === "event") || ph[0] || brief.all; if (!main || !Number.isFinite(main.startMs)) return null;
+    const anchor = gates || main, opensMs = anchor.startMs, at = opensMs - OP_LEAD, plain = !gates && String(main.label || "Event").trim() === "Event";
+    const what = gates ? "Before gates open" : plain ? "Before the event starts" : `Before ${String(main.label).trim()}`;
+    const opens = gates ? "Gates open" : plain ? "The event starts" : `${String(main.label).trim()} starts`;
+    const state = ctx.now < at ? "upcoming" : ctx.now < opensMs ? "now" : "underway";
+    return { state, at, opensMs, what, opens, gates: !!gates, why: "Re-check radar, lightning and NWS alerts before guests arrive." };
+  }
+  /* the next model publication (from each model's own metadata, so it can differ between browsers); shown on its own */
+  function nextModelUpdate(ctx, names, beforeMs = Infinity) { return nextUpdates(ctx, names).filter((u) => u.at < beforeMs)[0] || null; }
   /* When to check again: real next model publication times plus fixed lead-time checkpoints */
   function checkAgain(ctx, brief, names) {
-    const start = brief.phases.length ? brief.phases[0].startMs : brief.all.startMs, evStart = (brief.phases.find((p) => p.key === "event") || brief.phases[0] || brief.all).startMs, out = [];
+    const start = brief.phases.length ? brief.phases[0].startMs : brief.all.startMs, out = [];
     const ups = nextUpdates(ctx, names).filter((u) => u.at < start);
     const major = ups.filter((u) => u.id !== "gfs_hrrr")[0];
     if (major) out.push({ at: major.at, what: `Next ${major.name} run expected`, why: "A new global model run can shift timing and amounts." });
     [[48, "Two days out", "Hourly high-resolution models start covering the event."], [24, "Day before", "Confirm staffing and any weather contingencies."], [6, "Morning of", "Last model-based check before setup."]].forEach(([h, what, why]) => { const at = start - h * H; if (at > ctx.now) out.push({ at, what, why }); });
     const radar = start - H; if (radar > ctx.now) out.push({ at: radar, what: "Switch to radar and lightning detection", why: "From here, observed weather matters more than model guidance." });
-    const evp = brief.phases.find((p) => p.key === "event");
-    if (evStart !== start && evStart > ctx.now) out.push({ at: evStart - 30 * 60e3, what: evp && evp.slot ? `Before ${partPhrase(evp.label)}` : "Before gates / start", why: "Re-check radar and alerts before guests arrive." });
+    const op = opCheck(ctx, brief); if (op && op.state === "upcoming") out.push({ at: op.at, what: op.what, why: op.why, op: true });
     return out.sort((a, b) => a.at - b.at).slice(0, 5);
   }
 
@@ -368,7 +386,7 @@
   const icsText = (t) => String(t).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
   const hash = (t) => [...String(t)].reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0);
 
-  const api = { partWord, partPhrase, precipTimingIn, lightningWord, LIGHTNING_WORD, market, eventToParam, eventFromParam, CINCY_DMA, HRRR_BOX, signals, decision, formatPrecipPercent, pickSample, phaseRow, HAZARDS, LEVEL_WORD, LEVEL_TIER, AGREE_WORD, context, windowRow, hourly, precipTiming, disagreement, guidanceAge, nextUpdates, hazardTiming, certainty, eventBrief, planChanges, checkAgain, sampleEvent, SAMPLE_VENUE, readiness, reminder, listWords };
+  const api = { opCheck, nextModelUpdate, OP_LEAD, partWord, partPhrase, precipTimingIn, lightningWord, LIGHTNING_WORD, market, eventToParam, eventFromParam, CINCY_DMA, HRRR_BOX, signals, decision, formatPrecipPercent, pickSample, phaseRow, HAZARDS, LEVEL_WORD, LEVEL_TIER, AGREE_WORD, context, windowRow, hourly, precipTiming, disagreement, guidanceAge, nextUpdates, hazardTiming, certainty, eventBrief, planChanges, checkAgain, sampleEvent, SAMPLE_VENUE, readiness, reminder, listWords };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.BetaStory = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);

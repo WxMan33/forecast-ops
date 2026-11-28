@@ -1133,3 +1133,7 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 .event-planner .ev-day-all { border-left-width: 1px; }
 .event-planner .ev-day:focus-visible { outline: 2px solid var(--accent, #2563eb); outline-offset: 2px; }
 @media print { .event-planner .ev-days { display: none !important; } }
+
+/* Event Manager: the operational check when its time has come, and the next model update on its own line */
+.bx .ev-checknow { color: var(--action, #c2410c); font-weight: 800; letter-spacing: .02em; }
+.bx .ev-model { margin: 4px 0 0; }
