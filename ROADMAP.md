@@ -55,6 +55,12 @@ RRFS deterministic and the five-member RRFS ensemble are registered. A native CV
 - [ ] Continue real-setup evaluation of winter precipitation type, temperature profiles and accumulation uncertainty. Experimental diagnostics remain inspection tools, separate from automated alert decisions.
 - [ ] Treat new guidance as comparison products first. Any later contribution to the blend requires compatible variables/windows, clear provenance and verification.
 
+### Nearby surface observations for Predictable and the Threat Map
+
+- [ ] Pilot a shared observation adapter in the Cincinnati/Northern Kentucky area using [NOAA Aviation Weather Center METARs](https://aviationweather.gov/data/api/) for CVG and Lunken and [Iowa Environmental Mesonet NWS Local Storm Reports](https://mesonet.agron.iastate.edu/request/gis/lsrs.phtml). Use commercially free, publicly available sources whose terms permit the intended display. Record the source, terms and attribution before enabling a feed in a product. Defer feeds that require paid access, private agreements or separate redistribution permission.
+- [ ] In Predictable Live Venue, show **Observed near venue** with station, distance, direction, observation time and age. Start with gusts, visibility and precipitation when reported, with the measurement interval for amounts. Keep nearby readings separate from on-site conditions, forecasts, lightning countdown and clearance, and radar timing.
+- [ ] On the Threat Map, make station observations an optional layer and identify NWS storm reports separately. Show stale and missing data explicitly. Cache normalized results server-side and preserve source, units, quality flags and observation timestamps. Add Event Manager context later if the pilot proves useful.
+
 ## 4. Usability and operational polish
 
 - [ ] Compact operational mode with larger primary numbers and expandable explanations.
