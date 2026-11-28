@@ -106,7 +106,7 @@ def compare(a):
     pdates = z["dates"].tolist()
     off = z["offsets"]
     thr = json.loads(Path(a.thresholds).read_text())
-    ours = tuple(k for k in ("hrrr", "hrrr_rrfs", "hrrr_rrfs_smooth") if k in z.files)
+    ours = tuple(k for k in ("hrrr", "hrrr_rrfs", "hrrr_rrfs_smooth", "hrrr_rrfs_gbt", "hrrr_rrfs_gbt_raw") if k in z.files)
     arms = ours + ("nadocast",)
     Y, D, R, Pm, B_ = [], [], [], {k: [] for k in arms}, []
     keep_rows = {}
@@ -191,11 +191,23 @@ def compare(a):
             pairs = (("hrrr_rrfs", "nadocast"), ("hrrr", "nadocast"), ("hrrr_rrfs", "hrrr"))
             if "hrrr_rrfs_smooth" in arms:
                 pairs = (("hrrr_rrfs_smooth", "hrrr_rrfs"), ("hrrr_rrfs_smooth", "nadocast")) + pairs
+            if "hrrr_rrfs_gbt" in arms:
+                pairs = (("hrrr_rrfs_gbt", "hrrr_rrfs"), ("hrrr_rrfs_gbt", "hrrr_rrfs_smooth"), ("hrrr_rrfs_gbt", "nadocast"),
+                         ("hrrr_rrfs_gbt_raw", "hrrr_rrfs"), ("hrrr_rrfs_gbt_raw", "hrrr_rrfs_smooth")) + pairs
             for x_, y_ in pairs:
                 out["paired"][f"{x_}_minus_{y_}"] = {"brier": ci(sse[x_], sse[y_], n_d),
                                                      "equal_area_hit_fraction": ci(hit_eq[x_], hit_eq[y_], e_d),
                                                      "training_threshold_hit_fraction": ci(hit_dep[x_], hit_dep[y_], e_d)}
-            if "hrrr_rrfs_smooth" in arms:
+            if "hrrr_rrfs_gbt" in arms:
+                fe = {k: (p[k] >= REF_T) if k == "nadocast" else (p[k] > out["arms"][k]["equal_area_vs_nadocast_5pct"]["threshold"]) for k in arms}
+                yy = ys == 1
+                out["tree_vs_blends_equal_area"] = {b: {"tree_only": int((yy & fe["hrrr_rrfs_gbt"] & ~fe[b]).sum()),
+                                                       "blend_only": int((yy & fe[b] & ~fe["hrrr_rrfs_gbt"]).sum())}
+                                                   for b in ("hrrr_rrfs", "hrrr_rrfs_smooth")}
+                out["tree_vs_blends_equal_area"]["nadocast_only_for_blend_caught_by_tree"] = int((yy & fe["nadocast"] & ~fe["hrrr_rrfs"] & fe["hrrr_rrfs_gbt"]).sum())
+                if sc == "may2024" and region == "national":
+                    may_thr = {k: out["arms"][k]["equal_area_vs_nadocast_5pct"]["threshold"] for k in arms}
+            if "hrrr_rrfs_smooth" in arms and "hrrr_rrfs_gbt" not in arms:
                 # report points recovered / lost by smoothing at the equal-area thresholds, incl. NadoCast-only points
                 fe = {k: (p[k] >= REF_T) if k == "nadocast" else (p[k] > out["arms"][k]["equal_area_vs_nadocast_5pct"]["threshold"]) for k in arms}
                 yy = ys == 1
@@ -208,7 +220,9 @@ def compare(a):
                     may_thr = {k: out["arms"][k]["equal_area_vs_nadocast_5pct"]["threshold"] for k in arms}
             res.setdefault(sc, {})[region] = out
     if "hrrr_rrfs_smooth" in arms and getattr(a, "map_dates", None):
-        draw_smooth_maps(Path(a.output), a.map_dates, dates, Y, Pm, keep_rows, coords, may_thr)
+        draw_smooth_maps(Path(a.output), a.map_dates, dates, Y, Pm, keep_rows, coords, may_thr,
+                         panels=(("nadocast", "NadoCast"), ("hrrr_rrfs", "Logistic blend"), ("hrrr_rrfs_smooth", "Logistic blend, 100 km smoothed"),
+                                 ("hrrr_rrfs_gbt", "Tree (calibrated)")) if "hrrr_rrfs_gbt" in arms else None)
     card = {"rules": "research/severe/conus-v1/rrfs/retro/NADOCAST.md", "matched_dates": len(dates), "excluded": ros["excluded"],
             "max_nearest_nadocast_km": km_max, "predictions_fingerprint_check": json.loads(Path(a.fingerprint_check).read_text()),
             "results": res}
@@ -334,7 +348,7 @@ def draw_maps(outd, maps, dates, tm, per):
         plt.close(fig)
 
 
-def draw_smooth_maps(outd, map_dates, dates, Y, Pm, keep_rows, coords, thr):
+def draw_smooth_maps(outd, map_dates, dates, Y, Pm, keep_rows, coords, thr, panels=None):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -342,8 +356,9 @@ def draw_smooth_maps(outd, map_dates, dates, Y, Pm, keep_rows, coords, thr):
     for d in map_dates:
         j = dates.index(d)
         xy, y = coords[keep_rows[d]], Y[j].astype(bool)
-        fig, ax = plt.subplots(1, 3, figsize=(19, 5), constrained_layout=True)
-        for k, (arm, name) in enumerate((("nadocast", "NadoCast"), ("hrrr_rrfs", "HRRR + 12Z RRFS"), ("hrrr_rrfs_smooth", "HRRR + 12Z RRFS, smoothed"))):
+        panels = panels or (("nadocast", "NadoCast"), ("hrrr_rrfs", "HRRR + 12Z RRFS"), ("hrrr_rrfs_smooth", "HRRR + 12Z RRFS, smoothed"))
+        fig, ax = plt.subplots(1, len(panels), figsize=(6.4 * len(panels), 5), constrained_layout=True)
+        for k, (arm, name) in enumerate(panels):
             p, t = Pm[arm][j], thr[arm]
             f = p >= t if arm == "nadocast" else p > t
             sc = ax[k].scatter(xy[:, 0], xy[:, 1], c=p, s=4, cmap="viridis", vmin=0, vmax=0.3)
@@ -353,7 +368,7 @@ def draw_smooth_maps(outd, map_dates, dates, Y, Pm, keep_rows, coords, thr):
             ax[k].set_xlim(-125, -66); ax[k].set_ylim(24, 50)
         fig.colorbar(sc, ax=ax, shrink=0.7, label="probability")
         fig.suptitle(f"Issue {d}: May equal-area thresholds; flagged = orange, reports = red")
-        fig.savefig(outd / f"smooth-map-{d}.png", dpi=90)
+        fig.savefig(outd / (f"tree-map-{d}.png" if len(panels) == 4 else f"smooth-map-{d}.png"), dpi=90)
         plt.close(fig)
 
 

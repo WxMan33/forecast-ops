@@ -37,7 +37,7 @@ jobs:
         run: |
           PYTHONPATH=tools/severe python3 tools/severe/nadocast_rrfs.py inventory --cache tests/out/nccache --output tests/out/nc
       - uses: actions/download-artifact@v4
-        if: steps.req.outputs.stage == 'compare' || steps.req.outputs.stage == 'diagnose' || steps.req.outputs.stage == 'smooth'
+        if: steps.req.outputs.stage == 'compare' || steps.req.outputs.stage == 'diagnose' || steps.req.outputs.stage == 'smooth' || steps.req.outputs.stage == 'tree'
         with: { name: rrfs-retro-cache, path: tests/out/cache, run-id: '${{ steps.req.outputs.run }}', github-token: '${{ github.token }}' }
       - name: Stage 2 - pinned predictions (fingerprint gate), then the NadoCast comparison
         if: steps.req.outputs.stage == 'compare'
@@ -68,6 +68,19 @@ jobs:
           mkdir -p research/severe/conus-v1/rrfs/retro/smoothing/nadocast
           cp tests/out/sm/scorecard.json tests/out/sm/scorecard.md research/severe/conus-v1/rrfs/retro/smoothing/
           cp tests/out/smnc/* research/severe/conus-v1/rrfs/retro/smoothing/nadocast/
+      - name: Tree comparison (fingerprint gate on hrrr, hrrr_rrfs and the 100 km smoothed blend first)
+        if: steps.req.outputs.stage == 'tree'
+        run: |
+          PYTHONPATH=tools/severe python3 tools/severe/conus_rrfs_pilot.py score --cache tests/out/cache --cycle 12 --experiment tree \
+            --expect-fingerprints "${{ steps.req.outputs.ref }}" research/severe/conus-v1/rrfs/retro/smoothing/scorecard.json \
+            --save-predictions tests/out/tr/pred.npz --output tests/out/tr
+          PYTHONPATH=tools/severe python3 tools/severe/nadocast_rrfs.py compare --roster research/severe/conus-v1/rrfs/retro/nadocast/nadocast-roster.json \
+            --predictions tests/out/tr/pred.npz --thresholds tests/out/tr/pred.thresholds.json \
+            --fingerprint-check tests/out/tr/pred.fingerprint-check.json --cache tests/out/nccache --output tests/out/trnc \
+            --map-dates 2024-05-16 2024-05-24 2024-05-30
+          mkdir -p research/severe/conus-v1/rrfs/retro/tree/nadocast
+          cp tests/out/tr/scorecard.json tests/out/tr/scorecard.md research/severe/conus-v1/rrfs/retro/tree/
+          cp tests/out/trnc/* research/severe/conus-v1/rrfs/retro/tree/nadocast/
       - name: Commit
         if: always()
         env:
@@ -81,6 +94,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           [ -d research/severe/conus-v1/rrfs/retro/smoothing ] && git add research/severe/conus-v1/rrfs/retro/smoothing
+          [ -d research/severe/conus-v1/rrfs/retro/tree ] && git add research/severe/conus-v1/rrfs/retro/tree
+          [ -f tests/out/tr/fingerprint-mismatch.json ] && cp tests/out/tr/fingerprint-mismatch.json "$DEST/tree-fingerprint-mismatch.json" && git add "$DEST"
           git add "$DEST"
           git commit -m "Retrospective RRFS pilot: NadoCast ${{ steps.req.outputs.stage }} (run $GITHUB_RUN_ID)" || exit 0
           for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done
