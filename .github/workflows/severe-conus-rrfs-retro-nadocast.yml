@@ -37,7 +37,7 @@ jobs:
         run: |
           PYTHONPATH=tools/severe python3 tools/severe/nadocast_rrfs.py inventory --cache tests/out/nccache --output tests/out/nc
       - uses: actions/download-artifact@v4
-        if: steps.req.outputs.stage == 'compare'
+        if: steps.req.outputs.stage == 'compare' || steps.req.outputs.stage == 'diagnose'
         with: { name: rrfs-retro-cache, path: tests/out/cache, run-id: '${{ steps.req.outputs.run }}', github-token: '${{ github.token }}' }
       - name: Stage 2 - pinned predictions (fingerprint gate), then the NadoCast comparison
         if: steps.req.outputs.stage == 'compare'
@@ -48,6 +48,14 @@ jobs:
           PYTHONPATH=tools/severe python3 tools/severe/nadocast_rrfs.py compare --roster research/severe/conus-v1/rrfs/retro/nadocast/nadocast-roster.json \
             --predictions tests/out/pred/pred.npz --thresholds tests/out/pred/pred.thresholds.json \
             --fingerprint-check tests/out/pred/pred.fingerprint-check.json --cache tests/out/nccache --output tests/out/nc
+      - name: May miss diagnosis (pinned predictions behind the fingerprint gate; no fitting)
+        if: steps.req.outputs.stage == 'diagnose'
+        run: |
+          PYTHONPATH=tools/severe python3 tools/severe/conus_rrfs_pilot.py score --cache tests/out/cache --cycle 12 --experiment first \
+            --expect-fingerprints "${{ steps.req.outputs.ref }}" --save-predictions tests/out/pred/pred.npz --output tests/out/pred > /dev/null
+          PYTHONPATH=tools/severe python3 tools/severe/nadocast_rrfs.py diagnose --roster research/severe/conus-v1/rrfs/retro/nadocast/nadocast-roster.json \
+            --predictions tests/out/pred/pred.npz --scorecard research/severe/conus-v1/rrfs/retro/nadocast/scorecard.json \
+            --cache tests/out/nccache --output tests/out/nc/may-diagnosis
       - name: Commit
         if: always()
         env:
@@ -55,6 +63,7 @@ jobs:
         run: |
           mkdir -p "$DEST"
           cp tests/out/nc/* "$DEST/" 2>/dev/null || true
+          if [ -d tests/out/nc/may-diagnosis ]; then mkdir -p "$DEST/may-diagnosis"; cp tests/out/nc/may-diagnosis/* "$DEST/may-diagnosis/"; fi
           cp tests/out/pred/fingerprint-mismatch.json "$DEST/" 2>/dev/null || true
           echo "run_id: $GITHUB_RUN_ID (stage ${{ steps.req.outputs.stage }})" > "$DEST/run-${{ steps.req.outputs.stage }}.txt"
           git config user.name "github-actions[bot]"

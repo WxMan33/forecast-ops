@@ -1,8 +1,8 @@
 {
- "request": 2,
- "stage": "compare",
- "purpose": "NadoCast head-to-head, stage 2: pinned held-out predictions (fingerprint gate) vs NadoCast on the committed 46-date roster",
- "rules": "research/severe/conus-v1/rrfs/retro/NADOCAST.md",
+ "request": 3,
+ "stage": "diagnose",
+ "purpose": "May 2024 miss diagnosis vs NadoCast at the committed equal-area thresholds (no fitting)",
+ "rules": "research/severe/conus-v1/rrfs/retro/DIAG-MAY.md",
  "cache_run": 46035459501,
  "expect_fingerprints": "research/severe/conus-v1/rrfs/retro/repro/scorecard-pinned-1.json",
  "roster": "research/severe/conus-v1/rrfs/retro/nadocast/nadocast-roster.json (committed by the stage-1 run before this request)"

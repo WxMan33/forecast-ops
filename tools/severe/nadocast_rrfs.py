@@ -196,6 +196,122 @@ def compare(a):
     print(render(card))
 
 
+NEAR_FRAC = 0.5      # a missed report point with blend p >= 0.5 x threshold counts as "ranked a little too low"
+NEAR_KM = 150.0      # a blend-flagged point within this distance of a missed point counts as "displaced"
+MAP_TOP = 4
+
+
+def diagnose(a):
+    """May 2024 miss diagnosis at the equal-area thresholds of the committed scorecard (no fitting, no new scores)."""
+    import nadocast_benchmark as B
+    from scipy.spatial import cKDTree
+    from conus_calibration import check_frozen
+    ros = json.loads(Path(a.roster).read_text())
+    card = json.loads(Path(a.scorecard).read_text())
+    tm = {k: v["equal_area_vs_nadocast_5pct"]["threshold"] for k, v in card["results"]["may2024"]["national"]["arms"].items()}
+    dates = [d for d in ros["matched_dates"] if block_of(d) == "may2024"]
+    pins = {r["date"]: r for r in ros["files"]}
+    fitted, _ = check_frozen(ROOT / "research/severe/conus-v1/frozen/models.pkl", ROOT / "research/severe/conus-v1/frozen/manifest.json")
+    coords = np.asarray(fitted["coords"])
+    z = np.load(a.predictions, allow_pickle=False)
+    pdates, off = z["dates"].tolist(), z["offsets"]
+    nn, per, maps = None, [], {}
+    tot = {"nadocast_only_hits": 0, "blend_only_hits": 0, "both_hits": 0, "both_miss": 0,
+           "missed_near_threshold": 0, "missed_displaced": 0, "missed_absent": 0}
+    rank_pct = []
+    for d in dates:
+        i = pdates.index(d)
+        sl = slice(off[i], off[i + 1])
+        rows, y = z["row_index"][sl], z["labels"][sl].astype(bool)
+        issue = date.fromisoformat(d)
+        path, meta = B.fetch_file(issue, nc_name(issue), a.cache)
+        if path is None or meta.get("sha256") != pins[d]["sha256"]:
+            raise ValueError(f"{d}: NadoCast file missing or differs from the committed roster pin")
+        g, glat, glon = B.decode(path, "24-47", short="windprob")
+        if nn is None:
+            nn = cKDTree(B.unit(glon, glat)).query(B.unit(coords[:, 0], coords[:, 1]))[1]
+        pn, pb = g[nn[rows]], z["hrrr_rrfs"][sl]
+        fn, fb = pn >= tm["nadocast"], pb > tm["hrrr_rrfs"]
+        xyz = B.unit(coords[rows, 0], coords[rows, 1])
+        miss = y & fn & ~fb
+        cls = {"near_threshold": 0, "displaced": 0, "absent": 0}
+        if miss.any():
+            near = pb[miss] >= NEAR_FRAC * tm["hrrr_rrfs"]
+            if fb.any():
+                dist = cKDTree(xyz[fb]).query(xyz[miss])[0]
+                km = 2 * B.EARTH_KM * np.arcsin(np.minimum(dist / 2, 1))
+            else:
+                km = np.full(int(miss.sum()), np.inf)
+            cls["near_threshold"] = int(near.sum())
+            cls["displaced"] = int((~near & (km <= NEAR_KM)).sum())
+            cls["absent"] = int((~near & (km > NEAR_KM)).sum())
+            order = np.argsort(np.argsort(pb))  # rank of every point that day
+            rank_pct += (100 * order[miss] / max(len(pb) - 1, 1)).tolist()
+        rec = {"date": d, "report_points": int(y.sum()),
+               "hits": {"nadocast": int((y & fn).sum()), "hrrr_rrfs": int((y & fb).sum())},
+               "false_alarm_points": {"nadocast": int((~y & fn).sum()), "hrrr_rrfs": int((~y & fb).sum())},
+               "nadocast_only_hits": int(miss.sum()), "blend_only_hits": int((y & fb & ~fn).sum()), "missed_by_blend": cls}
+        rec["gap_points"] = rec["hits"]["nadocast"] - rec["hits"]["hrrr_rrfs"]
+        rec["false_alarm_ratio_blend_to_nadocast"] = (rec["false_alarm_points"]["hrrr_rrfs"] / rec["false_alarm_points"]["nadocast"]
+                                                       if rec["false_alarm_points"]["nadocast"] else None)
+        per.append(rec)
+        maps[d] = (coords[rows], y, pn, pb)
+        tot["nadocast_only_hits"] += rec["nadocast_only_hits"]; tot["blend_only_hits"] += rec["blend_only_hits"]
+        tot["both_hits"] += int((y & fn & fb).sum()); tot["both_miss"] += int((y & ~fn & ~fb).sum())
+        for k, v in cls.items():
+            tot[f"missed_{k}"] += v
+        print(d, rec["gap_points"], cls, flush=True)
+    per.sort(key=lambda r: -r["gap_points"])
+    gap = sum(r["gap_points"] for r in per)
+    top = [r["date"] for r in per[:MAP_TOP] if r["gap_points"] > 0]
+    best = [r["date"] for r in per[::-1][:1] if r["gap_points"] < 0]
+    fa_gap = {"dates_blend_flags_more_area": sum(1 for r in per if (r["false_alarm_ratio_blend_to_nadocast"] or 0) > 1),
+              "dates_with_nadocast_area": sum(1 for r in per if r["false_alarm_ratio_blend_to_nadocast"] is not None)}
+    out = {"rules": "research/severe/conus-v1/rrfs/retro/DIAG-MAY.md", "thresholds_equal_area_may": tm, "dates": len(per),
+           "total_gap_points": gap, "totals": tot, "share_of_gap_from_top_dates": {
+               f"top_{k}": (sum(r["gap_points"] for r in per[:k]) / gap if gap else None) for k in (1, 3, 5)},
+           "missed_point_blend_rank_percentile": {"median": float(np.median(rank_pct)) if rank_pct else None,
+                                                   "p10": float(np.percentile(rank_pct, 10)) if rank_pct else None,
+                                                   "p90": float(np.percentile(rank_pct, 90)) if rank_pct else None},
+           "area_spread": fa_gap, "per_date": per, "mapped": {"largest_gaps": top, "blend_best": best}}
+    outd = Path(a.output)
+    outd.mkdir(parents=True, exist_ok=True)
+    (outd / "may-diagnosis.json").write_text(json.dumps(out, indent=1) + "\n")
+    draw_maps(outd, maps, top + best, tm, {r["date"]: r for r in per})
+    print(json.dumps({k: out[k] for k in ("total_gap_points", "totals", "share_of_gap_from_top_dates", "missed_point_blend_rank_percentile", "area_spread", "mapped")}, indent=1))
+
+
+def draw_maps(outd, maps, dates, tm, per):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    for d in dates:
+        xy, y, pn, pb = maps[d]
+        fig, ax = plt.subplots(1, 3, figsize=(18, 5.2), constrained_layout=True)
+        for k, (p, t, name) in enumerate(((pn, tm["nadocast"], "NadoCast"), (pb, tm["hrrr_rrfs"], "HRRR + 12Z RRFS"))):
+            sc = ax[k].scatter(xy[:, 0], xy[:, 1], c=p, s=4, cmap="viridis", vmin=0, vmax=0.3)
+            f = p >= t if name == "NadoCast" else p > t
+            ax[k].scatter(xy[f, 0], xy[f, 1], s=4, facecolors="none", edgecolors="orange", linewidths=0.4)
+            ax[k].scatter(xy[y, 0], xy[y, 1], s=3, c="red")
+            ax[k].set_title(f"{name}: flagged (orange) at {t:.1%}; reports (red)")
+            fig.colorbar(sc, ax=ax[k], shrink=0.7, label="probability")
+        r = per[d]
+        cls = r["missed_by_blend"]
+        ax[2].axis("off")
+        ax[2].text(0, 0.95, f"Issue {d} (valid 12Z D+1 to 12Z D+2)\n\nReport points: {r['report_points']}\n"
+                   f"Hits: NadoCast {r['hits']['nadocast']}, blend {r['hits']['hrrr_rrfs']} (gap {r['gap_points']:+d})\n"
+                   f"False-alarm points: NadoCast {r['false_alarm_points']['nadocast']}, blend {r['false_alarm_points']['hrrr_rrfs']}\n\n"
+                   f"Caught by NadoCast only: {r['nadocast_only_hits']}\n"
+                   f"   blend ranked a little low (p >= {NEAR_FRAC:.0%} of threshold): {cls['near_threshold']}\n"
+                   f"   blend flagged nearby (<= {NEAR_KM:.0f} km): {cls['displaced']}\n"
+                   f"   blend flagged nothing nearby: {cls['absent']}\n"
+                   f"Caught by blend only: {r['blend_only_hits']}", va="top", family="monospace", fontsize=10)
+        for k in (0, 1):
+            ax[k].set_xlim(-125, -66); ax[k].set_ylim(24, 50)
+        fig.savefig(outd / f"may-map-{d}.png", dpi=90)
+        plt.close(fig)
+
+
 def render(c):
     L = [f"# NadoCast vs HRRR + 12Z RRFS (retrospective pilot, Day 2 damaging wind)", "",
          f"Matched dates: {c['matched_dates']}; excluded: {len(c['excluded'])}. Rules: `{c['rules']}`.", "",
@@ -236,8 +352,12 @@ def main():
     for k in ("--roster", "--predictions", "--thresholds", "--fingerprint-check", "--output"):
         c.add_argument(k, required=True)
     c.add_argument("--cache", type=Path, required=True)
+    g = sub.add_parser("diagnose")
+    for k in ("--roster", "--predictions", "--scorecard", "--output"):
+        g.add_argument(k, required=True)
+    g.add_argument("--cache", type=Path, required=True)
     a = p.parse_args()
-    {"inventory": inventory, "compare": compare}[a.cmd](a)
+    {"inventory": inventory, "compare": compare, "diagnose": diagnose}[a.cmd](a)
 
 
 if __name__ == "__main__":
