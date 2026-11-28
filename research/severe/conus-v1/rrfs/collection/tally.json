@@ -1,9 +1,9 @@
 {
  "basis": "CONUS research grid, 15:10 UTC cutoff (separate from the regional collector's 15:30 UTC milestone)",
- "days": 2,
- "both_cycles_ok_and_archived": 2,
- "06z_ok": 2,
- "12z_ok": 2,
+ "days": 3,
+ "both_cycles_ok_and_archived": 3,
+ "06z_ok": 3,
+ "12z_ok": 3,
  "rows": [
   {
    "issue_date": "2026-11-26",
@@ -14,6 +14,13 @@
   },
   {
    "issue_date": "2026-11-27",
+   "06z": "ok",
+   "12z": "ok",
+   "both_cycles_ok": true,
+   "archived": true
+  },
+  {
+   "issue_date": "2026-11-28",
    "06z": "ok",
    "12z": "ok",
    "both_cycles_ok": true,
