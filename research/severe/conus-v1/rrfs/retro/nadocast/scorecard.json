@@ -1,0 +1,2150 @@
+{
+ "rules": "research/severe/conus-v1/rrfs/retro/NADOCAST.md",
+ "matched_dates": 46,
+ "excluded": {
+  "2024-01-08": "Last-Modified 2024-01-09T04:51:35+00:00 after the 18Z issue-date cutoff",
+  "2024-01-11": "Last-Modified 2024-01-12T06:38:38+00:00 after the 18Z issue-date cutoff",
+  "2024-01-17": "no archived NadoCast wind file (HTTP 404)",
+  "2024-01-18": "no archived NadoCast wind file (HTTP 404)",
+  "2024-01-19": "no archived NadoCast wind file (HTTP 404)",
+  "2024-01-21": "no archived NadoCast wind file (HTTP 404)",
+  "2024-01-22": "Last-Modified 2024-01-23T07:17:14+00:00 after the 18Z issue-date cutoff",
+  "2024-01-23": "Last-Modified 2024-01-24T06:45:58+00:00 after the 18Z issue-date cutoff",
+  "2024-01-28": "Last-Modified 2024-01-29T04:50:37+00:00 after the 18Z issue-date cutoff",
+  "2024-01-31": "no archived NadoCast wind file (HTTP 404)",
+  "2024-02-01": "Last-Modified 2024-02-02T07:04:08+00:00 after the 18Z issue-date cutoff",
+  "2024-02-06": "Last-Modified 2024-02-07T06:42:06+00:00 after the 18Z issue-date cutoff",
+  "2024-05-12": "Last-Modified 2024-05-12T20:57:51+00:00 after the 18Z issue-date cutoff",
+  "2024-05-17": "no archived NadoCast wind file (HTTP 404)",
+  "2024-05-18": "no archived NadoCast wind file (HTTP 404)",
+  "2024-05-19": "no archived NadoCast wind file (HTTP 404)"
+ },
+ "max_nearest_nadocast_km": 10.609100594760896,
+ "predictions_fingerprint_check": {
+  "reference": "research/severe/conus-v1/rrfs/retro/repro/scorecard-pinned-1.json",
+  "predictions_match": true,
+  "coefficients_match": true,
+  "predictions": {
+   "hrrr": "a106cf760041c1e43feb96f0b0d0e5e082854c1fa71254615d9670df87eacc10",
+   "hrrr_rrfs": "0606ebebef50a2cdefee51bb6ca4c8506f321055b93c342e719f41bab30c147c"
+  }
+ },
+ "results": {
+  "pooled": {
+   "national": {
+    "dates": 46,
+    "rows": 1786548,
+    "event_rows": 29657,
+    "report_days": 32,
+    "base_rate": 0.016600169712764505,
+    "arms": {
+     "hrrr": {
+      "brier": 0.014152540586172739,
+      "forecast_to_observed_ratio": 1.2603826644324558,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 1256231,
+        "mean_forecast": 0.0009551504553166749,
+        "observed": 0.0003016961052545272
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 130609,
+        "mean_forecast": 0.007142177490736592,
+        "observed": 0.0035832140204733213
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 109643,
+        "mean_forecast": 0.014260165759755567,
+        "observed": 0.009193473363552621
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 119835,
+        "mean_forecast": 0.03206496360136764,
+        "observed": 0.026653314974756957
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 68718,
+        "mean_forecast": 0.07116968248657167,
+        "observed": 0.07033091766349428
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 32210,
+        "mean_forecast": 0.12241571285697993,
+        "observed": 0.11856566283762807
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 40954,
+        "mean_forecast": 0.21304808123832325,
+        "observed": 0.1831567124090443
+       },
+       {
+        "bin": [
+         0.3,
+         1.0
+        ],
+        "rows": 28348,
+        "mean_forecast": 0.4332437797628119,
+        "observed": 0.2982573726541555
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.07771030813455582,
+       "hit_fraction": 0.7375661732474627,
+       "false_alarm_points": 102879,
+       "reference_false_alarm_points": 102879,
+       "false_alarm_km2_per_day": 503212.5
+      },
+      "training_set_threshold": {
+       "hit_fraction": 0.8297535151903429,
+       "false_alarm_km2_per_day": 712281.5217391305,
+       "threshold": {
+        "janfeb2024": 0.05,
+        "may2024": 0.05
+       }
+      }
+     },
+     "hrrr_rrfs": {
+      "brier": 0.01379555348196639,
+      "forecast_to_observed_ratio": 1.30386652158585,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 1286285,
+        "mean_forecast": 0.0008725331796688653,
+        "observed": 0.00027521117015280437
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 122200,
+        "mean_forecast": 0.007123232680089382,
+        "observed": 0.0038543371522094926
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 104172,
+        "mean_forecast": 0.014308662069259442,
+        "observed": 0.010319471643051876
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 111362,
+        "mean_forecast": 0.03204144186707192,
+        "observed": 0.024272193387331404
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 62512,
+        "mean_forecast": 0.07112409796976726,
+        "observed": 0.06376375735858715
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 28970,
+        "mean_forecast": 0.12262814164902368,
+        "observed": 0.11515360717984122
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 38439,
+        "mean_forecast": 0.2121735544753976,
+        "observed": 0.18260100418845443
+       },
+       {
+        "bin": [
+         0.3,
+         1.0
+        ],
+        "rows": 32608,
+        "mean_forecast": 0.4742037820638001,
+        "observed": 0.3285390088321884
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.07346422225236893,
+       "hit_fraction": 0.780456553258927,
+       "false_alarm_points": 102879,
+       "reference_false_alarm_points": 102879,
+       "false_alarm_km2_per_day": 503212.5
+      },
+      "training_set_threshold": {
+       "hit_fraction": 0.8591900731699093,
+       "false_alarm_km2_per_day": 731851.6304347826,
+       "threshold": {
+        "janfeb2024": 0.044742267578840256,
+        "may2024": 0.0443761944770813
+       }
+      }
+     },
+     "nadocast": {
+      "brier": 0.012485634860367127,
+      "forecast_to_observed_ratio": 1.0221764618920688,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 1491586,
+        "mean_forecast": 0.00031588937334002954,
+        "observed": 0.00020313947703987567
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 52602,
+        "mean_forecast": 0.007080344217516316,
+        "observed": 0.010284780046386069
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 50541,
+        "mean_forecast": 0.014380285807542715,
+        "observed": 0.02231851368196118
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 63918,
+        "mean_forecast": 0.032488022769290456,
+        "observed": 0.04166275540536312
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 43097,
+        "mean_forecast": 0.07131685001988704,
+        "observed": 0.08436782142608534
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 22127,
+        "mean_forecast": 0.12281961805618027,
+        "observed": 0.12862114159172053
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 31745,
+        "mean_forecast": 0.21250772795027845,
+        "observed": 0.19968498976216728
+       },
+       {
+        "bin": [
+         0.3,
+         1.0
+        ],
+        "rows": 30932,
+        "mean_forecast": 0.456823924569903,
+        "observed": 0.3944458812879866
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.05,
+       "hit_fraction": 0.843713120005395,
+       "false_alarm_points": 102879,
+       "reference_false_alarm_points": 102879,
+       "false_alarm_km2_per_day": 503212.5
+      },
+      "training_set_threshold": {
+       "hit_fraction": 0.843713120005395,
+       "false_alarm_km2_per_day": 503212.5,
+       "threshold": "5% (NadoCast reference)"
+      }
+     }
+    },
+    "paired": {
+     "hrrr_rrfs_minus_nadocast": {
+      "brier": {
+       "estimate": 0.0013099186215992647,
+       "ci95": [
+        0.0006015026757147983,
+        0.002131925915050047
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": -0.06325656674646796,
+       "ci95": [
+        -0.10817765945258159,
+        -0.02491890840054169
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": 0.01547695316451428,
+       "ci95": [
+        -0.017140262012702797,
+        0.05208611815875441
+       ]
+      }
+     },
+     "hrrr_minus_nadocast": {
+      "brier": {
+       "estimate": 0.001666905725805612,
+       "ci95": [
+        0.000775719759615071,
+        0.0027146965670229468
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": -0.10614694675793236,
+       "ci95": [
+        -0.15400984349674704,
+        -0.06118347869812006
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": -0.013959604815052096,
+       "ci95": [
+        -0.051641303494739214,
+        0.0260274042915113
+       ]
+      }
+     },
+     "hrrr_rrfs_minus_hrrr": {
+      "brier": {
+       "estimate": -0.0003569871042063475,
+       "ci95": [
+        -0.0006765262727563985,
+        -5.210117042470786e-05
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": 0.04289038001146441,
+       "ci95": [
+        0.01178736207015391,
+        0.06919429264051521
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": 0.029436557979566375,
+       "ci95": [
+        0.008718824578383418,
+        0.05014319356150953
+       ]
+      }
+     }
+    }
+   },
+   "florida_gulf_south": {
+    "dates": 46,
+    "rows": 45632,
+    "event_rows": 454,
+    "report_days": 11,
+    "base_rate": 0.009949158485273493,
+    "arms": {
+     "hrrr": {
+      "brier": 0.010811211321256637,
+      "forecast_to_observed_ratio": 2.904513888826721,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 18684,
+        "mean_forecast": 0.001962129837309264,
+        "observed": 0.0
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 7295,
+        "mean_forecast": 0.007148657594772338,
+        "observed": 0.006305688827964359
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 6113,
+        "mean_forecast": 0.014431827424349116,
+        "observed": 0.004743988221822345
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 6673,
+        "mean_forecast": 0.03193305650854082,
+        "observed": 0.005694590139367601
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 3610,
+        "mean_forecast": 0.07075759407411487,
+        "observed": 0.027700831024930747
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 1392,
+        "mean_forecast": 0.12098317482540834,
+        "observed": 0.035201149425287355
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 1169,
+        "mean_forecast": 0.21148102017321885,
+        "observed": 0.055603079555175364
+       },
+       {
+        "bin": [
+         0.3,
+         1.0
+        ],
+        "rows": 696,
+        "mean_forecast": 0.3699189092236004,
+        "observed": 0.1824712643678161
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.10054996609687805,
+       "hit_fraction": 0.5286343612334802,
+       "false_alarm_points": 2988,
+       "reference_false_alarm_points": 2988,
+       "false_alarm_km2_per_day": 14615.217391304348
+      },
+      "training_set_threshold": {
+       "hit_fraction": 0.751101321585903,
+       "false_alarm_km2_per_day": 31920.652173913044,
+       "threshold": {
+        "janfeb2024": 0.05,
+        "may2024": 0.05
+       }
+      }
+     },
+     "hrrr_rrfs": {
+      "brier": 0.011383733987643214,
+      "forecast_to_observed_ratio": 2.850081621856541,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 22493,
+        "mean_forecast": 0.0016845456145858728,
+        "observed": 0.0012003734495176278
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 6241,
+        "mean_forecast": 0.007151331300755458,
+        "observed": 0.0030443839128344815
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 5254,
+        "mean_forecast": 0.014208433281759322,
+        "observed": 0.005138941758660068
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 5746,
+        "mean_forecast": 0.03204161121279489,
+        "observed": 0.011312217194570135
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 2650,
+        "mean_forecast": 0.06970592646525715,
+        "observed": 0.017735849056603775
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 1055,
+        "mean_forecast": 0.12281926033479908,
+        "observed": 0.034123222748815164
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 1318,
+        "mean_forecast": 0.21179896797730455,
+        "observed": 0.06449165402124431
+       },
+       {
+        "bin": [
+         0.3,
+         1.0
+        ],
+        "rows": 875,
+        "mean_forecast": 0.41052210525103977,
+        "observed": 0.16914285714285715
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.09974562376737595,
+       "hit_fraction": 0.5925110132158591,
+       "false_alarm_points": 2988,
+       "reference_false_alarm_points": 2988,
+       "false_alarm_km2_per_day": 14615.217391304348
+      },
+      "training_set_threshold": {
+       "hit_fraction": 0.7158590308370044,
+       "false_alarm_km2_per_day": 30448.369565217392,
+       "threshold": {
+        "janfeb2024": 0.044742267578840256,
+        "may2024": 0.0443761944770813
+       }
+      }
+     },
+     "nadocast": {
+      "brier": 0.011391548540539594,
+      "forecast_to_observed_ratio": 1.6196845024083084,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 36238,
+        "mean_forecast": 0.0006551171794705533,
+        "observed": 0.0008554555990948728
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 2271,
+        "mean_forecast": 0.007008761518803712,
+        "observed": 0.023337736679876705
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 1737,
+        "mean_forecast": 0.014266653208734156,
+        "observed": 0.03454231433506045
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 2148,
+        "mean_forecast": 0.03227014366997161,
+        "observed": 0.027932960893854747
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 1501,
+        "mean_forecast": 0.07039239189938408,
+        "observed": 0.03930712858094604
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 485,
+        "mean_forecast": 0.1203957507344288,
+        "observed": 0.061855670103092786
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 555,
+        "mean_forecast": 0.21694330554240307,
+        "observed": 0.13153153153153152
+       },
+       {
+        "bin": [
+         0.3,
+         1.0
+        ],
+        "rows": 697,
+        "mean_forecast": 0.45498971475557737,
+        "observed": 0.12625538020086083
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.05,
+       "hit_fraction": 0.5506607929515418,
+       "false_alarm_points": 2988,
+       "reference_false_alarm_points": 2988,
+       "false_alarm_km2_per_day": 14615.217391304348
+      },
+      "training_set_threshold": {
+       "hit_fraction": 0.5506607929515418,
+       "false_alarm_km2_per_day": 14615.217391304348,
+       "threshold": "5% (NadoCast reference)"
+      }
+     }
+    },
+    "paired": {
+     "hrrr_rrfs_minus_nadocast": {
+      "brier": {
+       "estimate": -7.814552896379549e-06,
+       "ci95": [
+        -0.0016100542672629425,
+        0.001359392841073444
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": 0.04185022026431718,
+       "ci95": [
+        -0.05701872935266334,
+        0.16875202922077923
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": 0.16519823788546256,
+       "ci95": [
+        0.05516473905904191,
+        0.3852650356778793
+       ]
+      }
+     },
+     "hrrr_minus_nadocast": {
+      "brier": {
+       "estimate": -0.000580337219282957,
+       "ci95": [
+        -0.00327640234977316,
+        0.001550319238701734
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": -0.022026431718061675,
+       "ci95": [
+        -0.27388310490247764,
+        0.18128791939767494
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": 0.20044052863436124,
+       "ci95": [
+        0.0660614493731377,
+        0.4704266777133388
+       ]
+      }
+     },
+     "hrrr_rrfs_minus_hrrr": {
+      "brier": {
+       "estimate": 0.0005725226663865774,
+       "ci95": [
+        -0.0003874725118233338,
+        0.0018006800779148814
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": 0.06387665198237885,
+       "ci95": [
+        -0.05753733185240034,
+        0.3117680158880272
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": -0.03524229074889868,
+       "ci95": [
+        -0.13115070574086968,
+        0.015154823342596251
+       ]
+      }
+     }
+    }
+   }
+  },
+  "janfeb2024": {
+   "national": {
+    "dates": 20,
+    "rows": 776760,
+    "event_rows": 817,
+    "report_days": 6,
+    "base_rate": 0.001051804933312735,
+    "arms": {
+     "hrrr": {
+      "brier": 0.0010112287828526272,
+      "forecast_to_observed_ratio": 3.206730895491695,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 684742,
+        "mean_forecast": 0.0008404628898423655,
+        "observed": 0.0
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 41116,
+        "mean_forecast": 0.006960433211931144,
+        "observed": 0.0
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 22149,
+        "mean_forecast": 0.01406038124221077,
+        "observed": 0.0003611901214501783
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 18812,
+        "mean_forecast": 0.031428441228358896,
+        "observed": 0.0076015309376993405
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 7305,
+        "mean_forecast": 0.06898964893360973,
+        "observed": 0.05010266940451746
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 2022,
+        "mean_forecast": 0.1190141242155925,
+        "observed": 0.11968348170128586
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 614,
+        "mean_forecast": 0.18068821565627274,
+        "observed": 0.09446254071661238
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.06383983045816422,
+       "hit_fraction": 0.6988984088127295,
+       "false_alarm_points": 6137,
+       "reference_false_alarm_points": 6137,
+       "false_alarm_km2_per_day": 69041.25
+      },
+      "training_set_threshold": {
+       "hit_fraction": 0.8151774785801713,
+       "false_alarm_km2_per_day": 104343.75,
+       "threshold": {
+        "janfeb2024": 0.05
+       }
+      }
+     },
+     "hrrr_rrfs": {
+      "brier": 0.000988247003156338,
+      "forecast_to_observed_ratio": 3.165380383405302,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 690014,
+        "mean_forecast": 0.0007896633740924758,
+        "observed": 0.0
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 38273,
+        "mean_forecast": 0.00698653448351325,
+        "observed": 2.6128079847412012e-05
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 21630,
+        "mean_forecast": 0.013904552361391867,
+        "observed": 0.0007859454461396209
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 17359,
+        "mean_forecast": 0.03169692420967284,
+        "observed": 0.007776945676594274
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 6325,
+        "mean_forecast": 0.06831117533412376,
+        "observed": 0.03462450592885376
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 1714,
+        "mean_forecast": 0.12206340726365009,
+        "observed": 0.11085180863477247
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 1429,
+        "mean_forecast": 0.1935654951505848,
+        "observed": 0.17844646606018194
+       },
+       {
+        "bin": [
+         0.3,
+         1.0
+        ],
+        "rows": 16,
+        "mean_forecast": 0.31056400015950203,
+        "observed": 0.0
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.06261458992958069,
+       "hit_fraction": 0.7429620563035496,
+       "false_alarm_points": 6137,
+       "reference_false_alarm_points": 6137,
+       "false_alarm_km2_per_day": 69041.25
+      },
+      "training_set_threshold": {
+       "hit_fraction": 0.8323133414932681,
+       "false_alarm_km2_per_day": 117663.75,
+       "threshold": {
+        "janfeb2024": 0.044742267578840256
+       }
+      }
+     },
+     "nadocast": {
+      "brier": 0.0010115055643437146,
+      "forecast_to_observed_ratio": 1.5925503934620426,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 749821,
+        "mean_forecast": 0.00012674591890663293,
+        "observed": 0.0
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 7266,
+        "mean_forecast": 0.007065494404641494,
+        "observed": 0.0019267822736030828
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 5968,
+        "mean_forecast": 0.01430154627375255,
+        "observed": 0.0160857908847185
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 7042,
+        "mean_forecast": 0.032238738772418986,
+        "observed": 0.02570292530531099
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 3638,
+        "mean_forecast": 0.06962529034879057,
+        "observed": 0.03490929081913139
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 1346,
+        "mean_forecast": 0.12133983733528778,
+        "observed": 0.10921248142644874
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 1187,
+        "mean_forecast": 0.2071090419780022,
+        "observed": 0.15248525695029486
+       },
+       {
+        "bin": [
+         0.3,
+         1.0
+        ],
+        "rows": 492,
+        "mean_forecast": 0.36565762334686525,
+        "observed": 0.1443089430894309
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.05,
+       "hit_fraction": 0.6438188494492044,
+       "false_alarm_points": 6137,
+       "reference_false_alarm_points": 6137,
+       "false_alarm_km2_per_day": 69041.25
+      },
+      "training_set_threshold": {
+       "hit_fraction": 0.6438188494492044,
+       "false_alarm_km2_per_day": 69041.25,
+       "threshold": "5% (NadoCast reference)"
+      }
+     }
+    },
+    "paired": {
+     "hrrr_rrfs_minus_nadocast": {
+      "brier": {
+       "estimate": -2.3258561187376662e-05,
+       "ci95": [
+        -0.0001530422795762062,
+        6.284657856483337e-05
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": 0.09914320685434516,
+       "ci95": [
+        -0.07383966244725738,
+        0.3961661341853035
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": 0.18849449204406366,
+       "ci95": [
+        -0.004925044077804025,
+        0.6111111111111112
+       ]
+      }
+     },
+     "hrrr_minus_nadocast": {
+      "brier": {
+       "estimate": -2.767814910875338e-07,
+       "ci95": [
+        -0.0001385466666020557,
+        0.00010229540353476468
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": 0.05507955936352509,
+       "ci95": [
+        -0.10333657289542904,
+        0.3929712460063898
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": 0.17135862913096694,
+       "ci95": [
+        0.007246376811594203,
+        0.5782828282828283
+       ]
+      }
+     },
+     "hrrr_rrfs_minus_hrrr": {
+      "brier": {
+       "estimate": -2.2981779696289126e-05,
+       "ci95": [
+        -6.037477173919452e-05,
+        4.544477847349817e-06
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": 0.044063647490820076,
+       "ci95": [
+        -0.055984555984555984,
+        0.19029850746268656
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": 0.017135862913096694,
+       "ci95": [
+        -0.050520710985827263,
+        0.1063321385902031
+       ]
+      }
+     }
+    }
+   },
+   "florida_gulf_south": {
+    "dates": 20,
+    "rows": 19840,
+    "event_rows": 41,
+    "report_days": 2,
+    "base_rate": 0.002066532258064516,
+    "arms": {
+     "hrrr": {
+      "brier": 0.0028770074349704793,
+      "forecast_to_observed_ratio": 8.23838124972507,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 10602,
+        "mean_forecast": 0.0014811161050870432,
+        "observed": 0.0
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 2144,
+        "mean_forecast": 0.007111180945753064,
+        "observed": 0.0
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 2047,
+        "mean_forecast": 0.014751554218370651,
+        "observed": 0.0
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 2966,
+        "mean_forecast": 0.03261995285407804,
+        "observed": 0.0
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 1569,
+        "mean_forecast": 0.06997473080630057,
+        "observed": 0.024219247928616953
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 374,
+        "mean_forecast": 0.11721296132328038,
+        "observed": 0.0053475935828877
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 138,
+        "mean_forecast": 0.19021198930947678,
+        "observed": 0.007246376811594203
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.07017094641923904,
+       "hit_fraction": 0.6097560975609756,
+       "false_alarm_points": 1199,
+       "reference_false_alarm_points": 1199,
+       "false_alarm_km2_per_day": 13488.75
+      },
+      "training_set_threshold": {
+       "hit_fraction": 1.0,
+       "false_alarm_km2_per_day": 22950.0,
+       "threshold": {
+        "janfeb2024": 0.05
+       }
+      }
+     },
+     "hrrr_rrfs": {
+      "brier": 0.002439277922612173,
+      "forecast_to_observed_ratio": 7.347304070134602,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 11164,
+        "mean_forecast": 0.0012710426983204824,
+        "observed": 0.0
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 2521,
+        "mean_forecast": 0.007215877406030172,
+        "observed": 0.0
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 2122,
+        "mean_forecast": 0.014186361090970927,
+        "observed": 0.0
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 2423,
+        "mean_forecast": 0.03217568827214145,
+        "observed": 0.0
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 1084,
+        "mean_forecast": 0.06932928811456335,
+        "observed": 0.0018450184501845018
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 288,
+        "mean_forecast": 0.1220574925860597,
+        "observed": 0.013888888888888888
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 226,
+        "mean_forecast": 0.20686074517733227,
+        "observed": 0.15486725663716813
+       },
+       {
+        "bin": [
+         0.3,
+         1.0
+        ],
+        "rows": 12,
+        "mean_forecast": 0.31142781178156537,
+        "observed": 0.0
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.05995667353272438,
+       "hit_fraction": 1.0,
+       "false_alarm_points": 1199,
+       "reference_false_alarm_points": 1199,
+       "false_alarm_km2_per_day": 13488.75
+      },
+      "training_set_threshold": {
+       "hit_fraction": 1.0,
+       "false_alarm_km2_per_day": 20891.25,
+       "threshold": {
+        "janfeb2024": 0.044742267578840256
+       }
+      }
+     },
+     "nadocast": {
+      "brier": 0.002257306935690264,
+      "forecast_to_observed_ratio": 4.508664834903121,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 16738,
+        "mean_forecast": 0.00043273472285473364,
+        "observed": 0.0
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 629,
+        "mean_forecast": 0.00688828413587402,
+        "observed": 0.0
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 384,
+        "mean_forecast": 0.014529050695463184,
+        "observed": 0.005208333333333333
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 851,
+        "mean_forecast": 0.032849869358680915,
+        "observed": 0.0
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 731,
+        "mean_forecast": 0.07052037975051913,
+        "observed": 0.0013679890560875513
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 247,
+        "mean_forecast": 0.12100706496713343,
+        "observed": 0.020242914979757085
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 227,
+        "mean_forecast": 0.20775969048082213,
+        "observed": 0.11013215859030837
+       },
+       {
+        "bin": [
+         0.3,
+         1.0
+        ],
+        "rows": 33,
+        "mean_forecast": 0.33770991040809983,
+        "observed": 0.24242424242424243
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.05,
+       "hit_fraction": 0.9512195121951219,
+       "false_alarm_points": 1199,
+       "reference_false_alarm_points": 1199,
+       "false_alarm_km2_per_day": 13488.75
+      },
+      "training_set_threshold": {
+       "hit_fraction": 0.9512195121951219,
+       "false_alarm_km2_per_day": 13488.75,
+       "threshold": "5% (NadoCast reference)"
+      }
+     }
+    },
+    "paired": {
+     "hrrr_rrfs_minus_nadocast": {
+      "brier": {
+       "estimate": 0.00018197098692190883,
+       "ci95": [
+        -0.0008160238525934057,
+        0.000934774903264168
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": 0.04878048780487805,
+       "ci95": [
+        0.0,
+        1.0
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": 0.04878048780487805,
+       "ci95": [
+        0.0,
+        1.0
+       ]
+      }
+     },
+     "hrrr_minus_nadocast": {
+      "brier": {
+       "estimate": 0.0006197004992802151,
+       "ci95": [
+        -0.00050835391288637,
+        0.001840600616361855
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": -0.34146341463414637,
+       "ci95": [
+        -0.41025641025641024,
+        1.0
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": 0.04878048780487805,
+       "ci95": [
+        0.0,
+        1.0
+       ]
+      }
+     },
+     "hrrr_rrfs_minus_hrrr": {
+      "brier": {
+       "estimate": -0.00043772951235830626,
+       "ci95": [
+        -0.001068834850672982,
+        -5.54684618933824e-05
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": 0.3902439024390244,
+       "ci95": [
+        0.0,
+        0.41025641025641024
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": 0.0,
+       "ci95": [
+        0.0,
+        0.0
+       ]
+      }
+     }
+    }
+   }
+  },
+  "may2024": {
+   "national": {
+    "dates": 26,
+    "rows": 1009788,
+    "event_rows": 28840,
+    "report_days": 26,
+    "base_rate": 0.028560450312342788,
+    "arms": {
+     "hrrr": {
+      "brier": 0.024261241973342052,
+      "forecast_to_observed_ratio": 1.20524512959281,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 571489,
+        "mean_forecast": 0.001092565861314007,
+        "observed": 0.0006631798687288819
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 89493,
+        "mean_forecast": 0.007225676733888177,
+        "observed": 0.005229459287318561
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 87494,
+        "mean_forecast": 0.014310740968102422,
+        "observed": 0.011429355155782112
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 101023,
+        "mean_forecast": 0.03218349362800554,
+        "observed": 0.030201043326767173
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 61413,
+        "mean_forecast": 0.07142899476743056,
+        "observed": 0.0727370426456939
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 30188,
+        "mean_forecast": 0.1226435521385781,
+        "observed": 0.11849079104279846
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 40340,
+        "mean_forecast": 0.2135406186073708,
+        "observed": 0.1845066931085771
+       },
+       {
+        "bin": [
+         0.3,
+         1.0
+        ],
+        "rows": 28348,
+        "mean_forecast": 0.4332437797628119,
+        "observed": 0.2982573726541555
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.07959918677806854,
+       "hit_fraction": 0.7368238557558946,
+       "false_alarm_points": 96741,
+       "reference_false_alarm_points": 96742,
+       "false_alarm_km2_per_day": 837181.7307692308
+      },
+      "training_set_threshold": {
+       "hit_fraction": 0.8301664355062414,
+       "false_alarm_km2_per_day": 1179925.9615384615,
+       "threshold": {
+        "may2024": 0.05
+       }
+      }
+     },
+     "hrrr_rrfs": {
+      "brier": 0.023647327696435662,
+      "forecast_to_observed_ratio": 1.25113223500102,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 596271,
+        "mean_forecast": 0.0009684313971320437,
+        "observed": 0.0005936897819950995
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 83927,
+        "mean_forecast": 0.00718557078436522,
+        "observed": 0.005600104853027035
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 82542,
+        "mean_forecast": 0.01441455837636583,
+        "observed": 0.012817717041021541
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 94003,
+        "mean_forecast": 0.032105061985736115,
+        "observed": 0.027318277076263525
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 56187,
+        "mean_forecast": 0.07144075014323167,
+        "observed": 0.06704397814441063
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 27256,
+        "mean_forecast": 0.12266365510428236,
+        "observed": 0.1154241267977693
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 37010,
+        "mean_forecast": 0.21289203371817406,
+        "observed": 0.1827614158335585
+       },
+       {
+        "bin": [
+         0.3,
+         1.0
+        ],
+        "rows": 32592,
+        "mean_forecast": 0.47428411578098434,
+        "observed": 0.32870029455081
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.07494701445102692,
+       "hit_fraction": 0.7796116504854369,
+       "false_alarm_points": 96742,
+       "reference_false_alarm_points": 96742,
+       "false_alarm_km2_per_day": 837190.3846153846
+      },
+      "training_set_threshold": {
+       "hit_fraction": 0.8599514563106796,
+       "false_alarm_km2_per_day": 1204303.8461538462,
+       "threshold": {
+        "may2024": 0.0443761944770813
+       }
+      }
+     },
+     "nadocast": {
+      "brier": 0.021311888165000518,
+      "forecast_to_observed_ratio": 1.0060185041218652,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 741765,
+        "mean_forecast": 0.0005070870358702161,
+        "observed": 0.0004084851671351439
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 45336,
+        "mean_forecast": 0.007082724196789928,
+        "observed": 0.011624316216693137
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 44573,
+        "mean_forecast": 0.014390828457524981,
+        "observed": 0.02315302986112669
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 56876,
+        "mean_forecast": 0.03251888742056638,
+        "observed": 0.043638793164076234
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 39459,
+        "mean_forecast": 0.07147280668588084,
+        "observed": 0.08892774778884412
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 20781,
+        "mean_forecast": 0.12291546449525065,
+        "observed": 0.1298782541744863
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 30558,
+        "mean_forecast": 0.2127174354000164,
+        "observed": 0.201518423980627
+       },
+       {
+        "bin": [
+         0.3,
+         1.0
+        ],
+        "rows": 30440,
+        "mean_forecast": 0.45829744034525566,
+        "observed": 0.39848883048620237
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.05,
+       "hit_fraction": 0.849375866851595,
+       "false_alarm_points": 96742,
+       "reference_false_alarm_points": 96742,
+       "false_alarm_km2_per_day": 837190.3846153846
+      },
+      "training_set_threshold": {
+       "hit_fraction": 0.849375866851595,
+       "false_alarm_km2_per_day": 837190.3846153846,
+       "threshold": "5% (NadoCast reference)"
+      }
+     }
+    },
+    "paired": {
+     "hrrr_rrfs_minus_nadocast": {
+      "brier": {
+       "estimate": 0.002335439531435145,
+       "ci95": [
+        0.001192726153105801,
+        0.003706564722372008
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": -0.06976421636615811,
+       "ci95": [
+        -0.11546114862399424,
+        -0.03275492722992918
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": 0.010575589459084605,
+       "ci95": [
+        -0.023252309165456876,
+        0.04535031302028417
+       ]
+      }
+     },
+     "hrrr_minus_nadocast": {
+      "brier": {
+       "estimate": 0.0029493538083415352,
+       "ci95": [
+        0.0015491374540073126,
+        0.004709395192769196
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": -0.11255201109570041,
+       "ci95": [
+        -0.16327438577640116,
+        -0.06687800740954723
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": -0.019209431345353675,
+       "ci95": [
+        -0.05902963708059645,
+        0.020735247908356166
+       ]
+      }
+     },
+     "hrrr_rrfs_minus_hrrr": {
+      "brier": {
+       "estimate": -0.0006139142769063906,
+       "ci95": [
+        -0.001181591840288941,
+        -7.38570741314192e-05
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": 0.042787794729542306,
+       "ci95": [
+        0.010721275583089222,
+        0.0718609987869955
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": 0.02978502080443828,
+       "ci95": [
+        0.0090661441565287,
+        0.05401980338628409
+       ]
+      }
+     }
+    }
+   },
+   "florida_gulf_south": {
+    "dates": 26,
+    "rows": 25792,
+    "event_rows": 413,
+    "report_days": 9,
+    "base_rate": 0.01601271712158809,
+    "arms": {
+     "hrrr": {
+      "brier": 0.016914445079938296,
+      "forecast_to_observed_ratio": 2.375001632660057,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 8082,
+        "mean_forecast": 0.0025931255795785028,
+        "observed": 0.0
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 5151,
+        "mean_forecast": 0.007164256495082438,
+        "observed": 0.0089303047951854
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 4066,
+        "mean_forecast": 0.014270863148067248,
+        "observed": 0.007132316773241515
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 3707,
+        "mean_forecast": 0.0313834653132715,
+        "observed": 0.01025087671971945
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 2041,
+        "mean_forecast": 0.07135941301933811,
+        "observed": 0.030377266046055854
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 1018,
+        "mean_forecast": 0.12236830237923531,
+        "observed": 0.04616895874263261
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 1031,
+        "mean_forecast": 0.21432789336351604,
+        "observed": 0.06207565470417071
+       },
+       {
+        "bin": [
+         0.3,
+         1.0
+        ],
+        "rows": 696,
+        "mean_forecast": 0.3699189092236004,
+        "observed": 0.1824712643678161
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.1335163563489914,
+       "hit_fraction": 0.4963680387409201,
+       "false_alarm_points": 1789,
+       "reference_false_alarm_points": 1789,
+       "false_alarm_km2_per_day": 15481.73076923077
+      },
+      "training_set_threshold": {
+       "hit_fraction": 0.7263922518159807,
+       "false_alarm_km2_per_day": 38821.153846153844,
+       "threshold": {
+        "may2024": 0.05
+       }
+      }
+     },
+     "hrrr_rrfs": {
+      "brier": 0.018264084806897854,
+      "forecast_to_observed_ratio": 2.4036261245698567,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 11329,
+        "mean_forecast": 0.002092026112174964,
+        "observed": 0.0023832641892488305
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 3720,
+        "mean_forecast": 0.007107589168659341,
+        "observed": 0.00510752688172043
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 3132,
+        "mean_forecast": 0.014223387684330515,
+        "observed": 0.008620689655172414
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 3323,
+        "mean_forecast": 0.03194384753094213,
+        "observed": 0.019560637977730964
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 1566,
+        "mean_forecast": 0.0699666390911525,
+        "observed": 0.028735632183908046
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 767,
+        "mean_forecast": 0.12310529568243524,
+        "observed": 0.041720990873533245
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 1092,
+        "mean_forecast": 0.21282098112088857,
+        "observed": 0.045787545787545784
+       },
+       {
+        "bin": [
+         0.3,
+         1.0
+        ],
+        "rows": 863,
+        "mean_forecast": 0.4119000096793523,
+        "observed": 0.17149478563151796
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.1464405655860901,
+       "hit_fraction": 0.48426150121065376,
+       "false_alarm_points": 1789,
+       "reference_false_alarm_points": 1789,
+       "false_alarm_km2_per_day": 15481.73076923077
+      },
+      "training_set_threshold": {
+       "hit_fraction": 0.6876513317191283,
+       "false_alarm_km2_per_day": 37800.0,
+       "threshold": {
+        "may2024": 0.0443761944770813
+       }
+      }
+     },
+     "nadocast": {
+      "brier": 0.01841788823657754,
+      "forecast_to_observed_ratio": 1.332885002088,
+      "reliability": [
+       {
+        "bin": [
+         0,
+         0.005
+        ],
+        "rows": 19500,
+        "mean_forecast": 0.0008460011568467374,
+        "observed": 0.0015897435897435897
+       },
+       {
+        "bin": [
+         0.005,
+         0.01
+        ],
+        "rows": 1642,
+        "mean_forecast": 0.007054912720912588,
+        "observed": 0.03227771010962241
+       },
+       {
+        "bin": [
+         0.01,
+         0.02
+        ],
+        "rows": 1353,
+        "mean_forecast": 0.014192181194762279,
+        "observed": 0.04286770140428677
+       },
+       {
+        "bin": [
+         0.02,
+         0.05
+        ],
+        "rows": 1297,
+        "mean_forecast": 0.031889768526493105,
+        "observed": 0.04626060138781804
+       },
+       {
+        "bin": [
+         0.05,
+         0.1
+        ],
+        "rows": 770,
+        "mean_forecast": 0.07027088654980003,
+        "observed": 0.07532467532467532
+       },
+       {
+        "bin": [
+         0.1,
+         0.15
+        ],
+        "rows": 238,
+        "mean_forecast": 0.11976131957695801,
+        "observed": 0.10504201680672269
+       },
+       {
+        "bin": [
+         0.15,
+         0.3
+        ],
+        "rows": 328,
+        "mean_forecast": 0.22329903913685084,
+        "observed": 0.14634146341463414
+       },
+       {
+        "bin": [
+         0.3,
+         1.0
+        ],
+        "rows": 664,
+        "mean_forecast": 0.4608183797306779,
+        "observed": 0.12048192771084337
+       }
+      ],
+      "equal_area_vs_nadocast_5pct": {
+       "threshold": 0.05,
+       "hit_fraction": 0.5108958837772397,
+       "false_alarm_points": 1789,
+       "reference_false_alarm_points": 1789,
+       "false_alarm_km2_per_day": 15481.73076923077
+      },
+      "training_set_threshold": {
+       "hit_fraction": 0.5108958837772397,
+       "false_alarm_km2_per_day": 15481.73076923077,
+       "threshold": "5% (NadoCast reference)"
+      }
+     }
+    },
+    "paired": {
+     "hrrr_rrfs_minus_nadocast": {
+      "brier": {
+       "estimate": -0.00015380342967968573,
+       "ci95": [
+        -0.0028750193465818283,
+        0.0022424744841725106
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": -0.026634382566585957,
+       "ci95": [
+        -0.14665372646727387,
+        0.039603960396039604
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": 0.17675544794188863,
+       "ci95": [
+        0.045326949524008536,
+        0.4404304625249989
+       ]
+      }
+     },
+     "hrrr_minus_nadocast": {
+      "brier": {
+       "estimate": -0.0015034431566392416,
+       "ci95": [
+        -0.006126949811659566,
+        0.002217514732208558
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": -0.014527845036319613,
+       "ci95": [
+        -0.12423525747996333,
+        0.06583268025078369
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": 0.21549636803874092,
+       "ci95": [
+        0.06510500026854289,
+        0.5529717395191567
+       ]
+      }
+     },
+     "hrrr_rrfs_minus_hrrr": {
+      "brier": {
+       "estimate": 0.0013496397269595558,
+       "ci95": [
+        -0.0002698695160009087,
+        0.0034429943596545973
+       ]
+      },
+      "equal_area_hit_fraction": {
+       "estimate": -0.012106537530266344,
+       "ci95": [
+        -0.07729641626178314,
+        0.027354600694444384
+       ]
+      },
+      "training_threshold_hit_fraction": {
+       "estimate": -0.0387409200968523,
+       "ci95": [
+        -0.15517659859390692,
+        0.01923465266558964
+       ]
+      }
+     }
+    }
+   }
+  }
+ }
+}
