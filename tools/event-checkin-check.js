@@ -58,11 +58,42 @@ const shot = async (p, name) => { await p.locator('#keys').screenshot({ path: pa
       /* missed checkpoint: 4:10 PM on the day, gates still closed -> Check now */
       { const today = E({ n: "Bill's riverfront show", t: { setup: `2026-11-26T12:00`, gates: `2026-11-26T16:30`, start: `2026-11-26T17:00`, end: `2026-11-26T22:00` } });
         const { ctx, p, errors } = await open(browser, srv, { query: today + '&wx=dry&meta=a', device, clock: '2026-11-26T21:10:00Z' }), x = await read(p);
-        check(x.checkNow && /^Check now Gates open at 4:30 PM\. Check radar, lightning and alerts\./.test(x.next) && /^Next model update/.test(x.model) && !errors.length, `missed checkpoint ${dev} (4:10 PM, gates closed): ${x.next}`);
+        check(x.checkNow && x.next === 'Check now Before gates open at 4:30 PM' && /^Next model update/.test(x.model) && !errors.length, `missed checkpoint ${dev} (4:10 PM, gates closed): ${x.next}`);
         /* on the event day the briefing above is longer and Next check was already below the first screen (884 px
            before this change). Guard: at most one line more. */
-        if (dev === 'phone') check(x.nextBottom <= 884 + 40 && !x.hs, `missed checkpoint phone: Next check at ${x.nextBottom} px (884 before this change; at most one line more), no sideways scroll`);
+        if (dev === 'phone') check(x.nextBottom <= 884 + 40 && !x.hs, `missed checkpoint phone: Next check at ${x.nextBottom} px (884 before this change), no sideways scroll`);
         await shot(p, `missed-${dev}`); await ctx.close(); }
+      /* a page left open: 3:59 PM -> 4:00 PM switches to Check now without a reload or a weather request; the selected
+         forecast hour and the warning stay put; when the tab comes back after gates open, live monitoring replaces it */
+      { const today = E({ n: "Bill's riverfront show", t: { setup: `2026-11-26T12:00`, gates: `2026-11-26T16:30`, start: `2026-11-26T17:00`, end: `2026-11-26T22:00` } });
+        const { ctx, p, errors } = await open(browser, srv, { query: today + '&wx=dry&meta=a&alerts=warn', device, clock: '2026-11-26T20:59:00Z' });
+        await p.evaluate(() => { window.__loads = 0; const o = BetaUI.load; BetaUI.load = async (...a) => { window.__loads++; return o(...a); }; window.__warn = document.querySelector('.bx-alert'); window.__lead = document.getElementById('decision'); });
+        const sel0 = await p.evaluate(() => document.body.dataset.selected), x0 = await read(p);
+        check(/^Thu 4 PM EST in 1 min Before gates open at 4:30 PM$/.test(x0.next), `left open ${dev}, 3:59 PM: ${x0.next}`);
+        await p.clock.runFor(70e3); await p.waitForTimeout(300);
+        const x1 = await read(p), same = await p.evaluate((s0) => ({ loads: window.__loads, sel: document.body.dataset.selected === s0, warn: !!window.__warn && window.__warn.isConnected && window.__warn === document.querySelector('.bx-alert'), lead: window.__lead === document.getElementById('decision') }), sel0);
+        check(x1.checkNow && x1.next === 'Check now Before gates open at 4:30 PM', `left open ${dev}, 4:00:10 PM: switched to "${x1.next}"`);
+        check(same.loads === 0 && same.sel && same.warn && same.lead && !errors.length, `left open ${dev}: no reload or weather request (${same.loads} loads), the selected forecast hour, the warning and the lead are the same elements ${errors.join('; ')}`);
+        /* event day with a warning: the warning-first layout; Next check was at 981 px on beta at e0f9268 and must not move lower */
+        if (dev === 'phone') check(x1.alert && x1.alert.bottom <= x1.vh && x1.nextBottom <= 981 && !x1.hs, `left open phone: the warning stays on the first screen (${x1.alert && x1.alert.bottom} px); Next check at ${x1.nextBottom} px (981 on beta)`);
+        await shot(p, `left-open-checknow-${dev}`);
+        /* the tab is hidden across the gate time and shown again at 4:35 PM */
+        await p.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange')); });
+        await p.clock.runFor(35 * 60e3);
+        await p.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => false }); document.dispatchEvent(new Event('visibilitychange')); }); await p.waitForTimeout(300);
+        const x2 = await read(p), loads2 = await p.evaluate(() => window.__loads);
+        check(!x2.checkNow && x2.next === 'Now: use radar, lightning detection and NWS warnings.' && !/Before gates open/.test(x2.next), `tab shown again after gates open ${dev}: the pre-gates message is gone (${x2.next})`);
+        check(loads2 === 0, `tab shown again ${dev}: still no weather request (${loads2})`);
+        await ctx.close(); }
+      /* the tab comes back into view past the checkpoint: Check now */
+      { const today = E({ n: "Bill's riverfront show", t: { setup: `2026-11-26T12:00`, gates: `2026-11-26T16:30`, start: `2026-11-26T17:00`, end: `2026-11-26T22:00` } });
+        const { ctx, p } = await open(browser, srv, { query: today + '&wx=dry&meta=a', device, clock: '2026-11-26T20:30:00Z' }), x0 = await read(p);
+        await p.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange')); });
+        await p.clock.runFor(40 * 60e3);
+        await p.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => false }); document.dispatchEvent(new Event('visibilitychange')); }); await p.waitForTimeout(300);
+        const x1 = await read(p);
+        check(/Before gates open at 4:30 PM/.test(x0.next) && !x0.checkNow && x1.checkNow, `tab hidden 3:30 to 4:10 PM ${dev}: shown again it reads Check now (${x0.next} -> ${x1.next})`);
+        await ctx.close(); }
       /* single-window reception, no gates */
       { const { ctx, p } = await open(browser, srv, { query: E({ n: 'Smith reception', t: { start: `${D}T18:00`, end: `${D}T22:00` }, s: [['Reception', `${D}T18:00`, `${D}T22:00`]] }) + '&wx=evening&meta=a', device, clock: CLOCK }), x = await read(p);
         check(/^Thu 5:30 PM EST/.test(x.next) && x.op === 'Before Reception at 6 PM', `single-window reception ${dev}: ${x.next}`); await shot(p, `reception-${dev}`); await ctx.close(); }
