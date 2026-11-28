@@ -325,7 +325,9 @@
       /* the hazard word is highlighted wherever the headline puts it ("Rain likely…", "Plan for rain…") */
       const hz = top ? new RegExp(esc(top.noun).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i") : null;
       $("decision").innerHTML = top ? esc(displayText).replace(hz, (m) => `<span class="hz" style="--tier:var(--${top.tier})">${m}</span>`) : esc(displayText);
-      $("keys").innerHTML = callouts({ A, PS, live, peak, lightAll, op, mu, R, tz, now, gapText: G.incompleteRain, gapAll: G.incomplete });
+      /* the next model update, on its own line under the callouts: it comes from this browser's model metadata */
+      { const m = $("modelNext"); if (m) { m.hidden = !mu; m.textContent = mu ? `Next model update: ${String(mu.name).replace(/ \(.*\)$/, "")}, ${fmt.time(mu.at, tz)}` : ""; } }
+      $("keys").innerHTML = callouts({ A, PS, live, peak, lightAll, op, R, tz, now, gapText: G.incompleteRain, gapAll: G.incomplete });
     }
     $("coverage").querySelectorAll("[data-remind]").forEach((a) => a.addEventListener("click", () => U.track("reminder_exported", { via: a.dataset.remind })));
     earlyOutlook(res, R, around);
@@ -374,7 +376,7 @@
   }
   /* ---- the briefing's callouts: rain, lightning potential, and the third concern (gusts against the venue limit unless
      another hazard ranks higher), then the next check. Values come from the briefing engine and the attention model. ---- */
-  function callouts({ A, PS, live, peak, lightAll, op = null, mu = null, R, tz, now, gapText = "", gapAll = "" }) {
+  function callouts({ A, PS, live, peak, lightAll, op = null, R, tz, now, gapText = "", gapAll = "" }) {
     /* the lead above already gives the primary concern's hours; its callout keeps only where in the schedule it falls */
     const item = (k) => A.items.find((x) => x.key === k), when = (it) => { const f = BUI.focusOf(it, A.phases), lead = A.items[0] === it && f.text;
       return [f.text, f.from != null && !lead ? fmt.span(f.from, f.to, tz) : ""].filter(Boolean).join(" · "); };
@@ -404,11 +406,10 @@
       third = wind && wind.windows.length ? `${dt("Gusts", wind)}<dd${tierCls(wind)}><b>Reach your ${A.limit} mph limit</b> · up to ${esc(mph(Math.max(...wind.windows.map((w) => w.peak ? w.peak.v : 0))))}${wind === primary && wind.word ? impact(wind) : `<span class="bx-note">${esc(when(wind))}</span>`}</dd>`
         : `${dt("Gusts", wind)}<dd${tierCls(wind)}>${fin(gmax) ? `Up to ${esc(mph(gmax))}${gapAll ? " in hours with guidance" : ""}` : "Unavailable"}<span class="bx-note">${fin(gmax) ? `${gapAll ? `Below your ${A.limit} mph limit` : `Below your ${A.limit} mph venue limit`}` : "No gust guidance for these hours (not zero)"}</span></dd>`;
     }
-    /* the operational check (same for everyone with this schedule), then the next model update on its own line */
+    /* the operational check: the same for everyone with this schedule (the next model update has its own line below) */
     const hm = (ms) => new Date(ms).toLocaleTimeString("en-US", { timeZone: tz, hour: "numeric", minute: new Date(ms).getUTCMinutes() ? "2-digit" : undefined }); // the day is in the time stamp above
-    const model = mu ? `<span class="bx-note ev-model" data-model-update>Next model update: ${esc(String(mu.name).replace(/ \(.*\)$/, ""))}, ${esc(fmt.time(mu.at, tz))}</span>` : "";
-    const nextDd = op && op.state === "upcoming" ? `${vt(op.at, tz, now)}<span class="bx-note" data-op-check>${esc(op.what)} at ${esc(hm(op.opensMs))}</span>${model}`
-      : op && op.state === "now" ? `<b class="ev-checknow" data-op-check="now">Check now</b><span class="bx-note">${esc(op.opens)} at ${esc(hm(op.opensMs))}. Check radar, lightning and alerts.</span>${model}`
+    const nextDd = op && op.state === "upcoming" ? `${vt(op.at, tz, now)}<span class="bx-note" data-op-check>${esc(op.what)} at ${esc(hm(op.opensMs))}</span>`
+      : op && op.state === "now" ? `<b class="ev-checknow" data-op-check="now">Check now</b><span class="bx-note">${esc(op.opens)} at ${esc(hm(op.opensMs))}. Check radar, lightning and alerts.</span>`
       : "Now: use radar, lightning detection and NWS warnings.";
     return `${dt("Rain chance", rain)}${rainDd}${dt("Lightning potential", light)}${lightDd}${third}<dt>Next check</dt><dd class="ev-next">${nextDd}</dd>`;
   }

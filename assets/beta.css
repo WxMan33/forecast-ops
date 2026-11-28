@@ -1158,4 +1158,4 @@ body[data-view="upcoming"] #picker { visibility: hidden; }
 
 /* Event Manager: the operational check when its time has come, and the next model update on its own line */
 .bx .ev-checknow { color: var(--action, #c2410c); font-weight: 800; letter-spacing: .02em; }
-.bx .ev-model { opacity: .85; }
+.bx .ev-model { margin: 4px 0 0; }

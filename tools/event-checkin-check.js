@@ -27,7 +27,7 @@ async function open(browser, srv, { query, device = PHONE, clock }) {
   return { ctx, p, errors };
 }
 const read = (p) => p.evaluate(() => { const dd = [...document.querySelectorAll('#keys dd')], last = dd[dd.length - 1], r = (e) => e && e.getBoundingClientRect(), alert = document.querySelector('.bx-alert, #alerts .bx-alert, [data-alert]');
-  return { next: last ? last.innerText.replace(/\s+/g, ' ').trim() : '', op: (document.querySelector('#keys [data-op-check]') || {}).textContent || '', model: (document.querySelector('#keys [data-model-update]') || {}).textContent || '',
+  return { next: last ? last.innerText.replace(/\s+/g, ' ').trim() : '', op: (document.querySelector('#keys [data-op-check]') || {}).textContent || '', model: (() => { const m = document.querySelector('#modelNext'); return m && !m.hidden ? m.textContent : ''; })(),
     checkNow: !!document.querySelector('#keys [data-op-check="now"]'), nextBottom: last ? Math.round(r(last).bottom) : null, vh: innerHeight, hs: document.documentElement.scrollWidth > innerWidth + 1,
     alert: alert ? { text: alert.innerText.replace(/\s+/g, ' ').trim().slice(0, 80), top: Math.round(r(alert).top), bottom: Math.round(r(alert).bottom) } : null,
     checks: (document.getElementById('checks') || {}).textContent || '', print: (document.querySelector('.pv-nextcheck, .pv-lead-next') || {}).textContent || '' }; });
@@ -41,13 +41,13 @@ const shot = async (p, name) => { await p.locator('#keys').screenshot({ path: pa
       /* Bill: gates 4:30 PM, show 5 PM -> 4:00 PM "Before gates open at 4:30 PM"; model update on its own line */
       { const { ctx, p, errors } = await open(browser, srv, { query: bill + '&wx=ceremony&meta=a', device, clock: CLOCK }), x = await read(p);
         check(/^Thu 4 PM EST in \d+ h/.test(x.next) && x.op === 'Before gates open at 4:30 PM' && /^Next model update: [A-Z][^(]+, [A-Z][a-z]{2} \d/.test(x.model) && !/Before gates \/ start/.test(x.next + x.checks), `Bill ${dev}: Next check 4:00 PM, Before gates open at 4:30 PM; model update separate (${x.next})`);
-        if (dev === 'phone') check(x.nextBottom <= x.vh && !x.hs, `Bill phone: the whole Next check, model line included, fits the first 375 × 667 screen (bottom ${x.nextBottom} of ${x.vh})`);
+        if (dev === 'phone') check(x.nextBottom <= x.vh && !x.hs, `Bill phone: Next check fits the first 375 × 667 screen (the model update is on its own line below) (bottom ${x.nextBottom} of ${x.vh})`);
         check(!errors.length, `Bill ${dev}: no page errors ${errors.join('; ')}`);
         await shot(p, `bill-${dev}`); await ctx.close(); }
       /* the same event and schedule in a browser with other model run times: same operational check, different model line */
       { const a = await open(browser, srv, { query: bill + '&wx=ceremony&meta=a', device, clock: CLOCK }), xa = await read(a.p); await a.ctx.close();
         const b = await open(browser, srv, { query: bill + '&wx=ceremony&meta=b', device, clock: CLOCK }), xb = await read(b.p); await b.ctx.close();
-        check(xa.op === xb.op && xa.next.split('Next model update')[0] === xb.next.split('Next model update')[0] && xa.model !== xb.model, `Bill and Michael ${dev}: same operational check (${xa.op}); model update differs (${xa.model} | ${xb.model})`); }
+        check(xa.op === xb.op && xa.next === xb.next && xa.model !== xb.model, `Bill and Michael ${dev}: same operational check (${xa.op}); model update differs (${xa.model} | ${xb.model})`); }
       /* an active warning stays visible with the new wording */
       { const { ctx, p } = await open(browser, srv, { query: bill + '&wx=ceremony&meta=a&alerts=warn', device, clock: CLOCK }), x = await read(p);
         check(x.alert && x.alert.top >= 0 && x.alert.bottom <= x.vh && /Flash Flood Warning/.test(x.alert.text) && x.op === 'Before gates open at 4:30 PM', `Bill ${dev} with an active warning: the warning stays on the first screen (${x.alert && x.alert.bottom} of ${x.vh}) and Next check reads the same`);
