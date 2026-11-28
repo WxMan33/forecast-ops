@@ -1,0 +1,8 @@
+{
+ "request": 1,
+ "stage": "inventory",
+ "purpose": "NadoCast head-to-head, stage 1: inventory and commit the matched 2024 date list and exclusions (no scoring)",
+ "rules": "research/severe/conus-v1/rrfs/retro/NADOCAST.md",
+ "cache_run": 46035459501,
+ "expect_fingerprints": "research/severe/conus-v1/rrfs/retro/repro/scorecard-pinned-1.json"
+}

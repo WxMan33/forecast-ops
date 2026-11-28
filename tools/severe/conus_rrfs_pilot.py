@@ -446,6 +446,18 @@ def score(a):
             Path(a.output).mkdir(parents=True, exist_ok=True)
             (Path(a.output) / "fingerprint-mismatch.json").write_text(json.dumps(check, indent=1) + "\n")
             raise SystemExit("Unchanged arms do not reproduce the pinned fingerprints; adjustment not evaluated")
+    if a.save_predictions:
+        # held-out predictions per date (written only after the fingerprint gate above has passed)
+        ds = sorted(D)
+        offs = np.cumsum([0] + [len(D[d][2]) for d in ds])
+        Path(a.save_predictions).parent.mkdir(parents=True, exist_ok=True)
+        np.savez_compressed(a.save_predictions, dates=np.array(ds), offsets=offs,
+                            row_index=np.concatenate([D[d][3] for d in ds]).astype(np.int32),
+                            labels=np.concatenate([D[d][2] for d in ds]).astype(np.uint8),
+                            **{arm: np.concatenate([P[arm][d] for d in ds]) for arm in arms})
+        Path(a.save_predictions).with_suffix(".thresholds.json").write_text(
+            json.dumps({b: f["thresholds"] for b, f in folds.items()}, indent=1) + "\n")
+        Path(a.save_predictions).with_suffix(".fingerprint-check.json").write_text(json.dumps(check, indent=1) + "\n")
     res = summarize(D, P, folds, reg_all, pos, arms, list(REGIONS), pairs)
     dropped = [r for r in man["dates"] if r["status"] != "ok"]
     if a.cycle == 6:
@@ -540,6 +552,7 @@ def main():
     s.add_argument("--cache", required=True)
     s.add_argument("--cycle", type=int, default=12, choices=[12, 6])
     s.add_argument("--experiment", default="first", choices=["first", "ablation", "flcal", "twocycle"])
+    s.add_argument("--save-predictions", help="write held-out predictions (npz) after the fingerprint gate")
     s.add_argument("--expect-fingerprints", help="scorecard whose hrrr / hrrr_rrfs fingerprints must be reproduced first")
     s.add_argument("--output", required=True)
     a = p.parse_args()

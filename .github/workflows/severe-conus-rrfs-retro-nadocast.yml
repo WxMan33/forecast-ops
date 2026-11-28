@@ -1,0 +1,65 @@
+name: Severe CONUS retrospective RRFS pilot NadoCast head-to-head (research)
+# research/severe/conus-v1/rrfs/retro/NADOCAST.md. stage "inventory": fetch/pin/decode-check NadoCast for the 2024 pilot
+# dates and commit the matched roster (no scoring). stage "compare": regenerate the pinned held-out predictions (fingerprint
+# gate), then compare with NadoCast on the committed roster. Development only; 2025 never requested; nothing live touched.
+on:
+  push:
+    branches: [claude/severe-phase2-training]
+    paths: ['research/severe/conus-v1/rrfs/retro/nadocast-request.json']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: severe-conus-rrfs-retro
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_CORETYPE: Haswell
+      NPY_DISABLE_CPU_FEATURES: 'AVX512F AVX512CD AVX512_SKX AVX512_CLX AVX512_CNL AVX512_ICL AVX512_SPR'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -r tools/severe/requirements.txt scikit-learn==1.9.1 shapely==2.2.0
+      - id: req
+        run: |
+          f=research/severe/conus-v1/rrfs/retro/nadocast-request.json
+          echo "stage=$(jq -r .stage $f)" >> "$GITHUB_OUTPUT"
+          echo "run=$(jq -r .cache_run $f)" >> "$GITHUB_OUTPUT"
+          echo "ref=$(jq -r .expect_fingerprints $f)" >> "$GITHUB_OUTPUT"
+      - name: Stage 1 - inventory NadoCast and write the matched roster
+        if: steps.req.outputs.stage == 'inventory'
+        run: |
+          PYTHONPATH=tools/severe python3 tools/severe/nadocast_rrfs.py inventory --cache tests/out/nccache --output tests/out/nc
+      - uses: actions/download-artifact@v4
+        if: steps.req.outputs.stage == 'compare'
+        with: { name: rrfs-retro-cache, path: tests/out/cache, run-id: '${{ steps.req.outputs.run }}', github-token: '${{ github.token }}' }
+      - name: Stage 2 - pinned predictions (fingerprint gate), then the NadoCast comparison
+        if: steps.req.outputs.stage == 'compare'
+        run: |
+          grep -m1 "model name" /proc/cpuinfo
+          PYTHONPATH=tools/severe python3 tools/severe/conus_rrfs_pilot.py score --cache tests/out/cache --cycle 12 --experiment first \
+            --expect-fingerprints "${{ steps.req.outputs.ref }}" --save-predictions tests/out/pred/pred.npz --output tests/out/pred > /dev/null
+          PYTHONPATH=tools/severe python3 tools/severe/nadocast_rrfs.py compare --roster research/severe/conus-v1/rrfs/retro/nadocast/nadocast-roster.json \
+            --predictions tests/out/pred/pred.npz --thresholds tests/out/pred/pred.thresholds.json \
+            --fingerprint-check tests/out/pred/pred.fingerprint-check.json --cache tests/out/nccache --output tests/out/nc
+      - name: Commit
+        if: always()
+        env:
+          DEST: research/severe/conus-v1/rrfs/retro/nadocast
+        run: |
+          mkdir -p "$DEST"
+          cp tests/out/nc/* "$DEST/" 2>/dev/null || true
+          cp tests/out/pred/fingerprint-mismatch.json "$DEST/" 2>/dev/null || true
+          echo "run_id: $GITHUB_RUN_ID (stage ${{ steps.req.outputs.stage }})" > "$DEST/run-${{ steps.req.outputs.stage }}.txt"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$DEST"
+          git commit -m "Retrospective RRFS pilot: NadoCast ${{ steps.req.outputs.stage }} (run $GITHUB_RUN_ID)" || exit 0
+          for i in 1 2 3 4; do git pull --rebase -q origin "$GITHUB_REF_NAME" && git push -q origin HEAD:"$GITHUB_REF_NAME" && exit 0; sleep $((i*15)); done
+          exit 1
