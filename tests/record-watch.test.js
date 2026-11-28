@@ -16,4 +16,35 @@ assert.equal(Object.keys(R.records([['2025-11-03','M','M']],'2026-11-03')).lengt
 assert.equal(R.records([...fixture.data,['2026-11-03','100','-20'],['2025-11-04','110','-30']],'2026-11-03').highMax.value,81);
 assert.equal(R.assess({...row,hi:rec.lowMax.value},'hi',rec).find(x=>x.key==='lowMax').color,'cold');
 assert.equal(R.assess({...row,lo:rec.highMin.value},'lo',rec).find(x=>x.key==='highMin').color,'warm');
-console.log('21 record-watch checks pass (official captured Cincinnati records, all four extremes, partial days, missing values and location gating)');
+/* Forecast record potential. Captured official Nov 3 temperature records; the precipitation and snowfall records
+   (1.40 in, 4.0 in) and every forecast value below are synthetic test inputs. */
+const P=(row,extra={},opt={})=>R.potential({k:'2026-11-03',hours:24,hi:60,lo:40,...row},{...rec,pcpn:{value:1.40,years:[1950],n:150},snow:{value:4.0,years:[1950],n:120},...extra},opt);
+let c=P({hi:79});assert.equal(c.length,1);assert.equal(c[0].sentence,"Tuesday's forecast high is within 2°F of the record high");assert.equal(c[0].closeness,'2°F short');
+c=P({hi:81});assert.equal(c[0].sentence,"The current blend would tie Tuesday's record high");assert.equal(c[0].state,'tie');
+c=P({hi:83,hiR:[80,85]});assert.equal(c[0].sentence,"The current blend would break Tuesday's record high by 2°F");assert.equal(c[0].spread,'Guidance range 80–85°F, and its lower end stays short of it');
+c=P({hi:79,hiR:[76,82]});assert.match(c[0].spread,/upper end reaches the record/);
+assert.equal(P({hi:78}).length,0,'3°F short: no candidate');
+assert.equal(P({hi:83,hours:23}).length,0,'a 23-hour day is never compared with a full-day record');
+c=P({qpf:1.40,qpfR:[0.8,1.9]});assert.equal(c[0].sentence,"The current blend would tie Tuesday's daily precipitation record");assert.equal(c[0].spread,'Guidance range 0.80–1.90 in');/* "All guidance" only when the sources' own values agree; bounds that only round alike read "Guidance around" */
+assert.equal(P({qpf:1.40,qpfR:[1.4,1.4]})[0].spread,'Guidance around 1.40 in','no per-source values: never "All guidance"');
+assert.equal(P({qpf:1.40,qpfR:[1.398,1.402],parts:{qpf:[{id:'a',v:1.398},{id:'b',v:1.402}]}})[0].spread,'Guidance around 1.40 in','sources differ but round alike');
+assert.equal(P({qpf:1.40,qpfR:[1.4,1.4],parts:{qpf:[{id:'a',v:1.4},{id:'b',v:1.4},{id:'c',v:1.4}]}})[0].spread,'All guidance 1.40 in','sources agree');
+assert.equal(P({hi:81,hiR:[80.6,81.4],parts:{hi:[{id:'a',v:80.6},{id:'b',v:81.4}]}})[0].spread,'Guidance around 81°F','temperature bounds that round alike');
+c=P({qpf:1.12});assert.equal(c[0].state,'near');assert.match(c[0].closeness,/0\.28 in short \(80% of the record\)/);
+assert.equal(P({qpf:1.0}).length,0,'71% of the record without upper guidance reaching it: nothing');
+c=P({qpf:0.75,qpfR:[0.2,1.5]});assert.equal(c[0].sentence,"The upper guidance for Tuesday reaches the daily precipitation record");
+assert.equal(P({qpf:0.6,qpfR:[0.2,1.5]}).length,0,'upper end reaches it but the blend is under half: nothing');
+assert.equal(P({sn:9.9}).length,0,'model snowfall (7:1) is never compared with a snowfall record');
+c=P({},{},{snow:{covers:true,exact:true,lower:4.4,upper:4.4}});assert.equal(c[0].sentence,"NWS's snowfall forecast would break Tuesday's daily snowfall record");assert.equal(c[0].forecast,'4.4 in');
+c=P({},{},{snow:{covers:true,exact:false,lower:3.0,upper:6.0}});assert.equal(c.length,0,'intervals straddle the day and the low end is short: nothing');
+c=P({},{},{snow:{covers:true,exact:false,lower:4.5,upper:6.0}});assert.match(c[0].sentence,/^Even the low end/);assert.equal(c[0].state,'break');
+/* the low end of a straddled NWS range equal to the record: "at least tie", never "break" */
+c=P({},{},{snow:{covers:true,exact:false,lower:4.0,upper:6.0}});assert.equal(c[0].sentence,"NWS's snowfall forecast would at least tie Tuesday's daily snowfall record");assert.equal(c[0].state,'tie');assert.equal(c[0].closeness,'low end ties the record');
+c=P({},{},{snow:{covers:true,exact:false,lower:4.04,upper:6.0}});assert.equal(c[0].state,'tie','4.04 in shows as 4.0 in: at least a tie, not a break');
+assert.equal(P({},{},{snow:{covers:false}}).length,0,'NWS snowfall not covering the day: nothing');
+assert.equal(P({},{pcpn:{value:1.4,years:[1950],n:20}}).length+P({qpf:2},{pcpn:{value:1.4,years:[1950],n:20}}).length,0,'under 30 years of precipitation records: nothing');
+assert.equal(R.card([],{esc:x=>x,station:'X'}),'','no candidates: no card');
+assert.match(R.card(P({hi:81}),{esc:x=>x,station:'Cincinnati Area (CVGthr)'}),/Forecast record potential.*Would tie.*Record<\/i> <b>81°F<\/b> \(1946\)/s);
+const pr=R.records([['1999-11-29','50','30','2.10','T'],...Array.from({length:40},(_,i)=>[`${1950+i}-11-29`,'50','30','0.50','1.0'])],'2026-11-29');assert.equal(pr.pcpn.value,2.1);assert.equal(pr.snow.value,1);
+console.log('51 record-watch checks pass (official captured Cincinnati records, all four extremes, partial days, missing values, location gating, and forecast record potential for temperature, precipitation and NWS snowfall)');
+//console.log('21 record-watch checks pass (official captured Cincinnati records, all four extremes, partial days, missing values and location gating)');
